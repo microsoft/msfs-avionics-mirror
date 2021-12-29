@@ -2,6 +2,10 @@
 
 Welcome to the Microsoft Flight Simulator avionics source code mirror. At this time, this repository contains the source code for the Garmin G1000 NXi as well as the related Typescript/JSX avionics creation framework. Additional avionics sources may be mirrored on this repository at a later date.
 
+## Documentation
+
+Documentation for the provided Typescript/JSX avionics creation framework can be found at https://microsoft.github.io/msfs-avionics-mirror/
+
 ## Contributing
 
 This repository is solely a mirror for the provided source for reference purposes and community usage. Contributions to the source are not able to be accepted at this time.
