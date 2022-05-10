@@ -1,4 +1,4 @@
-import { GeoCircle, GeoPoint, LatLonInterface, UnitType, Vec3Math } from '..';
+import { GeoCircle, GeoPoint, LatLonInterface, MathUtils, ReadonlyFloat64Array, UnitType, Vec3Math } from '..';
 import { CircleVector, FlightPathVector, FlightPathVectorFlags, LegCalculations, VectorTurnDirection } from './FlightPlanning';
 
 /**
@@ -41,8 +41,8 @@ export class FlightPathUtils {
   public static setCircleVector(
     vector: CircleVector,
     circle: GeoCircle,
-    start: Float64Array | LatLonInterface,
-    end: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
     flags: number
   ): CircleVector {
     vector.flags = flags;
@@ -56,10 +56,10 @@ export class FlightPathUtils {
     start instanceof Float64Array && (start = FlightPathUtils.geoPointCache[0].setFromCartesian(start));
     end instanceof Float64Array && (end = FlightPathUtils.geoPointCache[1].setFromCartesian(end));
 
-    vector.startLat = start.lat;
-    vector.startLon = start.lon;
-    vector.endLat = end.lat;
-    vector.endLon = end.lon;
+    vector.startLat = (start as LatLonInterface).lat;
+    vector.startLon = (start as LatLonInterface).lon;
+    vector.endLat = (end as LatLonInterface).lat;
+    vector.endLon = (end as LatLonInterface).lon;
 
     return vector;
   }
@@ -98,7 +98,7 @@ export class FlightPathUtils {
   /**
    * Gets the final true course bearing of a flight path vector.
    * @param vector A flight path vector.
-   * @returns The final true course bearing of the vector, or undefined if one could not be calculated.
+   * @returns The final true course bearing of the vector, or `undefined` if one could not be calculated.
    */
   public static getVectorFinalCourse(vector: FlightPathVector): number {
     return FlightPathUtils.setGeoCircleFromVector(
@@ -111,7 +111,7 @@ export class FlightPathUtils {
    * Gets the final position of a calculated leg.
    * @param legCalc A set of leg calculations.
    * @param out The GeoPoint object to which to write the result.
-   * @returns the final position of the leg, or undefined if one could not be obtained.
+   * @returns The final position of the leg, or `undefined` if one could not be obtained.
    */
   public static getLegFinalPosition(legCalc: LegCalculations, out: GeoPoint): GeoPoint | undefined {
     if (legCalc.endLat !== undefined && legCalc.endLon !== undefined) {
@@ -122,9 +122,9 @@ export class FlightPathUtils {
   }
 
   /**
-   * Gets the final course of a calculated leg.
+   * Gets the final true course of a calculated leg.
    * @param legCalc A set of leg calculations.
-   * @returns the final course of the leg, or undefined if one could not be obtained.
+   * @returns The final true course of the leg, or `undefined` if one could not be obtained.
    */
   public static getLegFinalCourse(legCalc: LegCalculations): number | undefined {
     if (legCalc.flightPath.length > 0) {
@@ -143,12 +143,22 @@ export class FlightPathUtils {
    * @param out A GeoCircle object to which to write the result.
    * @returns The circle describing the path of the turn.
    */
-  public static getTurnCircle(center: Float64Array | LatLonInterface, radius: number, turnDirection: VectorTurnDirection, out: GeoCircle): GeoCircle {
+  public static getTurnCircle(center: ReadonlyFloat64Array | LatLonInterface, radius: number, turnDirection: VectorTurnDirection, out: GeoCircle): GeoCircle {
     out.set(center, radius);
     if (turnDirection === 'right') {
-      out.set(Vec3Math.multScalar(out.center, -1, FlightPathUtils.vec3Cache[0]), Math.PI - out.radius);
+      out.reverse();
     }
     return out;
+  }
+
+  /**
+   * Reverses the direction of a turn circle while keeping the turn center and turn radius constant.
+   * @param circle The turn circle to reverse.
+   * @param out A GeoCircle object to which to write the result.
+   * @returns A turn circle which has the same turn center and turn radius, but the opposite direction as `circle`.
+   */
+  public static reverseTurnCircle(circle: GeoCircle, out: GeoCircle): GeoCircle {
+    return out.set(Vec3Math.multScalar(circle.center, -1, FlightPathUtils.vec3Cache[0]), Math.PI - circle.radius);
   }
 
   /**
@@ -157,7 +167,7 @@ export class FlightPathUtils {
    * @returns The direction of the turn described by the circle.
    */
   public static getTurnDirectionFromCircle(circle: GeoCircle): VectorTurnDirection {
-    return circle.radius > Math.PI / 2 ? 'right' : 'left';
+    return circle.radius > MathUtils.HALF_PI ? 'right' : 'left';
   }
 
   /**
@@ -177,7 +187,7 @@ export class FlightPathUtils {
    */
   public static getTurnCenterFromCircle<T extends GeoPoint | Float64Array>(circle: GeoCircle, out: T): T {
     return (
-      circle.radius > Math.PI / 2
+      circle.radius > MathUtils.HALF_PI
         ? out instanceof Float64Array
           ? Vec3Math.multScalar(circle.center, -1, out)
           : out.setFromCartesian(-circle.center[0], -circle.center[1], -circle.center[2])
@@ -202,20 +212,20 @@ export class FlightPathUtils {
    */
   public static getAlongArcSignedDistance(
     circle: GeoCircle,
-    start: Float64Array | LatLonInterface,
-    end: Float64Array | LatLonInterface,
-    pos: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
+    pos: ReadonlyFloat64Array | LatLonInterface,
     tolerance = GeoCircle.ANGULAR_TOLERANCE
   ): number {
     const posAngularDistance = circle.angleAlong(start, pos, Math.PI);
 
-    if (Math.min(posAngularDistance, 2 * Math.PI - posAngularDistance) <= tolerance) {
+    if (Math.min(posAngularDistance, MathUtils.TWO_PI - posAngularDistance) <= tolerance) {
       return 0;
     }
 
     const endAngularDistance = circle.angleAlong(start, end, Math.PI);
 
-    return circle.arcLength((posAngularDistance - (endAngularDistance / 2) + Math.PI) % (2 * Math.PI) - Math.PI + endAngularDistance / 2);
+    return circle.arcLength((posAngularDistance - (endAngularDistance / 2) + Math.PI) % MathUtils.TWO_PI - Math.PI + endAngularDistance / 2);
   }
 
   /**
@@ -234,24 +244,82 @@ export class FlightPathUtils {
    */
   public static getAlongArcNormalizedDistance(
     circle: GeoCircle,
-    start: Float64Array | LatLonInterface,
-    end: Float64Array | LatLonInterface,
-    pos: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
+    pos: ReadonlyFloat64Array | LatLonInterface,
     tolerance = GeoCircle.ANGULAR_TOLERANCE
   ): number {
     const posAngularDistance = circle.angleAlong(start, pos, Math.PI);
 
-    if (Math.min(posAngularDistance, 2 * Math.PI - posAngularDistance) <= tolerance) {
+    if (Math.min(posAngularDistance, MathUtils.TWO_PI - posAngularDistance) <= tolerance) {
       return 0;
     }
 
     const endAngularDistance = circle.angleAlong(start, end, Math.PI);
 
-    if (Math.min(endAngularDistance, 2 * Math.PI - endAngularDistance) <= tolerance) {
+    if (Math.min(endAngularDistance, MathUtils.TWO_PI - endAngularDistance) <= tolerance) {
       return posAngularDistance >= Math.PI ? -Infinity : Infinity;
     }
 
-    return ((posAngularDistance - (endAngularDistance / 2) + Math.PI) % (2 * Math.PI) - Math.PI) / endAngularDistance + 0.5;
+    return ((posAngularDistance - (endAngularDistance / 2) + Math.PI) % MathUtils.TWO_PI - Math.PI) / endAngularDistance + 0.5;
+  }
+
+  /**
+   * Checks if a point lies between the start and end points (inclusive) of an arc along a geo circle. The start, end,
+   * and query points will be projected onto the arc's parent circle if they do not already lie on it.
+   * @param circle The arc's parent circle.
+   * @param start The start point of the arc.
+   * @param end The end point of the arc.
+   * @param pos The query point.
+   * @param tolerance The error tolerance, in great-arc radians.
+   * @returns Whether the query point lies between the start and end points (inclusive) of the specified arc.
+   */
+  public static isPointAlongArc(
+    circle: GeoCircle,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
+    pos: ReadonlyFloat64Array | LatLonInterface,
+    tolerance?: number,
+  ): boolean;
+  /**
+   * Checks if a point lies between the start and end points (inclusive) of an arc along a geo circle. The start and
+   * query points will be projected onto the arc's parent circle if they do not already lie on it.
+   * @param circle The arc's parent circle.
+   * @param start The start point of the arc.
+   * @param angularWidth The angular width of the arc, in radians.
+   * @param pos The query point.
+   * @param tolerance The error tolerance, in great-arc radians.
+   * @returns Whether the query point lies between the start and end points (inclusive) of the specified arc.
+   */
+  public static isPointAlongArc(
+    circle: GeoCircle,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    angularWidth: number,
+    pos: ReadonlyFloat64Array | LatLonInterface,
+    tolerance?: number,
+  ): boolean;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static isPointAlongArc(
+    circle: GeoCircle,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface | number,
+    pos: ReadonlyFloat64Array | LatLonInterface,
+    tolerance = GeoCircle.ANGULAR_TOLERANCE,
+  ): boolean {
+    if (typeof end === 'number') {
+      if (Math.abs(end) >= MathUtils.TWO_PI - tolerance) {
+        return true;
+      }
+
+      let angle = circle.angleAlong(start, pos, Math.PI);
+      if (angle > MathUtils.TWO_PI - tolerance) {
+        angle = 0;
+      }
+      return (angle - end) * (end >= 0 ? 1 : -1) < tolerance;
+    } else {
+      const alongArcNorm = FlightPathUtils.getAlongArcNormalizedDistance(circle, start, end, pos, tolerance);
+      return isFinite(alongArcNorm) && alongArcNorm >= -tolerance && alongArcNorm <= 1 + tolerance;
+    }
   }
 
   /**

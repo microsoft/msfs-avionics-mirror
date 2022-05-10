@@ -6,7 +6,7 @@ import { InstrumentEvents } from 'msfssdk/instruments';
 
 import './StartupLogo.css';
 
-/** 
+/**
  * Props on the StartupLogo component.
  */
 interface StartupLogoProps {
@@ -72,7 +72,7 @@ export class StartupLogo extends DisplayComponent<StartupLogoProps> {
       this.props.onConfirmation && this.props.onConfirmation();
       this.props.bus.off('hEvent', this.handleHEvent);
     }
-  }
+  };
 
   /** @inheritdoc */
   public render(): VNode {
@@ -96,7 +96,7 @@ export class StartupLogo extends DisplayComponent<StartupLogoProps> {
               <svg width='24' height='24' viewBox='0 0 16 16'>
                 <path d='M 2 3 L 2 8 L 13 8' stroke='gray' stroke-width='1px' />
               </svg>
-              System WT0.10.1
+              System WT0.12.1
             </div>
             <h3>
               <svg width='24' height='24' viewBox='0 0 32 32'>

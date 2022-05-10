@@ -1,11 +1,12 @@
-import { BitFlags, GeoCircle, GeoPoint, GeoPointInterface, GeoPointReadOnly, LatLonInterface, MagVar, NavMath, NumberUnitReadOnly, UnitFamily, UnitType, Vec3Math } from '..';
-import { Facility, FacilityType, FlightPlanLeg, ICAO, LegTurnDirection, LegType, VorFacility } from '../navigation';
+import { BitFlags, GeoCircle, GeoPoint, GeoPointInterface, GeoPointReadOnly, LatLonInterface, MagVar, MathUtils, NavMath, NumberUnitReadOnly, ReadonlyFloat64Array, UnitFamily, UnitType, Vec3Math } from '..';
+import { Facility, FacilityType, FlightPlanLeg, ICAO, LegTurnDirection, LegType, VorFacility } from '../navigation/Facilities';
 import { FlightPathUtils } from './FlightPathUtils';
 import {
   CircleVectorBuilder, CircleInterceptBuilder, GreatCircleBuilder, JoinGreatCircleToPointBuilder, ProcedureTurnBuilder,
-  TurnToCourseBuilder
+  TurnToCourseBuilder,
+  DirectToPointBuilder
 } from './FlightPathVectorBuilder';
-import { FlightPathVectorFlags, LegCalculations, LegDefinition } from './FlightPlanning';
+import { FlightPathVector, FlightPathVectorFlags, LegCalculations, LegDefinition } from './FlightPlanning';
 
 /**
  * The state of a calculating flight path.
@@ -285,8 +286,7 @@ export class DirectToFixLegCalculator extends AbstractFlightPathLegCalculator {
   protected readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)];
   protected readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
 
-  protected readonly greatCircleVectorBuilder = new GreatCircleBuilder();
-  protected readonly circleVectorBuilder = new CircleVectorBuilder();
+  protected readonly directToPointBuilder = new DirectToPointBuilder();
 
   /**
    * Constructor.
@@ -323,93 +323,19 @@ export class DirectToFixLegCalculator extends AbstractFlightPathLegCalculator {
       ? leg.course % 360
       : state.currentCourse ?? state.planeHeading;
 
-    const distanceToTerminator = state.currentPosition.distance(terminatorPos);
-    if (distanceToTerminator < GeoPoint.EQUALITY_TOLERANCE) {
-      state.currentPosition.set(terminatorPos);
-      vectors.length = 0;
-      return;
-    } else if (Math.abs(distanceToTerminator - Math.PI) < GeoPoint.EQUALITY_TOLERANCE) {
-      // terminator is antipodal to current position
-      const path = this.geoCircleCache[0].setAsGreatCircle(state.currentPosition, initialCourse);
-      vectorIndex += this.greatCircleVectorBuilder.build(
-        vectors, vectorIndex,
-        state.currentPosition,
-        path, terminatorPos
-      );
-      state.currentCourse = path.bearingAt(terminatorPos, Math.PI);
-      state.currentPosition.set(terminatorPos);
-
-      vectors.length = vectorIndex;
-      return;
-    }
-
-    const startVec = startPoint.toCartesian(this.vec3Cache[0]);
-    const terminatorVec = terminatorPos.toCartesian(this.vec3Cache[1]);
-
     const startPath = this.geoCircleCache[0].setAsGreatCircle(startPoint, initialCourse);
-    state.currentCourse = initialCourse;
 
-    const startPathEncirclesTerminator = startPath.encircles(terminatorVec);
-    const startPathIncludesTerminator = startPath.includes(terminatorVec);
-
-    const turnDirection = leg.turnDirection === LegTurnDirection.Left ? 'left'
-      : leg.turnDirection === LegTurnDirection.Right ? 'right'
-        : startPathEncirclesTerminator && !startPathIncludesTerminator ? 'left' : 'right';
-    const startToTurnCenterPath = this.geoCircleCache[0].setAsGreatCircle(startPoint, initialCourse + (turnDirection === 'left' ? -90 : 90));
-
-    let maxTurnRadiusRad;
-    if (!startPathIncludesTerminator && startPathEncirclesTerminator === (turnDirection === 'left')) {
-      // terminator lies on the same side as the turn, which means there is the possibility that the turn circle can
-      // encircle the terminator, which would make defining a great circle intersecting the terminator fix and also
-      // tangent to the turn circle impossible. Therefore, we compute the maximum allowed turn radius, defined as the
-      // radius such that the terminator fix lies exactly on the turn circle.
-
-      const startToTerminatorPathNormal = GeoCircle.getGreatCircleNormal(startVec, terminatorVec, this.vec3Cache[2]);
-      // the angle between the great-circle path from the start point to the turn center and the path from the start
-      // point to the terminator fix
-      const theta = Math.acos(Vec3Math.dot(startToTurnCenterPath.center, startToTerminatorPathNormal));
-      maxTurnRadiusRad = Math.atan(Math.sin(distanceToTerminator) / (Math.cos(theta) * (1 + Math.cos(distanceToTerminator))));
-    } else {
-      // terminator lies on the starting path or on the opposite side as the turn. Either way, no turn can encircle the
-      // terminator, and so there is no maximum turn radius.
-      maxTurnRadiusRad = Math.PI / 2;
-    }
-
-    const turnRadiusRad = Math.min(maxTurnRadiusRad, state.desiredTurnRadius.asUnit(UnitType.GA_RADIAN));
-
-    const turnCenterVec = startToTurnCenterPath.offsetDistanceAlong(startVec, turnRadiusRad, this.vec3Cache[2]);
-    const turnCenterPoint = this.geoPointCache[2].setFromCartesian(turnCenterVec);
-
-    // Find the great-circle path from the terminator fix that is tangent to the turn circle. There are guaranteed to
-    // be two such paths. We choose between the two based on the initial turn direction.
-
-    const turnCenterToTerminatorDistance = Math.acos(Vec3Math.dot(turnCenterVec, terminatorVec));
-    // the angle between the the great-circle path from the terminator fix to the turn center and the two
-    // great-circle paths from the terminator fix that are tangent to the turn circle.
-    const alpha = Math.asin(Math.min(1, Math.sin(turnRadiusRad) / Math.sin(turnCenterToTerminatorDistance)));
-    const terminatorFixBearingToTurnCenter = terminatorPos.bearingTo(turnCenterPoint);
-    const finalPathCourse = NavMath.normalizeHeading(terminatorFixBearingToTurnCenter + alpha * Avionics.Utils.RAD2DEG * (turnDirection === 'left' ? -1 : 1) + 180);
-    const finalPath = this.geoCircleCache[0].setAsGreatCircle(terminatorPos, finalPathCourse);
-    const turnEndPoint = finalPath.closest(turnCenterPoint, this.geoPointCache[3]);
-
-    if (!turnEndPoint.equals(startPoint)) {
-      vectorIndex += this.circleVectorBuilder.build(
-        vectors,
-        vectorIndex,
-        turnDirection, UnitType.GA_RADIAN.convertTo(turnRadiusRad, UnitType.METER),
-        turnCenterPoint, startPoint, turnEndPoint,
-        FlightPathVectorFlags.TurnToCourse
-      );
-    }
-
-    state.currentPosition.set(turnEndPoint);
-    state.currentCourse = finalPathCourse;
-
-    if (!state.currentPosition.equals(terminatorPos)) {
-      vectorIndex += this.greatCircleVectorBuilder.build(vectors, vectorIndex, state.currentPosition, terminatorPos);
-    }
+    vectorIndex += this.directToPointBuilder.build(
+      vectors, vectorIndex,
+      startPoint, startPath, terminatorPos,
+      state.desiredTurnRadius.asUnit(UnitType.METER),
+      leg.turnDirection === LegTurnDirection.Left ? 'left' : leg.turnDirection === LegTurnDirection.Right ? 'right' : undefined
+    );
 
     state.currentPosition.set(terminatorPos);
+    if (vectorIndex > 0) {
+      state.currentCourse = FlightPathUtils.getVectorFinalCourse(vectors[vectorIndex - 1]);
+    }
 
     vectors.length = vectorIndex;
   }
@@ -525,16 +451,39 @@ export class ArcToFixLegCalculator extends TurnToFixLegCalculator {
 }
 
 /**
+ * Information about a geo circle path to intercept.
+ */
+export type CircleInterceptPathInfo = {
+  /** The geo circle defining the path to intercept. */
+  circle: GeoCircle | undefined;
+
+  /** The start of the path to intercept. */
+  start: LatLonInterface | undefined;
+
+  /** The end of the path to intercept. */
+  end: LatLonInterface | undefined;
+};
+
+/**
  * Calculates flight path vectors for legs which define a great-circle path terminating at an intercept with another
  * geo circle.
  */
 export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLegCalculator {
-  protected readonly vec3Cache = [new Float64Array(3), new Float64Array(3)];
-  protected readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0)];
-  protected readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
+  private readonly vec3Cache = [new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3)];
+  private readonly geoPointCache = [new GeoPoint(0, 0)];
+  private readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0)];
+  private readonly intersectionCache = [new Float64Array(3), new Float64Array(3)];
 
-  protected readonly turnBuilder = new TurnToCourseBuilder();
-  protected readonly interceptBuilder = new CircleInterceptBuilder();
+  private readonly turnBuilder = new TurnToCourseBuilder();
+  private readonly joinGreatCircleToPointBuilder = new JoinGreatCircleToPointBuilder();
+  private readonly directToPointBuilder = new DirectToPointBuilder();
+  private readonly interceptBuilder = new CircleInterceptBuilder();
+
+  private readonly interceptInfo: CircleInterceptPathInfo = {
+    circle: undefined,
+    start: undefined,
+    end: undefined
+  };
 
   /**
    * Constructor.
@@ -542,7 +491,7 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
    * @param includeInitialTurn Whether this calculator should calculate an initial turn toward the intercept course.
    */
   constructor(facilityCache: Map<string, Facility>, protected readonly includeInitialTurn: boolean) {
-    super(facilityCache, includeInitialTurn);
+    super(facilityCache, true);
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc
@@ -559,16 +508,58 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
     let vectorIndex = 0;
 
     const course = this.getInterceptCourse(legs, calculateIndex, state);
-    const circleToIntercept = this.getCircleToIntercept(legs, calculateIndex, state, this.geoCircleCache[0]);
+    const interceptInfo = this.getInterceptPathInfo(legs, calculateIndex, state, this.interceptInfo);
 
-    if (course === undefined || !circleToIntercept || !state.currentPosition) {
+    if (course === undefined || !interceptInfo.circle || !state.currentPosition) {
       vectors.length = vectorIndex;
       return;
     }
 
     const startCourse = state.currentCourse ?? course;
 
-    if (this.includeInitialTurn && Math.abs(NavMath.diffAngle(course, startCourse)) >= 1) {
+    const effectiveInterceptPathStartVec = interceptInfo.start
+      ? GeoPoint.sphericalToCartesian(interceptInfo.start, this.vec3Cache[0])
+      : interceptInfo.end
+        ? interceptInfo.circle.offsetAngleAlong(interceptInfo.end, -Math.PI, this.vec3Cache[0], Math.PI)
+        : undefined;
+    const effectiveInterceptPathEndVec = interceptInfo.end
+      ? GeoPoint.sphericalToCartesian(interceptInfo.end, this.vec3Cache[1])
+      : interceptInfo.start
+        ? interceptInfo.circle.offsetAngleAlong(interceptInfo.start, Math.PI, this.vec3Cache[1], Math.PI)
+        : undefined;
+    const effectiveInterceptPathAngularWidth = interceptInfo.start && interceptInfo.end
+      ? interceptInfo.circle.angleAlong(interceptInfo.start, interceptInfo.end, Math.PI)
+      : effectiveInterceptPathStartVec
+        ? Math.PI
+        : MathUtils.TWO_PI;
+
+    const initialVec = state.currentPosition.toCartesian(this.vec3Cache[2]);
+    const startPath = this.geoCircleCache[0].setAsGreatCircle(state.currentPosition, startCourse);
+    const interceptPath = this.geoCircleCache[1].setAsGreatCircle(state.currentPosition, course);
+    const includeInitialTurn = this.includeInitialTurn && Math.abs(NavMath.diffAngle(course, startCourse)) >= 1;
+
+    const firstHandleInvalidInterceptResult = this.handleInvalidIntercept(
+      vectors, vectorIndex,
+      initialVec, startPath, interceptPath,
+      interceptInfo.circle, effectiveInterceptPathStartVec, effectiveInterceptPathEndVec, effectiveInterceptPathAngularWidth,
+      state.desiredTurnRadius.asUnit(UnitType.METER),
+      includeInitialTurn
+    );
+
+    if (firstHandleInvalidInterceptResult !== undefined) {
+      vectorIndex += firstHandleInvalidInterceptResult;
+
+      if (vectorIndex > 0) {
+        const lastVector = vectors[vectorIndex - 1];
+        state.currentPosition.set(lastVector.endLat, lastVector.endLon);
+        state.currentCourse = FlightPathUtils.getVectorFinalCourse(lastVector);
+      }
+
+      vectors.length = vectorIndex;
+      return;
+    }
+
+    if (includeInitialTurn) {
       const turnDirection = leg.turnDirection === LegTurnDirection.Left ? 'left'
         : leg.turnDirection === LegTurnDirection.Right ? 'right'
           : NavMath.getTurnDirection(startCourse, course);
@@ -581,13 +572,86 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
       );
 
       const turnVector = vectors[vectorIndex - 1];
+
+      // Check if the turn circle intercepts the path to intercept
+
+      const turnCircle = FlightPathUtils.setGeoCircleFromVector(turnVector, this.geoCircleCache[0]);
+      const turnEndVec = GeoPoint.sphericalToCartesian(turnVector.endLat, turnVector.endLon, this.vec3Cache[3]);
+      const intersections = this.intersectionCache;
+      const numIntersections = turnCircle.intersection(interceptInfo.circle, intersections);
+
+      if (numIntersections > 1) {
+        // Order intersections such that the one closer to the turn start is at index 0.
+        if (interceptInfo.circle.radius > MathUtils.HALF_PI === interceptInfo.circle.encircles(initialVec)) {
+          const temp = intersections[0];
+          intersections[0] = intersections[1];
+          intersections[1] = temp;
+        }
+      }
+
+      for (let i = 0; i < numIntersections; i++) {
+        const intersection = intersections[i];
+
+        if (
+          FlightPathUtils.isPointAlongArc(turnCircle, initialVec, turnEndVec, intersection)
+          && (
+            !effectiveInterceptPathStartVec
+            || FlightPathUtils.isPointAlongArc(interceptInfo.circle, effectiveInterceptPathStartVec, effectiveInterceptPathAngularWidth, intersection)
+          )
+        ) {
+          // End the turn early at the intercept point
+          const distance = turnCircle.distanceAlong(initialVec, intersection, Math.PI);
+          if (distance > GeoCircle.ANGULAR_TOLERANCE) {
+            const intersectionPoint = this.geoPointCache[0].setFromCartesian(intersection);
+            turnVector.distance = distance;
+            turnVector.endLat = intersectionPoint.lat;
+            turnVector.endLon = intersectionPoint.lon;
+          } else {
+            vectorIndex--;
+          }
+
+          if (vectorIndex > 0) {
+            const lastVector = vectors[vectorIndex - 1];
+            state.currentPosition.set(lastVector.endLat, lastVector.endLon);
+            state.currentCourse = FlightPathUtils.getVectorFinalCourse(lastVector);
+          }
+
+          vectors.length = vectorIndex;
+          return;
+        }
+      }
+
       state.currentCourse = FlightPathUtils.getVectorFinalCourse(turnVector);
       state.currentPosition.set(turnVector.endLat, turnVector.endLon);
+
+      interceptPath.setAsGreatCircle(state.currentPosition, course);
+
+      const secondHandleInvalidInterceptResult = this.handleInvalidIntercept(
+        vectors, vectorIndex,
+        turnEndVec, interceptPath, interceptPath,
+        interceptInfo.circle, effectiveInterceptPathStartVec, effectiveInterceptPathEndVec, effectiveInterceptPathAngularWidth,
+        state.desiredTurnRadius.asUnit(UnitType.METER),
+        false
+      );
+
+      if (secondHandleInvalidInterceptResult !== undefined) {
+        vectorIndex += secondHandleInvalidInterceptResult;
+
+        if (secondHandleInvalidInterceptResult > 0) {
+          const lastVector = vectors[vectorIndex - 1];
+          state.currentPosition.set(lastVector.endLat, lastVector.endLon);
+          state.currentCourse = FlightPathUtils.getVectorFinalCourse(lastVector);
+        }
+
+        vectors.length = vectorIndex;
+        return;
+      }
     } else {
       state.currentCourse = course;
     }
 
-    const numVectorsAdded = this.interceptBuilder.build(vectors, vectorIndex, state.currentPosition, course, circleToIntercept);
+    const numVectorsAdded = this.interceptBuilder.build(vectors, vectorIndex, state.currentPosition, course, interceptInfo.circle);
+
     if (numVectorsAdded > 0) {
       vectorIndex += numVectorsAdded;
       const lastVector = vectors[vectorIndex - 1];
@@ -596,6 +660,206 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
     }
 
     vectors.length = vectorIndex;
+  }
+
+  private readonly handleInvalidInterceptCache = {
+    vec3: [new Float64Array(3), new Float64Array(3), new Float64Array(3)],
+    geoCircle: [new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0)],
+    intersection: [new Float64Array(3), new Float64Array(3)]
+  };
+
+  /**
+   * Handles cases where the path to intercept cannot be intercepted from a defined starting point and intercept
+   * course. Under these cases, vectors will be added to the flight path vector sequence to define a path from the
+   * starting point to a point on the path to intercept which does not follow the defined intercept course.
+   * @param vectors The flight path vector sequence to which to add the vectors.
+   * @param index The index in the sequence at which to add the vectors.
+   * @param start The start point.
+   * @param startPath The great-circle path defining the initial course.
+   * @param interceptPath The great-circle path defining the intercept course.
+   * @param pathToInterceptCircle The geo circle defining the path to intercept.
+   * @param pathToInterceptStart The start of the path to intercept.
+   * @param pathToInterceptEnd The end of the path to intercept.
+   * @param pathToInterceptAngularWidth The angular width of the path to intercept, in radians.
+   * @param desiredTurnRadius The desired turn radius, in meters.
+   * @param onlyHandleInitialPointPastIntercept Whether to only handle cases where the start point is located beyond
+   * the path to intercept as measured along the intercept course.
+   * @returns The number of vectors added to the sequence, or undefined if the case was not handled.
+   */
+  private handleInvalidIntercept(
+    vectors: FlightPathVector[],
+    index: number,
+    start: ReadonlyFloat64Array,
+    startPath: GeoCircle,
+    interceptPath: GeoCircle,
+    pathToInterceptCircle: GeoCircle,
+    pathToInterceptStart: ReadonlyFloat64Array | undefined,
+    pathToInterceptEnd: ReadonlyFloat64Array | undefined,
+    pathToInterceptAngularWidth: number,
+    desiredTurnRadius: number,
+    onlyHandleInitialPointPastIntercept: boolean,
+  ): number | undefined {
+    let vectorIndex = index;
+
+    if (pathToInterceptCircle.includes(start)) {
+      if (
+        pathToInterceptAngularWidth === MathUtils.TWO_PI
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        || FlightPathUtils.isPointAlongArc(pathToInterceptCircle, pathToInterceptStart!, pathToInterceptAngularWidth, start)
+      ) {
+        // Initial point already lies on the path to intercept.
+        return vectorIndex - index;
+      }
+    }
+
+    // Determine if the starting position is "past" the path to intercept.
+    let isInitialPosPastPath = false;
+
+    const intersections = this.handleInvalidInterceptCache.intersection;
+    const numIntersections = interceptPath.intersection(pathToInterceptCircle, intersections);
+    let desiredIntersection;
+
+    if (numIntersections === 2) {
+      const nextIntersectionIndex = pathToInterceptCircle.encircles(start) ? 0 : 1;
+      const prevIntersectionIndex = 1 - nextIntersectionIndex;
+
+      const nextIntersection = intersections[nextIntersectionIndex];
+      const prevIntersection = intersections[prevIntersectionIndex];
+
+      // Define the desired intercept point as the one that requires the shortest distance traveled along the initial
+      // path and path to intercept circle from the initial position to some point along the path to intercept. Then,
+      // determine if the initial position lies before or after the desired intercept point, relative to the direction
+      // of the initial path.
+
+      if (pathToInterceptAngularWidth === MathUtils.TWO_PI && pathToInterceptCircle.isGreatCircle()) {
+        isInitialPosPastPath = interceptPath.angleAlong(start, nextIntersection, Math.PI) > MathUtils.HALF_PI + GeoCircle.ANGULAR_TOLERANCE;
+      } else {
+        const prevIntersectionInitialPathOffset = interceptPath.angleAlong(prevIntersection, start, Math.PI);
+        const nextIntersectionInitialPathOffset = interceptPath.angleAlong(start, nextIntersection, Math.PI);
+        const prevIntersectionInitialPathDistance = Math.min(prevIntersectionInitialPathOffset, MathUtils.TWO_PI - prevIntersectionInitialPathOffset);
+        const nextIntersectionInitialPathDistance = Math.min(nextIntersectionInitialPathOffset, MathUtils.TWO_PI - nextIntersectionInitialPathOffset);
+
+        let prevIntersectionInterceptPathDistance = 0;
+        let nextIntersectionInterceptPathDistance = 0;
+        if (pathToInterceptStart && pathToInterceptEnd) {
+          if (!FlightPathUtils.isPointAlongArc(pathToInterceptCircle, pathToInterceptStart, pathToInterceptAngularWidth, prevIntersection)) {
+            const prevIntersectionInterceptPathStartOffset = pathToInterceptCircle.angleAlong(prevIntersection, pathToInterceptStart, Math.PI);
+            const prevIntersectionInterceptPathEndOffset = pathToInterceptCircle.angleAlong(prevIntersection, pathToInterceptEnd, Math.PI);
+
+            prevIntersectionInterceptPathDistance = Math.min(
+              prevIntersectionInterceptPathStartOffset, MathUtils.TWO_PI - prevIntersectionInterceptPathStartOffset,
+              prevIntersectionInterceptPathEndOffset, MathUtils.TWO_PI - prevIntersectionInterceptPathEndOffset,
+            );
+          }
+          if (!FlightPathUtils.isPointAlongArc(pathToInterceptCircle, pathToInterceptStart, pathToInterceptAngularWidth, nextIntersection)) {
+            const nextIntersectionInterceptPathStartOffset = pathToInterceptCircle.angleAlong(nextIntersection, pathToInterceptStart, Math.PI);
+            const nextIntersectionInterceptPathEndOffset = pathToInterceptCircle.angleAlong(nextIntersection, pathToInterceptEnd, Math.PI);
+
+            nextIntersectionInterceptPathDistance = Math.min(
+              nextIntersectionInterceptPathStartOffset, MathUtils.TWO_PI - nextIntersectionInterceptPathStartOffset,
+              nextIntersectionInterceptPathEndOffset, MathUtils.TWO_PI - nextIntersectionInterceptPathEndOffset,
+            );
+          }
+        }
+
+        const prevIntersectionTotalDistance = prevIntersectionInitialPathDistance + prevIntersectionInterceptPathDistance;
+        const nextIntersectionTotalDistance = nextIntersectionInitialPathDistance + nextIntersectionInterceptPathDistance;
+
+        isInitialPosPastPath = prevIntersectionTotalDistance < nextIntersectionTotalDistance - GeoCircle.ANGULAR_TOLERANCE;
+      }
+
+      desiredIntersection = isInitialPosPastPath ? prevIntersection : nextIntersection;
+    } else if (numIntersections === 1) {
+      const distanceToIntersection = interceptPath.angleAlong(start, intersections[0], Math.PI);
+      isInitialPosPastPath = distanceToIntersection < MathUtils.TWO_PI - GeoCircle.ANGULAR_TOLERANCE && distanceToIntersection > Math.PI + GeoCircle.ANGULAR_TOLERANCE;
+      desiredIntersection = intersections[0];
+    }
+
+    if ((onlyHandleInitialPointPastIntercept && !isInitialPosPastPath)) {
+      return undefined;
+    }
+
+    let needHandleInterceptInBounds = isInitialPosPastPath;
+
+    if (!desiredIntersection) {
+      // The intercept course does not intersect with the path to intercept circle at all -> define the desired
+      // intercept point as the point on the path to intercept circle closest to the start point.
+
+      desiredIntersection = pathToInterceptCircle.closest(start, this.handleInvalidInterceptCache.vec3[0]);
+      needHandleInterceptInBounds = true;
+    }
+
+    if (
+      (!pathToInterceptStart || !pathToInterceptEnd)
+      || FlightPathUtils.isPointAlongArc(pathToInterceptCircle, pathToInterceptStart, pathToInterceptAngularWidth, desiredIntersection)
+    ) {
+      // The desired intercept point is within the bounds of the path to intercept
+
+      if (needHandleInterceptInBounds) {
+        // The initial position is past the path to intercept or the original intercept course does not intersect the
+        // path to intercept -> execute a turn to join the course tangent to the path to intercept at the desired
+        // intercept point.
+        let tangentPath;
+        if (pathToInterceptCircle.isGreatCircle()) {
+          tangentPath = pathToInterceptCircle;
+        } else {
+          const norm = Vec3Math.cross(pathToInterceptCircle.center, desiredIntersection, this.handleInvalidInterceptCache.vec3[1]);
+          tangentPath = this.handleInvalidInterceptCache.geoCircle[0].set(
+            Vec3Math.cross(desiredIntersection, norm, this.handleInvalidInterceptCache.vec3[2]),
+            MathUtils.HALF_PI
+          );
+        }
+
+        vectorIndex += this.joinGreatCircleToPointBuilder.build(
+          vectors, vectorIndex,
+          start, startPath,
+          desiredIntersection, tangentPath,
+          undefined, desiredTurnRadius
+        );
+      } else {
+        return undefined;
+      }
+    } else {
+      // The desired intercept point is not within the bounds of the path to intercept
+
+      const angularOffset = pathToInterceptCircle.angleAlong(pathToInterceptStart, desiredIntersection, Math.PI);
+      const distanceFromStart = Math.min(angularOffset, MathUtils.TWO_PI - angularOffset);
+      const distanceFromEnd = Math.abs(angularOffset - pathToInterceptAngularWidth);
+
+      if (distanceFromStart <= distanceFromEnd) {
+        // Desired intercept point is closer to the start of the path to intercept -> calculate a direct path from the
+        // initial position to the start of the path to intercept.
+
+        vectorIndex += this.directToPointBuilder.build(
+          vectors, vectorIndex,
+          start, startPath, pathToInterceptStart,
+          desiredTurnRadius
+        );
+      } else {
+        // Desired intercept point is closer to the end of the path to intercept -> execute a turn to join the course
+        // tangent to the path to intercept at its end.
+
+        let tangentPath;
+        if (pathToInterceptCircle.isGreatCircle()) {
+          tangentPath = pathToInterceptCircle;
+        } else {
+          const norm = Vec3Math.cross(pathToInterceptCircle.center, pathToInterceptEnd, this.handleInvalidInterceptCache.vec3[1]);
+          tangentPath = this.handleInvalidInterceptCache.geoCircle[0].set(
+            Vec3Math.cross(pathToInterceptEnd, norm, this.handleInvalidInterceptCache.vec3[2]),
+            MathUtils.HALF_PI
+          );
+        }
+
+        vectorIndex += this.joinGreatCircleToPointBuilder.build(
+          vectors, vectorIndex,
+          start, startPath,
+          pathToInterceptEnd, tangentPath,
+          undefined, desiredTurnRadius
+        );
+      }
+    }
+
+    return vectorIndex - index;
   }
 
   /**
@@ -609,20 +873,22 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
   protected abstract getInterceptCourse(legs: LegDefinition[], index: number, state: FlightPathState): number | undefined;
 
   /**
-   * Gets the geo circle to intercept defined by a flight plan leg.
+   * Gets the geo circle path to intercept defined by a flight plan leg.
    * @param legs A sequence of leg definitions.
    * @param index The index in the sequence of the leg from which to get the course.
    * @param state The current flight path state.
-   * @param out A GeoCircle object to which to write the result.
-   * @returns The geo circle to intercept defined by the flight plan leg, or undefined if it could not be determined.
+   * @param out The path info object to which to write the result.
+   * @returns Information on the geo circle path to intercept defined by the flight plan leg.
    */
-  protected abstract getCircleToIntercept(legs: LegDefinition[], index: number, state: FlightPathState, out: GeoCircle): GeoCircle | undefined;
+  protected abstract getInterceptPathInfo(legs: LegDefinition[], index: number, state: FlightPathState, out: CircleInterceptPathInfo): CircleInterceptPathInfo;
 }
 
 /**
  * Calculates flight path vectors for course to DME legs.
  */
 export class CourseToDMELegCalculator extends CircleInterceptLegCalculator {
+  private readonly dmeCircle = new GeoCircle(new Float64Array(3), 0);
+
   /**
    * Constructor.
    * @param facilityCache This calculator's cache of facilities.
@@ -631,18 +897,30 @@ export class CourseToDMELegCalculator extends CircleInterceptLegCalculator {
     super(facilityCache, true);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected getInterceptCourse(legs: LegDefinition[], index: number): number | undefined {
     const leg = legs[index].leg;
     const dmeFacility = this.facilityCache.get(leg.originIcao);
     return dmeFacility ? this.getLegTrueCourse(leg, dmeFacility) : undefined;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected getCircleToIntercept(legs: LegDefinition[], index: number, state: FlightPathState, out: GeoCircle): GeoCircle | undefined {
+  /** @inheritdoc */
+  protected getInterceptPathInfo(legs: LegDefinition[], index: number, state: FlightPathState, out: CircleInterceptPathInfo): CircleInterceptPathInfo {
     const leg = legs[index].leg;
     const dmeFacility = this.facilityCache.get(leg.originIcao);
-    return dmeFacility ? out.set(dmeFacility, UnitType.METER.convertTo(leg.distance, UnitType.GA_RADIAN)) : undefined;
+
+    if (dmeFacility) {
+      this.dmeCircle.set(dmeFacility, UnitType.METER.convertTo(leg.distance, UnitType.GA_RADIAN));
+      out.circle = this.dmeCircle;
+      out.start = undefined;
+      out.end = undefined;
+    } else {
+      out.circle = undefined;
+      out.start = undefined;
+      out.end = undefined;
+    }
+
+    return out;
   }
 }
 
@@ -650,6 +928,8 @@ export class CourseToDMELegCalculator extends CircleInterceptLegCalculator {
  * Calculates flight path vectors for course to radial intercept legs.
  */
 export class CourseToRadialLegCalculator extends CircleInterceptLegCalculator {
+  private readonly radialCircle = new GeoCircle(new Float64Array(3), 0);
+
   /**
    * Constructor.
    * @param facilityCache This calculator's cache of facilities.
@@ -658,26 +938,34 @@ export class CourseToRadialLegCalculator extends CircleInterceptLegCalculator {
     super(facilityCache, true);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected getInterceptCourse(legs: LegDefinition[], index: number): number | undefined {
     const leg = legs[index].leg;
     const radialFacility = this.facilityCache.get(leg.originIcao);
     return radialFacility ? this.getLegTrueCourse(leg, radialFacility) : undefined;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected getCircleToIntercept(legs: LegDefinition[], index: number, state: FlightPathState, out: GeoCircle): GeoCircle | undefined {
+  /** @inheritdoc */
+  protected getInterceptPathInfo(legs: LegDefinition[], index: number, state: FlightPathState, out: CircleInterceptPathInfo): CircleInterceptPathInfo {
     const leg = legs[index].leg;
     const radialFacility = this.facilityCache.get(leg.originIcao);
 
-    if (!radialFacility) {
-      return undefined;
+    if (radialFacility) {
+      const magVar = (ICAO.getFacilityType(radialFacility.icao) === FacilityType.VOR)
+        ? -(radialFacility as VorFacility).magneticVariation
+        : MagVar.get(radialFacility);
+
+      this.radialCircle.setAsGreatCircle(radialFacility, leg.theta + magVar);
+      out.circle = this.radialCircle;
+      out.start = radialFacility;
+      out.end = undefined;
+    } else {
+      out.circle = undefined;
+      out.start = undefined;
+      out.end = undefined;
     }
 
-    const magVar = (ICAO.getFacilityType(radialFacility.icao) === FacilityType.VOR)
-      ? -(radialFacility as VorFacility).magneticVariation
-      : MagVar.get(radialFacility);
-    return out.setAsGreatCircle(radialFacility, leg.theta + magVar);
+    return out;
   }
 }
 
@@ -685,6 +973,8 @@ export class CourseToRadialLegCalculator extends CircleInterceptLegCalculator {
  * Calculates flight path vectors for fix to DME legs.
  */
 export class FixToDMELegCalculator extends CircleInterceptLegCalculator {
+  private readonly dmeCircle = new GeoCircle(new Float64Array(3), 0);
+
   /**
    * Constructor.
    * @param facilityCache This calculator's cache of facilities.
@@ -693,18 +983,30 @@ export class FixToDMELegCalculator extends CircleInterceptLegCalculator {
     super(facilityCache, false);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected getInterceptCourse(legs: LegDefinition[], index: number): number | undefined {
     const leg = legs[index].leg;
     const startFacility = this.facilityCache.get(leg.fixIcao);
     return startFacility ? this.getLegTrueCourse(leg, startFacility) : undefined;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected getCircleToIntercept(legs: LegDefinition[], index: number, state: FlightPathState, out: GeoCircle): GeoCircle | undefined {
+  /** @inheritdoc */
+  protected getInterceptPathInfo(legs: LegDefinition[], index: number, state: FlightPathState, out: CircleInterceptPathInfo): CircleInterceptPathInfo {
     const leg = legs[index].leg;
     const dmeFacility = this.facilityCache.get(leg.originIcao);
-    return dmeFacility ? out.set(dmeFacility, UnitType.METER.convertTo(leg.distance, UnitType.GA_RADIAN)) : undefined;
+
+    if (dmeFacility) {
+      this.dmeCircle.set(dmeFacility, UnitType.METER.convertTo(leg.distance, UnitType.GA_RADIAN));
+      out.circle = this.dmeCircle;
+      out.start = undefined;
+      out.end = undefined;
+    } else {
+      out.circle = undefined;
+      out.start = undefined;
+      out.end = undefined;
+    }
+
+    return out;
   }
 }
 
@@ -712,8 +1014,6 @@ export class FixToDMELegCalculator extends CircleInterceptLegCalculator {
  * Calculates flight path vectors for course to intercept legs.
  */
 export class CourseToInterceptLegCalculator extends CircleInterceptLegCalculator {
-  protected readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)];
-
   /**
    * Constructor.
    * @param facilityCache This calculator's cache of facilities.
@@ -722,16 +1022,21 @@ export class CourseToInterceptLegCalculator extends CircleInterceptLegCalculator
     super(facilityCache, true);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected getInterceptCourse(legs: LegDefinition[], index: number, state: FlightPathState): number | undefined {
     const leg = legs[index].leg;
     return state.currentPosition ? this.getLegTrueCourse(leg, state.currentPosition) : undefined;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected getCircleToIntercept(legs: LegDefinition[], index: number, state: FlightPathState, out: GeoCircle): GeoCircle | undefined {
+  /** @inheritdoc */
+  protected getInterceptPathInfo(legs: LegDefinition[], index: number, state: FlightPathState, out: CircleInterceptPathInfo): CircleInterceptPathInfo {
     return this.predictLegPath(legs, index + 1, out);
   }
+
+  private readonly predictLegPathCache = {
+    geoPoint: [new GeoPoint(0, 0)],
+    geoCircle: [new GeoCircle(new Float64Array(3), 0)]
+  };
 
   /**
    * Predicts the path of a leg. If a prediction cannot be made, NaN will be written to all fields of the result.
@@ -740,38 +1045,68 @@ export class CourseToInterceptLegCalculator extends CircleInterceptLegCalculator
    * @param out A GeoCircle to which to write the result.
    * @returns the predicted path of the leg.
    */
-  private predictLegPath(legs: LegDefinition[], index: number, out: GeoCircle): GeoCircle | undefined {
+  private predictLegPath(legs: LegDefinition[], index: number, out: CircleInterceptPathInfo): CircleInterceptPathInfo {
+    out.circle = undefined;
+    out.start = undefined;
+    out.end = undefined;
+
     const leg = legs[index]?.leg;
     if (!leg) {
-      return undefined;
+      return out;
     }
 
     switch (leg.type) {
       case LegType.CF:
         {
-          const terminator = this.getTerminatorPosition(leg, leg.fixIcao, this.geoPointCache[2]);
-          return terminator ? out.setAsGreatCircle(terminator, this.getLegTrueCourse(leg, terminator)) : undefined;
+          const terminator = this.getTerminatorPosition(leg, leg.fixIcao, this.predictLegPathCache.geoPoint[0]);
+          if (terminator) {
+            out.circle = this.predictLegPathCache.geoCircle[0].setAsGreatCircle(terminator, this.getLegTrueCourse(leg, terminator));
+            out.end = terminator;
+          }
+          break;
         }
       case LegType.AF:
         {
           const facility = this.facilityCache.get(leg.originIcao);
-          return facility ? out.set(facility, UnitType.METER.convertTo(leg.rho, UnitType.GA_RADIAN)) : undefined;
+          if (facility) {
+            out.circle = FlightPathUtils.getTurnCircle(
+              facility,
+              UnitType.METER.convertTo(leg.rho, UnitType.GA_RADIAN),
+              leg.turnDirection === LegTurnDirection.Right ? 'right' : 'left',
+              this.predictLegPathCache.geoCircle[0]
+            );
+            out.end = this.facilityCache.get(leg.fixIcao);
+          }
+          break;
         }
       case LegType.RF:
         {
-          const terminator = this.getTerminatorPosition(leg, leg.fixIcao, this.geoPointCache[2]);
+          const terminator = this.getTerminatorPosition(leg, leg.fixIcao, this.predictLegPathCache.geoPoint[2]);
           const centerFacility = this.facilityCache.get(leg.arcCenterFixIcao);
-          return terminator && centerFacility ? out.set(centerFacility, terminator.distance(centerFacility)) : undefined;
+          if (terminator && centerFacility) {
+            out.circle = FlightPathUtils.getTurnCircle(
+              centerFacility,
+              terminator.distance(centerFacility),
+              leg.turnDirection === LegTurnDirection.Right ? 'right' : 'left',
+              this.predictLegPathCache.geoCircle[0]
+            );
+            out.end = terminator;
+          }
+          break;
         }
       case LegType.FM:
       case LegType.VM:
         {
           const origin = this.facilityCache.get(leg.originIcao);
-          return origin ? out.setAsGreatCircle(origin, this.getLegTrueCourse(leg, origin)) : undefined;
+          if (origin) {
+            out.circle = this.predictLegPathCache.geoCircle[0].setAsGreatCircle(origin, this.getLegTrueCourse(leg, origin));
+            out.start = origin;
+          }
+          break;
         }
-      default:
-        return undefined;
     }
+
+    return out;
   }
 }
 
@@ -1272,7 +1607,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
 
     let vectorIndex = 0, ingressVectorIndex = 0;
 
-    const holdPos = this.getPositionFromIcao(leg.fixIcao, this.geoPointCache[0]);
+    const holdPos = this.getTerminatorPosition(leg, leg.fixIcao, this.geoPointCache[0]);
 
     if (!holdPos) {
       vectors.length = 0;
@@ -1286,7 +1621,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
     state.currentPosition ??= holdPos.copy();
 
     if (!state.currentPosition.equals(holdPos)) {
-      ingressVectorIndex += this.greatCircleBuilder.build(ingress, ingressVectorIndex, state.currentPosition, holdPos, state.currentCourse, FlightPathVectorFlags.HoldEntry);
+      ingressVectorIndex += this.greatCircleBuilder.build(ingress, ingressVectorIndex, state.currentPosition, holdPos, state.currentCourse);
       state.currentCourse = holdPos.bearingFrom(state.currentPosition);
     }
 
@@ -1332,7 +1667,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
           outboundEnd, this.geoCircleCache[2].setAsGreatCircle(outboundTurnEnd, oppositeCourse),
           turnDirection, turnRadiusMeters,
           false, undefined,
-          FlightPathVectorFlags.HoldEntry
+          FlightPathVectorFlags.HoldDirectEntry
         );
 
         calcs.ingressJoinIndex = 1;
@@ -1349,7 +1684,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
           ingress, ingressVectorIndex,
           holdPos, turnRadiusMeters, turnDirection === 'left' ? 'right' : 'left',
           state.currentCourse, outboundCourse,
-          FlightPathVectorFlags.HoldEntry | FlightPathVectorFlags.TurnToCourse
+          FlightPathVectorFlags.HoldTeardropEntry | FlightPathVectorFlags.TurnToCourse
         );
 
         const turnVector = ingress[ingressVectorIndex - 1];
@@ -1363,7 +1698,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
         holdPos, inboundPath,
         turnDirection, turnRadiusMeters,
         true, undefined,
-        FlightPathVectorFlags.HoldEntry
+        FlightPathVectorFlags.HoldTeardropEntry
       );
 
       if (skipRacetrack) {
@@ -1389,7 +1724,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
         ingress, ingressVectorIndex,
         holdPos, turnRadiusMeters, turnDirection === 'left' ? 'right' : 'left',
         state.currentCourse, parallelCourse,
-        FlightPathVectorFlags.HoldEntry | FlightPathVectorFlags.TurnToCourse
+        FlightPathVectorFlags.HoldParallelEntry | FlightPathVectorFlags.TurnToCourse
       );
 
       const turnVector = ingress[ingressVectorIndex - 1];
@@ -1403,7 +1738,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
         course + 135 * turnDirectionSign,
         turnRadiusMeters, turnDirection === 'left' ? 'right' : 'left',
         state.currentCourse, course,
-        FlightPathVectorFlags.HoldEntry
+        FlightPathVectorFlags.HoldParallelEntry
       );
 
       calcs.ingressJoinIndex = 0;
@@ -1425,7 +1760,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
         FlightPathVectorFlags.TurnToCourse
       );
 
-      vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, outboundTurnEnd, outboundEnd, undefined, FlightPathVectorFlags.HoldLeg);
+      vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, outboundTurnEnd, outboundEnd, undefined, FlightPathVectorFlags.HoldOutboundLeg);
 
       const inboundTurnCenterCourse = NavMath.normalizeHeading(oppositeCourse + 90 * turnDirectionSign);
 
@@ -1442,7 +1777,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
       inboundStart = inboundTurnEnd;
     }
 
-    vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, inboundStart, holdPos, undefined, FlightPathVectorFlags.HoldLeg);
+    vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, inboundStart, holdPos, undefined, FlightPathVectorFlags.HoldInboundLeg);
 
     state.currentPosition.set(holdPos);
     state.currentCourse = course;

@@ -4,6 +4,8 @@
   left: 111px;
   width: 147px;
   height: 40px;
+  overflow: hidden;
+  transform: rotateX(0);
 }
 
 .turn-rate-indicator-hsimap {
@@ -12,4 +14,6 @@
   left: 0px;
   width: 147px;
   height: 40px;
+  overflow: hidden;
+  transform: rotateX(0);
 }

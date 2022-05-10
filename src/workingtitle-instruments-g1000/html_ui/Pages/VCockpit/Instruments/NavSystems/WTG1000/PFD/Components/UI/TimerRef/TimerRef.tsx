@@ -1,6 +1,7 @@
-import { FSComponent, VNode, Subject, ArraySubject, ComputedSubject } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { FSComponent, VNode, Subject, ArraySubject, ComputedSubject, UnitType, UnitFamily, Unit } from 'msfssdk';
+import { ControlEvents, EventBus } from 'msfssdk/data';
+import { DHEvents } from 'msfssdk/instruments';
+
 import { G1000ControlEvents } from '../../../../Shared/G1000Events';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
 import { ArrowToggle } from '../../../../Shared/UI/UIControls/ArrowToggle';
@@ -14,6 +15,7 @@ import { ContextMenuDialog, ContextMenuItemDefinition } from '../../../../Shared
 import { Timer, TimerMode } from './Timer';
 import { PFDPageMenuDialog } from '../PFDPageMenuDialog';
 import './TimerRef.css';
+import { UnitsUserSettingManager } from '../../../../Shared/Units/UnitsUserSettings';
 
 /**
  * The properties on the timer ref popout component.
@@ -21,8 +23,8 @@ import './TimerRef.css';
 interface TimerRefProps extends UiViewProps {
   /** An instance of the event bus. */
   bus: EventBus;
-  /** A fms state manager. */
-  fms: Fms;
+  /** A user setting manager. */
+  unitsSettingManager: UnitsUserSettingManager;
 }
 
 /**
@@ -46,6 +48,9 @@ export class TimerRef extends UiView<TimerRefProps> {
   private readonly buttonRef = FSComponent.createRef<ActionButton>();
   private readonly upDownControlRef = FSComponent.createRef<SelectControl<string>>();
   private timerButtonSubject = Subject.create('Start?');
+  private g1000Pub = this.props.bus.getPublisher<G1000ControlEvents>();
+  private controlPub = this.props.bus.getPublisher<ControlEvents>();
+  private dhSub = this.props.bus.getSubscriber<DHEvents>();
 
   /**
    * Callback to handle when Timer changes the mode after reaching 0.
@@ -53,7 +58,7 @@ export class TimerRef extends UiView<TimerRefProps> {
    */
   private onTimerModeChanged = (mode: TimerMode): void => {
     this.upDownControlRef.instance.SelectedValue.set(mode);
-  }
+  };
 
   /**
    * Callback to handle when Timer value changes.
@@ -63,9 +68,9 @@ export class TimerRef extends UiView<TimerRefProps> {
     if (!this.timerComponentRef.instance.getIsActivated()) {
       this.timerComponentRef.instance.setInput(seconds);
     }
-  }
+  };
 
-  public timer = new Timer(this.props.bus, Fms.g1000EvtPub, this.onTimerModeChanged, this.onTimerValueChanged);
+  public timer = new Timer(this.props.bus, this.onTimerModeChanged, this.onTimerValueChanged);
 
   private vSpeeds: VSpeed[] = [
     { type: VSpeedType.Vx, value: Math.round(Simplane.getDesignSpeeds().Vx), modified: Subject.create<boolean>(false), display: true },
@@ -81,7 +86,11 @@ export class TimerRef extends UiView<TimerRefProps> {
     vg: Subject.create(this.vSpeeds[3].value),
     vapp: Subject.create(this.vSpeeds[4].value)
   };
+  private currentMinFeet = Subject.create(0);
   private minimumsSubject = Subject.create(0);
+  private minimumsUnit = ComputedSubject.create<Unit<UnitFamily.Distance>, string>(
+    UnitType.FOOT, (u) => { return u === UnitType.METER ? 'M' : 'FT'; }
+  );
   private vSpeedToggleMap: Map<number, VSpeed> = new Map();
   private vSpeedSubjectMap: Map<VSpeedType, Subject<number>> = new Map();
   private vSpeedObjectMap: Map<VSpeedType, VSpeed> = new Map();
@@ -108,7 +117,7 @@ export class TimerRef extends UiView<TimerRefProps> {
    */
   public onMenu(): boolean {
     // console.log('called menu');
-    const dialog = Fms.viewService.open('PageMenuDialog', true) as PFDPageMenuDialog;
+    const dialog = this.props.viewService.open('PageMenuDialog', true) as PFDPageMenuDialog;
     dialog.setMenuItems([
       {
         id: 'enable-all',
@@ -162,17 +171,45 @@ export class TimerRef extends UiView<TimerRefProps> {
     this.vSpeeds[2].modified.sub(v => this.vrRefChanged.set(v));
     this.vSpeeds[3].modified.sub(v => this.glideRefChanged.set(v));
 
-    const g1000Events = this.props.bus.getSubscriber<G1000ControlEvents>();
-    g1000Events.on('set_minimums').handle((set) => {
-      if (set !== this.minimumsSubject.get()) {
-        this.minimumsSubject.set(set);
+    this.props.unitsSettingManager.altitudeUnits.sub(u => {
+      const oldUnit = this.minimumsUnit.getRaw();
+      this.minimumsUnit.set(u);
+      if (u !== oldUnit) {
+        switch (u) {
+          case UnitType.FOOT:
+            this.minimumsSubject.set(Math.round(this.currentMinFeet.get()));
+            this.controlPub.pub('set_da_distance_unit', 'feet');
+            break;
+          case UnitType.METER:
+            this.minimumsSubject.set(Math.round(UnitType.METER.convertFrom(this.currentMinFeet.get(), UnitType.FOOT)));
+            this.controlPub.pub('set_da_distance_unit', 'meters');
+            break;
+          default:
+            console.warn('Unknown altitude unit handled in TMR/REF: ' + u.name);
+        }
       }
     });
+
+    this.minimumsUnit.set(this.props.unitsSettingManager.altitudeUnits.get());
+
+    const g1000Events = this.props.bus.getSubscriber<G1000ControlEvents>();
     g1000Events.on('show_minimums').handle((show) => {
       const option = show ? 1 : 0;
       if (option !== this.minsRef.get()) {
         this.minsRef.set(option);
       }
+    });
+
+    this.currentMinFeet.sub(v => {
+      if (this.minimumsUnit.getRaw() === UnitType.FOOT) {
+        this.minimumsSubject.set(Math.round(v));
+      } else {
+        this.minimumsSubject.set(Math.round(UnitType.METER.convertFrom(v, UnitType.FOOT)));
+      }
+    });
+
+    this.dhSub.on('decision_altitude').handle((da) => {
+      this.currentMinFeet.set(da);
     });
   }
 
@@ -181,19 +218,19 @@ export class TimerRef extends UiView<TimerRefProps> {
     this.vSpeeds[0].value = Math.round(Simplane.getDesignSpeeds().Vx);
     this.vSpeedSubjects.vx.set(this.vSpeeds[0].value);
     this.vSpeeds[0].modified.set(false);
-    Fms.g1000EvtPub.publishEvent('vspeed_set', this.vSpeeds[0]);
+    this.g1000Pub.pub('vspeed_set', this.vSpeeds[0], true);
     this.vSpeeds[1].value = Math.round(Simplane.getDesignSpeeds().Vy);
     this.vSpeedSubjects.vy.set(this.vSpeeds[1].value);
     this.vSpeeds[1].modified.set(false);
-    Fms.g1000EvtPub.publishEvent('vspeed_set', this.vSpeeds[1]);
+    this.g1000Pub.pub('vspeed_set', this.vSpeeds[1], true);
     this.vSpeeds[2].value = Math.round(Simplane.getDesignSpeeds().Vr);
     this.vSpeedSubjects.vr.set(this.vSpeeds[2].value);
     this.vSpeeds[2].modified.set(false);
-    Fms.g1000EvtPub.publishEvent('vspeed_set', this.vSpeeds[2]);
+    this.g1000Pub.pub('vspeed_set', this.vSpeeds[2], true);
     this.vSpeeds[3].value = Math.round(Simplane.getDesignSpeeds().BestGlide);
     this.vSpeedSubjects.vg.set(this.vSpeeds[3].value);
     this.vSpeeds[3].modified.set(false);
-    Fms.g1000EvtPub.publishEvent('vspeed_set', this.vSpeeds[3]);
+    this.g1000Pub.pub('vspeed_set', this.vSpeeds[3], true);
     this.vSpeeds[4].value = Math.round(Simplane.getDesignSpeeds().Vapp);
     this.vSpeeds[4].modified.set(false);
   }
@@ -220,7 +257,7 @@ export class TimerRef extends UiView<TimerRefProps> {
     if (object !== undefined) {
       object.value = value;
       object.modified.set(true);
-      Fms.g1000EvtPub.publishEvent('vspeed_set', object);
+      this.g1000Pub.pub('vspeed_set', object, true);
     }
   }
 
@@ -238,7 +275,7 @@ export class TimerRef extends UiView<TimerRefProps> {
       this.timerComponentRef.instance.startTimer();
       this.timerButtonSubject.set('Stop?');
     }
-  }
+  };
 
   // ---- TOGGLE Vg CALLBACK
   private onGlideRefOptionSelected = (index: number): void => {
@@ -248,7 +285,7 @@ export class TimerRef extends UiView<TimerRefProps> {
     if (vSpeed !== undefined) {
       vSpeed.value = this.vSpeedSubjects.vg.get();
       vSpeed.display = index === 1;
-      Fms.g1000EvtPub.publishEvent('vspeed_display', vSpeed);
+      this.g1000Pub.pub('vspeed_display', vSpeed, true);
     }
   };
 
@@ -259,7 +296,7 @@ export class TimerRef extends UiView<TimerRefProps> {
     if (vSpeed !== undefined) {
       vSpeed.value = this.vSpeedSubjects.vr.get();
       vSpeed.display = index === 1;
-      Fms.g1000EvtPub.publishEvent('vspeed_display', vSpeed);
+      this.g1000Pub.pub('vspeed_display', vSpeed, true);
     }
   };
 
@@ -270,7 +307,7 @@ export class TimerRef extends UiView<TimerRefProps> {
     if (vSpeed !== undefined) {
       vSpeed.value = this.vSpeedSubjects.vx.get();
       vSpeed.display = index === 1;
-      Fms.g1000EvtPub.publishEvent('vspeed_display', vSpeed);
+      this.g1000Pub.pub('vspeed_display', vSpeed, true);
     }
   };
 
@@ -281,19 +318,21 @@ export class TimerRef extends UiView<TimerRefProps> {
     if (vSpeed !== undefined) {
       vSpeed.value = this.vSpeedSubjects.vy.get();
       vSpeed.display = index === 1;
-      Fms.g1000EvtPub.publishEvent('vspeed_display', vSpeed);
+      this.g1000Pub.pub('vspeed_display', vSpeed, true);
     }
   };
 
   // ---- TOGGLE MINIMUMS CALLBACK
   private onMinimumsRefOptionSelected = (index: number): void => {
     this.minsRef.set(index);
-    Fms.g1000EvtPub.publishEvent('show_minimums', index !== 0 ? true : false);
+    this.g1000Pub.pub('show_minimums', index !== 0 ? true : false, true);
   };
 
   // ---- CHANGE MINIMUMS VALUE CALLBACK
   private updateMinimumsValue = (): void => {
-    Fms.g1000EvtPub.publishEvent('set_minimums', this.minimumsSubject.get());
+    const raw = this.minimumsSubject.get();
+    const converted = this.minimumsUnit.getRaw() == UnitType.METER ? UnitType.FOOT.convertFrom(raw, UnitType.METER) : raw;
+    this.controlPub.pub('set_decision_altitude', converted, true, true);
   };
 
   // ---- UpDown Menu Item Select CALLBACK
@@ -308,12 +347,12 @@ export class TimerRef extends UiView<TimerRefProps> {
   // ---- UpDown Menu Item List Build
   private buildUpDownMenuItems = (item: string, index: number): ContextMenuItemDefinition => {
     return { id: index.toString(), renderContent: (): VNode => <span>{item}</span>, estimatedWidth: item.length * ContextMenuDialog.CHAR_WIDTH };
-  }
+  };
 
   // ---- updateVy Callback method
   private updateVy = (value: number): void => {
     this.updateVSpeed(VSpeedType.Vy, value);
-  }
+  };
 
   // ---- updateVy Callback method
   private updateVx = (value: number): void => {
@@ -340,7 +379,7 @@ export class TimerRef extends UiView<TimerRefProps> {
         <div ref={this.containerRef} class="timerref-container">
           <div class="timerref-timer-title">Timer</div>
           <TimerInput ref={this.timerComponentRef} timer={this.timer} onRegister={this.register} />
-          <SelectControl ref={this.upDownControlRef} onRegister={this.register} class="timerref-timer-updown" outerContainer={this.viewContainerRef} data={this.upDownItems} onItemSelected={this.onUpDownMenuSelected} buildMenuItem={this.buildUpDownMenuItems} />
+          <SelectControl viewService={this.props.viewService} ref={this.upDownControlRef} onRegister={this.register} class="timerref-timer-updown" outerContainer={this.viewContainerRef} data={this.upDownItems} onItemSelected={this.onUpDownMenuSelected} buildMenuItem={this.buildUpDownMenuItems} />
           <ActionButton class="timerref-timer-button" onRegister={this.register} ref={this.buttonRef} text={this.timerButtonSubject} onExecute={this.onTimerButtonPressed} />
           <hr class="timerref-hr1" />
           <div class="timerref-glide-title">GLIDE</div>
@@ -371,8 +410,8 @@ export class TimerRef extends UiView<TimerRefProps> {
           <div class="timerref-mins-title">MINS</div>
           <ArrowToggle class="timerref-mins-toggle" onRegister={this.register} onOptionSelected={this.onMinimumsRefOptionSelected} options={this.minsToggleOptions} dataref={this.minsRef} />
           <div class="timerref-mins-value">
-            <NumberInput onRegister={this.register} onValueChanged={this.updateMinimumsValue} dataSubject={this.minimumsSubject} minValue={-1000} maxValue={10000} increment={10} wrap={false} defaultDisplayValue={'_ _ _ _ _'} class='timerref-ref-number' />
-            <span class="size12">FT</span>
+            <NumberInput onRegister={this.register} quantize={true} onValueChanged={this.updateMinimumsValue} dataSubject={this.minimumsSubject} minValue={0} maxValue={16000} increment={10} wrap={false} defaultDisplayValue={'_ _ _ _ _'} class='timerref-ref-number' />
+            <span class="size12">{this.minimumsUnit}</span>
           </div>
           <div class="timerref-temp-comp-container">
             <div class="temp-comp-title">Temp At</div>

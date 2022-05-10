@@ -1,6 +1,7 @@
 import { VNode, FSComponent } from 'msfssdk';
 import { Facility, NearestSubscription, NearestVorSubscription, VorFacility } from 'msfssdk/navigation';
-import { FocusPosition, UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
+import { FocusPosition } from 'msfssdk/components/controls';
+import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { WaypointIconImageCache } from '../../../../Shared/WaypointIconImageCache';
 import { MFDNearestPage, MFDNearestPageProps } from './MFDNearestPage';
 import { FrequencyGroup, InformationGroup } from './VORs';
@@ -38,7 +39,7 @@ export class MFDNearestVorsPage extends MFDNearestPage<VorFacility> {
   }
 
   /** @inheritdoc */
-  protected getSelectedGroup(): UiControl2<UiControl2Props> {
+  protected getSelectedGroup(): G1000UiControl<G1000UiControlProps> {
     return this.uiRoot.instance;
   }
 
@@ -53,7 +54,7 @@ export class MFDNearestVorsPage extends MFDNearestPage<VorFacility> {
   }
 
   /** @inheritdoc */
-  protected buildNearestSubscription(): NearestSubscription<VorFacility, any, any> {
+  protected buildNearestSubscription(): NearestSubscription<VorFacility> {
     return new NearestVorSubscription(this.props.loader);
   }
 

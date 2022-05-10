@@ -1,4 +1,4 @@
-import { GeoPointInterface } from '../../utils/geo/GeoPoint';
+import { GeoPointInterface } from '../../geo/GeoPoint';
 import { MapProjection } from './MapProjection';
 import { MapLocationTextLabel, MapLocationTextLabelOptions, MapTextLabel } from './MapTextLabel';
 
@@ -73,7 +73,8 @@ export class MapCullableLocationTextLabel extends MapLocationTextLabel implement
  * lower priorities will be culled before labels with higher priorities.
  */
 export class MapCullableTextLabelManager {
-  public static readonly ROTATION_UPDATE_THRESHOLD = Math.PI / 6;
+  private static readonly SCALE_UPDATE_THRESHOLD = 1.2;
+  private static readonly ROTATION_UPDATE_THRESHOLD = Math.PI / 6;
 
   private readonly registered = new Set<MapCullableTextLabel>();
   private _visibleLabels: MapCullableTextLabel[] = [];
@@ -83,8 +84,14 @@ export class MapCullableTextLabelManager {
     return this._visibleLabels;
   }
 
+  /**
+   * Creates an instance of the MapCullableTextLabelManager.
+   * @param cullingEnabled Whether or not culling of labels is enabled.
+   */
+  constructor(private cullingEnabled = true) { }
+
   private needUpdate = false;
-  private lastRange = 0;
+  private lastScaleFactor = 1;
   private lastRotation = 0;
 
   /**
@@ -109,12 +116,22 @@ export class MapCullableTextLabelManager {
   }
 
   /**
+   * Sets whether or not text label culling is enabled.
+   * @param enabled Whether or not culling is enabled.
+   */
+  public setCullingEnabled(enabled: boolean): void {
+    this.cullingEnabled = enabled;
+    this.needUpdate = true;
+  }
+
+  /**
    * Updates this manager.
    * @param mapProjection The projection of the map to which this manager's labels are to be drawn.
    */
   public update(mapProjection: MapProjection): void {
     if (!this.needUpdate) {
-      if (mapProjection.getRange() === this.lastRange) {
+      const scaleFactorRatio = mapProjection.getScaleFactor() / this.lastScaleFactor;
+      if (scaleFactorRatio < MapCullableTextLabelManager.SCALE_UPDATE_THRESHOLD && scaleFactorRatio > 1 / MapCullableTextLabelManager.SCALE_UPDATE_THRESHOLD) {
         const rotationDelta = Math.abs(mapProjection.getRotation() - this.lastRotation);
         if (Math.min(rotationDelta, 2 * Math.PI - rotationDelta) < MapCullableTextLabelManager.ROTATION_UPDATE_THRESHOLD) {
           return;
@@ -123,45 +140,49 @@ export class MapCullableTextLabelManager {
     }
 
     this._visibleLabels = [];
+    if (this.cullingEnabled) {
 
-    const labelArray = Array.from(this.registered.values());
-    const len = labelArray.length;
-    for (let i = 0; i < len; i++) {
-      labelArray[i].updateBounds(mapProjection);
-    }
-
-    labelArray.sort((a: MapCullableTextLabel, b: MapCullableTextLabel): number => {
-      if (a.alwaysShow && !b.alwaysShow) {
-        return -1;
-      } else if (b.alwaysShow && !a.alwaysShow) {
-        return 1;
-      } else {
-        return b.priority - a.priority;
+      const labelArray = Array.from(this.registered.values());
+      const len = labelArray.length;
+      for (let i = 0; i < len; i++) {
+        labelArray[i].updateBounds(mapProjection);
       }
-    });
 
-    const collisionArray: Float64Array[] = [];
-    for (let i = 0; i < len; i++) {
-      const label = labelArray[i];
-      let show = true;
-      if (!label.alwaysShow) {
-        const len2 = collisionArray.length;
-        for (let j = 0; j < len2; j++) {
-          const other = collisionArray[j];
-          if (MapCullableTextLabelManager.doesCollide(label.bounds, other)) {
-            show = false;
-            break;
+      labelArray.sort((a: MapCullableTextLabel, b: MapCullableTextLabel): number => {
+        if (a.alwaysShow && !b.alwaysShow) {
+          return -1;
+        } else if (b.alwaysShow && !a.alwaysShow) {
+          return 1;
+        } else {
+          return b.priority - a.priority;
+        }
+      });
+
+      const collisionArray: Float64Array[] = [];
+      for (let i = 0; i < len; i++) {
+        const label = labelArray[i];
+        let show = true;
+        if (!label.alwaysShow) {
+          const len2 = collisionArray.length;
+          for (let j = 0; j < len2; j++) {
+            const other = collisionArray[j];
+            if (MapCullableTextLabelManager.doesCollide(label.bounds, other)) {
+              show = false;
+              break;
+            }
           }
         }
-      }
 
-      if (show) {
-        collisionArray.push(label.bounds);
-        this._visibleLabels.push(label);
+        if (show) {
+          collisionArray.push(label.bounds);
+          this._visibleLabels.push(label);
+        }
       }
+    } else {
+      this._visibleLabels.push(...this.registered.values());
     }
 
-    this.lastRange = mapProjection.getRange();
+    this.lastScaleFactor = mapProjection.getScaleFactor();
     this.lastRotation = mapProjection.getRotation();
     this.needUpdate = false;
   }

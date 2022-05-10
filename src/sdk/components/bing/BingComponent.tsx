@@ -2,10 +2,16 @@
 /// <reference types="msfstypes/JS/Types" />
 /// <reference types="msfstypes/JS/NetBingMap" />
 
-import {
-  ArraySubject, ComponentProps, DisplayComponent, FSComponent, Subject, Subscribable, SubscribableArray,
-  SubscribableArrayEventType, Vec2Subject, VNode
-} from '../..';
+import { GameStateProvider } from '../../data/GameStateProvider';
+import { ReadonlyFloat64Array } from '../../math/VecMath';
+import { Vec2Subject } from '../../math/VectorSubject';
+import { ArraySubject } from '../../sub/ArraySubject';
+import { Subject } from '../../sub/Subject';
+import { Subscribable } from '../../sub/Subscribable';
+import { SubscribableArray, SubscribableArrayEventType } from '../../sub/SubscribableArray';
+import { Subscription } from '../../sub/Subscription';
+import { ComponentProps, DisplayComponent, FSComponent, VNode } from '../FSComponent';
+
 
 /**
  * Weather radar mode data for the BingComponent.
@@ -35,7 +41,7 @@ export interface BingComponentProps extends ComponentProps {
    * A subscribable which provides the internal resolution for the Bing component. If not defined, the resolution
    * defaults to 1024x1024 pixels.
    */
-  resolution?: Subscribable<Float64Array>;
+  resolution?: Subscribable<ReadonlyFloat64Array>;
 
   /**
    * A subscribable array which provides the earth colors for the Bing component. The array should have a length of
@@ -64,6 +70,11 @@ export interface BingComponentProps extends ComponentProps {
    * mode defaults to `EWeatherRadar.NONE`.
    */
   wxrMode?: Subscribable<WxrMode>;
+
+  /**
+   * How long to delay binding the map in ms. Defaults to 3000.
+   */
+  delay?: number;
 }
 
 /**
@@ -83,40 +94,56 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
   private _isBound = false;
   private _isAwake = true;
 
+  private isDestroyed = false;
+
   private pos: LatLong | null = null;
   private radius = 0;
-  private readonly resolutionSub = Vec2Subject.createFromVector(new Float64Array([BingComponent.DEFAULT_RESOLUTION, BingComponent.DEFAULT_RESOLUTION]));
-  private readonly resolutionPropHandler = (resolution: Float64Array): void => {
-    this.resolutionSub.set(resolution);
-  }
-  private readonly resolutionHandler = (resolution: Float64Array): void => {
-    Coherent.call('SET_MAP_RESOLUTION', this.uid, resolution[0], resolution[1]);
-  }
-
-  private readonly earthColorsSub = ArraySubject.create(BingComponent.createEarthColorsArray('#000000', [{ elev: 0, color: '#000000' }, { elev: 60000, color: '#000000' }]));
-  private readonly skyColorSub = Subject.create(BingComponent.hexaToRGBColor('#000000'));
-  private readonly referenceSub = Subject.create(EBingReference.SEA);
-  private readonly wxrModeSub = Subject.create<WxrMode>({ mode: EWeatherRadar.OFF, arcRadians: 0.5 },
+  private readonly resolution = Vec2Subject.createFromVector(new Float64Array([BingComponent.DEFAULT_RESOLUTION, BingComponent.DEFAULT_RESOLUTION]));
+  private readonly earthColors = ArraySubject.create(BingComponent.createEarthColorsArray('#000000', [{ elev: 0, color: '#000000' }, { elev: 60000, color: '#000000' }]));
+  private readonly skyColor = Subject.create(BingComponent.hexaToRGBColor('#000000'));
+  private readonly reference = Subject.create(EBingReference.SEA);
+  private readonly wxrMode = Subject.create<WxrMode>({ mode: EWeatherRadar.OFF, arcRadians: 0.5 },
     (cur, prev) => cur.mode === prev.mode && cur.arcRadians === prev.arcRadians,
-    (ref, val) => Object.assign(ref, val));
+    (ref, val) => Object.assign(ref, val)
+  );
 
+  private gameStateSub?: Subscription;
+
+  private resolutionPropSub?: Subscription;
+  private earthColorsPropSub?: Subscription;
+  private skyColorPropSub?: Subscription;
+  private referencePropSub?: Subscription;
+  private wxrModePropSub?: Subscription;
+
+  private resolutionSub?: Subscription;
+  private earthColorsSub?: Subscription;
+  private skyColorSub?: Subscription;
+  private referenceSub?: Subscription;
+  private wxrModeSub?: Subscription;
+
+  private readonly resolutionPropHandler = (resolution: ReadonlyFloat64Array): void => {
+    this.resolution.set(resolution);
+  };
   private readonly earthColorsPropHandler = (index: number, type: SubscribableArrayEventType, item: number | readonly number[] | undefined, array: readonly number[]): void => {
     if (array.length !== 61) {
       return;
     }
 
-    this.earthColorsSub.set(array);
-  }
+    this.earthColors.set(array);
+  };
   private readonly skyColorPropHandler = (color: number): void => {
-    this.skyColorSub.set(color);
-  }
+    this.skyColor.set(color);
+  };
   private readonly referencePropHandler = (reference: EBingReference): void => {
-    this.referenceSub.set(reference);
-  }
+    this.reference.set(reference);
+  };
   private readonly wxrModePropHandler = (wxrMode: WxrMode): void => {
-    this.wxrModeSub.set(wxrMode);
-  }
+    this.wxrMode.set(wxrMode);
+  };
 
+  private readonly resolutionHandler = (resolution: ReadonlyFloat64Array): void => {
+    Coherent.call('SET_MAP_RESOLUTION', this.uid, resolution[0], resolution[1]);
+  };
   private readonly earthColorsHandler = (index: number, type: SubscribableArrayEventType, item: number | readonly number[] | undefined, array: readonly number[]): void => {
     if (type !== SubscribableArrayEventType.Cleared) {
       if (array.length !== 61) {
@@ -125,17 +152,17 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
 
       Coherent.call('SET_MAP_HEIGHT_COLORS', this.uid, array);
     }
-  }
+  };
   private readonly skyColorHandler = (color: number): void => {
     Coherent.call('SET_MAP_CLEAR_COLOR', this.uid, color);
-  }
+  };
   private readonly referenceHandler = (reference: EBingReference): void => {
     const flags = this.modeFlags | (reference === EBingReference.PLANE ? 1 : 0);
     this.mapListener.trigger('JS_BIND_BINGMAP', this.props.id, flags);
-  }
+  };
   private readonly wxrModeHandler = (wxrMode: WxrMode): void => {
     Coherent.call('SHOW_MAP_WEATHER', this.uid, wxrMode.mode, wxrMode.arcRadians);
-  }
+  };
 
   /**
    * Checks whether this Bing component has been bound.
@@ -155,25 +182,60 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.props.resolution?.sub(this.resolutionPropHandler, true);
+    if ((window as any)['IsDestroying']) {
+      this.destroy();
+      return;
+    }
 
-    this.props.earthColors?.sub(this.earthColorsPropHandler, true);
-    this.props.skyColor?.sub(this.skyColorPropHandler, true);
-    this.props.reference?.sub(this.referencePropHandler, true);
-    this.props.wxrMode?.sub(this.wxrModePropHandler, true);
+    this.resolutionPropSub = this.props.resolution?.sub(this.resolutionPropHandler, true);
+    this.earthColorsPropSub = this.props.earthColors?.sub(this.earthColorsPropHandler, true);
+    this.skyColorPropSub = this.props.skyColor?.sub(this.skyColorPropHandler, true);
+    this.referencePropSub = this.props.reference?.sub(this.referencePropHandler, true);
+    this.wxrModePropSub = this.props.wxrMode?.sub(this.wxrModePropHandler, true);
 
-    setTimeout(() => {
-      this.mapListener = RegisterViewListener('JS_LISTENER_MAPS', this.onListenerRegistered);
-    }, 3000);
+    const gameStateSubscribable = GameStateProvider.get();
+    const gameState = gameStateSubscribable.get();
 
-    window.addEventListener('OnDestroy', this.onDestroy);
+    if (gameState === GameState.briefing || gameState === GameState.ingame) {
+      this.registerListener();
+    } else {
+      this.gameStateSub = gameStateSubscribable.sub(state => {
+        if (this.isDestroyed) {
+          return;
+        }
+
+        if (state === GameState.briefing || state === GameState.ingame) {
+          this.gameStateSub?.destroy();
+          this.registerListener();
+        }
+      });
+    }
+
+    window.addEventListener('OnDestroy', this.destroy.bind(this));
   }
 
   /**
-   * A callback called when the listener is registered.
+   * Registers this component's Bing map listener.
    */
-  private onListenerRegistered = (): void => {
-    if (this.isListenerRegistered) {
+  private registerListener(): void {
+    if ((this.props.delay ?? 0) > 0) {
+      setTimeout(() => {
+        if (this.isDestroyed) {
+          return;
+        }
+
+        this.mapListener = RegisterViewListener('JS_LISTENER_MAPS', this.onListenerRegistered.bind(this));
+      }, this.props.delay);
+    } else {
+      this.mapListener = RegisterViewListener('JS_LISTENER_MAPS', this.onListenerRegistered.bind(this));
+    }
+  }
+
+  /**
+   * A callback called when this component's Bing map listener is registered.
+   */
+  private onListenerRegistered(): void {
+    if (this.isDestroyed || this.isListenerRegistered) {
       return;
     }
 
@@ -190,6 +252,10 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
    * @param uid The unique ID of the bound map.
    */
   private onListenerBound = (binder: BingMapsBinder, uid: number): void => {
+    if (this.isDestroyed) {
+      return;
+    }
+
     if (binder.friendlyName === this.props.id) {
       // console.log('Bing map listener bound.');
       this.binder = binder;
@@ -202,19 +268,17 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
 
       Coherent.call('SHOW_MAP', uid, true);
 
-      if (this._isAwake) {
-        Coherent.call('SET_MAP_RESOLUTION', uid, BingComponent.DEFAULT_RESOLUTION, BingComponent.DEFAULT_RESOLUTION);
+      const pause = !this._isAwake;
 
-        this.earthColorsSub.sub(this.earthColorsHandler, true);
-        this.skyColorSub.sub(this.skyColorHandler, true);
-        this.referenceSub.sub(this.referenceHandler, true);
-        this.wxrModeSub.sub(this.wxrModeHandler, true);
-        this.resolutionSub.sub(this.resolutionHandler, true);
-      }
+      this.earthColorsSub = this.earthColors.sub(this.earthColorsHandler, true, pause);
+      this.skyColorSub = this.skyColor.sub(this.skyColorHandler, true, pause);
+      this.referenceSub = this.reference.sub(this.referenceHandler, true, pause);
+      this.wxrModeSub = this.wxrMode.sub(this.wxrModeHandler, true, pause);
+      this.resolutionSub = this.resolution.sub(this.resolutionHandler, true, pause);
 
       this.props.onBoundCallback(this);
     }
-  }
+  };
 
   /**
    * A callback called when the map image is updated.
@@ -227,30 +291,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
         this.imgRef.instance.src = imgSrc;
       }
     }
-  }
-
-  /**
-   * A callback called when the instrument is destroyed.
-   */
-  private onDestroy = (): void => {
-    this._isBound = false;
-
-    this.props.earthColors?.unsub(this.earthColorsPropHandler);
-    this.props.skyColor?.unsub(this.skyColorPropHandler);
-    this.props.reference?.unsub(this.referencePropHandler);
-    this.props.wxrMode?.unsub(this.wxrModePropHandler);
-    this.props.resolution?.unsub(this.resolutionPropHandler);
-
-    this.mapListener?.off('MapBinded', this.onListenerBound);
-    this.mapListener?.off('MapUpdated', this.onMapUpdate);
-    this.mapListener?.trigger('JS_UNBIND_BINGMAP', this.props.id);
-    this.isListenerRegistered = false;
-
-    if (this.imgRef.instance !== null) {
-      this.imgRef.instance.src = '';
-      this.imgRef.instance.parentNode?.removeChild(this.imgRef.instance);
-    }
-  }
+  };
 
   /**
    * Wakes this Bing component. Upon awakening, this component will synchronize its state from when it was put to sleep
@@ -265,11 +306,11 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
 
     Coherent.call('SET_MAP_PARAMS', this.uid, this.pos, this.radius, 1);
 
-    this.earthColorsSub.sub(this.earthColorsHandler, true);
-    this.skyColorSub.sub(this.skyColorHandler, true);
-    this.referenceSub.sub(this.referenceHandler, true);
-    this.wxrModeSub.sub(this.wxrModeHandler, true);
-    this.resolutionSub.sub(this.resolutionHandler, true);
+    this.earthColorsSub?.resume(true);
+    this.skyColorSub?.resume(true);
+    this.referenceSub?.resume(true);
+    this.wxrModeSub?.resume(true);
+    this.resolutionSub?.resume(true);
   }
 
   /**
@@ -283,11 +324,11 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
       return;
     }
 
-    this.earthColorsSub.unsub(this.earthColorsHandler);
-    this.skyColorSub.unsub(this.skyColorHandler);
-    this.referenceSub.unsub(this.referenceHandler);
-    this.wxrModeSub.unsub(this.wxrModeHandler);
-    this.resolutionSub.unsub(this.resolutionHandler);
+    this.earthColorsSub?.pause();
+    this.skyColorSub?.pause();
+    this.referenceSub?.pause();
+    this.wxrModeSub?.pause();
+    this.resolutionSub?.pause();
   }
 
   /**
@@ -296,10 +337,11 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
    * @param radius The radius, in meters.
    */
   public setPositionRadius(pos: LatLong, radius: number): void {
+    this.pos = pos;
+    this.radius = radius;
+
     if (this._isBound && this._isAwake) {
       Coherent.call('SET_MAP_PARAMS', this.uid, pos, radius, 1);
-      this.pos = pos;
-      this.radius = radius;
     }
   }
 
@@ -308,6 +350,28 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
     return (
       <img ref={this.imgRef} src='' style='position: absolute; left: 0; top: 0; width: 100%; height: 100%;' class={`${this.props.class ?? ''}`} />
     );
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this.isDestroyed = true;
+    this._isBound = false;
+
+    this.gameStateSub?.destroy();
+
+    this.resolutionPropSub?.destroy();
+    this.earthColorsPropSub?.destroy();
+    this.skyColorPropSub?.destroy();
+    this.referencePropSub?.destroy();
+    this.wxrModePropSub?.destroy();
+
+    this.mapListener?.off('MapBinded', this.onListenerBound);
+    this.mapListener?.off('MapUpdated', this.onMapUpdate);
+    this.mapListener?.trigger('JS_UNBIND_BINGMAP', this.props.id);
+    this.isListenerRegistered = false;
+
+    this.imgRef.instance.src = '';
+    this.imgRef.instance.parentNode?.removeChild(this.imgRef.instance);
   }
 
   /**

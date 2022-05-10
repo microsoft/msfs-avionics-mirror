@@ -10,13 +10,16 @@ export class MFDMapSettingsWeatherGroup extends MFDMapSettingsGroup<MFDMapSettin
   protected getSettingRows(containerRef: NodeReference<HTMLElement>): VNode[] {
     return [
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'NEXRAD Data'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapNexradShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapNexradRangeIndex',

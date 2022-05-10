@@ -23,7 +23,7 @@ export class PFDSetRunway extends SetRunway {
           <div class="pfd-setrunway-airport">Airport</div>
           <div class="pfd-setrunway-airport-value">{this.store.airportIdent}</div>
           <div class="pfd-setrunway-runway">Runway</div>
-          <SelectControl<OneWayRunway> onRegister={this.register}
+          <SelectControl<OneWayRunway> viewService={this.props.viewService} onRegister={this.register}
             dialogPosition={ContextMenuPosition.BOTTOM} outerContainer={this.viewContainerRef}
             data={this.store.oneWayRunways} buildMenuItem={this.buildRunwayMenuItem.bind(this)} onItemSelected={this.onRunwaySelected.bind(this)}
             class="pfd-setrunway-runway-value"

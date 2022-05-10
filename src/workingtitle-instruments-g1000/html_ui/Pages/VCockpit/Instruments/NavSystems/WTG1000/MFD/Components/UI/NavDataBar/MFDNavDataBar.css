@@ -1,4 +1,4 @@
-.nav-data-bar {
+.nav-data-bar-container {
   position: relative;
   background: linear-gradient(to bottom, rgb(4,4,12), rgb(24, 28, 43));
   border-style: solid;
@@ -8,7 +8,7 @@
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
 }
-  .nav-data-bar-fields {
+  .nav-data-bar {
     position: absolute;
     left: 0;
     top: 0;

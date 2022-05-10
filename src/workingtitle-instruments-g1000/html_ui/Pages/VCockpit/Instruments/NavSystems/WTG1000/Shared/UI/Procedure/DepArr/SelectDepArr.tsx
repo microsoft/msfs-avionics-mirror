@@ -2,10 +2,10 @@ import { FSComponent, NodeReference, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { FlightPathCalculator } from 'msfssdk/flightplan';
 import { ArrivalProcedure, DepartureProcedure, EnrouteTransition, FacilitySearchType, RunwayTransition } from 'msfssdk/navigation';
-import { Fms } from '../../../FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
+import { FocusPosition } from 'msfssdk/components/controls';
 import { ContextMenuDialog, ContextMenuItemDefinition, ContextMenuPosition } from '../../Dialogs/ContextMenuDialog';
 import { FmsHEvent } from '../../FmsHEvent';
-import { FocusPosition } from '../../UiControl2';
 import { UiControlGroup, UiControlGroupProps } from '../../UiControlGroup';
 import { GenericControl } from '../../UIControls/GenericControl';
 import { WaypointInput } from '../../UIControls/WaypointInput';
@@ -132,6 +132,7 @@ export abstract class SelectDepArr<T extends DepartureProcedure | ArrivalProcedu
     return (
       <WaypointInput
         bus={this.props.bus}
+        viewService={this.props.viewService}
         onRegister={this.register} onInputEnterPressed={this.gotoNextSelect.bind(this)} selectedIcao={this.controller.inputIcao}
         onFacilityChanged={this.controller.facilityChangedHandler} filter={FacilitySearchType.Airport}
       />

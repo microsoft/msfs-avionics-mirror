@@ -1,5 +1,4 @@
 import { FSComponent, VNode, ComputedSubject } from 'msfssdk';
-import { Fms } from '../../FlightPlan/Fms';
 import { UiControl, UiControlProps } from '../UiControl';
 import { UiView } from '../UiView';
 
@@ -60,7 +59,7 @@ export class PopoutMenuItem extends UiControl<PopoutMenuItemProps> {
   public onEnter(): boolean {
     if (this.props.def.action) {
       this.props.def.action();
-      if ((this.props.def.closeAfterAction === undefined || this.props.def.closeAfterAction) && Fms.viewService.getOpenViews().includes(this.props.parent)) {
+      if ((this.props.def.closeAfterAction === undefined || this.props.def.closeAfterAction) && this.props.parent.props.viewService.getOpenViews().includes(this.props.parent)) {
         this.props.parent.close();
       }
       return true;
@@ -72,7 +71,7 @@ export class PopoutMenuItem extends UiControl<PopoutMenuItemProps> {
 
   private onIsEnabledChanged = (v: string, rv: boolean): void => {
     this.setIsEnabled(rv);
-  }
+  };
 
   /** @inheritdoc */
   public getHighlightElement(): Element | null {

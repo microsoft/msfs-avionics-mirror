@@ -1,11 +1,12 @@
 import { FSComponent, NavMath, Subject, Subscribable } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
-import { Fms } from '../../FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { HoldController } from '../Hold/HoldController';
 import { HoldStore } from '../Hold/HoldStore';
 import { FmsHEvent } from '../FmsHEvent';
 import { TimeDistanceInput } from '../UIControls/TimeDistanceInput';
 import { UiView, UiViewProps } from '../UiView';
+import { HoldUtils } from 'msfssdk/navigation/HoldUtils';
 
 /**
  * The properties on the procedures popout component.
@@ -108,7 +109,7 @@ export abstract class Hold<P extends HoldProps = HoldProps> extends UiView<P, un
     const courseString = Subject.create('');
     const courseStringHandler = (): void => {
       const course = this.store.course.get();
-      courseString.set(this.controller.getDirectionString(this.store.isInbound.get() === 0 ? course : NavMath.normalizeHeading(course + 180)));
+      courseString.set(HoldUtils.getDirectionString(this.store.isInbound.get() === 0 ? course : NavMath.normalizeHeading(course + 180)));
     };
     this.store.course.sub(courseStringHandler);
     this.store.isInbound.sub(courseStringHandler, true);

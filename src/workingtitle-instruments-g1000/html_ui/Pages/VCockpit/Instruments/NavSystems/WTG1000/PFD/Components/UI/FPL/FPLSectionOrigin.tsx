@@ -1,15 +1,15 @@
-import { DisplayComponent, Subject, FSComponent, VNode, UnitType, NumberFormatter, NumberUnitSubject } from 'msfssdk';
+import { DisplayComponent, Subject, FSComponent, VNode, UnitType, NumberUnitSubject, ComponentProps } from 'msfssdk';
 import { ICAO, LegTurnDirection, LegType } from 'msfssdk/navigation';
 import { OriginDestChangeType, FlightPlan, FlightPlanOriginDestEvent, LegDefinition } from 'msfssdk/flightplan';
 import { DurationDisplay, DurationDisplayDelim, DurationDisplayFormat } from 'msfssdk/components/common';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 
-import { FPLSectionProps } from './FPLSection';
 import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
 
 /**
  * Represent the origin segment of a flight plan listing.
  */
-export class FPLOrigin extends DisplayComponent<FPLSectionProps> {
+export class FPLOrigin extends DisplayComponent<ComponentProps> {
   private origin = Subject.create('_____');
   private destination = Subject.create('_____');
   private holdDistance = NumberUnitSubject.createFromNumberUnit(UnitType.METER.createNumber(0));

@@ -1,6 +1,6 @@
-import { Consumer } from '../data/Consumer';
 import { DataStore } from '../data/DataStore';
 import { EventBus } from '../data/EventBus';
+import { Subscription } from '../sub/Subscription';
 import { UserSetting, UserSettingType } from './UserSetting';
 
 /**
@@ -10,11 +10,8 @@ type UserSettingSaveManagerEntry<T extends UserSettingType> = {
   /** A setting. */
   setting: UserSetting<any, T>,
 
-  /** An event bus consumer which consumes setting value change events. */
-  consumer: Consumer<T>,
-
-  /** A function which handles setting value change events. */
-  eventHandler: (value: T) => void,
+  /** A subscription to the setting. */
+  subscription: Subscription,
 
   /** The data store keys to which the setting's value should be automatically saved. */
   autoSaveDataStoreKeys: string[]
@@ -31,6 +28,8 @@ export class UserSettingSaveManager {
   private readonly entries: UserSettingSaveManagerEntry<UserSettingType>[];
   private readonly autoSaveKeys = new Set<string>();
 
+  private isAlive = true;
+
   /**
    * Constructor.
    * @param settings This manager's managed settings.
@@ -43,8 +42,7 @@ export class UserSettingSaveManager {
       const autoSaveDataStoreKeys: string[] = [];
       return {
         setting,
-        consumer: subscriber.on(setting.definition.name).whenChanged(),
-        eventHandler: this.onSettingChanged.bind(this, autoSaveDataStoreKeys),
+        subscription: subscriber.on(setting.definition.name).whenChanged().handle(this.onSettingChanged.bind(this, autoSaveDataStoreKeys), true),
         autoSaveDataStoreKeys
       };
     });
@@ -65,10 +63,14 @@ export class UserSettingSaveManager {
   /**
    * Loads the saved values of this manager's settings.
    * @param key The key from which to load the values.
+   * @throws Error if this manager has been destroyed.
    */
   public load(key: string): void {
-    const len = this.entries.length;
-    for (let i = 0; i < len; i++) {
+    if (!this.isAlive) {
+      throw new Error('UserSettingSaveManager: cannot load using a destroyed manager.');
+    }
+
+    for (let i = 0; i < this.entries.length; i++) {
       const entry = this.entries[i];
       const dataStoreKey = UserSettingSaveManager.getDataStoreKey(entry.setting, key);
       const storedValue = DataStore.get(dataStoreKey);
@@ -81,10 +83,14 @@ export class UserSettingSaveManager {
   /**
    * Saves the current values of this manager's settings.
    * @param key The key to which to save the values.
+   * @throws Error if this manager has been destroyed.
    */
   public save(key: string): void {
-    const len = this.entries.length;
-    for (let i = 0; i < len; i++) {
+    if (!this.isAlive) {
+      throw new Error('UserSettingSaveManager: cannot save using a destroyed manager.');
+    }
+
+    for (let i = 0; i < this.entries.length; i++) {
       const entry = this.entries[i];
       const dataStoreKey = UserSettingSaveManager.getDataStoreKey(entry.setting, key);
       DataStore.set(dataStoreKey, entry.setting.value);
@@ -94,18 +100,22 @@ export class UserSettingSaveManager {
   /**
    * Starts automatically saving this manager's settings when their values change.
    * @param key The key to which to save the values.
+   * @throws Error if this manager has been destroyed.
    */
   public startAutoSave(key: string): void {
+    if (!this.isAlive) {
+      throw new Error('UserSettingSaveManager: cannot start autosave using a destroyed manager.');
+    }
+
     if (this.autoSaveKeys.has(key)) {
       return;
     }
 
-    const len = this.entries.length;
-    for (let i = 0; i < len; i++) {
+    for (let i = 0; i < this.entries.length; i++) {
       const entry = this.entries[i];
       entry.autoSaveDataStoreKeys.push(UserSettingSaveManager.getDataStoreKey(entry.setting, key));
       if (entry.autoSaveDataStoreKeys.length === 1) {
-        entry.consumer.handle(entry.eventHandler);
+        entry.subscription.resume();
       }
     }
   }
@@ -113,20 +123,38 @@ export class UserSettingSaveManager {
   /**
    * Stops automatically saving this manager's settings when their values change.
    * @param key The key to which to stop saving the values.
+   * @throws Error if this manager has been destroyed.
    */
   public stopAutoSave(key: string): void {
+    if (!this.isAlive) {
+      throw new Error('UserSettingSaveManager: cannot stop autosave using a destroyed manager.');
+    }
+
     if (!this.autoSaveKeys.has(key)) {
       return;
     }
 
-    const len = this.entries.length;
-    for (let i = 0; i < len; i++) {
+    for (let i = 0; i < this.entries.length; i++) {
       const entry = this.entries[i];
       entry.autoSaveDataStoreKeys.splice(entry.autoSaveDataStoreKeys.indexOf(UserSettingSaveManager.getDataStoreKey(entry.setting, key)), 1);
       if (entry.autoSaveDataStoreKeys.length === 0) {
-        entry.consumer.off(entry.eventHandler);
+        entry.subscription.pause();
       }
     }
+  }
+
+  /**
+   * Destroys this manager. Once this manager is destroyed, all active autosaves will be stopped, and attempting to
+   * save, load, or start another autosave from this manager will cause an error to be thrown.
+   */
+  public destroy(): void {
+    const len = this.entries.length;
+    for (let i = 0; i < len; i++) {
+      this.entries[i].subscription.destroy();
+    }
+
+    this.entries.length = 0;
+    this.isAlive = false;
   }
 
   /**

@@ -107,7 +107,7 @@ export class HorizonCompass extends DisplayComponent<ComponentProps> {
         }
       }
     }
-  }
+  };
 
   /**
    * Gets the altitude corrected pitch for the horizon.
@@ -129,15 +129,17 @@ export class HorizonCompass extends DisplayComponent<ComponentProps> {
   public render(): VNode {
     const ticks = this.buildHeadingTicks();
     return (
-      <svg ref={this.horizonLineElement} class="horizon-line" viewBox="-982 -25 1964 50">
-        <g class="HeadingTape">
-          <line x1="-982" y1="0" x2="982" y2="0" stroke="white" stroke-width="2"></line>
-          {ticks.ticks}
-          <g ref={this.headingLabelsRef}>
-            {ticks.labels}
+      <div ref={this.horizonLineElement} class="horizon-line">
+        <svg height="100%" width="100%" viewBox="-982 -25 1964 50">
+          <g class="HeadingTape">
+            <line x1="-982" y1="0" x2="982" y2="0" stroke="white" stroke-width="2"></line>
+            {ticks.ticks}
+            <g ref={this.headingLabelsRef}>
+              {ticks.labels}
+            </g>
           </g>
-        </g>
-      </svg>
+        </svg>
+      </div>
     );
   }
 }

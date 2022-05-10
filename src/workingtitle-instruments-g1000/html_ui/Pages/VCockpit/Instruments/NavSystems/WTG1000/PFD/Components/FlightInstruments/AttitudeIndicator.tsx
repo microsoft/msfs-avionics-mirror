@@ -3,7 +3,6 @@ import { EventBus } from 'msfssdk/data';
 import { ADCEvents } from 'msfssdk/instruments/ADC';
 import { AHRSSystemEvents } from '../../../Shared/Systems/AHRSSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
-import { FailedBox } from '../../../Shared/UI/FailedBox';
 import { SvtProjectionUtils } from '../../../Shared/UI/SvtProjectionUtils';
 import { PFDUserSettings } from '../../PFDUserSettings';
 
@@ -42,8 +41,8 @@ export class AttitudeIndicator extends DisplayComponent<AttitudeIndicatorProps> 
   private bankElement = FSComponent.createRef<HTMLDivElement>();
   private innerBankElement = FSComponent.createRef<HTMLDivElement>();
   private zeroPitchLine = FSComponent.createRef<SVGElement>();
-  private failedBox = FSComponent.createRef<FailedBox>();
   private ahrsAlign = FSComponent.createRef<HTMLDivElement>();
+  private containerRef = FSComponent.createRef<HTMLDivElement>();
 
   private pitchNumbersLeft: NodeReference<SVGTextElement>[] = [];
   private pitchNumbersRight: NodeReference<SVGTextElement>[] = [];
@@ -118,7 +117,6 @@ export class AttitudeIndicator extends DisplayComponent<AttitudeIndicatorProps> 
     PFDUserSettings.getManager(this.props.bus).whenSettingChanged('svtToggle').handle(this.updateSVTDisplay.bind(this));
     this.onUpdatePitch(this.currentPitch, true);
 
-    this.failedBox.instance.setFailed(true);
     this.props.bus.getSubscriber<AHRSSystemEvents>()
       .on('ahrs_state')
       .handle(this.onAhrsStateChanged.bind(this));
@@ -154,27 +152,24 @@ export class AttitudeIndicator extends DisplayComponent<AttitudeIndicatorProps> 
   private setDisplayState(state: DisplayState): void {
     switch (state) {
       case 'failed':
-        this.failedBox.instance.setFailed(true);
-        this.cutoutElement.instance.classList.add('hidden-element');
-        this.turnCoordinatorElement.instance.classList.add('hidden-element');
+        this.containerRef.instance.classList.add('failed-instr');
+        this.containerRef.instance.classList.remove('ahrs-align-state');
         this.ahrsAlign.instance.classList.add('hidden');
 
         this.onUpdatePitch(0, false);
         this.onUpdateRoll(0);
         break;
       case 'align':
-        this.failedBox.instance.setFailed(false);
-        this.cutoutElement.instance.classList.add('hidden-element');
-        this.turnCoordinatorElement.instance.classList.add('hidden-element');
+        this.containerRef.instance.classList.add('ahrs-align-state');
+        this.containerRef.instance.classList.remove('failed-instr');
         this.ahrsAlign.instance.classList.remove('hidden');
 
         this.onUpdatePitch(0, false);
         this.onUpdateRoll(0);
         break;
       case 'ok':
-        this.failedBox.instance.setFailed(false);
-        this.cutoutElement.instance.classList.remove('hidden-element');
-        this.turnCoordinatorElement.instance.classList.remove('hidden-element');
+        this.containerRef.instance.classList.remove('failed-instr');
+        this.containerRef.instance.classList.remove('ahrs-align-state');
         this.ahrsAlign.instance.classList.add('hidden');
         break;
     }
@@ -214,7 +209,7 @@ export class AttitudeIndicator extends DisplayComponent<AttitudeIndicatorProps> 
       }
       this.updateLinesPos(pitch);
     }
-  }
+  };
 
   /**
    * A callback called when the ADC updates from the event bus.
@@ -226,7 +221,7 @@ export class AttitudeIndicator extends DisplayComponent<AttitudeIndicatorProps> 
       this.cutoutElement.instance.style.transform = `rotate(${-roll}deg)`;
       this.innerBankElement.instance.style.transform = `rotate(${roll}deg)`;
     }
-  }
+  };
 
   /**
    * Updates pitch lines position.
@@ -234,7 +229,7 @@ export class AttitudeIndicator extends DisplayComponent<AttitudeIndicatorProps> 
    */
   private updateLinesPos(pitch: number): void {
     pitch = pitch % this.scroll_increment;
-    this.pitchLinesGroup.instance.style.transform = `translate3d(0px, ${pitch * (this.pxPerDegY)}px, 0px)`;
+    this.pitchLinesContainer.instance.style.transform = `translate3d(0px, ${pitch * (this.pxPerDegY)}px, 0px)`;
   }
 
   /**
@@ -263,7 +258,7 @@ export class AttitudeIndicator extends DisplayComponent<AttitudeIndicatorProps> 
       const translation = turnCoordinator * 54;
       this.turnCoordinatorElement.instance.style.transform = `translate3d(${translation}px, 0px, 0px)`;
     }
-  }
+  };
 
   /**
    * Sets whether SVT scales are active or not.
@@ -281,7 +276,7 @@ export class AttitudeIndicator extends DisplayComponent<AttitudeIndicatorProps> 
     }
     this.pitchIncrementsDistance = (this.pxPerDegY * this.pitchIncrements);
     this.rebuildAttitudeLadder();
-  }
+  };
 
   /**
    * Renders the component.
@@ -290,8 +285,8 @@ export class AttitudeIndicator extends DisplayComponent<AttitudeIndicatorProps> 
   public render(): VNode {
     return (
 
-      <div class="attitude-container">
-        <FailedBox ref={this.failedBox} />
+      <div class="attitude-container" ref={this.containerRef}>
+        <div class="failed-box" />
         <div class="turn-coordinator" ref={this.turnCoordinatorElement}>
           <svg>
             <path d="M 15 15 l 15 0 l -3 -6 l -24 0 l -3 6 l 15 0" fill="#fff" stroke="black" stroke-width=".5" />

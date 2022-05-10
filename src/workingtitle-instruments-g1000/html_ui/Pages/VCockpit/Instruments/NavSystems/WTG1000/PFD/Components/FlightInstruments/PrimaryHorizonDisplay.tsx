@@ -113,7 +113,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
   private onUpdatePitch = (pitch: number): void => {
     this.planeState.pitch = pitch;
     this.shouldUpdate = true;
-  }
+  };
 
   /**
    * A callback called when the roll updates from the event bus.
@@ -122,7 +122,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
   private onUpdateRoll = (roll: number): void => {
     this.planeState.roll = roll;
     this.shouldUpdate = true;
-  }
+  };
 
   /**
    * A callback called when the altitude updates from the event bus.
@@ -131,7 +131,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
   private onUpdateAltitude = (alt: number): void => {
     this.planeState.altitude = alt;
     this.shouldUpdate = true;
-  }
+  };
 
   /**
    * A callback called when the true heading updates from the event bus.
@@ -140,7 +140,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
   private onUpdateHeading = (hdg: number): void => {
     this.planeState.heading = hdg;
     this.shouldUpdate = true;
-  }
+  };
 
   /**
    * A callback called when the true track updates from the event bus.
@@ -149,7 +149,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
   private onUpdateTrack = (track: number): void => {
     this.planeState.track = track;
     this.shouldUpdate = true;
-  }
+  };
 
   /**
    * A callback called when the ground speed updates from the event bus.
@@ -158,7 +158,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
   private onUpdateGroundSpeed = (gs: number): void => {
     this.planeState.gs = gs;
     this.shouldUpdate = true;
-  }
+  };
 
   /**
    * A callback called when the vertical speed updates from the event bus.
@@ -167,7 +167,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
   private onUpdateVerticalSpeed = (vs: number): void => {
     this.planeState.vs = vs;
     this.shouldUpdate = true;
-  }
+  };
 
   /**
    * A callback called when the angle of attack updates from the event bus.
@@ -176,7 +176,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
   private onUpdateAoA = (aoa: number): void => {
     this.planeState.aoa = aoa;
     this.shouldUpdate = true;
-  }
+  };
 
   /**
    * A callback called when the AHRS system state changes.
@@ -188,7 +188,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
     } else {
       this.horizonContainer.instance.classList.add('hidden-element');
     }
-  }
+  };
 
   /**
    * A callback called when the frame updates.
@@ -207,7 +207,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
     // this.aptLabelsRef.instance.update(this.planeState);
 
     this.lastUpdateTime = realTime;
-  }
+  };
 
   /** @inheritdoc */
   public render(): VNode {

@@ -1,6 +1,8 @@
-import { NumberUnitInterface, Unit, UnitFamily, UnitType } from '../../utils/math/NumberUnit';
-import { Subject } from '../../utils/Subject';
-import { Subscribable } from '../../utils/Subscribable';
+import { NumberUnitInterface, Unit, UnitFamily, UnitType } from '../../math/NumberUnit';
+import { Subject } from '../../sub/Subject';
+import { Subscribable } from '../../sub/Subscribable';
+import { SubscribableSet } from '../../sub/SubscribableSet';
+import { Subscription } from '../../sub/Subscription';
 import { ComponentProps, DisplayComponent, FSComponent, VNode } from '../FSComponent';
 
 export enum DurationDisplayFormat {
@@ -55,17 +57,17 @@ export type DurationDisplayOptions = {
 };
 
 /**
- * Component props for WaypointComponent.
+ * Component props for DurationDisplay.
  */
 export interface DurationDisplayProps extends ComponentProps {
-  /** A subscribable which provides a NumberUnit value with units of time to bind. */
-  value: Subscribable<NumberUnitInterface<UnitFamily.Duration>>;
+  /** The duration to display, or a subscribable which provides it. */
+  value: NumberUnitInterface<UnitFamily.Duration> | Subscribable<NumberUnitInterface<UnitFamily.Duration>>;
 
   /** Formatting options. Any options not explicitly set will revert to the default. */
   options?: Partial<DurationDisplayOptions>;
 
   /** CSS class(es) to add to the root of the icon component. */
-  class?: string;
+  class?: string | SubscribableSet<string>;
 }
 
 /**
@@ -83,12 +85,16 @@ export class DurationDisplay extends DisplayComponent<DurationDisplayProps> {
     nanString: ''
   };
 
-  private readonly valueChangedHandler = this.onValueChanged.bind(this);
+  private readonly value: Subscribable<NumberUnitInterface<UnitFamily.Duration>> = ('isSubscribable' in this.props.value)
+    ? this.props.value
+    : Subject.create(this.props.value);
+
+  private valueSub?: Subscription;
 
   private readonly options: DurationDisplayOptions = Object.assign({}, DurationDisplay.DEFAULT_OPTIONS, this.props.options);
   private readonly delim: string;
 
-  private readonly textSub = Subject.create('');
+  private readonly text = Subject.create('');
 
   /** @inheritdoc */
   constructor(props: DurationDisplayProps) {
@@ -108,7 +114,7 @@ export class DurationDisplay extends DisplayComponent<DurationDisplayProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.props.value.sub(this.valueChangedHandler, true);
+    this.valueSub = this.value.sub(this.onValueChanged.bind(this), true);
   }
 
   /**
@@ -204,7 +210,7 @@ export class DurationDisplay extends DisplayComponent<DurationDisplayProps> {
       text = `${hrText}${hrUnitText}${hrDelim}${minText}${minUnitText}${minDelim}${secText}${secUnitText}`;
     }
 
-    this.textSub.set(text);
+    this.text.set(text);
   }
 
   /**
@@ -219,15 +225,15 @@ export class DurationDisplay extends DisplayComponent<DurationDisplayProps> {
     return str.padStart(decimalIndex < 0 ? maxLength : str.length - decimalIndex + maxLength, fillString);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class={this.props.class ?? ''} style='white-space: nowrap;'>{this.textSub}</div>
+      <div class={this.props.class ?? ''} style='white-space: nowrap;'>{this.text}</div>
     );
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public destroy(): void {
-    this.props.value.unsub(this.valueChangedHandler);
+    this.valueSub?.destroy();
   }
 }

@@ -1,25 +1,24 @@
 import { ComponentProps, DisplayComponent, FSComponent, NodeReference, Subject, VNode } from 'msfssdk';
 import { EventBus, HEvent } from 'msfssdk/data';
-import { ADCEvents, APEvents } from 'msfssdk/instruments';
 import { FlightPlanner } from 'msfssdk/flightplan';
+import { ADCEvents, APEvents } from 'msfssdk/instruments';
 
-import { NavMapModel } from '../../../Shared/UI/NavMap/NavMapModel';
-import { TrafficAdvisorySystem } from '../../../Shared/Traffic/TrafficAdvisorySystem';
-import { CompassRose } from './CompassRose';
-import { CourseNeedles } from './CourseNeedles';
-import { NavIndicatorController } from '../../../Shared/Navigation/NavIndicatorController';
-import { HSIMapCourseDeviation } from './HSIMapCourseDeviation';
-import { TurnRateIndicator } from './TurnRateIndicator';
-import { HSINavMapComponent } from './HSINavMapComponent';
-import { MapOrientation } from '../../../Shared/Map/Modules/MapOrientationModule';
+import { NavIndicatorController } from 'garminsdk/navigation';
+
 import { MapRangeSettings } from '../../../Shared/Map/MapRangeSettings';
 import { MapUserSettings } from '../../../Shared/Map/MapUserSettings';
-import { FailedBox } from '../../../Shared/UI/FailedBox';
+import { MapOrientation } from '../../../Shared/Map/Modules/MapOrientationModule';
 import { AHRSSystemEvents } from '../../../Shared/Systems/AHRSSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
+import { TrafficAdvisorySystem } from '../../../Shared/Traffic/TrafficAdvisorySystem';
+import { NavMapModel } from '../../../Shared/UI/NavMap/NavMapModel';
+import { CompassRose } from './CompassRose';
+import { CourseNeedles } from './CourseNeedles';
+import { HSIMapCourseDeviation } from './HSIMapCourseDeviation';
+import { HSINavMapComponent } from './HSINavMapComponent';
+import { TurnRateIndicator } from './TurnRateIndicator';
 
 import './HSIMap.css';
-import './HSIShared.css';
 
 /**
  * Props for the HSIMap component.
@@ -42,7 +41,7 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
   private static readonly UPDATE_FREQ = 30; // Hz
   private static readonly DATA_UPDATE_FREQ = 5; // Hz
 
-  private readonly el = new NodeReference<HTMLDivElement>();
+  private readonly containerRef = new NodeReference<HTMLDivElement>();
   private readonly rotatingEl = new NodeReference<HTMLDivElement>();
   private readonly compassRoseComponent = FSComponent.createRef<CompassRose>();
   private headingElement = FSComponent.createRef<HTMLElement>();
@@ -53,7 +52,6 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
   private bearingPointer2Element = FSComponent.createRef<HTMLElement>();
   private deviationElement = FSComponent.createRef<HSIMapCourseDeviation>();
   private readonly mapRef = FSComponent.createRef<HSINavMapComponent>();
-  private readonly failedBox = FSComponent.createRef<FailedBox>();
 
   private readonly mapModel = NavMapModel.createModel(this.props.bus, this.props.tas);
   private readonly mapRangeSettingManager = MapRangeSettings.getManager(this.props.bus);
@@ -82,7 +80,7 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
     adc.on('hdg_deg')
       .withPrecision(1)
       .handle(this.updateRotatingElements);
-    ap.on('heading_select')
+    ap.on('ap_heading_selected')
       .withPrecision(0)
       .handle(this.updateSelectedHeadingDisplay.bind(this));
     adc.on('delta_heading_rate')
@@ -102,7 +100,6 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
       this.compassRoseComponent.instance.setCircleVisible(false);
     }
 
-    this.failedBox.instance.setFailed(true);
     this.props.bus.getSubscriber<AHRSSystemEvents>()
       .on('ahrs_state')
       .handle(this.onAhrsStateChanged.bind(this));
@@ -131,26 +128,10 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
   private setFailed(isFailed: boolean): void {
     if (isFailed) {
       this.isFailed = true;
-      this.failedBox.instance.setFailed(true);
-
-      this.headingBugElement.instance.classList.add('hidden-element');
-      this.headingElement.instance.classList.add('hidden-element');
-
-      this.bearingPointer1Element.instance.classList.add('hidden-element');
-      this.bearingPointer2Element.instance.classList.add('hidden-element');
-
-      this.compassRoseComponent.instance.setFailed(true);
+      this.containerRef.instance.classList.add('failed-instr');
     } else {
       this.isFailed = false;
-      this.failedBox.instance.setFailed(false);
-
-      this.headingBugElement.instance.classList.remove('hidden-element');
-      this.headingElement.instance.classList.remove('hidden-element');
-
-      this.bearingPointer1Element.instance.classList.remove('hidden-element');
-      this.bearingPointer2Element.instance.classList.remove('hidden-element');
-
-      this.compassRoseComponent.instance.setFailed(false);
+      this.containerRef.instance.classList.remove('failed-instr');
     }
   }
 
@@ -168,7 +149,7 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
       const hdg = Math.round(heading) == 0 ? 360 : Math.round(heading);
       this.headingElement.instance.textContent = `${hdg}°`.padStart(4, '0');
     }
-  }
+  };
 
   /**
    * A callback which is called when an interaction event occurs.
@@ -213,7 +194,7 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
    * @param isVisible Whether or not the component is visible.
    */
   public setVisible(isVisible: boolean): void {
-    this.el.instance.style.display = isVisible ? '' : 'none';
+    this.containerRef.instance.style.display = isVisible ? '' : 'none';
     isVisible ? this.mapRef.instance.wake() : this.mapRef.instance.sleep();
   }
 
@@ -231,14 +212,14 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
    */
   public render(): VNode {
     return (
-      <div class="hsi-map-container" ref={this.el}>
+      <div class="hsi-map-container" ref={this.containerRef}>
         <HSINavMapComponent
           ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
           updateFreq={Subject.create(HSIMap.UPDATE_FREQ)}
           dataUpdateFreq={Subject.create(HSIMap.DATA_UPDATE_FREQ)}
           projectedWidth={350} projectedHeight={350}
           flightPlanner={this.props.flightPlanner}
-          id='pfd_hsi_map' bingId='pfd_map'
+          bingId='pfd_map'
           ownAirplaneLayerProps={{
             imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
             invalidHeadingImageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon_nohdg.svg',
@@ -256,7 +237,7 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
         />
         <HSIMapCourseDeviation ref={this.deviationElement} controller={this.props.controller} />
         <div class="hsi-map-hdg-box">
-          <FailedBox ref={this.failedBox} />
+          <div class="failed-box" />
           <span ref={this.headingElement}>360</span>
         </div>
         <div class='hsi-map-rotating-elements' ref={this.rotatingEl}>

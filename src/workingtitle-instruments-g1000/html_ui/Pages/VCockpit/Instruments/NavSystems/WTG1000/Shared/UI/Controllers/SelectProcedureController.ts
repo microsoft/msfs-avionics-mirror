@@ -2,7 +2,7 @@ import { Subject } from 'msfssdk';
 import { Facility, AirportFacility, Procedure, RunwayTransition, EnrouteTransition } from 'msfssdk/navigation';
 import { LegDefinition, FlightPlannerEvents, FlightPathCalculator } from 'msfssdk/flightplan';
 
-import { Fms, ProcedureType } from '../../FlightPlan/Fms';
+import { Fms, ProcedureType } from 'garminsdk/flightplan';
 import { SelectProcedureStore } from './SelectProcedureStore';
 
 /** The controller for SelectProcedure views. */
@@ -87,7 +87,7 @@ export abstract class SelectProcedureController {
     if (!isRefresh) {
       this.selectNextCb();
     }
-  }
+  };
 
   /**
    * Callback handler for when a procedure is selected.
@@ -172,7 +172,7 @@ export abstract class SelectProcedureController {
   /** Callback handler for when load is pressed. */
   public onLoadSelected = (): void => {
     this.onLoadExecute();
-  }
+  };
 
   /** Called when the load procedure button is clicked. */
   public abstract onLoadExecute: () => void;

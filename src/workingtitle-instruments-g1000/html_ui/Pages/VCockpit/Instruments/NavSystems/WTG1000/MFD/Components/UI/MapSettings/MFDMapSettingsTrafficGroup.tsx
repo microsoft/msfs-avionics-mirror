@@ -11,16 +11,20 @@ export class MFDMapSettingsTrafficGroup extends MFDMapSettingsGroup<MFDMapSettin
   protected getSettingRows(containerRef: NodeReference<HTMLElement>): VNode[] {
     return [
       <MFDMapToggleSettingRow
+        viewService={this.props.viewService}
         title={'Traffic'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapTrafficShow',
         }}
       />,
       <MFDMapSingleEnumSettingRow
+        viewService={this.props.viewService}
         title={'Traffic Mode'}
         controlProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapTrafficAlertLevelMode',
@@ -30,8 +34,10 @@ export class MFDMapSettingsTrafficGroup extends MFDMapSettingsGroup<MFDMapSettin
         }}
       />,
       <MFDMapRangeSettingRow
+        viewService={this.props.viewService}
         title={'Traffic Symbols'}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapTrafficRangeIndex',
@@ -41,13 +47,16 @@ export class MFDMapSettingsTrafficGroup extends MFDMapSettingsGroup<MFDMapSettin
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'Traffic Labels'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapTrafficLabelShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapTrafficLabelRangeIndex',

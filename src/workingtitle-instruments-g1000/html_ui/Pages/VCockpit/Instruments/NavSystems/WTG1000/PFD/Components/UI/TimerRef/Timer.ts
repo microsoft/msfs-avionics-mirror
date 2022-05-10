@@ -1,6 +1,6 @@
-import { EventBus } from 'msfssdk/data';
+import { EventBus, Publisher } from 'msfssdk/data';
 import { GNSSEvents } from 'msfssdk/instruments';
-import { G1000ControlPublisher } from '../../../../Shared/G1000Events';
+import { G1000ControlEvents } from '../../../../Shared/G1000Events';
 
 /**
  * Timer modes enum.
@@ -26,7 +26,7 @@ export class Timer {
 
   private _canReset = false;
 
-  private g1000Publisher: G1000ControlPublisher;
+  private g1000Publisher: Publisher<G1000ControlEvents>;
 
   /**
    * Get method for timer mode.
@@ -88,12 +88,11 @@ export class Timer {
   /**
    * Builds an instance of a Timer
    * @param bus is the EventBus
-   * @param g1000Publisher is the g1000 event publisher
    * @param onModeChanged is the onModeChanged callback when the timer mode changes
    * @param onValueChanged is the onValuaChanged callback when the timer value changes
    */
-  constructor(bus: EventBus, g1000Publisher: G1000ControlPublisher, private onModeChanged: (newMode: TimerMode) => void, private onValueChanged: (time: number) => void) {
-    this.g1000Publisher = g1000Publisher;
+  constructor(bus: EventBus, private onModeChanged: (newMode: TimerMode) => void, private onValueChanged: (time: number) => void) {
+    this.g1000Publisher = bus.getPublisher<G1000ControlEvents>();
 
     const gnss = bus.getSubscriber<GNSSEvents>();
     gnss.on('zulu_time')
@@ -124,7 +123,7 @@ export class Timer {
         break;
     }
     this.onValueChanged(this._timerValue);
-    this.g1000Publisher.publishEvent('timer_value', this._timerValue);
+    this.g1000Publisher.pub('timer_value', this._timerValue, false, false);
   }
 
   /**
@@ -141,7 +140,7 @@ export class Timer {
   public resetTimer(): void {
     this._timerValue = 0;
     this.canReset = false;
-    this.g1000Publisher.publishEvent('timer_value', 0);
+    this.g1000Publisher.pub('timer_value', 0, false, false);
   }
 
   /**

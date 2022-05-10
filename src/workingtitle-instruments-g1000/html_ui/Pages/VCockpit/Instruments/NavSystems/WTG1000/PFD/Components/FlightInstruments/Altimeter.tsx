@@ -1,17 +1,15 @@
-import { FSComponent, DisplayComponent, NodeReference, VNode, Subject, UnitType, NumberUnitSubject, NumberFormatter } from 'msfssdk';
+import { ComputedSubject, DisplayComponent, FSComponent, NodeReference, NumberUnitSubject, Subject, UnitType, VNode } from 'msfssdk';
+import { VNavEvents, VNavState } from 'msfssdk/autopilot';
 import { ControlEvents, EventBus, HEvent } from 'msfssdk/data';
-import { ADCEvents, APEvents } from 'msfssdk/instruments';
-import { VNavMode, VNavSimVarEvents } from 'msfssdk/autopilot';
-
+import { NumberFormatter } from 'msfssdk/graphics/text';
+import { ADCEvents, APEvents, DHEvents } from 'msfssdk/instruments';
 import { G1000ControlEvents, G1000ControlPublisher } from '../../../Shared/G1000Events';
-import { AltAlertState, AltitudeAlertController } from './AltitudeAlertController';
-import { PFDUserSettings } from '../../PFDUserSettings';
-import { NumberUnitDisplay } from '../../../Shared/UI/Common/NumberUnitDisplay';
-
-import './Altimeter.css';
-import { FailedBox } from '../../../Shared/UI/FailedBox';
 import { ADCSystemEvents } from '../../../Shared/Systems/ADCAvionicsSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
+import { NumberUnitDisplay } from '../../../Shared/UI/Common/NumberUnitDisplay';
+import { PFDUserSettings } from '../../PFDUserSettings';
+import './Altimeter.css';
+import { AltAlertState, AltitudeAlertController } from './AltitudeAlertController';
 
 /**
  * The properties of the altitude indicator component.
@@ -38,7 +36,6 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
   private altitudeHundredsDataElement = FSComponent.createRef<SVGElement>();
   private altitudeTensDataElement = FSComponent.createRef<SVGElement>();
   private altitudeTapeTickElement = FSComponent.createRef<HTMLDivElement>();
-  private altitudeTapeValuesElement = FSComponent.createRef<SVGGElement>();
   private altitudeScrollerValues: NodeReference<SVGTextElement>[] = [];
   private altitudeScrollerZeroes: NodeReference<SVGTextElement>[] = [];
   private kohlsmanSetting = FSComponent.createRef<HTMLElement>();
@@ -57,7 +54,12 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
   private alerterTextRef = FSComponent.createRef<HTMLDivElement>();
   private alerterSVGBugRef = FSComponent.createRef<SVGElement>();
   private alerterMetricBoxRef = FSComponent.createRef<HTMLDivElement>();
-  private failedBox = FSComponent.createRef<FailedBox>();
+  private containerRef = FSComponent.createRef<HTMLDivElement>();
+
+  private readonly tenThousandsSvg = FSComponent.createRef<SVGGElement>();
+  private readonly thousandsSvg = FSComponent.createRef<SVGGElement>();
+  private readonly hundredsSvg = FSComponent.createRef<SVGGElement>();
+  private readonly tensSvg = FSComponent.createRef<SVGGElement>();
 
   private isSelectedAltitudeSet = false;
   private selectedAltitude = 0;
@@ -69,9 +71,9 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     units_hpa: false,
     standard: false,
     settingIn: 0
-  }
+  };
 
-  private vnavState = VNavMode.Enabled;
+  private vnavState = VNavState.Enabled_Inactive;
   private constraintAltitude = 0;
 
   private storedBaroIn: number | undefined = undefined;
@@ -86,14 +88,14 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
   public onAfterRender(): void {
     const adc = this.props.bus.getSubscriber<ADCEvents>();
     const ap = this.props.bus.getSubscriber<APEvents>();
-    const vnav = this.props.bus.getSubscriber<VNavSimVarEvents>();
+    const vnav = this.props.bus.getSubscriber<VNavEvents>();
     const hEvtPub = this.props.bus.getSubscriber<HEvent>();
     const g1000ControlEvents = this.props.bus.getSubscriber<G1000ControlEvents>();
 
     adc.on('alt')
       .withPrecision(1)
       .handle(this.updateAltitude.bind(this));
-    ap.on('alt_select')
+    ap.on('ap_altitude_selected')
       .withPrecision(0)
       .handle(alt => {
         this.selectedAltitude = alt;
@@ -102,8 +104,6 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     adc.on('kohlsman_setting_hg_1')
       .withPrecision(2)
       .handle(this.updateKohlsmanSetting.bind(this));
-    adc.on('baro_units_hpa_1')
-      .handle(this.updateBaroUnits.bind(this));
     adc.on('vs')
       .withPrecision(-1)
       .handle(this.updateVerticalSpeed.bind(this));
@@ -118,10 +118,9 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     PFDUserSettings.getManager(this.props.bus).whenSettingChanged('altMetric').handle(this.updateMetricDisplay.bind(this));
     PFDUserSettings.getManager(this.props.bus).whenSettingChanged('baroHpa').handle(this.updateBaroUnits.bind(this));
 
+
     g1000ControlEvents.on('std_baro_switch')
       .handle(this.updateBaroStd.bind(this));
-    g1000ControlEvents.on('set_minimums')
-      .handle(this.updateMinimums.bind(this));
     g1000ControlEvents.on('show_minimums')
       .handle((show) => {
         if (show) {
@@ -138,14 +137,18 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
         this.updateSelectedAltitudeBugVisibility();
       });
 
+    this.props.bus.getSubscriber<DHEvents>().on('decision_altitude').handle(
+      this.updateMinimums.bind(this)
+    );
+
     this.props.bus.getSubscriber<ControlEvents>().on('baro_set')
       .handle(() => this.handleBaroSetEvent());
 
-    vnav.on('vnavConstraintAltitude').whenChanged().handle(alt => {
+    vnav.on('vnav_constraint_altitude').whenChanged().handle(alt => {
       this.constraintAltitude = alt;
       this.manageVnavConstraintAltitudeDisplay();
     });
-    vnav.on('vnavMode').whenChanged().handle(state => {
+    vnav.on('vnav_state').whenChanged().handle(state => {
       this.vnavState = state;
       this.manageVnavConstraintAltitudeDisplay();
     });
@@ -156,7 +159,6 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     this.minimumsBugRef.instance.style.display = 'none';
     this.altitudeBugRef.instance.style.display = 'none';
 
-    this.failedBox.instance.setFailed(true);
     this.props.bus.getSubscriber<ADCSystemEvents>()
       .on('adc_state')
       .handle(this.onAdcStateChanged.bind(this));
@@ -185,26 +187,10 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
   private setFailed(isFailed: boolean): void {
     if (isFailed) {
       this.isFailed = true;
-      this.failedBox.instance.setFailed(true);
-
-      this.altitudeTapeValuesElement.instance.classList.add('hidden-element');
-      this.altitudeTrendVector.instance.classList.add('hidden-element');
-      this.altitudeMetricBoxElement.instance.classList.add('hidden-element');
-
-      this.altitudeBoxElement.instance.classList.add('hidden-element');
-      this.altitudeBugRef.instance.classList.add('hidden-element');
-      this.vnavTargetAltRef.instance.classList.add('hidden-element');
+      this.containerRef.instance.classList.add('failed-instr');
     } else {
       this.isFailed = false;
-      this.failedBox.instance.setFailed(false);
-
-      this.altitudeTapeValuesElement.instance.classList.remove('hidden-element');
-      this.altitudeTrendVector.instance.classList.remove('hidden-element');
-      this.altitudeMetricBoxElement.instance.classList.remove('hidden-element');
-
-      this.altitudeBoxElement.instance.classList.remove('hidden-element');
-      this.altitudeBugRef.instance.classList.remove('hidden-element');
-      this.vnavTargetAltRef.instance.classList.remove('hidden-element');
+      this.containerRef.instance.classList.remove('failed-instr');
     }
   }
 
@@ -245,7 +231,7 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
    * Handle when the vnav constraint changes or the vnav state changes.
    */
   private manageVnavConstraintAltitudeDisplay(): void {
-    if (this.constraintAltitude > 0 && this.vnavState === VNavMode.Enabled) {
+    if (this.constraintAltitude > 0 && this.vnavState !== VNavState.Disabled) {
       this.vnavTargetAltSubject.set(Math.round(this.constraintAltitude));
       this.vnavTargetAltRef.instance.classList.remove('hidden');
     } else {
@@ -260,7 +246,7 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
   private updateMinimums = (mins: number): void => {
     this.minimumsAltitude = Math.round(mins);
     this.updateMinimumsBug();
-  }
+  };
 
   /**
    * A method called to update the location of the Minimums Bug on the altitude tape.
@@ -436,16 +422,11 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
 
   /**
    * Updates the metric display.
-   * @param isMetric whether the metric display options should be shown.
+   * @param isMetricVisible whether the metric display options should be shown.
    */
-  private updateMetricDisplay(isMetric: boolean): void {
-    if (isMetric) {
-      this.altitudeMetricBoxElement.instance.style.visibility = 'visible';
-      this.alerterMetricBoxRef.instance.style.visibility = 'visible';
-    } else {
-      this.altitudeMetricBoxElement.instance.style.visibility = 'hidden';
-      this.alerterMetricBoxRef.instance.style.visibility = 'hidden';
-    }
+  private updateMetricDisplay(isMetricVisible: boolean): void {
+    this.altitudeMetricBoxElement.instance.classList.toggle('hide-element', !isMetricVisible);
+    this.alerterMetricBoxRef.instance.classList.toggle('hide-element', !isMetricVisible);
   }
 
   /**
@@ -463,6 +444,19 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
       this.baroUnits.instance.textContent = 'IN';
     }
   }
+
+  private readonly altTenThousandsTranslation = ComputedSubject.create<number, string>(0, (trans: number) => {
+    return `translate(0,${trans})`;
+  });
+  private readonly altThousandsTranslation = ComputedSubject.create<number, string>(0, (trans: number) => {
+    return `translate(0,${trans})`;
+  });
+  private readonly altHundredsTranslation = ComputedSubject.create<number, string>(0, (trans: number) => {
+    return `translate(0,${trans})`;
+  });
+  private readonly altTensTranslation = ComputedSubject.create<number, string>(0, (trans: number) => {
+    return `translate(0,${trans})`;
+  });
 
   /**
    * Updates the altitude indicator when the altitude changes.
@@ -497,7 +491,7 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
           newTranslation += 1.5 * (tens - 80) * altPrefix;
         }
       }
-      this.altitudeTenThousandsDataElement.instance.setAttribute('transform', `translate(0,${newTranslation})`);
+      this.tenThousandsSvg.instance.style.transform = `translate3d(0px, ${newTranslation}px, 0px)`;
     }
     if (this.altitudeThousandsDataElement.instance !== null) {
       (indicatedAlt < 1000 && indicatedAlt > -1000) ? this.altitudeThousandsDataElement.instance.classList.add('no-zero') : this.altitudeThousandsDataElement.instance.classList.remove('no-zero');
@@ -510,7 +504,7 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
           newTranslation += 1.5 * (tens - 80) * altPrefix;
         }
       }
-      this.altitudeThousandsDataElement.instance.setAttribute('transform', `translate(0,${newTranslation})`);
+      this.thousandsSvg.instance.style.transform = `translate3d(0px, ${newTranslation}px, 0px)`;
     }
     if (this.altitudeHundredsDataElement.instance !== null) {
       (indicatedAlt < 100 && indicatedAlt > -100) ? this.altitudeHundredsDataElement.instance.classList.add('no-zero') : this.altitudeHundredsDataElement.instance.classList.remove('no-zero');
@@ -523,11 +517,11 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
           newTranslation += 1.5 * (tens - 80) * altPrefix;
         }
       }
-      this.altitudeHundredsDataElement.instance.setAttribute('transform', `translate(0,${newTranslation})`);
+      this.hundredsSvg.instance.style.transform = `translate3d(0px, ${newTranslation}px, 0px)`;
     }
     if (this.altitudeTensDataElement.instance !== null) {
       const newTranslation = (indicatedAlt < -2000 || indicatedAlt > 99900) ? -399 : -191 + (tens * 1.3) * altPrefix;
-      this.altitudeTensDataElement.instance.setAttribute('transform', `translate(0,${newTranslation})`);
+      this.tensSvg.instance.style.transform = `translate3d(0px, ${newTranslation}px, 0px)`;
     }
 
     if (this.altitudeTapeTickElement.instance !== null) {
@@ -696,16 +690,15 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
    */
   public render(): VNode {
     return (
-
-      <div class="altimeter">
+      <div class="altimeter" ref={this.containerRef}>
         <div class="altimeter-middle-border"></div>
         <div class="altitude-tick-marks">
+          <div class="failed-box" />
           <div style="height: 446px; width: 100px;" ref={this.altitudeTapeTickElement} >
-            <FailedBox ref={this.failedBox} />
             <svg height="446" width="100" viewBox="0 -400 179 800">
               <g class="AltitudeTape" transform="translate(0,0)">
                 {this.buildAltitudeTapeTicks()}
-                <g ref={this.altitudeTapeValuesElement}>
+                <g>
                   {this.buildAltitudeTapeZeros()}
                   {this.buildAltitudeTapeNumbers()}
                 </g>
@@ -726,30 +719,33 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
           </svg>
 
           <div class="alt-ten-thousands-scroller altitude-scroller-background no-zero">
-            <svg height="35" width="17">
-              <g ref={this.altitudeTenThousandsDataElement} transform="translate(0,0)">{this.buildSingleScroller()}</g>
+            <svg ref={this.tenThousandsSvg}>
+              <g ref={this.altitudeTenThousandsDataElement}>{this.buildSingleScroller()}</g>
             </svg>
           </div>
 
           <div class="alt-thousands-scroller altitude-scroller-background">
-            <svg height="35" width="17">
-              <g ref={this.altitudeThousandsDataElement} transform="translate(0,0)">{this.buildSingleScroller()}</g>
+            <svg ref={this.thousandsSvg}>
+              <g ref={this.altitudeThousandsDataElement}>{this.buildSingleScroller()}</g>
             </svg>
           </div>
 
           <div class="alt-hundreds-scroller altitude-scroller-background">
-            <svg height="35" width="17">
-              <g ref={this.altitudeHundredsDataElement} transform="translate(0,0)">{this.buildSingleScroller()}</g>
+            <svg ref={this.hundredsSvg}>
+              <g ref={this.altitudeHundredsDataElement}>{this.buildSingleScroller()}</g>
             </svg>
           </div>
 
           <div class="alt-tens-scroller altitude-scroller-background">
-            <div class="alt-tens-mask"></div>
-            <svg height="66" width="29">
-              <g ref={this.altitudeTensDataElement} transform="translate(0,0)">{this.buildDoubleScroller()}</g>
-            </svg>
+            <div class="alt-tens-mask">
+              <svg ref={this.tensSvg}>
+                <g ref={this.altitudeTensDataElement}>{this.buildDoubleScroller()}</g>
+              </svg>
+              <div class="alt-tens-overlay"></div>
+            </div>
           </div>
         </div>
+
         <div class="altitude-metric-box" ref={this.altitudeMetricBoxElement}>
           <NumberUnitDisplay
             value={this.indicatedAltitudeSub}

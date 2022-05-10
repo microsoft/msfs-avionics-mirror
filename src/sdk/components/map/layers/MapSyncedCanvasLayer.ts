@@ -1,6 +1,6 @@
 import { MapCanvasLayer, MapCanvasLayerProps } from './MapCanvasLayer';
 import { MapProjection, MapProjectionChangeType } from '../MapProjection';
-import { BitFlags } from '../../../utils/BitFlags';
+import { ReadonlyFloat64Array, BitFlags } from '../../../math';
 
 /**
  * A canvas map layer whose size and position is synced with the map projection window.
@@ -17,7 +17,7 @@ export class MapSyncedCanvasLayer<P extends MapCanvasLayerProps<any> = MapCanvas
    * Updates this layer according to the current size of the projected map window.
    * @param projectedSize The size of the projected map window.
    */
-  protected updateFromProjectedSize(projectedSize: Float64Array): void {
+  protected updateFromProjectedSize(projectedSize: ReadonlyFloat64Array): void {
     this.setWidth(projectedSize[0]);
     this.setHeight(projectedSize[1]);
 

@@ -1,12 +1,19 @@
-import { VNode, FSComponent, BitFlags } from 'msfssdk';
-import { AirportClass, AirportFacility, ApproachProcedure, Facility, NearestAirportSubscription, NearestSubscription } from 'msfssdk/navigation';
-import { FocusPosition, UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
-import { G1000ControlEvents } from '../../../../Shared/G1000Events';
+import { VNode, FSComponent } from 'msfssdk';
+import { FocusPosition } from 'msfssdk/components/controls';
+import {
+  AirportUtils, AirportClassMask, AirportFacility, ApproachProcedure, Facility,
+  NearestAirportSubscription, NearestSubscription, AdaptiveNearestSubscription
+} from 'msfssdk/navigation';
+
+import { ProcedureType } from 'garminsdk/flightplan';
+
 import { ApproachesGroup, FrequenciesGroup, InformationGroup, RunwaysGroup } from './Airports';
 import { MFDNearestPage, MFDNearestPageProps } from './MFDNearestPage';
-import { WaypointIconImageCache } from '../../../../Shared/WaypointIconImageCache';
 import { MFDSelectProcedurePage } from '../Procedure/MFDSelectProcedurePage';
-import { ProcedureType } from '../../../../Shared/FlightPlan/Fms';
+import { G1000ControlEvents } from '../../../../Shared/G1000Events';
+import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
+import { NearestAirportSearchSettings } from '../../../../Shared/NearestAirportSearchSettings';
+import { WaypointIconImageCache } from '../../../../Shared/WaypointIconImageCache';
 
 export enum NearestAirportSoftKey {
   APT,
@@ -30,12 +37,30 @@ export class MFDNearestAirportsPage extends MFDNearestPage<AirportFacility> {
   private facility: AirportFacility | undefined;
   private approach: ApproachProcedure | undefined;
 
+  private searchSettings = NearestAirportSearchSettings.getManager(this.props.bus);
+  private searchSubscription: NearestAirportSubscription | undefined;
+
   /**
    * Creates an instance of a nearest airport box.
    * @param props The props.
    */
   constructor(props: MFDNearestPageProps) {
     super(props);
+
+    const searchLengthSetting = this.searchSettings.getSetting('runwayLength');
+    const searchSurfaceSetting = this.searchSettings.getSetting('surfaceTypes');
+
+    searchLengthSetting.sub(v => {
+      this.searchSubscription?.setFilterCb((f: AirportFacility) => {
+        return AirportUtils.hasMatchingRunway(f, v, searchSurfaceSetting.value);
+      });
+    }, true);
+
+    searchSurfaceSetting.sub(v => {
+      this.searchSubscription?.setFilterCb((f: AirportFacility) => {
+        return AirportUtils.hasMatchingRunway(f, searchLengthSetting.value, v);
+      });
+    }, true);
 
     this.props.bus.on('nearest_airports_key', (group: number) => {
       switch (group) {
@@ -81,13 +106,14 @@ export class MFDNearestAirportsPage extends MFDNearestPage<AirportFacility> {
   }
 
   /** @inheritdoc */
-  protected getSelectedGroup(): UiControl2<UiControl2Props> {
+  protected getSelectedGroup(): G1000UiControl<G1000UiControlProps> {
     return this.uiRoot.instance;
   }
 
   /** @inheritdoc */
-  protected buildNearestSubscription(): NearestSubscription<AirportFacility, any, any> {
-    return new NearestAirportSubscription(this.props.loader);
+  protected buildNearestSubscription(): NearestSubscription<AirportFacility> {
+    this.searchSubscription = new NearestAirportSubscription(this.props.loader);
+    return new AdaptiveNearestSubscription(this.searchSubscription, 200);
   }
 
   /** @inheritdoc */
@@ -137,7 +163,8 @@ export class MFDNearestAirportsPage extends MFDNearestPage<AirportFacility> {
 
   /** @inheritdoc */
   protected setFilter(): void {
-    (this.data as NearestAirportSubscription).setFilter(false, BitFlags.createFlag(AirportClass.HardSurface));
+    // TODO: Exclude private airports when the data returned by the facilities loader is present and accurate.
+    this.searchSubscription?.setFilter(false, AirportClassMask.SoftSurface | AirportClassMask.HardSurface | AirportClassMask.AllWater);
   }
 
   /**
@@ -147,8 +174,8 @@ export class MFDNearestAirportsPage extends MFDNearestPage<AirportFacility> {
   protected renderGroups(): VNode {
     return (
       <>
-        <InformationGroup ref={this.informationGroup} />
-        <RunwaysGroup ref={this.runwaysGroup} isolateScroll />
+        <InformationGroup ref={this.informationGroup} unitsSettingManager={this.unitsSettingManager} />
+        <RunwaysGroup ref={this.runwaysGroup} unitsSettingManager={this.unitsSettingManager} isolateScroll />
         <FrequenciesGroup ref={this.frequenciesGroup} controlPublisher={this.props.publisher} isolateScroll />
         <ApproachesGroup ref={this.approachesGroup} onSelected={this.onApproachSelected.bind(this)} isolateScroll />
       </>

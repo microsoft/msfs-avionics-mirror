@@ -1,7 +1,6 @@
 import { LegDefinition } from 'msfssdk/flightplan';
-import { FacilityLoader, ICAO } from 'msfssdk/navigation';
-import { FacilityWaypointCache } from '../Navigation/FacilityWaypointCache';
-import { CustomWaypoint, FacilityWaypoint, FlightPathWaypoint, Waypoint } from '../Navigation/Waypoint';
+import { CustomWaypoint, FacilityLoader, FacilityWaypoint, FacilityWaypointCache, FlightPathWaypoint, ICAO, Waypoint } from 'msfssdk/navigation';
+
 import { MapWaypointRenderer, MapWaypointRenderRole } from './MapWaypointRenderer';
 
 /**

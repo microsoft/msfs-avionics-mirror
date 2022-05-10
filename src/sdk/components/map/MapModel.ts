@@ -10,8 +10,31 @@ export class MapModel<M> {
    * @param name The name of the module.
    * @returns A module.
    */
-  public getModule<K extends keyof M>(name: K): M[K] {
-    return this.modules.get(name);
+  public getModule<K extends keyof M>(name: K): M[K];
+
+  /**
+   * Gets a module instance from the model and assigns it
+   * to the provided type.
+   * @param module The module to get.
+   * @returns The requested map data module.
+   */
+  public getModule<T>(module: new (...args: any) => T): T;
+
+  /**
+   * Gets a module instance from the model and assigns it
+   * to the provided type.
+   * @param nameOrModule The module to get or the name of the module.
+   * @returns The requested map data module.
+   * @throws An error if 
+   */
+  public getModule<K extends keyof M, T>(nameOrModule: K | (new (...args: any) => T)): M[K] | T {
+    if (typeof nameOrModule === 'string') {
+      return this.modules.get(nameOrModule);
+    } else if (typeof nameOrModule === 'function') {
+      return this.modules.get(nameOrModule.name as any) as T;
+    }
+
+    throw new Error('Invalid type supplied: must be a string key or a module constructor.');
   }
 
   /**

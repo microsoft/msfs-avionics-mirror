@@ -1,6 +1,8 @@
 import { NumberUnitSubject, Subject, UnitType } from 'msfssdk';
-import { Fms } from '../../FlightPlan/Fms';
-import { Waypoint } from '../../Navigation/Waypoint';
+import { Waypoint } from 'msfssdk/navigation';
+
+import { Fms } from 'garminsdk/flightplan';
+
 import { HoldInputData } from './Hold';
 
 /**

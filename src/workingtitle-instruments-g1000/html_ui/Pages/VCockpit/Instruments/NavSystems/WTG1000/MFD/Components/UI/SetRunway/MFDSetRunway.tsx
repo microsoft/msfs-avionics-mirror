@@ -24,7 +24,7 @@ export class MFDSetRunway extends SetRunway {
             <div class="mfd-setrunway-left mfd-setrunway-airport">Airport</div>
             <div class="mfd-setrunway-right mfd-setrunway-airport-value">{this.store.airportIdent}</div>
             <div class="mfd-setrunway-left mfd-setrunway-runway">Runway</div>
-            <SelectControl<OneWayRunway> onRegister={this.register}
+            <SelectControl<OneWayRunway> viewService={this.props.viewService} onRegister={this.register}
               outerContainer={this.viewContainerRef} dialogPosition={ContextMenuPosition.CENTER}
               data={this.store.oneWayRunways} buildMenuItem={this.buildRunwayMenuItem.bind(this)} onItemSelected={this.onRunwaySelected.bind(this)}
               class="mfd-setrunway-right mfd-setrunway-runway-value"

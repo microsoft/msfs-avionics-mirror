@@ -401,7 +401,7 @@ export class MapUserSettings {
       mapNexradShow: 'mapPfdNexradShow',
       mapTerrainMode: 'mapPfdTerrainMode',
       mapTrafficShow: 'mapPfdTrafficShow'
-    });
+    }) as UserSettingManager<MapUserSettingTypes>;
   }
 
   /**
@@ -415,6 +415,6 @@ export class MapUserSettings {
       mapNexradShow: 'mapMfdNexradShow',
       mapTerrainMode: 'mapMfdTerrainMode',
       mapTrafficShow: 'mapMfdTrafficShow'
-    });
+    }) as UserSettingManager<MapUserSettingTypes>;
   }
 }

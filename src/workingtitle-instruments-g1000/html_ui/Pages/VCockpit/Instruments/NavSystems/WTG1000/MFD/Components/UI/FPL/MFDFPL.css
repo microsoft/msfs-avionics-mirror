@@ -55,7 +55,7 @@
   color: cyan;
 }
 
-:not(.active-wpt).fix-container :not(.highlight-select) > .fix-type {
+:not(.active-wpt).fix-container :not(.highlight-select)>.fix-type {
   color: whitesmoke;
 }
 
@@ -134,8 +134,13 @@
   padding: 2px;
 }
 
-.fpl-directHold.show-time .numberunit-display { display: none; }
-.fpl-directHold.show-distance .duration-display { display: none; }
+.fpl-directHold.show-time .numberunit-display {
+  display: none;
+}
+
+.fpl-directHold.show-distance .duration-display {
+  display: none;
+}
 
 .fpl-holdIcon {
   width: 45px;
@@ -213,4 +218,18 @@
 
 .altitude-question-display {
   display: inline-block;
+}
+
+.constraint-failed-box {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 150;
+  background-color: transparent;
+  --fail-bg-color: transparent;
+  --fail-fg-color: cyan;
+  background: linear-gradient(to top right, var(--fail-bg-color) calc(50% - 1px), var(--fail-fg-color), var(--fail-bg-color) calc(50% + 1px)),
+    linear-gradient(to top left, var(--fail-bg-color) calc(50% - 1px), var(--fail-fg-color), var(--fail-bg-color) calc(50% + 1px)) !important;
 }

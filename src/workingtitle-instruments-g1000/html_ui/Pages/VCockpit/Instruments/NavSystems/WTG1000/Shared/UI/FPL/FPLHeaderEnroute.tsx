@@ -12,7 +12,7 @@ export class FPLHeaderEnroute extends FPLStringHeader {
 
   /** @inheritdoc */
   protected updateName(): void {
-    const segment = this.props.fms.getFlightPlan().getSegment(this.props.segmentIndex?.get());
+    const segment = this.props.fms.getFlightPlan().getSegment(this.props.segment.segmentIndex);
     this.setIsVisible(segment.airway !== undefined || this.props.fms.isFirstEnrouteSegment(segment.segmentIndex));
 
     let name = '';

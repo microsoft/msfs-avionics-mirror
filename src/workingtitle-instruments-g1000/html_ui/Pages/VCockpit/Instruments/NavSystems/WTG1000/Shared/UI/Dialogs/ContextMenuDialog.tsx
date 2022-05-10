@@ -1,8 +1,8 @@
 import { FSComponent, VNode, ArraySubject, MathUtils } from 'msfssdk';
 import { FmsHEvent } from '../FmsHEvent';
 import { UiView, UiViewProps } from '../UiView';
-import { ControlList } from '../ControlList';
-import { FocusPosition, UiControl2 } from '../UiControl2';
+import { FocusPosition } from 'msfssdk/components/controls';
+import { G1000UiControl, G1000ControlList } from '../G1000UiControl';
 
 import './ContextMenuDialog.css';
 
@@ -73,7 +73,7 @@ interface Viewport {
 export class ContextMenuDialog extends UiView<UiViewProps, number, ContextMenuOptions> {
   public static readonly CHAR_WIDTH = 12;
 
-  protected readonly listRef = FSComponent.createRef<ControlList<ContextMenuItemDefinition>>();
+  protected readonly listRef = FSComponent.createRef<G1000ControlList<ContextMenuItemDefinition>>();
   private readonly listContainerRef = FSComponent.createRef<HTMLElement>();
   private readonly popoutContainerBgRef = FSComponent.createRef<HTMLElement>();
   private readonly menuItemsSubject = ArraySubject.create<ContextMenuItemDefinition>();
@@ -199,7 +199,7 @@ export class ContextMenuDialog extends UiView<UiViewProps, number, ContextMenuOp
     const isEnabled = def.isEnabled ?? true;
 
     return (
-      <UiControl2
+      <G1000UiControl
         onRegistered={(control): void => { control.setDisabled(!isEnabled); }}
         onEnter={(): boolean => {
           this.onItemSelected(def);
@@ -217,7 +217,7 @@ export class ContextMenuDialog extends UiView<UiViewProps, number, ContextMenuOp
         <div ref={rootRef} class={`contextmenu-item ${isEnabled ? '' : 'text-disabled'}`}>
           {def.renderContent()}
         </div>
-      </UiControl2>
+      </G1000UiControl>
     );
   }
 
@@ -226,7 +226,7 @@ export class ContextMenuDialog extends UiView<UiViewProps, number, ContextMenuOp
     return (
       <div class='contextmenu-dialog' ref={this.viewContainerRef}>
         <div class='contextmenu-background' ref={this.popoutContainerBgRef}>
-          <ControlList
+          <G1000ControlList
             ref={this.listRef}
             data={this.menuItemsSubject}
             renderItem={this.renderItem.bind(this)}

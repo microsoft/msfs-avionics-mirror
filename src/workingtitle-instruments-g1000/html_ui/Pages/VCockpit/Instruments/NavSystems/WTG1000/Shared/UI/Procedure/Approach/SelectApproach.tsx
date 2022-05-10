@@ -1,11 +1,11 @@
-import { FSComponent, NodeReference, SortedMappedSubscribableArray, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
+import { FSComponent, NodeReference, Subject, UnitType, VNode } from 'msfssdk';
+import { ControlEvents, EventBus } from 'msfssdk/data';
 import { AdditionalApproachType, AirportFacility, ApproachProcedure, ExtendedApproachType, FacilitySearchType } from 'msfssdk/navigation';
 import { FlightPathCalculator } from 'msfssdk/flightplan';
+import { SortedMappedSubscribableArray } from 'msfssdk/utils/datastructures';
 
 import { G1000ControlEvents } from '../../../G1000Events';
-import { Fms } from '../../../FlightPlan/Fms';
-import { TransitionListItem } from '../../../FlightPlan/FmsUtils';
+import { Fms, TransitionListItem } from 'garminsdk/flightplan';
 import { SelectApproachController } from './SelectApproachController';
 import { ApproachListItem, SelectApproachStore } from './SelectApproachStore';
 import { FmsHEvent } from '../../FmsHEvent';
@@ -16,8 +16,10 @@ import { UiControlGroup, UiControlGroupProps } from '../../UiControlGroup';
 import { ViewService } from '../../ViewService';
 import { GenericControl } from '../../UIControls/GenericControl';
 import { SelectControl } from '../../UiControls2/SelectControl';
-import { FocusPosition } from '../../UiControl2';
 import { ContextMenuDialog, ContextMenuItemDefinition, ContextMenuPosition } from '../../Dialogs/ContextMenuDialog';
+import { FocusPosition } from 'msfssdk/components/controls';
+import { DHEvents } from 'msfssdk/instruments';
+import { UnitsUserSettingManager } from '../../../Units/UnitsUserSettings';
 
 /**
  * Component props for SelectApproach.
@@ -34,6 +36,9 @@ export interface SelectApproachProps extends UiControlGroupProps {
 
   /** A flight path calculator to use to build preview flight plans. */
   calculator: FlightPathCalculator;
+
+  /** A units settings manager, for DA units. */
+  unitsSettingManager: UnitsUserSettingManager
 }
 
 /**
@@ -81,6 +86,7 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
   protected readonly controller = this.createController(this.store);
 
   protected readonly sortedApproachSub = SortedMappedSubscribableArray.create(this.store.procedures, this.sortApproaches.bind(this));
+  protected readonly controlPub = this.props.bus.getPublisher<ControlEvents>();
 
   /**
    * Creates an instance of an approach selection component data store.
@@ -126,14 +132,44 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
   public onAfterRender(node: VNode): void {
     super.onAfterRender(node);
     const g1000Events = this.props.bus.getSubscriber<G1000ControlEvents>();
-    g1000Events.on('set_minimums').handle((set) => {
-      if (set !== this.store.minimumsSubject.get()) {
-        this.store.minimumsSubject.set(set);
-      }
-    });
+
+
     g1000Events.on('show_minimums').handle((mode) => {
       const option = mode ? 1 : 0;
       this.store.minimumsMode.set(option);
+    });
+
+    this.props.unitsSettingManager.altitudeUnits.sub(u => {
+      const oldUnit = this.store.minimumsUnit.getRaw();
+      this.store.minimumsUnit.set(u);
+      if (u !== oldUnit) {
+        switch (u) {
+          case UnitType.FOOT:
+            this.store.minimumsSubject.set(Math.round(this.store.currentMinFeet.get()));
+            this.controlPub.pub('set_da_distance_unit', 'feet');
+            break;
+          case UnitType.METER:
+            this.store.minimumsSubject.set(Math.round(UnitType.METER.convertFrom(this.store.currentMinFeet.get(), UnitType.FOOT)));
+            this.controlPub.pub('set_da_distance_unit', 'meters');
+            break;
+          default:
+            console.warn('Unknown altitude unit handled in Select Approach Controller: ' + u.name);
+        }
+      }
+    });
+
+    this.store.minimumsUnit.set(this.props.unitsSettingManager.altitudeUnits.get());
+
+    this.store.currentMinFeet.sub(v => {
+      if (this.store.minimumsUnit.getRaw() === UnitType.FOOT) {
+        this.store.minimumsSubject.set(Math.round(v));
+      } else {
+        this.store.minimumsSubject.set(Math.round(UnitType.METER.convertFrom(v, UnitType.FOOT)));
+      }
+    });
+
+    this.props.bus.getSubscriber<DHEvents>().on('decision_altitude').handle((set) => {
+      this.store.currentMinFeet.set(set);
     });
   }
 
@@ -191,11 +227,11 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
       this.controller.onAfterFacilityLoad = undefined;
     };
 
-    const currentIcao = this.controller.inputIcao.get();
-    if (currentIcao !== facility.icao) {
+    const currentAirport = this.store.selectedFacility.get();
+    if (currentAirport?.icao !== facility.icao) {
       this.controller.inputIcao.set(facility.icao);
     } else {
-      this.controller.inputIcao.notify();
+      this.controller.onAfterFacilityLoad();
     }
   }
 
@@ -242,6 +278,7 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
     return (
       <WaypointInput
         bus={this.props.bus}
+        viewService={this.props.viewService}
         onRegister={this.register} onInputEnterPressed={this.gotoNextSelect.bind(this)} selectedIcao={this.controller.inputIcao}
         onFacilityChanged={this.controller.facilityChangedHandler} filter={FacilitySearchType.Airport}
       />
@@ -312,8 +349,8 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
   protected renderMinimumsNumberInput(cssClass?: string): VNode {
     return (
       <NumberInput
-        onRegister={this.register} onValueChanged={this.controller.updateMinimumsValue} dataSubject={this.store.minimumsSubject}
-        minValue={-1000} maxValue={10000} increment={10} wrap={false} defaultDisplayValue={'_ _ _ _ _'} onEnter={this.onEnterPressedAdvance.bind(this)}
+        onRegister={this.register} quantize={true} onValueChanged={this.controller.updateMinimumsValue} dataSubject={this.store.minimumsSubject}
+        minValue={0} maxValue={16000} increment={10} wrap={false} defaultDisplayValue={'_ _ _ _ _'} onEnter={this.onEnterPressedAdvance.bind(this)}
         class={cssClass}
       />
     );

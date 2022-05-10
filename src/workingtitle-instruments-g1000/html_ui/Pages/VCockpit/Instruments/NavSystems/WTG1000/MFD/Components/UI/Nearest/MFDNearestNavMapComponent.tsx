@@ -1,5 +1,5 @@
 import { MapRangeSettings } from '../../../../Shared/Map/MapRangeSettings';
-import { NavMapRangeTargetRotationController } from '../../../../Shared/UI/NavMap/NavMapComponent';
+import { NavMapComponentProps } from '../../../../Shared/UI/NavMap/NavMapComponent';
 import { NavMapModelModules } from '../../../../Shared/UI/NavMap/NavMapModel';
 import { MFDNavMapComponent, MFDNavMapRangeTargetRotationController } from '../NavMap/MFDNavMapComponent';
 
@@ -7,18 +7,17 @@ import { MFDNavMapComponent, MFDNavMapRangeTargetRotationController } from '../N
  * A nav map component for the nearest page that adds the ability to set the range directly,
  * with or without settings sync.
  */
-export class MFDNearestNavMapComponent extends MFDNavMapComponent {
-
+export class MFDNearestNavMapComponent extends MFDNavMapComponent<NavMapModelModules, NavMapComponentProps, MFDNearestNavMapRTRController> {
   /** @inheritdoc */
-  protected createRangeTargetRotationController(): NavMapRangeTargetRotationController<NavMapModelModules> {
+  protected createRangeTargetRotationController(): MFDNearestNavMapRTRController {
     return new MFDNearestNavMapRTRController(
       this.props.model,
       this.mapProjection,
       this.deadZone,
-      this.props.settingManager,
-      this.rangeSettingManager, 'mfdMapRangeIndex',
       MapRangeSettings.getRangeArraySubscribable(this.props.bus),
-      this.pointerBoundsSub
+      this.pointerBoundsSub,
+      this.props.settingManager,
+      this.rangeSettingManager, 'mfdMapRangeIndex'
     );
   }
 
@@ -28,7 +27,7 @@ export class MFDNearestNavMapComponent extends MFDNavMapComponent {
    * @param sync True if this setting should sync to the saved map settings system, false otherwise.
    */
   public setRangeIndex(index: number, sync = false): void {
-    (this.rangeTargetRotationController as MFDNearestNavMapRTRController).setRangeIndex(index, sync);
+    this.rtrController.setRangeIndex(index, sync);
   }
 
   /**
@@ -36,7 +35,7 @@ export class MFDNearestNavMapComponent extends MFDNavMapComponent {
    * @returns The current map range index.
    */
   public getCurrentRangeIndex(): number {
-    return (this.rangeTargetRotationController as MFDNearestNavMapRTRController).getCurrentRangeIndex();
+    return this.rtrController.getCurrentRangeIndex();
   }
 }
 

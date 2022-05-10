@@ -1,8 +1,8 @@
 import { ComputedSubject, FSComponent, VNode } from 'msfssdk';
-import { AirportFacility, ICAO } from 'msfssdk/navigation';
+import { AirportFacility, AirportWaypoint, FacilityWaypoint, ICAO, Waypoint } from 'msfssdk/navigation';
 
-import { Regions } from '../../Navigation/Regions';
-import { AirportWaypoint, FacilityWaypoint, Waypoint } from '../../Navigation/Waypoint';
+import { Regions } from 'garminsdk/navigation';
+
 import { WaypointComponent, WaypointComponentProps } from './WaypointComponent';
 
 /**

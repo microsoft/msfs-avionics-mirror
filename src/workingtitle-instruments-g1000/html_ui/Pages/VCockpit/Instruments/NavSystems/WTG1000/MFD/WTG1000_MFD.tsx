@@ -6,83 +6,87 @@
 /// <reference types="msfstypes/JS/simvar" />
 
 import { FSComponent } from 'msfssdk';
-import { ControlPublisher, EventBus, HEvent, HEventPublisher, CompositeLogicXMLHost } from 'msfssdk/data';
-import { FacilityLoader, FacilityRespository } from 'msfssdk/navigation';
-import { ADCPublisher, AutopilotInstrument, GNSSPublisher, EISPublisher, Clock, InstrumentBackplane, TrafficInstrument, ElectricalPublisher } from 'msfssdk/instruments';
-import { FlightPathCalculator, FlightPlanner } from 'msfssdk/flightplan';
-import { TCASOperatingMode } from 'msfssdk/traffic';
+import { BottomTargetPathCalculator, GpsSynchronizer, LNavSimVarPublisher, VNavSimVarPublisher } from 'msfssdk/autopilot';
 import { XMLGaugeConfigFactory } from 'msfssdk/components/XMLGauges';
+import { CompositeLogicXMLHost, ControlPublisher, EventBus, HEvent, HEventPublisher } from 'msfssdk/data';
+import { EventSubscriber } from 'msfssdk/data/EventSubscriber';
+import { FlightPathCalculator, FlightPlanner } from 'msfssdk/flightplan';
+import {
+  ADCPublisher, APRadioNavInstrument, AutopilotInstrument, BaseInstrumentPublisher, Clock, EISPublisher,
+  ElectricalPublisher, GNSSPublisher, InstrumentBackplane, InstrumentEvents, NavComSimVarPublisher,
+  TrafficInstrument
+} from 'msfssdk/instruments';
+import { FacilityLoader, FacilityRepository } from 'msfssdk/navigation';
 import { UserSettingSaveManager } from 'msfssdk/settings';
-import { EIS } from './Components/EIS';
+import { TCASOperatingMode } from 'msfssdk/traffic';
+
+import { GarminAPConfig, GarminAPStateManager } from 'garminsdk/autopilot';
+import { Fms } from 'garminsdk/flightplan';
+import { LNavDataSimVarPublisher, NavdataComputer } from 'garminsdk/navigation';
+import { DateTimeUserSettings, UnitsUserSettings } from 'garminsdk/settings';
+
+import { PFDUserSettings } from '../PFD/PFDUserSettings';
+import { G1000Autopilot } from '../Shared/Autopilot/G1000Autopilot';
+import { BacklightManager } from '../Shared/Backlight/BacklightManager';
+import { FuelComputer } from '../Shared/FuelComputer';
+import { G1000ControlPublisher } from '../Shared/G1000Events';
 import { NavComRadio } from '../Shared/NavCom/NavComRadio';
+import { G1000SettingSaveManager } from '../Shared/Profiles/G1000SettingSaveManager';
+import { StartupLogo } from '../Shared/StartupLogo';
+import {
+  ADCAvionicsSystem, AHRSSystem, AvionicsComputerSystem, EngineAirframeSystem, G1000AvionicsSystem, MagnetometerSystem, TransponderSystem
+} from '../Shared/Systems';
+import { TrafficAdvisorySystem } from '../Shared/Traffic/TrafficAdvisorySystem';
+import { ContextMenuDialog } from '../Shared/UI/Dialogs/ContextMenuDialog';
+import { MessageDialog } from '../Shared/UI/Dialogs/MessageDialog';
 import { MenuSystem } from '../Shared/UI/Menus/MenuSystem';
+import { EngineMenu } from '../Shared/UI/Menus/MFD/EngineMenu';
+import { FuelRemMenu } from '../Shared/UI/Menus/MFD/FuelRemMenu';
+import { InsetMenu } from '../Shared/UI/Menus/MFD/InsetMenu';
+import { LeanMenu } from '../Shared/UI/Menus/MFD/LeanMenu';
+import { MapOptMenu } from '../Shared/UI/Menus/MFD/MapOptMenu';
+import { MFDFPLRootMenu } from '../Shared/UI/Menus/MFD/MFDFPLRootMenu';
+import { MFDNavMapRootMenu } from '../Shared/UI/Menus/MFD/MFDNavMapRootMenu';
+import { MFDNearestAirportRootMenu } from '../Shared/UI/Menus/MFD/MFDNearestAirportRootMenu';
+import { MFDNearestVorRootMenu } from '../Shared/UI/Menus/MFD/MFDNearestVorRootMenu';
+import { MFDSelectProcedureRootMenu } from '../Shared/UI/Menus/MFD/MFDSelectProcedureRootMenu';
+import { MFDSystemSetupRootMenu } from '../Shared/UI/Menus/MFD/MFDSystemSetupRootMenu';
+import { SystemMenu } from '../Shared/UI/Menus/MFD/SystemMenu';
 import { SoftKeyMenu } from '../Shared/UI/Menus/SoftKeyMenu';
 import { SoftKeyBar } from '../Shared/UI/SoftKeyBar';
-import { MFDNavMapRootMenu } from '../Shared/UI/Menus/MFD/MFDNavMapRootMenu';
-import { EngineMenu } from '../Shared/UI/Menus/MFD/EngineMenu';
-import { LeanMenu } from '../Shared/UI/Menus/MFD/LeanMenu';
-import { SystemMenu } from '../Shared/UI/Menus/MFD/SystemMenu';
-import { FuelRemMenu } from '../Shared/UI/Menus/MFD/FuelRemMenu';
-import { MapOptMenu } from '../Shared/UI/Menus/MFD/MapOptMenu';
-import { InsetMenu } from '../Shared/UI/Menus/MFD/InsetMenu';
-import { Fms } from '../Shared/FlightPlan/Fms';
-import { EventSubscriber } from 'msfssdk/data/EventSubscriber';
-import { LNavSimVarPublisher } from '../Shared/Autopilot/LNavSimVars';
-import { VNavSimVarPublisher } from '../Shared/Autopilot/VNavSimVars';
-import { G1000Autopilot } from '../Shared/Autopilot/G1000Autopilot';
-import { G1000APConfig } from '../Shared/Autopilot/G1000APConfig';
-import { G1000APStateManager } from '../Shared/Autopilot/G1000APStateManager';
 import { WaypointIconImageCache } from '../Shared/WaypointIconImageCache';
-import { NavdataComputer } from '../Shared/Navigation/NavdataComputer';
-import { MFDViewService } from './Components/UI/MFDViewService';
-import { MFDNavMapPage as MFDNavMapPage } from './Components/UI/NavMap/MFDNavMapPage';
-import { MFDFPLPage } from './Components/UI/FPL/MFDFPLPage';
-import { MFDProc } from './Components/UI/Procedure/MFDProc';
-import { MFDSelectProcedurePage } from './Components/UI/Procedure/MFDSelectProcedurePage';
-import { ContextMenuDialog } from '../Shared/UI/Dialogs/ContextMenuDialog';
-import { G1000ControlPublisher } from '../Shared/G1000Events';
-import { MFDDirectTo } from './Components/UI/DirectTo/MFDDirectTo';
-import { MFDMapSettings } from './Components/UI/MapSettings/MFDMapSettings';
-import { MFDWptInfo } from './Components/UI/WptInfo/MFDWptInfo';
-import { MFDSetRunway } from './Components/UI/SetRunway/MFDSetRunway';
-import { APRadioNavInstrument } from '../Shared/Navigation/APRadioNavInstrument';
-import { MFDWptDupDialog } from './Components/UI/WptDup/MFDWptDupDialog';
-import { MFDSelectAirway } from './Components/UI/Airway/MFDSelectAirway';
-import { MessageDialog } from '../Shared/UI/Dialogs/MessageDialog';
-import { TrafficAdvisorySystem } from '../Shared/Traffic/TrafficAdvisorySystem';
-import { BacklightManager } from '../Shared/Backlight/BacklightManager';
-import { G1000SettingSaveManager } from '../Shared/Profiles/G1000SettingSaveManager';
-import { FuelComputer } from '../Shared/FuelComputer';
-import { MFDHold } from './Components/UI/Hold/MFDHold';
-import { MFDPageMenuDialog } from './Components/UI/MFDPageMenuDialog';
-import { MFDNearestAirportsPage } from './Components/UI/Nearest/MFDNearestAirportsPage';
-import { MFDPageSelect } from './Components/UI/MFDPageSelect';
-import { MFDTrafficMapPage } from './Components/UI/Traffic/MFDTrafficMapPage';
-import { MFDTrafficMapRootMenu } from './Components/UI/Traffic/MFDTrafficMapRootMenu';
-import { MFDTrafficMapAltitudeMenu } from './Components/UI/Traffic/MFDTrafficMapAltitudeMenu';
-import { MFDTrafficMapMotionMenu } from './Components/UI/Traffic/MFDTrafficMapMotionMenu';
-import { MFDTrafficMapMotionDurationMenu } from './Components/UI/Traffic/MFDTrafficMapMotionDurationMenu';
+import { EIS } from './Components/EIS';
 import { PanelLoader } from './Components/EngineInstruments/NewPanels/PanelLoader';
-import { GpsSynchronizer } from '../Shared/Navigation/GpsSynchronizer';
-import { MFDFPLRootMenu } from '../Shared/UI/Menus/MFD/MFDFPLRootMenu';
-import { MFDNearestAirportRootMenu } from '../Shared/UI/Menus/MFD/MFDNearestAirportRootMenu';
-import { MFDNearestIntersectionsPage } from './Components/UI/Nearest/MFDNearestIntersectionsPage';
-import { MFDNearestNdbsPage } from './Components/UI/Nearest/MFDNearestNDBsPage';
-import { MFDNearestVorsPage } from './Components/UI/Nearest/MFDNearestVORsPage';
-import { MFDNearestVorRootMenu } from '../Shared/UI/Menus/MFD/MFDNearestVorRootMenu';
+import { MFDSelectAirway } from './Components/UI/Airway/MFDSelectAirway';
+import { MFDDirectTo } from './Components/UI/DirectTo/MFDDirectTo';
+import { MFDFPLPage } from './Components/UI/FPL/MFDFPLPage';
+import { MFDHold } from './Components/UI/Hold/MFDHold';
 import { MFDAirportInformationPage } from './Components/UI/Information/Airport/MFDAirportInformationPage';
 import { MFDIntersectionInformationPage } from './Components/UI/Information/Intersection/MFDIntersectionInformationPage';
 import { MFDNdbInformationPage } from './Components/UI/Information/NDB/MFDNdbInformationPage';
 import { MFDVorInformationPage } from './Components/UI/Information/VOR/MFDVorInformationPage';
-import { StartupLogo } from '../Shared/StartupLogo';
-import { ADCAvionicsSystem, AHRSSystem, AvionicsComputerSystem, EngineAirframeSystem, G1000AvionicsSystem, MagnetometerSystem, TransponderSystem } from '../Shared/Systems';
+import { MFDMapSettings } from './Components/UI/MapSettings/MFDMapSettings';
+import { MFDPageMenuDialog } from './Components/UI/MFDPageMenuDialog';
+import { MFDPageSelect } from './Components/UI/MFDPageSelect';
+import { MFDViewService } from './Components/UI/MFDViewService';
 import { MFDNavDataBar } from './Components/UI/NavDataBar/MFDNavDataBar';
-import { DefaultMFDNavDataBarFieldModelFactory } from './Components/UI/NavDataBar/DefaultMFDNavDataBarModelFactory';
 import { MFDNavDataBarUserSettings } from './Components/UI/NavDataBar/MFDNavDataBarUserSettings';
+import { MFDNavMapPage as MFDNavMapPage } from './Components/UI/NavMap/MFDNavMapPage';
+import { MFDNearestAirportsPage } from './Components/UI/Nearest/MFDNearestAirportsPage';
+import { MFDNearestIntersectionsPage } from './Components/UI/Nearest/MFDNearestIntersectionsPage';
+import { MFDNearestNdbsPage } from './Components/UI/Nearest/MFDNearestNDBsPage';
+import { MFDNearestVorsPage } from './Components/UI/Nearest/MFDNearestVORsPage';
+import { MFDProc } from './Components/UI/Procedure/MFDProc';
+import { MFDSelectProcedurePage } from './Components/UI/Procedure/MFDSelectProcedurePage';
+import { MFDSetRunway } from './Components/UI/SetRunway/MFDSetRunway';
 import { MFDSystemSetupPage } from './Components/UI/SystemSetup/MFDSystemSetupPage';
-import { MFDSystemSetupRootMenu } from '../Shared/UI/Menus/MFD/MFDSystemSetupRootMenu';
-import { MFDSelectProcedureRootMenu } from '../Shared/UI/Menus/MFD/MFDSelectProcedureRootMenu';
-import { UnitsUserSettings } from '../Shared/Units/UnitsUserSettings';
+import { MFDTrafficMapAltitudeMenu } from './Components/UI/Traffic/MFDTrafficMapAltitudeMenu';
+import { MFDTrafficMapMotionDurationMenu } from './Components/UI/Traffic/MFDTrafficMapMotionDurationMenu';
+import { MFDTrafficMapMotionMenu } from './Components/UI/Traffic/MFDTrafficMapMotionMenu';
+import { MFDTrafficMapPage } from './Components/UI/Traffic/MFDTrafficMapPage';
+import { MFDTrafficMapRootMenu } from './Components/UI/Traffic/MFDTrafficMapRootMenu';
+import { MFDWptDupDialog } from './Components/UI/WptDup/MFDWptDupDialog';
+import { MFDWptInfo } from './Components/UI/WptInfo/MFDWptInfo';
 
 import '../Shared/UI/Common/g1k_common.css';
 import './WTG1000_MFD.css';
@@ -91,40 +95,44 @@ import '../Shared/UI/Common/LatLonDisplay.css';
 /**
  * The base G1000 MFD instrument class.
  */
-export class WTG1000_MFD extends BaseInstrument {
-  private bus: EventBus;
-  private gnss: GNSSPublisher;
-  private adc: ADCPublisher;
-  private eis: EISPublisher;
-  private hEventPublisher: HEventPublisher;
-  private g1000ControlPublisher: G1000ControlPublisher;
-  private controlPublisher: ControlPublisher;
-  private electricalPublisher: ElectricalPublisher;
+class WTG1000_MFD extends BaseInstrument {
+  private readonly bus: EventBus;
 
-  private lNavPublisher: LNavSimVarPublisher;
-  private vNavPublisher: VNavSimVarPublisher;
+  private readonly baseInstrumentPublisher: BaseInstrumentPublisher;
+  private readonly gnss: GNSSPublisher;
+  private readonly adc: ADCPublisher;
+  private readonly eis: EISPublisher;
+  private readonly hEventPublisher: HEventPublisher;
+  private readonly g1000ControlPublisher: G1000ControlPublisher;
+  private readonly controlPublisher: ControlPublisher;
+  private readonly electricalPublisher: ElectricalPublisher;
+  private readonly navComSimVarPublisher: NavComSimVarPublisher;
+
+  private readonly lNavPublisher: LNavSimVarPublisher;
+  private readonly lNavDataPublisher: LNavDataSimVarPublisher;
+  private readonly vNavPublisher: VNavSimVarPublisher;
   private fms!: Fms;
 
-
-  private apInstrument: AutopilotInstrument;
-  private apRadioNav: APRadioNavInstrument;
+  private readonly apInstrument: AutopilotInstrument;
+  private readonly apRadioNav: APRadioNavInstrument;
   private readonly trafficInstrument: TrafficInstrument;
   private readonly clock: Clock;
 
-  private backplane: InstrumentBackplane;
-  private xmlLogicHost: CompositeLogicXMLHost;
-  private loader: FacilityLoader;
-  private calculator: FlightPathCalculator;
-  private planner: FlightPlanner;
-  private heventSub: EventSubscriber<HEvent>;
-  private gaugeFactory: XMLGaugeConfigFactory;
+  private readonly backplane: InstrumentBackplane;
+  private readonly xmlLogicHost: CompositeLogicXMLHost;
+  private readonly loader: FacilityLoader;
+  private readonly calculator: FlightPathCalculator;
+  private readonly planner: FlightPlanner;
+  private readonly heventSub: EventSubscriber<HEvent>;
+  private readonly gaugeFactory: XMLGaugeConfigFactory;
 
+  private verticalPathCalculator!: BottomTargetPathCalculator;
   private autopilot!: G1000Autopilot;
 
   private viewService: MFDViewService;
 
-  private navdataComputer: NavdataComputer;
-  private gpsSynchronizer: GpsSynchronizer;
+  private readonly navdataComputer: NavdataComputer;
+  private readonly gpsSynchronizer: GpsSynchronizer;
 
   private lastCalculate = 0;
 
@@ -133,10 +141,9 @@ export class WTG1000_MFD extends BaseInstrument {
   private readonly backlightManager: BacklightManager;
 
   private readonly settingSaveManager: UserSettingSaveManager;
-  private fuelComputer: FuelComputer;
+  private readonly fuelComputer: FuelComputer;
 
-  private previousScreenState: ScreenState | undefined;
-  private systems: G1000AvionicsSystem[] = [];
+  private readonly systems: G1000AvionicsSystem[] = [];
 
   /**
    * Creates an instance of the WTG1000_MFD.
@@ -147,6 +154,9 @@ export class WTG1000_MFD extends BaseInstrument {
     WaypointIconImageCache.init();
 
     this.bus = new EventBus();
+
+    this.baseInstrumentPublisher = new BaseInstrumentPublisher(this, this.bus);
+
     this.gnss = new GNSSPublisher(this.bus);
     this.adc = new ADCPublisher(this.bus);
     this.controlPublisher = new ControlPublisher(this.bus);
@@ -154,8 +164,10 @@ export class WTG1000_MFD extends BaseInstrument {
     this.eis = new EISPublisher(this.bus);
     this.electricalPublisher = new ElectricalPublisher(this.bus);
     this.lNavPublisher = new LNavSimVarPublisher(this.bus);
+    this.lNavDataPublisher = new LNavDataSimVarPublisher(this.bus);
     this.vNavPublisher = new VNavSimVarPublisher(this.bus);
     this.apRadioNav = new APRadioNavInstrument(this.bus);
+    this.navComSimVarPublisher = new NavComSimVarPublisher(this.bus);
 
     this.hEventPublisher = new HEventPublisher(this.bus);
     this.g1000ControlPublisher = new G1000ControlPublisher(this.bus);
@@ -167,6 +179,7 @@ export class WTG1000_MFD extends BaseInstrument {
     this.fuelComputer = new FuelComputer(this.bus);
 
     this.backplane = new InstrumentBackplane();
+    this.backplane.addPublisher('base', this.baseInstrumentPublisher);
     this.backplane.addPublisher('adc', this.adc);
     this.backplane.addPublisher('hEvents', this.hEventPublisher);
     this.backplane.addPublisher('gnss', this.gnss);
@@ -174,8 +187,10 @@ export class WTG1000_MFD extends BaseInstrument {
     this.backplane.addPublisher('control', this.controlPublisher);
     this.backplane.addPublisher('g1000', this.g1000ControlPublisher);
     this.backplane.addPublisher('lnav', this.lNavPublisher);
+    this.backplane.addPublisher('lnavdata', this.lNavDataPublisher);
     this.backplane.addPublisher('vnav', this.vNavPublisher);
     this.backplane.addPublisher('electrical', this.electricalPublisher);
+    this.backplane.addPublisher('navComSimVar', this.navComSimVarPublisher);
     this.backplane.addInstrument('ap', this.apInstrument);
     this.backplane.addInstrument('apRadioNav', this.apRadioNav);
     this.backplane.addInstrument('fuelComputer', this.fuelComputer);
@@ -183,7 +198,7 @@ export class WTG1000_MFD extends BaseInstrument {
 
     this.viewService = new MFDViewService(this.bus);
 
-    this.loader = new FacilityLoader(FacilityRespository.getRepository(this.bus));
+    this.loader = new FacilityLoader(FacilityRepository.getRepository(this.bus));
     this.calculator = new FlightPathCalculator(this.loader, { defaultClimbRate: 300, defaultSpeed: 85, bankAngle: 17.5 });
     this.planner = FlightPlanner.getPlanner(this.bus, this.calculator);
     this.gpsSynchronizer = new GpsSynchronizer(this.bus, this.planner, this.loader);
@@ -234,8 +249,16 @@ export class WTG1000_MFD extends BaseInstrument {
   public connectedCallback(): void {
     super.connectedCallback();
 
-    this.autopilot = new G1000Autopilot(this.bus, this.planner, new G1000APConfig(this.bus, this.planner), new G1000APStateManager(this.bus));
-    this.fms = new Fms(this.bus, this.planner, this.viewService, this.g1000ControlPublisher, this.autopilot);
+    this.verticalPathCalculator = new BottomTargetPathCalculator(this.bus, this.planner, 0, 3, 6);
+
+    this.autopilot = new G1000Autopilot(
+      this.bus, this.planner,
+      new GarminAPConfig(this.bus, this.planner, this.verticalPathCalculator),
+      new GarminAPStateManager(this.bus),
+      PFDUserSettings.getManager(this.bus)
+    );
+
+    this.fms = new Fms(this.bus, this.planner, this.verticalPathCalculator);
 
     const menuSystem = new MenuSystem(this.bus, 'AS1000_MFD_SOFTKEYS_');
     //// BEGIN CURRENT
@@ -275,9 +298,10 @@ export class WTG1000_MFD extends BaseInstrument {
     FSComponent.render(
       <MFDNavDataBar
         bus={this.bus}
-        modelFactory={new DefaultMFDNavDataBarFieldModelFactory(this.bus, this.fms)}
+        fms={this.fms}
         dataBarSettingManager={MFDNavDataBarUserSettings.getManager(this.bus)}
         unitsSettingManager={UnitsUserSettings.getManager(this.bus)}
+        dateTimeSettingManager={DateTimeUserSettings.getManager(this.bus)}
         updateFreq={1}
         openPage={this.viewService.openPage}
       />,
@@ -352,9 +376,23 @@ export class WTG1000_MFD extends BaseInstrument {
     this.systems.push(new AvionicsComputerSystem(2, this.bus));
     this.systems.push(new EngineAirframeSystem(1, this.bus));
 
-    if (this.getGameState() === GameState.briefing || this.getGameState() === GameState.ingame) {
-      this.startPublishers();
-    }
+    const sub = this.bus.getSubscriber<InstrumentEvents>();
+
+    // initialize onInGame callback
+    const onInGameSub = sub.on('vc_game_state').whenChanged().handle(state => {
+      if (state === GameState.briefing || state === GameState.ingame) {
+        this.onInGame();
+        onInGameSub.destroy();
+      }
+    }, true);
+    onInGameSub.resume(true);
+
+    // initialize screen state callback
+    sub.on('vc_screen_state').handle(event => {
+      if (event.current !== event.previous) {
+        this.onScreenStateChanged(event.current);
+      }
+    });
   }
 
   /**
@@ -412,31 +450,18 @@ export class WTG1000_MFD extends BaseInstrument {
     this.fms.flightPlanner.requestSync();
   }
 
-  /** @inheritdoc */
-  protected onGameStateChanged(oldState: GameState, newState: GameState): void {
-    super.onGameStateChanged(oldState, newState);
-
-    if (oldState !== newState) {
-      this.bus.pub('vc_game_state', newState);
-    }
-
-    if (newState === GameState.briefing || newState === GameState.ingame) {
-      this.startPublishers();
-    }
-  }
-
-  /** @inheritdoc */
-  public onPowerOn(): void {
-    super.onPowerOn();
-
-    this.bus.pub('vc_powered', true);
-  }
-
-  /** @inheritdoc */
-  public onShutDown(): void {
-    super.onShutDown();
-
-    this.bus.pub('vc_powered', false);
+  /**
+   * Callback for when the game state transitions to either briefing or in-game.
+   * This can be used as a "last chance" hook to initialize things that need to wait
+   * until a plane has loaded and everything is in a stable state.
+   */
+  protected onInGame(): void {
+    // If we have the electrical publisher publishing before this point, it will
+    // send an off-state for the electrics that will cause the avionics bus logic
+    // to act as though it was just turned on any time the game launches, even if
+    // it's not a C&D start.   Since this is undesirable, we don't actually have
+    // it start publishing until we're actually "on the tarmac".
+    this.electricalPublisher.setFlightStarted(true);
   }
 
   /**
@@ -455,91 +480,20 @@ export class WTG1000_MFD extends BaseInstrument {
     this.autopilot?.update();
     this.xmlLogicHost.update(this.deltaTime);
     this.gpsSynchronizer.update();
-
-    if (this.previousScreenState !== this.screenState) {
-      this.onScreenStateChanged();
-    }
   }
 
   /**
    * Handles when the instrument screen state has changed.
+   * @param state The current screen state.
    */
-  private onScreenStateChanged(): void {
-    this.bus.pub('vc_screen_state', { previous: this.previousScreenState, current: this.screenState });
-    this.previousScreenState = this.screenState;
-
-    if (this.screenState === ScreenState.ON) {
+  private onScreenStateChanged(state: ScreenState): void {
+    if (state === ScreenState.ON) {
       this.bus.pub('mfd_power_on', true, true, true);
+      this.xmlLogicHost.setIsPaused(false);
     } else {
       this.bus.pub('mfd_power_on', false, true, true);
+      this.xmlLogicHost.setIsPaused(true);
     }
-  }
-
-  /**
-   * Starts data publishers to the bus.
-   */
-  protected startPublishers(): void {
-    this.adc.subscribe('hdg_deg');
-    this.adc.subscribe('hdg_deg_true');
-    this.adc.subscribe('tas');
-    this.adc.subscribe('ambient_wind_direction');
-    this.adc.subscribe('ambient_wind_velocity');
-    this.adc.subscribe('alt');
-    this.adc.subscribe('on_ground');
-    this.adc.subscribe('vs');
-    this.adc.subscribe('pitch_deg');
-    this.adc.subscribe('ias');
-    this.adc.subscribe('roll_deg');
-    this.adc.subscribe('delta_heading_rate');
-
-    this.eis.subscribe('rpm_1');
-    this.eis.subscribe('recip_ff_1');
-    this.eis.subscribe('oil_press_1');
-    this.eis.subscribe('oil_temp_1');
-    this.eis.subscribe('egt_1');
-    this.eis.subscribe('vac');
-    this.eis.subscribe('fuel_left');
-    this.eis.subscribe('fuel_right');
-    this.eis.subscribe('fuel_total');
-    this.eis.subscribe('fuel_flow_total');
-    this.eis.subscribe('eng_hours_1');
-    this.eis.subscribe('elec_bus_main_v');
-    this.eis.subscribe('elec_bus_main_a');
-    this.eis.subscribe('elec_bus_avionics_v');
-    this.eis.subscribe('elec_bus_avionics_a');
-    this.eis.subscribe('elec_bus_genalt_1_v');
-    this.eis.subscribe('elec_bus_genalt_1_a');
-    this.eis.subscribe('elec_bat_v');
-    this.eis.subscribe('elec_bat_a');
-
-    this.electricalPublisher.subscribe('elec_av1_bus');
-    this.electricalPublisher.subscribe('elec_av2_bus');
-    this.electricalPublisher.subscribe('elec_circuit_navcom1_on');
-    this.electricalPublisher.subscribe('elec_circuit_navcom2_on');
-
-    this.lNavPublisher.subscribe('lnavBrgMag');
-    this.lNavPublisher.subscribe('lnavDis');
-    this.lNavPublisher.subscribe('lnavDtkMag');
-    this.lNavPublisher.subscribe('lnavXtk');
-    this.lNavPublisher.subscribe('lnavCurrentVector');
-    this.lNavPublisher.subscribe('lnavIsTracking');
-    this.lNavPublisher.subscribe('lnavDistanceToDestination');
-
-    this.vNavPublisher.subscribe('vnavTodLegIndex');
-    this.vNavPublisher.subscribe('vnavTodLegDistance');
-    this.vNavPublisher.subscribe('vnavBodLegIndex');
-    this.vNavPublisher.subscribe('vnavMode');
-    this.vNavPublisher.subscribe('vnavPathMode');
-    this.vNavPublisher.subscribe('vnavFpa');
-    this.vNavPublisher.subscribe('vnavTodDistance');
-    this.vNavPublisher.subscribe('vnavTargetAlt');
-    this.vNavPublisher.subscribe('vnavVDev');
-    this.vNavPublisher.subscribe('vnavAltCaptureType');
-    this.vNavPublisher.subscribe('vnavBodDistance');
-    this.vNavPublisher.subscribe('vnavConstraintAltitude');
-    this.vNavPublisher.subscribe('vnavConstraintLegIndex');
-    this.vNavPublisher.subscribe('vnavRequiredVs');
-    this.vNavPublisher.subscribe('vnavNextConstraintAltitude');
   }
 
   /**

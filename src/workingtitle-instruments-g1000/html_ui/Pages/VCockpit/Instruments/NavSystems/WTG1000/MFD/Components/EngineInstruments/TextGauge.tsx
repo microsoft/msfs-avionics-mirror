@@ -1,5 +1,5 @@
 import { XMLHostedLogicGauge, XMLTextElementProps, XMLTextColumnProps } from 'msfssdk/components/XMLGauges';
-import { FSComponent, DisplayComponent, VNode } from 'msfssdk';
+import { FSComponent, DisplayComponent, VNode, Subject } from 'msfssdk';
 import { BaseGauge } from './BaseGauge';
 
 /** The props for a text column. */
@@ -11,13 +11,14 @@ interface ColumnProps extends Partial<XMLTextColumnProps> {
 /** Draw a single column of text. */
 class XMLTextColumn extends DisplayComponent<ColumnProps & XMLHostedLogicGauge> {
   private contentRef = FSComponent.createRef<HTMLDivElement>();
+  private textValue = Subject.create('');
 
   /** Do stuff after rendering. */
   public onAfterRender(): void {
     if (this.props.content !== undefined) {
-      this.contentRef.instance.textContent = this.props.logicHost.addLogicAsString(
-        this.props.content, (content: string) => { this.contentRef.instance.textContent = content; }
-      );
+      this.textValue.set(this.props.logicHost.addLogicAsString(
+        this.props.content, (content: string) => { this.textValue.set(content); }
+      ));
     } else {
       // If a column has no content, we remove its flex weight to make room for the others.
       this.contentRef.instance.style.flex = '0';
@@ -48,7 +49,7 @@ class XMLTextColumn extends DisplayComponent<ColumnProps & XMLHostedLogicGauge> 
    * @returns A VNode
    */
   public render(): VNode {
-    return <div ref={this.contentRef} class={'text_column_' + this.props.location} />;
+    return <div ref={this.contentRef} class={'text_column_' + this.props.location}>{this.textValue}</div>;
   }
 }
 

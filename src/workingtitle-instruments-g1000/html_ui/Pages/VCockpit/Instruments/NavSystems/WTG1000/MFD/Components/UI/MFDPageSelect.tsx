@@ -79,7 +79,7 @@ export class MFDPageSelect extends UiView<MFDPageSelectProps & UiViewProps> {
     FSComponent.createRef<HTMLDivElement>(),
     FSComponent.createRef<HTMLDivElement>(),
     FSComponent.createRef<HTMLDivElement>()
-  ]
+  ];
 
   private readonly listItemDefs = MFDPageSelect.PAGE_GROUPS.map(defs => defs.map(this.buildListItemDefinition.bind(this)));
 

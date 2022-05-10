@@ -1,5 +1,5 @@
 import { FacilityType, ICAO } from '../../navigation';
-import { FacilityRespository } from '../../navigation/FacilityRespository';
+import { FacilityRepository } from '../../navigation/FacilityRepository';
 
 export enum IcaoSearchFilter {
   ALL,
@@ -33,7 +33,7 @@ export class IcaoSearch {
    * @param facilityRepo The local facility repository included in this search session.
    * @param filter The filter applied to this search session.
    */
-  constructor(private readonly facilityRepo: FacilityRespository, private readonly filter: IcaoSearchFilter) {
+  constructor(private readonly facilityRepo: FacilityRepository, private readonly filter: IcaoSearchFilter) {
     this.batch = new SimVar.SimVarBatch('C:fs9gps:IcaoSearchMatchedIcaosNumber', 'C:fs9gps:IcaoSearchMatchedIcao');
     this.batch.add('C:fs9gps:IcaoSearchCurrentIcao', 'string', 'string');
   }

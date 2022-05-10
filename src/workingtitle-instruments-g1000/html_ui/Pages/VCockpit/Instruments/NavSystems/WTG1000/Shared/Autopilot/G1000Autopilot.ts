@@ -1,40 +1,87 @@
-import { Subject, UnitType } from 'msfssdk';
-import { APAltitudeModes, APLateralModes, APVerticalModes, Autopilot } from 'msfssdk/autopilot';
+import { ObjectSubject, Subject, UnitType } from 'msfssdk';
+import { AltitudeSelectManager, AltitudeSelectManagerOptions, APAltitudeModes, APConfig, APLateralModes, APStateManager, APVerticalModes, Autopilot, MetricAltitudeSettingsManager } from 'msfssdk/autopilot';
+import { EventBus } from 'msfssdk/data';
+import { FlightPlanner } from 'msfssdk/flightplan';
 import { APEvents } from 'msfssdk/instruments';
-import { Fms } from '../FlightPlan/Fms';
 import { G1000ControlEvents } from '../G1000Events';
-import { AltitudeSelectManager } from './AltitudeSelectManager';
 import { FmaData } from './FmaData';
 
 /**
- * A G1000 NXi autopilot.
+ * A Garmin GFC700 autopilot.
  */
 export class G1000Autopilot extends Autopilot {
-  private static readonly MIN_ALT_SELECT = UnitType.FOOT.createNumber(-1000);
-  private static readonly MAX_ALT_SELECT = UnitType.FOOT.createNumber(50000);
+  private static readonly ALT_SELECT_OPTIONS: AltitudeSelectManagerOptions = {
+    supportMetric: true,
+    minValue: UnitType.FOOT.createNumber(-1000),
+    maxValue: UnitType.FOOT.createNumber(50000),
+    inputIncrLargeThreshold: 999,
+    incrSmall: UnitType.FOOT.createNumber(100),
+    incrLarge: UnitType.FOOT.createNumber(1000),
+    incrSmallMetric: UnitType.METER.createNumber(50),
+    incrLargeMetric: UnitType.METER.createNumber(500),
+    initToIndicatedAlt: true
+  };
 
   public readonly externalAutopilotInstalled = Subject.create<boolean>(false);
   protected readonly lateralArmedModeSubject = Subject.create<APLateralModes>(APLateralModes.NONE);
   protected readonly altArmedSubject = Subject.create<boolean>(false);
 
-  protected readonly altSelectManager = new AltitudeSelectManager(this.bus, G1000Autopilot.MIN_ALT_SELECT, G1000Autopilot.MAX_ALT_SELECT);
+  protected readonly altSelectManager = new AltitudeSelectManager(this.bus, this.settingsManager, G1000Autopilot.ALT_SELECT_OPTIONS);
 
+  protected readonly fmaData: ObjectSubject<FmaData>;
+  private fmaUpdateDebounce: NodeJS.Timeout | undefined;
+
+  /**
+   * Creates an instance of the G1000Autopilot.
+   * @param bus The event bus.
+   * @param flightPlanner This autopilot's associated flight planner.
+   * @param config This autopilot's configuration.
+   * @param stateManager This autopilot's state manager.
+   * @param settingsManager The settings manager to pass to altitude preselect system.
+   */
+  constructor(bus: EventBus, flightPlanner: FlightPlanner, config: APConfig, stateManager: APStateManager,
+    private readonly settingsManager: MetricAltitudeSettingsManager) {
+    super(bus, flightPlanner, config, stateManager);
+
+    this.fmaData = ObjectSubject.create<FmaData>({
+      verticalActive: APVerticalModes.NONE,
+      verticalArmed: APVerticalModes.NONE,
+      verticalApproachArmed: APVerticalModes.NONE,
+      verticalAltitudeArmed: APAltitudeModes.NONE,
+      altitideCaptureArmed: false,
+      altitideCaptureValue: -1,
+      lateralActive: APLateralModes.NONE,
+      lateralArmed: APLateralModes.NONE,
+      lateralModeFailed: false
+    });
+
+    const publisher = this.bus.getPublisher<G1000ControlEvents>();
+    this.fmaData.sub(() => {
+      // dirty debounce, need better ObjectSubject
+      if (this.fmaUpdateDebounce) {
+        return;
+      }
+
+      this.fmaUpdateDebounce = setTimeout(() => {
+        this.fmaUpdateDebounce = undefined;
+        publisher.pub('fma_modes', this.fmaData.get(), true);
+      }, 0);
+    }, true);
+  }
 
   /** @inheritdoc */
   protected onAfterUpdate(): void {
     if (!this.externalAutopilotInstalled.get()) {
       this.updateFma();
     } else {
-      this.lateralArmedModeSubject.set(this.lateralArmed);
+      this.lateralArmedModeSubject.set(this.apValues.lateralArmed.get());
       this.altArmedSubject.set(this.altCapArmed);
     }
-    //this.updateFma();
-
   }
 
   /** @inheritdoc */
   protected onInitialized(): void {
-    this.bus.pub('vnav_enabled', true);
+    this.bus.pub('vnav_set_state', true);
 
     this.monitorAdditionalEvents();
   }
@@ -50,7 +97,7 @@ export class G1000Autopilot extends Autopilot {
         this.altSelectManager.setEnabled(false);
         this.handleApFdStateChange();
         this.updateFma(true);
-        Fms.g1000EvtPub.publishEvent('fd_not_installed', true);
+        this.bus.getPublisher<G1000ControlEvents>().pub('fd_not_installed', true, true);
       }
     });
   }
@@ -60,18 +107,15 @@ export class G1000Autopilot extends Autopilot {
    * @param clear Is to clear the FMA
    */
   private updateFma(clear = false): void {
-    const publisher = this.bus.getPublisher<G1000ControlEvents>();
-    const data: FmaData = {
-      verticalActive: clear ? APVerticalModes.NONE : this.verticalActive,
-      verticalArmed: clear ? APVerticalModes.NONE : this.verticalArmed,
-      verticalApproachArmed: clear ? APVerticalModes.NONE : this.verticalApproachArmed,
-      verticalAltitudeArmed: clear ? APAltitudeModes.NONE : this.verticalAltitudeArmed,
-      altitideCaptureArmed: clear ? false : this.altCapArmed,
-      altitideCaptureValue: clear ? -1 : this.apValues.capturedAltitude.get(),
-      lateralActive: clear ? APLateralModes.NONE : this.lateralActive,
-      lateralArmed: clear ? APLateralModes.NONE : this.lateralArmed,
-      lateralModeFailed: clear ? false : this.lateralModeFailed
-    };
-    publisher.pub('fma_modes', data, true);
+    const fmaTemp = this.fmaData;
+    fmaTemp.set('verticalApproachArmed', (clear ? APVerticalModes.NONE : this.verticalApproachArmed));
+    fmaTemp.set('verticalArmed', (clear ? APVerticalModes.NONE : this.apValues.verticalArmed.get()));
+    fmaTemp.set('verticalActive', (clear ? APVerticalModes.NONE : this.apValues.verticalActive.get()));
+    fmaTemp.set('verticalAltitudeArmed', (clear ? APAltitudeModes.NONE : this.verticalAltitudeArmed));
+    fmaTemp.set('altitideCaptureArmed', (clear ? false : this.altCapArmed));
+    fmaTemp.set('altitideCaptureValue', (clear ? -1 : this.apValues.capturedAltitude.get()));
+    fmaTemp.set('lateralActive', (clear ? APLateralModes.NONE : this.apValues.lateralActive.get()));
+    fmaTemp.set('lateralArmed', (clear ? APLateralModes.NONE : this.apValues.lateralArmed.get()));
+    fmaTemp.set('lateralModeFailed', (clear ? false : this.lateralModeFailed));
   }
 }

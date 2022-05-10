@@ -1,11 +1,10 @@
 import {
-  GeoPoint, UnitType, GeoPointSubject, GeoPointInterface, NumberUnitSubject, ComputedSubject, Subscribable,
-  NumberUnitInterface, Subject, NavMath, UnitFamily, NavAngleSubject, NavAngleUnit, NavAngleUnitReferenceNorth
+  ComputedSubject, GeoPoint, GeoPointInterface, GeoPointSubject, NavAngleSubject, NavAngleUnit, NavAngleUnitReferenceNorth, NavMath, NumberUnitInterface,
+  NumberUnitSubject, Subject, Subscribable, UnitFamily, UnitType
 } from 'msfssdk';
-import { AirportFacility, Facility, ICAO } from 'msfssdk/navigation';
+import { AirportFacility, AirportWaypoint, Facility, FacilityWaypoint, ICAO, Waypoint } from 'msfssdk/navigation';
 
-import { Regions } from '../../Navigation/Regions';
-import { AirportWaypoint, FacilityWaypoint, Waypoint } from '../../Navigation/Waypoint';
+import { Regions } from 'garminsdk/navigation';
 
 /**
  * A store for commonly used waypoint info.

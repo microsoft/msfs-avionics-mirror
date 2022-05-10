@@ -1,8 +1,7 @@
 import { VNode, FSComponent, ArraySubject } from 'msfssdk';
 import { ControlPublisher } from 'msfssdk/data';
 import { AirportFacility, FacilityFrequency, FacilityFrequencyType } from 'msfssdk/navigation';
-import { ControlList } from '../../../../../Shared/UI/ControlList';
-import { UiControl2, UiControl2Props } from '../../../../../Shared/UI/UiControl2';
+import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../../Shared/UI/G1000UiControl';
 import { GroupBox } from '../../GroupBox';
 
 import './FrequenciesGroup.css';
@@ -10,7 +9,7 @@ import './FrequenciesGroup.css';
 /**
  * Props on the FrequenciesGroup component.
  */
-export interface FrequenciesGroupProps extends UiControl2Props {
+export interface FrequenciesGroupProps extends G1000UiControlProps {
   /** A control publisher used to send radio update commands. */
   controlPublisher: ControlPublisher;
 }
@@ -19,10 +18,10 @@ export interface FrequenciesGroupProps extends UiControl2Props {
  * A component that displays a list of selectable radio frequencies
  * on the MFD nearest airports page.
  */
-export class FrequenciesGroup extends UiControl2<FrequenciesGroupProps> {
+export class FrequenciesGroup extends G1000UiControl<FrequenciesGroupProps> {
 
   private readonly frequencies = ArraySubject.create<FacilityFrequency>();
-  private readonly frequencyList = FSComponent.createRef<ControlList<FacilityFrequency>>();
+  private readonly frequencyList = FSComponent.createRef<G1000ControlList<FacilityFrequency>>();
 
   /**
    * Sets the currently displayed facility.
@@ -62,7 +61,7 @@ export class FrequenciesGroup extends UiControl2<FrequenciesGroupProps> {
   public render(): VNode {
     return (
       <GroupBox title='Frequencies'>
-        <ControlList
+        <G1000ControlList
           innerKnobScroll
           class='mfd-nearest-airport-frequencies'
           data={this.frequencies}
@@ -76,7 +75,7 @@ export class FrequenciesGroup extends UiControl2<FrequenciesGroupProps> {
 /**
  * Props on the FrequencyItem component.
  */
-interface FrequencyItemProps extends UiControl2Props {
+interface FrequencyItemProps extends G1000UiControlProps {
   /** The frequency that this item will display. */
   frequency: FacilityFrequency;
 
@@ -88,17 +87,17 @@ interface FrequencyItemProps extends UiControl2Props {
  * A component that represent a single row in the nearest airport
  * frequency list.
  */
-class FrequencyItem extends UiControl2<FrequencyItemProps> {
+class FrequencyItem extends G1000UiControl<FrequencyItemProps> {
   private readonly number = FSComponent.createRef<HTMLDivElement>();
 
   /** @inheritdoc */
-  public onFocused(source: UiControl2): void {
+  protected onFocused(source: G1000UiControl): void {
     this.number.instance.classList.add('highlight-select');
     super.onFocused(source);
   }
 
   /** @inheritdoc */
-  public onBlurred(source: UiControl2): void {
+  protected onBlurred(source: G1000UiControl): void {
     this.number.instance.classList.remove('highlight-select');
     super.onBlurred(source);
   }

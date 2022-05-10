@@ -1,16 +1,16 @@
-import { FSComponent, VNode, Subject, ComputedSubject, Units, BitFlags, UnitType } from 'msfssdk';
+import { FSComponent, VNode, Subject, ComputedSubject, BitFlags, UnitType } from 'msfssdk';
 import { FacilityType, FixTypeFlags, ICAO, LegType } from 'msfssdk/navigation';
 import { LegDefinitionFlags } from 'msfssdk/flightplan';
 import { FixLegInfo } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { ViewService } from '../../../../Shared/UI/ViewService';
-import { UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
+import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { UiControl } from '../../../../Shared/UI/UiControl';
 import { ConstraintSelector } from '../../../../MFD/Components/UI/FPL/ConstraintSelector';
 
 /**
  * The properties for the FixInfo component.
  */
-interface FixInfoProps extends UiControl2Props {
+interface FixInfoProps extends G1000UiControlProps {
   /**
    * The actual data object for this fix
    * @type {Subject<FixLegInfo>}
@@ -31,7 +31,7 @@ interface FixInfoProps extends UiControl2Props {
 }
 
 /** The FixInfo component. */
-export class FixInfo extends UiControl2<FixInfoProps> {
+export class FixInfo extends G1000UiControl<FixInfoProps> {
 
   private static viewableLegTypes = [LegType.AF, LegType.CF, LegType.DF, LegType.IF, LegType.RF, LegType.TF];
 
@@ -58,7 +58,7 @@ export class FixInfo extends UiControl2<FixInfoProps> {
       return '____';
     } else {
       // const dis = (v / 1852);
-      const dis = Units.Meters.toNauticalMiles(v);
+      const dis = UnitType.METER.convertTo(v, UnitType.NMILE);
       return dis.toFixed((dis < 100) ? 1 : 0);
     }
   });
@@ -149,6 +149,7 @@ export class FixInfo extends UiControl2<FixInfoProps> {
       if (
         (v.isCollapsed && !v.isAirwayExitFix)
         || v.legDefinition.leg.type === LegType.Discontinuity
+        || v.legDefinition.leg.type === LegType.ThruDiscontinuity
         || BitFlags.isAny(v.legDefinition.flags, LegDefinitionFlags.DirectTo | LegDefinitionFlags.VectorsToFinal)
       ) {
         this.setIsVisible(false);
@@ -248,9 +249,9 @@ export class FixInfo extends UiControl2<FixInfoProps> {
   render(): VNode {
     return (
       <div class='fix-container' ref={this.fixEl}>
-        <UiControl2 onFocused={this.onNameFocused.bind(this)} onBlurred={this.onNameBlurred.bind(this)}>
+        <G1000UiControl onFocused={this.onNameFocused.bind(this)} onBlurred={this.onNameBlurred.bind(this)}>
           <div class='fix-name'><span ref={this.highlightElementRef}>{this.props.data.get().legDefinition.name}<span class='fix-type'>{this._fixType}</span></span></div>
-        </UiControl2>
+        </G1000UiControl>
         <div class={this.props.isExtended ? 'mfd-dtk-value' : 'dtk-value'}>{this._dtk}°</div>
         <div class={this.props.isExtended ? 'mfd-dis-value' : 'dis-value'}>{this._distance}<span class="smallText">NM</span></div>
         {this.props.isExtended ? <div ref={this.altitudeRef} class='mfd-alt-value'>

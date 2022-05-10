@@ -1,6 +1,7 @@
-import { FSComponent, VNode, BitFlags, Subscribable, NumberUnit, UnitType, MappedSubscribable, NumberUnitInterface, NumberFormatter, UnitFamily, NavAngleUnit } from 'msfssdk';
+import { FSComponent, VNode, BitFlags, Subscribable, NumberUnit, UnitType, MappedSubscribable, NumberUnitInterface, UnitFamily, NavAngleUnit } from 'msfssdk';
 import { FixTypeFlags, LegType } from 'msfssdk/navigation';
 import { LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 import { UiControl, UiControlProps } from '../../../../Shared/UI/UiControl';
 import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
 import { BearingDisplay } from '../../../../Shared/UI/Common/BearingDisplay';
@@ -82,7 +83,7 @@ export class ProcSequenceItem extends UiControl<ProcSequenceItemProps> {
   ) as MappedSubscribable<NumberUnitInterface<UnitFamily.Distance>>;
 
   private readonly visibilityHandler = (leg: LegDefinition): void => {
-    this.setIsVisible(leg.leg.type !== LegType.Discontinuity && !BitFlags.isAny(leg.flags, LegDefinitionFlags.VectorsToFinal));
+    this.setIsVisible(leg.leg.type !== LegType.Discontinuity && leg.leg.type !== LegType.ThruDiscontinuity && !BitFlags.isAny(leg.flags, LegDefinitionFlags.VectorsToFinal));
   };
 
   private readonly distanceVisibilityHandler = (distance: NumberUnitInterface<UnitFamily.Distance>): void => {

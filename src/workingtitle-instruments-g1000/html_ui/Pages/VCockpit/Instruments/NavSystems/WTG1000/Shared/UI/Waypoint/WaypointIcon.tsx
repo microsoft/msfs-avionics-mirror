@@ -1,7 +1,8 @@
 import { ComputedSubject, FSComponent, NavMath, Subscribable, VNode } from 'msfssdk';
-import { AirportFacility, AirportPrivateType, Facility, FacilityType, ICAO, VorFacility, VorType } from 'msfssdk/navigation';
+import {
+  AirportFacility, AirportPrivateType, AirportWaypoint, Facility, FacilityType, FacilityWaypoint, ICAO, VorFacility, VorType, Waypoint
+} from 'msfssdk/navigation';
 
-import { AirportWaypoint, FacilityWaypoint, Waypoint } from '../../Navigation/Waypoint';
 import { WaypointComponent, WaypointComponentProps } from './WaypointComponent';
 
 /**

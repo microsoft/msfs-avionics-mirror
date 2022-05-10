@@ -210,8 +210,10 @@ export class MFDNavMapPage extends MFDUiPage<MFDNavMapPageProps> {
           updateFreq={Subject.create(MFDNavMapPage.UPDATE_FREQ)}
           dataUpdateFreq={Subject.create(MFDNavMapPage.UPDATE_FREQ)}
           projectedWidth={876} projectedHeight={734}
-          deadZone={new Float64Array([0, 56, 0, 0])} flightPlanner={this.props.flightPlanner}
-          id='mfd_navmap' bingId='mfd_page_map'
+          deadZone={Subject.create(new Float64Array([0, 56, 0, 0]))}
+          pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
+          flightPlanner={this.props.flightPlanner}
+          bingId='mfd_page_map'
           settingManager={MapUserSettings.getMfdManager(this.props.bus)}
           ownAirplaneLayerProps={{
             imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',

@@ -1,7 +1,8 @@
-import { Consumer } from '../data';
+import { Consumer } from '../data/Consumer';
 import { EventBus, Publisher } from '../data/EventBus';
 import { EventSubscriber } from '../data/EventSubscriber';
-import { Subject } from '../utils/Subject';
+import { AbstractSubscribable } from '../sub/AbstractSubscribable';
+import { MutableSubscribable } from '../sub/Subscribable';
 
 /** The supported data types for a user setting. */
 export type UserSettingType = boolean | number | string;
@@ -20,7 +21,7 @@ export interface UserSettingDefinition<K, T extends UserSettingType> {
 /**
  * A user setting.
  */
-export interface UserSetting<K, T extends UserSettingType> {
+export interface UserSetting<K, T extends UserSettingType> extends MutableSubscribable<T> {
   /** This setting's definition. */
   readonly definition: UserSettingDefinition<K, T>;
 
@@ -63,8 +64,8 @@ export type UserSettingManagerSyncData<T extends UserSettingType> = {
 /**
  * An entry that maps one set of setting definitions to another.
  */
-type MappedUserSettingDefinition<K, V> = {
-  [Property in keyof K]: keyof V | undefined;
+export type UserSettingMap<Aliased, Original> = {
+  [Property in keyof Aliased]?: keyof Original;
 }
 
 /**
@@ -87,6 +88,21 @@ export interface UserSettingManager<T extends Record<any, UserSettingType>> {
    * @throws Error if no setting with the specified name exists.
    */
   whenSettingChanged<K extends keyof T>(name: K): Consumer<T[K]>;
+
+  /**
+   * Gets an array of all settings of this manager.
+   * @returns an array of all settings of this manager.
+   */
+  getAllSettings(): UserSetting<keyof T, T[keyof T]>[];
+
+  /**
+   * Maps a subset of this manager's settings to ones with aliased names, and creates a new setting manager which
+   * supports accessing the settings using their aliases.
+   * @param map A map defining the aliases of a subset of this manager's settings, with aliased setting names as keys
+   * and original setting names as values.
+   * @returns A new setting manager which supports accessing a subset of this manager's settings using aliased names.
+   */
+  mapTo<M extends Record<any, UserSettingType>>(map: UserSettingMap<M, T>): UserSettingManager<M & T>;
 }
 
 /**
@@ -107,7 +123,7 @@ export class DefaultUserSettingManager<T extends Record<any, UserSettingType>> i
    */
   constructor(
     protected readonly bus: EventBus,
-    settingDefs: UserSettingDefinition<keyof T, T[keyof T]>[]
+    settingDefs: readonly UserSettingDefinition<keyof T, T[keyof T]>[]
   ) {
     this.publisher = bus.getPublisher();
     this.subscriber = bus.getSubscriber<T>();
@@ -163,12 +179,8 @@ export class DefaultUserSettingManager<T extends Record<any, UserSettingType>> i
     return this.subscriber.on(name).whenChanged();
   }
 
-  /**
-   * Maps a user setting manager to abstracted settings keys.
-   * @param map The map of key abstractions to apply.
-   * @returns A new mapped user setting manager.
-   */
-  public mapTo<M extends Record<any, boolean | number | string>>(map: MappedUserSettingDefinition<M, T>): MappedUserSettingManager<T, M> {
+  /** @inheritdoc */
+  public mapTo<M extends Record<any, UserSettingType>>(map: UserSettingMap<M, T>): MappedUserSettingManager<M, T> {
     return new MappedUserSettingManager(this, map);
   }
 
@@ -208,48 +220,61 @@ export class DefaultUserSettingManager<T extends Record<any, UserSettingType>> i
  * event bus, and keeps setting values up to date when receiving change events across the bus, using a mapping from
  * abstracted settings keys to true underlying settings keys.
  */
-export class MappedUserSettingManager<T extends Record<any, boolean | number | string>, M extends Record<any, boolean | number | string>> implements UserSettingManager<T & M> {
+export class MappedUserSettingManager<T extends Record<any, UserSettingType>, O extends Record<any, UserSettingType>> implements UserSettingManager<T & O> {
 
   /**
    * Creates an instance of a MappedUserSettingManager.
    * @param parent The parent setting manager.
    * @param map The map of abstracted keys to true underlying keys.
    */
-  constructor(private readonly parent: UserSettingManager<T>, private readonly map: MappedUserSettingDefinition<M, T>) { }
+  constructor(private readonly parent: UserSettingManager<O>, private readonly map: UserSettingMap<T, O>) { }
 
   /** @inheritdoc */
-  getSetting<K extends keyof M | keyof T>(name: K): UserSetting<K, (T & M)[K]> {
-    const mappedName = (this.map[name] ?? name) as keyof T;
-    return this.parent.getSetting(mappedName) as UserSetting<K, (T & M)[K]>;
+  public getSetting<K extends keyof (T & O)>(name: K): UserSetting<K, (T & O)[K]> {
+    const mappedName = (this.map[name] ?? name) as keyof O;
+    return this.parent.getSetting(mappedName) as unknown as UserSetting<K, (T & O)[K]>;
   }
 
   /** @inheritdoc */
-  whenSettingChanged<K extends keyof M | keyof T>(name: K): Consumer<(T & M)[K]> {
-    const mappedName = (this.map[name] ?? name) as keyof T;
-    return this.parent.whenSettingChanged(mappedName) as unknown as Consumer<(T & M)[K]>;
+  public whenSettingChanged<K extends keyof (T & O)>(name: K): Consumer<(T & O)[K]> {
+    const mappedName = (this.map[name] ?? name) as keyof O;
+    return this.parent.whenSettingChanged(mappedName) as unknown as Consumer<(T & O)[K]>;
+  }
+
+  /** @inheritdoc */
+  public getAllSettings(): UserSetting<keyof (T & O), (T & O)[keyof (T & O)]>[] {
+    return this.parent.getAllSettings() as UserSetting<keyof (T & O), (T & O)[keyof (T & O)]>[];
+  }
+
+  /** @inheritdoc */
+  public mapTo<M extends Record<any, UserSettingType>>(map: UserSettingMap<M, T & O>): MappedUserSettingManager<M, T & O> {
+    return new MappedUserSettingManager(this, map);
   }
 }
 
 /**
  * An implementation of a user setting which can be synced across multiple instances.
  */
-class SyncableUserSetting<K, T extends boolean | number | string> implements UserSetting<K, T> {
-  /**
-   * A subject which provides this setting's current value.
-   */
-  private readonly valueSub: Subject<T>;
+class SyncableUserSetting<K, T extends boolean | number | string> extends AbstractSubscribable<T> implements UserSetting<K, T> {
+  public readonly isMutableSubscribable = true;
+
+  private _value: T;
 
   // eslint-disable-next-line jsdoc/require-returns
   /** This setting's current value. */
   public get value(): T {
-    return this.valueSub.get();
+    return this._value;
   }
   // eslint-disable-next-line jsdoc/require-jsdoc
   public set value(v: T) {
-    this.valueSub.set(v);
-  }
+    if (this._value === v) {
+      return;
+    }
 
-  private isSyncing = false;
+    this._value = v;
+    this.valueChangedCallback(v);
+    this.notify();
+  }
 
   /**
    * Constructor.
@@ -260,10 +285,9 @@ class SyncableUserSetting<K, T extends boolean | number | string> implements Use
     public readonly definition: UserSettingDefinition<K, T>,
     private readonly valueChangedCallback: (value: T) => void
   ) {
-    this.valueSub = Subject.create(definition.defaultValue);
-    this.valueSub.sub(v => {
-      !this.isSyncing && valueChangedCallback(v);
-    });
+    super();
+
+    this._value = definition.defaultValue;
   }
 
   /**
@@ -271,8 +295,24 @@ class SyncableUserSetting<K, T extends boolean | number | string> implements Use
    * @param value The value to which to sync.
    */
   public syncValue(value: T): void {
-    this.isSyncing = true;
-    this.valueSub.set(value);
-    this.isSyncing = false;
+    if (this._value === value) {
+      return;
+    }
+
+    this._value = value;
+    this.notify();
+  }
+
+  /** @inheritdoc */
+  public get(): T {
+    return this._value;
+  }
+
+  /**
+   * Sets the value of this setting.
+   * @param value The new value.
+   */
+  public set(value: T): void {
+    this.value = value;
   }
 }

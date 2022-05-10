@@ -11,3 +11,15 @@
     font-size: 0.75em;
     color: var(--title-gray);
   }
+
+.nav-data-field .time-sec {
+  display: none;
+}
+
+.nav-data-field-white {
+  color: white;
+}
+
+.nav-data-field-magenta {
+  color: magenta;
+}

@@ -1,6 +1,7 @@
 import { MapLocationTextLabelOptions } from 'msfssdk/components/map';
+import { AirportSize } from 'msfssdk/navigation';
+
 import { MapWaypointFlightPlanStyles } from '../../../../Shared/Map/MapWaypointStyles';
-import { AirportSize } from '../../../../Shared/Navigation/Waypoint';
 
 /**
  * A utility class for generating MFD procedure preview map waypoint styles.

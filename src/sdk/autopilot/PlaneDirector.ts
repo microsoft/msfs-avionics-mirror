@@ -1,3 +1,5 @@
+import { LegDefinition } from '../flightplan';
+
 /**
  * The state of a given plane director.
  */
@@ -59,6 +61,30 @@ export interface PlaneDirector {
   state: DirectorState;
 }
 
+/**
+ * A director that handles OBS Lateral Navigation.
+ */
+export interface ObsDirector extends PlaneDirector {
+  /** Whether or not OBS mode is active. */
+  readonly obsActive: boolean;
+
+  /**
+   * Sets the flight plan leg whose terminator defines this director's OBS fix.
+   * @param index The global leg index of the leg.
+   * @param leg The leg to track.
+   */
+  setLeg(index: number, leg: LegDefinition | null): void;
+
+  /** Whether or not OBS mode can be activated currently. */
+  canActivate(): boolean;
+
+  /** Starts tracking the OBS course. */
+  startTracking(): void;
+
+  /** Stops tracking the OBS course. */
+  stopTracking(): void;
+}
+
 /* eslint-disable @typescript-eslint/no-empty-function */
 
 /**
@@ -75,10 +101,10 @@ export class EmptyDirector implements PlaneDirector {
   public update(): void { }
 
   /** No-op. */
-  public onActivate = (): void => { }
+  public onActivate = (): void => { };
 
   /** No-op */
-  public onArm = (): void => { }
+  public onArm = (): void => { };
 
   /** No-op. */
   public arm(): void { }

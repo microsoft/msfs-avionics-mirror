@@ -1,12 +1,16 @@
+
 /**
  * The current vertical navigation state.
  */
-export enum VNavMode {
+export enum VNavState {
   /** VNAV Disabled. */
   Disabled,
 
-  /** VNAV Enabled. */
-  Enabled
+  /** VNAV Enabled and Inactive. */
+  Enabled_Inactive,
+
+  /** VNAV Enabled and Active. */
+  Enabled_Active
 }
 
 /**
@@ -27,9 +31,9 @@ export enum VNavPathMode {
 }
 
 /**
- * The current VNAV approach guidance mode.
+ * The current Approach Guidance Mode.
  */
-export enum VNavApproachGuidanceMode {
+export enum ApproachGuidanceMode {
   /** VNAV is not currently following approach guidance. */
   None,
 
@@ -61,7 +65,88 @@ export enum VNavAltCaptureType {
 }
 
 /**
- * A leg in the calculated VNAV plan.
+ * The current Vertical Flight Phase.
+ */
+export enum VerticalFlightPhase {
+  /** The current vertical phase is Climb. */
+  Climb,
+
+  /** The current vertical phase is Descent. */
+  Descent
+}
+
+/**
+ * A Vertical Flight Plan cooresponding to a lateral flight plan.
+ */
+export interface VerticalFlightPlan {
+
+  /** The Flight Plan Index */
+  planIndex: number;
+
+  /** The Flight Plan Segments in the VerticalFlightPlan (should always be the same as the lateral plan) */
+  segments: VNavPlanSegment[];
+
+  /** The VNav Constraints in this Vertical Flight Plan */
+  constraints: VNavConstraint[];
+
+  /** The global leg index of the destination leg, or undefined */
+  destLegIndex: number | undefined;
+
+  /** The global leg index of the FAF leg, or undefined */
+  fafLegIndex: number | undefined;
+
+  /** The global leg index of the first descent constraint, or undefined */
+  firstDescentConstraintLegIndex: number | undefined;
+
+  /** The global leg index of the last descent constraint, or undefined */
+  lastDescentConstraintLegIndex: number | undefined;
+
+  /** The global leg index of the first missed approach leg, or undefined */
+  missedApproachStartIndex: number | undefined;
+
+  /** The global leg index of the currently active vertical direct leg, or undefined */
+  verticalDirectIndex: number | undefined;
+
+  /** The current along leg distance for the active lateral leg in this flight plan */
+  currentAlongLegDistance: number | undefined;
+
+  /** Whether the cooresponding lateral flight plan has changed */
+  planChanged: boolean;
+}
+
+/**
+ * Details about the next TOD and BOD.
+ */
+export interface TodBodDetails {
+  /**
+   * The global index of the leg that contains the next BOD, or -1 if there is no BOD. The next BOD is defined as the
+   * next point in the flight path including or after the active leg where the VNAV profile transitions from a descent
+   * to a level-off, discontinuity, or the end of the flight path.
+   */
+  bodLegIndex: number;
+
+  /**
+   * The global index of the leg that contains the TOD associated with the next BOD, or -1 if there is no such TOD. The
+   * TOD is defined as the point along the flight path at which the aircraft will intercept the VNAV profile continuing
+   * to the next BOD if it continues to fly level at its current altitude.
+   */
+  todLegIndex: number;
+
+  /** The distance from the TOD to the end of its containing leg, in meters. */
+  todLegDistance: number;
+
+  /** The distance along the flight path from the airplane's present position to the TOD, in meters. */
+  distanceFromTod: number;
+
+  /** The distance along the flight path from the airplane's present position to the BOD, in meters. */
+  distanceFromBod: number;
+
+  /** The global index of the leg that contains the current VNAV constraint. */
+  currentConstraintLegIndex: number;
+}
+
+/**
+ * A leg in the calculated Vertical Flight Plan.
  */
 export interface VNavLeg {
   /** The index of the flight plan segment. */
@@ -79,8 +164,8 @@ export interface VNavLeg {
   /** The distance of the leg. */
   distance: number,
 
-  /** The distance from the end of the leg to the TOD, if any. */
-  todDistance?: number,
+  /** Whether the leg is eligible for VNAV. */
+  isEligible: boolean;
 
   /** If the leg is a bottom of descent. */
   isBod: boolean,
@@ -91,22 +176,31 @@ export interface VNavLeg {
   /** The altitude that the leg ends at. */
   altitude: number,
 
-  /** Whether or not the constraint is user defined. */
+  /** Whether or not the constraint at this leg is user defined. */
   isUserDefined: boolean,
+
+  /** Whether or not the leg is a direct to target. */
+  isDirectToTarget: boolean,
 
   /** The constrant altitude assigned to this leg that is invalid, if one exists. */
   invalidConstraintAltitude?: number
 }
 
 /**
- * A located VNAV constraint.
+ * A Vertical Flight Plan Constraint.
  */
 export interface VNavConstraint {
   /** The global leg index for the constraint. */
   index: number,
 
-  /** The altitude of the constraint. */
-  altitude: number,
+  /** The min altitude of the constraint. */
+  minAltitude: number,
+
+  /** The max altitude of the constraint. */
+  maxAltitude: number,
+
+  /** The target altitude of the constraint. */
+  targetAltitude: number,
 
   /**
    * Whether or not this constraint is a target that will be held at
@@ -127,9 +221,6 @@ export interface VNavConstraint {
   /** The total distance of the legs that make up this constriant segment. */
   distance: number,
 
-  /** The total distance from the end along the legs in the constraint that the TOD lies. */
-  todDistance: number,
-
   /** The flight path angle to take through the legs in this constraint. */
   fpa: number,
 
@@ -137,14 +228,14 @@ export interface VNavConstraint {
   legs: VNavLeg[],
 
   /** The type of constraint segment. */
-  type: 'normal' | 'dest' | 'cruise' | 'dep' | 'direct' | 'missed' | 'manual',
+  type: 'normal' | 'dest' | 'cruise' | 'dep' | 'direct' | 'missed' | 'manual' | 'climb' | 'descent',
 
   /** Whether or not this constraint is beyond the FAF. */
   isBeyondFaf: boolean
 }
 
 /**
- * A segment in the VNAV flight plan.
+ * A segment in the Vertical Flight Plan.
  */
 export interface VNavPlanSegment {
   /** The index offset that the segment begins at. */
@@ -155,60 +246,9 @@ export interface VNavPlanSegment {
 }
 
 /**
- * Events published by the VNAV system on the bus.
+ * The current state of VNAV availability from the director.
  */
-export interface VNavSimVarEvents {
-  /** The vertical deviation. */
-  vnavVDev: number,
-
-  /** The VNAV target altitude. */
-  vnavTargetAlt: number,
-
-  /** The VNAV path mode. */
-  vnavPathMode: VNavPathMode,
-
-  /** The VNAV mode. */
-  vnavMode: VNavMode,
-
-  /** The VNAV approach guidance mode. */
-  vnavApproachMode: VNavApproachGuidanceMode,
-
-  /** The VNAV distance to the next TOD. */
-  vnavTodDistance: number,
-
-  /** The VNAV current alt capture type. */
-  vnavAltCaptureType: VNavAltCaptureType,
-
-  /** The VNAV next TOD leg index. */
-  vnavTodLegIndex: number,
-
-  /** The VNAV next BOD leg index. */
-  vnavBodLegIndex: number,
-
-  /** The VNAV current constraint leg index. */
-  vnavConstraintLegIndex: number,
-
-  /** The VNAV current constraint altitude in feet (used in PFD Altimeter). */
-  vnavConstraintAltitude: number,
-
-  /** The VNAV next constraint altitude in feet (used in MFD FPL Page). */
-  vnavNextConstraintAltitude: number,
-
-  /** The VNAV distance to the next BOD. */
-  vnavBodDistance: number,
-
-  /** The VNAV next TOD distance from the end of the leg. */
-  vnavTodLegDistance: number,
-
-  /** The VNAV current required FPA. */
-  vnavFpa: number,
-
-  /** The current LPV vertical deviation. */
-  vnavLpvVDev: number,
-
-  /** The current remaining LPV distance. */
-  vnavLpvDistance: number,
-
-  /** The required VS to the current constraint. */
-  vnavRequiredVs: number
+export enum VNavAvailability {
+  Available = 'Available',
+  InvalidLegs = 'InvalidLegs'
 }

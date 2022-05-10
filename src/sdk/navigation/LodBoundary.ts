@@ -1,4 +1,5 @@
-import { BinaryHeap, GeoCircle, GeoPoint, GeoPointInterface, UnitType, Vec3Math } from '..';
+import { GeoCircle, GeoPoint, GeoPointInterface, UnitType } from '..';
+import { BinaryHeap } from '../utils/datastructures';
 import { BoundaryFacility, BoundaryVector, BoundaryVectorType } from './Facilities';
 
 /**
@@ -48,7 +49,7 @@ export class LodBoundary {
   private readonly lodVectorCountTargets: readonly number[];
 
   /** This boundary's LOD levels. Each LOD level contains one or more boundary shapes. */
-  public readonly lods: readonly (readonly Readonly<LodBoundaryShape>[])[]
+  public readonly lods: readonly (readonly Readonly<LodBoundaryShape>[])[];
 
   /**
    * Constructor.
@@ -163,10 +164,7 @@ export class LodBoundary {
           {
             const origin = origins[vector.originId];
             const end = new GeoPoint(vector.lat, vector.lon);
-            const radius = Math.PI - end.distance(origin);
-            const circle = GeoCircle.createFromPoint(origin, radius);
-            // Kind of hacky way to set what should be a readonly property without resorting to a temp Float64Array
-            Vec3Math.multScalar(circle.center, -1, circle.center);
+            const circle = GeoCircle.createFromPoint(origin, end.distance(origin)).reverse();
             shape.push({ circle, end });
             break;
           }

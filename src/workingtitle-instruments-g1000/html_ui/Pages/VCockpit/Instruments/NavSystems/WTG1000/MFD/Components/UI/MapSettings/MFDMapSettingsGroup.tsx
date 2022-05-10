@@ -2,6 +2,7 @@ import { FSComponent, NodeReference, NumberUnitInterface, Subscribable, UnitFami
 import { UserSettingManager } from 'msfssdk/settings';
 import { MapUserSettingTypes } from '../../../../Shared/Map/MapUserSettings';
 import { UiControlGroup, UiControlGroupProps } from '../../../../Shared/UI/UiControlGroup';
+import { ViewService } from '../../../../Shared/UI/ViewService';
 
 import './MFDMapSettingsGroup.css';
 
@@ -9,6 +10,9 @@ import './MFDMapSettingsGroup.css';
  * Component props for MFDMapSettingsGroup.
  */
 export interface MFDMapSettingsGroupProps extends UiControlGroupProps {
+  /** The View Service. */
+  viewService: ViewService;
+
   /** A map settings manager. */
   settingManager: UserSettingManager<MapUserSettingTypes>;
 

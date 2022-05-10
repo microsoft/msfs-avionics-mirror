@@ -12,11 +12,14 @@ export enum FlightPathVectorFlags {
   None,
   TurnToCourse = 1 << 0,
   Arc = 1 << 1,
-  HoldEntry = 1 << 2,
-  HoldLeg = 1 << 3,
-  CourseReversal = 1 << 4,
-  LegToLegTurn = 1 << 5,
-  AnticipatedTurn = 1 << 6,
+  HoldInboundLeg = 1 << 2,
+  HoldOutboundLeg = 1 << 3,
+  HoldDirectEntry = 1 << 4,
+  HoldTeardropEntry = 1 << 5,
+  HoldParallelEntry = 1 << 6,
+  CourseReversal = 1 << 7,
+  LegToLegTurn = 1 << 8,
+  AnticipatedTurn = 1 << 9,
 }
 
 /**
@@ -230,8 +233,19 @@ export interface VerticalData {
   /** The second altitude field for restrictions. */
   altitude2: number;
 
+  /** The optional speed restriction for this leg. */
+  speed?: number;
+
+  /** The speed type/unit. */
+  speedDesc?: SpeedType;
+
   /** The FPA for this constraint, optional. */
   fpa?: number;
+}
+
+export enum SpeedType {
+  IAS,
+  MACH,
 }
 
 /**
@@ -240,17 +254,17 @@ export interface VerticalData {
 export interface LegDefinition {
 
   /** The display name of the leg. */
-  name?: string;
+  readonly name?: string;
 
   /** The calculated leg data. */
   calculated?: LegCalculations;
 
   /** The leg of the flight plan. */
-  leg: FlightPlanLeg;
+  leg: Readonly<FlightPlanLeg>;
 
   /** Leg definition flags. */
-  flags: number;
+  readonly flags: number;
 
-  /** Vertical Leg Data. */
-  verticalData: VerticalData;
+  /** Vertical Leg Data. All the fields should be readonly except for calculated fields like `fpa`. */
+  readonly verticalData: Readonly<VerticalData> & Pick<VerticalData, 'fpa'>;
 }

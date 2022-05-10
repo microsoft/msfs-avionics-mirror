@@ -1,10 +1,10 @@
 import { MagVar, NavMath, UnitType } from 'msfssdk';
-import { ICAO, LegTurnDirection, LegType } from 'msfssdk/navigation';
 import { FlightPathUtils, FlightPlan } from 'msfssdk/flightplan';
+import { FacilityWaypointCache, ICAO, LegTurnDirection, LegType } from 'msfssdk/navigation';
 
-import { Fms } from '../../FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
+
 import { HoldStore } from './HoldStore';
-import { FacilityWaypointCache } from '../../Navigation/FacilityWaypointCache';
 
 /**
  * A controller for the Hold dialog.
@@ -114,32 +114,5 @@ export class HoldController {
       this.fms.insertHold(indexes.planIndex, indexes.segmentIndex, indexes.legIndex, leg);
       this.reset();
     } else { this.reset(); }
-  }
-
-  /**
-   * Gets a hold direction UI string for a given inbound course.
-   * @param course The inbound course to get the string for.
-   * @returns A UI human readable course string.
-   */
-  public getDirectionString(course: number): string {
-    if (course >= 0 && course < 22.5) {
-      return 'South';
-    } else if (course >= 22.5 && course < 67.5) {
-      return 'Southwest';
-    } else if (course >= 67.5 && course < 112.5) {
-      return 'West';
-    } else if (course >= 112.5 && course < 157.5) {
-      return 'Northwest';
-    } else if (course >= 157.5 && course < 202.5) {
-      return 'North';
-    } else if (course >= 202.5 && course < 247.5) {
-      return 'Northeast';
-    } else if (course >= 247.5 && course < 292.5) {
-      return 'East';
-    } else if (course >= 292.5 && course < 337.5) {
-      return 'Southeast';
-    } else {
-      return 'South';
-    }
   }
 }

@@ -1,5 +1,6 @@
-import { FSComponent, NumberFormatter, Subject, UnitType, VNode } from 'msfssdk';
+import { FSComponent, Subject, UnitType, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 import { GroupBox } from '../GroupBox';
 import { MFDUiPage, MFDUiPageProps } from '../MFDUiPage';
 import { MFDSystemSetupGenericRow } from './MFDSystemSetupRow';
@@ -10,9 +11,10 @@ import { MFDSystemSetupDataBarGroup } from './MFDSystemSetupDataBarGroup';
 import { MFDSystemSetupUnitsGroup } from './MFDSystemSetupUnitsGroup';
 import { MFDSystemSetupDateTimeGroup } from './MFDSystemSetupDateTimeGroup';
 import { MFDSystemSetupAirspaceAlertsGroup } from './MFDSystemSetupAirspaceAlertsGroup';
+import { MFDSystemSetupComSpacingGroup } from './MFDSystemSetupComSpacingGroup';
+import { MFDSystemSetupNearestAirportGroup } from './MFDSystemSetupNearestAirportGroup';
 
 import './MFDSystemSetupPage.css';
-import { MFDSystemSetupComSpacingGroup } from './MFDSystemSetupComSpacingGroup';
 
 /**
  * Component props for MFDSystemSetupPage.
@@ -64,11 +66,13 @@ export class MFDSystemSetupPage extends MFDUiPage<MFDSystemSetupPageProps> {
         <div class='mfd-system-system-setup-subpage mfd-system-setup-subpage-1'>
           <div class='mfd-system-setup-column'>
             <MFDSystemSetupDateTimeGroup
+              viewService={this.props.viewService}
               bus={this.props.bus}
               registerFunc={this.register}
               pageContainerRef={this.viewContainerRef}
             />
             <MFDSystemSetupUnitsGroup
+              viewService={this.props.viewService}
               bus={this.props.bus}
               registerFunc={this.register}
               pageContainerRef={this.viewContainerRef}
@@ -104,6 +108,7 @@ export class MFDSystemSetupPage extends MFDUiPage<MFDSystemSetupPageProps> {
           </div>
           <div class='mfd-system-setup-column'>
             <MFDSystemSetupAirspaceAlertsGroup
+              viewService={this.props.viewService}
               bus={this.props.bus}
               registerFunc={this.register}
               pageContainerRef={this.viewContainerRef}
@@ -135,6 +140,7 @@ export class MFDSystemSetupPage extends MFDUiPage<MFDSystemSetupPageProps> {
           </div>
           <div class='mfd-system-setup-column'>
             <MFDSystemSetupDataBarGroup
+              viewService={this.props.viewService}
               bus={this.props.bus}
               registerFunc={this.register}
               pageContainerRef={this.viewContainerRef}
@@ -156,26 +162,17 @@ export class MFDSystemSetupPage extends MFDUiPage<MFDSystemSetupPageProps> {
               />
             </GroupBox>
             <MFDSystemSetupComSpacingGroup
+              viewService={this.props.viewService}
               bus={this.props.bus}
               registerFunc={this.register}
               pageContainerRef={this.viewContainerRef}
             />
-            <GroupBox title='Nearest Airport' class='mfd-system-setup-group'>
-              <MFDSystemSetupGenericRow
-                title='Runway Surface'
-                right={<div>Hard Only</div>}
-              />
-              <MFDSystemSetupGenericRow
-                title='Minimum Length'
-                right={
-                  <NumberUnitDisplay
-                    value={Subject.create(UnitType.FOOT.createNumber(3000))}
-                    displayUnit={Subject.create(null)}
-                    formatter={NumberFormatter.create({ precision: 1 })}
-                  />
-                }
-              />
-            </GroupBox>
+            <MFDSystemSetupNearestAirportGroup
+              viewService={this.props.viewService}
+              bus={this.props.bus}
+              registerFunc={this.register}
+              pageContainerRef={this.viewContainerRef}
+            />
           </div>
         </div>
       </div>

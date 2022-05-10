@@ -2,7 +2,7 @@
 /// <reference types="msfstypes/JS/Types" />
 /// <reference types="msfstypes/JS/NetBingMap" />
 
-import { FSComponent, DisplayComponent, VNode, ComponentProps, Subscribable, SubscribableArray } from '../..';
+import { FSComponent, DisplayComponent, VNode, ComponentProps, Subscribable, SubscribableArray, ReadonlyFloat64Array } from '../..';
 import { BingComponent } from '../bing/BingComponent';
 
 /**
@@ -15,7 +15,7 @@ export interface SynVisProps extends ComponentProps {
   /**
    * A subscribable which provides the internal resolution for the Bing component.
    */
-  resolution: Subscribable<Float64Array>;
+  resolution: Subscribable<ReadonlyFloat64Array>;
 
   /**
    * A subscribable array which provides the earth colors. The array should have a length of exactly 61, with index 0
@@ -40,7 +40,7 @@ export class SynVisComponent extends DisplayComponent<SynVisProps> {
    */
   protected onBingBound = (): void => {
     // noop
-  }
+  };
 
   /**
    * Renders the syn vis component.
@@ -49,7 +49,10 @@ export class SynVisComponent extends DisplayComponent<SynVisProps> {
   public render(): VNode {
     return (
       <BingComponent
-        ref={this.bingRef} id={this.props.bingId} mode={EBingMode.HORIZON} onBoundCallback={this.onBingBound}
+        ref={this.bingRef}
+        id={this.props.bingId}
+        mode={EBingMode.HORIZON}
+        onBoundCallback={this.onBingBound}
         resolution={this.props.resolution}
         earthColors={this.props.earthColors} skyColor={this.props.skyColor}
       />

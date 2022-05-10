@@ -97,10 +97,12 @@ export class MFDSystemSetupSelectRow<T extends Record<any, UserSettingType>, K e
   protected renderRight(): VNode | null {
     return (
       <UserSettingSelectControl<T, K>
+        viewService={this.props.selectControlProps.viewService}
         registerFunc={this.props.selectControlProps.registerFunc} outerContainer={this.props.selectControlProps.outerContainer}
         settingManager={this.props.selectControlProps.settingManager}
         settingName={this.props.selectControlProps.settingName}
         values={this.props.selectControlProps.values}
+        valueText={this.props.selectControlProps.valueText}
         buildMenuItem={this.props.selectControlProps.buildMenuItem}
         class='mfd-system-setup-row-right'
       />

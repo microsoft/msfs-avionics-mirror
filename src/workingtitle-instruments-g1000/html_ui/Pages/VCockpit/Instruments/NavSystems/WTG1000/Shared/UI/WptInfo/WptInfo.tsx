@@ -1,13 +1,13 @@
-import { FSComponent, GeoPoint, GeoPointSubject, NumberFormatter, Subject, VNode } from 'msfssdk';
+import { FSComponent, GeoPoint, GeoPointSubject, Subject, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
-import { Facility, FacilitySearchType } from 'msfssdk/navigation';
+import { Facility, FacilitySearchType, FacilityWaypoint, Waypoint } from 'msfssdk/navigation';
 import { ADCEvents, GNSSEvents } from 'msfssdk/instruments';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 
 import { UiView, UiViewProps } from '../UiView';
 import { WptInfoStore } from './WptInfoStore';
 import { WptInfoController } from './WptInfoController';
 import { FmsHEvent } from '../FmsHEvent';
-import { FacilityWaypoint, Waypoint } from '../../Navigation/Waypoint';
 import { WaypointInput } from '../UIControls/WaypointInput';
 import { NumberUnitDisplay } from '../Common/NumberUnitDisplay';
 import { UnitsUserSettings } from '../../Units/UnitsUserSettings';
@@ -24,7 +24,7 @@ export interface WptInfoProps extends UiViewProps {
 /**
  * The PFD waypoint info popout.
  */
-export abstract class WptInfo<T extends WptInfoProps> extends UiView<T, Facility> {
+export abstract class WptInfo<T extends WptInfoProps = WptInfoProps> extends UiView<T, Facility> {
   protected readonly inputSelectedIcao = Subject.create('');
 
   protected readonly selectedWaypointSub = Subject.create<Waypoint | null>(null);
@@ -124,13 +124,14 @@ export abstract class WptInfo<T extends WptInfoProps> extends UiView<T, Facility
     return (
       <WaypointInput
         bus={this.props.bus}
+        viewService={this.props.viewService}
         onRegister={this.register}
         selectedIcao={this.inputSelectedIcao}
         onMatchedWaypointsChanged={this.controller.matchedWaypointsChangedHandler}
         onWaypointChanged={this.controller.selectedWaypointChangedHandler}
         onInputEnterPressed={this.onEnterPressed.bind(this)}
         planeHeading={this.planeHeadingSub}
-        filter={FacilitySearchType.None}
+        filter={FacilitySearchType.All}
       />
     );
   }

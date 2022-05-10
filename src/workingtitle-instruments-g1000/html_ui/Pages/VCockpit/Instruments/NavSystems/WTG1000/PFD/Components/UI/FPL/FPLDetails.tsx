@@ -3,9 +3,10 @@
 import { FSComponent, Subject, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { FlightPlanSegment, FlightPlanSegmentType } from 'msfssdk/flightplan';
+import { BlurReconciliation, FocusPosition, HardwareUiControl } from 'msfssdk/components/controls';
 
 import { ViewService } from '../../../../Shared/UI/ViewService';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { Fms, FmsUtils } from 'garminsdk/flightplan';
 import { FplActiveLegArrow } from '../../../../Shared/UI/UIControls/FplActiveLegArrow';
 import { ScrollBar } from '../../../../Shared/UI/ScrollBar';
 import { FixInfo } from './FixInfo';
@@ -21,12 +22,10 @@ import { FPLOrigin } from './FPLSectionOrigin';
 import { FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { PFDPageMenuDialog } from '../PFDPageMenuDialog';
 import { ApproachNameDisplay } from '../../../../Shared/UI/FPL/ApproachNameDisplay';
-import { FmsUtils } from '../../../../Shared/FlightPlan/FmsUtils';
-import { FocusPosition, UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
-import { ControlList } from '../../../../Shared/UI/ControlList';
+import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../Shared/UI/G1000UiControl';
 
 /** The properties of the FPL scrollable element.*/
-export interface FPLDetailProps extends UiControl2Props {
+export interface FPLDetailProps extends G1000UiControlProps {
   /** The event bus for flight plan events. */
   bus: EventBus;
 
@@ -40,7 +39,7 @@ export interface FPLDetailProps extends UiControl2Props {
 /**
  * FPLDetails holds the core logic of the flight plan display and interacts with button events.
  */
-export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiControl2<P> {
+export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends G1000UiControl<P> {
   protected readonly store: FPLDetailsStore;
   protected readonly controller: FPLDetailsController;
   protected isExtendedView = false;
@@ -51,7 +50,7 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
   /** The departure through arrival phases, all of the FPLSections. */
   protected fplDetailsContainer = FSComponent.createRef<HTMLElement>();
 
-  protected sectionListRef = FSComponent.createRef<ControlList<FlightPlanSegment>>();
+  protected sectionListRef = FSComponent.createRef<G1000ControlList<FlightPlanSegment>>();
 
   /**
    * Constructor
@@ -60,7 +59,7 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
   constructor(props: P) {
     super(props);
     this.store = new FPLDetailsStore(props.bus);
-    this.controller = new FPLDetailsController(this.store, props.fms, props.bus, this.resetAutoScroll.bind(this));
+    this.controller = new FPLDetailsController(this.store, props.fms, props.bus, this.scrollToActiveLeg.bind(this, false));
   }
 
   /** @inheritdoc */
@@ -71,20 +70,16 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
 
   /** Called when the fpl view is resumed. */
   public fplViewResumed(): void {
-    this.resetAutoScroll();
+    this.scrollToActiveLeg(false);
     this.controller.initDtoLeg();
   }
 
   /**
-   * Called when the FPL view is openend.
+   * Called when the FPL view is opened.
    * @param focusActiveLeg Whether or not to focus the active leg.
    */
   public fplViewOpened(focusActiveLeg: boolean): void {
-    this.resetAutoScroll();
-
-    if (focusActiveLeg) {
-      this.focus(FocusPosition.MostRecent);
-    }
+    this.scrollToActiveLeg(focusActiveLeg);
   }
 
   /** @inheritdoc */
@@ -97,29 +92,23 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
     this.controller.scrollMode = ScrollMode.AUTO;
   }
 
-  /** Scrolls to the active leg in the flight plan. */
-  public resetAutoScroll(): void {
+  /**
+   * Scrolls to the active leg in the flight plan.
+   * @param focusActiveLeg Whether to focus the active leg.
+   */
+  public scrollToActiveLeg(focusActiveLeg: boolean): void {
     const activeLegSectionIndex = this.controller.sectionRefs.findIndex(s => s.instance.getActiveLegIndex() > -1);
+    const section = this.controller.sectionRefs[activeLegSectionIndex];
 
-    if (activeLegSectionIndex > -1 && !this.isFocused) {
-      for (let i = 0; i < this.controller.sectionRefs.length; i++) {
-        const section = this.controller.sectionRefs[i];
-        if (i < activeLegSectionIndex) {
-          section.instance.resetAutoScrollIndexes('before');
-        } else {
-          section.instance.resetAutoScrollIndexes('after');
-        }
-
-        if (section.instance.getActiveLegIndex() > -1) {
-          section.instance.ensureActiveLegInView();
-          this.sectionListRef.instance.setFocusedIndex(i);
-        }
-      }
+    if (section) {
+      section.instance.ensureActiveLegInView();
+      focusActiveLeg && section.instance.focusActiveLeg();
+      //this.sectionListRef.instance.setFocusedIndex(activeLegSectionIndex);
     }
   }
 
   /** @inheritdoc */
-  protected onMenu(): boolean {
+  public onMenu(): boolean {
     return this.openDetailsMenu();
   }
 
@@ -256,10 +245,21 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
       console.error('getListElementTopLocation: Section Ref could not be found');
       return -1;
     }
+  };
+
+  /**
+   * Responds to flight plan section registered events.
+   * @param section The section that was registered.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected onSectionRegistered(section: FPLSection): void {
+    if (this.isFocused && this.sectionListRef.instance.length === 1) {
+      this.sectionListRef.instance.focus(FocusPosition.First);
+    }
   }
 
   /**
-   * Responds to a flight plan element selections.
+   * Responds to flight plan element selections.
    * @param selection The selection that was made.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -276,6 +276,10 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
     // noop
   }
 
+  protected readonly sectionRegisteredHandler = this.onSectionRegistered.bind(this) as (source: HardwareUiControl) => void;
+  protected readonly flightPlanElementSelectedHandler = this.onFlightPlanElementSelected.bind(this);
+  protected readonly flightPlanFocusSelectedHandler = this.onFlightPlanFocusSelected.bind(this);
+
   /**
    * Renders a section in the flight plan.
    * @param data The data object for this section.
@@ -291,9 +295,12 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
         section = (
           <FPLDeparture
             ref={ref} viewService={this.props.viewService} fms={this.props.fms} detailsController={this.controller}
-            facilities={this.store.facilityInfo} segmentIndex={data.segmentIndex} isExtendedView={this.isExtendedView}
-            onFlightPlanElementSelected={this.onFlightPlanElementSelected.bind(this)} scrollContainer={this.fplnContainer}
-            onFlightPlanFocusSelected={this.onFlightPlanFocusSelected.bind(this)}
+            facilities={this.store.facilityInfo} segment={data} isExtendedView={this.isExtendedView} scrollContainer={this.fplnContainer}
+            onRegistered={this.sectionRegisteredHandler}
+            onFlightPlanElementSelected={this.flightPlanElementSelectedHandler}
+            onFlightPlanFocusSelected={this.flightPlanFocusSelectedHandler}
+            reconcileChildBlur={(): BlurReconciliation => BlurReconciliation.Next}
+            requireChildFocus
           />
         );
         break;
@@ -301,9 +308,12 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
         section = (
           <FPLArrival
             ref={ref} viewService={this.props.viewService} fms={this.props.fms} detailsController={this.controller}
-            facilities={this.store.facilityInfo} segmentIndex={data.segmentIndex} isExtendedView={this.isExtendedView}
-            onFlightPlanElementSelected={this.onFlightPlanElementSelected.bind(this)} scrollContainer={this.fplnContainer}
-            onFlightPlanFocusSelected={this.onFlightPlanFocusSelected.bind(this)}
+            facilities={this.store.facilityInfo} segment={data} isExtendedView={this.isExtendedView} scrollContainer={this.fplnContainer}
+            onRegistered={this.sectionRegisteredHandler}
+            onFlightPlanElementSelected={this.flightPlanElementSelectedHandler}
+            onFlightPlanFocusSelected={this.flightPlanFocusSelectedHandler}
+            reconcileChildBlur={(): BlurReconciliation => BlurReconciliation.Next}
+            requireChildFocus
           />
         );
         break;
@@ -311,9 +321,12 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
         section = (
           <FPLApproach
             ref={ref} viewService={this.props.viewService} fms={this.props.fms} detailsController={this.controller}
-            facilities={this.store.facilityInfo} segmentIndex={data.segmentIndex} isExtendedView={this.isExtendedView}
-            onFlightPlanElementSelected={this.onFlightPlanElementSelected.bind(this)} scrollContainer={this.fplnContainer}
-            onFlightPlanFocusSelected={this.onFlightPlanFocusSelected.bind(this)}
+            facilities={this.store.facilityInfo} segment={data} isExtendedView={this.isExtendedView} scrollContainer={this.fplnContainer}
+            onRegistered={this.sectionRegisteredHandler}
+            onFlightPlanElementSelected={this.flightPlanElementSelectedHandler}
+            onFlightPlanFocusSelected={this.flightPlanFocusSelectedHandler}
+            reconcileChildBlur={(): BlurReconciliation => BlurReconciliation.Next}
+            requireChildFocus
           />
         );
         break;
@@ -321,9 +334,12 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
         section = (
           <FPLDestination
             ref={ref} viewService={this.props.viewService} fms={this.props.fms} detailsController={this.controller}
-            facilities={this.store.facilityInfo} segmentIndex={data.segmentIndex} isExtendedView={this.isExtendedView}
-            onFlightPlanElementSelected={this.onFlightPlanElementSelected.bind(this)} scrollContainer={this.fplnContainer}
-            onFlightPlanFocusSelected={this.onFlightPlanFocusSelected.bind(this)}
+            facilities={this.store.facilityInfo} segment={data} isExtendedView={this.isExtendedView} scrollContainer={this.fplnContainer}
+            onRegistered={this.sectionRegisteredHandler}
+            onFlightPlanElementSelected={this.flightPlanElementSelectedHandler}
+            onFlightPlanFocusSelected={this.flightPlanFocusSelectedHandler}
+            reconcileChildBlur={(): BlurReconciliation => BlurReconciliation.Next}
+            requireChildFocus
           />
         );
         break;
@@ -331,9 +347,12 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
         section = (
           <FPLEnroute
             ref={ref} viewService={this.props.viewService} fms={this.props.fms} detailsController={this.controller}
-            facilities={this.store.facilityInfo} segmentIndex={data.segmentIndex} isExtendedView={this.isExtendedView}
-            onFlightPlanElementSelected={this.onFlightPlanElementSelected.bind(this)} scrollContainer={this.fplnContainer}
-            onFlightPlanFocusSelected={this.onFlightPlanFocusSelected.bind(this)}
+            facilities={this.store.facilityInfo} segment={data} isExtendedView={this.isExtendedView} scrollContainer={this.fplnContainer}
+            onRegistered={this.sectionRegisteredHandler}
+            onFlightPlanElementSelected={this.flightPlanElementSelectedHandler}
+            onFlightPlanFocusSelected={this.flightPlanFocusSelectedHandler}
+            reconcileChildBlur={(): BlurReconciliation => BlurReconciliation.Next}
+            requireChildFocus
           />
         );
     }
@@ -349,21 +368,19 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends UiCon
   public render(): VNode {
     return (
       <div id='fpl-details-container' ref={this.fplDetailsContainer}>
-        <FPLOrigin
-          ref={this.controller.originRef}
-          viewService={this.props.viewService} fms={this.props.fms}
-          facilities={this.store.facilityInfo} segmentIndex={-1}
-        />
+        <FPLOrigin ref={this.controller.originRef} />
         <hr />
         <div>
           <span id="dtk" class="smallText white">DTK</span>
           <span id="dis" class="smallText white">DIS</span>
         </div>
         <div class='fpln-container' ref={this.fplnContainer}>
-          <ControlList
+          <G1000ControlList
             ref={this.sectionListRef} data={this.store.segments}
             renderItem={this.renderItem.bind(this)}
             hideScrollbar scrollContainer={this.fplnContainer}
+            reconcileChildBlur={(): BlurReconciliation => BlurReconciliation.Next}
+            requireChildFocus
           />
           <FplActiveLegArrow ref={this.controller.legArrowRef} getLegDomLocation={this.getListElementTopLocation} />
         </div>

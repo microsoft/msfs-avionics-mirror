@@ -14,7 +14,7 @@ export class MapActiveFlightPlanDataProvider implements MapFlightPlanLayerDataPr
   public readonly planCalculated = this.provider.planCalculated;
   public readonly activeLateralLegIndex = this.provider.activeLateralLegIndex;
   public readonly lnavData = this.provider.lnavData;
-  public readonly vnavMode = this.provider.vnavMode;
+  public readonly vnavState = this.provider.vnavState;
   public readonly vnavPathMode = this.provider.vnavPathMode;
   public readonly vnavTodLegIndex = this.provider.vnavTodLegIndex;
   public readonly vnavBodLegIndex = this.provider.vnavBodLegIndex;

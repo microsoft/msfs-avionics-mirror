@@ -1,5 +1,7 @@
-import { ArrayTaskQueue, GeoProjection, PathStream, ThrottledTaskQueueHandler, ThrottledTaskQueueProcess } from '../..';
+import { GeoProjection } from '../..';
 import { LodBoundary } from '../../navigation';
+import { PathStream } from '../../graphics/path';
+import { ArrayTaskQueue, ThrottledTaskQueueHandler, ThrottledTaskQueueProcess } from '../../utils/task';
 import { MapAirspaceRenderer } from './MapAirspaceRenderer';
 
 /**

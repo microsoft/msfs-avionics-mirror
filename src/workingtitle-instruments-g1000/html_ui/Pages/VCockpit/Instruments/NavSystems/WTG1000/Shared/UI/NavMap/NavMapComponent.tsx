@@ -1,52 +1,33 @@
 /// <reference types="msfstypes/JS/Avionics" />
 
-import {
-  BitFlags, FSComponent, GeoPoint, GeoPointInterface, NumberUnitInterface, Subject, Subscribable, UnitFamily, UnitType,
-  Vec2Math, Vec2Subject, VecNSubject, VNode
-} from 'msfssdk';
+import { FSComponent, NumberUnitInterface, ReadonlyFloat64Array, Subject, Subscribable, UnitFamily, UnitType, Vec2Subject, VNode } from 'msfssdk';
+import { MapAirspaceLayer, MapCullableTextLabelManager, MapCullableTextLayer, MapModel, MapOwnAirplaneLayer, MapProjection } from 'msfssdk/components/map';
 import { FlightPlanner } from 'msfssdk/flightplan';
-import {
-  MapProjection, MapComponent, MapModel, MapComponentProps, MapOwnAirplaneLayer, MapProjectionChangeType,
-  MapCullableTextLayer, MapCullableTextLabelManager, MapAirspaceLayer
-} from 'msfssdk/components/map';
+import { DefaultLodBoundaryCache } from 'msfssdk/navigation';
 import { UserSettingManager } from 'msfssdk/settings';
 
-import { LodBoundaryCache } from '../../Navigation/LodBoundaryCache';
-import { NavMapModelModules } from './NavMapModel';
-import { MapAirspaceRenderManager } from '../../Map/MapAirspaceRenderManager';
-import { MapWaypointRenderer } from '../../Map/MapWaypointRenderer';
-import { MapBingLayer } from '../../Map/Layers/MapBingLayer';
-import { MapWaypointsLayer } from '../../Map/Layers/MapWaypointsLayer';
-import { MapFlightPlanLayer } from '../../Map/Layers/MapFlightPlanLayer';
-import { MapActiveFlightPlanDataProvider } from '../../Map/MapActiveFlightPlanDataProvider';
-import { MapDetailIndicator } from '../../Map/Indicators/MapDetailIndicator';
-import { MapTrafficIntruderOffScaleIndicator, MapTrafficIntruderOffScaleIndicatorMode } from '../../Map/Indicators/MapTrafficOffScaleIndicator';
-import { MapTrafficIntruderLayer } from '../../Map/Layers/MapTrafficIntruderLayer';
-import { MapPointerLayer } from '../../Map/Layers/MapPointerLayer';
-import { MapCrosshairLayer } from '../../Map/Layers/MapCrosshairLayer';
-import { MapTrackVectorLayer } from '../../Map/Layers/MapTrackVectorLayer';
-import { MapAltitudeArcLayer } from '../../Map/Layers/MapAltitudeArcLayer';
+import {
+  MapActiveFlightPlanDataProvider, MapAirspaceRenderManager, MapOrientationSettingMode, MapRangeDisplay, MapRangeSettings, MapRangeSettingTypes,
+  MapUserSettingTypes, MapWaypointFlightPlanStyles, MapWaypointNormalStyles, MapWaypointRenderer, MapWaypointStyles, PointerMapComponent,
+  PointerMapComponentProps, PointerMapRangeTargetRotationController
+} from '../../Map';
+import {
+  MapAirspaceVisController, MapAltitudeArcController, MapCrosshairController, MapDeclutterController, MapNexradController, MapTerrainController,
+  MapTrackVectorController, MapWaypointsVisController
+} from '../../Map/Controllers';
+import {
+  MapDetailIndicator, MapNoGpsPositionMessage, MapOrientationIndicator, MapTrafficIntruderOffScaleIndicator, MapTrafficIntruderOffScaleIndicatorMode,
+  MapTrafficStatusIndicator
+} from '../../Map/Indicators';
+import {
+  MapAltitudeArcLayer, MapBingLayer, MapCrosshairLayer, MapFlightPlanLayer, MapHighlightLineLayer, MapPointerLayer, MapTrackVectorLayer,
+  MapTrafficIntruderLayer, MapWaypointHighlightLayer, MapWaypointsLayer
+} from '../../Map/Layers';
 import { MapOrientation } from '../../Map/Modules/MapOrientationModule';
-import { MapWaypointFlightPlanStyles, MapWaypointNormalStyles, MapWaypointStyles } from '../../Map/MapWaypointStyles';
-import { MapRangeDisplay } from '../../Map/MapRangeDisplay';
-import { MapTrafficStatusIndicator } from '../../Map/Indicators/MapTrafficStatusIndicator';
-import { MapOrientationSettingMode, MapUserSettingTypes } from '../../Map/MapUserSettings';
-import { MapRangeSettings, MapRangeSettingTypes } from '../../Map/MapRangeSettings';
-import { MapDeclutterController } from '../../Map/Controllers/MapDeclutterController';
-import { MapTerrainController } from '../../Map/Controllers/MapTerrainController';
-import { MapWaypointsVisController } from '../../Map/Controllers/MapWaypointsVisController';
-import { MapAirspaceVisController } from '../../Map/Controllers/MapAirspaceVisController';
-import { MapNexradController } from '../../Map/Controllers/MapNexradController';
-import { MapOrientationIndicator } from '../../Map/Indicators/MapOrientationIndicator';
-import { TrafficUserSettings } from '../../Traffic/TrafficUserSettings';
-import { NavMapTrafficController } from './NavMapTrafficController';
-import { MapCrosshairController } from '../../Map/Controllers/MapCrosshairController';
-import { MapTrackVectorController } from '../../Map/Controllers/MapTrackVectorController';
-import { MapAltitudeArcController } from '../../Map/Controllers/MapAltitudeArcController';
-import { MapWaypointHighlightLayer } from '../../Map/Layers/MapWaypointHighlightLayer';
-import { MapHighlightLineLayer } from '../../Map/Layers/MapHighlightLineLayer';
-import { MapNoGpsPositionMessage } from '../../Map/Indicators/MapNoGpsPositionMessage';
 import { AHRSSystemEvents, AvionicsComputerSystemEvents, AvionicsSystemState } from '../../Systems';
+import { TrafficUserSettings } from '../../Traffic/TrafficUserSettings';
+import { NavMapModelModules } from './NavMapModel';
+import { NavMapTrafficController } from './NavMapTrafficController';
 
 import './NavMapComponent.css';
 
@@ -90,19 +71,7 @@ export interface NavMapTrafficIntruderLayerProps {
 /**
  * Properties on the NavMap component.
  */
-export interface NavMapComponentProps<M extends NavMapModelModules = NavMapModelModules> extends MapComponentProps<M> {
-  /** A subscribable which provides the update frequency for the data the map uses. */
-  dataUpdateFreq: Subscribable<number>;
-
-  /** The unique ID for this map instance. */
-  id: string;
-
-  /**
-   * The initial size of the dead zone around each edge of the map projection window, which is displayed but excluded
-   * in map range calculations. Expressed as [left, top, right, bottom] in pixels. Defaults to 0 on all sides.
-   */
-  deadZone?: Float64Array;
-
+export interface NavMapComponentProps<M extends NavMapModelModules = NavMapModelModules> extends PointerMapComponentProps<M> {
   /** An instance of the flight planner. */
   flightPlanner: FlightPlanner;
 
@@ -121,36 +90,22 @@ export interface NavMapComponentProps<M extends NavMapModelModules = NavMapModel
    */
   drawEntireFlightPlan: Subscribable<boolean>;
 
-  /** The unique ID for this map's Bing component. Defaults to this map's ID. */
-  bingId?: string;
-
-  /** The CSS class to apply to this component. */
-  class?: string;
+  /** The unique ID for this map's Bing component. */
+  bingId: string;
 }
 
 /**
  * A G1000 navigation map component.
  */
-export abstract class NavMapComponent<P extends NavMapComponentProps = NavMapComponentProps> extends MapComponent<P> {
-  protected readonly rootRef = FSComponent.createRef<HTMLDivElement>();
-  protected readonly bingLayerRef = FSComponent.createRef<MapBingLayer>();
-  protected readonly airspaceLayerRef = FSComponent.createRef<MapAirspaceLayer>();
-  protected readonly flightPlanLayerRef = FSComponent.createRef<MapFlightPlanLayer>();
-  protected readonly navAidsLayerRef = FSComponent.createRef<MapWaypointsLayer>();
-  protected readonly textLayerRef = FSComponent.createRef<MapCullableTextLayer>();
-  protected readonly crosshairLayerRef = FSComponent.createRef<MapCrosshairLayer>();
-  protected readonly trackVectorLayerRef = FSComponent.createRef<MapTrackVectorLayer>();
-  protected readonly altitudeArcLayerRef = FSComponent.createRef<MapAltitudeArcLayer>();
-  protected readonly trafficIntruderLayerRef = FSComponent.createRef<MapTrafficIntruderLayer>();
+export abstract class NavMapComponent
+  <
+  M extends NavMapModelModules = NavMapModelModules,
+  P extends NavMapComponentProps<M> = NavMapComponentProps<M>,
+  R extends NavMapRangeTargetRotationController<M> = NavMapRangeTargetRotationController<M>
+  >
+  extends PointerMapComponent<M, P, R> {
+
   protected readonly ownAirplaneLayerRef = FSComponent.createRef<MapOwnAirplaneLayer<NavMapModelModules>>();
-  protected readonly pointerLayerRef = FSComponent.createRef<MapPointerLayer>();
-  protected readonly highlightLayerRef = FSComponent.createRef<MapWaypointHighlightLayer>();
-  protected readonly highlightLineLayerRef = FSComponent.createRef<MapHighlightLineLayer>();
-
-  protected readonly deadZone = new Float64Array(4);
-  protected readonly pointerBoundsSub = VecNSubject.createFromVector(new Float64Array([0, 0, this.props.projectedWidth, this.props.projectedHeight]));
-
-  protected readonly rangeTargetRotationController: NavMapRangeTargetRotationController;
 
   protected readonly textManager = new MapCullableTextLabelManager();
   protected readonly waypointRenderer = new MapWaypointRenderer(this.textManager);
@@ -171,69 +126,13 @@ export abstract class NavMapComponent<P extends NavMapComponentProps = NavMapCom
   protected readonly ownAirplaneIconPath = Subject.create<string>(this.props.ownAirplaneLayerProps.imageFilePath);
   protected readonly ownAirplaneIconAnchor = Vec2Subject.createFromVector(this.props.ownAirplaneLayerProps.iconAnchor);
 
-  /**
-   * Creates an instance of a NavMap.
-   * @param props The properties of the nav map.
-   */
-  constructor(props: P) {
-    super(props);
-
-    if (this.props.deadZone) {
-      this.deadZone.set(this.props.deadZone);
-    }
-    this.updatePointerBounds();
-
-    this.rangeTargetRotationController = this.createRangeTargetRotationController();
-  }
-
-  /**
-   * Creates a map range/target/rotation controller.
-   * @returns a map range/target/rotation controller.
-   */
-  protected abstract createRangeTargetRotationController(): NavMapRangeTargetRotationController;
-
-  /**
-   * Gets the size of the dead zone around this map's projected window, which is displayed but excluded in map range
-   * calculations. Expressed as [left, top, right, bottom] in pixels.
-   * @returns the size of the dead zone around this map's projected window.
-   */
-  public getDeadZone(): Float64Array {
-    return this.deadZone;
-  }
-
-  /**
-   * Sets the size of the dead zone around this map's projected window. The dead zone is displayed but excluded in map
-   * range calculations.
-   * @param deadZone The new dead zone, expressed as [left, top, right, bottom] in pixels.
-   */
-  public setDeadZone(deadZone: Float64Array): void {
-    if (this.deadZone.every((value, index) => value === deadZone[index])) {
-      return;
-    }
-
-    this.deadZone.set(deadZone);
-    this.onDeadZoneChanged();
-  }
-
-  /**
-   * This method is called when the size of this map's dead zone changes.
-   */
-  protected onDeadZoneChanged(): void {
-    this.rangeTargetRotationController.setDeadZone(this.deadZone);
-    this.updatePointerBounds();
-  }
 
   /** @inheritdoc */
-  public onAfterRender(): void {
-    super.onAfterRender();
-
-    this.setRootSize(this.mapProjection.getProjectedSize());
+  public onAfterRender(thisNode: VNode): void {
+    super.onAfterRender(thisNode);
 
     this.initEventBusHandlers();
-
-    this.rangeTargetRotationController.init();
     this.initControllers();
-    this.initLayers();
 
     const sub = this.props.bus.getSubscriber<AvionicsComputerSystemEvents & AHRSSystemEvents>();
     sub.on('avionicscomputer_state_1').handle(state => {
@@ -251,15 +150,6 @@ export abstract class NavMapComponent<P extends NavMapComponentProps = NavMapCom
         this.setValidHeading(false);
       }
     });
-  }
-
-  /**
-   * Sets the size of this map's root HTML element.
-   * @param size The new size, in pixels.
-   */
-  private setRootSize(size: Float64Array): void {
-    this.rootRef.instance.style.width = `${size[0]}px`;
-    this.rootRef.instance.style.height = `${size[1]}px`;
   }
 
   /**
@@ -287,65 +177,11 @@ export abstract class NavMapComponent<P extends NavMapComponentProps = NavMapCom
     this.altitudeArcController.init();
   }
 
-  /**
-   * Initializes this map's layers.
-   */
-  protected initLayers(): void {
-    this.attachLayer(this.bingLayerRef.instance);
-    this.attachLayer(this.airspaceLayerRef.instance);
-    this.attachLayer(this.navAidsLayerRef.instance);
-    this.attachLayer(this.flightPlanLayerRef.instance);
-    this.attachLayer(this.textLayerRef.instance);
-    this.attachLayer(this.crosshairLayerRef.instance);
-    this.attachLayer(this.trackVectorLayerRef.instance);
-    this.attachLayer(this.altitudeArcLayerRef.instance);
-    this.attachLayer(this.ownAirplaneLayerRef.instance);
-    this.attachLayer(this.trafficIntruderLayerRef.instance);
-    this.attachLayer(this.pointerLayerRef.instance);
-    this.attachLayer(this.highlightLayerRef.instance);
-    this.attachLayer(this.highlightLineLayerRef.instance);
-  }
-
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected onProjectedSizeChanged(): void {
-    this.setRootSize(this.mapProjection.getProjectedSize());
-    this.updatePointerBounds();
-  }
-
-  /**
-   * Updates this map's pointer bounds.
-   */
-  protected updatePointerBounds(): void {
-    const size = this.mapProjection.getProjectedSize();
-    const minX = this.deadZone[0];
-    const minY = this.deadZone[1];
-    const maxX = size[0] - this.deadZone[2];
-    const maxY = size[1] - this.deadZone[3];
-    const width = maxX - minX;
-    const height = maxY - minY;
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-
-    this.pointerBoundsSub.set(
-      Math.min(centerX, minX + width * 0.1),
-      Math.min(centerY, minY + height * 0.1),
-      Math.max(centerX, maxX - height * 0.1),
-      Math.max(centerY, maxY - height * 0.1)
-    );
-  }
-
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected onUpdated(time: number, elapsed: number): void {
     this.updateRangeTargetRotationController();
     this.waypointRenderer.update(this.mapProjection);
     super.onUpdated(time, elapsed);
-  }
-
-  /**
-   * Updates this map's range/target/rotation controller.
-   */
-  protected updateRangeTargetRotationController(): void {
-    this.rangeTargetRotationController.update();
   }
 
   /** @inheritdoc */
@@ -358,47 +194,47 @@ export abstract class NavMapComponent<P extends NavMapComponentProps = NavMapCom
     return (
       <div ref={this.rootRef} class={className}>
         <MapBingLayer
-          ref={this.bingLayerRef} model={this.props.model} mapProjection={this.mapProjection}
-          bingId={this.props.bingId ?? this.props.id}
+          model={this.props.model} mapProjection={this.mapProjection}
+          bingId={this.props.bingId}
         />
         <MapAirspaceLayer
-          ref={this.airspaceLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           bus={this.props.bus}
-          lodBoundaryCache={LodBoundaryCache.getCache()}
+          lodBoundaryCache={DefaultLodBoundaryCache.getCache()}
           airspaceRenderManager={new MapAirspaceRenderManager()}
           maxSearchRadius={Subject.create(UnitType.NMILE.createNumber(10))}
           maxSearchItemCount={Subject.create(100)}
         />
         <MapWaypointsLayer
-          ref={this.navAidsLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           bus={this.props.bus}
           waypointRenderer={this.waypointRenderer} textManager={this.textManager}
           styles={this.getWaypointsLayerStyles()}
         />
         <MapWaypointHighlightLayer waypointRenderer={this.waypointRenderer} textManager={this.textManager} model={this.props.model}
-          styles={MapWaypointStyles.getHighlightStyles(1, 20)} mapProjection={this.mapProjection} ref={this.highlightLayerRef}
+          styles={MapWaypointStyles.getHighlightStyles(1, 20)} mapProjection={this.mapProjection}
         />
         <MapHighlightLineLayer
-          model={this.props.model} mapProjection={this.mapProjection} ref={this.highlightLineLayerRef}
+          model={this.props.model} mapProjection={this.mapProjection}
         />
         {this.renderFlightPlanLayer()}
         <MapCullableTextLayer
-          ref={this.textLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           manager={this.textManager}
         />
         {this.renderRangeRingLayer()}
         {this.renderRangeCompassLayer()}
         <MapTrackVectorLayer
-          ref={this.trackVectorLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
         />
         <MapAltitudeArcLayer
-          ref={this.altitudeArcLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
         />
         <MapCrosshairLayer
-          ref={this.crosshairLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
         />
         <MapTrafficIntruderLayer
-          ref={this.trafficIntruderLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           bus={this.props.bus}
           fontSize={this.props.trafficIntruderLayerProps.fontSize} iconSize={this.props.trafficIntruderLayerProps.iconSize}
           useOuterRangeMaxScale={false} offScaleIndicatorMode={this.trafficOffScaleModeSub}
@@ -412,7 +248,7 @@ export abstract class NavMapComponent<P extends NavMapComponentProps = NavMapCom
         {this.renderPointerInfoLayer()}
         {this.renderIndicatorGroups()}
         <MapPointerLayer
-          ref={this.pointerLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
         />
       </div>
     );
@@ -552,7 +388,7 @@ export abstract class NavMapComponent<P extends NavMapComponentProps = NavMapCom
   protected renderFlightPlanLayer(): VNode {
     return (
       <MapFlightPlanLayer
-        ref={this.flightPlanLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+        model={this.props.model} mapProjection={this.mapProjection}
         bus={this.props.bus} dataProvider={new MapActiveFlightPlanDataProvider(this.props.bus, this.props.flightPlanner)}
         drawEntirePlan={this.props.drawEntireFlightPlan}
         waypointRenderer={this.waypointRenderer} textManager={this.textManager}
@@ -701,28 +537,11 @@ export abstract class NavMapComponent<P extends NavMapComponentProps = NavMapCom
 /**
  * A controller for handling map range, target, and rotation changes.
  */
-export abstract class NavMapRangeTargetRotationController<M extends NavMapModelModules = NavMapModelModules> {
+export abstract class NavMapRangeTargetRotationController<M extends NavMapModelModules = NavMapModelModules> extends PointerMapRangeTargetRotationController<M> {
   public static readonly DEFAULT_MAP_RANGE_INDEX = 11;
-
-  private static readonly vec2Cache = [new Float64Array(2)];
-
-  protected readonly deadZone = new Float64Array(4);
-
-  protected currentMapRangeIndex = NavMapRangeTargetRotationController.DEFAULT_MAP_RANGE_INDEX;
-
-  private needUpdateProjection = false;
-  private needUpdatePointerScroll = false;
-
-  protected currentMapParameters = {
-    range: 0,
-    target: new GeoPoint(0, 0),
-    targetProjectedOffset: new Float64Array(2),
-    rotation: 0
-  };
 
   protected readonly airplanePropsModule = this.mapModel.getModule('ownAirplaneProps');
   protected readonly orientationModule = this.mapModel.getModule('orientation');
-  protected readonly pointerModule = this.mapModel.getModule('pointer');
   protected readonly dataIntegrityModule = this.mapModel.getModule('dataIntegrity');
 
   protected readonly rangeSetting = this.rangeSettingManager.getSetting(this.rangeSettingName);
@@ -733,111 +552,59 @@ export abstract class NavMapRangeTargetRotationController<M extends NavMapModelM
   protected readonly airplanePositionChangedHandler = this.onAirplanePositionChanged.bind(this);
   protected readonly airplaneOnGroundChangedHandler = this.onAirplaneOnGroundChanged.bind(this);
   protected readonly airplaneRotationChangedHandler = this.onAirplaneRotationChanged.bind(this);
-  protected readonly pointerPositionChangedHandler = this.onPointerPositionChanged.bind(this);
-  protected readonly pointerTargetChangedHandler = this.onPointerTargetChanged.bind(this);
-  protected readonly pointerBoundsChangedHandler = this.onPointerBoundsChanged.bind(this);
 
-  private hasGpsSignal = true;
+  private hasGpsSignal = false;
   private forceNorthUp = false;
   private areAirplanePositionListenersActive = false;
   private currentAirplaneRotationSub: Subscribable<number> | null = null;
 
   /**
-   * Creates an instance of a MapRangeController.
+   * Constructor.
    * @param mapModel The map model.
    * @param mapProjection The map projection.
-   * @param deadZone The dead zone around the edge of the map projection window.
-   * @param settingManager This controller's map settings manager.
-   * @param rangeSettingManager This controller's map range settings manager.
-   * @param rangeSettingName The name of this controller's map range setting.
+   * @param deadZone A subscribable which provides the dead zone around the edge of the map projection window.
    * @param rangeArray A subscribable which provides an array of valid map ranges.
    * @param pointerBounds A subscribable which provides the bounds of the area accessible to the map pointer. The
    * bounds should be expressed as `[left, top, right, bottom]` in pixels.
+   * @param settingManager This controller's map settings manager.
+   * @param rangeSettingManager This controller's map range settings manager.
+   * @param rangeSettingName The name of this controller's map range setting.
    */
   constructor(
-    protected readonly mapModel: MapModel<M>,
-    protected readonly mapProjection: MapProjection,
-    deadZone: Float64Array,
+    mapModel: MapModel<M>,
+    mapProjection: MapProjection,
+    deadZone: Subscribable<ReadonlyFloat64Array>,
+    rangeArray: Subscribable<readonly NumberUnitInterface<UnitFamily.Distance>[]>,
+    pointerBounds: Subscribable<ReadonlyFloat64Array>,
     protected readonly settingManager: UserSettingManager<MapUserSettingTypes>,
     protected readonly rangeSettingManager: UserSettingManager<MapRangeSettingTypes>,
-    protected readonly rangeSettingName: keyof MapRangeSettingTypes,
-    protected readonly rangeArray: Subscribable<readonly NumberUnitInterface<UnitFamily.Distance>[]>,
-    protected readonly pointerBounds: Subscribable<Float64Array>
+    protected readonly rangeSettingName: keyof MapRangeSettingTypes
   ) {
-    this.deadZone.set(deadZone);
+    super(mapModel, mapProjection, deadZone, rangeArray, NavMapRangeTargetRotationController.DEFAULT_MAP_RANGE_INDEX, pointerBounds);
   }
 
-  /**
-   * Executes this controller's first-run initialization code.
-   */
-  public init(): void {
-    this.rangeArray.sub(this.onRangeArrayChanged.bind(this), true);
-    this.mapProjection.addChangeListener(this.onMapProjectionChanged.bind(this));
-    this.initSettingsListeners();
-    this.initModuleListeners();
-    this.initState();
-    this.scheduleProjectionUpdate();
-  }
+  /** @inheritdoc */
+  protected initListeners(): void {
+    super.initListeners();
 
-  /**
-   * Initializes settings listeners.
-   */
-  protected initSettingsListeners(): void {
     this.rangeSettingManager.whenSettingChanged(this.rangeSettingName).handle(this.onRangeSettingChanged.bind(this));
     this.settingManager.whenSettingChanged('mapOrientation').handle(this.onOrientationSettingChanged.bind(this));
     this.settingManager.whenSettingChanged('mapAutoNorthUpActive').handle(this.onAutoNorthUpSettingChanged.bind(this));
     this.settingManager.whenSettingChanged('mapAutoNorthUpRangeIndex').handle(this.onAutoNorthUpSettingChanged.bind(this));
+
+    this.orientationModule.orientation.sub(this.onOrientationChanged.bind(this));
+
+    this.dataIntegrityModule.gpsSignalValid.sub(this.onGpsSignalValidChanged.bind(this));
+    this.dataIntegrityModule.headingSignalValid.sub(this.onHeadingSignalValidChanged.bind(this));
   }
 
-  /**
-   * Initializes module listeners.
-   */
-  protected initModuleListeners(): void {
-    this.orientationModule.orientation.sub(this.onOrientationChanged.bind(this), true);
-    this.pointerModule.isActive.sub(this.onPointerActiveChanged.bind(this), true);
-
-    this.dataIntegrityModule.gpsSignalValid.sub(this.onGpsSignalValidChanged.bind(this), true);
-    this.dataIntegrityModule.headingSignalValid.sub(this.onHeadingSignalValidChanged.bind(this), true);
-  }
-
-  /**
-   * Initializes this controller's state.
-   */
+  /** @inheritdoc */
   protected initState(): void {
-    this.updateTargetFromPPos();
-    this.updateTargetOffset();
-  }
+    super.initState();
 
-  /**
-   * Sets the size of this controller's dead zone. The dead zone is the area around the edges of the map excluded in
-   * range calculations.
-   * @param deadZone The new dead zone, expressed as [left, top, right, bottom] in pixels.
-   */
-  public setDeadZone(deadZone: Float64Array): void {
-    if (this.deadZone.every((value, index) => value === deadZone[index])) {
-      return;
-    }
-
-    this.deadZone.set(deadZone);
-    this.onDeadZoneChanged();
-  }
-
-  /**
-   * This method is called when the size of the dead zone changes.
-   */
-  protected onDeadZoneChanged(): void {
-    this.updateRangeFromIndex();
-    this.updateTargetOffset();
-    this.scheduleProjectionUpdate();
-  }
-
-  /**
-   * Updates the array of valid map ranges.
-   */
-  protected updateRangeArray(): void {
-    this.mapModel.getModule('range').nominalRanges.set(this.rangeArray.get());
-    this.updateRangeFromIndex();
-    this.scheduleProjectionUpdate();
+    this.updateAirplaneRotationListeners();
+    this.onGpsSignalValidChanged(this.dataIntegrityModule.gpsSignalValid.get());
+    this.onHeadingSignalValidChanged(this.dataIntegrityModule.headingSignalValid.get());
   }
 
   /**
@@ -857,40 +624,12 @@ export abstract class NavMapRangeTargetRotationController<M extends NavMapModelM
   }
 
   /**
-   * Updates the current range from the current range index.
-   */
-  protected updateRangeFromIndex(): void {
-    const nominalRange = this.rangeArray.get()[this.currentMapRangeIndex];
-    this.currentMapParameters.range = this.convertToTrueRange(nominalRange);
-  }
-
-  /**
-   * Converts a nominal range to a true map range.
-   * @param nominalRange The nominal range to convert.
-   * @returns the true map range for the given nominal range, in great-arc radians.
-   */
-  protected abstract convertToTrueRange(nominalRange: NumberUnitInterface<UnitFamily.Distance>): number;
-
-  /**
    * Updates the map target based on the airplane's present position.
    */
   protected updateTargetFromPPos(): void {
     const ppos = this.mapModel.getModule('ownAirplaneProps').position.get();
     this.currentMapParameters.target.set(ppos);
   }
-
-  /**
-   * Updates the target offset.
-   */
-  protected updateTargetOffset(): void {
-    this.currentMapParameters.targetProjectedOffset.set(this.getDesiredTargetOffset());
-  }
-
-  /**
-   * Gets the current desired target offset.
-   * @returns The current desired target offset.
-   */
-  protected abstract getDesiredTargetOffset(): Float64Array;
 
   /**
    * Updates the map orientation.
@@ -915,33 +654,6 @@ export abstract class NavMapRangeTargetRotationController<M extends NavMapModelM
     }
 
     this.orientationModule.orientation.set(orientation);
-  }
-
-  /**
-   * Responds to changes in the array of valid map ranges.
-   */
-  private onRangeArrayChanged(): void {
-    this.updateRangeArray();
-  }
-
-  /**
-   * Responds to map projection changes.
-   * @param mapProjection The map projection that changed.
-   * @param changeFlags The types of changes made to the projection.
-   */
-  private onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
-    if (BitFlags.isAll(changeFlags, MapProjectionChangeType.ProjectedSize)) {
-      this.onProjectedSizeChanged();
-    }
-  }
-
-  /**
-   * Responds to projected map window size changes.
-   */
-  protected onProjectedSizeChanged(): void {
-    this.updateRangeFromIndex();
-    this.updateTargetOffset();
-    this.scheduleProjectionUpdate();
   }
 
   /**
@@ -1001,69 +713,17 @@ export abstract class NavMapRangeTargetRotationController<M extends NavMapModelM
     }
 
     this.updateAirplaneRotationListeners();
-    this.updateRangeFromIndex();
+    this.updateRangeEndpoints();
     this.updateTargetOffset();
     this.scheduleProjectionUpdate();
   }
 
-  /**
-   * Responds to map pointer activation changes.
-   * @param isActive Whether the map pointer is active.
-   */
-  private onPointerActiveChanged(isActive: boolean): void {
+  /** @inheritdoc */
+  protected onPointerActiveChanged(isActive: boolean): void {
     this.updateAirplanePositionListeners();
     this.updateAirplaneRotationListeners();
-    this.updatePointerListeners();
-    this.scheduleProjectionUpdate();
 
-    if (isActive) {
-      this.onPointerActivated();
-    } else {
-      this.onPointerDeactivated();
-    }
-  }
-
-  /**
-   * Responds to map pointer activation.
-   */
-  protected onPointerActivated(): void {
-    // noop
-  }
-
-  /**
-   * Responds to map pointer deactivation.
-   */
-  protected onPointerDeactivated(): void {
-    // noop
-  }
-
-  /**
-   * Responds to map pointer position changes.
-   */
-  private onPointerPositionChanged(): void {
-    this.schedulePointerScrollUpdate();
-  }
-
-  /**
-   * Responds to map pointer desired target changes.
-   * @param target The desired target.
-   */
-  private onPointerTargetChanged(target: GeoPointInterface): void {
-    this.currentMapParameters.target.set(target);
-    this.scheduleProjectionUpdate();
-  }
-
-  /**
-   * Responds to map pointer bounds changes.
-   */
-  private onPointerBoundsChanged(): void {
-    const position = this.pointerModule.position.get();
-    const bounds = this.pointerBounds.get();
-
-    const clampedPositionX = Utils.Clamp(position[0], bounds[0], bounds[2]);
-    const clampedPositionY = Utils.Clamp(position[1], bounds[1], bounds[3]);
-
-    this.pointerModule.position.set(clampedPositionX, clampedPositionY);
+    super.onPointerActiveChanged(isActive);
   }
 
   /**
@@ -1146,98 +806,5 @@ export abstract class NavMapRangeTargetRotationController<M extends NavMapModelM
 
       this.currentAirplaneRotationSub?.sub(this.airplaneRotationChangedHandler, true);
     }
-  }
-
-  /**
-   * Updates the pointer position listener.
-   */
-  private updatePointerListeners(): void {
-    if (this.pointerModule.isActive.get()) {
-      this.pointerBounds.sub(this.pointerBoundsChangedHandler);
-      this.pointerModule.position.sub(this.pointerPositionChangedHandler);
-      this.pointerModule.target.sub(this.pointerTargetChangedHandler, true);
-    } else {
-      this.pointerBounds.unsub(this.pointerBoundsChangedHandler);
-      this.pointerModule.position.unsub(this.pointerPositionChangedHandler);
-      this.pointerModule.target.unsub(this.pointerTargetChangedHandler);
-    }
-  }
-
-  /**
-   * Schedules an update to the map projection.
-   */
-  protected scheduleProjectionUpdate(): void {
-    this.needUpdateProjection = true;
-  }
-
-  /**
-   * Schedules an update to scrolling due to the pointer.
-   */
-  protected schedulePointerScrollUpdate(): void {
-    this.needUpdatePointerScroll = true;
-  }
-
-  /**
-   * Updates this controller.
-   */
-  public update(): void {
-    this.updateModules();
-    this.updatePointerScroll();
-    this.updateMapProjection();
-  }
-
-  /**
-   * Updates map model modules.
-   */
-  protected updateModules(): void {
-    this.mapModel.getModule('range').setNominalRangeIndex(this.currentMapRangeIndex);
-  }
-
-  /**
-   * Updates the map projection with the latest range, target, and rotation values.
-   */
-  protected updateMapProjection(): void {
-    if (!this.needUpdateProjection) {
-      return;
-    }
-
-    this.mapProjection.set(this.currentMapParameters);
-
-    this.needUpdateProjection = false;
-  }
-
-  /**
-   * Updates scrolling due to the pointer.
-   */
-  protected updatePointerScroll(): void {
-    if (!this.needUpdatePointerScroll) {
-      return;
-    }
-
-    const position = this.pointerModule.position.get();
-    const bounds = this.pointerBounds.get();
-
-    const clampedPositionX = Utils.Clamp(position[0], bounds[0], bounds[2]);
-    const clampedPositionY = Utils.Clamp(position[1], bounds[1], bounds[3]);
-
-    const scrollDeltaX = position[0] - clampedPositionX;
-    const scrollDeltaY = position[1] - clampedPositionY;
-
-    if (scrollDeltaX === 0 && scrollDeltaY === 0) {
-      return;
-    }
-
-    this.pointerModule.position.set(clampedPositionX, clampedPositionY);
-
-    const newTargetProjected = Vec2Math.add(
-      this.mapProjection.getTargetProjected(),
-      Vec2Math.set(scrollDeltaX, scrollDeltaY, NavMapRangeTargetRotationController.vec2Cache[0]),
-      NavMapRangeTargetRotationController.vec2Cache[0]
-    );
-
-    this.mapProjection.invert(newTargetProjected, this.currentMapParameters.target);
-    this.scheduleProjectionUpdate();
-
-    this.needUpdatePointerScroll = false;
   }
 }

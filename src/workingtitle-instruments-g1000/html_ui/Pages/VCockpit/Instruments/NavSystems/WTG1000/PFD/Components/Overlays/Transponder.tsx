@@ -1,6 +1,6 @@
 import { FSComponent, DisplayComponent, VNode, ComputedSubject } from 'msfssdk';
 import { ControlPublisher, EventBus } from 'msfssdk/data';
-import { XPDRSimVars, XPDRMode } from 'msfssdk/instruments';
+import { XPDRSimVarEvents, XPDRMode } from 'msfssdk/instruments';
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 
 import './Transponder.css';
@@ -29,7 +29,7 @@ export class Transponder extends DisplayComponent<TransponderProps> {
     editMode: false,
     charIndex: 0,
     tempCode: ''
-  }
+  };
   private readonly xpdrCodeSubject = ComputedSubject.create(0, (v): string => {
     return `${Math.round(v)}`.padStart(4, '0');
   });
@@ -54,12 +54,12 @@ export class Transponder extends DisplayComponent<TransponderProps> {
    * A callback called after the component renders.
    */
   public onAfterRender(): void {
-    const xpdr = this.props.bus.getSubscriber<XPDRSimVars>();
-    xpdr.on('xpdrCode1')
+    const xpdr = this.props.bus.getSubscriber<XPDRSimVarEvents>();
+    xpdr.on('xpdr_code_1')
       .whenChanged().handle(this.onXpdrCodeSimUpdate.bind(this));
-    xpdr.on('xpdrMode1')
+    xpdr.on('xpdr_mode_1')
       .whenChanged().handle(this.onXpdrModeUpdate.bind(this));
-    xpdr.on('xpdrIdent').whenChanged().handle((isSending: boolean) => {
+    xpdr.on('xpdr_ident_1').whenChanged().handle((isSending: boolean) => {
       this.xpdrIdentElement.instance.classList.toggle('hide-element', !isSending);
       this.xpdrModeElement.instance.classList.toggle('hide-element', isSending);
     });
@@ -112,7 +112,7 @@ export class Transponder extends DisplayComponent<TransponderProps> {
     this.onXpdrCodeUpdate(parseInt(this.codeEdit.tempCode));
 
     if (this.codeEdit.charIndex == 4) {
-      this.props.controlPublisher.publishEvent('publish_xpdr_code', parseInt(updatedTempCode));
+      this.props.controlPublisher.publishEvent('publish_xpdr_code_1', parseInt(updatedTempCode));
       this.codeEdit.charIndex = 0;
       this.updateCodeEdit(false);
     }

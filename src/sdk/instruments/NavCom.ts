@@ -2,7 +2,8 @@
 /// <reference types="msfstypes/JS/Avionics" />
 import { ComSpacingChangeEvent } from '.';
 import { ControlEvents } from '../data/ControlPublisher';
-import { EventBus, PublishPacer } from '../data/EventBus';
+import { EventBus, IndexedEventType } from '../data/EventBus';
+import { PublishPacer } from '../data/EventBusPacer';
 import { EventSubscriber } from '../data/EventSubscriber';
 import { HEvent } from '../data/HEventPublisher';
 import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
@@ -19,49 +20,43 @@ import { Radio, RadioType, FrequencyBank, RadioEvents } from './RadioCommon';
 // TODO Do we want to move this into a generalized publisher for other things to use?
 
 /** SimVar definitions for a NavComSimVarPublisher */
-interface NavComSimVars {
-    /** NAV1 active freq */
-    nav1ActiveFreq: number,
-    /** NAV1 standby freq */
-    nav1StandbyFreq: number,
-    /** NAV1 ident */
-    nav1Ident: string,
-    /** NAV2 active freq */
-    nav2ActiveFreq: number,
-    /** NAV2 standby freq */
-    nav2StandbyFreq: number,
-    /** NAV2 ident */
-    nav2Ident: string,
-    /** COM1 active freq */
-    com1ActiveFreq: number,
-    /** COM1 standby freq */
-    com1StandbyFreq: number,
-    /** COM2 active freq */
-    com2ActiveFreq: number,
-    /** COM1 standby freq */
-    com2StandbyFreq: number,
-    /** ADF1 Standby Frequency */
-    adf1StandbyFreq: number,
-    /** ADF1 Active Frequency */
-    adf1ActiveFreq: number
+export interface NavComSimVars {
+    /** NAV active freq */
+    [nav_active_frequency: IndexedEventType<'nav_active_frequency'>]: number,
+    /** NAV standby freq */
+    [nav_standby_frequency: IndexedEventType<'nav_standby_frequency'>]: number,
+    /** NAV ident */
+    [nav_ident: IndexedEventType<'nav_ident'>]: string,
+    /** NAV signal */
+    [nav_signal: IndexedEventType<'nav_signal'>]: number,
+    /** COM active freq */
+    [com_active_frequency: IndexedEventType<'com_active_frequency'>]: number,
+    /** COM standby freq */
+    [com_standby_frequency: IndexedEventType<'com_standby_frequency'>]: number,
+    /** ADF Standby Frequency */
+    [adf_standby_frequency: IndexedEventType<'adf_standby_frequency'>]: number,
+    /** ADF Active Frequency */
+    [adf_active_frequency: IndexedEventType<'adf_active_frequency'>]: number
 }
 
 /** A publisher to poll and publish nav/com simvars. */
-class NavComSimVarPublisher extends SimVarPublisher<NavComSimVars> {
+export class NavComSimVarPublisher extends SimVarPublisher<NavComSimVars> {
     private static simvars = new Map<keyof NavComSimVars, SimVarDefinition>([
-        ['nav1ActiveFreq', { name: 'NAV ACTIVE FREQUENCY:1', type: SimVarValueType.MHz }],
-        ['nav1StandbyFreq', { name: 'NAV STANDBY FREQUENCY:1', type: SimVarValueType.MHz }],
-        ['nav1Ident', { name: 'NAV IDENT:1', type: SimVarValueType.String }],
-        ['nav2ActiveFreq', { name: 'NAV ACTIVE FREQUENCY:2', type: SimVarValueType.MHz }],
-        ['nav2StandbyFreq', { name: 'NAV STANDBY FREQUENCY:2', type: SimVarValueType.MHz }],
-        ['nav2Ident', { name: 'NAV IDENT:2', type: SimVarValueType.String }],
-        ['com1ActiveFreq', { name: 'COM ACTIVE FREQUENCY:1', type: SimVarValueType.MHz }],
-        ['com1StandbyFreq', { name: 'COM STANDBY FREQUENCY:1', type: SimVarValueType.MHz }],
-        ['com2ActiveFreq', { name: 'COM ACTIVE FREQUENCY:2', type: SimVarValueType.MHz }],
-        ['com2StandbyFreq', { name: 'COM STANDBY FREQUENCY:2', type: SimVarValueType.MHz }],
-        ['adf1StandbyFreq', { name: 'ADF STANDBY FREQUENCY:1', type: SimVarValueType.KHz }],
-        ['adf1ActiveFreq', { name: 'ADF ACTIVE FREQUENCY:1', type: SimVarValueType.KHz }]
-    ])
+        ['nav_active_frequency_1', { name: 'NAV ACTIVE FREQUENCY:1', type: SimVarValueType.MHz }],
+        ['nav_standby_frequency_1', { name: 'NAV STANDBY FREQUENCY:1', type: SimVarValueType.MHz }],
+        ['nav_ident_1', { name: 'NAV IDENT:1', type: SimVarValueType.String }],
+        ['nav_signal_1', { name: 'NAV SIGNAL:1', type: SimVarValueType.Number }],
+        ['nav_active_frequency_2', { name: 'NAV ACTIVE FREQUENCY:2', type: SimVarValueType.MHz }],
+        ['nav_standby_frequency_2', { name: 'NAV STANDBY FREQUENCY:2', type: SimVarValueType.MHz }],
+        ['nav_ident_2', { name: 'NAV IDENT:2', type: SimVarValueType.String }],
+        ['nav_signal_2', { name: 'NAV SIGNAL:2', type: SimVarValueType.Number }],
+        ['com_active_frequency_1', { name: 'COM ACTIVE FREQUENCY:1', type: SimVarValueType.MHz }],
+        ['com_standby_frequency_1', { name: 'COM STANDBY FREQUENCY:1', type: SimVarValueType.MHz }],
+        ['com_active_frequency_2', { name: 'COM ACTIVE FREQUENCY:2', type: SimVarValueType.MHz }],
+        ['com_standby_frequency_2', { name: 'COM STANDBY FREQUENCY:2', type: SimVarValueType.MHz }],
+        ['adf_standby_frequency_1', { name: 'ADF STANDBY FREQUENCY:1', type: SimVarValueType.KHz }],
+        ['adf_active_frequency_1', { name: 'ADF ACTIVE FREQUENCY:1', type: SimVarValueType.KHz }]
+    ]);
 
     /**
      * Create a NavComSimVarPublisher
@@ -120,7 +115,7 @@ class NavComPublisher extends BasePublisher<RadioEvents>{
      */
     public publishRadioState(radio: Radio | undefined): void {
         if (radio !== undefined) {
-            super.publish('setRadioState', radio, this.sync);
+            super.publish('set_radio_state', radio, this.sync);
         }
     }
 
@@ -137,7 +132,7 @@ class NavComPublisher extends BasePublisher<RadioEvents>{
      */
     public publishFreqChange(radio: Radio, bank: FrequencyBank, frequency: number): void {
         if (radio !== undefined) {
-            super.publish('setFrequency', { radio: radio, bank: bank, frequency: frequency }, this.sync);
+            super.publish('set_frequency', { radio: radio, bank: bank, frequency: frequency }, this.sync);
         }
     }
 
@@ -147,21 +142,29 @@ class NavComPublisher extends BasePublisher<RadioEvents>{
      * @param ident The ident as a string.
      */
     public publishIdent(index: number, ident: string): void {
-        super.publish('setIdent', { index: index, ident: ident }, this.sync);
+        super.publish('set_ident', { index: index, ident: ident }, this.sync);
+    }
+    /**
+     * Publish the signal strength of the currently tuned station.
+     * @param index The index number of the tuned radio.
+     * @param strength The signal strength as a number.
+     */
+    public publishSignalStrength(index: number, strength: number): void {
+        super.publish('set_signal_strength', strength, this.sync);
     }
     /**
      * Publish the ADF1 Active Frequency in Khz.
      * @param freq The active frequency in Khz.
      */
     public publishAdfActiveFrequencySet(freq: number): void {
-        super.publish('adf1ActiveFreq', freq, false);
+        super.publish('adf_active_frequency_1', freq, false);
     }
     /**
      * Publish the ADF1 Standby Frequency in Khz.
      * @param freq The standby frequency in Khz.
      */
     public publishAdfStandbyFrequencySet(freq: number): void {
-        super.publish('adf1StandbyFreq', freq, false);
+        super.publish('adf_standby_frequency_1', freq, false);
     }
 }
 
@@ -178,7 +181,7 @@ export class NavComInstrument {
 
     private navRadios = new Array<Radio>();
     private comRadios = new Array<Radio>();
-    private config: NavComConfig;
+    private config?: NavComConfig;
 
     /**
      * Create a NavComController.
@@ -188,7 +191,7 @@ export class NavComInstrument {
      * @param numComRadios The number of com radios in the system.
      * @param sync Whether to sync events or not, default true.
      */
-    public constructor(bus: EventBus, config: NavComConfig, numNavRadios: number, numComRadios: number, sync = true) {
+    public constructor(bus: EventBus, config: NavComConfig | undefined, numNavRadios: number, numComRadios: number, sync = true) {
         this.bus = bus;
         this.config = config;
 
@@ -198,6 +201,7 @@ export class NavComInstrument {
                 index: i,
                 activeFrequency: 0,
                 ident: null,
+                signal: 0,
                 standbyFrequency: 0,
                 radioType: RadioType.Nav,
                 selected: false
@@ -208,6 +212,7 @@ export class NavComInstrument {
                 index: i,
                 activeFrequency: 0,
                 ident: null,
+                signal: 0,
                 standbyFrequency: 0,
                 radioType: RadioType.Com,
                 selected: false
@@ -220,20 +225,6 @@ export class NavComInstrument {
         this.simVarPublisher = new NavComSimVarPublisher(this.bus);
         this.simVarSubscriber = new EventSubscriber<NavComSimVars>(this.bus);
         this.controlSubscriber = bus.getSubscriber<ControlEvents>();
-
-        // Subscribe to the simvars we need to monitor.
-        this.simVarPublisher.subscribe('nav1ActiveFreq');
-        this.simVarPublisher.subscribe('nav1StandbyFreq');
-        this.simVarPublisher.subscribe('nav2ActiveFreq');
-        this.simVarPublisher.subscribe('nav2StandbyFreq');
-        this.simVarPublisher.subscribe('com1ActiveFreq');
-        this.simVarPublisher.subscribe('com1StandbyFreq');
-        this.simVarPublisher.subscribe('com2ActiveFreq');
-        this.simVarPublisher.subscribe('com2StandbyFreq');
-        this.simVarPublisher.subscribe('nav1Ident');
-        this.simVarPublisher.subscribe('nav2Ident');
-        this.simVarPublisher.subscribe('adf1ActiveFreq');
-        this.simVarPublisher.subscribe('adf1StandbyFreq');
     }
 
     /**
@@ -255,42 +246,50 @@ export class NavComInstrument {
         this.controlSubscriber.on('com_spacing_set').handle(this.setComSpacing.bind(this));
         this.controlSubscriber.on('standby_nav_freq').handle(this.setStandbyFreq.bind(this, RadioType.Nav));
 
-        this.simVarSubscriber.on('nav1ActiveFreq').whenChangedBy(0.01).handle((data) => {
+        this.simVarSubscriber.on('nav_active_frequency_1').whenChangedBy(0.01).handle((data) => {
             this.updateRadioFreqCb(RadioType.Nav, 0, FrequencyBank.Active, data);
         });
-        this.simVarSubscriber.on('nav1StandbyFreq').whenChangedBy(0.01).handle((data) => {
+        this.simVarSubscriber.on('nav_standby_frequency_1').whenChangedBy(0.01).handle((data) => {
             this.updateRadioFreqCb(RadioType.Nav, 0, FrequencyBank.Standby, data);
         });
-        this.simVarSubscriber.on('nav2ActiveFreq').whenChangedBy(0.01).handle((data) => {
+        this.simVarSubscriber.on('nav_active_frequency_2').whenChangedBy(0.01).handle((data) => {
             this.updateRadioFreqCb(RadioType.Nav, 1, FrequencyBank.Active, data);
         });
-        this.simVarSubscriber.on('nav2StandbyFreq').whenChangedBy(0.01).handle((data) => {
+        this.simVarSubscriber.on('nav_standby_frequency_2').whenChangedBy(0.01).handle((data) => {
             this.updateRadioFreqCb(RadioType.Nav, 1, FrequencyBank.Standby, data);
         });
-        this.simVarSubscriber.on('com1ActiveFreq').whenChangedBy(0.001).handle((data) => {
+        this.simVarSubscriber.on('com_active_frequency_1').whenChangedBy(0.001).handle((data) => {
             this.updateRadioFreqCb(RadioType.Com, 0, FrequencyBank.Active, data);
         });
-        this.simVarSubscriber.on('com1StandbyFreq').whenChangedBy(0.001).handle((data) => {
+        this.simVarSubscriber.on('com_standby_frequency_1').whenChangedBy(0.001).handle((data) => {
             this.updateRadioFreqCb(RadioType.Com, 0, FrequencyBank.Standby, data);
         });
-        this.simVarSubscriber.on('com2ActiveFreq').whenChangedBy(0.001).handle((data) => {
+        this.simVarSubscriber.on('com_active_frequency_2').whenChangedBy(0.001).handle((data) => {
             this.updateRadioFreqCb(RadioType.Com, 1, FrequencyBank.Active, data);
         });
-        this.simVarSubscriber.on('com2StandbyFreq').whenChangedBy(0.001).handle((data) => {
+        this.simVarSubscriber.on('com_standby_frequency_2').whenChangedBy(0.001).handle((data) => {
             this.updateRadioFreqCb(RadioType.Com, 1, FrequencyBank.Standby, data);
         });
-        this.simVarSubscriber.on('nav1Ident').whenChanged().handle((data) => {
+        this.simVarSubscriber.on('nav_ident_1').whenChanged().handle((data) => {
             this.navRadios[0].ident = data;
             this.publisher.publishIdent(1, data);
         });
-        this.simVarSubscriber.on('nav2Ident').whenChanged().handle((data) => {
+        this.simVarSubscriber.on('nav_ident_2').whenChanged().handle((data) => {
             this.navRadios[1].ident = data;
             this.publisher.publishIdent(2, data);
         });
-        this.simVarSubscriber.on('adf1ActiveFreq').whenChanged().handle((freq) => {
+        this.simVarSubscriber.on('nav_signal_1').withPrecision(0).handle((data) => {
+            this.navRadios[0].signal = data;
+            this.publisher.publishSignalStrength(1, data);
+        });
+        this.simVarSubscriber.on('nav_signal_2').withPrecision(0).handle((data) => {
+            this.navRadios[1].signal = data;
+            this.publisher.publishSignalStrength(2, data);
+        });
+        this.simVarSubscriber.on('adf_active_frequency_1').whenChanged().handle((freq) => {
             this.publisher.publishAdfActiveFrequencySet(freq);
         });
-        this.simVarSubscriber.on('adf1StandbyFreq').whenChanged().handle((freq) => {
+        this.simVarSubscriber.on('adf_standby_frequency_1').whenChanged().handle((freq) => {
             this.publisher.publishAdfStandbyFrequencySet(freq);
         });
 
@@ -356,34 +355,36 @@ export class NavComInstrument {
      * @param hEvent The event that needs to be handled.
      */
     private eventHandler = (hEvent: string): void => {
-        // We can't use a switch statement here because of the need to retrieve
-        // the key from each map.  Sorry it's so ugly.
-        if (this.config.navSwitchEvents?.has(hEvent)) {
-            this.swapFreqs(this.getSelectedRadio(this.navRadios));
-        } else if (this.config.navSelectorEvents?.has(hEvent)) {
-            this.swapSelection(this.navRadios);
-        } else if (this.config.navWholeIncEvents?.has(hEvent)) {
-            this.wholeInc(this.getSelectedRadio(this.navRadios));
-        } else if (this.config.navWholeDecEvents?.has(hEvent)) {
-            this.wholeDec(this.getSelectedRadio(this.navRadios));
-        } else if (this.config.navFractionIncEvents?.has(hEvent)) {
-            this.fractInc(this.getSelectedRadio(this.navRadios));
-        } else if (this.config.navFractionDecEvents?.has(hEvent)) {
-            this.fractDec(this.getSelectedRadio(this.navRadios));
-        } else if (this.config.comSwitchEvents?.has(hEvent)) {
-            this.swapFreqs(this.getSelectedRadio(this.comRadios));
-        } else if (this.config.comSelectorEvents?.has(hEvent)) {
-            this.swapSelection(this.comRadios);
-        } else if (this.config.comWholeIncEvents?.has(hEvent)) {
-            this.wholeInc(this.getSelectedRadio(this.comRadios));
-        } else if (this.config.comWholeDecEvents?.has(hEvent)) {
-            this.wholeDec(this.getSelectedRadio(this.comRadios));
-        } else if (this.config.comFractionIncEvents?.has(hEvent)) {
-            this.fractInc(this.getSelectedRadio(this.comRadios));
-        } else if (this.config.comFractionDecEvents?.has(hEvent)) {
-            this.fractDec(this.getSelectedRadio(this.comRadios));
+        if (this.config !== undefined) {
+            // We can't use a switch statement here because of the need to retrieve
+            // the key from each map.  Sorry it's so ugly.
+            if (this.config.navSwitchEvents?.has(hEvent)) {
+                this.swapFreqs(this.getSelectedRadio(this.navRadios));
+            } else if (this.config.navSelectorEvents?.has(hEvent)) {
+                this.swapSelection(this.navRadios);
+            } else if (this.config.navWholeIncEvents?.has(hEvent)) {
+                this.wholeInc(this.getSelectedRadio(this.navRadios));
+            } else if (this.config.navWholeDecEvents?.has(hEvent)) {
+                this.wholeDec(this.getSelectedRadio(this.navRadios));
+            } else if (this.config.navFractionIncEvents?.has(hEvent)) {
+                this.fractInc(this.getSelectedRadio(this.navRadios));
+            } else if (this.config.navFractionDecEvents?.has(hEvent)) {
+                this.fractDec(this.getSelectedRadio(this.navRadios));
+            } else if (this.config.comSwitchEvents?.has(hEvent)) {
+                this.swapFreqs(this.getSelectedRadio(this.comRadios));
+            } else if (this.config.comSelectorEvents?.has(hEvent)) {
+                this.swapSelection(this.comRadios);
+            } else if (this.config.comWholeIncEvents?.has(hEvent)) {
+                this.wholeInc(this.getSelectedRadio(this.comRadios));
+            } else if (this.config.comWholeDecEvents?.has(hEvent)) {
+                this.wholeDec(this.getSelectedRadio(this.comRadios));
+            } else if (this.config.comFractionIncEvents?.has(hEvent)) {
+                this.fractInc(this.getSelectedRadio(this.comRadios));
+            } else if (this.config.comFractionDecEvents?.has(hEvent)) {
+                this.fractDec(this.getSelectedRadio(this.comRadios));
+            }
         }
-    }
+    };
 
     /**
      * Get the current selected radio in a collection of radios.

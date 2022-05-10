@@ -1,5 +1,5 @@
 import { ComponentProps, DisplayComponent, Subscribable, VNode } from 'msfssdk';
-import { Waypoint } from '../../Navigation/Waypoint';
+import { Waypoint } from 'msfssdk/navigation';
 
 /**
  * Component props for WaypointComponent.

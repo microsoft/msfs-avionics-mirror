@@ -1,5 +1,5 @@
 import { FSComponent, DisplayComponent, VNode, NodeReference, Fragment, Subject } from 'msfssdk';
-import { XMLGaugeColorZone, XMLDoubleVerticalGaugeProps, XMLHostedLogicGauge } from 'msfssdk/components/XMLGauges';
+import { XMLGaugeColorZone, XMLDoubleVerticalGaugeProps, XMLHostedLogicGauge, XMLVerticalGaugeProps } from 'msfssdk/components/XMLGauges';
 import { BaseGauge } from './BaseGauge';
 
 import './Gauge.css';
@@ -32,27 +32,32 @@ class VerticalColorZone extends DisplayComponent<ColorZoneProps & XMLHostedLogic
   private zoneMin = 0;
   private zoneMax = 0;
 
+  private gaugeRange = this.gaugeMax - this.gaugeMin;
+  // For gauges with smaller range we want to increase the precision of the logic to avoid
+  // having rounding errors make things look off.  We'll use single precision if the
+  // pixel height of a single unit of range is 4px or greater.
+  private logicPrecision = this.props.gaugeHeight / this.gaugeRange >= 4 ? 1 : 0;
 
   /** Do things after rendering. */
   public onAfterRender(): void {
     this.zoneMin = this.props.logicHost?.addLogicAsNumber(this.props.values.begin, (min: number) => {
       this.zoneMin = min; this.redraw();
-    }, 0, this.props.values.smoothFactor);
+    }, this.logicPrecision, this.props.values.smoothFactor);
 
     this.zoneMax = this.props.logicHost?.addLogicAsNumber(this.props.values.end, (max: number) => {
       this.zoneMax = max; this.redraw();
-    }, 0, this.props.values.smoothFactor);
+    }, this.logicPrecision, this.props.values.smoothFactor);
 
     if (this.props.gaugeMin) {
       this.gaugeMin = this.props.logicHost?.addLogicAsNumber(this.props.gaugeMin, (min: number) => {
         this.gaugeMin = min; this.redraw();
-      }, 0);
+      }, this.logicPrecision);
     }
 
     if (this.props.gaugeMax) {
       this.gaugeMax = this.props.logicHost?.addLogicAsNumber(this.props.gaugeMax, (max: number) => {
         this.gaugeMax = max; this.redraw();
-      }, 0);
+      }, this.logicPrecision);
     }
 
     this.theRect.instance.setAttribute('fill', this.props.values.color ? this.props.values.color : 'white');
@@ -88,10 +93,11 @@ class DoublePointer extends DisplayComponent<Partial<XMLDoubleVerticalGaugeProps
   private ptr1Label = FSComponent.createRef<SVGTextElement>();
   private ptr2Label = FSComponent.createRef<SVGTextElement>();
 
+  private ptr1Value = Subject.create(0);
+  private ptr2Value = Subject.create(0);
+
   private minimum = 0;
   private maximum = 0;
-  private value1 = 0;
-  private value2 = 0;
 
   /** Do stuff after rendering. */
   public onAfterRender(): void {
@@ -103,32 +109,34 @@ class DoublePointer extends DisplayComponent<Partial<XMLDoubleVerticalGaugeProps
     if (this.props.minimum !== undefined) {
       this.minimum = this.props.logicHost?.addLogicAsNumber(this.props.minimum, (min: number) => {
         this.minimum = min;
-        this.updatePtr(this.ptr1Div, this.value1);
-        this.updatePtr(this.ptr2Div, this.value2);
       }, 0);
     }
 
     if (this.props.maximum !== undefined) {
       this.maximum = this.props.logicHost?.addLogicAsNumber(this.props.maximum, (max: number) => {
         this.maximum = max;
-        this.updatePtr(this.ptr1Div, this.value1);
-        this.updatePtr(this.ptr2Div, this.value2);
       }, 0);
     }
 
     if (this.props.value1 !== undefined) {
-      this.value1 = this.props.logicHost?.addLogicAsNumber(this.props.value1, (val: number) => {
-        this.value1 = val;
-        this.updatePtr(this.ptr1Div, this.value1);
-      }, 2);
+      this.ptr1Value.set(this.props.logicHost?.addLogicAsNumber(this.props.value1, (val: number) => {
+        this.ptr1Value.set(val);
+      }, 2));
     }
 
     if (this.props.value2 !== undefined) {
-      this.value2 = this.props.logicHost?.addLogicAsNumber(this.props.value2, (val: number) => {
-        this.value2 = val;
-        this.updatePtr(this.ptr2Div, this.value2);
-      }, 2);
+      this.ptr2Value.set(this.props.logicHost?.addLogicAsNumber(this.props.value2, (val: number) => {
+        this.ptr2Value.set(val);
+      }, 2));
     }
+
+    this.ptr1Value.sub((val: number) => {
+      this.updatePtr(this.ptr1Div, val);
+    }, true);
+
+    this.ptr2Value.sub((val: number) => {
+      this.updatePtr(this.ptr2Div, val);
+    }, true);
   }
 
   /**
@@ -194,7 +202,11 @@ interface VerticalBarProps extends Partial<XMLDoubleVerticalGaugeProps> {
   /** The height of the bar in px */
   height: number,
   /** Which side of the bar to tick on. */
-  tickSide: 'left' | 'right'
+  tickSide: 'left' | 'right' | 'both',
+  /** How long the major ticks are. */
+  majorTickLength: number,
+  /** How long the minor ticks are. */
+  minorTickLength: number,
 }
 
 /** A single vertical bar. */
@@ -215,14 +227,20 @@ class VerticalBar extends DisplayComponent<VerticalBarProps & XMLHostedLogicGaug
 
   // Constants for tweaking layout.
   /** The length of the general minor ticks. */
-  private readonly minTickLength = 9;
+  private readonly minTickLength = this.props.minorTickLength;
   /** The length of major ticks, like the baselines. */
-  private readonly majTickLength = 9;
+  private readonly majTickLength = this.props.majorTickLength;
   /** The width of a color bar, in pixels. */
   private readonly zoneWidth = 6;
 
-  private minTickOffest = this.minTickLength * (this.props.tickSide == 'left' ? -1 : 1);
-  private majTickOffest = this.majTickLength * (this.props.tickSide == 'left' ? -1 : 1);
+  private minTickStart: number;
+  private minTickEnd: number;
+  private majTickStart: number;
+  private majTickEnd: number;
+
+  private minTickOffest = this.minTickLength * (this.props.tickSide !== 'right' ? -1 : 1);
+  private majTickOffest = this.majTickLength * (this.props.tickSide !== 'right' ? -1 : 1);
+
 
   /**
    * Create a horizontal gauge.
@@ -230,6 +248,26 @@ class VerticalBar extends DisplayComponent<VerticalBarProps & XMLHostedLogicGaug
    */
   constructor(props: VerticalBarProps & XMLHostedLogicGauge) {
     super(props);
+
+    switch (this.props.tickSide) {
+      case 'left':
+        this.minTickStart = -this.minTickLength;
+        this.majTickStart = -this.majTickLength;
+        this.minTickEnd = this.majTickEnd = 0;
+        break;
+      case 'right':
+        this.minTickStart = this.majTickStart = 0;
+        this.minTickEnd = this.minTickLength;
+        this.majTickEnd = this.majTickLength;
+        break;
+      case 'both':
+        this.minTickStart = -this.minTickLength * 0.5;
+        this.majTickStart = -this.majTickLength * 0.5;
+        this.minTickEnd = -this.minTickStart;
+        this.majTickEnd = -this.majTickStart;
+        break;
+    }
+
     this.geometry = {
       startX: this.x,
       startY: this.y,
@@ -249,7 +287,7 @@ class VerticalBar extends DisplayComponent<VerticalBarProps & XMLHostedLogicGaug
         for (let i = 1; i < graduations; i++) {
           const y = this.y + spacing * i;
           FSComponent.render(<g>
-            <line x1={this.x} y1={y} x2={this.x + this.minTickOffest} y2={y} stroke="white" stroke-width="1px" />
+            <line x1={this.x + this.minTickStart} y1={y} x2={this.x + this.minTickEnd} y2={y} stroke="white" stroke-width="1px" />
           </g>, this.tickGroupRef.instance);
         }
       }
@@ -272,7 +310,17 @@ class VerticalBar extends DisplayComponent<VerticalBarProps & XMLHostedLogicGaug
 
     if (this.props.colorZones) {
       const axisWidth = 0;
-      const zoneX = this.props.tickSide == 'left' ? this.x - this.zoneWidth : this.x + axisWidth;
+
+      let zoneX: number;
+      switch (this.props.tickSide) {
+        case 'left':
+          zoneX = this.x - this.zoneWidth; break;
+        case 'right':
+          zoneX = this.x + axisWidth; break;
+        case 'both':
+          zoneX = this.x - this.zoneWidth * 0.5; break;
+      }
+
       for (let i = 0; i < this.props.colorZones.length; i++) {
         FSComponent.render(
           <VerticalColorZone logicHost={this.props.logicHost} width={6} origin={{ x: zoneX, y: this.props.origin.y }}
@@ -287,8 +335,8 @@ class VerticalBar extends DisplayComponent<VerticalBarProps & XMLHostedLogicGaug
           <ColorLine logicHost={this.props.logicHost}
             geometry={this.geometry}
             color={this.props.colorLines[i].color}
-            tickLeft={this.props.tickSide == 'left' ? 15 : -1}
-            tickRight={this.props.tickSide == 'right' ? 15 : -1}
+            tickLeft={this.props.tickSide == 'left' || this.props.tickSide == 'both' ? 15 : -1}
+            tickRight={this.props.tickSide == 'right' || this.props.tickSide == 'both' ? 15 : -1}
             height={3}
             position={this.props.colorLines[i].position}
             smoothFactor={this.props.colorLines[i].smoothFactor} />,
@@ -305,12 +353,12 @@ class VerticalBar extends DisplayComponent<VerticalBarProps & XMLHostedLogicGaug
    */
   public render(): VNode {
     return <g ref={this.groupRef}>
-      <g ref={this.zoneGroupRef} />
-      <line x1={this.x} y1={this.y - 1} x2={this.x} y2={this.y + this.height}
+      <line x1={this.x} y1={this.y} x2={this.x} y2={this.y + this.height}
         stroke-width="1px" stroke="white" ref={this.baseLineRef} class="baseline" />
-      <line x1={this.x} y1={this.y} x2={this.x + this.majTickOffest} y2={this.y}
+      <g ref={this.zoneGroupRef} />
+      <line x1={this.x + this.majTickStart} y1={this.y} x2={this.x + this.majTickEnd} y2={this.y}
         stroke-width="1px" stroke="white" class="topBar" />
-      <line x1={this.x} y1={this.y + this.height} x2={this.x + this.majTickOffest} y2={this.y + this.height}
+      <line x1={this.x + this.majTickStart} y1={this.y + this.height} x2={this.x + this.majTickEnd} y2={this.y + this.height}
         stroke-width="1px" stroke="white" class="bottomBar" />
       <g ref={this.tickGroupRef} />
       <g ref={this.lineGroupRef} />
@@ -523,8 +571,8 @@ export class XMLDoubleVerticalGauge extends BaseGauge<Partial<XMLDoubleVerticalG
       <div class="double_vert_container">
         <svg viewBox="0 0 148 148" ref={this.svgRef}>
           <g ref={this.labelRef} />
-          <VerticalBar origin={{ x: this.column1X, y: this.baseY }} height={this.height} tickSide="left" {...this.props} />
-          <VerticalBar origin={{ x: this.column2X, y: this.baseY }} height={this.height} tickSide="right" {...this.props} />
+          <VerticalBar origin={{ x: this.column1X, y: this.baseY }} height={this.height} tickSide="left" majorTickLength={9} minorTickLength={9} {...this.props} />
+          <VerticalBar origin={{ x: this.column2X, y: this.baseY }} height={this.height} tickSide="right" majorTickLength={9} minorTickLength={9} {...this.props} />
           <g class='colorLines' ref={this.lineGroupRef} />
         </svg>
         <DoublePointer {...this.props} />
@@ -532,6 +580,163 @@ export class XMLDoubleVerticalGauge extends BaseGauge<Partial<XMLDoubleVerticalG
           <span class="gauge_value_left" ref={this.value1Ref} />
           <span class="gauge_title" ref={this.titleRef} />
           <span class="gauge_value_right" ref={this.value2Ref} />
+        </div>
+      </div>
+    );
+  }
+}
+
+/** Pointer displaying a single vertical value. */
+class SinglePointer extends DisplayComponent<Partial<XMLVerticalGaugeProps> & XMLHostedLogicGauge> {
+  private ptrDiv = FSComponent.createRef<HTMLDivElement>();
+  private ptrLabel = FSComponent.createRef<SVGTextElement>();
+
+  private minimum = 0;
+  private maximum = 0;
+  private value = 0;
+
+
+  /** Initialize and configure updates. */
+  public onAfterRender(): void {
+    this.ptrLabel.instance.textContent = this.props.cursorText1 !== undefined ? this.props.cursorText1 : '';
+    if (this.props.minimum !== undefined) {
+      this.minimum = this.props.logicHost?.addLogicAsNumber(this.props.minimum, (min: number) => {
+        this.minimum = min;
+        this.updatePtr(this.ptrDiv, this.value);
+      }, 0);
+    }
+
+    if (this.props.maximum !== undefined) {
+      this.maximum = this.props.logicHost?.addLogicAsNumber(this.props.maximum, (max: number) => {
+        this.maximum = max;
+        this.updatePtr(this.ptrDiv, this.value);
+      }, 0);
+    }
+
+    if (this.props.value1 !== undefined) {
+      this.value = this.props.logicHost?.addLogicAsNumber(this.props.value1, (val: number) => {
+        this.value = val;
+        this.updatePtr(this.ptrDiv, this.value);
+      }, 2);
+    }
+  }
+
+  /**
+   * Update a needle value.
+   * @param ptrRef A NodeReference to the needle div.
+   * @param value The new value to set.
+   */
+  private updatePtr(ptrRef: NodeReference<HTMLDivElement>, value: number): void {
+    value = Utils.Clamp(value, this.minimum, this.maximum);
+    const translation = 80 - ((value - this.minimum) / (this.maximum - this.minimum)) * 80;
+    ptrRef.instance.style.transform = `translate3d(0px,${(translation)}px, 0px)`;
+  }
+
+  /**
+   * Render the pointer.
+   * @returns A VNode
+   */
+  public render(): VNode {
+    return (
+      <div class="gauge_pointers">
+        <div class="gauge_pointer" ref={this.ptrDiv}>
+          <svg>
+            <defs>
+              <linearGradient id="pointerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:rgb(80,80,80);stop-opacity:1" />
+                <stop offset="30%" style="stop-color:rgb(255,255,255);stop-opacity:1" />
+                <stop offset="100%" style="stop-color:rgb(80,80,80);stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <path d="M 0 0 l 10 0 l 0 96 l -10 0 z" fill="url(#pointerGradient)" />
+            <text x="12" y="30" class="gauge_pointer_text" ref={this.ptrLabel} />
+          </svg>
+        </div>
+      </div>
+    );
+  }
+}
+
+/** A single vertical bar gauge. */
+export class XMLVerticalGauge extends BaseGauge<Partial<XMLVerticalGaugeProps> & XMLHostedLogicGauge> {
+  private svgRef = FSComponent.createRef<SVGElement>();
+  private titleRef = FSComponent.createRef<HTMLDivElement>();
+  private unitRef = FSComponent.createRef<HTMLDivElement>();
+
+  private valueRef = FSComponent.createRef<HTMLSpanElement>();
+  private labelRef = FSComponent.createRef<SVGGElement>();
+  private lineGroupRef = FSComponent.createRef<SVGGElement>();
+
+  private maxValue = Subject.create(0);
+  private minValue = Subject.create(0);
+  private geometry: BarGeometry;
+
+  /** The X location of the left column. */
+  private readonly columnX = 39;
+  /** The Y location of the base of the columns. */
+  private readonly baseY = 5;
+  /** The height of the columns, in pixels. */
+  private readonly height = 80;
+
+  /**
+   * Create a vertical gauge.
+   * @param props The properties for the gauge.
+   */
+  constructor(props: Partial<XMLDoubleVerticalGaugeProps> & XMLHostedLogicGauge) {
+    super(props);
+    this.geometry = {
+      startX: this.columnX,
+      startY: this.baseY,
+      endY: this.baseY + this.height,
+      minValue: this.minValue,
+      maxValue: this.maxValue
+    };
+  }
+
+  /** Initialize the rendered gauge */
+  protected initGauge(): void {
+    if (this.props.title || this.props.unit) {
+      this.titleRef.instance.textContent = `${this.props.title} ${this.props.unit}`;
+      if (this.props.beginText !== undefined) {
+        this.titleRef.instance.textContent += ` ${this.props.beginText}`;
+      }
+    }
+    if (this.props.minimum) {
+      this.minValue.set(this.props.logicHost?.addLogicAsNumber(this.props.minimum, (min: number) => {
+        this.minValue.set(min);
+      }, 0));
+    }
+
+    if (this.props.maximum) {
+      this.maxValue.set(this.props.logicHost?.addLogicAsNumber(this.props.maximum, (max: number) => {
+        this.maxValue.set(max);
+      }, 0));
+    }
+
+    if (this.props.value1 !== undefined) {
+      this.props.logicHost?.addLogicAsNumber(this.props.value1, (val: number) => {
+        this.valueRef.instance.textContent = `${val}`;
+      }, 0);
+    }
+  }
+
+  /**
+   * Render a single vertical gauge.
+   * @returns a VNode
+   */
+  protected renderGauge(): VNode {
+    return (
+      <div class="single_vert_container">
+        <div class="gauge_title" ref={this.titleRef} />
+        <div class="gauge_body">
+          <svg ref={this.svgRef}>
+            <VerticalBar origin={{ x: this.columnX, y: this.baseY }} height={this.height} tickSide="both" majorTickLength={15} minorTickLength={15} {...this.props} />
+            <g class='colorLines' ref={this.lineGroupRef} />
+          </svg>
+          <SinglePointer {...this.props} />
+        </div>
+        <div class="gauge_values">
+          <span class="gauge_value" ref={this.valueRef} />
         </div>
       </div>
     );

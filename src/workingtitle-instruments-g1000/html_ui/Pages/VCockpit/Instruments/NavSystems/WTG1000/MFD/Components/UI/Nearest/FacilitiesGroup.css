@@ -12,8 +12,7 @@
 }
 
 .mfd-nearest-facility-icon {
-  -webkit-transform: scale(0.9);
-  transform: scale(0.9);
+  transform: translate(0px, -4px) scale(0.9);
   width: 28px;
   height: 28px;
   object-fit: none;
@@ -35,13 +34,13 @@
 }
 
 .mfd-nearest-facility-bearing {
-  width: 44px;
+  width: 55px;
   margin-right: 6px;
   text-align: right;
 }
 
 .mfd-nearest-facility-distance {
-  width: 74px;
+  width: 80px;
   text-align: right;
 }
 
@@ -50,10 +49,6 @@
   padding: 2px 0 2px 0;
   color: white;
   font-size: 20px;
-}
-
-.mfd-nearest-facility-distance-units {
-  font-size: .75em;
 }
 
 div.groupbox-container.hidden-element {

@@ -1,12 +1,16 @@
 import { DisplayComponent, FSComponent, NodeReference, Subscribable, SubscribableArray, Subject, VNode } from 'msfssdk';
-import { Fms } from '../../FlightPlan/Fms';
 import { ContextMenuDialog, ContextMenuItemDefinition, ContextMenuOptions, ContextMenuPosition } from '../Dialogs/ContextMenuDialog';
 import { UiControl, UiControlProps } from '../UiControl';
+import { ViewService } from '../ViewService';
 
 /**
  * The properties for the SelectControl component.
  */
 interface SelectControlProps<T> extends UiControlProps {
+
+  /** The dialog/page view service to use. */
+  viewService: ViewService;
+
   /**
    * A function to be called when an item is selected.
    * @param index The index of the selected item.
@@ -62,7 +66,7 @@ export class SelectControl<T> extends UiControl<SelectControlProps<T>> {
   private readonly valueRef = FSComponent.createRef<HTMLElement>();
   private renderedValueNode: VNode | null = null;
 
-  public MenuItems: ContextMenuItemDefinition[] = []
+  public MenuItems: ContextMenuItemDefinition[] = [];
 
   public SelectedValue = Subject.create(-1);
 
@@ -106,7 +110,7 @@ export class SelectControl<T> extends UiControl<SelectControlProps<T>> {
         outerContainer: this.props.outerContainer.instance,
         initialScrollPosition: this.props.dialogScrollStartIndex?.get() ?? this.SelectedValue.get()
       };
-      const dialog = Fms.viewService.open(ContextMenuDialog.name, true).setInput(dialogOptions);
+      const dialog = this.props.viewService.open(ContextMenuDialog.name, true).setInput(dialogOptions);
       dialog.onAccept.on(selectCb);
       dialog.onClose.on(() => {
         this.deactivate();

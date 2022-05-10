@@ -1,32 +1,44 @@
-import { NumberUnitInterface, Unit } from '../../utils/math/NumberUnit';
-import { Subscribable } from '../../utils/Subscribable';
+import { NumberUnitInterface, Unit } from '../../math/NumberUnit';
+import { Subject } from '../../sub/Subject';
+import { Subscribable } from '../../sub/Subscribable';
+import { Subscription } from '../../sub/Subscription';
 import { ComponentProps, DisplayComponent } from '../FSComponent';
 
 /**
- * Component props for NumberUnitDisplay.
+ * Component props for AbstractNumberUnitDisplay.
  */
 export interface AbstractNumberUnitDisplayProps<F extends string> extends ComponentProps {
-  /** A subscribable which provides a NumberUnit value to bind. */
-  value: Subscribable<NumberUnitInterface<F>>;
+  /** The {@link NumberUnitInterface} value to display, or a subscribable which provides it. */
+  value: NumberUnitInterface<F> | Subscribable<NumberUnitInterface<F>>;
 
   /**
-   * A subscribable which provides a display unit type to bind. If the unit is null, then the native type of the bound
-   * NumberUnit is used instead.
+   * The unit type in which to display the value, or a subscribable which provides it. If the unit is `null`, then the
+   * native type of the value is used instead.
    */
-  displayUnit: Subscribable<Unit<F> | null>;
+  displayUnit: Unit<F> | null | Subscribable<Unit<F> | null>;
 }
 
 /**
  * A component which displays a number with units.
  */
 export abstract class AbstractNumberUnitDisplay<F extends string, P extends AbstractNumberUnitDisplayProps<F> = AbstractNumberUnitDisplayProps<F>> extends DisplayComponent<P> {
-  private readonly valueChangedHandler = this.onValueChanged.bind(this);
-  private readonly displayUnitChangedHandler = this.onDisplayUnitChanged.bind(this);
+  /** A subscribable which provides the value to display. */
+  protected readonly value: Subscribable<NumberUnitInterface<F>> = ('isSubscribable' in this.props.value)
+    ? this.props.value
+    : Subject.create(this.props.value);
+
+  /** A subscribable which provides the unit type in which to display the value. */
+  protected readonly displayUnit: Subscribable<Unit<F> | null> = this.props.displayUnit !== null && ('isSubscribable' in this.props.displayUnit)
+    ? this.props.displayUnit
+    : Subject.create(this.props.displayUnit);
+
+  private valueSub?: Subscription;
+  private displayUnitSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.props.value.sub(this.valueChangedHandler, true);
-    this.props.displayUnit.sub(this.displayUnitChangedHandler, true);
+    this.valueSub = this.value.sub(this.onValueChanged.bind(this), true);
+    this.displayUnitSub = this.displayUnit.sub(this.onDisplayUnitChanged.bind(this), true);
   }
 
   /**
@@ -41,9 +53,9 @@ export abstract class AbstractNumberUnitDisplay<F extends string, P extends Abst
    */
   protected abstract onDisplayUnitChanged(displayUnit: Unit<F> | null): void;
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public destroy(): void {
-    this.props.value.unsub(this.valueChangedHandler);
-    this.props.displayUnit.unsub(this.displayUnitChangedHandler);
+    this.valueSub?.destroy();
+    this.displayUnitSub?.destroy();
   }
 }

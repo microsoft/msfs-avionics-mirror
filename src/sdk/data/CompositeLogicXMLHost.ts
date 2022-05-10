@@ -35,6 +35,16 @@ export class CompositeLogicXMLHost {
 
   private context = new LogicXMLContext();
 
+  private isPaused = false;
+
+  /**
+   * Set to pause the logic update loop. 
+   * @param isPaused True to pause, false to resume. 
+   */
+  public setIsPaused(isPaused: boolean): void {
+    this.isPaused = isPaused;
+  }
+
   /**
    * Add a new logic element to calcluate a number or a string.
    * @param logic A CompositeLogicXMLElement.
@@ -88,41 +98,43 @@ export class CompositeLogicXMLHost {
    * @param deltaTime The time since the last update, in ms.
    */
   public update(deltaTime: number): void {
-    for (let i = 0; i < this.anyHandlers.length; i++) {
-      const newVal = this.anyHandlers[i].logic.getValue(this.context);
-      if (newVal !== this.anyResultCache[i]) {
-        this.anyResultCache[i] = newVal;
-        this.anyHandlers[i].handler(newVal);
+    if (!this.isPaused) {
+      for (let i = 0; i < this.anyHandlers.length; i++) {
+        const newVal = this.anyHandlers[i].logic.getValue(this.context);
+        if (newVal !== this.anyResultCache[i]) {
+          this.anyResultCache[i] = newVal;
+          this.anyHandlers[i].handler(newVal);
+        }
       }
-    }
 
-    for (let i = 0; i < this.stringHandlers.length; i++) {
-      const newVal = this.stringHandlers[i].logic.getValueAsString(this.context);
-      if (newVal !== this.stringResultCache[i]) {
-        this.stringResultCache[i] = newVal;
-        this.stringHandlers[i].handler(newVal);
+      for (let i = 0; i < this.stringHandlers.length; i++) {
+        const newVal = this.stringHandlers[i].logic.getValueAsString(this.context);
+        if (newVal !== this.stringResultCache[i]) {
+          this.stringResultCache[i] = newVal;
+          this.stringHandlers[i].handler(newVal);
+        }
       }
-    }
 
-    for (let i = 0; i < this.numberHandlers.length; i++) {
-      let newVal = this.numberHandlers[i].logic.getValueAsNumber(this.context);
-      let precision = this.numberHandlers[i].precision;
-      if (precision !== undefined) {
-        precision = Math.pow(10, precision);
-        newVal = Math.round(newVal * precision) / precision;
+      for (let i = 0; i < this.numberHandlers.length; i++) {
+        let newVal = this.numberHandlers[i].logic.getValueAsNumber(this.context);
+        let precision = this.numberHandlers[i].precision;
+        if (precision !== undefined) {
+          precision = Math.pow(10, precision);
+          newVal = Math.round(newVal * precision) / precision;
+        }
+        if (this.numberHandlers[i].smoothFactor !== undefined && this.numberHandlers[i].smoothFactor !== 0) {
+          // A smoothFactor of 0 means no smoothing.  We don't trigger this update if the factor is
+          // undefined or 0, but typescript still thinks is could be undefined due to the array indexing.
+          // The 'or-0' here is just to get around that without having to do a temporary assignment.
+          newVal = Utils.SmoothLinear(this.numberResultCache[i], newVal, this.numberHandlers[i].smoothFactor || 0, deltaTime);
+        }
+        if (newVal !== this.numberResultCache[i]) {
+          this.numberResultCache[i] = newVal;
+          this.numberHandlers[i].handler(newVal);
+        }
       }
-      if (this.numberHandlers[i].smoothFactor !== undefined && this.numberHandlers[i].smoothFactor !== 0) {
-        // A smoothFactor of 0 means no smoothing.  We don't trigger this update if the factor is
-        // undefined or 0, but typescript still thinks is could be undefined due to the array indexing.
-        // The 'or-0' here is just to get around that without having to do a temporary assignment.
-        newVal = Utils.SmoothLinear(this.numberResultCache[i], newVal, this.numberHandlers[i].smoothFactor || 0, deltaTime);
-      }
-      if (newVal !== this.numberResultCache[i]) {
-        this.numberResultCache[i] = newVal;
-        this.numberHandlers[i].handler(newVal);
-      }
-    }
 
-    this.context.update();
+      this.context.update();
+    }
   }
 }

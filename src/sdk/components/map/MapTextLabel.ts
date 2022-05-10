@@ -1,5 +1,5 @@
-import { GeoPoint, GeoPointInterface, GeoPointReadOnly } from '../../utils/geo/GeoPoint';
-import { Vec2Math } from '../../utils/math/VecMath';
+import { GeoPoint, GeoPointInterface, GeoPointReadOnly } from '../../geo/GeoPoint';
+import { Vec2Math } from '../../math/VecMath';
 import { MapProjection } from './MapProjection';
 
 /**
@@ -51,7 +51,7 @@ export interface AbstractMapTextLabelOptions {
   /** The label's background color. */
   bgColor?: string;
 
-  /** The padding of the label's background, in pixels. Expressed as [left, top, right, bottom]. */
+  /** The padding of the label's background, in pixels. Expressed as [top, right, bottom, left]. */
   bgPadding?: number[];
 
   /** The border radius of the label's background. */

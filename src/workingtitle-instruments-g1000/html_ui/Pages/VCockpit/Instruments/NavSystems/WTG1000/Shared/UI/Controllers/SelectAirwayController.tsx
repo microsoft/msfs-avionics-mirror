@@ -2,7 +2,7 @@ import { FSComponent, NodeReference, Subject, VNode } from 'msfssdk';
 import { IntersectionFacility, FacilityType, ICAO } from 'msfssdk/navigation';
 import { FlightPlannerEvents } from 'msfssdk/flightplan';
 
-import { Fms } from '../../FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { ContextMenuDialog, ContextMenuItemDefinition } from '../Dialogs/ContextMenuDialog';
 import { SelectControl } from '../UIControls/SelectControl';
 import { SelectAirwayStore } from './SelectAirwayStore';
@@ -99,7 +99,7 @@ export class SelectAirwayController {
     if (!isRefresh) {
       this.selectNextCb();
     }
-  }
+  };
 
   /**
    * Callback handler for when an airway is selected.
@@ -121,7 +121,7 @@ export class SelectAirwayController {
         this.gotoNextSelect(isRefresh);
       });
     }
-  }
+  };
 
   /**
    * Builds an airway menu item.
@@ -130,7 +130,7 @@ export class SelectAirwayController {
    */
   public buildAirwayMenuItem = (airway: string): ContextMenuItemDefinition => {
     return { id: airway, renderContent: (): VNode => <span>{airway}</span>, estimatedWidth: airway.length * ContextMenuDialog.CHAR_WIDTH };
-  }
+  };
 
   /**
    * Callback handler for when an enroute transition is selected.
@@ -167,17 +167,17 @@ export class SelectAirwayController {
       isEnabled: isEnabled,
       estimatedWidth: ident.length * ContextMenuDialog.CHAR_WIDTH
     };
-  }
+  };
 
   /** Callback handler for when load is pressed. */
   public onLoadSelected = (): void => {
     this.onLoadExecuted();
-  }
+  };
 
   /** Callback handler for when load is pressed. */
   public onLoadExecuted = (): void => {
     if (this.store.selectedFacility !== undefined && this.store.selectedAirway !== undefined && this.store.selectedExit !== undefined) {
       this.fms.insertAirwaySegment(this.store.selectedAirway, this.store.selectedFacility, this.store.selectedExit, this.store.inputSegment, this.store.inputLeg);
     }
-  }
+  };
 }

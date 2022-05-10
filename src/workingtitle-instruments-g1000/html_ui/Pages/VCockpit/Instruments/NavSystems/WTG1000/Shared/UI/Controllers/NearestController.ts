@@ -1,7 +1,7 @@
 import { NearestStore } from './NearestStore';
-import { Fms } from '../../FlightPlan/Fms';
 import { ControlPublisher } from 'msfssdk/data';
 import { AirportFacility } from 'msfssdk/navigation';
+import { ViewService } from '../ViewService';
 
 /** A nearest controleer */
 export class NearestController {
@@ -15,8 +15,9 @@ export class NearestController {
    * Creates one.
    * @param store the store
    * @param publisher A ControlPublisher for freq set events.
+   * @param viewService The View Service.
    */
-  constructor(store: NearestStore, publisher: ControlPublisher) {
+  constructor(store: NearestStore, publisher: ControlPublisher, private readonly viewService: ViewService) {
     this.store = store;
     this.publisher = publisher;
   }
@@ -28,7 +29,7 @@ export class NearestController {
    */
   private onDirectIdent(airport: AirportFacility | null): boolean {
     if (airport) {
-      Fms.viewService.open('DirectTo').setInput({
+      this.viewService.open('DirectTo').setInput({
         icao: airport.icao
       });
     }

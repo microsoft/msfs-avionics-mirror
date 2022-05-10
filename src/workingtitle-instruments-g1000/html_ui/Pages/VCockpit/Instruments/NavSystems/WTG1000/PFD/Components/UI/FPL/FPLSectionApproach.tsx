@@ -1,10 +1,8 @@
 import { VNode, FSComponent, Subject } from 'msfssdk';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { FmsUtils } from 'garminsdk/flightplan';
 import { FPLHeaderApproach } from '../../../../Shared/UI/FPL/FPLHeaderApproach';
 import { FPLSection } from './FPLSection';
 import { ApproachNameDisplay } from '../../../../Shared/UI/FPL/ApproachNameDisplay';
-import { FmsUtils } from '../../../../Shared/FlightPlan/FmsUtils';
-import { ControlList } from '../../../../Shared/UI/ControlList';
 
 /**
  * Render the approach phase of a flight plan.
@@ -25,7 +23,7 @@ export class FPLApproach extends FPLSection {
     const approach = airport ? FmsUtils.getApproachFromPlan(plan, airport) : undefined;
 
     if (approach) {
-      Fms.viewService.open('MessageDialog', true).setInput({
+      this.props.viewService.open('MessageDialog', true).setInput({
         renderContent: (): VNode => {
           return (
             <div style='display: inline-block;'>Remove <ApproachNameDisplay approach={Subject.create(approach)} /> from flight plan?</div>
@@ -41,7 +39,7 @@ export class FPLApproach extends FPLSection {
         });
     }
     return false;
-  }
+  };
 
   /** @inheritdoc */
   protected onHeaderFocused(): void {
@@ -63,15 +61,10 @@ export class FPLApproach extends FPLSection {
       <div id='fpln-approach'>
         <FPLHeaderApproach
           ref={this.headerRef} onClr={this.onClrHeader}
-          fms={this.props.fms} facilities={this.props.facilities}
+          fms={this.props.fms} facilities={this.props.facilities} segment={this.segment}
           onFocused={this.onHeaderFocused.bind(this)} scrollContainer={this.props.scrollContainer}
         />
-        <ControlList
-          ref={this.listRef} data={this.legs}
-          renderItem={this.renderItem}
-          onItemSelected={this.onLegItemSelected.bind(this)}
-          hideScrollbar scrollContainer={this.props.scrollContainer}
-        />
+        {this.renderLegList()}
       </div>
     );
   }

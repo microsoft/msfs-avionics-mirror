@@ -1,4 +1,4 @@
-import { ScrollUtils } from '../ScrollUtils';
+import { ScrollUtils } from 'msfssdk/graphics/layout';
 import { UiControl } from './UiControl';
 import { ScrollableControl } from './UiView';
 
@@ -129,7 +129,7 @@ export class ScrollController {
    */
   public gotoNext = (): boolean => {
     return this.scrollTo('next');
-  }
+  };
 
   /**
    * Scroll backwards.
@@ -137,7 +137,7 @@ export class ScrollController {
    */
   public gotoPrev = (): boolean => {
     return this.scrollTo('prev');
-  }
+  };
 
   /**
    * Gets controls count
@@ -164,7 +164,7 @@ export class ScrollController {
     if (el !== null && this.scrollContainer) {
       ScrollUtils.ensureInView(el as HTMLElement, this.scrollContainer);
     }
-  }
+  };
 
   /**
    * Highlights the next focusable control in the direction.

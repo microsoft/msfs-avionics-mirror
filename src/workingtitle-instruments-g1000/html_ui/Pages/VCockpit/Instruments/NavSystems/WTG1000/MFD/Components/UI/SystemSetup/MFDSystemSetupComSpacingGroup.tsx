@@ -31,6 +31,7 @@ export class MFDSystemSetupComSpacingGroup extends DisplayComponent<MFDSystemSet
         <MFDSystemSetupSelectRow<NavComUserSettingTypes, 'comSpacing'>
           title='Channel Spacing'
           selectControlProps={{
+            viewService: this.props.viewService,
             registerFunc: this.props.registerFunc,
             settingManager: this.settingManager,
             settingName: 'comSpacing',

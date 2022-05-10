@@ -1,17 +1,16 @@
 import { VNode, FSComponent } from 'msfssdk';
-import { AirportFacility, Facility, ICAO, OneWayRunway } from 'msfssdk/navigation';
+import { AirportFacility, ICAO } from 'msfssdk/navigation';
 import { FlightPlanSegmentType } from 'msfssdk/flightplan';
 
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { FmsUtils } from 'garminsdk/flightplan';
 import { SetRunway } from '../../../../Shared/UI/SetRunway/SetRunway';
 import { FixInfo } from './FixInfo';
 import { FPLEmptyRow } from '../../../../Shared/UI/FPL/FPLEmptyRow';
 import { FPLHeaderDeparture } from '../../../../Shared/UI/FPL/FPLHeaderDeparture';
 import { FPLSection } from './FPLSection';
-import { FmsUtils } from '../../../../Shared/FlightPlan/FmsUtils';
 import { FlightPlanFocus } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
-import { UiControl2 } from '../../../../Shared/UI/UiControl2';
-import { ControlList } from '../../../../Shared/UI/ControlList';
+import { G1000UiControl } from '../../../../Shared/UI/G1000UiControl';
+import { WptInfo } from '../../../../Shared/UI/WptInfo/WptInfo';
 
 /**
  * Render the departure phase of the flight plan.
@@ -26,13 +25,13 @@ export class FPLDeparture extends FPLSection {
   }
 
   /** @inheritdoc */
-  protected onUpperKnobLeg = (source: UiControl2): boolean => {
+  protected onUpperKnobLeg = (source: G1000UiControl): boolean => {
     const legIndex = this.listRef.instance.indexOf(source);
     const plan = this.props.fms.getFlightPlan();
     const origin = plan.originAirport;
     if (origin && legIndex === 0) {
-      Fms.viewService.open('SetRunway', true).setInput(this.props.facilities.originFacility as AirportFacility)
-        .onAccept.on((sender: SetRunway, data: OneWayRunway | undefined) => {
+      (this.props.viewService.open('SetRunway', true) as SetRunway).setInput(this.props.facilities.originFacility as AirportFacility)
+        .onAccept.on((sender, data) => {
           this.props.fms.setOrigin(this.props.facilities.originFacility, data);
         });
 
@@ -40,7 +39,7 @@ export class FPLDeparture extends FPLSection {
     } else {
       return this.onUpperKnobLegBase(source);
     }
-  }
+  };
 
   /** @inheritdoc */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -48,7 +47,7 @@ export class FPLDeparture extends FPLSection {
     //noop
   }
 
-  /** 
+  /**
    * Callback firing when upper knob event on the header is fired.
    * @returns Whether or not the event was handled.
    */
@@ -56,13 +55,17 @@ export class FPLDeparture extends FPLSection {
     const plan = this.props.fms.getFlightPlan();
     const origin = plan.originAirport;
     if (!origin || origin === undefined) {
-      Fms.viewService.open('WptInfo', true)
-        .onAccept.on((sender, fac: Facility) => {
+      this.props.viewService.open<WptInfo>('WptInfo', true)
+        .onAccept.on((sender, fac) => {
+          if (fac === undefined) {
+            return;
+          }
+
           // check if its airportfacility interface
           if ('bestApproach' in fac) {
             this.props.fms.setOrigin(fac as AirportFacility);
-            Fms.viewService.open('SetRunway', true).setInput(fac as AirportFacility)
-              .onAccept.on((subSender: SetRunway, data: OneWayRunway | undefined) => {
+            this.props.viewService.open<SetRunway>('SetRunway', true).setInput(fac as AirportFacility)
+              .onAccept.on((subSender, data) => {
                 this.props.fms.setOrigin(this.props.facilities.originFacility, data);
               });
           } else {
@@ -70,7 +73,7 @@ export class FPLDeparture extends FPLSection {
             if (firstEnrSegment) {
               const success = this.props.fms.insertWaypoint(firstEnrSegment.segmentIndex, fac, 0);
               if (!success) {
-                Fms.viewService.open('MessageDialog', true).setInput({ inputString: 'Invalid flight plan modification.' });
+                this.props.viewService.open('MessageDialog', true).setInput({ inputString: 'Invalid flight plan modification.' });
               }
             }
           }
@@ -80,7 +83,7 @@ export class FPLDeparture extends FPLSection {
     }
 
     return false;
-  }
+  };
 
   /**
    * Callback firing when CLR on the header is pressed.
@@ -94,7 +97,7 @@ export class FPLDeparture extends FPLSection {
     if (departure) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const name = FmsUtils.getDepartureNameAsString(airport!, departure, plan.procedureDetails.departureTransitionIndex, plan.procedureDetails.originRunway);
-      Fms.viewService.open('MessageDialog', true).setInput({ inputString: `Remove ${name} from flight plan?`, hasRejectButton: true })
+      this.props.viewService.open('MessageDialog', true).setInput({ inputString: `Remove ${name} from flight plan?`, hasRejectButton: true })
         .onAccept.on((sender, accept) => {
           if (accept) {
             this.props.fms.removeDeparture();
@@ -104,15 +107,15 @@ export class FPLDeparture extends FPLSection {
     }
 
     return false;
-  }
+  };
 
   /** @inheritdoc */
-  protected onClrLeg = (source: UiControl2): boolean => {
+  protected onClrLeg = (source: G1000UiControl): boolean => {
     const legIndex = this.listRef.instance.indexOf(source);
     const plan = this.props.fms.getFlightPlan();
     const origin = plan.originAirport;
     if (origin && legIndex == 0) {
-      Fms.viewService.open('MessageDialog', true).setInput({ inputString: `Remove ${ICAO.getIdent(origin)}?`, hasRejectButton: true })
+      this.props.viewService.open('MessageDialog', true).setInput({ inputString: `Remove ${ICAO.getIdent(origin)}?`, hasRejectButton: true })
         .onAccept.on((sender, accept) => {
           if (accept) {
             this.props.fms.setOrigin(undefined);
@@ -123,7 +126,7 @@ export class FPLDeparture extends FPLSection {
       return this.onClrLegBase(source as FixInfo);
     }
     return false;
-  }
+  };
 
   /** @inheritdoc */
   protected onHeaderFocused(): void {
@@ -150,15 +153,10 @@ export class FPLDeparture extends FPLSection {
       <div id='fpln-departure'>
         <FPLHeaderDeparture
           ref={this.headerRef} facilities={this.props.facilities}
-          fms={this.props.fms} onClr={this.onClrHeader}
+          fms={this.props.fms} segment={this.segment} onClr={this.onClrHeader}
           onFocused={this.onHeaderFocused.bind(this)} scrollContainer={this.props.scrollContainer}
         />
-        <ControlList
-          ref={this.listRef} data={this.legs}
-          renderItem={this.renderItem}
-          onItemSelected={this.onLegItemSelected.bind(this)}
-          hideScrollbar scrollContainer={this.props.scrollContainer}
-        />
+        {this.renderLegList()}
         <FPLEmptyRow
           ref={this.emptyRowRef} onUpperKnobInc={this.onUpperKnobEmptyRow}
           onFocused={this.onEmptyRowFocused.bind(this)} scrollContainer={this.props.scrollContainer}

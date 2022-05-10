@@ -38,9 +38,15 @@
   color: white;
 }
 
-.ADFDME-dme-select {
+.ADFDME-adf-select-toggle {
   font-size: 18px;
   color: cyan;
+}
+
+.ADFDME-dme-select-toggle {
+  font-size: 18px;
+  color: cyan;
+  display: inline-block;
 }
 
 .ADFDME-ent-transfer {

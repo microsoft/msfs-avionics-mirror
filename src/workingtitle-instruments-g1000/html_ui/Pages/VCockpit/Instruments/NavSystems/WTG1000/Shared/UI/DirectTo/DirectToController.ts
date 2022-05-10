@@ -1,8 +1,9 @@
 import { NavAngleUnit, Subject } from 'msfssdk';
 import { FlightPlan } from 'msfssdk/flightplan';
-import { Facility } from 'msfssdk/navigation';
-import { DirectToState, Fms } from '../../FlightPlan/Fms';
-import { FacilityWaypoint, Waypoint } from '../../Navigation/Waypoint';
+import { Facility, FacilityWaypoint, Waypoint } from 'msfssdk/navigation';
+
+import { DirectToState, Fms } from 'garminsdk/flightplan';
+
 import { UiView } from '../UiView';
 import { ViewService } from '../ViewService';
 import { DirectToInputData } from './DirectTo';
@@ -218,14 +219,13 @@ export class DirectToController {
    */
   private syncCourseInput(): void {
     const bearing = this.store.waypointInfoStore.bearing.get().asUnit(DirectToController.BEARING_MAGNETIC);
+    let input = 0;
+
     if (!isNaN(bearing)) {
-      const crs = Math.round(bearing) % 360;
-      this.store.courseTens.set(Math.floor(crs / 10));
-      this.store.courseOnes.set(crs % 10);
-    } else {
-      this.store.courseTens.set(0);
-      this.store.courseOnes.set(0);
+      input = 360 - (360 - Math.round(bearing) % 360) % 360;
     }
+
+    this.store.courseInputValue.set(input);
     this.store.course.set(undefined);
   }
 

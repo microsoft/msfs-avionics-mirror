@@ -1,6 +1,7 @@
 import { FSComponent, DisplayComponent, VNode, ComponentProps } from 'msfssdk';
-import { CompositeLogicXMLHost, EventBus } from 'msfssdk/data';
+import { CompositeLogicXMLHost, EventBus, KeyEventData, KeyEvents, KeyInterceptManager } from 'msfssdk/data';
 import { Annunciation, AnnunciationType } from 'msfssdk/components/Annunciatons';
+import { SoundPublisher } from 'msfssdk/utils/sound';
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 
 import './CAS.css';
@@ -20,7 +21,13 @@ interface CASProps extends ComponentProps {
   /** Our logic handler. */
   logicHandler: CompositeLogicXMLHost,
   /** The configured annunciations. */
-  annunciations: Array<Annunciation>
+  annunciations: Array<Annunciation>,
+  /** A publisher for sound events. */
+  soundPublisher: SoundPublisher,
+  /** The ID string for the caution sound. */
+  cautionSoundId?: string,
+  /** The ID string for the warning sound. */
+  warningSoundId?: string
 }
 
 /** A G1000 PFD CAS display. */
@@ -38,18 +45,35 @@ export class CAS extends DisplayComponent<CASProps> {
   private numNewDisplayed = 0;
   /** The number of acked messages currently displayed. */
   private numAckedDisplayed = 0;
+  /** The number of warnings we need to be playing a sound for. */
+  private numActiveWarnings = 0;
+  /** The total number of warnings displayed. */
+  private totalWarnings = 0;
+  /** The total number of cautions displayed. */
+  private totalCautions = 0;
 
   /**
    * Determine whether we need to hide or unhide ourselves when a child's state changes.
    * @param state Whether the alert is acknowledged or not.
-   * @param active Whether the child has going active.
+   * @param type The type of alert.
+   * @param active Whether the child has gone active.
    */
-  private setDisplayed(state: AlertState, active: boolean): void {
+  private setDisplayed(state: AlertState, type: AnnunciationType, active: boolean): void {
     switch (state) {
       case AlertState.New:
         if (active) {
           // A new alert has been displayed.
           this.numNewDisplayed++;
+          switch (type) {
+            case AnnunciationType.Caution:
+              this.totalCautions++;
+              this.setMasterStatus(AnnunciationType.Caution, true);
+              break;
+            case AnnunciationType.Warning:
+              this.totalWarnings++;
+              this.setMasterStatus(AnnunciationType.Warning, true);
+              break;
+          }
           // If we are adding our first active alert, we need to display the full CAS block.
           if (this.numNewDisplayed == 1) {
             this.divRef.instance.style.display = 'block';
@@ -58,9 +82,26 @@ export class CAS extends DisplayComponent<CASProps> {
           if (this.numAckedDisplayed > 0) {
             this.dividerRef.instance.style.display = 'block';
           }
+          // Trigger the play of caution or warning sounds if appropriate.
+          if (type == AnnunciationType.Caution && this.props.cautionSoundId !== undefined && !this.numActiveWarnings) {
+            this.props.soundPublisher.playSound(this.props.cautionSoundId);
+          } else if (type == AnnunciationType.Warning && this.props.warningSoundId !== undefined && ++this.numActiveWarnings == 1) {
+            this.props.soundPublisher.startSound(this.props.warningSoundId);
+          }
         } else {
           // A previously displayed alert has been hidden.
           this.numNewDisplayed--;
+          switch (type) {
+            case AnnunciationType.Caution:
+              if (--this.totalCautions == 0) {
+                this.setMasterStatus(AnnunciationType.Caution, false);
+              }
+              break;
+            case AnnunciationType.Warning:
+              if (--this.totalWarnings == 0) {
+                this.setMasterStatus(AnnunciationType.Warning, false);
+              }
+          }
           // If nothing other new alerts are displayed we can hide divider block.
           if (this.numNewDisplayed == 0) {
             this.dividerRef.instance.style.display = 'none';
@@ -69,12 +110,26 @@ export class CAS extends DisplayComponent<CASProps> {
               this.divRef.instance.style.display = 'none';
             }
           }
+          // Disable the warning sound if it's playing and nothing else needs it.
+          if (type == AnnunciationType.Warning && this.props.warningSoundId !== undefined && --this.numActiveWarnings == 0) {
+            this.props.soundPublisher.stopSound(this.props.warningSoundId);
+          }
         }
         break;
       case AlertState.Acked:
         if (active) {
           // A new acked alert has been displayed.
           this.numAckedDisplayed++;
+          switch (type) {
+            case AnnunciationType.Caution:
+              this.totalCautions++;
+              this.setMasterStatus(AnnunciationType.Caution, true);
+              break;
+            case AnnunciationType.Warning:
+              this.totalWarnings++;
+              this.setMasterStatus(AnnunciationType.Warning, true);
+              break;
+          }
           // If we're adding our first acked alert, we need to display the full CAS block.
           if (this.numAckedDisplayed == 1) {
             this.divRef.instance.style.display = 'block';
@@ -89,6 +144,17 @@ export class CAS extends DisplayComponent<CASProps> {
         } else {
           // A previously acked alert has been hidden.
           this.numAckedDisplayed--;
+          switch (type) {
+            case AnnunciationType.Caution:
+              if (--this.totalCautions == 0) {
+                this.setMasterStatus(AnnunciationType.Caution, false);
+              }
+              break;
+            case AnnunciationType.Warning:
+              if (--this.totalWarnings == 0) {
+                this.setMasterStatus(AnnunciationType.Warning, false);
+              }
+          }
           // If that was the last one, hide the divider.
           if (this.numAckedDisplayed == 0) {
             this.dividerRef.instance.style.display = 'none';
@@ -104,15 +170,41 @@ export class CAS extends DisplayComponent<CASProps> {
 
   /** Iterate through the configured annunciations and render each into the new and acked divs. */
   public onAfterRender(): void {
+    this.setMasterStatus(AnnunciationType.Caution, false);
+    this.setMasterStatus(AnnunciationType.Warning, false);
+
+    KeyInterceptManager.getManager(this.props.bus).then(manager => {
+      manager.interceptKey('MASTER_CAUTION_ACKNOWLEDGE', true);
+      manager.interceptKey('MASTER_WARNING_ACKNOWLEDGE', true);
+    });
+
     for (const ann of this.props.annunciations) {
       FSComponent.render(
         <CASAnnunciation bus={this.props.bus} logicHandler={this.props.logicHandler} config={ann}
-          stateCb={this.setDisplayed.bind(this, AlertState.New)} stateShown={AlertState.New} />,
+          stateCb={this.setDisplayed.bind(this, AlertState.New, ann.type)} stateShown={AlertState.New} />,
         this.newRef.instance);
       FSComponent.render(
         <CASAnnunciation bus={this.props.bus} logicHandler={this.props.logicHandler} config={ann}
-          stateCb={this.setDisplayed.bind(this, AlertState.Acked)} stateShown={AlertState.Acked} />,
+          stateCb={this.setDisplayed.bind(this, AlertState.Acked, ann.type)} stateShown={AlertState.Acked} />,
         this.ackRef.instance);
+    }
+  }
+
+  /**
+   * Set both sets of simvars relevant to a master caution or warning status.
+   * @param type The type of the status to set
+   * @param active Whether or not the status is active
+   */
+  private setMasterStatus(type: AnnunciationType, active: boolean): void {
+    switch (type) {
+      case AnnunciationType.Caution:
+        SimVar.SetSimVarValue('K:MASTER_CAUTION_SET', 'bool', active);
+        SimVar.SetSimVarValue('L:Generic_Master_Caution_Active', 'bool', active);
+        break;
+      case AnnunciationType.Warning:
+        SimVar.SetSimVarValue('K:MASTER_WARNING_SET', 'bool', active);
+        SimVar.SetSimVarValue('L:Generic_Master_Warning_Active', 'bool', active);
+        break;
     }
   }
 
@@ -173,18 +265,27 @@ class CASAnnunciation extends DisplayComponent<AnnunciationProps> {
 
   /** Register our alert logic handlers and subscribe to the G1000 bus for alert push events. */
   public onAfterRender(): void {
+    let intercept: string | undefined;
+    switch (this.props.config.type) {
+      case AnnunciationType.Caution:
+        intercept = 'MASTER_CAUTION_ACKNOWLEDGE'; break;
+      case AnnunciationType.Warning:
+        intercept = 'MASTER_WARNING_ACKNOWLEDGE'; break;
+    }
+
+    if (intercept) {
+      this.props.bus.getSubscriber<KeyEvents>().on('key_intercept').handle(
+        (keyData: KeyEventData) => {
+          if (keyData.key === intercept) {
+            this.handleAcknowledgement();
+          }
+        });
+    }
+
     const g1000ControlEvents = this.props.bus.getSubscriber<G1000ControlEvents>();
     g1000ControlEvents.on('pfd_alert_push').handle((evt: boolean) => {
       if (evt) {
-        // If we are the new alert, we need to hide ourselves so the acked version can show.
-        if (this.props.stateShown == AlertState.New) {
-          this.hideSelf();
-        } else {
-          // But if we're the acked div, we need to activate ourselves, assuming the alert is hot.
-          if (this.active) {
-            this.showSelf();
-          }
-        }
+        this.handleAcknowledgement();
       }
     });
 
@@ -205,6 +306,21 @@ class CASAnnunciation extends DisplayComponent<AnnunciationProps> {
         this.hideSelf();
       }
     }, 0);
+  }
+
+  /**
+   * Handle a potential acknowledgement event.
+   */
+  private handleAcknowledgement(): void {
+    if (this.props.stateShown == AlertState.New) {
+      // If we are the new alert, we need to hide ourselves so the acked version can show.
+      this.hideSelf();
+    } else {
+      // But if we're the acked div, we need to activate ourselves, assuming the alert is hot.
+      if (this.active) {
+        this.showSelf();
+      }
+    }
   }
 
   /**

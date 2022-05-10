@@ -4,7 +4,7 @@ import { MapModel } from 'msfssdk/components/map';
 
 import { GroupBox } from '../GroupBox';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
-import { WptInfo, WptInfoProps } from '../../../../Shared/UI/WptInfo/WptInfo';
+import { WptInfo } from '../../../../Shared/UI/WptInfo/WptInfo';
 import { WaypointMapComponent, WaypointMapRangeTargetRotationController } from '../../../../Shared/UI/WaypointMap/WaypointMapComponent';
 import { WaypointMapModel, WaypointMapModelModules } from '../../../../Shared/UI/WaypointMap/WaypointMapModel';
 import { MapPointerController } from '../../../../Shared/Map/Controllers/MapPointerController';
@@ -15,7 +15,7 @@ import './MFDWptInfo.css';
 /**
  * The MFD waypoint info popout.
  */
-export class MFDWptInfo extends WptInfo<WptInfoProps> {
+export class MFDWptInfo extends WptInfo {
   private static readonly MAP_UPDATE_FREQ = 30; // Hz
   private static readonly MAP_DATA_UPDATE_FREQ = 4; // Hz
   private static readonly POINTER_MOVE_INCREMENT = 2; // pixels
@@ -139,7 +139,8 @@ export class MFDWptInfo extends WptInfo<WptInfoProps> {
             updateFreq={Subject.create(MFDWptInfo.MAP_UPDATE_FREQ)}
             dataUpdateFreq={Subject.create(MFDWptInfo.MAP_DATA_UPDATE_FREQ)}
             projectedWidth={290} projectedHeight={300}
-            id='mfd_wptinfo_map'
+            pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
+            bingId='mfd_wptinfo_map'
             rangeIndex={this.mapRangeIndexSub}
             waypoint={this.store.waypoint}
             ownAirplaneLayerProps={{

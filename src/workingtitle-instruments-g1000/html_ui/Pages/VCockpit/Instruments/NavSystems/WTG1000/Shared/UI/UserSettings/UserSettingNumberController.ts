@@ -3,20 +3,13 @@ import { UserSettingManager, UserSettingValueFilter } from 'msfssdk/settings';
 import { UserSettingController } from './UserSettingController';
 
 /**
- * A controller which binds a user setting with numeric values to a NumberInput component.
+ * A controller which binds a user setting with numeric values to a numeric input component.
  */
 export class UserSettingNumberController<T extends Record<any, boolean | number | string>, K extends keyof UserSettingValueFilter<T, number>> extends UserSettingController<T, K> {
   /**
-   * A subject which provides a numeric value for the NumberInput component which this controller controls. This
-   * subject should be passed to the NumberInput component via the `dataSubject` prop.
+   * A subject which is bound to this controller's user setting.
    */
   public readonly dataSub = Subject.create(0);
-
-  /**
-   * A function which handles input change events from the NumberInput component which this controller controls. This
-   * handler should be passed to the NumberInput component via the `onValueChanged` prop.
-   */
-  public inputChangedHandler = this.onInputChanged.bind(this);
 
   /**
    * Constructor.
@@ -34,7 +27,14 @@ export class UserSettingNumberController<T extends Record<any, boolean | number 
     }
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
+  public init(): void {
+    super.init();
+
+    this.dataSub.sub(this.onInputChanged.bind(this));
+  }
+
+  /** @inheritdoc */
   protected onSettingChanged(value: T[K]): void {
     this.dataSub.set(value as number);
   }

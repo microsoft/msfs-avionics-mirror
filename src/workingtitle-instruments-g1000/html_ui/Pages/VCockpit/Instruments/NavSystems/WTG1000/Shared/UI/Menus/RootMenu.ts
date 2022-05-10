@@ -1,20 +1,26 @@
+import { ComputedSubject, MappedSubject } from 'msfssdk';
+import { LNavEvents } from 'msfssdk/autopilot';
+import { ConsumerSubject, ControlPublisher, EventBus } from 'msfssdk/data';
+import { InstrumentEvents, NavEvents } from 'msfssdk/instruments';
+
+import { GarminControlEvents } from 'garminsdk/instruments';
+import { ObsSuspModes } from 'garminsdk/navigation';
+
+import { AlertMessageEvents } from '../../../PFD/Components/UI/Alerts/AlertsSubject';
+import { G1000ControlPublisher } from '../../G1000Events';
 import { MenuSystem } from './MenuSystem';
 import { SoftKeyMenu } from './SoftKeyMenu';
-import { ControlPublisher, EventBus } from 'msfssdk/data';
-import { G1000ControlEvents, G1000ControlPublisher } from '../../G1000Events';
-import { LNavEvents } from '../../Autopilot/Directors/LNavDirector';
-import { InstrumentEvents, NavEvents } from 'msfssdk/instruments';
-import { ComputedSubject } from 'msfssdk';
-import { ObsSuspModes } from '../../Navigation/NavIndicatorController';
-import { AlertMessageEvents } from '../../../PFD/Components/UI/Alerts/AlertsSubject';
 
 /**
  * The root PFD softkey menu.
  */
 export class RootMenu extends SoftKeyMenu {
-  private obsMode = ObsSuspModes.NONE;
-  private obsAvailable = false;
-  private obsButtonDisabled = true;
+  private readonly isLNavSuspended: ConsumerSubject<boolean>;
+  private readonly isObsActive: ConsumerSubject<boolean>;
+  private readonly obsMode: MappedSubject<[boolean, boolean], ObsSuspModes>;
+
+  private readonly isObsAvailable: ConsumerSubject<boolean>;
+  private readonly isObsButtonDisabled: MappedSubject<[ObsSuspModes, boolean], boolean>;
 
   private readonly obsLabel = ComputedSubject.create(ObsSuspModes.NONE, (v): string => {
     return v === ObsSuspModes.SUSP ? 'SUSP' : 'OBS';
@@ -35,10 +41,17 @@ export class RootMenu extends SoftKeyMenu {
     super(menuSystem);
 
     const obsButtonPressed = (): void => {
-      if (this.obsMode === ObsSuspModes.SUSP) {
-        g1000Publisher.publishEvent('suspend', false);
-      } else if (this.obsMode === ObsSuspModes.OBS || this.obsAvailable) {
-        SimVar.SetSimVarValue('K:GPS_OBS', 'number', 0);
+      const obsMode = this.obsMode.get();
+
+      const isObsModeActive = obsMode === ObsSuspModes.OBS;
+
+      if (obsMode === ObsSuspModes.SUSP) {
+        controlPublisher.publishEvent('suspend_sequencing', false);
+      } else if (isObsModeActive || this.isObsAvailable.get()) {
+        SimVar.SetSimVarValue(`K:GPS_OBS_${isObsModeActive ? 'OFF' : 'ON'}`, 'number', 0);
+        if (isObsModeActive) {
+          controlPublisher.publishEvent('suspend_sequencing', false);
+        }
       }
     };
 
@@ -46,14 +59,14 @@ export class RootMenu extends SoftKeyMenu {
     this.addItem(1, 'Map/HSI', () => menuSystem.pushMenu('map-hsi'));
     this.addItem(2, 'TFC Map');
     this.addItem(3, 'PFD Opt', () => menuSystem.pushMenu('pfd-opt'));
-    this.addItem(4, this.obsLabel.get() as string, () => obsButtonPressed(), this.obsButtonValue.get() as boolean, this.obsButtonDisabled);
+    this.addItem(4, this.obsLabel.get() as string, () => obsButtonPressed(), this.obsButtonValue.get() as boolean, true);
     this.addItem(5, 'CDI', () => { controlPublisher.publishEvent('cdi_src_switch', true); });
     this.addItem(6, 'ADF/DME', () => {
       g1000Publisher.publishEvent('pfd_dme_push', true);
     });
     this.addItem(7, 'XPDR', () => menuSystem.pushMenu('xpdr'));
     this.addItem(8, 'Ident', () => {
-      controlPublisher.publishEvent('xpdr_send_ident', true);
+      controlPublisher.publishEvent('xpdr_send_ident_1', true);
     });
     this.addItem(9, 'Tmr/Ref', () => {
       g1000Publisher.publishEvent('pfd_timerref_push', true);
@@ -65,39 +78,44 @@ export class RootMenu extends SoftKeyMenu {
       g1000Publisher.publishEvent('pfd_alert_push', true);
     }, undefined, false);
 
-    const obsMenuItemHandler = (): void => {
-      this.obsLabel.set(this.obsMode);
-      this.obsButtonValue.set(this.obsMode);
-      if (this.obsMode === ObsSuspModes.NONE && !this.obsAvailable) {
-        this.obsButtonDisabled = true;
-      } else {
-        this.obsButtonDisabled = false;
-      }
+    const sub = bus.getSubscriber<NavEvents & LNavEvents & GarminControlEvents & InstrumentEvents & AlertMessageEvents>();
+
+    this.isLNavSuspended = ConsumerSubject.create(sub.on('lnav_is_suspended'), false);
+    this.isObsActive = ConsumerSubject.create(sub.on('gps_obs_active'), false);
+    this.isObsAvailable = ConsumerSubject.create(sub.on('obs_available'), false);
+
+    this.obsMode = MappedSubject.create(
+      ([isLnavSuspended, isObsActive]): ObsSuspModes => {
+        return isObsActive
+          ? ObsSuspModes.OBS
+          : isLnavSuspended ? ObsSuspModes.SUSP : ObsSuspModes.NONE;
+      },
+      this.isLNavSuspended,
+      this.isObsActive
+    );
+    this.isObsButtonDisabled = MappedSubject.create(
+      ([obsMode, isObsAvailable]): boolean => {
+        return obsMode === ObsSuspModes.NONE && !isObsAvailable;
+      },
+      this.obsMode,
+      this.isObsAvailable
+    );
+
+    this.obsMode.sub(obsMode => {
+      this.obsLabel.set(obsMode);
+      this.obsButtonValue.set(obsMode);
+
       const item = this.getItem(4);
-      item.disabled.set(this.obsButtonDisabled);
       item.label.set(this.obsLabel.get());
       item.value.set(this.obsButtonValue.get());
-    };
+    }, true);
 
-    bus.getSubscriber<NavEvents>().on('gps_obs_active').whenChanged().handle(obsActive => {
-      this.obsMode = obsActive ? ObsSuspModes.OBS : ObsSuspModes.NONE;
-      obsMenuItemHandler();
+    this.isObsButtonDisabled.sub(isDisabled => {
+      const item = this.getItem(4);
+      item.disabled.set(isDisabled);
     });
 
-    bus.getSubscriber<LNavEvents>().on('suspChanged').whenChanged().handle(isSuspended => {
-      if (this.obsMode === ObsSuspModes.OBS && !isSuspended) {
-        SimVar.SetSimVarValue('K:GPS_OBS', 'number', 0);
-      }
-      this.obsMode = isSuspended ? ObsSuspModes.SUSP : ObsSuspModes.NONE;
-      obsMenuItemHandler();
-    });
-
-    bus.getSubscriber<G1000ControlEvents>().on('obs_available').whenChanged().handle(v => {
-      this.obsAvailable = v;
-      obsMenuItemHandler();
-    });
-
-    bus.getSubscriber<InstrumentEvents>().on('vc_screen_state').handle(state => {
+    sub.on('vc_screen_state').handle(state => {
       if (state.current === ScreenState.REVERSIONARY) {
         setTimeout(() => {
           this.getItem(0).label.set('Engine');
@@ -108,7 +126,7 @@ export class RootMenu extends SoftKeyMenu {
       }
     });
 
-    bus.getSubscriber<AlertMessageEvents>().on('alerts_available')
+    sub.on('alerts_available')
       .handle(available => this.getItem(11).highlighted.set(available));
   }
 
@@ -125,5 +143,5 @@ export class RootMenu extends SoftKeyMenu {
         this.menuSystem.bus.off('mfd_power_on', this.onMfdPowerOn);
       }, 250);
     }
-  }
+  };
 }

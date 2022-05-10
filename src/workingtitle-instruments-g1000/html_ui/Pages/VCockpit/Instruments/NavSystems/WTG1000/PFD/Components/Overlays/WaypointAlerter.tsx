@@ -1,7 +1,7 @@
 import { FSComponent, ComponentProps, DisplayComponent, VNode, NodeReference } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { GNSSEvents } from 'msfssdk/instruments';
-import { LNavSimVars } from '../../../Shared/Autopilot/LNavSimVars';
+import { LNavDataEvents } from 'garminsdk/navigation';
 
 import './WaypointAlerter.css';
 
@@ -35,18 +35,18 @@ export class WaypointAlerter extends DisplayComponent<WaypointAlerterProps> {
    * A callback called after the component is rendered.
    */
   public onAfterRender(): void {
-    const lnav = this.props.bus.getSubscriber<LNavSimVars>();
+    const lnav = this.props.bus.getSubscriber<LNavDataEvents>();
 
     this.props.bus.getSubscriber<GNSSEvents>().on('ground_speed').handle(spd => this.currentSpeed = spd);
-    lnav.on('lnavDisTurn').handle(this.onDistanceUpdated);
-    lnav.on('lnavNextDtkMag').handle(dtk => this.nextDTK = dtk);
+    lnav.on('lnavdata_egress_distance').handle(this.onDistanceUpdated.bind(this));
+    lnav.on('lnavdata_next_dtk_mag').handle(dtk => this.nextDTK = dtk);
   }
 
   /**
-   * A callback called when the LNAV distance to go is updated.
-   * @param distance The distance to go.
+   * Responds to changes in the distance remaining to the next egress transition.
+   * @param distance The distance remaining to the next egress transition, in nautical miles.
    */
-  public onDistanceUpdated = (distance: number): void => {
+  private onDistanceUpdated(distance: number): void {
     if (distance !== 0) {
       const secondsRemaining = (distance / this.currentSpeed) * 60 * 60;
       if (secondsRemaining <= 5.25 && !this.flashing) {
@@ -73,7 +73,7 @@ export class WaypointAlerter extends DisplayComponent<WaypointAlerterProps> {
       this.flashing = false;
       this.showNowMessage();
     }
-  }
+  };
 
   /**
    * Shows the waypoint dtk now message.

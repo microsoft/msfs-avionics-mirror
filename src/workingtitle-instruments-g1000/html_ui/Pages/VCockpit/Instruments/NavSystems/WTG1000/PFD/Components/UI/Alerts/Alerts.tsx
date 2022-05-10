@@ -1,12 +1,12 @@
 import { FSComponent, SubscribableArray, VNode } from 'msfssdk';
-import { ControlList } from '../../../../Shared/UI/ControlList';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
-import { FocusPosition, UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
+import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../Shared/UI/G1000UiControl';
 import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
 import { AlertMessage } from './AlertsSubject';
+import { UiControl } from '../../../../Shared/UI/UiControl';
+import { FocusPosition } from 'msfssdk/components/controls';
 
 import './Alerts.css';
-import { UiControl } from '../../../../Shared/UI/UiControl';
 
 /**
  * The properties on the Alert component..
@@ -21,7 +21,7 @@ interface AlertsProps extends UiViewProps {
  */
 export class Alerts extends UiView<AlertsProps> {
   private readonly containerRef = FSComponent.createRef<HTMLDivElement>();
-  private readonly listRef = FSComponent.createRef<ControlList<AlertMessage>>();
+  private readonly listRef = FSComponent.createRef<G1000ControlList<AlertMessage>>();
 
   /** @inheritdoc */
   public onViewOpened(): void {
@@ -55,7 +55,7 @@ export class Alerts extends UiView<AlertsProps> {
       <div class='popout-dialog' ref={this.viewContainerRef}>
         <h1>{this.props.title}</h1>
         <div ref={this.containerRef} class="alerts-container">
-          <ControlList ref={this.listRef} data={this.props.data} renderItem={(data): VNode => <MessageItem title={data.title} message={data.message} />} />
+          <G1000ControlList ref={this.listRef} data={this.props.data} renderItem={(data): VNode => <MessageItem title={data.title} message={data.message} />} />
         </div>
       </div>
     );
@@ -65,7 +65,7 @@ export class Alerts extends UiView<AlertsProps> {
 /**
  * An individual alert in the alert messages pane.
  */
-class MessageItem extends UiControl2<Partial<AlertMessage> & UiControl2Props> {
+class MessageItem extends G1000UiControl<Partial<AlertMessage> & G1000UiControlProps> {
   private readonly titleEl = FSComponent.createRef<HTMLSpanElement>();
 
   /** @inheritdoc */

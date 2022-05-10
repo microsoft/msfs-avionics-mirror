@@ -2,8 +2,7 @@ import { EventBus } from 'msfssdk/data';
 import { NavProcessorConfig, NavSourceId, NavSourceType } from 'msfssdk/instruments';
 import { NavSource } from 'msfssdk/instruments';
 import { FlightPlanner, FlightPlannerEvents, FlightPlanActiveLegEvent } from 'msfssdk/flightplan';
-
-import { LNavSimVars } from './Autopilot/LNavSimVars';
+import { LNavDataEvents } from 'garminsdk/navigation';
 
 /**
  * A configuration for the G1000 NavProcessor, including a custrom simvar
@@ -23,6 +22,8 @@ export class NPConfig extends NavProcessorConfig {
     this.courseIncEvents.add('AS1000_MFD_CRS_INC');
     this.courseDecEvents.add('AS1000_PFD_CRS_DEC');
     this.courseDecEvents.add('AS1000_MFD_CRS_DEC');
+    this.courseSyncEvents.add('AS1000_PFD_CRS_PUSH');
+    this.courseSyncEvents.add('AS1000_MFD_CRS_PUSH');
     this.additionalSources.push(new LNavNavSource(bus, planner));
   }
 }
@@ -63,17 +64,17 @@ export class LNavNavSource implements NavSource {
   constructor(bus: EventBus, planner: FlightPlanner) {
     this.planner = planner;
     const fpl = bus.getSubscriber<FlightPlannerEvents>();
-    const lnav = bus.getSubscriber<LNavSimVars>();
+    const lnav = bus.getSubscriber<LNavDataEvents>();
 
     fpl.on('fplActiveLegChange').handle((change) => {
       this.onLegChange(change);
     });
 
-    lnav.on('lnavDis').withPrecision(1).handle((dist: number) => {
+    lnav.on('lnavdata_waypoint_distance').withPrecision(1).handle((dist: number) => {
       this.distance = dist;
     });
 
-    lnav.on('lnavBrgMag').whenChangedBy(1).handle((brg: number) => {
+    lnav.on('lnavdata_waypoint_bearing_mag').whenChangedBy(1).handle((brg: number) => {
       this.bearing = brg;
     });
   }

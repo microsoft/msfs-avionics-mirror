@@ -1,12 +1,13 @@
-import { Subscribable } from '../..';
 import { MapModel } from './MapModel';
 import { MapProjection, MapProjectionChangeType } from './MapProjection';
-import { ComponentProps, DisplayComponent } from '../FSComponent';
+import { ComponentProps, DisplayComponent, FSComponent, VNode } from '../FSComponent';
 import { MapLayer } from './MapLayer';
-import { Consumer, EventBus } from '../../data';
+import { EventBus } from '../../data';
 import { ClockEvents } from '../../instruments/Clock';
-import { Vec2Math } from '../../utils/math/VecMath';
-import { BitFlags } from '../../utils/BitFlags';
+import { ReadonlyFloat64Array, Vec2Math } from '../../math/VecMath';
+import { BitFlags } from '../../math/BitFlags';
+import { Subscribable } from '../../sub/Subscribable';
+import { Subscription } from '../../sub/Subscription';
 
 /**
  * Component props for MapComponent.
@@ -26,6 +27,9 @@ export interface MapComponentProps<M> extends ComponentProps {
 
   /** The initial height, in pixels, of the map component's projected window. */
   projectedHeight: number;
+
+  /** A projection to inject. A default will be used if none is provided. */
+  projection?: MapProjection;
 }
 
 /**
@@ -44,21 +48,24 @@ export abstract class MapComponent<P extends MapComponentProps<any> = MapCompone
   private lastUpdateTime = 0;
   private _isAwake = true;
 
-  private updateCycleConsumer?: Consumer<number>;
+  private updateCycleSub?: Subscription;
   private readonly updateCycleHandler = this.updateCycleCallback.bind(this);
 
   /** @inheritdoc */
   constructor(props: P) {
     super(props);
 
-    this.mapProjection = new MapProjection(this.props.projectedWidth, this.props.projectedHeight);
+    if (this.props.projection !== undefined) {
+      this.props.projection.set({ projectedSize: new Float64Array([this.props.projectedWidth, this.props.projectedHeight]) });
+    }
+    this.mapProjection = this.props.projection ?? new MapProjection(this.props.projectedWidth, this.props.projectedHeight);
   }
 
   /**
    * Gets the size of this map's projected window, in pixels.
    * @returns The size of this map's projected window.
    */
-  public getProjectedSize(): Float64Array {
+  public getProjectedSize(): ReadonlyFloat64Array {
     return this.mapProjection.getProjectedSize();
   }
 
@@ -72,10 +79,10 @@ export abstract class MapComponent<P extends MapComponentProps<any> = MapCompone
    * Sets the size of this map's projected window.
    * @param size The new size, in pixels.
    */
-  public setProjectedSize(size: Float64Array): void;
+  public setProjectedSize(size: ReadonlyFloat64Array): void;
   // eslint-disable-next-line jsdoc/require-jsdoc
-  public setProjectedSize(arg1: number | Float64Array, arg2?: number): void {
-    const size = arg1 instanceof Float64Array ? arg1 : Vec2Math.set(arg1, arg2 as number, new Float64Array(2));
+  public setProjectedSize(arg1: number | ReadonlyFloat64Array, arg2?: number): void {
+    const size = arg1 instanceof Float64Array ? arg1 : Vec2Math.set(arg1 as number, arg2 as number, new Float64Array(2));
     this.mapProjection.set({ projectedSize: size });
   }
 
@@ -116,18 +123,35 @@ export abstract class MapComponent<P extends MapComponentProps<any> = MapCompone
   }
 
   /** @inheritdoc */
-  public onAfterRender(): void {
+  public onAfterRender(thisNode: VNode): void {
     this.mapProjection.addChangeListener(this.onMapProjectionChanged.bind(this));
 
     this.props.updateFreq.sub(freq => {
-      this.updateCycleConsumer?.off(this.updateCycleHandler);
+      this.updateCycleSub?.destroy();
 
-      this.updateCycleConsumer = this.props.bus.getSubscriber<ClockEvents>()
+      this.updateCycleSub = this.props.bus.getSubscriber<ClockEvents>()
         .on('realTime')
         .whenChanged()
-        .atFrequency(freq);
-      this.updateCycleConsumer.handle(this.updateCycleHandler);
+        .atFrequency(freq)
+        .handle(this.updateCycleHandler);
     }, true);
+
+    this.attachLayers(thisNode);
+  }
+
+  /**
+   * Scans this component's VNode sub-tree for MapLayer components and attaches them when found. Only the top-most
+   * level of MapLayer components are attached; layers that are themselves children of other layers are not attached.
+   * @param thisNode This component's VNode.
+   */
+  protected attachLayers(thisNode: VNode): void {
+    FSComponent.visitNodes(thisNode, node => {
+      if (node.instance instanceof MapLayer) {
+        this.attachLayer(node.instance);
+        return true;
+      }
+      return false;
+    });
   }
 
   /**
@@ -256,6 +280,8 @@ export abstract class MapComponent<P extends MapComponentProps<any> = MapCompone
  * An entry for a map layer.
  */
 class LayerEntry {
+  private updateFreqSub?: Subscription;
+
   private updatePeriod = 0;
   private lastUpdated = 0;
 
@@ -275,7 +301,8 @@ class LayerEntry {
    * Attaches this layer entry.
    */
   public attach(): void {
-    this.layer.props.updateFreq?.sub(this.freqHandler, true);
+    this.updateFreqSub?.destroy();
+    this.updateFreqSub = this.layer.props.updateFreq?.sub(this.freqHandler, true);
     this.layer.onAttached();
   }
 
@@ -294,7 +321,7 @@ class LayerEntry {
    * Detaches this layer entry.
    */
   public detach(): void {
-    this.layer.props.updateFreq?.unsub(this.freqHandler);
+    this.updateFreqSub?.destroy();
     this.layer.onDetached();
   }
 }

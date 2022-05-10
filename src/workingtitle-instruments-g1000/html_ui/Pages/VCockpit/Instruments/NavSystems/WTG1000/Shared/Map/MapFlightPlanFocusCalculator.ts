@@ -1,6 +1,7 @@
-import { GeoPoint, Vec2Math } from 'msfssdk';
+import { BitFlags, GeoPoint, GeoPointInterface, Vec2Math } from 'msfssdk';
 import { MapProjection } from 'msfssdk/components/map';
-import { LegDefinition } from 'msfssdk/flightplan';
+import { LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
+import { LegType } from 'msfssdk/navigation';
 import { FlightPlanFocus } from '../UI/FPL/FPLTypesAndProps';
 
 /**
@@ -40,10 +41,16 @@ export class MapFlightPlanFocusCalculator {
    * to the results.
    * @param focus The array of legs on which to focus.
    * @param margins The margins around the projected map boundaries to respect. Expressed as [left, top, right, bottom].
+   * @param ppos The current position of the airplane.
    * @param out The object to which to write the results.
    * @returns The calculated range and target for the specified focus.
    */
-  public calculateRangeTarget(focus: FlightPlanFocus, margins: Float64Array, out: MapFlightPlanFocusRangeTarget): MapFlightPlanFocusRangeTarget {
+  public calculateRangeTarget(
+    focus: FlightPlanFocus,
+    margins: Float64Array,
+    ppos: GeoPointInterface,
+    out: MapFlightPlanFocusRangeTarget
+  ): MapFlightPlanFocusRangeTarget {
     out.range = NaN;
     out.target.set(NaN, NaN);
 
@@ -78,23 +85,40 @@ export class MapFlightPlanFocusCalculator {
     for (let i = 0; i < len; i++) {
       const leg = focus[i];
 
-      if (
-        leg.calculated?.startLat !== undefined && leg.calculated?.startLon !== undefined
-        && leg.calculated?.startLat !== currentLat && leg.calculated?.startLon !== currentLon
-      ) {
-        currentLat = leg.calculated.startLat;
-        currentLon = leg.calculated.startLon;
+      let projected: Float64Array | undefined = MapFlightPlanFocusCalculator.vec2Cache[0];
 
-        const projected = this.mapProjection.project(
-          MapFlightPlanFocusCalculator.geoPointCache[0].set(currentLat, currentLon),
-          MapFlightPlanFocusCalculator.vec2Cache[0]
-        );
+      if (BitFlags.isAll(leg.flags, LegDefinitionFlags.DirectTo) && leg.leg.type === LegType.CF) {
+        // Special case for Direct-To legs with user-defined course: PPOS needs to be in focus instead of the start
+        // of the leg (which is arbitrary)
 
+        if (isNaN(ppos.lat) || isNaN(ppos.lon)) {
+          projected = undefined;
+        } else {
+          currentLat = ppos.lat;
+          currentLon = ppos.lon;
+          this.mapProjection.project(ppos, projected);
+        }
+      } else {
+        if (
+          leg.calculated?.startLat !== undefined && leg.calculated?.startLon !== undefined
+          && leg.calculated?.startLat !== currentLat && leg.calculated?.startLon !== currentLon
+        ) {
+          currentLat = leg.calculated.startLat;
+          currentLon = leg.calculated.startLon;
+          this.mapProjection.project(MapFlightPlanFocusCalculator.geoPointCache[0].set(currentLat, currentLon), projected);
+        } else {
+          projected = undefined;
+        }
+      }
+
+      if (projected) {
         minX = Math.min(projected[0], minX ?? Infinity);
         minY = Math.min(projected[1], minY ?? Infinity);
         maxX = Math.max(projected[0], maxX ?? -Infinity);
         maxY = Math.max(projected[1], maxY ?? -Infinity);
       }
+
+      projected = MapFlightPlanFocusCalculator.vec2Cache[0];
 
       if (
         leg.calculated?.endLat !== undefined && leg.calculated?.endLon !== undefined
@@ -103,10 +127,7 @@ export class MapFlightPlanFocusCalculator {
         currentLat = leg.calculated.endLat;
         currentLon = leg.calculated.endLon;
 
-        const projected = this.mapProjection.project(
-          MapFlightPlanFocusCalculator.geoPointCache[0].set(currentLat, currentLon),
-          MapFlightPlanFocusCalculator.vec2Cache[0]
-        );
+        this.mapProjection.project(MapFlightPlanFocusCalculator.geoPointCache[0].set(currentLat, currentLon), projected);
 
         minX = Math.min(projected[0], minX ?? Infinity);
         minY = Math.min(projected[1], minY ?? Infinity);
@@ -138,7 +159,13 @@ export class MapFlightPlanFocusCalculator {
     const topLeft = this.mapProjection.invert(Vec2Math.set(minX, minY, MapFlightPlanFocusCalculator.vec2Cache[0]), MapFlightPlanFocusCalculator.geoPointCache[0]);
     const bottomRight = this.mapProjection.invert(Vec2Math.set(maxX, maxY, MapFlightPlanFocusCalculator.vec2Cache[0]), MapFlightPlanFocusCalculator.geoPointCache[1]);
 
-    this.tempProjection.set({ projectedSize: this.mapProjection.getProjectedSize(), rotation: this.mapProjection.getRotation(), target: out.target, range });
+    this.tempProjection.set({
+      projectedSize: this.mapProjection.getProjectedSize(),
+      rotation: this.mapProjection.getRotation(),
+      target: out.target,
+      range,
+      rangeEndpoints: this.mapProjection.getRangeEndpoints()
+    });
 
     // Iteratively solve for exact range
     let iterCount = 0;

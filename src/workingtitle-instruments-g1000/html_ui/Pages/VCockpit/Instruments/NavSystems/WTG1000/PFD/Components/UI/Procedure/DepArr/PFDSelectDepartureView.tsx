@@ -1,7 +1,7 @@
 import { FSComponent, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { FlightPathCalculator } from 'msfssdk/flightplan';
-import { Fms } from '../../../../../Shared/FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { UiView, UiViewProps } from '../../../../../Shared/UI/UiView';
 import { PFDSelectDeparture } from './PFDSelectDeparture';
 

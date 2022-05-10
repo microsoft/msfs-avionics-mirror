@@ -36,7 +36,7 @@ export class MapTrackVectorLayer extends MapLayer<MapLayerProps<MapTrackVectorLa
   private readonly projectPlanePositionHandler = (): void => {
     const projected = this.props.mapProjection.project(this.ownAirplanePropsModule.position.get(), MapTrackVectorLayer.vec2Cache[0]);
     this.projectedPlanePositionSub.set(projected);
-  }
+  };
 
   private readonly turnRateSmoother = new ExpSmoother(500 / Math.LN2, undefined, 1000);
 
@@ -44,7 +44,9 @@ export class MapTrackVectorLayer extends MapLayer<MapLayerProps<MapTrackVectorLa
 
   /** @inheritdoc */
   public onVisibilityChanged(isVisible: boolean): void {
-    if (!isVisible) {
+    if (isVisible) {
+      this.needUpdate = true;
+    } else {
       this.canvasLayerRef.getOrDefault()?.tryGetDisplay()?.clear();
     }
   }

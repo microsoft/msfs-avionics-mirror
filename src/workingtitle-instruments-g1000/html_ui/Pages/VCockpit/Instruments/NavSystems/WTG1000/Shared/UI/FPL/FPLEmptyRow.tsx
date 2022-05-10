@@ -1,16 +1,16 @@
 import { FSComponent, NodeReference, VNode } from 'msfssdk';
-import { ScrollUtils } from '../../ScrollUtils';
+import { ScrollUtils } from 'msfssdk/graphics/layout';
 import { UiControl } from '../UiControl';
-import { UiControl2, UiControl2Props } from '../UiControl2';
+import { G1000UiControl, G1000UiControlProps } from '../G1000UiControl';
 
 /** Props on the FPLEmptyRow component. */
-interface FPLEmptyRowProps extends UiControl2Props {
+interface FPLEmptyRowProps extends G1000UiControlProps {
   /** The container to scroll when the item is focused. */
   scrollContainer?: NodeReference<HTMLElement>;
 }
 
 /** The FPLEmptyRow component. */
-export class FPLEmptyRow extends UiControl2<FPLEmptyRowProps> {
+export class FPLEmptyRow extends G1000UiControl<FPLEmptyRowProps> {
   private rootEl = FSComponent.createRef<HTMLDivElement>();
   private nameContainerRef = FSComponent.createRef<HTMLElement>();
 
@@ -32,7 +32,7 @@ export class FPLEmptyRow extends UiControl2<FPLEmptyRowProps> {
   }
 
   /** @inheritdoc */
-  protected onFocused(source: UiControl2): void {
+  protected onFocused(source: G1000UiControl): void {
     this.nameContainerRef.instance.classList.add(UiControl.FOCUS_CLASS);
     if (this.props.scrollContainer !== undefined) {
       ScrollUtils.ensureInView(this.rootEl.instance, this.props.scrollContainer.instance);

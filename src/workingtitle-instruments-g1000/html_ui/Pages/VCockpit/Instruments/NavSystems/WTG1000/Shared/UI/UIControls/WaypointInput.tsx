@@ -1,15 +1,14 @@
-import { FSComponent, VNode, Subject } from 'msfssdk';
+import { FSComponent, Subject, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
-import { Facility, FacilitySearchType } from 'msfssdk/navigation';
+import { Facility, FacilitySearchType, FacilityWaypoint, Waypoint } from 'msfssdk/navigation';
 
+import { MessageDialog } from '../../UI/Dialogs/MessageDialog';
 import { InputComponent } from '../../UI/UIControls/InputComponent';
 import { UiControlGroup, UiControlGroupProps } from '../UiControlGroup';
-import { Fms } from '../../FlightPlan/Fms';
-import { MessageDialog } from '../../UI/Dialogs/MessageDialog';
+import { ViewService } from '../ViewService';
+import { WaypointIcon } from '../Waypoint/WaypointIcon';
 import { WaypointInputController } from './WaypointInputController';
 import { WaypointInputStore } from './WaypointInputStore';
-import { WaypointIcon } from '../Waypoint/WaypointIcon';
-import { FacilityWaypoint, Waypoint } from '../../Navigation/Waypoint';
 
 import './WaypointInput.css';
 
@@ -17,6 +16,9 @@ import './WaypointInput.css';
  * The properties for the WaypointInput component.
  */
 interface WaypointInputProps extends UiControlGroupProps {
+  /** The view service. */
+  viewService: ViewService;
+
   /** The event bus. */
   bus: EventBus;
 
@@ -75,7 +77,7 @@ export class WaypointInput extends UiControlGroup<WaypointInputProps> {
   private onInputEnterPressed(): boolean {
     const facilityWaypoint = this.store.selectedWaypoint.get();
     if (!facilityWaypoint && this.store.inputValue.get() !== '') {
-      Fms.viewService.open(MessageDialog.name, true).setInput({ inputString: `${this.store.inputValue.get().replace(/^_+|_+$/g, '')} does not exist.` }).onClose.on(() => {
+      this.props.viewService.open(MessageDialog.name, true).setInput({ inputString: `${this.store.inputValue.get().replace(/^_+|_+$/g, '')} does not exist.` }).onClose.on(() => {
         this.inputComponentRef.instance.activate();
       });
     } else {

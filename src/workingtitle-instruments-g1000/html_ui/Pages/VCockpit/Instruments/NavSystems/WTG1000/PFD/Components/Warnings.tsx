@@ -1,7 +1,7 @@
 import { FSComponent, DisplayComponent, VNode } from 'msfssdk';
 import { EventBus, CompositeLogicXMLHost } from 'msfssdk/data';
 import { Warning, WarningManager, WarningType } from 'msfssdk/components/Warnings';
-import { SoundPublisher } from 'msfssdk/utils/SoundServer';
+import { SoundPublisher } from 'msfssdk/utils/sound';
 
 import './Warnings.css';
 

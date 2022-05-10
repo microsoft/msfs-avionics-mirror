@@ -1,7 +1,7 @@
+import { FmsUtils } from 'garminsdk/flightplan';
 import { DisplayComponent, FSComponent, VNode, ComponentProps, BitFlags } from 'msfssdk';
 import { FlightPlan, LegDefinitionFlags } from 'msfssdk/flightplan';
 import { FixTypeFlags, LegType } from 'msfssdk/navigation';
-import { FmsUtils } from '../../FlightPlan/FmsUtils';
 
 /** FPL Active Leg States */
 export enum ActiveLegStates {
@@ -62,7 +62,12 @@ export class FplActiveLegArrow extends DisplayComponent<FplActiveLegArrowProps> 
                   break;
                 case LegType.CF: {
                   const prevLeg = plan.getPrevLeg(activeLegDef.segmentIndex, activeLegDef.legIndex);
-                  showDirectArrow = !!prevLeg && (prevLeg.leg.type === LegType.Discontinuity || prevLeg.leg.type === LegType.FM || prevLeg.leg.type === LegType.VM);
+                  showDirectArrow = !!prevLeg && (
+                    prevLeg.leg.type === LegType.Discontinuity
+                    || prevLeg.leg.type === LegType.ThruDiscontinuity
+                    || prevLeg.leg.type === LegType.FM
+                    || prevLeg.leg.type === LegType.VM
+                  );
                   showActiveArrow = !showDirectArrow;
                   break;
                 }

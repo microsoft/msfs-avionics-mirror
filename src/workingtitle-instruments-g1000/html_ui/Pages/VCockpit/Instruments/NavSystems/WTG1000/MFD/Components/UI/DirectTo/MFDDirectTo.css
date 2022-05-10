@@ -59,11 +59,12 @@
     margin-bottom: 24px;
     color: cyan;
   }
-
-  .mfd-dto-course {
-    display: flex;
-    justify-content: center;
-  }
+    .mfd-dto-course-input {
+      position: relative;
+      width: fit-content;
+      left: 50%;
+      transform: translateX(-50%);
+    }
 
   .mfd-dto-action-buttons {
     width: 100%;

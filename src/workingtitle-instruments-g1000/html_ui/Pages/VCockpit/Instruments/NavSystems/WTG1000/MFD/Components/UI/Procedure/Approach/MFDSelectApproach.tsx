@@ -74,7 +74,7 @@ export class MFDSelectApproach extends SelectApproach<MFDSelectApproachProps> im
 
   private buildLegItem = (data: Subject<LegDefinition>, registerFn: (ctrl: UiControl) => void): VNode => {
     return <ProcSequenceItem onRegister={registerFn} data={data} unitsSettingManager={this.unitsSettingManager} />;
-  }
+  };
 
   /**
    * A callback which is called when the Load action is executed.
@@ -117,7 +117,7 @@ export class MFDSelectApproach extends SelectApproach<MFDSelectApproachProps> im
               dataref={this.store.minimumsMode} onEnter={this.onEnterPressedAdvance.bind(this)} />
             <div>
               {this.renderMinimumsNumberInput('mfd-select-approach-mins-number')}
-              <span class="size12">FT</span>
+              <span class="size12">{this.store.minimumsUnit}</span>
             </div>
           </div>
         </GroupBox>

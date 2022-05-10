@@ -1,7 +1,7 @@
-import { FSComponent, Subject, VecNSubject, VNode } from 'msfssdk';
+import { FSComponent, Subject, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { FlightPathCalculator, FlightPlan } from 'msfssdk/flightplan';
-import { Fms, ProcedureType } from '../../../../Shared/FlightPlan/Fms';
+import { Fms, ProcedureType } from 'garminsdk/flightplan';
 import { G1000ControlEvents } from '../../../../Shared/G1000Events';
 import { MapPointerController } from '../../../../Shared/Map/Controllers/MapPointerController';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
@@ -14,6 +14,7 @@ import { MFDProcMapComponent } from './MFDProcMapComponent';
 import { MFDProcMapModel } from './MFDProcMapModel';
 
 import './MFDSelectProcedurePage.css';
+import { UnitsUserSettings } from '../../../../Shared/Units/UnitsUserSettings';
 
 /**
  * An MFD select procedure component.
@@ -240,7 +241,8 @@ export class MFDSelectProcedurePage extends MFDUiPage<MFDSelectProcedurePageProp
           updateFreq={Subject.create(MFDSelectProcedurePage.MAP_UPDATE_FREQ)}
           dataUpdateFreq={Subject.create(MFDSelectProcedurePage.MAP_UPDATE_FREQ)}
           projectedWidth={578} projectedHeight={734}
-          deadZone={VecNSubject.createFromVector(new Float64Array([0, 56, 0, 0]))}
+          deadZone={Subject.create(new Float64Array([0, 56, 0, 0]))}
+          pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
           flightPlanner={this.props.fms.flightPlanner}
           bingId='mfd_page_map'
           rangeIndex={this.mapRangeIndexSub}
@@ -285,6 +287,7 @@ export class MFDSelectProcedurePage extends MFDUiPage<MFDSelectProcedurePageProp
           procedurePlan={this.procedurePlanSub}
           transitionPlan={this.transitionPlanSub}
           focus={this.focusModule.focus}
+          unitsSettingManager={UnitsUserSettings.getManager(this.props.bus)}
         />
       </div>
     );

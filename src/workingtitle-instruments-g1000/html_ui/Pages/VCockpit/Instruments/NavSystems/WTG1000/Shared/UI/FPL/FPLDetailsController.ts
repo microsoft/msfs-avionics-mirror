@@ -2,22 +2,22 @@
 
 import { BitFlags, FSComponent, NodeReference, SubscribableArrayEventType, UnitType } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
+import { ADCEvents, APEvents } from 'msfssdk/instruments';
 import { FacilityType, FixTypeFlags, ICAO } from 'msfssdk/navigation';
 import {
   OriginDestChangeType, PlanChangeType, FlightPlan, FlightPlanProcedureDetailsEvent, FlightPlanIndicationEvent,
   FlightPlanCalculatedEvent, FlightPlanOriginDestEvent, FlightPlanLegEvent, FlightPlanSegmentEvent,
   FlightPlannerEvents, FlightPlanSegmentType, LegDefinitionFlags
 } from 'msfssdk/flightplan';
+import { VNavEvents, VNavUtils } from 'msfssdk/autopilot';
 
-import { DirectToState, Fms } from '../../FlightPlan/Fms';
+import { DirectToState, Fms } from 'garminsdk/flightplan';
 import { FPLDetailsStore } from './FPLDetailsStore';
 import { FPLSection } from '../../../PFD/Components/UI/FPL/FPLSection';
 import { FPLOrigin } from '../../../PFD/Components/UI/FPL/FPLSectionOrigin';
 import { ActiveLegDefinition, ActiveLegStates, FplActiveLegArrow } from '../UIControls/FplActiveLegArrow';
-import { VNavDirector } from '../../Autopilot/Directors/VNavDirector';
-import { VNavEvents } from '../../Autopilot/VNavEvents';
-import { ADCEvents, APEvents } from 'msfssdk/instruments';
 import { G1000ControlEvents } from '../../G1000Events';
+
 
 /**
  * The scroll mode for FPL.
@@ -49,7 +49,7 @@ export class FPLDetailsController {
    * @param scrollToActiveLegCb the callback for scroll to active leg
    */
   constructor(private readonly store: FPLDetailsStore, private readonly fms: Fms, private readonly bus: EventBus, private readonly scrollToActiveLegCb: () => void) {
-    if (this.fms.autopilot) {
+    if (this.fms.verticalPathCalculator) {
       this.hasVnav = true;
     }
   }
@@ -79,21 +79,45 @@ export class FPLDetailsController {
     this.bus.getSubscriber<ADCEvents>().on('alt').atFrequency(1).handle(alt => this.store.currentAltitude = alt);
 
     const ap = this.bus.getSubscriber<APEvents>();
-    ap.on('alt_select').withPrecision(0).handle((sAlt) => {
+    ap.on('ap_altitude_selected').withPrecision(0).handle((sAlt) => {
       this.store.selectedAltitude = sAlt;
     });
 
     const fpl = this.bus.getSubscriber<FlightPlannerEvents & VNavEvents>();
 
-    fpl.on('fplSegmentChange').handle(this.onSegmentChange.bind(this));
-    fpl.on('fplLegChange').handle(this.onLegChange.bind(this));
+    fpl.on('fplSegmentChange').handle((event) => {
+      this.onSegmentChange(event);
+      if (event.type !== PlanChangeType.Changed && event.segmentIndex <= this.store.activeLeg.get().segmentIndex) {
+        // We need to explicitly update the active leg state because the segment change can change the active leg
+        // without changing the global index of the active leg.
+        this.store.activeLegState.set(ActiveLegStates.NONE);
+        this.updateActiveLegState();
+      }
+    });
+    fpl.on('fplLegChange').handle((event) => {
+      this.onLegChange(event);
+
+      const activeLegInfo = this.store.activeLeg.get();
+      if (
+        event.type !== PlanChangeType.Changed
+        && (
+          event.segmentIndex < activeLegInfo.segmentIndex
+          || event.segmentIndex === activeLegInfo.segmentIndex && event.legIndex <= activeLegInfo.legIndex
+        )
+      ) {
+        // We need to explicitly update the active leg state because the leg change can change the active leg
+        // without changing the global index of the active leg.
+        this.store.activeLegState.set(ActiveLegStates.NONE);
+        this.updateActiveLegState();
+      }
+    });
     fpl.on('fplActiveLegChange').handle(this.updateActiveLegState.bind(this));
     fpl.on('fplOriginDestChanged').handle(this.onOriginDestChanged.bind(this));
     fpl.on('fplCalculated').handle(this.onPlanCalculated.bind(this));
     fpl.on('fplLoaded').handle(this.onFlightPlanLoaded.bind(this));
     fpl.on('fplIndexChanged').handle(this.onPlanIndexChanged.bind(this));
     fpl.on('fplProcDetailsChanged').handle(this.onProcDetailsChanged.bind(this));
-    fpl.on('vnavUpdated').handle(this.onVnavUpdated.bind(this));
+    fpl.on('vnav_path_calculated').handle(this.onVnavUpdated.bind(this));
     fpl.on('fplDirectToDataChanged').handle(this.updateActiveLegState.bind(this));
 
     this.bus.getSubscriber<G1000ControlEvents>().on('activate_vertical_direct').handle(this.onVerticalDirect.bind(this));
@@ -143,14 +167,17 @@ export class FPLDetailsController {
 
   /**
    * A callback fired when a vnav updated message is recevied from the bus.
-   * @param e The event that was captured.
+   * @param planIndex The index of the vertical plan that was updated by the path calculator.
    */
-  private onVnavUpdated(e: boolean): void {
-    if (this.hasVnav && this.fms.autopilot !== undefined && e === true) {
-      const vnav = this.fms.autopilot.directors.vnavDirector as VNavDirector;
-      const segments = vnav.calculator.getSegments();
+  private onVnavUpdated(planIndex: number): void {
+    if (this.hasVnav && this.fms.verticalPathCalculator !== undefined && planIndex === Fms.PRIMARY_PLAN_INDEX) {
+
+      const verticalPlan = this.fms.verticalPathCalculator.getVerticalFlightPlan(Fms.PRIMARY_PLAN_INDEX);
+      const segments = VNavUtils.getVerticalSegmentsFromPlan(verticalPlan);
+
       let maxAltitude = UnitType.FOOT.convertTo(Math.max(this.store.selectedAltitude, Math.round(this.store.currentAltitude / 100) * 100), UnitType.METER);
-      let minAltitude = vnav.calculator.getFirstDescentConstraintAltitude();
+      let minAltitude = this.fms.verticalPathCalculator.getFirstDescentConstraintAltitude(Fms.PRIMARY_PLAN_INDEX);
+
       if (segments && segments.length > 0) {
         //start with segment 1 to skip departure segment for now
         for (let i = 1; i < segments?.length; i++) {
@@ -180,11 +207,11 @@ export class FPLDetailsController {
         }
       }
       if (this.fms.getDirectToState() === DirectToState.TOEXISTING) {
-        const plan = this.fms.getFlightPlan();
-        const vnavLeg = vnav.calculator.getLeg(plan.activeLateralLeg);
-        const section = this.sectionRefs[plan.directToData.segmentIndex];
-        section?.instance.setLegAltitude(plan.directToData.segmentLegIndex, vnavLeg);
-        section?.instance.setIsUserConstraint(plan.directToData.segmentLegIndex, this.fms.isConstraintUser(plan.directToData.segmentIndex, vnavLeg.legIndex));
+        const lateralPlan = this.fms.getFlightPlan();
+        const vnavLeg = VNavUtils.getVerticalLegFromPlan(verticalPlan, lateralPlan.activeLateralLeg);
+        const section = this.sectionRefs[lateralPlan.directToData.segmentIndex];
+        section?.instance.setLegAltitude(lateralPlan.directToData.segmentLegIndex, vnavLeg);
+        section?.instance.setIsUserConstraint(lateralPlan.directToData.segmentLegIndex, this.fms.isConstraintUser(lateralPlan.directToData.segmentIndex, vnavLeg.legIndex));
       }
     }
   }
@@ -194,7 +221,7 @@ export class FPLDetailsController {
    * @param state The event value was captured.
    */
   private onVerticalDirect(state: boolean): void {
-    if (state && this.hasVnav && this.fms.autopilot !== undefined) {
+    if (state && this.hasVnav && this.fms.verticalPathCalculator !== undefined) {
       const plan = this.fms.getFlightPlan();
       if (plan.length > 0 && this.sectionRefs.length > 0) {
         for (let i = 0; i < this.sectionRefs.length; i++) {
@@ -237,6 +264,7 @@ export class FPLDetailsController {
     }
 
     if (e.planIndex === this.fms.flightPlanner.activePlanIndex) {
+      this.store.activeLegState.set(ActiveLegStates.NONE);
       this.updateActiveLegState();
     }
   }
@@ -454,34 +482,11 @@ export class FPLDetailsController {
       }
       case PlanChangeType.Inserted: {
         e.segment && this.store.segments.insert(e.segment, e.segmentIndex);
-        for (let s = e.segmentIndex; s < this.store.segments.length; s++) {
-          const section = this.sectionRefs[s]?.instance;
-          if (section !== undefined) {
-            section.segmentIndex.set(s);
-          }
-        }
         break;
       }
       case PlanChangeType.Removed:
         this.store.segments.removeAt(e.segmentIndex);
-        for (let s = e.segmentIndex; s < this.store.segments.length; s++) {
-          const section = this.sectionRefs[s]?.instance;
-          if (section !== undefined) {
-            section.segmentIndex.set(s);
-          }
-        }
         break;
-      case PlanChangeType.Changed: {
-        const section = this.sectionRefs[e.segmentIndex]?.instance;
-        if (section !== undefined && e.segment) {
-          section.segmentIndex.set(e.segmentIndex);
-        }
-        const prevSection = this.sectionRefs[e.segmentIndex - 1]?.instance;
-        if (prevSection !== undefined) {
-          prevSection.segmentIndex.set(e.segmentIndex - 1);
-        }
-        break;
-      }
     }
 
     this.updateSectionsHeaderEmptyRow();

@@ -1,13 +1,14 @@
-import { BitFlags, FSComponent, MagVar, NavMath, Subject, VNode } from 'msfssdk';
+import { BitFlags, FSComponent, MagVar, NavMath, Subject, UnitType, VNode } from 'msfssdk';
 import { AirportFacility, Facility, FacilityType, ICAO, LegType } from 'msfssdk/navigation';
 import { FlightPathCalculator, FlightPlan, LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
 
-import { Fms, ProcedureType } from '../../../FlightPlan/Fms';
 import { ApproachListItem, SelectApproachStore } from './SelectApproachStore';
-import { FmsUtils, TransitionListItem } from '../../../FlightPlan/FmsUtils';
 import { MessageDialogDefinition } from '../../Dialogs/MessageDialog';
 import { ViewService } from '../../ViewService';
 import { SelectControl } from '../../UiControls2/SelectControl';
+import { G1000ControlEvents } from '../../../G1000Events';
+import { ControlEvents, EventBus } from 'msfssdk/data';
+import { Fms, FmsUtils, ProcedureType, TransitionListItem } from 'garminsdk/flightplan';
 
 /**
  * Controller for SelectApproach component.
@@ -25,7 +26,11 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
   public readonly canLoad = Subject.create(false);
   public readonly canActivate = Subject.create(false);
   public readonly canLoadOrText = this.canLoad.map(canLoad => canLoad ? 'OR' : '');
+
   protected skipCourseReversal = false;
+  protected readonly controlPub = this.bus.getPublisher<ControlEvents>();
+  protected readonly g1000ControlPub = this.bus.getPublisher<G1000ControlEvents>();
+
 
   /**
    * A callback called after a facility is completed loading.
@@ -34,6 +39,7 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
 
   /**
    * Creates an instance of select approach controller.
+   * @param bus The Event Bus.
    * @param store The store.
    * @param selectNextCb Callback when the next control should be focused.
    * @param fms Instance of FMS.
@@ -43,6 +49,7 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
    * @param hasSequence If this instance of the controller should support a sequence display.
    */
   constructor(
+    protected readonly bus: EventBus,
     protected readonly store: S,
     protected readonly selectNextCb: () => void,
     protected readonly fms: Fms,
@@ -136,12 +143,14 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
    */
   public onMinimumsOptionSelected = (index: number): void => {
     this.store.minimumsMode.set(index);
-    Fms.g1000EvtPub.publishEvent('show_minimums', index === 1);
+    this.g1000ControlPub.pub('show_minimums', index === 1, true);
   };
 
   /** Callback handler for  when a minimums value is selected. */
   public updateMinimumsValue = (): void => {
-    Fms.g1000EvtPub.publishEvent('set_minimums', this.store.minimumsSubject.get());
+    const raw = this.store.minimumsSubject.get();
+    const converted = this.store.minimumsUnit.getRaw() == UnitType.METER ? UnitType.FOOT.convertFrom(raw, UnitType.METER) : raw;
+    this.controlPub.pub('set_decision_altitude', converted, true, true);
   };
 
   /**
@@ -202,17 +211,36 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
       return;
     }
 
+    this.skipCourseReversal = false;
+
     if (this.checkForCourseReversal()) {
       const icao = this.store.sequence.tryGet(1)?.get().leg.fixIcao;
       this.viewService.open('MessageDialog', true).setInput(this.getCourseReversalDialogDef(ICAO.getIdent(icao ?? ''))).onAccept.on((sender, accept) => {
         this.skipCourseReversal = !accept;
         if (this.skipCourseReversal) {
           this.store.sequence.removeAt(1);
+          this.removeCourseReversalFromPreviewPlan();
         }
         this.gotoNextSelect(isRefresh);
       });
     } else {
       this.gotoNextSelect(isRefresh);
+    }
+  }
+
+  /**
+   * Removes a course reversal from the preview plan.
+   */
+  protected async removeCourseReversalFromPreviewPlan(): Promise<void> {
+    const previewPlan = this.store.previewPlan.get();
+    if (previewPlan) {
+      previewPlan.removeLeg(0, 1);
+      await previewPlan.calculate();
+
+      // Prevent race condition if the preview plan was updated while the old one was calculating
+      if (this.store.previewPlan.get() === previewPlan) {
+        this.store.previewPlan.notify();
+      }
     }
   }
 
@@ -287,7 +315,7 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
       const legOffset = transition.startIndex;
       this.handleExecute(false, selectedFacility, approach, transIndex, legOffset);
     }
-  }
+  };
 
   /** Callback handler for when activate is pressed. */
   public onActivateExecuted = (): void => {
@@ -299,7 +327,7 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
       const legOffset = transition.startIndex;
       this.handleExecute(true, selectedFacility, approach, transIndex, legOffset);
     }
-  }
+  };
 
   /**
    * Checks for a course reversal in the procedure.
@@ -401,7 +429,17 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
     transStartIndex?: number,
     skipCourseReversal?: boolean
   ): Promise<void> {
-    const success = await this.fms.insertApproach(airport, approachIndex, transitionIndex, visualRunwayNumber, visualRunwayDesignator, transStartIndex, skipCourseReversal);
+    const success = await this.fms.insertApproach(
+      airport,
+      approachIndex,
+      transitionIndex,
+      visualRunwayNumber,
+      visualRunwayDesignator,
+      transStartIndex,
+      skipCourseReversal,
+      activate
+    );
+
     if (success && activate) {
       if (transitionIndex < 0) {
         await this.fms.activateVtf();
@@ -432,5 +470,5 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
         {warningTitle}<p />{warningMessage}
       </div>
     );
-  }
+  };
 }

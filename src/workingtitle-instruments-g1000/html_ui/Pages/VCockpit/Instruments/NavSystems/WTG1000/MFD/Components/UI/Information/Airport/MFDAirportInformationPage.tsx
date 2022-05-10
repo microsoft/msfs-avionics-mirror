@@ -1,7 +1,8 @@
-import { FSComponent, GeoPoint, GeoPointSubject, NavMath, NumberUnit, NumberUnitSubject, Subject, UnitType, VNode } from 'msfssdk';
+import { FSComponent, GeoPoint, GeoPointSubject, NavMath, NumberUnitSubject, UnitType, VNode } from 'msfssdk';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 import { LatLonDisplay } from 'msfssdk/components/common';
-import { AirportFacility, FacilityType } from 'msfssdk/navigation';
-import { FacilityWaypoint } from '../../../../../Shared/Navigation/Waypoint';
+import { AirportFacility, FacilityType, FacilityWaypoint } from 'msfssdk/navigation';
+
 import { NumberUnitDisplay } from '../../../../../Shared/UI/Common/NumberUnitDisplay';
 import { FrequenciesGroup, RunwaysGroup } from '../../Nearest/Airports';
 import { FacilityGroup } from '../FacilityGroup';
@@ -16,7 +17,7 @@ export class MFDAirportInformationPage extends MFDInformationPage {
   private readonly runwaysGroup = FSComponent.createRef<RunwaysGroup>();
   private readonly frequenciesGroup = FSComponent.createRef<FrequenciesGroup>();
 
-  private readonly elevation = NumberUnitSubject.createFromNumberUnit(new NumberUnit(NaN, UnitType.FOOT));
+  private readonly elevation = NumberUnitSubject.createFromNumberUnit(UnitType.METER.createNumber(NaN));
   private readonly location = GeoPointSubject.createFromGeoPoint(new GeoPoint(NaN, NaN));
 
   /**
@@ -58,7 +59,9 @@ export class MFDAirportInformationPage extends MFDInformationPage {
         }
       }
 
-      const elevation = waypoint.facility.runways.reduce((v, c) => v + c.elevation, 0) / waypoint.facility.runways.length;
+      const elevation = waypoint.facility.runways.length === 0
+        ? NaN
+        : waypoint.facility.runways.reduce((v, c) => v + c.elevation, 0) / waypoint.facility.runways.length;
 
       this.elevation.set(elevation);
       this.location.set(waypoint.facility.lat, waypoint.facility.lon);
@@ -94,11 +97,14 @@ export class MFDAirportInformationPage extends MFDInformationPage {
           facilityLoader={this.props.facilityLoader} viewService={this.props.viewService} title='Airport' ref={this.facilityGroup}>
           <div class='mfd-airport-information-apt'>
             <LatLonDisplay class='mfd-airport-information-location' location={this.location} />
-            <NumberUnitDisplay class='mfd-airport-information-elevation' formatter={(v): string => isFinite(v) ? v.toFixed(0) : '_____'}
-              value={this.elevation} displayUnit={Subject.create(UnitType.FOOT)} />
+            <NumberUnitDisplay class='mfd-airport-information-elevation'
+              value={this.elevation}
+              displayUnit={this.unitsSettingManager.altitudeUnits}
+              formatter={NumberFormatter.create({ precision: 1, nanString: '______' })}
+            />
           </div>
         </FacilityGroup>
-        <RunwaysGroup ref={this.runwaysGroup} innerScrollOnly />
+        <RunwaysGroup ref={this.runwaysGroup} unitsSettingManager={this.unitsSettingManager} innerScrollOnly />
         <FrequenciesGroup ref={this.frequenciesGroup} controlPublisher={this.props.controlPublisher} />
       </>
     );

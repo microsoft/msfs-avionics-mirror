@@ -7,6 +7,11 @@ type StateEventsOnly<T> = {
   [K in keyof T as T[K] extends AvionicsSystemStateEvent ? K : never]: T[K]
 }
 
+/** The subset of electrical events that have boolean values.  */
+type ElectricalBools = {
+  [K in keyof ElectricalEvents]: ElectricalEvents[K] extends boolean ? ElectricalEvents[K] : never
+};
+
 /**
  * A basic avionics system with a fixed initialization time and logic.
  */
@@ -39,8 +44,8 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
    * Connects the system to the first avionics power bus.
    * @param key The electrical event key to connect to.
    */
-  protected connectToPower(key: keyof ElectricalEvents): void {
-    this.bus.getSubscriber<ElectricalEvents>()
+  protected connectToPower(key: keyof ElectricalBools): void {
+    this.bus.getSubscriber<ElectricalBools>()
       .on(key)
       .whenChanged()
       .handle(this.onPowerChanged.bind(this));

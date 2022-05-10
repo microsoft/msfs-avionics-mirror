@@ -1,13 +1,12 @@
-import { FSComponent, DisplayComponent, VNode, Subject, ComputedSubject, MathUtils } from 'msfssdk';
+import { ComputedSubject, DisplayComponent, FSComponent, MathUtils, Subject, VNode } from 'msfssdk';
+import { VNavEvents } from 'msfssdk/autopilot';
 import { EventBus } from 'msfssdk/data';
 import { ADCEvents, APEvents, APLockType } from 'msfssdk/instruments';
-import { VNavSimVarEvents } from 'msfssdk/autopilot';
-import { GPDisplayMode, NavIndicatorController, VNavDisplayMode } from '../../../Shared/Navigation/NavIndicatorController';
-
-import './VerticalSpeedIndicator.css';
-import { FailedBox } from '../../../Shared/UI/FailedBox';
+import { GPDisplayMode, NavIndicatorController, VNavDisplayMode } from 'garminsdk/navigation';
 import { ADCSystemEvents } from '../../../Shared/Systems/ADCAvionicsSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
+
+import './VerticalSpeedIndicator.css';
 
 /**
  * The properties for the VSI component.
@@ -24,11 +23,11 @@ interface VerticalSpeedIndicatorProps {
  */
 export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndicatorProps> {
 
+  private containerRef = FSComponent.createRef<HTMLDivElement>();
   private verticalSpeedPointer = FSComponent.createRef<HTMLDivElement>();
   private desiredSpeedPointer = FSComponent.createRef<HTMLDivElement>();
   private selectedVerticalSpeed = FSComponent.createRef<HTMLDivElement>();
   private selectedVSBug = FSComponent.createRef<HTMLDivElement>();
-  private failedBox = FSComponent.createRef<FailedBox>();
 
   private previousVSNumber = 0;
   private verticalSpeedValue = Subject.create(0);
@@ -39,8 +38,6 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
 
   private vnavDisplayMode = VNavDisplayMode.NONE;
   private gpDisplayMode = GPDisplayMode.NONE;
-
-  private isFailed = true;
 
   private selectedVsValueTransform = ComputedSubject.create<number, string>(0, (v) => {
     return `translate3d(0px, ${MathUtils.clamp(v, -2250, 2250) * -0.064}px, 0px)`;
@@ -54,14 +51,14 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
     this.selectedVerticalSpeed.instance.classList.add('hide-element');
 
     const adc = this.props.bus.getSubscriber<ADCEvents>();
-    const vnav = this.props.bus.getSubscriber<VNavSimVarEvents>();
+    const vnav = this.props.bus.getSubscriber<VNavEvents>();
     const ap = this.props.bus.getSubscriber<APEvents>();
 
     adc.on('vs')
       .withPrecision(-1)
       .handle(this.updateVerticalSpeed.bind(this));
 
-    vnav.on('vnavRequiredVs').whenChanged().handle(reqVs => this.updateDesiredSpeedPointer(reqVs));
+    vnav.on('vnav_required_vs').whenChanged().handle(reqVs => this.updateDesiredSpeedPointer(reqVs));
 
     this.props.navIndicatorController.vnavDisplayMode.sub((mode) => {
       this.vnavDisplayMode = mode;
@@ -73,20 +70,20 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
       this.updateDesiredSpeedPointerVisibility();
     });
 
-    ap.on('vs_hold_fpm').handle((value) => {
+    ap.on('ap_vs_selected').withPrecision(0).handle((value) => {
       this.selectedVsValue.set(value);
       this.selectedVsValueTransform.set(value);
       this.updateSelectedVSBug();
     });
 
-    ap.on('ap_lock_release').handle((unlock) => {
+    ap.on('ap_lock_release').whenChanged().handle((unlock) => {
       if (unlock === APLockType.Vs) {
         this.selectedVsVisibility.set(false);
         this.selectedVSBug.instance.classList.add('hide-element');
         this.selectedVerticalSpeed.instance.classList.add('hide-element');
       }
     });
-    ap.on('ap_lock_set').handle((lock) => {
+    ap.on('ap_lock_set').whenChanged().handle((lock) => {
       if (lock === APLockType.Vs) {
         this.selectedVsVisibility.set(true);
         this.selectedVSBug.instance.classList.remove('hide-element');
@@ -94,7 +91,6 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
       }
     });
 
-    this.failedBox.instance.setFailed(true);
     this.props.bus.getSubscriber<ADCSystemEvents>()
       .on('adc_state')
       .handle(this.onAdcStateChanged.bind(this));
@@ -122,23 +118,9 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
    */
   private setFailed(isFailed: boolean): void {
     if (isFailed) {
-      this.isFailed = true;
-      this.failedBox.instance.setFailed(true);
-
-      this.desiredSpeedPointer.instance.classList.add('hidden-element');
-      this.verticalSpeedPointer.instance.classList.add('hidden-element');
-
-      this.selectedVSBug.instance.classList.add('hidden-element');
-      this.selectedVerticalSpeed.instance.classList.add('hidden-element');
+      this.containerRef.instance.classList.add('failed-instr');
     } else {
-      this.isFailed = false;
-      this.failedBox.instance.setFailed(false);
-
-      this.desiredSpeedPointer.instance.classList.remove('hidden-element');
-      this.verticalSpeedPointer.instance.classList.remove('hidden-element');
-
-      this.selectedVSBug.instance.classList.remove('hidden-element');
-      this.selectedVerticalSpeed.instance.classList.remove('hidden-element');
+      this.containerRef.instance.classList.remove('failed-instr');
     }
   }
 
@@ -154,7 +136,6 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
       this.previousVSNumber = quantizedVS;
       this.verticalSpeedVisible.set((vs > 50 || vs < -100) ? 'visible' : 'hidden');
       this.verticalSpeedValue.set(quantizedVS);
-
     }
   }
 
@@ -206,8 +187,8 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
    */
   public render(): VNode {
     return (
-      <div class="vsi-container">
-        <FailedBox ref={this.failedBox} />
+      <div class="vsi-container" ref={this.containerRef}>
+        <div class="failed-box" />
         <svg height="305px" width="75">
           <defs>
             <linearGradient id="vsiGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -215,20 +196,22 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
               <stop offset="100%" style="stop-color:rgb(0,0,0)" />
             </linearGradient>
           </defs>
+          <g class="vsi-tape-numbers">
+            <text x="25" y="27" style="fill:whitesmoke;font-size:20px">2</text>
+            <text x="25" y="91" style="fill:whitesmoke;font-size:20px">1</text>
+            <text x="25" y="219" style="fill:whitesmoke;font-size:20px">1</text>
+            <text x="25" y="283" style="fill:whitesmoke;font-size:20px">2</text>
+          </g>
           <path d="M 0 0 l 38 0 c 5 0 10 5 10 10 l 0 105 l -48 33 l 48 33 l 0 105 c 0 5 -5 10 -10 10 l -38 0" fill="none" stroke="url(#vsiGradient)" stroke-width="1px" />
           <path d="M 15 137.691 l -15 10.309 l 15 10.312" fill="none" stroke="whitesmoke" stroke-width="2px" />
           <line x1="2" y1="20" x2="16" y2="20" style="stroke:rgb(150,150,150);stroke-width:2px"></line>
-          <text x="25" y="27" style="fill:whitesmoke;font-size:20px">2</text>
           <line x1="2" y1="52" x2="10" y2="52" style="stroke:rgb(150,150,150);stroke-width:2px"></line>
           <line x1="2" y1="84" x2="16" y2="84" style="stroke:rgb(150,150,150);stroke-width:2px"></line>
-          <text x="25" y="91" style="fill:whitesmoke;font-size:20px">1</text>
           <line x1="2" y1="116" x2="10" y2="116" style="stroke:rgb(150,150,150);stroke-width:2px"></line>
           <line x1="2" y1="180" x2="10" y2="180" style="stroke:rgb(150,150,150);stroke-width:2px"></line>
           <line x1="2" y1="212" x2="16" y2="212" style="stroke:rgb(150,150,150);stroke-width:2px"></line>
-          <text x="25" y="219" style="fill:whitesmoke;font-size:20px">1</text>
           <line x1="2" y1="244" x2="10" y2="244" style="stroke:rgb(150,150,150);stroke-width:2px"></line>
           <line x1="2" y1="276" x2="16" y2="276" style="stroke:rgb(150,150,150);stroke-width:2px"></line>
-          <text x="25" y="283" style="fill:whitesmoke;font-size:20px">2</text>
         </svg>
         <div ref={this.desiredSpeedPointer} class="vsi-pointer" style='display: none'>
           <svg height="25px" width="25px">

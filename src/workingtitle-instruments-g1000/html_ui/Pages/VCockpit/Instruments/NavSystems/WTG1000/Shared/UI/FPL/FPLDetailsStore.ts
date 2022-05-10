@@ -1,6 +1,6 @@
 import { ArraySubject, Subject } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
-import { FacilityLoader, FacilityRespository } from 'msfssdk/navigation';
+import { FacilityLoader, FacilityRepository } from 'msfssdk/navigation';
 import { FlightPlanSegment } from 'msfssdk/flightplan';
 
 import { FacilityInfo } from './FPLTypesAndProps';
@@ -16,7 +16,7 @@ export class FPLDetailsStore {
     originFacility: undefined,
     destinationFacility: undefined,
     arrivalFacility: undefined
-  }
+  };
 
   public readonly segments = ArraySubject.create<FlightPlanSegment>();
   public readonly activeLeg = Subject.create({ segmentIndex: 0, legIndex: 0 } as ActiveLegDefinition);
@@ -30,6 +30,6 @@ export class FPLDetailsStore {
    * @param bus The event bus.
    */
   constructor(bus: EventBus) {
-    this.loader = new FacilityLoader(FacilityRespository.getRepository(bus));
+    this.loader = new FacilityLoader(FacilityRepository.getRepository(bus));
   }
 }

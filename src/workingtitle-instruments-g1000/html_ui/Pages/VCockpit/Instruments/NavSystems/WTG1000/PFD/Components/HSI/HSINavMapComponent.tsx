@@ -1,27 +1,24 @@
-import { FSComponent, NumberUnitInterface, UnitFamily, UnitType, VNode } from 'msfssdk';
+import { FSComponent, Vec2Math, VNode } from 'msfssdk';
 import { MapDetailIndicator } from '../../../Shared/Map/Indicators/MapDetailIndicator';
 import { MapRangeSettings } from '../../../Shared/Map/MapRangeSettings';
-
-import { NavMapComponent, NavMapRangeTargetRotationController } from '../../../Shared/UI/NavMap/NavMapComponent';
+import { NavMapComponent, NavMapComponentProps, NavMapRangeTargetRotationController } from '../../../Shared/UI/NavMap/NavMapComponent';
+import { NavMapModelModules } from '../../../Shared/UI/NavMap/NavMapModel';
 
 /**
  * The PFD HSI map.
  */
-export class HSINavMapComponent extends NavMapComponent {
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected createRangeTargetRotationController(): NavMapRangeTargetRotationController {
-    return new HSINavMapRangeTargetRotationController(
-      this.props.model,
-      this.mapProjection,
-      this.deadZone,
-      this.props.settingManager,
-      this.rangeSettingManager, 'pfdMapRangeIndex',
-      MapRangeSettings.getRangeArraySubscribable(this.props.bus),
-      this.pointerBoundsSub
-    );
-  }
+export class HSINavMapComponent extends NavMapComponent<NavMapModelModules, NavMapComponentProps, HSINavMapRangeTargetRotationController> {
+  protected readonly rtrController = new HSINavMapRangeTargetRotationController(
+    this.props.model,
+    this.mapProjection,
+    this.deadZone,
+    MapRangeSettings.getRangeArraySubscribable(this.props.bus),
+    this.pointerBoundsSub,
+    this.props.settingManager,
+    this.rangeSettingManager, 'pfdMapRangeIndex'
+  );
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected renderIndicatorGroups(): (VNode | null)[] {
     return [
       this.renderBottomLeftIndicatorGroup(),
@@ -29,7 +26,7 @@ export class HSINavMapComponent extends NavMapComponent {
     ];
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected renderBottomLeftIndicators(): (VNode | null)[] {
     return [
       this.renderDetailIndicator(),
@@ -50,12 +47,12 @@ export class HSINavMapComponent extends NavMapComponent {
     );
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected renderOrientationDisplayLayer(): VNode | null {
     return null;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected renderMiniCompassLayer(): VNode | null {
     return null;
   }
@@ -65,7 +62,7 @@ export class HSINavMapComponent extends NavMapComponent {
     return null;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected renderRangeCompassLayer(): VNode | null {
     return null;
   }
@@ -75,14 +72,14 @@ export class HSINavMapComponent extends NavMapComponent {
     return null;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected renderDetailIndicator(): VNode | null {
     return (
       <MapDetailIndicator declutterMode={this.props.model.getModule('declutter').mode} showTitle={false} />
     );
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected renderTerrainScaleIndicator(): VNode | null {
     return null;
   }
@@ -118,21 +115,28 @@ export class HSINavMapComponent extends NavMapComponent {
  * A controller for handling map range, target, and rotation changes for the MFD navigation map.
  */
 class HSINavMapRangeTargetRotationController extends NavMapRangeTargetRotationController {
-  public static readonly TARGET_OFFSET = new Float64Array(2);
+  /** @inheritdoc */
+  protected getDesiredRangeEndpoints(out: Float64Array): Float64Array {
+    const trueCenterRelX = this.nominalToTrueRelativeX(0.5);
+    const trueCenterRelY = this.nominalToTrueRelativeY(0.5);
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected convertToTrueRange(nominalRange: NumberUnitInterface<UnitFamily.Distance>): number {
-    const projectedHeight = this.mapProjection.getProjectedSize()[1];
-    const correctedHeight = projectedHeight - this.deadZone[1] - this.deadZone[3];
-    return nominalRange.asUnit(UnitType.GA_RADIAN) as number * projectedHeight / correctedHeight * 2;
+    out[0] = trueCenterRelX;
+    out[1] = trueCenterRelY;
+    out[2] = trueCenterRelX;
+    out[3] = this.nominalToTrueRelativeY(1);
+    return out;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected getDesiredTargetOffset(): Float64Array {
-    return HSINavMapRangeTargetRotationController.TARGET_OFFSET;
+  /** @inheritdoc */
+  protected getDesiredTargetOffset(out: Float64Array): Float64Array {
+    const deadZone = this.deadZone.get();
+    const trueCenterOffsetX = (deadZone[0] - deadZone[2]) / 2;
+    const trueCenterOffsetY = (deadZone[1] - deadZone[3]) / 2;
+
+    return Vec2Math.set(trueCenterOffsetX, trueCenterOffsetY, out);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected updateOrientation(): void {
     // noop
   }

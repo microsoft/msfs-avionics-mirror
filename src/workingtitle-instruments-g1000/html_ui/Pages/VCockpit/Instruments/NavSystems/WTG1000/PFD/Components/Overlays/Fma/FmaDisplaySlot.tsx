@@ -31,10 +31,10 @@ export class FmaDisplaySlot<T> extends DisplayComponent<FmaDisplaySlotProps<T>> 
         this.activeFailed = true;
         this.onFailed(true);
       }
-    });
-    this.props.armed.sub(armed => this.currentArmedMode = armed);
-    this.props.secondaryArmed?.sub(armed => this.currentSecondaryArmedMode = armed);
-    this.props.active.sub(this.onActiveChanged.bind(this));
+    }, true);
+    this.props.armed.sub(armed => this.currentArmedMode = armed, true);
+    this.props.secondaryArmed?.sub(armed => this.currentSecondaryArmedMode = armed, true);
+    this.props.active.sub(this.onActiveChanged.bind(this), true);
   }
 
   /**

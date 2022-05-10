@@ -172,9 +172,6 @@ export class FuelComputer {
    */
   constructor(bus: EventBus) {
     this.simVarPublisher = new FuelSimVarPublisher(bus);
-    this.simVarPublisher.subscribe('fuelQty');
-    this.simVarPublisher.subscribe('fuelFlow1');
-    this.simVarPublisher.subscribe('fuelFlow2');
     this.simVarSubscriber = bus.getSubscriber<FuelSimVars>();
     this.controlSubscriber = bus.getSubscriber<G1000ControlEvents>();
     this.totalizer = new Totalizer();

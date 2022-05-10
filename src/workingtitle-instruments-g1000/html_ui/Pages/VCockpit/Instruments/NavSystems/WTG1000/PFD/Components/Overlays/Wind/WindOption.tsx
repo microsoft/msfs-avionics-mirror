@@ -1,5 +1,5 @@
 import { FSComponent, DisplayComponent, VNode, Subject, ComponentProps } from 'msfssdk';
-import { WindData, WindOverlayRenderOption } from '../../../../Shared/UI/Controllers/WindOptionController';
+import { WindData } from '../../../../Shared/UI/Controllers/WindOptionController';
 
 /**
  * The properties on the wind option display component.
@@ -7,8 +7,6 @@ import { WindData, WindOverlayRenderOption } from '../../../../Shared/UI/Control
 export interface WindOptionProps extends ComponentProps {
   /** The wind data subject. */
   windData: Subject<WindData>;
-  /** The render option subject. */
-  renderOption: Subject<WindOverlayRenderOption>;
   /** The aircraft heading subject. */
   aircraftHeading?: Subject<number>;
 }
@@ -18,13 +16,27 @@ export interface WindOptionProps extends ComponentProps {
  */
 export abstract class WindOption extends DisplayComponent<WindOptionProps> {
   protected readonly containerRef = FSComponent.createRef<HTMLDivElement>();
-
+  private updateHandler = this.update.bind(this);
 
   /**
-   * Do stuff after rendering.
+   * Update the component data.
    */
-  public onAfterRender(): void {
-    //noop
+  protected abstract update(): void;
+
+  /**
+   * Resume this component.
+   */
+  private resume(): void {
+    this.props.windData.sub(this.updateHandler, true);
+    this.props.aircraftHeading?.sub(this.updateHandler);
+  }
+
+  /**
+   * Pause this component.
+   */
+  private pause(): void {
+    this.props.windData.unsub(this.updateHandler);
+    this.props.aircraftHeading?.unsub(this.updateHandler);
   }
 
   /**
@@ -32,11 +44,8 @@ export abstract class WindOption extends DisplayComponent<WindOptionProps> {
    * @param isVisible is whether to set this visible or not.
    */
   public setVisible(isVisible: boolean): void {
-    if (isVisible) {
-      this.containerRef.instance.classList.remove('disabled');
-    } else {
-      this.containerRef.instance.classList.add('disabled');
-    }
+    this.containerRef.instance.classList.toggle('hide-element', !isVisible);
+    isVisible ? this.resume() : this.pause();
   }
 
   /**

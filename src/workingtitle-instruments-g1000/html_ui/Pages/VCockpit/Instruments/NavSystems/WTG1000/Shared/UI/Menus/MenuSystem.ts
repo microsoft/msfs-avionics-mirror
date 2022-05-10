@@ -50,6 +50,15 @@ export class MenuSystem {
   }
 
   /**
+   * Gets the softkey menu registered with a given name.
+   * @param menuName Name of the menu.
+   * @returns The requested soft keymenu.
+   */
+  public getMenu(menuName: string): SoftKeyMenu {
+    return this.registeredMenus[menuName]; 
+  }
+
+  /**
    * Adds a menu to the menu system.
    * @param name The route to the menu to add this menu entry to.
    * @param entry The menu entry to add.
@@ -114,7 +123,7 @@ export class MenuSystem {
    */
   private renderToSoftKeys(): void {
     this.currentMenu.forEach((item, index) => {
-      this.softKeys?.setMenuItem(index, item);
+       this.softKeys?.setMenuItem(index, item);
     });
   }
 

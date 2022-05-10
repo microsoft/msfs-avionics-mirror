@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { GeoPoint, NavMath, UnitType, MagVar } from '..';
-import { SimVarValueType } from '../data';
-import { Facility, ICAO, LegType, FacilityType, FacilityLoader } from '../navigation';
+import { SimVarValueType } from '../data/SimVars';
+import { Facility, ICAO, LegType, FacilityType } from '../navigation/Facilities';
+import { FacilityLoader } from '../navigation/FacilityLoader';
 import {
   ArcToFixLegCalculator, CourseToAltitudeLegCalculator, CourseToDMELegCalculator, CourseToFixLegCalculator,
   CourseToManualLegCalculator, CourseToRadialLegCalculator, DirectToFixLegCalculator, FixToDMELegCalculator,
@@ -93,7 +94,8 @@ export class FlightPathCalculator {
       [LegType.HM]: calc,
       [LegType.HF]: calc,
 
-      [LegType.Discontinuity]: new DiscontinuityLegCalculator(this.facilityCache)
+      [LegType.Discontinuity]: calc = new DiscontinuityLegCalculator(this.facilityCache),
+      [LegType.ThruDiscontinuity]: calc
     };
   }
 
@@ -106,7 +108,8 @@ export class FlightPathCalculator {
    */
   public async calculateFlightPath(legs: LegDefinition[], activeLegIndex: number, initialIndex = 0, count = Number.POSITIVE_INFINITY): Promise<void> {
 
-    count = Math.min(legs.length - initialIndex, count);
+    initialIndex = Math.max(0, initialIndex);
+    count = Math.max(0, Math.min(legs.length - initialIndex, count));
 
     this.state.updatePlaneState(this.options);
 
@@ -151,7 +154,7 @@ export class FlightPathCalculator {
     let index = Math.min(initialIndex, legs.length);
     while (--index >= 0) {
       const leg = legs[index];
-      if (leg.leg.type === LegType.Discontinuity) {
+      if (leg.leg.type === LegType.Discontinuity || leg.leg.type === LegType.ThruDiscontinuity) {
         break;
       }
 
@@ -174,7 +177,7 @@ export class FlightPathCalculator {
     let index = Math.min(initialIndex, legs.length);
     while (--index >= 0) {
       const leg = legs[index];
-      if (leg.leg.type === LegType.Discontinuity) {
+      if (leg.leg.type === LegType.Discontinuity || leg.leg.type === LegType.ThruDiscontinuity) {
         return;
       }
 
@@ -309,7 +312,7 @@ export class FlightPathCalculator {
         try {
           facilityPromises.push(this.facilityLoader.getFacility(ICAO.getFacilityType(icao), icao)
             .then(facility => {
-              this.facilityCache.set(facility.icao, facility);
+              this.facilityCache.set(icao, facility);
               return true;
             })
             .catch(() => false)

@@ -15,8 +15,8 @@ export interface MenuItem {
   /** Whether or not this menu item is disabled. */
   disabled: Subject<boolean>;
 
-  /** Whether or not this menu item is pressed. */
-  pressed: SubEvent<undefined>;
+  /** An event that fires when this menu item is pressed. */
+  pressed: SubEvent<SoftKeyMenu, undefined>;
 
   /** The value of the menu item, if any. */
   value: Subject<boolean | string | undefined>;
@@ -116,5 +116,5 @@ export class SoftKeyMenu {
     pressed: new SubEvent(),
     value: Subject.create<boolean | string | undefined>(undefined),
     highlighted: Subject.create<boolean>(false)
-  }
+  };
 }

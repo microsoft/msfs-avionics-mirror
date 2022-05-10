@@ -102,7 +102,7 @@ export class MapInset extends DisplayComponent<MapInsetProps> {
         this.props.bus.off('mfd_power_on', this.onMfdPowerOn);
       }, 250);
     }
-  }
+  };
 
   /**
    * A callback which is called when an interaction event occurs.
@@ -178,8 +178,9 @@ export class MapInset extends DisplayComponent<MapInsetProps> {
           updateFreq={Subject.create(MapInset.UPDATE_FREQ)}
           dataUpdateFreq={Subject.create(MapInset.DATA_UPDATE_FREQ)}
           projectedWidth={242} projectedHeight={230}
+          pointerBoundsOffset={Subject.create(new Float64Array([0.2, 0.2, 0.4, 0.2]))}
           flightPlanner={this.props.flightPlanner}
-          id='pfd_inset_map' bingId='pfd_map'
+          bingId='pfd_map'
           ownAirplaneLayerProps={{
             imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
             invalidHeadingImageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon_nohdg.svg',

@@ -53,24 +53,19 @@ export class MFDDirectTo extends DirectTo {
     this.mapRangeIndexSub.set(newIndex);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected onViewOpened(): void {
     super.onViewOpened();
 
     this.mapRef.instance.wake();
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected onViewClosed(): void {
     super.onViewClosed();
 
     this.mapRef.instance.sleep();
     this.mapRangeIndexSub.set(WaypointMapRangeTargetRotationController.DEFAULT_MAP_RANGE_INDEX);
-  }
-
-  /** @inheritdoc */
-  protected getActivateScrollIndex(): number {
-    return 3;
   }
 
   /**
@@ -96,7 +91,7 @@ export class MFDDirectTo extends DirectTo {
             updateFreq={Subject.create(MFDDirectTo.MAP_UPDATE_FREQ)}
             dataUpdateFreq={Subject.create(MFDDirectTo.MAP_DATA_UPDATE_FREQ)}
             projectedWidth={290} projectedHeight={250}
-            id='mfd_dto_map'
+            bingId='mfd_dto_map'
             rangeIndex={this.mapRangeIndexSub}
             waypoint={this.store.waypoint}
             ownAirplaneLayerProps={{
@@ -120,9 +115,7 @@ export class MFDDirectTo extends DirectTo {
           </div>
         </GroupBox>
         <GroupBox title='Course' class='mfd-dto-course-box'>
-          <div class="mfd-dto-course">
-            {this.renderCourseInput()}
-          </div>
+          {this.renderCourseInput('mfd-dto-course-input')}
         </GroupBox>
         <div class="mfd-action-buttons mfd-dto-action-buttons">
           <ActionButton onRegister={this.register} isVisible={this.controller.canActivate} onExecute={this.onLoadExecuted} text="Activate?" />

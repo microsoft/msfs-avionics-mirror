@@ -3,7 +3,7 @@ import { GaugeColumnGroupProps, XMLGaugeSpec, XMLGaugeType, XMLHorizontalGaugePr
 import { CompositeLogicXMLHost, EventBus } from 'msfssdk/data';
 import { XMLCircleGauge } from './DialGauge';
 import { XMLHorizontalGauge, XMLDoubleHorizontalGauge } from './HorizontalBarGauge';
-import { XMLDoubleVerticalGauge } from './VerticalBarGauge';
+import { XMLDoubleVerticalGauge, XMLVerticalGauge } from './VerticalBarGauge';
 import { XMLTextGauge } from './TextGauge';
 import { CylinderTempGauge, CylinderTempGaugeTwin } from './CylinderTempGauge';
 
@@ -97,6 +97,12 @@ export class XMLGaugeColumn extends DisplayComponent<XMLGaugeColumnProps> {
         case XMLGaugeType.DoubleHorizontal:
           FSComponent.render(
             <XMLDoubleHorizontalGauge logicHost={this.props.logicHandler} {...gauge.configuration} />,
+            this.props.ref.instance
+          );
+          break;
+        case XMLGaugeType.Vertical:
+          FSComponent.render(
+            <XMLVerticalGauge logicHost={this.props.logicHandler} {...gauge.configuration} />,
             this.props.ref.instance
           );
           break;

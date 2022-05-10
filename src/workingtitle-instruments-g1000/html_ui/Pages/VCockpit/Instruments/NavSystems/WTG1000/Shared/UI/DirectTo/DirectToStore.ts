@@ -1,13 +1,12 @@
 import { GeoPointInterface, Subject, Subscribable } from 'msfssdk';
-import { Facility } from 'msfssdk/navigation';
-import { FacilityWaypoint, Waypoint } from '../../Navigation/Waypoint';
+import { Facility, FacilityWaypoint, Waypoint } from 'msfssdk/navigation';
+
 import { WaypointInfoStore } from '../Waypoint/WaypointInfoStore';
 
 /** The store for the DTO view */
 export class DirectToStore {
   public readonly waypointInfoStore: WaypointInfoStore;
-  public readonly courseTens = Subject.create(0);
-  public readonly courseOnes = Subject.create(0);
+  public readonly courseInputValue = Subject.create(0);
   public readonly course = Subject.create<number | undefined>(undefined);
 
   // eslint-disable-next-line jsdoc/require-returns

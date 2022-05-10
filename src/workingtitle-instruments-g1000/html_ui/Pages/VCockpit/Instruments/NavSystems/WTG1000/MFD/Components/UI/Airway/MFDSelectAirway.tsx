@@ -30,7 +30,7 @@ export class MFDSelectAirway extends SelectAirway<MFDSelectAirwayProps> {
 
   private buildLegItem = (data: Subject<LegDefinition>, registerFn: (ctrl: UiControl) => void): VNode => {
     return <ProcSequenceItem onRegister={registerFn} data={data} unitsSettingManager={this.unitsSettingManager} />;
-  }
+  };
 
   /**
    * Renders the component.

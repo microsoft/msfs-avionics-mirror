@@ -9,6 +9,11 @@
   padding-top: 6px;
   text-shadow: 0 0 black;
   overflow: hidden;
+  --value-color: cyan;
+}
+
+.softkey-tab.text-disabled{
+  --value-color: rgb(18, 95, 95);
 }
 
 .softkey-tab.highlighted {
@@ -30,7 +35,7 @@
 }
 
 .softkey-tab-value {
-  color: cyan;
+  color: var(--value-color);
   float: right;
   margin-right: 4px;
 }
@@ -59,4 +64,8 @@
 
 .softkey-tab-indicator.indicating {
   background: -webkit-linear-gradient(90deg, rgb(0, 28, 0) 0%, rgb(0, 255, 0) 50%, rgb(0, 28, 0) 100%);
+}
+
+.softkey-tab-indicator.indicating-dim {
+  background: -webkit-linear-gradient(90deg, rgb(0, 28, 0) 0%, rgb(0, 55, 0) 50%, rgb(0, 28, 0) 100%);
 }

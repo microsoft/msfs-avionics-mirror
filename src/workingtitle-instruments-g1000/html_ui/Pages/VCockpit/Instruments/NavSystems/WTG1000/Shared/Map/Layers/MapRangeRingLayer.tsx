@@ -57,8 +57,7 @@ export class MapRangeRingLayer extends MapLabeledRingLayer<MapRangeRingLayerProp
   protected updateFromVisibility(): void {
     super.updateFromVisibility();
 
-    const isVisible = this.isVisible();
-    if (isVisible) {
+    if (this.isVisible()) {
       this.needUpdateRing = true;
     }
   }

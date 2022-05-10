@@ -1,17 +1,19 @@
-import { FSComponent, DisplayComponent, VNode, NodeReference, ComponentProps, Subject, ComputedSubject } from 'msfssdk';
+import { ComponentProps, ComputedSubject, DisplayComponent, FSComponent, NodeReference, Unit, Subject, UnitType, VNode, UnitFamily } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
-import { ADCEvents, APEvents, NavSourceId, NavSourceType } from 'msfssdk/instruments';
 import { FlightPlanner } from 'msfssdk/flightplan';
+import { ADCEvents, APEvents, DHEvents, NavSourceId, NavSourceType } from 'msfssdk/instruments';
+
+import { NavIndicatorController, ObsSuspModes } from 'garminsdk/navigation';
 
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
+import { AvionicsComputerSystemEvents, AvionicsSystemState } from '../../../Shared/Systems';
 import { TrafficAdvisorySystem } from '../../../Shared/Traffic/TrafficAdvisorySystem';
-import { NavIndicatorController, ObsSuspModes } from '../../../Shared/Navigation/NavIndicatorController';
+import { PfdMapLayoutSettingMode, PFDUserSettings } from '../../PFDUserSettings';
 import { HSIMap } from './HSIMap';
 import { HSIRose } from './HSIRose';
 
 import './HSI.css';
-import { PFDUserSettings, PfdMapLayoutSettingMode } from '../../PFDUserSettings';
-import { AvionicsComputerSystemEvents, AvionicsSystemState } from '../../../Shared/Systems';
+import { UnitsUserSettingManager } from '../../../Shared/Units/UnitsUserSettings';
 
 /**
  * Properties on the HSI component.
@@ -28,6 +30,9 @@ interface HSIProps extends ComponentProps {
 
   /** The G1000 traffic advisory system. */
   tas: TrafficAdvisorySystem;
+
+  /** A user setting manager for DA units.. */
+  unitsSettingManager: UnitsUserSettingManager;
 }
 
 /**
@@ -39,12 +44,21 @@ export class HSI extends DisplayComponent<HSIProps> {
   private readonly minimumsContainerRef = FSComponent.createRef<HTMLDivElement>();
   private readonly gpsMessage = FSComponent.createRef<HTMLDivElement>();
 
-  public hsiController = this.props.navIndicatorController;
-  private dtkBoxLabel = FSComponent.createRef<HTMLElement>();
-  private dtkBoxValue = FSComponent.createRef<HTMLElement>();
+  public readonly hsiController = this.props.navIndicatorController;
+  private readonly dtkBoxLabelSubj = Subject.create<string>('');
+  private readonly dtkBoxValue = FSComponent.createRef<HTMLElement>();
+  private readonly dtkBoxValueSubj = ComputedSubject.create<number, string>(0, (value) => {
+    return `${value}°`.padStart(4, '0');
+  });
+
   private sourceActive: NavSourceId | undefined;
-  private minimumsValue = Subject.create(0);
-  private headingSelectValue = ComputedSubject.create(0, (v): string => {
+  private minimumFeet = 0;
+  private readonly minimumsValue = Subject.create(0);
+  private readonly minimumsUnit = ComputedSubject.create<Unit<UnitFamily.Distance>, string>(this.props.unitsSettingManager.altitudeUnits.get(), u => {
+    return u === UnitType.METER ? 'M' : 'FT';
+  });
+
+  private readonly headingSelectValue = ComputedSubject.create(0, (v): string => {
     const hdg = v == 0 ? 360 : v;
     return `${hdg}°`.padStart(4, '0');
   });
@@ -61,26 +75,35 @@ export class HSI extends DisplayComponent<HSIProps> {
 
     const ap = this.props.bus.getSubscriber<APEvents>();
     const g1000 = this.props.bus.getSubscriber<G1000ControlEvents>();
-
-    ap.on('heading_select')
-      .withPrecision(0)
-      .handle(this.updateSelectedHeadingDisplay.bind(this));
-
-    g1000.on('set_minimums')
-      .handle((mins) => {
-        this.minimumsValue.set(mins);
-        this.updateMinimumsShown(this.areMinimumsEnabled, this.altitude, this.minimumsValue.get());
-      });
+    const dh = this.props.bus.getSubscriber<DHEvents>();
 
     g1000.on('show_minimums')
       .handle((show) => {
         this.areMinimumsEnabled = show;
-        this.updateMinimumsShown(this.areMinimumsEnabled, this.altitude, this.minimumsValue.get());
+        this.updateMinimumsShown(this.areMinimumsEnabled, this.altitude, this.minimumFeet);
       });
+
+    ap.on('ap_heading_selected')
+      .withPrecision(0)
+      .handle(this.updateSelectedHeadingDisplay.bind(this));
+
+    dh.on('decision_altitude').handle((mins) => {
+      this.minimumFeet = mins;
+      this.minimumsValue.set(Math.round(this.minimumsUnit.getRaw() == UnitType.METER ? UnitType.METER.convertFrom(mins, UnitType.FOOT) : mins));
+      this.updateMinimumsShown(this.areMinimumsEnabled, this.altitude, this.minimumFeet);
+    });
+
+    this.minimumsUnit.sub(u => {
+      this.minimumsValue.set(Math.round(u == 'M' ? UnitType.METER.convertFrom(this.minimumFeet, UnitType.FOOT) : this.minimumFeet));
+    });
+
+    this.props.unitsSettingManager.altitudeUnits.sub(u => {
+      this.minimumsUnit.set(u);
+    });
 
     this.props.bus.getSubscriber<ADCEvents>().on('alt').withPrecision(0).handle(alt => {
       this.altitude = alt;
-      this.updateMinimumsShown(this.areMinimumsEnabled, this.altitude, this.minimumsValue.get());
+      this.updateMinimumsShown(this.areMinimumsEnabled, this.altitude, this.minimumFeet);
     });
 
     this.props.bus.getSubscriber<AvionicsComputerSystemEvents>()
@@ -141,14 +164,14 @@ export class HSI extends DisplayComponent<HSIProps> {
   public updateDtkBox = (): void => {
     switch (this.hsiController.navStates[this.hsiController.activeSourceIndex].source.type) {
       case NavSourceType.Nav:
-        this.dtkBoxLabel.instance.textContent = 'CRS';
+        this.dtkBoxLabelSubj.set('CRS');
         this.dtkBoxValue.instance.style.color = '#00ff00';
         break;
       case NavSourceType.Gps:
         if (this.hsiController.obsSuspMode === ObsSuspModes.OBS) {
-          this.dtkBoxLabel.instance.textContent = 'CRS';
+          this.dtkBoxLabelSubj.set('OBS');
         } else {
-          this.dtkBoxLabel.instance.textContent = 'DTK';
+          this.dtkBoxLabelSubj.set('DTK');
         }
         this.dtkBoxValue.instance.style.color = 'magenta';
         break;
@@ -156,9 +179,9 @@ export class HSI extends DisplayComponent<HSIProps> {
     const dtk = this.hsiController.navStates[this.hsiController.activeSourceIndex].dtk_obs;
     if (dtk !== null) {
       const disDtk = Math.round(dtk) == 0 ? 360 : Math.round(dtk);
-      this.dtkBoxValue.instance.textContent = `${disDtk}°`.padStart(4, '0');
+      this.dtkBoxValueSubj.set(disDtk);
     }
-  }
+  };
 
   /**
    * Registers the rose and map hsi components with the HSI Controller.
@@ -177,16 +200,16 @@ export class HSI extends DisplayComponent<HSIProps> {
       <div id="HSI">
         <div class="hdgcrs-container hdg-box">HDG <span class="cyan size20">{this.headingSelectValue}</span></div>
         <div class="hdgcrs-container dtk-box">
-          <span ref={this.dtkBoxLabel} />&nbsp;
-          <span ref={this.dtkBoxValue} class="size20" />
+          <span>{this.dtkBoxLabelSubj}</span>&nbsp;
+          <span ref={this.dtkBoxValue} class="size20">{this.dtkBoxValueSubj}</span>
         </div>
         <div class="mins-temp-comp-container" ref={this.minimumsContainerRef}>
           <div class="mins-temp-comp-upper-text size10">BARO</div>
           <div class="mins-temp-comp-lower-text size14">MIN</div>
-          <div class="mins-temp-comp-value size18 cyan">{this.minimumsValue.map(x => x.toFixed(0))}<span class="size12">FT</span></div>
+          <div class="mins-temp-comp-value size18 cyan">{this.minimumsValue}<span class="size12">{this.minimumsUnit}</span></div>
         </div>
         <div class='hsi-gps-msg' ref={this.gpsMessage}>GPS LOI</div>
-        <HSIRose ref={this.roseRef} bus={this.props.bus} controller={this.hsiController} />
+        <HSIRose ref={this.roseRef} bus={this.props.bus} controller={this.hsiController} unitsSettingManager={this.props.unitsSettingManager} />
         <HSIMap ref={this.mapRef} bus={this.props.bus} flightPlanner={this.props.flightPlanner} controller={this.hsiController} tas={this.props.tas} />
       </div >
     );

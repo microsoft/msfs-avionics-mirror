@@ -1,11 +1,10 @@
-import { FSComponent, DisplayComponent, NodeReference, VNode, Subject, MathUtils } from 'msfssdk';
+import { FSComponent, DisplayComponent, NodeReference, VNode, Subject, MathUtils, ComputedSubject } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { APEvents, APLockType } from 'msfssdk/instruments';
 import { ADCEvents } from 'msfssdk/instruments/ADC';
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 import { ADCSystemEvents } from '../../../Shared/Systems/ADCAvionicsSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
-import { FailedBox } from '../../../Shared/UI/FailedBox';
 
 import './AirspeedIndicator.css';
 
@@ -64,6 +63,7 @@ interface AirspeedIndicatorProps {
  */
 export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> {
 
+  private containerRef = FSComponent.createRef<HTMLElement>();
   private airspeedHundredsDataElement = FSComponent.createRef<SVGElement>();
   private airspeedTensDataElement = FSComponent.createRef<SVGElement>();
   private airspeedOnesDataElement = FSComponent.createRef<SVGElement>();
@@ -72,7 +72,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
   private airspeedTrendVector = FSComponent.createRef<SVGElement>();
   private currentDrawnIas = 0;
   private ias = 0;
-  private currentTrend = 0;
+  private speedTrend = Subject.create<number>(0);
   private iasScrollerValues: NodeReference<SVGTextElement>[] = [];
   private tasElement = FSComponent.createRef<HTMLElement>();
 
@@ -83,7 +83,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
     greenWhite: FSComponent.createRef<SVGRectElement>(),
     white: FSComponent.createRef<SVGRectElement>(),
     red: FSComponent.createRef<SVGRectElement>()
-  }
+  };
   private readonly vxSpeedRef = FSComponent.createRef<HTMLDivElement>();
   private readonly vySpeedRef = FSComponent.createRef<HTMLDivElement>();
   private readonly vgSpeedRef = FSComponent.createRef<HTMLDivElement>();
@@ -93,8 +93,10 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
   private readonly vSpeedContainerRef = FSComponent.createRef<HTMLDivElement>();
   private readonly flcBugRef = FSComponent.createRef<HTMLDivElement>();
   private readonly flcBoxRef = FSComponent.createRef<HTMLDivElement>();
-  private readonly failedBox = FSComponent.createRef<FailedBox>();
-  private readonly speedTapeNumbersEl = FSComponent.createRef<SVGGElement>();
+
+  private readonly hundredsSvg = FSComponent.createRef<SVGGElement>();
+  private readonly tensSvg = FSComponent.createRef<SVGGElement>();
+  private readonly onesSvg = FSComponent.createRef<SVGGElement>();
 
   private flcSubject = Subject.create('- - - ');
   private stallDirty = Simplane.getDesignSpeeds().VS0;
@@ -122,6 +124,8 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
 
   private speedWarningSubject = Subject.create(SpeedWarning.None);
   private isFailed = false;
+
+  private tasSubject = Subject.create(0);
 
   /**
    * Builds a numerical scroller for the airspeed window.
@@ -245,18 +249,6 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
 
     this.speedWarningSubject.sub(this.speedWarningChanged.bind(this));
 
-    adc.on('ias')
-      .withPrecision(2)
-      .handle(this.onUpdateIAS);
-    adc.on('tas')
-      .withPrecision(0)
-      .handle(this.onUpdateTAS);
-    ap.on('flc_hold_knots')
-      .whenChangedBy(1)
-      .handle(this.setFlcBug);
-    ap.on('ap_lock_set')
-      .handle(this.toggleFlcElements);
-
     const g1000Events = this.props.bus.getSubscriber<G1000ControlEvents>();
     g1000Events.on('vspeed_set').handle(this.setVSpeed);
     g1000Events.on('vspeed_display').handle(this.setVSpeedVisibility);
@@ -265,10 +257,23 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
     this.flcBugRef.instance.style.display = 'none';
     this.flcBoxRef.instance.style.display = 'none';
 
-    this.failedBox.instance.setFailed(true);
     this.props.bus.getSubscriber<ADCSystemEvents>()
       .on('adc_state')
       .handle(this.onAdcStateChanged.bind(this));
+
+    this.speedTrend.sub(this.onSpeedTrendChanged.bind(this));
+
+    adc.on('ias')
+      .withPrecision(2)
+      .handle(this.onUpdateIAS);
+    adc.on('tas')
+      .withPrecision(0)
+      .handle(this.onUpdateTAS);
+    ap.on('ap_ias_selected')
+      .whenChangedBy(1)
+      .handle(this.setFlcBug);
+    ap.on('ap_lock_set')
+      .handle(this.toggleFlcElements);
   }
 
   /**
@@ -294,22 +299,10 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
   private setFailed(isFailed: boolean): void {
     if (isFailed) {
       this.isFailed = true;
-      this.failedBox.instance.setFailed(true);
-
-      this.airspeedBoxElement.instance.classList.add('hidden-element');
-      this.speedTapeNumbersEl.instance.classList.add('hidden-element');
-      this.tasElement.instance.classList.add('hidden-element');
-
-      this.vSpeedContainerRef.instance.classList.add('hidden-element');
+      this.containerRef.instance.classList.add('failed-instr');
     } else {
       this.isFailed = false;
-      this.failedBox.instance.setFailed(false);
-
-      this.airspeedBoxElement.instance.classList.remove('hidden-element');
-      this.speedTapeNumbersEl.instance.classList.remove('hidden-element');
-      this.tasElement.instance.classList.remove('hidden-element');
-
-      this.vSpeedContainerRef.instance.classList.remove('hidden-element');
+      this.containerRef.instance.classList.remove('failed-instr');
     }
   }
 
@@ -341,7 +334,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
     this.flcSpeed = Math.round(speed);
     this.flcSubject.set(`${this.flcSpeed}`);
     this.updateFlcBug();
-  }
+  };
 
   /**
    * A method called to update the location of the FLC Bug on the tape.
@@ -374,7 +367,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
         this.flcBoxRef.instance.style.display = 'none';
         break;
     }
-  }
+  };
 
   /**
    * A method called when a vspeed update event from the event bus is received.
@@ -387,7 +380,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
     this.vSpeeds[index].value = vSpeed.value;
     this.vSpeedSubjects[index].set(`${vSpeed.value}`);
     this.updateSpeedBugs(this.ias);
-  }
+  };
 
   /**
    * A method called when a vspeed display event from the event bus is received.
@@ -417,16 +410,26 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
     };
     this.vSpeeds.forEach(setVisibility);
     this.updateSpeedBugs(this.ias);
-  }
+  };
 
   /**
    * Determines whether speed trend is in the overspeed range.
    * @param ias the current ias
-   * @returns true if speed trend in overspeed 
+   * @returns true if speed trend in overspeed
    */
   private isSpeedTrendInOverspeed(ias: number): boolean {
-    return ias + (this.currentTrend / 10) >= this.barberSpeed;
+    return ias + (this.speedTrend.get() / 10) >= this.barberSpeed;
   }
+
+  private readonly iasHundredsTranslate = ComputedSubject.create<number, string>(0, (trans: number) => {
+    return `translate(0,${trans})`;
+  });
+  private readonly iasTensTranslate = ComputedSubject.create<number, string>(0, (trans: number) => {
+    return `translate(0,${trans})`;
+  });
+  private readonly iasOnesTranslate = ComputedSubject.create<number, string>(0, (trans: number) => {
+    return `translate(0,${trans})`;
+  });
 
   /**
    * A callback called when the IAS updates from the event bus.
@@ -458,7 +461,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
       if (ias < 20) {
         newTranslation = -420;
       }
-      this.airspeedHundredsDataElement.instance.setAttribute('transform', `translate(0,${newTranslation})`);
+      this.hundredsSvg.instance.style.transform = `translate3d(0px, ${newTranslation}px, 0px)`;
     }
 
     if (this.airspeedTensDataElement.instance !== null) {
@@ -469,7 +472,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
       if (ias < 20) {
         newTranslation = -420;
       }
-      this.airspeedTensDataElement.instance.setAttribute('transform', `translate(0,${newTranslation})`);
+      this.tensSvg.instance.style.transform = `translate3d(0px, ${newTranslation}px, 0px)`;
     }
 
     if (this.airspeedOnesDataElement.instance !== null) {
@@ -477,7 +480,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
       if (ias < 20) {
         newTranslation = -420;
       }
-      this.airspeedOnesDataElement.instance.setAttribute('transform', `translate(0,${newTranslation})`);
+      this.onesSvg.instance.style.transform = `translate3d(0px, ${newTranslation}px, 0px)`;
     }
 
     if (this.airspeedTapeTickElement.instance !== null) {
@@ -511,7 +514,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
     }
     this.updateSpeedBugs(ias);
     this.updateFlcBug();
-  }
+  };
 
   private _lastIAS = 0;
   private _lastTime = 0;
@@ -540,18 +543,25 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
     this._lastTime = performance.now() / 1000;
     const accel = this._computedIASAcceleration * 6;
     return accel;
-  }
+  };
 
   /**
    * Updates the Airspeed Trend Vector.
    * @param ias The current IAS value.
    */
   private updateTrendVector(ias: number): void {
-    this.currentTrend = (ias >= 20) ? this.computeIASAcceleration(ias) * 5 : 0;
-    const verticalOffset = -117 - Math.max(0, this.currentTrend);
+    this.speedTrend.set((ias >= 20) ? this.computeIASAcceleration(ias) * 5 : 0);
+  }
+
+  /**
+   * Callback for when the speed trend changes.
+   * @param speedTrend The current speed trend.
+   */
+  private onSpeedTrendChanged(speedTrend: number): void {
+    const verticalOffset = -117 - Math.max(0, speedTrend);
 
     this.airspeedTrendVector.instance.setAttribute('y', verticalOffset.toString());
-    this.airspeedTrendVector.instance.setAttribute('height', Math.abs(this.currentTrend).toString());
+    this.airspeedTrendVector.instance.setAttribute('height', Math.abs(speedTrend).toString());
   }
 
   /**
@@ -598,10 +608,10 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
           offset -= 22;
           value++;
         }
-        if (value < 4) {
-          for (let j = value; j < 4; j++) {
-            this.vSpeedSubjects[j].set('');
-          }
+      }
+      if (value < 4) {
+        for (let j = value; j < 4; j++) {
+          this.vSpeedSubjects[j].set('');
         }
       }
       this.vSpeedContainerRef.instance.style.display = '';
@@ -668,10 +678,8 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
    * @param tas The current TAS value.
    */
   private onUpdateTAS = (tas: number): void => {
-    if (this.tasElement.instance !== null) {
-      this.tasElement.instance.textContent = `${(tas)}`;
-    }
-  }
+    this.tasSubject.set(tas);
+  };
 
   /**
    * Updates the speed range color bars and the IAS box style.
@@ -755,9 +763,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
    */
   public render(): VNode {
     return (
-
-      <div class="airspeed">
-        <FailedBox ref={this.failedBox} />
+      <div class="airspeed" ref={this.containerRef}>
         <div class="airspeed-top-border"></div>
         <div class="airspeed-middle-border">
           <div class="vspeed-values-background" ref={this.vSpeedBackgroundRef}>
@@ -769,16 +775,14 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
             </div>
           </div>
         </div>
-
-        <div class="speed-tape"></div>
-
+        <div class="failed-box" />
         <div class="tick-marks">
           <div style="height: 456px; width: 70px; transform: translate3d(0px, -291px, 0px); overflow:hidden" ref={this.airspeedTapeTickElement}>
             <svg height="466px" width="70px" viewBox="0 -400 125 800">
               <g class="speed-tape" transform="translate(0,0)">
                 {this.buildSVGSpeedTapeRanges()}
                 {this.buildSpeedTapeTicks()}
-                <g ref={this.speedTapeNumbersEl}>
+                <g class="speed-tape-numers">
                   {this.buildSpeedTapeNumbers()}
                 </g>
               </g>
@@ -801,22 +805,24 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
           </svg>
 
           <div class="hundreds-scroller scroller-background">
-            <svg height="35" width="17">
-              <g transform="translate(0,-420)" ref={this.airspeedHundredsDataElement}>{this.buildScroller(-2, true)}</g>
+            <svg ref={this.hundredsSvg}>
+              <g ref={this.airspeedHundredsDataElement}>{this.buildScroller(-2, true)}</g>
             </svg>
           </div>
 
           <div class="tens-scroller scroller-background">
-            <svg height="35" width="17">
-              <g transform="translate(0,-420)" ref={this.airspeedTensDataElement}>{this.buildScroller()}</g>
+            <svg ref={this.tensSvg}>
+              <g ref={this.airspeedTensDataElement}>{this.buildScroller()}</g>
             </svg>
           </div>
 
           <div class="ones-scroller scroller-background">
-            <div class="ones-scroller-mask"></div>
-            <svg height="57" width="17">
-              <g transform="translate(0,-420)" ref={this.airspeedOnesDataElement}>{this.buildScroller(9)}</g>
-            </svg>
+            <div class="ones-scroller-mask">
+              <svg ref={this.onesSvg}>
+                <g ref={this.airspeedOnesDataElement}>{this.buildScroller(9)}</g>
+              </svg>
+              <div class="ones-scroller-overlay"></div>
+            </div>
           </div>
         </div>
 
@@ -868,7 +874,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
 
         <div class="tas-box">TAS
           <div class="tas-value">
-            <span ref={this.tasElement} />
+            <span ref={this.tasElement}>{this.tasSubject}</span>
             <span style="font-size:14px">KT</span>
           </div>
         </div>

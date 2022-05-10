@@ -1,6 +1,6 @@
 import { VNode, FSComponent } from 'msfssdk';
 import { Facility, NdbFacility, NearestNdbSubscription, NearestSubscription } from 'msfssdk/navigation';
-import { UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
+import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { WaypointIconImageCache } from '../../../../Shared/WaypointIconImageCache';
 import { MFDNearestPage } from './MFDNearestPage';
 import { FrequencyGroup, InformationGroup } from './NDBs';
@@ -14,7 +14,7 @@ export class MFDNearestNdbsPage extends MFDNearestPage<NdbFacility> {
   private readonly frequencyGroup = FSComponent.createRef<FrequencyGroup>();
 
   /** @inheritdoc */
-  protected getSelectedGroup(): UiControl2<UiControl2Props> {
+  protected getSelectedGroup(): G1000UiControl<G1000UiControlProps> {
     return this.uiRoot.instance;
   }
 
@@ -29,7 +29,7 @@ export class MFDNearestNdbsPage extends MFDNearestPage<NdbFacility> {
   }
 
   /** @inheritdoc */
-  protected buildNearestSubscription(): NearestSubscription<NdbFacility, any, any> {
+  protected buildNearestSubscription(): NearestSubscription<NdbFacility> {
     return new NearestNdbSubscription(this.props.loader);
   }
 

@@ -172,9 +172,9 @@ export class MFDTrafficMapPage extends MFDUiPage<MFDTrafficMapPageProps> {
         <MFDTrafficMapComponent
           ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
           updateFreq={Subject.create(MFDTrafficMapPage.UPDATE_FREQ)}
+          dataUpdateFreq={Subject.create(MFDTrafficMapPage.UPDATE_FREQ)}
           projectedWidth={876} projectedHeight={678}
           flightPlanner={this.props.flightPlanner}
-          id='mfd_trafficmap'
           ownAirplaneLayerProps={{
             imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
             iconSize: 40,

@@ -61,7 +61,7 @@ export class MarkerBeacon extends DisplayComponent<MarkerBeaconProps> {
         this.mkrBcnBoxRef.instance.classList.add('inner-animation');
         break;
     }
-  }
+  };
 
   /**
    * Renders the component.

@@ -1,10 +1,10 @@
 import { FSComponent, Subject, Subscribable, VNode } from 'msfssdk';
-import { FailedBox } from '../../../../Shared/UI/FailedBox';
+import { FocusPosition } from 'msfssdk/components/controls';
 import { UiControl } from '../../../../Shared/UI/UiControl';
-import { FocusPosition, UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
+import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 
 /** Props on the ConstraintSelector component. */
-interface ConstraintSelectorProps extends UiControl2Props {
+interface ConstraintSelectorProps extends G1000UiControlProps {
 
   /** The data for this component to display. */
   data: Subscribable<number>;
@@ -28,12 +28,12 @@ interface ConstraintSelectorProps extends UiControl2Props {
 /**
  * A component that allows one to select a constraint in the flight plan.
  */
-export class ConstraintSelector extends UiControl2<ConstraintSelectorProps> {
+export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> {
 
   private readonly value = Subject.create<number>(0);
   private readonly isEdited = Subject.create<boolean>(false);
   private readonly el = FSComponent.createRef<HTMLDivElement>();
-  private readonly failedBox = FSComponent.createRef<FailedBox>();
+  private readonly failedBoxRef = FSComponent.createRef<HTMLDivElement>();
 
   private readonly digitValues = [
     this.value.map(v => this.extractDigit(v, 0)),
@@ -72,8 +72,7 @@ export class ConstraintSelector extends UiControl2<ConstraintSelectorProps> {
 
     this.props.isInvalid.sub(isInvalid => {
       if (!this.isEditing) {
-        this.failedBox.instance.resetSize();
-        this.failedBox.instance.setFailed(isInvalid);
+        this.failedBoxRef.instance.style.display = isInvalid ? 'block' : 'none';
       }
     }, true);
 
@@ -106,13 +105,13 @@ export class ConstraintSelector extends UiControl2<ConstraintSelectorProps> {
   }
 
   /** @inheritdoc */
-  protected onUpperKnobInc(): boolean {
+  public onUpperKnobInc(): boolean {
     this.setEditing(true);
     return true;
   }
 
   /** @inheritdoc */
-  protected onUpperKnobDec(): boolean {
+  public onUpperKnobDec(): boolean {
     this.setEditing(true);
     return true;
   }
@@ -126,7 +125,7 @@ export class ConstraintSelector extends UiControl2<ConstraintSelectorProps> {
       if (isEditing) {
         this.setIsolated(true);
         this.setChildrenDisabled(false);
-        this.failedBox.instance.setFailed(false);
+        this.failedBoxRef.instance.style.display = 'none';
 
         this.isEditing = isEditing;
       } else {
@@ -136,8 +135,7 @@ export class ConstraintSelector extends UiControl2<ConstraintSelectorProps> {
         this.isEditing = isEditing;
         this.isEdited.set(this.props.isEdited.get());
 
-        this.failedBox.instance.resetSize();
-        this.failedBox.instance.setFailed(this.props.isInvalid.get());
+        this.failedBoxRef.instance.style.display = (this.props.isInvalid.get()) ? 'block' : 'none';
       }
 
       this.value.notify();
@@ -157,7 +155,7 @@ export class ConstraintSelector extends UiControl2<ConstraintSelectorProps> {
   }
 
   /** @inheritdoc */
-  protected onClr(): boolean {
+  public onClr(): boolean {
     if (this.isEditing) {
       this.setEditing(false);
       this.value.set(this.props.data.get());
@@ -169,7 +167,7 @@ export class ConstraintSelector extends UiControl2<ConstraintSelectorProps> {
   }
 
   /** @inheritdoc */
-  protected onEnter(): boolean {
+  public onEnter(): boolean {
     if (this.isEditing) {
       if (this.value.get() !== this.props.data.get()) {
         this.props.onSelected(this.value.get());
@@ -251,28 +249,28 @@ export class ConstraintSelector extends UiControl2<ConstraintSelectorProps> {
   public render(): VNode {
     return (
       <div style='position: relative; height: 18px'>
-        <FailedBox color='blue' ref={this.failedBox} />
+        <div class="constraint-failed-box" ref={this.failedBoxRef} />
         <span ref={this.el}>
-          <UiControl2 onFocused={(): void => this.onDigitFocused(4)} onBlurred={(): void => this.onDigitBlurred(4)}
+          <G1000UiControl onFocused={(): void => this.onDigitFocused(4)} onBlurred={(): void => this.onDigitBlurred(4)}
             onUpperKnobInc={(): boolean => this.onDigitIncreased(4)} onUpperKnobDec={(): boolean => this.onDigitDecreased(4)}>
             <span ref={this.digitRefs[4]}>{this.digitValues[4]}</span>
-          </UiControl2>
-          <UiControl2 onFocused={(): void => this.onDigitFocused(3)} onBlurred={(): void => this.onDigitBlurred(3)}
+          </G1000UiControl>
+          <G1000UiControl onFocused={(): void => this.onDigitFocused(3)} onBlurred={(): void => this.onDigitBlurred(3)}
             onUpperKnobInc={(): boolean => this.onDigitIncreased(3)} onUpperKnobDec={(): boolean => this.onDigitDecreased(3)}>
             <span ref={this.digitRefs[3]}>{this.digitValues[3]}</span>
-          </UiControl2>
-          <UiControl2 onFocused={(): void => this.onDigitFocused(2)} onBlurred={(): void => this.onDigitBlurred(2)}
+          </G1000UiControl>
+          <G1000UiControl onFocused={(): void => this.onDigitFocused(2)} onBlurred={(): void => this.onDigitBlurred(2)}
             onUpperKnobInc={(): boolean => this.onDigitIncreased(2)} onUpperKnobDec={(): boolean => this.onDigitDecreased(2)}>
             <span ref={this.digitRefs[2]}>{this.digitValues[2]}</span>
-          </UiControl2>
-          <UiControl2 onFocused={(): void => this.onDigitFocused(1)} onBlurred={(): void => this.onDigitBlurred(1)}
+          </G1000UiControl>
+          <G1000UiControl onFocused={(): void => this.onDigitFocused(1)} onBlurred={(): void => this.onDigitBlurred(1)}
             onUpperKnobInc={(): boolean => this.onDigitIncreased(1)} onUpperKnobDec={(): boolean => this.onDigitDecreased(1)}>
             <span ref={this.digitRefs[1]}>{this.digitValues[1]}</span>
-          </UiControl2>
-          <UiControl2 onFocused={(): void => this.onDigitFocused(0)} onBlurred={(): void => this.onDigitBlurred(0)}
+          </G1000UiControl>
+          <G1000UiControl onFocused={(): void => this.onDigitFocused(0)} onBlurred={(): void => this.onDigitBlurred(0)}
             onUpperKnobInc={(): boolean => this.onDigitIncreased(0)} onUpperKnobDec={(): boolean => this.onDigitDecreased(0)}>
             <span ref={this.digitRefs[0]}>{this.digitValues[0]}</span>
-          </UiControl2>
+          </G1000UiControl>
           <span class='smaller'>FT</span>
         </span>
         <svg viewBox='0 0 24 24' width='24' height='24' class={this.isEdited.map(x => x ? '' : UiControl.HIDE_CLASS)}>

@@ -194,7 +194,7 @@ wtg1000-mfd #Mainframe #SoftKeys .SoftKey[state=White] {
   justify-content: space-evenly;
 }
 
-.nav-data-bar {
+.nav-data-bar-container {
   position: absolute;
   left: 254px;
   top: 0px;

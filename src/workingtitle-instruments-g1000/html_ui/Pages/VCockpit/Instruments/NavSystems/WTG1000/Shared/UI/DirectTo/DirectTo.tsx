@@ -1,9 +1,10 @@
-import { FSComponent, GeoPoint, GeoPointSubject, NumberFormatter, Subject, VNode } from 'msfssdk';
+import { FSComponent, GeoPoint, GeoPointSubject, Subject, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { ADCEvents, GNSSEvents } from 'msfssdk/instruments';
 import { FacilitySearchType } from 'msfssdk/navigation';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 
-import { Fms } from '../../FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { UnitsUserSettings } from '../../Units/UnitsUserSettings';
 import { BearingDisplay } from '../Common/BearingDisplay';
 import { NumberUnitDisplay } from '../Common/NumberUnitDisplay';
@@ -13,6 +14,9 @@ import { WaypointInput } from '../UIControls/WaypointInput';
 import { UiView, UiViewProps } from '../UiView';
 import { DirectToController } from './DirectToController';
 import { DirectToStore } from './DirectToStore';
+import { GenericNumberInput } from '../UiControls2/GenericNumberInput';
+import { DigitInput } from '../UiControls2/DigitInput';
+import { G1000UiControlWrapper } from '../UiControls2/G1000UiControlWrapper';
 
 /**
  * The properties on the procedures popout component.
@@ -70,12 +74,8 @@ export abstract class DirectTo extends UiView<DirectToProps, undefined, DirectTo
    * Sets the course subject based on the number input fields.
    */
   protected setCourse(): void {
-    setTimeout(() => {
-      if (!this.courseOnesRef.instance.getIsFocused() && !this.courseTensRef.instance.getIsFocused()) {
-        const crs = (10 * this.store.courseTens.get()) + this.store.courseOnes.get();
-        this.store.course.set(crs === 0 ? 360 : crs);
-      }
-    });
+    const input = this.store.courseInputValue.get();
+    this.store.course.set(input === 0 ? 360 : input);
   }
 
   /** @inheritdoc */
@@ -99,7 +99,7 @@ export abstract class DirectTo extends UiView<DirectToProps, undefined, DirectTo
    * @returns The Activate Scroll Index.
    */
   protected getActivateScrollIndex(): number {
-    return 3;
+    return 2;
   }
 
   /**
@@ -107,7 +107,7 @@ export abstract class DirectTo extends UiView<DirectToProps, undefined, DirectTo
    */
   public onHoldButtonPressed = (): void => {
     this.controller.activateSelected(true);
-  }
+  };
 
   // eslint-disable-next-line jsdoc/require-jsdoc
   protected onViewOpened(): void {
@@ -151,12 +151,13 @@ export abstract class DirectTo extends UiView<DirectToProps, undefined, DirectTo
     return (
       <WaypointInput
         bus={this.props.bus}
+        viewService={this.props.viewService}
         onRegister={this.register}
         onInputEnterPressed={this.controller.inputEnterPressedHandler}
         onWaypointChanged={this.controller.waypointChangedHandler}
         onMatchedWaypointsChanged={this.controller.matchedWaypointsChangedHandler}
         selectedIcao={this.controller.inputIcao}
-        filter={FacilitySearchType.None}
+        filter={FacilitySearchType.All}
       />
     );
   }
@@ -193,21 +194,33 @@ export abstract class DirectTo extends UiView<DirectToProps, undefined, DirectTo
 
   /**
    * Renders a component which allows the user to input the direct-to course.
+   * @param cssClass CSS class(es) to apply to the root of the component.
    * @returns A component which allows the user to input the direct-to course, as a VNode.
    */
-  protected renderCourseInput(): VNode {
+  protected renderCourseInput(cssClass?: string): VNode {
+    const tensValueSub = Subject.create(0);
+    const onesValueSub = Subject.create(0);
     const setCourse = this.setCourse.bind(this);
+
     return (
-      <>
-        <NumberInput ref={this.courseTensRef} minValue={0} maxValue={35} wrap
-          dataSubject={this.store.courseTens} increment={1} onRegister={this.register} formatter={(v): string => `${v.toFixed(0).padStart(2, '0')}`}
-          onBlurred={setCourse}
-        />
-        <NumberInput ref={this.courseOnesRef} minValue={0} maxValue={9} wrap
-          dataSubject={this.store.courseOnes} increment={1} onRegister={this.register} formatter={(v): string => `${v.toFixed(0)}°`}
-          onBlurred={setCourse}
-        />
-      </>
+      <G1000UiControlWrapper onRegister={this.register}>
+        <GenericNumberInput
+          value={this.store.courseInputValue}
+          digitizer={(value, signValues, digitValues): void => {
+            digitValues[0].set(Math.floor(value / 10) * 10);
+            digitValues[1].set(value % 10);
+          }}
+          renderInactiveValue={(value): string => {
+            return `${value === 0 ? '360' : value.toFixed().padStart(3, '0')}°`;
+          }}
+          onInputAccepted={setCourse} onInputRejected={setCourse}
+          class={cssClass}
+        >
+          <DigitInput value={tensValueSub} minValue={0} maxValue={onesValueSub.map(ones => ones === 0 ? 37 : 36)} increment={1} scale={10} formatter={(value): string => value.toFixed().padStart(2, '0')} wrap />
+          <DigitInput value={onesValueSub} minValue={0} maxValue={tensValueSub.map(tens => tens === 360 ? 1 : 10)} increment={1} scale={1} wrap />
+          <span>°</span>
+        </GenericNumberInput>
+      </G1000UiControlWrapper>
     );
   }
 
@@ -217,5 +230,5 @@ export abstract class DirectTo extends UiView<DirectToProps, undefined, DirectTo
   protected onLoadExecuted = (): void => {
     this.controller.activateSelected();
     this.close();
-  }
+  };
 }

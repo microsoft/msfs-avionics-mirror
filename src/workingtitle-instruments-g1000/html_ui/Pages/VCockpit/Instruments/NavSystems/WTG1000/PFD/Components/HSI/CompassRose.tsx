@@ -24,18 +24,6 @@ export class CompassRose extends DisplayComponent<CompassRoseProps> {
   private roseMarkings = FSComponent.createRef<SVGGElement>();
 
   /**
-   * Sets whether or not the compass rose is failed.
-   * @param isFailed Whether or not the compass rose markings should be failed.
-   */
-  public setFailed(isFailed: boolean): void {
-    if (isFailed) {
-      this.roseMarkings.instance.classList.add('hidden-element');
-    } else {
-      this.roseMarkings.instance.classList.remove('hidden-element');
-    }
-  }
-
-  /**
    * Builds the compass rose tick marks.
    * @returns A collection of rose tick line elements.
    */
@@ -108,7 +96,7 @@ export class CompassRose extends DisplayComponent<CompassRoseProps> {
         <circle cx={half} cy={half} r={radius} fill={this.props.gradient ? 'url("#bgFill")' : 'rgba(0,0,0,.3)'} />
         <circle ref={this.bearingPointerCircleElement} cx={half} cy={half} r="82px" stroke="white" stroke-width="1px" fill="none" />
         {this.buildRose()}
-        <g ref={this.roseMarkings}>
+        <g class="compass-rose-markings" ref={this.roseMarkings}>
           {this.buildRoseMarkings()}
         </g>
       </svg >

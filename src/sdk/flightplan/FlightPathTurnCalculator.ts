@@ -1,4 +1,4 @@
-import { BitFlags, GeoCircle, GeoPoint, LatLonInterface, NavMath, UnitType, Vec3Math } from '..';
+import { BitFlags, GeoCircle, GeoPoint, LatLonInterface, NavMath, ReadonlyFloat64Array, UnitType, Vec3Math } from '..';
 import { FlightPathUtils } from './FlightPathUtils';
 import { ProcedureTurnBuilder } from './FlightPathVectorBuilder';
 import { CircleVector, FlightPathVectorFlags, LegCalculations, LegDefinition, VectorTurnDirection } from './FlightPlanning';
@@ -180,11 +180,18 @@ export class FlightPathTurnCalculator {
       UnitType.METER.convertTo(fromTrack.distance, UnitType.GA_RADIAN),
       UnitType.METER.convertTo(toTrack.distance, UnitType.GA_RADIAN)
     );
+
     // distance from the turn vertex to the center of the turn
     const H = Math.atan(Math.tan(D) / Math.cos(theta * Avionics.Utils.DEG2RAD));
     const turnRadiusRad = desiredD === D
       ? UnitType.METER.convertTo(desiredTurnRadius, UnitType.GA_RADIAN)
       : Math.atan(Math.sin(D) * tanTheta);
+
+    if (D <= GeoPoint.EQUALITY_TOLERANCE || turnRadiusRad <= GeoPoint.EQUALITY_TOLERANCE) {
+      // prevent zero-length turns
+      this.setEmptyTurn(fromLegCalc, toLegCalc);
+      return lastComputedIndex;
+    }
 
     const turnDirection = NavMath.getTurnDirection(fromTrackBearing, toTrackBearing);
     const turnBisectorBearing = toTrackBearing + theta * (turnDirection === 'left' ? -1 : 1);
@@ -431,7 +438,7 @@ export class FlightPathTurnCalculator {
       const arcAngularWidth = ((arcDirection === 'left' ? (arcStartRadial - arcEndRadial) : (arcEndRadial - arcStartRadial)) + 360) % 360;
       arcLimitAngularWidth = Math.min(arcLimitAngularWidth, arcAngularWidth / 2);
       if (arcLimitAngularWidth > 0) {
-        const arcLimitPointAngle = arcStartRadial + arcLimitAngularWidth * (arcDirection === 'left' ? -1 : 1);
+        const arcLimitPointAngle = (isArcFirst ? arcEndRadial : arcStartRadial) + arcLimitAngularWidth * (arcDirection === 'left' ? -1 : 1);
         const arcLimitPoint = arcCenter.offset(arcLimitPointAngle, arcRadius, FlightPathTurnCalculator.geoPointCache[4]);
         const arcLimitRadialPath = FlightPathTurnCalculator.geoCircleCache[2].setAsGreatCircle(arcCenter, arcLimitPoint);
         // the angle between the radial to the arc endpoint and the track path (directed away from the arc at the point of intersection)
@@ -468,7 +475,7 @@ export class FlightPathTurnCalculator {
       trackPathOffsetSign = turnDirection === 'left' ? -1 : 1;
     }
 
-    if (turnRadiusRad === 0) {
+    if (turnRadiusRad <= GeoPoint.EQUALITY_TOLERANCE) {
       this.setEmptyTurn(fromLegCalc, toLegCalc);
       return toIndex;
     }
@@ -556,10 +563,10 @@ export class FlightPathTurnCalculator {
     toLegCalc: LegCalculations,
     direction: VectorTurnDirection,
     radius: number,
-    center: Float64Array | LatLonInterface,
-    start: Float64Array | LatLonInterface,
-    middle: Float64Array | LatLonInterface,
-    end: Float64Array | LatLonInterface
+    center: ReadonlyFloat64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    middle: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface
   ): void {
     const egress = fromLegCalc.egress[0] ??= FlightPathUtils.createEmptyCircleVector();
     const ingress = toLegCalc.ingress[0] ??= FlightPathUtils.createEmptyCircleVector();

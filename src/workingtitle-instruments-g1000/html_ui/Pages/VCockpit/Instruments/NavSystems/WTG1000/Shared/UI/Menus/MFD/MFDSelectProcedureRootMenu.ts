@@ -1,6 +1,6 @@
 import { EventBus } from 'msfssdk/data';
 import { MFDSelectProcedurePage } from '../../../../MFD/Components/UI/Procedure/MFDSelectProcedurePage';
-import { ProcedureType } from '../../../FlightPlan/Fms';
+import { ProcedureType } from 'garminsdk/flightplan';
 import { G1000ControlEvents } from '../../../G1000Events';
 import { ViewService } from '../../ViewService';
 import { MenuSystem } from '../MenuSystem';

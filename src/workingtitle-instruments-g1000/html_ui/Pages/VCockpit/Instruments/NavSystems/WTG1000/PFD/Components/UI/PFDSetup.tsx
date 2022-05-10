@@ -5,17 +5,23 @@ import { UserSettingManager } from 'msfssdk/settings';
 import { UiViewProps, UiView } from '../../../Shared/UI/UiView';
 import { ArrowToggle } from '../../../Shared/UI/UIControls/ArrowToggle';
 import { SelectControl } from '../../../Shared/UI/UIControls/SelectControl';
-import { NumberInput } from '../../../Shared/UI/UIControls/NumberInput';
 import { UiControl } from '../../../Shared/UI/UiControl';
 import { ContextMenuDialog, ContextMenuItemDefinition } from '../../../Shared/UI/Dialogs/ContextMenuDialog';
 import { BacklightIntensitySettingName, BacklightMode, BacklightModeSettingName, BacklightUserSettings, BacklightUserSettingTypes } from '../../../Shared/Backlight/BacklightUserSettings';
 import { UserSettingSelectController } from '../../../Shared/UI/UserSettings/UserSettingSelectController';
 import { UserSettingNumberController } from '../../../Shared/UI/UserSettings/UserSettingNumberController';
+import { G1000UiControlWrapper } from '../../../Shared/UI/UiControls2/G1000UiControlWrapper';
+import { DigitInput } from '../../../Shared/UI/UiControls2/DigitInput';
 
 import './PFDSetup.css';
+import { ViewService } from '../../../Shared/UI/ViewService';
 
 /**Options for controlling the brightness of an item. */
 interface ItemBrightnessOptions extends ComponentProps {
+
+  /** The View Service. */
+  viewService: ViewService;
+
   /** Register function for interior UIControls */
   onRegister: (control: UiControl) => void;
 
@@ -43,7 +49,7 @@ class ItemBrightnessControl extends DisplayComponent<ItemBrightnessOptions> {
   private readonly modeDiv = FSComponent.createRef<HTMLDivElement>();
   private readonly modeControl = FSComponent.createRef<SelectControl<BacklightMode>>();
   private readonly valDiv = FSComponent.createRef<HTMLDivElement>();
-  private readonly valInput = FSComponent.createRef<NumberInput>();
+  private readonly valInput = FSComponent.createRef<DigitInput>();
 
   private readonly modeValues = ArraySubject.create(
     this.props.noManualMode
@@ -73,7 +79,7 @@ class ItemBrightnessControl extends DisplayComponent<ItemBrightnessOptions> {
    */
   public disable(): void {
     this.container.instance.style.display = 'none';
-    this.valInput.instance.setIsEnabled(false);
+    this.valInput.instance.setDisabled(true);
     this.modeControl.instance.setIsEnabled(false);
   }
 
@@ -84,7 +90,7 @@ class ItemBrightnessControl extends DisplayComponent<ItemBrightnessOptions> {
     this.container.instance.style.display = '';
     this.modeControl.instance.setIsEnabled(true);
     if (this.modeSetting.value == BacklightMode.Manual) {
-      this.valInput.instance.setIsEnabled(true);
+      this.valInput.instance.setDisabled(false);
     }
   }
 
@@ -96,13 +102,11 @@ class ItemBrightnessControl extends DisplayComponent<ItemBrightnessOptions> {
     switch (mode) {
       case BacklightMode.Auto:
         // Auto enabled.
-        this.valInput.instance.setIsEnabled(false);
-        this.valInput.instance.getHighlightElement()?.classList.add('inactive-dim');
+        this.valInput.instance.setDisabled(true);
         break;
       case BacklightMode.Manual:
         // Manual enabled.
-        this.valInput.instance.setIsEnabled(true);
-        this.valInput.instance.getHighlightElement()?.classList.remove('inactive-dim');
+        this.valInput.instance.setDisabled(false);
         break;
       default:
       // Shouldn't happen.
@@ -132,7 +136,7 @@ class ItemBrightnessControl extends DisplayComponent<ItemBrightnessOptions> {
     return (
       <div ref={this.container} class='pfd-setup-item-block pfd-setup-inline'>
         <div class='pfd-setup-mode-switch pfd-setup-inline' ref={this.modeDiv}>
-          <SelectControl<BacklightMode> class='pfd-setup-inline'
+          <SelectControl<BacklightMode> viewService={this.props.viewService} class='pfd-setup-inline'
             ref={this.modeControl}
             onRegister={this.props.onRegister}
             buildMenuItem={this.buildModeMenuItem.bind(this)}
@@ -142,17 +146,18 @@ class ItemBrightnessControl extends DisplayComponent<ItemBrightnessOptions> {
           />
         </div>
         <div class='pfd-setup-number-input pfd-setup-inline' ref={this.valDiv}>
-          <NumberInput class='pfd-setup-inline'
-            ref={this.valInput}
-            onRegister={this.props.onRegister}
-            onValueChanged={this.intensityController.inputChangedHandler}
-            dataSubject={this.intensityController.dataSub}
-            minValue={0}
-            maxValue={100}
-            increment={1}
-            formatter={(num: number): string => `${num.toFixed(2)}%`}
-            wrap={false}
-          />
+          <G1000UiControlWrapper onRegister={this.props.onRegister}>
+            <DigitInput
+              ref={this.valInput}
+              value={this.intensityController.dataSub}
+              minValue={0}
+              maxValue={100}
+              increment={1}
+              wrap={false}
+              scale={1}
+              formatter={(num: number): string => `${num.toFixed(2)}%`}
+            />
+          </G1000UiControlWrapper>
         </div>
       </div>
     );
@@ -162,6 +167,10 @@ class ItemBrightnessControl extends DisplayComponent<ItemBrightnessOptions> {
 
 /** The brightness options for a single display. */
 interface BrightnessOptions extends ComponentProps {
+
+  /** The View Service. */
+  viewService: ViewService;
+
   /** Register function for interior UiControls */
   onRegister: (control: UiControl) => void;
 
@@ -235,6 +244,7 @@ class BrightnessControl extends DisplayComponent<BrightnessOptions> {
           />
         </div>
         <ItemBrightnessControl
+          viewService={this.props.viewService}
           ref={this.dispInput}
           onRegister={this.props.onRegister}
           settingManager={this.props.settingManager}
@@ -242,6 +252,7 @@ class BrightnessControl extends DisplayComponent<BrightnessOptions> {
           intensitySettingName={this.screenIntensitySettingName}
         />
         <ItemBrightnessControl
+          viewService={this.props.viewService}
           ref={this.keyInput}
           onRegister={this.props.onRegister}
           settingManager={this.props.settingManager}
@@ -275,8 +286,8 @@ export class PFDSetup extends UiView<PFDSetupProps> {
       <div class="popout-dialog" ref={this.viewContainerRef}>
         <h1>{this.props.title}</h1>
         <div class='pfd-setup-popout'>
-          <BrightnessControl onRegister={this.register} displayName='pfd' settingManager={this.backlightSettingManager} />
-          <BrightnessControl onRegister={this.register} displayName='mfd' settingManager={this.backlightSettingManager} />
+          <BrightnessControl viewService={this.props.viewService} onRegister={this.register} displayName='pfd' settingManager={this.backlightSettingManager} />
+          <BrightnessControl viewService={this.props.viewService} onRegister={this.register} displayName='mfd' settingManager={this.backlightSettingManager} />
         </div>
       </div>
     );

@@ -1,7 +1,8 @@
-import { GeoCircle, GeoPoint, GeoPointInterface, GeoProjection, PathStream, Vec2Math, Vec3Math } from '../..';
+import { GeoCircle, GeoPoint, GeoPointInterface, GeoProjection, Vec2Math, Vec3Math } from '../..';
 import { LodBoundaryShape, LodBoundaryVector } from '../../navigation';
-import { Transform2D } from '../../utils/math/Transform2D';
+import { Transform2D } from '../../math/Transform2D';
 import { MapAbstractAirspaceRenderer } from './MapAirspaceRenderer';
+import { PathStream } from '../../graphics/path';
 
 /**
  * A projected airspace shape which can render its border as optionally offset lines.

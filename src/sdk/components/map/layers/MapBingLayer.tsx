@@ -2,7 +2,7 @@
 /// <reference types="msfstypes/JS/Types" />
 /// <reference types="msfstypes/JS/NetBingMap" />
 
-import { FSComponent, VNode, BitFlags, Subscribable, SubscribableArray, UnitType, Vec2Math, Vec2Subject } from '../../../.';
+import { FSComponent, VNode, BitFlags, Subscribable, SubscribableArray, UnitType, Vec2Math, Vec2Subject, ReadonlyFloat64Array } from '../../../.';
 import { BingComponent, WxrMode } from '../../bing';
 import { MapProjection, MapProjectionChangeType } from '../MapProjection';
 import { MapLayer, MapLayerProps } from '../MapLayer';
@@ -30,6 +30,11 @@ export interface MapBingLayerProps<M> extends MapLayerProps<M> {
    * A subscribable which provides the weather radar mode for the layer's Bing component.
    */
   wxrMode?: Subscribable<WxrMode>;
+
+  /**
+   * How long to delay binding the map in ms.
+   */
+  delay?: number;
 }
 
 /**
@@ -49,6 +54,13 @@ export class MapBingLayer<M> extends MapLayer<MapBingLayerProps<M>> {
   /** @inheritdoc */
   public onAfterRender(): void {
     this.updateFromProjectedSize(this.props.mapProjection.getProjectedSize());
+
+    if (this.props.wxrMode !== undefined) {
+      this.props.wxrMode.sub(() => {
+        this.updateFromProjectedSize(this.props.mapProjection.getProjectedSize());
+        this.needUpdate = true;
+      });
+    }
   }
 
   /** @inheritdoc */
@@ -65,15 +77,31 @@ export class MapBingLayer<M> extends MapLayer<MapBingLayerProps<M>> {
    * Updates this layer according to the current size of the projected map window.
    * @param projectedSize The size of the projected map window.
    */
-  private updateFromProjectedSize(projectedSize: Float64Array): void {
-    this.size = this.getSize(projectedSize);
+  private updateFromProjectedSize(projectedSize: ReadonlyFloat64Array): void {
+    if (this.props.wxrMode && this.props.wxrMode.get().mode === EWeatherRadar.HORIZONTAL) {
+      const offsetSize = new Float64Array([projectedSize[0], projectedSize[1]]);
+      const offset = this.props.mapProjection.getTargetProjectedOffset();
 
-    const offsetX = (projectedSize[0] - this.size) / 2;
-    const offsetY = (projectedSize[1] - this.size) / 2;
-    this.wrapperRef.instance.style.left = `${offsetX}px`;
-    this.wrapperRef.instance.style.top = `${offsetY}px`;
-    this.wrapperRef.instance.style.width = `${this.size}px`;
-    this.wrapperRef.instance.style.height = `${this.size}px`;
+      offsetSize[0] += offset[0];
+      offsetSize[1] += offset[1];
+      this.size = this.getSize(offsetSize);
+
+      const offsetX = ((projectedSize[0] - this.size) / 2) + offset[0];
+      const offsetY = ((projectedSize[1] - this.size) / 2) + offset[1];
+      this.wrapperRef.instance.style.left = `${offsetX}px`;
+      this.wrapperRef.instance.style.top = `${offsetY}px`;
+      this.wrapperRef.instance.style.width = `${this.size}px`;
+      this.wrapperRef.instance.style.height = `${this.size}px`;
+    } else {
+      this.size = this.getSize(projectedSize);
+
+      const offsetX = (projectedSize[0] - this.size) / 2;
+      const offsetY = (projectedSize[1] - this.size) / 2;
+      this.wrapperRef.instance.style.left = `${offsetX}px`;
+      this.wrapperRef.instance.style.top = `${offsetY}px`;
+      this.wrapperRef.instance.style.width = `${this.size}px`;
+      this.wrapperRef.instance.style.height = `${this.size}px`;
+    }
 
     this.resolutionSub.set(this.size, this.size);
   }
@@ -83,7 +111,7 @@ export class MapBingLayer<M> extends MapLayer<MapBingLayerProps<M>> {
    * @param projectedSize - the size of the projected map window.
    * @returns an appropriate size for this Bing layer.
    */
-  private getSize(projectedSize: Float64Array): number {
+  private getSize(projectedSize: ReadonlyFloat64Array): number {
     return Vec2Math.abs(projectedSize);
   }
 
@@ -117,15 +145,24 @@ export class MapBingLayer<M> extends MapLayer<MapBingLayerProps<M>> {
     this.needUpdate = false;
   }
 
+  /** @inheritdoc */
+  public setVisible(val: boolean): void {
+    this.wrapperRef.instance.style.display = val ? '' : 'none';
+  }
+
   /**
    * Updates the Bing map center position and radius.
    */
-  private updatePositionRadius(): void {
+  protected updatePositionRadius(): void {
     const center = this.props.mapProjection.getCenter();
     const radius = this.calculateDesiredRadius(this.props.mapProjection);
     this.bingRef.instance.setPositionRadius(new LatLong(center.lat, center.lon), radius);
 
-    this.wrapperRef.instance.style.transform = `rotate(${this.props.mapProjection.getRotation() * Avionics.Utils.RAD2DEG}deg)`;
+    if (!this.props.wxrMode || (this.props.wxrMode && this.props.wxrMode.get().mode !== EWeatherRadar.HORIZONTAL)) {
+      this.wrapperRef.instance.style.transform = `rotate(${this.props.mapProjection.getRotation() * Avionics.Utils.RAD2DEG}deg)`;
+    } else {
+      this.wrapperRef.instance.style.transform = '';
+    }
   }
 
   /**
@@ -134,7 +171,7 @@ export class MapBingLayer<M> extends MapLayer<MapBingLayerProps<M>> {
    * @returns the desired Bing map radius.
    */
   private calculateDesiredRadius(mapProjection: MapProjection): number {
-    const scaleFactor = mapProjection.getGeoProjection().getScaleFactor();
+    const scaleFactor = mapProjection.getScaleFactor();
     const pointScaleFactor = 1 / Math.cos(mapProjection.getCenter().lat * Avionics.Utils.DEG2RAD);
     const radiusGARad = this.size / (2 * scaleFactor * pointScaleFactor);
     return UnitType.GA_RADIAN.convertTo(radiusGARad, UnitType.METER) as number;
@@ -152,6 +189,7 @@ export class MapBingLayer<M> extends MapLayer<MapBingLayerProps<M>> {
           earthColors={this.props.earthColors}
           reference={this.props.reference}
           wxrMode={this.props.wxrMode}
+          delay={this.props.delay}
         />
       </div>
     );

@@ -33,9 +33,9 @@ export abstract class UiView<T extends UiViewProps = UiViewProps, RV = any, IV =
 
   public inputData: Subject<IV | undefined> = Subject.create<IV | undefined>(undefined);
 
-  public onOpen = new SubEvent<void>();
-  public onClose = new SubEvent<void>();
-  public onAccept = new SubEvent<RV | undefined>();
+  public onOpen = new SubEvent<this, void>();
+  public onClose = new SubEvent<this, void>();
+  public onAccept = new SubEvent<this, RV | undefined>();
 
   /**
    * Shows the view.
@@ -92,7 +92,7 @@ export abstract class UiView<T extends UiViewProps = UiViewProps, RV = any, IV =
    * @param input The input data.
    * @returns This view instance for chain commands.
    */
-  public setInput(input: IV | undefined): UiView {
+  public setInput(input: IV | undefined): this {
     this.inputData.set(input);
     this.onInputDataSet(input);
     return this;

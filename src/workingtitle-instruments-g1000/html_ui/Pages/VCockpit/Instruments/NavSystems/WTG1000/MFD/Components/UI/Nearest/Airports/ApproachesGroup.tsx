@@ -1,8 +1,7 @@
 import { ArraySubject, FSComponent, Subject, VNode } from 'msfssdk';
 import { AirportFacility, ApproachProcedure } from 'msfssdk/navigation';
-import { ControlList } from '../../../../../Shared/UI/ControlList';
 import { ApproachNameDisplay } from '../../../../../Shared/UI/FPL/ApproachNameDisplay';
-import { UiControl2, UiControl2Props } from '../../../../../Shared/UI/UiControl2';
+import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../../Shared/UI/G1000UiControl';
 import { GroupBox } from '../../GroupBox';
 
 import './ApproachesGroup.css';
@@ -10,7 +9,7 @@ import './ApproachesGroup.css';
 /**
  * Props on the ApproachesGroup component.
  */
-export interface ApproachesGroupProps extends UiControl2Props {
+export interface ApproachesGroupProps extends G1000UiControlProps {
   /** A callback called when an approach is selected. */
   onSelected: (approach: ApproachProcedure | undefined) => void;
 }
@@ -19,13 +18,13 @@ export interface ApproachesGroupProps extends UiControl2Props {
  * A component that displays the available approaches on a nearest airport on
  * the MFD nearest airports page.
  */
-export class ApproachesGroup extends UiControl2<ApproachesGroupProps> {
+export class ApproachesGroup extends G1000UiControl<ApproachesGroupProps> {
   private readonly approaches = ArraySubject.create<ApproachProcedure>();
-  private readonly approachList = FSComponent.createRef<ControlList<ApproachProcedure>>();
+  private readonly approachList = FSComponent.createRef<G1000ControlList<ApproachProcedure>>();
   private facility: AirportFacility | undefined;
 
   /** @inheritdoc */
-  protected onEnter(): boolean {
+  public onEnter(): boolean {
     this.approachList.instance.scroll('forward');
     return true;
   }
@@ -57,8 +56,12 @@ export class ApproachesGroup extends UiControl2<ApproachesGroupProps> {
 
     return (
       <ApproachItem approach={approach} facility={this.facility}
-        onFocused={(): void => this.props.onSelected(approach)}
-        onBlurred={(): void => this.props.onSelected(undefined)}
+        onFocused={(): void => {
+          this.props.onSelected(approach);
+        }}
+        onBlurred={(): void => {
+          this.props.onSelected(undefined);
+        }}
         innerKnobScroll />
     );
   }
@@ -67,7 +70,7 @@ export class ApproachesGroup extends UiControl2<ApproachesGroupProps> {
   public render(): VNode {
     return (
       <GroupBox title='Approaches'>
-        <ControlList
+        <G1000ControlList
           innerKnobScroll
           class='mfd-nearest-airport-approaches'
           data={this.approaches}
@@ -81,7 +84,7 @@ export class ApproachesGroup extends UiControl2<ApproachesGroupProps> {
 /**
  * Props on the ApproachItem component.
  */
-interface ApproachItemProps extends UiControl2Props {
+interface ApproachItemProps extends G1000UiControlProps {
   /** The approach to display. */
   approach: ApproachProcedure;
 
@@ -92,17 +95,17 @@ interface ApproachItemProps extends UiControl2Props {
 /**
  * A component that indicates an approach in the nearest airports approach list.
  */
-class ApproachItem extends UiControl2<ApproachItemProps> {
+class ApproachItem extends G1000UiControl<ApproachItemProps> {
   private readonly el = FSComponent.createRef<HTMLDivElement>();
 
   /** @inheritdoc */
-  protected onFocused(source: UiControl2): void {
+  protected onFocused(source: G1000UiControl): void {
     this.el.instance.classList.add('highlight-select');
     super.onFocused(source);
   }
 
   /** @inheritdoc */
-  protected onBlurred(source: UiControl2): void {
+  protected onBlurred(source: G1000UiControl): void {
     this.el.instance.classList.remove('highlight-select');
     super.onBlurred(source);
   }

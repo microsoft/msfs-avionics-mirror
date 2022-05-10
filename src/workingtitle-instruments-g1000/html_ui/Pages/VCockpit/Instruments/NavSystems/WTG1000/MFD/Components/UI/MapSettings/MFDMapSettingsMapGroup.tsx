@@ -18,8 +18,10 @@ export class MFDMapSettingsMapGroup extends MFDMapSettingsGroup<MFDMapSettingsGr
   protected getSettingRows(containerRef: NodeReference<HTMLElement>): VNode[] {
     return [
       <MFDMapSingleEnumSettingRow
+        viewService={this.props.viewService}
         title={'Orientation'}
         controlProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapOrientation',
@@ -29,13 +31,16 @@ export class MFDMapSettingsMapGroup extends MFDMapSettingsGroup<MFDMapSettingsGr
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'North Up Above'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAutoNorthUpActive',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAutoNorthUpRangeIndex',
@@ -45,6 +50,7 @@ export class MFDMapSettingsMapGroup extends MFDMapSettingsGroup<MFDMapSettingsGr
         }}
       />,
       <MFDMapSettingsTerrainRow
+        viewService={this.props.viewService}
         title={'Terrain Display'}
         registerFunc={this.register}
         settingManager={this.props.settingManager}
@@ -52,21 +58,26 @@ export class MFDMapSettingsMapGroup extends MFDMapSettingsGroup<MFDMapSettingsGr
         outerContainer={containerRef}
       />,
       <MFDMapToggleSettingRow
+        viewService={this.props.viewService}
         title={'Topo Scale'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapTerrainScaleShow',
         }}
       />,
       <MFDMapToggleEnumSettingsRow
+        viewService={this.props.viewService}
         title={'Track Vector'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapTrackVectorShow',
         }}
         enumProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapTrackVectorLookahead',
@@ -76,8 +87,10 @@ export class MFDMapSettingsMapGroup extends MFDMapSettingsGroup<MFDMapSettingsGr
         }}
       />,
       <MFDMapToggleSettingRow
+        viewService={this.props.viewService}
         title={'Select ALT Arc'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAltitudeArcShow',
@@ -112,6 +125,7 @@ class MFDMapSettingsTerrainRow extends MFDMapSettingsRow<MFDMapSettingsTerrainRo
   protected renderLeftControl(): VNode | null {
     return (
       <MapEnumSettingControl
+        viewService={this.props.viewService}
         registerFunc={this.props.registerFunc}
         settingManager={this.props.settingManager}
         settingName={'mapTerrainMode'}
@@ -126,7 +140,9 @@ class MFDMapSettingsTerrainRow extends MFDMapSettingsRow<MFDMapSettingsTerrainRo
   /** @inheritdoc */
   protected renderRightControl(): VNode | null {
     return (
-      <MapRangeSettingControl registerFunc={this.props.registerFunc}
+      <MapRangeSettingControl
+        viewService={this.props.viewService}
+        registerFunc={this.props.registerFunc}
         settingManager={this.props.settingManager}
         settingName={'mapTerrainRangeIndex'}
         values={Array.from({ length: 19 }, (value, index) => index + 9)}

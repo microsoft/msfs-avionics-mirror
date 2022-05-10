@@ -1,9 +1,10 @@
-import { DebounceTimer, FSComponent, GeoPoint, NumberUnitInterface, Subject, Subscribable, UnitFamily, UnitType, Vec2Math, VNode } from 'msfssdk';
+import { FSComponent, GeoPoint, NumberUnitInterface, ReadonlyFloat64Array, Subject, Subscribable, UnitFamily, UnitType, Vec2Math, VNode } from 'msfssdk';
 import { MapModel, MapProjection } from 'msfssdk/components/map';
 import { FlightPlannerEvents } from 'msfssdk/flightplan';
 import { UserSettingManager } from 'msfssdk/settings';
+import { DebounceTimer } from 'msfssdk/utils/time';
 
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { MapFlightPlanLayer, MapFlightPlanLayerDataProvider } from '../../../../Shared/Map/Layers/MapFlightPlanLayer';
 import { MapMiniCompassLayer } from '../../../../Shared/Map/Layers/MapMiniCompassLayer';
 import { MapRangeCompassLayer } from '../../../../Shared/Map/Layers/MapRangeCompassLayer';
@@ -21,36 +22,25 @@ import { MFDFPLMapCrosshairController } from './MFDFPLMapCrosshairController';
 /**
  * The MFD flight plan map.
  */
-export class MFDFPLMapComponent extends NavMapComponent<NavMapComponentProps<MFDFPLMapModelModules>> {
+export class MFDFPLMapComponent extends NavMapComponent<MFDFPLMapModelModules, NavMapComponentProps<MFDFPLMapModelModules>, MFDFPLMapRangeTargetRotationController> {
   private static readonly FLIGHT_PLAN_FOCUS_DEFAULT_RANGE_INDEX = 17;
 
-  private readonly dtoFlightPlanLayerRef = FSComponent.createRef<MapFlightPlanLayer>();
-  private readonly miniCompassLayerRef = FSComponent.createRef<MapMiniCompassLayer>();
-  private readonly rangeRingLayerRef = FSComponent.createRef<MapRangeRingLayer>();
-  private readonly rangeCompassLayerRef = FSComponent.createRef<MapRangeCompassLayer>();
-  private readonly pointerInfoLayerRef = FSComponent.createRef<MapPointerInfoLayer>();
-
-  private primaryPlanDataProvider?: MapFlightPlannerPlanDataProvider;
+  private readonly primaryPlanDataProvider = new MapFlightPlannerPlanDataProvider(this.props.bus, this.props.flightPlanner);
   private readonly dtoPlanDataProvider = new MapFlightPlannerPlanDataProvider(this.props.bus, this.props.flightPlanner);
 
+  protected readonly rtrController = new MFDFPLMapRangeTargetRotationController(
+    this.props.model,
+    this.mapProjection,
+    this.deadZone,
+    MapRangeSettings.getRangeArraySubscribable(this.props.bus),
+    this.pointerBoundsSub,
+    this.props.settingManager,
+    this.rangeSettingManager, 'mfdMapRangeIndex',
+    this.primaryPlanDataProvider,
+    MFDFPLMapComponent.FLIGHT_PLAN_FOCUS_DEFAULT_RANGE_INDEX
+  );
+
   protected readonly crosshairController = new MFDFPLMapCrosshairController(this.props.model);
-
-  /** @inheritdoc */
-  protected createRangeTargetRotationController(): NavMapRangeTargetRotationController {
-    this.primaryPlanDataProvider = new MapFlightPlannerPlanDataProvider(this.props.bus, this.props.flightPlanner);
-
-    return new MFDFPLMapRangeTargetRotationController(
-      this.props.model,
-      this.mapProjection,
-      this.deadZone,
-      this.props.settingManager,
-      this.rangeSettingManager, 'mfdMapRangeIndex',
-      MapRangeSettings.getRangeArraySubscribable(this.props.bus),
-      this.pointerBoundsSub,
-      this.primaryPlanDataProvider,
-      MFDFPLMapComponent.FLIGHT_PLAN_FOCUS_DEFAULT_RANGE_INDEX
-    );
-  }
 
   /** @inheritdoc */
   protected initEventBusHandlers(): void {
@@ -64,24 +54,13 @@ export class MFDFPLMapComponent extends NavMapComponent<NavMapComponentProps<MFD
     this.props.model.getModule('focus').isFocused.sub(planProviderHandler, true);
   }
 
-  /** @inheritdoc */
-  protected initLayers(): void {
-    super.initLayers();
-
-    this.attachLayer(this.dtoFlightPlanLayerRef.instance);
-    this.attachLayer(this.miniCompassLayerRef.instance);
-    this.attachLayer(this.rangeRingLayerRef.instance);
-    this.attachLayer(this.rangeCompassLayerRef.instance);
-    this.attachLayer(this.pointerInfoLayerRef.instance);
-  }
-
   /**
    * Changes this map's range index.
    * @param delta The change in index to apply.
    * @returns The range index after the change.
    */
   public changeRangeIndex(delta: number): number {
-    return (this.rangeTargetRotationController as MFDFPLMapRangeTargetRotationController).changeRangeIndex(delta);
+    return this.rtrController.changeRangeIndex(delta);
   }
 
   /**
@@ -106,7 +85,7 @@ export class MFDFPLMapComponent extends NavMapComponent<NavMapComponentProps<MFD
     return (
       <div style='position: absolute; left: 0; top: 0; width: 100%; height: 100%;'>
         <MapFlightPlanLayer
-          ref={this.flightPlanLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           bus={this.props.bus} dataProvider={this.primaryPlanDataProvider!}
           drawEntirePlan={this.props.drawEntireFlightPlan}
@@ -115,7 +94,7 @@ export class MFDFPLMapComponent extends NavMapComponent<NavMapComponentProps<MFD
           activeWaypointStyles={activeWaypointStyles}
         />
         <MapFlightPlanLayer
-          ref={this.dtoFlightPlanLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           bus={this.props.bus} dataProvider={this.dtoPlanDataProvider}
           drawEntirePlan={Subject.create(false)}
           waypointRenderer={this.waypointRenderer} textManager={this.textManager}
@@ -130,7 +109,7 @@ export class MFDFPLMapComponent extends NavMapComponent<NavMapComponentProps<MFD
   protected renderMiniCompassLayer(): VNode | null {
     return (
       <MapMiniCompassLayer
-        ref={this.miniCompassLayerRef} class='minicompass-layer'
+        class='minicompass-layer'
         model={this.props.model} mapProjection={this.mapProjection}
         imgSrc={'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/map_mini_compass.png'}
       />
@@ -141,7 +120,7 @@ export class MFDFPLMapComponent extends NavMapComponent<NavMapComponentProps<MFD
   protected renderRangeRingLayer(): VNode | null {
     return (
       <MapRangeRingLayer
-        ref={this.rangeRingLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+        model={this.props.model} mapProjection={this.mapProjection}
         showLabel={true} strokeWidth={2} strokeStyle={'white'}
       />
     );
@@ -151,7 +130,7 @@ export class MFDFPLMapComponent extends NavMapComponent<NavMapComponentProps<MFD
   protected renderRangeCompassLayer(): VNode | null {
     return (
       <MapRangeCompassLayer
-        ref={this.rangeCompassLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+        model={this.props.model} mapProjection={this.mapProjection}
         bus={this.props.bus} showLabel={true}
         showHeadingBug={this.props.model.getModule('pointer').isActive.map(isActive => !isActive)}
         arcStrokeWidth={2} arcEndTickLength={10}
@@ -167,7 +146,7 @@ export class MFDFPLMapComponent extends NavMapComponent<NavMapComponentProps<MFD
   protected renderPointerInfoLayer(): VNode | null {
     return (
       <MapPointerInfoLayer
-        ref={this.pointerInfoLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+        model={this.props.model} mapProjection={this.mapProjection}
         size={MapPointerInfoLayerSize.Medium}
       />
     );
@@ -190,15 +169,13 @@ export class MFDFPLMapComponent extends NavMapComponent<NavMapComponentProps<MFD
 }
 
 /**
- * A controller for handling map range, target, and rotation changes for the MFD navigation map.
+ * A controller for handling map range, target, and rotation changes for the MFD flight plan map.
  */
 class MFDFPLMapRangeTargetRotationController extends NavMapRangeTargetRotationController<MFDFPLMapModelModules> {
   public static readonly NORTH_UP_TARGET_OFFSET_REL = new Float64Array(2);
   public static readonly HDG_TRK_UP_TARGET_OFFSET_REL = new Float64Array([0, 1 / 6]);
 
   private static readonly FOCUS_DEBOUNCE_DELAY = 500; // milliseconds
-
-  private static readonly tempVec2_1 = new Float64Array(2);
 
   private readonly focusModule = this.mapModel.getModule('focus');
 
@@ -220,16 +197,16 @@ class MFDFPLMapRangeTargetRotationController extends NavMapRangeTargetRotationCo
   private useMapRangeSetting = true;
 
   /**
-   * Creates an instance of a MapRangeController.
+   * Constructor.
    * @param mapModel The map model.
    * @param mapProjection The map projection.
-   * @param deadZone The dead zone around the edge of the map projection window.
-   * @param settingManager This controller's map settings manager.
-   * @param rangeSettingManager This controller's map range settings manager.
-   * @param rangeSettingName The name of this controller's map range setting.
+   * @param deadZone A subscribable which provides the dead zone around the edge of the map projection window.
    * @param rangeArray A subscribable which provides an array of valid map ranges.
    * @param pointerBounds A subscribable which provides the bounds of the area accessible to the map pointer. The
    * bounds should be expressed as `[left, top, right, bottom]` in pixels.
+   * @param settingManager This controller's map settings manager.
+   * @param rangeSettingManager This controller's map range settings manager.
+   * @param rangeSettingName The name of this controller's map range setting.
    * @param flightPlanDataProvider A provider of flight plan data for this controller.
    * @param flightPlanFocusDefaultRangeIndex The index of the map range to which this controller defaults when focusing
    * on the flight plan with a calculated focus range of zero.
@@ -237,19 +214,30 @@ class MFDFPLMapRangeTargetRotationController extends NavMapRangeTargetRotationCo
   constructor(
     mapModel: MapModel<MFDFPLMapModelModules>,
     mapProjection: MapProjection,
-    deadZone: Float64Array,
+    deadZone: Subscribable<ReadonlyFloat64Array>,
+    rangeArray: Subscribable<readonly NumberUnitInterface<UnitFamily.Distance>[]>,
+    pointerBounds: Subscribable<ReadonlyFloat64Array>,
     settingManager: UserSettingManager<MapUserSettingTypes>,
     rangeSettingManager: UserSettingManager<MapRangeSettingTypes>,
     rangeSettingName: keyof MapRangeSettingTypes,
-    rangeArray: Subscribable<readonly NumberUnitInterface<UnitFamily.Distance>[]>,
-    pointerBounds: Subscribable<Float64Array>,
     private readonly flightPlanDataProvider: MapFlightPlanLayerDataProvider,
     private readonly flightPlanFocusDefaultRangeIndex: number
   ) {
-    super(mapModel, mapProjection, deadZone, settingManager, rangeSettingManager, rangeSettingName, rangeArray, pointerBounds);
+    super(mapModel, mapProjection, deadZone, rangeArray, pointerBounds, settingManager, rangeSettingManager, rangeSettingName);
+  }
+
+  /** @inheritdoc */
+  protected initListeners(): void {
+    super.initListeners();
+
+    this.focusModule.isActive.sub(this.onIsFlightPlanFocusActiveChanged.bind(this));
+  }
+
+  /** @inheritdoc */
+  protected initState(): void {
+    super.initState();
 
     this.updateFocusMargins();
-    this.focusModule.isActive.sub(this.onIsFlightPlanFocusActiveChanged.bind(this));
   }
 
   /**
@@ -286,10 +274,12 @@ class MFDFPLMapRangeTargetRotationController extends NavMapRangeTargetRotationCo
    * Updates the flight plan focus margins.
    */
   private updateFocusMargins(): void {
-    this.focusMargins[0] = this.deadZone[0] + 20;
-    this.focusMargins[1] = this.deadZone[1] + 20;
-    this.focusMargins[2] = this.deadZone[2] + 20;
-    this.focusMargins[3] = this.deadZone[3] + 20;
+    const deadZone = this.deadZone.get();
+
+    this.focusMargins[0] = deadZone[0] + 20;
+    this.focusMargins[1] = deadZone[1] + 20;
+    this.focusMargins[2] = deadZone[2] + 20;
+    this.focusMargins[3] = deadZone[3] + 20;
   }
 
   /** @inheritdoc */
@@ -311,28 +301,38 @@ class MFDFPLMapRangeTargetRotationController extends NavMapRangeTargetRotationCo
   }
 
   /** @inheritdoc */
-  protected convertToTrueRange(nominalRange: NumberUnitInterface<UnitFamily.Distance>): number {
-    const projectedHeight = this.mapProjection.getProjectedSize()[1];
-    const correctedHeight = projectedHeight - this.deadZone[1] - this.deadZone[3];
-    const orientation = this.mapModel.getModule('orientation').orientation.get();
-    const factor = orientation === MapOrientation.NorthUp ? 4 : 3;
+  protected getDesiredRangeEndpoints(out: Float64Array): Float64Array {
+    const targetOffsetRel = this.mapModel.getModule('orientation').orientation.get() === MapOrientation.NorthUp
+      ? MFDFPLMapRangeTargetRotationController.NORTH_UP_TARGET_OFFSET_REL
+      : MFDFPLMapRangeTargetRotationController.HDG_TRK_UP_TARGET_OFFSET_REL;
 
-    return nominalRange.asUnit(UnitType.GA_RADIAN) as number * projectedHeight / correctedHeight * factor;
+    const targetRelY = targetOffsetRel[1] + 0.5;
+
+    const trueTargetRelX = this.nominalToTrueRelativeX(targetOffsetRel[0] + 0.5);
+    const trueTargetRelY = this.nominalToTrueRelativeY(targetRelY);
+
+    out[0] = trueTargetRelX;
+    out[1] = trueTargetRelY;
+    out[2] = trueTargetRelX;
+    out[3] = this.nominalToTrueRelativeY(targetRelY / 2);
+    return out;
   }
 
   /** @inheritdoc */
-  protected getDesiredTargetOffset(): Float64Array {
-    const trueCenterOffsetX = (this.deadZone[0] - this.deadZone[2]) / 2;
-    const trueCenterOffsetY = (this.deadZone[1] - this.deadZone[3]) / 2;
+  protected getDesiredTargetOffset(out: Float64Array): Float64Array {
+    const deadZone = this.deadZone.get();
+    const trueCenterOffsetX = (deadZone[0] - deadZone[2]) / 2;
+    const trueCenterOffsetY = (deadZone[1] - deadZone[3]) / 2;
 
     const projectedSize = this.mapProjection.getProjectedSize();
     const relativeOffset = this.mapModel.getModule('orientation').orientation.get() === MapOrientation.NorthUp
       ? MFDFPLMapRangeTargetRotationController.NORTH_UP_TARGET_OFFSET_REL
       : MFDFPLMapRangeTargetRotationController.HDG_TRK_UP_TARGET_OFFSET_REL;
+
     return Vec2Math.set(
       relativeOffset[0] * projectedSize[0] + trueCenterOffsetX,
       relativeOffset[1] * projectedSize[1] + trueCenterOffsetY,
-      MFDFPLMapRangeTargetRotationController.tempVec2_1
+      out
     );
   }
 
@@ -498,7 +498,12 @@ class MFDFPLMapRangeTargetRotationController extends NavMapRangeTargetRotationCo
    * Updates the map target and range from the current flight plan focus.
    */
   private updateRangeTargetFromFocus(): void {
-    const targetRange = this.focusCalculator.calculateRangeTarget(this.focusModule.focus.get(), this.focusMargins, this.focusRangeTarget);
+    const targetRange = this.focusCalculator.calculateRangeTarget(
+      this.focusModule.focus.get(),
+      this.focusMargins,
+      this.airplanePropsModule.position.get(),
+      this.focusRangeTarget
+    );
 
     if (isNaN(targetRange.range)) {
       return;
@@ -508,9 +513,8 @@ class MFDFPLMapRangeTargetRotationController extends NavMapRangeTargetRotationCo
 
     const ranges = this.rangeArray.get();
 
-    // when flight plan is focused, we are guaranteed to be in North Up mode, so true range = nominal range * 4.
     const rangeIndex = targetRange.range > 0
-      ? ranges.findIndex(range => range.asUnit(UnitType.GA_RADIAN) * 4 >= targetRange.range)
+      ? ranges.findIndex(range => range.asUnit(UnitType.GA_RADIAN) >= targetRange.range)
       : this.flightPlanFocusDefaultRangeIndex;
 
     this.currentMapRangeIndex = rangeIndex < 0 ? ranges.length - 1 : rangeIndex;

@@ -1,5 +1,5 @@
 import {
-  BitFlags, ComponentProps, DisplayComponent, FSComponent, MappedSubject, NavMath, Subject, Subscribable,
+  BitFlags, ComponentProps, DisplayComponent, FSComponent, MappedSubject, NavMath, ReadonlyFloat64Array, Subject, Subscribable,
   UnitType, Vec2Math, Vec2Subject, VNode
 } from 'msfssdk';
 import { EventBus, Consumer } from 'msfssdk/data';
@@ -152,7 +152,7 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
   private needUpdateHeadingIndicatorVisibility = true;
   private needRepositionLabel = true;
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onVisibilityChanged(isVisible: boolean): void {
     this.needUpdateRootVisibility = true;
     if (isVisible) {
@@ -226,7 +226,7 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
     rangeRingModule.show.sub(this.onRangeCompassShowChanged.bind(this));
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
     this.arcLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
     this.roseLabelsLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
@@ -251,11 +251,15 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
     this.updateParameters();
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onUpdated(time: number, elapsed: number): void {
     if (this.needUpdateRootVisibility) {
       this.updateRootVisibility();
       this.needUpdateRootVisibility = false;
+    }
+
+    if (!this.isVisible()) {
+      return;
     }
 
     this.redraw();
@@ -337,13 +341,13 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
    * @param rightTickEnd The position of the end of the right end tick, in pixels.
    */
   private composeArcPath(
-    center: Float64Array,
+    center: ReadonlyFloat64Array,
     radius: number,
     angularWidth: number,
-    leftTickStart: Float64Array,
-    leftTickEnd: Float64Array,
-    rightTickStart: Float64Array,
-    rightTickEnd: Float64Array
+    leftTickStart: ReadonlyFloat64Array,
+    leftTickEnd: ReadonlyFloat64Array,
+    rightTickStart: ReadonlyFloat64Array,
+    rightTickEnd: ReadonlyFloat64Array
   ): void {
     const arcLayerDisplay = this.arcLayerRef.instance.display as MapCanvasLayerCanvasInstanceClass;
     arcLayerDisplay.context.beginPath();
@@ -533,21 +537,18 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
    * Responds to changes in the magnetic variation correction for the compass.
    */
   private onMagVarCorrectionChanged(): void {
-    this.updateParameters();
-  }
-
-  /**
-   * Responds to changes in whether the compass should display magnetic bearing.
-   */
-  private onIsMagneticChanged(): void {
-    this.updateParameters();
+    if (this.isVisible()) {
+      this.updateParameters();
+    }
   }
 
   /**
    * Responds to changes in the nominal map range.
    */
   private onRangeChanged(): void {
-    this.updateParameters();
+    if (this.isVisible()) {
+      this.updateParameters();
+    }
   }
 
   /**
@@ -642,13 +643,13 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
  */
 interface MapRangeCompassSubLayerProps extends MapLayerProps<MapRangeCompassLayerModules> {
   /** A Subject for the center of the compass. */
-  compassCenterSubject: Subject<Float64Array>;
+  compassCenterSubject: Subscribable<ReadonlyFloat64Array>;
 
   /** A Subject for the radius of the compass. */
-  compassRadiusSubject: Subject<number>;
+  compassRadiusSubject: Subscribable<number>;
 
   /** A Subject for the rotation of the compass. */
-  compassRotationSubject: Subject<number>;
+  compassRotationSubject: Subscribable<number>;
 }
 
 /**
@@ -817,7 +818,7 @@ class MapRangeCompassRoseLabels extends MapSyncedCanvasLayer<MapRangeCompassRose
    * @param rotation The rotation of the compass, in radians.
    * @param bearing The label's bearing, in radians.
    */
-  private drawBearingLabel(center: Float64Array, radius: number, rotation: number, bearing: number): void {
+  private drawBearingLabel(center: ReadonlyFloat64Array, radius: number, rotation: number, bearing: number): void {
     const display = this.display as MapCanvasLayerCanvasInstanceClass;
 
     // TODO: support the T superscript for true bearings.
@@ -866,7 +867,7 @@ interface MapRangeCompassReferenceMarker extends DisplayComponent<MapRangeCompas
    * Sets this marker's position. The provided position should be the position of the middle of the range compass arc.
    * @param pos The new position, in pixels.
    */
-  setPosition(pos: Float64Array): void;
+  setPosition(pos: ReadonlyFloat64Array): void;
 }
 
 /**
@@ -892,7 +893,7 @@ class MapRangeCompassReferenceArrow extends DisplayComponent<MapRangeCompassRefe
    * This method has no effect if this marker has not been rendered.
    * @param pos The new position, in pixels.
    */
-  public setPosition(pos: Float64Array): void {
+  public setPosition(pos: ReadonlyFloat64Array): void {
     if (!this.svgRef.instance) {
       return;
     }
@@ -938,7 +939,7 @@ class MapRangeCompassReferenceTick extends DisplayComponent<MapRangeCompassRefer
    * This method has no effect if this marker has not been rendered.
    * @param pos The new position, in pixels.
    */
-  public setPosition(pos: Float64Array): void {
+  public setPosition(pos: ReadonlyFloat64Array): void {
     if (!this.svgRef.instance) {
       return;
     }
@@ -1118,7 +1119,7 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
   constructor(props: MapRangeCompassSelectedHeadingProps) {
     super(props);
 
-    this.selectedHeadingConsumer = this.props.bus.getSubscriber<APEvents>().on('heading_select').whenChanged();
+    this.selectedHeadingConsumer = this.props.bus.getSubscriber<APEvents>().on('ap_heading_selected').whenChanged();
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc, @typescript-eslint/no-unused-vars
@@ -1338,7 +1339,7 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
   private suppressCallback = (): void => {
     this.suppressTimer = null;
     this.isSuppressedSubject.set(true);
-  }
+  };
 
   /**
    * Kills the timer to suppress this indicator, if one is currently running.
@@ -1399,28 +1400,22 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
 
   /**
    * A callback which is called when the center of the compass changes.
-   * @param center The new center of the compass, in pixels.
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private onCenterChanged(center: Float64Array): void {
+  private onCenterChanged(): void {
     this.needReposition = true;
   }
 
   /**
    * A callback which is called when the center of the compass changes.
-   * @param radius The new radius of the compass, in pixels.
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private onRadiusChanged(radius: number): void {
+  private onRadiusChanged(): void {
     this.needRedraw = true;
   }
 
   /**
    * A callback which is called when the rotation of the compass changes.
-   * @param angle The new rotation angle of the compass, in radians.
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private onRotationChanged(angle: number): void {
+  private onRotationChanged(): void {
     this.needRotate = true;
   }
 
@@ -1433,7 +1428,7 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
 
     this.unsuppress(MapRangeCompassSelectedHeading.UNSUPPRESS_DURATION);
     this.updateParameters();
-  }
+  };
 
   /**
    * A callback which is called when whether this indicator is suppressed has changed.

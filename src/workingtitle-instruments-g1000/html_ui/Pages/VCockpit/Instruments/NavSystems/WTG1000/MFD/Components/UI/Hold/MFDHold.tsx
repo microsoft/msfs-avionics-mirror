@@ -132,7 +132,7 @@ export class MFDHold extends Hold {
             updateFreq={Subject.create(MFDHold.MAP_UPDATE_FREQ)}
             dataUpdateFreq={Subject.create(MFDHold.MAP_DATA_UPDATE_FREQ)}
             projectedWidth={290} projectedHeight={300}
-            id='mfd_wptinfo_map'
+            bingId='mfd_wptinfo_map'
             rangeIndex={this.mapRangeIndexSub}
             waypoint={this.store.waypoint}
             ownAirplaneLayerProps={{

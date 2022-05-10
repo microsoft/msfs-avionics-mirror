@@ -3,12 +3,12 @@ import {
 } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
 import { FPLDetails } from './FPLDetails';
+import { FocusPosition } from 'msfssdk/components/controls';
 
 import './FPL.css';
-import { FocusPosition } from '../../../../Shared/UI/UiControl2';
 
 /** The properties on the flight plan popout component. */
 interface FPLPopupProps extends UiViewProps {
@@ -30,9 +30,10 @@ export class FPL extends UiView<FPLPopupProps> {
       case FmsHEvent.UPPER_PUSH:
         if (!this.fplDetailsRef.instance.isFocused) {
           this.fplDetailsRef.instance.focus(FocusPosition.MostRecent);
+          this.fplDetailsRef.instance.scrollToActiveLeg(true);
         } else {
           this.fplDetailsRef.instance.blur();
-          this.fplDetailsRef.instance.resetAutoScroll();
+          this.fplDetailsRef.instance.scrollToActiveLeg(false);
         }
         return true;
       case FmsHEvent.MENU:
@@ -70,6 +71,7 @@ export class FPL extends UiView<FPLPopupProps> {
   /** Called when the view is opened. */
   public onViewOpened(): void {
     if (this.fplDetailsRef.instance !== undefined) {
+      this.fplDetailsRef.instance.focus(FocusPosition.MostRecent);
       this.fplDetailsRef.instance.fplViewOpened(true);
     }
   }

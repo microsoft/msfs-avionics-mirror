@@ -1,4 +1,4 @@
-import { Subject } from '../../../utils/Subject';
+import { Subject } from '../../../sub/Subject';
 
 /**
  * A map module describing whether or not various signals are valid.

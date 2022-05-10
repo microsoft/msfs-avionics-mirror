@@ -17,7 +17,7 @@
   left: -1px;
   width: 110px;
   border-top: none;
-  border-image: linear-gradient( to bottom, rgba(100, 100, 100, 1), rgba(0, 0, 0, 1)) 1 100%;
+  border-image: linear-gradient(to bottom, rgba(100, 100, 100, 1), rgba(0, 0, 0, 1)) 1 100%;
   border-width: 1px;
   border-bottom: none;
 }
@@ -60,7 +60,8 @@
   background-color: black;
 }
 
-.altitude-tick-marks, .altitude-trend-vector {
+.altitude-tick-marks,
+.altitude-trend-vector {
   position: absolute;
   left: 0;
   top: 8%;
@@ -78,7 +79,8 @@
   fill: none;
 }
 
-.altitude-metric-box, .preselect-metric-box {
+.altitude-metric-box,
+.preselect-metric-box {
   position: absolute;
   top: 136px;
   right: 6px;
@@ -98,7 +100,8 @@
   width: 80px;
 }
 
-.altitude-metric-box .metric-altitude, .preselect-metric-box .metric-altitude {
+.altitude-metric-box .metric-altitude,
+.preselect-metric-box .metric-altitude {
   font-size: 20px;
 }
 
@@ -111,6 +114,11 @@
   text-align: center;
   font-size: 32px;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 1.0), rgb(30, 30, 30), rgba(0, 0, 0, 1.0));
+  overflow: hidden;
+}
+
+.altitude-scroller-background svg {
+  height: 500px
 }
 
 .no-zero .zero-digit {
@@ -129,11 +137,13 @@
   fill: none;
 }
 
-.trans-msl .top.show-above-msl, .trans-msl .bottom.show-below-msl {
+.trans-msl .top.show-above-msl,
+.trans-msl .bottom.show-below-msl {
   fill: white;
 }
 
-.trans-msl .top.show-below-msl, .trans-msl .bottom.show-above-msl {
+.trans-msl .top.show-below-msl,
+.trans-msl .bottom.show-above-msl {
   fill: none;
 }
 
@@ -163,6 +173,16 @@
 
 .alt-tens-mask {
   position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 1) 5%, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0) 80%, rgba(0, 0, 0, 1) 95%);
+  overflow: hidden;
+  top: -1px;
+}
+
+.alt-tens-overlay {
+  position: absolute;
+  top: 0;
   width: 100%;
   height: 100%;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 1) 5%, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0) 80%, rgba(0, 0, 0, 1) 95%);
@@ -224,11 +244,13 @@
     fill: cyan;
     font-family: Roboto-bold;
   }
+
   50% {
     background-color: black;
     color: cyan;
     fill: cyan;
   }
+
   100% {
     background-color: cyan;
     color: black;
@@ -247,11 +269,13 @@
     color: cyan;
     background-color: black;
   }
+
   50% {
     fill: cyan;
     color: cyan;
     background-color: black;
   }
+
   100% {
     fill: black;
     color: black;
@@ -272,15 +296,42 @@
     color: yellow;
     background-color: black;
   }
+
   50% {
     fill: yellow;
     color: yellow;
     background-color: black;
   }
+
   100% {
     fill: black;
     color: black;
     background-color: black;
     font-family: Roboto-bold;
   }
+}
+
+/** Failed States **/
+.failed-instr .AltitudeTape>g {
+  display: none;
+}
+
+.failed-instr .altitude-trend-vector {
+  display: none;
+}
+
+.failed-instr .altitude-box {
+  display: none;
+}
+
+.failed-instr .altitude-metric-box {
+  display: none;
+}
+
+.failed-instr .preselect-bug {
+  display: none;
+}
+
+.failed-instr .alt-indicator-vnav-target {
+  display: none;
 }

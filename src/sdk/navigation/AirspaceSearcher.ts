@@ -1,4 +1,4 @@
-import { GeoPoint, GeoPointInterface } from '../utils/geo/GeoPoint';
+import { GeoPoint, GeoPointInterface } from '../geo/GeoPoint';
 import { Airspace, AirspaceType } from './Airspace';
 
 /**

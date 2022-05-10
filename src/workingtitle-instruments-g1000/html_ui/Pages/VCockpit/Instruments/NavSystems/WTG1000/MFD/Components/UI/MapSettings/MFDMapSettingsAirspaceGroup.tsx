@@ -10,13 +10,16 @@ export class MFDMapSettingsAirspaceGroup extends MFDMapSettingsGroup<MFDMapSetti
   protected getSettingRows(containerRef: NodeReference<HTMLElement>): VNode[] {
     return [
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'Class B/TMA'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceClassBShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceClassBRangeIndex',
@@ -26,13 +29,16 @@ export class MFDMapSettingsAirspaceGroup extends MFDMapSettingsGroup<MFDMapSetti
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'Class C/TCA'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceClassCShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceClassCRangeIndex',
@@ -42,13 +48,16 @@ export class MFDMapSettingsAirspaceGroup extends MFDMapSettingsGroup<MFDMapSetti
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'Class D'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceClassDShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceClassDRangeIndex',
@@ -58,13 +67,16 @@ export class MFDMapSettingsAirspaceGroup extends MFDMapSettingsGroup<MFDMapSetti
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'Restricted'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceRestrictedShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceRestrictedRangeIndex',
@@ -74,13 +86,16 @@ export class MFDMapSettingsAirspaceGroup extends MFDMapSettingsGroup<MFDMapSetti
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'MOA (Military)'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceMoaShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceMoaRangeIndex',
@@ -90,13 +105,16 @@ export class MFDMapSettingsAirspaceGroup extends MFDMapSettingsGroup<MFDMapSetti
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'Other/ADIZ'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceOtherShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirspaceOtherRangeIndex',

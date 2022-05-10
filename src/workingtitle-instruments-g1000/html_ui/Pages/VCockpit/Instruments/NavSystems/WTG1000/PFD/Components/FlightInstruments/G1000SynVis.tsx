@@ -1,4 +1,4 @@
-import { ArraySubject, ComponentProps, DisplayComponent, FSComponent, Subject, Subscribable, VNode } from 'msfssdk';
+import { ArraySubject, ComponentProps, DisplayComponent, FSComponent, ReadonlyFloat64Array, Subject, Subscribable, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { BingComponent } from 'msfssdk/components/bing';
 import { SynVisComponent } from 'msfssdk/components/synvis';
@@ -22,7 +22,7 @@ export interface G1000SynVisProps extends ComponentProps {
   /**
    * A subscribable which provides the internal resolution for the synthetic vision's Bing component.
    */
-  resolution: Subscribable<Float64Array>;
+  resolution: Subscribable<ReadonlyFloat64Array>;
 
   /** A subscribable which provides whether synthetic vision is active. */
   isActive: Subscribable<boolean>;

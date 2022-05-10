@@ -1,4 +1,4 @@
-import { Subject } from '../../../utils/Subject';
+import { Subject } from '../../../sub/Subject';
 
 /**
  * A module describing properties of the own airplane icon.

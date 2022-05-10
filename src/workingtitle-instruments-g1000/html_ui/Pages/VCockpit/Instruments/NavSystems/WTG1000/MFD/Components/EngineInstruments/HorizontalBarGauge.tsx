@@ -46,26 +46,32 @@ class ColorZone extends DisplayComponent<ColorZoneProps & XMLHostedLogicGauge> {
   private zoneMin = 0;
   private zoneMax = 0;
 
+  private gaugeRange = this.gaugeMax - this.gaugeMin;
+  // For gauges with smaller range we want to increase the precision of the logic to avoid
+  // having rounding errors make things look off.  We'll use single precision if the
+  // pixel width of a single unit of range is 4px or greater.
+  private logicPrecision = this.props.geometry.width / this.gaugeRange >= 4 ? 1 : 0;
+
   /** Configure and start update logic. */
   public onAfterRender(): void {
     this.zoneMin = this.props.logicHost?.addLogicAsNumber(this.props.values.begin, (min: number) => {
       this.zoneMin = min; this.redraw();
-    }, 0, this.props.values.smoothFactor);
+    }, this.logicPrecision, this.props.values.smoothFactor);
 
     this.zoneMax = this.props.logicHost?.addLogicAsNumber(this.props.values.end, (max: number) => {
       this.zoneMax = max; this.redraw();
-    }, 0, this.props.values.smoothFactor);
+    }, this.logicPrecision, this.props.values.smoothFactor);
 
     if (this.props.gaugeMin) {
       this.gaugeMin = this.props.logicHost?.addLogicAsNumber(this.props.gaugeMin, (min: number) => {
         this.gaugeMin = min; this.redraw();
-      }, 0);
+      }, this.logicPrecision);
     }
 
     if (this.props.gaugeMax) {
       this.gaugeMax = this.props.logicHost?.addLogicAsNumber(this.props.gaugeMax, (max: number) => {
         this.gaugeMax = max; this.redraw();
-      }, 0);
+      }, this.logicPrecision);
     }
 
     this.theRect.instance.setAttribute('fill', this.props.values.color ? this.props.values.color : 'white');
@@ -77,7 +83,7 @@ class ColorZone extends DisplayComponent<ColorZoneProps & XMLHostedLogicGauge> {
    */
   private redraw(): void {
     // we shorten the maximum length of the bar by a couple pixels so colors don't cover the end ticks
-    const startX = 12 + (((this.zoneMin - this.gaugeMin) / (this.gaugeMax - this.gaugeMin)) * this.props.geometry.width);
+    const startX = 11 + (((this.zoneMin - this.gaugeMin) / (this.gaugeMax - this.gaugeMin)) * this.props.geometry.width);
     const width = ((this.zoneMax - this.zoneMin) / (this.gaugeMax - this.gaugeMin)) * this.props.geometry.width;
     this.theRect.instance.setAttribute('x', `${startX}`);
     this.theRect.instance.setAttribute('width', `${width}`);
@@ -113,7 +119,7 @@ class GraduatedBar extends DisplayComponent<(Partial<XMLHorizontalGaugeProps> | 
   private gaugeMax = 0;
 
   private tickRise = 35 - this.props.tickRise;
-  private tickFall = 35 + this.props.tickFall
+  private tickFall = 35 + this.props.tickFall;
 
   /** Initialize our dynamic elements and update logic. */
   public onAfterRender(): void {
