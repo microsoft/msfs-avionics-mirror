@@ -76,7 +76,6 @@ export abstract class MapCanvasLayer
   private _display?: C;
   private _buffer?: C;
   protected isInit = false;
-  private needUpdateCanvasVisibility = false;
 
   /**
    * Gets this layer's display canvas instance.
@@ -186,7 +185,9 @@ export abstract class MapCanvasLayer
 
   // eslint-disable-next-line jsdoc/require-jsdoc, @typescript-eslint/no-unused-vars
   public onVisibilityChanged(isVisible: boolean): void {
-    this.needUpdateCanvasVisibility = true;
+    if (this.isInit) {
+      this.updateCanvasVisibility();
+    }
   }
 
   /**
@@ -200,7 +201,7 @@ export abstract class MapCanvasLayer
   public onAttached(): void {
     this.initCanvasInstances();
     this.isInit = true;
-    this.needUpdateCanvasVisibility = true;
+    this.updateCanvasVisibility();
     this.updateCanvasSize();
   }
 
@@ -241,14 +242,6 @@ export abstract class MapCanvasLayer
       const bufferCanvas = this._buffer.canvas;
       bufferCanvas.width = this.width;
       bufferCanvas.height = this.height;
-    }
-  }
-
-  // eslint-disable-next-line jsdoc/require-jsdoc, @typescript-eslint/no-unused-vars
-  public onUpdated(time: number, elapsed: number): void {
-    if (this.needUpdateCanvasVisibility) {
-      this.updateCanvasVisibility();
-      this.needUpdateCanvasVisibility = false;
     }
   }
 

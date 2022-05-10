@@ -152,6 +152,12 @@ export class XMLGaugeConfigFactory {
                 configuration: this.createDoubleHorizontalGauge(gauge)
               });
               break;
+            case 'Vertical':
+              gaugeSpecs.push({
+                gaugeType: XMLGaugeType.Vertical,
+                configuration: this.createVerticalGauge(gauge)
+              });
+              break;
             case 'DoubleVertical':
               gaugeSpecs.push({
                 gaugeType: XMLGaugeType.DoubleVertical,
@@ -303,11 +309,18 @@ export class XMLGaugeConfigFactory {
       props.referenceBugs = referenceBugs;
     }
 
-    props.minimum = new CompositeLogicXMLElement(this.instrument, gauge.getElementsByTagName('Minimum')[0]);
-    props.maximum = new CompositeLogicXMLElement(this.instrument, gauge.getElementsByTagName('Maximum')[0]);
-    props.value1 = new CompositeLogicXMLElement(this.instrument, gauge.getElementsByTagName('Value')[0]);
-    props.value2 = new CompositeLogicXMLElement(this.instrument, gauge.getElementsByTagName('Value2')[0]);
+    const createLogicElement = (el: Element | undefined): CompositeLogicXMLElement | undefined => {
+      if (el !== undefined) {
+        return new CompositeLogicXMLElement(this.instrument, el);
+      }
 
+      return undefined;
+    };
+
+    props.minimum = createLogicElement(gauge.getElementsByTagName('Minimum')[0]);
+    props.maximum = createLogicElement(gauge.getElementsByTagName('Maximum')[0]);
+    props.value1 = createLogicElement(gauge.getElementsByTagName('Value')[0]);
+    props.value2 = createLogicElement(gauge.getElementsByTagName('Value2')[0]);
 
     assign('title', 'Title', (v: string) => { return v ? v : ''; });
     assign('unit', 'Unit', (v: string) => { return v ? v : ''; });
@@ -318,7 +331,7 @@ export class XMLGaugeConfigFactory {
     assign('cursorText1', 'CursorText', (v: string) => { return v ? v : ''; });
     assign('cursorText2', 'CursorText2', (v: string) => { return v ? v : ''; });
     assign('id', 'ID');
-    props.redBlink = new CompositeLogicXMLElement(this.instrument, gauge.getElementsByTagName('RedBlink')[0]);
+    props.redBlink = createLogicElement(gauge.getElementsByTagName('RedBlink')[0]);
     return props;
   }
 
@@ -452,6 +465,22 @@ export class XMLGaugeConfigFactory {
       XMLGaugeConfigFactory.getAndAssign(style, styleElem[0], 'pointerStyle', 'PointerStyle', (v: string): any => {
         return v == 'Arrow' ? 'arrow' : 'standard';
       });
+    }
+    style = Object.assign(style, genericStyle);
+    return Object.assign({ style: style }, this.parseGaugeDefinition(gaugeDef));
+  }
+
+  /**
+   * Create a single vertical gauge.
+   * @param gaugeDef An XML element defining the gauge.
+   * @returns The props for this gauge.
+   */
+  private createVerticalGauge(gaugeDef: Element): Partial<d.XMLVerticalGaugeProps> {
+    const styleElem = gaugeDef.getElementsByTagName('Style');
+    const genericStyle = XMLGaugeConfigFactory.parseStyleDefinition(styleElem);
+    let style: Partial<d.XMLVerticalGaugeStyle> = {};
+    if (styleElem[0] !== undefined) {
+      XMLGaugeConfigFactory.getAndAssign(style, styleElem[0], 'textIncrement', 'TextIncrement', parseFloat);
     }
     style = Object.assign(style, genericStyle);
     return Object.assign({ style: style }, this.parseGaugeDefinition(gaugeDef));

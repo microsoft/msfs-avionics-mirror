@@ -33,6 +33,10 @@
   color: yellow;
 }
 
-.annunciation.advisory, .annunciation.safeop {
+.annunciation.advisory {
+  color: white;
+}
+
+.annunciation.safeop {
   color: green;
 }

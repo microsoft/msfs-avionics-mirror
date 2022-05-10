@@ -1,19 +1,20 @@
-import { FSComponent, GeoPoint, GeoPointInterface, GeoPointSubject, NumberFormatter, Subject, Subscribable, VNode } from 'msfssdk';
+import { FSComponent, GeoPoint, GeoPointInterface, GeoPointSubject, Subject, Subscribable, VNode } from 'msfssdk';
 import { LatLonDisplay } from 'msfssdk/components/common';
 import { EventBus } from 'msfssdk/data';
 import { GNSSEvents } from 'msfssdk/instruments';
+import { Waypoint } from 'msfssdk/navigation';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 
-import { ScrollBar } from '../../../../Shared/UI/ScrollBar';
-import { Waypoint } from '../../../../Shared/Navigation/Waypoint';
-import { UiViewProps } from '../../../../Shared/UI/UiView';
-import { WptDupDialog } from '../../../../Shared/UI/WptDup/WptDupDialog';
-import { List } from '../../../../Shared/UI/List';
+import { BearingDisplay } from '../../../../Shared/UI/Common/BearingDisplay';
 import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
+import { List } from '../../../../Shared/UI/List';
+import { ScrollBar } from '../../../../Shared/UI/ScrollBar';
+import { UiViewProps } from '../../../../Shared/UI/UiView';
 import { WaypointComponent, WaypointComponentProps } from '../../../../Shared/UI/Waypoint/WaypointComponent';
 import { WaypointInfoStore } from '../../../../Shared/UI/Waypoint/WaypointInfoStore';
-import { GroupBox } from '../GroupBox';
+import { WptDupDialog } from '../../../../Shared/UI/WptDup/WptDupDialog';
 import { UnitsUserSettingManager, UnitsUserSettings } from '../../../../Shared/Units/UnitsUserSettings';
-import { BearingDisplay } from '../../../../Shared/UI/Common/BearingDisplay';
+import { GroupBox } from '../GroupBox';
 
 import './MFDWptDupDialog.css';
 

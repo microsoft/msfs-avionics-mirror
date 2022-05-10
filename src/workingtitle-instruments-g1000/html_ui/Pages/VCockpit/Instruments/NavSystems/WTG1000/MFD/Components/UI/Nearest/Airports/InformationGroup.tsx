@@ -1,20 +1,33 @@
-import { FSComponent, Subject, UnitType, VNode } from 'msfssdk';
+import { FSComponent, NumberUnitSubject, Subject, UnitType, VNode } from 'msfssdk';
 import { AirportFacility, ICAO } from 'msfssdk/navigation';
-import { Regions } from '../../../../../Shared/Navigation/Regions';
-import { UiControl2 } from '../../../../../Shared/UI/UiControl2';
+import { NumberFormatter } from 'msfssdk/graphics/text';
+
+import { Regions } from 'garminsdk/navigation';
+
+import { NumberUnitDisplay } from '../../../../../Shared/UI/Common/NumberUnitDisplay';
+import { G1000UiControl, G1000UiControlProps } from '../../../../../Shared/UI/G1000UiControl';
 import { GroupBox } from '../../GroupBox';
+import { UnitsUserSettingManager } from '../../../../../Shared/Units/UnitsUserSettings';
 
 import './InformationGroup.css';
+
+/**
+ * Component props for InformationGroup.
+ */
+export interface InformationGroupProps extends G1000UiControlProps {
+  /** A user setting manager for measurement units. */
+  unitsSettingManager: UnitsUserSettingManager;
+}
 
 /**
  * A component that displays airport location information on the
  * MFD nearest airports page.
  */
-export class InformationGroup extends UiControl2 {
+export class InformationGroup extends G1000UiControl<InformationGroupProps> {
 
   private readonly name = Subject.create<string>('');
   private readonly location = Subject.create<string>('');
-  private readonly elevation = Subject.create<string>('');
+  private readonly elevation = NumberUnitSubject.createFromNumberUnit(UnitType.METER.createNumber(NaN));
 
   private readonly content = FSComponent.createRef<HTMLDivElement>();
   private data: AirportFacility | null = null;
@@ -40,16 +53,18 @@ export class InformationGroup extends UiControl2 {
       this.name.set(Utils.Translate(facility.name));
       this.location.set(this.getLocation(facility));
 
-      const averageElevation = facility.runways.reduce((prev, cur) => prev + cur.elevation, 0) / facility.runways.length;
-      this.elevation.set(UnitType.METER.convertTo(averageElevation, UnitType.FOOT).toFixed(0));
+      const averageElevation = facility.runways.length === 0
+        ? NaN
+        : facility.runways.reduce((prev, cur) => prev + cur.elevation, 0) / facility.runways.length;
+      this.elevation.set(averageElevation);
     } else {
       this.content.instance.classList.add('hidden-element');
 
       this.name.set('');
       this.location.set('');
-      this.elevation.set('');
+      this.elevation.set(NaN);
     }
-  }
+  };
 
   /**
    * Gets a location string from airport facility data.
@@ -74,10 +89,12 @@ export class InformationGroup extends UiControl2 {
         <div class="mfd-nearest-airport-info" ref={this.content}>
           <div class='mfd-nearest-airport-info-name'>{this.name}</div>
           <div class='mfd-nearest-airport-info-location'>{this.location}</div>
-          <div class='mfd-nearest-airport-info-elevation'>
-            <span>{this.elevation}</span>
-            <span class='smaller'>FT</span>
-          </div>
+          <NumberUnitDisplay
+            value={this.elevation}
+            displayUnit={this.props.unitsSettingManager.altitudeUnits}
+            formatter={NumberFormatter.create({ precision: 1, nanString: '______' })}
+            class='mfd-nearest-airport-info-elevation'
+          />
         </div>
       </GroupBox>
     );

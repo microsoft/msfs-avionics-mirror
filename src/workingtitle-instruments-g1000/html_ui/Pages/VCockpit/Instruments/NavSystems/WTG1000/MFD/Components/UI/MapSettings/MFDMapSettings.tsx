@@ -118,17 +118,17 @@ export class MFDMapSettings extends UiView<MFDMapSettingsProps> {
       <div ref={this.viewContainerRef} class='popout-dialog mfd-mapsettings'>
         <h1>{this.props.title}</h1>
         <GroupBox title={'Group'}>
-          <SelectControl<MFDMapSettingsGroupName> onRegister={this.register} outerContainer={this.viewContainerRef}
+          <SelectControl<MFDMapSettingsGroupName> viewService={this.props.viewService} onRegister={this.register} outerContainer={this.viewContainerRef}
             data={ArraySubject.create(MFDMapSettings.GROUP_ITEMS)}
             buildMenuItem={this.buildGroupMenuItem.bind(this)}
             onItemSelected={this.onGroupItemSelected.bind(this)} />
         </GroupBox>
         <div class='mfd-mapsettings-groupcontainer'>
-          <MFDMapSettingsMapGroup ref={this.groupRefs['Map']} settingManager={this.settingManager} mapRanges={this.mapRangesSub} />
-          <MFDMapSettingsWeatherGroup ref={this.groupRefs['Weather']} settingManager={this.settingManager} mapRanges={this.mapRangesSub} />
-          <MFDMapSettingsAviationGroup ref={this.groupRefs['Aviation']} settingManager={this.settingManager} mapRanges={this.mapRangesSub} />
-          <MFDMapSettingsAirspaceGroup ref={this.groupRefs['Airspace']} settingManager={this.settingManager} mapRanges={this.mapRangesSub} />
-          <MFDMapSettingsTrafficGroup ref={this.groupRefs['Traffic']} settingManager={this.settingManager} mapRanges={this.mapRangesSub} />
+          <MFDMapSettingsMapGroup viewService={this.props.viewService} ref={this.groupRefs['Map']} settingManager={this.settingManager} mapRanges={this.mapRangesSub} />
+          <MFDMapSettingsWeatherGroup viewService={this.props.viewService} ref={this.groupRefs['Weather']} settingManager={this.settingManager} mapRanges={this.mapRangesSub} />
+          <MFDMapSettingsAviationGroup viewService={this.props.viewService} ref={this.groupRefs['Aviation']} settingManager={this.settingManager} mapRanges={this.mapRangesSub} />
+          <MFDMapSettingsAirspaceGroup viewService={this.props.viewService} ref={this.groupRefs['Airspace']} settingManager={this.settingManager} mapRanges={this.mapRangesSub} />
+          <MFDMapSettingsTrafficGroup viewService={this.props.viewService} ref={this.groupRefs['Traffic']} settingManager={this.settingManager} mapRanges={this.mapRangesSub} />
         </div>
       </div>
     );

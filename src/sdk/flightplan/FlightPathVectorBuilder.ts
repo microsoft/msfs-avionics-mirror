@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { GeoCircle, GeoPoint, LatLonInterface, NavMath, UnitType, Vec3Math } from '..';
+import { GeoCircle, GeoPoint, LatLonInterface, MathUtils, NavMath, ReadonlyFloat64Array, UnitType, Vec3Math } from '..';
 import { FlightPathUtils } from './FlightPathUtils';
 import { CircleVector, FlightPathVector, FlightPathVectorFlags, VectorTurnDirection } from './FlightPlanning';
 
@@ -7,7 +7,6 @@ import { CircleVector, FlightPathVector, FlightPathVectorFlags, VectorTurnDirect
  * Builds circle vectors.
  */
 export class CircleVectorBuilder {
-  private static readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0)];
   private static readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
 
   /**
@@ -27,9 +26,9 @@ export class CircleVectorBuilder {
     index: number,
     direction: VectorTurnDirection,
     radius: number,
-    center: Float64Array | LatLonInterface,
-    start: Float64Array | LatLonInterface,
-    end: Float64Array | LatLonInterface,
+    center: ReadonlyFloat64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
     flags?: number
   ): 1;
   /**
@@ -46,8 +45,8 @@ export class CircleVectorBuilder {
     vectors: FlightPathVector[],
     index: number,
     circle: GeoCircle,
-    start: Float64Array | LatLonInterface,
-    end: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
     flags?: number
   ): 1;
   // eslint-disable-next-line jsdoc/require-jsdoc
@@ -57,31 +56,31 @@ export class CircleVectorBuilder {
     ...args: [
       VectorTurnDirection,
       number,
-      Float64Array | LatLonInterface,
-      Float64Array | LatLonInterface,
-      Float64Array | LatLonInterface,
+      ReadonlyFloat64Array | LatLonInterface,
+      ReadonlyFloat64Array | LatLonInterface,
+      ReadonlyFloat64Array | LatLonInterface,
       number?
     ] | [
       GeoCircle,
-      Float64Array | LatLonInterface,
-      Float64Array | LatLonInterface,
+      ReadonlyFloat64Array | LatLonInterface,
+      ReadonlyFloat64Array | LatLonInterface,
       number?
     ]
   ): 1 {
     if (args[0] instanceof GeoCircle) {
       this.setFromCircle(vectors, index, ...(args as [
         GeoCircle,
-        Float64Array | LatLonInterface,
-        Float64Array | LatLonInterface,
+        ReadonlyFloat64Array | LatLonInterface,
+        ReadonlyFloat64Array | LatLonInterface,
         number?
       ]));
     } else {
       this.setFromPoints(vectors, index, ...(args as [
         VectorTurnDirection,
         number,
-        Float64Array | LatLonInterface,
-        Float64Array | LatLonInterface,
-        Float64Array | LatLonInterface,
+        ReadonlyFloat64Array | LatLonInterface,
+        ReadonlyFloat64Array | LatLonInterface,
+        ReadonlyFloat64Array | LatLonInterface,
         number?
       ]));
     }
@@ -106,9 +105,9 @@ export class CircleVectorBuilder {
     index: number,
     direction: VectorTurnDirection,
     radius: number,
-    center: Float64Array | LatLonInterface,
-    start: Float64Array | LatLonInterface,
-    end: Float64Array | LatLonInterface,
+    center: ReadonlyFloat64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
     flags = 0
   ): CircleVector {
     const circle = FlightPathUtils.getTurnCircle(
@@ -135,8 +134,8 @@ export class CircleVectorBuilder {
     vectors: FlightPathVector[],
     index: number,
     circle: GeoCircle,
-    start: Float64Array | LatLonInterface,
-    end: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
     flags = 0
   ): CircleVector {
     const vector = (vectors[index]?.vectorType === 'circle' ? vectors[index] : (vectors[index] = FlightPathUtils.createEmptyCircleVector())) as CircleVector;
@@ -169,8 +168,8 @@ export class GreatCircleBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
-    end: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
     initialCourse?: number,
     flags?: number
   ): number;
@@ -186,9 +185,9 @@ export class GreatCircleBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     path: GeoCircle,
-    end: Float64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
     flags?: number
   ): number;
   /**
@@ -204,7 +203,7 @@ export class GreatCircleBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     path: GeoCircle,
     distance: number,
     flags?: number
@@ -213,9 +212,9 @@ export class GreatCircleBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
-    pathArg: Float64Array | LatLonInterface | GeoCircle,
-    endArg?: Float64Array | LatLonInterface | number,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    pathArg: ReadonlyFloat64Array | LatLonInterface | GeoCircle,
+    endArg?: ReadonlyFloat64Array | LatLonInterface | number,
     flags?: number
   ): number {
     if (pathArg instanceof GeoCircle) {
@@ -241,17 +240,17 @@ export class GreatCircleBuilder {
   private buildFromEndpoints(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
-    end: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
     initialCourse?: number,
     flags?: number
   ): number {
     const startPoint = start instanceof Float64Array
       ? GreatCircleBuilder.geoPointCache[0].setFromCartesian(start)
-      : GreatCircleBuilder.geoPointCache[0].set(start);
+      : GreatCircleBuilder.geoPointCache[0].set(start as LatLonInterface);
     const endPoint = end instanceof Float64Array
       ? GreatCircleBuilder.geoPointCache[1].setFromCartesian(end)
-      : GreatCircleBuilder.geoPointCache[1].set(end);
+      : GreatCircleBuilder.geoPointCache[1].set(end as LatLonInterface);
     const distance = startPoint.distance(endPoint);
 
     const path = GreatCircleBuilder.geoCircleCache[0];
@@ -283,9 +282,9 @@ export class GreatCircleBuilder {
   private buildFromPath(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     path: GeoCircle,
-    endArg: Float64Array | LatLonInterface | number,
+    endArg: ReadonlyFloat64Array | LatLonInterface | number,
     flags = 0
   ): number {
     if (!path.isGreatCircle()) {
@@ -324,7 +323,7 @@ export class TurnToCourseBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     radius: number,
     direction: VectorTurnDirection,
     fromCourse: number,
@@ -336,8 +335,8 @@ export class TurnToCourseBuilder {
     }
 
     const radiusRad = UnitType.METER.convertTo(radius, UnitType.GA_RADIAN);
-    const turnCenterPoint = TurnToCourseBuilder.geoPointCache[1].set(start).offset(fromCourse + (direction === 'left' ? -90 : 90), radiusRad);
-    const turnStartBearing = turnCenterPoint.bearingTo(start);
+    const turnCenterPoint = TurnToCourseBuilder.geoPointCache[1].set(start as LatLonInterface).offset(fromCourse + (direction === 'left' ? -90 : 90), radiusRad);
+    const turnStartBearing = turnCenterPoint.bearingTo(start as LatLonInterface);
     const turnEndBearing = NavMath.normalizeHeading(turnStartBearing + (toCourse - fromCourse));
     const turnEndPoint = turnCenterPoint.offset(turnEndBearing, radiusRad, TurnToCourseBuilder.geoPointCache[2]);
 
@@ -374,7 +373,7 @@ export class CircleInterceptBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     course: number,
     circle: GeoCircle,
     flags?: number
@@ -394,7 +393,7 @@ export class CircleInterceptBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     startPath: GeoCircle,
     circle: GeoCircle,
     flags?: number
@@ -403,7 +402,7 @@ export class CircleInterceptBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     pathArg: number | GeoCircle,
     circle: GeoCircle,
     flags = 0
@@ -429,7 +428,8 @@ export class CircleInterceptBuilder {
       return 0;
     }
 
-    const endVec = intersections[(numIntersections === 1 || circle.encircles(start)) ? 0 : 1];
+    const intersectionIndex = (numIntersections === 1 || circle.encircles(start)) ? 0 : 1;
+    const endVec = intersections[intersectionIndex];
 
     return startPath.isGreatCircle()
       ? this.greatCircleBuilder.build(vectors, index, start, startPath, endVec, flags)
@@ -462,7 +462,7 @@ export class TurnToJoinGreatCircleBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     startCourse: number,
     endPath: GeoCircle,
     radius: number,
@@ -484,7 +484,7 @@ export class TurnToJoinGreatCircleBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     startPath: GeoCircle,
     endPath: GeoCircle,
     radius: number,
@@ -494,7 +494,7 @@ export class TurnToJoinGreatCircleBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     startPathArg: GeoCircle | number,
     endPath: GeoCircle,
     radius: number,
@@ -518,7 +518,7 @@ export class TurnToJoinGreatCircleBuilder {
     }
 
     if (!(start instanceof Float64Array)) {
-      start = GeoPoint.sphericalToCartesian(start, TurnToJoinGreatCircleBuilder.vec3Cache[0]);
+      start = GeoPoint.sphericalToCartesian(start as LatLonInterface, TurnToJoinGreatCircleBuilder.vec3Cache[0]);
     }
 
     const turnDirection = endPath.encircles(start) ? 'left' : 'right';
@@ -589,8 +589,8 @@ export class ConnectCirclesBuilder {
     fromCircle: GeoCircle,
     toCircle: GeoCircle,
     radius?: number,
-    from?: Float64Array | LatLonInterface,
-    to?: Float64Array | LatLonInterface,
+    from?: ReadonlyFloat64Array | LatLonInterface,
+    to?: ReadonlyFloat64Array | LatLonInterface,
     fromCircleVectorFlags = 0,
     toCircleVectorFlags = 0,
     connectVectorFlags = 0
@@ -608,10 +608,10 @@ export class ConnectCirclesBuilder {
     }
 
     if (from && !(from instanceof Float64Array)) {
-      from = GeoPoint.sphericalToCartesian(from, ConnectCirclesBuilder.vec3Cache[0]);
+      from = GeoPoint.sphericalToCartesian(from as LatLonInterface, ConnectCirclesBuilder.vec3Cache[0]);
     }
     if (to && !(to instanceof Float64Array)) {
-      to = GeoPoint.sphericalToCartesian(to, ConnectCirclesBuilder.vec3Cache[1]);
+      to = GeoPoint.sphericalToCartesian(to as LatLonInterface, ConnectCirclesBuilder.vec3Cache[1]);
     }
 
     const radiusRad = Math.min(Math.PI / 2, radius ? UnitType.METER.convertTo(radius, UnitType.GA_RADIAN) : Infinity);
@@ -666,8 +666,8 @@ export class ConnectCirclesBuilder {
     toCircle: GeoCircle,
     radius: number,
     out: GeoCircle,
-    from?: Float64Array,
-    to?: Float64Array
+    from?: ReadonlyFloat64Array,
+    to?: ReadonlyFloat64Array
   ): GeoCircle | null {
     /*
      * Theory: the locus of all centers of circle of radius r tangent to circle with center C and radius R is
@@ -746,8 +746,8 @@ export class ConnectCirclesBuilder {
     fromCircle: GeoCircle,
     toCircle: GeoCircle,
     joinCircle: GeoCircle,
-    from?: Float64Array,
-    to?: Float64Array
+    from?: ReadonlyFloat64Array,
+    to?: ReadonlyFloat64Array
   ): number {
     let distance = 0;
 
@@ -806,11 +806,11 @@ export class TurnToJoinGreatCircleAtPointBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     startPath: GeoCircle,
     startTurnRadius: number,
     startTurnDirection: VectorTurnDirection,
-    end: Float64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
     endPath: GeoCircle,
     endTurnRadius: number,
     endTurnDirection: VectorTurnDirection,
@@ -819,10 +819,10 @@ export class TurnToJoinGreatCircleAtPointBuilder {
     connectVectorFlags = 0
   ): number {
     if (!(start instanceof Float64Array)) {
-      start = GeoPoint.sphericalToCartesian(start, TurnToJoinGreatCircleAtPointBuilder.vec3Cache[0]);
+      start = GeoPoint.sphericalToCartesian(start as LatLonInterface, TurnToJoinGreatCircleAtPointBuilder.vec3Cache[0]);
     }
     if (!(end instanceof Float64Array)) {
-      end = GeoPoint.sphericalToCartesian(end, TurnToJoinGreatCircleAtPointBuilder.vec3Cache[1]);
+      end = GeoPoint.sphericalToCartesian(end as LatLonInterface, TurnToJoinGreatCircleAtPointBuilder.vec3Cache[1]);
     }
 
     const startTurnRadiusRad = UnitType.METER.convertTo(startTurnRadius, UnitType.GA_RADIAN);
@@ -846,7 +846,10 @@ export class TurnToJoinGreatCircleAtPointBuilder {
  */
 export class JoinGreatCircleToPointBuilder {
   private static readonly vec3Cache = [new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3)];
-  private static readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0)];
+  private static readonly geoCircleCache = [
+    new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0),
+    new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0)
+  ];
   private static readonly intersectionCache = [new Float64Array(3), new Float64Array(3)];
 
   private readonly circleVectorBuilder = new CircleVectorBuilder();
@@ -878,24 +881,24 @@ export class JoinGreatCircleToPointBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     startPath: GeoCircle,
-    end: Float64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
     endPath: GeoCircle,
     desiredTurnDirection?: VectorTurnDirection,
     minTurnRadius?: number,
     preferSingleTurn = false,
-    intersection?: Float64Array,
+    intersection?: ReadonlyFloat64Array,
     flags = 0,
     includeTurnToCourseFlag = true
   ): number {
     let vectorIndex = index;
 
     if (!(start instanceof Float64Array)) {
-      start = GeoPoint.sphericalToCartesian(start, JoinGreatCircleToPointBuilder.vec3Cache[0]);
+      start = GeoPoint.sphericalToCartesian(start as LatLonInterface, JoinGreatCircleToPointBuilder.vec3Cache[0]);
     }
     if (!(end instanceof Float64Array)) {
-      end = GeoPoint.sphericalToCartesian(end, JoinGreatCircleToPointBuilder.vec3Cache[1]);
+      end = GeoPoint.sphericalToCartesian(end as LatLonInterface, JoinGreatCircleToPointBuilder.vec3Cache[1]);
     }
 
     if (!intersection) {
@@ -1054,46 +1057,112 @@ export class JoinGreatCircleToPointBuilder {
       // Calculate a flight path which begins with an initial turn from the start path connected by a great-circle
       // path to a final turn to join the end path at the end point.
 
-      // Attempt to place the start of the first turn at either the start point or the intersection point between
-      // the start and end paths, whichever one is farther along the start path.
-      const turnStartIntersectionOffset = Math.max(0, intersectionStartOffset);
-
       desiredTurnDirection ??= towardEndPointTurnDirection;
+      let turnStartIntersectionOffset = 0;
+      let endTurnDirection: VectorTurnDirection;
+      let needMoveStartTurn = false;
 
-      const endTurnDirectionThreshold = minD * (desiredTurnDirection === towardEndPointTurnDirection ? -1 : 1);
-      const endTurnDirection = (
-        (towardEndPointTurnDirection === 'left')
-        === (turnStartIntersectionOffset < endTurnDirectionThreshold)
-        === isEndForwardOfIntersection
-      )
-        ? 'left'
-        : 'right';
+      if (isEndForwardOfIntersection && desiredTurnDirection === towardEndPointTurnDirection) {
+        endTurnDirection = towardEndPointTurnDirection === 'left' ? 'right' : 'left';
+        turnStartIntersectionOffset = intersectionStartOffset;
+        needMoveStartTurn = intersectionEndOffset < minD;
+      } else {
+        // Attempt to place the start of the first turn at either the start point or the intersection point between
+        // the start and end paths, whichever one is farther along the start path.
+        turnStartIntersectionOffset = Math.max(0, intersectionStartOffset);
+        const isStartTurnInEndPathDirection = (desiredTurnDirection === towardEndPointTurnDirection) === isEndForwardOfIntersection;
+        // Redefine minD to be the distance from the start/end path intersection point to the start of the minimum-radius
+        // starting turn that is tangent to the end path.
+        if (isStartTurnInEndPathDirection) {
+          minD = Math.asin(Math.tan(minTurnRadiusRad) * tanHalfTheta);
+          if (isNaN(minD)) {
+            minD = Infinity;
+          }
+        }
+
+        const endTurnDirectionThreshold = minD * (desiredTurnDirection === towardEndPointTurnDirection ? -1 : 1);
+        endTurnDirection = (
+          (towardEndPointTurnDirection === 'left')
+          === (turnStartIntersectionOffset < endTurnDirectionThreshold)
+          === isEndForwardOfIntersection
+        )
+          ? 'left'
+          : 'right';
+      }
 
       const endTurnOffsetPath = JoinGreatCircleToPointBuilder.geoCircleCache[0].setAsGreatCircle(end, endPath.center);
       const endTurnCircleRadiusRad = endTurnDirection === 'left' ? minTurnRadiusRad : Math.PI - minTurnRadiusRad;
       const endTurnCircleCenter = endTurnOffsetPath.offsetDistanceAlong(end, endTurnCircleRadiusRad, JoinGreatCircleToPointBuilder.vec3Cache[3]);
-      const endTurnCircle = JoinGreatCircleToPointBuilder.geoCircleCache[0].set(endTurnCircleCenter, endTurnCircleRadiusRad);
+      const endTurnCircle = JoinGreatCircleToPointBuilder.geoCircleCache[1].set(endTurnCircleCenter, endTurnCircleRadiusRad);
 
       const startTurnStart = turnStartIntersectionOffset - intersectionStartOffset > GeoPoint.EQUALITY_TOLERANCE
         ? startPath.offsetDistanceAlong(intersection, turnStartIntersectionOffset, JoinGreatCircleToPointBuilder.vec3Cache[3])
         : Vec3Math.copy(start, JoinGreatCircleToPointBuilder.vec3Cache[3]);
-      const startTurnOffsetPath = JoinGreatCircleToPointBuilder.geoCircleCache[1].setAsGreatCircle(startTurnStart, startPath.center);
+      const startTurnOffsetPath = JoinGreatCircleToPointBuilder.geoCircleCache[2].setAsGreatCircle(startTurnStart, startPath.center);
       const startTurnCenter = startTurnOffsetPath.offsetDistanceAlong(
         startTurnStart,
         minTurnRadiusRad * (desiredTurnDirection === 'left' ? 1 : -1),
         JoinGreatCircleToPointBuilder.vec3Cache[4]
       );
 
-      if (Math.abs(endTurnCircle.distance(startTurnCenter)) < minTurnRadiusRad - GeoPoint.EQUALITY_TOLERANCE && desiredTurnDirection !== endTurnDirection) {
-        // The start and end turn circles are secant, making it impossible to join the two with a great-circle path.
-        // Thus we will shift the start turn forward (with respect to the direction of the start path) until the
-        // two circles are tangent.
+      if (!needMoveStartTurn) {
+        if (Math.abs(endTurnCircle.distance(startTurnCenter)) < minTurnRadiusRad - GeoPoint.EQUALITY_TOLERANCE) {
+          // Start and end turn circles are secant.
 
-        const endTurnOffsetCircle = JoinGreatCircleToPointBuilder.geoCircleCache[1].set(
+          if (desiredTurnDirection === endTurnDirection) {
+            // If start and end turns have the same direction, they can still be joined by a great-circle path,
+            // however we need to exclude cases in which this will lead to a sub-optimal path.
+
+            const turnCirclePathIntersections = JoinGreatCircleToPointBuilder.intersectionCache;
+            const numEndTurnCircleStartPathIntersections = endTurnCircle.intersection(startPath, turnCirclePathIntersections);
+            if (numEndTurnCircleStartPathIntersections > 1) {
+              // End turn circle is secant to the start path.
+
+              // choose the intersection farthest from the start/end path intersection.
+              let farIntersection = turnCirclePathIntersections[endTurnDirection === 'left' ? 1 : 0];
+
+              if (startPath.distanceAlong(intersection, farIntersection, Math.PI) > turnStartIntersectionOffset) {
+                // The start of the starting turn lies closer to the start/end path intersection than the farthest of the
+                // start path/end turn circle intersections.
+
+                const startTurnCircle = FlightPathUtils.getTurnCircle(startTurnCenter, minTurnRadiusRad, desiredTurnDirection, JoinGreatCircleToPointBuilder.geoCircleCache[2]);
+                const numStartTurnCircleEndPathIntersections = startTurnCircle.intersection(endPath, turnCirclePathIntersections);
+                if (numStartTurnCircleEndPathIntersections > 1) {
+                  // Start turn circle is secant to the end path.
+
+                  // choose the intersection farthest from the start/end path intersection.
+                  farIntersection = turnCirclePathIntersections[desiredTurnDirection === 'left' ? 0 : 1];
+                  if (endPath.distanceAlong(farIntersection, intersection, Math.PI) > intersectionEndDistance) {
+                    // The end of the ending turn lies closer to the start/end path intersection than the farthest of the
+                    // end path/start turn circle intersections.
+
+                    // In this case the path from start to end will involve a series of turns that total >360 degrees
+                    // unless we move the starting turn to be tangent to the ending turn. We can also reduce the total
+                    // length of the path by reversing the direction of the ending turn.
+
+                    const newEndTurnCircleCenter = endTurnOffsetPath.offsetDistanceAlong(end, Math.PI - endTurnCircle.radius, JoinGreatCircleToPointBuilder.vec3Cache[5]);
+                    endTurnCircle.set(newEndTurnCircleCenter, Math.PI - endTurnCircle.radius);
+                    needMoveStartTurn = true;
+                  }
+                }
+              }
+            }
+          } else {
+            // If start and end circles have different directions, they cannot be joined by a great-circle path.
+            needMoveStartTurn = true;
+          }
+        }
+      }
+
+      if (needMoveStartTurn) {
+        // We need to shift the start turn forward (with respect to the direction of the start path) until the
+        // start and end turn circles are tangent.
+
+        const endTurnOffsetCircle = JoinGreatCircleToPointBuilder.geoCircleCache[2].set(
           FlightPathUtils.getTurnCenterFromCircle(endTurnCircle, JoinGreatCircleToPointBuilder.vec3Cache[5]),
           minTurnRadiusRad * 2
         );
-        const startPathOffsetCircle = JoinGreatCircleToPointBuilder.geoCircleCache[2].set(
+        const startPathOffsetCircle = JoinGreatCircleToPointBuilder.geoCircleCache[3].set(
           startPath.center,
           startPath.radius + minTurnRadiusRad * (desiredTurnDirection === 'left' ? -1 : 1)
         );
@@ -1115,7 +1184,7 @@ export class JoinGreatCircleToPointBuilder {
           vectorIndex += this.circleVectorBuilder.build(vectors, vectorIndex, endTurnCircle, turnCircleTangent, end, turnFlags);
         }
       } else {
-        const startTurnCircle = FlightPathUtils.getTurnCircle(startTurnCenter, minTurnRadiusRad, desiredTurnDirection, JoinGreatCircleToPointBuilder.geoCircleCache[1]);
+        const startTurnCircle = FlightPathUtils.getTurnCircle(startTurnCenter, minTurnRadiusRad, desiredTurnDirection, JoinGreatCircleToPointBuilder.geoCircleCache[2]);
 
         if (Math.acos(Vec3Math.dot(startTurnStart, start)) > GeoPoint.EQUALITY_TOLERANCE) {
           vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, start, startPath, startTurnStart, flags);
@@ -1177,9 +1246,9 @@ export class ProcedureTurnBuilder {
    * may be altered or omitted entirely.
    * @param vectors The flight path vector sequence to which to add the vectors.
    * @param index The index in the sequence at which to add the vectors.
-   * @param start The start point in cartesian form.
+   * @param start The start point.
    * @param startPath The great-circle path defining the initial course.
-   * @param end The end point in cartesian form.
+   * @param end The end point.
    * @param endPath The great-circle path defining the final course.
    * @param outboundCourse The true course, in degrees, of the outbound leg of the turn.
    * @param desiredTurnRadius The desired turn radius, in meters.
@@ -1193,9 +1262,9 @@ export class ProcedureTurnBuilder {
   public build(
     vectors: FlightPathVector[],
     index: number,
-    start: Float64Array | LatLonInterface,
+    start: ReadonlyFloat64Array | LatLonInterface,
     startPath: GeoCircle,
-    end: Float64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
     endPath: GeoCircle,
     outboundCourse: number,
     desiredTurnRadius: number,
@@ -1208,10 +1277,10 @@ export class ProcedureTurnBuilder {
     let vectorIndex = index;
 
     if (!(start instanceof Float64Array)) {
-      start = GeoPoint.sphericalToCartesian(start, ProcedureTurnBuilder.vec3Cache[0]);
+      start = GeoPoint.sphericalToCartesian(start as LatLonInterface, ProcedureTurnBuilder.vec3Cache[0]);
     }
     if (!(end instanceof Float64Array)) {
-      end = GeoPoint.sphericalToCartesian(end, ProcedureTurnBuilder.vec3Cache[1]);
+      end = GeoPoint.sphericalToCartesian(end as LatLonInterface, ProcedureTurnBuilder.vec3Cache[1]);
     }
 
     /*
@@ -1407,6 +1476,129 @@ export class ProcedureTurnBuilder {
       if (endPoint) {
         vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, turnEndPoint, endPoint, undefined, flags);
       }
+    }
+
+    return vectorIndex - index;
+  }
+}
+
+/**
+ * Builds paths directly connecting a defined initial point and course and a defined end point.
+ */
+export class DirectToPointBuilder {
+  private static readonly vec3Cache = [new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3)];
+  private static readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0)];
+  private static readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
+
+  private readonly circleVectorBuilder = new CircleVectorBuilder();
+  private readonly greatCircleBuilder = new GreatCircleBuilder();
+
+  /**
+   * Builds a sequence of vectors representing a path which consists of an optional turn from an initial point and
+   * course toward an end point followed by an optional great-circle path terminating at the end point.
+   * @param vectors The flight path vector sequence to which to add the vectors.
+   * @param index The index in the sequence at which to add the vectors.
+   * @param start The start point.
+   * @param startPath The great-circle path defining the initial course.
+   * @param end The end point.
+   * @param desiredTurnRadius The desired turn radius, in meters.
+   * @param desiredTurnDirection The desired turn direction. If undefined, a turn direction will be chosen such that
+   * the initial turn is always toward the end point.
+   * @param flags The flags to set on the vectors. Defaults to none (0).
+   * @param includeTurnToCourseFlag Whether to include the `TurnToCourse` flag on the turn vectors. True by default.
+   * @returns The number of vectors added to the sequence.
+   */
+  public build(
+    vectors: FlightPathVector[],
+    index: number,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    startPath: GeoCircle,
+    end: ReadonlyFloat64Array | LatLonInterface,
+    desiredTurnRadius: number,
+    desiredTurnDirection?: VectorTurnDirection,
+    flags = 0,
+    includeTurnToCourseFlag = true
+  ): number {
+    let vectorIndex = index;
+
+    const endPos = DirectToPointBuilder.geoPointCache[0];
+    if (!(start instanceof Float64Array)) {
+      start = GeoPoint.sphericalToCartesian(start as LatLonInterface, DirectToPointBuilder.vec3Cache[0]);
+    }
+    if (!(end instanceof Float64Array)) {
+      endPos.set(end as LatLonInterface);
+      end = GeoPoint.sphericalToCartesian(end as LatLonInterface, DirectToPointBuilder.vec3Cache[1]);
+    } else {
+      endPos.setFromCartesian(end);
+    }
+
+    const distanceToEnd = Math.acos(Utils.Clamp(Vec3Math.dot(start, end), -1, 1));
+
+    if (distanceToEnd < GeoPoint.EQUALITY_TOLERANCE) {
+      return vectorIndex - index;
+    } else if (Math.abs(distanceToEnd - Math.PI) < GeoPoint.EQUALITY_TOLERANCE) {
+      // terminator is antipodal to current position
+      vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, start, startPath, end, flags);
+      return vectorIndex - index;
+    }
+
+    const startPathEncirclesTerminator = startPath.encircles(end);
+    const startPathIncludesTerminator = startPath.includes(end);
+
+    const turnDirection = desiredTurnDirection ?? (startPathEncirclesTerminator && !startPathIncludesTerminator ? 'left' : 'right');
+    const startToTurnCenterPath = DirectToPointBuilder.geoCircleCache[0].set(turnDirection === 'left'
+      ? Vec3Math.cross(start, startPath.center, DirectToPointBuilder.vec3Cache[2])
+      : Vec3Math.cross(startPath.center, start, DirectToPointBuilder.vec3Cache[2]),
+      MathUtils.HALF_PI
+    );
+
+    let maxTurnRadiusRad;
+    if (!startPathIncludesTerminator && startPathEncirclesTerminator === (turnDirection === 'left')) {
+      // terminator lies on the same side as the turn, which means there is the possibility that the turn circle can
+      // encircle the terminator, which would make defining a great circle intersecting the terminator fix and also
+      // tangent to the turn circle impossible. Therefore, we compute the maximum allowed turn radius, defined as the
+      // radius such that the terminator fix lies exactly on the turn circle.
+
+      const startToTerminatorPathNormal = GeoCircle.getGreatCircleNormal(start, end, DirectToPointBuilder.vec3Cache[2]);
+      // the angle between the great-circle path from the start point to the turn center and the path from the start
+      // point to the terminator fix
+      const theta = Math.acos(Vec3Math.dot(startToTurnCenterPath.center, startToTerminatorPathNormal));
+      maxTurnRadiusRad = Math.atan(Math.sin(distanceToEnd) / (Math.cos(theta) * (1 + Math.cos(distanceToEnd))));
+    } else {
+      // terminator lies on the starting path or on the opposite side as the turn. Either way, no turn can encircle the
+      // terminator, and so there is no maximum turn radius.
+      maxTurnRadiusRad = Math.PI / 2;
+    }
+
+    const turnRadiusRad = Math.min(maxTurnRadiusRad, UnitType.METER.convertTo(desiredTurnRadius, UnitType.GA_RADIAN));
+
+    const turnCenterVec = startToTurnCenterPath.offsetDistanceAlong(start, turnRadiusRad, DirectToPointBuilder.vec3Cache[2]);
+    const turnCenterPoint = DirectToPointBuilder.geoPointCache[1].setFromCartesian(turnCenterVec);
+
+    // Find the great-circle path from the terminator fix that is tangent to the turn circle. There are guaranteed to
+    // be two such paths. We choose between the two based on the initial turn direction.
+
+    const turnCenterToTerminatorDistance = Math.acos(Utils.Clamp(Vec3Math.dot(turnCenterVec, end), -1, 1));
+    // The angle between the great-circle path from the terminator fix to the turn center and the two
+    // great-circle paths from the terminator fix that are tangent to the turn circle.
+    const alpha = Math.asin(Math.min(1, Math.sin(turnRadiusRad) / Math.sin(turnCenterToTerminatorDistance)));
+    const terminatorFixBearingToTurnCenter = endPos.bearingTo(turnCenterPoint);
+    const finalPathCourse = NavMath.normalizeHeading(terminatorFixBearingToTurnCenter + alpha * Avionics.Utils.RAD2DEG * (turnDirection === 'left' ? -1 : 1) + 180);
+    const finalPath = DirectToPointBuilder.geoCircleCache[0].setAsGreatCircle(end, finalPathCourse);
+    const turnEndVec = finalPath.closest(turnCenterPoint, DirectToPointBuilder.vec3Cache[3]);
+
+    if (!GeoPoint.equals(turnEndVec, start)) {
+      vectorIndex += this.circleVectorBuilder.build(
+        vectors,
+        vectorIndex,
+        turnDirection, UnitType.GA_RADIAN.convertTo(turnRadiusRad, UnitType.METER),
+        turnCenterPoint, start, turnEndVec,
+        flags | (includeTurnToCourseFlag ? FlightPathVectorFlags.TurnToCourse : 0)
+      );
+    }
+
+    if (!GeoPoint.equals(turnEndVec, end)) {
+      vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, turnEndVec, end, flags);
     }
 
     return vectorIndex - index;

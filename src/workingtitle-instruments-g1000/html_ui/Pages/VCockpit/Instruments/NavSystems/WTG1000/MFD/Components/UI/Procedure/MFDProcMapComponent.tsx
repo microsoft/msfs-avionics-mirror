@@ -1,13 +1,11 @@
 import {
-  BitFlags, DebounceTimer, FSComponent, GeoPoint, GeoPointInterface, NumberUnitInterface, Subject, Subscribable, UnitFamily, UnitType,
-  Vec2Math, Vec2Subject, VecNSubject, VNode
+  FSComponent, GeoPoint, NumberUnitInterface, ReadonlyFloat64Array, Subject, Subscribable, UnitFamily, UnitType,
+  Vec2Math, Vec2Subject, VNode
 } from 'msfssdk';
-import {
-  MapComponent, MapComponentProps, MapCullableTextLabelManager, MapCullableTextLayer, MapModel, MapOwnAirplaneLayer,
-  MapProjection, MapProjectionChangeType
-} from 'msfssdk/components/map';
+import { DebounceTimer } from 'msfssdk/utils/time';
+import { MapCullableTextLabelManager, MapCullableTextLayer, MapModel, MapOwnAirplaneLayer, MapProjection } from 'msfssdk/components/map';
 import { FlightPlan, FlightPlanner } from 'msfssdk/flightplan';
-import { ProcedureType } from '../../../../Shared/FlightPlan/Fms';
+import { ProcedureType } from 'garminsdk/flightplan';
 import { MapBingLayer } from '../../../../Shared/Map/Layers/MapBingLayer';
 import { MapCrosshairLayer } from '../../../../Shared/Map/Layers/MapCrosshairLayer';
 import { MapMiniCompassLayer } from '../../../../Shared/Map/Layers/MapMiniCompassLayer';
@@ -18,7 +16,8 @@ import { MapWaypointHighlightLayer } from '../../../../Shared/Map/Layers/MapWayp
 import { MapFlightPlanFocusCalculator } from '../../../../Shared/Map/MapFlightPlanFocusCalculator';
 import { MapRangeSettings } from '../../../../Shared/Map/MapRangeSettings';
 import { MapWaypointRenderer } from '../../../../Shared/Map/MapWaypointRenderer';
-import { MapWaypointHighlightStyles, MapWaypointNormalStyles, MapWaypointStyles } from '../../../../Shared/Map/MapWaypointStyles';
+import { MapWaypointHighlightStyles, MapWaypointStyles } from '../../../../Shared/Map/MapWaypointStyles';
+import { PointerMapComponent, PointerMapComponentProps, PointerMapRangeTargetRotationController } from '../../../../Shared/Map/PointerMapComponent';
 import { MFDProcMapCrosshairController } from './MFDProcMapCrosshairController';
 import { MFDProcMapModelModules } from './MFDProcMapModel';
 import { MFDProcMapPreviewLayer } from './MFDProcMapPreviewLayer';
@@ -53,19 +52,7 @@ export interface MFDProcMapOwnAirplaneLayerProps {
 /**
  * Component props for MFDProcMapComponent.
  */
-export interface MFDProcMapComponentProps extends MapComponentProps<MFDProcMapModelModules> {
-  /** A subscribable which provides the update frequency for the data the map uses. */
-  dataUpdateFreq: Subscribable<number>;
-
-  /** The unique ID for this map's Bing instance. */
-  bingId: string;
-
-  /**
-   * A subscribable which provides the dead zone around each edge of the map projection window, which is displayed but
-   * excluded in map range calculations. Expressed as [left, top, right, bottom] in pixels. Defaults to 0 on all sides.
-   */
-  deadZone?: Subscribable<Float64Array>;
-
+export interface MFDProcMapComponentProps extends PointerMapComponentProps<MFDProcMapModelModules> {
   /** An instance of the flight planner. */
   flightPlanner: FlightPlanner;
 
@@ -86,76 +73,38 @@ export interface MFDProcMapComponentProps extends MapComponentProps<MFDProcMapMo
    */
   rangeIndex: Subject<number>;
 
-  /** The CSS class(es) to apply to this component. */
-  class?: string;
+  /** The unique ID for this map's Bing component. */
+  bingId: string;
 }
 
 /**
  * A G1000 MFD procedure preview map component.
  */
-export class MFDProcMapComponent extends MapComponent<MFDProcMapComponentProps> {
+export class MFDProcMapComponent extends PointerMapComponent<MFDProcMapModelModules, MFDProcMapComponentProps, MFDProcMapRangeTargetRotationController> {
   private static readonly FLIGHT_PLAN_FOCUS_DEFAULT_RANGE_INDEX = 17;
 
-  private readonly rootRef = FSComponent.createRef<HTMLDivElement>();
-  private readonly bingLayerRef = FSComponent.createRef<MapBingLayer>();
-  private readonly previewLayerRef = FSComponent.createRef<MFDProcMapPreviewLayer>();
-  private readonly waypointHighlightLayerRef = FSComponent.createRef<MapWaypointHighlightLayer>();
-  private readonly textLayerRef = FSComponent.createRef<MapCullableTextLayer>();
-  private readonly rangeRingLayerRef = FSComponent.createRef<MapRangeRingLayer>();
-  private readonly crosshairLayerRef = FSComponent.createRef<MapCrosshairLayer>();
-  private readonly ownAirplaneLayerRef = FSComponent.createRef<MapOwnAirplaneLayer<MFDProcMapModelModules>>();
-  private readonly miniCompassLayerRef = FSComponent.createRef<MapMiniCompassLayer>();
-  private readonly pointerLayerRef = FSComponent.createRef<MapPointerLayer>();
-  private readonly pointerInfoLayerRef = FSComponent.createRef<MapPointerInfoLayer>();
-
-  private readonly deadZoneSub;
-  private readonly pointerBoundsSub = VecNSubject.createFromVector(new Float64Array([0, 0, this.props.projectedWidth, this.props.projectedHeight]));
-
-  private readonly rangeTargetRotationController: MFDProcMapRangeTargetRotationController;
+  protected readonly rtrController = new MFDProcMapRangeTargetRotationController(
+    this.props.model,
+    this.mapProjection,
+    this.deadZone,
+    MapRangeSettings.getRangeArraySubscribable(this.props.bus),
+    this.pointerBoundsSub,
+    this.props.rangeIndex,
+    MFDProcMapComponent.FLIGHT_PLAN_FOCUS_DEFAULT_RANGE_INDEX
+  );
 
   private readonly textManager = new MapCullableTextLabelManager();
   private readonly waypointRenderer = new MapWaypointRenderer(this.textManager);
 
   private readonly crosshairController = new MFDProcMapCrosshairController(this.props.model);
 
-  /** @inheritdoc */
-  constructor(props: MFDProcMapComponentProps) {
-    super(props);
-
-    this.deadZoneSub = this.props.deadZone ?? Subject.create(new Float64Array(4));
-
-    this.rangeTargetRotationController = new MFDProcMapRangeTargetRotationController(
-      this.props.model,
-      this.mapProjection,
-      this.deadZoneSub,
-      MapRangeSettings.getRangeArraySubscribable(this.props.bus),
-      this.props.rangeIndex,
-      this.pointerBoundsSub,
-      MFDProcMapComponent.FLIGHT_PLAN_FOCUS_DEFAULT_RANGE_INDEX
-    );
-  }
 
   /** @inheritdoc */
-  public onAfterRender(): void {
-    super.onAfterRender();
-
-    this.setRootSize(this.mapProjection.getProjectedSize());
-    this.deadZoneSub.sub(this.onDeadZoneChanged.bind(this), true);
+  public onAfterRender(thisNode: VNode): void {
+    super.onAfterRender(thisNode);
 
     this.initEventBusHandlers();
-
-    this.rangeTargetRotationController.init();
     this.initControllers();
-    this.initLayers();
-  }
-
-  /**
-   * Sets the size of this map's root HTML element.
-   * @param size The new size, in pixels.
-   */
-  private setRootSize(size: Float64Array): void {
-    this.rootRef.instance.style.width = `${size[0]}px`;
-    this.rootRef.instance.style.height = `${size[1]}px`;
   }
 
   /**
@@ -174,59 +123,6 @@ export class MFDProcMapComponent extends MapComponent<MFDProcMapComponentProps> 
     this.crosshairController.init();
   }
 
-  /**
-   * Initializes this map's layers.
-   */
-  protected initLayers(): void {
-    this.attachLayer(this.bingLayerRef.instance);
-    this.attachLayer(this.previewLayerRef.instance);
-    this.attachLayer(this.waypointHighlightLayerRef.instance);
-    this.attachLayer(this.textLayerRef.instance);
-    this.attachLayer(this.rangeRingLayerRef.instance);
-    this.attachLayer(this.crosshairLayerRef.instance);
-    this.attachLayer(this.ownAirplaneLayerRef.instance);
-    this.attachLayer(this.miniCompassLayerRef.instance);
-    this.attachLayer(this.pointerLayerRef.instance);
-    this.attachLayer(this.pointerInfoLayerRef.instance);
-  }
-
-  /** @inheritdoc */
-  protected onProjectedSizeChanged(): void {
-    this.setRootSize(this.mapProjection.getProjectedSize());
-    this.updatePointerBounds();
-  }
-
-  /**
-   * Responds to changes in this map's dead zone.
-   */
-  private onDeadZoneChanged(): void {
-    this.updatePointerBounds();
-  }
-
-  /**
-   * Updates this map's pointer bounds.
-   */
-  private updatePointerBounds(): void {
-    const deadZone = this.deadZoneSub.get();
-
-    const size = this.mapProjection.getProjectedSize();
-    const minX = deadZone[0];
-    const minY = deadZone[1];
-    const maxX = size[0] - deadZone[2];
-    const maxY = size[1] - deadZone[3];
-    const width = maxX - minX;
-    const height = maxY - minY;
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-
-    this.pointerBoundsSub.set(
-      Math.min(centerX, minX + width * 0.1),
-      Math.min(centerY, minY + height * 0.1),
-      Math.max(centerX, maxX - height * 0.1),
-      Math.max(centerY, maxY - height * 0.1)
-    );
-  }
-
   /** @inheritdoc */
   protected onUpdated(time: number, elapsed: number): void {
     this.updateRangeTargetRotationController();
@@ -234,23 +130,16 @@ export class MFDProcMapComponent extends MapComponent<MFDProcMapComponentProps> 
     super.onUpdated(time, elapsed);
   }
 
-  /**
-   * Updates this map's range/target/rotation controller.
-   */
-  private updateRangeTargetRotationController(): void {
-    this.rangeTargetRotationController.update();
-  }
-
   /** @inheritdoc */
   public render(): VNode {
     return (
       <div ref={this.rootRef} class={`waypoint-map ${this.props.class ?? ''}`}>
         <MapBingLayer
-          ref={this.bingLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           bingId={this.props.bingId}
         />
         <MFDProcMapPreviewLayer
-          ref={this.previewLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           bus={this.props.bus}
           procedureType={this.props.procedureType}
           procedurePlan={this.props.procedurePlan}
@@ -260,48 +149,40 @@ export class MFDProcMapComponent extends MapComponent<MFDProcMapComponentProps> 
           transitionWaypointStyles={MFDProcMapWaypointStyles.getStyles(false, 0, 0)}
         />
         <MapWaypointHighlightLayer
-          ref={this.waypointHighlightLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           waypointRenderer={this.waypointRenderer} textManager={this.textManager}
           styles={this.getWaypointHighlightLayerStyles()}
         />
         <MapCullableTextLayer
-          ref={this.textLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           manager={this.textManager}
         />
         <MapRangeRingLayer
-          ref={this.rangeRingLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           showLabel={true} strokeWidth={2} strokeStyle={'white'}
         />
         <MapCrosshairLayer
-          ref={this.crosshairLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
         />
         <MapOwnAirplaneLayer
-          ref={this.ownAirplaneLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           imageFilePath={Subject.create(this.props.ownAirplaneLayerProps.imageFilePath)} iconSize={this.props.ownAirplaneLayerProps.iconSize}
           iconAnchor={Vec2Subject.createFromVector(this.props.ownAirplaneLayerProps.iconAnchor)}
         />
         <MapMiniCompassLayer
-          ref={this.miniCompassLayerRef} class='minicompass-layer'
+          class='minicompass-layer'
           model={this.props.model} mapProjection={this.mapProjection}
           imgSrc={'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/map_mini_compass.png'}
         />
         <MapPointerInfoLayer
-          ref={this.pointerInfoLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
           size={MapPointerInfoLayerSize.Full}
         />
         <MapPointerLayer
-          ref={this.pointerLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+          model={this.props.model} mapProjection={this.mapProjection}
         />
       </div>
     );
-  }
-
-  /**
-   * Gets styles for the waypoints layer.
-   * @returns styles for the waypoints layer.
-   */
-  private getWaypointsLayerStyles(): MapWaypointNormalStyles {
-    return MapWaypointStyles.getNormalStyles(1, 10);
   }
 
   /**
@@ -314,25 +195,12 @@ export class MFDProcMapComponent extends MapComponent<MFDProcMapComponentProps> 
 }
 
 /**
- * A controller for handling map range, target, and rotation changes.
+ * A controller for handling map range, target, and rotation changes for the MFD procedure preview map.
  */
-export class MFDProcMapRangeTargetRotationController {
+export class MFDProcMapRangeTargetRotationController extends PointerMapRangeTargetRotationController<MFDProcMapModelModules> {
   private static readonly FOCUS_DEBOUNCE_DELAY = 500; // milliseconds
 
-  private static readonly vec2Cache = [new Float64Array(2)];
-
-  private needUpdateProjection = false;
-  private needUpdatePointerScroll = false;
-
-  private currentMapParameters = {
-    range: 0,
-    target: new GeoPoint(0, 0),
-    targetProjectedOffset: new Float64Array(2),
-    rotation: 0
-  };
-
   private readonly airplanePropsModule = this.mapModel.getModule('ownAirplaneProps');
-  private readonly pointerModule = this.mapModel.getModule('pointer');
   private readonly focusModule = this.mapModel.getModule('focus');
 
   private readonly focusCalculator = new MapFlightPlanFocusCalculator(this.mapProjection);
@@ -342,9 +210,6 @@ export class MFDProcMapRangeTargetRotationController {
   private readonly focusMargins = new Float64Array([20, 20, 20, 20]);
 
   private readonly airplanePositionChangedHandler = this.onAirplanePositionChanged.bind(this);
-  private readonly pointerPositionChangedHandler = this.onPointerPositionChanged.bind(this);
-  private readonly pointerTargetChangedHandler = this.onPointerTargetChanged.bind(this);
-  private readonly pointerBoundsChangedHandler = this.onPointerBoundsChanged.bind(this);
   private readonly isFlightPlanFocusedChangedHandler = this.onIsFlightPlanFocusChanged.bind(this);
   private readonly flightPlanFocusChangedHandler = this.onFlightPlanFocusChanged.bind(this);
 
@@ -360,64 +225,43 @@ export class MFDProcMapRangeTargetRotationController {
    * @param mapProjection The map projection.
    * @param deadZone A subscribable which provides the map's dead zone.
    * @param rangeArray A subscribable which provides an array of valid map ranges.
-   * @param rangeIndex A subscribable which provides a range index for this controller to bind.
    * @param pointerBounds A subscribable which provides the bounds of the area accessible to the map pointer. The
    * bounds should be expressed as `[left, top, right, bottom]` in pixels.
+   * @param rangeIndex A subscribable which provides a range index for this controller to bind.
    * @param flightPlanFocusDefaultRangeIndex The index of the map range to which this controller defaults when focusing
    * on the flight plan with a calculated focus range of zero.
    */
   constructor(
-    private readonly mapModel: MapModel<MFDProcMapModelModules>,
-    private readonly mapProjection: MapProjection,
-    private readonly deadZone: Subscribable<Float64Array>,
-    private readonly rangeArray: Subscribable<readonly NumberUnitInterface<UnitFamily.Distance>[]>,
+    mapModel: MapModel<MFDProcMapModelModules>,
+    mapProjection: MapProjection,
+    deadZone: Subscribable<ReadonlyFloat64Array>,
+    rangeArray: Subscribable<readonly NumberUnitInterface<UnitFamily.Distance>[]>,
+    pointerBounds: Subscribable<ReadonlyFloat64Array>,
     private readonly rangeIndex: Subject<number>,
-    private readonly pointerBounds: Subscribable<Float64Array>,
     private readonly flightPlanFocusDefaultRangeIndex: number
   ) {
-    this.updateFocusMargins();
+    super(mapModel, mapProjection, deadZone, rangeArray, flightPlanFocusDefaultRangeIndex, pointerBounds);
+  }
+
+  /** @inheritdoc */
+  protected initListeners(): void {
+    super.initListeners();
+
+    this.rangeIndex.sub(this.onRangeIndexChanged.bind(this));
     this.focusModule.isActive.sub(this.onIsFlightPlanFocusActiveChanged.bind(this));
   }
 
-  /**
-   * Executes this controller's first-run initialization code.
-   */
-  public init(): void {
-    this.rangeArray.sub(ranges => {
-      this.mapModel.getModule('range').nominalRanges.set(ranges);
-    }, true);
+  /** @inheritdoc */
+  protected initState(): void {
+    super.initState();
 
-    this.rangeIndex.sub(this.onRangeIndexChanged.bind(this));
-    this.deadZone.sub(this.onDeadZoneChanged.bind(this));
-
-    this.mapProjection.addChangeListener(this.onMapProjectionChanged.bind(this));
-    this.initModuleListeners();
-    this.initState();
-    this.scheduleProjectionUpdate();
-  }
-
-  /**
-   * Initializes module listeners.
-   */
-  private initModuleListeners(): void {
-    this.pointerModule.isActive.sub(this.onPointerActiveChanged.bind(this), true);
-  }
-
-  /**
-   * Initializes this controller's state.
-   */
-  private initState(): void {
-    this.updateRangeFromIndex();
-    this.updateTargetOffset();
-    this.updateTargetFromPPos();
-  }
-
-  /**
-   * This method is called when the size of the dead zone changes.
-   */
-  private onDeadZoneChanged(): void {
     this.updateFocusMargins();
-    this.updateRangeFromIndex();
+  }
+
+  /** @inheritdoc */
+  protected onDeadZoneChanged(): void {
+    this.updateFocusMargins();
+    this.updateRangeEndpoints();
     this.updateTargetOffset();
     this.scheduleProjectionUpdate();
   }
@@ -434,22 +278,25 @@ export class MFDProcMapRangeTargetRotationController {
     this.focusMargins[3] = deadZone[3] + 20;
   }
 
-  /**
-   * Updates the current range from the current range index.
-   */
-  private updateRangeFromIndex(): void {
-    const ranges = this.rangeArray.get();
-    const nominalRange = ranges[Utils.Clamp(this.rangeIndex.get(), 0, ranges.length - 1)];
-    this.currentMapParameters.range = this.convertToTrueRange(nominalRange);
+  /** @inheritdoc */
+  protected getDesiredRangeEndpoints(out: Float64Array): Float64Array {
+    const trueCenterRelX = this.nominalToTrueRelativeX(0.5);
+    const trueCenterRelY = this.nominalToTrueRelativeY(0.5);
+
+    out[0] = trueCenterRelX;
+    out[1] = trueCenterRelY;
+    out[2] = trueCenterRelX;
+    out[3] = this.nominalToTrueRelativeY(0.75);
+    return out;
   }
 
-  /**
-   * Converts a nominal range to a true map range.
-   * @param nominalRange The nominal range to convert.
-   * @returns the true map range for the given nominal range, in great-arc radians.
-   */
-  protected convertToTrueRange(nominalRange: NumberUnitInterface<UnitFamily.Distance>): number {
-    return nominalRange.asUnit(UnitType.GA_RADIAN) * 4;
+  /** @inheritdoc */
+  protected getDesiredTargetOffset(out: Float64Array): Float64Array {
+    const deadZone = this.deadZone.get();
+    const trueCenterOffsetX = (deadZone[0] - deadZone[2]) / 2;
+    const trueCenterOffsetY = (deadZone[1] - deadZone[3]) / 2;
+
+    return Vec2Math.set(trueCenterOffsetX, trueCenterOffsetY, out);
   }
 
   /**
@@ -460,40 +307,10 @@ export class MFDProcMapRangeTargetRotationController {
   }
 
   /**
-   * Updates the target offset.
-   */
-  private updateTargetOffset(): void {
-    const deadZone = this.deadZone.get();
-    const trueCenterOffsetX = (deadZone[0] - deadZone[2]) / 2;
-    const trueCenterOffsetY = (deadZone[1] - deadZone[3]) / 2;
-
-    this.currentMapParameters.targetProjectedOffset[0] = trueCenterOffsetX;
-    this.currentMapParameters.targetProjectedOffset[1] = trueCenterOffsetY;
-  }
-
-  /**
-   * Responds to map projection changes.
-   * @param mapProjection The map projection that changed.
-   * @param changeFlags The types of changes made to the projection.
-   */
-  private onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
-    if (BitFlags.isAll(changeFlags, MapProjectionChangeType.ProjectedSize)) {
-      this.onProjectedSizeChanged();
-    }
-  }
-
-  /**
-   * Responds to projected map window size changes.
-   */
-  private onProjectedSizeChanged(): void {
-    this.updateRangeFromIndex();
-    this.scheduleProjectionUpdate();
-  }
-
-  /**
    * Responds to range index changes.
    */
   private onRangeIndexChanged(): void {
+    this.currentMapRangeIndex = this.rangeIndex.get();
     this.updateRangeFromIndex();
     this.scheduleProjectionUpdate();
   }
@@ -506,49 +323,16 @@ export class MFDProcMapRangeTargetRotationController {
     this.scheduleProjectionUpdate();
   }
 
-  /**
-   * Responds to map pointer activation changes.
-   * @param isActive Whether the map pointer is active.
-   */
-  private onPointerActiveChanged(isActive: boolean): void {
-    this.updatePointerListeners();
-
-    if (isActive) {
-      this.focusModule.isActive.set(false);
-      this.setAirplanePositionListenersActive(false);
-    }
+  /** @inheritdoc */
+  protected onPointerActivated(): void {
+    this.focusModule.isActive.set(false);
+    this.setAirplanePositionListenersActive(false);
     this.updateIsFlightPlanFocusedListener();
-
-    this.scheduleProjectionUpdate();
   }
 
-  /**
-   * Responds to map pointer position changes.
-   */
-  private onPointerPositionChanged(): void {
-    this.schedulePointerScrollUpdate();
-  }
-
-  /**
-   * Responds to map pointer desired target changes.
-   * @param target The desired target.
-   */
-  private onPointerTargetChanged(target: GeoPointInterface): void {
-    this.currentMapParameters.target.set(target);
-    this.scheduleProjectionUpdate();
-  }
-
-  /**
-   * Responds to map pointer bounds changes.
-   */
-  private onPointerBoundsChanged(): void {
-    const position = this.pointerModule.position.get();
-    const bounds = this.pointerBounds.get();
-
-    const clampedPositionX = Utils.Clamp(position[0], bounds[0], bounds[2]);
-    const clampedPositionY = Utils.Clamp(position[1], bounds[1], bounds[3]);
-
-    this.pointerModule.position.set(clampedPositionX, clampedPositionY);
+  /** @inheritdoc */
+  protected onPointerDeactivated(): void {
+    this.updateIsFlightPlanFocusedListener();
   }
 
   /**
@@ -589,21 +373,6 @@ export class MFDProcMapRangeTargetRotationController {
     }
 
     this.areAirplanePositionListenersActive = value;
-  }
-
-  /**
-   * Updates the pointer position listener.
-   */
-  private updatePointerListeners(): void {
-    if (this.pointerModule.isActive.get()) {
-      this.pointerBounds.sub(this.pointerBoundsChangedHandler);
-      this.pointerModule.position.sub(this.pointerPositionChangedHandler);
-      this.pointerModule.target.sub(this.pointerTargetChangedHandler, true);
-    } else {
-      this.pointerBounds.unsub(this.pointerBoundsChangedHandler);
-      this.pointerModule.position.unsub(this.pointerPositionChangedHandler);
-      this.pointerModule.target.unsub(this.pointerTargetChangedHandler);
-    }
   }
 
   /**
@@ -685,7 +454,12 @@ export class MFDProcMapRangeTargetRotationController {
    * Updates the map target and range from the current flight plan focus.
    */
   private updateRangeTargetFromFocus(): void {
-    const targetRange = this.focusCalculator.calculateRangeTarget(this.focusModule.focus.get(), this.focusMargins, this.focusRangeTarget);
+    const targetRange = this.focusCalculator.calculateRangeTarget(
+      this.focusModule.focus.get(),
+      this.focusMargins,
+      this.airplanePropsModule.position.get(),
+      this.focusRangeTarget
+    );
 
     if (isNaN(targetRange.range)) {
       this.setAirplanePositionListenersActive(true);
@@ -698,92 +472,13 @@ export class MFDProcMapRangeTargetRotationController {
 
     const ranges = this.rangeArray.get();
 
-    // when flight plan is focused, we are guaranteed to be in North Up mode, so true range = nominal range * 4.
     const rangeIndex = targetRange.range > 0
-      ? ranges.findIndex(range => range.asUnit(UnitType.GA_RADIAN) * 4 >= targetRange.range)
+      ? ranges.findIndex(range => range.asUnit(UnitType.GA_RADIAN) >= targetRange.range)
       : this.flightPlanFocusDefaultRangeIndex;
 
     this.rangeIndex.set(rangeIndex < 0 ? ranges.length - 1 : rangeIndex);
 
     this.updateRangeFromIndex();
     this.scheduleProjectionUpdate();
-  }
-
-  /**
-   * Schedules an update.
-   */
-  private scheduleProjectionUpdate(): void {
-    this.needUpdateProjection = true;
-  }
-
-  /**
-   * Schedules an update to scrolling due to the pointer.
-   */
-  private schedulePointerScrollUpdate(): void {
-    this.needUpdatePointerScroll = true;
-  }
-
-  /**
-   * Updates this controller.
-   */
-  public update(): void {
-    this.updateModules();
-    this.updatePointerScroll();
-    this.updateMapProjection();
-  }
-
-  /**
-   * Updates map model modules.
-   */
-  private updateModules(): void {
-    this.mapModel.getModule('range').setNominalRangeIndex(this.rangeIndex.get());
-  }
-
-  /**
-   * Updates the map projection with the latest range, target, and rotation values.
-   */
-  private updateMapProjection(): void {
-    if (!this.needUpdateProjection) {
-      return;
-    }
-
-    this.mapProjection.set(this.currentMapParameters);
-
-    this.needUpdateProjection = false;
-  }
-
-  /**
-   * Updates scrolling due to the pointer.
-   */
-  private updatePointerScroll(): void {
-    if (!this.needUpdatePointerScroll) {
-      return;
-    }
-
-    const position = this.pointerModule.position.get();
-    const bounds = this.pointerBounds.get();
-
-    const clampedPositionX = Utils.Clamp(position[0], bounds[0], bounds[2]);
-    const clampedPositionY = Utils.Clamp(position[1], bounds[1], bounds[3]);
-
-    const scrollDeltaX = position[0] - clampedPositionX;
-    const scrollDeltaY = position[1] - clampedPositionY;
-
-    if (scrollDeltaX === 0 && scrollDeltaY === 0) {
-      return;
-    }
-
-    this.pointerModule.position.set(clampedPositionX, clampedPositionY);
-
-    const newTargetProjected = Vec2Math.add(
-      this.mapProjection.getTargetProjected(),
-      Vec2Math.set(scrollDeltaX, scrollDeltaY, MFDProcMapRangeTargetRotationController.vec2Cache[0]),
-      MFDProcMapRangeTargetRotationController.vec2Cache[0]
-    );
-
-    this.mapProjection.invert(newTargetProjected, this.currentMapParameters.target);
-    this.scheduleProjectionUpdate();
-
-    this.needUpdatePointerScroll = false;
   }
 }

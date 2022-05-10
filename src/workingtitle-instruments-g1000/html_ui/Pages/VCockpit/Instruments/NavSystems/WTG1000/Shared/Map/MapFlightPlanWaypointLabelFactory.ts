@@ -1,14 +1,13 @@
-import { MapCullableLocationTextLabel, MapCullableTextLabel } from 'msfssdk/components/map';
-import { FacilityType, ICAO } from 'msfssdk/navigation';
-import { AirportWaypoint, FacilityWaypoint, FlightPathWaypoint, Waypoint } from '../Navigation/Waypoint';
+import { MapCullableLocationTextLabel, MapCullableTextLabel, MapWaypointRendererLabelFactory } from 'msfssdk/components/map';
+import { AirportWaypoint, FacilityType, FacilityWaypoint, FlightPathWaypoint, ICAO, Waypoint } from 'msfssdk/navigation';
+
 import { ProcedureTurnLegWaypoint } from './MapFlightPlanWaypointRecord';
-import { MapWaypointRendererLabelFactory } from './MapWaypointRenderer';
 import { MapWaypointFlightPlanStyles } from './MapWaypointStyles';
 
 /**
  * A waypoint label factory for flight plan waypoints.
  */
-export class MapFlightPlanWaypointLabelFactory implements MapWaypointRendererLabelFactory {
+export class MapFlightPlanWaypointLabelFactory implements MapWaypointRendererLabelFactory<Waypoint> {
   private readonly cache = new Map<string, MapCullableTextLabel>();
 
   /**
@@ -19,7 +18,7 @@ export class MapFlightPlanWaypointLabelFactory implements MapWaypointRendererLab
   }
 
   /** @inheritdoc */
-  public getLabel<T extends Waypoint>(waypoint: T): MapCullableTextLabel {
+  public getLabel<T extends Waypoint>(role: number, waypoint: T): MapCullableTextLabel {
     let existing = this.cache.get(waypoint.uid);
     if (!existing) {
       existing = this.createLabel(waypoint);

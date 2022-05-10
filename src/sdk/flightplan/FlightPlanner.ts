@@ -1,5 +1,7 @@
-import { SubEvent } from '..';
 import { EventBus, Publisher } from '../data';
+import { FlightPlanLeg, ICAO, LegType } from '../navigation/Facilities';
+import { UnitType } from '../math';
+import { SubEvent } from '../sub/SubEvent';
 import { FlightPathCalculator } from './FlightPathCalculator';
 import { ActiveLegType, DirectToData, FlightPlan, OriginDestChangeType, PlanChangeType, PlanEvents } from './FlightPlan';
 import { FlightPlanSegment, LegDefinition, ProcedureDetails } from './FlightPlanning';
@@ -121,7 +123,7 @@ export interface FlightPlanSegmentEvent {
   /** The current leg selected. */
   readonly segmentIndex: number;
 
-  /** The leg that was added or removed. */
+  /** The segment that was added, removed, or changed. */
   readonly segment?: FlightPlanSegment;
 }
 
@@ -246,7 +248,7 @@ export class FlightPlanner {
   /** The active flight plan index. */
   private _activePlanIndex = 0;
 
-  public flightPlanSynced = new SubEvent<boolean>();
+  public flightPlanSynced = new SubEvent<this, boolean>();
 
   /**
    * Set a new active plan index.
@@ -268,8 +270,12 @@ export class FlightPlanner {
    * Creates an instance of the FlightPlanner.
    * @param bus The event bus instance to notify changes on.
    * @param calculator The flight path calculator to use with this planner.
+   * @param onLegNameRequested A callback fired when a flight plan leg is to be named.
    */
-  private constructor(private readonly bus: EventBus, private readonly calculator: FlightPathCalculator) {
+  private constructor(private readonly bus: EventBus,
+    private readonly calculator: FlightPathCalculator,
+    private onLegNameRequested: ((leg: FlightPlanLeg) => string | undefined) = FlightPlanner.buildDefaultLegName) {
+
     this.publisher = bus.getPublisher<FlightPlannerEvents>();
     const subscriber = bus.getSubscriber<FlightPlannerSyncEvents>();
 
@@ -328,7 +334,7 @@ export class FlightPlanner {
    */
   private onFlightPlanResponse(data: FlightPlanResponseEvent): void {
     for (let i = 0; i < data.flightPlans.length; i++) {
-      const newPlan = Object.assign(new FlightPlan(i, this.calculator), data.flightPlans[i]);
+      const newPlan = Object.assign(new FlightPlan(i, this.calculator, this.onLegNameRequested), data.flightPlans[i]);
       newPlan.events = this.buildPlanEventHandlers(i);
 
       this.flightPlans[i] = newPlan;
@@ -377,7 +383,7 @@ export class FlightPlanner {
       return this.flightPlans[planIndex]!;
     }
 
-    const flightPlan = new FlightPlan(planIndex, this.calculator);
+    const flightPlan = new FlightPlan(planIndex, this.calculator, this.onLegNameRequested);
     flightPlan.events = this.buildPlanEventHandlers(planIndex);
 
     this.flightPlans[planIndex] = flightPlan;
@@ -526,19 +532,37 @@ export class FlightPlanner {
    */
   private onLegChanged(data: FlightPlanLegEvent): void {
     const plan = this.getFlightPlan(data.planIndex);
+
+    let localLeg: LegDefinition | undefined = undefined;
+
     switch (data.type) {
       case PlanChangeType.Added:
-        data.leg && plan.addLeg(data.segmentIndex, data.leg.leg, data.legIndex, data.leg.flags, false);
+        localLeg = data.leg && plan.addLeg(data.segmentIndex, data.leg.leg, data.legIndex, data.leg.flags, false);
         break;
       case PlanChangeType.Removed:
-        plan.removeLeg(data.segmentIndex, data.legIndex, false);
+        localLeg = plan.removeLeg(data.segmentIndex, data.legIndex, false) ?? undefined;
         break;
       case PlanChangeType.Changed:
+        try {
+          localLeg = plan.getLeg(data.segmentIndex, data.legIndex);
+        } catch {
+          // noop
+        }
         data.leg && data.leg.verticalData && plan.setLegVerticalData(data.segmentIndex, data.legIndex, data.leg.verticalData, false);
         break;
     }
 
-    this.sendEvent('fplLegChange', data, false);
+    // We need to send a reference to the local flight plan's copy of the leg with the local event so that
+    // event consumers that save the reference don't become desynced with the local flight plan.
+    const localData: FlightPlanLegEvent = {
+      planIndex: data.planIndex,
+      type: data.type,
+      segmentIndex: data.segmentIndex,
+      legIndex: data.legIndex,
+      leg: localLeg
+    };
+
+    this.sendEvent('fplLegChange', localData, false);
   }
 
   /**
@@ -566,14 +590,21 @@ export class FlightPlanner {
       return;
     }
 
+    let localSegment: FlightPlanSegment | undefined = undefined;
+
     switch (data.type) {
       case PlanChangeType.Added:
-        data.segment && plan.addSegment(data.segmentIndex, data.segment.segmentType, data.segment.airway, false);
+        localSegment = data.segment && plan.addSegment(data.segmentIndex, data.segment.segmentType, data.segment.airway, false);
         break;
       case PlanChangeType.Inserted:
-        data.segment && plan.insertSegment(data.segmentIndex, data.segment.segmentType, data.segment.airway, false);
+        localSegment = data.segment && plan.insertSegment(data.segmentIndex, data.segment.segmentType, data.segment.airway, false);
         break;
       case PlanChangeType.Removed:
+        try {
+          localSegment = plan.getSegment(data.segmentIndex);
+        } catch {
+          // noop
+        }
         plan.removeSegment(data.segmentIndex, false);
         break;
       case PlanChangeType.Changed:
@@ -581,7 +612,16 @@ export class FlightPlanner {
         break;
     }
 
-    this.sendEvent('fplSegmentChange', data, false);
+    // We need to send a reference to the local flight plan's copy of the segment with the local event so that
+    // event consumers that save the reference don't become desynced with the local flight plan.
+    const localData: FlightPlanSegmentEvent = {
+      planIndex: data.planIndex,
+      type: data.type,
+      segmentIndex: data.segmentIndex,
+      segment: localSegment
+    };
+
+    this.sendEvent('fplSegmentChange', localData, false);
   }
 
   /**
@@ -859,9 +899,50 @@ export class FlightPlanner {
    * Gets an instance of FlightPlanner.
    * @param bus The event bus.
    * @param calculator A flight path calculator.
+   * @param onLegNameRequested A callback fired when a flight plan leg is to be named.
    * @returns An instance of FlightPlanner.
    */
-  public static getPlanner(bus: EventBus, calculator: FlightPathCalculator): FlightPlanner {
-    return FlightPlanner.INSTANCE ??= new FlightPlanner(bus, calculator);
+  public static getPlanner(bus: EventBus, calculator: FlightPathCalculator, onLegNameRequested?: ((leg: FlightPlanLeg) => string | undefined)): FlightPlanner {
+    return FlightPlanner.INSTANCE ??= new FlightPlanner(bus, calculator, onLegNameRequested);
+  }
+
+  /**
+   * Default Method for leg naming - builds leg names using default nomenclature.
+   * @param leg The leg to build a name for.
+   * @returns The name of the leg.
+   */
+  public static buildDefaultLegName(leg: FlightPlanLeg): string {
+    let legDistanceNM;
+    switch (leg.type) {
+      case LegType.CA:
+      case LegType.FA:
+      case LegType.VA:
+        return `${UnitType.METER.convertTo(leg.altitude1, UnitType.FOOT).toFixed(0)}FT`;
+      case LegType.FM:
+      case LegType.VM:
+        return 'MANSEQ';
+      case LegType.FC:
+        legDistanceNM = Math.round(UnitType.METER.convertTo(leg.distance, UnitType.NMILE));
+        return `D${leg.course.toFixed(0).padStart(3, '0')}${String.fromCharCode(64 + Utils.Clamp(legDistanceNM, 1, 26))}`;
+      case LegType.CD:
+      case LegType.FD:
+      case LegType.VD:
+        legDistanceNM = UnitType.METER.convertTo(leg.distance, UnitType.NMILE);
+        return `${ICAO.getIdent(leg.originIcao)}${legDistanceNM.toFixed(1)}`;
+      case LegType.CR:
+      case LegType.VR:
+        return `${ICAO.getIdent(leg.originIcao)}${leg.theta.toFixed(0)}`;
+      case LegType.CI:
+      case LegType.VI:
+        return 'INTRCPT';
+      case LegType.PI:
+        return 'PROC. TURN';
+      case LegType.HA:
+      case LegType.HM:
+      case LegType.HF:
+        return 'HOLD';
+      default:
+        return ICAO.getIdent(leg.fixIcao);
+    }
   }
 }

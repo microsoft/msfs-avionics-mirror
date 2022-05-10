@@ -1,43 +1,41 @@
-import { FSComponent, NumberUnitInterface, UnitFamily, UnitType, Vec2Math, VNode } from 'msfssdk';
+import { FSComponent, Vec2Math, VNode } from 'msfssdk';
 import { MapMiniCompassLayer } from '../../../../Shared/Map/Layers/MapMiniCompassLayer';
 import { MapRangeCompassLayer } from '../../../../Shared/Map/Layers/MapRangeCompassLayer';
 import { MapRangeRingLayer } from '../../../../Shared/Map/Layers/MapRangeRingLayer';
 import { MapTerrainScaleIndicator } from '../../../../Shared/Map/Indicators/MapTerrainScaleIndicator';
 import { MapOrientation } from '../../../../Shared/Map/Modules/MapOrientationModule';
-import { NavMapComponent, NavMapRangeTargetRotationController } from '../../../../Shared/UI/NavMap/NavMapComponent';
+import { NavMapComponent, NavMapComponentProps, NavMapRangeTargetRotationController } from '../../../../Shared/UI/NavMap/NavMapComponent';
 import { MapPointerInfoLayer, MapPointerInfoLayerSize } from '../../../../Shared/Map/Layers/MapPointerInfoLayer';
 import { MapRangeSettings } from '../../../../Shared/Map/MapRangeSettings';
+import { NavMapModelModules } from '../../../../Shared/UI/NavMap/NavMapModel';
 
 /**
  * The MFD navigation map.
  */
-export class MFDNavMapComponent extends NavMapComponent {
-  private readonly miniCompassLayerRef = FSComponent.createRef<MapMiniCompassLayer>();
-  private readonly rangeRingLayerRef = FSComponent.createRef<MapRangeRingLayer>();
-  private readonly rangeCompassLayerRef = FSComponent.createRef<MapRangeCompassLayer>();
-  private readonly pointerInfoLayerRef = FSComponent.createRef<MapPointerInfoLayer>();
+export class MFDNavMapComponent
+  <
+  M extends NavMapModelModules = NavMapModelModules,
+  P extends NavMapComponentProps<M> = NavMapComponentProps<M>,
+  R extends MFDNavMapRangeTargetRotationController<M> = MFDNavMapRangeTargetRotationController<M>
+  >
+  extends NavMapComponent<M, P, R> {
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected createRangeTargetRotationController(): NavMapRangeTargetRotationController {
+  protected readonly rtrController = this.createRangeTargetRotationController();
+
+  /**
+   * Creates a new range/target/rotation controller for this map.
+   * @returns A new range/target/rotation controller for this map.
+   */
+  protected createRangeTargetRotationController(): R {
     return new MFDNavMapRangeTargetRotationController(
       this.props.model,
       this.mapProjection,
       this.deadZone,
-      this.props.settingManager,
-      this.rangeSettingManager, 'mfdMapRangeIndex',
       MapRangeSettings.getRangeArraySubscribable(this.props.bus),
-      this.pointerBoundsSub
-    );
-  }
-
-  /** @inheritdoc */
-  protected initLayers(): void {
-    super.initLayers();
-
-    this.attachLayer(this.miniCompassLayerRef.instance);
-    this.attachLayer(this.rangeRingLayerRef.instance);
-    this.attachLayer(this.rangeCompassLayerRef.instance);
-    this.attachLayer(this.pointerInfoLayerRef.instance);
+      this.pointerBoundsSub,
+      this.props.settingManager,
+      this.rangeSettingManager, 'mfdMapRangeIndex'
+    ) as R;
   }
 
   /** @inheritdoc */
@@ -49,7 +47,7 @@ export class MFDNavMapComponent extends NavMapComponent {
   protected renderMiniCompassLayer(): VNode | null {
     return (
       <MapMiniCompassLayer
-        ref={this.miniCompassLayerRef} class='minicompass-layer'
+        class='minicompass-layer'
         model={this.props.model} mapProjection={this.mapProjection}
         imgSrc={'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/map_mini_compass.png'}
       />
@@ -60,7 +58,7 @@ export class MFDNavMapComponent extends NavMapComponent {
   protected renderRangeRingLayer(): VNode | null {
     return (
       <MapRangeRingLayer
-        ref={this.rangeRingLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+        model={this.props.model} mapProjection={this.mapProjection}
         showLabel={true} strokeWidth={2} strokeStyle={'white'}
       />
     );
@@ -70,7 +68,7 @@ export class MFDNavMapComponent extends NavMapComponent {
   protected renderRangeCompassLayer(): VNode | null {
     return (
       <MapRangeCompassLayer
-        ref={this.rangeCompassLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+        model={this.props.model} mapProjection={this.mapProjection}
         bus={this.props.bus} showLabel={true}
         showHeadingBug={this.props.model.getModule('pointer').isActive.map(isActive => !isActive)}
         arcStrokeWidth={2} arcEndTickLength={10}
@@ -86,7 +84,7 @@ export class MFDNavMapComponent extends NavMapComponent {
   protected renderPointerInfoLayer(): VNode | null {
     return (
       <MapPointerInfoLayer
-        ref={this.pointerInfoLayerRef} model={this.props.model} mapProjection={this.mapProjection}
+        model={this.props.model} mapProjection={this.mapProjection}
         size={MapPointerInfoLayerSize.Full}
       />
     );
@@ -104,26 +102,34 @@ export class MFDNavMapComponent extends NavMapComponent {
 /**
  * A controller for handling map range, target, and rotation changes for the MFD navigation map.
  */
-export class MFDNavMapRangeTargetRotationController extends NavMapRangeTargetRotationController {
+export class MFDNavMapRangeTargetRotationController<M extends NavMapModelModules = NavMapModelModules> extends NavMapRangeTargetRotationController<M> {
   public static readonly NORTH_UP_TARGET_OFFSET_REL = new Float64Array(2);
   public static readonly HDG_TRK_UP_TARGET_OFFSET_REL = new Float64Array([0, 1 / 6]);
 
-  private static readonly tempVec2_1 = new Float64Array(2);
+  /** @inheritdoc */
+  protected getDesiredRangeEndpoints(out: Float64Array): Float64Array {
+    const targetOffsetRel = this.mapModel.getModule('orientation').orientation.get() === MapOrientation.NorthUp
+      ? MFDNavMapRangeTargetRotationController.NORTH_UP_TARGET_OFFSET_REL
+      : MFDNavMapRangeTargetRotationController.HDG_TRK_UP_TARGET_OFFSET_REL;
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected convertToTrueRange(nominalRange: NumberUnitInterface<UnitFamily.Distance>): number {
-    const projectedHeight = this.mapProjection.getProjectedSize()[1];
-    const correctedHeight = projectedHeight - this.deadZone[1] - this.deadZone[3];
-    const orientation = this.mapModel.getModule('orientation').orientation.get();
-    const factor = orientation === MapOrientation.NorthUp ? 4 : 3;
+    const targetRelY = targetOffsetRel[1] + 0.5;
 
-    return nominalRange.asUnit(UnitType.GA_RADIAN) as number * projectedHeight / correctedHeight * factor;
+    const trueTargetRelX = this.nominalToTrueRelativeX(targetOffsetRel[0] + 0.5);
+    const trueTargetRelY = this.nominalToTrueRelativeY(targetRelY);
+
+    out[0] = trueTargetRelX;
+    out[1] = trueTargetRelY;
+    out[2] = trueTargetRelX;
+    out[3] = this.nominalToTrueRelativeY(targetRelY / 2);
+    return out;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected getDesiredTargetOffset(): Float64Array {
-    const trueCenterOffsetX = (this.deadZone[0] - this.deadZone[2]) / 2;
-    const trueCenterOffsetY = (this.deadZone[1] - this.deadZone[3]) / 2;
+  /** @inheritdoc */
+  protected getDesiredTargetOffset(out: Float64Array): Float64Array {
+    const deadZone = this.deadZone.get();
+
+    const trueCenterOffsetX = (deadZone[0] - deadZone[2]) / 2;
+    const trueCenterOffsetY = (deadZone[1] - deadZone[3]) / 2;
 
     const projectedSize = this.mapProjection.getProjectedSize();
     const relativeOffset = this.mapModel.getModule('orientation').orientation.get() === MapOrientation.NorthUp
@@ -132,11 +138,11 @@ export class MFDNavMapRangeTargetRotationController extends NavMapRangeTargetRot
     return Vec2Math.set(
       relativeOffset[0] * projectedSize[0] + trueCenterOffsetX,
       relativeOffset[1] * projectedSize[1] + trueCenterOffsetY,
-      MFDNavMapRangeTargetRotationController.tempVec2_1
+      out
     );
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected updateModules(): void {
     super.updateModules();
 

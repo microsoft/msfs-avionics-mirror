@@ -1,5 +1,5 @@
 import { Subject } from 'msfssdk';
-import { Waypoint } from '../../Navigation/Waypoint';
+import { Waypoint } from 'msfssdk/navigation';
 
 /**
  * A module which defines a highlighted waypoint.

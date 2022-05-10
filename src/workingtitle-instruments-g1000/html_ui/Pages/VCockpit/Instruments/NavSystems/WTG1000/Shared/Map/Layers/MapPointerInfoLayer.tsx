@@ -1,8 +1,9 @@
 import {
   BitFlags, FSComponent, GeoPoint, GeoPointSubject, NavAngleSubject, NavAngleUnit, NavAngleUnitReferenceNorth,
-  NumberFormatter, NumberUnitSubject, Subject, Unit, UnitFamily, UnitType, VNode
+  NumberUnitSubject, Subject, Unit, UnitFamily, UnitType, VNode
 } from 'msfssdk';
 import { LatLonDisplay } from 'msfssdk/components/common';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 import { MapLayer, MapLayerProps, MapOwnAirplanePropsModule, MapProjection, MapProjectionChangeType } from 'msfssdk/components/map';
 import { BearingDisplay } from '../../UI/Common/BearingDisplay';
 import { NumberUnitDisplay } from '../../UI/Common/NumberUnitDisplay';

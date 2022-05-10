@@ -20,7 +20,7 @@ export class PFDSelectApproach extends SelectApproach {
 
   /** @inheritdoc */
   protected createController(store: SelectApproachStore): SelectApproachController {
-    return new SelectApproachController(store, this.gotoNextSelect.bind(this), this.props.fms, this.props.calculator, this.props.viewService, 'FPL', false);
+    return new SelectApproachController(this.props.bus, store, this.gotoNextSelect.bind(this), this.props.fms, this.props.calculator, this.props.viewService, 'FPL', false);
   }
 
   /**
@@ -58,7 +58,7 @@ export class PFDSelectApproach extends SelectApproach {
           <div data-id="select-min" class="slct-appr-mins-value cyan size18"></div>
           <div class="slct-appr-mins-value">
             {this.renderMinimumsNumberInput('slct-appr-mins-input')}
-            <span class="size12">FT</span>
+            <span class="size12">{this.store.minimumsUnit}</span>
           </div>
           <div class="slct-appr-freq-label">PRIM FREQ</div>
           <div data-id="select-freq" class="slct-appr-freq-value cyan size18">{this.store.frequencySubject}</div>

@@ -1,16 +1,21 @@
-import { ArraySubject, ComponentProps, DisplayComponent, FSComponent, NodeReference, NumberFormatter, NumberUnitInterface, NumberUnitSubject, SubscribableArray, Subject, VNode, UnitFamily, Subscribable } from 'msfssdk';
+import { ArraySubject, ComponentProps, DisplayComponent, FSComponent, NodeReference, NumberUnitInterface, NumberUnitSubject, SubscribableArray, Subject, VNode, UnitFamily, Subscribable } from 'msfssdk';
 import { UserSettingManager, UserSettingValueFilter } from 'msfssdk/settings';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 import { MapUserSettingTypes } from '../../Map/MapUserSettings';
 import { NumberUnitDisplay } from '../Common/NumberUnitDisplay';
 import { ContextMenuDialog, ContextMenuItemDefinition } from '../Dialogs/ContextMenuDialog';
 import { ScrollableControl } from '../UiView';
 import { UserSettingSelectControl } from '../UserSettings/UserSettingSelectControl';
 import { UserSettingToggleControl } from '../UserSettings/UserSettingToggleControl';
+import { ViewService } from '../ViewService';
 
 /**
  * Component props for MapSettingControl.
  */
 export interface MapSettingControlProps<K extends keyof MapUserSettingTypes> extends ComponentProps {
+  /** The View Service. */
+  viewService: ViewService;
+
   /** The function to use to register the setting control. */
   registerFunc: (control: ScrollableControl) => void;
 
@@ -72,6 +77,7 @@ export class MapEnumSettingControl<K extends keyof MapUserSettingTypes> extends 
   public render(): VNode {
     return (
       <UserSettingSelectControl<MapUserSettingTypes, K>
+        viewService={this.props.viewService}
         settingManager={this.props.settingManager}
         settingName={this.props.settingName}
         values={this.props.values}
@@ -147,6 +153,7 @@ export class MapRangeSettingControl<K extends keyof UserSettingValueFilter<MapUs
   public render(): VNode {
     return (
       <UserSettingSelectControl<MapUserSettingTypes, K>
+        viewService={this.props.viewService}
         settingManager={this.props.settingManager}
         settingName={this.props.settingName}
         values={this.valuesSub as unknown as SubscribableArray<MapUserSettingTypes[K]>}

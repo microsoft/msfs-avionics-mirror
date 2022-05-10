@@ -1,19 +1,20 @@
-import { FSComponent, NodeReference, Subject, VNode } from 'msfssdk';
+import { FSComponent, NodeReference, VNode } from 'msfssdk';
 
-import { Fms } from '../../FlightPlan/Fms';
-import { ScrollUtils } from '../../ScrollUtils';
+import { Fms } from 'garminsdk/flightplan';
+import { ScrollUtils } from 'msfssdk/graphics/layout';
 import { UiControl } from '../UiControl';
-import { UiControl2, UiControl2Props } from '../UiControl2';
+import { G1000UiControl, G1000UiControlProps } from '../G1000UiControl';
 import { FacilityInfo } from './FPLTypesAndProps';
+import { FlightPlanSegment } from 'msfssdk/flightplan';
 
 /** The properties for the FPLHeader component. */
-export interface FPLHeaderProps extends UiControl2Props {
+export interface FPLHeaderProps extends G1000UiControlProps {
   /** The fms. */
   fms: Fms;
   /** Info about origin and destination facilities */
   facilities: FacilityInfo;
-  /** The Segment index for this segment header */
-  segmentIndex?: Subject<number>;
+  /** The flight plan segment associated with this header. */
+  segment: FlightPlanSegment;
   /** The scroll container to scroll to when this item is focused. */
   scrollContainer?: NodeReference<HTMLElement>;
 }
@@ -21,7 +22,7 @@ export interface FPLHeaderProps extends UiControl2Props {
 /**
  * A header for an FPL section.
  */
-export abstract class FPLHeader<P extends FPLHeaderProps = FPLHeaderProps> extends UiControl2<P> {
+export abstract class FPLHeader<P extends FPLHeaderProps = FPLHeaderProps> extends G1000UiControl<P> {
   protected readonly rootRef = FSComponent.createRef<HTMLDivElement>();
 
   private estimatedNameWidth = 0;
@@ -99,10 +100,12 @@ export abstract class FPLHeader<P extends FPLHeaderProps = FPLHeaderProps> exten
     } else {
       this.rootRef.instance.classList.add(UiControl.HIDE_CLASS);
     }
+
+    this.setDisabled(!isVisible);
   }
 
   /** @inheritdoc */
-  protected onFocused(source: UiControl2): void {
+  protected onFocused(source: G1000UiControl): void {
     this.rootRef.instance.classList.add(UiControl.FOCUS_CLASS);
     if (this.props.scrollContainer !== undefined) {
       ScrollUtils.ensureInView(this.rootRef.instance, this.props.scrollContainer.instance);

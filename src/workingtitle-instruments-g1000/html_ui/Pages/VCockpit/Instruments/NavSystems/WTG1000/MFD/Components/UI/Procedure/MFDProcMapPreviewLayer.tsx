@@ -1,16 +1,18 @@
-import { FSComponent, GeodesicResampler, Subscribable, VNode } from 'msfssdk';
-import { MapCachedCanvasLayer, MapLayer, MapLayerProps, MapProjection, MapSyncedCanvasLayer } from 'msfssdk/components/map';
+import { FSComponent, GeoCircleResampler, Subscribable, VecNSubject, VNode } from 'msfssdk';
+import { GeoProjectionPathStreamStack, MapCachedCanvasLayer, MapLayer, MapLayerProps, MapProjection, MapSyncedCanvasLayer } from 'msfssdk/components/map';
 import { EventBus } from 'msfssdk/data';
 import { FlightPlan } from 'msfssdk/flightplan';
-import { FacilityLoader, FacilityRespository } from 'msfssdk/navigation';
-import { ProcedureType } from '../../../../Shared/FlightPlan/Fms';
+import { FacilityLoader, FacilityRepository, FacilityWaypointCache } from 'msfssdk/navigation';
+import { ClippedPathStream, NullPathStream } from 'msfssdk/graphics/path';
+
+import { ProcedureType } from 'garminsdk/flightplan';
+
 import { MapFlightPlanWaypointIconFactory } from '../../../../Shared/Map/MapFlightPlanWaypointIconFactory';
 import { MapFlightPlanWaypointLabelFactory } from '../../../../Shared/Map/MapFlightPlanWaypointLabelFactory';
 import { MapFlightPlanWaypointRecordManager } from '../../../../Shared/Map/MapFlightPlanWaypointRecordManager';
 import { MapWaypointRenderer, MapWaypointRenderRole } from '../../../../Shared/Map/MapWaypointRenderer';
 import { MapWaypointFlightPlanStyles } from '../../../../Shared/Map/MapWaypointStyles';
-import { FacilityWaypointCache } from '../../../../Shared/Navigation/FacilityWaypointCache';
-import { MFDProcMapFlightPlanPathRenderer } from './MFDProcMapFlightPlanPathRenderer';
+import { MFDProcMapFlightPathPlanRenderer } from './MFDProcMapFlightPathPlanRenderer';
 import { MFDProcMapTransitionWaypointRecordManager } from './MFDProcMapTransitionWaypointRecordManager';
 
 /**
@@ -43,11 +45,13 @@ export interface MFDProcMapPreviewLayerProps extends MapLayerProps<any> {
  * A map layer which displays a procedure preview.
  */
 export class MFDProcMapPreviewLayer extends MapLayer<MFDProcMapPreviewLayerProps> {
+  private static readonly CLIP_BOUNDS_BUFFER = 10; // number of pixels from edge of canvas to extend the clipping bounds, in pixels
+
   private readonly flightPathLayerRef = FSComponent.createRef<MapCachedCanvasLayer>();
   private readonly waypointLayerRef = FSComponent.createRef<MapSyncedCanvasLayer>();
 
-  private readonly resampler = new GeodesicResampler(Math.PI / 12, 0.25, 8);
-  private readonly facLoader = new FacilityLoader(FacilityRespository.getRepository(this.props.bus));
+  private readonly resampler = new GeoCircleResampler(Math.PI / 12, 0.25, 8);
+  private readonly facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
   private readonly facWaypointCache = FacilityWaypointCache.getCache();
 
   private readonly procedureIconFactory: MapFlightPlanWaypointIconFactory = new MapFlightPlanWaypointIconFactory(this.props.procedureWaypointStyles);
@@ -55,7 +59,11 @@ export class MFDProcMapPreviewLayer extends MapLayer<MFDProcMapPreviewLayerProps
   private readonly transitionIconFactory: MapFlightPlanWaypointIconFactory = new MapFlightPlanWaypointIconFactory(this.props.transitionWaypointStyles);
   private readonly transitionLabelFactory: MapFlightPlanWaypointLabelFactory = new MapFlightPlanWaypointLabelFactory(this.props.transitionWaypointStyles);
 
-  private readonly pathRenderer = new MFDProcMapFlightPlanPathRenderer(this.resampler);
+  private readonly clipBoundsSub = VecNSubject.createFromVector(new Float64Array(4));
+  private readonly clippedPathStream = new ClippedPathStream(NullPathStream.INSTANCE, this.clipBoundsSub);
+
+  private readonly pathStreamStack = new GeoProjectionPathStreamStack(NullPathStream.INSTANCE, this.props.mapProjection.getGeoProjection(), this.resampler);
+  private readonly pathRenderer = new MFDProcMapFlightPathPlanRenderer();
 
   private readonly procedureWaypointRecordManager = new MapFlightPlanWaypointRecordManager(
     this.facLoader, this.facWaypointCache, this.props.waypointRenderer,
@@ -78,6 +86,9 @@ export class MFDProcMapPreviewLayer extends MapLayer<MFDProcMapPreviewLayerProps
 
     this.flightPathLayerRef.instance.onAttached();
     this.waypointLayerRef.instance.onAttached();
+
+    this.pathStreamStack.pushPostProjected(this.clippedPathStream);
+    this.pathStreamStack.setConsumer(this.flightPathLayerRef.instance.display.context);
 
     this.initWaypointRenderer();
     this.initFlightPlanHandlers();
@@ -108,6 +119,21 @@ export class MFDProcMapPreviewLayer extends MapLayer<MFDProcMapPreviewLayerProps
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
     this.flightPathLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
     this.waypointLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
+
+    this.updateClipBounds();
+  }
+
+  /**
+   * Updates this layer's canvas clipping bounds.
+   */
+  private updateClipBounds(): void {
+    const size = this.flightPathLayerRef.instance.getSize();
+    this.clipBoundsSub.set(
+      -MFDProcMapPreviewLayer.CLIP_BOUNDS_BUFFER,
+      -MFDProcMapPreviewLayer.CLIP_BOUNDS_BUFFER,
+      size + MFDProcMapPreviewLayer.CLIP_BOUNDS_BUFFER,
+      size + MFDProcMapPreviewLayer.CLIP_BOUNDS_BUFFER
+    );
   }
 
   /** @inheritdoc */
@@ -153,11 +179,13 @@ export class MFDProcMapPreviewLayer extends MapLayer<MFDProcMapPreviewLayerProps
 
     const procedurePlan = this.props.procedurePlan.get();
     const transitionPlan = this.props.transitionPlan.get();
+
+    this.pathStreamStack.setProjection(display.geoProjection);
     if (transitionPlan) {
-      this.pathRenderer.render(transitionPlan, display.geoProjection, context, context, false);
+      this.pathRenderer.render(transitionPlan, context, this.pathStreamStack, false);
     }
     if (procedurePlan) {
-      this.pathRenderer.render(procedurePlan, display.geoProjection, context, context, true);
+      this.pathRenderer.render(procedurePlan, context, this.pathStreamStack, true);
     }
   }
 

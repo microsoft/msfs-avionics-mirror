@@ -40,3 +40,8 @@
 .mfd-nearest-airport-runways-dimensions {
   padding-left: 10px;
 }
+
+.mfd-nearest-airport-runways-dimensions > div {
+  display: inline-block;
+  white-space: pre;
+}

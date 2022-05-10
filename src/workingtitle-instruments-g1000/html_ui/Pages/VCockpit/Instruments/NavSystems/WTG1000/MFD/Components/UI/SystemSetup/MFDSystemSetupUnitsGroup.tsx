@@ -21,6 +21,7 @@ export class MFDSystemSetupUnitsGroup extends DisplayComponent<MFDSystemSetupGro
         <MFDSystemSetupSelectRow<UnitsUserSettingTypes, 'unitsNavAngle'>
           title='NAV Angle'
           selectControlProps={{
+            viewService: this.props.viewService,
             registerFunc: this.props.registerFunc,
             settingManager: this.settingManager,
             settingName: 'unitsNavAngle',
@@ -47,6 +48,7 @@ export class MFDSystemSetupUnitsGroup extends DisplayComponent<MFDSystemSetupGro
         <MFDSystemSetupSelectRow<UnitsUserSettingTypes, 'unitsDistance'>
           title='DIS, SPD'
           selectControlProps={{
+            viewService: this.props.viewService,
             registerFunc: this.props.registerFunc,
             settingManager: this.settingManager,
             settingName: 'unitsDistance',
@@ -66,6 +68,7 @@ export class MFDSystemSetupUnitsGroup extends DisplayComponent<MFDSystemSetupGro
         <MFDSystemSetupSelectRow<UnitsUserSettingTypes, 'unitsAltitude'>
           title='ALT, VS'
           selectControlProps={{
+            viewService: this.props.viewService,
             registerFunc: this.props.registerFunc,
             settingManager: this.settingManager,
             settingName: 'unitsAltitude',
@@ -85,6 +88,7 @@ export class MFDSystemSetupUnitsGroup extends DisplayComponent<MFDSystemSetupGro
         <MFDSystemSetupSelectRow<UnitsUserSettingTypes, 'unitsTemperature'>
           title='Temperature'
           selectControlProps={{
+            viewService: this.props.viewService,
             registerFunc: this.props.registerFunc,
             settingManager: this.settingManager,
             settingName: 'unitsTemperature',
@@ -108,6 +112,7 @@ export class MFDSystemSetupUnitsGroup extends DisplayComponent<MFDSystemSetupGro
         <MFDSystemSetupSelectRow<UnitsUserSettingTypes, 'unitsWeight'>
           title='Weight'
           selectControlProps={{
+            viewService: this.props.viewService,
             registerFunc: this.props.registerFunc,
             settingManager: this.settingManager,
             settingName: 'unitsWeight',

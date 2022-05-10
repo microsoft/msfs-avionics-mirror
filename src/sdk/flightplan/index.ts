@@ -6,3 +6,4 @@ export * from './FlightPathVectorBuilder';
 export * from './FlightPlan';
 export * from './FlightPlanner';
 export * from './FlightPlanning';
+export * from './FlightPlanLegIterator';

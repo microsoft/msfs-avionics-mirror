@@ -1,8 +1,10 @@
 import { BitFlags } from 'msfssdk';
 import { FlightPlan, LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
-import { FacilityLoader, LegType } from 'msfssdk/navigation';
-import { FacilityWaypointCache } from '../Navigation/FacilityWaypointCache';
-import { FixIcaoWaypointsRecord, FlightPathTerminatorWaypointsRecord, FlightPlanLegWaypointsRecord, ProcedureTurnLegWaypointsRecord } from './MapFlightPlanWaypointRecord';
+import { FacilityLoader, FacilityWaypointCache, LegType } from 'msfssdk/navigation';
+
+import {
+  FixIcaoWaypointsRecord, FlightPathTerminatorWaypointsRecord, FlightPlanLegWaypointsRecord, ProcedureTurnLegWaypointsRecord
+} from './MapFlightPlanWaypointRecord';
 import { MapWaypointRenderer, MapWaypointRenderRole } from './MapWaypointRenderer';
 
 /**

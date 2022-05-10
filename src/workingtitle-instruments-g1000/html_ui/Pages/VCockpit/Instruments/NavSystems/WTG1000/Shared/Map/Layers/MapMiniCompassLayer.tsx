@@ -42,7 +42,7 @@ export class MapMiniCompassLayer extends MapLayer<MapMiniCompassLayerProps> {
    */
   private updateRotation(): void {
     const rotation = this.props.mapProjection.getRotation();
-    this.imgRef.instance.style.transform = `rotate(${rotation}rad)`;
+    this.imgRef.instance.style.transform = `rotate3d(0,0,1,${rotation}rad)`;
   }
 
   /** @inheritdoc */

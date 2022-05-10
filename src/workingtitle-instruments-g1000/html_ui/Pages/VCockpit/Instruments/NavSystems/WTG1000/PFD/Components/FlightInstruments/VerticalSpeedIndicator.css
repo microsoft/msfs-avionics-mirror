@@ -15,6 +15,7 @@
   top: 137px;
   width: 66px;
   height: 22px;
+  transform: rotateX(0);
 }
 
 .vsi-selected-vs {
@@ -34,4 +35,21 @@
   top: 139px;
   width: 10px;
   height: 18px;
+}
+
+/** Failed States **/
+.failed-instr .vsi-pointer {
+  display: none;
+}
+
+.failed-instr .vsi-selected-vs-bug {
+  display: none;
+}
+
+.failed-instr .vsi-selected-vs {
+  display: none;
+}
+
+.failed-instr .vsi-tape-numbers {
+  display: none;
 }

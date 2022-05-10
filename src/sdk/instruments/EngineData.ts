@@ -1,6 +1,7 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { EventBus, IndexedEventType, PublishPacer } from '../data/EventBus';
+import { EventBus, IndexedEventType } from '../data/EventBus';
+import { PublishPacer } from '../data/EventBusPacer';
 import { SimVarValueType, SimVarDefinition } from '../data/SimVars';
 import { SimVarPublisher } from './BasePublishers';
 
@@ -8,10 +9,25 @@ import { SimVarPublisher } from './BasePublishers';
  * An interface that describes the possible Engine Parameter events
  * on the event bus.
  */
-export interface EngineEvents {
+export type EngineEvents = {
 
     /** An RPM for engine 1. */
     rpm_1: number;
+
+    /** An RPM for engine 2. */
+    rpm_2: number;
+
+    /** N1% for engine 1 */
+    n1_1: number;
+
+    /** N1% for engine 2 */
+    n1_2: number;
+
+    /** N2% for engine 1 */
+    n2_1: number;
+
+    /** N2% for engine 2 */
+    n2_2: number;
 
     /** Fuel flow rate, in gallons per hour, for an indexed engine. */
     [fuel_flow: IndexedEventType<'fuel_flow'>]: number;
@@ -22,14 +38,32 @@ export interface EngineEvents {
     /** A fuel flow rate for recip engine 1 */
     recip_ff_1: number;
 
+    /** A fuel flow rate for recip engine 2 */
+    recip_ff_2: number;
+
     /** A oil press for engine 1 */
     oil_press_1: number;
+
+    /** A oil press for engine 2 */
+    oil_press_2: number;
 
     /** A oil temp for engine 1 */
     oil_temp_1: number;
 
+    /** A oil temp for engine 2 */
+    oil_temp_2: number;
+
+    /** ITT in celsius for engine 1 */
+    itt_1: number;
+
+    /** ITT in celsius for engine 2 */
+    itt_2: number;
+
     /** A egt for engine 1 */
     egt_1: number;
+
+    /** A egt for engine 2 */
+    egt_2: number;
 
     /** A pressure value for vacuum system */
     vac: number;
@@ -43,34 +77,37 @@ export interface EngineEvents {
     /** The amount of fuel remaining in the right tank, in gallons. */
     fuel_right: number;
 
+    /**
+     * The fuel weight per gallon, in pounds per gallon
+     */
+    fuel_weight_per_gallon: number;
+
     /** A hours value for engine 1 total elapsed time */
     eng_hours_1: number;
 
-    /** A voltage value for the main elec bus */
-    elec_bus_main_v: number;
+    /** A hydraulic pressure value for engine 1 */
+    eng_hyd_press_1: number;
 
-    /** A current value for the main elec bus */
-    elec_bus_main_a: number;
+    /** A hydraulic pressure value for engine 2 */
+    eng_hyd_press_2: number;
 
-    /** A voltage value for the avionics bus */
-    elec_bus_avionics_v: number;
+    /** A value indicating if engine 1 starter is on */
+    eng_starter_1: number;
 
-    /** A current value for the avinoics bus */
-    elec_bus_avionics_a: number;
+    /** A value indicating if engine 2 starter is on */
+    eng_starter_2: number;
 
-    /** A voltage value for the generator/alternator 1 bus */
-    elec_bus_genalt_1_v: number;
+    /** A value indicating if engine 1 combustion is on */
+    eng_combustion_1: number;
 
-    /** A current value for the generator/alternator 1 bus */
-    elec_bus_genalt_1_a: number;
+    /** A value indicating if engine 2 combustion is on */
+    eng_combustion_2: number;
 
-    /** A voltage value for the battery */
-    elec_bat_v: number;
+    /** A value indicating if engine 1 manual ignition is on */
+    eng_manual_ignition_1: number;
 
-    /** A current value for the battery */
-    elec_bat_a: number;
-
-
+    /** A value indicating if engine 2 manual ignition is on */
+    eng_manual_ignition_2: number;
 }
 
 /**
@@ -79,23 +116,35 @@ export interface EngineEvents {
 export class EISPublisher extends SimVarPublisher<EngineEvents> {
     private static simvars = new Map<keyof EngineEvents, SimVarDefinition>([
         ['rpm_1', { name: 'GENERAL ENG RPM:1', type: SimVarValueType.RPM }],
+        ['rpm_2', { name: 'GENERAL ENG RPM:2', type: SimVarValueType.RPM }],
+        ['n1_1', { name: 'TURB ENG CORRECTED N1:1', type: SimVarValueType.Percent }],
+        ['n1_2', { name: 'TURB ENG CORRECTED N1:2', type: SimVarValueType.Percent }],
+        ['n2_1', { name: 'TURB ENG CORRECTED N2:1', type: SimVarValueType.Percent }],
+        ['n2_2', { name: 'TURB ENG CORRECTED N2:2', type: SimVarValueType.Percent }],
         ['recip_ff_1', { name: 'RECIP ENG FUEL FLOW:1', type: SimVarValueType.PPH }],
+        ['recip_ff_2', { name: 'RECIP ENG FUEL FLOW:2', type: SimVarValueType.PPH }],
         ['oil_press_1', { name: 'ENG OIL PRESSURE:1', type: SimVarValueType.PSI }],
+        ['oil_press_2', { name: 'ENG OIL PRESSURE:2', type: SimVarValueType.PSI }],
         ['oil_temp_1', { name: 'ENG OIL TEMPERATURE:1', type: SimVarValueType.Farenheit }],
+        ['oil_temp_2', { name: 'ENG OIL TEMPERATURE:2', type: SimVarValueType.Farenheit }],
+        ['itt_1', { name: 'TURB ENG1 ITT', type: SimVarValueType.Celsius }],
+        ['itt_2', { name: 'TURB ENG2 ITT', type: SimVarValueType.Celsius }],
         ['egt_1', { name: 'ENG EXHAUST GAS TEMPERATURE:1', type: SimVarValueType.Farenheit }],
+        ['egt_2', { name: 'ENG EXHAUST GAS TEMPERATURE:2', type: SimVarValueType.Farenheit }],
         ['vac', { name: 'SUCTION PRESSURE', type: SimVarValueType.InHG }],
         ['fuel_total', { name: 'FUEL TOTAL QUANTITY', type: SimVarValueType.GAL }],
         ['fuel_left', { name: 'FUEL LEFT QUANTITY', type: SimVarValueType.GAL }],
         ['fuel_right', { name: 'FUEL RIGHT QUANTITY', type: SimVarValueType.GAL }],
+        ['fuel_weight_per_gallon', { name: 'FUEL WEIGHT PER GALLON', type: SimVarValueType.LBS }],
         ['eng_hours_1', { name: 'GENERAL ENG ELAPSED TIME:1', type: SimVarValueType.Hours }],
-        ['elec_bus_main_v', { name: 'ELECTRICAL MAIN BUS VOLTAGE', type: SimVarValueType.Volts }],
-        ['elec_bus_main_a', { name: 'ELECTRICAL MAIN BUS AMPS', type: SimVarValueType.Amps }],
-        ['elec_bus_avionics_v', { name: 'ELECTRICAL AVIONICS BUS VOLTAGE', type: SimVarValueType.Volts }],
-        ['elec_bus_avionics_a', { name: 'ELECTRICAL AVIONICS BUS AMPS', type: SimVarValueType.Amps }],
-        ['elec_bus_genalt_1_v', { name: 'ELECTRICAL GENALT BUS VOLTAGE:1', type: SimVarValueType.Volts }],
-        ['elec_bus_genalt_1_a', { name: 'ELECTRICAL GENALT BUS AMPS:1', type: SimVarValueType.Amps }],
-        ['elec_bat_a', { name: 'ELECTRICAL BATTERY LOAD', type: SimVarValueType.Amps }],
-        ['elec_bat_v', { name: 'ELECTRICAL BATTERY VOLTAGE', type: SimVarValueType.Volts }]
+        ['eng_hyd_press_1', { name: 'ENG HYDRAULIC PRESSURE:1', type: SimVarValueType.PSI }],
+        ['eng_hyd_press_2', { name: 'ENG HYDRAULIC PRESSURE:2', type: SimVarValueType.PSI }],
+        ['eng_starter_1', { name: 'GENERAL ENG STARTER:1', type: SimVarValueType.Number }],
+        ['eng_starter_2', { name: 'GENERAL ENG STARTER:2', type: SimVarValueType.Number }],
+        ['eng_combustion_1', { name: 'GENERAL ENG COMBUSTION:1', type: SimVarValueType.Number }],
+        ['eng_combustion_2', { name: 'GENERAL ENG COMBUSTION:2', type: SimVarValueType.Number }],
+        ['eng_manual_ignition_1', { name: 'TURB ENG IGNITION SWITCH EX1:1', type: SimVarValueType.Number }],
+        ['eng_manual_ignition_2', { name: 'TURB ENG IGNITION SWITCH EX1:2', type: SimVarValueType.Number }]
     ]);
 
     private readonly engineCount: number;
@@ -117,6 +166,8 @@ export class EISPublisher extends SimVarPublisher<EngineEvents> {
         super(simvars, bus, pacer);
 
         this.engineCount = engineCount;
+
+        this.subscribed.add('fuel_flow_total');
     }
 
     /** @inheritdoc */

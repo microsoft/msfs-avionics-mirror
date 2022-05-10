@@ -1,7 +1,7 @@
-import { BitFlags } from '../../utils/BitFlags';
-import { GeoPoint, GeoPointInterface, GeoPointReadOnly } from '../../utils/geo/GeoPoint';
-import { GeoProjection, MercatorProjection } from '../../utils/geo/GeoProjection';
-import { Vec2Math } from '../../utils/math/VecMath';
+import { BitFlags } from '../../math/BitFlags';
+import { GeoPoint, GeoPointInterface, GeoPointReadOnly } from '../../geo/GeoPoint';
+import { GeoProjection, MercatorProjection } from '../../geo/GeoProjection';
+import { ReadonlyFloat64Array, Vec2Math, VecNMath } from '../../math/VecMath';
 
 /**
  * A parameter object for MapProjection.
@@ -11,22 +11,29 @@ export type MapProjectionParameters = {
    * The target of the projection. The target is guaranteed to be projected to a specific point in the projected
    * window defined by the center of the window plus the target projected offset.
    */
-  target?: GeoPointInterface,
+  target?: GeoPointInterface;
 
   /** The projected offset from the center of the projected window of the projection's target, in pixels. */
-  targetProjectedOffset?: Float64Array,
+  targetProjectedOffset?: ReadonlyFloat64Array;
 
   /**
-   * The range of the projection, in great-arc radians. The range is measured from the center of the top edge of the
-   * projection to the center of the bottom edge.
+   * The range of the projection, in great-arc radians. The range is measured between the projection's two range
+   * endpoints.
    */
-  range?: number,
+  range?: number;
+
+  /**
+   * The endpoints used to measure the range of the projection, as a 4-tuple `[relX1, relY1, relX2, relY2]`. Each
+   * component is expressed in relative projected coordinates, where `0` is the left/top of the projected window, and
+   * `1` is the right/bottom of the projected window.
+   */
+  rangeEndpoints?: ReadonlyFloat64Array;
 
   /** The post-projected rotation angle, in radians. */
-  rotation?: number,
+  rotation?: number;
 
   /** The size of the projected window, in pixels. */
-  projectedSize?: Float64Array
+  projectedSize?: ReadonlyFloat64Array;
 }
 
 /**
@@ -37,9 +44,11 @@ export enum MapProjectionChangeType {
   Center = 1 << 1,
   TargetProjected = 1 << 2,
   Range = 1 << 3,
-  Rotation = 1 << 4,
-  ProjectedSize = 1 << 5,
-  ProjectedResolution = 1 << 6,
+  RangeEndpoints = 1 << 4,
+  ScaleFactor = 1 << 5,
+  Rotation = 1 << 6,
+  ProjectedSize = 1 << 7,
+  ProjectedResolution = 1 << 8,
 }
 
 /**
@@ -54,28 +63,38 @@ export interface MapProjectionChangeListener {
  */
 type MapProjectionParametersRecord = {
   /** The target of the projection. */
-  target: GeoPoint,
+  target: GeoPoint;
 
   /** The center of the projection. */
-  center: GeoPoint,
+  center: GeoPoint;
 
   /** The projected location of the projection's target, in pixels. */
-  targetProjected: Float64Array,
+  targetProjected: Float64Array;
 
   /**
-   * The range of the projection, in great-arc radians. The range is measured from the center of the top edge of the
-   * projection to the center of the bottom edge.
+   * The range of the projection, in great-arc radians. The range is measured between the projection's two range
+   * endpoints.
    */
-  range: number,
+  range: number;
+
+  /**
+   * The endpoints used to measure the range of the projection, as a 4-tuple `[relX1, relY1, relX2, relY2]`. Each
+   * component is expressed in relative projected coordinates, where `0` is the left/top of the projected window, and
+   * `1` is the right/bottom of the projected window.
+   */
+  rangeEndpoints: Float64Array;
+
+  /** The scale factor of the projection. */
+  scaleFactor: number;
 
   /** The post-projected rotation angle, in radians. */
-  rotation: number,
+  rotation: number;
 
   /** The size of the projected window, in pixels. */
-  projectedSize: Float64Array,
+  projectedSize: Float64Array;
 
   /** The resolution of the projection, in great-arc radians per pixel. */
-  projectedResolution: number
+  projectedResolution: number;
 }
 
 /**
@@ -85,37 +104,46 @@ export class MapProjection {
   private static readonly SCALE_FACTOR_MAX_ITER = 20;
   private static readonly SCALE_FACTOR_TOLERANCE = 1e-6;
 
-  private static tempVec2_1 = new Float64Array(2);
-  private static tempVec2_2 = new Float64Array(2);
-  private static tempVec2_3 = new Float64Array(2);
-  private static tempVec2_4 = new Float64Array(2);
-  private static tempGeoPoint_1 = new GeoPoint(0, 0);
-  private static tempGeoPoint_2 = new GeoPoint(0, 0);
+  private static readonly tempVec2_1 = new Float64Array(2);
+  private static readonly tempVec2_2 = new Float64Array(2);
+  private static readonly tempVec2_3 = new Float64Array(2);
+  private static readonly tempVec2_4 = new Float64Array(2);
+  private static readonly tempGeoPoint_1 = new GeoPoint(0, 0);
+  private static readonly tempGeoPoint_2 = new GeoPoint(0, 0);
 
-  private geoProjection: MercatorProjection;
+  private readonly geoProjection: MercatorProjection;
 
   // settable parameters
-  private target = new GeoPoint(0, 0);
-  private targetProjectedOffset = new Float64Array(2);
-  private targetProjected = new Float64Array(2);
-  private range = 1;
-  private projectedSize = new Float64Array(2);
+  private readonly target = new GeoPoint(0, 0);
+  private readonly targetProjectedOffset = new Float64Array(2);
+  private readonly targetProjected = new Float64Array(2);
+  private range = 1; // great-arc radians
+  private readonly rangeEndpoints = new Float64Array([0.5, 0, 0.5, 1]); // [relX1, relY1, relX2, relY2]
+  private readonly projectedSize = new Float64Array(2);
 
   // computed parameters
-  private center = new GeoPoint(0, 0);
-  private centerProjected = new Float64Array(2);
+  private readonly center = new GeoPoint(0, 0);
+  private readonly centerProjected = new Float64Array(2);
+  private projectedRange = 0; // projected distance between the range endpoints in pixels
+  private widthRange = 0; // great-arc radians
+  private heightRange = 0; // great-arc radians
 
-  private oldParameters: MapProjectionParametersRecord = {
+  private readonly oldParameters: MapProjectionParametersRecord = {
     target: new GeoPoint(0, 0),
     center: new GeoPoint(0, 0),
     targetProjected: new Float64Array(2),
     range: 1,
+    rangeEndpoints: new Float64Array(4),
+    scaleFactor: 1,
     rotation: 0,
     projectedSize: new Float64Array(2),
     projectedResolution: 0
   };
 
-  private changeListeners: MapProjectionChangeListener[] = [];
+  private readonly queuedParameters: MapProjectionParametersRecord = Object.assign({}, this.oldParameters);
+  private updateQueued = false;
+
+  private readonly changeListeners: MapProjectionChangeListener[] = [];
 
   /**
    * Creates a new map projection.
@@ -134,7 +162,7 @@ export class MapProjection {
 
   /**
    * Gets this map projection's GeoProjection instance.
-   * @returns this map projection's GeoProjection instance.
+   * @returns This map projection's GeoProjection instance.
    */
   public getGeoProjection(): GeoProjection {
     return this.geoProjection;
@@ -143,7 +171,7 @@ export class MapProjection {
   /**
    * Gets the target geographic point of this projection. The target is guaranteed to be projected to a specific
    * point in the projected window defined by the center of the window plus the target projected offset.
-   * @returns the target geographic point of this projection.
+   * @returns The target geographic point of this projection.
    */
   public getTarget(): GeoPointReadOnly {
     return this.target.readonly;
@@ -151,32 +179,68 @@ export class MapProjection {
 
   /**
    * Gets the projected offset from the center of the projected window of the target of this projection.
-   * @returns the projected offset from the center of the projected window of the target of this projection.
+   * @returns The projected offset from the center of the projected window of the target of this projection.
    */
-  public getTargetProjectedOffset(): Float64Array {
+  public getTargetProjectedOffset(): ReadonlyFloat64Array {
     return this.targetProjectedOffset;
   }
 
   /**
    * Gets the projected location of the target of this projection.
-   * @returns the projected location of the target of this projection.
+   * @returns The projected location of the target of this projection.
    */
-  public getTargetProjected(): Float64Array {
+  public getTargetProjected(): ReadonlyFloat64Array {
     return this.targetProjected;
   }
 
   /**
-   * Gets the range of this projection in great arc radians. The range is measured from the center of the top edge of
-   * the projection to the center of the bottom edge.
-   * @returns the range of this projection.
+   * Gets the range of this projection, in great-arc radians, as measured between the projection's two range endpoints.
+   * @returns The range of this projection, in great-arc radians.
    */
   public getRange(): number {
     return this.range;
   }
 
   /**
+   * Gets the endpoints used to measure the range of the projection, as a 4-tuple `[relX1, relY1, relX2, relY2]`. Each
+   * component is expressed in relative projected coordinates, where `0` is the left/top of the projected window, and
+   * `1` is the right/bottom of the projected window.
+   * @returns The endpoints used to measure the range of the projection, as a 4-tuple `[relX1, relY1, relX2, relY2]`.
+   */
+  public getRangeEndpoints(): ReadonlyFloat64Array {
+    return this.rangeEndpoints;
+  }
+
+  /**
+   * Gets the range of this projection, in great-arc radians, as measured from the center-left to the center-right of
+   * the projected window.
+   * @returns The range of this projection's projected window width, in great-arc radians.
+   */
+  public getWidthRange(): number {
+    return this.widthRange;
+  }
+
+  /**
+   * Gets the range of this projection, in great-arc radians, as measured from the top-center to the bottom-center of
+   * the projected window.
+   * @returns The range of this projection's projected window height, in great-arc radians.
+   */
+  public getHeightRange(): number {
+    return this.heightRange;
+  }
+
+  /**
+   * Gets the nominal scale factor of this projection. At a scale factor of 1, a distance of one great-arc radian will
+   * be projected to a distance of one pixel.
+   * @returns The nominal scale factor of this projection.
+   */
+  public getScaleFactor(): number {
+    return this.geoProjection.getScaleFactor();
+  }
+
+  /**
    * Gets the post-projected (planar) rotation angle of this projection in radians.
-   * @returns the post-projected rotation angle of this projection.
+   * @returns The post-projected rotation angle of this projection.
    */
   public getRotation(): number {
     return this.geoProjection.getPostRotation();
@@ -184,15 +248,15 @@ export class MapProjection {
 
   /**
    * Gets the size of the projected window, in pixels.
-   * @returns the size of the projected window.
+   * @returns The size of the projected window.
    */
-  public getProjectedSize(): Float64Array {
+  public getProjectedSize(): ReadonlyFloat64Array {
     return this.projectedSize;
   }
 
   /**
    * Gets the geographic point located at the center of this projection's projected window.
-   * @returns the geographic point located at the center of this projection's projected window.
+   * @returns The geographic point located at the center of this projection's projected window.
    */
   public getCenter(): GeoPointReadOnly {
     return this.center.readonly;
@@ -200,38 +264,42 @@ export class MapProjection {
 
   /**
    * Gets the center of this projection's projected window.
-   * @returns the center of this projection's projected window.
+   * @returns The center of this projection's projected window.
    */
-  public getCenterProjected(): Float64Array {
+  public getCenterProjected(): ReadonlyFloat64Array {
     return this.centerProjected;
   }
 
   /**
-   * Gets the resolution of the projected map, in great-arc radians per pixel.
-   * @returns the resolution fo the projected map.
+   * Gets the average resolution, in great-arc radians per pixel, of the projected map along a line between the range
+   * endpoints.
+   * @returns The average resolution of the projected map along a line between the range endpoints.
    */
   public getProjectedResolution(): number {
-    return this.range / this.projectedSize[1];
+    return this.range / this.projectedRange;
   }
 
   /**
    * Calculates the true range of this projection, in great-arc radians, given a hypothetical projected center point.
-   * @param centerProjected - the projected location of the hypothetical center point to use for the calculation.
-   * @returns the true range of this projection given the hypothetical projected center point.
+   * @param centerProjected The projected location of the hypothetical center point to use for the calculation.
+   * @returns The true range of this projection given the hypothetical projected center point.
    */
-  private calculateRangeAtCenter(centerProjected: Float64Array): number {
+  private calculateRangeAtCenter(centerProjected: ReadonlyFloat64Array): number {
+    const endpoints = this.rangeEndpoints;
+
+    const projectedWidth = this.projectedSize[0];
     const projectedHeight = this.projectedSize[1];
 
-    const topProjected = MapProjection.tempVec2_3;
-    topProjected[0] = centerProjected[0];
-    topProjected[1] = centerProjected[1] - projectedHeight / 2;
+    const endpoint1 = MapProjection.tempVec2_3;
+    endpoint1[0] = centerProjected[0] + projectedWidth * (endpoints[0] - 0.5);
+    endpoint1[1] = centerProjected[1] + projectedHeight * (endpoints[1] - 0.5);
 
-    const bottomProjected = MapProjection.tempVec2_4;
-    bottomProjected[0] = centerProjected[0];
-    bottomProjected[1] = centerProjected[1] + projectedHeight / 2;
+    const endpoint2 = MapProjection.tempVec2_4;
+    endpoint2[0] = centerProjected[0] + projectedWidth * (endpoints[2] - 0.5);
+    endpoint2[1] = centerProjected[1] + projectedHeight * (endpoints[3] - 0.5);
 
-    const top = this.geoProjection.invert(topProjected, MapProjection.tempGeoPoint_1);
-    const bottom = this.geoProjection.invert(bottomProjected, MapProjection.tempGeoPoint_2);
+    const top = this.geoProjection.invert(endpoint1, MapProjection.tempGeoPoint_1);
+    const bottom = this.geoProjection.invert(endpoint2, MapProjection.tempGeoPoint_2);
 
     return top.distance(bottom);
   }
@@ -290,6 +358,19 @@ export class MapProjection {
     // set the projection's pre-rotation to avoid anti-meridian wrapping issues
     const preRotation = Vec2Math.set(-this.center.lon * Avionics.Utils.DEG2RAD, 0, MapProjection.tempVec2_1);
     this.geoProjection.setPreRotation(preRotation);
+
+    const width = this.projectedSize[0];
+    const height = this.projectedSize[1];
+
+    this.projectedRange = Math.hypot((this.rangeEndpoints[2] - this.rangeEndpoints[0]) * width, (this.rangeEndpoints[3] - this.rangeEndpoints[1]) * height);
+
+    const left = Vec2Math.set(0, height / 2, MapProjection.tempVec2_1);
+    const right = Vec2Math.set(width, height / 2, MapProjection.tempVec2_2);
+    this.widthRange = this.geoDistance(left, right);
+
+    const top = Vec2Math.set(width / 2, 0, MapProjection.tempVec2_1);
+    const bottom = Vec2Math.set(width / 2, height, MapProjection.tempVec2_2);
+    this.heightRange = this.geoDistance(top, bottom);
   }
 
   /**
@@ -305,6 +386,7 @@ export class MapProjection {
     parameters.target && this.target.set(parameters.target);
     parameters.targetProjectedOffset && this.setTargetProjectedOffset(parameters.targetProjectedOffset);
     parameters.range !== undefined && (this.range = parameters.range);
+    parameters.rangeEndpoints && this.rangeEndpoints.set(parameters.rangeEndpoints);
     parameters.rotation !== undefined && this.geoProjection.setPostRotation(parameters.rotation);
     this.recompute();
 
@@ -313,10 +395,33 @@ export class MapProjection {
   }
 
   /**
+   * Sets the projection parameters to be applied when applyQueued() is called.
+   * @param parameters The parameter changes to queue.
+   */
+  public setQueued(parameters: MapProjectionParameters): void {
+    Object.assign(this.queuedParameters, parameters);
+    this.updateQueued = true;
+  }
+
+  /**
+   * Applies the set of queued projection changes, if any are queued.
+   */
+  public applyQueued(): void {
+    if (this.updateQueued) {
+      this.updateQueued = false;
+
+      this.set(this.queuedParameters);
+      for (const key in this.queuedParameters) {
+        delete (this.queuedParameters as any)[key];
+      }
+    }
+  }
+
+  /**
    * Sets the size of the projected window.
    * @param size The new size, in pixels.
    */
-  private setProjectedSize(size: Float64Array): void {
+  private setProjectedSize(size: ReadonlyFloat64Array): void {
     this.projectedSize.set(size);
     Vec2Math.set(size[0] / 2, size[1] / 2, this.centerProjected);
     this.geoProjection.setTranslation(this.centerProjected);
@@ -327,7 +432,7 @@ export class MapProjection {
    * Sets the projected offset from the center of the projected window of the target of this projection.
    * @param offset The new offset, in pixels.
    */
-  private setTargetProjectedOffset(offset: Float64Array): void {
+  private setTargetProjectedOffset(offset: ReadonlyFloat64Array): void {
     this.targetProjectedOffset.set(offset);
     Vec2Math.add(this.centerProjected, this.targetProjectedOffset, this.targetProjected);
   }
@@ -341,6 +446,8 @@ export class MapProjection {
     record.center.set(this.center);
     record.targetProjected.set(this.targetProjected);
     record.range = this.range;
+    record.rangeEndpoints.set(this.rangeEndpoints);
+    record.scaleFactor = this.geoProjection.getScaleFactor();
     record.rotation = this.getRotation();
     record.projectedSize.set(this.projectedSize);
     record.projectedResolution = this.getProjectedResolution();
@@ -349,7 +456,7 @@ export class MapProjection {
   /**
    * Computes change flags given a set of old parameters.
    * @param oldParameters The old parameters.
-   * @returns change flags based on the specified old parameters.
+   * @returns Change flags based on the specified old parameters.
    */
   private computeChangeFlags(oldParameters: MapProjectionParametersRecord): number {
     return BitFlags.union(
@@ -357,6 +464,8 @@ export class MapProjection {
       oldParameters.center.equals(this.center) ? 0 : MapProjectionChangeType.Center,
       Vec2Math.equals(oldParameters.targetProjected, this.targetProjected) ? 0 : MapProjectionChangeType.TargetProjected,
       oldParameters.range === this.range ? 0 : MapProjectionChangeType.Range,
+      VecNMath.equals(oldParameters.rangeEndpoints, this.rangeEndpoints) ? 0 : MapProjectionChangeType.RangeEndpoints,
+      oldParameters.scaleFactor === this.geoProjection.getScaleFactor() ? 0 : MapProjectionChangeType.ScaleFactor,
       oldParameters.rotation === this.getRotation() ? 0 : MapProjectionChangeType.Rotation,
       Vec2Math.equals(oldParameters.projectedSize, this.projectedSize) ? 0 : MapProjectionChangeType.ProjectedSize,
       oldParameters.projectedResolution === this.getProjectedResolution() ? 0 : MapProjectionChangeType.ProjectedResolution,
@@ -365,9 +474,9 @@ export class MapProjection {
 
   /**
    * Projects a set of lat/lon coordinates.
-   * @param point - the point to project.
-   * @param out - the vector to which to write the result.
-   * @returns the projected point, as a vector.
+   * @param point The point to project.
+   * @param out The vector to which to write the result.
+   * @returns The projected point, as a vector.
    */
   public project(point: GeoPointInterface, out: Float64Array): Float64Array {
     return this.geoProjection.project(point, out);
@@ -376,11 +485,11 @@ export class MapProjection {
   /**
    * Inverts a set of projected coordinates. This method will determine the geographic point whose projected location
    * is the equal to that described by a 2D position vector.
-   * @param vec - the 2D position vector describing the location of the projected coordinates.
-   * @param out - the point to which to write the result.
-   * @returns the inverted point.
+   * @param vec The 2D position vector describing the location of the projected coordinates.
+   * @param out The point to which to write the result.
+   * @returns The inverted point.
    */
-  public invert(vec: Float64Array, out: GeoPoint): GeoPoint {
+  public invert(vec: ReadonlyFloat64Array, out: GeoPoint): GeoPoint {
     return this.geoProjection.invert(vec, out);
   }
 
@@ -388,12 +497,12 @@ export class MapProjection {
    * Checks whether a point falls within certain projected bounds. The point can be specified as either a GeoPoint
    * object or a 2D vector. If a GeoPoint object is supplied, it will be projected before the bounds check takes
    * place.
-   * @param point - the point to check.
-   * @param bounds - the bounds to check against, expressed as a vector ([left, top, right, bottom]). Defaults to the
+   * @param point The point to check.
+   * @param bounds The bounds to check against, expressed as a vector ([left, top, right, bottom]). Defaults to the
    * bounds of the projected window.
-   * @returns whether the point falls within the projected bounds.
+   * @returns Whether the point falls within the projected bounds.
    */
-  public isInProjectedBounds(point: GeoPointInterface | Float64Array, bounds?: Float64Array): boolean {
+  public isInProjectedBounds(point: GeoPointInterface | ReadonlyFloat64Array, bounds?: ReadonlyFloat64Array): boolean {
     let left;
     let top;
     let right;
@@ -411,7 +520,7 @@ export class MapProjection {
     }
 
     if (!(point instanceof Float64Array)) {
-      point = this.project(point, MapProjection.tempVec2_2);
+      point = this.project(point as GeoPointInterface, MapProjection.tempVec2_2);
     }
 
     const x = point[0];
@@ -424,34 +533,34 @@ export class MapProjection {
    * Gets the geographic great-circle distance between two points in great-arc radians. The points can be specified as
    * either GeoPoint objects or 2D vectors. If 2D vectors are supplied, they are interpreted as projected points and
    * inverse projection will be used to convert them to geographic points.
-   * @param point1 - the first point.
-   * @param point2 - the second point.
-   * @returns the geographic great-circle distance between the points.
+   * @param point1 The first point.
+   * @param point2 The second point.
+   * @returns The geographic great-circle distance between the points.
    */
-  public geoDistance(point1: GeoPointInterface | Float64Array, point2: GeoPointInterface | Float64Array): number {
+  public geoDistance(point1: GeoPointInterface | ReadonlyFloat64Array, point2: GeoPointInterface | ReadonlyFloat64Array): number {
     if (point1 instanceof Float64Array) {
       point1 = this.invert(point1, MapProjection.tempGeoPoint_1);
     }
     if (point2 instanceof Float64Array) {
       point2 = this.invert(point2, MapProjection.tempGeoPoint_2);
     }
-    return point1.distance(point2);
+    return (point1 as GeoPointInterface).distance(point2 as GeoPointInterface);
   }
 
   /**
    * Gets the projected Euclidean distance between two points in pixels. The points can be specified as either GeoPoint
    * objects or 2D vectors. If GeoPoint objects are supplied, they will be projected to convert them to projected
    * points.
-   * @param point1 - the first point.
-   * @param point2 - the second point.
-   * @returns the projected Euclidean distance between two points.
+   * @param point1 The first point.
+   * @param point2 The second point.
+   * @returns The projected Euclidean distance between two points.
    */
-  public projectedDistance(point1: GeoPointInterface | Float64Array, point2: GeoPointInterface | Float64Array): number {
+  public projectedDistance(point1: GeoPointInterface | ReadonlyFloat64Array, point2: GeoPointInterface | ReadonlyFloat64Array): number {
     if (!(point1 instanceof Float64Array)) {
-      point1 = this.project(point1, MapProjection.tempVec2_1);
+      point1 = this.project(point1 as GeoPointInterface, MapProjection.tempVec2_1);
     }
     if (!(point2 instanceof Float64Array)) {
-      point2 = this.project(point2, MapProjection.tempVec2_2);
+      point2 = this.project(point2 as GeoPointInterface, MapProjection.tempVec2_2);
     }
     return Vec2Math.distance(point1, point2);
   }
@@ -467,19 +576,19 @@ export class MapProjection {
   /**
    * Registers a change listener with this projection. The listener will be called every time this projection changes.
    * A listener can be registered multiple times; it will be called once for every time it is registered.
-   * @param listener - the change listener to register.
+   * @param listener The change listener to register.
    */
-  addChangeListener(listener: MapProjectionChangeListener): void {
+  public addChangeListener(listener: MapProjectionChangeListener): void {
     this.changeListeners.push(listener);
   }
 
   /**
    * Removes a change listener from this projection. If the specified listener was registered multiple times, this
    * method will only remove one instance of the listener.
-   * @param listener - the listener to remove.
-   * @returns whether the listener was successfully removed.
+   * @param listener The listener to remove.
+   * @returns Whether the listener was successfully removed.
    */
-  removeChangeListener(listener: MapProjectionChangeListener): boolean {
+  public removeChangeListener(listener: MapProjectionChangeListener): boolean {
     const index = this.changeListeners.lastIndexOf(listener);
     if (index >= 0) {
       this.changeListeners.splice(index, 1);

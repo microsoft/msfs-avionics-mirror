@@ -1,6 +1,7 @@
 import { GeoPointInterface } from 'msfssdk';
 import { MapLayerProps, MapOwnAirplanePropsModule, MapProjection, MapSyncedCanvasLayer } from 'msfssdk/components/map';
-import { Waypoint } from '../../Navigation/Waypoint';
+import { Waypoint } from 'msfssdk/navigation';
+
 import { MapWaypointHighlightModule } from '../Modules/MapWaypointHighlightModule';
 
 /**

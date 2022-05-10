@@ -3,10 +3,12 @@ import { UserSettingSaveManager } from 'msfssdk/settings';
 import { MFDNavDataBarUserSettings } from '../../MFD/Components/UI/NavDataBar/MFDNavDataBarUserSettings';
 import { PFDUserSettings } from '../../PFD/PFDUserSettings';
 import { BacklightUserSettings } from '../Backlight/BacklightUserSettings';
+import { DateTimeUserSettings } from '../DateTime/DateTimeUserSettings';
 import { MapUserSettings } from '../Map/MapUserSettings';
 import { NavComUserSettings } from '../NavCom/NavComUserSettings';
 import { TrafficUserSettings } from '../Traffic/TrafficUserSettings';
 import { UnitsUserSettings } from '../Units/UnitsUserSettings';
+import { NearestAirportSearchSettings } from '../NearestAirportSearchSettings';
 
 /**
  * A manager for G1000 settings which are saved to pilot profiles.
@@ -24,6 +26,8 @@ export class G1000SettingSaveManager extends UserSettingSaveManager {
     const mfdNavDataBarSettingManager = MFDNavDataBarUserSettings.getManager(bus);
     const unitsSettingManager = UnitsUserSettings.getManager(bus);
     const navComSettingManager = NavComUserSettings.getManager(bus);
+    const dateTimeSettingManager = DateTimeUserSettings.getManager(bus);
+    const nearestAirportSearchSettingManager = NearestAirportSearchSettings.getManager(bus);
 
     const settings = [
       ...backlightSettingManager.getAllSettings(),
@@ -32,7 +36,9 @@ export class G1000SettingSaveManager extends UserSettingSaveManager {
       ...trafficSettingManager.getAllSettings().filter(setting => setting.definition.name !== 'trafficOperatingMode'),
       ...mfdNavDataBarSettingManager.getAllSettings(),
       ...unitsSettingManager.getAllSettings(),
-      ...navComSettingManager.getAllSettings()
+      ...navComSettingManager.getAllSettings(),
+      ...dateTimeSettingManager.getAllSettings(),
+      ...nearestAirportSearchSettingManager.getAllSettings()
     ];
 
     super(settings, bus);

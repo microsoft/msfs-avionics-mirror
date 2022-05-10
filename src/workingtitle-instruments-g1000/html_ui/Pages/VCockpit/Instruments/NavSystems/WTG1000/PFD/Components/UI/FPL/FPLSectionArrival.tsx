@@ -1,9 +1,7 @@
 import { VNode, FSComponent } from 'msfssdk';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { FmsUtils } from 'garminsdk/flightplan';
 import { FPLHeaderArrival } from '../../../../Shared/UI/FPL/FPLHeaderArrival';
 import { FPLSection } from './FPLSection';
-import { FmsUtils } from '../../../../Shared/FlightPlan/FmsUtils';
-import { ControlList } from '../../../../Shared/UI/ControlList';
 
 /**
  * Render the arrival phase of a flight plan.
@@ -26,7 +24,7 @@ export class FPLArrival extends FPLSection {
     if (arrival) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const name = FmsUtils.getArrivalNameAsString(airport!, arrival, plan.procedureDetails.arrivalTransitionIndex, plan.procedureDetails.destinationRunway);
-      Fms.viewService.open('MessageDialog', true).setInput({ inputString: `Remove ${name} from flight plan?`, hasRejectButton: true })
+      this.props.viewService.open('MessageDialog', true).setInput({ inputString: `Remove ${name} from flight plan?`, hasRejectButton: true })
         .onAccept.on((sender, accept) => {
           if (accept) {
             this.props.fms.removeArrival();
@@ -35,7 +33,7 @@ export class FPLArrival extends FPLSection {
         });
     }
     return false;
-  }
+  };
 
   /** @inheritdoc */
   protected onHeaderFocused(): void {
@@ -57,15 +55,10 @@ export class FPLArrival extends FPLSection {
       <div id='fpln-arrival'>
         <FPLHeaderArrival
           ref={this.headerRef} onClr={this.onClrHeader}
-          fms={this.props.fms} facilities={this.props.facilities}
+          fms={this.props.fms} facilities={this.props.facilities} segment={this.segment}
           onFocused={this.onHeaderFocused.bind(this)} scrollContainer={this.props.scrollContainer}
         />
-        <ControlList
-          ref={this.listRef} data={this.legs}
-          renderItem={this.renderItem}
-          onItemSelected={this.onLegItemSelected.bind(this)}
-          hideScrollbar scrollContainer={this.props.scrollContainer}
-        />
+        {this.renderLegList()}
       </div>
     );
   }

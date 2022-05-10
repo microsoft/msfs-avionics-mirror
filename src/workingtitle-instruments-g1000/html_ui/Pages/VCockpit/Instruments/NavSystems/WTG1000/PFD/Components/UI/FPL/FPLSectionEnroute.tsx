@@ -1,11 +1,9 @@
 import { VNode, FSComponent } from 'msfssdk';
 import { FlightPlanSegmentType } from 'msfssdk/flightplan';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
 import { FPLEmptyRow } from '../../../../Shared/UI/FPL/FPLEmptyRow';
 import { FPLHeaderEnroute } from '../../../../Shared/UI/FPL/FPLHeaderEnroute';
 import { FPLSection } from './FPLSection';
 import { FixLegInfo } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
-import { ControlList } from '../../../../Shared/UI/ControlList';
 
 /** Render the enroute phase of the flight plan. */
 export class FPLEnroute extends FPLSection {
@@ -15,7 +13,7 @@ export class FPLEnroute extends FPLSection {
   protected getEmptyRowVisbility(): boolean {
     let showEmptyRow = true;
     const plan = this.props.fms.getFlightPlan();
-    const segmentIndex = this.segmentIndex.get();
+    const segmentIndex = this.segment.segmentIndex;
     if (this.segment?.airway !== undefined) {
       showEmptyRow = false;
     } else if (segmentIndex + 1 < plan.segmentCount && plan.getSegment(segmentIndex + 1).airway !== undefined) {
@@ -89,16 +87,16 @@ export class FPLEnroute extends FPLSection {
    */
   protected onClrHeader = (): boolean => {
     if (this.segment !== undefined && this.segment.airway !== undefined) {
-      Fms.viewService.open('MessageDialog', true).setInput({ inputString: `Remove ${this.segment.airway} from flight plan?`, hasRejectButton: true })
+      this.props.viewService.open('MessageDialog', true).setInput({ inputString: `Remove ${this.segment.airway} from flight plan?`, hasRejectButton: true })
         .onAccept.on((sender, accept) => {
           if (accept) {
-            this.props.fms.removeAirway(this.segmentIndex.get());
+            this.props.fms.removeAirway(this.segment.segmentIndex);
             return true;
           }
         });
     }
     return false;
-  }
+  };
 
   /** @inheritdoc */
   protected onHeaderFocused(): void {
@@ -129,15 +127,10 @@ export class FPLEnroute extends FPLSection {
       <div id='fpln-enroute'>
         <FPLHeaderEnroute
           ref={this.headerRef} facilities={this.props.facilities}
-          fms={this.props.fms} onClr={this.onClrHeader} segmentIndex={this.segmentIndex}
+          fms={this.props.fms} onClr={this.onClrHeader} segment={this.segment}
           onFocused={this.onHeaderFocused.bind(this)} scrollContainer={this.props.scrollContainer}
         />
-        <ControlList
-          ref={this.listRef} data={this.legs}
-          renderItem={this.renderItem}
-          onItemSelected={this.onLegItemSelected.bind(this)}
-          hideScrollbar scrollContainer={this.props.scrollContainer}
-        />
+        {this.renderLegList()}
         <FPLEmptyRow
           ref={this.emptyRowRef} onUpperKnobInc={this.onUpperKnobLegBase}
           onFocused={this.onEmptyRowFocused.bind(this)} scrollContainer={this.props.scrollContainer}

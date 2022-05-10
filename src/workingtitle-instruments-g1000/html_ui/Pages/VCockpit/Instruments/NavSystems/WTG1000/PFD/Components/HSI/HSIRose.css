@@ -19,6 +19,7 @@
   left: 141px;
   height: 34px;
   width: 84px;
+  overflow: hidden;
   background: black;
   border-radius: 3px;
   border: 1px solid white;
@@ -96,4 +97,68 @@
   /* I think this should be on top of the hsi-outer-ticks class, but no matter the z-index it goes under.
      If there's ever that much of an offset form the heading set, though, your crosswind is insane.  Fix TODO. */
   z-index: 100;
+}
+
+.hsi-nav-source {
+  position: absolute;
+  text-align: center;
+  font-family: "Roboto-Bold";
+  font-size: 18px;
+  color: magenta;
+  top: 135px;
+  left: 122px;
+}
+
+.hsi-nav-sensitivity {
+  position: absolute;
+  text-align: center;
+  font-family: "Roboto-Bold";
+  font-size: 18px;
+  color: magenta;
+  top: 135px;
+  left: 207px;
+}
+
+.hsi-nav-susp {
+  position: absolute;
+  text-align: center;
+  font-family: "Roboto-Bold";
+  font-size: 18px;
+  color: magenta;
+  top: 235px;
+  left: 207px;
+}
+
+.hsi-gps-xtrack {
+  position: absolute;
+  text-align: center;
+  font-size: 18px;
+  color: magenta;
+  font-family: "Roboto-Bold";
+  top: 215px;
+  left: 135px;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.hsi-gps-xtrack-title {
+  font-size: 0.8em;
+}
+
+/* Fail States */
+.failed-instr .hsi-track-bug {
+  display: none;
+}
+
+.failed-instr .hsi-rose-hdg-bug {
+  display: none;
+}
+
+.failed-instr .hsi-rose-hdg-box>span {
+  display: none;
+}
+
+.failed-instr .hsi-rose-brg-ptr {
+  display: none;
 }

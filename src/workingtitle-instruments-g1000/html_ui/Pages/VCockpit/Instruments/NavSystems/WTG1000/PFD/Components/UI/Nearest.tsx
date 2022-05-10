@@ -1,16 +1,16 @@
 import { FSComponent, Subject, VNode } from 'msfssdk';
 import { EventBus, Consumer, ControlPublisher } from 'msfssdk/data';
-import { FacilityLoader } from 'msfssdk/navigation';
 import { ADCEvents, GNSSEvents } from 'msfssdk/instruments';
+import { FacilityLoader } from 'msfssdk/navigation';
 
-import { Fms } from '../../../Shared/FlightPlan/Fms';
-import { UiViewProps, UiView } from '../../../Shared/UI/UiView';
-import { NearbyAirport, NearestStore } from '../../../Shared/UI/Controllers/NearestStore';
+import { NearestAirportSearchSettings } from '../../../Shared/NearestAirportSearchSettings';
 import { NearestController } from '../../../Shared/UI/Controllers/NearestController';
-import { ScrollBar } from '../../../Shared/UI/ScrollBar';
-import { List } from '../../../Shared/UI/List';
+import { NearbyAirport, NearestStore } from '../../../Shared/UI/Controllers/NearestStore';
 import { FmsHEvent } from '../../../Shared/UI/FmsHEvent';
+import { List } from '../../../Shared/UI/List';
+import { ScrollBar } from '../../../Shared/UI/ScrollBar';
 import { UiControl } from '../../../Shared/UI/UiControl';
+import { UiViewProps, UiView } from '../../../Shared/UI/UiView';
 import { NearestAirportItem } from './NearestAirportItem';
 
 import './Nearest.css';
@@ -21,8 +21,6 @@ import './Nearest.css';
 interface NearestProps extends UiViewProps {
   /** An instance of the event bus. */
   bus: EventBus;
-  /** A fms state manager. */
-  fms: Fms;
   /** A facility loader. */
   loader: FacilityLoader
   /** A ControlPublisher */
@@ -36,6 +34,8 @@ export class Nearest extends UiView<NearestProps> {
   private readonly nearestListContainerRef = FSComponent.createRef<HTMLElement>();
   private readonly noneMsgRef = FSComponent.createRef<HTMLDivElement>();
 
+  private readonly searchSettings = NearestAirportSearchSettings.getManager(this.props.bus);
+
   private readonly store: NearestStore;
   private readonly controller: NearestController;
   private readonly planePosConsumer: Consumer<LatLongAlt>;
@@ -45,6 +45,9 @@ export class Nearest extends UiView<NearestProps> {
   private readonly planePosHandler = this.onGps.bind(this);
   private readonly planeHeadingHandler = this.onPlaneHeadingChanged.bind(this);
 
+  private runwayLength = 0;
+  private surfaceType = 0;
+
   /**
    * Creates an instance of a nearest airport box.
    * @param props The props.
@@ -53,17 +56,23 @@ export class Nearest extends UiView<NearestProps> {
     super(props);
     this.store = new NearestStore(this.props.loader);
     this.publisher = this.props.publisher;
-    this.controller = new NearestController(this.store, this.publisher);
+    this.controller = new NearestController(this.store, this.publisher, this.props.viewService);
     this.planePosConsumer = this.props.bus.getSubscriber<GNSSEvents>().on('gps-position').atFrequency(1);
     this.planeHeadingConsumer = this.props.bus.getSubscriber<ADCEvents>().on('hdg_deg_true').atFrequency(1);
+    this.searchSettings.whenSettingChanged('runwayLength').handle(v => {
+      this.store.setFilter(this.runwayLength = v, this.surfaceType);
+    });
+    this.searchSettings.whenSettingChanged('surfaceTypes').handle(v => {
+      this.store.setFilter(this.runwayLength, this.surfaceType = v);
+    });
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onAfterRender(): void {
     this.store.airportCount.sub(this.onAirportCountChanged.bind(this), true);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onInteractionEvent(evt: FmsHEvent): boolean {
     switch (evt) {
       case FmsHEvent.UPPER_PUSH:
@@ -83,7 +92,6 @@ export class Nearest extends UiView<NearestProps> {
   protected onViewOpened(): void {
     this.setScrollEnabled(true);
     this.scrollController.gotoFirst();
-
     this.planePosConsumer.handle(this.planePosHandler);
     this.planeHeadingConsumer.handle(this.planeHeadingHandler);
   }
@@ -132,7 +140,7 @@ export class Nearest extends UiView<NearestProps> {
         frequencyHandler={this.controller.onEnterFreqHandler}
       />
     );
-  }
+  };
 
   /**
    * Render the component.

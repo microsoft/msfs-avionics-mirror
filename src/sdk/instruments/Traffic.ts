@@ -1,8 +1,8 @@
 import { EventBus } from '../data/EventBus';
-import { GeoPoint, GeoPointReadOnly } from '../utils/geo/GeoPoint';
-import { ExpSmoother } from '../utils/math/ExpSmoother';
-import { NumberUnit, NumberUnitReadOnly, UnitFamily, UnitType } from '../utils/math/NumberUnit';
-import { Wait } from '../utils/Wait';
+import { GeoPoint, GeoPointReadOnly } from '../geo/GeoPoint';
+import { ExpSmoother } from '../math/ExpSmoother';
+import { NumberUnit, NumberUnitReadOnly, UnitFamily, UnitType } from '../math/NumberUnit';
+import { Wait } from '../utils/time/Wait';
 import { Instrument } from './Backplane';
 import { ClockEvents } from './Clock';
 

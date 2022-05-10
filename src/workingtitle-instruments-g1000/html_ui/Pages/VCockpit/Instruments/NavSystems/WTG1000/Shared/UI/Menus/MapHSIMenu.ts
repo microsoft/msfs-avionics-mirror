@@ -1,4 +1,5 @@
 import { UserSettingManager } from 'msfssdk/settings';
+import { PfdMapLayoutSettingMode, PFDUserSettings, PFDUserSettingTypes } from '../../../PFD/PFDUserSettings';
 import { MapDeclutterSettingMode, MapTerrainSettingMode, MapUserSettings, MapUserSettingTypes } from '../../Map/MapUserSettings';
 import { MenuSystem } from './MenuSystem';
 import { SoftKeyMenu } from './SoftKeyMenu';
@@ -20,6 +21,7 @@ export class MapHSIMenu extends SoftKeyMenu {
   };
 
   private readonly settings: UserSettingManager<MapUserSettingTypes>;
+  private readonly userSettings: UserSettingManager<PFDUserSettingTypes>;
 
   /**
    * Creates an instance of the Map/HSI softkey menu.
@@ -29,6 +31,7 @@ export class MapHSIMenu extends SoftKeyMenu {
     super(menuSystem);
 
     this.settings = MapUserSettings.getPfdManager(this.menuSystem.bus);
+    this.userSettings = PFDUserSettings.getManager(this.menuSystem.bus);
 
     this.addItem(0, 'Layout', () => menuSystem.pushMenu('map-hsi-layout'));
     this.addItem(1, 'Detail', this.cycleDeclutterSetting.bind(this), '', false);
@@ -52,6 +55,19 @@ export class MapHSIMenu extends SoftKeyMenu {
     this.settings.whenSettingChanged('mapTrafficShow').handle(v => this.getItem(2).value.set(v));
     this.settings.whenSettingChanged('mapTerrainMode').handle(this.onTerrainModeChanged.bind(this));
     this.settings.whenSettingChanged('mapNexradShow').handle(v => this.getItem(5).value.set(v));
+    this.userSettings.whenSettingChanged('mapLayout').handle(v => this.setMapMenuItemsDisabled(v === PfdMapLayoutSettingMode.Off));
+  }
+
+  /**
+   * Helps disable the menu items if the map is in a certain setting (On/off, Insert, HSI).
+   * @param disable if the items should be disabled
+   */
+  private setMapMenuItemsDisabled(disable: boolean): void {
+    this.getItem(1).disabled.set(disable);
+    this.getItem(2).disabled.set(disable);
+    this.getItem(3).disabled.set(disable);
+    this.getItem(4).disabled.set(disable);
+    this.getItem(5).disabled.set(disable);
   }
 
   /**

@@ -1,4 +1,5 @@
-import { ExpSmoother, PidController } from '..';
+import { ExpSmoother } from '..';
+import { PidController } from '../utils/controllers';
 
 
 /**

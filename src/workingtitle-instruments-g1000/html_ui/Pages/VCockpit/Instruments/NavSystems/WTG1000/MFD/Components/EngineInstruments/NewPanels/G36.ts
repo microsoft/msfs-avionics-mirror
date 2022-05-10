@@ -5,6 +5,9 @@ export const xmlConfig = `
       <Type>Circular</Type>
       <ID>MANIN_Gauge</ID>
       <Title>MAN IN</Title>
+      <Style>
+        <TextIncrement>.1</TextIncrement>
+      </Style>
       <Minimum>0</Minimum>
       <Maximum>40</Maximum>
       <Value>
@@ -300,6 +303,9 @@ export const xmlConfig = `
       <Type>Circular</Type>
       <ID>MANIN_Gauge</ID>
       <Title>MAN IN</Title>
+      <Style>
+        <TextIncrement>.1</TextIncrement>
+      </Style>
       <Minimum>0</Minimum>
       <Maximum>40</Maximum>
       <Value>
@@ -406,6 +412,9 @@ export const xmlConfig = `
       <Type>Circular</Type>
       <ID>MANIN_Gauge</ID>
       <Title>MAN IN</Title>
+      <Style>
+        <TextIncrement>.1</TextIncrement>
+      </Style>
       <Minimum>0</Minimum>
       <Maximum>40</Maximum>
       <Value>

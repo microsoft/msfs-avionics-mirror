@@ -1,4 +1,4 @@
-import { GeoPoint } from '../utils/geo/GeoPoint';
+import { GeoPoint } from '../geo/GeoPoint';
 
 /**
  * Types of airspaces.

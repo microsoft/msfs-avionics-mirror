@@ -2,7 +2,7 @@ import { Subject } from 'msfssdk';
 import { Facility, AirportFacility, RunwayTransition, EnrouteTransition, DepartureProcedure, ArrivalProcedure } from 'msfssdk/navigation';
 import { LegDefinition, FlightPathCalculator } from 'msfssdk/flightplan';
 import { SelectDepArrStore } from './SelectDepArrStore';
-import { Fms, ProcedureType } from '../../../FlightPlan/Fms';
+import { Fms, ProcedureType } from 'garminsdk/flightplan';
 import { SelectControl } from '../../UiControls2/SelectControl';
 
 /**
@@ -281,7 +281,7 @@ export abstract class SelectDepArrController<T extends DepartureProcedure | Arri
   /** Callback handler for when load is pressed. */
   public onLoadSelected = (): void => {
     this.onLoadExecute();
-  }
+  };
 
   /** Called when the load procedure button is clicked. */
   public abstract onLoadExecute: () => void;

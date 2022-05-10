@@ -112,7 +112,7 @@ export abstract class ViewService {
    * @returns The view that was opened.
    * @throws Error if the view type is not registered with this service.
    */
-  public open(type: string, isSubView = false): UiView {
+  public open<T extends UiView = UiView>(type: string, isSubView = false): T {
     let viewEntry = this.refsMap.get(type);
     if (viewEntry === undefined) {
       // when we hve no ref, create the view
@@ -148,7 +148,8 @@ export abstract class ViewService {
     if (isPage) {
       this.openPageEntrySub.set(viewEntry as ViewEntry<UiPage>);
     }
-    return view;
+
+    return view as T;
   }
 
   /**

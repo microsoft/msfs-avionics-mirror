@@ -1,6 +1,7 @@
 import { MenuSystem } from '../MenuSystem';
 import { SoftKeyMenu } from '../SoftKeyMenu';
-import { ControlEvents, ControlPublisher } from 'msfssdk/data';
+import { ControlPublisher } from 'msfssdk/data';
+import { VNavControlEvents } from 'msfssdk/autopilot';
 import { ComputedSubject } from 'msfssdk';
 import { G1000ControlEvents } from '../../../G1000Events';
 
@@ -31,10 +32,11 @@ export class MFDFPLRootMenu extends SoftKeyMenu {
     this.addItem(4, 'View', () => menuSystem.pushMenu('view-opt'), undefined, true);
     this.addItem(5, 'VNV Prof', () => g1000Publisher.pub('vnv_prof_key', true), undefined, false);
     this.addItem(6, this.vnavLabel.get() as string, () => {
+      const vnavControlPub = menuSystem.bus.getPublisher<VNavControlEvents>();
       if (this.vnavState) {
-        publisher.publishEvent('vnav_enabled', false);
+        vnavControlPub.pub('vnav_set_state', false, true);
       } else {
-        publisher.publishEvent('vnav_enabled', true);
+        vnavControlPub.pub('vnav_set_state', true, true);
       }
     });
     this.addItem(7, 'VNV Ð', () => {
@@ -45,7 +47,7 @@ export class MFDFPLRootMenu extends SoftKeyMenu {
     this.addItem(10, 'Charts', () => { }, undefined, true);
     this.addItem(11, 'Checklist', () => { }, undefined, true);
 
-    menuSystem.bus.getSubscriber<ControlEvents>().on('vnav_enabled').handle(d => {
+    menuSystem.bus.getSubscriber<VNavControlEvents>().on('vnav_set_state').handle(d => {
       this.vnavState = d;
       this.vnavLabel.set(this.vnavState);
       this.getItem(6).label.set(this.vnavLabel.get());

@@ -158,7 +158,7 @@ export class InputComponent extends UiControl<InputComponentProps> {
         this.deactivateKeyboardInput();
       }
     }
-  }
+  };
 
   /**
    * Activates keyboard input. If this control is not active, activating keyboard input will activate this control as
@@ -201,7 +201,7 @@ export class InputComponent extends UiControl<InputComponentProps> {
     this.textBoxRef.instance.addEventListener('input', this.keyboardInputHandler);
 
     this.keyboardIconRef.instance.classList.add('active');
-  }
+  };
 
   /**
    * Method to handle on input blur
@@ -218,7 +218,7 @@ export class InputComponent extends UiControl<InputComponentProps> {
     }
 
     this.keyboardIconRef.instance.classList.remove('active');
-  }
+  };
 
   /** @inheritdoc */
   public onUpperKnobInc(): void {

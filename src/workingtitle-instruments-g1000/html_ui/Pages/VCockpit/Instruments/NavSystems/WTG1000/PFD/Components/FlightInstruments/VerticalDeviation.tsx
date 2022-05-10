@@ -1,7 +1,8 @@
-import { FSComponent, DisplayComponent, VNode, Subject, MathUtils } from 'msfssdk';
+import { DisplayComponent, FSComponent, MathUtils, Subject, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { NavSourceType } from 'msfssdk/instruments';
-import { GPDisplayMode, HsiSource, NavIndicatorController, NavSensitivity, VNavDisplayMode } from '../../../Shared/Navigation/NavIndicatorController';
+
+import { GPDisplayMode, HsiSource, NavIndicatorController, NavSensitivity, VNavDisplayMode } from 'garminsdk/navigation';
 
 import './VerticalDeviation.css';
 

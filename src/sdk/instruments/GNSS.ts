@@ -1,7 +1,8 @@
 /// <reference types="msfstypes/JS/SimPlane" />
 
 import { NavMath, UnitType } from '..';
-import { EventBus, PublishPacer } from '../data/EventBus';
+import { EventBus } from '../data/EventBus';
+import { PublishPacer } from '../data/EventBusPacer';
 import { SimVarValueType } from '../data/SimVars';
 import { BasePublisher } from './BasePublishers';
 

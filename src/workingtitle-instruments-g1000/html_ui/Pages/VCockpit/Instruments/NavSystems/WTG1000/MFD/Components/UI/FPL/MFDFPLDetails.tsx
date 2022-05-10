@@ -1,5 +1,5 @@
 import { FSComponent, Subject, VNode } from 'msfssdk';
-import { FlightPlanSegment } from 'msfssdk/flightplan';
+import { BlurReconciliation } from 'msfssdk/components/controls';
 
 import { FPLDetailProps, FPLDetails } from '../../../../PFD/Components/UI/FPL/FPLDetails';
 import { FPLOrigin } from '../../../../PFD/Components/UI/FPL/FPLSectionOrigin';
@@ -7,7 +7,7 @@ import { ScrollBar } from '../../../../Shared/UI/ScrollBar';
 import { FplActiveLegArrow } from '../../../../Shared/UI/UIControls/FplActiveLegArrow';
 import { GroupBox } from '../GroupBox';
 import { FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
-import { ControlList } from '../../../../Shared/UI/ControlList';
+import { G1000ControlList } from '../../../../Shared/UI/G1000UiControl';
 
 /** Component props for MFDFPLDetails */
 export interface MFDFPLDetailProps extends FPLDetailProps {
@@ -49,11 +49,7 @@ export class MFDFPLDetails extends FPLDetails<MFDFPLDetailProps> {
     return (
       <div ref={this.fplDetailsContainer}>
         <GroupBox title="Active Flight Plan" class='mfd-fpl-plan-box'>
-          <FPLOrigin
-            ref={this.controller.originRef}
-            viewService={this.props.viewService} fms={this.props.fms}
-            facilities={this.store.facilityInfo} segmentIndex={FlightPlanSegment.Empty.segmentIndex}
-          />
+          <FPLOrigin ref={this.controller.originRef} />
           <br />
           <div>
             <span id="dtk" class="smallText white">DTK</span>
@@ -62,9 +58,11 @@ export class MFDFPLDetails extends FPLDetails<MFDFPLDetailProps> {
           </div>
           <hr class="mfd-flightplan-hr" />
           <div class='mfd-fpln-container' style="height:320px;" ref={this.fplnContainer}>
-            <ControlList
+            <G1000ControlList
               ref={this.sectionListRef} data={this.store.segments}
               renderItem={this.renderItem.bind(this)}
+              reconcileChildBlur={(): BlurReconciliation => BlurReconciliation.Next}
+              requireChildFocus
             />
             <FplActiveLegArrow ref={this.controller.legArrowRef} getLegDomLocation={this.getListElementTopLocation} />
           </div>

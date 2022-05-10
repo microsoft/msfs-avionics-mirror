@@ -3,17 +3,17 @@ import { ComponentProps, DisplayComponent, FSComponent, Subscribable, VNode } fr
 import './MapNoGpsPositionMessage.css';
 
 /**
- * Component props for MapDetailIndicator.
+ * Component props for MapNoGpsPositionMessage.
  */
-export interface MapDetailIndicatorProps extends ComponentProps {
+export interface MapNoGpsPositionMessageProps extends ComponentProps {
   /** A subscribable which provides the declutter mode. */
   hasGpsSignal: Subscribable<boolean>;
 }
 
 /**
- * Displays a map detail level indication.
+ * Displays a map NO GPS POSITION message.
  */
-export class MapNoGpsPositionMessage extends DisplayComponent<MapDetailIndicatorProps> {
+export class MapNoGpsPositionMessage extends DisplayComponent<MapNoGpsPositionMessageProps> {
   private readonly rootRef = FSComponent.createRef<HTMLDivElement>();
 
   // eslint-disable-next-line jsdoc/require-jsdoc

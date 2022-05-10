@@ -1,9 +1,6 @@
 import { ComputedSubject, Subject } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
-import { Facility, ICAO, FacilityLoader, FacilityRespository, FacilitySearchType } from 'msfssdk/navigation';
-
-import { FacilityWaypoint, Waypoint } from '../../Navigation/Waypoint';
-import { FacilityWaypointCache } from '../../Navigation/FacilityWaypointCache';
+import { Facility, FacilityLoader, FacilityRepository, FacilitySearchType, FacilityWaypoint, FacilityWaypointCache, ICAO, Waypoint } from 'msfssdk/navigation';
 
 /**
  * Waypoint input store
@@ -67,7 +64,7 @@ export class WaypointInputStore {
     private readonly onFacilityChanged?: (fac: Facility | undefined) => void,
     private readonly onMatchedWaypointsChanged?: (waypoints: readonly FacilityWaypoint<Facility>[]) => void
   ) {
-    this.facRepo = FacilityRespository.getRepository(bus);
+    this.facRepo = FacilityRepository.getRepository(bus);
     this.facLoader = new FacilityLoader(this.facRepo);
     this.facWaypointCache = FacilityWaypointCache.getCache();
     this.selectedWaypoint.sub(waypoint => {

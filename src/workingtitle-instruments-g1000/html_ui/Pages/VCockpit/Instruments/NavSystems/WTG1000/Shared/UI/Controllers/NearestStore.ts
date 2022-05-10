@@ -1,18 +1,9 @@
 import { ArraySubject, GeoPoint, GeoPointSubject, MagVar, Subject, Subscribable, UnitType } from 'msfssdk';
-import { AirportFacility, AirportRunway, FacilityFrequency, FacilityFrequencyType, FacilityType, FacilitySearchType, NearestSearchResults, RunwaySurfaceType, FacilityLoader, NearestSearchSession, RunwayUtils } from 'msfssdk/navigation';
-
-import { AirportSize } from '../../Navigation/Waypoint';
-
-/**
- * The kind of runways we can filter on for nearest display.  This is meant to be used
- * as a bitfield.  For the Soft/Hard combo, use SurfaceType.Soft | SurfaceType.Hard.
- **/
-export enum SurfaceType {
-  Any = 1,
-  Hard = 2,
-  Soft = 4,
-  Water = 8
-}
+import {
+  AirportClassMask, AirportFacility, AirportSize, AirportUtils, FacilityFrequency, FacilityFrequencyType,
+  FacilityLoader, FacilitySearchType, FacilityType, NearestAirportSearchSession, NearestSearchResults,
+  NearestSearchSession, RunwaySurfaceCategory, RunwayUtils
+} from 'msfssdk/navigation';
 
 /** Shorthand for a collection of SurfaceTypes in a byte. */
 export type SurfaceTypeOptions = number;
@@ -48,44 +39,7 @@ export class AirportFilter {
   // These are best guesses as to the proper categorization.   They may need to
   // be tweaked.
   public static surfacesHard = [
-    RunwaySurfaceType.Asphalt,
-    RunwaySurfaceType.Bituminous,
-    RunwaySurfaceType.Brick,
-    RunwaySurfaceType.Concrete,
-    RunwaySurfaceType.Ice,
-    RunwaySurfaceType.Macadam,
-    RunwaySurfaceType.Paint,
-    RunwaySurfaceType.Planks,
-    RunwaySurfaceType.SteelMats,
-    RunwaySurfaceType.Tarmac,
-    RunwaySurfaceType.Urban,
-  ];
 
-  public static surfacesSoft = [
-    RunwaySurfaceType.Coral,
-    RunwaySurfaceType.Dirt,
-    RunwaySurfaceType.Forest,
-    RunwaySurfaceType.Grass,
-    RunwaySurfaceType.GrassBumpy,
-    RunwaySurfaceType.Gravel,
-    RunwaySurfaceType.HardTurf,
-    RunwaySurfaceType.LongGrass,
-    RunwaySurfaceType.OilTreated,
-    RunwaySurfaceType.Sand,
-    RunwaySurfaceType.Shale,
-    RunwaySurfaceType.ShortGrass,
-    RunwaySurfaceType.Snow,
-    RunwaySurfaceType.WrightFlyerTrack
-  ];
-
-  public static surfacesWater = [
-    RunwaySurfaceType.WaterFSX,
-    RunwaySurfaceType.Lake,
-    RunwaySurfaceType.Ocean,
-    RunwaySurfaceType.Pond,
-    RunwaySurfaceType.River,
-    RunwaySurfaceType.WasteWater,
-    RunwaySurfaceType.Water
   ];
 
   public _minLength: number;
@@ -94,12 +48,12 @@ export class AirportFilter {
 
   /**
    * Construct an airport filter.
-   * @param minLength The minimum length in meters.
+   * @param minLength The minimum length in feet.
    * @param surfaceType The type of surfaces to look for.
    */
   constructor(minLength?: number, surfaceType?: SurfaceTypeOptions) {
-    this._minLength = minLength || UnitType.FOOT.convertTo(3000, UnitType.METER);
-    this._surfaceType = surfaceType || SurfaceType.Hard;
+    this._minLength = minLength || 3000;
+    this._surfaceType = surfaceType || RunwaySurfaceCategory.Hard;
   }
 
   /**
@@ -107,7 +61,7 @@ export class AirportFilter {
    * @param airports An array of AirportFacilities.
    * @returns A list of airports meeting the filter criteria.
    */
-  public filter(airports: Array<AirportFacility | undefined>): Array<AirportFacility> {
+  public filter(airports: IterableIterator<AirportFacility>): Array<AirportFacility> {
     const filtered = [];
     for (const airport of airports) {
       if (!airport) {
@@ -115,7 +69,7 @@ export class AirportFilter {
       }
       let good = this.cache.get(airport.icao);
       if (good === undefined) {
-        this.cache.set(airport.icao, good = this.filterAirport(airport));
+        this.cache.set(airport.icao, good = AirportUtils.hasMatchingRunway(airport, this._minLength, this._surfaceType));
       }
 
       if (good) {
@@ -126,53 +80,8 @@ export class AirportFilter {
   }
 
   /**
-   * Filter a given airport using the current criteria.
-   * @param airport The airport to filter.
-   * @returns True if the filter is passed, else false.
-   */
-  private filterAirport(airport: AirportFacility): boolean {
-    const longest = airport.runways.sort((a, b) => b.length - a.length)[0];
-    if (longest) {
-      if (longest.length < this._minLength) {
-        return false;
-      }
-
-      if (this.filterRunway(longest, this._surfaceType)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * See if a runway matches a given surface type.
-   * @param runway The runway to check.
-   * @param filter A bitfield of the surface types to allow.
-   * @returns True if the runway passes the filter, else false.
-   */
-  private filterRunway(runway: AirportRunway, filter: SurfaceTypeOptions): boolean {
-    if (filter & SurfaceType.Any) {
-      return true;
-    }
-
-    if (filter & SurfaceType.Soft && AirportFilter.surfacesSoft.includes(runway.surface)) {
-      return true;
-    }
-
-    if (filter & SurfaceType.Hard && AirportFilter.surfacesHard.includes(runway.surface)) {
-      return true;
-    }
-
-    if (filter & SurfaceType.Water && AirportFilter.surfacesWater.includes(runway.surface)) {
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
    * Set a new minimum length and clear the cache.
-   * @param minLength The new minimum length in meters.
+   * @param minLength The new minimum length in feet.
    */
   public set minLength(minLength: number) {
     this._minLength = minLength;
@@ -181,7 +90,7 @@ export class AirportFilter {
 
   /**
    * Get the current minimum length.
-   * @returns The minimum length in meters.
+   * @returns The minimum length in feet.
    */
   public get minLength(): number {
     return this._minLength;
@@ -255,6 +164,18 @@ export class NearestStore {
   }
 
   /**
+   * Sets a new airport filter for the nearest search.
+   * @param runwayLength The desired minimum runway length in feet.
+   * @param surfaceType The allowable surface types.
+   */
+  public setFilter(runwayLength: number, surfaceType: SurfaceTypeOptions): void {
+    this.filter.minLength = runwayLength;
+    this.filter.surfaceType = surfaceType;
+    this.nearestAirports.clear();
+    this.searchNearest();
+  }
+
+  /**
    * Update our nearest airport list.
    */
   public searchNearest(): void {
@@ -262,6 +183,7 @@ export class NearestStore {
       this.loader?.startNearestSearchSession(FacilitySearchType.Airport)
         .then(session => {
           this.session = session;
+          (this.session as NearestAirportSearchSession).setAirportFilter(false, AirportClassMask.SoftSurface | AirportClassMask.HardSurface | AirportClassMask.AllWater);
           this.searchNearest();
         });
     } else {
@@ -298,7 +220,7 @@ export class NearestStore {
     }
     return new Promise((resolve) => {
       Promise.all(searches).then(facilities => {
-        for (const facility of this.filter.filter(facilities)) {
+        for (const facility of facilities) {
           if (facility) {
             this.nearestFacilities.set(facility.icao, facility);
           }
@@ -313,12 +235,12 @@ export class NearestStore {
    * set of NearbyAirports to account for distance/bearing changes.
    */
   private updateNearestAirports(): void {
-    for (const [icao, facility] of this.nearestFacilities.entries()) {
-      const nearest = this.nearestAirports.get(icao);
+    for (const facility of this.filter.filter(this.nearestFacilities.values())) {
+      const nearest = this.nearestAirports.get(facility.icao);
       if (nearest) {
-        this.nearestAirports.set(icao, this.updateNearbyAirport(nearest) || this.createNearbyAirport(facility));
+        this.nearestAirports.set(facility.icao, this.updateNearbyAirport(nearest) || this.createNearbyAirport(facility));
       } else {
-        this.nearestAirports.set(icao, this.createNearbyAirport(facility));
+        this.nearestAirports.set(facility.icao, this.createNearbyAirport(facility));
       }
     }
   }

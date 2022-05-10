@@ -1,7 +1,7 @@
-import { BitFlags, FSComponent, GeoPoint, GeoPointInterface, NumberUnitInterface, Subject, UnitFamily, UnitType, Vec2Math, VNode } from 'msfssdk';
+import { BitFlags, FSComponent, GeoPoint, GeoPointInterface, NumberUnitInterface, ReadonlyFloat64Array, Subject, UnitFamily, UnitType, Vec2Math, VNode } from 'msfssdk';
 import { MapIndexedRangeModule, MapLayer, MapLayerProps, MapOwnAirplanePropsModule, MapProjection, MapProjectionChangeType, MapSyncedCanvasLayer } from 'msfssdk/components/map';
 import { EventBus } from 'msfssdk/data';
-import { TCASAlertLevel, TCASEvents, TCASIntruder, TCASOperatingMode } from 'msfssdk/traffic';
+import { TCASAlertLevel, TCASEvents, TCASIntruder, TCASOperatingMode, TCASTcaPrediction } from 'msfssdk/traffic';
 
 import { MapTrafficAlertLevelMode, MapTrafficModule, MapTrafficMotionVectorMode } from '../Modules/MapTrafficModule';
 import { MapTrafficIntruderOffScaleIndicatorMode } from '../Indicators/MapTrafficOffScaleIndicator';
@@ -643,8 +643,15 @@ class MapTrafficIntruderView {
         : MapTrafficIntruderView.VECTOR_REL_COLOR;
       this.drawNormalVector(projection, context, color, vector);
     } else {
-      const color = alertLevel === TCASAlertLevel.ResolutionAdvisory ? MapTrafficIntruderView.RA_COLOR : MapTrafficIntruderView.TA_COLOR;
-      this.drawTCAVector(projection, context, color, vector);
+      let prediction, color;
+      if (alertLevel === TCASAlertLevel.ResolutionAdvisory) {
+        prediction = this.intruder.tcaRA;
+        color = MapTrafficIntruderView.RA_COLOR;
+      } else {
+        prediction = this.intruder.tcaTA;
+        color = MapTrafficIntruderView.TA_COLOR;
+      }
+      this.drawTCAVector(projection, context, prediction, color, vector);
     }
   }
 
@@ -655,7 +662,7 @@ class MapTrafficIntruderView {
    * @param color The color of the vector.
    * @param vector The vector to draw.
    */
-  private drawNormalVector(projection: MapProjection, context: CanvasRenderingContext2D, color: string, vector: Float64Array): void {
+  private drawNormalVector(projection: MapProjection, context: CanvasRenderingContext2D, color: string, vector: ReadonlyFloat64Array): void {
     context.lineWidth = MapTrafficIntruderView.VECTOR_STROKE_WIDTH;
     context.strokeStyle = color;
     context.setLineDash(MapTrafficIntruderView.VECTOR_EMPTY_LINE_DASH);
@@ -676,10 +683,17 @@ class MapTrafficIntruderView {
    * Draws a motion vector projected to TCA.
    * @param projection The map projection.
    * @param context The canvas rendering context to which to draw the vector.
+   * @param prediction The TCA prediction to use.
    * @param color The color of the vector.
    * @param vector The vector to draw.
    */
-  private drawTCAVector(projection: MapProjection, context: CanvasRenderingContext2D, color: string, vector: Float64Array): void {
+  private drawTCAVector(
+    projection: MapProjection,
+    context: CanvasRenderingContext2D,
+    prediction: TCASTcaPrediction,
+    color: string,
+    vector: ReadonlyFloat64Array
+  ): void {
     const distanceToEnd = Vec2Math.abs(projection.getProjectedSize());
     if (distanceToEnd > 0) {
       context.lineWidth = MapTrafficIntruderView.VECTOR_STROKE_WIDTH;
@@ -698,7 +712,7 @@ class MapTrafficIntruderView {
 
       context.setLineDash(MapTrafficIntruderView.VECTOR_EMPTY_LINE_DASH);
 
-      const distanceToTCA = Vec2Math.abs(vector) * this.intruder.tca.asUnit(UnitType.SECOND);
+      const distanceToTCA = Vec2Math.abs(vector) * prediction.tca.asUnit(UnitType.SECOND);
       const distanceToTCAProjected = distanceToTCA / UnitType.GA_RADIAN.convertTo(projection.getProjectedResolution(), UnitType.METER);
       if (distanceToTCAProjected > 0) {
         context.beginPath();

@@ -1,4 +1,4 @@
-import { ArrayTaskQueue, ThrottledTaskQueueHandler, ThrottledTaskQueueProcess } from '..';
+import { ArrayTaskQueue, ThrottledTaskQueueHandler, ThrottledTaskQueueProcess } from '../utils/task';
 import { NearestBoundarySearchSession } from './FacilityLoader';
 import { LodBoundary } from './LodBoundary';
 import { LodBoundaryCache } from './LodBoundaryCache';

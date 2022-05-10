@@ -1,10 +1,12 @@
 import { NodeReference, FSComponent, ArraySubject, Subject, VNode, UnitType, BitFlags, NumberUnitSubject } from 'msfssdk';
 import { Facility, LegType } from 'msfssdk/navigation';
 import { FlightPlan, FlightPlanSegment, FlightPlanSegmentType, LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
-import { VNavConstraint, VNavLeg } from 'msfssdk/autopilot';
+import { VNavConstraint, VNavLeg, VNavUtils } from 'msfssdk/autopilot';
+import { BlurReconciliation, FocusPosition } from 'msfssdk/components/controls';
+
+import { Fms, FmsUtils } from 'garminsdk/flightplan';
 
 import { ViewService } from '../../../../Shared/UI/ViewService';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
 import { PFDPageMenuDialog } from '../PFDPageMenuDialog';
 import { FixInfo } from './FixInfo';
 import { FacilityInfo, FixLegInfo, FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
@@ -13,24 +15,21 @@ import { FPLHeader } from '../../../../Shared/UI/FPL/FPLHeader';
 import { SelectAirwayInputData } from '../../../../Shared/UI/Controllers/SelectAirwayController';
 import { FPLDetailsController } from '../../../../Shared/UI/FPL/FPLDetailsController';
 import { DirectToInputData } from '../../../../Shared/UI/DirectTo/DirectTo';
-import { FmsUtils } from '../../../../Shared/FlightPlan/FmsUtils';
 import { ApproachNameDisplay } from '../../../../Shared/UI/FPL/ApproachNameDisplay';
-import { VNavDirector } from '../../../../Shared/Autopilot/Directors/VNavDirector';
 import type { MenuItemDefinition } from '../../../../Shared/UI/Dialogs/PopoutMenuItem';
 import { FPLUtils } from '../../../../Shared/UI/FPL/FPLUtils';
-import { UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
-import { ControlList } from '../../../../Shared/UI/ControlList';
+import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../Shared/UI/G1000UiControl';
 import { MessageDialogDefinition } from '../../../../Shared/UI/Dialogs/MessageDialog';
 import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
 
 /** The properties of an FPL detail section item. */
-export interface FPLSectionProps extends UiControl2Props {
+export interface FPLSectionProps extends G1000UiControlProps {
   /** The view service. */
   viewService: ViewService;
   /** Info about origin and destination facilities */
   facilities: FacilityInfo;
-  /** The index of the segment. */
-  segmentIndex: number;
+  /** The flight plan segment associated with this section. */
+  segment: FlightPlanSegment;
   /** The flight management system. */
   fms: Fms;
   /** The container to scroll when elements are highlighted. */
@@ -85,23 +84,14 @@ export interface FPLInteractive {
  * Descendents must remember to call super.onAfterRender() in their own
  * onAfterRender if they want the magic to happen.
  */
-export abstract class FPLSection extends UiControl2<FPLSectionProps> implements FPLInteractive {
+export abstract class FPLSection extends G1000UiControl<FPLSectionProps> implements FPLInteractive {
 
   /** A reference to the header line for the section. */
   protected headerRef = FSComponent.createRef<FPLHeader>();
   protected emptyRowRef = FSComponent.createRef<FPLEmptyRow>();
-  public segment: FlightPlanSegment | undefined;
-  public segmentIndex = Subject.create(this.props.segmentIndex);
+  public readonly segment: FlightPlanSegment = this.props.segment;
   protected legs = ArraySubject.create<Subject<FixLegInfo>>();
-  protected listRef = FSComponent.createRef<ControlList<Subject<FixLegInfo>>>();
-
-  /** @inheritdoc */
-  public onBeforeRender(): void {
-    if (this.props.fms.getFlightPlan().getSegment(this.segmentIndex.get())) {
-      this.segment = this.props.fms.getFlightPlan().getSegment(this.segmentIndex.get());
-    }
-    super.onBeforeRender();
-  }
+  protected listRef = FSComponent.createRef<G1000ControlList<Subject<FixLegInfo>>>();
 
   /** @inheritdoc */
   public onAfterRender(node: VNode): void {
@@ -116,7 +106,7 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
    * Gets the ref to the list component for the section.
    * @returns list ref
    */
-  public getListRef(): NodeReference<ControlList<Subject<FixLegInfo>>> {
+  public getListRef(): NodeReference<G1000ControlList<Subject<FixLegInfo>>> {
     return this.listRef;
   }
 
@@ -127,50 +117,12 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
   protected abstract getEmptyRowVisbility(): boolean;
 
   /**
-   * Resets all focus indexes when auto-scroll is engaged.
-   * @param direction Whether or not this section is before or after the active leg.
+   * Focuses the active leg.
    */
-  public resetAutoScrollIndexes(direction: 'after' | 'before'): void {
+  public focusActiveLeg(): void {
     const activeLegIndex = this.getActiveLegIndex();
     if (activeLegIndex > -1) {
-      for (let i = 0; i < this.listRef.instance.length; i++) {
-        const child = this.listRef.instance.getChildInstance<FixInfo>(i);
-        if (i < activeLegIndex && child !== null) {
-          child.setFocusedIndex(child.length - 1);
-        } else if (i >= activeLegIndex && child !== null) {
-          child.setFocusedIndex(0);
-        }
-      }
-
-      const listRefIndex = this.indexOf(this.listRef.instance);
-      if (listRefIndex > -1) {
-        this.setFocusedIndex(listRefIndex);
-      }
-      this.listRef.instance.setFocusedIndex(activeLegIndex);
-    } else {
-      if (direction === 'after') {
-        for (let i = 0; i < this.listRef.instance.length; i++) {
-          const child = this.listRef.instance.getChildInstance<FixInfo>(i);
-          child?.setFocusedIndex(0);
-        }
-
-        this.setFocusedIndex(0);
-        this.listRef.instance.setFocusedIndex(0);
-      } else {
-        for (let i = 0; i < this.listRef.instance.length; i++) {
-          const child = this.listRef.instance.getChildInstance<FixInfo>(i);
-          child?.setFocusedIndex(child.length - 1);
-        }
-
-        let lastChildIndex = this.length - 1;
-        let lastChild = this.getChild(lastChildIndex);
-        if (lastChild !== undefined && lastChild.isDisabled) {
-          lastChild = this.getChild(lastChildIndex--);
-        }
-
-        this.setFocusedIndex(lastChildIndex);
-        this.listRef.instance.setFocusedIndex(this.listRef.instance.length - 1);
-      }
+      this.listRef.instance.getChildInstance(activeLegIndex)?.focus(FocusPosition.First);
     }
   }
 
@@ -183,7 +135,7 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
       if (this.hasSelection() && !this.isHeaderSelected() && this.segment !== undefined) {
         // First try to load direct to existing
 
-        const segmentIndex = this.segmentIndex.get();
+        const segmentIndex = this.segment.segmentIndex;
         const segmentLegIndex = this.listRef.instance.getSelectedIndex();
         const directToInputData: DirectToInputData = {
           segmentIndex,
@@ -194,13 +146,7 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
           this.props.viewService.open('DirectTo', false).setInput(directToInputData);
         } else if (this.props.fms.canActivateLeg(segmentIndex, segmentLegIndex)) {
           // Try to activate leg
-
-          const selectedLeg = this.segment.legs[segmentLegIndex];
-          this.props.viewService.open('MessageDialog', true).setInput({ inputString: `Activate Leg to ${selectedLeg.name}?`, hasRejectButton: true }).onAccept.on((sender, accept) => {
-            if (accept) {
-              this.props.fms.activateLeg(this.segmentIndex.get(), this.listRef.instance.getSelectedIndex());
-            }
-          });
+          FPLUtils.openActivateLegDialog(this.props.fms, this.segment.segmentIndex, this.listRef.instance.getSelectedIndex(), this.props.viewService);
         } else {
           // Finally just open direct to menu with original input data (the direct to menu controller will attempt to
           // select a valid alternative DTO existing target)
@@ -222,15 +168,17 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
    * @returns True if the event was handled in this section.
    */
   public onVnavDirect(): boolean {
-    if (this.props.fms.autopilot !== undefined) {
-      const vnav = this.props.fms.autopilot.directors.vnavDirector as VNavDirector;
-      try {
-        if (vnav !== undefined && this.isFocused && this.hasSelection() && !this.isHeaderSelected() && this.segment !== undefined) {
+    if (this.props.fms.verticalPathCalculator !== undefined) {
 
-          //const segmentIndex = this.segmentIndex.get();
+      const verticalPlan = this.props.fms.verticalPathCalculator.getVerticalFlightPlan(Fms.PRIMARY_PLAN_INDEX);
+      const lateralPlan = this.props.fms.getPrimaryFlightPlan();
+
+      try {
+        if (verticalPlan !== undefined && lateralPlan !== undefined && this.isFocused && this.hasSelection() && !this.isHeaderSelected() && this.segment !== undefined) {
+
           const segmentLegIndex = this.listRef.instance.getSelectedIndex();
-          const globalLegIndex = this.segment.offset + segmentLegIndex;
-          const vnavDirectConstraint = vnav.getVerticalDirectConstraint(globalLegIndex);
+          const selectedGlobalLegIndex = this.segment.offset + segmentLegIndex;
+          const vnavDirectConstraint = VNavUtils.getConstraintForVerticalDirect(verticalPlan, lateralPlan.activeLateralLeg, selectedGlobalLegIndex);
 
           if (vnavDirectConstraint !== undefined) {
             this.props.viewService.open('MessageDialog', true).setInput({
@@ -239,7 +187,7 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
               confirmButtonText: 'ACTIVATE'
             }).onAccept.on((sender, accept) => {
               if (accept) {
-                return vnav.activateVerticalDirect(vnavDirectConstraint);
+                return this.props.fms.activateVerticalDirect(vnavDirectConstraint.index);
               }
             });
             return true;
@@ -271,7 +219,7 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
         {
           id: 'activate-leg',
           renderContent: (): VNode => <span>Activate Leg</span>,
-          isEnabled: isLegSelected && this.props.fms.canActivateLeg(this.props.segmentIndex, this.listRef.instance.getSelectedIndex()),
+          isEnabled: isLegSelected && this.props.fms.canActivateLeg(this.segment.segmentIndex, this.listRef.instance.getSelectedIndex()),
           action: (): void => {
             if (this.segment) {
               FPLUtils.openActivateLegDialog(this.props.fms, this.segment.segmentIndex, this.listRef.instance.getSelectedIndex(), this.props.viewService);
@@ -281,9 +229,9 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
         {
           id: 'load-airway',
           renderContent: (): VNode => <span>Load Airway</span>,
-          isEnabled: this.canAirwayInsert(this.segmentIndex.get(), isEmptyRowSelected),
+          isEnabled: this.canAirwayInsert(this.segment.segmentIndex, isEmptyRowSelected),
           action: (): void => {
-            const airwayInsertData = this.getAirwayInsertData(this.segmentIndex.get(), this.listRef.instance.getSelectedIndex(), this.isEmptyRowSelected());
+            const airwayInsertData = this.getAirwayInsertData(this.segment.segmentIndex, this.listRef.instance.getSelectedIndex(), this.isEmptyRowSelected());
             this.props.viewService.open('SelectAirway', true).setInput(airwayInsertData);
           }
         },
@@ -546,14 +494,14 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
     if (isVtf) {
       const activeLeg = this.legs.tryGet(activeLegIndex)?.get();
       if (activeLeg) {
-        vtfOffset = this.segmentIndex.get() === activeSegmentIndex
+        vtfOffset = this.segment.segmentIndex === activeSegmentIndex
           && BitFlags.isAny(activeLeg.legDefinition.flags, LegDefinitionFlags.VectorsToFinal) ? 2 : 0;
       }
     }
     for (let l = 0; l < this.legs.length; l++) {
       const leg = this.legs.tryGet(l);
       if (leg) {
-        if (this.segmentIndex.get() < activeSegmentIndex || (this.segmentIndex.get() === activeSegmentIndex && l < activeLegIndex - vtfOffset)) {
+        if (this.segment.segmentIndex < activeSegmentIndex || (this.segment.segmentIndex === activeSegmentIndex && l < activeLegIndex - vtfOffset)) {
           leg.apply({ legIsBehind: true });
         } else if (leg.get().legIsBehind) {
           leg.apply({ legIsBehind: false });
@@ -718,21 +666,23 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
     if (this.isHeaderSelected()) {
       return false;
     }
+
     const plan = this.props.fms.getFlightPlan();
+
     if (plan.getSegment(segmentIndex).segmentType !== FlightPlanSegmentType.Enroute) {
       return false;
     }
+
+    const segment = plan.getSegment(segmentIndex);
+    let segmentLegIndex: number;
+
     if (isEmptyRowSelected) {
-      const segment = plan.getSegment(segmentIndex);
-      if (segment.legs.length > 0) {
-        return true;
-      }
+      segmentLegIndex = segment.legs.length;
+    } else {
+      segmentLegIndex = this.listRef.instance.getSelectedIndex();
     }
-    const lastSegment = plan.getSegment(segmentIndex - 1);
-    if (lastSegment.legs.length < 1 || lastSegment.legs[lastSegment.legs.length - 1].leg.fixIcao[0] === ' ') {
-      return false;
-    }
-    return true;
+
+    return plan.getPrevLeg(segmentIndex, segmentLegIndex) !== null;
   }
 
   /**
@@ -773,27 +723,27 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
    * @param source The FixInfo element.
    * @returns True if the control handled the event.
    */
-  protected readonly onUpperKnobLegBase = (source: UiControl2): boolean => {
+  protected readonly onUpperKnobLegBase = (source: G1000UiControl): boolean => {
     const idx = (source instanceof FixInfo) ? this.listRef.instance.indexOf(source) : undefined;
     this.props.viewService.open('WptInfo', true)
       .onAccept.on((sender, fac: Facility) => {
-        const success = this.props.fms.insertWaypoint(this.segmentIndex.get(), fac, idx);
+        const success = this.props.fms.insertWaypoint(this.segment.segmentIndex, fac, idx);
         if (!success) {
           this.props.viewService.open('MessageDialog', true).setInput({ inputString: 'Invalid flight plan modification.' });
         }
       });
 
     return true;
-  }
+  };
 
   /**
    * Callback to onUpperKnob on legs for override by sections
    * @param sender The FixInfo element.
    * @returns True if the control handled the event.
    */
-  protected onUpperKnobLeg = (sender: UiControl2): boolean => {
+  protected onUpperKnobLeg = (sender: G1000UiControl): boolean => {
     return this.onUpperKnobLegBase(sender as FixInfo);
-  }
+  };
 
   /**
    * Callback for when CLR event happens on a leg.
@@ -812,11 +762,11 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
       const dialog = this.props.viewService.open('MessageDialog', true).setInput({ inputString: `Remove ${selectedLeg?.name}?`, hasRejectButton: true, closeOnAccept: false });
       dialog.onAccept.on((sender, accept) => {
         if (accept) {
-          const success = this.props.fms.removeWaypoint(this.segmentIndex.get(), idx);
+          const success = this.props.fms.removeWaypoint(this.segment.segmentIndex, idx);
 
           if (success) {
             if (isActive && isHoldOrPtLegType) {
-              this.props.fms.activateLeg(this.segmentIndex.get(), idx);
+              this.props.fms.activateLeg(this.segment.segmentIndex, idx);
             }
             if (isActive && !isHoldOrPtLegType && !Simplane.getIsGrounded()) {
               this.props.fms.createDirectToRandom(selectedLeg.leg.fixIcao);
@@ -832,16 +782,16 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
     }
 
     return true;
-  }
+  };
 
   /**
    * Callback to onClr on legs for override by sections
    * @param sender The FixInfo element.
    * @returns A boolean indicating if the CLR was handled.
    */
-  protected onClrLeg = (sender: UiControl2): boolean => {
+  protected onClrLeg = (sender: G1000UiControl): boolean => {
     return this.onClrLegBase(sender as FixInfo);
-  }
+  };
 
   /**
    * A callback which is called when a leg selection changes.
@@ -923,7 +873,7 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
     const plan = this.props.fms.getPrimaryFlightPlan();
     const directToData = plan.directToData;
 
-    if (this.segmentIndex.get() === directToData.segmentIndex && index === directToData.segmentLegIndex) {
+    if (this.segment.segmentIndex === directToData.segmentIndex && index === directToData.segmentLegIndex) {
       return index + FmsUtils.DTO_LEG_OFFSET;
     }
 
@@ -941,7 +891,7 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
       return;
     }
 
-    this.props.fms.setUserConstraint(this.segmentIndex.get(), this.getPlanSegmentLegIndex(index), alt);
+    this.props.fms.setUserConstraint(this.segment.segmentIndex, this.getPlanSegmentLegIndex(index), alt);
   }
 
   /**
@@ -956,8 +906,8 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
 
     index = this.getPlanSegmentLegIndex(index);
 
-    const underlyingConstraint = this.props.fms.hasConstraint(this.segmentIndex.get(), index);
-    const isUserConstraint = this.props.fms.isConstraintUser(this.segmentIndex.get(), index);
+    const underlyingConstraint = this.props.fms.hasConstraint(this.segment.segmentIndex, index);
+    const isUserConstraint = this.props.fms.isConstraintUser(this.segment.segmentIndex, index);
     if (underlyingConstraint !== undefined && isUserConstraint) {
       const altitudeNumber = NumberUnitSubject.createFromNumberUnit(UnitType.FOOT.createNumber(underlyingConstraint));
       const unit = Subject.create(UnitType.FOOT);
@@ -976,10 +926,10 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
 
       this.props.viewService.open('MessageDialog', true).setInput(input).onAccept.on((sender, accept) => {
         if (accept) {
-          this.props.fms.setUserConstraint(this.segmentIndex.get(), index);
+          this.props.fms.setUserConstraint(this.segment.segmentIndex, index);
           this.legs.get(index).apply({ isAdvisory: true });
         } else {
-          this.props.fms.setUserConstraint(this.segmentIndex.get(), index, undefined, true);
+          this.props.fms.setUserConstraint(this.segment.segmentIndex, index, undefined, true);
           this.legs.get(index).apply({ targetAltitude: UnitType.FOOT.convertTo(underlyingConstraint, UnitType.METER) });
         }
 
@@ -995,12 +945,29 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
 
       this.props.viewService.open('MessageDialog', true).setInput(input).onAccept.on((sender, accept) => {
         if (accept) {
-          this.props.fms.setUserConstraint(this.segmentIndex.get(), index);
+          this.props.fms.setUserConstraint(this.segment.segmentIndex, index);
           this.legs.get(index).apply({ isUserConstraint: false });
           this.legs.get(index).apply({ isAdvisory: true });
         }
       });
     }
+  }
+
+  /**
+   * Renders this section's list of flight plan legs.
+   * @returns This section's list of flight plan legs, as a VNode.
+   */
+  protected renderLegList(): VNode {
+    return (
+      <G1000ControlList
+        ref={this.listRef} data={this.legs}
+        renderItem={this.renderItem}
+        onItemSelected={this.onLegItemSelected.bind(this)}
+        hideScrollbar scrollContainer={this.props.scrollContainer}
+        reconcileChildBlur={(): BlurReconciliation => BlurReconciliation.Next}
+        requireChildFocus
+      />
+    );
   }
 
   /**
@@ -1018,7 +985,7 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
         onAltitudeChanged={(alt): void => this.onAltitudeSet(this.listRef.instance.getSelectedIndex(), alt)}
         onAltitudeRemoved={(): void => this.onAltitudeRemoved(this.listRef.instance.getSelectedIndex())} />;
     }
-  }
+  };
 
   /**
    * Renders the vertical direct vnode (when we need to pass HTML).
@@ -1026,12 +993,12 @@ export abstract class FPLSection extends UiControl2<FPLSectionProps> implements 
    * @returns A VNode to be rendered in the MessageDialog.
    */
   protected renderVerticalDirectDialogContent = (constraint: VNavConstraint): VNode => {
-    const altitude = UnitType.METER.convertTo(constraint.altitude, UnitType.FOOT).toFixed(0);
+    const altitude = UnitType.METER.convertTo(constraint.targetAltitude, UnitType.FOOT).toFixed(0);
 
     return (
       <div>
         Activate Vertical Ð to:<p />{altitude}FT at {constraint.name} ?
       </div>
     );
-  }
+  };
 }

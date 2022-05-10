@@ -3,13 +3,13 @@ import { EventBus } from 'msfssdk/data';
 import { APEvents, NavEvents } from 'msfssdk/instruments';
 import { FixTypeFlags, LegTurnDirection, LegType } from 'msfssdk/navigation';
 import { ActiveLegType, FlightPlanActiveLegEvent, FlightPlanner, FlightPlannerEvents } from 'msfssdk/flightplan';
-import { APAltitudeModes, APLateralModes, APVerticalModes, VNavAltCaptureType, VNavApproachGuidanceMode, VNavPathMode, VNavSimVarEvents } from 'msfssdk/autopilot';
+import { APAltitudeModes, APLateralModes, APVerticalModes, VNavAltCaptureType, ApproachGuidanceMode, VNavPathMode, VNavEvents } from 'msfssdk/autopilot';
 
-import { LNavSimVars } from '../../../../Shared/Autopilot/LNavSimVars';
-import { NavIndicatorController } from '../../../../Shared/Navigation/NavIndicatorController';
+import { DirectToState } from 'garminsdk/flightplan';
+import { LNavDataEvents, NavIndicatorController } from 'garminsdk/navigation';
+
 import { FmaLegIcon } from '../FmaLegIcon';
 import { WaypointAlerter } from '../WaypointAlerter';
-import { DirectToState } from '../../../../Shared/FlightPlan/Fms';
 import { G1000ControlEvents } from '../../../../Shared/G1000Events';
 import { FmaDisplaySlot } from './FmaDisplaySlot';
 import { FmaApSlot } from './FmaApSlot';
@@ -85,7 +85,7 @@ export class Fma extends DisplayComponent<FmaProps> {
 
   private vnavAltCapType = VNavAltCaptureType.None;
   private vnavPathMode = VNavPathMode.None;
-  private approachMode = VNavApproachGuidanceMode.None;
+  private approachMode = ApproachGuidanceMode.None;
 
   private lateralModeFailed = Subject.create<boolean>(false);
   private verticalModeFailed = Subject.create<boolean>(false);
@@ -95,37 +95,39 @@ export class Fma extends DisplayComponent<FmaProps> {
 
   private flightDirectorOn = false;
   private apMaster = Subject.create<boolean>(false);
+  private ydActive = Subject.create<boolean>(false);
   private fdNotInstalled = false;
+
+  private readonly apVsArrowDirectionIsUp = Subject.create(false);
+  private readonly apVsArrowIsVisible = Subject.create(false);
 
   /**
    * A callback called after the component renders.
    */
   public onAfterRender(): void {
-    if (this.apVerticalSpeedArrow.instance !== null) {
-      this.apVerticalSpeedArrow.instance.style.display = 'none';
-    }
-
     const ap = this.props.bus.getSubscriber<APEvents>();
-    const vnav = this.props.bus.getSubscriber<VNavSimVarEvents>();
+    const vnav = this.props.bus.getSubscriber<VNavEvents>();
     const fpl = this.props.bus.getSubscriber<FlightPlannerEvents>();
-    const lnav = this.props.bus.getSubscriber<LNavSimVars>();
+    const lnav = this.props.bus.getSubscriber<LNavDataEvents>();
     const g1000Events = this.props.bus.getSubscriber<G1000ControlEvents>();
 
     ap.on('ap_master_engage').handle((engaged) => { engaged && !this.fdNotInstalled ? this.apMaster.set(true) : null; });
     ap.on('ap_master_disengage').handle((disengaged) => { disengaged ? this.apMaster.set(false) : null; });
-    ap.on('flight_director_state').handle(this.onFdChange);
-    ap.on('vs_hold_fpm').handle((vs) => {
+    ap.on('ap_yd_engage').handle((engaged) => { engaged ? this.ydActive.set(true) : null; });
+    ap.on('ap_yd_disengage').handle((disengaged) => { disengaged ? this.ydActive.set(false) : null; });
+    ap.on('flight_director_is_active').whenChanged().handle(this.onFdChange);
+    ap.on('ap_vs_selected').withPrecision(0).handle((vs) => {
       this.selectedVs = vs;
       this.handleVerticalValueChanged();
     });
-    ap.on('flc_hold_knots').handle((flc) => {
+    ap.on('ap_ias_selected').whenChanged().handle((flc) => {
       this.selectedFLC = flc;
       this.handleVerticalValueChanged();
     });
 
-    vnav.on('vnavPathMode').whenChanged().handle(mode => this.onVNavUpdate(mode, this.vnavAltCapType, this.approachMode));
-    vnav.on('vnavAltCaptureType').whenChanged().handle(type => this.onVNavUpdate(this.vnavPathMode, type, this.approachMode));
-    vnav.on('vnavApproachMode').whenChanged().handle(mode => this.onVNavUpdate(this.vnavPathMode, this.vnavAltCapType, mode));
+    vnav.on('vnav_path_mode').whenChanged().handle(mode => this.onVNavUpdate(mode, this.vnavAltCapType, this.approachMode));
+    vnav.on('vnav_altitude_capture_type').whenChanged().handle(type => this.onVNavUpdate(this.vnavPathMode, type, this.approachMode));
+    vnav.on('gp_approach_mode').whenChanged().handle(mode => this.onVNavUpdate(this.vnavPathMode, this.vnavAltCapType, mode));
 
     fpl.on('fplActiveLegChange').handle((change) => {
       this.onLegChange(change);
@@ -139,10 +141,10 @@ export class Fma extends DisplayComponent<FmaProps> {
       this.onLegChange();
     });
 
-    lnav.on('lnavDis').whenChangedBy(0.1).handle((v) => {
+    lnav.on('lnavdata_waypoint_distance').whenChangedBy(0.1).handle((v) => {
       this.distanceSubject.set(v);
     });
-    lnav.on('lnavBrgMag').whenChangedBy(1).handle((v) => {
+    lnav.on('lnavdata_waypoint_bearing_mag').whenChangedBy(1).handle((v) => {
       this.bearingSubject.set(v);
     });
 
@@ -189,6 +191,9 @@ export class Fma extends DisplayComponent<FmaProps> {
       this.obsValue = value === 0 ? 360 : value;
       this.onLegChange();
     });
+
+    this.apVsArrowDirectionIsUp.sub(this.apVsArrowDirectionIsUpChangedHandler.bind(this), true);
+    this.apVsArrowIsVisible.sub(this.apVsArrowIsVisibleChangedHandler.bind(this), true);
   }
 
   /**
@@ -206,7 +211,7 @@ export class Fma extends DisplayComponent<FmaProps> {
         return 'ALT';
       case APVerticalModes.GS:
         return 'GS';
-      case APVerticalModes.VNAV:
+      case APVerticalModes.PATH:
         return 'VPTH';
       case APVerticalModes.GP:
         return 'GP';
@@ -227,14 +232,14 @@ export class Fma extends DisplayComponent<FmaProps> {
    * @returns the string to display on the FMA
    */
   private getVerticalArmedString(v: APVerticalModes): string {
-    if (this.autopilotModes.altitideCaptureArmed || this.autopilotModes.verticalActive === APVerticalModes.VNAV) {
+    if (this.autopilotModes.altitideCaptureArmed || this.autopilotModes.verticalActive === APVerticalModes.PATH) {
       const alt = this.autopilotModes.verticalAltitudeArmed;
       return alt === APAltitudeModes.ALTS ? 'ALTS' : alt === APAltitudeModes.ALTV ? 'ALTV' : 'ALT';
     }
     switch (v) {
       case APVerticalModes.ALT:
         return 'ALT';
-      case APVerticalModes.VNAV:
+      case APVerticalModes.PATH:
         if (this.vnavPathMode === VNavPathMode.PathArmed) {
           return 'VPTH';
         }
@@ -252,17 +257,17 @@ export class Fma extends DisplayComponent<FmaProps> {
   private getVerticalApproachArmedString(v: APVerticalModes): string {
     switch (v) {
       case APVerticalModes.GP:
-        if (this.autopilotModes.altitideCaptureArmed && this.autopilotModes.verticalArmed === APVerticalModes.VNAV) {
+        if (this.autopilotModes.altitideCaptureArmed && this.autopilotModes.verticalArmed === APVerticalModes.PATH) {
           return 'GP/V';
         }
         return 'GP';
       case APVerticalModes.GS:
-        if (this.autopilotModes.altitideCaptureArmed && this.autopilotModes.verticalArmed === APVerticalModes.VNAV) {
+        if (this.autopilotModes.altitideCaptureArmed && this.autopilotModes.verticalArmed === APVerticalModes.PATH) {
           return 'GS/V';
         }
         return 'GS';
       default:
-        if (this.autopilotModes.altitideCaptureArmed && this.autopilotModes.verticalArmed === APVerticalModes.VNAV) {
+        if (this.autopilotModes.altitideCaptureArmed && this.autopilotModes.verticalArmed === APVerticalModes.PATH) {
           return 'VPTH';
         }
         return ' ';
@@ -325,10 +330,26 @@ export class Fma extends DisplayComponent<FmaProps> {
    * @param type The new alt capture type.
    * @param approachMode The new approach mode.
    */
-  private onVNavUpdate(mode: VNavPathMode, type: VNavAltCaptureType, approachMode: VNavApproachGuidanceMode): void {
+  private onVNavUpdate(mode: VNavPathMode, type: VNavAltCaptureType, approachMode: ApproachGuidanceMode): void {
     this.vnavPathMode = mode;
     this.vnavAltCapType = type;
     this.approachMode = approachMode;
+  }
+
+  /**
+   * Callback called when the VS arrow direction changes.
+   * @param isUp True if the arrow is pointing up.
+   */
+  private apVsArrowDirectionIsUpChangedHandler(isUp: boolean): void {
+    this.apVerticalSpeedArrow.instance.setAttribute('transform', isUp ? 'rotate(0,6,10)' : 'rotate(180,6,10)');
+  }
+
+  /**
+   * Callback called when the VS arrow visibility changes.
+   * @param isVisible True if the arrow is visible.
+   */
+  private apVsArrowIsVisibleChangedHandler(isVisible: boolean): void {
+    this.apVerticalSpeedArrow.instance.classList.toggle('hide-element', !isVisible);
   }
 
   /**
@@ -340,24 +361,24 @@ export class Fma extends DisplayComponent<FmaProps> {
       this.verticalValueSubject.set(`${(vsValue)}`);
       this.verticalValueUnitSubject.set('FPM');
       if (this.selectedVs < -1) {
-        this.apVerticalSpeedArrow.instance.style.display = '';
-        this.apVerticalSpeedArrow.instance.setAttribute('transform', 'rotate(180,6,10)');
+        this.apVsArrowIsVisible.set(true);
+        this.apVsArrowDirectionIsUp.set(false);
       } else if (this.selectedVs > 1) {
-        this.apVerticalSpeedArrow.instance.style.display = '';
-        this.apVerticalSpeedArrow.instance.setAttribute('transform', 'rotate(0,6,10)');
+        this.apVsArrowIsVisible.set(true);
+        this.apVsArrowDirectionIsUp.set(true);
       } else {
-        this.apVerticalSpeedArrow.instance.style.display = 'none';
+        this.apVsArrowIsVisible.set(false);
       }
     } else if (this.autopilotModes.verticalActive === APVerticalModes.ALT || this.autopilotModes.verticalActive === APVerticalModes.CAP) {
       this.verticalValueSubject.set(`${(Math.round(this.autopilotModes.altitideCaptureValue))}`);
       this.verticalValueUnitSubject.set('FT');
-      this.apVerticalSpeedArrow.instance.style.display = 'none';
+      this.apVsArrowIsVisible.set(false);
     } else if (this.autopilotModes.verticalActive == APVerticalModes.FLC) {
       this.verticalValueSubject.set(`${(Math.round(this.selectedFLC))}`);
       this.verticalValueUnitSubject.set('KT');
-      this.apVerticalSpeedArrow.instance.style.display = 'none';
+      this.apVsArrowIsVisible.set(false);
     } else {
-      this.apVerticalSpeedArrow.instance.style.display = 'none';
+      this.apVsArrowIsVisible.set(false);
       this.verticalValueSubject.set('');
       this.verticalValueUnitSubject.set('');
     }
@@ -369,7 +390,14 @@ export class Fma extends DisplayComponent<FmaProps> {
    */
   private onFdChange = (fdState: boolean): void => {
     this.flightDirectorOn = fdState;
-    if (!this.flightDirectorOn) {
+    if (this.flightDirectorOn) {
+      this.lateralArmedModeSubject.set(this.autopilotModes.lateralArmed);
+      this.lateralActiveModeSubject.set(this.autopilotModes.lateralActive);
+      this.verticalActiveSubject.set(this.autopilotModes.verticalActive);
+      this.verticalArmedSubject.set(this.getVerticalArmedString(this.autopilotModes.verticalArmed));
+      this.verticalApproachArmedSubject.set(this.getVerticalApproachArmedString(this.autopilotModes.verticalApproachArmed));
+      this.handleVerticalValueChanged();
+    } else {
       this.lateralArmedModeSubject.set(APLateralModes.NONE);
       this.lateralActiveModeSubject.set(APLateralModes.NONE);
       this.verticalActiveSubject.set(APVerticalModes.NONE);
@@ -377,9 +405,9 @@ export class Fma extends DisplayComponent<FmaProps> {
       this.verticalApproachArmedSubject.set('');
       this.verticalValueSubject.set('');
       this.verticalValueUnitSubject.set('');
-      this.apVerticalSpeedArrow.instance.style.display = 'none';
+      this.apVsArrowIsVisible.set(false);
     }
-  }
+  };
 
   /**
    * A callback called when the flight plan changes.
@@ -425,30 +453,24 @@ export class Fma extends DisplayComponent<FmaProps> {
         fromWpt = `hdg ${hdg.toString().padStart(3, '0')}°`;
       }
 
-      if (this.toWptElement.instance !== null) {
-        if (this.toWptElement.instance.textContent !== toWpt) {
-          this.toWptElement.instance.textContent = toWpt;
-        }
+      if (this.toWptElement.instance.textContent !== toWpt) {
+        this.toWptElement.instance.textContent = toWpt;
       }
 
       if (this.obsActive) {
         fromWpt = `obs ${this.obsValue.toFixed(0).padStart(3, '0')}°`;
       }
 
-      if (this.fromWptElement.instance !== null) {
-        if (this.fromWptElement.instance.textContent !== fromWpt) {
-          this.fromWptElement.instance.textContent = fromWpt;
-        }
+      if (this.fromWptElement.instance.textContent !== fromWpt) {
+        this.fromWptElement.instance.textContent = fromWpt;
       }
 
-      if (this.iconComponentRef.instance !== null) {
-        if (this.obsActive) {
-          this.iconComponentRef.instance.updateFmaIcon(true, false, LegType.TF, LegTurnDirection.None);
-        } else if (toLeg !== undefined) {
-          this.iconComponentRef.instance.updateFmaIcon(true, isDirectTo, toLeg.leg.type, toLeg.leg.turnDirection);
-        } else {
-          this.iconComponentRef.instance.updateFmaIcon(false);
-        }
+      if (this.obsActive) {
+        this.iconComponentRef.instance.updateFmaIcon(true, false, LegType.TF, LegTurnDirection.None);
+      } else if (toLeg !== undefined) {
+        this.iconComponentRef.instance.updateFmaIcon(true, isDirectTo, toLeg.leg.type, toLeg.leg.turnDirection);
+      } else {
+        this.iconComponentRef.instance.updateFmaIcon(false);
       }
     }
   }
@@ -493,7 +515,7 @@ export class Fma extends DisplayComponent<FmaProps> {
           <div class='lateral-armed-mode'>{this.lateralArmedModeSubject}</div>
           <FmaDisplaySlot class='lateral-active-mode' armed={this.lateralArmedModeSubject} active={this.lateralActiveModeSubject} isFailed={this.lateralModeFailed} />
         </div>
-        <FmaApSlot isActive={this.apMaster} />
+        <FmaApSlot apActive={this.apMaster} ydActive={this.ydActive} />
         <div class="fma-ap-vertical-modes">
           <FmaDisplaySlot class='activeVerticalMode' armed={this.verticalArmedSubject} secondaryArmed={this.verticalApproachArmedSubject}
             active={this.verticalActiveSubject} isFailed={this.verticalModeFailed} />

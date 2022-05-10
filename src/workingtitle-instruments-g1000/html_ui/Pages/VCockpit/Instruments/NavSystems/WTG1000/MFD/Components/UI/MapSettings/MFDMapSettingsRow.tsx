@@ -2,6 +2,7 @@ import { ComponentProps, DisplayComponent, FSComponent, VNode } from 'msfssdk';
 import { UserSettingValueFilter } from 'msfssdk/settings';
 import { MapUserSettingTypes } from '../../../../Shared/Map/MapUserSettings';
 import { MapEnumSettingControl, MapEnumSettingControlProps, MapRangeSettingControl, MapRangeSettingControlProps, MapSettingControlProps, MapToggleSettingControl } from '../../../../Shared/UI/MapSettings/MapSettingControls';
+import { ViewService } from '../../../../Shared/UI/ViewService';
 
 import './MFDMapSettingsRow.css';
 
@@ -9,6 +10,8 @@ import './MFDMapSettingsRow.css';
  * Component props for MFDMapSettingsRow.
  */
 export interface MFDMapSettingsRowProps extends ComponentProps {
+  /** The view service. */
+  viewService: ViewService;
   /** The title of this row. */
   title: string;
 }
@@ -55,6 +58,7 @@ export class MFDMapSingleEnumSettingRow<K extends keyof MapUserSettingTypes> ext
   protected renderLeftControl(): VNode | null {
     return (
       <MapEnumSettingControl<K>
+        viewService={this.props.viewService}
         registerFunc={this.props.controlProps.registerFunc}
         settingManager={this.props.controlProps.settingManager}
         settingName={this.props.controlProps.settingName}
@@ -90,6 +94,7 @@ export class MFDMapToggleSettingRow
   protected renderLeftControl(): VNode | null {
     return (
       <MapToggleSettingControl<T>
+        viewService={this.props.viewService}
         registerFunc={this.props.toggleProps.registerFunc}
         settingManager={this.props.toggleProps.settingManager}
         settingName={this.props.toggleProps.settingName}
@@ -124,6 +129,7 @@ export class MFDMapToggleEnumSettingsRow<T extends keyof UserSettingValueFilter<
   protected renderRightControl(): VNode | null {
     return (
       <MapEnumSettingControl
+        viewService={this.props.viewService}
         registerFunc={this.props.enumProps.registerFunc}
         settingManager={this.props.enumProps.settingManager}
         settingName={this.props.enumProps.settingName}
@@ -157,6 +163,7 @@ export class MFDMapRangeSettingRow<R extends keyof UserSettingValueFilter<MapUse
   protected renderRightControl(): VNode | null {
     return (
       <MapRangeSettingControl
+        viewService={this.props.viewService}
         registerFunc={this.props.rangeProps.registerFunc}
         settingManager={this.props.rangeProps.settingManager}
         settingName={this.props.rangeProps.settingName}
@@ -191,6 +198,7 @@ export class MFDMapToggleRangeSettingsRow
   protected renderRightControl(): VNode | null {
     return (
       <MapRangeSettingControl
+        viewService={this.props.viewService}
         registerFunc={this.props.rangeProps.registerFunc}
         settingManager={this.props.rangeProps.settingManager}
         settingName={this.props.rangeProps.settingName}

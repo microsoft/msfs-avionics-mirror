@@ -1,11 +1,11 @@
-import { FSComponent, VNode, Subject, ComputedSubject, UnitType, NumberFormatter, NumberUnitSubject, Subscribable, NavMath } from 'msfssdk';
-import { AirportFacility, FacilityFrequencyType, ICAO } from 'msfssdk/navigation';
+import { FSComponent, VNode, Subject, ComputedSubject, UnitType, NumberUnitSubject, Subscribable, NavMath } from 'msfssdk';
+import { AirportFacility, FacilityFrequencyType, ICAO, FacilityWaypointCache } from 'msfssdk/navigation';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 
 import { NearbyAirport } from '../../../Shared/UI/Controllers/NearestStore';
 import { GenericControl } from '../../../Shared/UI/UIControls/GenericControl';
 import { UiControlGroup, UiControlGroupProps } from '../../../Shared/UI/UiControlGroup';
 import { WaypointIcon } from '../../../Shared/UI/Waypoint/WaypointIcon';
-import { FacilityWaypointCache } from '../../../Shared/Navigation/FacilityWaypointCache';
 import { NumberUnitDisplay } from '../../../Shared/UI/Common/NumberUnitDisplay';
 
 /**
@@ -69,7 +69,7 @@ export class NearestAirportItem extends UiControlGroup<NearestAirportItemProps> 
     } else {
       return 'VFR';
     }
-  })
+  });
 
   private readonly freqType = ComputedSubject.create(this.props.data.get().frequency, (v): string => {
     switch (v?.type) {
@@ -83,7 +83,7 @@ export class NearestAirportItem extends UiControlGroup<NearestAirportItemProps> 
       default:
         return '';
     }
-  })
+  });
 
   private readonly frequency = ComputedSubject.create(this.props.data.get().frequency, (v): string => {
     if (v?.freqMHz) {

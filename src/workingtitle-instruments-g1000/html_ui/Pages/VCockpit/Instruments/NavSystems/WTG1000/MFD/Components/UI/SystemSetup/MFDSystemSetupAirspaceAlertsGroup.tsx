@@ -1,4 +1,5 @@
-import { DisplayComponent, VNode, FSComponent, Subject, UnitType, NumberFormatter } from 'msfssdk';
+import { DisplayComponent, VNode, FSComponent, Subject, UnitType } from 'msfssdk';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
 import { ArrowToggle } from '../../../../Shared/UI/UIControls/ArrowToggle';
 import { GroupBox } from '../GroupBox';

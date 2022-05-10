@@ -1,22 +1,23 @@
 import { FSComponent, Subject, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
-import { FacilityLoader, FacilityRespository } from 'msfssdk/navigation';
+import { FacilityLoader, FacilityRepository } from 'msfssdk/navigation';
+import { FocusPosition } from 'msfssdk/components/controls';
 import { ViewService } from '../../../../Shared/UI/ViewService';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { MFDFPLDetails } from './MFDFPLDetails';
 import { GroupBox } from '../GroupBox';
 import { MFDFPLVNavProfile } from './MFDFPLVNavProfile';
 import { FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { MFDFPLWeather } from './MFDFPLWeather';
+import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
+import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
 
 import './MFDFPL.css';
-import { UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
-import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
 
 /**
  * Component props for MFDFPL.
  */
-export interface MFDFPLProps extends UiControl2Props {
+export interface MFDFPLProps extends G1000UiControlProps {
   /** An instance of the event bus. */
   bus: EventBus;
 
@@ -33,23 +34,26 @@ export interface MFDFPLProps extends UiControl2Props {
 /**
  * The FPL popup container encapsulates the actual popup logic.
  */
-export class MFDFPL extends UiControl2<MFDFPLProps> {
+export class MFDFPL extends G1000UiControl<MFDFPLProps> {
   private readonly fplDetailsRef = FSComponent.createRef<MFDFPLDetails>();
+  private readonly vnavProfileRef = FSComponent.createRef<MFDFPLVNavProfile>();
 
   private readonly selectionSub = Subject.create<FlightPlanSelection>(null);
 
   /** Called when the view is resumed. */
   public onViewResumed(): void {
-    if (this.fplDetailsRef.instance !== undefined) {
-      this.fplDetailsRef.instance.fplViewResumed();
-    }
+    this.fplDetailsRef.instance.fplViewResumed();
   }
 
   /** Called when the view is opened. */
   public onViewOpened(): void {
-    if (this.fplDetailsRef.instance !== undefined) {
-      this.fplDetailsRef.instance.fplViewOpened();
-    }
+    this.fplDetailsRef.instance.fplViewOpened();
+    this.vnavProfileRef.instance.resume();
+  }
+
+  /** Called when the view is closed. */
+  public onViewClosed(): void {
+    this.vnavProfileRef.instance.pause();
   }
 
   /** @inheritdoc */
@@ -57,9 +61,12 @@ export class MFDFPL extends UiControl2<MFDFPLProps> {
     this.selectionSub.set(null);
   }
 
-  /** Scrolls to the active leg in the flight plan. */
-  public resetAutoScroll(): void {
-    this.fplDetailsRef.instance.resetAutoScroll();
+  /**
+   * Scrolls to the active leg in the flight plan.
+   * @param focusActiveLeg Whether to focus the active leg.
+   */
+  public scrollToActiveLeg(focusActiveLeg: boolean): void {
+    this.fplDetailsRef.instance.scrollToActiveLeg(focusActiveLeg);
   }
 
   /** @inheritdoc */
@@ -82,12 +89,15 @@ export class MFDFPL extends UiControl2<MFDFPLProps> {
           ref={this.fplDetailsRef} bus={this.props.bus}
           viewService={this.props.viewService} fms={this.props.fms}
           selection={this.selectionSub} focus={this.props.focus}
+
+          // Focus the last focused control if scrolling in from the Active VNAV Profile box.
+          getFocusPositionOnScroll={(direction): FocusPosition => direction === 'backward' ? FocusPosition.MostRecent : FocusPosition.First}
         />
         <GroupBox title="Active VNV Profile">
-          <MFDFPLVNavProfile bus={this.props.bus} flightPlanner={this.props.fms.flightPlanner} />
+          <MFDFPLVNavProfile ref={this.vnavProfileRef} bus={this.props.bus} flightPlanner={this.props.fms.flightPlanner} />
         </GroupBox>
         <GroupBox title="Selected Waypoint Weather">
-          <MFDFPLWeather facLoader={new FacilityLoader(FacilityRespository.getRepository(this.props.bus))} fms={this.props.fms} selection={this.selectionSub} />
+          <MFDFPLWeather facLoader={new FacilityLoader(FacilityRepository.getRepository(this.props.bus))} fms={this.props.fms} selection={this.selectionSub} />
         </GroupBox>
         <div class="mfd-fpl-bottom-prompt">Press the "FPL" key to view the previous page</div>
       </div>

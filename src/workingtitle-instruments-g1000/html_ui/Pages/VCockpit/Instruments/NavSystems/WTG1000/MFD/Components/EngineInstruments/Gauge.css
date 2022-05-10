@@ -201,6 +201,53 @@
   font-size: 16px;
 }
 
+.eis .single_vert_container {
+  position: relative;
+  height: 130px;
+  width: 100%;
+}
+
+ .eis .single_vert_container .gauge_title {
+   font-size: 16px;
+   text-align: center;
+ }
+
+  .eis .single_vert_container .gauge_unit {
+   font-size: 14px;
+   text-align: center;
+ }
+
+ .eis .single_vert_container .gauge_body {
+   position: absolute;
+   left: 32px;
+ }
+
+.eis .single_vert_container .gauge_pointers {
+  position: absolute;
+  height: 82px;
+  top: 4px;
+  width: 125px;
+  left: 14px;
+  overflow: hidden;
+}
+
+.eis .single_vert_container .gauge_pointer {
+  position: absolute;
+  left: 20px;
+}
+
+.eis .single_vert_container .gauge_values {
+  position: absolute;
+  height: 30px;
+  top: 110px;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  align-items: baseline;
+  font-size: 18px;
+  text-align: center;
+}
+
 .eis .text_gauge_container {
   display: flex;
   justify-content: space-between;

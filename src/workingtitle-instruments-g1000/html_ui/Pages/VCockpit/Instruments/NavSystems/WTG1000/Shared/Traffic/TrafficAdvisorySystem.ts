@@ -1,14 +1,15 @@
-import { NumberUnitInterface, UnitFamily, UnitType } from 'msfssdk';
-import { ADCEvents, TrafficContact } from 'msfssdk/instruments';
+import { NumberUnitInterface, Subscribable, UnitFamily, UnitType } from 'msfssdk';
+import { TrafficContact } from 'msfssdk/instruments';
 import { AbstractTCASIntruder, AbstractTCASSensitivity, TCAS, TCASAlertLevel, TCASOperatingMode } from 'msfssdk/traffic';
-
-import { CDIScaleLabel, LNavSimVars } from '../Autopilot/LNavSimVars';
+import { CDIScaleLabel, LNavDataEvents } from 'garminsdk/navigation';
 import { TrafficOperatingModeSetting, TrafficUserSettings, TrafficUserSettingTypes } from './TrafficUserSettings';
 
 /**
  * Traffic Advisory System for the G1000.
  */
 export class TrafficAdvisorySystem extends TCAS<TASIntruder, TASSensitivity> {
+  private static readonly TA_ON_HYSTERESIS = 2000; // ms
+  private static readonly TA_OFF_HYSTERESIS = 8000; // ms
   private static readonly TAKEOFF_OPER_DELAY = 8000; // milliseconds
   private static readonly LANDING_STANDBY_DELAY = 24000; // milliseconds
 
@@ -18,39 +19,58 @@ export class TrafficAdvisorySystem extends TCAS<TASIntruder, TASSensitivity> {
 
   private operatingModeChangeTimer: NodeJS.Timeout | null = null;
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected createSensitivity(): TASSensitivity {
     return new TASSensitivity();
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public init(): void {
     super.init();
 
-    this.bus.getSubscriber<LNavSimVars>().on('lnavCdiScalingLabel').whenChanged().handle(label => { this.cdiScalingLabel = label; });
+    this.bus.getSubscriber<LNavDataEvents>().on('lnavdata_cdi_scale_label').whenChanged().handle(label => { this.cdiScalingLabel = label; });
 
     this.bus.getSubscriber<TrafficUserSettingTypes>().on('trafficOperatingMode').whenChanged().handle((value) => {
       this.operatingModeSub.set(value === TrafficOperatingModeSetting.Operating ? TCASOperatingMode.TAOnly : TCASOperatingMode.Standby);
     });
 
-    this.operatingModeSub.sub(() => this.cancelOperatingModeChange());
-    this.bus.getSubscriber<ADCEvents>().on('on_ground').whenChanged().handle(this.onGroundChanged.bind(this));
+    this.operatingModeSub.sub(this.cancelOperatingModeChange.bind(this));
+    this.ownAirplaneSubs.isOnGround.sub(this.onGroundChanged.bind(this));
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected createIntruderEntry(contact: TrafficContact): TASIntruder {
-    return new TASIntruder(contact);
+    return new TASIntruder(contact, this.simTime);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  protected updateIntruderAlertLevel(simTime: number, intruder: TASIntruder): void {
-    intruder.updateAlertLevel(simTime, this.isOwnAirplaneOnGround);
-  }
-
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected updateSensitivity(): void {
     // TODO: Add radar alt data for planes that have it
     this.sensitivity.update(this.ownAirplaneSubs.altitude.get(), this.cdiScalingLabel);
+  }
+
+  /** @inheritdoc */
+  protected canIssueTrafficAdvisory(simTime: number, intruder: TASIntruder): boolean {
+    if (this.ownAirplaneSubs.isOnGround.get()) {
+      return false;
+    }
+
+    if (intruder.alertLevel.get() !== TCASAlertLevel.TrafficAdvisory) {
+      const dt = simTime - intruder.taOffTime;
+      return dt < 0 || dt >= TrafficAdvisorySystem.TA_ON_HYSTERESIS;
+    }
+
+    return true;
+  }
+
+  /** @inheritdoc */
+  protected canCancelTrafficAdvisory(simTime: number, intruder: TASIntruder): boolean {
+    if (this.ownAirplaneSubs.isOnGround.get()) {
+      return true;
+    }
+
+    const dt = simTime - intruder.taOnTime;
+    return dt < 0 || dt >= TrafficAdvisorySystem.TA_OFF_HYSTERESIS;
   }
 
   /**
@@ -102,72 +122,29 @@ export class TrafficAdvisorySystem extends TCAS<TASIntruder, TASSensitivity> {
  * An intruder tracked by the the G1000 TAS.
  */
 class TASIntruder extends AbstractTCASIntruder {
-  private static readonly TA_ON_HYSTERESIS = 2000; // ms
-  private static readonly TA_OFF_HYSTERESIS = 8000; // ms
-
-  private readonly lastHorizontalSep = UnitType.NMILE.createNumber(0);
-  private readonly lastVerticalSep = UnitType.FOOT.createNumber(0);
-
-  private taOnTime = 0;
-  private taOffTime = 0;
+  public taOnTime = 0;
+  public taOffTime = 0;
 
   /**
-   * Updates this intruder's assigned alert level.
-   * @param simTime The current sim time.
-   * @param isOnGround Whether the own airplane is on the ground.
+   * Constructor.
+   * @param contact The traffic contact associated with this intruder.
+   * @param simTime A subscribable which provides the current sim time, as a UNIX timestamp in milliseconds.
    */
-  public updateAlertLevel(simTime: number, isOnGround: boolean): void {
-    if (!this.isPredictionValid) {
-      this.alertLevel.set(TCASAlertLevel.None);
-    }
+  constructor(contact: TrafficContact, private readonly simTime: Subscribable<number>) {
+    super(contact);
 
-    let isTA = false;
-    const currentTime = simTime;
-    const currentAlertLevel = this.alertLevel.get();
-    if (isOnGround) {
-      // suppress traffic advisories while own aircraft is on the ground
-      if (currentAlertLevel === TCASAlertLevel.TrafficAdvisory) {
-        this.taOffTime = currentTime;
-      }
-    } else if (this.tcaNorm <= 1) {
-      if (currentAlertLevel !== TCASAlertLevel.TrafficAdvisory) {
-        const dt = currentTime - this.taOffTime;
-        if (dt >= TASIntruder.TA_ON_HYSTERESIS) {
-          isTA = true;
-          this.taOnTime = currentTime;
-        }
-      } else {
-        isTA = true;
-      }
-    } else if (currentAlertLevel === TCASAlertLevel.TrafficAdvisory) {
-      const dt = currentTime - this.taOnTime;
-      if (dt >= TASIntruder.TA_OFF_HYSTERESIS) {
-        this.taOffTime = currentTime;
-      } else {
-        isTA = true;
-      }
-    }
-
-    if (isTA) {
-      this.alertLevel.set(TCASAlertLevel.TrafficAdvisory);
-    } else {
-      this.updateNonTAAlertLevel(simTime);
-    }
+    this.alertLevel.sub(this.onAlertLevelChanged.bind(this));
   }
 
   /**
-   * Updates this intruder's assigned alert level, assuming it does not quality for a traffic advisory.
-   * @param simTime The current sim time.
+   * Responds to changes in this intruder's alert level.
+   * @param alertLevel The new alert level.
    */
-  private updateNonTAAlertLevel(simTime: number): void {
-    this.predictSeparation(simTime, this.lastHorizontalSep, this.lastVerticalSep);
-    if (
-      this.lastHorizontalSep.number <= 6 // 6 nm
-      && this.lastVerticalSep.number <= 1200 // 1200 ft
-    ) {
-      this.alertLevel.set(TCASAlertLevel.ProximityAdvisory);
+  private onAlertLevelChanged(alertLevel: TCASAlertLevel): void {
+    if (alertLevel === TCASAlertLevel.TrafficAdvisory) {
+      this.taOnTime = this.simTime.get();
     } else {
-      this.alertLevel.set(TCASAlertLevel.None);
+      this.taOffTime = this.simTime.get();
     }
   }
 }
@@ -176,6 +153,7 @@ class TASIntruder extends AbstractTCASIntruder {
  * Sensitivity settings for the the G1000 TAS.
  */
 class TASSensitivity extends AbstractTCASSensitivity {
+  // TA sensitivity levels (seconds/NM/feet).
   private static readonly LEVELS = [
     {
       lookaheadTime: 20,
@@ -212,7 +190,15 @@ class TASSensitivity extends AbstractTCASSensitivity {
       protectedRadius: 1.1,
       protectedHeight: 1200
     }
-  ]
+  ];
+
+  /** @inheritdoc */
+  constructor() {
+    super();
+
+    this.parametersPA.protectedRadius.set(6, UnitType.NMILE);
+    this.parametersPA.protectedHeight.set(1200, UnitType.FOOT);
+  }
 
   /**
    * Updates the sensitivity level.
@@ -262,8 +248,8 @@ class TASSensitivity extends AbstractTCASSensitivity {
     }
 
     const parameters = TASSensitivity.LEVELS[level];
-    this.lookaheadTime.set(parameters.lookaheadTime);
-    this.protectedRadius.set(parameters.protectedRadius);
-    this.protectedHeight.set(parameters.protectedHeight);
+    this.parametersTA.lookaheadTime.set(parameters.lookaheadTime, UnitType.SECOND);
+    this.parametersTA.protectedRadius.set(parameters.protectedRadius, UnitType.NMILE);
+    this.parametersTA.protectedHeight.set(parameters.protectedHeight, UnitType.FOOT);
   }
 }

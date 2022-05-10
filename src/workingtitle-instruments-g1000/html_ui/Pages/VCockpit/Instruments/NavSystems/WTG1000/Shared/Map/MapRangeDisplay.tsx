@@ -1,4 +1,5 @@
-import { ComponentProps, DisplayComponent, FSComponent, NumberFormatter, NumberUnitInterface, Subject, Subscribable, Unit, UnitFamily, UnitType, VNode } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, NumberUnitInterface, Subject, Subscribable, Unit, UnitFamily, UnitType, VNode } from 'msfssdk';
+import { NumberFormatter } from 'msfssdk/graphics/text';
 import { NumberUnitDisplay } from '../UI/Common/NumberUnitDisplay';
 
 import './MapRangeDisplay.css';

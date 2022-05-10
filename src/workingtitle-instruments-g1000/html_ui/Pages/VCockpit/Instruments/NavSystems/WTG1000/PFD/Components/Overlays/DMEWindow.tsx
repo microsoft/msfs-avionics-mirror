@@ -1,8 +1,11 @@
-import { DisplayComponent, FSComponent, VNode, ComponentProps, Subject } from 'msfssdk';
-import { EventBus, ControlEvents } from 'msfssdk/data';
-import { RadioEvents, RadioType, FrequencyBank } from 'msfssdk/instruments';
-import { NavIndicatorController } from '../../../Shared/Navigation/NavIndicatorController';
-import { PFDUserSettings, PfdMapLayoutSettingMode } from '../../PFDUserSettings';
+import { ComponentProps, DisplayComponent, FSComponent, Subject, VNode } from 'msfssdk';
+import { ControlEvents, EventBus } from 'msfssdk/data';
+import { FrequencyBank, RadioEvents, RadioType } from 'msfssdk/instruments';
+
+import { NavIndicatorController } from 'garminsdk/navigation';
+
+import { PfdMapLayoutSettingMode, PFDUserSettings } from '../../PFDUserSettings';
+
 import './DMEWindow.css';
 
 /**
@@ -35,7 +38,7 @@ export class DMEWindow extends DisplayComponent<DMEWindowProps> {
     const control = this.props.bus.getSubscriber<ControlEvents>();
     control.on('dme_toggle').handle(this.updateDMEDisplay);
     const navcom = this.props.bus.getSubscriber<RadioEvents>();
-    navcom.on('setFrequency').handle((setFrequency) => {
+    navcom.on('set_frequency').handle((setFrequency) => {
       if (setFrequency.radio.radioType === RadioType.Nav && setFrequency.bank == FrequencyBank.Active) {
         const srcIndex = this.props.navIndicatorController.dmeSourceIndex.get();
         this.navSource.set(`NAV${srcIndex + 1}`);
@@ -95,7 +98,7 @@ export class DMEWindow extends DisplayComponent<DMEWindowProps> {
     } else {
       this.dmeElement.instance.style.display = 'none';
     }
-  }
+  };
 
   /**
    * Offsets the display to the left when the HSI map is active to prevent it from being obscured
@@ -107,7 +110,7 @@ export class DMEWindow extends DisplayComponent<DMEWindowProps> {
     } else {
       this.dmeElement.instance.classList.remove('DME-window-hsi-map');
     }
-  }
+  };
 
   /**
    * Renders the component.

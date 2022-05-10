@@ -15,7 +15,7 @@ export class InformationGroup extends DisplayComponent<any> {
   private readonly content = FSComponent.createRef<HTMLDivElement>();
   private readonly facilityPos = GeoPointSubject.createFromGeoPoint(new GeoPoint(0, 0));
   private readonly class = Subject.create<string>('');
-  private readonly magvar = Subject.create<number>(0)
+  private readonly magvar = Subject.create<number>(0);
 
   /**
    * Sets the facility to display in this group.

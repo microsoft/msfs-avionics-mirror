@@ -1,7 +1,7 @@
 import { FSComponent, VNode } from 'msfssdk';
 import { IntersectionFacility } from 'msfssdk/navigation';
 
-import { Fms } from '../../FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { FmsHEvent } from '../FmsHEvent';
 import { UiView, UiViewProps } from '../UiView';
 import { ContextMenuPosition } from '../Dialogs/ContextMenuDialog';
@@ -59,7 +59,7 @@ export abstract class SelectAirway<P extends SelectAirwayProps = SelectAirwayPro
   /** Goto and activate next select control. */
   protected gotoNextSelect = (): void => {
     this.scrollController.gotoNext();
-  }
+  };
 
   /**
    * A callback which is called when the Load action is executed.
@@ -77,6 +77,7 @@ export abstract class SelectAirway<P extends SelectAirwayProps = SelectAirwayPro
   protected renderAirwaySelectControl(dialogPosition?: ContextMenuPosition): VNode {
     return (
       <SelectControl<string>
+        viewService={this.props.viewService}
         onRegister={this.register} class="set-airway-airway-value" dialogPosition={dialogPosition}
         outerContainer={this.viewContainerRef} data={this.store.airways} buildMenuItem={this.controller.buildAirwayMenuItem}
         onItemSelected={this.controller.onAirwaySelected}
@@ -92,6 +93,7 @@ export abstract class SelectAirway<P extends SelectAirwayProps = SelectAirwayPro
   protected renderExitSelectControl(dialogPosition?: ContextMenuPosition): VNode {
     return (
       <SelectControl<IntersectionFacility>
+        viewService={this.props.viewService}
         onRegister={this.register} class="set-airway-exit-value" ref={this.exitSelectControlRef}
         dialogPosition={dialogPosition} outerContainer={this.viewContainerRef} nullSelectionText={this.controller.emptyListText}
         data={this.store.exits} onItemSelected={this.controller.onExitSelected} buildMenuItem={this.controller.buildExitMenuItem}

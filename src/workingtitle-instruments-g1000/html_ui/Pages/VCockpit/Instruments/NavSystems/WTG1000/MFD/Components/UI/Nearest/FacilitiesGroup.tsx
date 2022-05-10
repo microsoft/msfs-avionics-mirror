@@ -1,15 +1,25 @@
-import { FSComponent, GeoPoint, Subject, UnitType, VNode } from 'msfssdk';
-import { ControlList } from '../../../../Shared/UI/ControlList';
-import { UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
+import { FSComponent, GeoPoint, NavAngleSubject, NavAngleUnit, NumberUnitSubject, UnitType, VNode } from 'msfssdk';
 import { ICAO, NearestSubscription, Facility } from 'msfssdk/navigation';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { NumberFormatter } from 'msfssdk/graphics/text';
+import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../Shared/UI/G1000UiControl';
+import { ViewService } from '../../../../Shared/UI/ViewService';
+import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
+import { BearingDisplay } from '../../../../Shared/UI/Common/BearingDisplay';
+import { UnitsUserSettingManager } from '../../../../Shared/Units/UnitsUserSettings';
 
 import './FacilitiesGroup.css';
 
 /** Props on the FacilitiesGroup component. */
-export interface FacilitiesGroupProps<T extends Facility> extends UiControl2Props {
+export interface FacilitiesGroupProps<T extends Facility> extends G1000UiControlProps {
+
+  /** The view service. */
+  viewService: ViewService;
+
+  /** A user setting manager for measurement units. */
+  unitsSettingManager: UnitsUserSettingManager;
+
   /** The nearest facility subscription for this display group. */
-  data: NearestSubscription<T, string, string>;
+  data: NearestSubscription<T>;
 
   /** An event that fires when a facility is selected on this display. */
   onSelected: (facility: T | null) => void;
@@ -25,9 +35,8 @@ export interface FacilitiesGroupProps<T extends Facility> extends UiControl2Prop
  * A component that displays the facility selection pane of a MFD
  * nearest facilites page.
  */
-export class FacilitiesGroup<T extends Facility> extends UiControl2<FacilitiesGroupProps<T>> {
-
-  private readonly facilityList = FSComponent.createRef<ControlList<T>>();
+export class FacilitiesGroup<T extends Facility> extends G1000UiControl<FacilitiesGroupProps<T>> {
+  private readonly facilityList = FSComponent.createRef<G1000ControlList<T>>();
 
   private currentPosition = new GeoPoint(0, 0);
   private currentlySelected: FacilityItem<T> | undefined;
@@ -40,12 +49,22 @@ export class FacilitiesGroup<T extends Facility> extends UiControl2<FacilitiesGr
    */
   public buildNearestItem(data: T): VNode {
     return (
-      <FacilityItem<T> facility={data}
+      <FacilityItem<T>
+        viewService={this.props.viewService}
+        unitsSettingManager={this.props.unitsSettingManager}
+        facility={data}
         currentPosition={this.currentPosition}
-        onFocused={(c): void => this.onSelected(c as (FacilityItem<T> | null))}
-        onUnregistered={(c: UiControl2): void => { if (this.currentlySelected === c) { this.onSelected(null); } }}
+        onFocused={(c): void => {
+          this.onSelected(c as (FacilityItem<T> | null));
+        }}
+        onUnregistered={(c): void => {
+          if (this.currentlySelected === c) {
+            this.onSelected(null);
+          }
+        }}
         iconSource={this.props.iconSource}
-        innerKnobScroll />
+        innerKnobScroll
+      />
     );
   }
 
@@ -85,8 +104,8 @@ export class FacilitiesGroup<T extends Facility> extends UiControl2<FacilitiesGr
         });
 
       for (let i = 0; i < this.facilityList.instance.length; i++) {
-        const airportItem = this.facilityList.instance.getChild(i) as FacilityItem<T>;
-        airportItem.updateDistanceAndBearing(pos);
+        const airportItem = this.facilityList.instance.getChildInstance<FacilityItem<T>>(i);
+        airportItem?.updateDistanceAndBearing(pos);
       }
 
       this.facilityList.instance.updateOrder();
@@ -112,7 +131,7 @@ export class FacilitiesGroup<T extends Facility> extends UiControl2<FacilitiesGr
       <div class="groupbox">
         <div class="groupbox-title">{this.props.title}</div>
         <div class="groupbox-container">
-          <ControlList
+          <G1000ControlList
             innerKnobScroll
             class='mfd-nearest-facility-list'
             data={this.props.data}
@@ -126,7 +145,13 @@ export class FacilitiesGroup<T extends Facility> extends UiControl2<FacilitiesGr
 }
 
 /** Props on the FacilityItem component */
-export interface FacilityItemProps<T extends Facility> extends UiControl2Props {
+export interface FacilityItemProps<T extends Facility> extends G1000UiControlProps {
+  /** The view service. */
+  viewService: ViewService;
+
+  /** A user setting manager for measurement units. */
+  unitsSettingManager: UnitsUserSettingManager;
+
   /** The data to display on this nearest airports row. */
   facility: T;
 
@@ -141,18 +166,15 @@ export interface FacilityItemProps<T extends Facility> extends UiControl2Props {
  * A component that displays a row on the MFD nearest facilities
  * facility selection pane.
  */
-export class FacilityItem<T extends Facility> extends UiControl2<FacilityItemProps<T>> {
+export class FacilityItem<T extends Facility> extends G1000UiControl<FacilityItemProps<T>> {
 
-  private readonly bearing = Subject.create<string>('');
-  private readonly distanceString = Subject.create<string>('');
+  private readonly bearing = NavAngleSubject.createFromNavAngle(NavAngleUnit.create(false).createNumber(NaN));
+  private readonly distance = NumberUnitSubject.createFromNumberUnit(UnitType.GA_RADIAN.createNumber(NaN));
 
   private readonly arrowEl = FSComponent.createRef<HTMLDivElement>();
   private readonly icaoEl = FSComponent.createRef<HTMLDivElement>();
 
   private readonly facilityPos: GeoPoint;
-
-  /** The current distance to the facility. */
-  public distance = 0;
 
   /**
    * Creates an instance of an FacilityItem.
@@ -176,9 +198,8 @@ export class FacilityItem<T extends Facility> extends UiControl2<FacilityItemPro
     const bearing = pos.bearingTo(this.facilityPos);
     const distance = pos.distance(this.facilityPos);
 
-    this.bearing.set(bearing.toFixed(0).padStart(3, '0'));
-    this.distance = UnitType.GA_RADIAN.convertTo(distance, UnitType.METER);
-    this.distanceString.set(UnitType.GA_RADIAN.convertTo(distance, UnitType.NMILE).toFixed(1));
+    this.bearing.set(bearing, pos.lat, pos.lon);
+    this.distance.set(distance);
   }
 
   /**
@@ -190,14 +211,15 @@ export class FacilityItem<T extends Facility> extends UiControl2<FacilityItemPro
   }
 
   /** @inheritdoc */
-  public onFocused(): void {
+  protected onFocused(): void {
     this.icaoEl.instance.classList.add('highlight-select');
     this.props.onFocused && this.props.onFocused(this);
   }
 
   /** @inheritdoc */
-  public onBlurred(): void {
+  protected onBlurred(source: G1000UiControl): void {
     this.icaoEl.instance.classList.remove('highlight-select');
+    super.onBlurred(source);
   }
 
   /** @inheritdoc */
@@ -207,7 +229,7 @@ export class FacilityItem<T extends Facility> extends UiControl2<FacilityItemPro
 
   /** @inheritdoc */
   public onDirectTo(): boolean {
-    Fms.viewService.open('DirectTo').setInput({
+    this.props.viewService.open('DirectTo').setInput({
       icao: this.props.facility.icao
     });
 
@@ -225,11 +247,18 @@ export class FacilityItem<T extends Facility> extends UiControl2<FacilityItemPro
         </div>
         <div class='mfd-nearest-facility-icao' ref={this.icaoEl}>{ICAO.getIdent(this.props.facility.icao)}</div>
         <img class='mfd-nearest-facility-icon' src={this.props.iconSource(this.props.facility)} />
-        <div class='mfd-nearest-facility-bearing'>{this.bearing}°</div>
-        <div class='mfd-nearest-facility-distance'>
-          <span>{this.distanceString}</span>
-          <span class='mfd-nearest-facility-distance-units'>NM</span>
-        </div>
+        <BearingDisplay
+          value={this.bearing}
+          displayUnit={this.props.unitsSettingManager.navAngleUnits}
+          formatter={NumberFormatter.create({ precision: 1, pad: 3, nanString: '___' })}
+          class='mfd-nearest-facility-bearing'
+        />
+        <NumberUnitDisplay
+          value={this.distance}
+          displayUnit={this.props.unitsSettingManager.distanceUnitsLarge}
+          formatter={NumberFormatter.create({ precision: 0.1, maxDigits: 3, nanString: '__._' })}
+          class='mfd-nearest-facility-distance'
+        />
       </div>
     );
   }

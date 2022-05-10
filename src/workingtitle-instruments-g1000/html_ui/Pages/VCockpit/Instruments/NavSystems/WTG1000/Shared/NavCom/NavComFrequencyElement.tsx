@@ -8,7 +8,6 @@ import {
 } from 'msfssdk/instruments';
 import { AvionicsComputerSystemEvents } from '../Systems/AvionicsComputerSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../Systems/G1000AvionicsSystem';
-import { FailedBox } from '../UI/FailedBox';
 
 import './NavComFrequencyElement.css';
 
@@ -28,14 +27,14 @@ interface NavComFrequencyElementProps extends ComponentProps {
  * Representation of the active and standby frequencies of a nav or com radio.
  */
 export class NavComFrequencyElement extends DisplayComponent<NavComFrequencyElementProps> {
+    private containerRef = FSComponent.createRef<HTMLElement>();
     private selectorBorderElement = FSComponent.createRef<HTMLElement>();
     private selectorArrowElement = FSComponent.createRef<HTMLElement>();
     private activeFreq = FSComponent.createRef<HTMLElement>();
     private standbyFreq = FSComponent.createRef<HTMLElement>();
     private ident = FSComponent.createRef<HTMLElement>();
 
-    private readonly failedBox = FSComponent.createRef<FailedBox>();
-    private readonly contentEl = FSComponent.createRef<HTMLDivElement>();
+    private isFailed = false;
 
     /**
      * Set this frequency as the active selection visually.
@@ -53,9 +52,10 @@ export class NavComFrequencyElement extends DisplayComponent<NavComFrequencyElem
      */
     public onAfterRender(): void {
         const nav = this.props.bus.getSubscriber<RadioEvents>();
-        nav.on('setRadioState').handle(this.onUpdateState);
-        nav.on('setFrequency').handle(this.onUpdateFrequency);
-        nav.on('setIdent').handle(this.onUpdateIdent);
+        nav.on('set_radio_state').handle(this.onUpdateState);
+        nav.on('set_frequency').handle(this.onUpdateFrequency);
+        nav.on('set_ident').handle(this.onUpdateIdent);
+        nav.on('set_signal_strength').handle(this.onUpdateSignalStrength);
         if (this.props.position === 'left') {
             const navproc = this.props.bus.getSubscriber<NavEvents>();
             navproc.on('cdi_select').handle(this.onUpdateCdiSelect);
@@ -77,17 +77,28 @@ export class NavComFrequencyElement extends DisplayComponent<NavComFrequencyElem
     private onComputerStateChanged(state: AvionicsSystemStateEvent): void {
         if (state.index === this.props.index) {
             if (state.previous === undefined && state.current !== AvionicsSystemState.Off) {
-                this.failedBox.instance.setFailed(false);
-                this.contentEl.instance.classList.remove('hidden-element');
+                this.setFailed(false);
             } else {
                 if (state.current === AvionicsSystemState.On) {
-                    this.failedBox.instance.setFailed(false);
-                    this.contentEl.instance.classList.remove('hidden-element');
+                    this.setFailed(false);
                 } else {
-                    this.failedBox.instance.setFailed(true);
-                    this.contentEl.instance.classList.add('hidden-element');
+                    this.setFailed(true);
                 }
             }
+        }
+    }
+
+    /**
+     * Sets if the display should be failed or not.
+     * @param isFailed True if failed, false otherwise.
+     */
+    private setFailed(isFailed: boolean): void {
+        if (isFailed) {
+            this.isFailed = true;
+            this.containerRef.instance.classList.add('failed-instr');
+        } else {
+            this.isFailed = false;
+            this.containerRef.instance.classList.remove('failed-instr');
         }
     }
 
@@ -114,7 +125,7 @@ export class NavComFrequencyElement extends DisplayComponent<NavComFrequencyElem
         if (this.ident.getOrDefault() !== null) {
             this.ident.instance.textContent = radio.ident;
         }
-    }
+    };
 
     /**
      * Handle a frequency change event.
@@ -136,7 +147,7 @@ export class NavComFrequencyElement extends DisplayComponent<NavComFrequencyElem
                 }
                 break;
         }
-    }
+    };
 
     /**
      * Handle an ident set event.
@@ -146,7 +157,25 @@ export class NavComFrequencyElement extends DisplayComponent<NavComFrequencyElem
         if (change.index == this.props.index && this.ident.getOrDefault() !== null) {
             this.ident.instance.textContent = change.ident;
         }
-    }
+    };
+
+    /**
+     * Handle a signal strength set event.
+     * @param strength The new strength.
+     */
+    private onUpdateSignalStrength = (strength: number): void => {
+        if (this.ident.getOrDefault() !== null) {
+            if (strength == 0) {
+                if (this.ident.instance.style.display !== 'none') {
+                    this.ident.instance.style.display = 'none';
+                }
+            } else {
+                if (this.ident.instance.style.display !== '') {
+                    this.ident.instance.style.display = '';
+                }
+            }
+        }
+    };
 
     /**
      * A callback called when the CDI Source Changes.
@@ -160,7 +189,7 @@ export class NavComFrequencyElement extends DisplayComponent<NavComFrequencyElem
             this.activeFreq.instance.classList.remove('navcom-green');
             this.ident.instance.classList.remove('navcom-green');
         }
-    }
+    };
 
     /**
      * Render NavCom Freq Element.
@@ -169,9 +198,9 @@ export class NavComFrequencyElement extends DisplayComponent<NavComFrequencyElem
     render(): VNode {
         if (this.props.position === 'left') {
             return (
-                <div class="navcom-frequencyelement-container">
-                    <FailedBox ref={this.failedBox} />
-                    <div ref={this.contentEl} class='hidden-element'>
+                <div class="navcom-frequencyelement-container" ref={this.containerRef}>
+                    <div class="failed-box" />
+                    <div class="navcom-frequencyelement-content">
                         <div ref={this.selectorBorderElement} id="navcomselect" class="navcom-selector left"></div>
                         <span class="navcom-freqstandby" ref={this.standbyFreq}></span>
                         <span ref={this.selectorArrowElement} class="navcom-arrows">
@@ -186,9 +215,9 @@ export class NavComFrequencyElement extends DisplayComponent<NavComFrequencyElem
             );
         } else {
             return (
-                <div class="navcom-frequencyelement-container">
-                    <FailedBox ref={this.failedBox} />
-                    <div ref={this.contentEl} class='hidden-element'>
+                <div class="navcom-frequencyelement-container" ref={this.containerRef}>
+                    <div class="failed-box" />
+                    <div class="navcom-frequencyelement-content">
                         <div ref={this.selectorBorderElement} id="navcomselect" class="navcom-selector right"></div>
                         <span class="navcom-freqactive" ref={this.activeFreq}></span>
                         <span ref={this.selectorArrowElement} class="navcom-arrows">

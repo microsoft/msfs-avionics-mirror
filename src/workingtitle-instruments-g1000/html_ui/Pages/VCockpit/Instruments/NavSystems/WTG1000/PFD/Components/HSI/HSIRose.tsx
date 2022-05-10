@@ -1,16 +1,24 @@
-import { FSComponent, DisplayComponent, VNode, ComponentProps } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { ADCEvents, APEvents, GNSSEvents, NavSourceType } from 'msfssdk/instruments';
+import {
+  ComponentProps, ComputedSubject, DisplayComponent, FSComponent, MappedSubject,
+  NumberUnit, NumberUnitSubject, Subject, UnitType, VNode
+} from 'msfssdk';
+import { LNavEvents } from 'msfssdk/autopilot';
+
+import { ConsumerSubject, EventBus } from 'msfssdk/data';
+import { NumberFormatter } from 'msfssdk/graphics/text';
+import { ADCEvents, APEvents, GNSSEvents, NavEvents, NavSourceId, NavSourceType } from 'msfssdk/instruments';
+
+import { LNavDataEvents, NavIndicatorController, NavSensitivity, ObsSuspModes } from 'garminsdk/navigation';
+
+import { AHRSSystemEvents } from '../../../Shared/Systems/AHRSSystem';
+import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
+import { NumberUnitDisplay } from '../../../Shared/UI/Common/NumberUnitDisplay';
+import { UnitsUserSettingManager } from '../../../Shared/Units/UnitsUserSettings';
 import { CompassRose } from './CompassRose';
 import { CourseNeedles } from './CourseNeedles';
 import { TurnRateIndicator } from './TurnRateIndicator';
-import { NavIndicatorController, ObsSuspModes } from '../../../Shared/Navigation/NavIndicatorController';
-import './HSIRose.css';
-import './HSIShared.css';
-import { FailedBox } from '../../../Shared/UI/FailedBox';
-import { AHRSSystemEvents } from '../../../Shared/Systems/AHRSSystem';
-import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
 
+import './HSIRose.css';
 
 /**
  * Properties on the HSI component.
@@ -20,6 +28,8 @@ interface HSIRoseProps extends ComponentProps {
   bus: EventBus;
   /** An instance of the HSI Controller. */
   controller: NavIndicatorController;
+  /** A settings manager for xtk distance unit. */
+  unitsSettingManager: UnitsUserSettingManager;
 }
 
 /**
@@ -37,10 +47,32 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
   private bearingPointer1Element = FSComponent.createRef<HTMLElement>();
   private bearingPointer2Element = FSComponent.createRef<HTMLElement>();
   private navSourceText = FSComponent.createRef<HTMLElement>();
-  private navSensitivity = FSComponent.createRef<HTMLElement>();
-  private susp = FSComponent.createRef<HTMLElement>();
   private trackBug = FSComponent.createRef<HTMLDivElement>();
-  private failedBox = FSComponent.createRef<FailedBox>();
+  private xtkInfo = FSComponent.createRef<HTMLSpanElement>();
+
+  private hdgValueSubj = ComputedSubject.create<number, string>(0, (value) => {
+    return `${value}°`.padStart(4, '0');
+  });
+
+  private readonly navSourceSubject = Subject.create<NavSourceId>(
+    { type: NavSourceType.Gps, index: 1 },
+    (a, b) => a.type === b.type && a.index === b.index
+  );
+  private readonly navSensitivitySubject = ComputedSubject.create<NavSensitivity | null, string>(null, (sens) => {
+    return sens === null ? '' : `${sens}`;
+  });
+
+  private xtkDistance = NumberUnitSubject.createFromNumberUnit(new NumberUnit(0, UnitType.NMILE));
+  private obsLabel = ComputedSubject.create(ObsSuspModes.NONE, (v): string => {
+    switch (v) {
+      case ObsSuspModes.OBS:
+        return 'OBS';
+      case ObsSuspModes.SUSP:
+        return 'SUSP';
+      default:
+        return '';
+    }
+  });
 
   private onGround = true;
   private isFailed = false;
@@ -51,7 +83,9 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
   public onAfterRender(): void {
     this.registerWithController();
 
-    this.props.bus.getSubscriber<GNSSEvents>().on('track_deg_magnetic')
+    const sub = this.props.bus.getSubscriber<GNSSEvents & LNavEvents & LNavDataEvents & NavEvents & ADCEvents & APEvents & AHRSSystemEvents>();
+
+    sub.on('track_deg_magnetic')
       .withPrecision(1)
       .handle((trk) => {
         if (!this.onGround) {
@@ -59,24 +93,61 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
         }
       });
 
-    const adc = this.props.bus.getSubscriber<ADCEvents>();
+    const isLNavSuspended = ConsumerSubject.create(sub.on('lnav_is_suspended'), false);
+    const isObsActive = ConsumerSubject.create(sub.on('gps_obs_active'), false);
 
-    adc.on('hdg_deg')
+    const obsMode = MappedSubject.create(
+      ([suspended, active]): ObsSuspModes => {
+        return active ? ObsSuspModes.OBS : suspended ? ObsSuspModes.SUSP : ObsSuspModes.NONE;
+      },
+      isLNavSuspended, isObsActive
+    );
+    obsMode.sub(mode => this.obsLabel.set(mode));
+
+    const xtkPrecision = this.props.unitsSettingManager.distanceUnitsLarge.map(unit => unit.convertTo(0.01, UnitType.NMILE));
+
+    const xtk = ConsumerSubject.create(sub.on('lnavdata_xtk'), 0);
+    const xtkRounded = xtk.map(xtkArg => {
+      const precision = xtkPrecision.get();
+      return Math.round(xtkArg / precision) * precision;
+    });
+    const xtkHandler = (xtkArg: number): void => this.xtkDistance.set(Math.abs(xtkArg));
+
+    const isXTKVisible = MappedSubject.create(
+      ([isSourceGps, isLNavTracking, xtkArg, cdiScale]): boolean => {
+        return isSourceGps && isLNavTracking && Math.abs(xtkArg) > cdiScale;
+      },
+      this.navSourceSubject.map(source => source.type === NavSourceType.Gps),
+      ConsumerSubject.create(sub.on('lnav_is_tracking'), false),
+      xtkRounded,
+      ConsumerSubject.create(sub.on('lnavdata_cdi_scale'), 0)
+    );
+
+    isXTKVisible.sub((isVisible) => {
+      if (isVisible) {
+        this.xtkInfo.instance.classList.remove('hidden');
+        xtkRounded.sub(xtkHandler);
+      } else {
+        this.xtkInfo.instance.classList.add('hidden');
+        xtkRounded.unsub(xtkHandler);
+      }
+    }, true);
+
+    sub.on('hdg_deg')
       .withPrecision(1)
       .handle(this.updateHeadingRotation.bind(this));
 
-    adc.on('delta_heading_rate')
+    sub.on('delta_heading_rate')
       .withPrecision(1)
       .handle(rate => this.turnRateIndicator.instance.setTurnRate(rate));
 
-    adc.on('on_ground').handle((v) => {
+    sub.on('on_ground').handle((v) => {
       this.onGround = v;
     });
 
-    this.props.bus.getSubscriber<APEvents>().on('heading_select')
+    sub.on('ap_heading_selected')
       .withPrecision(0)
       .handle(this.updateSelectedHeadingDisplay.bind(this));
-
 
     if (this.bearingPointer1Element.instance !== null) {
       this.bearingPointer1Element.instance.style.display = 'none';
@@ -90,10 +161,9 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
       this.compassRoseComponent.instance.setCircleVisible(false);
     }
 
-    this.failedBox.instance.setFailed(true);
-    this.props.bus.getSubscriber<AHRSSystemEvents>()
-      .on('ahrs_state')
-      .handle(this.onAhrsStateChanged.bind(this));
+    sub.on('ahrs_state').handle(this.onAhrsStateChanged.bind(this));
+
+    this.navSourceSubject.sub(this.handleNavSourceChanged.bind(this), true);
   }
 
   /**
@@ -119,28 +189,10 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
   private setFailed(isFailed: boolean): void {
     if (isFailed) {
       this.isFailed = true;
-      this.failedBox.instance.setFailed(true);
-
-      this.trackBug.instance.classList.add('hidden-element');
-      this.headingBugElement.instance.classList.add('hidden-element');
-      this.headingElement.instance.classList.add('hidden-element');
-
-      this.bearingPointer1Element.instance.classList.add('hidden-element');
-      this.bearingPointer2Element.instance.classList.add('hidden-element');
-
-      this.compassRoseComponent.instance.setFailed(true);
+      this.el.instance.classList.add('failed-instr');
     } else {
       this.isFailed = false;
-      this.failedBox.instance.setFailed(false);
-
-      this.trackBug.instance.classList.remove('hidden-element');
-      this.headingBugElement.instance.classList.remove('hidden-element');
-      this.headingElement.instance.classList.remove('hidden-element');
-
-      this.bearingPointer1Element.instance.classList.remove('hidden-element');
-      this.bearingPointer2Element.instance.classList.remove('hidden-element');
-
-      this.compassRoseComponent.instance.setFailed(false);
+      this.el.instance.classList.remove('failed-instr');
     }
   }
 
@@ -166,7 +218,8 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
     }
     if (this.headingElement.instance !== null) {
       const hdg = Math.round(hdgDeg) == 0 ? 360 : Math.round(hdgDeg);
-      this.headingElement.instance.textContent = `${hdg}°`.padStart(4, '0');
+      this.hdgValueSubj.set(hdg);
+      // this.headingElement.instance.textContent = `${hdg}°`.padStart(4, '0');
     }
     if (this.onGround) {
       this.updateTrackBug(hdgDeg);
@@ -217,10 +270,11 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
   }
 
   /**
-   * Updates the Source and Sensitivity Fields.
+   * Updates the HSI display when the nav source changes.
+   * @param source The new nav source.
    */
-  public updateSourceSensitivity(): void {
-    switch (this.props.controller.navStates[this.props.controller.activeSourceIndex].source.type) {
+  private handleNavSourceChanged(source: NavSourceId): void {
+    switch (source.type) {
       case NavSourceType.Nav:
         if (this.props.controller.navStates[this.props.controller.activeSourceIndex].isLocalizer) {
           this.navSourceText.instance.textContent = `LOC${this.props.controller.navStates[this.props.controller.activeSourceIndex].source.index}`;
@@ -228,24 +282,25 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
           this.navSourceText.instance.textContent = `VOR${this.props.controller.navStates[this.props.controller.activeSourceIndex].source.index}`;
         }
         this.navSourceText.instance.style.color = '#00ff00';
-        this.navSensitivity.instance.textContent = '';
+        // this.navSensitivity.instance.textContent = '';
+        this.navSensitivitySubject.set(null);
         break;
       case NavSourceType.Gps:
         this.navSourceText.instance.textContent = 'GPS';
         this.navSourceText.instance.style.color = 'magenta';
-        this.navSensitivity.instance.textContent = `${this.props.controller.activeSensitivity}`;
-        switch (this.props.controller.obsSuspMode) {
-          case ObsSuspModes.SUSP:
-            this.susp.instance.textContent = 'SUSP';
-            break;
-          case ObsSuspModes.OBS:
-            this.susp.instance.textContent = 'OBS';
-            break;
-          default:
-            this.susp.instance.textContent = '';
-            break;
-        }
         break;
+    }
+  }
+
+  /**
+   * Updates the Source and Sensitivity Fields.
+   */
+  public updateSourceSensitivity(): void {
+    const source = this.props.controller.navStates[this.props.controller.activeSourceIndex].source;
+    this.navSourceSubject.set(source);
+
+    if (source.type === NavSourceType.Gps) {
+      this.navSensitivitySubject.set(this.props.controller.activeSensitivity);
     }
   }
 
@@ -264,8 +319,8 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
     return (
       <div class="hsi-rose-container" ref={this.el}>
         <div class="hsi-rose-hdg-box">
-          <FailedBox ref={this.failedBox} />
-          <span ref={this.headingElement}>360</span>
+          <div class="failed-box" />
+          <span ref={this.headingElement}>{this.hdgValueSubj}</span>
         </div>
         <div ref={this.headingRotateElement} class="hsi-rose-rotating">
           <div class="hsi-track-bug" ref={this.trackBug}>
@@ -305,9 +360,16 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
           </div>
           <TurnRateIndicator hsiMap={false} ref={this.turnRateIndicator} />
           <div class="hsi-nav-source" ref={this.navSourceText}>VOR1</div>
-          <div class="hsi-nav-sensitivity" ref={this.navSensitivity}>ENR</div>
-          <div class="hsi-nav-susp" ref={this.susp}></div>
-          <div class="hsi-gps-xtrack"></div>
+          <div class="hsi-nav-sensitivity">{this.navSensitivitySubject}</div>
+          <div class="hsi-nav-susp">{this.obsLabel}</div>
+          <div class="hsi-gps-xtrack" ref={this.xtkInfo}>
+            <div class="hsi-gps-xtrack-title">XTK&nbsp;</div>
+            <NumberUnitDisplay
+              value={this.xtkDistance} displayUnit={this.props.unitsSettingManager.distanceUnitsLarge}
+              formatter={NumberFormatter.create({ precision: 0.01, maxDigits: 3 })}
+              class="hsi-gps-xtrack-number"
+            />
+          </div>
         </div>
       </div >
     );

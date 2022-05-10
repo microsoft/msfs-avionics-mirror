@@ -54,7 +54,7 @@ export interface AirportRunway {
   /** The longitude of the runway center. */
   readonly longitude: number;
 
-  /** The runway elevation. */
+  /** The runway elevation in meters. */
   readonly elevation: number;
 
   /** The heading of the runway. */
@@ -63,10 +63,10 @@ export interface AirportRunway {
   /** The runway designation. */
   readonly designation: string;
 
-  /** The length of the runway. */
+  /** The length of the runway in meters. */
   readonly length: number;
 
-  /** The width of the runwa. */
+  /** The width of the runway in meters. */
   readonly width: number;
 
   /** The runway surface type. */
@@ -634,7 +634,10 @@ export enum LegType {
   VR = 23,
 
   /** A leg representing a discontinuity in the flight plan. */
-  Discontinuity = 99
+  Discontinuity = 99,
+
+  /** A leg representing a discontinuity in the flight plan that does not prevent sequencing. */
+  ThruDiscontinuity = 100
 }
 
 /**
@@ -730,24 +733,41 @@ export enum RunwayLightingType {
  * Describes a selected one way runway.
  */
 export interface OneWayRunway {
-  /** The index of the parent runway in the airport facility */
+  /** The index of this runway's parent AirportRunway object in the airport facility. */
   readonly parentRunwayIndex: number;
-  /** The runway number of the selected runway (as the numerical value of the one way designation) */
+
+  /** The runway number of this runway (as the numerical value of the one way designation). */
   readonly direction: number;
-  /** The runwayDesignator of the runway */
+
+  /** The runwayDesignator of this runway. */
   readonly runwayDesignator: RunwayDesignator;
-  /** The Designaton of the runway */
+
+  /** The designation of this runway. */
   readonly designation: string;
-  /** Latitude of the Runway Selected */
+
+  /** The latitude of the start of this runway. */
   readonly latitude: number;
-  /** Longitude of the Runway Selected */
+
+  /** The longitude of the start of this runway. */
   readonly longitude: number;
-  /** Elevation of the Runway Selected in feet */
+
+  /** The elevation of this runway, at the displaced threshold, in meters. */
   readonly elevation: number;
-  /** Course of the Runway Selected in degrees */
+
+  /** The true course of this runway in degrees. */
   readonly course: number;
+
   /** The ILS frequency for this runway. */
   readonly ilsFrequency?: FacilityFrequency;
+
+  /** The total length of this runway, including displaced thresholds, in meters. */
+  readonly length: number;
+
+  /** The distance, in meters, between the start of this runway and the displaced threshold on that end. */
+  readonly startThresholdLength: number;
+
+  /** The distance, in meters, between the end of this runway and the displaced threshold on that end. */
+  readonly endThresholdLength: number;
 }
 
 export enum AirportPrivateType {
@@ -809,7 +829,7 @@ export type FacilityTypeMap = {
 }
 
 export enum FacilitySearchType {
-  None,
+  All,
   Airport,
   Intersection,
   Vor,
@@ -817,6 +837,17 @@ export enum FacilitySearchType {
   Boundary,
   User
 }
+
+/**
+ * All of the FacilitySearchTypes except for Boundary, because it does not have a lat lon
+ */
+export type FacilitySearchTypeLatLon =
+  FacilitySearchType.All |
+  FacilitySearchType.Airport |
+  FacilitySearchType.Intersection |
+  FacilitySearchType.Vor |
+  FacilitySearchType.Ndb |
+  FacilitySearchType.User;
 
 /**
  * Results from the completion of a nearest facilities search.
@@ -1180,6 +1211,15 @@ export class ICAO {
       default:
         throw new Error(`ICAO ${icao} has unknown type: ${icao[0]}`);
     }
+  }
+
+  /**
+   * Returns the ident of the icao's associated airport. (ex. for terminal waypoints)
+   * @param icao The icao to get the airport ident for.
+   * @returns The airport ident.
+   */
+  public static getAssociatedAirportIdent(icao: string): string {
+    return icao.substr(3, 4).trim();
   }
 
   /**

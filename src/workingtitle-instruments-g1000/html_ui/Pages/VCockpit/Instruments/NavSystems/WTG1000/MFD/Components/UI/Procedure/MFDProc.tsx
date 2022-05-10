@@ -1,7 +1,6 @@
 import { ArraySubject, FSComponent, Subject, VNode } from 'msfssdk';
 import { AirportFacility, ApproachProcedure, FacilityType, ICAO } from 'msfssdk/navigation';
-import { FmsUtils } from '../../../../Shared/FlightPlan/FmsUtils';
-import { Fms, ProcedureType } from '../../../../Shared/FlightPlan/Fms';
+import { Fms, ProcedureType, FmsUtils } from 'garminsdk/flightplan';
 import { MenuItemDefinition, PopoutMenuItem } from '../../../../Shared/UI/Dialogs/PopoutMenuItem';
 import { List } from '../../../../Shared/UI/List';
 import { GroupBox } from '../GroupBox';
@@ -173,7 +172,7 @@ export class MFDProc extends UiView<MFDProcProps> {
    */
   protected renderItem = (d: MenuItemDefinition, registerFn: (ctrl: UiControl) => void): VNode => {
     return <PopoutMenuItem onRegister={registerFn} parent={this} def={d} />;
-  }
+  };
 
   /**
    * Renders the component.

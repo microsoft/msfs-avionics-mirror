@@ -1,6 +1,6 @@
 import { FSComponent, VNode } from 'msfssdk';
-import { FacilityType, IntersectionFacility } from 'msfssdk/navigation';
-import { FacilityWaypoint } from '../../../../../Shared/Navigation/Waypoint';
+import { FacilityType, FacilityWaypoint, IntersectionFacility } from 'msfssdk/navigation';
+
 import { InformationGroup, ReferenceVorGroup } from '../../Nearest/Intersections';
 import { FacilityGroup } from '../FacilityGroup';
 import { MFDInformationPage } from '../MFDInformationPage';
@@ -36,7 +36,7 @@ export class MFDIntersectionInformationPage extends MFDInformationPage {
         <FacilityGroup bus={this.props.bus} facilityLoader={this.props.facilityLoader} facilityType={FacilityType.Intersection}
           viewService={this.props.viewService} title='Intersection' onSelected={this.onSelected.bind(this)} ref={this.facilityGroup} />
         <InformationGroup ref={this.informationGroup} />
-        <ReferenceVorGroup ref={this.referenceVorGroup} />
+        <ReferenceVorGroup ref={this.referenceVorGroup} unitsSettingManager={this.unitsSettingManager} />
       </>
     );
   }

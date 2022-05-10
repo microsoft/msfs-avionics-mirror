@@ -1,11 +1,11 @@
 import { MapModel } from 'msfssdk/components/map';
+import { AirportSize } from 'msfssdk/navigation';
 import { UserSettingManager } from 'msfssdk/settings';
-import { AirportSize } from '../../Navigation/Waypoint';
 
 import { MapWaypointsLayerModules } from '../Layers/MapWaypointsLayer';
+import { MapUserSettingTypes } from '../MapUserSettings';
 import { MapDeclutterMode, MapDeclutterModule } from '../Modules/MapDeclutterModule';
 import { MapSymbolVisController } from './MapSymbolVisController';
-import { MapUserSettingTypes } from '../MapUserSettings';
 
 /**
  * Modules required for MapTerrainController.

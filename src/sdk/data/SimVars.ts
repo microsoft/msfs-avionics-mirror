@@ -3,6 +3,7 @@
  */
 export enum SimVarValueType {
     Number = 'number',
+    Percent = 'percent',
     Degree = 'degrees',
     Knots = 'knots',
     Feet = 'feet',
@@ -23,13 +24,17 @@ export enum SimVarValueType {
     Farenheit = 'farenheit',
     PSI = 'psi',
     GAL = 'gallons',
+    LBS = 'pounds',
     Hours = 'Hours',
     Volts = 'Volts',
     Amps = 'Amperes',
     Seconds = 'seconds',
     Enum = 'Enum',
     LLA = 'latlonalt',
-    MetersPerSecond = 'meters per second'
+    MetersPerSecond = 'meters per second',
+    Mach = 'mach',
+    Pounds = 'pounds',
+    SlugsPerCubicFoot = 'slug per cubic foot'
 }
 
 /**

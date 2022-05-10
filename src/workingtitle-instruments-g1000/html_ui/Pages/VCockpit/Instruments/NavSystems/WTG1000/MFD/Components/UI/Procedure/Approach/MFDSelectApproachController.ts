@@ -1,8 +1,7 @@
 import { Subject } from 'msfssdk';
 import { FlightPathCalculator, FlightPlan } from 'msfssdk/flightplan';
 import { AirportFacility } from 'msfssdk/navigation';
-import { Fms, ProcedureType } from '../../../../../Shared/FlightPlan/Fms';
-import { TransitionListItem } from '../../../../../Shared/FlightPlan/FmsUtils';
+import { Fms, ProcedureType, TransitionListItem } from 'garminsdk/flightplan';
 import { FlightPlanFocus } from '../../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { SelectApproachController } from '../../../../../Shared/UI/Procedure/Approach/SelectApproachController';
 import { ApproachListItem } from '../../../../../Shared/UI/Procedure/Approach/SelectApproachStore';
@@ -37,9 +36,15 @@ export class MFDSelectApproachController extends SelectApproachController<MFDSel
     private readonly transitionPlan: Subject<FlightPlan | null>,
     private readonly focus: Subject<FlightPlanFocus>
   ) {
-    super(store, selectNextCb, fms, calculator, viewService, fplKey, true);
+    super(fms.bus, store, selectNextCb, fms, calculator, viewService, fplKey, true);
 
-    store.previewPlan.sub(plan => { procedurePlan.set(plan); }, true);
+    store.previewPlan.sub(plan => {
+      if (plan && plan === procedurePlan.get()) {
+        procedurePlan.notify();
+      } else {
+        procedurePlan.set(plan);
+      }
+    }, true);
     store.transitionPreviewPlan.sub(plan => { transitionPlan.set(plan); }, true);
     store.sequence.sub(this.onSequenceChanged.bind(this));
   }

@@ -24,7 +24,7 @@ export class Warning {
   /** Does this only fire once? */
   public readonly once?: boolean;
   /** If a one-shot, has this been triggered already? */
-  private _triggered: boolean
+  private _triggered: boolean;
   /** The event ID for this sound. */
   private _soundEventId?: Name_Z;
 

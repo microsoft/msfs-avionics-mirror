@@ -28,7 +28,7 @@ export class MapAutopilotModule {
 
     const subscriber = bus.getSubscriber<APEvents>();
 
-    this.selectedAltitudeConsumer = subscriber.on('alt_select').atFrequency(updateFreq);
+    this.selectedAltitudeConsumer = subscriber.on('ap_altitude_selected').atFrequency(updateFreq);
     this.selectedAltitudeConsumer.handle(this.apSelectedAltitudeHandler);
 
     this.isSyncing = true;

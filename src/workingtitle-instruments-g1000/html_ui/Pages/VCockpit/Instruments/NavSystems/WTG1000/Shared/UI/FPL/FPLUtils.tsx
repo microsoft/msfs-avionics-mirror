@@ -1,8 +1,7 @@
 import { BitFlags, FSComponent, VNode } from 'msfssdk';
 import { LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
 import { FixTypeFlags, LegType } from 'msfssdk/navigation';
-import { Fms } from '../../FlightPlan/Fms';
-import { FmsUtils } from '../../FlightPlan/FmsUtils';
+import { Fms, FmsUtils } from 'garminsdk/flightplan';
 import type { MessageDialog } from '../Dialogs/MessageDialog';
 import { ViewService } from '../ViewService';
 
@@ -68,7 +67,7 @@ export class FPLUtils {
           <div class='activate-leg-dialog-msg'>vtf {(course === 0 ? 360 : course).toString().padStart(3, '0')}°{arrow}{FPLUtils.getActivateLegDialogLegText(selectedLeg)}</div>
         );
       };
-    } else if (leg.leg.type === LegType.CF && (!prevLeg || [LegType.Discontinuity, LegType.FM, LegType.VM].includes(prevLeg.leg.type))) {
+    } else if (leg.leg.type === LegType.CF && (!prevLeg || [LegType.Discontinuity, LegType.ThruDiscontinuity, LegType.FM, LegType.VM].includes(prevLeg.leg.type))) {
       const course = Math.round(selectedLeg.leg.course);
       renderContent = (): VNode => {
         return (

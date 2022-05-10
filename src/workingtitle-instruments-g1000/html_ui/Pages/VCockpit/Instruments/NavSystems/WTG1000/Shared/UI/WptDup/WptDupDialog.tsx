@@ -1,12 +1,11 @@
 import { ArraySubject, FSComponent, Subject, VNode } from 'msfssdk';
-import { Facility, ICAO } from 'msfssdk/navigation';
+import { Facility, FacilityWaypoint, ICAO } from 'msfssdk/navigation';
 
-import { FacilityWaypoint } from '../../Navigation/Waypoint';
+import { FmsHEvent } from '../FmsHEvent';
 import { List } from '../List';
 import { UiControl, UiControlProps } from '../UiControl';
-import { FmsHEvent } from '../FmsHEvent';
-import { WptDupListItem } from './WptDupListItem';
 import { UiView, UiViewProps } from '../UiView';
+import { WptDupListItem } from './WptDupListItem';
 
 /**
  * A dialog for selecting from a list of duplicate waypoints.

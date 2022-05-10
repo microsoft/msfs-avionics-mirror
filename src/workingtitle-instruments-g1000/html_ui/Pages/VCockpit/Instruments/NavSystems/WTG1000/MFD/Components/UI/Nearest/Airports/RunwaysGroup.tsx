@@ -1,13 +1,19 @@
-import { FSComponent, Subject, UnitType, VNode } from 'msfssdk';
-import { AirportFacility, AirportRunway, RunwayUtils } from 'msfssdk/navigation';
-import { AirportFilter } from '../../../../../Shared/UI/Controllers/NearestStore';
-import { ScrollDirection, UiControl2, UiControl2Props } from '../../../../../Shared/UI/UiControl2';
+import { FSComponent, NumberUnitSubject, Subject, UnitType, VNode } from 'msfssdk';
+import { AirportFacility, AirportRunway, RunwaySurfaceCategory, RunwayUtils } from 'msfssdk/navigation';
+import { ScrollDirection } from 'msfssdk/components/controls';
+import { NumberFormatter } from 'msfssdk/graphics/text';
+import { NumberUnitDisplay } from '../../../../../Shared/UI/Common/NumberUnitDisplay';
+import { G1000UiControl, G1000UiControlProps } from '../../../../../Shared/UI/G1000UiControl';
+import { UnitsUserSettingManager } from '../../../../../Shared/Units/UnitsUserSettings';
 import { GroupBox } from '../../GroupBox';
 
 import './RunwaysGroup.css';
 
 /** Props on the RunwaysGroup control. */
-interface RunwaysGroupProps extends UiControl2Props {
+interface RunwaysGroupProps extends G1000UiControlProps {
+  /** A user setting manager for measurement units. */
+  unitsSettingManager: UnitsUserSettingManager;
+
   /** Whether or not the inner knob is the only scroll controller. */
   innerScrollOnly?: boolean;
 }
@@ -16,13 +22,13 @@ interface RunwaysGroupProps extends UiControl2Props {
  * A component that displays runway information on the MFD nearest
  * airports page.
  */
-export class RunwaysGroup extends UiControl2<RunwaysGroupProps> {
+export class RunwaysGroup extends G1000UiControl<RunwaysGroupProps> {
   private readonly content = FSComponent.createRef<HTMLDivElement>();
   private readonly runwaySelector = FSComponent.createRef<RunwaySelector>();
 
-  private surface = Subject.create<string>('');
-  private runwayWidth = Subject.create<string>('');
-  private runwayLength = Subject.create<string>('');
+  private readonly surface = Subject.create<string>('');
+  private readonly runwayWidth = NumberUnitSubject.createFromNumberUnit(UnitType.METER.createNumber(NaN));
+  private readonly runwayLength = NumberUnitSubject.createFromNumberUnit(UnitType.METER.createNumber(NaN));
 
   /**
    * Sets the currently displayed set of runways for the given airport.
@@ -37,15 +43,17 @@ export class RunwaysGroup extends UiControl2<RunwaysGroupProps> {
    * @param runway The runway that was selected.
    */
   private onRunwaySelected(runway: AirportRunway): void {
-    this.runwayLength.set(UnitType.METER.convertTo(runway.length - runway.primaryThresholdLength - runway.secondaryThresholdLength, UnitType.FOOT).toFixed(0));
-    this.runwayWidth.set(UnitType.METER.convertTo(runway.width, UnitType.FOOT).toFixed(0));
+    this.runwayLength.set(runway.length);
+    this.runwayWidth.set(runway.width);
 
-    if (AirportFilter.surfacesHard.includes(runway.surface)) {
-      this.surface.set('HARD SURFACE');
-    } else if (AirportFilter.surfacesSoft.includes(runway.surface)) {
-      this.surface.set('TURF SURFACE');
-    } else {
-      this.surface.set('');
+    const surface = RunwayUtils.getSurfaceCategory(runway);
+    switch (surface) {
+      case RunwaySurfaceCategory.Hard:
+        this.surface.set('HARD SURFACE'); break;
+      case RunwaySurfaceCategory.Soft:
+        this.surface.set('TURF SURFACE'); break;
+      default:
+        this.surface.set('');
     }
   }
 
@@ -57,7 +65,17 @@ export class RunwaysGroup extends UiControl2<RunwaysGroupProps> {
           <RunwaySelector onSelected={this.onRunwaySelected.bind(this)} ref={this.runwaySelector} innerKnobScroll innerScrollOnly={this.props.innerScrollOnly} />
           <div class='mfd-nearest-airport-runways-surface'>{this.surface}</div>
           <div class='mfd-nearest-airport-runways-dimensions'>
-            <span>{this.runwayLength}</span><span class='smaller'>FT</span> x <span>{this.runwayWidth}</span><span class='smaller'>FT</span>
+            <NumberUnitDisplay
+              value={this.runwayLength}
+              displayUnit={this.props.unitsSettingManager.distanceUnitsSmall}
+              formatter={NumberFormatter.create({ precision: 1, nanString: '______' })}
+            />
+            <div> x </div>
+            <NumberUnitDisplay
+              value={this.runwayWidth}
+              displayUnit={this.props.unitsSettingManager.distanceUnitsSmall}
+              formatter={NumberFormatter.create({ precision: 1, nanString: '______' })}
+            />
           </div>
         </div>
       </GroupBox>
@@ -68,7 +86,7 @@ export class RunwaysGroup extends UiControl2<RunwaysGroupProps> {
 /**
  * Properties on the RunwaySelector component.
  */
-interface RunwaySelectorProps extends UiControl2Props {
+interface RunwaySelectorProps extends G1000UiControlProps {
   /** A callback called when a runway is selected. */
   onSelected: (runway: AirportRunway) => void;
 
@@ -80,13 +98,13 @@ interface RunwaySelectorProps extends UiControl2Props {
  * A component that allows a user to select the runway to show information for
  * on the runway group of the MFD nearest airports page.
  */
-export class RunwaySelector extends UiControl2<RunwaySelectorProps> {
+export class RunwaySelector extends G1000UiControl<RunwaySelectorProps> {
   private readonly rightArrow = FSComponent.createRef<SVGPathElement>();
   private readonly leftArrow = FSComponent.createRef<SVGPathElement>();
   private readonly nameEl = FSComponent.createRef<HTMLDivElement>();
 
   private runwayIndex = 0;
-  private facility: AirportFacility | undefined
+  private facility: AirportFacility | undefined;
   private runwayName = Subject.create<string>('');
 
   /**
@@ -103,27 +121,27 @@ export class RunwaySelector extends UiControl2<RunwaySelectorProps> {
   }
 
   /** @inheritdoc */
-  protected onUpperKnobInc(source: UiControl2): boolean {
+  public onUpperKnobInc(): boolean {
     if (this.props.innerScrollOnly) {
       this.selectRunway(this.runwayIndex + 1);
       return true;
     }
 
-    return super.onUpperKnobInc(source);
+    return false;
   }
 
   /** @inheritdoc */
-  protected onUpperKnobDec(source: UiControl2): boolean {
+  public onUpperKnobDec(): boolean {
     if (this.props.innerScrollOnly) {
       this.selectRunway(this.runwayIndex - 1);
       return true;
     }
 
-    return super.onUpperKnobDec(source);
+    return false;
   }
 
   /** @inheritdoc */
-  public onScroll(direction: ScrollDirection): boolean {
+  protected onScroll(direction: ScrollDirection): boolean {
     if (!this.props.innerScrollOnly) {
       switch (direction) {
         case 'backward':
@@ -137,13 +155,13 @@ export class RunwaySelector extends UiControl2<RunwaySelectorProps> {
   }
 
   /** @inheritdoc */
-  public onFocused(source: UiControl2): void {
+  protected onFocused(source: G1000UiControl): void {
     this.nameEl.instance.classList.add('highlight-select');
     super.onFocused(source);
   }
 
   /** @inheritdoc */
-  public onBlurred(source: UiControl2): void {
+  protected onBlurred(source: G1000UiControl): void {
     this.nameEl.instance.classList.remove('highlight-select');
     super.onBlurred(source);
   }

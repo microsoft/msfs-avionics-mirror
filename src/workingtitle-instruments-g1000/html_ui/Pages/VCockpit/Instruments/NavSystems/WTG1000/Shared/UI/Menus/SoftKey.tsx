@@ -93,7 +93,7 @@ export class SoftKey extends DisplayComponent<SoftKeyProps> {
       this.valueEl.instance.style.display = 'none';
       this.labelEl.instance.classList.remove('text-value');
     }
-  }
+  };
 
   /**
    * Shows or hides the active/inactive indicator.
@@ -113,10 +113,18 @@ export class SoftKey extends DisplayComponent<SoftKeyProps> {
    */
   private indicate(isIndicating: boolean): void {
     if (isIndicating) {
-      this.showIndicator(true);
-      this.indicatorEl.instance.classList.add('indicating');
+      if (this.menuItem.disabled.get() === true) {
+        this.showIndicator(true);
+        this.indicatorEl.instance.classList.add('indicating-dim');
+        this.indicatorEl.instance.classList.remove('indicating');
+      } else {
+        this.showIndicator(true);
+        this.indicatorEl.instance.classList.remove('indicating-dim');
+        this.indicatorEl.instance.classList.add('indicating');
+      }
     } else {
       this.indicatorEl.instance.classList.remove('indicating');
+      this.indicatorEl.instance.classList.remove('indicating-dim');
     }
   }
 
@@ -130,7 +138,7 @@ export class SoftKey extends DisplayComponent<SoftKeyProps> {
     } else {
       this.rootEl.instance.classList.remove('text-disabled');
     }
-  }
+  };
 
   /**
    * Sets the css class to make the soft key look pressed.
@@ -138,7 +146,7 @@ export class SoftKey extends DisplayComponent<SoftKeyProps> {
   private setPressed = (): void => {
     this.rootEl.instance.classList.add('pressed');
     setTimeout(() => this.rootEl.instance.classList.remove('pressed'), 150);
-  }
+  };
 
   /**
    * Sets the text of this soft key.
@@ -146,7 +154,7 @@ export class SoftKey extends DisplayComponent<SoftKeyProps> {
    */
   private setLabel = (text: string): void => {
     this.labelEl.instance.textContent = text;
-  }
+  };
 
   /**
    * Sets whether or not the soft key is highlighted.
@@ -158,7 +166,7 @@ export class SoftKey extends DisplayComponent<SoftKeyProps> {
     } else {
       this.rootEl.instance.classList.remove('highlighted');
     }
-  }
+  };
 
   /**
    * Renders the component.

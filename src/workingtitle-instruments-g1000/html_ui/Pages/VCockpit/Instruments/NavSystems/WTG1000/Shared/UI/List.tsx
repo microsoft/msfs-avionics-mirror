@@ -1,5 +1,5 @@
 import { FSComponent, VNode, NodeReference, SubscribableArray, SubscribableArrayEventType } from 'msfssdk';
-import { ScrollUtils } from '../ScrollUtils';
+import { ScrollUtils } from 'msfssdk/graphics/layout';
 import { UiControl } from './UiControl';
 import { UiControlGroup, UiControlGroupProps } from './UiControlGroup';
 import { ScrollableControl } from './UiView';
@@ -99,7 +99,7 @@ export class List extends UiControlGroup<ListProps> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private registerListItem = (ctrl: UiControl): void => {
     // noop here, we will refresh all registrations on our own
-  }
+  };
 
   /**
    * Adds a list rendered dom node to the collection.

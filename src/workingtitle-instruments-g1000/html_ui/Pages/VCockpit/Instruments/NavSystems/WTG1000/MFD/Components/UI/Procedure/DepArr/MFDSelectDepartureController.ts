@@ -1,7 +1,7 @@
 import { BitFlags, Subject } from 'msfssdk';
 import { FlightPathCalculator, FlightPlan, LegDefinitionFlags } from 'msfssdk/flightplan';
 import { DepartureProcedure, FacilityType, ICAO, LegType } from 'msfssdk/navigation';
-import { Fms, ProcedureType } from '../../../../../Shared/FlightPlan/Fms';
+import { Fms, ProcedureType } from 'garminsdk/flightplan';
 import { FlightPlanFocus } from '../../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { MFDSelectDepArrController } from './MFDSelectDepArrController';
 import { MFDSelectDepartureStore } from './MFDSelectDepartureStore';
@@ -47,7 +47,7 @@ export class MFDSelectDepartureController extends MFDSelectDepArrController<Depa
         this.store.getOneWayRunway(selectedFacility, selectedProc, rwyTransIndex)
       );
     }
-  }
+  };
 
   /** @inheritdoc */
   protected getInitialICAO(): string | undefined {

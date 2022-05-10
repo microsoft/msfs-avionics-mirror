@@ -1,7 +1,17 @@
-import { GeoPoint } from '../utils/geo/GeoPoint';
-import { NavMath } from '../utils/geo/NavMath';
-import { UnitType } from '../utils/math/NumberUnit';
-import { AirportFacility, AirportRunway, ApproachProcedure, FacilityFrequency, OneWayRunway, RunwayFacility } from './Facilities';
+import { GeoPoint } from '../geo/GeoPoint';
+import { NavMath } from '../geo/NavMath';
+import { UnitType } from '../math/NumberUnit';
+import {
+  AirportFacility, AirportRunway, ApproachProcedure, FacilityFrequency,
+  OneWayRunway, RunwayFacility, RunwaySurfaceType
+} from './Facilities';
+
+export enum RunwaySurfaceCategory {
+  Unknown = 1 << 0,
+  Hard = 1 << 1,
+  Soft = 1 << 2,
+  Water = 1 << 3
+}
 
 /**
  * Methods for working with Runways and Runway Designations.
@@ -15,7 +25,48 @@ export class RunwayUtils {
     [RunwayDesignator.RUNWAY_DESIGNATOR_WATER]: 'W',
     [RunwayDesignator.RUNWAY_DESIGNATOR_A]: 'A',
     [RunwayDesignator.RUNWAY_DESIGNATOR_B]: 'B',
-  }
+  };
+
+  private static readonly SURFACES_HARD = [
+    RunwaySurfaceType.Asphalt,
+    RunwaySurfaceType.Bituminous,
+    RunwaySurfaceType.Brick,
+    RunwaySurfaceType.Concrete,
+    RunwaySurfaceType.Ice,
+    RunwaySurfaceType.Macadam,
+    RunwaySurfaceType.Paint,
+    RunwaySurfaceType.Planks,
+    RunwaySurfaceType.SteelMats,
+    RunwaySurfaceType.Tarmac,
+    RunwaySurfaceType.Urban,
+  ];
+
+  private static readonly SURFACES_SOFT = [
+    RunwaySurfaceType.Coral,
+    RunwaySurfaceType.Dirt,
+    RunwaySurfaceType.Forest,
+    RunwaySurfaceType.Grass,
+    RunwaySurfaceType.GrassBumpy,
+    RunwaySurfaceType.Gravel,
+    RunwaySurfaceType.HardTurf,
+    RunwaySurfaceType.LongGrass,
+    RunwaySurfaceType.OilTreated,
+    RunwaySurfaceType.Sand,
+    RunwaySurfaceType.Shale,
+    RunwaySurfaceType.ShortGrass,
+    RunwaySurfaceType.Snow,
+    RunwaySurfaceType.WrightFlyerTrack
+  ];
+
+  private static readonly SURFACES_WATER = [
+    RunwaySurfaceType.WaterFSX,
+    RunwaySurfaceType.Lake,
+    RunwaySurfaceType.Ocean,
+    RunwaySurfaceType.Pond,
+    RunwaySurfaceType.River,
+    RunwaySurfaceType.WasteWater,
+    RunwaySurfaceType.Water
+  ];
 
   protected static tempGeoPoint = new GeoPoint(0, 0);
 
@@ -45,7 +96,10 @@ export class RunwayUtils {
       course: 0,
       elevation: 0,
       latitude: 0,
-      longitude: 0
+      longitude: 0,
+      length: 0,
+      startThresholdLength: 0,
+      endThresholdLength: 0
     };
   }
 
@@ -66,18 +120,23 @@ export class RunwayUtils {
       let thresholdDistanceFromCenter = 0;
       let thresholdElevation = 0;
       let ilsFrequency;
+      let startThresholdLength = 0, endThresholdLength = 0;
       if (i === 0) {
         designator = runway.designatorCharPrimary;
         course = runway.direction;
         thresholdDistanceFromCenter = (runway.length / 2) - runway.primaryThresholdLength;
         thresholdElevation = runway.primaryElevation;
         ilsFrequency = runway.primaryILSFrequency.freqMHz === 0 ? undefined : runway.primaryILSFrequency;
+        startThresholdLength = runway.primaryThresholdLength;
+        endThresholdLength = runway.secondaryThresholdLength;
       } else if (i === 1) {
         designator = runway.designatorCharSecondary;
         course = NavMath.normalizeHeading(runway.direction + 180);
         thresholdDistanceFromCenter = (runway.length / 2) - runway.secondaryThresholdLength;
         thresholdElevation = runway.secondaryElevation;
         ilsFrequency = runway.secondaryILSFrequency.freqMHz === 0 ? undefined : runway.secondaryILSFrequency;
+        startThresholdLength = runway.secondaryThresholdLength;
+        endThresholdLength = runway.primaryThresholdLength;
       }
       const designation = RunwayUtils.getRunwayNameString(runwayNumber, designator);
 
@@ -94,7 +153,10 @@ export class RunwayUtils {
         elevation: thresholdElevation,
         latitude: coordinates.lat,
         longitude: coordinates.lon,
-        ilsFrequency
+        ilsFrequency,
+        length: runway.length,
+        startThresholdLength,
+        endThresholdLength
       });
     }
     return splitRunways;
@@ -328,5 +390,22 @@ export class RunwayUtils {
   public static getRunwayCode(number: number): string {
     const n = Math.round(number);
     return String.fromCharCode(48 + n + (n > 9 ? 7 : 0));
+  }
+
+  /**
+   * Gets the runway surface category from a runway based on its surface type.
+   * @param runway An {@link AirportRunway}.
+   * @returns The surface category of that runway.
+   */
+  public static getSurfaceCategory(runway: AirportRunway): RunwaySurfaceCategory {
+    if (this.SURFACES_HARD.includes(runway.surface)) {
+      return RunwaySurfaceCategory.Hard;
+    } else if (this.SURFACES_SOFT.includes(runway.surface)) {
+      return RunwaySurfaceCategory.Soft;
+    } else if (this.SURFACES_WATER.includes(runway.surface)) {
+      return RunwaySurfaceCategory.Water;
+    } else {
+      return RunwaySurfaceCategory.Unknown;
+    }
   }
 }

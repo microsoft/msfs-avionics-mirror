@@ -1,12 +1,13 @@
-import { FSComponent, DisplayComponent, ComponentProps, NodeReference, VNode } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, NodeReference, VNode } from 'msfssdk';
 import { NavSourceId, NavSourceType, ObsSetting, VorToFrom } from 'msfssdk/instruments';
+
+import { NavIndicatorController } from 'garminsdk/navigation';
+
 import { GpsNeedle } from './GpsNeedle';
 import { Nav1Needle } from './Nav1Needle';
 import { Nav2Needle } from './Nav2Needle';
-import { NavIndicatorController } from '../../../Shared/Navigation/NavIndicatorController';
 
 import './CourseNeedles.css';
-
 
 /**
  * The props on the CourseNeedles component.
@@ -142,7 +143,7 @@ export class CourseNeedles extends DisplayComponent<CourseNeedlesProps> {
           break;
       }
     }
-  }
+  };
 
   /**
    * Handles when the OBS setting is changed.
@@ -163,7 +164,7 @@ export class CourseNeedles extends DisplayComponent<CourseNeedlesProps> {
 
       setting.heading !== null && this.setNeedleRotations(setting.heading);
     }
-  }
+  };
 
   /**
    * Sets the default visibility of the course needles.

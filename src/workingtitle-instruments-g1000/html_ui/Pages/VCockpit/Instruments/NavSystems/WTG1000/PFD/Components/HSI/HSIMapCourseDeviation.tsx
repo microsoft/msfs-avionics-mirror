@@ -1,7 +1,7 @@
-import { FSComponent, DisplayComponent, ComponentProps, VNode, Subject, NavMath } from 'msfssdk';
-import { NavSourceType } from 'msfssdk/instruments';
-import { VorToFrom } from 'msfssdk/instruments';
-import { NavIndicatorController, NavSensitivity, ObsSuspModes } from '../../../Shared/Navigation/NavIndicatorController';
+import { ComponentProps, DisplayComponent, FSComponent, NavMath, Subject, VNode } from 'msfssdk';
+import { NavSourceType, VorToFrom } from 'msfssdk/instruments';
+
+import { NavIndicatorController, NavSensitivity, ObsSuspModes } from 'garminsdk/navigation';
 
 import './HSIMapCourseDeviation.css';
 

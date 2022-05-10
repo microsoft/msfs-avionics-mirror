@@ -1,7 +1,7 @@
 import { FSComponent, Subject, VNode } from 'msfssdk';
 import { ControlPublisher } from 'msfssdk/data';
 import { VorFacility } from 'msfssdk/navigation';
-import { UiControl2, UiControl2Props } from '../../../../../Shared/UI/UiControl2';
+import { G1000UiControl, G1000UiControlProps } from '../../../../../Shared/UI/G1000UiControl';
 import { GroupBox } from '../../GroupBox';
 
 import './FrequencyGroup.css';
@@ -9,7 +9,7 @@ import './FrequencyGroup.css';
 /**
  * Props on the FrequencyGroup component.
  */
-interface FrequencyGroupProps extends UiControl2Props {
+interface FrequencyGroupProps extends G1000UiControlProps {
   /** The control publisher to publish radio control events with. */
   controlPublisher: ControlPublisher;
 }
@@ -18,7 +18,7 @@ interface FrequencyGroupProps extends UiControl2Props {
  * A component that displays frequency information about a VOR on the
  * MFD nearest VORs page.
  */
-export class FrequencyGroup extends UiControl2<FrequencyGroupProps> {
+export class FrequencyGroup extends G1000UiControl<FrequencyGroupProps> {
 
   private readonly content = FSComponent.createRef<HTMLDivElement>();
   private readonly frequencyEl = FSComponent.createRef<HTMLDivElement>();
@@ -38,17 +38,19 @@ export class FrequencyGroup extends UiControl2<FrequencyGroupProps> {
   }
 
   /** @inheritdoc */
-  protected onFocused(): void {
+  protected onFocused(source: G1000UiControl): void {
     this.frequencyEl.instance.classList.add('highlight-select');
+    super.onFocused(source);
   }
 
   /** @inheritdoc */
-  protected onBlurred(): void {
+  protected onBlurred(source: G1000UiControl): void {
     this.frequencyEl.instance.classList.remove('highlight-select');
+    super.onFocused(source);
   }
 
   /** @inheritdoc */
-  protected onEnter(): boolean {
+  public onEnter(): boolean {
     this.props.controlPublisher.publishEvent('standby_nav_freq', this.frequency.get());
     return true;
   }

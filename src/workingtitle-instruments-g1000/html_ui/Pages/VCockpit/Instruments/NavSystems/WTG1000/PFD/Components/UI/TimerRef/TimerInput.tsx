@@ -27,7 +27,7 @@ export class TimerInput extends UiControl<TimerInputProps> {
     Subject.create(0),
     Subject.create(0),
     Subject.create(0),
-  ]
+  ];
 
   /**
    * A method called to get the current timer mode.
@@ -173,7 +173,7 @@ export class TimerInput extends UiControl<TimerInputProps> {
    */
   private register = (ctrl: NumberInput): void => {
     this.inputCtrls.push(ctrl);
-  }
+  };
 
   /** @inheritdoc */
   public onActivated(): void {

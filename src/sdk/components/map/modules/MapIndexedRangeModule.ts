@@ -1,5 +1,5 @@
-import { NumberUnitInterface, UnitFamily, UnitType } from '../../../utils/math/NumberUnit';
-import { Subject } from '../../../utils/Subject';
+import { NumberUnitInterface, UnitFamily, UnitType } from '../../../math/NumberUnit';
+import { Subject } from '../../../sub/Subject';
 import { MapRangeModule } from './MapRangeModule';
 
 /**
@@ -16,7 +16,6 @@ export class MapIndexedRangeModule extends MapRangeModule {
   /** @inheritdoc */
   constructor() {
     super();
-
     this.nominalRanges.sub(this.onNominalRangesChanged.bind(this));
   }
 

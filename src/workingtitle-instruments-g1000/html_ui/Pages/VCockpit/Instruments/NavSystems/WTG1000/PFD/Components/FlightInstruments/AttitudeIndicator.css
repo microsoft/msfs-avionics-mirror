@@ -57,4 +57,26 @@
   font-size: 26px;
   top: 150px;
   left: 24px;
+  display: none;
+}
+
+.ahrs-align-state .ahrs-align-msg {
+  display: block;
+}
+
+/* Fail States */
+.failed-instr .attitude-cutout {
+  display: none;
+}
+
+.failed-instr .turn-coordinator {
+  display: none;
+}
+
+.ahrs-align-state .attitude-cutout {
+  display: none;
+}
+
+.ahrs-align-state .turn-coordinator {
+  display: none;
 }

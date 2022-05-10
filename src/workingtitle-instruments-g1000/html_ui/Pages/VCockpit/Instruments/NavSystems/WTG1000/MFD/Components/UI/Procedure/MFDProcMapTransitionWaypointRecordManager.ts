@@ -1,9 +1,11 @@
 import { BitFlags } from 'msfssdk';
 import { FlightPlan, LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
-import { FacilityLoader, LegType } from 'msfssdk/navigation';
-import { FixIcaoWaypointsRecord, FlightPathTerminatorWaypointsRecord, FlightPlanLegWaypointsRecord, ProcedureTurnLegWaypointsRecord } from '../../../../Shared/Map/MapFlightPlanWaypointRecord';
+import { FacilityLoader, FacilityWaypointCache, LegType } from 'msfssdk/navigation';
+
+import {
+  FixIcaoWaypointsRecord, FlightPathTerminatorWaypointsRecord, FlightPlanLegWaypointsRecord, ProcedureTurnLegWaypointsRecord
+} from '../../../../Shared/Map/MapFlightPlanWaypointRecord';
 import { MapWaypointRenderer, MapWaypointRenderRole } from '../../../../Shared/Map/MapWaypointRenderer';
-import { FacilityWaypointCache } from '../../../../Shared/Navigation/FacilityWaypointCache';
 
 /**
  * Manages transition preview waypoint records.

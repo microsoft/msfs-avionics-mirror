@@ -1,6 +1,6 @@
 import { VNode, FSComponent } from 'msfssdk';
 import { Facility, IntersectionFacility, NearestIntersectionSubscription, NearestSubscription } from 'msfssdk/navigation';
-import { UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
+import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { WaypointIconImageCache } from '../../../../Shared/WaypointIconImageCache';
 import { InformationGroup, ReferenceVorGroup } from './Intersections';
 import { MFDNearestPage } from './MFDNearestPage';
@@ -14,7 +14,7 @@ export class MFDNearestIntersectionsPage extends MFDNearestPage<IntersectionFaci
   private readonly referenceVorGroup = FSComponent.createRef<ReferenceVorGroup>();
 
   /** @inheritdoc */
-  protected getSelectedGroup(): UiControl2<UiControl2Props> {
+  protected getSelectedGroup(): G1000UiControl<G1000UiControlProps> {
     return this.uiRoot.instance;
   }
 
@@ -29,7 +29,7 @@ export class MFDNearestIntersectionsPage extends MFDNearestPage<IntersectionFaci
   }
 
   /** @inheritdoc */
-  protected buildNearestSubscription(): NearestSubscription<IntersectionFacility, any, any> {
+  protected buildNearestSubscription(): NearestSubscription<IntersectionFacility> {
     return new NearestIntersectionSubscription(this.props.loader);
   }
 
@@ -60,7 +60,7 @@ export class MFDNearestIntersectionsPage extends MFDNearestPage<IntersectionFaci
     return (
       <>
         <InformationGroup ref={this.informationGroup} />
-        <ReferenceVorGroup ref={this.referenceVorGroup} />
+        <ReferenceVorGroup ref={this.referenceVorGroup} unitsSettingManager={this.unitsSettingManager} />
       </>
     );
   }

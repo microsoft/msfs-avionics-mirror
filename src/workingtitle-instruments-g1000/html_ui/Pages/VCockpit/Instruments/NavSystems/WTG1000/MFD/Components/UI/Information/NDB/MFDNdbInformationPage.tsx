@@ -1,6 +1,6 @@
 import { FSComponent, VNode } from 'msfssdk';
-import { FacilityType, NdbFacility } from 'msfssdk/navigation';
-import { FacilityWaypoint } from '../../../../../Shared/Navigation/Waypoint';
+import { FacilityType, FacilityWaypoint, NdbFacility } from 'msfssdk/navigation';
+
 import { FrequencyGroup, InformationGroup } from '../../Nearest/NDBs';
 import { FacilityGroup } from '../FacilityGroup';
 import { MFDInformationPage } from '../MFDInformationPage';

@@ -1,7 +1,7 @@
 import { DisplayComponent, FSComponent, VNode, ComponentProps, GeoPoint, GeoPointSubject, UnitType, NodeReference } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { GNSSEvents } from 'msfssdk/instruments';
-import { FacilityRespository, FacilitySearchType, NearestSearchSession } from 'msfssdk/navigation';
+import { FacilityRepository, FacilitySearchType, NearestSearchSession } from 'msfssdk/navigation';
 import {
   AirportFacility, FacilityType,
   NearestSearchResults, FacilityLoader
@@ -27,7 +27,7 @@ export class SvtAirportLabels extends DisplayComponent<SvtAirportLabelsProps> {
   public readonly planePos = GeoPointSubject.createFromGeoPoint(new GeoPoint(NaN, NaN));
   private pxPerDegY = SvtProjectionUtils.projectYawPitch(0, 0.1 * Avionics.Utils.DEG2RAD, 0, new Float64Array(2))[1] * 10;
 
-  public loader: FacilityLoader = new FacilityLoader(FacilityRespository.getRepository(this.props.bus));
+  public loader: FacilityLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
   private session?: NearestSearchSession<string, string>;
   public nearestFacilities = new Map<string, AirportFacility>();
   public facilityElements = new Map<string, NodeReference<SvtAirportLabel>>();

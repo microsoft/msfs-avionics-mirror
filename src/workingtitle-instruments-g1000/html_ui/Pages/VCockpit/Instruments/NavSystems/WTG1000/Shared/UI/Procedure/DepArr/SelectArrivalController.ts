@@ -1,7 +1,7 @@
 import { BitFlags } from 'msfssdk';
 import { FlightPathCalculator, LegDefinitionFlags } from 'msfssdk/flightplan';
 import { ArrivalProcedure, FacilityType, ICAO, LegType } from 'msfssdk/navigation';
-import { Fms, ProcedureType } from '../../../FlightPlan/Fms';
+import { Fms, ProcedureType } from 'garminsdk/flightplan';
 import { SelectDepArrController } from './SelectDepArrController';
 import { SelectDepArrStore } from './SelectDepArrStore';
 
@@ -41,7 +41,7 @@ export class SelectArrivalController<S extends SelectDepArrStore<ArrivalProcedur
         this.store.getOneWayRunway(selectedFacility, selectedProc, rwyTransIndex)
       );
     }
-  }
+  };
 
   /** @inheritdoc */
   protected getInitialICAO(): string | undefined {

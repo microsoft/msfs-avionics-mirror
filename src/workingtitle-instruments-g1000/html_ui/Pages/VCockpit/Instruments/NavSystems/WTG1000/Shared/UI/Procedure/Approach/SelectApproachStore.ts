@@ -1,6 +1,6 @@
-import { ArraySubject, BitFlags, ComputedSubject, Subject, SubscribableArray } from 'msfssdk';
+import { ArraySubject, BitFlags, ComputedSubject, Subject, SubscribableArray, Unit, UnitFamily, UnitType } from 'msfssdk';
 import { AdditionalApproachType, AirportFacility, ApproachProcedure, FacilityFrequency, FixTypeFlags, ICAO, OneWayRunway, RnavTypeFlags, RunwayUtils } from 'msfssdk/navigation';
-import { FmsUtils, TransitionListItem } from '../../../FlightPlan/FmsUtils';
+import { FmsUtils, TransitionListItem } from 'garminsdk/flightplan';
 import { SelectProcedureStore } from '../SelectProcedureStore';
 
 /**
@@ -19,6 +19,9 @@ export type ApproachListItem = {
  * A data store for SelectApproach.
  */
 export class SelectApproachStore extends SelectProcedureStore<ApproachListItem> {
+  public readonly minimumsUnit = ComputedSubject.create<Unit<UnitFamily.Distance>, string>(
+    UnitType.FOOT, (u) => { return u === UnitType.METER ? 'M' : 'FT'; }
+  );
   public readonly minimumsSubject = Subject.create(0);
   public readonly frequencySubject = ComputedSubject.create<FacilityFrequency | undefined, string>(undefined, (v): string => {
     if (v !== undefined && v.freqMHz) {
@@ -27,7 +30,7 @@ export class SelectApproachStore extends SelectProcedureStore<ApproachListItem> 
     return '___.__';
   });
 
-  public readonly minsToggleOptions = ['Off', 'BARO'] //, 'TEMP COMP'];
+  public readonly minsToggleOptions = ['Off', 'BARO']; //, 'TEMP COMP'];
 
   public readonly minimumsMode = Subject.create(0);
   public readonly selectedTransition = Subject.create<TransitionListItem | undefined>(undefined);
@@ -36,6 +39,7 @@ export class SelectApproachStore extends SelectProcedureStore<ApproachListItem> 
   public readonly transitions = this._transitions as SubscribableArray<TransitionListItem>;
 
   public readonly inputValue = Subject.create('');
+  public readonly currentMinFeet = Subject.create(0);
 
   /** @inheritdoc */
   protected onSelectedFacilityChanged(facility: AirportFacility | undefined): void {

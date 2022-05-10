@@ -1,8 +1,10 @@
-import { DmsFormatter } from '../../utils/DmsFormatter';
-import { GeoPointInterface } from '../../utils/geo/GeoPoint';
-import { Subscribable } from '../../utils/Subscribable';
-import { Subject } from '../../utils/Subject';
+import { DmsFormatter } from '../../graphics/text/DmsFormatter';
+import { GeoPointInterface } from '../../geo/GeoPoint';
+import { Subscribable } from '../../sub/Subscribable';
+import { Subject } from '../../sub/Subject';
 import { ComponentProps, DisplayComponent, FSComponent, VNode } from '../FSComponent';
+import { Subscription } from '../../sub/Subscription';
+import { SubscribableSet } from '../../sub/SubscribableSet';
 
 /**
  * Component props for WaypointComponent.
@@ -12,25 +14,25 @@ export interface LatLonDisplayProps extends ComponentProps {
   location: Subscribable<GeoPointInterface>;
 
   /** CSS class(es) to add to the root of the icon component. */
-  class?: string;
+  class?: string | SubscribableSet<string>;
 }
 
 /**
  * A component which displays lat/lon coordinates.
  */
 export class LatLonDisplay extends DisplayComponent<LatLonDisplayProps> {
-  private readonly locationChangedHandler = this.onLocationChanged.bind(this);
+  private locationSub?: Subscription;
 
-  private readonly latPrefixSub = Subject.create('');
-  private readonly latNumSub = Subject.create('');
-  private readonly lonPrefixSub = Subject.create('');
-  private readonly lonNumSub = Subject.create('');
+  private readonly latPrefix = Subject.create('');
+  private readonly latNum = Subject.create('');
+  private readonly lonPrefix = Subject.create('');
+  private readonly lonNum = Subject.create('');
 
   private readonly formatter = new DmsFormatter();
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onAfterRender(): void {
-    this.props.location.sub(this.locationChangedHandler, true);
+    this.locationSub = this.props.location.sub(this.onLocationChanged.bind(this), true);
   }
 
   /**
@@ -50,8 +52,8 @@ export class LatLonDisplay extends DisplayComponent<LatLonDisplayProps> {
    * @param location A location.
    */
   private setDisplay(location: GeoPointInterface): void {
-    this.setCoordSub(this.latPrefixSub, this.latNumSub, this.formatter.parseLat(location.lat), 2);
-    this.setCoordSub(this.lonPrefixSub, this.lonNumSub, this.formatter.parseLon(location.lon), 3);
+    this.setCoordSub(this.latPrefix, this.latNum, this.formatter.parseLat(location.lat), 2);
+    this.setCoordSub(this.lonPrefix, this.lonNum, this.formatter.parseLon(location.lon), 3);
   }
 
   /**
@@ -79,30 +81,30 @@ export class LatLonDisplay extends DisplayComponent<LatLonDisplayProps> {
    * Displays the blank default value.
    */
   private clearDisplay(): void {
-    this.latPrefixSub.set('_');
-    this.latNumSub.set('__°__.__\'');
-    this.lonPrefixSub.set('_');
-    this.lonNumSub.set('___°__.__\'');
+    this.latPrefix.set('_');
+    this.latNum.set('__°__.__\'');
+    this.lonPrefix.set('_');
+    this.lonNum.set('___°__.__\'');
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public render(): VNode {
     return (
       <div class={this.props.class ?? ''}>
         <div class='latlon-coord latlon-lat'>
-          <div class='latlon-prefix'>{this.latPrefixSub}</div>
-          <div class='latlon-num' style='white-space: nowrap;'>{this.latNumSub}</div>
+          <div class='latlon-prefix'>{this.latPrefix}</div>
+          <div class='latlon-num' style='white-space: nowrap;'>{this.latNum}</div>
         </div>
         <div class='latlon-coord latlon-lon'>
-          <div class='latlon-prefix'>{this.lonPrefixSub}</div>
-          <div class='latlon-num' style='white-space: nowrap;'>{this.lonNumSub}</div>
+          <div class='latlon-prefix'>{this.lonPrefix}</div>
+          <div class='latlon-num' style='white-space: nowrap;'>{this.lonNum}</div>
         </div>
       </div>
     );
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public destroy(): void {
-    this.props.location.unsub(this.locationChangedHandler);
+    this.locationSub?.destroy();
   }
 }

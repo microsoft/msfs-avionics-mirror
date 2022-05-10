@@ -1,4 +1,4 @@
-import { ArraySubject, SubscribableArray, SubscribableArrayEventType } from 'msfssdk';
+import { ArraySubject, SubscribableArray, SubscribableArrayHandler, Subscription } from 'msfssdk';
 import { EventBus, Publisher } from 'msfssdk/data';
 
 /**
@@ -92,19 +92,17 @@ export class AlertsSubject implements SubscribableArray<AlertMessage> {
   }
 
   /** @inheritdoc */
-  getArray(): readonly AlertMessage[] {
+  public getArray(): readonly AlertMessage[] {
     return this.data.getArray();
   }
 
   /** @inheritdoc */
-  sub(fn: (index: number, type: SubscribableArrayEventType, item: AlertMessage | readonly AlertMessage[] | undefined,
-    array: readonly AlertMessage[]) => void, initialNotify?: boolean): void {
-    return this.data.sub(fn, initialNotify);
+  public sub(handler: SubscribableArrayHandler<AlertMessage>, initialNotify = false, paused = false): Subscription {
+    return this.data.sub(handler, initialNotify, paused);
   }
 
   /** @inheritdoc */
-  unsub(fn: (index: number, type: SubscribableArrayEventType, item: AlertMessage | readonly AlertMessage[] | undefined,
-    array: readonly AlertMessage[]) => void): void {
-    return this.data.unsub(fn);
+  public unsub(handler: SubscribableArrayHandler<AlertMessage>): void {
+    this.data.unsub(handler);
   }
 }

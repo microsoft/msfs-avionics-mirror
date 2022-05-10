@@ -41,16 +41,11 @@ export class WindOverlay extends DisplayComponent<WindOverlayProps> {
    */
   public onAfterRender(): void {
     this.store.renderOption.sub((v) => {
-      if (v === WindOverlayRenderOption.NOWIND) {
-        this.noDataRef.instance.classList.remove('disabled');
-      } else {
-        this.noDataRef.instance.classList.add('disabled');
-      }
-      if (v === WindOverlayRenderOption.NONE) {
-        this.windBoxRef.instance.classList.add('disabled');
-      } else {
-        this.windBoxRef.instance.classList.remove('disabled');
-      }
+      this.noDataRef.instance.classList.toggle('hide-element', v !== WindOverlayRenderOption.NOWIND);
+      this.windBoxRef.instance.classList.toggle('hide-element', v === WindOverlayRenderOption.NONE);
+      this.option1Ref.instance.setVisible(v === WindOverlayRenderOption.OPT1);
+      this.option2Ref.instance.setVisible(v === WindOverlayRenderOption.OPT2);
+      this.option3Ref.instance.setVisible(v === WindOverlayRenderOption.OPT3);
     }, true);
   }
 
@@ -61,11 +56,11 @@ export class WindOverlay extends DisplayComponent<WindOverlayProps> {
    */
   public render(): VNode {
     return (
-      <div ref={this.windBoxRef} class="wind-overlay disabled">
+      <div ref={this.windBoxRef} class="wind-overlay hide-element">
         <div ref={this.noDataRef} >NO WIND DATA</div>
-        <WindOption1 ref={this.option1Ref} windData={this.store.currentWind} aircraftHeading={this.store.currentHeading} renderOption={this.store.renderOption} />
-        <WindOption2 ref={this.option2Ref} windData={this.store.currentWind} aircraftHeading={this.store.currentHeading} renderOption={this.store.renderOption} />
-        <WindOption3 ref={this.option3Ref} windData={this.store.currentWind} aircraftHeading={this.store.currentHeading} renderOption={this.store.renderOption} />
+        <WindOption1 ref={this.option1Ref} windData={this.store.currentWind} aircraftHeading={this.store.currentHeading} />
+        <WindOption2 ref={this.option2Ref} windData={this.store.currentWind} aircraftHeading={this.store.currentHeading} />
+        <WindOption3 ref={this.option3Ref} windData={this.store.currentWind} aircraftHeading={this.store.currentHeading} />
       </div>
     );
   }

@@ -64,28 +64,50 @@
   font-family: Roboto-Bold;
   font-size: 14px;
 }
-  .pfd-hsimap .navmap-indicators-bottom-left {
-    position: absolute;
-    left: 74px;
-    bottom: 130px;
-    transform: translateX(-50%);
-  }
-    .pfd-hsimap .map-detail {
-      margin-bottom: 5px;
-    }
-  .pfd-hsimap .hsimap-indicators-bottom-center {
-    position: absolute;
-    left: 50%;
-    top: 222px;
-    height: 40px;
-    transform: translateX(-50%);
-    display: grid;
-    grid-template-rows: 100%;
-    grid-template-columns: min-content;
-  }
-    .pfd-hsimap .map-traffic-status {
-      align-self: end;
-    }
-    .pfd-hsimap .map-traffic-offscale {
-      align-self: start;
-    }
+
+.pfd-hsimap .navmap-indicators-bottom-left {
+  position: absolute;
+  left: 74px;
+  bottom: 130px;
+  transform: translateX(-50%);
+}
+
+.pfd-hsimap .map-detail {
+  margin-bottom: 5px;
+}
+
+.pfd-hsimap .hsimap-indicators-bottom-center {
+  position: absolute;
+  left: 50%;
+  top: 222px;
+  height: 40px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: min-content;
+}
+
+.pfd-hsimap .map-traffic-status {
+  align-self: end;
+}
+
+.pfd-hsimap .map-traffic-offscale {
+  align-self: start;
+}
+
+/* Fail States */
+.failed-instr .hsi-map-hdg-bug {
+  display: none;
+}
+
+.failed-instr .hsi-map-hdg-box>span {
+  display: none;
+}
+
+.failed-instr .hsi-map-bearing-pointer {
+  display: none;
+}
+
+.failed-instr .compass-rose-markings {
+  display: none;
+}

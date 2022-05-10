@@ -19,6 +19,7 @@
   width: 84px;
   background: rgba(0, 0, 0, 0.5);
   border-radius: 5px;
+  overflow: hidden;
 }
 
 .hdg-box {
@@ -45,7 +46,7 @@
 .mins-temp-comp-upper-text {
   position: absolute;
   left: 5px;
-  top: -5px;  
+  top: -5px;
 }
 
 .mins-temp-comp-lower-text {

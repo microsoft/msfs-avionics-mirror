@@ -1,5 +1,5 @@
 import { Subject } from 'msfssdk';
-import { AirportSize } from '../../Navigation/Waypoint';
+import { AirportSize } from 'msfssdk/navigation';
 
 /**
  * A module describing the display of waypoints.
@@ -10,7 +10,7 @@ export class MapWaypointsModule {
     [AirportSize.Large]: Subject.create<boolean>(true),
     [AirportSize.Medium]: Subject.create<boolean>(true),
     [AirportSize.Small]: Subject.create<boolean>(true)
-  }
+  };
 
   /** Whether to show VORs. */
   public readonly vorShow = Subject.create(true);

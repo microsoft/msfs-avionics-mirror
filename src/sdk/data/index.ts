@@ -1,4 +1,5 @@
 export * from './EventBus';
+export * from './EventBusPacer';
 export * from './EventSubscriber';
 export * from './Consumer';
 export * from './HEventPublisher';
@@ -8,4 +9,5 @@ export * from './CompositeLogicXMLHost';
 export * from './DataStore';
 export * from './ConsumerSubject';
 export * from './KeyInterceptManager';
+export * from './GameStateProvider';
 export * from './gpssearch/IcaoSearch';

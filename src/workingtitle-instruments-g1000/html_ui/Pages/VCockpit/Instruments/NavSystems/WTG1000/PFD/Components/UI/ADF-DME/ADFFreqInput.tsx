@@ -41,7 +41,7 @@ export class ADFFreqInput extends UiControl<ADFFreqInputProps> {
     Subject.create(0),
     Subject.create(0),
     Subject.create(0)
-  ]
+  ];
 
   /**
    * Sets and formats the freq.
@@ -138,7 +138,7 @@ export class ADFFreqInput extends UiControl<ADFFreqInputProps> {
    */
   private register = (ctrl: NumberInput): void => {
     this.inputCtrls.push(ctrl);
-  }
+  };
 
   /** @inheritdoc */
   public onActivated(): void {

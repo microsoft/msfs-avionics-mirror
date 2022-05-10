@@ -272,7 +272,7 @@ export class CylinderSet extends DisplayComponent<Partial<CylinderSetProps>>{
     if (state && !this.leanAssist) {
       this.setSelectedCylinder((this.selectedCyl + 1) % this.numColumns);
     }
-  }
+  };
 
   /**
    * Update the value of the gauge.

@@ -62,7 +62,7 @@ export class XPDRCodeMenu extends SoftKeyMenu {
    */
   private onNewCodeFromSim(bus: EventBus, menuSystem: MenuSystem): void {
     const controlPublisher = bus.getSubscriber<ControlEvents>();
-    controlPublisher.on('publish_xpdr_code').handle(() => {
+    controlPublisher.on('publish_xpdr_code_1').handle(() => {
       menuSystem.back();
     });
   }

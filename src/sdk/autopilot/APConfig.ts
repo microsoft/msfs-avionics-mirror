@@ -1,6 +1,7 @@
 import { Subject } from '..';
 import { PlaneDirector } from './PlaneDirector';
 import { NavToNavManager } from './NavToNavManager';
+import { VNavManager } from './VNavManager';
 
 export enum APVerticalModes {
   NONE,
@@ -8,7 +9,7 @@ export enum APVerticalModes {
   VS,
   FLC,
   ALT,
-  VNAV,
+  PATH,
   GP,
   GS,
   CAP
@@ -34,38 +35,77 @@ export enum APAltitudeModes {
 
 /** AP Values Object */
 export type APValues = {
-  /** Selected Altitude */
-  readonly selectedAltitude: Subject<number>,
-  /** Selected Vertical Speed */
-  readonly selectedVerticalSpeed: Subject<number>,
-  /** Selected IAS for FLC */
-  readonly selectedIas: Subject<number>,
-  /** Selected Pitch Ref */
-  readonly selectedPitch: Subject<number>,
-  /** Selected Heading Ref */
-  readonly selectedHeading: Subject<number>,
-  /** Captured Altitude */
-  readonly capturedAltitude: Subject<number>,
+  /** The selected altitude, in feet. */
+  readonly selectedAltitude: Subject<number>;
+
+  /** The selected vertical speed target, in feet per minute. */
+  readonly selectedVerticalSpeed: Subject<number>;
+
+  /** The selected indicated airspeed target, in knots. */
+  readonly selectedIas: Subject<number>;
+
+  /** The selected mach target. */
+  readonly selectedMach: Subject<number>;
+
+  /** Whether the selected airspeed target is in mach. */
+  readonly isSelectedSpeedInMach: Subject<boolean>;
+
+  /** The selected pitch target, in degrees. */
+  readonly selectedPitch: Subject<number>;
+
+  /** The selected heading, in degrees. */
+  readonly selectedHeading: Subject<number>;
+
+  /** The captured altitude, in feet. */
+  readonly capturedAltitude: Subject<number>;
+
   /** Approach is Activated in Flight Plan */
-  readonly approachIsActive: Subject<boolean>,
+  readonly approachIsActive: Subject<boolean>;
+
   /** The activated approach has an LPV GP */
-  readonly approachHasGP: Subject<boolean>,
+  readonly approachHasGP: Subject<boolean>;
+
   /** The Nav 1 Radio is tuned to an ILS with a GS signal */
-  readonly nav1HasGs: Subject<boolean>,
+  readonly nav1HasGs: Subject<boolean>;
+
   /** The Nav 2 Radio is tuned to an ILS with a GS signal */
-  readonly nav2HasGs: Subject<boolean>,
+  readonly nav2HasGs: Subject<boolean>;
+
   /** The Active Lateral Mode */
-  readonly lateralActive: Subject<APLateralModes>,
+  readonly lateralActive: Subject<APLateralModes>;
+
   /** The Active Vertical Mode */
-  readonly verticalActive: Subject<APVerticalModes>,
-  /** NavToNav Manager Requested Loc Arm */
-  navToNavLocArm: boolean
+  readonly verticalActive: Subject<APVerticalModes>;
+
+  /** The Armed Lateral Mode */
+  readonly lateralArmed: Subject<APLateralModes>;
+
+  /** The Armed Vertical Mode */
+  readonly verticalArmed: Subject<APVerticalModes>;
+
+  /** Returns whether nav to nav says that LOC can be armed. */
+  navToNavLocArm?: () => boolean;
 }
 
 /**
  * An autopilot configuration.
  */
 export interface APConfig {
+
+  /**
+   * Creates the autopilot's VNAV Manager.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's VNAV Manager.
+   */
+  createVNavManager(apValues: APValues): VNavManager | undefined;
+
+  /**
+   * Creates the autopilot's VNAV Path mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's VNAV Path mode director.
+   */
+  createVNavPathDirector(apValues: APValues): PlaneDirector | undefined;
+
   /**
    * Creates the autopilot's heading mode director.
    * @param apValues The autopilot's state values.
@@ -149,13 +189,6 @@ export interface APConfig {
    * @returns The autopilot's altitude capture mode director.
    */
   createAltCapDirector(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's VNAV mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's VNAV mode director.
-   */
-  createVNavDirector(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's GPS glidepath mode director.

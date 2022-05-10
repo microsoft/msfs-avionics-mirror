@@ -1,12 +1,16 @@
 /// <reference types="msfstypes/JS/common" />
 /// <reference types="msfstypes/JS/Simplane" />
 
-import { NdbFacility, UserFacility, VorFacility } from '.';
+import { UnitType } from '..';
+import { GeoPoint } from '../geo';
+import { GeoKdTreeSearchFilter } from '../utils/datastructures';
 import {
-  Facility, FacilityType, NearestSearchResults, FacilitySearchType, BoundaryFacility, FacilityTypeMap, AirportFacility,
-  IntersectionFacility, AirwaySegment, ICAO, Metar
+  Facility, FacilityType, NearestSearchResults, FacilitySearchType,
+  BoundaryFacility, FacilityTypeMap, AirportFacility,
+  IntersectionFacility, AirwaySegment, ICAO, Metar, VorFacility,
+  NdbFacility, UserFacility, FacilitySearchTypeLatLon
 } from './Facilities';
-import { FacilityRespository } from './FacilityRespository';
+import { FacilityRepository } from './FacilityRepository';
 import { RunwayUtils } from './RunwayUtils';
 
 /**
@@ -42,7 +46,7 @@ type SearchRequest<TAdded, TRemoved> = {
  */
 export type SessionTypeMap = {
   /** Plain search session. */
-  [FacilitySearchType.None]: NearestSearchSession<any, any>,
+  [FacilitySearchType.All]: NearestSearchSession<any, any>,
 
   /** Airport search session. */
   [FacilitySearchType.Airport]: NearestAirportSearchSession,
@@ -60,7 +64,7 @@ export type SessionTypeMap = {
   [FacilitySearchType.Boundary]: NearestBoundarySearchSession,
 
   /** Nearest user facility search session. */
-  [FacilitySearchType.User]: NearestSearchSession<string, string>
+  [FacilitySearchType.User]: NearestUserFacilitySearchSession
 }
 
 /**
@@ -68,7 +72,7 @@ export type SessionTypeMap = {
  */
 export type SearchTypeMap = {
   /** Plain search session. */
-  [FacilitySearchType.None]: Facility,
+  [FacilitySearchType.All]: Facility,
 
   /** Airport search session. */
   [FacilitySearchType.Airport]: AirportFacility,
@@ -110,6 +114,22 @@ export const FacilityTypeSearchType = {
 };
 
 /**
+ * Facility search types supported by sim-side searches.
+ */
+type CoherentSearchType
+  = FacilitySearchType.Airport
+  | FacilitySearchType.Vor
+  | FacilitySearchType.Ndb
+  | FacilitySearchType.Intersection
+  | FacilitySearchType.Boundary
+  | FacilitySearchType.All;
+
+/**
+ * Facility search types supported by {@link FacilityRepository} searches.
+ */
+type RepoSearchType = FacilitySearchType.User;
+
+/**
  * A class that handles loading facility data from the simulator.
  */
 export class FacilityLoader {
@@ -128,13 +148,15 @@ export class FacilityLoader {
   private static readonly searchSessions = new Map<number, NearestSearchSession<any, any>>();
   private static readonly facRepositorySearchTypes = [FacilityType.USR];
 
+  private static repoSearchSessionId = -1;
+
   /**
    * Creates an instance of the FacilityLoader.
    * @param facilityRepo A local facility repository.
    * @param onInitialized A callback to call when the facility loader has completed initialization.
    */
   constructor(
-    private readonly facilityRepo: FacilityRespository,
+    private readonly facilityRepo: FacilityRepository,
     public readonly onInitialized = (): void => { }
   ) {
     if (FacilityLoader.facilityListener === undefined) {
@@ -288,10 +310,24 @@ export class FacilityLoader {
 
   /**
    * Starts a nearest facilities search session.
-   * @param type The type of facilities to search for.
-   * @returns The new nearest search session.
+   * @param type The type of facilities for which to search.
+   * @returns A Promise which will be fulfilled with the new nearest search session.
    */
   public async startNearestSearchSession<T extends FacilitySearchType>(type: T): Promise<SessionTypeMap[T]> {
+    switch (type) {
+      case FacilitySearchType.User:
+        return this.startRepoNearestSearchSession(type) as unknown as Promise<SessionTypeMap[T]>;
+      default:
+        return this.startCoherentNearestSearchSession(type) as unknown as Promise<SessionTypeMap[T]>;
+    }
+  }
+
+  /**
+   * Starts a sim-side nearest facilities search session through Coherent.
+   * @param type The type of facilities for which to search.
+   * @returns A Promise which will be fulfilled with the new nearest search session.
+   */
+  private async startCoherentNearestSearchSession<T extends CoherentSearchType>(type: T): Promise<SessionTypeMap[T]> {
     const sessionId = await Coherent.call('START_NEAREST_SEARCH_SESSION', type);
     let session: SessionTypeMap[T];
 
@@ -309,12 +345,31 @@ export class FacilityLoader {
         session = new NearestBoundarySearchSession(sessionId) as SessionTypeMap[T];
         break;
       default:
-        session = new NearestSearchSession(sessionId) as SessionTypeMap[T];
+        session = new CoherentNearestSearchSession(sessionId) as SessionTypeMap[T];
         break;
     }
 
     FacilityLoader.searchSessions.set(sessionId, session);
     return session;
+  }
+
+  /**
+   * Starts a repository facilities search session.
+   * @param type The type of facilities for which to search.
+   * @returns A Promise which will be fulfilled with the new nearest search session.
+   * @throws Error if the search type is not supported.
+   */
+  private startRepoNearestSearchSession<T extends RepoSearchType>(type: T): SessionTypeMap[T] {
+    // Session ID doesn't really matter for these, so in order to not conflict with IDs from Coherent, we will set
+    // them all to negative numbers
+    const sessionId = FacilityLoader.repoSearchSessionId--;
+
+    switch (type) {
+      case FacilitySearchType.User:
+        return new NearestUserFacilitySearchSession(this.facilityRepo, sessionId);
+      default:
+        throw new Error();
+    }
   }
 
   /**
@@ -368,7 +423,7 @@ export class FacilityLoader {
 
   /**
    * Searches for ICAOs by their ident portion only.
-   * @param filter The type of facility to filter by. Selecting NONE will search all facility type ICAOs.
+   * @param filter The type of facility to filter by. Selecting ALL will search all facility type ICAOs.
    * @param ident The partial or complete ident to search for.
    * @param maxItems The max number of matches to return.
    * @returns A collection of matched ICAOs.
@@ -376,7 +431,7 @@ export class FacilityLoader {
   public async searchByIdent(filter: FacilitySearchType, ident: string, maxItems = 40): Promise<string[]> {
     const results = await Coherent.call('SEARCH_BY_IDENT', ident, filter, maxItems) as Array<string>;
 
-    if (filter === FacilitySearchType.User || filter === FacilitySearchType.None) {
+    if (filter === FacilitySearchType.User || filter === FacilitySearchType.All) {
       this.facilityRepo.forEach(fac => {
         const facIdent = ICAO.getIdent(fac.icao);
 
@@ -389,6 +444,45 @@ export class FacilityLoader {
     }
 
     return results;
+  }
+
+  /** Searches for facilities matching a given ident, and returns the matching facilities, with nearest at the beginning of the array.
+   * @param filter The type of facility to filter by. Selecting ALL will search all facility type ICAOs, except for boundary facilities.
+   * @param ident The exact ident to search for. (ex: DEN, KDEN, ITADO)
+   * @param lat The latitude to find facilities nearest to.
+   * @param lon The longitude to find facilities nearest to.
+   * @param maxItems The max number of matches to return.
+   * @returns An array of matching facilities, sorted by distance to the given lat/lon, with nearest at the beginning of the array.
+   */
+  public async findNearestFacilitiesByIdent<T extends FacilitySearchTypeLatLon>(filter: T, ident: string, lat: number, lon: number, maxItems = 40): Promise<SearchTypeMap[T][]> {
+
+    const results = await this.searchByIdent(filter, ident, maxItems);
+
+    if (!results) {
+      return [];
+    }
+
+    const promises = [] as Promise<SearchTypeMap[T]>[];
+
+    for (let i = 0; i < results.length; i++) {
+      const icao = results[i];
+      const facIdent = ICAO.getIdent(icao);
+      if (facIdent === ident) {
+        const facType = ICAO.getFacilityType(icao);
+        promises.push(this.getFacility(facType, icao) as Promise<SearchTypeMap[T]>);
+      }
+    }
+
+    const foundFacilities = await Promise.all(promises);
+
+    if (foundFacilities.length > 1) {
+      foundFacilities.sort((a, b) => GeoPoint.distance(lat, lon, a.lat, a.lon) - GeoPoint.distance(lat, lon, b.lat, b.lon));
+      return foundFacilities;
+    } else if (foundFacilities.length === 1) {
+      return foundFacilities;
+    } else {
+      return [];
+    }
   }
 
   /**
@@ -410,7 +504,7 @@ export class FacilityLoader {
    */
   private static onNearestSearchCompleted(results: NearestSearchResults<any, any>): void {
     const session = FacilityLoader.searchSessions.get(results.sessionId);
-    if (session !== undefined) {
+    if (session instanceof CoherentNearestSearchSession) {
       session.onSearchCompleted(results);
     }
   }
@@ -443,16 +537,7 @@ export class FacilityLoader {
 /**
  * A session for searching for nearest facilities.
  */
-export class NearestSearchSession<TAdded, TRemoved> {
-
-  private readonly searchQueue = new Map<number, SearchRequest<TAdded, TRemoved>>();
-
-  /**
-   * Creates an instance of a NearestSearchSession.
-   * @param sessionId The ID of the session.
-   */
-  constructor(protected readonly sessionId: number) { }
-
+export interface NearestSearchSession<TAdded, TRemoved> {
   /**
    * Searches for nearest facilities from the specified point.
    * @param lat The latitude, in degrees.
@@ -461,6 +546,23 @@ export class NearestSearchSession<TAdded, TRemoved> {
    * @param maxItems The maximum number of items.
    * @returns The nearest search results.
    */
+  searchNearest(lat: number, lon: number, radius: number, maxItems: number): Promise<NearestSearchResults<TAdded, TRemoved>>;
+}
+
+/**
+ * A session for searching for nearest facilities through Coherent.
+ */
+class CoherentNearestSearchSession<TAdded, TRemoved> implements NearestSearchSession<TAdded, TRemoved> {
+
+  private readonly searchQueue = new Map<number, SearchRequest<TAdded, TRemoved>>();
+
+  /**
+   * Creates an instance of a CoherentNearestSearchSession.
+   * @param sessionId The ID of the session.
+   */
+  constructor(protected readonly sessionId: number) { }
+
+  /** @inheritdoc */
   public searchNearest(lat: number, lon: number, radius: number, maxItems: number): Promise<NearestSearchResults<TAdded, TRemoved>> {
 
     const promise = new Promise<NearestSearchResults<TAdded, TRemoved>>((resolve) => {
@@ -489,7 +591,7 @@ export class NearestSearchSession<TAdded, TRemoved> {
 /**
  * A session for searching for nearest airports.
  */
-export class NearestAirportSearchSession extends NearestSearchSession<string, string> {
+export class NearestAirportSearchSession extends CoherentNearestSearchSession<string, string> {
   /**
    * Sets the filter for the airport nearest search.
    * @param showClosed Whether or not to show closed airports.
@@ -503,7 +605,7 @@ export class NearestAirportSearchSession extends NearestSearchSession<string, st
 /**
  * A session for searching for nearest intersections.
  */
-export class NearestIntersectionSearchSession extends NearestSearchSession<string, string> {
+export class NearestIntersectionSearchSession extends CoherentNearestSearchSession<string, string> {
   /**
    * Sets the filter for the intersection nearest search.
    * @param typeMask A bitmask to determine which JS intersection types to show.
@@ -516,7 +618,7 @@ export class NearestIntersectionSearchSession extends NearestSearchSession<strin
 /**
  * A session for searching for nearest VORs.
  */
-export class NearestVorSearchSession extends NearestSearchSession<string, string> {
+export class NearestVorSearchSession extends CoherentNearestSearchSession<string, string> {
   /**
    * Sets the filter for the VOR nearest search.
    * @param classMask A bitmask to determine which JS VOR classes to show.
@@ -530,13 +632,70 @@ export class NearestVorSearchSession extends NearestSearchSession<string, string
 /**
  * A session for searching for nearest airspace boundaries.
  */
-export class NearestBoundarySearchSession extends NearestSearchSession<BoundaryFacility, number> {
+export class NearestBoundarySearchSession extends CoherentNearestSearchSession<BoundaryFacility, number> {
   /**
    * Sets the filter for the boundary nearest search.
    * @param classMask A bitmask to determine which boundary classes to show.
    */
   public setBoundaryFilter(classMask: number): void {
     Coherent.call('SET_NEAREST_BOUNDARY_FILTER', this.sessionId, classMask);
+  }
+}
+
+/**
+ * A session for searching for nearest user facilities.
+ */
+export class NearestUserFacilitySearchSession implements NearestSearchSession<string, string> {
+  private filter: GeoKdTreeSearchFilter<UserFacility> | undefined = undefined;
+
+  private readonly cachedResults = new Set<string>();
+
+  private searchId = 0;
+
+  /**
+   * Creates an instance of a NearestUserSearchSession.
+   * @param repo The facility repository in which to search.
+   * @param sessionId The ID of the session.
+   */
+  constructor(private readonly repo: FacilityRepository, private readonly sessionId: number) { }
+
+  /** @inheritdoc */
+  public searchNearest(lat: number, lon: number, radius: number, maxItems: number): Promise<NearestSearchResults<string, string>> {
+    const radiusGAR = UnitType.METER.convertTo(radius, UnitType.GA_RADIAN);
+
+    const results = this.repo.search(FacilityType.USR, lat, lon, radiusGAR, maxItems, [], this.filter as GeoKdTreeSearchFilter<Facility>);
+
+    const added = [];
+
+    for (let i = 0; i < results.length; i++) {
+      const icao = results[i].icao;
+      if (this.cachedResults.has(icao)) {
+        this.cachedResults.delete(icao);
+      } else {
+        added.push(icao);
+      }
+    }
+
+    const removed = Array.from(this.cachedResults);
+
+    for (let i = 0; i < results.length; i++) {
+      this.cachedResults.add(results[i].icao);
+    }
+
+    return Promise.resolve({
+      sessionId: this.sessionId,
+      searchId: this.searchId++,
+      added,
+      removed
+    });
+  }
+
+  /**
+   * Sets the filter for this search session.
+   * @param filter A function to filter the search results.
+   */
+  public setUserFacilityFilter(filter?: GeoKdTreeSearchFilter<UserFacility>): void {
+    this.filter = filter;
   }
 }
 

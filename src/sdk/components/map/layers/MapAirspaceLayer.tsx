@@ -1,6 +1,8 @@
-import { BitFlags, ClippedPathStream, FSComponent, GeoPoint, NumberUnitInterface, Subscribable, ThrottledTaskQueueProcess, UnitFamily, UnitType, VecNSubject, VNode } from '../../..';
+import { BitFlags, FSComponent, GeoPoint, NumberUnitInterface, Subscribable, UnitFamily, UnitType, VecNSubject, VNode } from '../../..';
 import { EventBus } from '../../../data';
-import { FacilityLoader, FacilityRespository, FacilitySearchType, LodBoundary, LodBoundaryCache, NearestLodBoundarySearchSession } from '../../../navigation';
+import { FacilityLoader, FacilityRepository, FacilitySearchType, LodBoundary, LodBoundaryCache, NearestLodBoundarySearchSession } from '../../../navigation';
+import { ClippedPathStream } from '../../../graphics/path';
+import { ThrottledTaskQueueProcess } from '../../../utils/task';
 import { MapAirspaceRenderManager } from '../MapAirspaceRenderManager';
 import { MapLayer, MapLayerProps } from '../MapLayer';
 import { MapProjection, MapProjectionChangeType } from '../MapProjection';
@@ -58,7 +60,7 @@ export class MapAirspaceLayer extends MapLayer<MapAirspaceLayerProps> {
   private clippedPathStream?: ClippedPathStream;
   private readonly clipBoundsSub = VecNSubject.createFromVector(new Float64Array(4));
 
-  private readonly facLoader = new FacilityLoader(FacilityRespository.getRepository(this.props.bus), async () => {
+  private readonly facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus), async () => {
     this.searchSession = new NearestLodBoundarySearchSession(this.props.lodBoundaryCache, await this.facLoader.startNearestSearchSession(FacilitySearchType.Boundary), 0.5);
 
     this.isAttached && this.scheduleSearch(0, true);

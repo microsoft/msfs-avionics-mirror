@@ -1,18 +1,21 @@
 import { FSComponent, Subject, VNode } from 'msfssdk';
 import { ControlPublisher, EventBus } from 'msfssdk/data';
-import { FacilityLoader, ICAO } from 'msfssdk/navigation';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { FacilityLoader, ICAO, Waypoint } from 'msfssdk/navigation';
+import { FocusPosition } from 'msfssdk/components/controls';
+
+import { Fms } from 'garminsdk/flightplan';
+
 import { MapPointerInfoLayerSize } from '../../../../Shared/Map/Layers/MapPointerInfoLayer';
-import { Waypoint } from '../../../../Shared/Navigation/Waypoint';
 import { TrafficAdvisorySystem } from '../../../../Shared/Traffic/TrafficAdvisorySystem';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
+import { G1000UiControl } from '../../../../Shared/UI/G1000UiControl';
 import { MenuSystem } from '../../../../Shared/UI/Menus/MenuSystem';
 import { NavMapModel } from '../../../../Shared/UI/NavMap/NavMapModel';
-import { FocusPosition, UiControl2 } from '../../../../Shared/UI/UiControl2';
 import { UiPageProps } from '../../../../Shared/UI/UiPage';
 import { WaypointMapComponent, WaypointMapRangeTargetRotationController } from '../../../../Shared/UI/WaypointMap/WaypointMapComponent';
 import { MFDUiPage } from '../MFDUiPage';
 import { FacilityGroup } from './FacilityGroup';
+import { UnitsUserSettings } from '../../../../Shared/Units/UnitsUserSettings';
 
 import './MFDInformationPage.css';
 
@@ -42,8 +45,11 @@ export interface MFDInformationPageProps extends UiPageProps {
  * and a map indicating the facilities location.
  */
 export abstract class MFDInformationPage extends MFDUiPage<MFDInformationPageProps> {
+
+  protected readonly unitsSettingManager = UnitsUserSettings.getManager(this.props.bus);
+
   protected readonly mapRef = FSComponent.createRef<WaypointMapComponent>();
-  protected readonly uiRoot = FSComponent.createRef<UiControl2>();
+  protected readonly uiRoot = FSComponent.createRef<G1000UiControl>();
   protected readonly facilityGroup = FSComponent.createRef<FacilityGroup<any>>();
 
   protected readonly mapRangeIndexSub = Subject.create<number>(WaypointMapRangeTargetRotationController.DEFAULT_MAP_RANGE_INDEX);
@@ -124,7 +130,9 @@ export abstract class MFDInformationPage extends MFDUiPage<MFDInformationPagePro
           updateFreq={Subject.create(30)}
           dataUpdateFreq={Subject.create(30)}
           projectedWidth={578} projectedHeight={734}
-          id='mfd_page_map'
+          deadZone={Subject.create(new Float64Array([0, 56, 0, 0]))}
+          pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
+          bingId='mfd_page_map'
           rangeIndex={this.mapRangeIndexSub}
           waypoint={this.waypoint}
           ownAirplaneLayerProps={{
@@ -136,9 +144,9 @@ export abstract class MFDInformationPage extends MFDUiPage<MFDInformationPagePro
           class='mfd-infomap'
         />
         <div class={`mfd-dark-background ${this.getPageClass()}`}>
-          <UiControl2 ref={this.uiRoot} isolateScroll>
+          <G1000UiControl ref={this.uiRoot} isolateScroll>
             {this.renderGroups()}
-          </UiControl2>
+          </G1000UiControl>
         </div>
       </div>
     );

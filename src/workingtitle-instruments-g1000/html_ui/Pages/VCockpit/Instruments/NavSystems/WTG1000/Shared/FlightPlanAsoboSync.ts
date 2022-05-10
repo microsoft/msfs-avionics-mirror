@@ -1,8 +1,8 @@
-import { Wait } from 'msfssdk';
 import { AirportFacility, AirportRunway, FacilityType, ICAO, LegType, OneWayRunway, FlightPlanLeg, UserFacilityUtils, RunwayUtils } from 'msfssdk/navigation';
 import { FlightPlan, FlightPlanSegmentType } from 'msfssdk/flightplan';
+import { Wait } from 'msfssdk/utils/time';
 
-import { Fms } from './FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 
 /** A class for syncing a flight plan with the game */
 export class FlightPlanAsoboSync {

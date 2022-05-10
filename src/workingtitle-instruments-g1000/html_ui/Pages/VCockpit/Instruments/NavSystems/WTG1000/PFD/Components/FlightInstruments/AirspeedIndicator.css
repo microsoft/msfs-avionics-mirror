@@ -28,7 +28,7 @@
   height: 320px;
   width: 91px;
   border-top: none;
-  border-image: linear-gradient( to bottom, rgba(100, 100, 100, 1), rgba(0, 0, 0, 1)) 1 100%;
+  border-image: linear-gradient(to bottom, rgba(100, 100, 100, 1), rgba(0, 0, 0, 1)) 1 100%;
   border-width: 1px;
   border-bottom-width: 0;
   overflow: hidden;
@@ -49,7 +49,8 @@
   background: repeating-linear-gradient(315deg, white, white 10px, red 0px, red 19px);
 }
 
-.tick-marks, .airspeed-trend-vector {
+.tick-marks,
+.airspeed-trend-vector {
   position: absolute;
   left: 18px;
   top: 0;
@@ -100,6 +101,11 @@
   text-align: center;
   font-size: 32px;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 1.0), rgb(30, 30, 30), rgba(0, 0, 0, 1.0));
+  overflow: hidden;
+}
+
+.scroller-background svg {
+  height: 500px
 }
 
 .overspeed.ias-box path {
@@ -107,7 +113,8 @@
   stroke: none;
 }
 
-.overspeed .scroller-background, .overspeed .ones-scroller-mask {
+.overspeed .scroller-background,
+.overspeed .ones-scroller-mask {
   background: none;
 }
 
@@ -135,6 +142,15 @@
 .ones-scroller-mask {
   position: absolute;
   top: -4px;
+  width: 17px;
+  height: 65px;
+  overflow: hidden;
+  padding-top: 4px;
+}
+
+.ones-scroller-overlay {
+  position: absolute;
+  top: 0;
   width: 17px;
   height: 65px;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 1) 5%, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0) 80%, rgba(0, 0, 0, 1) 95%);
@@ -173,10 +189,13 @@
   height: 169px;
   top: 151px;
   text-align: right;
-  background: rgba(31, 30, 29, .7);
+  background: rgba(16, 15, 14, .7);
 }
 
-.glide, .vr, .vx, .vy {
+.glide,
+.vr,
+.vx,
+.vy {
   top: 157px;
 }
 
@@ -210,6 +229,8 @@
   font-size: 12px;
   border-bottom-left-radius: 10px;
   background-color: black;
+  overflow: hidden;
+  transform: rotateX(0);
 }
 
 .tas-value {
@@ -218,4 +239,22 @@
   top: 10%;
   right: 5%;
   font-size: 20px;
+}
+
+/** Fail States **/
+
+.failed-instr .ias-box {
+  display: none;
+}
+
+.failed-instr .speed-tape-numers {
+  display: none;
+}
+
+.failed-instr .tas-box {
+  display: none;
+}
+
+.failed-instr .vspeed-values-container {
+  display: none;
 }

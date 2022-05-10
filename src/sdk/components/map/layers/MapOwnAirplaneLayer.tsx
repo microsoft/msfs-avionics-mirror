@@ -1,12 +1,12 @@
 import { MapOwnAirplaneIconModule } from '../modules/MapOwnAirplaneIconModule';
 import { MapOwnAirplanePropsModule } from '../modules/MapOwnAirplanePropsModule';
 import { MapProjection } from '../MapProjection';
-import { GeoPointInterface } from '../../../utils/geo/GeoPoint';
-import { Vec2Math } from '../../../utils/math/VecMath';
+import { GeoPointInterface } from '../../../geo/GeoPoint';
+import { ReadonlyFloat64Array, Vec2Math } from '../../../math/VecMath';
 import { FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps } from '../MapLayer';
-import { BitFlags } from '../../../utils/BitFlags';
-import { Subscribable } from '../../../utils/Subscribable';
+import { BitFlags } from '../../../math/BitFlags';
+import { Subscribable } from '../../../sub/Subscribable';
 
 /**
  * Modules required by MapOwnAirplaneLayer.
@@ -33,7 +33,7 @@ export interface MapOwnAirplaneLayerProps<M extends MapOwnAirplaneLayerModules> 
    * The point on the icon which is anchored to the airplane's position, expressed relative to the icon's width and
    * height, with [0, 0] at the top left and [1, 1] at the bottom right.
    */
-  iconAnchor: Subscribable<Float64Array>;
+  iconAnchor: Subscribable<ReadonlyFloat64Array>;
 }
 
 /**

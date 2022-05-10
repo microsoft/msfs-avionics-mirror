@@ -30,7 +30,7 @@
 }
 
 .verticalModeArrow {
-  transform: rotate(0deg);
+  transform: rotateX(0);
 }
 
 .fma-ap-vertical-modes {
@@ -48,14 +48,15 @@
   padding-left: 4px;
   padding-right: 2px;
   margin: 0px;
+  overflow: hidden;
 }
 
-.fma-ap-vertical-modes > div {
+.fma-ap-vertical-modes>div {
   display: flex;
   align-items: flex-end;
 }
 
-.fma-ap-vertical-modes > div.right {
+.fma-ap-vertical-modes>div.right {
   justify-content: flex-end;
   color: whitesmoke;
   font-size: 18px;
@@ -76,86 +77,86 @@
   text-align: center;
 }
 
-#CenterBarTopLeft > span {
+#CenterBarTopLeft>span {
   padding-left: 3px;
   padding-right: 3px;
 }
-  
-  #CenterBarTopRight {
-    position: relative;
-    top: 0px;
-    left: 284px;
-    width: 221px;
-    height: 28px;
-    color: rgb(170, 170, 170);
-    border-bottom-style: solid;
-    border-bottom-width: 2px;
-    border-bottom-color: rgb(133, 133, 133);
-  }
 
-    .smallText {
-      font-size: 14px;
-    }
+#CenterBarTopRight {
+  position: relative;
+  top: 0px;
+  left: 284px;
+  width: 221px;
+  height: 28px;
+  color: rgb(170, 170, 170);
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: rgb(133, 133, 133);
+}
 
-    .dataField {
-      font-size: 20px;
-      text-align: right;
-      color: magenta;
-    }
+.smallText {
+  font-size: 14px;
+}
 
-    .FixDist {
-      position: absolute;
-      top: 8px;
-      left: 1px;
-    }
+.dataField {
+  font-size: 20px;
+  text-align: right;
+  color: magenta;
+}
 
-    .FixDistValue {
-      top: 3px;
-      position: absolute;
-      left: 30px;
-      text-align: left;
-      width: 90px;
-    }
+.FixDist {
+  position: absolute;
+  top: 8px;
+  left: 1px;
+}
 
-    .FixBrg {
-      position: absolute;
-      top: 8px;
-      left: 130px;
-    }
+.FixDistValue {
+  top: 3px;
+  position: absolute;
+  left: 30px;
+  text-align: left;
+  width: 90px;
+}
 
-    .FixBrgValue {
-      top: 3px;
-      position: absolute;
-      left: 165px;
-    }
+.FixBrg {
+  position: absolute;
+  top: 8px;
+  left: 130px;
+}
 
-    #CenterBarBottomLeft {
-      position: absolute;
-      top: 28px;
-      width: 124px;
-      height: 28px;
-      color: rgb(0, 255, 0);
-      font-size: 24px;
-      display: grid;
-      grid-template-columns: 50px 50px;
-      line-height: 28px;
-      padding-left: 10px;
-      border-right-style: solid;
-      border-right-width: 1.5px;
-      border-right-color: rgb(133, 133, 133);
-    }
+.FixBrgValue {
+  top: 3px;
+  position: absolute;
+  left: 165px;
+}
 
-  #CenterBarBottomMiddle {
-    position: absolute;
-    top: 28px;
-    left: 124px;
-    width: 114px;
-    height: 28px;
-    text-align: center;
-    color: rgb(0, 255, 0);
-    font-size: 24px;
-    padding-bottom: 2px;
-    border-right-style: solid;
-    border-right-width: 1.5px;
-    border-right-color: rgb(133, 133, 133);
-  }
+#CenterBarBottomLeft {
+  position: absolute;
+  top: 28px;
+  width: 124px;
+  height: 28px;
+  color: rgb(0, 255, 0);
+  font-size: 24px;
+  display: grid;
+  grid-template-columns: 50px 50px;
+  line-height: 28px;
+  padding-left: 10px;
+  border-right-style: solid;
+  border-right-width: 1.5px;
+  border-right-color: rgb(133, 133, 133);
+}
+
+#CenterBarBottomMiddle {
+  position: absolute;
+  top: 28px;
+  left: 124px;
+  width: 114px;
+  height: 28px;
+  text-align: center;
+  color: rgb(0, 255, 0);
+  font-size: 24px;
+  padding-bottom: 2px;
+  border-right-style: solid;
+  border-right-width: 1.5px;
+  border-right-color: rgb(133, 133, 133);
+}

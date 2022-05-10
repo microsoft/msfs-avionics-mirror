@@ -1,10 +1,12 @@
 import { FSComponent, Subject, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
-import { Facility, FacilityLoader, FacilityTypeSearchType, FacilityType, FacilityTypeMap } from 'msfssdk/navigation';
-import { FacilityWaypointCache } from '../../../../Shared/Navigation/FacilityWaypointCache';
-import { FacilityWaypoint, Waypoint } from '../../../../Shared/Navigation/Waypoint';
+import {
+  Facility, FacilityLoader, FacilityType, FacilityTypeMap, FacilityTypeSearchType, FacilityWaypoint, FacilityWaypointCache, Waypoint
+} from 'msfssdk/navigation';
+import { ScrollDirection } from 'msfssdk/components/controls';
+
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
-import { ScrollDirection, UiControl2, UiControl2Props } from '../../../../Shared/UI/UiControl2';
+import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { WaypointInput } from '../../../../Shared/UI/UIControls/WaypointInput';
 import { UiView } from '../../../../Shared/UI/UiView';
 import { ViewService } from '../../../../Shared/UI/ViewService';
@@ -12,7 +14,7 @@ import { ViewService } from '../../../../Shared/UI/ViewService';
 import './FacilityGroup.css';
 
 /** Props for the FacilityGroup component. */
-interface FacilityGroupProps<T extends FacilityType> extends UiControl2Props {
+interface FacilityGroupProps<T extends FacilityType> extends G1000UiControlProps {
 
   /** A callback called when a waypoint has been selected. */
   onSelected: (waypoint: FacilityWaypoint<FacilityTypeMap[T]> | null) => void;
@@ -39,7 +41,7 @@ interface FacilityGroupProps<T extends FacilityType> extends UiControl2Props {
 /**
  * A component that selects and displays facility waypoint information.
  */
-export class FacilityGroup<T extends FacilityType> extends UiControl2<FacilityGroupProps<T>> {
+export class FacilityGroup<T extends FacilityType> extends G1000UiControl<FacilityGroupProps<T>> {
   private readonly content = FSComponent.createRef<HTMLDivElement>();
   private readonly input = FSComponent.createRef<WaypointInput>();
 
@@ -59,32 +61,32 @@ export class FacilityGroup<T extends FacilityType> extends UiControl2<FacilityGr
   }
 
   /** @inheritdoc */
-  protected onUpperKnobInc(): boolean {
+  public onUpperKnobInc(): boolean {
     return this.isFocused && this.input.instance.processHEvent(FmsHEvent.UPPER_INC);
   }
 
   /** @inheritdoc */
-  protected onUpperKnobDec(): boolean {
+  public onUpperKnobDec(): boolean {
     return this.isFocused && this.input.instance.processHEvent(FmsHEvent.UPPER_DEC);
   }
 
   /** @inheritdoc */
-  protected onLowerKnobInc(): boolean {
+  public onLowerKnobInc(): boolean {
     return this.isFocused && this.input.instance.processHEvent(FmsHEvent.LOWER_INC);
   }
 
   /** @inheritdoc */
-  protected onLowerKnobDec(): boolean {
+  public onLowerKnobDec(): boolean {
     return this.isFocused && this.input.instance.processHEvent(FmsHEvent.LOWER_DEC);
   }
 
   /** @inheritdoc */
-  protected onClr(): boolean {
+  public onClr(): boolean {
     return this.isFocused && this.input.instance.processHEvent(FmsHEvent.CLR);
   }
 
   /** @inheritdoc */
-  protected onEnter(): boolean {
+  public onEnter(): boolean {
     return this.isFocused && this.input.instance.processHEvent(FmsHEvent.ENT);
   }
 
@@ -137,7 +139,7 @@ export class FacilityGroup<T extends FacilityType> extends UiControl2<FacilityGr
       <div class="groupbox">
         <div class="groupbox-title">{this.props.title}</div>
         <div class={`groupbox-container mfd-facility-information ${this.props.class ?? ''}`} ref={this.content}>
-          <WaypointInput
+          <WaypointInput viewService={this.props.viewService}
             bus={this.props.bus} filter={(FacilityTypeSearchType as any)[this.props.facilityType as any]} selectedIcao={this.inputIcao}
             ref={this.input} onMatchedWaypointsChanged={this.onWaypointsChanged.bind(this)} onInputEnterPressed={this.onWaypointSelected.bind(this)} />
           {this.props.children}

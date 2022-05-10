@@ -1,9 +1,10 @@
 import { FSComponent, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 import { FlightPathCalculator } from 'msfssdk/flightplan';
-import { Fms } from '../../../../../Shared/FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { UiView, UiViewProps } from '../../../../../Shared/UI/UiView';
 import { PFDSelectApproach } from './PFDSelectApproach';
+import { UnitsUserSettings } from '../../../../../Shared/Units/UnitsUserSettings';
 
 /**
  * Component props for PFDSelectApproachView.
@@ -47,6 +48,7 @@ export class PFDSelectApproachView extends UiView<PFDSelectApproachViewProps> {
           bus={this.props.bus}
           fms={this.props.fms}
           calculator={this.props.calculator}
+          unitsSettingManager={UnitsUserSettings.getManager(this.props.bus)}
         />
       </div>
     );

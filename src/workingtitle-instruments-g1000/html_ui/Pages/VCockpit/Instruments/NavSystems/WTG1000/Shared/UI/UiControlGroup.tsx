@@ -228,7 +228,7 @@ export abstract class UiControlGroup<T extends UiControlGroupProps = UiControlGr
     } else {
       this.scrollController.registerCtrl(ctrl);
     }
-  }
+  };
 
   /**
    * A callback which is called when this control group is focused.

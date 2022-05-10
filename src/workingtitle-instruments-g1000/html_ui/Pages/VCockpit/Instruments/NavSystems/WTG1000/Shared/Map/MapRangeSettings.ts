@@ -64,7 +64,7 @@ export class MapRangeSettings {
         750
       ].map(value => UnitType.METER.createNumber(value).readonly),
       ...[
-        0.5,
+        1,
         1.5,
         2.5,
         4,

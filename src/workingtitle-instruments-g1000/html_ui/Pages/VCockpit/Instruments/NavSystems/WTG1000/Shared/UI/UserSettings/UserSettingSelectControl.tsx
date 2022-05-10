@@ -2,6 +2,7 @@ import { DisplayComponent, FSComponent, NodeReference, SubscribableArray, VNode 
 import { UserSettingType } from 'msfssdk/settings';
 import { ContextMenuDialog, ContextMenuItemDefinition } from '../Dialogs/ContextMenuDialog';
 import { SelectControl } from '../UIControls/SelectControl';
+import { ViewService } from '../ViewService';
 import { UserSettingControlProps } from './UserSettingControl';
 import { UserSettingSelectController } from './UserSettingSelectController';
 
@@ -9,6 +10,9 @@ import { UserSettingSelectController } from './UserSettingSelectController';
  * Component props for UserSettingSelectControl.
  */
 export interface UserSettingSelectControlProps<T extends Record<any, UserSettingType>, K extends keyof T> extends UserSettingControlProps<T, K> {
+  /** The View Service. */
+  viewService: ViewService;
+
   /** A subscribable array which provides the possible values of the controlled setting. */
   values: SubscribableArray<T[K]>;
 
@@ -75,6 +79,7 @@ export class UserSettingSelectControl<
   public render(): VNode {
     return (
       <SelectControl<T[K]>
+        viewService={this.props.viewService}
         ref={this.selectControlRef}
         onRegister={this.props.registerFunc} outerContainer={this.props.outerContainer}
         data={this.selectController.values}

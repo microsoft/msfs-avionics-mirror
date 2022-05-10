@@ -1,4 +1,4 @@
-import { BitFlags, FSComponent, NumberUnitSubject, Subject, UnitType, Vec2Math, VNode } from 'msfssdk';
+import { BitFlags, FSComponent, NumberUnitSubject, ReadonlyFloat64Array, Subject, UnitType, Vec2Math, VNode } from 'msfssdk';
 import { MapIndexedRangeModule, MapLabeledRingLabel, MapLabeledRingLayer, MapLayer, MapLayerProps, MapProjection, MapProjectionChangeType, MapSyncedCanvasLayer } from 'msfssdk/components/map';
 import { MapRangeDisplay } from '../../Map/MapRangeDisplay';
 import { MapTrafficModule } from '../../Map/Modules/MapTrafficModule';
@@ -54,7 +54,7 @@ export class TrafficMapRangeLayer extends MapLayer<TrafficMapRangeLayerProps> {
   private outerLabel: MapLabeledRingLabel<MapRangeDisplay> | null = null;
   private needUpdateRings = false;
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onAttached(): void {
     this.tickLayerRef.instance.onAttached();
     this.innerRangeLayerRef.instance.onAttached();
@@ -94,8 +94,7 @@ export class TrafficMapRangeLayer extends MapLayer<TrafficMapRangeLayerProps> {
    * Initializes ring styles.
    */
   private initStyles(): void {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    this.tickLayerRef.instance.display!.context.fillStyle = this.props.strokeColor;
+    this.tickLayerRef.instance.display.context.fillStyle = this.props.strokeColor;
 
     this.innerRangeLayerRef.instance.setRingStrokeStyles(this.props.strokeWidth, this.props.strokeColor, this.props.strokeDash);
     this.outerRangeLayerRef.instance.setRingStrokeStyles(this.props.strokeWidth, this.props.strokeColor, this.props.strokeDash);
@@ -111,11 +110,11 @@ export class TrafficMapRangeLayer extends MapLayer<TrafficMapRangeLayerProps> {
     this.rangeModule.nominalRanges.sub(innerRangeCallback);
     this.rangeModule.nominalRanges.sub(outerRangeCallback);
 
-    this.trafficModule.innerRangeIndex.sub(innerRangeCallback);
-    this.trafficModule.outerRangeIndex.sub(outerRangeCallback);
+    this.trafficModule.innerRangeIndex.sub(innerRangeCallback, true);
+    this.trafficModule.outerRangeIndex.sub(outerRangeCallback, true);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
     this.tickLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
     this.innerRangeLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
@@ -124,7 +123,7 @@ export class TrafficMapRangeLayer extends MapLayer<TrafficMapRangeLayerProps> {
     this.needUpdateRings = BitFlags.isAny(changeFlags, MapProjectionChangeType.TargetProjected | MapProjectionChangeType.ProjectedResolution);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onUpdated(time: number, elapsed: number): void {
     this.tickLayerRef.instance.onUpdated(time, elapsed);
 
@@ -168,9 +167,8 @@ export class TrafficMapRangeLayer extends MapLayer<TrafficMapRangeLayerProps> {
    * @param innerRadius The radius of the inner ring, in pixels.
    * @param outerRadius The radius of the outer ring, in pixels.
    */
-  private updateTicks(center: Float64Array, innerRadius: number, outerRadius: number): void {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const display = this.tickLayerRef.instance.display!;
+  private updateTicks(center: ReadonlyFloat64Array, innerRadius: number, outerRadius: number): void {
+    const display = this.tickLayerRef.instance.display;
 
     display.clear();
 
@@ -189,7 +187,7 @@ export class TrafficMapRangeLayer extends MapLayer<TrafficMapRangeLayerProps> {
    * @param center The projected center of the inner ring.
    * @param radius The radius of the inner ring, in pixels.
    */
-  private drawInnerTicks(context: CanvasRenderingContext2D, center: Float64Array, radius: number): void {
+  private drawInnerTicks(context: CanvasRenderingContext2D, center: ReadonlyFloat64Array, radius: number): void {
     const step = Math.PI / 2;
     for (let i = 0; i < 4; i++) {
       const pos = Vec2Math.setFromPolar(radius, i * step, TrafficMapRangeLayer.vec2Cache[0]);
@@ -203,7 +201,7 @@ export class TrafficMapRangeLayer extends MapLayer<TrafficMapRangeLayerProps> {
    * @param center The projected center of the outer ring.
    * @param radius The radius of the outer ring, in pixels.
    */
-  private drawOuterTicks(context: CanvasRenderingContext2D, center: Float64Array, radius: number): void {
+  private drawOuterTicks(context: CanvasRenderingContext2D, center: ReadonlyFloat64Array, radius: number): void {
     const step = Math.PI / 6;
     for (let i = 0; i < 12; i++) {
       const pos = Vec2Math.setFromPolar(radius, i * step, TrafficMapRangeLayer.vec2Cache[0]);
@@ -238,7 +236,7 @@ export class TrafficMapRangeLayer extends MapLayer<TrafficMapRangeLayerProps> {
     this.outerRangeSub.set(range ?? 0);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public render(): VNode {
     return (
       <div>

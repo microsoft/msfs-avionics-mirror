@@ -29,7 +29,7 @@ export class PFDViewService extends ViewService {
     ['AS1000_PFD_PROC_Push', FmsHEvent.PROC],
     ['AS1000_PFD_RANGE_INC', FmsHEvent.RANGE_INC],
     ['AS1000_PFD_RANGE_DEC', FmsHEvent.RANGE_DEC]
-  ])
+  ]);
 
   /**
    * Constructs the view service.

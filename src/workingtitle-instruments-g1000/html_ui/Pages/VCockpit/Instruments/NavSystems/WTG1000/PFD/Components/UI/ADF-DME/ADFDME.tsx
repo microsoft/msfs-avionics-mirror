@@ -1,10 +1,12 @@
 import { ComputedSubject, FSComponent, Subject, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
-import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
-import { ArrowToggle } from '../../../../Shared/UI/UIControls/ArrowToggle';
-import { NavIndicatorController } from '../../../../Shared/Navigation/NavIndicatorController';
-import { ADFFreqInput } from './ADFFreqInput';
 import { RadioEvents } from 'msfssdk/instruments';
+
+import { NavIndicatorController } from 'garminsdk/navigation';
+
+import { ArrowToggle } from '../../../../Shared/UI/UIControls/ArrowToggle';
+import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
+import { ADFFreqInput } from './ADFFreqInput';
 
 import './ADFDME.css';
 
@@ -50,10 +52,10 @@ export class ADFDME extends UiView<ADFDMEProps> {
    */
   public onAfterRender(): void {
     const adf = this.props.bus.getSubscriber<RadioEvents>();
-    adf.on('adf1ActiveFreq').whenChanged().handle((f) => {
+    adf.on('adf_active_frequency_1').whenChanged().handle((f) => {
       this.adfActiveFreq.set(f);
     });
-    adf.on('adf1StandbyFreq').whenChanged().handle((f) => {
+    adf.on('adf_standby_frequency_1').whenChanged().handle((f) => {
       this.adfInputSubject.set(Math.round(f * 10) / 10);
       this.freqComponentRef.instance.setFreq();
     });
@@ -89,7 +91,7 @@ export class ADFDME extends UiView<ADFDMEProps> {
         </div>
         <div class="ADFDME-adf-row2">
           <div>MODE</div>
-          <ArrowToggle onRegister={this.register} onOptionSelected={this.onADFToggleSelected} options={this.adfdmeToggleOptions} />
+          <ArrowToggle onRegister={this.register} onOptionSelected={this.onADFToggleSelected} options={this.adfdmeToggleOptions} class='ADFDME-adf-select-toggle' />
           <div>VOL</div>
           <div class="cyan size16">100%</div>
         </div>
@@ -97,8 +99,8 @@ export class ADFDME extends UiView<ADFDMEProps> {
         <div class="ADFDME-dme-row1">
           <div>DME</div>
           <div>MODE</div>
-          <div class="ADFDME-dme-select">
-            <ArrowToggle onRegister={this.register} onOptionSelected={this.onDmeToggleSelected} options={this.dmeToggleOptions} />
+          <div>
+            <ArrowToggle onRegister={this.register} onOptionSelected={this.onDmeToggleSelected} options={this.dmeToggleOptions} class='ADFDME-dme-select-toggle' />
           </div>
         </div>
         <hr />

@@ -1,7 +1,6 @@
 import { ComputedSubject, FSComponent, Subscribable, VNode } from 'msfssdk';
-import { Facility, FacilityType, ICAO } from 'msfssdk/navigation';
+import { Facility, FacilityType, FacilityWaypoint, ICAO } from 'msfssdk/navigation';
 
-import { FacilityWaypoint } from '../../Navigation/Waypoint';
 import { UiControl, UiControlProps } from '../UiControl';
 import { WaypointIcon } from '../Waypoint/WaypointIcon';
 import { WaypointRegion } from '../Waypoint/WaypointRegion';

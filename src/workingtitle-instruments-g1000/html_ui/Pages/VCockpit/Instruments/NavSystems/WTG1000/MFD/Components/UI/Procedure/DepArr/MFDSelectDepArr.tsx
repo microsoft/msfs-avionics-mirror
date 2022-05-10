@@ -52,7 +52,7 @@ export abstract class MFDSelectDepArr<T extends DepartureProcedure | ArrivalProc
 
   private buildLegItem = (data: Subject<LegDefinition>, registerFn: (ctrl: UiControl) => void): VNode => {
     return <ProcSequenceItem onRegister={registerFn} data={data} unitsSettingManager={this.unitsSettingManager} />;
-  }
+  };
 
   /**
    * A callback which is called when the Load action is executed.

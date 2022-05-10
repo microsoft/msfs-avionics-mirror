@@ -1,12 +1,12 @@
 import { DisplayComponent, FSComponent, NodeReference, Subscribable, SubscribableArray, Subject, VNode } from 'msfssdk';
 import { ContextMenuItemDefinition, ContextMenuOptions, ContextMenuPosition } from '../Dialogs/ContextMenuDialog';
-import { UiControl2, UiControl2Props } from '../UiControl2';
+import { G1000UiControl, G1000UiControlProps } from '../G1000UiControl';
 import { ViewService } from '../ViewService';
 
 /**
  * The properties for the SelectControl component.
  */
-export interface SelectControlProps<T> extends UiControl2Props {
+export interface SelectControlProps<T> extends G1000UiControlProps {
   /** The view service to use to open the selection dialog. */
   viewService: ViewService;
 
@@ -77,7 +77,7 @@ export interface SelectControlProps<T> extends UiControl2Props {
  * A control which allows the user to select one of multiple items through a pop-up dialog and which also displays the
  * currently selected value.
  */
-export class SelectControl<T> extends UiControl2<SelectControlProps<T>> {
+export class SelectControl<T> extends G1000UiControl<SelectControlProps<T>> {
   private readonly valueRef = FSComponent.createRef<HTMLElement>();
   private renderedValueNode: VNode | null = null;
 
@@ -108,27 +108,27 @@ export class SelectControl<T> extends UiControl2<SelectControlProps<T>> {
   }
 
   /** @inheritdoc */
-  protected onEnabled(source: UiControl2): void {
+  protected onEnabled(source: G1000UiControl): void {
     super.onEnabled(source);
 
     this.valueRef.instance.classList.add('cyan');
   }
 
   /** @inheritdoc */
-  protected onDisabled(source: UiControl2): void {
+  protected onDisabled(source: G1000UiControl): void {
     super.onEnabled(source);
 
     this.valueRef.instance.classList.remove('cyan');
   }
 
   /** @inheritdoc */
-  protected onUpperKnobInc(): boolean {
+  public onUpperKnobInc(): boolean {
     this.openContextMenu();
     return true;
   }
 
   /** @inheritdoc */
-  protected onUpperKnobDec(): boolean {
+  public onUpperKnobDec(): boolean {
     this.openContextMenu();
     return true;
   }

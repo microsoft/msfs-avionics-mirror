@@ -13,7 +13,6 @@ export class MapHSILayoutMenu extends SoftKeyMenu {
    */
   constructor(menuSystem: MenuSystem) {
     super(menuSystem);
-
     this.addItem(0, 'Map Off', () => this.pressMapMode(PfdMapLayoutSettingMode.Off), false);
     this.addItem(1, 'Inset Map', () => this.pressMapMode(PfdMapLayoutSettingMode.Inset), false);
     this.addItem(2, 'HSI Map', () => this.pressMapMode(PfdMapLayoutSettingMode.HSI), false);
@@ -42,6 +41,5 @@ export class MapHSILayoutMenu extends SoftKeyMenu {
    */
   private pressMapMode(mode: PfdMapLayoutSettingMode): void {
     PFDUserSettings.getManager(this.menuSystem.bus).getSetting('mapLayout').value = mode;
-
   }
 }

@@ -1,6 +1,6 @@
 import { BoundaryType, LodBoundary } from 'msfssdk/navigation';
 import { MapAirspaceRenderer, NullAirspaceRenderer, MapSingleLineAirspaceRenderer, AbstractMapAirspaceRenderManager, MapMultiLineAirspaceRenderer, MapMultiLineAirspaceShape } from 'msfssdk/components/map';
-import { PathStream } from 'msfssdk/utils/ui';
+import { PathStream } from 'msfssdk/graphics/path';
 
 enum AirspaceRenderType {
   BlueSingle,

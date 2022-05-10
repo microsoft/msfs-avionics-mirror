@@ -1,7 +1,7 @@
 import { FSComponent, VNode } from 'msfssdk';
 import { ListMenuDialog, ListMenuDialogProps } from '../../../../Shared/UI/Dialogs/ListMenuDialog';
 import { MenuItemDefinition } from '../../../../Shared/UI/Dialogs/PopoutMenuItem';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { PFDSelectApproachView } from './Approach/PFDSelectApproachView';
 
 import './PFDProc.css';

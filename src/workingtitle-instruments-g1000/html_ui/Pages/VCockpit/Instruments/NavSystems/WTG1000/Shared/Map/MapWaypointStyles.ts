@@ -1,6 +1,5 @@
 import { MapLocationTextLabelOptions } from 'msfssdk/components/map';
-
-import { AirportSize } from '../Navigation/Waypoint';
+import { AirportSize } from 'msfssdk/navigation';
 
 /**
  * Styles for waypoints rendered in a normal role.
@@ -160,9 +159,6 @@ export type MapWaypointFlightPlanStyles = {
  * Styles for waypoints rendered in a normal role.
  */
 export type MapWaypointHighlightStyles = {
-  /** The buffer of the highlight ring around the base icon, in pixels. */
-  highlightRingRadiusBuffer: number,
-
   /** The width of the stroke for the highlight ring, in pixels. */
   highlightRingStrokeWidth: number
 
@@ -207,6 +203,21 @@ export type MapWaypointHighlightStyles = {
 
   /** The size of user waypoint icons, in pixels. */
   userIconSize: number,
+
+  /** The buffer of the highlight ring around the airport base icon, in pixels. */
+  airportHighlightRingRadiusBuffer: number,
+
+  /** The buffer of the highlight ring around the VOR base icon, in pixels. */
+  vorHighlightRingRadiusBuffer: number,
+
+  /** The buffer of the highlight ring around the NDB base icon, in pixels. */
+  ndbHighlightRingRadiusBuffer: number,
+
+  /** The buffer of the highlight ring around the intersection base icon, in pixels. */
+  intHighlightRingRadiusBuffer: number,
+
+  /** The buffer of the highlight ring around the user waypoint base icon, in pixels. */
+  userHighlightRingRadiusBuffer: number,
 
   /** The render priority of airport labels. */
   airportLabelPriority: Record<AirportSize, number>,
@@ -442,7 +453,6 @@ export class MapWaypointStyles {
     scale = 1
   ): MapWaypointHighlightStyles {
     return {
-      highlightRingRadiusBuffer: 0,
       highlightRingStrokeWidth: 2,
       highlightRingStrokeColor: 'white',
       highlightRingOutlineWidth: 0,
@@ -469,6 +479,12 @@ export class MapWaypointStyles {
       intIconSize: 32 * scale,
       userIconSize: 32 * scale,
 
+      airportHighlightRingRadiusBuffer: -5,
+      vorHighlightRingRadiusBuffer: -8,
+      ndbHighlightRingRadiusBuffer: -8,
+      intHighlightRingRadiusBuffer: -8,
+      userHighlightRingRadiusBuffer: -8,
+
       airportLabelPriority: {
         [AirportSize.Large]: baseLabelPriority + 0.8,
         [AirportSize.Medium]: baseLabelPriority + 0.79,
@@ -480,14 +496,14 @@ export class MapWaypointStyles {
       userLabelPriority: baseLabelPriority + 0.9,
 
       airportLabelOptions: {
-        [AirportSize.Large]: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -17 * scale]), 20 * scale),
-        [AirportSize.Medium]: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -17 * scale]), 16 * scale),
-        [AirportSize.Small]: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -17 * scale]), 16 * scale)
+        [AirportSize.Large]: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -15 * scale]), 20 * scale),
+        [AirportSize.Medium]: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -15 * scale]), 16 * scale),
+        [AirportSize.Small]: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -15 * scale]), 16 * scale)
       },
-      vorLabelOptions: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -17 * scale]), 16 * scale),
-      ndbLabelOptions: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -17 * scale]), 16 * scale),
-      intLabelOptions: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -17 * scale]), 16 * scale),
-      userLabelOptions: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -17 * scale]), 16 * scale)
+      vorLabelOptions: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -11 * scale]), 16 * scale),
+      ndbLabelOptions: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -11 * scale]), 16 * scale),
+      intLabelOptions: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -8 * scale]), 16 * scale),
+      userLabelOptions: MapWaypointStyles.createHighlightLabelOptions(new Float64Array([0, -12 * scale]), 16 * scale)
     };
   }
 

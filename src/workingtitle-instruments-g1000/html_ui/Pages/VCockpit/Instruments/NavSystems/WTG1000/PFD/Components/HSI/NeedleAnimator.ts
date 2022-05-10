@@ -44,5 +44,5 @@ export class NeedleAnimator {
     this.currentValue = this.targetValue;
 
     this.el.instance.style.transform = `rotate3d(0, 0, 1, ${this.targetValue}deg)`;
-  }
+  };
 }

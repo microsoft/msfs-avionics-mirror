@@ -1,30 +1,24 @@
 import {
-  FSComponent, GeodesicResampler, NumberUnitInterface, SubEvent, Subscribable, UnitFamily, UnitType, VNode
+  FSComponent, GeoCircleResampler, NumberUnitInterface, SubEvent, Subscribable, UnitFamily, UnitType, VecNSubject, VNode
 } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
-import { FacilityLoader, FacilityRespository } from 'msfssdk/navigation';
+import { FacilityLoader, FacilityRepository, VNavWaypoint, Waypoint, FacilityWaypointCache } from 'msfssdk/navigation';
 import { FlightPlan, FlightPlanSegmentType } from 'msfssdk/flightplan';
-import { VNavMode, VNavPathMode } from 'msfssdk/autopilot';
+import { VNavPathMode, VNavState } from 'msfssdk/autopilot';
 import {
-  MapLayerProps, MapSyncedCanvasLayer, MapProjection, MapLayer, MapCullableTextLabelManager,
-  MapCullableTextLabel, MapCullableLocationTextLabel, MapCachedCanvasLayer
+  MapLayerProps, MapSyncedCanvasLayer, MapProjection, MapLayer, MapCullableTextLabelManager, MapCullableTextLabel,
+  MapCullableLocationTextLabel, MapCachedCanvasLayer, MapWaypointRendererIconFactory, MapWaypointRendererLabelFactory, MapWaypointIcon, GeoProjectionPathStreamStack
 } from 'msfssdk/components/map';
+import { ClippedPathStream, NullPathStream } from 'msfssdk/graphics/path';
 
-import { MapWaypointRenderer, MapWaypointRendererIconFactory, MapWaypointRendererLabelFactory, MapWaypointRenderRole } from '../MapWaypointRenderer';
-import { VNavWaypoint, Waypoint } from '../../Navigation/Waypoint';
-import { MapVNavWaypointIcon, MapWaypointIcon } from '../MapWaypointIcon';
-import { FacilityWaypointCache } from '../../Navigation/FacilityWaypointCache';
+import { MapWaypointRenderer, MapWaypointRenderRole } from '../MapWaypointRenderer';
+import { MapVNavWaypointIcon } from '../MapWaypointIcon';
 import { MapWaypointFlightPlanStyles } from '../MapWaypointStyles';
-import { FmsUtils } from '../../FlightPlan/FmsUtils';
-import { MapDefaultFlightPlanPathRenderer, MapDefaultFlightPlanPathRendererLNavData } from '../MapDefaultFlightPlanPathRenderer';
+import { FmsUtils } from 'garminsdk/flightplan';
+import { DefaultFlightPathPlanRenderer, DefaultFlightPathPlanRendererLNavData } from '../MapDefaultFlightPathPlanRenderer';
 import { MapFlightPlanWaypointRecordManager } from '../MapFlightPlanWaypointRecordManager';
 import { MapFlightPlanWaypointIconFactory } from '../MapFlightPlanWaypointIconFactory';
 import { MapFlightPlanWaypointLabelFactory } from '../MapFlightPlanWaypointLabelFactory';
-
-/**
- * LNav data used by MapFlightPlanLayer.
- */
-export type MapFlightPlanLayerLNavData = MapDefaultFlightPlanPathRendererLNavData;
 
 /**
  * A provider of flight plan data for MapFlightPlanLayer.
@@ -34,10 +28,10 @@ export interface MapFlightPlanLayerDataProvider {
   readonly plan: Subscribable<FlightPlan | null>;
 
   /** An event which notifies when the displayed plan has been modified. */
-  readonly planModified: SubEvent<void>;
+  readonly planModified: SubEvent<MapFlightPlanLayerDataProvider, void>;
 
   /** An event which notifies when the displayed plan has been calculated.  */
-  readonly planCalculated: SubEvent<void>;
+  readonly planCalculated: SubEvent<MapFlightPlanLayerDataProvider, void>;
 
   /**
    * A subscribable which provides the index of the active lateral leg of the displayed flight plan, or -1 if no such
@@ -46,13 +40,12 @@ export interface MapFlightPlanLayerDataProvider {
   readonly activeLateralLegIndex: Subscribable<number>;
 
   /**
-   * A subscribable which provides the index of the flight path vector in the active lateral leg currently being
-   * tracked by LNAV.
+   * A subscribable which provides LNAV data.
    */
-  readonly lnavData: Subscribable<MapFlightPlanLayerLNavData | undefined>;
+  readonly lnavData: Subscribable<DefaultFlightPathPlanRendererLNavData | undefined>;
 
-  /** A subscribable which provides the current VNAV mode. */
-  readonly vnavMode: Subscribable<VNavMode>;
+  /** A subscribable which provides the current VNAV state. */
+  readonly vnavState: Subscribable<VNavState>;
 
   /** A subscribable which provides the currently active VNAV path mode. */
   readonly vnavPathMode: Subscribable<VNavPathMode>;
@@ -118,13 +111,14 @@ export interface MapFlightPlanLayerProps extends MapLayerProps<any> {
  * A map layer which displays a flight plan.
  */
 export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
+  private static readonly CLIP_BOUNDS_BUFFER = 10; // number of pixels from edge of canvas to extend the clipping bounds, in pixels
   private static readonly TOD_DISTANCE_THRESHOLD = UnitType.METER.createNumber(100); // minimum distance from TOD for which to display TOD waypoint
 
   private readonly flightPathLayerRef = FSComponent.createRef<MapCachedCanvasLayer<any>>();
   private readonly waypointLayerRef = FSComponent.createRef<MapSyncedCanvasLayer<any>>();
 
-  private readonly resampler = new GeodesicResampler(Math.PI / 12, 0.25, 8);
-  private readonly facLoader = new FacilityLoader(FacilityRespository.getRepository(this.props.bus));
+  private readonly resampler = new GeoCircleResampler(Math.PI / 12, 0.25, 8);
+  private readonly facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
   private readonly facWaypointCache = FacilityWaypointCache.getCache();
 
   private readonly iconFactoryInactive: MapFlightPlanWaypointIconFactory;
@@ -140,7 +134,11 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
     MapWaypointRenderRole.FlightPlanInactive, MapWaypointRenderRole.FlightPlanActive
   );
 
-  private readonly pathRenderer = new MapDefaultFlightPlanPathRenderer(this.resampler);
+  private readonly clipBoundsSub = VecNSubject.createFromVector(new Float64Array(4));
+  private readonly clippedPathStream = new ClippedPathStream(NullPathStream.INSTANCE, this.clipBoundsSub);
+
+  private readonly pathStreamStack = new GeoProjectionPathStreamStack(NullPathStream.INSTANCE, this.props.mapProjection.getGeoProjection(), this.resampler);
+  private readonly pathRenderer = new DefaultFlightPathPlanRenderer();
 
   private todWaypoint?: VNavWaypoint;
   private bodWaypoint?: VNavWaypoint;
@@ -172,6 +170,10 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
 
     this.flightPathLayerRef.instance.onAttached();
     this.waypointLayerRef.instance.onAttached();
+
+    this.pathStreamStack.pushPostProjected(this.clippedPathStream);
+    this.pathStreamStack.setConsumer(this.flightPathLayerRef.instance.display.context);
+
     this.initWaypointRenderer();
     this.initFlightPlanHandlers();
     this.onTodBodChanged();
@@ -210,7 +212,7 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
 
     this.props.dataProvider.lnavData.sub(() => { this.scheduleUpdates(true, false, false); });
 
-    this.props.dataProvider.vnavMode.sub(() => { this.onTodBodChanged(); });
+    this.props.dataProvider.vnavState.sub(() => { this.onTodBodChanged(); });
     this.props.dataProvider.vnavPathMode.sub(() => { this.onTodBodChanged(); });
     this.props.dataProvider.vnavTodLegIndex.sub(() => { this.onTodBodChanged(); });
     this.props.dataProvider.vnavBodLegIndex.sub(() => { this.onTodBodChanged(); });
@@ -228,17 +230,32 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
       this.isObsActive = isActive;
       this.obsCourse = course ?? this.obsCourse;
 
-      this.scheduleUpdates(this.isObsActive, needFullUpdate, needFullUpdate);
+      this.scheduleUpdates(needFullUpdate || this.isObsActive, needFullUpdate, needFullUpdate);
     });
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
     this.flightPathLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
     this.waypointLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
+
+    this.updateClipBounds();
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /**
+   * Updates this layer's canvas clipping bounds.
+   */
+  private updateClipBounds(): void {
+    const size = this.flightPathLayerRef.instance.getSize();
+    this.clipBoundsSub.set(
+      -MapFlightPlanLayer.CLIP_BOUNDS_BUFFER,
+      -MapFlightPlanLayer.CLIP_BOUNDS_BUFFER,
+      size + MapFlightPlanLayer.CLIP_BOUNDS_BUFFER,
+      size + MapFlightPlanLayer.CLIP_BOUNDS_BUFFER
+    );
+  }
+
+  /** @inheritdoc */
   public onUpdated(time: number, elapsed: number): void {
     this.flightPathLayerRef.instance.onUpdated(time, elapsed);
 
@@ -281,10 +298,10 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
 
     const plan = this.props.dataProvider.plan.get();
     if (plan) {
+      this.pathStreamStack.setProjection(display.geoProjection);
       this.pathRenderer.render(
         plan,
-        display.geoProjection,
-        context, context,
+        context, this.pathStreamStack,
         this.props.drawEntirePlan.get(),
         this.props.dataProvider.activeLateralLegIndex.get(),
         this.props.dataProvider.lnavData.get(),
@@ -381,9 +398,9 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
       return;
     }
 
-    const vnavMode = this.props.dataProvider.vnavMode.get();
+    const vnavState = this.props.dataProvider.vnavState.get();
 
-    if (vnavMode === VNavMode.Disabled) {
+    if (vnavState === VNavState.Disabled) {
       return;
     }
 
@@ -431,7 +448,7 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
 /**
  * A waypoint icon factory for VNAV waypoints.
  */
-class VNavWaypointIconFactory implements MapWaypointRendererIconFactory {
+class VNavWaypointIconFactory implements MapWaypointRendererIconFactory<Waypoint> {
   /**
    * Constructor.
    * @param styles Styling options used by this factory.
@@ -440,7 +457,7 @@ class VNavWaypointIconFactory implements MapWaypointRendererIconFactory {
   }
 
   /** @inheritdoc */
-  public getIcon<T extends Waypoint>(waypoint: T): MapWaypointIcon<T> {
+  public getIcon<T extends Waypoint>(role: number, waypoint: T): MapWaypointIcon<T> {
     return new MapVNavWaypointIcon(waypoint as any, this.styles.vnavIconPriority, this.styles.vnavIconSize, this.styles.vnavIconSize) as unknown as MapWaypointIcon<T>;
   }
 }
@@ -448,7 +465,7 @@ class VNavWaypointIconFactory implements MapWaypointRendererIconFactory {
 /**
  * A waypoint label factory for VNAV waypoints.
  */
-class VNavWaypointLabelFactory implements MapWaypointRendererLabelFactory {
+class VNavWaypointLabelFactory implements MapWaypointRendererLabelFactory<Waypoint> {
   /**
    * Constructor.
    * @param styles Styling options used by this factory.
@@ -457,7 +474,7 @@ class VNavWaypointLabelFactory implements MapWaypointRendererLabelFactory {
   }
 
   /** @inheritdoc */
-  public getLabel(waypoint: Waypoint): MapCullableTextLabel {
+  public getLabel(role: number, waypoint: Waypoint): MapCullableTextLabel {
     return new MapCullableLocationTextLabel(waypoint.uid === 'vnav-tod' ? 'TOD' : 'BOD', this.styles.vnavLabelPriority, waypoint.location, true, this.styles.vnavLabelOptions);
   }
 }

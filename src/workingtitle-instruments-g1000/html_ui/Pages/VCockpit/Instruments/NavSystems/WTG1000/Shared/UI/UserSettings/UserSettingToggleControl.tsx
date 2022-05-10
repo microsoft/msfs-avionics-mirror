@@ -25,11 +25,11 @@ export class UserSettingToggleControl<
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <UserSettingToggleEnumControl
+      <UserSettingToggleEnumControl<T, K>
         settingManager={this.props.settingManager}
         settingName={this.props.settingName}
         registerFunc={this.props.registerFunc}
-        values={[false, true]}
+        values={[false, true] as T[K][]}
         valueText={[this.props.falseText ?? 'false', this.props.trueText ?? 'true']}
         class={this.props.class ?? ''}
       />

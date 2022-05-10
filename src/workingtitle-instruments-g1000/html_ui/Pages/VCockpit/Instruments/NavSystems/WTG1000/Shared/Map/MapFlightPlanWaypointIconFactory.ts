@@ -1,13 +1,12 @@
-import { FacilityType, ICAO } from 'msfssdk/navigation';
-import { AirportWaypoint, FacilityWaypoint, FlightPathWaypoint, Waypoint } from '../Navigation/Waypoint';
-import { MapAirportIcon, MapBlankWaypointIcon, MapFlightPathWaypointIcon, MapIntersectionIcon, MapNdbIcon, MapRunwayWaypointIcon, MapUserWaypointIcon, MapVorIcon, MapWaypointIcon } from './MapWaypointIcon';
-import { MapWaypointRendererIconFactory } from './MapWaypointRenderer';
+import { MapBlankWaypointIcon, MapWaypointIcon, MapWaypointRendererIconFactory } from 'msfssdk/components/map';
+import { FacilityType, ICAO, AirportWaypoint, FacilityWaypoint, FlightPathWaypoint, Waypoint } from 'msfssdk/navigation';
+import { MapAirportIcon, MapFlightPathWaypointIcon, MapIntersectionIcon, MapNdbIcon, MapRunwayWaypointIcon, MapUserWaypointIcon, MapVorIcon } from './MapWaypointIcon';
 import { MapWaypointFlightPlanStyles } from './MapWaypointStyles';
 
 /**
  * A waypoint icon factory for flight plan waypoints.
  */
-export class MapFlightPlanWaypointIconFactory implements MapWaypointRendererIconFactory {
+export class MapFlightPlanWaypointIconFactory implements MapWaypointRendererIconFactory<Waypoint> {
   private readonly cache = new Map<string, MapWaypointIcon<Waypoint>>();
 
   /**
@@ -18,7 +17,7 @@ export class MapFlightPlanWaypointIconFactory implements MapWaypointRendererIcon
   }
 
   /** @inheritdoc */
-  public getIcon<T extends Waypoint>(waypoint: T): MapWaypointIcon<T> {
+  public getIcon<T extends Waypoint>(role: number, waypoint: T): MapWaypointIcon<T> {
     let existing = this.cache.get(waypoint.uid);
     if (!existing) {
       existing = this.createIcon(waypoint);

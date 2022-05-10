@@ -1,7 +1,8 @@
 import { ArraySubject, DisplayComponent, FSComponent, VNode } from 'msfssdk';
-import { NavDataFieldType } from '../../../../Shared/UI/NavDataField/NavDataFieldType';
+import { NavDataFieldType } from 'garminsdk/components/navdatafield';
+import { NavDataBarSettingTypes } from 'garminsdk/settings/NavDataBarUserSettings';
 import { GroupBox } from '../GroupBox';
-import { MFDNavDataBarSettingTypes, MFDNavDataBarUserSettings } from '../NavDataBar/MFDNavDataBarUserSettings';
+import { MFDNavDataBarUserSettings } from '../NavDataBar/MFDNavDataBarUserSettings';
 import { MFDSystemSetupGroupProps } from './MFDSystemSetupGroup';
 import { MFDSystemSetupSelectRow } from './MFDSystemSetupRow';
 
@@ -13,12 +14,13 @@ export class MFDSystemSetupDataBarGroup extends DisplayComponent<MFDSystemSetupG
 
   /** @inheritdoc */
   public render(): VNode {
-    const valueArray = ArraySubject.create(Object.values(NavDataFieldType));
+    const valueArray = ArraySubject.create(Object.values(NavDataFieldType).filter(type => type !== NavDataFieldType.TimeToDestination));
     return (
       <GroupBox title='MFD Data Bar Fields' class='mfd-system-setup-group'>
-        <MFDSystemSetupSelectRow<MFDNavDataBarSettingTypes, 'navDataBarField0'>
+        <MFDSystemSetupSelectRow<NavDataBarSettingTypes, 'navDataBarField0'>
           title={'Field 1'}
           selectControlProps={{
+            viewService: this.props.viewService,
             registerFunc: this.props.registerFunc,
             settingManager: this.settingManager,
             settingName: 'navDataBarField0',
@@ -26,9 +28,10 @@ export class MFDSystemSetupDataBarGroup extends DisplayComponent<MFDSystemSetupG
             outerContainer: this.props.pageContainerRef
           }}
         />
-        <MFDSystemSetupSelectRow<MFDNavDataBarSettingTypes, 'navDataBarField1'>
+        <MFDSystemSetupSelectRow<NavDataBarSettingTypes, 'navDataBarField1'>
           title={'Field 2'}
           selectControlProps={{
+            viewService: this.props.viewService,
             registerFunc: this.props.registerFunc,
             settingManager: this.settingManager,
             settingName: 'navDataBarField1',
@@ -36,9 +39,10 @@ export class MFDSystemSetupDataBarGroup extends DisplayComponent<MFDSystemSetupG
             outerContainer: this.props.pageContainerRef
           }}
         />
-        <MFDSystemSetupSelectRow<MFDNavDataBarSettingTypes, 'navDataBarField2'>
+        <MFDSystemSetupSelectRow<NavDataBarSettingTypes, 'navDataBarField2'>
           title={'Field 3'}
           selectControlProps={{
+            viewService: this.props.viewService,
             registerFunc: this.props.registerFunc,
             settingManager: this.settingManager,
             settingName: 'navDataBarField2',
@@ -46,9 +50,10 @@ export class MFDSystemSetupDataBarGroup extends DisplayComponent<MFDSystemSetupG
             outerContainer: this.props.pageContainerRef
           }}
         />
-        <MFDSystemSetupSelectRow<MFDNavDataBarSettingTypes, 'navDataBarField3'>
+        <MFDSystemSetupSelectRow<NavDataBarSettingTypes, 'navDataBarField3'>
           title={'Field 4'}
           selectControlProps={{
+            viewService: this.props.viewService,
             registerFunc: this.props.registerFunc,
             settingManager: this.settingManager,
             settingName: 'navDataBarField3',

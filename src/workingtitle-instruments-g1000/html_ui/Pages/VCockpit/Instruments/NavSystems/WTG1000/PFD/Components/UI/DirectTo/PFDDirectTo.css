@@ -31,9 +31,6 @@
         color: var(--title-gray);
         font-size: 0.75em;
       }
-    .pfd-dto-course {
-      color: cyan;
-    }
 
   .activate {
     position: absolute;

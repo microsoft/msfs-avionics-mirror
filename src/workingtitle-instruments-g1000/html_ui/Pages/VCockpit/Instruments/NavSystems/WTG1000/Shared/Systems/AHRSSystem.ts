@@ -88,7 +88,7 @@ export class AHRSSystem extends BasicAvionicsSystem<AHRSSystemEvents> {
         this.setState(AvionicsSystemState.On);
       }, 45000) as unknown as number;
     }
-  }
+  };
 }
 
 /**

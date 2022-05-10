@@ -23,6 +23,8 @@ interface NumberInputProps extends UiControlProps {
   formatter?: (value: number) => string;
   /** Callback method to send the new value back to the parent component. */
   onValueChanged?(value: number): void;
+  /** Whether to quantize input to the nearest increment multiple when changed. */
+  quantize?: boolean;
 }
 
 /**
@@ -62,9 +64,12 @@ export class NumberInput extends UiControl<NumberInputProps> {
 
   /** @inheritdoc */
   public onUpperKnobInc(): void {
-    const newValue = this.props.wrap
+    let newValue = this.props.wrap
       ? ((this.props.dataSubject.get() + this.props.increment) - this.props.minValue) % this.range + this.props.minValue
       : Math.min(this.props.dataSubject.get() + this.props.increment, this.props.maxValue);
+    if (this.props.quantize && newValue % this.props.increment !== 0) {
+      newValue = Math.floor(newValue / this.props.increment) * this.props.increment;
+    }
     this.props.dataSubject.set(newValue);
     if (this.props.onValueChanged !== undefined) {
       this.props.onValueChanged(this.props.dataSubject.get());
@@ -74,9 +79,12 @@ export class NumberInput extends UiControl<NumberInputProps> {
 
   /** @inheritdoc */
   public onUpperKnobDec(): void {
-    const newValue = this.props.wrap
+    let newValue = this.props.wrap
       ? this.props.maxValue - (this.props.maxValue - (this.props.dataSubject.get() - this.props.increment)) % this.range
       : Math.max(this.props.dataSubject.get() - this.props.increment, this.props.minValue);
+    if (this.props.quantize && newValue % this.props.increment !== 0) {
+      newValue = Math.ceil(newValue / this.props.increment) * this.props.increment;
+    }
     this.props.dataSubject.set(newValue);
     if (this.props.onValueChanged !== undefined) {
       this.props.onValueChanged(this.props.dataSubject.get());

@@ -1,4 +1,4 @@
-import { FSComponent, DisplayComponent, VNode, NodeReference, Units, Subject, Fragment } from 'msfssdk';
+import { FSComponent, DisplayComponent, VNode, NodeReference, Subject, Fragment } from 'msfssdk';
 import { XMLCircularGaugeCursor, XMLCircularGaugeProps, XMLCircularGaugeValuePos, XMLGaugeColorLine, XMLGaugeColorZone, XMLHostedLogicGauge, XMLGaugeReferenceBug } from 'msfssdk/components/XMLGauges';
 import { BaseGauge } from './BaseGauge';
 
@@ -71,6 +71,7 @@ class ColorZones extends DisplayComponent<ColorZoneProps & XMLHostedLogicGauge> 
   public onAfterRender(): void {
     this.props.geometry.minValue.sub(n => this.updateMinValue(n), true);
     this.props.geometry.maxValue.sub(n => this.updateMaxValue(n), true);
+
     if (this.props.colorZones) {
       for (let i = 0; i < this.props.colorZones.length; i++) {
         const zone = this.props.colorZones[i];
@@ -78,17 +79,18 @@ class ColorZones extends DisplayComponent<ColorZoneProps & XMLHostedLogicGauge> 
         FSComponent.render(<Fragment><path ref={path} /></Fragment>, this.groupRef.instance);
         this.pathRefs[i] = path;
         this.pathValues[i] = { min: 0, max: 0, color: zone.color !== undefined ? zone.color : 'white' };
+
         if (zone.begin !== undefined) {
           this.pathValues[i].min = this.props.logicHost?.addLogicAsNumber(zone.begin, (begin: number) => {
             this.pathValues[i].min = begin;
             this.redrawArcs();
-          }, 0, zone.smoothFactor);
+          }, 1, zone.smoothFactor);
         }
         if (zone.end !== undefined) {
           this.pathValues[i].max = this.props.logicHost?.addLogicAsNumber(zone.end, (end: number) => {
             this.pathValues[i].max = end;
             this.redrawArcs();
-          }, 0, zone.smoothFactor);
+          }, 1, zone.smoothFactor);
         }
       }
       this.redrawArcs();
@@ -348,7 +350,7 @@ class ReferenceBug extends DisplayComponent<ReferenceBugProps & XMLHostedLogicGa
 export class XMLCircleGauge extends BaseGauge<Partial<XMLCircularGaugeProps> & XMLHostedLogicGauge> {
   private readonly origin: Cartesian = { x: 70, y: 70 };
   private readonly arcRadius = 65.5;
-  private readonly bandRadius = 60.5
+  private readonly bandRadius = 60.5;
 
   private geometry: ArcGeometry;
 
@@ -611,7 +613,7 @@ export class XMLCircleGauge extends BaseGauge<Partial<XMLCircularGaugeProps> & X
    */
   public static distanceFromYOrigin(center: Cartesian, radius: number, angle: number): number {
     const theta = Math.abs(angle);
-    const cos = Math.cos(Units.Degrees.toRadians(theta));
+    const cos = Math.cos(theta * Avionics.Utils.DEG2RAD);
     const dist = radius * cos;
     return dist;
   }

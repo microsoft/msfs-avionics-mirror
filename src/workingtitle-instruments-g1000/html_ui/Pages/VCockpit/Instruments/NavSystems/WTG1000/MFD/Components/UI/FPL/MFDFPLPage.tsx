@@ -1,8 +1,9 @@
 import { FSComponent, Subject, VNode } from 'msfssdk';
 import { EventBus } from 'msfssdk/data';
 
+import { FocusPosition } from 'msfssdk/components/controls';
 import { MapUserSettings } from '../../../../Shared/Map/MapUserSettings';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { TrafficAdvisorySystem } from '../../../../Shared/Traffic/TrafficAdvisorySystem';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
 import { MapPointerController } from '../../../../Shared/Map/Controllers/MapPointerController';
@@ -12,7 +13,6 @@ import { MFDFPLMapComponent } from './MFDFPLMapComponent';
 import { MFDFPLMapModel } from './MFDFPLMapModel';
 
 import './MFDFPLPage.css';
-import { FocusPosition } from '../../../../Shared/UI/UiControl2';
 
 /**
  * Component props for MFDFPLPage.
@@ -63,14 +63,7 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
   public processHEvent(evt: FmsHEvent): boolean {
     switch (evt) {
       case FmsHEvent.UPPER_PUSH:
-        if (!this.fplRef.instance.isFocused) {
-          this.fplRef.instance.focus(FocusPosition.MostRecent);
-          this.focusModule.isFocused.set(true);
-        } else {
-          this.fplRef.instance.blur();
-          this.focusModule.isFocused.set(false);
-          this.fplRef.instance.resetAutoScroll();
-        }
+        this.setScrollEnabled(!this.scrollController.getIsScrollEnabled());
         return true;
       case FmsHEvent.MENU:
         // Always pass menu events through to FPL, even if scroll is disabled.
@@ -98,6 +91,21 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
       return this.handleMapPointerMoveEvent(evt) || super.onInteractionEvent(evt);
     } else {
       return handledByDetails;
+    }
+  }
+
+  /** @inheritdoc */
+  public setScrollEnabled(enabled: boolean): void {
+    super.setScrollEnabled(enabled);
+
+    if (enabled && !this.fplRef.instance.isFocused) {
+      this.fplRef.instance.focus(FocusPosition.MostRecent);
+      this.fplRef.instance.scrollToActiveLeg(true);
+      this.focusModule.isFocused.set(true);
+    } else if (!enabled && this.fplRef.instance.isFocused) {
+      this.fplRef.instance.blur();
+      this.fplRef.instance.scrollToActiveLeg(false);
+      this.focusModule.isFocused.set(false);
     }
   }
 
@@ -161,6 +169,7 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
 
     this.mapPointerController?.setPointerActive(false);
     this.mapRef.instance.sleep();
+    this.fplRef.instance.onViewClosed();
   }
 
   /** @inheritdoc */
@@ -176,6 +185,15 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
     return true;
   }
 
+  /**
+   * Responds to when this page's FPL component is focused.
+   */
+  private onFPLFocused(): void {
+    if (!this.scrollController.getIsScrollEnabled()) {
+      this.setScrollEnabled(true);
+    }
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     return (
@@ -185,8 +203,10 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
           updateFreq={Subject.create(MFDFPLPage.UPDATE_FREQ)}
           dataUpdateFreq={Subject.create(MFDFPLPage.UPDATE_FREQ)}
           projectedWidth={440} projectedHeight={734}
-          deadZone={new Float64Array([0, 56, 0, 0])} flightPlanner={this.props.fms.flightPlanner}
-          id='mfd_fplmap' bingId='mfd_page_map'
+          deadZone={Subject.create(new Float64Array([0, 56, 0, 0]))}
+          pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
+          flightPlanner={this.props.fms.flightPlanner}
+          bingId='mfd_page_map'
           settingManager={MapUserSettings.getMfdManager(this.props.bus)}
           ownAirplaneLayerProps={{
             imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
@@ -202,7 +222,15 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
           drawEntireFlightPlan={this.focusModule.isFocused}
           class='mfd-fplmap'
         />
-        <MFDFPL ref={this.fplRef} bus={this.props.bus} viewService={this.props.viewService} fms={this.props.fms} focus={this.focusModule.focus} isolateScroll />
+        <MFDFPL
+          ref={this.fplRef}
+          bus={this.props.bus}
+          viewService={this.props.viewService}
+          fms={this.props.fms}
+          focus={this.focusModule.focus}
+          onFocused={this.onFPLFocused.bind(this)}
+          isolateScroll
+        />
       </div>
     );
   }

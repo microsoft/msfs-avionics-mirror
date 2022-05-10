@@ -1,6 +1,6 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { EventBus, PublishPacer, SimVarDefinition, SimVarValueType } from '../data';
+import { EventBus, EventBusMetaEvents, PublishPacer, SimVarDefinition, SimVarValueType } from '../data';
 import { SimVarPublisher } from './BasePublishers';
 
 /**
@@ -26,7 +26,37 @@ export interface ElectricalEvents {
   'elec_av1_bus': boolean,
 
   /** The second avionics power bus. */
-  'elec_av2_bus': boolean
+  'elec_av2_bus': boolean,
+
+  /** A voltage value for the main elec bus */
+  'elec_bus_main_v': number,
+
+  /** A current value for the main elec bus */
+  'elec_bus_main_a': number,
+
+  /** A voltage value for the avionics bus */
+  'elec_bus_avionics_v': number,
+
+  /** A current value for the avinoics bus */
+  'elec_bus_avionics_a': number,
+
+  /** A voltage value for the generator/alternator 1 bus */
+  'elec_bus_genalt_1_v': number,
+
+  /** A voltage value for the generator/alternator 2 bus */
+  'elec_bus_genalt_2_v': number,
+
+  /** A current value for the generator/alternator 1 bus */
+  'elec_bus_genalt_1_a': number,
+
+  /** A current value for the generator/alternator 2 bus */
+  'elec_bus_genalt_2_a': number,
+
+  /** A voltage value for the battery */
+  'elec_bat_v': number;
+
+  /** A current value for the battery */
+  'elec_bat_a': number;
 }
 
 /**
@@ -38,11 +68,24 @@ export class ElectricalPublisher extends SimVarPublisher<ElectricalEvents> {
     ['elec_circuit_avionics_on', { name: 'CIRCUIT AVIONICS ON', type: SimVarValueType.Bool }],
     ['elec_circuit_navcom1_on', { name: 'CIRCUIT NAVCOM1 ON', type: SimVarValueType.Bool }],
     ['elec_circuit_navcom2_on', { name: 'CIRCUIT NAVCOM2 ON', type: SimVarValueType.Bool }],
-    ['elec_circuit_navcom3_on', { name: 'CIRCUIT NAVCOM3 ON', type: SimVarValueType.Bool }]
+    ['elec_circuit_navcom3_on', { name: 'CIRCUIT NAVCOM3 ON', type: SimVarValueType.Bool }],
+    ['elec_bus_main_v', { name: 'ELECTRICAL MAIN BUS VOLTAGE', type: SimVarValueType.Volts }],
+    ['elec_bus_main_a', { name: 'ELECTRICAL MAIN BUS AMPS', type: SimVarValueType.Amps }],
+    ['elec_bus_avionics_v', { name: 'ELECTRICAL AVIONICS BUS VOLTAGE', type: SimVarValueType.Volts }],
+    ['elec_bus_avionics_a', { name: 'ELECTRICAL AVIONICS BUS AMPS', type: SimVarValueType.Amps }],
+    ['elec_bus_genalt_1_v', { name: 'ELECTRICAL GENALT BUS VOLTAGE:1', type: SimVarValueType.Volts }],
+    ['elec_bus_genalt_2_v', { name: 'ELECTRICAL GENALT BUS VOLTAGE:2', type: SimVarValueType.Volts }],
+    ['elec_bus_genalt_1_a', { name: 'ELECTRICAL GENALT BUS AMPS:1', type: SimVarValueType.Amps }],
+    ['elec_bus_genalt_2_a', { name: 'ELECTRICAL GENALT BUS AMPS:2', type: SimVarValueType.Amps }],
+    ['elec_bat_a', { name: 'ELECTRICAL BATTERY LOAD', type: SimVarValueType.Amps }],
+    ['elec_bat_v', { name: 'ELECTRICAL BATTERY VOLTAGE', type: SimVarValueType.Volts }]
   ]);
 
+  private flightStarted = false;
   private av1BusLogic: CompositeLogicXMLElement | undefined;
   private av2BusLogic: CompositeLogicXMLElement | undefined;
+
+  private avBusList: (keyof ElectricalEvents)[] = ['elec_av1_bus', 'elec_av2_bus'];
 
   /**
    * Create an ElectricalPublisher
@@ -51,19 +94,42 @@ export class ElectricalPublisher extends SimVarPublisher<ElectricalEvents> {
    */
   public constructor(bus: EventBus, pacer: PublishPacer<ElectricalEvents> | undefined = undefined) {
     super(ElectricalPublisher.simvars, bus, pacer);
+    for (const topic of this.avBusList) {
+      if (bus.getTopicSubsciberCount(topic)) {
+        this.subscribed.add(topic);
+      }
+    }
+
+    bus.getSubscriber<EventBusMetaEvents>().on('event_bus_topic_first_sub').handle(
+      (event: string) => {
+        if (this.avBusList.includes(event as keyof ElectricalEvents)) {
+          this.subscribed.add(event as keyof ElectricalEvents);
+        }
+      }
+    );
   }
 
   /** @inheritdoc */
   public onUpdate(): void {
-    super.onUpdate();
+    if (this.flightStarted) {
+      super.onUpdate();
 
-    if (this.av1BusLogic && this.subscribed.has('elec_av1_bus')) {
-      this.publish('elec_av1_bus', this.av1BusLogic.getValue() !== 0);
-    }
+      if (this.av1BusLogic && this.subscribed.has('elec_av1_bus')) {
+        this.publish('elec_av1_bus', this.av1BusLogic.getValue() !== 0);
+      }
 
-    if (this.av2BusLogic && this.subscribed.has('elec_av2_bus')) {
-      this.publish('elec_av2_bus', this.av2BusLogic.getValue() !== 0);
+      if (this.av2BusLogic && this.subscribed.has('elec_av2_bus')) {
+        this.publish('elec_av2_bus', this.av2BusLogic.getValue() !== 0);
+      }
     }
+  }
+
+  /**
+   * Called when the flight has started and electrical data is valid.
+   * @param started True if the flight has started
+   */
+  public setFlightStarted(started: boolean): void {
+    this.flightStarted = started;
   }
 
   /**

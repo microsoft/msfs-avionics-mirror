@@ -1,22 +1,32 @@
-import { FSComponent, GeoPointSubject, GeoPoint, VNode, Subject, UnitType, DisplayComponent } from 'msfssdk';
+import { FSComponent, GeoPointSubject, GeoPoint, VNode, Subject, UnitType, DisplayComponent, NavAngleSubject, NumberUnitSubject, NavAngleUnit, ComponentProps } from 'msfssdk';
 import { ICAO, IntersectionFacility } from 'msfssdk/navigation';
+import { NumberFormatter } from 'msfssdk/graphics/text';
+import { BearingDisplay } from '../../../../../Shared/UI/Common/BearingDisplay';
+import { NumberUnitDisplay } from '../../../../../Shared/UI/Common/NumberUnitDisplay';
+import { UnitsUserSettingManager } from '../../../../../Shared/Units/UnitsUserSettings';
 import { WaypointIconImageCache } from '../../../../../Shared/WaypointIconImageCache';
 import { GroupBox } from '../../GroupBox';
 
 import './ReferenceVorGroup.css';
 
+/** Props on the ReferenceVorGroup component. */
+export interface ReferenceVorGroupProps extends ComponentProps {
+  /** A user setting manager for measurement units. */
+  unitsSettingManager: UnitsUserSettingManager;
+}
+
 /**
  * A component that displays the reference VOR information for an intersection
  * on the MFD nearest intersections page.
  */
-export class ReferenceVorGroup extends DisplayComponent<any> {
+export class ReferenceVorGroup extends DisplayComponent<ReferenceVorGroupProps> {
   private readonly content = FSComponent.createRef<HTMLDivElement>();
 
   private readonly name = Subject.create<string>('');
   private readonly iconSrc = Subject.create<string>('');
   private readonly frequency = Subject.create<string>('');
-  private readonly bearing = Subject.create<string>('');
-  private readonly distance = Subject.create<string>('');
+  private readonly bearing = NavAngleSubject.createFromNavAngle(NavAngleUnit.create(false).createNumber(NaN));
+  private readonly distance = NumberUnitSubject.createFromNumberUnit(UnitType.METER.createNumber(NaN));
 
   private facilityPos = GeoPointSubject.createFromGeoPoint(new GeoPoint(0, 0));
 
@@ -31,8 +41,8 @@ export class ReferenceVorGroup extends DisplayComponent<any> {
       this.name.set(ICAO.getIdent(facility.nearestVorICAO));
       this.iconSrc.set(WaypointIconImageCache.getVorIcon(facility.nearestVorType).src);
       this.frequency.set(facility.nearestVorFrequencyMHz.toFixed(2));
-      this.bearing.set(facility.nearestVorMagneticRadial.toFixed(0).padStart(3, '0'));
-      this.distance.set(UnitType.METER.convertTo(facility.nearestVorDistance, UnitType.NMILE).toFixed(1));
+      this.bearing.set(facility.nearestVorMagneticRadial, facility.lat, facility.lon);
+      this.distance.set(facility.nearestVorDistance);
 
       this.content.instance.classList.remove('hidden-element');
     } else {
@@ -51,8 +61,18 @@ export class ReferenceVorGroup extends DisplayComponent<any> {
             <div class='mfd-nearest-intersection-vor-frequency'>{this.frequency}</div>
           </div>
           <div>
-            <div class='mfd-nearest-intersection-vor-bearing'>{this.bearing}°</div>
-            <div class='mfd-nearest-intersection-vor-distance'><span>{this.distance}</span><span class='smaller'>NM</span></div>
+            <BearingDisplay
+              value={this.bearing}
+              displayUnit={this.props.unitsSettingManager.navAngleUnits}
+              formatter={NumberFormatter.create({ precision: 1, pad: 3, nanString: '___' })}
+              class='mfd-nearest-intersection-vor-bearing'
+            />
+            <NumberUnitDisplay
+              value={this.distance}
+              displayUnit={this.props.unitsSettingManager.distanceUnitsLarge}
+              formatter={NumberFormatter.create({ precision: 0.1, maxDigits: 3, nanString: '__._' })}
+              class='mfd-nearest-intersection-vor-distance'
+            />
           </div>
         </div>
       </GroupBox>

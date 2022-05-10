@@ -1,7 +1,7 @@
 import { Subject } from 'msfssdk';
 import { FlightPathCalculator, FlightPlan } from 'msfssdk/flightplan';
 import { AirportFacility, ArrivalProcedure, DepartureProcedure, EnrouteTransition, RunwayTransition } from 'msfssdk/navigation';
-import { Fms, ProcedureType } from '../../../../../Shared/FlightPlan/Fms';
+import { Fms, ProcedureType } from 'garminsdk/flightplan';
 import { FlightPlanFocus } from '../../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { SelectDepArrController } from '../../../../../Shared/UI/Procedure/DepArr/SelectDepArrController';
 import { SelectDepArrStore } from '../../../../../Shared/UI/Procedure/DepArr/SelectDepArrStore';

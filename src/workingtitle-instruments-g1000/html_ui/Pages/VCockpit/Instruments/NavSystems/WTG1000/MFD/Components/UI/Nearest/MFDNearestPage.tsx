@@ -1,20 +1,23 @@
-import { UiPageProps } from '../../../../Shared/UI/UiPage';
-import { FSComponent, GeoPoint, VNode, Subject, UnitType } from 'msfssdk';
-import { EventBus, ControlPublisher, EventSubscriber, Consumer } from 'msfssdk/data';
+import { FSComponent, GeoPoint, Subject, UnitType, VNode } from 'msfssdk';
+import { Consumer, ControlPublisher, EventBus, EventSubscriber } from 'msfssdk/data';
 import { GNSSEvents } from 'msfssdk/instruments';
-import { FacilityLoader, Facility, NearestSubscription } from 'msfssdk/navigation';
-import { Fms } from '../../../../Shared/FlightPlan/Fms';
+import { Facility, FacilityLoader, FacilityWaypointCache, NearestSubscription } from 'msfssdk/navigation';
+import { FocusPosition } from 'msfssdk/components/controls';
+
+import { Fms } from 'garminsdk/flightplan';
+
 import { MapUserSettings } from '../../../../Shared/Map/MapUserSettings';
 import { TrafficAdvisorySystem } from '../../../../Shared/Traffic/TrafficAdvisorySystem';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
+import { G1000UiControl } from '../../../../Shared/UI/G1000UiControl';
 import { MenuSystem } from '../../../../Shared/UI/Menus/MenuSystem';
 import { NavMapModel } from '../../../../Shared/UI/NavMap/NavMapModel';
-import { FocusPosition, UiControl2 } from '../../../../Shared/UI/UiControl2';
+import { UiPageProps } from '../../../../Shared/UI/UiPage';
 import { MFDUiPage } from '../MFDUiPage';
 import { MFDViewService } from '../MFDViewService';
-import { MFDNearestNavMapComponent } from './MFDNearestNavMapComponent';
 import { FacilitiesGroup } from './FacilitiesGroup';
-import { FacilityWaypointCache } from '../../../../Shared/Navigation/FacilityWaypointCache';
+import { MFDNearestNavMapComponent } from './MFDNearestNavMapComponent';
+import { UnitsUserSettings } from '../../../../Shared/Units/UnitsUserSettings';
 
 /** The properties on the flight plan popout component. */
 export interface MFDNearestPageProps extends UiPageProps {
@@ -48,7 +51,9 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
   private gps: EventSubscriber<GNSSEvents>;
   private consumer: Consumer<LatLongAlt>;
 
-  protected readonly uiRoot = FSComponent.createRef<UiControl2>();
+  protected readonly unitsSettingManager = UnitsUserSettings.getManager(this.props.bus);
+
+  protected readonly uiRoot = FSComponent.createRef<G1000UiControl>();
   protected readonly facilitiesGroup = FSComponent.createRef<FacilitiesGroup<T>>();
   protected readonly mapRef = FSComponent.createRef<MFDNearestNavMapComponent>();
 
@@ -131,10 +136,10 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
   protected abstract getPageClass(): string;
 
   /** Gets the currently selected focus control group from the page. */
-  protected abstract getSelectedGroup(): UiControl2;
+  protected abstract getSelectedGroup(): G1000UiControl;
 
   /** Builds a nearest subscription applicable for this nearest facilities page. */
-  protected abstract buildNearestSubscription(): NearestSubscription<T, any, any>;
+  protected abstract buildNearestSubscription(): NearestSubscription<T>;
 
   /** Renders the other groups to display on the page. */
   protected abstract renderGroups(): VNode;
@@ -176,7 +181,7 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
   private onGps = (pos: LatLongAlt): void => {
     this.locGeoPoint.set(pos.lat, pos.long);
     this.facilitiesGroup.getOrDefault()?.update(this.locGeoPoint);
-  }
+  };
 
   /**
    * Render the component.
@@ -187,9 +192,13 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
       <div class="mfd-page" ref={this.viewContainerRef}>
         <MFDNearestNavMapComponent
           ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
-          dataUpdateFreq={Subject.create(30)} updateFreq={Subject.create(30)} projectedWidth={578} projectedHeight={734}
-          deadZone={new Float64Array([0, 56, 0, 0])} flightPlanner={this.props.fms.flightPlanner}
-          id='mfd_nearest_map' bingId='mfd_page_map'
+          updateFreq={Subject.create(30)}
+          dataUpdateFreq={Subject.create(30)}
+          projectedWidth={578} projectedHeight={734}
+          deadZone={Subject.create(new Float64Array([0, 56, 0, 0]))}
+          pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
+          flightPlanner={this.props.fms.flightPlanner}
+          bingId='mfd_page_map'
           settingManager={MapUserSettings.getMfdManager(this.props.bus)}
           ownAirplaneLayerProps={{
             imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
@@ -206,16 +215,18 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
           class='mfd-navmap'
         />
         <div class={`mfd-dark-background ${this.getPageClass()}`}>
-          <UiControl2 ref={this.uiRoot} innerKnobScroll>
+          <G1000UiControl ref={this.uiRoot} innerKnobScroll>
             <FacilitiesGroup<T>
+              viewService={this.props.viewService}
               ref={this.facilitiesGroup}
+              unitsSettingManager={this.unitsSettingManager}
               data={this.data}
               title={this.getFacilityGroupTitle()}
               onSelected={this.onFacilitySelected.bind(this)}
               iconSource={this.getIconSource.bind(this)}
               isolateScroll />
             {this.renderGroups()}
-          </UiControl2>
+          </G1000UiControl>
         </div>
       </div>
     );

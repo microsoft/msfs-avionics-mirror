@@ -21,7 +21,7 @@ export class InstrumentBackplane {
     // logic for them as compared to publishers, we should reconsider
     // how we want the backplane to work.
     private publishers: Map<string, BasePublisher<any>>;
-    private instruments: Map<string, Instrument>
+    private instruments: Map<string, Instrument>;
 
     /**
      * Create an InstrumentBackplane

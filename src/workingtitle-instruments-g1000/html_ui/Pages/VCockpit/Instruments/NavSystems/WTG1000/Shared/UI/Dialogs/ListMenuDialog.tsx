@@ -2,7 +2,7 @@ import { FSComponent, VNode, ArraySubject } from 'msfssdk';
 import { ScrollBar } from '../ScrollBar';
 import { MenuItemDefinition, PopoutMenuItem } from '../../../Shared/UI/Dialogs/PopoutMenuItem';
 import { List } from '../../../Shared/UI/List';
-import { Fms } from '../../FlightPlan/Fms';
+import { Fms } from 'garminsdk/flightplan';
 import { UiControl } from '../UiControl';
 import { FmsHEvent } from '../FmsHEvent';
 import { UiView, UiViewProps } from '../UiView';
@@ -51,7 +51,7 @@ export abstract class ListMenuDialog<T extends ListMenuDialogProps = ListMenuDia
    */
   protected renderItem = (d: MenuItemDefinition, registerFn: (ctrl: UiControl) => void): VNode => {
     return <PopoutMenuItem onRegister={registerFn} parent={this} def={d} />;
-  }
+  };
 
   /**
    * Sets the menu items for the list menu dialog.

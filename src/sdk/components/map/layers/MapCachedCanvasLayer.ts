@@ -1,11 +1,10 @@
 import { MapProjection, MapProjectionChangeType } from '../MapProjection';
-import { GeoPoint, GeoPointReadOnly } from '../../../utils/geo/GeoPoint';
-import { GeoProjection, MercatorProjection } from '../../../utils/geo/GeoProjection';
-import { NumberUnitReadOnly, UnitFamily, UnitType } from '../../../utils/math/NumberUnit';
-import { Vec2Math } from '../../../utils/math/VecMath';
+import { GeoPoint, GeoPointReadOnly } from '../../../geo/GeoPoint';
+import { GeoProjection, MercatorProjection } from '../../../geo/GeoProjection';
+import { ReadonlyFloat64Array, Vec2Math } from '../../../math/VecMath';
 import { MapCanvasLayer, MapCanvasLayerCanvasInstance, MapCanvasLayerCanvasInstanceClass } from './MapCanvasLayer';
 import { MapLayerProps } from '../MapLayer';
-import { BitFlags } from '../../../utils/BitFlags';
+import { BitFlags } from '../../../math/BitFlags';
 
 /**
  * Properties for a MapCachedCanvasLayer.
@@ -24,8 +23,6 @@ export interface MapCachedCanvasLayerProps<M> extends MapLayerProps<M> {
 export interface MapCachedCanvasLayerReference {
   /** The map center of this reference. */
   readonly center: GeoPointReadOnly;
-  /** The map range of this reference. */
-  readonly range: NumberUnitReadOnly<UnitFamily.Distance>;
   /** The projection scale factor of this reference. */
   readonly scaleFactor: number;
   /** The rotation angle, in radians, of this reference. */
@@ -37,18 +34,12 @@ export interface MapCachedCanvasLayerReference {
  */
 class MapCachedCanvasLayerReferenceClass implements MapCachedCanvasLayerReference {
   private _center = new GeoPoint(0, 0);
-  private _range = UnitType.NMILE.createNumber(1);
   private _scaleFactor = 1;
   private _rotation = 0;
 
   /** @inheritdoc */
   public get center(): GeoPointReadOnly {
     return this._center.readonly;
-  }
-
-  /** @inheritdoc */
-  public get range(): NumberUnitReadOnly<UnitFamily.Distance> {
-    return this._range.readonly;
   }
 
   /** @inheritdoc */
@@ -66,9 +57,8 @@ class MapCachedCanvasLayerReferenceClass implements MapCachedCanvasLayerReferenc
    * @param mapProjection The map projection with which to sync.
    */
   public syncWithMapProjection(mapProjection: MapProjection): void {
-    this._range.set(mapProjection.getRange(), UnitType.GA_RADIAN);
     this._center.set(mapProjection.getCenter());
-    this._scaleFactor = mapProjection.getGeoProjection().getScaleFactor();
+    this._scaleFactor = mapProjection.getScaleFactor();
     this._rotation = mapProjection.getRotation();
   }
 
@@ -77,7 +67,6 @@ class MapCachedCanvasLayerReferenceClass implements MapCachedCanvasLayerReferenc
    * @param reference - the reference with which to sync.
    */
   public syncWithReference(reference: MapCachedCanvasLayerReference): void {
-    this._range.set(reference.range);
     this._center.set(reference.center);
     this._scaleFactor = reference.scaleFactor;
     this._rotation = reference.rotation;
@@ -148,7 +137,7 @@ class MapCachedCanvasLayerTransformClass implements MapCachedCanvasLayerTransfor
    * @param referenceMargin The reference margin, in pixels.
    */
   public update(mapProjection: MapProjection, reference: MapCachedCanvasLayerReference, referenceMargin: number): void {
-    this._scale = mapProjection.getGeoProjection().getScaleFactor() / reference.scaleFactor;
+    this._scale = mapProjection.getScaleFactor() / reference.scaleFactor;
     this._rotation = mapProjection.getRotation() - reference.rotation;
 
     mapProjection.project(reference.center, this._translation);
@@ -209,8 +198,8 @@ export interface MapCachedCanvasLayerCanvasInstance extends MapCanvasLayerCanvas
 /**
  * An implementation of MapCachedCanvasLayerCanvasInstance.
  */
-export class MapCachedCanvasLayerCanvasInstanceClass extends MapCanvasLayerCanvasInstanceClass
-  implements MapCachedCanvasLayerCanvasInstance {
+export class MapCachedCanvasLayerCanvasInstanceClass extends MapCanvasLayerCanvasInstanceClass implements MapCachedCanvasLayerCanvasInstance {
+  private static readonly SCALE_INVALIDATION_THRESHOLD = 1.2;
 
   private static readonly tempVec2_1 = new Float64Array(2);
 
@@ -288,9 +277,12 @@ export class MapCachedCanvasLayerCanvasInstanceClass extends MapCanvasLayerCanva
   public updateTransform(mapProjection: MapProjection): void {
     this._transform.update(mapProjection, this.reference, this.getReferenceMargin());
 
-    this._isInvalid = this._isInvalid
-      || !this._reference.range.equals(mapProjection.getRange(), UnitType.GA_RADIAN)
-      || (this._transform.marginRemaining < 0);
+    if (!this._isInvalid) {
+      const scaleFactorRatio = mapProjection.getScaleFactor() / this._reference.scaleFactor;
+      this._isInvalid = scaleFactorRatio >= MapCachedCanvasLayerCanvasInstanceClass.SCALE_INVALIDATION_THRESHOLD
+        || scaleFactorRatio <= 1 / MapCachedCanvasLayerCanvasInstanceClass.SCALE_INVALIDATION_THRESHOLD
+        || this._transform.marginRemaining < 0;
+    }
 
     if (this.isDisplayed && !this._isInvalid) {
       this.transformCanvasElement();
@@ -364,7 +356,7 @@ export class MapCachedCanvasLayer<P extends MapCachedCanvasLayerProps<any> = Map
    * Updates this layer according to the current size of the projected map window.
    * @param projectedSize The size of the projected map window.
    */
-  protected updateFromProjectedSize(projectedSize: Float64Array): void {
+  protected updateFromProjectedSize(projectedSize: ReadonlyFloat64Array): void {
     const projectedWidth = projectedSize[0];
     const projectedHeight = projectedSize[1];
     const diag = Math.hypot(projectedWidth, projectedHeight);

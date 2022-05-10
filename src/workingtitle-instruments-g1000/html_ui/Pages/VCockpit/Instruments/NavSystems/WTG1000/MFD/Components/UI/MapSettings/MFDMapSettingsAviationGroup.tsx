@@ -10,13 +10,16 @@ export class MFDMapSettingsAviationGroup extends MFDMapSettingsGroup<MFDMapSetti
   protected getSettingRows(containerRef: NodeReference<HTMLElement>): VNode[] {
     return [
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'Large Airport'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirportLargeShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirportLargeRangeIndex',
@@ -26,13 +29,16 @@ export class MFDMapSettingsAviationGroup extends MFDMapSettingsGroup<MFDMapSetti
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'Medium Airport'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirportMediumShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirportMediumRangeIndex',
@@ -42,13 +48,16 @@ export class MFDMapSettingsAviationGroup extends MFDMapSettingsGroup<MFDMapSetti
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'Small Airport'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirportSmallShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapAirportSmallRangeIndex',
@@ -58,13 +67,16 @@ export class MFDMapSettingsAviationGroup extends MFDMapSettingsGroup<MFDMapSetti
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'INT'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapIntersectionShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapIntersectionRangeIndex',
@@ -74,13 +86,16 @@ export class MFDMapSettingsAviationGroup extends MFDMapSettingsGroup<MFDMapSetti
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'NDB'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapNdbShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapNdbRangeIndex',
@@ -90,13 +105,16 @@ export class MFDMapSettingsAviationGroup extends MFDMapSettingsGroup<MFDMapSetti
         }}
       />,
       <MFDMapToggleRangeSettingsRow
+        viewService={this.props.viewService}
         title={'VOR'}
         toggleProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapVorShow',
         }}
         rangeProps={{
+          viewService: this.props.viewService,
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapVorRangeIndex',

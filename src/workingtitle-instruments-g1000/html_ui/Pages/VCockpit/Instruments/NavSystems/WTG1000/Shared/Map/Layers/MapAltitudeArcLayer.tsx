@@ -48,13 +48,15 @@ export class MapAltitudeArcLayer extends MapLayer<MapLayerProps<MapAltitudeArcLa
   private readonly projectPlanePositionHandler = (): void => {
     const projected = this.props.mapProjection.project(this.ownAirplanePropsModule.position.get(), MapAltitudeArcLayer.vec2Cache[0]);
     this.projectedPlanePositionSub.set(projected);
-  }
+  };
 
   private needUpdate = false;
 
   /** @inheritdoc */
   public onVisibilityChanged(isVisible: boolean): void {
-    if (!isVisible) {
+    if (isVisible) {
+      this.needUpdate = true;
+    } else {
       this.canvasLayerRef.getOrDefault()?.tryGetDisplay()?.clear();
     }
   }

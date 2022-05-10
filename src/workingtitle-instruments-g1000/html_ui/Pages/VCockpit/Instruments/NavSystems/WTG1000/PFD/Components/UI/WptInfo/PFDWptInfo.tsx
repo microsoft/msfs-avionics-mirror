@@ -1,13 +1,13 @@
 import { FSComponent, VNode } from 'msfssdk';
 import { LatLonDisplay } from 'msfssdk/components/common';
-import { WptInfo, WptInfoProps } from '../../../../Shared/UI/WptInfo/WptInfo';
+import { WptInfo } from '../../../../Shared/UI/WptInfo/WptInfo';
 
 import './PFDWptInfo.css';
 
 /**
  * The PFD waypoint info popout.
  */
-export class PFDWptInfo extends WptInfo<WptInfoProps> {
+export class PFDWptInfo extends WptInfo {
   /** @inheritdoc */
   public render(): VNode {
     return (

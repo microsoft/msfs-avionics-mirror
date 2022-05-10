@@ -32,10 +32,10 @@ export abstract class APStateManager {
   private managedModeSet = false;
   public stateManagerInitialized = Subject.create(false);
 
-  public lateralPressed = new SubEvent<APModePressEvent>();
-  public verticalPressed = new SubEvent<APModePressEvent>();
-  public approachPressed = new SubEvent<boolean | undefined>();
-  public vnavPressed = new SubEvent<boolean>();
+  public lateralPressed = new SubEvent<this, APModePressEvent>();
+  public verticalPressed = new SubEvent<this, APModePressEvent>();
+  public approachPressed = new SubEvent<this, boolean | undefined>();
+  public vnavPressed = new SubEvent<this, boolean>();
 
   public apMasterOn = Subject.create(false);
   public fdMasterOn = Subject.create(false);
@@ -84,7 +84,7 @@ export abstract class APStateManager {
       this.apMasterOn.set(true);
     });
 
-    ap.on('flight_director_state').whenChanged().handle((fd) => {
+    ap.on('flight_director_is_active').whenChanged().handle((fd) => {
       this.fdMasterOn.set(fd);
     });
   }

@@ -1,5 +1,5 @@
-import { BitFlags } from '../../../utils/BitFlags';
-import { Vec2Math } from '../../../utils/math/VecMath';
+import { BitFlags } from '../../../math/BitFlags';
+import { ReadonlyFloat64Array, Vec2Math } from '../../../math/VecMath';
 import { DisplayComponent, FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps } from '../MapLayer';
 import { MapProjection, MapProjectionChangeType } from '../MapProjection';
@@ -18,7 +18,7 @@ export interface MapLabeledRingLabel<T> {
    * (0, 0) is located at the top-left corner and (1, 1) is located at the bottom-right corner.
    * @returns this label's anchor point.
    */
-  getAnchor(): Float64Array;
+  getAnchor(): ReadonlyFloat64Array;
 
   /**
    * Gets the angle of the radial on which this label is positioned, in radians. Radial 0 is in the positive x
@@ -39,7 +39,7 @@ export interface MapLabeledRingLabel<T> {
    * (0, 0) is located at the top-left corner and (1, 1) is located at the bottom-right corner.
    * @param anchor The new anchor point.
    */
-  setAnchor(anchor: Float64Array): void;
+  setAnchor(anchor: ReadonlyFloat64Array): void;
 
   /**
    * Sets the angle of the radial on which this label is positioned, in radians. Radial 0 is in the positive x
@@ -62,6 +62,7 @@ export interface MapLabeledRingLabel<T> {
 export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<T> {
   protected readonly labelContainerRef = FSComponent.createRef<HTMLDivElement>();
   protected readonly canvasLayerRef = FSComponent.createRef<MapSyncedCanvasLayer<MapLayerProps<any>>>();
+
   private readonly center = new Float64Array(2);
   private radius = 0;
   private strokeWidth = 0;
@@ -70,7 +71,6 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
   private outlineWidth = 0;
   private outlineStyle: string | CanvasGradient | CanvasPattern = '';
   private outlineDash: number[] = [];
-  private needUpdateVisibility = false;
   private needUpdateRingPosition = false;
   protected isInit = false;
 
@@ -80,7 +80,7 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
    * Gets the center position of this layer's ring, in pixels.
    * @returns the center position of this layer's ring.
    */
-  public getRingCenter(): Float64Array {
+  public getRingCenter(): ReadonlyFloat64Array {
     return this.center;
   }
 
@@ -97,7 +97,7 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
    * @param center The new center, in pixels.
    * @param radius The new radius, in pixels.
    */
-  public setRingPosition(center: Float64Array, radius: number): void {
+  public setRingPosition(center: ReadonlyFloat64Array, radius: number): void {
     if (Vec2Math.equals(this.center, center) && radius === this.radius) {
       return;
     }
@@ -159,18 +159,20 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
   /** @inheritdoc */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public onVisibilityChanged(isVisible: boolean): void {
-    this.needUpdateVisibility = true;
+    if (this.isInit) {
+      this.updateFromVisibility();
+    }
   }
 
   /** @inheritdoc */
   public onAttached(): void {
     this.canvasLayerRef.instance.onAttached();
     this.isInit = true;
-    this.needUpdateVisibility = true;
+    this.updateFromVisibility();
     this.needUpdateRingPosition = true;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
     this.canvasLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
 
@@ -180,12 +182,12 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
     }
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onUpdated(time: number, elapsed: number): void {
-    if (this.needUpdateVisibility) {
-      this.updateFromVisibility();
-      this.needUpdateVisibility = false;
+    if (!this.isVisible()) {
+      return;
     }
+
     if (this.needUpdateRingPosition) {
       this.updateRingPosition();
       this.needUpdateRingPosition = false;
@@ -293,16 +295,16 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div style='position: absolute; left: 0; top: 0; width: 100%; height: 100%;'>
+      <>
         <MapSyncedCanvasLayer ref={this.canvasLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} />
         <div ref={this.labelContainerRef} style='position: absolute; left: 0; top: 0; width: 100%; height: 100%;'></div>
-      </div>
+      </>
     );
   }
 }
 
 /**
- *
+ * An implementation of {@link MapLabeledRingLabel}.
  */
 class MapLabeledRingLabelClass<T> implements MapLabeledRingLabel<T> {
   private static readonly tempVec2_1 = new Float64Array(2);
@@ -321,29 +323,29 @@ class MapLabeledRingLabelClass<T> implements MapLabeledRingLabel<T> {
   constructor(public readonly content: T, private readonly wrapper: HTMLDivElement) {
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public getAnchor(): Float64Array {
+  /** @inheritdoc */
+  public getAnchor(): ReadonlyFloat64Array {
     return this.anchor;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public getRadialAngle(): number {
     return this.radialAngle;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public getRadialOffset(): number {
     return this.radialOffset;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public setAnchor(anchor: Float64Array): void {
+  /** @inheritdoc */
+  public setAnchor(anchor: ReadonlyFloat64Array): void {
     this.anchor.set(anchor);
 
     this.wrapper.style.transform = `translate(${-anchor[0] * 100}%, ${-anchor[1] * 100}%)`;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public setRadialAngle(angle: number): void {
     if (this.radialAngle === angle) {
       return;
@@ -354,7 +356,7 @@ class MapLabeledRingLabelClass<T> implements MapLabeledRingLabel<T> {
     this.updatePosition();
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public setRadialOffset(offset: number): void {
     if (this.radialOffset === offset) {
       return;
@@ -366,11 +368,11 @@ class MapLabeledRingLabelClass<T> implements MapLabeledRingLabel<T> {
   }
 
   /**
-   * Sets the center and radius of this label's parent ring.
+   * Updates this label with the center and radius of its parent ring.
    * @param center The center of the ring, in pixels.
    * @param radius The radius of the ring, in pixels.
    */
-  public setRingPosition(center: Float64Array, radius: number): void {
+  public setRingPosition(center: ReadonlyFloat64Array, radius: number): void {
     if (Vec2Math.equals(this.center, center) && radius === this.radius) {
       return;
     }
