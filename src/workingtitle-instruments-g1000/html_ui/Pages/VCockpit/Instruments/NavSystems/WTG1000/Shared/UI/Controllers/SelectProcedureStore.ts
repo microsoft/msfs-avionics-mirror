@@ -1,10 +1,7 @@
-import { Subject, ArraySubject } from 'msfssdk';
-import { AirportFacility, Procedure, RunwayTransition, EnrouteTransition, OneWayRunway, RunwayUtils } from 'msfssdk/navigation';
-import { LegDefinition } from 'msfssdk/flightplan';
-
+import { AirportFacility, ArraySubject, EnrouteTransition, LegDefinition, OneWayRunway, Procedure, RunwayTransition, RunwayUtils, Subject } from 'msfssdk';
 
 /** The data store for SelectProcedure pages */
-export abstract class SelectProcedureStore {
+export abstract class SelectProcedureControllerStore {
   public selectedFacility: AirportFacility | undefined;
 
   public readonly selectedProcIndex = Subject.create(-1);

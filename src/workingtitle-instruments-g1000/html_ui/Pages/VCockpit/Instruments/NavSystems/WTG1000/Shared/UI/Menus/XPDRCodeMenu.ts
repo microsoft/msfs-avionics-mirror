@@ -1,4 +1,5 @@
-import { ControlEvents, EventBus } from 'msfssdk/data';
+import { ControlEvents, EventBus } from 'msfssdk';
+
 import { G1000ControlPublisher } from '../../G1000Events';
 import { MenuSystem } from './MenuSystem';
 import { SoftKeyMenu } from './SoftKeyMenu';

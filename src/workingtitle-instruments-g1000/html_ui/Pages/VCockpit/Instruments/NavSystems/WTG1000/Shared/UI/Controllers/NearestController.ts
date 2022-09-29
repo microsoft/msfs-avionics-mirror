@@ -1,7 +1,7 @@
-import { NearestStore } from './NearestStore';
-import { ControlPublisher } from 'msfssdk/data';
-import { AirportFacility } from 'msfssdk/navigation';
+import { AirportFacility, ControlPublisher } from 'msfssdk';
+
 import { ViewService } from '../ViewService';
+import { NearestStore } from './NearestStore';
 
 /** A nearest controleer */
 export class NearestController {

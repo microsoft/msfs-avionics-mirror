@@ -1,8 +1,16 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { GeoPoint } from '..';
 import { EventBus } from '../data/EventBus';
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { GeoPoint } from '../geo';
 import { GeoKdTree, GeoKdTreeSearchFilter, GeoKdTreeSearchVisitor } from '../utils/datastructures';
 import { Facility, FacilityType, ICAO } from './Facilities';
+
+/**
+ * Topics published by {@link FacilityRepository} on the event bus.
+ */
+export interface FacilityRepositoryEvents {
+  /** A facility was changed. The suffix of the topic specifies the ICAO of the changed facility. */
+  [facility_changed: `facility_changed_${string}`]: Facility;
+}
 
 enum FacilityRepositorySyncType {
   Add,
@@ -120,12 +128,15 @@ export class FacilityRepository {
   }
 
   /**
-   * Adds a facility to this repository and all other repositories synced with this one.
+   * Adds a facility to this repository and all other repositories synced with this one. If this repository already
+   * contains a facility with the same ICAO as the facility to add, the existing facility will be replaced with the
+   * new one.
    * @param fac The facility to add.
+   * @throws Error if the facility has an invalid ICAO.
    */
   public add(fac: Facility): void {
     if (!ICAO.isFacility(fac.icao)) {
-      return;
+      throw new Error(`FacilityRepository: invalid facility ICAO ${fac.icao}`);
     }
 
     this.addToRepo(fac);
@@ -135,10 +146,11 @@ export class FacilityRepository {
   /**
    * Removes a facility from this repository and all other repositories synced with this one.
    * @param fac The facility to remove.
+   * @throws Error if the facility has an invalid ICAO.
    */
   public remove(fac: Facility): void {
     if (!ICAO.isFacility(fac.icao)) {
-      return;
+      throw new Error(`FacilityRepository: invalid facility ICAO ${fac.icao}`);
     }
 
     this.removeFromRepo(fac);
@@ -165,13 +177,24 @@ export class FacilityRepository {
    */
   private addToRepo(fac: Facility): void {
     const facilityType = ICAO.getFacilityType(fac.icao);
-    (this.repos[facilityType] ??= new Map<string, Facility>()).set(fac.icao, fac);
 
-    if (facilityType !== FacilityType.USR) {
-      return;
+    const repo = this.repos[facilityType] ??= new Map<string, Facility>();
+
+    const existing = repo.get(fac.icao);
+
+    repo.set(fac.icao, fac);
+
+    if (facilityType === FacilityType.USR) {
+      if (existing === undefined) {
+        this.trees[facilityType].insert(fac);
+      } else {
+        this.trees[facilityType].removeAndInsert([existing], [fac]);
+      }
     }
 
-    this.trees[facilityType].insert(fac);
+    if (existing !== undefined) {
+      this.bus.pub(`facility_changed_${fac.icao}`, fac, false, false);
+    }
   }
 
   /**

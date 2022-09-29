@@ -1,13 +1,12 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { BlurReconciliation } from 'msfssdk/components/controls';
+import { BlurReconciliation, FSComponent, Subject, VNode } from 'msfssdk';
 
 import { FPLDetailProps, FPLDetails } from '../../../../PFD/Components/UI/FPL/FPLDetails';
 import { FPLOrigin } from '../../../../PFD/Components/UI/FPL/FPLSectionOrigin';
+import { FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
+import { G1000ControlList } from '../../../../Shared/UI/G1000UiControl';
 import { ScrollBar } from '../../../../Shared/UI/ScrollBar';
 import { FplActiveLegArrow } from '../../../../Shared/UI/UIControls/FplActiveLegArrow';
 import { GroupBox } from '../GroupBox';
-import { FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
-import { G1000ControlList } from '../../../../Shared/UI/G1000UiControl';
 
 /** Component props for MFDFPLDetails */
 export interface MFDFPLDetailProps extends FPLDetailProps {

@@ -1,14 +1,16 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { GeoPoint, NavMath, UnitType, MagVar } from '..';
+import { EventBus } from '../data/EventBus';
 import { SimVarValueType } from '../data/SimVars';
-import { Facility, ICAO, LegType, FacilityType } from '../navigation/Facilities';
+import { GeoPoint, MagVar, NavMath } from '../geo';
+import { UnitType } from '../math';
+import { Facility, ICAO, LegType } from '../navigation/Facilities';
 import { FacilityLoader } from '../navigation/FacilityLoader';
+import { FlightPathCalculatorControlEvents } from './FlightPathCalculatorControlEvents';
 import {
-  ArcToFixLegCalculator, CourseToAltitudeLegCalculator, CourseToDMELegCalculator, CourseToFixLegCalculator,
-  CourseToManualLegCalculator, CourseToRadialLegCalculator, DirectToFixLegCalculator, FixToDMELegCalculator,
-  FlightPathLegCalculator, CourseToInterceptLegCalculator as CourseToInterceptLegCalculator, RadiusToFixLegCalculator,
-  TrackFromFixLegCalculator, TrackToFixLegCalculator, ProcedureTurnLegCalculator, HoldLegCalculator, FlightPathState,
-  DiscontinuityLegCalculator
+  ArcToFixLegCalculator, CourseToAltitudeLegCalculator, CourseToDmeLegCalculator, CourseToFixLegCalculator,
+  CourseToInterceptLegCalculator as CourseToInterceptLegCalculator, CourseToManualLegCalculator, CourseToRadialLegCalculator, DirectToFixLegCalculator,
+  DiscontinuityLegCalculator, FixToDmeLegCalculator, FlightPathLegCalculator, FlightPathState, HoldLegCalculator, ProcedureTurnLegCalculator,
+  RadiusToFixLegCalculator, TrackFromFixLegCalculator, TrackToFixLegCalculator
 } from './FlightPathLegCalculator';
 import { FlightPathTurnCalculator } from './FlightPathTurnCalculator';
 import { FlightPathUtils } from './FlightPathUtils';
@@ -24,7 +26,7 @@ export interface FlightPathCalculatorOptions {
   /** The default speed, if the plane is not yet at flying speed. */
   defaultSpeed: number;
 
-  /** The bank angle with which to calculated turns. */
+  /** The bank angle with which to calculate turns. */
   bankAngle: number;
 }
 
@@ -37,16 +39,38 @@ export class FlightPathCalculator {
   private readonly turnCalculator = new FlightPathTurnCalculator();
 
   private readonly state = new FlightPathStateClass();
+  private readonly options: FlightPathCalculatorOptions;
+
+  private readonly calculateQueue: (() => void)[] = [];
+  private isBusy = false;
 
   /**
    * Creates an instance of the FlightPathCalculator.
    * @param facilityLoader The facility loader to use with this instance.
    * @param options The options to use with this flight path calculator.
+   * @param bus An instance of the EventBus.
    */
   constructor(
     private readonly facilityLoader: FacilityLoader,
-    protected readonly options: FlightPathCalculatorOptions
+    options: FlightPathCalculatorOptions,
+    private readonly bus: EventBus
   ) {
+    this.options = { ...options };
+    this.bus.getSubscriber<FlightPathCalculatorControlEvents>().on('flightpath_set_options').handle(newOptions => this.setOptions(newOptions));
+  }
+
+  /**
+   * Method to update this calculator's options.
+   * @param newOptions A Partial FlightPathCalculatorOptions object.
+   */
+  private setOptions(newOptions: Partial<FlightPathCalculatorOptions>): void {
+
+    for (const key in newOptions) {
+      const option = newOptions[key as keyof FlightPathCalculatorOptions];
+      if (option !== undefined) {
+        this.options[key as keyof FlightPathCalculatorOptions] = option;
+      }
+    }
   }
 
   /**
@@ -62,7 +86,7 @@ export class FlightPathCalculator {
 
       [LegType.AF]: new ArcToFixLegCalculator(this.facilityCache),
 
-      [LegType.CD]: calc = new CourseToDMELegCalculator(this.facilityCache),
+      [LegType.CD]: calc = new CourseToDmeLegCalculator(this.facilityCache),
       [LegType.VD]: calc,
 
       [LegType.CF]: new CourseToFixLegCalculator(this.facilityCache),
@@ -72,7 +96,7 @@ export class FlightPathCalculator {
 
       [LegType.FC]: new TrackFromFixLegCalculator(this.facilityCache),
 
-      [LegType.FD]: new FixToDMELegCalculator(this.facilityCache),
+      [LegType.FD]: new FixToDmeLegCalculator(this.facilityCache),
 
       [LegType.RF]: new RadiusToFixLegCalculator(this.facilityCache),
 
@@ -101,28 +125,77 @@ export class FlightPathCalculator {
 
   /**
    * Calculates a flight path for a given set of flight plan legs.
-   * @param legs The legs of the flight plan and/or procedure.
+   * @param legs The legs of the flight plan to calculate.
    * @param activeLegIndex The index of the active leg.
-   * @param initialIndex The index of the leg to start at.
+   * @param initialIndex The index of the leg at which to start the calculation.
    * @param count The number of legs to calculate.
+   * @returns A Promise which is fulfilled when the calculation is finished.
    */
-  public async calculateFlightPath(legs: LegDefinition[], activeLegIndex: number, initialIndex = 0, count = Number.POSITIVE_INFINITY): Promise<void> {
+  public calculateFlightPath(legs: LegDefinition[], activeLegIndex: number, initialIndex = 0, count = Number.POSITIVE_INFINITY): Promise<void> {
+    if (this.isBusy || this.calculateQueue.length > 0) {
+      return new Promise((resolve, reject) => {
+        this.calculateQueue.push(() => { this.doCalculate(resolve, reject, legs, activeLegIndex, initialIndex, count); });
+      });
+    } else {
+      return new Promise((resolve, reject) => {
+        this.doCalculate(resolve, reject, legs, activeLegIndex, initialIndex, count);
+      });
+    }
+  }
 
-    initialIndex = Math.max(0, initialIndex);
-    count = Math.max(0, Math.min(legs.length - initialIndex, count));
+  /**
+   * Executes a calculate operation. When the operation is finished, the next operation in the queue, if one exists,
+   * will be started.
+   * @param resolve The Promise resolve function to invoke when the calculation is finished.
+   * @param reject The Promise reject function to invoke when an error occurs during calculation.
+   * @param legs The legs of the flight plan to calculate.
+   * @param activeLegIndex The index of the active leg.
+   * @param initialIndex The index of the leg at which to start the calculation.
+   * @param count The number of legs to calculate.
+   * @returns A Promise which is fulfilled when the calculate operation is finished, or rejected if an error occurs
+   * during calculation.
+   */
+  private async doCalculate(
+    resolve: () => void,
+    reject: (reason?: any) => void,
+    legs: LegDefinition[],
+    activeLegIndex: number,
+    initialIndex = 0,
+    count = Number.POSITIVE_INFINITY
+  ): Promise<void> {
+    this.isBusy = true;
 
-    this.state.updatePlaneState(this.options);
+    try {
+      initialIndex = Math.max(0, initialIndex);
+      count = Math.max(0, Math.min(legs.length - initialIndex, count));
 
-    await this.loadFacilities(legs, initialIndex, count);
+      this.state.updatePlaneState(this.options);
 
-    this.initCurrentLatLon(legs, initialIndex);
-    this.initCurrentCourse(legs, initialIndex);
+      // Because some facilities can be mutated, we always want to get the most up-to-date version from the facility loader
+      this.facilityCache.clear();
+      await this.loadFacilities(legs, initialIndex, count);
 
-    this.calculateLegPaths(legs, activeLegIndex, initialIndex, count);
-    this.turnCalculator.computeTurns(legs, initialIndex, count, this.state.desiredTurnRadius.asUnit(UnitType.METER));
-    this.resolveLegsIngressToEgress(legs, initialIndex, count);
+      this.initCurrentLatLon(legs, initialIndex);
+      this.initCurrentCourse(legs, initialIndex);
+      this.initIsFallback(legs, initialIndex);
 
-    this.updateLegDistances(legs, initialIndex, count);
+      this.calculateLegPaths(legs, activeLegIndex, initialIndex, count);
+      this.turnCalculator.computeTurns(legs, initialIndex, count, this.state.desiredTurnRadius.asUnit(UnitType.METER));
+      this.resolveLegsIngressToEgress(legs, initialIndex, count);
+
+      this.updateLegDistances(legs, initialIndex, count);
+
+      this.isBusy = false;
+      resolve();
+    } catch (e) {
+      this.isBusy = false;
+      reject(e);
+    }
+
+    const nextInQueue = this.calculateQueue.shift();
+    if (nextInQueue !== undefined) {
+      nextInQueue();
+    }
   }
 
   /**
@@ -142,6 +215,23 @@ export class FlightPathCalculator {
 
     if (facilityPromises.length > 0) {
       await Promise.all(facilityPromises);
+    }
+  }
+
+  /**
+   * Stages a facility to be loaded.
+   * @param icao The ICAO of the facility.
+   * @param facilityPromises The array of facility load promises to push to.
+   */
+  private stageFacilityLoad(icao: string, facilityPromises: Promise<boolean>[]): void {
+    if (ICAO.isFacility(icao)) {
+      facilityPromises.push(this.facilityLoader.getFacility(ICAO.getFacilityType(icao), icao)
+        .then(facility => {
+          this.facilityCache.set(icao, facility);
+          return true;
+        })
+        .catch(() => false)
+      );
     }
   }
 
@@ -191,6 +281,15 @@ export class FlightPathCalculator {
     }
 
     this.state.currentCourse = undefined;
+  }
+
+  /**
+   * Initializes the fallback state.
+   * @param legs The legs of the flight plan to calculate.
+   * @param initialIndex The index of the first leg to calculate.
+   */
+  private initIsFallback(legs: LegDefinition[], initialIndex: number): void {
+    this.state.isFallback = legs[Math.min(initialIndex, legs.length) - 1]?.calculated?.endsInFallback ?? false;
   }
 
   /**
@@ -293,45 +392,17 @@ export class FlightPathCalculator {
       calc.cumulativeDistanceWithTransitions = calc.distanceWithTransitions + (legs[i - 1]?.calculated?.cumulativeDistanceWithTransitions ?? 0);
     }
   }
-
-  /**
-   * Stages a facility to be loaded.
-   * @param icao The ICAO of the facility.
-   * @param facilityPromises The array of facility load promises to push to.
-   */
-  private stageFacilityLoad(icao: string, facilityPromises: Promise<boolean>[]): void {
-    if (icao !== ICAO.emptyIcao && !this.facilityCache.has(icao)) {
-      let facilityType: FacilityType | undefined;
-      try {
-        facilityType = ICAO.getFacilityType(icao);
-      } catch (err) {
-        //console.log(err);
-      }
-
-      if (facilityType !== undefined) {
-        try {
-          facilityPromises.push(this.facilityLoader.getFacility(ICAO.getFacilityType(icao), icao)
-            .then(facility => {
-              this.facilityCache.set(icao, facility);
-              return true;
-            })
-            .catch(() => false)
-          );
-        } catch (err) {
-          //console.log(err);
-        }
-      }
-    }
-  }
 }
 
 /**
- *
+ * An implementation of {@link FlightPathState}
  */
 class FlightPathStateClass implements FlightPathState {
   public currentPosition: GeoPoint | undefined;
 
   public currentCourse: number | undefined;
+
+  public isFallback = false;
 
   private _planePosition = new GeoPoint(0, 0);
   public readonly planePosition = this._planePosition.readonly;

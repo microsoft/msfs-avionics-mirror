@@ -1,7 +1,7 @@
-import { FSComponent, NodeReference, VNode } from 'msfssdk';
-import { ScrollUtils } from 'msfssdk/graphics/layout';
-import { UiControl } from '../UiControl';
+import { FSComponent, NodeReference, ScrollUtils, VNode } from 'msfssdk';
+
 import { G1000UiControl, G1000UiControlProps } from '../G1000UiControl';
+import { UiControl } from '../UiControl';
 
 /** Props on the FPLEmptyRow component. */
 interface FPLEmptyRowProps extends G1000UiControlProps {

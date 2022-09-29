@@ -1,5 +1,5 @@
-import { SimVarPublisher } from './BasePublishers';
 import { EventBus, PublishPacer, SimVarDefinition, SimVarValueType } from '../data';
+import { SimVarPublisher } from './BasePublishers';
 
 /**
  * An interface that describes the possible Pressurization events

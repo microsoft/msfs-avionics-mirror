@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { GeoCircle, GeoPoint, LatLonInterface, MathUtils, NavMath, ReadonlyFloat64Array, UnitType, Vec3Math } from '..';
+import { GeoCircle, GeoPoint, LatLonInterface, NavMath } from '../geo';
+import { MathUtils, ReadonlyFloat64Array, UnitType, Vec3Math } from '../math';
 import { FlightPathUtils } from './FlightPathUtils';
 import { CircleVector, FlightPathVector, FlightPathVectorFlags, VectorTurnDirection } from './FlightPlanning';
 
@@ -309,7 +310,8 @@ export class TurnToCourseBuilder {
 
   /**
    * Adds a turn from a defined start point and initial course to a specific final course to a flight path vector
-   * sequence.
+   * sequence. If the difference between the initial and final course is small enough such that the start and end of
+   * the turn are identical, no turn will be added to the vector sequence.
    * @param vectors The flight path vector sequence to which to add the turn.
    * @param index The index in the sequence at which to add the turn.
    * @param start The start point of the turn.
@@ -329,7 +331,7 @@ export class TurnToCourseBuilder {
     fromCourse: number,
     toCourse: number,
     flags = FlightPathVectorFlags.TurnToCourse
-  ): 1 {
+  ): number {
     if (start instanceof Float64Array) {
       start = TurnToCourseBuilder.geoPointCache[0].setFromCartesian(start);
     }
@@ -339,6 +341,10 @@ export class TurnToCourseBuilder {
     const turnStartBearing = turnCenterPoint.bearingTo(start as LatLonInterface);
     const turnEndBearing = NavMath.normalizeHeading(turnStartBearing + (toCourse - fromCourse));
     const turnEndPoint = turnCenterPoint.offset(turnEndBearing, radiusRad, TurnToCourseBuilder.geoPointCache[2]);
+
+    if (turnEndPoint.equals(start as LatLonInterface)) {
+      return 0;
+    }
 
     return this.circleVectorBuilder.build(
       vectors, index,
@@ -842,9 +848,337 @@ export class TurnToJoinGreatCircleAtPointBuilder {
 }
 
 /**
+ * Builds paths connecting initial great-circle paths to final great-circle paths via a turn starting at the start
+ * point followed by an angled intercept path which intercepts the final path before the end point.
+ */
+export class InterceptGreatCircleToPointBuilder {
+  private static readonly vec3Cache = [
+    new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3)
+  ];
+  private static readonly geoCircleCache = [
+    new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0)
+  ];
+  private static readonly intersectionCache = [new Float64Array(3), new Float64Array(3)];
+
+  private readonly circleVectorBuilder = new CircleVectorBuilder();
+  private readonly turnToJoinGreatCircleBuilder = new TurnToJoinGreatCircleBuilder();
+
+  /**
+   * Builds a sequence of vectors representing a path from a defined start point and initial course which turns and
+   * intercepts a final course at a specified angle using a great-circle path. Optionally includes a final turn from
+   * the intercept path to the final course.
+   *
+   * If an intercept angle greater than the minimum angle is required to intercept the final course before the end
+   * point, no vectors will be calculated.
+   *
+   * If the initial and final courses are parallel, no vectors will be calculated.
+   * @param vectors The flight path vector sequence to which to add the vectors.
+   * @param index The index in the sequence at which to add the vectors.
+   * @param start The start point.
+   * @param startPath The great-circle path defining the initial course.
+   * @param startTurnRadius The radius of the initial turn, in meters.
+   * @param startTurnDirection The direction of the initial turn. If not defined, the direction of the initial turn
+   * will be automatically selected.
+   * @param interceptAngle The angle at which to intercept the final path, in degrees. Will be clamped to the range
+   * `[0, 90]`.
+   * @param end The end point.
+   * @param endPath The great-circle path defining the final course.
+   * @param endTurnRadius The radius of the final turn, in meters, or `undefined` if a turn to join the final path
+   * should not be calculated.
+   * @param startTurnVectorFlags The flags to set on the initial turn vector. Defaults to none (0).
+   * @param interceptVectorFlags The flags to set on the vector along the intercept path. Defaults to none (0).
+   * @param endTurnVectorFlags The flags to set on the final turn vector. Defaults to none (0). Ignored if a turn to
+   * join the final path is not calculated.
+   * @returns The number of vectors added to the sequence.
+   */
+  public build(
+    vectors: FlightPathVector[],
+    index: number,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    startPath: GeoCircle,
+    startTurnRadius: number,
+    startTurnDirection: VectorTurnDirection | undefined,
+    interceptAngle: number,
+    end: ReadonlyFloat64Array | LatLonInterface,
+    endPath: GeoCircle,
+    endTurnRadius?: number,
+    startTurnVectorFlags = 0,
+    interceptVectorFlags = 0,
+    endTurnVectorFlags = 0
+  ): number {
+    if (!(start instanceof Float64Array)) {
+      start = GeoPoint.sphericalToCartesian(start as LatLonInterface, InterceptGreatCircleToPointBuilder.vec3Cache[0]);
+    }
+    if (!(end instanceof Float64Array)) {
+      end = GeoPoint.sphericalToCartesian(end as LatLonInterface, InterceptGreatCircleToPointBuilder.vec3Cache[1]);
+    }
+
+    if (Math.acos(Vec3Math.dot(startPath.center, endPath.center)) <= GeoCircle.ANGULAR_TOLERANCE) {
+      // initial and final paths are parallel
+      return 0;
+    }
+
+    const intersections = InterceptGreatCircleToPointBuilder.intersectionCache;
+
+    const interceptAngleRad = MathUtils.clamp(interceptAngle * Avionics.Utils.DEG2RAD, 0, MathUtils.HALF_PI);
+    // The set of centers of great circles that intersect the end path at the desired intercept angle
+    const interceptPathCenters = InterceptGreatCircleToPointBuilder.geoCircleCache[1].set(endPath.center, interceptAngleRad);
+
+    const startTurnRadiusRad = UnitType.METER.convertTo(startTurnRadius, UnitType.GA_RADIAN);
+    if (startTurnDirection === undefined) {
+      let target: ReadonlyFloat64Array;
+
+      // Calculate the intercept point if the intercept path were to pass through the start point.
+      const interceptCount = interceptPathCenters.intersection(
+        InterceptGreatCircleToPointBuilder.geoCircleCache[0].set(start, MathUtils.HALF_PI),
+        intersections
+      );
+
+      if (interceptCount === 0) {
+        // No great-circle path passing through the start point can intercept the final path at the desired intercept angle.
+        target = end;
+      } else {
+        target = Vec3Math.cross(
+          intersections[0], endPath.center,
+          InterceptGreatCircleToPointBuilder.vec3Cache[2]
+        );
+      }
+
+      startTurnDirection = startPath.encircles(target) ? 'left' : 'right';
+    }
+
+    const startTurnCircle = FlightPathUtils.getTurnCircleStartingFromPath(
+      start, startPath,
+      startTurnRadiusRad,
+      startTurnDirection,
+      InterceptGreatCircleToPointBuilder.geoCircleCache[0]
+    );
+
+    const endTurnRadiusRad = endTurnRadius === undefined ? undefined : UnitType.METER.convertTo(endTurnRadius, UnitType.GA_RADIAN);
+
+    if (interceptAngleRad <= GeoCircle.ANGULAR_TOLERANCE) {
+      // If the desired intercept angle is 0 degrees, the only valid path is when the starting turn ends exactly on the
+      // path to intercept and the end of the turn lies before the end point
+
+      if (Math.abs(GeoPoint.distance(startTurnCircle.center, endPath.center) - Math.abs(MathUtils.HALF_PI - startTurnCircle.radius)) > GeoCircle.ANGULAR_TOLERANCE) {
+        // starting turn is not tangent to path to intercept
+        return 0;
+      }
+
+      const startTurnEnd = endPath.closest(
+        startTurnCircle.closest(endPath.center, InterceptGreatCircleToPointBuilder.vec3Cache[2]),
+        InterceptGreatCircleToPointBuilder.vec3Cache[2]
+      );
+
+      const startTurnEndToEndDistance = endPath.angleAlong(startTurnEnd, end, Math.PI);
+
+      if (startTurnEndToEndDistance < MathUtils.TWO_PI - GeoCircle.ANGULAR_TOLERANCE && startTurnEndToEndDistance > Math.PI + GeoCircle.ANGULAR_TOLERANCE) {
+        // the end of the starting turn lies after the end point.
+        return 0;
+      }
+
+      return this.circleVectorBuilder.build(
+        vectors, index,
+        startTurnCircle,
+        start, startTurnEnd,
+        startTurnVectorFlags
+      );
+    }
+
+    // Find the great-circle path that intersects the path to intercept at the desired intercept angle and is tangent
+    // to the starting turn.
+
+    // The set of centers of great circles that are tangent to the starting turn
+    const startTurnInterceptTangentCenters = InterceptGreatCircleToPointBuilder.geoCircleCache[2].set(
+      startTurnCircle.center, Math.abs(MathUtils.HALF_PI - startTurnRadiusRad)
+    );
+
+    const interceptPathCount = interceptPathCenters.intersection(startTurnInterceptTangentCenters, intersections);
+
+    if (interceptPathCount === 0) {
+      return 0;
+    }
+
+    // The start turn is considered to overshoot if any part of the turn circle lies on the contralateral side of the
+    // final path. The contralateral side is defined as the right side for left turns and the left side for right turns.
+    // If the start turn overshoots, then the desired intercept path will intercept the final path from the contralateral side.
+    const doesStartTurnOvershoot = endPath.distance(startTurnCircle.center) > -startTurnCircle.radius + GeoCircle.ANGULAR_TOLERANCE;
+
+    const interceptPath = InterceptGreatCircleToPointBuilder.geoCircleCache[1].set(
+      intersections[interceptPathCount === 1 || !doesStartTurnOvershoot ? 0 : 1],
+      MathUtils.HALF_PI
+    );
+
+    const startTurnEnd = interceptPath.closest(
+      startTurnCircle.closest(interceptPath.center, InterceptGreatCircleToPointBuilder.vec3Cache[2]),
+      InterceptGreatCircleToPointBuilder.vec3Cache[2]
+    );
+
+    const intercept = Vec3Math.multScalar(
+      Vec3Math.normalize(
+        Vec3Math.cross(interceptPath.center, endPath.center, InterceptGreatCircleToPointBuilder.vec3Cache[3]),
+        InterceptGreatCircleToPointBuilder.vec3Cache[3]
+      ),
+      doesStartTurnOvershoot === (startTurnDirection === 'right') ? 1 : -1,
+      InterceptGreatCircleToPointBuilder.vec3Cache[3]
+    );
+
+    const interceptDistance = interceptPath.distanceAlong(startTurnEnd, intercept, Math.PI, GeoCircle.ANGULAR_TOLERANCE);
+
+    // Required turn anticipation for the end turn to join the intercept and final paths.
+    let minDInterceptEnd = 0;
+    if (endTurnRadiusRad !== undefined) {
+      const endTheta = Math.PI - interceptAngleRad;
+      minDInterceptEnd = Math.asin(Math.tan(endTurnRadiusRad) / Math.tan(endTheta / 2));
+
+      if (isNaN(minDInterceptEnd)) {
+        // Turn radius is too large for the end turn to join the intercept and final paths
+        return 0;
+      }
+    }
+
+    const interceptToEndDistance = endPath.distanceAlong(intercept, end, Math.PI, GeoCircle.ANGULAR_TOLERANCE);
+    const interceptToEndOffset = (interceptToEndDistance + Math.PI) % MathUtils.TWO_PI - Math.PI;
+
+    if (interceptToEndOffset < minDInterceptEnd) {
+      // The intercept path does not intercept the final path early enough to make the end turn before the end point
+      return 0;
+    }
+
+    let vectorIndex = index;
+
+    if (interceptDistance < minDInterceptEnd || interceptDistance > Math.PI + GeoCircle.ANGULAR_TOLERANCE) {
+      // The start turn ends too late to make a turn to join the final path or the start turn overshoots the end path
+      // before reaching the intercept course -> attempt to end the start turn early
+
+      if (endTurnRadiusRad === undefined) {
+        // We don't need to calculate a final turn, so attempt to end the start turn where it intersects the end path
+
+        const startTurnEndPathIntersectionCount = startTurnCircle.intersection(endPath, intersections);
+
+        if (startTurnEndPathIntersectionCount === 0) {
+          return 0;
+        }
+
+        const startTurnEndPathIntersection = intersections[startTurnEndPathIntersectionCount === 1 || startTurnDirection === 'right' ? 0 : 1];
+
+        if (endPath.distanceAlong(startTurnEndPathIntersection, end, Math.PI, GeoCircle.ANGULAR_TOLERANCE) > Math.PI + GeoCircle.ANGULAR_TOLERANCE) {
+          // The start turn intercepts the final path after the end point
+          return 0;
+        }
+
+        vectorIndex += this.circleVectorBuilder.build(
+          vectors, vectorIndex,
+          startTurnCircle,
+          start, startTurnEndPathIntersection,
+          startTurnVectorFlags
+        );
+      } else {
+        // We need to calculate a final turn to join the end path. This final turn must be tangent to the starting turn
+        // and the end path.
+
+        const startTurnCenter = FlightPathUtils.getTurnCenterFromCircle(startTurnCircle, InterceptGreatCircleToPointBuilder.vec3Cache[4]);
+        // The set of centers of all geo circles of the desired end turn radius that are tangent to the starting turn
+        const startTurnEndTurnTangentCenters = InterceptGreatCircleToPointBuilder.geoCircleCache[1].set(
+          startTurnCenter,
+          startTurnRadiusRad + endTurnRadiusRad
+        );
+        // The set of centers of all geo circles of the desried end turn radius that are tangent to the end path
+        const endPathEndTurnTangentCenters = InterceptGreatCircleToPointBuilder.geoCircleCache[2].set(
+          endPath.center,
+          endPath.radius + endTurnRadiusRad * (startTurnDirection === 'left' ? 1 : -1)
+        );
+
+        const endTurnCircleCount = endPathEndTurnTangentCenters.intersection(startTurnEndTurnTangentCenters, intersections);
+
+        if (endTurnCircleCount === 0) {
+          return 0;
+        }
+
+        const endTurnCenter = intersections[0];
+
+        const endTurnCircle = FlightPathUtils.getTurnCircle(
+          endTurnCenter,
+          endTurnRadiusRad,
+          startTurnDirection === 'left' ? 'right' : 'left',
+          InterceptGreatCircleToPointBuilder.geoCircleCache[1]
+        );
+
+        endTurnCircle.closest(startTurnCenter, startTurnEnd);
+
+        const endTurnEnd = endPath.closest(endTurnCenter, InterceptGreatCircleToPointBuilder.vec3Cache[4]);
+
+        if (endPath.distanceAlong(endTurnEnd, end, Math.PI, GeoCircle.ANGULAR_TOLERANCE) > Math.PI + GeoCircle.ANGULAR_TOLERANCE) {
+          // The end turn joins the final path after the end point
+          return 0;
+        }
+
+        vectorIndex += this.circleVectorBuilder.build(
+          vectors, vectorIndex,
+          startTurnCircle,
+          start, startTurnEnd,
+          startTurnVectorFlags
+        );
+
+        vectorIndex += this.circleVectorBuilder.build(
+          vectors, vectorIndex,
+          endTurnCircle,
+          startTurnEnd, endTurnEnd,
+          endTurnVectorFlags
+        );
+      }
+    } else {
+      if (GeoPoint.distance(start, startTurnEnd) > GeoCircle.ANGULAR_TOLERANCE) {
+        vectorIndex += this.circleVectorBuilder.build(
+          vectors, vectorIndex,
+          startTurnCircle,
+          start, startTurnEnd,
+          startTurnVectorFlags
+        );
+      }
+
+      let interceptPathEnd = intercept;
+
+      if (endTurnRadiusRad !== undefined) {
+        interceptPathEnd = interceptPath.offsetDistanceAlong(
+          intercept,
+          -minDInterceptEnd,
+          InterceptGreatCircleToPointBuilder.vec3Cache[4],
+          Math.PI
+        );
+      }
+
+      if (interceptDistance - minDInterceptEnd > GeoCircle.ANGULAR_TOLERANCE) {
+        vectorIndex += this.circleVectorBuilder.build(
+          vectors, vectorIndex,
+          interceptPath,
+          startTurnEnd, interceptPathEnd,
+          interceptVectorFlags
+        );
+      }
+
+      if (endTurnRadius !== undefined) {
+        vectorIndex += this.turnToJoinGreatCircleBuilder.build(
+          vectors, vectorIndex,
+          interceptPathEnd,
+          interceptPath,
+          endPath,
+          endTurnRadius,
+          endTurnVectorFlags
+        );
+      }
+    }
+
+    return vectorIndex - index;
+  }
+}
+
+/**
  * Builds paths connecting initial great-circle paths to final great-circle paths terminating at defined end points.
  */
 export class JoinGreatCircleToPointBuilder {
+  private static readonly INTERCEPT_ANGLE = 45; // degrees
+
   private static readonly vec3Cache = [new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3)];
   private static readonly geoCircleCache = [
     new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0),
@@ -854,13 +1188,24 @@ export class JoinGreatCircleToPointBuilder {
 
   private readonly circleVectorBuilder = new CircleVectorBuilder();
   private readonly greatCircleBuilder = new GreatCircleBuilder();
-  private readonly connectCirclesBuilder = new ConnectCirclesBuilder();
   private readonly turnToJoinGreatCircleBuilder = new TurnToJoinGreatCircleBuilder();
-  private readonly turnToJoinGreatCircleAtPointBuilder = new TurnToJoinGreatCircleAtPointBuilder();
+  private readonly interceptGreatCircleToPointBuilder = new InterceptGreatCircleToPointBuilder();
+  private readonly directToPointBuilder = new DirectToPointBuilder();
 
   /**
    * Builds a sequence of vectors representing a path from a defined start point and initial course which turns and
    * joins a great-circle path which terminates at a defined end point.
+   *
+   * This method will first attempt to connect the starting point and final path with a single constant-radius turn
+   * of at least the minimum turn radius and in the desired direction that joins the final path before the end point.
+   * If this is not possible, then what happens next depends on the `preferSingleTurn` argument:
+   * * If it is `true`, then another path connecting the starting point and final path with a single constant-radius
+   * turn will be computed - this path will respect the minimum turn radius but not necessarily the desired turn
+   * direction.
+   * * If it is `false`, then a path to intercept the final path at a 45-degree angle will be computed. If such a path
+   * is not possible or if the intercept point lies after the end point, and `allowDirectFallback` is `true`, a direct
+   * course to the end point will be computed. If `allowDirectFallback` is `false` and all attempts to compute a path
+   * have failed, then no vectors will be built.
    * @param vectors The flight path vector sequence to which to add the vectors.
    * @param index The index in the sequence at which to add the vectors.
    * @param start The start point.
@@ -871,11 +1216,17 @@ export class JoinGreatCircleToPointBuilder {
    * that satisfies the constraints will be chosen.
    * @param minTurnRadius The minimum turn radius, in meters. Defaults to 0.
    * @param preferSingleTurn Whether to prefer flight path solutions that consist of a single constant-radius turn
-   * from the initial to final course. False by default.
+   * from the initial to final course. Defaults to `false`.
+   * @param allowDirectFallback Whether the computed path should fall back to a direct course to the end point if the
+   * final path cannot be joined before the end point. Defaults to `true`.
    * @param intersection The point of intersection between the start and end paths closest to the start point. If
    * not defined, it will be calculated.
    * @param flags The flags to set on the vectors. Defaults to none (0).
    * @param includeTurnToCourseFlag Whether to include the `TurnToCourse` flag on the turn vectors. True by default.
+   * @param includeDirectFlag Whether to include the `Direct` flag on vectors when falling back to a direct course.
+   * Defaults to `true`.
+   * @param includeInterceptFlag Whether to include the `InterceptCourse` flag on vectors when building an intercept
+   * path. Defaults to `true`.
    * @returns The number of vectors added to the sequence.
    */
   public build(
@@ -888,9 +1239,12 @@ export class JoinGreatCircleToPointBuilder {
     desiredTurnDirection?: VectorTurnDirection,
     minTurnRadius?: number,
     preferSingleTurn = false,
+    allowDirectFallback = true,
     intersection?: ReadonlyFloat64Array,
     flags = 0,
-    includeTurnToCourseFlag = true
+    includeTurnToCourseFlag = true,
+    includeDirectFlag = true,
+    includeInterceptFlag = true
   ): number {
     let vectorIndex = index;
 
@@ -924,13 +1278,13 @@ export class JoinGreatCircleToPointBuilder {
 
     const intersectionToStartDot = Vec3Math.dot(Vec3Math.cross(startPath.center, intersection, JoinGreatCircleToPointBuilder.vec3Cache[3]), start);
     // positive -> start point lies after the intersection (with respect to the direction of start path)
-    const intersectionToStartSign = intersectionToStartDot < -GeoPoint.EQUALITY_TOLERANCE ? -1
-      : intersectionToStartDot > GeoPoint.EQUALITY_TOLERANCE ? 1 : 0;
+    const intersectionToStartSign = intersectionToStartDot < -GeoCircle.ANGULAR_TOLERANCE ? -1
+      : intersectionToStartDot > GeoCircle.ANGULAR_TOLERANCE ? 1 : 0;
 
     const intersectionToEndDot = Vec3Math.dot(Vec3Math.cross(endPath.center, intersection, JoinGreatCircleToPointBuilder.vec3Cache[3]), end);
     // positive -> end point lies after the intersection (with respect to the direction of end path)
-    const intersectionToEndSign = intersectionToEndDot < -GeoPoint.EQUALITY_TOLERANCE ? -1
-      : intersectionToEndDot > GeoPoint.EQUALITY_TOLERANCE ? 1 : 0;
+    const intersectionToEndSign = intersectionToEndDot < -GeoCircle.ANGULAR_TOLERANCE ? -1
+      : intersectionToEndDot > GeoCircle.ANGULAR_TOLERANCE ? 1 : 0;
 
     const isEndForwardOfIntersection = intersectionToEndSign > 0;
 
@@ -954,7 +1308,6 @@ export class JoinGreatCircleToPointBuilder {
     const intersectionEndOffset = intersectionToEndSign * intersectionEndDistance;
 
     const towardEndPointTurnDirection = startPath.encircles(end, false) ? 'left' : 'right';
-    desiredTurnDirection;
 
     let needCalculateTwoTurnPath = false;
     let needCalculateOneTurnPath = false;
@@ -966,8 +1319,8 @@ export class JoinGreatCircleToPointBuilder {
 
         if (isStartPastRequiredTurnStart || isEndBeforeRequiredTurnEnd) {
           // The minimum turn radius is too large to intercept the final path before the end point
-          needCalculateTwoTurnPath = !preferSingleTurn || desiredTurnDirection === towardEndPointTurnDirection;
-          needCalculateOneTurnPath = !needCalculateTwoTurnPath;
+          needCalculateTwoTurnPath = !preferSingleTurn;
+          needCalculateOneTurnPath = preferSingleTurn;
         } else {
           // Make a single constant-radius turn either starting at the start point, or ending at the end point,
           // depending on which is closer to the intersection point.
@@ -977,14 +1330,14 @@ export class JoinGreatCircleToPointBuilder {
             // start turn at start point
             vectorIndex += this.turnToJoinGreatCircleBuilder.build(vectors, vectorIndex, start, startPath, endPath, turnRadius, turnFlags);
 
-            if (intersectionEndDistance - intersectionStartDistance > GeoPoint.EQUALITY_TOLERANCE) {
+            if (intersectionEndDistance - intersectionStartDistance > GeoCircle.ANGULAR_TOLERANCE) {
               const turnEnd = endPath.offsetDistanceAlong(intersection, intersectionStartDistance, JoinGreatCircleToPointBuilder.vec3Cache[3], Math.PI);
               vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, turnEnd, endPath, end, flags);
             }
           } else {
             // end turn at end point
             let turnStart = start;
-            if (intersectionStartDistance - intersectionEndDistance > GeoPoint.EQUALITY_TOLERANCE) {
+            if (intersectionStartDistance - intersectionEndDistance > GeoCircle.ANGULAR_TOLERANCE) {
               turnStart = startPath.offsetDistanceAlong(intersection, -intersectionEndDistance, JoinGreatCircleToPointBuilder.vec3Cache[3], Math.PI);
               vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, start, startPath, turnStart, flags);
             }
@@ -1000,197 +1353,50 @@ export class JoinGreatCircleToPointBuilder {
           if (intersectionStartOffset <= minD) {
             // The start point lies at or before the required turn start point to minimize the flight path distance.
             needCalculateOneTurnPath = true;
-          } else if (!preferSingleTurn) {
-            // The start point lies after the required turn start point to minimize the flight path distance, so we
-            // will make a turn immediately and connect it with another turn to join the final path at the end point.
-            vectorIndex += this.turnToJoinGreatCircleAtPointBuilder.build(
-              vectors, vectorIndex,
-              start, startPath, minTurnRadius, desiredTurnDirection,
-              end, endPath, minTurnRadius, desiredTurnDirection,
-              0, turnFlags
-            );
           } else {
-            needCalculateOneTurnPath = true;
+            needCalculateTwoTurnPath = !preferSingleTurn;
+            needCalculateOneTurnPath = preferSingleTurn;
           }
         } else {
-          // The start and end paths intersect at an angle > 90 degrees.
           needCalculateTwoTurnPath = !preferSingleTurn;
           needCalculateOneTurnPath = preferSingleTurn;
         }
       }
     } else {
-      if (
-        (desiredTurnDirection === undefined || desiredTurnDirection === towardEndPointTurnDirection)
-        && intersectionStartOffset <= GeoPoint.EQUALITY_TOLERANCE
-        && !preferSingleTurn
-      ) {
-        // Attempt a "side step".
-
-        const endTurnOffsetPath = JoinGreatCircleToPointBuilder.geoCircleCache[0].setAsGreatCircle(end, endPath.center);
-        const endTurnCircleRadiusRad = towardEndPointTurnDirection === 'right' ? minTurnRadiusRad : Math.PI - minTurnRadiusRad;
-        const endTurnCircleCenter = endTurnOffsetPath.offsetDistanceAlong(end, endTurnCircleRadiusRad, JoinGreatCircleToPointBuilder.vec3Cache[3]);
-        const endTurnCircle = JoinGreatCircleToPointBuilder.geoCircleCache[1].set(endTurnCircleCenter, endTurnCircleRadiusRad);
-
-        const startTurnOffsetPath = JoinGreatCircleToPointBuilder.geoCircleCache[2].setAsGreatCircle(start, startPath.center);
-        const startTurnCenter = startTurnOffsetPath.offsetDistanceAlong(
-          start,
-          minTurnRadiusRad * (towardEndPointTurnDirection === 'left' ? 1 : -1),
-          JoinGreatCircleToPointBuilder.vec3Cache[4]
-        );
-
-        if (Math.abs(endTurnCircle.distance(startTurnCenter)) >= minTurnRadiusRad - GeoPoint.EQUALITY_TOLERANCE) {
-          const startTurnCircle = FlightPathUtils.getTurnCircle(startTurnCenter, minTurnRadiusRad, towardEndPointTurnDirection, JoinGreatCircleToPointBuilder.geoCircleCache[2]);
-
-          vectorIndex += this.connectCirclesBuilder.build(vectors, vectorIndex, startTurnCircle, endTurnCircle, undefined, start, end, flags, turnFlags, flags);
-        } else {
-          needCalculateTwoTurnPath = true;
-        }
-      } else if (desiredTurnDirection !== undefined && desiredTurnDirection !== towardEndPointTurnDirection) {
-        needCalculateTwoTurnPath = true;
-      } else {
-        needCalculateTwoTurnPath = !preferSingleTurn;
-        needCalculateOneTurnPath = preferSingleTurn;
-      }
+      needCalculateTwoTurnPath = !preferSingleTurn;
+      needCalculateOneTurnPath = preferSingleTurn;
     }
 
+    let needDirectFallback = false;
+
     if (needCalculateTwoTurnPath) {
-      // Calculate a flight path which begins with an initial turn from the start path connected by a great-circle
-      // path to a final turn to join the end path at the end point.
+      const interceptFlag = includeInterceptFlag ? FlightPathVectorFlags.InterceptCourse : 0;
 
-      desiredTurnDirection ??= towardEndPointTurnDirection;
-      let turnStartIntersectionOffset = 0;
-      let endTurnDirection: VectorTurnDirection;
-      let needMoveStartTurn = false;
-
-      if (isEndForwardOfIntersection && desiredTurnDirection === towardEndPointTurnDirection) {
-        endTurnDirection = towardEndPointTurnDirection === 'left' ? 'right' : 'left';
-        turnStartIntersectionOffset = intersectionStartOffset;
-        needMoveStartTurn = intersectionEndOffset < minD;
-      } else {
-        // Attempt to place the start of the first turn at either the start point or the intersection point between
-        // the start and end paths, whichever one is farther along the start path.
-        turnStartIntersectionOffset = Math.max(0, intersectionStartOffset);
-        const isStartTurnInEndPathDirection = (desiredTurnDirection === towardEndPointTurnDirection) === isEndForwardOfIntersection;
-        // Redefine minD to be the distance from the start/end path intersection point to the start of the minimum-radius
-        // starting turn that is tangent to the end path.
-        if (isStartTurnInEndPathDirection) {
-          minD = Math.asin(Math.tan(minTurnRadiusRad) * tanHalfTheta);
-          if (isNaN(minD)) {
-            minD = Infinity;
-          }
-        }
-
-        const endTurnDirectionThreshold = minD * (desiredTurnDirection === towardEndPointTurnDirection ? -1 : 1);
-        endTurnDirection = (
-          (towardEndPointTurnDirection === 'left')
-          === (turnStartIntersectionOffset < endTurnDirectionThreshold)
-          === isEndForwardOfIntersection
-        )
-          ? 'left'
-          : 'right';
-      }
-
-      const endTurnOffsetPath = JoinGreatCircleToPointBuilder.geoCircleCache[0].setAsGreatCircle(end, endPath.center);
-      const endTurnCircleRadiusRad = endTurnDirection === 'left' ? minTurnRadiusRad : Math.PI - minTurnRadiusRad;
-      const endTurnCircleCenter = endTurnOffsetPath.offsetDistanceAlong(end, endTurnCircleRadiusRad, JoinGreatCircleToPointBuilder.vec3Cache[3]);
-      const endTurnCircle = JoinGreatCircleToPointBuilder.geoCircleCache[1].set(endTurnCircleCenter, endTurnCircleRadiusRad);
-
-      const startTurnStart = turnStartIntersectionOffset - intersectionStartOffset > GeoPoint.EQUALITY_TOLERANCE
-        ? startPath.offsetDistanceAlong(intersection, turnStartIntersectionOffset, JoinGreatCircleToPointBuilder.vec3Cache[3])
-        : Vec3Math.copy(start, JoinGreatCircleToPointBuilder.vec3Cache[3]);
-      const startTurnOffsetPath = JoinGreatCircleToPointBuilder.geoCircleCache[2].setAsGreatCircle(startTurnStart, startPath.center);
-      const startTurnCenter = startTurnOffsetPath.offsetDistanceAlong(
-        startTurnStart,
-        minTurnRadiusRad * (desiredTurnDirection === 'left' ? 1 : -1),
-        JoinGreatCircleToPointBuilder.vec3Cache[4]
+      // Attempt to make a turn to intercept the end path at 45 degrees
+      const numInterceptVectors = this.interceptGreatCircleToPointBuilder.build(
+        vectors, vectorIndex,
+        start, startPath, minTurnRadius, desiredTurnDirection,
+        JoinGreatCircleToPointBuilder.INTERCEPT_ANGLE,
+        end, endPath, minTurnRadius,
+        turnFlags | interceptFlag, flags | interceptFlag, turnFlags | interceptFlag
       );
 
-      if (!needMoveStartTurn) {
-        if (Math.abs(endTurnCircle.distance(startTurnCenter)) < minTurnRadiusRad - GeoPoint.EQUALITY_TOLERANCE) {
-          // Start and end turn circles are secant.
-
-          if (desiredTurnDirection === endTurnDirection) {
-            // If start and end turns have the same direction, they can still be joined by a great-circle path,
-            // however we need to exclude cases in which this will lead to a sub-optimal path.
-
-            const turnCirclePathIntersections = JoinGreatCircleToPointBuilder.intersectionCache;
-            const numEndTurnCircleStartPathIntersections = endTurnCircle.intersection(startPath, turnCirclePathIntersections);
-            if (numEndTurnCircleStartPathIntersections > 1) {
-              // End turn circle is secant to the start path.
-
-              // choose the intersection farthest from the start/end path intersection.
-              let farIntersection = turnCirclePathIntersections[endTurnDirection === 'left' ? 1 : 0];
-
-              if (startPath.distanceAlong(intersection, farIntersection, Math.PI) > turnStartIntersectionOffset) {
-                // The start of the starting turn lies closer to the start/end path intersection than the farthest of the
-                // start path/end turn circle intersections.
-
-                const startTurnCircle = FlightPathUtils.getTurnCircle(startTurnCenter, minTurnRadiusRad, desiredTurnDirection, JoinGreatCircleToPointBuilder.geoCircleCache[2]);
-                const numStartTurnCircleEndPathIntersections = startTurnCircle.intersection(endPath, turnCirclePathIntersections);
-                if (numStartTurnCircleEndPathIntersections > 1) {
-                  // Start turn circle is secant to the end path.
-
-                  // choose the intersection farthest from the start/end path intersection.
-                  farIntersection = turnCirclePathIntersections[desiredTurnDirection === 'left' ? 0 : 1];
-                  if (endPath.distanceAlong(farIntersection, intersection, Math.PI) > intersectionEndDistance) {
-                    // The end of the ending turn lies closer to the start/end path intersection than the farthest of the
-                    // end path/start turn circle intersections.
-
-                    // In this case the path from start to end will involve a series of turns that total >360 degrees
-                    // unless we move the starting turn to be tangent to the ending turn. We can also reduce the total
-                    // length of the path by reversing the direction of the ending turn.
-
-                    const newEndTurnCircleCenter = endTurnOffsetPath.offsetDistanceAlong(end, Math.PI - endTurnCircle.radius, JoinGreatCircleToPointBuilder.vec3Cache[5]);
-                    endTurnCircle.set(newEndTurnCircleCenter, Math.PI - endTurnCircle.radius);
-                    needMoveStartTurn = true;
-                  }
-                }
-              }
-            }
-          } else {
-            // If start and end circles have different directions, they cannot be joined by a great-circle path.
-            needMoveStartTurn = true;
-          }
-        }
-      }
-
-      if (needMoveStartTurn) {
-        // We need to shift the start turn forward (with respect to the direction of the start path) until the
-        // start and end turn circles are tangent.
-
-        const endTurnOffsetCircle = JoinGreatCircleToPointBuilder.geoCircleCache[2].set(
-          FlightPathUtils.getTurnCenterFromCircle(endTurnCircle, JoinGreatCircleToPointBuilder.vec3Cache[5]),
-          minTurnRadiusRad * 2
-        );
-        const startPathOffsetCircle = JoinGreatCircleToPointBuilder.geoCircleCache[3].set(
-          startPath.center,
-          startPath.radius + minTurnRadiusRad * (desiredTurnDirection === 'left' ? -1 : 1)
-        );
-
-        const intersections = JoinGreatCircleToPointBuilder.intersectionCache;
-        const numSolutions = startPathOffsetCircle.intersection(endTurnOffsetCircle, intersections);
-
-        if (numSolutions > 0) {
-          Vec3Math.copy(intersections[0], startTurnCenter);
-          startPath.closest(startTurnCenter, startTurnStart);
-
-          const turnCircleTangent = endTurnCircle.closest(startTurnCenter, JoinGreatCircleToPointBuilder.vec3Cache[5]);
-
-          if (Math.acos(Vec3Math.dot(startTurnStart, start)) > GeoPoint.EQUALITY_TOLERANCE) {
-            vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, start, startPath, startTurnStart, flags);
-          }
-
-          vectorIndex += this.circleVectorBuilder.build(vectors, vectorIndex, desiredTurnDirection, minTurnRadius, startTurnCenter, startTurnStart, turnCircleTangent, flags);
-          vectorIndex += this.circleVectorBuilder.build(vectors, vectorIndex, endTurnCircle, turnCircleTangent, end, turnFlags);
-        }
+      if (numInterceptVectors === 0) {
+        needDirectFallback = allowDirectFallback;
       } else {
-        const startTurnCircle = FlightPathUtils.getTurnCircle(startTurnCenter, minTurnRadiusRad, desiredTurnDirection, JoinGreatCircleToPointBuilder.geoCircleCache[2]);
+        vectorIndex += numInterceptVectors;
 
-        if (Math.acos(Vec3Math.dot(startTurnStart, start)) > GeoPoint.EQUALITY_TOLERANCE) {
-          vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, start, startPath, startTurnStart, flags);
+        const lastVector = vectors[vectorIndex - 1];
+        const interceptEnd = GeoPoint.sphericalToCartesian(lastVector.endLat, lastVector.endLon, JoinGreatCircleToPointBuilder.vec3Cache[5]);
+
+        if (Math.acos(Vec3Math.dot(interceptEnd, end)) > GeoCircle.ANGULAR_TOLERANCE) {
+          vectorIndex += this.circleVectorBuilder.build(
+            vectors, vectorIndex,
+            endPath,
+            interceptEnd, end,
+            flags
+          );
         }
-
-        vectorIndex += this.connectCirclesBuilder.build(vectors, vectorIndex, startTurnCircle, endTurnCircle, undefined, startTurnStart, end, flags, turnFlags, flags);
       }
     } else if (needCalculateOneTurnPath) {
       // Make a single constant-radius turn from the start path to join the end path. The turn must start after the
@@ -1199,22 +1405,36 @@ export class JoinGreatCircleToPointBuilder {
 
       minD = Math.min(minD, Math.PI / 2);
 
-      const minTurnEndOffset = Math.min(intersectionEndOffset, -minD);
-      const turnStartOffset = Math.max(-minTurnEndOffset, intersectionStartOffset);
+      if (minD > Math.PI / 2) {
+        // No amount of anticipation can provide a turn which joins the start and end paths of the desired radius.
+        needDirectFallback = allowDirectFallback;
+      } else {
+        const minTurnEndOffset = Math.min(intersectionEndOffset, -minD);
+        const turnStartOffset = Math.max(-minTurnEndOffset, intersectionStartOffset);
 
-      const turnRadius = UnitType.GA_RADIAN.convertTo(Math.atan(tanHalfTheta * Math.sin(turnStartOffset)), UnitType.METER);
+        const turnRadius = UnitType.GA_RADIAN.convertTo(Math.atan(tanHalfTheta * Math.sin(turnStartOffset)), UnitType.METER);
 
-      const turnStart = startPath.offsetDistanceAlong(intersection, turnStartOffset, JoinGreatCircleToPointBuilder.vec3Cache[3]);
-      if (turnStartOffset - intersectionStartOffset > GeoPoint.EQUALITY_TOLERANCE) {
-        vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, start, startPath, turnStart);
+        const turnStart = startPath.offsetDistanceAlong(intersection, turnStartOffset, JoinGreatCircleToPointBuilder.vec3Cache[3]);
+        if (turnStartOffset - intersectionStartOffset > GeoPoint.EQUALITY_TOLERANCE) {
+          vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, start, startPath, turnStart);
+        }
+
+        vectorIndex += this.turnToJoinGreatCircleBuilder.build(vectors, vectorIndex, turnStart, startPath, endPath, turnRadius, turnFlags);
+
+        if (intersectionEndOffset + turnStartOffset > GeoPoint.EQUALITY_TOLERANCE) {
+          const turnEnd = endPath.offsetDistanceAlong(intersection, -turnStartOffset, JoinGreatCircleToPointBuilder.vec3Cache[4]);
+          vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, turnEnd, endPath, end);
+        }
       }
+    }
 
-      vectorIndex += this.turnToJoinGreatCircleBuilder.build(vectors, vectorIndex, turnStart, startPath, endPath, turnRadius, turnFlags);
-
-      if (intersectionEndOffset + turnStartOffset > GeoPoint.EQUALITY_TOLERANCE) {
-        const turnEnd = endPath.offsetDistanceAlong(intersection, -turnStartOffset, JoinGreatCircleToPointBuilder.vec3Cache[4]);
-        vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, turnEnd, endPath, end);
-      }
+    if (needDirectFallback) {
+      vectorIndex += this.directToPointBuilder.build(
+        vectors, vectorIndex,
+        start, startPath, end,
+        minTurnRadius, desiredTurnDirection,
+        flags, includeTurnToCourseFlag, includeDirectFlag
+      );
     }
 
     return vectorIndex - index;
@@ -1488,11 +1708,39 @@ export class ProcedureTurnBuilder {
 export class DirectToPointBuilder {
   private static readonly vec3Cache = [new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3)];
   private static readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0)];
-  private static readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
+  private static readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0)];
 
   private readonly circleVectorBuilder = new CircleVectorBuilder();
   private readonly greatCircleBuilder = new GreatCircleBuilder();
 
+  /**
+   * Builds a sequence of vectors representing a path which consists of an optional turn from an initial point and
+   * course toward an end point followed by an optional great-circle path terminating at the end point.
+   * @param vectors The flight path vector sequence to which to add the vectors.
+   * @param index The index in the sequence at which to add the vectors.
+   * @param start The start point.
+   * @param startCourse The initial course.
+   * @param end The end point.
+   * @param desiredTurnRadius The desired turn radius, in meters.
+   * @param desiredTurnDirection The desired turn direction. If undefined, a turn direction will be chosen such that
+   * the initial turn is always toward the end point.
+   * @param flags The flags to set on the vectors. Defaults to none (0).
+   * @param includeTurnToCourseFlag Whether to include the `TurnToCourse` flag on the turn vectors. Defaults to `true`.
+   * @param includeDirectFlag Whether to include the `Direct` flag on the vectors. Defaults to `true`.
+   * @returns The number of vectors added to the sequence.
+   */
+  public build(
+    vectors: FlightPathVector[],
+    index: number,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    startCourse: number,
+    end: ReadonlyFloat64Array | LatLonInterface,
+    desiredTurnRadius: number,
+    desiredTurnDirection?: VectorTurnDirection,
+    flags?: number,
+    includeTurnToCourseFlag?: boolean,
+    includeDirectFlag?: boolean
+  ): number;
   /**
    * Builds a sequence of vectors representing a path which consists of an optional turn from an initial point and
    * course toward an end point followed by an optional great-circle path terminating at the end point.
@@ -1505,7 +1753,8 @@ export class DirectToPointBuilder {
    * @param desiredTurnDirection The desired turn direction. If undefined, a turn direction will be chosen such that
    * the initial turn is always toward the end point.
    * @param flags The flags to set on the vectors. Defaults to none (0).
-   * @param includeTurnToCourseFlag Whether to include the `TurnToCourse` flag on the turn vectors. True by default.
+   * @param includeTurnToCourseFlag Whether to include the `TurnToCourse` flag on the turn vectors. Defaults to `true`.
+   * @param includeDirectFlag Whether to include the `Direct` flag on the vectors. Defaults to `true`.
    * @returns The number of vectors added to the sequence.
    */
   public build(
@@ -1516,10 +1765,28 @@ export class DirectToPointBuilder {
     end: ReadonlyFloat64Array | LatLonInterface,
     desiredTurnRadius: number,
     desiredTurnDirection?: VectorTurnDirection,
+    flags?: number,
+    includeTurnToCourseFlag?: boolean,
+    includeDirectFlag?: boolean
+  ): number;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public build(
+    vectors: FlightPathVector[],
+    index: number,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    startPath: GeoCircle | number,
+    end: ReadonlyFloat64Array | LatLonInterface,
+    desiredTurnRadius: number,
+    desiredTurnDirection?: VectorTurnDirection,
     flags = 0,
-    includeTurnToCourseFlag = true
+    includeTurnToCourseFlag = true,
+    includeDirectFlag = true
   ): number {
     let vectorIndex = index;
+
+    if (typeof startPath === 'number') {
+      startPath = DirectToPointBuilder.geoCircleCache[0].setAsGreatCircle(start, startPath);
+    }
 
     const endPos = DirectToPointBuilder.geoPointCache[0];
     if (!(start instanceof Float64Array)) {
@@ -1546,7 +1813,7 @@ export class DirectToPointBuilder {
     const startPathIncludesTerminator = startPath.includes(end);
 
     const turnDirection = desiredTurnDirection ?? (startPathEncirclesTerminator && !startPathIncludesTerminator ? 'left' : 'right');
-    const startToTurnCenterPath = DirectToPointBuilder.geoCircleCache[0].set(turnDirection === 'left'
+    const startToTurnCenterPath = DirectToPointBuilder.geoCircleCache[1].set(turnDirection === 'left'
       ? Vec3Math.cross(start, startPath.center, DirectToPointBuilder.vec3Cache[2])
       : Vec3Math.cross(startPath.center, start, DirectToPointBuilder.vec3Cache[2]),
       MathUtils.HALF_PI
@@ -1584,8 +1851,10 @@ export class DirectToPointBuilder {
     const alpha = Math.asin(Math.min(1, Math.sin(turnRadiusRad) / Math.sin(turnCenterToTerminatorDistance)));
     const terminatorFixBearingToTurnCenter = endPos.bearingTo(turnCenterPoint);
     const finalPathCourse = NavMath.normalizeHeading(terminatorFixBearingToTurnCenter + alpha * Avionics.Utils.RAD2DEG * (turnDirection === 'left' ? -1 : 1) + 180);
-    const finalPath = DirectToPointBuilder.geoCircleCache[0].setAsGreatCircle(end, finalPathCourse);
+    const finalPath = DirectToPointBuilder.geoCircleCache[1].setAsGreatCircle(end, finalPathCourse);
     const turnEndVec = finalPath.closest(turnCenterPoint, DirectToPointBuilder.vec3Cache[3]);
+
+    flags |= includeDirectFlag ? FlightPathVectorFlags.Direct : 0;
 
     if (!GeoPoint.equals(turnEndVec, start)) {
       vectorIndex += this.circleVectorBuilder.build(
@@ -1598,7 +1867,7 @@ export class DirectToPointBuilder {
     }
 
     if (!GeoPoint.equals(turnEndVec, end)) {
-      vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, turnEndVec, end, flags);
+      vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, turnEndVec, end, undefined, flags);
     }
 
     return vectorIndex - index;

@@ -1,14 +1,12 @@
-import { ComponentProps, DisplayComponent, FSComponent, Subscription, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { ClockEvents } from 'msfssdk/instruments';
-import { UserSettingManager } from 'msfssdk/settings';
+import { ClockEvents, ComponentProps, DisplayComponent, EventBus, FSComponent, Subscription, UserSettingManager, VNode } from 'msfssdk';
+
 import { DateTimeUserSettingTypes } from '../../settings/DateTimeUserSettings';
+import { NavDataBarSettingTypes } from '../../settings/NavDataBarUserSettings';
 import { UnitsUserSettingManager } from '../../settings/UnitsUserSettings';
 import { NavDataField } from '../navdatafield/NavDataField';
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
 import { DefaultNavDataBarFieldRenderer } from './DefaultNavDataBarFieldRenderer';
 import { NavDataBarFieldModel, NavDataBarFieldModelFactory } from './NavDataBarFieldModel';
-import { NavDataBarSettingTypes } from '../../settings/NavDataBarUserSettings';
 
 /**
  * Component props for NavDataBar.

@@ -1,4 +1,5 @@
-import { XMLExtendedGaugeConfig, XMLGaugeConfigFactory } from 'msfssdk/components/XMLGauges';
+import { XMLExtendedGaugeConfig, XMLGaugeConfigFactory } from 'msfssdk';
+
 import { xmlConfig as C172Config } from './C172';
 import { xmlConfig as C208Config } from './C208';
 import { xmlConfig as DA40Config } from './DA40';
@@ -6,7 +7,6 @@ import { xmlConfig as DA62Config } from './DA62';
 import { xmlConfig as G36Config } from './G36';
 import { xmlConfig as G58Config } from './G58';
 import { xmlConfig as SR22Config } from './SR22';
-
 
 /**
  * This is temporary code to allow the loading of new panel configurations for

@@ -1,14 +1,15 @@
-import { ArraySubject, ComponentProps, DisplayComponent, FSComponent, MappedSubject, Subject, UnitType, VNode } from 'msfssdk';
-import { ConsumerSubject, EventBus } from 'msfssdk/data';
-import { ClockEvents } from 'msfssdk/instruments';
-import { UserSettingManager } from 'msfssdk/settings';
+import {
+  ArraySubject, ClockEvents, ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FSComponent, MappedSubject, Subject, UnitType, UserSettingManager,
+  VNode
+} from 'msfssdk';
+
 import { DateTimeFormatSettingMode, DateTimeUserSettings, DateTimeUserSettingTypes } from '../../../../Shared/DateTime/DateTimeUserSettings';
 import { TimeDisplay, TimeDisplayFormat } from '../../../../Shared/UI/Common/TimeDisplay';
 import { UiControl } from '../../../../Shared/UI/UiControl';
 import { DigitInput } from '../../../../Shared/UI/UiControls2/DigitInput';
+import { G1000UiControlWrapper } from '../../../../Shared/UI/UiControls2/G1000UiControlWrapper';
 import { GenericNumberInput } from '../../../../Shared/UI/UiControls2/GenericNumberInput';
 import { SignInput } from '../../../../Shared/UI/UiControls2/SignInput';
-import { G1000UiControlWrapper } from '../../../../Shared/UI/UiControls2/G1000UiControlWrapper';
 import { UserSettingNumberController } from '../../../../Shared/UI/UserSettings/UserSettingNumberController';
 import { GroupBox } from '../GroupBox';
 import { MFDSystemSetupGroupProps } from './MFDSystemSetupGroup';

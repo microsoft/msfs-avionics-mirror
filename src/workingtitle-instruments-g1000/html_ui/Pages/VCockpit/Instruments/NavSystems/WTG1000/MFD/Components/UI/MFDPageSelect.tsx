@@ -22,19 +22,32 @@ type PageListItemDef = {
 /**
  * Component props for MFDPageSelect.
  */
-export type MFDPageSelectProps = Omit<UiViewProps, 'upperKnobCanScroll'>
+export interface MFDPageSelectProps extends Omit<UiViewProps, 'upperKnobCanScroll'> {
+  /** Whether to support the weather radar page. */
+  supportWeatherRadarPage: boolean;
+}
 
 /**
  * A pop-up which allows the user to select the open MFD page.
  */
-export class MFDPageSelect extends UiView<MFDPageSelectProps & UiViewProps> {
+export class MFDPageSelect extends UiView<MFDPageSelectProps> {
   private static readonly OPEN_TIME = 3000; // ms
 
-  private static readonly PAGE_GROUPS = [
+  private readonly listRef = FSComponent.createRef<List>();
+  private readonly tabRefs = [
+    FSComponent.createRef<HTMLDivElement>(),
+    FSComponent.createRef<HTMLDivElement>(),
+    FSComponent.createRef<HTMLDivElement>(),
+    FSComponent.createRef<HTMLDivElement>(),
+    FSComponent.createRef<HTMLDivElement>()
+  ];
+
+  private readonly pageGroups = [
     [
       { name: 'Navigation Map', key: 'NavMapPage' },
       { name: 'IFR/VFR Charts', key: '' },
       { name: 'Traffic Map', key: 'TrafficPage' },
+      this.props.supportWeatherRadarPage ? { name: 'Weather Radar', key: 'WeatherRadarPage' } : undefined,
       { name: 'Weather Data Link', key: '' },
       { name: 'TAWS-B', key: '' }
     ],
@@ -72,16 +85,9 @@ export class MFDPageSelect extends UiView<MFDPageSelectProps & UiViewProps> {
     ]
   ];
 
-  private readonly listRef = FSComponent.createRef<List>();
-  private readonly tabRefs = [
-    FSComponent.createRef<HTMLDivElement>(),
-    FSComponent.createRef<HTMLDivElement>(),
-    FSComponent.createRef<HTMLDivElement>(),
-    FSComponent.createRef<HTMLDivElement>(),
-    FSComponent.createRef<HTMLDivElement>()
-  ];
-
-  private readonly listItemDefs = MFDPageSelect.PAGE_GROUPS.map(defs => defs.map(this.buildListItemDefinition.bind(this)));
+  private readonly listItemDefs = this.pageGroups.map(defs => {
+    return (defs.filter(def => def !== undefined) as PageListItemDef[]).map(this.buildListItemDefinition.bind(this));
+  });
 
   private readonly listDataSub = ArraySubject.create<MenuItemDefinition>();
 
@@ -93,10 +99,10 @@ export class MFDPageSelect extends UiView<MFDPageSelectProps & UiViewProps> {
   private openTimer: NodeJS.Timeout | null = null;
 
   /** @inheritdoc */
-  constructor(props: MFDPageSelectProps & UiViewProps) {
+  constructor(props: MFDPageSelectProps) {
     super(props);
 
-    props.upperKnobCanScroll = true;
+    (props as UiViewProps).upperKnobCanScroll = true;
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc

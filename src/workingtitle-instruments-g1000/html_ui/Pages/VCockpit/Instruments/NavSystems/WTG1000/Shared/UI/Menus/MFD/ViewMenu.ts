@@ -1,6 +1,7 @@
+import { ControlPublisher } from 'msfssdk';
+
 import { MenuSystem } from '../MenuSystem';
 import { SoftKeyMenu } from '../SoftKeyMenu';
-import { ControlPublisher } from 'msfssdk/data';
 
 /**
  * The MFD flight plan view options menu.

@@ -1,4 +1,4 @@
-import { FSComponent, ComponentProps, DisplayComponent, VNode } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, VNode } from 'msfssdk';
 
 /**
  * Props for the CompassRose component.

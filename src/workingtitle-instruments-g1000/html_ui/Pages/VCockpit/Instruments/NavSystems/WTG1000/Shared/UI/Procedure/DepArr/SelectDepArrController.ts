@@ -1,9 +1,11 @@
-import { Subject } from 'msfssdk';
-import { Facility, AirportFacility, RunwayTransition, EnrouteTransition, DepartureProcedure, ArrivalProcedure } from 'msfssdk/navigation';
-import { LegDefinition, FlightPathCalculator } from 'msfssdk/flightplan';
+import {
+  AirportFacility, ArrivalProcedure, DepartureProcedure, EnrouteTransition, Facility, FlightPathCalculator, LegDefinition, RunwayTransition, Subject
+} from 'msfssdk';
+
+import { Fms, ProcedureType } from 'garminsdk';
+
+import { SelectControl2 } from '../../UiControls2/SelectControl';
 import { SelectDepArrStore } from './SelectDepArrStore';
-import { Fms, ProcedureType } from 'garminsdk/flightplan';
-import { SelectControl } from '../../UiControls2/SelectControl';
 
 /**
  * Controller for departure/arrival selection components.
@@ -84,7 +86,7 @@ export abstract class SelectDepArrController<T extends DepartureProcedure | Arri
    * @param source The SelectControl controlling the dialog that was closed.
    * @param selectionMade Whether a selection was made.
    */
-  protected async onProcSelectionClosed(source: SelectControl<T>, selectionMade: boolean): Promise<void> {
+  protected async onProcSelectionClosed(source: SelectControl2<T>, selectionMade: boolean): Promise<void> {
     if (!selectionMade) {
       await this.buildSequence(
         this.store.selectedFacility.get(),
@@ -101,7 +103,7 @@ export abstract class SelectDepArrController<T extends DepartureProcedure | Arri
    * @param source The SelectControl controlling the dialog that was closed.
    * @param selectionMade Whether a selection was made.
    */
-  protected async onRwyTransSelectionClosed(source: SelectControl<RunwayTransition>, selectionMade: boolean): Promise<void> {
+  protected async onRwyTransSelectionClosed(source: SelectControl2<RunwayTransition>, selectionMade: boolean): Promise<void> {
     if (!selectionMade) {
       await this.buildSequence(
         this.store.selectedFacility.get(),
@@ -118,7 +120,7 @@ export abstract class SelectDepArrController<T extends DepartureProcedure | Arri
    * @param source The SelectControl controlling the dialog that was closed.
    * @param selectionMade Whether a selection was made.
    */
-  protected async onTransSelectionClosed(source: SelectControl<EnrouteTransition>, selectionMade: boolean): Promise<void> {
+  protected async onTransSelectionClosed(source: SelectControl2<EnrouteTransition>, selectionMade: boolean): Promise<void> {
     if (!selectionMade) {
       await this.buildSequence(
         this.store.selectedFacility.get(),

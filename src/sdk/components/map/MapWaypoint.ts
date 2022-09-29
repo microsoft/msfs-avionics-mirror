@@ -1,4 +1,5 @@
-import { GeoPointInterface } from '../..';
+import { GeoPointInterface } from '../../geo/GeoPoint';
+import { Subscribable } from '../../sub/Subscribable';
 
 /**
  * A waypoint which is renderable to a map.
@@ -8,5 +9,5 @@ export interface MapWaypoint {
   readonly uid: string;
 
   /** The location of this waypoint. */
-  readonly location: GeoPointInterface;
+  readonly location: Subscribable<GeoPointInterface>;
 }

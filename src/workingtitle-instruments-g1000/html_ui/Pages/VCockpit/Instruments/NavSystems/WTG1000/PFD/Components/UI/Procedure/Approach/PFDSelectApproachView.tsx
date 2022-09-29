@@ -1,10 +1,9 @@
-import { FSComponent, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { FlightPathCalculator } from 'msfssdk/flightplan';
-import { Fms } from 'garminsdk/flightplan';
+import { EventBus, FlightPathCalculator, FSComponent, VNode } from 'msfssdk';
+
+import { Fms } from 'garminsdk';
+
 import { UiView, UiViewProps } from '../../../../../Shared/UI/UiView';
 import { PFDSelectApproach } from './PFDSelectApproach';
-import { UnitsUserSettings } from '../../../../../Shared/Units/UnitsUserSettings';
 
 /**
  * Component props for PFDSelectApproachView.
@@ -18,6 +17,9 @@ export interface PFDSelectApproachViewProps extends UiViewProps {
 
   /** A flight path calculator to use to build preview flight plans. */
   calculator: FlightPathCalculator;
+
+  /** Whether this instance of the G1000 has a Radio Altimeter. */
+  hasRadioAltimeter: boolean;
 }
 
 /**
@@ -48,7 +50,7 @@ export class PFDSelectApproachView extends UiView<PFDSelectApproachViewProps> {
           bus={this.props.bus}
           fms={this.props.fms}
           calculator={this.props.calculator}
-          unitsSettingManager={UnitsUserSettings.getManager(this.props.bus)}
+          hasRadioAltimeter={this.props.hasRadioAltimeter}
         />
       </div>
     );

@@ -1,7 +1,7 @@
-import { FSComponent, NumberUnitSubject, Subject, UnitType, VNode } from 'msfssdk';
-import { AirportFacility, AirportRunway, RunwaySurfaceCategory, RunwayUtils } from 'msfssdk/navigation';
-import { ScrollDirection } from 'msfssdk/components/controls';
-import { NumberFormatter } from 'msfssdk/graphics/text';
+import {
+  AirportFacility, AirportRunway, FSComponent, NumberFormatter, NumberUnitSubject, RunwaySurfaceCategory, RunwayUtils, ScrollDirection, Subject, UnitType, VNode
+} from 'msfssdk';
+
 import { NumberUnitDisplay } from '../../../../../Shared/UI/Common/NumberUnitDisplay';
 import { G1000UiControl, G1000UiControlProps } from '../../../../../Shared/UI/G1000UiControl';
 import { UnitsUserSettingManager } from '../../../../../Shared/Units/UnitsUserSettings';
@@ -10,7 +10,7 @@ import { GroupBox } from '../../GroupBox';
 import './RunwaysGroup.css';
 
 /** Props on the RunwaysGroup control. */
-interface RunwaysGroupProps extends G1000UiControlProps {
+interface NearestAirportRunwaysGroupProps extends G1000UiControlProps {
   /** A user setting manager for measurement units. */
   unitsSettingManager: UnitsUserSettingManager;
 
@@ -22,7 +22,7 @@ interface RunwaysGroupProps extends G1000UiControlProps {
  * A component that displays runway information on the MFD nearest
  * airports page.
  */
-export class RunwaysGroup extends G1000UiControl<RunwaysGroupProps> {
+export class NearestAirportRunwaysGroup extends G1000UiControl<NearestAirportRunwaysGroupProps> {
   private readonly content = FSComponent.createRef<HTMLDivElement>();
   private readonly runwaySelector = FSComponent.createRef<RunwaySelector>();
 

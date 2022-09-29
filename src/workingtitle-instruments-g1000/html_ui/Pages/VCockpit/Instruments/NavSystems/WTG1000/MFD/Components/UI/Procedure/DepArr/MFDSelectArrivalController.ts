@@ -1,7 +1,7 @@
-import { BitFlags, Subject } from 'msfssdk';
-import { FlightPathCalculator, FlightPlan, LegDefinitionFlags } from 'msfssdk/flightplan';
-import { ArrivalProcedure, FacilityType, ICAO, LegType } from 'msfssdk/navigation';
-import { Fms, ProcedureType } from 'garminsdk/flightplan';
+import { ArrivalProcedure, BitFlags, FacilityType, FlightPathCalculator, FlightPlan, ICAO, LegDefinitionFlags, LegType, Subject } from 'msfssdk';
+
+import { Fms, ProcedureType } from 'garminsdk';
+
 import { FlightPlanFocus } from '../../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { MFDSelectArrivalStore } from './MFDSelectArrivalStore';
 import { MFDSelectDepArrController } from './MFDSelectDepArrController';

@@ -1,5 +1,7 @@
-import { VNode, FSComponent } from 'msfssdk';
-import { FmsUtils } from 'garminsdk/flightplan';
+import { FSComponent, VNode } from 'msfssdk';
+
+import { FmsUtils } from 'garminsdk';
+
 import { FPLHeaderArrival } from '../../../../Shared/UI/FPL/FPLHeaderArrival';
 import { FPLSection } from './FPLSection';
 

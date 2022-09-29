@@ -1,20 +1,24 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { FlightPathCalculator, FlightPlan } from 'msfssdk/flightplan';
-import { Fms, ProcedureType } from 'garminsdk/flightplan';
+import {
+  CompiledMapSystem, EventBus, FlightPathCalculator, FSComponent, MapIndexedRangeModule, MapSystemBuilder, MathUtils, Subject, Vec2Math, VecNMath, VNode
+} from 'msfssdk';
+
+import {
+  Fms, GarminMapKeys, MapFlightPlanFocusModule, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapProcedurePreviewModule, MapRangeController,
+  ProcedureType, UnitsUserSettings
+} from 'garminsdk';
+
 import { G1000ControlEvents } from '../../../../Shared/G1000Events';
-import { MapPointerController } from '../../../../Shared/Map/Controllers/MapPointerController';
+import { MapBuilder } from '../../../../Shared/Map/MapBuilder';
+import { MapUserSettings } from '../../../../Shared/Map/MapUserSettings';
+import { MapWaypointIconImageCache } from '../../../../Shared/Map/MapWaypointIconImageCache';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
 import { UiControlGroup } from '../../../../Shared/UI/UiControlGroup';
 import { MFDUiPage, MFDUiPageProps } from '../MFDUiPage';
 import { MFDSelectApproach } from './Approach/MFDSelectApproach';
 import { MFDSelectArrival } from './DepArr/MFDSelectArrival';
 import { MFDSelectDeparture } from './DepArr/MFDSelectDeparture';
-import { MFDProcMapComponent } from './MFDProcMapComponent';
-import { MFDProcMapModel } from './MFDProcMapModel';
 
 import './MFDSelectProcedurePage.css';
-import { UnitsUserSettings } from '../../../../Shared/Units/UnitsUserSettings';
 
 /**
  * An MFD select procedure component.
@@ -57,6 +61,9 @@ export interface MFDSelectProcedurePageProps extends MFDUiPageProps {
 
   /** A flight path calculator to use to build preview flight plans. */
   calculator: FlightPathCalculator;
+
+  /** Whether this instance of the G1000 has a Radio Altimeter. */
+  hasRadioAltimeter: boolean;
 }
 
 /**
@@ -66,31 +73,79 @@ export class MFDSelectProcedurePage extends MFDUiPage<MFDSelectProcedurePageProp
   protected static readonly MAP_UPDATE_FREQ = 30; // Hz
   protected static readonly MAP_POINTER_MOVE_INCREMENT = 5; // pixels
 
-  protected readonly mapRef = FSComponent.createRef<MFDProcMapComponent>();
   protected readonly selectDepartureRef = FSComponent.createRef<MFDSelectDeparture>();
   protected readonly selectArrivalRef = FSComponent.createRef<MFDSelectArrival>();
   protected readonly selectApproachRef = FSComponent.createRef<MFDSelectApproach>();
 
-  protected readonly mapModel = MFDProcMapModel.createModel(this.props.bus);
-  protected readonly pointerModule = this.mapModel.getModule('pointer');
-  protected readonly focusModule = this.mapModel.getModule('focus');
+  private readonly mapSettingManager = MapUserSettings.getMfdManager(this.props.bus);
 
-  protected readonly mapRangeIndexSub = Subject.create(14);
+  private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
+    .with(MapBuilder.procMap, {
+      bingId: 'mfd-page-map',
+      dataUpdateFreq: MFDSelectProcedurePage.MAP_UPDATE_FREQ,
 
-  protected readonly procedurePlanSub = Subject.create<FlightPlan | null>(null);
-  protected readonly transitionPlanSub = Subject.create<FlightPlan | null>(null);
+      nominalFocusMargins: VecNMath.create(4, 40, 40, 40, 40),
 
-  private mapPointerController?: MapPointerController;
+      waypointIconImageCache: MapWaypointIconImageCache.getCache(),
+
+      rangeRingOptions: {
+        showLabel: true
+      },
+
+      ...MapBuilder.ownAirplaneIconOptions(),
+
+      pointerBoundsOffset: VecNMath.create(4, 0.1, 0.1, 0.1, 0.1),
+      pointerInfoSize: MapPointerInfoLayerSize.Medium,
+
+      miniCompassImgSrc: MapBuilder.miniCompassIconSrc(),
+
+      settingManager: this.mapSettingManager as any,
+      unitsSettingManager: UnitsUserSettings.getManager(this.props.bus)
+    })
+    .withProjectedSize(Vec2Math.create(578, 734))
+    .withDeadZone(VecNMath.create(4, 0, 56, 0, 0))
+    .withClockUpdate(MFDSelectProcedurePage.MAP_UPDATE_FREQ)
+    .build('mfd-procmap') as CompiledMapSystem<
+      {
+        /** The range module. */
+        [GarminMapKeys.Range]: MapIndexedRangeModule;
+
+        /** The procedure preview module. */
+        [GarminMapKeys.ProcedurePreview]: MapProcedurePreviewModule;
+
+        /** The flight plan focus module. */
+        [GarminMapKeys.FlightPlanFocus]: MapFlightPlanFocusModule;
+
+        /** The pointer module. */
+        [GarminMapKeys.Pointer]: MapPointerModule;
+      },
+      any,
+      {
+        /** The range controller. */
+        [GarminMapKeys.Range]: MapRangeController;
+
+        /** The pointer controller. */
+        [GarminMapKeys.Pointer]: MapPointerController;
+      },
+      any
+    >;
+
+  private readonly mapRangeModule = this.compiledMap.context.model.getModule(GarminMapKeys.Range);
+  private readonly mapProcPreviewModule = this.compiledMap.context.model.getModule(GarminMapKeys.ProcedurePreview);
+  private readonly mapFocusModule = this.compiledMap.context.model.getModule(GarminMapKeys.FlightPlanFocus);
+  private readonly mapPointerModule = this.compiledMap.context.model.getModule(GarminMapKeys.Pointer);
+
+  private readonly mapRangeController = this.compiledMap.context.getController(GarminMapKeys.Range);
+  private readonly mapPointerController = this.compiledMap.context.getController(GarminMapKeys.Pointer);
 
   private activeSelectProcedure?: MFDSelectProcedure;
-  private activeProcedureTypeSub = Subject.create(ProcedureType.APPROACH);
+  private activeProcedureType = Subject.create(ProcedureType.APPROACH);
 
   /** @inheritdoc */
   public onAfterRender(thisNode: VNode): void {
     super.onAfterRender(thisNode);
 
-    this.mapPointerController = new MapPointerController(this.mapModel, this.mapRef.instance.mapProjection);
-    this.mapRef.instance.sleep();
+    this.compiledMap.ref.instance.sleep();
 
     // Select procedure pages are always scroll enabled.
     this.setScrollEnabled(true);
@@ -98,11 +153,13 @@ export class MFDSelectProcedurePage extends MFDUiPage<MFDSelectProcedurePageProp
     this.selectDepartureRef.instance.deactivate();
     this.selectArrivalRef.instance.deactivate();
     this.selectApproachRef.instance.deactivate();
-    this._setActiveProcedureType(this.activeProcedureTypeSub.get());
+    this._setActiveProcedureType(this.activeProcedureType.get());
 
     this.props.bus.getSubscriber<G1000ControlEvents>().on('mfd_proc_page_type').whenChanged().handle(type => {
       this._setActiveProcedureType(type);
     });
+
+    this.activeProcedureType.pipe(this.mapProcPreviewModule.procedureType);
   }
 
   /**
@@ -121,7 +178,7 @@ export class MFDSelectProcedurePage extends MFDUiPage<MFDSelectProcedurePageProp
    * @param type A procedure type.
    */
   private _setActiveProcedureType(type: ProcedureType): void {
-    this.activeProcedureTypeSub.set(type);
+    this.activeProcedureType.set(type);
 
     if (this.activeSelectProcedure) {
       this.activeSelectProcedure.deactivate();
@@ -166,7 +223,7 @@ export class MFDSelectProcedurePage extends MFDUiPage<MFDSelectProcedurePageProp
         this.changeMapRangeIndex(1);
         return true;
       case FmsHEvent.JOYSTICK_PUSH:
-        this.mapPointerController?.togglePointerActive();
+        this.mapPointerController.togglePointerActive();
         return true;
     }
 
@@ -178,13 +235,12 @@ export class MFDSelectProcedurePage extends MFDUiPage<MFDSelectProcedurePageProp
    * @param delta The change in index to apply.
    */
   private changeMapRangeIndex(delta: number): void {
-    const maxIndex = this.mapModel.getModule('range').nominalRanges.get().length - 1;
-    const currentIndex = this.mapModel.getModule('range').nominalRangeIndex.get();
-    const newIndex = Utils.Clamp(currentIndex + delta, 0, maxIndex);
-    this.mapRangeIndexSub.set(newIndex);
+    const currentIndex = this.mapRangeModule.nominalRangeIndex.get();
+    const newIndex = MathUtils.clamp(currentIndex + delta, 0, this.mapRangeModule.nominalRanges.get().length - 1);
 
-    if (currentIndex !== newIndex) {
-      this.mapPointerController?.targetPointer();
+    if (newIndex !== currentIndex) {
+      this.mapPointerController.targetPointer();
+      this.mapRangeController.setRangeIndex(newIndex);
     }
   }
 
@@ -194,7 +250,7 @@ export class MFDSelectProcedurePage extends MFDUiPage<MFDSelectProcedurePageProp
    * @returns Whether the event was handled.
    */
   private handleMapPointerMoveEvent(evt: FmsHEvent): boolean {
-    if (!this.pointerModule.isActive.get()) {
+    if (!this.mapPointerModule.isActive.get()) {
       return false;
     }
 
@@ -223,50 +279,29 @@ export class MFDSelectProcedurePage extends MFDUiPage<MFDSelectProcedurePageProp
     this.props.menuSystem.clear();
     this.props.menuSystem.pushMenu('selectproc-root');
 
-    this.mapRef.instance.wake();
+    this.compiledMap.ref.instance.wake();
   }
 
   /** @inheritdoc */
   protected onViewClosed(): void {
-    this.mapPointerController?.setPointerActive(false);
-    this.mapRef.instance.sleep();
+    this.mapPointerController.setPointerActive(false);
+    this.compiledMap.ref.instance.sleep();
   }
 
   /** @inheritdoc */
   public render(): VNode {
     return (
       <div ref={this.viewContainerRef} class='mfd-page'>
-        <MFDProcMapComponent
-          ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
-          updateFreq={Subject.create(MFDSelectProcedurePage.MAP_UPDATE_FREQ)}
-          dataUpdateFreq={Subject.create(MFDSelectProcedurePage.MAP_UPDATE_FREQ)}
-          projectedWidth={578} projectedHeight={734}
-          deadZone={Subject.create(new Float64Array([0, 56, 0, 0]))}
-          pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
-          flightPlanner={this.props.fms.flightPlanner}
-          bingId='mfd_page_map'
-          rangeIndex={this.mapRangeIndexSub}
-          procedureType={this.activeProcedureTypeSub}
-          procedurePlan={this.procedurePlanSub}
-          transitionPlan={this.transitionPlanSub}
-          ownAirplaneLayerProps={{
-            imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
-            invalidHeadingImageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon_nohdg.svg',
-            iconSize: 40,
-            iconAnchor: new Float64Array([0.5, 0]),
-            invalidHeadingIconAnchor: new Float64Array([0.5, 0.5])
-          }}
-          class='mfd-procmap'
-        />
+        {this.compiledMap.map}
         <MFDSelectDeparture
           ref={this.selectDepartureRef}
           viewService={this.props.viewService}
           bus={this.props.bus}
           fms={this.props.fms}
           calculator={this.props.calculator}
-          procedurePlan={this.procedurePlanSub}
-          transitionPlan={this.transitionPlanSub}
-          focus={this.focusModule.focus}
+          procedurePlan={this.mapProcPreviewModule.procedurePlan}
+          transitionPlan={this.mapProcPreviewModule.transitionPlan}
+          focus={this.mapFocusModule.focus}
         />
         <MFDSelectArrival
           ref={this.selectArrivalRef}
@@ -274,9 +309,9 @@ export class MFDSelectProcedurePage extends MFDUiPage<MFDSelectProcedurePageProp
           bus={this.props.bus}
           fms={this.props.fms}
           calculator={this.props.calculator}
-          procedurePlan={this.procedurePlanSub}
-          transitionPlan={this.transitionPlanSub}
-          focus={this.focusModule.focus}
+          procedurePlan={this.mapProcPreviewModule.procedurePlan}
+          transitionPlan={this.mapProcPreviewModule.transitionPlan}
+          focus={this.mapFocusModule.focus}
         />
         <MFDSelectApproach
           ref={this.selectApproachRef}
@@ -284,10 +319,10 @@ export class MFDSelectProcedurePage extends MFDUiPage<MFDSelectProcedurePageProp
           bus={this.props.bus}
           fms={this.props.fms}
           calculator={this.props.calculator}
-          procedurePlan={this.procedurePlanSub}
-          transitionPlan={this.transitionPlanSub}
-          focus={this.focusModule.focus}
-          unitsSettingManager={UnitsUserSettings.getManager(this.props.bus)}
+          procedurePlan={this.mapProcPreviewModule.procedurePlan}
+          transitionPlan={this.mapProcPreviewModule.transitionPlan}
+          focus={this.mapFocusModule.focus}
+          hasRadioAltimeter={this.props.hasRadioAltimeter}
         />
       </div>
     );

@@ -1,18 +1,17 @@
-import { FSComponent, Subject, UnitType, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { NumberFormatter } from 'msfssdk/graphics/text';
+import { EventBus, FSComponent, NumberFormatter, Subject, UnitType, VNode } from 'msfssdk';
+
+import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
+import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
+import { ArrowToggle } from '../../../../Shared/UI/UIControls/ArrowToggle';
 import { GroupBox } from '../GroupBox';
 import { MFDUiPage, MFDUiPageProps } from '../MFDUiPage';
-import { MFDSystemSetupGenericRow } from './MFDSystemSetupRow';
-import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
-import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
-import { ArrowToggle } from '../../../../Shared/UI/UIControls/ArrowToggle';
-import { MFDSystemSetupDataBarGroup } from './MFDSystemSetupDataBarGroup';
-import { MFDSystemSetupUnitsGroup } from './MFDSystemSetupUnitsGroup';
-import { MFDSystemSetupDateTimeGroup } from './MFDSystemSetupDateTimeGroup';
 import { MFDSystemSetupAirspaceAlertsGroup } from './MFDSystemSetupAirspaceAlertsGroup';
 import { MFDSystemSetupComSpacingGroup } from './MFDSystemSetupComSpacingGroup';
+import { MFDSystemSetupDataBarGroup } from './MFDSystemSetupDataBarGroup';
+import { MFDSystemSetupDateTimeGroup } from './MFDSystemSetupDateTimeGroup';
 import { MFDSystemSetupNearestAirportGroup } from './MFDSystemSetupNearestAirportGroup';
+import { MFDSystemSetupGenericRow } from './MFDSystemSetupRow';
+import { MFDSystemSetupUnitsGroup } from './MFDSystemSetupUnitsGroup';
 
 import './MFDSystemSetupPage.css';
 

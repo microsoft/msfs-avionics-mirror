@@ -1,1 +1,3 @@
-export * from 'garminsdk/components/common/MagVarDisplay';
+import { MagVarDisplay } from 'garminsdk';
+
+export { MagVarDisplay };

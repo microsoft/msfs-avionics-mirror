@@ -1,7 +1,4 @@
-import { Subject } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { ADCEvents, APEvents, APLockType } from 'msfssdk/instruments';
-import { ApproachGuidanceMode, VNavPathMode, VNavEvents } from 'msfssdk/autopilot';
+import { AdcEvents, AltitudeSelectEvents, APEvents, APLockType, ApproachGuidanceMode, EventBus, Subject, VNavEvents, VNavPathMode } from 'msfssdk';
 
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 
@@ -37,14 +34,11 @@ export class AltitudeAlertController {
    * @param bus is the event bus
    */
   constructor(private bus: EventBus) {
-    const adc = this.bus.getSubscriber<ADCEvents>();
-    const ap = this.bus.getSubscriber<APEvents>();
-    const vnav = this.bus.getSubscriber<VNavEvents>();
-    const g1000 = this.bus.getSubscriber<G1000ControlEvents>();
+    const sub = this.bus.getSubscriber<AdcEvents & APEvents & VNavEvents & AltitudeSelectEvents & G1000ControlEvents>();
 
-    adc.on('on_ground').handle((g) => { this.isOnGround = g; });
+    sub.on('on_ground').handle((g) => { this.isOnGround = g; });
 
-    vnav.on('gp_approach_mode').whenChanged().handle((mode) => {
+    sub.on('gp_approach_mode').whenChanged().handle((mode) => {
       switch (mode) {
         case ApproachGuidanceMode.GSActive:
         case ApproachGuidanceMode.GPActive:
@@ -56,7 +50,7 @@ export class AltitudeAlertController {
       }
     });
 
-    vnav.on('vnav_path_mode').whenChanged().handle((mode) => {
+    sub.on('vnav_path_mode').whenChanged().handle((mode) => {
       if (mode === VNavPathMode.PathActive) {
         this.altitudeLocked = false;
         this.approachActive = false;
@@ -65,7 +59,7 @@ export class AltitudeAlertController {
 
     // vnav.on('vnavAltCaptureType').whenChanged().handle(type => this.onVNavUpdate(this.vnavPathMode, type, this.approachMode));
 
-    ap.on('ap_lock_set').whenChanged().handle((lock) => {
+    sub.on('ap_lock_set').whenChanged().handle((lock) => {
       switch (lock) {
         case APLockType.Alt:
           this.altitudeLocked = true;
@@ -81,17 +75,17 @@ export class AltitudeAlertController {
       }
     });
 
-    ap.on('ap_altitude_selected').whenChanged().handle(() => {
+    sub.on('ap_altitude_selected').whenChanged().handle(() => {
       this.alerterState.set(AltAlertState.ARMED);
     });
 
-    g1000.on('alt_alert_cancel').handle((d) => {
+    sub.on('alt_alert_cancel').handle((d) => {
       if (d) {
         this.alerterState.set(AltAlertState.DISABLED);
       }
     });
 
-    g1000.on('ap_alt_sel_set').whenChanged().handle(isSet => {
+    sub.on('alt_select_is_initialized').whenChanged().handle(isSet => {
       if (!isSet) {
         this.alerterState.set(AltAlertState.DISABLED);
       }

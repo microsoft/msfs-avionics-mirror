@@ -1,4 +1,5 @@
-import { ScrollUtils } from 'msfssdk/graphics/layout';
+import { ScrollUtils } from 'msfssdk';
+
 import { UiControl } from './UiControl';
 import { ScrollableControl } from './UiView';
 

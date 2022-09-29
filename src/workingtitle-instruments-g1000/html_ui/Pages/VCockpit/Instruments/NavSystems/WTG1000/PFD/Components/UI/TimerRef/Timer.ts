@@ -1,5 +1,5 @@
-import { EventBus, Publisher } from 'msfssdk/data';
-import { GNSSEvents } from 'msfssdk/instruments';
+import { EventBus, GNSSEvents, Publisher } from 'msfssdk';
+
 import { G1000ControlEvents } from '../../../../Shared/G1000Events';
 
 /**
@@ -145,7 +145,7 @@ export class Timer {
 
   /**
    * Utility method to get H:M:S values from seconds.
-   * @param totalSeconds is the value in seconds 
+   * @param totalSeconds is the value in seconds
    * @returns an object of hours minutes and seconds as numbers
    */
   public static SecondsToHMMSS(totalSeconds: number): any {

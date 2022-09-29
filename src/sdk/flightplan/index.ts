@@ -1,4 +1,5 @@
 export * from './FlightPathCalculator';
+export * from './FlightPathCalculatorControlEvents';
 export * from './FlightPathLegCalculator';
 export * from './FlightPathTurnCalculator';
 export * from './FlightPathUtils';

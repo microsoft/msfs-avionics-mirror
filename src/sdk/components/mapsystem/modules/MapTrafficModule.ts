@@ -1,9 +1,6 @@
 import { NumberUnitSubject, UnitType } from '../../../math';
 import { Subject, Subscribable } from '../../../sub';
-import { TCAS, TCASOperatingMode } from '../../../traffic';
-import { MapSystemContext } from '../MapSystemContext';
-import { AbstractMapModule } from './AbstractMapModule';
-
+import { Tcas, TcasOperatingMode } from '../../../traffic';
 
 /**
  * Traffic alert level modes.
@@ -19,12 +16,12 @@ export enum MapTrafficAlertLevelVisibility {
 /**
  * A module describing the display of traffic.
  */
-export class MapTrafficModule extends AbstractMapModule {
+export class MapTrafficModule {
   /** Whether to show traffic information. */
   public readonly show = Subject.create(true);
 
   /** The TCAS operating mode. */
-  public readonly operatingMode: Subscribable<TCASOperatingMode> = Subject.create(TCASOperatingMode.Standby);
+  public readonly operatingMode: Subscribable<TcasOperatingMode> = Subject.create(TcasOperatingMode.Standby);
 
   /**
    * The distance from the own airplane beyond which intruders are considered off-scale. If the value is `NaN`,
@@ -47,16 +44,10 @@ export class MapTrafficModule extends AbstractMapModule {
   /**
    * Creates an instance of a MapTrafficModule.
    * @param tcas This module's associated TCAS.
-   * @param mapSystemContext The map system context that will be used by this module.
    */
-  constructor(public readonly tcas: TCAS, mapSystemContext = MapSystemContext.Empty) {
-    super(mapSystemContext);
-  }
-
-  /** @inheritdoc */
-  public onInstall(): void {
+  constructor(public readonly tcas: Tcas) {
     this.tcas.getEventSubscriber().on('tcas_operating_mode').whenChanged().handle(mode => {
-      (this.operatingMode as Subject<TCASOperatingMode>).set(mode);
+      (this.operatingMode as Subject<TcasOperatingMode>).set(mode);
     });
   }
 }

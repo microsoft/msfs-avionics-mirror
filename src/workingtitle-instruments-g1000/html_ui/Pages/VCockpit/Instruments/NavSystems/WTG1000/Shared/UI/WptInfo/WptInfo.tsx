@@ -1,17 +1,16 @@
-import { FSComponent, GeoPoint, GeoPointSubject, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { Facility, FacilitySearchType, FacilityWaypoint, Waypoint } from 'msfssdk/navigation';
-import { ADCEvents, GNSSEvents } from 'msfssdk/instruments';
-import { NumberFormatter } from 'msfssdk/graphics/text';
+import {
+  AhrsEvents, EventBus, Facility, FacilitySearchType, FacilityWaypoint, FSComponent, GeoPoint, GeoPointSubject, GNSSEvents, NumberFormatter, Subject, VNode,
+  Waypoint
+} from 'msfssdk';
 
-import { UiView, UiViewProps } from '../UiView';
-import { WptInfoStore } from './WptInfoStore';
-import { WptInfoController } from './WptInfoController';
-import { FmsHEvent } from '../FmsHEvent';
-import { WaypointInput } from '../UIControls/WaypointInput';
-import { NumberUnitDisplay } from '../Common/NumberUnitDisplay';
 import { UnitsUserSettings } from '../../Units/UnitsUserSettings';
 import { BearingDisplay } from '../Common/BearingDisplay';
+import { NumberUnitDisplay } from '../Common/NumberUnitDisplay';
+import { FmsHEvent } from '../FmsHEvent';
+import { WaypointInput } from '../UIControls/WaypointInput';
+import { UiView, UiViewProps } from '../UiView';
+import { WptInfoController } from './WptInfoController';
+import { WptInfoStore } from './WptInfoStore';
 
 /**
  * The properties on the waypoint info popout component.
@@ -32,7 +31,7 @@ export abstract class WptInfo<T extends WptInfoProps = WptInfoProps> extends UiV
   protected readonly planeHeadingSub = Subject.create(NaN);
 
   private readonly planePosConsumer = this.props.bus.getSubscriber<GNSSEvents>().on('gps-position').whenChanged();
-  private readonly planeHeadingConsumer = this.props.bus.getSubscriber<ADCEvents>().on('hdg_deg_true').withPrecision(1);
+  private readonly planeHeadingConsumer = this.props.bus.getSubscriber<AhrsEvents>().on('hdg_deg_true').withPrecision(1);
   private readonly planePosHandler = this.onPlanePosChanged.bind(this);
   private readonly planeHeadingHandler = this.onPlaneHeadingChanged.bind(this);
 
@@ -68,7 +67,7 @@ export abstract class WptInfo<T extends WptInfoProps = WptInfoProps> extends UiV
       });
       dialog.onClose.on(() => { this.onWptDupDialogClose(); });
     } else if (selectedWaypoint) {
-      this.accept(selectedWaypoint.facility);
+      this.accept(selectedWaypoint.facility.get());
     }
   }
 

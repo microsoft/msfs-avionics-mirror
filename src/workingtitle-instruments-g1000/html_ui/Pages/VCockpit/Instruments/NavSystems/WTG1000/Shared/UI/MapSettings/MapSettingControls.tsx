@@ -1,7 +1,10 @@
-import { ArraySubject, ComponentProps, DisplayComponent, FSComponent, NodeReference, NumberUnitInterface, NumberUnitSubject, SubscribableArray, Subject, VNode, UnitFamily, Subscribable } from 'msfssdk';
-import { UserSettingManager, UserSettingValueFilter } from 'msfssdk/settings';
-import { NumberFormatter } from 'msfssdk/graphics/text';
-import { MapUserSettingTypes } from '../../Map/MapUserSettings';
+import {
+  ArraySubject, ComponentProps, DisplayComponent, FSComponent, NodeReference, NumberFormatter, NumberUnitInterface, NumberUnitSubject, Subject, Subscribable,
+  SubscribableArray, UnitFamily, UserSettingManager, UserSettingValueFilter, VNode
+} from 'msfssdk';
+
+import { MapUserSettingTypes } from 'garminsdk';
+
 import { NumberUnitDisplay } from '../Common/NumberUnitDisplay';
 import { ContextMenuDialog, ContextMenuItemDefinition } from '../Dialogs/ContextMenuDialog';
 import { ScrollableControl } from '../UiView';
@@ -60,7 +63,7 @@ export class MapToggleSettingControl<K extends keyof UserSettingValueFilter<MapU
  */
 export interface MapEnumSettingControlProps<K extends keyof MapUserSettingTypes> extends MapSettingControlProps<K> {
   /** An array of values assignable to the setting. */
-  values: SubscribableArray<MapUserSettingTypes[K]>;
+  values: SubscribableArray<NonNullable<MapUserSettingTypes[K]>>;
 
   /** An array of text representations of setting values. */
   valueText: SubscribableArray<string>;
@@ -156,7 +159,7 @@ export class MapRangeSettingControl<K extends keyof UserSettingValueFilter<MapUs
         viewService={this.props.viewService}
         settingManager={this.props.settingManager}
         settingName={this.props.settingName}
-        values={this.valuesSub as unknown as SubscribableArray<MapUserSettingTypes[K]>}
+        values={this.valuesSub as unknown as SubscribableArray<NonNullable<MapUserSettingTypes[K]>>}
         outerContainer={this.props.outerContainer}
         registerFunc={this.props.registerFunc}
         buildMenuItem={this.buildMenuItem.bind(this)}

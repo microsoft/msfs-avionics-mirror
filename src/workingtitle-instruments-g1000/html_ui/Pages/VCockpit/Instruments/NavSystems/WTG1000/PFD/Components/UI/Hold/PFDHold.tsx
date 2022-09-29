@@ -1,9 +1,10 @@
 import { FSComponent, NumberUnitSubject, UnitFamily, VNode } from 'msfssdk';
+
+import { Hold } from '../../../../Shared/UI/Hold/Hold';
 import { ActionButton } from '../../../../Shared/UI/UIControls/ActionButton';
 import { ArrowToggle } from '../../../../Shared/UI/UIControls/ArrowToggle';
 import { NumberInput } from '../../../../Shared/UI/UIControls/NumberInput';
 import { TimeDistanceInput } from '../../../../Shared/UI/UIControls/TimeDistanceInput';
-import { Hold } from '../../../../Shared/UI/Hold/Hold';
 
 import './PFDHold.css';
 

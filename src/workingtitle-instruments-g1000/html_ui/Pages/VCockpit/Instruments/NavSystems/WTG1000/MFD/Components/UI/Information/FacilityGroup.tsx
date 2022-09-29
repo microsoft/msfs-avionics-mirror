@@ -1,9 +1,9 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
 import {
-  Facility, FacilityLoader, FacilityType, FacilityTypeMap, FacilityTypeSearchType, FacilityWaypoint, FacilityWaypointCache, Waypoint
-} from 'msfssdk/navigation';
-import { ScrollDirection } from 'msfssdk/components/controls';
+  EventBus, Facility, FacilityLoader, FacilityType, FacilityTypeMap, FacilityTypeSearchType, FacilityWaypoint, FSComponent, ScrollDirection, Subject, VNode,
+  Waypoint
+} from 'msfssdk';
+
+import { GarminFacilityWaypointCache } from 'garminsdk';
 
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
 import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
@@ -111,7 +111,7 @@ export class FacilityGroup<T extends FacilityType> extends G1000UiControl<Facili
       const dialog = this.props.viewService.open('WptDup', true).setInput(this.waypoints);
       dialog.onAccept.on((sender: UiView<any, Facility, readonly FacilityWaypoint<FacilityTypeMap[T]>[]>, facility: Facility | null) => {
         if (facility !== null) {
-          const waypoint = FacilityWaypointCache.getCache().get(facility);
+          const waypoint = GarminFacilityWaypointCache.getCache(this.props.bus).get(facility);
 
           this.setWaypoint(waypoint as FacilityWaypoint<FacilityTypeMap[T]>);
           this.scroll('forward');

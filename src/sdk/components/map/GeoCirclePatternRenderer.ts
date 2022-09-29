@@ -1,4 +1,4 @@
-import { GeoCircle } from '../..';
+import { GeoCircle } from '../../geo';
 import { NullPathStream, PathPattern, PatternPathStream } from '../../graphics/path';
 import { GeoCirclePathRenderer } from './GeoCirclePathRenderer';
 import { GeoProjectionPathStreamStack } from './GeoProjectionPathStreamStack';

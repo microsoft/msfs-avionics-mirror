@@ -1,6 +1,6 @@
 import { FSComponent, VNode } from 'msfssdk';
-import { CourseNeedleComponent } from './CourseNeedleComponent';
 
+import { CourseNeedleComponent } from './CourseNeedleComponent';
 
 /**
  * A VOR1 course needle component.

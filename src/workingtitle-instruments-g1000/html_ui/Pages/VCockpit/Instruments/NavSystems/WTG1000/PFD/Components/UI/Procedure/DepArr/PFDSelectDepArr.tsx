@@ -1,5 +1,5 @@
-import { FSComponent, VNode } from 'msfssdk';
-import { ArrivalProcedure, DepartureProcedure } from 'msfssdk/navigation';
+import { ArrivalProcedure, DepartureProcedure, FSComponent, VNode } from 'msfssdk';
+
 import { ContextMenuPosition } from '../../../../../Shared/UI/Dialogs/ContextMenuDialog';
 import { SelectDepArr, SelectDepArrProps } from '../../../../../Shared/UI/Procedure/DepArr/SelectDepArr';
 import { ActionButton } from '../../../../../Shared/UI/UIControls/ActionButton';

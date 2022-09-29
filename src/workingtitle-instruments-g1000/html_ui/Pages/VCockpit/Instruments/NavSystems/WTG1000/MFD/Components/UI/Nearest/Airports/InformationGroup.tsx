@@ -1,20 +1,18 @@
-import { FSComponent, NumberUnitSubject, Subject, UnitType, VNode } from 'msfssdk';
-import { AirportFacility, ICAO } from 'msfssdk/navigation';
-import { NumberFormatter } from 'msfssdk/graphics/text';
+import { AirportFacility, FSComponent, ICAO, NumberFormatter, NumberUnitSubject, Subject, UnitType, VNode } from 'msfssdk';
 
-import { Regions } from 'garminsdk/navigation';
+import { Regions } from 'garminsdk';
 
 import { NumberUnitDisplay } from '../../../../../Shared/UI/Common/NumberUnitDisplay';
 import { G1000UiControl, G1000UiControlProps } from '../../../../../Shared/UI/G1000UiControl';
-import { GroupBox } from '../../GroupBox';
 import { UnitsUserSettingManager } from '../../../../../Shared/Units/UnitsUserSettings';
+import { GroupBox } from '../../GroupBox';
 
 import './InformationGroup.css';
 
 /**
  * Component props for InformationGroup.
  */
-export interface InformationGroupProps extends G1000UiControlProps {
+export interface NearestAirportInformationGroupProps extends G1000UiControlProps {
   /** A user setting manager for measurement units. */
   unitsSettingManager: UnitsUserSettingManager;
 }
@@ -23,7 +21,7 @@ export interface InformationGroupProps extends G1000UiControlProps {
  * A component that displays airport location information on the
  * MFD nearest airports page.
  */
-export class InformationGroup extends G1000UiControl<InformationGroupProps> {
+export class NearestAirportInformationGroup extends G1000UiControl<NearestAirportInformationGroupProps> {
 
   private readonly name = Subject.create<string>('');
   private readonly location = Subject.create<string>('');

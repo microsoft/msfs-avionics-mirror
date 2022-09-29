@@ -2,7 +2,6 @@ wtg1000-pfd {
   width: 100%;
   height: 100%;
   font-family: Roboto;
-  overflow: hidden;
 }
 
 wtg1000-pfd #Mainframe {
@@ -10,6 +9,7 @@ wtg1000-pfd #Mainframe {
   height: 100%;
   display: block;
   position: relative;
+  overflow: hidden;
 }
 
 wtg1000-pfd #Electricity {
@@ -18,6 +18,7 @@ wtg1000-pfd #Electricity {
 }
 
 wtg1000-pfd #Mainframe #HorizonContainer {
+  transform: rotateX(0);
   position: absolute;
   top: 0px;
   left: 0px;

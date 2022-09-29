@@ -1,14 +1,14 @@
-import { FSComponent, VNode } from 'msfssdk';
-import { IntersectionFacility } from 'msfssdk/navigation';
+import { FSComponent, IntersectionFacility, VNode } from 'msfssdk';
 
-import { Fms } from 'garminsdk/flightplan';
-import { FmsHEvent } from '../FmsHEvent';
-import { UiView, UiViewProps } from '../UiView';
-import { ContextMenuPosition } from '../Dialogs/ContextMenuDialog';
-import { SelectControl } from '../UIControls/SelectControl';
-import { ActionButton } from '../UIControls/ActionButton';
-import { SelectAirwayStore } from '../Controllers/SelectAirwayStore';
+import { Fms } from 'garminsdk';
+
 import { SelectAirwayController, SelectAirwayInputData } from '../Controllers/SelectAirwayController';
+import { SelectAirwayStore } from '../Controllers/SelectAirwayStore';
+import { ContextMenuPosition } from '../Dialogs/ContextMenuDialog';
+import { FmsHEvent } from '../FmsHEvent';
+import { ActionButton } from '../UIControls/ActionButton';
+import { SelectControl } from '../UIControls/SelectControl';
+import { UiView, UiViewProps } from '../UiView';
 
 /**
  * Component props for SelectAirway.

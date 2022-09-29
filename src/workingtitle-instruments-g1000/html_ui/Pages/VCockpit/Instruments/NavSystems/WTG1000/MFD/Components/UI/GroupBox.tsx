@@ -1,6 +1,7 @@
 import { ComponentProps, DisplayComponent, FSComponent, VNode } from 'msfssdk';
 
 import './GroupBox.css';
+
 /**
  * The properties for the GroupBox component.
  */

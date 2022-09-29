@@ -1,5 +1,5 @@
-import { FSComponent, DisplayComponent, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
+import { DisplayComponent, EventBus, FSComponent, VNode } from 'msfssdk';
+
 import { WindOptionController, WindOptionStore, WindOverlayRenderOption } from '../../../../Shared/UI/Controllers/WindOptionController';
 import { WindOption1 } from './WindOption1';
 import { WindOption2 } from './WindOption2';

@@ -1,7 +1,5 @@
-import { FSComponent, DisplayComponent, NodeReference, VNode, Subject, MathUtils, ComputedSubject } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { APEvents, APLockType } from 'msfssdk/instruments';
-import { ADCEvents } from 'msfssdk/instruments/ADC';
+import { AdcEvents, APEvents, APLockType, ComputedSubject, DisplayComponent, EventBus, FSComponent, MathUtils, NodeReference, Subject, VNode } from 'msfssdk';
+
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 import { ADCSystemEvents } from '../../../Shared/Systems/ADCAvionicsSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
@@ -244,7 +242,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
    */
   public onAfterRender(): void {
     this.updateSpeedBugs(this.ias);
-    const adc = this.props.bus.getSubscriber<ADCEvents>();
+    const adc = this.props.bus.getSubscriber<AdcEvents>();
     const ap = this.props.bus.getSubscriber<APEvents>();
 
     this.speedWarningSubject.sub(this.speedWarningChanged.bind(this));
@@ -763,7 +761,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
    */
   public render(): VNode {
     return (
-      <div class="airspeed" ref={this.containerRef}>
+      <div class="airspeed AirSpeedIndicator" data-checklist='AirSpeedIndicator' ref={this.containerRef}>
         <div class="airspeed-top-border"></div>
         <div class="airspeed-middle-border">
           <div class="vspeed-values-background" ref={this.vSpeedBackgroundRef}>
@@ -799,7 +797,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
           </div>
         </div>
 
-        <div class="ias-box" ref={this.airspeedBoxElement}>
+        <div class="ias-box Airspeed" data-checklist='Airspeed' ref={this.airspeedBoxElement}>
           <svg viewBox="0 0 90 70">
             <path d="M 86 35 l -11 -6 l 0 -26 c 0 -1 -1 -2 -2 -2 l -19 0 c -1 0 -2 1 -2 2 l 0 11 l -44 0 c -1 0 -2 1 -2 2 l 0 38 c 0 1 1 2 2 2 l 44 0 l 0 11 c 0 1 1 2 2 2 l 19 0 c 1 0 2 -1 2 -2 l 0 -26 l 11 -6 z" fill="black" stroke="whitesmoke" stroke-width="1" />
           </svg>

@@ -1,7 +1,7 @@
-import { Subject } from '..';
-import { PlaneDirector } from './PlaneDirector';
-import { NavToNavManager } from './NavToNavManager';
-import { VNavManager } from './VNavManager';
+import { Subject } from '../sub';
+import { PlaneDirector } from './directors/PlaneDirector';
+import { NavToNavManager } from './managers/NavToNavManager';
+import { VNavManager } from './managers/VNavManager';
 
 export enum APVerticalModes {
   NONE,
@@ -53,6 +53,9 @@ export type APValues = {
   /** The selected pitch target, in degrees. */
   readonly selectedPitch: Subject<number>;
 
+  /** The maximum Bank Angle the autopilot may command in absolute degrees. */
+  readonly maxBankAngle: Subject<number>;
+
   /** The selected heading, in degrees. */
   readonly selectedHeading: Subject<number>;
 
@@ -83,6 +86,9 @@ export type APValues = {
   /** The Armed Vertical Mode */
   readonly verticalArmed: Subject<APVerticalModes>;
 
+  /** The AP Approach Mode is on */
+  readonly apApproachModeOn: Subject<boolean>;
+
   /** Returns whether nav to nav says that LOC can be armed. */
   navToNavLocArm?: () => boolean;
 }
@@ -98,6 +104,20 @@ export interface APConfig {
    * @returns The autopilot's VNAV Manager.
    */
   createVNavManager(apValues: APValues): VNavManager | undefined;
+
+  /**
+   * Creates the autopilot's nav-to-nav manager.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's nav-to-nav manager.
+   */
+  createNavToNavManager(apValues: APValues): NavToNavManager | undefined;
+
+  /**
+   * Creates the autopilot's variable bank manager.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's variable bank manager.
+   */
+  createVariableBankManager(apValues: APValues): Record<any, any> | undefined;
 
   /**
    * Creates the autopilot's VNAV Path mode director.
@@ -204,16 +224,12 @@ export interface APConfig {
    */
   createGsDirector(apValues: APValues): PlaneDirector | undefined;
 
-  /**
-   * Creates the autopilot's nav-to-nav manager.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's nav-to-nav manager.
-   */
-  createNavToNavManager(apValues: APValues): NavToNavManager | undefined;
-
   /** The autopilot's default lateral mode. */
   defaultLateralMode: APLateralModes;
 
   /** The autopilot's default vertical mode. */
   defaultVerticalMode: APVerticalModes;
+
+  /** The default maximum bank angle the autopilot may command in degrees. */
+  defaultMaxBankAngle: number;
 }

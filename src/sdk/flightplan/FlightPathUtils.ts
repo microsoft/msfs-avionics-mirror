@@ -1,12 +1,13 @@
-import { GeoCircle, GeoPoint, LatLonInterface, MathUtils, ReadonlyFloat64Array, UnitType, Vec3Math } from '..';
+import { GeoCircle, GeoPoint, LatLonInterface } from '../geo';
+import { MathUtils, ReadonlyFloat64Array, UnitType, Vec3Math } from '../math';
 import { CircleVector, FlightPathVector, FlightPathVectorFlags, LegCalculations, VectorTurnDirection } from './FlightPlanning';
 
 /**
  * Utility class for working with flight path calculations.
  */
 export class FlightPathUtils {
-  private static readonly vec3Cache = [new Float64Array(3)];
-  private static readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0)];
+  private static readonly vec3Cache = [new Float64Array(3), new Float64Array(3)];
+  private static readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)];
   private static readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
 
   /**
@@ -198,6 +199,37 @@ export class FlightPathUtils {
   }
 
   /**
+   * Calculates and returns a circle describing a turn starting from a path at a specified point.
+   * @param start The starting point of the turn.
+   * @param path The circle describing the path from which the turn starts.
+   * @param turnRadius The radius of the turn, in great-arc radians.
+   * @param turnDirection The direction of the turn.
+   * @param out A GeoCircle object to which to write the result.
+   * @returns The circle describing the path of the specified turn.
+   */
+  public static getTurnCircleStartingFromPath(
+    start: ReadonlyFloat64Array | LatLonInterface,
+    path: GeoCircle,
+    turnRadius: number,
+    turnDirection: VectorTurnDirection,
+    out: GeoCircle
+  ): GeoCircle {
+    if (!(start instanceof Float64Array)) {
+      start = GeoPoint.sphericalToCartesian(start as LatLonInterface, FlightPathUtils.vec3Cache[0]);
+    }
+
+    const radius = turnDirection === 'left'
+      ? turnRadius
+      : Math.PI - turnRadius;
+
+    const turnStartToCenterNormal = Vec3Math.cross(start, path.center, FlightPathUtils.vec3Cache[1]);
+    const turnStartToCenterPath = FlightPathUtils.geoCircleCache[0].set(turnStartToCenterNormal, MathUtils.HALF_PI);
+    const turnCenter = turnStartToCenterPath.offsetDistanceAlong(start, radius, FlightPathUtils.vec3Cache[1], Math.PI);
+
+    return out.set(turnCenter, radius);
+  }
+
+  /**
    * Gets the signed distance along an arc from a defined start point to a query point. The start, query, and end
    * points will be projected onto the arc's parent circle if they do not already lie on it. A negative distance
    * indicates that the query point lies somewhere before the start of the arc but after the point on the arc's parent
@@ -265,20 +297,22 @@ export class FlightPathUtils {
   }
 
   /**
-   * Checks if a point lies between the start and end points (inclusive) of an arc along a geo circle. The start, end,
-   * and query points will be projected onto the arc's parent circle if they do not already lie on it.
+   * Checks if a point lies between the start and end points of an arc along a geo circle. The start, end, and query
+   * points will be projected onto the arc's parent circle if they do not already lie on it.
    * @param circle The arc's parent circle.
    * @param start The start point of the arc.
    * @param end The end point of the arc.
    * @param pos The query point.
-   * @param tolerance The error tolerance, in great-arc radians.
-   * @returns Whether the query point lies between the start and end points (inclusive) of the specified arc.
+   * @param inclusive Whether the arc includes the start and end points. Defaults to `true`.
+   * @param tolerance The error tolerance, in great-arc radians. Defaults to {@link GeoCircle.ANGULAR_TOLERANCE}.
+   * @returns Whether the query point lies between the start and end points of the specified arc.
    */
   public static isPointAlongArc(
     circle: GeoCircle,
     start: ReadonlyFloat64Array | LatLonInterface,
     end: ReadonlyFloat64Array | LatLonInterface,
     pos: ReadonlyFloat64Array | LatLonInterface,
+    inclusive?: boolean,
     tolerance?: number,
   ): boolean;
   /**
@@ -288,7 +322,8 @@ export class FlightPathUtils {
    * @param start The start point of the arc.
    * @param angularWidth The angular width of the arc, in radians.
    * @param pos The query point.
-   * @param tolerance The error tolerance, in great-arc radians.
+   * @param inclusive Whether the arc includes the start and end points. Defaults to `true`.
+   * @param tolerance The error tolerance, in great-arc radians. Defaults to {@link GeoCircle.ANGULAR_TOLERANCE}.
    * @returns Whether the query point lies between the start and end points (inclusive) of the specified arc.
    */
   public static isPointAlongArc(
@@ -296,6 +331,7 @@ export class FlightPathUtils {
     start: ReadonlyFloat64Array | LatLonInterface,
     angularWidth: number,
     pos: ReadonlyFloat64Array | LatLonInterface,
+    inclusive?: boolean,
     tolerance?: number,
   ): boolean;
   // eslint-disable-next-line jsdoc/require-jsdoc
@@ -304,22 +340,27 @@ export class FlightPathUtils {
     start: ReadonlyFloat64Array | LatLonInterface,
     end: ReadonlyFloat64Array | LatLonInterface | number,
     pos: ReadonlyFloat64Array | LatLonInterface,
+    inclusive = true,
     tolerance = GeoCircle.ANGULAR_TOLERANCE,
   ): boolean {
-    if (typeof end === 'number') {
-      if (Math.abs(end) >= MathUtils.TWO_PI - tolerance) {
-        return true;
-      }
+    const angularTolerance = circle.angularWidth(tolerance);
 
-      let angle = circle.angleAlong(start, pos, Math.PI);
-      if (angle > MathUtils.TWO_PI - tolerance) {
-        angle = 0;
-      }
-      return (angle - end) * (end >= 0 ? 1 : -1) < tolerance;
-    } else {
-      const alongArcNorm = FlightPathUtils.getAlongArcNormalizedDistance(circle, start, end, pos, tolerance);
-      return isFinite(alongArcNorm) && alongArcNorm >= -tolerance && alongArcNorm <= 1 + tolerance;
+    if (typeof end !== 'number') {
+      end = circle.angleAlong(start, end, Math.PI, angularTolerance);
     }
+
+    if (inclusive && Math.abs(end) >= MathUtils.TWO_PI - angularTolerance) {
+      return true;
+    }
+
+    const angle = circle.angleAlong(start, pos, Math.PI);
+    if (inclusive && angle >= MathUtils.TWO_PI - angularTolerance) {
+      return true;
+    }
+
+    const signedDiff = (angle - end) * (end >= 0 ? 1 : -1);
+
+    return inclusive ? signedDiff <= angularTolerance : signedDiff < -angularTolerance;
   }
 
   /**
@@ -341,20 +382,41 @@ export class FlightPathUtils {
     const egressJoinVector = legCalc.flightPath[legCalc.egressJoinIndex];
 
     if (lastIngressVector && ingressJoinVector) {
+      // Check if the last ingress vector joins the base flight path before the end of a vector. If so, we need to
+      // replace the base flight path vector the ingress joins with a shortened version starting where the ingress
+      // ends.
+
       const ingressEnd = FlightPathUtils.geoPointCache[0].set(lastIngressVector.endLat, lastIngressVector.endLon);
-      const vectorEnd = legCalc.ingressJoinIndex === legCalc.egressJoinIndex && firstEgressVector
-        ? FlightPathUtils.geoPointCache[1].set(firstEgressVector.startLat, firstEgressVector.startLon)
-        : FlightPathUtils.geoPointCache[1].set(ingressJoinVector.endLat, ingressJoinVector.endLon);
+      const ingressJoinVectorStart = FlightPathUtils.geoPointCache[1].set(ingressJoinVector.startLat, ingressJoinVector.startLon);
+      const ingressJoinVectorEnd = legCalc.ingressJoinIndex === legCalc.egressJoinIndex && firstEgressVector
+        ? FlightPathUtils.geoPointCache[2].set(firstEgressVector.startLat, firstEgressVector.startLon)
+        : FlightPathUtils.geoPointCache[2].set(ingressJoinVector.endLat, ingressJoinVector.endLon);
 
-      if (!ingressEnd.equals(vectorEnd)) {
-        const ingressJoinVectorCircle = FlightPathUtils.setGeoCircleFromVector(ingressJoinVector, FlightPathUtils.geoCircleCache[0]);
+      const ingressJoinVectorCircle = FlightPathUtils.setGeoCircleFromVector(ingressJoinVector, FlightPathUtils.geoCircleCache[0]);
 
-        FlightPathUtils.setCircleVector(
-          vectors[vectorIndex] ??= FlightPathUtils.createEmptyCircleVector(),
-          ingressJoinVectorCircle, ingressEnd, vectorEnd,
-          ingressJoinVector.flags
-        );
-        vectorIndex++;
+      const ingressEndAlongVectorDistance = FlightPathUtils.getAlongArcNormalizedDistance(
+        ingressJoinVectorCircle, ingressJoinVectorStart, ingressJoinVectorEnd, ingressEnd
+      );
+      const normalizedTolerance = GeoCircle.ANGULAR_TOLERANCE / UnitType.METER.convertTo(ingressJoinVector.distance, UnitType.GA_RADIAN);
+
+      if (ingressEndAlongVectorDistance < 1 - normalizedTolerance) {
+        // Ingress joins the base flight path before the end of the joined vector.
+
+        if (ingressEndAlongVectorDistance > normalizedTolerance) {
+          // Ingress joins the base flight path after the start of the joined vector.
+
+          ingressJoinVectorCircle.closest(ingressEnd, ingressEnd);
+
+          FlightPathUtils.setCircleVector(
+            vectors[vectorIndex++] ??= FlightPathUtils.createEmptyCircleVector(),
+            ingressJoinVectorCircle, ingressEnd, ingressJoinVectorEnd,
+            ingressJoinVector.flags
+          );
+        } else {
+          // Ingress joins the base flight path at or before the start of the joined vector.
+
+          Object.assign(vectors[vectorIndex++] ??= FlightPathUtils.createEmptyCircleVector(), ingressJoinVector);
+        }
       }
 
       flightPathVectorIndex++;
@@ -362,28 +424,52 @@ export class FlightPathUtils {
 
     const end = Math.min(legCalc.flightPath.length, legCalc.egressJoinIndex < 0 ? Infinity : legCalc.egressJoinIndex);
     for (let i = flightPathVectorIndex; i < end; i++) {
-      Object.assign(vectors[vectorIndex] ??= FlightPathUtils.createEmptyCircleVector(), legCalc.flightPath[i]);
-      vectorIndex++;
+      Object.assign(vectors[vectorIndex++] ??= FlightPathUtils.createEmptyCircleVector(), legCalc.flightPath[i]);
       flightPathVectorIndex++;
     }
 
     if (flightPathVectorIndex === legCalc.egressJoinIndex && egressJoinVector) {
       if (firstEgressVector) {
+        // Check if the first egress vector joins the base flight path in after the start of a vector. If so, we need
+        // to replace the base flight path vector the egress joins with a shortened version starting where the egress
+        // starts.
+
         const egressStart = FlightPathUtils.geoPointCache[0].set(firstEgressVector.startLat, firstEgressVector.startLon);
         const egressJoinVectorStart = FlightPathUtils.geoPointCache[1].set(egressJoinVector.startLat, egressJoinVector.startLon);
-        if (!egressStart.equals(egressJoinVectorStart)) {
-          const egressJoinVectorCircle = FlightPathUtils.setGeoCircleFromVector(egressJoinVector, FlightPathUtils.geoCircleCache[0]);
+        const egressJoinVectorEnd = FlightPathUtils.geoPointCache[2].set(egressJoinVector.endLat, egressJoinVector.endLon);
 
-          FlightPathUtils.setCircleVector(
-            vectors[vectorIndex] ??= FlightPathUtils.createEmptyCircleVector(),
-            egressJoinVectorCircle, egressJoinVectorStart, egressStart,
-            egressJoinVector.flags
-          );
-          vectorIndex++;
+        const egressJoinVectorCircle = FlightPathUtils.setGeoCircleFromVector(egressJoinVector, FlightPathUtils.geoCircleCache[0]);
+
+        const egressStartAlongVectorDistance = FlightPathUtils.getAlongArcNormalizedDistance(
+          egressJoinVectorCircle, egressJoinVectorStart, egressJoinVectorEnd, egressStart
+        );
+        const normalizedTolerance = GeoCircle.ANGULAR_TOLERANCE / UnitType.METER.convertTo(egressJoinVector.distance, UnitType.GA_RADIAN);
+
+        if (egressStartAlongVectorDistance > normalizedTolerance) {
+          // Egress joins the base flight path after the start of the joined vector.
+
+          if (egressStartAlongVectorDistance < 1 - normalizedTolerance) {
+            // Egress joins the base flight path before the end of the joined vector.
+
+            egressJoinVectorCircle.closest(egressStart, egressStart);
+
+            FlightPathUtils.setCircleVector(
+              vectors[vectorIndex++] ??= FlightPathUtils.createEmptyCircleVector(),
+              egressJoinVectorCircle, egressJoinVectorStart, egressStart,
+              egressJoinVector.flags
+            );
+          } else {
+            // Egress joins the base flight path at or after the end of the joined vector.
+
+            Object.assign(vectors[vectorIndex++] ??= FlightPathUtils.createEmptyCircleVector(), egressJoinVector);
+          }
         }
       } else {
-        Object.assign(vectors[vectorIndex] ??= FlightPathUtils.createEmptyCircleVector(), egressJoinVector);
-        vectorIndex++;
+        // There is no egress, but there is a base flight path vector flagged as the vector with which the egress
+        // joins. This is technically an invalid state, but we can easily just treat this as a regular "no-egress"
+        // case and copy the entire egress join vector into the resolved vectors array.
+
+        Object.assign(vectors[vectorIndex++] ??= FlightPathUtils.createEmptyCircleVector(), egressJoinVector);
       }
     }
 

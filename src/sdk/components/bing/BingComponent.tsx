@@ -9,9 +9,9 @@ import { ArraySubject } from '../../sub/ArraySubject';
 import { Subject } from '../../sub/Subject';
 import { Subscribable } from '../../sub/Subscribable';
 import { SubscribableArray, SubscribableArrayEventType } from '../../sub/SubscribableArray';
+import { SubscribableSet } from '../../sub/SubscribableSet';
 import { Subscription } from '../../sub/Subscription';
 import { ComponentProps, DisplayComponent, FSComponent, VNode } from '../FSComponent';
-
 
 /**
  * Weather radar mode data for the BingComponent.
@@ -35,7 +35,7 @@ export interface BingComponentProps extends ComponentProps {
   mode: EBingMode;
 
   /** A callback to call when the Bing component is bound. */
-  onBoundCallback: (component: BingComponent) => void;
+  onBoundCallback?: (component: BingComponent) => void;
 
   /**
    * A subscribable which provides the internal resolution for the Bing component. If not defined, the resolution
@@ -56,9 +56,6 @@ export interface BingComponentProps extends ComponentProps {
    */
   skyColor?: Subscribable<number>;
 
-  /** CSS class(es) to add to the Bing component's image. */
-  class?: string;
-
   /**
    * A subscribable which provides the reference mode for the Bing component. If not defined, the reference mode
    * defaults to `EBingReference.SEA`.
@@ -72,9 +69,18 @@ export interface BingComponentProps extends ComponentProps {
   wxrMode?: Subscribable<WxrMode>;
 
   /**
+   * A subscribable which provides whether the map isolines should be shown or not. If true, they are shown, if
+   * false, they are not.
+   */
+  isoLines?: Subscribable<boolean>;
+
+  /**
    * How long to delay binding the map in ms. Defaults to 3000.
    */
   delay?: number;
+
+  /** CSS class(es) to add to the Bing component's image. */
+  class?: string | SubscribableSet<string>;
 }
 
 /**
@@ -106,6 +112,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
     (cur, prev) => cur.mode === prev.mode && cur.arcRadians === prev.arcRadians,
     (ref, val) => Object.assign(ref, val)
   );
+  private readonly isoLines = Subject.create<boolean>(false);
 
   private gameStateSub?: Subscription;
 
@@ -114,12 +121,14 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
   private skyColorPropSub?: Subscription;
   private referencePropSub?: Subscription;
   private wxrModePropSub?: Subscription;
+  private isoLinesPropSub?: Subscription;
 
   private resolutionSub?: Subscription;
   private earthColorsSub?: Subscription;
   private skyColorSub?: Subscription;
   private referenceSub?: Subscription;
   private wxrModeSub?: Subscription;
+  private isoLinesSub?: Subscription;
 
   private readonly resolutionPropHandler = (resolution: ReadonlyFloat64Array): void => {
     this.resolution.set(resolution);
@@ -139,6 +148,9 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
   };
   private readonly wxrModePropHandler = (wxrMode: WxrMode): void => {
     this.wxrMode.set(wxrMode);
+  };
+  private readonly isoLinesPropHandler = (showIsolines: boolean): void => {
+    this.isoLines.set(showIsolines);
   };
 
   private readonly resolutionHandler = (resolution: ReadonlyFloat64Array): void => {
@@ -162,6 +174,9 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
   };
   private readonly wxrModeHandler = (wxrMode: WxrMode): void => {
     Coherent.call('SHOW_MAP_WEATHER', this.uid, wxrMode.mode, wxrMode.arcRadians);
+  };
+  private readonly isoLinesHandler = (showIsolines: boolean): void => {
+    Coherent.call('SHOW_MAP_ISOLINES', this.uid, showIsolines);
   };
 
   /**
@@ -192,6 +207,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
     this.skyColorPropSub = this.props.skyColor?.sub(this.skyColorPropHandler, true);
     this.referencePropSub = this.props.reference?.sub(this.referencePropHandler, true);
     this.wxrModePropSub = this.props.wxrMode?.sub(this.wxrModePropHandler, true);
+    this.isoLinesPropSub = this.props.isoLines?.sub(this.isoLinesPropHandler, true);
 
     const gameStateSubscribable = GameStateProvider.get();
     const gameState = gameStateSubscribable.get();
@@ -275,8 +291,13 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
       this.referenceSub = this.reference.sub(this.referenceHandler, true, pause);
       this.wxrModeSub = this.wxrMode.sub(this.wxrModeHandler, true, pause);
       this.resolutionSub = this.resolution.sub(this.resolutionHandler, true, pause);
+      this.isoLinesSub = this.isoLines.sub(this.isoLinesHandler, true, pause);
 
-      this.props.onBoundCallback(this);
+      if (this._isAwake && this.pos !== null) {
+        Coherent.call('SET_MAP_PARAMS', this.uid, this.pos, this.radius, 1);
+      }
+
+      this.props.onBoundCallback && this.props.onBoundCallback(this);
     }
   };
 
@@ -311,6 +332,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
     this.referenceSub?.resume(true);
     this.wxrModeSub?.resume(true);
     this.resolutionSub?.resume(true);
+    this.isoLinesSub?.resume(true);
   }
 
   /**
@@ -329,6 +351,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
     this.referenceSub?.pause();
     this.wxrModeSub?.pause();
     this.resolutionSub?.pause();
+    this.isoLinesSub?.pause();
   }
 
   /**
@@ -348,7 +371,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <img ref={this.imgRef} src='' style='position: absolute; left: 0; top: 0; width: 100%; height: 100%;' class={`${this.props.class ?? ''}`} />
+      <img ref={this.imgRef} src='' style='position: absolute; left: 0; top: 0; width: 100%; height: 100%;' class={this.props.class ?? ''} />
     );
   }
 
@@ -364,6 +387,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
     this.skyColorPropSub?.destroy();
     this.referencePropSub?.destroy();
     this.wxrModePropSub?.destroy();
+    this.isoLinesPropSub?.destroy();
 
     this.mapListener?.off('MapBinded', this.onListenerBound);
     this.mapListener?.off('MapUpdated', this.onMapUpdate);
@@ -372,6 +396,18 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
 
     this.imgRef.instance.src = '';
     this.imgRef.instance.parentNode?.removeChild(this.imgRef.instance);
+  }
+
+  /**
+   * Resets the img element's src attribute.
+   */
+  public resetImgSrc(): void {
+    const imgRef = this.imgRef.getOrDefault();
+    if (imgRef !== null) {
+      const currentSrc = imgRef.src;
+      imgRef.src = '';
+      imgRef.src = currentSrc;
+    }
   }
 
   /**

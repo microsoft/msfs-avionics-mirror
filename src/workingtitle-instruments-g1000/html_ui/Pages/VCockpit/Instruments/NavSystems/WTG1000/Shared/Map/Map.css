@@ -1,0 +1,47 @@
+html {
+  --map-crosshair-size: 10px;
+  --map-pointer-size: 25px;
+}
+
+.map-indicator-group-top-left {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: flex-start;
+  transform: rotateX(0);
+}
+
+.map-indicator-group-top-right {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: flex-end;
+  transform: rotateX(0);
+}
+
+.map-indicator-group-bottom-left {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: flex-start;
+  transform: rotateX(0);
+}
+
+.map-indicator-group-bottom-right {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: flex-end;
+  transform: rotateX(0);
+}
+
+.map-indicator-group-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  transform: translate(-50%, -50%) rotateX(0);
+}
+
+.map-banner-no-gps {
+  color: var(--amber);
+}

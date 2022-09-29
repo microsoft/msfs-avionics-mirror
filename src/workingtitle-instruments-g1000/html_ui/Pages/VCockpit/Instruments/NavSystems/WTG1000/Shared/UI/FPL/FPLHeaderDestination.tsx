@@ -1,4 +1,5 @@
-import { ICAO } from 'msfssdk/navigation';
+import { ICAO } from 'msfssdk';
+
 import { FPLStringHeader } from './FPLStringHeader';
 
 /**

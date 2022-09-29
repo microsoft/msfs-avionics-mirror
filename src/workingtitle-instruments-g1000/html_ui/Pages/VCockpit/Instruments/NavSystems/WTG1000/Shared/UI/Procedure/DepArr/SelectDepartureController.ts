@@ -1,7 +1,7 @@
-import { BitFlags } from 'msfssdk';
-import { FlightPathCalculator, LegDefinitionFlags } from 'msfssdk/flightplan';
-import { DepartureProcedure, FacilityType, ICAO, LegType } from 'msfssdk/navigation';
-import { Fms, ProcedureType } from 'garminsdk/flightplan';
+import { BitFlags, DepartureProcedure, FacilityType, FlightPathCalculator, ICAO, LegDefinitionFlags, LegType } from 'msfssdk';
+
+import { Fms, ProcedureType } from 'garminsdk';
+
 import { SelectDepArrController } from './SelectDepArrController';
 import { SelectDepArrStore } from './SelectDepArrStore';
 

@@ -1,8 +1,9 @@
+import { XMLExtendedGaugeConfig } from 'msfssdk';
+
+import { EISPageTypes } from '../../../../MFD/Components/EIS';
+import { G1000ControlPublisher } from '../../../G1000Events';
 import { MenuSystem } from '../MenuSystem';
 import { SoftKeyMenu } from '../SoftKeyMenu';
-import { G1000ControlPublisher } from '../../../G1000Events';
-import { EISPageTypes } from '../../../../MFD/Components/EIS';
-import { XMLExtendedGaugeConfig } from 'msfssdk/components/XMLGauges';
 
 /**
  * The MFD Engine lean  menu.

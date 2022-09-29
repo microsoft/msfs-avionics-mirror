@@ -1,11 +1,11 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { MathUtils, SimpleMovingAverage, UnitType } from '../../';
 import { EventBus, SimVarValueType } from '../../data';
-import { ADCEvents } from '../../instruments';
+import { AdcEvents } from '../../instruments';
+import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
 import { APValues } from '../APConfig';
-import { PlaneDirector, DirectorState } from '../PlaneDirector';
 import { VNavUtils } from '../VNavUtils';
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * An altitude capture autopilot director.
@@ -39,15 +39,15 @@ export class APAltCapDirector implements PlaneDirector {
     private readonly captureAltitude: (targetAltitude: number, indicatedAltitude: number, initialFpa: number) => number = APAltCapDirector.captureAltitude) {
     this.state = DirectorState.Inactive;
 
-    this.bus.getSubscriber<ADCEvents>().on('tas').withPrecision(0).handle((tas) => {
+    this.bus.getSubscriber<AdcEvents>().on('tas').withPrecision(0).handle((tas) => {
       this.tas = tas;
     });
 
-    const adc = this.bus.getSubscriber<ADCEvents>();
-    adc.on('alt').withPrecision(0).handle((alt) => {
+    const adc = this.bus.getSubscriber<AdcEvents>();
+    adc.on('indicated_alt').withPrecision(0).handle((alt) => {
       this.indicatedAltitude = alt;
     });
-    adc.on('vs').withPrecision(0).handle((vs) => {
+    adc.on('vertical_speed').withPrecision(0).handle((vs) => {
       this.verticalSpeed = vs;
     });
     this.apValues.capturedAltitude.sub((cap) => {

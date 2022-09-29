@@ -1,15 +1,14 @@
-import { EventBus } from 'msfssdk/data';
+import { EventBus } from 'msfssdk';
+
 import { Fms } from '../../flightplan/Fms';
-import {
-  GenericNavDataBarFieldModelFactory, NavDataBarFieldBrgModelFactory, NavDataBarFieldDestModelFactory,
-  NavDataBarFieldDisModelFactory, NavDataBarFieldDtgModelFactory, NavDataBarFieldDtkModelFactory,
-  NavDataBarFieldEndModelFactory, NavDataBarFieldEtaModelFactory, NavDataBarFieldEteModelFactory,
-  NavDataBarFieldFobModelFactory, NavDataBarFieldFodModelFactory, NavDataBarFieldGsModelFactory,
-  NavDataBarFieldIsaModelFactory, NavDataBarFieldLdgModelFactory, NavDataBarFieldTasModelFactory,
-  NavDataBarFieldTkeModelFactory, NavDataBarFieldTrkModelFactory, NavDataBarFieldVsrModelFactory,
-  NavDataBarFieldXtkModelFactory
-} from './GenericNavDataBarFieldModelFactory';
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
+import {
+  GenericNavDataBarFieldModelFactory, NavDataBarFieldBrgModelFactory, NavDataBarFieldDestModelFactory, NavDataBarFieldDisModelFactory,
+  NavDataBarFieldDtgModelFactory, NavDataBarFieldDtkModelFactory, NavDataBarFieldEndModelFactory, NavDataBarFieldEtaModelFactory,
+  NavDataBarFieldEteModelFactory, NavDataBarFieldFobModelFactory, NavDataBarFieldFodModelFactory, NavDataBarFieldGsModelFactory, NavDataBarFieldIsaModelFactory,
+  NavDataBarFieldLdgModelFactory, NavDataBarFieldTasModelFactory, NavDataBarFieldTkeModelFactory, NavDataBarFieldTrkModelFactory,
+  NavDataBarFieldVsrModelFactory, NavDataBarFieldXtkModelFactory
+} from './GenericNavDataBarFieldModelFactory';
 import { NavDataBarFieldModelFactory, NavDataBarFieldTypeModelMap } from './NavDataBarFieldModel';
 
 /**

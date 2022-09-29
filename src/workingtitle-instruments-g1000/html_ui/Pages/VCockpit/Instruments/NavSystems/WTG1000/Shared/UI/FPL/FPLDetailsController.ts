@@ -1,23 +1,18 @@
 /// <reference types="msfstypes/JS/Avionics" />
 
-import { BitFlags, FSComponent, NodeReference, SubscribableArrayEventType, UnitType } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { ADCEvents, APEvents } from 'msfssdk/instruments';
-import { FacilityType, FixTypeFlags, ICAO } from 'msfssdk/navigation';
 import {
-  OriginDestChangeType, PlanChangeType, FlightPlan, FlightPlanProcedureDetailsEvent, FlightPlanIndicationEvent,
-  FlightPlanCalculatedEvent, FlightPlanOriginDestEvent, FlightPlanLegEvent, FlightPlanSegmentEvent,
-  FlightPlannerEvents, FlightPlanSegmentType, LegDefinitionFlags
-} from 'msfssdk/flightplan';
-import { VNavEvents, VNavUtils } from 'msfssdk/autopilot';
+  AdcEvents, APEvents, BitFlags, EventBus, FacilityType, FixTypeFlags, FlightPlan, FlightPlanCalculatedEvent, FlightPlanIndicationEvent, FlightPlanLegEvent,
+  FlightPlannerEvents, FlightPlanOriginDestEvent, FlightPlanProcedureDetailsEvent, FlightPlanSegmentEvent, FlightPlanSegmentType, FSComponent, ICAO,
+  LegDefinitionFlags, NodeReference, OriginDestChangeType, PlanChangeType, SubscribableArrayEventType, UnitType, VNavEvents, VNavUtils
+} from 'msfssdk';
 
-import { DirectToState, Fms } from 'garminsdk/flightplan';
-import { FPLDetailsStore } from './FPLDetailsStore';
+import { DirectToState, Fms } from 'garminsdk';
+
 import { FPLSection } from '../../../PFD/Components/UI/FPL/FPLSection';
 import { FPLOrigin } from '../../../PFD/Components/UI/FPL/FPLSectionOrigin';
-import { ActiveLegDefinition, ActiveLegStates, FplActiveLegArrow } from '../UIControls/FplActiveLegArrow';
 import { G1000ControlEvents } from '../../G1000Events';
-
+import { ActiveLegDefinition, ActiveLegStates, FplActiveLegArrow } from '../UIControls/FplActiveLegArrow';
+import { FPLDetailsStore } from './FPLDetailsStore';
 
 /**
  * The scroll mode for FPL.
@@ -76,7 +71,7 @@ export class FPLDetailsController {
     //this.initActiveLeg();
     this.isInitialized = true;
 
-    this.bus.getSubscriber<ADCEvents>().on('alt').atFrequency(1).handle(alt => this.store.currentAltitude = alt);
+    this.bus.getSubscriber<AdcEvents>().on('indicated_alt').atFrequency(1).handle(alt => this.store.currentAltitude = alt);
 
     const ap = this.bus.getSubscriber<APEvents>();
     ap.on('ap_altitude_selected').withPrecision(0).handle((sAlt) => {
@@ -447,12 +442,12 @@ export class FPLDetailsController {
         const isExitLeg = isAirwayLeg && leg?.name === segment.airway?.split('.')[1];
         if (this.hasVnav) {
           section && leg && section.addLeg(e.legIndex, {
-            legDefinition: leg, isActive: false, isDirectTo: false,
+            legDefinition: leg, segmentType: segment.segmentType, isActive: false, isDirectTo: false,
             targetAltitude: -1, isAdvisory: true, isAirwayFix: isAirwayLeg, isAirwayExitFix: isExitLeg
           });
         } else {
           section && leg && section.addLeg(e.legIndex, {
-            legDefinition: leg, isActive: false, isDirectTo: false,
+            legDefinition: leg, segmentType: segment.segmentType, isActive: false, isDirectTo: false,
             isAirwayFix: isAirwayLeg, isAirwayExitFix: isExitLeg
           });
         }

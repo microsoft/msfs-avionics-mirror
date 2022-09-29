@@ -1,14 +1,14 @@
-import { FSComponent, NavAngleUnit, NumberUnitInterface, Subject, UnitFamily, UnitType, VNode } from 'msfssdk';
-import { NumberFormatter } from 'msfssdk/graphics/text';
-import { DurationDisplayDelim, DurationDisplayFormat } from 'msfssdk/components/common';
-import { ConsumerSubject } from 'msfssdk/data';
-import { UserSettingManager } from 'msfssdk/settings';
+import {
+  ConsumerSubject, DurationDisplayDelim, DurationDisplayFormat, FSComponent, NavAngleUnit, NumberFormatter, NumberUnitInterface, Subject, UnitFamily, UnitType,
+  UserSettingManager, VNode
+} from 'msfssdk';
+
+import { DateTimeFormatSettingMode, DateTimeUserSettingTypes } from '../../settings/DateTimeUserSettings';
+import { UnitsUserSettingManager } from '../../settings/UnitsUserSettings';
+import { TimeDisplayFormat } from '../common/TimeDisplay';
 import { NavDataBearingField, NavDataDurationField, NavDataGenericField, NavDataNumberUnitField, NavDataTimeField } from '../navdatafield/NavDataField';
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
 import { NavDataBarFieldModel, NavDataBarFieldTypeModelMap } from './NavDataBarFieldModel';
-import { UnitsUserSettingManager } from '../../settings/UnitsUserSettings';
-import { DateTimeFormatSettingMode, DateTimeUserSettingTypes } from '../../settings/DateTimeUserSettings';
-import { TimeDisplayFormat } from '../common/TimeDisplay';
 
 /**
  * Renders data field components for a single type of navigation data bar field.

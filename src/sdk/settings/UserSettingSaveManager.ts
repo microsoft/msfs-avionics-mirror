@@ -1,14 +1,14 @@
 import { DataStore } from '../data/DataStore';
 import { EventBus } from '../data/EventBus';
 import { Subscription } from '../sub/Subscription';
-import { UserSetting, UserSettingType } from './UserSetting';
+import { UserSetting, UserSettingValue } from './UserSetting';
 
 /**
  * A UserSettingSaveManager entry for a setting.
  */
-type UserSettingSaveManagerEntry<T extends UserSettingType> = {
+type UserSettingSaveManagerEntry<T extends UserSettingValue> = {
   /** A setting. */
-  setting: UserSetting<any, T>,
+  setting: UserSetting<T>,
 
   /** A subscription to the setting. */
   subscription: Subscription,
@@ -25,7 +25,7 @@ type UserSettingSaveManagerEntry<T extends UserSettingType> = {
 export class UserSettingSaveManager {
   private static readonly DATASTORE_PREFIX = 'persistent-setting';
 
-  private readonly entries: UserSettingSaveManagerEntry<UserSettingType>[];
+  private readonly entries: UserSettingSaveManagerEntry<UserSettingValue>[];
   private readonly autoSaveKeys = new Set<string>();
 
   private isAlive = true;
@@ -35,7 +35,7 @@ export class UserSettingSaveManager {
    * @param settings This manager's managed settings.
    * @param bus The event bus.
    */
-  constructor(settings: UserSetting<any, UserSettingType>[], bus: EventBus) {
+  constructor(settings: UserSetting<UserSettingValue>[], bus: EventBus) {
     const subscriber = bus.getSubscriber<any>();
 
     this.entries = Array.from(settings, setting => {
@@ -53,7 +53,7 @@ export class UserSettingSaveManager {
    * @param autoSaveDataStoreKeys The data store keys to which the setting's value should be automatically saved.
    * @param value The new value of the setting.
    */
-  private onSettingChanged<T extends UserSettingType>(autoSaveDataStoreKeys: string[], value: T): void {
+  private onSettingChanged<T extends UserSettingValue>(autoSaveDataStoreKeys: string[], value: T): void {
     const len = autoSaveDataStoreKeys.length;
     for (let i = 0; i < len; i++) {
       DataStore.set(autoSaveDataStoreKeys[i], value);
@@ -163,7 +163,7 @@ export class UserSettingSaveManager {
    * @param saveKey The save key.
    * @returns the data store key for the setting and save key.
    */
-  private static getDataStoreKey(setting: UserSetting<any, any>, saveKey: string): string {
+  private static getDataStoreKey(setting: UserSetting<any>, saveKey: string): string {
     return `${UserSettingSaveManager.DATASTORE_PREFIX}.${saveKey}.${setting.definition.name}`;
   }
 }

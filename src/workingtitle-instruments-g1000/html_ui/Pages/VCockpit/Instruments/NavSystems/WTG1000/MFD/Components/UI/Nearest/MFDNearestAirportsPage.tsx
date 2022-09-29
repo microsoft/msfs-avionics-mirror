@@ -1,19 +1,17 @@
-import { VNode, FSComponent } from 'msfssdk';
-import { FocusPosition } from 'msfssdk/components/controls';
 import {
-  AirportUtils, AirportClassMask, AirportFacility, ApproachProcedure, Facility,
-  NearestAirportSubscription, NearestSubscription, AdaptiveNearestSubscription
-} from 'msfssdk/navigation';
+  AdaptiveNearestSubscription, AirportClassMask, AirportFacility, AirportUtils, ApproachProcedure, Facility, FocusPosition, FSComponent,
+  NearestAirportSubscription, NearestSubscription, VNode
+} from 'msfssdk';
 
-import { ProcedureType } from 'garminsdk/flightplan';
+import { ProcedureType } from 'garminsdk';
 
-import { ApproachesGroup, FrequenciesGroup, InformationGroup, RunwaysGroup } from './Airports';
-import { MFDNearestPage, MFDNearestPageProps } from './MFDNearestPage';
-import { MFDSelectProcedurePage } from '../Procedure/MFDSelectProcedurePage';
 import { G1000ControlEvents } from '../../../../Shared/G1000Events';
-import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { NearestAirportSearchSettings } from '../../../../Shared/NearestAirportSearchSettings';
+import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { WaypointIconImageCache } from '../../../../Shared/WaypointIconImageCache';
+import { MFDSelectProcedurePage } from '../Procedure/MFDSelectProcedurePage';
+import { NearestAirportApproachesGroup, NearestAirportFrequenciesGroup, NearestAirportInformationGroup, NearestAirportRunwaysGroup } from './Airports';
+import { MFDNearestPage, MFDNearestPageProps } from './MFDNearestPage';
 
 export enum NearestAirportSoftKey {
   APT,
@@ -29,10 +27,10 @@ export enum NearestAirportSoftKey {
  */
 export class MFDNearestAirportsPage extends MFDNearestPage<AirportFacility> {
 
-  private readonly informationGroup = FSComponent.createRef<InformationGroup>();
-  private readonly runwaysGroup = FSComponent.createRef<RunwaysGroup>();
-  private readonly frequenciesGroup = FSComponent.createRef<FrequenciesGroup>();
-  private readonly approachesGroup = FSComponent.createRef<ApproachesGroup>();
+  private readonly informationGroup = FSComponent.createRef<NearestAirportInformationGroup>();
+  private readonly runwaysGroup = FSComponent.createRef<NearestAirportRunwaysGroup>();
+  private readonly frequenciesGroup = FSComponent.createRef<NearestAirportFrequenciesGroup>();
+  private readonly approachesGroup = FSComponent.createRef<NearestAirportApproachesGroup>();
 
   private facility: AirportFacility | undefined;
   private approach: ApproachProcedure | undefined;
@@ -174,10 +172,10 @@ export class MFDNearestAirportsPage extends MFDNearestPage<AirportFacility> {
   protected renderGroups(): VNode {
     return (
       <>
-        <InformationGroup ref={this.informationGroup} unitsSettingManager={this.unitsSettingManager} />
-        <RunwaysGroup ref={this.runwaysGroup} unitsSettingManager={this.unitsSettingManager} isolateScroll />
-        <FrequenciesGroup ref={this.frequenciesGroup} controlPublisher={this.props.publisher} isolateScroll />
-        <ApproachesGroup ref={this.approachesGroup} onSelected={this.onApproachSelected.bind(this)} isolateScroll />
+        <NearestAirportInformationGroup ref={this.informationGroup} unitsSettingManager={this.unitsSettingManager} />
+        <NearestAirportRunwaysGroup ref={this.runwaysGroup} unitsSettingManager={this.unitsSettingManager} isolateScroll />
+        <NearestAirportFrequenciesGroup ref={this.frequenciesGroup} controlPublisher={this.props.publisher} isolateScroll />
+        <NearestAirportApproachesGroup ref={this.approachesGroup} onSelected={this.onApproachSelected.bind(this)} isolateScroll />
       </>
     );
   }

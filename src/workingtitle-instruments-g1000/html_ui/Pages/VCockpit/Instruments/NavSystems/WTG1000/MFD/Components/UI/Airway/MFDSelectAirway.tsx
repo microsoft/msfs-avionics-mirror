@@ -1,14 +1,12 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { LegDefinition } from 'msfssdk/flightplan';
+import { EventBus, FSComponent, LegDefinition, Subject, VNode } from 'msfssdk';
 
-import { GroupBox } from '../GroupBox';
+import { SelectAirway, SelectAirwayProps } from '../../../../Shared/UI/Airway/SelectAirway';
 import { List } from '../../../../Shared/UI/List';
 import { ScrollBar } from '../../../../Shared/UI/ScrollBar';
 import { UiControl } from '../../../../Shared/UI/UiControl';
-import { ProcSequenceItem } from '../Procedure/ProcSequenceItem';
-import { SelectAirway, SelectAirwayProps } from '../../../../Shared/UI/Airway/SelectAirway';
 import { UnitsUserSettings } from '../../../../Shared/Units/UnitsUserSettings';
+import { GroupBox } from '../GroupBox';
+import { ProcSequenceItem } from '../Procedure/ProcSequenceItem';
 
 import './MFDSelectAirway.css';
 

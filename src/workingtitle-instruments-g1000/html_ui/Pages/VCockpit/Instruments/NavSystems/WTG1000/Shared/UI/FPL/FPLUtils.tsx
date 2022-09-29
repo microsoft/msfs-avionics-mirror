@@ -1,12 +1,12 @@
-import { BitFlags, FSComponent, VNode } from 'msfssdk';
-import { LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
-import { FixTypeFlags, LegType } from 'msfssdk/navigation';
-import { Fms, FmsUtils } from 'garminsdk/flightplan';
-import type { MessageDialog } from '../Dialogs/MessageDialog';
+import { BitFlags, FixTypeFlags, FSComponent, LegDefinition, LegDefinitionFlags, LegType, VNode } from 'msfssdk';
+
+import { Fms, FmsUtils } from 'garminsdk';
+
 import { ViewService } from '../ViewService';
 
 import './FPLUtils.css';
 
+import type { MessageDialog } from '../Dialogs/MessageDialog';
 /**
  * Utility methods for working with the flight plan display.
  */

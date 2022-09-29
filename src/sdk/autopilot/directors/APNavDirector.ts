@@ -1,11 +1,15 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { GeoPoint, MathUtils, NavMath, UnitType, Subject, MagVar } from '../..';
 import { EventBus } from '../../data';
-import { ADCEvents, CdiDeviation, GNSSEvents, Localizer, NavSourceId, NavSourceType, ObsSetting, NavRadioEvents, NavEvents } from '../../instruments';
-import { PlaneDirector, DirectorState } from '../PlaneDirector';
-import { APValues, APLateralModes } from '../APConfig';
+import { GeoPoint, MagVar, NavMath } from '../../geo';
+import {
+  AdcEvents, AhrsEvents, CdiDeviation, GNSSEvents, Localizer, NavEvents, NavRadioEvents, NavSourceId, NavSourceType, ObsSetting
+} from '../../instruments';
+import { MathUtils, UnitType } from '../../math';
+import { Subject } from '../../sub';
 import { LinearServo } from '../../utils/controllers';
+import { APLateralModes, APValues } from '../APConfig';
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * Calculates an intercept angle, in degrees, to capture the desired track from a navigation signal for
@@ -51,6 +55,8 @@ export class APNavDirector implements PlaneDirector {
 
   private isApproachMode = Subject.create<boolean>(false);
 
+  private isNavLock = Subject.create<boolean>(false);
+
   /**
    * Creates an instance of the LateralDirector.
    * @param bus The event bus to use with this instance.
@@ -66,6 +72,12 @@ export class APNavDirector implements PlaneDirector {
   ) {
     this.state = DirectorState.Inactive;
     this.monitorEvents();
+
+    this.isNavLock.sub((newState: boolean) => {
+      if (SimVar.GetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool') !== newState) {
+        SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', newState);
+      }
+    });
   }
 
 
@@ -76,7 +88,7 @@ export class APNavDirector implements PlaneDirector {
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
-    SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', true);
+    this.setNavLock(true);
     this.state = DirectorState.Active;
   }
 
@@ -89,7 +101,8 @@ export class APNavDirector implements PlaneDirector {
       if (this.onArm !== undefined) {
         this.onArm();
       }
-      SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', true);
+      this.setNavLock(true);
+
     }
   }
 
@@ -98,7 +111,16 @@ export class APNavDirector implements PlaneDirector {
    */
   public deactivate(): void {
     this.state = DirectorState.Inactive;
-    SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', false);
+    this.setNavLock(false);
+
+  }
+
+  /**
+   * Sets the NAV1 Lock state.
+   * @param newState The new state of the NAV1 lock.
+   */
+  public setNavLock(newState: boolean): void {
+    this.isNavLock.set(newState);
   }
 
   /**
@@ -278,36 +300,34 @@ export class APNavDirector implements PlaneDirector {
    * Method to monitor nav events to keep track of NAV related data needed for guidance.
    */
   private monitorEvents(): void {
-    const nav = this.bus.getSubscriber<NavRadioEvents & NavEvents>();
-    nav.on('nav_radio_active_cdi_deviation').handle(cdi => this.cdi = cdi);
-    nav.on('nav_radio_active_obs_setting').handle(obs => this.obs = obs);
-    nav.on('nav_radio_active_localizer').handle(loc => this.loc = loc);
-    nav.on('cdi_select').handle((source) => {
+    const sub = this.bus.getSubscriber<AdcEvents & AhrsEvents & GNSSEvents & NavRadioEvents & NavEvents>();
+
+    sub.on('nav_radio_active_cdi_deviation').handle(cdi => this.cdi = cdi);
+    sub.on('nav_radio_active_obs_setting').handle(obs => this.obs = obs);
+    sub.on('nav_radio_active_localizer').handle(loc => this.loc = loc);
+    sub.on('cdi_select').handle((source) => {
       this.navSource = source;
       if (this.state === DirectorState.Active) {
         this.deactivate();
       }
     });
-    nav.on('nav_radio_active_nav_location').handle((loc) => {
+    sub.on('nav_radio_active_nav_location').handle((loc) => {
       this.navLocation.set(loc.lat, loc.long);
     });
-    nav.on('nav_radio_active_magvar').handle(magVar => { this.magVar = magVar; });
+    sub.on('nav_radio_active_magvar').handle(magVar => { this.magVar = magVar; });
 
-    const adc = this.bus.getSubscriber<ADCEvents>();
-
-    adc.on('hdg_deg')
+    sub.on('hdg_deg')
       .withPrecision(0)
       .handle((h) => {
         this.currentHeading = h;
       });
 
-    adc.on('tas').handle(s => this.tas = s);
+    sub.on('tas').handle(s => this.tas = s);
 
-    const gnss = this.bus.getSubscriber<GNSSEvents>();
-    gnss.on('gps-position').atFrequency(1).handle((lla) => {
+    sub.on('gps-position').atFrequency(1).handle((lla) => {
       this.ppos.set(lla.lat, lla.long);
     });
-    gnss.on('track_deg_true').handle((t) => {
+    sub.on('track_deg_true').handle((t) => {
       this.currentTrack = t;
     });
 

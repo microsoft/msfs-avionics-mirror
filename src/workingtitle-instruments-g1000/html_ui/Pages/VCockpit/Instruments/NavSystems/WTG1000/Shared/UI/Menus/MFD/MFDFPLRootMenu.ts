@@ -1,9 +1,8 @@
+import { ComputedSubject, ControlPublisher, VNavControlEvents } from 'msfssdk';
+
+import { G1000ControlEvents } from '../../../G1000Events';
 import { MenuSystem } from '../MenuSystem';
 import { SoftKeyMenu } from '../SoftKeyMenu';
-import { ControlPublisher } from 'msfssdk/data';
-import { VNavControlEvents } from 'msfssdk/autopilot';
-import { ComputedSubject } from 'msfssdk';
-import { G1000ControlEvents } from '../../../G1000Events';
 
 /**
  * The MFD flight plan options menu when the popout is opened.

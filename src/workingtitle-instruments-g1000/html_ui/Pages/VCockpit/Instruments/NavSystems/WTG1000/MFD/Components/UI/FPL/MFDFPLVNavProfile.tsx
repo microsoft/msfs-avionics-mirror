@@ -1,15 +1,13 @@
-import { FSComponent, VNode, ComputedSubject, UnitType, NumberUnitSubject, Subject, Subscribable, MathUtils } from 'msfssdk';
-import { NumberFormatter } from 'msfssdk/graphics/text';
-import { DurationDisplay, DurationDisplayDelim, DurationDisplayFormat } from 'msfssdk/components/common';
-import { ConsumerSubject, EventBus } from 'msfssdk/data';
-import { ADCEvents, ClockEvents, GNSSEvents } from 'msfssdk/instruments';
-import { LegDefinition, FlightPlanner } from 'msfssdk/flightplan';
-import { VNavControlEvents, VNavEvents, VNavState } from 'msfssdk/autopilot';
+import {
+  AdcEvents, ClockEvents, ComputedSubject, ConsumerSubject, DurationDisplay, DurationDisplayDelim, DurationDisplayFormat, EventBus, FlightPlanner,
+  FocusPosition, FSComponent, GNSSEvents, LegDefinition, MathUtils, NumberFormatter, NumberUnitSubject, Subject, Subscribable, UnitType, VNavControlEvents,
+  VNavEvents, VNavState, VNode
+} from 'msfssdk';
+
+import { G1000ControlEvents } from '../../../../Shared/G1000Events';
 import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
 import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { UiControl } from '../../../../Shared/UI/UiControl';
-import { G1000ControlEvents } from '../../../../Shared/G1000Events';
-import { FocusPosition } from 'msfssdk/components/controls';
 
 import './MFDFPLVNavProfile.css';
 
@@ -67,10 +65,10 @@ export class MFDFPLVNavProfile extends G1000UiControl<MFDFPLVNavProfileProps> {
   public onAfterRender(node: VNode): void {
     super.onAfterRender(node);
 
-    const sub = this.props.bus.getSubscriber<GNSSEvents & ADCEvents & VNavEvents & G1000ControlEvents>();
+    const sub = this.props.bus.getSubscriber<GNSSEvents & AdcEvents & VNavEvents & G1000ControlEvents>();
 
     this.groundSpeed.setConsumer(sub.on('ground_speed').withPrecision(1));
-    this.altitude.setConsumer(sub.on('alt').withPrecision(0));
+    this.altitude.setConsumer(sub.on('indicated_alt').withPrecision(0));
 
     this.todDistance.setConsumer(sub.on('vnav_tod_distance').withPrecision(0));
     this.bodDistance.setConsumer(sub.on('vnav_bod_distance').withPrecision(0));

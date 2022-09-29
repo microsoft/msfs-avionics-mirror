@@ -1,8 +1,6 @@
-import { ComponentProps, DisplayComponent, FSComponent, Subject, VNode } from 'msfssdk';
-import { ControlEvents, EventBus } from 'msfssdk/data';
-import { FrequencyBank, RadioEvents, RadioType } from 'msfssdk/instruments';
+import { ComponentProps, ControlEvents, DisplayComponent, EventBus, FrequencyBank, FSComponent, RadioEvents, RadioType, Subject, VNode } from 'msfssdk';
 
-import { NavIndicatorController } from 'garminsdk/navigation';
+import { NavIndicatorController } from 'garminsdk';
 
 import { PfdMapLayoutSettingMode, PFDUserSettings } from '../../PFDUserSettings';
 

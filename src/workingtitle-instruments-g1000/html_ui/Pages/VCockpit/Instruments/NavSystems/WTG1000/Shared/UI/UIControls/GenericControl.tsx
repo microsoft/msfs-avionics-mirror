@@ -1,5 +1,6 @@
 
-import { VNode, FSComponent } from 'msfssdk';
+import { FSComponent, VNode } from 'msfssdk';
+
 import { UiControl, UiControlProps } from '../../../Shared/UI/UiControl';
 
 /** A silly generic control */

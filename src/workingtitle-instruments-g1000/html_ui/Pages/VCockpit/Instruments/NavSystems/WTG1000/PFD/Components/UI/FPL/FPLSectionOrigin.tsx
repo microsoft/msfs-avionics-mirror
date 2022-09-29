@@ -1,8 +1,7 @@
-import { DisplayComponent, Subject, FSComponent, VNode, UnitType, NumberUnitSubject, ComponentProps } from 'msfssdk';
-import { ICAO, LegTurnDirection, LegType } from 'msfssdk/navigation';
-import { OriginDestChangeType, FlightPlan, FlightPlanOriginDestEvent, LegDefinition } from 'msfssdk/flightplan';
-import { DurationDisplay, DurationDisplayDelim, DurationDisplayFormat } from 'msfssdk/components/common';
-import { NumberFormatter } from 'msfssdk/graphics/text';
+import {
+  ComponentProps, DisplayComponent, DurationDisplay, DurationDisplayDelim, DurationDisplayFormat, FlightPlan, FlightPlanOriginDestEvent, FSComponent, ICAO,
+  LegDefinition, LegTurnDirection, LegType, NumberFormatter, NumberUnitSubject, OriginDestChangeType, Subject, UnitType, VNode
+} from 'msfssdk';
 
 import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
 

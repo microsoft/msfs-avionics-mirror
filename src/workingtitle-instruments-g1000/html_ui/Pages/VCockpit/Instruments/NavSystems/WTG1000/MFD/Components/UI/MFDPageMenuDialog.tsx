@@ -1,7 +1,8 @@
-import { VNode, FSComponent } from 'msfssdk';
+import { FSComponent, VNode } from 'msfssdk';
+
 import { ListMenuDialog } from '../../../Shared/UI/Dialogs/ListMenuDialog';
-import { List } from '../../../Shared/UI/List';
 import { FmsHEvent } from '../../../Shared/UI/FmsHEvent';
+import { List } from '../../../Shared/UI/List';
 import { GroupBox } from './GroupBox';
 
 import './MFDPageMenuDialog.css';

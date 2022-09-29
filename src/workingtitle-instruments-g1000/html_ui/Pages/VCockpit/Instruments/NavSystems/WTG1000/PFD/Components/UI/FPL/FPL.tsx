@@ -1,12 +1,10 @@
-import {
-  FSComponent, VNode
-} from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
-import { Fms } from 'garminsdk/flightplan';
+import { EventBus, FocusPosition, FSComponent, VNode } from 'msfssdk';
+
+import { Fms } from 'garminsdk';
+
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
+import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
 import { FPLDetails } from './FPLDetails';
-import { FocusPosition } from 'msfssdk/components/controls';
 
 import './FPL.css';
 

@@ -1,7 +1,8 @@
-import { FSComponent, DisplayComponent, VNode, ComponentProps } from 'msfssdk';
-import { CompositeLogicXMLHost, EventBus, KeyEventData, KeyEvents, KeyInterceptManager } from 'msfssdk/data';
-import { Annunciation, AnnunciationType } from 'msfssdk/components/Annunciatons';
-import { SoundPublisher } from 'msfssdk/utils/sound';
+import {
+  Annunciation, AnnunciationType, ComponentProps, CompositeLogicXMLHost, DisplayComponent, EventBus, FSComponent, KeyEventData, KeyEvents, KeyInterceptManager,
+  SoundPublisher, VNode
+} from 'msfssdk';
+
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 
 import './CAS.css';
@@ -214,7 +215,7 @@ export class CAS extends DisplayComponent<CASProps> {
    */
   public render(): VNode {
     return (
-      <div class="annunciations" ref={this.divRef}>
+      <div class="annunciations Annunciations" data-checklist='Annunciations' ref={this.divRef}>
         <div class="annunciations-new" ref={this.newRef} />
         <div class="annunciations-divider" ref={this.dividerRef} />
         <div class="annunciations-acked" ref={this.ackRef} />

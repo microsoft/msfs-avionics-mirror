@@ -1,6 +1,7 @@
 import { ArraySubject, DisplayComponent, FSComponent, VNode } from 'msfssdk';
-import { NavDataFieldType } from 'garminsdk/components/navdatafield';
-import { NavDataBarSettingTypes } from 'garminsdk/settings/NavDataBarUserSettings';
+
+import { NavDataBarSettingTypes, NavDataFieldType } from 'garminsdk';
+
 import { GroupBox } from '../GroupBox';
 import { MFDNavDataBarUserSettings } from '../NavDataBar/MFDNavDataBarUserSettings';
 import { MFDSystemSetupGroupProps } from './MFDSystemSetupGroup';

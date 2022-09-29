@@ -1,16 +1,18 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
+import {
+  CompiledMapSystem, EventBus, FocusPosition, FSComponent, MapIndexedRangeModule, MapSystemBuilder, MathUtils, Subject, Vec2Math, VecNMath, VNode
+} from 'msfssdk';
 
-import { FocusPosition } from 'msfssdk/components/controls';
+import {
+  Fms, GarminMapKeys, MapFlightPlanFocusModule, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapRangeController, TrafficAdvisorySystem,
+  TrafficUserSettings, UnitsUserSettings
+} from 'garminsdk';
+
+import { MapBuilder } from '../../../../Shared/Map/MapBuilder';
 import { MapUserSettings } from '../../../../Shared/Map/MapUserSettings';
-import { Fms } from 'garminsdk/flightplan';
-import { TrafficAdvisorySystem } from '../../../../Shared/Traffic/TrafficAdvisorySystem';
+import { MapWaypointIconImageCache } from '../../../../Shared/Map/MapWaypointIconImageCache';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
-import { MapPointerController } from '../../../../Shared/Map/Controllers/MapPointerController';
 import { MFDUiPage, MFDUiPageProps } from '../MFDUiPage';
 import { MFDFPL } from './MFDFPL';
-import { MFDFPLMapComponent } from './MFDFPLMapComponent';
-import { MFDFPLMapModel } from './MFDFPLMapModel';
 
 import './MFDFPLPage.css';
 
@@ -35,14 +37,87 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
   private static readonly UPDATE_FREQ = 30; // Hz
   private static readonly POINTER_MOVE_INCREMENT = 5; // pixels
 
-  private readonly mapRef = FSComponent.createRef<MFDFPLMapComponent>();
   private readonly fplRef = FSComponent.createRef<MFDFPL>();
 
-  private readonly mapModel = MFDFPLMapModel.createModel(this.props.bus, this.props.tas);
-  private readonly pointerModule = this.mapModel.getModule('pointer');
-  private readonly focusModule = this.mapModel.getModule('focus');
+  private readonly mapSettingManager = MapUserSettings.getMfdManager(this.props.bus);
 
-  private mapPointerController?: MapPointerController;
+  private readonly drawEntirePlan = Subject.create(false);
+
+  private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
+    .with(MapBuilder.navMap, {
+      bingId: 'mfd-page-map',
+      dataUpdateFreq: MFDFPLPage.UPDATE_FREQ,
+
+      waypointIconImageCache: MapWaypointIconImageCache.getCache(),
+
+      rangeRingOptions: {
+        showLabel: true
+      },
+
+      rangeCompassOptions: {
+        showLabel: true,
+        showHeadingBug: true,
+        bearingTickMajorLength: 10,
+        bearingTickMinorLength: 5,
+        bearingLabelFont: 'Roboto-Bold',
+        bearingLabelFontSize: 20
+      },
+
+      flightPlanner: this.props.fms.flightPlanner,
+      supportFlightPlanFocus: true,
+      drawEntirePlan: this.drawEntirePlan,
+      nominalFocusMargins: VecNMath.create(4, 40, 40, 40, 40),
+
+      ...MapBuilder.ownAirplaneIconOptions(),
+
+      trafficSystem: this.props.tas,
+      trafficIconOptions: {
+        iconSize: 30,
+        font: 'Roboto-Bold',
+        fontSize: 16
+      },
+
+      pointerBoundsOffset: VecNMath.create(4, 0.1, 0.1, 0.1, 0.1),
+      pointerInfoSize: MapPointerInfoLayerSize.Medium,
+
+      miniCompassImgSrc: MapBuilder.miniCompassIconSrc(),
+
+      settingManager: this.mapSettingManager as any,
+      unitsSettingManager: UnitsUserSettings.getManager(this.props.bus),
+      trafficSettingManager: TrafficUserSettings.getManager(this.props.bus) as any
+    })
+    .withProjectedSize(Vec2Math.create(440, 734))
+    .withDeadZone(VecNMath.create(4, 0, 56, 0, 0))
+    .withClockUpdate(MFDFPLPage.UPDATE_FREQ)
+    .build('mfd-fplmap') as CompiledMapSystem<
+      {
+        /** The range module. */
+        [GarminMapKeys.Range]: MapIndexedRangeModule;
+
+        /** The pointer module. */
+        [GarminMapKeys.Pointer]: MapPointerModule;
+
+        /** The flight plan focus module. */
+        [GarminMapKeys.FlightPlanFocus]: MapFlightPlanFocusModule;
+      },
+      any,
+      {
+        /** The range controller. */
+        [GarminMapKeys.Range]: MapRangeController;
+
+        /** The pointer controller. */
+        [GarminMapKeys.Pointer]: MapPointerController;
+      },
+      any
+    >;
+
+  private readonly mapRangeModule = this.compiledMap.context.model.getModule(GarminMapKeys.Range);
+  private readonly mapPointerModule = this.compiledMap.context.model.getModule(GarminMapKeys.Pointer);
+  private readonly mapFocusModule = this.compiledMap.context.model.getModule(GarminMapKeys.FlightPlanFocus);
+
+  private readonly mapRangeController = this.compiledMap.context.getController(GarminMapKeys.Range);
+  private readonly mapPointerController = this.compiledMap.context.getController(GarminMapKeys.Pointer);
+
 
   /** @inheritdoc */
   constructor(props: MFDFPLPageProps) {
@@ -55,8 +130,7 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
   public onAfterRender(thisNode: VNode): void {
     super.onAfterRender(thisNode);
 
-    this.mapPointerController = new MapPointerController(this.mapModel, this.mapRef.instance.mapProjection);
-    this.mapRef.instance.sleep();
+    this.compiledMap.ref.instance.sleep();
   }
 
   /** @inheritdoc */
@@ -101,11 +175,13 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
     if (enabled && !this.fplRef.instance.isFocused) {
       this.fplRef.instance.focus(FocusPosition.MostRecent);
       this.fplRef.instance.scrollToActiveLeg(true);
-      this.focusModule.isFocused.set(true);
+      this.mapFocusModule.planHasFocus.set(true);
+      this.drawEntirePlan.set(true);
     } else if (!enabled && this.fplRef.instance.isFocused) {
       this.fplRef.instance.blur();
       this.fplRef.instance.scrollToActiveLeg(false);
-      this.focusModule.isFocused.set(false);
+      this.mapFocusModule.planHasFocus.set(false);
+      this.drawEntirePlan.set(false);
     }
   }
 
@@ -114,11 +190,12 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
    * @param delta The change in index to apply.
    */
   private changeMapRangeIndex(delta: number): void {
-    const currentIndex = this.mapModel.getModule('range').nominalRangeIndex.get();
-    const newIndex = this.mapRef.instance.changeRangeIndex(delta);
+    const currentIndex = this.mapRangeModule.nominalRangeIndex.get();
+    const newIndex = MathUtils.clamp(currentIndex + delta, 0, this.mapRangeModule.nominalRanges.get().length - 1);
 
-    if (currentIndex !== newIndex) {
-      this.mapPointerController?.targetPointer();
+    if (newIndex !== currentIndex) {
+      this.mapPointerController.targetPointer();
+      this.mapRangeController.setRangeIndex(newIndex);
     }
   }
 
@@ -128,22 +205,22 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
    * @returns Whether the event was handled.
    */
   private handleMapPointerMoveEvent(evt: FmsHEvent): boolean {
-    if (!this.pointerModule.isActive.get()) {
+    if (!this.mapPointerModule.isActive.get()) {
       return false;
     }
 
     switch (evt) {
       case FmsHEvent.JOYSTICK_LEFT:
-        this.mapPointerController?.movePointer(-MFDFPLPage.POINTER_MOVE_INCREMENT, 0);
+        this.mapPointerController.movePointer(-MFDFPLPage.POINTER_MOVE_INCREMENT, 0);
         return true;
       case FmsHEvent.JOYSTICK_UP:
-        this.mapPointerController?.movePointer(0, -MFDFPLPage.POINTER_MOVE_INCREMENT);
+        this.mapPointerController.movePointer(0, -MFDFPLPage.POINTER_MOVE_INCREMENT);
         return true;
       case FmsHEvent.JOYSTICK_RIGHT:
-        this.mapPointerController?.movePointer(MFDFPLPage.POINTER_MOVE_INCREMENT, 0);
+        this.mapPointerController.movePointer(MFDFPLPage.POINTER_MOVE_INCREMENT, 0);
         return true;
       case FmsHEvent.JOYSTICK_DOWN:
-        this.mapPointerController?.movePointer(0, MFDFPLPage.POINTER_MOVE_INCREMENT);
+        this.mapPointerController.movePointer(0, MFDFPLPage.POINTER_MOVE_INCREMENT);
         return true;
     }
 
@@ -159,7 +236,7 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
     this.props.menuSystem.clear();
     this.props.menuSystem.pushMenu('fpln-menu');
 
-    this.mapRef.instance.wake();
+    this.compiledMap.ref.instance.wake();
     this.fplRef.instance.onViewOpened();
   }
 
@@ -167,8 +244,8 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
   protected onViewClosed(): void {
     super.onViewClosed();
 
-    this.mapPointerController?.setPointerActive(false);
-    this.mapRef.instance.sleep();
+    this.mapPointerController.setPointerActive(false);
+    this.compiledMap.ref.instance.sleep();
     this.fplRef.instance.onViewClosed();
   }
 
@@ -198,36 +275,13 @@ export class MFDFPLPage extends MFDUiPage<MFDFPLPageProps> {
   public render(): VNode {
     return (
       <div ref={this.viewContainerRef} class='mfd-page'>
-        <MFDFPLMapComponent
-          ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
-          updateFreq={Subject.create(MFDFPLPage.UPDATE_FREQ)}
-          dataUpdateFreq={Subject.create(MFDFPLPage.UPDATE_FREQ)}
-          projectedWidth={440} projectedHeight={734}
-          deadZone={Subject.create(new Float64Array([0, 56, 0, 0]))}
-          pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
-          flightPlanner={this.props.fms.flightPlanner}
-          bingId='mfd_page_map'
-          settingManager={MapUserSettings.getMfdManager(this.props.bus)}
-          ownAirplaneLayerProps={{
-            imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
-            invalidHeadingImageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon_nohdg.svg',
-            iconSize: 40,
-            iconAnchor: new Float64Array([0.5, 0]),
-            invalidHeadingIconAnchor: new Float64Array([0.5, 0.5])
-          }}
-          trafficIntruderLayerProps={{
-            fontSize: 16,
-            iconSize: 30
-          }}
-          drawEntireFlightPlan={this.focusModule.isFocused}
-          class='mfd-fplmap'
-        />
+        {this.compiledMap.map}
         <MFDFPL
           ref={this.fplRef}
           bus={this.props.bus}
           viewService={this.props.viewService}
           fms={this.props.fms}
-          focus={this.focusModule.focus}
+          focus={this.mapFocusModule.focus}
           onFocused={this.onFPLFocused.bind(this)}
           isolateScroll
         />

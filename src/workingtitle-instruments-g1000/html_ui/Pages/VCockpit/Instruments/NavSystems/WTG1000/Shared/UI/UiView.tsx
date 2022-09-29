@@ -1,10 +1,12 @@
 import { FSComponent, SubEvent, Subject } from 'msfssdk';
+
 import { FmsHEvent } from './FmsHEvent';
 import { UiControl } from './UiControl';
 import { UiControlGroup, UiControlGroupProps } from './UiControlGroup';
-import type { ViewService } from './ViewService';
 
 import './UiView.css';
+
+import type { ViewService } from './ViewService';
 
 /** They type for elements that can be scrolled. */
 export type ScrollableControl = UiControl | UiControlGroup;

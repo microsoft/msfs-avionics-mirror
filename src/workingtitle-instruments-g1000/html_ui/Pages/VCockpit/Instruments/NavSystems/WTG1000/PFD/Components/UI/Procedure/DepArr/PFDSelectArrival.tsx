@@ -1,4 +1,5 @@
-import { ArrivalProcedure } from 'msfssdk/navigation';
+import { ArrivalProcedure } from 'msfssdk';
+
 import { SelectArrivalController } from '../../../../../Shared/UI/Procedure/DepArr/SelectArrivalController';
 import { SelectArrivalStore } from '../../../../../Shared/UI/Procedure/DepArr/SelectArrivalStore';
 import { PFDSelectDepArr } from './PFDSelectDepArr';

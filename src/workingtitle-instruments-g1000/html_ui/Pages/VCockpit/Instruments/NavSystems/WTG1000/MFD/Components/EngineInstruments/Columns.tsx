@@ -1,11 +1,13 @@
-import { FSComponent, DisplayComponent, VNode, NodeReference } from 'msfssdk';
-import { GaugeColumnGroupProps, XMLGaugeSpec, XMLGaugeType, XMLHorizontalGaugeProps, XMLHostedLogicGauge } from 'msfssdk/components/XMLGauges';
-import { CompositeLogicXMLHost, EventBus } from 'msfssdk/data';
-import { XMLCircleGauge } from './DialGauge';
-import { XMLHorizontalGauge, XMLDoubleHorizontalGauge } from './HorizontalBarGauge';
-import { XMLDoubleVerticalGauge, XMLVerticalGauge } from './VerticalBarGauge';
-import { XMLTextGauge } from './TextGauge';
+import {
+  CompositeLogicXMLHost, DisplayComponent, EventBus, FSComponent, GaugeColumnGroupProps, NodeReference, VNode, XMLGaugeSpec, XMLGaugeType,
+  XMLHorizontalGaugeProps, XMLHostedLogicGauge
+} from 'msfssdk';
+
 import { CylinderTempGauge, CylinderTempGaugeTwin } from './CylinderTempGauge';
+import { XMLCircleGauge } from './DialGauge';
+import { XMLDoubleHorizontalGauge, XMLHorizontalGauge } from './HorizontalBarGauge';
+import { XMLTextGauge } from './TextGauge';
+import { XMLDoubleVerticalGauge, XMLVerticalGauge } from './VerticalBarGauge';
 
 /**
  * The XMLColumnGroup is the fundamental container for an EIS.  It will always be present to at least

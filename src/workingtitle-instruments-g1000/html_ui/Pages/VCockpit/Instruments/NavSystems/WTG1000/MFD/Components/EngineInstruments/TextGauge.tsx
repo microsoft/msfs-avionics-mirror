@@ -1,5 +1,5 @@
-import { XMLHostedLogicGauge, XMLTextElementProps, XMLTextColumnProps } from 'msfssdk/components/XMLGauges';
-import { FSComponent, DisplayComponent, VNode, Subject } from 'msfssdk';
+import { DisplayComponent, FSComponent, Subject, VNode, XMLHostedLogicGauge, XMLTextColumnProps, XMLTextElementProps } from 'msfssdk';
+
 import { BaseGauge } from './BaseGauge';
 
 /** The props for a text column. */

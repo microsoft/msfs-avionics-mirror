@@ -1,4 +1,5 @@
 import { FSComponent, Subject, VNode } from 'msfssdk';
+
 import { UiControl, UiControlProps } from '../UiControl';
 
 import './InputComponent.css';
@@ -38,6 +39,8 @@ export class InputComponent extends UiControl<InputComponentProps> {
   private isKeyboardActive = false;
   private inputCharacterIndex = 0;
   private previousValue = '';
+
+  private readonly inputId = this.genGuid();
 
   /**
    * Method to set the initial text value when the component is made active.
@@ -190,17 +193,26 @@ export class InputComponent extends UiControl<InputComponentProps> {
    */
   private onInputFocus = (e: FocusEvent): void => {
     e.preventDefault();
-    Coherent.trigger('FOCUS_INPUT_FIELD', '', '', '', '', false);
+    const currentText = this.dataEntry.text.substr(0, this.dataEntry.highlightIndex);
+    Coherent.on('SetInputTextFromOS', this.setValueFromOS);
+    Coherent.trigger('FOCUS_INPUT_FIELD', this.inputId, '', '', currentText, false);
     Coherent.on('mousePressOutsideView', () => {
       this.textBoxRef.instance.blur();
     });
 
     this.textBoxRef.instance.focus({ preventScroll: true });
-    this.textBoxRef.instance.value = this.dataEntry.text.substr(0, this.dataEntry.highlightIndex);
+    this.textBoxRef.instance.value = currentText;
     this.textBoxRef.instance.disabled = false;
     this.textBoxRef.instance.addEventListener('input', this.keyboardInputHandler);
 
     this.keyboardIconRef.instance.classList.add('active');
+  };
+
+  private setValueFromOS = (text: string): void => {
+    this.textBoxRef.instance.value = text;
+    this.textBoxRef.instance.dispatchEvent(new Event('input'));
+    this.textBoxRef.instance.blur();
+    Coherent.off('SetInputTextFromOS', this.setValueFromOS);
   };
 
   /**
@@ -209,7 +221,7 @@ export class InputComponent extends UiControl<InputComponentProps> {
   private onInputBlur = (): void => {
     this.textBoxRef.instance.disabled = true;
     this.textBoxRef.instance.value = '';
-
+    Coherent.off('SetInputTextFromOS', this.setValueFromOS);
     Coherent.trigger('UNFOCUS_INPUT_FIELD', '');
     Coherent.off('mousePressOutsideView');
 
@@ -335,6 +347,18 @@ export class InputComponent extends UiControl<InputComponentProps> {
     }
   }
 
+  /**
+   * Generates a unique id.
+   * @returns A unique ID string.
+   */
+  private genGuid(): string {
+    return 'INPT-xxxyxxyy'.replace(/[xy]/g, function (c) {
+      const r = Math.random() * 16 | 0,
+        v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
   /** @inheritdoc */
   renderControl(): VNode {
     return (
@@ -344,7 +368,7 @@ export class InputComponent extends UiControl<InputComponentProps> {
           <span ref={this.selectedSpanRef}>{this.dataEntry.selected}</span>
           {this.dataEntry.afterSelected}
         </div>
-        <input tabindex="-1" ref={this.textBoxRef} width="5px" style="border:1px; background-color:black; opacity:0;" type="text" size="1" maxLength="6" />
+        <input id={this.inputId} tabindex="-1" ref={this.textBoxRef} width="5px" style="border:1px; background-color:black; opacity:0;" type="text" size="1" maxLength="6" />
         <img ref={this.keyboardIconRef} src='coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/keyboard_icon.png' class='input-component-keyboard-icon' />
       </div>
     );

@@ -1,9 +1,9 @@
-import { Facility, FacilityWaypoint, ICAO, Waypoint } from '../../navigation';
-import { GeoPoint } from '../../geo';
+import { Vec2Math } from '../../math/VecMath';
+import { FacilityWaypoint, ICAO, Waypoint } from '../../navigation';
 import { SubEvent } from '../../sub/SubEvent';
 import {
-  MapWaypointRenderer, MapCullableLocationTextLabel, MapCullableTextLabel, MapWaypointIcon, MapWaypointImageIcon, MapWaypointRendererIconFactory,
-  MapWaypointRendererLabelFactory, MapWaypointRenderRoleDef, MapWaypointRendererEntry, MapCullableTextLabelManager
+  MapCullableLocationTextLabel, MapCullableTextLabel, MapCullableTextLabelManager, MapWaypointIcon, MapWaypointImageIcon, MapWaypointRenderer,
+  MapWaypointRendererEntry, MapWaypointRendererIconFactory, MapWaypointRendererLabelFactory, MapWaypointRenderRoleDef
 } from '../map';
 
 /**
@@ -214,7 +214,7 @@ export class MapSystemIconFactory implements MapWaypointRendererIconFactory<Wayp
 
     const imageEl = document.createElement('img');
     imageEl.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAFjSURBVFhHvZarTsVAEIa3qCMQCAxPgEEikDwGAkGCAIFAIHgQHgGJ4C0Q4AiBN8CQQAIJuOGfs9N0d3p62tlLv+RPd2fFNrNfLy4Lov1lMtiQayqnyJkfzg3RAvlEfpEtqZrJ6cARwhsvkGMuzAvRA0KSZ6nOBNFesHmbA1k1kXoEq8SbScZOPt2BJBlTOtDKx7whT344l4yxfFfIeTCvLGMsH7d8G9lEvqXGMcloPYJQtHvXNB/ID8a3vrSkkox9+Q5lhdf4m9DWs96MwxCdBJu8SrWD6DFYv5BqQbR8mqoyrpJPkyjjVAn78mmqybhOPk0VGcfk0xSXcUw+TVEZp8inMco4JuG4fJpiMlrk0xSR0SqfJltGq3yaLBlT5NNMlHFIQrt8mokyNnLtYPmce0dace6QFz80s4vwLxzzh+zgxr78dIhYvtK5lF3WEMtXOr2nKT4C3/5rP6nGTZJTdXDuH4TJQyPZ/x+gAAAAAElFTkSuQmCC';
-    return new MapWaypointImageIcon(waypoint, 0, imageEl, 24, 24);
+    return new MapWaypointImageIcon(waypoint, 0, imageEl, Vec2Math.create(24, 24));
   }
 }
 
@@ -288,11 +288,12 @@ export class MapSystemLabelFactory implements MapWaypointRendererLabelFactory<Wa
       }
     }
 
+    let text = '';
+
     if (waypoint instanceof FacilityWaypoint) {
-      const facility = waypoint.facility as Facility;
-      return new MapCullableLocationTextLabel(ICAO.getIdent(waypoint.facility.icao), 0, new GeoPoint(facility.lat, facility.lon), false, { fontSize: 22, font: 'monospace', anchor: new Float64Array([-0.25, 0.4]) });
+      text = ICAO.getIdent(waypoint.facility.get().icao);
     }
 
-    return new MapCullableLocationTextLabel('', 0, new GeoPoint(0, 0), false);
+    return new MapCullableLocationTextLabel(text, 0, waypoint.location, false, { fontSize: 22, font: 'monospace', anchor: new Float64Array([-0.25, 0.4]) });
   }
 }

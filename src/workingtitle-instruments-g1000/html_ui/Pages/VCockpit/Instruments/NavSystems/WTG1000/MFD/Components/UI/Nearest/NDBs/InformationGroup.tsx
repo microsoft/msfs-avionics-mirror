@@ -1,6 +1,5 @@
-import { DisplayComponent, FSComponent, GeoPoint, GeoPointSubject, VNode } from 'msfssdk';
-import { LatLonDisplay } from 'msfssdk/components/common';
-import { NdbFacility } from 'msfssdk/navigation';
+import { DisplayComponent, FSComponent, GeoPoint, GeoPointSubject, LatLonDisplay, NdbFacility, VNode } from 'msfssdk';
+
 import { GroupBox } from '../../GroupBox';
 
 import './InformationGroup.css';
@@ -9,7 +8,7 @@ import './InformationGroup.css';
  * A component that displays information about an NDB on the
  * MFD nearest NDBs page.
  */
-export class InformationGroup extends DisplayComponent<any> {
+export class NearestNdbInformationGroup extends DisplayComponent<any> {
 
   private readonly content = FSComponent.createRef<HTMLDivElement>();
   private facilityPos = GeoPointSubject.createFromGeoPoint(new GeoPoint(0, 0));

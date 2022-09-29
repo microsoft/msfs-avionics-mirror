@@ -1,12 +1,12 @@
-import { FlightPlanner } from 'msfssdk/flightplan';
-import { APConfig, APLateralModes, APValues, APVerticalModes, BottomTargetPathCalculator, PlaneDirector, VNavManager } from 'msfssdk/autopilot';
-import { APAltCapDirector, APLvlDirector, APAltDirector, APFLCDirector, APGPDirector, APGSDirector, APHdgDirector, APNavDirector, APPitchDirector, APRollDirector, APVSDirector, LNavDirector, APVNavPathDirector } from 'msfssdk/autopilot/directors';
-import { GarminNavToNavManager } from './GarminNavToNavManager';
-import { GarminObsDirector } from './directors';
-import { NavMath, UnitType } from 'msfssdk';
-import { EventBus } from 'msfssdk/data/EventBus';
-import { GarminVNavManager } from './GarminVNavManager';
+import {
+  APAltCapDirector, APAltDirector, APBackCourseDirector, APConfig, APFLCDirector, APGPDirector, APGSDirector, APHdgDirector, APLateralModes, APLvlDirector,
+  APNavDirector, APPitchDirector, APRollDirector, APValues, APVerticalModes, APVNavPathDirector, APVSDirector, BottomTargetPathCalculator, EventBus,
+  FlightPlanner, LNavDirector, NavMath, PlaneDirector, UnitType, VNavManager
+} from 'msfssdk';
 
+import { GarminObsDirector } from './directors';
+import { GarminNavToNavManager } from './GarminNavToNavManager';
+import { GarminVNavManager } from './GarminVNavManager';
 
 /**
  * A Garmin Autopilot Configuration.
@@ -14,6 +14,7 @@ import { GarminVNavManager } from './GarminVNavManager';
 export class GarminAPConfig implements APConfig {
   public defaultLateralMode = APLateralModes.ROLL;
   public defaultVerticalMode = APVerticalModes.PITCH;
+  public defaultMaxBankAngle = 25; // Note this is the max bank angle for most G1000/GFC700 installations, but not all. Some are 22, some are 27.
   private obsDirector = new GarminObsDirector(this.bus);
   /**
    * Instantiates the AP Config for the Autopilot.
@@ -25,13 +26,19 @@ export class GarminAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
+  public createVariableBankManager(): undefined {
+    return undefined;
+  }
+
+  /** @inheritdoc */
   public createHeadingDirector(apValues: APValues): APHdgDirector {
     return new APHdgDirector(this.bus, apValues);
   }
 
   /** @inheritdoc */
-  public createRollDirector(): APRollDirector {
-    return new APRollDirector(this.bus, { minimumBankAngle: 6, maximumBankAngle: 22 });
+  public createRollDirector(apValues: APValues): APRollDirector {
+    // Note: This max bank angle is for the C172, while other aircraft have higher limits.
+    return new APRollDirector(this.bus, apValues, { minimumBankAngle: 6, maximumBankAngle: 22 });
   }
 
   /** @inheritdoc */
@@ -40,8 +47,8 @@ export class GarminAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
-  public createGpssDirector(): LNavDirector {
-    return new LNavDirector(this.bus, this.flightPlanner, this.obsDirector, this.lnavInterceptCurve.bind(this));
+  public createGpssDirector(apValues: APValues): LNavDirector {
+    return new LNavDirector(this.bus, apValues, this.flightPlanner, this.obsDirector, this.lnavInterceptCurve.bind(this), true);
   }
 
   /** @inheritdoc */
@@ -55,8 +62,8 @@ export class GarminAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
-  public createBcDirector(): undefined {
-    return undefined;
+  public createBcDirector(apValues: APValues): APBackCourseDirector {
+    return new APBackCourseDirector(this.bus, apValues, APLateralModes.BC, this.navInterceptCurve.bind(this));
   }
 
   /** @inheritdoc */
@@ -209,4 +216,3 @@ export class GarminAPConfig implements APConfig {
     return UnitType.RADIAN.convertTo(Math.acos(NavMath.clamp((turnRadius - Math.abs(xtk)) / turnRadius, -1, 1)), UnitType.DEGREE) / 2;
   }
 }
-

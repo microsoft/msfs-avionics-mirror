@@ -1,5 +1,4 @@
-import { ArraySubject, FSComponent, Subject, VNode } from 'msfssdk';
-import { Facility, FacilityWaypoint, ICAO } from 'msfssdk/navigation';
+import { ArraySubject, Facility, FacilityWaypoint, FSComponent, ICAO, Subject, VNode } from 'msfssdk';
 
 import { FmsHEvent } from '../FmsHEvent';
 import { List } from '../List';
@@ -18,7 +17,7 @@ export abstract class WptDupDialog<T extends UiViewProps> extends UiView<T, Faci
 
   // eslint-disable-next-line jsdoc/require-jsdoc
   protected onInputDataSet(input: readonly FacilityWaypoint<Facility>[] | undefined): void {
-    this.ident.set(input?.length ? ICAO.getIdent(input[0].facility.icao) : '');
+    this.ident.set(input?.length ? ICAO.getIdent(input[0].facility.get().icao) : '');
     input ? this.waypoints.set(input) : this.waypoints.clear();
     this.scrollController.gotoFirst();
   }
@@ -41,7 +40,7 @@ export abstract class WptDupDialog<T extends UiViewProps> extends UiView<T, Faci
   protected onEnterPressed(): boolean {
     const selectedWaypoint: FacilityWaypoint<Facility> | null = this.listRef.instance.getSelectedItem();
     if (selectedWaypoint) {
-      this.accept(selectedWaypoint.facility, true);
+      this.accept(selectedWaypoint.facility.get(), true);
       return true;
     }
 

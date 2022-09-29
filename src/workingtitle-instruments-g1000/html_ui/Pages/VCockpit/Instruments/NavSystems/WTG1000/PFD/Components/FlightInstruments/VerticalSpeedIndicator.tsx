@@ -1,8 +1,7 @@
-import { ComputedSubject, DisplayComponent, FSComponent, MathUtils, Subject, VNode } from 'msfssdk';
-import { VNavEvents } from 'msfssdk/autopilot';
-import { EventBus } from 'msfssdk/data';
-import { ADCEvents, APEvents, APLockType } from 'msfssdk/instruments';
-import { GPDisplayMode, NavIndicatorController, VNavDisplayMode } from 'garminsdk/navigation';
+import { AdcEvents, APEvents, APLockType, ComputedSubject, DisplayComponent, EventBus, FSComponent, MathUtils, Subject, VNavEvents, VNode } from 'msfssdk';
+
+import { GPDisplayMode, NavIndicatorController, VNavDisplayMode } from 'garminsdk';
+
 import { ADCSystemEvents } from '../../../Shared/Systems/ADCAvionicsSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
 
@@ -50,11 +49,11 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
     this.selectedVSBug.instance.classList.add('hide-element');
     this.selectedVerticalSpeed.instance.classList.add('hide-element');
 
-    const adc = this.props.bus.getSubscriber<ADCEvents>();
+    const adc = this.props.bus.getSubscriber<AdcEvents>();
     const vnav = this.props.bus.getSubscriber<VNavEvents>();
     const ap = this.props.bus.getSubscriber<APEvents>();
 
-    adc.on('vs')
+    adc.on('vertical_speed')
       .withPrecision(-1)
       .handle(this.updateVerticalSpeed.bind(this));
 
@@ -234,14 +233,3 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-

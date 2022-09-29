@@ -1,6 +1,4 @@
-import { AirportFacility } from 'msfssdk/navigation';
-import { FlightPlanSegment, LegDefinition } from 'msfssdk/flightplan';
-import { LatLonInterface } from 'msfssdk';
+import { AirportFacility, FlightPlanSegment, FlightPlanSegmentType, LatLonInterface, LegDefinition } from 'msfssdk';
 
 /** Facility and runway information for the flight. */
 export type FacilityInfo = {
@@ -18,6 +16,9 @@ export type FacilityInfo = {
 export type FixLegInfo = {
   /** The leg definition from the flight plan. */
   legDefinition: LegDefinition,
+
+  /** The segment type of the segment that contains this leg. */
+  segmentType: FlightPlanSegmentType,
 
   /** Whether or not this is the active leg. */
   isActive: boolean,

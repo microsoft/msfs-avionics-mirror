@@ -1,7 +1,6 @@
-import { FSComponent, VNode } from 'msfssdk';
-import { FacilityType, FacilityWaypoint, VorFacility } from 'msfssdk/navigation';
+import { FacilityType, FacilityWaypoint, FSComponent, VNode, VorFacility } from 'msfssdk';
 
-import { FrequencyGroup, InformationGroup } from '../../Nearest/VORs';
+import { NearestVorFrequencyGroup, NearestVorInformationGroup } from '../../Nearest/VORs';
 import { FacilityGroup } from '../FacilityGroup';
 import { MFDInformationPage } from '../MFDInformationPage';
 
@@ -10,8 +9,13 @@ import { MFDInformationPage } from '../MFDInformationPage';
  */
 export class MFDVorInformationPage extends MFDInformationPage {
 
-  private readonly informationGroup = FSComponent.createRef<InformationGroup>();
-  private readonly frequencyGroup = FSComponent.createRef<FrequencyGroup>();
+  private readonly informationGroup = FSComponent.createRef<NearestVorInformationGroup>();
+  private readonly frequencyGroup = FSComponent.createRef<NearestVorFrequencyGroup>();
+
+  /** @inheritdoc */
+  protected getDefaultRangeIndex(): number {
+    return 16; // 15 NM/25 KM
+  }
 
   /**
    * A callback called when a new waypoint is selected.
@@ -19,8 +23,8 @@ export class MFDVorInformationPage extends MFDInformationPage {
    */
   private onSelected(waypoint: FacilityWaypoint<VorFacility> | null): void {
     if (waypoint !== null) {
-      this.informationGroup.instance.set(waypoint.facility);
-      this.frequencyGroup.instance.set(waypoint.facility);
+      this.informationGroup.instance.set(waypoint.facility.get());
+      this.frequencyGroup.instance.set(waypoint.facility.get());
 
       this.frequencyGroup.instance.setDisabled(false);
     } else {
@@ -48,8 +52,8 @@ export class MFDVorInformationPage extends MFDInformationPage {
       <>
         <FacilityGroup bus={this.props.bus} facilityLoader={this.props.facilityLoader} facilityType={FacilityType.VOR}
           viewService={this.props.viewService} title='VOR' onSelected={this.onSelected.bind(this)} ref={this.facilityGroup} />
-        <InformationGroup ref={this.informationGroup} />
-        <FrequencyGroup ref={this.frequencyGroup} controlPublisher={this.props.controlPublisher} />
+        <NearestVorInformationGroup ref={this.informationGroup} />
+        <NearestVorFrequencyGroup ref={this.frequencyGroup} controlPublisher={this.props.controlPublisher} />
       </>
     );
   }

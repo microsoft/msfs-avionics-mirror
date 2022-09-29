@@ -1,16 +1,13 @@
-import { VNode } from 'msfssdk';
-import { UserSettingManager } from 'msfssdk/settings';
+import { UserSettingManager, VNode } from 'msfssdk';
+
 import { DateTimeUserSettingTypes } from '../../settings/DateTimeUserSettings';
 import { UnitsUserSettingManager } from '../../settings/UnitsUserSettings';
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
 import {
-  GenericNavDataBarFieldRenderer, NavDataBarFieldBrgRenderer, NavDataBarFieldDestRenderer,
-  NavDataBarFieldDisRenderer, NavDataBarFieldDtgRenderer, NavDataBarFieldDtkRenderer,
-  NavDataBarFieldEndRenderer, NavDataBarFieldEtaRenderer, NavDataBarFieldEteRenderer,
-  NavDataBarFieldFobRenderer, NavDataBarFieldFodRenderer, NavDataBarFieldGsRenderer,
-  NavDataBarFieldIsaRenderer, NavDataBarFieldLdgRenderer, NavDataBarFieldTasRenderer,
-  NavDataBarFieldTkeRenderer, NavDataBarFieldTrkRenderer, NavDataBarFieldVsrRenderer,
-  NavDataBarFieldXtkRenderer
+  GenericNavDataBarFieldRenderer, NavDataBarFieldBrgRenderer, NavDataBarFieldDestRenderer, NavDataBarFieldDisRenderer, NavDataBarFieldDtgRenderer,
+  NavDataBarFieldDtkRenderer, NavDataBarFieldEndRenderer, NavDataBarFieldEtaRenderer, NavDataBarFieldEteRenderer, NavDataBarFieldFobRenderer,
+  NavDataBarFieldFodRenderer, NavDataBarFieldGsRenderer, NavDataBarFieldIsaRenderer, NavDataBarFieldLdgRenderer, NavDataBarFieldTasRenderer,
+  NavDataBarFieldTkeRenderer, NavDataBarFieldTrkRenderer, NavDataBarFieldVsrRenderer, NavDataBarFieldXtkRenderer
 } from './GenericNavDataBarFieldRenderer';
 import { NavDataBarFieldTypeModelMap } from './NavDataBarFieldModel';
 import { NavDataBarFieldRenderer } from './NavDataBarFieldRenderer';

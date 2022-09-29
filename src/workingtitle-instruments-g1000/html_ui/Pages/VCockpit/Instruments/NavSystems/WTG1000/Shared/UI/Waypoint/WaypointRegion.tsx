@@ -1,7 +1,6 @@
-import { ComputedSubject, FSComponent, VNode } from 'msfssdk';
-import { AirportFacility, AirportWaypoint, FacilityWaypoint, ICAO, Waypoint } from 'msfssdk/navigation';
+import { AirportFacility, ComputedSubject, FacilityWaypoint, FSComponent, ICAO, VNode, Waypoint } from 'msfssdk';
 
-import { Regions } from 'garminsdk/navigation';
+import { AirportWaypoint, Regions } from 'garminsdk';
 
 import { WaypointComponent, WaypointComponentProps } from './WaypointComponent';
 
@@ -23,7 +22,7 @@ export class WaypointRegion extends WaypointComponent<WaypointRegionProps> {
         // airports don't have region codes in their ICAO strings, we will try to grab the code from the first 2
         // letters of the ident. However, some airports (e.g. in the US and those w/o 4-letter idents) don't use the
         // region code for the ident, so we need a third fallback, which is to just display the city name instead.
-        const airport = waypoint.facility as AirportFacility;
+        const airport = waypoint.facility.get() as AirportFacility;
         const ident = ICAO.getIdent(airport.icao).trim();
         let text = ident.length === 4 ? Regions.getName(ident.substr(0, 2)) : '';
         if (text === '' && airport.city !== '') {
@@ -34,7 +33,7 @@ export class WaypointRegion extends WaypointComponent<WaypointRegionProps> {
           return text;
         }
       } else {
-        return Regions.getName(waypoint.facility.icao.substr(1, 2));
+        return Regions.getName(waypoint.facility.get().icao.substr(1, 2));
       }
     }
 

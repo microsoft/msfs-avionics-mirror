@@ -1,8 +1,8 @@
-import { GeoPoint, Vec3Math } from 'msfssdk';
-import { Consumer, EventBus } from 'msfssdk/data';
-import { ClockEvents, GNSSEvents } from 'msfssdk/instruments';
-import { UserSetting, UserSettingManager } from 'msfssdk/settings';
-import { BacklightIntensitySettingName, BacklightMode, BacklightModeSettingName, BacklightUserSettings, BacklightUserSettingTypes } from './BacklightUserSettings';
+import { ClockEvents, Consumer, EventBus, GeoPoint, GNSSEvents, UserSetting, UserSettingManager, Vec3Math } from 'msfssdk';
+
+import {
+  BacklightIntensitySettingName, BacklightMode, BacklightModeSettingName, BacklightUserSettings, BacklightUserSettingTypes
+} from './BacklightUserSettings';
 
 /**
  * Manages backlight levels for the PFD and MFD screens and softkeys.
@@ -38,7 +38,7 @@ export class BacklightManager {
   private readonly INTENSITY_SETTING_NAME: BacklightIntensitySettingName;
   private readonly LVAR_NAME: string;
 
-  private readonly screenIntensitySetting: UserSetting<BacklightIntensitySettingName, number>;
+  private readonly screenIntensitySetting: UserSetting<number>;
 
   private readonly simTimeConsumer: Consumer<number>;
   private simTimeChangeConsumer: Consumer<number> | null = null;

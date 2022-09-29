@@ -1,4 +1,5 @@
-import { FmsUtils } from 'garminsdk/flightplan';
+import { FmsUtils } from 'garminsdk';
+
 import { FPLStringHeader } from './FPLStringHeader';
 
 /**

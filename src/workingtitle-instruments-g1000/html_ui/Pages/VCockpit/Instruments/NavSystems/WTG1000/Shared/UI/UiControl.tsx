@@ -1,4 +1,5 @@
-import { DisplayComponent, FSComponent, VNode, ComponentProps, ComputedSubject, Subject } from 'msfssdk';
+import { ComponentProps, ComputedSubject, DisplayComponent, FSComponent, Subject, VNode } from 'msfssdk';
+
 import { FmsHEvent } from './FmsHEvent';
 
 /**

@@ -7,7 +7,7 @@
     "esModuleInterop": true, /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
     "skipLibCheck": true, /* Skip type checking of declaration files. */
     "forceConsistentCasingInFileNames": true, /* Disallow inconsistently-cased references to the same file. */
-    "outDir": "build/workingtitle-instruments-g1000/html_ui/Pages/VCockpit/Instruments",
+    "outDir": "dist/workingtitle-instruments-g1000/html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000",
     "moduleResolution": "node",
     "jsxFactory": "FSComponent.buildComponent",
     "jsxFragmentFactory": "FSComponent.Fragment",

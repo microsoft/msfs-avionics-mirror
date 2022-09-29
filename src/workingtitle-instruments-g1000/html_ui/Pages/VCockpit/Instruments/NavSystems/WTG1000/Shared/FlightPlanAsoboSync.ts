@@ -1,22 +1,41 @@
-import { AirportFacility, AirportRunway, FacilityType, ICAO, LegType, OneWayRunway, FlightPlanLeg, UserFacilityUtils, RunwayUtils } from 'msfssdk/navigation';
-import { FlightPlan, FlightPlanSegmentType } from 'msfssdk/flightplan';
-import { Wait } from 'msfssdk/utils/time';
+/* eslint-disable max-len */
+/* eslint-disable no-console */
 
-import { Fms } from 'garminsdk/flightplan';
+import {
+  AirportFacility, AirportRunway, FacilityType, FlightPlan, FlightPlanLeg, FlightPlanSegmentType, ICAO, LegType, OneWayRunway, RunwayUtils, UserFacilityUtils,
+  Wait
+} from 'msfssdk';
+
+import { Fms } from 'garminsdk';
 
 /** A class for syncing a flight plan with the game */
 export class FlightPlanAsoboSync {
-  static fpChecksum = 0;
+  // static fpChecksum = 0;
   static fpListenerInitialized = false;
+
+  private static nonSyncableLegTypes = [
+    LegType.Discontinuity,
+    LegType.ThruDiscontinuity,
+    LegType.Unknown,
+    LegType.HM,
+    LegType.HA,
+    LegType.HF,
+  ];
 
   /**
    * Inits flight plan asobo sync
    */
-  public static init(): void {
-    if (!FlightPlanAsoboSync.fpListenerInitialized) {
-      RegisterViewListener('JS_LISTENER_FLIGHTPLAN');
-      FlightPlanAsoboSync.fpListenerInitialized = true;
-    }
+  public static async init(): Promise<void> {
+    return new Promise((resolve) => {
+      if (!FlightPlanAsoboSync.fpListenerInitialized) {
+        RegisterViewListener('JS_LISTENER_FLIGHTPLAN', () => {
+          FlightPlanAsoboSync.fpListenerInitialized = true;
+          resolve();
+        });
+      } else {
+        resolve();
+      }
+    });
   }
 
   /**
@@ -25,126 +44,147 @@ export class FlightPlanAsoboSync {
    * @returns a Promise which is fulfilled when the flight plan has been loaded.
    */
   public static async loadFromGame(fms: Fms): Promise<void> {
-    FlightPlanAsoboSync.init();
-
-    await Wait.awaitDelay(200);
+    await FlightPlanAsoboSync.init();
     Coherent.call('LOAD_CURRENT_ATC_FLIGHTPLAN');
     // Coherent.call('LOAD_CURRENT_GAME_FLIGHT');
-    await Wait.awaitDelay(5000);
-    const isBushtrip = await Coherent.call('GET_IS_BUSHTRIP');
-    if (!isBushtrip) {
-      const data = await Coherent.call('GET_FLIGHTPLAN');
+    await Wait.awaitDelay(3000);
 
-      const isDirectTo = data.isDirectTo;
-      let lastEnrouteSegment = 1;
+    const data = await Coherent.call('GET_FLIGHTPLAN');
 
-      // TODO: dirto
-      if (!isDirectTo) {
-        if (data.waypoints.length === 0) {
-          return;
-        }
+    const isDirectTo = data.isDirectTo;
+    let lastEnrouteSegment = 1;
 
-        // init a flightplan
-        await fms.emptyPrimaryFlightPlan();
-        const plan = fms.getPrimaryFlightPlan();
-
-        // set origin
-        let originFacilityType: FacilityType | undefined = undefined;
-        if (ICAO.isFacility(data.waypoints[0].icao)) {
-          originFacilityType = ICAO.getFacilityType(data.waypoints[0].icao);
-        }
-        if (originFacilityType === FacilityType.Airport) {
-          const originFac = await fms.facLoader.getFacility(ICAO.getFacilityType(data.waypoints[0].icao), data.waypoints[0].icao);
-          if (originFac !== undefined) {
-            FlightPlanAsoboSync.setDeparture(originFac as AirportFacility, data, fms);
-          }
-        } else if (originFacilityType !== undefined) {
-          FlightPlanAsoboSync.buildNonAirportOriginLeg(data, plan, fms);
-        }
-
-        // set dest
-        const destIndex = data.waypoints.length - 1;
-        let destFacilityType: FacilityType | undefined = undefined;
-        if (ICAO.isFacility(data.waypoints[destIndex].icao)) {
-          destFacilityType = ICAO.getFacilityType(data.waypoints[destIndex].icao);
-        }
-        if (destFacilityType === FacilityType.Airport) {
-          const destFac = await fms.facLoader.getFacility(ICAO.getFacilityType(data.waypoints[destIndex].icao), data.waypoints[destIndex].icao);
-          if (destFac !== undefined) {
-            await FlightPlanAsoboSync.setDestination(destFac as AirportFacility, data, fms);
-          }
-        }
-
-        // set enroute waypoints
-        lastEnrouteSegment = FlightPlanAsoboSync.setEnroute(data, plan, fms);
-
-        // set non-airport destination leg as the last enroute leg
-        if (destFacilityType !== FacilityType.Airport && destFacilityType !== undefined) {
-          FlightPlanAsoboSync.buildNonAirportDestLeg(data, plan, fms, lastEnrouteSegment);
-        }
-
-
-        // if (destinationSet && !originSet) {
-        //   if (plan.length >= 1) {
-        //     plan.getSegmentIndex(0)
-        //     fms.createDirectToExisting()
-        //   }
-        // }
-        plan.calculate(0).then(() => {
-          plan.setLateralLeg(0);
-        });
+    // TODO: dirto
+    if (!isDirectTo) {
+      if (data.waypoints.length === 0) {
+        return;
       }
+
+      // init a flightplan
+      await fms.emptyPrimaryFlightPlan(true);
+      const plan = fms.getPrimaryFlightPlan();
+
+      // set origin
+      let originFacilityType: FacilityType | undefined = undefined;
+      if (ICAO.isFacility(data.waypoints[0].icao)) {
+        originFacilityType = ICAO.getFacilityType(data.waypoints[0].icao);
+      }
+      if (originFacilityType === FacilityType.Airport) {
+        const originFac = await fms.facLoader.getFacility(ICAO.getFacilityType(data.waypoints[0].icao), data.waypoints[0].icao);
+        if (originFac !== undefined) {
+          FlightPlanAsoboSync.setDeparture(originFac as AirportFacility, data, fms);
+        }
+      } else if (originFacilityType !== undefined) {
+        FlightPlanAsoboSync.buildNonAirportOriginLeg(data, plan, fms);
+      }
+
+      // set dest
+      const destIndex = data.waypoints.length - 1;
+      let destFacilityType: FacilityType | undefined = undefined;
+      if (ICAO.isFacility(data.waypoints[destIndex].icao)) {
+        destFacilityType = ICAO.getFacilityType(data.waypoints[destIndex].icao);
+      }
+      if (destFacilityType === FacilityType.Airport) {
+        const destFac = await fms.facLoader.getFacility(ICAO.getFacilityType(data.waypoints[destIndex].icao), data.waypoints[destIndex].icao);
+        if (destFac !== undefined) {
+          await FlightPlanAsoboSync.setDestination(destFac as AirportFacility, data, fms);
+        }
+      }
+
+      // set enroute waypoints
+      lastEnrouteSegment = FlightPlanAsoboSync.setEnroute(data, plan, fms);
+
+      // set non-airport destination leg as the last enroute leg
+      if (destFacilityType !== FacilityType.Airport && destFacilityType !== undefined) {
+        FlightPlanAsoboSync.buildNonAirportDestLeg(data, plan, fms, lastEnrouteSegment);
+      }
+
+
+      // if (destinationSet && !originSet) {
+      //   if (plan.length >= 1) {
+      //     plan.getSegmentIndex(0)
+      //     fms.createDirectToExisting()
+      //   }
+      // }
+      plan.calculate(0).then(() => {
+        if (Simplane.getIsGrounded()) {
+          plan.setLateralLeg(0);
+        } else {
+          fms.activateNearestLeg();
+        }
+      });
     }
   }
 
-  // public static async SaveToGame(fpln: FlightPlanManager): Promise<void> {
-  //   // eslint-disable-next-line no-async-promise-executor
-  //   return new Promise(async (resolve, reject) => {
-  //     FlightPlanAsoboSync.init();
-  //     const plan = fpln.getCurrentFlightPlan();
-  //     if (WTDataStore.get('WT_CJ4_FPSYNC', 0) !== 0 && (plan.checksum !== this.fpChecksum)) {
+  /**
+   * Syncs the plan back to the sim as best as possible
+   * @param fms an instance of FMS
+   */
+  public static async SaveToGame(fms: Fms): Promise<void> {
+    await FlightPlanAsoboSync.init();
+    const isBushtrip = await Coherent.call('GET_IS_BUSHTRIP');
+    if (isBushtrip) {
+      return;
+    }
 
-  //       // await Coherent.call("CREATE_NEW_FLIGHTPLAN");
-  //       await Coherent.call("SET_CURRENT_FLIGHTPLAN_INDEX", 0).catch(console.log);
-  //       await Coherent.call("CLEAR_CURRENT_FLIGHT_PLAN").catch(console.log);
+    const plan = fms.flightPlanner.getActiveFlightPlan();
 
-  //       if (plan.hasOrigin && plan.hasDestination) {
-  //         if (plan.hasOrigin) {
-  //           await Coherent.call("SET_ORIGIN", plan.originAirfield.icao, false);
-  //         }
+    // await Coherent.call('CREATE_NEW_FLIGHTPLAN');
+    await Coherent.call('SET_CURRENT_FLIGHTPLAN_INDEX', 0).catch((err: any) => console.log(JSON.stringify(err)));
+    await Coherent.call('CLEAR_CURRENT_FLIGHT_PLAN').catch((err: any) => console.log(JSON.stringify(err)));
 
-  //         if (plan.hasDestination) {
-  //           await Coherent.call("SET_DESTINATION", plan.destinationAirfield.icao, false);
-  //         }
+    if (plan.originAirport !== undefined && plan.originAirport.length > 0) {
+      await Coherent.call('SET_ORIGIN', plan.originAirport, false).catch((err: any) => console.log(JSON.stringify(err)));
+    }
 
-  //         let coIndex = 1;
-  //         for (let i = 0; i < plan.enroute.waypoints.length; i++) {
-  //           const wpt = plan.enroute.waypoints[i];
-  //           if (wpt.icao.trim() !== "") {
-  //             await Coherent.call("ADD_WAYPOINT", wpt.icao, coIndex, false);
-  //             coIndex++;
-  //           }
-  //         }
+    if (plan.destinationAirport !== undefined && plan.destinationAirport.length > 0) {
+      await Coherent.call('SET_DESTINATION', plan.destinationAirport, false).catch((err: any) => console.log(JSON.stringify(err)));
+    }
 
-  //         await Coherent.call("SET_ORIGIN_RUNWAY_INDEX", plan.procedureDetails.originRunwayIndex).catch(console.log);
-  //         await Coherent.call("SET_DEPARTURE_RUNWAY_INDEX", plan.procedureDetails.departureRunwayIndex);
-  //         await Coherent.call("SET_DEPARTURE_PROC_INDEX", plan.procedureDetails.departureIndex);
-  //         await Coherent.call("SET_DEPARTURE_ENROUTE_TRANSITION_INDEX", plan.procedureDetails.departureTransitionIndex);
+    if (plan.procedureDetails.originRunway) {
+      await Coherent.call('SET_ORIGIN_RUNWAY_INDEX', plan.procedureDetails.originRunway?.parentRunwayIndex).catch((err: any) => console.log(JSON.stringify(err)));
+    }
+    await Coherent.call('SET_DEPARTURE_RUNWAY_INDEX', plan.procedureDetails.departureRunwayIndex).catch((err: any) => console.log(JSON.stringify(err)));
+    await Coherent.call('SET_DEPARTURE_PROC_INDEX', plan.procedureDetails.departureIndex).catch((err: any) => console.log(JSON.stringify(err)));
+    await Coherent.call('SET_DEPARTURE_ENROUTE_TRANSITION_INDEX', plan.procedureDetails.departureTransitionIndex === -1 ? 0 : plan.procedureDetails.departureTransitionIndex).catch((err: any) => console.log(JSON.stringify(err)));
 
-  //         await Coherent.call("SET_ARRIVAL_RUNWAY_INDEX", plan.procedureDetails.arrivalRunwayIndex);
-  //         await Coherent.call("SET_ARRIVAL_PROC_INDEX", plan.procedureDetails.arrivalIndex);
-  //         await Coherent.call("SET_ARRIVAL_ENROUTE_TRANSITION_INDEX", plan.procedureDetails.arrivalTransitionIndex);
+    // Put in the enroute waypoints
+    const enrouteSegments = plan.segmentsOfType(FlightPlanSegmentType.Enroute);
+    for (const segment of enrouteSegments) {
+      // get legs in segment
+      let globalIndex = 1;
+      for (const leg of segment.legs) {
+        if (FlightPlanAsoboSync.isSyncableLeg(leg.leg)) {
+          await Coherent.call('ADD_WAYPOINT', leg.leg.fixIcao, globalIndex, false).catch((err: any) => console.log(JSON.stringify(err)));
+          globalIndex++;
+        }
+      }
+    }
 
-  //         await Coherent.call("SET_APPROACH_INDEX", plan.procedureDetails.approachIndex).then(() => {
-  //           Coherent.call("SET_APPROACH_TRANSITION_INDEX", plan.procedureDetails.approachTransitionIndex);
-  //         });
-  //       }
+    await Coherent.call('SET_ARRIVAL_RUNWAY_INDEX', plan.procedureDetails.arrivalRunwayTransitionIndex === -1 ? 0 : plan.procedureDetails.arrivalRunwayTransitionIndex).catch((err: any) => console.log(JSON.stringify(err)));
+    await Coherent.call('SET_ARRIVAL_PROC_INDEX', plan.procedureDetails.arrivalIndex).catch((err: any) => console.log(JSON.stringify(err)));
+    await Coherent.call('SET_ARRIVAL_ENROUTE_TRANSITION_INDEX', plan.procedureDetails.arrivalTransitionIndex).catch((err: any) => console.log(JSON.stringify(err)));
 
-  //       this.fpChecksum = plan.checksum;
-  //     }
-  //     Coherent.call("RECOMPUTE_ACTIVE_WAYPOINT_INDEX");
-  //   });
-  // }
+    await Coherent.call('SET_APPROACH_INDEX', plan.procedureDetails.approachIndex).then(() => {
+      Coherent.call('SET_APPROACH_TRANSITION_INDEX', plan.procedureDetails.approachTransitionIndex).catch((err: any) => console.log(JSON.stringify(err)));
+    }).catch((err: any) => console.log(JSON.stringify(err)));
+
+    const activeSegment = plan.getSegment(plan.getSegmentIndex(Math.max(0, plan.activeLateralLeg)));
+    if (activeSegment?.segmentType === FlightPlanSegmentType.Approach) {
+      await Coherent.call('TRY_AUTOACTIVATE_APPROACH').catch((err: any) => console.log(JSON.stringify(err)));
+    }
+
+    Coherent.call('RECOMPUTE_ACTIVE_WAYPOINT_INDEX').catch((err: any) => console.log(JSON.stringify(err)));
+  }
+
+  /**
+   * Checks if a leg is syncable to the stock flight plan system.
+   * @param leg the leg to check
+   * @returns true if the leg is syncable, false otherwise
+   */
+  private static isSyncableLeg(leg: FlightPlanLeg): boolean {
+    return FlightPlanAsoboSync.nonSyncableLegTypes.indexOf(leg.type) === -1;
+  }
 
   /**
    * Sets the departure procedure or facility if specified

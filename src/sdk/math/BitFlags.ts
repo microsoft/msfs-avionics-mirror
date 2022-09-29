@@ -61,6 +61,18 @@ export class BitFlags {
   }
 
   /**
+   * Changes a bit flag group by setting values at specific indexes.
+   * @param flags The bit flag group to change.
+   * @param valuesToSet A bit flag group containing the values to set.
+   * @param mask A mask defining the indexes to set. Only indexes at which the mask has a value of `1` (`true`) will
+   * be set.
+   * @returns The result of changing `flags` using the specified values and indexes.
+   */
+  public static set(flags: number, valuesToSet: number, mask: number): number {
+    return (flags & ~mask) | (valuesToSet & mask);
+  }
+
+  /**
    * Checks if a bit flag group meets at least one condition from a list of conditions.
    * @param flags A bit flag group.
    * @param conditions The conditions to meet, as a bit flag group.

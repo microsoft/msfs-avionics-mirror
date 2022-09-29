@@ -1,11 +1,11 @@
 import { FSComponent, VNode } from 'msfssdk';
 
-import { ArrowToggle } from '../../../../../Shared/UI/UIControls/ArrowToggle';
-import { ActionButton } from '../../../../../Shared/UI/UIControls/ActionButton';
 import { ContextMenuPosition } from '../../../../../Shared/UI/Dialogs/ContextMenuDialog';
 import { SelectApproach } from '../../../../../Shared/UI/Procedure/Approach/SelectApproach';
 import { SelectApproachController } from '../../../../../Shared/UI/Procedure/Approach/SelectApproachController';
 import { SelectApproachStore } from '../../../../../Shared/UI/Procedure/Approach/SelectApproachStore';
+import { ActionButton } from '../../../../../Shared/UI/UIControls/ActionButton';
+import { ArrowToggle } from '../../../../../Shared/UI/UIControls/ArrowToggle';
 
 import './PFDSelectApproach.css';
 
@@ -53,7 +53,7 @@ export class PFDSelectApproach extends SelectApproach {
           <div class="slct-appr-trans-label">TRANS</div>{this.renderTransitionSelectControl(containerRef, ContextMenuPosition.CENTER)}
           <div class="slct-appr-rnav-id">ID _ _ _ _ _</div>
           <div class="slct-appr-mins-label">MINS</div>
-          <ArrowToggle class="slct-appr-mins-toggle" onRegister={this.register} onOptionSelected={this.controller.onMinimumsOptionSelected}
+          <ArrowToggle ref={this.minsToggleComponent} class="slct-appr-mins-toggle" onRegister={this.register} onOptionSelected={this.controller.onMinimumsOptionSelected}
             options={this.store.minsToggleOptions} dataref={this.store.minimumsMode} onEnter={this.onEnterPressedAdvance.bind(this)} />
           <div data-id="select-min" class="slct-appr-mins-value cyan size18"></div>
           <div class="slct-appr-mins-value">

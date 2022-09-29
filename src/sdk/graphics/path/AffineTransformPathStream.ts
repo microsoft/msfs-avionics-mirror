@@ -1,4 +1,4 @@
-import { Transform2D, Vec2Math } from '../..';
+import { Transform2D, Vec2Math } from '../../math';
 import { AbstractTransformingPathStream } from './PathStream';
 
 /**
@@ -15,6 +15,8 @@ export class AffineTransformPathStream extends AbstractTransformingPathStream {
 
   private readonly transform = new Transform2D();
 
+  private readonly concatCache: Transform2D[] = [];
+
   private scale = 1;
   private rotation = 0;
 
@@ -29,9 +31,16 @@ export class AffineTransformPathStream extends AbstractTransformingPathStream {
    */
   public addTranslation(x: number, y: number, order: 'before' | 'after' = 'after'): this {
     const translation = AffineTransformPathStream.transformCache[0].toTranslation(x, y);
-    order === 'before'
-      ? Transform2D.concat(this.transform, translation, this.transform)
-      : Transform2D.concat(this.transform, this.transform, translation);
+
+    if (order === 'before') {
+      this.concatCache[0] = translation;
+      this.concatCache[1] = this.transform;
+    } else {
+      this.concatCache[0] = this.transform;
+      this.concatCache[1] = translation;
+    }
+
+    Transform2D.concat(this.transform, this.concatCache);
 
     return this;
   }
@@ -46,9 +55,16 @@ export class AffineTransformPathStream extends AbstractTransformingPathStream {
    */
   public addScale(factor: number, order: 'before' | 'after' = 'after'): this {
     const scale = AffineTransformPathStream.transformCache[0].toScale(factor, factor);
-    order === 'before'
-      ? Transform2D.concat(this.transform, scale, this.transform)
-      : Transform2D.concat(this.transform, this.transform, scale);
+
+    if (order === 'before') {
+      this.concatCache[0] = scale;
+      this.concatCache[1] = this.transform;
+    } else {
+      this.concatCache[0] = this.transform;
+      this.concatCache[1] = scale;
+    }
+
+    Transform2D.concat(this.transform, this.concatCache);
 
     this.updateScaleRotation();
 
@@ -65,9 +81,16 @@ export class AffineTransformPathStream extends AbstractTransformingPathStream {
    */
   public addRotation(angle: number, order: 'before' | 'after' = 'after'): this {
     const rotation = AffineTransformPathStream.transformCache[0].toRotation(angle);
-    order === 'before'
-      ? Transform2D.concat(this.transform, rotation, this.transform)
-      : Transform2D.concat(this.transform, this.transform, rotation);
+
+    if (order === 'before') {
+      this.concatCache[0] = rotation;
+      this.concatCache[1] = this.transform;
+    } else {
+      this.concatCache[0] = this.transform;
+      this.concatCache[1] = rotation;
+    }
+
+    Transform2D.concat(this.transform, this.concatCache);
 
     this.updateScaleRotation();
 

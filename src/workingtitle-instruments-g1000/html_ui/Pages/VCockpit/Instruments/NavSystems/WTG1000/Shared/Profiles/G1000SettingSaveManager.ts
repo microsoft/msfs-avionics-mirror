@@ -1,14 +1,14 @@
-import { EventBus } from 'msfssdk/data';
-import { UserSettingSaveManager } from 'msfssdk/settings';
+import { EventBus, UserSettingSaveManager } from 'msfssdk';
+
 import { MFDNavDataBarUserSettings } from '../../MFD/Components/UI/NavDataBar/MFDNavDataBarUserSettings';
 import { PFDUserSettings } from '../../PFD/PFDUserSettings';
 import { BacklightUserSettings } from '../Backlight/BacklightUserSettings';
 import { DateTimeUserSettings } from '../DateTime/DateTimeUserSettings';
 import { MapUserSettings } from '../Map/MapUserSettings';
 import { NavComUserSettings } from '../NavCom/NavComUserSettings';
+import { NearestAirportSearchSettings } from '../NearestAirportSearchSettings';
 import { TrafficUserSettings } from '../Traffic/TrafficUserSettings';
 import { UnitsUserSettings } from '../Units/UnitsUserSettings';
-import { NearestAirportSearchSettings } from '../NearestAirportSearchSettings';
 
 /**
  * A manager for G1000 settings which are saved to pilot profiles.

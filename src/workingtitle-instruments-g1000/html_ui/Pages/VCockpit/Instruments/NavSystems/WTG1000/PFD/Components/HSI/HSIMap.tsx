@@ -1,21 +1,18 @@
-import { ComponentProps, DisplayComponent, FSComponent, NodeReference, Subject, VNode } from 'msfssdk';
-import { EventBus, HEvent } from 'msfssdk/data';
-import { FlightPlanner } from 'msfssdk/flightplan';
-import { ADCEvents, APEvents } from 'msfssdk/instruments';
+import {
+  AhrsEvents, APEvents, CompiledMapSystem, ComponentProps, DisplayComponent, EventBus, FlightPlanner, FSComponent, HEvent, MapSystemBuilder, NodeReference,
+  Vec2Math, VNode
+} from 'msfssdk';
 
-import { NavIndicatorController } from 'garminsdk/navigation';
+import { GarminMapKeys, MapRangeController, NavIndicatorController, TrafficAdvisorySystem, TrafficUserSettings, UnitsUserSettings } from 'garminsdk';
 
-import { MapRangeSettings } from '../../../Shared/Map/MapRangeSettings';
+import { MapBuilder } from '../../../Shared/Map/MapBuilder';
 import { MapUserSettings } from '../../../Shared/Map/MapUserSettings';
-import { MapOrientation } from '../../../Shared/Map/Modules/MapOrientationModule';
+import { MapWaypointIconImageCache } from '../../../Shared/Map/MapWaypointIconImageCache';
 import { AHRSSystemEvents } from '../../../Shared/Systems/AHRSSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
-import { TrafficAdvisorySystem } from '../../../Shared/Traffic/TrafficAdvisorySystem';
-import { NavMapModel } from '../../../Shared/UI/NavMap/NavMapModel';
 import { CompassRose } from './CompassRose';
 import { CourseNeedles } from './CourseNeedles';
 import { HSIMapCourseDeviation } from './HSIMapCourseDeviation';
-import { HSINavMapComponent } from './HSINavMapComponent';
 import { TurnRateIndicator } from './TurnRateIndicator';
 
 import './HSIMap.css';
@@ -51,20 +48,46 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
   private bearingPointer1Element = FSComponent.createRef<HTMLElement>();
   private bearingPointer2Element = FSComponent.createRef<HTMLElement>();
   private deviationElement = FSComponent.createRef<HSIMapCourseDeviation>();
-  private readonly mapRef = FSComponent.createRef<HSINavMapComponent>();
 
-  private readonly mapModel = NavMapModel.createModel(this.props.bus, this.props.tas);
-  private readonly mapRangeSettingManager = MapRangeSettings.getManager(this.props.bus);
-  private readonly mapRangeSetting = this.mapRangeSettingManager.getSetting('pfdMapRangeIndex');
+  private readonly mapSettingManager = MapUserSettings.getPfdManager(this.props.bus);
+
+  private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
+    .with(MapBuilder.hsiMap, {
+      bingId: 'pfd-map',
+      dataUpdateFreq: HSIMap.DATA_UPDATE_FREQ,
+
+      waypointIconImageCache: MapWaypointIconImageCache.getCache(),
+
+      flightPlanner: this.props.flightPlanner,
+
+      ...MapBuilder.ownAirplaneIconOptions(),
+
+      trafficSystem: this.props.tas,
+      trafficIconOptions: {
+        iconSize: 30,
+        font: 'Roboto-Bold',
+        fontSize: 16
+      },
+
+      settingManager: this.mapSettingManager as any,
+      unitsSettingManager: UnitsUserSettings.getManager(this.props.bus),
+      trafficSettingManager: TrafficUserSettings.getManager(this.props.bus) as any
+    })
+    .withProjectedSize(Vec2Math.create(350, 350))
+    .withClockUpdate(HSIMap.UPDATE_FREQ)
+    .build('pfd-hsimap') as CompiledMapSystem<
+      any,
+      any,
+      {
+        /** The range controller. */
+        [GarminMapKeys.Range]: MapRangeController;
+      },
+      any
+    >;
+
+  private readonly mapRangeController = this.compiledMap.context.getController(GarminMapKeys.Range);
 
   private isFailed = false;
-
-  /** @inheritdoc */
-  constructor(props: HSIMapProps) {
-    super(props);
-
-    this.mapModel.getModule('orientation').orientation.set(MapOrientation.HeadingUp);
-  }
 
   /**
    * A callback called when the component finishes rendering.
@@ -73,17 +96,17 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
     this.setVisible(false);
     this.registerWithController();
 
-    const adc = this.props.bus.getSubscriber<ADCEvents>();
+    const ahrs = this.props.bus.getSubscriber<AhrsEvents>();
     const ap = this.props.bus.getSubscriber<APEvents>();
     const hEvents = this.props.bus.getSubscriber<HEvent>();
 
-    adc.on('hdg_deg')
+    ahrs.on('hdg_deg')
       .withPrecision(1)
       .handle(this.updateRotatingElements);
     ap.on('ap_heading_selected')
       .withPrecision(0)
       .handle(this.updateSelectedHeadingDisplay.bind(this));
-    adc.on('delta_heading_rate')
+    ahrs.on('delta_heading_rate')
       .withPrecision(1)
       .handle(rate => this.turnRateIndicator.instance.setTurnRate(rate));
     hEvents.on('hEvent').handle(this.onInteractionEvent.bind(this));
@@ -156,7 +179,7 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
    * @param hEvent An interaction event.
    */
   private onInteractionEvent(hEvent: string): void {
-    if (!this.mapRef.instance.isAwake) {
+    if (!this.compiledMap.ref.instance.isAwake) {
       return;
     }
 
@@ -175,8 +198,7 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
    * @param delta The change in index to apply.
    */
   private changeMapRangeIndex(delta: number): void {
-    const newIndex = Utils.Clamp(this.mapRangeSetting.value + delta, 0, this.mapModel.getModule('range').nominalRanges.get().length - 1);
-    this.mapRangeSetting.value = newIndex;
+    this.mapRangeController.changeRangeIndex(delta);
   }
 
   /**
@@ -195,7 +217,7 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
    */
   public setVisible(isVisible: boolean): void {
     this.containerRef.instance.style.display = isVisible ? '' : 'none';
-    isVisible ? this.mapRef.instance.wake() : this.mapRef.instance.sleep();
+    isVisible ? this.compiledMap.ref.instance.wake() : this.compiledMap.ref.instance.sleep();
   }
 
   /**
@@ -213,28 +235,7 @@ export class HSIMap extends DisplayComponent<HSIMapProps> {
   public render(): VNode {
     return (
       <div class="hsi-map-container" ref={this.containerRef}>
-        <HSINavMapComponent
-          ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
-          updateFreq={Subject.create(HSIMap.UPDATE_FREQ)}
-          dataUpdateFreq={Subject.create(HSIMap.DATA_UPDATE_FREQ)}
-          projectedWidth={350} projectedHeight={350}
-          flightPlanner={this.props.flightPlanner}
-          bingId='pfd_map'
-          ownAirplaneLayerProps={{
-            imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
-            invalidHeadingImageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon_nohdg.svg',
-            iconSize: 30,
-            iconAnchor: new Float64Array([0.5, 0]),
-            invalidHeadingIconAnchor: new Float64Array([0.5, 0.5])
-          }}
-          trafficIntruderLayerProps={{
-            fontSize: 16,
-            iconSize: 30
-          }}
-          drawEntireFlightPlan={Subject.create(false)}
-          class='pfd-hsimap'
-          settingManager={MapUserSettings.getPfdManager(this.props.bus)}
-        />
+        {this.compiledMap.map}
         <HSIMapCourseDeviation ref={this.deviationElement} controller={this.props.controller} />
         <div class="hsi-map-hdg-box">
           <div class="failed-box" />

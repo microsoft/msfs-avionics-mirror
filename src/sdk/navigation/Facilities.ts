@@ -1,6 +1,6 @@
 /// <reference types="msfstypes/JS/Simplane" />
 
-import { MagVar } from '..';
+import { MagVar } from '../geo';
 
 /**
  * The available facility frequency types.
@@ -44,6 +44,38 @@ export interface FacilityFrequency {
 }
 
 /**
+ * An ILS frequency on airport runway data.
+ */
+export interface FacilityILSFrequency {
+  /** The ICAO of the ILS frequency. */
+  readonly icao: string;
+
+  /** The name of the frequency. */
+  readonly name: string;
+
+  /** The frequency, in MHz. */
+  readonly freqMHz: number;
+
+  /** The frequency, in BCD16. */
+  readonly freqBCD16: number;
+
+  /** The type of the frequency. */
+  readonly type: FacilityFrequencyType;
+
+  /** Whether or not this ILS has a glideslope. */
+  readonly hasGlideslope: boolean;
+
+  /** The glideslope angle for this localizer. */
+  readonly glideslopeAngle: number;
+
+  /** The course, in degrees true, for this localizer. */
+  readonly localizerCourse: number;
+
+  /** The magvar at this localizer's position. */
+  readonly magvar: number;
+}
+
+/**
  * A runway on airport facility data.
  */
 export interface AirportRunway {
@@ -82,10 +114,10 @@ export interface AirportRunway {
   readonly designatorCharSecondary: RunwayDesignator;
 
   /** The primary ILS frequency for the runway. */
-  readonly primaryILSFrequency: FacilityFrequency;
+  readonly primaryILSFrequency: FacilityILSFrequency;
 
   /** The secondary ILS frequency for the runway. */
-  readonly secondaryILSFrequency: FacilityFrequency;
+  readonly secondaryILSFrequency: FacilityILSFrequency;
 
   /** The primary elevation for the runway in meters. */
   readonly primaryElevation: number;
@@ -470,6 +502,22 @@ export interface IntersectionFacility extends Facility {
 }
 
 /**
+ * An enumeration of possible intersection types.
+ */
+export enum IntersectionType {
+  None,
+  Named,
+  Unnamed,
+  Vor,
+  NDB,
+  Offroute,
+  IAF,
+  FAF,
+  RNAV,
+  VFR
+}
+
+/**
  * A VOR facility.
  */
 export interface VorFacility extends Facility {
@@ -758,7 +806,7 @@ export interface OneWayRunway {
   readonly course: number;
 
   /** The ILS frequency for this runway. */
-  readonly ilsFrequency?: FacilityFrequency;
+  readonly ilsFrequency?: FacilityILSFrequency;
 
   /** The total length of this runway, including displaced thresholds, in meters. */
   readonly length: number;
@@ -899,6 +947,9 @@ export interface BoundaryFacility {
 
   /** The vectors that describe the boundary borders. */
   readonly vectors: BoundaryVector[]
+
+  /** LODs of the vectors that describe the boundary borders. */
+  readonly lods?: BoundaryVector[][];
 }
 
 /**
@@ -1249,6 +1300,15 @@ export class ICAO {
   public static getIdent(icao: string): string {
     return icao.substr(7).trim();
   }
+
+  /**
+   * Gets the region code for a given ICAO string.
+   * @param icao The FS ICAO to get the ident for.
+   * @returns The two letter region code.
+   */
+  public static getRegionCode(icao: string): string {
+    return icao.substr(1, 2).trim();
+  }
 }
 
 /**
@@ -1278,5 +1338,37 @@ export class UserFacilityUtils {
       magvar: MagVar.get(lat, lon)
     };
     return fac;
+  }
+}
+
+/**
+ * Utilities to deal with TACAN facilities.
+ */
+export class TacanUtils {
+
+  /**
+   * Converts a VOR frequency to a TACAN channel.
+   * @param frequency The frequency of the VOR.
+   * @returns The TACAN channel.
+   */
+  public static frequencyToChannel(frequency: number): string {
+    const uFrequency = frequency * 10;
+    let res = 0;
+
+    if (uFrequency <= 1122) {
+      //108.0 to 112.25
+      res = (uFrequency - 1063) % 256; //Protect against overflow
+    } else if (uFrequency <= 1179) {
+      res = (uFrequency - 1053) % 256;
+    } else if (uFrequency < 1333) {
+      return '';
+    } else if (uFrequency <= 1342) {
+      res = (uFrequency - 1273) % 256;
+    } else {
+      res = (uFrequency - 1343) % 256;
+    }
+
+    const letter = (Math.round(frequency * 100) % 10) === 0 ? 'X' : 'Y';
+    return res.toFixed(0) + letter;
   }
 }

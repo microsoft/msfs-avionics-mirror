@@ -1,11 +1,11 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { ExpSmoother, MathUtils, UnitType } from '../..';
 import { EventBus, SimVarValueType } from '../../data';
-import { ADCEvents } from '../../instruments';
-import { PlaneDirector, DirectorState } from '../PlaneDirector';
-import { APValues } from '../APConfig';
+import { AdcEvents, AhrsEvents } from '../../instruments';
+import { ExpSmoother, MathUtils, UnitType } from '../../math';
 import { PidController } from '../../utils/controllers';
+import { APValues } from '../APConfig';
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * A Flight Level Change autopilot director.
@@ -36,18 +36,19 @@ export class APFLCDirector implements PlaneDirector {
    * Creates an instance of the FLC Director.
    * @param bus The event bus to use with this instance.
    * @param apValues is the AP selected values subject.
+   * @param pitchClamp is the maximum pitch angle, in degrees, to clamp FLC at.
    */
-  constructor(private readonly bus: EventBus, apValues: APValues) {
+  constructor(private readonly bus: EventBus, apValues: APValues, private pitchClamp = 15) {
     this.state = DirectorState.Inactive;
 
-    const adc = this.bus.getSubscriber<ADCEvents>();
-    adc.on('alt').withPrecision(0).handle((alt) => {
+    const sub = this.bus.getSubscriber<AdcEvents & AhrsEvents>();
+    sub.on('indicated_alt').withPrecision(0).handle((alt) => {
       this.currentAltitude = alt;
     });
-    adc.on('ias').withPrecision(2).handle((ias) => {
+    sub.on('ias').withPrecision(2).handle((ias) => {
       this.currentIas = ias;
     });
-    adc.on('pitch_deg').withPrecision(1).handle((pitch) => {
+    sub.on('pitch_deg').withPrecision(1).handle((pitch) => {
       this.currentPitch = -pitch;
     });
 
@@ -140,9 +141,9 @@ export class APFLCDirector implements PlaneDirector {
     targetPitch = this.filter.next(targetPitch, dt);
 
     if (this.selectedAltitude > this.currentAltitude) {
-      return MathUtils.clamp(targetPitch + aoa, aoa, 15);
+      return MathUtils.clamp(targetPitch + aoa, aoa, this.pitchClamp);
     } else {
-      return MathUtils.clamp(targetPitch + aoa, -15, aoa);
+      return MathUtils.clamp(targetPitch + aoa, -this.pitchClamp, aoa);
     }
   }
 

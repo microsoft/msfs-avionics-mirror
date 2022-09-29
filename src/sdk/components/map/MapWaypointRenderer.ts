@@ -1,4 +1,5 @@
-import { BitFlags } from '../..';
+import { LatLonInterface } from '../../geo';
+import { BitFlags } from '../../math';
 import { MapCullableTextLabel, MapCullableTextLabelManager } from './MapCullableTextLabel';
 import { MapProjection } from './MapProjection';
 import { MapWaypoint } from './MapWaypoint';
@@ -56,6 +57,11 @@ export type MapWaypointRenderRoleSelector<W extends MapWaypoint> = (
 ) => number;
 
 /**
+ * Gets the waypoint type supported by a waypoint renderer.
+ */
+export type MapWaypointRendererType<Renderer> = Renderer extends MapWaypointRenderer<infer W> ? W : never;
+
+/**
  * A renderer that draws waypoints to a map. For the renderer to draw a waypoint, the waypoint must first be registered
  * with the renderer. Waypoints may be registered under multiple render roles. Each render role is represented as a bit
  * flag. During each render cycle, a specific role is chosen for each waypoint by a selector function. Once the role is
@@ -68,6 +74,19 @@ export class MapWaypointRenderer<W extends MapWaypoint = MapWaypoint> {
     labelFactory: null,
     canvasContext: null,
     visibilityHandler: (): boolean => true
+  };
+
+  /**
+   * Sorts waypoint entries such that those with icons of higher priority are sorted after those with icons of lower
+   * priority.
+   * @param a The first waypoint entry to sort.
+   * @param b The second waypoint entry to sort.
+   * @returns A negative number if the first entry is to be sorted before the second, a positive number if the second
+   * entry is to be sorted before the first, and zero if the entries' relative sorting order does not matter.
+   */
+  protected static readonly ENTRY_SORT_FUNC = (a: MapWaypointRendererEntry<any>, b: MapWaypointRendererEntry<any>): number => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return a.icon!.priority.get() - b.icon!.priority.get();
   };
 
   /**
@@ -351,8 +370,7 @@ export class MapWaypointRenderer<W extends MapWaypoint = MapWaypoint> {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    entriesToDrawIcon.sort((a, b) => a.icon!.priority - b.icon!.priority);
+    entriesToDrawIcon.sort(MapWaypointRenderer.ENTRY_SORT_FUNC);
     const len2 = entriesToDrawIcon.length;
     for (let i = 0; i < len2; i++) {
       const entry = entriesToDrawIcon[i];
@@ -363,6 +381,44 @@ export class MapWaypointRenderer<W extends MapWaypoint = MapWaypoint> {
         icon!.draw(context, mapProjection);
       }
     }
+  }
+
+  /**
+   * Gets the nearest waypoint currently registered in the renderer.
+   * @param pos The position to get the closest waypoint to.
+   * @param first A predicate that will search the list of closest waypoints for a match, and return the first one found.
+   * @returns The nearest waypoint, or undefined if none found.
+   */
+  public getNearestWaypoint<T extends W = W>(pos: LatLonInterface, first?: (waypoint: W) => boolean): T | undefined {
+    const ordered = [...this.registered.values()].sort((a, b) => this.orderByDistance(a.waypoint, b.waypoint, pos))
+      .filter(w => {
+        const roleDef = this.getRenderRoleDefinition(w.lastRenderedRole);
+        if (roleDef !== undefined) {
+          return roleDef.visibilityHandler(w.waypoint);
+        }
+
+        return false;
+      });
+
+    if (first !== undefined) {
+      return ordered.find(entry => first(entry.waypoint))?.waypoint as unknown as T;
+    }
+
+    return ordered[0]?.waypoint as unknown as T;
+  }
+
+  /**
+   * Orders waypoints by their distance to the plane PPOS.
+   * @param a The first waypoint.
+   * @param b The second waypoint.
+   * @param pos The position to compare against.
+   * @returns The comparison order number.
+   */
+  private orderByDistance(a: MapWaypoint, b: MapWaypoint, pos: LatLonInterface): number {
+    const aDist = a.location.get().distance(pos);
+    const bDist = b.location.get().distance(pos);
+
+    return aDist - bDist;
   }
 }
 

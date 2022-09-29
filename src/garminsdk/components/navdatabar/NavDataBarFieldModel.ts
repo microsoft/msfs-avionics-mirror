@@ -1,5 +1,5 @@
-import { NumberUnitSubject, Subscribable, SubscribableType, Unit } from 'msfssdk';
-import { Consumer, ConsumerSubject } from 'msfssdk/data';
+import { Consumer, ConsumerSubject, NumberUnitSubject, Subscribable, SubscribableType, Unit } from 'msfssdk';
+
 import { NavDataFieldModel } from '../navdatafield/NavDataFieldModel';
 import { NavDataFieldType, NavDataFieldTypeModelMap } from '../navdatafield/NavDataFieldType';
 

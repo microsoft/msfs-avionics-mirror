@@ -1,13 +1,12 @@
 /// <reference types="msfstypes/JS/simvar" />
 
 import { EventBus, SimVarValueType } from '../../data';
-import { APValues } from '../APConfig';
+import { AdcEvents, GNSSEvents } from '../../instruments';
 import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
-import { ADCEvents, GNSSEvents } from '../../instruments';
+import { APValues } from '../APConfig';
+import { VNavEvents } from '../data/VNavEvents';
 import { VNavUtils } from '../VNavUtils';
-import { PlaneDirector, DirectorState } from '../PlaneDirector';
-import { VNavEvents } from '../VNavEvents';
-
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * A VNAV Path autopilot director.
@@ -43,7 +42,7 @@ export class APVNavPathDirector implements PlaneDirector {
 
     this.bus.getSubscriber<VNavEvents>().on('vnav_vertical_deviation').whenChanged().handle(dev => this.deviation = dev);
     this.bus.getSubscriber<VNavEvents>().on('vnav_fpa').whenChanged().handle(fpa => this.fpa = fpa);
-    this.bus.getSubscriber<ADCEvents>().on('tas').withPrecision(0).handle((tas) => {
+    this.bus.getSubscriber<AdcEvents>().on('tas').withPrecision(0).handle((tas) => {
       this.tas = tas;
     });
     this.bus.getSubscriber<GNSSEvents>().on('ground_speed').withPrecision(0).handle((gs) => {

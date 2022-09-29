@@ -1,5 +1,6 @@
-import { FSComponent, NavAngleUnit, NumberUnitInterface, Subject, SubscribableSet, Unit, VNode } from 'msfssdk';
-import { AbstractNumberUnitDisplay, AbstractNumberUnitDisplayProps } from 'msfssdk/components/common';
+import {
+  AbstractNumberUnitDisplay, AbstractNumberUnitDisplayProps, FSComponent, NavAngleUnit, NumberUnitInterface, Subject, SubscribableSet, Unit, VNode
+} from 'msfssdk';
 
 /**
  * Component props for BearingDisplay.

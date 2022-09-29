@@ -1,3 +1,5 @@
+import { BearingDisplay } from 'garminsdk';
+
 import './BearingDisplay.css';
 
-export * from 'garminsdk/components/common/BearingDisplay';
+export { BearingDisplay };

@@ -6,6 +6,7 @@
   left: 7px;
   width: 414px;
   overflow: hidden;
+  transform: rotateX(0);
 }
 
 .hsi-map-hdg-box {
@@ -63,25 +64,26 @@
   border-radius: 50%;
   font-family: Roboto-Bold;
   font-size: 14px;
+  overflow: hidden;
 }
 
-.pfd-hsimap .navmap-indicators-bottom-left {
+.pfd-hsimap .map-indicator-group-bottom-left {
   position: absolute;
   left: 74px;
   bottom: 130px;
-  transform: translateX(-50%);
+  transform: translateX(-50%) rotateX(0);
 }
 
 .pfd-hsimap .map-detail {
   margin-bottom: 5px;
 }
 
-.pfd-hsimap .hsimap-indicators-bottom-center {
+.pfd-hsimap .map-indicator-group-bottom-center {
   position: absolute;
   left: 50%;
   top: 222px;
   height: 40px;
-  transform: translateX(-50%);
+  transform: translateX(-50%) rotateX(0);
   display: grid;
   grid-template-rows: 100%;
   grid-template-columns: min-content;

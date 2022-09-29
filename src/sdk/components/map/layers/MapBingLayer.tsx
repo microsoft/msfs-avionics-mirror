@@ -2,10 +2,12 @@
 /// <reference types="msfstypes/JS/Types" />
 /// <reference types="msfstypes/JS/NetBingMap" />
 
-import { FSComponent, VNode, BitFlags, Subscribable, SubscribableArray, UnitType, Vec2Math, Vec2Subject, ReadonlyFloat64Array } from '../../../.';
+import { BitFlags, ReadonlyFloat64Array, UnitType, Vec2Math, Vec2Subject } from '../../../math';
+import { Subscribable, SubscribableArray } from '../../../sub';
 import { BingComponent, WxrMode } from '../../bing';
-import { MapProjection, MapProjectionChangeType } from '../MapProjection';
+import { FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps } from '../MapLayer';
+import { MapProjection, MapProjectionChangeType } from '../MapProjection';
 
 /**
  * Component props for the MapComponent.
@@ -32,15 +34,23 @@ export interface MapBingLayerProps<M> extends MapLayerProps<M> {
   wxrMode?: Subscribable<WxrMode>;
 
   /**
+   * A subscribable which provides whether or not the map isolines are visible.
+   */
+  isoLines?: Subscribable<boolean>;
+
+  /**
    * How long to delay binding the map in ms.
    */
   delay?: number;
+
+  /** The mode to put the map in. */
+  mode?: EBingMode;
 }
 
 /**
  * A FSComponent that display the MSFS Bing Map, weather radar, and 3D terrain.
  */
-export class MapBingLayer<M> extends MapLayer<MapBingLayerProps<M>> {
+export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
   public static readonly OVERDRAW_FACTOR = Math.SQRT2;
 
   private readonly wrapperRef = FSComponent.createRef<HTMLDivElement>();
@@ -151,6 +161,13 @@ export class MapBingLayer<M> extends MapLayer<MapBingLayerProps<M>> {
   }
 
   /**
+   * Resets the underlying Bing component's img src attribute.
+   */
+  public resetImgSrc(): void {
+    this.bingRef.instance.resetImgSrc();
+  }
+
+  /**
    * Updates the Bing map center position and radius.
    */
   protected updatePositionRadius(): void {
@@ -185,10 +202,11 @@ export class MapBingLayer<M> extends MapLayer<MapBingLayerProps<M>> {
           ref={this.bingRef} id={this.props.bingId}
           onBoundCallback={this.onBingBound.bind(this)}
           resolution={this.resolutionSub}
-          mode={EBingMode.PLANE}
+          mode={this.props.mode ?? EBingMode.PLANE}
           earthColors={this.props.earthColors}
           reference={this.props.reference}
           wxrMode={this.props.wxrMode}
+          isoLines={this.props.isoLines}
           delay={this.props.delay}
         />
       </div>

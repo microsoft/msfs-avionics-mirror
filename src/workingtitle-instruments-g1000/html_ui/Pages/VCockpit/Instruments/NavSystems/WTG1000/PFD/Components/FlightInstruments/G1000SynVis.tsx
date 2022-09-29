@@ -1,11 +1,10 @@
-import { ArraySubject, ComponentProps, DisplayComponent, FSComponent, ReadonlyFloat64Array, Subject, Subscribable, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { BingComponent } from 'msfssdk/components/bing';
-import { SynVisComponent } from 'msfssdk/components/synvis';
+import {
+  ArraySubject, BingComponent, ComponentProps, DisplayComponent, EventBus, FSComponent, ReadonlyFloat64Array, Subject, Subscribable, SynVisComponent, VNode
+} from 'msfssdk';
 
+import { PFDUserSettings } from '../../PFDUserSettings';
 import { HorizonCompass } from './HorizonCompass';
 import { PlaneStateInfo } from './PrimaryHorizonDisplay';
-import { PFDUserSettings } from '../../PFDUserSettings';
 
 import './G1000SynVis.css';
 

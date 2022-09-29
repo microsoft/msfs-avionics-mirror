@@ -1,8 +1,7 @@
-import { FSComponent, NodeReference, Subject, VNode } from 'msfssdk';
-import { IntersectionFacility, FacilityType, ICAO } from 'msfssdk/navigation';
-import { FlightPlannerEvents } from 'msfssdk/flightplan';
+import { FacilityType, FlightPlannerEvents, FSComponent, ICAO, IntersectionFacility, NodeReference, Subject, VNode } from 'msfssdk';
 
-import { Fms } from 'garminsdk/flightplan';
+import { Fms } from 'garminsdk';
+
 import { ContextMenuDialog, ContextMenuItemDefinition } from '../Dialogs/ContextMenuDialog';
 import { SelectControl } from '../UIControls/SelectControl';
 import { SelectAirwayStore } from './SelectAirwayStore';

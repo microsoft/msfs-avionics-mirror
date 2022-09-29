@@ -5,6 +5,7 @@ export * from './VecMath';
 export * from './VectorSubject';
 export * from './Transform2D';
 export * from './Transform3D';
+export * from './TransformPerspective';
 export * from './SimpleMovingAverage';
 export * from './MathUtils';
 export * from './ExpSmoother';

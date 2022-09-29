@@ -1,13 +1,14 @@
-import { ArraySubject, FSComponent, Subject, VNode } from 'msfssdk';
-import { AirportFacility, ApproachProcedure, FacilityType, ICAO } from 'msfssdk/navigation';
-import { Fms, ProcedureType, FmsUtils } from 'garminsdk/flightplan';
+import { AirportFacility, ApproachProcedure, ArraySubject, FacilityType, FSComponent, ICAO, Subject, VNode } from 'msfssdk';
+
+import { Fms, FmsUtils, ProcedureType } from 'garminsdk';
+
 import { MenuItemDefinition, PopoutMenuItem } from '../../../../Shared/UI/Dialogs/PopoutMenuItem';
-import { List } from '../../../../Shared/UI/List';
-import { GroupBox } from '../GroupBox';
-import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
-import { UiControl } from '../../../../Shared/UI/UiControl';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
 import { ApproachNameDisplay } from '../../../../Shared/UI/FPL/ApproachNameDisplay';
+import { List } from '../../../../Shared/UI/List';
+import { UiControl } from '../../../../Shared/UI/UiControl';
+import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
+import { GroupBox } from '../GroupBox';
 import { MFDSelectProcedurePage } from './MFDSelectProcedurePage';
 
 import './MFDProc.css';

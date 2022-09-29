@@ -1,5 +1,5 @@
-import { EventBus } from 'msfssdk/data';
-import { ElectricalEvents } from 'msfssdk/instruments';
+import { ElectricalEvents, EventBus } from 'msfssdk';
+
 import { AvionicsSystemState, AvionicsSystemStateEvent, G1000AvionicsSystem } from './G1000AvionicsSystem';
 
 /** A type that pulls keys that have avionics state events from a supplied generic type. */

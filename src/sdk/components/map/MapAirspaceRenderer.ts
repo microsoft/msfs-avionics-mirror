@@ -1,6 +1,6 @@
-import { GeoProjection } from '../..';
-import { LodBoundary, LodBoundaryShape } from '../../navigation';
+import { GeoProjection } from '../../geo';
 import { PathStream } from '../../graphics/path';
+import { LodBoundary, LodBoundaryShape } from '../../navigation';
 
 /**
  * Renders an airspace to canvas.

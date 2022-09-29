@@ -1,4 +1,5 @@
-import { EventBus } from 'msfssdk/data';
+import { EventBus } from 'msfssdk';
+
 import { BasicAvionicsSystem } from './BasicAvionicsSystem';
 import { AvionicsSystemStateEvent } from './G1000AvionicsSystem';
 

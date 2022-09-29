@@ -1,11 +1,11 @@
-import { Subject } from 'msfssdk';
-import { FlightPathCalculator, FlightPlan } from 'msfssdk/flightplan';
-import { AirportFacility } from 'msfssdk/navigation';
-import { Fms, ProcedureType, TransitionListItem } from 'garminsdk/flightplan';
+import { AirportFacility, FlightPathCalculator, FlightPlan, Subject } from 'msfssdk';
+
+import { Fms, ProcedureType, TransitionListItem } from 'garminsdk';
+
 import { FlightPlanFocus } from '../../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { SelectApproachController } from '../../../../../Shared/UI/Procedure/Approach/SelectApproachController';
 import { ApproachListItem } from '../../../../../Shared/UI/Procedure/Approach/SelectApproachStore';
-import { SelectControl } from '../../../../../Shared/UI/UiControls2/SelectControl';
+import { SelectControl2 } from '../../../../../Shared/UI/UiControls2/SelectControl';
 import { ViewService } from '../../../../../Shared/UI/ViewService';
 import { MFDSelectApproachStore } from './MFDSelectApproachStore';
 
@@ -59,11 +59,11 @@ export class MFDSelectApproachController extends SelectApproachController<MFDSel
   }
 
   /** @inheritdoc */
-  protected async onApproachSelectionClosed(source: SelectControl<ApproachListItem>, selectionMade: boolean): Promise<void> {
+  protected async onApproachSelectionClosed(source: SelectControl2<ApproachListItem>, selectionMade: boolean): Promise<void> {
     await super.onApproachSelectionClosed(source, selectionMade);
 
     if (!selectionMade) {
-      await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), this.store.selectedProcedure.get());
+      await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), this.store.selectedProcedure.get(), this.store.selectedTransition.get());
     }
   }
 
@@ -76,7 +76,7 @@ export class MFDSelectApproachController extends SelectApproachController<MFDSel
   /** @inheritdoc */
   protected async onApproachFocused(item: ApproachListItem): Promise<void> {
     await super.onApproachFocused(item);
-    await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), item);
+    await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), item, this.store.selectedTransition.get());
   }
 
   /** @inheritdoc */
@@ -88,9 +88,8 @@ export class MFDSelectApproachController extends SelectApproachController<MFDSel
   /** @inheritdoc */
   protected async onTransFocused(item: TransitionListItem): Promise<void> {
     await super.onTransFocused(item);
-    if (!this.store.transitionPreviewPlan.get()) {
-      await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), this.store.selectedProcedure.get());
-    }
+
+    await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), this.store.selectedProcedure.get(), item);
   }
 
   /**
@@ -107,11 +106,16 @@ export class MFDSelectApproachController extends SelectApproachController<MFDSel
    * Builds a transition preview flight plan.
    * @param airport The airport of the approach containing the transitions to preview.
    * @param approach The approach containing the transitions to preview.
+   * @param transition The currently selected transition.
    */
-  private async buildTransitionPreviewPlan(airport?: AirportFacility, approach?: ApproachListItem): Promise<void> {
+  private async buildTransitionPreviewPlan(airport?: AirportFacility, approach?: ApproachListItem, transition?: TransitionListItem): Promise<void> {
     if (airport && approach && approach.index >= 0 && !approach.isVisualApproach) {
       const opId = ++this.transitionPreviewOpId;
-      const plan = await this.fms.buildProcedureTransitionPreviewPlan(this.calculator, airport, ProcedureType.APPROACH, approach.index);
+
+      const plan = await this.fms.buildProcedureTransitionPreviewPlan(
+        this.calculator, airport, ProcedureType.APPROACH, approach.index, transition?.transitionIndex ?? -1
+      );
+
       if (opId === this.transitionPreviewOpId) {
         this.store.transitionPreviewPlan.set(plan.length > 0 ? plan : null);
       }

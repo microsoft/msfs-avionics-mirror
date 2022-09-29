@@ -1,4 +1,4 @@
-import { Vec2Math, VecNSubject } from '../..';
+import { Vec2Math, VecNSubject } from '../../math';
 import { AffineTransformPathStream } from './AffineTransformPathStream';
 import { ClippedPathStream } from './ClippedPathStream';
 import { PathStream, TransformingPathStream } from './PathStream';

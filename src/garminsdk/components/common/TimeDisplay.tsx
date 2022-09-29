@@ -1,4 +1,6 @@
-import { ComponentProps, DisplayComponent, FSComponent, MappedSubscribable, Subject, Subscribable, SubscribableMapFunctions, SubscribableSet, Subscription, VNode } from 'msfssdk';
+import {
+  ComponentProps, DisplayComponent, FSComponent, MappedSubscribable, Subject, Subscribable, SubscribableMapFunctions, SubscribableSet, Subscription, VNode
+} from 'msfssdk';
 
 /**
  * Time display formats.

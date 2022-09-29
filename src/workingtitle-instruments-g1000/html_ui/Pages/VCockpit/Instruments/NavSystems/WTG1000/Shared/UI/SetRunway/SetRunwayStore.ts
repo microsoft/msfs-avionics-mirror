@@ -1,5 +1,4 @@
-import { ArraySubject, Subscribable, Subject } from 'msfssdk';
-import { AirportFacility, ICAO, OneWayRunway, RunwayUtils } from 'msfssdk/navigation';
+import { AirportFacility, ArraySubject, ICAO, OneWayRunway, RunwayUtils, Subject, Subscribable } from 'msfssdk';
 
 /**
  *

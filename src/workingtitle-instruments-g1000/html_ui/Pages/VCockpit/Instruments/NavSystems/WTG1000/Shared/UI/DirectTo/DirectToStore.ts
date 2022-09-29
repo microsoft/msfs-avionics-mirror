@@ -1,5 +1,4 @@
-import { GeoPointInterface, Subject, Subscribable } from 'msfssdk';
-import { Facility, FacilityWaypoint, Waypoint } from 'msfssdk/navigation';
+import { Facility, FacilityWaypoint, GeoPointInterface, Subject, Subscribable, Waypoint } from 'msfssdk';
 
 import { WaypointInfoStore } from '../Waypoint/WaypointInfoStore';
 

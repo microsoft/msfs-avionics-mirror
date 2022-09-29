@@ -1,7 +1,6 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus, Consumer, ControlPublisher } from 'msfssdk/data';
-import { ADCEvents, GNSSEvents } from 'msfssdk/instruments';
-import { FacilityLoader } from 'msfssdk/navigation';
+import { AhrsEvents, Consumer, ControlPublisher, EventBus, FacilityLoader, FSComponent, GNSSEvents, Subject, VNode } from 'msfssdk';
+
+import { GarminFacilityWaypointCache } from 'garminsdk';
 
 import { NearestAirportSearchSettings } from '../../../Shared/NearestAirportSearchSettings';
 import { NearestController } from '../../../Shared/UI/Controllers/NearestController';
@@ -10,7 +9,7 @@ import { FmsHEvent } from '../../../Shared/UI/FmsHEvent';
 import { List } from '../../../Shared/UI/List';
 import { ScrollBar } from '../../../Shared/UI/ScrollBar';
 import { UiControl } from '../../../Shared/UI/UiControl';
-import { UiViewProps, UiView } from '../../../Shared/UI/UiView';
+import { UiView, UiViewProps } from '../../../Shared/UI/UiView';
 import { NearestAirportItem } from './NearestAirportItem';
 
 import './Nearest.css';
@@ -58,7 +57,7 @@ export class Nearest extends UiView<NearestProps> {
     this.publisher = this.props.publisher;
     this.controller = new NearestController(this.store, this.publisher, this.props.viewService);
     this.planePosConsumer = this.props.bus.getSubscriber<GNSSEvents>().on('gps-position').atFrequency(1);
-    this.planeHeadingConsumer = this.props.bus.getSubscriber<ADCEvents>().on('hdg_deg_true').atFrequency(1);
+    this.planeHeadingConsumer = this.props.bus.getSubscriber<AhrsEvents>().on('hdg_deg_true').atFrequency(1);
     this.searchSettings.whenSettingChanged('runwayLength').handle(v => {
       this.store.setFilter(this.runwayLength = v, this.surfaceType);
     });
@@ -135,7 +134,10 @@ export class Nearest extends UiView<NearestProps> {
   public buildNearestItem = (data: Subject<NearbyAirport>, registerFn: (ctrl: UiControl) => void): VNode => {
     return (
       <NearestAirportItem
-        onRegister={registerFn} data={data} planeHeading={this.store.planeHeading}
+        onRegister={registerFn}
+        data={data}
+        facWaypointCache={GarminFacilityWaypointCache.getCache(this.props.bus)}
+        planeHeading={this.store.planeHeading}
         directToHandler={this.controller.onDirectIdentHandler}
         frequencyHandler={this.controller.onEnterFreqHandler}
       />

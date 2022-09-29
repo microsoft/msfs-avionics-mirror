@@ -1,10 +1,10 @@
-import { FSComponent, SubscribableArray, VNode } from 'msfssdk';
+import { FocusPosition, FSComponent, SubscribableArray, VNode } from 'msfssdk';
+
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
-import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../Shared/UI/G1000UiControl';
+import { G1000ControlList, G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
+import { UiControl } from '../../../../Shared/UI/UiControl';
 import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
 import { AlertMessage } from './AlertsSubject';
-import { UiControl } from '../../../../Shared/UI/UiControl';
-import { FocusPosition } from 'msfssdk/components/controls';
 
 import './Alerts.css';
 

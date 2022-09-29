@@ -1,7 +1,7 @@
 /// <reference types="msfstypes/Pages/VCockpit/Instruments/Shared/utils/XMLLogic" />
 
-import { XMLGaugeStyle } from '.';
 import { ComponentProps } from '../FSComponent';
+import { XMLGaugeStyle } from './';
 
 /** Props for an XML text element. */
 export interface XMLTextElementProps extends ComponentProps {

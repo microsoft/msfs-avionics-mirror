@@ -1,16 +1,15 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { FacilityLoader, FacilityRepository } from 'msfssdk/navigation';
-import { FocusPosition } from 'msfssdk/components/controls';
-import { ViewService } from '../../../../Shared/UI/ViewService';
-import { Fms } from 'garminsdk/flightplan';
-import { MFDFPLDetails } from './MFDFPLDetails';
-import { GroupBox } from '../GroupBox';
-import { MFDFPLVNavProfile } from './MFDFPLVNavProfile';
-import { FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
-import { MFDFPLWeather } from './MFDFPLWeather';
-import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
+import { EventBus, FacilityLoader, FacilityRepository, FocusPosition, FSComponent, Subject, VNode } from 'msfssdk';
+
+import { Fms } from 'garminsdk';
+
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
+import { FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
+import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
+import { ViewService } from '../../../../Shared/UI/ViewService';
+import { GroupBox } from '../GroupBox';
+import { MFDFPLDetails } from './MFDFPLDetails';
+import { MFDFPLVNavProfile } from './MFDFPLVNavProfile';
+import { MFDFPLWeather } from './MFDFPLWeather';
 
 import './MFDFPL.css';
 

@@ -1,4 +1,5 @@
 import { ComponentProps, DisplayComponent, NavMath, NodeReference } from 'msfssdk';
+
 import { NeedleAnimator } from './NeedleAnimator';
 
 /**

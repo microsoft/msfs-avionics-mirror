@@ -1,10 +1,11 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { MathUtils, UnitType, NavMath, SimpleMovingAverage } from '../../';
 import { EventBus, SimVarValueType } from '../../data';
-import { ADCEvents } from '../../instruments';
+import { NavMath } from '../../geo';
+import { AdcEvents } from '../../instruments';
+import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
 import { APValues } from '../APConfig';
-import { PlaneDirector, DirectorState } from '../PlaneDirector';
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * An altitude hold autopilot director.
@@ -33,11 +34,11 @@ export class APAltDirector implements PlaneDirector {
   constructor(private readonly bus: EventBus, apValues: APValues) {
     this.state = DirectorState.Inactive;
 
-    this.bus.getSubscriber<ADCEvents>().on('tas').withPrecision(0).handle((tas) => {
+    this.bus.getSubscriber<AdcEvents>().on('tas').withPrecision(0).handle((tas) => {
       this.tas = tas;
     });
 
-    this.bus.getSubscriber<ADCEvents>().on('alt').withPrecision(0).handle((alt) => {
+    this.bus.getSubscriber<AdcEvents>().on('indicated_alt').withPrecision(0).handle((alt) => {
       this.indicatedAltitude = alt;
     });
 

@@ -1,4 +1,5 @@
-import { GeoPoint, LatLonInterface, ReadonlyFloat64Array, Vec3Math } from '../..';
+import { GeoPoint, LatLonInterface } from '../../geo';
+import { ReadonlyFloat64Array, Vec3Math } from '../../math';
 import { KdTree } from './KdTree';
 
 /**
@@ -207,6 +208,18 @@ export class GeoKdTree<T> {
    */
   public removeAll(elements: Iterable<T>): boolean {
     return this.cartesianTree.removeAll(elements);
+  }
+
+  /**
+   * Removes elements from this tree, then inserts elements into this tree as a single operation. The tree will be
+   * rebalanced at the end of the operation.
+   *
+   * Using this method is more efficient than calling `removeAll()` and `insertAll()` separately.
+   * @param toRemove An iterable of the elements to remove.
+   * @param toInsert An iterable of the elements to insert.
+   */
+  public removeAndInsert(toRemove: Iterable<T>, toInsert: Iterable<T>): void {
+    this.cartesianTree.removeAndInsert(toRemove, toInsert);
   }
 
   /**

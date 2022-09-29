@@ -1,11 +1,12 @@
 import { ReadonlyFloat64Array, Vec2Math } from './VecMath';
 
+/** A readonly 2D affine transformation. */
+export type ReadonlyTransform2D = Pick<Transform2D, 'getParameters' | 'apply' | 'copy'>;
+
 /**
  * A 2D affine transformation. By default, Transform2D objects are initially created as identity transformations.
  */
 export class Transform2D {
-  private static readonly transformCache = [new Transform2D(), new Transform2D(), new Transform2D(), new Transform2D()];
-
   private readonly array = new Float64Array([1, 0, 0, 0, 1, 0]);
 
   /**
@@ -31,9 +32,9 @@ export class Transform2D {
    * Sets the parameters of this transformation from another transformation.
    * @param transform The transformation from which to take parameters.
    */
-  public set(transform: Transform2D): this;
+  public set(transform: ReadonlyTransform2D): this;
   // eslint-disable-next-line jsdoc/require-jsdoc
-  public set(arg1: number | Transform2D, skewX?: number, translateX?: number, skewY?: number, scaleY?: number, translateY?: number): this {
+  public set(arg1: number | ReadonlyTransform2D, skewX?: number, translateX?: number, skewY?: number, scaleY?: number, translateY?: number): this {
     let scaleX = arg1;
     if (arg1 instanceof Transform2D) {
       [scaleX, skewX, translateX, skewY, scaleY, translateY] = arg1.array;
@@ -183,6 +184,8 @@ export class Transform2D {
     return Vec2Math.set(x, y, out);
   }
 
+  private static readonly offsetOriginCache = [new Transform2D(), undefined, new Transform2D()] as Transform2D[];
+
   /**
    * Changes this transformation to the one that is the result of offsetting this transformation's origin.
    * @param x The x-coordinate of the offset origin.
@@ -190,7 +193,11 @@ export class Transform2D {
    * @returns This transformation, after it has been changed.
    */
   public offsetOrigin(x: number, y: number): this {
-    return Transform2D.concat(this, Transform2D.transformCache[2].toTranslation(-x, -y), this, Transform2D.transformCache[3].toTranslation(x, y));
+    Transform2D.offsetOriginCache[0].toTranslation(-x, -y);
+    Transform2D.offsetOriginCache[1] = this;
+    Transform2D.offsetOriginCache[2].toTranslation(x, y);
+
+    return Transform2D.concat(this, Transform2D.offsetOriginCache);
   }
 
   /**
@@ -288,6 +295,8 @@ export class Transform2D {
     return this;
   }
 
+  private static readonly concatCache = [new Transform2D(), new Transform2D()];
+
   /**
    * Concatenates one or more transformations and returns the result. Concatenating transformations `[A, B, ...]`
    * results in a transformation that is equivalent to first applying `A`, then applying `B`, etc. Note that this order
@@ -299,7 +308,7 @@ export class Transform2D {
    * @param transforms The transformations to concatenate, in order.
    * @returns The result of concatenating all transformations in `transforms`.
    */
-  public static concat<T extends Transform2D>(out: T, ...transforms: Transform2D[]): T {
+  public static concat<T extends Transform2D>(out: T, transforms: readonly ReadonlyTransform2D[]): T {
     if (transforms.length === 0) {
       return out.toIdentity();
     }
@@ -310,15 +319,15 @@ export class Transform2D {
 
     let index = 0;
     let next = transforms[index];
-    const oldTransform = Transform2D.transformCache[0];
-    const newTransform = Transform2D.transformCache[1].set(next);
+    const oldTransform = Transform2D.concatCache[0];
+    const newTransform = Transform2D.concatCache[1].set(next);
     const oldArray = oldTransform.array;
     const newArray = newTransform.array;
 
     const end = transforms.length;
     while (++index < end) {
       next = transforms[index];
-      const nextArray = next.array;
+      const nextArray = (next as Transform2D).array;
       oldTransform.set(newTransform);
 
       for (let i = 0; i < 3; i++) {

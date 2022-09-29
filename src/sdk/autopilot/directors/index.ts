@@ -9,5 +9,7 @@ export * from './APPitchDirector';
 export * from './APRollDirector';
 export * from './APVSDirector';
 export * from './LNavDirector';
+export * from './APBackCourseDirector';
 export * from './APLvlDirector';
 export * from './APVNavPathDirector';
+export * from './PlaneDirector';

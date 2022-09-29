@@ -1,14 +1,15 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { LatLonDisplay } from 'msfssdk/components/common';
-import { MapModel } from 'msfssdk/components/map';
+import { CompiledMapSystem, FSComponent, LatLonDisplay, MapIndexedRangeModule, MapSystemBuilder, MathUtils, Vec2Math, VecNMath, VNode } from 'msfssdk';
 
-import { GroupBox } from '../GroupBox';
+import {
+  GarminMapKeys, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapRangeController, MapWaypointHighlightModule, UnitsUserSettings
+} from 'garminsdk';
+
+import { MapBuilder } from '../../../../Shared/Map/MapBuilder';
+import { MapUserSettings } from '../../../../Shared/Map/MapUserSettings';
+import { MapWaypointIconImageCache } from '../../../../Shared/Map/MapWaypointIconImageCache';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
 import { WptInfo } from '../../../../Shared/UI/WptInfo/WptInfo';
-import { WaypointMapComponent, WaypointMapRangeTargetRotationController } from '../../../../Shared/UI/WaypointMap/WaypointMapComponent';
-import { WaypointMapModel, WaypointMapModelModules } from '../../../../Shared/UI/WaypointMap/WaypointMapModel';
-import { MapPointerController } from '../../../../Shared/Map/Controllers/MapPointerController';
-import { MapPointerInfoLayerSize } from '../../../../Shared/Map/Layers/MapPointerInfoLayer';
+import { GroupBox } from '../GroupBox';
 
 import './MFDWptInfo.css';
 
@@ -16,33 +17,76 @@ import './MFDWptInfo.css';
  * The MFD waypoint info popout.
  */
 export class MFDWptInfo extends WptInfo {
+  private static readonly DEFAULT_MAP_RANGE_INDEX = 14;
   private static readonly MAP_UPDATE_FREQ = 30; // Hz
   private static readonly MAP_DATA_UPDATE_FREQ = 4; // Hz
   private static readonly POINTER_MOVE_INCREMENT = 2; // pixels
 
-  private readonly mapRef = FSComponent.createRef<WaypointMapComponent>();
+  private readonly mapSettingManager = MapUserSettings.getMfdManager(this.props.bus);
 
-  private readonly mapModel = this.createMapModel();
-  private readonly pointerModule = this.mapModel.getModule('pointer');
+  private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
+    .with(MapBuilder.waypointMap, {
+      bingId: 'mfd-wptinfo-map',
+      dataUpdateFreq: MFDWptInfo.MAP_DATA_UPDATE_FREQ,
 
-  private readonly mapRangeIndexSub = Subject.create(WaypointMapRangeTargetRotationController.DEFAULT_MAP_RANGE_INDEX);
+      boundsOffset: VecNMath.create(4, 20, 20, 20, 20),
 
-  private mapPointerController?: MapPointerController;
+      waypointIconImageCache: MapWaypointIconImageCache.getCache(),
 
-  /**
-   * Creates the model for this component's map.
-   * @returns a map model.
-   */
-  private createMapModel(): MapModel<WaypointMapModelModules> {
-    return WaypointMapModel.createModel(this.props.bus);
-  }
+      rangeRingOptions: {
+        showLabel: true
+      },
+
+      ...MapBuilder.ownAirplaneIconOptions(),
+
+      pointerBoundsOffset: VecNMath.create(4, 0.1, 0.1, 0.1, 0.1),
+      pointerInfoSize: MapPointerInfoLayerSize.Medium,
+
+      miniCompassImgSrc: MapBuilder.miniCompassIconSrc(),
+
+      settingManager: this.mapSettingManager as any,
+      unitsSettingManager: UnitsUserSettings.getManager(this.props.bus)
+    })
+    .withProjectedSize(Vec2Math.create(290, 300))
+    .withClockUpdate(MFDWptInfo.MAP_UPDATE_FREQ)
+    .build('mfd-wptinfomap') as CompiledMapSystem<
+      {
+        /** The range module. */
+        [GarminMapKeys.Range]: MapIndexedRangeModule;
+
+        /** The pointer module. */
+        [GarminMapKeys.WaypointHighlight]: MapWaypointHighlightModule;
+
+        /** The pointer module. */
+        [GarminMapKeys.Pointer]: MapPointerModule;
+      },
+      any,
+      {
+        /** The range controller. */
+        [GarminMapKeys.Range]: MapRangeController;
+
+        /** The pointer controller. */
+        [GarminMapKeys.Pointer]: MapPointerController;
+      },
+      any
+    >;
+
+  private readonly mapRangeModule = this.compiledMap.context.model.getModule(GarminMapKeys.Range);
+  private readonly mapHighlightModule = this.compiledMap.context.model.getModule(GarminMapKeys.WaypointHighlight);
+  private readonly mapPointerModule = this.compiledMap.context.model.getModule(GarminMapKeys.Pointer);
+
+  private readonly mapRangeController = this.compiledMap.context.getController(GarminMapKeys.Range);
+  private readonly mapPointerController = this.compiledMap.context.getController(GarminMapKeys.Pointer);
 
   // eslint-disable-next-line jsdoc/require-jsdoc
   public onAfterRender(node: VNode): void {
     super.onAfterRender(node);
 
-    this.mapPointerController = new MapPointerController(this.mapModel, this.mapRef.instance.mapProjection);
-    this.mapRef.instance.sleep();
+    this.compiledMap.ref.instance.sleep();
+
+    this.mapRangeController.setRangeIndex(MFDWptInfo.DEFAULT_MAP_RANGE_INDEX);
+
+    this.store.waypoint.pipe(this.mapHighlightModule.waypoint);
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc
@@ -55,7 +99,7 @@ export class MFDWptInfo extends WptInfo {
         this.changeMapRangeIndex(1);
         return true;
       case FmsHEvent.JOYSTICK_PUSH:
-        this.mapPointerController?.togglePointerActive();
+        this.mapPointerController.togglePointerActive();
         return true;
     }
 
@@ -67,12 +111,12 @@ export class MFDWptInfo extends WptInfo {
    * @param delta The change in index to apply.
    */
   private changeMapRangeIndex(delta: number): void {
-    const currentIndex = this.mapRangeIndexSub.get();
-    const newIndex = Utils.Clamp(currentIndex + delta, 0, WaypointMapRangeTargetRotationController.DEFAULT_MAP_RANGES.length - 1);
+    const currentIndex = this.mapRangeModule.nominalRangeIndex.get();
+    const newIndex = MathUtils.clamp(currentIndex + delta, 0, this.mapRangeModule.nominalRanges.get().length - 1);
 
-    if (currentIndex !== newIndex) {
-      this.mapPointerController?.targetPointer();
-      this.mapRangeIndexSub.set(newIndex);
+    if (newIndex !== currentIndex) {
+      this.mapPointerController.targetPointer();
+      this.mapRangeController.setRangeIndex(newIndex);
     }
   }
 
@@ -82,22 +126,22 @@ export class MFDWptInfo extends WptInfo {
    * @returns Whether the event was handled.
    */
   private handleMapPointerMoveEvent(evt: FmsHEvent): boolean {
-    if (!this.pointerModule.isActive.get()) {
+    if (!this.mapPointerModule.isActive.get()) {
       return false;
     }
 
     switch (evt) {
       case FmsHEvent.JOYSTICK_LEFT:
-        this.mapPointerController?.movePointer(-MFDWptInfo.POINTER_MOVE_INCREMENT, 0);
+        this.mapPointerController.movePointer(-MFDWptInfo.POINTER_MOVE_INCREMENT, 0);
         return true;
       case FmsHEvent.JOYSTICK_UP:
-        this.mapPointerController?.movePointer(0, -MFDWptInfo.POINTER_MOVE_INCREMENT);
+        this.mapPointerController.movePointer(0, -MFDWptInfo.POINTER_MOVE_INCREMENT);
         return true;
       case FmsHEvent.JOYSTICK_RIGHT:
-        this.mapPointerController?.movePointer(MFDWptInfo.POINTER_MOVE_INCREMENT, 0);
+        this.mapPointerController.movePointer(MFDWptInfo.POINTER_MOVE_INCREMENT, 0);
         return true;
       case FmsHEvent.JOYSTICK_DOWN:
-        this.mapPointerController?.movePointer(0, MFDWptInfo.POINTER_MOVE_INCREMENT);
+        this.mapPointerController.movePointer(0, MFDWptInfo.POINTER_MOVE_INCREMENT);
         return true;
     }
 
@@ -113,16 +157,16 @@ export class MFDWptInfo extends WptInfo {
   protected onViewOpened(): void {
     super.onViewOpened();
 
-    this.mapRef.instance.wake();
+    this.compiledMap.ref.instance.wake();
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc
   protected onViewClosed(): void {
     super.onViewClosed();
 
-    this.mapPointerController?.setPointerActive(false);
-    this.mapRef.instance.sleep();
-    this.mapRangeIndexSub.set(WaypointMapRangeTargetRotationController.DEFAULT_MAP_RANGE_INDEX);
+    this.mapPointerController.setPointerActive(false);
+    this.compiledMap.ref.instance.sleep();
+    this.mapRangeController.setRangeIndex(MFDWptInfo.DEFAULT_MAP_RANGE_INDEX);
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc
@@ -134,22 +178,7 @@ export class MFDWptInfo extends WptInfo {
           {this.renderWaypointInput()}
         </GroupBox>
         <GroupBox title="Map" class='mfd-wptinfo-map-box'>
-          <WaypointMapComponent
-            ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
-            updateFreq={Subject.create(MFDWptInfo.MAP_UPDATE_FREQ)}
-            dataUpdateFreq={Subject.create(MFDWptInfo.MAP_DATA_UPDATE_FREQ)}
-            projectedWidth={290} projectedHeight={300}
-            pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
-            bingId='mfd_wptinfo_map'
-            rangeIndex={this.mapRangeIndexSub}
-            waypoint={this.store.waypoint}
-            ownAirplaneLayerProps={{
-              imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
-              iconSize: 40,
-              iconAnchor: new Float64Array([0.5, 0])
-            }}
-            pointerInfoSize={MapPointerInfoLayerSize.Medium}
-          />
+          {this.compiledMap.map}
         </GroupBox>
         <GroupBox title="Location">
           <div class='mfd-wptinfo-loc'>

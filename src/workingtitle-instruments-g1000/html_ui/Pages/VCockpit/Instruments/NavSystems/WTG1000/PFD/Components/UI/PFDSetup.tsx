@@ -1,20 +1,20 @@
-import { ArraySubject, ComponentProps, DisplayComponent, FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { UserSettingManager } from 'msfssdk/settings';
+import { ArraySubject, ComponentProps, DisplayComponent, EventBus, FSComponent, Subject, UserSettingManager, VNode } from 'msfssdk';
 
-import { UiViewProps, UiView } from '../../../Shared/UI/UiView';
+import {
+  BacklightIntensitySettingName, BacklightMode, BacklightModeSettingName, BacklightUserSettings, BacklightUserSettingTypes
+} from '../../../Shared/Backlight/BacklightUserSettings';
+import { ContextMenuDialog, ContextMenuItemDefinition } from '../../../Shared/UI/Dialogs/ContextMenuDialog';
+import { UiControl } from '../../../Shared/UI/UiControl';
 import { ArrowToggle } from '../../../Shared/UI/UIControls/ArrowToggle';
 import { SelectControl } from '../../../Shared/UI/UIControls/SelectControl';
-import { UiControl } from '../../../Shared/UI/UiControl';
-import { ContextMenuDialog, ContextMenuItemDefinition } from '../../../Shared/UI/Dialogs/ContextMenuDialog';
-import { BacklightIntensitySettingName, BacklightMode, BacklightModeSettingName, BacklightUserSettings, BacklightUserSettingTypes } from '../../../Shared/Backlight/BacklightUserSettings';
-import { UserSettingSelectController } from '../../../Shared/UI/UserSettings/UserSettingSelectController';
-import { UserSettingNumberController } from '../../../Shared/UI/UserSettings/UserSettingNumberController';
-import { G1000UiControlWrapper } from '../../../Shared/UI/UiControls2/G1000UiControlWrapper';
 import { DigitInput } from '../../../Shared/UI/UiControls2/DigitInput';
+import { G1000UiControlWrapper } from '../../../Shared/UI/UiControls2/G1000UiControlWrapper';
+import { UiView, UiViewProps } from '../../../Shared/UI/UiView';
+import { UserSettingNumberController } from '../../../Shared/UI/UserSettings/UserSettingNumberController';
+import { UserSettingSelectController } from '../../../Shared/UI/UserSettings/UserSettingSelectController';
+import { ViewService } from '../../../Shared/UI/ViewService';
 
 import './PFDSetup.css';
-import { ViewService } from '../../../Shared/UI/ViewService';
 
 /**Options for controlling the brightness of an item. */
 interface ItemBrightnessOptions extends ComponentProps {

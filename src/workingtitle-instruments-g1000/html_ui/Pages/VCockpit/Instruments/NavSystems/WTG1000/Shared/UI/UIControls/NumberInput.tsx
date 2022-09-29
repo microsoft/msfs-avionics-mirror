@@ -1,4 +1,5 @@
 import { FSComponent, Subject, VNode } from 'msfssdk';
+
 import { UiControl, UiControlProps } from '../UiControl';
 
 import './NumberInput.css';

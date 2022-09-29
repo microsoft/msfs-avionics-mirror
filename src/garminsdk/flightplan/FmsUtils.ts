@@ -1,8 +1,9 @@
 
-import { BitFlags, GeoCircle, GeoPoint, MagVar, UnitType } from 'msfssdk';
-import { AdditionalApproachType, AirportFacility, AltitudeRestrictionType, ApproachProcedure, ArrivalProcedure, DepartureProcedure, FacilityFrequency, FixTypeFlags, FlightPlanLeg, ICAO, LegType, OneWayRunway, RnavTypeFlags, RunwayUtils } from 'msfssdk/navigation';
-import { FlightPlan, FlightPlanSegmentType, LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
-
+import {
+  AdditionalApproachType, AirportFacility, AltitudeRestrictionType, ApproachProcedure, ArrivalProcedure, BitFlags, DepartureProcedure, FacilityFrequency,
+  FixTypeFlags, FlightPlan, FlightPlanLeg, FlightPlanSegmentType, GeoCircle, GeoPoint, ICAO, LegDefinition, LegDefinitionFlags, LegType, MagVar, OneWayRunway,
+  RnavTypeFlags, RunwayUtils, UnitType
+} from 'msfssdk';
 
 /**
  * Utility Methods for the FMS.
@@ -420,12 +421,21 @@ export class FmsUtils {
    */
   public static getApproachFrequency(facility?: AirportFacility, approachIndex?: number): FacilityFrequency | undefined {
     const approach = facility?.approaches[approachIndex ?? -1];
-    if (approach && (approach.approachType === ApproachType.APPROACH_TYPE_ILS
-      || approach.approachType === ApproachType.APPROACH_TYPE_LOCALIZER
-      || approach.approachType === ApproachType.APPROACH_TYPE_LDA
-      || approach.approachType === ApproachType.APPROACH_TYPE_SDF)) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const freq = RunwayUtils.getLocFrequency(facility!, approach.runwayNumber, approach.runwayDesignator);
+    let freq = undefined;
+    if (approach) {
+      switch (approach.approachType) {
+        case ApproachType.APPROACH_TYPE_ILS:
+        case ApproachType.APPROACH_TYPE_LOCALIZER:
+        case ApproachType.APPROACH_TYPE_LDA:
+        case ApproachType.APPROACH_TYPE_SDF:
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          freq = RunwayUtils.getLocFrequency(facility!, approach.runwayNumber, approach.runwayDesignator);
+          break;
+        case ApproachType.APPROACH_TYPE_LOCALIZER_BACK_COURSE:
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          freq = RunwayUtils.getBcFrequency(facility!, approach.runwayNumber, approach.runwayDesignator);
+          break;
+      }
       return freq;
     } else {
       return undefined;

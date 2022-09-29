@@ -1,8 +1,9 @@
-import { ListMenuDialog } from '../../../Shared/UI/Dialogs/ListMenuDialog';
 import { FSComponent, VNode } from 'msfssdk';
+
+import { GroupBox } from '../../../MFD/Components/UI/GroupBox';
+import { ListMenuDialog } from '../../../Shared/UI/Dialogs/ListMenuDialog';
 import { List } from '../../../Shared/UI/List';
 import { ScrollBar } from '../../../Shared/UI/ScrollBar';
-import { GroupBox } from '../../../MFD/Components/UI/GroupBox';
 
 import './PFDPageMenuDialog.css';
 

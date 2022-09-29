@@ -1,4 +1,4 @@
-import { MathUtils } from '../..';
+import { MathUtils } from '../../math';
 import { SortedArray } from './SortedArray';
 
 /**
@@ -46,9 +46,9 @@ export class LerpLookupTable {
    * greater than `N`, all keys after index `N - 1` will be ignored. If the table ends up with zero dimensions, it will
    * be initialized to an empty table.
    */
-  constructor(breakpoints: number[][]);
+  constructor(breakpoints: readonly (readonly number[])[]);
   // eslint-disable-next-line jsdoc/require-jsdoc
-  constructor(arg: number[][] | number) {
+  constructor(arg: readonly (readonly number[])[] | number) {
     if (typeof arg === 'number') {
       this._dimensionCount = isNaN(arg) ? 0 : Math.max(0, arg);
       return;
@@ -74,7 +74,7 @@ export class LerpLookupTable {
    * @returns This table, after the breakpoint has been inserted.
    * @throws Error if this table has zero dimensions, or the breakpoint has fewer dimensions than this table.
    */
-  public insertBreakpoint(breakpoint: number[]): this {
+  public insertBreakpoint(breakpoint: readonly number[]): this {
     if (this._dimensionCount === 0) {
       throw new Error('LerpLookupTable: cannot insert a breakpoint into a 0-dimensional table');
     }
@@ -93,7 +93,7 @@ export class LerpLookupTable {
    * @param dimension The current dimension being evaluated.
    * @param array The array of dimensional breakpoints into which the breakpoint should be inserted.
    */
-  private insertBreakpointHelper(breakpoint: number[], dimension: number, array: SortedArray<DimensionalBreakpoint>): void {
+  private insertBreakpointHelper(breakpoint: readonly number[], dimension: number, array: SortedArray<DimensionalBreakpoint>): void {
     const dimensionKey = breakpoint[dimension + 1];
     const query = LerpLookupTable.tempBreakpoint;
     query.key = dimensionKey;

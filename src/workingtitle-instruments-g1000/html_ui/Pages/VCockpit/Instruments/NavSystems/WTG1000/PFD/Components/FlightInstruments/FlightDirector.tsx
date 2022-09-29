@@ -1,13 +1,11 @@
-import { FSComponent, DisplayComponent, VNode, MathUtils, SimpleMovingAverage } from 'msfssdk';
-import { Consumer, EventBus } from 'msfssdk/data';
-import { APEvents, ADCEvents, ClockEvents } from 'msfssdk/instruments';
-import { LinearServo } from 'msfssdk/utils/controllers';
+import {
+  AhrsEvents, APEvents, ClockEvents, Consumer, DisplayComponent, EventBus, FSComponent, LinearServo, MathUtils, SimpleMovingAverage, VNode
+} from 'msfssdk';
 
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 import { PFDUserSettings } from '../../PFDUserSettings';
 
 import './FlightDirector.css';
-
 
 /**
  * The properties for the flight director component.
@@ -57,9 +55,9 @@ export class FlightDirector extends DisplayComponent<FlightDirectorProps> {
   /** @inheritdoc */
   constructor(props: FlightDirectorProps) {
     super(props);
-    const subscriber = this.props.bus.getSubscriber<APEvents & ADCEvents>();
+    const subscriber = this.props.bus.getSubscriber<APEvents & AhrsEvents>();
 
-    this.fdStateConsumer = subscriber.on('flight_director_is_active').whenChanged();
+    this.fdStateConsumer = subscriber.on('flight_director_is_active_1').whenChanged();
     this.fdPitchConsumer = subscriber.on('flight_director_pitch').withPrecision(2);
     this.fdBankConsumer = subscriber.on('flight_director_bank').withPrecision(2);
     this.pitchConsumer = subscriber.on('pitch_deg').withPrecision(2);

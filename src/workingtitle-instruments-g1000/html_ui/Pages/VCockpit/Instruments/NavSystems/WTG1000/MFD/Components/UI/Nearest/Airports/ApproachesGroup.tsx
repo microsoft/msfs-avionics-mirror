@@ -1,7 +1,7 @@
-import { ArraySubject, FSComponent, Subject, VNode } from 'msfssdk';
-import { AirportFacility, ApproachProcedure } from 'msfssdk/navigation';
+import { AirportFacility, ApproachProcedure, ArraySubject, FSComponent, Subject, VNode } from 'msfssdk';
+
 import { ApproachNameDisplay } from '../../../../../Shared/UI/FPL/ApproachNameDisplay';
-import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../../Shared/UI/G1000UiControl';
+import { G1000ControlList, G1000UiControl, G1000UiControlProps } from '../../../../../Shared/UI/G1000UiControl';
 import { GroupBox } from '../../GroupBox';
 
 import './ApproachesGroup.css';
@@ -9,7 +9,7 @@ import './ApproachesGroup.css';
 /**
  * Props on the ApproachesGroup component.
  */
-export interface ApproachesGroupProps extends G1000UiControlProps {
+export interface NearestAirportApproachesGroupProps extends G1000UiControlProps {
   /** A callback called when an approach is selected. */
   onSelected: (approach: ApproachProcedure | undefined) => void;
 }
@@ -18,7 +18,7 @@ export interface ApproachesGroupProps extends G1000UiControlProps {
  * A component that displays the available approaches on a nearest airport on
  * the MFD nearest airports page.
  */
-export class ApproachesGroup extends G1000UiControl<ApproachesGroupProps> {
+export class NearestAirportApproachesGroup extends G1000UiControl<NearestAirportApproachesGroupProps> {
   private readonly approaches = ArraySubject.create<ApproachProcedure>();
   private readonly approachList = FSComponent.createRef<G1000ControlList<ApproachProcedure>>();
   private facility: AirportFacility | undefined;

@@ -1,12 +1,14 @@
-import { ArraySubject, DisplayComponent, FSComponent, SubscribableMapFunctions, VNode } from 'msfssdk';
-import { ConsumerSubject } from 'msfssdk/data';
-import { GNSSEvents } from 'msfssdk/instruments';
+import { ArraySubject, ConsumerSubject, DisplayComponent, FSComponent, GNSSEvents, SubscribableMapFunctions, VNode } from 'msfssdk';
+
+import { MagVarDisplay } from '../../../../Shared/UI/Common/MagVarDisplay';
 import { ContextMenuItemDefinition } from '../../../../Shared/UI/Dialogs/ContextMenuDialog';
-import { UnitsAltitudeSettingMode, UnitsDistanceSettingMode, UnitsNavAngleSettingMode, UnitsTemperatureSettingMode, UnitsUserSettings, UnitsUserSettingTypes, UnitsWeightSettingMode } from '../../../../Shared/Units/UnitsUserSettings';
+import {
+  UnitsAltitudeSettingMode, UnitsDistanceSettingMode, UnitsNavAngleSettingMode, UnitsTemperatureSettingMode, UnitsUserSettings, UnitsUserSettingTypes,
+  UnitsWeightSettingMode
+} from '../../../../Shared/Units/UnitsUserSettings';
 import { GroupBox } from '../GroupBox';
 import { MFDSystemSetupGroupProps } from './MFDSystemSetupGroup';
 import { MFDSystemSetupGenericRow, MFDSystemSetupSelectRow } from './MFDSystemSetupRow';
-import { MagVarDisplay } from '../../../../Shared/UI/Common/MagVarDisplay';
 
 /**
  * The MFD System Setup page Display Units group.

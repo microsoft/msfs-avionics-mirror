@@ -65,7 +65,7 @@
   position: absolute;
   left: 0;
   top: 8%;
-  width: 100px;
+  width: 100%;
   height: 330px;
   overflow: hidden;
 }
@@ -334,4 +334,10 @@
 
 .failed-instr .alt-indicator-vnav-target {
   display: none;
+}
+
+.altimeter-ground-line {
+  width: 108px;
+  border: solid 1px var(--g3000-color-white);
+  background: #54360a url("/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/altimeter_ground_line_stripes.png");
 }

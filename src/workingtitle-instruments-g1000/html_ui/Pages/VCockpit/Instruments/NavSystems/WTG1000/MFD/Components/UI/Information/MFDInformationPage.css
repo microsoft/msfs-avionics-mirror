@@ -7,18 +7,10 @@
   font-family: Roboto-Bold;
 }
 
-.mfd-infomap .minicompass-layer {
+.mfd-infomap .map-minicompass {
   position: absolute;
   left: 5px;
   top: 80px;
-}
-
-.mfd-infomap .map-crosshair {
-  --map-crosshair-size: 10px;
-}
-
-.mfd-infomap .map-pointer {
-  --map-pointer-size: 25px;
 }
 
 .mfd-infomap .map-pointerinfolayer-box {
@@ -26,15 +18,21 @@
   left: 90px;
   top: 56px;
 }
-  .mfd-infomap .map-pointerinfolayer-box-dis {
-    width: 90px;
-  }
-  .mfd-infomap .map-pointerinfolayer-box-brg {
-    width: 75px;
-  }
 
-.mfd-infomap .map-orientation {
+.mfd-infomap .map-pointerinfolayer-box-dis {
+  width: 90px;
+}
+
+.mfd-infomap .map-pointerinfolayer-box-brg {
+  width: 75px;
+}
+
+.mfd-infomap .map-indicator-group-top-left {
   position: absolute;
   left: 0px;
   top: 56px;
+}
+
+.mfd-infomap .map-indicator-group-center {
+  top: 395px;
 }

@@ -1,5 +1,7 @@
-import { ArraySubject, Subject } from 'msfssdk';
-import { AirportFacility, ArrivalProcedure, DepartureProcedure, EnrouteTransition, OneWayRunway, RunwayTransition, RunwayUtils } from 'msfssdk/navigation';
+import {
+  AirportFacility, ArraySubject, ArrivalProcedure, DepartureProcedure, EnrouteTransition, OneWayRunway, RunwayTransition, RunwayUtils, Subject
+} from 'msfssdk';
+
 import { SelectProcedureStore } from '../SelectProcedureStore';
 
 /**

@@ -1,20 +1,30 @@
 import { EventBus } from '../../../data';
 import { LegDefinition } from '../../../flightplan';
-import { NullPathStream } from '../../../graphics/path';
-import { Facility, FacilityLoader, FacilityRepository, FacilityWaypointCache, FlightPathWaypoint, ICAO, LegType, Waypoint } from '../../../navigation';
+import { ClippedPathStream, NullPathStream } from '../../../graphics/path';
+import { VecNSubject } from '../../../math';
+import { DefaultFacilityWaypointCache, Facility, FacilityLoader, FacilityRepository, FlightPathWaypoint, ICAO, LegType, Waypoint } from '../../../navigation';
 import { FSComponent, VNode } from '../../FSComponent';
+import { GeoProjectionPathStreamStack } from '../../map/GeoProjectionPathStreamStack';
 import { MapCachedCanvasLayer } from '../../map/layers/MapCachedCanvasLayer';
 import { MapSyncedCanvasLayer } from '../../map/layers/MapSyncedCanvasLayer';
 import { MapLayer, MapLayerProps } from '../../map/MapLayer';
 import { MapProjection } from '../../map/MapProjection';
-import { GeoProjectionPathStreamStack } from '../../map/GeoProjectionPathStreamStack';
-import { MapSystemWaypointRoles } from '../MapSystemWaypointRoles';
+import { MapSystemKeys } from '../MapSystemKeys';
 import { MapSystemPlanRenderer } from '../MapSystemPlanRenderer';
+import { MapSystemWaypointRoles } from '../MapSystemWaypointRoles';
 import { MapSystemIconFactory, MapSystemLabelFactory, MapSystemWaypointsRenderer } from '../MapSystemWaypointsRenderer';
 import { MapFlightPlanModule } from '../modules/MapFlightPlanModule';
 
+/**
+ * Modules required by MapSystemFlightPlanLayer.
+ */
+export interface MapSystemFlightPlanLayerModules {
+  /** Flight plan module. */
+  [MapSystemKeys.FlightPlan]: MapFlightPlanModule;
+}
+
 /** Props on the MapSystemFlightPlanLayer component. */
-interface MapSystemFlightPlanLayerProps extends MapLayerProps<any> {
+export interface MapSystemFlightPlanLayerProps extends MapLayerProps<MapSystemFlightPlanLayerModules> {
   /** An instance of the event bus. */
   bus: EventBus
 
@@ -38,18 +48,22 @@ interface MapSystemFlightPlanLayerProps extends MapLayerProps<any> {
  * A map system layer that draws the flight plan.
  */
 export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerProps> {
+  private static readonly CLIP_BOUNDS_BUFFER = 10;
+
   protected readonly flightPathLayerRef = FSComponent.createRef<MapCachedCanvasLayer>();
   protected readonly waypointLayerRef = FSComponent.createRef<MapSyncedCanvasLayer>();
 
   protected readonly defaultRoleId = this.props.waypointRenderer.getRoleFromName(MapSystemWaypointRoles.FlightPlan) ?? 0;
-  protected readonly planModule = this.props.model.getModule(MapFlightPlanModule.name) as MapFlightPlanModule;
+  protected readonly planModule = this.props.model.getModule(MapSystemKeys.FlightPlan);
 
   protected readonly legWaypoints = new Map<LegDefinition, [Waypoint, number]>();
   protected waypointsUpdating = false;
 
   protected readonly facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
-  protected readonly facWaypointCache = FacilityWaypointCache.getCache();
+  protected readonly facWaypointCache = DefaultFacilityWaypointCache.getCache(this.props.bus);
 
+  protected readonly clipBounds = VecNSubject.create(new Float64Array(4));
+  protected readonly clippedPathStream = new ClippedPathStream(NullPathStream.INSTANCE, this.clipBounds);
   protected readonly pathStreamStack = new GeoProjectionPathStreamStack(NullPathStream.INSTANCE, this.props.mapProjection.getGeoProjection(), Math.PI / 12, 0.25, 8);
 
   protected updateScheduled = false;
@@ -59,6 +73,7 @@ export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerP
     this.flightPathLayerRef.instance.onAttached();
     this.waypointLayerRef.instance.onAttached();
 
+    this.pathStreamStack.pushPostProjected(this.clippedPathStream);
     this.pathStreamStack.setConsumer(this.flightPathLayerRef.instance.display.context);
 
     this.initWaypointRenderer();
@@ -122,6 +137,8 @@ export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerP
           this.pathStreamStack.setProjection(display.geoProjection);
           this.props.flightPathRenderer.render(plan, undefined, undefined, context, this.pathStreamStack);
         }
+
+        this.updateScheduled = false;
       }
     }
   }
@@ -130,6 +147,14 @@ export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerP
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
     this.flightPathLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
     this.waypointLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
+
+    const size = this.flightPathLayerRef.instance.getSize();
+    this.clipBounds.set(
+      -MapSystemFlightPlanLayer.CLIP_BOUNDS_BUFFER,
+      -MapSystemFlightPlanLayer.CLIP_BOUNDS_BUFFER,
+      size + MapSystemFlightPlanLayer.CLIP_BOUNDS_BUFFER,
+      size + MapSystemFlightPlanLayer.CLIP_BOUNDS_BUFFER
+    );
   }
 
   /** @inheritdoc */
@@ -248,7 +273,7 @@ export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerP
 
       const lastVector = leg.calculated?.flightPath[leg.calculated?.flightPath.length - 1];
       if (lastVector !== undefined) {
-        if (!waypoint.location.equals(lastVector.endLat, lastVector.endLon)) {
+        if (!waypoint.location.get().equals(lastVector.endLat, lastVector.endLon)) {
           this.props.waypointRenderer.deregister(waypoint, currentRoleId, MapSystemWaypointRoles.FlightPlan);
           const newWaypoint = new FlightPathWaypoint(lastVector.endLat, lastVector.endLon, leg.name ?? '');
 

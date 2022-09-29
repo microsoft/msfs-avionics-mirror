@@ -1,14 +1,12 @@
-import { DisplayComponent, FSComponent, VNode, ComponentProps, GeoPoint, GeoPointSubject, UnitType, NodeReference } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { GNSSEvents } from 'msfssdk/instruments';
-import { FacilityRepository, FacilitySearchType, NearestSearchSession } from 'msfssdk/navigation';
 import {
-  AirportFacility, FacilityType,
-  NearestSearchResults, FacilityLoader
-} from 'msfssdk/navigation';
+  AirportFacility, ComponentProps, DisplayComponent, EventBus, FacilityLoader, FacilityRepository, FacilitySearchType, FacilityType, FSComponent, GeoPoint,
+  GeoPointSubject, GNSSEvents, NearestSearchResults, NearestSearchSession, NodeReference, UnitType, VNode
+} from 'msfssdk';
+
 import { SvtProjectionUtils } from '../../../../Shared/UI/SvtProjectionUtils';
 import { PlaneStateInfo } from '../../FlightInstruments/PrimaryHorizonDisplay';
 import { SvtAirportLabel } from './SvtAirportLabel';
+
 import './SvtAirportLabels.css';
 
 /**

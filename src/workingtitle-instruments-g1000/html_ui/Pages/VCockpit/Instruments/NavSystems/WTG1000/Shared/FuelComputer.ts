@@ -1,7 +1,7 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { EventBus, EventSubscriber, SimVarDefinition, SimVarValueType } from 'msfssdk/data';
-import { SimVarPublisher } from 'msfssdk/instruments';
+import { EventBus, EventSubscriber, SimVarDefinition, SimVarPublisher, SimVarValueType } from 'msfssdk';
+
 import { G1000ControlEvents } from './G1000Events';
 
 /** Simvars to publish. */

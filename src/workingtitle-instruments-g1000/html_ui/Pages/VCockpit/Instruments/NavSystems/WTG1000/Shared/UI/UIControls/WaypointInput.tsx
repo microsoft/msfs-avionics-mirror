@@ -1,6 +1,4 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { Facility, FacilitySearchType, FacilityWaypoint, Waypoint } from 'msfssdk/navigation';
+import { EventBus, Facility, FacilitySearchType, FacilityWaypoint, FSComponent, Subject, VNode, Waypoint } from 'msfssdk';
 
 import { MessageDialog } from '../../UI/Dialogs/MessageDialog';
 import { InputComponent } from '../../UI/UIControls/InputComponent';
@@ -82,7 +80,7 @@ export class WaypointInput extends UiControlGroup<WaypointInputProps> {
       });
     } else {
       if (this.props.onInputEnterPressed !== undefined && facilityWaypoint !== null) {
-        this.props.onInputEnterPressed(facilityWaypoint.facility);
+        this.props.onInputEnterPressed(facilityWaypoint.facility.get());
       }
     }
     return true;

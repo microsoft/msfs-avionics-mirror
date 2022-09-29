@@ -1,5 +1,5 @@
-import { ComponentProps, ComputedSubject, ArraySubject, DisplayComponent, FSComponent, Subject, VNode, SubscribableArrayEventType } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
+import { ArraySubject, ComponentProps, ComputedSubject, DisplayComponent, EventBus, FSComponent, Subject, SubscribableArrayEventType, VNode } from 'msfssdk';
+
 import { UiControl, UiControlProps } from '../UiControl';
 
 import './ArrowToggle.css';
@@ -231,4 +231,3 @@ export class ArrowToggle_OLD extends DisplayComponent<ArrowToggleComponentProps_
   }
 
 }
-

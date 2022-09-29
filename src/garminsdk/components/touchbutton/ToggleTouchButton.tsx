@@ -1,14 +1,15 @@
-import {
-  ComponentProps, DisplayComponent, FSComponent, MappedSubject, MappedSubscribable,
-  MutableSubscribable, SetSubject, Subscribable, SubscribableSet, Subscription, VNode
-} from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, MutableSubscribable, SetSubject, Subscribable, SubscribableSet, Subscription, VNode } from 'msfssdk';
+
 import { ToggleStatusBar } from '../common/ToggleStatusBar';
 import { TouchButton } from './TouchButton';
 
 /**
- * Common component props for ToggleTouchButton.
+ * Component props for ToggleTouchButton.
  */
-export interface ToggleTouchButtonPropsCommon extends ComponentProps {
+export interface ToggleTouchButtonProps<S extends Subscribable<boolean> | MutableSubscribable<boolean>> extends ComponentProps {
+  /** A subscribable whose state will be bound to the button. */
+  state: S;
+
   /**
    * Whether the button is enabled, or a subscribable which provides it. Disabled buttons cannot be pressed. Defaults
    * to `true`.
@@ -24,6 +25,12 @@ export interface ToggleTouchButtonPropsCommon extends ComponentProps {
    */
   label?: string | Subscribable<string> | VNode;
 
+  /**
+   * A callback function which will be called when the button is pressed. If not defined, pressing the button will
+   * toggle its bound state.
+   */
+  onPressed?: <B extends ToggleTouchButton<S> = ToggleTouchButton<S>>(button: B, state: S) => void;
+
   /** A callback function which will be called when the button is destroyed. */
   onDestroy?: () => void;
 
@@ -32,28 +39,9 @@ export interface ToggleTouchButtonPropsCommon extends ComponentProps {
 }
 
 /**
- * Component props for a ToggleTouchButton which toggles a boolean state.
- */
-export interface ToggleTouchButtonPropsBool extends ToggleTouchButtonPropsCommon {
-  /** A mutable subscribable whose state will be bound to the button. */
-  state: MutableSubscribable<boolean>;
-}
-
-/**
- * Component props for a ToggleTouchButton which sets the value of an arbitrarily typed state.
- */
-export interface ToggleTouchButtonPropsAny<T> extends ToggleTouchButtonPropsCommon {
-  /** A mutable subscribable whose state will be bound to the button. */
-  state: MutableSubscribable<T>;
-
-  /** A subscribable which provides the value which the button sets. */
-  setValue: Subscribable<T>;
-}
-
-/**
- * A touchscreen button which either toggles a boolean state or sets the value of an arbitrarily typed state with each
- * press. The button also displays the value of its bound boolean state in the first case, or whether the value of its
- * bound state is equal to its set value in the second case.
+ * A touchscreen button which displays the value of a bound boolean state. By default, pressing the button will toggle
+ * its state if the state is mutable. This behavior can be overridden by providing a custom callback function which
+ * runs when the button is pressed.
  *
  * The root element of the button contains the `touch-button-toggle` CSS class by default, in addition to all
  * root-element classes used by {@link TouchButton}.
@@ -61,35 +49,27 @@ export interface ToggleTouchButtonPropsAny<T> extends ToggleTouchButtonPropsComm
  * The root element contains a child {@link ToggleStatusBar} component with the CSS class
  * `touch-button-toggle-status-bar` and an optional label element with the CSS class `touch-button-label`.
  */
-export class ToggleTouchButton<T>
-  extends DisplayComponent<T extends boolean ? ToggleTouchButtonPropsBool | ToggleTouchButtonPropsAny<T> : ToggleTouchButtonPropsAny<T>> {
+export class ToggleTouchButton<S extends Subscribable<boolean> | MutableSubscribable<boolean>> extends DisplayComponent<ToggleTouchButtonProps<S>> {
 
   protected readonly buttonRef = FSComponent.createRef<TouchButton>();
   protected readonly statusBarRef = FSComponent.createRef<ToggleStatusBar>();
 
   protected readonly cssClassSet = SetSubject.create(['touch-button-toggle']);
 
-  protected mappedToggleState?: MappedSubscribable<boolean>;
   protected cssClassSub?: Subscription;
 
   /** @inheritdoc */
   public render(): VNode {
-    const props = this.props as ToggleTouchButtonPropsBool | ToggleTouchButtonPropsAny<T>;
-    const useSetValue = 'setValue' in props;
+    let onPressed: (() => void) | undefined;
 
-    let onPressed: () => void;
-    let toggleState: Subscribable<boolean>;
+    const state = this.props.state;
 
-    if (useSetValue) {
-      onPressed = (): void => { props.state.set(props.setValue.get()); };
-      toggleState = this.mappedToggleState = MappedSubject.create(
-        ([state, setValue]): boolean => state === setValue,
-        props.state,
-        props.setValue
-      );
-    } else {
-      onPressed = (): void => { props.state.set(!props.state.get()); };
-      toggleState = props.state;
+    if (this.props.onPressed) {
+      onPressed = (): void => {
+        (this.props.onPressed as any)(this, state);
+      };
+    } else if ('isMutableSubscribable' in state) {
+      onPressed = (): void => { state.set(!state.get()); };
     }
 
     const reservedClasses = this.getReservedCssClasses();
@@ -111,7 +91,7 @@ export class ToggleTouchButton<T>
         onPressed={onPressed}
         class={this.cssClassSet}
       >
-        <ToggleStatusBar ref={this.statusBarRef} state={toggleState} class='touch-button-toggle-status-bar'></ToggleStatusBar>
+        <ToggleStatusBar ref={this.statusBarRef} state={this.props.state} class='touch-button-toggle-status-bar'></ToggleStatusBar>
         {this.props.children}
       </TouchButton>
     );
@@ -131,7 +111,6 @@ export class ToggleTouchButton<T>
 
     this.buttonRef.instance.destroy();
     this.statusBarRef.instance.destroy();
-    this.mappedToggleState?.destroy();
 
     this.props.onDestroy && this.props.onDestroy();
   }

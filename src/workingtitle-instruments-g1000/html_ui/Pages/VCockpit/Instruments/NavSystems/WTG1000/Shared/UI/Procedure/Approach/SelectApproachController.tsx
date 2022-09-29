@@ -1,14 +1,15 @@
-import { BitFlags, FSComponent, MagVar, NavMath, Subject, UnitType, VNode } from 'msfssdk';
-import { AirportFacility, Facility, FacilityType, ICAO, LegType } from 'msfssdk/navigation';
-import { FlightPathCalculator, FlightPlan, LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
+import {
+  AirportFacility, BitFlags, EventBus, Facility, FacilityType, FlightPathCalculator, FlightPlan, FSComponent, ICAO, LegDefinition, LegDefinitionFlags, LegType,
+  MagVar, MinimumsEvents, MinimumsMode, NavMath, Subject, UnitType, VNode
+} from 'msfssdk';
 
-import { ApproachListItem, SelectApproachStore } from './SelectApproachStore';
-import { MessageDialogDefinition } from '../../Dialogs/MessageDialog';
-import { ViewService } from '../../ViewService';
-import { SelectControl } from '../../UiControls2/SelectControl';
+import { Fms, FmsUtils, ProcedureType, TransitionListItem } from 'garminsdk';
+
 import { G1000ControlEvents } from '../../../G1000Events';
-import { ControlEvents, EventBus } from 'msfssdk/data';
-import { Fms, FmsUtils, ProcedureType, TransitionListItem } from 'garminsdk/flightplan';
+import { MessageDialogDefinition } from '../../Dialogs/MessageDialog';
+import { SelectControl2 } from '../../UiControls2/SelectControl';
+import { ViewService } from '../../ViewService';
+import { ApproachListItem, SelectApproachStore } from './SelectApproachStore';
 
 /**
  * Controller for SelectApproach component.
@@ -28,7 +29,7 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
   public readonly canLoadOrText = this.canLoad.map(canLoad => canLoad ? 'OR' : '');
 
   protected skipCourseReversal = false;
-  protected readonly controlPub = this.bus.getPublisher<ControlEvents>();
+  protected readonly controlPub = this.bus.getPublisher<MinimumsEvents>();
   protected readonly g1000ControlPub = this.bus.getPublisher<G1000ControlEvents>();
 
 
@@ -58,6 +59,17 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
     protected readonly fplKey: string,
     protected readonly hasSequence = false
   ) {
+
+    this.store.minimumsMode.sub(mode => {
+      switch (mode) {
+        case MinimumsMode.BARO:
+          this.store.minimumsSubject.set(this.store.decisionAltitude.get().asUnit(this.store.minimumsUnit.getRaw()));
+          break;
+        case MinimumsMode.RA:
+          this.store.minimumsSubject.set(this.store.decisionHeight.get().asUnit(this.store.minimumsUnit.getRaw()));
+          break;
+      }
+    });
   }
 
   /** Initialize the controller. */
@@ -143,14 +155,21 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
    */
   public onMinimumsOptionSelected = (index: number): void => {
     this.store.minimumsMode.set(index);
-    this.g1000ControlPub.pub('show_minimums', index === 1, true);
+    this.controlPub.pub('set_minimums_mode', index, true, true);
   };
 
   /** Callback handler for  when a minimums value is selected. */
   public updateMinimumsValue = (): void => {
     const raw = this.store.minimumsSubject.get();
     const converted = this.store.minimumsUnit.getRaw() == UnitType.METER ? UnitType.FOOT.convertFrom(raw, UnitType.METER) : raw;
-    this.controlPub.pub('set_decision_altitude', converted, true, true);
+    switch (this.store.minimumsMode.get()) {
+      case MinimumsMode.BARO:
+        this.controlPub.pub('set_decision_altitude_feet', converted, true, true);
+        break;
+      case MinimumsMode.RA:
+        this.controlPub.pub('set_decision_height_feet', converted, true, true);
+        break;
+    }
   };
 
   /**
@@ -158,7 +177,7 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
    * @param source The SelectControl controlling the dialog that was closed.
    * @param selectionMade Whether a selection was made.
    */
-  protected async onApproachSelectionClosed(source: SelectControl<ApproachListItem>, selectionMade: boolean): Promise<void> {
+  protected async onApproachSelectionClosed(source: SelectControl2<ApproachListItem>, selectionMade: boolean): Promise<void> {
     if (!selectionMade) {
       await this.buildSequence(this.store.selectedFacility.get(), this.store.selectedProcedure.get(), this.store.selectedTransition.get());
     }
@@ -169,7 +188,7 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
    * @param source The SelectControl controlling the dialog that was closed.
    * @param selectionMade Whether a selection was made.
    */
-  protected async onTransSelectionClosed(source: SelectControl<TransitionListItem>, selectionMade: boolean): Promise<void> {
+  protected async onTransSelectionClosed(source: SelectControl2<TransitionListItem>, selectionMade: boolean): Promise<void> {
     if (!selectionMade) {
       await this.buildSequence(this.store.selectedFacility.get(), this.store.selectedProcedure.get(), this.store.selectedTransition.get());
     }
@@ -272,13 +291,14 @@ export class SelectApproachController<S extends SelectApproachStore = SelectAppr
 
     const legs: Subject<LegDefinition>[] = [];
 
+    const transIndex = transition?.transitionIndex ?? -1;
+
     let plan: FlightPlan | undefined = undefined;
     if (approach.isVisualApproach) {
       plan = await this.fms.buildProcedurePreviewPlan(
-        this.calculator, airport, ProcedureType.VISUALAPPROACH, -1, -1, undefined, undefined, approach.approach.runwayNumber, approach.approach.runwayDesignator
+        this.calculator, airport, ProcedureType.VISUALAPPROACH, -1, transIndex, undefined, undefined, approach.approach.runwayNumber, approach.approach.runwayDesignator
       );
     } else {
-      const transIndex = transition?.transitionIndex ?? -1;
       const legOffset = transition?.startIndex ?? 0;
       plan = await this.fms.buildProcedurePreviewPlan(
         this.calculator,

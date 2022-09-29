@@ -1,5 +1,4 @@
-import { ImageCache } from 'msfssdk/graphics/img';
-import { AirportFacility, AirportPrivateType, VorType } from 'msfssdk/navigation';
+import { AirportFacility, AirportPrivateType, ImageCache, VorType } from 'msfssdk';
 
 /**
  * The image cache specific to this instrument.

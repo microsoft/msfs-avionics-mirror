@@ -1,14 +1,13 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { MathUtils, SimpleMovingAverage, UnitType } from '../..';
 import { EventBus, SimVarValueType } from '../../data';
-import { APValues, APLateralModes } from '../APConfig';
+import { AdcEvents, GNSSEvents } from '../../instruments';
+import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
+import { APLateralModes, APValues } from '../APConfig';
+import { VNavEvents, VNavVars } from '../data/VNavEvents';
 import { ApproachGuidanceMode } from '../VerticalNavigation';
 import { VNavUtils } from '../VNavUtils';
-import { ADCEvents, GNSSEvents } from '../../instruments';
-import { DirectorState, PlaneDirector } from '../PlaneDirector';
-import { VNavEvents, VNavVars } from '../VNavEvents';
-
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * An RNAV LPV glidepath autopilot director.
@@ -41,7 +40,7 @@ export class APGPDirector implements PlaneDirector {
 
     this.bus.getSubscriber<VNavEvents>().on('gp_vertical_deviation').whenChanged().handle(dev => this.gpDeviation = dev);
     this.bus.getSubscriber<VNavEvents>().on('gp_fpa').whenChanged().handle(fpa => this.fpa = fpa);
-    this.bus.getSubscriber<ADCEvents>().on('tas').withPrecision(0).handle((tas) => {
+    this.bus.getSubscriber<AdcEvents>().on('tas').withPrecision(0).handle((tas) => {
       this.tas = tas;
     });
     this.bus.getSubscriber<GNSSEvents>().on('ground_speed').withPrecision(0).handle((gs) => {

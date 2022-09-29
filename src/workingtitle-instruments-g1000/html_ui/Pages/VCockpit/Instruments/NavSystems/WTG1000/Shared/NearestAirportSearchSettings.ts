@@ -1,6 +1,4 @@
-import { EventBus } from 'msfssdk/data';
-import { DefaultUserSettingManager } from 'msfssdk/settings';
-import { RunwaySurfaceCategory } from 'msfssdk/navigation';
+import { DefaultUserSettingManager, EventBus, RunwaySurfaceCategory } from 'msfssdk';
 
 /**
  * Type description for NAV/COM user settings.

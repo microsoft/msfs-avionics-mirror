@@ -1,0 +1,12 @@
+.map-banner {
+  background-color: black;
+  border: 1px solid whitesmoke;
+  border-radius: 5px;
+  font: Roboto-Bold;
+  padding: 0 2px;
+  white-space: nowrap;
+}
+
+.map-banner-off {
+  display: none;
+}

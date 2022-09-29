@@ -1,4 +1,4 @@
-import { NavComConfig } from 'msfssdk/instruments';
+import { NavComConfig } from 'msfssdk';
 
 export const G1000Config = new NavComConfig();
 G1000Config.navSwitchEvents.set('AS1000_PFD_NAV_Switch', 'PFD');
@@ -26,3 +26,12 @@ G1000Config.comFractionIncEvents.set('AS1000_PFD_COM_Small_INC', 'PFD');
 G1000Config.comFractionIncEvents.set('AS1000_MFD_COM_Small_INC', 'MFD');
 G1000Config.comFractionDecEvents.set('AS1000_PFD_COM_Small_DEC', 'PFD');
 G1000Config.comFractionDecEvents.set('AS1000_MFD_COM_Small_DEC', 'MFD');
+
+G1000Config.comVolumeIncEvents.set('AS1000_PFD_VOL_2_INC', 'PFD');
+G1000Config.comVolumeIncEvents.set('AS1000_MFD_VOL_2_INC', 'MFD');
+G1000Config.comVolumeDecEvents.set('AS1000_PFD_VOL_2_DEC', 'PFD');
+G1000Config.comVolumeDecEvents.set('AS1000_MFD_VOL_2_DEC', 'MFD');
+G1000Config.navVolumeIncEvents.set('AS1000_PFD_VOL_1_INC', 'PFD');
+G1000Config.navVolumeIncEvents.set('AS1000_MFD_VOL_1_INC', 'MFD');
+G1000Config.navVolumeDecEvents.set('AS1000_PFD_VOL_1_DEC', 'PFD');
+G1000Config.navVolumeDecEvents.set('AS1000_MFD_VOL_1_DEC', 'MFD');

@@ -1,8 +1,6 @@
-import { EventBus } from 'msfssdk/data';
-import { NavProcessorConfig, NavSourceId, NavSourceType } from 'msfssdk/instruments';
-import { NavSource } from 'msfssdk/instruments';
-import { FlightPlanner, FlightPlannerEvents, FlightPlanActiveLegEvent } from 'msfssdk/flightplan';
-import { LNavDataEvents } from 'garminsdk/navigation';
+import { EventBus, FlightPlanActiveLegEvent, FlightPlanner, FlightPlannerEvents, NavProcessorConfig, NavSource, NavSourceId, NavSourceType } from 'msfssdk';
+
+import { LNavDataEvents } from 'garminsdk';
 
 /**
  * A configuration for the G1000 NavProcessor, including a custrom simvar

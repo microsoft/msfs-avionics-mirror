@@ -1,9 +1,9 @@
-import { VNode, FSComponent } from 'msfssdk';
-import { FlightPlanSegmentType } from 'msfssdk/flightplan';
+import { FlightPlanSegmentType, FSComponent, VNode } from 'msfssdk';
+
 import { FPLEmptyRow } from '../../../../Shared/UI/FPL/FPLEmptyRow';
 import { FPLHeaderEnroute } from '../../../../Shared/UI/FPL/FPLHeaderEnroute';
-import { FPLSection } from './FPLSection';
 import { FixLegInfo } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
+import { FPLSection } from './FPLSection';
 
 /** Render the enroute phase of the flight plan. */
 export class FPLEnroute extends FPLSection {

@@ -1,5 +1,8 @@
-import { FSComponent, VNode } from 'msfssdk/components/FSComponent';
-import { HardwareControlListProps, HardwareUiControl, HardwareUiControlList, HardwareUiControlProps, UiControlEventHandler, UiControlEventHandlers, UiControlPropEventHandlers } from 'msfssdk/components/controls';
+import {
+  FSComponent, HardwareControlListProps, HardwareUiControl, HardwareUiControlList, HardwareUiControlProps, UiControlEventHandler, UiControlEventHandlers,
+  UiControlPropEventHandlers, VNode
+} from 'msfssdk';
+
 import { FmsHEvent } from './FmsHEvent';
 import { ScrollBar } from './ScrollBar';
 

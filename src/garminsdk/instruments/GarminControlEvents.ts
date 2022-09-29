@@ -6,5 +6,8 @@ export interface GarminControlEvents {
   approach_details_set: ApproachDetails;
 
   /** An event that indicates whether or not OBS is available. */
-  obs_available: boolean
+  obs_available: boolean;
+
+  /** Signals that the flight director is not installed if `true`. */
+  fd_not_installed: boolean;
 }

@@ -1,10 +1,9 @@
-import { FSComponent, GeoPoint, GeoPointSubject, NavMath, NumberUnitSubject, UnitType, VNode } from 'msfssdk';
-import { NumberFormatter } from 'msfssdk/graphics/text';
-import { LatLonDisplay } from 'msfssdk/components/common';
-import { AirportFacility, FacilityType, FacilityWaypoint } from 'msfssdk/navigation';
+import {
+  AirportFacility, FacilityType, FacilityWaypoint, FSComponent, GeoPoint, GeoPointSubject, LatLonDisplay, NumberFormatter, NumberUnitSubject, UnitType, VNode
+} from 'msfssdk';
 
 import { NumberUnitDisplay } from '../../../../../Shared/UI/Common/NumberUnitDisplay';
-import { FrequenciesGroup, RunwaysGroup } from '../../Nearest/Airports';
+import { NearestAirportFrequenciesGroup, NearestAirportRunwaysGroup } from '../../Nearest/Airports';
 import { FacilityGroup } from '../FacilityGroup';
 import { MFDInformationPage } from '../MFDInformationPage';
 
@@ -14,11 +13,16 @@ import './MFDAirportInformationPage.css';
  * A component that displays a page of information about an airport facility.
  */
 export class MFDAirportInformationPage extends MFDInformationPage {
-  private readonly runwaysGroup = FSComponent.createRef<RunwaysGroup>();
-  private readonly frequenciesGroup = FSComponent.createRef<FrequenciesGroup>();
+  private readonly runwaysGroup = FSComponent.createRef<NearestAirportRunwaysGroup>();
+  private readonly frequenciesGroup = FSComponent.createRef<NearestAirportFrequenciesGroup>();
 
   private readonly elevation = NumberUnitSubject.createFromNumberUnit(UnitType.METER.createNumber(NaN));
   private readonly location = GeoPointSubject.createFromGeoPoint(new GeoPoint(NaN, NaN));
+
+  /** @inheritdoc */
+  protected getDefaultRangeIndex(): number {
+    return 14; // 7.5 NM/15 KM
+  }
 
   /**
    * A callback called when a waypoint is selected for information display.
@@ -26,45 +30,20 @@ export class MFDAirportInformationPage extends MFDInformationPage {
    */
   private onSelected(waypoint: FacilityWaypoint<AirportFacility> | null): void {
     if (waypoint !== null) {
-      this.runwaysGroup.instance.set(waypoint.facility);
-      this.frequenciesGroup.instance.set(waypoint.facility);
+      const airport = waypoint.facility.get();
+
+      this.runwaysGroup.instance.set(airport);
+      this.frequenciesGroup.instance.set(airport);
 
       this.runwaysGroup.instance.setDisabled(false);
       this.frequenciesGroup.instance.setDisabled(false);
 
-      let currentDistance = 0;
-      const runwayPosition = new GeoPoint(NaN, NaN);
-
-      for (let i = 0; i < waypoint.facility.runways.length; i++) {
-        const runway = waypoint.facility.runways[i];
-        const runwayLengthRadians = UnitType.METER.convertTo(runway.length, UnitType.GA_RADIAN);
-        runwayPosition.set(runway.latitude, runway.longitude);
-
-        runwayPosition.offset(runway.direction, runwayLengthRadians / 2);
-        const primaryDistance = runwayPosition.distance(waypoint.location);
-
-        runwayPosition.offset(NavMath.normalizeHeading(runway.direction + 180), runwayLengthRadians);
-        const secondaryDistance = runwayPosition.distance(waypoint.location);
-        currentDistance = Math.max(currentDistance, primaryDistance, secondaryDistance);
-      }
-
-      currentDistance = UnitType.GA_RADIAN.convertTo(currentDistance, UnitType.METER);
-
-      const ranges = this.mapModel.getModule('range').nominalRanges.get();
-      for (let i = 0; i < ranges.length; i++) {
-        const rangeInMeters = ranges[i].asUnit(UnitType.METER) * 2;
-        if (rangeInMeters > currentDistance) {
-          this.mapRangeIndexSub.set(i);
-          break;
-        }
-      }
-
-      const elevation = waypoint.facility.runways.length === 0
+      const elevation = airport.runways.length === 0
         ? NaN
-        : waypoint.facility.runways.reduce((v, c) => v + c.elevation, 0) / waypoint.facility.runways.length;
+        : airport.runways.reduce((v, c) => v + c.elevation, 0) / airport.runways.length;
 
       this.elevation.set(elevation);
-      this.location.set(waypoint.facility.lat, waypoint.facility.lon);
+      this.location.set(airport.lat, airport.lon);
     } else {
       this.runwaysGroup.instance.set(null);
       this.frequenciesGroup.instance.set(null);
@@ -104,8 +83,8 @@ export class MFDAirportInformationPage extends MFDInformationPage {
             />
           </div>
         </FacilityGroup>
-        <RunwaysGroup ref={this.runwaysGroup} unitsSettingManager={this.unitsSettingManager} innerScrollOnly />
-        <FrequenciesGroup ref={this.frequenciesGroup} controlPublisher={this.props.controlPublisher} />
+        <NearestAirportRunwaysGroup ref={this.runwaysGroup} unitsSettingManager={this.unitsSettingManager} innerScrollOnly />
+        <NearestAirportFrequenciesGroup ref={this.frequenciesGroup} controlPublisher={this.props.controlPublisher} />
       </>
     );
   }

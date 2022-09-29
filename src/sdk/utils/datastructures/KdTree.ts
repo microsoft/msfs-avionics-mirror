@@ -1,4 +1,4 @@
-import { ReadonlyFloat64Array } from '../..';
+import { ReadonlyFloat64Array } from '../../math';
 import { BinaryHeap } from './BinaryHeap';
 
 /**
@@ -443,13 +443,29 @@ export class KdTree<T> {
       const array = this.indexArrays[i];
       const indexInArray = array.indexOf(index);
 
-      if (indexInArray > 0) {
+      if (indexInArray >= 0) {
         array[indexInArray] = array[array.length - 1];
         array.length--;
       }
     }
 
     return true;
+  }
+
+  /**
+   * Removes elements from this tree, then inserts elements into this tree as a single operation. The tree will be
+   * rebalanced at the end of the operation.
+   *
+   * Using this method is more efficient than calling `removeAll()` and `insertAll()` separately.
+   * @param toRemove An iterable of the elements to remove.
+   * @param toInsert An iterable of the elements to insert.
+   */
+  public removeAndInsert(toRemove: Iterable<T>, toInsert: Iterable<T>): void {
+    for (const element of toRemove) {
+      this.removeElementFromArrays(element);
+    }
+
+    this.insertAll(toInsert);
   }
 
   /**

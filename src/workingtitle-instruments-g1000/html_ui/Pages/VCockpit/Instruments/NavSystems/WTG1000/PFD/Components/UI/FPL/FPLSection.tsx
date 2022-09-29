@@ -1,27 +1,27 @@
-import { NodeReference, FSComponent, ArraySubject, Subject, VNode, UnitType, BitFlags, NumberUnitSubject } from 'msfssdk';
-import { Facility, LegType } from 'msfssdk/navigation';
-import { FlightPlan, FlightPlanSegment, FlightPlanSegmentType, LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
-import { VNavConstraint, VNavLeg, VNavUtils } from 'msfssdk/autopilot';
-import { BlurReconciliation, FocusPosition } from 'msfssdk/components/controls';
+import {
+  ArraySubject, BitFlags, BlurReconciliation, ConsumerSubject, Facility, FlightPlan, FlightPlanSegment, FlightPlanSegmentType,
+  FocusPosition, FSComponent, LegDefinition, LegDefinitionFlags, LegType, NodeReference, NumberUnitSubject, Subject, UnitType,
+  VNavConstraint, VNavLeg, VNavUtils, VNode
+} from 'msfssdk';
 
-import { Fms, FmsUtils } from 'garminsdk/flightplan';
+import { Fms, FmsUtils, LNavDataEvents } from 'garminsdk';
 
-import { ViewService } from '../../../../Shared/UI/ViewService';
-import { PFDPageMenuDialog } from '../PFDPageMenuDialog';
-import { FixInfo } from './FixInfo';
-import { FacilityInfo, FixLegInfo, FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
-import { FPLEmptyRow } from '../../../../Shared/UI/FPL/FPLEmptyRow';
-import { FPLHeader } from '../../../../Shared/UI/FPL/FPLHeader';
+import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
 import { SelectAirwayInputData } from '../../../../Shared/UI/Controllers/SelectAirwayController';
-import { FPLDetailsController } from '../../../../Shared/UI/FPL/FPLDetailsController';
+import { MessageDialogDefinition } from '../../../../Shared/UI/Dialogs/MessageDialog';
 import { DirectToInputData } from '../../../../Shared/UI/DirectTo/DirectTo';
 import { ApproachNameDisplay } from '../../../../Shared/UI/FPL/ApproachNameDisplay';
-import type { MenuItemDefinition } from '../../../../Shared/UI/Dialogs/PopoutMenuItem';
+import { FPLDetailsController } from '../../../../Shared/UI/FPL/FPLDetailsController';
+import { FPLEmptyRow } from '../../../../Shared/UI/FPL/FPLEmptyRow';
+import { FPLHeader } from '../../../../Shared/UI/FPL/FPLHeader';
+import { FacilityInfo, FixLegInfo, FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { FPLUtils } from '../../../../Shared/UI/FPL/FPLUtils';
-import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../Shared/UI/G1000UiControl';
-import { MessageDialogDefinition } from '../../../../Shared/UI/Dialogs/MessageDialog';
-import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
+import { G1000ControlList, G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
+import { ViewService } from '../../../../Shared/UI/ViewService';
+import { PFDPageMenuDialog } from '../PFDPageMenuDialog';
+import { FixInfo } from '../../../../Shared/UI/FPL/FixInfo';
 
+import type { MenuItemDefinition } from '../../../../Shared/UI/Dialogs/PopoutMenuItem';
 /** The properties of an FPL detail section item. */
 export interface FPLSectionProps extends G1000UiControlProps {
   /** The view service. */
@@ -92,6 +92,8 @@ export abstract class FPLSection extends G1000UiControl<FPLSectionProps> impleme
   public readonly segment: FlightPlanSegment = this.props.segment;
   protected legs = ArraySubject.create<Subject<FixLegInfo>>();
   protected listRef = FSComponent.createRef<G1000ControlList<Subject<FixLegInfo>>>();
+  protected readonly activeLegDistance = ConsumerSubject.create(this.props.fms.bus.getSubscriber<LNavDataEvents>().on('lnavdata_waypoint_distance'), 0);
+  protected readonly activeLegDtk = ConsumerSubject.create(this.props.fms.bus.getSubscriber<LNavDataEvents>().on('lnavdata_dtk_mag'), 0);
 
   /** @inheritdoc */
   public onAfterRender(node: VNode): void {
@@ -606,6 +608,22 @@ export abstract class FPLSection extends G1000UiControl<FPLSectionProps> impleme
   }
 
   /**
+   * Gets the active leg distance.
+   * @returns The Active Leg Distance in meters.
+   */
+  public getActiveLegDistance(): number {
+    return UnitType.NMILE.convertTo(this.activeLegDistance.get(), UnitType.METER);
+  }
+
+  /**
+   * Gets the active leg magnetic dtk.
+   * @returns The Active Leg dtk.
+   */
+  public getActiveLegDtk(): number {
+    return this.activeLegDtk.get();
+  }
+
+  /**
    * Sets whether or not this constraint is a user defined constraint.
    * @param index The index of the leg.
    * @param isUserConstraint Whether or not this is a user defined constraint.
@@ -979,11 +997,15 @@ export abstract class FPLSection extends G1000UiControl<FPLSectionProps> impleme
     if (this.props.isExtendedView) {
       return <FixInfo onUpperKnobInc={this.onUpperKnobLeg} onClr={this.onClrLeg} data={data} isExtended={true}
         viewService={this.props.viewService} onAltitudeChanged={(alt): void => this.onAltitudeSet(this.listRef.instance.getSelectedIndex(), alt)}
-        onAltitudeRemoved={(): void => this.onAltitudeRemoved(this.listRef.instance.getSelectedIndex())} />;
+        onAltitudeRemoved={(): void => this.onAltitudeRemoved(this.listRef.instance.getSelectedIndex())}
+        getActiveLegDistance={(): number => this.getActiveLegDistance()}
+        getActiveLegDtk={(): number => this.getActiveLegDtk()} />;
     } else {
       return <FixInfo onUpperKnobInc={this.onUpperKnobLeg} onClr={this.onClrLeg} data={data} viewService={this.props.viewService}
         onAltitudeChanged={(alt): void => this.onAltitudeSet(this.listRef.instance.getSelectedIndex(), alt)}
-        onAltitudeRemoved={(): void => this.onAltitudeRemoved(this.listRef.instance.getSelectedIndex())} />;
+        onAltitudeRemoved={(): void => this.onAltitudeRemoved(this.listRef.instance.getSelectedIndex())}
+        getActiveLegDistance={(): number => this.getActiveLegDistance()}
+        getActiveLegDtk={(): number => this.getActiveLegDtk()} />;
     }
   };
 

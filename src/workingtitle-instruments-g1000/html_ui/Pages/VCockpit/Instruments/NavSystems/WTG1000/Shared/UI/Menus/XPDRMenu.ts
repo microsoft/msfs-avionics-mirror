@@ -1,6 +1,5 @@
-import { Subject } from 'msfssdk';
-import { ControlPublisher, EventBus } from 'msfssdk/data';
-import { XPDRSimVarEvents, XPDRMode } from 'msfssdk/instruments';
+import { ControlPublisher, EventBus, Subject, XPDRMode, XPDRSimVarEvents } from 'msfssdk';
+
 import { G1000ControlPublisher } from '../../G1000Events';
 import { MenuSystem } from './MenuSystem';
 import { SoftKeyMenu } from './SoftKeyMenu';

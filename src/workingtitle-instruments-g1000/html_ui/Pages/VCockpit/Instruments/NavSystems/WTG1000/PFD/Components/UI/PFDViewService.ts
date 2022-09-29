@@ -1,14 +1,15 @@
-import { EventBus } from 'msfssdk/data';
+import { EventBus } from 'msfssdk';
+
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 import { FmsHEvent } from '../../../Shared/UI/FmsHEvent';
 import { ViewService } from '../../../Shared/UI/ViewService';
+import { ADFDME } from './ADF-DME/ADFDME';
+import { Alerts } from './Alerts/Alerts';
 import { FPL } from './FPL/FPL';
+import { Nearest } from './Nearest';
+import { PFDSetup } from './PFDSetup';
 import { PFDProc } from './Procedure/PFDProc';
 import { TimerRef } from './TimerRef/TimerRef';
-import { Nearest } from './Nearest';
-import { ADFDME } from './ADF-DME/ADFDME';
-import { PFDSetup } from './PFDSetup';
-import { Alerts } from './Alerts/Alerts';
 
 /**
  * A service to manage views.

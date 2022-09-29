@@ -21,6 +21,16 @@ export class MathUtils {
   }
 
   /**
+   * Rounds a number.
+   * @param value The number to round.
+   * @param precision The precision with which to round. Defaults to `1`.
+   * @returns The rounded number.
+   */
+  public static round(value: number, precision = 1): number {
+    return Math.round(value / precision) * precision;
+  }
+
+  /**
    * Calculates the angular difference between two angles in the range `[0, 2 * pi)`. The calculation supports both
    * directional and non-directional differences. The directional difference is the angle swept from the start angle
    * to the end angle proceeding in the direction of increasing angle. The non-directional difference is the smaller

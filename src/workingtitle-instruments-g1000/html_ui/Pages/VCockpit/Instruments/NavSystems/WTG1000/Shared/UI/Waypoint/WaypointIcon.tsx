@@ -1,8 +1,8 @@
-import { ComputedSubject, FSComponent, NavMath, Subscribable, VNode } from 'msfssdk';
-import {
-  AirportFacility, AirportPrivateType, AirportWaypoint, Facility, FacilityType, FacilityWaypoint, ICAO, VorFacility, VorType, Waypoint
-} from 'msfssdk/navigation';
+import { ComputedSubject, Facility, FacilityWaypoint, FSComponent, NavMath, Subscribable, VNode, Waypoint } from 'msfssdk';
 
+import { AirportWaypoint } from 'garminsdk';
+
+import { UiMapWaypointIconImageCache } from './UiWaypointIconImageCache';
 import { WaypointComponent, WaypointComponentProps } from './WaypointComponent';
 
 /**
@@ -20,9 +20,9 @@ export interface WaypointIconProps extends WaypointComponentProps {
  * A waypoint icon.
  */
 export class WaypointIcon extends WaypointComponent<WaypointIconProps> {
-  private static readonly PATH = 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/icons-map';
-
   private readonly imgRef = FSComponent.createRef<HTMLImageElement>();
+
+  private readonly imgCache = UiMapWaypointIconImageCache.getCache();
 
   private readonly planeHeadingChangedHandler = this.onPlaneHeadingChanged.bind(this);
 
@@ -49,7 +49,7 @@ export class WaypointIcon extends WaypointComponent<WaypointIconProps> {
   private imgFrameColCount = 1;
   private imgOffset = '0px 0px';
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public onAfterRender(): void {
     this.initImageLoadListener();
 
@@ -138,106 +138,10 @@ export class WaypointIcon extends WaypointComponent<WaypointIconProps> {
    * @returns the appropriate icon src for the facility waypoint.
    */
   private getFacilityIconSrc(waypoint: FacilityWaypoint<Facility>): string {
-    switch (ICAO.getFacilityType(waypoint.facility.icao)) {
-      case FacilityType.Airport:
-        return this.getAirportIconSrc(waypoint as AirportWaypoint<AirportFacility>);
-      case FacilityType.VOR:
-        return this.getVorIconSrc(waypoint as FacilityWaypoint<VorFacility>);
-      case FacilityType.NDB:
-        return this.getNdbIconSrc();
-      case FacilityType.Intersection:
-        return this.getIntersectionIconSrc();
-      case FacilityType.USR:
-        return this.getUserIconSrc();
-      case FacilityType.RWY:
-        return this.getRunwayIconSrc();
-      default:
-        return '';
-    }
+    return this.imgCache.getForWaypoint(waypoint)?.src ?? '';
   }
 
-  /**
-   * Gets the appropriate icon src for an airport waypoint.
-   * @param waypoint An airport waypoint.
-   * @returns the appropriate icon src for the airport waypoint.
-   */
-  private getAirportIconSrc(waypoint: AirportWaypoint<AirportFacility>): string {
-    const airport = waypoint.facility;
-    const serviced = (airport.fuel1 !== '' || airport.fuel2 !== '') || airport.airportClass === 1;
-    if (airport.airportPrivateType !== AirportPrivateType.Public) {
-      return `${WaypointIcon.PATH}/airport_r.png`;
-    } else if (serviced) {
-      if (airport.towered) {
-        return `${WaypointIcon.PATH}/airport_large_blue.png`;
-      } else if (airport.airportClass === 1) {
-        return `${WaypointIcon.PATH}/airport_large_magenta.png`;
-      } else {
-        return `${WaypointIcon.PATH}/airport_small_b.png`;
-      }
-    } else {
-      if (airport.towered) {
-        return `${WaypointIcon.PATH}/airport_med_blue.png`;
-      } else if (airport.airportClass === 1) {
-        return `${WaypointIcon.PATH}/airport_med_magenta.png`;
-      } else {
-        return `${WaypointIcon.PATH}/airport_small_a.png`;
-      }
-    }
-  }
-
-  /**
-   * Gets the appropriate icon src for a VOR waypoint.
-   * @param waypoint A VOR waypoint.
-   * @returns the appropriate icon src for the VOR waypoint.
-   */
-  private getVorIconSrc(waypoint: FacilityWaypoint<VorFacility>): string {
-    switch (waypoint.facility.type) {
-      case VorType.DME:
-        return `${WaypointIcon.PATH}/dme.png`;
-      case VorType.ILS:
-      case VorType.VORDME:
-        return `${WaypointIcon.PATH}/vor_dme.png`;
-      case VorType.VORTAC:
-      case VorType.TACAN:
-        return `${WaypointIcon.PATH}/vortac.png`;
-      default:
-        return `${WaypointIcon.PATH}/vor.png`;
-    }
-  }
-
-  /**
-   * Gets the appropriate icon src for an NDB waypoint.
-   * @returns the appropriate icon src for the NDB waypoint.
-   */
-  private getNdbIconSrc(): string {
-    return `${WaypointIcon.PATH}/ndb.png`;
-  }
-
-  /**
-   * Gets the appropriate icon src for an intersection waypoint.
-   * @returns the appropriate icon src for the intersection waypoint.
-   */
-  private getIntersectionIconSrc(): string {
-    return `${WaypointIcon.PATH}/intersection_cyan.png`;
-  }
-
-  /**
-   * Gets the appropriate icon src for an intersection waypoint.
-   * @returns the appropriate icon src for the intersection waypoint.
-   */
-  private getUserIconSrc(): string {
-    return `${WaypointIcon.PATH}/user.png`;
-  }
-
-  /**
-   * Gets the appropriate icon src for a runway waypoint.
-   * @returns the appropriate icon src for the runway waypoint.
-   */
-  private getRunwayIconSrc(): string {
-    return `${WaypointIcon.PATH}/intersection_cyan.png`;
-  }
-
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public render(): VNode {
     return (
       <img ref={this.imgRef} class={this.props.class ?? ''} src={this.srcSub}
@@ -245,7 +149,7 @@ export class WaypointIcon extends WaypointComponent<WaypointIconProps> {
     );
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public destroy(): void {
     super.destroy();
 

@@ -1,5 +1,5 @@
 import { FlightPlan, FlightPlanLegIterator, LegDefinition } from '../flightplan';
-import { UnitType, BitFlags } from '../math';
+import { BitFlags, UnitType } from '../math';
 import { FixTypeFlags, LegType } from '../navigation';
 import { TodBodDetails, VerticalFlightPlan, VNavConstraint, VNavLeg, VNavPlanSegment } from './VerticalNavigation';
 
@@ -43,7 +43,7 @@ export class VNavUtils {
 
   /**
    * Gets the requiured vertical speed for a given FPA and groundspeed.
-   * @param fpa The FPA in degrees 
+   * @param fpa The FPA in degrees
    * @param groundspeed The current groundspeed.
    * @returns The rate of descent required to descend at the specified FPA in ft/minute.
    */
@@ -136,7 +136,7 @@ export class VNavUtils {
       }
     });
 
-    fafIndex = fafIndex > -1 ? fafIndex : fafIndex = lateralPlan.length - 2;
+    fafIndex = fafIndex > -1 ? fafIndex : fafIndex = Math.max(0, lateralPlan.length - 1);
 
     return fafIndex;
   }
@@ -245,6 +245,31 @@ export class VNavUtils {
   }
 
   /**
+   * Gets the distance from the current location in the plan to the constraint.
+   * @param constraint The vnav constraint to calculate the distance to.
+   * @param lateralPlan The lateral flight plan.
+   * @param activeLegIndex The current active leg index.
+   * @param distanceAlongLeg The current distance along leg.
+   * @returns the distance to the constraint, or positive infinity if a discontinuity exists between the ppos and the constraint.
+   */
+  public static getDistanceToConstraint(constraint: VNavConstraint, lateralPlan: FlightPlan, activeLegIndex: number, distanceAlongLeg: number): number {
+    let distance = 0;
+
+    for (let l = activeLegIndex; l <= constraint.index; l++) {
+      const leg = lateralPlan.tryGetLeg(l);
+      if (leg?.leg.type === LegType.Discontinuity || leg?.leg.type === LegType.ThruDiscontinuity) {
+        return Number.POSITIVE_INFINITY;
+      } else if (leg !== null && leg.calculated !== undefined) {
+        distance += leg.calculated.distance;
+      }
+    }
+
+    distance -= distanceAlongLeg;
+
+    return distance;
+  }
+
+  /**
    * Gets and returns the vertical direct constraint based on an input index.
    * @param verticalPlan The vertical flight plan.
    * @param selectedGlobalLegIndex The global leg index selected for vertical direct.
@@ -263,6 +288,31 @@ export class VNavUtils {
           return constraint;
         } else if (c < verticalPlan.constraints.length - 1 && constraint.index > selectedGlobalLegIndex) {
           return verticalPlan.constraints[c + 1];
+        }
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Gets the next climb constraint with a max altitude less than POSITIVE_INFINITY.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global leg index to find the constraint for.
+   * @returns the VNavConstraint or undefined
+   */
+  public static getNextClimbConstraint(verticalPlan: VerticalFlightPlan, globalLegIndex: number): VNavConstraint | undefined {
+    const currentConstraint = VNavUtils.getConstraintFromLegIndex(verticalPlan, globalLegIndex);
+    if (currentConstraint?.type === 'climb' && currentConstraint?.maxAltitude < Number.POSITIVE_INFINITY) {
+      return currentConstraint;
+    }
+    if (currentConstraint?.type === 'climb' && currentConstraint?.maxAltitude === Number.POSITIVE_INFINITY) {
+      const currentConstraintIndex = VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, globalLegIndex);
+      const lastIndexToCheck = verticalPlan.firstDescentConstraintLegIndex !== undefined ?
+        VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, verticalPlan.firstDescentConstraintLegIndex) : 0;
+      for (let c = currentConstraintIndex - 1; c >= lastIndexToCheck; c--) {
+        const constraint = verticalPlan.constraints[c];
+        if (constraint.type === 'climb' && constraint.maxAltitude < Number.POSITIVE_INFINITY) {
+          return constraint;
         }
       }
     }
@@ -467,6 +517,22 @@ export class VNavUtils {
     out.distanceFromTod = distanceToTOD;
 
     return out;
+  }
+
+  /**
+   * Checks whether or not the vertical plan has a leg at a given globalLegIndex.
+   * @param verticalPlan The Vertical Flight Plan.
+   * @param globalLegIndex The global leg index to check.
+   * @returns True if the leg exists.
+   */
+  public static verticalPlanHasLeg(verticalPlan: VerticalFlightPlan, globalLegIndex: number): boolean {
+    for (let i = 0; i < verticalPlan.segments.length; i++) {
+      const segment = verticalPlan.segments[i];
+      if (segment !== undefined && globalLegIndex >= segment.offset && globalLegIndex < segment.offset + segment.legs.length) {
+        return segment.legs[globalLegIndex - segment.offset] !== undefined;
+      }
+    }
+    return false;
   }
 
   /**

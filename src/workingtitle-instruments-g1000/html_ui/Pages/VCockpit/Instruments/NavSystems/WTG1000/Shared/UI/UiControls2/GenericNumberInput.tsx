@@ -1,8 +1,7 @@
-import { DisplayComponent, FSComponent, Subject, VNode } from 'msfssdk';
-import { DebounceTimer } from 'msfssdk/utils/time';
-import { FocusPosition } from 'msfssdk/components/controls';
-import { FmsHEvent } from '../FmsHEvent';
+import { DebounceTimer, DisplayComponent, FocusPosition, FSComponent, Subject, VNode } from 'msfssdk';
+
 import { G1000UiControl, G1000UiControlProps } from '../../UI/G1000UiControl';
+import { FmsHEvent } from '../FmsHEvent';
 import { DigitInput } from './DigitInput';
 import { SignInput } from './SignInput';
 

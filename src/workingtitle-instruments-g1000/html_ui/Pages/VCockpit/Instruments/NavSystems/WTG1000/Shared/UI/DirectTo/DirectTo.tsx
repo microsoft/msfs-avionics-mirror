@@ -1,22 +1,19 @@
-import { FSComponent, GeoPoint, GeoPointSubject, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { ADCEvents, GNSSEvents } from 'msfssdk/instruments';
-import { FacilitySearchType } from 'msfssdk/navigation';
-import { NumberFormatter } from 'msfssdk/graphics/text';
+import { AhrsEvents, EventBus, FacilitySearchType, FSComponent, GeoPoint, GeoPointSubject, GNSSEvents, NumberFormatter, Subject, VNode } from 'msfssdk';
 
-import { Fms } from 'garminsdk/flightplan';
+import { Fms } from 'garminsdk';
+
 import { UnitsUserSettings } from '../../Units/UnitsUserSettings';
 import { BearingDisplay } from '../Common/BearingDisplay';
 import { NumberUnitDisplay } from '../Common/NumberUnitDisplay';
 import { FmsHEvent } from '../FmsHEvent';
 import { NumberInput } from '../UIControls/NumberInput';
 import { WaypointInput } from '../UIControls/WaypointInput';
+import { DigitInput } from '../UiControls2/DigitInput';
+import { G1000UiControlWrapper } from '../UiControls2/G1000UiControlWrapper';
+import { GenericNumberInput } from '../UiControls2/GenericNumberInput';
 import { UiView, UiViewProps } from '../UiView';
 import { DirectToController } from './DirectToController';
 import { DirectToStore } from './DirectToStore';
-import { GenericNumberInput } from '../UiControls2/GenericNumberInput';
-import { DigitInput } from '../UiControls2/DigitInput';
-import { G1000UiControlWrapper } from '../UiControls2/G1000UiControlWrapper';
 
 /**
  * The properties on the procedures popout component.
@@ -52,7 +49,7 @@ export abstract class DirectTo extends UiView<DirectToProps, undefined, DirectTo
   protected readonly planeHeadingSub = Subject.create(NaN);
 
   private readonly planePosConsumer = this.props.bus.getSubscriber<GNSSEvents>().on('gps-position').whenChanged();
-  private readonly planeHeadingConsumer = this.props.bus.getSubscriber<ADCEvents>().on('hdg_deg_true').withPrecision(1);
+  private readonly planeHeadingConsumer = this.props.bus.getSubscriber<AhrsEvents>().on('hdg_deg_true').withPrecision(1);
   private readonly planePosHandler = this.onPlanePosChanged.bind(this);
   private readonly planeHeadingHandler = this.onPlaneHeadingChanged.bind(this);
 

@@ -1,10 +1,11 @@
-import { FSComponent, GeoPoint, NavAngleSubject, NavAngleUnit, NumberUnitSubject, UnitType, VNode } from 'msfssdk';
-import { ICAO, NearestSubscription, Facility } from 'msfssdk/navigation';
-import { NumberFormatter } from 'msfssdk/graphics/text';
-import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../Shared/UI/G1000UiControl';
-import { ViewService } from '../../../../Shared/UI/ViewService';
-import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
+import {
+  Facility, FSComponent, GeoPoint, ICAO, NavAngleSubject, NavAngleUnit, NearestSubscription, NumberFormatter, NumberUnitSubject, UnitType, VNode
+} from 'msfssdk';
+
 import { BearingDisplay } from '../../../../Shared/UI/Common/BearingDisplay';
+import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
+import { G1000ControlList, G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
+import { ViewService } from '../../../../Shared/UI/ViewService';
 import { UnitsUserSettingManager } from '../../../../Shared/Units/UnitsUserSettings';
 
 import './FacilitiesGroup.css';

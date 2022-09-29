@@ -1,6 +1,7 @@
-import { FSComponent, NodeReference, NumberUnitInterface, Subscribable, UnitFamily, VNode } from 'msfssdk';
-import { UserSettingManager } from 'msfssdk/settings';
-import { MapUserSettingTypes } from '../../../../Shared/Map/MapUserSettings';
+import { FSComponent, NodeReference, NumberUnitInterface, Subscribable, UnitFamily, UserSettingManager, VNode } from 'msfssdk';
+
+import { MapUserSettingTypes } from 'garminsdk';
+
 import { UiControlGroup, UiControlGroupProps } from '../../../../Shared/UI/UiControlGroup';
 import { ViewService } from '../../../../Shared/UI/ViewService';
 

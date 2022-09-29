@@ -1,5 +1,5 @@
-import { EventBus } from 'msfssdk/data';
-import { VNavEvents, VNavAvailability } from 'msfssdk/autopilot';
+import { EventBus, VNavAvailability, VNavEvents } from 'msfssdk';
+
 import { AlertMessageEvents } from './UI/Alerts/AlertsSubject';
 
 /**

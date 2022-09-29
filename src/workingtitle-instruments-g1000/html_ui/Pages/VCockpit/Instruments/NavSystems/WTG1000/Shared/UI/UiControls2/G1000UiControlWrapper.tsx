@@ -1,5 +1,5 @@
-import { FSComponent, VNode } from 'msfssdk';
-import { FocusPosition } from 'msfssdk/components/controls';
+import { FocusPosition, FSComponent, VNode } from 'msfssdk';
+
 import { FmsHEvent } from '../FmsHEvent';
 import { G1000UiControl } from '../G1000UiControl';
 import { EntryDirection, UiControlGroup } from '../UiControlGroup';

@@ -1,6 +1,6 @@
 import { EventBus, Publisher } from '../data';
-import { FlightPlanLeg, ICAO, LegType } from '../navigation/Facilities';
 import { UnitType } from '../math';
+import { FlightPlanLeg, ICAO, LegType } from '../navigation/Facilities';
 import { SubEvent } from '../sub/SubEvent';
 import { FlightPathCalculator } from './FlightPathCalculator';
 import { ActiveLegType, DirectToData, FlightPlan, OriginDestChangeType, PlanChangeType, PlanEvents } from './FlightPlan';

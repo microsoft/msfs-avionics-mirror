@@ -2,8 +2,10 @@
 /// <reference types="msfstypes/JS/Types" />
 /// <reference types="msfstypes/JS/NetBingMap" />
 
-import { FSComponent, DisplayComponent, VNode, ComponentProps, Subscribable, SubscribableArray, ReadonlyFloat64Array } from '../..';
+import { ReadonlyFloat64Array } from '../../math';
+import { Subscribable, SubscribableArray, SubscribableSet } from '../../sub';
 import { BingComponent } from '../bing/BingComponent';
+import { ComponentProps, DisplayComponent, FSComponent, VNode } from '../FSComponent';
 
 /**
  * Component props for the MapComponent.
@@ -27,6 +29,9 @@ export interface SynVisProps extends ComponentProps {
    * A subscribable which provides the sky color.
    */
   skyColor: Subscribable<number>;
+
+  /** CSS class(es) to add to the root of the component. */
+  class?: string | SubscribableSet<string>;
 }
 
 /**
@@ -55,6 +60,7 @@ export class SynVisComponent extends DisplayComponent<SynVisProps> {
         onBoundCallback={this.onBingBound}
         resolution={this.props.resolution}
         earthColors={this.props.earthColors} skyColor={this.props.skyColor}
+        class={this.props.class}
       />
     );
   }

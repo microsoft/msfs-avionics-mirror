@@ -1,5 +1,4 @@
-import { ComputedSubject, FSComponent, Subscribable, VNode } from 'msfssdk';
-import { Facility, FacilityType, FacilityWaypoint, ICAO } from 'msfssdk/navigation';
+import { ComputedSubject, Facility, FacilityType, FacilityWaypoint, FSComponent, ICAO, Subscribable, VNode } from 'msfssdk';
 
 import { UiControl, UiControlProps } from '../UiControl';
 import { WaypointIcon } from '../Waypoint/WaypointIcon';
@@ -40,7 +39,7 @@ export class WptDupListItem extends UiControl<WptDupListItemProps> {
   private readonly waypointChangedHandler = this.onWaypointChanged.bind(this);
 
   private readonly facilityTypeSub = ComputedSubject.create<FacilityWaypoint<Facility> | null, string>(null, (waypoint): string => {
-    return waypoint ? WptDupListItem.FACILITY_TYPE_TEXT[ICAO.getFacilityType(waypoint.facility.icao)] : '';
+    return waypoint ? WptDupListItem.FACILITY_TYPE_TEXT[ICAO.getFacilityType(waypoint.facility.get().icao)] : '';
   });
 
   /** @inheritdoc */

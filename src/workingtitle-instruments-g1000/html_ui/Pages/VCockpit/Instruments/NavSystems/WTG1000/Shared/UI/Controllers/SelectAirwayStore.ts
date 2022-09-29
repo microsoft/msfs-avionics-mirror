@@ -1,8 +1,6 @@
-import { Subject, ArraySubject } from 'msfssdk';
-import { IntersectionFacility, AirwayObject, FacilityLoader } from 'msfssdk/navigation';
-import { LegDefinition } from 'msfssdk/flightplan';
+import { AirwayObject, ArraySubject, FacilityLoader, IntersectionFacility, LegDefinition, Subject } from 'msfssdk';
 
-import { Fms } from 'garminsdk/flightplan';
+import { Fms } from 'garminsdk';
 
 /** The data store for SelectProcedure pages */
 export class SelectAirwayStore {

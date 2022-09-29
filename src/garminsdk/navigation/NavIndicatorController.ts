@@ -1,20 +1,13 @@
-import { NavMath, NodeReference, Subject, UnitType } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
 import {
-  ADCEvents,
-  BearingDirection,
-  BearingSource,
-  BearingValidity,
-  CdiDeviation, DmeState, FrequencyBank, Glideslope, GNSSEvents, Localizer, LocalizerFrequency, NavEvents, NavSourceId,
-  NavSourceType, ObsSetting, RadioEvents, RadioType, VorToFrom, VorToFromSetting
-} from 'msfssdk/instruments';
-import { FlightPlanLegEvent, FlightPlannerEvents } from 'msfssdk/flightplan';
-import { LNavEvents, ApproachGuidanceMode, VNavDataEvents, VNavPathMode, VNavEvents, VNavState } from 'msfssdk/autopilot';
-import { AdditionalApproachType } from 'msfssdk/navigation';
+  AdcEvents, AdditionalApproachType, AhrsEvents, ApproachGuidanceMode, BearingDirection, BearingSource, BearingValidity, CdiDeviation, DmeState, EventBus,
+  FlightPlanLegEvent, FlightPlannerEvents, FrequencyBank, Glideslope, GNSSEvents, LegType, LNavEvents, Localizer, LocalizerFrequency, NavEvents, NavMath, NavSourceId,
+  NavSourceType, NodeReference, ObsSetting, RadioEvents, RadioType, Subject, UnitType, VNavDataEvents, VNavEvents, VNavPathMode, VNavState, VorToFrom,
+  VorToFromSetting
+} from 'msfssdk';
 
-import { CDIScaleLabel, LNavDataEvents } from './LNavDataEvents';
 import { Fms } from '../flightplan';
 import { GarminControlEvents } from '../instruments';
+import { CDIScaleLabel, LNavDataEvents } from './LNavDataEvents';
 
 export enum NavSensitivity {
   DPRT = 'DPRT',
@@ -113,9 +106,12 @@ export class NavIndicatorController {
   private bearingPointerStatus = [false, false];
   private bearingPointerAdf = [false, false];
   private bearingPointerDirection: (number | null)[] = [null, null];
+  private bearingPointerSourceIdxs = [-1, -1];
+  private bearingValidity = [false, false];
   private firstRun = true;
   public obsSuspMode = ObsSuspModes.NONE;
   private missedApproachActive = false;
+  private lnavLegType = LegType.Discontinuity;
 
   private currentSpeed = 30;
   private currentHeading = 0;
@@ -175,14 +171,17 @@ export class NavIndicatorController {
 
     this.bus.getSubscriber<GNSSEvents>().on('ground_speed').handle(speed => this.currentSpeed = speed);
 
-    const adc = this.bus.getSubscriber<ADCEvents>();
-    adc.on('hdg_deg').withPrecision(1).handle(hdg => this.currentHeading = hdg);
-    adc.on('alt').atFrequency(1).handle(alt => this.currentAltitude = alt);
+    const adahrs = this.bus.getSubscriber<AdcEvents & AhrsEvents>();
+    adahrs.on('hdg_deg').withPrecision(1).handle(hdg => this.currentHeading = hdg);
+    adahrs.on('indicated_alt').atFrequency(1).handle(alt => this.currentAltitude = alt);
 
     const navcom = this.bus.getSubscriber<RadioEvents>();
     navcom.on('set_frequency').handle((setFrequency) => {
       if (setFrequency.radio.radioType === RadioType.Nav && setFrequency.bank == FrequencyBank.Active) {
         this.navStates[setFrequency.radio.index - 1].frequency = setFrequency.frequency;
+        if (this.getNavSourceIndex({ type: NavSourceType.Nav, index: setFrequency.radio.index }) === this.activeSourceIndex) {
+          this.updateSensitivity();
+        }
       }
     });
 
@@ -194,7 +193,7 @@ export class NavIndicatorController {
     nav.on('localizer').handle(this.onUpdateLocalizer);
     nav.on('glideslope').handle(this.onUpdateGlideslope);
     nav.on('is_localizer_frequency').handle(this.onUpdateIsLocFreq);
-    nav.on('brg_source').whenChanged().handle(this.updateBearingSrc);
+    nav.on('brg_source').handle(this.updateBearingSrc);
     nav.on('brg_direction').handle(this.updateBearingDir);
     nav.on('dme_state').handle(this.onUpdateDme);
     nav.on('brg_validity').handle(this.updateBearingValidity);
@@ -229,6 +228,7 @@ export class NavIndicatorController {
       }
       this.updateSensitivity();
     });
+    lnavEvents.on('lnav_tracked_leg_index').whenChanged().handle(this.getActiveLegType.bind(this));
 
     const vnav = this.bus.getSubscriber<VNavEvents>();
     vnav.on('vnav_vertical_deviation').withPrecision(0).handle(deviation => this.onUpdateVnav(deviation));
@@ -375,9 +375,27 @@ export class NavIndicatorController {
     const length = this.fms.flightPlanner.hasActiveFlightPlan() ? this.fms.flightPlanner.getActiveFlightPlan().length : 0;
     if (length < 2) {
       this.isLnavCalculating.set(false);
+      this.lnavLegType = LegType.Discontinuity;
     } else {
       this.isLnavCalculating.set(true);
+      const plan = this.fms.flightPlanner.getActiveFlightPlan();
+      this.getActiveLegType(plan.activeLateralLeg);
     }
+  }
+
+  /**
+   * Checks the leg type of the active lateral leg.
+   * @param index The Global Leg Index.
+   */
+  private getActiveLegType(index: number): void {
+    let legType = LegType.Discontinuity;
+    const length = this.fms.flightPlanner.hasActiveFlightPlan() ? this.fms.flightPlanner.getActiveFlightPlan().length : 0;
+    if (index > 0 && index < length) {
+      const lateralPlan = this.fms.flightPlanner.getActiveFlightPlan();
+      const leg = lateralPlan.getLeg(index);
+      legType = leg.leg.type;
+    }
+    this.lnavLegType = legType;
   }
 
   /**
@@ -586,7 +604,9 @@ export class NavIndicatorController {
       const dtk = this.navStates[2].dtk_obs;
       const bearing = this.navStates[2].bearing;
       if (bearing !== null && dtk !== null) {
-        if (Math.abs(NavMath.diffAngle(bearing, dtk)) > 120) {
+        if ((this.lnavLegType === LegType.VM || this.lnavLegType === LegType.FM) && Math.abs(NavMath.diffAngle(this.currentHeading, dtk)) > 100) {
+          toFrom = VorToFrom.FROM;
+        } else if (!(this.lnavLegType === LegType.VM || this.lnavLegType === LegType.FM) && Math.abs(NavMath.diffAngle(bearing, dtk)) > 120) {
           toFrom = VorToFrom.FROM;
         }
       }
@@ -855,16 +875,20 @@ export class NavIndicatorController {
    * @param data The new bearing source info.
    */
   private updateBearingSrc = (data: BearingSource): void => {
-    if (data.source?.type === undefined) {
+    if (data.source === null || data.source?.type === undefined) {
       this.bearingPointerStatus[data.index] = false;
       this.bearingPointerAdf[data.index] = false;
-    } else if (data.source.type === NavSourceType.Adf) {
-      this.bearingPointerStatus[data.index] = true;
-      this.bearingPointerAdf[data.index] = true;
+      this.bearingPointerSourceIdxs[data.index] = -1;
     } else {
+      this.bearingPointerSourceIdxs[data.index] = this.getNavSourceIndex(data.source);
       this.bearingPointerStatus[data.index] = true;
-      this.bearingPointerAdf[data.index] = false;
+      if (data.source.type === NavSourceType.Adf) {
+        this.bearingPointerAdf[data.index] = true;
+      } else {
+        this.bearingPointerAdf[data.index] = false;
+      }
     }
+
     if (this.bearingPointerDirection[data.index] !== null) {
       this.updateBearingDir({ index: data.index, direction: this.bearingPointerDirection[data.index] });
     }
@@ -874,12 +898,16 @@ export class NavIndicatorController {
       this.hsiRefs.hsiRose.instance.compassRoseComponent.instance.setCircleVisible(false);
     }
     this.updateBearingPointers(data.index, (element: NodeReference<HTMLDivElement> | null): void => {
-      if (element !== null && element.instance !== null && data.source) {
+      if (element !== null && element.instance !== null) {
+        if (data.source === null) {
+          element.instance.style.display = 'none';
+          return;
+        }
         const source = data.source;
         if (source.type !== NavSourceType.Nav && source.type !== NavSourceType.Gps && source.type !== NavSourceType.Adf) {
           element.instance.style.display = 'none';
           this.bearingPointerStatus[data.index] = false;
-        } else if (source.type == NavSourceType.Nav && this.navStates[source.index - 1].isLocalizer) {
+        } else if (!this.bearingValidity[data.index] || (source.type == NavSourceType.Nav && this.navStates[source.index - 1].isLocalizer)) {
           element.instance.style.display = 'none';
         } else {
           element.instance.style.display = '';
@@ -893,9 +921,10 @@ export class NavIndicatorController {
    * @param data The validity event.
    */
   private updateBearingValidity = (data: BearingValidity): void => {
+    this.bearingValidity[data.index] = data.valid;
     this.updateBearingPointers(data.index, (element: NodeReference<HTMLDivElement> | null): void => {
       if (element !== null && element.instance !== null) {
-        if (data.valid) {
+        if (data.valid && !this.navStates[this.bearingPointerSourceIdxs[data.index]].isLocalizer) {
           element.instance.style.display = '';
         } else {
           element.instance.style.display = 'none';
@@ -918,23 +947,26 @@ export class NavIndicatorController {
       if (element !== null && element.instance !== null && direction !== null) {
         const newDirection = Math.round(direction * 100) / 100;
         element.instance.style.transform = `rotate3d(0, 0, 1, ${newDirection}deg)`;
-      } else if (element !== null && element.instance !== null && direction == null) {
-        element.instance.style.display = 'none';
       }
+      // We had previously hidden the pointer if the direction was null, but that causes initialization
+      // issues which can cause the pointer to stay masked at startup, and there should always be a
+      // direction if the signal is valid.  Pointer hiding is taken care of by the invalid-signal
+      // handling and doesn't need to be done here.
     });
   };
 
-  // /**
-  //  * Sets the approach details when an approach_details_set event is received from the bus.
-  //  * @param approachDetails The approachDetails received from the bus.
-  //  */
-  // private onApproachDetailsSet = (approachDetails: ApproachDetails): void => {
-
-  //   const approachDetails: ApproachDetails = {
-  //     approachLoaded: approachLoaded !== undefined ? approachLoaded : this.approachDetails.approachLoaded,
-  //     approachType: approachType !== undefined ? approachType : this.approachDetails.approachType,
-  //     approachRnavType: approachRnavType !== undefined ? approachRnavType : this.approachDetails.approachRnavType,
-  //     approachIsActive: approachIsActive !== undefined ? approachIsActive : this.approachDetails.approachIsActive
-  //   };
-  // }
+  /**
+   * Get the index in navStates for a given nav source.  This is a bit of a hack to
+   * tie together two distinct data models, but it will do the job for now.
+   * @param source The NavSourceId of the desired source.
+   * @returns The index of that source in navStates or -1 if not found.
+   */
+  private getNavSourceIndex(source: NavSourceId): number {
+    for (let i = 0; i < this.navStates.length; i++) {
+      if (this.navStates[i].source.type == source.type && this.navStates[i].source.index == source.index) {
+        return i;
+      }
+    }
+    return -1;
+  }
 }

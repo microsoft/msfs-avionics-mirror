@@ -1,11 +1,10 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { FSComponent, DisplayComponent, VNode, ComponentProps, NodeReference } from 'msfssdk';
-import { EventBus, CompositeLogicXMLHost } from 'msfssdk/data';
-import { XMLExtendedGaugeConfig } from 'msfssdk/components/XMLGauges';
+import { ComponentProps, CompositeLogicXMLHost, DisplayComponent, EventBus, FSComponent, NodeReference, VNode, XMLExtendedGaugeConfig } from 'msfssdk';
+
+import { G1000ControlEvents } from '../../Shared/G1000Events';
 import { XMLColumnGroup } from './EngineInstruments/Columns';
 
 import './EIS.css';
-import { G1000ControlEvents } from '../../Shared/G1000Events';
 
 export enum EISPageTypes {
   Engine,
@@ -89,7 +88,7 @@ export class EIS extends DisplayComponent<EISProps> {
   public render(): VNode {
     return (
       <div>
-        <div ref={this.enginePage}>
+        <div ref={this.enginePage} class='XMLEngineDisplay' data-checklist='XMLEngineDisplay'>
           <XMLColumnGroup bus={this.props.bus} logicHost={this.props.logicHandler} columns={[{ gauges: this.props.gaugeConfig.enginePage }]} />
         </div>
         {this.props.gaugeConfig.leanPage &&

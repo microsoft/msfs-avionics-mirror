@@ -1,179 +1,14 @@
-import { EventBus } from 'msfssdk/data';
-import { DefaultUserSettingManager, UserSettingManager } from 'msfssdk/settings';
-import { MapTrafficAlertLevelMode } from './Modules/MapTrafficModule';
+import { DefaultUserSettingManager, EventBus, UserSettingManager } from 'msfssdk';
+
+import { MapDeclutterSettingMode, MapOrientationSettingMode, MapTerrainSettingMode, MapTrafficAlertLevelSettingMode, MapUserSettingTypes } from 'garminsdk';
 
 /**
- * Setting modes for map orientation.
+ * Map user settings that are independent between the PFD and MFD.
  */
-export enum MapOrientationSettingMode {
-  NorthUp,
-  TrackUp,
-  HeadingUp
-}
+export type SplitMapUserSettingTypes = {
+  /** The map range index setting. */
+  mapRangeIndex: number;
 
-/**
- * Setting modes for map terrain display.
- */
-export enum MapTerrainSettingMode {
-  None,
-  Absolute,
-  Relative
-}
-
-/**
- * Setting modes for map declutter.
- */
-export enum MapDeclutterSettingMode {
-  All,
-  Level3,
-  Level2,
-  Level1
-}
-
-/**
- * Type descriptions for map user settings.
- */
-export type BaseMapUserSettingTypes = {
-  /** The orientation setting. */
-  mapOrientation: MapOrientationSettingMode;
-
-  /** The auto-north-up active setting. */
-  mapAutoNorthUpActive: boolean;
-
-  /** The auto-north-up range setting. */
-  mapAutoNorthUpRangeIndex: number;
-
-  /** Declutter setting for the MFD. */
-  mapMfdDeclutter: MapDeclutterSettingMode;
-
-  /** Declutter setting for the PFD. */
-  mapPfdDeclutter: MapDeclutterSettingMode;
-
-  /** The terrain display setting for the MFD. */
-  mapMfdTerrainMode: MapTerrainSettingMode;
-
-  /** The terrain display setting for the PFD. */
-  mapPfdTerrainMode: MapTerrainSettingMode;
-
-  /** The terrain maximum range setting. */
-  mapTerrainRangeIndex: number;
-
-  /** The terrain scale show setting. */
-  mapTerrainScaleShow: boolean;
-
-  /** Large airport symbol show setting. */
-  mapAirportLargeShow: boolean;
-
-  /** Large airport maximum range setting. */
-  mapAirportLargeRangeIndex: number;
-
-  /** Medium airport symbol show setting. */
-  mapAirportMediumShow: boolean;
-
-  /** Medium airport maximum range setting. */
-  mapAirportMediumRangeIndex: number;
-
-  /** Small airport symbol show setting. */
-  mapAirportSmallShow: boolean;
-
-  /** Small airport maximum range setting. */
-  mapAirportSmallRangeIndex: number;
-
-  /** VOR symbol show setting. */
-  mapVorShow: boolean;
-
-  /** VOR maximum range setting. */
-  mapVorRangeIndex: number;
-
-  /** NDB symbol show setting. */
-  mapNdbShow: boolean;
-
-  /** NDB maximum range setting. */
-  mapNdbRangeIndex: number;
-
-  /** Intersection symbol show setting. */
-  mapIntersectionShow: boolean;
-
-  /** Intersection maximum range setting. */
-  mapIntersectionRangeIndex: number;
-
-  /** Class B airspace show setting. */
-  mapAirspaceClassBShow: boolean;
-
-  /** Class B airspace maximum range setting. */
-  mapAirspaceClassBRangeIndex: number;
-
-  /** Class C airspace show setting. */
-  mapAirspaceClassCShow: boolean;
-
-  /** Class C airspace maximum range setting. */
-  mapAirspaceClassCRangeIndex: number;
-
-  /** Class D airspace show setting. */
-  mapAirspaceClassDShow: boolean;
-
-  /** Class D airspace maximum range setting. */
-  mapAirspaceClassDRangeIndex: number;
-
-  /** Restricted airspace show setting. */
-  mapAirspaceRestrictedShow: boolean;
-
-  /** Restricted airspace maximum range setting. */
-  mapAirspaceRestrictedRangeIndex: number;
-
-  /** MOA airspace show setting. */
-  mapAirspaceMoaShow: boolean;
-
-  /** MOA airspace maximum range setting. */
-  mapAirspaceMoaRangeIndex: number;
-
-  /** Other airspace show setting. */
-  mapAirspaceOtherShow: boolean;
-
-  /** Other airspace maximum range setting. */
-  mapAirspaceOtherRangeIndex: number;
-
-  /** Whether to show traffic on the MFD. */
-  mapMfdTrafficShow: boolean;
-
-  /** Whether to show traffic on the PFD. */
-  mapPfdTrafficShow: boolean;
-
-  /** Traffic maximum range setting. */
-  mapTrafficRangeIndex: number;
-
-  /** Whether to show traffic labels. */
-  mapTrafficLabelShow: boolean;
-
-  /** Traffic label maximum range setting. */
-  mapTrafficLabelRangeIndex: number;
-
-  /** Traffic alert level mode setting. */
-  mapTrafficAlertLevelMode: MapTrafficAlertLevelMode;
-
-  /** Whether to show NEXRAD weather or not on the MFD. */
-  mapMfdNexradShow: boolean;
-
-  /** Whether to show NEXRAD weather or not on the PFD. */
-  mapPfdNexradShow: boolean;
-
-  /** NEXRAD maximum range setting. */
-  mapNexradRangeIndex: number;
-
-  /** Whether to show the track vector. */
-  mapTrackVectorShow: boolean;
-
-  /** The track vector lookahead time, in seconds. */
-  mapTrackVectorLookahead: number;
-
-  /** Whether to show the altitude intercept arc. */
-  mapAltitudeArcShow: boolean;
-}
-
-/**
- * Additional mapped settings types.
- */
-export type AgnosticMapUserSettingTypes = {
   /** Declutter setting. */
   mapDeclutter: MapDeclutterSettingMode;
 
@@ -188,15 +23,45 @@ export type AgnosticMapUserSettingTypes = {
 }
 
 /**
- * Both PFD/MFD agnostic setting types and base setting types.
+ * All map user settings.
  */
-export type MapUserSettingTypes = BaseMapUserSettingTypes & AgnosticMapUserSettingTypes;
+export type AllMapUserSettingTypes = Omit<MapUserSettingTypes, keyof SplitMapUserSettingTypes> & {
+  /** The map range index setting for the MFD. */
+  mapMfdRangeIndex: number;
+
+  /** The map range index setting for the PFD. */
+  mapPfdRangeIndex: number;
+
+  /** Declutter setting for the MFD. */
+  mapMfdDeclutter: MapDeclutterSettingMode;
+
+  /** Declutter setting for the PFD. */
+  mapPfdDeclutter: MapDeclutterSettingMode;
+
+  /** The terrain display setting for the MFD. */
+  mapMfdTerrainMode: MapTerrainSettingMode;
+
+  /** The terrain display setting for the PFD. */
+  mapPfdTerrainMode: MapTerrainSettingMode;
+
+  /** Whether to show NEXRAD weather or not on the MFD. */
+  mapMfdNexradShow: boolean;
+
+  /** Whether to show NEXRAD weather or not on the PFD. */
+  mapPfdNexradShow: boolean;
+
+  /** Whether to show traffic on the MFD. */
+  mapMfdTrafficShow: boolean;
+
+  /** Whether to show traffic on the PFD. */
+  mapPfdTrafficShow: boolean;
+}
 
 /**
  * Utility class for retrieving map user setting managers.
  */
 export class MapUserSettings {
-  private static INSTANCE: DefaultUserSettingManager<BaseMapUserSettingTypes> | undefined;
+  private static INSTANCE: DefaultUserSettingManager<AllMapUserSettingTypes> | undefined;
   private static PFD_INSTANCE: UserSettingManager<MapUserSettingTypes> | undefined;
   private static MFD_INSTANCE: UserSettingManager<MapUserSettingTypes> | undefined;
 
@@ -205,8 +70,16 @@ export class MapUserSettings {
    * @param bus The event bus.
    * @returns a manager for map user settings.
    */
-  public static getManager(bus: EventBus): DefaultUserSettingManager<BaseMapUserSettingTypes> {
-    return MapUserSettings.INSTANCE ??= new DefaultUserSettingManager<BaseMapUserSettingTypes>(bus, [
+  public static getManager(bus: EventBus): DefaultUserSettingManager<AllMapUserSettingTypes> {
+    return MapUserSettings.INSTANCE ??= new DefaultUserSettingManager<AllMapUserSettingTypes>(bus, [
+      {
+        name: 'mapPfdRangeIndex',
+        defaultValue: 11
+      },
+      {
+        name: 'mapMfdRangeIndex',
+        defaultValue: 11
+      },
       {
         name: 'mapOrientation',
         defaultValue: MapOrientationSettingMode.HeadingUp
@@ -292,6 +165,14 @@ export class MapUserSettings {
         defaultValue: 17
       },
       {
+        name: 'mapUserWaypointShow',
+        defaultValue: true
+      },
+      {
+        name: 'mapUserWaypointRangeIndex',
+        defaultValue: 17
+      },
+      {
         name: 'mapAirspaceClassBShow',
         defaultValue: true
       },
@@ -361,7 +242,7 @@ export class MapUserSettings {
       },
       {
         name: 'mapTrafficAlertLevelMode',
-        defaultValue: MapTrafficAlertLevelMode.All
+        defaultValue: MapTrafficAlertLevelSettingMode.All
       },
       {
         name: 'mapPfdNexradShow',
@@ -396,7 +277,8 @@ export class MapUserSettings {
    * @returns a manager for PFD map user settings.
    */
   public static getPfdManager(bus: EventBus): UserSettingManager<MapUserSettingTypes> {
-    return MapUserSettings.PFD_INSTANCE ?? MapUserSettings.getManager(bus).mapTo<AgnosticMapUserSettingTypes>({
+    return MapUserSettings.PFD_INSTANCE ??= MapUserSettings.getManager(bus).mapTo<SplitMapUserSettingTypes>({
+      mapRangeIndex: 'mapPfdRangeIndex',
       mapDeclutter: 'mapPfdDeclutter',
       mapNexradShow: 'mapPfdNexradShow',
       mapTerrainMode: 'mapPfdTerrainMode',
@@ -410,7 +292,8 @@ export class MapUserSettings {
    * @returns a manager for PFD map user settings.
    */
   public static getMfdManager(bus: EventBus): UserSettingManager<MapUserSettingTypes> {
-    return MapUserSettings.MFD_INSTANCE ?? MapUserSettings.getManager(bus).mapTo<AgnosticMapUserSettingTypes>({
+    return MapUserSettings.MFD_INSTANCE ??= MapUserSettings.getManager(bus).mapTo<SplitMapUserSettingTypes>({
+      mapRangeIndex: 'mapMfdRangeIndex',
       mapDeclutter: 'mapMfdDeclutter',
       mapNexradShow: 'mapMfdNexradShow',
       mapTerrainMode: 'mapMfdTerrainMode',

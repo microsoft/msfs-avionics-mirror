@@ -1,7 +1,8 @@
-import { Subscribable } from '../..';
+import { Subscribable } from '../../sub/Subscribable';
+import { SubscribableSet } from '../../sub/SubscribableSet';
+import { ComponentProps, DisplayComponent } from '../FSComponent';
 import { MapModel } from './MapModel';
 import { MapProjection } from './MapProjection';
-import { ComponentProps, DisplayComponent } from '../FSComponent';
 
 /**
  * An interface for basic map layer properties.
@@ -21,7 +22,7 @@ export interface MapLayerProps<M> extends ComponentProps {
   updateFreq?: Subscribable<number>;
 
   /** The CSS class(es) to apply to the root of this layer. */
-  class?: string;
+  class?: string | SubscribableSet<string>;
 }
 
 /**

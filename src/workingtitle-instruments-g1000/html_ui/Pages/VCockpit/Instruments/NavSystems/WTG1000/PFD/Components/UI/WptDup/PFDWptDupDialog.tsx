@@ -1,9 +1,9 @@
 import { FSComponent, VNode } from 'msfssdk';
 
-import { UiViewProps } from '../../../../Shared/UI/UiView';
-import { WptDupDialog } from '../../../../Shared/UI/WptDup/WptDupDialog';
 import { List } from '../../../../Shared/UI/List';
 import { ScrollBar } from '../../../../Shared/UI/ScrollBar';
+import { UiViewProps } from '../../../../Shared/UI/UiView';
+import { WptDupDialog } from '../../../../Shared/UI/WptDup/WptDupDialog';
 
 import './PFDWptDupDialog.css';
 

@@ -1,6 +1,8 @@
-import { FSComponent, ComponentProps, DisplayComponent, VNode, NodeReference } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, NodeReference, VNode } from 'msfssdk';
+
 import { SvtProjectionUtils } from '../../../Shared/UI/SvtProjectionUtils';
 import { PlaneStateInfo } from './PrimaryHorizonDisplay';
+
 import './HorizonCompass.css';
 
 /**

@@ -7,18 +7,10 @@
   font-family: Roboto-Bold;
 }
 
-.mfd-fplmap .minicompass-layer {
+.mfd-fplmap .map-minicompass {
   position: absolute;
   left: 5px;
   top: 80px;
-}
-
-.mfd-fplmap .map-crosshair {
-  --map-crosshair-size: 10px;
-}
-
-.mfd-fplmap .map-pointer {
-  --map-pointer-size: 25px;
 }
 
 .mfd-fplmap .map-pointerinfolayer-box {
@@ -26,30 +18,37 @@
   left: 90px;
   top: 56px;
 }
-  .mfd-fplmap .map-pointerinfolayer-box-dis {
-    width: 90px;
-  }
-  .mfd-fplmap .map-pointerinfolayer-box-brg {
-    width: 75px;
-  }
 
-.mfd-fplmap .navmap-indicators-top-left {
+.mfd-fplmap .map-pointerinfolayer-box-dis {
+  width: 90px;
+}
+
+.mfd-fplmap .map-pointerinfolayer-box-brg {
+  width: 75px;
+}
+
+.mfd-fplmap .map-indicator-group-top-left {
   position: absolute;
   left: 0px;
   top: 56px;
 }
 
-.mfd-fplmap .navmap-indicators-bottom-left {
+.mfd-fplmap .map-indicator-group-bottom-left {
   position: absolute;
   left: 0px;
   bottom: 0px;
 }
-  .mfd-fplmap .map-detail {
-    font-size: 14px;
-  }
 
-.mfd-fplmap .navmap-indicators-bottom-right {
+.mfd-fplmap .map-detail {
+  font-size: 14px;
+}
+
+.mfd-fplmap .map-indicator-group-bottom-right {
   position: absolute;
   right: 0px;
   bottom: 0px;
+}
+
+.mfd-fplmap .map-indicator-group-center {
+  top: 395px;
 }

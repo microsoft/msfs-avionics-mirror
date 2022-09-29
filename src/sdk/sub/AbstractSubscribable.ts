@@ -1,8 +1,7 @@
-import { MappedSubject } from './MappedSubject';
-import { MutableSubscribable, Subscribable } from './Subscribable';
 import { HandlerSubscription } from './HandlerSubscription';
-import { Subscription } from './Subscription';
+import { MappedSubscribable, MutableSubscribable, Subscribable } from './Subscribable';
 import { SubscribablePipe } from './SubscribablePipe';
+import { Subscription } from './Subscription';
 
 /**
  * An abstract implementation of a subscribable which allows adding, removing, and notifying subscribers.
@@ -108,7 +107,7 @@ export abstract class AbstractSubscribable<T> implements Subscribable<T> {
    * equality comparison (`===`).
    * @returns The mapped subscribable.
    */
-  public map<M>(fn: (input: T, previousVal?: M) => M, equalityFunc?: ((a: M, b: M) => boolean)): MappedSubject<[T], M>;
+  public map<M>(fn: (input: T, previousVal?: M) => M, equalityFunc?: ((a: M, b: M) => boolean)): MappedSubscribable<M>;
   /**
    * Maps this subscribable to a new subscribable with a persistent, cached value which is mutated when it changes.
    * @param fn The function to use to map to the new subscribable.
@@ -122,19 +121,15 @@ export abstract class AbstractSubscribable<T> implements Subscribable<T> {
     equalityFunc: ((a: M, b: M) => boolean),
     mutateFunc: ((oldVal: M, newVal: M) => void),
     initialVal: M
-  ): MappedSubject<[T], M>;
+  ): MappedSubscribable<M>;
   // eslint-disable-next-line jsdoc/require-jsdoc
   public map<M>(
     fn: (input: T, previousVal?: M) => M,
     equalityFunc?: ((a: M, b: M) => boolean),
     mutateFunc?: ((oldVal: M, newVal: M) => void),
     initialVal?: M
-  ): MappedSubject<[T], M> {
-    const mapFunc = (inputs: readonly [T], previousVal?: M): M => fn(inputs[0], previousVal);
-    return mutateFunc
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      ? MappedSubject.create(mapFunc, equalityFunc!, mutateFunc, initialVal!, this)
-      : MappedSubject.create(mapFunc, equalityFunc ?? AbstractSubscribable.DEFAULT_EQUALITY_FUNC, this);
+  ): MappedSubscribable<M> {
+    return new MappedSubscribableClass(this, fn, equalityFunc ?? AbstractSubscribable.DEFAULT_EQUALITY_FUNC, mutateFunc, initialVal);
   }
 
   /**
@@ -177,5 +172,115 @@ export abstract class AbstractSubscribable<T> implements Subscribable<T> {
     }
 
     return sub;
+  }
+}
+
+/**
+ * An implementation of {@link MappedSubscribable}.
+ */
+class MappedSubscribableClass<I, T> extends AbstractSubscribable<T> implements MappedSubscribable<T> {
+  public readonly isSubscribable = true;
+
+  private readonly inputSub: Subscription;
+
+  private value: T;
+  private readonly mutateFunc: (newVal: T) => void;
+
+  private _isAlive = true;
+  /** @inheritdoc */
+  public get isAlive(): boolean {
+    return this._isAlive;
+  }
+
+  private _isPaused = false;
+  /** @inheritdoc */
+  public get isPaused(): boolean {
+    return this._isPaused;
+  }
+
+  /**
+   * Constructor.
+   * @param input This subscribable's input.
+   * @param mapFunc The function which maps this subject's inputs to a value.
+   * @param equalityFunc The function which this subject uses to check for equality between values.
+   * @param mutateFunc The function which this subject uses to change its value.
+   * @param initialVal The initial value of this subject.
+   */
+  constructor(
+    private readonly input: Subscribable<I>,
+    private readonly mapFunc: (input: I, previousVal?: T) => T,
+    private readonly equalityFunc: ((a: T, b: T) => boolean),
+    mutateFunc?: ((oldVal: T, newVal: T) => void),
+    initialVal?: T
+  ) {
+    super();
+
+    if (initialVal && mutateFunc) {
+      this.value = initialVal;
+      mutateFunc(this.value, this.mapFunc(this.input.get()));
+      this.mutateFunc = (newVal: T): void => { mutateFunc(this.value, newVal); };
+    } else {
+      this.value = this.mapFunc(this.input.get());
+      this.mutateFunc = (newVal: T): void => { this.value = newVal; };
+    }
+
+    this.inputSub = this.input.sub(inputValue => {
+      this.updateValue(inputValue);
+    }, true);
+  }
+
+  /**
+   * Re-maps this subject's value from its input, and notifies subscribers if this results in a change to the mapped
+   * value according to this subject's equality function.
+   * @param inputValue The input value.
+   */
+  private updateValue(inputValue: I): void {
+    const value = this.mapFunc(inputValue, this.value);
+    if (!this.equalityFunc(this.value, value)) {
+      this.mutateFunc(value);
+      this.notify();
+    }
+  }
+
+  /** @inheritdoc */
+  public get(): T {
+    return this.value;
+  }
+
+  /** @inheritdoc */
+  public pause(): void {
+    if (!this._isAlive) {
+      throw new Error('MappedSubscribable: cannot pause a dead subscribable');
+    }
+
+    if (this._isPaused) {
+      return;
+    }
+
+    this.inputSub.pause();
+
+    this._isPaused = true;
+  }
+
+  /** @inheritdoc */
+  public resume(): void {
+    if (!this._isAlive) {
+      throw new Error('MappedSubscribable: cannot resume a dead subscribable');
+    }
+
+    if (!this._isPaused) {
+      return;
+    }
+
+    this._isPaused = false;
+
+    this.inputSub.resume(true);
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this._isAlive = false;
+
+    this.inputSub.destroy();
   }
 }

@@ -1,12 +1,12 @@
-import { MapOwnAirplaneIconModule } from '../modules/MapOwnAirplaneIconModule';
-import { MapOwnAirplanePropsModule } from '../modules/MapOwnAirplanePropsModule';
-import { MapProjection } from '../MapProjection';
 import { GeoPointInterface } from '../../../geo/GeoPoint';
+import { BitFlags } from '../../../math/BitFlags';
 import { ReadonlyFloat64Array, Vec2Math } from '../../../math/VecMath';
+import { Subscribable } from '../../../sub/Subscribable';
 import { FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps } from '../MapLayer';
-import { BitFlags } from '../../../math/BitFlags';
-import { Subscribable } from '../../../sub/Subscribable';
+import { MapProjection } from '../MapProjection';
+import { MapOwnAirplaneIconModule } from '../modules/MapOwnAirplaneIconModule';
+import { MapOwnAirplanePropsModule } from '../modules/MapOwnAirplanePropsModule';
 
 /**
  * Modules required by MapOwnAirplaneLayer.
@@ -39,7 +39,7 @@ export interface MapOwnAirplaneLayerProps<M extends MapOwnAirplaneLayerModules> 
 /**
  * A layer which draws an own airplane icon.
  */
-export class MapOwnAirplaneLayer<M extends MapOwnAirplaneLayerModules> extends MapLayer<MapOwnAirplaneLayerProps<M>> {
+export class MapOwnAirplaneLayer<M extends MapOwnAirplaneLayerModules = MapOwnAirplaneLayerModules> extends MapLayer<MapOwnAirplaneLayerProps<M>> {
   protected static readonly UPDATE_VISIBILITY = 1;
   protected static readonly UPDATE_TRANSFORM = 1 << 1;
 

@@ -1,9 +1,10 @@
-import { ArraySubject, GeoPoint, GeoPointSubject, MagVar, Subject, Subscribable, UnitType } from 'msfssdk';
 import {
-  AirportClassMask, AirportFacility, AirportSize, AirportUtils, FacilityFrequency, FacilityFrequencyType,
-  FacilityLoader, FacilitySearchType, FacilityType, NearestAirportSearchSession, NearestSearchResults,
-  NearestSearchSession, RunwaySurfaceCategory, RunwayUtils
-} from 'msfssdk/navigation';
+  AirportClassMask, AirportFacility, AirportUtils, ArraySubject, FacilityFrequency, FacilityFrequencyType, FacilityLoader, FacilitySearchType, FacilityType,
+  GeoPoint, GeoPointSubject, MagVar, NearestAirportSearchSession, NearestSearchResults, NearestSearchSession, RunwaySurfaceCategory, RunwayUtils, Subject,
+  Subscribable, UnitType
+} from 'msfssdk';
+
+import { AirportSize } from 'garminsdk';
 
 /** Shorthand for a collection of SurfaceTypes in a byte. */
 export type SurfaceTypeOptions = number;

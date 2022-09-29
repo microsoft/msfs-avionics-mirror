@@ -1,8 +1,7 @@
-import { DisplayComponent, FSComponent, GeoPoint, GeoPointSubject, Subject, VNode } from 'msfssdk';
-import { LatLonDisplay } from 'msfssdk/components/common';
-import { VorClass, VorFacility } from 'msfssdk/navigation';
-import { GroupBox } from '../../GroupBox';
+import { DisplayComponent, FSComponent, GeoPoint, GeoPointSubject, LatLonDisplay, Subject, VNode, VorClass, VorFacility } from 'msfssdk';
+
 import { MagVarDisplay } from '../../../../../Shared/UI/Common/MagVarDisplay';
+import { GroupBox } from '../../GroupBox';
 
 import './InformationGroup.css';
 
@@ -10,7 +9,7 @@ import './InformationGroup.css';
  * A component that displays information about an VOR on the
  * MFD nearest VORs page.
  */
-export class InformationGroup extends DisplayComponent<any> {
+export class NearestVorInformationGroup extends DisplayComponent<any> {
 
   private readonly content = FSComponent.createRef<HTMLDivElement>();
   private readonly facilityPos = GeoPointSubject.createFromGeoPoint(new GeoPoint(0, 0));

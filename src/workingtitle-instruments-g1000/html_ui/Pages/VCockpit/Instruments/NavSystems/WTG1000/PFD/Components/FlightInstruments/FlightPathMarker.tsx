@@ -1,4 +1,5 @@
-import { DisplayComponent, FSComponent, VNode, ComponentProps, NavMath, ExpSmoother, UnitType, Subscribable } from 'msfssdk';
+import { ComponentProps, DisplayComponent, ExpSmoother, FSComponent, NavMath, Subscribable, UnitType, VNode } from 'msfssdk';
+
 import { SvtProjectionUtils } from '../../../Shared/UI/SvtProjectionUtils';
 import { PlaneStateInfo } from './PrimaryHorizonDisplay';
 

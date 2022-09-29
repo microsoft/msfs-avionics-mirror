@@ -1,158 +1,248 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { EventBus, EventBusMetaEvents } from '../data/EventBus';
+import { EventBus, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
-import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
-import { SimVarPublisher } from './BasePublishers';
+import { SimVarValueType } from '../data/SimVars';
+import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
 
 /**
- * An interface that describes the possible ADC events
- * on the event bus.
+ * Base events related to air data computer information.
  */
-export interface ADCEvents {
+export interface BaseAdcEvents {
 
-    /** An indicated airspeed event, in knots. */
-    ias: number;
+  /** The airplane's indicated airspeed, in knots. */
+  ias: number;
 
-    /** A true airspeed event, in knots. */
-    tas: number;
+  /** The airplane's true airspeed, in knots. */
+  tas: number;
 
-    /** An indicated altitude (index 0) event, in feet. */
-    alt: number;
+  /** The airplane's indicated altitude, in feet. */
+  indicated_alt: number;
 
-    /** A radio altitude event, in feet. */
-    radio_alt: number;
+  /** The airplane's pressure altitude, in feet. */
+  pressure_alt: number;
 
-    /** A pressure altitude event, in feet. */
-    pressure_alt: number;
+  /** The airplane's vertical speed, in feet per minute. */
+  vertical_speed: number;
 
-    /** A vertical speed event, in feet per minute. */
-    vs: number;
+  /** The airplane's radio altitude, in feet. */
+  radio_alt: number;
 
-    /** A heading in degrees magnetic event. */
-    hdg_deg: number;
+  /** The current altimeter baro setting, in inches of mercury. */
+  altimeter_baro_setting_inhg: number;
 
-    /** A heading in degrees true event */
-    hdg_deg_true: number;
+  /** The current altimeter baro setting, in millibars. */
+  altimeter_baro_setting_mb: number;
 
-    /** A degrees of airplane pitch event. */
-    pitch_deg: number;
+  /** The current preselected altimeter baro setting, in inches of mercury. */
+  altimeter_baro_preselect_inhg: number;
 
-    /** A degrees of airplane roll event. */
-    roll_deg: number;
+  /** Whether the altimeter baro setting is set to STD (true=STD, false=set pressure). */
+  altimeter_baro_is_std: boolean;
 
-    /** A selected altimeter setting inHg. */
-    kohlsman_setting_hg_1: number;
+  /** The ambient temperature, in degrees Celsius. */
+  ambient_temp_c: number;
 
-    /** A preselected altimeter setting inHg. */
-    kohlsman_setting_hg_1_preselect: number;
+  /** The ambient pressure, in inches of mercury. */
+  ambient_pressure_inhg: number;
 
-    /** A selected altimeter setting mb. */
-    kohlsman_setting_mb_1: number;
+  /** The current ISA temperature, in degrees Celsius. */
+  isa_temp_c: number;
 
-    /** A turn coordinator ball value. */
-    turn_coordinator_ball: number;
+  /** The current ram air temperatuer, in degrees Celsius. */
+  ram_air_temp_c: number;
 
-    /** A delta heading value. */
-    delta_heading_rate: number;
+  /** The ambient wind velocity, in knots. */
+  ambient_wind_velocity: number;
 
-    /** An ambient temperature in Celsius. */
-    ambient_temp_c: number;
+  /** The ambient wind direction, in degrees true. */
+  ambient_wind_direction: number;
 
-    /** An ambient pressure in InHg. */
-    ambient_press_in: number;
+  /** Whether the plane is on the ground. */
+  on_ground: boolean;
 
-    /** An isa standard temperature in Celsius. */
-    isa_temp_c: number;
+  /** The angle of attack. */
+  aoa: number;
 
-    /** An rat temperature in Celsius. */
-    rat_temp_c: number;
+  /** The stall aoa of the current aircraft configuration. */
+  stall_aoa: number;
 
-    /** The ambient wind velocity, in knots. */
-    ambient_wind_velocity: number;
+  /** The speed of the aircraft in mach. */
+  mach_number: number;
 
-    /** The ambient wind direction, in degrees north. */
-    ambient_wind_direction: number;
-
-    /** Whether baro index 1 is set to STD (true=STD, false=set pressure). */
-    baro_std_1: boolean;
-
-    /** Whether the plane is on the ground. */
-    on_ground: boolean;
-
-    /** The angle of attack. */
-    aoa: number;
-
-    /** The stall aoa of the current aircraft configuration. */
-    stall_aoa: number;
-
-    /** The speed of the aircraft in mach. */
-    mach_number: number;
-
-    /**
-     * The conversion factor from mach to knots indicated airspeed in the airplane's current environment. In other
-     * words, the speed of sound in knots indicated airspeed.
-     */
-    mach_to_kias_factor: number;
+  /**
+   * The conversion factor from mach to knots indicated airspeed in the airplane's current environment. In other
+   * words, the speed of sound in knots indicated airspeed.
+   */
+  mach_to_kias_factor: number;
 }
 
 /**
- * A publisher for basic ADC/AHRS information.
+ * Topics indexed by airspeed indicator.
  */
-export class ADCPublisher extends SimVarPublisher<ADCEvents> {
-    private static simvars = new Map<keyof ADCEvents, SimVarDefinition>([
-        ['ias', { name: 'AIRSPEED INDICATED', type: SimVarValueType.Knots }],
-        ['tas', { name: 'AIRSPEED TRUE', type: SimVarValueType.Knots }],
-        ['alt', { name: 'INDICATED ALTITUDE', type: SimVarValueType.Feet }],
-        ['pressure_alt', { name: 'PRESSURE ALTITUDE', type: SimVarValueType.Feet }],
-        ['radio_alt', { name: 'RADIO HEIGHT', type: SimVarValueType.Feet }],
-        ['vs', { name: 'VERTICAL SPEED', type: SimVarValueType.FPM }],
-        ['hdg_deg', { name: 'PLANE HEADING DEGREES MAGNETIC', type: SimVarValueType.Degree }],
-        ['pitch_deg', { name: 'PLANE PITCH DEGREES', type: SimVarValueType.Degree }],
-        ['roll_deg', { name: 'PLANE BANK DEGREES', type: SimVarValueType.Degree }],
-        ['hdg_deg_true', { name: 'PLANE HEADING DEGREES TRUE', type: SimVarValueType.Degree }],
-        ['kohlsman_setting_hg_1', { name: 'KOHLSMAN SETTING HG', type: SimVarValueType.InHG }],
-        ['kohlsman_setting_hg_1_preselect', { name: 'L:XMLVAR_Baro1_SavedPressure', type: SimVarValueType.MB }],
-        ['baro_std_1', { name: 'L:XMLVAR_Baro1_ForcedToSTD', type: SimVarValueType.Bool }],
-        ['turn_coordinator_ball', { name: 'TURN COORDINATOR BALL', type: SimVarValueType.Number }],
-        ['delta_heading_rate', { name: 'DELTA HEADING RATE', type: SimVarValueType.Degree }],
-        ['ambient_temp_c', { name: 'AMBIENT TEMPERATURE', type: SimVarValueType.Celsius }],
-        ['ambient_press_in', { name: 'AMBIENT PRESSURE', type: SimVarValueType.InHG }],
-        ['isa_temp_c', { name: 'STANDARD ATM TEMPERATURE', type: SimVarValueType.Celsius }],
-        ['rat_temp_c', { name: 'TOTAL AIR TEMPERATURE', type: SimVarValueType.Celsius }],
-        ['ambient_wind_velocity', { name: 'AMBIENT WIND VELOCITY', type: SimVarValueType.Knots }],
-        ['ambient_wind_direction', { name: 'AMBIENT WIND DIRECTION', type: SimVarValueType.Degree }],
-        ['kohlsman_setting_mb_1', { name: 'KOHLSMAN SETTING MB', type: SimVarValueType.MB }],
-        ['on_ground', { name: 'SIM ON GROUND', type: SimVarValueType.Bool }],
-        ['aoa', { name: 'INCIDENCE ALPHA', type: SimVarValueType.Degree }],
-        ['stall_aoa', { name: 'STALL ALPHA', type: SimVarValueType.Degree }],
-        ['mach_number', { name: 'AIRSPEED MACH', type: SimVarValueType.Mach }],
-    ]);
+type AdcAirspeedIndexedTopics = 'ias' | 'tas' | 'mach_to_kias_factor';
 
-    /**
-     * Updates the ADC publisher.
-     */
-    public onUpdate(): void {
-        super.onUpdate();
+/** Topics indexed by altimeter. */
+type AdcAltimeterIndexedTopics = 'indicated_alt' | 'altimeter_baro_setting_inhg' | 'altimeter_baro_setting_mb'
+  | 'altimeter_baro_preselect_inhg' | 'altimeter_baro_is_std'
 
-        if (this.subscribed.has('mach_to_kias_factor')) {
-            this.publish('mach_to_kias_factor', Simplane.getMachToKias(1), false, true);
+/**
+ * Topics related to air data computer information that are indexed.
+ */
+type AdcIndexedTopics = AdcAirspeedIndexedTopics | AdcAltimeterIndexedTopics;
+
+/**
+ * Indexed events related to air data computer information.
+ */
+type AdcIndexedEvents = {
+  [P in keyof Pick<BaseAdcEvents, AdcIndexedTopics> as IndexedEventType<P>]: BaseAdcEvents[P];
+};
+
+/**
+ * Events related to air data computer information.
+ */
+export interface AdcEvents extends BaseAdcEvents, AdcIndexedEvents {
+}
+
+/**
+ * A publisher for air data computer information.
+ */
+export class AdcPublisher extends SimVarPublisher<AdcEvents> {
+  private mach: number;
+  private needUpdateMach: boolean;
+
+  /**
+   * Creates an AdcPublisher.
+   * @param bus The event bus to which to publish.
+   * @param airspeedIndicatorCount The number of airspeed indicators.
+   * @param altimeterCount The number of altimeters.
+   * @param pacer An optional pacer to use to control the rate of publishing.
+   */
+  public constructor(bus: EventBus, airspeedIndicatorCount: number, altimeterCount: number, pacer?: PublishPacer<AdcEvents>) {
+    const nonIndexedSimVars: [Exclude<keyof BaseAdcEvents, AdcIndexedTopics>, SimVarPublisherEntry<any>][] = [
+      ['radio_alt', { name: 'RADIO HEIGHT', type: SimVarValueType.Feet }],
+      ['pressure_alt', { name: 'PRESSURE ALTITUDE', type: SimVarValueType.Feet }],
+      ['radio_alt', { name: 'RADIO HEIGHT', type: SimVarValueType.Feet }],
+      ['vertical_speed', { name: 'VERTICAL SPEED', type: SimVarValueType.FPM }],
+      ['ambient_temp_c', { name: 'AMBIENT TEMPERATURE', type: SimVarValueType.Celsius }],
+      ['ambient_pressure_inhg', { name: 'AMBIENT PRESSURE', type: SimVarValueType.InHG }],
+      ['isa_temp_c', { name: 'STANDARD ATM TEMPERATURE', type: SimVarValueType.Celsius }],
+      ['ram_air_temp_c', { name: 'TOTAL AIR TEMPERATURE', type: SimVarValueType.Celsius }],
+      ['ambient_wind_velocity', { name: 'AMBIENT WIND VELOCITY', type: SimVarValueType.Knots }],
+      ['ambient_wind_direction', { name: 'AMBIENT WIND DIRECTION', type: SimVarValueType.Degree }],
+      ['on_ground', { name: 'SIM ON GROUND', type: SimVarValueType.Bool }],
+      ['aoa', { name: 'INCIDENCE ALPHA', type: SimVarValueType.Degree }],
+      ['stall_aoa', { name: 'STALL ALPHA', type: SimVarValueType.Degree }],
+      ['mach_number', { name: 'AIRSPEED MACH', type: SimVarValueType.Mach }],
+    ];
+
+    const airspeedIndexedSimVars: [Extract<keyof BaseAdcEvents, AdcAirspeedIndexedTopics>, SimVarPublisherEntry<any>][] = [
+      ['ias', { name: 'AIRSPEED INDICATED', type: SimVarValueType.Knots }],
+      ['tas', { name: 'AIRSPEED TRUE', type: SimVarValueType.Knots }],
+      [
+        'mach_to_kias_factor',
+        {
+          name: 'AIRSPEED INDICATED',
+          type: SimVarValueType.Knots,
+          map: (kias: number): number => kias < 1 ? Simplane.getMachToKias(kias) : kias / this.mach
         }
+      ],
+    ];
+
+    const altimeterIndexedSimVars: [Extract<keyof BaseAdcEvents, AdcAltimeterIndexedTopics>, SimVarPublisherEntry<any>][] = [
+      ['indicated_alt', { name: 'INDICATED ALTITUDE', type: SimVarValueType.Feet }],
+      ['altimeter_baro_setting_inhg', { name: 'KOHLSMAN SETTING HG', type: SimVarValueType.InHG }],
+      ['altimeter_baro_setting_mb', { name: 'KOHLSMAN SETTING MB', type: SimVarValueType.MB }],
+    ];
+
+    const altimeterStdIndexedLVars: [Extract<keyof BaseAdcEvents, AdcAltimeterIndexedTopics>, SimVarPublisherEntry<any>][] = [
+      ['altimeter_baro_preselect_inhg', { name: 'L:XMLVAR_Baro#ID#_SavedPressure', type: SimVarValueType.MB }],
+      ['altimeter_baro_is_std', { name: 'L:XMLVAR_Baro#ID#_ForcedToSTD', type: SimVarValueType.Bool }]
+    ];
+
+    const simvars = new Map<keyof AdcEvents, SimVarPublisherEntry<any>>(nonIndexedSimVars);
+
+    // set un-indexed simvar topics to pull from index 1
+    for (const [topic, simvar] of [...airspeedIndexedSimVars, ...altimeterIndexedSimVars]) {
+      simvars.set(
+        `${topic}`,
+        {
+          name: `${simvar.name}:1`,
+          type: simvar.type,
+          map: simvar.map
+        }
+      );
     }
 
-    /**
-     * Create an ADCPublisher
-     * @param bus The EventBus to publish to
-     * @param pacer An optional pacer to use to control the rate of publishing
-     */
-    public constructor(bus: EventBus, pacer: PublishPacer<ADCEvents> | undefined = undefined) {
-        super(ADCPublisher.simvars, bus, pacer);
-
-        bus.getSubscriber<EventBusMetaEvents>().on('event_bus_topic_first_sub').handle(
-            (key: string) => {
-                if (key === 'mach_to_kias_factor') {
-                    this.subscribed.add('mach_to_kias_factor');
-                }
-            });
+    // add airspeed indicator indexed simvar topics
+    airspeedIndicatorCount = Math.max(airspeedIndicatorCount, 1);
+    for (let i = 1; i <= airspeedIndicatorCount; i++) {
+      for (const [topic, simvar] of airspeedIndexedSimVars) {
+        simvars.set(
+          `${topic}_${i}`,
+          {
+            name: `${simvar.name}:${i}`,
+            type: simvar.type,
+            map: simvar.map
+          }
+        );
+      }
     }
+
+    // add altimeter indexed simvar topics
+    altimeterCount = Math.max(altimeterCount, 1);
+    for (let i = 1; i <= altimeterCount; i++) {
+      for (const [topic, simvar] of altimeterIndexedSimVars) {
+        simvars.set(
+          `${topic}_${i}`,
+          {
+            name: `${simvar.name}:${i}`,
+            type: simvar.type,
+            map: simvar.map
+          }
+        );
+      }
+    }
+
+    // baro STD LVars are indexed by baro id in the variable name
+    // HINT: Most airliners and jets modelbehaviors work like that
+    for (let i = 1; i <= altimeterCount; i++) {
+      for (const [topic, simvar] of altimeterStdIndexedLVars) {
+        simvars.set(
+          `${topic}_${i}`,
+          {
+            name: `${simvar.name.replace('#ID#', i.toString())}`,
+            type: simvar.type,
+            map: simvar.map
+          }
+        );
+      }
+    }
+
+    super(simvars, bus, pacer);
+
+    this.mach = 0;
+    this.needUpdateMach ??= false;
+  }
+
+  /** @inheritdoc */
+  protected onTopicSubscribed(topic: keyof AdcEvents): void {
+    super.onTopicSubscribed(topic);
+
+    if (topic.startsWith('mach_to_kias_factor')) {
+      this.needUpdateMach = true;
+    }
+  }
+
+  /** @inheritdoc */
+  public onUpdate(): void {
+    const isSlewing = SimVar.GetSimVarValue('IS SLEW ACTIVE', 'bool');
+    if (!isSlewing) {
+      if (this.needUpdateMach) {
+        this.mach = SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Number);
+      }
+
+      super.onUpdate();
+    }
+  }
 }

@@ -1,13 +1,13 @@
-import { Consumer } from 'msfssdk/data';
-import { UserSetting, UserSettingManager, UserSettingValueFilter } from 'msfssdk/settings';
+import { Consumer, UserSetting, UserSettingManager, UserSettingRecord, UserSettingValueFilter } from 'msfssdk';
+
 import { SoftKeyMenu } from './SoftKeyMenu';
 
 /**
  * A controller which binds a status bar softkey to a user setting that takes a boolean value. Once bound, each press
  * of the softkey will toggle the value of the setting.
  */
-export class SoftKeyBooleanUserSettingController<T extends Record<any, boolean | number | string>, K extends keyof UserSettingValueFilter<T, boolean>> {
-  private readonly setting = this.settingManager.getSetting(this.settingName) as UserSetting<K, boolean>;
+export class SoftKeyBooleanUserSettingController<T extends UserSettingRecord, K extends keyof UserSettingValueFilter<T, boolean> & string> {
+  private readonly setting = this.settingManager.getSetting(this.settingName) as UserSetting<boolean>;
 
   private settingConsumer: Consumer<boolean> | null = null;
 
@@ -69,12 +69,12 @@ export class SoftKeyBooleanUserSettingController<T extends Record<any, boolean |
  * A controller which binds a value indicator softkey to a user setting. Once bound, each press of the softkey will
  * cycle through possible user setting values.
  */
-export class SoftKeyEnumUserSettingController<T extends Record<any, boolean | number | string>, K extends keyof T> {
+export class SoftKeyEnumUserSettingController<T extends UserSettingRecord, K extends keyof T & string> {
   private readonly setting = this.settingManager.getSetting(this.settingName);
 
-  private settingConsumer: Consumer<T[K]> | null = null;
+  private settingConsumer: Consumer<NonNullable<T[K]>> | null = null;
 
-  private readonly settingHandler = (value: T[K]): void => {
+  private readonly settingHandler = (value: NonNullable<T[K]>): void => {
     this.softkeyMenu.getItem(this.softkeyIndex).value.set(this.textMap(value));
   };
 
@@ -96,8 +96,8 @@ export class SoftKeyEnumUserSettingController<T extends Record<any, boolean | nu
     private readonly softkeyLabel: string,
     private readonly settingManager: UserSettingManager<T>,
     private readonly settingName: K,
-    private readonly textMap: (value: T[K]) => string,
-    private readonly nextFunc: (currentValue: T[K]) => T[K]
+    private readonly textMap: (value: NonNullable<T[K]>) => string,
+    private readonly nextFunc: (currentValue: NonNullable<T[K]>) => NonNullable<T[K]>
   ) {
   }
 
@@ -150,7 +150,7 @@ export type MultipleSoftkeyUserSettingDef<V> = {
  * A controller which binds one or more status bar softkeys to a user setting. Each softkey is bound to a specific
  * setting value. Once bound, each press of the softkey will set the setting to its bound value.
  */
-export class MultipleSoftKeyUserSettingController<T extends Record<any, boolean | number | string>, K extends keyof T> {
+export class MultipleSoftKeyUserSettingController<T extends UserSettingRecord, K extends keyof T & string> {
   private readonly setting = this.settingManager.getSetting(this.settingName);
 
   private settingConsumer: Consumer<T[K]> | null = null;
@@ -175,7 +175,7 @@ export class MultipleSoftKeyUserSettingController<T extends Record<any, boolean 
     private readonly softkeyMenu: SoftKeyMenu,
     private readonly settingManager: UserSettingManager<T>,
     private readonly settingName: K,
-    private readonly softkeyDefs: MultipleSoftkeyUserSettingDef<T[K]>[]
+    private readonly softkeyDefs: MultipleSoftkeyUserSettingDef<NonNullable<T[K]>>[]
   ) {
   }
 

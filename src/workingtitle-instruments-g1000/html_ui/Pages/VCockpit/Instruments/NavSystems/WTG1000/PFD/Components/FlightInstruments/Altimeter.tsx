@@ -1,15 +1,17 @@
-import { ComputedSubject, DisplayComponent, FSComponent, NodeReference, NumberUnitSubject, Subject, UnitType, VNode } from 'msfssdk';
-import { VNavEvents, VNavState } from 'msfssdk/autopilot';
-import { ControlEvents, EventBus, HEvent } from 'msfssdk/data';
-import { NumberFormatter } from 'msfssdk/graphics/text';
-import { ADCEvents, APEvents, DHEvents } from 'msfssdk/instruments';
+import {
+  AdcEvents, AltitudeSelectEvents, APEvents, ComponentProps, ComputedSubject, ConsumerSubject, ControlEvents, DisplayComponent, EventBus, FSComponent, HEvent,
+  MappedSubject, MappedSubscribable, MathUtils, MinimumsEvents, MinimumsMode, NodeReference, NumberFormatter, NumberUnitSubject, ObjectSubject, SubEvent,
+  Subject, Subscribable, Subscription, UnitType, VNavEvents, VNavState, VNode
+} from 'msfssdk';
+
 import { G1000ControlEvents, G1000ControlPublisher } from '../../../Shared/G1000Events';
 import { ADCSystemEvents } from '../../../Shared/Systems/ADCAvionicsSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
 import { NumberUnitDisplay } from '../../../Shared/UI/Common/NumberUnitDisplay';
 import { PFDUserSettings } from '../../PFDUserSettings';
-import './Altimeter.css';
 import { AltAlertState, AltitudeAlertController } from './AltitudeAlertController';
+
+import './Altimeter.css';
 
 /**
  * The properties of the altitude indicator component.
@@ -21,6 +23,9 @@ interface AltimeterProps {
 
   /** The g1000 control event bus publisher. */
   g1000Publisher: G1000ControlPublisher;
+
+  /** Whether this instance of the G1000 has a Radio Altimeter. */
+  hasRadioAltimeter: boolean;
 }
 
 /**
@@ -67,6 +72,13 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
   private readonly indicatedAltitudeSub = NumberUnitSubject.createFromNumberUnit(UnitType.FOOT.createNumber(0));
   private readonly selectedAltitudeSub = NumberUnitSubject.createFromNumberUnit(UnitType.FOOT.createNumber(NaN));
 
+  private readonly indicatedAltitudeConsumer = ConsumerSubject.create(this.props.bus.getSubscriber<AdcEvents>().on('indicated_alt').withPrecision(1), 0);
+
+  private readonly decisionHeight = ConsumerSubject.create(this.props.bus.getSubscriber<MinimumsEvents>().on('decision_height_feet').withPrecision(1), 0);
+  private readonly decisionAltitude = ConsumerSubject.create(this.props.bus.getSubscriber<MinimumsEvents>().on('decision_altitude_feet').withPrecision(1), 0);
+  private readonly minimumsMode = ConsumerSubject.create(this.props.bus.getSubscriber<MinimumsEvents>().on('minimums_mode'), MinimumsMode.OFF);
+  private readonly radioAltitudeFeet = ConsumerSubject.create(this.props.bus.getSubscriber<AdcEvents>().on('radio_alt'), 0);
+
   private currentBaro = {
     units_hpa: false,
     standard: false,
@@ -82,32 +94,35 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
 
   private isFailed = false;
 
+  private readonly updateTapeEvent = new SubEvent<this, void>();
+  private readonly isGroundLineVisible = Subject.create<boolean>(false);
+
+
   /**
    * A callback called after the component renders.
    */
   public onAfterRender(): void {
-    const adc = this.props.bus.getSubscriber<ADCEvents>();
-    const ap = this.props.bus.getSubscriber<APEvents>();
-    const vnav = this.props.bus.getSubscriber<VNavEvents>();
-    const hEvtPub = this.props.bus.getSubscriber<HEvent>();
-    const g1000ControlEvents = this.props.bus.getSubscriber<G1000ControlEvents>();
+    const sub = this.props.bus.getSubscriber<
+      AdcEvents & APEvents & VNavEvents & HEvent & AltitudeSelectEvents & MinimumsEvents & ControlEvents & G1000ControlEvents & ADCSystemEvents
+    >();
 
-    adc.on('alt')
-      .withPrecision(1)
-      .handle(this.updateAltitude.bind(this));
-    ap.on('ap_altitude_selected')
+    this.indicatedAltitudeConsumer.sub(v => {
+      this.updateAltitude(v);
+    }, true);
+
+    sub.on('ap_altitude_selected')
       .withPrecision(0)
       .handle(alt => {
         this.selectedAltitude = alt;
         this.updateSelectedAltitude();
       });
-    adc.on('kohlsman_setting_hg_1')
+    sub.on('altimeter_baro_setting_inhg_1')
       .withPrecision(2)
       .handle(this.updateKohlsmanSetting.bind(this));
-    adc.on('vs')
+    sub.on('vertical_speed')
       .withPrecision(-1)
       .handle(this.updateVerticalSpeed.bind(this));
-    hEvtPub.on('hEvent').handle(hEvent => {
+    sub.on('hEvent').handle(hEvent => {
       if (hEvent == 'AS1000_PFD_BARO_INC') {
         this.onbaroKnobTurn(true);
       } else if (hEvent == 'AS1000_PFD_BARO_DEC') {
@@ -119,17 +134,37 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     PFDUserSettings.getManager(this.props.bus).whenSettingChanged('baroHpa').handle(this.updateBaroUnits.bind(this));
 
 
-    g1000ControlEvents.on('std_baro_switch')
+    sub.on('std_baro_switch')
       .handle(this.updateBaroStd.bind(this));
-    g1000ControlEvents.on('show_minimums')
-      .handle((show) => {
-        if (show) {
+
+    this.minimumsMode.sub((mode) => {
+      switch (mode) {
+        case MinimumsMode.BARO:
           this.minimumsBugRef.instance.style.display = '';
-        } else {
+          this.updateMinimums(this.decisionAltitude.get());
+          break;
+        case MinimumsMode.RA:
+          this.minimumsBugRef.instance.style.display = '';
+          this.updateMinimums(this.decisionHeight.get());
+          break;
+        default:
           this.minimumsBugRef.instance.style.display = 'none';
-        }
-      });
-    g1000ControlEvents.on('ap_alt_sel_set')
+      }
+    });
+
+    this.decisionAltitude.sub(v => {
+      if (this.minimumsMode.get() === MinimumsMode.BARO) {
+        this.updateMinimums(v);
+      }
+    });
+
+    this.decisionHeight.sub(v => {
+      if (this.minimumsMode.get() === MinimumsMode.RA) {
+        this.updateMinimums(v);
+      }
+    });
+
+    sub.on('alt_select_is_initialized')
       .whenChanged()
       .handle(isSet => {
         this.isSelectedAltitudeSet = isSet;
@@ -137,18 +172,14 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
         this.updateSelectedAltitudeBugVisibility();
       });
 
-    this.props.bus.getSubscriber<DHEvents>().on('decision_altitude').handle(
-      this.updateMinimums.bind(this)
-    );
-
-    this.props.bus.getSubscriber<ControlEvents>().on('baro_set')
+    sub.on('baro_set')
       .handle(() => this.handleBaroSetEvent());
 
-    vnav.on('vnav_constraint_altitude').whenChanged().handle(alt => {
+    sub.on('vnav_constraint_altitude').whenChanged().handle(alt => {
       this.constraintAltitude = alt;
       this.manageVnavConstraintAltitudeDisplay();
     });
-    vnav.on('vnav_state').whenChanged().handle(state => {
+    sub.on('vnav_state').whenChanged().handle(state => {
       this.vnavState = state;
       this.manageVnavConstraintAltitudeDisplay();
     });
@@ -159,9 +190,7 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     this.minimumsBugRef.instance.style.display = 'none';
     this.altitudeBugRef.instance.style.display = 'none';
 
-    this.props.bus.getSubscriber<ADCSystemEvents>()
-      .on('adc_state')
-      .handle(this.onAdcStateChanged.bind(this));
+    sub.on('adc_state').handle(this.onAdcStateChanged.bind(this));
   }
 
   /**
@@ -191,6 +220,7 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     } else {
       this.isFailed = false;
       this.containerRef.instance.classList.remove('failed-instr');
+      this.updateAltitude(this.indicatedAltitudeConsumer.get());
     }
   }
 
@@ -244,7 +274,11 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
    * @param mins The minimums altitude value.
    */
   private updateMinimums = (mins: number): void => {
-    this.minimumsAltitude = Math.round(mins);
+    if (this.minimumsMode.get() === MinimumsMode.RA) {
+      this.minimumsAltitude = (this.controller.altitude - this.radioAltitudeFeet.get()) + Math.round(mins);
+    } else {
+      this.minimumsAltitude = Math.round(mins);
+    }
     this.updateMinimumsBug();
   };
 
@@ -465,9 +499,13 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
   private updateAltitude(indicatedAlt: number): void {
     if (this.isFailed) {
       indicatedAlt = 0;
+      this.isGroundLineVisible.set(false);
+    } else {
+      this.isGroundLineVisible.set(this.props.hasRadioAltimeter && this.radioAltitudeFeet.get() <= 400);
     }
 
     this.indicatedAltitudeSub.set(indicatedAlt);
+
 
     this.controller.altitude = indicatedAlt;
     const alt = Math.abs(indicatedAlt);
@@ -545,10 +583,16 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
           }
         }
       }
+      this.updateTapeEvent.notify(this);
     }
     this.updateSelectedAltitudeBugPosition();
-    this.updateMinimumsBug();
     this.controller.updateAltitudeAlerter();
+    if (this.minimumsMode.get() === MinimumsMode.RA) {
+      this.updateMinimums(this.decisionHeight.get());
+    } else {
+      this.updateMinimumsBug();
+    }
+
   }
 
   /**
@@ -685,16 +729,33 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
   }
 
   /**
+   * Calculates the absolute vertical position on the tape at which a particular altitude is located, with `0` at the
+   * top of the tape and `1` at the bottom.
+   * @param indicatedAlt An altitude, in feet.
+   * @param clamp Whether the altitude should be clamped to the range defined by this tape's minimum and maximum
+   * representable altitudes. Defaults to `false`.
+   * @returns The absolute vertical position on the tape at which the specified altitude is located, with `0` at the
+   * top of the tape and `1` at the bottom.
+   */
+  private calculateAbsoluteTapePosition(indicatedAlt: number, clamp = false): number {
+    if (clamp) {
+      indicatedAlt = MathUtils.clamp(indicatedAlt, (this.currentDrawnAlt * 100) - 400, (this.currentDrawnAlt * 100) + 400);
+    }
+
+    return 1 - (indicatedAlt - ((this.currentDrawnAlt * 100) - 400)) / 800;
+  }
+
+  /**
    * Render the component.
    * @returns The component VNode.
    */
   public render(): VNode {
     return (
-      <div class="altimeter" ref={this.containerRef}>
+      <div class="altimeter Altimeter" data-checklist='Altimeter' ref={this.containerRef}>
         <div class="altimeter-middle-border"></div>
         <div class="altitude-tick-marks">
           <div class="failed-box" />
-          <div style="height: 446px; width: 100px;" ref={this.altitudeTapeTickElement} >
+          <div style="height: 446px; width: 100%;" ref={this.altitudeTapeTickElement} >
             <svg height="446" width="100" viewBox="0 -400 179 800">
               <g class="AltitudeTape" transform="translate(0,0)">
                 {this.buildAltitudeTapeTicks()}
@@ -704,6 +765,13 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
                 </g>
               </g>
             </svg>
+            <G1000GroundLine
+              indicatedAlt={this.indicatedAltitudeConsumer}
+              radarAlt={this.radioAltitudeFeet}
+              isVisible={this.isGroundLineVisible}
+              updateEvent={this.updateTapeEvent}
+              getPosition={this.calculateAbsoluteTapePosition.bind(this)}
+            />
           </div>
         </div>
 
@@ -795,7 +863,116 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
           <span ref={this.baroUnits} class="size14">IN</span>
         </div>
 
+
+
       </div >
     );
+  }
+}
+
+/**
+ * Component props for G1000 NXi GroundLine.
+ */
+interface G1000GroundLineProps extends ComponentProps {
+  /** The current indicated altitude, in feet. */
+  indicatedAlt: Subscribable<number>;
+
+  /** The current radar altitude, in feet. */
+  radarAlt: Subscribable<number>;
+
+  /** Whether the altitude bug is visible. */
+  isVisible: Subscribable<boolean>;
+
+  /** An event which signals that the ground line needs to be updated with a new tape window position. */
+  updateEvent: SubEvent<any, void>;
+
+  /** A function which gets the position on the altitude bug's parent tape window at which a particular altitude is located. */
+  getPosition: (indicatedAlt: number) => number;
+}
+
+/**
+ * A radar altimeter ground line for the G1000 NXi altimeter tape. Depicts the
+ * position of the ground on the altitude tape as determined by the radar altimeter.
+ */
+class G1000GroundLine extends DisplayComponent<G1000GroundLineProps> {
+  private readonly style = ObjectSubject.create({
+    display: '',
+    position: 'absolute',
+    bottom: '0%',
+    height: '0%',
+    transform: 'rotateX(0deg)'
+  });
+
+  private readonly position = Subject.create(0);
+
+  private groundAltitudeRounded?: MappedSubscribable<number>;
+
+  private isVisibleSub?: Subscription;
+  private updateEventSub?: Subscription;
+
+  /** @inheritdoc */
+  public onAfterRender(): void {
+    const updateHandler = this.updatePosition.bind(this);
+
+    this.groundAltitudeRounded = MappedSubject.create(
+      ([indicatedAlt, radarAlt]): number => {
+        return Math.round(indicatedAlt - radarAlt);
+      },
+      this.props.indicatedAlt,
+      this.props.radarAlt
+    );
+    this.groundAltitudeRounded.pause();
+    this.groundAltitudeRounded.sub(updateHandler);
+
+    this.updateEventSub = this.props.updateEvent.on(updateHandler, true);
+
+    this.position.sub(translate => {
+      this.style.set('height', `${100 - translate}%`);
+    });
+
+    this.isVisibleSub = this.props.isVisible.sub(isVisible => {
+      if (isVisible) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this.groundAltitudeRounded!.resume();
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this.updateEventSub!.resume();
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this.groundAltitudeRounded!.pause();
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this.updateEventSub!.pause();
+
+        this.style.set('display', 'none');
+      }
+    }, true);
+  }
+
+  /**
+   * Updates this line's position on its parent altimeter tape window.
+   */
+  private updatePosition(): void {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const pos = this.props.getPosition(this.groundAltitudeRounded!.get());
+
+    if (isNaN(pos) || pos > 1) {
+      this.style.set('display', 'none');
+    } else {
+      this.style.set('display', '');
+      this.position.set(MathUtils.round(Math.max(pos, 0) * 100, 0.1));
+    }
+  }
+
+  /** @inheritdoc */
+  public render(): VNode {
+    return (
+      <div class='altimeter-ground-line' style={this.style}></div>
+    );
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    super.destroy();
+
+    this.groundAltitudeRounded?.destroy();
   }
 }

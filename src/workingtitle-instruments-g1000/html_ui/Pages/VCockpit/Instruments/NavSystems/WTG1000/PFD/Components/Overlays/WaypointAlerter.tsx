@@ -1,7 +1,6 @@
-import { FSComponent, ComponentProps, DisplayComponent, VNode, NodeReference } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { GNSSEvents } from 'msfssdk/instruments';
-import { LNavDataEvents } from 'garminsdk/navigation';
+import { ComponentProps, DisplayComponent, EventBus, FSComponent, GNSSEvents, NodeReference, VNode } from 'msfssdk';
+
+import { LNavDataEvents } from 'garminsdk';
 
 import './WaypointAlerter.css';
 

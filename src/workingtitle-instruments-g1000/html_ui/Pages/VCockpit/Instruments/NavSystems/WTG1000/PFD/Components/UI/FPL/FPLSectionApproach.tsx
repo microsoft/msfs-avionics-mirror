@@ -1,8 +1,10 @@
-import { VNode, FSComponent, Subject } from 'msfssdk';
-import { FmsUtils } from 'garminsdk/flightplan';
+import { FSComponent, Subject, VNode } from 'msfssdk';
+
+import { FmsUtils } from 'garminsdk';
+
+import { ApproachNameDisplay } from '../../../../Shared/UI/FPL/ApproachNameDisplay';
 import { FPLHeaderApproach } from '../../../../Shared/UI/FPL/FPLHeaderApproach';
 import { FPLSection } from './FPLSection';
-import { ApproachNameDisplay } from '../../../../Shared/UI/FPL/ApproachNameDisplay';
 
 /**
  * Render the approach phase of a flight plan.

@@ -1,4 +1,5 @@
 import { FSComponent, VNode } from 'msfssdk';
+
 import { CourseNeedleComponent } from './CourseNeedleComponent';
 
 /**

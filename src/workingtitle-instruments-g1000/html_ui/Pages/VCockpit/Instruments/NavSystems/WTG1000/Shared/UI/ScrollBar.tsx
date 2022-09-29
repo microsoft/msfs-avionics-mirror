@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, VNode, FSComponent } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, VNode } from 'msfssdk';
 
 import './ScrollBar.css';
 
@@ -34,7 +34,7 @@ export class ScrollBar extends DisplayComponent<ComponentProps> {
       }
 
       // HINT: ResizeObserver doesn't exist in Coherent. MutationObserver doesn't perform well.
-      // So we do this crap
+      // So we do this unpleasant thing.
       /**
        * Checks if the scrollheight of the container has changed and calls adjust
        */

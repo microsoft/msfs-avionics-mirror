@@ -1,6 +1,7 @@
-import { NavAngleUnit, Subject, Subscribable, Unit, UnitFamily, UnitType } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { DefaultUserSettingManager, UserSettingDefinition, UserSettingManagerEntry, UserSettingManagerSyncData } from 'msfssdk/settings';
+import {
+  DefaultUserSettingManager, EventBus, NavAngleUnit, Subject, Subscribable, Unit, UnitFamily, UnitType, UserSettingDefinition, UserSettingManagerEntry,
+  UserSettingManagerSyncData, UserSettingValue
+} from 'msfssdk';
 
 /**
  * Setting modes for nav angle units.
@@ -96,7 +97,7 @@ export class UnitsUserSettingManager extends DefaultUserSettingManager<UnitsUser
   public readonly weightUnits = this.weightUnitsSub as Subscribable<Unit<UnitFamily.Weight>>;
 
   /** @inheritdoc */
-  constructor(bus: EventBus, settingDefs: UserSettingDefinition<keyof UnitsUserSettingTypes, UnitsUserSettingTypes[keyof UnitsUserSettingTypes]>[]) {
+  constructor(bus: EventBus, settingDefs: UserSettingDefinition<UnitsUserSettingTypes[keyof UnitsUserSettingTypes]>[]) {
     super(bus, settingDefs);
 
     for (const entry of this.settings.values()) {
@@ -106,7 +107,7 @@ export class UnitsUserSettingManager extends DefaultUserSettingManager<UnitsUser
 
   /** @inheritdoc */
   protected onSettingValueChanged<K extends keyof UnitsUserSettingTypes>(
-    entry: UserSettingManagerEntry<K, UnitsUserSettingTypes[K]>,
+    entry: UserSettingManagerEntry<UnitsUserSettingTypes[K]>,
     value: UnitsUserSettingTypes[K]
   ): void {
     this.updateUnitsSubjects(entry.setting.definition.name, value);
@@ -116,7 +117,7 @@ export class UnitsUserSettingManager extends DefaultUserSettingManager<UnitsUser
 
   /** @inheritdoc */
   protected onSettingValueSynced<K extends keyof UnitsUserSettingTypes>(
-    entry: UserSettingManagerEntry<K, UnitsUserSettingTypes[K]>,
+    entry: UserSettingManagerEntry<UnitsUserSettingTypes[K]>,
     data: UserSettingManagerSyncData<UnitsUserSettingTypes[K]>
   ): void {
     // protect against race conditions by not responding to sync events older than the last time this manager synced
@@ -135,7 +136,7 @@ export class UnitsUserSettingManager extends DefaultUserSettingManager<UnitsUser
    * @param settingName The name of the setting that was changed.
    * @param value The new value of the changed setting.
    */
-  protected updateUnitsSubjects<K extends keyof UnitsUserSettingTypes>(settingName: K, value: UnitsUserSettingTypes[K]): void {
+  protected updateUnitsSubjects(settingName: string, value: UserSettingValue): void {
     switch (settingName) {
       case 'unitsNavAngle':
         this.navAngleUnitsSub?.set(value === UnitsNavAngleSettingMode.Magnetic ? UnitsUserSettingManager.MAGNETIC_BEARING : UnitsUserSettingManager.TRUE_BEARING);

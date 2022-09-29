@@ -1,11 +1,9 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { GeoCircle, GeoPoint, MagVar, MathUtils, NavMath, ObjectSubject, SubscribableType, UnitType } from 'msfssdk';
-import { EventBus, HEvent, SimVarValueType } from 'msfssdk/data';
-import { GNSSEvents, NavEvents, NavSourceType } from 'msfssdk/instruments';
-import { DirectorState, LNavEvents, LNavTransitionMode, LNavVars, ObsDirector } from 'msfssdk/autopilot';
-import { FlightPathUtils, LegDefinition } from 'msfssdk/flightplan';
-import { LinearServo } from 'msfssdk/utils/controllers';
+import {
+  DirectorState, EventBus, FlightPathUtils, GeoCircle, GeoPoint, GeoPointSubject, GNSSEvents, HEvent, LegDefinition, LinearServo, LNavEvents, LNavTransitionMode, LNavVars,
+  MagVar, MathUtils, NavEvents, NavMath, NavSourceType, ObjectSubject, ObsDirector, SimVarValueType, SubscribableType, UnitType
+} from 'msfssdk';
 
 /**
  * A director that handles OBS Lateral Navigation.
@@ -29,7 +27,6 @@ export class GarminObsDirector implements ObsDirector {
   public obsActive = false;
   private dtk: number | undefined = undefined;
   private xtk: number | undefined = undefined;
-  private magvar = 0;
 
   private legIndex = 0;
   private leg: LegDefinition | null = null;
@@ -39,6 +36,9 @@ export class GarminObsDirector implements ObsDirector {
 
   private planePos = new GeoPoint(0, 0);
   private groundTrack = 0;
+
+  private readonly obsFix = GeoPointSubject.create(new GeoPoint(0, 0));
+  private readonly obsMagVar = this.obsFix.map(fix => MagVar.get(fix));
 
   private isTracking = false;
   private needSubLNavData = false;
@@ -109,9 +109,10 @@ export class GarminObsDirector implements ObsDirector {
         let courseMag: number | undefined = undefined;
 
         if (calc && calc.endLat !== undefined && calc.endLon !== undefined) {
+          this.obsFix.set(calc.endLat, calc.endLon);
           const courseTrue = FlightPathUtils.getLegFinalCourse(calc);
           if (courseTrue !== undefined) {
-            courseMag = MagVar.trueToMagnetic(courseTrue, calc.endLat, calc.endLon);
+            courseMag = MagVar.trueToMagnetic(courseTrue, this.obsMagVar.get());
           }
         }
 
@@ -136,9 +137,6 @@ export class GarminObsDirector implements ObsDirector {
       this.obsSetting = value;
     });
 
-    sub.on('magvar').whenChanged().handle((v) => {
-      this.magvar = v;
-    });
     sub.on('track_deg_magnetic').whenChanged().handle((v) => {
       this.groundTrack = v;
     });
@@ -249,7 +247,9 @@ export class GarminObsDirector implements ObsDirector {
 
     if (this.leg?.calculated?.endLat !== undefined && this.leg?.calculated?.endLon !== undefined) {
       const end = this.geoPointCache[0].set(this.leg.calculated.endLat, this.leg.calculated.endLon);
-      const obsTrue = NavMath.normalizeHeading(this.obsSetting + this.magvar);
+      this.obsFix.set(end);
+
+      const obsTrue = MagVar.magneticToTrue(this.obsSetting, this.obsMagVar.get());
       const path = this.geoCircleCache[0].setAsGreatCircle(end, obsTrue);
 
       this.dtk = path.bearingAt(this.planePos, Math.PI);

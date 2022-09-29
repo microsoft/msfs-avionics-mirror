@@ -1,16 +1,14 @@
-import { ArraySubject, ComponentProps, DisplayComponent, FSComponent, Subject, VNode } from 'msfssdk';
-import { RunwaySurfaceCategory } from 'msfssdk/navigation';
-import { UserSettingManager } from 'msfssdk/settings';
-import { MFDSystemSetupGroupProps } from './MFDSystemSetupGroup';
-import { MFDSystemSetupGenericRow, MFDSystemSetupSelectRow } from './MFDSystemSetupRow';
-import { GroupBox } from '../GroupBox';
+import { ArraySubject, ComponentProps, DisplayComponent, FSComponent, RunwaySurfaceCategory, Subject, UserSettingManager, VNode } from 'msfssdk';
+
 import { NearestAirportSearchSettings, NearestAirportSearchSettingTypes } from '../../../../Shared/NearestAirportSearchSettings';
 import { ContextMenuItemDefinition } from '../../../../Shared/UI/Dialogs/ContextMenuDialog';
 import { UiControl } from '../../../../Shared/UI/UiControl';
 import { DigitInput } from '../../../../Shared/UI/UiControls2/DigitInput';
 import { G1000UiControlWrapper } from '../../../../Shared/UI/UiControls2/G1000UiControlWrapper';
 import { GenericNumberInput } from '../../../../Shared/UI/UiControls2/GenericNumberInput';
-
+import { GroupBox } from '../GroupBox';
+import { MFDSystemSetupGroupProps } from './MFDSystemSetupGroup';
+import { MFDSystemSetupGenericRow, MFDSystemSetupSelectRow } from './MFDSystemSetupRow';
 
 /** The MFD setup page section for nearest airport search parameters. */
 export class MFDSystemSetupNearestAirportGroup extends DisplayComponent<MFDSystemSetupGroupProps> {

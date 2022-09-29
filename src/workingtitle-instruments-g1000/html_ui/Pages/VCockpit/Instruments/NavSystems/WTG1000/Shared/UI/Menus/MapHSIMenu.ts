@@ -1,13 +1,11 @@
-import { UserSettingManager } from 'msfssdk/settings';
+import { UserSettingManager, UserSettingValueFilter } from 'msfssdk';
+
+import { MapDeclutterSettingMode, MapTerrainSettingMode, MapUserSettingTypes } from 'garminsdk';
+
 import { PfdMapLayoutSettingMode, PFDUserSettings, PFDUserSettingTypes } from '../../../PFD/PFDUserSettings';
-import { MapDeclutterSettingMode, MapTerrainSettingMode, MapUserSettings, MapUserSettingTypes } from '../../Map/MapUserSettings';
+import { MapUserSettings } from '../../Map/MapUserSettings';
 import { MenuSystem } from './MenuSystem';
 import { SoftKeyMenu } from './SoftKeyMenu';
-
-/** Map settings keys that are boolean only. */
-type MapBooleanSettings = {
-  [K in keyof MapUserSettingTypes]: MapUserSettingTypes[K] extends boolean ? K : never
-}[keyof MapUserSettingTypes];
 
 /**
  * The Map/HSI softkey menu.
@@ -95,7 +93,7 @@ export class MapHSIMenu extends SoftKeyMenu {
    * Toggles a boolean map setting on or off.
    * @param setting The setting to toggle.
    */
-  private toggleBooleanSetting<T extends MapBooleanSettings>(setting: T): void {
+  private toggleBooleanSetting(setting: keyof UserSettingValueFilter<MapUserSettingTypes, boolean>): void {
     const mapSetting = this.settings.getSetting(setting);
     mapSetting.value = !mapSetting.value;
   }
@@ -118,6 +116,8 @@ export class MapHSIMenu extends SoftKeyMenu {
       case MapDeclutterSettingMode.Level1:
         setting.value = MapDeclutterSettingMode.All;
         break;
+      default:
+        setting.value = MapDeclutterSettingMode.All;
     }
   }
 

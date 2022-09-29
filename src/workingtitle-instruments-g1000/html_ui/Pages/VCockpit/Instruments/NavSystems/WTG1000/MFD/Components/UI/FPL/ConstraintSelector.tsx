@@ -1,7 +1,7 @@
-import { FSComponent, Subject, Subscribable, VNode } from 'msfssdk';
-import { FocusPosition } from 'msfssdk/components/controls';
-import { UiControl } from '../../../../Shared/UI/UiControl';
+import { ComputedSubject, FocusPosition, FSComponent, Subject, Subscribable, VNode } from 'msfssdk';
+
 import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
+import { UiControl } from '../../../../Shared/UI/UiControl';
 
 /** Props on the ConstraintSelector component. */
 interface ConstraintSelectorProps extends G1000UiControlProps {
@@ -31,7 +31,15 @@ interface ConstraintSelectorProps extends G1000UiControlProps {
 export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> {
 
   private readonly value = Subject.create<number>(0);
-  private readonly isEdited = Subject.create<boolean>(false);
+  private readonly isEdited = ComputedSubject.create<boolean, boolean>(false, (v: boolean): boolean => {
+    const value = this.value.get();
+    if (isNaN(value) || value <= 0) {
+      return false;
+    } else {
+      return v;
+    }
+  });
+
   private readonly el = FSComponent.createRef<HTMLDivElement>();
   private readonly failedBoxRef = FSComponent.createRef<HTMLDivElement>();
 
@@ -119,8 +127,9 @@ export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> 
   /**
    * Sets whether or not the control is presently in an edit state.
    * @param isEditing Whether or not the control is editing.
+   * @param notify Whether or not to notify of the new value when changing state.
    */
-  private setEditing(isEditing: boolean): void {
+  private setEditing(isEditing: boolean, notify = true): void {
     if (this.isEditing !== isEditing) {
       if (isEditing) {
         this.setIsolated(true);
@@ -128,6 +137,7 @@ export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> 
         this.failedBoxRef.instance.style.display = 'none';
 
         this.isEditing = isEditing;
+        this.getChild(0)?.focus(FocusPosition.First);
       } else {
         this.setIsolated(false);
         this.setChildrenDisabled(true);
@@ -136,10 +146,12 @@ export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> 
         this.isEdited.set(this.props.isEdited.get());
 
         this.failedBoxRef.instance.style.display = (this.props.isInvalid.get()) ? 'block' : 'none';
+        this.onFocused();
       }
 
-      this.value.notify();
-      this.focus(FocusPosition.First);
+      if (notify) {
+        this.value.notify();
+      }
     }
   }
 
@@ -182,12 +194,23 @@ export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> 
     return true;
   }
 
+  /** @inheritdoc */
+  public onUpperKnobPush(): boolean {
+    if (this.isEditing) {
+      this.setEditing(false);
+      this.value.set(this.props.data.get());
+      return true;
+    }
+
+    return false;
+  }
+
   /**
    * A callback called when a specific digit is focused.
    * @param digit The digit that was focused, zero indexed.
    */
   private onDigitFocused(digit: number): void {
-    this.onBlurred();
+    this.el.instance.classList.remove(UiControl.FOCUS_CLASS);
     this.digitRefs[digit].instance.classList.add(UiControl.FOCUS_CLASS);
   }
 
@@ -242,6 +265,11 @@ export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> 
 
   /** @inheritdoc */
   protected onBlurred(): void {
+    if (this.isEditing) {
+      this.setEditing(false, false);
+      this.value.set(this.props.data.get());
+    }
+
     this.el.instance.classList.remove(UiControl.FOCUS_CLASS);
   }
 
@@ -252,23 +280,28 @@ export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> 
         <div class="constraint-failed-box" ref={this.failedBoxRef} />
         <span ref={this.el}>
           <G1000UiControl onFocused={(): void => this.onDigitFocused(4)} onBlurred={(): void => this.onDigitBlurred(4)}
-            onUpperKnobInc={(): boolean => this.onDigitIncreased(4)} onUpperKnobDec={(): boolean => this.onDigitDecreased(4)}>
+            onUpperKnobInc={(): boolean => this.onDigitIncreased(4)} onUpperKnobDec={(): boolean => this.onDigitDecreased(4)}
+            onUpperKnobPush={(): boolean => this.onUpperKnobPush()}>
             <span ref={this.digitRefs[4]}>{this.digitValues[4]}</span>
           </G1000UiControl>
           <G1000UiControl onFocused={(): void => this.onDigitFocused(3)} onBlurred={(): void => this.onDigitBlurred(3)}
-            onUpperKnobInc={(): boolean => this.onDigitIncreased(3)} onUpperKnobDec={(): boolean => this.onDigitDecreased(3)}>
+            onUpperKnobInc={(): boolean => this.onDigitIncreased(3)} onUpperKnobDec={(): boolean => this.onDigitDecreased(3)}
+            onUpperKnobPush={(): boolean => this.onUpperKnobPush()}>
             <span ref={this.digitRefs[3]}>{this.digitValues[3]}</span>
           </G1000UiControl>
           <G1000UiControl onFocused={(): void => this.onDigitFocused(2)} onBlurred={(): void => this.onDigitBlurred(2)}
-            onUpperKnobInc={(): boolean => this.onDigitIncreased(2)} onUpperKnobDec={(): boolean => this.onDigitDecreased(2)}>
+            onUpperKnobInc={(): boolean => this.onDigitIncreased(2)} onUpperKnobDec={(): boolean => this.onDigitDecreased(2)}
+            onUpperKnobPush={(): boolean => this.onUpperKnobPush()}>
             <span ref={this.digitRefs[2]}>{this.digitValues[2]}</span>
           </G1000UiControl>
           <G1000UiControl onFocused={(): void => this.onDigitFocused(1)} onBlurred={(): void => this.onDigitBlurred(1)}
-            onUpperKnobInc={(): boolean => this.onDigitIncreased(1)} onUpperKnobDec={(): boolean => this.onDigitDecreased(1)}>
+            onUpperKnobInc={(): boolean => this.onDigitIncreased(1)} onUpperKnobDec={(): boolean => this.onDigitDecreased(1)}
+            onUpperKnobPush={(): boolean => this.onUpperKnobPush()}>
             <span ref={this.digitRefs[1]}>{this.digitValues[1]}</span>
           </G1000UiControl>
           <G1000UiControl onFocused={(): void => this.onDigitFocused(0)} onBlurred={(): void => this.onDigitBlurred(0)}
-            onUpperKnobInc={(): boolean => this.onDigitIncreased(0)} onUpperKnobDec={(): boolean => this.onDigitDecreased(0)}>
+            onUpperKnobInc={(): boolean => this.onDigitIncreased(0)} onUpperKnobDec={(): boolean => this.onDigitDecreased(0)}
+            onUpperKnobPush={(): boolean => this.onUpperKnobPush()}>
             <span ref={this.digitRefs[0]}>{this.digitValues[0]}</span>
           </G1000UiControl>
           <span class='smaller'>FT</span>

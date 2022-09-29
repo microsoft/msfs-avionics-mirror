@@ -1,6 +1,6 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { EventBus, EventBusMetaEvents, PublishPacer, SimVarDefinition, SimVarValueType } from '../data';
+import { EventBus, EventBusMetaEvents, IndexedEventType, PublishPacer, SimVarDefinition, SimVarValueType } from '../data';
 import { SimVarPublisher } from './BasePublishers';
 
 /**
@@ -11,7 +11,7 @@ export interface ElectricalEvents {
   'elec_master_battery': boolean,
 
   /** The avionics circuit is on or off. */
-  'elec_circuit_avionics_on': boolean,
+  [elec_circuit_avionics_on: IndexedEventType<'elec_circuit_avionics_on'>]: boolean,
 
   /** The navcom 1 circuit is on or off. */
   'elec_circuit_navcom1_on': boolean,
@@ -65,7 +65,8 @@ export interface ElectricalEvents {
 export class ElectricalPublisher extends SimVarPublisher<ElectricalEvents> {
   private static simvars = new Map<keyof ElectricalEvents, SimVarDefinition>([
     ['elec_master_battery', { name: 'ELECTRICAL MASTER BATTERY', type: SimVarValueType.Bool }],
-    ['elec_circuit_avionics_on', { name: 'CIRCUIT AVIONICS ON', type: SimVarValueType.Bool }],
+    ['elec_circuit_avionics_on_1', { name: 'CIRCUIT AVIONICS ON:1', type: SimVarValueType.Bool }],
+    ['elec_circuit_avionics_on_2', { name: 'CIRCUIT AVIONICS ON:2', type: SimVarValueType.Bool }],
     ['elec_circuit_navcom1_on', { name: 'CIRCUIT NAVCOM1 ON', type: SimVarValueType.Bool }],
     ['elec_circuit_navcom2_on', { name: 'CIRCUIT NAVCOM2 ON', type: SimVarValueType.Bool }],
     ['elec_circuit_navcom3_on', { name: 'CIRCUIT NAVCOM3 ON', type: SimVarValueType.Bool }],
@@ -95,7 +96,7 @@ export class ElectricalPublisher extends SimVarPublisher<ElectricalEvents> {
   public constructor(bus: EventBus, pacer: PublishPacer<ElectricalEvents> | undefined = undefined) {
     super(ElectricalPublisher.simvars, bus, pacer);
     for (const topic of this.avBusList) {
-      if (bus.getTopicSubsciberCount(topic)) {
+      if (bus.getTopicSubscriberCount(topic)) {
         this.subscribed.add(topic);
       }
     }

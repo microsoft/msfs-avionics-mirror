@@ -1,14 +1,12 @@
 /// <reference types="msfstypes/JS/common" />
 /// <reference types="msfstypes/JS/Simplane" />
 
-import { UnitType } from '..';
 import { GeoPoint } from '../geo';
+import { BitFlags, UnitType } from '../math';
 import { GeoKdTreeSearchFilter } from '../utils/datastructures';
 import {
-  Facility, FacilityType, NearestSearchResults, FacilitySearchType,
-  BoundaryFacility, FacilityTypeMap, AirportFacility,
-  IntersectionFacility, AirwaySegment, ICAO, Metar, VorFacility,
-  NdbFacility, UserFacility, FacilitySearchTypeLatLon
+  AirportClass, AirportFacility, AirwaySegment, BoundaryFacility, Facility, FacilitySearchType, FacilitySearchTypeLatLon, FacilityType, FacilityTypeMap, ICAO,
+  IntersectionFacility, IntersectionType, Metar, NdbFacility, NearestSearchResults, UserFacility, VorClass, VorFacility, VorType
 } from './Facilities';
 import { FacilityRepository } from './FacilityRepository';
 import { RunwayUtils } from './RunwayUtils';
@@ -150,6 +148,9 @@ export class FacilityLoader {
 
   private static repoSearchSessionId = -1;
 
+  private static isInitialized = false;
+  private static readonly initPromiseResolveQueue: (() => void)[] = [];
+
   /**
    * Creates an instance of the FacilityLoader.
    * @param facilityRepo A local facility repository.
@@ -167,10 +168,37 @@ export class FacilityLoader {
         FacilityLoader.facilityListener.on('SendNdb', FacilityLoader.onFacilityReceived);
         FacilityLoader.facilityListener.on('NearestSearchCompleted', FacilityLoader.onNearestSearchCompleted);
 
-        setTimeout(() => this.onInitialized(), 2000);
+        setTimeout(() => FacilityLoader.init(), 2000);
       }, true);
+    }
+
+    this.awaitInitialization().then(() => this.onInitialized());
+  }
+
+  /**
+   * Initializes this facility loader.
+   */
+  private static init(): void {
+    FacilityLoader.isInitialized = true;
+
+    for (const resolve of this.initPromiseResolveQueue) {
+      resolve();
+    }
+
+    this.initPromiseResolveQueue.length = 0;
+  }
+
+  /**
+   * Waits until this facility loader is initialized.
+   * @returns A Promise which is fulfilled when this facility loader is initialized.
+   */
+  private awaitInitialization(): Promise<void> {
+    if (FacilityLoader.isInitialized) {
+      return Promise.resolve();
     } else {
-      setTimeout(() => this.onInitialized(), 2000);
+      return new Promise(resolve => {
+        FacilityLoader.initPromiseResolveQueue.push(resolve);
+      });
     }
   }
 
@@ -228,9 +256,8 @@ export class FacilityLoader {
    * @returns A Promise which will be fulfilled with the requested facility, or rejected if the facility could not be
    * retrieved.
    */
-  private getFacilityFromCoherent<T extends FacilityType>(type: T, icao: string): Promise<FacilityTypeMap[T]> {
+  private async getFacilityFromCoherent<T extends FacilityType>(type: T, icao: string): Promise<FacilityTypeMap[T]> {
     const isMismatch = ICAO.getFacilityType(icao) !== type;
-    const currentTime = Date.now();
 
     let queue = FacilityLoader.requestQueue;
     let cache = FacilityLoader.facCache;
@@ -239,8 +266,23 @@ export class FacilityLoader {
       cache = FacilityLoader.typeMismatchFacCache;
     }
 
+    if (!FacilityLoader.isInitialized) {
+      await this.awaitInitialization();
+    }
+
+    const cachedFac = cache.get(icao);
+    if (cachedFac !== undefined) {
+      return Promise.resolve(cachedFac as FacilityTypeMap[T]);
+    }
+
+    const currentTime = Date.now();
+
     let request = queue.get(icao);
     if (request === undefined || currentTime - request.timeStamp > 10000) {
+      if (request !== undefined) {
+        request.reject(`Facility request for ${icao} has timed out.`);
+      }
+
       let resolve: ((facility: Facility) => void) | undefined = undefined;
       let reject: ((message: string) => void) | undefined = undefined;
 
@@ -248,25 +290,16 @@ export class FacilityLoader {
         resolve = resolution as (facility: Facility) => void;
         reject = rejection;
 
-        const cachedFac = cache.get(icao);
-
-        if (cachedFac === undefined) {
-          Coherent.call(type, icao).then((isValid: boolean) => {
-            if (!isValid) {
-              rejection(`Facility ${icao} could not be found.`);
-              FacilityLoader.requestQueue.delete(icao);
-            }
-          });
-        } else {
-          resolve(cachedFac as FacilityTypeMap[T]);
-        }
+        Coherent.call(type, icao).then((isValid: boolean) => {
+          if (!isValid) {
+            rejection(`Facility ${icao} could not be found.`);
+            queue.delete(icao);
+          }
+        });
       });
-      if (request) {
-        request.reject(`Facility request for ${icao} has timed out.`);
-      }
 
       request = { promise, timeStamp: currentTime, resolve: resolve as any, reject: reject as any };
-      FacilityLoader.requestQueue.set(icao, request);
+      queue.set(icao, request);
     }
 
     return request.promise as Promise<FacilityTypeMap[T]>;
@@ -290,6 +323,7 @@ export class FacilityLoader {
         return cachedAirway;
       }
     }
+
     const fac = await this.getFacility(FacilityType.Intersection, icao);
     const route = fac.routes.find((r) => r.name === airwayName);
     if (route !== undefined) {
@@ -305,6 +339,7 @@ export class FacilityLoader {
         }
       }
     }
+
     throw new Error('Airway could not be found.');
   }
 
@@ -328,6 +363,10 @@ export class FacilityLoader {
    * @returns A Promise which will be fulfilled with the new nearest search session.
    */
   private async startCoherentNearestSearchSession<T extends CoherentSearchType>(type: T): Promise<SessionTypeMap[T]> {
+    if (!FacilityLoader.isInitialized) {
+      await this.awaitInitialization();
+    }
+
     const sessionId = await Coherent.call('START_NEAREST_SEARCH_SESSION', type);
     let session: SessionTypeMap[T];
 
@@ -386,6 +425,10 @@ export class FacilityLoader {
   public async getMetar(ident: string): Promise<Metar | undefined>;
   // eslint-disable-next-line jsdoc/require-jsdoc
   public async getMetar(arg: string | AirportFacility): Promise<Metar | undefined> {
+    if (!FacilityLoader.isInitialized) {
+      await this.awaitInitialization();
+    }
+
     const ident = typeof arg === 'string' ? arg : ICAO.getIdent(arg.icao);
     const metar = await Coherent.call('GET_METAR_BY_IDENT', ident);
     return FacilityLoader.cleanMetar(metar);
@@ -398,6 +441,10 @@ export class FacilityLoader {
    * @returns The METAR issued for the closest airport to the given location, or undefined if none could be found.
    */
   public async searchMetar(lat: number, lon: number): Promise<Metar | undefined> {
+    if (!FacilityLoader.isInitialized) {
+      await this.awaitInitialization();
+    }
+
     const metar = await Coherent.call('GET_METAR_BY_LATLON', lat, lon);
     return FacilityLoader.cleanMetar(metar);
   }
@@ -429,6 +476,10 @@ export class FacilityLoader {
    * @returns A collection of matched ICAOs.
    */
   public async searchByIdent(filter: FacilitySearchType, ident: string, maxItems = 40): Promise<string[]> {
+    if (!FacilityLoader.isInitialized) {
+      await this.awaitInitialization();
+    }
+
     const results = await Coherent.call('SEARCH_BY_IDENT', ident, filter, maxItems) as Array<string>;
 
     if (filter === FacilitySearchType.User || filter === FacilitySearchType.All) {
@@ -446,7 +497,8 @@ export class FacilityLoader {
     return results;
   }
 
-  /** Searches for facilities matching a given ident, and returns the matching facilities, with nearest at the beginning of the array.
+  /**
+   * Searches for facilities matching a given ident, and returns the matching facilities, with nearest at the beginning of the array.
    * @param filter The type of facility to filter by. Selecting ALL will search all facility type ICAOs, except for boundary facilities.
    * @param ident The exact ident to search for. (ex: DEN, KDEN, ITADO)
    * @param lat The latitude to find facilities nearest to.
@@ -490,11 +542,14 @@ export class FacilityLoader {
    * @param facility The received facility.
    */
   private static onFacilityReceived(facility: Facility): void {
-    const request = FacilityLoader.requestQueue.get(facility.icao);
+    const isMismatch = (facility as any)['__Type'] === 'JS_FacilityIntersection' && facility.icao[0] !== 'W';
+    const queue = isMismatch ? FacilityLoader.mismatchRequestQueue : FacilityLoader.requestQueue;
+
+    const request = queue.get(facility.icao);
     if (request !== undefined) {
       request.resolve(facility);
-      FacilityLoader.addToFacilityCache(facility, (facility as any)['__Type'] === 'JS_FacilityIntersection' && facility.icao[0] !== 'W');
-      FacilityLoader.requestQueue.delete(facility.icao);
+      FacilityLoader.addToFacilityCache(facility, isMismatch);
+      queue.delete(facility.icao);
     }
   }
 
@@ -593,6 +648,24 @@ class CoherentNearestSearchSession<TAdded, TRemoved> implements NearestSearchSes
  */
 export class NearestAirportSearchSession extends CoherentNearestSearchSession<string, string> {
   /**
+   * Default filters for the nearest airports search session.
+   */
+  public static Defaults = {
+    ShowClosed: false,
+    ClassMask: BitFlags.union(
+      BitFlags.createFlag(AirportClass.HardSurface),
+      BitFlags.createFlag(AirportClass.SoftSurface),
+      BitFlags.createFlag(AirportClass.AllWater),
+      BitFlags.createFlag(AirportClass.HeliportOnly),
+      BitFlags.createFlag(AirportClass.Private),
+    ),
+    SurfaceTypeMask: 2147483647,
+    ApproachTypeMask: 2147483647,
+    MinimumRunwayLength: 0,
+    ToweredMask: 3
+  };
+
+  /**
    * Sets the filter for the airport nearest search.
    * @param showClosed Whether or not to show closed airports.
    * @param classMask A bitmask to determine which JS airport classes to show.
@@ -600,12 +673,36 @@ export class NearestAirportSearchSession extends CoherentNearestSearchSession<st
   public setAirportFilter(showClosed: boolean, classMask: number): void {
     Coherent.call('SET_NEAREST_AIRPORT_FILTER', this.sessionId, showClosed ? 1 : 0, classMask);
   }
+
+  /**
+   * Sets the extended airport filters for the airport nearest search.
+   * @param surfaceTypeMask A bitmask of allowable runway surface types.
+   * @param approachTypeMask A bitmask of allowable approach types.
+   * @param toweredMask A bitmask of untowered (1) or towered (2) bits.
+   * @param minRunwayLength The minimum allowable runway length, in meters.
+   */
+  public setExtendedAirportFilters(surfaceTypeMask: number, approachTypeMask: number, toweredMask: number, minRunwayLength: number): void {
+    Coherent.call('SET_NEAREST_EXTENDED_AIRPORT_FILTERS', this.sessionId, surfaceTypeMask, approachTypeMask, toweredMask, minRunwayLength);
+  }
 }
 
 /**
  * A session for searching for nearest intersections.
  */
 export class NearestIntersectionSearchSession extends CoherentNearestSearchSession<string, string> {
+  /**
+   * Default filters for the nearest intersections search session.
+   */
+  public static Defaults = {
+    TypeMask: BitFlags.union(
+      BitFlags.createFlag(IntersectionType.Named),
+      BitFlags.createFlag(IntersectionType.Unnamed),
+      BitFlags.createFlag(IntersectionType.Offroute),
+      BitFlags.createFlag(IntersectionType.IAF),
+      BitFlags.createFlag(IntersectionType.FAF)
+    )
+  };
+
   /**
    * Sets the filter for the intersection nearest search.
    * @param typeMask A bitmask to determine which JS intersection types to show.
@@ -619,6 +716,25 @@ export class NearestIntersectionSearchSession extends CoherentNearestSearchSessi
  * A session for searching for nearest VORs.
  */
 export class NearestVorSearchSession extends CoherentNearestSearchSession<string, string> {
+  /**
+   * Default filters for the nearest VORs search session.
+   */
+  public static Defaults = {
+    ClassMask: BitFlags.union(
+      BitFlags.createFlag(VorClass.Terminal),
+      BitFlags.createFlag(VorClass.HighAlt),
+      BitFlags.createFlag(VorClass.LowAlt)
+    ),
+    TypeMask: BitFlags.union(
+      BitFlags.createFlag(VorType.VOR),
+      BitFlags.createFlag(VorType.DME),
+      BitFlags.createFlag(VorType.VORDME),
+      BitFlags.createFlag(VorType.VORTAC),
+      BitFlags.createFlag(VorType.TACAN)
+    )
+  };
+
+
   /**
    * Sets the filter for the VOR nearest search.
    * @param classMask A bitmask to determine which JS VOR classes to show.
@@ -663,7 +779,7 @@ export class NearestUserFacilitySearchSession implements NearestSearchSession<st
   public searchNearest(lat: number, lon: number, radius: number, maxItems: number): Promise<NearestSearchResults<string, string>> {
     const radiusGAR = UnitType.METER.convertTo(radius, UnitType.GA_RADIAN);
 
-    const results = this.repo.search(FacilityType.USR, lat, lon, radiusGAR, maxItems, [], this.filter as GeoKdTreeSearchFilter<Facility>);
+    const results = this.repo.search(FacilityType.USR, lat, lon, radiusGAR, maxItems, [], this.filter as GeoKdTreeSearchFilter<Facility> | undefined);
 
     const added = [];
 
@@ -677,6 +793,7 @@ export class NearestUserFacilitySearchSession implements NearestSearchSession<st
     }
 
     const removed = Array.from(this.cachedResults);
+    this.cachedResults.clear();
 
     for (let i = 0; i < results.length; i++) {
       this.cachedResults.add(results[i].icao);

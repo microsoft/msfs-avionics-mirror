@@ -1,8 +1,9 @@
-import { ControlEvents, EventBus } from 'msfssdk/data';
+import { ControlEvents, EventBus } from 'msfssdk';
+
 import { AlertMessageEvents } from '../../PFD/Components/UI/Alerts/AlertsSubject';
 import { NavComUserSettings } from '../NavCom/NavComUserSettings';
 import { BasicAvionicsSystem } from './BasicAvionicsSystem';
-import { AvionicsSystemStateEvent, AvionicsSystemState } from './G1000AvionicsSystem';
+import { AvionicsSystemState, AvionicsSystemStateEvent } from './G1000AvionicsSystem';
 
 /**
  * The GIA main integrated computer system.

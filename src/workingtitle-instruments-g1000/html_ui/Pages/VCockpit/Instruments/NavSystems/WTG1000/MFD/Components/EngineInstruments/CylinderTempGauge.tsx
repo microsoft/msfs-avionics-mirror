@@ -1,8 +1,11 @@
-import { ComponentProps, ComputedSubject, DisplayComponent, FSComponent, NodeReference, VNode, MathUtils } from 'msfssdk';
-import { XMLCylinderGaugeProps, XMLCylinderGaugeStyle, XMLHostedLogicGauge } from 'msfssdk/components/XMLGauges';
-import { CompositeLogicXMLHost, EventBus } from 'msfssdk/data';
+import {
+  ComponentProps, CompositeLogicXMLHost, ComputedSubject, DisplayComponent, EventBus, FSComponent, MathUtils, NodeReference, VNode, XMLCylinderGaugeProps,
+  XMLCylinderGaugeStyle, XMLHostedLogicGauge
+} from 'msfssdk';
+
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 import { BaseGauge } from './BaseGauge';
+
 import './Gauge.css';
 
 /** Container for the state of a single column. */

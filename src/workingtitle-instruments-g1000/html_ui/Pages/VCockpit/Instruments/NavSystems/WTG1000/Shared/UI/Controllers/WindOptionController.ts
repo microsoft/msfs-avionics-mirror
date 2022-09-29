@@ -1,6 +1,5 @@
-import { Subject } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { ADCEvents } from 'msfssdk/instruments';
+import { AdcEvents, AhrsEvents, EventBus, Subject } from 'msfssdk';
+
 import { PFDUserSettings, WindOverlaySettingMode } from '../../../PFD/PFDUserSettings';
 
 /**
@@ -26,27 +25,27 @@ export class WindOptionController {
       this.store.selectedView.set(opt as WindOverlaySettingMode);
     });
 
-    const adc = this.bus.getSubscriber<ADCEvents>();
-    adc.on('ambient_wind_velocity').withPrecision(1).handle((v) => {
+    const sub = this.bus.getSubscriber<AdcEvents & AhrsEvents>();
+    sub.on('ambient_wind_velocity').withPrecision(1).handle((v) => {
       this.store.lastWindVelocity = v;
       this.store.currentWind.set({ direction: this.store.lastWindDirection, velocity: v });
     });
 
-    adc.on('ambient_wind_direction').withPrecision(1).handle((v) => {
+    sub.on('ambient_wind_direction').withPrecision(1).handle((v) => {
       this.store.lastWindDirection = v;
       this.store.currentWind.set({ direction: v, velocity: this.store.lastWindVelocity });
     });
 
-    adc.on('hdg_deg').withPrecision(1).handle((hdg) => {
+    sub.on('hdg_deg').withPrecision(1).handle((hdg) => {
       this.store.currentHeading.set(hdg);
     });
 
-    adc.on('ias').withPrecision(0).handle((v) => {
+    sub.on('ias').withPrecision(0).handle((v) => {
       this.store.lastIas = v;
       this.noWindHandler(undefined, v);
     });
 
-    adc.on('on_ground').handle((v) => {
+    sub.on('on_ground').handle((v) => {
       this.store.lastOnGround = v;
       this.noWindHandler(v, undefined);
     });

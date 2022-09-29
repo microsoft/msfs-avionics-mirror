@@ -1,4 +1,5 @@
-import { AirportFacility, DepartureProcedure, ICAO } from 'msfssdk/navigation';
+import { AirportFacility, DepartureProcedure, ICAO } from 'msfssdk';
+
 import { SelectDepArrStore } from './SelectDepArrStore';
 
 /**

@@ -1,10 +1,9 @@
-import { VNode, FSComponent } from 'msfssdk';
-import { Facility, NearestSubscription, NearestVorSubscription, VorFacility } from 'msfssdk/navigation';
-import { FocusPosition } from 'msfssdk/components/controls';
+import { Facility, FocusPosition, FSComponent, NearestSubscription, NearestVorSubscription, VNode, VorFacility } from 'msfssdk';
+
 import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { WaypointIconImageCache } from '../../../../Shared/WaypointIconImageCache';
 import { MFDNearestPage, MFDNearestPageProps } from './MFDNearestPage';
-import { FrequencyGroup, InformationGroup } from './VORs';
+import { NearestVorFrequencyGroup, NearestVorInformationGroup } from './VORs';
 
 export enum NearestVorSoftKey {
   VOR,
@@ -16,8 +15,8 @@ export enum NearestVorSoftKey {
  */
 export class MFDNearestVorsPage extends MFDNearestPage<VorFacility> {
 
-  private readonly informationGroup = FSComponent.createRef<InformationGroup>();
-  private readonly frequencyGroup = FSComponent.createRef<FrequencyGroup>();
+  private readonly informationGroup = FSComponent.createRef<NearestVorInformationGroup>();
+  private readonly frequencyGroup = FSComponent.createRef<NearestVorFrequencyGroup>();
 
   /**
    * Creates an instance of the MFDNearestVorsPage component.
@@ -83,8 +82,8 @@ export class MFDNearestVorsPage extends MFDNearestPage<VorFacility> {
   protected renderGroups(): VNode {
     return (
       <>
-        <InformationGroup ref={this.informationGroup} />
-        <FrequencyGroup ref={this.frequencyGroup} controlPublisher={this.props.publisher} isolateScroll />
+        <NearestVorInformationGroup ref={this.informationGroup} />
+        <NearestVorFrequencyGroup ref={this.frequencyGroup} controlPublisher={this.props.publisher} isolateScroll />
       </>
     );
   }

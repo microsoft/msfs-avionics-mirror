@@ -1,16 +1,13 @@
+import { ControlPublisher, UserSettingManager, UserSettingValueFilter } from 'msfssdk';
+
+import { MapTerrainSettingMode, MapUserSettingTypes } from 'garminsdk';
+
+import { MapUserSettings } from '../../../Map/MapUserSettings';
 import { MenuSystem } from '../MenuSystem';
 import { SoftKeyMenu } from '../SoftKeyMenu';
-import { ControlPublisher } from 'msfssdk/data';
-import { MapTerrainSettingMode, MapUserSettings, MapUserSettingTypes } from '../../../Map/MapUserSettings';
-import { UserSettingManager } from 'msfssdk/settings';
-
-/** Map settings keys that are boolean only. */
-type MapBooleanSettings = {
-  [K in keyof MapUserSettingTypes]: MapUserSettingTypes[K] extends boolean ? K : never
-}[keyof MapUserSettingTypes];
 
 /**
- * The MFD Map options system  menu.
+ * The MFD Map options system menu.
  */
 export class MapOptMenu extends SoftKeyMenu {
   private publisher: ControlPublisher;
@@ -71,7 +68,7 @@ export class MapOptMenu extends SoftKeyMenu {
    * Toggles a boolean map setting on or off.
    * @param setting The setting to toggle.
    */
-  private toggleBooleanSetting<T extends MapBooleanSettings>(setting: T): void {
+  private toggleBooleanSetting(setting: keyof UserSettingValueFilter<MapUserSettingTypes, boolean>): void {
     const mapSetting = this.settings.getSetting(setting);
     mapSetting.value = !mapSetting.value;
   }

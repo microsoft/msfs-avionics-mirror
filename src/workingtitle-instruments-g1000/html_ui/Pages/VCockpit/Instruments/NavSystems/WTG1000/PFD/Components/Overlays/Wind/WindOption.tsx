@@ -1,4 +1,5 @@
-import { FSComponent, DisplayComponent, VNode, Subject, ComponentProps } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, Subject, VNode } from 'msfssdk';
+
 import { WindData } from '../../../../Shared/UI/Controllers/WindOptionController';
 
 /**

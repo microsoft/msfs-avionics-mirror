@@ -1,6 +1,5 @@
-import { DisplayComponent, FSComponent, GeoPoint, GeoPointSubject, VNode } from 'msfssdk';
-import { LatLonDisplay } from 'msfssdk/components/common';
-import { IntersectionFacility } from 'msfssdk/navigation';
+import { DisplayComponent, FSComponent, GeoPoint, GeoPointSubject, IntersectionFacility, LatLonDisplay, VNode } from 'msfssdk';
+
 import { GroupBox } from '../../GroupBox';
 
 import './InformationGroup.css';
@@ -9,7 +8,7 @@ import './InformationGroup.css';
  * A component that displays information about an intersection on the
  * MFD nearest intersections page.
  */
-export class InformationGroup extends DisplayComponent<any> {
+export class NearestIntersectionInformationGroup extends DisplayComponent<any> {
 
   private readonly content = FSComponent.createRef<HTMLDivElement>();
   private facilityPos = GeoPointSubject.createFromGeoPoint(new GeoPoint(0, 0));

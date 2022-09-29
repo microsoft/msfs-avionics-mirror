@@ -1,5 +1,4 @@
-import { EventBus } from 'msfssdk/data';
-import { DefaultUserSettingManager } from 'msfssdk/settings';
+import { DefaultUserSettingManager, EventBus } from 'msfssdk';
 
 /**
  * Setting modes for backlighting.

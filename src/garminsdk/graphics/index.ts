@@ -1,3 +1,2 @@
-import * as text from './text';
-
-export { text };
+export * from './img';
+export * from './text';

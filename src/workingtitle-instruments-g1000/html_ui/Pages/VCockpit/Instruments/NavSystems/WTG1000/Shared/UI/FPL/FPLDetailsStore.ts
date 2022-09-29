@@ -1,10 +1,7 @@
-import { ArraySubject, Subject } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { FacilityLoader, FacilityRepository } from 'msfssdk/navigation';
-import { FlightPlanSegment } from 'msfssdk/flightplan';
+import { ArraySubject, EventBus, FacilityLoader, FacilityRepository, FlightPlanSegment, Subject } from 'msfssdk';
 
-import { FacilityInfo } from './FPLTypesAndProps';
 import { ActiveLegDefinition, ActiveLegStates } from '../UIControls/FplActiveLegArrow';
+import { FacilityInfo } from './FPLTypesAndProps';
 
 /**
  * The store class for FPLDetails

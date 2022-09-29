@@ -1,18 +1,20 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { FlightPlanner } from 'msfssdk/flightplan';
+import {
+  CompiledMapSystem, EventBus, FlightPlanner, FSComponent, MapIndexedRangeModule, MapSystemBuilder, MathUtils, Vec2Math, VecNMath, VNode
+} from 'msfssdk';
 
-import { MapRangeSettings } from '../../../../Shared/Map/MapRangeSettings';
-import { MapDeclutterSettingMode, MapUserSettings } from '../../../../Shared/Map/MapUserSettings';
-import { TrafficAdvisorySystem } from '../../../../Shared/Traffic/TrafficAdvisorySystem';
-import { NavMapModel } from '../../../../Shared/UI/NavMap/NavMapModel';
+import {
+  GarminMapKeys, MapDeclutterSettingMode, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, TrafficAdvisorySystem, UnitsUserSettings
+} from 'garminsdk';
+
+import { MapBuilder } from '../../../../Shared/Map/MapBuilder';
+import { MapUserSettings } from '../../../../Shared/Map/MapUserSettings';
+import { MapWaypointIconImageCache } from '../../../../Shared/Map/MapWaypointIconImageCache';
+import { TrafficUserSettings } from '../../../../Shared/Traffic/TrafficUserSettings';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
-import { MFDUiPage, MFDUiPageProps } from '../MFDUiPage';
-import { MFDNavMapComponent } from './MFDNavMapComponent';
 import { MFDPageMenuDialog } from '../MFDPageMenuDialog';
+import { MFDUiPage, MFDUiPageProps } from '../MFDUiPage';
 
 import './MFDNavMapPage.css';
-import { MapPointerController } from '../../../../Shared/Map/Controllers/MapPointerController';
 
 /**
  * Component props for MFDNavMapPage.
@@ -42,16 +44,73 @@ export class MFDNavMapPage extends MFDUiPage<MFDNavMapPageProps> {
   private static readonly UPDATE_FREQ = 30; // Hz
   private static readonly POINTER_MOVE_INCREMENT = 5; // pixels
 
-  private readonly mapRef = FSComponent.createRef<MFDNavMapComponent>();
-
-  private readonly mapModel = NavMapModel.createModel(this.props.bus, this.props.tas);
-  private readonly pointerModule = this.mapModel.getModule('pointer');
-
   private readonly mapSettingManager = MapUserSettings.getMfdManager(this.props.bus);
-  private readonly mapRangeSettingManager = MapRangeSettings.getManager(this.props.bus);
-  private readonly mapRangeSetting = this.mapRangeSettingManager.getSetting('mfdMapRangeIndex');
 
-  private mapPointerController?: MapPointerController;
+  private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
+    .with(MapBuilder.navMap, {
+      bingId: 'mfd-page-map',
+      dataUpdateFreq: MFDNavMapPage.UPDATE_FREQ,
+
+      waypointIconImageCache: MapWaypointIconImageCache.getCache(),
+
+      rangeRingOptions: {
+        showLabel: true
+      },
+
+      rangeCompassOptions: {
+        showLabel: true,
+        showHeadingBug: true,
+        bearingTickMajorLength: 10,
+        bearingTickMinorLength: 5,
+        bearingLabelFont: 'Roboto-Bold',
+        bearingLabelFontSize: 20
+      },
+
+      flightPlanner: this.props.flightPlanner,
+
+      ...MapBuilder.ownAirplaneIconOptions(),
+
+      trafficSystem: this.props.tas,
+      trafficIconOptions: {
+        iconSize: 30,
+        font: 'Roboto-Bold',
+        fontSize: 16
+      },
+
+      pointerBoundsOffset: VecNMath.create(4, 0.1, 0.1, 0.1, 0.1),
+      pointerInfoSize: MapPointerInfoLayerSize.Full,
+
+      miniCompassImgSrc: MapBuilder.miniCompassIconSrc(),
+
+      settingManager: this.mapSettingManager as any,
+      unitsSettingManager: UnitsUserSettings.getManager(this.props.bus),
+      trafficSettingManager: TrafficUserSettings.getManager(this.props.bus) as any
+    })
+    .withProjectedSize(Vec2Math.create(876, 734))
+    .withDeadZone(VecNMath.create(4, 0, 56, 0, 0))
+    .withClockUpdate(MFDNavMapPage.UPDATE_FREQ)
+    .build('mfd-navmap') as CompiledMapSystem<
+      {
+        /** The range module. */
+        [GarminMapKeys.Range]: MapIndexedRangeModule;
+
+        /** The pointer module. */
+        [GarminMapKeys.Pointer]: MapPointerModule;
+      },
+      any,
+      {
+        /** The pointer controller. */
+        [GarminMapKeys.Pointer]: MapPointerController;
+      },
+      any
+    >;
+
+  private readonly mapRangeSetting = this.mapSettingManager.getSetting('mapRangeIndex');
+
+  private readonly mapRangeModule = this.compiledMap.context.model.getModule(GarminMapKeys.Range);
+  private readonly mapPointerModule = this.compiledMap.context.model.getModule(GarminMapKeys.Pointer);
+
+  private readonly mapPointerController = this.compiledMap.context.getController(GarminMapKeys.Pointer);
 
   private readonly pageMenuItems = [
     {
@@ -79,6 +138,8 @@ export class MFDNavMapPage extends MFDUiPage<MFDNavMapPageProps> {
           case MapDeclutterSettingMode.Level1:
             setting.value = MapDeclutterSettingMode.All;
             break;
+          default:
+            setting.value = MapDeclutterSettingMode.All;
         }
       }
     },
@@ -110,8 +171,7 @@ export class MFDNavMapPage extends MFDUiPage<MFDNavMapPageProps> {
   public onAfterRender(thisNode: VNode): void {
     super.onAfterRender(thisNode);
 
-    this.mapPointerController = new MapPointerController(this.mapModel, this.mapRef.instance.mapProjection);
-    this.mapRef.instance.sleep();
+    this.compiledMap.ref.instance.sleep();
   }
 
   /** @inheritdoc */
@@ -124,7 +184,7 @@ export class MFDNavMapPage extends MFDUiPage<MFDNavMapPageProps> {
         this.changeMapRangeIndex(1);
         return true;
       case FmsHEvent.JOYSTICK_PUSH:
-        this.mapPointerController?.togglePointerActive();
+        this.mapPointerController.togglePointerActive();
         return true;
     }
 
@@ -136,10 +196,10 @@ export class MFDNavMapPage extends MFDUiPage<MFDNavMapPageProps> {
    * @param delta The change in index to apply.
    */
   private changeMapRangeIndex(delta: number): void {
-    const newIndex = Utils.Clamp(this.mapRangeSetting.value + delta, 0, this.mapModel.getModule('range').nominalRanges.get().length - 1);
+    const newIndex = MathUtils.clamp(this.mapRangeSetting.value + delta, 0, this.mapRangeModule.nominalRanges.get().length - 1);
 
-    if (this.mapRangeSetting.value !== newIndex) {
-      this.mapPointerController?.targetPointer();
+    if (newIndex !== this.mapRangeSetting.value) {
+      this.mapPointerController.targetPointer();
       this.mapRangeSetting.value = newIndex;
     }
   }
@@ -150,22 +210,22 @@ export class MFDNavMapPage extends MFDUiPage<MFDNavMapPageProps> {
    * @returns Whether the event was handled.
    */
   private handleMapPointerMoveEvent(evt: FmsHEvent): boolean {
-    if (!this.pointerModule.isActive.get()) {
+    if (!this.mapPointerModule.isActive.get()) {
       return false;
     }
 
     switch (evt) {
       case FmsHEvent.JOYSTICK_LEFT:
-        this.mapPointerController?.movePointer(-MFDNavMapPage.POINTER_MOVE_INCREMENT, 0);
+        this.mapPointerController.movePointer(-MFDNavMapPage.POINTER_MOVE_INCREMENT, 0);
         return true;
       case FmsHEvent.JOYSTICK_UP:
-        this.mapPointerController?.movePointer(0, -MFDNavMapPage.POINTER_MOVE_INCREMENT);
+        this.mapPointerController.movePointer(0, -MFDNavMapPage.POINTER_MOVE_INCREMENT);
         return true;
       case FmsHEvent.JOYSTICK_RIGHT:
-        this.mapPointerController?.movePointer(MFDNavMapPage.POINTER_MOVE_INCREMENT, 0);
+        this.mapPointerController.movePointer(MFDNavMapPage.POINTER_MOVE_INCREMENT, 0);
         return true;
       case FmsHEvent.JOYSTICK_DOWN:
-        this.mapPointerController?.movePointer(0, MFDNavMapPage.POINTER_MOVE_INCREMENT);
+        this.mapPointerController.movePointer(0, MFDNavMapPage.POINTER_MOVE_INCREMENT);
         return true;
     }
 
@@ -181,15 +241,15 @@ export class MFDNavMapPage extends MFDUiPage<MFDNavMapPageProps> {
     this.props.menuSystem.clear();
     this.props.menuSystem.pushMenu('navmap-root');
 
-    this.mapRef.instance.wake();
+    this.compiledMap.ref.instance.wake();
   }
 
   /** @inheritdoc */
   protected onViewClosed(): void {
     super.onViewClosed();
 
-    this.mapPointerController?.setPointerActive(false);
-    this.mapRef.instance.sleep();
+    this.mapPointerController.setPointerActive(false);
+    this.compiledMap.ref.instance.sleep();
   }
 
   /** @inheritdoc */
@@ -205,30 +265,7 @@ export class MFDNavMapPage extends MFDUiPage<MFDNavMapPageProps> {
   public render(): VNode {
     return (
       <div ref={this.viewContainerRef} class='mfd-page'>
-        <MFDNavMapComponent
-          ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
-          updateFreq={Subject.create(MFDNavMapPage.UPDATE_FREQ)}
-          dataUpdateFreq={Subject.create(MFDNavMapPage.UPDATE_FREQ)}
-          projectedWidth={876} projectedHeight={734}
-          deadZone={Subject.create(new Float64Array([0, 56, 0, 0]))}
-          pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
-          flightPlanner={this.props.flightPlanner}
-          bingId='mfd_page_map'
-          settingManager={MapUserSettings.getMfdManager(this.props.bus)}
-          ownAirplaneLayerProps={{
-            imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
-            invalidHeadingImageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon_nohdg.svg',
-            iconSize: 40,
-            iconAnchor: new Float64Array([0.5, 0]),
-            invalidHeadingIconAnchor: new Float64Array([0.5, 0.5])
-          }}
-          trafficIntruderLayerProps={{
-            fontSize: 16,
-            iconSize: 30
-          }}
-          drawEntireFlightPlan={Subject.create(false)}
-          class='mfd-navmap'
-        />
+        {this.compiledMap.map}
       </div>
     );
   }

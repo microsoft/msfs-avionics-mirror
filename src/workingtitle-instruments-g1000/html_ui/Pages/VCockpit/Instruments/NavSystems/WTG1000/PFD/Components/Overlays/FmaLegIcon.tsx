@@ -1,5 +1,4 @@
-import { FSComponent, DisplayComponent, VNode, ComponentProps } from 'msfssdk';
-import { LegTurnDirection, LegType } from 'msfssdk/navigation';
+import { ComponentProps, DisplayComponent, FSComponent, LegTurnDirection, LegType, VNode } from 'msfssdk';
 
 import './FmaLegIcon.css';
 

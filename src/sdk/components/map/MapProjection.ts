@@ -1,6 +1,7 @@
-import { BitFlags } from '../../math/BitFlags';
+import { LatLonInterface } from '../../geo/GeoInterfaces';
 import { GeoPoint, GeoPointInterface, GeoPointReadOnly } from '../../geo/GeoPoint';
 import { GeoProjection, MercatorProjection } from '../../geo/GeoProjection';
+import { BitFlags } from '../../math/BitFlags';
 import { ReadonlyFloat64Array, Vec2Math, VecNMath } from '../../math/VecMath';
 
 /**
@@ -478,7 +479,7 @@ export class MapProjection {
    * @param out The vector to which to write the result.
    * @returns The projected point, as a vector.
    */
-  public project(point: GeoPointInterface, out: Float64Array): Float64Array {
+  public project(point: LatLonInterface, out: Float64Array): Float64Array {
     return this.geoProjection.project(point, out);
   }
 
@@ -502,7 +503,7 @@ export class MapProjection {
    * bounds of the projected window.
    * @returns Whether the point falls within the projected bounds.
    */
-  public isInProjectedBounds(point: GeoPointInterface | ReadonlyFloat64Array, bounds?: ReadonlyFloat64Array): boolean {
+  public isInProjectedBounds(point: LatLonInterface | ReadonlyFloat64Array, bounds?: ReadonlyFloat64Array): boolean {
     let left;
     let top;
     let right;
@@ -520,7 +521,7 @@ export class MapProjection {
     }
 
     if (!(point instanceof Float64Array)) {
-      point = this.project(point as GeoPointInterface, MapProjection.tempVec2_2);
+      point = this.project(point as LatLonInterface, MapProjection.tempVec2_2);
     }
 
     const x = point[0];

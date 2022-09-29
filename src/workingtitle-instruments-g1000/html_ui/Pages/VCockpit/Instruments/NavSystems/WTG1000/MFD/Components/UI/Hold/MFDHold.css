@@ -10,15 +10,15 @@
   align-items: baseline;
 }
 
-.mfd-hold-gridcontainer > div {
+.mfd-hold-gridcontainer>div {
   flex-basis: 50%;
   margin: 0;
   padding: 0;
   line-height: 20px;
 }
 
-.mfd-hold-gridcontainer > div:nth-child(2),
-.mfd-hold-gridcontainer > div:nth-child(4) {
+.mfd-hold-gridcontainer>div:nth-child(2),
+.mfd-hold-gridcontainer>div:nth-child(4) {
   text-align: right;
 }
 
@@ -43,10 +43,12 @@
 .mfd-hold-map-box .groupbox-container {
   padding: 0;
 }
+
 .mfd-hold-map-box .groupbox-content {
   overflow: hidden;
 }
-.mfd-hold .waypoint-map {
+
+.mfd-holdmap {
   position: relative;
   width: 290px;
   height: 300px;
@@ -56,13 +58,15 @@
   font-size: 14px;
   font-family: 'Roboto-Bold';
 }
-  .mfd-hold .waypoint-map .map-orientation {
-    position: absolute;
-    left: 2px;
-    top: 10px;
-  }
-  .mfd-hold .waypoint-map .minicompass-layer {
-    position: absolute;
-    left: 2px;
-    top: 30px;
-  }
+
+.mfd-holdmap .map-indicator-group-top-left {
+  position: absolute;
+  left: 2px;
+  top: 10px;
+}
+
+.mfd-holdmap .map-minicompass {
+  position: absolute;
+  left: 2px;
+  top: 30px;
+}

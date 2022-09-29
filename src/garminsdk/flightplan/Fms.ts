@@ -1,13 +1,11 @@
-import { BitFlags, GeoPoint, GeoPointInterface, MagVar, Subject, UnitType } from 'msfssdk';
-import { ConsumerSubject, ControlEvents, EventBus } from 'msfssdk/data';
-import { GNSSEvents, NavComSimVars, NavEvents, NavSourceId, NavSourceType } from 'msfssdk/instruments';
 import {
-  AirportFacility, ApproachProcedure, Facility, FacilityType, FixTypeFlags, FlightPlanLeg, ICAO, IntersectionFacility, RunwayUtils,
-  LegType, OneWayRunway, AirwayObject, FacilityLoader, UserFacility, FacilityFrequency, AltitudeRestrictionType,
-  FacilityRepository, VisualFacility, ExtendedApproachType, RnavTypeFlags, AdditionalApproachType, DepartureProcedure, ArrivalProcedure
-} from 'msfssdk/navigation';
-import { ActiveLegType, FlightPlan, FlightPlanner, FlightPlannerEvents, FlightPlanSegment, FlightPlanSegmentType, LegDefinition, FlightPathCalculator, LegDefinitionFlags, VerticalData } from 'msfssdk/flightplan';
-import { BottomTargetPathCalculator, VNavControlEvents, VNavDataEvents } from 'msfssdk/autopilot';
+  ActiveLegType, AdditionalApproachType, AirportFacility, AirwayObject, AltitudeRestrictionType, ApproachProcedure, ArrivalProcedure, BitFlags,
+  BottomTargetPathCalculator, ConsumerSubject, ControlEvents, DepartureProcedure, EventBus, ExtendedApproachType, Facility, FacilityFrequency, FacilityLoader,
+  FacilityRepository, FacilityType, FixTypeFlags, FlightPathCalculator, FlightPathUtils, FlightPlan, FlightPlanLeg, FlightPlanner, FlightPlannerEvents, FlightPlanSegment,
+  FlightPlanSegmentType, GeoCircle, GeoPoint, GeoPointInterface, GNSSEvents, ICAO, IntersectionFacility, LegDefinition, LegDefinitionFlags, LegTurnDirection, LegType, MagVar, NavComSimVars,
+  NavEvents, NavSourceId, NavSourceType, OneWayRunway, RnavTypeFlags, RunwayUtils, Subject, UnitType, UserFacility, VerticalData, VisualFacility,
+  VNavControlEvents, VNavDataEvents
+} from 'msfssdk';
 
 import { GarminControlEvents } from '../instruments/GarminControlEvents';
 import { FmsUtils } from './FmsUtils';
@@ -81,13 +79,13 @@ export class Fms {
   public static readonly DTO_RANDOM_PLAN_INDEX = 1;
   public static readonly PROC_PREVIEW_PLAN_INDEX = 2;
 
-  private static readonly geoPointCache = [new GeoPoint(0, 0)];
+  private static readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0)];
+  private static readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
 
   public readonly ppos = new GeoPoint(0, 0);
 
   private readonly facRepo = FacilityRepository.getRepository(this.bus);
   public readonly facLoader = new FacilityLoader(this.facRepo);
-  public readonly calculator: FlightPathCalculator = new FlightPathCalculator(this.facLoader, { defaultClimbRate: 300, defaultSpeed: 85, bankAngle: 15 });
 
   public approachDetails: ApproachDetails = {
     approachLoaded: false,
@@ -1357,7 +1355,11 @@ export class Fms {
     insertProcedureObject.procedureLegs.forEach((l) => {
       let isMissedLeg = false;
       if (visualRunway !== undefined) {
-        this.addVisualFacilityFromLeg(l, visualRunway.designation);
+        // If the leg's fix is a visual approach fix, we need to add it to the facility repository so that others can
+        // look it up properly.
+        if (l.type !== LegType.Discontinuity && l.type !== LegType.ThruDiscontinuity) {
+          this.addVisualFacilityFromLeg(l, visualRunway.designation);
+        }
         if (haveAddedMap) {
           isMissedLeg = true;
         }
@@ -1382,7 +1384,7 @@ export class Fms {
 
     // Adds missed approach legs
     if (!visualRunway && insertProcedureObject.procedureLegs.length > 0) {
-      const missedLegs = facility.approaches[approachIndex].missedLegs ?? [];
+      const missedLegs = facility.approaches[approachIndex].missedLegs;
       if (missedLegs.length > 0) {
         let maphIndex = -1;
         for (let m = missedLegs.length - 1; m >= 0; m--) {
@@ -2024,8 +2026,8 @@ export class Fms {
       this.removeDirectToExisting(indexInFlightplan);
     } else {
       plan.setCalculatingLeg(indexInFlightplan);
-      plan.setLateralLeg(indexInFlightplan);
       plan.calculate(Math.max(0, indexInFlightplan - 1));
+      plan.setLateralLeg(indexInFlightplan);
     }
 
     const controlEvents = this.bus.getPublisher<ControlEvents>();
@@ -2336,11 +2338,11 @@ export class Fms {
   }
 
   /**
-   * Creates a Direct-To DF leg.
+   * Creates a Direct-To target leg.
    * @param icao is the icao.
    * @param leg The FlightPlanLeg.
    * @param course The magnetic course for the Direct To.
-   * @returns a Direct-To DF leg.
+   * @returns a Direct-To leg.
    */
   private createDTODirectLeg(icao: string, leg?: FlightPlanLeg, course?: number): FlightPlanLeg {
     let legType: LegType;
@@ -2356,6 +2358,7 @@ export class Fms {
       const directLeg = Object.assign({}, leg);
       directLeg.type = legType;
       directLeg.course = course as number;
+      directLeg.turnDirection = LegTurnDirection.None;
       return directLeg;
     } else {
       return FlightPlan.createLeg({
@@ -2368,15 +2371,17 @@ export class Fms {
 
   /**
    * Empties the primary flight plan.
+   * @param doNotCreateDirectTo Option to skip creating a direct to random when deleting the plan. 
    */
-  public async emptyPrimaryFlightPlan(): Promise<void> {
+  public async emptyPrimaryFlightPlan(doNotCreateDirectTo = false): Promise<void> {
     if (!this.flightPlanner.hasFlightPlan(Fms.PRIMARY_PLAN_INDEX)) {
       return;
     }
 
     const plan = this.flightPlanner.getFlightPlan(Fms.PRIMARY_PLAN_INDEX);
     const directToState = this.getDirectToState();
-    if (directToState === DirectToState.TOEXISTING || (directToState !== DirectToState.TORANDOM && !Simplane.getIsGrounded() && plan.activeLateralLeg > 0)) {
+    if (!doNotCreateDirectTo && (directToState === DirectToState.TOEXISTING ||
+      (directToState !== DirectToState.TORANDOM && !Simplane.getIsGrounded() && plan.activeLateralLeg > 0))) {
       const directToIcao = plan.getLeg(plan.activeLateralLeg).leg.fixIcao;
       if (directToIcao) {
         const facType = ICAO.getFacilityType(directToIcao);
@@ -2451,7 +2456,7 @@ export class Fms {
       case ProcedureType.VISUALAPPROACH:
         if (visualRunwayNumber !== undefined && visualRunwayDesignator !== undefined) {
           const visualRunway = RunwayUtils.matchOneWayRunway(facility, visualRunwayNumber, visualRunwayDesignator);
-          procedureLegObject = await this.buildApproachLegs(facility, -1, -1, visualRunway);
+          procedureLegObject = await this.buildApproachLegs(facility, -1, transIndex, visualRunway);
           plan.addSegment(0, FlightPlanSegmentType.Approach, undefined, false);
         }
         break;
@@ -2471,13 +2476,25 @@ export class Fms {
         });
         procedureLegObject.procedureLegs.splice(0, 1, replacementLeg);
       }
+
+      const visualRunway = visualRunwayNumber !== undefined && visualRunwayDesignator !== undefined
+        ? RunwayUtils.matchOneWayRunway(facility, visualRunwayNumber, visualRunwayDesignator)
+        : undefined;
+
       procedureLegObject.procedureLegs.forEach((l) => {
+        // If the leg's fix is a visual approach fix, we need to add it to the facility repository so that others can
+        // look it up properly.
+        if (visualRunway !== undefined && ICAO.isFacility(l.fixIcao) && ICAO.getFacilityType(l.fixIcao) === FacilityType.VIS) {
+          this.addVisualFacilityFromLeg(l, visualRunway.designation);
+        }
+
         plan.addLeg(0, l, undefined, l.legDefinitionFlags ?? LegDefinitionFlags.None, false);
       });
+
       if (procType === ProcedureType.APPROACH) {
         // Adds missed approach legs
-        if (!visualRunwayNumber && !visualRunwayDesignator && procedureLegObject.procedureLegs.length > 0) {
-          const missedLegs = facility.approaches[procIndex].missedLegs ?? [];
+        if (visualRunwayNumber === undefined && visualRunwayDesignator === undefined && procedureLegObject.procedureLegs.length > 0) {
+          const missedLegs = facility.approaches[procIndex].missedLegs;
           if (missedLegs && missedLegs.length > 0) {
             let maphIndex = -1;
             for (let m = missedLegs.length - 1; m >= 0; m--) {
@@ -2501,7 +2518,9 @@ export class Fms {
           }
         }
       }
+
       await plan.calculate(0);
+
       return plan;
     } else {
       return plan;
@@ -2514,6 +2533,7 @@ export class Fms {
    * @param facility The airport facility to which the procedure to preview belongs.
    * @param procType The type of procedure to preview.
    * @param procIndex The index of the procedure to preview.
+   * @param excludeTransitionIndex The index of the transition to exclude in the preview.
    * @param rwyTransIndex The index of the procedure's runway transition.
    * @returns The index of the procedure transition preview plan.
    */
@@ -2522,6 +2542,7 @@ export class Fms {
     facility: AirportFacility,
     procType: ProcedureType,
     procIndex: number,
+    excludeTransitionIndex: number,
     rwyTransIndex?: number
   ): Promise<FlightPlan> {
     const plan = new FlightPlan(0, calculator, FlightPlanner.buildDefaultLegName);
@@ -2530,17 +2551,17 @@ export class Fms {
     switch (procType) {
       case ProcedureType.DEPARTURE:
         if (facility.departures[procIndex] && rwyTransIndex !== undefined) {
-          legs = this.buildDepartureTransitionPreviewLegs(facility.departures[procIndex], rwyTransIndex);
+          legs = this.buildDepartureTransitionPreviewLegs(facility.departures[procIndex], excludeTransitionIndex, rwyTransIndex);
         }
         break;
       case ProcedureType.ARRIVAL:
         if (facility.arrivals[procIndex] && rwyTransIndex !== undefined) {
-          legs = this.buildArrivalTransitionPreviewLegs(facility.arrivals[procIndex], rwyTransIndex);
+          legs = this.buildArrivalTransitionPreviewLegs(facility.arrivals[procIndex], excludeTransitionIndex, rwyTransIndex);
         }
         break;
       case ProcedureType.APPROACH:
         if (facility.approaches[procIndex]) {
-          legs = this.buildApproachTransitionPreviewLegs(facility.approaches[procIndex]);
+          legs = this.buildApproachTransitionPreviewLegs(facility.approaches[procIndex], excludeTransitionIndex);
         }
         break;
     }
@@ -2560,10 +2581,11 @@ export class Fms {
    * Builds a sequence of legs for a departure transition preview. The sequence consists of the legs of each departure
    * transition in order. Discontinuity legs separate legs of different transitions.
    * @param departure A departure.
+   * @param excludeTransitionIndex The index of the transition to exclude in the preview.
    * @param rwyTransIndex The runway transition index of the departure.
    * @returns A sequence of legs for a departure transition preview.
    */
-  private buildDepartureTransitionPreviewLegs(departure: DepartureProcedure, rwyTransIndex: number): FlightPlanLeg[] {
+  private buildDepartureTransitionPreviewLegs(departure: DepartureProcedure, excludeTransitionIndex: number, rwyTransIndex: number): FlightPlanLeg[] {
     const runwayTransition = departure.runwayTransitions[rwyTransIndex];
 
     if (!runwayTransition && departure.runwayTransitions.length > 0) {
@@ -2588,6 +2610,10 @@ export class Fms {
 
     const transitions = departure.enRouteTransitions;
     for (let i = 0; i < transitions.length; i++) {
+      if (i === excludeTransitionIndex) {
+        continue;
+      }
+
       const transition = transitions[i];
 
       if (transition.legs.length > 0) {
@@ -2617,10 +2643,11 @@ export class Fms {
    * Builds a sequence of legs for an arrival transition preview. The sequence consists of the legs of each arrival
    * transition in order. Discontinuity legs separate legs of different transitions.
    * @param arrival An arrival.
+   * @param excludeTransitionIndex The index of the transition to exclude in the preview.
    * @param rwyTransIndex The runway transition index of the arrival.
    * @returns A sequence of legs for an arrival transition preview.
    */
-  private buildArrivalTransitionPreviewLegs(arrival: ArrivalProcedure, rwyTransIndex: number): FlightPlanLeg[] {
+  private buildArrivalTransitionPreviewLegs(arrival: ArrivalProcedure, excludeTransitionIndex: number, rwyTransIndex: number): FlightPlanLeg[] {
     const runwayTransition = arrival.runwayTransitions[rwyTransIndex];
 
     if (!runwayTransition && arrival.runwayTransitions.length > 0) {
@@ -2641,6 +2668,10 @@ export class Fms {
 
     const transitions = arrival.enRouteTransitions;
     for (let i = 0; i < transitions.length; i++) {
+      if (i === excludeTransitionIndex) {
+        continue;
+      }
+
       const transition = transitions[i];
 
       if (transition.legs.length > 0) {
@@ -2677,9 +2708,10 @@ export class Fms {
    * transition in order, followed by the first leg of the final approach. Discontinuity legs separate legs of
    * different transitions.
    * @param approach An approach.
+   * @param excludeTransitionIndex The index of the transition to exclude in the preview.
    * @returns A sequence of legs for an approach transition preview.
    */
-  private buildApproachTransitionPreviewLegs(approach: ApproachProcedure): FlightPlanLeg[] {
+  private buildApproachTransitionPreviewLegs(approach: ApproachProcedure, excludeTransitionIndex: number): FlightPlanLeg[] {
     const insertProcObject: InsertProcedureObject = { procedureLegs: [] };
     const legs: FlightPlanLeg[] = [];
 
@@ -2688,6 +2720,10 @@ export class Fms {
 
     const transitions = approach.transitions;
     for (let i = 0; i < transitions.length; i++) {
+      if (i === excludeTransitionIndex) {
+        continue;
+      }
+
       const transition = transitions[i];
 
       if (transition.legs.length > 0) {
@@ -2996,6 +3032,150 @@ export class Fms {
       plan.addLeg(segmentIndex, holdLeg);
       this.bus.getPublisher<ControlEvents>().pub('suspend_sequencing', false, true);
       return true;
+    }
+  }
+
+  /**
+   * Activates the nearest and most applicable leg of the primary flightplan.
+   */
+  public activateNearestLeg(): void {
+    const plan = this.hasPrimaryFlightPlan() && this.getPrimaryFlightPlan();
+    if (!plan) {
+      return;
+    }
+
+    //Filter to legs that we are potentially on
+    const validLegs: LegDefinition[] = [];
+    for (const leg of plan.legs()) {
+      const calcs = leg.calculated;
+      if (calcs !== undefined) {
+        const position = this.getLegReferencePosition(leg);
+        if (position !== undefined && position >= 0 && position <= 1) {
+          validLegs.push(leg);
+        }
+      }
+    }
+
+    //Try to active the second or last leg if we're beyond the end or the beginning of the plan
+    if (validLegs.length === 0 && plan.length >= 2) {
+      const secondLeg = plan.tryGetLeg(2);
+      if (secondLeg !== null) {
+        const secondLegPosition = this.getLegReferencePosition(secondLeg);
+        if (secondLegPosition !== undefined && secondLegPosition > 1) {
+          const segmentIndex = plan.getSegmentIndex(plan.length - 1);
+          const segment = plan.getSegment(segmentIndex);
+
+          if (segment !== null) {
+            this.activateLeg(segment.segmentIndex, segment.legs.length - 1);
+          }
+        } else if (secondLegPosition !== undefined && secondLegPosition <= 1) {
+          const segment = plan.getSegmentFromLeg(secondLeg);
+
+          if (segment !== null) {
+            this.activateLeg(segment.segmentIndex, segment.legs.indexOf(secondLeg));
+          }
+        }
+      }
+    }
+
+    let closestLeg: LegDefinition | undefined = undefined;
+    let closestXtk: number | undefined = undefined;
+
+    for (const leg of validLegs) {
+      const calcs = leg.calculated;
+      if (calcs !== undefined) {
+        const xtk = this.getClosestLegXtk(leg);
+        if (xtk !== undefined) {
+          if (closestXtk === undefined || xtk < closestXtk) {
+            closestLeg = leg;
+            closestXtk = xtk;
+          }
+        }
+      }
+    }
+
+    if (closestLeg !== undefined) {
+      const segment = plan.getSegmentFromLeg(closestLeg);
+
+      if (segment !== null) {
+        this.activateLeg(segment.segmentIndex, segment.legs.indexOf(closestLeg));
+      }
+    }
+  }
+
+  /**
+   * Gets the normalized leg reference position from the leg.
+   * @param leg The leg to get the position for.
+   * @returns The normalized reference position.
+   */
+  private getLegReferencePosition(leg: LegDefinition): number | undefined {
+    if (leg.calculated !== undefined && leg.calculated.flightPath.length > 0) {
+      let numBefore = 0;
+      let firstBeforePosition = 0;
+
+      let numAfter = 0;
+      let lastAfterPosition = 0;
+
+      let latestInside: number | undefined = undefined;
+
+      const flightPath = leg.calculated.flightPath;
+      for (let i = 0; i < flightPath.length; i++) {
+        const vector = flightPath[i];
+        const circle = FlightPathUtils.setGeoCircleFromVector(flightPath[i], Fms.geoCircleCache[0]);
+
+        const start = Fms.geoPointCache[0].set(vector.startLat, vector.startLon);
+        const end = Fms.geoPointCache[1].set(vector.endLat, vector.endLon);
+        const position = FlightPathUtils.getAlongArcNormalizedDistance(circle, start, end, this.ppos);
+
+        if (position < 0) {
+          numBefore++;
+          if (i === 0) {
+            firstBeforePosition = position;
+          }
+        } else if (position > 1) {
+          numAfter++;
+          if (i === flightPath.length - 1) {
+            lastAfterPosition = position;
+          }
+        } else {
+          latestInside = position;
+        }
+      }
+
+      if (numBefore === flightPath.length) {
+        return firstBeforePosition;
+      } else if (numAfter === flightPath.length) {
+        return lastAfterPosition;
+      } else if (latestInside !== undefined) {
+        return latestInside;
+      } else {
+        return undefined;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Gets the XTK of the closest vector on the leg.
+   * @param leg The leg to get the XTK for.
+   * @returns The closest leg vector XTK.
+   */
+  private getClosestLegXtk(leg: LegDefinition): number | undefined {
+    if (leg.calculated !== undefined) {
+      return Math.min(...leg.calculated.flightPath.map(vector => {
+        const circle = FlightPathUtils.setGeoCircleFromVector(vector, Fms.geoCircleCache[0]);
+
+        const start = Fms.geoPointCache[0].set(vector.startLat, vector.startLon);
+        const end = Fms.geoPointCache[1].set(vector.endLat, vector.endLon);
+        const position = FlightPathUtils.getAlongArcNormalizedDistance(circle, start, end, this.ppos);
+
+        if (position >= 0 || position <= 1) {
+          return Math.abs(circle.distance(this.ppos));
+        } else {
+          return Number.MAX_SAFE_INTEGER;
+        }
+      }));
     }
   }
 
@@ -3569,11 +3749,33 @@ export class Fms {
       return false;
     }
 
-    return (leg1.type === LegType.IF
+    const isLeg1TypeValidForDuplicate = leg1.type === LegType.IF
       || leg1.type === LegType.TF
       || leg1.type === LegType.DF
-      || leg1.type === LegType.CF)
-      && leg1.fixIcao === leg2.fixIcao;
+      || leg1.type === LegType.CF;
+
+    if (!isLeg1TypeValidForDuplicate) {
+      return false;
+    }
+
+    if (leg1.fixIcao === leg2.fixIcao) {
+      return true;
+    }
+
+    const leg1Airport = ICAO.getAssociatedAirportIdent(leg1.fixIcao);
+    const leg2Airport = ICAO.getAssociatedAirportIdent(leg2.fixIcao);
+
+    if (leg1Airport.length > 0 && leg2Airport.length > 0 && leg1Airport !== leg2Airport) {
+      return false;
+    }
+
+    if (leg1Airport.length > 0 && leg2Airport.length === 0 || leg2Airport.length > 0 && leg1Airport.length === 0) {
+      if (ICAO.getRegionCode(leg1.fixIcao) === ICAO.getRegionCode(leg2.fixIcao)) {
+        return ICAO.getIdent(leg1.fixIcao) === ICAO.getIdent(leg2.fixIcao);
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -3635,6 +3837,9 @@ export class Fms {
     const leg2Segment = plan.getSegmentFromLeg(leg2);
     const leg2Index = plan.getLegIndexFromLeg(leg2);
 
+    const prevLegIndex = leg1Index - 1;
+    const prevLeg = plan.tryGetLeg(prevLegIndex);
+
     if (!leg1Segment || !leg2Segment) {
       return null;
     }
@@ -3659,11 +3864,14 @@ export class Fms {
 
     const isLeg1InProc = leg1Segment.segmentType !== FlightPlanSegmentType.Enroute;
     const isLeg2InProc = leg2Segment.segmentType !== FlightPlanSegmentType.Enroute;
+    const prevLegIsIntercept = prevLeg !== null && (prevLeg.leg.type === LegType.CI || prevLeg.leg.type === LegType.VI);
+
     let toDeleteSegment;
     let toDeleteIndex;
     let toDeleteLeg;
     if (
-      (!isLeg1InProc && isLeg2InProc)
+      prevLegIsIntercept
+      || (!isLeg1InProc && isLeg2InProc)
       || (isLeg1InProc && isLeg2InProc && leg1Segment !== leg2Segment)
       || BitFlags.isAny(leg2.leg.fixTypeFlags, FixTypeFlags.FAF | FixTypeFlags.MAP)
     ) {
@@ -3673,7 +3881,13 @@ export class Fms {
     } else {
       toDeleteSegment = leg2Segment;
       toDeleteIndex = leg2Index - leg2Segment.offset;
-      leg1.leg = this.mergeDuplicateLegData(leg1.leg, leg2.leg);
+
+      //Merge data into first leg and replace
+      const mergedLeg = this.mergeDuplicateLegData(leg1.leg, leg2.leg);
+      const leg1SegmentLegIndex = leg1Index - leg1Segment.offset;
+      plan.removeLeg(leg1Segment.segmentIndex, leg1SegmentLegIndex);
+      plan.addLeg(leg1Segment.segmentIndex, mergedLeg, leg1SegmentLegIndex, leg2.flags);
+
       toDeleteLeg = leg2;
     }
 

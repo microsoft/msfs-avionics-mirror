@@ -1,4 +1,5 @@
 import { VNode } from 'msfssdk';
+
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
 import { NavDataBarFieldTypeModelMap } from './NavDataBarFieldModel';
 

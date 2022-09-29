@@ -1,9 +1,9 @@
 /// <reference types="msfstypes/JS/simvar" />
 
 import { EventBus } from '../../data';
-import { ADCEvents } from '../../instruments';
+import { AhrsEvents } from '../../instruments';
 import { LinearServo } from '../../utils/controllers';
-import { PlaneDirector, DirectorState } from '../PlaneDirector';
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * An autopilot wing leveler director.
@@ -32,8 +32,8 @@ export class APLvlDirector implements PlaneDirector {
   constructor(private readonly bus: EventBus) {
     this.state = DirectorState.Inactive;
 
-    const adc = this.bus.getSubscriber<ADCEvents>();
-    adc.on('roll_deg').withPrecision(1).handle((roll) => {
+    const sub = this.bus.getSubscriber<AhrsEvents>();
+    sub.on('roll_deg').withPrecision(1).handle((roll) => {
       this.actualBank = roll;
     });
   }

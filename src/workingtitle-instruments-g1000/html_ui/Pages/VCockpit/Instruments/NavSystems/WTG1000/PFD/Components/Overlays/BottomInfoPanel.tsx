@@ -1,19 +1,19 @@
-import { FSComponent, DisplayComponent, VNode, NodeReference, Subject, NavMath, NumberUnitSubject, UnitType } from 'msfssdk';
-import { ConsumerSubject, ControlPublisher, EventBus } from 'msfssdk/data';
-import { ClockEvents, InstrumentEvents } from 'msfssdk/instruments';
-import { ADCEvents } from 'msfssdk/instruments/ADC';
-import { BearingDirection, BearingDistance, BearingIdent, BearingSource, NavSourceId, NavEvents, NavSourceType } from 'msfssdk/instruments/NavProcessor';
-import { NumberFormatter } from 'msfssdk/graphics/text';
+import {
+  AdcEvents, AhrsEvents, BearingDirection, BearingDistance, BearingIdent, BearingSource, ClockEvents, ConsumerSubject, ControlPublisher, DisplayComponent,
+  EventBus, FSComponent, InstrumentEvents, NavEvents, NavMath, NavSourceId, NavSourceType, NodeReference, NumberFormatter, NumberUnitSubject, Subject, UnitType,
+  VNode
+} from 'msfssdk';
+
+import { DateTimeFormatSettingMode, DateTimeUserSettings } from 'garminsdk';
+
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
-import { Transponder } from './Transponder';
 import { ADCSystemEvents, AvionicsComputerSystemEvents, AvionicsSystemState } from '../../../Shared/Systems';
-import { TimeDisplay, TimeDisplayFormat } from '../../../Shared/UI/Common/TimeDisplay';
-import { DateTimeFormatSettingMode, DateTimeUserSettings } from '../../../Shared/DateTime/DateTimeUserSettings';
-import { UnitsUserSettingManager } from '../../../Shared/Units/UnitsUserSettings';
 import { NumberUnitDisplay } from '../../../Shared/UI/Common/NumberUnitDisplay';
+import { TimeDisplay, TimeDisplayFormat } from '../../../Shared/UI/Common/TimeDisplay';
+import { UnitsUserSettingManager } from '../../../Shared/Units/UnitsUserSettings';
+import { Transponder } from './Transponder';
 
 import './BottomInfoPanel.css';
-
 
 /**
  * The properties on the Attitude component.
@@ -49,6 +49,7 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
   private bearingPointerDirection: (number | null)[] = [null, null];
   private av1StateOn = false;
   private av2StateOn = false;
+  private isMfdPowered = false;
 
   private bearing1Container = FSComponent.createRef<HTMLElement>();
   private bearing2Container = FSComponent.createRef<HTMLElement>();
@@ -84,13 +85,13 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
    * A callback called after the component renders.
    */
   public onAfterRender(): void {
-    const adc = this.props.bus.getSubscriber<ADCEvents>();
+    const adahrs = this.props.bus.getSubscriber<AdcEvents & AhrsEvents>();
     const g1000 = this.props.bus.getSubscriber<G1000ControlEvents>();
 
-    adc.on('ambient_temp_c')
+    adahrs.on('ambient_temp_c')
       .withPrecision(0)
       .handle(this.onUpdateOAT);
-    adc.on('hdg_deg')
+    adahrs.on('hdg_deg')
       .withPrecision(0)
       .handle((h) => { this.hdg = h; });
     g1000.on('timer_value')
@@ -99,24 +100,31 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
         this.timerStr.set(Utils.SecondsToDisplayDuration(time, true, true, true));
       });
 
-
     const nav = this.props.bus.getSubscriber<NavEvents>();
-    nav.on('brg_source').whenChanged().handle(this.onUpdateBearingSrc);
+    nav.on('brg_source').handle(this.onUpdateBearingSrc);
     nav.on('brg_distance').handle(this.onUpdateBearingDist);
     nav.on('brg_direction').handle(this.onUpdateBearingDir);
-    nav.on('brg_ident').whenChanged().handle(this.onUpdateBearingIdent);
+    nav.on('brg_ident').handle(this.onUpdateBearingIdent);
 
     if (this.bearing1Container.instance !== null && this.bearing2Container.instance !== null) {
       this.bearing1Container.instance.style.display = 'none';
       this.bearing2Container.instance.style.display = 'none';
     }
 
+    this.props.bus.on('mfd_power_on', isPowered => this.isMfdPowered = isPowered);
     this.props.bus.getSubscriber<InstrumentEvents>().on('vc_screen_state').handle(state => {
       if (state.current === ScreenState.REVERSIONARY) {
         setTimeout(() => {
           this.tempBox.instance.classList.add('reversionary');
-          this.props.bus.on('mfd_power_on', this.onMfdPowerOn);
-        }, 250);
+
+          if (!this.isMfdPowered) {
+            this.props.bus.on('mfd_power_on', this.onMfdPowerOn);
+          }
+        }, 1000);
+      } else if (this.isMfdPowered) {
+        setTimeout(() => {
+          this.tempBox.instance.classList.remove('reversionary');
+        }, 1000);
       }
     });
 
@@ -186,7 +194,7 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
       setTimeout(() => {
         this.tempBox.instance.classList.remove('reversionary');
         this.props.bus.off('mfd_power_on', this.onMfdPowerOn);
-      }, 250);
+      }, 1000);
     }
   };
 

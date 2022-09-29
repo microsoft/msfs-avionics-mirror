@@ -49,7 +49,7 @@ export class FlightPathLegPatternRenderer<Args extends any[] = any[]> extends Ab
     isContinuous: false
   };
 
-  private isAtLegStart = false;
+  private isAtDiscontinuity = false;
 
   /**
    * Constructor.
@@ -69,7 +69,7 @@ export class FlightPathLegPatternRenderer<Args extends any[] = any[]> extends Ab
     partsToRender: number,
     ...args: Args
   ): void {
-    this.isAtLegStart = true;
+    this.isAtDiscontinuity = true;
 
     super.render(leg, context, streamStack, partsToRender, ...args);
   }
@@ -85,11 +85,13 @@ export class FlightPathLegPatternRenderer<Args extends any[] = any[]> extends Ab
     ...args: Args
   ): void {
     const style = this.styleSelector(vector, isIngress, isEgress, leg, streamStack.getProjection(), this.style, ...args);
-    const continuePath = !this.isAtLegStart && style.isContinuous;
+    const continuePath = !this.isAtDiscontinuity && style.isContinuous;
 
     if (style.pattern) {
       this.pathRenderer.render(vector, context, streamStack, style.pattern, continuePath);
-      this.isAtLegStart = false;
+      this.isAtDiscontinuity = false;
+    } else {
+      this.isAtDiscontinuity = true;
     }
   }
 }

@@ -1,11 +1,11 @@
-import { ComponentProps } from 'msfssdk';
-import { UserSettingManager, UserSettingType } from 'msfssdk/settings';
+import { ComponentProps, UserSettingManager, UserSettingRecord } from 'msfssdk';
+
 import { UiControl } from '../UiControl';
 
 /**
  * Props for components that control a user setting.
  */
-export interface UserSettingControlProps<T extends Record<any, UserSettingType>, K extends keyof T> extends ComponentProps {
+export interface UserSettingControlProps<T extends UserSettingRecord, K extends keyof T & string> extends ComponentProps {
   /** The setting manager associated with the controlled setting. */
   settingManager: UserSettingManager<T>
 

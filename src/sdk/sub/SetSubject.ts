@@ -85,6 +85,7 @@ export class SetSubject<T> extends AbstractSubscribableSet<T> implements Mutable
   public clear(): void {
     for (const key of this.backingSet) {
       this.backingSet.delete(key);
+      this.notify(SubscribableSetEventType.Deleted, key);
     }
   }
 }

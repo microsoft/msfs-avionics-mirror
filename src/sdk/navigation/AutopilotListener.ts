@@ -1,16 +1,6 @@
 /**
  * A viewlistener that gets autopilot mode information.
  */
-// eslint-disable-next-line @typescript-eslint/no-namespace
-export namespace APController {
-
-  /**
-   * Gets whether or not a given AP mode is active.
-   * @param apMode The MSFS AP mode to check.
-   * @returns 1 if the mode is active, 0 otherwise.
-   */
-  export declare function apGetAutopilotModeActive(apMode: MSFSAPStates): number;
-}
 
 export enum MSFSAPStates {
   LogicOn = 1 << 0,

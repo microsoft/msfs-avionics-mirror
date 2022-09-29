@@ -1,4 +1,5 @@
 import { NavAngleUnit, NumberUnitInterface, UnitFamily } from 'msfssdk';
+
 import { NavDataFieldModel } from './NavDataFieldModel';
 
 /**

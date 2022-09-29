@@ -1,10 +1,10 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { MathUtils, SimpleMovingAverage, UnitType } from '../..';
 import { EventBus, SimVarValueType } from '../../data';
-import { ADCEvents } from '../../instruments';
+import { AdcEvents } from '../../instruments';
+import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
 import { APValues } from '../APConfig';
-import { PlaneDirector, DirectorState } from '../PlaneDirector';
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * A vertical speed autopilot director.
@@ -32,7 +32,7 @@ export class APVSDirector implements PlaneDirector {
   constructor(private readonly bus: EventBus, apValues: APValues) {
     this.state = DirectorState.Inactive;
 
-    this.bus.getSubscriber<ADCEvents>().on('tas').withPrecision(0).handle((tas) => {
+    this.bus.getSubscriber<AdcEvents>().on('tas').withPrecision(0).handle((tas) => {
       this.tas = tas;
     });
 

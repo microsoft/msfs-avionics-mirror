@@ -1,10 +1,10 @@
-import { MapProjection, MapProjectionChangeType } from '../MapProjection';
 import { GeoPoint, GeoPointReadOnly } from '../../../geo/GeoPoint';
 import { GeoProjection, MercatorProjection } from '../../../geo/GeoProjection';
-import { ReadonlyFloat64Array, Vec2Math } from '../../../math/VecMath';
-import { MapCanvasLayer, MapCanvasLayerCanvasInstance, MapCanvasLayerCanvasInstanceClass } from './MapCanvasLayer';
-import { MapLayerProps } from '../MapLayer';
 import { BitFlags } from '../../../math/BitFlags';
+import { ReadonlyFloat64Array, Vec2Math } from '../../../math/VecMath';
+import { MapLayerProps } from '../MapLayer';
+import { MapProjection, MapProjectionChangeType } from '../MapProjection';
+import { MapCanvasLayer, MapCanvasLayerCanvasInstance, MapCanvasLayerCanvasInstanceClass } from './MapCanvasLayer';
 
 /**
  * Properties for a MapCachedCanvasLayer.

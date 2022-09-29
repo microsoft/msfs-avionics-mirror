@@ -1,20 +1,19 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { FlightPlan, LegDefinition } from 'msfssdk/flightplan';
+import { FlightPlan, FSComponent, LegDefinition, Subject, VNode } from 'msfssdk';
 
-import { ArrowToggle } from '../../../../../Shared/UI/UIControls/ArrowToggle';
-import { ActionButton } from '../../../../../Shared/UI/UIControls/ActionButton';
-import { GroupBox } from '../../GroupBox';
+import { FlightPlanFocus } from '../../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { List } from '../../../../../Shared/UI/List';
-import { ProcSequenceItem } from '../ProcSequenceItem';
-import { UiControl } from '../../../../../Shared/UI/UiControl';
-import { ScrollBar } from '../../../../../Shared/UI/ScrollBar';
 import { SelectApproach, SelectApproachProps } from '../../../../../Shared/UI/Procedure/Approach/SelectApproach';
 import { SelectApproachController } from '../../../../../Shared/UI/Procedure/Approach/SelectApproachController';
-import { FlightPlanFocus } from '../../../../../Shared/UI/FPL/FPLTypesAndProps';
-import { MFDSelectApproachController } from './MFDSelectApproachController';
-import { MFDSelectProcedure } from '../MFDSelectProcedurePage';
-import { MFDSelectApproachStore } from './MFDSelectApproachStore';
+import { ScrollBar } from '../../../../../Shared/UI/ScrollBar';
+import { UiControl } from '../../../../../Shared/UI/UiControl';
+import { ActionButton } from '../../../../../Shared/UI/UIControls/ActionButton';
+import { ArrowToggle } from '../../../../../Shared/UI/UIControls/ArrowToggle';
 import { UnitsUserSettings } from '../../../../../Shared/Units/UnitsUserSettings';
+import { GroupBox } from '../../GroupBox';
+import { MFDSelectProcedure } from '../MFDSelectProcedurePage';
+import { ProcSequenceItem } from '../ProcSequenceItem';
+import { MFDSelectApproachController } from './MFDSelectApproachController';
+import { MFDSelectApproachStore } from './MFDSelectApproachStore';
 
 import './MFDSelectApproach.css';
 
@@ -113,8 +112,8 @@ export class MFDSelectApproach extends SelectApproach<MFDSelectApproachProps> im
         </GroupBox>
         <GroupBox title="Minimums">
           <div class='mfd-select-approach-mins'>
-            <ArrowToggle onRegister={this.register} onOptionSelected={this.controller.onMinimumsOptionSelected} options={this.store.minsToggleOptions}
-              dataref={this.store.minimumsMode} onEnter={this.onEnterPressedAdvance.bind(this)} />
+            <ArrowToggle ref={this.minsToggleComponent} onRegister={this.register} onOptionSelected={this.controller.onMinimumsOptionSelected}
+              options={this.store.minsToggleOptions} dataref={this.store.minimumsMode} onEnter={this.onEnterPressedAdvance.bind(this)} />
             <div>
               {this.renderMinimumsNumberInput('mfd-select-approach-mins-number')}
               <span class="size12">{this.store.minimumsUnit}</span>

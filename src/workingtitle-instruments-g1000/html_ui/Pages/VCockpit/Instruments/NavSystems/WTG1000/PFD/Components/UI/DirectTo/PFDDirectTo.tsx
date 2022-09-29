@@ -1,6 +1,7 @@
 import { FSComponent, VNode } from 'msfssdk';
-import { ActionButton } from '../../../../Shared/UI/UIControls/ActionButton';
+
 import { DirectTo } from '../../../../Shared/UI/DirectTo/DirectTo';
+import { ActionButton } from '../../../../Shared/UI/UIControls/ActionButton';
 
 import './PFDDirectTo.css';
 

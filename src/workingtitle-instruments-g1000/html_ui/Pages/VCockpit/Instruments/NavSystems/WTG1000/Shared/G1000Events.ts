@@ -1,12 +1,14 @@
-import { EventBus } from 'msfssdk/data';
-import { BasePublisher } from 'msfssdk/instruments';
-import { NearestAirportSoftKey } from '../MFD/Components/UI/Nearest/MFDNearestAirportsPage';
-import { VSpeed } from '../PFD/Components/FlightInstruments/AirspeedIndicator';
+import { BasePublisher, EventBus } from 'msfssdk';
+
+import { ProcedureType } from 'garminsdk';
+
 import { EISPageTypes } from '../MFD/Components/EIS';
-import { FuelRemaingAdjustment } from './FuelComputer';
-import { FmaData } from './Autopilot/FmaData';
-import { ProcedureType } from 'garminsdk/flightplan';
+import { NearestAirportSoftKey } from '../MFD/Components/UI/Nearest/MFDNearestAirportsPage';
 import { NearestVorSoftKey } from '../MFD/Components/UI/Nearest/MFDNearestVORsPage';
+import { VSpeed } from '../PFD/Components/FlightInstruments/AirspeedIndicator';
+import { FmaData } from './Autopilot/FmaData';
+import { FuelRemaingAdjustment } from './FuelComputer';
+
 
 /** Extension of generic ControlEvents to handle G1000-specific events. */
 export interface G1000ControlEvents {
@@ -37,9 +39,6 @@ export interface G1000ControlEvents {
   /** Event for updating the display of v speeds from the soft menu to the airspeed indicator. */
   vspeed_display: VSpeed
 
-  /** Event for updating if minimums are displayed (true) or not (false). */
-  show_minimums: boolean;
-
   /** Event for updating the timer display. */
   timer_value: number;
 
@@ -66,9 +65,6 @@ export interface G1000ControlEvents {
 
   /** Event for disabling the FD in this aircraft. */
   fd_not_installed: boolean;
-
-  /** Whether an autopilot selected altitude has been set. */
-  ap_alt_sel_set: boolean;
 
   /** Event for selecting a vertical direct. */
   activate_vertical_direct: boolean;

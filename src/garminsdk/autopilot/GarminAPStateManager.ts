@@ -1,6 +1,6 @@
-import { ControlEvents, HEvent, KeyEventData, KeyInterceptManager, SimVarValueType } from 'msfssdk/data';
-import { NavSourceType } from 'msfssdk/instruments';
-import { APLateralModes, APModeType, APStateManager, APVerticalModes } from 'msfssdk/autopilot';
+import {
+  APLateralModes, APModeType, APStateManager, APVerticalModes, ControlEvents, HEvent, KeyEventData, KeyInterceptManager, NavSourceType, SimVarValueType
+} from 'msfssdk';
 
 /**
  * A G1000 NXi autopilot state manager.

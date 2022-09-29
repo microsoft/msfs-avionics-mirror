@@ -1,5 +1,5 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { DebounceTimer } from 'msfssdk/utils/time';
+import { DebounceTimer, FSComponent, Subject, VNode } from 'msfssdk';
+
 import { G1000UiControl, G1000UiControlProps } from '../G1000UiControl';
 
 import './SignInput.css';

@@ -1,7 +1,6 @@
-import { FSComponent, VNode } from 'msfssdk';
-import { FacilityType, FacilityWaypoint, IntersectionFacility } from 'msfssdk/navigation';
+import { FacilityType, FacilityWaypoint, FSComponent, IntersectionFacility, VNode } from 'msfssdk';
 
-import { InformationGroup, ReferenceVorGroup } from '../../Nearest/Intersections';
+import { NearestIntersectionInformationGroup, NearestIntersectionReferenceVorGroup } from '../../Nearest/Intersections';
 import { FacilityGroup } from '../FacilityGroup';
 import { MFDInformationPage } from '../MFDInformationPage';
 
@@ -10,8 +9,13 @@ import { MFDInformationPage } from '../MFDInformationPage';
  */
 export class MFDIntersectionInformationPage extends MFDInformationPage {
 
-  private readonly informationGroup = FSComponent.createRef<InformationGroup>();
-  private readonly referenceVorGroup = FSComponent.createRef<ReferenceVorGroup>();
+  private readonly informationGroup = FSComponent.createRef<NearestIntersectionInformationGroup>();
+  private readonly referenceVorGroup = FSComponent.createRef<NearestIntersectionReferenceVorGroup>();
+
+  /** @inheritdoc */
+  protected getDefaultRangeIndex(): number {
+    return 14; // 7.5 NM/15 KM
+  }
 
   /**
    * A callback called when a new waypoint is selected.
@@ -19,8 +23,8 @@ export class MFDIntersectionInformationPage extends MFDInformationPage {
    */
   private onSelected(waypoint: FacilityWaypoint<IntersectionFacility> | null): void {
     if (waypoint !== null) {
-      this.informationGroup.instance.set(waypoint.facility);
-      this.referenceVorGroup.instance.set(waypoint.facility);
+      this.informationGroup.instance.set(waypoint.facility.get());
+      this.referenceVorGroup.instance.set(waypoint.facility.get());
     } else {
       this.informationGroup.instance.set(null);
       this.referenceVorGroup.instance.set(null);
@@ -35,8 +39,8 @@ export class MFDIntersectionInformationPage extends MFDInformationPage {
       <>
         <FacilityGroup bus={this.props.bus} facilityLoader={this.props.facilityLoader} facilityType={FacilityType.Intersection}
           viewService={this.props.viewService} title='Intersection' onSelected={this.onSelected.bind(this)} ref={this.facilityGroup} />
-        <InformationGroup ref={this.informationGroup} />
-        <ReferenceVorGroup ref={this.referenceVorGroup} unitsSettingManager={this.unitsSettingManager} />
+        <NearestIntersectionInformationGroup ref={this.informationGroup} />
+        <NearestIntersectionReferenceVorGroup ref={this.referenceVorGroup} unitsSettingManager={this.unitsSettingManager} />
       </>
     );
   }

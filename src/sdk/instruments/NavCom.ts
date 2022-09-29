@@ -1,15 +1,15 @@
 /// <reference types="msfstypes/JS/simvar" />
 /// <reference types="msfstypes/JS/Avionics" />
-import { ComSpacingChangeEvent } from '.';
 import { ControlEvents } from '../data/ControlPublisher';
 import { EventBus, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { EventSubscriber } from '../data/EventSubscriber';
 import { HEvent } from '../data/HEventPublisher';
 import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
+import { ComSpacingChangeEvent } from './';
 import { BasePublisher, SimVarPublisher } from './BasePublishers';
 import { NavEvents, NavSourceId, NavSourceType } from './NavProcessor';
-import { Radio, RadioType, FrequencyBank, RadioEvents } from './RadioCommon';
+import { FrequencyBank, Radio, RadioEvents, RadioType } from './RadioCommon';
 
 // There are two main componints to the Nav/Com system currently, because we
 // can't rely on K events being processed synchronously.   Instead, we need
@@ -36,7 +36,10 @@ export interface NavComSimVars {
     /** ADF Standby Frequency */
     [adf_standby_frequency: IndexedEventType<'adf_standby_frequency'>]: number,
     /** ADF Active Frequency */
-    [adf_active_frequency: IndexedEventType<'adf_active_frequency'>]: number
+    [adf_active_frequency: IndexedEventType<'adf_active_frequency'>]: number,
+    /** COM Status */
+    [com_status: IndexedEventType<'com_status'>]: number,
+
 }
 
 /** A publisher to poll and publish nav/com simvars. */
@@ -55,7 +58,10 @@ export class NavComSimVarPublisher extends SimVarPublisher<NavComSimVars> {
         ['com_active_frequency_2', { name: 'COM ACTIVE FREQUENCY:2', type: SimVarValueType.MHz }],
         ['com_standby_frequency_2', { name: 'COM STANDBY FREQUENCY:2', type: SimVarValueType.MHz }],
         ['adf_standby_frequency_1', { name: 'ADF STANDBY FREQUENCY:1', type: SimVarValueType.KHz }],
-        ['adf_active_frequency_1', { name: 'ADF ACTIVE FREQUENCY:1', type: SimVarValueType.KHz }]
+        ['adf_active_frequency_1', { name: 'ADF ACTIVE FREQUENCY:1', type: SimVarValueType.KHz }],
+        ['com_status_1', { name: 'COM STATUS:1', type: SimVarValueType.Number }],
+        ['com_status_2', { name: 'COM STATUS:2', type: SimVarValueType.Number }]
+
     ]);
 
     /**
@@ -88,6 +94,10 @@ export class NavComConfig {
     public comWholeDecEvents = new Map<string, string>();
     public comFractionIncEvents = new Map<string, string>();
     public comFractionDecEvents = new Map<string, string>();
+    public comVolumeIncEvents = new Map<string, string>();
+    public comVolumeDecEvents = new Map<string, string>();
+    public navVolumeIncEvents = new Map<string, string>();
+    public navVolumeDecEvents = new Map<string, string>();
 }
 
 /**
@@ -382,6 +392,14 @@ export class NavComInstrument {
                 this.fractInc(this.getSelectedRadio(this.comRadios));
             } else if (this.config.comFractionDecEvents?.has(hEvent)) {
                 this.fractDec(this.getSelectedRadio(this.comRadios));
+            } else if (this.config.comVolumeIncEvents?.has(hEvent)) {
+                this.volumeInc(this.getSelectedRadio(this.comRadios));
+            } else if (this.config.comVolumeDecEvents?.has(hEvent)) {
+                this.volumeDec(this.getSelectedRadio(this.comRadios));
+            } else if (this.config.navVolumeIncEvents?.has(hEvent)) {
+                this.volumeInc(this.getSelectedRadio(this.navRadios));
+            } else if (this.config.navVolumeDecEvents?.has(hEvent)) {
+                this.volumeDec(this.getSelectedRadio(this.navRadios));
             }
         }
     };
@@ -489,6 +507,26 @@ export class NavComInstrument {
     }
 
     /**
+     * Increase the volume of the selected nav or com radio.
+     * @param radio The radio whose volume we want to increase.
+     */
+    private volumeInc(radio: Radio | undefined): void {
+        if (radio !== undefined) {
+            SimVar.SetSimVarValue(`K:${radio.radioType}${radio.index}_VOLUME_INC`, 'number', 0);
+        }
+    }
+
+    /**
+     * Increase the volume of the selected nav or com radio.
+     * @param radio The radio whose volume we want to increase.
+     */
+    private volumeDec(radio: Radio | undefined): void {
+        if (radio !== undefined) {
+            SimVar.SetSimVarValue(`K:${radio.radioType}${radio.index}_VOLUME_DEC`, 'number', 0);
+        }
+    }
+
+    /**
      * Increase the integer portion of a frequency.
      * @param radio The Radio to update.
      */
@@ -541,7 +579,7 @@ export class NavComInstrument {
         }
 
         const freqMhz = Math.round(parseFloat(freq) * 1000) / 1000;
-        SimVar.SetSimVarValue(`K:${radioId}_SET`, 'Frequency BCD16', Avionics.Utils.make_bcd16(Math.round(freqMhz * 1_000_000)));
+        SimVar.SetSimVarValue(`K:${radioId}_SET_HZ`, 'Hz', (Math.round(freqMhz * 1_000_000)));
     }
 
     /**

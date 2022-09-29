@@ -1,25 +1,22 @@
-import { FSComponent, NodeReference, Subject, UnitType, VNode } from 'msfssdk';
-import { ControlEvents, EventBus } from 'msfssdk/data';
-import { AdditionalApproachType, AirportFacility, ApproachProcedure, ExtendedApproachType, FacilitySearchType } from 'msfssdk/navigation';
-import { FlightPathCalculator } from 'msfssdk/flightplan';
-import { SortedMappedSubscribableArray } from 'msfssdk/utils/datastructures';
+import {
+  AdditionalApproachType, AirportFacility, ApproachProcedure, ControlEvents, EventBus, ExtendedApproachType, FacilitySearchType, FlightPathCalculator,
+  FocusPosition, FSComponent, MinimumsEvents, NodeReference, SortedMappedSubscribableArray, Subject, UnitType, VNode
+} from 'msfssdk';
 
-import { G1000ControlEvents } from '../../../G1000Events';
-import { Fms, TransitionListItem } from 'garminsdk/flightplan';
-import { SelectApproachController } from './SelectApproachController';
-import { ApproachListItem, SelectApproachStore } from './SelectApproachStore';
+import { Fms, TransitionListItem } from 'garminsdk';
+
+import { ContextMenuDialog, ContextMenuItemDefinition, ContextMenuPosition } from '../../Dialogs/ContextMenuDialog';
 import { FmsHEvent } from '../../FmsHEvent';
-import { NumberInput } from '../../UIControls/NumberInput';
-import { WaypointInput } from '../../UIControls/WaypointInput';
 import { ApproachNameDisplay } from '../../FPL/ApproachNameDisplay';
 import { UiControlGroup, UiControlGroupProps } from '../../UiControlGroup';
-import { ViewService } from '../../ViewService';
+import { ArrowToggle } from '../../UIControls/ArrowToggle';
 import { GenericControl } from '../../UIControls/GenericControl';
-import { SelectControl } from '../../UiControls2/SelectControl';
-import { ContextMenuDialog, ContextMenuItemDefinition, ContextMenuPosition } from '../../Dialogs/ContextMenuDialog';
-import { FocusPosition } from 'msfssdk/components/controls';
-import { DHEvents } from 'msfssdk/instruments';
-import { UnitsUserSettingManager } from '../../../Units/UnitsUserSettings';
+import { NumberInput } from '../../UIControls/NumberInput';
+import { WaypointInput } from '../../UIControls/WaypointInput';
+import { SelectControl2 } from '../../UiControls2/SelectControl';
+import { ViewService } from '../../ViewService';
+import { SelectApproachController } from './SelectApproachController';
+import { ApproachListItem, SelectApproachStore } from './SelectApproachStore';
 
 /**
  * Component props for SelectApproach.
@@ -37,8 +34,8 @@ export interface SelectApproachProps extends UiControlGroupProps {
   /** A flight path calculator to use to build preview flight plans. */
   calculator: FlightPathCalculator;
 
-  /** A units settings manager, for DA units. */
-  unitsSettingManager: UnitsUserSettingManager
+  /** Whether this instance of the G1000 has a Radio Altimeter. */
+  hasRadioAltimeter: boolean;
 }
 
 /**
@@ -79,8 +76,9 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
     [RunwayDesignator.RUNWAY_DESIGNATOR_A]: 6,
   };
 
-  protected readonly approachSelectRef = FSComponent.createRef<SelectControl<ApproachListItem>>();
-  protected readonly transitionSelectRef = FSComponent.createRef<SelectControl<TransitionListItem>>();
+  protected readonly approachSelectRef = FSComponent.createRef<SelectControl2<ApproachListItem>>();
+  protected readonly transitionSelectRef = FSComponent.createRef<SelectControl2<TransitionListItem>>();
+  protected readonly minsToggleComponent = FSComponent.createRef<ArrowToggle>();
 
   protected readonly store = this.createStore();
   protected readonly controller = this.createController(this.store);
@@ -106,7 +104,6 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
     switch (evt) {
       case FmsHEvent.CLR:
         this.controller.inputIcao.set('');
-        //this.close();
         return true;
     }
 
@@ -119,7 +116,7 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
     setTimeout(() => {
       const focusedCtrl = this.scrollController.getFocusedUiControl();
       if (focusedCtrl instanceof GenericControl) {
-        if (((focusedCtrl.props.children as unknown as VNode[])[0].instance as SelectControl<any>).menuItems.length > 1) {
+        if (((focusedCtrl.props.children as unknown as VNode[])[0].instance as SelectControl2<any>).menuItems.length > 1) {
           focusedCtrl.onUpperKnobInc();
         } else {
           this.gotoNextSelect();
@@ -131,46 +128,32 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
   /** @inheritdoc */
   public onAfterRender(node: VNode): void {
     super.onAfterRender(node);
-    const g1000Events = this.props.bus.getSubscriber<G1000ControlEvents>();
+    const minimumsSub = this.props.bus.getSubscriber<MinimumsEvents>();
 
+    if (this.props.hasRadioAltimeter) {
+      this.store.minsToggleOptions = ['Off', 'BARO', 'RA'];
+    } else {
+      this.store.minsToggleOptions = ['Off', 'BARO'];
+    }
 
-    g1000Events.on('show_minimums').handle((mode) => {
-      const option = mode ? 1 : 0;
-      this.store.minimumsMode.set(option);
+    this.minsToggleComponent.instance.props.options = this.store.minsToggleOptions;
+
+    minimumsSub.on('minimums_mode').handle((mode) => {
+      this.store.minimumsMode.set(mode);
     });
 
-    this.props.unitsSettingManager.altitudeUnits.sub(u => {
-      const oldUnit = this.store.minimumsUnit.getRaw();
-      this.store.minimumsUnit.set(u);
-      if (u !== oldUnit) {
-        switch (u) {
-          case UnitType.FOOT:
-            this.store.minimumsSubject.set(Math.round(this.store.currentMinFeet.get()));
-            this.controlPub.pub('set_da_distance_unit', 'feet');
-            break;
-          case UnitType.METER:
-            this.store.minimumsSubject.set(Math.round(UnitType.METER.convertFrom(this.store.currentMinFeet.get(), UnitType.FOOT)));
-            this.controlPub.pub('set_da_distance_unit', 'meters');
-            break;
-          default:
-            console.warn('Unknown altitude unit handled in Select Approach Controller: ' + u.name);
-        }
-      }
+    minimumsSub.on('set_da_distance_unit').handle((unit) => {
+      // Since the G1000 sets both DA and DH units the same, we can always rely on just this event for our units.
+      this.store.minimumsUnit.set(unit === 'meters' ? UnitType.METER : UnitType.FOOT);
     });
 
-    this.store.minimumsUnit.set(this.props.unitsSettingManager.altitudeUnits.get());
-
-    this.store.currentMinFeet.sub(v => {
-      if (this.store.minimumsUnit.getRaw() === UnitType.FOOT) {
-        this.store.minimumsSubject.set(Math.round(v));
-      } else {
-        this.store.minimumsSubject.set(Math.round(UnitType.METER.convertFrom(v, UnitType.FOOT)));
-      }
+    minimumsSub.on('decision_height_feet').handle((dh) => {
+      this.store.decisionHeight.set(dh, UnitType.FOOT);
+    });
+    minimumsSub.on('decision_altitude_feet').handle((da) => {
+      this.store.decisionAltitude.set(da, UnitType.FOOT);
     });
 
-    this.props.bus.getSubscriber<DHEvents>().on('decision_altitude').handle((set) => {
-      this.store.currentMinFeet.set(set);
-    });
   }
 
   /**
@@ -301,7 +284,7 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
         onUpperKnobDec={(): void => { this.approachSelectRef.instance.onInteractionEvent(FmsHEvent.UPPER_DEC); }}
         class='slct-appr-value'
       >
-        <SelectControl<ApproachListItem>
+        <SelectControl2<ApproachListItem>
           ref={this.approachSelectRef}
           viewService={this.props.viewService}
           outerContainer={container}
@@ -329,7 +312,7 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
         onUpperKnobDec={(): void => { this.transitionSelectRef.instance.onInteractionEvent(FmsHEvent.UPPER_DEC); }}
         class='slct-appr-trans-value'
       >
-        <SelectControl<TransitionListItem>
+        <SelectControl2<TransitionListItem>
           ref={this.transitionSelectRef}
           viewService={this.props.viewService}
           outerContainer={container}

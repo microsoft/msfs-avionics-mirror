@@ -1,7 +1,6 @@
 import { FlightPlan } from './FlightPlan';
 import { FlightPlanSegment, LegDefinition } from './FlightPlanning';
 
-
 /**
  * A cursor for storing data while iterating
  * over the current flight plan.

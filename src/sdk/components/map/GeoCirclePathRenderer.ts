@@ -1,5 +1,5 @@
-import { GeoCircle, GeoPoint } from '../..';
 import { FlightPathUtils } from '../../flightplan';
+import { GeoCircle, GeoPoint } from '../../geo';
 import { GeoProjectionPathStreamStack } from './GeoProjectionPathStreamStack';
 
 /**

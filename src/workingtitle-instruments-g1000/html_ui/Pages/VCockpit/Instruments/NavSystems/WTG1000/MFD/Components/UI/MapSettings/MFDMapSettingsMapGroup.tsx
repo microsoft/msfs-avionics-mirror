@@ -1,13 +1,12 @@
-import { ArraySubject, FSComponent, NodeReference, NumberUnitInterface, Subscribable, UnitFamily, VNode } from 'msfssdk';
-import { UserSettingManager } from 'msfssdk/settings';
+import { ArraySubject, FSComponent, NodeReference, NumberUnitInterface, Subscribable, UnitFamily, UserSettingManager, VNode } from 'msfssdk';
 
-import { MapOrientationSettingMode, MapTerrainSettingMode, MapUserSettingTypes } from '../../../../Shared/Map/MapUserSettings';
+import { MapOrientationSettingMode, MapTerrainSettingMode, MapUserSettingTypes } from 'garminsdk';
+
 import { MapEnumSettingControl, MapRangeSettingControl } from '../../../../Shared/UI/MapSettings/MapSettingControls';
 import { ScrollableControl } from '../../../../Shared/UI/UiView';
 import { MFDMapSettingsGroup, MFDMapSettingsGroupProps } from './MFDMapSettingsGroup';
 import {
-  MFDMapSettingsRow, MFDMapSettingsRowProps, MFDMapSingleEnumSettingRow, MFDMapToggleEnumSettingsRow,
-  MFDMapToggleRangeSettingsRow, MFDMapToggleSettingRow
+  MFDMapSettingsRow, MFDMapSettingsRowProps, MFDMapSingleEnumSettingRow, MFDMapToggleEnumSettingsRow, MFDMapToggleRangeSettingsRow, MFDMapToggleSettingRow
 } from './MFDMapSettingsRow';
 
 /**

@@ -25,6 +25,20 @@ html body {
   background-color: black;
 }
 
+/** HINT: Don't show the white highlight since the instruments is in general not interactive */
+#vignettage {
+  display: none;
+  visibility: hidden;
+}
+
+#highlight {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
 #Electricity {
   width: 100%;
   height: 100%;
@@ -124,6 +138,10 @@ html body {
 
 .magenta {
   color: magenta;
+}
+
+.yellow {
+  color: yellow;
 }
 
 .grey {

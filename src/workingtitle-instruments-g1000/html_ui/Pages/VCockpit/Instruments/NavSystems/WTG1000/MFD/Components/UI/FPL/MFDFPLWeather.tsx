@@ -1,7 +1,10 @@
-import { ComponentProps, ComputedSubject, DisplayComponent, FSComponent, Subscribable, VNode } from 'msfssdk';
-import { FlightPlanSegmentType, LegDefinition } from 'msfssdk/flightplan';
-import { FacilityLoader, FacilityType, ICAO, LegType, Metar } from 'msfssdk/navigation';
-import { Fms } from 'garminsdk/flightplan';
+import {
+  ComponentProps, ComputedSubject, DisplayComponent, FacilityLoader, FacilityType, FlightPlanSegmentType, FSComponent, ICAO, LegDefinition, LegType, Metar,
+  Subscribable, VNode
+} from 'msfssdk';
+
+import { Fms } from 'garminsdk';
+
 import { FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
 
 /**

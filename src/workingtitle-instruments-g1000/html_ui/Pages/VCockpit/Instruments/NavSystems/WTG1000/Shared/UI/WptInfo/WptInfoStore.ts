@@ -1,5 +1,4 @@
-import { Subject } from 'msfssdk';
-import { Facility, FacilityWaypoint } from 'msfssdk/navigation';
+import { Facility, FacilityWaypoint, Subject } from 'msfssdk';
 
 import { WaypointInfoStore } from '../Waypoint/WaypointInfoStore';
 

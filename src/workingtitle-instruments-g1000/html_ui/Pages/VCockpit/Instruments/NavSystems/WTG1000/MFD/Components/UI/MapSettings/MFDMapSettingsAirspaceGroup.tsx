@@ -1,4 +1,5 @@
 import { FSComponent, NodeReference, VNode } from 'msfssdk';
+
 import { MFDMapSettingsGroup, MFDMapSettingsGroupProps } from './MFDMapSettingsGroup';
 import { MFDMapToggleRangeSettingsRow } from './MFDMapSettingsRow';
 

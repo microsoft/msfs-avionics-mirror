@@ -10,16 +10,45 @@ export type VectorTurnDirection = 'left' | 'right';
  */
 export enum FlightPathVectorFlags {
   None,
+
+  /** A turn to a specific course. */
   TurnToCourse = 1 << 0,
+
+  /** An arcing turn to a specific point. */
   Arc = 1 << 1,
-  HoldInboundLeg = 1 << 2,
-  HoldOutboundLeg = 1 << 3,
-  HoldDirectEntry = 1 << 4,
-  HoldTeardropEntry = 1 << 5,
-  HoldParallelEntry = 1 << 6,
-  CourseReversal = 1 << 7,
-  LegToLegTurn = 1 << 8,
-  AnticipatedTurn = 1 << 9,
+
+  /** A direct course to a specific point. */
+  Direct = 1 << 2,
+
+  /** A path to intercept a specific course. */
+  InterceptCourse = 1 << 3,
+
+  /** Inbound leg of a hold. */
+  HoldInboundLeg = 1 << 4,
+
+  /** Outbound leg of a hold. */
+  HoldOutboundLeg = 1 << 5,
+
+  /** A direct hold entry. */
+  HoldDirectEntry = 1 << 6,
+
+  /** A teardrop hold entry. */
+  HoldTeardropEntry = 1 << 7,
+
+  /** A parallel hold entry. */
+  HoldParallelEntry = 1 << 8,
+
+  /** A course reversal. */
+  CourseReversal = 1 << 9,
+
+  /** A turn from one leg to another. */
+  LegToLegTurn = 1 << 10,
+
+  /** An anticipated turn from one leg to another. */
+  AnticipatedTurn = 1 << 11,
+
+  /** A fallback path. */
+  Fallback = 1 << 12
 }
 
 /**
@@ -207,6 +236,9 @@ export interface LegCalculations {
 
   /** The leg's flight path egress transition. */
   egress: FlightPathVector[];
+
+  /** Whether the leg's flight path ends in a fallback state. */
+  endsInFallback: boolean;
 }
 
 /**

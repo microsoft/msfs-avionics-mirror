@@ -1,5 +1,8 @@
-import { FSComponent, DisplayComponent, VNode, NodeReference, Fragment, Subject } from 'msfssdk';
-import { XMLGaugeColorZone, XMLDoubleVerticalGaugeProps, XMLHostedLogicGauge, XMLVerticalGaugeProps } from 'msfssdk/components/XMLGauges';
+import {
+  DisplayComponent, Fragment, FSComponent, NodeReference, Subject, VNode, XMLDoubleVerticalGaugeProps, XMLGaugeColorZone, XMLHostedLogicGauge,
+  XMLVerticalGaugeProps
+} from 'msfssdk';
+
 import { BaseGauge } from './BaseGauge';
 
 import './Gauge.css';

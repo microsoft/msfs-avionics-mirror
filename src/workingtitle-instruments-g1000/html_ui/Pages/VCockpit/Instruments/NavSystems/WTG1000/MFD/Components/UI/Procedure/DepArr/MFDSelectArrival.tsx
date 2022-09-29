@@ -1,4 +1,5 @@
-import { ArrivalProcedure } from 'msfssdk/navigation';
+import { ArrivalProcedure } from 'msfssdk';
+
 import { MFDSelectArrivalController } from './MFDSelectArrivalController';
 import { MFDSelectArrivalStore } from './MFDSelectArrivalStore';
 import { MFDSelectDepArr, MFDSelectDepArrProps } from './MFDSelectDepArr';

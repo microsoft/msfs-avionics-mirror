@@ -1,12 +1,15 @@
-import { FSComponent, VNode, Subject, ComputedSubject, UnitType, NumberUnitSubject, Subscribable, NavMath } from 'msfssdk';
-import { AirportFacility, FacilityFrequencyType, ICAO, FacilityWaypointCache } from 'msfssdk/navigation';
-import { NumberFormatter } from 'msfssdk/graphics/text';
+import {
+  AirportFacility, ComputedSubject, FacilityFrequencyType, FSComponent, ICAO, NavMath, NumberFormatter, NumberUnitSubject, Subject, Subscribable, UnitType,
+  VNode
+} from 'msfssdk';
 
-import { NearbyAirport } from '../../../Shared/UI/Controllers/NearestStore';
-import { GenericControl } from '../../../Shared/UI/UIControls/GenericControl';
-import { UiControlGroup, UiControlGroupProps } from '../../../Shared/UI/UiControlGroup';
-import { WaypointIcon } from '../../../Shared/UI/Waypoint/WaypointIcon';
+import { GarminFacilityWaypointCache } from 'garminsdk';
+
 import { NumberUnitDisplay } from '../../../Shared/UI/Common/NumberUnitDisplay';
+import { NearbyAirport } from '../../../Shared/UI/Controllers/NearestStore';
+import { UiControlGroup, UiControlGroupProps } from '../../../Shared/UI/UiControlGroup';
+import { GenericControl } from '../../../Shared/UI/UIControls/GenericControl';
+import { WaypointIcon } from '../../../Shared/UI/Waypoint/WaypointIcon';
 
 /**
  * The properties for the Nearest Airport component.
@@ -16,7 +19,10 @@ interface NearestAirportItemProps extends UiControlGroupProps {
    * The actual data object for this fix
    * @type {NearbyAirport}
    */
-  data: Subject<NearbyAirport>
+  data: Subject<NearbyAirport>;
+
+  /** The facility waypoint cache used by the item. */
+  facWaypointCache: GarminFacilityWaypointCache;
 
   /**
    * A subscribable which provides the airplane's current true heading.
@@ -41,8 +47,6 @@ interface NearestAirportItemProps extends UiControlGroupProps {
 /** The Nearest Airport component. */
 export class NearestAirportItem extends UiControlGroup<NearestAirportItemProps> {
   private readonly fixEl = FSComponent.createRef<HTMLDivElement>();
-
-  private readonly facWaypointCache = FacilityWaypointCache.getCache();
 
   private readonly ident = ComputedSubject.create(this.props.data.get().facility?.icao, (v): string => {
     if (v) {
@@ -178,7 +182,7 @@ export class NearestAirportItem extends UiControlGroup<NearestAirportItemProps> 
             <span>{this.ident}</span>
           </GenericControl>
           <WaypointIcon
-            waypoint={this.props.data.map(v => v.facility ? this.facWaypointCache.get(v.facility) : null)}
+            waypoint={this.props.data.map(v => v.facility ? this.props.facWaypointCache.get(v.facility) : null)}
             planeHeading={this.props.planeHeading}
             class='nearest-airport-symbol'
           />

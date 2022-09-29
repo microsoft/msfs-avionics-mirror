@@ -3,7 +3,6 @@
 
 import { Annunciation, AnnunciationType } from './Annunciaton';
 
-
 /** Create a list of annunciations from the instrument XML config. */
 export class XMLAnnunciationFactory {
   private instrument: BaseInstrument;

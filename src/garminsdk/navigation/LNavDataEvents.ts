@@ -1,6 +1,6 @@
-import { EventBus, SimVarDefinition, SimVarValueType } from 'msfssdk/data';
-import { SimVarPublisher } from 'msfssdk/instruments';
-import { LNavDataVars as BaseLNavDataVars, LNavDataSimVarEvents as BaseLNavDataSimVarEvents } from 'msfssdk/autopilot';
+import {
+  EventBus, LNavDataSimVarEvents as BaseLNavDataSimVarEvents, LNavDataVars as BaseLNavDataVars, SimVarDefinition, SimVarPublisher, SimVarValueType
+} from 'msfssdk';
 
 /**
  * Valid CDI scale labels for the LVar scale enum.

@@ -1,14 +1,9 @@
-
-import { GeoPoint, Subject, ObjectSubject, UnitType, MathUtils } from 'msfssdk';
 import {
-  VNavState, VNavPathMode, GlidePathCalculator, TodBodDetails, VNavVars,
-  VNavPathCalculator, APValues, LNavEvents, VNavDataEvents, VNavControlEvents, APVerticalModes,
-  APLateralModes, VNavEvents, VNavUtils, VerticalFlightPlan, VerticalFlightPhase,
-  VNavAltCaptureType, VNavAvailability, VNavManager
-} from 'msfssdk/autopilot';
-import { ConsumerSubject, EventBus, SimVarValueType } from 'msfssdk/data';
-import { FlightPlanner, FlightPlan, LegDefinition } from 'msfssdk/flightplan';
-import { APEvents, ADCEvents, GNSSEvents, NavEvents, NavSourceId, NavSourceType } from 'msfssdk/instruments';
+  AdcEvents, APEvents, APLateralModes, APValues, APVerticalModes, ConsumerSubject, EventBus, FlightPlan, FlightPlanner, GeoPoint, GlidePathCalculator,
+  GNSSEvents, LegDefinition, LNavEvents, MathUtils, NavEvents, NavSourceId, NavSourceType, ObjectSubject, SimVarValueType, Subject, TodBodDetails, UnitType,
+  VerticalFlightPhase, VerticalFlightPlan, VNavAltCaptureType, VNavAvailability, VNavControlEvents, VNavDataEvents, VNavEvents, VNavManager, VNavPathCalculator,
+  VNavPathMode, VNavState, VNavUtils, VNavVars
+} from 'msfssdk';
 
 /**
  * A Garmin VNAV Manager.
@@ -28,7 +23,7 @@ export class GarminVNavManager implements VNavManager {
   private currentGroundSpeed = 0;
   private currentVS = 0;
 
-  private isVNavUnavailable = false;
+  private readonly vnavUnavailable = Subject.create<boolean>(false);
 
   private cdiSource: NavSourceId = { type: NavSourceType.Nav, index: 0 };
 
@@ -58,6 +53,9 @@ export class GarminVNavManager implements VNavManager {
   private constraintDistance = -1;
 
   private readonly vnavNextConstraintAltitude = Subject.create<number | undefined>(undefined);
+
+  /** The active leg altitude from VNAV in Meters. */
+  private readonly vnavNextLegTargetAltitude = Subject.create<number | undefined>(undefined);
 
   public readonly lpvDeviation = Subject.create(0);
   public readonly glidepathCalculator = new GlidePathCalculator(this.bus, this.flightPlanner, this.primaryPlanIndex);
@@ -94,8 +92,8 @@ export class GarminVNavManager implements VNavManager {
     this.lnavLegDistanceAlong = ConsumerSubject.create(lnav.on('lnav_leg_distance_along'), 0);
 
     this.bus.getSubscriber<APEvents>().on('ap_altitude_selected').handle(selected => this.preselectedAltitude = selected);
-    this.bus.getSubscriber<ADCEvents>().on('alt').whenChangedBy(1).handle(alt => this.currentAltitude = alt);
-    this.bus.getSubscriber<ADCEvents>().on('vs').whenChangedBy(1).handle(vs => this.currentVS = vs);
+    this.bus.getSubscriber<AdcEvents>().on('indicated_alt').whenChangedBy(1).handle(alt => this.currentAltitude = alt);
+    this.bus.getSubscriber<AdcEvents>().on('vertical_speed').whenChangedBy(1).handle(vs => this.currentVS = vs);
 
     const gnss = this.bus.getSubscriber<GNSSEvents>();
     gnss.on('gps-position').handle(lla => {
@@ -121,6 +119,9 @@ export class GarminVNavManager implements VNavManager {
       if (this.awaitingRearm > -1 && mode !== APVerticalModes.ALT && mode !== APVerticalModes.CAP) {
         this.awaitingRearm = -1;
         this.awaitingAltCap = -1;
+      }
+      if (mode === APVerticalModes.GS || mode === APVerticalModes.GP) {
+        this.tryDeactivate(APVerticalModes.NONE);
       }
     });
 
@@ -151,6 +152,12 @@ export class GarminVNavManager implements VNavManager {
     SimVar.SetSimVarValue(VNavVars.PathMode, SimVarValueType.Number, VNavPathMode.None);
 
     this.todBodDetailsSub.sub(this.publishTODBODDetails.bind(this), true);
+
+    this.vnavNextLegTargetAltitude.sub(v => {
+      this.bus.getPublisher<VNavDataEvents>().pub('vnav_active_leg_alt', v ?? 0, true, false);
+    });
+
+    this.vnavUnavailable.sub(v => this.onVnavUnavailable(v));
 
     this.setState(VNavState.Enabled_Active);
   }
@@ -216,10 +223,7 @@ export class GarminVNavManager implements VNavManager {
 
   /** @inheritdoc */
   public onPathDirectorDeactivated(): void {
-    // noop
-    // if (this.pathMode === VNavPathMode.PathActive) {
-    //   this.armPath();
-    // }
+    // Method not required for Garmin VNav Manager.
   }
 
   /**
@@ -238,28 +242,28 @@ export class GarminVNavManager implements VNavManager {
    */
   private onDelegateAltCap(newPathMode: VNavPathMode): void {
 
+    this.disarmPath(APVerticalModes.CAP);
 
     switch (newPathMode) {
       case VNavPathMode.PathArmed:
         this.armPath();
         break;
-      default:
-
     }
-    this.activateMode && this.activateMode(APVerticalModes.CAP);
   }
 
   /** Method called to arm Path Mode. */
   private armPath(): void {
-    if (this.pathMode !== VNavPathMode.PathArmed) {
-      this.pathMode = VNavPathMode.PathArmed;
-      SimVar.SetSimVarValue(VNavVars.PathMode, SimVarValueType.Number, this.pathMode);
+    if (this.awaitingAltCap < 0 && this.awaitingRearm < 0 && this.apValues.verticalActive.get() !== APVerticalModes.CAP) {
+      if (this.pathMode !== VNavPathMode.PathArmed) {
+        this.pathMode = VNavPathMode.PathArmed;
+        SimVar.SetSimVarValue(VNavVars.PathMode, SimVarValueType.Number, this.pathMode);
+      }
+      if (this.pathMode === VNavPathMode.PathArmed) {
+        this.isAltCaptured = false;
+        this.armMode && this.armMode(APVerticalModes.PATH);
+      }
+      this.awaitingRearm = -1;
     }
-    if (this.pathMode === VNavPathMode.PathArmed) {
-      this.isAltCaptured = false;
-      this.armMode && this.armMode(APVerticalModes.PATH);
-    }
-    this.awaitingRearm = -1;
   }
 
   /** Method called to activate Path Mode. */
@@ -301,6 +305,7 @@ export class GarminVNavManager implements VNavManager {
     let alongLegDistance = -1;
     let gpManaged = false;
     let needResetTodBodVars = true;
+    let activeLegAltitude: number | undefined = undefined;
 
     if (this.flightPlanner.hasFlightPlan(this.primaryPlanIndex)) {
       const lateralPlan = this.flightPlanner.getFlightPlan(this.primaryPlanIndex);
@@ -315,10 +320,10 @@ export class GarminVNavManager implements VNavManager {
       this.calculator.setCurrentAlongLegDistance(this.primaryPlanIndex, alongLegDistance);
 
       const currentLegIndex = this.lnavLegIndex.get();
-      const nextLegIndex = currentLegIndex + 1;
-      const nextLeg = nextLegIndex >= 0 && nextLegIndex < lateralPlan.length ? lateralPlan.getLeg(nextLegIndex) : undefined;
+      // const nextLegIndex = currentLegIndex + 1;
+      // const nextLeg = nextLegIndex >= 0 && nextLegIndex < lateralPlan.length ? lateralPlan.getLeg(nextLegIndex) : undefined;
 
-      if (nextLeg && lateralPlan.activeLateralLeg < lateralPlan.length && verticalPlan.constraints.length > 0) {
+      if (currentLegIndex < lateralPlan.length && verticalPlan.constraints.length > 0 && currentLegIndex <= verticalPlan.constraints[0].index) {
 
         const currentAltitudeMetric = UnitType.FOOT.convertTo(this.currentAltitude, UnitType.METER);
         const currentVSMetric = UnitType.FPM.convertTo(this.currentVS, UnitType.MPM);
@@ -336,11 +341,7 @@ export class GarminVNavManager implements VNavManager {
 
         const constraintAltitude = this.calculator.getCurrentConstraintAltitude(this.primaryPlanIndex, lateralPlan.activeLateralLeg);
 
-        if (this.vnavNextConstraintAltitude.get() !== constraintAltitude) {
-          this.setVNavUnavailable(true);
-        } else {
-          this.setVNavUnavailable(false);
-        }
+        this.vnavUnavailable.set(this.vnavNextConstraintAltitude.get() !== constraintAltitude);
 
         const simvarAltitudeSet = constraintAltitude !== undefined ? UnitType.METER.convertTo(constraintAltitude, UnitType.FOOT) : -1;
         SimVar.SetSimVarValue(VNavVars.CurrentConstraintAltitude, SimVarValueType.Feet, simvarAltitudeSet);
@@ -389,20 +390,24 @@ export class GarminVNavManager implements VNavManager {
         }
         SimVar.SetSimVarValue(VNavVars.RequiredVS, SimVarValueType.FPM, requiredVs);
 
-        if (lateralPlan.activeLateralLeg === this.awaitingRearm && this.pathMode !== VNavPathMode.None) {
+        if (lateralPlan.activeLateralLeg === this.awaitingRearm && this.state === VNavState.Enabled_Active) {
+          this.awaitingRearm = -1;
           this.armPath();
         }
+
+        const verticalLeg = verticalPlan.constraints.length > 0 ? VNavUtils.getVerticalLegFromPlan(verticalPlan, lateralPlan.activeLateralLeg) : undefined;
 
         if (this.state === VNavState.Enabled_Active && this.awaitingAltCap === -1 && this.awaitingRearm === -1) {
           const flightPhase = this.calculator.getFlightPhase(this.primaryPlanIndex);
           this.manageAltHold(targetAltitudeFeet, flightPhase);
           this.trackVerticalPath(verticalPlan, lateralPlan, targetAltitudeFeet, verticalDeviation, flightPhase);
-        } else if (lateralPlan.activeLateralLeg < lateralPlan.length && verticalPlan.constraints.length > 0) {
-          const fpa = VNavUtils.getVerticalLegFromPlan(verticalPlan, lateralPlan.activeLateralLeg).fpa;
-          SimVar.SetSimVarValue(VNavVars.FPA, SimVarValueType.Degree, fpa);
+        } else if (lateralPlan.activeLateralLeg < lateralPlan.length && verticalLeg !== undefined) {
+          SimVar.SetSimVarValue(VNavVars.FPA, SimVarValueType.Degree, verticalLeg.fpa);
         } else {
           SimVar.SetSimVarValue(VNavVars.FPA, SimVarValueType.Degree, 0);
         }
+
+        activeLegAltitude = verticalLeg && verticalLeg.altitude ? Math.round(verticalLeg.altitude) : undefined;
 
       } else {
         // TODO: remove this once we have a better way to get LPV state - does an LPV exist or not
@@ -426,6 +431,7 @@ export class GarminVNavManager implements VNavManager {
       this.todBodDetailsSub.set('distanceFromTod', 0);
       this.todBodDetailsSub.set('currentConstraintLegIndex', -1);
     }
+    this.vnavNextLegTargetAltitude.set(activeLegAltitude);
   }
 
   /**
@@ -452,8 +458,7 @@ export class GarminVNavManager implements VNavManager {
       return;
     }
 
-    if (this.isVNavUnavailable && (this.pathMode !== VNavPathMode.None || this.state === VNavState.Enabled_Active)) {
-      this.tryDeactivate();
+    if (this.vnavUnavailable.get()) {
       return;
     }
 
@@ -475,9 +480,8 @@ export class GarminVNavManager implements VNavManager {
 
     if (!this.isAltCaptured && this.pathMode === VNavPathMode.PathActive && fpa === 0) {
       this.apValues.capturedAltitude.set(100 * Math.round(targetAltitude / 100));
-      // this.armPath();
-      // this.onDelegateAltCap();
       const fafAltitude = VNavUtils.getFafAltitude(verticalPlan);
+
       if (this.guidanceEndsAtFaf && fafAltitude !== undefined && UnitType.METER.convertTo(fafAltitude, UnitType.FOOT) === targetAltitude) {
         this.onDelegateAltCap(VNavPathMode.None);
         this.tryDeactivate();
@@ -504,7 +508,6 @@ export class GarminVNavManager implements VNavManager {
 
       if (!this.isAltCaptured && Math.abs(deviationFromTarget) <= 250 && this.pathMode == VNavPathMode.PathActive) {
         this.capturedAltitude = targetAltitude;
-        this.apValues.capturedAltitude.set(Math.round(this.capturedAltitude));
         this.isAltCaptured = true;
       }
 
@@ -513,10 +516,16 @@ export class GarminVNavManager implements VNavManager {
         const captureActivationValue = Math.tan(UnitType.DEGREE.convertTo(fpa, UnitType.RADIAN)) * UnitType.NMILE.convertTo(this.currentGroundSpeed / 360, UnitType.FOOT);
 
         if (altCapDeviation < Math.abs(captureActivationValue)) {
-          if (!targetIsSelectedAltitude && !VNavUtils.getIsPathEnd(verticalPlan, lateralPlan.activeLateralLeg)) {
+          this.apValues.capturedAltitude.set(Math.round(this.capturedAltitude));
+
+          if (targetIsSelectedAltitude) {
+            this.onDelegateAltCap(VNavPathMode.None);
+          } else if (VNavUtils.getIsPathEnd(verticalPlan, lateralPlan.activeLateralLeg)) {
+            this.tryDeactivate(APVerticalModes.CAP);
+          } else {
             this.awaitingAltCap = lateralPlan.activeLateralLeg + 1;
+            this.onDelegateAltCap(VNavPathMode.None);
           }
-          this.onDelegateAltCap(VNavPathMode.None);
           return;
         }
       }
@@ -541,6 +550,34 @@ export class GarminVNavManager implements VNavManager {
           }
         }
       }
+    }
+  }
+
+  /**
+   * Method to handle when VNAV becomes available or unavailable due to invalid vnav legs.
+   * @param v Whether VNAV is currently unavailable.
+   */
+  private onVnavUnavailable(v: boolean): void {
+    if (v) {
+      this.bus.getPublisher<VNavEvents>().pub('vnav_availability', VNavAvailability.InvalidLegs, true, false);
+
+      const lateralPlan = this.flightPlanner.getFlightPlan(this.primaryPlanIndex);
+      const constraintAlt = this.calculator.getCurrentConstraintAltitude(this.primaryPlanIndex, lateralPlan.activeLateralLeg);
+      const verticalPlan = this.calculator.getVerticalFlightPlan(this.primaryPlanIndex);
+
+      if (!verticalPlan.fafLegIndex || lateralPlan.activeLateralLeg <= verticalPlan.fafLegIndex) {
+        this.bus.getPublisher<VNavEvents>().pub('vnav_availability', VNavAvailability.InvalidLegs, true, false);
+      }
+
+      if (this.pathMode === VNavPathMode.PathActive && constraintAlt !== undefined && Math.abs(this.currentAltitude - constraintAlt) < 300) {
+        this.apValues.capturedAltitude.set(100 * Math.round(constraintAlt / 100));
+        this.tryDeactivate(APVerticalModes.CAP);
+      } else {
+        this.tryDeactivate();
+      }
+
+    } else {
+      this.bus.getPublisher<VNavEvents>().pub('vnav_availability', VNavAvailability.Available, true, false);
     }
   }
 
@@ -632,22 +669,6 @@ export class GarminVNavManager implements VNavManager {
       }
     }
     this.constraintDistance = -1;
-  }
-
-  /**
-   * Sets whether VNAV is unavailable due to invalid legs between the plane and the next target.
-   * @param isUnavailable Whether or not VNAV is unavailable.
-   */
-  private setVNavUnavailable(isUnavailable: boolean): void {
-    if (this.isVNavUnavailable !== isUnavailable) {
-      if (isUnavailable) {
-        this.bus.getPublisher<VNavEvents>().pub('vnav_availability', VNavAvailability.InvalidLegs, true, false);
-      } else {
-        this.bus.getPublisher<VNavEvents>().pub('vnav_availability', VNavAvailability.Available, true, false);
-      }
-
-      this.isVNavUnavailable = isUnavailable;
-    }
   }
 
   /**

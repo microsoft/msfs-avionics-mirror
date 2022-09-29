@@ -1,5 +1,7 @@
 import { ArraySubject, FSComponent, NodeReference, VNode } from 'msfssdk';
-import { MapTrafficAlertLevelMode } from '../../../../Shared/Map/Modules/MapTrafficModule';
+
+import { MapTrafficAlertLevelSettingMode } from 'garminsdk';
+
 import { MFDMapSettingsGroup, MFDMapSettingsGroupProps } from './MFDMapSettingsGroup';
 import { MFDMapRangeSettingRow, MFDMapSingleEnumSettingRow, MFDMapToggleRangeSettingsRow, MFDMapToggleSettingRow } from './MFDMapSettingsRow';
 
@@ -28,7 +30,7 @@ export class MFDMapSettingsTrafficGroup extends MFDMapSettingsGroup<MFDMapSettin
           registerFunc: this.register,
           settingManager: this.props.settingManager,
           settingName: 'mapTrafficAlertLevelMode',
-          values: ArraySubject.create([MapTrafficAlertLevelMode.All, MapTrafficAlertLevelMode.Advisories, MapTrafficAlertLevelMode.TA_RA]),
+          values: ArraySubject.create([MapTrafficAlertLevelSettingMode.All, MapTrafficAlertLevelSettingMode.Advisories, MapTrafficAlertLevelSettingMode.TA_RA]),
           valueText: ArraySubject.create(['All Traffic', 'TA/PA', 'TA Only']),
           outerContainer: containerRef
         }}

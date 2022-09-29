@@ -1,8 +1,8 @@
-import { FSComponent, NodeReference, Subject, Subscribable, VNode } from 'msfssdk';
-import { EventBus, HEvent } from 'msfssdk/data';
-import { UiView } from './UiView';
-import { UiPage } from './UiPage';
+import { EventBus, FSComponent, HEvent, NodeReference, Subject, Subscribable, VNode } from 'msfssdk';
+
 import { FmsHEvent } from './FmsHEvent';
+import { UiPage } from './UiPage';
+import { UiView } from './UiView';
 
 /** A view entry. */
 type ViewEntry<T extends UiView = UiView> = {

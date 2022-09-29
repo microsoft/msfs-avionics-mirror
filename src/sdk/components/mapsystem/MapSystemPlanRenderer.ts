@@ -1,7 +1,9 @@
 import { CircleVector, FlightPlan, LegDefinition } from '../../flightplan';
+import { Subscribable } from '../../sub';
+import { Subject } from '../../sub/Subject';
 import {
-  FlightPathLegRenderPart,
-  AbstractFlightPathLegRenderer, AbstractFlightPathPlanRenderer, FlightPathPlanRenderOrder, FlightPathVectorLineRenderer, GeoProjectionPathStreamStack
+  AbstractFlightPathLegRenderer, AbstractFlightPathPlanRenderer, FlightPathLegRenderPart, FlightPathPlanRenderOrder, FlightPathVectorLineRenderer,
+  GeoProjectionPathStreamStack
 } from '../map';
 
 /**
@@ -46,10 +48,10 @@ export class MapSystemPlanRenderer extends AbstractFlightPathPlanRenderer {
   public readonly legWaypointHandlers = new Map<number, LegWaypointHandler>();
 
   /** Whether or not to render flight path ingress turns. */
-  public renderIngress = false;
+  public renderIngress: Subscribable<boolean> = Subject.create(false);
 
   /** Whether or not to render flight path egress turns. */
-  public renderEgress = false;
+  public renderEgress: Subscribable<boolean> = Subject.create(false);
 
   /** @inheritdoc */
   protected renderLeg(leg: LegDefinition, plan: FlightPlan, activeLeg: LegDefinition | undefined,
@@ -62,8 +64,8 @@ export class MapSystemPlanRenderer extends AbstractFlightPathPlanRenderer {
     }
 
     const partsToRender = FlightPathLegRenderPart.Base
-      | (this.renderIngress ? FlightPathLegRenderPart.Ingress : 0)
-      | (this.renderEgress ? FlightPathLegRenderPart.Egress : 0);
+      | (this.renderIngress.get() ? FlightPathLegRenderPart.Ingress : 0)
+      | (this.renderEgress.get() ? FlightPathLegRenderPart.Egress : 0);
 
     this.legRenderer.render(leg, context, streamStack, partsToRender);
   }
@@ -97,7 +99,7 @@ export class FlightPathRenderStyle {
   constructor(public isDisplayed = true) { }
 
   /** The pixel width of the path line. */
-  public width = 3;
+  public width = 2;
 
   /** The style string for the line. */
   public style = '';

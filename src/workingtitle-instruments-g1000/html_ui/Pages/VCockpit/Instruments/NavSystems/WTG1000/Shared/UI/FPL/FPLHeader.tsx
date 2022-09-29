@@ -1,11 +1,10 @@
-import { FSComponent, NodeReference, VNode } from 'msfssdk';
+import { FlightPlanSegment, FSComponent, NodeReference, ScrollUtils, VNode } from 'msfssdk';
 
-import { Fms } from 'garminsdk/flightplan';
-import { ScrollUtils } from 'msfssdk/graphics/layout';
-import { UiControl } from '../UiControl';
+import { Fms } from 'garminsdk';
+
 import { G1000UiControl, G1000UiControlProps } from '../G1000UiControl';
+import { UiControl } from '../UiControl';
 import { FacilityInfo } from './FPLTypesAndProps';
-import { FlightPlanSegment } from 'msfssdk/flightplan';
 
 /** The properties for the FPLHeader component. */
 export interface FPLHeaderProps extends G1000UiControlProps {

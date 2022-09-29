@@ -1,8 +1,6 @@
-import { MagVar, NavMath, UnitType } from 'msfssdk';
-import { FlightPathUtils, FlightPlan } from 'msfssdk/flightplan';
-import { FacilityWaypointCache, ICAO, LegTurnDirection, LegType } from 'msfssdk/navigation';
+import { FlightPathUtils, FlightPlan, ICAO, LegTurnDirection, LegType, MagVar, NavMath, UnitType } from 'msfssdk';
 
-import { Fms } from 'garminsdk/flightplan';
+import { Fms, GarminFacilityWaypointCache } from 'garminsdk';
 
 import { HoldStore } from './HoldStore';
 
@@ -11,14 +9,13 @@ import { HoldStore } from './HoldStore';
  */
 export class HoldController {
 
-  private readonly facWaypointCache = FacilityWaypointCache.getCache();
-
   /**
    * Creates an instance of a HoldController.
    * @param store The hold store to use with this instance.
    * @param fms The FMS to use with this instance.
+   * @param facWaypointCache The facility waypoint cache used by this controller.
    */
-  constructor(private readonly store: HoldStore, private readonly fms: Fms) {
+  constructor(private readonly store: HoldStore, private readonly fms: Fms, private readonly facWaypointCache: GarminFacilityWaypointCache) {
     store.indexes.sub(async i => {
       try {
         const plan = this.fms.hasFlightPlan(store.indexes.get().planIndex) && this.fms.getFlightPlan(store.indexes.get().planIndex);

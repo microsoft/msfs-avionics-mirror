@@ -1,6 +1,10 @@
-import { ArraySubject, BitFlags, ComputedSubject, Subject, SubscribableArray, Unit, UnitFamily, UnitType } from 'msfssdk';
-import { AdditionalApproachType, AirportFacility, ApproachProcedure, FacilityFrequency, FixTypeFlags, ICAO, OneWayRunway, RnavTypeFlags, RunwayUtils } from 'msfssdk/navigation';
-import { FmsUtils, TransitionListItem } from 'garminsdk/flightplan';
+import {
+  AdditionalApproachType, AirportFacility, ApproachProcedure, ArraySubject, BitFlags, ComputedSubject, FacilityFrequency, FixTypeFlags, ICAO, MinimumsMode,
+  NumberUnitSubject, OneWayRunway, RnavTypeFlags, RunwayUtils, Subject, SubscribableArray, Unit, UnitFamily, UnitType
+} from 'msfssdk';
+
+import { FmsUtils, TransitionListItem } from 'garminsdk';
+
 import { SelectProcedureStore } from '../SelectProcedureStore';
 
 /**
@@ -19,10 +23,16 @@ export type ApproachListItem = {
  * A data store for SelectApproach.
  */
 export class SelectApproachStore extends SelectProcedureStore<ApproachListItem> {
+
+  public readonly minimumsMode = Subject.create<MinimumsMode>(MinimumsMode.OFF);
   public readonly minimumsUnit = ComputedSubject.create<Unit<UnitFamily.Distance>, string>(
     UnitType.FOOT, (u) => { return u === UnitType.METER ? 'M' : 'FT'; }
   );
+  public readonly decisionHeight = NumberUnitSubject.create(UnitType.FOOT.createNumber(0));
+  public readonly decisionAltitude = NumberUnitSubject.create(UnitType.FOOT.createNumber(0));
   public readonly minimumsSubject = Subject.create(0);
+  public minsToggleOptions = ['Off', 'BARO']; //, 'TEMP COMP'];
+
   public readonly frequencySubject = ComputedSubject.create<FacilityFrequency | undefined, string>(undefined, (v): string => {
     if (v !== undefined && v.freqMHz) {
       return v.freqMHz.toFixed(2);
@@ -30,9 +40,6 @@ export class SelectApproachStore extends SelectProcedureStore<ApproachListItem> 
     return '___.__';
   });
 
-  public readonly minsToggleOptions = ['Off', 'BARO']; //, 'TEMP COMP'];
-
-  public readonly minimumsMode = Subject.create(0);
   public readonly selectedTransition = Subject.create<TransitionListItem | undefined>(undefined);
 
   private readonly _transitions = ArraySubject.create<TransitionListItem>();

@@ -1,6 +1,4 @@
-import { EventBus } from 'msfssdk/data';
-import { ComSpacing } from 'msfssdk/instruments';
-import { DefaultUserSettingManager } from 'msfssdk/settings';
+import { ComSpacing, DefaultUserSettingManager, EventBus } from 'msfssdk';
 
 /**
  * Type description for NAV/COM user settings.

@@ -1,5 +1,8 @@
-import { ComponentProps, DisplayComponent, FamilyOfUnit, FSComponent, NavAngleUnit, NumberUnitInterface, Subscribable, Unit, UnitFamily, UnitOfNumber, VNode } from 'msfssdk';
-import { DurationDisplay, DurationDisplayOptions } from 'msfssdk/components/common';
+import {
+  ComponentProps, DisplayComponent, DurationDisplay, DurationDisplayOptions, FamilyOfUnit, FSComponent, NavAngleUnit, NumberUnitInterface, Subscribable, Unit,
+  UnitFamily, UnitOfNumber, VNode
+} from 'msfssdk';
+
 import { BearingDisplay } from '../common/BearingDisplay';
 import { NumberUnitDisplay } from '../common/NumberUnitDisplay';
 import { TimeDisplay, TimeDisplayFormat } from '../common/TimeDisplay';

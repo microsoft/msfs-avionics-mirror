@@ -67,10 +67,10 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
   private radius = 0;
   private strokeWidth = 0;
   private strokeStyle: string | CanvasGradient | CanvasPattern = '';
-  private strokeDash: number[] = [];
+  private strokeDash: readonly number[] = [];
   private outlineWidth = 0;
   private outlineStyle: string | CanvasGradient | CanvasPattern = '';
-  private outlineDash: number[] = [];
+  private outlineDash: readonly number[] = [];
   private needUpdateRingPosition = false;
   protected isInit = false;
 
@@ -114,7 +114,7 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
    * @param style The new stroke style.
    * @param dash The new stroke dash.
    */
-  public setRingStrokeStyles(width?: number, style?: string | CanvasGradient | CanvasPattern, dash?: number[]): void {
+  public setRingStrokeStyles(width?: number, style?: string | CanvasGradient | CanvasPattern, dash?: readonly number[]): void {
     this.strokeWidth = width ?? this.strokeWidth;
     this.strokeStyle = style ?? this.strokeStyle;
     this.strokeDash = dash ?? this.strokeDash;
@@ -128,7 +128,7 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
    * @param style The new outline style.
    * @param dash The new outline dash.
    */
-  public setRingOutlineStyles(width?: number, style?: string | CanvasGradient | CanvasPattern, dash?: number[]): void {
+  public setRingOutlineStyles(width?: number, style?: string | CanvasGradient | CanvasPattern, dash?: readonly number[]): void {
     this.outlineWidth = width ?? this.outlineWidth;
     this.outlineStyle = style ?? this.outlineStyle;
     this.outlineDash = dash ?? this.outlineDash;
@@ -229,7 +229,9 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
     if (this.outlineWidth > 0) {
       this.applyStrokeToContext(canvasDisplay.context, this.strokeWidth + this.outlineWidth * 2, this.outlineStyle, this.outlineDash);
     }
-    this.applyStrokeToContext(canvasDisplay.context, this.strokeWidth, this.strokeStyle, this.strokeDash);
+    if (this.strokeWidth > 0) {
+      this.applyStrokeToContext(canvasDisplay.context, this.strokeWidth, this.strokeStyle, this.strokeDash);
+    }
   }
 
   /**
@@ -274,7 +276,7 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
     context: CanvasRenderingContext2D,
     lineWidth: number,
     strokeStyle: string | CanvasGradient | CanvasPattern,
-    dash: number[]
+    dash: readonly number[]
   ): void {
     context.lineWidth = lineWidth;
     context.strokeStyle = strokeStyle;

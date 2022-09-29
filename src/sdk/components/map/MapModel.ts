@@ -3,14 +3,14 @@
  * the model is assigned a name which is used to retrieve it from the model.
  */
 export class MapModel<M> {
-  private readonly modules = new Map<keyof M, any>();
+  private readonly modules = new Map<string, any>();
 
   /**
    * Gets a module from this model.
    * @param name The name of the module.
    * @returns A module.
    */
-  public getModule<K extends keyof M>(name: K): M[K];
+  public getModule<K extends keyof M & string>(name: K): M[K];
 
   /**
    * Gets a module instance from the model and assigns it
@@ -25,9 +25,9 @@ export class MapModel<M> {
    * to the provided type.
    * @param nameOrModule The module to get or the name of the module.
    * @returns The requested map data module.
-   * @throws An error if 
+   * @throws An error if
    */
-  public getModule<K extends keyof M, T>(nameOrModule: K | (new (...args: any) => T)): M[K] | T {
+  public getModule<K extends keyof M & string, T>(nameOrModule: K | (new (...args: any) => T)): M[K] | T {
     if (typeof nameOrModule === 'string') {
       return this.modules.get(nameOrModule);
     } else if (typeof nameOrModule === 'function') {
@@ -42,7 +42,7 @@ export class MapModel<M> {
    * @param name The name of the module to add.
    * @param module The module to add.
    */
-  public addModule<K extends keyof M>(name: K, module: M[K]): void {
+  public addModule<K extends keyof M & string>(name: K, module: M[K]): void {
     if (this.modules.has(name)) {
       return;
     }

@@ -1,10 +1,10 @@
-import { DmsFormatter } from '../../graphics/text/DmsFormatter';
 import { GeoPointInterface } from '../../geo/GeoPoint';
-import { Subscribable } from '../../sub/Subscribable';
+import { DmsFormatter } from '../../graphics/text/DmsFormatter';
 import { Subject } from '../../sub/Subject';
-import { ComponentProps, DisplayComponent, FSComponent, VNode } from '../FSComponent';
-import { Subscription } from '../../sub/Subscription';
+import { Subscribable } from '../../sub/Subscribable';
 import { SubscribableSet } from '../../sub/SubscribableSet';
+import { Subscription } from '../../sub/Subscription';
+import { ComponentProps, DisplayComponent, FSComponent, VNode } from '../FSComponent';
 
 /**
  * Component props for WaypointComponent.

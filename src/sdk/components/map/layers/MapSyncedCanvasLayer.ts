@@ -1,6 +1,6 @@
-import { MapCanvasLayer, MapCanvasLayerProps } from './MapCanvasLayer';
+import { BitFlags, ReadonlyFloat64Array } from '../../../math';
 import { MapProjection, MapProjectionChangeType } from '../MapProjection';
-import { ReadonlyFloat64Array, BitFlags } from '../../../math';
+import { MapCanvasLayer, MapCanvasLayerProps } from './MapCanvasLayer';
 
 /**
  * A canvas map layer whose size and position is synced with the map projection window.

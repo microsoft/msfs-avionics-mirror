@@ -1,4 +1,4 @@
-import { VNode, FSComponent } from '../../FSComponent';
+import { FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps } from '../MapLayer';
 
 /**

@@ -1,3 +1,4 @@
+import { MathUtils } from '../math';
 import { ReadonlyFloat64Array, Vec3Math } from '../math/VecMath';
 import { LatLonInterface } from './GeoInterfaces';
 import { GeoPoint } from './GeoPoint';
@@ -17,6 +18,7 @@ export class GeoCircle {
 
   private _center = new Float64Array(3);
   private _radius = 0;
+  private _sinRadius = 0;
 
   /**
    * Constructor.
@@ -56,10 +58,19 @@ export class GeoCircle {
   /**
    * Calculates the length of an arc along this circle subtended by a central angle.
    * @param angle A central angle, in radians.
-   * @returns the length of the arc subtended by the angle, in great-arc radians.
+   * @returns The length of the arc subtended by the angle, in great-arc radians.
    */
   public arcLength(angle: number): number {
-    return Math.sin(this._radius) * angle;
+    return this._sinRadius * angle;
+  }
+
+  /**
+   * Calculates the central angle which subtends an arc along this circle of given length.
+   * @param length An arc length, in great-arc radians.
+   * @returns The central angle which subtends an arc along this circle of the given length, in radians.
+   */
+  public angularWidth(length: number): number {
+    return length / this._sinRadius;
   }
 
   /**
@@ -81,6 +92,7 @@ export class GeoCircle {
     }
 
     this._radius = Math.abs(radius) % Math.PI;
+    this._sinRadius = Math.sin(this._radius);
 
     return this;
   }
@@ -227,10 +239,18 @@ export class GeoCircle {
    * @param end A point on this circle which marks the end of an arc.
    * @param tolerance The error tolerance, in great-arc radians, when checking if `start` and `end` lie on this circle.
    * Defaults to `GeoCircle.ANGULAR_TOLERANCE` if not specified.
+   * @param equalityTolerance The angular tolerance for considering the start and end points to be equal, in radians.
+   * If the absolute (direction-agnostic) angular distance between the start and end points is less than or equal to
+   * this value, then the zero will be returned. Defaults to `0`.
    * @returns the angular width of the arc between the two points, in radians.
    * @throws Error if either point does not lie on this circle.
    */
-  public angleAlong(start: ReadonlyFloat64Array | LatLonInterface, end: ReadonlyFloat64Array | LatLonInterface, tolerance = GeoCircle.ANGULAR_TOLERANCE): number {
+  public angleAlong(
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
+    tolerance = GeoCircle.ANGULAR_TOLERANCE,
+    equalityTolerance = 0
+  ): number {
     if (!(start instanceof Float64Array)) {
       start = GeoPoint.sphericalToCartesian(start as LatLonInterface, GeoCircle.vec3Cache[1]);
     }
@@ -251,7 +271,9 @@ export class GeoCircle {
     const angularDistance = Math.acos(Utils.Clamp(Vec3Math.dot(startRadialNormal, endRadialNormal), -1, 1));
 
     const isArcGreaterThanSemi = Vec3Math.dot(startRadialNormal, end) < 0;
-    return isArcGreaterThanSemi ? 2 * Math.PI - angularDistance : angularDistance;
+    const angle = isArcGreaterThanSemi ? MathUtils.TWO_PI - angularDistance : angularDistance;
+
+    return angle >= MathUtils.TWO_PI - equalityTolerance || angle <= equalityTolerance ? 0 : angle;
   }
 
   /**
@@ -261,11 +283,19 @@ export class GeoCircle {
    * @param end A point on this circle which marks the end of an arc.
    * @param tolerance The error tolerance, in great-arc radians, when checking if `start` and `end` lie on this circle.
    * Defaults to `GeoCircle.ANGULAR_TOLERANCE` if not specified.
+   * @param equalityTolerance The tolerance for considering the start and end points to be equal, in great-arc radians.
+   * If the absolute (direction-agnostic) along-arc distance between the start and end points is less than or equal to
+   * this value, then the zero will be returned. Defaults to `0`.
    * @returns the length of the arc between the two points, in great-arc radians.
    * @throws Error if either point does not lie on this circle.
    */
-  public distanceAlong(start: ReadonlyFloat64Array | LatLonInterface, end: ReadonlyFloat64Array | LatLonInterface, tolerance = GeoCircle.ANGULAR_TOLERANCE): number {
-    return this.arcLength(this.angleAlong(start, end, tolerance));
+  public distanceAlong(
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
+    tolerance = GeoCircle.ANGULAR_TOLERANCE,
+    equalityTolerance = 0
+  ): number {
+    return this.arcLength(this.angleAlong(start, end, tolerance, this.angularWidth(equalityTolerance)));
   }
 
   /**

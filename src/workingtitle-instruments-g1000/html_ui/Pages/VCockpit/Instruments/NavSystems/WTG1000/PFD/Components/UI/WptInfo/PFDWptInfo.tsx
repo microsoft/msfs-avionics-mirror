@@ -1,5 +1,5 @@
-import { FSComponent, VNode } from 'msfssdk';
-import { LatLonDisplay } from 'msfssdk/components/common';
+import { FSComponent, LatLonDisplay, VNode } from 'msfssdk';
+
 import { WptInfo } from '../../../../Shared/UI/WptInfo/WptInfo';
 
 import './PFDWptInfo.css';

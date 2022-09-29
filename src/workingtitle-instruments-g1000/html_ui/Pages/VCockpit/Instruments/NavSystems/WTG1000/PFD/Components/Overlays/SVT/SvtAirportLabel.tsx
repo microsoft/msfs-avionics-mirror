@@ -1,5 +1,5 @@
-import { DisplayComponent, FSComponent, VNode, ComponentProps, GeoPointInterface } from 'msfssdk';
-import { AirportFacility, ICAO } from 'msfssdk/navigation';
+import { AirportFacility, ComponentProps, DisplayComponent, FSComponent, GeoPointInterface, ICAO, VNode } from 'msfssdk';
+
 import { SvtProjectionUtils } from '../../../../Shared/UI/SvtProjectionUtils';
 import { PlaneStateInfo } from '../../FlightInstruments/PrimaryHorizonDisplay';
 

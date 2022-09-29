@@ -48,9 +48,3 @@ export type SimVarDefinition = {
     /** The value to be used to retrieve this simvar. */
     type: SimVarValueType,
 }
-
-/**
- * Stub type for simvars to extend
- */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface SimVarEventTypes { }

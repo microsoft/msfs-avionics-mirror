@@ -1,10 +1,11 @@
-import { FSComponent, VNode, BitFlags, Subscribable, NumberUnit, UnitType, MappedSubscribable, NumberUnitInterface, UnitFamily, NavAngleUnit } from 'msfssdk';
-import { FixTypeFlags, LegType } from 'msfssdk/navigation';
-import { LegDefinition, LegDefinitionFlags } from 'msfssdk/flightplan';
-import { NumberFormatter } from 'msfssdk/graphics/text';
-import { UiControl, UiControlProps } from '../../../../Shared/UI/UiControl';
-import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
+import {
+  BitFlags, FixTypeFlags, FSComponent, LegDefinition, LegDefinitionFlags, LegType, MappedSubscribable, NavAngleUnit, NumberFormatter, NumberUnit,
+  NumberUnitInterface, Subscribable, UnitFamily, UnitType, VNode
+} from 'msfssdk';
+
 import { BearingDisplay } from '../../../../Shared/UI/Common/BearingDisplay';
+import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';
+import { UiControl, UiControlProps } from '../../../../Shared/UI/UiControl';
 import { UnitsUserSettingManager } from '../../../../Shared/Units/UnitsUserSettings';
 
 import './ProcSequenceItem.css';

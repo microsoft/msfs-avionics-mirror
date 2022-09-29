@@ -1,4 +1,4 @@
-import { Subject } from '../../..';
+import { Subject } from '../../../sub';
 
 /**
  * A map of airspace show types to their associated nearest boundary search filter bitflags.

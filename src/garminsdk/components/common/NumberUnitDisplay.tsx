@@ -1,5 +1,5 @@
-import { FSComponent, NumberUnitInterface, Subject, SubscribableSet, Unit, VNode } from 'msfssdk';
-import { AbstractNumberUnitDisplay, AbstractNumberUnitDisplayProps } from 'msfssdk/components/common';
+import { AbstractNumberUnitDisplay, AbstractNumberUnitDisplayProps, FSComponent, NumberUnitInterface, Subject, SubscribableSet, Unit, VNode } from 'msfssdk';
+
 import { UnitFormatter } from '../../graphics/text/UnitFormatter';
 
 /**

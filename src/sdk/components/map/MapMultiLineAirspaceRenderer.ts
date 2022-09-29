@@ -1,8 +1,9 @@
-import { GeoCircle, GeoPoint, GeoPointInterface, GeoProjection, Vec2Math, Vec3Math } from '../..';
-import { LodBoundaryShape, LodBoundaryVector } from '../../navigation';
-import { Transform2D } from '../../math/Transform2D';
-import { MapAbstractAirspaceRenderer } from './MapAirspaceRenderer';
+import { GeoCircle, GeoPoint, GeoPointInterface, GeoProjection } from '../../geo';
 import { PathStream } from '../../graphics/path';
+import { Vec2Math, Vec3Math } from '../../math';
+import { Transform2D } from '../../math/Transform2D';
+import { LodBoundaryShape, LodBoundaryVector } from '../../navigation';
+import { MapAbstractAirspaceRenderer } from './MapAirspaceRenderer';
 
 /**
  * A projected airspace shape which can render its border as optionally offset lines.
@@ -628,9 +629,9 @@ class Shape implements MapMultiLineAirspaceShape {
     const dot = centerEndDelta[1] * line.endNormal[0] - centerEndDelta[0] * line.endNormal[1];
     const theta = Vec2Math.theta(line.endNormal) + (dot >= 0 ? Math.PI / 2 : -Math.PI / 2);
 
-    const translation = Shape.transformCache[0].toTranslation(-arc.center[0], -arc.center[1]);
+    Shape.transformCache[0].toTranslation(-arc.center[0], -arc.center[1]);
     const rotation = Shape.transformCache[1].toRotation(-theta);
-    Transform2D.concat(vertex.transform, translation, rotation);
+    Transform2D.concat(vertex.transform, Shape.transformCache);
 
     vertex.r0 = arc.radius;
     vertex.y0 = vertex.transform.apply(end, Shape.vec2Cache[0])[1];
@@ -661,11 +662,10 @@ class Shape implements MapMultiLineAirspaceShape {
     const dot = centerDelta[0] * centerEndDelta[1] - centerDelta[1] * centerEndDelta[0];
     const theta = Vec2Math.theta(centerDelta) + (dot >= 0 ? 0 : Math.PI);
 
-    Transform2D.concat(
-      vertex.transform,
-      Shape.transformCache[0].toTranslation(-curr.center[0], -curr.center[1]),
-      Shape.transformCache[1].toRotation(-theta)
-    );
+    Shape.transformCache[0].toTranslation(-curr.center[0], -curr.center[1]);
+    Shape.transformCache[1].toRotation(-theta);
+
+    Transform2D.concat(vertex.transform, Shape.transformCache);
 
     vertex.d = vertex.transform.apply(next.center, Shape.vec2Cache[0])[0];
     vertex.arcOffsetSign = this.windingOrder * (curr.isClockwise ? 1 : -1) as 1 | -1;

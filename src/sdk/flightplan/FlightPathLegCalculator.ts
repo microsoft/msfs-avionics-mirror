@@ -1,12 +1,12 @@
-import { BitFlags, GeoCircle, GeoPoint, GeoPointInterface, GeoPointReadOnly, LatLonInterface, MagVar, MathUtils, NavMath, NumberUnitReadOnly, ReadonlyFloat64Array, UnitFamily, UnitType, Vec3Math } from '..';
+import { GeoCircle, GeoPoint, GeoPointInterface, GeoPointReadOnly, LatLonInterface, MagVar, NavMath } from '../geo';
+import { BitFlags, MathUtils, NumberUnitReadOnly, ReadonlyFloat64Array, UnitFamily, UnitType, Vec3Math } from '../math';
 import { Facility, FacilityType, FlightPlanLeg, ICAO, LegTurnDirection, LegType, VorFacility } from '../navigation/Facilities';
 import { FlightPathUtils } from './FlightPathUtils';
 import {
-  CircleVectorBuilder, CircleInterceptBuilder, GreatCircleBuilder, JoinGreatCircleToPointBuilder, ProcedureTurnBuilder,
-  TurnToCourseBuilder,
-  DirectToPointBuilder
+  CircleInterceptBuilder, CircleVectorBuilder, DirectToPointBuilder, GreatCircleBuilder, JoinGreatCircleToPointBuilder, ProcedureTurnBuilder,
+  TurnToCourseBuilder
 } from './FlightPathVectorBuilder';
-import { FlightPathVector, FlightPathVectorFlags, LegCalculations, LegDefinition } from './FlightPlanning';
+import { FlightPathVectorFlags, LegCalculations, LegDefinition } from './FlightPlanning';
 
 /**
  * The state of a calculating flight path.
@@ -17,6 +17,9 @@ export interface FlightPathState {
 
   /** The current true course bearing of the flight path. */
   currentCourse: number | undefined;
+
+  /** Whether the flight path is in a fallback state. */
+  isFallback: boolean;
 
   /** The position of the airplane. */
   readonly planePosition: GeoPointReadOnly;
@@ -146,19 +149,22 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
       ingressJoinIndex: -1,
       ingressToEgress: [],
       egressJoinIndex: -1,
-      egress: []
+      egress: [],
+      endsInFallback: false
     };
 
     const vectors = calcs.flightPath;
     if (this.skipWhenActive && activeLegIndex === calculateIndex && this.shouldSkipWhenActive(legs, calculateIndex, activeLegIndex, state)) {
       state.currentPosition = FlightPathUtils.getLegFinalPosition(calcs, state.currentPosition ?? new GeoPoint(0, 0));
       state.currentCourse = FlightPathUtils.getLegFinalCourse(calcs) ?? state.currentCourse;
+      state.isFallback = calcs.endsInFallback;
       return calcs;
     }
 
     try {
       this.calculateVectors(legs, calculateIndex, activeLegIndex, state);
       resolveIngressToEgress && this.resolveIngressToEgress(calcs);
+      calcs.endsInFallback = state.isFallback;
     } catch (e) {
       console.error(e);
       if (e instanceof Error) {
@@ -171,6 +177,9 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
       calcs.egress.length = 0;
       calcs.egressJoinIndex = -1;
       calcs.ingressToEgress.length = 0;
+      calcs.endsInFallback = false;
+
+      state.isFallback = false;
     }
 
     return calcs;
@@ -213,7 +222,7 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
  * Calculates flight path vectors for discontinuity legs.
  */
 export class DiscontinuityLegCalculator extends AbstractFlightPathLegCalculator {
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
     calculateIndex: number,
@@ -224,6 +233,7 @@ export class DiscontinuityLegCalculator extends AbstractFlightPathLegCalculator 
     legs[calculateIndex].calculated!.flightPath.length = 0;
     state.currentCourse = undefined;
     state.currentPosition = undefined;
+    state.isFallback = false;
   }
 }
 
@@ -231,9 +241,10 @@ export class DiscontinuityLegCalculator extends AbstractFlightPathLegCalculator 
  * Calculates flight path vectors for track to fix legs.
  */
 export class TrackToFixLegCalculator extends AbstractFlightPathLegCalculator {
-  protected readonly geoPointCache = [new GeoPoint(0, 0)];
+  private readonly geoPointCache = [new GeoPoint(0, 0)];
 
-  protected readonly vectorBuilder = new GreatCircleBuilder();
+  private readonly greatCircleBuilder = new GreatCircleBuilder();
+  private readonly directToPointBuilder = new DirectToPointBuilder();
 
   /**
    * Constructor.
@@ -243,7 +254,7 @@ export class TrackToFixLegCalculator extends AbstractFlightPathLegCalculator {
     super(facilityCache, false);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
     calculateIndex: number,
@@ -261,6 +272,7 @@ export class TrackToFixLegCalculator extends AbstractFlightPathLegCalculator {
 
     if (!terminatorPos) {
       vectors.length = 0;
+      state.isFallback = false;
       return;
     }
 
@@ -268,13 +280,26 @@ export class TrackToFixLegCalculator extends AbstractFlightPathLegCalculator {
     const distance = state.currentPosition.distance(terminatorPos);
 
     if ((!prevLeg || (prevLeg.type !== LegType.FM && prevLeg.type !== LegType.VM)) && distance > GeoPoint.EQUALITY_TOLERANCE) {
-      vectorIndex += this.vectorBuilder.build(vectors, vectorIndex, state.currentPosition, terminatorPos, state.currentCourse);
+
+      if (state.isFallback && state.currentCourse !== undefined) {
+        vectorIndex += this.directToPointBuilder.build(
+          vectors, vectorIndex,
+          state.currentPosition, state.currentCourse,
+          terminatorPos,
+          state.desiredTurnRadius.asUnit(UnitType.METER), undefined,
+          FlightPathVectorFlags.Fallback
+        );
+      } else {
+        vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, state.currentPosition, terminatorPos, state.currentCourse);
+      }
+
       state.currentCourse = FlightPathUtils.getVectorFinalCourse(vectors[vectorIndex - 1]);
     }
 
     state.currentPosition.set(terminatorPos);
 
     vectors.length = vectorIndex;
+    state.isFallback = false;
   }
 }
 
@@ -296,13 +321,15 @@ export class DirectToFixLegCalculator extends AbstractFlightPathLegCalculator {
     super(facilityCache, true);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
     calculateIndex: number,
     activeLegIndex: number,
     state: FlightPathState
   ): void {
+    state.isFallback = false;
+
     const leg = legs[calculateIndex].leg;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const vectors = legs[calculateIndex].calculated!.flightPath;
@@ -359,13 +386,15 @@ export abstract class TurnToFixLegCalculator extends AbstractFlightPathLegCalcul
     super(facilityCache, false);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
     calculateIndex: number,
     activeLegIndex: number,
     state: FlightPathState
   ): void {
+    state.isFallback = false;
+
     const leg = legs[calculateIndex].leg;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const vectors = legs[calculateIndex].calculated!.flightPath;
@@ -424,12 +453,12 @@ export abstract class TurnToFixLegCalculator extends AbstractFlightPathLegCalcul
 export class RadiusToFixLegCalculator extends TurnToFixLegCalculator {
   protected readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)];
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected getTurnCenter(leg: FlightPlanLeg): LatLonInterface | undefined {
     return this.facilityCache.get(leg.arcCenterFixIcao);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected getTurnRadius(leg: FlightPlanLeg, center: LatLonInterface): number | undefined {
     return this.getPositionFromIcao(leg.fixIcao, this.geoPointCache[2])?.distance(center);
   }
@@ -439,12 +468,13 @@ export class RadiusToFixLegCalculator extends TurnToFixLegCalculator {
  * Calculates flight path vectors for arc to fix legs.
  */
 export class ArcToFixLegCalculator extends TurnToFixLegCalculator {
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected getTurnCenter(leg: FlightPlanLeg): LatLonInterface | undefined {
     return this.facilityCache.get(leg.originIcao);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc, @typescript-eslint/no-unused-vars
+  /** @inheritdoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected getTurnRadius(leg: FlightPlanLeg, center: LatLonInterface): number | undefined {
     return UnitType.METER.convertTo(leg.rho, UnitType.GA_RADIAN);
   }
@@ -469,13 +499,12 @@ export type CircleInterceptPathInfo = {
  * geo circle.
  */
 export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLegCalculator {
-  private readonly vec3Cache = [new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3)];
+  private readonly vec3Cache = [Vec3Math.create(), Vec3Math.create(), Vec3Math.create(), Vec3Math.create(), Vec3Math.create()];
   private readonly geoPointCache = [new GeoPoint(0, 0)];
-  private readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0)];
-  private readonly intersectionCache = [new Float64Array(3), new Float64Array(3)];
+  private readonly geoCircleCache = [new GeoCircle(Vec3Math.create(), 0), new GeoCircle(Vec3Math.create(), 0), new GeoCircle(Vec3Math.create(), 0)];
+  private readonly intersectionCache = [Vec3Math.create(), Vec3Math.create()];
 
   private readonly turnBuilder = new TurnToCourseBuilder();
-  private readonly joinGreatCircleToPointBuilder = new JoinGreatCircleToPointBuilder();
   private readonly directToPointBuilder = new DirectToPointBuilder();
   private readonly interceptBuilder = new CircleInterceptBuilder();
 
@@ -494,13 +523,15 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
     super(facilityCache, true);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
     calculateIndex: number,
     activeLegIndex: number,
     state: FlightPathState
   ): void {
+    state.isFallback = false;
+
     const leg = legs[calculateIndex].leg;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const vectors = legs[calculateIndex].calculated!.flightPath;
@@ -534,30 +565,11 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
         : MathUtils.TWO_PI;
 
     const initialVec = state.currentPosition.toCartesian(this.vec3Cache[2]);
-    const startPath = this.geoCircleCache[0].setAsGreatCircle(state.currentPosition, startCourse);
-    const interceptPath = this.geoCircleCache[1].setAsGreatCircle(state.currentPosition, course);
     const includeInitialTurn = this.includeInitialTurn && Math.abs(NavMath.diffAngle(course, startCourse)) >= 1;
 
-    const firstHandleInvalidInterceptResult = this.handleInvalidIntercept(
-      vectors, vectorIndex,
-      initialVec, startPath, interceptPath,
-      interceptInfo.circle, effectiveInterceptPathStartVec, effectiveInterceptPathEndVec, effectiveInterceptPathAngularWidth,
-      state.desiredTurnRadius.asUnit(UnitType.METER),
-      includeInitialTurn
-    );
+    const interceptPathStartVec = Vec3Math.copy(initialVec, this.vec3Cache[3]);
 
-    if (firstHandleInvalidInterceptResult !== undefined) {
-      vectorIndex += firstHandleInvalidInterceptResult;
-
-      if (vectorIndex > 0) {
-        const lastVector = vectors[vectorIndex - 1];
-        state.currentPosition.set(lastVector.endLat, lastVector.endLon);
-        state.currentCourse = FlightPathUtils.getVectorFinalCourse(lastVector);
-      }
-
-      vectors.length = vectorIndex;
-      return;
-    }
+    let initialTurnVector = undefined;
 
     if (includeInitialTurn) {
       const turnDirection = leg.turnDirection === LegTurnDirection.Left ? 'left'
@@ -571,89 +583,110 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
         startCourse, course
       );
 
-      const turnVector = vectors[vectorIndex - 1];
-
-      // Check if the turn circle intercepts the path to intercept
-
-      const turnCircle = FlightPathUtils.setGeoCircleFromVector(turnVector, this.geoCircleCache[0]);
-      const turnEndVec = GeoPoint.sphericalToCartesian(turnVector.endLat, turnVector.endLon, this.vec3Cache[3]);
-      const intersections = this.intersectionCache;
-      const numIntersections = turnCircle.intersection(interceptInfo.circle, intersections);
-
-      if (numIntersections > 1) {
-        // Order intersections such that the one closer to the turn start is at index 0.
-        if (interceptInfo.circle.radius > MathUtils.HALF_PI === interceptInfo.circle.encircles(initialVec)) {
-          const temp = intersections[0];
-          intersections[0] = intersections[1];
-          intersections[1] = temp;
-        }
-      }
-
-      for (let i = 0; i < numIntersections; i++) {
-        const intersection = intersections[i];
-
-        if (
-          FlightPathUtils.isPointAlongArc(turnCircle, initialVec, turnEndVec, intersection)
-          && (
-            !effectiveInterceptPathStartVec
-            || FlightPathUtils.isPointAlongArc(interceptInfo.circle, effectiveInterceptPathStartVec, effectiveInterceptPathAngularWidth, intersection)
-          )
-        ) {
-          // End the turn early at the intercept point
-          const distance = turnCircle.distanceAlong(initialVec, intersection, Math.PI);
-          if (distance > GeoCircle.ANGULAR_TOLERANCE) {
-            const intersectionPoint = this.geoPointCache[0].setFromCartesian(intersection);
-            turnVector.distance = distance;
-            turnVector.endLat = intersectionPoint.lat;
-            turnVector.endLon = intersectionPoint.lon;
-          } else {
-            vectorIndex--;
-          }
-
-          if (vectorIndex > 0) {
-            const lastVector = vectors[vectorIndex - 1];
-            state.currentPosition.set(lastVector.endLat, lastVector.endLon);
-            state.currentCourse = FlightPathUtils.getVectorFinalCourse(lastVector);
-          }
-
-          vectors.length = vectorIndex;
-          return;
-        }
-      }
-
-      state.currentCourse = FlightPathUtils.getVectorFinalCourse(turnVector);
-      state.currentPosition.set(turnVector.endLat, turnVector.endLon);
-
-      interceptPath.setAsGreatCircle(state.currentPosition, course);
-
-      const secondHandleInvalidInterceptResult = this.handleInvalidIntercept(
-        vectors, vectorIndex,
-        turnEndVec, interceptPath, interceptPath,
-        interceptInfo.circle, effectiveInterceptPathStartVec, effectiveInterceptPathEndVec, effectiveInterceptPathAngularWidth,
-        state.desiredTurnRadius.asUnit(UnitType.METER),
-        false
-      );
-
-      if (secondHandleInvalidInterceptResult !== undefined) {
-        vectorIndex += secondHandleInvalidInterceptResult;
-
-        if (secondHandleInvalidInterceptResult > 0) {
-          const lastVector = vectors[vectorIndex - 1];
-          state.currentPosition.set(lastVector.endLat, lastVector.endLon);
-          state.currentCourse = FlightPathUtils.getVectorFinalCourse(lastVector);
-        }
-
-        vectors.length = vectorIndex;
-        return;
-      }
-    } else {
-      state.currentCourse = course;
+      initialTurnVector = vectors[vectorIndex - 1];
+      GeoPoint.sphericalToCartesian(initialTurnVector.endLat, initialTurnVector.endLon, interceptPathStartVec);
     }
 
-    const numVectorsAdded = this.interceptBuilder.build(vectors, vectorIndex, state.currentPosition, course, interceptInfo.circle);
+    const interceptPath = this.geoCircleCache[0].setAsGreatCircle(interceptPathStartVec, course);
+    const startPath = this.geoCircleCache[1].set(interceptPath.center, interceptPath.radius);
 
-    if (numVectorsAdded > 0) {
-      vectorIndex += numVectorsAdded;
+    // If an initial turn exists, check if a fallback intercept is required because the end of the initial turn lies
+    // past the path to intercept. If an initial turn does not exist, check if any fallback intercept is required.
+
+    let fallbackInterceptVec = this.calculateFallbackIntercept(
+      interceptPathStartVec, interceptPath,
+      interceptInfo.circle, effectiveInterceptPathStartVec, effectiveInterceptPathEndVec, effectiveInterceptPathAngularWidth,
+      initialTurnVector !== undefined, false,
+      this.vec3Cache[4]
+    );
+
+    if (initialTurnVector !== undefined) {
+      if (fallbackInterceptVec === undefined) {
+        // An initial turn exists and does not end past the path to intercept. Check if a fallback intercept is required
+        // for another reason.
+
+        fallbackInterceptVec = this.calculateFallbackIntercept(
+          interceptPathStartVec, interceptPath,
+          interceptInfo.circle, effectiveInterceptPathStartVec, effectiveInterceptPathEndVec, effectiveInterceptPathAngularWidth,
+          false, false,
+          this.vec3Cache[4]
+        );
+      } else {
+        // An initial turn exists and ends past the path to intercept. First check if the initial turn intersects the
+        // path to intercept
+
+        const turnCircle = FlightPathUtils.setGeoCircleFromVector(initialTurnVector, this.geoCircleCache[2]);
+        const intersections = this.intersectionCache;
+        const numIntersections = turnCircle.intersection(interceptInfo.circle, intersections);
+
+        if (numIntersections > 1) {
+          // Order intersections such that the one closer to the turn end is at index 0.
+          if (interceptInfo.circle.radius > MathUtils.HALF_PI !== interceptInfo.circle.encircles(initialVec)) {
+            const temp = intersections[0];
+            intersections[0] = intersections[1];
+            intersections[1] = temp;
+          }
+        }
+
+        for (let i = 0; i < numIntersections; i++) {
+          const intersection = intersections[i];
+
+          if (
+            FlightPathUtils.isPointAlongArc(turnCircle, initialVec, interceptPathStartVec, intersection)
+            && (
+              !effectiveInterceptPathStartVec
+              || FlightPathUtils.isPointAlongArc(interceptInfo.circle, effectiveInterceptPathStartVec, effectiveInterceptPathAngularWidth, intersection)
+            )
+          ) {
+            // End the turn early at the intercept point
+            const distance = turnCircle.distanceAlong(initialVec, intersection, Math.PI);
+            if (distance > GeoCircle.ANGULAR_TOLERANCE) {
+              const intersectionPoint = this.geoPointCache[0].setFromCartesian(intersection);
+              initialTurnVector.distance = UnitType.GA_RADIAN.convertTo(distance, UnitType.METER);
+              initialTurnVector.endLat = intersectionPoint.lat;
+              initialTurnVector.endLon = intersectionPoint.lon;
+
+              state.currentPosition.set(initialTurnVector.endLat, initialTurnVector.endLon);
+              state.currentCourse = FlightPathUtils.getVectorFinalCourse(initialTurnVector);
+            } else {
+              vectorIndex--;
+            }
+
+            vectors.length = vectorIndex;
+            return;
+          }
+        }
+
+        // The initial turn does not intersect the path to intercept -> calculate a fallback intercept
+        // without an initial turn (i.e. change the intercept path to start at the start of the leg).
+
+        vectorIndex = 0;
+
+        Vec3Math.copy(initialVec, interceptPathStartVec);
+        interceptPath.setAsGreatCircle(interceptPathStartVec, course);
+        startPath.setAsGreatCircle(interceptPathStartVec, startCourse);
+
+        fallbackInterceptVec = this.calculateFallbackIntercept(
+          interceptPathStartVec, interceptPath,
+          interceptInfo.circle, effectiveInterceptPathStartVec, effectiveInterceptPathEndVec, effectiveInterceptPathAngularWidth,
+          false, true,
+          this.vec3Cache[4]
+        );
+      }
+    }
+
+    if (fallbackInterceptVec === undefined) {
+      vectorIndex += this.interceptBuilder.build(vectors, vectorIndex, interceptPathStartVec, course, interceptInfo.circle);
+    } else {
+      vectorIndex += this.directToPointBuilder.build(
+        vectors, vectorIndex,
+        interceptPathStartVec, startPath, fallbackInterceptVec,
+        state.desiredTurnRadius.asUnit(UnitType.METER), undefined,
+        FlightPathVectorFlags.Fallback
+      );
+    }
+
+    if (vectorIndex > 0) {
       const lastVector = vectors[vectorIndex - 1];
       state.currentCourse = FlightPathUtils.getVectorFinalCourse(lastVector);
       state.currentPosition.set(lastVector.endLat, lastVector.endLon);
@@ -669,38 +702,33 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
   };
 
   /**
-   * Handles cases where the path to intercept cannot be intercepted from a defined starting point and intercept
-   * course. Under these cases, vectors will be added to the flight path vector sequence to define a path from the
-   * starting point to a point on the path to intercept which does not follow the defined intercept course.
-   * @param vectors The flight path vector sequence to which to add the vectors.
-   * @param index The index in the sequence at which to add the vectors.
+   * Checks if a path to intercept cannot be intercepted from a defined starting point and intercept course, and
+   * calculates a fallback intercept point if so.
    * @param start The start point.
-   * @param startPath The great-circle path defining the initial course.
    * @param interceptPath The great-circle path defining the intercept course.
    * @param pathToInterceptCircle The geo circle defining the path to intercept.
    * @param pathToInterceptStart The start of the path to intercept.
    * @param pathToInterceptEnd The end of the path to intercept.
    * @param pathToInterceptAngularWidth The angular width of the path to intercept, in radians.
-   * @param desiredTurnRadius The desired turn radius, in meters.
    * @param onlyHandleInitialPointPastIntercept Whether to only handle cases where the start point is located beyond
    * the path to intercept as measured along the intercept course.
-   * @returns The number of vectors added to the sequence, or undefined if the case was not handled.
+   * @param forceFallback Whether to treat the case where the path to intercept can be intercepted from the starting
+   * point and intercept course as a fallback case. If `true`, the natural intercept point will be returned as the
+   * fallback intercept point.
+   * @param out The vector to which to write the result.
+   * @returns The fallback intercept point, or `undefined` if a fallback is not necessary.
    */
-  private handleInvalidIntercept(
-    vectors: FlightPathVector[],
-    index: number,
+  private calculateFallbackIntercept(
     start: ReadonlyFloat64Array,
-    startPath: GeoCircle,
     interceptPath: GeoCircle,
     pathToInterceptCircle: GeoCircle,
     pathToInterceptStart: ReadonlyFloat64Array | undefined,
     pathToInterceptEnd: ReadonlyFloat64Array | undefined,
     pathToInterceptAngularWidth: number,
-    desiredTurnRadius: number,
     onlyHandleInitialPointPastIntercept: boolean,
-  ): number | undefined {
-    let vectorIndex = index;
-
+    forceFallback: boolean,
+    out: Float64Array
+  ): Float64Array | undefined {
     if (pathToInterceptCircle.includes(start)) {
       if (
         pathToInterceptAngularWidth === MathUtils.TWO_PI
@@ -708,7 +736,7 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
         || FlightPathUtils.isPointAlongArc(pathToInterceptCircle, pathToInterceptStart!, pathToInterceptAngularWidth, start)
       ) {
         // Initial point already lies on the path to intercept.
-        return vectorIndex - index;
+        return forceFallback ? Vec3Math.copy(start, out) : undefined;
       }
     }
 
@@ -765,7 +793,15 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
         const prevIntersectionTotalDistance = prevIntersectionInitialPathDistance + prevIntersectionInterceptPathDistance;
         const nextIntersectionTotalDistance = nextIntersectionInitialPathDistance + nextIntersectionInterceptPathDistance;
 
-        isInitialPosPastPath = prevIntersectionTotalDistance < nextIntersectionTotalDistance - GeoCircle.ANGULAR_TOLERANCE;
+        // Only consider the starting position past the path to intercept if the path to intercept has a defined start
+        // and end (i.e. is not a DME circle) OR the distance to one of the two intercept points is greater than pi/2
+        // great-arc radians.
+        if (
+          (pathToInterceptStart !== undefined && pathToInterceptEnd !== undefined)
+          || (prevIntersectionTotalDistance >= MathUtils.HALF_PI || nextIntersectionTotalDistance >= MathUtils.HALF_PI)
+        ) {
+          isInitialPosPastPath = prevIntersectionTotalDistance < nextIntersectionTotalDistance - GeoCircle.ANGULAR_TOLERANCE;
+        }
       }
 
       desiredIntersection = isInitialPosPastPath ? prevIntersection : nextIntersection;
@@ -779,87 +815,41 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
       return undefined;
     }
 
-    let needHandleInterceptInBounds = isInitialPosPastPath;
+    let needHandleFallback = isInitialPosPastPath;
 
     if (!desiredIntersection) {
       // The intercept course does not intersect with the path to intercept circle at all -> define the desired
       // intercept point as the point on the path to intercept circle closest to the start point.
 
       desiredIntersection = pathToInterceptCircle.closest(start, this.handleInvalidInterceptCache.vec3[0]);
-      needHandleInterceptInBounds = true;
+      needHandleFallback = true;
     }
+
+    let fallbackIntercept;
 
     if (
       (!pathToInterceptStart || !pathToInterceptEnd)
       || FlightPathUtils.isPointAlongArc(pathToInterceptCircle, pathToInterceptStart, pathToInterceptAngularWidth, desiredIntersection)
     ) {
-      // The desired intercept point is within the bounds of the path to intercept
+      // The desired intercept point is within the bounds of the path to intercept -> only handle the fallback if we
+      // need to (i.e. if the starting point is past the path to intercept, if the starting path does not intersect
+      // the path to intercept, or fallback is forced)
 
-      if (needHandleInterceptInBounds) {
-        // The initial position is past the path to intercept or the original intercept course does not intersect the
-        // path to intercept -> execute a turn to join the course tangent to the path to intercept at the desired
-        // intercept point.
-        let tangentPath;
-        if (pathToInterceptCircle.isGreatCircle()) {
-          tangentPath = pathToInterceptCircle;
-        } else {
-          const norm = Vec3Math.cross(pathToInterceptCircle.center, desiredIntersection, this.handleInvalidInterceptCache.vec3[1]);
-          tangentPath = this.handleInvalidInterceptCache.geoCircle[0].set(
-            Vec3Math.cross(desiredIntersection, norm, this.handleInvalidInterceptCache.vec3[2]),
-            MathUtils.HALF_PI
-          );
-        }
-
-        vectorIndex += this.joinGreatCircleToPointBuilder.build(
-          vectors, vectorIndex,
-          start, startPath,
-          desiredIntersection, tangentPath,
-          undefined, desiredTurnRadius
-        );
-      } else {
-        return undefined;
+      if (needHandleFallback || forceFallback) {
+        fallbackIntercept = desiredIntersection;
       }
     } else {
-      // The desired intercept point is not within the bounds of the path to intercept
+      // The desired intercept point is not within the bounds of the path to intercept -> set the fallback intercept
+      // point to the start or end of the path to intercept, whichever is closer to the desired intercept point.
 
       const angularOffset = pathToInterceptCircle.angleAlong(pathToInterceptStart, desiredIntersection, Math.PI);
       const distanceFromStart = Math.min(angularOffset, MathUtils.TWO_PI - angularOffset);
       const distanceFromEnd = Math.abs(angularOffset - pathToInterceptAngularWidth);
 
-      if (distanceFromStart <= distanceFromEnd) {
-        // Desired intercept point is closer to the start of the path to intercept -> calculate a direct path from the
-        // initial position to the start of the path to intercept.
-
-        vectorIndex += this.directToPointBuilder.build(
-          vectors, vectorIndex,
-          start, startPath, pathToInterceptStart,
-          desiredTurnRadius
-        );
-      } else {
-        // Desired intercept point is closer to the end of the path to intercept -> execute a turn to join the course
-        // tangent to the path to intercept at its end.
-
-        let tangentPath;
-        if (pathToInterceptCircle.isGreatCircle()) {
-          tangentPath = pathToInterceptCircle;
-        } else {
-          const norm = Vec3Math.cross(pathToInterceptCircle.center, pathToInterceptEnd, this.handleInvalidInterceptCache.vec3[1]);
-          tangentPath = this.handleInvalidInterceptCache.geoCircle[0].set(
-            Vec3Math.cross(pathToInterceptEnd, norm, this.handleInvalidInterceptCache.vec3[2]),
-            MathUtils.HALF_PI
-          );
-        }
-
-        vectorIndex += this.joinGreatCircleToPointBuilder.build(
-          vectors, vectorIndex,
-          start, startPath,
-          pathToInterceptEnd, tangentPath,
-          undefined, desiredTurnRadius
-        );
-      }
+      fallbackIntercept = distanceFromStart <= distanceFromEnd ? pathToInterceptStart : pathToInterceptEnd;
     }
 
-    return vectorIndex - index;
+    return fallbackIntercept === undefined ? undefined : Vec3Math.copy(fallbackIntercept, out);
   }
 
   /**
@@ -886,7 +876,7 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
 /**
  * Calculates flight path vectors for course to DME legs.
  */
-export class CourseToDMELegCalculator extends CircleInterceptLegCalculator {
+export class CourseToDmeLegCalculator extends CircleInterceptLegCalculator {
   private readonly dmeCircle = new GeoCircle(new Float64Array(3), 0);
 
   /**
@@ -958,47 +948,6 @@ export class CourseToRadialLegCalculator extends CircleInterceptLegCalculator {
       this.radialCircle.setAsGreatCircle(radialFacility, leg.theta + magVar);
       out.circle = this.radialCircle;
       out.start = radialFacility;
-      out.end = undefined;
-    } else {
-      out.circle = undefined;
-      out.start = undefined;
-      out.end = undefined;
-    }
-
-    return out;
-  }
-}
-
-/**
- * Calculates flight path vectors for fix to DME legs.
- */
-export class FixToDMELegCalculator extends CircleInterceptLegCalculator {
-  private readonly dmeCircle = new GeoCircle(new Float64Array(3), 0);
-
-  /**
-   * Constructor.
-   * @param facilityCache This calculator's cache of facilities.
-   */
-  constructor(facilityCache: Map<string, Facility>) {
-    super(facilityCache, false);
-  }
-
-  /** @inheritdoc */
-  protected getInterceptCourse(legs: LegDefinition[], index: number): number | undefined {
-    const leg = legs[index].leg;
-    const startFacility = this.facilityCache.get(leg.fixIcao);
-    return startFacility ? this.getLegTrueCourse(leg, startFacility) : undefined;
-  }
-
-  /** @inheritdoc */
-  protected getInterceptPathInfo(legs: LegDefinition[], index: number, state: FlightPathState, out: CircleInterceptPathInfo): CircleInterceptPathInfo {
-    const leg = legs[index].leg;
-    const dmeFacility = this.facilityCache.get(leg.originIcao);
-
-    if (dmeFacility) {
-      this.dmeCircle.set(dmeFacility, UnitType.METER.convertTo(leg.distance, UnitType.GA_RADIAN));
-      out.circle = this.dmeCircle;
-      out.start = undefined;
       out.end = undefined;
     } else {
       out.circle = undefined;
@@ -1111,23 +1060,26 @@ export class CourseToInterceptLegCalculator extends CircleInterceptLegCalculator
 }
 
 /**
- * Calculates flight path vectors for track from fix legs.
+ * Calculates flight path vectors for fix to DME legs.
  */
-export class TrackFromFixLegCalculator extends AbstractFlightPathLegCalculator {
-  protected readonly geoPointCache = [new GeoPoint(0, 0)];
-  protected readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
+export class FixToDmeLegCalculator extends AbstractFlightPathLegCalculator {
+  private readonly vec3Cache = [Vec3Math.create(), Vec3Math.create()];
+  private readonly geoPointCache = [new GeoPoint(0, 0)];
+  private readonly geoCircleCache = [new GeoCircle(Vec3Math.create(), 0), new GeoCircle(Vec3Math.create(), 0)];
+  private readonly intersectionCache = [Vec3Math.create(), Vec3Math.create()];
 
-  protected readonly vectorBuilder = new GreatCircleBuilder();
+  private readonly greatCircleBuilder = new GreatCircleBuilder();
+  private readonly directToPointBuilder = new DirectToPointBuilder();
 
   /**
    * Constructor.
    * @param facilityCache This calculator's cache of facilities.
    */
   constructor(facilityCache: Map<string, Facility>) {
-    super(facilityCache, false);
+    super(facilityCache, true);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
     calculateIndex: number,
@@ -1140,18 +1092,52 @@ export class TrackFromFixLegCalculator extends AbstractFlightPathLegCalculator {
 
     let vectorIndex = 0;
 
-    const fixIcaoPoint = this.getPositionFromIcao(leg.fixIcao, this.geoPointCache[0]);
-    const startPoint = fixIcaoPoint ?? state.currentPosition;
+    const pathStartPoint = this.getPositionFromIcao(leg.fixIcao, this.geoPointCache[0]);
+    const dmeFacility = this.facilityCache.get(leg.originIcao);
 
-    if (!startPoint) {
+    if (!pathStartPoint || !dmeFacility) {
       vectors.length = vectorIndex;
+      state.isFallback = false;
       return;
     }
 
-    const course = this.getLegTrueCourse(leg, startPoint);
-    const path = this.geoCircleCache[0].setAsGreatCircle(startPoint, course);
+    const course = this.getLegTrueCourse(leg, pathStartPoint);
+    const path = this.geoCircleCache[0].setAsGreatCircle(pathStartPoint, course);
+    const dmeCircle = this.geoCircleCache[1].set(dmeFacility, UnitType.METER.convertTo(leg.distance, UnitType.GA_RADIAN));
 
-    vectorIndex += this.vectorBuilder.build(vectors, vectorIndex, startPoint, path, leg.distance);
+    const pathStartVec = pathStartPoint.toCartesian(this.vec3Cache[0]);
+    const interceptVec = this.vec3Cache[1];
+
+    const intersections = this.intersectionCache;
+    const numIntersections = path.intersection(dmeCircle, intersections);
+    if (numIntersections === 0) {
+      // The path along the leg's defined course does not intercept the DME circle -> define the intercept to be the
+      // closest point on the DME circle to the initial fix.
+
+      dmeCircle.closest(pathStartVec, interceptVec);
+    } else {
+      // The path along the leg's defined course intercepts the DME circle -> choose the first intercept when
+      // proceeding along the path from the initial fix.
+
+      const intersectionIndex = (numIntersections === 1 || dmeCircle.encircles(pathStartVec)) ? 0 : 1;
+      Vec3Math.copy(intersections[intersectionIndex], interceptVec);
+    }
+
+    if (state.isFallback && state.currentPosition !== undefined && state.currentCourse !== undefined) {
+      vectorIndex += this.directToPointBuilder.build(
+        vectors, vectorIndex,
+        state.currentPosition, state.currentCourse,
+        interceptVec,
+        state.desiredTurnRadius.asUnit(UnitType.METER), undefined,
+        FlightPathVectorFlags.Fallback
+      );
+    } else {
+      const startVec = state.currentPosition?.toCartesian(this.vec3Cache[0]) ?? pathStartVec;
+
+      if (GeoPoint.distance(startVec, interceptVec) > GeoCircle.ANGULAR_TOLERANCE) {
+        vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, pathStartVec, interceptVec, course);
+      }
+    }
 
     if (vectorIndex > 0) {
       const lastVector = vectors[vectorIndex - 1];
@@ -1160,6 +1146,79 @@ export class TrackFromFixLegCalculator extends AbstractFlightPathLegCalculator {
     }
 
     vectors.length = vectorIndex;
+    state.isFallback = false;
+  }
+}
+
+/**
+ * Calculates flight path vectors for track from fix legs.
+ */
+export class TrackFromFixLegCalculator extends AbstractFlightPathLegCalculator {
+  private readonly vec3Cache = [Vec3Math.create(), Vec3Math.create()];
+  private readonly geoPointCache = [new GeoPoint(0, 0)];
+  private readonly geoCircleCache = [new GeoCircle(Vec3Math.create(), 0)];
+
+  private readonly greatCircleBuilder = new GreatCircleBuilder();
+  private readonly directToPointBuilder = new DirectToPointBuilder();
+
+  /**
+   * Constructor.
+   * @param facilityCache This calculator's cache of facilities.
+   */
+  constructor(facilityCache: Map<string, Facility>) {
+    super(facilityCache, false);
+  }
+
+  /** @inheritdoc */
+  protected calculateVectors(
+    legs: LegDefinition[],
+    calculateIndex: number,
+    activeLegIndex: number,
+    state: FlightPathState
+  ): void {
+    const leg = legs[calculateIndex].leg;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const vectors = legs[calculateIndex].calculated!.flightPath;
+
+    let vectorIndex = 0;
+
+    const pathStartPoint = this.getPositionFromIcao(leg.fixIcao, this.geoPointCache[0]);
+    if (!pathStartPoint) {
+      vectors.length = vectorIndex;
+      state.isFallback = false;
+      return;
+    }
+
+    const course = this.getLegTrueCourse(leg, pathStartPoint);
+    const path = this.geoCircleCache[0].setAsGreatCircle(pathStartPoint, course);
+
+    const pathStartVec = pathStartPoint.toCartesian(this.vec3Cache[0]);
+    const endVec = path.offsetDistanceAlong(pathStartVec, UnitType.METER.convertTo(leg.distance, UnitType.GA_RADIAN), this.vec3Cache[1], Math.PI);
+
+    if (state.isFallback && state.currentPosition !== undefined && state.currentCourse !== undefined) {
+      vectorIndex += this.directToPointBuilder.build(
+        vectors, vectorIndex,
+        state.currentPosition, state.currentCourse,
+        endVec,
+        state.desiredTurnRadius.asUnit(UnitType.METER), undefined,
+        FlightPathVectorFlags.Fallback
+      );
+    } else {
+      const startVec = state.currentPosition?.toCartesian(this.vec3Cache[0]) ?? pathStartVec;
+
+      if (GeoPoint.distance(startVec, endVec) > GeoCircle.ANGULAR_TOLERANCE) {
+        vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, pathStartVec, endVec, course);
+      }
+    }
+
+    if (vectorIndex > 0) {
+      const lastVector = vectors[vectorIndex - 1];
+      state.currentCourse = FlightPathUtils.getVectorFinalCourse(lastVector);
+      (state.currentPosition ??= new GeoPoint(0, 0)).set(lastVector.endLat, lastVector.endLon);
+    }
+
+    vectors.length = vectorIndex;
+    state.isFallback = false;
   }
 }
 
@@ -1167,17 +1226,27 @@ export class TrackFromFixLegCalculator extends AbstractFlightPathLegCalculator {
  * Calculates flight path vectors for course to fix legs.
  */
 export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
-  protected readonly vec3Cache = [new Float64Array(3), new Float64Array(3)];
-  protected readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)];
-  protected readonly geoCircleCache = [
+  private static readonly FALLBACK_INELIGIBLE_LEG_TYPES = [
+    LegType.AF,
+    LegType.RF,
+    LegType.PI
+  ];
+
+  private readonly vec3Cache = [new Float64Array(3), new Float64Array(3), new Float64Array(3)];
+  private readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)];
+  private readonly geoCircleCache = [
+    new GeoCircle(new Float64Array(3), 0),
     new GeoCircle(new Float64Array(3), 0),
     new GeoCircle(new Float64Array(3), 0),
     new GeoCircle(new Float64Array(3), 0)
   ];
+  private readonly intersectionCache = [new Float64Array(3), new Float64Array(3)];
 
-  protected readonly greatCircleBuilder = new GreatCircleBuilder();
-  protected readonly joinGreatCircleToPointBuilder = new JoinGreatCircleToPointBuilder();
-  protected readonly procTurnBuilder = new ProcedureTurnBuilder();
+  private readonly circleVectorBuilder = new CircleVectorBuilder();
+  private readonly greatCircleBuilder = new GreatCircleBuilder();
+  private readonly joinGreatCircleToPointBuilder = new JoinGreatCircleToPointBuilder();
+  private readonly procTurnBuilder = new ProcedureTurnBuilder();
+  private readonly directToPointBuilder = new DirectToPointBuilder();
 
   /**
    * Constructor.
@@ -1187,7 +1256,7 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
     super(facilityCache, true);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
     calculateIndex: number,
@@ -1202,82 +1271,222 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
     let vectorIndex = 0;
 
     const startPoint = state.currentPosition ? this.geoPointCache[0].set(state.currentPosition) : undefined;
-    const endPoint = this.getPositionFromIcao(leg.fixIcao, this.geoPointCache[1]);
+    const endPoint = this.getTerminatorPosition(leg, leg.fixIcao, this.geoPointCache[1]);
 
     if (!endPoint) {
       vectors.length = vectorIndex;
+      state.isFallback = false;
       return;
     }
 
-    const endCourse = this.getLegTrueCourse(leg, endPoint);
-    const endVec = endPoint.toCartesian(this.vec3Cache[1]);
-    const endPath = this.geoCircleCache[1].setAsGreatCircle(endPoint, endCourse);
+    const minTurnRadius = state.desiredTurnRadius.asUnit(UnitType.METER);
 
-    if (!startPoint || (prevLeg && (prevLeg.leg.type === LegType.FM || prevLeg.leg.type === LegType.VM))) {
-      // Begins at a discontinuity OR previous leg is a manual termination leg.
-      // Default to a track with start arbitrarily placed 5 NM from the terminator fix.
-      const midPoint = endPath.offsetDistanceAlong(endVec, UnitType.NMILE.convertTo(-5, UnitType.GA_RADIAN), this.geoPointCache[2]);
-      vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, midPoint, endPoint);
+    if (state.isFallback && state.currentPosition !== undefined && state.currentCourse !== undefined) {
+      // We are in a fallback state -> plot a direct course to the terminator fix
+
+      vectorIndex += this.directToPointBuilder.build(
+        vectors, vectorIndex,
+        state.currentPosition, state.currentCourse,
+        endPoint,
+        minTurnRadius, undefined,
+        FlightPathVectorFlags.Fallback
+      );
+
+      state.isFallback = false;
     } else {
-      const startVec = startPoint.toCartesian(this.vec3Cache[0]);
+      state.isFallback = false;
 
-      const currentCourse = state.currentCourse ?? startPoint.bearingTo(endPoint);
+      const endCourse = this.getLegTrueCourse(leg, endPoint);
+      const endVec = endPoint.toCartesian(this.vec3Cache[1]);
+      const endPath = this.geoCircleCache[1].setAsGreatCircle(endPoint, endCourse);
 
-      const startPath = this.geoCircleCache[0].setAsGreatCircle(startPoint, currentCourse);
-      const startToEndPath = this.geoCircleCache[2].setAsGreatCircle(startVec, endVec);
-      const isStartEqualToEnd = startPoint.equals(endPoint);
-
-      const pathDot = Vec3Math.dot(startPath.center, endPath.center);
-      if (-pathDot > 1 - GeoCircle.ANGULAR_TOLERANCE) {
-        // The start and end paths are anti-parallel, which means we need to execute a procedure turn to do a 180.
-
-        // Favor right turn unless we are explicitly told to turn left.
-        const desiredTurnDirection = leg.turnDirection === LegTurnDirection.Left ? 'left' : 'right';
-        vectorIndex += this.procTurnBuilder.build(
-          vectors, vectorIndex,
-          startVec, startPath, endVec, endPath,
-          currentCourse + 45 * (desiredTurnDirection === 'left' ? -1 : 1),
-          state.desiredTurnRadius.asUnit(UnitType.METER), desiredTurnDirection,
-          currentCourse, endCourse
-        );
-      } else if (
-        (endPath.angleAlong(startVec, endVec, Math.PI) + GeoCircle.ANGULAR_TOLERANCE) % (2 * Math.PI) < Math.PI + GeoCircle.ANGULAR_TOLERANCE
-        && (
-          pathDot > 1 - GeoCircle.ANGULAR_TOLERANCE
-          || (!isStartEqualToEnd
-            && (Vec3Math.dot(startToEndPath.center, endPath.center) >= 0.996194698 // 5 degrees
-              || (prevLeg?.calculated?.flightPath.length && endPath.includes(startVec, UnitType.METER.convertTo(10, UnitType.GA_RADIAN)))
-            )
-          )
-        )
-      ) {
-        /*
-         * The start and end paths are parallel, so we can just connect the start and end with a track.
-         *
-         * OR the start point lies on the final course path (within a generous tolerance) and the previous leg has at
-         * least one calculated vector. In this case we will simply create a track from the start to end and let turn
-         * anticipation handle the initial turn into the final course.
-         */
-
-        if (!isStartEqualToEnd) {
-          vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, startPoint, endPoint);
-        }
+      if (!startPoint || (prevLeg && (prevLeg.leg.type === LegType.FM || prevLeg.leg.type === LegType.VM))) {
+        // Begins at a discontinuity OR previous leg is a manual termination leg.
+        // Default to a track with start arbitrarily placed 5 NM from the terminator fix.
+        const midPoint = endPath.offsetDistanceAlong(endVec, UnitType.NMILE.convertTo(-5, UnitType.GA_RADIAN), this.geoPointCache[2]);
+        vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, midPoint, endPoint);
       } else {
-        const desiredTurnDirection = leg.turnDirection === LegTurnDirection.Left ? 'left'
-          : leg.turnDirection === LegTurnDirection.Right ? 'right'
-            : undefined;
+        const startVec = startPoint.toCartesian(this.vec3Cache[0]);
 
-        vectorIndex += this.joinGreatCircleToPointBuilder.build(
-          vectors, vectorIndex,
-          startVec, startPath,
-          endVec, endPath,
-          desiredTurnDirection, state.desiredTurnRadius.asUnit(UnitType.METER)
-        );
+        const currentCourse = state.currentCourse ?? startPoint.bearingTo(endPoint);
+
+        const startPath = this.geoCircleCache[0].setAsGreatCircle(startPoint, currentCourse);
+        const startToEndPath = this.geoCircleCache[3].setAsGreatCircle(startVec, endVec);
+        const isStartEqualToEnd = startPoint.equals(endPoint);
+
+        // A great circle defining the threshold of the terminator fix - everything to the LEFT of (i.e. encircled by)
+        // this great circle is past the terminator fix as projected along the end path.
+        const threshold = this.geoCircleCache[2].setAsGreatCircle(endPath.center, endVec);
+
+        if (
+          !leg.flyOver
+          && !CourseToFixLegCalculator.FALLBACK_INELIGIBLE_LEG_TYPES.includes(legs[calculateIndex + 1]?.leg.type)
+          && threshold.encircles(startVec, false)
+        ) {
+          // The start point is past the terminator threshold -> end the leg at the start point and set a fallback state
+
+          (state.currentPosition ??= new GeoPoint(0, 0)).set(startPoint);
+          state.currentCourse ??= currentCourse;
+          state.isFallback = true;
+        } else {
+          const pathAngleDiff = Math.acos(MathUtils.clamp(Vec3Math.dot(startPath.center, endPath.center), -1, 1));
+          if (pathAngleDiff >= Math.PI - GeoCircle.ANGULAR_TOLERANCE) {
+            // The start and end paths are anti-parallel, which means we need to execute a procedure turn to do a 180.
+
+            // Favor right turn unless we are explicitly told to turn left.
+            const desiredTurnDirection = leg.turnDirection === LegTurnDirection.Left ? 'left' : 'right';
+            vectorIndex += this.procTurnBuilder.build(
+              vectors, vectorIndex,
+              startVec, startPath, endVec, endPath,
+              currentCourse + 45 * (desiredTurnDirection === 'left' ? -1 : 1),
+              minTurnRadius, desiredTurnDirection,
+              currentCourse, endCourse
+            );
+          } else if (
+            endPath.angleAlong(startVec, endVec, Math.PI, GeoCircle.ANGULAR_TOLERANCE) < Math.PI + GeoCircle.ANGULAR_TOLERANCE
+            && (
+              pathAngleDiff <= GeoCircle.ANGULAR_TOLERANCE
+              || (!isStartEqualToEnd
+                && (Vec3Math.dot(startToEndPath.center, endPath.center) >= 0.996194698 // 5 degrees
+                  || (prevLeg?.calculated?.flightPath.length && endPath.includes(startVec, UnitType.METER.convertTo(10, UnitType.GA_RADIAN)))
+                )
+              )
+            )
+          ) {
+            /*
+            * The start and end paths are parallel, so we can just connect the start and end with a track.
+            *
+            * OR the start point lies on the final course path (within a generous tolerance) and the previous leg has at
+            * least one calculated vector. In this case we will simply create a track from the start to end and let turn
+            * anticipation handle the initial turn into the final course.
+            */
+
+            if (!isStartEqualToEnd) {
+              vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, startPoint, endPoint);
+            }
+          } else {
+            const desiredTurnDirection = leg.turnDirection === LegTurnDirection.Left ? 'left'
+              : leg.turnDirection === LegTurnDirection.Right ? 'right'
+                : undefined;
+
+            vectorIndex += this.joinGreatCircleToPointBuilder.build(
+              vectors, vectorIndex,
+              startVec, startPath,
+              endVec, endPath,
+              desiredTurnDirection, minTurnRadius
+            );
+
+            const lastVector = vectors[vectorIndex - 1];
+
+            if (
+              lastVector !== undefined
+              && Math.abs(FlightPathUtils.getVectorFinalCourse(lastVector) - endCourse) > 1
+              && !leg.flyOver
+              && !CourseToFixLegCalculator.FALLBACK_INELIGIBLE_LEG_TYPES.includes(legs[calculateIndex + 1]?.leg.type)
+            ) {
+              // We are allowed to use a fallback path which does not end at the defined terminator fix and a fallback
+              // direct course was calculated -> check if the direct course path crosses the terminator threshold at
+              // any point and if so, end the path where it crosses and set a fallback state.
+
+              const minTurnRadiusRad = UnitType.METER.convertTo(minTurnRadius, UnitType.GA_RADIAN);
+
+              let startTurnCircle: GeoCircle | undefined;
+              let startTurnEnd: Float64Array | undefined;
+
+              /*
+               * The direct course builder can produce 0 to 2 vectors: an optional starting turn toward the target
+               * point and an optional great-circle path connecting the turn to the target point.
+               *
+               * We are not concerned with the case with zero vectors, because this means the start and end points are
+               * coincident.
+               *
+               * We are also not concerned with the case of the single great-circle vector, because this means that
+               * either the starting point and the entire path are behind the terminator threshold, or both are past
+               * the threshold, which would have been handled in another case above.
+               *
+               * Thus, we are left with only the cases where there is a single turn vector or a turn vector followed
+               * by a great-circle vector.
+               */
+
+              const isLastVectorGreatCircle = FlightPathUtils.isVectorGreatCircle(lastVector);
+
+              if (isLastVectorGreatCircle && vectors[vectorIndex - 2] !== undefined) {
+                const startTurnVector = vectors[vectorIndex - 2];
+                startTurnCircle = FlightPathUtils.setGeoCircleFromVector(startTurnVector, this.geoCircleCache[3]);
+                startTurnEnd = GeoPoint.sphericalToCartesian(startTurnVector.endLat, startTurnVector.endLon, this.vec3Cache[2]);
+              } else if (!isLastVectorGreatCircle) {
+                // If the direct course calculation produced only a single turn vector, it possibly reduced the radius
+                // of the starting turn below the minimum radius in order to build a valid path to the terminator.
+                // We always want the starting turn to respect the minimum turn radius, so we will define it ourselves.
+
+                startTurnCircle = FlightPathUtils.getTurnCircleStartingFromPath(
+                  startVec, startPath,
+                  minTurnRadiusRad, desiredTurnDirection ?? (startPath.encircles(endVec) ? 'left' : 'right'),
+                  this.geoCircleCache[3]
+                );
+
+                // If the direct course turn radius was reduced, then the terminator fix lies inside the starting turn
+                // circle of minimum radius. Therefore, the turn technically never ends because there is no point on
+                // the turn circle that either includes the terminator fix or is tangent to a great-circle path which
+                // includes the terminator fix.
+                if (Math.min(lastVector.radius, Math.PI - lastVector.radius) >= minTurnRadiusRad - GeoCircle.ANGULAR_TOLERANCE) {
+                  startTurnEnd = GeoPoint.sphericalToCartesian(lastVector.endLat, lastVector.endLon, this.vec3Cache[2]);
+                }
+              }
+
+              if (startTurnCircle !== undefined) {
+                const intersections = this.intersectionCache;
+                const intersectionCount = threshold.intersection(startTurnCircle, intersections);
+                if (intersectionCount === 1) {
+                  // The starting turn is tangent to the threshold, which means it is either entirely past the
+                  // threshold or entirely behind it.
+                  if (threshold.encircles(FlightPathUtils.getTurnCenterFromCircle(startTurnCircle, this.vec3Cache[2]))) {
+                    // The entire starting turn lies beyond the threshold, which means the starting point must also
+                    // lie beyond the threshold -> end the leg immediately with no vectors and set the fallback state.
+                    vectorIndex = 0;
+                    (state.currentPosition ??= new GeoPoint(0, 0)).set(startPoint);
+                    state.currentCourse ??= currentCourse;
+                    state.isFallback = true;
+                  }
+                } else if (startTurnEnd === undefined || intersectionCount === 2) {
+                  // If we are in this case, then the starting point is guaranteed to be behind the terminator
+                  // threshold. Therefore, the next intersection of the starting turn circle with the threshold will
+                  // take the path past the threshold.
+
+                  const thresholdCrossing = intersections[0];
+
+                  const thresholdCrossingAngle = startTurnCircle.angleAlong(startVec, thresholdCrossing, Math.PI, GeoCircle.ANGULAR_TOLERANCE);
+
+                  if (
+                    startTurnEnd === undefined
+                    || startTurnCircle.angleAlong(startVec, startTurnEnd, Math.PI, GeoCircle.ANGULAR_TOLERANCE) > thresholdCrossingAngle + GeoCircle.ANGULAR_TOLERANCE
+                  ) {
+                    // The starting turn crosses the terminator threshold before the end of the turn -> end the turn
+                    // at the crossing point and set the fallback state.
+
+                    vectorIndex = 0;
+
+                    vectorIndex += this.circleVectorBuilder.build(
+                      vectors, vectorIndex,
+                      startTurnCircle, startVec, thresholdCrossing,
+                      FlightPathVectorFlags.TurnToCourse | FlightPathVectorFlags.Fallback
+                    );
+
+                    state.isFallback = true;
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
 
-    (state.currentPosition ??= new GeoPoint(0, 0)).set(endPoint);
-    state.currentCourse = endCourse;
+    const lastVector = vectors[vectorIndex - 1];
+    if (lastVector !== undefined) {
+      (state.currentPosition ??= new GeoPoint(0, 0)).set(lastVector.endLat, lastVector.endLon);
+      state.currentCourse = FlightPathUtils.getVectorFinalCourse(vectors[vectorIndex - 1]);
+    }
 
     vectors.length = vectorIndex;
   }
@@ -1309,6 +1518,8 @@ export class ProcedureTurnLegCalculator extends AbstractFlightPathLegCalculator 
     activeLegIndex: number,
     state: FlightPathState
   ): void {
+    state.isFallback = false;
+
     const leg = legs[calculateIndex].leg;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const vectors = legs[calculateIndex].calculated!.flightPath;
@@ -1475,6 +1686,8 @@ export class CourseToManualLegCalculator extends AbstractFlightPathLegCalculator
     activeLegIndex: number,
     state: FlightPathState
   ): void {
+    state.isFallback = false;
+
     const leg = legs[calculateIndex].leg;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const vectors = legs[calculateIndex].calculated!.flightPath;
@@ -1525,6 +1738,8 @@ export class CourseToAltitudeLegCalculator extends AbstractFlightPathLegCalculat
     activeLegIndex: number,
     state: FlightPathState
   ): void {
+    state.isFallback = false;
+
     const leg = legs[calculateIndex].leg;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const vectors = legs[calculateIndex].calculated!.flightPath;
@@ -1599,6 +1814,8 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
     activeLegIndex: number,
     state: FlightPathState
   ): void {
+    state.isFallback = false;
+
     const leg = legs[calculateIndex].leg;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const calcs = legs[calculateIndex].calculated!;
@@ -1666,7 +1883,8 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
           state.currentPosition, this.geoCircleCache[1].setAsGreatCircle(state.currentPosition, state.currentCourse),
           outboundEnd, this.geoCircleCache[2].setAsGreatCircle(outboundTurnEnd, oppositeCourse),
           turnDirection, turnRadiusMeters,
-          false, undefined,
+          false, true,
+          undefined,
           FlightPathVectorFlags.HoldDirectEntry
         );
 
@@ -1680,16 +1898,19 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
       if (directionalEntryCourse > 135) {
         // need to make initial turn to get a 45-degree outbound leg
         const outboundCourse = course + 135 * turnDirectionSign;
-        ingressVectorIndex += this.turnToCourseBuilder.build(
+        const numTurnVectorsAdded = this.turnToCourseBuilder.build(
           ingress, ingressVectorIndex,
           holdPos, turnRadiusMeters, turnDirection === 'left' ? 'right' : 'left',
           state.currentCourse, outboundCourse,
           FlightPathVectorFlags.HoldTeardropEntry | FlightPathVectorFlags.TurnToCourse
         );
 
-        const turnVector = ingress[ingressVectorIndex - 1];
-        state.currentPosition.set(turnVector.endLat, turnVector.endLon);
-        state.currentCourse = FlightPathUtils.getVectorFinalCourse(turnVector) ?? outboundCourse;
+        if (numTurnVectorsAdded > 0) {
+          ingressVectorIndex += numTurnVectorsAdded;
+          const turnVector = ingress[ingressVectorIndex - 1];
+          state.currentPosition.set(turnVector.endLat, turnVector.endLon);
+          state.currentCourse = FlightPathUtils.getVectorFinalCourse(turnVector);
+        }
       }
 
       ingressVectorIndex += this.joinGreatCircleToPointBuilder.build(
@@ -1697,7 +1918,8 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
         state.currentPosition, this.geoCircleCache[1].setAsGreatCircle(state.currentPosition, state.currentCourse),
         holdPos, inboundPath,
         turnDirection, turnRadiusMeters,
-        true, undefined,
+        true, true,
+        undefined,
         FlightPathVectorFlags.HoldTeardropEntry
       );
 
@@ -1720,16 +1942,19 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
     } else if (directionalEntryCourse < -70) {
       // parallel entry
       const parallelCourse = course + 180;
-      ingressVectorIndex += this.turnToCourseBuilder.build(
+      const numTurnVectorsAdded = this.turnToCourseBuilder.build(
         ingress, ingressVectorIndex,
         holdPos, turnRadiusMeters, turnDirection === 'left' ? 'right' : 'left',
         state.currentCourse, parallelCourse,
         FlightPathVectorFlags.HoldParallelEntry | FlightPathVectorFlags.TurnToCourse
       );
 
-      const turnVector = ingress[ingressVectorIndex - 1];
-      state.currentPosition.set(turnVector.endLat, turnVector.endLon);
-      state.currentCourse = FlightPathUtils.getVectorFinalCourse(turnVector) ?? parallelCourse;
+      if (numTurnVectorsAdded > 0) {
+        ingressVectorIndex += numTurnVectorsAdded;
+        const turnVector = ingress[ingressVectorIndex - 1];
+        state.currentPosition.set(turnVector.endLat, turnVector.endLon);
+        state.currentCourse = FlightPathUtils.getVectorFinalCourse(turnVector);
+      }
 
       ingressVectorIndex += this.procTurnBuilder.build(
         ingress, ingressVectorIndex,

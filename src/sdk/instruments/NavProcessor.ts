@@ -5,10 +5,10 @@ import { EventBus, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { EventSubscriber } from '../data/EventSubscriber';
 import { HEvent } from '../data/HEventPublisher';
-import { SimVarValueType, SimVarDefinition } from '../data/SimVars';
+import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
+import { RadioUtils } from '../utils/radio';
 import { BasePublisher, SimVarPublisher } from './BasePublishers';
 import { FrequencyBank, RadioEvents, RadioType } from './RadioCommon';
-
 
 /** Simvars used by a NavProcessor */
 export interface NavProcSimVars {
@@ -926,7 +926,6 @@ export class NavProcessorConfig {
   public numNav = 2;
   public numGps = 1;
   public numAdf = 1;
-  public initialCdiIndex = 3;
   public courseIncEvents = new Set<string>();
   public courseDecEvents = new Set<string>();
   public courseSyncEvents = new Set<string>();
@@ -1125,6 +1124,8 @@ export class NavProcessor {
   private controlSubscriber: EventSubscriber<ControlEvents>;
   private simVarSubscriber: EventSubscriber<NavProcSimVars>;
   private navSources: Array<NavSource>;
+  private readonly brgSrcAsoboMap = [-1, 0, 1, 3, 2];
+
 
   /**
    * Create a NavProcessor.
@@ -1166,7 +1167,7 @@ export class NavProcessor {
     });
     this.controlSubscriber.on('cdi_src_gps_toggle').handle(this.onCdiGpsToggle);
     this.controlSubscriber.on('init_cdi').handle(this.initCdi.bind(this));
-    this.controlSubscriber.on('brg_src_switch').handle(this.switchBrgSrc.bind(this));
+    this.controlSubscriber.on('brg_src_switch').handle(this.cycleBrgSrc.bind(this));
 
     // TODO Determine why this throttle doesn't work but does on the client end.
     this.simVarSubscriber.on('mkr_bcn_state_simvar').whenChanged().handle((state) => {
@@ -1252,6 +1253,14 @@ export class NavProcessor {
         if (setFrequency.radio.radioType === RadioType.Nav && setFrequency.radio.index == i
           && setFrequency.bank == FrequencyBank.Active) {
           src.isLocalizerFrequency = this.frequencyIsLocalizer(setFrequency.frequency) as boolean;
+          for (let j = 0; j < this.bearingSourceIdxs.length; j++) {
+            if (this.navSources[this.bearingSourceIdxs[j]] !== undefined) {
+              const source = this.navSources[this.bearingSourceIdxs[j]].srcId;
+              if (source.type === NavSourceType.Nav && source.index === i) {
+                this.setBrgSrc(j, this.bearingSourceIdxs[j]);
+              }
+            }
+          }
         }
       });
       this.navSources.push(src);
@@ -1317,13 +1326,19 @@ export class NavProcessor {
       this.navSources.push(src);
     }
 
-
     for (const source of this.config.additionalSources) {
       this.addNavSource(source);
     }
 
-    this.cdiSourceIdx = this.config.initialCdiIndex;
-    SimVar.SetSimVarValue('GPS DRIVES NAV1', SimVarValueType.Bool, this.navSources[this.cdiSourceIdx].srcId.type === NavSourceType.Gps);
+    // HINT: Initialize cdi source based on FLT
+    const initGpsDrivesNav1 = SimVar.GetSimVarValue('GPS DRIVES NAV1', SimVarValueType.Bool);
+    this.cdiSourceIdx = initGpsDrivesNav1 ? this.getFirstNavSourceIndexByType(NavSourceType.Gps) : this.getFirstNavSourceIndexByType(NavSourceType.Nav);
+
+    // HINT: Initialize bearing sources based on FLT (compatability with current missions)
+    for (let i = 0; i < 2; i++) {
+      const fltBrgSrc = SimVar.GetSimVarValue(`L:PFD_BRG${i + 1}_Source`, SimVarValueType.Number);
+      this.setBrgSrc(i, this.brgSrcAsoboMap[fltBrgSrc]);
+    }
   }
 
   /**
@@ -1407,31 +1422,51 @@ export class NavProcessor {
 
   /**
    * Process a bearing source change event.
-   * @param index The index of the source to change
+   * @param index The index of the source to change (1-based).
    */
-  private switchBrgSrc(index: number): void {
+  private cycleBrgSrc(index: number): void {
     index--;
-    const oldSrc = this.navSources[this.bearingSourceIdxs[index]];
+    let newNavSrcIndex = -1;
+    if (this.bearingSourceIdxs[index] < this.navSources.length - 1) {
+      newNavSrcIndex = this.bearingSourceIdxs[index] + 1;
+    }
+
+    this.setBrgSrc(index, newNavSrcIndex);
+  }
+
+  /**
+   * Set the bearing source to the specified nav source index.
+   * @param bearingSrcIndex The index of the bearing source to change (0-based).
+   * @param navSrcIndex The index of the nav source to change to (0-based).
+   */
+  private setBrgSrc(bearingSrcIndex: number, navSrcIndex: number): void {
+    if (bearingSrcIndex > this.bearingSourceIdxs.length - 1
+      || navSrcIndex > this.navSources.length - 1) {
+      console.warn(`setBrgSrc: Unable to set bearing source index ${bearingSrcIndex} and nav source index ${navSrcIndex}`);
+      return;
+    }
+
+    const oldSrc = this.navSources[this.bearingSourceIdxs[bearingSrcIndex]];
     if (oldSrc !== undefined) {
       oldSrc.activeBrg = false;
     }
 
-    if (this.bearingSourceIdxs[index] == this.navSources.length - 1) {
-      this.bearingSourceIdxs[index] = -1;
-    } else {
-      this.bearingSourceIdxs[index]++;
-    }
+    this.bearingSourceIdxs[bearingSrcIndex] = navSrcIndex;
 
-    const newSrc = this.navSources[this.bearingSourceIdxs[index]];
-    this.publisher.publishBrgSrc(index, newSrc !== undefined ? newSrc.srcId : null);
+    const newSrc = this.navSources[this.bearingSourceIdxs[bearingSrcIndex]];
+    this.publisher.publishBrgSrc(bearingSrcIndex, newSrc !== undefined ? newSrc.srcId : null);
+
+    // HINT setting brg source LVar for mission compatability
+    SimVar.SetSimVarValue(`L:PFD_BRG${bearingSrcIndex + 1}_Source`, SimVarValueType.Number, this.brgSrcAsoboMap.indexOf(navSrcIndex));
+
     if (newSrc !== undefined) {
       newSrc.activeBrg = true;
     }
-    newSrc && this.publisher.publishBrgValidity(index, newSrc.valid);
+    newSrc && this.publisher.publishBrgValidity(bearingSrcIndex, newSrc.valid);
     if (newSrc === undefined) {
-      this.publisher.publishBrgIdent(index, null, false);
-      this.publisher.publishBrgDir(index, null);
-      this.publisher.publishBrgDist(index, null);
+      this.publisher.publishBrgIdent(bearingSrcIndex, null, false);
+      this.publisher.publishBrgDir(bearingSrcIndex, null);
+      this.publisher.publishBrgDist(bearingSrcIndex, null);
       //this.publisher.publishBrgIsLoc(index, false);
     }
   }
@@ -1505,8 +1540,8 @@ export class NavProcessor {
     if (this.bearingSourceIdxs) {
       for (let i = 0; i < this.bearingSourceIdxs.length; i++) {
         if (this.navSources[this.bearingSourceIdxs[i]] &&
-          this.navSources[this.bearingSourceIdxs[i]].srcId == source &&
-          !this.navSources[this.bearingSourceIdxs[i]].isLocalizerFrequency) {
+          this.navSources[this.bearingSourceIdxs[i]].srcId == source
+        ) {
           this.publisher.publishBrgValidity(i, valid);
         }
       }
@@ -1615,18 +1650,8 @@ export class NavProcessor {
    * @returns a bool true if the frequency is a loc freq.
    */
   private frequencyIsLocalizer(frequency: number): boolean {
-    let isLoc = false;
-    if (Math.floor(frequency) < 112) {
-      const roundedFreq = Math.round(frequency * 100) / 100;
-      const integer = Math.floor(roundedFreq);
-      const remainder = roundedFreq - integer;
-      const decimalValue = Math.round(remainder * 100);
-      const tenthsDigit = Math.trunc(decimalValue / 10);
-      if (tenthsDigit % 2 != 0) {
-        isLoc = true;
-      }
-    }
-    return isLoc;
+    const roundedFreq = Math.round(frequency * 100) / 100;
+    return RadioUtils.isLocalizerFrequency(roundedFreq);
   }
 
   /**
@@ -1663,6 +1688,15 @@ export class NavProcessor {
       this.switchCdiSrc(3);
     }
   };
+
+  /**
+   * Gets the index of the first nav source of the given type.
+   * @param type The type of nav source to find.
+   * @returns The nav source index.
+   */
+  private getFirstNavSourceIndexByType(type: NavSourceType): number {
+    return this.navSources.findIndex(source => source.srcId.type === type);
+  }
 
   /**
    * Perform events for the update loop.

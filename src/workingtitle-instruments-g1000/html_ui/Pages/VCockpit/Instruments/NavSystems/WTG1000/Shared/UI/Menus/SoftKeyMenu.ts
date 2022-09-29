@@ -1,4 +1,5 @@
 import { SubEvent, Subject } from 'msfssdk';
+
 import { MenuSystem } from './MenuSystem';
 
 /**

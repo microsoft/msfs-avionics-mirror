@@ -1,23 +1,23 @@
-import { FSComponent, GeoPoint, Subject, UnitType, VNode } from 'msfssdk';
-import { Consumer, ControlPublisher, EventBus, EventSubscriber } from 'msfssdk/data';
-import { GNSSEvents } from 'msfssdk/instruments';
-import { Facility, FacilityLoader, FacilityWaypointCache, NearestSubscription } from 'msfssdk/navigation';
-import { FocusPosition } from 'msfssdk/components/controls';
+import {
+  CompiledMapSystem, Consumer, ControlPublisher, EventBus, EventSubscriber, Facility, FacilityLoader, FocusPosition, FSComponent, GeoPoint, GNSSEvents,
+  MapIndexedRangeModule, MapSystemBuilder, MathUtils, NearestSubscription, Vec2Math, VecNMath, VNode
+} from 'msfssdk';
 
-import { Fms } from 'garminsdk/flightplan';
+import {
+  Fms, GarminFacilityWaypointCache, GarminMapKeys, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapRangeController,
+  MapWaypointHighlightModule, TrafficAdvisorySystem, TrafficUserSettings, UnitsUserSettings
+} from 'garminsdk';
 
+import { MapBuilder } from '../../../../Shared/Map/MapBuilder';
 import { MapUserSettings } from '../../../../Shared/Map/MapUserSettings';
-import { TrafficAdvisorySystem } from '../../../../Shared/Traffic/TrafficAdvisorySystem';
+import { MapWaypointIconImageCache } from '../../../../Shared/Map/MapWaypointIconImageCache';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
 import { G1000UiControl } from '../../../../Shared/UI/G1000UiControl';
 import { MenuSystem } from '../../../../Shared/UI/Menus/MenuSystem';
-import { NavMapModel } from '../../../../Shared/UI/NavMap/NavMapModel';
 import { UiPageProps } from '../../../../Shared/UI/UiPage';
 import { MFDUiPage } from '../MFDUiPage';
 import { MFDViewService } from '../MFDViewService';
 import { FacilitiesGroup } from './FacilitiesGroup';
-import { MFDNearestNavMapComponent } from './MFDNearestNavMapComponent';
-import { UnitsUserSettings } from '../../../../Shared/Units/UnitsUserSettings';
 
 /** The properties on the flight plan popout component. */
 export interface MFDNearestPageProps extends UiPageProps {
@@ -48,6 +48,8 @@ export interface MFDNearestPageProps extends UiPageProps {
  * and a map indicating the facilities location.
  */
 export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPageProps = MFDNearestPageProps> extends MFDUiPage<P> {
+  private static readonly UPDATE_FREQ = 30; // Hz
+
   private gps: EventSubscriber<GNSSEvents>;
   private consumer: Consumer<LatLongAlt>;
 
@@ -55,12 +57,75 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
 
   protected readonly uiRoot = FSComponent.createRef<G1000UiControl>();
   protected readonly facilitiesGroup = FSComponent.createRef<FacilitiesGroup<T>>();
-  protected readonly mapRef = FSComponent.createRef<MFDNearestNavMapComponent>();
 
-  protected readonly mapModel = NavMapModel.createModel(this.props.bus, this.props.tas);
   protected readonly data = this.buildNearestSubscription();
 
   private readonly locGeoPoint: GeoPoint;
+
+  private readonly mapSettingManager = MapUserSettings.getMfdManager(this.props.bus);
+
+  private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
+    .with(MapBuilder.nearestMap, {
+      bingId: 'mfd-page-map',
+      dataUpdateFreq: MFDNearestPage.UPDATE_FREQ,
+
+      waypointIconImageCache: MapWaypointIconImageCache.getCache(),
+
+      rangeRingOptions: {
+        showLabel: true
+      },
+
+      flightPlanner: this.props.fms.flightPlanner,
+
+      ...MapBuilder.ownAirplaneIconOptions(),
+
+      trafficSystem: this.props.tas,
+      trafficIconOptions: {
+        iconSize: 30,
+        font: 'Roboto-Bold',
+        fontSize: 16
+      },
+
+      pointerBoundsOffset: VecNMath.create(4, 0.1, 0.1, 0.1, 0.1),
+      pointerInfoSize: MapPointerInfoLayerSize.Full,
+
+      miniCompassImgSrc: MapBuilder.miniCompassIconSrc(),
+
+      settingManager: this.mapSettingManager as any,
+      unitsSettingManager: this.unitsSettingManager,
+      trafficSettingManager: TrafficUserSettings.getManager(this.props.bus) as any
+    })
+    .withProjectedSize(Vec2Math.create(578, 734))
+    .withDeadZone(VecNMath.create(4, 0, 56, 0, 0))
+    .withClockUpdate(MFDNearestPage.UPDATE_FREQ)
+    .build('mfd-navmap') as CompiledMapSystem<
+      {
+        /** The range module. */
+        [GarminMapKeys.Range]: MapIndexedRangeModule;
+
+        /** The pointer module. */
+        [GarminMapKeys.WaypointHighlight]: MapWaypointHighlightModule;
+
+        /** The pointer module. */
+        [GarminMapKeys.Pointer]: MapPointerModule;
+      },
+      any,
+      {
+        /** The range controller. */
+        [GarminMapKeys.Range]: MapRangeController;
+
+        /** The pointer controller. */
+        [GarminMapKeys.Pointer]: MapPointerController;
+      },
+      any
+    >;
+
+  private readonly mapRangeModule = this.compiledMap.context.model.getModule(GarminMapKeys.Range);
+  private readonly mapHighlightModule = this.compiledMap.context.model.getModule(GarminMapKeys.WaypointHighlight);
+  private readonly mapPointerModule = this.compiledMap.context.model.getModule(GarminMapKeys.Pointer);
+
+  private readonly mapRangeController = this.compiledMap.context.getController(GarminMapKeys.Range);
+  private readonly mapPointerController = this.compiledMap.context.getController(GarminMapKeys.Pointer);
 
   /**
    * Creates an instance of a nearest facilities page.
@@ -81,7 +146,7 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
     this.props.viewService.clearPageHistory();
 
     this.consumer.handle(this.onGps);
-    this.mapRef.instance.wake();
+    this.compiledMap.ref.instance.wake();
   }
 
   /** @inheritdoc */
@@ -90,7 +155,7 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
 
     this.uiRoot.instance.blur();
     this.consumer.off(this.onGps);
-    this.mapRef.instance.sleep();
+    this.compiledMap.ref.instance.sleep();
   }
 
   /** @inheritdoc */
@@ -115,10 +180,10 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
 
         return true;
       case FmsHEvent.RANGE_DEC:
-        this.mapRef.instance.setRangeIndex(this.mapRef.instance.getCurrentRangeIndex() - 1, true);
+        this.changeMapRangeIndex(-1);
         return true;
       case FmsHEvent.RANGE_INC:
-        this.mapRef.instance.setRangeIndex(this.mapRef.instance.getCurrentRangeIndex() + 1, true);
+        this.changeMapRangeIndex(1);
         return true;
     }
 
@@ -127,6 +192,20 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
     }
 
     return super.processHEvent(evt);
+  }
+
+  /**
+   * Changes the MFD map range index setting.
+   * @param delta The change in index to apply.
+   */
+  private changeMapRangeIndex(delta: number): void {
+    const currentIndex = this.mapRangeModule.nominalRangeIndex.get();
+    const newIndex = MathUtils.clamp(currentIndex + delta, 0, this.mapRangeModule.nominalRanges.get().length - 1);
+
+    if (newIndex !== currentIndex) {
+      this.mapPointerController.targetPointer();
+      this.mapRangeController.setRangeIndex(newIndex);
+    }
   }
 
   /** Gets the title that should be displayed above the facility selection group. */
@@ -156,21 +235,9 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
    */
   protected onFacilitySelected(facility: T | null): void {
     if (facility !== null) {
-      const waypoint = FacilityWaypointCache.getCache().get(facility);
-      const distance = UnitType.GA_RADIAN.convertTo(this.locGeoPoint.distance(waypoint.location), UnitType.METER);
-
-      const ranges = this.mapModel.getModule('range').nominalRanges.get();
-      for (let i = 0; i < ranges.length; i++) {
-        const rangeInMeters = ranges[i].asUnit(UnitType.METER);
-        if (rangeInMeters > distance) {
-          this.mapRef.instance.setRangeIndex(i, false);
-          break;
-        }
-      }
-
-      this.mapModel.getModule('waypointHighlight').waypoint.set(FacilityWaypointCache.getCache().get(facility));
+      this.mapHighlightModule.waypoint.set(GarminFacilityWaypointCache.getCache(this.props.bus).get(facility));
     } else {
-      this.mapModel.getModule('waypointHighlight').waypoint.set(null);
+      this.mapHighlightModule.waypoint.set(null);
     }
   }
 
@@ -190,30 +257,7 @@ export abstract class MFDNearestPage<T extends Facility, P extends MFDNearestPag
   public render(): VNode {
     return (
       <div class="mfd-page" ref={this.viewContainerRef}>
-        <MFDNearestNavMapComponent
-          ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
-          updateFreq={Subject.create(30)}
-          dataUpdateFreq={Subject.create(30)}
-          projectedWidth={578} projectedHeight={734}
-          deadZone={Subject.create(new Float64Array([0, 56, 0, 0]))}
-          pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
-          flightPlanner={this.props.fms.flightPlanner}
-          bingId='mfd_page_map'
-          settingManager={MapUserSettings.getMfdManager(this.props.bus)}
-          ownAirplaneLayerProps={{
-            imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
-            invalidHeadingImageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon_nohdg.svg',
-            iconSize: 40,
-            iconAnchor: new Float64Array([0.5, 0]),
-            invalidHeadingIconAnchor: new Float64Array([0.5, 0.5])
-          }}
-          trafficIntruderLayerProps={{
-            fontSize: 16,
-            iconSize: 30
-          }}
-          drawEntireFlightPlan={Subject.create(false)}
-          class='mfd-navmap'
-        />
+        {this.compiledMap.map}
         <div class={`mfd-dark-background ${this.getPageClass()}`}>
           <G1000UiControl ref={this.uiRoot} innerKnobScroll>
             <FacilitiesGroup<T>

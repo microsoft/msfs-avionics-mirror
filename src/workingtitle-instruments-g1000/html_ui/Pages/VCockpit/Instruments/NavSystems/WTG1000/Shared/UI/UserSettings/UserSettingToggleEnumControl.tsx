@@ -1,5 +1,5 @@
-import { DisplayComponent, FSComponent, VNode } from 'msfssdk';
-import { UserSettingType } from 'msfssdk/settings';
+import { DisplayComponent, FSComponent, UserSettingRecord, VNode } from 'msfssdk';
+
 import { ArrowToggle } from '../UIControls/ArrowToggle';
 import { UserSettingControlProps } from './UserSettingControl';
 import { UserSettingToggleController } from './UserSettingToggleController';
@@ -7,9 +7,9 @@ import { UserSettingToggleController } from './UserSettingToggleController';
 /**
  * Component props for UserSettingToggleEnumControl.
  */
-export interface UserSettingToggleEnumControlProps<T extends Record<any, UserSettingType>, K extends keyof T> extends UserSettingControlProps<T, K> {
+export interface UserSettingToggleEnumControlProps<T extends UserSettingRecord, K extends keyof T & string> extends UserSettingControlProps<T, K> {
   /** The possible values of the controlled setting. */
-  values: T[K][];
+  values: NonNullable<T[K]>[];
 
   /**
    * The text representations of the possible setting values. Each value provided by the `values` prop will be mapped
@@ -23,8 +23,8 @@ export interface UserSettingToggleEnumControlProps<T extends Record<any, UserSet
  * A component which controls the value of a setting using an ArrowToggle.
  */
 export class UserSettingToggleEnumControl<
-  T extends Record<any, UserSettingType>,
-  K extends keyof T,
+  T extends UserSettingRecord,
+  K extends keyof T & string,
   P extends UserSettingToggleEnumControlProps<T, K> = UserSettingToggleEnumControlProps<T, K>> extends DisplayComponent<P> {
 
   protected readonly toggleController = new UserSettingToggleController(this.props.settingManager, this.props.settingName, this.props.values);

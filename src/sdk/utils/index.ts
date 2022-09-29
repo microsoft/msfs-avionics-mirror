@@ -1,8 +1,8 @@
-import * as controllers from './controllers';
-import * as datastructures from './datastructures';
-import * as radio from './radio';
-import * as sound from './sound';
-import * as task from './task';
-import * as time from './time';
-
-export { controllers, datastructures, radio, sound, task, time };
+export * from './controllers';
+export * from './datastructures';
+export * from './predictions';
+export * from './radio';
+export * from './resource';
+export * from './sound';
+export * from './task';
+export * from './time';

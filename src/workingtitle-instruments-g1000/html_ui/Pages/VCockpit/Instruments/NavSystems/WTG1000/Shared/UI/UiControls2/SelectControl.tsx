@@ -1,4 +1,5 @@
-import { DisplayComponent, FSComponent, NodeReference, Subscribable, SubscribableArray, Subject, VNode } from 'msfssdk';
+import { DisplayComponent, FSComponent, NodeReference, Subject, Subscribable, SubscribableArray, VNode } from 'msfssdk';
+
 import { ContextMenuItemDefinition, ContextMenuOptions, ContextMenuPosition } from '../Dialogs/ContextMenuDialog';
 import { G1000UiControl, G1000UiControlProps } from '../G1000UiControl';
 import { ViewService } from '../ViewService';
@@ -6,7 +7,7 @@ import { ViewService } from '../ViewService';
 /**
  * The properties for the SelectControl component.
  */
-export interface SelectControlProps<T> extends G1000UiControlProps {
+export interface SelectControl2Props<T> extends G1000UiControlProps {
   /** The view service to use to open the selection dialog. */
   viewService: ViewService;
 
@@ -60,14 +61,14 @@ export interface SelectControlProps<T> extends G1000UiControlProps {
    * A function to be called when the selection dialog is opened.
    * @param source The SelectControl controlling the dialog that was opened.
    */
-  onSelectionDialogOpened?: (source: SelectControl<T>) => void;
+  onSelectionDialogOpened?: (source: SelectControl2<T>) => void;
 
   /**
    * A function to be called when the selection dialog is closed.
    * @param source The SelectControl controlling the dialog that was closed.
    * @param selectionMade Whether a selection was made.
    */
-  onSelectionDialogClosed?: (source: SelectControl<T>, selectionMade: boolean) => void;
+  onSelectionDialogClosed?: (source: SelectControl2<T>, selectionMade: boolean) => void;
 
   /** CSS class(es) to apply to the root of the control. */
   class?: string;
@@ -77,7 +78,7 @@ export interface SelectControlProps<T> extends G1000UiControlProps {
  * A control which allows the user to select one of multiple items through a pop-up dialog and which also displays the
  * currently selected value.
  */
-export class SelectControl<T> extends G1000UiControl<SelectControlProps<T>> {
+export class SelectControl2<T> extends G1000UiControl<SelectControl2Props<T>> {
   private readonly valueRef = FSComponent.createRef<HTMLElement>();
   private renderedValueNode: VNode | null = null;
 

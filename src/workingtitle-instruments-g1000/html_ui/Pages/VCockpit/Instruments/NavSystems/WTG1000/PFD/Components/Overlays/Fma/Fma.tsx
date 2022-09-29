@@ -1,19 +1,17 @@
-import { FSComponent, DisplayComponent, VNode, ComputedSubject, Subject, NavMath } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { APEvents, NavEvents } from 'msfssdk/instruments';
-import { FixTypeFlags, LegTurnDirection, LegType } from 'msfssdk/navigation';
-import { ActiveLegType, FlightPlanActiveLegEvent, FlightPlanner, FlightPlannerEvents } from 'msfssdk/flightplan';
-import { APAltitudeModes, APLateralModes, APVerticalModes, VNavAltCaptureType, ApproachGuidanceMode, VNavPathMode, VNavEvents } from 'msfssdk/autopilot';
+import {
+  ActiveLegType, APAltitudeModes, APEvents, APLateralModes, ApproachGuidanceMode, APVerticalModes, ComputedSubject, DisplayComponent, EventBus, FixTypeFlags,
+  FlightPlanActiveLegEvent, FlightPlanner, FlightPlannerEvents, FSComponent, LegTurnDirection, LegType, NavEvents, NavMath, Subject, VNavAltCaptureType,
+  VNavEvents, VNavPathMode, VNode
+} from 'msfssdk';
 
-import { DirectToState } from 'garminsdk/flightplan';
-import { LNavDataEvents, NavIndicatorController } from 'garminsdk/navigation';
+import { DirectToState, LNavDataEvents, NavIndicatorController } from 'garminsdk';
 
+import { FmaData } from '../../../../Shared/Autopilot/FmaData';
+import { G1000ControlEvents } from '../../../../Shared/G1000Events';
 import { FmaLegIcon } from '../FmaLegIcon';
 import { WaypointAlerter } from '../WaypointAlerter';
-import { G1000ControlEvents } from '../../../../Shared/G1000Events';
-import { FmaDisplaySlot } from './FmaDisplaySlot';
 import { FmaApSlot } from './FmaApSlot';
-import { FmaData } from '../../../../Shared/Autopilot/FmaData';
+import { FmaDisplaySlot } from './FmaDisplaySlot';
 
 import './Fma.css';
 
@@ -115,7 +113,7 @@ export class Fma extends DisplayComponent<FmaProps> {
     ap.on('ap_master_disengage').handle((disengaged) => { disengaged ? this.apMaster.set(false) : null; });
     ap.on('ap_yd_engage').handle((engaged) => { engaged ? this.ydActive.set(true) : null; });
     ap.on('ap_yd_disengage').handle((disengaged) => { disengaged ? this.ydActive.set(false) : null; });
-    ap.on('flight_director_is_active').whenChanged().handle(this.onFdChange);
+    ap.on('flight_director_is_active_1').whenChanged().handle(this.onFdChange);
     ap.on('ap_vs_selected').withPrecision(0).handle((vs) => {
       this.selectedVs = vs;
       this.handleVerticalValueChanged();
@@ -285,6 +283,8 @@ export class Fma extends DisplayComponent<FmaProps> {
         return 'HDG';
       case APLateralModes.LOC:
         return 'LOC';
+      case APLateralModes.BC:
+        return 'BC';
       case APLateralModes.VOR:
         return 'VOR';
       case APLateralModes.GPSS:

@@ -1,8 +1,7 @@
-import { EventBus, HEvent } from 'msfssdk/data';
-import { EventSubscriber } from 'msfssdk/data/EventSubscriber';
+import { EventBus, EventSubscriber, HEvent } from 'msfssdk';
+
 import { SoftKeyBar } from '../SoftKeyBar';
 import { SoftKeyMenu } from './SoftKeyMenu';
-
 
 /**
  * A system that manages the Garmin softkey menus.
@@ -55,7 +54,7 @@ export class MenuSystem {
    * @returns The requested soft keymenu.
    */
   public getMenu(menuName: string): SoftKeyMenu {
-    return this.registeredMenus[menuName]; 
+    return this.registeredMenus[menuName];
   }
 
   /**
@@ -123,7 +122,7 @@ export class MenuSystem {
    */
   private renderToSoftKeys(): void {
     this.currentMenu.forEach((item, index) => {
-       this.softKeys?.setMenuItem(index, item);
+      this.softKeys?.setMenuItem(index, item);
     });
   }
 

@@ -1,6 +1,8 @@
-import { FSComponent, GeoPointSubject, GeoPoint, VNode, Subject, UnitType, DisplayComponent, NavAngleSubject, NumberUnitSubject, NavAngleUnit, ComponentProps } from 'msfssdk';
-import { ICAO, IntersectionFacility } from 'msfssdk/navigation';
-import { NumberFormatter } from 'msfssdk/graphics/text';
+import {
+  ComponentProps, DisplayComponent, FSComponent, GeoPoint, GeoPointSubject, ICAO, IntersectionFacility, NavAngleSubject, NavAngleUnit, NumberFormatter,
+  NumberUnitSubject, Subject, UnitType, VNode
+} from 'msfssdk';
+
 import { BearingDisplay } from '../../../../../Shared/UI/Common/BearingDisplay';
 import { NumberUnitDisplay } from '../../../../../Shared/UI/Common/NumberUnitDisplay';
 import { UnitsUserSettingManager } from '../../../../../Shared/Units/UnitsUserSettings';
@@ -10,7 +12,7 @@ import { GroupBox } from '../../GroupBox';
 import './ReferenceVorGroup.css';
 
 /** Props on the ReferenceVorGroup component. */
-export interface ReferenceVorGroupProps extends ComponentProps {
+export interface NearestIntersectionReferenceVorGroupProps extends ComponentProps {
   /** A user setting manager for measurement units. */
   unitsSettingManager: UnitsUserSettingManager;
 }
@@ -19,7 +21,7 @@ export interface ReferenceVorGroupProps extends ComponentProps {
  * A component that displays the reference VOR information for an intersection
  * on the MFD nearest intersections page.
  */
-export class ReferenceVorGroup extends DisplayComponent<ReferenceVorGroupProps> {
+export class NearestIntersectionReferenceVorGroup extends DisplayComponent<NearestIntersectionReferenceVorGroupProps> {
   private readonly content = FSComponent.createRef<HTMLDivElement>();
 
   private readonly name = Subject.create<string>('');

@@ -1,11 +1,12 @@
 import { ReadonlyFloat64Array, Vec3Math } from './VecMath';
 
+/** A readonly 3D affine transformation. */
+export type ReadonlyTransform3D = Pick<Transform3D, 'getParameters' | 'apply' | 'copy'>;
+
 /**
  * A 3D affine transformation. By default, Transform3D objects are initially created as identity transformations.
  */
 export class Transform3D {
-  private static readonly transformCache = [new Transform3D(), new Transform3D(), new Transform3D(), new Transform3D()];
-
   private readonly array = new Float64Array([
     1, 0, 0, 0,
     0, 1, 0, 0,
@@ -55,10 +56,10 @@ export class Transform3D {
    * Sets the parameters of this transformation from another transformation.
    * @param transform The transformation from which to take parameters.
    */
-  public set(transform: Transform3D): this;
+  public set(transform: ReadonlyTransform3D): this;
   // eslint-disable-next-line jsdoc/require-jsdoc
   public set(
-    arg1: number | Transform3D,
+    arg1: number | ReadonlyTransform3D,
     skewXY?: number,
     skewXZ?: number,
     translateX?: number,
@@ -238,7 +239,7 @@ export class Transform3D {
     const e_23 = array[11];
 
     const c_00 = e_11 * e_22 - e_12 * e_21;
-    const c_01 = e_12 * e_21 - e_10 * e_22;
+    const c_01 = e_12 * e_20 - e_10 * e_22;
     const c_02 = e_10 * e_21 - e_11 * e_20;
 
     const c_10 = e_02 * e_21 - e_01 * e_22;
@@ -299,6 +300,8 @@ export class Transform3D {
     return Vec3Math.set(x, y, z, out);
   }
 
+  private static readonly offsetOriginCache = [new Transform3D(), undefined, new Transform3D()] as Transform3D[];
+
   /**
    * Changes this transformation to the one that is the result of offsetting this transformation's origin.
    * @param x The x-coordinate of the offset origin.
@@ -307,7 +310,11 @@ export class Transform3D {
    * @returns This transformation, after it has been changed.
    */
   public offsetOrigin(x: number, y: number, z: number): this {
-    return Transform3D.concat(this, Transform3D.transformCache[2].toTranslation(-x, -y, -z), this, Transform3D.transformCache[3].toTranslation(x, y, z));
+    Transform3D.offsetOriginCache[0].toTranslation(-x, -y, -z);
+    Transform3D.offsetOriginCache[1] = this;
+    Transform3D.offsetOriginCache[2].toTranslation(x, y, z);
+
+    return Transform3D.concat(this, Transform3D.offsetOriginCache);
   }
 
   /**
@@ -326,7 +333,7 @@ export class Transform3D {
    * @returns This transformation, after it has been changed.
    */
   public toTranslation(x: number, y: number, z: number): this {
-    return this.set(1, 0, 0, x, 0, 1, 0, y, 0, 0, 0, z);
+    return this.set(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z);
   }
 
   /**
@@ -486,6 +493,8 @@ export class Transform3D {
     return this;
   }
 
+  private static readonly concatCache = [new Transform3D(), new Transform3D()];
+
   /**
    * Concatenates one or more transformations and returns the result. Concatenating transformations `[A, B, ...]`
    * results in a transformation that is equivalent to first applying `A`, then applying `B`, etc. Note that this order
@@ -497,7 +506,7 @@ export class Transform3D {
    * @param transforms The transformations to concatenate, in order.
    * @returns The result of concatenating all transformations in `transforms`.
    */
-  public static concat<T extends Transform3D>(out: T, ...transforms: Transform3D[]): T {
+  public static concat<T extends Transform3D>(out: T, transforms: readonly ReadonlyTransform3D[]): T {
     if (transforms.length === 0) {
       return out.toIdentity();
     }
@@ -508,15 +517,15 @@ export class Transform3D {
 
     let index = 0;
     let next = transforms[index];
-    const oldTransform = Transform3D.transformCache[0];
-    const newTransform = Transform3D.transformCache[1].set(next);
+    const oldTransform = Transform3D.concatCache[0];
+    const newTransform = Transform3D.concatCache[1].set(next);
     const oldArray = oldTransform.array;
     const newArray = newTransform.array;
 
     const end = transforms.length;
     while (++index < end) {
       next = transforms[index];
-      const nextArray = next.array;
+      const nextArray = (next as Transform3D).array;
       oldTransform.set(newTransform);
 
       for (let i = 0; i < 4; i++) {

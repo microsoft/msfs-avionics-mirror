@@ -1,5 +1,4 @@
-import { FSComponent, CollectionComponent, CollectionComponentProps } from 'msfssdk';
-import { EventBus, HEvent } from 'msfssdk/data';
+import { CollectionComponent, CollectionComponentProps, EventBus, FSComponent, HEvent } from 'msfssdk';
 
 /** Props for the test fpl */
 interface TestFplProps extends CollectionComponentProps {

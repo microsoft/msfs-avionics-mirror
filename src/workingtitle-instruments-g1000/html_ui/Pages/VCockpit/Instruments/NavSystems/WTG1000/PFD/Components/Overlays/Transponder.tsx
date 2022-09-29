@@ -1,6 +1,5 @@
-import { FSComponent, DisplayComponent, VNode, ComputedSubject } from 'msfssdk';
-import { ControlPublisher, EventBus } from 'msfssdk/data';
-import { XPDRSimVarEvents, XPDRMode } from 'msfssdk/instruments';
+import { ComputedSubject, ControlPublisher, DisplayComponent, EventBus, FSComponent, VNode, XPDRMode, XPDRSimVarEvents } from 'msfssdk';
+
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 
 import './Transponder.css';
@@ -170,8 +169,8 @@ export class Transponder extends DisplayComponent<TransponderProps> {
     return (
       <div class="xpdr-container">
         <div class='small-text'>XPDR </div>
-        <div ref={this.xpdrCodeElement} class='size20'>{this.xpdrCodeSubject}</div>
-        <div ref={this.xpdrModeElement} class='size20'>&nbsp;{this.xpdrModeSubject}</div><div ref={this.xpdrIdentElement} class='size20 green hide-element'> Ident</div>
+        <div ref={this.xpdrCodeElement} class='size20 XPDRValue' data-checklist='XPDRValue'>{this.xpdrCodeSubject}</div>
+        <div ref={this.xpdrModeElement} class='size20 XPDRMode' data-checklist='XPDRMode'>&nbsp;{this.xpdrModeSubject}</div><div ref={this.xpdrIdentElement} class='size20 green hide-element'> Ident</div>
       </div>
     );
   }

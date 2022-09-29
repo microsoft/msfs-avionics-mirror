@@ -1,5 +1,7 @@
-import { DisplayComponent, VNode, FSComponent, NodeReference, ComponentProps } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, NodeReference, VNode } from 'msfssdk';
+
 import { MenuItem, SoftKeyMenu } from './SoftKeyMenu';
+
 import './SoftKey.css';
 
 /**

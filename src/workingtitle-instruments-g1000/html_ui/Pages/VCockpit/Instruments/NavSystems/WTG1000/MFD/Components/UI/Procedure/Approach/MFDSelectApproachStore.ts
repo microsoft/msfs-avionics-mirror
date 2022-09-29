@@ -1,5 +1,5 @@
-import { ArraySubject, Subject } from 'msfssdk';
-import { FlightPlan, LegDefinition } from 'msfssdk/flightplan';
+import { ArraySubject, FlightPlan, LegDefinition, Subject } from 'msfssdk';
+
 import { SelectApproachStore } from '../../../../../Shared/UI/Procedure/Approach/SelectApproachStore';
 
 /**

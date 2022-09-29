@@ -76,11 +76,14 @@ export class EventBus {
 
   /**
    * Creates an instance of an EventBus.
-   * @param useCoherentEventSync Whether or not to use coherent event sync (optional, default false)
+   * @param useAlternativeEventSync Whether or not to use coherent event sync (optional, default false). 
+   * If true, FlowEventSync will only work for gauges.
    */
-  constructor(useCoherentEventSync?: boolean) {
+  constructor(useAlternativeEventSync = false) {
     this._busId = Math.floor(Math.random() * 2_147_483_647);
-    const syncFunc = useCoherentEventSync ? EventBusCoherentSync : EventBusFlowEventSync;
+    // fallback to flowevent when genericdatalistener not avail (su9)
+    useAlternativeEventSync = (typeof RegisterGenericDataListener === 'undefined');
+    const syncFunc = useAlternativeEventSync ? EventBusFlowEventSync : EventBusListenerSync;
     this._busSync = new syncFunc(this.pub.bind(this), this._busId);
     this.syncEvent('event_bus', 'resync_request', false);
     this.on('event_bus', (data) => {
@@ -296,7 +299,7 @@ export class EventBus {
    * @param topic The name of the topic.
    * @returns The number of subscribers.
    **/
-  public getTopicSubsciberCount(topic: string): number {
+  public getTopicSubscriberCount(topic: string): number {
     return this._topicSubsMap.get(topic)?.length ?? 0;
   }
 }
@@ -325,6 +328,7 @@ interface TopicDataPackage {
  * An abstract class for bus sync implementations.
  */
 abstract class EventBusSyncBase {
+  protected isPaused = false;
   private recvEventCb: (topic: string, data: any, sync?: boolean, isCached?: boolean) => void;
   private lastEventSynced = -1;
   protected busId: number;
@@ -343,15 +347,18 @@ abstract class EventBusSyncBase {
 
     /** Sends the queued up data packages */
     const sendFn = (): void => {
-      if (this.dataPackageQueue.length > 0) {
+      if (!this.isPaused && this.dataPackageQueue.length > 0) {
         // console.log(`Sending ${this.dataPackageQueue.length} packages`);
         const syncDataPackage: SyncDataPackage = {
           busId: this.busId,
           packagedId: Math.floor(Math.random() * 1000000000),
           data: this.dataPackageQueue
         };
-        this.executeSync(syncDataPackage);
-        this.dataPackageQueue.length = 0;
+        if (this.executeSync(syncDataPackage)) {
+          this.dataPackageQueue.length = 0;
+        } else {
+          console.warn('Failed to send sync data package');
+        }
       }
       requestAnimationFrame(sendFn);
     };
@@ -362,8 +369,9 @@ abstract class EventBusSyncBase {
   /**
    * Sends this frame's events.
    * @param syncDataPackage The data package to send.
+   * @returns Whether or not the data package was sent successfully.
    */
-  protected abstract executeSync(syncDataPackage: SyncDataPackage): void;
+  protected abstract executeSync(syncDataPackage: SyncDataPackage): boolean;
 
   /**
    * Hooks up the method being used to received events.
@@ -418,17 +426,24 @@ abstract class EventBusSyncBase {
 
 /**
  * A class that manages event bus synchronization via Flow Event Triggers.
+ * DON'T USE this, it has bad performance implications.
+ * @deprecated
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class EventBusCoherentSync extends EventBusSyncBase {
   private static readonly EB_KEY = 'eb.evt';
   private static readonly EB_LISTENER_KEY = 'JS_LISTENER_SIMVARS';
   private listener!: ViewListener.ViewListener;
 
   /** @inheritdoc */
-  protected executeSync(syncDataPackage: SyncDataPackage): void {
+  protected executeSync(syncDataPackage: SyncDataPackage): boolean {
     // HINT: Stringifying the data again to circumvent the bad perf on Coherent interop
-    this.listener.triggerToAllSubscribers(EventBusCoherentSync.EB_KEY, JSON.stringify(syncDataPackage));
-
+    try {
+      this.listener.triggerToAllSubscribers(EventBusCoherentSync.EB_KEY, JSON.stringify(syncDataPackage));
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   /** @inheritdoc */
@@ -452,9 +467,14 @@ class EventBusFlowEventSync extends EventBusSyncBase {
   private static readonly EB_LISTENER_KEY = 'EB_EVENTS';
 
   /** @inheritdoc */
-  protected executeSync(syncDataPackage: SyncDataPackage): void {
+  protected executeSync(syncDataPackage: SyncDataPackage): boolean {
     // console.log('Sending sync package: ' + syncDataPackage.packagedId);
-    LaunchFlowEvent('ON_MOUSERECT_HTMLEVENT', EventBusFlowEventSync.EB_LISTENER_KEY, this.busId.toString(), JSON.stringify(syncDataPackage));
+    try {
+      LaunchFlowEvent('ON_MOUSERECT_HTMLEVENT', EventBusFlowEventSync.EB_LISTENER_KEY, this.busId.toString(), JSON.stringify(syncDataPackage));
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   /** @inheritdoc */
@@ -463,6 +483,54 @@ class EventBusFlowEventSync extends EventBusSyncBase {
       // identify if its a busevent
       if (args.length === 0 || args[0] !== EventBusFlowEventSync.EB_LISTENER_KEY || !args[2]) { return; }
       this.processEventsReceived(JSON.parse(args[2]) as SyncDataPackage);
+    });
+  }
+}
+
+
+//// DECLARING THESE GLOBALS UNTIL WE EXPORTED SU10 TYPES
+/**
+ * The Generic Data Listener
+ */
+interface GenericDataListener extends ViewListener.ViewListener {
+  onDataReceived(key: string, callback: (data: any) => void): void;
+  send(key: string, data: any): void;
+}
+
+declare function RegisterGenericDataListener(callback?: () => void): GenericDataListener;
+//// END GLOBALS DECLARATION
+
+/**
+ * A class that manages event bus synchronization via the Generic Data Listener.
+ */
+class EventBusListenerSync extends EventBusSyncBase {
+  private static readonly EB_KEY = 'wt.eb.evt';
+  private static readonly EB_LISTENER_KEY = 'JS_LISTENER_GENERICDATA';
+  private listener!: GenericDataListener;
+
+  /** @inheritdoc */
+  protected executeSync(syncDataPackage: SyncDataPackage): boolean {
+    try {
+      this.listener.send(EventBusListenerSync.EB_KEY, syncDataPackage);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /** @inheritdoc */
+  protected hookReceiveEvent(): void {
+    // pause the sync until the listener is ready
+    this.isPaused = true;
+    this.listener = RegisterGenericDataListener(() => {
+      this.listener.onDataReceived(EventBusListenerSync.EB_KEY, (data: SyncDataPackage) => {
+        try {
+          this.processEventsReceived(data);
+        } catch (error) {
+          console.error(error);
+        }
+      });
+      this.isPaused = false;
     });
   }
 }

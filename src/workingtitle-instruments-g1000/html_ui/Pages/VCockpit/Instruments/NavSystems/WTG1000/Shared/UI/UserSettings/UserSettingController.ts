@@ -1,9 +1,9 @@
-import { UserSettingManager } from 'msfssdk/settings';
+import { UserSettingManager, UserSettingRecord } from 'msfssdk';
 
 /**
  * A controller which binds a user setting to a control component.
  */
-export abstract class UserSettingController<T extends Record<any, boolean | number | string>, K extends keyof T> {
+export abstract class UserSettingController<T extends UserSettingRecord, K extends keyof T & string> {
   /** The setting associated with this controller. */
   public readonly setting = this.settingManager.getSetting(this.settingName);
 

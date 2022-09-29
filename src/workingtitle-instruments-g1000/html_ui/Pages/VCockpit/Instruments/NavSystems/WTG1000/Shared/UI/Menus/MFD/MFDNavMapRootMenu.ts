@@ -1,5 +1,8 @@
-import { UserSettingManager } from 'msfssdk/settings';
-import { MapDeclutterSettingMode, MapUserSettings, MapUserSettingTypes } from '../../../Map/MapUserSettings';
+import { UserSettingManager } from 'msfssdk';
+
+import { MapDeclutterSettingMode, MapUserSettingTypes } from 'garminsdk';
+
+import { MapUserSettings } from '../../../Map/MapUserSettings';
 import { MenuSystem } from '../MenuSystem';
 import { MFDRootMenu } from './MFDRootMenu';
 
@@ -58,6 +61,8 @@ export class MFDNavMapRootMenu extends MFDRootMenu {
       case MapDeclutterSettingMode.Level1:
         setting.value = MapDeclutterSettingMode.All;
         break;
+      default:
+        setting.value = MapDeclutterSettingMode.All;
     }
   }
 }

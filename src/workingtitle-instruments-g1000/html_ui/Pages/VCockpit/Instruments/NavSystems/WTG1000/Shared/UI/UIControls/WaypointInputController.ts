@@ -1,5 +1,4 @@
-import { Subject } from 'msfssdk';
-import { ICAO } from 'msfssdk/navigation';
+import { ICAO, Subject } from 'msfssdk';
 
 import { WaypointInputStore } from './WaypointInputStore';
 
@@ -27,7 +26,7 @@ export class WaypointInputController {
   ) {
     this.store.selectedWaypoint.sub((waypoint) => {
       this.ignoreSelectedIcao = true;
-      const icao = waypoint?.facility.icao ?? '';
+      const icao = waypoint?.facility.get().icao ?? '';
       this.selectedIcao.set(icao);
       if (waypoint) {
         const ident = ICAO.getIdent(icao);

@@ -1,9 +1,10 @@
-import { Subject } from 'msfssdk';
-import { Facility, AirportFacility, Procedure, RunwayTransition, EnrouteTransition } from 'msfssdk/navigation';
-import { LegDefinition, FlightPlannerEvents, FlightPathCalculator } from 'msfssdk/flightplan';
+import {
+  AirportFacility, EnrouteTransition, Facility, FlightPathCalculator, FlightPlannerEvents, LegDefinition, Procedure, RunwayTransition, Subject
+} from 'msfssdk';
 
-import { Fms, ProcedureType } from 'garminsdk/flightplan';
-import { SelectProcedureStore } from './SelectProcedureStore';
+import { Fms, ProcedureType } from 'garminsdk';
+
+import { SelectProcedureControllerStore } from './SelectProcedureStore';
 
 /** The controller for SelectProcedure views. */
 export abstract class SelectProcedureController {
@@ -24,7 +25,7 @@ export abstract class SelectProcedureController {
    * @param procType is the procedure type for this controller.
    */
   constructor(
-    protected readonly store: SelectProcedureStore,
+    protected readonly store: SelectProcedureControllerStore,
     protected readonly selectNextCb: () => void,
     protected readonly fms: Fms,
     protected readonly calculator: FlightPathCalculator,

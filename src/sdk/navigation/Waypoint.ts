@@ -1,7 +1,12 @@
+import { EventBus } from '../data/EventBus';
 import { FlightPathUtils, LegDefinition } from '../flightplan';
-import { GeoCircle, GeoPoint, GeoPointReadOnly } from '../geo';
+import { GeoCircle, GeoPoint, GeoPointInterface, GeoPointSubject } from '../geo';
 import { UnitType } from '../math';
-import { AirportFacility, AirportRunway, Facility, FacilityType, ICAO } from './Facilities';
+import { Subject } from '../sub/Subject';
+import { Subscribable } from '../sub/Subscribable';
+import { Subscription } from '../sub/Subscription';
+import { Facility, FacilityType, ICAO } from './Facilities';
+import { FacilityRepositoryEvents } from './FacilityRepository';
 
 /**
  * A collection of unique string waypoint type keys.
@@ -24,7 +29,7 @@ export enum WaypointTypes {
  */
 export interface Waypoint {
   /** The geographic location of the waypoint. */
-  readonly location: GeoPointReadOnly;
+  readonly location: Subscribable<GeoPointInterface>;
 
   /** A unique string ID assigned to this waypoint. */
   readonly uid: string;
@@ -44,7 +49,7 @@ export interface Waypoint {
  * An abstract implementation of Waypoint.
  */
 export abstract class AbstractWaypoint implements Waypoint {
-  public abstract get location(): GeoPointReadOnly;
+  public abstract get location(): Subscribable<GeoPointInterface>;
   public abstract get uid(): string;
   public abstract get type(): string;
 
@@ -58,7 +63,7 @@ export abstract class AbstractWaypoint implements Waypoint {
  * A waypoint with custom defined lat/lon coordinates.
  */
 export class CustomWaypoint extends AbstractWaypoint {
-  private readonly _location: GeoPoint;
+  private readonly _location: Subscribable<GeoPointInterface>;
   private readonly _uid: string;
 
   /**
@@ -67,19 +72,38 @@ export class CustomWaypoint extends AbstractWaypoint {
    * @param lon The longitude of this waypoint.
    * @param uidPrefix The prefix of this waypoint's UID.
    */
-  constructor(lat: number, lon: number, uidPrefix: string) {
+  constructor(lat: number, lon: number, uidPrefix: string);
+  /**
+   * Constructor.
+   * @param location A subscribable which provides the location of this waypoint.
+   * @param uid This waypoint's UID.
+   */
+  constructor(location: Subscribable<GeoPointInterface>, uid: string);
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  constructor(arg1: number | Subscribable<GeoPointInterface>, arg2: number | string, arg3?: string) {
     super();
 
-    this._location = new GeoPoint(lat, lon);
-    this._uid = `${uidPrefix}[${this.location.lat},${this.location.lon}]`;
+    let location: Subscribable<GeoPointInterface>;
+    let uid: string;
+
+    if (typeof arg1 === 'number') {
+      location = GeoPointSubject.createFromGeoPoint(new GeoPoint(arg1, arg2 as number));
+      uid = `${arg3 as string}[${location.get().lat},${location.get().lon}]`;
+    } else {
+      location = arg1;
+      uid = arg2 as string;
+    }
+
+    this._location = location;
+    this._uid = uid;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public get location(): GeoPointReadOnly {
-    return this._location.readonly;
+  /** @inheritdoc */
+  public get location(): Subscribable<GeoPointInterface> {
+    return this._location;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public get uid(): string {
     return this._uid;
   }
@@ -94,33 +118,69 @@ export class CustomWaypoint extends AbstractWaypoint {
  * A waypoint associated with a facility.
  */
 export class FacilityWaypoint<T extends Facility = Facility> extends AbstractWaypoint {
-  private readonly _location: GeoPoint;
-  private readonly _type: string;
+  private _facility: Subject<T>;
+  private readonly _location: GeoPointSubject;
+  private readonly _type: WaypointTypes;
+
+  private facChangeSub?: Subscription;
 
   /**
    * Constructor.
    * @param facility The facility associated with this waypoint.
+   * @param bus The event bus.
    */
-  constructor(public readonly facility: T) {
+  constructor(facility: T, private readonly bus: EventBus) {
     super();
 
-    this._location = new GeoPoint(facility.lat, facility.lon);
-    this._type = ICAO.getFacilityType(facility.icao);
+    this._facility = Subject.create(facility);
+
+    this._location = GeoPointSubject.createFromGeoPoint(new GeoPoint(facility.lat, facility.lon));
+    this._type = FacilityWaypoint.getType(facility);
+
+    const facType = ICAO.getFacilityType(facility.icao);
+    if (facType === FacilityType.VIS || facType === FacilityType.USR) {
+      // These types of facilities can be mutated. So we need to listen to the event bus for change events and respond
+      // accordingly.
+
+      this.facChangeSub = this.bus.getSubscriber<FacilityRepositoryEvents>()
+        .on(`facility_changed_${facility.icao}`)
+        .handle(newFacility => {
+          this._facility.set(newFacility as T);
+          this._location.set(newFacility.lat, newFacility.lon);
+        });
+    }
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public get location(): GeoPointReadOnly {
-    return this._location.readonly;
+  /** @inheritdoc */
+  public get location(): Subscribable<GeoPointInterface> {
+    return this._location;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public get uid(): string {
-    return this.facility.icao;
+    return this.facility.get().icao;
   }
 
   /** @inheritdoc */
   public get type(): string {
-    switch (this._type) {
+    return this._type;
+  }
+
+  // eslint-disable-next-line jsdoc/require-returns
+  /**
+   * The facility associated with this waypoint.
+   */
+  public get facility(): Subscribable<T> {
+    return this._facility;
+  }
+
+  /**
+   * Gets a waypoint type from a facility.
+   * @param facility A facility.
+   * @returns The waypoint type corresponding to the facility.
+   */
+  private static getType(facility: Facility): WaypointTypes {
+    switch (ICAO.getFacilityType(facility.icao)) {
       case FacilityType.Airport:
         return WaypointTypes.Airport;
       case FacilityType.Intersection:
@@ -142,71 +202,13 @@ export class FacilityWaypoint<T extends Facility = Facility> extends AbstractWay
 }
 
 /**
- * Airport size.
- */
-export enum AirportSize {
-  Large = 'Large',
-  Medium = 'Medium',
-  Small = 'Small'
-}
-
-/**
- * A waypoint associated with an airport.
- */
-export class AirportWaypoint<T extends AirportFacility = AirportFacility> extends FacilityWaypoint<T> {
-  /** The longest runway at the airport associated with this waypoint, or null if the airport has no runways. */
-  public readonly longestRunway: AirportRunway | null;
-
-  /** The size of the airport associated with this waypoint. */
-  public readonly size: AirportSize;
-
-  /**
-   * Constructor.
-   * @param airport The airport associated with this waypoint.
-   */
-  constructor(airport: T) {
-    super(airport);
-
-    this.longestRunway = AirportWaypoint.getLongestRunway(airport);
-    this.size = AirportWaypoint.getAirportSize(airport, this.longestRunway);
-  }
-
-  /**
-   * Gets the longest runway at an airport.
-   * @param airport An airport.
-   * @returns the longest runway at an airport, or null if the airport has no runways.
-   */
-  private static getLongestRunway(airport: AirportFacility): AirportRunway | null {
-    if (airport.runways.length === 0) {
-      return null;
-    }
-
-    return airport.runways.reduce((a, b) => a.length > b.length ? a : b);
-  }
-
-  /**
-   * Gets the size of an airport.
-   * @param airport An airport.
-   * @param longestRunway The longest runway at the airport.
-   * @returns the size of the airport.
-   */
-  private static getAirportSize(airport: AirportFacility, longestRunway: AirportRunway | null): AirportSize {
-    if (!longestRunway) {
-      return AirportSize.Small;
-    }
-
-    const longestRwyLengthFeet = UnitType.METER.convertTo(longestRunway.length, UnitType.FOOT) as number;
-    return longestRwyLengthFeet >= 8100 ? AirportSize.Large
-      : (longestRwyLengthFeet >= 5000 || airport.towered) ? AirportSize.Medium
-        : AirportSize.Small;
-  }
-}
-
-/**
  * A flight path waypoint.
  */
 export class FlightPathWaypoint extends CustomWaypoint {
   public static readonly UID_PREFIX = 'FLPTH';
+
+  /** The ident string of this waypoint. */
+  public readonly ident: string;
 
   /** @inheritdoc */
   public get type(): string { return WaypointTypes.FlightPlan; }
@@ -217,8 +219,23 @@ export class FlightPathWaypoint extends CustomWaypoint {
    * @param lon The longitude of this waypoint.
    * @param ident The ident string of this waypoint.
    */
-  constructor(lat: number, lon: number, public readonly ident: string) {
-    super(lat, lon, `${FlightPathWaypoint.UID_PREFIX}_${ident}`);
+  constructor(lat: number, lon: number, ident: string);
+  /**
+   * Constructor.
+   * @param location A subscribable which provides the location of this waypoint.
+   * @param uid This waypoint's UID.
+   * @param ident The ident string of this waypoint.
+   */
+  constructor(location: Subscribable<GeoPointInterface>, uid: string, ident: string);
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  constructor(arg1: number | Subscribable<GeoPointInterface>, arg2: number | string, ident: string) {
+    if (typeof arg1 === 'number') {
+      super(arg1 as number, arg2 as number, `${FlightPathWaypoint.UID_PREFIX}_${ident}`);
+    } else {
+      super(arg1, arg2 as string);
+    }
+
+    this.ident = ident;
   }
 }
 
@@ -231,7 +248,7 @@ export class VNavWaypoint extends AbstractWaypoint {
   private static readonly geoPointCache = [new GeoPoint(0, 0)];
   private static readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
 
-  private readonly _location: GeoPoint;
+  private readonly _location: GeoPointSubject;
   private readonly _uid: string;
 
   /** @inheritdoc */
@@ -248,7 +265,7 @@ export class VNavWaypoint extends AbstractWaypoint {
     super();
 
     this._uid = VNavWaypoint.uidMap[type];
-    this._location = this.getWaypointLocation(leg, distanceFromEnd);
+    this._location = GeoPointSubject.createFromGeoPoint(this.getWaypointLocation(leg, distanceFromEnd));
   }
 
   /**
@@ -294,12 +311,12 @@ export class VNavWaypoint extends AbstractWaypoint {
     return out;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public get location(): GeoPointReadOnly {
-    return this._location.readonly;
+  /** @inheritdoc */
+  public get location(): Subscribable<GeoPointInterface> {
+    return this._location;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public get uid(): string {
     return this._uid;
   }

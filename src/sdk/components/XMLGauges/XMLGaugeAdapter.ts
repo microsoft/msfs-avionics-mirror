@@ -3,7 +3,6 @@
 
 import { EventBus } from '../../data';
 import * as d from './GaugeDefinitions';
-import { XMLGaugeProps, XMLGaugeStyle, GaugeColumnGroupProps, GaugeColumnProps } from './GaugeDefinitions';
 import { XMLTextColumnProps, XMLTextElementProps } from './TextElement';
 
 /**
@@ -550,15 +549,15 @@ export class XMLGaugeConfigFactory {
    * @param gaugeDef AN XML element defining the group.
    * @returns The props for the group with all contained columns.
    */
-  private createColumnGroup(gaugeDef: Element): GaugeColumnGroupProps {
-    const columns = new Array<GaugeColumnProps>();
+  private createColumnGroup(gaugeDef: Element): d.GaugeColumnGroupProps {
+    const columns = new Array<d.GaugeColumnProps>();
     const children = gaugeDef.children;
     for (const child of children) {
       if (child.tagName == 'Column') {
         columns.push(this.createColumn(child));
       }
     }
-    const group: GaugeColumnGroupProps = {
+    const group: d.GaugeColumnGroupProps = {
       bus: this.bus,
       columns: columns
     };
@@ -571,8 +570,8 @@ export class XMLGaugeConfigFactory {
    * @param gaugeDef An XML element defining the column.
    * @returns The props of the column with all contained gauges.
    */
-  private createColumn(gaugeDef: Element): GaugeColumnProps {
-    const column: GaugeColumnProps = { gauges: this._parseConfig(gaugeDef) };
+  private createColumn(gaugeDef: Element): d.GaugeColumnProps {
+    const column: d.GaugeColumnProps = { gauges: this._parseConfig(gaugeDef) };
     XMLGaugeConfigFactory.getAndAssign(column, gaugeDef, 'id', 'id');
     XMLGaugeConfigFactory.getAndAssign(column, gaugeDef, 'width', 'width', parseFloat);
     return column;
@@ -589,7 +588,7 @@ export class XMLGaugeConfigFactory {
    * @param tag The tag name to retrieve.
    * @param converter A type conversion used if the value is defined.
    */
-  private static getAndAssign<P extends Partial<XMLGaugeProps> | Partial<XMLGaugeStyle>, K extends keyof P>(
+  private static getAndAssign<P extends Partial<d.XMLGaugeProps> | Partial<d.XMLGaugeStyle>, K extends keyof P>(
     obj: P,
     elem: Element,
     prop: K,

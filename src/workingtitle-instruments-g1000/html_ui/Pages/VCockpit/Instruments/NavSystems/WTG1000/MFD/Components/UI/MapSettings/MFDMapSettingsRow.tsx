@@ -1,7 +1,10 @@
-import { ComponentProps, DisplayComponent, FSComponent, VNode } from 'msfssdk';
-import { UserSettingValueFilter } from 'msfssdk/settings';
-import { MapUserSettingTypes } from '../../../../Shared/Map/MapUserSettings';
-import { MapEnumSettingControl, MapEnumSettingControlProps, MapRangeSettingControl, MapRangeSettingControlProps, MapSettingControlProps, MapToggleSettingControl } from '../../../../Shared/UI/MapSettings/MapSettingControls';
+import { ComponentProps, DisplayComponent, FSComponent, UserSettingValueFilter, VNode } from 'msfssdk';
+
+import { MapUserSettingTypes } from 'garminsdk';
+
+import {
+  MapEnumSettingControl, MapEnumSettingControlProps, MapRangeSettingControl, MapRangeSettingControlProps, MapSettingControlProps, MapToggleSettingControl
+} from '../../../../Shared/UI/MapSettings/MapSettingControls';
 import { ViewService } from '../../../../Shared/UI/ViewService';
 
 import './MFDMapSettingsRow.css';

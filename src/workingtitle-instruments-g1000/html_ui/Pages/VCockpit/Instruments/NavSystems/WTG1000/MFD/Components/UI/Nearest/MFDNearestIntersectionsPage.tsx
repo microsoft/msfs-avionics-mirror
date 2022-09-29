@@ -1,8 +1,8 @@
-import { VNode, FSComponent } from 'msfssdk';
-import { Facility, IntersectionFacility, NearestIntersectionSubscription, NearestSubscription } from 'msfssdk/navigation';
+import { Facility, FSComponent, IntersectionFacility, NearestIntersectionSubscription, NearestSubscription, VNode } from 'msfssdk';
+
 import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { WaypointIconImageCache } from '../../../../Shared/WaypointIconImageCache';
-import { InformationGroup, ReferenceVorGroup } from './Intersections';
+import { NearestIntersectionInformationGroup, NearestIntersectionReferenceVorGroup } from './Intersections';
 import { MFDNearestPage } from './MFDNearestPage';
 
 /**
@@ -10,8 +10,8 @@ import { MFDNearestPage } from './MFDNearestPage';
  */
 export class MFDNearestIntersectionsPage extends MFDNearestPage<IntersectionFacility> {
 
-  private readonly informationGroup = FSComponent.createRef<InformationGroup>();
-  private readonly referenceVorGroup = FSComponent.createRef<ReferenceVorGroup>();
+  private readonly informationGroup = FSComponent.createRef<NearestIntersectionInformationGroup>();
+  private readonly referenceVorGroup = FSComponent.createRef<NearestIntersectionReferenceVorGroup>();
 
   /** @inheritdoc */
   protected getSelectedGroup(): G1000UiControl<G1000UiControlProps> {
@@ -59,8 +59,8 @@ export class MFDNearestIntersectionsPage extends MFDNearestPage<IntersectionFaci
   protected renderGroups(): VNode {
     return (
       <>
-        <InformationGroup ref={this.informationGroup} />
-        <ReferenceVorGroup ref={this.referenceVorGroup} unitsSettingManager={this.unitsSettingManager} />
+        <NearestIntersectionInformationGroup ref={this.informationGroup} />
+        <NearestIntersectionReferenceVorGroup ref={this.referenceVorGroup} unitsSettingManager={this.unitsSettingManager} />
       </>
     );
   }

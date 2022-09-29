@@ -1,5 +1,6 @@
-import { BitFlags, GeoCircle, GeoPoint } from '../..';
 import { FlightPathUtils, FlightPathVector, LegDefinition } from '../../flightplan';
+import { GeoCircle, GeoPoint } from '../../geo';
+import { BitFlags } from '../../math';
 import { GeoProjectionPathStreamStack } from './GeoProjectionPathStreamStack';
 
 /**

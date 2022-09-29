@@ -1,5 +1,5 @@
-import { DisplayComponent, FSComponent, Subject, VNode } from 'msfssdk';
-import { NdbFacility } from 'msfssdk/navigation';
+import { DisplayComponent, FSComponent, NdbFacility, Subject, VNode } from 'msfssdk';
+
 import { GroupBox } from '../../GroupBox';
 
 import './FrequencyGroup.css';
@@ -8,7 +8,7 @@ import './FrequencyGroup.css';
  * A component that displays frequency information about a NDB on the
  * MFD nearest NDBs page.
  */
-export class FrequencyGroup extends DisplayComponent<any> {
+export class NearestNdbFrequencyGroup extends DisplayComponent<any> {
 
   private readonly content = FSComponent.createRef<HTMLDivElement>();
   private readonly frequency = Subject.create<string>('');

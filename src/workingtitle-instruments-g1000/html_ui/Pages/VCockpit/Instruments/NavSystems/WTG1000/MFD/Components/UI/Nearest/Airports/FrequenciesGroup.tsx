@@ -1,7 +1,6 @@
-import { VNode, FSComponent, ArraySubject } from 'msfssdk';
-import { ControlPublisher } from 'msfssdk/data';
-import { AirportFacility, FacilityFrequency, FacilityFrequencyType } from 'msfssdk/navigation';
-import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../../Shared/UI/G1000UiControl';
+import { AirportFacility, ArraySubject, ControlPublisher, FacilityFrequency, FacilityFrequencyType, FSComponent, VNode } from 'msfssdk';
+
+import { G1000ControlList, G1000UiControl, G1000UiControlProps } from '../../../../../Shared/UI/G1000UiControl';
 import { GroupBox } from '../../GroupBox';
 
 import './FrequenciesGroup.css';
@@ -9,7 +8,7 @@ import './FrequenciesGroup.css';
 /**
  * Props on the FrequenciesGroup component.
  */
-export interface FrequenciesGroupProps extends G1000UiControlProps {
+export interface NearestAirportFrequenciesGroupProps extends G1000UiControlProps {
   /** A control publisher used to send radio update commands. */
   controlPublisher: ControlPublisher;
 }
@@ -18,7 +17,7 @@ export interface FrequenciesGroupProps extends G1000UiControlProps {
  * A component that displays a list of selectable radio frequencies
  * on the MFD nearest airports page.
  */
-export class FrequenciesGroup extends G1000UiControl<FrequenciesGroupProps> {
+export class NearestAirportFrequenciesGroup extends G1000UiControl<NearestAirportFrequenciesGroupProps> {
 
   private readonly frequencies = ArraySubject.create<FacilityFrequency>();
   private readonly frequencyList = FSComponent.createRef<G1000ControlList<FacilityFrequency>>();

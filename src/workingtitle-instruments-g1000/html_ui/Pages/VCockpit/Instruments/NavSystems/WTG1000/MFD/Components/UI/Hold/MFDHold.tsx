@@ -1,15 +1,21 @@
-import { FSComponent, NavMath, NumberUnitSubject, Subject, UnitFamily, VNode } from 'msfssdk';
-import { MapModel } from 'msfssdk/components/map';
+import {
+  CompiledMapSystem, FSComponent, MapIndexedRangeModule, MapSystemBuilder, MathUtils, NavMath, NumberUnitSubject, UnitFamily, Vec2Math, VecNMath, VNode
+} from 'msfssdk';
+
+import {
+  GarminMapKeys, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapRangeController, MapWaypointHighlightModule, UnitsUserSettings
+} from 'garminsdk';
+
+import { MapBuilder } from '../../../../Shared/Map/MapBuilder';
+import { MapUserSettings } from '../../../../Shared/Map/MapUserSettings';
+import { MapWaypointIconImageCache } from '../../../../Shared/Map/MapWaypointIconImageCache';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
+import { Hold } from '../../../../Shared/UI/Hold/Hold';
 import { ActionButton } from '../../../../Shared/UI/UIControls/ActionButton';
 import { ArrowToggle } from '../../../../Shared/UI/UIControls/ArrowToggle';
 import { NumberInput } from '../../../../Shared/UI/UIControls/NumberInput';
 import { TimeDistanceInput } from '../../../../Shared/UI/UIControls/TimeDistanceInput';
-import { Hold } from '../../../../Shared/UI/Hold/Hold';
-import { WaypointMapComponent, WaypointMapRangeTargetRotationController } from '../../../../Shared/UI/WaypointMap/WaypointMapComponent';
-import { WaypointMapModelModules, WaypointMapModel } from '../../../../Shared/UI/WaypointMap/WaypointMapModel';
 import { GroupBox } from '../GroupBox';
-import { MapPointerInfoLayerSize } from '../../../../Shared/Map/Layers/MapPointerInfoLayer';
 
 import './MFDHold.css';
 
@@ -17,20 +23,76 @@ import './MFDHold.css';
  * A class that displays the MFD hold dialog.
  */
 export class MFDHold extends Hold {
+  private static readonly DEFAULT_MAP_RANGE_INDEX = 14;
 
   private static readonly MAP_UPDATE_FREQ = 30; // Hz
   private static readonly MAP_DATA_UPDATE_FREQ = 4; // Hz
 
-  private readonly mapRef = FSComponent.createRef<WaypointMapComponent>();
+  private readonly mapSettingManager = MapUserSettings.getMfdManager(this.props.bus);
 
-  private readonly mapModel = this.createMapModel();
-  private readonly mapRangeIndexSub = Subject.create(WaypointMapRangeTargetRotationController.DEFAULT_MAP_RANGE_INDEX);
+  private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
+    .with(MapBuilder.waypointMap, {
+      bingId: 'mfd-wptinfo-map',
+      dataUpdateFreq: MFDHold.MAP_DATA_UPDATE_FREQ,
+
+      boundsOffset: VecNMath.create(4, 20, 20, 20, 20),
+
+      waypointIconImageCache: MapWaypointIconImageCache.getCache(),
+
+      rangeRingOptions: {
+        showLabel: true
+      },
+
+      ...MapBuilder.ownAirplaneIconOptions(),
+
+      pointerBoundsOffset: VecNMath.create(4, 0.1, 0.1, 0.1, 0.1),
+      pointerInfoSize: MapPointerInfoLayerSize.Medium,
+
+      miniCompassImgSrc: MapBuilder.miniCompassIconSrc(),
+
+      settingManager: this.mapSettingManager as any,
+      unitsSettingManager: UnitsUserSettings.getManager(this.props.bus)
+    })
+    .withProjectedSize(Vec2Math.create(290, 300))
+    .withClockUpdate(MFDHold.MAP_UPDATE_FREQ)
+    .build('mfd-holdmap') as CompiledMapSystem<
+      {
+        /** The range module. */
+        [GarminMapKeys.Range]: MapIndexedRangeModule,
+
+        /** The pointer module. */
+        [GarminMapKeys.WaypointHighlight]: MapWaypointHighlightModule
+
+        /** The pointer module. */
+        [GarminMapKeys.Pointer]: MapPointerModule
+      },
+      any,
+      {
+        /** The range controller. */
+        [GarminMapKeys.Range]: MapRangeController,
+
+        /** The pointer controller. */
+        [GarminMapKeys.Pointer]: MapPointerController
+      },
+      any
+    >;
+
+  private readonly mapRangeModule = this.compiledMap.context.model.getModule(GarminMapKeys.Range);
+  private readonly mapHighlightModule = this.compiledMap.context.model.getModule(GarminMapKeys.WaypointHighlight);
+  private readonly mapPointerModule = this.compiledMap.context.model.getModule(GarminMapKeys.Pointer);
+
+  private readonly mapRangeController = this.compiledMap.context.getController(GarminMapKeys.Range);
+  private readonly mapPointerController = this.compiledMap.context.getController(GarminMapKeys.Pointer);
 
   /** @inheritdoc */
   public onAfterRender(): void {
     super.onAfterRender();
 
-    this.mapRef.instance.sleep();
+    this.compiledMap.ref.instance.sleep();
+
+    this.mapRangeController.setRangeIndex(MFDHold.DEFAULT_MAP_RANGE_INDEX);
+
+    this.store.waypoint.pipe(this.mapHighlightModule.waypoint);
   }
 
   /** @inheritdoc */
@@ -51,15 +113,15 @@ export class MFDHold extends Hold {
   protected onViewOpened(): void {
     super.onViewOpened();
 
-    this.mapRef.instance.wake();
+    this.compiledMap.ref.instance.wake();
   }
 
   /** @inheritdoc */
   protected onViewClosed(): void {
     super.onViewClosed();
 
-    this.mapRef.instance.sleep();
-    this.mapRangeIndexSub.set(WaypointMapRangeTargetRotationController.DEFAULT_MAP_RANGE_INDEX);
+    this.compiledMap.ref.instance.sleep();
+    this.mapRangeController.setRangeIndex(MFDHold.DEFAULT_MAP_RANGE_INDEX);
   }
 
   /**
@@ -67,16 +129,13 @@ export class MFDHold extends Hold {
    * @param delta The change in index to apply.
    */
   private changeMapRangeIndex(delta: number): void {
-    const newIndex = Utils.Clamp(this.mapRangeIndexSub.get() + delta, 0, WaypointMapRangeTargetRotationController.DEFAULT_MAP_RANGES.length - 1);
-    this.mapRangeIndexSub.set(newIndex);
-  }
+    const currentIndex = this.mapRangeModule.nominalRangeIndex.get();
+    const newIndex = MathUtils.clamp(currentIndex + delta, 0, this.mapRangeModule.nominalRanges.get().length - 1);
 
-  /**
-   * Creates the model for this component's map.
-   * @returns a map model.
-   */
-  private createMapModel(): MapModel<WaypointMapModelModules> {
-    return WaypointMapModel.createModel(this.props.bus);
+    if (newIndex !== currentIndex) {
+      this.mapPointerController.targetPointer();
+      this.mapRangeController.setRangeIndex(newIndex);
+    }
   }
 
   /**
@@ -127,21 +186,7 @@ export class MFDHold extends Hold {
           </div>
         </GroupBox>
         <GroupBox title='Map' class='mfd-hold-map-box'>
-          <WaypointMapComponent
-            ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
-            updateFreq={Subject.create(MFDHold.MAP_UPDATE_FREQ)}
-            dataUpdateFreq={Subject.create(MFDHold.MAP_DATA_UPDATE_FREQ)}
-            projectedWidth={290} projectedHeight={300}
-            bingId='mfd_wptinfo_map'
-            rangeIndex={this.mapRangeIndexSub}
-            waypoint={this.store.waypoint}
-            ownAirplaneLayerProps={{
-              imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
-              iconSize: 40,
-              iconAnchor: new Float64Array([0.5, 0])
-            }}
-            pointerInfoSize={MapPointerInfoLayerSize.Medium}
-          />
+          {this.compiledMap.map}
         </GroupBox>
         <ActionButton class='mfd-hold-load' text='Load?' onExecute={(): void => { this.controller.accept(); this.close(); }} onRegister={this.register} />
       </div>

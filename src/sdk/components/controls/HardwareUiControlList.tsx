@@ -1,7 +1,7 @@
 import { ScrollUtils } from '../../graphics/layout/ScrollUtils';
-import { FSComponent, NodeReference, VNode } from '../FSComponent';
 import { SubscribableArray, SubscribableArrayEventType } from '../../sub/SubscribableArray';
-import { HardwareUiControl, HardwareUiControlProps, FocusPosition } from './HardwareUiControl';
+import { FSComponent, NodeReference, VNode } from '../FSComponent';
+import { FocusPosition, HardwareUiControl, HardwareUiControlProps } from './HardwareUiControl';
 
 /**
  * Properties on the ControlList component.
@@ -34,6 +34,9 @@ export interface HardwareControlListProps<T> extends HardwareUiControlProps {
 
   /** An alternate HTML element to scroll to ensure the selected element is in view. */
   scrollContainer?: NodeReference<HTMLElement>
+
+  /** Disables automatically ensuring that the container scrolls to the focused item. */
+  disableContainerScroll?: boolean;
 }
 
 /**
@@ -376,7 +379,7 @@ export abstract class HardwareUiControlList<T,
   public ensureIndexInView(index: number): void {
     const el = this.getElement(index);
     const container = this.props.scrollContainer?.getOrDefault() ?? this.itemsContainer.getOrDefault();
-    if (el && container) {
+    if (el && container && !this.props.disableContainerScroll) {
       ScrollUtils.ensureInView(el, container);
     }
   }

@@ -1,5 +1,4 @@
-import { VNode, FSComponent } from 'msfssdk';
-import { OneWayRunway } from 'msfssdk/navigation';
+import { FSComponent, OneWayRunway, VNode } from 'msfssdk';
 
 import { ContextMenuPosition } from '../../../../Shared/UI/Dialogs/ContextMenuDialog';
 import { SetRunway } from '../../../../Shared/UI/SetRunway/SetRunway';
@@ -34,7 +33,3 @@ export class PFDSetRunway extends SetRunway {
     );
   }
 }
-
-
-
-

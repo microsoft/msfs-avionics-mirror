@@ -1,10 +1,7 @@
 import { GeoPoint } from '../geo/GeoPoint';
 import { NavMath } from '../geo/NavMath';
 import { UnitType } from '../math/NumberUnit';
-import {
-  AirportFacility, AirportRunway, ApproachProcedure, FacilityFrequency,
-  OneWayRunway, RunwayFacility, RunwaySurfaceType
-} from './Facilities';
+import { AirportFacility, AirportRunway, ApproachProcedure, FacilityFrequency, OneWayRunway, RunwayFacility, RunwaySurfaceType } from './Facilities';
 
 export enum RunwaySurfaceCategory {
   Unknown = 1 << 0,
@@ -322,6 +319,50 @@ export class RunwayUtils {
       }
     }
     return undefined;
+  }
+
+  /**
+   * Gets the back course frequency for a runway.
+   * @param airport The airport to which the query runway belongs.
+   * @param runwayNumber The number of the query runway.
+   * @param runwayDesignator The designator of the query runway.
+   * @returns The bc frequency for the query runway, or undefined if one could not be found.
+   */
+  public static getBcFrequency(airport: AirportFacility, runwayNumber: number, runwayDesignator: RunwayDesignator): FacilityFrequency | undefined {
+
+    const matchedRunway = RunwayUtils.getOppositeOneWayRunway(airport, runwayNumber, runwayDesignator);
+
+    if (!matchedRunway) {
+      return undefined;
+    }
+
+    return RunwayUtils.getLocFrequency(airport, matchedRunway);
+  }
+
+  /**
+   * Get the opposite one way runway from a runway number and designator.
+   * @param airport The airport to which the query runway belongs.
+   * @param runwayNumber The number of the query runway.
+   * @param runwayDesignator The designator of the query runway.
+   * @returns The opposite one way runway for the query runway, or undefined if one could not be found.
+   */
+  public static getOppositeOneWayRunway(airport: AirportFacility, runwayNumber: number, runwayDesignator: RunwayDesignator): OneWayRunway | undefined {
+
+    const oppositeRunwayNumber = Math.round(NavMath.normalizeHeading(10 * (runwayNumber + 18)) / 10);
+    let oppositeRunwayDesignator = RunwayDesignator.RUNWAY_DESIGNATOR_NONE;
+
+    switch (runwayDesignator) {
+      case RunwayDesignator.RUNWAY_DESIGNATOR_LEFT:
+        oppositeRunwayDesignator = RunwayDesignator.RUNWAY_DESIGNATOR_RIGHT;
+        break;
+      case RunwayDesignator.RUNWAY_DESIGNATOR_RIGHT:
+        oppositeRunwayDesignator = RunwayDesignator.RUNWAY_DESIGNATOR_LEFT;
+        break;
+      default:
+        oppositeRunwayDesignator = runwayDesignator;
+        break;
+    }
+    return RunwayUtils.matchOneWayRunway(airport, oppositeRunwayNumber, oppositeRunwayDesignator);
   }
 
   /**

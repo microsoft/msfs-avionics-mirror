@@ -1,7 +1,5 @@
-import { FSComponent, DisplayComponent, VNode, Subject, ComponentProps, Vec2Subject } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { ClockEvents, GNSSEvents } from 'msfssdk/instruments';
-import { ADCEvents } from 'msfssdk/instruments/ADC';
+import { AdcEvents, AhrsEvents, ClockEvents, ComponentProps, DisplayComponent, EventBus, FSComponent, GNSSEvents, Subject, Vec2Subject, VNode } from 'msfssdk';
+
 import { AHRSSystemEvents } from '../../../Shared/Systems/AHRSSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
 import { PFDUserSettings } from '../../PFDUserSettings';
@@ -19,6 +17,10 @@ interface PrimaryHorizonDisplayProps extends ComponentProps {
 
   /** An instance of the event bus. */
   bus: EventBus;
+
+  /** Whether this instance of the G1000 has a Radio Altimeter. */
+  hasRadioAltimeter: boolean;
+
 }
 
 /**
@@ -74,14 +76,14 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
    * A callback called after the component renders.
    */
   public onAfterRender(): void {
-    const sub = this.props.bus.getSubscriber<ADCEvents & GNSSEvents & ClockEvents & AHRSSystemEvents>();
+    const sub = this.props.bus.getSubscriber<AdcEvents & AhrsEvents & GNSSEvents & ClockEvents & AHRSSystemEvents>();
     sub.on('pitch_deg')
       .withPrecision(2)
       .handle(this.onUpdatePitch);
     sub.on('roll_deg')
       .withPrecision(3)
       .handle(this.onUpdateRoll);
-    sub.on('alt')
+    sub.on('indicated_alt')
       .whenChanged()
       .handle(this.onUpdateAltitude);
     sub.on('hdg_deg')
@@ -93,7 +95,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
     sub.on('ground_speed')
       .withPrecision(2)
       .handle(this.onUpdateGroundSpeed);
-    sub.on('vs')
+    sub.on('vertical_speed')
       .withPrecision(2)
       .handle(this.onUpdateVerticalSpeed);
     sub.on('aoa')
@@ -224,7 +226,7 @@ export class PrimaryHorizonDisplay extends DisplayComponent<PrimaryHorizonDispla
           />
           <FlightPathMarker ref={this.flightPathMarkerRef} isActive={this.isSvtActiveSub} />
         </div>
-        <AttitudeIndicator ref={this.attitudeIndicatorRef} bus={this.props.bus} />
+        <AttitudeIndicator ref={this.attitudeIndicatorRef} bus={this.props.bus} hasRadioAltimeter={this.props.hasRadioAltimeter} />
         {/* <SvtAirportLabels ref={this.aptLabelsRef} bus={this.props.bus} /> */}
       </div>
     );

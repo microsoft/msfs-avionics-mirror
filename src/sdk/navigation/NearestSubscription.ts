@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-import { AirportFacility, Facility, FacilitySearchType, FacilityType, IntersectionFacility, NdbFacility, NearestSearchResults, VorFacility } from './Facilities';
-import { FacilityLoader, NearestAirportSearchSession, NearestIntersectionSearchSession, NearestSearchSession } from './FacilityLoader';
+import { GeoPoint } from '../geo';
 import { ArraySubject } from '../sub';
 import { AbstractSubscribableArray } from '../sub/AbstractSubscribableArray';
 import { SubscribableArray, SubscribableArrayEventType } from '../sub/SubscribableArray';
-import { GeoPoint } from '../geo';
 import { SortedMappedSubscribableArray } from '../utils/datastructures';
+import {
+  AirportFacility, Facility, FacilitySearchType, FacilityType, IntersectionFacility, NdbFacility, NearestSearchResults, VorFacility
+} from './Facilities';
+import { FacilityLoader, NearestAirportSearchSession, NearestIntersectionSearchSession, NearestSearchSession } from './FacilityLoader';
 
 /**
  * A type map of search type to concrete facility loader query type.
@@ -225,6 +227,19 @@ export class NearestAirportSubscription extends NearestWaypointSubscription<Airp
   public setFilter(showClosed: boolean, classMask: number): void {
     if (this.session !== undefined) {
       (this.session as NearestAirportSearchSession).setAirportFilter(showClosed, classMask);
+    }
+  }
+
+  /**
+   * Sets the extended airport filters for the airport nearest search.
+   * @param surfaceTypeMask A bitmask of allowable runway surface types.
+   * @param approachTypeMask A bitmask of allowable approach types.
+   * @param toweredMask A bitmask of untowered (1) or towered (2) bits.
+   * @param minRunwayLength The minimum allowable runway length, in meters.
+   */
+  public setExtendedFilters(surfaceTypeMask: number, approachTypeMask: number, toweredMask: number, minRunwayLength: number): void {
+    if (this.session !== undefined) {
+      (this.session as NearestAirportSearchSession).setExtendedAirportFilters(surfaceTypeMask, approachTypeMask, toweredMask, minRunwayLength);
     }
   }
 }

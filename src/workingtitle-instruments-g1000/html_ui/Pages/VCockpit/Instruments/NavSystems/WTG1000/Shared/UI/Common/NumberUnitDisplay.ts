@@ -1,3 +1,5 @@
+import { NumberUnitDisplay } from 'garminsdk';
+
 import './NumberUnitDisplay.css';
 
-export * from 'garminsdk/components/common/NumberUnitDisplay';
+export { NumberUnitDisplay };

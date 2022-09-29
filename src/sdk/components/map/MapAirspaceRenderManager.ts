@@ -1,8 +1,7 @@
-import { GeoProjection } from '../..';
-import { LodBoundary } from '../../navigation';
+import { GeoProjection } from '../../geo';
 import { PathStream } from '../../graphics/path';
-import { ArrayTaskQueue, ThrottledTaskQueueHandler, ThrottledTaskQueueProcess } from '../../utils/task';
-import { MapAirspaceRenderer } from './MapAirspaceRenderer';
+import { LodBoundary } from '../../navigation';
+import { ThrottledTaskQueueHandler, ThrottledTaskQueueProcess } from '../../utils/task';
 
 /**
  * A manager which facilitates the rendering of multiple airspaces.
@@ -59,105 +58,4 @@ export interface MapAirspaceRenderManager {
     lod?: number,
     stream?: PathStream
   ): ThrottledTaskQueueProcess;
-}
-
-/**
- * An abstract implementation of MapAirspaceRenderManager.
- */
-export abstract class AbstractMapAirspaceRenderManager implements MapAirspaceRenderManager {
-  private airspaces = new Map<number, LodBoundary>();
-
-  private readonly airspaceRenderSorter = this.getRenderOrder.bind(this);
-
-  /** @inheritdoc */
-  public getRegisteredAirspaces(): readonly LodBoundary[] {
-    return Array.from(this.airspaces.values());
-  }
-
-  /** @inheritdoc */
-  public registerAirspace(airspace: LodBoundary): boolean {
-    if (this.airspaces.has(airspace.facility.id)) {
-      return false;
-    }
-
-    this.airspaces.set(airspace.facility.id, airspace);
-
-    return true;
-  }
-
-  /** @inheritdoc */
-  public deregisterAirspace(airspace: LodBoundary): boolean {
-    return this.airspaces.delete(airspace.facility.id);
-  }
-
-  /** @inheritdoc */
-  public replaceRegisteredAirspaces(airspaces: Iterable<LodBoundary>): boolean {
-    let changed = false;
-    let numMatched = 0;
-    for (const airspace of airspaces) {
-      changed ||= !this.airspaces.has(airspace.facility.id);
-      if (changed) {
-        break;
-      } else {
-        numMatched++;
-      }
-    }
-    changed ||= numMatched !== this.airspaces.size;
-
-    if (!changed) {
-      return false;
-    }
-
-    this.airspaces.clear();
-    for (const airspace of airspaces) {
-      this.registerAirspace(airspace);
-    }
-
-    return true;
-  }
-
-  /** @inheritdoc */
-  public clearRegisteredAirspaces(): boolean {
-    if (this.airspaces.size === 0) {
-      return false;
-    }
-
-    this.airspaces.clear();
-    return true;
-  }
-
-  /** @inheritdoc */
-  public prepareRenderProcess(
-    projection: GeoProjection,
-    context: CanvasRenderingContext2D,
-    taskQueueHandler: ThrottledTaskQueueHandler,
-    lod = 0,
-    stream?: PathStream
-  ): ThrottledTaskQueueProcess {
-    const sorted = Array.from(this.airspaces.values()).sort(this.airspaceRenderSorter);
-
-    const tasks = sorted.map(airspace => {
-      const renderer = this.getAirspaceRenderer(airspace);
-      // The explicit cast is to avoid a bogus typescript error
-      return (renderer.render as any).bind(renderer, airspace, projection, context, lod, stream);
-    });
-
-    return new ThrottledTaskQueueProcess(new ArrayTaskQueue(tasks), taskQueueHandler);
-  }
-
-  /**
-   * Gets the relative rendering order of two airspaces. This method should return -1 if a is to be rendered before b,
-   * 1 if a is to be rendered after b, and 0 if the rendering order between a and b does not matter.
-   * @param a The first airspace.
-   * @param b The second airspace.
-   * @returns the relative rendering order of two airspaces.
-   */
-  protected abstract getRenderOrder(a: LodBoundary, b: LodBoundary): number;
-
-  /**
-   * Gets a renderer for an airspace.
-   * @param airspace The airspace for which to get the renderer.
-   * @returns an airspace renderer.
-   */
-  protected abstract getAirspaceRenderer(airspace: LodBoundary): MapAirspaceRenderer;
 }

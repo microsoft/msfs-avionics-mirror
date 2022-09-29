@@ -1,15 +1,11 @@
-import { BitFlags, GeoCircle, GeoPoint, GeoPointInterface, MagVar, NavMath, ObjectSubject, UnitType } from 'msfssdk';
-import { ConsumerSubject, EventBus, SimVarValueType } from 'msfssdk/data';
-import { AirportFacility, FacilityType, FixTypeFlags, LegType, FacilityLoader, RnavTypeFlags, AdditionalApproachType } from 'msfssdk/navigation';
 import {
-  FlightPlanSegment, FlightPlanSegmentType, LegDefinition, FlightPlanner, FlightPlannerEvents,
-  FlightPlanOriginDestEvent, OriginDestChangeType, FlightPathUtils, FlightPathVectorFlags, LegDefinitionFlags, ActiveLegType
-} from 'msfssdk/flightplan';
-import { LNavEvents, LNavTransitionMode, LNavDataVars } from 'msfssdk/autopilot';
-import { LNavDirector } from 'msfssdk/autopilot/directors';
-import { ClockEvents, GNSSEvents, NavEvents } from 'msfssdk/instruments';
+  ActiveLegType, AdditionalApproachType, AirportFacility, BitFlags, ClockEvents, ConsumerSubject, EventBus, FacilityLoader, FacilityType, FixTypeFlags,
+  FlightPathUtils, FlightPathVectorFlags, FlightPlan, FlightPlanLegEvent, FlightPlanner, FlightPlannerEvents, FlightPlanOriginDestEvent, FlightPlanSegment,
+  FlightPlanSegmentType, GeoCircle, GeoPoint, GeoPointInterface, GNSSEvents, LatLonInterface, LegDefinition, LegDefinitionFlags, LegType, LNavDataVars, LNavDirector,
+  LNavEvents, LNavTransitionMode, MagVar, NavEvents, NavMath, ObjectSubject, OriginDestChangeType, RnavTypeFlags, SimVarValueType, Subject, UnitType
+} from 'msfssdk';
 
-import { ApproachDetails } from '../flightplan';
+import { ApproachDetails, FmsUtils } from '../flightplan';
 import { GarminControlEvents } from '../instruments';
 import { CDIScaleLabel, GarminLNavDataVars } from './LNavDataEvents';
 
@@ -18,12 +14,12 @@ import { CDIScaleLabel, GarminLNavDataVars } from './LNavDataEvents';
  */
 export class NavdataComputer {
   private readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)];
-  private readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
+  private readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0)];
 
   private readonly planePos = new GeoPoint(0, 0);
   private readonly isObsActive: ConsumerSubject<boolean>;
 
-  private obsAvailable = false;
+  private readonly obsAvailable = Subject.create<boolean>(false);
   private approachDetails: ApproachDetails = {
     approachLoaded: false,
     approachType: ApproachType.APPROACH_TYPE_UNKNOWN,
@@ -39,6 +35,7 @@ export class NavdataComputer {
   private readonly lnavIsSuspended: ConsumerSubject<boolean>;
   private readonly lnavDtk: ConsumerSubject<number>;
   private readonly lnavXtk: ConsumerSubject<number>;
+  private readonly lnavVectorAnticipationDistance: ConsumerSubject<number>;
 
   private readonly lnavData = ObjectSubject.create({
     dtkTrue: 0,
@@ -79,12 +76,14 @@ export class NavdataComputer {
     this.lnavIsSuspended = ConsumerSubject.create(sub.on('lnav_is_suspended'), false);
     this.lnavDtk = ConsumerSubject.create(sub.on('lnav_dtk'), 0);
     this.lnavXtk = ConsumerSubject.create(sub.on('lnav_xtk'), 0);
+    this.lnavVectorAnticipationDistance = ConsumerSubject.create(sub.on('lnav_vector_anticipation_distance'), 0);
 
     sub.on('gps-position').handle(lla => { this.planePos.set(lla.lat, lla.long); });
     sub.on('fplOriginDestChanged').handle(this.flightPlanOriginDestChanged.bind(this));
     sub.on('fplActiveLegChange').handle(event => { event.type === ActiveLegType.Lateral && this.onActiveLegChanged(); });
-    sub.on('fplIndexChanged').handle(this.onActiveLegChanged.bind(this));
-    sub.on('fplSegmentChange').handle(this.onActiveLegChanged.bind(this));
+    sub.on('fplLegChange').handle(this.onLegChanged);
+    sub.on('fplIndexChanged').handle(() => this.onActiveLegChanged());
+    sub.on('fplSegmentChange').handle(() => this.onActiveLegChanged());
     sub.on('approach_details_set').handle(d => { this.approachDetails = d; });
     sub.on('realTime').atFrequency(1).handle(() => {
       this.computeCDIScaling();
@@ -109,20 +108,40 @@ export class NavdataComputer {
         case 'egressDistance': SimVar.SetSimVarValue(GarminLNavDataVars.EgressDistance, SimVarValueType.NM, value); break;
       }
     }, true);
+
+    this.obsAvailable.sub(v => {
+      this.bus.getPublisher<GarminControlEvents>().pub('obs_available', v, true, true);
+    });
   }
 
   /**
    * A callback fired when the active flight plan leg changes.
+   * @param plan The Lateral Flight Plan (optional)
    */
-  private onActiveLegChanged(): void {
+  private onActiveLegChanged(plan?: FlightPlan): void {
     let activeLeg = null;
-    if (this.flightPlanner.hasActiveFlightPlan()) {
-      const plan = this.flightPlanner.getActiveFlightPlan();
+    if (plan === undefined && this.flightPlanner.hasActiveFlightPlan()) {
+      plan = this.flightPlanner.getActiveFlightPlan();
+    }
+    if (plan !== undefined) {
       activeLeg = plan.tryGetLeg(plan.activeLateralLeg);
     }
 
     this.updateObsAvailable(activeLeg);
   }
+
+  /**
+   * A callback fired when any flight plan leg changes.
+   * @param event is the FlightPlanLegEvent
+   */
+  private onLegChanged = (event: FlightPlanLegEvent): void => {
+    if (this.flightPlanner.hasActiveFlightPlan()) {
+      const plan = this.flightPlanner.getActiveFlightPlan();
+      if (FmsUtils.getGlobalLegIndex(plan, event.segmentIndex, event.legIndex) === plan.activeLateralLeg && event.planIndex === this.flightPlanner.activePlanIndex) {
+        this.onActiveLegChanged(plan);
+      }
+    }
+  };
 
   /**
    * A callback fired when the origin or destination changes in the flight plan.
@@ -202,11 +221,29 @@ export class NavdataComputer {
         if (transitionMode === LNavTransitionMode.Egress && nextLeg?.calculated?.flightPath.length) {
           circle = this.getNominalPathCircle(nextLeg, 0, LNavTransitionMode.Ingress, this.geoCircleCache[0]);
 
-          egressDistance = this.getDistanceToTurn(nextLeg, this.planePos);
+          egressDistance = this.getDistanceToTurn(nextLeg, this.planePos, 0);
         } else if (currentLeg?.calculated?.flightPath.length) {
-          circle = this.getNominalPathCircle(currentLeg, this.lnavVectorIndex.get(), transitionMode, this.geoCircleCache[0]);
+          const vectorIndex = this.lnavVectorIndex.get();
+          const isSuspended = this.lnavIsSuspended.get();
 
-          egressDistance = this.getDistanceToTurn(currentLeg, this.planePos);
+          circle = this.getNominalPathCircle(currentLeg, vectorIndex, transitionMode, this.geoCircleCache[0]);
+
+          // Check if the next vector after the current tracked vector is the first egress vector of the leg, or the
+          // start of the next leg if the current leg has no egress.
+          let isNextVectorFirstEgress = false;
+          if (!isSuspended) { // LNAV can only sequence to the egress if it is not suspended
+            switch (transitionMode) {
+              case LNavTransitionMode.Ingress:
+                isNextVectorFirstEgress = currentLeg.calculated.ingressToEgress.length === 0
+                  && vectorIndex === currentLeg.calculated.ingress.length - 1;
+                break;
+              case LNavTransitionMode.None:
+                isNextVectorFirstEgress = vectorIndex === currentLeg.calculated.ingressToEgress.length - 1;
+                break;
+            }
+          }
+
+          egressDistance = this.getDistanceToTurn(currentLeg, this.planePos, isNextVectorFirstEgress ? this.lnavVectorAnticipationDistance.get() : 0);
         }
 
         if (circle !== undefined) {
@@ -521,19 +558,41 @@ export class NavdataComputer {
    * Gets the active distance from the plane position to the next leg turn.
    * @param leg The leg to get the distance for.
    * @param pos The current plane position.
+   * @param anticipation The vector anticipation to apply, in nautical miles.
    * @returns The distance, in nautical miles.
    */
-  private getDistanceToTurn(leg: LegDefinition, pos: GeoPointInterface): number {
+  private getDistanceToTurn(leg: LegDefinition, pos: GeoPointInterface, anticipation: number): number {
+    let turnStart: LatLonInterface | undefined;
+
     if (leg.calculated !== undefined) {
       const firstEgressVector = leg.calculated.egress[0];
-      if (firstEgressVector) {
-        return UnitType.GA_RADIAN.convertTo(pos.distance(firstEgressVector.startLat, firstEgressVector.startLon), UnitType.NMILE);
-      } else {
-        return this.getActiveDistance(leg, pos);
+
+      const prevVector = leg.calculated.ingressToEgress[leg.calculated.ingressToEgress.length - 1]
+        ?? leg.calculated.ingress[leg.calculated.ingress.length - 1];
+
+      if (anticipation !== 0 && prevVector !== undefined) {
+        if (prevVector.distance > UnitType.NMILE.convertTo(anticipation, UnitType.METER)) {
+          const vectorCircle = FlightPathUtils.setGeoCircleFromVector(prevVector, this.geoCircleCache[1]);
+          turnStart = vectorCircle.offsetDistanceAlong(
+            this.geoPointCache[0].set(prevVector.endLat, prevVector.endLon),
+            UnitType.NMILE.convertTo(-anticipation, UnitType.GA_RADIAN),
+            this.geoPointCache[0]
+          );
+        } else {
+          turnStart = this.geoPointCache[0].set(prevVector.startLat, prevVector.startLon);
+        }
+      }
+
+      if (turnStart === undefined) {
+        if (firstEgressVector) {
+          turnStart = this.geoPointCache[0].set(firstEgressVector.startLat, firstEgressVector.startLon);
+        } else if (leg.calculated.endLat !== undefined && leg.calculated.endLon !== undefined) {
+          turnStart = this.geoPointCache[0].set(leg.calculated.endLat, leg.calculated.endLon);
+        }
       }
     }
 
-    return 0;
+    return turnStart === undefined ? 0 : UnitType.GA_RADIAN.convertTo(pos.distance(turnStart), UnitType.NMILE);
   }
 
   /**
@@ -557,10 +616,7 @@ export class NavdataComputer {
           break;
       }
     }
-    if (newObsAvailable !== this.obsAvailable) {
-      this.obsAvailable = newObsAvailable;
-      this.bus.getPublisher<GarminControlEvents>().pub('obs_available', this.obsAvailable, true, true);
-    }
+    this.obsAvailable.set(newObsAvailable);
   }
 
   /**

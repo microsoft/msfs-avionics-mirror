@@ -1,3 +1,5 @@
+import { TimeDisplay, TimeDisplayFormat } from 'garminsdk';
+
 import './TimeDisplay.css';
 
-export * from 'garminsdk/components/common/TimeDisplay';
+export { TimeDisplay, TimeDisplayFormat };

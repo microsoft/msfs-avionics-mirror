@@ -1,4 +1,5 @@
-import { FSComponent, DisplayComponent, VNode, ComputedSubject, Subject } from 'msfssdk';
+import { ComputedSubject, DisplayComponent, FSComponent, Subject, VNode } from 'msfssdk';
+
 import './FmaDisplaySlot.css';
 
 /** Props for the FMA Display Slot Component */

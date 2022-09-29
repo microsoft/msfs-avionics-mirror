@@ -1,4 +1,5 @@
-import { BitFlags, GeoCircle, GeoPoint, LatLonInterface, NavMath, ReadonlyFloat64Array, UnitType, Vec3Math } from '..';
+import { GeoCircle, GeoPoint, LatLonInterface, NavMath } from '../geo';
+import { BitFlags, ReadonlyFloat64Array, UnitType, Vec3Math } from '../math';
 import { FlightPathUtils } from './FlightPathUtils';
 import { ProcedureTurnBuilder } from './FlightPathVectorBuilder';
 import { CircleVector, FlightPathVectorFlags, LegCalculations, LegDefinition, VectorTurnDirection } from './FlightPlanning';
@@ -574,17 +575,25 @@ export class FlightPathTurnCalculator {
     fromLegCalc.egress.length = 1;
     toLegCalc.ingress.length = 1;
 
+    fromLegCalc.egressJoinIndex = fromLegCalc.flightPath.length - 1;
+    toLegCalc.ingressJoinIndex = 0;
+
     const circle = FlightPathUtils.getTurnCircle(
       center, UnitType.METER.convertTo(radius, UnitType.GA_RADIAN), direction,
       FlightPathTurnCalculator.setAnticipatedTurnCache.geoCircle[0]
     );
 
-    const flags = FlightPathVectorFlags.LegToLegTurn | FlightPathVectorFlags.AnticipatedTurn;
+    const egressFlags
+      = FlightPathVectorFlags.LegToLegTurn
+      | FlightPathVectorFlags.AnticipatedTurn
+      | (fromLegCalc.flightPath[fromLegCalc.egressJoinIndex].flags & FlightPathVectorFlags.Fallback);
 
-    FlightPathUtils.setCircleVector(egress, circle, start, middle, flags);
-    FlightPathUtils.setCircleVector(ingress, circle, middle, end, flags);
+    const ingressFlags
+      = FlightPathVectorFlags.LegToLegTurn
+      | FlightPathVectorFlags.AnticipatedTurn
+      | (toLegCalc.flightPath[toLegCalc.ingressJoinIndex].flags & FlightPathVectorFlags.Fallback);
 
-    fromLegCalc.egressJoinIndex = fromLegCalc.flightPath.length - 1;
-    toLegCalc.ingressJoinIndex = 0;
+    FlightPathUtils.setCircleVector(egress, circle, start, middle, egressFlags);
+    FlightPathUtils.setCircleVector(ingress, circle, middle, end, ingressFlags);
   }
 }

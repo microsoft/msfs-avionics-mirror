@@ -1,13 +1,14 @@
-import { MapModel } from './MapModel';
-import { MapProjection, MapProjectionChangeType } from './MapProjection';
-import { ComponentProps, DisplayComponent, FSComponent, VNode } from '../FSComponent';
-import { MapLayer } from './MapLayer';
 import { EventBus } from '../../data';
 import { ClockEvents } from '../../instruments/Clock';
-import { ReadonlyFloat64Array, Vec2Math } from '../../math/VecMath';
 import { BitFlags } from '../../math/BitFlags';
+import { ReadonlyFloat64Array } from '../../math/VecMath';
+import { Subject } from '../../sub';
 import { Subscribable } from '../../sub/Subscribable';
 import { Subscription } from '../../sub/Subscription';
+import { ComponentProps, DisplayComponent, FSComponent, VNode } from '../FSComponent';
+import { MapLayer } from './MapLayer';
+import { MapModel } from './MapModel';
+import { MapProjection, MapProjectionChangeType } from './MapProjection';
 
 /**
  * Component props for MapComponent.
@@ -20,13 +21,10 @@ export interface MapComponentProps<M> extends ComponentProps {
   bus: EventBus;
 
   /** The update frequency of the map, in hertz. */
-  updateFreq: Subscribable<number>;
+  updateFreq?: Subscribable<number>;
 
-  /** The initial width, in pixels, of the map component's projected window. */
-  projectedWidth: number;
-
-  /** The initial height, in pixels, of the map component's projected window. */
-  projectedHeight: number;
+  /** The size, as `[width, height]` in pixels, of the map component's projected window. */
+  projectedSize: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 
   /** A projection to inject. A default will be used if none is provided. */
   projection?: MapProjection;
@@ -45,20 +43,28 @@ export abstract class MapComponent<P extends MapComponentProps<any> = MapCompone
 
   private readonly layerEntries: LayerEntry[] = [];
 
+  private readonly projectedSize: Subscribable<ReadonlyFloat64Array>;
+
   private lastUpdateTime = 0;
   private _isAwake = true;
 
   private updateCycleSub?: Subscription;
-  private readonly updateCycleHandler = this.updateCycleCallback.bind(this);
+  private readonly updateCycleHandler = this.update.bind(this);
+
+  private projectedSizeSub?: Subscription;
 
   /** @inheritdoc */
   constructor(props: P) {
     super(props);
 
+    this.projectedSize = 'isSubscribable' in this.props.projectedSize ? this.props.projectedSize : Subject.create(this.props.projectedSize);
+
+    const initialSize = this.projectedSize.get();
+
     if (this.props.projection !== undefined) {
-      this.props.projection.set({ projectedSize: new Float64Array([this.props.projectedWidth, this.props.projectedHeight]) });
+      this.props.projection.set({ projectedSize: new Float64Array(initialSize) });
     }
-    this.mapProjection = this.props.projection ?? new MapProjection(this.props.projectedWidth, this.props.projectedHeight);
+    this.mapProjection = this.props.projection ?? new MapProjection(initialSize[0], initialSize[1]);
   }
 
   /**
@@ -67,23 +73,6 @@ export abstract class MapComponent<P extends MapComponentProps<any> = MapCompone
    */
   public getProjectedSize(): ReadonlyFloat64Array {
     return this.mapProjection.getProjectedSize();
-  }
-
-  /**
-   * Sets the size of this map's projected window.
-   * @param width The new width, in pixels.
-   * @param height The new height, in pixels.
-   */
-  public setProjectedSize(width: number, height: number): void;
-  /**
-   * Sets the size of this map's projected window.
-   * @param size The new size, in pixels.
-   */
-  public setProjectedSize(size: ReadonlyFloat64Array): void;
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public setProjectedSize(arg1: number | ReadonlyFloat64Array, arg2?: number): void {
-    const size = arg1 instanceof Float64Array ? arg1 : Vec2Math.set(arg1 as number, arg2 as number, new Float64Array(2));
-    this.mapProjection.set({ projectedSize: size });
   }
 
   // eslint-disable-next-line jsdoc/require-returns
@@ -126,7 +115,11 @@ export abstract class MapComponent<P extends MapComponentProps<any> = MapCompone
   public onAfterRender(thisNode: VNode): void {
     this.mapProjection.addChangeListener(this.onMapProjectionChanged.bind(this));
 
-    this.props.updateFreq.sub(freq => {
+    this.projectedSizeSub = this.projectedSize.sub(size => {
+      this.mapProjection.set({ projectedSize: size });
+    });
+
+    this.props.updateFreq?.sub(freq => {
       this.updateCycleSub?.destroy();
 
       this.updateCycleSub = this.props.bus.getSubscriber<ClockEvents>()
@@ -241,10 +234,10 @@ export abstract class MapComponent<P extends MapComponentProps<any> = MapCompone
   }
 
   /**
-   * A callback which is called once every update cycle.
-   * @param time The current time as a UNIX timestamp.
+   * Updates this map.
+   * @param time The current real time as a UNIX timestamp in milliseconds.
    */
-  private updateCycleCallback(time: number): void {
+  public update(time: number): void {
     if (!this._isAwake) {
       return;
     }
@@ -255,7 +248,7 @@ export abstract class MapComponent<P extends MapComponentProps<any> = MapCompone
 
   /**
    * This method is called once every update cycle.
-   * @param time The current time as a UNIX timestamp.
+   * @param time The current real time as a UNIX timestamp in milliseconds.
    * @param elapsed The elapsed time, in milliseconds, since the last update.
    */
   protected onUpdated(time: number, elapsed: number): void {
@@ -264,7 +257,7 @@ export abstract class MapComponent<P extends MapComponentProps<any> = MapCompone
 
   /**
    * Updates this map's attached layers.
-   * @param time The current time as a UNIX timestamp.
+   * @param time The current real time as a UNIX timestamp in milliseconds.
    * @param elapsed The elapsed time, in milliseconds, since the last update.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -272,6 +265,19 @@ export abstract class MapComponent<P extends MapComponentProps<any> = MapCompone
     const len = this.layerEntries.length;
     for (let i = 0; i < len; i++) {
       this.layerEntries[i].update(time);
+    }
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    super.destroy();
+
+    this.updateCycleSub?.destroy();
+    this.projectedSizeSub?.destroy();
+
+    const len = this.layerEntries.length;
+    for (let i = 0; i < len; i++) {
+      this.layerEntries[i].destroy();
     }
   }
 }
@@ -285,11 +291,6 @@ class LayerEntry {
   private updatePeriod = 0;
   private lastUpdated = 0;
 
-  private readonly freqHandler = (freq: number): void => {
-    const clamped = Math.max(0, freq);
-    this.updatePeriod = clamped === 0 ? 0 : 1000 / clamped;
-  };
-
   /**
    * Constructor.
    * @param layer This entry's map layer.
@@ -302,7 +303,10 @@ class LayerEntry {
    */
   public attach(): void {
     this.updateFreqSub?.destroy();
-    this.updateFreqSub = this.layer.props.updateFreq?.sub(this.freqHandler, true);
+    this.updateFreqSub = this.layer.props.updateFreq?.sub((freq: number): void => {
+      const clamped = Math.max(0, freq);
+      this.updatePeriod = clamped === 0 ? 0 : 1000 / clamped;
+    }, true);
     this.layer.onAttached();
   }
 
@@ -323,5 +327,14 @@ class LayerEntry {
   public detach(): void {
     this.updateFreqSub?.destroy();
     this.layer.onDetached();
+  }
+
+  /**
+   * Destroys this layer entry. This will detach this entry's layer and destroy it.
+   */
+  public destroy(): void {
+    this.detach();
+
+    this.layer.destroy();
   }
 }

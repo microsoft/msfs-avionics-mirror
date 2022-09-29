@@ -34,7 +34,7 @@ export class UnitFormatter {
     },
     [UnitFamily.Pressure]: {
       [UnitType.HPA.name]: 'HPA',
-      [UnitType.IN_HG.name]: 'INHG'
+      [UnitType.IN_HG.name]: 'IN'
     },
     [UnitFamily.Temperature]: {
       [UnitType.CELSIUS.name]: '°C',

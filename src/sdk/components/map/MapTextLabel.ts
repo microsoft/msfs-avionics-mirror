@@ -1,5 +1,7 @@
-import { GeoPoint, GeoPointInterface, GeoPointReadOnly } from '../../geo/GeoPoint';
-import { Vec2Math } from '../../math/VecMath';
+import { GeoPointInterface } from '../../geo/GeoPoint';
+import { ReadonlyFloat64Array, Vec2Math, VecNMath } from '../../math/VecMath';
+import { Subscribable } from '../../sub/Subscribable';
+import { SubscribableUtils } from '../../sub/SubscribableUtils';
 import { MapProjection } from './MapProjection';
 
 /**
@@ -7,10 +9,10 @@ import { MapProjection } from './MapProjection';
  */
 export interface MapTextLabel {
   /** The text of this label. */
-  readonly text: string;
+  readonly text: Subscribable<string>;
 
   /** The render priority of this label. */
-  readonly priority: number;
+  readonly priority: Subscribable<number>;
 
   /**
    * Draws this label to a canvas.
@@ -25,43 +27,43 @@ export interface MapTextLabel {
  */
 export interface AbstractMapTextLabelOptions {
   /**
-   * The anchor point of the label, expressed relative to the width/height of the label. [0, 0] is the top-left
-   * corner, and [1, 1] is the bottom-right corner.
+   * The anchor point of the label, expressed relative to the width/height of the label. `[0, 0]` is the top-left
+   * corner, and `[1, 1]` is the bottom-right corner. Defaults to `[0, 0]`.
    */
-  anchor?: Float64Array;
+  anchor?: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 
-  /** The font type of the label. */
-  font?: string;
+  /** The font type of the label. Defaults to `''` (the default canvas font). */
+  font?: string | Subscribable<string>;
 
-  /** The font size of the label, in pixels. */
-  fontSize?: number;
+  /** The font size of the label, in pixels. Defaults to 10 pixels. */
+  fontSize?: number | Subscribable<number>;
 
-  /** The font color of the label. */
-  fontColor?: string;
+  /** The font color of the label. Defaults to `'white'`. */
+  fontColor?: string | Subscribable<string>;
 
-  /** The font outline width of the label, in pixels. */
-  fontOutlineWidth?: number;
+  /** The font outline width of the label, in pixels. Defaults to 0. */
+  fontOutlineWidth?: number | Subscribable<number>;
 
-  /** The font outline color of the label. */
-  fontOutlineColor?: string;
+  /** The font outline color of the label. Defaults to `'black'`. */
+  fontOutlineColor?: string | Subscribable<string>;
 
-  /** Whether to show the background for the label. */
-  showBg?: boolean;
+  /** Whether to show the background for the label. Defaults to `false`. */
+  showBg?: boolean | Subscribable<boolean>;
 
-  /** The label's background color. */
-  bgColor?: string;
+  /** The label's background color. Defaults to `'black'`. */
+  bgColor?: string | Subscribable<string>;
 
-  /** The padding of the label's background, in pixels. Expressed as [top, right, bottom, left]. */
-  bgPadding?: number[];
+  /** The padding of the label's background, in pixels. Expressed as `[top, right, bottom, left]`. Defaults to `[0, 0, 0, 0]`. */
+  bgPadding?: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 
-  /** The border radius of the label's background. */
-  bgBorderRadius?: number;
+  /** The border radius of the label's background, in pixels. Defaults to 0. */
+  bgBorderRadius?: number | Subscribable<number>;
 
-  /** The outline width of the label's background. */
-  bgOutlineWidth?: number;
+  /** The outline width of the label's background, in pixels. Defaults to 0. */
+  bgOutlineWidth?: number | Subscribable<number>;
 
-  /** The outline color of the label's background. */
-  bgOutlineColor?: string;
+  /** The outline color of the label's background. Defaults to `'white'`. */
+  bgOutlineColor?: string | Subscribable<string>;
 }
 
 /**
@@ -70,81 +72,99 @@ export interface AbstractMapTextLabelOptions {
 export abstract class AbstractMapTextLabel implements MapTextLabel {
   protected static readonly tempVec2 = new Float64Array(2);
 
+  /** @inheritdoc */
+  public readonly text: Subscribable<string>;
+
+  /** @inheritdoc */
+  public readonly priority: Subscribable<number>;
+
   /**
    * The anchor point of this label, expressed relative to this label's width/height. [0, 0] is the top-left corner,
    * and [1, 1] is the bottom-right corner.
    */
-  public readonly anchor = new Float64Array(2);
+  public readonly anchor: Subscribable<ReadonlyFloat64Array>;
 
   /** The font type of this label. */
-  public readonly font: string;
+  public readonly font: Subscribable<string>;
 
   /** The font size of this label, in pixels. */
-  public readonly fontSize: number;
+  public readonly fontSize: Subscribable<number>;
 
   /** The font color of this label. */
-  public readonly fontColor: string;
+  public readonly fontColor: Subscribable<string>;
 
   /** The font outline width of this label, in pixels. */
-  public readonly fontOutlineWidth: number;
+  public readonly fontOutlineWidth: Subscribable<number>;
 
   /** The font outline color of this label. */
-  public readonly fontOutlineColor: string;
+  public readonly fontOutlineColor: Subscribable<string>;
 
   /** Whether to show the background for this label. */
-  public readonly showBg: boolean;
+  public readonly showBg: Subscribable<boolean>;
 
   /** This label's background color. */
-  public readonly bgColor: string;
+  public readonly bgColor: Subscribable<string>;
 
   /** The padding of this label's background, in pixels. Expressed as [top, right, bottom, left]. */
-  public readonly bgPadding = new Float64Array(4);
+  public readonly bgPadding: Subscribable<ReadonlyFloat64Array>;
 
   /** The border radius of this label's background. */
-  public readonly bgBorderRadius: number;
+  public readonly bgBorderRadius: Subscribable<number>;
 
   /** The outline width of this label's background. */
-  public readonly bgOutlineWidth: number;
+  public readonly bgOutlineWidth: Subscribable<number>;
 
   /** The outline color of this label's background. */
-  public readonly bgOutlineColor: string;
+  public readonly bgOutlineColor: Subscribable<string>;
 
   /**
    * Constructor.
-   * @param text The text of this label.
-   * @param priority The render priority of this label.
+   * @param text The text of this label, or a subscribable which provides it.
+   * @param priority The render priority of this label, or a subscribable which provides it.
    * @param options Options with which to initialize this label.
    */
-  constructor(public readonly text: string, public readonly priority: number, options?: AbstractMapTextLabelOptions) {
-    options?.anchor && this.anchor.set(options.anchor);
-    this.font = options?.font ?? 'Roboto';
-    this.fontSize = options?.fontSize ?? 10;
-    this.fontColor = options?.fontColor ?? 'white';
-    this.fontOutlineWidth = options?.fontOutlineWidth ?? 0;
-    this.fontOutlineColor = options?.fontOutlineColor ?? 'black';
-    this.showBg = options?.showBg ?? false;
-    this.bgColor = options?.bgColor ?? 'black';
-    options?.bgPadding && this.bgPadding.set(options.bgPadding);
-    this.bgBorderRadius = options?.bgBorderRadius ?? 0;
-    this.bgOutlineWidth = options?.bgOutlineWidth ?? 0;
-    this.bgOutlineColor = options?.bgOutlineColor ?? 'white';
+  constructor(text: string | Subscribable<string>, priority: number | Subscribable<number>, options?: AbstractMapTextLabelOptions) {
+    this.text = SubscribableUtils.toSubscribable(text, true);
+
+    this.priority = SubscribableUtils.toSubscribable(priority, true);
+
+    this.anchor = SubscribableUtils.toSubscribable(options?.anchor ?? Vec2Math.create(), true);
+
+    this.font = SubscribableUtils.toSubscribable(options?.font ?? '', true);
+    this.fontSize = SubscribableUtils.toSubscribable(options?.fontSize ?? 10, true);
+    this.fontColor = SubscribableUtils.toSubscribable(options?.fontColor ?? 'white', true);
+    this.fontOutlineWidth = SubscribableUtils.toSubscribable(options?.fontOutlineWidth ?? 0, true);
+    this.fontOutlineColor = SubscribableUtils.toSubscribable(options?.fontOutlineColor ?? 'black', true);
+
+    this.showBg = SubscribableUtils.toSubscribable(options?.showBg ?? false, true);
+    this.bgColor = SubscribableUtils.toSubscribable(options?.bgColor ?? 'black', true);
+    this.bgPadding = SubscribableUtils.toSubscribable(options?.bgPadding ?? VecNMath.create(4), true);
+    this.bgBorderRadius = SubscribableUtils.toSubscribable(options?.bgBorderRadius ?? 0, true);
+    this.bgOutlineWidth = SubscribableUtils.toSubscribable(options?.bgOutlineWidth ?? 0, true);
+    this.bgOutlineColor = SubscribableUtils.toSubscribable(options?.bgOutlineColor ?? 'white', true);
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc
   public draw(context: CanvasRenderingContext2D, mapProjection: MapProjection): void {
     this.setTextStyle(context);
 
-    const width = context.measureText(this.text).width;
-    const height = this.fontSize;
+    const width = context.measureText(this.text.get()).width;
+    const height = this.fontSize.get();
 
-    const bgExtraWidth = this.showBg ? this.bgPadding[1] + this.bgPadding[3] + this.bgOutlineWidth * 2 : 0;
-    const bgExtraHeight = this.showBg ? this.bgPadding[0] + this.bgPadding[2] + this.bgOutlineWidth * 2 : 0;
+    const showBg = this.showBg.get();
+    const bgPadding = this.bgPadding.get();
+    const bgOutlineWidth = this.bgOutlineWidth.get();
+
+    const bgExtraWidth = showBg ? bgPadding[1] + bgPadding[3] + bgOutlineWidth * 2 : 0;
+    const bgExtraHeight = showBg ? bgPadding[0] + bgPadding[2] + bgOutlineWidth * 2 : 0;
+
+    const anchor = this.anchor.get();
 
     const pos = this.getPosition(mapProjection, AbstractMapTextLabel.tempVec2);
-    const centerX = pos[0] - (this.anchor[0] - 0.5) * (width + bgExtraWidth);
-    const centerY = pos[1] - (this.anchor[1] - 0.5) * (height + bgExtraHeight);
+    const centerX = pos[0] - (anchor[0] - 0.5) * (width + bgExtraWidth);
+    const centerY = pos[1] - (anchor[1] - 0.5) * (height + bgExtraHeight);
 
-    if (this.showBg) {
+    if (showBg) {
       this.drawBackground(context, centerX, centerY, width, height);
     }
 
@@ -164,7 +184,7 @@ export abstract class AbstractMapTextLabel implements MapTextLabel {
    * @param context The canvas rendering context to use.
    */
   protected setTextStyle(context: CanvasRenderingContext2D): void {
-    context.font = `${this.fontSize}px ${this.font}`;
+    context.font = `${this.fontSize.get()}px ${this.font.get()}`;
     context.textBaseline = 'middle';
     context.textAlign = 'center';
   }
@@ -176,13 +196,16 @@ export abstract class AbstractMapTextLabel implements MapTextLabel {
    * @param centerY the y-coordinate of the center of the label, in pixels.
    */
   protected drawText(context: CanvasRenderingContext2D, centerX: number, centerY: number): void {
-    if (this.fontOutlineWidth > 0) {
-      context.lineWidth = this.fontOutlineWidth * 2;
-      context.strokeStyle = this.fontOutlineColor;
-      context.strokeText(this.text, centerX, centerY);
+    const text = this.text.get();
+    const fontOutlineWidth = this.fontOutlineWidth.get();
+
+    if (fontOutlineWidth > 0) {
+      context.lineWidth = fontOutlineWidth * 2;
+      context.strokeStyle = this.fontOutlineColor.get();
+      context.strokeText(text, centerX, centerY);
     }
-    context.fillStyle = this.fontColor;
-    context.fillText(this.text, centerX, centerY);
+    context.fillStyle = this.fontColor.get();
+    context.fillText(text, centerX, centerY);
   }
 
   /**
@@ -200,27 +223,31 @@ export abstract class AbstractMapTextLabel implements MapTextLabel {
     width: number,
     height: number
   ): void {
-    const backgroundLeft = centerX - width / 2 - (this.bgPadding[3] + this.bgOutlineWidth);
-    const backgroundTop = centerY - height / 2 - (this.bgPadding[0] + this.bgOutlineWidth);
-    const backgroundWidth = width + (this.bgPadding[1] + this.bgPadding[3] + 2 * this.bgOutlineWidth);
-    const backgroundHeight = height + (this.bgPadding[0] + this.bgPadding[2] + 2 * this.bgOutlineWidth);
+    const bgPadding = this.bgPadding.get();
+    const bgOutlineWidth = this.bgOutlineWidth.get();
+    const bgBorderRadius = this.bgBorderRadius.get();
+
+    const backgroundLeft = centerX - width / 2 - (bgPadding[3] + bgOutlineWidth);
+    const backgroundTop = centerY - height / 2 - (bgPadding[0] + bgOutlineWidth);
+    const backgroundWidth = width + (bgPadding[1] + bgPadding[3] + 2 * bgOutlineWidth);
+    const backgroundHeight = height + (bgPadding[0] + bgPadding[2] + 2 * bgOutlineWidth);
 
     let isRounded = false;
-    if (this.bgBorderRadius > 0) {
+    if (bgBorderRadius > 0) {
       isRounded = true;
-      this.loadBackgroundPath(context, backgroundLeft, backgroundTop, backgroundWidth, backgroundHeight, this.bgBorderRadius);
+      this.loadBackgroundPath(context, backgroundLeft, backgroundTop, backgroundWidth, backgroundHeight, bgBorderRadius);
     }
 
-    if (this.bgOutlineWidth > 0) {
-      context.lineWidth = this.bgOutlineWidth * 2;
-      context.strokeStyle = this.bgOutlineColor;
+    if (bgOutlineWidth > 0) {
+      context.lineWidth = bgOutlineWidth * 2;
+      context.strokeStyle = this.bgOutlineColor.get();
       if (isRounded) {
         context.stroke();
       } else {
         context.strokeRect(backgroundLeft, backgroundTop, backgroundWidth, backgroundHeight);
       }
     }
-    context.fillStyle = this.bgColor;
+    context.fillStyle = this.bgColor.get();
     if (isRounded) {
       context.fill();
     } else {
@@ -265,41 +292,41 @@ export abstract class AbstractMapTextLabel implements MapTextLabel {
  * Options for a MapLocationTextLabel.
  */
 export interface MapLocationTextLabelOptions extends AbstractMapTextLabelOptions {
-  /** The offset of the label, in pixels, from its projected position. */
-  offset?: Float64Array;
+  /** The offset of the label from its projected position, as `[x, y]` in pixels. Defaults to `[0, 0]`. */
+  offset?: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 }
 
 /**
  * A text label associated with a specific geographic location.
  */
 export class MapLocationTextLabel extends AbstractMapTextLabel {
-  protected readonly _location: GeoPoint;
+  public readonly location: Subscribable<GeoPointInterface>;
 
-  /** The geographic location of this label. */
-  public readonly location: GeoPointReadOnly;
-
-  public readonly offset = new Float64Array(2);
+  public readonly offset: Subscribable<ReadonlyFloat64Array>;
 
   /**
    * Constructor.
-   * @param text The text of this label.
-   * @param priority The render priority of this label.
-   * @param location The geographic location of this label.
+   * @param text The text of this label, or a subscribable which provides it.
+   * @param priority The render priority of this label, or a subscribable which provides it.
+   * @param location The geographic location of this label, or a subscribable which provides it.
    * @param options Options with which to initialize this label.
    */
-  constructor(text: string, priority: number, location: GeoPointInterface, options?: MapLocationTextLabelOptions) {
+  constructor(
+    text: string | Subscribable<string>,
+    priority: number | Subscribable<number>,
+    location: GeoPointInterface | Subscribable<GeoPointInterface>,
+    options?: MapLocationTextLabelOptions
+  ) {
     super(text, priority, options);
 
-    this._location = location.copy();
-    this.location = this._location.readonly;
-
-    options?.offset && this.offset.set(options.offset);
+    this.location = SubscribableUtils.toSubscribable(location, true);
+    this.offset = SubscribableUtils.toSubscribable(options?.offset ?? Vec2Math.create(), true);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   protected getPosition(mapProjection: MapProjection, out: Float64Array): Float64Array {
-    mapProjection.project(this._location, out);
-    Vec2Math.add(out, this.offset, out);
+    mapProjection.project(this.location.get(), out);
+    Vec2Math.add(out, this.offset.get(), out);
     return out;
   }
 }

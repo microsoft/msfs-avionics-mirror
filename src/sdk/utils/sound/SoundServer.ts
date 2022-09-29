@@ -1,7 +1,7 @@
 import { EventBus } from '../../data/EventBus';
-import { BasePublisher } from '../../instruments/BasePublishers';
-import { EventSubscriber } from '../../data/EventSubscriber';
 import { PublishPacer } from '../../data/EventBusPacer';
+import { EventSubscriber } from '../../data/EventSubscriber';
+import { BasePublisher } from '../../instruments/BasePublishers';
 
 /** Events related to sound playback. */
 export interface SoundEvents {

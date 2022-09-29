@@ -1,23 +1,22 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { GeoCircle, GeoPoint, NavMath, MagVar } from '../../geo';
-import { UnitType } from '../../math';
-import { LinearServo } from '../../utils/controllers/LinearServo';
-import { BitFlags } from '../../math/BitFlags';
-import { EventBus, SimVarValueType } from '../../data';
-import { FixTypeFlags, LegType } from '../../navigation';
-import { ADCEvents, GNSSEvents, NavEvents, NavSourceType } from '../../instruments';
+import { ControlEvents, EventBus, SimVarValueType } from '../../data';
 import {
-  FlightPlanner, FlightPlannerEvents, CircleVector, LegCalculations, LegDefinition, ActiveLegType,
-  FlightPathUtils, FlightPathVector, LegDefinitionFlags
+  ActiveLegType, CircleVector, FlightPathUtils, FlightPathVector, FlightPlanner, FlightPlannerEvents, LegCalculations, LegDefinition, LegDefinitionFlags
 } from '../../flightplan';
-import { DirectorState, PlaneDirector, ObsDirector } from '../PlaneDirector';
-import { ArcTurnController } from '../ArcTurnController';
-
-import { LNavTransitionMode, LNavVars } from '../LNavEvents';
-import { ControlEvents } from '../../data';
+import { GeoCircle, GeoPoint, MagVar, NavMath } from '../../geo';
+import { AdcEvents, AhrsEvents, GNSSEvents, NavEvents, NavSourceType } from '../../instruments';
+import { MathUtils, UnitType } from '../../math';
+import { BitFlags } from '../../math/BitFlags';
+import { FixTypeFlags, LegType } from '../../navigation';
+import { Subject } from '../../sub';
 import { ObjectSubject } from '../../sub/ObjectSubject';
 import { SubscribableType } from '../../sub/Subscribable';
+import { LinearServo } from '../../utils/controllers/LinearServo';
+import { APValues } from '../APConfig';
+import { ArcTurnController } from '../calculators/ArcTurnController';
+import { LNavTransitionMode, LNavVars } from '../data/LNavEvents';
+import { DirectorState, ObsDirector, PlaneDirector } from './PlaneDirector';
 
 /**
  * Calculates an intercept angle, in degrees, to capture the desired GPS track for {@link LNavDirector}.
@@ -55,6 +54,7 @@ export class LNavDirector implements PlaneDirector {
 
   private readonly aircraftState = {
     tas: 0,
+    gs: 0,
     track: 0,
     magvar: 0,
     windSpeed: 0,
@@ -71,6 +71,7 @@ export class LNavDirector implements PlaneDirector {
   private courseToSteer = 0;
   private alongVectorDistance = 0;
   private vectorDistanceRemaining = 0;
+  private vectorAnticipationDistance = 0;
 
   private transitionMode = LNavTransitionMode.None;
 
@@ -99,7 +100,8 @@ export class LNavDirector implements PlaneDirector {
     alongLegDistance: 0,
     legDistanceRemaining: 0,
     alongVectorDistance: 0,
-    vectorDistanceRemaining: 0
+    vectorDistanceRemaining: 0,
+    vectorAnticipationDistance: 0
   });
 
   private isObsDirectorTracking = false;
@@ -110,6 +112,8 @@ export class LNavDirector implements PlaneDirector {
 
   private awaitCalculateId = 0;
   private isAwaitingCalculate = false;
+
+  private isNavLock = Subject.create<boolean>(false);
 
   private readonly lnavDataHandler = (
     obj: SubscribableType<typeof this.lnavData>,
@@ -129,33 +133,37 @@ export class LNavDirector implements PlaneDirector {
       case 'legDistanceRemaining': SimVar.SetSimVarValue(LNavVars.LegDistanceRemaining, SimVarValueType.NM, value); break;
       case 'alongVectorDistance': SimVar.SetSimVarValue(LNavVars.VectorDistanceAlong, SimVarValueType.NM, value); break;
       case 'vectorDistanceRemaining': SimVar.SetSimVarValue(LNavVars.VectorDistanceRemaining, SimVarValueType.NM, value); break;
+      case 'vectorAnticipationDistance': SimVar.SetSimVarValue(LNavVars.VectorAnticipationDistance, SimVarValueType.NM, value); break;
     }
   };
 
   /**
    * Creates an instance of the LateralDirector.
    * @param bus The event bus to use with this instance.
+   * @param apValues The AP Values.
    * @param flightPlanner The flight planner to use with this instance.
    * @param obsDirector The OBS Director.
    * @param lateralInterceptCurve The optional curve used to translate DTK and XTK into a track intercept angle.
+   * @param hasVectorAnticipation Whether this lnav director supports anticipating the roll by sequencing to the next vector early.
    */
   constructor(
     private readonly bus: EventBus,
+    private readonly apValues: APValues,
     private readonly flightPlanner: FlightPlanner,
     private readonly obsDirector?: ObsDirector,
-    private readonly lateralInterceptCurve?: LNavDirectorInterceptFunc
+    private readonly lateralInterceptCurve?: LNavDirectorInterceptFunc,
+    private readonly hasVectorAnticipation?: boolean
   ) {
 
-    const adc = bus.getSubscriber<ADCEvents>();
-    const controls = bus.getSubscriber<ControlEvents>();
-    const plan = bus.getSubscriber<FlightPlannerEvents>();
+    const sub = bus.getSubscriber<AdcEvents & AhrsEvents & ControlEvents & FlightPlannerEvents & GNSSEvents>();
 
     this.lnavData.sub(this.lnavDataHandler, true);
 
-    adc.on('ambient_wind_velocity').handle(w => this.aircraftState.windSpeed = w);
-    adc.on('ambient_wind_direction').handle(wd => this.aircraftState.windDirection = wd);
-    adc.on('tas').handle(tas => this.aircraftState.tas = tas);
-    adc.on('hdg_deg_true').handle(hdg => this.aircraftState.hdgTrue = hdg);
+    sub.on('ambient_wind_velocity').handle(w => this.aircraftState.windSpeed = w);
+    sub.on('ambient_wind_direction').handle(wd => this.aircraftState.windDirection = wd);
+    sub.on('tas').handle(tas => this.aircraftState.tas = tas);
+    sub.on('hdg_deg_true').handle(hdg => this.aircraftState.hdgTrue = hdg);
+    sub.on('ground_speed').handle(gs => this.aircraftState.gs = gs);
 
     const nav = this.bus.getSubscriber<NavEvents>();
     nav.on('cdi_select').handle((src) => {
@@ -164,45 +172,60 @@ export class LNavDirector implements PlaneDirector {
       }
     });
 
-    controls.on('suspend_sequencing').handle((v) => {
+    sub.on('suspend_sequencing').handle((v) => {
       this.trySetSuspended(v);
     });
 
-    controls.on('activate_missed_approach').handle((v) => {
+    sub.on('activate_missed_approach').handle((v) => {
       this.missedApproachActive = v;
     });
 
-    controls.on('lnav_inhibit_next_sequence').handle(inhibit => {
+    sub.on('lnav_inhibit_next_sequence').handle(inhibit => {
       this.inhibitNextSequence = inhibit;
       if (inhibit) {
         this.suspendedLegIndex = 0;
       }
     });
 
-    plan.on('fplActiveLegChange').handle(e => {
+    sub.on('fplActiveLegChange').handle(e => {
       if (e.planIndex === this.flightPlanner.activePlanIndex && e.type === ActiveLegType.Lateral) {
-        this.currentVectorIndex = 0;
-        this.transitionMode = LNavTransitionMode.Ingress;
-        this.inhibitNextSequence = false;
-        this.awaitCalculate();
+        this.resetVectors();
       }
     });
 
-    plan.on('fplIndexChanged').handle(() => {
-      this.currentVectorIndex = 0;
-      this.transitionMode = LNavTransitionMode.Ingress;
-      this.inhibitNextSequence = false;
-      this.awaitCalculate();
+    sub.on('fplIndexChanged').handle(() => {
+      this.resetVectors();
     });
 
-    const gps = bus.getSubscriber<GNSSEvents>();
-    gps.on('gps-position').handle(lla => {
+    sub.on('fplCopied').handle((e) => {
+      if (e.targetPlanIndex === this.flightPlanner.activePlanIndex) {
+        this.resetVectors();
+      }
+    });
+
+    sub.on('gps-position').handle(lla => {
       this.aircraftState.planePos.set(lla.lat, lla.long);
     });
-    gps.on('track_deg_true').handle(t => this.aircraftState.track = t);
-    gps.on('magvar').handle(m => this.aircraftState.magvar = m);
+    sub.on('track_deg_true').handle(t => this.aircraftState.track = t);
+    sub.on('magvar').handle(m => this.aircraftState.magvar = m);
+
+    this.isNavLock.sub((newState: boolean) => {
+      if (SimVar.GetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool') !== newState) {
+        SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', newState);
+      }
+    });
 
     this.state = DirectorState.Inactive;
+  }
+
+  /**
+   * Resets the current vectors and transition mode.
+   */
+  private resetVectors(): void {
+    this.currentVectorIndex = 0;
+    this.transitionMode = LNavTransitionMode.Ingress;
+    this.inhibitNextSequence = false;
+    this.awaitCalculate();
   }
 
   /**
@@ -215,7 +238,7 @@ export class LNavDirector implements PlaneDirector {
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
-    SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', true);
+    this.setNavLock(true);
   }
 
   /**
@@ -229,7 +252,7 @@ export class LNavDirector implements PlaneDirector {
         if (this.onArm !== undefined) {
           this.onArm();
         }
-        SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', true);
+        this.setNavLock(true);
       }
     }
   }
@@ -243,7 +266,15 @@ export class LNavDirector implements PlaneDirector {
       this.obsDirector.deactivate();
     }
     this.isInterceptingFromArmedState = false;
-    SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', false);
+    this.setNavLock(false);
+  }
+
+  /**
+   * Sets the NAV1 Lock state.
+   * @param newState The new state of the NAV1 lock.
+   */
+  public setNavLock(newState: boolean): void {
+    this.isNavLock.set(newState);
   }
 
   /**
@@ -294,7 +325,7 @@ export class LNavDirector implements PlaneDirector {
 
             if (this.state === DirectorState.Active && this.obsDirector.state !== DirectorState.Active) {
               this.obsDirector.activate();
-              SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', true);
+              this.setNavLock(true);
             }
 
             if (this.state === DirectorState.Armed && this.obsDirector.canActivate()) {
@@ -303,7 +334,7 @@ export class LNavDirector implements PlaneDirector {
               if (this.onActivate !== undefined) {
                 this.onActivate();
               }
-              SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', true);
+              this.setNavLock(true);
             }
 
             this.obsDirector.update();
@@ -337,6 +368,7 @@ export class LNavDirector implements PlaneDirector {
       this.lnavData.set('courseToSteer', this.courseToSteer);
       this.lnavData.set('alongVectorDistance', this.alongVectorDistance);
       this.lnavData.set('vectorDistanceRemaining', this.vectorDistanceRemaining);
+      this.lnavData.set('vectorAnticipationDistance', this.vectorAnticipationDistance);
 
       const currentLeg = this.currentLeg as LegDefinition;
       this.lnavData.set('alongLegDistance', this.getAlongLegDistance(currentLeg, this.currentVectorIndex, this.alongVectorDistance));
@@ -354,6 +386,7 @@ export class LNavDirector implements PlaneDirector {
       this.lnavData.set('vectorDistanceRemaining', 0);
       this.lnavData.set('alongVectorDistance', 0);
       this.lnavData.set('legDistanceRemaining', 0);
+      this.lnavData.set('vectorAnticipationDistance', 0);
     }
 
     if (this.isObsDirectorTracking) {
@@ -435,9 +468,8 @@ export class LNavDirector implements PlaneDirector {
     const bankBlendFactor = Math.max(1 - (Math.abs(UnitType.NMILE.convertTo(this.xtk, UnitType.METER)) / turnRadius), 0);
 
     bankAngle = (bankAngle * (1 - bankBlendFactor)) + (turnBankAngle * bankBlendFactor) + bankAdjustment;
-    bankAngle = Math.min(Math.max(bankAngle, -25), 25);
 
-    return bankAngle;
+    return MathUtils.clamp(bankAngle, -30, 30);
   }
 
   /**
@@ -446,6 +478,10 @@ export class LNavDirector implements PlaneDirector {
    */
   private setBank(bankAngle: number): void {
     if (isFinite(bankAngle)) {
+      const maxBank = this.apValues.maxBankAngle.get();
+
+      bankAngle = MathUtils.clamp(bankAngle, -maxBank, maxBank);
+
       this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
       SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
     }
@@ -460,7 +496,7 @@ export class LNavDirector implements PlaneDirector {
     const turnDirection = NavMath.getTurnDirection(this.aircraftState.track, desiredTrack);
     const headingDiff = Math.abs(NavMath.diffAngle(this.aircraftState.track, desiredTrack));
 
-    let baseBank = Math.min(1.25 * headingDiff, 25);
+    let baseBank = Math.min(1.25 * headingDiff, 30);
     baseBank *= (turnDirection === 'left' ? 1 : -1);
 
     return baseBank;
@@ -518,12 +554,19 @@ export class LNavDirector implements PlaneDirector {
           const vectorDistanceNM = UnitType.METER.convertTo(vector.distance, UnitType.NMILE);
           this.alongVectorDistance = normDist * vectorDistanceNM;
           this.vectorDistanceRemaining = (1 - normDist) * vectorDistanceNM;
-          if (normDist > 1) {
+
+          if (this.hasVectorAnticipation) {
+            const rollTimeSeconds = (this.apValues.maxBankAngle.get() + Math.abs(this.currentBankRef)) / 5;
+            this.vectorAnticipationDistance = UnitType.SECOND.convertTo(rollTimeSeconds, UnitType.HOUR) * this.aircraftState.gs;
+          }
+
+          if (normDist > 1 || (this.hasVectorAnticipation && this.vectorDistanceRemaining < this.vectorAnticipationDistance)) {
             this.advanceVector(this.currentLeg);
           }
         } else {
           this.alongVectorDistance = 0;
           this.vectorDistanceRemaining = 0;
+          this.vectorAnticipationDistance = 0;
           this.advanceVector(this.currentLeg);
         }
 

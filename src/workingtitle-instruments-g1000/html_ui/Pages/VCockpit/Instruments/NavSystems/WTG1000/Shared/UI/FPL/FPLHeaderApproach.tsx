@@ -1,6 +1,7 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { AirportFacility, ApproachProcedure, ICAO } from 'msfssdk/navigation';
-import { FmsUtils } from 'garminsdk/flightplan';
+import { AirportFacility, ApproachProcedure, FSComponent, ICAO, Subject, VNode } from 'msfssdk';
+
+import { FmsUtils } from 'garminsdk';
+
 import { ApproachNameDisplay } from './ApproachNameDisplay';
 import { FPLHeader } from './FPLHeader';
 

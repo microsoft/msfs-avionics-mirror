@@ -1,4 +1,5 @@
 import { ComponentProps, DisplayComponent, FSComponent, MappedSubscribable, SetSubject, Subscribable, Subscription, VNode } from 'msfssdk';
+
 import { TouchButton } from './TouchButton';
 
 /**
@@ -33,7 +34,7 @@ export interface ValueTouchButtonProps<T> extends ComponentProps {
    * A callback function which will be called every time the button is pressed.
    * @param button The button that was pressed.
    */
-  onPressed?: <B extends ValueTouchButton<T> = ValueTouchButton<T>>(button: B) => void;
+  onPressed?: <B extends ValueTouchButton<T> = ValueTouchButton<T>>(button: B, state: Subscribable<T>) => void;
 
   /** A callback function which will be called when the button is destroyed. */
   onDestroy?: () => void;
@@ -64,7 +65,7 @@ export class ValueTouchButton<T> extends DisplayComponent<ValueTouchButtonProps<
    * Responds to when this button is pressed.
    */
   protected onPressed(): void {
-    this.props.onPressed && this.props.onPressed(this);
+    this.props.onPressed && this.props.onPressed(this, this.props.state);
   }
 
   /** @inheritdoc */

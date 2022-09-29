@@ -1,7 +1,6 @@
-import { ComponentProps, DisplayComponent, FSComponent, NodeReference, VNode } from 'msfssdk';
-import { NavSourceId, NavSourceType, ObsSetting, VorToFrom } from 'msfssdk/instruments';
+import { ComponentProps, DisplayComponent, FSComponent, NavSourceId, NavSourceType, NodeReference, ObsSetting, VNode, VorToFrom } from 'msfssdk';
 
-import { NavIndicatorController } from 'garminsdk/navigation';
+import { NavIndicatorController } from 'garminsdk';
 
 import { GpsNeedle } from './GpsNeedle';
 import { Nav1Needle } from './Nav1Needle';

@@ -1,18 +1,15 @@
 import {
-  LatLongInterface, NavAngleSubject, NavAngleUnit, NavAngleUnitReferenceNorth, NavMath, NumberUnitInterface,
-  NumberUnitSubject, Subject, UnitFamily, UnitType
+  AdcEvents, ClockEvents, EngineEvents, EventBus, FlightPlanCopiedEvent, FlightPlanIndicationEvent, FlightPlannerEvents, FlightPlanOriginDestEvent, GNSSEvents,
+  ICAO, LatLongInterface, LNavEvents, NavAngleSubject, NavAngleUnit, NavAngleUnitReferenceNorth, NavMath, NumberUnitInterface, NumberUnitSubject,
+  OriginDestChangeType, Subject, UnitFamily, UnitType, VNavDataEvents, VNavEvents
 } from 'msfssdk';
-import { VNavDataEvents, VNavEvents, LNavEvents } from 'msfssdk/autopilot';
-import { EventBus } from 'msfssdk/data';
-import { ADCEvents, ClockEvents, EngineEvents, GNSSEvents } from 'msfssdk/instruments';
-import { FlightPlanCopiedEvent, FlightPlanIndicationEvent, FlightPlannerEvents, FlightPlanOriginDestEvent, OriginDestChangeType } from 'msfssdk/flightplan';
-import { ICAO } from 'msfssdk/navigation';
+
 import { Fms } from '../../flightplan/Fms';
 import { LNavDataEvents } from '../../navigation/LNavDataEvents';
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
 import {
-  NavDataBarFieldConsumerModel, NavDataBarFieldConsumerNumberUnitModel, NavDataBarFieldGenericModel,
-  NavDataBarFieldModel, NavDataBarFieldModelFactory, NavDataBarFieldTypeModelMap
+  NavDataBarFieldConsumerModel, NavDataBarFieldConsumerNumberUnitModel, NavDataBarFieldGenericModel, NavDataBarFieldModel, NavDataBarFieldModelFactory,
+  NavDataBarFieldTypeModelMap
 } from './NavDataBarFieldModel';
 
 /**
@@ -413,7 +410,7 @@ export class NavDataBarFieldGsModelFactory extends EventBusNavDataBarFieldTypeMo
 /**
  * Creates data models for ISA navigation data bar fields.
  */
-export class NavDataBarFieldIsaModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.ISA, ADCEvents> {
+export class NavDataBarFieldIsaModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.ISA, AdcEvents> {
   /** @inheritdoc */
   public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Temperature>> {
     return new NavDataBarFieldConsumerNumberUnitModel(
@@ -457,7 +454,7 @@ export class NavDataBarFieldLdgModelFactory
 /**
  * Creates data models for True Airspeed navigation data bar fields.
  */
-export class NavDataBarFieldTasModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TrueAirspeed, ADCEvents> {
+export class NavDataBarFieldTasModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TrueAirspeed, AdcEvents> {
   /** @inheritdoc */
   public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Speed>> {
     return new NavDataBarFieldConsumerNumberUnitModel(

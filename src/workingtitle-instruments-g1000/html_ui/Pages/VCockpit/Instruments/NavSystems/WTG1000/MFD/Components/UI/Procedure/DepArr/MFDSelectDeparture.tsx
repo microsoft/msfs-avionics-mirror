@@ -1,4 +1,5 @@
-import { DepartureProcedure } from 'msfssdk/navigation';
+import { DepartureProcedure } from 'msfssdk';
+
 import { MFDSelectDepArr, MFDSelectDepArrProps } from './MFDSelectDepArr';
 import { MFDSelectDepartureController } from './MFDSelectDepartureController';
 import { MFDSelectDepartureStore } from './MFDSelectDepartureStore';

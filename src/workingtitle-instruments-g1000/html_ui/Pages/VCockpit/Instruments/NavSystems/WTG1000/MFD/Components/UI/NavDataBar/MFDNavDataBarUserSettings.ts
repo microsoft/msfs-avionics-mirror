@@ -1,7 +1,6 @@
-import { EventBus } from 'msfssdk/data';
-import { DefaultUserSettingManager } from 'msfssdk/settings';
-import { NavDataBarSettingTypes, NavDataBarUserSettings } from 'garminsdk/settings';
-import { NavDataFieldType } from 'garminsdk/components/navdatafield';
+import { DefaultUserSettingManager, EventBus } from 'msfssdk';
+
+import { NavDataBarSettingTypes, NavDataBarUserSettings, NavDataFieldType } from 'garminsdk';
 
 /**
  * Utility class for retrieving MFD navigation data bar user setting managers.

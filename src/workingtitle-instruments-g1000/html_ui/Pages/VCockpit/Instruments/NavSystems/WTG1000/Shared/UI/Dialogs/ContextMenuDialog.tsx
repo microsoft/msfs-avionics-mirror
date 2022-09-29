@@ -1,8 +1,8 @@
-import { FSComponent, VNode, ArraySubject, MathUtils } from 'msfssdk';
+import { ArraySubject, FocusPosition, FSComponent, MathUtils, VNode } from 'msfssdk';
+
 import { FmsHEvent } from '../FmsHEvent';
+import { G1000ControlList, G1000UiControl } from '../G1000UiControl';
 import { UiView, UiViewProps } from '../UiView';
-import { FocusPosition } from 'msfssdk/components/controls';
-import { G1000UiControl, G1000ControlList } from '../G1000UiControl';
 
 import './ContextMenuDialog.css';
 

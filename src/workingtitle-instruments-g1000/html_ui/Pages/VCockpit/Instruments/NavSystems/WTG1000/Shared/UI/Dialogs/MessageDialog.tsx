@@ -1,8 +1,8 @@
-import { VNode, FSComponent, Subject, DisplayComponent } from 'msfssdk';
+import { DisplayComponent, FSComponent, Subject, VNode } from 'msfssdk';
 
-import { UiView, UiViewProps } from '../UiView';
-import { ActionButton } from '../UIControls/ActionButton';
 import { FmsHEvent } from '../FmsHEvent';
+import { ActionButton } from '../UIControls/ActionButton';
+import { UiView, UiViewProps } from '../UiView';
 
 import './MessageDialog.css';
 

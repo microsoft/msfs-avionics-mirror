@@ -1,14 +1,14 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { GeoPoint, MathUtils, SimpleMovingAverage, UnitType } from '../..';
 import { EventBus, SimVarValueType } from '../../data';
-import { ADCEvents, Glideslope, GNSSEvents, NavRadioEvents } from '../../instruments';
-import { APValues, APLateralModes } from '../APConfig';
-import { PlaneDirector, DirectorState } from '../PlaneDirector';
+import { GeoPoint } from '../../geo';
+import { AdcEvents, Glideslope, GNSSEvents, NavRadioEvents } from '../../instruments';
+import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
+import { APLateralModes, APValues } from '../APConfig';
+import { VNavVars } from '../data/VNavEvents';
 import { ApproachGuidanceMode } from '../VerticalNavigation';
-import { VNavVars } from '../VNavEvents';
 import { VNavUtils } from '../VNavUtils';
-
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * A glideslope autopilot director.
@@ -50,7 +50,7 @@ export class APGSDirector implements PlaneDirector {
     gnss.on('ground_speed').withPrecision(0).handle((gs) => {
       this.groundSpeed = gs;
     });
-    this.bus.getSubscriber<ADCEvents>().on('tas').withPrecision(0).handle((tas) => {
+    this.bus.getSubscriber<AdcEvents>().on('tas').withPrecision(0).handle((tas) => {
       this.tas = tas;
     });
   }

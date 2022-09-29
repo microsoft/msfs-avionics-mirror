@@ -1,13 +1,15 @@
-import { BitFlags } from '../math/BitFlags';
-import { Subject } from '../sub/Subject';
-import { UnitType } from '../math/NumberUnit';
-import { EventBus, SimVarValueType } from '../data';
+import { ConsumerSubject, EventBus, SimVarValueType } from '../data';
 import { FlightPlan, FlightPlanner, FlightPlannerEvents, FlightPlanSegmentType, LegDefinition, LegDefinitionFlags } from '../flightplan';
-import { ADCEvents, GNSSEvents } from '../instruments';
+import { AhrsEvents, GNSSEvents } from '../instruments';
+import { BitFlags } from '../math/BitFlags';
+import { UnitType } from '../math/NumberUnit';
 import { AdditionalApproachType, FacilityLoader, FacilityType, FixTypeFlags, LegTurnDirection, LegType } from '../navigation';
-import { LNavEvents } from './LNavEvents';
-import { LNavDataEvents } from './LNavDataEvents';
-import { VNavEvents } from './VNavEvents';
+import { Subject } from '../sub/Subject';
+import { VNavDataEvents } from './data';
+import { LNavDataEvents } from './data/LNavDataEvents';
+import { LNavEvents } from './data/LNavEvents';
+import { VNavEvents } from './data/VNavEvents';
+import { VNavUtils } from './VNavUtils';
 
 /**
  * A class that synchronizes the local NXi state to the sim GPS system.
@@ -24,7 +26,11 @@ export class GpsSynchronizer {
   private isDestinationLegActive = Subject.create<boolean>(false);
   private isDirectToActive = Subject.create<boolean>(false);
 
-
+  private readonly gpFpa = ConsumerSubject.create(this.bus.getSubscriber<VNavEvents>().on('gp_fpa').whenChanged(), 0);
+  private readonly gpDeviation = ConsumerSubject.create(this.bus.getSubscriber<VNavEvents>().on('gp_vertical_deviation').whenChangedBy(1), 0);
+  private readonly isApproachActive = Subject.create<boolean>(false);
+  private readonly approachHasGp = ConsumerSubject.create<boolean>(this.bus.getSubscriber<VNavDataEvents>().on('gp_available').whenChanged(), false);
+  private readonly gsiScaling = ConsumerSubject.create<number>(this.bus.getSubscriber<VNavDataEvents>().on('gp_gsi_scaling').whenChanged(), UnitType.FOOT.convertTo(1000, UnitType.METER));
 
   /**
    * Creates an instance of GpsSynchronizer.
@@ -41,11 +47,25 @@ export class GpsSynchronizer {
     lnav.on('lnavdata_destination_distance').handle(this.onLnavDistanceToDestinationChanged.bind(this));
     lnav.on('lnav_course_to_steer').handle(this.onLNavCourseToSteerChanged.bind(this));
 
-    const adc = bus.getSubscriber<ADCEvents>();
-    adc.on('hdg_deg_true').handle(this.onTrueHeadingChanged.bind(this));
+    const ahrs = bus.getSubscriber<AhrsEvents>();
+    ahrs.on('hdg_deg_true').handle(this.onTrueHeadingChanged.bind(this));
 
-    const vnav = bus.getSubscriber<VNavEvents>();
-    vnav.on('vnav_required_vs').handle(this.requiredVsChanged.bind(this));
+    const vnav = bus.getSubscriber<VNavEvents & VNavDataEvents>();
+    vnav.on('vnav_required_vs').handle(vs => {
+      if (!this.isApproachActive.get() || !this.approachHasGp.get()) {
+        this.requiredVsChanged(vs);
+      }
+    });
+
+    vnav.on('gp_required_vs').handle(vs => {
+      if (this.isApproachActive.get() && this.approachHasGp.get()) {
+        this.requiredVsChanged(vs);
+      }
+    });
+
+    vnav.on('vnav_target_altitude').handle(this.onTargetAltChanged.bind(this));
+    vnav.on('vnav_active_leg_alt').handle(this.onActiveLegAltChanged.bind(this));
+    vnav.on('gp_distance').handle(this.onGpDistanceChanged.bind(this));
 
     const gnss = bus.getSubscriber<GNSSEvents>();
     gnss.on('gps-position').handle(this.onPositionChanged.bind(this));
@@ -70,6 +90,14 @@ export class GpsSynchronizer {
     plan.on('fplIndexChanged').handle(this.onPlanChanged.bind(this));
 
     this.numPlanLegs.sub(this.onNumLegsChanged.bind(this));
+
+    this.isDirectToActive.sub(this.onDirectToActive, true);
+    this.hasReachedDestination.sub(this.onDestinationReached, true);
+    this.gpDeviation.sub(this.onGpDeviation, true);
+    this.gpFpa.sub(this.onGpFpa, true);
+    this.isApproachActive.sub(this.onApproachActive, true);
+    this.approachHasGp.sub(this.onApproachHasGp, true);
+    this.gsiScaling.sub(this.onGsiScaling, true);
   }
 
   /**
@@ -122,7 +150,8 @@ export class GpsSynchronizer {
    * @param course The course steered by LNAV, in degrees true.
    */
   private onLNavCourseToSteerChanged(course: number): void {
-    SimVar.SetSimVarValue('GPS COURSE TO STEER', SimVarValueType.Degree, course);
+    SimVar.SetSimVarValue('GPS COURSE TO STEER', SimVarValueType.Radians, UnitType.DEGREE.convertTo(course, UnitType.RADIAN));
+    // SimVar.SetSimVarValue('GPS COURSE TO STEER', SimVarValueType.Degree, course);
   }
 
   /**
@@ -138,6 +167,35 @@ export class GpsSynchronizer {
     this.isDirectToActive.set(isDirectToActive);
   }
 
+  private onDirectToActive = (state: boolean): void => {
+    SimVar.SetSimVarValue('GPS IS DIRECTTO FLIGHTPLAN', SimVarValueType.Bool, state);
+  };
+
+  private onDestinationReached = (state: boolean): void => {
+    SimVar.SetSimVarValue('GPS IS ARRIVED', SimVarValueType.Bool, state);
+  };
+
+  private onGpDeviation = (deviation: number): void => {
+    const deviationMeters = UnitType.FOOT.convertTo(deviation, UnitType.METER);
+    SimVar.SetSimVarValue('GPS VERTICAL ERROR', SimVarValueType.Meters, -deviationMeters);
+  };
+
+  private onGpFpa = (fpa: number): void => {
+    SimVar.SetSimVarValue('GPS VERTICAL ANGLE', SimVarValueType.Degree, fpa);
+  };
+
+  private onApproachActive = (isApproachActive: boolean): void => {
+    SimVar.SetSimVarValue('GPS IS APPROACH ACTIVE', SimVarValueType.Bool, isApproachActive);
+  };
+
+  private onApproachHasGp = (approachHasGp: boolean): void => {
+    SimVar.SetSimVarValue('GPS HAS GLIDEPATH', SimVarValueType.Bool, approachHasGp);
+  };
+
+  private onGsiScaling = (gsiScaling: number): void => {
+    SimVar.SetSimVarValue('GPS GSI SCALING', SimVarValueType.Meters, gsiScaling);
+  };
+
   /**
    * Checks to see if we have reached the plan destination.
    * @param plan The Active Flight Plan
@@ -148,7 +206,8 @@ export class GpsSynchronizer {
       const finalSegment = plan.getSegment(plan.getSegmentIndex(plan.length - 1));
       const isApproachActive = plan.activeLateralLeg >= finalSegment.offset && finalSegment.segmentType === FlightPlanSegmentType.Approach;
 
-      SimVar.SetSimVarValue('GPS IS APPROACH ACTIVE', SimVarValueType.Bool, isApproachActive);
+      this.isApproachActive.set(isApproachActive);
+
       let destinationLegIndex = plan.length - 1;
       let fafIndex = -1;
 
@@ -206,15 +265,17 @@ export class GpsSynchronizer {
    * @param plan The Active Flight Plan.
    */
   private onWaypointIndexChanged(plan: FlightPlan): void {
+    let name = '';
     if (plan.activeLateralLeg >= 0 && plan.activeLateralLeg < plan.length) {
       const leg = plan.getLeg(plan.activeLateralLeg);
-      SimVar.SetSimVarValue('GPS WP NEXT ID', SimVarValueType.String, leg.name ?? '');
+      name = leg.name ?? '';
 
       if (leg?.calculated) {
         SimVar.SetSimVarValue('GPS WP NEXT LAT', SimVarValueType.Degree, leg.calculated.endLat);
         SimVar.SetSimVarValue('GPS WP NEXT LON', SimVarValueType.Degree, leg.calculated.endLon);
       }
     }
+    SimVar.SetSimVarValue('GPS WP NEXT ID', SimVarValueType.String, name);
   }
 
   /**
@@ -239,17 +300,20 @@ export class GpsSynchronizer {
    */
   private onIsPrevLegChanged(plan: FlightPlan): void {
     const numLegs = this.numPlanLegs.get();
+    let name = '';
     if (numLegs > 1 && plan.activeLateralLeg > 0 && plan.activeLateralLeg < plan.length) {
       const prevLeg = plan.getLeg(plan.activeLateralLeg - 1);
 
       if (prevLeg.leg.type !== LegType.Discontinuity && prevLeg.leg.type !== LegType.ThruDiscontinuity) {
         SimVar.SetSimVarValue('GPS WP PREV VALID', SimVarValueType.Bool, true);
+        name = prevLeg.name ?? '';
         if (prevLeg.calculated) {
           SimVar.SetSimVarValue('GPS WP PREV LAT', SimVarValueType.Degree, prevLeg.calculated.endLat);
           SimVar.SetSimVarValue('GPS WP PREV LON', SimVarValueType.Degree, prevLeg.calculated.endLon);
         }
       }
     }
+    SimVar.SetSimVarValue('GPS WP PREV ID', SimVarValueType.String, name);
   }
 
   /**
@@ -257,7 +321,7 @@ export class GpsSynchronizer {
    * @param dis The new distance to destination.
    */
   private onLnavDistanceToDestinationChanged(dis: number): void {
-    const eteSeconds = 3600 * dis / this.groundSpeed;
+    const eteSeconds = this.groundSpeed > 1 ? 3600 * dis / this.groundSpeed : 0;
     if (isNaN(eteSeconds)) { return; }
 
     SimVar.SetSimVarValue('GPS ETE', SimVarValueType.Seconds, eteSeconds);
@@ -285,13 +349,13 @@ export class GpsSynchronizer {
    * @param dis The distance.
    */
   private onLnavDistanceChanged(dis: number): void {
-    if (this.isDestinationLegActive.get() && dis < 1000) {
+    if (this.isDestinationLegActive.get() && Math.abs(dis) < 2) {
       this.hasReachedDestination.set(true);
     }
     const distanceMeters = UnitType.NMILE.convertTo(dis, UnitType.METER);
     SimVar.SetSimVarValue('GPS WP DISTANCE', SimVarValueType.Meters, distanceMeters);
 
-    const eteSeconds = 3600 * dis / this.groundSpeed;
+    const eteSeconds = this.groundSpeed > 1 ? 3600 * dis / this.groundSpeed : 0;
 
     SimVar.SetSimVarValue('GPS WP ETE', SimVarValueType.Seconds, eteSeconds);
     SimVar.SetSimVarValue('GPS WP ETA', SimVarValueType.Seconds, eteSeconds + this.zuluTime);
@@ -340,11 +404,47 @@ export class GpsSynchronizer {
   }
 
   /**
+   * Handle when the VNAV Target Altitude changes.
+   * @param targetAlt Target Altitude [feet] (can be -1 if none is defined or available)
+   */
+  private onTargetAltChanged(targetAlt: number): void {
+    SimVar.SetSimVarValue('GPS TARGET ALTITUDE', SimVarValueType.Meters, targetAlt > 0 ? UnitType.FOOT.convertTo(targetAlt, UnitType.METER) : 0);
+  }
+
+  /**
+   * Handle when the VNAV Active Leg Altitude Changes.
+   * @param alt The active leg altitude in meters.
+   */
+  private onActiveLegAltChanged(alt: number): void {
+    SimVar.SetSimVarValue('GPS WP NEXT ALT', SimVarValueType.Meters, alt > 0 ? alt : 0);
+  }
+
+  /**
    * Handles when the VNAV required VS changes.
    * @param vs The required vertical speed.
    */
   private requiredVsChanged(vs: number): void {
-    SimVar.SetSimVarValue('GPS WP VERTICAL SPEED', SimVarValueType.FPM, vs);
+    // SimVar.SetSimVarValue('GPS WP VERTICAL SPEED', SimVarValueType.FPM, vs);
+    SimVar.SetSimVarValue('GPS WP VERTICAL SPEED', SimVarValueType.MetersPerSecond, UnitType.FPM.convertTo(vs, UnitType.MPS));
+  }
+
+  /**
+   * Handles when the distance to the GlidePath Target changes.
+   * @param dis The distance to the glidepath target (runway).
+   */
+  private onGpDistanceChanged(dis: number): void {
+    let verticalAngleError = 0;
+    const fpa = this.gpFpa.get();
+
+    if (fpa > 0) {
+      const deviation = this.gpDeviation.get();
+      const fpaAltitude = VNavUtils.altitudeForDistance(fpa, dis);
+      const calculatedFpaToTarget = VNavUtils.getFpa(dis, fpaAltitude + deviation);
+      verticalAngleError = fpa - calculatedFpaToTarget;
+    }
+
+    SimVar.SetSimVarValue('GPS VERTICAL ANGLE ERROR', SimVarValueType.Degree, verticalAngleError);
+
   }
 
   /**

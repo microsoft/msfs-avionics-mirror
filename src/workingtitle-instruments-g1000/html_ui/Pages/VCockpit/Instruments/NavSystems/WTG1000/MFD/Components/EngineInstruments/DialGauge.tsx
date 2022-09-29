@@ -1,7 +1,9 @@
-import { FSComponent, DisplayComponent, VNode, NodeReference, Subject, Fragment } from 'msfssdk';
-import { XMLCircularGaugeCursor, XMLCircularGaugeProps, XMLCircularGaugeValuePos, XMLGaugeColorLine, XMLGaugeColorZone, XMLHostedLogicGauge, XMLGaugeReferenceBug } from 'msfssdk/components/XMLGauges';
-import { BaseGauge } from './BaseGauge';
+import {
+  DisplayComponent, Fragment, FSComponent, NodeReference, Subject, VNode, XMLCircularGaugeCursor, XMLCircularGaugeProps, XMLCircularGaugeValuePos,
+  XMLGaugeColorLine, XMLGaugeColorZone, XMLGaugeReferenceBug, XMLHostedLogicGauge
+} from 'msfssdk';
 
+import { BaseGauge } from './BaseGauge';
 
 import './Gauge.css';
 

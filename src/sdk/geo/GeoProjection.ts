@@ -151,7 +151,6 @@ abstract class AbstractGeoProjection implements MutableGeoProjection {
   private static readonly vec2Cache = [new Float64Array(2)];
   private static readonly vec3Cache = [new Float64Array(3)];
   private static readonly geoPointCache = [new GeoPoint(0, 0)];
-  private static readonly transformCache = [new Transform3D(), new Transform3D()];
 
   protected readonly center = new GeoPoint(0, 0);
   protected readonly centerTranslation = new Float64Array(2);
@@ -165,6 +164,8 @@ abstract class AbstractGeoProjection implements MutableGeoProjection {
 
   protected readonly preRotationForwardTransform = new Transform3D();
   protected readonly preRotationReverseTransform = new Transform3D();
+
+  private readonly rotationCache = [new Transform3D(), new Transform3D()];
 
   /** @inheritdoc */
   public getCenter(): GeoPointReadOnly {
@@ -254,10 +255,10 @@ abstract class AbstractGeoProjection implements MutableGeoProjection {
     const phi = this.preRotation[1];
     const gamma = this.preRotation[2];
 
-    const phiRotation = AbstractGeoProjection.transformCache[1].toRotationY(-phi);
-    const gammaRotation = AbstractGeoProjection.transformCache[0].toRotationX(gamma);
+    this.rotationCache[0].toRotationX(gamma);
+    this.rotationCache[1].toRotationY(-phi);
 
-    Transform3D.concat(this.preRotationForwardTransform, gammaRotation, phiRotation);
+    Transform3D.concat(this.preRotationForwardTransform, this.rotationCache);
     this.preRotationReverseTransform.set(this.preRotationForwardTransform);
     this.preRotationReverseTransform.invert();
   }

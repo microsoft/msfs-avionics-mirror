@@ -1,9 +1,11 @@
 /// <reference types="msfstypes/JS/simvar" />
 
 import { EventBus } from '../../data';
-import { ADCEvents } from '../../instruments';
+import { AhrsEvents } from '../../instruments';
+import { MathUtils } from '../../math';
 import { LinearServo } from '../../utils/controllers';
-import { PlaneDirector, DirectorState } from '../PlaneDirector';
+import { APValues } from '../APConfig';
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * Options for control of the roll director.
@@ -39,13 +41,14 @@ export class APRollDirector implements PlaneDirector {
   /**
    * Creates an instance of the LateralDirector.
    * @param bus The event bus to use with this instance.
+   * @param apValues The AP Values.
    * @param options Options to set on the roll director for bank angle limitations.
    */
-  constructor(private readonly bus: EventBus, private readonly options?: RollDirectorOptions) {
+  constructor(private readonly bus: EventBus, private readonly apValues: APValues, private readonly options?: RollDirectorOptions) {
     this.state = DirectorState.Inactive;
 
-    const adc = this.bus.getSubscriber<ADCEvents>();
-    adc.on('roll_deg').withPrecision(1).handle((roll) => {
+    const sub = this.bus.getSubscriber<AhrsEvents>();
+    sub.on('roll_deg').withPrecision(1).handle((roll) => {
       this.actualBank = roll;
     });
   }
@@ -56,16 +59,13 @@ export class APRollDirector implements PlaneDirector {
   public activate(): void {
     this.state = DirectorState.Active;
 
-    if (this.options !== undefined) {
-      if (this.actualBank <= this.options.minimumBankAngle) {
-        this.desiredBank = 0;
-      } else if (this.actualBank > this.options.maximumBankAngle) {
-        this.desiredBank = this.options.maximumBankAngle;
-      } else {
-        this.desiredBank = this.actualBank;
-      }
+    const maxBank = Math.min(this.options?.maximumBankAngle ?? 90, this.apValues.maxBankAngle.get());
+    const minBank = this.options?.minimumBankAngle ?? 0;
+
+    if (Math.abs(this.actualBank) < minBank) {
+      this.desiredBank = 0;
     } else {
-      this.desiredBank = this.actualBank;
+      this.desiredBank = MathUtils.clamp(this.actualBank, -maxBank, maxBank);
     }
 
     if (this.onActivate !== undefined) {

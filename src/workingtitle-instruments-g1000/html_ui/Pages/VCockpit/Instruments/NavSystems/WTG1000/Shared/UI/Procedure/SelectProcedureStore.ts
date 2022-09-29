@@ -1,6 +1,4 @@
-import { ArraySubject, Subject, SubscribableArray } from 'msfssdk';
-import { FlightPlan, LegDefinition } from 'msfssdk/flightplan';
-import { AirportFacility } from 'msfssdk/navigation';
+import { AirportFacility, ArraySubject, FlightPlan, LegDefinition, Subject, SubscribableArray } from 'msfssdk';
 
 /**
  * A data store for procedure selection components.

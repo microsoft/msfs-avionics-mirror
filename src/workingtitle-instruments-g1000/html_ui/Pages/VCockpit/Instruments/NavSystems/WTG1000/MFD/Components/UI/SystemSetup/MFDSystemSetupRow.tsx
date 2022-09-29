@@ -1,5 +1,5 @@
-import { ComponentProps, DisplayComponent, FSComponent, VNode } from 'msfssdk';
-import { UserSettingType, UserSettingValueFilter } from 'msfssdk/settings';
+import { ComponentProps, DisplayComponent, FSComponent, UserSettingRecord, UserSettingValueFilter, VNode } from 'msfssdk';
+
 import { UserSettingSelectControl, UserSettingSelectControlProps } from '../../../../Shared/UI/UserSettings/UserSettingSelectControl';
 import { UserSettingToggleControl, UserSettingToggleControlProps } from '../../../../Shared/UI/UserSettings/UserSettingToggleControl';
 
@@ -82,7 +82,7 @@ export class MFDSystemSetupGenericRow<P extends MFDSystemSetupGenericRowProps = 
 /**
  * Component props for MFDSystemSetupSelectRow.
  */
-export interface MFDSystemSetupSelectRowProps<T extends Record<any, UserSettingType>, K extends keyof T> extends MFDSystemSetupRowProps {
+export interface MFDSystemSetupSelectRowProps<T extends UserSettingRecord, K extends keyof T & string> extends MFDSystemSetupRowProps {
   /** Props required for the select control. */
   selectControlProps: UserSettingSelectControlProps<T, K>;
 }
@@ -90,7 +90,7 @@ export interface MFDSystemSetupSelectRowProps<T extends Record<any, UserSettingT
 /**
  * A row which displays to the right of the title a select control component which controls the value of a user setting.
  */
-export class MFDSystemSetupSelectRow<T extends Record<any, UserSettingType>, K extends keyof T, P extends MFDSystemSetupSelectRowProps<T, K> = MFDSystemSetupSelectRowProps<T, K>>
+export class MFDSystemSetupSelectRow<T extends UserSettingRecord, K extends keyof T & string, P extends MFDSystemSetupSelectRowProps<T, K> = MFDSystemSetupSelectRowProps<T, K>>
   extends MFDSystemSetupRow<P> {
 
   /** @inheritdoc */
@@ -113,7 +113,7 @@ export class MFDSystemSetupSelectRow<T extends Record<any, UserSettingType>, K e
 /**
  * Component props for MFDSystemSetupToggleRow.
  */
-export interface MFDSystemSetupToggleRowProps<T extends Record<any, UserSettingType>, K extends keyof UserSettingValueFilter<T, boolean>> extends MFDSystemSetupRowProps {
+export interface MFDSystemSetupToggleRowProps<T extends UserSettingRecord, K extends keyof UserSettingValueFilter<T, boolean> & string> extends MFDSystemSetupRowProps {
   /** Props required for the toggle control.  */
   toggleControlProps: Omit<UserSettingToggleControlProps<T, K>, 'falseText' | 'trueText'>;
 }
@@ -122,8 +122,8 @@ export interface MFDSystemSetupToggleRowProps<T extends Record<any, UserSettingT
  * A row which displays to the right of the title an arrow toggle component which controls the value of a boolean user setting.
  */
 export class MFDSystemSetupToggleRow<
-  T extends Record<any, UserSettingType>,
-  K extends keyof UserSettingValueFilter<T, boolean>,
+  T extends UserSettingRecord,
+  K extends keyof UserSettingValueFilter<T, boolean> & string,
   P extends MFDSystemSetupToggleRowProps<T, K> = MFDSystemSetupToggleRowProps<T, K>> extends MFDSystemSetupRow<P> {
 
   /** @inheritdoc */

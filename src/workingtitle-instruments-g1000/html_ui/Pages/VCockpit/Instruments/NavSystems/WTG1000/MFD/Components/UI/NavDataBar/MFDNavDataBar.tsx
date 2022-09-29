@@ -1,9 +1,7 @@
-import { ComponentProps, DisplayComponent, FSComponent, Subject, Subscribable, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { Fms } from 'garminsdk/flightplan';
-import { UserSettingManager } from 'msfssdk/settings';
-import { DefaultNavDataBarFieldModelFactory, NavDataBar } from 'garminsdk/components/navdatabar';
-import { DateTimeUserSettingTypes, NavDataBarSettingTypes, UnitsUserSettingManager } from 'garminsdk/settings';
+import { ComponentProps, DisplayComponent, EventBus, FSComponent, Subject, Subscribable, UserSettingManager, VNode } from 'msfssdk';
+
+import { DateTimeUserSettingTypes, DefaultNavDataBarFieldModelFactory, Fms, NavDataBar, NavDataBarSettingTypes, UnitsUserSettingManager } from 'garminsdk';
+
 import { UiPage } from '../../../../Shared/UI/UiPage';
 
 import '../../../../Shared/UI/NavDataField/NavDataField.css';

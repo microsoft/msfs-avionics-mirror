@@ -1,5 +1,7 @@
-import { ICAO } from 'msfssdk/navigation';
-import { FmsUtils } from 'garminsdk/flightplan';
+import { ICAO } from 'msfssdk';
+
+import { FmsUtils } from 'garminsdk';
+
 import { FPLStringHeader } from './FPLStringHeader';
 
 /**

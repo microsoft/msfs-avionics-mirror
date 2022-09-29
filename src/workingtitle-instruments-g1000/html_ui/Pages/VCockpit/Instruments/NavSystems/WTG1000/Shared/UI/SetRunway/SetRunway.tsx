@@ -1,5 +1,4 @@
-import { VNode, FSComponent } from 'msfssdk';
-import { AirportFacility, OneWayRunway } from 'msfssdk/navigation';
+import { AirportFacility, FSComponent, OneWayRunway, VNode } from 'msfssdk';
 
 import { ContextMenuDialog, ContextMenuItemDefinition } from '../Dialogs/ContextMenuDialog';
 import { FmsHEvent } from '../FmsHEvent';
@@ -70,7 +69,3 @@ export abstract class SetRunway extends UiView<UiViewProps, OneWayRunway | undef
     return { id: index.toString(), renderContent: (): VNode => <span>{text}</span>, estimatedWidth: text.length * ContextMenuDialog.CHAR_WIDTH };
   }
 }
-
-
-
-

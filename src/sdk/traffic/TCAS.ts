@@ -1,20 +1,24 @@
 import { ConsumerSubject, EventSubscriber } from '../data';
 import { Consumer } from '../data/Consumer';
 import { EventBus, Publisher } from '../data/EventBus';
-import { ADCEvents, ClockEvents, GNSSEvents, TrafficContact, TrafficEvents, TrafficInstrument } from '../instruments';
 import { GeoPoint, GeoPointInterface, GeoPointReadOnly } from '../geo/GeoPoint';
 import { GeoPointSubject } from '../geo/GeoPointSubject';
+import { AdcEvents } from '../instruments/Adc';
+import { ClockEvents } from '../instruments/Clock';
+import { GNSSEvents } from '../instruments/GNSS';
+import { TrafficContact, TrafficEvents, TrafficInstrument } from '../instruments/Traffic';
+import { BitFlags } from '../math/BitFlags';
 import { NumberUnit, NumberUnitInterface, NumberUnitReadOnly, UnitFamily, UnitType } from '../math/NumberUnit';
 import { NumberUnitSubject } from '../math/NumberUnitSubject';
 import { ReadonlyFloat64Array, Vec2Math, Vec3Math } from '../math/VecMath';
 import { Subject } from '../sub/Subject';
 import { Subscribable } from '../sub/Subscribable';
-import { BitFlags } from '../math/BitFlags';
+import { Subscription } from '../sub/Subscription';
 
 /**
  * TCAS operating modes.
  */
-export enum TCASOperatingMode {
+export enum TcasOperatingMode {
   Standby,
   TAOnly,
   TA_RA
@@ -23,7 +27,7 @@ export enum TCASOperatingMode {
 /**
  * TCAS alert level.
  */
-export enum TCASAlertLevel {
+export enum TcasAlertLevel {
   None,
   ProximityAdvisory,
   TrafficAdvisory,
@@ -33,7 +37,7 @@ export enum TCASAlertLevel {
 /**
  * A time-of-closest-approach prediction made by TCAS.
  */
-export interface TCASTcaPrediction {
+export interface TcasTcaPrediction {
   /** Whether this prediction is valid. */
   readonly isValid: boolean;
 
@@ -66,12 +70,12 @@ export interface TCASTcaPrediction {
 /**
  * An intruder tracked by TCAS.
  */
-export interface TCASIntruder {
+export interface TcasIntruder {
   /** The traffic contact associated with this intruder. */
   readonly contact: TrafficContact;
 
   /** A subscribable which provides the alert level assigned to this intruder. */
-  readonly alertLevel: Subscribable<TCASAlertLevel>;
+  readonly alertLevel: Subscribable<TcasAlertLevel>;
 
   /** The position of this intruder at the time of the most recent update. */
   readonly position: GeoPointReadOnly;
@@ -113,10 +117,10 @@ export interface TCASIntruder {
   readonly isPredictionValid: boolean;
 
   /** A time-of-closest-approach prediction for this intruder using sensitivity settings for traffic advisories. */
-  readonly tcaTA: TCASTcaPrediction;
+  readonly tcaTA: TcasTcaPrediction;
 
   /** A time-of-closest-approach prediction for this intruder using sensitivity settings for resolution advisories. */
-  readonly tcaRA: TCASTcaPrediction;
+  readonly tcaRA: TcasTcaPrediction;
 
   /**
    * Calculates the predicted 3D displacement vector from own airplane to this intruder at a specified time based on
@@ -142,57 +146,68 @@ export interface TCASIntruder {
 /**
  * TCAS parameters for advisories defining the protected zone around the own airplane.
  */
-export interface TCASAdvisoryParameters {
+export interface TcasAdvisoryParameters {
   /** A subscribable which provides the radius of the own airplane's protected zone. */
-  readonly protectedRadius: Subscribable<NumberUnitInterface<UnitFamily.Distance>>;
+  readonly protectedRadius: NumberUnitInterface<UnitFamily.Distance>;
 
   /** A subscribable which provides the half-height of the own airplane's protected zone. */
-  readonly protectedHeight: Subscribable<NumberUnitInterface<UnitFamily.Distance>>;
+  readonly protectedHeight: NumberUnitInterface<UnitFamily.Distance>;
 }
 
 /**
  * TCAS parameters for time-of-closest-approach calculations.
  */
-export interface TCASTcaParameters extends TCASAdvisoryParameters {
+export interface TcasTcaParameters extends TcasAdvisoryParameters {
   /** A subscribable which provides the lookahead time for TCA calculations. */
-  readonly lookaheadTime: Subscribable<NumberUnitInterface<UnitFamily.Duration>>;
+  readonly lookaheadTime: NumberUnitInterface<UnitFamily.Duration>;
 }
 
 /**
- * TCAS parameters for resolution advisories.
+ * A full set of TCAS sensitivity parameters.
  */
-export interface TCASRAParameters extends TCASTcaParameters {
-  /** A subscribable which provides the minimum vertical separation from intruders targeted by resolution advisories. */
-  readonly alim: Subscribable<NumberUnitInterface<UnitFamily.Distance>>;
-}
-
-/**
- * Sensitivity settings for TCAS.
- */
-export interface TCASSensitivity {
+export type TcasSensitivityParameters = {
   /**
    * Protected zone parameters for proximity advisories. If any parameters have a value of `NaN`, proximity advisories
    * will not be issued.
    */
-  readonly parametersPA: TCASAdvisoryParameters;
+  readonly parametersPA: TcasAdvisoryParameters;
 
   /**
    * Parameters for time-of-closest-approach calculations for traffic advisories. If any parameters have a value of
    * `NaN`, traffic advisories will not be issued.
    */
-  readonly parametersTA: TCASTcaParameters;
+  readonly parametersTA: TcasTcaParameters;
 
   /**
    * Parameters for time-of-closest-approach calculations for resolution advisories. If any parameters have a value of
    * `NaN`, resolution advisories will not be issued.
    */
-  readonly parametersRA: TCASRAParameters;
+  readonly parametersRA: TcasTcaParameters;
+};
+
+/**
+ * Sensitivity settings for TCAS.
+ */
+export interface TcasSensitivity<I extends TcasIntruder = TcasIntruder> {
+  /**
+   * Selects sensitivity parameters for an intruder.
+   * @param intruder An intruder.
+   * @returns Sensitivity parameters for the specified intruder.
+   */
+  selectParameters(intruder: I): TcasSensitivityParameters;
+
+  /**
+   * Selects an ALIM for a resolution advisory.
+   * @param intruders The intruders involved in the resolution advisory.
+   * @returns An ALIM for a resolution advisory involving the specified intruders.
+   */
+  selectRAAlim(intruders: ReadonlySet<I>): NumberUnitInterface<UnitFamily.Distance>;
 }
 
 /**
  * Bit flags describing TCAS resolution advisories.
  */
-export enum TCASResolutionAdvisoryFlags {
+export enum TcasResolutionAdvisoryFlags {
   /** An initial resolution advisory. */
   Initial = 1 << 0,
 
@@ -233,9 +248,9 @@ export enum TCASResolutionAdvisoryFlags {
 /**
  * A TCAS resolution advisory.
  */
-export interface TCASResolutionAdvisory {
+export interface TcasResolutionAdvisory {
   /** This resolution advisory's active intruders, sorted in order of increasing time to closest approach. */
-  readonly intruders: readonly TCASIntruder[];
+  readonly intruders: readonly TcasIntruder[];
 
   /** The upper vertical speed limit placed by this resolution advisory. A value of `NaN` indicates no limit. */
   readonly maxVerticalSpeed: NumberUnitReadOnly<UnitFamily.Speed>;
@@ -243,25 +258,25 @@ export interface TCASResolutionAdvisory {
   /** The lower vertical speed limit placed by this resolution advisory. A value of `NaN` indicates no limit. */
   readonly minVerticalSpeed: NumberUnitReadOnly<UnitFamily.Speed>;
 
-  /** A combination of {@link TCASResolutionAdvisoryFlags} entries describing this resolution advisory. */
+  /** A combination of {@link TcasResolutionAdvisoryFlags} entries describing this resolution advisory. */
   readonly flags: number;
 }
 
 /**
  * TCAS events.
  */
-export interface TCASEvents {
+export interface TcasEvents {
   /** The TCAS operating mode changed. */
-  tcas_operating_mode: TCASOperatingMode;
+  tcas_operating_mode: TcasOperatingMode;
 
   /** A new intruder was created. */
-  tcas_intruder_added: TCASIntruder;
+  tcas_intruder_added: TcasIntruder;
 
   /** The alert level of an intruder was changed. */
-  tcas_intruder_alert_changed: TCASIntruder;
+  tcas_intruder_alert_changed: TcasIntruder;
 
   /** An intruder was removed. */
-  tcas_intruder_removed: TCASIntruder;
+  tcas_intruder_removed: TcasIntruder;
 
   /** The number of intruders associated with active traffic advisories. */
   tcas_ta_intruder_count: number;
@@ -270,10 +285,10 @@ export interface TCASEvents {
   tcas_ra_intruder_count: number;
 
   /** An initial resolution advisory has been issued. */
-  tcas_ra_issued: TCASResolutionAdvisory;
+  tcas_ra_issued: TcasResolutionAdvisory;
 
   /** An active resolution advisory has been updated. */
-  tcas_ra_updated: TCASResolutionAdvisory;
+  tcas_ra_updated: TcasResolutionAdvisory;
 
   /** A resolution advisory has been canceled. */
   tcas_ra_canceled: void;
@@ -282,7 +297,7 @@ export interface TCASEvents {
 /**
  * Options to adjust how resolution advisories are calculated by TCAS.
  */
-export type TCASResolutionAdvisoryOptions = {
+export type TcasResolutionAdvisoryOptions = {
   /** The assumed response time of the own airplane following an initial resolution advisory. */
   readonly initialResponseTime: NumberUnitInterface<UnitFamily.Duration>;
 
@@ -311,7 +326,7 @@ export type TCASResolutionAdvisoryOptions = {
 /**
  * A TCAS-II-like system.
  */
-export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder, S extends TCASSensitivity = TCASSensitivity> {
+export abstract class Tcas<I extends AbstractTcasIntruder = AbstractTcasIntruder, S extends TcasSensitivity = TcasSensitivity> {
   private static readonly DEFAULT_RA_OPTIONS = {
     initialResponseTime: UnitType.SECOND.createNumber(5),
     initialAcceleration: UnitType.G_ACCEL.createNumber(0.25),
@@ -319,7 +334,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
     subsequentAcceleration: UnitType.G_ACCEL.createNumber(0.35)
   };
 
-  protected readonly operatingModeSub = Subject.create(TCASOperatingMode.Standby);
+  protected readonly operatingModeSub = Subject.create(TcasOperatingMode.Standby);
 
   protected readonly sensitivity: S;
 
@@ -329,7 +344,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
   protected intrudersFiltered: I[] = [];
 
   protected readonly intrudersRA = new Set<I>();
-  protected readonly resolutionAdvisory: TCASResolutionAdvisoryClass;
+  protected readonly resolutionAdvisory: TcasResolutionAdvisoryClass;
 
   private contactCreatedConsumer: Consumer<number> | undefined;
   private contactRemovedConsumer: Consumer<number> | undefined;
@@ -352,10 +367,10 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
   protected lastUpdateSimTime = 0;
   protected lastUpdateRealTime = 0;
 
-  private readonly alertLevelHandlers = new Map<I, () => void>();
+  private readonly alertLevelSubs = new Map<I, Subscription>();
 
-  private readonly eventPublisher = this.bus.getPublisher<TCASEvents>();
-  private readonly eventSubscriber = this.bus.getSubscriber<TCASEvents>();
+  private readonly eventPublisher = this.bus.getPublisher<TcasEvents>();
+  private readonly eventSubscriber = this.bus.getSubscriber<TcasEvents>();
 
   /**
    * Constructor.
@@ -372,16 +387,16 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
     protected readonly maxIntruderCount: number,
     protected readonly realTimeUpdateFreq: number,
     protected readonly simTimeUpdateFreq: number,
-    raOptions?: Partial<TCASResolutionAdvisoryOptions>
+    raOptions?: Partial<TcasResolutionAdvisoryOptions>
   ) {
     this.sensitivity = this.createSensitivity();
     this.ownAirplane = new OwnAirplane(this.ownAirplaneSubs);
 
-    const fullRAOptions: TCASResolutionAdvisoryOptions = {
-      initialResponseTime: (raOptions?.initialResponseTime ?? TCAS.DEFAULT_RA_OPTIONS.initialResponseTime).copy(),
-      initialAcceleration: (raOptions?.initialAcceleration ?? TCAS.DEFAULT_RA_OPTIONS.initialAcceleration).copy(),
-      subsequentResponseTime: (raOptions?.subsequentResponseTime ?? TCAS.DEFAULT_RA_OPTIONS.subsequentResponseTime).copy(),
-      subsequentAcceleration: (raOptions?.subsequentAcceleration ?? TCAS.DEFAULT_RA_OPTIONS.subsequentAcceleration).copy(),
+    const fullRAOptions: TcasResolutionAdvisoryOptions = {
+      initialResponseTime: (raOptions?.initialResponseTime ?? Tcas.DEFAULT_RA_OPTIONS.initialResponseTime).copy(),
+      initialAcceleration: (raOptions?.initialAcceleration ?? Tcas.DEFAULT_RA_OPTIONS.initialAcceleration).copy(),
+      subsequentResponseTime: (raOptions?.subsequentResponseTime ?? Tcas.DEFAULT_RA_OPTIONS.subsequentResponseTime).copy(),
+      subsequentAcceleration: (raOptions?.subsequentAcceleration ?? Tcas.DEFAULT_RA_OPTIONS.subsequentAcceleration).copy(),
 
       allowClimb: raOptions?.allowClimb ?? ((): boolean => true),
       allowIncreaseClimb: raOptions?.allowIncreaseClimb ?? ((): boolean => true),
@@ -393,7 +408,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
       )
     };
 
-    this.resolutionAdvisory = new TCASResolutionAdvisoryClass(bus, fullRAOptions, this.ownAirplane);
+    this.resolutionAdvisory = new TcasResolutionAdvisoryClass(bus, fullRAOptions, this.ownAirplane);
   }
 
   /**
@@ -406,7 +421,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
    * Gets this system's operating mode.
    * @returns This system's operating mode.
    */
-  public getOperatingMode(): TCASOperatingMode {
+  public getOperatingMode(): TcasOperatingMode {
     return this.operatingModeSub.get();
   }
 
@@ -414,7 +429,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
    * Sets this system's operating mode.
    * @param mode The new operating mode.
    */
-  public setOperatingMode(mode: TCASOperatingMode): void {
+  public setOperatingMode(mode: TcasOperatingMode): void {
     this.operatingModeSub.set(mode);
   }
 
@@ -422,7 +437,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
    * Gets an array of all currently tracked intruders. The intruders are sorted in order of decreasing threat.
    * @returns an array of all currently tracked intruders.
    */
-  public getIntruders(): readonly TCASIntruder[] {
+  public getIntruders(): readonly TcasIntruder[] {
     return this.intrudersFiltered;
   }
 
@@ -430,7 +445,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
    * Gets an event bus subscriber for TCAS events.
    * @returns an event bus subscriber for TCAS events..
    */
-  public getEventSubscriber(): EventSubscriber<TCASEvents> {
+  public getEventSubscriber(): EventSubscriber<TcasEvents> {
     return this.eventSubscriber;
   }
 
@@ -439,7 +454,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
    */
   public init(): void {
     // init contact listeners
-    const sub = this.bus.getSubscriber<TrafficEvents & GNSSEvents & ADCEvents & ClockEvents>();
+    const sub = this.bus.getSubscriber<TrafficEvents & GNSSEvents & AdcEvents & ClockEvents>();
     this.contactCreatedConsumer = sub.on('traffic_contact_added');
     this.contactRemovedConsumer = sub.on('traffic_contact_removed');
 
@@ -452,8 +467,8 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
     // init own airplane subjects
     sub.on('gps-position').atFrequency(this.realTimeUpdateFreq).handle(lla => { this.ownAirplaneSubs.position.set(lla.lat, lla.long); });
     sub.on('ground_speed').whenChanged().atFrequency(this.realTimeUpdateFreq).handle(gs => { this.ownAirplaneSubs.groundSpeed.set(gs); });
-    sub.on('alt').whenChanged().atFrequency(this.realTimeUpdateFreq).handle(alt => { this.ownAirplaneSubs.altitude.set(alt); });
-    sub.on('vs').whenChanged().atFrequency(this.realTimeUpdateFreq).handle(vs => { this.ownAirplaneSubs.verticalSpeed.set(vs); });
+    sub.on('indicated_alt').whenChanged().atFrequency(this.realTimeUpdateFreq).handle(alt => { this.ownAirplaneSubs.altitude.set(alt); });
+    sub.on('vertical_speed').whenChanged().atFrequency(this.realTimeUpdateFreq).handle(vs => { this.ownAirplaneSubs.verticalSpeed.set(vs); });
     sub.on('radio_alt').whenChanged().atFrequency(this.realTimeUpdateFreq).handle(alt => { this.ownAirplaneSubs.radarAltitude.set(alt); });
     this.ownAirplaneSubs.groundTrack.setConsumer(sub.on('track_deg_true'));
     this.ownAirplaneSubs.isOnGround.setConsumer(sub.on('on_ground'));
@@ -462,10 +477,26 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
     this.simTime.setConsumer(sub.on('simTime'));
 
     // init operating mode notifier
-    this.operatingModeSub.sub(mode => { this.bus.pub('tcas_operating_mode', mode, false, true); }, true);
+    this.operatingModeSub.sub(this.onOperatingModeChanged.bind(this), true);
 
     // init update loop
     sub.on('simTime').whenChanged().handle(this.onSimTimeChanged.bind(this));
+  }
+
+  /**
+   * Responds to changes in this TCAS's operating mode.
+   * @param mode The current operating mode.
+   */
+  protected onOperatingModeChanged(mode: TcasOperatingMode): void {
+    this.bus.pub('tcas_operating_mode', mode, false, true);
+
+    if (mode === TcasOperatingMode.Standby) {
+      // Clean up all intruders
+      for (let i = 0; i < this.intrudersFiltered.length; i++) {
+        this.cleanUpIntruder(this.intrudersFiltered[i]);
+      }
+      this.intrudersFiltered = [];
+    }
   }
 
   /**
@@ -482,7 +513,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
     } else if (!a.isPredictionValid && b.isPredictionValid) {
       return 1;
     } else if (a.isPredictionValid) {
-      let tcaPredictionA: TCASTcaPrediction | undefined, tcaPredictionB: TCASTcaPrediction | undefined;
+      let tcaPredictionA: TcasTcaPrediction | undefined, tcaPredictionB: TcasTcaPrediction | undefined;
 
       // Always sort intruders predicted to violate RA protected zone first, then TA protected zone
 
@@ -581,7 +612,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
    * @param simTime The current sim time.
    */
   private onSimTimeChanged(simTime: number): void {
-    if (this.operatingModeSub.get() === TCASOperatingMode.Standby) {
+    if (this.operatingModeSub.get() === TcasOperatingMode.Standby) {
       return;
     }
 
@@ -620,7 +651,10 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
 
     const len = this.intrudersSorted.length;
     for (let i = 0; i < len; i++) {
-      this.intrudersSorted[i].updatePrediction(simTime, this.ownAirplane, this.sensitivity);
+      const intruder = this.intrudersSorted[i];
+      const sensitivity = this.sensitivity.selectParameters(intruder);
+
+      intruder.updatePrediction(simTime, this.ownAirplane, sensitivity);
     }
   }
 
@@ -633,9 +667,9 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
 
     this.intrudersFiltered = [];
     const len = this.intrudersSorted.length;
-    for (let i = 0; i < len; i++) {
+    for (let i = 0; i < len && this.intrudersFiltered.length < this.maxIntruderCount; i++) {
       const intruder = this.intrudersSorted[i];
-      if (i < this.maxIntruderCount && intruder.isPredictionValid) {
+      if (intruder.isPredictionValid && this.filterIntruder(intruder)) {
         this.intrudersFiltered.push(intruder);
         if (!oldCulled.includes(intruder)) {
           this.initIntruder(intruder);
@@ -646,6 +680,16 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
         }
       }
     }
+  }
+
+  /**
+   * Filters an intruder.
+   * @param intruder An intruder.
+   * @returns Whether the intruder should be tracked by this TCAS.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected filterIntruder(intruder: I): boolean {
+    return true;
   }
 
   /**
@@ -661,10 +705,10 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
       this.updateIntruderAlertLevel(simTime, intruder);
 
       switch (intruder.alertLevel.get()) {
-        case TCASAlertLevel.TrafficAdvisory:
+        case TcasAlertLevel.TrafficAdvisory:
           taCount++;
           break;
-        case TCASAlertLevel.ResolutionAdvisory:
+        case TcasAlertLevel.ResolutionAdvisory:
           raCount++;
           break;
       }
@@ -689,15 +733,15 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
 
     if (intruder.tcaRA.isValid && intruder.tcaRA.tcaNorm <= 1) {
       if (this.canIssueResolutionAdvisory(simTime, intruder)) {
-        intruder.alertLevel.set(TCASAlertLevel.ResolutionAdvisory);
+        intruder.alertLevel.set(TcasAlertLevel.ResolutionAdvisory);
         return;
-      } else if (currentAlertLevel === TCASAlertLevel.ResolutionAdvisory && !this.canCancelResolutionAdvisory(simTime, intruder)) {
+      } else if (currentAlertLevel === TcasAlertLevel.ResolutionAdvisory && !this.canCancelResolutionAdvisory(simTime, intruder)) {
         return;
       }
     }
 
     if (
-      currentAlertLevel === TCASAlertLevel.ResolutionAdvisory
+      currentAlertLevel === TcasAlertLevel.ResolutionAdvisory
       && (!intruder.tcaRA.isValid || intruder.tcaRA.tcaNorm > 1)
       && !this.canCancelResolutionAdvisory(simTime, intruder)
     ) {
@@ -706,15 +750,15 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
 
     if (intruder.tcaTA.isValid && intruder.tcaTA.tcaNorm <= 1) {
       if (this.canIssueTrafficAdvisory(simTime, intruder)) {
-        intruder.alertLevel.set(TCASAlertLevel.TrafficAdvisory);
+        intruder.alertLevel.set(TcasAlertLevel.TrafficAdvisory);
         return;
-      } else if (currentAlertLevel === TCASAlertLevel.TrafficAdvisory && !this.canCancelTrafficAdvisory(simTime, intruder)) {
+      } else if (currentAlertLevel === TcasAlertLevel.TrafficAdvisory && !this.canCancelTrafficAdvisory(simTime, intruder)) {
         return;
       }
     }
 
     if (
-      currentAlertLevel === TCASAlertLevel.TrafficAdvisory
+      currentAlertLevel === TcasAlertLevel.TrafficAdvisory
       && (!intruder.tcaTA.isValid || intruder.tcaTA.tcaNorm > 1)
       && !this.canCancelTrafficAdvisory(simTime, intruder)
     ) {
@@ -722,27 +766,27 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
     }
 
     if (intruder.isPredictionValid) {
-      const radius = this.sensitivity.parametersPA.protectedRadius.get();
-      const height = this.sensitivity.parametersPA.protectedHeight.get();
+      const parametersPA = this.sensitivity.selectParameters(intruder).parametersPA;
+      const radius = parametersPA.protectedRadius;
+      const height = parametersPA.protectedHeight;
 
       if (!radius.isNaN() && !height.isNaN() && this.canIssueProximityAdvisory(simTime, intruder)) {
-        const paParameters = this.sensitivity.parametersPA;
         intruder.predictSeparation(simTime, this.paSeparationCache.horizontal, this.paSeparationCache.vertical);
         if (
-          this.paSeparationCache.horizontal.compare(paParameters.protectedRadius.get()) <= 0
-          && this.paSeparationCache.vertical.compare(paParameters.protectedHeight.get()) <= 0
+          this.paSeparationCache.horizontal.compare(parametersPA.protectedRadius) <= 0
+          && this.paSeparationCache.vertical.compare(parametersPA.protectedHeight) <= 0
         ) {
-          intruder.alertLevel.set(TCASAlertLevel.ProximityAdvisory);
+          intruder.alertLevel.set(TcasAlertLevel.ProximityAdvisory);
           return;
         }
       }
     }
 
-    if (currentAlertLevel === TCASAlertLevel.ProximityAdvisory && !this.canCancelProximityAdvisory(simTime, intruder)) {
+    if (currentAlertLevel === TcasAlertLevel.ProximityAdvisory && !this.canCancelProximityAdvisory(simTime, intruder)) {
       return;
     }
 
-    intruder.alertLevel.set(TCASAlertLevel.None);
+    intruder.alertLevel.set(TcasAlertLevel.None);
   }
 
   /**
@@ -753,7 +797,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected canIssueResolutionAdvisory(simTime: number, intruder: I): boolean {
-    return this.operatingModeSub.get() === TCASOperatingMode.TA_RA
+    return this.operatingModeSub.get() === TcasOperatingMode.TA_RA
       && intruder.tcaRA.isValid
       && intruder.tcaRA.tca.number > 0;
   }
@@ -818,7 +862,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
    * @param simTime The current sim time, as a UNIX timestamp in milliseconds.
    */
   protected updateResolutionAdvisory(simTime: number): void {
-    this.resolutionAdvisory.update(simTime, this.sensitivity.parametersRA.alim.get(), this.intrudersRA);
+    this.resolutionAdvisory.update(simTime, this.sensitivity.selectRAAlim(this.intrudersRA), this.intrudersRA);
   }
 
   /**
@@ -826,9 +870,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
    * @param intruder The newly added intruder.
    */
   private initIntruder(intruder: I): void {
-    const handler = this.onAlertLevelChanged.bind(this, intruder);
-    this.alertLevelHandlers.set(intruder, handler);
-    intruder.alertLevel.sub(handler);
+    this.alertLevelSubs.set(intruder, intruder.alertLevel.sub(this.onAlertLevelChanged.bind(this, intruder)));
     this.eventPublisher.pub('tcas_intruder_added', intruder, false, false);
   }
 
@@ -837,12 +879,11 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
    * @param intruder The intruder that was removed.
    */
   private cleanUpIntruder(intruder: I): void {
-    if (intruder.alertLevel.get() === TCASAlertLevel.ResolutionAdvisory) {
+    if (intruder.alertLevel.get() === TcasAlertLevel.ResolutionAdvisory) {
       this.intrudersRA.delete(intruder);
     }
 
-    const handler = this.alertLevelHandlers.get(intruder);
-    handler && intruder.alertLevel.unsub(handler);
+    this.alertLevelSubs.get(intruder)?.destroy();
     this.eventPublisher.pub('tcas_intruder_removed', intruder, false, false);
   }
 
@@ -851,7 +892,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
    * @param intruder The intruder whose alert level changed.
    */
   private onAlertLevelChanged(intruder: I): void {
-    if (intruder.alertLevel.get() === TCASAlertLevel.ResolutionAdvisory) {
+    if (intruder.alertLevel.get() === TcasAlertLevel.ResolutionAdvisory) {
       this.intrudersRA.add(intruder);
     } else {
       this.intrudersRA.delete(intruder);
@@ -864,7 +905,7 @@ export abstract class TCAS<I extends AbstractTCASIntruder = AbstractTCASIntruder
 /**
  * Subscribables which provide data related to the own airplane.
  */
-type TCASOwnAirplaneSubs = {
+type TcasOwnAirplaneSubs = {
   /** A subscribable which provides the own airplane's position. */
   position: Subscribable<GeoPointInterface>;
 
@@ -890,7 +931,7 @@ type TCASOwnAirplaneSubs = {
 /**
  * An airplane managed by TCAS.
  */
-abstract class TCASAirplane {
+abstract class TcasAirplane {
   protected readonly _position = new GeoPoint(0, 0);
   /** The position of this airplane at the time of the most recent update. */
   public readonly position = this._position.readonly;
@@ -935,7 +976,7 @@ abstract class TCASAirplane {
 /**
  * The own airplane managed by TCAS.
  */
-class OwnAirplane extends TCASAirplane {
+class OwnAirplane extends TcasAirplane {
   /** The radar altitude of this airplane at the time of the most recent update. */
   protected readonly _radarAltitude = UnitType.FOOT.createNumber(0);
   public readonly radarAltitude = this._radarAltitude.readonly;
@@ -951,7 +992,7 @@ class OwnAirplane extends TCASAirplane {
    * Constructor.
    * @param subs Subscribables which provide data related to this airplane.
    */
-  constructor(private readonly subs: TCASOwnAirplaneSubs) {
+  constructor(private readonly subs: TcasOwnAirplaneSubs) {
     super();
   }
 
@@ -1016,14 +1057,14 @@ type TcaSolution = {
 };
 
 /**
- * An abstract implementation of {@link TCASIntruder}.
+ * An abstract implementation of {@link TcasIntruder}.
  */
-export abstract class AbstractTCASIntruder extends TCASAirplane implements TCASIntruder {
+export abstract class AbstractTcasIntruder extends TcasAirplane implements TcasIntruder {
   private static readonly MIN_GROUND_SPEED = UnitType.KNOT.createNumber(30);
 
   private static readonly vec3Cache = [new Float64Array(3), new Float64Array(3)];
 
-  public readonly alertLevel = Subject.create(TCASAlertLevel.None);
+  public readonly alertLevel = Subject.create(TcasAlertLevel.None);
 
   /** The 3D position vector of this intruder relative to own airplane. */
   public readonly relativePositionVec = new Float64Array(3);
@@ -1039,10 +1080,10 @@ export abstract class AbstractTCASIntruder extends TCASAirplane implements TCASI
   }
 
   /** @inheritdoc */
-  public readonly tcaTA: TCASTcaPredictionClass = new TCASTcaPredictionClass(this);
+  public readonly tcaTA: TcasTcaPredictionClass = new TcasTcaPredictionClass(this);
 
   /** @inheritdoc */
-  public readonly tcaRA: TCASTcaPredictionClass = new TCASTcaPredictionClass(this);
+  public readonly tcaRA: TcasTcaPredictionClass = new TcasTcaPredictionClass(this);
 
   /**
    * Constructor.
@@ -1070,9 +1111,9 @@ export abstract class AbstractTCASIntruder extends TCASAirplane implements TCASI
       return;
     }
 
-    const displacement = this.predictDisplacement(simTime, AbstractTCASIntruder.vec3Cache[0]);
-    AbstractTCASIntruder.displacementToHorizontalSeparation(displacement, horizontalOut);
-    AbstractTCASIntruder.displacementToVerticalSeparation(displacement, verticalOut);
+    const displacement = this.predictDisplacement(simTime, AbstractTcasIntruder.vec3Cache[0]);
+    AbstractTcasIntruder.displacementToHorizontalSeparation(displacement, horizontalOut);
+    AbstractTcasIntruder.displacementToVerticalSeparation(displacement, verticalOut);
   }
 
   /**
@@ -1084,15 +1125,15 @@ export abstract class AbstractTCASIntruder extends TCASAirplane implements TCASI
   public updatePrediction(
     simTime: number,
     ownAirplane: OwnAirplane,
-    sensitivity: TCASSensitivity
+    sensitivity: TcasSensitivityParameters
   ): void {
     this.updateParameters(simTime, ownAirplane);
 
     if (this.isPredictionValid) {
       const taParams = sensitivity.parametersTA;
       const raParams = sensitivity.parametersRA;
-      this.tcaTA.update(simTime, taParams.lookaheadTime.get(), taParams.protectedRadius.get(), taParams.protectedHeight.get());
-      this.tcaRA.update(simTime, raParams.lookaheadTime.get(), raParams.protectedRadius.get(), raParams.protectedHeight.get());
+      this.tcaTA.update(simTime, taParams.lookaheadTime, taParams.protectedRadius, taParams.protectedHeight);
+      this.tcaRA.update(simTime, raParams.lookaheadTime, raParams.protectedRadius, raParams.protectedHeight);
     } else {
       this.invalidatePredictions();
     }
@@ -1106,7 +1147,7 @@ export abstract class AbstractTCASIntruder extends TCASAirplane implements TCASI
    * @param ownAirplane The own airplane.
    */
   private updateParameters(simTime: number, ownAirplane: OwnAirplane): void {
-    if (isNaN(this.contact.groundTrack) || this.contact.groundSpeed.compare(AbstractTCASIntruder.MIN_GROUND_SPEED) < 0) {
+    if (isNaN(this.contact.groundTrack) || this.contact.groundSpeed.compare(AbstractTcasIntruder.MIN_GROUND_SPEED) < 0) {
       this._isPredictionValid = false;
       this._position.set(NaN, NaN);
       this._altitude.set(NaN);
@@ -1186,15 +1227,15 @@ export abstract class AbstractTCASIntruder extends TCASAirplane implements TCASI
 }
 
 /**
- * An default implementation of {@link TCASIntruder}.
+ * An default implementation of {@link TcasIntruder}.
  */
-export class DefaultTCASIntruder extends AbstractTCASIntruder {
+export class DefaultTcasIntruder extends AbstractTcasIntruder {
 }
 
 /**
  * A time-of-closest-approach prediction made by TCAS.
  */
-class TCASTcaPredictionClass implements TCASTcaPrediction {
+class TcasTcaPredictionClass implements TcasTcaPrediction {
   private static readonly vec2Cache = [new Float64Array(2), new Float64Array(2)];
   private static readonly solutionCache: TcaSolution[] = [
     {
@@ -1247,7 +1288,7 @@ class TCASTcaPredictionClass implements TCASTcaPrediction {
    * Constructor.
    * @param intruder The intruder associated with this prediction.
    */
-  constructor(private readonly intruder: TCASIntruder) {
+  constructor(private readonly intruder: TcasIntruder) {
   }
 
   /**
@@ -1274,8 +1315,8 @@ class TCASTcaPredictionClass implements TCASTcaPrediction {
     // https://ntrs.nasa.gov/api/citations/20100037766/downloads/20100037766.pdf
     const s = this.intruder.relativePositionVec;
     const v = this.intruder.relativeVelocityVec;
-    const sHoriz = Vec2Math.set(s[0], s[1], TCASTcaPredictionClass.vec2Cache[0]);
-    const vHoriz = Vec2Math.set(v[0], v[1], TCASTcaPredictionClass.vec2Cache[0]);
+    const sHoriz = Vec2Math.set(s[0], s[1], TcasTcaPredictionClass.vec2Cache[0]);
+    const vHoriz = Vec2Math.set(v[0], v[1], TcasTcaPredictionClass.vec2Cache[0]);
     const h = protectedHeight.asUnit(UnitType.METER);
     const r = protectedRadius.asUnit(UnitType.METER);
 
@@ -1287,17 +1328,17 @@ class TCASTcaPredictionClass implements TCASTcaPrediction {
     const b = 2 * s[2] * v[2] / hSquared - 2 * Vec2Math.dot(sHoriz, vHoriz) / rSquared;
     const c = (s[2] * s[2]) / hSquared - sHorizSquared / rSquared;
 
-    const solution = TCASTcaPredictionClass.calculateSolution(0, s, v, r, h, TCASTcaPredictionClass.solutionCache[0]);
+    const solution = TcasTcaPredictionClass.calculateSolution(0, s, v, r, h, TcasTcaPredictionClass.solutionCache[0]);
     if (vHorizSquared !== 0) {
       const t = -Vec2Math.dot(sHoriz, vHoriz) / vHorizSquared;
       if (t > 0) {
-        TCASTcaPredictionClass.evaluateCandidate(t, s, v, r, h, solution, TCASTcaPredictionClass.solutionCache[1]);
+        TcasTcaPredictionClass.evaluateCandidate(t, s, v, r, h, solution, TcasTcaPredictionClass.solutionCache[1]);
       }
     }
     if (v[2] !== 0) {
       const t = -s[2] / v[2];
       if (t > 0) {
-        TCASTcaPredictionClass.evaluateCandidate(t, s, v, r, h, solution, TCASTcaPredictionClass.solutionCache[1]);
+        TcasTcaPredictionClass.evaluateCandidate(t, s, v, r, h, solution, TcasTcaPredictionClass.solutionCache[1]);
       }
     }
     const discriminant = b * b - 4 * a * c;
@@ -1305,29 +1346,29 @@ class TCASTcaPredictionClass implements TCASTcaPrediction {
       const sqrt = Math.sqrt(discriminant);
       let t = (-b + sqrt) / (2 * a);
       if (t > 0) {
-        TCASTcaPredictionClass.evaluateCandidate(t, s, v, r, h, solution, TCASTcaPredictionClass.solutionCache[1]);
+        TcasTcaPredictionClass.evaluateCandidate(t, s, v, r, h, solution, TcasTcaPredictionClass.solutionCache[1]);
       }
       t = (-b - sqrt) / (2 * a);
       if (t > 0) {
-        TCASTcaPredictionClass.evaluateCandidate(t, s, v, r, h, solution, TCASTcaPredictionClass.solutionCache[1]);
+        TcasTcaPredictionClass.evaluateCandidate(t, s, v, r, h, solution, TcasTcaPredictionClass.solutionCache[1]);
       }
     } else if (a === 0 && b !== 0) {
       const t = -c / b;
       if (t > 0) {
-        TCASTcaPredictionClass.evaluateCandidate(t, s, v, r, h, solution, TCASTcaPredictionClass.solutionCache[1]);
+        TcasTcaPredictionClass.evaluateCandidate(t, s, v, r, h, solution, TcasTcaPredictionClass.solutionCache[1]);
       }
     }
 
     const lookaheadTimeSeconds = lookaheadTime.asUnit(UnitType.SECOND);
     if (solution.tca > lookaheadTimeSeconds) {
-      TCASTcaPredictionClass.calculateSolution(lookaheadTimeSeconds, s, v, r, h, solution);
+      TcasTcaPredictionClass.calculateSolution(lookaheadTimeSeconds, s, v, r, h, solution);
     }
 
     this._tca.set(solution.tca);
     this._tcaNorm = solution.norm;
     Vec3Math.copy(solution.displacement, this.tcaDisplacement);
-    AbstractTCASIntruder.displacementToHorizontalSeparation(solution.displacement, this._tcaHorizontalSep);
-    AbstractTCASIntruder.displacementToVerticalSeparation(solution.displacement, this._tcaVerticalSep);
+    AbstractTcasIntruder.displacementToHorizontalSeparation(solution.displacement, this._tcaHorizontalSep);
+    AbstractTcasIntruder.displacementToVerticalSeparation(solution.displacement, this._tcaVerticalSep);
 
     this._isValid = true;
   }
@@ -1356,9 +1397,9 @@ class TCASTcaPredictionClass implements TCASTcaPrediction {
    * @param candidate A TcaSolution object to which to temporarily write the candidate solution.
    */
   private static evaluateCandidate(t: number, s: ReadonlyFloat64Array, v: ReadonlyFloat64Array, r: number, h: number, best: TcaSolution, candidate: TcaSolution): void {
-    TCASTcaPredictionClass.calculateSolution(t, s, v, r, h, candidate);
+    TcasTcaPredictionClass.calculateSolution(t, s, v, r, h, candidate);
     if (candidate.norm < best.norm) {
-      TCASTcaPredictionClass.copySolution(candidate, best);
+      TcasTcaPredictionClass.copySolution(candidate, best);
     }
   }
 
@@ -1374,8 +1415,8 @@ class TCASTcaPredictionClass implements TCASTcaPrediction {
    */
   private static calculateSolution(t: number, s: ReadonlyFloat64Array, v: ReadonlyFloat64Array, r: number, h: number, out: TcaSolution): TcaSolution {
     out.tca = t;
-    TCASTcaPredictionClass.calculateDisplacementVector(s, v, t, out.displacement);
-    out.norm = TCASTcaPredictionClass.calculateCylindricalNorm(out.displacement, r, h);
+    TcasTcaPredictionClass.calculateDisplacementVector(s, v, t, out.displacement);
+    out.norm = TcasTcaPredictionClass.calculateCylindricalNorm(out.displacement, r, h);
     return out;
   }
 
@@ -1438,14 +1479,14 @@ type ResolutionAdvisorySenseCandidate = {
 /**
  * A TCAS resolution advisory.
  */
-class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
+class TcasResolutionAdvisoryClass implements TcasResolutionAdvisory {
   private static readonly CLIMB_DESC_VS_MPS = UnitType.FPM.convertTo(1500, UnitType.MPS);
   private static readonly INC_CLIMB_DESC_VS_MPS = UnitType.FPM.convertTo(2500, UnitType.MPS);
 
   private static readonly VSL_MAX_VS_MPS = UnitType.FPM.convertTo(2000, UnitType.MPS);
   private static readonly VSL_VS_STEP_MPS = UnitType.FPM.convertTo(500, UnitType.MPS);
 
-  private static readonly INTRUDER_SORT_FUNC = (a: TCASIntruder, b: TCASIntruder): number => {
+  private static readonly INTRUDER_SORT_FUNC = (a: TcasIntruder, b: TcasIntruder): number => {
     if (a.tcaRA.tca < b.tcaRA.tca) {
       return -1;
     } else if (a.tcaRA.tca > b.tcaRA.tca) {
@@ -1462,7 +1503,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
   private static readonly vec3Cache = [new Float64Array(3)];
   private static readonly senseCandidateCache: ResolutionAdvisorySenseCandidate[] = [{ sense: -1, targetAltTca: 0, targetVS: 0, doesReachTargetAlt: false }];
 
-  public readonly intruders: TCASIntruder[] = [];
+  public readonly intruders: TcasIntruder[] = [];
 
   private readonly _maxVerticalSpeed = UnitType.FPM.createNumber(NaN);
   /** @inheritdoc */
@@ -1482,7 +1523,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
   private timeUpdated = 0;
   private canReverseSense = true;
 
-  private readonly publisher: Publisher<TCASEvents>;
+  private readonly publisher: Publisher<TcasEvents>;
 
   /**
    * Constructor.
@@ -1490,8 +1531,8 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
    * @param options Options to adjust how this resolution advisory should be calculated.
    * @param ownAirplane The own airplane of this resolution advisory.
    */
-  constructor(bus: EventBus, private readonly options: TCASResolutionAdvisoryOptions, private readonly ownAirplane: OwnAirplane) {
-    this.publisher = bus.getPublisher<TCASEvents>();
+  constructor(bus: EventBus, private readonly options: TcasResolutionAdvisoryOptions, private readonly ownAirplane: OwnAirplane) {
+    this.publisher = bus.getPublisher<TcasEvents>();
   }
 
   /**
@@ -1500,7 +1541,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
    * @param alim The required vertical separation between own airplane and intruders.
    * @param intruders The set of active intruders to be tracked by this resolution advisory.
    */
-  public update(simTime: number, alim: NumberUnitInterface<UnitFamily.Distance>, intruders: ReadonlySet<TCASIntruder>): void {
+  public update(simTime: number, alim: NumberUnitInterface<UnitFamily.Distance>, intruders: ReadonlySet<TcasIntruder>): void {
     if (this.intruders.length === 0 && intruders.size === 0) {
       return;
     }
@@ -1520,7 +1561,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
    * @param alim The required vertical separation between own airplane and intruders.
    * @param intruders The set of active intruders to be tracked by this resolution advisory.
    */
-  private activate(simTime: number, alim: NumberUnitInterface<UnitFamily.Distance>, intruders: ReadonlySet<TCASIntruder>): void {
+  private activate(simTime: number, alim: NumberUnitInterface<UnitFamily.Distance>, intruders: ReadonlySet<TcasIntruder>): void {
     this.updateIntrudersArray(intruders);
 
     // TODO: Support multiple intruders
@@ -1529,9 +1570,9 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
     const tca = intruder.tcaRA.tca;
     const tcaSeconds = tca.asUnit(UnitType.SECOND);
     const vertDisplMeters = intruder.tcaRA.tcaDisplacement[2];
-    const ownAirplaneAltMeters = this.ownAirplane.predictPosition(t0, TCASResolutionAdvisoryClass.vec3Cache[0])[2];
+    const ownAirplaneAltMeters = this.ownAirplane.predictPosition(t0, TcasResolutionAdvisoryClass.vec3Cache[0])[2];
     const ownAirplaneVSMPS = this.ownAirplane.verticalSpeed.asUnit(UnitType.MPS);
-    const ownAirplaneAltTcaMeters = this.ownAirplane.predictPosition(t0 + tca.asUnit(UnitType.MILLISECOND), TCASResolutionAdvisoryClass.vec3Cache[0])[2];
+    const ownAirplaneAltTcaMeters = this.ownAirplane.predictPosition(t0 + tca.asUnit(UnitType.MILLISECOND), TcasResolutionAdvisoryClass.vec3Cache[0])[2];
     const intruderAltTcaMeters = ownAirplaneAltTcaMeters + vertDisplMeters;
     const alimMeters = alim.asUnit(UnitType.METER);
     const responseTimeSeconds = this.options.initialResponseTime.asUnit(UnitType.SECOND);
@@ -1541,7 +1582,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
       simTime, tcaSeconds, alimMeters,
       responseTimeSeconds, accel,
       ownAirplaneAltMeters, ownAirplaneVSMPS, ownAirplaneAltTcaMeters, intruderAltTcaMeters,
-      TCASResolutionAdvisoryClass.senseCandidateCache[0]
+      TcasResolutionAdvisoryClass.senseCandidateCache[0]
     );
 
     this.apply(
@@ -1561,7 +1602,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
    * @param alim The required vertical separation between own airplane and intruders.
    * @param intruders The set of active intruders to be tracked by this resolution advisory.
    */
-  private updateActive(simTime: number, alim: NumberUnitInterface<UnitFamily.Distance>, intruders: ReadonlySet<TCASIntruder>): void {
+  private updateActive(simTime: number, alim: NumberUnitInterface<UnitFamily.Distance>, intruders: ReadonlySet<TcasIntruder>): void {
     this.updateIntrudersArray(intruders);
 
     // TODO: Support multiple intruders
@@ -1570,12 +1611,12 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
     const tca = intruder.tcaRA.tca;
     const tcaSeconds = tca.asUnit(UnitType.SECOND);
     const vertDisplMeters = intruder.tcaRA.tcaDisplacement[2];
-    const ownAirplaneAltMeters = this.ownAirplane.predictPosition(t0, TCASResolutionAdvisoryClass.vec3Cache[0])[2];
+    const ownAirplaneAltMeters = this.ownAirplane.predictPosition(t0, TcasResolutionAdvisoryClass.vec3Cache[0])[2];
     const ownAirplaneVSMPS = this.ownAirplane.verticalSpeed.asUnit(UnitType.MPS);
-    const ownAirplaneAltTcaMeters = this.ownAirplane.predictPosition(t0 + tca.asUnit(UnitType.MILLISECOND), TCASResolutionAdvisoryClass.vec3Cache[0])[2];
+    const ownAirplaneAltTcaMeters = this.ownAirplane.predictPosition(t0 + tca.asUnit(UnitType.MILLISECOND), TcasResolutionAdvisoryClass.vec3Cache[0])[2];
     const intruderAltTcaMeters = ownAirplaneAltTcaMeters + vertDisplMeters;
     const alimMeters = alim.asUnit(UnitType.METER);
-    const isInitial = BitFlags.isAll(this._flags, TCASResolutionAdvisoryFlags.Initial);
+    const isInitial = BitFlags.isAll(this._flags, TcasResolutionAdvisoryFlags.Initial);
     const responseTimeSeconds = (isInitial ? this.options.initialResponseTime : this.options.subsequentResponseTime).asUnit(UnitType.SECOND);
     const accel = (isInitial ? this.options.initialAcceleration : this.options.subsequentAcceleration).asUnit(UnitType.MPS_PER_SEC);
 
@@ -1585,14 +1626,14 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
     const minAlimSense = Math.sign(minAlimMeters - ownAirplaneAltTcaMeters);
     const maxAlimSense = Math.sign(maxAlimMeters - ownAirplaneAltTcaMeters);
 
-    const minDescendVSMPS = -TCASResolutionAdvisoryClass.CLIMB_DESC_VS_MPS;
-    const maxClimbVSMPS = TCASResolutionAdvisoryClass.CLIMB_DESC_VS_MPS;
+    const minDescendVSMPS = -TcasResolutionAdvisoryClass.CLIMB_DESC_VS_MPS;
+    const maxClimbVSMPS = TcasResolutionAdvisoryClass.CLIMB_DESC_VS_MPS;
 
-    const minIncDescendVSMPS = -TCASResolutionAdvisoryClass.INC_CLIMB_DESC_VS_MPS;
-    const maxIncClimbVSMPS = TCASResolutionAdvisoryClass.INC_CLIMB_DESC_VS_MPS;
+    const minIncDescendVSMPS = -TcasResolutionAdvisoryClass.INC_CLIMB_DESC_VS_MPS;
+    const maxIncClimbVSMPS = TcasResolutionAdvisoryClass.INC_CLIMB_DESC_VS_MPS;
 
-    const maxDownVslVSMPS = TCASResolutionAdvisoryClass.VSL_MAX_VS_MPS;
-    const minUpVslVSMPS = -TCASResolutionAdvisoryClass.VSL_MAX_VS_MPS;
+    const maxDownVslVSMPS = TcasResolutionAdvisoryClass.VSL_MAX_VS_MPS;
+    const minUpVslVSMPS = -TcasResolutionAdvisoryClass.VSL_MAX_VS_MPS;
 
     const sense = this._maxVerticalSpeed.isNaN() ? 1 : -1;
     const isCrossing = Math.sign(ownAirplaneAltMeters - intruderAltTcaMeters) === -sense;
@@ -1609,7 +1650,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
       const maxVS = currentVSTargetMPS > 0 ? maxIncClimbVSMPS : maxClimbVSMPS;
 
       if (maxAlimSense === 1) {
-        requiredVSMPS = TCASResolutionAdvisoryClass.calculateVSToTargetAlt(
+        requiredVSMPS = TcasResolutionAdvisoryClass.calculateVSToTargetAlt(
           tcaSeconds, ownAirplaneAltMeters, ownAirplaneVSMPS,
           Math.max(responseTimeSeconds - (simTime - this.timeUpdated) / 1000, 0), accel, maxAlimMeters
         );
@@ -1629,7 +1670,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
             requiredVSMPS = maxIncClimbVSMPS;
           }
         } else {
-          requiredVSMPS = Math.ceil(Math.max(requiredVSMPS, minUpVslVSMPS) / TCASResolutionAdvisoryClass.VSL_VS_STEP_MPS) * TCASResolutionAdvisoryClass.VSL_VS_STEP_MPS;
+          requiredVSMPS = Math.ceil(Math.max(requiredVSMPS, minUpVslVSMPS) / TcasResolutionAdvisoryClass.VSL_VS_STEP_MPS) * TcasResolutionAdvisoryClass.VSL_VS_STEP_MPS;
         }
 
         if (!needCheckSenseReversal) {
@@ -1663,7 +1704,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
       const minVS = currentVSTargetMPS < 0 ? minIncDescendVSMPS : minDescendVSMPS;
 
       if (minAlimSense === -1) {
-        requiredVSMPS = TCASResolutionAdvisoryClass.calculateVSToTargetAlt(
+        requiredVSMPS = TcasResolutionAdvisoryClass.calculateVSToTargetAlt(
           tcaSeconds, ownAirplaneAltMeters, ownAirplaneVSMPS,
           Math.max(responseTimeSeconds - (simTime - this.timeUpdated) / 1000, 0), accel, minAlimMeters
         );
@@ -1683,7 +1724,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
             requiredVSMPS = minIncDescendVSMPS;
           }
         } else {
-          requiredVSMPS = Math.floor(Math.min(requiredVSMPS, maxDownVslVSMPS) / TCASResolutionAdvisoryClass.VSL_VS_STEP_MPS) * TCASResolutionAdvisoryClass.VSL_VS_STEP_MPS;
+          requiredVSMPS = Math.floor(Math.min(requiredVSMPS, maxDownVslVSMPS) / TcasResolutionAdvisoryClass.VSL_VS_STEP_MPS) * TcasResolutionAdvisoryClass.VSL_VS_STEP_MPS;
         }
 
         if (!needCheckSenseReversal) {
@@ -1718,7 +1759,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
           simTime, tcaSeconds, alimMeters,
           this.options.subsequentResponseTime.asUnit(UnitType.SECOND), this.options.subsequentAcceleration.asUnit(UnitType.MPS_PER_SEC),
           ownAirplaneAltMeters, ownAirplaneVSMPS, ownAirplaneAltTcaMeters, intruderAltTcaMeters,
-          TCASResolutionAdvisoryClass.senseCandidateCache[0]
+          TcasResolutionAdvisoryClass.senseCandidateCache[0]
         );
 
         // Only reverse sense if doing so will achieve ALIM vertical separation at TCA, otherwise command the vertical
@@ -1781,13 +1822,13 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
       || (!this._maxVerticalSpeed.isNaN() && this._maxVerticalSpeed.compare(ownAirplaneVSMPS, UnitType.MPS) < 0);
 
     if (
-      BitFlags.isAll(this._flags, TCASResolutionAdvisoryFlags.Corrective) !== isCorrective
-      || BitFlags.isAll(this._flags, TCASResolutionAdvisoryFlags.Crossing) !== isCrossing
+      BitFlags.isAll(this._flags, TcasResolutionAdvisoryFlags.Corrective) !== isCorrective
+      || BitFlags.isAll(this._flags, TcasResolutionAdvisoryFlags.Crossing) !== isCrossing
     ) {
-      this._flags &= ~(TCASResolutionAdvisoryFlags.Corrective | TCASResolutionAdvisoryFlags.Crossing);
+      this._flags &= ~(TcasResolutionAdvisoryFlags.Corrective | TcasResolutionAdvisoryFlags.Crossing);
       this._flags |= (
-        (isCorrective ? TCASResolutionAdvisoryFlags.Corrective : 0)
-        | (isCrossing ? TCASResolutionAdvisoryFlags.Crossing : 0)
+        (isCorrective ? TcasResolutionAdvisoryFlags.Corrective : 0)
+        | (isCrossing ? TcasResolutionAdvisoryFlags.Crossing : 0)
       );
       this.publisher.pub('tcas_ra_updated', this, false, false);
     }
@@ -1797,14 +1838,14 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
    * Updates this resolution advisory's array of active intruders.
    * @param intruders The set of active intruders to be tracked by this resolution advisory.
    */
-  private updateIntrudersArray(intruders: ReadonlySet<TCASIntruder>): void {
+  private updateIntrudersArray(intruders: ReadonlySet<TcasIntruder>): void {
     this.intruders.length = 0;
 
     for (const intruder of intruders) {
       this.intruders.push(intruder);
     }
 
-    this.intruders.sort(TCASResolutionAdvisoryClass.INTRUDER_SORT_FUNC);
+    this.intruders.sort(TcasResolutionAdvisoryClass.INTRUDER_SORT_FUNC);
   }
 
   /**
@@ -1842,27 +1883,27 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
 
     // Resolve flags
     this._flags = (
-      (isCorrective ? TCASResolutionAdvisoryFlags.Corrective : 0)
-      | (this.isActive ? 0 : TCASResolutionAdvisoryFlags.Initial)
+      (isCorrective ? TcasResolutionAdvisoryFlags.Corrective : 0)
+      | (this.isActive ? 0 : TcasResolutionAdvisoryFlags.Initial)
       | (sense === 1
         ? (
-          TCASResolutionAdvisoryFlags.UpSense
+          TcasResolutionAdvisoryFlags.UpSense
           | (targetVS > 0
-            ? TCASResolutionAdvisoryFlags.Climb
-            : (isCorrective ? TCASResolutionAdvisoryFlags.ReduceDescent : TCASResolutionAdvisoryFlags.DoNotDescend)
+            ? TcasResolutionAdvisoryFlags.Climb
+            : (isCorrective ? TcasResolutionAdvisoryFlags.ReduceDescent : TcasResolutionAdvisoryFlags.DoNotDescend)
           )
         )
         : (
-          TCASResolutionAdvisoryFlags.DownSense
+          TcasResolutionAdvisoryFlags.DownSense
           | (
             targetVS < 0
-              ? TCASResolutionAdvisoryFlags.Descend
-              : (isCorrective ? TCASResolutionAdvisoryFlags.ReduceClimb : TCASResolutionAdvisoryFlags.DoNotClimb)
+              ? TcasResolutionAdvisoryFlags.Descend
+              : (isCorrective ? TcasResolutionAdvisoryFlags.ReduceClimb : TcasResolutionAdvisoryFlags.DoNotClimb)
           )
         )
       )
-      | (targetVS * sense >= TCASResolutionAdvisoryClass.INC_CLIMB_DESC_VS_MPS - 1e-7 ? TCASResolutionAdvisoryFlags.Increase : 0)
-      | (isCrossing ? TCASResolutionAdvisoryFlags.Crossing : 0)
+      | (targetVS * sense >= TcasResolutionAdvisoryClass.INC_CLIMB_DESC_VS_MPS - 1e-7 ? TcasResolutionAdvisoryFlags.Increase : 0)
+      | (isCrossing ? TcasResolutionAdvisoryFlags.Crossing : 0)
     );
 
     this.isActive = true;
@@ -1916,11 +1957,11 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
     let targetVS: number | undefined;
     let doesReachTargetAlt = true;
 
-    const minDescendVS = -TCASResolutionAdvisoryClass.CLIMB_DESC_VS_MPS;
-    const maxClimbVS = TCASResolutionAdvisoryClass.CLIMB_DESC_VS_MPS;
+    const minDescendVS = -TcasResolutionAdvisoryClass.CLIMB_DESC_VS_MPS;
+    const maxClimbVS = TcasResolutionAdvisoryClass.CLIMB_DESC_VS_MPS;
 
-    const maxDownVslVS = TCASResolutionAdvisoryClass.VSL_MAX_VS_MPS;
-    const minUpVslVS = -TCASResolutionAdvisoryClass.VSL_MAX_VS_MPS;
+    const maxDownVslVS = TcasResolutionAdvisoryClass.VSL_MAX_VS_MPS;
+    const minUpVslVS = -TcasResolutionAdvisoryClass.VSL_MAX_VS_MPS;
 
     const minAlim = intruderAltTca - alim;
     const maxAlim = intruderAltTca + alim;
@@ -1936,7 +1977,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
       // Own airplane needs to adjust vertical speed in the negative direction in order to pass below the intruder with
       // ALIM vertical separation at TCA
       downVS = responseTime < tca
-        ? TCASResolutionAdvisoryClass.calculateVSToTargetAlt(tca, ownAirplaneAlt, ownAirplaneVS, responseTime, accel, minAlim)
+        ? TcasResolutionAdvisoryClass.calculateVSToTargetAlt(tca, ownAirplaneAlt, ownAirplaneVS, responseTime, accel, minAlim)
         : NaN;
     } else {
       // Own airplane is already on track to pass below the intruder with ALIM vertical separation at TCA.
@@ -1946,7 +1987,7 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
       // Own airplane needs to adjust vertical speed in the positive direction in order to pass above the intruder with
       // ALIM vertical separation at TCA
       upVS = responseTime < tca
-        ? TCASResolutionAdvisoryClass.calculateVSToTargetAlt(tca, ownAirplaneAlt, ownAirplaneVS, responseTime, accel, maxAlim)
+        ? TcasResolutionAdvisoryClass.calculateVSToTargetAlt(tca, ownAirplaneAlt, ownAirplaneVS, responseTime, accel, maxAlim)
         : NaN;
     } else {
       // Own airplane is already on track to pass above the intruder with ALIM vertical separation at TCA.
@@ -2054,13 +2095,13 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
     if (targetVS !== undefined) {
       if (sense === 1) {
         if (targetVS < 0) {
-          targetVS = Math.ceil(targetVS / TCASResolutionAdvisoryClass.VSL_VS_STEP_MPS) * TCASResolutionAdvisoryClass.VSL_VS_STEP_MPS;
+          targetVS = Math.ceil(targetVS / TcasResolutionAdvisoryClass.VSL_VS_STEP_MPS) * TcasResolutionAdvisoryClass.VSL_VS_STEP_MPS;
         } else if (targetVS > 0) {
           targetVS = maxClimbVS;
         }
       } else {
         if (targetVS > 0) {
-          targetVS = Math.floor(targetVS / TCASResolutionAdvisoryClass.VSL_VS_STEP_MPS) * TCASResolutionAdvisoryClass.VSL_VS_STEP_MPS;
+          targetVS = Math.floor(targetVS / TcasResolutionAdvisoryClass.VSL_VS_STEP_MPS) * TcasResolutionAdvisoryClass.VSL_VS_STEP_MPS;
         } else if (targetVS < 0) {
           targetVS = minDescendVS;
         }
@@ -2125,167 +2166,5 @@ class TCASResolutionAdvisoryClass implements TCASResolutionAdvisory {
     }
 
     return NaN;
-  }
-}
-
-/**
- * An abstract implementation of {@link TCASSensitivity}.
- */
-export abstract class AbstractTCASSensitivity implements TCASSensitivity {
-  public readonly parametersPA = {
-    protectedRadius: NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(NaN)),
-    protectedHeight: NumberUnitSubject.createFromNumberUnit(UnitType.FOOT.createNumber(NaN))
-  };
-
-  public readonly parametersTA = {
-    lookaheadTime: NumberUnitSubject.createFromNumberUnit(UnitType.SECOND.createNumber(NaN)),
-    protectedRadius: NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(NaN)),
-    protectedHeight: NumberUnitSubject.createFromNumberUnit(UnitType.FOOT.createNumber(NaN))
-  };
-
-  public readonly parametersRA = {
-    lookaheadTime: NumberUnitSubject.createFromNumberUnit(UnitType.SECOND.createNumber(NaN)),
-    protectedRadius: NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(NaN)),
-    protectedHeight: NumberUnitSubject.createFromNumberUnit(UnitType.FOOT.createNumber(NaN)),
-    alim: NumberUnitSubject.createFromNumberUnit(UnitType.FOOT.createNumber(NaN)),
-  };
-}
-
-/**
- * TCAS sensitivity settings which update based on the altitude of the own airplane to standard values defined in the
- * TCAS II specification.
- */
-export class DefaultTCASSensitivity extends AbstractTCASSensitivity {
-  // TA sensitivity levels (seconds/NM/feet).
-  private static readonly TA_LEVELS = [
-    {
-      lookaheadTime: 20,
-      protectedRadius: 0.3,
-      protectedHeight: 850
-    },
-    {
-      lookaheadTime: 25,
-      protectedRadius: 0.33,
-      protectedHeight: 850
-    },
-    {
-      lookaheadTime: 30,
-      protectedRadius: 0.48,
-      protectedHeight: 850
-    },
-    {
-      lookaheadTime: 40,
-      protectedRadius: 0.75,
-      protectedHeight: 850
-    },
-    {
-      lookaheadTime: 45,
-      protectedRadius: 1,
-      protectedHeight: 850
-    },
-    {
-      lookaheadTime: 48,
-      protectedRadius: 1.3,
-      protectedHeight: 850
-    },
-    {
-      lookaheadTime: 48,
-      protectedRadius: 1.3,
-      protectedHeight: 1200
-    }
-  ];
-
-  // RA sensitivity levels (seconds/NM/feet/feet).
-  private static readonly RA_LEVELS = [
-    {
-      lookaheadTime: 15,
-      protectedRadius: 0.2,
-      protectedHeight: 600,
-      alim: 300
-    },
-    {
-      lookaheadTime: 15,
-      protectedRadius: 0.2,
-      protectedHeight: 600,
-      alim: 300
-    },
-    {
-      lookaheadTime: 20,
-      protectedRadius: 0.35,
-      protectedHeight: 600,
-      alim: 300
-    },
-    {
-      lookaheadTime: 25,
-      protectedRadius: 0.55,
-      protectedHeight: 600,
-      alim: 350
-    },
-    {
-      lookaheadTime: 30,
-      protectedRadius: 0.8,
-      protectedHeight: 600,
-      alim: 400
-    },
-    {
-      lookaheadTime: 35,
-      protectedRadius: 1.1,
-      protectedHeight: 700,
-      alim: 600
-    },
-    {
-      lookaheadTime: 35,
-      protectedRadius: 1.1,
-      protectedHeight: 800,
-      alim: 700
-    }
-  ];
-
-  /** @inheritdoc */
-  constructor() {
-    super();
-
-    this.parametersPA.protectedRadius.set(6, UnitType.NMILE);
-    this.parametersPA.protectedHeight.set(1200, UnitType.FOOT);
-  }
-
-  /**
-   * Updates the sensitivity level.
-   * @param altitude The indicated altitude of the own airplane.
-   * @param radarAltitude The radar altitude of the own airplane.
-   */
-  public update(altitude: NumberUnitInterface<UnitFamily.Distance>, radarAltitude: NumberUnitInterface<UnitFamily.Distance>): void {
-    const altFeet = altitude.asUnit(UnitType.FOOT);
-    const radarAltFeet = radarAltitude.asUnit(UnitType.FOOT);
-
-    let level: number;
-    if (radarAltFeet > 2350) {
-      if (altFeet > 42000) {
-        level = 6;
-      } else if (altFeet > 20000) {
-        level = 5;
-      } else if (altFeet > 10000) {
-        level = 4;
-      } else if (altFeet > 5000) {
-        level = 3;
-      } else {
-        level = 2;
-      }
-    } else if (radarAltFeet > 1000) {
-      level = 1;
-    } else {
-      level = 0;
-    }
-
-    const parametersTA = DefaultTCASSensitivity.TA_LEVELS[level];
-    this.parametersTA.lookaheadTime.set(parametersTA.lookaheadTime, UnitType.SECOND);
-    this.parametersTA.protectedRadius.set(parametersTA.protectedRadius, UnitType.NMILE);
-    this.parametersTA.protectedHeight.set(parametersTA.protectedHeight, UnitType.FOOT);
-
-    const parametersRA = DefaultTCASSensitivity.RA_LEVELS[level];
-    this.parametersRA.lookaheadTime.set(parametersRA.lookaheadTime, UnitType.SECOND);
-    this.parametersRA.protectedRadius.set(parametersRA.protectedRadius, UnitType.NMILE);
-    this.parametersRA.protectedHeight.set(parametersRA.protectedHeight, UnitType.FOOT);
-    this.parametersRA.alim.set(parametersRA.alim, UnitType.FOOT);
   }
 }

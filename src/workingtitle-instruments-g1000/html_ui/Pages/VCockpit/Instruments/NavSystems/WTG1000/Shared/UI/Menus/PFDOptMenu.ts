@@ -1,7 +1,8 @@
+import { ControlPublisher, EventBus } from 'msfssdk';
+
+import { G1000ControlEvents, G1000ControlPublisher } from '../../../Shared/G1000Events';
 import { MenuSystem } from './MenuSystem';
 import { SoftKeyMenu } from './SoftKeyMenu';
-import { ControlPublisher, EventBus } from 'msfssdk/data';
-import { G1000ControlEvents, G1000ControlPublisher } from '../../../Shared/G1000Events';
 
 /**
  * The PFD Opt softkey menu.

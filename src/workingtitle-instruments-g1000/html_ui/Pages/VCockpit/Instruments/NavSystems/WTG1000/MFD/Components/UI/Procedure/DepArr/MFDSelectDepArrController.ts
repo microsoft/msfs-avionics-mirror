@@ -1,11 +1,11 @@
-import { Subject } from 'msfssdk';
-import { FlightPathCalculator, FlightPlan } from 'msfssdk/flightplan';
-import { AirportFacility, ArrivalProcedure, DepartureProcedure, EnrouteTransition, RunwayTransition } from 'msfssdk/navigation';
-import { Fms, ProcedureType } from 'garminsdk/flightplan';
+import { AirportFacility, ArrivalProcedure, DepartureProcedure, EnrouteTransition, FlightPathCalculator, FlightPlan, RunwayTransition, Subject } from 'msfssdk';
+
+import { Fms, ProcedureType } from 'garminsdk';
+
 import { FlightPlanFocus } from '../../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { SelectDepArrController } from '../../../../../Shared/UI/Procedure/DepArr/SelectDepArrController';
 import { SelectDepArrStore } from '../../../../../Shared/UI/Procedure/DepArr/SelectDepArrStore';
-import { SelectControl } from '../../../../../Shared/UI/UiControls2/SelectControl';
+import { SelectControl2 } from '../../../../../Shared/UI/UiControls2/SelectControl';
 
 /**
  * A data store for MFD departure/arrival selection components.
@@ -59,20 +59,30 @@ export abstract class MFDSelectDepArrController<T extends DepartureProcedure | A
   }
 
   /** @inheritdoc */
-  protected async onProcSelectionClosed(source: SelectControl<T>, selectionMade: boolean): Promise<void> {
+  protected async onProcSelectionClosed(source: SelectControl2<T>, selectionMade: boolean): Promise<void> {
     await super.onProcSelectionClosed(source, selectionMade);
 
     if (!selectionMade) {
-      await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), this.store.selectedProcIndex.get(), this.store.selectedRwyTransIndex.get());
+      await this.buildTransitionPreviewPlan(
+        this.store.selectedFacility.get(),
+        this.store.selectedProcIndex.get(),
+        this.store.selectedTransIndex.get(),
+        this.store.selectedRwyTransIndex.get()
+      );
     }
   }
 
   /** @inheritdoc */
-  protected async onRwyTransSelectionClosed(source: SelectControl<RunwayTransition>, selectionMade: boolean): Promise<void> {
+  protected async onRwyTransSelectionClosed(source: SelectControl2<RunwayTransition>, selectionMade: boolean): Promise<void> {
     await super.onRwyTransSelectionClosed(source, selectionMade);
 
     if (!selectionMade) {
-      await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), this.store.selectedProcIndex.get(), this.store.selectedRwyTransIndex.get());
+      await this.buildTransitionPreviewPlan(
+        this.store.selectedFacility.get(),
+        this.store.selectedProcIndex.get(),
+        this.store.selectedTransIndex.get(),
+        this.store.selectedRwyTransIndex.get()
+      );
     }
   }
 
@@ -87,7 +97,7 @@ export abstract class MFDSelectDepArrController<T extends DepartureProcedure | A
     await super.onProcFocused(departure);
 
     const procIndex = this.store.procedures.getArray().indexOf(departure);
-    await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), procIndex, 0);
+    await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), procIndex, this.store.selectedTransIndex.get(), 0);
   }
 
   /** @inheritdoc */
@@ -101,7 +111,12 @@ export abstract class MFDSelectDepArrController<T extends DepartureProcedure | A
     await super.onRunwayFocused(trans);
 
     const rwyTransIndex = this.store.runways.getArray().indexOf(trans);
-    await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), this.store.selectedProcIndex.get(), rwyTransIndex);
+    await this.buildTransitionPreviewPlan(
+      this.store.selectedFacility.get(),
+      this.store.selectedProcIndex.get(),
+      this.store.selectedTransIndex.get(),
+      rwyTransIndex
+    );
   }
 
   /** @inheritdoc */
@@ -114,9 +129,12 @@ export abstract class MFDSelectDepArrController<T extends DepartureProcedure | A
   protected async onTransFocused(trans: EnrouteTransition): Promise<void> {
     await super.onTransFocused(trans);
 
-    if (!this.store.transitionPreviewPlan.get()) {
-      await this.buildTransitionPreviewPlan(this.store.selectedFacility.get(), this.store.selectedProcIndex.get(), this.store.selectedRwyTransIndex.get());
-    }
+    await this.buildTransitionPreviewPlan(
+      this.store.selectedFacility.get(),
+      this.store.selectedProcIndex.get(),
+      this.store.selectedTransIndex.get(),
+      this.store.selectedRwyTransIndex.get()
+    );
   }
 
   /**
@@ -133,12 +151,15 @@ export abstract class MFDSelectDepArrController<T extends DepartureProcedure | A
    * Updates the transition preview plan.
    * @param airport The airport of the procedure for which to preview transitions.
    * @param procIndex The index of the procedure for which to preview transitions.
+   * @param transitionIndex The index of the currently selected transition.
    * @param rwyTransIndex The index of the runway transition of the procedure for which to preview transitions.
    */
-  private async buildTransitionPreviewPlan(airport: AirportFacility | undefined, procIndex: number, rwyTransIndex: number): Promise<void> {
+  private async buildTransitionPreviewPlan(airport: AirportFacility | undefined, procIndex: number, transitionIndex: number, rwyTransIndex: number): Promise<void> {
     if (airport) {
       const opId = ++this.transitionPreviewOpId;
-      const plan = await this.fms.buildProcedureTransitionPreviewPlan(this.calculator, airport, this.procType, procIndex, rwyTransIndex);
+      const plan = await this.fms.buildProcedureTransitionPreviewPlan(
+        this.calculator, airport, this.procType, procIndex, transitionIndex, rwyTransIndex
+      );
       if (opId === this.transitionPreviewOpId) {
         this.store.transitionPreviewPlan.set(plan.length > 0 ? plan : null);
       }

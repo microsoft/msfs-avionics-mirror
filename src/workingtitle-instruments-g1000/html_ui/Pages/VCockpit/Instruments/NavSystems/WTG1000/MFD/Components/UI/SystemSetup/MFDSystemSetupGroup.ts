@@ -1,5 +1,5 @@
-import { ComponentProps, NodeReference } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
+import { ComponentProps, EventBus, NodeReference } from 'msfssdk';
+
 import { UiControl } from '../../../../Shared/UI/UiControl';
 import { ViewService } from '../../../../Shared/UI/ViewService';
 

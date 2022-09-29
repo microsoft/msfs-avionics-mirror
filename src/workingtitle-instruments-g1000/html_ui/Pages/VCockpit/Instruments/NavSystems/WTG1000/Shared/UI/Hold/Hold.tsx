@@ -1,12 +1,12 @@
-import { FSComponent, NavMath, Subject, Subscribable } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { Fms } from 'garminsdk/flightplan';
+import { EventBus, FSComponent, HoldUtils, NavMath, Subject, Subscribable } from 'msfssdk';
+
+import { Fms, GarminFacilityWaypointCache } from 'garminsdk';
+
+import { FmsHEvent } from '../FmsHEvent';
 import { HoldController } from '../Hold/HoldController';
 import { HoldStore } from '../Hold/HoldStore';
-import { FmsHEvent } from '../FmsHEvent';
 import { TimeDistanceInput } from '../UIControls/TimeDistanceInput';
 import { UiView, UiViewProps } from '../UiView';
-import { HoldUtils } from 'msfssdk/navigation/HoldUtils';
 
 /**
  * The properties on the procedures popout component.
@@ -50,7 +50,7 @@ export abstract class Hold<P extends HoldProps = HoldProps> extends UiView<P, un
     super(props);
 
     this.store = new HoldStore();
-    this.controller = new HoldController(this.store, props.fms);
+    this.controller = new HoldController(this.store, props.fms, GarminFacilityWaypointCache.getCache(props.bus));
     this.controller.reset();
   }
 

@@ -1,4 +1,6 @@
-import { ComponentProps, DisplayComponent, FSComponent, SetSubject, Subject, Subscribable, SubscribableSet, Subscription, VNode } from 'msfssdk';
+import {
+  ComponentProps, DisplayComponent, FSComponent, SetSubject, Subject, Subscribable, SubscribableSet, SubscribableUtils, Subscription, VNode
+} from 'msfssdk';
 
 /**
  * Component props for TouchButton.
@@ -12,6 +14,9 @@ export interface TouchButtonProps extends ComponentProps {
 
   /** Whether the button is highlighted, or a subscribable which provides it. Defaults to `false`. */
   isHighlighted?: boolean | Subscribable<boolean>;
+
+  /** Whether the button is or not. Defaults to `true`. */
+  isVisible?: boolean | Subscribable<boolean>;
 
   /**
    * The label for the button. Can be defined as either a static `string`, a subscribable which provides the label
@@ -50,12 +55,14 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
 
   protected readonly isEnabled = Subject.create(true);
   protected readonly isHighlighted = Subject.create(false);
+  protected readonly isVisible = Subject.create(true);
   protected isPrimed = false;
 
   protected readonly cssClassSet = SetSubject.create(['touch-button']);
 
   protected isEnabledPipe?: Subscription;
   protected isHighlightedPipe?: Subscription;
+  protected isVisiblePipe?: Subscription;
   protected cssClassSub?: Subscription;
 
   /** @inheritdoc */
@@ -71,6 +78,12 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
       this.isHighlightedPipe = this.props.isHighlighted.pipe(this.isHighlighted);
     } else {
       this.isHighlighted.set(this.props.isHighlighted ?? false);
+    }
+
+    if (SubscribableUtils.isSubscribable(this.props.isVisible)) {
+      this.isVisiblePipe = this.props.isVisible.pipe(this.isVisible);
+    } else {
+      this.isVisible.set(this.props.isVisible ?? true);
     }
 
     this.isEnabled.sub(isEnabled => {
@@ -90,6 +103,14 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
         this.cssClassSet.add('touch-button-highlight');
       } else {
         this.cssClassSet.delete('touch-button-highlight');
+      }
+    }, true);
+
+    this.isVisible.sub(isVisible => {
+      if (isVisible) {
+        this.cssClassSet.delete('touch-button-hidden');
+      } else {
+        this.cssClassSet.add('touch-button-hidden');
       }
     }, true);
 
@@ -189,7 +210,8 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
    * @returns The CSS classes that are reserved for this button's root element.
    */
   protected getReservedCssClasses(): Set<string> {
-    return new Set(['touch-button', 'touch-button-disabled', 'touch-button-primed', 'touch-button-highlight']);
+    return new Set(['touch-button', 'touch-button-disabled', 'touch-button-primed',
+      'touch-button-highlight', 'touch-button-hidden']);
   }
 
   /** @inheritdoc */
@@ -198,6 +220,7 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
 
     this.isEnabledPipe?.destroy();
     this.isHighlightedPipe?.destroy();
+    this.isVisiblePipe?.destroy();
     this.cssClassSub?.destroy();
 
     this.rootRef.instance.removeEventListener('mousedown', this.mouseDownListener);

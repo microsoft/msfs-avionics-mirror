@@ -1,8 +1,6 @@
-import { NavAngleUnit, Subject } from 'msfssdk';
-import { FlightPlan } from 'msfssdk/flightplan';
-import { Facility, FacilityWaypoint, Waypoint } from 'msfssdk/navigation';
+import { Facility, FacilityWaypoint, FlightPlan, NavAngleUnit, Subject, Waypoint } from 'msfssdk';
 
-import { DirectToState, Fms } from 'garminsdk/flightplan';
+import { DirectToState, Fms } from 'garminsdk';
 
 import { UiView } from '../UiView';
 import { ViewService } from '../ViewService';
@@ -177,7 +175,7 @@ export class DirectToController {
    * @param waypoint The selected waypoint.
    */
   private async onWaypointChanged(waypoint: Waypoint | null): Promise<void> {
-    const facility = waypoint instanceof FacilityWaypoint ? waypoint.facility : null;
+    const facility = waypoint instanceof FacilityWaypoint ? waypoint.facility.get() : null;
 
     if (facility?.icao !== this.directToExistingData?.icao) {
       this.directToExistingData = null;
@@ -272,7 +270,7 @@ export class DirectToController {
    */
   public activateSelected(holdAt = false): void {
     const selectedWaypoint = this.store.waypoint.get();
-    const facility = selectedWaypoint instanceof FacilityWaypoint ? selectedWaypoint.facility : null;
+    const facility = selectedWaypoint instanceof FacilityWaypoint ? selectedWaypoint.facility.get() : null;
     const course = this.store.course.get();
     if (facility) {
       if (this.directToExistingData) {

@@ -1,4 +1,5 @@
-import { FSComponent, DisplayComponent, NodeReference, VNode } from 'msfssdk';
+import { DisplayComponent, FSComponent, NodeReference, VNode } from 'msfssdk';
+
 import { MenuSystem } from './Menus/MenuSystem';
 import { SoftKey } from './Menus/SoftKey';
 import { MenuItem, SoftKeyMenu } from './Menus/SoftKeyMenu';
@@ -71,7 +72,7 @@ export class SoftKeyBar extends DisplayComponent<SoftKeysProps> {
    */
   public render(): VNode {
     return (
-      <div class='softkeys-container'>
+      <div class='softkeys-container SoftKeys' data-checklist='SoftKeys'>
         {this.buildSoftKeys()}
       </div>
     );

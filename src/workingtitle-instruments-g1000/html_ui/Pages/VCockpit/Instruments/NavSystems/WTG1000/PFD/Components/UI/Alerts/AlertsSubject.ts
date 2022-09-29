@@ -1,5 +1,4 @@
-import { ArraySubject, SubscribableArray, SubscribableArrayHandler, Subscription } from 'msfssdk';
-import { EventBus, Publisher } from 'msfssdk/data';
+import { ArraySubject, EventBus, Publisher, SubscribableArray, SubscribableArrayHandler, Subscription } from 'msfssdk';
 
 /**
  * A message to be displayed in the Alerts pane.

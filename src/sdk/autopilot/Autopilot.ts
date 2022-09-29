@@ -1,15 +1,17 @@
-import { Subject } from '..';
+/// <reference types="msfstypes/Coherent/APController" />
+
 import { ControlEvents, EventBus } from '../data';
-import { ADCEvents, APEvents, NavEvents, NavProcSimVars, NavSourceId, NavSourceType } from '../instruments';
-import { APController, MSFSAPStates } from '../navigation';
 import { FlightPlanner } from '../flightplan';
+import { AdcEvents, APEvents, NavEvents, NavProcSimVars, NavSourceId, NavSourceType } from '../instruments';
+import { MSFSAPStates } from '../navigation';
+import { Subject } from '../sub';
 import { APAltitudeModes, APConfig, APLateralModes, APValues, APVerticalModes } from './APConfig';
-import { APModePressEvent, APStateManager } from './APStateManager';
-import { NavToNavManager } from './NavToNavManager';
-import { DirectorState, PlaneDirector } from './PlaneDirector';
+import { VNavEvents } from './data/VNavEvents';
+import { DirectorState, PlaneDirector } from './directors/PlaneDirector';
+import { APModePressEvent, APStateManager } from './managers/APStateManager';
+import { NavToNavManager } from './managers/NavToNavManager';
+import { VNavManager } from './managers/VNavManager';
 import { VNavAltCaptureType, VNavState } from './VerticalNavigation';
-import { VNavEvents } from './VNavEvents';
-import { VNavManager } from './VNavManager';
 
 /**
  * A collection of autopilot plane directors.
@@ -75,6 +77,9 @@ export class Autopilot {
   /** This autopilot's VNav Manager. */
   public readonly vnavManager: VNavManager | undefined;
 
+  /** This autopilot's variable bank angle Manager. */
+  public readonly variableBankManager: Record<any, any> | undefined;
+
   protected cdiSource: NavSourceId = { type: NavSourceType.Nav, index: 0 };
 
   protected lateralModes: Map<APLateralModes, PlaneDirector> = new Map();
@@ -101,6 +106,7 @@ export class Autopilot {
     selectedMach: Subject.create(0),
     isSelectedSpeedInMach: Subject.create<boolean>(false),
     selectedPitch: Subject.create(0),
+    maxBankAngle: Subject.create(30),
     selectedHeading: Subject.create(0),
     capturedAltitude: Subject.create(0),
     approachIsActive: Subject.create<boolean>(false),
@@ -111,6 +117,7 @@ export class Autopilot {
     verticalActive: Subject.create<APVerticalModes>(APVerticalModes.NONE),
     lateralArmed: Subject.create<APLateralModes>(APLateralModes.NONE),
     verticalArmed: Subject.create<APVerticalModes>(APVerticalModes.NONE),
+    apApproachModeOn: Subject.create<boolean>(false)
   };
 
   protected autopilotInitialized = false;
@@ -128,9 +135,11 @@ export class Autopilot {
     protected readonly config: APConfig,
     public readonly stateManager: APStateManager
   ) {
+    this.apValues.maxBankAngle.set(config.defaultMaxBankAngle);
     this.directors = this.createDirectors(config);
     this.vnavManager = config.createVNavManager(this.apValues);
     this.navToNavManager = config.createNavToNavManager(this.apValues);
+    this.variableBankManager = config.createVariableBankManager(this.apValues);
     this.apValues.navToNavLocArm = this.navToNavManager?.canLocArm;
 
     this.stateManager.stateManagerInitialized.sub((v) => {
@@ -232,7 +241,7 @@ export class Autopilot {
       }
     }
     if (set === undefined || set === true) {
-      if (!this.stateManager.fdMasterOn.get()) {
+      if (!this.stateManager.isFlightDirectorOn.get()) {
         this.stateManager.setFlightDirector(true);
       }
       switch (mode) {
@@ -268,12 +277,12 @@ export class Autopilot {
     }
     const set = data.set;
     if (set === undefined || set === false) {
-      if (this.isVerticalModeActivatedOrArmed(mode)) {
+      if (this.deactivateArmedOrActiveVerticalMode(mode)) {
         return;
       }
     }
     if (set === undefined || set === true) {
-      if (!this.stateManager.fdMasterOn.get()) {
+      if (!this.stateManager.isFlightDirectorOn.get()) {
         this.stateManager.setFlightDirector(true);
       }
       switch (mode) {
@@ -350,7 +359,7 @@ export class Autopilot {
    * @param mode is the AP Mode to check.
    * @returns whether this mode was active or armed and subsequently disabled.
    */
-  protected isVerticalModeActivatedOrArmed(mode: APVerticalModes): boolean {
+  protected deactivateArmedOrActiveVerticalMode(mode: APVerticalModes): boolean {
     const { verticalActive, verticalArmed } = this.apValues;
     switch (mode) {
       case verticalActive.get():
@@ -377,12 +386,12 @@ export class Autopilot {
    * Handles input from the State Manager when the APPR button is pressed.
    * @param set is whether this event commands a specific set
    */
-  private approachPressed(set?: boolean): void {
-    if ((set === undefined || set === false) && this.isVerticalModeActivatedOrArmed(APVerticalModes.GP)) {
+  protected approachPressed(set?: boolean): void {
+    if ((set === undefined || set === false) && this.deactivateArmedOrActiveVerticalMode(APVerticalModes.GP)) {
       this.lateralModes.get(APLateralModes.GPSS)?.deactivate();
       return;
     }
-    if ((set === undefined || set === false) && this.isVerticalModeActivatedOrArmed(APVerticalModes.GS)) {
+    if ((set === undefined || set === false) && this.deactivateArmedOrActiveVerticalMode(APVerticalModes.GS)) {
       this.lateralModes.get(APLateralModes.LOC)?.deactivate();
       return;
     }
@@ -408,7 +417,7 @@ export class Autopilot {
    * Returns the AP Lateral Mode that can be armed.
    * @returns The AP Lateral Mode that can be armed.
    */
-  private getArmableApproachType(): APLateralModes {
+  protected getArmableApproachType(): APLateralModes {
     switch (this.cdiSource.type) {
       case NavSourceType.Nav:
         if (this.cdiSource.index === 1 && this.apValues.nav1HasGs.get()) {
@@ -431,16 +440,16 @@ export class Autopilot {
    * Callback to set the lateral active mode.
    * @param mode is the mode being set.
    */
-  private setLateralActive(mode: APLateralModes): void {
+  protected setLateralActive(mode: APLateralModes): void {
     const { lateralActive, lateralArmed } = this.apValues;
     this.checkRollModeActive();
+    if (lateralArmed.get() === mode) {
+      lateralArmed.set(APLateralModes.NONE);
+    }
     if (mode !== lateralActive.get()) {
       const currentMode = this.lateralModes.get(lateralActive.get());
       currentMode?.deactivate();
       lateralActive.set(mode);
-    }
-    if (lateralArmed.get() === mode) {
-      lateralArmed.set(APLateralModes.NONE);
     }
   }
 
@@ -462,17 +471,17 @@ export class Autopilot {
   private setVerticalActive(mode: APVerticalModes): void {
     const { verticalActive, verticalArmed } = this.apValues;
     this.checkPitchModeActive();
+    if (verticalArmed.get() === mode) {
+      verticalArmed.set(APVerticalModes.NONE);
+    } else if (this.verticalApproachArmed === mode) {
+      this.verticalApproachArmed = APVerticalModes.NONE;
+    }
     if (mode !== verticalActive.get()) {
       const currentMode = this.verticalModes.get(verticalActive.get());
       if (currentMode?.state !== DirectorState.Inactive) {
         currentMode?.deactivate();
       }
       verticalActive.set(mode);
-    }
-    if (verticalArmed.get() === mode) {
-      verticalArmed.set(APVerticalModes.NONE);
-    } else if (this.verticalApproachArmed === mode) {
-      this.verticalApproachArmed = APVerticalModes.NONE;
     }
   }
 
@@ -561,6 +570,15 @@ export class Autopilot {
         this.setLateralActive(APLateralModes.LOC);
       };
     }
+    if (this.directors.bcDirector) {
+      this.lateralModes.set(APLateralModes.BC, this.directors.bcDirector);
+      this.directors.bcDirector.onArm = (): void => {
+        this.setLateralArmed(APLateralModes.BC);
+      };
+      this.directors.bcDirector.onActivate = (): void => {
+        this.setLateralActive(APLateralModes.BC);
+      };
+    }
   }
 
   /**
@@ -618,6 +636,9 @@ export class Autopilot {
       this.verticalModes.set(APVerticalModes.FLC, this.directors.flcDirector);
       this.directors.flcDirector.onActivate = (): void => {
         this.setVerticalActive(APVerticalModes.FLC);
+      };
+      this.directors.flcDirector.onArm = (): void => {
+        this.setVerticalArmed(APVerticalModes.FLC);
       };
     }
     if (this.directors.altHoldDirector) {
@@ -690,7 +711,7 @@ export class Autopilot {
       this.lateralModeFailed = false;
     }
 
-    if (!this.stateManager.apMasterOn.get() && !this.stateManager.fdMasterOn.get()) {
+    if (!this.stateManager.apMasterOn.get() && !this.stateManager.isFlightDirectorOn.get()) {
       return;
     }
 
@@ -754,7 +775,7 @@ export class Autopilot {
   /**
    * Checks and sets the proper armed altitude mode.
    */
-  private manageAltitudeCapture(): void {
+  protected manageAltitudeCapture(): void {
     let altCapType = APAltitudeModes.NONE;
     let armAltCap = false;
     switch (this.apValues.verticalActive.get()) {
@@ -858,11 +879,11 @@ export class Autopilot {
       this.apValues.nav2HasGs.set(hasgs);
     });
 
-    const adc = this.bus.getSubscriber<ADCEvents>();
-    adc.on('vs').withPrecision(0).handle((vs) => {
+    const adc = this.bus.getSubscriber<AdcEvents>();
+    adc.on('vertical_speed').withPrecision(0).handle((vs) => {
       this.inClimb = vs < 1 ? false : true;
     });
-    adc.on('alt').withPrecision(0).handle(alt => {
+    adc.on('indicated_alt').withPrecision(0).handle(alt => {
       this.currentAltitude = alt;
     });
 
@@ -876,7 +897,7 @@ export class Autopilot {
         this.handleApFdStateChange();
       }
     });
-    this.stateManager.fdMasterOn.sub(() => {
+    this.stateManager.isFlightDirectorOn.sub(() => {
       if (this.autopilotInitialized) {
         this.handleApFdStateChange();
       }
@@ -899,9 +920,9 @@ export class Autopilot {
    */
   protected handleApFdStateChange(): void {
     const ap = this.stateManager.apMasterOn.get();
-    const fd = this.stateManager.fdMasterOn.get();
+    const fd = this.stateManager.isFlightDirectorOn.get();
     if (ap && !fd) {
-      SimVar.SetSimVarValue('K:TOGGLE_FLIGHT_DIRECTOR', 'number', 0);
+      this.stateManager.setFlightDirector(true);
     } else if (!ap && !fd) {
       this.lateralModes.forEach((mode) => {
         if (mode.state !== DirectorState.Inactive) {
@@ -935,7 +956,7 @@ export class Autopilot {
   /**
    * Checks if the sim AP is in roll mode and sets it if not.
    */
-  private checkRollModeActive(): void {
+  protected checkRollModeActive(): void {
     if (!APController.apGetAutopilotModeActive(MSFSAPStates.Bank)) {
       // console.log('checkRollModeActive had to set Bank mode');
       this.setSimAP(MSFSAPStates.Bank, true);

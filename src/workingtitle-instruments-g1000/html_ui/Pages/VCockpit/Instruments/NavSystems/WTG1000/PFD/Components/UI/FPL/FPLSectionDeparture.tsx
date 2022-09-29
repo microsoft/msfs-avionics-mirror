@@ -1,16 +1,15 @@
-import { VNode, FSComponent } from 'msfssdk';
-import { AirportFacility, ICAO } from 'msfssdk/navigation';
-import { FlightPlanSegmentType } from 'msfssdk/flightplan';
+import { AirportFacility, FlightPlanSegmentType, FSComponent, ICAO, VNode } from 'msfssdk';
 
-import { FmsUtils } from 'garminsdk/flightplan';
-import { SetRunway } from '../../../../Shared/UI/SetRunway/SetRunway';
-import { FixInfo } from './FixInfo';
+import { FmsUtils } from 'garminsdk';
+
 import { FPLEmptyRow } from '../../../../Shared/UI/FPL/FPLEmptyRow';
 import { FPLHeaderDeparture } from '../../../../Shared/UI/FPL/FPLHeaderDeparture';
-import { FPLSection } from './FPLSection';
 import { FlightPlanFocus } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { G1000UiControl } from '../../../../Shared/UI/G1000UiControl';
+import { SetRunway } from '../../../../Shared/UI/SetRunway/SetRunway';
 import { WptInfo } from '../../../../Shared/UI/WptInfo/WptInfo';
+import { FixInfo } from '../../../../Shared/UI/FPL/FixInfo';
+import { FPLSection } from './FPLSection';
 
 /**
  * Render the departure phase of the flight plan.

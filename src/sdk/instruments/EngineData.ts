@@ -2,7 +2,7 @@
 
 import { EventBus, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
-import { SimVarValueType, SimVarDefinition } from '../data/SimVars';
+import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
 import { SimVarPublisher } from './BasePublishers';
 
 /**

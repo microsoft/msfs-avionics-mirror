@@ -1,10 +1,9 @@
 import {
-  ComputedSubject, GeoPoint, GeoPointInterface, GeoPointSubject, NavAngleSubject, NavAngleUnit, NavAngleUnitReferenceNorth, NavMath, NumberUnitInterface,
-  NumberUnitSubject, Subject, Subscribable, UnitFamily, UnitType
+  AirportFacility, ComputedSubject, Facility, FacilityWaypoint, GeoPoint, GeoPointInterface, GeoPointSubject, ICAO, NavAngleSubject, NavAngleUnit,
+  NavAngleUnitReferenceNorth, NavMath, NumberUnitInterface, NumberUnitSubject, Subject, Subscribable, Subscription, UnitFamily, UnitType, Waypoint
 } from 'msfssdk';
-import { AirportFacility, AirportWaypoint, Facility, FacilityWaypoint, ICAO, Waypoint } from 'msfssdk/navigation';
 
-import { Regions } from 'garminsdk/navigation';
+import { AirportWaypoint, Regions } from 'garminsdk';
 
 /**
  * A store for commonly used waypoint info.
@@ -23,10 +22,8 @@ export class WaypointInfoStore {
   }
 
   private readonly _name = ComputedSubject.create<Waypoint | null, string>(null, (waypoint): string => {
-    if (waypoint) {
-      if (waypoint instanceof FacilityWaypoint && waypoint.facility.name !== '') {
-        return Utils.Translate(waypoint.facility.name);
-      }
+    if (waypoint instanceof FacilityWaypoint && waypoint.facility.get().name !== '') {
+      return Utils.Translate(waypoint.facility.get().name);
     }
 
     return '__________';
@@ -43,7 +40,7 @@ export class WaypointInfoStore {
         // airports don't have region codes in their ICAO strings, we will try to grab the code from the first 2
         // letters of the ident. However, some airports (e.g. in the US and those w/o 4-letter idents) don't use the
         // region code for the ident, so we need a third fallback, which is to just display the city name instead.
-        const airport = waypoint.facility as AirportFacility;
+        const airport = waypoint.facility.get() as AirportFacility;
         const ident = ICAO.getIdent(airport.icao).trim();
         let text = ident.length === 4 ? Regions.getName(ident.substr(0, 2)) : '';
         if (text === '' && airport.city !== '') {
@@ -54,7 +51,7 @@ export class WaypointInfoStore {
           return text;
         }
       } else {
-        return Regions.getName(waypoint.facility.icao.substr(1, 2));
+        return Regions.getName(waypoint.facility.get().icao.substr(1, 2));
       }
     }
 
@@ -67,8 +64,8 @@ export class WaypointInfoStore {
   }
 
   private readonly _city = ComputedSubject.create<Waypoint | null, string>(null, (waypoint): string => {
-    if (waypoint instanceof FacilityWaypoint && waypoint.facility.city !== '') {
-      return (waypoint as FacilityWaypoint<Facility>).facility.city.split(', ').map(name => Utils.Translate(name)).join(', ');
+    if (waypoint instanceof FacilityWaypoint && waypoint.facility.get().city !== '') {
+      return (waypoint as FacilityWaypoint<Facility>).facility.get().city.split(', ').map(name => Utils.Translate(name)).join(', ');
     }
 
     return '__________';
@@ -93,6 +90,9 @@ export class WaypointInfoStore {
     return this._bearing;
   }
 
+  private locationSub?: Subscription;
+  private facilitySub?: Subscription;
+
   /**
    * Constructor.
    * @param waypoint A subscribable which provides this store's waypoint. If not defined, this store's waypoint can
@@ -114,6 +114,12 @@ export class WaypointInfoStore {
    * @param waypoint The new waypoint.
    */
   private onWaypointChanged(waypoint: Waypoint | null): void {
+    this.locationSub?.destroy();
+    this.locationSub = undefined;
+
+    this.facilitySub?.destroy();
+    this.facilitySub = undefined;
+
     const planePos = this.planePos?.get() ?? WaypointInfoStore.NULL_LOCATION;
     this.updateLocation(waypoint);
     this.updateName(waypoint);
@@ -121,6 +127,24 @@ export class WaypointInfoStore {
     this.updateCity(waypoint);
     this.updateDistance(waypoint, planePos);
     this.updateBearing(waypoint, planePos);
+
+    if (waypoint !== null) {
+      this.locationSub = waypoint.location.sub(() => {
+        const planePos2 = this.planePos?.get() ?? WaypointInfoStore.NULL_LOCATION;
+
+        this.updateLocation(waypoint);
+        this.updateDistance(waypoint, planePos2);
+        this.updateBearing(waypoint, planePos2);
+      });
+
+      if (waypoint instanceof FacilityWaypoint) {
+        this.facilitySub = waypoint.facility.sub(() => {
+          this.updateName(waypoint);
+          this.updateRegion(waypoint);
+          this.updateCity(waypoint);
+        });
+      }
+    }
   }
 
   /**
@@ -140,7 +164,7 @@ export class WaypointInfoStore {
    * @param waypoint The store's current waypoint.
    */
   private updateLocation(waypoint: Waypoint | null): void {
-    this._location.set(waypoint?.location ?? WaypointInfoStore.NULL_LOCATION);
+    this._location.set(waypoint?.location.get() ?? WaypointInfoStore.NULL_LOCATION);
   }
 
   /**
@@ -178,7 +202,7 @@ export class WaypointInfoStore {
       return;
     }
 
-    this._distance.set(waypoint.location.distance(planePos), UnitType.GA_RADIAN);
+    this._distance.set(waypoint.location.get().distance(planePos), UnitType.GA_RADIAN);
   }
 
   /**
@@ -192,7 +216,7 @@ export class WaypointInfoStore {
       return;
     }
 
-    const brg = NavMath.normalizeHeading(planePos.bearingTo(waypoint.location));
+    const brg = NavMath.normalizeHeading(planePos.bearingTo(waypoint.location.get()));
     this._bearing.set(brg, planePos.lat, planePos.lon);
   }
 }

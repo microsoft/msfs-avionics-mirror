@@ -1,12 +1,11 @@
-import { VNode, FSComponent } from 'msfssdk';
-import { AirportFacility, ICAO } from 'msfssdk/navigation';
+import { AirportFacility, FSComponent, ICAO, VNode } from 'msfssdk';
 
-import { FixInfo } from './FixInfo';
 import { FPLEmptyRow } from '../../../../Shared/UI/FPL/FPLEmptyRow';
 import { FPLHeaderDestination } from '../../../../Shared/UI/FPL/FPLHeaderDestination';
-import { FPLSection } from './FPLSection';
-import { SetRunway } from '../../../../Shared/UI/SetRunway/SetRunway';
 import { G1000UiControl } from '../../../../Shared/UI/G1000UiControl';
+import { SetRunway } from '../../../../Shared/UI/SetRunway/SetRunway';
+import { FixInfo } from '../../../../Shared/UI/FPL/FixInfo';
+import { FPLSection } from './FPLSection';
 
 /**
  * Render the destination info for a flight plan.

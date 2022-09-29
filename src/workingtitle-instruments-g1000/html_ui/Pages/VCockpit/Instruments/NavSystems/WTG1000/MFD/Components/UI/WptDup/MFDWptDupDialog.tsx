@@ -1,9 +1,6 @@
-import { FSComponent, GeoPoint, GeoPointInterface, GeoPointSubject, Subject, Subscribable, VNode } from 'msfssdk';
-import { LatLonDisplay } from 'msfssdk/components/common';
-import { EventBus } from 'msfssdk/data';
-import { GNSSEvents } from 'msfssdk/instruments';
-import { Waypoint } from 'msfssdk/navigation';
-import { NumberFormatter } from 'msfssdk/graphics/text';
+import {
+  EventBus, FSComponent, GeoPoint, GeoPointInterface, GeoPointSubject, GNSSEvents, LatLonDisplay, NumberFormatter, Subject, Subscribable, VNode, Waypoint
+} from 'msfssdk';
 
 import { BearingDisplay } from '../../../../Shared/UI/Common/BearingDisplay';
 import { NumberUnitDisplay } from '../../../../Shared/UI/Common/NumberUnitDisplay';

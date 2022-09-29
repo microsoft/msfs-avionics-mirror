@@ -80,6 +80,33 @@ export interface Subscribable<T> {
  */
 export interface MappedSubscribable<T> extends Subscribable<T> {
   /**
+   * Whether the subscription to the parent subscribable is alive. While alive, this subscribable will update its state
+   * based on its parent's state, unless it is paused. Once dead, this subscribable will no longer update its state,
+   * and cannot be resumed again.
+   */
+  readonly isAlive: boolean;
+
+  /**
+   * Whether the subscription to the parent subscribable is paused. While paused, this subscribable will not update its
+   * state until it is resumed.
+   */
+  readonly isPaused: boolean;
+
+  /**
+   * Pauses the subscription to the parent subscribable. Once paused, this subscribable will not update its state until
+   * it is resumed.
+   * @throws Error if the subscription to the parent subscribable is not alive.
+   */
+  pause(): void;
+
+  /**
+   * Resumes the subscription to the parent subscribable. Once resumed, this subscribable will immediately begin to
+   * update its state based its parent's state.
+   * @throws Error if the subscription to the parent subscribable is not alive.
+   */
+  resume(): void;
+
+  /**
    * Destroys the subscription to the parent subscribable.
    */
   destroy(): void;

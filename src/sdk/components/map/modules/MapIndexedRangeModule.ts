@@ -1,21 +1,24 @@
 import { NumberUnitInterface, UnitFamily, UnitType } from '../../../math/NumberUnit';
+import { NumberUnitSubject } from '../../../math/NumberUnitSubject';
 import { Subject } from '../../../sub/Subject';
-import { MapRangeModule } from './MapRangeModule';
+import { Subscribable } from '../../../sub/Subscribable';
 
 /**
  * A module describing the nominal range of a map.
  */
-export class MapIndexedRangeModule extends MapRangeModule {
-  /** The index of the map nominal range. */
-  public readonly nominalRangeIndex = Subject.create(0);
+export class MapIndexedRangeModule {
+  /** The index of the nominal range. */
+  public readonly nominalRangeIndex = Subject.create(0) as Subscribable<number>;
 
   /** The array of possible map nominal ranges. */
   public readonly nominalRanges: Subject<readonly NumberUnitInterface<UnitFamily.Distance>[]>
     = Subject.create([UnitType.NMILE.createNumber(1)] as readonly NumberUnitInterface<UnitFamily.Distance>[]);
 
+  /** The nominal range. */
+  public readonly nominalRange = NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(1)) as Subscribable<NumberUnitInterface<UnitFamily.Distance>>;
+
   /** @inheritdoc */
   constructor() {
-    super();
     this.nominalRanges.sub(this.onNominalRangesChanged.bind(this));
   }
 
@@ -41,8 +44,8 @@ export class MapIndexedRangeModule extends MapRangeModule {
     }
 
     const range = rangeArray[index];
-    this.nominalRangeIndex.set(index);
-    this.nominalRange.set(range);
+    (this.nominalRangeIndex as Subject<number>).set(index);
+    (this.nominalRange as Subject<NumberUnitInterface<UnitFamily.Distance>>).set(range);
     return range;
   }
 }

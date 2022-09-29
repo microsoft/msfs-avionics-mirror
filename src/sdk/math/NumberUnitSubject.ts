@@ -1,10 +1,49 @@
-import { Subject } from '../sub/Subject';
+import { AbstractSubscribable } from '../sub/AbstractSubscribable';
+import { MutableSubscribable } from '../sub/Subscribable';
 import { NumberUnit, NumberUnitInterface, Unit } from './NumberUnit';
 
 /**
- * A Subject which provides a NumberUnitInterface value.
+ * A Subject which provides a {@link NumberUnitInterface} value.
  */
-export class NumberUnitSubject<F extends string, U extends Unit<F> = Unit<F>> extends Subject<NumberUnitInterface<F, U>> {
+export class NumberUnitSubject<F extends string, U extends Unit<F> = Unit<F>>
+  extends AbstractSubscribable<NumberUnitInterface<F, U>>
+  implements MutableSubscribable<NumberUnitInterface<F, U>>, MutableSubscribable<NumberUnitInterface<F, U>, number> {
+
+  /** @inheritdoc */
+  public readonly isMutableSubscribable = true;
+
+  /**
+   * Constructor.
+   * @param value The value of this subject.
+   */
+  private constructor(private readonly value: NumberUnit<F, U>) {
+    super();
+  }
+
+  /**
+   * Creates a NumberUnitSubject.
+   * @param initialVal The initial value.
+   * @returns A NumberUnitSubject.
+   */
+  public static create<F extends string, U extends Unit<F>>(initialVal: NumberUnit<F, U>): NumberUnitSubject<F, U> {
+    return new NumberUnitSubject(initialVal);
+  }
+
+  /**
+   * Creates a NumberUnitSubject.
+   * @param initialVal The initial value.
+   * @returns A NumberUnitSubject.
+   * @deprecated Use `NumberUnitSubject.create()` instead.
+   */
+  public static createFromNumberUnit<F extends string, U extends Unit<F>>(initialVal: NumberUnit<F, U>): NumberUnitSubject<F, U> {
+    return new NumberUnitSubject(initialVal);
+  }
+
+  /** @inheritdoc */
+  public get(): NumberUnitInterface<F, U> {
+    return this.value.readonly;
+  }
+
   /**
    * Sets the new value and notifies the subscribers if the value changed.
    * @param value The new value.
@@ -25,14 +64,5 @@ export class NumberUnitSubject<F extends string, U extends Unit<F> = Unit<F>> ex
       isArg1Number ? (this.value as NumberUnit<F, U>).set(arg1 as number, arg2) : (this.value as NumberUnit<F, U>).set(arg1 as NumberUnitInterface<F>);
       this.notify();
     }
-  }
-
-  /**
-   * Creates a NumberUnitSubject.
-   * @param initialVal The initial value.
-   * @returns a NumberUnitSubject.
-   */
-  public static createFromNumberUnit<F extends string, U extends Unit<F>>(initialVal: NumberUnit<F, U>): NumberUnitSubject<F, U> {
-    return new NumberUnitSubject(initialVal, Subject.DEFAULT_EQUALITY_FUNC);
   }
 }

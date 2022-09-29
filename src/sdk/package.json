@@ -1,14 +1,11 @@
 {
   "name": "msfssdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "HTML and Typescript SDK for MSFS Coherent based instruments and aircraft development.",
-  "main": "index.ts",
+  "main": "msfssdk.js",
   "scripts": {
     "build": "tsc && npx copyfiles package.json ./build"
   },
-  "files": [
-    "build"
-  ],
   "repository": {
     "type": "git",
     "url": "https://dev.azure.com/workingtitlesim/KittyHawk/_git/ProjectGolf"
@@ -22,5 +19,8 @@
     "copyfiles": "^2.4.1",
     "msfstypes": "file:../msfstypes",
     "typescript": "~4.5.5"
+  },
+  "dependencies": {
+    "rollup-plugin-dts": "^4.2.0"
   }
 }

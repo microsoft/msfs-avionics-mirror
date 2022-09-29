@@ -1,9 +1,10 @@
-import { ObjectSubject, Subject, UnitType } from 'msfssdk';
-import { AltitudeSelectManager, AltitudeSelectManagerOptions, APAltitudeModes, APConfig, APLateralModes, APStateManager, APVerticalModes, Autopilot, MetricAltitudeSettingsManager } from 'msfssdk/autopilot';
-import { EventBus } from 'msfssdk/data';
-import { FlightPlanner } from 'msfssdk/flightplan';
-import { APEvents } from 'msfssdk/instruments';
+import {
+  AltitudeSelectManager, AltitudeSelectManagerOptions, APAltitudeModes, APConfig, APLateralModes, APStateManager, APVerticalModes, Autopilot,
+  EventBus, FlightPlanner, MetricAltitudeSettingsManager, ObjectSubject, Subject, UnitType
+} from 'msfssdk';
+
 import { G1000ControlEvents } from '../G1000Events';
+import { G1000APSimVarEvents } from '../Instruments/G1000APPublisher';
 import { FmaData } from './FmaData';
 
 /**
@@ -19,6 +20,7 @@ export class G1000Autopilot extends Autopilot {
     incrLarge: UnitType.FOOT.createNumber(1000),
     incrSmallMetric: UnitType.METER.createNumber(50),
     incrLargeMetric: UnitType.METER.createNumber(500),
+    initOnInput: true,
     initToIndicatedAlt: true
   };
 
@@ -89,17 +91,27 @@ export class G1000Autopilot extends Autopilot {
   /** @inheritdoc */
   protected monitorAdditionalEvents(): void {
     //check for KAP140 installed
-    this.bus.getSubscriber<APEvents>().on('kap_140_installed').handle(v => {
-      this.externalAutopilotInstalled.set(v);
-      if (v) {
-        this.config.defaultVerticalMode = APVerticalModes.VS;
-        this.config.defaultLateralMode = APLateralModes.LEVEL;
-        this.altSelectManager.setEnabled(false);
-        this.handleApFdStateChange();
-        this.updateFma(true);
-        this.bus.getPublisher<G1000ControlEvents>().pub('fd_not_installed', true, true);
-      }
-    });
+    const g1000APSimvars = this.bus.getSubscriber<G1000APSimVarEvents>();
+    g1000APSimvars.on('kap_140_installed').whenChanged().handle(this.setExternalAutopilotInstalled.bind(this));
+    g1000APSimvars.on('kap_140_installed_old').whenChanged().handle(this.setExternalAutopilotInstalled.bind(this));
+  }
+
+  /**
+   * Called when an external AP installed event is received from the bus.
+   * @param installed Whether an external AP is installed.
+   */
+  private setExternalAutopilotInstalled(installed: boolean): void {
+
+    if (installed) {
+      this.externalAutopilotInstalled.set(installed);
+      this.config.defaultVerticalMode = APVerticalModes.VS;
+      this.config.defaultLateralMode = APLateralModes.LEVEL;
+      this.altSelectManager.setEnabled(false);
+      this.handleApFdStateChange();
+      this.updateFma(true);
+      this.bus.getPublisher<G1000ControlEvents>().pub('fd_not_installed', true, true);
+    }
+
   }
 
   /**

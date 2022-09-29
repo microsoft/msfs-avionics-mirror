@@ -1,5 +1,5 @@
-import { FSComponent, VNode, NodeReference, SubscribableArray, SubscribableArrayEventType } from 'msfssdk';
-import { ScrollUtils } from 'msfssdk/graphics/layout';
+import { FSComponent, NodeReference, ScrollUtils, SubscribableArray, SubscribableArrayEventType, VNode } from 'msfssdk';
+
 import { UiControl } from './UiControl';
 import { UiControlGroup, UiControlGroupProps } from './UiControlGroup';
 import { ScrollableControl } from './UiView';

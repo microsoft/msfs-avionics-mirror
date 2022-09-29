@@ -1,13 +1,13 @@
-import { FSComponent, DisplayComponent, NodeReference, VNode, ComponentProps } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { ADCEvents } from 'msfssdk/instruments/ADC';
+import { AhrsEvents, ComponentProps, DisplayComponent, EventBus, FSComponent, NodeReference, VNode } from 'msfssdk';
+
 import { AHRSSystemEvents } from '../../../Shared/Systems/AHRSSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
 import { SvtProjectionUtils } from '../../../Shared/UI/SvtProjectionUtils';
 import { PFDUserSettings } from '../../PFDUserSettings';
+import { PlaneStateInfo } from './PrimaryHorizonDisplay';
+import { RadioAltimeter } from './RadioAltimeter';
 
 import './AttitudeIndicator.css';
-import { PlaneStateInfo } from './PrimaryHorizonDisplay';
 
 /**
  * The properties on the Attitude component.
@@ -16,6 +16,9 @@ interface AttitudeIndicatorProps extends ComponentProps {
 
   /** An instance of the event bus. */
   bus: EventBus;
+
+  /** Whether this instance of the G1000 has a Radio Altimeter. */
+  hasRadioAltimeter: boolean;
 }
 
 /** Possible attitude indicator display states. */
@@ -110,8 +113,8 @@ export class AttitudeIndicator extends DisplayComponent<AttitudeIndicatorProps> 
    * A callback called after the component renders.
    */
   public onAfterRender(): void {
-    const adc = this.props.bus.getSubscriber<ADCEvents>();
-    adc.on('turn_coordinator_ball')
+    const ahrs = this.props.bus.getSubscriber<AhrsEvents>();
+    ahrs.on('turn_coordinator_ball')
       .withPrecision(2)
       .handle(this.onUpdateTurnCoordinator);
     PFDUserSettings.getManager(this.props.bus).whenSettingChanged('svtToggle').handle(this.updateSVTDisplay.bind(this));
@@ -285,8 +288,9 @@ export class AttitudeIndicator extends DisplayComponent<AttitudeIndicatorProps> 
   public render(): VNode {
     return (
 
-      <div class="attitude-container" ref={this.containerRef}>
+      <div class="attitude-container Horizon" data-checklist='Horizon' ref={this.containerRef}>
         <div class="failed-box" />
+        <RadioAltimeter bus={this.props.bus} hasRadioAltimeter={this.props.hasRadioAltimeter} />
         <div class="turn-coordinator" ref={this.turnCoordinatorElement}>
           <svg>
             <path d="M 15 15 l 15 0 l -3 -6 l -24 0 l -3 6 l 15 0" fill="#fff" stroke="black" stroke-width=".5" />

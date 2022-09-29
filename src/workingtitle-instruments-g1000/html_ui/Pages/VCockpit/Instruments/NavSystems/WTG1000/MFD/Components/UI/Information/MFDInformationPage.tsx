@@ -1,21 +1,21 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { ControlPublisher, EventBus } from 'msfssdk/data';
-import { FacilityLoader, ICAO, Waypoint } from 'msfssdk/navigation';
-import { FocusPosition } from 'msfssdk/components/controls';
+import {
+  CompiledMapSystem, ControlPublisher, EventBus, FacilityLoader, FocusPosition, FSComponent, ICAO, MapIndexedRangeModule, MapSystemBuilder, MathUtils, Subject,
+  Vec2Math, VecNMath, VNode, Waypoint
+} from 'msfssdk';
 
-import { Fms } from 'garminsdk/flightplan';
+import {
+  Fms, GarminMapKeys, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapRangeController, MapWaypointHighlightModule, UnitsUserSettings
+} from 'garminsdk';
 
-import { MapPointerInfoLayerSize } from '../../../../Shared/Map/Layers/MapPointerInfoLayer';
-import { TrafficAdvisorySystem } from '../../../../Shared/Traffic/TrafficAdvisorySystem';
+import { MapBuilder } from '../../../../Shared/Map/MapBuilder';
+import { MapUserSettings } from '../../../../Shared/Map/MapUserSettings';
+import { MapWaypointIconImageCache } from '../../../../Shared/Map/MapWaypointIconImageCache';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
 import { G1000UiControl } from '../../../../Shared/UI/G1000UiControl';
 import { MenuSystem } from '../../../../Shared/UI/Menus/MenuSystem';
-import { NavMapModel } from '../../../../Shared/UI/NavMap/NavMapModel';
 import { UiPageProps } from '../../../../Shared/UI/UiPage';
-import { WaypointMapComponent, WaypointMapRangeTargetRotationController } from '../../../../Shared/UI/WaypointMap/WaypointMapComponent';
 import { MFDUiPage } from '../MFDUiPage';
 import { FacilityGroup } from './FacilityGroup';
-import { UnitsUserSettings } from '../../../../Shared/Units/UnitsUserSettings';
 
 import './MFDInformationPage.css';
 
@@ -30,9 +30,6 @@ export interface MFDInformationPageProps extends UiPageProps {
   /** A facility loader. */
   facilityLoader: FacilityLoader;
 
-  /** The G1000 traffic advisory system. */
-  tas: TrafficAdvisorySystem;
-
   /** The MenuSystem. */
   menuSystem: MenuSystem;
 
@@ -45,22 +42,92 @@ export interface MFDInformationPageProps extends UiPageProps {
  * and a map indicating the facilities location.
  */
 export abstract class MFDInformationPage extends MFDUiPage<MFDInformationPageProps> {
+  protected static readonly UPDATE_FREQ = 30; // Hz
 
   protected readonly unitsSettingManager = UnitsUserSettings.getManager(this.props.bus);
 
-  protected readonly mapRef = FSComponent.createRef<WaypointMapComponent>();
   protected readonly uiRoot = FSComponent.createRef<G1000UiControl>();
   protected readonly facilityGroup = FSComponent.createRef<FacilityGroup<any>>();
 
-  protected readonly mapRangeIndexSub = Subject.create<number>(WaypointMapRangeTargetRotationController.DEFAULT_MAP_RANGE_INDEX);
   protected readonly waypoint = Subject.create<Waypoint | null>(null);
-  protected readonly mapModel = NavMapModel.createModel(this.props.bus, this.props.tas);
+
+  private readonly mapSettingManager = MapUserSettings.getMfdManager(this.props.bus);
+
+  private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
+    .with(MapBuilder.waypointMap, {
+      bingId: 'mfd-page-map',
+      dataUpdateFreq: MFDInformationPage.UPDATE_FREQ,
+
+      supportAirportAutoRange: true,
+      boundsOffset: VecNMath.create(4, 40, 40, 40, 40),
+
+      waypointIconImageCache: MapWaypointIconImageCache.getCache(),
+
+      rangeRingOptions: {
+        showLabel: true
+      },
+
+      ...MapBuilder.ownAirplaneIconOptions(),
+
+      pointerBoundsOffset: VecNMath.create(4, 0.1, 0.1, 0.1, 0.1),
+      pointerInfoSize: MapPointerInfoLayerSize.Full,
+
+      miniCompassImgSrc: MapBuilder.miniCompassIconSrc(),
+
+      settingManager: this.mapSettingManager as any,
+      unitsSettingManager: this.unitsSettingManager
+    })
+    .withProjectedSize(Vec2Math.create(578, 734))
+    .withDeadZone(VecNMath.create(4, 0, 56, 0, 0))
+    .withClockUpdate(MFDInformationPage.UPDATE_FREQ)
+    .build('mfd-infomap') as CompiledMapSystem<
+      {
+        /** The range module. */
+        [GarminMapKeys.Range]: MapIndexedRangeModule;
+
+        /** The pointer module. */
+        [GarminMapKeys.WaypointHighlight]: MapWaypointHighlightModule;
+
+        /** The pointer module. */
+        [GarminMapKeys.Pointer]: MapPointerModule;
+      },
+      any,
+      {
+        /** The range controller. */
+        [GarminMapKeys.Range]: MapRangeController;
+
+        /** The pointer controller. */
+        [GarminMapKeys.Pointer]: MapPointerController;
+      },
+      any
+    >;
+
+  private readonly mapRangeModule = this.compiledMap.context.model.getModule(GarminMapKeys.Range);
+  private readonly mapHighlightModule = this.compiledMap.context.model.getModule(GarminMapKeys.WaypointHighlight);
+  private readonly mapPointerModule = this.compiledMap.context.model.getModule(GarminMapKeys.Pointer);
+
+  private readonly mapRangeController = this.compiledMap.context.getController(GarminMapKeys.Range);
+  private readonly mapPointerController = this.compiledMap.context.getController(GarminMapKeys.Pointer);
+
+  /** @inheritdoc */
+  public onAfterRender(thisNode: VNode): void {
+    super.onAfterRender(thisNode);
+
+    this.compiledMap.ref.instance.sleep();
+
+    this.mapRangeController.setRangeIndex(this.getDefaultRangeIndex());
+
+    this.waypoint.pipe(this.mapHighlightModule.waypoint);
+  }
 
   /** Renders the other groups to display on the page. */
   protected abstract renderGroups(): VNode;
 
   /** Gets the class to add to the page display for the groups. */
   protected abstract getPageClass(): string;
+
+  /** Gets the default map range index for this page. */
+  protected abstract getDefaultRangeIndex(): number;
 
   /** @inheritdoc */
   protected onViewOpened(): void {
@@ -71,7 +138,7 @@ export abstract class MFDInformationPage extends MFDUiPage<MFDInformationPagePro
     this.props.menuSystem.clear();
     this.props.menuSystem.pushMenu('navmap-root');
 
-    this.mapRef.instance.wake();
+    this.compiledMap.ref.instance.wake();
   }
 
   /** @inheritdoc */
@@ -79,7 +146,9 @@ export abstract class MFDInformationPage extends MFDUiPage<MFDInformationPagePro
     super.onViewClosed();
 
     this.uiRoot.instance.blur();
-    this.mapRef.instance.sleep();
+    this.compiledMap.ref.instance.sleep();
+
+    this.mapRangeController.setRangeIndex(this.getDefaultRangeIndex());
   }
 
   /** @inheritdoc */
@@ -108,10 +177,10 @@ export abstract class MFDInformationPage extends MFDUiPage<MFDInformationPagePro
 
         return true;
       case FmsHEvent.RANGE_DEC:
-        this.mapRangeIndexSub.set(this.mapRangeIndexSub.get() - 1);
+        this.changeMapRangeIndex(-1);
         return true;
       case FmsHEvent.RANGE_INC:
-        this.mapRangeIndexSub.set(this.mapRangeIndexSub.get() + 1);
+        this.changeMapRangeIndex(1);
         return true;
     }
 
@@ -122,27 +191,25 @@ export abstract class MFDInformationPage extends MFDUiPage<MFDInformationPagePro
     return super.processHEvent(evt);
   }
 
+  /**
+   * Changes the MFD map range index setting.
+   * @param delta The change in index to apply.
+   */
+  private changeMapRangeIndex(delta: number): void {
+    const currentIndex = this.mapRangeModule.nominalRangeIndex.get();
+    const newIndex = MathUtils.clamp(currentIndex + delta, 0, this.mapRangeModule.nominalRanges.get().length - 1);
+
+    if (newIndex !== currentIndex) {
+      this.mapPointerController.targetPointer();
+      this.mapRangeController.setRangeIndex(newIndex);
+    }
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     return (
       <div class="mfd-page" ref={this.viewContainerRef}>
-        <WaypointMapComponent ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
-          updateFreq={Subject.create(30)}
-          dataUpdateFreq={Subject.create(30)}
-          projectedWidth={578} projectedHeight={734}
-          deadZone={Subject.create(new Float64Array([0, 56, 0, 0]))}
-          pointerBoundsOffset={Subject.create(new Float64Array([0.1, 0.1, 0.1, 0.1]))}
-          bingId='mfd_page_map'
-          rangeIndex={this.mapRangeIndexSub}
-          waypoint={this.waypoint}
-          ownAirplaneLayerProps={{
-            imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
-            iconSize: 40,
-            iconAnchor: new Float64Array([0.5, 0])
-          }}
-          pointerInfoSize={MapPointerInfoLayerSize.Full}
-          class='mfd-infomap'
-        />
+        {this.compiledMap.map}
         <div class={`mfd-dark-background ${this.getPageClass()}`}>
           <G1000UiControl ref={this.uiRoot} isolateScroll>
             {this.renderGroups()}

@@ -1,5 +1,6 @@
-import { FSComponent, VNode, Subject, MathUtils } from 'msfssdk';
-import { UiControlProps, UiControl } from '../../../../Shared/UI/UiControl';
+import { FSComponent, MathUtils, Subject, VNode } from 'msfssdk';
+
+import { UiControl, UiControlProps } from '../../../../Shared/UI/UiControl';
 import { NumberInput } from '../../../../Shared/UI/UIControls/NumberInput';
 import { Timer, TimerMode } from './Timer';
 

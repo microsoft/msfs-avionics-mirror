@@ -1,5 +1,4 @@
-import { FSComponent, DisplayComponent, VNode } from 'msfssdk';
-import { XMLGaugeProps } from 'msfssdk/components/XMLGauges';
+import { DisplayComponent, FSComponent, VNode, XMLGaugeProps } from 'msfssdk';
 
 /**
  * An abstract base gauge component containing the universal logic for scaling
@@ -41,6 +40,12 @@ export abstract class BaseGauge<T extends Partial<XMLGaugeProps>> extends Displa
 
     if (this.props.style?.marginBottom) {
       this.theDiv.instance.style.marginBottom = `${this.props.style.marginBottom}px`;
+    }
+
+    if (this.props.id) {
+      this.theDiv.instance.setAttribute('data-checklist', this.props.id);
+      // TODO: remove setting class when SU10 has it
+      this.theDiv.instance.classList.add(this.props.id);
     }
 
     FSComponent.render(this.renderGauge(), this.theDiv.instance);

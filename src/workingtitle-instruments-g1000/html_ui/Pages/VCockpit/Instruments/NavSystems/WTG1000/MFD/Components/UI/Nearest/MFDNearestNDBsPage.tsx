@@ -1,17 +1,17 @@
-import { VNode, FSComponent } from 'msfssdk';
-import { Facility, NdbFacility, NearestNdbSubscription, NearestSubscription } from 'msfssdk/navigation';
+import { Facility, FSComponent, NdbFacility, NearestNdbSubscription, NearestSubscription, VNode } from 'msfssdk';
+
 import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { WaypointIconImageCache } from '../../../../Shared/WaypointIconImageCache';
 import { MFDNearestPage } from './MFDNearestPage';
-import { FrequencyGroup, InformationGroup } from './NDBs';
+import { NearestNdbFrequencyGroup, NearestNdbInformationGroup } from './NDBs';
 
 /**
  * A page that displays the nearest intersections and related information on the MFD.
  */
 export class MFDNearestNdbsPage extends MFDNearestPage<NdbFacility> {
 
-  private readonly informationGroup = FSComponent.createRef<InformationGroup>();
-  private readonly frequencyGroup = FSComponent.createRef<FrequencyGroup>();
+  private readonly informationGroup = FSComponent.createRef<NearestNdbInformationGroup>();
+  private readonly frequencyGroup = FSComponent.createRef<NearestNdbFrequencyGroup>();
 
   /** @inheritdoc */
   protected getSelectedGroup(): G1000UiControl<G1000UiControlProps> {
@@ -59,8 +59,8 @@ export class MFDNearestNdbsPage extends MFDNearestPage<NdbFacility> {
   protected renderGroups(): VNode {
     return (
       <>
-        <InformationGroup ref={this.informationGroup} />
-        <FrequencyGroup ref={this.frequencyGroup} />
+        <NearestNdbInformationGroup ref={this.informationGroup} />
+        <NearestNdbFrequencyGroup ref={this.frequencyGroup} />
       </>
     );
   }

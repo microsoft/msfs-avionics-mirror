@@ -1,9 +1,9 @@
-import { MathUtils, Vec2Math } from '../../math';
-import { AbstractTransformingPathStream, PathStream } from './PathStream';
 import { GeoCircle } from '../../geo/GeoCircle';
+import { GeoCircleResampler, GeoCircleResamplerVector } from '../../geo/GeoCircleResampler';
 import { GeoPoint } from '../../geo/GeoPoint';
 import { GeoProjection } from '../../geo/GeoProjection';
-import { GeoCircleResampler, GeoCircleResamplerVector } from '../../geo/GeoCircleResampler';
+import { MathUtils, Vec2Math } from '../../math';
+import { AbstractTransformingPathStream, PathStream } from './PathStream';
 
 /**
  * A path stream which transforms a path stream in geographic spherical coordinates to one in projected planar

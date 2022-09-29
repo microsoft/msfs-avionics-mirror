@@ -1,6 +1,6 @@
-import { FSComponent, ComponentProps, DisplayComponent, VNode, Subscribable, Subject } from 'msfssdk';
-import { AirportFacility, ApproachProcedure, ICAO } from 'msfssdk/navigation';
-import { FmsUtils } from 'garminsdk/flightplan';
+import { AirportFacility, ApproachProcedure, ComponentProps, DisplayComponent, FSComponent, ICAO, Subject, Subscribable, VNode } from 'msfssdk';
+
+import { FmsUtils } from 'garminsdk';
 
 import './ApproachNameDisplay.css';
 

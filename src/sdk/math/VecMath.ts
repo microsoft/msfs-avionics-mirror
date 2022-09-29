@@ -211,7 +211,7 @@ export class Vec3Math {
   public static create(x: number, y: number, z: number): Float64Array
   // eslint-disable-next-line jsdoc/require-jsdoc
   public static create(x?: number, y?: number, z?: number): Float64Array {
-    const vec = new Float64Array(2);
+    const vec = new Float64Array(3);
     if (x !== undefined && y !== undefined && z !== undefined) {
       vec[0] = x;
       vec[1] = y;

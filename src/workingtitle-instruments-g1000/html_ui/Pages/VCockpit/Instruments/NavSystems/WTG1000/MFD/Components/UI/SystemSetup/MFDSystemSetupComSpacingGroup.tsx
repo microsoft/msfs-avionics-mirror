@@ -1,11 +1,10 @@
-import { ArraySubject, DisplayComponent, FSComponent, VNode } from 'msfssdk';
-import { ComSpacing } from 'msfssdk/instruments';
+import { ArraySubject, ComSpacing, ControlEvents, DisplayComponent, FSComponent, VNode } from 'msfssdk';
+
+import { NavComUserSettings, NavComUserSettingTypes } from '../../../../Shared/NavCom/NavComUserSettings';
 import { ContextMenuItemDefinition } from '../../../../Shared/UI/Dialogs/ContextMenuDialog';
 import { GroupBox } from '../GroupBox';
 import { MFDSystemSetupGroupProps } from './MFDSystemSetupGroup';
 import { MFDSystemSetupSelectRow } from './MFDSystemSetupRow';
-import { NavComUserSettings, NavComUserSettingTypes } from '../../../../Shared/NavCom/NavComUserSettings';
-import { ControlEvents } from 'msfssdk/data';
 
 /**
  * The MFD System Setup page COM Configuration group.

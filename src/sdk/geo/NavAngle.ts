@@ -1,5 +1,6 @@
 import { AbstractUnit, NumberUnit, NumberUnitInterface, Unit } from '../math';
-import { Subject } from '../sub/Subject';
+import { AbstractSubscribable } from '../sub/AbstractSubscribable';
+import { MutableSubscribable } from '../sub/Subscribable';
 import { LatLonInterface } from './GeoInterfaces';
 import { GeoPoint } from './GeoPoint';
 import { MagVar } from './MagVar';
@@ -113,7 +114,45 @@ export class NavAngleUnit extends AbstractUnit<typeof NavAngleUnit.FAMILY> {
 /**
  * A Subject which provides a navigation angle value.
  */
-export class NavAngleSubject extends Subject<NumberUnitInterface<typeof NavAngleUnit.FAMILY, NavAngleUnit>> {
+export class NavAngleSubject
+  extends AbstractSubscribable<NumberUnitInterface<typeof NavAngleUnit.FAMILY, NavAngleUnit>>
+  implements MutableSubscribable<NumberUnitInterface<typeof NavAngleUnit.FAMILY, NavAngleUnit>> {
+
+  /** @inheritdoc */
+  public readonly isMutableSubscribable = true;
+
+  /**
+   * Constructor.
+   * @param value The value of this subject.
+   */
+  private constructor(private readonly value: NumberUnit<typeof NavAngleUnit.FAMILY, NavAngleUnit>) {
+    super();
+  }
+
+  /**
+   * Creates a NavAngleSubject.
+   * @param initialVal The initial value.
+   * @returns A NavAngleSubject.
+   */
+  public static create(initialVal: NumberUnit<typeof NavAngleUnit.FAMILY, NavAngleUnit>): NavAngleSubject {
+    return new NavAngleSubject(initialVal);
+  }
+
+  /**
+   * Creates a NavAngleSubject.
+   * @param initialVal The initial value.
+   * @returns A NavAngleSubject.
+   * @deprecated Use `NavAngleSubject.create()` instead.
+   */
+  public static createFromNavAngle(initialVal: NumberUnit<typeof NavAngleUnit.FAMILY, NavAngleUnit>): NavAngleSubject {
+    return new NavAngleSubject(initialVal);
+  }
+
+  /** @inheritdoc */
+  public get(): NumberUnitInterface<typeof NavAngleUnit.FAMILY, NavAngleUnit> {
+    return this.value.readonly;
+  }
+
   /**
    * Sets the new value and notifies the subscribers if the value changed.
    * @param value The new value.
@@ -152,14 +191,5 @@ export class NavAngleSubject extends Subject<NumberUnitInterface<typeof NavAngle
 
       this.notify();
     }
-  }
-
-  /**
-   * Creates a NavAngleSubject.
-   * @param initialVal The initial value.
-   * @returns a NavAngleSubject.
-   */
-  public static createFromNavAngle(initialVal: NumberUnit<typeof NavAngleUnit.FAMILY, NavAngleUnit>): NavAngleSubject {
-    return new NavAngleSubject(initialVal, Subject.DEFAULT_EQUALITY_FUNC);
   }
 }

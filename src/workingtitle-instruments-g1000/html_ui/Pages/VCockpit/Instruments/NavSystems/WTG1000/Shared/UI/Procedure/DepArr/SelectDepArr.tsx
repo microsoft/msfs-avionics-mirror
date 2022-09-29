@@ -1,15 +1,16 @@
-import { FSComponent, NodeReference, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { FlightPathCalculator } from 'msfssdk/flightplan';
-import { ArrivalProcedure, DepartureProcedure, EnrouteTransition, FacilitySearchType, RunwayTransition } from 'msfssdk/navigation';
-import { Fms } from 'garminsdk/flightplan';
-import { FocusPosition } from 'msfssdk/components/controls';
+import {
+  ArrivalProcedure, DepartureProcedure, EnrouteTransition, EventBus, FacilitySearchType, FlightPathCalculator, FocusPosition, FSComponent, NodeReference,
+  RunwayTransition, VNode
+} from 'msfssdk';
+
+import { Fms } from 'garminsdk';
+
 import { ContextMenuDialog, ContextMenuItemDefinition, ContextMenuPosition } from '../../Dialogs/ContextMenuDialog';
 import { FmsHEvent } from '../../FmsHEvent';
 import { UiControlGroup, UiControlGroupProps } from '../../UiControlGroup';
 import { GenericControl } from '../../UIControls/GenericControl';
 import { WaypointInput } from '../../UIControls/WaypointInput';
-import { SelectControl } from '../../UiControls2/SelectControl';
+import { SelectControl2 } from '../../UiControls2/SelectControl';
 import { ViewService } from '../../ViewService';
 import { SelectDepArrController } from './SelectDepArrController';
 import { SelectDepArrStore } from './SelectDepArrStore';
@@ -35,9 +36,9 @@ export interface SelectDepArrProps extends UiControlGroupProps {
  * A component for selecting departures/arrivals.
  */
 export abstract class SelectDepArr<T extends DepartureProcedure | ArrivalProcedure, P extends SelectDepArrProps = SelectDepArrProps> extends UiControlGroup<P>{
-  protected readonly procSelectRef = FSComponent.createRef<SelectControl<T>>();
-  protected readonly transSelectRef = FSComponent.createRef<SelectControl<EnrouteTransition>>();
-  protected readonly rwyTransSelectRef = FSComponent.createRef<SelectControl<RunwayTransition>>();
+  protected readonly procSelectRef = FSComponent.createRef<SelectControl2<T>>();
+  protected readonly transSelectRef = FSComponent.createRef<SelectControl2<EnrouteTransition>>();
+  protected readonly rwyTransSelectRef = FSComponent.createRef<SelectControl2<RunwayTransition>>();
 
   protected readonly store = this.createStore();
   protected readonly controller = this.createController(this.store);
@@ -74,7 +75,7 @@ export abstract class SelectDepArr<T extends DepartureProcedure | ArrivalProcedu
     setTimeout(() => {
       const focusedCtrl = this.scrollController.getFocusedUiControl();
       if (focusedCtrl instanceof GenericControl) {
-        if (((focusedCtrl.props.children as unknown as VNode[])[0].instance as SelectControl<any>).menuItems.length > 1) {
+        if (((focusedCtrl.props.children as unknown as VNode[])[0].instance as SelectControl2<any>).menuItems.length > 1) {
           focusedCtrl.onUpperKnobInc();
         } else {
           this.gotoNextSelect();
@@ -155,7 +156,7 @@ export abstract class SelectDepArr<T extends DepartureProcedure | ArrivalProcedu
         onUpperKnobDec={(): void => { this.procSelectRef.instance.onInteractionEvent(FmsHEvent.UPPER_DEC); }}
         class='slctproc-proc-value'
       >
-        <SelectControl<T>
+        <SelectControl2<T>
           ref={this.procSelectRef}
           viewService={this.props.viewService}
           outerContainer={container}
@@ -183,7 +184,7 @@ export abstract class SelectDepArr<T extends DepartureProcedure | ArrivalProcedu
         onUpperKnobDec={(): void => { this.rwyTransSelectRef.instance.onInteractionEvent(FmsHEvent.UPPER_DEC); }}
         class='slctproc-rwy-value'
       >
-        <SelectControl<RunwayTransition>
+        <SelectControl2<RunwayTransition>
           ref={this.rwyTransSelectRef}
           viewService={this.props.viewService}
           outerContainer={container}
@@ -211,7 +212,7 @@ export abstract class SelectDepArr<T extends DepartureProcedure | ArrivalProcedu
         onUpperKnobDec={(): void => { this.transSelectRef.instance.onInteractionEvent(FmsHEvent.UPPER_DEC); }}
         class='slctproc-trans-value'
       >
-        <SelectControl<EnrouteTransition>
+        <SelectControl2<EnrouteTransition>
           ref={this.transSelectRef}
           viewService={this.props.viewService}
           outerContainer={container}

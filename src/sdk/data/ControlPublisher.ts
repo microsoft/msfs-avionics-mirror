@@ -1,9 +1,9 @@
-import { BasePublisher } from '../instruments/BasePublishers';
-import { XPDRMode } from '../instruments/XPDR';
-import { NavSourceId } from '../instruments/NavProcessor';
-import { EventBus, IndexedEventType } from './EventBus';
 import { ComSpacingChangeEvent } from '../instruments';
+import { BasePublisher } from '../instruments/BasePublishers';
+import { NavSourceId } from '../instruments/NavProcessor';
+import { XPDRMode } from '../instruments/XPDR';
 import { FacilityFrequency } from '../navigation';
+import { EventBus, IndexedEventType } from './EventBus';
 import { PublishPacer } from './EventBusPacer';
 
 /** Type for setting an indexed instrument source */
@@ -56,14 +56,6 @@ export interface ControlEvents {
   approach_freq_set: FacilityFrequency | undefined;
   /** Whether or not an approach is available for guidance. */
   approach_available: boolean;
-  /** Set a new decision height. */
-  set_decision_height: number;
-  /** Set a new decision altitude. */
-  set_decision_altitude: number;
-  /** Set the decision height unit. */
-  set_dh_distance_unit: 'feet' | 'meters';
-  /** Set the decision altitude unit. */
-  set_da_distance_unit: 'feet' | 'meters';
 }
 
 /**

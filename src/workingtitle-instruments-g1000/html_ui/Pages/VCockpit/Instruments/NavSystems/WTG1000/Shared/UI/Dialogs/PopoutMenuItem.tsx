@@ -1,4 +1,5 @@
-import { FSComponent, VNode, ComputedSubject } from 'msfssdk';
+import { ComputedSubject, FSComponent, VNode } from 'msfssdk';
+
 import { UiControl, UiControlProps } from '../UiControl';
 import { UiView } from '../UiView';
 

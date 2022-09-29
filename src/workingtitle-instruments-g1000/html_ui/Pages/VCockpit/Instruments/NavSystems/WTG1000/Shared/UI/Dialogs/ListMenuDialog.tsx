@@ -1,10 +1,12 @@
-import { FSComponent, VNode, ArraySubject } from 'msfssdk';
-import { ScrollBar } from '../ScrollBar';
+import { ArraySubject, FSComponent, VNode } from 'msfssdk';
+
+import { Fms } from 'garminsdk';
+
 import { MenuItemDefinition, PopoutMenuItem } from '../../../Shared/UI/Dialogs/PopoutMenuItem';
 import { List } from '../../../Shared/UI/List';
-import { Fms } from 'garminsdk/flightplan';
-import { UiControl } from '../UiControl';
 import { FmsHEvent } from '../FmsHEvent';
+import { ScrollBar } from '../ScrollBar';
+import { UiControl } from '../UiControl';
 import { UiView, UiViewProps } from '../UiView';
 
 import './ListMenuDialog.css';

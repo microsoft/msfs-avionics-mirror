@@ -1,6 +1,4 @@
-import { FSComponent, DisplayComponent, VNode, ComputedSubject } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { MarkerBeaconState, NavEvents } from 'msfssdk/instruments';
+import { ComputedSubject, DisplayComponent, EventBus, FSComponent, MarkerBeaconState, NavEvents, VNode } from 'msfssdk';
 
 import './MarkerBeacon.css';
 
@@ -73,14 +71,3 @@ export class MarkerBeacon extends DisplayComponent<MarkerBeaconProps> {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-

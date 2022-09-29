@@ -1,10 +1,7 @@
-import { NavMath, UnitType, GeoPoint } from 'msfssdk';
-import { EventBus, ControlEvents, Consumer } from 'msfssdk/data';
-import { Localizer, CdiDeviation, Radio, RadioType, NavSourceId, NavSourceType, RadioEvents, FrequencyBank, ADCEvents, NavEvents, GNSSEvents, NavRadioEvents, ClockEvents } from 'msfssdk/instruments';
-import { FacilityFrequency, FixTypeFlags } from 'msfssdk/navigation';
-import { APValues, NavToNavManager } from 'msfssdk/autopilot';
-import { FlightPlanner } from 'msfssdk/flightplan';
-import { LNavEvents } from 'msfssdk/autopilot';
+import {
+  AhrsEvents, APValues, CdiDeviation, ClockEvents, Consumer, ControlEvents, EventBus, FacilityFrequency, FixTypeFlags, FlightPlanner, FrequencyBank, GeoPoint,
+  GNSSEvents, LNavEvents, Localizer, NavEvents, NavMath, NavRadioEvents, NavSourceId, NavSourceType, NavToNavManager, Radio, RadioEvents, RadioType, UnitType
+} from 'msfssdk';
 
 /**
  * A Garmin nav-to-nav manager.
@@ -169,7 +166,7 @@ export class GarminNavToNavManager implements NavToNavManager {
    * Method to monitor nav events to keep track of NAV related data needed for guidance.
    */
   private monitorEvents(): void {
-    const sub = this.bus.getSubscriber<RadioEvents & NavEvents & NavRadioEvents & ADCEvents & GNSSEvents & LNavEvents & ControlEvents & ClockEvents>();
+    const sub = this.bus.getSubscriber<RadioEvents & NavEvents & NavRadioEvents & AhrsEvents & GNSSEvents & LNavEvents & ControlEvents & ClockEvents>();
 
     sub.on('set_radio_state').handle((state) => {
       this.updateRadioState(state);

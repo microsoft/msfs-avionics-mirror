@@ -1,11 +1,11 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { NavMath } from '../..';
 import { EventBus } from '../../data';
-import { ADCEvents } from '../../instruments';
-import { PlaneDirector, DirectorState } from '../PlaneDirector';
-import { APValues } from '../APConfig';
+import { NavMath } from '../../geo';
+import { AhrsEvents } from '../../instruments';
 import { LinearServo } from '../../utils/controllers';
+import { APValues } from '../APConfig';
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * A heading autopilot director.
@@ -22,7 +22,6 @@ export class APHdgDirector implements PlaneDirector {
 
   private currentBankRef = 0;
   private currentHeading = 0;
-  private selectedHeading = 0;
 
   private readonly bankServo = new LinearServo(10);
 
@@ -32,17 +31,14 @@ export class APHdgDirector implements PlaneDirector {
    * @param bus The event bus to use with this instance.
    * @param apValues The AP Values from the Autopilot.
    */
-  constructor(private readonly bus: EventBus, apValues: APValues) {
+  constructor(private readonly bus: EventBus, private readonly apValues: APValues) {
     this.state = DirectorState.Inactive;
 
-    apValues.selectedHeading.sub((h) => {
-      this.selectedHeading = h;
-    });
-
-    const adc = this.bus.getSubscriber<ADCEvents>();
-    adc.on('hdg_deg').withPrecision(0).handle((h) => {
+    const ahrs = this.bus.getSubscriber<AhrsEvents>();
+    ahrs.on('hdg_deg').withPrecision(0).handle((h) => {
       this.currentHeading = h;
     });
+
   }
 
   /**
@@ -81,7 +77,7 @@ export class APHdgDirector implements PlaneDirector {
     if (this.state === DirectorState.Active) {
       // let bankAngle = this.desiredBank(NavMath.normalizeHeading(this.dtk + interceptAngle), this.xtk);
 
-      this.setBank(this.desiredBank(this.selectedHeading));
+      this.setBank(this.desiredBank(this.apValues.selectedHeading.get()));
     }
   }
 
@@ -94,7 +90,7 @@ export class APHdgDirector implements PlaneDirector {
     const turnDirection = NavMath.getTurnDirection(this.currentHeading, targetHeading);
     const headingDiff = Math.abs(NavMath.diffAngle(this.currentHeading, targetHeading));
 
-    let baseBank = Math.min(1.25 * headingDiff, 25);
+    let baseBank = Math.min(1.25 * headingDiff, this.apValues.maxBankAngle.get());
     baseBank *= (turnDirection === 'left' ? 1 : -1);
 
     return baseBank;

@@ -2,6 +2,7 @@ export * from './EventBus';
 export * from './EventBusPacer';
 export * from './EventSubscriber';
 export * from './Consumer';
+export * from './BasicConsumer';
 export * from './HEventPublisher';
 export * from './SimVars';
 export * from './ControlPublisher';

@@ -1,6 +1,8 @@
-import { ComputedSubject, Subject } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { Facility, FacilityLoader, FacilityRepository, FacilitySearchType, FacilityWaypoint, FacilityWaypointCache, ICAO, Waypoint } from 'msfssdk/navigation';
+import {
+  ComputedSubject, EventBus, Facility, FacilityLoader, FacilityRepository, FacilitySearchType, FacilityWaypoint, ICAO, Subject, Subscription, Waypoint
+} from 'msfssdk';
+
+import { GarminFacilityWaypointCache } from 'garminsdk';
 
 /**
  * Waypoint input store
@@ -9,7 +11,7 @@ export class WaypointInputStore {
   private readonly nameEmptyStr = '_______________';
   private readonly cityEmptyStr = '________________';
 
-  public displayWaypoint = {
+  public readonly displayWaypoint = {
     icao: '',
     name: ComputedSubject.create<string, string>(this.nameEmptyStr, (v) => {
       return (v === '') ? this.nameEmptyStr : Utils.Translate(v);
@@ -22,6 +24,8 @@ export class WaypointInputStore {
       return separatedCity.length > 1 ? Utils.Translate(separatedCity[0]) + ' ' + Utils.Translate(separatedCity[1]).substr(0, 2).toUpperCase() : Utils.Translate(v);
     }),
   };
+
+  private facilitySub?: Subscription;
 
   private readonly facRepo;
   private readonly facLoader;
@@ -66,10 +70,10 @@ export class WaypointInputStore {
   ) {
     this.facRepo = FacilityRepository.getRepository(bus);
     this.facLoader = new FacilityLoader(this.facRepo);
-    this.facWaypointCache = FacilityWaypointCache.getCache();
+    this.facWaypointCache = GarminFacilityWaypointCache.getCache(bus);
     this.selectedWaypoint.sub(waypoint => {
       this.onWaypointChanged && this.onWaypointChanged(waypoint);
-      this.onFacilityChanged && this.onFacilityChanged(waypoint?.facility);
+      this.onFacilityChanged && this.onFacilityChanged(waypoint?.facility.get());
     });
   }
 
@@ -128,15 +132,22 @@ export class WaypointInputStore {
    */
   public setWaypoint(waypoint: FacilityWaypoint<Facility>): void {
     this.selectedWaypoint.set(waypoint);
-    this.displayWaypoint.icao = waypoint.facility.icao;
-    this.displayWaypoint.city.set(waypoint.facility.city);
-    this.displayWaypoint.name.set(waypoint.facility.name);
+
+    this.facilitySub?.destroy();
+    this.facilitySub = waypoint.facility.sub(facility => {
+      this.displayWaypoint.icao = facility.icao;
+      this.displayWaypoint.city.set(facility.city);
+      this.displayWaypoint.name.set(facility.name);
+    }, true);
   }
 
   /**
    * Clears the selected and displayed waypoint.
    */
   public clearWaypoint(): void {
+    this.facilitySub?.destroy();
+    this.facilitySub = undefined;
+
     this.selectedWaypoint.set(null);
     if (this.displayWaypoint.icao !== '') {
       this.displayWaypoint.icao = '';

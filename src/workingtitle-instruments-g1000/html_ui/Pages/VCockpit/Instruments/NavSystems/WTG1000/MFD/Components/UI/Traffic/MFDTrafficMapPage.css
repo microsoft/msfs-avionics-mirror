@@ -8,31 +8,28 @@
   font-family: Roboto-Bold;
 }
 
-  .mfd-trafficmap .map-orientation {
-    position: absolute;
-    left: 0;
-    top: 0;
-  }
+.mfd-trafficmap .map-indicator-group-top-left {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
 
-  .mfd-trafficmap .minicompass-layer {
-    position: absolute;
-    left: 5px;
-    top: 24px;
-  }
+.mfd-trafficmap .map-minicompass {
+  position: absolute;
+  left: 5px;
+  top: 24px;
+}
 
-  .traffic-map.mfd-trafficmap .trafficmap-indicators-top-right {
-    position: absolute;
-    right: 1px;
-    top: 0;
-    width: 150px;
-    font-size: 18px;
-    text-align: center;
-  }
+.mfd-trafficmap .map-indicator-group-top-right {
+  position: absolute;
+  right: 1px;
+  top: 0;
+  width: 150px;
+  font-size: 18px;
+  align-items: stretch;
+  text-align: center;
+}
 
-  .traffic-map.mfd-trafficmap .map-traffic-standby {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%) rotateX(0deg);
-    font-size: 28px;
-  }
+.mfd-trafficmap .map-indicator-group-center {
+  font-size: 28px;
+}

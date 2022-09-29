@@ -1,5 +1,5 @@
-import { EventBus } from 'msfssdk/data';
-import { ElectricalEvents } from 'msfssdk/instruments';
+import { ElectricalEvents, EventBus } from 'msfssdk';
+
 import { BasicAvionicsSystem } from './BasicAvionicsSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from './G1000AvionicsSystem';
 import { MagnetometerSystemEvents } from './MagnetometerSystem';

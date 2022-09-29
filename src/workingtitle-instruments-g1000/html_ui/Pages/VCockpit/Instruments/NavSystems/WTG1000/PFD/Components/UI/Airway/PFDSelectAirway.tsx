@@ -1,7 +1,7 @@
 import { FSComponent, VNode } from 'msfssdk';
 
-import { ContextMenuPosition } from '../../../../Shared/UI/Dialogs/ContextMenuDialog';
 import { SelectAirway } from '../../../../Shared/UI/Airway/SelectAirway';
+import { ContextMenuPosition } from '../../../../Shared/UI/Dialogs/ContextMenuDialog';
 
 import './PFDSelectAirway.css';
 

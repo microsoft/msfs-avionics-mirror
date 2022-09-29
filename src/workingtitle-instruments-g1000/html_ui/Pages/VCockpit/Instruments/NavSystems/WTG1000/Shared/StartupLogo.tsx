@@ -1,8 +1,6 @@
 /// <reference types="msfstypes/JS/simvar" />
 
-import { DisplayComponent, FSComponent, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { InstrumentEvents } from 'msfssdk/instruments';
+import { DisplayComponent, EventBus, FSComponent, InstrumentEvents, VNode } from 'msfssdk';
 
 import './StartupLogo.css';
 
@@ -96,7 +94,7 @@ export class StartupLogo extends DisplayComponent<StartupLogoProps> {
               <svg width='24' height='24' viewBox='0 0 16 16'>
                 <path d='M 2 3 L 2 8 L 13 8' stroke='gray' stroke-width='1px' />
               </svg>
-              System WT0.12.1
+              System WT1.0.0
             </div>
             <h3>
               <svg width='24' height='24' viewBox='0 0 32 32'>

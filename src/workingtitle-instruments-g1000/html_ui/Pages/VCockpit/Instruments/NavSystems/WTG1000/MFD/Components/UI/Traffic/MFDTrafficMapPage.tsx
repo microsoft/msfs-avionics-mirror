@@ -1,16 +1,17 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { FlightPlanner } from 'msfssdk/flightplan';
+import { CompiledMapSystem, EventBus, FlightPlanner, FSComponent, MapIndexedRangeModule, MapSystemBuilder, Vec2Math, VecNMath, VNode } from 'msfssdk';
 
-import { MapRangeSettings } from '../../../../Shared/Map/MapRangeSettings';
-import { TrafficAdvisorySystem } from '../../../../Shared/Traffic/TrafficAdvisorySystem';
-import { TrafficAltitudeModeSetting, TrafficOperatingModeSetting, TrafficUserSettings } from '../../../../Shared/Traffic/TrafficUserSettings';
+import {
+  GarminMapKeys, TrafficAdvisorySystem, TrafficAltitudeModeSetting, TrafficMapRangeController, TrafficOperatingModeSetting, TrafficUserSettings,
+  UnitsUserSettings
+} from 'garminsdk';
+
+import { MapBuilder } from '../../../../Shared/Map/MapBuilder';
+import { MapUserSettings } from '../../../../Shared/Map/MapUserSettings';
+import { MapWaypointIconImageCache } from '../../../../Shared/Map/MapWaypointIconImageCache';
 import { MenuItemDefinition } from '../../../../Shared/UI/Dialogs/PopoutMenuItem';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
-import { TrafficMapModel } from '../../../../Shared/UI/TrafficMap/TrafficMapModel';
 import { MFDPageMenuDialog } from '../MFDPageMenuDialog';
 import { MFDUiPage, MFDUiPageProps } from '../MFDUiPage';
-import { MFDTrafficMapComponent } from './MFDTrafficMapComponent';
 
 import './MFDTrafficMapPage.css';
 
@@ -34,13 +35,57 @@ export interface MFDTrafficMapPageProps extends MFDUiPageProps {
 export class MFDTrafficMapPage extends MFDUiPage<MFDTrafficMapPageProps> {
   private static readonly UPDATE_FREQ = 30; // Hz
 
-  private readonly mapRef = FSComponent.createRef<MFDTrafficMapComponent>();
-
-  private readonly mapModel = TrafficMapModel.createModel(this.props.tas);
-  private readonly mapRangeSettingManager = MapRangeSettings.getManager(this.props.bus);
-  private readonly mapRangeSetting = this.mapRangeSettingManager.getSetting('mfdMapRangeIndex');
-
   private readonly trafficSettingManager = TrafficUserSettings.getManager(this.props.bus);
+  private readonly mapSettingManager = MapUserSettings.getMfdManager(this.props.bus);
+
+  private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
+    .with(MapBuilder.trafficMap, {
+      trafficSystem: this.props.tas,
+
+      dataUpdateFreq: MFDTrafficMapPage.UPDATE_FREQ,
+
+      rangeEndpoints: VecNMath.create(4, 0.5, 0.5, 0.5, 0.95),
+
+      waypointIconImageCache: MapWaypointIconImageCache.getCache(),
+
+      trafficIconOptions: {
+        iconSize: 52,
+        font: 'Roboto-Bold',
+        fontSize: 28
+      },
+
+      rangeRingOptions: {
+        innerMinorTickSize: 0
+      },
+
+      flightPlanner: this.props.flightPlanner,
+
+      ...MapBuilder.ownAirplaneIconOptions(false),
+
+      miniCompassImgSrc: MapBuilder.miniCompassIconSrc(),
+
+      trafficSettingManager: this.trafficSettingManager as any,
+      mapRangeSettingManager: this.mapSettingManager as any,
+      unitsSettingManager: UnitsUserSettings.getManager(this.props.bus),
+    })
+    .withProjectedSize(Vec2Math.create(876, 678))
+    .withClockUpdate(MFDTrafficMapPage.UPDATE_FREQ)
+    .build('mfd-trafficmap') as CompiledMapSystem<
+      {
+        /** The range module. */
+        [GarminMapKeys.Range]: MapIndexedRangeModule;
+      },
+      any,
+      {
+        /** The range controller. */
+        [GarminMapKeys.TrafficRange]: TrafficMapRangeController;
+      },
+      any
+    >;
+
+  private readonly mapRangeModule = this.compiledMap.context.model.getModule(GarminMapKeys.Range);
+
+  private readonly mapRangeController = this.compiledMap.context.getController(GarminMapKeys.TrafficRange);
 
   private readonly pageMenuItems: MenuItemDefinition[] = [
     {
@@ -90,7 +135,7 @@ export class MFDTrafficMapPage extends MFDUiPage<MFDTrafficMapPageProps> {
   public onAfterRender(thisNode: VNode): void {
     super.onAfterRender(thisNode);
 
-    this.mapRef.instance.sleep();
+    this.compiledMap.ref.instance.sleep();
   }
 
   /** @inheritdoc */
@@ -112,29 +157,7 @@ export class MFDTrafficMapPage extends MFDUiPage<MFDTrafficMapPageProps> {
    * @param delta The change in index to apply.
    */
   private changeMapRangeIndex(delta: 1 | -1): void {
-    const ranges = this.mapModel.getModule('range').nominalRanges.get();
-    const currentIndex = this.mapRangeSetting.value;
-    const currentRange = ranges[currentIndex];
-
-    let index = currentIndex;
-    let newIndex = currentIndex;
-    if (delta === 1) {
-      while (++index < ranges.length) {
-        if (!ranges[index].equals(currentRange)) {
-          newIndex = index;
-          break;
-        }
-      }
-    } else {
-      while (--index >= 0) {
-        if (!ranges[index].equals(currentRange)) {
-          newIndex = index;
-          break;
-        }
-      }
-    }
-
-    this.mapRangeSetting.value = newIndex;
+    this.mapRangeController.changeRangeIndex(delta);
   }
 
   /** @inheritdoc */
@@ -146,14 +169,14 @@ export class MFDTrafficMapPage extends MFDUiPage<MFDTrafficMapPageProps> {
     this.props.menuSystem.clear();
     this.props.menuSystem.pushMenu('traffic-root');
 
-    this.mapRef.instance.wake();
+    this.compiledMap.ref.instance.wake();
   }
 
   /** @inheritdoc */
   protected onViewClosed(): void {
     super.onViewClosed();
 
-    this.mapRef.instance.sleep();
+    this.compiledMap.ref.instance.sleep();
   }
 
   /** @inheritdoc */
@@ -169,23 +192,7 @@ export class MFDTrafficMapPage extends MFDUiPage<MFDTrafficMapPageProps> {
   public render(): VNode {
     return (
       <div ref={this.viewContainerRef} class='mfd-page'>
-        <MFDTrafficMapComponent
-          ref={this.mapRef} model={this.mapModel} bus={this.props.bus}
-          updateFreq={Subject.create(MFDTrafficMapPage.UPDATE_FREQ)}
-          dataUpdateFreq={Subject.create(MFDTrafficMapPage.UPDATE_FREQ)}
-          projectedWidth={876} projectedHeight={678}
-          flightPlanner={this.props.flightPlanner}
-          ownAirplaneLayerProps={{
-            imageFilePath: 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/own_airplane_icon.svg',
-            iconSize: 40,
-            iconAnchor: new Float64Array([0.5, 0])
-          }}
-          trafficIntruderLayerProps={{
-            fontSize: 28,
-            iconSize: 52
-          }}
-          class='mfd-trafficmap'
-        />
+        {this.compiledMap.map}
       </div>
     );
   }

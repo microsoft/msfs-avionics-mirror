@@ -1,4 +1,5 @@
-import { FSComponent, DisplayComponent, VNode, Subject } from 'msfssdk';
+import { DisplayComponent, FSComponent, Subject, VNode } from 'msfssdk';
+
 import './FmaApSlot.css';
 
 /** Props for the FMA AP Slot Component */

@@ -1,21 +1,23 @@
-import { FSComponent, VNode, Subject, ArraySubject, ComputedSubject, UnitType, UnitFamily, Unit } from 'msfssdk';
-import { ControlEvents, EventBus } from 'msfssdk/data';
-import { DHEvents } from 'msfssdk/instruments';
+import {
+  ArraySubject, ComputedSubject, EventBus, FSComponent, MinimumsControlEvents, MinimumsEvents, MinimumsMode, NumberUnitSubject, Subject, Unit, UnitFamily,
+  UnitType, VNode
+} from 'msfssdk';
 
 import { G1000ControlEvents } from '../../../../Shared/G1000Events';
+import { ContextMenuDialog, ContextMenuItemDefinition } from '../../../../Shared/UI/Dialogs/ContextMenuDialog';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
+import { ActionButton } from '../../../../Shared/UI/UIControls/ActionButton';
 import { ArrowToggle } from '../../../../Shared/UI/UIControls/ArrowToggle';
 import { NumberInput } from '../../../../Shared/UI/UIControls/NumberInput';
-import { ActionButton } from '../../../../Shared/UI/UIControls/ActionButton';
-import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
-import { VSpeed, VSpeedType } from '../../FlightInstruments/AirspeedIndicator';
-import { TimerInput } from './TimerInput';
 import { SelectControl } from '../../../../Shared/UI/UIControls/SelectControl';
-import { ContextMenuDialog, ContextMenuItemDefinition } from '../../../../Shared/UI/Dialogs/ContextMenuDialog';
-import { Timer, TimerMode } from './Timer';
-import { PFDPageMenuDialog } from '../PFDPageMenuDialog';
-import './TimerRef.css';
+import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
 import { UnitsUserSettingManager } from '../../../../Shared/Units/UnitsUserSettings';
+import { VSpeed, VSpeedType } from '../../FlightInstruments/AirspeedIndicator';
+import { PFDPageMenuDialog } from '../PFDPageMenuDialog';
+import { Timer, TimerMode } from './Timer';
+import { TimerInput } from './TimerInput';
+
+import './TimerRef.css';
 
 /**
  * The properties on the timer ref popout component.
@@ -25,6 +27,8 @@ interface TimerRefProps extends UiViewProps {
   bus: EventBus;
   /** A user setting manager. */
   unitsSettingManager: UnitsUserSettingManager;
+  /** Whether this instance of the G1000 has a Radio Altimeter. */
+  hasRadioAltimeter: boolean;
 }
 
 /**
@@ -33,6 +37,9 @@ interface TimerRefProps extends UiViewProps {
 export class TimerRef extends UiView<TimerRefProps> {
   public popoutRef = FSComponent.createRef<UiView>();
   private readonly containerRef = FSComponent.createRef<HTMLElement>();
+
+  private readonly minsToggleComponent = FSComponent.createRef<ArrowToggle>();
+  private readonly minsInputComponent = FSComponent.createRef<NumberInput>();
 
   private readonly glideRef = Subject.create(1);
   private readonly glideRefChanged = ComputedSubject.create(false, (v) => { return v ? ' *' : ''; });
@@ -49,8 +56,7 @@ export class TimerRef extends UiView<TimerRefProps> {
   private readonly upDownControlRef = FSComponent.createRef<SelectControl<string>>();
   private timerButtonSubject = Subject.create('Start?');
   private g1000Pub = this.props.bus.getPublisher<G1000ControlEvents>();
-  private controlPub = this.props.bus.getPublisher<ControlEvents>();
-  private dhSub = this.props.bus.getSubscriber<DHEvents>();
+  private controlPub = this.props.bus.getPublisher<MinimumsControlEvents>();
 
   /**
    * Callback to handle when Timer changes the mode after reaching 0.
@@ -86,17 +92,23 @@ export class TimerRef extends UiView<TimerRefProps> {
     vg: Subject.create(this.vSpeeds[3].value),
     vapp: Subject.create(this.vSpeeds[4].value)
   };
-  private currentMinFeet = Subject.create(0);
-  private minimumsSubject = Subject.create(0);
-  private minimumsUnit = ComputedSubject.create<Unit<UnitFamily.Distance>, string>(
+
+
+  // minimums
+  private readonly minimumsSubscriber = this.props.bus.getSubscriber<MinimumsEvents>();
+  private readonly decisionHeight = NumberUnitSubject.create(UnitType.FOOT.createNumber(0));
+  private readonly decisionAltitude = NumberUnitSubject.create(UnitType.FOOT.createNumber(0));
+  private readonly minimumsSubject = Subject.create(0);
+  private readonly minimumsUnit = ComputedSubject.create<Unit<UnitFamily.Distance>, string>(
     UnitType.FOOT, (u) => { return u === UnitType.METER ? 'M' : 'FT'; }
   );
+  private minsToggleOptions = ['Off', 'BARO', 'RA', 'TEMP COMP'];
+
   private vSpeedToggleMap: Map<number, VSpeed> = new Map();
   private vSpeedSubjectMap: Map<VSpeedType, Subject<number>> = new Map();
   private vSpeedObjectMap: Map<VSpeedType, VSpeed> = new Map();
 
   private onOffToggleOptions = ['Off', 'On'];
-  private minsToggleOptions = ['Off', 'BARO', 'TEMP COMP'];
 
   /** @inheritdoc */
   public onInteractionEvent(evt: FmsHEvent): boolean {
@@ -152,6 +164,14 @@ export class TimerRef extends UiView<TimerRefProps> {
   /** @inheritdoc */
   public onAfterRender(node: VNode): void {
     super.onAfterRender(node);
+
+    if (this.props.hasRadioAltimeter) {
+      this.minsToggleOptions = ['Off', 'BARO', 'RA'];
+    } else {
+      this.minsToggleOptions = ['Off', 'BARO'];
+    }
+    this.minsToggleComponent.instance.props.options = this.minsToggleOptions;
+
     this.upDownItems.set(['Up', 'Dn']);
     this.vSpeedToggleMap.set(3, this.vSpeeds[3]);
     this.vSpeedToggleMap.set(5, this.vSpeeds[2]);
@@ -171,47 +191,49 @@ export class TimerRef extends UiView<TimerRefProps> {
     this.vSpeeds[2].modified.sub(v => this.vrRefChanged.set(v));
     this.vSpeeds[3].modified.sub(v => this.glideRefChanged.set(v));
 
-    this.props.unitsSettingManager.altitudeUnits.sub(u => {
-      const oldUnit = this.minimumsUnit.getRaw();
-      this.minimumsUnit.set(u);
-      if (u !== oldUnit) {
-        switch (u) {
-          case UnitType.FOOT:
-            this.minimumsSubject.set(Math.round(this.currentMinFeet.get()));
-            this.controlPub.pub('set_da_distance_unit', 'feet');
-            break;
-          case UnitType.METER:
-            this.minimumsSubject.set(Math.round(UnitType.METER.convertFrom(this.currentMinFeet.get(), UnitType.FOOT)));
-            this.controlPub.pub('set_da_distance_unit', 'meters');
-            break;
-          default:
-            console.warn('Unknown altitude unit handled in TMR/REF: ' + u.name);
-        }
-      }
-    });
-
     this.minimumsUnit.set(this.props.unitsSettingManager.altitudeUnits.get());
 
-    const g1000Events = this.props.bus.getSubscriber<G1000ControlEvents>();
-    g1000Events.on('show_minimums').handle((show) => {
-      const option = show ? 1 : 0;
-      if (option !== this.minsRef.get()) {
-        this.minsRef.set(option);
+    this.minimumsSubscriber.on('set_da_distance_unit').whenChanged().handle(unit => {
+      this.minimumsUnit.set(unit === 'meters' ? UnitType.METER : UnitType.FOOT);
+    });
+
+    this.minimumsSubscriber.on('minimums_mode').whenChanged().handle(this.handleMinimumsTypeSet);
+
+    this.minimumsSubscriber.on('decision_altitude_feet').whenChanged().handle((da) => {
+      this.decisionAltitude.set(da, UnitType.FOOT);
+    });
+    this.minimumsSubscriber.on('decision_height_feet').whenChanged().handle((dh) => {
+      this.decisionHeight.set(dh, UnitType.FOOT);
+    });
+
+    this.decisionAltitude.sub(v => {
+      if (this.minsRef.get() === MinimumsMode.BARO) {
+        this.minimumsSubject.set(Math.round(v.asUnit(this.minimumsUnit.getRaw())));
       }
     });
 
-    this.currentMinFeet.sub(v => {
-      if (this.minimumsUnit.getRaw() === UnitType.FOOT) {
-        this.minimumsSubject.set(Math.round(v));
-      } else {
-        this.minimumsSubject.set(Math.round(UnitType.METER.convertFrom(v, UnitType.FOOT)));
+    this.decisionHeight.sub(v => {
+      if (this.minsRef.get() === MinimumsMode.RA) {
+        this.minimumsSubject.set(Math.round(v.asUnit(this.minimumsUnit.getRaw())));
       }
-    });
-
-    this.dhSub.on('decision_altitude').handle((da) => {
-      this.currentMinFeet.set(da);
     });
   }
+
+  private handleMinimumsTypeSet = (type: number): void => {
+    this.minsInputComponent.instance.setIsEnabled(type !== MinimumsMode.OFF);
+    this.minsRef.set(type);
+    switch (type) {
+      case MinimumsMode.BARO:
+        this.minimumsSubject.set(Math.round(this.decisionAltitude.get().asUnit(this.minimumsUnit.getRaw())));
+        break;
+      case MinimumsMode.RA:
+        this.minimumsSubject.set(Math.round(this.decisionHeight.get().asUnit(this.minimumsUnit.getRaw())));
+        break;
+      case MinimumsMode.OFF:
+        this.minimumsSubject.set(0);
+        break;
+    }
+  };
 
   /** Method to reset all v speeds to defaults */
   private resetVSpeeds(): void {
@@ -325,14 +347,21 @@ export class TimerRef extends UiView<TimerRefProps> {
   // ---- TOGGLE MINIMUMS CALLBACK
   private onMinimumsRefOptionSelected = (index: number): void => {
     this.minsRef.set(index);
-    this.g1000Pub.pub('show_minimums', index !== 0 ? true : false, true);
+    this.controlPub.pub('set_minimums_mode', index, true, true);
   };
 
   // ---- CHANGE MINIMUMS VALUE CALLBACK
   private updateMinimumsValue = (): void => {
     const raw = this.minimumsSubject.get();
     const converted = this.minimumsUnit.getRaw() == UnitType.METER ? UnitType.FOOT.convertFrom(raw, UnitType.METER) : raw;
-    this.controlPub.pub('set_decision_altitude', converted, true, true);
+    switch (this.minsRef.get()) {
+      case MinimumsMode.BARO:
+        this.controlPub.pub('set_decision_altitude_feet', converted, true, true);
+        break;
+      case MinimumsMode.RA:
+        this.controlPub.pub('set_decision_height_feet', converted, true, true);
+        break;
+    }
   };
 
   // ---- UpDown Menu Item Select CALLBACK
@@ -408,9 +437,9 @@ export class TimerRef extends UiView<TimerRefProps> {
           <ArrowToggle class="timerref-vy-toggle" onRegister={this.register} onOptionSelected={this.onVyRefOptionSelected} options={this.onOffToggleOptions} dataref={this.vyRef} />
           <hr class="timerref-hr2" />
           <div class="timerref-mins-title">MINS</div>
-          <ArrowToggle class="timerref-mins-toggle" onRegister={this.register} onOptionSelected={this.onMinimumsRefOptionSelected} options={this.minsToggleOptions} dataref={this.minsRef} />
+          <ArrowToggle ref={this.minsToggleComponent} class="timerref-mins-toggle" onRegister={this.register} onOptionSelected={this.onMinimumsRefOptionSelected} options={this.minsToggleOptions} dataref={this.minsRef} />
           <div class="timerref-mins-value">
-            <NumberInput onRegister={this.register} quantize={true} onValueChanged={this.updateMinimumsValue} dataSubject={this.minimumsSubject} minValue={0} maxValue={16000} increment={10} wrap={false} defaultDisplayValue={'_ _ _ _ _'} class='timerref-ref-number' />
+            <NumberInput ref={this.minsInputComponent} onRegister={this.register} quantize={true} onValueChanged={this.updateMinimumsValue} dataSubject={this.minimumsSubject} minValue={0} maxValue={16000} increment={10} wrap={false} defaultDisplayValue={'_ _ _ _ _'} class='timerref-ref-number' />
             <span class="size12">{this.minimumsUnit}</span>
           </div>
           <div class="timerref-temp-comp-container">

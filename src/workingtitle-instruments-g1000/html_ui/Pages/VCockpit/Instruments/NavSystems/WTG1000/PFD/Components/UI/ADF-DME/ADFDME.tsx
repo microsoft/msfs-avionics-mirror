@@ -1,8 +1,6 @@
-import { ComputedSubject, FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { RadioEvents } from 'msfssdk/instruments';
+import { ComputedSubject, EventBus, FSComponent, RadioEvents, Subject, VNode } from 'msfssdk';
 
-import { NavIndicatorController } from 'garminsdk/navigation';
+import { NavIndicatorController } from 'garminsdk';
 
 import { ArrowToggle } from '../../../../Shared/UI/UIControls/ArrowToggle';
 import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';

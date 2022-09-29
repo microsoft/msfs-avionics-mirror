@@ -1,17 +1,19 @@
 /// <reference types="msfstypes/JS/Avionics" />
 
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { EventBus } from 'msfssdk/data';
-import { FlightPlanSegment, FlightPlanSegmentType } from 'msfssdk/flightplan';
-import { BlurReconciliation, FocusPosition, HardwareUiControl } from 'msfssdk/components/controls';
+import { BlurReconciliation, EventBus, FlightPlanSegment, FlightPlanSegmentType, FocusPosition, FSComponent, HardwareUiControl, Subject, VNode } from 'msfssdk';
 
-import { ViewService } from '../../../../Shared/UI/ViewService';
-import { Fms, FmsUtils } from 'garminsdk/flightplan';
-import { FplActiveLegArrow } from '../../../../Shared/UI/UIControls/FplActiveLegArrow';
-import { ScrollBar } from '../../../../Shared/UI/ScrollBar';
-import { FixInfo } from './FixInfo';
+import { Fms, FmsUtils } from 'garminsdk';
+
+import { ApproachNameDisplay } from '../../../../Shared/UI/FPL/ApproachNameDisplay';
 import { FPLDetailsController, ScrollMode } from '../../../../Shared/UI/FPL/FPLDetailsController';
 import { FPLDetailsStore } from '../../../../Shared/UI/FPL/FPLDetailsStore';
+import { FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
+import { G1000ControlList, G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
+import { ScrollBar } from '../../../../Shared/UI/ScrollBar';
+import { FplActiveLegArrow } from '../../../../Shared/UI/UIControls/FplActiveLegArrow';
+import { ViewService } from '../../../../Shared/UI/ViewService';
+import { PFDPageMenuDialog } from '../PFDPageMenuDialog';
+import { FixInfo } from '../../../../Shared/UI/FPL/FixInfo';
 import { FPLSection } from './FPLSection';
 import { FPLApproach } from './FPLSectionApproach';
 import { FPLArrival } from './FPLSectionArrival';
@@ -19,10 +21,6 @@ import { FPLDeparture } from './FPLSectionDeparture';
 import { FPLDestination } from './FPLSectionDestination';
 import { FPLEnroute } from './FPLSectionEnroute';
 import { FPLOrigin } from './FPLSectionOrigin';
-import { FlightPlanFocus, FlightPlanSelection } from '../../../../Shared/UI/FPL/FPLTypesAndProps';
-import { PFDPageMenuDialog } from '../PFDPageMenuDialog';
-import { ApproachNameDisplay } from '../../../../Shared/UI/FPL/ApproachNameDisplay';
-import { G1000UiControl, G1000UiControlProps, G1000ControlList } from '../../../../Shared/UI/G1000UiControl';
 
 /** The properties of the FPL scrollable element.*/
 export interface FPLDetailProps extends G1000UiControlProps {
@@ -103,7 +101,6 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends G1000
     if (section) {
       section.instance.ensureActiveLegInView();
       focusActiveLeg && section.instance.focusActiveLeg();
-      //this.sectionListRef.instance.setFocusedIndex(activeLegSectionIndex);
     }
   }
 

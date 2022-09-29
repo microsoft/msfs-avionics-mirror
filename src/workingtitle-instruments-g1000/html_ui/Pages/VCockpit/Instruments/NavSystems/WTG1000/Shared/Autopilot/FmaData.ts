@@ -1,4 +1,4 @@
-import { APAltitudeModes, APLateralModes, APVerticalModes } from 'msfssdk/autopilot';
+import { APAltitudeModes, APLateralModes, APVerticalModes } from 'msfssdk';
 
 /**
  * A G1000 NXi FMA data object.

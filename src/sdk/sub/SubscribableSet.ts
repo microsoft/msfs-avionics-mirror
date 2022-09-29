@@ -91,4 +91,9 @@ export interface MutableSubscribableSet<T> extends SubscribableSet<T> {
    * @returns Whether the key was removed.
    */
   delete(key: T): boolean;
+
+  /**
+   * Removes all keys from this set.
+   */
+  clear(): void;
 }

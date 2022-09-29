@@ -1,10 +1,6 @@
-import { ComputedSubject, MappedSubject } from 'msfssdk';
-import { LNavEvents } from 'msfssdk/autopilot';
-import { ConsumerSubject, ControlPublisher, EventBus } from 'msfssdk/data';
-import { InstrumentEvents, NavEvents } from 'msfssdk/instruments';
+import { ComputedSubject, ConsumerSubject, ControlPublisher, EventBus, InstrumentEvents, LNavEvents, MappedSubject, NavEvents } from 'msfssdk';
 
-import { GarminControlEvents } from 'garminsdk/instruments';
-import { ObsSuspModes } from 'garminsdk/navigation';
+import { GarminControlEvents, ObsSuspModes } from 'garminsdk';
 
 import { AlertMessageEvents } from '../../../PFD/Components/UI/Alerts/AlertsSubject';
 import { G1000ControlPublisher } from '../../G1000Events';
@@ -29,6 +25,8 @@ export class RootMenu extends SoftKeyMenu {
   private readonly obsButtonValue = ComputedSubject.create(ObsSuspModes.NONE, (v): boolean => {
     return v === ObsSuspModes.NONE ? false : true;
   });
+
+  private mfdPoweredOn = false;
 
   /**
    * Creates an instance of the root PFD softkey menu.
@@ -115,14 +113,22 @@ export class RootMenu extends SoftKeyMenu {
       item.disabled.set(isDisabled);
     });
 
+    bus.on('mfd_power_on', poweredOn => this.mfdPoweredOn = poweredOn);
     sub.on('vc_screen_state').handle(state => {
       if (state.current === ScreenState.REVERSIONARY) {
         setTimeout(() => {
           this.getItem(0).label.set('Engine');
           this.getItem(0).handler = (): void => this.menuSystem.pushMenu('engine-menu');
 
-          bus.on('mfd_power_on', this.onMfdPowerOn);
-        }, 250);
+          if (!this.mfdPoweredOn) {
+            bus.on('mfd_power_on', this.onMfdPowerOn);
+          }
+        }, 1000);
+      } else if (this.mfdPoweredOn) {
+        setTimeout(() => {
+          this.getItem(0).label.set('');
+          this.getItem(0).handler = undefined;
+        }, 1000);
       }
     });
 
@@ -141,7 +147,7 @@ export class RootMenu extends SoftKeyMenu {
         this.getItem(0).handler = undefined;
 
         this.menuSystem.bus.off('mfd_power_on', this.onMfdPowerOn);
-      }, 250);
+      }, 1000);
     }
   };
 }

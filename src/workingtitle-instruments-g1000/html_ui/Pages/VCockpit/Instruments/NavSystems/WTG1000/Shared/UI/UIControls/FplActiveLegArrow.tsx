@@ -1,7 +1,6 @@
-import { FmsUtils } from 'garminsdk/flightplan';
-import { DisplayComponent, FSComponent, VNode, ComponentProps, BitFlags } from 'msfssdk';
-import { FlightPlan, LegDefinitionFlags } from 'msfssdk/flightplan';
-import { FixTypeFlags, LegType } from 'msfssdk/navigation';
+import { BitFlags, ComponentProps, DisplayComponent, FixTypeFlags, FlightPlan, FSComponent, LegDefinitionFlags, LegType, VNode } from 'msfssdk';
+
+import { FmsUtils } from 'garminsdk';
 
 /** FPL Active Leg States */
 export enum ActiveLegStates {

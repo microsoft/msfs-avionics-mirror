@@ -22,13 +22,15 @@ export * from './MapAirspaceRenderer';
 export * from './MapSingleLineAirspaceRenderer';
 export * from './MapMultiLineAirspaceRenderer';
 export * from './MapAirspaceRenderManager';
+
 export * from './modules/MapOwnAirplaneIconModule';
 export * from './modules/MapOwnAirplanePropsModule';
-export * from './modules/MapAutopilotModule';
+export * from './modules/MapAutopilotPropsModule';
 export * from './modules/MapRangeModule';
 export * from './modules/MapIndexedRangeModule';
 export * from './modules/MapAirspaceModule';
 export * from './modules/MapDataIntegrityModule';
+
 export * from './layers/MapBingLayer';
 export * from './layers/MapCanvasLayer';
 export * from './layers/MapSyncedCanvasLayer';
@@ -37,4 +39,6 @@ export * from './layers/MapLabeledRingLayer';
 export * from './layers/MapOwnAirplaneLayer';
 export * from './layers/MapCullableTextLayer';
 export * from './layers/MapAirspaceLayer';
-export * from './layers/MapAbstractNearestWaypointsLayer';
+export * from './layers/MapNearestWaypointsLayer';
+export * from './layers/MapLineLayer';
+export * from './layers/MapGenericLayer';

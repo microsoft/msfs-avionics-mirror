@@ -1,14 +1,9 @@
 import {
-  ComponentProps, ComputedSubject, DisplayComponent, FSComponent, MappedSubject,
-  NumberUnit, NumberUnitSubject, Subject, UnitType, VNode
+  AdcEvents, AhrsEvents, APEvents, ComponentProps, ComputedSubject, ConsumerSubject, DisplayComponent, EventBus, FSComponent, GNSSEvents, LNavEvents,
+  MappedSubject, NavEvents, NavSourceId, NavSourceType, NumberFormatter, NumberUnit, NumberUnitSubject, Subject, UnitType, VNode
 } from 'msfssdk';
-import { LNavEvents } from 'msfssdk/autopilot';
 
-import { ConsumerSubject, EventBus } from 'msfssdk/data';
-import { NumberFormatter } from 'msfssdk/graphics/text';
-import { ADCEvents, APEvents, GNSSEvents, NavEvents, NavSourceId, NavSourceType } from 'msfssdk/instruments';
-
-import { LNavDataEvents, NavIndicatorController, NavSensitivity, ObsSuspModes } from 'garminsdk/navigation';
+import { LNavDataEvents, NavIndicatorController, NavSensitivity, ObsSuspModes } from 'garminsdk';
 
 import { AHRSSystemEvents } from '../../../Shared/Systems/AHRSSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../../../Shared/Systems/G1000AvionicsSystem';
@@ -83,7 +78,7 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
   public onAfterRender(): void {
     this.registerWithController();
 
-    const sub = this.props.bus.getSubscriber<GNSSEvents & LNavEvents & LNavDataEvents & NavEvents & ADCEvents & APEvents & AHRSSystemEvents>();
+    const sub = this.props.bus.getSubscriber<GNSSEvents & LNavEvents & LNavDataEvents & NavEvents & AdcEvents & AhrsEvents & APEvents & AHRSSystemEvents>();
 
     sub.on('track_deg_magnetic')
       .withPrecision(1)
@@ -162,8 +157,6 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
     }
 
     sub.on('ahrs_state').handle(this.onAhrsStateChanged.bind(this));
-
-    this.navSourceSubject.sub(this.handleNavSourceChanged.bind(this), true);
   }
 
   /**
@@ -270,10 +263,11 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
   }
 
   /**
-   * Updates the HSI display when the nav source changes.
-   * @param source The new nav source.
+   * Updates the Source and Sensitivity Fields.
    */
-  private handleNavSourceChanged(source: NavSourceId): void {
+  public updateSourceSensitivity(): void {
+    const source = this.props.controller.navStates[this.props.controller.activeSourceIndex].source;
+    this.navSourceSubject.set(source);
     switch (source.type) {
       case NavSourceType.Nav:
         if (this.props.controller.navStates[this.props.controller.activeSourceIndex].isLocalizer) {
@@ -288,19 +282,8 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
       case NavSourceType.Gps:
         this.navSourceText.instance.textContent = 'GPS';
         this.navSourceText.instance.style.color = 'magenta';
+        this.navSensitivitySubject.set(this.props.controller.activeSensitivity);
         break;
-    }
-  }
-
-  /**
-   * Updates the Source and Sensitivity Fields.
-   */
-  public updateSourceSensitivity(): void {
-    const source = this.props.controller.navStates[this.props.controller.activeSourceIndex].source;
-    this.navSourceSubject.set(source);
-
-    if (source.type === NavSourceType.Gps) {
-      this.navSensitivitySubject.set(this.props.controller.activeSensitivity);
     }
   }
 

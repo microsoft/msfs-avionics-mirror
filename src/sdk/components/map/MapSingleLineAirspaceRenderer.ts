@@ -1,6 +1,7 @@
-import { GeoCircle, GeoPoint, GeoPointInterface, GeoProjection, Vec2Math, Vec3Math } from '../..';
-import { LodBoundaryShape } from '../../navigation';
+import { GeoCircle, GeoPoint, GeoPointInterface, GeoProjection } from '../../geo';
 import { PathStream } from '../../graphics/path';
+import { Vec2Math, Vec3Math } from '../../math';
+import { LodBoundaryShape } from '../../navigation';
 import { MapAbstractAirspaceRenderer } from './MapAirspaceRenderer';
 
 /**

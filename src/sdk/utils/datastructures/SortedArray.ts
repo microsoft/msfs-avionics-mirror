@@ -209,6 +209,22 @@ export class SortedArray<T> {
   }
 
   /**
+   * Removes the last element from this array and returns it.
+   * @returns The removed element, or `undefined` if the array was empty.
+   */
+  public pop(): T | undefined {
+    return this._array.pop();
+  }
+
+  /**
+   * Removes the first element from this array and returns it.
+   * @returns The removed element, or `undefined` if the array was empty.
+   */
+  public shift(): T | undefined {
+    return this._array.shift();
+  }
+
+  /**
    * Finds the index of the first occurrence of an element in this array. This array is searched for the first element
    * which is equal to the specified element according to this array's equality function, and its index is returned.
    * @param element The element for which to search.

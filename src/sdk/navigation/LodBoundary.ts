@@ -1,4 +1,5 @@
-import { GeoCircle, GeoPoint, GeoPointInterface, UnitType } from '..';
+import { GeoCircle, GeoPoint, GeoPointInterface } from '../geo';
+import { UnitType } from '../math';
 import { BinaryHeap } from '../utils/datastructures';
 import { BoundaryFacility, BoundaryVector, BoundaryVectorType } from './Facilities';
 
@@ -74,19 +75,29 @@ export class LodBoundary {
     const lodShapes: LodBoundaryShape[][] = [];
 
     // Initialize unsimplified shapes
-    const originalShapes = this.processShapes();
+    const originalShapes = this.processShapes(this.facility.vectors);
 
-    let startIndex = 0;
-    if (this.lodDistanceThresholds[0] === 0 && (this.lodVectorCountTargets[0] ?? 0) <= 0) {
-      // LOD0 has no simplification, so just use the original shapes
+    if (Array.isArray(this.facility.lods)) {
+      //From the sim, LOD0 is always the original shapes
       lodShapes.push(originalShapes);
-      startIndex = 1;
-    }
 
-    // Calculate other LOD levels
-    const len = this.lodDistanceThresholds.length;
-    for (let i = startIndex; i < len; i++) {
-      lodShapes.push(this.simplifyShapes(originalShapes, this.lodDistanceThresholds[i], this.lodVectorCountTargets[i]));
+      //Process the rest of the already simplified sim LODs into shapes
+      for (let i = 0; i < this.facility.lods.length; i++) {
+        lodShapes.push(this.processShapes(this.facility.lods[i]));
+      }
+    } else {
+      let startIndex = 0;
+      if (this.lodDistanceThresholds[0] === 0 && (this.lodVectorCountTargets[0] ?? 0) <= 0) {
+        // LOD0 has no simplification, so just use the original shapes
+        lodShapes.push(originalShapes);
+        startIndex = 1;
+      }
+
+      // Calculate other LOD levels
+      const len = this.lodDistanceThresholds.length;
+      for (let i = startIndex; i < len; i++) {
+        lodShapes.push(this.simplifyShapes(originalShapes, this.lodDistanceThresholds[i], this.lodVectorCountTargets[i]));
+      }
     }
 
     return lodShapes;
@@ -94,26 +105,27 @@ export class LodBoundary {
 
   /**
    * Processes this boundary's facility's vectors into boundary shapes.
+   * @param vectors The vectors to process.
    * @returns Boundary shapes corresponding to this boundary's facility's vectors.
    */
-  private processShapes(): LodBoundaryShape[] {
+  private processShapes(vectors: BoundaryVector[]): LodBoundaryShape[] {
     const shapes: LodBoundaryShape[] = [];
 
-    const len = this.facility.vectors.length;
+    const len = vectors.length;
     let index = 0;
     let currentShape: LodBoundaryShape | undefined;
     while (index < len) {
-      const vector = this.facility.vectors[index];
+      const vector = vectors[index];
 
       switch (vector.type) {
         case BoundaryVectorType.Start:
           currentShape = [];
-          index = this.processShape(currentShape, index);
+          index = this.processShape(currentShape, vectors, index);
           shapes.push(currentShape);
           break;
         case BoundaryVectorType.Circle:
           currentShape = [];
-          index = this.processCircle(currentShape, index - 1);
+          index = this.processCircle(currentShape, vectors, index - 1);
           shapes.push(currentShape);
           break;
       }
@@ -127,20 +139,21 @@ export class LodBoundary {
   /**
    * Processes a single, non-circle boundary shape from this boundary's facility's vectors.
    * @param shape The shape to be processed.
+   * @param vectors The array containing the facility boundary vectors making up the shape.
    * @param index The index of the first facility boundary vector which makes up the shape.
    * @returns The index of the last facility boundary vector which makes up the shape.
    */
-  private processShape(shape: LodBoundaryShape, index: number): number {
-    const start = this.facility.vectors[index++];
+  private processShape(shape: LodBoundaryShape, vectors: BoundaryVector[], index: number): number {
+    const start = vectors[index++];
     shape.push({ end: new GeoPoint(start.lat, start.lon) });
 
     const origins: BoundaryVector[] = [];
 
-    const len = this.facility.vectors.length;
+    const len = vectors.length;
     while (index < len) {
       const lastEndpoint = shape[shape.length - 1].end;
 
-      const vector = this.facility.vectors[index];
+      const vector = vectors[index];
       switch (vector.type) {
         case BoundaryVectorType.Start:
           break;
@@ -181,12 +194,13 @@ export class LodBoundary {
   /**
    * Processes a single circle boundary shape from this boundary's facility's vectors.
    * @param shape The shape to be processed.
+   * @param vectors The array containing the facility boundary vectors making up the shape.
    * @param index The index of the first facility boundary vector which makes up the shape.
    * @returns The index of the last facility boundary vector which makes up the shape.
    */
-  private processCircle(shape: LodBoundaryShape, index: number): number {
-    const originVector = this.facility.vectors[index];
-    const circleVector = this.facility.vectors[index + 1];
+  private processCircle(shape: LodBoundaryShape, vectors: BoundaryVector[], index: number): number {
+    const originVector = vectors[index];
+    const circleVector = vectors[index + 1];
 
     if (originVector.type === BoundaryVectorType.Origin && circleVector.originId === originVector.originId) {
       const radius = UnitType.METER.convertTo(circleVector.radius, UnitType.GA_RADIAN);

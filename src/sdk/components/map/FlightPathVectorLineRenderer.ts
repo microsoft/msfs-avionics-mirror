@@ -1,5 +1,5 @@
-import { GeoCircle } from '../..';
 import { CircleVector, FlightPathUtils } from '../../flightplan';
+import { GeoCircle } from '../../geo';
 import { GeoCircleLineRenderer } from './GeoCircleLineRenderer';
 import { GeoProjectionPathStreamStack } from './GeoProjectionPathStreamStack';
 

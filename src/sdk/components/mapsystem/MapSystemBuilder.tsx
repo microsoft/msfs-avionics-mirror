@@ -1,669 +1,1404 @@
-import { Subject, Subscribable } from '../..';
-import { EventBus } from '../../data';
-import { FlightPlanner } from '../../flightplan';
-import { ClockEvents } from '../../instruments';
-import { Waypoint } from '../../navigation';
-import { TCAS } from '../../traffic';
-import { ComponentProps, FSComponent, NodeReference, VNode } from '../FSComponent';
+/* eslint-disable jsdoc/require-jsdoc */
+import { EventBus } from '../../data/EventBus';
+import { FlightPlanner } from '../../flightplan/FlightPlanner';
+import { NumberUnitInterface, UnitFamily, UnitType } from '../../math';
+import { ReadonlyFloat64Array, Vec2Math } from '../../math/VecMath';
+import { VecNSubject } from '../../math/VectorSubject';
+import { LodBoundary, LodBoundaryCache } from '../../navigation';
+import { Subject } from '../../sub/Subject';
+import { Subscribable } from '../../sub/Subscribable';
+import { MutableSubscribableSet, SubscribableSet } from '../../sub/SubscribableSet';
+import { Tcas, TcasIntruder } from '../../traffic/Tcas';
+import { ResourceModerator } from '../../utils/resource';
+import { FSComponent, VNode } from '../FSComponent';
+import { GenericAirspaceRenderManager } from '../map/GenericAirspaceRenderManager';
+import { MapAirspaceLayer, MapAirspaceLayerModules, MapAirspaceLayerProps } from '../map/layers/MapAirspaceLayer';
+import { MapBingLayer } from '../map/layers/MapBingLayer';
+import { MapCullableTextLayer } from '../map/layers/MapCullableTextLayer';
+import { MapOwnAirplaneLayer, MapOwnAirplaneLayerModules } from '../map/layers/MapOwnAirplaneLayer';
+import { MapAirspaceRenderer } from '../map/MapAirspaceRenderer';
+import { MapCullableTextLabelManager } from '../map/MapCullableTextLabel';
+import { MapLayer } from '../map/MapLayer';
+import { MapProjection } from '../map/MapProjection';
+import { MapAirspaceModule, MapAirspaceShowTypes } from '../map/modules/MapAirspaceModule';
+import { MapAutopilotPropsModule } from '../map/modules/MapAutopilotPropsModule';
+import { MapOwnAirplaneIconModule } from '../map/modules/MapOwnAirplaneIconModule';
+import { MapOwnAirplanePropsModule } from '../map/modules/MapOwnAirplanePropsModule';
+import { MapAutopilotPropsController, MapAutopilotPropsControllerModules, MapAutopilotPropsKey } from './controllers/MapAutopilotPropsController';
+import { MapBinding, MapBindingsController, MapTransformedBinding } from './controllers/MapBindingsController';
+import { MapClockUpdateController, MapClockUpdateControllerContext } from './controllers/MapClockUpdateController';
+import { MapFlightPlanController, MapFlightPlanControllerContext, MapFlightPlanControllerModules } from './controllers/MapFlightPlanController';
+import { MapFollowAirplaneController, MapFollowAirplaneControllerContext, MapFollowAirplaneControllerModules } from './controllers/MapFollowAirplaneController';
+import { MapOwnAirplanePropsController, MapOwnAirplanePropsControllerModules, MapOwnAirplanePropsKey } from './controllers/MapOwnAirplanePropsController';
+import { MapRotationController, MapRotationControllerContext, MapRotationControllerModules } from './controllers/MapRotationController';
+import { FlightPlanDisplayBuilder } from './FlightPlanDisplayBuilder';
+import { MapSystemFlightPlanLayer, MapSystemFlightPlanLayerModules } from './layers/MapSystemFlightPlanLayer';
+import { MapSystemTrafficLayer, MapSystemTrafficLayerModules, MapTrafficIntruderIconFactory } from './layers/MapSystemTrafficLayer';
+import { MapSystemWaypointsLayer, MapSystemWaypointsLayerModules } from './layers/MapSystemWaypointsLayer';
+import { MapSystemComponent, MapSystemComponentProps } from './MapSystemComponent';
+import { DefaultMapSystemContext, MapSystemContext, MutableMapContext } from './MapSystemContext';
+import { MapSystemController } from './MapSystemController';
+import { MapSystemGenericController } from './MapSystemGenericController';
+import { MapSystemKeys } from './MapSystemKeys';
+import { MapSystemPlanRenderer } from './MapSystemPlanRenderer';
 import {
-  MapBingLayer, MapComponent, MapComponentProps, MapCullableLocationTextLabel, MapCullableTextLayer, MapLayer, MapProjection, MapWaypointIcon
-} from '../map';
-import { MapSystemFlightPlanLayer } from '../mapsystem/layers/MapSystemFlightPlanLayer';
-import { MapSystemOwnshipLayer } from './layers/MapSystemOwnshipLayer';
-import { MapSystemWaypointsLayer } from './layers/MapSystemWaypointsLayer';
-import { MapSystemContext, ReadOnlyMapSystemContext } from './MapSystemContext';
-import { LegStyleHandler, LegWaypointHandler, MapSystemPlanRenderer } from './MapSystemPlanRenderer';
+  CompiledMapSystem, ContextRecord, ControllerRecord, EmptyRecord, LayerRecord, ModuleRecord, RequiredControllerContext, RequiredControllerLayers,
+  RequiredControllerModules, RequiredLayerModules
+} from './MapSystemTypes';
+import { MapSystemUtils } from './MapSystemUtils';
+import { MapSystemWaypointRoles } from './MapSystemWaypointRoles';
 import { MapSystemIconFactory, MapSystemLabelFactory, MapSystemWaypointsRenderer } from './MapSystemWaypointsRenderer';
-import { MapColorsModule } from './modules/MapColorsModule';
 import { MapFlightPlanModule } from './modules/MapFlightPlanModule';
-import { MapIndexedRangeModule } from './modules/MapIndexedRangeModule';
-import { MapModule } from './modules/MapModule';
-import { MapOwnshipModule } from './modules/MapOwnshipModule';
-import { MapPositionModule } from './modules/MapPositionModule';
+import { MapFollowAirplaneModule } from './modules/MapFollowAirplaneModule';
+import { MapRotationModule } from './modules/MapRotationModule';
+import { MapTerrainColorsModule } from './modules/MapTerrainColorsModule';
+import { MapTrafficModule } from './modules/MapTrafficModule';
 import { MapWaypointDisplayModule } from './modules/MapWaypointDisplayModule';
 import { MapWxrModule } from './modules/MapWxrModule';
-import { MapSystemWaypointRoles } from './MapSystemWaypointRoles';
-import { MapTrafficModule } from './modules/MapTrafficModule';
-import { MapSystemTrafficLayer, MapTrafficIntruderIconFactory } from './layers/MapSystemTrafficLayer';
+import { WaypointDisplayBuilder } from './WaypointDisplayBuilder';
 
 /**
- * Props on the MapSystem component.
+ * A function which defines a custom build step.
  */
-export interface MapSystemProps extends ComponentProps {
-  /** The unique BingMap ID to assign to this map system. */
-  bingId: string;
+export type MapSystemCustomBuilder<
+  Args extends any[] = any[],
+  RequiredModules extends ModuleRecord = any,
+  RequiredLayers extends LayerRecord = any,
+  RequiredContext extends ContextRecord = any
+  > = (mapBuilder: MapSystemBuilder<RequiredModules, RequiredLayers, any, RequiredContext>, ...args: Args) => MapSystemBuilder<any, any, any, any>;
 
-  /** The CSS class to apply to the map system container. */
-  class?: string;
+/**
+ * Retrieves the extra arguments, after the map builder, of a custom builder.
+ */
+type CustomBuilderArgs<Builder> = Builder extends MapSystemCustomBuilder<infer Args> ? Args : never;
 
-  /** A callback fired when the map system's projected size changes. */
-  onProjectedSizeChanged?: (component: MapSystemComponent) => void;
+/**
+ * Retrieves a custom map builder's required modules.
+ */
+export type RequiredCustomBuilderModules<Builder> = Builder extends MapSystemCustomBuilder<any, infer M> ? M : never;
+
+/**
+ * Retrieves a custom map builder's required layers.
+ */
+export type RequiredCustomBuilderLayers<Builder> = Builder extends MapSystemCustomBuilder<any, any, infer L> ? L : never;
+
+/**
+ * Retrieves a custom map builder's required context.
+ */
+export type RequiredCustomBuilderContext<Builder> = Builder extends MapSystemCustomBuilder<any, any, any, infer Context> ? Context : never;
+
+/**
+ * A map model module factory.
+ */
+type ModuleFactory = {
+  /** The key of the module to create. */
+  key: string;
+
+  /** The constructor of the module to create. */
+  factory: () => any;
+};
+
+/**
+ * A map layer factory.
+ */
+type LayerFactory = {
+  /** The key of the layer to create. */
+  key: string;
+
+  /** A function which renders the layer to create. */
+  factory: (context: MapSystemContext<any, any, any, any>) => VNode;
+
+  /** The order value of the layer to create. */
+  order: number;
+};
+
+/**
+ * A map controller factory.
+ */
+type ControllerFactory = {
+  /** A function which creates the controller. */
+  factory: (context: MapSystemContext<any, any, any, any>) => MapSystemController<any, any, any>;
+};
+
+/**
+ * A map context property factory.
+ */
+type ContextFactory = {
+  /** The key of the property to create. */
+  key: string;
+
+  /** A function which creates the context property. */
+  factory: (context: MapSystemContext<any, any, any, any>) => any;
+
+  /** The value determining in which order to create the property.  */
+  order: number;
+};
+
+/**
+ * Checks if a set of module, layer, and context records meet certain requirements. If the requirements are met, the
+ * specified type is returned. If the requirements are not met, `never` is returned.
+ */
+type ConditionalReturn<
+  Modules,
+  RequiredModules,
+  Layers,
+  RequiredLayers,
+  Context,
+  RequiredContext,
+  ReturnType
+  > = Modules extends RequiredModules ? Layers extends RequiredLayers ? Context extends RequiredContext ? ReturnType : never : never : never;
+
+/** Checks if a type is exactly the `any` type. */
+type IsAny<T> = boolean extends (T extends never ? true : false) ? true : false;
+
+/** Returns a type if it is not `any`, otherwise returns a default type. */
+type DefaultIfAny<T, Default> = IsAny<T> extends true ? Default : T;
+
+/**
+ * Options for handling off-scale and out-of-bounds traffic intruders on a traffic layer.
+ */
+export type TrafficOffScaleOobOptions = {
+  /** A subscribable set to update with off-scale intruders. */
+  offScaleIntruders?: MutableSubscribableSet<TcasIntruder>,
+
+  /**
+   * A subscribable set to update with intruders that are not off-scale but whose projected positions are considered
+   * out-of-bounds.
+   */
+  oobIntruders?: MutableSubscribableSet<TcasIntruder>,
+
+  /**
+   * A subscribable which provides the offset of the intruder out-of-bounds boundaries relative to the boundaries of
+   * the map's projected window, as `[left, top, right, bottom]` in pixels. Positive offsets are directed toward the
+   * center of the map. Defaults to `[0, 0, 0, 0]`.
+   */
+  oobOffset?: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>,
 }
 
 /**
- * Props on the internal MapSystemComponent component.
+ * Builds maps. Each builder is configured with a series of build steps which collectively define how the builder
+ * compiles finished maps. In addition to defining basic map properties such as size and range, build steps can also
+ * customize map behavior and appearance through adding map model modules, layers, and controllers.
+ *
+ * Each map compiled by the builder is associated with a {@link MapSystemContext}, which holds references to the map
+ * projection, map model, all layers and controllers, and other data associated with the map. Layers and controllers
+ * have access to the context when they are created during compilation, and a reference to the context is stored with
+ * the compiled map.
+ *
+ * A single builder can compile multiple maps. Each compiled map is a separate entity, with its own model, layers,
+ * controllers, and context.
  */
-interface MapSystemComponentProps extends MapComponentProps<any> {
-  /** The CSS class to apply to the map system container. */
-  class?: string;
+export class MapSystemBuilder<
+  Modules extends ModuleRecord = any,
+  Layers extends LayerRecord = any,
+  Controllers extends ControllerRecord = any,
+  Context extends ContextRecord = any,
+  > {
 
-  /** A callback fired when the map system's projected size changes. */
-  onProjectedSizeChanged?: (component: MapSystemComponent) => void;
+  protected static readonly RESTRICTED_CONTEXT_KEYS = new Set([
+    'bus',
+    'model',
+    'projection',
+    'projectedSize',
+    'deadZone',
+    'getLayer',
+    'setLayer',
+    'getController',
+    'setController'
+  ]);
 
-  /** The map system context to use with this map system. */
-  context: MapSystemContext;
-}
+  protected readonly moduleFactories = new Map<string, ModuleFactory>();
+  protected readonly layerFactories = new Map<string, LayerFactory>();
+  protected readonly controllerFactories = new Map<string, ControllerFactory>();
+  protected readonly contextFactories = new Map<string, ContextFactory>();
+  protected readonly initCallbacks = new Map<string, (context: MapSystemContext<any, any, any, any>) => void>();
 
-/**
- * A compiled map system available after build.
- */
-export interface CompiledMapSystem {
-  /** The map system context. */
-  context: ReadOnlyMapSystemContext;
+  protected projectedSize: Subscribable<ReadonlyFloat64Array> = Subject.create(Vec2Math.create(100, 100));
+  protected deadZone?: Subscribable<ReadonlyFloat64Array>;
+  protected targetOffset?: ReadonlyFloat64Array;
+  protected nominalRangeEndpoints?: ReadonlyFloat64Array;
+  protected range?: number;
 
-  /** The reference to the map system component, available after rendering. */
-  ref: NodeReference<MapComponent>;
+  // eslint-disable-next-line jsdoc/require-returns
+  /** The number of map model modules added to this builder. */
+  public get moduleCount(): number {
+    return this.moduleFactories.size;
+  }
 
-  /** The compiled JSX map system component. */
-  Map: (props: MapSystemProps) => MapComponent;
-}
+  // eslint-disable-next-line jsdoc/require-returns
+  /** The number of map layers added to this builder. */
+  public get layerCount(): number {
+    return this.layerFactories.size;
+  }
 
-/**
- * A type that describes parameters to controller constructors.
- */
-type ControllerParams<T extends new (...args: [ReadOnlyMapSystemContext, ...any | never]) => any> =
-  T extends new (...args: [ReadOnlyMapSystemContext, ...infer P]) => any ? P : never;
-
-/**
- * A class that builds dynamic components for complex map systems.
- */
-export class MapSystemBuilder {
+  // eslint-disable-next-line jsdoc/require-returns
+  /** The number of map controllers added to this builder. */
+  public get controllerCount(): number {
+    return this.controllerFactories.size;
+  }
 
   /**
    * Creates an instance of a map system builder.
-   * @param bus The event bus to use with this instance.
-   * @param projection The optional external map projection to use with this instance.
-   * @returns A new MapSystemBuilder.
+   * @param bus This builder's event bus.
    */
-  public static create(bus: EventBus, projection = new MapProjection(256, 256)): MapSystemBuilder {
-    return new MapSystemBuilder(bus, projection);
-  }
-
-  protected readonly context: MapSystemContext;
-
-  /**
-   * Creates an instance of a map system builder.
-   * @param bus The event bus to use with this instance.
-   * @param projection The map projection to use with this instance.
-   */
-  protected constructor(bus: EventBus, projection: MapProjection) {
-    this.context = new MapSystemContext(bus, projection, 30);
+  protected constructor(public readonly bus: EventBus) {
   }
 
   /**
-   * Sets up a default map system, with a single BingMap terrain layer, default black ground with blue water terrain colors,
-   * absolute terrain, and pre-wired to aircraft position and rotation.
-   * @returns The modified MapSystemBuilder.
+   * Creates a new Garmin map builder. The builder is initialized with a default projected size of `[100, 100]` pixels.
+   * @param bus The event bus.
+   * @returns A new Garmin map builder.
    */
-  public withTerrainMap(): this {
-    this.context.moduleFactories.set(MapPositionModule.name, context => new MapPositionModule(context));
-    this.context.moduleFactories.set(MapIndexedRangeModule.name, context => new MapIndexedRangeModule(context));
-    this.context.moduleFactories.set(MapColorsModule.name, context => new MapColorsModule(context));
-    this.context.moduleFactories.set(MapWxrModule.name, context => new MapWxrModule(context));
+  public static create(bus: EventBus): MapSystemBuilder {
+    return new MapSystemBuilder(bus);
+  }
 
-    this.context.layerFactories.push({ key: MapBingLayer.name, factory: this.buildDefaultBingLayer.bind(this) });
+  /**
+   * Configures this builder to generate a map with a given projected window size.
+   * @param size The size of the projected window, as `[width, height]` in pixels, or a subscribable which provides it.
+   * @returns This builder, after it has been configured.
+   */
+  public withProjectedSize(size: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>): this {
+    this.projectedSize = 'isSubscribable' in size ? size : Subject.create(size);
     return this;
   }
 
   /**
-   * Sets up a layer containing the aircraft ownship icon.
-   * @param imageFilePath A subscribable to the path containing the ownship icon file.
-   * @param size The size of the icon square, in pixels.
-   * @param anchor The point on the icon which is anchored to the airplane's position, expressed relative to the icon's width and
-   * height, with [0, 0] at the top left and [1, 1] at the bottom right.
-   * @param className The name of the CSS class to apply to this layer container.
-   * @returns The modified MapSystemBuilder.
+   * Configures this builder to generate a map with a given dead zone.
+   * @param deadZone The dead zone, as `[left, top, right, bottom]` in pixels, or a subscribable which provides it.
+   * @returns This builder, after it has been configured.
    */
-  public withOwnshipIcon(imageFilePath: Subscribable<string>, size: number, anchor?: Subscribable<Float64Array>, className?: string): this {
-    this.context.moduleFactories.set(MapOwnshipModule.name, context => new MapOwnshipModule(context));
-    this.context.layerFactories.push({
-      key: MapSystemOwnshipLayer.name,
-      factory: context => (
-        <MapSystemOwnshipLayer imageFilePath={imageFilePath} iconSize={size} mapProjection={context.projection} model={context.model}
-          iconAnchor={anchor !== undefined ? anchor : Subject.create(new Float64Array([0, 0]))} class={className} />
-      )
-    });
-
+  public withDeadZone(deadZone: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>): this {
+    this.deadZone = 'isSubscribable' in deadZone ? deadZone : VecNSubject.createFromVector(new Float64Array(deadZone));
     return this;
   }
 
   /**
-   * Adds a waypoint display system to the map system.
-   * @param builder An optional configuration builder that will configure the waypoint display.
-   * @returns The modified MapSystemBuilder.
+   * Configures this builder to generate a map with an initial projected target offset.
+   * @param offset The initial projected target offset, as `[x, y]` in pixels.
+   * @returns This builder, after it has been configured.
    */
-  public withWaypointDisplay(builder?: (context: MapSystemContext, builder: WaypointDisplayBuilder) => void): this {
-    this.context.moduleFactories.set(MapWaypointDisplayModule.name, context => new MapWaypointDisplayModule(context));
+  public withTargetOffset(offset: ReadonlyFloat64Array): this {
+    this.targetOffset = offset;
+    return this;
+  }
 
-    this.context.waypointRenderer.addRenderRole(MapSystemWaypointRoles.Normal, undefined, MapSystemWaypointRoles.Normal);
+  /**
+   * Configures this builder to generate a map with specific initial range endpoints. The endpoints are defined
+   * relative to the width and height of the map's projected window, *excluding* the dead zone.
+   * @param endpoints The initial range endpoints, as `[x1, y1, x2, y2]`.
+   * @returns This builder, after it has been configured.
+   */
+  public withRangeEndpoints(endpoints: ReadonlyFloat64Array): this {
+    this.nominalRangeEndpoints = endpoints;
+    return this;
+  }
 
-    let useMapTargetAsSearchCenter = false;
-    if (builder !== undefined) {
-      const b = new WaypointDisplayBuilder(this.context.iconFactory, this.context.labelFactory, this.context.waypointRenderer);
-      builder(this.context, b);
+  /**
+   * Configures this build to generate a map with a specific initial range.
+   * @param range The initial range.
+   * @returns This builder, after it has been configured.
+   */
+  public withRange(range: NumberUnitInterface<UnitFamily.Distance>): this {
+    this.range = range.asUnit(UnitType.GA_RADIAN);
+    return this;
+  }
 
-      useMapTargetAsSearchCenter = b.getIsCenterTarget();
-      this.context.textManager.setCullingEnabled(b.getCullingEnabled());
+  /**
+   * Adds a map module to this builder. When this builder compiles its map, all added modules will be created and added
+   * to the map's model. If an existing module has been added to this builder with the same key, it will be replaced.
+   * @param key The key (name) of the module.
+   * @param factory A function which creates the module.
+   * @returns This builder, after the map module has been added.
+   */
+  public withModule(key: string, factory: () => any): this {
+    this.moduleFactories.set(key, { key, factory });
+    return this;
+  }
+
+  /**
+   * Adds a map layer to this builder. When this builder compiles its map, all added layers will be created and
+   * attached to the map. Layers with a lower assigned order will be attached before and appear below layers with
+   * greater assigned order values. If an existing layer has been added to this builder with the same key, it will be
+   * replaced.
+   * @param key The key of the layer.
+   * @param factory A function which renders the layer as a VNode.
+   * @param order The order assigned to the layer. Layers with lower assigned order will be attached to the map before
+   * and appear below layers with greater assigned order values. Defaults to the number of layers already added to this
+   * builder.
+   * @returns This builder, after the map layer has been added, or `never` if this builder does not have all the
+   * modules required by the layer.
+   */
+  public withLayer<L extends MapLayer = any, UseModules = any, UseContext = any>(
+    key: string,
+    factory: (context: MapSystemContext<DefaultIfAny<UseModules, Modules>, EmptyRecord, EmptyRecord, DefaultIfAny<UseContext, Context>>) => VNode,
+    order?: number
+  ): ConditionalReturn<
+    DefaultIfAny<UseModules, Modules>,
+    RequiredLayerModules<L>,
+    any, any,
+    any, any,
+    this
+  > {
+    // Delete the key to ensure a consistent layer order.
+    const wasDeleted = this.layerFactories.delete(key);
+
+    this.layerFactories.set(key, { key, factory, order: order ?? (this.layerFactories.size + (wasDeleted ? 1 : 0)) });
+    return this as any;
+  }
+
+  /**
+   * Adds a controller to this builder. When this builder compiles its map, all added controllers will be created and
+   * hooked up to the map's lifecycle callbacks. If an existing controller has been added to this builder with the same
+   * key, it will be replaced.
+   * @param key The key of the controller.
+   * @param factory A function which creates the controller.
+   * @returns This builder, after the map layer has been added, or `never` if this builder does not have all the
+   * modules required by the controller.
+   */
+  public withController<
+    Controller extends MapSystemController<any, any, any, any>,
+    UseModules = any,
+    UseLayers extends LayerRecord = any,
+    UseControllers extends ControllerRecord = any,
+    UseContext = any
+  >(
+    key: string,
+    factory: (
+      context: MapSystemContext<
+        DefaultIfAny<UseModules, Modules>,
+        DefaultIfAny<UseLayers, Layers>,
+        DefaultIfAny<UseControllers, Controllers>,
+        DefaultIfAny<UseContext, Context>
+      >
+    ) => Controller
+  ): ConditionalReturn<
+    DefaultIfAny<UseModules, Modules>,
+    RequiredControllerModules<Controller>,
+    DefaultIfAny<UseLayers, Layers>,
+    RequiredControllerLayers<Controller>,
+    DefaultIfAny<UseContext, Context>,
+    RequiredControllerContext<Controller>,
+    this
+  > {
+    this.controllerFactories.set(key, { factory });
+    return this as any;
+  }
+
+  /**
+   * Adds a context property to this builder. When the builder compiles its map, all added properties will be available
+   * on the context. Properties are created on the context in the order they were added to the builder, and property
+   * factories have access to previously created properties on the context. If an existing property has been added to
+   * this builder with the same key, it will be replaced.
+   * @param key The key of the property to add.
+   * @param factory A function which creates the value of the property.
+   * @returns This builder, after the context property has been added.
+   */
+  public withContext<UseContext = any>(
+    key: Exclude<string, keyof MapSystemContext>,
+    factory: (context: MapSystemContext<Record<never, never>, Record<never, never>, Record<never, never>, DefaultIfAny<UseContext, Context>>) => any
+  ): this {
+    if (!MapSystemBuilder.RESTRICTED_CONTEXT_KEYS.has(key)) {
+      const existing = this.contextFactories.get(key as any);
+      const order = existing?.order ?? this.contextFactories.size;
+
+      this.contextFactories.set(key as any, { key, factory, order });
+    }
+    return this as any;
+  }
+
+  /**
+   * Configures this builder to execute a callback function immediately after it is finished compiling a map. If an
+   * existing callback has been added to this builder with the same key, it will be replaced.
+   * @param key The key of the callback.
+   * @param callback The callback function to add.
+   * @returns This builder, after the callback has been added.
+   */
+  public withInit<
+    UseModules = any,
+    UseLayers extends LayerRecord = any,
+    UseControllers extends ControllerRecord = any,
+    UseContext = any
+  >(
+    key: string,
+    callback: (
+      context: MapSystemContext<
+        DefaultIfAny<UseModules, Modules>,
+        DefaultIfAny<UseLayers, Layers>,
+        DefaultIfAny<UseControllers, Controllers>,
+        DefaultIfAny<UseContext, Context>
+      >
+    ) => void
+  ): this {
+    this.initCallbacks.set(key, callback);
+    return this;
+  }
+
+  /**
+   * Assigns an order value to a layer. Layers with a lower assigned order will be attached before and appear below
+   * layers with greater assigned order values.
+   * @param key The key of the layer to which to assign the order value.
+   * @param order The order value to assign.
+   * @returns This builder, after the order value has been assigned.
+   */
+  public withLayerOrder(key: keyof Layers & string, order: number): this {
+    const factory = this.layerFactories.get(key);
+    if (factory) {
+      // Delete the key to ensure a consistent layer order.
+      this.layerFactories.delete(key);
+      factory.order = order;
+      this.layerFactories.set(key, factory);
+    }
+    return this;
+  }
+
+  /**
+   * Configures this builder to add a controller which maintains a list of bindings from source to target
+   * subscribables.
+   * @param key The key of the controller.
+   * @param bindings The bindings to maintain.
+   * @returns This builder, after it has been configured.
+   */
+  public withBindings<
+    UseModules = any,
+    UseLayers extends LayerRecord = any,
+    UseContext = any
+  >(
+    key: string,
+    bindings: (context: MapSystemContext<
+      DefaultIfAny<UseModules, Modules>,
+      DefaultIfAny<UseLayers, Layers>,
+      EmptyRecord,
+      DefaultIfAny<UseContext, Context>
+    >) => Iterable<MapBinding<any> | MapTransformedBinding<any, any>>
+  ): this {
+    return this.withController(key, context => new MapBindingsController(context, bindings(context as any)));
+  }
+
+  /**
+   * Configures this builder to generate a map which is updated at a regular frequency based on event bus clock events.
+   *
+   * Adds the following...
+   *
+   * Context properties:
+   * * `'updateFreq': Subscribable<number>`
+   *
+   * Controllers:
+   * * `[MapSystemKeys.ClockUpdate]: MapClockUpdateController`.
+   * @param updateFreq The map's update frequency, in hertz, or a subscribable which provides it.
+   * @returns This builder, after it has been configured.
+   */
+  public withClockUpdate(updateFreq: number | Subscribable<number>): this {
+    return this
+      .withContext('updateFreq', () => typeof updateFreq === 'number' ? Subject.create(updateFreq) : updateFreq)
+      .withController<
+        MapClockUpdateController, any, any, any, MapClockUpdateControllerContext
+      >(MapSystemKeys.ClockUpdate, context => new MapClockUpdateController(context));
+  }
+
+  /**
+   * Configures this builder to add a resource moderator for control of the map's projection target.
+   *
+   * Adds the context property `[MapSystemKeys.TargetControl]: ResourceModerator<void>`.
+   * @returns This builder, after the resource moderator has been added.
+   */
+  public withTargetControlModerator(): this {
+    return this.withContext(MapSystemKeys.TargetControl, () => new ResourceModerator(undefined));
+  }
+
+  /**
+   * Configures this builder to add a resource moderator for control of the map's rotation.
+   *
+   * Adds the context property `[MapSystemKeys.RotationControl]: ResourceModerator<void>`.
+   * @returns This builder, after the resource moderator has been added.
+   */
+  public withRotationControlModerator(): this {
+    return this.withContext(MapSystemKeys.RotationControl, () => new ResourceModerator(undefined));
+  }
+
+  /**
+   * Configures this builder to add a resource moderator for control of the map's range.
+   *
+   * Adds the context property `[MapSystemKeys.RangeControl]: ResourceModerator<void>`.
+   * @returns This builder, after the resource moderator has been added.
+   */
+  public withRangeControlModerator(): this {
+    return this.withContext(MapSystemKeys.RangeControl, () => new ResourceModerator(undefined));
+  }
+
+  /**
+   * Configures this builder to generate a map whose projection target follows the player airplane. The follow airplane
+   * behavior will be active if and only if the controller owns the projection target control resource. The
+   * controller's priority for the resource is `0`.
+   *
+   * Adds the following...
+   *
+   * Context properties:
+   * * `[MapSystemKeys.TargetControl]: ResourceModerator<void>`
+   *
+   * Modules:
+   * * `[MapSystemKeys.OwnAirplaneProps]: MapOwnAirplanePropsModule`
+   * * `[MapSystemKeys.FollowAirplane]: MapFollowAirplaneModule`
+   *
+   * Controllers:
+   * * `[MapSystemKeys.FollowAirplane]: MapFollowAirplaneController`
+   * @returns This builder, after it has been configured.
+   */
+  public withFollowAirplane(): this {
+    return this
+      .withModule(MapSystemKeys.OwnAirplaneProps, () => new MapOwnAirplanePropsModule)
+      .withModule(MapSystemKeys.FollowAirplane, () => new MapFollowAirplaneModule())
+      .withTargetControlModerator()
+      .withController<MapFollowAirplaneController, MapFollowAirplaneControllerModules, any, any, MapFollowAirplaneControllerContext>(
+        MapSystemKeys.FollowAirplane,
+        context => new MapFollowAirplaneController(context)
+      );
+  }
+
+  /**
+   * Configures this builder to generate a map which supports common rotation behavior. The rotation behavior will be
+   * active if and only if the controller owns the rotation control resource. The controller's priority for the
+   * resource is `0`.
+   *
+   * Requires the module `'ownAirplaneProps': MapOwnAirplanePropsModule` to support player airplane-derived rotation
+   * behavior, such as Heading Up and Track Up.
+   *
+   * Adds the following...
+   *
+   * Context properties:
+   * * `'[MapSystemKeys.RotationControl]': ResourceModerator<void>`
+   *
+   * Modules:
+   * * `[MapSystemKeys.Rotation]: MapRotationModule`
+   *
+   * Controllers:
+   * * `[MapSystemKeys.Rotation]: MapRotationController`
+   * @returns This builder, after it has been configured.
+   */
+  public withRotation(): this {
+    return this
+      .withModule(MapSystemKeys.Rotation, () => new MapRotationModule())
+      .withRotationControlModerator()
+      .withController<MapRotationController, MapRotationControllerModules, any, any, MapRotationControllerContext>(
+        MapSystemKeys.Rotation,
+        context => new MapRotationController(context)
+      );
+  }
+
+  /**
+   * Configures this builder to generate a map which displays an icon depicting the position of the player airplane.
+   *
+   * Adds the following...
+   *
+   * Modules:
+   * * `[MapSystemKeys.OwnAirplaneProps]: MapOwnAirplanePropsModule`
+   * * `[MapSystemKeys.OwnAirplaneIcon]: MapOwnAirplaneIconModule`
+   *
+   * Layers:
+   * * `[MapSystemKeys.OwnAirplaneIcon]: MapOwnAirplaneLayer`
+   * @param iconSize The size of the icon, in pixels.
+   * @param iconFilePath The path to the icon's image asset, or a subscribable which provides it.
+   * @param iconAnchor The point on the icon that is anchored to the airplane's position, or a subscribable which
+   * provides it. The point is expressed as a 2-tuple relative to the icon's width and height, with `[0, 0]` at the
+   * top left and `[1, 1]` at the bottom right.
+   * @param cssClass The CSS class(es) to apply to the root of the airplane icon layer.
+   * @param order The order assigned to the icon layer. Layers with lower assigned order will be attached to the map
+   * before and appear below layers with greater assigned order values. Defaults to the number of layers already added
+   * to this builder.
+   * @returns This builder, after it has been configured.
+   */
+  public withOwnAirplaneIcon(
+    iconSize: number,
+    iconFilePath: string | Subscribable<string>,
+    iconAnchor: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>,
+    cssClass?: string | SubscribableSet<string>,
+    order?: number
+  ): this {
+    return this
+      .withModule(MapSystemKeys.OwnAirplaneProps, () => new MapOwnAirplanePropsModule())
+      .withModule(MapSystemKeys.OwnAirplaneIcon, () => new MapOwnAirplaneIconModule())
+      .withLayer<MapOwnAirplaneLayer, MapOwnAirplaneLayerModules>(MapSystemKeys.OwnAirplaneIcon, (context): VNode => {
+        return (
+          <MapOwnAirplaneLayer
+            model={context.model}
+            mapProjection={context.projection}
+            imageFilePath={typeof iconFilePath === 'string' ? Subject.create(iconFilePath) : iconFilePath}
+            iconSize={iconSize}
+            iconAnchor={'isSubscribable' in iconAnchor ? iconAnchor : Subject.create(iconAnchor)}
+            class={cssClass}
+          />
+        );
+      }, order);
+  }
+
+  /**
+   * Configures this builder to bind properties in an added {@link MapOwnAirplanePropsModule} to data derived from
+   * event bus events.
+   *
+   * Requires the module `[MapSystemKeys.OwnAirplaneProps]: MapOwnAirplanePropsModule`.
+   *
+   * Adds the controller `[MapSystemKeys.OwnAirplaneProps]: MapOwnAirplanePropsController`.
+   * @param properties The properties to bind.
+   * @param updateFreq The update frequency, in hertz, or a subscribable which provides it.
+   * @returns This builder, after it has been configured.
+   */
+  public withOwnAirplanePropBindings<UseModules = any>(
+    properties: Iterable<MapOwnAirplanePropsKey>,
+    updateFreq: number | Subscribable<number>
+  ): ConditionalReturn<
+    DefaultIfAny<UseModules, Modules>,
+    MapOwnAirplanePropsControllerModules,
+    any, any,
+    any, any,
+    this
+  > {
+    return this.withController<MapOwnAirplanePropsController, MapOwnAirplanePropsControllerModules>(
+      MapSystemKeys.OwnAirplaneProps,
+      context => new MapOwnAirplanePropsController(context, properties, typeof updateFreq === 'number' ? Subject.create(updateFreq) : updateFreq)
+    ) as any;
+  }
+
+  /**
+   * Configures this builder to add a module describing the player airplane's autopilot properties, and optionally
+   * binds the module's properties to data received over the event bus.
+   *
+   * Adds the following...
+   *
+   * Modules:
+   * * `[MapSystemKeys.AutopilotProps]: MapAutopilotPropsModule`
+   *
+   * Controllers:
+   * * `[MapSystemKeys.AutopilotProps]: MapAutopilotPropsController` (optional)
+   * @param propertiesToBind Properties on the autopilot module to bind to data received over the event bus.
+   * @param updateFreq The update frequency, in hertz, of the data bindings, or a subscribable which provides it. If
+   * not defined, the data bindings will update every frame. Ignored if `propertiesToBind` is undefined.
+   * @returns This builder, after it has been configured.
+   */
+  public withAutopilotProps(
+    propertiesToBind?: Iterable<MapAutopilotPropsKey>,
+    updateFreq?: number | Subscribable<number>
+  ): this {
+    this.withModule(MapSystemKeys.AutopilotProps, () => new MapAutopilotPropsModule());
+
+    if (propertiesToBind !== undefined) {
+      this.withController<MapAutopilotPropsController, MapAutopilotPropsControllerModules>(
+        MapSystemKeys.AutopilotProps,
+        context => new MapAutopilotPropsController(
+          context,
+          propertiesToBind,
+          typeof updateFreq === 'number' ? Subject.create(updateFreq) : updateFreq
+        )
+      );
     }
 
-    this.context.layerFactories.push({
-      key: MapSystemWaypointsLayer.name,
-      factory: (context: MapSystemContext): VNode => <MapSystemWaypointsLayer bus={context.bus} waypointRenderer={context.waypointRenderer} model={context.model}
-        mapProjection={context.projection} iconFactory={context.iconFactory} labelFactory={context.labelFactory} useMapTargetAsSearchCenter={useMapTargetAsSearchCenter} />
-    });
-
-    return this.withTextLabels();
+    return this;
   }
 
   /**
-   * Adds a flight plan display to the map system.
-   * @param flightPlanner The flight planner to use with this layer. If more than one flight play display
-   * layer is added, subsequent layers will use the same flight planner.
+   * Configures this builder to generate a map which includes a layer displaying text.
+   *
+   * Adds the following...
+   *
+   * Context properties:
+   * * `[MapSystemKeys.TextManager]: MapCullableTextLabelManager`
+   *
+   * Layers:
+   * * `[MapSystemKeys.TextLayer]: MapCullableTextLayer`
+   * @param enableCulling Whether to enable text culling. Defaults to `false`.
+   * @param order The order value to assign to the text layer. Layers with lower assigned order will be attached to
+   * the map before and appear below layers with greater assigned order values. Defaults to the number of layers
+   * already added to this builder.
+   * @returns This builder, after it has been configured.
+   */
+  public withTextLayer(enableCulling: boolean, order?: number): this {
+    return this.withContext(MapSystemKeys.TextManager, () => new MapCullableTextLabelManager(enableCulling))
+      .withLayer(MapSystemKeys.TextLayer, (context): VNode => {
+        return (
+          <MapCullableTextLayer
+            model={context.model}
+            mapProjection={context.projection}
+            manager={context.textManager}
+          />
+        );
+      }, order);
+  }
+
+  /**
+   * Configures this builder to generate a map which displays Bing Map terrain and weather.
+   *
+   * Adds the following...
+   *
+   * Modules:
+   * * `[MapSystemKeys.TerrainColors]: MapTerrainColorsModule`
+   * * `[MapSystemKeys.Weather]: MapWxrModule`
+   *
+   * Layers:
+   * * `[MapSystemKeys.Bing]: MapBingLayer`
+   * @param bingId The ID to assign to the Bing Map instance bound to the layer.
+   * @param delay The delay, in milliseconds, to wait after the Bing layer has been rendered before attempting to bind
+   * a Bing Map instance.
+   * @param mode The mode of the map, optional. If omitted, will be EBingMode.PLANE.
+   * @param order The order value to assign to the Bing layer. Layers with lower assigned order will be attached to the
+   * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
+   * added to the map builder.
+   * @returns This builder, after it has been configured.
+   */
+  public withBing(
+    bingId: string,
+    delay = 0,
+    mode?: EBingMode,
+    order?: number
+  ): this {
+    return this
+      .withModule(MapSystemKeys.TerrainColors, () => new MapTerrainColorsModule())
+      .withModule(MapSystemKeys.Weather, () => new MapWxrModule())
+      .withLayer<MapBingLayer, {
+        [MapSystemKeys.TerrainColors]: MapTerrainColorsModule,
+        [MapSystemKeys.Weather]: MapWxrModule
+      }>(MapSystemKeys.Bing, context => {
+        const terrainColors = context.model.getModule('terrainColors');
+        const weather = context.model.getModule('weather');
+
+        return (
+          <MapBingLayer
+            model={context.model}
+            mapProjection={context.projection}
+            bingId={bingId}
+            reference={terrainColors.reference}
+            earthColors={terrainColors.colors}
+            isoLines={terrainColors.showIsoLines}
+            wxrMode={weather.wxrMode}
+            mode={mode}
+            delay={delay}
+          />
+        );
+      }, order);
+  }
+
+  /**
+   * Configures this builder to generate a map which uses a {@link MapSystemWaypointsRenderer} to render waypoints.
+   *
+   * Requires the `[MapSystemKeys.TextManager]: MapCullableTextLabelManager` context property.
+   *
+   * Adds the `[MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer` context property.
+   * @returns This builder, after it has been configured.
+   */
+  public withWaypoints<UseContext = any>(
+  ): ConditionalReturn<
+    any, any,
+    any, any,
+    DefaultIfAny<UseContext, Context>, { [MapSystemKeys.TextManager]: MapCullableTextLabelManager },
+    this
+  > {
+    return this
+      .withContext(MapSystemKeys.WaypointRenderer, context => new MapSystemWaypointsRenderer(context[MapSystemKeys.TextManager]))
+      .withController<
+        MapSystemGenericController<any, any, any, { [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer }>,
+        any, any, any,
+        { [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer }
+      >(
+        'waypointRendererUpdate',
+        context => new MapSystemGenericController(
+          context,
+          {
+            onAfterUpdated: (contextArg): void => { contextArg[MapSystemKeys.WaypointRenderer].update(context.projection); }
+          }
+        )
+      ) as any;
+  }
+
+  /**
+   * Configures this builder to generate a map which displays waypoints near the map center or target. Waypoints
+   * displayed in this manner are rendered by a {@link MapSystemWaypointsRenderer}.
+   *
+   * If a text layer has already been added to the builder, its order will be changed so that it is rendered above the
+   * waypoint layer. Otherwise, a text layer will be added to the builder after the waypoint layer.
+   *
+   * Adds the following...
+   *
+   * Context properties:
+   * * `[MapSystemKeys.TextManager]: MapCullableTextLabelManager`
+   * * `[MapSystemKeys.IconFactory]: MapSystemIconFactory`
+   * * `[MapSystemKeys.LabelFactory]: MapSystemLabelFactory`
+   *
+   * Modules:
+   * * `[MapSystemKeys.NearestWaypoints]: MapWaypointDisplayModule`
+   *
+   * Layers:
+   * * `[MapSystemKeys.NearestWaypoints]: MapSystemWaypointsLayer`
+   * * `[MapSystemKeys.TextLayer]: MapCullableTextLayer`
+   * @param configure A function to configure the waypoint display.
+   * @param enableTextCulling Whether to enable text culling on the text manager.
+   * @param order The order to assign to the waypoint layer. Layers with lower assigned order will be attached to the
+   * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
+   * added to this builder.
+   * @returns This builder, after it has been configured.
+   */
+  public withNearestWaypoints(
+    configure: (builder: WaypointDisplayBuilder) => void,
+    enableTextCulling = false,
+    order?: number
+  ): this {
+    this
+      .withTextLayer(enableTextCulling)
+      .withModule(MapSystemKeys.NearestWaypoints, () => new MapWaypointDisplayModule())
+      .withWaypoints()
+      .withContext(MapSystemKeys.IconFactory, () => new MapSystemIconFactory())
+      .withContext(MapSystemKeys.LabelFactory, () => new MapSystemLabelFactory())
+      .withContext<{
+        [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
+        [MapSystemKeys.IconFactory]: MapSystemIconFactory,
+        [MapSystemKeys.LabelFactory]: MapSystemLabelFactory
+      }>('useTargetAsWaypointSearchCenter', context => {
+        context[MapSystemKeys.WaypointRenderer].addRenderRole(MapSystemWaypointRoles.Normal, undefined, MapSystemWaypointRoles.Normal);
+
+        const builder = new WaypointDisplayBuilder(context[MapSystemKeys.IconFactory], context[MapSystemKeys.LabelFactory], context[MapSystemKeys.WaypointRenderer]);
+        configure(builder);
+        return builder.getIsCenterTarget();
+      });
+
+    const layerCount = this.layerCount;
+
+    return this
+      .withLayer<
+        MapSystemWaypointsLayer,
+        MapSystemWaypointsLayerModules,
+        {
+          [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
+          [MapSystemKeys.IconFactory]: MapSystemIconFactory,
+          [MapSystemKeys.LabelFactory]: MapSystemLabelFactory,
+          'useTargetAsWaypointSearchCenter': boolean
+        }
+      >(MapSystemKeys.NearestWaypoints, context => {
+        return (
+          <MapSystemWaypointsLayer
+            bus={context.bus}
+            waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
+            model={context.model}
+            mapProjection={context.projection}
+            iconFactory={context[MapSystemKeys.IconFactory]}
+            labelFactory={context[MapSystemKeys.LabelFactory]}
+            useMapTargetAsSearchCenter={context.useTargetAsWaypointSearchCenter}
+          />
+        );
+      }, order)
+      .withLayerOrder(MapSystemKeys.TextLayer, order ?? layerCount);
+  }
+
+  /**
+   * Configures this builder to generate a map which displays a flight plan. Waypoints displayed as part of the flight
+   * plan are rendered by a {@link MapSystemWaypointsRenderer}.
+   *
+   * If a text layer has already been added to the builder, its order will be changed so that it is rendered above the
+   * waypoint layer. Otherwise, a text layer will be added to the builder after the waypoint layer.
+   *
+   * Adds the following...
+   *
+   * Context properties:
+   * * `[MapSystemKeys.FlightPlanner]: FlightPlanner`
+   * * `[MapSystemKeys.TextManager]: MapCullableTextLabelManager`
+   * * `[MapSystemKeys.IconFactory]: MapSystemIconFactory`
+   * * `[MapSystemKeys.LabelFactory]: MapSystemLabelFactory`
+   * * `[MapSystemKeys.FlightPathRenderer]: MapSystemPlanRenderer`
+   *
+   * Modules:
+   * * `[MapSystemKeys.FlightPlan]: MapFlightPlanModule`
+   *
+   * Layers:
+   * * `` `${[MapSystemKeys.FlightPlan]}${planIndex}`: MapSystemFlightPlanLayer ``
+   * * `[MapSystemKeys.TextLayer]: MapCullableTextLayer`
+   *
+   * Controllers:
+   * * `[MapSystemKeys.FlightPlan]: MapFlightPlanController`
+   * @param configure A function to configure the waypoint display.
+   * @param flightPlanner The flight planner.
    * @param planIndex The index of the flight plan to display.
-   * @param builder An optional configuration builder that will configure the flight plan display.
-   * @returns The modified MapSystemBuilder.
+   * @param enableTextCulling Whether to enable text culling on the text manager.
+   * @param order The order to assign to the plan layer. Layers with lower assigned order will be attached to the
+   * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
+   * added to this builder.
+   * @returns This builder, after it has been configured.
    */
-  public withFlightPlanDisplay(flightPlanner: FlightPlanner, planIndex: number,
-    builder?: (context: MapSystemContext, builder: FlightPlanDisplayBuilder) => void): this {
-    const existingModule = this.context.moduleFactories.has(MapFlightPlanModule.name);
-    if (!existingModule) {
-      this.context.moduleFactories.set(MapFlightPlanModule.name, context => new MapFlightPlanModule(flightPlanner, context));
-    }
+  public withFlightPlan(
+    configure: (builder: FlightPlanDisplayBuilder) => void,
+    flightPlanner: FlightPlanner,
+    planIndex: number,
+    enableTextCulling = false,
+    order?: number
+  ): this {
+    this
+      .withTextLayer(enableTextCulling)
+      .withModule(MapSystemKeys.FlightPlan, () => new MapFlightPlanModule())
+      .withWaypoints()
+      .withContext(MapSystemKeys.FlightPlanner, () => flightPlanner)
+      .withContext(MapSystemKeys.IconFactory, () => new MapSystemIconFactory())
+      .withContext(MapSystemKeys.LabelFactory, () => new MapSystemLabelFactory())
+      .withContext(MapSystemKeys.FlightPathRenderer, () => new MapSystemPlanRenderer(1))
+      .withController<
+        MapFlightPlanController,
+        MapFlightPlanControllerModules,
+        any, any,
+        MapFlightPlanControllerContext
+      >(MapSystemKeys.FlightPlan, context => new MapFlightPlanController(context))
+      .withInit<
+        any, any, any,
+        {
+          [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
+          [MapSystemKeys.IconFactory]: MapSystemIconFactory,
+          [MapSystemKeys.LabelFactory]: MapSystemLabelFactory,
+          [MapSystemKeys.FlightPathRenderer]: MapSystemPlanRenderer,
+        }
+      >(`${MapSystemKeys.FlightPlan}${planIndex}`, context => {
+        const builder = new FlightPlanDisplayBuilder(
+          context[MapSystemKeys.IconFactory],
+          context[MapSystemKeys.LabelFactory],
+          context[MapSystemKeys.WaypointRenderer],
+          context[MapSystemKeys.FlightPathRenderer],
+          planIndex
+        );
 
-    this.context.layerFactories.push({
-      key: `${MapSystemFlightPlanLayer.name}_${planIndex}`,
-      factory: context => (<MapSystemFlightPlanLayer bus={context.bus} waypointRenderer={context.waypointRenderer}
-        iconFactory={context.iconFactory} labelFactory={context.labelFactory} mapProjection={context.projection} model={context.model}
-        flightPathRenderer={context.planRenderer} planIndex={planIndex} />)
-    });
+        context[MapSystemKeys.WaypointRenderer].insertRenderRole(MapSystemWaypointRoles.FlightPlan, MapSystemWaypointRoles.Normal, undefined, `${MapSystemWaypointRoles.FlightPlan}_${planIndex}`);
+        configure(builder);
+      });
 
-    if (builder !== undefined) {
-      const b = new FlightPlanDisplayBuilder(this.context.iconFactory, this.context.labelFactory,
-        this.context.waypointRenderer, this.context.planRenderer, planIndex);
-      builder(this.context, b);
-    }
+    const layerCount = this.layerCount;
 
-    const flightPlanRoles = this.context.waypointRenderer.getRoleNamesByGroup(`${MapSystemWaypointRoles.FlightPlan}_${planIndex}`);
-    if (flightPlanRoles.length === 0) {
-      this.context.waypointRenderer.insertRenderRole(MapSystemWaypointRoles.FlightPlan, MapSystemWaypointRoles.Normal, undefined, `${MapSystemWaypointRoles.FlightPlan}_${planIndex}`);
-    }
-
-    return this.withTextLabels();
+    return this
+      .withLayer<
+        MapSystemFlightPlanLayer,
+        MapSystemFlightPlanLayerModules,
+        {
+          [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
+          [MapSystemKeys.IconFactory]: MapSystemIconFactory,
+          [MapSystemKeys.LabelFactory]: MapSystemLabelFactory,
+          [MapSystemKeys.FlightPathRenderer]: MapSystemPlanRenderer,
+        }
+      >(`${MapSystemKeys.FlightPlan}${planIndex}`, (context) => {
+        return (
+          <MapSystemFlightPlanLayer
+            bus={context.bus}
+            waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
+            model={context.model}
+            mapProjection={context.projection}
+            iconFactory={context[MapSystemKeys.IconFactory]}
+            labelFactory={context[MapSystemKeys.LabelFactory]}
+            flightPathRenderer={context[MapSystemKeys.FlightPathRenderer]}
+            planIndex={planIndex}
+          />
+        );
+      }, order)
+      .withLayerOrder(MapSystemKeys.TextLayer, order ?? layerCount);
   }
 
   /**
-   * Adds a traffic display to the map system.
+   * Configures this builder to generate a map which displays airspaces.
+   *
+   * Adds the following...
+   *
+   * Context properties:
+   * * `[MapSystemKeys.AirspaceManager]: GenericAirspaceRenderManager`
+   *
+   * Modules:
+   * * `[MapSystemKeys.Airspace]: MapAirspaceModule`
+   *
+   * Layers:
+   * * `[MapSystemKeys.Airspace]: MapAirspaceLayer`
+   * @param cache The airspace cache to use to store airspaces retrieved for rendering.
+   * @param showTypes The airspace show types to define in the airspace module. Each show type will be assigned a
+   * {@link Subject} in the `show` property of the module. The Subject controls the visibility of airspace types
+   * included in its show type. Airspace types that are not included in any defined show type will never be displayed.
+   * @param selectRenderer A function which selects a {@link MapAirspaceRenderer}
+   * @param renderOrder A function which determines the rendering order of airspaces. The function should return a
+   * negative number when airspace `a` should be rendered before (below) airspace `b`, a positive number when airspace
+   * `a` should be rendered after (above) airspace `b`, and `0` when the relative render order of the two airspaces
+   * does not matter. If not defined, there will be no guarantee on the order in which airspaces are rendered.
+   * @param options Options for the airspace layer. Option defaults are as follows:
+   * * `maxSearchRadius`: 10 nautical miles
+   * * `maxSearchItemCount`: 100
+   * * `searchDebounceDelay`: 500 (milliseconds)
+   * * `renderTimeBudget`: 0.2 (milliseconds)
+   * @param order The order to assign to the airspace layer. Layers with lower assigned order will be attached to the
+   * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
+   * added to this builder.
+   * @returns This builder, after it has been configured.
+   */
+  public withAirspaces(
+    cache: LodBoundaryCache,
+    showTypes: MapAirspaceShowTypes,
+    selectRenderer: (airspace: LodBoundary) => MapAirspaceRenderer,
+    renderOrder: (a: LodBoundary, b: LodBoundary) => number = (): number => 0,
+    options?: Partial<Pick<MapAirspaceLayerProps, 'maxSearchRadius' | 'maxSearchItemCount' | 'searchDebounceDelay' | 'renderTimeBudget'>>,
+    order?: number
+  ): this {
+    return this
+      .withModule(MapSystemKeys.Airspace, () => new MapAirspaceModule(showTypes))
+      .withContext(MapSystemKeys.AirspaceManager, () => new GenericAirspaceRenderManager(renderOrder, selectRenderer))
+      .withLayer<
+        MapAirspaceLayer,
+        MapAirspaceLayerModules,
+        { [MapSystemKeys.AirspaceManager]: GenericAirspaceRenderManager }
+      >(MapSystemKeys.Airspace, context => {
+        const optionsToUse = { ...options };
+
+        optionsToUse.maxSearchRadius ??= Subject.create(UnitType.NMILE.createNumber(10));
+        optionsToUse.maxSearchItemCount ??= Subject.create(100);
+
+        return (
+          <MapAirspaceLayer
+            model={context.model}
+            mapProjection={context.projection}
+            bus={context.bus}
+            lodBoundaryCache={cache}
+            airspaceRenderManager={context[MapSystemKeys.AirspaceManager]}
+            {...(optionsToUse as any)}
+          />
+        );
+      }, order);
+  }
+
+  /**
+   * Configures this builder to generate a map which displays TCAS intruders.
+   *
+   * Adds the following...
+   *
+   * Modules:
+   * * `[MapSystemKeys.OwnAirplaneProps]: MapOwnAirplanePropsModule`
+   * * `[MapSystemKeys.Traffic]: MapTrafficModule`
+   *
+   * Layers:
+   * * `[MapSystemKeys.Traffic]: MapSystemTrafficLayer`
    * @param tcas The TCAS used by the traffic display.
    * @param iconFactory A function which creates intruder icons for the traffic display.
    * @param initCanvasStyles A function which initializes global canvas styles for the traffic display.
-   * @returns The modified MapSystemBuilder.
+   * @param offScaleOobOptions A function which generates options for handling off-scale and out-of-bounds intruders.
+   * @param order The order to assign to the traffic layer. Layers with lower assigned order will be attached to the
+   * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
+   * added to this builder.
+   * @returns This builder, after it has been configured.
    */
-  public withTrafficDisplay(tcas: TCAS, iconFactory: MapTrafficIntruderIconFactory, initCanvasStyles?: (context: CanvasRenderingContext2D) => void): this {
-    this.context.moduleFactories.set(MapTrafficModule.name, context => new MapTrafficModule(tcas, context));
+  public withTraffic<
+    UseModules = any,
+    UseLayers extends LayerRecord = any,
+    UserControllers extends ControllerRecord = any,
+    UseContext = any
+  >(
+    tcas: Tcas,
+    iconFactory: MapTrafficIntruderIconFactory<
+      DefaultIfAny<UseModules, Modules>,
+      DefaultIfAny<UseLayers, Layers>,
+      DefaultIfAny<UserControllers, Controllers>,
+      DefaultIfAny<UseContext, Context>
+    >,
+    initCanvasStyles?: (context: CanvasRenderingContext2D) => void,
+    offScaleOobOptions?: (
+      context: MapSystemContext<
+        DefaultIfAny<UseModules, Modules>,
+        DefaultIfAny<UseLayers, Layers>,
+        DefaultIfAny<UserControllers, Controllers>,
+        DefaultIfAny<UseContext, Context>
+      >) => TrafficOffScaleOobOptions,
+    order?: number
+  ): this {
+    return this
+      .withModule(MapSystemKeys.OwnAirplaneProps, () => new MapOwnAirplanePropsModule())
+      .withModule(MapSystemKeys.Traffic, () => new MapTrafficModule(tcas))
+      .withLayer<MapSystemTrafficLayer, MapSystemTrafficLayerModules>('traffic', context => {
 
-    this.context.layerFactories.push({
-      key: MapSystemTrafficLayer.name,
-      factory: (context: MapSystemContext): VNode => {
+        const options = offScaleOobOptions !== undefined ? { ...offScaleOobOptions(context as any) } : {};
+
+        if (options.oobOffset !== undefined && !('isSubscribable' in options.oobOffset)) {
+          options.oobOffset = Subject.create(options.oobOffset);
+        }
+
         return (
           <MapSystemTrafficLayer
-            bus={context.bus} model={context.model} mapProjection={context.projection}
-            iconFactory={iconFactory} initCanvasStyles={initCanvasStyles}
+            context={context}
+            model={context.model}
+            mapProjection={context.projection}
+            iconFactory={iconFactory}
+            initCanvasStyles={initCanvasStyles}
+            {...options as any}
           />
         );
-      }
-    });
-
-    return this;
+      }, order);
   }
 
   /**
-   * Adds the text label layer to the map system. If the text label layer was already added, then it will
-   * be moved to the top of the layer stack.
-   * @param cullingEnabled True if text label collision culling should be enabled, false otherwise.
-   * @returns The modified MapSystemBuilder.
+   * Configures this builder using a custom build step.
+   * @param builder A function which defines a custom build step.
+   * @param args Arguments to pass to the custom build function.
+   * @returns This builder, after it has been configured.
    */
-  public withTextLabels(cullingEnabled?: boolean): this {
-    const existingLayerIndex = this.context.layerFactories.findIndex(v => v.key === MapCullableTextLayer.name);
-    if (existingLayerIndex !== -1) {
-      this.context.layerFactories.splice(existingLayerIndex, 1);
-    }
-
-    if (cullingEnabled !== undefined) {
-      this.context.textManager.setCullingEnabled(cullingEnabled);
-    }
-
-    this.context.layerFactories.push({
-      key: MapCullableTextLayer.name,
-      factory: (context: MapSystemContext): VNode => <MapCullableTextLayer manager={context.textManager} model={context.model} mapProjection={context.projection} />
-    });
-
-    return this;
+  public with<
+    Builder extends MapSystemCustomBuilder<any[], any, any>,
+    UseModules = any,
+    UseLayers extends LayerRecord = any,
+    UseContext = any
+  >(
+    builder: Builder,
+    ...args: CustomBuilderArgs<Builder>
+  ): ConditionalReturn<
+    DefaultIfAny<UseModules, Modules>,
+    RequiredCustomBuilderModules<Builder>,
+    DefaultIfAny<UseLayers, Layers>,
+    RequiredCustomBuilderLayers<Builder>,
+    DefaultIfAny<UseContext, Context>,
+    RequiredCustomBuilderContext<Builder>,
+    this
+  > {
+    return builder(this, ...args) as any;
   }
 
   /**
-   * Configures the map system such that the map position center is offset by the specified [x, y]
-   * number of pixels.
-   * @param offset The offset in pixels, in [x, y] format.
-   * @returns The modified MapSystemBuilder.
+   * Compiles a map. The compiled map consists of a map context, a rendered map (as a VNode), and a node reference to
+   * the rendered map component.
+   *
+   * The compiled map will be bound to a model (accessible through the map context) which contains all the modules
+   * added to this builder.
+   *
+   * The map will also contain all layers added to this builder, with layers assigned lower order values appearing
+   * below layers assigned greater order values. The layers can be retrieved by their keys from the map context.
+   *
+   * All controllers added to this builder will be created with the map and hooked up to the map's lifecycle callbacks.
+   * The controllers can be retrieved by their keys from the map context.
+   * @param cssClass The CSS class(es) to apply to the root of the rendered map component.
+   * @returns A compiled map.
    */
-  public withCenterOffset(offset: Float64Array): this {
-    this.context.projection.set({ targetProjectedOffset: offset });
-    return this;
-  }
+  public build<
+    UseModules = any,
+    UseLayers extends LayerRecord = any,
+    UseControllers extends ControllerRecord = any,
+    UseContext = any
+  >(
+    cssClass?: string | SubscribableSet<string>
+  ): CompiledMapSystem<
+    DefaultIfAny<UseModules, Modules>,
+    DefaultIfAny<UseLayers, Layers>,
+    DefaultIfAny<UseControllers, Controllers>,
+    DefaultIfAny<UseContext, Context>
+  > {
+    const context = this.buildContext();
 
-  /**
-   * Configures the map system to the specified projected size. The map projection will automatically
-   * add sufficient boundary outsize of this projected size to account for map corners during map rotations.
-   * @param size The projected size of the map in pixels, in [width, height] format.
-   * @returns The modified MapSystemBuilder.
-   */
-  public withSize(size: Float64Array): this {
-    this.context.size = size;
-    return this;
-  }
+    const controllers: MapSystemController<any, any, any>[] = [];
 
-  /**
-   * Configures the map system to wait a certain amount of time before binding the map.
-   * This is mainly used as a workaround for a native bug in the weather renderer
-   * to make some instruments bind the map beofre others.
-   * If you don't know if you have the issue, then you don't have to use this setting.
-   * @param delay How long to delay in ms before binding the map.
-   * @returns The modified MapSystemBuilder.
-   */
-  public withDelay(delay: number): this {
-    this.context.delay = delay;
-    return this;
-  }
+    const ref = FSComponent.createRef<MapSystemComponent<MapSystemComponentProps<DefaultIfAny<UseModules, Modules>>>>();
 
-  /**
-   * Configures the map system to add a layer to the map. Layers are rendered in the order
-   * that they are added to the system.
-   * @param key The string key of the layer.
-   * @param factory The factory that constructs the layer.
-   * @returns The modified MapSystemBuilder.
-   */
-  public withLayer(key: string, factory: (context: MapSystemContext) => VNode): this {
-    this.context.layerFactories.push({ key, factory });
-    return this;
-  }
+    const onAfterRender = (): void => {
+      for (let i = 0; i < controllers.length; i++) {
+        if (!controllers[i].isAlive) {
+          controllers.splice(i, 1);
+          i--;
+        }
 
-  /**
-   * Configures the map system to add a map data module to the map. Modules may request that other
-   * modules be present when the map system is built; if these modules are not added then the map
-   * system may fail to build.
-   * @param key The string key of the map data module, which may be used by other modules to check for
-   * module dependencies.
-   * @param factory The factory that constructs the module.
-   * @returns The modified MapSystemBuilder.
-   */
-  public withModule(key: string, factory: (context: MapSystemContext) => MapModule): this {
-    this.context.moduleFactories.set(key, factory);
-    return this;
-  }
-
-  /**
-   * Configures the map system to use a controller, which is constructed after the map system has rendered.
-   * @param controller The controller to use.
-   * @param args The arguments to pass to the controller's constructor.
-   * @returns The modified map builder.
-   */
-  public withController<T extends new (...args: [ReadOnlyMapSystemContext, ...any | never]) => any>(controller: T, ...args: ControllerParams<T>): this {
-    if (args === undefined || (args !== undefined && args.length === 0)) {
-      args = [this.context] as any;
-    } else {
-      args.splice(0, 0, this.context);
-    }
-
-    this.context.controllers.push({ factory: controller, args: args });
-    return this;
-  }
-
-  /**
-   * A generalized builder function that supplies the current map system context.
-   * @param builder The builder to use to configure the map system.
-   * @returns The modified MapSystemBuilder.
-   */
-  public with(builder: (context: MapSystemContext) => void): this {
-    builder(this.context);
-    return this;
-  }
-
-  /**
-   * Configures the map to synchronize at a specified refresh rate.
-   * @param refreshRate The refresh rate to update at, in Hz.
-   * @returns The modified MapSystemBuilder.
-   */
-  public withRefreshRate(refreshRate: number): this {
-    this.context.refreshRate = refreshRate;
-    return this;
-  }
-
-  /**
-   * Builds the map system and returns a dynamic component that can be used to render
-   * the built map system.
-   * @returns The compiled map system.
-   */
-  public build(): CompiledMapSystem {
-    const ref = FSComponent.createRef<MapComponent>();
-    const compiledMapSystem: CompiledMapSystem = {
-      context: this.context,
-      ref: ref,
-      Map: (props: MapSystemProps): MapComponent => {
-        this.context.buildModel();
-        this.context.bingId = props.bingId;
-
-        const systemProps: MapSystemComponentProps = {
-          model: this.context.model,
-          children: this.context.layerFactories.map(f => {
-            const vnode = f.factory(this.context);
-            this.context.layers.set(f.key, vnode.instance as MapLayer<any>);
-
-            return vnode;
-          }),
-          class: props.class,
-          bus: this.context.bus,
-          updateFreq: Subject.create(this.context.refreshRate),
-          projectedWidth: this.context.size[0],
-          projectedHeight: this.context.size[1],
-          projection: this.context.projection,
-          ref: ref,
-          context: this.context
-        };
-
-        this.context.bus.getSubscriber<ClockEvents>().on('realTime').handle(() => this.context.projection.applyQueued());
-
-        ref.instance = new MapSystemComponent(systemProps);
-        return ref.instance;
+        try {
+          controllers[i].onAfterMapRender(ref.instance);
+        } catch (e) {
+          console.error(`MapSystem: error in controller .onAfterMapRender() callback: ${e}`);
+          if (e instanceof Error) {
+            console.error(e.stack);
+          }
+        }
       }
     };
 
-    return compiledMapSystem;
-  }
+    const onDeadZoneChanged = (deadZone: ReadonlyFloat64Array): void => {
+      for (let i = 0; i < controllers.length; i++) {
+        if (!controllers[i].isAlive) {
+          controllers.splice(i, 1);
+          i--;
+        }
 
-  /**
-   * Builds the default map system BingMap layer.
-   * @param context The map system context.
-   * @returns The built default BingMap layer.
-   */
-  protected buildDefaultBingLayer(context: MapSystemContext): VNode {
-    const colorModule = this.context.model.getModule(MapColorsModule.name) as MapColorsModule;
-    const wxrModule = this.context.model.getModule(MapWxrModule.name) as MapWxrModule;
+        try {
+          controllers[i].onDeadZoneChanged(deadZone);
+        } catch (e) {
+          console.error(`MapSystem: error in controller .onDeadZoneChanged() callback: ${e}`);
+          if (e instanceof Error) {
+            console.error(e.stack);
+          }
+        }
+      }
+    };
 
-    return (
-      <MapBingLayer
-        bingId={context.bingId}
-        mapProjection={context.projection}
-        earthColors={colorModule.colors}
-        reference={colorModule.terrainReference}
+    const onMapProjectionChanged = (mapProjection: MapProjection, changeFlags: number): void => {
+      for (let i = 0; i < controllers.length; i++) {
+        if (!controllers[i].isAlive) {
+          controllers.splice(i, 1);
+          i--;
+        }
+
+        try {
+          controllers[i].onMapProjectionChanged(mapProjection, changeFlags);
+        } catch (e) {
+          console.error(`MapSystem: error in controller .onMapProjectionChanged() callback: ${e}`);
+          if (e instanceof Error) {
+            console.error(e.stack);
+          }
+        }
+      }
+    };
+
+    const onBeforeUpdated = (time: number, elapsed: number): void => {
+      for (let i = 0; i < controllers.length; i++) {
+        if (!controllers[i].isAlive) {
+          controllers.splice(i, 1);
+          i--;
+        }
+
+        try {
+          controllers[i].onBeforeUpdated(time, elapsed);
+        } catch (e) {
+          console.error(`MapSystem: error in controller .onBeforeUpdated() callback: ${e}`);
+          if (e instanceof Error) {
+            console.error(e.stack);
+          }
+        }
+      }
+
+      context.projection.applyQueued();
+    };
+
+    const onAfterUpdated = (time: number, elapsed: number): void => {
+      for (let i = 0; i < controllers.length; i++) {
+        if (!controllers[i].isAlive) {
+          controllers.splice(i, 1);
+          i--;
+        }
+
+        try {
+          controllers[i].onAfterUpdated(time, elapsed);
+        } catch (e) {
+          console.error(`MapSystem: error in controller .onAfterUpdated() callback: ${e}`);
+          if (e instanceof Error) {
+            console.error(e.stack);
+          }
+        }
+      }
+    };
+
+    const onWake = (): void => {
+      for (let i = 0; i < controllers.length; i++) {
+        if (!controllers[i].isAlive) {
+          controllers.splice(i, 1);
+          i--;
+        }
+
+        try {
+          controllers[i].onWake();
+        } catch (e) {
+          console.error(`MapSystem: error in controller .onWake() callback: ${e}`);
+          if (e instanceof Error) {
+            console.error(e.stack);
+          }
+        }
+      }
+    };
+
+    const onSleep = (): void => {
+      for (let i = 0; i < controllers.length; i++) {
+        if (!controllers[i].isAlive) {
+          controllers.splice(i, 1);
+          i--;
+        }
+
+        try {
+          controllers[i].onSleep();
+        } catch (e) {
+          console.error(`MapSystem: error in controller .onSleep() callback: ${e}`);
+          if (e instanceof Error) {
+            console.error(e.stack);
+          }
+        }
+      }
+    };
+
+    const onDestroy = (): void => {
+      for (let i = 0; i < controllers.length; i++) {
+        if (!controllers[i].isAlive) {
+          controllers.splice(i, 1);
+          i--;
+        }
+
+        try {
+          controllers[i].onMapDestroyed();
+        } catch (e) {
+          console.error(`MapSystem: error in controller .onMapDestroyed() callback: ${e}`);
+          if (e instanceof Error) {
+            console.error(e.stack);
+          }
+        }
+      }
+    };
+
+    const map = (
+      <MapSystemComponent<MapSystemComponentProps<Modules>>
+        ref={ref}
         model={context.model}
-        wxrMode={wxrModule.wxrMode}
-        delay={context.delay}
-      />
+        projection={context.projection}
+        bus={context.bus}
+        projectedSize={this.projectedSize}
+        onAfterRender={onAfterRender}
+        onDeadZoneChanged={onDeadZoneChanged}
+        onMapProjectionChanged={onMapProjectionChanged}
+        onBeforeUpdated={onBeforeUpdated}
+        onAfterUpdated={onAfterUpdated}
+        onWake={onWake}
+        onSleep={onSleep}
+        onDestroy={onDestroy}
+        class={cssClass}
+      >
+        {Array.from(this.layerFactories.values()).sort((a, b) => a.order - b.order).map(factory => {
+          const node = factory.factory(context);
+          context.setLayer(factory.key, node.instance as Layers[keyof Layers]);
+          return node;
+        })}
+      </MapSystemComponent>
     );
-  }
 
-  /**
-   * Builds the default waypoint display layers.
-   * @param useTargetAsSearchCenter Whether or not to use the map target as the waypoint search center instead
-   * of the map center.
-   * @returns The built default waypoint display layers.
-   */
-  protected buildDefaultWaypointLayer(useTargetAsSearchCenter: boolean): any {
-    return {
-      waypoints: (context: MapSystemContext): VNode => <MapSystemWaypointsLayer bus={context.bus} waypointRenderer={context.waypointRenderer} model={context.model}
-        mapProjection={context.projection} iconFactory={context.iconFactory} labelFactory={context.labelFactory} useMapTargetAsSearchCenter={useTargetAsSearchCenter} />,
-      labels: (context: MapSystemContext): VNode => <MapCullableTextLayer manager={context.textManager} model={context.model} mapProjection={context.projection} />,
-    };
-  }
-}
+    const controllerEntries = Array.from(this.controllerFactories)
+      .map(([key, factory]) => [key, factory.factory(context)] as const);
 
-/**
- * A component that encompasses the compiled map system.
- */
-export class MapSystemComponent extends MapComponent<MapSystemComponentProps> {
-
-  private readonly controllers: any[] = [];
-
-  /** @inheritdoc */
-  public onAfterRender(thisNode: VNode): void {
-    super.onAfterRender(thisNode);
-
-    const controllers = this.props.context.controllers;
-    for (let i = 0; i < controllers.length; i++) {
-      this.controllers.push(new controllers[i].factory(...controllers[i].args));
-    }
-  }
-
-  /** @inheritdoc */
-  protected onProjectedSizeChanged(): void {
-    this.props.onProjectedSizeChanged && this.props.onProjectedSizeChanged(this);
-  }
-
-  /** @inheritdoc */
-  public render(): VNode {
-    return (
-      <div class={this.props.class}>
-        {this.props.children}
-      </div>
-    );
-  }
-}
-
-/**
- * A class that builds a configuration for the waypoint display.
- */
-export class WaypointDisplayBuilder {
-
-  protected roleGroup: string = MapSystemWaypointRoles.Normal;
-  protected isCenterTarget = false;
-  protected labelCullingEnabled = false;
-
-  /**
-   * Creates an instance of the WaypointDisplayBuilder.
-   * @param iconFactory The icon factory to use with this builder.
-   * @param labelFactory The label factory to use with this builder.
-   * @param waypointRenderer The waypoint renderer to use with this builder.
-   */
-  constructor(protected readonly iconFactory: MapSystemIconFactory, protected readonly labelFactory: MapSystemLabelFactory,
-    protected readonly waypointRenderer: MapSystemWaypointsRenderer) { }
-
-  /**
-   * Adds a icon configuration to the waypoint display system.
-   * @param role The role to add this waypoint display config for.
-   * @param type The type of waypoint to add an icon for.
-   * @param config The waypoint icon factory to add as a configuration.
-   * @returns The modified builder.
-   */
-  public addIcon<T extends Waypoint>(role: number | string, type: string, config: (waypoint: T) => MapWaypointIcon<T>): this {
-    this.iconFactory.addIconFactory<T>(this.determineRoleId(role), type, config);
-    return this;
-  }
-
-  /**
-   * Adds a default icon configuration to the waypoint display system, if no other configuration is found.
-   * @param role The role to add this waypoint display config for.
-   * @param config The waypoint icon factory to add as a configuration.
-   * @returns The modified builder.
-   */
-  public addDefaultIcon<T extends Waypoint>(role: number | string, config: (waypoint: T) => MapWaypointIcon<T>): this {
-    this.iconFactory.addDefaultIconFactory<T>(this.determineRoleId(role), config);
-    return this;
-  }
-
-  /**
-   * Adds a label configuration to the waypoint display system.
-   * @param role The role to add this waypoint display config for.
-   * @param type The type of waypoint to add an label for.
-   * @param config The waypoint label factory to add as a configuration.
-   * @returns The modified builder.
-   */
-  public addLabel<T extends Waypoint>(role: number | string, type: string, config: (waypoint: T) => MapCullableLocationTextLabel): this {
-    this.labelFactory.addLabelFactory<T>(this.determineRoleId(role), type, config);
-    return this;
-  }
-
-  /**
-   * Adds a label configuration to the waypoint display system.
-   * @param role The role to add this waypoint display config for.
-   * @param config The waypoint label factory to add as a configuration.
-   * @returns The modified builder.
-   */
-  public addDefaultLabel<T extends Waypoint>(role: number | string, config: (waypoint: T) => MapCullableLocationTextLabel): this {
-    this.labelFactory.addDefaultLabelFactory<T>(this.determineRoleId(role), config);
-    return this;
-  }
-
-  /**
-   * Determines the role ID given either a numeric or string based role.
-   * @param role The role to determine.
-   * @returns The numeric role ID.
-   */
-  private determineRoleId(role: number | string): number {
-    let roleId = 0;
-    if (typeof role === 'string') {
-      const roleIdFromName = this.waypointRenderer.getRoleFromName(role);
-      if (roleIdFromName !== undefined) {
-        roleId = roleIdFromName;
-      }
-    } else {
-      roleId = role;
+    for (const [key, controller] of controllerEntries) {
+      context.setController(key, controller as Controllers[keyof Controllers]);
     }
 
-    return roleId;
-  }
+    controllers.push(...controllerEntries.map(([, controller]) => controller));
 
-  /**
-   * Registers a waypoint display role for use with the flight plan rendering
-   * system.
-   * @param name The name of the role to register.
-   * @returns The modified builder.
-   */
-  public registerRole(name: string): this {
-    this.waypointRenderer.addRenderRole(name, undefined, this.roleGroup);
-
-    return this;
-  }
-
-  /**
-   * Gets the ID of a role in the waypoint display system.
-   * @param role The name of the role to get the ID for.
-   * @returns The ID of the role.
-   * @throws An error if an invalid role name is supplied.
-   */
-  public getRoleId(role: string): number {
-    const roleId = this.waypointRenderer.getRoleFromName(role);
-    if (roleId === undefined) {
-      throw new Error(`The role with name ${role} was not defined and could not be found.`);
+    for (const callback of this.initCallbacks.values()) {
+      callback(context);
     }
 
-    return roleId;
+    return { context, map, ref };
   }
 
   /**
-   * Configures the center for waypoint searches for this display.
-   * @param center If center, then waypoint searches will use the map center. If target,
-   * waypoint searches will use the map target with offset.
-   * @returns The modified builder.
+   * Builds a new map context. The map context will be initialized with all context properties and modules added to
+   * this builder.
+   * @returns The new map context.
    */
-  public withSearchCenter(center: 'center' | 'target'): this {
-    if (center === 'center') {
-      this.isCenterTarget = false;
-    } else {
-      this.isCenterTarget = true;
+  protected buildContext(): MutableMapContext<MapSystemContext<any, any, any, any>> {
+    const context = new DefaultMapSystemContext<Modules>(
+      this.bus,
+      new MapProjection(this.projectedSize.get()[0], this.projectedSize.get()[1]),
+      this.projectedSize,
+      this.deadZone ?? VecNSubject.createFromVector(new Float64Array(4))
+    ) as unknown as MutableMapContext<MapSystemContext<Modules, Layers, Controllers, Context>>;
+
+    context.projection.set({
+      targetProjectedOffset: this.targetOffset,
+      rangeEndpoints: this.nominalRangeEndpoints !== undefined
+        ? MapSystemUtils.nominalToTrueRelativeXY(this.nominalRangeEndpoints, context.projectedSize.get(), context.deadZone.get(), Vec2Math.create())
+        : undefined,
+      range: this.range
+    });
+
+    for (const factory of Array.from(this.contextFactories.values()).sort((a, b) => a.order - b.order)) {
+      context[factory.key as keyof MapSystemContext<Modules, Layers, Controllers, Context>] = factory.factory(context);
     }
 
-    return this;
-  }
+    for (const factory of this.moduleFactories.values()) {
+      context.model.addModule(factory.key, factory.factory());
+    }
 
-  /**
-   * Configures whether or not collision culling of the map's labels is enabled.
-   * @param enabled Will cull if true, will not cull if false.
-   * @returns The modified builder.
-   */
-  public withLabelCulling(enabled: true): this {
-    this.labelCullingEnabled = enabled;
-    return this;
-  }
-
-  /**
-   * Gets if the waypoint search is using the map target with offset as the search center.
-   * @returns True if the search center is the map target, false if it is the map center.
-   */
-  public getIsCenterTarget(): boolean {
-    return this.isCenterTarget;
-  }
-
-  /**
-   * Gets whether or not collision culling of the map's labels is enabled.
-   * @returns True if culling enabled, false otherwise.
-   */
-  public getCullingEnabled(): boolean {
-    return this.labelCullingEnabled;
-  }
-}
-
-/**
- * A class that builds the configuration for the flight plan display.
- */
-export class FlightPlanDisplayBuilder extends WaypointDisplayBuilder {
-
-  protected roleGroup: string = MapSystemWaypointRoles.FlightPlan;
-
-  /**
-   * Creates an instance of the WaypointDisplayBuilder.
-   * @param iconFactory The icon factory to use with this builder.
-   * @param labelFactory The label factory to use with this builder.
-   * @param waypointRenderer The waypoint renderer to use with this builder.
-   * @param flightPlanRenderer The flight plan renderer to use with this builder.
-   * @param planIndex The flight plan index to be displayed by this system.
-   */
-  constructor(iconFactory: MapSystemIconFactory, labelFactory: MapSystemLabelFactory, waypointRenderer: MapSystemWaypointsRenderer,
-    private readonly flightPlanRenderer: MapSystemPlanRenderer, private readonly planIndex: number) {
-    super(iconFactory, labelFactory, waypointRenderer);
-
-    this.roleGroup = `${MapSystemWaypointRoles.FlightPlan}_${planIndex}`;
-    flightPlanRenderer.legStyleHandlers;
-  }
-
-  /**
-   * Registers a waypoint display role for use with the flight plan rendering
-   * system.
-   * @param name The name of the role to register.
-   * @returns The modified builder.
-   */
-  public registerRole(name: string): this {
-    this.waypointRenderer.insertRenderRole(name, MapSystemWaypointRoles.Normal, undefined, this.roleGroup);
-    return this;
-  }
-
-  /**
-   * Configures the flight path display to use styles returned by the provided function.
-   * @param handler The handler to use to return the required path rendering styles.
-   * @returns The modified builder.
-   */
-  public withLegPathStyles(handler: LegStyleHandler): this {
-    this.flightPlanRenderer.legStyleHandlers.set(this.planIndex, handler);
-    return this;
-  }
-
-  /**
-   * Configures the flight plan waypoint display to use the roles returned by the
-   * provided function.
-   * @param handler The handler to use to return the required waypoint display roles.
-   * @returns The modified builder.
-   */
-  public withLegWaypointRoles(handler: LegWaypointHandler): this {
-    this.flightPlanRenderer.legWaypointHandlers.set(this.planIndex, handler);
-    return this;
+    return context;
   }
 }

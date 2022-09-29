@@ -1,6 +1,5 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { FlightPlan, LegDefinition } from 'msfssdk/flightplan';
-import { ArrivalProcedure, DepartureProcedure } from 'msfssdk/navigation';
+import { ArrivalProcedure, DepartureProcedure, FlightPlan, FSComponent, LegDefinition, Subject, VNode } from 'msfssdk';
+
 import { FlightPlanFocus } from '../../../../../Shared/UI/FPL/FPLTypesAndProps';
 import { List } from '../../../../../Shared/UI/List';
 import { SelectDepArr, SelectDepArrProps } from '../../../../../Shared/UI/Procedure/DepArr/SelectDepArr';

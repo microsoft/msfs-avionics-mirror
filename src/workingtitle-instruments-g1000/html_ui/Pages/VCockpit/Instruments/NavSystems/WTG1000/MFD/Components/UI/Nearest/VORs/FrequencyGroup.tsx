@@ -1,6 +1,5 @@
-import { FSComponent, Subject, VNode } from 'msfssdk';
-import { ControlPublisher } from 'msfssdk/data';
-import { VorFacility } from 'msfssdk/navigation';
+import { ControlPublisher, FSComponent, Subject, VNode, VorFacility } from 'msfssdk';
+
 import { G1000UiControl, G1000UiControlProps } from '../../../../../Shared/UI/G1000UiControl';
 import { GroupBox } from '../../GroupBox';
 
@@ -18,7 +17,7 @@ interface FrequencyGroupProps extends G1000UiControlProps {
  * A component that displays frequency information about a VOR on the
  * MFD nearest VORs page.
  */
-export class FrequencyGroup extends G1000UiControl<FrequencyGroupProps> {
+export class NearestVorFrequencyGroup extends G1000UiControl<FrequencyGroupProps> {
 
   private readonly content = FSComponent.createRef<HTMLDivElement>();
   private readonly frequencyEl = FSComponent.createRef<HTMLDivElement>();
