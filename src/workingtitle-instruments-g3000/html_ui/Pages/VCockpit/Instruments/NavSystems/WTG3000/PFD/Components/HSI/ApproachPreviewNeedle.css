@@ -1,0 +1,87 @@
+.hsi-course-needle-preview {
+  position: relative;
+  display: none;
+
+  --hsi-course-needle-preview-rose-outline-width: 1px;
+  --hsi-course-needle-preview-rose-stroke-width: 2.5px;
+
+  --hsi-course-needle-preview-map-outline-width: 1.5px;
+  --hsi-course-needle-preview-map-stroke-width: 2px;
+
+  /* Full-scale (2 dots) deflection */
+  --hsi-course-needle-deviation-full: 64px;
+}
+
+.hsi-course-needle-preview.hsi-course-needle-nav1,
+.hsi-course-needle-preview.hsi-course-needle-nav2 {
+  display: unset;
+}
+
+.hsi-course-needle-preview-closed,
+.hsi-course-needle-preview-open {
+  display: none;
+}
+
+.hsi-course-needle-nav1 .hsi-course-needle-preview-closed {
+  display: block;
+}
+
+.hsi-course-needle-nav2 .hsi-course-needle-preview-open {
+  display: block;
+}
+
+.hsi-course-needle-preview-rose,
+.hsi-course-needle-preview-map {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.hsi-course-needle-preview-deviation {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.hsi-course-needle-preview-fill {
+  fill: #c0c0c0;
+  stroke: var(--g3000-color-black);
+}
+
+.hsi-course-needle-preview-rose .hsi-course-needle-preview-fill {
+  stroke-width: var(--hsi-course-needle-preview-rose-outline-width);
+}
+
+.hsi-course-needle-preview-map .hsi-course-needle-preview-fill {
+  stroke-width: var(--hsi-course-needle-preview-map-outline-width);
+}
+
+.hsi-course-needle-preview-open .hsi-course-needle-preview-fill {
+  fill: none;
+  stroke: #c0c0c0;
+}
+
+.hsi-course-needle-preview-rose .hsi-course-needle-preview-open .hsi-course-needle-preview-fill {
+  stroke-width: var(--hsi-course-needle-preview-rose-stroke-width);
+}
+
+.hsi-course-needle-preview-map .hsi-course-needle-preview-open .hsi-course-needle-preview-fill {
+  stroke-width: var(--hsi-course-needle-preview-map-stroke-width);
+}
+
+.hsi-course-needle-preview-open .hsi-course-needle-preview-outline {
+  fill: none;
+  stroke: var(--g3000-color-black);
+}
+
+.hsi-course-needle-preview-rose .hsi-course-needle-preview-open .hsi-course-needle-preview-outline {
+  stroke-width: calc(var(--hsi-course-needle-preview-rose-stroke-width) + 2 * var(--hsi-course-needle-preview-rose-outline-width));
+}
+
+.hsi-course-needle-preview-map .hsi-course-needle-preview-open .hsi-course-needle-preview-outline {
+  stroke-width: calc(var(--hsi-course-needle-preview-map-stroke-width) + 2 * var(--hsi-course-needle-preview-map-outline-width));
+}

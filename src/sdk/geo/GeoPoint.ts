@@ -89,7 +89,7 @@ export interface GeoPointInterface {
    * Offsets this point by an initial bearing and distance along a great circle.
    * @param bearing The initial true bearing (forward azimuth), in degrees, by which to offset.
    * @param distance The distance, in great-arc radians, by which to offset.
-   * @param out The GeoPoint to which to write the results.
+   * @param out The GeoPoint to which to write the result.
    * @returns The offset point.
    */
   offset(bearing: number, distance: number, out?: GeoPoint): GeoPoint;
@@ -98,10 +98,17 @@ export interface GeoPointInterface {
    * Offsets this point by a constant bearing and distance along a rhumb line.
    * @param bearing The true bearing, in degrees, by which to offset.
    * @param distance The distance, in great-arc radians, by which to offset.
-   * @param out The GeoPoint to which to write the results.
+   * @param out The GeoPoint to which to write the result.
    * @returns The offset point.
    */
   offsetRhumb(bearing: number, distance: number, out?: GeoPoint): GeoPoint;
+
+  /**
+   * Gets the antipode of this point.
+   * @param out The GeoPoint to which to write the result.
+   * @returns The antipode of this point.
+   */
+  antipode(out?: GeoPoint): GeoPoint;
 
   /**
    * Calculates the cartesian (x, y, z) representation of this point, in units of great-arc radians. By convention,
@@ -113,7 +120,9 @@ export interface GeoPointInterface {
   toCartesian(out: Float64Array): Float64Array;
 
   /**
-   * Checks whether this point is equal to another point.
+   * Checks whether this point is equal to another point. Two points are considered equal if and only if the great-
+   * circle distance between them is less than or equal to a specified tolerance or if the latitude and longitude
+   * components of both points are equal to `NaN`.
    * @param other The other point.
    * @param tolerance The tolerance of the equality check, defined as the maximum allowed distance between two equal
    * points in great-arc radians.
@@ -121,7 +130,9 @@ export interface GeoPointInterface {
    */
   equals(other: LatLonInterface, tolerance?: number): boolean;
   /**
-   * Checks whether this point is equal to another point.
+   * Checks whether this point is equal to another point. Two points are considered equal if and only if the great-
+   * circle distance between them is less than or equal to a specified tolerance or if the latitude and longitude
+   * components of both points are equal to `NaN`.
    * @param lat The latitude of the other point, in degrees.
    * @param lon The longitude of the other point, in degrees.
    * @param tolerance The tolerance of the equality check, defined as the maximum allowed distance between two equal
@@ -235,9 +246,9 @@ export class GeoPointReadOnly implements GeoPointInterface, LatLonInterface {
    * Offsets this point by an initial bearing and distance along a great circle.
    * @param bearing The initial true bearing (forward azimuth), in degrees, by which to offset.
    * @param distance The distance, in great-arc radians, by which to offset.
-   * @param out The GeoPoint to which to write the results. If not supplied, a new GeoPoint object is created.
+   * @param out The GeoPoint to which to write the result. If not supplied, a new GeoPoint object is created.
    * @returns The offset point.
-   * @throws {Error} if argument `out` is undefined.
+   * @throws Error if argument `out` is undefined.
    */
   public offset(bearing: number, distance: number, out?: GeoPoint): GeoPoint {
     if (!out) {
@@ -250,15 +261,28 @@ export class GeoPointReadOnly implements GeoPointInterface, LatLonInterface {
    * Offsets this point by a constant bearing and distance along a rhumb line.
    * @param bearing The true bearing, in degrees, by which to offset.
    * @param distance The distance, in great-arc radians, by which to offset.
-   * @param out The GeoPoint to which to write the results. If not supplied, a new GeoPoint object is created.
+   * @param out The GeoPoint to which to write the result. If not supplied, a new GeoPoint object is created.
    * @returns The offset point.
-   * @throws {Error} If argument `out` is undefined.
+   * @throws Error if argument `out` is undefined.
    */
   public offsetRhumb(bearing: number, distance: number, out?: GeoPoint): GeoPoint {
     if (!out) {
       throw new Error('Cannot mutate a read-only GeoPoint.');
     }
     return this.source.offsetRhumb(bearing, distance, out);
+  }
+
+  /**
+   * Gets the antipode of this point.
+   * @param out The GeoPoint ot which to write the result.
+   * @returns The antipode of this point.
+   * @throws Error if argument `out` is undefined.
+   */
+  public antipode(out?: GeoPoint): GeoPoint {
+    if (!out) {
+      throw new Error('Cannot mutate a read-only GeoPoint.');
+    }
+    return this.source.antipode(out);
   }
 
   /**
@@ -482,7 +506,7 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
    * Offsets this point by an initial bearing and distance along a great circle.
    * @param bearing The initial true bearing (forward azimuth), in degrees, by which to offset.
    * @param distance The distance, in great-arc radians, by which to offset.
-   * @param out The GeoPoint to which to write the results. By default this point.
+   * @param out The GeoPoint to which to write the result. By default this point.
    * @returns The offset point.
    */
   public offset(bearing: number, distance: number, out?: GeoPoint): GeoPoint {
@@ -509,7 +533,7 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
    * Offsets this point by a constant bearing and distance along a rhumb line.
    * @param bearing The true bearing, in degrees, by which to offset.
    * @param distance The distance, in great-arc radians, by which to offset.
-   * @param out The GeoPoint to which to write the results. By default this point.
+   * @param out The GeoPoint to which to write the result. By default this point.
    * @returns The offset point.
    */
   public offsetRhumb(bearing: number, distance: number, out?: GeoPoint): GeoPoint {
@@ -538,6 +562,15 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
     return (out ?? this).set(offsetLat, offsetLon);
   }
 
+  /**
+   * Gets the antipode of this point.
+   * @param out The GeoPoint to which to write the results. By default this point.
+   * @returns The antipode of this point.
+   */
+  public antipode(out?: GeoPoint): GeoPoint {
+    return (out ?? this).set(-this._lat, this._lon + 180);
+  }
+
   /** @inheritdoc */
   public toCartesian(out: Float64Array): Float64Array {
     return GeoPoint.sphericalToCartesian(this, out);
@@ -550,9 +583,14 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
   // eslint-disable-next-line jsdoc/require-jsdoc
   public equals(arg1: LatLonInterface | number, arg2?: number, arg3?: number): boolean {
     const other = GeoPoint.asLatLonInterface(arg1, arg2);
-    const tolerance = typeof arg1 === 'number' ? arg3 : arg2;
     if (other) {
-      return this.distance(other) <= (tolerance ?? GeoPoint.EQUALITY_TOLERANCE);
+      if (isNaN(this._lat) && isNaN(this._lon) && isNaN(other.lat) && isNaN(other.lon)) {
+        return true;
+      }
+
+      const tolerance = typeof arg1 === 'number' ? arg3 : arg2;
+      const distance = this.distance(other);
+      return !isNaN(distance) && distance <= (tolerance ?? GeoPoint.EQUALITY_TOLERANCE);
     } else {
       return false;
     }
@@ -667,16 +705,21 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
       let lat1, lon1, lat2, lon2;
 
       if (typeof arg1 === 'number') {
-        lat1 = arg1 * Avionics.Utils.DEG2RAD;
-        lon1 = arg2 as number * Avionics.Utils.DEG2RAD;
-        lat2 = arg3 as number * Avionics.Utils.DEG2RAD;
-        lon2 = arg4 as number * Avionics.Utils.DEG2RAD;
+        lat1 = arg1;
+        lon1 = arg2 as number;
+        lat2 = arg3 as number;
+        lon2 = arg4 as number;
       } else {
         lat1 = (arg1 as LatLonInterface).lat;
         lon1 = (arg1 as LatLonInterface).lon;
         lat2 = (arg2 as LatLonInterface).lat;
         lon2 = (arg2 as LatLonInterface).lon;
       }
+
+      lat1 *= Avionics.Utils.DEG2RAD;
+      lon1 *= Avionics.Utils.DEG2RAD;
+      lat2 *= Avionics.Utils.DEG2RAD;
+      lon2 *= Avionics.Utils.DEG2RAD;
 
       // haversine formula
       const sinHalfDeltaLat = Math.sin((lat2 - lat1) / 2);

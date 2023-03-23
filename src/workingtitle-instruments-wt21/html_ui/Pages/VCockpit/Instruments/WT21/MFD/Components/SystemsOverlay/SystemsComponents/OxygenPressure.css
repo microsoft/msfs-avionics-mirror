@@ -1,0 +1,9 @@
+.systems-oxy-psi {
+  position: relative;
+}
+
+.systems-oxy-psi-pointer {
+  position: absolute;
+  top: 40px;
+  right: 5px;
+}

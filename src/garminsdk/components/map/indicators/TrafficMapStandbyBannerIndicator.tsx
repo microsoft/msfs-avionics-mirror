@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, FSComponent, SetSubject, Subscribable, Subscription, TcasOperatingMode, VNode } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, SetSubject, Subscribable, Subscription, TcasOperatingMode, VNode } from '@microsoft/msfs-sdk';
 
 import { MapBannerIndicator } from './MapBannerIndicator';
 
@@ -18,7 +18,7 @@ export interface TrafficMapStandbyBannerIndicatorProps extends ComponentProps {
  */
 export class TrafficMapStandbyBannerIndicator extends DisplayComponent<TrafficMapStandbyBannerIndicatorProps> {
   private readonly show = this.props.operatingMode.map(mode => mode === TcasOperatingMode.Standby);
-  private readonly cssClassSet = SetSubject.create(['map-traffic-standby']);
+  private readonly cssClassSet = SetSubject.create(['traffic-map-banner-standby']);
 
   private isOnGroundSub?: Subscription;
 
@@ -26,8 +26,8 @@ export class TrafficMapStandbyBannerIndicator extends DisplayComponent<TrafficMa
   public onAfterRender(): void {
     this.isOnGroundSub = this.props.isOnGround.sub(isOnGround => {
       isOnGround
-        ? this.cssClassSet.add('map-traffic-standby-onground')
-        : this.cssClassSet.delete('map-traffic-standby-onground');
+        ? this.cssClassSet.add('traffic-map-banner-standby-onground')
+        : this.cssClassSet.delete('traffic-map-banner-standby-onground');
     }, true);
   }
 

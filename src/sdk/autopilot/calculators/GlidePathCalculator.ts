@@ -58,7 +58,8 @@ export class GlidePathCalculator {
     if (this.flightPlanner.hasFlightPlan(this.primaryPlanIndex)) {
       const plan = this.flightPlanner.getFlightPlan(this.primaryPlanIndex);
       this.mapLegIndex = VNavUtils.getMissedApproachLegIndex(plan);
-      this.fafLegIndex = VNavUtils.getFafIndexReverse(plan, this.flightPlanIterator);
+      const faf = VNavUtils.getFafIndex(plan);
+      this.fafLegIndex = faf !== undefined ? faf : Math.max(0, plan.length - 1);
     }
   };
 
@@ -70,10 +71,10 @@ export class GlidePathCalculator {
   };
 
   /**
-   * Gets the current Glidepath distance.
-   * @param index The current leg index.
-   * @param distanceAlongLeg The distance along the leg the aircraft is presently.
-   * @returns The current Glidepath distance.
+   * Gets the current Glidepath distance in meters.
+   * @param index The global index of the active leg.
+   * @param distanceAlongLeg The aircraft's current distance along the active leg, in meters.
+   * @returns The current Glidepath distance in meters.
    */
   public getGlidepathDistance(index: number, distanceAlongLeg: number): number {
     let globalLegIndex = 0;
@@ -121,17 +122,17 @@ export class GlidePathCalculator {
   }
 
   /**
-   * Gets the Glidepath desired altitude.
-   * @param distance The current Glidepath distance.
-   * @returns The current Glidepath desired altitude.
+   * Gets the Glidepath desired altitude in meters.
+   * @param distance The current Glidepath distance in meters.
+   * @returns The current Glidepath desired altitude in meters.
    */
   public getDesiredGlidepathAltitude(distance: number): number {
     return this.getRunwayAltitude() + VNavUtils.altitudeForDistance(this.glidepathFpa, distance);
   }
 
   /**
-   * Gets the Glidepath runway altitude.
-   * @returns The Glidepath runway altitude.
+   * Gets the Glidepath runway altitude in meters.
+   * @returns The Glidepath runway altitude in meters.
    */
   public getRunwayAltitude(): number {
     const plan = this.flightPlanner.getFlightPlan(this.primaryPlanIndex);

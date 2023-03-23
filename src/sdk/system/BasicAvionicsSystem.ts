@@ -1,4 +1,5 @@
 import { EventBus } from '../data/EventBus';
+import { GameStateProvider } from '../data/GameStateProvider';
 import { ElectricalEvents } from '../instruments/Electrical';
 import { Subscription } from '../sub/Subscription';
 import { DebounceTimer } from '../utils/time/DebounceTimer';
@@ -42,6 +43,11 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
   protected electricalPowerSub?: Subscription;
   protected electricalPowerLogic?: CompositeLogicXMLElement;
 
+  protected readonly publisher = this.bus.getPublisher<T>();
+
+  /** Whether power data consumed by this system is valid. */
+  protected isPowerValid = false;
+
   /**
    * Creates an instance of a BasicAvionicsSystem.
    * @param index The index of the system.
@@ -52,7 +58,23 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
     public readonly index: number,
     protected readonly bus: EventBus,
     protected readonly stateEvent: keyof StateEventsOnly<T> & string
-  ) { }
+  ) {
+    this.bus.pub(this.stateEvent, { previous: undefined, current: undefined });
+
+    // When not starting cold and dark (on runway or in air), electrical power simvars are not properly initialized
+    // during loading, so we will ignore all power data until the game enters briefing state.
+
+    const gameStateSub = GameStateProvider.get().sub(state => {
+      if (state === GameState.briefing || state === GameState.ingame) {
+        gameStateSub.destroy();
+
+        this.isPowerValid = true;
+        this.electricalPowerSub?.resume(true);
+      }
+    }, false, true);
+
+    gameStateSub.resume(true);
+  }
 
   /**
    * Connects this system's power state to an {@link ElectricalEvents} topic or electricity logic element.
@@ -67,7 +89,7 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
       this.electricalPowerSub = this.bus.getSubscriber<ElectricalBools>()
         .on(source)
         .whenChanged()
-        .handle(this.onPowerChanged.bind(this));
+        .handle(this.onPowerChanged.bind(this), !this.isPowerValid);
     } else {
       this.electricalPowerLogic = source;
       this.updatePowerFromLogic();
@@ -83,7 +105,7 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
       const previous = this._state;
       this._state = state;
       this.onStateChanged(previous, state);
-      this.bus.pub(this.stateEvent, { index: this.index, previous, current: state });
+      this.bus.pub(this.stateEvent, { previous, current: state });
     }
   }
 
@@ -102,7 +124,11 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
    * @param isPowered Whether or not the system is powered.
    */
   protected onPowerChanged(isPowered: boolean): void {
-    if (this.isPowered === undefined) {
+    const wasPowered = this.isPowered;
+
+    this.isPowered = isPowered;
+
+    if (wasPowered === undefined) {
       this.initializationTimer.clear();
       if (isPowered) {
         this.setState(AvionicsSystemState.On);
@@ -118,8 +144,6 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
         this.setState(AvionicsSystemState.Off);
       }
     }
-
-    this.isPowered = isPowered;
   }
 
   /** @inheritdoc */
@@ -131,7 +155,7 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
    * Updates this system's power state from an electricity logic element.
    */
   protected updatePowerFromLogic(): void {
-    if (this.electricalPowerLogic === undefined) {
+    if (!this.isPowerValid || this.electricalPowerLogic === undefined) {
       return;
     }
 

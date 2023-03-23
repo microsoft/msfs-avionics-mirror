@@ -1,14 +1,14 @@
 import {
-  CombinedSubject, ComponentProps, ComputedSubject, DebounceTimer, DigitScroller, DisplayComponent, EventBus, FSComponent, MappedSubject, MappedSubscribable,
+  ComponentProps, ComputedSubject, DebounceTimer, DigitScroller, DisplayComponent, EventBus, FSComponent, MappedSubject,
   MathUtils, NodeReference, NumberFormatter, NumberUnitSubject, ObjectSubject, SetSubject, SubEvent, Subject, Subscribable, SubscribableMapFunctions,
   SubscribableSet, SubscribableUtils, Subscription, UnitType, UserSettingManager, VNode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { AltimeterUserSettingTypes } from '../../../settings';
 import { NumberUnitDisplay } from '../../common/NumberUnitDisplay';
 import { AltimeterDataProvider } from './AltimeterDataProvider';
 import { AltitudeAlertState } from './AltitudeAlerter';
-import { MinimumsAlertState } from './MinimumsAlerter';
+import { MinimumsAlertState } from '../minimums/MinimumsAlerter';
 
 /**
  * Scale options for an altimeter tape.
@@ -36,6 +36,9 @@ export interface AltimeterProps extends ComponentProps {
   /** The current minimums alert state. */
   minimumsAlertState: Subscribable<MinimumsAlertState>;
 
+  /** Whether the indicator should be decluttered. */
+  declutter: Subscribable<boolean>;
+
   /** Scale options for the airspeed tape. */
   tapeScaleOptions: Readonly<AltimeterTapeScaleOptions>;
 
@@ -59,7 +62,10 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
 
   private readonly rootCssClass = SetSubject.create(['altimeter']);
 
+  private readonly showTopBottomDisplays = this.props.declutter.map(SubscribableMapFunctions.not());
+
   private minimumsAlertSub?: Subscription;
+  private isDataFailedSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
@@ -79,12 +85,20 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
           break;
       }
     }, true);
+
+    this.isDataFailedSub = this.props.dataProvider.isDataFailed.sub(isDataFailed => {
+      if (isDataFailed) {
+        this.rootCssClass.add('data-failed');
+      } else {
+        this.rootCssClass.delete('data-failed');
+      }
+    }, true);
   }
 
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class={this.rootCssClass}>
+      <div class={this.rootCssClass} data-checklist="checklist-altimeter">
         <AltimeterTape
           ref={this.tapeRef}
           dataProvider={this.props.dataProvider}
@@ -92,22 +106,24 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
           {...this.props.trendVectorOptions}
           showMetric={this.props.settingManager.getSetting('altMetric')}
         />
-        <div class='altimeter-top-container'>
+        <div class='altimeter-top-container' data-checklist="checklist-altimeter-top">
           <SelectedAltitudeDisplay
-            show={Subject.create(true)}
+            show={this.showTopBottomDisplays}
             selectedAlt={this.props.dataProvider.selectedAlt}
             altitudeAlertState={this.props.altitudeAlertState}
           />
         </div>
-        <div class='altimeter-bottom-container'>
+        <div class='altimeter-bottom-container' data-checklist="checklist-altimeter-bottom">
           <BaroSettingDisplay
-            show={Subject.create(true)}
+            show={this.showTopBottomDisplays}
             baroSetting={this.props.dataProvider.baroSetting}
             isStdActive={this.props.dataProvider.baroIsStdActive}
             baroPreselect={this.props.supportBaroPreselect ? this.props.dataProvider.baroPreselect : undefined}
             isMetric={this.props.settingManager.getSetting('altimeterBaroMetric')}
           />
         </div>
+
+        <div class='failed-box' />
       </div>
     );
   }
@@ -120,7 +136,10 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     this.selectedAltitudeRef.getOrDefault()?.destroy();
     this.baroSettingRef.getOrDefault()?.destroy();
 
+    this.showTopBottomDisplays.destroy();
+
     this.minimumsAlertSub?.destroy();
+    this.isDataFailedSub?.destroy();
   }
 }
 
@@ -161,6 +180,8 @@ interface AltimeterTapeProps extends ComponentProps {
  */
 class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
   private readonly indicatedAltBoxRef = FSComponent.createRef<IndicatedAltDisplayBox>();
+  private readonly metricIndicatedAltDisplayRef = FSComponent.createRef<MetricIndicatedAltDisplay>();
+  private readonly metricSelectedAltDisplayRef = FSComponent.createRef<MetricSelectedAltitudeDisplay>();
   private readonly minorTickContainerRef = FSComponent.createRef<HTMLElement>();
   private readonly majorTickContainerRef = FSComponent.createRef<HTMLElement>();
   private readonly labelContainerRef = FSComponent.createRef<HTMLElement>();
@@ -222,7 +243,7 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
   private readonly majorTickInterval = SubscribableUtils.toSubscribable(this.props.majorTickInterval, true);
   private readonly minorTickFactor = SubscribableUtils.toSubscribable(this.props.minorTickFactor, true);
 
-  private readonly options = CombinedSubject.create(
+  private readonly options = MappedSubject.create(
     this.minimum,
     this.maximum,
     this.window,
@@ -255,12 +276,14 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
   );
 
   private readonly indicatedAltTapeValue = MappedSubject.create(
-    ([indicatedAlt, minimum, maximum]): number => {
-      return MathUtils.clamp(indicatedAlt, minimum, maximum);
+    ([indicatedAlt, minimum, maximum, window, isDataFailed]): number => {
+      return isDataFailed ? minimum + window / 2 : MathUtils.clamp(indicatedAlt, minimum, maximum);
     },
     this.props.dataProvider.indicatedAlt,
     this.minimum,
-    this.maximum
+    this.maximum,
+    this.window,
+    this.props.dataProvider.isDataFailed
   );
 
   private readonly indicatedAltBoxValue = MappedSubject.create(
@@ -269,6 +292,12 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     },
     this.props.dataProvider.indicatedAlt,
     this.isIndicatedAltOffScale
+  );
+
+  private readonly showMetricIndicatedAlt = MappedSubject.create(
+    ([showMetric, isDataFailed]): boolean => showMetric && !isDataFailed,
+    this.props.showMetric,
+    this.props.dataProvider.isDataFailed
   );
 
   private readonly metricIndicatedAltValue = MappedSubject.create(
@@ -280,20 +309,27 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     this.maximum
   );
 
+  private readonly showGroundLine = MappedSubject.create(
+    ([isIndicatedAltOffScale, isDataFailed]): boolean => !isIndicatedAltOffScale && !isDataFailed,
+    this.isIndicatedAltOffScale,
+    this.props.dataProvider.isDataFailed
+  );
+
   private readonly trendThreshold = SubscribableUtils.toSubscribable(this.props.trendThreshold, true);
 
   private readonly showTrendVector = MappedSubject.create(
-    ([indicatedAlt, minimum, maximum, threshold, altitudeTrend]): boolean => {
-      return indicatedAlt >= minimum && indicatedAlt < maximum && Math.abs(altitudeTrend) >= threshold;
+    ([indicatedAlt, minimum, maximum, threshold, altitudeTrend, isDataFailed]): boolean => {
+      return !isDataFailed && indicatedAlt >= minimum && indicatedAlt < maximum && Math.abs(altitudeTrend) >= threshold;
     },
     this.props.dataProvider.indicatedAlt,
     this.minimum,
     this.maximum,
     this.trendThreshold,
-    this.props.dataProvider.altitudeTrend
+    this.props.dataProvider.altitudeTrend,
+    this.props.dataProvider.isDataFailed
   );
 
-  private readonly altitudeTrendParams = CombinedSubject.create(
+  private readonly altitudeTrendParams = MappedSubject.create(
     this.props.dataProvider.altitudeTrend,
     this.window
   );
@@ -307,6 +343,8 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
 
   private readonly updateTapeEvent = new SubEvent<this, void>();
   private readonly updateTapeWindowEvent = new SubEvent<this, void>();
+
+  private readonly showIndicatedAltData = this.props.dataProvider.isDataFailed.map(SubscribableMapFunctions.not());
 
   /** @inheritdoc */
   constructor(props: AltimeterTapeProps) {
@@ -392,6 +430,8 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     this.labelAltitudes.length = 0;
 
     this.minorTickContainerRef.instance.innerHTML = '';
+    this.majorTickContainerRef.instance.innerHTML = '';
+    this.labelContainerRef.instance.innerHTML = '';
 
     const majorTickCount = Math.ceil(window / majorTickInterval) * 2 + 1;
     const desiredRange = (majorTickCount - 1) * majorTickInterval;
@@ -502,7 +542,7 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class={this.rootCssClass}>
+      <div class={this.rootCssClass} data-checklist="checklist-altimeter-tape">
 
         <div class='altimeter-tape-border-top'></div>
         <div class='altimeter-tape-border-bottom'></div>
@@ -534,9 +574,9 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
         </div>
 
         <GroundLine
+          show={this.showGroundLine}
           indicatedAlt={this.props.dataProvider.indicatedAlt}
           radarAlt={this.props.dataProvider.radarAlt}
-          show={this.isIndicatedAltOffScale.map(SubscribableMapFunctions.not())}
           updateEvent={this.updateTapeWindowEvent}
           getPosition={this.calculateWindowTapePosition.bind(this)}
         />
@@ -544,14 +584,20 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
         <div class='altimeter-trend' style={this.trendVectorStyle}>
         </div>
 
-        <IndicatedAltDisplayBox ref={this.indicatedAltBoxRef} indicatedAlt={this.indicatedAltBoxValue} />
+        <IndicatedAltDisplayBox
+          ref={this.indicatedAltBoxRef}
+          show={this.showIndicatedAltData}
+          indicatedAlt={this.indicatedAltBoxValue}
+        />
 
         <MetricIndicatedAltDisplay
-          show={this.props.showMetric}
+          ref={this.metricIndicatedAltDisplayRef}
+          show={this.showMetricIndicatedAlt}
           indicatedAltMeters={this.metricIndicatedAltValue}
         />
 
         <MetricSelectedAltitudeDisplay
+          ref={this.metricSelectedAltDisplayRef}
           show={this.props.showMetric}
           selectedAltMeters={this.selectedAltMeters}
         />
@@ -559,12 +605,14 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
         <div class='altimeter-bug-container' style='position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden;'>
           <MinimumsBug
             ref={this.minimumsBugRef}
+            show={this.showIndicatedAltData}
             minimums={this.props.dataProvider.minimums}
             updateEvent={this.updateTapeWindowEvent}
             getPosition={this.calculateWindowTapePosition.bind(this)}
           />
           <SelectedAltitudeBug
             ref={this.selectedAltBugRef}
+            show={this.showIndicatedAltData}
             selectedAlt={this.props.dataProvider.selectedAlt}
             updateEvent={this.updateTapeWindowEvent}
             getPosition={this.calculateWindowTapePosition.bind(this)}
@@ -576,11 +624,12 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.indicatedAltBoxRef.getOrDefault()?.destroy();
+    this.metricIndicatedAltDisplayRef.getOrDefault()?.destroy();
+    this.metricSelectedAltDisplayRef.getOrDefault()?.destroy();
 
     this.selectedAltBugRef.getOrDefault()?.destroy();
+    this.minimumsBugRef.getOrDefault()?.destroy();
 
     this.options.destroy();
     this.isIndicatedAltBelowScale.destroy();
@@ -591,6 +640,10 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     this.metricIndicatedAltValue.destroy();
     this.altitudeTrendParams.destroy();
     this.selectedAltMeters.destroy();
+    this.showIndicatedAltData.destroy();
+    this.showMetricIndicatedAlt.destroy();
+
+    super.destroy();
   }
 }
 
@@ -598,6 +651,9 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
  * Component props for IndicatedAltDisplayBox.
  */
 interface IndicatedAltDisplayBoxProps extends ComponentProps {
+  /** Whether to show the display. */
+  show: Subscribable<boolean>;
+
   /** The indicated altitude value to display. */
   indicatedAlt: Subscribable<number>;
 }
@@ -608,24 +664,42 @@ interface IndicatedAltDisplayBoxProps extends ComponentProps {
 class IndicatedAltDisplayBox extends DisplayComponent<IndicatedAltDisplayBoxProps> {
   private readonly scrollerRefs: NodeReference<DigitScroller>[] = [];
 
+  private readonly rootStyle = ObjectSubject.create({
+    display: 'none'
+  });
+
   private readonly negativeSignStyles = Array.from({ length: 3 }, () => {
     return ComputedSubject.create(false, show => show ? '' : 'display: none;');
   });
+
+  private readonly indicatedAlt = this.props.indicatedAlt.map(SubscribableMapFunctions.identity()).pause();
 
   private readonly showNegativeSign = Array.from({ length: 3 }, (val, index) => {
     const topThreshold = index === 0 ? 0 : Math.pow(10, index + 1) - 20;
     const bottomThreshold = Math.pow(10, index + 2) - 20;
 
-    return this.props.indicatedAlt.map(indicatedAlt => {
+    return this.indicatedAlt.map(indicatedAlt => {
       return indicatedAlt < -topThreshold && indicatedAlt >= -bottomThreshold;
     });
   });
+
+  private showSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
     this.showNegativeSign.forEach((show, index) => {
       show.pipe(this.negativeSignStyles[index]);
     });
+
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        this.rootStyle.set('display', '');
+        this.indicatedAlt.resume();
+      } else {
+        this.rootStyle.set('display', 'none');
+        this.indicatedAlt.pause();
+      }
+    }, true);
   }
 
   /** @inheritdoc */
@@ -638,7 +712,7 @@ class IndicatedAltDisplayBox extends DisplayComponent<IndicatedAltDisplayBoxProp
     this.scrollerRefs.push(tensScrollerRef, tensScrollerRef, hundredsScrollerRef, tenThousandsScrollerRef);
 
     return (
-      <div class='altimeter-indicatedalt-box'>
+      <div class='altimeter-indicatedalt-box' style={this.rootStyle}>
         <svg viewBox="0 0 105 70" class='altimeter-indicatedalt-box-bg' preserveAspectRatio='none'>
           <path
             vector-effect='non-scaling-stroke'
@@ -650,7 +724,7 @@ class IndicatedAltDisplayBox extends DisplayComponent<IndicatedAltDisplayBoxProp
             <div class='altimeter-indicatedalt-box-digit-bg' />
             <DigitScroller
               ref={tenThousandsScrollerRef}
-              value={this.props.indicatedAlt}
+              value={this.indicatedAlt}
               base={10}
               factor={10000}
               scrollThreshold={9980}
@@ -662,7 +736,7 @@ class IndicatedAltDisplayBox extends DisplayComponent<IndicatedAltDisplayBoxProp
             <div class='altimeter-indicatedalt-box-digit-bg' />
             <DigitScroller
               ref={thousandsScrollerRef}
-              value={this.props.indicatedAlt}
+              value={this.indicatedAlt}
               base={10}
               factor={1000}
               scrollThreshold={980}
@@ -674,7 +748,7 @@ class IndicatedAltDisplayBox extends DisplayComponent<IndicatedAltDisplayBoxProp
             <div class='altimeter-indicatedalt-box-digit-bg' />
             <DigitScroller
               ref={hundredsScrollerRef}
-              value={this.props.indicatedAlt}
+              value={this.indicatedAlt}
               base={10}
               factor={100}
               scrollThreshold={80}
@@ -686,7 +760,7 @@ class IndicatedAltDisplayBox extends DisplayComponent<IndicatedAltDisplayBoxProp
             <div class='altimeter-indicatedalt-box-digit-bg' />
             <DigitScroller
               ref={tensScrollerRef}
-              value={this.props.indicatedAlt}
+              value={this.indicatedAlt}
               base={5}
               factor={20}
               renderDigit={(digit): string => ((Math.abs(digit) % 5) * 20).toString().padStart(2, '0')}
@@ -701,8 +775,6 @@ class IndicatedAltDisplayBox extends DisplayComponent<IndicatedAltDisplayBoxProp
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     for (const show of this.showNegativeSign) {
       show.destroy();
     }
@@ -710,6 +782,12 @@ class IndicatedAltDisplayBox extends DisplayComponent<IndicatedAltDisplayBoxProp
     for (const ref of this.scrollerRefs) {
       ref.getOrDefault()?.destroy();
     }
+
+    this.indicatedAlt.destroy();
+
+    this.showSub?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -739,19 +817,17 @@ class MetricIndicatedAltDisplay extends DisplayComponent<MetricIndicatedAltDispl
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.indicatedAltPipe = this.props.indicatedAltMeters.pipe(this.indicatedAlt, alt => Math.round(alt), true);
+    const indicatedAltPipe = this.indicatedAltPipe = this.props.indicatedAltMeters.pipe(this.indicatedAlt, alt => Math.round(alt), true);
 
     this.showSub = this.props.show.sub(show => {
       if (show) {
         this.style.set('display', '');
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.indicatedAltPipe!.resume(true);
+        indicatedAltPipe.resume(true);
       } else {
         this.style.set('display', 'none');
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.indicatedAltPipe!.pause();
+        indicatedAltPipe.pause();
       }
     }, true);
   }
@@ -899,7 +975,13 @@ class GroundLine extends DisplayComponent<GroundLineProps> {
 
   private readonly position = Subject.create(0);
 
-  private groundAltitudeRounded?: MappedSubscribable<number | null>;
+  private readonly groundAltitudeRounded = MappedSubject.create(
+    ([indicatedAlt, radarAlt]): number | null => {
+      return radarAlt === null ? null : Math.round(indicatedAlt - radarAlt);
+    },
+    this.props.indicatedAlt,
+    this.props.radarAlt
+  ).pause();
 
   private showSub?: Subscription;
   private updateEventSub?: Subscription;
@@ -908,17 +990,9 @@ class GroundLine extends DisplayComponent<GroundLineProps> {
   public onAfterRender(): void {
     const updateHandler = this.updatePosition.bind(this);
 
-    this.groundAltitudeRounded = MappedSubject.create(
-      ([indicatedAlt, radarAlt]): number | null => {
-        return radarAlt === null ? null : Math.round(indicatedAlt - radarAlt);
-      },
-      this.props.indicatedAlt,
-      this.props.radarAlt
-    );
-    this.groundAltitudeRounded.pause();
-    this.groundAltitudeRounded.sub(updateHandler, true);
+    const groundAltitudeRoundedSub = this.groundAltitudeRounded.sub(updateHandler, false, true);
 
-    this.updateEventSub = this.props.updateEvent.on(updateHandler, true);
+    const updateEventSub = this.updateEventSub = this.props.updateEvent.on(updateHandler, true);
 
     this.position.sub(translate => {
       this.style.set('height', `${100 - translate}%`);
@@ -926,17 +1000,15 @@ class GroundLine extends DisplayComponent<GroundLineProps> {
 
     this.showSub = this.props.show.sub(show => {
       if (show) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.groundAltitudeRounded!.resume();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.updateEventSub!.resume();
+        this.groundAltitudeRounded.resume();
+        groundAltitudeRoundedSub.resume(true);
+        updateEventSub.resume();
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.groundAltitudeRounded!.pause();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.updateEventSub!.pause();
-
         this.style.set('display', 'none');
+
+        this.groundAltitudeRounded.pause();
+        groundAltitudeRoundedSub.pause();
+        updateEventSub.pause();
       }
     }, true);
   }
@@ -945,8 +1017,7 @@ class GroundLine extends DisplayComponent<GroundLineProps> {
    * Updates this line's position on its parent altimeter tape window.
    */
   private updatePosition(): void {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const groundAltitudeRounded = this.groundAltitudeRounded!.get();
+    const groundAltitudeRounded = this.groundAltitudeRounded.get();
     const pos = groundAltitudeRounded === null ? NaN : this.props.getPosition(groundAltitudeRounded);
 
     if (isNaN(pos) || pos > 1) {
@@ -966,12 +1037,12 @@ class GroundLine extends DisplayComponent<GroundLineProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
-    this.groundAltitudeRounded?.destroy();
+    this.groundAltitudeRounded.destroy();
 
     this.showSub?.destroy();
     this.updateEventSub?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -1008,7 +1079,7 @@ class AltitudeBug extends DisplayComponent<AltitudeBugProps> {
 
   private readonly position = Subject.create(0);
 
-  private altitudeFeetRounded?: MappedSubscribable<number>;
+  private readonly altitudeFeetRounded = this.props.altitudeFeet.map(SubscribableMapFunctions.withPrecision(1)).pause();
 
   private cssClassSub?: Subscription;
   private showSub?: Subscription;
@@ -1018,10 +1089,8 @@ class AltitudeBug extends DisplayComponent<AltitudeBugProps> {
   public onAfterRender(): void {
     const updateHandler = this.updatePosition.bind(this);
 
-    this.altitudeFeetRounded = this.props.altitudeFeet.map(SubscribableMapFunctions.withPrecision(1));
-    this.altitudeFeetRounded.pause();
-    this.altitudeFeetRounded.sub(updateHandler);
-    this.updateEventSub = this.props.updateEvent.on(updateHandler, true);
+    const altitudeFeetRoundedSub = this.altitudeFeetRounded.sub(updateHandler);
+    const updateSub = this.updateEventSub = this.props.updateEvent.on(updateHandler, true);
 
     this.position.sub(translate => {
       this.style.set('top', `${translate}%`);
@@ -1029,17 +1098,17 @@ class AltitudeBug extends DisplayComponent<AltitudeBugProps> {
 
     this.showSub = this.props.show.sub(show => {
       if (show) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.altitudeFeetRounded!.resume();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.updateEventSub!.resume();
+        this.altitudeFeetRounded.resume();
+        altitudeFeetRoundedSub.resume();
+        updateSub.resume();
+
+        this.updatePosition();
 
         this.style.set('display', '');
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.altitudeFeetRounded!.pause();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.updateEventSub!.pause();
+        this.altitudeFeetRounded.pause();
+        altitudeFeetRoundedSub.pause();
+        updateSub.pause();
 
         this.style.set('display', 'none');
       }
@@ -1074,13 +1143,13 @@ class AltitudeBug extends DisplayComponent<AltitudeBugProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
-    this.altitudeFeetRounded?.destroy();
+    this.altitudeFeetRounded.destroy();
 
     this.cssClassSub?.destroy();
     this.showSub?.destroy();
     this.updateEventSub?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -1088,6 +1157,9 @@ class AltitudeBug extends DisplayComponent<AltitudeBugProps> {
  * Component props for SelectedAltitudeBug.
  */
 interface SelectedAltitudeBugProps extends ComponentProps {
+  /** Whether the altitude bug should be visible. */
+  show: Subscribable<boolean>;
+
   /** The selected altitude, in feet, or `null` if no such value exists. */
   selectedAlt: Subscribable<number | null>;
 
@@ -1104,27 +1176,26 @@ interface SelectedAltitudeBugProps extends ComponentProps {
 class SelectedAltitudeBug extends DisplayComponent<SelectedAltitudeBugProps> {
   private readonly bugRef = FSComponent.createRef<AltitudeBug>();
 
-  private readonly isVisible = Subject.create(false);
-  private readonly selectedAltFeet = Subject.create(0);
+  private readonly visibilityState = MappedSubject.create(
+    this.props.show,
+    this.props.selectedAlt
+  ).pause();
 
-  private selectedAltSub?: Subscription;
+  private readonly show = Subject.create(false);
+  private readonly selectedAltFeet = Subject.create(0);
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.selectedAltSub = this.props.selectedAlt.sub(this.update.bind(this), true);
-  }
+    this.visibilityState.resume();
 
-  /**
-   * Updates this bug.
-   * @param selectedAlt The current selected altitude, in feet, or `null` if no such value exists.
-   */
-  private update(selectedAlt: number | null): void {
-    if (selectedAlt === null) {
-      this.isVisible.set(false);
-    } else {
-      this.selectedAltFeet.set(selectedAlt);
-      this.isVisible.set(true);
-    }
+    this.visibilityState.sub(([show, selectedAlt]) => {
+      if (show && selectedAlt !== null) {
+        this.show.set(true);
+        this.selectedAltFeet.set(selectedAlt);
+      } else {
+        this.show.set(false);
+      }
+    }, true);
   }
 
   /** @inheritdoc */
@@ -1133,7 +1204,7 @@ class SelectedAltitudeBug extends DisplayComponent<SelectedAltitudeBugProps> {
       <AltitudeBug
         ref={this.bugRef}
         altitudeFeet={this.selectedAltFeet}
-        show={this.isVisible}
+        show={this.show}
         updateEvent={this.props.updateEvent}
         getPosition={(indicatedAlt: number): number => MathUtils.clamp(this.props.getPosition(indicatedAlt, true), 0, 1)}
         class='altimeter-selectedalt-bug'
@@ -1147,10 +1218,11 @@ class SelectedAltitudeBug extends DisplayComponent<SelectedAltitudeBugProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.bugRef.getOrDefault()?.destroy();
-    this.selectedAltSub?.destroy();
+
+    this.visibilityState.destroy();
+
+    super.destroy();
   }
 }
 
@@ -1158,6 +1230,9 @@ class SelectedAltitudeBug extends DisplayComponent<SelectedAltitudeBugProps> {
  * Component props for MinimumsBug.
  */
 interface MinimumsBugProps extends ComponentProps {
+  /** Whether the altitude bug should be visible. */
+  show: Subscribable<boolean>;
+
   /** The current active minimums, in feet indicated altitude, or `null` if no such value exists. */
   minimums: Subscribable<number | null>;
 
@@ -1174,27 +1249,26 @@ interface MinimumsBugProps extends ComponentProps {
 class MinimumsBug extends DisplayComponent<MinimumsBugProps> {
   private readonly bugRef = FSComponent.createRef<AltitudeBug>();
 
-  private readonly isVisible = Subject.create(false);
-  private readonly minimumsFeet = Subject.create(0);
+  private readonly visibilityState = MappedSubject.create(
+    this.props.show,
+    this.props.minimums
+  ).pause();
 
-  private minimumsSub?: Subscription;
+  private readonly show = Subject.create(false);
+  private readonly minimumsFeet = Subject.create(0);
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.minimumsSub = this.props.minimums.sub(this.update.bind(this), true);
-  }
+    this.visibilityState.resume();
 
-  /**
-   * Updates this bug.
-   * @param minimums The current active minimums, in feet indicated altitude, or `null` if no such value exists.
-   */
-  private update(minimums: number | null): void {
-    if (minimums === null) {
-      this.isVisible.set(false);
-    } else {
-      this.minimumsFeet.set(minimums);
-      this.isVisible.set(true);
-    }
+    this.visibilityState.sub(([show, minimums]) => {
+      if (show && minimums !== null) {
+        this.show.set(true);
+        this.minimumsFeet.set(minimums);
+      } else {
+        this.show.set(false);
+      }
+    }, true);
   }
 
   /** @inheritdoc */
@@ -1203,7 +1277,7 @@ class MinimumsBug extends DisplayComponent<MinimumsBugProps> {
       <AltitudeBug
         ref={this.bugRef}
         altitudeFeet={this.minimumsFeet}
-        show={this.isVisible}
+        show={this.show}
         updateEvent={this.props.updateEvent}
         getPosition={(indicatedAlt: number): number => MathUtils.clamp(this.props.getPosition(indicatedAlt, true), -0.5, 1.5)}
         class='altimeter-minimums-bug'
@@ -1217,10 +1291,11 @@ class MinimumsBug extends DisplayComponent<MinimumsBugProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.bugRef.getOrDefault()?.destroy();
-    this.minimumsSub?.destroy();
+
+    this.visibilityState.destroy();
+
+    super.destroy();
   }
 }
 
@@ -1268,7 +1343,7 @@ class SelectedAltitudeDisplay extends DisplayComponent<SelectedAltitudeDisplayPr
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.selectedAltSub = this.props.selectedAlt.sub(selectedAlt => {
+    const selectedAltSub = this.selectedAltSub = this.props.selectedAlt.sub(selectedAlt => {
       if (selectedAlt === null) {
         this.textStyle.set('display', 'none');
         this.defaultStyle.set('display', '');
@@ -1327,25 +1402,17 @@ class SelectedAltitudeDisplay extends DisplayComponent<SelectedAltitudeDisplayPr
       }
 
       this.lastAlertState = state;
-    }, false, true);
+    }, true);
 
     this.showSub = this.props.show.sub(show => {
       if (show) {
         this.rootStyle.set('display', '');
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.selectedAltSub!.resume(true);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.alertStateSub!.resume(true);
+        selectedAltSub.resume(true);
       } else {
         this.rootStyle.set('display', 'none');
 
-        this.animationDebounceTimer.clear();
-
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.selectedAltSub!.pause();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.alertStateSub!.pause();
+        selectedAltSub.pause();
       }
     }, true);
   }
@@ -1434,10 +1501,10 @@ class BaroSettingDisplay extends DisplayComponent<BaroSettingDisplayProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.baroSettingPipe = this.props.baroSetting.pipe(this.baroSetting, true);
+    const baroSettingPipe = this.baroSettingPipe = this.props.baroSetting.pipe(this.baroSetting, true);
     this.baroPreselectPipe = this.props.baroPreselect?.pipe(this.baroPreselect, true);
 
-    this.isStdActiveSub = this.props.isStdActive.sub(isStdActive => {
+    const isStdActiveSub = this.isStdActiveSub = this.props.isStdActive.sub(isStdActive => {
       if (isStdActive) {
         this.baroSettingValueStyle.set('display', 'none');
         this.baroStdStyle.set('display', '');
@@ -1453,21 +1520,17 @@ class BaroSettingDisplay extends DisplayComponent<BaroSettingDisplayProps> {
       if (show) {
         this.rootStyle.set('display', '');
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.baroSettingPipe!.resume(true);
+        baroSettingPipe.resume(true);
         this.baroPreselectPipe?.resume(true);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.isStdActiveSub!.resume(true);
+        isStdActiveSub.resume(true);
       } else {
         this.rootStyle.set('display', 'none');
 
         this.animationDebounceTimer.clear();
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.baroSettingPipe!.pause();
+        baroSettingPipe.pause();
         this.baroPreselectPipe?.pause();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.isStdActiveSub!.pause();
+        isStdActiveSub.pause();
       }
     }, true);
   }

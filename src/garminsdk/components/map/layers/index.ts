@@ -1,5 +1,5 @@
-export * from './MapAltitudeArcLayer';
 export * from './MapCrosshairLayer';
+export * from './MapDeadReckoningLayer';
 export * from './MapFlightPlanLayer';
 export * from './MapMiniCompassLayer';
 export * from './MapPointerInfoLayer';

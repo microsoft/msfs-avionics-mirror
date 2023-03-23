@@ -1,0 +1,32 @@
+html {
+  --gtc-pfd-traffic-map-button-img-center-y: 27.5%;
+  --gtc-pfd-traffic-map-button-label-center-y: 65%;
+  --gtc-pfd-traffic-map-button-status-bar-center-y: 87.5%;
+}
+
+.gtc-horizontal {
+  --gtc-pfd-traffic-map-button-img-scale: 1.8;
+}
+
+.gtc-vertical {
+  --gtc-pfd-traffic-map-button-img-scale: 1;
+}
+
+.gtc-pfd-traffic-map-button-img {
+  position: absolute;
+  left: 50%;
+  top: var(--gtc-pfd-traffic-map-button-img-center-y);
+  transform: translate(-50%, -50%) scale(var(--gtc-pfd-traffic-map-button-img-scale));
+}
+
+.touch-button-toggle.gtc-pfd-traffic-map-button .touch-button-label {
+  top: var(--gtc-pfd-traffic-map-button-label-center-y);
+}
+
+.gtc-pfd-traffic-map-button.gtc-pfd-traffic-map-button-notoggle .touch-button-toggle-status-bar {
+  display: none;
+}
+
+.gtc-pfd-traffic-map-button .touch-button-toggle-status-bar {
+  top: calc(var(--gtc-pfd-traffic-map-button-status-bar-center-y) - var(--touch-button-toggle-bar-height) / 2);
+}

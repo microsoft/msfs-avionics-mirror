@@ -1,0 +1,38 @@
+.mfd-home {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gtc-horizontal .mfd-home {
+  padding: 55px 0px 15px 0px;
+
+  --mfd-home-button-margin-horizontal: 9px;
+}
+
+.gtc-vertical .mfd-home {
+  padding: 27px 0px 7px 0px;
+
+  --mfd-home-button-margin-horizontal: 5px;
+}
+
+.mfd-home-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.mfd-home-row .touch-button {
+  margin: 0px var(--mfd-home-button-margin-horizontal);
+}
+
+.mfd-home-img-offset-button {
+  --touch-button-img-img-center-y: 35%;
+}

@@ -1,34 +1,11 @@
 import {
-  AffineTransformPathStream,
-  BingComponent,
-  ComponentProps,
-  ConsumerSubject,
-  DisplayComponent,
-  EventBus,
-  FSComponent,
-  GNSSEvents,
-  MappedSubject,
-  MathUtils,
-  MutableSubscribable,
-  NumberFormatter,
-  NumberUnitInterface,
-  NumberUnitSubject,
-  ObjectSubject,
-  ReadonlyFloat64Array,
-  SetSubject,
-  Subject,
-  Subscribable,
-  SubscribableUtils,
-  Subscription,
-  SvgPathStream,
-  Unit,
-  UnitFamily,
-  UnitType,
-  Vec2Math,
-  VecNMath,
-  VNode
-} from 'msfssdk';
+  AffineTransformPathStream, ArraySubject, BingComponent, ComponentProps, ConsumerSubject, DisplayComponent, EventBus,
+  FSComponent, GNSSEvents, MappedSubject, MathUtils, MutableSubscribable, NumberFormatter, NumberUnitInterface,
+  NumberUnitSubject, ObjectSubject, ReadonlyFloat64Array, SetSubject, Subject, Subscribable, SubscribableUtils,
+  Subscription, SvgPathStream, Unit, UnitFamily, UnitType, Vec2Math, VecNMath, VNode
+} from '@microsoft/msfs-sdk';
 import { NumberUnitDisplay } from '../common/NumberUnitDisplay';
+import { WeatherRadarUtils } from './WeatherRadarUtils';
 
 /**
  * The operating mode of a Garmin weather radar.
@@ -56,10 +33,10 @@ export interface WeatherRadarProps extends ComponentProps {
   /** The event bus. */
   bus: EventBus;
 
-  /** The operating mode of the weather radar */
+  /** The operating mode of the weather radar. */
   operatingMode: Subscribable<WeatherRadarOperatingMode>;
 
-  /** The scan mode of the weather radar */
+  /** The scan mode of the weather radar. */
   scanMode: Subscribable<WeatherRadarScanMode>;
 
   /** The angular width, in degrees, of the radar arc in horizontal scan mode. */
@@ -74,9 +51,6 @@ export interface WeatherRadarProps extends ComponentProps {
   /** The units displayed by the weather radar's range labels. */
   rangeUnit: Unit<UnitFamily.Distance> | Subscribable<Unit<UnitFamily.Distance>>;
 
-  /** Whether weather radar data is in a failure state. */
-  isDataFailed: Subscribable<boolean>;
-
   /** The size of the weather radar display, as `[width, height]` in pixels. */
   size: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 
@@ -85,6 +59,25 @@ export interface WeatherRadarProps extends ComponentProps {
 
   /** Whether to show the tilt line in vertical scan mode. */
   showTiltLine: Subscribable<boolean>;
+
+  /**
+   * The colors for the weather radar at zero gain. Each entry `E_i` of the array is a tuple `[color, dBZ]` that
+   * defines a color stop, where `color` is an RGBA color expressed as `R + G * 256 + B * 256^2 + A * 256^3` and `dBZ`
+   * is a return signal strength.
+   *
+   * In general, the color defined by `E_i` is applied to returns ranging from the signal strength defined by `E_i-1`
+   * to the signal strength defined by `E_i`. There are two special cases. The color defined by `E_0` is applied to
+   * returns with signal strengths from negative infinity to the strength defined by `E_0`. The color defined by
+   * `E_n-1`, where `n` is the length of the array, is applied to returns with signal strengths from the strength
+   * defined by `E_n-2` to positive infinity.
+   */
+  colors: readonly (readonly [number, number])[] | Subscribable<readonly (readonly [number, number])[]>;
+
+  /** The gain of the weather radar, in dBZ. */
+  gain: Subscribable<number>;
+
+  /** Whether weather radar data is in a failure state. */
+  isDataFailed: Subscribable<boolean>;
 
   /**
    * The padding inside the weather radar display respected by the radar arc in horizontal scan mode, as
@@ -192,11 +185,6 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
 
   private readonly rootCssClass = SetSubject.create(['weather-radar']);
 
-  private readonly wxrModes = {
-    [WeatherRadarScanMode.Horizontal]: { mode: EWeatherRadar.HORIZONTAL, arcRadians: MathUtils.HALF_PI },
-    [WeatherRadarScanMode.Vertical]: { mode: EWeatherRadar.VERTICAL, arcRadians: Math.PI / 3 }
-  };
-
   private readonly svgPathStream = new SvgPathStream(0.1);
   private readonly svgTransformPathStream = new AffineTransformPathStream(this.svgPathStream);
 
@@ -210,6 +198,9 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
   private readonly verticalRangeLineExtend = SubscribableUtils.toSubscribable(this.props.verticalRangeLineExtend ?? WeatherRadar.DEFAULT_VERTICAL_RANGE_LINE_EXTEND, true);
 
   private readonly referenceLineAngularWidth = (this.props.referenceLineAngularWidth ?? WeatherRadar.DEFAULT_BEARING_LINE_ANGULAR_WIDTH) * Avionics.Utils.DEG2RAD;
+
+  private scanMode = WeatherRadarScanMode.Horizontal;
+  private isSwitchingScanMode = false;
 
   /** The [x, y] position, in pixels, of the center of the weather radar arc. */
   private readonly arcOrigin = Vec2Math.create();
@@ -229,10 +220,9 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
 
   private readonly verticalRangeLinesPath = Subject.create('');
 
-  private readonly positionSource = ConsumerSubject.create(null, new LatLongAlt(), (a, b) => a.lat === b.lat && a.long === b.long);
-  private readonly position = this.positionSource.map(lla => new LatLong(lla.lat, lla.long));
+  private readonly position = ConsumerSubject.create(null, new LatLongAlt(), (a, b) => a.lat === b.lat && a.long === b.long);
 
-  private readonly wxrMode = Subject.create(this.wxrModes[WeatherRadarScanMode.Horizontal], (a, b) => a.mode === b.mode && a.arcRadians === b.arcRadians);
+  private readonly wxrMode = Subject.create({ mode: EWeatherRadar.HORIZONTAL, arcRadians: MathUtils.HALF_PI }, (a, b) => a.mode === b.mode && a.arcRadians === b.arcRadians);
 
   private readonly ranges = Array.from({ length: 4 }, () => NumberUnitSubject.create(UnitType.NMILE.createNumber(0)));
 
@@ -248,8 +238,14 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
     this.props.scanMode
   );
 
+  private readonly colors = SubscribableUtils.toSubscribable(this.props.colors, true);
+  private readonly bingWxrColorsWorkingArray: [number, number][] = [];
+  private readonly bingWxrColors = ArraySubject.create<readonly [number, number]>();
+
   private needResize = false;
   private needReposition = false;
+  private needUpdateBingWxrMode = false;
+  private needUpdateBingWxrColors = false;
   private needRedrawOverlay = false;
   private needRedrawVerticalRangeLines = false;
   private needUpdateBing = false;
@@ -266,6 +262,8 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
   private horizontalScanPaddingSub?: Subscription;
   private verticalScanPaddingSub?: Subscription;
   private verticalRangeLineExtendSub?: Subscription;
+  private colorsSub?: Subscription;
+  private gainSub?: Subscription;
 
   private isAlive = true;
   private isInit = false;
@@ -299,15 +297,20 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
       }
 
       this.needReposition = true;
+      this.needUpdateBingWxrMode = true;
       this.needRotateReferenceLine = true;
     }, true);
 
     this.horizontalScanAngularWidthSub = this.horizontalScanAngularWidth.sub(() => {
-      this.needReposition ||= this.props.scanMode.get() === WeatherRadarScanMode.Horizontal;
+      const isHorizontal = this.props.scanMode.get() === WeatherRadarScanMode.Horizontal;
+      this.needReposition ||= isHorizontal;
+      this.needUpdateBingWxrMode ||= isHorizontal;
     }, true);
 
     this.verticalScanAngularWidthSub = this.verticalScanAngularWidth.sub(() => {
-      this.needReposition ||= this.props.scanMode.get() === WeatherRadarScanMode.Vertical;
+      const isVertical = this.props.scanMode.get() === WeatherRadarScanMode.Vertical;
+      this.needReposition ||= isVertical;
+      this.needUpdateBingWxrMode ||= isVertical;
     }, true);
 
     this.rangeSub = this.props.range.sub(range => {
@@ -320,13 +323,16 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
       this.needRedrawVerticalRangeLines ||= this.props.scanMode.get() === WeatherRadarScanMode.Vertical;
     }, true);
 
-    this.positionSource.setConsumer(this.props.bus.getSubscriber<GNSSEvents>().on('gps-position'));
+    this.position.setConsumer(this.props.bus.getSubscriber<GNSSEvents>().on('gps-position'));
 
     this.position.sub(() => { this.needUpdateBing = true; }, true);
 
     this.isReferenceLineVisible.sub(() => {
       this.needUpdateReferenceLineVisibility = true;
     }, true);
+
+    this.colorsSub = this.colors.sub(() => { this.needUpdateBingWxrColors = true; }, true);
+    this.gainSub = this.props.gain.sub(() => { this.needUpdateBingWxrColors = true; }, true);
 
     this.isInit = true;
 
@@ -397,6 +403,10 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
       this.needReposition = true;
     }
 
+    if (this.needUpdateBingWxrMode) {
+      this.updateBingWxrMode();
+    }
+
     if (this.needReposition) {
       this.recomputePositioning();
       this.repositionBing();
@@ -409,11 +419,16 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
       this.drawVerticalRangeLines(this.size.get(), this.arcOrigin, this.arcRadius, this.arcAngularWidth, this.props.range.get().asUnit(UnitType.FOOT));
     }
 
+    if (this.needUpdateBingWxrColors) {
+      this.updateBingWxrColors();
+    }
+
     if (this.needUpdateBing) {
       if (!this.props.isDataFailed.get() && this.props.operatingMode.get() === WeatherRadarOperatingMode.Weather) {
-        this.bingStyle.set('display', '');
+        this.bingStyle.set('display', this.isSwitchingScanMode ? 'none' : '');
 
-        this.bingRef.instance.setPositionRadius(this.position.get(), this.props.range.get().asUnit(UnitType.METER));
+        const pos = this.position.get();
+        this.bingRef.instance.setPositionRadius(new LatLong(pos.lat, pos.long), this.props.range.get().asUnit(UnitType.METER));
       } else {
         this.bingStyle.set('display', 'none');
       }
@@ -429,9 +444,12 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
 
     this.needResize = false;
     this.needReposition = false;
+    this.needUpdateBingWxrMode = false;
+    this.needUpdateBingWxrColors = false;
     this.needRedrawOverlay = false;
     this.needRedrawVerticalRangeLines = false;
-    this.needUpdateBing = false;
+    this.needUpdateBing = this.isSwitchingScanMode;
+    this.isSwitchingScanMode = false;
     this.needUpdateReferenceLineVisibility = false;
     this.needRotateReferenceLine = false;
   }
@@ -446,20 +464,36 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
   }
 
   /**
+   * Updates this weather radar's Bing component weather mode.
+   */
+  private updateBingWxrMode(): void {
+    const scanMode = this.props.scanMode.get();
+
+    if (scanMode !== this.scanMode) {
+      this.scanMode = scanMode;
+      this.needUpdateBing ||= !this.isSwitchingScanMode;
+      this.isSwitchingScanMode = true;
+    }
+
+    this.arcAngularWidth = (
+      this.scanMode === WeatherRadarScanMode.Horizontal
+        ? this.horizontalScanAngularWidth.get()
+        : this.verticalScanAngularWidth.get()
+    ) * Avionics.Utils.DEG2RAD;
+
+    this.wxrMode.set({ mode: this.scanMode === WeatherRadarScanMode.Horizontal ? EWeatherRadar.HORIZONTAL : EWeatherRadar.VERTICAL, arcRadians: this.arcAngularWidth });
+  }
+
+  /**
    * Recomputes the size and positioning of this weather radar's radar arc.
    */
   private recomputePositioning(): void {
-    const scanMode = this.props.scanMode.get();
     const size = this.size.get();
     const width = size[0], height = size[1];
 
-    this.arcAngularWidth = scanMode === WeatherRadarScanMode.Horizontal ? this.horizontalScanAngularWidth.get() : this.verticalScanAngularWidth.get();
     const aspectRatio = 1 / (2 * Math.sin(this.arcAngularWidth / 2));
 
-    this.wxrModes[scanMode].arcRadians = this.arcAngularWidth;
-    this.wxrMode.set(this.wxrModes[scanMode]);
-
-    if (scanMode === WeatherRadarScanMode.Horizontal) {
+    if (this.scanMode === WeatherRadarScanMode.Horizontal) {
       const padding = this.horizontalScanPadding.get();
 
       this.arcRadius = Math.max(0, Math.min(height - padding[1] - padding[3], (width - padding[0] - padding[2]) * aspectRatio));
@@ -685,6 +719,25 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
     this.verticalRangeLabelBottomStyle.set('display', 'none');
   }
 
+  /**
+   * Updates this weather radar's Bing component weather colors.
+   */
+  private updateBingWxrColors(): void {
+    const colors = this.colors.get();
+    const gain = this.props.gain.get();
+
+    this.bingWxrColorsWorkingArray.length = colors.length;
+
+    for (let i = 0; i < colors.length; i++) {
+      const stop = colors[i];
+      const bingStop = (this.bingWxrColorsWorkingArray[i] ??= [0, 0]);
+      bingStop[0] = stop[0];
+      bingStop[1] = MathUtils.round(WeatherRadarUtils.dbzToPrecipRate(stop[1] - gain), 0.01);
+    }
+
+    this.bingWxrColors.set(this.bingWxrColorsWorkingArray);
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     return (
@@ -695,6 +748,7 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
             id={this.props.bingId}
             mode={EBingMode.PLANE}
             wxrMode={this.wxrMode}
+            wxrColors={this.bingWxrColors}
           />
         </div>
         <svg viewBox={this.overlayViewBox} class='weather-radar-overlay' style='position: absolute; left: 0; top: 0; width: 100%; height: 100%;'>
@@ -750,7 +804,7 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
     this.bingRef.getOrDefault()?.destroy();
     this.rangeLabelRefs.forEach(ref => { ref.getOrDefault()?.destroy(); });
 
-    this.positionSource.destroy();
+    this.position.destroy();
 
     this.operatingModeSub?.destroy();
     this.scanModeSub?.destroy();
@@ -762,5 +816,7 @@ export class WeatherRadar extends DisplayComponent<WeatherRadarProps> {
     this.horizontalScanPaddingSub?.destroy();
     this.verticalScanPaddingSub?.destroy();
     this.verticalRangeLineExtendSub?.destroy();
+    this.colorsSub?.destroy();
+    this.gainSub?.destroy();
   }
 }

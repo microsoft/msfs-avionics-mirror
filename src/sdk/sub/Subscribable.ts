@@ -72,7 +72,7 @@ export interface Subscribable<T> {
    * @param paused Whether the new subscription should be initialized as paused. Defaults to `false`.
    * @returns The new subscription.
    */
-  pipe<M>(to: MutableSubscribable<any, M>, map: (input: T) => M, paused?: boolean): Subscription;
+  pipe<M>(to: MutableSubscribable<any, M>, map: (fromVal: T, toVal: M) => M, paused?: boolean): Subscription;
 }
 
 /**
@@ -95,16 +95,18 @@ export interface MappedSubscribable<T> extends Subscribable<T> {
   /**
    * Pauses the subscription to the parent subscribable. Once paused, this subscribable will not update its state until
    * it is resumed.
+   * @returns This subscribable, after it has been paused.
    * @throws Error if the subscription to the parent subscribable is not alive.
    */
-  pause(): void;
+  pause(): this;
 
   /**
    * Resumes the subscription to the parent subscribable. Once resumed, this subscribable will immediately begin to
    * update its state based its parent's state.
+   * @returns This subscribable, after it has been resumed.
    * @throws Error if the subscription to the parent subscribable is not alive.
    */
-  resume(): void;
+  resume(): this;
 
   /**
    * Destroys the subscription to the parent subscribable.
@@ -133,91 +135,11 @@ export interface MutableSubscribable<T, I = T> extends Subscribable<T> {
 export type SubscribableType<S> = S extends Subscribable<infer T> ? T : never;
 
 /**
- * Utility class for generating common mapping functions.
+ * Utility type to convert a type of Subject into a {@link Subscribable}.
  */
-export class SubscribableMapFunctions {
-  /**
-   * Generates a function which maps an input to itself.
-   * @returns A function which maps an input to itself.
-   */
-  public static identity<T>(): (input: T) => T {
-    return (input: T): T => input;
-  }
+export type ToSubscribable<S> = S extends Subscribable<infer T> ? Subscribable<T> : never;
 
-  /**
-   * Generates a function which maps an input boolean to its negation.
-   * @returns A function which maps an input boolean to its negation.
-   */
-  public static not<T extends boolean>(): (input: T, currentVal?: T) => boolean {
-    return (input: T): boolean => !input;
-  }
-
-  /**
-   * Generates a function which maps an input number to its negation.
-   * @returns A function which maps an input number to its negation.
-   */
-  public static negate<T extends number>(): (input: T, currentVal?: T) => number {
-    return (input: T): number => -input;
-  }
-
-  /**
-   * Generates a function which maps an input number to its absolute value.
-   * @returns A function which maps an input number to its absolute value.
-   */
-  public static abs<T extends number>(): (input: T, currentVal?: T) => number {
-    return Math.abs;
-  }
-
-  /**
-   * Generates a function which maps an input number to a rounded version of itself at a certain precision.
-   * @param precision The precision to which to round the input.
-   * @returns A function which maps an input number to a rounded version of itself at the specified precision.
-   */
-  public static withPrecision<T extends number>(precision: number): (input: T, currentVal?: T) => number {
-    return (input: T): number => {
-      return Math.round(input / precision) * precision;
-    };
-  }
-
-  /**
-   * Generates a function which maps an input number to itself if and only if it differs from the previous mapped value
-   * by a certain amount, and to the previous mapped value otherwise.
-   * @param threshold The minimum difference between the input and the previous mapped value required to map the input
-   * to itself.
-   * @returns A function which maps an input number to itself if and only if it differs from the previous mapped value
-   * by the specified amount, and to the previous mapped value otherwise.
-   */
-  public static changedBy<T extends number>(threshold: number): (input: T, currentVal?: T) => number {
-    return (input: T, currentVal?: T): number => currentVal === undefined || Math.abs(input - currentVal) >= threshold ? input : currentVal;
-  }
-
-  /**
-   * Generates a function which maps an input number to itself up to a maximum frequency, and to the previous mapped
-   * value otherwise.
-   * @param freq The maximum frequency at which to map the input to itself, in Hertz.
-   * @param timeFunc A function which gets the current time in milliseconds. Defaults to `Date.now()`.
-   * @returns A function which maps an input number to itself up to the specified maximum frequency, and to the
-   * previous mapped value otherwise.
-   */
-  public atFrequency<T>(freq: number, timeFunc: () => number = Date.now): (input: T, currentVal?: T) => T {
-    const period = 1000 / freq;
-    let t0: number;
-    let timeRemaining = 0;
-
-    return (input: T, currentVal?: T): T => {
-      let returnValue = currentVal ?? input;
-
-      const currentTime = timeFunc();
-      const dt = currentTime - (t0 ??= currentTime);
-
-      timeRemaining -= dt;
-
-      if (timeRemaining <= 0) {
-        timeRemaining = period + timeRemaining;
-        returnValue = input;
-      }
-
-      return returnValue;
-    };
-  }
-}
+/**
+ * Utility type to retrieve the input value of a {@link MutableSubscribable}.
+ */
+export type MutableSubscribableInputType<S> = S extends MutableSubscribable<any, infer I> ? I : never;

@@ -1,41 +1,22 @@
-import { ComponentProps, DisplayComponent, FSComponent, MutableSubscribable, SetSubject, Subscribable, SubscribableSet, Subscription, VNode } from 'msfssdk';
+import { DisplayComponent, FSComponent, MutableSubscribable, SetSubject, Subscribable, Subscription, VNode } from '@microsoft/msfs-sdk';
 
 import { ToggleStatusBar } from '../common/ToggleStatusBar';
-import { TouchButton } from './TouchButton';
+import { TouchButton, TouchButtonProps } from './TouchButton';
 
 /**
  * Component props for ToggleTouchButton.
  */
-export interface ToggleTouchButtonProps<S extends Subscribable<boolean> | MutableSubscribable<boolean>> extends ComponentProps {
+export interface ToggleTouchButtonProps<S extends Subscribable<boolean> | MutableSubscribable<boolean>>
+  extends Omit<TouchButtonProps, 'onPressed'> {
+
   /** A subscribable whose state will be bound to the button. */
   state: S;
 
   /**
-   * Whether the button is enabled, or a subscribable which provides it. Disabled buttons cannot be pressed. Defaults
-   * to `true`.
-   */
-  isEnabled?: boolean | Subscribable<boolean>;
-
-  /** Whether the button is highlighted, or a subscribable which provides it. Defaults to `false`. */
-  isHighlighted?: boolean | Subscribable<boolean>;
-
-  /**
-   * The label for the button. Can be defined as either a static `string`, a subscribable which provides the label
-   * `string`, or a VNode. If not defined, the button will not have a label.
-   */
-  label?: string | Subscribable<string> | VNode;
-
-  /**
    * A callback function which will be called when the button is pressed. If not defined, pressing the button will
-   * toggle its bound state.
+   * toggle its bound state if the state is mutable.
    */
   onPressed?: <B extends ToggleTouchButton<S> = ToggleTouchButton<S>>(button: B, state: S) => void;
-
-  /** A callback function which will be called when the button is destroyed. */
-  onDestroy?: () => void;
-
-  /** CSS class(es) to apply to the button's root element. */
-  class?: string | SubscribableSet<string>;
 }
 
 /**
@@ -50,6 +31,7 @@ export interface ToggleTouchButtonProps<S extends Subscribable<boolean> | Mutabl
  * `touch-button-toggle-status-bar` and an optional label element with the CSS class `touch-button-label`.
  */
 export class ToggleTouchButton<S extends Subscribable<boolean> | MutableSubscribable<boolean>> extends DisplayComponent<ToggleTouchButtonProps<S>> {
+  protected static readonly RESERVED_CSS_CLASSES = new Set(['touch-button-toggle']);
 
   protected readonly buttonRef = FSComponent.createRef<TouchButton>();
   protected readonly statusBarRef = FSComponent.createRef<ToggleStatusBar>();
@@ -76,8 +58,8 @@ export class ToggleTouchButton<S extends Subscribable<boolean> | MutableSubscrib
 
     if (typeof this.props.class === 'object') {
       this.cssClassSub = FSComponent.bindCssClassSet(this.cssClassSet, this.props.class, reservedClasses);
-    } else {
-      for (const cssClassToAdd of FSComponent.parseCssClassesFromString(this.props.class ?? '').filter(cssClass => !reservedClasses.has(cssClass))) {
+    } else if (this.props.class !== undefined && this.props.class.length > 0) {
+      for (const cssClassToAdd of FSComponent.parseCssClassesFromString(this.props.class, cssClass => !reservedClasses.has(cssClass))) {
         this.cssClassSet.add(cssClassToAdd);
       }
     }
@@ -87,8 +69,13 @@ export class ToggleTouchButton<S extends Subscribable<boolean> | MutableSubscrib
         ref={this.buttonRef}
         isEnabled={this.props.isEnabled}
         isHighlighted={this.props.isHighlighted}
+        isVisible={this.props.isVisible}
         label={this.props.label}
         onPressed={onPressed}
+        focusOnDrag={this.props.focusOnDrag}
+        inhibitOnDrag={this.props.inhibitOnDrag}
+        dragThresholdPx={this.props.dragThresholdPx}
+        inhibitOnDragAxis={this.props.inhibitOnDragAxis}
         class={this.cssClassSet}
       >
         <ToggleStatusBar ref={this.statusBarRef} state={this.props.state} class='touch-button-toggle-status-bar'></ToggleStatusBar>
@@ -101,8 +88,8 @@ export class ToggleTouchButton<S extends Subscribable<boolean> | MutableSubscrib
    * Gets the CSS classes that are reserved for this button's root element.
    * @returns The CSS classes that are reserved for this button's root element.
    */
-  protected getReservedCssClasses(): Set<string> {
-    return new Set(['touch-button-toggle']);
+  protected getReservedCssClasses(): ReadonlySet<string> {
+    return ToggleTouchButton.RESERVED_CSS_CLASSES;
   }
 
   /** @inheritdoc */

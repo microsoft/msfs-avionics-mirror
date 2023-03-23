@@ -172,7 +172,7 @@ export class AffineTransformPathStream extends AbstractTransformingPathStream {
   private updateScaleRotation(): void {
     const params = this.transform.getParameters();
     this.scale = Math.sqrt(params[0] * params[0] + params[3] * params[3]);
-    this.rotation = Math.atan2(params[0], params[3]);
+    this.rotation = Math.atan2(params[3], params[0]);
   }
 
   /**

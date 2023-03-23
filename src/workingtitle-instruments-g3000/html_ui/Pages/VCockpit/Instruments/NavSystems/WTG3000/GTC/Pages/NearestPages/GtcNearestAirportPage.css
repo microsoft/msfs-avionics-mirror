@@ -1,0 +1,12 @@
+.nearest-page-header-appr-rwy {
+  text-align: center;
+}
+
+.nearest-page-list-item-appr-rwy {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.3em;
+  white-space: pre;
+}

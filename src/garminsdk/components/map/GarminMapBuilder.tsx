@@ -1,12 +1,13 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
-  DefaultLodBoundaryCache, FlightPlanner, FlightPlannerEvents, FSComponent, GeoPoint, LatLonInterface, MapBinding, MapCullableTextLabelManager,
-  MapDataIntegrityModule, MapFollowAirplaneModule, MapGenericLayer, MapGenericLayerProps, MapIndexedRangeModule, MapLayerProps, MapLineLayer, MapLineLayerProps,
+  DefaultLodBoundaryCache, FlightPlanner, FlightPlannerEvents, FSComponent, GeoPoint, LatLonInterface, MapAltitudeArcLayer, MapAltitudeArcLayerModules,
+  MapAltitudeArcLayerProps, MapAltitudeArcModule, MapBinding, MapCullableTextLabelManager,
+  MapFollowAirplaneModule, MapGenericLayer, MapGenericLayerProps, MapIndexedRangeModule, MapLayerProps, MapLineLayer, MapLineLayerProps,
   MapOwnAirplanePropsModule, MapSyncedCanvasLayer, MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys, MapTerrainColorsModule,
-  MapTrafficIntruderIconFactory, MapTrafficModule, MapTransformedBinding, MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer,
+  MapTrafficIntruderIconFactory, MapTrafficModule, MapWxrModule, MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer,
   ResourceModerator, SetSubject, Subject, Subscribable, SubscribableSet, SubscribableSetEventType, Subscription, TcasAlertLevel, TcasIntruder,
   TrafficOffScaleOobOptions, UnitFamily, UnitType, UserSettingManager, VecNMath, VNode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { Fms } from '../../flightplan/Fms';
 import { MapDeclutterSettingMode } from '../../settings/MapUserSettings';
@@ -18,18 +19,20 @@ import {
   MapDataIntegrityRTRControllerModules, MapFlightPlanFocusRTRController, MapFlightPlanFocusRTRControllerContext, MapFlightPlanFocusRTRControllerModules,
   MapGarminTrafficController, MapGarminTrafficControllerModules, MapNexradController, MapNexradControllerModules, MapNexradUserSettings,
   MapOrientationController, MapOrientationControllerContext, MapOrientationControllerModules, MapOrientationControllerSettings, MapOrientationRTRController,
-  MapOrientationRTRControllerModules, MapPointerController, MapPointerControllerModules, MapPointerRTRController, MapPointerRTRControllerContext,
-  MapPointerRTRControllerModules, MapRangeCompassController, MapRangeCompassControllerModules, MapRangeController, MapRangeControllerModules,
-  MapRangeControllerSettings, MapRangeRTRController, MapRangeRTRControllerModules, MapTerrainColorsController, MapTerrainColorsControllerModules,
-  MapTerrainController, MapTerrainControllerModules, MapTerrainUserSettings, MapTrafficController, MapTrafficControllerModules, MapTrafficUserSettings,
-  MapWaypointsVisController, MapWaypointsVisControllerModules, MapWaypointVisUserSettings, MapWxrController, MapWxrControllerModules, TrafficMapRangeController,
-  TrafficMapRangeControllerModules, TrafficMapRangeControllerSettings
+  MapOrientationRTRControllerContext, MapOrientationRTRControllerModules, MapPointerController, MapPointerControllerModules, MapPointerRTRController,
+  MapPointerRTRControllerContext, MapPointerRTRControllerModules, MapRangeCompassController, MapRangeCompassControllerModules, MapRangeController,
+  MapRangeControllerModules, MapRangeControllerSettings, MapRangeRTRController, MapRangeRTRControllerModules, MapTerrainColorsController,
+  MapTerrainColorsControllerModules, MapTerrainColorsDefinition, MapTerrainController, MapTerrainControllerModules, MapTerrainUserSettings,
+  MapTrafficController, MapTrafficControllerModules, MapTrafficUserSettings, MapWaypointsVisController, MapWaypointsVisControllerModules,
+  MapWaypointVisUserSettings, MapWxrController, MapWxrControllerModules, TrafficMapRangeController, TrafficMapRangeControllerModules,
+  TrafficMapRangeControllerSettings, WeatherMapOrientationController, WeatherMapOrientationControllerContext, WeatherMapOrientationControllerModules,
+  WeatherMapOrientationControllerSettings
 } from './controllers';
 import { MapActiveFlightPlanDataProvider, MapFlightPathPlanRenderer, MapFlightPathProcRenderer, MapFlightPlannerPlanDataProvider } from './flightplan';
 import { MapFlightPlanDataProvider } from './flightplan/MapFlightPlanDataProvider';
 import { GarminMapKeys } from './GarminMapKeys';
 import {
-  MapAltitudeArcLayer, MapAltitudeArcLayerModules, MapAltitudeArcLayerProps, MapCrosshairLayer, MapCrosshairLayerModules, MapFlightPlanLayer,
+  MapCrosshairLayer, MapCrosshairLayerModules, MapFlightPlanLayer,
   MapMiniCompassLayer, MapPointerInfoLayer, MapPointerInfoLayerModules, MapPointerInfoLayerSize, MapPointerLayer, MapPointerLayerModules,
   MapProcedurePreviewLayer, MapProcedurePreviewLayerModules, MapRangeCompassLayer, MapRangeCompassLayerModules, MapRangeCompassLayerProps, MapRangeRingLayer,
   MapRangeRingLayerModules, MapRangeRingLayerProps, MapTrackVectorLayer, MapTrackVectorLayerModules, MapTrackVectorLayerProps, MapWaypointHighlightLayer,
@@ -41,11 +44,10 @@ import { MapTrafficOffScaleStatus } from './MapTrafficOffScaleStatus';
 import { MapWaypointDisplayBuilder, MapWaypointDisplayBuilderClass } from './MapWaypointDisplayBuilder';
 import { MapWaypointRenderer, MapWaypointRenderRole } from './MapWaypointRenderer';
 import {
-  GarminAirspaceShowTypeMap, MapAltitudeArcModule, MapCrosshairModule, MapDeclutterMode, MapDeclutterModule, MapFlightPlanFocusModule, MapGarminTrafficModule,
+  GarminAirspaceShowTypeMap, MapCrosshairModule, MapDeclutterMode, MapDeclutterModule, MapFlightPlanFocusModule, MapGarminDataIntegrityModule, MapGarminTrafficModule,
   MapNexradModule, MapOrientation, MapOrientationModule, MapPointerModule, MapProcedurePreviewModule, MapRangeCompassModule, MapRangeRingModule, MapTerrainMode,
-  MapTerrainModule, MapTrackVectorModule, MapUnitsModule, MapWaypointsModule
+  MapTerrainModule, MapTrackVectorModule, MapUnitsModule, MapWaypointHighlightModule, MapWaypointsModule
 } from './modules';
-import { MapWaypointHighlightModule } from './modules/MapWaypointHighlightModule';
 
 /**
  * Styling options for the range ring.
@@ -271,9 +273,10 @@ export class GarminMapBuilder {
   ): MapBuilder {
     mapBuilder
       .withRotation()
+      .withContext(GarminMapKeys.RotationModeControl, () => new ResourceModerator(undefined))
       .withContext(GarminMapKeys.OrientationControl, () => new ResourceModerator(undefined))
       .withModule(GarminMapKeys.Orientation, () => new MapOrientationModule())
-      .withController<MapOrientationRTRController, MapOrientationRTRControllerModules>(
+      .withController<MapOrientationRTRController, MapOrientationRTRControllerModules, any, any, MapOrientationRTRControllerContext>(
         GarminMapKeys.OrientationRTR,
         context => new MapOrientationRTRController(
           context,
@@ -288,6 +291,71 @@ export class GarminMapBuilder {
         .withController<MapOrientationController, MapOrientationControllerModules, any, any, MapOrientationControllerContext>(
           GarminMapKeys.Orientation,
           context => new MapOrientationController(context, settingManager)
+        );
+    }
+
+    return mapBuilder;
+  }
+
+  /**
+   * Configures a map builder to generate a map which supports different weather map orientations, as enumerated by
+   * {@link MapOrientation}. Each orientation defines a different rotation behavior, target offset, and range
+   * endpoints.
+   *
+   * Adds the following...
+   *
+   * Context properties:
+   * * `'[MapSystemKeys.RotationControl]': ResourceModerator<void>`
+   * * `[GarminMapKeys.OrientationControl]: ResourceModerator<void>`
+   *
+   * Modules:
+   * * `[MapSystemKeys.Rotation]: MapRotationModule`
+   * * `[GarminMapKeys.Orientation]: MapOrientationModule`
+   * * `[GarminMapKeys.Range]: MapIndexedRangeModule` (only with user setting support)
+   *
+   * Controllers:
+   * * `[MapSystemKeys.Rotation]: MapRotationController`
+   * * `[GarminMapKeys.OrientationRTR]: MapOrientationRTRController`
+   * * `[GarminMapKeys.Orientation]: MapOrientationController` (only with user setting support)
+   * {@link MapOrientationRTRController}.
+   * @param mapBuilder The map builder to configure.
+   * @param nominalTargetOffsets The nominal projected target offsets defined by each orientation. Each target offset
+   * is a 2-tuple `[x, y]`, where each component is expressed relative to the width or height of the map's projected
+   * window, *excluding* the dead zone. If an orientation does not have a defined offset, it will default to `[0, 0]`.
+   * @param nominalRangeEndpoints The nominal range endpoints defined by each orientation. Each set of range endpoints
+   * is a 4-tuple `[x1, y1, x2, y2]`, where each component is expressed relative to the width or height of the map's
+   * projected window, *excluding* the dead zone. If an orientation does not have defined range endpoints, it will
+   * default to `[0.5, 0.5, 0.5, 0]` (center to top-center).
+   * @param settingManager A setting manager containing user settings used to control the map orientation. If not
+   * defined, map orientation will not be bound to user settings.
+   * @returns The map builder, after it has been configured.
+   */
+  public static weatherOrientation<MapBuilder extends MapSystemBuilder>(
+    mapBuilder: MapBuilder,
+    nominalTargetOffsets?: Partial<Record<MapOrientation, ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>>>,
+    nominalRangeEndpoints?: Partial<Record<MapOrientation, ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>>>,
+    settingManager?: UserSettingManager<Partial<WeatherMapOrientationControllerSettings>>
+  ): MapBuilder {
+    mapBuilder
+      .withRotation()
+      .withContext(GarminMapKeys.RotationModeControl, () => new ResourceModerator(undefined))
+      .withContext(GarminMapKeys.OrientationControl, () => new ResourceModerator(undefined))
+      .withModule(GarminMapKeys.Orientation, () => new MapOrientationModule())
+      .withController<MapOrientationRTRController, MapOrientationRTRControllerModules, any, any, MapOrientationRTRControllerContext>(
+        GarminMapKeys.OrientationRTR,
+        context => new MapOrientationRTRController(
+          context,
+          nominalTargetOffsets,
+          nominalRangeEndpoints
+        )
+      );
+
+    if (settingManager !== undefined) {
+      mapBuilder
+        .withModule(GarminMapKeys.Range, () => new MapIndexedRangeModule())
+        .withController<WeatherMapOrientationController, WeatherMapOrientationControllerModules, any, any, WeatherMapOrientationControllerContext>(
+          GarminMapKeys.Orientation,
+          context => new WeatherMapOrientationController(context, settingManager)
         );
     }
 
@@ -326,7 +394,7 @@ export class GarminMapBuilder {
     noHeadingIconAnchor?: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>
   ): MapBuilder {
     return mapBuilder
-      .withModule(MapSystemKeys.DataIntegrity, () => new MapDataIntegrityModule())
+      .withModule(MapSystemKeys.DataIntegrity, () => new MapGarminDataIntegrityModule())
       .withController<
         MapDataIntegrityRTRController,
         MapDataIntegrityRTRControllerModules,
@@ -409,18 +477,23 @@ export class GarminMapBuilder {
    * terrain color mode will not be controlled by user settings.
    * @param allowRelativeMode Whether to allow relative terrain mode. Defaults to `true`. Ignored if terrain
    * colors is not controlled by user settings.
+   * @param groundRelativeBlendDuration The amount of time, in milliseconds, over which to blend the on-ground and
+   * relative terrain mode colors when transitioning between the two. A blend transition is only possible if colors
+   * are defined for both the on-ground and relative terrain modes, and the colors for both modes have the same number
+   * of steps and are applied over the same elevation range. Defaults to 0 milliseconds.
    * @returns The map builder, after it has been configured.
    */
   public static terrainColors<MapBuilder extends MapSystemBuilder<{ [MapSystemKeys.TerrainColors]: MapTerrainColorsModule }>>(
     mapBuilder: MapBuilder,
-    colors: Partial<Record<MapTerrainMode, readonly number[]>>,
+    colors: Partial<Record<MapTerrainMode, MapTerrainColorsDefinition>>,
     settingManager?: UserSettingManager<Partial<MapTerrainUserSettings>>,
-    allowRelativeMode = true
+    allowRelativeMode = true,
+    groundRelativeBlendDuration = 0
   ): MapBuilder {
     mapBuilder
       .withModule(GarminMapKeys.Terrain, () => new MapTerrainModule())
       .withController<MapTerrainColorsController, MapTerrainColorsControllerModules>(
-        MapSystemKeys.TerrainColors, context => new MapTerrainColorsController(context, colors ?? {})
+        MapSystemKeys.TerrainColors, context => new MapTerrainColorsController(context, colors ?? {}, groundRelativeBlendDuration)
       );
 
     const setting = settingManager?.tryGetSetting('mapTerrainMode');
@@ -439,6 +512,8 @@ export class GarminMapBuilder {
    * Configures a map builder to generate a map which supports NEXRAD, and optionally binds the display of NEXRAD to
    * user settings.
    *
+   * Requires the module `[MapSystemKeys.Weather]: MapWxrModule`.
+   *
    * Adds the following...
    *
    * Modules:
@@ -454,13 +529,15 @@ export class GarminMapBuilder {
    * not be controlled by user settings.
    * @param maxDeclutterMode The highest global declutter mode, inclusive, at which NEXRAD is visible. Defaults
    * to `MapDeclutterMode.Level2`. Ignored if NEXRAD user settings are not supported.
+   * @param colors The color array for the NEXRAD overlay. If not defined, default colors will be applied.
    * @returns The map builder, after it has been configured.
    */
-  public static nexrad<MapBuilder extends MapSystemBuilder>(
+  public static nexrad<MapBuilder extends MapSystemBuilder<{ [MapSystemKeys.Weather]: MapWxrModule }>>(
     mapBuilder: MapBuilder,
     minRangeIndex = 0,
     settingManager?: UserSettingManager<Partial<MapNexradUserSettings>>,
     maxDeclutterMode?: MapDeclutterMode,
+    colors?: readonly (readonly [number, number])[]
   ): MapBuilder {
     return mapBuilder
       .withModule(GarminMapKeys.Range, () => new MapIndexedRangeModule())
@@ -468,6 +545,11 @@ export class GarminMapBuilder {
       .withController<MapWxrController, MapWxrControllerModules>(MapSystemKeys.Weather, context => new MapWxrController(context))
       .withController<MapNexradController, MapNexradControllerModules>(GarminMapKeys.Nexrad, context => {
         return new MapNexradController(context, minRangeIndex, settingManager, maxDeclutterMode);
+      })
+      .withInit<{ [GarminMapKeys.Nexrad]: MapNexradModule }>(GarminMapKeys.Nexrad, context => {
+        if (colors !== undefined) {
+          context.model.getModule(GarminMapKeys.Nexrad).colors.set(colors);
+        }
       });
   }
 
@@ -631,6 +713,7 @@ export class GarminMapBuilder {
    * * `'waypointsVis': MapWaypointsVisController` (only if user settings are supported)
    * @param mapBuilder The map builder to configure.
    * @param configure A function used to configure the display and styling of waypoint icons and labels.
+   * @param supportRunwayOutlines Whether to support the rendering of airport runway outlines.
    * @param settingManager A setting manager containing the user settings controlling waypoint visibility. If not
    * defined, waypoint visibility will not be bound to user settings.
    * @param order The order to assign to the waypoint layer. Layers with lower assigned order will be attached to the
@@ -641,6 +724,7 @@ export class GarminMapBuilder {
   public static waypoints<MapBuilder extends MapSystemBuilder>(
     mapBuilder: MapBuilder,
     configure: (builder: MapWaypointDisplayBuilder) => void,
+    supportRunwayOutlines: boolean,
     settingManager?: UserSettingManager<Partial<MapWaypointVisUserSettings>>,
     order?: number
   ): MapBuilder {
@@ -670,6 +754,7 @@ export class GarminMapBuilder {
               mapProjection={context.projection}
               bus={context.bus}
               waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
+              supportRunwayOutlines={supportRunwayOutlines}
             />
           );
         },
@@ -1529,13 +1614,13 @@ export class GarminMapBuilder {
    * Adds the following...
    *
    * Modules:
-   * * `[GarminMapKeys.AltitudeArc]: MapAltitudeArcModule`
+   * * `[MapSystemKeys.AltitudeArc]: MapAltitudeArcModule`
    *
    * Layers:
-   * * `[GarminMapKeys.AltitudeArc]: MapAltitudeArcLayer`
+   * * `[MapSystemKeys.AltitudeArc]: MapAltitudeArcLayer`
    *
    * Controllers:
-   * * `[GarminMapKeys.AltitudeArc]: MapBindingsController` (only if user settings are supported)
+   * * `[MapSystemKeys.AltitudeArc]: MapBindingsController` (only if user settings are supported)
    * @param mapBuilder The map builder to configure.
    * @param options Options for the arc.
    * @param settingManager A setting manager containing user settings used to control the display of the arc. If not
@@ -1545,15 +1630,15 @@ export class GarminMapBuilder {
    * already added to the map builder.
    * @returns The map builder, after it has been configured.
    */
-  public static altitudeArc<MapBuilder extends MapSystemBuilder<Omit<MapAltitudeArcLayerModules, typeof GarminMapKeys.AltitudeArc>>>(
+  public static altitudeArc<MapBuilder extends MapSystemBuilder<Omit<MapAltitudeArcLayerModules, typeof MapSystemKeys.AltitudeArc>>>(
     mapBuilder: MapBuilder,
     options: AltitudeArcOptions,
     settingManager?: UserSettingManager<{ 'mapAltitudeArcShow'?: boolean }>,
     order?: number
   ): MapBuilder {
     mapBuilder
-      .withModule(GarminMapKeys.AltitudeArc, () => new MapAltitudeArcModule())
-      .withLayer<MapAltitudeArcLayer, MapAltitudeArcLayerModules>(GarminMapKeys.AltitudeArc, context => {
+      .withModule(MapSystemKeys.AltitudeArc, () => new MapAltitudeArcModule())
+      .withLayer<MapAltitudeArcLayer, MapAltitudeArcLayerModules>(MapSystemKeys.AltitudeArc, context => {
         return (
           <MapAltitudeArcLayer
             model={context.model}
@@ -1564,11 +1649,11 @@ export class GarminMapBuilder {
       }, order);
 
     if (settingManager?.tryGetSetting('mapAltitudeArcShow') !== undefined) {
-      mapBuilder.withBindings<MapAltitudeArcLayerModules>(GarminMapKeys.AltitudeArc, context => {
+      mapBuilder.withBindings<MapAltitudeArcLayerModules>(MapSystemKeys.AltitudeArc, context => {
         return [
           {
             source: settingManager.getSetting('mapAltitudeArcShow'),
-            target: context.model.getModule(GarminMapKeys.AltitudeArc).show
+            target: context.model.getModule(MapSystemKeys.AltitudeArc).show
           }
         ];
       });
@@ -1625,7 +1710,7 @@ export class GarminMapBuilder {
       mapBuilder.withBindings<MapTrackVectorLayerModules>(GarminMapKeys.TrackVector, context => {
         const seconds = UnitType.SECOND.createNumber(0);
 
-        const bindings: (MapBinding<any> | MapTransformedBinding<any, any>)[] = [];
+        const bindings: MapBinding[] = [];
 
         if (showSetting !== undefined) {
           bindings.push({

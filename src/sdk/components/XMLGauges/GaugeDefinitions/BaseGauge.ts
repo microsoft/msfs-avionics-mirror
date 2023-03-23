@@ -39,8 +39,8 @@ export interface XMLGaugeProps extends ComponentProps {
   cursorText2: string,
   /** The class ID of the gauge. */
   id: string,
-  /**Any triggers for blinking the element red. */
-  // TODO We added yellow blink in our extended gauges, maybe do that too at some point.
+  /** Any triggers for blinking the element red. */
+  // TODO We added yellow blink in our extended gauges, maybe do that too at some point.)
   redBlink: CompositeLogicXMLElement
   /** A reference bug definition, if present. */
   referenceBugs: Array<XMLGaugeReferenceBug>

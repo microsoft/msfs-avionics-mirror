@@ -1,4 +1,4 @@
-import { LatLonInterface, LegDefinition } from 'msfssdk';
+import { LatLonInterface, LegDefinition } from '@microsoft/msfs-sdk';
 
 /**
  * A flight plan focus.

@@ -1,5 +1,6 @@
 import { GeoPoint, GeoPointReadOnly } from '../../../geo/GeoPoint';
 import { GeoProjection, MercatorProjection } from '../../../geo/GeoProjection';
+import { CssTransformBuilder, CssTransformSubject } from '../../../graphics/css/CssTransform';
 import { BitFlags } from '../../../math/BitFlags';
 import { ReadonlyFloat64Array, Vec2Math } from '../../../math/VecMath';
 import { MapLayerProps } from '../MapLayer';
@@ -10,9 +11,6 @@ import { MapCanvasLayer, MapCanvasLayerCanvasInstance, MapCanvasLayerCanvasInsta
  * Properties for a MapCachedCanvasLayer.
  */
 export interface MapCachedCanvasLayerProps<M> extends MapLayerProps<M> {
-  /** Whether to include an offscreen buffer. Must be true. */
-  useBuffer: true;
-
   /** The factor by which the canvas should be overdrawn. Values less than 1 will be clamped to 1. */
   overdrawFactor: number;
 }
@@ -208,6 +206,12 @@ export class MapCachedCanvasLayerCanvasInstanceClass extends MapCanvasLayerCanva
   private _isInvalid = false;
   private readonly _geoProjection = new MercatorProjection();
 
+  private readonly canvasTransform = CssTransformSubject.create(CssTransformBuilder.concat(
+    CssTransformBuilder.scale(),
+    CssTransformBuilder.translate('px'),
+    CssTransformBuilder.rotate('rad')
+  ));
+
   /**
    * Creates a new canvas instance.
    * @param canvas The canvas element.
@@ -223,6 +227,8 @@ export class MapCachedCanvasLayerCanvasInstanceClass extends MapCanvasLayerCanva
     private readonly getReferenceMargin: () => number
   ) {
     super(canvas, context, isDisplayed);
+
+    this.canvasTransform.sub(transform => { this.canvas.style.transform = transform; }, true);
   }
 
   /** @inheritdoc */
@@ -297,7 +303,11 @@ export class MapCachedCanvasLayerCanvasInstanceClass extends MapCanvasLayerCanva
     const offsetX = transform.translation[0] / transform.scale;
     const offsetY = transform.translation[1] / transform.scale;
 
-    this.canvas.style.transform = `scale(${transform.scale.toFixed(3)}) translate(${offsetX.toFixed(1)}px, ${offsetY.toFixed(1)}px) rotate(${(transform.rotation * Avionics.Utils.RAD2DEG).toFixed(2)}deg)`;
+    this.canvasTransform.transform.getChild(0).set(transform.scale, transform.scale, 0.001);
+    this.canvasTransform.transform.getChild(1).set(offsetX, offsetY, 0.1);
+    this.canvasTransform.transform.getChild(2).set(transform.rotation, 1e-4);
+
+    this.canvasTransform.resolve();
   }
 
   /** @inheritdoc */
@@ -380,7 +390,7 @@ export class MapCachedCanvasLayer<P extends MapCachedCanvasLayerProps<any> = Map
     if (BitFlags.isAll(changeFlags, MapProjectionChangeType.ProjectedSize)) {
       this.updateFromProjectedSize(mapProjection.getProjectedSize());
       this.display.invalidate();
-      this.buffer.invalidate();
+      this.tryGetBuffer()?.invalidate();
     }
 
     this.needUpdateTransforms = true;
@@ -402,11 +412,9 @@ export class MapCachedCanvasLayer<P extends MapCachedCanvasLayerProps<any> = Map
    */
   protected updateTransforms(): void {
     const mapProjection = this.props.mapProjection;
-    const display = this.display as MapCachedCanvasLayerCanvasInstanceClass;
-    const buffer = this.buffer as MapCachedCanvasLayerCanvasInstanceClass;
 
-    display.updateTransform(mapProjection);
-    buffer.updateTransform(mapProjection);
+    (this.display as MapCachedCanvasLayerCanvasInstanceClass).updateTransform(mapProjection);
+    (this.tryGetBuffer() as MapCachedCanvasLayerCanvasInstanceClass | undefined)?.updateTransform(mapProjection);
 
     this.needUpdateTransforms = false;
   }

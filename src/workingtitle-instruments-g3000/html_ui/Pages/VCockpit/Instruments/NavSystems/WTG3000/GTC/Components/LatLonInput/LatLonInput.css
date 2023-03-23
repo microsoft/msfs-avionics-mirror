@@ -1,0 +1,42 @@
+.latlon-input {
+  --cursor-input-cursor-end-offset: 0.33em;
+}
+
+.latlon-input .cursor-input-slots {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  padding: var(--cursor-input-slots-padding);
+  white-space: pre;
+}
+
+.latlon-input-slots-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: baseline;
+}
+
+.latlon-input-slots-row-1,
+.latlon-input-inactive-value .g-latlon-lat {
+  margin-bottom: var(--latlon-input-row-gap, 0px);
+}
+
+.latlon-input-inactive-value {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.latlon-input-inactive-value-text {
+  color: var(--g3000-color-black);
+  background: var(--g3000-color-cyan);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}

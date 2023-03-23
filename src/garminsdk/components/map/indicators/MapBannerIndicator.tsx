@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, FSComponent, SetSubject, Subscribable, SubscribableSet, Subscription, VNode } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, SetSubject, Subscribable, SubscribableSet, Subscription, VNode } from '@microsoft/msfs-sdk';
 
 /**
  * Component props for MapBannerIndicator.

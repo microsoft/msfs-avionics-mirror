@@ -48,22 +48,24 @@ export class HandlerSubscription<HandlerType extends (...args: any[]) => void> i
   }
 
   /** @inheritdoc */
-  public pause(): void {
+  public pause(): this {
     if (!this._isAlive) {
       throw new Error('Subscription: cannot pause a dead Subscription.');
     }
 
     this._isPaused = true;
+
+    return this;
   }
 
   /** @inheritdoc */
-  public resume(initialNotify = false): void {
+  public resume(initialNotify = false): this {
     if (!this._isAlive) {
       throw new Error('Subscription: cannot resume a dead Subscription.');
     }
 
     if (!this._isPaused) {
-      return;
+      return this;
     }
 
     this._isPaused = false;
@@ -71,6 +73,8 @@ export class HandlerSubscription<HandlerType extends (...args: any[]) => void> i
     if (initialNotify) {
       this.initialNotify();
     }
+
+    return this;
   }
 
   /** @inheritdoc */

@@ -1,0 +1,59 @@
+.gtc-horizontal .pressurization-dialog {
+  --pressurization-dialog-ldg-elev-input-center: calc(50% - 80px);
+  --pressurization-dialog-ldg-elev-backspace-right: 40px;
+  --pressurization-dialog-ldg-elev-backspace-top: 42px;
+
+  --pressurization-dialog-fms-dest-right: 10px;
+  --pressurization-dialog-fms-dest-bottom: 10px;
+  --pressurization-dialog-fms-dest-width: 195px;
+  --pressurization-dialog-fms-dest-height: 130px;
+  --pressurization-dialog-fms-dest-font-size: 29px;
+}
+
+.gtc-vertical .pressurization-dialog {
+  --pressurization-dialog-ldg-elev-input-center: calc(50% - 46px);
+  --pressurization-dialog-ldg-elev-backspace-right: 24px;
+  --pressurization-dialog-ldg-elev-backspace-top: 21px;
+
+  --pressurization-dialog-fms-dest-right: 4px;
+  --pressurization-dialog-fms-dest-bottom: 4px;
+  --pressurization-dialog-fms-dest-width: 100px;
+  --pressurization-dialog-fms-dest-height: 70px;
+  --pressurization-dialog-fms-dest-font-size: 16px;
+}
+
+.number-dialog.pressurization-dialog.pressurization-dialog-ldg-elev {
+  --number-dialog-input-center: var(--pressurization-dialog-ldg-elev-input-center);
+  --number-dialog-backspace-right: var(--pressurization-dialog-ldg-elev-backspace-right);
+  --number-dialog-backspace-top: var(--pressurization-dialog-ldg-elev-backspace-top);
+}
+
+.pressurization-dialog-input .cursor-input-inactive {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  height: auto;
+  transform: translateY(-50%);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+}
+
+.pressurization-dialog-input-inactive-value-text {
+  background: var(--g3000-color-cyan);
+}
+
+.pressurization-dialog-use-fms-dest {
+  width: var(--pressurization-dialog-fms-dest-width);
+  height: var(--pressurization-dialog-fms-dest-height);
+  font-size: var(--pressurization-dialog-fms-dest-font-size);
+  right: var(--pressurization-dialog-fms-dest-right);
+  bottom: var(--pressurization-dialog-fms-dest-bottom);
+  position: absolute;
+  display: none;
+}
+
+.pressurization-dialog-ldg-elev .pressurization-dialog-use-fms-dest {
+  display: unset;
+}

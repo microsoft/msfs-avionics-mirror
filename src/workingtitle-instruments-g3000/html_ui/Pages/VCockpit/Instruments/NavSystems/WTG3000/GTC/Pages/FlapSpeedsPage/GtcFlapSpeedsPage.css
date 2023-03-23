@@ -1,0 +1,114 @@
+.flap-speeds-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+
+  --flap-speeds-page-speed-buttons-list-height: calc(5 * var(--flap-speeds-page-speed-buttons-list-item-height) + 4 * var(--flap-speeds-page-speed-buttons-list-item-gap));
+}
+
+.gtc-horizontal .flap-speeds-page {
+  font-size: 29px;
+
+  --flap-speeds-page-speed-buttons-container-top: 50px;
+  --flap-speeds-page-speed-buttons-container-width: 450px;
+  --flap-speeds-page-speed-buttons-container-height: 660px;
+  --flap-speeds-page-speed-buttons-container-padding: 10px 15px;
+
+  --flap-speeds-page-speed-buttons-list-item-height: 125px;
+  --flap-speeds-page-speed-buttons-list-item-gap: 2px;
+
+  --flap-speed-value-button-pencil-left: calc(50% + 75px);
+  --flap-speed-value-button-pencil-scale: 1.8;
+
+  --flap-speeds-page-restore-button-left: 5px;
+  --flap-speeds-page-restore-button-bottom: 58px;
+  --flap-speeds-page-restore-button-width: 200px;
+  --flap-speeds-page-restore-button-height: 170px;
+}
+
+.gtc-vertical .flap-speeds-page {
+  font-size: 16px;
+
+  --flap-speeds-page-speed-buttons-container-top: 25px;
+  --flap-speeds-page-speed-buttons-container-width: 224px;
+  --flap-speeds-page-speed-buttons-container-height: 350px;
+  --flap-speeds-page-speed-buttons-container-padding: 5px 7px;
+
+  --flap-speeds-page-speed-buttons-list-item-height: 65px;
+  --flap-speeds-page-speed-buttons-list-item-gap: 1px;
+
+  --flap-speed-value-button-pencil-left: calc(50% + 40px);
+  --flap-speed-value-button-pencil-scale: 1;
+
+  --flap-speeds-page-restore-button-left: 1px;
+  --flap-speeds-page-restore-button-bottom: 38px;
+  --flap-speeds-page-restore-button-width: 105px;
+  --flap-speeds-page-restore-button-height: 95px;
+}
+
+.flap-speeds-page-speed-buttons-container {
+  position: absolute;
+  left: calc(50% - var(--flap-speeds-page-speed-buttons-container-width) / 2);
+  top: var(--flap-speeds-page-speed-buttons-container-top);
+  width: var(--flap-speeds-page-speed-buttons-container-width);
+  height: var(--flap-speeds-page-speed-buttons-container-height);
+  padding: var(--flap-speeds-page-speed-buttons-container-padding);
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.flap-speeds-page-speed-buttons-list {
+  height: var(--flap-speeds-page-speed-buttons-list-height);
+}
+
+.flap-speeds-page-speed-buttons-list-row {
+  align-items: stretch;
+}
+
+.flap-speeds-page-speed-buttons-container-list .flap-speed-value-button {
+  flex-grow: 1;
+}
+
+.flap-speeds-page-speed-buttons-container-nolist .flap-speed-value-button {
+  box-sizing: border-box;
+  height: var(--flap-speeds-page-speed-buttons-list-item-height);
+  margin-bottom: var(--flap-speeds-page-speed-buttons-list-item-gap);
+}
+
+.flap-speed-value-button-label {
+  position: absolute;
+  left: 50%;
+  top: 25%;
+  transform: translate(-50%, -50%);
+}
+
+.flap-speed-value-button-value {
+  position: absolute;
+  left: 50%;
+  top: 75%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5em;
+  color: var(--g3000-color-cyan);
+}
+
+.flap-speed-value-button-pencil {
+  position: absolute;
+  top: 75%;
+  left: var(--flap-speed-value-button-pencil-left);
+  transform: translateY(-50%) scale(var(--flap-speed-value-button-pencil-scale));
+  transform-origin: 0% 50%;
+}
+
+.touch-button.flap-speeds-page-restore-button {
+  position: absolute;
+  left: var(--flap-speeds-page-restore-button-left);
+  bottom: var(--flap-speeds-page-restore-button-bottom);
+  width: var(--flap-speeds-page-restore-button-width);
+  height: var(--flap-speeds-page-restore-button-height);
+}

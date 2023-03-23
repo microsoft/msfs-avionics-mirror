@@ -199,9 +199,9 @@ export class ComputedSubject<I, T> implements MutableSubscribable<T, I> {
    * @param paused Whether the new subscription should be initialized as paused. Defaults to `false`.
    * @returns The new subscription.
    */
-  public pipe<M>(to: MutableSubscribable<any, M>, map: (input: T) => M, paused?: boolean): Subscription;
+  public pipe<M>(to: MutableSubscribable<any, M>, map: (fromVal: T, toVal: M) => M, paused?: boolean): Subscription;
   // eslint-disable-next-line jsdoc/require-jsdoc
-  public pipe<M>(to: MutableSubscribable<any, T> | MutableSubscribable<any, M>, arg2?: ((from: T) => M) | boolean, arg3?: boolean): Subscription {
+  public pipe<M>(to: MutableSubscribable<any, T> | MutableSubscribable<any, M>, arg2?: ((fromVal: T, toVal: M) => M) | boolean, arg3?: boolean): Subscription {
     let sub;
     let paused;
     if (typeof arg2 === 'function') {

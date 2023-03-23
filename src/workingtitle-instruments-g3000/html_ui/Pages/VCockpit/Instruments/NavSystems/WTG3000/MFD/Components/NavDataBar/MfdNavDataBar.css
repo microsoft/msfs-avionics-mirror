@@ -1,0 +1,10 @@
+.nav-data-bar {
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(10px, 1fr));
+  align-items: center;
+}
+
+.nav-data-bar-gps-loi {
+  --nav-data-field-gps-color: var(--g3000-color-yellow);
+}

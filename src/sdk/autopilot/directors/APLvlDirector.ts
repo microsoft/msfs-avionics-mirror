@@ -1,7 +1,6 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus } from '../../data';
-import { AhrsEvents } from '../../instruments';
+import { EventBus, SimVarValueType } from '../../data';
 import { LinearServo } from '../../utils/controllers';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
@@ -9,6 +8,7 @@ import { DirectorState, PlaneDirector } from './PlaneDirector';
  * An autopilot wing leveler director.
  */
 export class APLvlDirector implements PlaneDirector {
+  private static readonly BANK_SERVO_RATE = 10; // degrees per second
 
   public state: DirectorState;
 
@@ -20,22 +20,18 @@ export class APLvlDirector implements PlaneDirector {
 
   private currentBankRef = 0;
   private desiredBank = 0;
-  private actualBank = 0;
 
-  private readonly bankServo = new LinearServo(10);
+  private readonly bankServo = new LinearServo(APLvlDirector.BANK_SERVO_RATE);
 
 
   /**
    * Creates an instance of the wing leveler.
    * @param bus The event bus to use with this instance.
+   * @param isToGaMode Whether this director is being used as a TO/GA lateral mode
+   * (and thus shouldn't set the 'AUTOPILOT WING LEVELER' simvar)
    */
-  constructor(private readonly bus: EventBus) {
+  constructor(private readonly bus: EventBus, private isToGaMode = false) {
     this.state = DirectorState.Inactive;
-
-    const sub = this.bus.getSubscriber<AhrsEvents>();
-    sub.on('roll_deg').withPrecision(1).handle((roll) => {
-      this.actualBank = roll;
-    });
   }
 
   /**
@@ -47,7 +43,8 @@ export class APLvlDirector implements PlaneDirector {
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
-    SimVar.SetSimVarValue('AUTOPILOT WING LEVELER', 'Bool', true);
+    if (!this.isToGaMode) { SimVar.SetSimVarValue('AUTOPILOT WING LEVELER', 'Bool', true); }
+    this.bankServo.reset();
   }
 
   /**
@@ -66,7 +63,7 @@ export class APLvlDirector implements PlaneDirector {
   public deactivate(): void {
     this.state = DirectorState.Inactive;
     this.desiredBank = 0;
-    SimVar.SetSimVarValue('AUTOPILOT WING LEVELER', 'Bool', false);
+    if (!this.isToGaMode) { SimVar.SetSimVarValue('AUTOPILOT WING LEVELER', 'Bool', false); }
   }
 
   /**
@@ -85,6 +82,7 @@ export class APLvlDirector implements PlaneDirector {
    */
   private setBank(bankAngle: number): void {
     if (isFinite(bankAngle)) {
+      this.bankServo.rate = APLvlDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
       this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
       SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
     }

@@ -1,7 +1,7 @@
 import {
   MapIndexedRangeModule, MappedSubject, MappedSubscribable, MapSystemContext, MapSystemController, ResourceConsumer, ResourceModerator, Subject, Subscription,
   UserSettingManager
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { MapOrientationSettingMode, MapUserSettingTypes } from '../../../settings/MapUserSettings';
 import { GarminMapKeys } from '../GarminMapKeys';
@@ -53,7 +53,7 @@ export class MapOrientationController extends MapSystemController<MapOrientation
   private readonly orientationControl = this.context[GarminMapKeys.OrientationControl];
 
   private readonly orientationControlConsumer: ResourceConsumer = {
-    priority: MapResourcePriority.ORIENTATION_ROTATION,
+    priority: MapResourcePriority.ORIENTATION,
 
     onAcquired: () => {
       // If pointer is active, preserve the initial orientation mode when we regain control, but pass through any

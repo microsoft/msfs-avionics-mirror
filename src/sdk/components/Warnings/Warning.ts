@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/Pages/VCockpit/Instruments/Shared/utils/XMLLogic" />
+/// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/utils/xmllogic" />
 import { CompositeLogicXMLHost } from '../../data/';
 
 /** The acceptable priority types for a given warning. */

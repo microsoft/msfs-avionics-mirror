@@ -1,0 +1,51 @@
+.gnss-status-title-header {
+  text-align: center;
+}
+
+.gnss-status-pos,
+.gnss-status-sat,
+.gnss-status-grid1,
+.gnss-status-grid2,
+.gnss-status-grid3 {
+  width: 457px;
+}
+
+.gnss-status-pos,
+.gnss-status-grid1 {
+  margin-top: 20px;
+}
+
+.gnss-status-grid1 {
+  display: flex;
+  justify-content: space-between;
+}
+
+.gnss-status-grid2 {
+  margin-top: -24px;
+}
+
+.gnss-status-grid3 {
+  margin-top: -140px;
+}
+
+.gnss-status-value {
+  display: inline-block;
+  color: var(--wt21-colors-white);
+  padding-left: 15px;
+}
+
+.no-padding {
+  padding: 0;
+}
+
+.gnss-status-value.min40 {
+  min-width: 40px;
+}
+
+.gnss-status-value.min93 {
+  min-width: 93px;
+}
+
+.gnss-status-value.min106 {
+  min-width: 106px;
+}

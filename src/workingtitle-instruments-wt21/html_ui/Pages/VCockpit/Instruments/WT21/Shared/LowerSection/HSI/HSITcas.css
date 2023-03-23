@@ -1,0 +1,35 @@
+.hsi-tcas {
+  position: absolute;
+  top: -6px;
+  left: 0;
+  right: 0;
+  margin: auto;
+  width: var(--center-width);
+  height: 100%;
+  transform: rotateX(0);
+}
+
+.hsi-tcas svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hsi-tcas-rose {
+  stroke: var(--wt21-colors-gray);
+  fill: none;
+  stroke-linecap: round;
+}
+
+.hsi-tcas .hsi-tcas-range-text-outer {
+  font-size: var(--hsi-range-text-font-size);
+  color: var(--wt21-colors-white);
+  position: absolute;
+  top: 33%;
+  left: 12%;
+  transform: translateX(-50%);
+  text-align: center;
+  background: black;
+}

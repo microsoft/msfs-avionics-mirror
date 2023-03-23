@@ -1,7 +1,8 @@
 import {
-  DebounceTimer, GeoPoint, MapIndexedRangeModule, MapOwnAirplanePropsModule, MappedSubject, MapSystemContext, MapSystemController, MapSystemKeys,
-  ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, Subscription, UnitType, VecNMath
-} from 'msfssdk';
+  BitFlags, DebounceTimer, GeoPoint, MapIndexedRangeModule, MapOwnAirplanePropsModule, MappedSubject, MapProjection,
+  MapProjectionChangeType, MapSystemContext, MapSystemController, MapSystemKeys, ReadonlyFloat64Array,
+  ResourceConsumer, ResourceModerator, Subject, Subscribable, Subscription, UnitType, VecNMath
+} from '@microsoft/msfs-sdk';
 
 import { MapFlightPlanDataProvider } from '../flightplan/MapFlightPlanDataProvider';
 import { MapFlightPlanFocusCalculator } from '../flightplan/MapFlightPlanFocusCalculator';
@@ -144,7 +145,6 @@ export class MapFlightPlanFocusRTRController extends MapSystemController<
   private readonly focusRangeTarget = { range: 0, target: new GeoPoint(0, 0) };
 
   private readonly focusDebounceTimer = new DebounceTimer();
-  private skipFlightPlanFocusDebounce = false;
 
   private isFocusActiveSub?: Subscription;
   private focusSub?: Subscription;
@@ -155,6 +155,9 @@ export class MapFlightPlanFocusRTRController extends MapSystemController<
   private rangeArraySub?: Subscription;
 
   private readonly focusMarginsSub: Subscription;
+
+  private isRangeTargetUpdatePending = false;
+  private readonly pendRangeTargetUpdate = (): void => { this.isRangeTargetUpdatePending = true; };
 
   /**
    * Constructor.
@@ -250,10 +253,9 @@ export class MapFlightPlanFocusRTRController extends MapSystemController<
    */
   private setFlightPlanFocusListenersActive(isActive: boolean): void {
     if (isActive) {
-      this.skipFlightPlanFocusDebounce = true;
-      (this.focusSub as Subscription).resume(true);
-      this.skipFlightPlanFocusDebounce = false;
+      this.pendRangeTargetUpdate();
 
+      (this.focusSub as Subscription).resume();
       this.planCalculatedSub?.resume();
       (this.rangeArraySub as Subscription).resume();
     } else {
@@ -267,11 +269,7 @@ export class MapFlightPlanFocusRTRController extends MapSystemController<
    * Responds to changes in the flight plan focus.
    */
   private onFlightPlanFocusChanged(): void {
-    if (this.skipFlightPlanFocusDebounce) {
-      this.updateRangeTargetFromFocus();
-    } else {
-      this.scheduleUpdateRangeTargetFromFocus();
-    }
+    this.schedulePendRangeTargetUpdate();
   }
 
   /**
@@ -290,18 +288,16 @@ export class MapFlightPlanFocusRTRController extends MapSystemController<
   private onFlightPlanCalculated(): void {
     // only update from flight plan focus if the focus is not null and a valid range and target do not already exist.
     if (this.focusModule.planHasFocus.get() && this.focusModule.focus.get() !== null && isNaN(this.focusRangeTarget.range)) {
-      this.updateRangeTargetFromFocus();
+      this.pendRangeTargetUpdate();
     }
   }
-
-  private readonly updateRangeTargetFromFocusBound = this.updateRangeTargetFromFocus.bind(this);
 
   /**
    * Schedules an update of the map target and range from the current flight plan focus after a debounce delay.
    */
-  private scheduleUpdateRangeTargetFromFocus(): void {
+  private schedulePendRangeTargetUpdate(): void {
     this.focusDebounceTimer.schedule(
-      this.updateRangeTargetFromFocusBound,
+      this.pendRangeTargetUpdate,
       this.focusDebounceDelay
     );
   }
@@ -336,6 +332,24 @@ export class MapFlightPlanFocusRTRController extends MapSystemController<
   }
 
   /** @inheritdoc */
+  public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
+    if (BitFlags.isAny(changeFlags, MapProjectionChangeType.ProjectedSize | MapProjectionChangeType.RangeEndpoints)) {
+      this.pendRangeTargetUpdate();
+    }
+  }
+
+  /** @inheritdoc */
+  public onBeforeUpdated(): void {
+    if (!this.isRangeTargetUpdatePending) {
+      return;
+    }
+
+    this.updateRangeTargetFromFocus();
+
+    this.isRangeTargetUpdatePending = false;
+  }
+
+  /** @inheritdoc */
   public onMapDestroyed(): void {
     this.destroy();
   }
@@ -351,6 +365,7 @@ export class MapFlightPlanFocusRTRController extends MapSystemController<
     this.isPlanFocusValid.destroy();
 
     this.focusSub?.destroy();
+    this.dataProviderSub?.destroy();
     this.planCalculatedSub?.destroy();
     this.rangeArraySub?.destroy();
 

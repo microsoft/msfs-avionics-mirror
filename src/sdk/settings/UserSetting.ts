@@ -1,8 +1,8 @@
 import { Consumer } from '../data/Consumer';
-import { EventBus, Publisher } from '../data/EventBus';
-import { EventSubscriber } from '../data/EventSubscriber';
+import { EventBus, Handler } from '../data/EventBus';
 import { AbstractSubscribable } from '../sub/AbstractSubscribable';
 import { MutableSubscribable } from '../sub/Subscribable';
+import { Subscription } from '../sub/Subscription';
 
 /** The supported data types for a user setting. */
 export type UserSettingValue = boolean | number | string;
@@ -30,31 +30,6 @@ export interface UserSetting<T extends UserSettingValue> extends MutableSubscrib
 
   /** Resets this setting to its default value. */
   resetToDefault(): void;
-}
-
-/**
- * An entry for a user setting in UserSettingManager.
- */
-export type UserSettingManagerEntry<T extends UserSettingValue> = {
-  /** A user setting. */
-  setting: SyncableUserSetting<T>,
-
-  /** The event topic used to sync the setting. */
-  syncTopic: string,
-
-  /** The timestamp of the most recent sync event. */
-  syncTime: number
-}
-
-/**
- * Data provided for a setting sync event.
- */
-export type UserSettingManagerSyncData<T extends UserSettingValue> = {
-  /** The synced value of the setting. */
-  value: T;
-
-  /** The timestamp of this sync event. */
-  syncTime: number;
 }
 
 /**
@@ -131,37 +106,147 @@ export interface UserSettingManager<T extends UserSettingRecord> {
 }
 
 /**
+ * An entry for a user setting in UserSettingManager.
+ */
+export type UserSettingManagerEntry<T extends UserSettingValue> = {
+  /** A user setting. */
+  setting: SyncableUserSetting<T>;
+
+  /** The event topic used to sync the setting. */
+  syncTopic: `usersetting_sync_${string}`;
+
+  /** The timestamp of the most recent sync event. */
+  syncTime: number;
+
+  /** The unique ID attached to this entry's setting's initialization sync event. */
+  initUid: number;
+
+  /** The initialization subscription for the setting. */
+  initSub: Subscription;
+}
+
+/**
+ * Data provided for a setting sync event.
+ */
+export type UserSettingManagerInitData<T extends UserSettingValue> = {
+  /** The initialized value of the setting. */
+  value: T;
+
+  /** The timestamp of this initialization event. */
+  syncTime: number;
+
+  /** A unique ID attached to this initialization event. */
+  uid: number;
+}
+
+/**
+ * Data provided for a setting sync event.
+ */
+export type UserSettingManagerSyncData<T extends UserSettingValue> = {
+  /** The synced value of the setting. */
+  value: T;
+
+  /** The timestamp of this sync event. */
+  syncTime: number;
+
+  /**
+   * The unique ID of the initialization event to which this sync event is responding. Only defined if this sync
+   * event is an initialization response.
+   */
+  initUid?: number;
+}
+
+/**
+ * Events used to sync user setting values across instruments.
+ */
+export interface UserSettingManagerSyncEvents {
+  /** A user setting value initialized event. */
+  [setting_init: `usersetting_init_${string}`]: UserSettingManagerInitData<UserSettingValue>;
+
+  /** A user setting value sync event. */
+  [setting_sync: `usersetting_sync_${string}`]: UserSettingManagerSyncData<UserSettingValue>;
+}
+
+/**
  * A manager for user settings. Provides settings using their names as keys, publishes value change events on the
  * event bus, and keeps setting values up to date when receiving change events across the bus.
  */
 export class DefaultUserSettingManager<T extends UserSettingRecord> implements UserSettingManager<T> {
-  private static readonly SYNC_TOPIC_PREFIX = 'usersetting.';
+  protected readonly settings: Map<string, UserSettingManagerEntry<T[keyof T]>>;
 
-  protected readonly settings: Map<string, UserSettingManagerEntry<UserSettingValue>>;
-  protected readonly publisher: Publisher<any>;
-  protected readonly subscriber: EventSubscriber<any>;
+  protected readonly publisher = this.bus.getPublisher<T>();
+  protected readonly subscriber = this.bus.getSubscriber<T>();
+
+  protected readonly syncPublisher = this.bus.getPublisher<UserSettingManagerSyncEvents>();
+  protected readonly syncSubscriber = this.bus.getSubscriber<UserSettingManagerSyncEvents>();
+
+  private keepLocal: boolean;
 
   /**
    * Constructor.
    * @param bus The bus used by this manager to publish setting change events.
    * @param settingDefs The setting definitions used to initialize this manager's settings.
+   * @param keepLocal If present and true, values will be kept local to the instrument on which they're set.
    */
   constructor(
     protected readonly bus: EventBus,
-    settingDefs: readonly UserSettingDefinition<T[keyof T]>[]
+    settingDefs: readonly UserSettingDefinition<T[keyof T]>[],
+    keepLocal = false
   ) {
-    this.publisher = bus.getPublisher();
-    this.subscriber = bus.getSubscriber<T>();
-
+    this.keepLocal = keepLocal;
     this.settings = new Map(settingDefs.map(def => {
-      const syncTopic = `${DefaultUserSettingManager.SYNC_TOPIC_PREFIX}${def.name}`;
-      const entry: any = {
+      const initTopic = `usersetting_init_${def.name}` as const;
+      const syncTopic = `usersetting_sync_${def.name}` as const;
+
+      const entry: UserSettingManagerEntry<any> = {
         syncTopic,
-        syncTime: 0
-      };
+        syncTime: 0,
+        initUid: Math.round(Math.random() * Number.MAX_SAFE_INTEGER)
+      } as any;
+
       entry.setting = new SyncableUserSetting(def, this.onSettingValueChanged.bind(this, entry));
-      this.subscriber.on(syncTopic).handle(this.onSettingValueSynced.bind(this, entry));
-      this.onSettingValueChanged(entry, entry.setting.value);
+
+      entry.initSub = this.syncSubscriber.on(initTopic).handle(data => {
+        // Do not respond to our own initialization sync.
+        if (data.uid === entry.initUid) {
+          return;
+        }
+
+        // If we receive an initialization sync event for a setting, that means a manager on another instrument tried
+        // to initialize the same setting to its default value. However, since the setting already exists here, we will
+        // send a response to override the initialized value with the existing value.
+        this.syncPublisher.pub(entry.syncTopic, { value: entry.setting.value, syncTime: entry.syncTime, initUid: data.uid }, !this.keepLocal, true);
+      }, true);
+
+      // Because sync events are cached, the initial subscriptions to the sync topic below will grab the synced value
+      // of the new setting if it exists on the local instrument (e.g. if the value was synced from another instrument
+      // after the local instrument was created but before this manager and local setting were created).
+      this.syncSubscriber.on(syncTopic).handle(this.onSettingValueSynced.bind(this, entry) as Handler<UserSettingManagerSyncData<UserSettingValue>>);
+      if (entry.syncTime === 0) {
+
+        // If the new setting has no synced value on the local instrument, we will try to grab an initialization value
+        // instead. If one exists, we will use it, but keep the local sync time at 0. If there is a pending response
+        // to this initialization value, we want to be ready to accept the response when it arrives, which we can't do
+        // if the local sync time is non-zero).
+
+        const sub = this.syncSubscriber.on(initTopic).handle(data => {
+          this.onSettingValueSynced(entry, { value: data.value as T[keyof T], syncTime: 0 });
+        });
+        sub.destroy();
+      }
+
+      if (entry.syncTime === 0) {
+        // An existing synced value does not exist for the new setting on the local instrument, so we will go ahead
+        // and initialize the new setting value to its default and send an initialization sync event. If the setting
+        // exists on other instruments, their managers will send an initialization response to override our initialized
+        // value.
+
+        this.syncPublisher.pub(initTopic, { value: entry.setting.value, syncTime: Date.now(), uid: entry.initUid }, !this.keepLocal, true);
+        this.publisher.pub(entry.setting.definition.name, entry.setting.value, false, true);
+      }
+
+      entry.initSub.resume();
+
       return [def.name, entry];
     }));
   }
@@ -193,7 +278,7 @@ export class DefaultUserSettingManager<T extends UserSettingRecord> implements U
       throw new Error(`DefaultUserSettingManager: Could not find setting with name ${name}`);
     }
 
-    return this.subscriber.on(name).whenChanged();
+    return this.subscriber.on(name).whenChanged() as Consumer<NonNullable<T[K]>>;
   }
 
   /** @inheritdoc */
@@ -208,7 +293,7 @@ export class DefaultUserSettingManager<T extends UserSettingRecord> implements U
    */
   protected onSettingValueChanged<K extends keyof T>(entry: UserSettingManagerEntry<T[K]>, value: T[K]): void {
     entry.syncTime = Date.now();
-    this.publisher.pub(entry.syncTopic, { value, syncTime: entry.syncTime }, true, true);
+    this.syncPublisher.pub(entry.syncTopic, { value, syncTime: entry.syncTime }, !this.keepLocal, true);
   }
 
   /**
@@ -217,18 +302,31 @@ export class DefaultUserSettingManager<T extends UserSettingRecord> implements U
    * @param data The sync data.
    */
   protected onSettingValueSynced<K extends keyof T>(entry: UserSettingManagerEntry<T[K]>, data: UserSettingManagerSyncData<T[K]>): void {
-    // protect against race conditions by not responding to sync events older than the last time this manager synced
-    // the setting
-    if (data.syncTime < entry.syncTime) {
+    // If the sync event is an initialization response, ignore it if the local setting value has already been synced.
+    // Otherwise, protect against race conditions by not responding to sync events older than the last time this
+    // manager synced the setting.
+    if (
+      (data.initUid !== undefined && entry.syncTime !== 0)
+      || (data.initUid === undefined && data.syncTime < entry.syncTime)
+    ) {
       return;
     }
 
+    this.syncSettingFromEvent(entry, data);
+  }
+
+  /**
+   * Syncs a setting using data received from a sync event.
+   * @param entry The entry for the setting to sync.
+   * @param data The sync event data.
+   */
+  protected syncSettingFromEvent<K extends keyof T>(entry: UserSettingManagerEntry<T[K]>, data: UserSettingManagerSyncData<T[K]>): void {
     entry.syncTime = data.syncTime;
     entry.setting.syncValue(data.value);
 
-    // publish the public setting change event. Do NOT sync across the bus because doing so can result in older events
+    // Publish the public setting change event. Do NOT sync across the bus because doing so can result in older events
     // being received after newer events.
-    this.publisher.pub(entry.setting.definition.name, data.value, false, true);
+    this.publisher.pub(entry.setting.definition.name as K, entry.setting.value, false, true);
   }
 }
 

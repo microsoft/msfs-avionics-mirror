@@ -1,0 +1,153 @@
+.told-data-page-data {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .told-data-page-data {
+  --told-data-page-data-left-left: 20px;
+  --told-data-page-data-left-top: 10px;
+  --told-data-page-data-left-width: 275px;
+  --told-data-page-data-left-height: 685px;
+
+  --told-data-page-data-origin-dest-margin-bottom: 20px;
+  --told-origin-dest-display-airport-height: 100px;
+
+  --told-data-page-data-left-button-height: 155px;
+  --told-data-page-data-left-button-margin-right: 10px;
+
+  --told-data-page-data-right-right: 5px;
+  --told-data-page-data-right-top: 10px;
+  --told-data-page-data-right-width: 480px;
+  --told-data-page-data-right-height: 685px;
+
+  --told-data-page-data-right-result-padding: 0px 10px;
+
+  --told-data-page-data-result-title-margin-bottom: 4px;
+
+  --told-data-page-data-invalid-result-title-section-padding: 10px 0px;
+
+  --told-data-page-data-result-vspeed-height: 104px;
+}
+
+.gtc-vertical .told-data-page-data {
+  --told-data-page-data-left-left: 10px;
+  --told-data-page-data-left-top: 5px;
+  --told-data-page-data-left-width: 121px;
+  --told-data-page-data-left-height: 360px;
+
+  --told-data-page-data-origin-dest-margin-bottom: 10px;
+  --told-origin-dest-display-airport-height: 55px;
+
+  --told-data-page-data-left-button-height: 80px;
+  --told-data-page-data-left-button-margin-right: 4px;
+
+  --told-data-page-data-right-right: 3px;
+  --told-data-page-data-right-top: 5px;
+  --told-data-page-data-right-width: 212px;
+  --told-data-page-data-right-height: 360px;
+
+  --told-data-page-data-right-result-padding: 0px 4px;
+
+  --told-data-page-data-result-title-margin-bottom: 2px;
+
+  --told-data-page-data-invalid-result-title-section-padding: 5px 0px;
+
+  --told-data-page-data-result-vspeed-height: 61px;
+}
+
+.told-data-page-data-left {
+  position: absolute;
+  left: var(--told-data-page-data-left-left);
+  top: var(--told-data-page-data-left-top);
+  width: var(--told-data-page-data-left-width);
+  height: var(--told-data-page-data-left-height);
+
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.told-data-page-data-left .told-origin-dest-display {
+  margin-bottom: var(--told-data-page-data-origin-dest-margin-bottom);
+}
+
+.told-data-page-data-left-button {
+  height: var(--told-data-page-data-left-button-height);
+  margin-right: var(--told-data-page-data-left-button-margin-right);
+}
+
+.told-data-page-data-accept-speeds-button {
+  --touch-button-toggle-label-center-y: 42%;
+  --touch-button-toggle-bar-center-y: 90%;
+}
+
+.told-data-page-data-right {
+  position: absolute;
+  right: var(--told-data-page-data-right-right);
+  top: var(--told-data-page-data-right-top);
+  width: var(--told-data-page-data-right-width);
+  height: var(--told-data-page-data-right-height);
+}
+
+.told-data-page-data-right-result {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--told-data-page-data-right-result-padding);
+  display: none;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.told-data-page-data-result-title {
+  margin-bottom: var(--told-data-page-data-result-title-margin-bottom);
+  text-align: center;
+}
+
+.told-data-page-data-result-section-bottom-sep {
+  border-bottom: 2px solid #808080;
+}
+
+.told-data-page-data-invalid-result-title-section {
+  padding: var(--told-data-page-data-invalid-result-title-section-padding);
+  font-size: 1.3em;
+  color: var(--g3000-color-yellow);
+  text-align: center;
+}
+
+.told-data-page-data-result-field {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.told-data-page-data-result-value {
+  font-size: 1.3em;
+}
+
+.told-data-page-data-result-vspeed-section {
+  position: relative;
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+}
+
+.told-data-page-data-vspeed {
+  width: 50%;
+  height: var(--told-data-page-data-result-vspeed-height);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.told-data-page-data-vspeed-value {
+  color: var(--g3000-color-magenta);
+}

@@ -1,0 +1,83 @@
+.aux-table-labels-nearest-intersection {
+  grid-template-columns: 3fr 1fr 3fr 4fr;
+}
+
+wt-gns530 .nearest-intersection-table>.ui-control-list {
+  height: 177px;
+}
+
+wt-gns430 .nearest-intersection-table>.ui-control-list {
+  height: 128px;
+}
+
+.nearest-intersection-item {
+  display: grid;
+  grid-template-columns: 3fr 2fr 3fr 3fr;
+
+  height: 22px;
+  font-size: var(--gns-font-page-data);
+  padding: 4px 2px 2px;
+  margin-left: 2px;
+  /* TODO check other aux-items */
+}
+
+wt-gns530 .nearest-intersection-item {
+  line-height: 14px;
+  padding-bottom: 17px;
+}
+
+wt-gns430 .nearest-intersection-item {
+  padding-bottom: 22px;
+}
+
+wt-gns430 .nearest-intersection-item-icao {
+  height: 18px;
+  padding-top: 1px;
+}
+
+wt-gns530 .nearest-intersection-item-icao {
+  padding-top: 2px;
+  padding-left: 1px;
+  padding-right: 1px;
+  padding-top: 1px;
+}
+
+.nearest-intersection-item-icon {
+  margin-top: 1px;
+  margin-left: -4px;
+}
+
+.nearest-intersection-item-icon-img {
+  position: relative;
+  left: .5em;
+  width: 10px;
+}
+
+.nearest-intersection-item-brg {
+  margin-left: 1.1em;
+  padding-top: 1px;
+}
+
+.nearest-intersection-item-dis {
+  margin-left: 2em;
+  padding-top: 1px;
+}
+
+.nearest-intersection-labels {
+  position: relative;
+
+  display: grid;
+  font-size: var(--gns-font-page-title2);
+  /* grid-template-columns: 1fr 1fr 1fr; */
+  grid-column-gap: 3em;
+  width: 94%;
+  left: 3%;
+  padding: 0;
+  color: var(--gnscyan);
+  grid-template-columns: 3fr 1fr 3fr 4fr;
+  text-align: center;
+}
+
+wt-gns530 .nearest-intersection-labels {
+  grid-column-gap: 4.2em;
+}

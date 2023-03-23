@@ -1,0 +1,46 @@
+.radar-altimeter {
+  position: relative;
+  background: var(--g3000-color-pfd-box-background);
+  border-radius: 5px;
+
+  --radar-altimeter-padding: 0px 3px;
+  --radar-altimeter-title-font-size: 0.7em;
+
+  /* Private vars */
+  --radar-altimeter-value-color: var(--g3000-color-white);
+}
+
+.radar-altimeter.minimums-alert-atorbelow {
+  --radar-altimeter-value-color: var(--g3000-color-yellow);
+}
+
+.radar-altimeter-failed {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  color: var(--g3000-color-yellow);
+}
+
+.radar-altimeter-operating {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--radar-altimeter-padding);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.radar-altimeter-title {
+  font-size: var(--radar-altimeter-title-font-size);
+  color: var(--g3000-color-white);
+}
+
+.radar-altimeter-value {
+  color: var(--radar-altimeter-value-color);
+}

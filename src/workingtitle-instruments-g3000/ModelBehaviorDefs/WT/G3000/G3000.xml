@@ -1,0 +1,1260 @@
+<ModelBehaviors>
+  <Include ModelBehaviorFile="Asobo\Generic.xml"/>
+  <Include ModelBehaviorFile="Asobo\Common.xml"/>
+  <Include ModelBehaviorFile="Asobo\GlassCockpit\Inputs\AS1000_Inputs.xml"/>
+  <Include ModelBehaviorFile="Asobo\GlassCockpit\AS1000.xml"/>
+
+  <!-- Override the stock subtemplate allowing a parameterized SCREEN_EMISSIVE_CODE. -->
+
+  <Template Name="ASOBO_AS3000_SubTemplate">
+    <Parameters Type="Default">
+      <AS3000>AS3000</AS3000>
+      <Switch Param="DISPLAY">
+        <Case Value="PFD">
+          <Switch Param="ID">
+            <Case Value="1">
+              <DISPLAY_POS>L</DISPLAY_POS>
+            </Case>
+            <Case Value="2">
+              <DISPLAY_POS>R</DISPLAY_POS>
+            </Case>
+          </Switch>
+          <DISPLAY_ID>#DISPLAY#_#ID#</DISPLAY_ID>
+        </Case>
+        <Case Value="MFD">
+          <DISPLAY_POS>M</DISPLAY_POS>
+          <DISPLAY_ID>#DISPLAY#</DISPLAY_ID>
+        </Case>
+      </Switch>
+      <POTENTIOMETER>4</POTENTIOMETER>
+      <SCREEN_LIGHT_DIMMING_SCALE>0.5</SCREEN_LIGHT_DIMMING_SCALE>
+      <SCREEN_MIN_EMISSIVE_PERCENT>0.05</SCREEN_MIN_EMISSIVE_PERCENT>
+      <MIN_AMBIENT_EMISSIVE_PERCENT>0.1</MIN_AMBIENT_EMISSIVE_PERCENT>
+      <MAX_EMISSIVE_PERCENT>1</MAX_EMISSIVE_PERCENT>
+    </Parameters>
+    <Parameters Type="Default">
+      <SCREEN_NODE_ID>AS1000_#DISPLAY_ID#</SCREEN_NODE_ID>
+      <SCREEN_EMISSIVE_CODE>#MAX_EMISSIVE_PERCENT# #SCREEN_MIN_EMISSIVE_PERCENT# - (L:AS3000_Brightness, number) * #SCREEN_MIN_EMISSIVE_PERCENT# + (A:GLASSCOCKPIT AUTOMATIC BRIGHTNESS, Percent over 100) * (A:LIGHT POTENTIOMETER:#POTENTIOMETER#, Percent over 100) * #SCREEN_LIGHT_DIMMING_SCALE# *</SCREEN_EMISSIVE_CODE>
+    </Parameters>
+    <Component ID="#AS3000#_Softkeys_#DISPLAY_ID#">
+      <Parameters Type="Default">
+        <EMISSIVE_CODE>(A:LIGHT POTENTIOMETER:#POTENTIOMETER#, Percent over 100)</EMISSIVE_CODE>
+      </Parameters>
+      <Loop>
+        <Setup>
+          <Param>KEY_ID</Param>
+          <From>1</From>
+          <Inc>1</Inc>
+          <To>12</To>
+        </Setup>
+        <Do>
+          <UseTemplate Name="ASOBO_AS3000_Softkey_Template"/>
+        </Do>
+      </Loop>
+    </Component>
+    <UseTemplate Name="ASOBO_AS3000_Screen_Template">
+      <SCREEN_EMISSIVE_CODE>#SCREEN_EMISSIVE_CODE#</SCREEN_EMISSIVE_CODE>
+    </UseTemplate>
+  </Template>
+
+  <!-- G3000 Baro Knob -->
+
+  <Template Name="WT_G3000_Knob_Baro_Template">
+    <Parameters Type="Default">
+      <NODE_ID>AUTOPILOT_Knob_Baro_#ID#</NODE_ID>
+      <PART_ID>AUTOPILOT_Knob_Baro</PART_ID>
+      <KNOB_ID>Baro_#ID#</KNOB_ID>
+      <BTN_ID_EXTERNAL>Baro_#ID#_Sync</BTN_ID_EXTERNAL>
+      <INPUT_EVENT_ID_SOURCE>AUTOPILOT</INPUT_EVENT_ID_SOURCE>
+      <ANIM_NAME>AUTOPILOT_Knob_Baro_#ID#</ANIM_NAME>
+      <WWISE_EVENT_1>autopilot_knob_push_button_on</WWISE_EVENT_1>
+      <WWISE_EVENT_2>autopilot_knob_push_button_off</WWISE_EVENT_2>
+      <COUNT>36</COUNT>
+      <ANIM_NAME_KNOB>#ANIM_NAME#</ANIM_NAME_KNOB>
+      <ANIM_NAME_PUSH>AUTOPILOT_Knob_Baro_#ID#_push</ANIM_NAME_PUSH>
+      <THRESHOLD_X_INPUT>0.05</THRESHOLD_X_INPUT>
+      <THRESHOLD_X_MOUSE>0.01</THRESHOLD_X_MOUSE>
+      <THRESHOLD_INPUT>0.05</THRESHOLD_INPUT>
+      <THRESHOLD_MOUSE>0.01</THRESHOLD_MOUSE>
+      <WWISE_EVENT>autopilot_knob</WWISE_EVENT>
+    </Parameters>
+
+    <Parameters Type="Default">
+      <BARO_KEY_ID>#ID#</BARO_KEY_ID>
+      <BARO_TT_ID>#ID#</BARO_TT_ID>
+    </Parameters>
+
+    <Parameters Type="Default">
+      <SET_STATE_EXTERNAL>p0 0 &gt; if{ (&gt;H:AS3000_PFD_#BARO_KEY_ID#_BARO_INC) } els{ (&gt;H:AS3000_PFD_#BARO_KEY_ID#_BARO_DEC) }</SET_STATE_EXTERNAL>
+      <PUSH_SET_STATE_EXTERNAL>(&gt;H:AS3000_PFD_#BARO_KEY_ID#_BARO_PUSH)</PUSH_BTN_SET_STATE_EXTERNAL>
+      <GET_BARO>(L:WTG3000_PFD_Altimeter_Baro_TT:#BARO_TT_ID#, inHg)</GET_BARO>
+    </Parameters>
+
+    <Component ID="#NODE_ID#" Node="#NODE_ID#">
+      <UseTemplate Name="ASOBO_AUTOPILOT_Push_Event_Only_Template">
+        <BTN_ID>#BTN_ID_EXTERNAL#</BTN_ID>
+        <EVENT_TYPE>PUSH</EVENT_TYPE>
+        <SET_STATE_EXTERNAL>#PUSH_SET_STATE_EXTERNAL#</SET_STATE_EXTERNAL>
+        <TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_KNOB_BARO_ACTION_SET</TT_DESCRIPTION_ID>
+        <Condition Valid="TT_DESCRIPTION_ID_BTN_IS_DYNAMIC">
+          <TT_DESCRIPTION_IS_DYNAMIC>#TT_DESCRIPTION_ID_BTN_IS_DYNAMIC#</TT_DESCRIPTION_IS_DYNAMIC>
+        </Condition>
+      </UseTemplate>
+      <UseTemplate Name="ASOBO_AUTOPILOT_Knob_Template">
+        <SET_STATE_EXTERNAL>#SET_STATE_EXTERNAL#</SET_STATE_EXTERNAL>
+        <TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_KNOB_BARO_ACTION</TT_DESCRIPTION_ID>
+        <TOOLTIP_TITLE>@TT_Package.AUTOPILOT_KNOB_BARO_TITLE</TOOLTIP_TITLE>
+        <GET_TT_VALUE_STATE>#GET_BARO# sp0</GET_TT_VALUE_STATE>
+        <FORMAT_VALUE>l0 '%.2fIN' @sprintf</FORMAT_VALUE>
+      </UseTemplate>
+    </Component>
+  </Template>
+
+  <!-- G3000 Course Knob -->
+
+  <Template Name="WT_G3000_Knob_Course_Template">
+    <Parameters Type="Default">
+      <ID>1</ID>
+    </Parameters>
+
+    <Parameters Type="Default">
+      <NODE_ID>AUTOPILOT_Knob_Course_#ID#</NODE_ID>
+      <PART_ID>AUTOPILOT_Knob_Course</PART_ID>
+      <KNOB_ID>Course_#ID#</KNOB_ID>
+      <BTN_ID_EXTERNAL>Course_#ID#_Sync</BTN_ID_EXTERNAL>
+      <ANIM_NAME>AUTOPILOT_Knob_Course_#ID#</ANIM_NAME>
+      
+      <COUNT>72</COUNT>
+      <THRESHOLD_X_INPUT>0.01</THRESHOLD_X_INPUT>
+      <THRESHOLD_X_MOUSE>0.002</THRESHOLD_X_MOUSE>
+      <THRESHOLD_INPUT>0.01</THRESHOLD_INPUT>
+      <THRESHOLD_MOUSE>0.002</THRESHOLD_MOUSE>
+      <WWISE_EVENT>autopilot_knob_turn</WWISE_EVENT>
+      <WWISE_EVENT_1>autopilot_knob_push_button_on</WWISE_EVENT_1>
+      <WWISE_EVENT_2>autopilot_knob_push_button_off</WWISE_EVENT_2>
+      <INCREMENT>1</INCREMENT>
+    </Parameters>
+
+    <Parameters Type="Default">
+      <COURSE_KEY_ID>#ID#</COURSE_KEY_ID>
+      <ANIM_NAME_KNOB>#ANIM_NAME#</ANIM_NAME_KNOB>
+      <ANIM_NAME_PUSH>AUTOPILOT_Knob_Course_#ID#_push</ANIM_NAME_PUSH>
+    </Parameters>
+
+    <Parameters Type="Default">
+      <SET_STATE_EXTERNAL>p0 0 &gt; if{ (&gt;H:AS3000_PFD_#COURSE_KEY_ID#_CRS_INC) } els{ (&gt;H:AS3000_PFD_#COURSE_KEY_ID#_CRS_DEC) }</SET_STATE_EXTERNAL>
+      <PUSH_SET_STATE_EXTERNAL>(&gt;H:AS3000_PFD_#COURSE_KEY_ID#_CRS_PUSH)</PUSH_BTN_SET_STATE_EXTERNAL>
+      <GET_COURSE>(A:GPS OBS VALUE, degree) (A:NAV OBS:2, degree) (A:NAV OBS:1, degree) 3 (L:WTGarmin_Nav_ActiveNavSource:1) case</GET_COURSE>
+    </Parameters>
+
+    <Component ID="#NODE_ID#" Node="#NODE_ID#">
+      <UseTemplate Name="ASOBO_AUTOPILOT_Push_Event_Only_Template">
+        <BTN_ID>#BTN_ID_EXTERNAL#</BTN_ID>
+        <EVENT_TYPE>PUSH</EVENT_TYPE>
+        <SET_STATE_EXTERNAL>#PUSH_SET_STATE_EXTERNAL#</SET_STATE_EXTERNAL>
+        <TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_KNOB_COURSE_ACTION_PUSH</TT_DESCRIPTION_ID>
+      </UseTemplate>
+      <UseTemplate Name="ASOBO_AUTOPILOT_Knob_Template">
+        <SET_STATE_EXTERNAL>#SET_STATE_EXTERNAL#</SET_STATE_EXTERNAL>
+        <TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_KNOB_COURSE_ACTION_ADJUST</TT_DESCRIPTION_ID>
+        <TOOLTIP_TITLE>@TT_Package.AUTOPILOT_KNOB_COURSE_TITLE</TOOLTIP_TITLE>
+        <FORMAT_VALUE>l0 '%d°' @sprintf</FORMAT_VALUE>
+        <GET_TT_VALUE_STATE>#GET_COURSE# sp0</GET_TT_VALUE_STATE>
+      </UseTemplate>
+    </Component>
+  </Template>
+
+  <!-- G3000 V/S Knob -->
+  <Template Name="WT_G3000_Knob_VerticalSpeed_Template">
+    <Parameters Type="Default">
+      <INPUT_EVENT_ID_SOURCE>AUTOPILOT</INPUT_EVENT_ID_SOURCE>
+      <NODE_ID>AUTOPILOT_Knob_VerticalSpeed</NODE_ID>
+      <ANIM_NAME>AUTOPILOT_Knob_VerticalSpeed</ANIM_NAME>
+      <ANIM_NAME_PUSHPULL>AUTOPILOT_Knob_VerticalSpeed_PushPull</ANIM_NAME_PUSHPULL>
+      <Condition Valid="SEPARATED_INTERACTION">
+        <HITBOX_UP_NODE_ID>AUTOPILOT_Knob_VerticalSpeed_DN</HITBOX_UP_NODE_ID>
+        <HITBOX_DOWN_NODE_ID>AUTOPILOT_Knob_VerticalSpeed_UP</HITBOX_DOWN_NODE_ID>
+      </Condition>
+      <PART_ID>AUTOPILOT_Knob_VerticalSpeed</PART_ID>
+      <WWISE_EVENT>autopilot_verticalspeed_knob</WWISE_EVENT>
+      <WWISE_EVENT_1>autopilot_knob_push_button_on</WWISE_EVENT_1>
+      <WWISE_EVENT_2>autopilot_knob_push_button_off</WWISE_EVENT_2>
+      <COUNT>36</COUNT>
+
+      <MAX_PITCH>25</MAX_PITCH>
+      <MACH_INCREMENT>1</MACH_INCREMENT>
+      <SPEED_INCREMENT>1</SPEED_INCREMENT>
+      <VS_INCREMENT>100</VS_INCREMENT>
+      <PITCH_INCREMENT>0.2</PITCH_INCREMENT>
+    </Parameters>
+
+    <Parameters Type="Default">
+      <VS_INDEX>1</VS_INDEX>
+      <FORMAT_VS_VALUE>l0 '%d ft/min' @sprintf</FORMAT_VS_VALUE>
+      <Switch>
+        <Case Valid="UP_DEC_DN_INC">
+          <CLOCKWISE_DIR>INC</CLOCKWISE_DIR>
+          <ANTICLOCKWISE_DIR>DEC</ANTICLOCKWISE_DIR>
+          <CLOCKWISE_DIR_PITCH>UP</CLOCKWISE_DIR_PITCH>
+          <ANTICLOCKWISE_DIR_PITCH>DN</ANTICLOCKWISE_DIR_PITCH>
+          <Condition Check="UP_DEC_DN_INC" Match="INVERT_ANIM">
+            <INVERT_ANIM>True</INVERT_ANIM>
+          </Condition>
+          <INCREMENT_SIGN>1</INCREMENT_SIGN>
+        </Case>
+        <Default>
+          <CLOCKWISE_DIR>DEC</CLOCKWISE_DIR>
+          <ANTICLOCKWISE_DIR>INC</ANTICLOCKWISE_DIR>
+          <CLOCKWISE_DIR_PITCH>DN</CLOCKWISE_DIR_PITCH>
+          <ANTICLOCKWISE_DIR_PITCH>UP</ANTICLOCKWISE_DIR_PITCH>
+          <INCREMENT_SIGN>-1</INCREMENT_SIGN>
+        </Default>
+      </Switch>
+      <SWITCH_DIRECTION>Vertical</SWITCH_DIRECTION>
+      <THRESHOLD_Y_MOUSE>0.005</THRESHOLD_Y_MOUSE>
+    </Parameters>
+
+    <Parameters Type="Override">
+      <Condition>
+        <Test>
+          <Or>
+            <Arg Check="HITBOX_UP_NODE_ID"/>
+            <Arg Check="HITBOX_DOWN_NODE_ID"/>
+          </Or>
+        </Test>
+        <True>
+          <SEPARATED_INTERACTION>True</SEPARATED_INTERACTION>
+        </True>
+      </Condition>
+
+      <Condition Check="NO_SPEED">
+        <True>
+          <SPEED_FLAG>0</SPEED_FLAG>
+        </True>
+        <False>
+          <SPEED_FLAG>1</SPEED_FLAG>
+        </False>
+      </Condition>
+
+      <Condition Check="NO_PITCH">
+        <True>
+          <PITCH_FLAG>0</PITCH_FLAG>
+        </True>
+        <False>
+          <PITCH_FLAG>1</PITCH_FLAG>
+        </False>
+      </Condition>
+
+      <Condition Check="NO_VS">
+        <True>
+          <VS_FLAG>0</VS_FLAG>
+        </True>
+        <False>
+          <VS_FLAG>1</VS_FLAG>
+        </False>
+      </Condition>
+    </Parameters>
+
+    <Parameters Type="Default">
+      <SET_STATE_EXTERNAL>
+        1 -1 p0 0 &gt; ? #INCREMENT_SIGN# * sp0
+        #SPEED_FLAG# (A:AUTOPILOT FLIGHT LEVEL CHANGE, Bool) and if{
+          (A:AUTOPILOT MANAGED SPEED IN MACH, Bool) if{
+            (A:AUTOPILOT MACH HOLD VAR, number) 100 * #MACH_INCREMENT# l0 * - 0 max (&gt;K:AP_MACH_VAR_SET)
+          } els{
+            (A:AUTOPILOT AIRSPEED HOLD VAR, knot) #SPEED_INCREMENT# l0 * - 0 max (&gt;K:AP_SPD_VAR_SET)
+          }
+        } els{
+          #VS_FLAG# (A:AUTOPILOT VERTICAL HOLD:#VS_INDEX#, Bool) and if{
+            #VS_INDEX# (A:AUTOPILOT VERTICAL HOLD VAR:#VS_INDEX#, feet per minute) #VS_INCREMENT# l0 * + (&gt;K:2:AP_VS_VAR_SET_ENGLISH)
+          } els{
+            #PITCH_FLAG# (A:AUTOPILOT PITCH HOLD, Bool) and if{
+              (A:AUTOPILOT PITCH HOLD REF, degrees) #PITCH_INCREMENT# l0 * - #MAX_PITCH# / 1 min -1 max 16384 * (&gt;K:AP_PITCH_REF_SET)
+            }
+          }
+        }
+      </SET_STATE_EXTERNAL>
+      <KNOB_ID>VerticalSpeed</KNOB_ID>
+    </Parameters>
+
+    <Switch>
+      <Case Valid="SEPARATED_INTERACTION">
+        <Component ID="#NODE_ID#">
+          <UseTemplate Name="ASOBO_AUTOPILOT_Knob_Template">
+            <TEMPLATE_VARIANT>_SeparatedInteraction</TEMPLATE_VARIANT>
+            <TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_KNOB_VERTICALSPEED_ACTION_SET</TT_DESCRIPTION_ID>
+            <TOOLTIP_TITLE>@TT_Package.AUTOPILOT_KNOB_VERTICALSPEED_TITLE</TOOLTIP_TITLE>
+            <GET_TT_VALUE_STATE>(A:AUTOPILOT VERTICAL HOLD VAR:#VS_INDEX#, feet per minute) sp0</GET_TT_VALUE_STATE>
+            <FORMAT_VALUE>l0 '%d ft/min' @sprintf</FORMAT_VALUE>
+            <INTERACTION_AXIS>Y</INTERACTION_AXIS>
+            <TT_ICON>MOVE_AXIS_Y</TT_ICON>
+          </UseTemplate>
+        </Component>
+      </Case>
+      <Default>
+        <Component ID="#NODE_ID#" Node="#NODE_ID#">
+          <UseTemplate Name="ASOBO_AUTOPILOT_Knob_Template">
+            <IS_WHEEL>True</IS_WHEEL>
+            <TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_KNOB_VERTICALSPEED_ACTION_SET</TT_DESCRIPTION_ID>
+            <TOOLTIP_TITLE>@TT_Package.AUTOPILOT_KNOB_VERTICALSPEED_TITLE</TOOLTIP_TITLE>
+            <GET_TT_VALUE_STATE>(A:AUTOPILOT VERTICAL HOLD VAR:#VS_INDEX#, feet per minute) sp0</GET_TT_VALUE_STATE>
+            <FORMAT_VALUE>#FORMAT_VS_VALUE#</FORMAT_VALUE>
+          </UseTemplate>
+        </Component>
+      </Default>
+    </Switch>
+  </Template>
+
+  <!-- G3000 Speed Knob -->
+
+  <Template Name="WT_G3000_Knob_Speed_Template">
+    <!-- Uses SpeedMachFunctionnality with an added switch for controlling managed/selected -->
+    <Parameters Type="Default">
+      <ANIM_NAME_KNOB>AUTOPILOT_Knob_Speed</ANIM_NAME_KNOB>
+      <ANIM_NAME_MODE>AUTOPILOT_Knob_Speed_Mode</ANIM_NAME_MODE>
+      <ANIM_NAME_PUSH>AUTOPILOT_Knob_Speed_Push</ANIM_NAME_PUSH>
+      <NODE_ID_KNOB>AUTOPILOT_Knob_Speed</NODE_ID_KNOB>
+      <NODE_ID_MODE>AUTOPILOT_Knob_Speed_Mode</NODE_ID_MODE>
+      <PART_ID>AUTOPILOT_Knob_Speed</PART_ID>
+    </Parameters>
+    <Parameters Type="Default">
+      <THRESHOLD_X_INPUT>0.05</THRESHOLD_X_INPUT>
+      <THRESHOLD_X_MOUSE>0.005</THRESHOLD_X_MOUSE>
+    </Parameters>
+    <UseTemplate Name="ASOBO_AUTOPILOT_Knob_SpeedMach_Template">
+      <NODE_ID>#NODE_ID_KNOB#</NODE_ID>
+      <WWISE_EVENT>autopilot_speed_knob</WWISE_EVENT>
+      <COUNT>36</COUNT>
+      <WWISE_EVENT_1>autopilot_knob_push_button_on</WWISE_EVENT_1>
+      <WWISE_EVENT_2>autopilot_knob_push_button_off</WWISE_EVENT_2>
+      <TYPE>PUSH</TYPE>
+      <SPEED_SET_CONDITION>(L:XMLVAR_SpeedIsManuallySet)</SPEED_SET_CONDITION>
+      <ON_SPEED_PUSH>(A:AUTOPILOT MANAGED SPEED IN MACH, Bool) (&gt;L:XMLVAR_AirSpeedIsInMach)</ON_SPEED_PUSH>
+    </UseTemplate>
+    <Condition Valid="SPEED_MODE_ALWAYS_ON">
+      <True>
+        <UseTemplate Name="ASOBO_GT_Update">
+          <FREQUENCY>1</FREQUENCY>
+          <UPDATE_CODE>
+            (A:AUTOPILOT FLIGHT LEVEL CHANGE, Bool) ! if{
+            (L:XMLVAR_AirSpeedIsInMach) if{
+            (&gt;K:AP_MACH_ON)
+            } els{
+            (&gt;K:AP_AIRSPEED_ON)
+            }
+            }
+          </UPDATE_CODE>
+        </UseTemplate>
+      </True>
+    </Condition>
+    <UseTemplate Name="ASOBO_AUTOPILOT_Base_Template">
+      <IE_NAME>Speed_Mode</IE_NAME>
+      <INTERACTION_TYPE>Knob</INTERACTION_TYPE>
+      <KNOB_TYPE>X_STATES</KNOB_TYPE>
+      <NUM_STATES>2</NUM_STATES>
+      <ANIM_NAME>#ANIM_NAME_MODE#</ANIM_NAME>
+      <NODE_ID>#NODE_ID_MODE#</NODE_ID>
+      <ANIM_LAG>300</ANIM_LAG>
+      <LOCAL_VAR_TO_WATCH_0>XMLVAR_SpeedIsManuallySet</LOCAL_VAR_TO_WATCH_0>
+      <STR_STATE_ON>Manual</STR_STATE_ON>
+      <STR_STATE_OFF>FMS</STR_STATE_OFF>
+      <SET_STATE_ON>1 (&gt;L:XMLVAR_SpeedIsManuallySet)</SET_STATE_ON>
+      <SET_STATE_OFF>0 (&gt;L:XMLVAR_SpeedIsManuallySet)</SET_STATE_OFF>
+      <TT_VALUE_ON>(R:1:@TT_Package.GT_STATE_MANUAL)</TT_VALUE_ON>
+      <TT_VALUE_OFF>(R:1:@TT_Package.GT_STATE_FMS)</TT_VALUE_OFF>
+      <GET_STATE_EXTERNAL>(L:XMLVAR_SpeedIsManuallySet) sp0</GET_STATE_EXTERNAL>
+      <TOOLTIP_TITLE>@TT_Package.AUTOPILOT_PUSH_SPEEDMODE_TITLE</TOOLTIP_TITLE>
+      <TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_PUSH_SPEEDMODE_ACTION_SET</TT_DESCRIPTION_ID>
+    </UseTemplate>
+  </Template>
+
+  <!-- G3000 Altitude Select Knob -->
+
+  <Template Name="WT_G3000_Knob_Altitude_Template">
+    <Parameters Type="Default">
+      <ID>1</ID>
+    </Parameters>
+    <UseTemplate Name="ASOBO_GT_Helper_Suffix_ID_Appender">
+      <TEMPLATE_TO_CALL>WT_G3000_Knob_Altitude_SubTemplate</TEMPLATE_TO_CALL>
+    </UseTemplate>
+  </Template>
+
+  <Template Name="WT_G3000_Knob_Altitude_SubTemplate">
+    <Parameters Type="Override">
+      <Condition Check="PUSH">
+        <TYPE>PUSH</TYPE>
+      </Condition>
+    </Parameters>
+    <Parameters Type="Default">
+      <INPUT_EVENT_ID_SOURCE>AUTOPILOT</INPUT_EVENT_ID_SOURCE>
+      <PART_ID>AUTOPILOT_Knob_Altitude</PART_ID>
+      <Condition Check="INCREMENT">
+        <True>
+          <NODE_ID>AUTOPILOT_Knob_Altitude_#INCREMENT##SUFFIX_ID#</NODE_ID>
+          <ANIM_NAME>AUTOPILOT_Knob_Altitude_#INCREMENT##SUFFIX_ID#</ANIM_NAME>
+          <Condition Check="TYPE" Match="PUSH">
+            <ANIM_NAME_KNOB>AUTOPILOT_Knob_Altitude_#INCREMENT##SUFFIX_ID#</ANIM_NAME_KNOB>
+            <ANIM_NAME_PUSH>AUTOPILOT_Knob_Altitude_#INCREMENT#_Push#SUFFIX_ID#</ANIM_NAME_PUSH>
+          </Condition>
+          <WWISE_EVENT>autopilot_altitude_#INCREMENT#_knob</WWISE_EVENT>
+          <COUNT>36</COUNT>
+          <THRESHOLD_INPUT>0.0001</THRESHOLD_INPUT>
+          <THRESHOLD_MOUSE>0.003</THRESHOLD_MOUSE>
+          <INCREMENT_IN_KNOB_ID/>
+        </True>
+        <False>
+          <IS_DYN_INCREMENT>True</IS_DYN_INCREMENT>
+          <Condition Check="INCREMENT">
+            <False>
+              <INCREMENT_VAR>XMLVAR_Autopilot_Altitude_Increment</INCREMENT_VAR>
+            </False>
+          </Condition>
+          <INCREMENT>(L:XMLVAR_Autopilot_Altitude_Increment)</INCREMENT>
+          <SET_INCREMENT>(&gt;L:XMLVAR_Autopilot_Altitude_Increment)</SET_INCREMENT>
+          <DYN_INCREMENT_INIT>100</DYN_INCREMENT_INIT>
+          <NODE_ID>AUTOPILOT_Knob_Altitude#SUFFIX_ID#</NODE_ID>
+          <ANIM_NAME>AUTOPILOT_Knob_Altitude#SUFFIX_ID#</ANIM_NAME>
+          <WWISE_EVENT>autopilot_altitude_knob</WWISE_EVENT>
+          <COUNT>36</COUNT>
+          <THRESHOLD_X_INPUT>0.05</THRESHOLD_X_INPUT>
+          <THRESHOLD_X_MOUSE>0.01</THRESHOLD_X_MOUSE>
+          <Switch Param="TYPE">
+            <Case Value="PUSH">
+              <ANIM_NAME_KNOB>AUTOPILOT_Knob_Altitude#SUFFIX_ID#</ANIM_NAME_KNOB>
+              <ANIM_NAME_PUSH>AUTOPILOT_Knob_Altitude_Push#SUFFIX_ID#</ANIM_NAME_PUSH>
+              <ALT_PUSH_TYPE>ALT_SYNC</ALT_PUSH_TYPE>
+            </Case>
+          </Switch>
+        </False>
+      </Condition>
+      <ALT_LOCK_INDEX>0</ALT_LOCK_INDEX>
+      <WWISE_EVENT_1>autopilot_knob_push_button_on</WWISE_EVENT_1>
+      <NORMALIZED_TIME_1>0.1</NORMALIZED_TIME_1>
+      <WWISE_EVENT_2>autopilot_knob_push_button_off</WWISE_EVENT_2>
+      <NORMALIZED_TIME_2>0.3</NORMALIZED_TIME_2>
+      <Switch Param="ALT_PUSH_TYPE">
+        <Case Value="ALT_FINE_TUNE">
+          <FINE_TUNE_INCREMENT>100</FINE_TUNE_INCREMENT>
+        </Case>
+      </Switch>
+    </Parameters>
+    <Parameters Type="Default">
+      <Condition Check="INCREMENT_IN_KNOB_ID">
+        <True>
+          <KNOB_ID>Altitude_#INCREMENT#</KNOB_ID>
+        </True>
+        <False>
+          <KNOB_ID>Altitude</KNOB_ID>
+        </False>
+      </Condition>
+      <SET_STATE_EXTERNAL>
+        p0 0 &gt; if{
+          #ALT_LOCK_INDEX# #INCREMENT# (&gt;K:2:AP_ALT_VAR_INC)
+        } els{
+          #ALT_LOCK_INDEX# #INCREMENT# (&gt;K:2:AP_ALT_VAR_DEC)
+        }
+      </SET_STATE_EXTERNAL>
+      <Switch Param="TYPE">
+        <Case Value="PUSH">
+          <ADDITIONAL_EVENT_TYPE>PUSH</ADDITIONAL_EVENT_TYPE>
+          <Switch Param="ALT_PUSH_TYPE">
+            <Case Value="ALT_SYNC">
+              <BTN_ID_EXTERNAL>Altitude_Sync</BTN_ID_EXTERNAL>
+              <BTN_SET_STATE_EXTERNAL>(A:INDICATED ALTITUDE, feet) (&gt;K:AP_ALT_VAR_SET_ENGLISH)</BTN_SET_STATE_EXTERNAL>
+              <TT_DESCRIPTION_ID_BTN>@TT_Package.AUTOPILOT_KNOB_ALTITUDESELECTED_ACTION_PUSH</TT_DESCRIPTION_ID_BTN>
+            </Case>
+            <Case Value="ALT_FINE_TUNE">
+              <BTN_ID_EXTERNAL>Altitude_Fine_Tune</BTN_ID_EXTERNAL>
+              <BTN_SET_STATE_EXTERNAL>#FINE_TUNE_INCREMENT# #DYN_INCREMENT_INIT# #INCREMENT# #FINE_TUNE_INCREMENT# != ? #SET_INCREMENT#</BTN_SET_STATE_EXTERNAL>
+              <TT_DESCRIPTION_ID_BTN>@TT_Package.AUTOPILOT_KNOB_ALTITUDE_INCREMENT_ACTION</TT_DESCRIPTION_ID_BTN>
+              <PUSH_ANIM_HANDLED_SEPARATELY>True</PUSH_ANIM_HANDLED_SEPARATELY>
+              <BTN_ANIM_CODE>#INCREMENT# #FINE_TUNE_INCREMENT# == 100 *</BTN_ANIM_CODE>
+              <BTN_LOCAL_VAR_TO_WATCH_0>#INCREMENT_VAR#</BTN_LOCAL_VAR_TO_WATCH_0>
+              <BTN_VALUE_CODE>#INCREMENT# #FINE_TUNE_INCREMENT# ==</BTN_VALUE_CODE>
+              <BTN_TT_VALUE_ON>'100'</BTN_TT_VALUE_ON>
+              <BTN_TT_VALUE_OFF>'1000'</BTN_TT_VALUE_OFF>
+            </Case>
+          </Switch>
+        </Case>
+      </Switch>
+    </Parameters>
+    <Component ID="#NODE_ID#" Node="#NODE_ID#">
+      <Condition Valid="IS_DYN_INCREMENT">
+        <UseTemplate Name="ASOBO_GT_Update">
+          <UPDATE_ONCE>True</UPDATE_ONCE>
+          <UPDATE_CODE>#DYN_INCREMENT_INIT# #SET_INCREMENT#</UPDATE_CODE>
+        </UseTemplate>
+      </Condition>
+      <Switch Param="ADDITIONAL_EVENT_TYPE">
+        <Case Value="PUSH_PULL">
+          <UseTemplate Name="ASOBO_AUTOPILOT_Push_Event_Only_Template">
+            <BTN_ID>#BTN_ID_PULL#</BTN_ID>
+            <EVENT_TYPE>PULL</EVENT_TYPE>
+            <SET_STATE_EXTERNAL>#PULL_SET_STATE_EXTERNAL#</SET_STATE_EXTERNAL>
+            <TT_DESCRIPTION_ID>#TT_DESCRIPTION_ID_PULL#</TT_DESCRIPTION_ID>
+            <Condition Valid="TT_DESCRIPTION_ID_PULL_IS_DYNAMIC">
+              <TT_DESCRIPTION_IS_DYNAMIC>#TT_DESCRIPTION_ID_PULL_IS_DYNAMIC#</TT_DESCRIPTION_IS_DYNAMIC>
+            </Condition>
+          </UseTemplate>
+          <UseTemplate Name="ASOBO_AUTOPILOT_Push_Event_Only_Template">
+            <BTN_ID>#BTN_ID_PUSH#</BTN_ID>
+            <EVENT_TYPE>PUSH</EVENT_TYPE>
+            <SET_STATE_EXTERNAL>#PUSH_SET_STATE_EXTERNAL#</SET_STATE_EXTERNAL>
+            <TT_DESCRIPTION_ID>#TT_DESCRIPTION_ID_PUSH#</TT_DESCRIPTION_ID>
+            <Condition Valid="TT_DESCRIPTION_ID_PUSH_IS_DYNAMIC">
+              <TT_DESCRIPTION_IS_DYNAMIC>#TT_DESCRIPTION_ID_PUSH_IS_DYNAMIC#</TT_DESCRIPTION_IS_DYNAMIC>
+            </Condition>
+          </UseTemplate>
+        </Case>
+        <Case Value="PUSH">
+          <UseTemplate Name="ASOBO_AUTOPILOT_Push_Event_Only_Template">
+            <BTN_ID>#BTN_ID_EXTERNAL#</BTN_ID>
+            <EVENT_TYPE>PUSH</EVENT_TYPE>
+            <SET_STATE_EXTERNAL>#BTN_SET_STATE_EXTERNAL#</SET_STATE_EXTERNAL>
+            <TT_DESCRIPTION_ID>#TT_DESCRIPTION_ID_BTN#</TT_DESCRIPTION_ID>
+            <Condition NotEmpty="BTN_VALUE_CODE">
+              <VALUE_CODE>#BTN_VALUE_CODE#</VALUE_CODE>
+              <TT_VALUE>#BTN_VALUE_CODE# if{ #BTN_TT_VALUE_ON# } els{ #BTN_TT_VALUE_OFF# }</TT_VALUE>
+              <TT_VALUE_IS_DYNAMIC>True</TT_VALUE_IS_DYNAMIC>
+            </Condition>
+            <Condition NotEmpty="BTN_LOCAL_VAR_TO_WATCH_0">
+              <LOCAL_VAR_TO_WATCH_0>#BTN_LOCAL_VAR_TO_WATCH_0#</LOCAL_VAR_TO_WATCH_0>
+            </Condition>
+          </UseTemplate>
+          <Condition NotEmpty="PUSH_ANIM_HANDLED_SEPARATELY">
+            <UseTemplate Name="ASOBO_GT_Anim_Code">
+              <ANIM_CODE>#BTN_ANIM_CODE#</ANIM_CODE>
+              <ANIM_NAME>#ANIM_NAME_PUSH#</ANIM_NAME>
+              <ANIM_LAG>100</ANIM_LAG>
+            </UseTemplate>
+          </Condition>
+        </Case>
+      </Switch>
+      <UseTemplate Name="ASOBO_AUTOPILOT_Knob_Template">
+        <BINDING_INC_0>Inc_Event</BINDING_INC_0>
+        <BINDING_INC_0_PARAM_0>1</BINDING_INC_0_PARAM_0>
+        <BINDING_INC_0_EVENT_ID>AP_ALT_VAR_INC</BINDING_INC_0_EVENT_ID>
+        <BINDING_INC_0_EVENT_ID_ONLY>True</BINDING_INC_0_EVENT_ID_ONLY>
+
+        <BINDING_DEC_0>Dec_Event</BINDING_DEC_0>
+        <BINDING_DEC_0_PARAM_0>1</BINDING_DEC_0_PARAM_0>
+        <BINDING_DEC_0_EVENT_ID>AP_ALT_VAR_DEC</BINDING_DEC_0_EVENT_ID>
+        <BINDING_DEC_0_EVENT_ID_ONLY>True</BINDING_DEC_0_EVENT_ID_ONLY>
+
+        <TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_KNOB_ALTITUDESELECTED_ACTION_ADJUST</TT_DESCRIPTION_ID>
+        <TOOLTIP_TITLE>@TT_Package.AUTOPILOT_KNOB_ALTITUDESELECTED_TITLE</TOOLTIP_TITLE>
+        <GET_TT_VALUE_STATE>(A:AUTOPILOT ALTITUDE LOCK VAR:#ALT_LOCK_INDEX#, feet) sp0</GET_TT_VALUE_STATE>
+        <FORMAT_VALUE>l0 '%d ft' @sprintf</FORMAT_VALUE>
+        <Switch Param="ADDITIONAL_EVENT_TYPE">
+          <Case Value="PUSH_PULL">
+            <TEMPLATE_VARIANT>_PushPull</TEMPLATE_VARIANT>
+            <PULL_CODE>(&gt;B:#INPUT_EVENT_ID_SOURCE#_#BTN_ID_PULL#_#DEFAULT_BINDING_STR#)</PULL_CODE>
+            <PUSH_CODE>(&gt;B:#INPUT_EVENT_ID_SOURCE#_#BTN_ID_PUSH#_#DEFAULT_BINDING_STR#)</PUSH_CODE>
+            <TOOLTIP_ENTRY_1>#INPUT_EVENT_ID_SOURCE#_#BTN_ID_PULL#</TOOLTIP_ENTRY_1>
+            <TOOLTIP_ENTRY_2>#INPUT_EVENT_ID_SOURCE#_#BTN_ID_PUSH#</TOOLTIP_ENTRY_2>
+          </Case>
+        </Switch>
+      </UseTemplate>
+      <Condition Check="EMISSIVE_KNOB">
+        <UseTemplate Name="ASOBO_GT_Emissive_Gauge"/>
+      </Condition>
+    </Component>
+  </Template>
+
+  <!-- G3000 Joystick -->
+
+  <Template Name="WT_G3000_Joystick_Template">
+    <Parameters Type="Default">
+      <ANIM_NAME_L_R>#AS1000#_Joystick_Range_L_R#SUFFIX_ID#</ANIM_NAME_L_R>
+      <ANIM_NAME_DN_UP>#AS1000#_Joystick_Range_DN_UP#SUFFIX_ID#</ANIM_NAME_DN_UP>
+      <ANIM_NAME_KNOB>#AS1000#_Joystick_Range_Knob#SUFFIX_ID#</ANIM_NAME_KNOB>
+      <ANIM_NAME_PUSH>#AS1000#_Joystick_Range_Push#SUFFIX_ID#</ANIM_NAME_PUSH>
+      <VAR_NAME>#AS1000#_Joystick_Range_#ID#_Interacting</VAR_NAME>
+      <NODE_ID>#AS1000#_Joystick_Range_Knob#SUFFIX_ID#</NODE_ID>
+      <PAN_NODE_ID>#AS1000#_Joystick_Range_Pan#SUFFIX_ID#</PAN_NODE_ID>
+
+      <THRESHOLD_X_INPUT>0.1</THRESHOLD_X_INPUT>
+      <THRESHOLD_X_MOUSE>0.01</THRESHOLD_X_MOUSE>
+      <THRESHOLD_Y_INPUT>0.1</THRESHOLD_Y_INPUT>
+      <THRESHOLD_Y_MOUSE>0.01</THRESHOLD_Y_MOUSE>
+    </Parameters>
+    <Parameters Type="Override">
+      <KNOB_X_ID>#FUNCTION#_#FUNCTION_ID#_Range_Pan_X</KNOB_X_ID>
+      <KNOB_Y_ID>#FUNCTION#_#FUNCTION_ID#_Range_Pan_Y</KNOB_Y_ID>
+      <KNOB_ZOOM_ID>#FUNCTION#_#FUNCTION_ID#_Range_Zoom</KNOB_ZOOM_ID>
+      <BTN_ID_CURSOR>#FUNCTION#_#FUNCTION_ID#_Range_Cursor</BTN_ID_CURSOR>
+    </Parameters>
+    <Parameters Type="Override">
+      <JOYSTICK_X_CODE_LEFT>1 (&gt;B:AS1000_#KNOB_X_ID#_Left)</JOYSTICK_X_CODE_LEFT>
+      <JOYSTICK_X_CODE_RIGHT>1 (&gt;B:AS1000_#KNOB_X_ID#_Right)</JOYSTICK_X_CODE_RIGHT>
+      <JOYSTICK_Y_CODE_DOWN>1 (&gt;B:AS1000_#KNOB_Y_ID#_Down)</JOYSTICK_Y_CODE_DOWN>
+      <JOYSTICK_Y_CODE_UP>1 (&gt;B:AS1000_#KNOB_Y_ID#_Up)</JOYSTICK_Y_CODE_UP>
+      <WHEEL_UP_CODE>(&gt;B:AS1000_#KNOB_ZOOM_ID#_Out)</WHEEL_UP_CODE>
+      <WHEEL_DOWN_CODE>(&gt;B:AS1000_#KNOB_ZOOM_ID#_In)</WHEEL_DOWN_CODE>
+      <LEFT_SINGLE_CODE_DEFAULT_IM>(&gt;B:AS1000_#BTN_ID_CURSOR#_Push) </LEFT_SINGLE_CODE_DEFAULT_IM>
+    </Parameters>
+    <Component ID="#NODE_ID#" Node="#NODE_ID#">
+      <Parameters Type="Override">
+        <TOOLTIP_TITLE>@TT_Package.AS1000_PFD_JOYSTICK_RANGE_KNOB_TITLE</TOOLTIP_TITLE>
+        <TOOLTIP_ENTRY_0>AS1000_#KNOB_X_ID#</TOOLTIP_ENTRY_0>
+        <TOOLTIP_ENTRY_1>AS1000_#KNOB_Y_ID#</TOOLTIP_ENTRY_1>
+        <TOOLTIP_ENTRY_2>AS1000_#KNOB_ZOOM_ID#</TOOLTIP_ENTRY_2>
+        <TOOLTIP_ENTRY_3>AS1000_#BTN_ID_CURSOR#</TOOLTIP_ENTRY_3>
+      </Parameters>
+      <UseInputEvent ID="AS1000">
+        <KNOB_ID>#KNOB_X_ID#</KNOB_ID>
+        <TT_DESCRIPTION_ID>@TT_Package.AS570_JOYSTICK_POINTER_ACTION</TT_DESCRIPTION_ID>
+        <TT_ICON>MOVE_AXIS_X</TT_ICON>
+        <SET_STATE_EXTERNAL>p0 0 &gt; if{ (&gt;H:#KEY_PREFIX#_JOYSTICK_RIGHT) } els{ (&gt;H:#KEY_PREFIX#_JOYSTICK_LEFT) }</SET_STATE_EXTERNAL>
+        <BINDING_INC_0>Right</BINDING_INC_0>
+        <BINDING_INC_0_PARAM_0>1</BINDING_INC_0_PARAM_0>
+        <BINDING_DEC_0>Left</BINDING_DEC_0>
+        <BINDING_DEC_0_PARAM_0>1</BINDING_DEC_0_PARAM_0>
+        <NO_ANIM_VAR_UPDATE>True</NO_ANIM_VAR_UPDATE>
+      </UseInputEvent>
+      <UseInputEvent ID="AS1000">
+        <KNOB_ID>#KNOB_Y_ID#</KNOB_ID>
+        <TT_DESCRIPTION_ID>@TT_Package.AS570_JOYSTICK_POINTER_ACTION</TT_DESCRIPTION_ID>
+        <TT_ICON>MOVE_AXIS_Y</TT_ICON>
+        <TT_INTERACTION>PRIMARY_DOWN+Y_AXIS</TT_INTERACTION>
+        <TT_INTERACTION_LOCKABLE>Y_AXIS</TT_INTERACTION_LOCKABLE>
+        <SET_STATE_EXTERNAL>p0 0 &gt; if{ (&gt;H:#KEY_PREFIX#_JOYSTICK_UP) } els{ (&gt;H:#KEY_PREFIX#_JOYSTICK_DOWN) }</SET_STATE_EXTERNAL>
+        <BINDING_INC_0>Up</BINDING_INC_0>
+        <BINDING_INC_0_PARAM_0>1</BINDING_INC_0_PARAM_0>
+        <BINDING_DEC_0>Down</BINDING_DEC_0>
+        <BINDING_DEC_0_PARAM_0>1</BINDING_DEC_0_PARAM_0>
+        <NO_ANIM_VAR_UPDATE>True</NO_ANIM_VAR_UPDATE>
+      </UseInputEvent>
+      <UseInputEvent ID="AS1000">
+        <KNOB_ID>#KNOB_ZOOM_ID#</KNOB_ID>
+        <TT_DESCRIPTION_ID>@TT_Package.AS1000_PFD_JOYSTICK_RANGE_KNOB_ACTION</TT_DESCRIPTION_ID>
+        <TT_INTERACTION>PRIMARY_DOWN+INCREASE+DECREASE</TT_INTERACTION>
+        <TT_INTERACTION_LOCKABLE>INCREASE+DECREASE</TT_INTERACTION_LOCKABLE>
+        <SET_STATE_EXTERNAL>p0 0 &gt; if{ (&gt;H:#KEY_PREFIX#_RANGE_INC) } els{ (&gt;H:#KEY_PREFIX#_RANGE_DEC) }</SET_STATE_EXTERNAL>
+        <BINDING_INC_0>Out</BINDING_INC_0>
+        <BINDING_INC_0_PARAM_0>1</BINDING_INC_0_PARAM_0>
+        <BINDING_INC_0_EVENT_ID>G1000_#FUNCTION#_#FUNCTION_ID#_ZOOMOUT_BUTTON</BINDING_INC_0_EVENT_ID>
+        <BINDING_DEC_0>In</BINDING_DEC_0>
+        <BINDING_DEC_0_PARAM_0>1</BINDING_DEC_0_PARAM_0>
+        <BINDING_DEC_0_EVENT_ID>G1000_#FUNCTION#_#FUNCTION_ID#_ZOOMIN_BUTTON</BINDING_DEC_0_EVENT_ID>
+      </UseInputEvent>
+      <UseTemplate Name="ASOBO_AS1000_Push_Event_Only_Template">
+        <BTN_ID>#BTN_ID_CURSOR#</BTN_ID>
+        <TT_DESCRIPTION_ID>@TT_Package.AS1000_PFD_JOYSTICK_RANGE_KNOB_ACTION_SET</TT_DESCRIPTION_ID>
+        <SET_STATE_EXTERNAL>(&gt;H:#KEY_PREFIX#_JOYSTICK_PUSH)</SET_STATE_EXTERNAL>
+        <BINDING_INC_0_EVENT_ID>G1000_#FUNCTION#_#FUNCTION_ID#_CURSOR_BUTTON</BINDING_INC_0_EVENT_ID>
+        <TT_VALUE>(L:WTG3000_#FUNCTION#_MapShowCursor:#FUNCTION_ID#) if{ @TT_On } els{ @TT_Off }</TT_VALUE>
+        <TT_VALUE_IS_DYNAMIC>True</TT_VALUE_IS_DYNAMIC>
+      </UseTemplate>
+      <UseTemplate Name="ASOBO_GT_Joystick_Interaction_Knob">
+        <!-- Spacial case for DRAG_IM to condense inputs to only one node -->
+        <UPDATE_FREQUENCY>20</UPDATE_FREQUENCY>
+        <ADDITIONAL_EVENT_HANDLING>(M:Event) 'LeftSingle' 'RightSingle' (M:InputType) 1 == ? scmi 0 == if{ (&gt;B:AS1000_#BTN_ID_CURSOR#_Push) quit }</ADDITIONAL_EVENT_HANDLING>
+        <MOUSEFLAGS_DRAG_IM>RightSingle+LeftAll+Wheel+Lock+Unlock</MOUSEFLAGS_DRAG_IM>
+        <COUNT>18</COUNT>
+        <WWISE_EVENT_1>as3000_knob_push_button_on</WWISE_EVENT_1>
+        <WWISE_EVENT_2>as3000_knob_push_button_off</WWISE_EVENT_2>
+        <WWISE_EVENT>as3000_knob_turn</WWISE_EVENT>
+        <WWISE_JOYSTICK_EVENT_L>as3000_joystick</WWISE_JOYSTICK_EVENT_L>
+        <WWISE_JOYSTICK_EVENT_R>as3000_joystick</WWISE_JOYSTICK_EVENT_R >
+        <WWISE_JOYSTICK_EVENT_UP>as3000_joystick</WWISE_JOYSTICK_EVENT_UP>
+        <WWISE_JOYSTICK_EVENT_DN>as3000_joystick</WWISE_JOYSTICK_EVENT_DN>
+      </UseTemplate>
+    </Component>
+
+    <!-- Required for legacy interaction mode compat -->
+    <Component ID="#PAN_NODE_ID#" Node="#PAN_NODE_ID#">
+      <UseTemplate Name="ASOBO_GT_Joystick_Interaction_Pan">
+        <WWISE_JOYSTICK_EVENT_L>as3000_joystick</WWISE_JOYSTICK_EVENT_L>
+        <WWISE_JOYSTICK_EVENT_R>as3000_joystick</WWISE_JOYSTICK_EVENT_R >
+        <WWISE_JOYSTICK_EVENT_UP>as3000_joystick</WWISE_JOYSTICK_EVENT_UP>
+        <WWISE_JOYSTICK_EVENT_DN>as3000_joystick</WWISE_JOYSTICK_EVENT_DN>
+      </UseTemplate>
+    </Component>
+  </Template>
+
+  <!-- G3000 Detached PFD control panel -->
+
+  <Template Name="WT_G3000_Detached_Control_Panel_Template">
+    <Parameters Type="Default">
+      <AS1000>AS1000</AS1000>
+      <DISPLAY>PFD</DISPLAY>
+      <ID>1</ID>
+      <MIN_EMISSIVE_PERCENT>0.02</MIN_EMISSIVE_PERCENT>
+      <MAX_EMISSIVE_PERCENT>1</MAX_EMISSIVE_PERCENT>
+      <POTENTIOMETER>30</POTENTIOMETER>
+      <LIGHT_DIMMING_SCALE>0.3</LIGHT_DIMMING_SCALE>
+      <ANIM_NEVER_FAILS/>
+    </Parameters>
+    <UseTemplate Name="ASOBO_GT_Helper_Suffix_ID_Appender">
+      <TEMPLATE_TO_CALL>WT_G3000_Detached_Control_Panel_SubTemplate</TEMPLATE_TO_CALL>
+      <Switch>
+        <Case Check="SIMVAR_POWER_SETTING">
+          <GET_POTENTIOMETER>(A:#SIMVAR_POWER_SETTING#, Percent over 100)</GET_POTENTIOMETER>
+        </Case>
+        <Default>
+          <GET_POTENTIOMETER>(A:LIGHT POTENTIOMETER:#POTENTIOMETER#, Percent over 100)</GET_POTENTIOMETER>
+        </Default>
+      </Switch>
+    </UseTemplate>
+  </Template>
+  <Template Name="WT_G3000_Detached_Control_Panel_SubTemplate">
+    <Parameters Type="Default">
+      <KEY_PREFIX>#AS1000#_#DISPLAY#</KEY_PREFIX>
+      <Condition Check="CIRCUIT_ID">
+        <True>
+          <FAILURE>(A:CIRCUIT ON:#CIRCUIT_ID#, Bool)</FAILURE>
+        </True>
+        <False>
+          <FAILURE>(A:CIRCUIT GENERAL PANEL ON, Bool)</FAILURE>
+        </False>
+      </Condition>
+      <EMISSIVE_CODE>#GET_POTENTIOMETER# #LIGHT_DIMMING_SCALE# * #MAX_EMISSIVE_PERCENT# #MIN_EMISSIVE_PERCENT# - * #MIN_EMISSIVE_PERCENT# +</EMISSIVE_CODE>
+      <FUNCTION>Control_Panel</FUNCTION>
+      <FUNCTION_ID>#ID#</FUNCTION_ID>
+    </Parameters>
+    <Parameters Type="Default">
+      <RANGE_KEY_PREFIX>#KEY_PREFIX#</RANGE_KEY_PREFIX>
+    </Parameters>
+    <Parameters Type="Override">
+      <Condition Valid="INCLUDE_DISPLAY_NAME_IN_NODE_ID">
+        <AS1000>#AS1000#_#DISPLAY#</AS1000>
+      </Condition>
+    </Parameters>
+    <Component ID="#AS1000#_Control_Panel_#ID#">
+      <!-- BARO -->
+      <UseTemplate Name="WT_G3000_Knob_Baro_Template">
+        <NODE_ID>#AS1000#_Knob_Baro_#ID#</NODE_ID>
+        <ANIM_NAME_KNOB>#AS1000#_Knob_Baro_#ID#</ANIM_NAME_KNOB>
+        <ANIM_NAME_PUSH>#AS1000#_Knob_Baro_Push_#ID#</ANIM_NAME_PUSH>
+        <PART_ID>#AS1000#_Knob_Baro_#ID#</PART_ID>
+        <KNOB_ID>#FUNCTION#_#ID#_Baro</KNOB_ID>
+        <BTN_ID_EXTERNAL>#FUNCTION#_#ID#_Baro_Sync</BTN_ID_EXTERNAL>
+      </UseTemplate>
+
+      <!-- Buttons -->
+      <UseTemplate Name="ASOBO_AS1000_Common_Buttons_Template">
+        <NO_MENU>True</NO_MENU>
+        <NO_DISPLAY_IN_NODE_ID>True</NO_DISPLAY_IN_NODE_ID>
+        <IS_INOP>True</IS_INOP>
+      </UseTemplate>
+
+      <UseTemplate Name="WT_G3000_Joystick_Template">
+        <ANIM_NAME_L_R>#AS1000#_Joystick_Range_L_R#SUFFIX_ID#</ANIM_NAME_L_R>
+        <ANIM_NAME_DN_UP>#AS1000#_Joystick_Range_DN_UP#SUFFIX_ID#</ANIM_NAME_DN_UP>
+        <ANIM_NAME_KNOB>#AS1000#_Joystick_Range_Knob#SUFFIX_ID#</ANIM_NAME_KNOB>
+        <ANIM_NAME_PUSH>#AS1000#_Joystick_Range_Push#SUFFIX_ID#</ANIM_NAME_PUSH>
+        <VAR_NAME>#AS1000#_Joystick_Range_#ID#_Interacting</VAR_NAME>
+        <NODE_ID>#AS1000#_Joystick_Range_Knob#SUFFIX_ID#</NODE_ID>
+        <PAN_NODE_ID>#AS1000#_Joystick_Range_Pan#SUFFIX_ID#</PAN_NODE_ID>
+        <HIGHLIGHT_NODE_ID>#AS1000#_Joystick_Range#SUFFIX_ID#</HIGHLIGHT_NODE_ID>
+        <KEY_PREFIX>#RANGE_KEY_PREFIX#</KEY_PREFIX>
+      </UseTemplate>
+    </Component>
+  </Template>
+
+  <!-- G3000 Engine Throttle -->
+  <!-- Ideally we would just change 'ASOBO_ENGINE_Throttle_SubTemplate' to support the new THROTTLE_VAR param,
+       but I don't want to pull in such a generic and large file into our repo as an override, so we will just do
+       this copy-paste until we can change the asobo template in perforce.
+   -->
+
+  <Template Name="WT_G3000_Engine_Throttle_Template">
+    <Parameters Type="Default">
+      <ID>1</ID>
+      <ID_NODE>#ID#</ID_NODE>
+    </Parameters>
+    <Parameters Type="Default">
+      <NODE_ID>ENGINE_#INTERACTION_TYPE#_Throttle_#ID_NODE#</NODE_ID>
+      <ANIM_NAME>ENGINE_#INTERACTION_TYPE#_Throttle_#ID_NODE#</ANIM_NAME>
+      <PART_ID>ENGINE_#INTERACTION_TYPE#_Throttle</PART_ID>
+      <THROTTLE_VAR>A:GENERAL ENG THROTTLE LEVER POSITION:#ID#</THROTTLE_VAR>
+      <Switch Param="INTERACTION_TYPE">
+        <Case Value="Lever">
+          <RESET_LIMITS/>
+          <PROCESS_LIMITS>
+            (A:THROTTLE LOWER LIMIT, position 16k) (&gt;O:XMLVAR_MIN_Limit)
+            16384 (&gt;O:XMLVAR_MAX_Limit)
+          </PROCESS_LIMITS>
+          <DRAG_AXIS_SCALE>-450</DRAG_AXIS_SCALE>
+          <POSITION_TYPE>O</POSITION_TYPE>
+          <POSITION_VAR>Position</POSITION_VAR>
+          <DELTA_MIN>0.00025</DELTA_MIN>
+          <AXIS>Y</AXIS>
+          <USE_TRAJECTORY_DRAG_MODE>true</USE_TRAJECTORY_DRAG_MODE>
+          <NO_ARROWS/>
+          <Condition NotEmpty="AFTERBURNER_GATE_POS">
+            <AFTERBURNER_GATE_POS_16K Process="Int">#AFTERBURNER_GATE_POS# 16384 *</AFTERBURNER_GATE_POS_16K>
+            <AFTERBURNER_GATE_POS_WITH_MARGIN Process="Float">#AFTERBURNER_GATE_POS# 0.01 -</AFTERBURNER_GATE_POS_WITH_MARGIN>
+          </Condition>
+          <Condition NotEmpty="OFF_GATE_POS">
+            <OFF_GATE_POS_16K Process="Int">#OFF_GATE_POS# 16384 *</OFF_GATE_POS_16K>
+          </Condition>
+          <Condition NotEmpty="GROUND_GATE_ANIM_POS">
+            <ENABLE_FORCED_BETA>#ID# (&gt;K:PROP_FORCE_BETA_ON) 30  180 / 16384 * #ID# (&gt;K:2:PROP_FORCE_BETA_VALUE_SET)</ENABLE_FORCED_BETA>
+            <DISABLE_FORCED_BETA>#ID# (&gt;K:PROP_FORCE_BETA_OFF)</DISABLE_FORCED_BETA>
+            <CHECK_FORCED_BETA>(A:PROP BETA FORCED ACTIVE:#ID#, Bool)</CHECK_FORCED_BETA>
+          </Condition>
+          <GATE_MARGIN>256</GATE_MARGIN>
+        </Case>
+      </Switch>
+      <TOOLTIPID>TT:COCKPIT.TOOLTIPS.THROTTLE_CONTROL</TOOLTIPID>
+      <INCREMENT>163.84</INCREMENT>
+      <SCROLL_INCREMENT>701</SCROLL_INCREMENT>
+      <CURSOR>Hand</CURSOR>
+    </Parameters>
+    <Parameters Type="Override">
+      <Condition NotEmpty="GROUND_GATE_ANIM_POS">
+        <True>
+          <IDLE_GATE_SET_ABOVE>#CHECK_FORCED_BETA# ! (&gt;O:XMLVAR_MIN_Limit)</IDLE_GATE_SET_ABOVE>
+          <IDLE_GATE_SET_BELOW>#CHECK_FORCED_BETA# (&gt;O:XMLVAR_MAX_Limit)</IDLE_GATE_SET_BELOW>
+          <IDLE_GATE_SET_IN>
+            #CHECK_FORCED_BETA# if{
+              1 (&gt;O:XMLVAR_MAX_Limit)
+            } els{
+              0 (&gt;O:XMLVAR_MIN_Limit)
+            }
+          </IDLE_GATE_SET_IN>
+          <ON_BEFORE_SET>
+            (O:XMLVAR_MIN_Limit) 0 == (O:XMLVAR_MAX_Limit) 0 == or p0 0 == and if{ #ENABLE_FORCED_BETA# } els{
+            (O:XMLVAR_MAX_Limit) 1 == p0 0 != if{ #DISABLE_FORCED_BETA# }
+            }
+          </ON_BEFORE_SET>
+        </True>
+        <False>
+          <IDLE_GATE_SET_ABOVE>0 (&gt;O:XMLVAR_MIN_Limit)</IDLE_GATE_SET_ABOVE>
+          <IDLE_GATE_SET_BELOW>0 (&gt;O:XMLVAR_MAX_Limit)</IDLE_GATE_SET_BELOW>
+          <IDLE_GATE_SET_IN></IDLE_GATE_SET_IN>
+        </False>
+      </Condition>
+    </Parameters>
+    <Parameters Type="Override">
+      <Switch Param="INTERACTION_TYPE">
+        <Case Value="Lever">
+          <Switch>
+            <Case Check="HAS_IDLE_GATE">
+              <DRAG_MAX_VALUE>16384 (O:XMLVAR_MAX_Limit) min</DRAG_MAX_VALUE>
+              <PROCESS_LIMITS>
+                #PROCESS_LIMITS#
+                (#THROTTLE_VAR#, position 16k) s0 #GATE_MARGIN# &gt; if{
+                  #IDLE_GATE_SET_ABOVE#
+                } els{
+                l0 #GATE_MARGIN# neg &lt; if{
+                  #IDLE_GATE_SET_BELOW#
+                } els{
+                  #IDLE_GATE_SET_IN#
+                } }
+              </PROCESS_LIMITS>
+              <RESET_LIMITS>
+                (A:THROTTLE LOWER LIMIT, position 16k) (&gt;O:XMLVAR_MIN_Limit)
+                16384 (&gt;O:XMLVAR_MAX_Limit)
+              </RESET_LIMITS>
+              <DRAG_MIN_VALUE>(A:THROTTLE LOWER LIMIT, position 16k) (O:XMLVAR_MIN_Limit) max</DRAG_MIN_VALUE>
+              <Condition Check="IDLE_GATE_ANIM_POS">
+                <Condition NotEmpty="GROUND_GATE_ANIM_POS">
+                  <True>
+                    <IDLE_MIN>#GROUND_GATE_ANIM_POS#</IDLE_MIN>
+                  </True>
+                  <False>
+                    <IDLE_MIN>#IDLE_GATE_ANIM_POS#</IDLE_MIN>
+                  </False>
+                </Condition>
+                <IDLE_MAX>#IDLE_GATE_ANIM_POS#</IDLE_MAX>
+                <TRUE_IDLE_01 Process="Float">0 (A:THROTTLE LOWER LIMIT, percent) - 100 (A:THROTTLE LOWER LIMIT, percent) - /</TRUE_IDLE_01>
+                <IDLE_MARGIN>0.001</IDLE_MARGIN>
+              </Condition>
+            </Case>
+            <Case NotEmpty="OFF_GATE_POS_16K">
+              <DRAG_MAX_VALUE>16384 (O:XMLVAR_MAX_Limit) min</DRAG_MAX_VALUE>
+              <DRAG_MIN_VALUE>(A:THROTTLE LOWER LIMIT, position 16k) (O:XMLVAR_MIN_Limit) max</DRAG_MIN_VALUE>
+              <PROCESS_LIMITS>
+                #PROCESS_LIMITS#
+                (#THROTTLE_VAR#, position 16k) #OFF_GATE_POS_16K# &gt; if{
+                  #OFF_GATE_POS_16K# (&gt;O:XMLVAR_MIN_Limit)
+                }
+              </PROCESS_LIMITS>
+            </Case>
+            <Default>
+              <DRAG_MAX_VALUE>16384</DRAG_MAX_VALUE>
+              <DRAG_MIN_VALUE Process="Int">(A:THROTTLE LOWER LIMIT, position 16k)</DRAG_MIN_VALUE>
+            </Default>
+          </Switch>
+        </Case>
+      </Switch>
+    </Parameters>
+    <Parameters Type="Default">
+      <Switch Param="INTERACTION_TYPE">
+        <Case Value="Lever">
+          <MIN_DIFF_POS_16K>819.2</MIN_DIFF_POS_16K>
+          <Condition Valid="USE_TRAJECTORY_DRAG_MODE">
+            <DRAG_ANIM_NAME>#ANIM_NAME#</DRAG_ANIM_NAME>
+          </Condition>
+          <MAIN_LEVER_REVERSE_POSITION Process="Int">(A:THROTTLE LOWER LIMIT, position 16k)</MAIN_LEVER_REVERSE_POSITION>
+          <MAIN_LEVER_REVERSE_POSITION_PCT Process="Int">(A:THROTTLE LOWER LIMIT, percent)</MAIN_LEVER_REVERSE_POSITION_PCT>
+          <SNAP_DISTANCE>1</SNAP_DISTANCE>
+          <DRAG_VALUE_OVERRIDE/>
+          <Condition>
+            <Test>
+              <And>
+                <Arg Check="HAS_IDLE_GATE"/>
+                <Arg Check="IDLE_GATE_ANIM_POS"/>
+              </And>
+            </Test>
+            <True>
+              <!-- adjust drag value based on anim value (positive range) -->
+              <LERP_IDLE_FULL>l0 #IDLE_MAX# max #IDLE_MAX# - 1 #IDLE_MAX# - / 1 #TRUE_IDLE_01# - * #TRUE_IDLE_01# +</LERP_IDLE_FULL>
+              <!-- adjust drag value based on anim value (negative range) -->
+              <LERP_IDLE_REVERSE>l0 #IDLE_MIN# min #IDLE_MIN# - #IDLE_MIN# / #TRUE_IDLE_01# * #TRUE_IDLE_01# +</LERP_IDLE_REVERSE>
+              <!-- adjust Idle/Ground based on LocalVar State -->
+              <Condition NotEmpty="GROUND_GATE_ANIM_POS">
+                <True>
+                  <PICK_IDLE_GROUND>#IDLE_MIN# #IDLE_MAX# #CHECK_FORCED_BETA# ?</PICK_IDLE_GROUND>
+                </True>
+                <False>
+                  <PICK_IDLE_GROUND>#IDLE_MIN#</PICK_IDLE_GROUND>
+                </False>
+              </Condition>
+            </True>
+          </Condition>
+        </Case>
+      </Switch>
+    </Parameters>
+    <Parameters Type="Default">
+      <Switch Param="INTERACTION_TYPE">
+        <Case Value="Lever">
+          <Condition>
+            <Test>
+              <And>
+                <Arg Check="HAS_IDLE_GATE"/>
+                <Arg Check="IDLE_GATE_ANIM_POS"/>
+              </And>
+            </Test>
+            <True>
+              <ADJUST_RAW_DRAG_VALUE>sp0 #LERP_IDLE_FULL# #LERP_IDLE_REVERSE# l0 #PICK_IDLE_GROUND# &gt; ?</ADJUST_RAW_DRAG_VALUE>
+            </True>
+            <False>
+              <ADJUST_RAW_DRAG_VALUE/>
+            </False>
+          </Condition>
+          <Condition NotEmpty="GROUND_GATE_ANIM_POS">
+            <True>
+              <GROUND_THROTTLE_ANIM_CODE>
+                #IDLE_MIN# #IDLE_MAX# (* Idle/Ground *)
+                #CHECK_FORCED_BETA# ? r l0 l1 0.01 eps ?
+              </GROUND_THROTTLE_ANIM_CODE>
+            </True>
+            <False>
+              <GROUND_THROTTLE_ANIM_CODE/>
+            </False>
+          </Condition>
+        </Case>
+      </Switch>
+      <Condition NotEmpty="OFF_GATE_POS">
+        <Condition NotEmpty="VALVE_ID">
+          <True>
+            <VALVE_GET>(A:FUELSYSTEM VALVE SWITCH:#VALVE_ID#, Boolean) !</VALVE_GET>
+            <VALVE_CLOSE>#VALVE_ID# (&gt;K:FUELSYSTEM_VALVE_CLOSE)</VALVE_CLOSE>
+            <VALVE_OPEN>#VALVE_ID# (&gt;K:FUELSYSTEM_VALVE_OPEN)</VALVE_OPEN>
+          </True>
+          <False>
+            <VALVE_GET>(A:SHUTOFF VALVE PULLED, Boolean)</VALVE_GET>
+            <VALVE_CLOSE>(&gt;K:SHUTOFF_VALVE_OFF)</VALVE_CLOSE>
+            <VALVE_OPEN>(&gt;K:SHUTOFF_VALVE_ON)</VALVE_OPEN>
+          </False>
+        </Condition>
+      </Condition>
+    </Parameters>
+    <Parameters Type="Override">
+      <Switch Param="INTERACTION_TYPE">
+        <Case Value="Lever">
+          <Switch Param="LEVER_TYPE">
+            <Case NotEmpty="OFF_GATE_POS">
+              <ADJUST_RAW_DRAG_VALUE>
+                #OFF_GATE_POS# max #OFF_GATE_POS# - 1 #OFF_GATE_POS# - /
+              </ADJUST_RAW_DRAG_VALUE>
+              <THROTTLE_ANIM_CODE>(B:ENGINE_Throttle_#ID#, percent)</THROTTLE_ANIM_CODE>
+            </Case>
+            <Default>
+              <Condition>
+                <Test>
+                  <And>
+                    <Arg Check="HAS_IDLE_GATE"/>
+                    <Arg Check="IDLE_GATE_ANIM_POS"/>
+                  </And>
+                </Test>
+                <True>
+                  <THROTTLE_ANIM_CODE>
+                    (B:ENGINE_Throttle_#ID#, percent over 100) 1000 * int 1000 / sp0
+                    #TRUE_IDLE_01# 1000 * int 1000 / sp1
+                    l0 l1 - 1 #TRUE_IDLE_01# - / 1 #IDLE_MAX# - * #IDLE_MAX# + (* Upper part of throttle *)
+                    #GROUND_THROTTLE_ANIM_CODE#
+                    l0 l1 / #IDLE_MIN# * (* Reverse *)
+                    l0 l1 &gt;= ? 100 *
+                  </THROTTLE_ANIM_CODE>
+                </True>
+                <False>
+                  <THROTTLE_ANIM_CODE>(B:ENGINE_Throttle_#ID#, percent)</THROTTLE_ANIM_CODE>
+                </False>
+              </Condition>
+            </Default>
+          </Switch>
+        </Case>
+      </Switch>
+    </Parameters>
+    <Component ID="#NODE_ID#" Node="#NODE_ID#">
+      <Parameters Type="Default">
+        <TOOLTIP_THROTTLE_TITLE>@TT_Package.ENGINE_THROTTLE_TITLE</TOOLTIP_THROTTLE_TITLE>
+        <THROTTLE_ON_AFTER_SET/>
+        <RIGHT_SINGLE_CODE/>
+        <ENTRIES_COUNT>1</ENTRIES_COUNT>
+      </Parameters>
+      <Parameters Type="Override">
+        <TOOLTIP_TITLE>#TOOLTIP_THROTTLE_TITLE#</TOOLTIP_TITLE>
+        <TOOLTIP_ENTRY_0>ENGINE_Throttle_#ID#</TOOLTIP_ENTRY_0>
+        <Condition Valid="HAS_WEP">
+          <TOOLTIP_ENTRY_#ENTRIES_COUNT#>ENGINE_Throttle_#ID#_WEP</TOOLTIP_ENTRY_#ENTRIES_COUNT#>
+          <ENTRIES_COUNT Process="Int">#ENTRIES_COUNT# 1 +</ENTRIES_COUNT>
+          <RIGHT_SINGLE_CODE>#RIGHT_SINGLE_CODE# (&gt;B:ENGINE_Throttle_#ID#_WEP_On)</RIGHT_SINGLE_CODE>
+          <THROTTLE_ANIM_CODE>
+            #THROTTLE_ANIM_CODE# sp0
+            (B:ENGINE_Throttle_#ID#_WEP) if{ l0 } els{ l0 0.9 * }
+          </THROTTLE_ANIM_CODE>
+        </Condition>
+      </Parameters>
+      <Parameters Type="Override">
+        <Condition NotEmpty="OFF_GATE_POS">
+          <TOOLTIP_ENTRY_#ENTRIES_COUNT#>ENGINE_Throttle_#ID#_STOP</TOOLTIP_ENTRY_#ENTRIES_COUNT#>
+          <ENTRIES_COUNT Process="Int">#ENTRIES_COUNT# 1 +</ENTRIES_COUNT>
+          <RIGHT_SINGLE_CODE>#RIGHT_SINGLE_CODE# (&gt;B:ENGINE_Throttle_#ID#_STOP_On)</RIGHT_SINGLE_CODE>
+          <THROTTLE_ANIM_CODE>
+            #THROTTLE_ANIM_CODE# sp0
+            (B:ENGINE_Throttle_#ID#_STOP) if{ 0 } els{ #OFF_GATE_POS# 100 * l0 1 #OFF_GATE_POS# - * + }
+          </THROTTLE_ANIM_CODE>
+          <THROTTLE_ON_AFTER_SET>#THROTTLE_ON_AFTER_SET# (&gt;B:ENGINE_Throttle_#ID#_STOP_Off)</THROTTLE_ON_AFTER_SET>
+        </Condition>
+      </Parameters>
+      <Parameters Type="Override">
+        <Condition NotEmpty="AFTERBURNER_GATE_POS">
+          <TOOLTIP_ENTRY_#ENTRIES_COUNT#>ENGINE_Throttle_#ID#_Afterburner</TOOLTIP_ENTRY_#ENTRIES_COUNT#>
+          <ENTRIES_COUNT Process="Int">#ENTRIES_COUNT# 1 +</ENTRIES_COUNT>
+          <RIGHT_SINGLE_CODE>#RIGHT_SINGLE_CODE# (&gt;B:ENGINE_Throttle_#ID#_Afterburner_On)</RIGHT_SINGLE_CODE>
+          <THROTTLE_ON_AFTER_SET>#THROTTLE_ON_AFTER_SET# l0 #AFTERBURNER_GATE_POS_WITH_MARGIN# &lt; if{ (&gt;B:ENGINE_Throttle_#ID#_Afterburner_Off) }</THROTTLE_ON_AFTER_SET>
+          <PROCESS_LIMITS>
+            #PROCESS_LIMITS#
+            (B:ENGINE_Throttle_#ID#_Afterburner) ! if{
+              (O:XMLVAR_MAX_Limit) #AFTERBURNER_GATE_POS_16K# min (&gt;O:XMLVAR_MAX_Limit)
+            }
+          </PROCESS_LIMITS>
+          <ADJUST_RAW_DRAG_VALUE>#ADJUST_RAW_DRAG_VALUE# d (&gt;L:XMLVAR_LastAB#ID#ThrottleSet)</ADJUST_RAW_DRAG_VALUE>
+          <CLAMP_IE>True</CLAMP_IE>
+          <AFTERBURNER_BINDING_SET>(B:ENGINE_Throttle_#ID#, Percent over 100) #AFTERBURNER_GATE_POS_WITH_MARGIN# &gt;= if{ 1 } els{ 0 }</AFTERBURNER_BINDING_SET>
+          <ON_AFTER_SET_BINDING>d (&gt;L:XMLVAR_LastAB#ID#ThrottleSet)</ON_AFTER_SET_BINDING>
+          <THROTTLE_ON_AFTER_INC>(B:ENGINE_Throttle_#ID#, Percent over 100) (&gt;L:XMLVAR_LastAB#ID#ThrottleSet)</THROTTLE_ON_AFTER_INC>
+          <THROTTLE_ON_AFTER_DEC>(B:ENGINE_Throttle_#ID#, Percent over 100) (&gt;L:XMLVAR_LastAB#ID#ThrottleSet)</THROTTLE_ON_AFTER_DEC>
+          <AFTERBURNER_THROTTLE_INC>
+            (E:SIMULATION TIME, seconds) s0 (L:XMLVAR_IE_Afterburner_#ID#_LastThrottleInc) 0.2 + &lt; if{ 1 (&gt;L:XMLVAR_IE_Afterburner_#ID#_Quit) }
+            l0 (&gt;L:XMLVAR_IE_Afterburner_#ID#_LastThrottleInc)
+            1
+          </AFTERBURNER_THROTTLE_INC>
+        </Condition>
+      </Parameters>
+      <Switch Param="INTERACTION_TYPE">
+        <Case Value="Lever">
+          <Condition Check="ANIM_NAME_REVERSE_LOCK">
+            <UseTemplate Name="ASOBO_GT_Anim_Code">
+              <ANIM_CODE>
+                (A:GENERAL ENG REVERSE THRUST ENGAGED:#ID#, bool) (#THROTTLE_VAR#, Percent) 0 &lt; or 100 *
+              </ANIM_CODE>
+              <ANIM_NAME>#ANIM_NAME_REVERSE_LOCK#</ANIM_NAME>
+            </UseTemplate>
+            <UseTemplate Name = "ASOBO_GT_AnimTriggers_2SoundEvents">
+              <ANIM_NAME>#ANIM_NAME_REVERSE_LOCK#</ANIM_NAME>
+              <WWISE_EVENT_1>throttle_lever_lock_on</WWISE_EVENT_1>
+              <WWISE_EVENT_2>throttle_lever_lock_off</WWISE_EVENT_2>
+            </UseTemplate>
+          </Condition>
+          <UseInputEvent ID="ENGINE">
+            <THROTTLE_ID>#ID#</THROTTLE_ID>
+            <GET_THROTTLE>(#THROTTLE_VAR#, position 16k)</GET_THROTTLE>
+            <Condition NotEmpty="THROTTLE_ON_AFTER_SET">
+              <ON_AFTER_SET>#THROTTLE_ON_AFTER_SET#</ON_AFTER_SET>
+            </Condition>
+            <Condition NotEmpty="THROTTLE_ON_AFTER_INC">
+              <ON_AFTER_INC>#THROTTLE_ON_AFTER_INC#</ON_AFTER_INC>
+            </Condition>
+            <Condition NotEmpty="THROTTLE_ON_AFTER_DEC">
+              <ON_AFTER_DEC>#THROTTLE_ON_AFTER_DEC#</ON_AFTER_DEC>
+            </Condition>
+            <RESET_LIMITS>
+              #PROCESS_LIMITS#
+            </RESET_LIMITS>
+            <Condition Valid="CLAMP_IE">
+              <CLAMP_UPPER_LIMIT>(O:XMLVAR_MAX_Limit)</CLAMP_UPPER_LIMIT>
+              <CLAMP_LOWER_LIMIT>(O:XMLVAR_MIN_Limit)</CLAMP_LOWER_LIMIT>
+              <ON_AFTER_INIT>#PROCESS_LIMITS#</ON_AFTER_INIT>
+            </Condition>
+          </UseInputEvent>
+          <Condition Valid="HAS_WEP">
+            <UseInputEvent ID="ENGINE">
+              <BTN_ID>Throttle_#ID#_WEP</BTN_ID>
+              <SET_STATE_EXTERNAL>(B:ENGINE_Throttle_#ID#) 100 == (A:RECIP ENG EMERGENCY BOOST ACTIVE:#ID#, Bool) ! and if{ (&gt;K:WAR_EMERGENCY_POWER) 1 (&gt;O:IsWEPActive) }</SET_STATE_EXTERNAL>
+              <TT_ICON>PUSH</TT_ICON>
+              <TT_INTERACTION>PRIMARY_DOWN+SECONDARY_DOWN</TT_INTERACTION>
+              <TT_INTERACTION_LOCKABLE>SECONDARY_DOWN</TT_INTERACTION_LOCKABLE>
+              <TT_DESCRIPTION>@TT_Package.THROTTLE_SWITCH_WEP_ACTION</TT_DESCRIPTION>
+              <TT_DESCRIPTION_IS_DYNAMIC>False</TT_DESCRIPTION_IS_DYNAMIC>
+              <TT_VALUE>(O:IsWEPActive) @TT_OnOff_Cond</TT_VALUE>
+              <TT_VALUE_IS_DYNAMIC>True</TT_VALUE_IS_DYNAMIC>
+              <VALUE_CODE>(O:IsWEPActive)</VALUE_CODE>
+              <VALUE_UNITS>Boolean</VALUE_UNITS>
+              <BINDING_SET_0>On</BINDING_SET_0>
+              <BINDING_SET_0_PARAM_0>(B:ENGINE_Throttle_#ID#) 100 == (A:RECIP ENG EMERGENCY BOOST ACTIVE:#ID#, Bool) ! and</BINDING_SET_0_PARAM_0>
+              <BINDING_SET_0_PARAM_0_IS_DYNAMIC>True</BINDING_SET_0_PARAM_0_IS_DYNAMIC>
+              <BINDING_SET_1>Activate</BINDING_SET_1>
+              <BINDING_SET_1_EVENT_ID_ONLY>True</BINDING_SET_1_EVENT_ID_ONLY>
+              <BINDING_SET_1_EVENT_ID>WAR_EMERGENCY_POWER</BINDING_SET_1_EVENT_ID>
+              <BINDING_SET_1_PARAM_0>1</BINDING_SET_1_PARAM_0>
+            </UseInputEvent>
+          </Condition>
+          <Condition NotEmpty="OFF_GATE_POS">
+            <UseInputEvent ID="ENGINE">
+              <BTN_ID>Throttle_#ID#_STOP</BTN_ID>
+              <GET_STATE_EXTERNAL>#VALVE_GET#</GET_STATE_EXTERNAL>
+              <SET_STATE_EXTERNAL>(B:ENGINE_Throttle_#ID#) 0.1 &lt; p0 and if{ #VALVE_CLOSE# } els{ #VALVE_OPEN# }</SET_STATE_EXTERNAL>
+              <ON_BEFORE_SET_CODE>
+                p0 (B:ENGINE_Throttle_#ID#, Percent over 100) 0 &gt; and if{ quit }
+              </ON_BEFORE_SET_CODE>
+              <TT_ICON>PUSH</TT_ICON>
+              <TT_INTERACTION>PRIMARY_DOWN+SECONDARY_DOWN</TT_INTERACTION>
+              <TT_INTERACTION_LOCKABLE>SECONDARY_DOWN</TT_INTERACTION_LOCKABLE>
+              <TT_DESCRIPTION>@TT_Package.THROTTLE_FUEL_CUTOFF_ACTION</TT_DESCRIPTION>
+              <TT_VALUE>#VALVE_GET# @TT_OnOff_Cond</TT_VALUE>
+              <TT_VALUE_IS_DYNAMIC>True</TT_VALUE_IS_DYNAMIC>
+              <VALUE_CODE>#VALVE_GET#</VALUE_CODE>
+              <VALUE_UNITS>Boolean</VALUE_UNITS>
+              <Condition NotEmpty="ON_AFTER_SET_STOP">
+                <ON_AFTER_SET_CODE>#ON_AFTER_SET_STOP#</ON_AFTER_SET_CODE>
+              </Condition>
+            </UseInputEvent>
+          </Condition>
+          <Condition NotEmpty="AFTERBURNER_GATE_POS">
+            <UseInputEvent ID="ENGINE">
+              <BTN_ID>Throttle_#ID#_Afterburner</BTN_ID>
+              <GET_STATE_EXTERNAL>(A:TURB ENG AFTERBURNER:#ID#, Boolean) sp0</GET_STATE_EXTERNAL>
+              <ON_BEFORE_SET_CODE>
+                p0 (B:ENGINE_Throttle_#ID#, Percent over 100) #AFTERBURNER_GATE_POS_WITH_MARGIN# &lt; and (L:XMLVAR_IE_Afterburner_#ID#_Quit) or 0 (&gt;L:XMLVAR_IE_Afterburner_#ID#_Quit) if{ quit }
+              </ON_BEFORE_SET_CODE>
+              <SET_STATE_EXTERNAL>
+                p0 if{
+                  16384 (&gt;O:XMLVAR_MAX_Limit)
+                  (L:XMLVAR_LastAB#ID#ThrottleSet) (&gt;B:ENGINE_Throttle_#ID#_Set)
+                }
+              </SET_STATE_EXTERNAL>
+              <TT_ICON>PUSH</TT_ICON>
+              <TT_INTERACTION>PRIMARY_DOWN+SECONDARY_DOWN</TT_INTERACTION>
+              <TT_INTERACTION_LOCKABLE>SECONDARY_DOWN</TT_INTERACTION_LOCKABLE>
+              <TT_DESCRIPTION>@TT_Package.THROTTLE_SWITCH_AFTERBURNER_ACTION</TT_DESCRIPTION>
+              <TT_VALUE>(B:ENGINE_Throttle_#ID#_Afterburner) @TT_OnOff_Cond</TT_VALUE>
+              <TT_VALUE_IS_DYNAMIC>True</TT_VALUE_IS_DYNAMIC>
+              <Condition NotEmpty="ON_AFTER_SET_STOP">
+                <ON_AFTER_SET_CODE>#ON_AFTER_SET_STOP#</ON_AFTER_SET_CODE>
+              </Condition>
+              <BINDING_SET_3>KeyBind_Toggle</BINDING_SET_3>
+              <BINDING_SET_3_EVENT_ID_ONLY>True</BINDING_SET_3_EVENT_ID_ONLY>
+              <BINDING_SET_3_EVENT_ID>TOGGLE_AFTERBURNER</BINDING_SET_3_EVENT_ID>
+              <BINDING_SET_3_PARAM_0>#AFTERBURNER_BINDING_SET#</BINDING_SET_3_PARAM_0>
+              <BINDING_SET_3_PARAM_0_IS_DYNAMIC>True</BINDING_SET_3_PARAM_0_IS_DYNAMIC>
+              <BINDING_SET_4>KeyBind_ToggleID</BINDING_SET_4>
+              <BINDING_SET_4_EVENT_ID_ONLY>True</BINDING_SET_4_EVENT_ID_ONLY>
+              <BINDING_SET_4_EVENT_ID>TOGGLE_AFTERBURNER#ID#</BINDING_SET_4_EVENT_ID>
+              <BINDING_SET_4_PARAM_0>#AFTERBURNER_BINDING_SET#</BINDING_SET_4_PARAM_0>
+              <BINDING_SET_4_PARAM_0_IS_DYNAMIC>True</BINDING_SET_4_PARAM_0_IS_DYNAMIC>
+              <BINDING_SET_5>KeyBind_IncreaseThrottle</BINDING_SET_5>
+              <BINDING_SET_5_EVENT_ID>THROTTLE_INCR</BINDING_SET_5_EVENT_ID>
+              <BINDING_SET_5_PARAM_0>#AFTERBURNER_THROTTLE_INC#</BINDING_SET_5_PARAM_0>
+              <BINDING_SET_5_PARAM_0_IS_DYNAMIC>True</BINDING_SET_5_PARAM_0_IS_DYNAMIC>
+              <BINDING_SET_6>KeyBind_IncreaseThrottleSmall</BINDING_SET_6>
+              <BINDING_SET_6_EVENT_ID>THROTTLE_INCR_SMALL</BINDING_SET_6_EVENT_ID>
+              <BINDING_SET_6_PARAM_0>#AFTERBURNER_THROTTLE_INC#</BINDING_SET_6_PARAM_0>
+              <BINDING_SET_6_PARAM_0_IS_DYNAMIC>True</BINDING_SET_6_PARAM_0_IS_DYNAMIC>
+              <BINDING_SET_7>KeyBind_IncreaseThrottle#ID#</BINDING_SET_7>
+              <BINDING_SET_7_EVENT_ID>THROTTLE#ID#_INCR</BINDING_SET_7_EVENT_ID>
+              <BINDING_SET_7_PARAM_0>#AFTERBURNER_THROTTLE_INC#</BINDING_SET_7_PARAM_0>
+              <BINDING_SET_7_PARAM_0_IS_DYNAMIC>True</BINDING_SET_7_PARAM_0_IS_DYNAMIC>
+              <BINDING_SET_8>KeyBind_IncreaseThrottle#ID#Small</BINDING_SET_8>
+              <BINDING_SET_8_EVENT_ID>THROTTLE#ID#_INCR_SMALL</BINDING_SET_8_EVENT_ID>
+              <BINDING_SET_8_PARAM_0>#AFTERBURNER_THROTTLE_INC#</BINDING_SET_8_PARAM_0>
+              <BINDING_SET_8_PARAM_0_IS_DYNAMIC>True</BINDING_SET_8_PARAM_0_IS_DYNAMIC>
+              <SIMVAR_TO_WATCH_0>TURB ENG AFTERBURNER:#ID#</SIMVAR_TO_WATCH_0>
+            </UseInputEvent>
+          </Condition>
+
+          <UseTemplate Name="ASOBO_GT_Anim_Code">
+            <Condition Valid="OVERRIDE_ANIM_CODE">
+              <True>
+                <ANIM_CODE>#OVERRIDE_ANIM_CODE#</ANIM_CODE>
+              </True>
+              <False>
+                <ANIM_CODE>#THROTTLE_ANIM_CODE#</ANIM_CODE>
+              </False>
+            </Condition>
+          </UseTemplate>
+
+          <Update Once="True">
+            #RESET_LIMITS#
+          </Update>
+          <UseTemplate Name="ASOBO_GT_Interaction_WheelLeftDrag_Axis">
+            <LOCK_CODE>
+              #PROCESS_LIMITS#
+            </LOCK_CODE>
+            <UNLOCK_CODE>
+              #RESET_LIMITS#
+            </UNLOCK_CODE>
+            <HELPID>HELPID_GAUGE_THROTTLE_THROTTLE</HELPID>
+            <DRAG_SIMVAR>#THROTTLE_VAR#</DRAG_SIMVAR>
+            <Condition Valid="USE_TRAJECTORY_DRAG_MODE">
+              <True>
+                <DRAG_CODE>
+                  (M:InputType) 1 == if{
+                    (O:_ResetLimitsTime) (E:SIMULATION TIME, second) &lt; if{
+                      (#THROTTLE_VAR#, position 16k) abs #MIN_DIFF_POS_16K# &lt; if{
+                        #RESET_LIMITS#
+                      }
+                    }
+                    (E:SIMULATION TIME, second) 0.1 + (&gt;O:_ResetLimitsTime)
+                  }
+                  16384 #MAIN_LEVER_REVERSE_POSITION# - (M:DragPercent) #ADJUST_RAW_DRAG_VALUE# * #MAIN_LEVER_REVERSE_POSITION# + sp0
+                  #DRAG_VALUE_OVERRIDE#
+                  l0 #DRAG_MAX_VALUE# min #DRAG_MIN_VALUE# max 16384 / (&gt;B:ENGINE_Throttle_#ID#_Set)
+                  (#THROTTLE_VAR#, position 16k) abs #MIN_DIFF_POS_16K# &gt; if{
+                    #PROCESS_LIMITS#
+                  }
+                </DRAG_CODE>
+              </True>
+              <False>
+                <DRAG_CODE>
+                  (#THROTTLE_VAR#, position 16k) #INCREMENT# (O:DragScale) * + #DRAG_MAX_VALUE# min #DRAG_MIN_VALUE# max 16384 / (&gt;B:ENGINE_Throttle_#ID#_Set)
+                  (#THROTTLE_VAR#, position 16k) abs #MIN_DIFF_POS_16K# &gt; if{
+                    #PROCESS_LIMITS#
+                  }
+                </DRAG_CODE>
+              </False>
+            </Condition>
+            <POSITIVE_AXIS_CODE>1 (&gt;B:ENGINE_Throttle_#ID#_Inc)</POSITIVE_AXIS_CODE>
+            <NEGATIVE_AXIS_CODE>1 (&gt;B:ENGINE_Throttle_#ID#_Dec)</NEGATIVE_AXIS_CODE>
+          </UseTemplate>
+
+          <UseTemplate Name="ASOBO_GT_Visibility_Code">
+            <VISIBILITY_CODE>(L:XMLVAR_LeverThrottleHidden#ID#) !</VISIBILITY_CODE>
+          </UseTemplate>
+        </Case>
+      </Switch>
+    </Component>
+
+    <Condition Check="HIGHLIGHT_NODE_ID">
+      <UseTemplate Name="ASOBO_GT_ComponentWith_PART_ID">
+        <NODE_ID>#HIGHLIGHT_NODE_ID#</NODE_ID>
+      </UseTemplate>
+    </Condition>
+  </Template>
+</ModelBehaviors>

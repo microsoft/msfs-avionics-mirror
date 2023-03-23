@@ -1,0 +1,219 @@
+.usr-wpt-dialog {
+  position: absolute;
+  box-sizing: border-box;
+  color: var(--g3000-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.gtc-popup-wrapper .usr-wpt-dialog {
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+}
+
+.gtc-horizontal .usr-wpt-dialog {
+  left: 45px;
+  top: 0px;
+  width: calc(100% - 45px * 2);
+  height: 100%;
+  padding: 55px 0px 0px 0px;
+  font-size: 29px;
+
+  --usr-wpt-dialog-row-gap: 10px;
+
+  --usr-wpt-dialog-top-row-height: 120px;
+
+  --usr-wpt-dialog-ident-button-width: 325px;
+  --usr-wpt-dialog-ident-button-padding: 0px 20px 0px 30px;
+  --usr-wpt-dialog-ident-button-icon-size: 18px;
+
+  --usr-wpt-dialog-temp-button-width: 190px;
+  --usr-wpt-dialog-temp-button-margin-left: 20px;
+
+  --usr-wpt-dialog-type-button-width: 250px;
+  --usr-wpt-dialog-type-button-height: 120px;
+
+  --usr-wpt-dialog-ref-rad-dis-button-width: 180px;
+  --usr-wpt-dialog-ref-rad-dis-button-height: 120px;
+
+  --usr-wpt-dialog-params-rad-dis-width: 630px;
+  --usr-wpt-dialog-params-rad-dis-padding: 12px 25px;
+
+  --usr-wpt-dialog-params-rad-rad-width: 430px;
+  --usr-wpt-dialog-params-rad-rad-height: 292px;
+  --usr-wpt-dialog-params-rad-rad-row-padding: 8px 15px;
+
+  --usr-wpt-dialog-params-latlon-button-width: 315px;
+  --usr-wpt-dialog-params-latlon-button-height: 160px;
+
+  --usr-wpt-dialog-comment-button-bottom: 15px;
+  --usr-wpt-dialog-comment-button-width: 780px;
+  --usr-wpt-dialog-comment-button-height: 120px;
+}
+
+.gtc-vertical .usr-wpt-dialog {
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: 28px 0px 0px 0px;
+  font-size: 16px;
+
+  --usr-wpt-dialog-row-gap: 5px;
+
+  --usr-wpt-dialog-top-row-height: 67px;
+
+  --usr-wpt-dialog-ident-button-width: 180px;
+  --usr-wpt-dialog-ident-button-padding: 0px 10px 0px 15px;
+  --usr-wpt-dialog-ident-button-icon-size: 10px;
+
+  --usr-wpt-dialog-temp-button-width: 105px;
+  --usr-wpt-dialog-temp-button-margin-left: 10px;
+
+  --usr-wpt-dialog-type-button-width: 140px;
+  --usr-wpt-dialog-type-button-height: 67px;
+
+  --usr-wpt-dialog-ref-rad-dis-button-width: 100px;
+  --usr-wpt-dialog-ref-rad-dis-button-height: 67px;
+
+  --usr-wpt-dialog-params-rad-dis-width: 350px;
+  --usr-wpt-dialog-params-rad-dis-padding: 7px 12px;
+
+  --usr-wpt-dialog-params-rad-rad-width: 240px;
+  --usr-wpt-dialog-params-rad-rad-height: 162px;
+  --usr-wpt-dialog-params-rad-rad-row-padding: 3px 7px;
+
+  --usr-wpt-dialog-params-latlon-button-width: 175px;
+  --usr-wpt-dialog-params-latlon-button-height: 90px;
+
+  --usr-wpt-dialog-comment-button-bottom: 7px;
+  --usr-wpt-dialog-comment-button-width: 430px;
+  --usr-wpt-dialog-comment-button-height: 67px;
+}
+
+.usr-wpt-dialog .touch-button-value-value {
+  font-size: 1.3em;
+}
+
+.usr-wpt-dialog-top-row {
+  height: var(--usr-wpt-dialog-top-row-height);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+.usr-wpt-dialog-ident-button {
+  width: var(--usr-wpt-dialog-ident-button-width);
+  padding: var(--usr-wpt-dialog-ident-button-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.usr-wpt-dialog-ident-button-ident {
+  display: inline-block;
+  font-size: 1.8em;
+  color: var(--g3000-color-cyan);
+}
+
+.usr-wpt-dialog-ident-button-icon {
+  float: right;
+  width: var(--usr-wpt-dialog-ident-button-icon-size);
+  height: var(--usr-wpt-dialog-ident-button-icon-size);
+}
+
+.usr-wpt-dialog-temp-button {
+  width: var(--usr-wpt-dialog-temp-button-width);
+  margin-left: var(--usr-wpt-dialog-temp-button-margin-left);
+}
+
+.usr-wpt-dialog-type-button {
+  width: var(--usr-wpt-dialog-type-button-width);
+  height: var(--usr-wpt-dialog-type-button-height);
+  margin-top: var(--usr-wpt-dialog-row-gap);
+}
+
+.usr-wpt-dialog-params {
+  width: 100%;
+  margin-top: var(--usr-wpt-dialog-row-gap);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.usr-wpt-dialog-ref-button,
+.usr-wpt-dialog-rad-button,
+.usr-wpt-dialog-dis-button {
+  width: var(--usr-wpt-dialog-ref-rad-dis-button-width);
+  height: var(--usr-wpt-dialog-ref-rad-dis-button-height);
+}
+
+.usr-wpt-dialog-params-type {
+  display: none;
+}
+
+.usr-wpt-dialog-params-rad-dis {
+  width: var(--usr-wpt-dialog-params-rad-dis-width);
+  padding: var(--usr-wpt-dialog-params-rad-dis-padding);
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.usr-wpt-dialog-rad-dis .usr-wpt-dialog-params-rad-dis {
+  display: flex;
+}
+
+.usr-wpt-dialog-params-rad-rad {
+  width: var(--usr-wpt-dialog-params-rad-rad-width);
+  height: var(--usr-wpt-dialog-params-rad-rad-height);
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.usr-wpt-dialog-rad-rad .usr-wpt-dialog-params-rad-rad {
+  display: flex;
+}
+
+.usr-wpt-dialog-params-rad-rad-row {
+  padding: var(--usr-wpt-dialog-params-rad-rad-row-padding);
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.usr-wpt-dialog-params-lat-lon {
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.usr-wpt-dialog-lat-lon .usr-wpt-dialog-params-lat-lon {
+  display: flex;
+}
+
+.usr-wpt-dialog-latlon-button {
+  width: var(--usr-wpt-dialog-params-latlon-button-width);
+  height: var(--usr-wpt-dialog-params-latlon-button-height);
+
+  --touch-button-value-label-center-y: 20%;
+  --touch-button-value-value-center-y: 66%;
+}
+
+.usr-wpt-dialog-comment-button {
+  position: absolute;
+  left: calc(50% - var(--usr-wpt-dialog-comment-button-width) / 2);
+  bottom: var(--usr-wpt-dialog-comment-button-bottom);
+  width: var(--usr-wpt-dialog-comment-button-width);
+  height: var(--usr-wpt-dialog-comment-button-height);
+}

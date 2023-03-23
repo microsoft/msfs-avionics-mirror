@@ -2,7 +2,7 @@ import { EventBus } from '../../data';
 import { FlightPlan, FlightPlanner, LegDefinition, LegDefinitionFlags } from '../../flightplan';
 import { GeoPoint } from '../../geo';
 import { BitFlags, UnitType } from '../../math';
-import { AirportFacility, FacilityType, ICAO, LegType } from '../../navigation';
+import { AirportFacility, Facility, FacilityType, ICAO, LegType } from '../../navigation';
 import { Subscribable } from '../../sub';
 import { FlightPlanPredictorConfiguration } from './FlightPlanPredictorConfiguration';
 import { FlightPlanPredictorStore } from './FlightPlanPredictorStore';
@@ -16,6 +16,8 @@ import { ActiveOrUpcomingLegPredictions, LegPredictions, PassedLegPredictions } 
 export class FlightPlanPredictor {
 
   private readonly predictions: LegPredictions[] = [];
+
+  private readonly facilityPredictions = new Map<string, ActiveOrUpcomingLegPredictions>();
 
   private readonly store: FlightPlanPredictorStore;
 
@@ -103,9 +105,12 @@ export class FlightPlanPredictor {
     // Update all legs
 
     let accumulatedDistance = this.store.lnavDtg.get();
+    let maxIndex = -1;
 
     let lastNonDiscontinuityLeg = undefined;
     for (const [i, leg, previousLeg] of this.predictableLegs()) {
+      maxIndex = i;
+
       if (previousLeg?.leg.type === LegType.Discontinuity || previousLeg?.leg.type === LegType.ThruDiscontinuity) {
         if (lastNonDiscontinuityLeg !== undefined && lastNonDiscontinuityLeg.calculated && leg.calculated) {
           const termLat = lastNonDiscontinuityLeg.calculated.endLat;
@@ -128,9 +133,9 @@ export class FlightPlanPredictor {
       const isActiveLeg = i === activeLegIndex;
       const isUpcomingLeg = i > activeLegIndex;
 
-      if (this.predictions[i]) {
-        const oldPredictions = this.predictionsForLegIndex(i);
+      const oldPredictions = this.predictionsForLegIndex(i);
 
+      if (oldPredictions) {
         if (isPassedLeg) {
           if (oldPredictions.kind === 'activeOrUpcoming') {
             this.stampPassedLegValues(oldPredictions as unknown as PassedLegPredictions);
@@ -165,6 +170,12 @@ export class FlightPlanPredictor {
       }
     }
 
+    if (maxIndex > 0) {
+      for (let i = maxIndex; i < this.predictions.length - 1; i++) {
+        this.predictions.pop();
+      }
+    }
+
     this.clearOutDirtyValues();
   }
 
@@ -193,7 +204,7 @@ export class FlightPlanPredictor {
   /**
    * Finds the index of the destination leg, in other words, the last non-missed-approach leg.
    *
-   * @returns the index
+   * @returns the index, or -1 if not applicable
    */
   private findDestinationLegIndex(): number {
     let lastLegIndex = this.plan.length - 1;
@@ -204,63 +215,129 @@ export class FlightPlanPredictor {
       lastLegIndex--;
     }
 
-    return lastLegIndex;
+    return lastLegIndex < 1 ? -1 : lastLegIndex;
+  }
+
+  /**
+   * Iterator for existing predictions
+   *
+   * @param startAtIndex the index to start at
+   *
+   * @returns a generator
+   *
+   * @yields predictions
+   */
+  public *iteratePredictions(startAtIndex = 0): Generator<LegPredictions> {
+    for (let i = startAtIndex; i < this.predictions.length; i++) {
+      yield this.predictions[i];
+    }
   }
 
   /**
    * Returns predictions for the destination airport.
    *
    * If the dest leg (defined as the last leg that is not part of the missed approach) is not a runway,
-   * then the direct distance between the termination of that leg and the provided airport facility.
+   * then the direct distance between the termination of that leg and the provided airport facility is added to
+   * the result. Otherwise, the prediction to that leg is used.
    *
    * @param destinationFacility the airport facility to use in case a direct distance needs to be calculated
    *
-   * @returns predictions for the destination airport
+   * @returns predictions for the destination airport, or null if they cannot be computed
    */
-  public getDestinationPrediction(destinationFacility: AirportFacility): ActiveOrUpcomingLegPredictions {
+  public getDestinationPrediction(destinationFacility: AirportFacility): ActiveOrUpcomingLegPredictions | null {
     const destLegIndex = this.findDestinationLegIndex();
 
-    const leg = this.plan.getLeg(destLegIndex);
+    const leg = this.plan.tryGetLeg(destLegIndex);
 
-    const isDestLegRunway = ICAO.getFacilityType(leg.leg.fixIcao) === FacilityType.RWY;
+    if (!leg) {
+      return this.getPposToFacilityPredictions(destinationFacility);
+    }
 
-    if (!isDestLegRunway && leg.calculated?.startLat && leg.calculated.startLon) {
-      const legTerm = new GeoPoint(leg.calculated?.startLat, leg.calculated?.startLon);
+    const destLegHasValidFixIcao = leg.leg.fixIcao && leg.leg.fixIcao !== ICAO.emptyIcao;
+    const isDestLegRunway = destLegHasValidFixIcao ? ICAO.getFacilityType(leg.leg.fixIcao) === FacilityType.RWY : false;
+
+    if (!isDestLegRunway && leg.calculated?.endLat && leg.calculated.endLon) {
+      const legTerm = new GeoPoint(leg.calculated?.endLat, leg.calculated?.endLon);
       const airport = new GeoPoint(destinationFacility.lat, destinationFacility.lon);
 
       const additionalDirectDistance = UnitType.GA_RADIAN.convertTo(legTerm.distance(airport), UnitType.NMILE);
 
       const predictionsToDestLeg = this.predictionsForLegIndex(destLegIndex);
 
-      const directPredictions: ActiveOrUpcomingLegPredictions = {
+      if (predictionsToDestLeg) {
+        const directPredictions: ActiveOrUpcomingLegPredictions = {
+          kind: 'activeOrUpcoming',
+          ident: '',
+          distance: additionalDirectDistance,
+          estimatedTimeOfArrival: 0,
+          estimatedTimeEnroute: 0,
+          fob: 0,
+        };
+
+        this.predictForDistance(directPredictions, additionalDirectDistance);
+
+        directPredictions.estimatedTimeEnroute = FlightPlanPredictorUtils.predictTime(this.currentGs(), additionalDirectDistance);
+
+        const fuelConsumedOnDirect = Math.max(0, this.currentFuelWeight() - (directPredictions.fob ?? 0));
+
+        return {
+          kind: 'activeOrUpcoming',
+          ident: ICAO.getIdent(destinationFacility.icao),
+          estimatedTimeOfArrival: predictionsToDestLeg.estimatedTimeOfArrival + directPredictions.estimatedTimeEnroute,
+          estimatedTimeEnroute: predictionsToDestLeg.estimatedTimeEnroute + directPredictions.estimatedTimeEnroute,
+          distance: predictionsToDestLeg.distance + additionalDirectDistance,
+          fob: Math.max(0, (predictionsToDestLeg.fob ?? this.currentFuelWeight()) - fuelConsumedOnDirect),
+        };
+      } else {
+        return null;
+      }
+    } else {
+      const predictionsForLegIndex = this.predictionsForLegIndex(destLegIndex) as ActiveOrUpcomingLegPredictions;
+
+      if (predictionsForLegIndex) {
+        return {
+          ...predictionsForLegIndex,
+          ident: ICAO.getIdent(destinationFacility.icao),
+        };
+      } else {
+        return null;
+      }
+    }
+  }
+
+  /**
+   * Returns predictions for an arbitrary facility.
+   *
+   * The distance used for predictions is the great circle distance between PPOS and the given facility.
+   *
+   * @param facility the facility to use
+   *
+   * @returns predictions for the facility
+   */
+  public getPposToFacilityPredictions(facility: Facility): ActiveOrUpcomingLegPredictions {
+    const ppos = this.store.ppos.get();
+    const distance = new GeoPoint(ppos.lat, ppos.long).distance({ lat: facility.lat, lon: facility.lon });
+    const distanceNM = UnitType.NMILE.convertFrom(distance, UnitType.GA_RADIAN);
+
+    const existingPredictions = this.facilityPredictions.get(facility.icao);
+
+    let predictions;
+    if (existingPredictions) {
+      predictions = existingPredictions;
+    } else {
+      predictions = {
         kind: 'activeOrUpcoming',
-        ident: '',
-        distance: additionalDirectDistance,
+        ident: ICAO.getIdent(facility.icao),
+        distance: distanceNM,
         estimatedTimeOfArrival: 0,
         estimatedTimeEnroute: 0,
         fob: 0,
-      };
-
-      this.predictForDistance(directPredictions, additionalDirectDistance);
-
-      directPredictions.estimatedTimeEnroute = FlightPlanPredictorUtils.predictTime(this.currentGs(), additionalDirectDistance);
-
-      const fuelConsumedOnDirect = this.currentFuelWeight() - (directPredictions.fob ?? 0);
-
-      return {
-        kind: 'activeOrUpcoming',
-        ident: ICAO.getIdent(destinationFacility.icao),
-        estimatedTimeOfArrival: predictionsToDestLeg.estimatedTimeOfArrival + directPredictions.estimatedTimeEnroute,
-        estimatedTimeEnroute: predictionsToDestLeg.estimatedTimeEnroute + directPredictions.estimatedTimeEnroute,
-        distance: predictionsToDestLeg.distance + additionalDirectDistance,
-        fob: (predictionsToDestLeg.fob ?? this.currentFuelWeight()) - fuelConsumedOnDirect,
-      };
-    } else {
-      return {
-        ...this.predictionsForLegIndex(destLegIndex) as ActiveOrUpcomingLegPredictions,
-        ident: ICAO.getIdent(destinationFacility.icao),
-      };
+      } as any;
     }
+
+    this.predictForDistance(predictions, distanceNM);
+
+    return predictions;
   }
 
   /**
@@ -268,15 +345,9 @@ export class FlightPlanPredictor {
    *
    * @param index the leg index
    *
-   * @returns the predictions object
-   *
-   * @throws if no predictions are available
+   * @returns the predictions object, or null if they cannot be computed
    */
-  public predictionsForLegIndex(index: number): LegPredictions {
-    if (this.predictions[index] === undefined) {
-      throw new Error(`No predictions for leg at index=${index}`);
-    }
-
+  public predictionsForLegIndex(index: number): LegPredictions | null {
     return this.predictions[index];
   }
 
@@ -285,18 +356,37 @@ export class FlightPlanPredictor {
    *
    * @param leg the leg
    *
-   * @returns the predictions object
-   *
-   * @throws if the leg is not in the flight plan used by the predictor or if no predictions are available
+   * @returns the predictions object, or null if they cannot be computed
    */
-  public predictionsForLeg(leg: LegDefinition): LegPredictions {
+  public predictionsForLeg(leg: LegDefinition): LegPredictions | null {
     const index = this.plan.getLegIndexFromLeg(leg);
 
     if (index === -1) {
-      throw new Error('Leg is not present in flight plan used by predictor');
+      return null;
     }
 
     return this.predictionsForLegIndex(index);
+  }
+
+  /**
+   * Applies active or upcoming predictions for a given distance, outputting the result in the {@link out} argument
+   *
+   * @param distance the distance
+   * @param out      the object in which to output the predictions
+   */
+  public applyPredictionsForDistance(distance: number, out: ActiveOrUpcomingLegPredictions): void {
+    this.predictForDistance(out, distance);
+  }
+
+  /**
+   * Whether the leg at an index is predicted
+   *
+   * @param legIndex the target leg index
+   *
+   * @returns boolean
+   */
+  public isLegIndexPredicted(legIndex: number): boolean {
+    return !!this.predictions[legIndex];
   }
 
   /**
@@ -310,6 +400,48 @@ export class FlightPlanPredictor {
     const index = this.plan.getLegIndexFromLeg(leg);
 
     return !!this.predictions[index];
+  }
+
+  /**
+   * Returns the previous index for which a prediction exists. **Note: this will force an update to happen.**
+   *
+   * @param legIndex the leg index to start at
+   *
+   * @returns the index, or -1 if none is found
+   */
+  public findPreviousPredictedLegIndex(legIndex: number): number {
+    this.update();
+
+    for (let i = legIndex - 1; i >= 0; i--) {
+      const isPredicted = this.isLegIndexPredicted(i);
+
+      if (isPredicted) {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
+  /**
+   * Returns the previous index for which a prediction exists. **Note: this will force an update to happen.**
+   *
+   * @param legIndex the leg index to start at
+   *
+   * @returns the index, or -1 if none is found
+   */
+  public findNextPredictedLegIndex(legIndex: number): number {
+    this.update();
+
+    for (let i = legIndex + 1; i < this.predictions.length; i++) {
+      const isPredicted = this.isLegIndexPredicted(i);
+
+      if (isPredicted) {
+        return i;
+      }
+    }
+
+    return -1;
   }
 
   /**
@@ -363,6 +495,12 @@ export class FlightPlanPredictor {
         continue;
       }
 
+      // Skip Direct To IF legs
+      if (leg.leg.type === LegType.IF && BitFlags.isAll(leg.flags, LegDefinitionFlags.DirectTo)) {
+        prevLeg = leg;
+        continue;
+      }
+
       // Stop at missed approach if configured to do so
       if (!this.config.predictMissedApproachLegs && BitFlags.isAll(leg.flags, LegDefinitionFlags.MissedApproach)) {
         break;
@@ -385,6 +523,7 @@ export class FlightPlanPredictor {
     targetObject.actualFob = targetObject.fob;
     targetObject.actualTimeEnroute = targetObject.estimatedTimeEnroute;
     targetObject.actualTimeOfArrival = targetObject.estimatedTimeOfArrival;
+    targetObject.actualAltitude = this.store.altitude.get();
   }
 
   /**
@@ -397,7 +536,7 @@ export class FlightPlanPredictor {
    */
   private updatePassedLeg(targetObject: PassedLegPredictions, leg: LegDefinition): void {
     if (!leg.calculated || !leg.calculated.endLat || !leg.calculated.endLon) {
-      throw new Error('cannot predict leg without calculated or term pos');
+      return;
     }
 
     const term = new GeoPoint(leg.calculated.endLat, leg.calculated.endLon);
@@ -423,7 +562,7 @@ export class FlightPlanPredictor {
     const leg = this.plan.tryGetLeg(this.activeLegIndex);
 
     if (!leg) {
-      throw new Error('Cannot predict active leg if no active leg present');
+      return;
     }
 
     targetObject.kind = 'activeOrUpcoming';
@@ -439,12 +578,10 @@ export class FlightPlanPredictor {
    * @param targetObject        the object to apply the predictions to
    * @param leg                 the leg
    * @param accumulatedDistance accumulated distance in previous predictions before this leg
-   *
-   * @throws if calculated is undefined
    */
   private updateUpcomingLeg(targetObject: ActiveOrUpcomingLegPredictions, leg: LegDefinition, accumulatedDistance: number): void {
     if (!leg.calculated) {
-      throw new Error('cannot predict leg without calculated');
+      return;
     }
 
     const ownDistance = UnitType.METER.convertTo(leg.calculated?.distanceWithTransitions, UnitType.NMILE);
@@ -470,7 +607,8 @@ export class FlightPlanPredictor {
     const unixSeconds = UnitType.MILLISECOND.convertTo(this.store.unixSimTime.get(), UnitType.SECOND);
     const utcSeconds = unixSeconds % (3600 * 24);
     const estimatedTimeOfArrival = utcSeconds + timeToDistance;
-    const fob = this.currentFuelWeight() - FlightPlanPredictorUtils.predictFuelUsage(this.currentGs(), distance, this.store.fuelFlow.get(), this.store.fuelWeight.get());
+    const fob = Math.max(0,
+      this.currentFuelWeight() - FlightPlanPredictorUtils.predictFuelUsage(this.currentGs(), distance, this.store.fuelFlow.get(), this.store.fuelWeight.get()));
 
     targetObject.estimatedTimeEnroute = estimatedTimeEnroute;
     targetObject.estimatedTimeOfArrival = estimatedTimeOfArrival;

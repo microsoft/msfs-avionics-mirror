@@ -1,0 +1,56 @@
+.eis-expanded-container {
+  transform: rotateX(0);
+  display: flex;
+  height: 460px;
+}
+
+.eis-expanded-primary-group {
+  display: flex;
+  padding-left: 1.5%;
+}
+
+.eis-expanded-secondary-group {
+  padding-top: 1%;
+  padding-left: 3%;
+}
+
+.eis-expanded-flight-control-group {
+  position: relative;
+  padding-left: 5px;
+  width: 100%;
+}
+
+.eis-expanded-ailrud-trim {
+  position: absolute;
+  top: 3%;
+  left: 16%;
+}
+
+.eis-expanded-elevator-trim {
+  position: absolute;
+  top: 23%;
+  left: 36%;
+}
+
+.eis-expanded-trim-label {
+  position: absolute;
+  right: 2%;
+}
+
+.eis-expanded-flap-position {
+  position: absolute;
+  top: 50%;
+  left: -15%;
+}
+
+.eis-expanded-ign-left {
+  position: absolute;
+  top: 2.5%;
+  left: 26.5%;
+}
+
+.eis-expanded-ign-right {
+  position: absolute;
+  top: 2.5%;
+  left: 45.5%;
+}

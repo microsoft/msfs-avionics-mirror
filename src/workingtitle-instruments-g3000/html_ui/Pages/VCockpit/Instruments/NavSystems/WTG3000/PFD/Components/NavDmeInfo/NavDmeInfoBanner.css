@@ -1,0 +1,34 @@
+.nav-dme-info-banner {
+  position: relative;
+  width: 203px;
+  height: 52px;
+
+  --nav-dme-info-banner-padding-left: 3px;
+  --nav-dme-info-banner-padding-right: 30px;
+  --nav-dme-info-banner-padding-top: 3px;
+  --nav-dme-info-banner-padding-bottom: 3px;
+  --nav-dme-info-banner-background-fill: var(--g3000-color-pfd-box-background);
+  --nav-dme-info-banner-background-stroke: #393f44;
+}
+
+.nav-dme-info-banner-background {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  fill: var(--nav-dme-info-banner-background-fill);
+  stroke: var(--nav-dme-info-banner-background-stroke);
+  stroke-width: 1px;
+}
+
+.nav-dme-info-banner .nav-dme-info {
+  position: absolute;
+  left: var(--nav-dme-info-banner-padding-left);
+  top: var(--nav-dme-info-banner-padding-top);
+  width: calc(100% - var(--nav-dme-info-banner-padding-left) - var(--nav-dme-info-banner-padding-right));
+  height: calc(100% - var(--nav-dme-info-banner-padding-top) - var(--nav-dme-info-banner-padding-bottom));
+
+  --nav-dme-info-source-width: 40px;
+  --nav-dme-info-freq-width: 70px;
+}

@@ -1,0 +1,54 @@
+.com-info-box {
+  position: absolute;
+  background: linear-gradient(to bottom, rgb(4, 4, 12), rgb(24, 28, 43));
+  color: var(--g3000-color-white);
+  border: var(--border);
+  border-top: none;
+  border-right: none;
+  border-radius: 0 0 0 8px;
+  padding: 2px 0;
+  top: 0;
+  right: 0;
+  width: 166px;
+
+  --border: solid 1px rgb(133, 133, 133);
+  --com-info-box-small-font-size: 15px;
+  --com-info-box-large-font-size: 19px;
+
+  font-size: var(--com-info-box-small-font-size);
+}
+
+.com-info-left-padding {
+  padding-left: 12px;
+}
+
+.com-info-topline {
+  vertical-align: baseline;
+}
+
+.com-info-box .com-active {
+  padding-right: 0.5em;
+}
+
+.com-info-box .com-freq {
+  color: var(--g3000-color-green);
+  font-size: var(--com-info-box-large-font-size);
+}
+
+.com-desc {
+  min-height: 18px;
+}
+
+.com-flight-id {
+  margin-top: 2px;
+  border-top: var(--border);
+  padding-top: 2px;
+}
+
+.flight-id-label {
+  margin-right: 10px;
+}
+
+.flight-id-value {
+  font-size: var(--com-info-box-large-font-size);
+}

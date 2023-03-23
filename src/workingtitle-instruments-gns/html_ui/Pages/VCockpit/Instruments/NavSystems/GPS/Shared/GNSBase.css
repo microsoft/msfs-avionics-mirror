@@ -1,0 +1,220 @@
+@font-face {
+  font-family: "GreatNiftySymbol-Regular";
+  src: url("/Fonts/GreatNiftySymbol-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  --gnsyellow: rgb(230, 215, 0);
+  --gnsblue: rgb(30, 45, 160);
+  --gnsgreen: rgb(0, 255, 0);
+  --gnscyan: rgb(85, 205, 205);
+  --gnscyan-dark: rgb(0, 200, 200);
+}
+
+html {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+html body {
+  font-family: GreatNiftySymbol-Regular;
+  font-size: 11px;
+  color: white;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: black;
+}
+
+pre {
+  font-family: GreatNiftySymbol-Regular;
+  white-space: pre-wrap;
+}
+
+#Electricity {
+  width: 100%;
+  height: 100%;
+}
+
+#Electricity[state="off"] {
+  visibility: hidden;
+}
+
+wt-gns430 {
+  --gns-font-page-title2: 15px;
+  --gns-font-page-data: 19px;
+  --gns-font-page-data-smaller: 18px;
+}
+
+wt-gns530 {
+  --gns-font-page-title2: 10px;
+  --gns-font-page-data: 16px;
+  --gns-font-page-data-smaller: 15px;
+}
+
+wt-gns430 #Mainframe {
+  --refWidth: 342;
+  --refHeight: 183;
+}
+
+wt-gns530 #Mainframe {
+  --refWidth: 316;
+  --refHeight: 231;
+}
+
+.hide-element {
+  display: none !important;
+}
+
+.hidden-element {
+  visibility: hidden;
+}
+
+.smaller {
+  font-size: .9em;
+}
+
+@keyframes selected-animation-green {
+  0% {
+    background-color: var(--gnsgreen);
+    color: black
+  }
+
+  74.9% {
+    background-color: var(--gnsgreen);
+    color: black
+  }
+
+  75% {
+    background-color: transparent;
+    color: var(--gnsgreen);
+  }
+
+  99.9% {
+    background-color: transparent;
+    color: var(--gnsgreen);
+  }
+}
+
+@keyframes selected-animation-yellow {
+  0% {
+    background-color: var(--gnsyellow);
+    color: black
+  }
+
+  74.9% {
+    background-color: var(--gnsyellow);
+    color: black
+  }
+
+  75% {
+    background-color: transparent;
+    color: var(--gnsyellow);
+  }
+
+  99.9% {
+    background-color: transparent;
+    color: var(--gnsyellow);
+  }
+}
+
+@keyframes selected-animation-cyan {
+  0% {
+    background-color: cyan;
+    color: black;
+  }
+
+  74.9% {
+    background-color: cyan;
+    color: black;
+  }
+
+  75% {
+    background-color: transparent;
+    color: var(--gnscyan);
+  }
+
+  99.9% {
+    background-color: transparent;
+    color: var(--gnscyan);
+    ;
+  }
+}
+
+@keyframes selected-animation-white {
+  0% {
+    background-color: white;
+    color: var(--gnsblue);
+  }
+
+  74.9% {
+    background-color: white;
+    color: var(--gnsblue);
+  }
+
+  75% {
+    background-color: transparent;
+    color: white
+  }
+
+  99.9% {
+    background-color: transparent;
+    color: white
+  }
+}
+
+.selected {
+  animation: selected-animation-green 1s linear 0s infinite;
+  max-height: 100%;
+}
+
+.selected-cyan {
+  animation: selected-animation-cyan 1s linear 0s infinite;
+  max-height: 100%;
+}
+
+.selected-white {
+  animation: selected-animation-white 1s linear 0s infinite;
+  max-height: 100%;
+}
+
+.selected-yellow {
+  animation: selected-animation-yellow 1s linear 0s infinite;
+  max-height: 100%;
+}
+
+.paused .selected,
+.paused .selected-cyan,
+.paused .selected-white,
+.paused.selected,
+.paused.selected-cyan,
+.paused.selected-white {
+  animation-play-state: paused;
+}
+
+.darkened,
+.darkened-green {
+  color: rgb(0, 96, 0);
+}
+
+.white {
+  color: white;
+}
+
+.cyan {
+  color: var(--gnscyan);
+}
+
+h2 {
+  font-size: var(--gns-font-page-title2);
+}
+
+/** HINT: Don't show the white highlight since the instruments is in general not interactive */
+#vignettage {
+  display: none;
+  visibility: hidden;
+}

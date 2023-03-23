@@ -1,0 +1,132 @@
+.aux-table-labels-nearest-vor {
+  display: flex;
+  align-items: center;
+  color: var(--gnscyan);
+  font-size: var(--gns-font-page-title2);
+}
+
+wt-gns530 .aux-table-labels-nearest-vor>div:nth-child(1) {
+  margin-left: 1em;
+}
+
+wt-gns430 .aux-table-labels-nearest-vor>div:nth-child(1) {
+  margin-left: 1em;
+}
+
+wt-gns530 .aux-table-labels-nearest-vor>div:nth-child(2) {
+  margin-left: 5.8em;
+}
+
+wt-gns430 .aux-table-labels-nearest-vor>div:nth-child(2) {
+  margin-left: 3em;
+}
+
+wt-gns530 .aux-table-labels-nearest-vor>div:nth-child(3) {
+  margin-left: 4em;
+}
+
+wt-gns430 .aux-table-labels-nearest-vor>div:nth-child(3) {
+  margin-left: 2em;
+}
+
+wt-gns530 .aux-table-labels-nearest-vor>div:nth-child(4) {
+  margin-left: 3.8em;
+}
+
+wt-gns430 .aux-table-labels-nearest-vor>div:nth-child(4) {
+  margin-left: 2.75em;
+}
+
+wt-gns530 .nearest-vor-table>.ui-control-list {
+  height: 177px;
+}
+
+wt-gns430 .nearest-vor-table>.ui-control-list {
+  height: 129px;
+}
+
+.nearest-vor-item {
+  display: grid;
+  grid-template-columns: 3fr 2fr 2fr 2fr;
+
+  height: 22px;
+  font-size: var(--gns-font-page-data);
+  padding: 4px 2px 2px;
+  margin-left: 2px;
+  /* TODO check other aux-items */
+}
+
+wt-gns530 .nearest-vor-item {
+  line-height: 14px;
+  padding-top: 3px;
+}
+
+wt-gns430 .nearest-vor-item {
+  padding-bottom: 22px;
+}
+
+.nearest-vor-item-icao {
+  height: 17px;
+  width: 38px;
+  padding-top: 1px;
+}
+
+wt-gns430 .nearest-vor-item-icao {
+  height: 18px;
+}
+
+wt-gns530 .nearest-vor-item-icao {
+  width: 48px;
+  height: 16px;
+  padding-top: 2px;
+  padding-left: 1px;
+  padding-right: 1px;
+}
+
+.nearest-vor-item-icon {
+  margin-top: 2px;
+}
+
+.nearest-vor-item-icon-img {
+  position: relative;
+  left: .2em;
+  width: 10px;
+}
+
+.nearest-vor-item-brg {
+  display: flex;
+  justify-content: flex-end;
+  width: 42px;
+}
+
+wt-gns530 .nearest-vor-item-brg {
+  padding-top: 2px;
+}
+
+.nearest-vor-item-dis {
+  display: flex;
+  justify-content: flex-end;
+  width: 55px;
+}
+
+wt-gns530 .nearest-vor-item-dis {
+  padding-top: 2px;
+  padding-right: 1px;
+}
+
+.nearest-vor-item-freq {
+  padding-left: 5px;
+  margin-top: -2px;
+}
+
+wt-gns530 .nearest-vor-item-freq {
+  padding-top: 2px;
+}
+
+.nearest-vor-item-freq-num {
+  padding-top: 2px;
+}
+
+wt-gns430 .nearest-vor-item-freq-num {
+  height: 20px;
+}

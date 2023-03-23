@@ -1,7 +1,7 @@
 import {
-  ComponentProps, DisplayComponent, DurationDisplay, DurationDisplayOptions, FamilyOfUnit, FSComponent, NavAngleUnit, NumberUnitInterface, Subscribable, Unit,
+  ComponentProps, DisplayComponent, DurationDisplay, DurationDisplayOptions, FamilyOfUnit, FSComponent, NavAngleUnitFamily, NumberUnitInterface, Subscribable, Unit,
   UnitFamily, UnitOfNumber, VNode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { BearingDisplay } from '../common/BearingDisplay';
 import { NumberUnitDisplay } from '../common/NumberUnitDisplay';
@@ -200,9 +200,9 @@ export class NavDataTimeField extends NavDataField<number, NavDataTimeFieldProps
 /**
  * Component props for NavDataBearingField.
  */
-export interface NavDataBearingFieldProps<T extends NumberUnitInterface<typeof NavAngleUnit.FAMILY>> extends NavDataFieldProps<T> {
+export interface NavDataBearingFieldProps<T extends NumberUnitInterface<NavAngleUnitFamily>> extends NavDataFieldProps<T> {
   /** A subscribable which provides the display unit type. */
-  displayUnit: Subscribable<Unit<typeof NavAngleUnit.FAMILY> | null>;
+  displayUnit: Subscribable<Unit<NavAngleUnitFamily> | null>;
 
   /** A function which formats numbers. */
   formatter: (number: number) => string;
@@ -218,7 +218,7 @@ export interface NavDataBearingFieldProps<T extends NumberUnitInterface<typeof N
  *
  * The root element contains a child title element with the CSS class `nav-data-field-title`.
  */
-export class NavDataBearingField<T extends NumberUnitInterface<typeof NavAngleUnit.FAMILY>> extends NavDataField<T, NavDataBearingFieldProps<T>> {
+export class NavDataBearingField<T extends NumberUnitInterface<NavAngleUnitFamily>> extends NavDataField<T, NavDataBearingFieldProps<T>> {
   private readonly bearingRef = FSComponent.createRef<BearingDisplay>();
 
   /** @inheritdoc */

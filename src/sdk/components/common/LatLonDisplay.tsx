@@ -74,7 +74,7 @@ export class LatLonDisplay extends DisplayComponent<LatLonDisplayProps> {
     }
 
     prefixSub.set(prefix);
-    numSub.set(`${deg.toString().padStart(padDeg, '0')}°${minutes.toFixed(2)}'`);
+    numSub.set(`${deg.toString().padStart(padDeg, '0')}°${minutes.toFixed(2).padStart(5, '0')}'`);
   }
 
   /**

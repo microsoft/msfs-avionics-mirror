@@ -1,0 +1,31 @@
+.gtc-horizontal .activate-leg-dialog-msg {
+  --activate-leg-dialog-msg-font-size: 46px;
+  --activate-leg-dialog-msg-title-font-size: 50px;
+  --activate-leg-dialog-msg-arrow-scale: 1;
+}
+
+.gtc-vertical .activate-leg-dialog-msg {
+  --activate-leg-dialog-msg-font-size: 25px;
+  --activate-leg-dialog-msg-title-font-size: 28px;
+  --activate-leg-dialog-msg-arrow-scale: 0.7;
+}
+
+.activate-leg-dialog-msg {
+  line-height: 2.5em;
+}
+
+.activate-leg-dialog-msg .title {
+  font-size: var(--activate-leg-dialog-msg-title-font-size);
+}
+
+.activate-leg-dialog-msg .main-text {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-size: var(--activate-leg-dialog-msg-font-size);
+}
+
+.activate-leg-dialog-msg img {
+  margin: 0 0.65em;
+  transform: scale(var(--activate-leg-dialog-msg-arrow-scale));
+}

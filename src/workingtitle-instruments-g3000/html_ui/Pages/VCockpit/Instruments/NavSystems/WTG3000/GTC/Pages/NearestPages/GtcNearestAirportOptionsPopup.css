@@ -1,0 +1,15 @@
+.gtc-horizontal .nearest-wpt-options-popup.nearest-airport-options-popup {
+  padding-bottom: 10px;
+
+  --nearest-wpt-options-popup-button-margin-bottom: 3px;
+}
+
+.gtc-vertical .nearest-wpt-options-popup.nearest-airport-options-popup {
+  padding-bottom: 0px;
+
+  --nearest-wpt-options-popup-button-margin-bottom: 2px;
+}
+
+.nearest-airport-options-popup .nearest-wpt-options-popup-showmap {
+  order: 1;
+}

@@ -1,0 +1,112 @@
+wt-gns530 .message-dialog-title {
+  margin-bottom: 4px;
+  color: white;
+  margin-left: 80px;
+}
+
+wt-gns430 .message-dialog-title {
+  margin-bottom: 4px;
+  color: white;
+
+}
+
+wt-gns430 .h2>.message-dialog-title {
+  font-size: 13px;
+}
+
+wt-gns430 .h2>.message-dialog-title {
+  font-size: 13px;
+}
+
+
+wt-gns430 .dialog-box-inner>.h2 {
+  font-size: 13px;
+}
+
+wt-gns430 h2>.white>.dialog-box-inner>.h2 {
+  font-size: 13px;
+}
+
+wt-gns430 .message-dialog-title {
+  font-size: 13px;
+}
+
+
+wt-gns430 .message-dialog {
+  width: 277px;
+  text-align: center;
+  background-color: var(--gnsblue);
+  color: white;
+  font-size: 21px;
+  padding: 3px;
+  border-style: outset !important;
+  border-top: -0px solid rgba(204, 187, 35, 0) !important;
+  border-right: -0px solid rgba(204, 187, 35, 0) !important;
+  border-bottom: -0px solid rgba(204, 187, 35, 0) !important;
+  border-left: -0px solid rgba(204, 187, 35, 0) !important;
+  margin-top: -15px;
+  margin-left: -25px;
+  margin-bottom: -15px;
+  height: 173px;
+}
+
+wt-gns530 .message-dialog {
+  text-align: left;
+}
+
+.message-dialog-middle {
+  text-align: left;
+}
+
+wt-gns530 .message-dialog-table {
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid cyan;
+  margin-left: 2px;
+  margin-right: 2px;
+  height: 130px;
+  width: 200px;
+}
+
+wt-gns430 .message-dialog-table {
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid cyan;
+  margin-left: 2px;
+  margin-right: 2px;
+  height: 140px;
+  width: 260px;
+}
+
+
+.message-dialog-bottom-text {
+  display: inline-block;
+  color: cyan;
+  text-align: center;
+  padding-left: 20px;
+  padding-top: 4px;
+}
+
+.message-dialog-boxed-msg {
+  display: inline-block;
+  margin-left: 2px;
+  margin-right: 2px;
+  border: .8px solid cyan;
+}
+
+.message-dialog-item {
+  color: var(--gnsgreen);
+  font-size: 15px;
+  margin-right: 2px;
+  margin-left: 2px;
+  margin-top: 3px;
+}
+
+wt-gns430 .white-box {
+  width: 6px;
+  top: 177px;
+  right: 99px;
+  height: 12px;
+  background: white;
+  position: absolute;
+}

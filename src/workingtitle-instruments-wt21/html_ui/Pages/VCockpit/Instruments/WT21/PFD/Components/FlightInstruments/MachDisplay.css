@@ -1,0 +1,11 @@
+.mach-display-container {
+  font-size: 26px;
+}
+
+.mach-gray {
+  color: var(--wt21-colors-gray);
+}
+
+.mach-value {
+  color: var(--wt21-colors-green);
+}

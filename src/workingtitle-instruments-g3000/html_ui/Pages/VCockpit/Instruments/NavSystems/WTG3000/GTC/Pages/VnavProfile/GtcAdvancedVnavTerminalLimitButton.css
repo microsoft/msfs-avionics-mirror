@@ -1,0 +1,68 @@
+.gtc-horizontal .advanced-vnav-terminal-limit-button {
+  padding: 10px 0px 5px 0px;
+
+  --advanced-vnav-speed-button-label-margin-bottom: 10px;
+  --advanced-vnav-terminal-limit-button-ceiling-below-margin-left: 40px;
+  --advanced-vnav-terminal-limit-button-ceiling-agl-margin-right: 115px;
+  --advanced-vnav-terminal-limit-button-radius-within-margin-left: 30px;
+  --advanced-vnav-terminal-limit-button-radius-ident-margin-left: 40px;
+}
+
+.gtc-vertical .advanced-vnav-terminal-limit-button {
+  padding: 5px 0px 2px 0px;
+
+  --advanced-vnav-speed-button-label-margin-bottom: 5px;
+  --advanced-vnav-terminal-limit-button-ceiling-below-margin-left: 20px;
+  --advanced-vnav-terminal-limit-button-ceiling-agl-margin-right: 57px;
+  --advanced-vnav-terminal-limit-button-radius-within-margin-left: 15px;
+  --advanced-vnav-terminal-limit-button-radius-ident-margin-left: 20px;
+}
+
+.advanced-vnav-terminal-limit-button-ceiling-row {
+  align-self: stretch;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.advanced-vnav-terminal-limit-button-ceiling-below {
+  flex-grow: 1;
+  position: relative;
+  left: var(--advanced-vnav-terminal-limit-button-ceiling-below-margin-left);
+}
+
+.advanced-vnav-terminal-limit-button-ceiling-value {
+  width: 50%;
+  text-align: center;
+}
+
+.advanced-vnav-terminal-limit-button-ceiling-agl {
+  flex-grow: 1;
+  position: relative;
+  right: var(--advanced-vnav-terminal-limit-button-ceiling-agl-margin-right);
+  text-align: right;
+}
+
+.advanced-vnav-terminal-limit-button-radius-row {
+  align-self: stretch;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.advanced-vnav-terminal-limit-button-radius-left {
+  width: 50%;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.advanced-vnav-terminal-limit-button-radius-within {
+  position: relative;
+  margin-left: var(--advanced-vnav-terminal-limit-button-radius-within-margin-left);
+}
+
+.advanced-vnav-terminal-limit-button-radius-ident {
+  margin-left: var(--advanced-vnav-terminal-limit-button-radius-ident-margin-left);
+}

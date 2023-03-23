@@ -1,13 +1,13 @@
 import {
   AdcEvents, AdditionalApproachType, AhrsEvents, ApproachGuidanceMode, BearingDirection, BearingSource, BearingValidity, CdiDeviation, DmeState, EventBus,
-  FlightPlanLegEvent, FlightPlannerEvents, FrequencyBank, Glideslope, GNSSEvents, LegType, LNavEvents, Localizer, LocalizerFrequency, NavEvents, NavMath, NavSourceId,
-  NavSourceType, NodeReference, ObsSetting, RadioEvents, RadioType, Subject, UnitType, VNavDataEvents, VNavEvents, VNavPathMode, VNavState, VorToFrom,
-  VorToFromSetting
-} from 'msfssdk';
+  FlightPlanLegEvent, FlightPlannerEvents, FrequencyBank, Glideslope, GNSSEvents, LegType, LNavEvents, Localizer, LocalizerFrequency, NavEvents, NavMath,
+  NavSourceId, NavSourceType, NodeReference, ObsSetting, RadioEvents, RadioType, RnavTypeFlags, Subject, UnitType, VNavDataEvents, VNavEvents, VNavPathMode,
+  VNavState, VorToFrom, VorToFromSetting
+} from '@microsoft/msfs-sdk';
 
-import { Fms } from '../flightplan';
-import { GarminControlEvents } from '../instruments';
+import { ApproachDetails, Fms, FmsEvents, FmsFlightPhase } from '../flightplan';
 import { CDIScaleLabel, LNavDataEvents } from './LNavDataEvents';
+import { ObsSuspModes } from './Obs';
 
 export enum NavSensitivity {
   DPRT = 'DPRT',
@@ -24,12 +24,6 @@ export enum NavSensitivity {
   MAPR = 'MAPR',
   VOR = 'VOR',
   ILS = 'ILS'
-}
-
-export enum ObsSuspModes {
-  NONE,
-  SUSP,
-  OBS
 }
 
 export enum VNavDisplayMode {
@@ -137,6 +131,23 @@ export class NavIndicatorController {
   public readonly isLnavCalculating = Subject.create<boolean>(false);
   private readonly shouldDisplayPathMode = Subject.create(false);
 
+  private approachDetails: Readonly<ApproachDetails> = {
+    isLoaded: false,
+    type: ApproachType.APPROACH_TYPE_UNKNOWN,
+    isRnpAr: false,
+    bestRnavType: RnavTypeFlags.None,
+    rnavTypeFlags: RnavTypeFlags.None,
+    isCircling: false,
+    isVtf: false,
+    referenceFacility: null
+  };
+
+  private flightPhase: Readonly<FmsFlightPhase> = {
+    isApproachActive: false,
+    isPastFaf: false,
+    isInMissedApproach: false
+  };
+
   /**
    * Initialize an instance of the NavIndicatorController.
    * @param bus is the event bus
@@ -163,8 +174,14 @@ export class NavIndicatorController {
    * Method to monitor nav processor events to keep track of HSI-related data.
    */
   public monitorEvents(): void {
-    const control = this.bus.getSubscriber<GarminControlEvents>();
-    control.on('approach_details_set').handle(() => {
+    const fms = this.bus.getSubscriber<FmsEvents>();
+    fms.on('fms_approach_details').handle(details => {
+      this.approachDetails = details;
+      this.updateSensitivity();
+      this.onUpdateLpv(this.currentLpvDeviation, this.currentLpvDistance);
+    });
+    fms.on('fms_flight_phase').handle(phase => {
+      this.flightPhase = phase;
       this.updateSensitivity();
       this.onUpdateLpv(this.currentLpvDeviation, this.currentLpvDistance);
     });
@@ -343,7 +360,7 @@ export class NavIndicatorController {
       vnavMode = VNavDisplayMode.NONE;
       gpMode = GPDisplayMode.ACTIVE;
     } else if (activeSource.source.type === NavSourceType.Gps) {
-      const vtfActive = this.fms.approachDetails.approachIsActive && this.fms.isApproachVtf();
+      const vtfActive = this.flightPhase.isApproachActive && this.fms.isApproachVtf();
       if (this.vnavPathInRange && this.vnavState !== VNavState.Disabled && !vtfActive) {
         vnavMode = VNavDisplayMode.PATH;
       }
@@ -406,13 +423,13 @@ export class NavIndicatorController {
     switch (hsiMap) {
       case true:
         this.hsiMapActive = true;
-        this.hsiRefs.hsiRose.instance.setVisible(false);
-        this.hsiRefs.hsiMap.instance.setVisible(true);
+        this.hsiRefs.hsiRose?.instance.setVisible(false);
+        this.hsiRefs.hsiMap?.instance.setVisible(true);
         break;
       case false:
         this.hsiMapActive = false;
-        this.hsiRefs.hsiMap.instance.setVisible(false);
-        this.hsiRefs.hsiRose.instance.setVisible(true);
+        this.hsiRefs.hsiMap?.instance.setVisible(false);
+        this.hsiRefs.hsiRose?.instance.setVisible(true);
     }
     this.updateComponentsDisplay();
   }
@@ -749,9 +766,9 @@ export class NavIndicatorController {
 
     if (distance !== this.currentLpvDistance) {
       this.currentLpvDistance = distance;
-      const approachType = this.fms.approachDetails.approachType;
+      const approachType = this.approachDetails.type;
 
-      if (this.fms.approachDetails.approachIsActive && !this.fms.approachDetails.approachIsCircling && Math.abs(distance) < 30000 &&
+      if (this.flightPhase.isApproachActive && !this.approachDetails.isCircling && Math.abs(distance) < 182283 /* 30 nautical miles */ &&
         (approachType === ApproachType.APPROACH_TYPE_GPS || approachType === ApproachType.APPROACH_TYPE_RNAV || approachType === AdditionalApproachType.APPROACH_TYPE_VISUAL)) {
         if (!hasGlideslope) {
           this.navStates[2].hasGlideslope = true;
@@ -823,10 +840,10 @@ export class NavIndicatorController {
         this.onUpdateDtkBox();
       }
       if (this.hsiMapActive) {
-        this.courseNeedleRefs.hsiMap.instance.updateData();
-        this.hsiMapDeviationRef.instance.updateData();
+        this.courseNeedleRefs.hsiMap?.instance.updateData();
+        this.hsiMapDeviationRef?.instance.updateData();
       } else {
-        this.courseNeedleRefs.hsiRose.instance.updateData();
+        this.courseNeedleRefs.hsiRose?.instance.updateData();
       }
       if (this.firstRun) {
         this.firstRun = false;
@@ -842,11 +859,11 @@ export class NavIndicatorController {
     const update = updatedSource === undefined ? true : this.checkIfActive(updatedSource);
     if (update || this.firstRun) {
       if (this.hsiMapActive) {
-        this.courseNeedleRefs.hsiMap.instance.updateSourceSensitivity();
-        this.hsiMapDeviationRef.instance.updateSourceSensitivity();
+        this.courseNeedleRefs.hsiMap?.instance.updateSourceSensitivity();
+        this.hsiMapDeviationRef?.instance.updateSourceSensitivity();
       } else {
-        this.courseNeedleRefs.hsiRose.instance.updateSourceSensitivity();
-        this.hsiRefs.hsiRose.instance.updateSourceSensitivity();
+        this.courseNeedleRefs.hsiRose?.instance.updateSourceSensitivity();
+        this.hsiRefs.hsiRose?.instance.updateSourceSensitivity();
       }
       this.updateComponentsData(updatedSource);
     }

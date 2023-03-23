@@ -7,9 +7,15 @@ import {
 } from '../map';
 
 /**
+ * A handler that takes some vector data and returns the appropriate flight path rendering style.
+ */
+export type VectorStyleHandler = (vector: CircleVector, isIngress: boolean, isEgress: boolean) => FlightPathRenderStyle;
+
+/**
  * A handler that takes some leg data and returns the appropriate flight path rendering style.
  */
-export type LegStyleHandler = (plan: FlightPlan, leg: LegDefinition, activeLeg: LegDefinition | undefined, legIndex: number, activeLegIndex: number) => FlightPathRenderStyle;
+export type LegStyleHandler = (plan: FlightPlan, leg: LegDefinition, activeLeg: LegDefinition | undefined, legIndex: number,
+  activeLegIndex: number,) => FlightPathRenderStyle | FlightPathVectorStyle;
 
 /**
  * A handler that takes some leg data and returns the waypoint rendering role that the
@@ -54,8 +60,8 @@ export class MapSystemPlanRenderer extends AbstractFlightPathPlanRenderer {
   public renderEgress: Subscribable<boolean> = Subject.create(false);
 
   /** @inheritdoc */
-  protected renderLeg(leg: LegDefinition, plan: FlightPlan, activeLeg: LegDefinition | undefined,
-    legIndex: number, activeLegIndex: number, context: CanvasRenderingContext2D, streamStack: GeoProjectionPathStreamStack): void {
+  protected renderLeg(leg: LegDefinition, plan: FlightPlan, activeLeg: LegDefinition | undefined, legIndex: number, activeLegIndex: number,
+    context: CanvasRenderingContext2D, streamStack: GeoProjectionPathStreamStack): void {
 
     this.legRenderer.currentRenderStyle = FlightPathRenderStyle.Default;
     const handler = this.legStyleHandlers.get(plan.planIndex);
@@ -63,9 +69,13 @@ export class MapSystemPlanRenderer extends AbstractFlightPathPlanRenderer {
       this.legRenderer.currentRenderStyle = handler(plan, leg, activeLeg, legIndex, activeLegIndex);
     }
 
-    const partsToRender = FlightPathLegRenderPart.Base
+    let partsToRender = FlightPathLegRenderPart.Base
       | (this.renderIngress.get() ? FlightPathLegRenderPart.Ingress : 0)
       | (this.renderEgress.get() ? FlightPathLegRenderPart.Egress : 0);
+
+    if (this.legRenderer.currentRenderStyle.partsToRender !== undefined) {
+      partsToRender = this.legRenderer.currentRenderStyle.partsToRender;
+    }
 
     this.legRenderer.render(leg, context, streamStack, partsToRender);
   }
@@ -76,13 +86,25 @@ export class MapSystemPlanRenderer extends AbstractFlightPathPlanRenderer {
  */
 export class MapSystemLegRenderer extends AbstractFlightPathLegRenderer {
   protected readonly vectorRenderer = new FlightPathVectorLineRenderer();
-  public currentRenderStyle = new FlightPathRenderStyle();
+  public currentRenderStyle: FlightPathRenderStyle | FlightPathVectorStyle = new FlightPathRenderStyle();
 
   /** @inheritdoc */
-  protected renderVector(vector: CircleVector, isIngress: boolean, isEgress: boolean,
-    leg: LegDefinition, context: CanvasRenderingContext2D, streamStack: GeoProjectionPathStreamStack): void {
-    if (this.currentRenderStyle.isDisplayed) {
-      this.vectorRenderer.render(vector, context, streamStack, this.currentRenderStyle.width, this.currentRenderStyle.style, this.currentRenderStyle.dash);
+  protected renderVector(vector: CircleVector, isIngress: boolean, isEgress: boolean, leg: LegDefinition, context: CanvasRenderingContext2D,
+    streamStack: GeoProjectionPathStreamStack): void {
+
+    if ('styleBuilder' in this.currentRenderStyle) {
+      const currentRenderStyle = this.currentRenderStyle.styleBuilder(vector, isIngress, isEgress);
+      this.vectorRenderer.render(
+        vector, context, streamStack,
+        currentRenderStyle.width, currentRenderStyle.style, currentRenderStyle.dash,
+        currentRenderStyle.outlineWidth, currentRenderStyle.outlineStyle);
+    } else {
+      if (this.currentRenderStyle.isDisplayed) {
+        this.vectorRenderer.render(
+          vector, context, streamStack,
+          this.currentRenderStyle.width, this.currentRenderStyle.style, this.currentRenderStyle.dash,
+          this.currentRenderStyle.outlineWidth, this.currentRenderStyle.outlineStyle);
+      }
     }
   }
 }
@@ -107,9 +129,29 @@ export class FlightPathRenderStyle {
   /** A dash-array configuration for the line, if any. */
   public dash?: number[];
 
+  /** The width of the outline, in pixels. Defaults to 0 pixels. */
+  public outlineWidth?: number;
+
+  /** The style of the outline. Defaults to `'black'`. */
+  public outlineStyle?: string;
+
+  /** An optional override of which parts to render for the leg. */
+  public partsToRender?: FlightPathLegRenderPart;
+
   /** The default rendering style. */
   public static readonly Default = new FlightPathRenderStyle();
 
   /** A style that does not display the path. */
   public static readonly Hidden = new FlightPathRenderStyle(false);
+}
+
+/**
+ * A configuration for generating flight path rendering styles for individual vectors.
+ */
+export interface FlightPathVectorStyle {
+  /** An optional override of which parts to render for the leg. */
+  partsToRender?: FlightPathLegRenderPart;
+
+  /** A builder function that provides the style for an individual vector. */
+  styleBuilder: VectorStyleHandler;
 }

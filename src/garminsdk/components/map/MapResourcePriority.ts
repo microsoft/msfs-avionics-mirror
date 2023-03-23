@@ -5,6 +5,9 @@ export class MapResourcePriority {
   /** Default follow player airplane behavior. */
   public static readonly FOLLOW_AIRPLANE = 0;
 
+  /** Orientation mode. */
+  public static readonly ORIENTATION = 0;
+
   /** Rotation behavior from orientation mode. */
   public static readonly ORIENTATION_ROTATION = 0;
 

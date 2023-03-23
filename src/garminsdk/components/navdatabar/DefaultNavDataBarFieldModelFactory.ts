@@ -1,13 +1,14 @@
-import { EventBus } from 'msfssdk';
+import { EventBus, Subscribable } from '@microsoft/msfs-sdk';
 
 import { Fms } from '../../flightplan/Fms';
+import { NavDataFieldGpsValidity } from '../navdatafield/NavDataFieldModel';
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
 import {
   GenericNavDataBarFieldModelFactory, NavDataBarFieldBrgModelFactory, NavDataBarFieldDestModelFactory, NavDataBarFieldDisModelFactory,
-  NavDataBarFieldDtgModelFactory, NavDataBarFieldDtkModelFactory, NavDataBarFieldEndModelFactory, NavDataBarFieldEtaModelFactory,
+  NavDataBarFieldDtgModelFactory, NavDataBarFieldDtkModelFactory, NavDataBarFieldEndModelFactory, NavDataBarFieldEnrModelFactory, NavDataBarFieldEtaModelFactory,
   NavDataBarFieldEteModelFactory, NavDataBarFieldFobModelFactory, NavDataBarFieldFodModelFactory, NavDataBarFieldGsModelFactory, NavDataBarFieldIsaModelFactory,
   NavDataBarFieldLdgModelFactory, NavDataBarFieldTasModelFactory, NavDataBarFieldTkeModelFactory, NavDataBarFieldTrkModelFactory,
-  NavDataBarFieldVsrModelFactory, NavDataBarFieldXtkModelFactory
+  NavDataBarFieldVsrModelFactory, NavDataBarFieldWptModelFactory, NavDataBarFieldXtkModelFactory
 } from './GenericNavDataBarFieldModelFactory';
 import { NavDataBarFieldModelFactory, NavDataBarFieldTypeModelMap } from './NavDataBarFieldModel';
 
@@ -21,16 +22,19 @@ export class DefaultNavDataBarFieldModelFactory implements NavDataBarFieldModelF
    * Constructor.
    * @param bus The event bus.
    * @param fms The flight management system.
+   * @param gpsValidity The subscribable that provides the validity of the GPS data for the models.
    */
-  constructor(bus: EventBus, fms: Fms) {
-    this.factory = new GenericNavDataBarFieldModelFactory();
+  constructor(bus: EventBus, fms: Fms, gpsValidity: Subscribable<NavDataFieldGpsValidity>) {
+    this.factory = new GenericNavDataBarFieldModelFactory(gpsValidity);
 
     this.factory.register(NavDataFieldType.BearingToWaypoint, new NavDataBarFieldBrgModelFactory(bus));
+    this.factory.register(NavDataFieldType.Waypoint, new NavDataBarFieldWptModelFactory(bus));
     this.factory.register(NavDataFieldType.Destination, new NavDataBarFieldDestModelFactory(bus, fms));
     this.factory.register(NavDataFieldType.DistanceToWaypoint, new NavDataBarFieldDisModelFactory(bus));
     this.factory.register(NavDataFieldType.DistanceToDestination, new NavDataBarFieldDtgModelFactory(bus));
     this.factory.register(NavDataFieldType.DesiredTrack, new NavDataBarFieldDtkModelFactory(bus));
     this.factory.register(NavDataFieldType.Endurance, new NavDataBarFieldEndModelFactory(bus));
+    this.factory.register(NavDataFieldType.TimeToDestination, new NavDataBarFieldEnrModelFactory(bus));
     this.factory.register(NavDataFieldType.TimeOfWaypointArrival, new NavDataBarFieldEtaModelFactory(bus));
     this.factory.register(NavDataFieldType.TimeToWaypoint, new NavDataBarFieldEteModelFactory(bus));
     this.factory.register(NavDataFieldType.FuelOnBoard, new NavDataBarFieldFobModelFactory(bus));

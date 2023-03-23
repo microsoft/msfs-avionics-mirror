@@ -1,8 +1,8 @@
-import { EventBus, KeyEventData, KeyEvents, KeyInterceptManager, SimVarValueType } from '../../data';
+import { EventBus, KeyEventData, KeyEvents, KeyEventManager, SimVarValueType } from '../../data';
 import { APEvents, APLockType } from '../../instruments';
 import { MSFSAPStates } from '../../navigation';
-import { SubEvent, Subject } from '../../sub';
-import { APLateralModes, APVerticalModes } from '../APConfig';
+import { SubEventInterface, SubEvent, Subject } from '../../sub';
+import { APConfig, APLateralModes, APVerticalModes } from '../APConfig';
 
 /** AP Mode Types */
 export enum APModeType {
@@ -24,7 +24,7 @@ export interface APModePressEvent {
  */
 export abstract class APStateManager {
 
-  private keyInterceptManager?: KeyInterceptManager;
+  private keyEventManager?: KeyEventManager;
 
   private readonly apListener: ViewListener.ViewListener;
 
@@ -32,10 +32,10 @@ export abstract class APStateManager {
   private managedModeSet = false;
   public stateManagerInitialized = Subject.create(false);
 
-  public lateralPressed = new SubEvent<this, APModePressEvent>();
-  public verticalPressed = new SubEvent<this, APModePressEvent>();
-  public approachPressed = new SubEvent<this, boolean | undefined>();
-  public vnavPressed = new SubEvent<this, boolean>();
+  public lateralPressed: SubEventInterface<this, APModePressEvent> = new SubEvent<this, APModePressEvent>();
+  public verticalPressed: SubEventInterface<this, APModePressEvent> = new SubEvent<this, APModePressEvent>();
+  public approachPressed: SubEventInterface<this, boolean | undefined> = new SubEvent<this, boolean | undefined>();
+  public vnavPressed: SubEventInterface<this, boolean> = new SubEvent<this, boolean>();
 
   public apMasterOn = Subject.create(false);
   public isFlightDirectorOn = Subject.create(false);
@@ -44,11 +44,12 @@ export abstract class APStateManager {
   /**
    * Creates an instance of the APStateManager.
    * @param bus An instance of the event bus.
+   * @param apConfig This autopilot's configuration.
    */
-  constructor(protected readonly bus: EventBus) {
+  constructor(protected readonly bus: EventBus, protected readonly apConfig: APConfig) {
 
-    KeyInterceptManager.getManager(bus).then(manager => {
-      this.keyInterceptManager = manager;
+    KeyEventManager.getManager(bus).then(manager => {
+      this.keyEventManager = manager;
       this.setupKeyIntercepts(manager);
       this.bus.getSubscriber<KeyEvents>().on('key_intercept').handle(this.handleKeyIntercepted.bind(this));
     });
@@ -100,7 +101,7 @@ export abstract class APStateManager {
    * Sets up key intercepts for the simulation autopilot key events.
    * @param manager The key intercept manager.
    */
-  protected abstract setupKeyIntercepts(manager: KeyInterceptManager): void;
+  protected abstract setupKeyIntercepts(manager: KeyEventManager): void;
 
   /**
    * Handles an intercepted key event.
@@ -115,9 +116,9 @@ export abstract class APStateManager {
    */
   public initialize(force = false): void {
     this.onBeforeInitialize();
-    if (force || (this.keyInterceptManager && this.apListenerRegistered)) {
+    if (force || (this.keyEventManager && this.apListenerRegistered)) {
       this.setManagedMode(true).then(() => {
-        SimVar.SetSimVarValue('AUTOPILOT ALTITUDE LOCK VAR', SimVarValueType.Feet, 0);
+        SimVar.SetSimVarValue('AUTOPILOT ALTITUDE LOCK VAR', SimVarValueType.Feet, this.apConfig.altitudeHoldDefaultAltitude ?? 0);
         this.setFlightDirector(false);
         this.stateManagerInitialized.set(true);
       });

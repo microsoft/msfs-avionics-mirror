@@ -17,6 +17,7 @@ export type CombinedSubscribableInputs<Types extends readonly any[]> = {
 
 /**
  * A subscribable subject whose state is a combined tuple of an arbitrary number of values.
+ * @deprecated This class has been deprecated in favor of using `MappedSubject` without an explicit mapping function.
  */
 export class CombinedSubject<I extends any[]> extends AbstractSubscribable<Readonly<I>> implements MappedSubscribable<Readonly<I>> {
   private readonly inputs: CombinedSubscribableInputs<I>;
@@ -70,13 +71,13 @@ export class CombinedSubject<I extends any[]> extends AbstractSubscribable<Reado
   }
 
   /** @inheritdoc */
-  public pause(): void {
+  public pause(): this {
     if (!this._isAlive) {
       throw new Error('CombinedSubject: cannot pause a dead subject');
     }
 
     if (this._isPaused) {
-      return;
+      return this;
     }
 
     for (let i = 0; i < this.inputSubs.length; i++) {
@@ -84,16 +85,18 @@ export class CombinedSubject<I extends any[]> extends AbstractSubscribable<Reado
     }
 
     this._isPaused = true;
+
+    return this;
   }
 
   /** @inheritdoc */
-  public resume(): void {
+  public resume(): this {
     if (!this._isAlive) {
       throw new Error('CombinedSubject: cannot resume a dead subject');
     }
 
     if (!this._isPaused) {
-      return;
+      return this;
     }
 
     this._isPaused = false;
@@ -104,6 +107,8 @@ export class CombinedSubject<I extends any[]> extends AbstractSubscribable<Reado
     }
 
     this.notify();
+
+    return this;
   }
 
   /** @inheritdoc */

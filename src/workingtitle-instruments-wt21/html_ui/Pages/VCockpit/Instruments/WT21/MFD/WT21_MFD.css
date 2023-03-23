@@ -1,0 +1,70 @@
+wt21-mfd {
+  width: 100%;
+  height: 100%;
+  font-size: 25px;
+  overflow: hidden;
+  font-family: var(--wt21-fonts-family-general);
+  background-color: var(--wt21-colors-black);
+}
+
+wt21-mfd #Mainframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: relative;
+}
+
+wt21-mfd #Electricity {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#EngineInstruments {
+  z-index: 1;
+}
+
+#UpperMenu {
+  position: relative;
+  height: 20%;
+  margin-top: 5%;
+}
+
+#TextPagesContainer {
+  position: relative;
+  height: 20%;
+  margin-top: 5%;
+  top: -20%;
+}
+
+#HSIMap {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+#MFDBottomSection {
+  height: 3.5%;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background-color: var(--wt21-colors-black);
+  padding-top: 1%;
+}
+
+#MenuSection {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 50;
+}
+
+/* CAS container in dispatch mode positioning */
+#HSIMap>.cas-container {
+  position: relative;
+  top: 460px;
+  border-top: 2px solid white;
+}

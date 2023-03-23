@@ -1,0 +1,125 @@
+.bearing-info {
+  position: relative;
+
+  --bearing-info-arrow-width: 9px;
+  --bearing-info-arrow-height: 18px;
+  --bearing-info-arrow-offset-y: 0px;
+  --bearing-info-source-font-size: 0.85em;
+}
+
+.bearing-info-source {
+  color: var(--g3000-color-cyan);
+  font-size: var(--bearing-info-source-font-size);
+}
+
+.bearing-info-ident {
+  color: var(--g3000-color-white);
+}
+
+.bearing-info-distance {
+  color: var(--g3000-color-magenta);
+}
+
+.bearing-info-bearing {
+  color: var(--g3000-color-magenta);
+}
+
+.bearing-info-arrow {
+  position: relative;
+  top: var(--bearing-info-arrow-offset-y);
+  width: var(--bearing-info-arrow-width);
+  height: var(--bearing-info-arrow-height);
+  fill: none;
+  stroke: var(--g3000-color-cyan);
+  stroke-width: 5;
+  align-self: center;
+}
+
+.bearing-info-center {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+
+  --bearing-info-field-gap: 4px;
+  --bearing-info-top-center-margin: 4px;
+}
+
+.bearing-info-center .bearing-info-top {
+  position: relative;
+  height: 50%;
+}
+
+.bearing-info-center .bearing-info-distance-container {
+  position: relative;
+  color: var(--g3000-color-magenta);
+}
+
+.bearing-info-center-left .bearing-info-distance-container {
+  text-align: right;
+  right: var(--bearing-info-top-center-margin);
+}
+
+.bearing-info-center-right .bearing-info-distance-container {
+  text-align: left;
+  left: var(--bearing-info-top-center-margin);
+}
+
+.bearing-info-center .bearing-info-bottom {
+  position: relative;
+  height: 50%;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  justify-content: flex-end;
+}
+
+.bearing-info-center-left .bearing-info-bottom {
+  flex-direction: row;
+}
+
+.bearing-info-center-right .bearing-info-bottom {
+  flex-direction: row-reverse;
+}
+
+.bearing-info-center-left .bearing-info-source,
+.bearing-info-center-left .bearing-info-ident,
+.bearing-info-center-left .bearing-info-bearing {
+  margin-right: var(--bearing-info-field-gap);
+}
+
+.bearing-info-center-right .bearing-info-source,
+.bearing-info-center-right .bearing-info-ident,
+.bearing-info-center-right .bearing-info-bearing {
+  margin-left: var(--bearing-info-field-gap);
+}
+
+.bearing-info-offset {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+
+  --bearing-info-field-gap: 2px;
+  --bearing-info-source-min-width: 40px;
+  --bearing-info-ident-min-width: 65px;
+  --bearing-info-distance-min-width: 65px;
+}
+
+.bearing-info-offset .bearing-info-source,
+.bearing-info-offset .bearing-info-ident,
+.bearing-info-offset .bearing-info-distance,
+.bearing-info-offset .bearing-info-bearing {
+  margin-left: var(--bearing-info-field-gap);
+}
+
+.bearing-info-offset .bearing-info-source {
+  min-width: var(--bearing-info-source-min-width);
+}
+
+.bearing-info-offset .bearing-info-ident {
+  min-width: var(--bearing-info-ident-min-width);
+}
+
+.bearing-info-offset .bearing-info-distance {
+  min-width: var(--bearing-info-distance-min-width);
+  text-align: right;
+}

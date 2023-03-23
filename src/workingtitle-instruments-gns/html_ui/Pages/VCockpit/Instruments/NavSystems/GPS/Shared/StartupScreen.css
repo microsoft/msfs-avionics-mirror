@@ -1,0 +1,64 @@
+.startup-screen {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 99999;
+  text-align: center;
+  background-color: black;
+  color: #ccc;
+}
+
+.startup-screen.wt430 {
+  width: 350px;
+  height: 190px;
+  font-size: 16px;
+}
+
+.startup-screen.wt530 {
+  width: 320px;
+  height: 234px;
+  font-size: 12px;
+}
+
+.startup-screen-logo {
+  width: 220px;
+  margin: 20px auto 0 auto;
+}
+
+.startup-screen.wt430 .startup-screen-cptext,
+.startup-screen.wt430 .startup-screen-confirm {
+  width: 350px;
+}
+
+.startup-screen-cptext {
+  position: absolute;
+  width: 320px;
+  bottom: 10px;
+}
+
+.startup-screen-confirm {
+  position: absolute;
+  width: 320px;
+  top: 16px;
+  text-align: left;
+}
+
+.startup-screen-confirm img {
+  vertical-align: middle;
+  margin: 3px;
+  padding-bottom: 2px;
+}
+
+.startup-ok-button {
+  position: fixed;
+  width: 28px;
+  bottom: 10px;
+  right: 10px;
+  padding: 2px 0px 0px 1px;
+  font-size: 14px;
+}
+
+.wt430 .startup-ok-button {
+  font-size: 20px;
+  width: 38px;
+}

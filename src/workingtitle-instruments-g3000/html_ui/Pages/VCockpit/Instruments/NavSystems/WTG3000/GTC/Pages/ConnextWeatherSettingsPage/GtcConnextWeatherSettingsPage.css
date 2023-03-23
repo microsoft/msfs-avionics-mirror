@@ -1,0 +1,259 @@
+.connext-weather-settings {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.gtc-horizontal .connext-weather-settings {
+  font-size: 29px;
+
+  --connext-weather-settings-data-left: 55px;
+  --connext-weather-settings-data-top: 48px;
+  --connext-weather-settings-data-width: 452px;
+  --connext-weather-settings-data-height: 540px;
+  --connext-weather-settings-data-padding: 5px 10px 10px 10px;
+  --connext-weather-settings-data-row-gap: 20px;
+  --connext-weather-settings-data-col-gap: 10px;
+
+  --connext-weather-settings-data-status-title-margin-bottom: 10px;
+
+  --connext-weather-settings-data-button-height: 125px;
+
+  --connext-weather-settings-bottom-left: 55px;
+  --connext-weather-settings-bottom-bottom: 18px;
+  --connext-weather-settings-bottom-width: 452px;
+  --connext-weather-settings-bottom-height: 125px;
+  --connext-weather-settings-bottom-col-gap: 10px;
+
+  --connext-weather-settings-overlays-right: 50px;
+  --connext-weather-settings-overlays-top: 48px;
+  --connext-weather-settings-overlays-width: 420px;
+  --connext-weather-settings-overlays-height: 702px;
+  --connext-weather-settings-overlays-padding: 0px 1px 0px 5px;
+
+  --connext-weather-settings-overlays-list-row-left-width: 220px;
+  --connext-weather-settings-overlays-list-row-right-width: 165px;
+}
+
+.gtc-vertical .connext-weather-settings {
+  font-size: 16px;
+
+  --connext-weather-settings-data-left: 5px;
+  --connext-weather-settings-data-top: 25px;
+  --connext-weather-settings-data-width: 245px;
+  --connext-weather-settings-data-height: 295px;
+  --connext-weather-settings-data-padding: 2px 5px 5px 5px;
+  --connext-weather-settings-data-row-gap: 10px;
+  --connext-weather-settings-data-col-gap: 5px;
+
+  --connext-weather-settings-data-status-title-margin-bottom: 5px;
+
+  --connext-weather-settings-data-button-height: 75px;
+
+  --connext-weather-settings-bottom-left: 5px;
+  --connext-weather-settings-bottom-bottom: 12px;
+  --connext-weather-settings-bottom-width: 245px;
+  --connext-weather-settings-bottom-height: 75px;
+  --connext-weather-settings-bottom-col-gap: 5px;
+
+  --connext-weather-settings-overlays-right: 0px;
+  --connext-weather-settings-overlays-top: 25px;
+  --connext-weather-settings-overlays-width: 225px;
+  --connext-weather-settings-overlays-height: 376px;
+  --connext-weather-settings-overlays-padding: 0px 1px 0px 4px;
+
+  --connext-weather-settings-overlays-list-row-left-width: 118px;
+  --connext-weather-settings-overlays-list-row-right-width: 88px;
+}
+
+.connext-weather-settings-data {
+  position: absolute;
+  left: var(--connext-weather-settings-data-left);
+  top: var(--connext-weather-settings-data-top);
+  width: var(--connext-weather-settings-data-width);
+  height: var(--connext-weather-settings-data-height);
+  padding: var(--connext-weather-settings-data-padding);
+  display: grid;
+  grid-template-rows: 1fr var(--connext-weather-settings-data-button-height) var(--connext-weather-settings-data-button-height);
+  grid-row-gap: var(--connext-weather-settings-data-row-gap);
+  grid-column-gap: var(--connext-weather-settings-data-col-gap);
+}
+
+.connext-weather-settings-data-status {
+  grid-area: 1 / 1 / 2 / 3;
+}
+
+.connext-weather-settings-data-status-title {
+  width: 100%;
+  margin-bottom: var(--connext-weather-settings-data-status-title-margin-bottom);
+  text-align: center;
+  font-size: 1.1em;
+}
+
+.connext-weather-settings-data-status-value {
+  width: 100%;
+  text-align: center;
+}
+
+.connext-weather-settings-coverage-button {
+  grid-area: 2 / 1 / 3 / 3;
+}
+
+.connext-weather-settings-auto-request-button {
+  --touch-button-value-value-center-y: 80%;
+}
+
+.connext-weather-settings-bottom {
+  position: absolute;
+  left: var(--connext-weather-settings-bottom-left);
+  bottom: var(--connext-weather-settings-bottom-bottom);
+  width: var(--connext-weather-settings-bottom-width);
+  height: var(--connext-weather-settings-bottom-height);
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: 1.43fr 1fr;
+  grid-column-gap: var(--connext-weather-settings-bottom-col-gap);
+}
+
+.connext-weather-settings-overlays {
+  position: absolute;
+  right: var(--connext-weather-settings-overlays-right);
+  top: var(--connext-weather-settings-overlays-top);
+  width: var(--connext-weather-settings-overlays-width);
+  height: var(--connext-weather-settings-overlays-height);
+  padding: var(--connext-weather-settings-overlays-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.connext-weather-settings-overlays-title {
+  text-align: center;
+  font-size: 1.1em;
+}
+
+.connext-weather-settings-overlays-list-row {
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.connext-weather-settings-overlays-list-row-left {
+  width: var(--connext-weather-settings-overlays-list-row-left-width);
+}
+
+.connext-weather-settings-overlays-list-row-right {
+  width: var(--connext-weather-settings-overlays-list-row-right-width);
+}
+
+.connext-weather-settings-overlays-list-row-right {
+  font-size: 1.2em;
+  --touch-button-text-color: var(--g3000-color-cyan);
+}
+
+.connext-coverage-popup {
+  position: absolute;
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.gtc-horizontal .connext-coverage-popup {
+  left: calc(50% - 750px / 2);
+  top: 48px;
+  width: 750px;
+  height: 715px;
+  padding: 10px 40px;
+  font-size: 29px;
+
+  --connext-coverage-popup-diameter-button-width: 400px;
+  --connext-coverage-popup-diameter-button-height: 125px;
+  --connext-coverage-popup-diameter-button-margin-bottom: 20px;
+
+  --connext-coverage-popup-options-row-padding: 0px 15px;
+  --connext-coverage-popup-options-row-panel-padding: 5px 15px;
+
+  --connext-coverage-popup-options-button-height: 125px;
+  --connext-coverage-popup-options-button-left-width: 250px;
+  --connext-coverage-popup-options-button-right-width: 350px;
+}
+
+.gtc-vertical .connext-coverage-popup {
+  left: calc(50% - 378px / 2);
+  top: 25px;
+  width: 378px;
+  height: 384px;
+  padding: 5px 20px;
+  font-size: 16px;
+
+  --connext-coverage-popup-diameter-button-width: 180px;
+  --connext-coverage-popup-diameter-button-height: 67px;
+  --connext-coverage-popup-diameter-button-margin-bottom: 10px;
+
+  --connext-coverage-popup-options-row-padding: 0px 7px;
+  --connext-coverage-popup-options-row-panel-padding: 2px 7px;
+
+  --connext-coverage-popup-options-button-height: 67px;
+  --connext-coverage-popup-options-button-left-width: 124px;
+  --connext-coverage-popup-options-button-right-width: 180px;
+}
+
+.connext-coverage-popup-diameter-button {
+  width: var(--connext-coverage-popup-diameter-button-width);
+  height: var(--connext-coverage-popup-diameter-button-height);
+  margin-bottom: var(--connext-coverage-popup-diameter-button-margin-bottom);
+
+  --touch-button-value-value-center-y: 70%;
+}
+
+.connext-coverage-popup-diameter-button .touch-button-value-value {
+  font-size: 1.5em;
+}
+
+.connext-coverage-popup-options {
+  flex-grow: 1;
+  align-self: stretch;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.connext-coverage-popup-options-row {
+  padding: var(--connext-coverage-popup-options-row-padding);
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+}
+
+.connext-coverage-popup-options-row.connext-coverage-popup-options-row-panel {
+  padding: var(--connext-coverage-popup-options-row-panel-padding);
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+}
+
+.connext-coverage-popup-options-button-left {
+  width: var(--connext-coverage-popup-options-button-left-width);
+  height: var(--connext-coverage-popup-options-button-height);
+  font-size: 1.2em;
+
+  --touch-button-toggle-label-center-y: 45%;
+  --touch-button-toggle-bar-center-y: 85%;
+}
+
+.connext-coverage-popup-options-button-right {
+  width: var(--connext-coverage-popup-options-button-right-width);
+  height: var(--connext-coverage-popup-options-button-height);
+}
+
+.connext-coverage-popup-options-fpl-button-right {
+  font-size: 1.2em;
+  --touch-button-text-color: var(--g3000-color-cyan);
+}

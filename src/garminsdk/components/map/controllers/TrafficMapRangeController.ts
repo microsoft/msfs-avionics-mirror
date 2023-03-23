@@ -1,7 +1,7 @@
 import {
   MapIndexedRangeModule, MapSystemContext, MapSystemController, MathUtils, NumberUnitInterface, Subject, Subscribable, Subscription, UnitFamily, UserSetting,
   UserSettingManager
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { UnitsDistanceSettingMode } from '../../../settings/UnitsUserSettings';
 import { GarminMapKeys } from '../GarminMapKeys';

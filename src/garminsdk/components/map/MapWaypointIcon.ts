@@ -1,16 +1,16 @@
-/// <reference types="msfstypes/JS/Avionics" />
+/// <reference types="@microsoft/msfs-types/js/avionics" />
 
 import {
   AbstractMapWaypointIcon, AbstractMapWaypointIconOptions, MapProjection, MapWaypointSpriteIcon, NavMath, ReadonlyFloat64Array, Subscribable, SubscribableUtils,
   Waypoint
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { AirportWaypoint } from '../../navigation/AirportWaypoint';
 
 /**
  * An airport icon.
  */
-export class MapAirportIcon<T extends AirportWaypoint<any>> extends MapWaypointSpriteIcon<T> {
+export class MapAirportIcon<T extends AirportWaypoint> extends MapWaypointSpriteIcon<T> {
   /**
    * Constructor.
    * @param waypoint The waypoint associated with this icon.

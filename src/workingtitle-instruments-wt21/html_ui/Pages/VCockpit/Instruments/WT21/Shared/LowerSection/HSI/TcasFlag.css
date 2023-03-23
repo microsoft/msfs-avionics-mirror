@@ -1,0 +1,36 @@
+.hsi-tcas-flag {
+  display: none;
+  position: absolute;
+  color: var(--wt21-colors-yellow);
+  top: 1%;
+  left: 62%;
+  font-size: 24px;
+}
+
+.PFD .hsi-tcas-flag.alert,
+.PFD .hsi-tcas-flag.align,
+.PFD .hsi-tcas-flag.fail {
+  display: block;
+}
+
+.PFD .hsi-tcas-flag.alert {
+  animation: tcas-flag-blink .75s step-start 5;
+}
+
+.PFD .hsi-tcas-flag.ra {
+  color: var(--wt21-colors-red);
+}
+
+@keyframes tcas-flag-blink {
+  0% {
+    opacity: 0;
+  }
+
+  75% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}

@@ -26,9 +26,18 @@ export class FlightPathTurnCalculator {
    * @param legs A sequence of legs.
    * @param startIndex The index of the first leg for which to compute turns.
    * @param count The total number of legs for which to compute turns.
-   * @param desiredTurnRadius The desired turn radius, in meters.
+   * @param desiredTurnRadius The desired general turn radius, in meters.
+   * @param desiredCourseReversalTurnRadius The desired course reversal turn radius, in meters.
+   * @param desiredTurnAnticipationTurnRadius The desired turn anticipation turn radius, in meters.
    */
-  public computeTurns(legs: LegDefinition[], startIndex: number, count: number, desiredTurnRadius: number): void {
+  public computeTurns(
+    legs: LegDefinition[],
+    startIndex: number,
+    count: number,
+    desiredTurnRadius: number,
+    desiredCourseReversalTurnRadius: number,
+    desiredTurnAnticipationTurnRadius: number
+  ): void {
     const end = startIndex + count;
     let currentIndex = startIndex;
     while (currentIndex < end) {
@@ -43,13 +52,18 @@ export class FlightPathTurnCalculator {
           && (toLegCalc.ingress.length === 0 || BitFlags.isAll(toLegCalc.ingress[0].flags, FlightPathVectorFlags.LegToLegTurn))
         ) {
           if (fromVector.radius === Math.PI / 2 && toVector.radius === Math.PI / 2) {
-            currentIndex = this.computeTrackTrackTurn(legs, currentIndex, currentIndex + 1, fromVector, toVector, desiredTurnRadius, true);
+            currentIndex = this.computeTrackTrackTurn(
+              legs, currentIndex, currentIndex + 1,
+              fromVector, toVector,
+              desiredTurnAnticipationTurnRadius, desiredCourseReversalTurnRadius,
+              true
+            );
             continue;
           } else if (toVector.radius === Math.PI / 2) {
-            currentIndex = this.computeArcTrackTurn(legs, currentIndex, currentIndex + 1, fromVector, toVector, true, desiredTurnRadius);
+            currentIndex = this.computeArcTrackTurn(legs, currentIndex, currentIndex + 1, fromVector, toVector, true, desiredTurnAnticipationTurnRadius);
             continue;
           } else if (fromVector.radius === Math.PI / 2) {
-            currentIndex = this.computeArcTrackTurn(legs, currentIndex, currentIndex + 1, toVector, fromVector, false, desiredTurnRadius);
+            currentIndex = this.computeArcTrackTurn(legs, currentIndex, currentIndex + 1, toVector, fromVector, false, desiredTurnAnticipationTurnRadius);
             continue;
           }
         }
@@ -75,7 +89,8 @@ export class FlightPathTurnCalculator {
    * @param toIndex The index of the leg on which the turn ends.
    * @param fromTrack The track vector on which the turn begins.
    * @param toTrack The track vector on which the turn ends.
-   * @param desiredTurnRadius The desired turn radius, in meters.
+   * @param desiredTurnAnticipationTurnRadius The desired turn anticipation turn radius, in meters.
+   * @param desiredCourseReversalTurnRadius The desired course reversal turn radius, in meters.
    * @param isRestrictedByPrevTurn Whether turn anticipation is restricted by the previous leg-to-leg turn. If `true`,
    * turn anticipation will be restricted so that the turn does not overlap the previous turn if they share a common
    * flight path vector.
@@ -93,7 +108,8 @@ export class FlightPathTurnCalculator {
     toIndex: number,
     fromTrack: CircleVector,
     toTrack: CircleVector,
-    desiredTurnRadius: number,
+    desiredTurnAnticipationTurnRadius: number,
+    desiredCourseReversalTurnRadius: number,
     isRestrictedByPrevTurn: boolean,
     previousTanTheta?: number,
   ): number {
@@ -120,14 +136,19 @@ export class FlightPathTurnCalculator {
     }
 
     if (trackAngleDiff > 175) {
-      return this.computeTrackTrackCourseReversal(legs, fromIndex, toIndex, fromTrack, toTrack, fromTrackBearing, toTrackBearing, desiredTurnRadius);
+      return this.computeTrackTrackCourseReversal(
+        legs, fromIndex, toIndex,
+        fromTrack, toTrack,
+        fromTrackBearing, toTrackBearing,
+        desiredTurnAnticipationTurnRadius, desiredCourseReversalTurnRadius
+      );
     }
 
     const theta = (180 - trackAngleDiff) / 2;
     const tanTheta = Math.tan(theta * Avionics.Utils.DEG2RAD);
     // D is defined as the distance from the start/end of the turn to the turn vertex along the from- and to- tracks
     // (i.e. the anticipation).
-    const desiredD = Math.asin(Math.tan(UnitType.METER.convertTo(desiredTurnRadius, UnitType.GA_RADIAN)) / tanTheta);
+    const desiredD = Math.asin(Math.tan(UnitType.METER.convertTo(desiredTurnAnticipationTurnRadius, UnitType.GA_RADIAN)) / tanTheta);
 
     let restrictedD = Infinity;
     if (isRestrictedByPrevTurn) {
@@ -166,7 +187,13 @@ export class FlightPathTurnCalculator {
         } else {
           // if the next turn to share a vector with this turn is to a track vector, we need to recursively compute
           // future turns since the next turn may be restricted by the turn after that, etc.
-          lastComputedIndex = this.computeTrackTrackTurn(legs, toIndex, toIndex + 1, toTrack, nextVector, desiredTurnRadius, true, tanTheta);
+          lastComputedIndex = this.computeTrackTrackTurn(
+            legs, toIndex, toIndex + 1,
+            toTrack, nextVector,
+            desiredTurnAnticipationTurnRadius, desiredCourseReversalTurnRadius,
+            true,
+            tanTheta
+          );
           turnVertexPoint.set(fromTrack.endLat, fromTrack.endLon);
           const nextTurnEgress = toLegCalc.egress[0];
           nextTurnRestrictedD = nextTurnEgress ? turnVertexPoint.distance(nextTurnEgress.startLat, nextTurnEgress.startLon) : Infinity;
@@ -185,7 +212,7 @@ export class FlightPathTurnCalculator {
     // distance from the turn vertex to the center of the turn
     const H = Math.atan(Math.tan(D) / Math.cos(theta * Avionics.Utils.DEG2RAD));
     const turnRadiusRad = desiredD === D
-      ? UnitType.METER.convertTo(desiredTurnRadius, UnitType.GA_RADIAN)
+      ? UnitType.METER.convertTo(desiredTurnAnticipationTurnRadius, UnitType.GA_RADIAN)
       : Math.atan(Math.sin(D) * tanTheta);
 
     if (D <= GeoPoint.EQUALITY_TOLERANCE || turnRadiusRad <= GeoPoint.EQUALITY_TOLERANCE) {
@@ -223,7 +250,8 @@ export class FlightPathTurnCalculator {
    * @param toTrack The track vector on which the turn ends.
    * @param fromTrackBearing The true course bearing of the track vector on which the turn begins, at the end of the vector.
    * @param toTrackBearing The true course bearing of the track vector on which the turn ends, at the beginning of the vector.
-   * @param desiredTurnRadius The desired turn radius, in meters.
+   * @param desiredTurnAnticipationTurnRadius The desired turn anticipation turn radius, in meters.
+   * @param desiredCourseReversalTurnRadius The desired course reversal turn radius, in meters.
    * @returns The index of the last leg in the sequence for which a turn ending on that leg was computed.
    */
   private computeTrackTrackCourseReversal(
@@ -234,7 +262,8 @@ export class FlightPathTurnCalculator {
     toTrack: CircleVector,
     fromTrackBearing: number,
     toTrackBearing: number,
-    desiredTurnRadius: number,
+    desiredTurnAnticipationTurnRadius: number,
+    desiredCourseReversalTurnRadius: number,
   ): number {
     let lastComputedIndex = toIndex;
 
@@ -261,7 +290,12 @@ export class FlightPathTurnCalculator {
         } else {
           // if the next turn to share a vector with this turn is to a track vector, we need to recursively compute
           // future turns since the next turn may be restricted by the turn after that, etc.
-          lastComputedIndex = this.computeTrackTrackTurn(legs, toIndex, toIndex + 1, toTrack, nextVector, desiredTurnRadius, false);
+          lastComputedIndex = this.computeTrackTrackTurn(
+            legs, toIndex, toIndex + 1,
+            toTrack, nextVector,
+            desiredTurnAnticipationTurnRadius, desiredCourseReversalTurnRadius,
+            false
+          );
           turnVertexPoint.set(fromTrack.endLat, fromTrack.endLon);
           const nextTurnEgress = toLegCalc.egress[0];
           courseReversalEndDistance = nextTurnEgress ? turnVertexPoint.distance(nextTurnEgress.startLat, nextTurnEgress.startLon) : courseReversalEndDistance;
@@ -279,7 +313,7 @@ export class FlightPathTurnCalculator {
       toLegCalc.ingress, 0,
       turnVertexPoint, fromTrackPath,
       courseReversalEnd, toTrackPath,
-      fromTrackBearing + 45 * (turnDirection === 'left' ? -1 : 1), desiredTurnRadius, turnDirection,
+      fromTrackBearing + 45 * (turnDirection === 'left' ? -1 : 1), desiredCourseReversalTurnRadius, turnDirection,
       fromTrackBearing, toTrackBearing,
       FlightPathVectorFlags.LegToLegTurn | FlightPathVectorFlags.CourseReversal
     );

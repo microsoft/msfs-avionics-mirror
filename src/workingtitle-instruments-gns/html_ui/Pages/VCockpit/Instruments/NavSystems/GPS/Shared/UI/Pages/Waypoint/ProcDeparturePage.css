@@ -1,0 +1,81 @@
+.waypoint-departure-page-selectors {
+  flex: 2;
+  position: relative;
+  padding-top: 6px;
+}
+
+.load-or-activate-button-departure {
+  padding: 1px;
+  font-size: var(--gns-font-page-data);
+}
+
+wt-gns430 .load-or-activate-button-departure {
+  margin-top: -4px;
+}
+
+wt-gns530 .departure>.dialog-box>.dialog-box-inner>.waypoint-page-selector-items>.ui-control-list-content {
+  max-height: 130px;
+}
+
+wt-gns430 .departure>.dialog-box>.dialog-box-inner>.waypoint-page-selector-items>.ui-control-list-content {
+  max-height: 50px;
+}
+
+
+.departure-runway>.dialog-box>.dialog-box-inner>.waypoint-page-selector-items>.ui-control-list-content {
+  max-height: 84px;
+}
+
+wt-gns430 .departure-runway>.dialog-box>.dialog-box-inner>.waypoint-page-selector-items>.ui-control-list-content {
+  max-height: 50px;
+}
+
+wt-gns430 .departure-transition>.dialog-box>.dialog-box-inner>.waypoint-page-selector-items>.ui-control-list-content {
+  max-height: 50px;
+}
+
+.departure-transition>.dialog-box>.dialog-box-inner>.waypoint-page-selector-items>.ui-control-list-content {
+  max-height: 34px;
+}
+
+.departure>.dialog-box {
+  top: 45px;
+  position: fixed;
+  right: 65px;
+  min-width: unset;
+}
+
+
+wt-gns530 .departure-runway>.dialog-box {
+  top: 45px;
+  position: fixed;
+  right: 65px;
+  min-width: unset;
+}
+
+wt-gns430 .departure-runway>.dialog-box {
+  margin-top: -5px;
+  position: fixed;
+  right: 75px;
+  min-width: unset;
+}
+
+
+wt-gns530 .departure-transition>.dialog-box {
+  top: 45px;
+  position: fixed;
+  right: 65px;
+  min-width: unset;
+}
+
+wt-gns430 .departure-transition>.dialog-box {
+  margin-top: -70px;
+  position: fixed;
+  right: 75px;
+  min-width: unset;
+}
+
+wt-gns430 .dialog-box>.dialog-box-inner>.ui-control-list {
+  max-height: 100%;
+  overflow-y: scroll;
+}

@@ -1,0 +1,178 @@
+wt-gns430 .aux-table-labels-nearest-airport {
+  display: flex;
+  margin-top: -3px;
+  align-items: center;
+  color: var(--gnscyan);
+  font-size: var(--gns-font-page-title2);
+}
+
+wt-gns530 .aux-table-labels-nearest-airport {
+  display: flex;
+  align-items: center;
+  color: var(--gnscyan);
+  font-size: var(--gns-font-page-title2);
+}
+
+wt-gns530 .aux-table-labels-nearest-airport>div:nth-child(1) {
+  margin-left: 1em;
+}
+
+wt-gns430 .aux-table-labels-nearest-airport-ndb>div:nth-child(1) {
+  margin-left: 1em;
+}
+
+wt-gns530 .aux-table-labels-nearest-airport>div:nth-child(2) {
+  margin-left: 5.5em;
+}
+
+wt-gns430 .aux-table-labels-nearest-airport>div:nth-child(2) {
+  margin-left: 3.75em;
+}
+
+wt-gns530 .aux-table-labels-nearest-airport>div:nth-child(3) {
+  margin-left: 4.5em;
+}
+
+wt-gns430 .aux-table-labels-nearest-airport>div:nth-child(3) {
+  margin-left: 2.5em;
+}
+
+wt-gns530 .aux-table-labels-nearest-airport>div:nth-child(4) {
+  margin-left: 5.2em;
+}
+
+wt-gns430 .aux-table-labels-nearest-airport>div:nth-child(4) {
+  margin-left: 3.5em;
+}
+
+wt-gns530 .nearest-airport-table>.ui-control-list {
+  height: 177px;
+}
+
+wt-gns430 .nearest-airport-table>.ui-control-list {
+  height: 131px;
+}
+
+.nearest-airport-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  line-height: 17px;
+  padding-top: 7px;
+  padding-bottom: 4.5px;
+}
+
+wt-gns530 .nearest-airport-item {
+  height: 44px;
+  border-bottom: solid 1px var(--gnscyan);
+  padding-top: 4px;
+  padding-right: 1px;
+  margin-right: 2px;
+}
+
+wt-gns430 .nearest-airport-item {
+  height: 44px;
+  grid-row-gap: 2px;
+  padding-right: 3px;
+}
+
+.nearest-airport-item>* {
+  text-align: center;
+}
+
+.nearest-airport-icao {}
+
+wt-gns530 .nearest-airport-icao {
+  width: 42px;
+  height: 15px;
+  padding: .5px;
+}
+
+wt-gns430 .nearest-airport-icao {
+  width: 51px;
+  height: 20px;
+  padding: 3px 1px;
+  margin-top: -3px;
+}
+
+.nearest-airport-info-container {
+  width: 4em;
+  display: flex;
+}
+
+.nearest-airport-icon {
+  display: inline-block;
+  overflow: hidden;
+  width: 14px;
+  height: 14px;
+}
+
+wt-gns530 .nearest-airport-icon {
+  margin-left: 6px;
+}
+
+wt-gns430 .nearest-airport-icon {
+  margin-left: 4px;
+}
+
+.nearest-airport-brg {
+  width: 3em;
+}
+
+wt-gns430 .nearest-airport-brg {
+  margin-left: .5em
+}
+
+wt-gns430 .nearest-airport-brg {
+  margin-left: -.7em;
+}
+
+.nearest-airport-dis {}
+
+wt-gns530 .nearest-airport-dis {
+  margin-left: .7em
+}
+
+wt-gns430 .nearest-airport-dis {
+  margin-left: 0;
+}
+
+.nearest-airport-apr {
+  text-align: right;
+}
+
+.nearest-airport-frequency-container {
+  grid-column: span 2;
+  text-align: left;
+  width: 140px;
+}
+
+.nearest-airport-freqtype {}
+
+wt-gns530 .nearest-airport-freqtype {
+  margin-left: 1.05em;
+}
+
+wt-gns430 .nearest-airport-freqtype {
+  margin-left: 1.3em;
+}
+
+.nearest-airport-frequency {
+  display: inline-block;
+  margin-top: -2px;
+  margin-left: 3px;
+}
+
+wt-gns530 .nearest-airport-frequency {
+  height: 15px;
+  padding: .5px .5px .5px 0;
+}
+
+wt-gns430 .nearest-airport-frequency {
+  height: 18px;
+  padding: 2px 2px 2px 0;
+}
+
+
+.nearest-airport-runway-length {
+  margin-right: .1em;
+}

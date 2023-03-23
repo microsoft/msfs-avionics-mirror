@@ -1,7 +1,7 @@
 import {
   BitFlags, MapIndexedRangeModule, MappedSubject, MappedSubscribable, MapSystemContext, MapSystemController, MapSystemKeys, MapTrafficAlertLevelVisibility,
   MapTrafficModule, NumberUnitInterface, Subscription, UnitFamily, UnitType
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapGarminTrafficModule, MapTrafficAlertLevelMode, MapTrafficAltitudeRestrictionMode } from '../modules/MapGarminTrafficModule';
@@ -82,7 +82,7 @@ export class MapTrafficController extends MapSystemController<MapTrafficControll
       } else {
         this.trafficModule.altitudeRestrictionBelow.set(MapTrafficController.ALTITUDE_RESTRICTION_NORMAL);
       }
-    });
+    }, true);
 
     if (this.useOuterRangeAsOffScale && this.rangeModule !== undefined) {
       this.offScaleRange = MappedSubject.create(

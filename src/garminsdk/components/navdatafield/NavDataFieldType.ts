@@ -1,4 +1,4 @@
-import { NavAngleUnit, NumberUnitInterface, UnitFamily } from 'msfssdk';
+import { NavAngleUnitFamily, NumberUnitInterface, UnitFamily } from '@microsoft/msfs-sdk';
 
 import { NavDataFieldModel } from './NavDataFieldModel';
 
@@ -7,6 +7,7 @@ import { NavDataFieldModel } from './NavDataFieldModel';
  */
 export enum NavDataFieldType {
   BearingToWaypoint = 'BRG',
+  Waypoint = 'WPT',
   Destination = 'DEST',
   DistanceToWaypoint = 'DIS',
   DistanceToDestination = 'DTG',
@@ -33,15 +34,17 @@ export enum NavDataFieldType {
  */
 export type NavDataFieldTypeModelMap = {
   /** Bearing to next waypoint. */
-  [NavDataFieldType.BearingToWaypoint]: NavDataFieldModel<NumberUnitInterface<typeof NavAngleUnit.FAMILY>>,
+  [NavDataFieldType.BearingToWaypoint]: NavDataFieldModel<NumberUnitInterface<NavAngleUnitFamily>>,
   /** Destination ident. */
   [NavDataFieldType.Destination]: NavDataFieldModel<string>,
+  /** Next waypoint ident. */
+  [NavDataFieldType.Waypoint]: NavDataFieldModel<string>,
   /** Distance to next waypoint. */
   [NavDataFieldType.DistanceToWaypoint]: NavDataFieldModel<NumberUnitInterface<UnitFamily.Distance>>,
   /** Distance to destination. */
   [NavDataFieldType.DistanceToDestination]: NavDataFieldModel<NumberUnitInterface<UnitFamily.Distance>>,
   /** Desired track. */
-  [NavDataFieldType.DesiredTrack]: NavDataFieldModel<NumberUnitInterface<typeof NavAngleUnit.FAMILY>>,
+  [NavDataFieldType.DesiredTrack]: NavDataFieldModel<NumberUnitInterface<NavAngleUnitFamily>>,
   /** Endurance (time to zero fuel). */
   [NavDataFieldType.Endurance]: NavDataFieldModel<NumberUnitInterface<UnitFamily.Duration>>,
   /** Estimated time enroute to destination. */
@@ -65,7 +68,7 @@ export type NavDataFieldTypeModelMap = {
   /** Track angle error. */
   [NavDataFieldType.TrackAngleError]: NavDataFieldModel<NumberUnitInterface<UnitFamily.Angle>>,
   /** Ground track. */
-  [NavDataFieldType.GroundTrack]: NavDataFieldModel<NumberUnitInterface<typeof NavAngleUnit.FAMILY>>,
+  [NavDataFieldType.GroundTrack]: NavDataFieldModel<NumberUnitInterface<NavAngleUnitFamily>>,
   /** Vertical speed required to meet next VNAV restriction. */
   [NavDataFieldType.VerticalSpeedRequired]: NavDataFieldModel<NumberUnitInterface<UnitFamily.Speed>>,
   /** Cross-track error. */

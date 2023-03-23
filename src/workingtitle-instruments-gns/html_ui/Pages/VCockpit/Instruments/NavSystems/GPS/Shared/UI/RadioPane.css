@@ -1,0 +1,45 @@
+.com-pane {
+  width: 64px;
+  height: 53px;
+  background: var(--gnsblue);
+  border: 1px solid var(--gnscyan);
+  margin: 0 1px 1px 0;
+  box-shadow: 1px 1px 0px 0px #ccc;
+  font-size: 17px;
+}
+
+.wt430 .com-pane {
+  width: 78px;
+  height: 64px;
+  border: 2px solid var(--gnscyan);
+  font-size: 22px;
+  letter-spacing: -1.2px;
+  margin: 0;
+  box-shadow: unset;
+}
+
+.com-pane>div {
+  margin-left: -2px;
+  padding-top: 2px;
+  height: 18px;
+}
+
+.wt430 .com-pane>div {
+  margin-left: -3px;
+  padding-top: 1px;
+  height: 20px;
+}
+
+.com-pane>div.centered-value {
+  text-align: center;
+}
+
+.com-pane>h1 {
+  color: var(--gnscyan);
+  font-size: 9px;
+  margin: 2px;
+}
+
+.wt430 .com-pane>h1 {
+  font-size: 14px;
+}

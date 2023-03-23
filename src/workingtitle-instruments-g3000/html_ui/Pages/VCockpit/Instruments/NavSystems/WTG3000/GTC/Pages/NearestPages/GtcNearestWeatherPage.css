@@ -1,0 +1,30 @@
+.gtc-horizontal .nearest-weather-page {
+  --nearest-weather-page-freq-value-margin-top: 35px;
+  --nearest-weather-page-freq-type-margin-right: 10px;
+  --nearest-weather-page-freq-type-margin-bottom: 5px;
+}
+
+.gtc-vertical .nearest-weather-page {
+  --nearest-weather-page-freq-value-margin-top: 15px;
+  --nearest-weather-page-freq-type-margin-right: 7px;
+  --nearest-weather-page-freq-type-margin-bottom: 2px;
+}
+
+.nearest-weather-page .touch-button.nearest-page-list-item-freq {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.nearest-weather-page-list-item-freq-value {
+  margin-top: var(--nearest-weather-page-freq-value-margin-top);
+  text-align: center;
+  font-size: 1.3em;
+}
+
+.nearest-weather-page-list-item-freq-type {
+  margin-right: var(--nearest-weather-page-freq-type-margin-right);
+  margin-bottom: var(--nearest-weather-page-freq-type-margin-bottom);
+  text-align: right;
+}

@@ -1,0 +1,89 @@
+.gtc-nearest-tab {
+  margin: 2%;
+
+  --gtc-nearest-tab-gps-color: var(--g3000-color-white);
+}
+
+.gtc-nearest-tab.dead-reckoning {
+  --gtc-nearest-tab-gps-color: var(--g3000-color-yellow);
+}
+
+.gtc-horizontal .gtc-nearest-tab {
+  font-size: 32px;
+  --nearest-wpt-filter-touch-button-height: 125px;
+
+  --bearing-arrow-size: 40px;
+}
+
+.gtc-vertical .gtc-nearest-tab {
+  font-size: 17px;
+  --nearest-wpt-filter-touch-button-height: 66px;
+
+  --bearing-arrow-size: 22px;
+}
+
+.gtc-nearest-tab .nearest-wpt-filter .touch-button {
+  height: var(--nearest-wpt-filter-touch-button-height);
+  width: 99%;
+  margin-top: -1%;
+  --touch-button-value-label-center-y: 40%;
+}
+
+.gtc-horizontal .gtc-nearest-tab .nearest-wpt-filter .touch-button {
+  letter-spacing: -1px;
+}
+
+.gtc-nearest-tab .nearest-wpt-filter .touch-button-value-value {
+  font-size: 1.2em;
+}
+
+.gtc-nearest-tab .nearest-wpt-filter-icon {
+  position: absolute;
+  top: 32%;
+  left: 11%;
+  transform: translateX(-50%);
+  width: 7%;
+}
+
+.gtc-nearest-tab .nearest-wpt-filter-icon-all {
+  width: 19%;
+}
+
+.gtc-nearest-tab .nearest-wpt-filter .divider {
+  margin: 1.5% 0 1%;
+  border: 1px solid var(--g3000-color-white);
+}
+
+.gtc-nearest-tab .gtc-wpt-button {
+  width: 53%;
+}
+
+.gtc-nearest-tab .gtc-list .list-item {
+  padding: 0.5%;
+}
+
+.gtc-nearest-tab .nearest-wpt-list-item-brg,
+.gtc-nearest-tab .nearest-wpt-list-item-dis {
+  position: absolute;
+  left: 72%;
+  font-size: 1.35em;
+  color: var(--gtc-nearest-tab-gps-color);
+}
+
+.gtc-nearest-tab .nearest-wpt-list-item-brg {
+  top: 11%;
+}
+
+.gtc-nearest-tab .nearest-wpt-list-item-dis {
+  top: 51%;
+}
+
+.gtc-nearest-tab .bearing-arrow {
+  position: absolute;
+  left: 106%;
+  top: 8%;
+}
+
+.gtc-nearest-tab .nearest-wpt-list-no-results {
+  font-size: 1.2em;
+}

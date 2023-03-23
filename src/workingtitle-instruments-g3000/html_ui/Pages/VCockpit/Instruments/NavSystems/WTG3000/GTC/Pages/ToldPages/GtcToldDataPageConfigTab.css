@@ -1,0 +1,92 @@
+.told-data-page-config {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .told-data-page-config {
+  --told-data-page-config-left-left: 20px;
+  --told-data-page-config-left-top: 20px;
+  --told-data-page-config-left-width: 265px;
+  --told-data-page-config-left-height: 675px;
+
+  --told-data-page-config-left-button-height: 155px;
+  --told-data-page-config-left-button-margin-bottom: 10px;
+
+  --told-data-page-config-right-right: 5px;
+  --told-data-page-config-right-top: 10px;
+  --told-data-page-config-right-width: 480px;
+  --told-data-page-config-right-height: 685px;
+
+  --told-data-page-config-right-list-left: 5px;
+  --told-data-page-config-right-list-top: 2px;
+  --told-data-page-config-right-list-width: 466px;
+  --told-data-page-config-right-list-height: 673px;
+}
+
+.gtc-vertical .told-data-page-config {
+  --told-data-page-config-left-left: 10px;
+  --told-data-page-config-left-top: 10px;
+  --told-data-page-config-left-width: 121px;
+  --told-data-page-config-left-height: 350px;
+
+  --told-data-page-config-left-button-height: 80px;
+  --told-data-page-config-left-button-margin-bottom: 5px;
+
+  --told-data-page-config-right-right: 3px;
+  --told-data-page-config-right-top: 5px;
+  --told-data-page-config-right-width: 212px;
+  --told-data-page-config-right-height: 360px;
+
+  --told-data-page-config-right-list-left: 2px;
+  --told-data-page-config-right-list-top: 1px;
+  --told-data-page-config-right-list-width: 204px;
+  --told-data-page-config-right-list-height: 353px;
+}
+
+.told-data-page-config-left {
+  position: absolute;
+  left: var(--told-data-page-config-left-left);
+  top: var(--told-data-page-config-left-top);
+  width: var(--told-data-page-config-left-width);
+  height: var(--told-data-page-config-left-height);
+
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.told-data-page-config-left-button {
+  height: var(--told-data-page-config-left-button-height);
+  margin-bottom: var(--told-data-page-config-left-button-margin-bottom);
+}
+
+.told-data-page-config-right {
+  position: absolute;
+  right: var(--told-data-page-config-right-right);
+  top: var(--told-data-page-config-right-top);
+  width: var(--told-data-page-config-right-width);
+  height: var(--told-data-page-config-right-height);
+}
+
+.told-data-page-config-right-list {
+  position: absolute;
+  left: var(--told-data-page-config-right-list-left);
+  top: var(--told-data-page-config-right-list-top);
+  width: var(--told-data-page-config-right-list-width);
+  height: var(--told-data-page-config-right-list-height);
+}
+
+.told-data-page-config-right-button {
+  width: 100%;
+  height: 100%;
+  --touch-button-value-label-center-y: 25%;
+}
+
+.told-data-page-config-right-button .touch-button-value-value {
+  font-size: 1.3em;
+}

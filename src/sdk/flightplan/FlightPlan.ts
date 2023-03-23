@@ -1,13 +1,21 @@
 import { AltitudeRestrictionType, FlightPlanLeg, ICAO, OneWayRunway } from '../navigation/Facilities';
 import { FlightPathCalculator } from './FlightPathCalculator';
-import { FlightPlanSegment, FlightPlanSegmentType, LegDefinition, ProcedureDetails, VerticalData } from './FlightPlanning';
+import {
+  FlightPlanSegment, FlightPlanSegmentType, LegDefinition, ProcedureDetails,
+  SpeedRestrictionType, SpeedUnit, VerticalData, VerticalFlightPhase,
+} from './FlightPlanning';
 
-export enum PlanChangeType {
+export enum LegEventType {
   Added = 'Added',
-  Inserted = 'Inserted',
   Removed = 'Removed',
   Changed = 'Changed',
-  Cleared = 'Cleared'
+}
+
+export enum SegmentEventType {
+  Added = 'Added',
+  Removed = 'Removed',
+  Changed = 'Changed',
+  Inserted = 'Inserted',
 }
 
 export enum ActiveLegType {
@@ -42,7 +50,7 @@ export interface PlanEvents {
    * @param type The type of change.
    * @param leg The leg that was changed.
    */
-  onLegChanged?(segmentIndex: number, index: number, type: PlanChangeType, leg?: LegDefinition): void;
+  onLegChanged?(segmentIndex: number, index: number, type: LegEventType, leg: LegDefinition): void;
 
   /**
    * An event generated when there is a change in a segment.
@@ -50,11 +58,11 @@ export interface PlanEvents {
    * @param type The type of change.
    * @param segment The segment that was changed.
    */
-  onSegmentChanged?(index: number, type: PlanChangeType, segment?: FlightPlanSegment): void;
+  onSegmentChanged?(index: number, type: SegmentEventType, segment?: FlightPlanSegment): void;
 
   /**
    * An event generated when an active leg is changed.
-   * @param index The index of the leg.
+   * @param index The global index of the leg.
    * @param segmentIndex The index of the flight plan segment.
    * @param previousSegmentIndex The index of the previously active segment.
    * @param previousLegIndex The index of the previously active leg in the previously active segment.
@@ -190,27 +198,36 @@ export class FlightPlan {
   /**
    * Gets this flight plan's legs.
    * @param reverse Whether to get the legs in reverse order. False by default.
-   * @param startIndex The global leg index of the leg with which to start. Defaults to 0 if `reverse` is false or
-   * `this.length` if `reverse` is true.
+   * @param startIndex The global leg index of the leg at which to start, inclusive. Defaults to `0` if `reverse` is
+   * `false` or `this.length` if `reverse` is `true`.
+   * @param endIndex The global leg index of the leg at which to end, exclusive. Defaults to `this.length` if `reverse`
+   * is `false` or `-1` if `reverse` is `true`.
    * @returns A generator which yields this flight plan's legs.
    */
-  public legs(reverse = false, startIndex?: number): Generator<LegDefinition, void> {
-    return reverse ? this._legsReverse(startIndex) : this._legs(startIndex);
+  public legs(reverse = false, startIndex?: number, endIndex?: number): Generator<LegDefinition, void> {
+    return reverse ? this._legsReverse(startIndex, endIndex) : this._legs(startIndex, endIndex);
   }
 
   /**
    * Gets this flight plan's legs in forward order.
-   * @param startIndex The global leg index of the leg with which to start. Defaults to 0.
+   * @param startIndex The global leg index of the leg at which to start, inclusive. Defaults to `0`.
+   * @param endIndex The global leg index of the leg at which to end, exclusive. Defaults to `this.length`.
    * @yields This flight plan's legs in forward order.
    */
-  private *_legs(startIndex?: number): Generator<LegDefinition, void> {
-    startIndex ??= 0;
+  private *_legs(startIndex = 0, endIndex = this.length): Generator<LegDefinition, void> {
+    endIndex = Math.min(this.length, endIndex);
 
     for (let i = 0; i < this.planSegments.length; i++) {
       const segment = this.planSegments[i];
 
-      if (segment !== undefined) {
-        for (let l = Math.max(0, startIndex - segment.offset); l < segment.legs.length; l++) {
+      if (segment !== undefined && segment.legs.length > 0) {
+        const end = Math.min(segment.legs.length, endIndex - segment.offset);
+
+        if (end <= 0) {
+          return;
+        }
+
+        for (let l = Math.max(0, startIndex - segment.offset); l < end; l++) {
           yield segment.legs[l];
         }
       }
@@ -219,17 +236,24 @@ export class FlightPlan {
 
   /**
    * Gets this flight plan's legs in reverse order.
-   * @param startIndex The global leg index of the leg with which to start. Defaults to `this.length - 1`.
+   * @param startIndex The global leg index of the leg at which to start, inclusive. Defaults to `this.length - 1`.
+   * @param endIndex The global leg index of the leg at which to end, exclusive. Defaults to `-1`.
    * @yields This flight plan's legs in reverse order.
    */
-  private *_legsReverse(startIndex?: number): Generator<LegDefinition, void> {
-    startIndex ??= this.length;
+  private *_legsReverse(startIndex = this.length - 1, endIndex = -1): Generator<LegDefinition, void> {
+    endIndex = Math.max(-1, endIndex);
 
-    for (let i = this.planSegments.length - 1; i >= 0; i--) {
+    for (let i = this.planSegments.length - 1; i > -1; i--) {
       const segment = this.planSegments[i];
 
-      if (segment) {
-        for (let l = Math.min(segment.legs.length - 1, startIndex - segment.offset); l >= 0; l--) {
+      if (segment !== undefined && segment.legs.length > 0) {
+        const end = Math.max(-1, endIndex - segment.offset);
+
+        if (end >= segment.legs.length) {
+          return;
+        }
+
+        for (let l = Math.min(segment.legs.length - 1, startIndex - segment.offset); l > end; l--) {
           yield segment.legs[l];
         }
       }
@@ -279,7 +303,7 @@ export class FlightPlan {
     this.planSegments[segmentIndex] = segment;
 
     this.reflowSegmentOffsets();
-    notify && this.events.onSegmentChanged && this.events.onSegmentChanged(segmentIndex, PlanChangeType.Added, segment);
+    notify && this.events.onSegmentChanged && this.events.onSegmentChanged(segmentIndex, SegmentEventType.Added, segment);
 
     return segment;
   }
@@ -302,7 +326,7 @@ export class FlightPlan {
 
       this.reflowSegments();
       this.reflowSegmentOffsets();
-      notify && this.events.onSegmentChanged && this.events.onSegmentChanged(segmentIndex, PlanChangeType.Inserted, newSegment);
+      notify && this.events.onSegmentChanged && this.events.onSegmentChanged(segmentIndex, SegmentEventType.Inserted, newSegment);
 
       return newSegment;
     } else {
@@ -342,7 +366,7 @@ export class FlightPlan {
     }
 
     this.reflowSegmentOffsets();
-    notify && this.events.onSegmentChanged && this.events.onSegmentChanged(segmentIndex, PlanChangeType.Removed, segment);
+    notify && this.events.onSegmentChanged && this.events.onSegmentChanged(segmentIndex, SegmentEventType.Removed, segment);
   }
 
   /**
@@ -357,7 +381,7 @@ export class FlightPlan {
 
     this.reflowSegments();
     this.reflowSegmentOffsets();
-    notify && this.events.onSegmentChanged && this.events.onSegmentChanged(segmentIndex, PlanChangeType.Removed, segment);
+    notify && this.events.onSegmentChanged && this.events.onSegmentChanged(segmentIndex, SegmentEventType.Removed, segment);
   }
 
   /**
@@ -367,6 +391,21 @@ export class FlightPlan {
    * @throws An error if the flight plan segment could not be found.
    */
   public getSegment(segmentIndex?: number): FlightPlanSegment {
+    const segment = this.tryGetSegment(segmentIndex);
+
+    if (segment === null) {
+      throw new Error(`Flight plan segment with ${segmentIndex === undefined ? 'active leg' : `segment index ${segmentIndex}`} could not be found.`);
+    } else {
+      return segment;
+    }
+  }
+
+  /**
+   * Attempts to get a flight plan segment from the plan.
+   * @param segmentIndex The index of the segment to get; if not specified returns the active segment.
+   * @returns The requested flight plan segment, or `null` if it could not be found.
+   */
+  public tryGetSegment(segmentIndex?: number): FlightPlanSegment | null {
     if (segmentIndex === undefined) {
       let calculatedSegmentIndex = 0;
       for (const segment of this.segments()) {
@@ -388,7 +427,8 @@ export class FlightPlan {
         return segment;
       }
     }
-    throw new Error(`Flight plan segment with segment index ${segmentIndex} could not be found.`);
+
+    return null;
   }
 
   /**
@@ -407,9 +447,15 @@ export class FlightPlan {
       leg,
       flags,
       verticalData: {
+        phase: VerticalFlightPhase.Descent,
         altDesc: AltitudeRestrictionType.Unused,
         altitude1: 0,
-        altitude2: 0
+        altitude2: 0,
+        displayAltitude1AsFlightLevel: false,
+        displayAltitude2AsFlightLevel: false,
+        speedDesc: SpeedRestrictionType.Unused,
+        speed: 0,
+        speedUnit: SpeedUnit.IAS,
       }
     };
 
@@ -421,7 +467,7 @@ export class FlightPlan {
     }
 
     this.reflowSegmentOffsets();
-    notify && this.events.onLegChanged && this.events.onLegChanged(segmentIndex, segmentLegIndex, PlanChangeType.Added, legDefinition);
+    notify && this.events.onLegChanged && this.events.onLegChanged(segmentIndex, segmentLegIndex, LegEventType.Added, legDefinition);
     return legDefinition;
   }
 
@@ -502,13 +548,14 @@ export class FlightPlan {
   public removeLeg(segmentIndex: number, segmentLegIndex?: number, notify = true): LegDefinition | null {
     const segment = this.getSegment(segmentIndex);
 
-    let legDefinition;
+    let legDefinition: LegDefinition | undefined;
+
     if (segmentLegIndex === undefined) {
       legDefinition = segment.legs.pop();
       segmentLegIndex = segment.legs.length;
     } else {
       const deleted = segment.legs.splice(segmentLegIndex, 1);
-      legDefinition = deleted[0];
+      legDefinition = deleted[0] as LegDefinition | undefined;
     }
 
     if (this.directToData.segmentIndex === segmentIndex && this.directToData.segmentLegIndex === segmentLegIndex) {
@@ -517,7 +564,7 @@ export class FlightPlan {
     }
 
     this.reflowSegmentOffsets();
-    notify && legDefinition && this.events.onLegChanged && this.events.onLegChanged(segmentIndex, segmentLegIndex, PlanChangeType.Removed, legDefinition);
+    notify && legDefinition && this.events.onLegChanged && this.events.onLegChanged(segmentIndex, segmentLegIndex, LegEventType.Removed, legDefinition);
     return legDefinition ?? null;
   }
 
@@ -580,6 +627,7 @@ export class FlightPlan {
     this.procedureDetails.approachTransitionIndex = -1;
     this.procedureDetails.arrivalIndex = -1;
     this.procedureDetails.arrivalRunwayTransitionIndex = -1;
+    this.procedureDetails.arrivalRunway = undefined;
     this.procedureDetails.arrivalTransitionIndex = -1;
     this.procedureDetails.destinationRunway = undefined;
 
@@ -682,7 +730,10 @@ export class FlightPlan {
    * @param notify Whether or not to send notifications after the operation.
    */
   public setProcedureDetails(details: Partial<ProcedureDetails>, notify = true): void {
-    Object.assign(this.procedureDetails, details);
+    for (const key of Object.keys(this.procedureDetails)) {
+      (this.procedureDetails as any)[key] = details[key as keyof ProcedureDetails];
+    }
+
     notify && this.events.onProcedureDetailsChanged && this.events.onProcedureDetailsChanged(this.procedureDetails);
   }
 
@@ -856,37 +907,38 @@ export class FlightPlan {
    * @param verticalData The Vertical Data for this leg.
    * @param notify Whether to send an event for this change. Defaults to true.
    */
-  public setLegVerticalData(segmentIndex: number, segmentLegIndex: number, verticalData: VerticalData, notify?: boolean): void;
+  public setLegVerticalData(segmentIndex: number, segmentLegIndex: number, verticalData: Partial<VerticalData>, notify?: boolean): void;
   /**
    * Sets the vertical data for this plan leg.
    * @param globalLegIndex The global leg index in the plan for the leg to add vertical data to.
    * @param verticalData The Vertical Data for this leg.
    * @param notify Whether to send an event for this change. Defaults to true.
    */
-  public setLegVerticalData(globalLegIndex: number, verticalData: VerticalData, notify?: boolean): void;
+  public setLegVerticalData(globalLegIndex: number, verticalData: Partial<VerticalData>, notify?: boolean): void;
   // eslint-disable-next-line jsdoc/require-jsdoc
-  public setLegVerticalData(arg1: number, arg2: number | VerticalData, arg3?: boolean | VerticalData, arg4?: boolean): void {
+  public setLegVerticalData(arg1: number, arg2: number | Partial<VerticalData>, arg3?: boolean | Partial<VerticalData>, arg4?: boolean): void {
     let notify = true;
     let segmentIndex = -1;
     let segmentLegIndex = -1;
-    let verticalData: VerticalData | undefined;
+    let verticalData: Partial<VerticalData> | undefined;
+
     if (typeof arg2 !== 'number') {
       segmentIndex = this.getSegmentIndex(arg1);
       const segment = this.getSegment(segmentIndex);
       segmentLegIndex = arg1 - segment.offset;
-      verticalData = arg2 as VerticalData;
+      verticalData = arg2 as Partial<VerticalData>;
       notify = arg3 !== undefined ? arg3 as boolean : notify;
     } else {
       segmentIndex = arg1;
       segmentLegIndex = arg2;
-      verticalData = arg3 as VerticalData;
+      verticalData = arg3 as Partial<VerticalData>;
       notify = arg4 !== undefined ? arg4 : notify;
     }
 
     const leg = this.tryGetLeg(segmentIndex, segmentLegIndex);
     if (leg) {
       Object.assign(leg.verticalData, verticalData);
-      notify && this.events.onLegChanged && this.events.onLegChanged(segmentIndex, segmentLegIndex, PlanChangeType.Changed, leg);
+      notify && this.events.onLegChanged && this.events.onLegChanged(segmentIndex, segmentLegIndex, LegEventType.Changed, leg);
     } else {
       console.warn(`Failed to set Leg Vertical Data for Segment ${segmentIndex} Leg ${segmentLegIndex}.`);
     }
@@ -905,7 +957,7 @@ export class FlightPlan {
     } else {
       segment.airway = airway;
     }
-    this.events.onSegmentChanged && notify && this.events.onSegmentChanged(segmentIndex, PlanChangeType.Changed, segment);
+    this.events.onSegmentChanged && notify && this.events.onSegmentChanged(segmentIndex, SegmentEventType.Changed, segment);
   }
 
   /**
@@ -1011,13 +1063,18 @@ export class FlightPlan {
    * @param arrivalIndex The index of the arrival in the destination airport information
    * @param arrivalTransitionIndex index of the arrival transition in the destination airport arrival information
    * @param arrivalRunwayTransitionIndex The index of the selected runway transition at the destination airport arrival information
+   * @param arrivalRunway The oneway runway to set as the arrival runway, or undefined
    * @param notify Whether or not to notify subscribers
    */
-  public setArrival(facilityIcao: string | undefined = undefined, arrivalIndex = -1, arrivalTransitionIndex = -1, arrivalRunwayTransitionIndex = -1, notify = true): void {
+  public setArrival(
+    facilityIcao: string | undefined = undefined, arrivalIndex = -1, arrivalTransitionIndex = -1,
+    arrivalRunwayTransitionIndex = -1, arrivalRunway: OneWayRunway | undefined = undefined, notify = true,
+  ): void {
     this.procedureDetails.arrivalIndex = arrivalIndex;
     this.procedureDetails.arrivalFacilityIcao = facilityIcao;
     this.procedureDetails.arrivalTransitionIndex = arrivalTransitionIndex;
     this.procedureDetails.arrivalRunwayTransitionIndex = arrivalRunwayTransitionIndex;
+    this.procedureDetails.arrivalRunway = arrivalRunway;
     const details = new ProcedureDetails;
     Object.assign(details, this.procedureDetails);
 
@@ -1046,9 +1103,10 @@ export class FlightPlan {
    * Copies the flight plan.
    * @param planIndex The flight plan index to assign to this plan, or the same plan
    * index if not provided.
+   * @param copyCalcs Whether to copy leg calculations (defaults to false).
    * @returns The copied flight plan.
    */
-  public copy(planIndex?: number): FlightPlan {
+  public copy(planIndex?: number, copyCalcs = false): FlightPlan {
     if (planIndex === undefined) {
       planIndex = this.planIndex;
     }
@@ -1063,6 +1121,7 @@ export class FlightPlan {
         const newLeg = newPlan.addLeg(segment.segmentIndex, leg.leg, undefined, leg.flags, false);
         const legIndex = newPlan.getLegIndexFromLeg(newLeg);
         newPlan.setLegVerticalData(legIndex, leg.verticalData);
+        copyCalcs && this.copyLegCalculations(leg, newLeg);
       }
     }
 
@@ -1083,6 +1142,37 @@ export class FlightPlan {
     }
 
     return newPlan;
+  }
+
+  /**
+   * Copies leg calcs from an existing leg to a new leg.
+   * @param existingLeg The leg that we want to copy the calcs from.
+   * @param newLeg The leg that we want to copy the calcs to.
+   * @returns the newLeg with the copied calcs.
+   */
+  private copyLegCalculations(existingLeg: LegDefinition, newLeg: LegDefinition): LegDefinition {
+    if (existingLeg.calculated !== undefined) {
+      newLeg.calculated = {
+        courseMagVar: existingLeg.calculated.courseMagVar,
+        initialDtk: existingLeg.calculated.initialDtk,
+        distance: existingLeg.calculated.distance,
+        cumulativeDistance: existingLeg.calculated.cumulativeDistance,
+        distanceWithTransitions: existingLeg.calculated.distanceWithTransitions,
+        cumulativeDistanceWithTransitions: existingLeg.calculated.cumulativeDistanceWithTransitions,
+        startLat: existingLeg.calculated.startLat,
+        startLon: existingLeg.calculated.startLon,
+        endLat: existingLeg.calculated.endLat,
+        endLon: existingLeg.calculated.endLon,
+        flightPath: existingLeg.calculated.flightPath.map(vector => Object.assign({}, vector)),
+        ingress: existingLeg.calculated.ingress.map(vector => Object.assign({}, vector)),
+        ingressJoinIndex: existingLeg.calculated.ingressJoinIndex,
+        ingressToEgress: existingLeg.calculated.ingressToEgress.map(vector => Object.assign({}, vector)),
+        egressJoinIndex: existingLeg.calculated.egressJoinIndex,
+        egress: existingLeg.calculated.egress.map(vector => Object.assign({}, vector)),
+        endsInFallback: existingLeg.calculated.endsInFallback
+      };
+    }
+    return newLeg;
   }
 
   /**

@@ -4,8 +4,9 @@ export class ScrollUtils {
    * Scrolls the container to make sure an element is in view.
    * @param el The element to scroll into view in the container.
    * @param container The container to scroll.
+   * @param pinDirection The end of the container which the element should be pinned to.
    */
-  public static ensureInView(el: HTMLElement, container: HTMLElement): void {
+  public static ensureInView(el: HTMLElement, container: HTMLElement, pinDirection: 'none' | 'top' | 'bottom' = 'none'): void {
     const cHeight = container.offsetHeight;
     const eHeight = el.offsetHeight;
     if (eHeight > cHeight) {
@@ -19,10 +20,10 @@ export class ScrollUtils {
       const eTop = ScrollUtils.findOffsetTopRelativeToAncestor(el, container);
       const eBottom = eTop + eHeight;
 
-      if (!this.isElementInViewport(cTop, cBottom, eTop, eBottom)) {
-        if (eTop < cTop) {
+      if (!this.isElementInViewport(cTop, cBottom, eTop, eBottom) || pinDirection !== 'none') {
+        if ((eTop < cTop) || pinDirection === 'top') {
           container.scrollTop -= (cTop - eTop);
-        } else if (eBottom > cBottom) {
+        } else if ((eBottom > cBottom) || pinDirection === 'bottom') {
           container.scrollTop += (eBottom - cBottom);
         }
       }

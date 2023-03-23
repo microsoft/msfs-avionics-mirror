@@ -1,0 +1,27 @@
+.lower-section-container {
+  --center-width: 73.057%;
+  --center-width-narrow: 70%;
+}
+
+.lower-section-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+/* The widths are weird numbers in order to get the hsi center to be square */
+.left-panel {
+  width: 13.472%;
+  padding-left: 1%;
+  z-index: 50;
+}
+
+.hsi-center {
+  width: var(--center-width);
+  background-color: var(--wt21-colors-black);
+}
+
+.right-panel {
+  width: 13.472%;
+}

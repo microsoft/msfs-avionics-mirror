@@ -1,0 +1,80 @@
+.waypoint-runway-page-selectors {
+  flex: 2;
+  position: relative;
+}
+
+wt-gns430 .waypoint-runway-page-selectors {
+  padding-top: 4px;
+}
+
+wt-gns530 .waypoint-runway-page-selectors {
+  padding-top: 6px;
+}
+
+.waypoint-runway-page-map {
+  width: 165px;
+  border: 1px solid var(--gnscyan);
+  background-color: black;
+  margin-top: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.waypoint-runway-page-databox-label {
+  color: var(--gnscyan);
+  padding-left: 5px;
+}
+
+.waypoint-runway-page-databox {
+  color: var(--gnsgreen);
+  font-size: var(--gns-font-page-data);
+  margin-left: 2px;
+  margin-bottom: 5px;
+  border: 1px solid var(--gnscyan);
+  background-color: black;
+  padding: 1px;
+}
+
+wt-gns530 .waypoint-runway-page-databox {
+  width: 89px;
+  height: 41px;
+}
+
+wt-gns430 .waypoint-runway-page-databox {
+  width: 107px;
+  height: 88px;
+}
+
+.waypoint-runway-length {}
+
+.waypoint-runway-width {
+  float: right;
+  text-align: right;
+}
+
+wt-gns430 .waypoint-runway-surface-type {
+  display: inline-block;
+  margin-top: 4px;
+}
+
+wt-gns430 .waypoint-runway-lighting {
+  display: inline-block;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+.runway>.waypoint-page-selector-box>.waypoint-page-selector-selected {
+  text-align: center;
+}
+
+.runway>.dialog-box>.dialog-box-inner>.waypoint-page-selector-items>.ui-control-list-content>.waypoint-page-selector-item {
+  text-align: center;
+}
+
+.runway>.dialog-box {
+  text-align: center;
+  top: 45px;
+  position: fixed;
+  right: 50px;
+  min-width: unset;
+}

@@ -1,12 +1,10 @@
-import { ClockEvents, ComponentProps, DisplayComponent, EventBus, FSComponent, Subscription, UserSettingManager, VNode } from 'msfssdk';
+import { ClockEvents, ComponentProps, DisplayComponent, EventBus, FSComponent, SetSubject, SubscribableSet, Subscription, UserSettingManager, VNode } from '@microsoft/msfs-sdk';
 
-import { DateTimeUserSettingTypes } from '../../settings/DateTimeUserSettings';
 import { NavDataBarSettingTypes } from '../../settings/NavDataBarUserSettings';
-import { UnitsUserSettingManager } from '../../settings/UnitsUserSettings';
 import { NavDataField } from '../navdatafield/NavDataField';
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
-import { DefaultNavDataBarFieldRenderer } from './DefaultNavDataBarFieldRenderer';
 import { NavDataBarFieldModel, NavDataBarFieldModelFactory } from './NavDataBarFieldModel';
+import { NavDataFieldRenderer } from '../navdatafield/NavDataFieldRenderer';
 
 /**
  * Component props for NavDataBar.
@@ -21,17 +19,17 @@ export interface NavDataBarProps extends ComponentProps {
   /** A navigation data bar field model factory. */
   modelFactory: NavDataBarFieldModelFactory;
 
+  /** A navigation data field renderer. */
+  fieldRenderer: NavDataFieldRenderer;
+
   /** A user setting manager for the settings that control the data bar's field types. */
   dataBarSettingManager: UserSettingManager<NavDataBarSettingTypes>;
 
-  /** A user setting manager for measurement units. */
-  unitsSettingManager: UnitsUserSettingManager;
-
-  /** A user setting manager for date/time settings. */
-  dateTimeSettingManager: UserSettingManager<DateTimeUserSettingTypes>;
-
   /** The update frequency of the data fields, in hertz. */
   updateFreq: number;
+
+  /** CSS class(es) to add to the data bar's root element. */
+  class?: string | SubscribableSet<string>;
 }
 
 /**
@@ -40,7 +38,7 @@ export interface NavDataBarProps extends ComponentProps {
  * The root element of the status bar contains the `nav-data-bar` CSS class by default.
  */
 export class NavDataBar extends DisplayComponent<NavDataBarProps> {
-  private readonly fieldRenderer = new DefaultNavDataBarFieldRenderer(this.props.unitsSettingManager, this.props.dateTimeSettingManager);
+  private static readonly RESERVED_CSS_CLASSES = ['nav-data-bar'];
 
   private readonly fieldCount = Math.max(0, this.props.fieldCount);
   private readonly fieldSlots: VNode[] = Array.from({ length: this.fieldCount }, () => <div />);
@@ -49,6 +47,7 @@ export class NavDataBar extends DisplayComponent<NavDataBarProps> {
 
   private readonly settingSubs: Subscription[] = [];
   private clockSub?: Subscription;
+  private cssClassSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
@@ -73,7 +72,7 @@ export class NavDataBar extends DisplayComponent<NavDataBarProps> {
 
     const model = this.props.modelFactory.create(type);
     model.update();
-    const field = this.fieldRenderer.render(type, model);
+    const field = this.props.fieldRenderer.render(type, model);
 
     this.models[index] = model;
     FSComponent.render(field, slot);
@@ -91,15 +90,26 @@ export class NavDataBar extends DisplayComponent<NavDataBarProps> {
 
   /** @inheritdoc */
   public render(): VNode {
+    let cssClass: string | SetSubject<string>;
+
+    if (typeof this.props.class === 'object') {
+      cssClass = SetSubject.create(['nav-data-bar']);
+      this.cssClassSub = FSComponent.bindCssClassSet(cssClass, this.props.class, NavDataBar.RESERVED_CSS_CLASSES);
+    } else {
+      cssClass = 'nav-data-bar';
+
+      if (this.props.class !== undefined && this.props.class.length > 0) {
+        cssClass += ` ${FSComponent.parseCssClassesFromString(this.props.class, classToAdd => !NavDataBar.RESERVED_CSS_CLASSES.includes(classToAdd)).join(' ')}`;
+      }
+    }
+
     return (
-      <div class='nav-data-bar'>{this.fieldSlots}</div>
+      <div class={cssClass}>{this.fieldSlots}</div>
     );
   }
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.clockSub?.destroy();
 
     for (let i = 0; i < this.fieldCount; i++) {
@@ -107,5 +117,9 @@ export class NavDataBar extends DisplayComponent<NavDataBarProps> {
       this.fields[i]?.destroy();
       this.models[i]?.destroy();
     }
+
+    this.cssClassSub?.destroy();
+
+    super.destroy();
   }
 }

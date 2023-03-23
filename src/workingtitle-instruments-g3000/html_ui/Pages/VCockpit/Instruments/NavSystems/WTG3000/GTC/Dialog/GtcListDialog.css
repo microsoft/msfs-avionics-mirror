@@ -1,0 +1,45 @@
+.gtc-list-dialog {
+  position: absolute;
+  left: var(--gtc-list-dialog-left);
+  top: var(--gtc-list-dialog-top);
+  width: var(--gtc-list-dialog-width);
+  font-size: var(--gtc-list-dialog-font-size);
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  padding: var(--gtc-list-dialog-padding);
+}
+
+/* Default dialog. */
+
+.gtc-horizontal .gtc-list-dialog {
+  --gtc-list-dialog-left: calc(50% - 548px / 2);
+  --gtc-list-dialog-top: 65px;
+  --gtc-list-dialog-width: 548px;
+  --gtc-list-dialog-padding: 10px 5px;
+  --gtc-list-dialog-font-size: 32px;
+}
+
+.gtc-vertical .gtc-list-dialog {
+  --gtc-list-dialog-left: calc(50% - 295px / 2);
+  --gtc-list-dialog-top: 35px;
+  --gtc-list-dialog-width: 295px;
+  --gtc-list-dialog-padding: 10px 5px;
+  --gtc-list-dialog-font-size: 16px;
+}
+
+/* Wide dialog. */
+
+.gtc-horizontal .gtc-list-dialog.gtc-list-dialog-wide {
+  --gtc-list-dialog-left: calc(50% - 812px / 2);
+  --gtc-list-dialog-width: 812px;
+  --gtc-list-dialog-padding: 10px;
+  --gtc-list-dialog-font-size: 38px;
+}
+
+.gtc-vertical .gtc-list-dialog.gtc-list-dialog-wide {
+  --gtc-list-dialog-left: calc(50% - 435px / 2);
+  --gtc-list-dialog-width: 435px;
+  --gtc-list-dialog-padding: 5px;
+  --gtc-list-dialog-font-size: 20px;
+}

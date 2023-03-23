@@ -1,0 +1,259 @@
+.gtc-horizontal .gtc-fuel-weight {
+  --gtc-fuel-weight-margin-top: 55px;
+  --gtc-fuel-weight-font-size: 32px;
+  --gtc-fuel-weight-letter-spacing: -1.4px;
+  --gtc-tabbed-container-width: 90%;
+  --wf-tab-padding: 30px 40px 0 31px;
+  --touch-button-height: 133px;
+  --wf-value-font-size: 40px;
+  --wf-value-letter-spacing: -2px;
+  --wf-value-unit-margin-left: .2em;
+  --wf-top-row-margin-bottom: 9.5%;
+  --wf-fob-instructions-letter-spacing: -1px;
+  --wf-fuel-by-vol-wf-fuel-button-wf-value-unit-font-size: 30px;
+}
+
+.gtc-vertical .gtc-fuel-weight {
+  --gtc-tabbed-container-vert-tab-width: 94px;
+  --gtc-tabbed-container-tab-font-size: 17px;
+  --gtc-fuel-weight-margin-top: 30px;
+  --gtc-fuel-weight-font-size: 17px;
+  --gtc-fuel-weight-letter-spacing: -.5px;
+  --gtc-tabbed-container-width: 463px;
+  --wf-tab-padding: 14px 17px 0 16px;
+  --touch-button-height: 71px;
+  --wf-value-font-size: 22px;
+  --wf-value-letter-spacing: -0.5px;
+  --wf-value-unit-margin-left: .2em;
+  --wf-top-row-margin-bottom: 31px;
+  --wf-fob-instructions-letter-spacing: 0px;
+  --wf-fuel-by-vol-wf-fuel-button-wf-value-unit-font-size: 17px;
+}
+
+.gtc-fuel-weight {
+  height: 93%;
+  width: 97%;
+  margin-top: var(--gtc-fuel-weight-margin-top);
+  margin-left: 1.5%;
+  display: flex;
+  justify-content: center;
+  font-size: var(--gtc-fuel-weight-font-size);
+  letter-spacing: var(--gtc-fuel-weight-letter-spacing);
+  --underline-border: 2px solid var(--g3000-color-white);
+}
+
+.gtc-fuel-weight .caution>.wf-unit-value {
+  color: var(--g3000-color-yellow);
+}
+
+.gtc-fuel-weight .warning>.wf-unit-value {
+  color: var(--g3000-color-red);
+}
+
+.gtc-fuel-weight .wf-value.wf-blank-value {
+  letter-spacing: 1px;
+}
+
+.gtc-fuel-weight .gtc-tabbed-container {
+  width: var(--gtc-tabbed-container-width);
+}
+
+.gtc-fuel-weight .wf-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--wf-tab-padding);
+}
+
+.gtc-fuel-weight .wf-row {
+  width: 100%;
+  align-items: center;
+}
+
+.gtc-fuel-weight .wf-label-value-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.gtc-fuel-weight .numberunit-num {
+  font-size: var(--wf-value-font-size);
+  letter-spacing: 0;
+}
+
+.gtc-fuel-weight .numberunit-unit-small {
+  font-size: var(--gtc-fuel-weight-font-size);
+  margin-left: var(--wf-value-unit-margin-left);
+}
+
+.gtc-fuel-weight .wf-value-unit {
+  margin-left: var(--wf-value-unit-margin-left);
+}
+
+.gtc-fuel-weight .wf-top-row {
+  margin-bottom: var(--wf-top-row-margin-bottom);
+}
+
+.gtc-fuel-weight .touch-button {
+  height: var(--touch-button-height);
+}
+
+.gtc-fuel-weight .touch-button-value-value {
+  top: 72%;
+}
+
+.gtc-fuel-weight .wf-math-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-right: -6.5%;
+}
+
+.gtc-fuel-weight .wf-math-row .touch-button-value {
+  margin-left: 6%;
+}
+
+.gtc-fuel-weight .wf-derived-weight-row {
+  display: grid;
+  grid-template-areas: 'non-weight sign weight';
+  grid-template-columns: 54.5% 9% 1fr;
+}
+
+.gtc-fuel-weight .wf-derived-weight-row.wf-wide-right {
+  grid-template-columns: 51.5% 9% 1fr;
+}
+
+.gtc-fuel-weight .wf-fuel-by-weight .wf-derived-weight-button {
+  grid-area: weight;
+}
+
+.gtc-fuel-weight .wf-derived-weight-row-sign {
+  grid-area: sign;
+}
+
+.gtc-fuel-weight .wf-fuel-by-weight .wf-weight-value {
+  display: none;
+}
+
+.gtc-fuel-weight .wf-fuel-by-vol .wf-derived-weight-button {
+  grid-area: non-weight;
+}
+
+.gtc-fuel-weight .wf-fuel-by-vol .wf-weight-value {
+  grid-area: weight;
+  justify-self: right;
+}
+
+.gtc-fuel-weight .wf-underline {
+  width: 38.5%;
+  margin-top: 4.5%;
+  margin-bottom: 5.5%;
+  border-bottom: var(--underline-border);
+}
+
+.gtc-fuel-weight .wf-full-underline {
+  width: 108%;
+  margin-right: -2%;
+  margin-top: -1%;
+  margin-bottom: 8.5%;
+  border-bottom: var(--underline-border);
+}
+
+.gtc-fuel-weight .wf-crew-stores-button {
+  width: 41.5%;
+}
+
+.gtc-fuel-weight .wf-bottom-center-button {
+  margin-top: 27%;
+  margin-left: 5%;
+  width: 43%;
+}
+
+.gtc-fuel-weight .wf-right-aligned-value .touch-button-value-value {
+  right: 7%;
+  padding-bottom: 3%;
+  text-align: right;
+}
+
+.gtc-fuel-weight .touch-button-value .touch-button-label {
+  top: 25%;
+}
+
+.gtc-fuel-weight .wf-pass-mult {
+  width: 77%;
+  margin-left: -1.5%;
+  align-items: center;
+}
+
+.gtc-fuel-weight .wf-num-pass-button {
+  width: 44%;
+}
+
+.gtc-fuel-weight .wf-num-pass-button .touch-button-value-value {
+  font-size: var(--wf-value-font-size);
+}
+
+.gtc-fuel-weight .wf-pass-weight-button {
+  width: 37%;
+}
+
+.gtc-fuel-weight .wf-cargo-row {
+  margin-top: 2.5%;
+}
+
+.gtc-fuel-weight .wf-cargo-button {
+  width: 34%;
+}
+
+.gtc-fuel-weight .wf-fob-instructions {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  top: 62%;
+  margin-left: 2%;
+  letter-spacing: var(--wf-fob-instructions-letter-spacing);
+}
+
+.gtc-fuel-weight .wf-overweight-caution {
+  color: var(--g3000-color-yellow);
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  font-size: var(--wf-value-font-size);
+  top: 64%;
+  margin-left: 2%;
+  letter-spacing: -0.5px;
+}
+
+.gtc-fuel-weight .wf-fuel-button .touch-button-value-value {
+  text-align: right;
+  padding-right: 7%;
+}
+
+.gtc-fuel-weight .wf-fuel-by-weight .wf-fuel-button {
+  width: 109%;
+}
+
+.gtc-fuel-weight .wf-fuel-by-vol .wf-fuel-on-board-button {
+  width: 83%;
+}
+
+.gtc-fuel-weight .wf-fuel-by-vol .wf-fuel-reserves-button {
+  width: 73%;
+}
+
+.gtc-fuel-weight .wf-fuel-by-vol .wf-fuel-button .wf-value-unit {
+  font-size: var(--wf-fuel-by-vol-wf-fuel-button-wf-value-unit-font-size);
+}
+
+.gtc-fuel-weight .wf-holding-time-row {
+  margin-top: 3%;
+  margin-bottom: -3%;
+}
+
+.gtc-fuel-weight .wf-holding-time-button {
+  width: 73%;
+  margin-top: -1%;
+}
+
+.gtc-fuel-weight .wf-excess-fuel {
+  margin-top: 3%;
+}

@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, FSComponent, ObjectSubject, Subscribable, Subscription, TcasOperatingMode, VNode } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, ObjectSubject, Subscribable, Subscription, TcasOperatingMode, VNode } from '@microsoft/msfs-sdk';
 
 import { MapTrafficAltitudeRestrictionMode } from '../modules/MapGarminTrafficModule';
 
@@ -10,7 +10,7 @@ export interface MapTrafficStatusIndicatorProps extends ComponentProps {
   show: Subscribable<boolean>;
 
   /** A subscribable which provides the current traffic system operating mode. */
-  operatingMode: Subscribable<number>;
+  operatingMode: Subscribable<TcasOperatingMode>;
 
   /**
    * A subscribable which provides the current map traffic altitude restriction mode. If not defined, the altitude
@@ -23,6 +23,13 @@ export interface MapTrafficStatusIndicatorProps extends ComponentProps {
  * Displays a traffic operating status and optional altitude restriction mode indications.
  */
 export class MapTrafficStatusIndicator extends DisplayComponent<MapTrafficStatusIndicatorProps> {
+  private static readonly DISABLED_MODES = new Set([
+    TcasOperatingMode.Off,
+    TcasOperatingMode.Standby,
+    TcasOperatingMode.Failed,
+    TcasOperatingMode.Test
+  ]);
+
   private static readonly ALT_RESTRICTION_TEXT = {
     [MapTrafficAltitudeRestrictionMode.Unrestricted]: 'UNRES',
     [MapTrafficAltitudeRestrictionMode.Above]: 'ABOVE',
@@ -48,8 +55,9 @@ export class MapTrafficStatusIndicator extends DisplayComponent<MapTrafficStatus
     }, true);
 
     this.operatingModeSub = this.props.operatingMode.sub(mode => {
-      this.disabledStyle.set('display', mode === TcasOperatingMode.Standby ? 'inherit' : 'none');
-      this.altModeStyle.set('display', mode === TcasOperatingMode.Standby ? 'none' : 'inherit');
+      const isDisabled = MapTrafficStatusIndicator.DISABLED_MODES.has(mode);
+      this.disabledStyle.set('display', isDisabled ? 'inherit' : 'none');
+      this.altModeStyle.set('display', isDisabled ? 'none' : 'inherit');
     }, true);
   }
 
@@ -66,8 +74,8 @@ export class MapTrafficStatusIndicator extends DisplayComponent<MapTrafficStatus
           <path d='M 50 5 L 95 50 L 50 95 L 5 50 Z' />
           <path d='M 115 10 L 135 35 L 122.5 35 L 122.5 80 L 107.5 80 L 107.5 35 L 95 35 Z' />
           <g style={this.disabledStyle} class='traffic-status-disabled'>
-            <path class='traffic-status-disabledcross traffic-status-disabledcross-outline' d='M 10 10 L 140 90 M 10 90 L 140 10' />
-            <path class='traffic-status-disabledcross traffic-status-disabledcross-stroke' d='M 10 10 L 140 90 M 10 90 L 140 10' />
+            <path class='traffic-status-disabledcross traffic-status-disabledcross-outline' d='M 5 0 L 145 100 M 5 100 L 145 0' />
+            <path class='traffic-status-disabledcross traffic-status-disabledcross-stroke' d='M 5 0 L 145 100 M 5 100 L 145 0' />
           </g>
         </svg>
       </div>

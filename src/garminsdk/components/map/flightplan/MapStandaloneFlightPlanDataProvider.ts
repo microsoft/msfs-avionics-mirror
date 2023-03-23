@@ -1,36 +1,61 @@
 import {
-  ActiveLegType, FlightPlan, NumberUnitInterface, NumberUnitSubject, SubEvent, Subject, Subscribable, UnitFamily, UnitType, VNavPathMode, VNavState
-} from 'msfssdk';
+  ActiveLegType, FlightPlan, LNavTrackingState, NumberUnitInterface, NumberUnitSubject, SubEvent, Subject, Subscribable, UnitFamily,
+  UnitType, VNavPathMode, VNavState
+} from '@microsoft/msfs-sdk';
 
-import { FlightPathPlanRendererLNavData } from './MapFlightPathPlanRenderer';
 import { MapFlightPlanDataProvider } from './MapFlightPlanDataProvider';
 
 /**
  * A {@link MapFlightPlanDataProvider} which provides data for a standalone flight plan not owned by a flight planner.
  */
 export class MapStandaloneFlightPlanPlanDataProvider implements MapFlightPlanDataProvider {
+  /** @inheritdoc */
   public readonly planModified = new SubEvent<this, void>();
 
+  /** @inheritdoc */
   public readonly planCalculated = new SubEvent<this, void>();
 
   private readonly _activeLateralLegIndex = Subject.create(0);
+  /** @inheritdoc */
   public readonly activeLateralLegIndex: Subscribable<number> = this._activeLateralLegIndex;
 
-  public readonly lnavData: Subscribable<FlightPathPlanRendererLNavData | undefined> = Subject.create(undefined);
+  /** @inheritdoc */
+  public readonly lnavData: Subscribable<LNavTrackingState | undefined> = Subject.create(undefined);
 
+  /** @inheritdoc */
   public readonly vnavState: Subscribable<VNavState> = Subject.create(VNavState.Disabled);
+  /** @inheritdoc */
   public readonly vnavPathMode: Subscribable<VNavPathMode> = Subject.create(VNavPathMode.None);
 
+  /** @inheritdoc */
   public readonly vnavTodLegIndex: Subscribable<number> = Subject.create(-1);
 
+  /** @inheritdoc */
   public readonly vnavBodLegIndex: Subscribable<number> = Subject.create(-1);
 
+  /** @inheritdoc */
   public readonly vnavTodLegDistance: Subscribable<NumberUnitInterface<UnitFamily.Distance>>
-    = NumberUnitSubject.createFromNumberUnit(UnitType.METER.createNumber(0));
+    = NumberUnitSubject.create(UnitType.METER.createNumber(0));
 
+  /** @inheritdoc */
   public readonly vnavDistanceToTod: Subscribable<NumberUnitInterface<UnitFamily.Distance>>
-    = NumberUnitSubject.createFromNumberUnit(UnitType.METER.createNumber(0));
+    = NumberUnitSubject.create(UnitType.METER.createNumber(0));
 
+  /** @inheritdoc */
+  public readonly vnavTocLegIndex: Subscribable<number> = Subject.create(-1);
+
+  /** @inheritdoc */
+  public readonly vnavBocLegIndex: Subscribable<number> = Subject.create(-1);
+
+  /** @inheritdoc */
+  public readonly vnavTocLegDistance: Subscribable<NumberUnitInterface<UnitFamily.Distance>>
+    = NumberUnitSubject.create(UnitType.METER.createNumber(0));
+
+  /** @inheritdoc */
+  public readonly vnavDistanceToToc: Subscribable<NumberUnitInterface<UnitFamily.Distance>>
+    = NumberUnitSubject.create(UnitType.METER.createNumber(0));
+
+  /** @inheritdoc */
   public readonly obsCourse: Subscribable<number | undefined> = Subject.create(undefined);
 
   private oldPlan: FlightPlan | null = null;

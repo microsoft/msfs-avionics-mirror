@@ -1,0 +1,45 @@
+.aoa-title {
+  position: absolute;
+  left: 16%;
+  top: 4%;
+  color: var(--wt21-colors-dark-gray);
+}
+
+.aoa-readout {
+  position: absolute;
+  left: 33%;
+  bottom: 2.5%;
+  transform: rotateX(0);
+  color: var(--wt21-colors-dark-gray);
+}
+
+.aoa-tick-marks {
+  position: absolute;
+  top: 13%;
+}
+
+.aoa-arrow-bug,
+.aoa-low-rhombus-bug,
+.aoa-high-rhombus-bug {
+  position: absolute;
+  left: 48%;
+  top: 14.5%;
+}
+
+.aoa-high-rhombus-bug {
+  top: 15%;
+}
+
+.aoa-low-rhombus-bug {
+  top: 81%;
+}
+
+.aoa-box .fail-box-small {
+  top: 45.5%;
+  left: 10%;
+}
+
+.fail .aoa,
+.warn .aoa {
+  display: none;
+}

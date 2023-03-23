@@ -1,4 +1,4 @@
-import { NumberUnitSubject, Subject, UnitType } from 'msfssdk';
+import { NumberUnitSubject, Subject, UnitType } from '@microsoft/msfs-sdk';
 
 /**
  * A module describing the display of the track vector.

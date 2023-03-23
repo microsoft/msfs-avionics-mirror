@@ -1,0 +1,8 @@
+.nexrad-info {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--wt21-colors-white);
+  font-size: 26px;
+  text-align: right;
+}

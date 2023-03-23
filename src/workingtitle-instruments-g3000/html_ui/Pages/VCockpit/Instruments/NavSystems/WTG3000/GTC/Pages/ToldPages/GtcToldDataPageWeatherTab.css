@@ -1,0 +1,162 @@
+.told-data-page-weather {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .told-data-page-weather {
+  --told-data-page-weather-left-left: 20px;
+  --told-data-page-weather-left-top: 10px;
+  --told-data-page-weather-left-width: 275px;
+  --told-data-page-weather-left-height: 685px;
+
+  --told-data-page-weather-origin-dest-margin-bottom: 20px;
+  --told-origin-dest-display-airport-height: 100px;
+
+  --told-data-page-weather-left-buttons-margin-right: 10px;
+  --told-data-page-weather-left-button-height: 155px;
+
+  --told-data-page-weather-right-right: 5px;
+  --told-data-page-weather-right-top: 10px;
+  --told-data-page-weather-right-width: 480px;
+  --told-data-page-weather-right-height: 685px;
+  --told-data-page-weather-right-padding: 3px 5px;
+
+  --told-data-page-weather-right-button-height: 130px;
+  --told-data-page-weather-right-button-margin-bottom: 5px;
+}
+
+.gtc-vertical .told-data-page-weather {
+  --told-data-page-weather-left-left: 10px;
+  --told-data-page-weather-left-top: 5px;
+  --told-data-page-weather-left-width: 125px;
+  --told-data-page-weather-left-height: 360px;
+
+  --told-data-page-weather-origin-dest-margin-bottom: 10px;
+  --told-origin-dest-display-airport-height: 55px;
+
+  --told-data-page-weather-left-buttons-margin-right: 4px;
+  --told-data-page-weather-left-button-height: 80px;
+
+  --told-data-page-weather-right-right: 3px;
+  --told-data-page-weather-right-top: 5px;
+  --told-data-page-weather-right-width: 212px;
+  --told-data-page-weather-right-height: 360px;
+  --told-data-page-weather-right-padding: 1px 2px;
+
+  --told-data-page-weather-right-button-height: 70px;
+  --told-data-page-weather-right-button-margin-bottom: 2px;
+}
+
+.told-data-page-weather-left {
+  position: absolute;
+  left: var(--told-data-page-weather-left-left);
+  top: var(--told-data-page-weather-left-top);
+  width: var(--told-data-page-weather-left-width);
+  height: var(--told-data-page-weather-left-height);
+
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.told-data-page-weather-left .told-origin-dest-display {
+  margin-bottom: var(--told-data-page-weather-origin-dest-margin-bottom);
+}
+
+.told-data-page-weather-left-buttons {
+  flex-grow: 1;
+  margin-right: var(--told-data-page-weather-left-buttons-margin-right);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.told-data-page-weather-left-button {
+  height: var(--told-data-page-weather-left-button-height);
+}
+
+.told-data-page-weather-right {
+  position: absolute;
+  right: var(--told-data-page-weather-right-right);
+  top: var(--told-data-page-weather-right-top);
+  width: var(--told-data-page-weather-right-width);
+  height: var(--told-data-page-weather-right-height);
+  padding: var(--told-data-page-weather-right-padding);
+
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.told-data-page-weather-right-button {
+  height: var(--told-data-page-weather-right-button-height);
+  margin-bottom: var(--told-data-page-weather-right-button-margin-bottom);
+
+  --touch-button-value-label-center-y: 25%;
+  --touch-button-label-center-y: 25%;
+}
+
+.told-data-page-weather-right-button .touch-button-value-value {
+  white-space: pre;
+  font-size: 1.3em;
+}
+
+.told-data-page-weather-wind-button-value {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: baseline;
+}
+
+.told-data-page-weather-wind-button-value-sep {
+  color: var(--g3000-color-white);
+}
+
+.told-data-page-weather-temperature-button-value {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.told-data-page-weather-temperature-button-value-number {
+  flex-grow: 1;
+  text-align: center;
+}
+
+.told-data-page-weather-temperature-button-value-rat {
+  position: relative;
+  left: -27.5%;
+  width: 0px;
+  font-size: 0.8em;
+}
+
+.told-metar-popup {
+  position: absolute;
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .told-metar-popup {
+  left: calc(50% - 800px / 2);
+  top: 60px;
+  width: 800px;
+  height: 680px;
+  padding: 30px 20px;
+  font-size: 29px;
+}
+
+.gtc-vertical .told-metar-popup {
+  left: calc(50% - 410px / 2);
+  top: 30px;
+  width: 410px;
+  height: 368px;
+  padding: 15px 10px;
+  font-size: 16px;
+}

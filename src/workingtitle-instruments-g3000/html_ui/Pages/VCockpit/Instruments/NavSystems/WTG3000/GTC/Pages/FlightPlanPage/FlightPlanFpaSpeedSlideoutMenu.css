@@ -1,0 +1,30 @@
+ .gtc-horizontal .fpa-speed-slideout-menu {
+   --flight-plan-fpa-speed-menu-button-width: 321px;
+   --flight-plan-fpa-speed-menu-button-height: 166px;
+   --flight-plan-fpa-speed-menu-button-spacing: 53px;
+   --flight-plan-fpa-speed-menu-button-label-font-size: 30px;
+   --flight-plan-fpa-speed-menu-button-value-font-size: 38px;
+ }
+
+ .gtc-vertical .fpa-speed-slideout-menu {
+   --flight-plan-fpa-speed-menu-button-width: 176px;
+   --flight-plan-fpa-speed-menu-button-height: 89px;
+   --flight-plan-fpa-speed-menu-button-spacing: 26px;
+   --flight-plan-fpa-speed-menu-button-label-font-size: 16px;
+   --flight-plan-fpa-speed-menu-button-value-font-size: 22px;
+ }
+
+ .fpa-speed-slideout-menu .touch-button {
+   margin: 0 auto;
+   width: var(--flight-plan-fpa-speed-menu-button-width);
+   height: var(--flight-plan-fpa-speed-menu-button-height);
+   margin-top: var(--flight-plan-fpa-speed-menu-button-spacing);
+ }
+
+ .fpa-speed-slideout-menu .touch-button .touch-button-label {
+   font-size: var(--flight-plan-fpa-speed-menu-button-label-font-size);
+ }
+
+ .fpa-speed-slideout-menu .touch-button .touch-button-value-value {
+   font-size: var(--flight-plan-fpa-speed-menu-button-value-font-size);
+ }

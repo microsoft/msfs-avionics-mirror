@@ -1,26 +1,26 @@
 {
-  "name": "msfssdk",
-  "version": "0.3.0",
+  "name": "@microsoft/msfs-sdk",
+  "version": "0.4.0",
   "description": "HTML and Typescript SDK for MSFS Coherent based instruments and aircraft development.",
   "main": "msfssdk.js",
+  "typings": "msfssdk.d.ts",
   "scripts": {
-    "build": "tsc && npx copyfiles package.json ./build"
+    "build": "npm run build:compile && npm run build:rollup",
+    "build:compile": "tsc",
+    "build:rollup": "rollup -c rollup.config.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://dev.azure.com/workingtitlesim/KittyHawk/_git/ProjectGolf"
+    "url": "https://github.com/microsoft/msfs-avionics-mirror/"
   },
-  "typedocMain": "index.ts",
   "author": "Working Title Simulations",
   "license": "MIT",
   "devDependencies": {
-    "@types/geodesy": "^2.2.2",
-    "@types/node": "^17.0.21",
-    "copyfiles": "^2.4.1",
-    "msfstypes": "file:../msfstypes",
-    "typescript": "~4.5.5"
-  },
-  "dependencies": {
-    "rollup-plugin-dts": "^4.2.0"
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@types/node": "^18.11.18",
+    "@microsoft/msfs-types": "^1.14.6",
+    "rollup": "^2.79.1",
+    "rollup-plugin-dts": "^4.2.3",
+    "typescript": "4.5.5"
   }
 }

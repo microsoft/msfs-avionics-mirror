@@ -1,0 +1,45 @@
+.gtc-horizontal .number-dialog.vnav-fpa-dialog {
+  --vnav-fpa-dialog-inactive-min-width: 133px;
+  --vnav-fpa-dialog-input-height: 44px;
+
+  --vnav-fpa-dialog-button-margin: 16px;
+  --vnav-fpa-dialog-button-width: 217px;
+  --vnav-fpa-dialog-button-height: 129px;
+  --vnav-fpa-dialog-button-font-size: 36px;
+}
+
+.gtc-vertical .number-dialog.vnav-fpa-dialog {
+  --vnav-fpa-dialog-inactive-min-width: 73px;
+  --vnav-fpa-dialog-input-height: 24px;
+
+  --vnav-fpa-dialog-button-margin: 5px;
+  --vnav-fpa-dialog-button-width: 125px;
+  --vnav-fpa-dialog-button-height: 66px;
+  --vnav-fpa-dialog-button-font-size: 16px;
+}
+
+.vnav-fpa-dialog .cursor-input-inactive {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.vnav-fpa-dialog .vnav-fpa-dialog-input-inactive {
+  text-align: right;
+  background-color: var(--g3000-color-cyan);
+  min-width: var(--vnav-fpa-dialog-inactive-min-width);
+  height: var(--vnav-fpa-dialog-input-height);
+}
+
+.vnav-fpa-dialog-input-cyan {
+  color: var(--g3000-color-cyan);
+}
+
+.vnav-fpa-dialog .remove-button {
+  position: absolute;
+  left: var(--vnav-fpa-dialog-button-margin);
+  bottom: var(--vnav-fpa-dialog-button-margin);
+  width: var(--vnav-fpa-dialog-button-width);
+  height: var(--vnav-fpa-dialog-button-height);
+  font-size: var(--vnav-fpa-dialog-button-font-size);
+}

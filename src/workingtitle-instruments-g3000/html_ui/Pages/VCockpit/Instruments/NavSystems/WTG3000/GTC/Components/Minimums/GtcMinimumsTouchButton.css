@@ -1,0 +1,28 @@
+.touch-button-minimums {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.gtc-horizontal .touch-button-minimums {
+  --touch-button-minimums-mode-margin-vertical: 5px;
+}
+
+.gtc-vertical .touch-button-minimums {
+  --touch-button-minimums-mode-margin-vertical: 2px;
+}
+
+.touch-button-minimums-label {
+  color: var(--g3000-color-white);
+}
+
+.touch-button-minimums-mode {
+  margin: var(--touch-button-minimums-mode-margin-vertical) 0px;
+  color: var(--g3000-color-cyan);
+}
+
+.touch-button-minimums-value {
+  color: var(--g3000-color-cyan);
+  font-size: 1.3em;
+}

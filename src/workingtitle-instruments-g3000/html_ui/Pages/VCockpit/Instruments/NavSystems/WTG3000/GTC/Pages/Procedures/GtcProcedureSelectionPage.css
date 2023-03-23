@@ -1,0 +1,369 @@
+.gtc-procedure-selection-page {
+  position: absolute;
+  top: var(--gtc-procedure-selection-page-top);
+  left: var(--gtc-procedure-selection-page-left);
+  width: var(--gtc-procedure-selection-page-width);
+  height: var(--gtc-procedure-selection-page-height);
+}
+
+.gtc-horizontal .gtc-procedure-selection-page {
+  --gtc-procedure-selection-page-top: 55px;
+  --gtc-procedure-selection-page-left: 61px;
+  --gtc-procedure-selection-page-width: 865px;
+  --gtc-procedure-selection-page-height: 706px;
+
+  --gtc-procedure-selection-page-big-button-width: 282px;
+  --gtc-procedure-selection-page-big-button-height: 170px;
+  --gtc-procedure-selection-page-big-button-font-size: 30px;
+
+  --gtc-procedure-selection-page-big-button-top-label-top: 21px;
+  --gtc-procedure-selection-page-big-button-top-label-font-size: 30px;
+  --gtc-procedure-selection-page-big-button-top-label-line-height: 30px;
+
+  --gtc-procedure-selection-page-big-button-mid-label-top: 66px;
+  --gtc-procedure-selection-page-big-button-mid-label-font-size: 38px;
+  --gtc-procedure-selection-page-big-button-mid-label-small-font-size: 34px;
+  --gtc-procedure-selection-page-big-button-mid-label-padding: 0 8px;
+
+  --gtc-procedure-selection-page-big-button-mid-label-appr-top: 54px;
+  --gtc-procedure-selection-page-big-button-mid-label-appr-height: 100px;
+
+  --gtc-procedure-selection-page-big-button-mid-label-big-top: 56px;
+  --gtc-procedure-selection-page-big-button-mid-label-big-font-size: 52px;
+
+  --gtc-procedure-selection-page-big-button-sbas-mid-labels-width: 200px;
+  --gtc-procedure-selection-page-big-button-second-row-mid-labels-top: 62px;
+  --gtc-procedure-selection-page-big-button-sbas-bottom-label-top: 95px;
+
+  --gtc-procedure-selection-page-big-button-bottom-label-top: 102px;
+  --gtc-procedure-selection-page-big-button-bottom-label-font-size: 30px;
+  --gtc-procedure-selection-page-big-button-bottom-label-line-height: 60px;
+  --gtc-procedure-selection-page-big-button-bottom-label-padding: 8px;
+
+  --gtc-procedure-selection-page-big-button-double-bottom-label-padding: 0 16px;
+
+  --gtc-procedure-selection-page-big-button-icon-top: 22px;
+  --gtc-procedure-selection-page-big-button-icon-right: 24px;
+  --gtc-procedure-selection-page-big-button-icon-transform: scale(1.85);
+
+  --gtc-procedure-selection-page-second-row-top: 182px;
+  --gtc-procedure-selection-page-second-row-width: 574px;
+
+  --gtc-procedure-selection-page-sequence-box-width: 282px;
+  --gtc-procedure-selection-page-sequence-box-height: 524px;
+
+  --gtc-procedure-selection-page-sequence-box-list-top: 66px;
+
+  --gtc-procedure-selection-page-sequence-box-item-font-size: 33px;
+  --gtc-procedure-selection-page-sequence-box-item-margin-left: 6px;
+
+  --gtc-procedure-selection-page-options-box-width: 574px;
+  --gtc-procedure-selection-page-options-box-height: 344px;
+
+  --gtc-procedure-selection-page-options-buttons-top: 63px;
+  --gtc-procedure-selection-page-options-buttons-left: 16px;
+  --gtc-procedure-selection-page-options-buttons-width: 538px;
+  --gtc-procedure-selection-page-options-buttons-height: 259px;
+
+  --gtc-procedure-selection-page-options-button-width: 260px;
+  --gtc-procedure-selection-page-options-button-height: 123px;
+  --gtc-procedure-selection-page-options-button-preview-width: 399px;
+  --gtc-procedure-selection-page-options-button-approach-width: 172px;
+
+  --gtc-procedure-selection-page-options-value-button-label-font-size: 30px;
+  --gtc-procedure-selection-page-options-value-button-label-top: 23px;
+  --gtc-procedure-selection-page-options-value-button-value-font-size: 33px;
+  --gtc-procedure-selection-page-options-value-button-value-top: 95px;
+  --gtc-procedure-selection-page-options-button-label-font-size: 38px;
+}
+
+.gtc-vertical .gtc-procedure-selection-page {
+  --gtc-procedure-selection-page-top: 30px;
+  --gtc-procedure-selection-page-left: 7px;
+  --gtc-procedure-selection-page-width: 466px;
+  --gtc-procedure-selection-page-height: 380px;
+
+  --gtc-procedure-selection-page-big-button-width: 152px;
+  --gtc-procedure-selection-page-big-button-height: 91px;
+  --gtc-procedure-selection-page-big-button-font-size: 20px;
+
+  --gtc-procedure-selection-page-big-button-top-label-top: 9px;
+  --gtc-procedure-selection-page-big-button-top-label-font-size: 17px;
+  --gtc-procedure-selection-page-big-button-top-label-line-height: 17px;
+
+  --gtc-procedure-selection-page-big-button-mid-label-top: 35px;
+  --gtc-procedure-selection-page-big-button-mid-label-font-size: 22px;
+  --gtc-procedure-selection-page-big-button-mid-label-small-font-size: 18px;
+  --gtc-procedure-selection-page-big-button-mid-label-padding: 0 4px;
+
+  --gtc-procedure-selection-page-big-button-mid-label-appr-top: 25px;
+  --gtc-procedure-selection-page-big-button-mid-label-appr-height: 60px;
+
+  --gtc-procedure-selection-page-big-button-mid-label-big-top: 30px;
+  --gtc-procedure-selection-page-big-button-mid-label-big-font-size: 27px;
+
+  --gtc-procedure-selection-page-big-button-sbas-mid-labels-width: 110px;
+  --gtc-procedure-selection-page-big-button-second-row-mid-labels-top: 32px;
+  --gtc-procedure-selection-page-big-button-sbas-bottom-label-top: 42px;
+
+  --gtc-procedure-selection-page-big-button-bottom-label-top: 45px;
+  --gtc-procedure-selection-page-big-button-bottom-label-font-size: 17px;
+  --gtc-procedure-selection-page-big-button-bottom-label-line-height: 50px;
+  --gtc-procedure-selection-page-big-button-bottom-label-padding: 4px;
+
+  --gtc-procedure-selection-page-big-button-double-bottom-label-padding: 0 10px;
+
+  --gtc-procedure-selection-page-big-button-icon-top: 6px;
+  --gtc-procedure-selection-page-big-button-icon-right: 7px;
+  --gtc-procedure-selection-page-big-button-icon-transform: scale(1);
+
+  --gtc-procedure-selection-page-second-row-top: 98px;
+  --gtc-procedure-selection-page-second-row-width: 309px;
+
+  --gtc-procedure-selection-page-sequence-box-width: 152px;
+  --gtc-procedure-selection-page-sequence-box-height: 282px;
+
+  --gtc-procedure-selection-page-sequence-box-list-top: 32px;
+
+  --gtc-procedure-selection-page-sequence-box-item-font-size: 18px;
+  --gtc-procedure-selection-page-sequence-box-item-margin-left: 3px;
+
+  --gtc-procedure-selection-page-options-box-width: 309px;
+  --gtc-procedure-selection-page-options-box-height: 185px;
+
+  --gtc-procedure-selection-page-options-buttons-top: 33px;
+  --gtc-procedure-selection-page-options-buttons-left: 8px;
+  --gtc-procedure-selection-page-options-buttons-width: 289px;
+  --gtc-procedure-selection-page-options-buttons-height: 139px;
+
+  --gtc-procedure-selection-page-options-button-width: 140px;
+  --gtc-procedure-selection-page-options-button-height: 66px;
+  --gtc-procedure-selection-page-options-button-preview-width: 215px;
+  --gtc-procedure-selection-page-options-button-approach-width: 93px;
+
+  --gtc-procedure-selection-page-options-value-button-label-font-size: 17px;
+  --gtc-procedure-selection-page-options-value-button-label-top: 12px;
+  --gtc-procedure-selection-page-options-value-button-value-font-size: 18px;
+  --gtc-procedure-selection-page-options-value-button-value-top: 50px;
+  --gtc-procedure-selection-page-options-button-label-font-size: 22px;
+}
+
+.gtc-procedure-selection-page .top-row {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.gtc-procedure-selection-page .proc-page-big-button {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-weight: 600;
+  width: var(--gtc-procedure-selection-page-big-button-width);
+  height: var(--gtc-procedure-selection-page-big-button-height);
+  font-size: var(--gtc-procedure-selection-page-big-button-font-size);
+}
+
+.gtc-procedure-selection-page .proc-page-big-button .top-label,
+.gtc-procedure-selection-page .proc-page-big-button .touch-button-label {
+  position: absolute;
+  transform: unset;
+  width: 100%;
+  text-align: center;
+  top: var(--gtc-procedure-selection-page-big-button-top-label-top);
+  font-size: var(--gtc-procedure-selection-page-big-button-top-label-font-size);
+  line-height: var(--gtc-procedure-selection-page-big-button-top-label-line-height);
+}
+
+.gtc-procedure-selection-page .proc-page-big-button .mid-label {
+  width: 100%;
+  text-align: center;
+  font-size: var(--gtc-procedure-selection-page-big-button-mid-label-big-font-size);
+  top: var(--gtc-procedure-selection-page-big-button-mid-label-big-top);
+}
+
+.gtc-procedure-selection-page .proc-page-big-button .mid-label,
+.gtc-procedure-selection-page .proc-page-big-button .touch-button-value-value {
+  position: absolute;
+  color: var(--g3000-color-cyan);
+}
+
+.gtc-procedure-selection-page .second-row .proc-page-big-button.sbas .mid-label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--g3000-color-white);
+  width: var(--gtc-procedure-selection-page-big-button-sbas-mid-labels-width);
+}
+
+.gtc-procedure-selection-page .second-row .proc-page-big-button.sbas .mid-label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--g3000-color-white);
+  width: var(--gtc-procedure-selection-page-big-button-sbas-mid-labels-width);
+}
+
+.gtc-procedure-selection-page .second-row .proc-page-big-button .mid-label {
+  font-size: var(--gtc-procedure-selection-page-big-button-top-label-font-size);
+  top: var(--gtc-procedure-selection-page-big-button-second-row-mid-labels-top);
+}
+
+.gtc-procedure-selection-page .proc-page-big-button .touch-button-value-value {
+  position: absolute;
+  transform: unset;
+  font-size: var(--gtc-procedure-selection-page-big-button-mid-label-font-size);
+  top: var(--gtc-procedure-selection-page-big-button-mid-label-top);
+  padding: var(--gtc-procedure-selection-page-big-button-mid-label-padding);
+}
+
+.gtc-procedure-selection-page .proc-page-big-button.button-value-small-text .touch-button-value-value {
+  font-size: var(--gtc-procedure-selection-page-big-button-mid-label-small-font-size);
+}
+
+.gtc-procedure-selection-page.gtc-approach-page .proc-page-big-button .touch-button-value-value {
+  top: var(--gtc-procedure-selection-page-big-button-mid-label-appr-top);
+  height: var(--gtc-procedure-selection-page-big-button-mid-label-appr-height);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gtc-procedure-selection-page .proc-page-big-button .bottom-label {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  word-break: break-all;
+  top: var(--gtc-procedure-selection-page-big-button-bottom-label-top);
+  font-size: var(--gtc-procedure-selection-page-big-button-bottom-label-font-size);
+  line-height: var(--gtc-procedure-selection-page-big-button-bottom-label-line-height);
+  padding: 0px var(--gtc-procedure-selection-page-big-button-bottom-label-padding);
+}
+
+.gtc-procedure-selection-page.gtc-approach-page .touch-button .bottom-label.double-bottom-label {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: var(--gtc-procedure-selection-page-big-button-double-bottom-label-padding);
+  top: var(--gtc-procedure-selection-page-big-button-sbas-bottom-label-top);
+}
+
+.gtc-procedure-selection-page .proc-page-big-button .label-icon {
+  position: absolute;
+  top: var(--gtc-procedure-selection-page-big-button-icon-top);
+  right: var(--gtc-procedure-selection-page-big-button-icon-right);
+  transform: var(--gtc-procedure-selection-page-big-button-icon-transform);
+}
+
+.gtc-procedure-selection-page .second-row {
+  position: absolute;
+  top: var(--gtc-procedure-selection-page-second-row-top);
+  left: 0px;
+  width: var(--gtc-procedure-selection-page-second-row-width);
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.gtc-procedure-selection-page.gtc-approach-page .second-row {
+  justify-content: space-between;
+}
+
+.approach-page-minimums-button {
+  width: var(--gtc-procedure-selection-page-big-button-width);
+  height: var(--gtc-procedure-selection-page-big-button-height);
+  font-size: var(--gtc-procedure-selection-page-big-button-top-label-font-size);
+}
+
+.gtc-procedure-selection-page .options-box {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: var(--gtc-procedure-selection-page-options-box-width);
+  height: var(--gtc-procedure-selection-page-options-box-height);
+}
+
+.gtc-procedure-selection-page .sequence-box {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: var(--gtc-procedure-selection-page-sequence-box-width);
+  height: var(--gtc-procedure-selection-page-sequence-box-height);
+}
+
+.gtc-procedure-selection-page .sequence-box .gtc-list {
+  position: absolute;
+  width: calc(100% - 2px);
+  top: var(--gtc-procedure-selection-page-sequence-box-list-top);
+}
+
+.gtc-procedure-selection-page .sequence-box .list-item.sequence-item {
+  display: block;
+  font-size: var(--gtc-procedure-selection-page-sequence-box-item-font-size);
+  margin-left: var(--gtc-procedure-selection-page-sequence-box-item-margin-left);
+}
+
+.gtc-procedure-selection-page .options-buttons {
+  position: absolute;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-content: space-between;
+}
+
+.gtc-procedure-selection-page .options-buttons {
+  top: var(--gtc-procedure-selection-page-options-buttons-top);
+  left: var(--gtc-procedure-selection-page-options-buttons-left);
+  width: var(--gtc-procedure-selection-page-options-buttons-width);
+  height: var(--gtc-procedure-selection-page-options-buttons-height);
+}
+
+.gtc-procedure-selection-page .options-buttons .touch-button {
+  width: var(--gtc-procedure-selection-page-options-button-width);
+  height: var(--gtc-procedure-selection-page-options-button-height);
+  font-weight: 600;
+}
+
+.gtc-procedure-selection-page.gtc-approach-page .options-buttons .touch-button {
+  width: var(--gtc-procedure-selection-page-options-button-approach-width);
+}
+
+.gtc-procedure-selection-page.gtc-approach-page .options-buttons .touch-button.preview-button {
+  width: var(--gtc-procedure-selection-page-options-button-preview-width);
+  margin: 0 auto;
+}
+
+.gtc-procedure-selection-page .options-buttons .touch-button.touch-button-value .touch-button-label {
+  font-size: var(--gtc-procedure-selection-page-options-value-button-label-font-size);
+  top: var(--gtc-procedure-selection-page-options-value-button-label-top);
+}
+
+.gtc-procedure-selection-page .options-buttons .touch-button.touch-button-value .touch-button-value-value {
+  font-size: var(--gtc-procedure-selection-page-options-value-button-value-font-size);
+  top: var(--gtc-procedure-selection-page-options-value-button-value-top);
+}
+
+.gtc-procedure-selection-page .options-buttons .touch-button .touch-button-label {
+  font-size: var(--gtc-procedure-selection-page-options-button-label-font-size);
+}
+
+.gtc-procedure-selection-page.gtc-approach-page .options-buttons .touch-button .touch-button-label {
+  font-size: var(--gtc-procedure-selection-page-options-value-button-label-font-size);
+}
+
+.gtc-horizontal .gtc-list-dialog.gtc-proc-pages-list-dialog {
+  width: 802px;
+  height: 712px;
+  top: 46px;
+  left: unset;
+  font-size: 38px;
+}
+
+.gtc-vertical .gtc-list-dialog.gtc-proc-pages-list-dialog {
+  width: 432px;
+  height: 383px;
+  top: 25px;
+  left: unset;
+  font-size: 22px;
+}

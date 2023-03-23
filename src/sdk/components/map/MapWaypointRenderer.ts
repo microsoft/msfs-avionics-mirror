@@ -1,5 +1,6 @@
 import { LatLonInterface } from '../../geo';
 import { BitFlags } from '../../math';
+import { SubEvent } from '../../sub';
 import { MapCullableTextLabel, MapCullableTextLabelManager } from './MapCullableTextLabel';
 import { MapProjection } from './MapProjection';
 import { MapWaypoint } from './MapWaypoint';
@@ -15,7 +16,7 @@ export interface MapWaypointRendererIconFactory<W extends MapWaypoint> {
    * @param waypoint A waypoint.
    * @returns a waypoint icon.
    */
-  getIcon<T extends W>(role: number, waypoint: T): MapWaypointIcon<T>;
+  getIcon<T extends W>(role: number, waypoint: T): MapWaypointIcon<T> | null;
 }
 
 /**
@@ -28,7 +29,7 @@ export interface MapWaypointRendererLabelFactory<W extends MapWaypoint> {
    * @param waypoint A waypoint.
    * @returns a waypoint label.
    */
-  getLabel<T extends W>(role: number, waypoint: T): MapCullableTextLabel;
+  getLabel<T extends W>(role: number, waypoint: T): MapCullableTextLabel | null;
 }
 
 /**
@@ -120,6 +121,16 @@ export class MapWaypointRenderer<W extends MapWaypoint = MapWaypoint> {
    * with no definition will not be rendered.
    */
   protected readonly roleDefinitions = new Map<number, MapWaypointRenderRoleDef<W>>();
+
+  /**
+   * An event to subscribe to, fired when waypoints are added to the renderer.
+   */
+  public readonly onWaypointAdded = new SubEvent<any, W>();
+
+  /**
+   * An event to subscribe to, fired when waypoints are removed from the render.
+   */
+  public readonly onWaypointRemoved = new SubEvent<any, W>();
 
   /**
    * Constructor.
@@ -307,6 +318,7 @@ export class MapWaypointRenderer<W extends MapWaypoint = MapWaypoint> {
     if (!entry) {
       entry = new MapWaypointRendererEntry<W>(waypoint, this.textManager, this.roleDefinitions, this.selectRoleToRender);
       this.registered.set(waypoint.uid, entry);
+      this.onWaypointAdded.notify(this, waypoint);
     }
 
     entry.addRole(role, sourceId);
@@ -332,6 +344,7 @@ export class MapWaypointRenderer<W extends MapWaypoint = MapWaypoint> {
     entry.removeRole(role, sourceId);
     if (entry.roles === 0) {
       this.deleteEntry(entry);
+      this.onWaypointRemoved.notify(this, waypoint);
     }
   }
 

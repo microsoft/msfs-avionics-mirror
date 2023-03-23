@@ -1,0 +1,17 @@
+.map-traffic-banner-layer {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  text-align: right;
+}
+
+.map-traffic-banner {
+  padding-top: 1px;
+  font-size: 10px;
+  background-color: yellow;
+  color: black;
+}
+
+.wt430 .map-traffic-banner {
+  font-size: 14px;
+}

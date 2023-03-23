@@ -1,0 +1,11 @@
+.map-banner {
+  background-color: rgba(0, 0, 0, 0.85);
+  border: 1px solid var(--map-indicator-border-color);
+  border-radius: var(--map-indicator-border-radius);
+  padding: 0 2px;
+  white-space: nowrap;
+}
+
+.map-banner-off {
+  display: none;
+}

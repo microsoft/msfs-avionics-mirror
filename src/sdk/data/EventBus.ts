@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/JS/common" />
+/// <reference types="@microsoft/msfs-types/js/common" />
 import { HandlerSubscription } from '../sub/HandlerSubscription';
 import { Subscription } from '../sub/Subscription';
 import { EventSubscriber } from './EventSubscriber';
@@ -76,21 +76,24 @@ export class EventBus {
 
   /**
    * Creates an instance of an EventBus.
-   * @param useAlternativeEventSync Whether or not to use coherent event sync (optional, default false). 
+   * @param useAlternativeEventSync Whether or not to use generic listener event sync (default false).
    * If true, FlowEventSync will only work for gauges.
+   * @param shouldResync Whether the eventbus should ask for a resync of all previously cached events (default true)
    */
-  constructor(useAlternativeEventSync = false) {
+  constructor(useAlternativeEventSync = false, shouldResync = true) {
     this._busId = Math.floor(Math.random() * 2_147_483_647);
     // fallback to flowevent when genericdatalistener not avail (su9)
     useAlternativeEventSync = (typeof RegisterGenericDataListener === 'undefined');
     const syncFunc = useAlternativeEventSync ? EventBusFlowEventSync : EventBusListenerSync;
     this._busSync = new syncFunc(this.pub.bind(this), this._busId);
-    this.syncEvent('event_bus', 'resync_request', false);
-    this.on('event_bus', (data) => {
-      if (data == 'resync_request') {
-        this.resyncEvents();
-      }
-    });
+    if (shouldResync === true) {
+      this.syncEvent('event_bus', 'resync_request', false);
+      this.on('event_bus', (data) => {
+        if (data == 'resync_request') {
+          this.resyncEvents();
+        }
+      });
+    }
   }
 
   /**
@@ -105,7 +108,7 @@ export class EventBus {
 
     if (subs === undefined) {
       this._topicSubsMap.set(topic, subs = []);
-      this.pub('event_bus_topic_first_sub', topic, false);
+      this.pub('event_bus_topic_first_sub', topic, false, false);
     }
 
     const initialNotifyFunc = (sub: HandlerSubscription<Handler<any>>): void => {
@@ -202,7 +205,8 @@ export class EventBus {
 
           needCleanUpSubs ||= !sub.isAlive;
         } catch (error) {
-          console.error(`EventBus: error in handler: ${error}`);
+          console.error(`EventBus: error in handler: ${error}. topic: ${topic}. data: ${data}. sync: ${sync}. isCached: ${isCached}`,
+            { error, topic, data, sync, isCached, subs });
           if (error instanceof Error) {
             console.error(error.stack);
           }
@@ -302,6 +306,14 @@ export class EventBus {
   public getTopicSubscriberCount(topic: string): number {
     return this._topicSubsMap.get(topic)?.length ?? 0;
   }
+
+  /**
+   * Executes a function once for each topic with at least one subscriber.
+   * @param fn The function to execute.
+   */
+  public forEachSubscribedTopic(fn: (topic: string, subscriberCount: number) => void): void {
+    this._topicSubsMap.forEach((subs, topic) => { subs.length > 0 && fn(topic, subs.length); });
+  }
 }
 
 /** A data package for syncing events between instruments. */
@@ -390,7 +402,7 @@ abstract class EventBusSyncBase {
         this.lastEventSynced = syncData.packagedId;
         syncData.data.forEach((data: TopicDataPackage): void => {
           try {
-            this.recvEventCb(data.topic, data.data !== undefined ? JSON.parse(data.data) : undefined, false, data.isCached);
+            this.recvEventCb(data.topic, data.data !== undefined ? data.data : undefined, false, data.isCached);
           } catch (e) {
             console.error(e);
             if (e instanceof Error) {
@@ -412,7 +424,7 @@ abstract class EventBusSyncBase {
    */
   public sendEvent(topic: string, data: any, isCached?: boolean): void {
     // stringify data
-    const dataObj = JSON.stringify(data);
+    const dataObj = data;
     // build a data package
     const dataPackage: TopicDataPackage = {
       topic: topic,

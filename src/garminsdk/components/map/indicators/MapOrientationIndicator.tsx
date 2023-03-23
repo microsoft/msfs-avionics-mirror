@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, FSComponent, ObjectSubject, Subscribable, Subscription, VNode } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, ObjectSubject, Subscribable, Subscription, VNode } from '@microsoft/msfs-sdk';
 
 import { MapOrientation } from '../modules/MapOrientationModule';
 

@@ -153,15 +153,17 @@ export class PatternPathStream implements TransformingPathStream {
 
         this.distanceLeft = distance;
 
-        while (distanceToNextAnchor <= this.distanceLeft && this.distanceLeft >= 0) {
+        while (this.distanceLeft >= 0 && distanceToNextAnchor <= this.distanceLeft && this.distanceLeft >= nextLength * 0.5) {
+          this.distanceLeft -= distanceToNextAnchor;
           this.transformStream.addTranslation(distanceToNextAnchor, 0, 'before');
-          this.clipBounds.set(-nextLength * nextAnchor, Number.MIN_SAFE_INTEGER, nextLength * (1 - nextAnchor), Number.MAX_SAFE_INTEGER);
 
+          this.clipBounds.set(-nextLength * nextAnchor, Number.MIN_SAFE_INTEGER, nextLength * (1 - nextAnchor), Number.MAX_SAFE_INTEGER);
           this.clipStream.beginPath();
           this.pattern.draw(this.clipStream);
 
-          this.distanceLeft -= distanceToNextAnchor;
-          distanceToNextAnchor = nextLength * (1 - nextAnchor);
+          const distanceToPatternEnd = nextLength * (1 - nextAnchor);
+          this.distanceLeft -= distanceToPatternEnd;
+          this.transformStream.addTranslation(distanceToPatternEnd, 0, 'before');
 
           nextLength = this.pattern.length;
 
@@ -171,7 +173,7 @@ export class PatternPathStream implements TransformingPathStream {
           }
 
           nextAnchor = Utils.Clamp(this.pattern.anchor, 0, 1);
-          distanceToNextAnchor += nextLength * nextAnchor;
+          distanceToNextAnchor = nextLength * nextAnchor;
         }
 
         if (!isNaN(this.distanceLeft)) {
@@ -257,22 +259,22 @@ export class PatternPathStream implements TransformingPathStream {
 
         this.distanceLeft = distance;
 
-        while (distanceToNextAnchor <= this.distanceLeft && this.distanceLeft >= 0) {
-          this.clipBounds.set(-nextLength * nextAnchor, Number.MIN_SAFE_INTEGER, nextLength * (1 - nextAnchor), Number.MAX_SAFE_INTEGER);
-
+        while (this.distanceLeft >= 0 && distanceToNextAnchor <= this.distanceLeft && this.distanceLeft >= nextLength * 0.5) {
+          this.distanceLeft -= distanceToNextAnchor;
           angle += distanceToNextAnchor / radius * directionSign;
-
           this.transformStream.resetTransform()
             .addRotation(Math.PI / 2 * directionSign)
             .addTranslation(radius, 0)
             .addRotation(angle)
             .addTranslation(x, y);
 
+          this.clipBounds.set(-nextLength * nextAnchor, Number.MIN_SAFE_INTEGER, nextLength * (1 - nextAnchor), Number.MAX_SAFE_INTEGER);
           this.clipStream.beginPath();
           this.pattern.draw(this.clipStream);
 
-          this.distanceLeft -= distanceToNextAnchor;
-          distanceToNextAnchor = nextLength * (1 - nextAnchor);
+          const distanceToPatternEnd = nextLength * (1 - nextAnchor);
+          this.distanceLeft -= distanceToPatternEnd;
+          angle += distanceToPatternEnd / radius * directionSign;
 
           nextLength = this.pattern.length;
 
@@ -282,7 +284,7 @@ export class PatternPathStream implements TransformingPathStream {
           }
 
           nextAnchor = Utils.Clamp(this.pattern.anchor, 0, 1);
-          distanceToNextAnchor += nextLength * nextAnchor;
+          distanceToNextAnchor = nextLength * nextAnchor;
         }
 
         if (!isNaN(this.distanceLeft)) {

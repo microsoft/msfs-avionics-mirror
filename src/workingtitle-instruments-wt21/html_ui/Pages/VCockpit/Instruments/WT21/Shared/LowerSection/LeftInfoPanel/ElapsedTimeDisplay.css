@@ -1,0 +1,26 @@
+.hsi-elapsed-time {
+  position: absolute;
+  top: 516px;
+  display: flex;
+  flex-direction: row;
+  font-size: 22px;
+}
+
+.hsi-elapsed-time .hsi-et-label {
+  color: var(--wt21-colors-white);
+}
+
+.hsi-elapsed-time .hsi-et-value {
+  color: var(--wt21-colors-green);
+  font-size: 26px;
+  position: absolute;
+  top: -2px;
+  left: 35px;
+  display: flex;
+  flex-direction: row;
+  white-space: nowrap;
+}
+
+.hsi-elapsed-time .hsi-et-value-colon {
+  margin: 0 -4px;
+}

@@ -1,0 +1,7 @@
+.ign-indicator {
+  font-size: 16pt;
+  color: var(--wt21-colors-green);
+  width: 5px;
+  word-break: break-word;
+  line-height: 20px;
+}

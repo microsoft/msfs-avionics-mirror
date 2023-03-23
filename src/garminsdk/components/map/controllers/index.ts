@@ -18,4 +18,6 @@ export * from './MapWaypointsVisController';
 export * from './MapWxrController';
 export * from './NearestMapRTRController';
 export * from './TrafficMapRangeController';
+export * from './WaypointMapHighlightController';
 export * from './WaypointMapRTRController';
+export * from './WeatherMapOrientationController';

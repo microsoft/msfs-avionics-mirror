@@ -1,0 +1,21 @@
+.minimums-display-container {
+  position: absolute;
+  top: 6%;
+  right: -4%;
+  width: 185px;
+  font-size: 24px;
+  text-align: left;
+  color: var(--wt21-colors-cyan);
+  word-spacing: -.6ch;
+}
+
+.minimums-display-container.alert {
+  color: var(--wt21-colors-yellow);
+  animation: mins-blink .75s step-start 5;
+}
+
+@keyframes mins-blink {
+  50% {
+    opacity: 0;
+  }
+}

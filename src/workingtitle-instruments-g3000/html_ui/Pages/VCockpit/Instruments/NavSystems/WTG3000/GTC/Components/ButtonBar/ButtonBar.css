@@ -1,0 +1,322 @@
+.button-bar {
+  position: absolute;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  font-size: var(--button-bar-font-size);
+}
+
+.gtc-horizontal .button-bar {
+  top: 0;
+  right: 143px;
+  width: 141px;
+  height: 100%;
+  flex-direction: column;
+
+  --button-bar-font-size: 30px;
+  --button-bar-img-button-label-top: 96px;
+  --button-bar-img-button-img-transform: scale(1.8);
+  --button-bar-img-button-high-res-img-transform: scale(1);
+  --button-bar-img-button-img-home-top: 16px;
+  --button-bar-img-button-img-back-top: 9px;
+  --button-bar-img-button-img-message-top: 2px;
+  --button-bar-img-button-img-cancel-top: 6px;
+  --button-bar-img-button-img-full-top: 0px;
+  --button-bar-img-button-img-half-top: 0px;
+
+  --button-bar-img-button-img-enter-button-label-top: 55px;
+  --button-bar-img-button-img-enter-button-img-top: 79px;
+  --button-bar-img-button-img-enter-button-img-transform: scale(1);
+}
+
+.gtc-vertical .button-bar {
+  left: 0;
+  bottom: 35px;
+  width: 100%;
+  height: 67px;
+  flex-direction: row;
+  background: linear-gradient(#3F4E56 0%, #253942 100%);
+
+  --button-bar-font-size: 16px;
+  --button-bar-img-button-label-top: 52px;
+  --button-bar-img-button-img-transform: scale(1);
+  --button-bar-img-button-high-res-img-transform: scale(0.56);
+  --button-bar-img-button-img-home-top: 4px;
+  --button-bar-img-button-img-back-top: 2px;
+  --button-bar-img-button-img-message-top: 3px;
+  --button-bar-img-button-img-cancel-top: 2px;
+  --button-bar-img-button-img-full-top: -3px;
+  --button-bar-img-button-img-half-top: -3px;
+
+  --button-bar-img-button-img-enter-button-label-top: 25px;
+  --button-bar-img-button-img-enter-button-img-top: 24px;
+  --button-bar-img-button-img-enter-button-img-transform: scale(0.5);
+}
+
+.button-bar .touch-button {
+  position: absolute;
+  margin: 0;
+  border-color: #8495a6;
+  font-weight: 600;
+}
+
+.gtc-horizontal .button-bar .touch-button {
+  left: 0;
+  width: 100%;
+  height: 120px;
+}
+
+.gtc-vertical .button-bar .touch-button {
+  top: 0;
+  width: 67px;
+  height: 100%;
+  border-style: solid;
+  border-color: #738291;
+  border-width: 2px;
+}
+
+.button-bar .touch-button.touch-button-img {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.button-bar .touch-button.touch-button-img .touch-button-label {
+  top: var(--button-bar-img-button-label-top);
+}
+
+.button-bar .touch-button.touch-button-img .touch-button-img-img {
+  left: unset;
+  transform: var(--button-bar-img-button-img-transform);
+  transform-origin: 50% 0%;
+}
+
+.button-bar .touch-button.touch-button-img.high-res .touch-button-img-img {
+  transform: var(--button-bar-img-button-high-res-img-transform);
+  transform-origin: 50% 0%;
+}
+
+.button-bar .touch-button.touch-button-img.home-button .touch-button-img-img {
+  top: var(--button-bar-img-button-img-home-top);
+}
+
+.button-bar .touch-button.touch-button-img.back-button .touch-button-img-img {
+  top: var(--button-bar-img-button-img-back-top);
+}
+
+.button-bar .touch-button.touch-button-img.cancel-button .touch-button-img-img {
+  top: var(--button-bar-img-button-img-cancel-top);
+}
+
+.button-bar .touch-button.touch-button-img.message-button .touch-button-img-img {
+  top: var(--button-bar-img-button-img-message-top);
+}
+
+.button-bar .touch-button.touch-button-img.full-button .touch-button-img-img {
+  top: var(--button-bar-img-button-img-full-top);
+}
+
+.button-bar .touch-button.touch-button-img.half-button .touch-button-img-img {
+  top: var(--button-bar-img-button-img-half-top);
+}
+
+.gtc-horizontal .button-bar .slot-1 {
+  top: 4px;
+}
+
+.gtc-vertical .button-bar .slot-1 {
+  left: 2px;
+}
+
+.gtc-horizontal .button-bar .slot-2 {
+  top: 134px;
+}
+
+.gtc-vertical .button-bar .slot-2 {
+  left: 87px;
+}
+
+.gtc-horizontal .button-bar .slot-3 {
+  top: 264px;
+}
+
+.gtc-vertical .button-bar .slot-3 {
+  left: 172px;
+}
+
+.gtc-horizontal .button-bar .slot-4 {
+  top: 394px;
+}
+
+.gtc-vertical .button-bar .slot-4 {
+  left: 257px;
+}
+
+.gtc-horizontal .button-bar .slot-5 {
+  width: 139px !important;
+  border-width: 2px;
+  border-color: #959595 !important;
+  border-radius: 3px;
+  padding: 0;
+}
+
+.gtc-vertical .button-bar .slot-5 {
+  width: 139px !important;
+  border-width: 2px;
+  border-color: #959595 !important;
+  border-radius: 3px;
+  padding: 0;
+}
+
+.gtc-horizontal .button-bar .up-button {
+  top: 518px;
+  height: 125px !important;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: 1px #4E626B solid;
+  background: linear-gradient(#3D3D3D 0px, var(--g3000-color-black) 20px);
+}
+
+.gtc-horizontal .button-bar .up-button .label {
+  position: absolute;
+  top: -40px;
+}
+
+.gtc-horizontal .button-bar .up-button img {
+  position: absolute;
+  top: 38px;
+  transform: scale(1) !important;
+}
+
+.gtc-horizontal .button-bar .up-button.waypoint-arrow-button img {
+  transform: scale(1.85) !important;
+}
+
+.gtc-vertical .button-bar .up-button {
+  left: 346px;
+  width: 68px !important;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 1px #4E626B solid;
+  background: linear-gradient(#3D3D3D 0px, var(--g3000-color-black) 20px);
+}
+
+.gtc-vertical .button-bar .up-button .label {
+  margin-top: 40px;
+}
+
+.gtc-vertical .button-bar .up-button img {
+  transform: scale(0.5) !important;
+  margin-top: -16px;
+}
+
+.gtc-vertical .button-bar .up-button.waypoint-arrow-button img {
+  transform: scale(1) !important;
+  margin-top: -14px;
+  left: 2px;
+}
+
+.button-bar .up-button .bottom-line {
+  position: absolute;
+  top: 119px;
+  left: 3px;
+  width: 127px;
+  height: 2px;
+  background-color: #3D4853;
+  pointer-events: none;
+}
+
+.gtc-horizontal .button-bar .down-button {
+  top: 643px;
+  height: 125px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+  background: var(--g3000-color-black);
+}
+
+.gtc-horizontal .button-bar .down-button .label {
+  position: absolute;
+  top: 40px;
+}
+
+.gtc-horizontal .button-bar .down-button img {
+  transform: scale(1) !important;
+  position: absolute;
+  top: 8px;
+}
+
+.gtc-horizontal .button-bar .down-button.waypoint-arrow-button img {
+  transform: scale(1.85) !important;
+  top: 16px;
+}
+
+.gtc-vertical .button-bar .down-button {
+  left: 414px;
+  width: 65px !important;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
+  background: linear-gradient(#3D3D3D 0px, var(--g3000-color-black) 20px);
+}
+
+.gtc-vertical .button-bar .down-button .label {
+  margin-top: 40px;
+}
+
+.gtc-vertical .button-bar .down-button img {
+  transform: scale(0.5) !important;
+  margin-top: -16px;
+}
+
+.gtc-vertical .button-bar .down-button.waypoint-arrow-button img {
+  transform: scale(1) !important;
+  margin-top: -14px;
+  left: 2px;
+}
+
+.button-bar .up-button .label,
+.button-bar .down-button .label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.button-bar .touch-button.up-button.touch-button-primed {
+  background: var(--touch-button-primed-background);
+}
+
+.button-bar .touch-button.down-button.touch-button-primed {
+  background: #004482;
+}
+
+.button-bar .enter-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.button-bar .enter-button .touch-button-label {
+  top: var(--button-bar-img-button-img-enter-button-label-top) !important;
+}
+
+.button-bar .enter-button img {
+  top: var(--button-bar-img-button-img-enter-button-img-top);
+  transform: var(--button-bar-img-button-img-enter-button-img-transform) !important;
+}
+
+.gtc-vertical .button-bar .enter-button img {
+  /* Shift right a few pixels so it doesn't clip the "Create" label. */
+  transform: var(--button-bar-img-button-img-enter-button-img-transform) translateX(5px) !important;
+}
+
+.gtc-horizontal .button-bar .enter-button {
+  top: 542px;
+  height: 220px;
+}
+
+.gtc-vertical .button-bar .enter-button {
+  left: 371px;
+  width: 107px !important;
+}

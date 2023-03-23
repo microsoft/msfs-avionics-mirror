@@ -1,4 +1,4 @@
-import { Subject, Waypoint } from 'msfssdk';
+import { Subject, Waypoint } from '@microsoft/msfs-sdk';
 
 /**
  * A module which defines a highlighted waypoint.

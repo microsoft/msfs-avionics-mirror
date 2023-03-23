@@ -1,0 +1,209 @@
+#vnav-page {
+  background-color: var(--gnsblue);
+
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+wt-gns530 #vnav-page h2:not(.page-header) {
+  margin-left: 3px;
+}
+
+wt-gns430 #vnav-page h2:not(.page-header) {
+  margin-left: 3px;
+}
+
+#vnav-page .databox {
+  border: .8px solid var(--gnscyan);
+  color: var(--gnsgreen);
+  background-color: #000;
+  font-size: var(--gns-font-page-data);
+
+  min-height: 19px;
+}
+
+wt-gns530 #vnav-page .databox {
+  padding: 2px 0px 0px 1px;
+}
+
+wt-gns430 #vnav-page .databox {
+  padding: 1px 2px 2px;
+}
+
+#vnav-page .databox.full-width {
+  width: 100%;
+  height: 20px;
+}
+
+wt-gns530 .vnav-page-entry-altitude-value-container {
+  display: inline-block;
+  width: 70px;
+  text-align: center;
+  margin-left: -9px;
+  padding-left: 16px;
+  margin-right: 10px;
+}
+
+wt-gns430 .vnav-page-entry-altitude-value-container {
+  display: inline-block;
+  width: 85px;
+  text-align: center;
+  margin-left: -10px;
+  padding: 0px 12px;
+}
+
+.vnav-page-entry-altitude-value.selected {
+  width: 60px;
+  height: 14px;
+}
+
+wt-gns430 .vnav-page-entry-altitude-value.selected {
+  width: 70px;
+  height: 16px;
+}
+
+wt-gns530 .vnav-page-entry-altitude-type {
+  margin-left: 28px;
+}
+
+wt-gns430 .vnav-page-entry-altitude-type {
+  margin-left: 52px;
+}
+
+.vnav-page-entry-position-distance-value-container {
+  display: inline-block;
+  width: 40px;
+  text-align: center;
+  margin-left: 20px;
+}
+
+wt-gns430 .vnav-page-entry-position-distance-value-container {
+  margin-left: 10px;
+}
+
+.vnav-page-entry-position-distance-value.selected {
+  height: 14px;
+}
+
+wt-gns430 .vnav-page-entry-position-distance-value.selected {
+  height: 16px;
+}
+
+.vnav-page-entry-position-distance-type {
+  margin-left: 18px;
+}
+
+.vnav-page-entry-position-distance-ref {
+  margin-left: 20px;
+}
+
+wt-gns530 .vnav-page-entry-vs-profile-container {
+  display: inline-block;
+  text-align: center;
+
+}
+
+wt-gns430 .vnav-page-entry-vs-profile-container {
+  display: inline-block;
+  text-align: center;
+  width: 80px !important;
+  margin-left: 6px;
+}
+
+wt-gns430 .databox.databox.full-width>.vnav-page-entry-vs-profile-container {
+  width: 80px;
+}
+
+.vnav-page-entry-vs-profile.selected {
+  width: 65%;
+  height: 14px;
+}
+
+wt-gns430 .vnav-page-entry-vs-profile.selected {
+  width: 80%;
+  height: 16px;
+}
+
+.vnav-page-entry-vs-required {
+  text-align: center;
+}
+
+#vnav-page-vs {
+  display: flex;
+  width: 100%;
+}
+
+wt-gns530 #vnav-page-vs {
+  justify-content: space-between;
+}
+
+wt-gns430 #vnav-page-vs {
+  justify-content: start;
+}
+
+wt-gns430 #vnav-page-vs>div:first-child {
+  margin-right: 2.3em;
+  margin-left: -4px;
+}
+
+.vnav-page-status-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vnav-page-ref-target-altitude-mode-dialog {
+  width: 90px !important;
+  left: 18.7em;
+  top: 4.3em;
+}
+
+.vnav-page-ref-leg-dialog {
+  width: 90px !important;
+  left: 220px;
+  top: 80px;
+}
+
+.vnav-page-ref-leg-dialog>.dialog-box>.dialog-box-inner>.ui-control-list {
+  height: 90px;
+  overflow-y: scroll;
+}
+
+.vnav-page-ref-mode-dialog {
+  width: 72px !important;
+  left: 15.5em;
+  top: 8em;
+}
+
+wt-gns530 .vnav-page-target-altitude {
+  margin-top: 12px;
+}
+
+wt-gns430 .vnav-page-target-altitude {
+  margin-top: 7px;
+  width: 250px;
+  margin-left: -7px;
+}
+
+wt-gns530 .vnav-page-target-position {
+  margin-top: 8px;
+}
+
+wt-gns430 .vnav-page-target-position {
+  margin-top: 7px;
+  width: 250px;
+  margin-left: -7px;
+}
+
+wt-gns430 .vnav-page-vs-profile {
+  margin-left: -3px;
+}
+
+wt-gns530 .vnav-vs-profile-vsr {
+  margin-top: 8px;
+}
+
+wt-gns430 .vnav-vs-profile-vsr {
+  margin-top: 8px;
+  margin-left: -8px;
+}

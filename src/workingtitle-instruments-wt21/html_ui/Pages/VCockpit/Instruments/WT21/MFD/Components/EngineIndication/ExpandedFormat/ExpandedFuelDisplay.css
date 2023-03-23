@@ -1,0 +1,50 @@
+.expanded-fuel-container {
+  font-size: 20px;
+  width: 100%;
+  margin: auto;
+}
+
+.expanded-fuel-title {
+  text-align: center;
+}
+
+.expanded-fuel-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1px;
+  height: 25px;
+}
+
+
+.expanded-fuel-values {
+  color: var(--wt21-colors-green);
+  font-size: 24px;
+  text-align: right;
+  width: 63px;
+  padding-right: 5px;
+}
+
+.expanded-fueldisplay-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.expanded-fueldisplay-box {
+  color: var(--wt21-colors-green);
+  font-size: 24px;
+  line-height: 19px;
+  text-align: right;
+  border: 1px solid white;
+  padding: 7px 5px 2px 5px;
+  width: 63px;
+}
+
+.expanded-fueldisplay-title {
+  font-size: 20px;
+  line-height: 16px;
+  text-align: center;
+  width: 42px;
+  padding-top: 3px;
+}

@@ -1,0 +1,50 @@
+:root {
+  --wt21-horizon-blue: #0060ff;
+  --wt21-ground-brown: #985e23;
+}
+
+wt21-pfd, wt21-pfd #Mainframe, wt21-pfd #Electricity, .section>div {
+  width: 100%;
+  height: 100%;
+}
+
+wt21-pfd {
+  font-family: var(--wt21-fonts-family-general);
+  font-size: 25px;
+  overflow: hidden;
+}
+
+wt21-pfd #Electricity {
+  display: flex;
+  flex-direction: column;
+}
+
+.section {
+  position: relative;
+}
+
+#TopSection {}
+
+#UpperSection {
+  height: 45%;
+}
+
+#LowerSection {
+  flex-grow: 1;
+  overflow: hidden;
+  background-color: var(--wt21-colors-black);
+}
+
+#BottomSection {
+  height: 3.5%;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}
+
+#MenuSection {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 50;
+}

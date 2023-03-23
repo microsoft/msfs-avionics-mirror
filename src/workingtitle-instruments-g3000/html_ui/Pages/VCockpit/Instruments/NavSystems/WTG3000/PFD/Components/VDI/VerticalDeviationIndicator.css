@@ -1,0 +1,160 @@
+.vdi {
+  position: relative;
+
+  /* Label vars */
+
+  --vdi-label-container-size: 22px;
+
+  /* Scale vars */
+
+  --vdi-scale-margin-top: 2px;
+  --vdi-scale-dot-size: 10px;
+  --vdi-scale-dot-stroke-width: 1px;
+  --vdi-scale-center-line-thickness: 2px;
+
+  /* Bug vars */
+
+  --vdi-vnav-bug-width: 20px;
+  --vdi-vnav-bug-height: 32px;
+
+  --vdi-diamond-bug-width: 18px;
+  --vdi-diamond-bug-height: 22px;
+
+  /* Limit indicator vars */
+
+  --vdi-limit-indicator-left-margin: 1px;
+  --vdi-limit-indicator-width: 3px;
+
+  /* Private vars */
+  --vdi-limit-indicator-color: var(--g3000-color-white);
+}
+
+.vdi.vdi-vnav {
+  --vdi-label-color: var(--g3000-color-magenta);
+}
+
+.vdi.vdi-gp {
+  --vdi-label-color: var(--g3000-color-magenta);
+}
+
+.vdi.vdi-gp.vdi-gp-preview {
+  --vdi-label-color: #b3b3b3;
+}
+
+.vdi.vdi-gs {
+  --vdi-label-color: var(--g3000-color-green);
+}
+
+.vdi.vdi-gs.vdi-gs-preview {
+  --vdi-label-color: #b3b3b3;
+}
+
+.vdi.vdi-gp-outside-limits {
+  --vdi-limit-indicator-color: var(--g3000-color-yellow);
+}
+
+.vdi-label-container {
+  position: absolute;
+  left: calc(50% - var(--vdi-label-container-size) / 2);
+  top: 0px;
+  width: var(--vdi-label-container-size);
+  height: var(--vdi-label-container-size);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.vdi-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--vdi-label-color);
+}
+
+.vdi-scale {
+  position: absolute;
+  left: 0%;
+  top: calc(var(--vdi-label-container-size) + var(--vdi-scale-margin-top));
+  width: 100%;
+  height: calc(100% - 2 * (var(--vdi-label-container-size) + var(--vdi-scale-margin-top)));
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.vdi-scale-dot {
+  width: var(--vdi-scale-dot-size);
+  height: var(--vdi-scale-dot-size);
+  fill: none;
+  stroke: var(--g3000-color-white);
+  stroke-width: var(--vdi-scale-dot-stroke-width);
+}
+
+.vdi-scale-center {
+  background: rgba(255, 255, 255, 0.5);
+  height: var(--vdi-scale-center-line-thickness);
+}
+
+.vdi-vnav-bug {
+  left: 1px;
+  width: var(--vdi-vnav-bug-width);
+  height: var(--vdi-vnav-bug-height);
+}
+
+.vdi-vnav-bug-icon {
+  fill: var(--g3000-color-magenta);
+  stroke: var(--g3000-color-black);
+  stroke-width: 1px;
+}
+
+.vdi-gp-bug {
+  left: calc(50% - var(--vdi-diamond-bug-width) / 2);
+  width: var(--vdi-diamond-bug-width);
+  height: var(--vdi-diamond-bug-height);
+}
+
+.vdi-gp-bug-icon {
+  paint-order: stroke;
+  fill: var(--g3000-color-magenta);
+  stroke: var(--g3000-color-black);
+  stroke-width: 1px;
+}
+
+.vdi-gp-outside-limits .vdi-gp-bug-icon {
+  fill: var(--g3000-color-yellow);
+}
+
+.vdi.vdi-gp-preview .vdi-gp-bug-icon {
+  fill: none;
+  stroke: #b3b3b3;
+  stroke-width: 2px;
+}
+
+.vdi-gs-bug {
+  left: calc(50% - var(--vdi-diamond-bug-width) / 2);
+  width: var(--vdi-diamond-bug-width);
+  height: var(--vdi-diamond-bug-height);
+}
+
+.vdi-gs-bug-icon {
+  fill: var(--g3000-color-green);
+  stroke: var(--g3000-color-black);
+  stroke-width: 1px;
+}
+
+.vdi.vdi-gs-preview .vdi-gs-bug-icon {
+  fill: none;
+  stroke: #b3b3b3;
+  stroke-width: 2px;
+}
+
+.vdi-no-signal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  white-space: pre;
+}
+
+.vdi-limit-indicator {
+  left: var(--vdi-limit-indicator-left-margin);
+  width: var(--vdi-limit-indicator-width);
+  background: var(--vdi-limit-indicator-color);
+}

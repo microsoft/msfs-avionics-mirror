@@ -1,0 +1,506 @@
+body {
+  font-family: "DejaVuSans-SemiBold";
+}
+
+/* This hides the light blue color from bleeding from the right to the left side. */
+/* Temp fix until the mesh/UVs are fixed. */
+/* TODO Make horizontal only */
+.left-edge-border-fix {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  background-color: black;
+  width: 1px;
+  z-index: 100002;
+}
+
+#highlight {
+  z-index: 100000;
+}
+
+.gtc-boot-splash {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  background: var(--g3000-color-black);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  z-index: 100001;
+  transform: rotateX(0deg);
+}
+
+.gtc-boot-splash-horizontal .gtc-boot-splash-icon {
+  transform: scale(1.85);
+}
+
+.label-selected {
+  color: var(--g3000-color-black);
+  background: lightgray;
+}
+
+.selected {
+  border: 6px solid teal;
+}
+
+.placeholder {
+  width: 16vw;
+  height: 12vw;
+  border: 4px solid lightgrey;
+}
+
+.tabs {
+  display: flex;
+}
+
+.tab-body {
+  border: 2px solid lightgrey;
+  padding: 20px;
+}
+
+.tab-content {
+  display: none;
+}
+
+.gtc-page {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.gtc-popup-panel {
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+}
+
+.gtc-panel {
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+}
+
+.gtc-horizontal {
+  --gtc-panel-title-font-size: 30px;
+  --gtc-panel-title-font-size-large: 36px;
+  --gtc-panel-title-margin-top: 21px;
+  --gtc-panel-title-margin-top-large: 18px;
+}
+
+.gtc-vertical {
+  --gtc-panel-title-font-size: 17px;
+  --gtc-panel-title-font-size-large: 20px;
+  --gtc-panel-title-margin-top: 9px;
+  --gtc-panel-title-margin-top-large: 7px;
+}
+
+.gtc-panel .gtc-panel-title {
+  font-size: var(--gtc-panel-title-font-size);
+  text-align: center;
+  width: 100%;
+  margin-top: var(--gtc-panel-title-margin-top);
+}
+
+.gtc-panel .gtc-panel-title-large {
+  font-size: var(--gtc-panel-title-font-size-large);
+  text-align: center;
+  width: 100%;
+  margin-top: var(--gtc-panel-title-margin-top-large);
+}
+
+.gtc-view {
+  transition: opacity 0.3s, filter 0.3s;
+}
+
+.gtc-view.occlude-darken {
+  filter: brightness(50%);
+}
+
+/* Need to reapply filter on the following elements because Coherent layers break the filter. */
+.gtc-view .touch-list-translatable,
+.gtc-view .touch-slider-slider-thumb-translate {
+  transition: filter 0.3s;
+}
+
+.gtc-view .gtc-list .gtc-list-scroll-bar {
+  transition: opacity 1s, filter 0.3s;
+}
+
+.gtc-view.occlude-darken .touch-list-translatable,
+.gtc-view.occlude-darken .gtc-list-scroll-bar,
+.gtc-view.occlude-darken .touch-slider:not(.touch-slider-disabled) .touch-slider-slider-thumb-translate {
+  filter: brightness(50%);
+}
+
+.gtc-view.occlude-hidden {
+  opacity: 0;
+}
+
+.gtc-page-open-animation {
+  animation-name: popup-open-normal;
+  animation-duration: 250ms;
+}
+
+.gtc-page-close-animation {
+  opacity: 0;
+  animation-name: popup-close-normal;
+  animation-duration: 250ms;
+  pointer-events: none;
+}
+
+.gtc-page-open-forward-animation {
+  animation-name: page-open;
+  animation-duration: 250ms;
+
+  --page-open-translate: 100%;
+}
+
+.gtc-page-open-reverse-animation {
+  animation-name: page-open;
+  animation-duration: 250ms;
+
+  --page-open-translate: -100%;
+}
+
+.gtc-page-close-forward-animation {
+  transform: translate3d(-100%, 0px, 0px);
+  animation-name: page-close;
+  animation-duration: 250ms;
+
+  --page-close-translate: -100%;
+}
+
+.gtc-page-close-reverse-animation {
+  transform: translate3d(100%, 0px, 0px);
+  animation-name: page-close;
+  animation-duration: 250ms;
+
+  --page-close-translate: 100%;
+}
+
+@keyframes page-open {
+  from {
+    transform: translate3d(var(--page-open-translate), 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, 0px, 0px);
+  }
+}
+
+@keyframes page-close {
+  from {
+    transform: translate3d(0px, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(var(--page-close-translate), 0px, 0px);
+  }
+}
+
+.gtc-popup-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gtc-popup-skip-close-animation {
+  display: none !important;
+}
+
+.gtc-popup-normal-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/*
+ * The slideout-right-noblock popup type should allow mouse events through to the view below it, so we need to disable
+ * pointer events on the wrapper. Because the property is inherited, we also need to re-enable it on every direct
+ * descendant of the wrapper to make sure the user can still interact with elements in the popup.
+ */
+
+.gtc-popup-no-background-occlusion {
+  pointer-events: none;
+}
+
+.gtc-popup-no-background-occlusion>* {
+  pointer-events: auto;
+}
+
+.gtc-popup-normal-open-animation {
+  animation-name: popup-open-normal;
+  animation-duration: 250ms;
+}
+
+.gtc-popup-normal-close-animation {
+  opacity: 0;
+  animation-name: popup-close-normal;
+  animation-duration: 250ms;
+  pointer-events: none;
+}
+
+@keyframes popup-open-normal {
+  from {
+    transform: scale3d(0, 0, 1);
+  }
+
+  to {
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes popup-close-normal {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.gtc-horizontal .gtc-slideout {
+  position: absolute;
+  top: 35px;
+  right: 50px;
+  width: 401px;
+  height: 724px;
+}
+
+.gtc-vertical .gtc-slideout {
+  position: absolute;
+  top: 19px;
+  right: 0px;
+  width: 216px;
+  height: 390px;
+}
+
+.gtc-slideout-grid {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.gtc-horizontal .gtc-slideout-grid {
+  padding: 7px 8px;
+}
+
+.gtc-vertical .gtc-slideout-grid {
+  padding: 3px 4px;
+}
+
+.gtc-slideout-grid .slideout-grid-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.gtc-slideout-grid .slideout-grid-row .wide {
+  width: 100% !important;
+}
+
+.gtc-horizontal .gtc-slideout-grid .slideout-grid-row {
+  height: 138px;
+}
+
+.gtc-vertical .gtc-slideout-grid .slideout-grid-row {
+  height: 74px;
+}
+
+.gtc-horizontal .gtc-slideout-grid .slideout-grid-row .touch-button {
+  width: 185px;
+  height: 100%;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.gtc-vertical .gtc-slideout-grid .slideout-grid-row .touch-button {
+  width: 100px;
+  height: 100%;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.gtc-horizontal .gtc-slideout-grid.large-font .slideout-grid-row .touch-button {
+  font-size: 30px;
+}
+
+.gtc-horizontal .gtc-slideout-grid.large-font .slideout-grid-row .touch-button .touch-button-value {
+  font-size: 33px;
+}
+
+.gtc-vertical .gtc-slideout-grid.large-font .slideout-grid-row .touch-button {
+  font-size: 16px;
+}
+
+.gtc-vertical .gtc-slideout-grid.large-font .slideout-grid-row .touch-button .touch-button-value {
+  font-size: 18px;
+}
+
+.gtc-horizontal .gtc-popup-slideout-right-open-animation {
+  animation-name: popup-open-slideout-right-horizontal;
+  animation-duration: 250ms;
+}
+
+.gtc-horizontal .gtc-popup-slideout-right-close-animation {
+  transform: translate3d(460px, 0px, 0px);
+  animation-name: popup-close-slideout-right-horizontal;
+  animation-duration: 250ms;
+  pointer-events: none;
+}
+
+@keyframes popup-open-slideout-right-horizontal {
+  from {
+    transform: translate3d(460px, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, 0px, 0px);
+  }
+}
+
+@keyframes popup-close-slideout-right-horizontal {
+  from {
+    transform: translate3d(0px, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(460px, 0px, 0px);
+  }
+}
+
+.gtc-vertical .gtc-popup-slideout-right-open-animation {
+  animation-name: popup-open-slideout-right-vertical;
+  animation-duration: 250ms;
+}
+
+.gtc-vertical .gtc-popup-slideout-right-close-animation {
+  transform: translate3d(220px, 0px, 0px);
+  animation-name: popup-close-slideout-right-vertical;
+  animation-duration: 250ms;
+  pointer-events: none;
+}
+
+@keyframes popup-open-slideout-right-vertical {
+  from {
+    transform: translate3d(220px, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, 0px, 0px);
+  }
+}
+
+@keyframes popup-close-slideout-right-vertical {
+  from {
+    transform: translate3d(0px, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(220px, 0px, 0px);
+  }
+}
+
+.gtc-popup-slideout-right-full-open-animation {
+  animation-name: popup-open-slideout-right-full;
+  animation-duration: 250ms;
+}
+
+.gtc-popup-slideout-right-full-close-animation {
+  transform: translate3d(100%, 0px, 0px);
+  animation-name: popup-close-slideout-right-full;
+  animation-duration: 250ms;
+  pointer-events: none;
+}
+
+@keyframes popup-open-slideout-right-full {
+  from {
+    transform: translate3d(100%, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, 0px, 0px);
+  }
+}
+
+@keyframes popup-close-slideout-right-full {
+  from {
+    transform: translate3d(0px, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(100%, 0px, 0px);
+  }
+}
+
+.gtc-popup-slideout-bottom-open-animation {
+  animation-name: popup-open-slideout-bottom;
+  animation-duration: 250ms;
+}
+
+.gtc-popup-slideout-bottom-close-animation {
+  transform: translate3d(0px, 100%, 0px);
+  animation-name: popup-close-slideout-bottom;
+  animation-duration: 250ms;
+  pointer-events: none;
+}
+
+@keyframes popup-open-slideout-bottom {
+  from {
+    transform: translate3d(0px, 100%, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, 0px, 0px);
+  }
+}
+
+@keyframes popup-close-slideout-bottom {
+  from {
+    transform: translate3d(0px, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, 100%, 0px);
+  }
+}
+
+.gtc-popup-slideout-top-open-animation {
+  animation-name: popup-open-slideout-top;
+  animation-duration: 250ms;
+}
+
+.gtc-popup-slideout-top-close-animation {
+  transform: translate3d(0px, 100%, 0px);
+  animation-name: popup-close-slideout-top;
+  animation-duration: 250ms;
+  pointer-events: none;
+}
+
+@keyframes popup-open-slideout-top {
+  from {
+    transform: translate3d(0px, -100%, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, 0px, 0px);
+  }
+}
+
+@keyframes popup-close-slideout-top {
+  from {
+    transform: translate3d(0px, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, -100%, 0px);
+  }
+}

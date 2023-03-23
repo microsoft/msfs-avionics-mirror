@@ -1,6 +1,6 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus, EventBusMetaEvents, IndexedEventType, PublishPacer, SimVarDefinition, SimVarValueType } from '../data';
+import { EventBus, EventBusMetaEvents, GameStateProvider, IndexedEventType, PublishPacer, SimVarDefinition, SimVarValueType } from '../data';
 import { SimVarPublisher } from './BasePublishers';
 
 /**
@@ -53,10 +53,11 @@ export interface ElectricalEvents {
   'elec_bus_genalt_2_a': number,
 
   /** A voltage value for the battery */
-  'elec_bat_v': number;
+  [elec_bat_v: IndexedEventType<'elec_bat_v'>]: number,
 
   /** A current value for the battery */
-  'elec_bat_a': number;
+  [elec_bat_a: IndexedEventType<'elec_bat_a'>]: number,
+
 }
 
 /**
@@ -78,8 +79,10 @@ export class ElectricalPublisher extends SimVarPublisher<ElectricalEvents> {
     ['elec_bus_genalt_2_v', { name: 'ELECTRICAL GENALT BUS VOLTAGE:2', type: SimVarValueType.Volts }],
     ['elec_bus_genalt_1_a', { name: 'ELECTRICAL GENALT BUS AMPS:1', type: SimVarValueType.Amps }],
     ['elec_bus_genalt_2_a', { name: 'ELECTRICAL GENALT BUS AMPS:2', type: SimVarValueType.Amps }],
-    ['elec_bat_a', { name: 'ELECTRICAL BATTERY LOAD', type: SimVarValueType.Amps }],
-    ['elec_bat_v', { name: 'ELECTRICAL BATTERY VOLTAGE', type: SimVarValueType.Volts }]
+    ['elec_bat_a_1', { name: 'ELECTRICAL BATTERY LOAD:1', type: SimVarValueType.Amps }],
+    ['elec_bat_v_1', { name: 'ELECTRICAL BATTERY VOLTAGE:1', type: SimVarValueType.Volts }],
+    ['elec_bat_a_2', { name: 'ELECTRICAL BATTERY LOAD:2', type: SimVarValueType.Amps }],
+    ['elec_bat_v_2', { name: 'ELECTRICAL BATTERY VOLTAGE:2', type: SimVarValueType.Volts }]
   ]);
 
   private flightStarted = false;
@@ -95,6 +98,7 @@ export class ElectricalPublisher extends SimVarPublisher<ElectricalEvents> {
    */
   public constructor(bus: EventBus, pacer: PublishPacer<ElectricalEvents> | undefined = undefined) {
     super(ElectricalPublisher.simvars, bus, pacer);
+
     for (const topic of this.avBusList) {
       if (bus.getTopicSubscriberCount(topic)) {
         this.subscribed.add(topic);
@@ -108,6 +112,19 @@ export class ElectricalPublisher extends SimVarPublisher<ElectricalEvents> {
         }
       }
     );
+
+    // When not starting cold and dark (on runway or in air), electrical power simvars are not properly initialized
+    // during loading, so we will ignore all power data until the game enters briefing state.
+
+    const gameStateSub = GameStateProvider.get().sub(state => {
+      if (state === GameState.briefing || state === GameState.ingame) {
+        gameStateSub.destroy();
+
+        this.flightStarted = true;
+      }
+    }, false, true);
+
+    gameStateSub.resume(true);
   }
 
   /** @inheritdoc */
@@ -123,14 +140,6 @@ export class ElectricalPublisher extends SimVarPublisher<ElectricalEvents> {
         this.publish('elec_av2_bus', this.av2BusLogic.getValue() !== 0);
       }
     }
-  }
-
-  /**
-   * Called when the flight has started and electrical data is valid.
-   * @param started True if the flight has started
-   */
-  public setFlightStarted(started: boolean): void {
-    this.flightStarted = started;
   }
 
   /**

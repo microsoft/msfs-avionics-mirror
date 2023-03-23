@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/Pages/VCockpit/Instruments/Shared/BaseInstrument" />
+/// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/baseinstrument" />
 
 import { EventBus } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
@@ -29,8 +29,14 @@ export interface InstrumentEvents {
   /** An event fired when the game state changes. */
   'vc_game_state': GameState
 
-  /** An event fired when the flight is started */
+  /** An event fired when the flight is started. */
   'vc_flight_start': boolean,
+
+  /** An event fired when the mouse leaves the instrument. */
+  'vc_mouse_leave': MouseEvent,
+
+  /** An event fired when the mouse enters the instrument. */
+  'vc_mouse_enter': MouseEvent,
 }
 
 /**
@@ -51,6 +57,13 @@ export class BaseInstrumentPublisher extends BasePublisher<InstrumentEvents> {
    */
   public constructor(private readonly instrument: BaseInstrument, bus: EventBus, pacer: PublishPacer<InstrumentEvents> | undefined = undefined) {
     super(bus, pacer);
+
+    instrument.addEventListener('mouseleave', (e) => {
+      this.publish('vc_mouse_leave', e, false, false);
+    });
+    instrument.addEventListener('mouseenter', (e) => {
+      this.publish('vc_mouse_enter', e, false, false);
+    });
   }
 
   /** @inheritdoc */

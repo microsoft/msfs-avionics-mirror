@@ -14,6 +14,8 @@ export class MapSystemKeys {
 
   public static readonly AutopilotProps = 'autopilotProps' as const;
 
+  public static readonly AltitudeArc = 'altitudeArc' as const;
+
   public static readonly TerrainColors = 'terrainColors' as const;
 
   public static readonly Weather = 'weather' as const;
@@ -23,6 +25,8 @@ export class MapSystemKeys {
   public static readonly Rotation = 'rotation' as const;
 
   public static readonly OwnAirplaneIcon = 'ownAirplaneIcon' as const;
+
+  public static readonly OwnAirplaneIconOrientation = 'ownAirplaneIconOrientation' as const;
 
   public static readonly TextLayer = 'text' as const;
 

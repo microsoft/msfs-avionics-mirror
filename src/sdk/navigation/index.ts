@@ -1,6 +1,7 @@
 export * from './AirportUtils';
 export * from './Airspace';
 export * from './AirspaceSearcher';
+export * from './ApproachUtils';
 export * from './AutopilotListener';
 export * from './Facilities';
 export * from './FacilityLoader';
@@ -15,3 +16,4 @@ export * from './FacilityWaypointCache';
 export * from './DefaultFacilityWaypointCache';
 export * from './Waypoint';
 export * from './DefaultLodBoundaryCache';
+export * from './NearestContext';

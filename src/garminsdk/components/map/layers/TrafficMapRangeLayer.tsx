@@ -1,7 +1,7 @@
 import {
   BitFlags, FSComponent, MapIndexedRangeModule, MapLabeledRingLabel, MapLabeledRingLayer, MapLayer, MapLayerProps, MapProjection, MapProjectionChangeType,
   MapSyncedCanvasLayer, NumberUnitInterface, NumberUnitSubject, ReadonlyFloat64Array, Subject, Subscribable, Unit, UnitFamily, UnitType, Vec2Math, VNode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapRangeDisplay } from '../MapRangeDisplay';

@@ -1,0 +1,63 @@
+.gtc-horizontal .map-settings-page.pfd-map-settings-page {
+  --map-settings-page-font-size-regular: 26px;
+  --map-settings-page-font-size-large: 32px;
+
+  --map-settings-page-left-left: 65px;
+  --map-settings-page-left-top: 35px;
+  --map-settings-page-left-button-width: 220px;
+  --map-settings-page-left-button-height: 120px;
+  --map-settings-page-left-button-margin-top: 15px;
+
+  --map-settings-page-detail-button-height: 145px;
+  --map-settings-page-detail-button-icon-height: 73px;
+
+  --map-settings-page-right-right: 55px;
+  --map-settings-page-right-top: 50px;
+  --map-settings-page-right-width: 610px;
+  --map-settings-page-right-height: 705px;
+
+  --map-settings-page-tab-list-item-height: 130px;
+  --map-settings-page-tab-list-item-gap: 1px;
+  --map-settings-page-tab-list-left: 10px;
+  --map-settings-page-tab-list-top: 20px;
+  --map-settings-page-tab-list-width: calc(100% - 2 * 10px);
+
+  --map-settings-page-row-left-width: 215px;
+  --map-settings-page-row-right-width: 160px;
+}
+
+.gtc-vertical .map-settings-page.pfd-map-settings-page {
+  --map-settings-page-font-size-regular: 13px;
+  --map-settings-page-font-size-large: 16px;
+
+  --map-settings-page-left-left: 10px;
+  --map-settings-page-left-top: 17px;
+  --map-settings-page-left-button-width: 118px;
+  --map-settings-page-left-button-height: 60px;
+  --map-settings-page-left-button-margin-top: 8px;
+
+  --map-settings-page-detail-button-height: 70px;
+  --map-settings-page-detail-button-icon-height: 35px;
+
+  --map-settings-page-right-right: 0px;
+  --map-settings-page-right-top: 25px;
+  --map-settings-page-right-width: 330px;
+  --map-settings-page-right-height: 380px;
+
+  --map-settings-page-tab-list-item-height: 70px;
+  --map-settings-page-tab-list-item-gap: 1px;
+  --map-settings-page-tab-list-left: 5px;
+  --map-settings-page-tab-list-top: 10px;
+  --map-settings-page-tab-list-width: 214px;
+
+  --map-settings-page-row-left-width: 114px;
+  --map-settings-page-row-right-width: 86px;
+}
+
+.pfd-map-settings-page .map-settings-page-left {
+  font-size: var(--map-settings-page-font-size-large);
+}
+
+.pfd-map-settings-page .map-settings-page-detail-button {
+  font-size: var(--map-settings-page-font-size-regular);
+}

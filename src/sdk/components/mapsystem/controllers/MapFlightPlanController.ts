@@ -1,3 +1,4 @@
+import { ActiveLegType } from '../../../flightplan';
 import {
   FlightPlanActiveLegEvent, FlightPlanCalculatedEvent, FlightPlanCopiedEvent, FlightPlanIndicationEvent, FlightPlanner, FlightPlannerEvents
 } from '../../../flightplan/FlightPlanner';
@@ -56,7 +57,9 @@ export class MapFlightPlanController extends MapSystemController<MapFlightPlanCo
   };
 
   private activeLegChangedHandler = (evt: FlightPlanActiveLegEvent): void => {
-    this.flightPlanModule.getPlanSubjects(evt.planIndex).activeLeg.set(evt.legIndex);
+    if (evt.type === ActiveLegType.Lateral) {
+      this.flightPlanModule.getPlanSubjects(evt.planIndex).activeLeg.set(evt.index);
+    }
   };
 
   private fplCopiedSub?: Subscription;

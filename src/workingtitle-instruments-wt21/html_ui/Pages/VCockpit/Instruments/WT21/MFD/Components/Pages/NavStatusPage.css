@@ -1,0 +1,16 @@
+.nav-status-title-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.nav-status-title-header > div {
+  margin-bottom: 20px;
+}
+
+.nav-status-grid {
+  margin-left: 65px;
+  display: grid;
+  grid-template-columns: 140px 170px 110px 150px;
+  grid-template-rows: repeat(9, 40px);
+}

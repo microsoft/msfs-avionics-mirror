@@ -1,5 +1,5 @@
 import { ConsumerSubject, EventBus, SimVarValueType } from '../data';
-import { FlightPlan, FlightPlanner, FlightPlannerEvents, FlightPlanSegmentType, LegDefinition, LegDefinitionFlags } from '../flightplan';
+import { FlightPlan, FlightPlanner, FlightPlannerEvents, FlightPlanSegmentType, FlightPlanUtils, LegDefinition, LegDefinitionFlags } from '../flightplan';
 import { AhrsEvents, GNSSEvents } from '../instruments';
 import { BitFlags } from '../math/BitFlags';
 import { UnitType } from '../math/NumberUnit';
@@ -29,7 +29,7 @@ export class GpsSynchronizer {
   private readonly gpFpa = ConsumerSubject.create(this.bus.getSubscriber<VNavEvents>().on('gp_fpa').whenChanged(), 0);
   private readonly gpDeviation = ConsumerSubject.create(this.bus.getSubscriber<VNavEvents>().on('gp_vertical_deviation').whenChangedBy(1), 0);
   private readonly isApproachActive = Subject.create<boolean>(false);
-  private readonly approachHasGp = ConsumerSubject.create<boolean>(this.bus.getSubscriber<VNavDataEvents>().on('gp_available').whenChanged(), false);
+  private readonly gpAvailable = ConsumerSubject.create<boolean>(this.bus.getSubscriber<VNavDataEvents>().on('gp_available').whenChanged(), false);
   private readonly gsiScaling = ConsumerSubject.create<number>(this.bus.getSubscriber<VNavDataEvents>().on('gp_gsi_scaling').whenChanged(), UnitType.FOOT.convertTo(1000, UnitType.METER));
 
   /**
@@ -46,19 +46,20 @@ export class GpsSynchronizer {
     lnav.on('lnavdata_waypoint_bearing_mag').handle(this.onLnavBearingChanged.bind(this));
     lnav.on('lnavdata_destination_distance').handle(this.onLnavDistanceToDestinationChanged.bind(this));
     lnav.on('lnav_course_to_steer').handle(this.onLNavCourseToSteerChanged.bind(this));
+    lnav.on('lnavdata_cdi_scale').whenChanged().handle(this.onCdiScaleChanged.bind(this));
 
     const ahrs = bus.getSubscriber<AhrsEvents>();
     ahrs.on('hdg_deg_true').handle(this.onTrueHeadingChanged.bind(this));
 
     const vnav = bus.getSubscriber<VNavEvents & VNavDataEvents>();
     vnav.on('vnav_required_vs').handle(vs => {
-      if (!this.isApproachActive.get() || !this.approachHasGp.get()) {
+      if (!this.isApproachActive.get() || !this.gpAvailable.get()) {
         this.requiredVsChanged(vs);
       }
     });
 
     vnav.on('gp_required_vs').handle(vs => {
-      if (this.isApproachActive.get() && this.approachHasGp.get()) {
+      if (this.isApproachActive.get() && this.gpAvailable.get()) {
         this.requiredVsChanged(vs);
       }
     });
@@ -96,7 +97,7 @@ export class GpsSynchronizer {
     this.gpDeviation.sub(this.onGpDeviation, true);
     this.gpFpa.sub(this.onGpFpa, true);
     this.isApproachActive.sub(this.onApproachActive, true);
-    this.approachHasGp.sub(this.onApproachHasGp, true);
+    this.gpAvailable.sub(this.onApproachHasGp, true);
     this.gsiScaling.sub(this.onGsiScaling, true);
   }
 
@@ -204,7 +205,7 @@ export class GpsSynchronizer {
 
     if (plan.length > 1) {
       const finalSegment = plan.getSegment(plan.getSegmentIndex(plan.length - 1));
-      const isApproachActive = plan.activeLateralLeg >= finalSegment.offset && finalSegment.segmentType === FlightPlanSegmentType.Approach;
+      const isApproachActive = plan.activeLateralLeg > finalSegment.offset && finalSegment.segmentType === FlightPlanSegmentType.Approach;
 
       this.isApproachActive.set(isApproachActive);
 
@@ -284,7 +285,7 @@ export class GpsSynchronizer {
    */
   private onNumLegsChanged(numLegs: number): void {
     SimVar.SetSimVarValue('GPS IS ACTIVE FLIGHT PLAN', SimVarValueType.Bool, numLegs > 0);
-    SimVar.SetSimVarValue('GPS IS ACTIVE WAY POINT', SimVarValueType.Bool, numLegs > 1);
+    SimVar.SetSimVarValue('GPS IS ACTIVE WAY POINT', SimVarValueType.Bool, (this.isDirectToActive.get() || numLegs > 1));
     //SimVar.SetSimVarValue('GPS FLIGHT PLAN WP COUNT', SimVarValueType.Number, numLegs);
 
     if (this.flightPlanner.hasActiveFlightPlan()) {
@@ -304,7 +305,7 @@ export class GpsSynchronizer {
     if (numLegs > 1 && plan.activeLateralLeg > 0 && plan.activeLateralLeg < plan.length) {
       const prevLeg = plan.getLeg(plan.activeLateralLeg - 1);
 
-      if (prevLeg.leg.type !== LegType.Discontinuity && prevLeg.leg.type !== LegType.ThruDiscontinuity) {
+      if (!FlightPlanUtils.isDiscontinuityLeg(prevLeg.leg.type)) {
         SimVar.SetSimVarValue('GPS WP PREV VALID', SimVarValueType.Bool, true);
         name = prevLeg.name ?? '';
         if (prevLeg.calculated) {
@@ -455,6 +456,14 @@ export class GpsSynchronizer {
     SimVar.SetSimVarValue('GPS POSITION LAT', SimVarValueType.Degree, pos.lat);
     SimVar.SetSimVarValue('GPS POSITION LON', SimVarValueType.Degree, pos.long);
     SimVar.SetSimVarValue('GPS POSITION ALT', SimVarValueType.Meters, pos.alt);
+  }
+
+  /**
+   * Handles when the GPS CDI scale changes.
+   * @param scaleNm The scale, in nautical miles.
+   */
+  private onCdiScaleChanged(scaleNm: number): void {
+    SimVar.SetSimVarValue('GPS CDI SCALING', SimVarValueType.Meters, UnitType.NMILE.convertTo(scaleNm, UnitType.METER));
   }
 
   /**

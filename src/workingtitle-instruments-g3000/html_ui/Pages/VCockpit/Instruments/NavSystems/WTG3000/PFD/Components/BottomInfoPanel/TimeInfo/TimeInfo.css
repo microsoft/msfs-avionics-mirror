@@ -1,0 +1,39 @@
+.time-info {
+  position: relative;
+  color: var(--g3000-color-white);
+}
+
+.time-info-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.time-info-timer {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 50%;
+}
+
+.time-info-time {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  height: 50%;
+}
+
+.time-info-time .time-suffix {
+  display: none;
+}
+
+.time-info-time .time-info-time-show-suffix .time-suffix {
+  display: inline;
+}
+
+.time-info-title {
+  font-size: 0.7em;
+}

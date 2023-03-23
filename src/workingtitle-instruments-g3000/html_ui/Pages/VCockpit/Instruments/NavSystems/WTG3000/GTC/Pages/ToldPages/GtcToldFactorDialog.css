@@ -1,0 +1,19 @@
+.gtc-horizontal .runway-gradient-dialog {
+  --runway-gradient-dialog-sign-button-font-size: 60px;
+}
+
+.gtc-vertical .runway-gradient-dialog {
+  --runway-gradient-dialog-sign-button-font-size: 30px;
+}
+
+.runway-gradient-dialog-input-percent {
+  color: var(--g3000-color-cyan);
+}
+
+.round-touch-button.runway-gradient-dialog-sign-button {
+  position: absolute;
+  left: calc(var(--number-dialog-numpad-width) / 6);
+  bottom: calc(var(--number-dialog-numpad-height) / 8);
+  transform: translate(-50%, 50%);
+  font-size: var(--runway-gradient-dialog-sign-button-font-size);
+}

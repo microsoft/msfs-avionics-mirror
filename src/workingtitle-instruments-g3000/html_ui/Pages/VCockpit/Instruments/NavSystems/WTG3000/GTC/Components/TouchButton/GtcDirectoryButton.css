@@ -1,0 +1,27 @@
+.gtc-horizontal {
+  --gtc-directory-button-width: 200px;
+  --gtc-directory-button-height: 165px;
+  --gtc-directory-button-font-size: 29px;
+  --gtc-directory-button-img-scale: 1.8;
+}
+
+.gtc-vertical {
+  --gtc-directory-button-width: 110px;
+  --gtc-directory-button-height: 89px;
+  --gtc-directory-button-font-size: 16px;
+  --gtc-directory-button-img-scale: 1;
+}
+
+.gtc-directory-button {
+  width: var(--gtc-directory-button-width);
+  height: var(--gtc-directory-button-height);
+  font-size: var(--gtc-directory-button-font-size);
+}
+
+.gtc-directory-button>.touch-button-label {
+  line-height: 1.1em;
+}
+
+.gtc-directory-button>.touch-button-img-img {
+  transform: translate(-50%, -50%) scale(var(--gtc-directory-button-img-scale));
+}

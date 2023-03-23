@@ -1,0 +1,43 @@
+wt-gns530 .map-range-legend {
+  position: absolute;
+  bottom: 1px;
+  left: 1px;
+
+}
+
+wt-gns430 .map-range-legend {
+  /* This is connect on two pages. */
+  position: absolute;
+  bottom: 1px;
+  left: 1px;
+}
+
+.map-range-legend-scale {
+  margin: 0 0 -1px 4px;
+  background: black;
+  padding: 2px 1px 0px 1px;
+  font-size: 11px;
+  display: inline-block;
+}
+
+.map-range-declutter {
+  display: inline-block;
+}
+
+.wt430 .map-range-legend-scale,
+.wt430 .map-range-declutter {
+  font-size: 15px;
+}
+
+.map-range-legend-overzoom {
+  font-size: 10px;
+  background: black;
+}
+
+.wt430 .map-range-legend-overzoom {
+  font-size: 14px;
+}
+
+.map-range-legend .numberunit-unit {
+  margin-left: 1px;
+}

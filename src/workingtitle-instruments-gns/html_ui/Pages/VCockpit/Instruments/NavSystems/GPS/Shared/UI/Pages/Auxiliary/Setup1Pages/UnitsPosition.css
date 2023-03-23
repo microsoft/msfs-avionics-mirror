@@ -1,0 +1,220 @@
+wt-gns530 .units-position-container {
+  height: 18px;
+  line-height: 18px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  grid-column-gap: 1em;
+  margin-left: 11px;
+}
+
+wt-gns430 .units-position-container {
+  height: 14px;
+  line-height: 25px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  grid-column-gap: 1em;
+  margin-left: 11px;
+}
+
+
+wt-gns530 .units-position-side-title {
+  font-size: 10px;
+  margin: auto;
+}
+
+wt-gns430 .units-position-side-title {
+  font-size: 13px;
+  margin: auto;
+  margin-left: -7px;
+}
+
+wt-gns530 .units-position-table {
+  justify-content: center;
+  margin: 0;
+  padding: 1px;
+  width: 165px;
+  height: 110px;
+  margin-left: 75px;
+  margin-top: -20px;
+  line-height: 14px;
+  padding-right: 10px;
+}
+
+wt-gns430 .units-position-table {
+  justify-content: center;
+  margin: 0;
+  padding: 1px;
+  width: 165px;
+  height: 150px;
+  margin-left: 75px;
+  margin-top: -20px;
+  line-height: 25px;
+  padding-right: 10px;
+}
+
+/* TODO we might wanna do the padding like this elsewhere */
+.units-position-spacing {
+  display: inline-block;
+  height: 15px;
+  line-height: 18px;
+  padding: 0 1px 0;
+  margin-top: 1px;
+}
+
+wt-gns530 .units-position-dialog-heading {
+  width: 87px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -11px;
+  margin-top: -15px;
+}
+
+wt-gns430 .units-position-dialog-heading {
+  width: 87px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -40px;
+  margin-top: -20px;
+}
+
+wt-gns530 .units-position-dialog-disspf {
+  width: 143px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -12px;
+}
+
+wt-gns430 .units-position-dialog-disspf {
+  width: 143px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -60px;
+}
+
+wt-gns530 .units-position-dialog-altvs {
+  width: 130px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -12px;
+}
+
+wt-gns430 .units-position-dialog-altvs {
+  width: 130px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -60px;
+  margin-top: 30px;
+}
+
+wt-gns530 .units-position-dialog-pressure {
+  width: 100px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -12px;
+  margin-top: 40px;
+}
+
+wt-gns430 .units-position-dialog-pressure {
+  width: 100px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -50px;
+  margin-top: -10px;
+}
+
+wt-gns530 .units-position-dialog-temp {
+  width: 130px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -12px;
+  margin-top: 57px;
+}
+
+wt-gns430 .units-position-dialog-temp {
+  width: 130px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -50px;
+  margin-top: 15px;
+}
+
+wt-gns530 .units-position-dialog-fuel {
+  width: 120px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -12px;
+  margin-top: 77px;
+}
+
+wt-gns430 .units-position-dialog-fuel {
+  width: 120px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -50px;
+  margin-top: -6px;
+}
+
+.units-position-dialog-position {
+  width: 120px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -82px;
+  margin-top: 25px;
+}
+
+wt-gns530 .units-position-magvar {
+  width: 57px;
+  position: relative;
+  height: 4px;
+  margin-left: 205px;
+  margin-top: -105px;
+  color: var(--gnsgreen);
+  font-size: 12px;
+}
+
+wt-gns430 .units-position-magvar {
+  margin-top: -145px;
+  margin-left: 195px;
+  color: var(--gnsgreen);
+  font-size: 15px;
+}
+
+.units-position-magvar>.div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: 12px;
+  margin-left: 15px;
+  margin-top: -15px;
+}
+
+.units-position-position-format {
+  justify-content: center;
+  margin-top: 2px;
+  margin-left: 0px;
+  line-height: 14px;
+}
+
+wt-gns530 .units-position-position-format-title {
+  color: var(--gnscyan);
+  margin-left: 10px;
+  margin-top: 109px;
+}
+
+
+.units-position-map-datum-format {
+  justify-content: center;
+  margin-top: 2px;
+  margin-left: 0px;
+  line-height: 14px;
+  font-size: 14px;
+  height: 17px;
+  padding-top: 2px;
+  padding-left: 2px;
+}
+
+.units-position-position-map-title {
+  color: var(--gnscyan);
+  margin-left: 10px;
+  margin-top: 10px;
+  font-size: 10px;
+}

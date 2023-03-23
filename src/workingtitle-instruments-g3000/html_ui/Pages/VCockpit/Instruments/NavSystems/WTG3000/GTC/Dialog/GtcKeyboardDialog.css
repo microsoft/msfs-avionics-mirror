@@ -1,0 +1,462 @@
+.gtc-horizontal .keyboard-dialog {
+  width: 100%;
+  height: 100%;
+  /* TODO The previous page should fade out instead. */
+  /* background-image: url("/Pages/VCockpit/Instruments/NavSystems/WTG3000/Assets/Images/GTC/gtc-background.png");
+  background-size: cover; */
+}
+
+.gtc-vertical .keyboard-dialog {
+  width: 100%;
+  height: 100%;
+  /* TODO The previous page should fade out instead. */
+  /* background-color: #161616; */
+}
+
+.gtc-horizontal .keyboard-dialog .top-section {
+  position: absolute;
+  top: 0;
+  left: 48px;
+  background-color: var(--g3000-color-black);
+  width: 893px;
+  height: 78px;
+  display: flex;
+  flex-direction: row;
+}
+
+.gtc-vertical .keyboard-dialog .top-section {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: var(--g3000-color-black);
+  width: 100%;
+  height: 42px;
+  display: flex;
+  flex-direction: row;
+}
+
+.gtc-horizontal .keyboard-dialog .top-section .input-box {
+  position: relative;
+  margin-top: 8px;
+  margin-left: 16px;
+  min-width: 297px;
+  height: 62px;
+  background-color: #464646;
+  border-radius: 4px;
+  border: 1px solid #232323;
+  display: flex;
+  flex-direction: row;
+}
+
+.gtc-vertical .keyboard-dialog .top-section .input-box {
+  position: relative;
+  margin-top: 4px;
+  margin-left: 8px;
+  min-width: 160px;
+  height: 34px;
+  background-color: #464646;
+  border-radius: 3px;
+  border: 1px solid #232323;
+  display: flex;
+  flex-direction: row;
+}
+
+.gtc-horizontal .keyboard-dialog .top-section .input-box .input-cursor {
+  position: absolute;
+  top: 9px;
+  left: -66px;
+  width: 20px;
+  height: 44px;
+  background-color: #00FFFF;
+  transform: translate3d(0px, 0px, 0px);
+  transition: transform 250ms, width 250ms;
+  opacity: 1;
+}
+
+.gtc-vertical .keyboard-dialog .top-section .input-box .input-cursor {
+  position: absolute;
+  top: 4px;
+  left: -10px;
+  width: 20px;
+  height: 24px;
+  background-color: #00FFFF;
+  transform: translate3d(0px, 0px, 0px);
+  transition: transform 250ms, width 250ms;
+  opacity: 1;
+}
+
+.keyboard-dialog .top-section .input-box .input-cursor.blink {
+  animation-duration: 1s;
+  animation-name: cursorBlink;
+  animation-iteration-count: infinite;
+}
+
+.gtc-horizontal .keyboard-dialog .top-section .input-box .input-text {
+  position: absolute;
+  margin-top: 4px;
+  margin-left: 12px;
+  margin-right: 2px;
+  height: 44px;
+  font-size: 48px;
+  font-weight: 600;
+  color: cyan;
+  display: flex;
+  flex-direction: row;
+}
+
+.gtc-vertical .keyboard-dialog .top-section .input-box .input-text {
+  position: absolute;
+  margin-top: 1px;
+  margin-left: 7px;
+  margin-right: 2px;
+  height: 30px;
+  font-size: 27px;
+  font-weight: 600;
+  color: cyan;
+  display: flex;
+  flex-direction: row;
+}
+
+.keyboard-dialog .top-section .input-box .input-text .typed {
+  color: cyan;
+  white-space: pre;
+}
+
+.keyboard-dialog .top-section .input-box .input-text .typed.highlight {
+  color: black;
+}
+
+.keyboard-dialog .top-section .input-box .input-text .typed.blink {
+  animation-duration: 1s;
+  animation-name: letterBlink;
+  animation-iteration-count: infinite;
+}
+
+.keyboard-dialog .top-section .input-box .input-text .suggested {
+  color: #003333;
+  white-space: pre;
+}
+
+.gtc-horizontal .keyboard-dialog .top-section .input-box .input-text .underscore {
+  display: inline-block;
+  width: 28px;
+  height: 4px;
+  margin-top: 41px;
+  margin-left: 1px;
+  margin-right: 2px;
+  background-color: #00FFFF;
+}
+
+.gtc-vertical .keyboard-dialog .top-section .input-box .input-text .underscore {
+  display: inline-block;
+  width: 15px;
+  height: 2px;
+  margin-top: 23px;
+  margin-left: 1px;
+  margin-right: 0px;
+  background-color: #00FFFF;
+}
+
+.keyboard-dialog .top-section .input-box .input-text .underscore.highlight {
+  background-color: black;
+}
+
+.keyboard-dialog .top-section .input-box .input-text .underscore.blink {
+  animation-duration: 1s;
+  animation-name: underscoreBlink;
+  animation-iteration-count: infinite;
+}
+
+.keyboard-dialog .top-section .input-box .input-underscores.highlight .underscore,
+.keyboard-dialog .top-section .input-box .input-underscores .underscore.highlight {
+  background-color: black;
+}
+
+.keyboard-dialog .top-section .input-label {
+  font-weight: 600;
+  overflow: hidden;
+  /* This makes it so the text doesn't get clipped in the middle of a character. */
+  word-break: break-all;
+  width: auto;
+  flex-grow: 1;
+}
+
+.gtc-horizontal .keyboard-dialog .top-section .input-label {
+  margin-top: 10px;
+  margin-left: 22px;
+  font-size: 33px;
+  height: 60px;
+  margin-right: 10px;
+  line-height: 60px;
+}
+
+.gtc-vertical .keyboard-dialog .top-section .input-label {
+  margin-top: 2px;
+  margin-left: 11px;
+  font-size: 18px;
+  height: 40px;
+  margin-right: 3px;
+  line-height: 40px;
+}
+
+.gtc-horizontal .keyboard-dialog .top-section .input-icon {
+  margin-top: 34px;
+  margin-right: 57px;
+  transform: scale(1.895) translate(25%, 0);
+}
+
+.gtc-vertical .keyboard-dialog .top-section .input-icon {
+  margin-top: 6px;
+  margin-right: 13px;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard {
+  position: absolute;
+  top: 81px;
+  left: 61px;
+  width: 867px;
+  display: flex;
+  flex-direction: column;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard {
+  position: absolute;
+  top: 44px;
+  left: 7px;
+  width: 467px;
+  display: flex;
+  flex-direction: column;
+}
+
+.keyboard-dialog .keyboard .touch-button {
+  opacity: 1;
+  transition: opacity 250ms;
+  /* Ridge borders keep being buggy. */
+  border-style: solid;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard.keyboard-numpad {
+  margin-top: 138px;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard.keyboard-numpad {
+  margin-top: 74px;
+}
+
+.keyboard-dialog.alpha .keyboard .touch-button.numpad,
+.keyboard-dialog.numpad .keyboard .touch-button.alpha {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.keyboard-dialog.alpha .keyboard.keyboard-numpad {
+  pointer-events: none;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard.keyboard-numpad .touch-button.space {
+  position: absolute;
+  right: 3px;
+  bottom: 0px;
+  margin: 0;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard.keyboard-numpad .touch-button.space {
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+  margin: 0;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard .row {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 15px;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard .row {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 8px;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard .row>*+* {
+  margin-left: 24px;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard .row>*+* {
+  margin-left: 13px;
+}
+
+.keyboard-dialog .keyboard .column {
+  display: flex;
+  flex-direction: column;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard .column>*+* {
+  margin-top: 15px;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard .column>*+* {
+  margin-top: 8px;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard .touch-button {
+  width: 124px;
+  height: 123px;
+  font-size: 55px;
+  font-weight: 600;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard .touch-button {
+  width: 67px;
+  height: 66px;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard .touch-button.wide {
+  width: 198px;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard .touch-button.wide {
+  width: 107px;
+}
+
+.keyboard-dialog .keyboard .touch-button.find,
+.keyboard-dialog .keyboard .touch-button.backspace {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard .touch-button.space {
+  font-size: 45px;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard .touch-button.space {
+  font-size: 25px;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard .touch-button .find-icon {
+  position: absolute;
+  top: 10px;
+  left: 8px;
+  width: 90px;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard .touch-button .find-icon {
+  position: absolute;
+  top: 4px;
+  left: 3px;
+  width: 50px;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard .touch-button .find-label {
+  position: absolute;
+  top: 75px;
+  font-size: 34px;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard .touch-button .find-label {
+  position: absolute;
+  top: 41px;
+  font-size: 18px;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard .touch-button .backspace-label {
+  position: absolute;
+  top: 25px;
+  font-size: 32px;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard .touch-button .backspace-label {
+  position: absolute;
+  top: 13px;
+  font-size: 17px;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard .touch-button .backspace-icon {
+  position: absolute;
+  top: 68px;
+  left: 45px;
+  width: 95px;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard .touch-button .backspace-icon {
+  position: absolute;
+  top: 36px;
+  left: 23px;
+  width: 50px;
+}
+
+.gtc-horizontal .keyboard-dialog .keyboard .numpad-group {
+  position: absolute;
+  top: 0;
+  left: 222px;
+}
+
+.gtc-vertical .keyboard-dialog .keyboard .numpad-group {
+  position: absolute;
+  top: 0;
+  left: 120px;
+}
+
+.keyboard-dialog .keyboard .numpad-group .row.numpad-row {
+  justify-content: space-around;
+  width: 100%;
+}
+
+@keyframes cursorBlink {
+  from {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes letterBlink {
+  from {
+    color: black;
+  }
+
+  50% {
+    color: black;
+  }
+
+  80% {
+    color: #00FFFF;
+  }
+
+  to {
+    color: #00FFFF;
+  }
+}
+
+@keyframes underscoreBlink {
+  from {
+    background-color: black;
+  }
+
+  50% {
+    background-color: black;
+  }
+
+  80% {
+    background-color: #00FFFF;
+  }
+
+  to {
+    background-color: #00FFFF;
+  }
+}

@@ -41,8 +41,9 @@ export class ArraySubject<T> extends AbstractSubscribableArray<T> {
    * @param item The item to insert.
    * @param index The optional index to insert the item to. Will add the item at then end if index not given.
    */
-  public insert(item: T, index = -1): void {
-    if (index === -1 || index > this.array.length - 1) {
+  public insert(item: T, index?: number): void {
+    if (index === undefined || index > this.array.length - 1) {
+      index = this.array.length;
       this.array.push(item);
     } else {
       this.array.splice(index, 0, item);

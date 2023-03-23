@@ -20,24 +20,24 @@ export class SubscribablePipe<I, O, HandlerType extends (...args: any[]) => void
    * @param map A function which transforms this pipe's inputs.
    * @param onDestroy A function which is called when this subscription is destroyed.
    */
-  constructor(from: Subscribable<I>, to: MutableSubscribable<any, O>, map: (from: I) => O, onDestroy: (sub: SubscribablePipe<I, O, HandlerType>) => void);
+  constructor(from: Subscribable<I>, to: MutableSubscribable<any, O>, map: (fromVal: I, toVal: O) => O, onDestroy: (sub: SubscribablePipe<I, O, HandlerType>) => void);
   // eslint-disable-next-line jsdoc/require-jsdoc
   constructor(
     from: Subscribable<I>,
     to: MutableSubscribable<any, I> | MutableSubscribable<any, O>,
-    arg3: ((from: I) => O) | ((sub: SubscribablePipe<I, O, HandlerType>) => void),
+    arg3: ((fromVal: I, toVal: O) => O) | ((sub: SubscribablePipe<I, O, HandlerType>) => void),
     arg4?: (sub: SubscribablePipe<I, O, HandlerType>) => void
   ) {
-    let handler: (input: I) => void;
+    let handler: (fromVal: I) => void;
     let onDestroy: (sub: SubscribablePipe<I, O, HandlerType>) => void;
     if (typeof arg4 === 'function') {
-      handler = (input: I): void => {
-        (to as MutableSubscribable<any, O>).set((arg3 as (from: I) => O)(input));
+      handler = (fromVal: I): void => {
+        (to as MutableSubscribable<any, O>).set((arg3 as (fromVal: I, toVal: O) => O)(fromVal, to.get()));
       };
       onDestroy = arg4;
     } else {
-      handler = (input: I): void => {
-        (to as MutableSubscribable<any, I>).set(input);
+      handler = (fromVal: I): void => {
+        (to as MutableSubscribable<any, I>).set(fromVal);
       };
       onDestroy = arg3 as (sub: SubscribablePipe<I, O, HandlerType>) => void;
     }

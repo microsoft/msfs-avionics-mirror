@@ -1,14 +1,14 @@
 import {
   AbstractFlightPathPlanRenderer, BitFlags, CircleVector, FlightPathLegLineRenderer, FlightPathLegLineStyle, FlightPathLegRenderPart, FlightPathVectorFlags,
-  FlightPlan, GeoProjection, GeoProjectionPathStreamStack, LegDefinition, LegDefinitionFlags, LegType
-} from 'msfssdk';
+  FlightPlan, GeoProjection, GeoProjectionPathStreamStack, LegDefinition, LegDefinitionFlags, LegType, LNavTrackingState
+} from '@microsoft/msfs-sdk';
 
 import { FmsUtils } from '../../../flightplan/FmsUtils';
 import {
   FlightPathDefaultLegRenderer, FlightPathDirectToCourseLegRenderer, FlightPathHoldLegRenderer, FlightPathObsLegRenderer, FlightPathProcTurnLegRenderer,
   FlightPathVtfLegRenderer
 } from './MapFlightPathLegRenderers';
-import { FlightPathPlanRendererLNavData, MapFlightPathPlanRenderer } from './MapFlightPathPlanRenderer';
+import { MapFlightPathPlanRenderer } from './MapFlightPathPlanRenderer';
 import { MapFlightPathStyles } from './MapFlightPathStyles';
 
 /**
@@ -44,7 +44,7 @@ export class DefaultBaseFlightPathPlanRenderer extends AbstractFlightPathPlanRen
               MapFlightPathStyles.BASE_STROKE_WIDTH, MapFlightPathStyles.BASE_STROKE_COLOR
             );
             break;
-          } else if (BitFlags.isAny(leg.flags, LegDefinitionFlags.VectorsToFinal)) {
+          } else if (BitFlags.isAll(leg.flags, LegDefinitionFlags.VectorsToFinalFaf)) {
             this.vtfRenderer.render(
               leg, context, streamStack,
               MapFlightPathStyles.BASE_STROKE_WIDTH, MapFlightPathStyles.BASE_STROKE_COLOR
@@ -116,7 +116,7 @@ export class DefaultBaseFlightPathPlanRenderer extends AbstractFlightPathPlanRen
  * including transition vectors.
  */
 export class DefaultFullFlightPathPlanRenderer
-  extends AbstractFlightPathPlanRenderer<[lnavData: FlightPathPlanRendererLNavData | undefined, isMissedApproachActive: boolean]> {
+  extends AbstractFlightPathPlanRenderer<[lnavData: LNavTrackingState | undefined, isMissedApproachActive: boolean]> {
 
   private readonly defaultRenderer = new FlightPathDefaultLegRenderer();
   private readonly holdRenderer = new FlightPathHoldLegRenderer();
@@ -133,9 +133,25 @@ export class DefaultFullFlightPathPlanRenderer
     activeLegIndex: number,
     context: CanvasRenderingContext2D,
     streamStack: GeoProjectionPathStreamStack,
-    lnavData: FlightPathPlanRendererLNavData | undefined,
+    lnavData: LNavTrackingState | undefined,
     isMissedApproachActive: boolean
   ): void {
+    let width: number, style: string;
+
+    if (legIndex === activeLegIndex) {
+      width = MapFlightPathStyles.ACTIVE_STROKE_WIDTH;
+      style = MapFlightPathStyles.ACTIVE_STROKE_COLOR;
+    } else if (legIndex < activeLegIndex) {
+      width = MapFlightPathStyles.PRIOR_STROKE_WIDTH;
+      style = MapFlightPathStyles.PRIOR_STROKE_COLOR;
+    } else if (!isMissedApproachActive && BitFlags.isAny(leg.flags, LegDefinitionFlags.MissedApproach)) {
+      width = MapFlightPathStyles.MISSED_APPROACH_STROKE_WIDTH;
+      style = MapFlightPathStyles.MISSED_APPROACH_STROKE_COLOR;
+    } else {
+      width = MapFlightPathStyles.STROKE_WIDTH;
+      style = MapFlightPathStyles.STROKE_COLOR;
+    }
+
     switch (leg.leg.type) {
       case LegType.HF:
       case LegType.HM:
@@ -146,26 +162,10 @@ export class DefaultFullFlightPathPlanRenderer
         this.procTurnRenderer.render(leg, context, streamStack, plan, activeLeg, legIndex, activeLegIndex);
         break;
       case LegType.CF: {
-        let width, style;
-
-        if (legIndex === activeLegIndex) {
-          width = MapFlightPathStyles.ACTIVE_STROKE_WIDTH;
-          style = MapFlightPathStyles.ACTIVE_STROKE_COLOR;
-        } else if (legIndex < activeLegIndex) {
-          width = MapFlightPathStyles.PRIOR_STROKE_WIDTH;
-          style = MapFlightPathStyles.PRIOR_STROKE_COLOR;
-        } else if (!isMissedApproachActive && BitFlags.isAny(leg.flags, LegDefinitionFlags.MissedApproach)) {
-          width = MapFlightPathStyles.MISSED_APPROACH_STROKE_WIDTH;
-          style = MapFlightPathStyles.MISSED_APPROACH_STROKE_COLOR;
-        } else {
-          width = MapFlightPathStyles.STROKE_WIDTH;
-          style = MapFlightPathStyles.STROKE_COLOR;
-        }
-
         if (BitFlags.isAll(leg.flags, LegDefinitionFlags.DirectTo)) {
           this.dtoCourseRenderer.render(leg, context, streamStack, width, style);
           break;
-        } else if (BitFlags.isAll(leg.flags, LegDefinitionFlags.VectorsToFinal)) {
+        } else if (BitFlags.isAll(leg.flags, LegDefinitionFlags.VectorsToFinalFaf)) {
           this.vtfRenderer.render(leg, context, streamStack, width, style);
           break;
         }
@@ -199,7 +199,7 @@ export class DefaultFlightPathPlanRenderer implements MapFlightPathPlanRenderer 
     streamStack: GeoProjectionPathStreamStack,
     renderEntirePlan: boolean,
     activeLegIndex: number,
-    lnavData?: FlightPathPlanRendererLNavData,
+    lnavData?: LNavTrackingState,
     obsCourse?: number
   ): void {
     const isObsActive = obsCourse !== undefined;

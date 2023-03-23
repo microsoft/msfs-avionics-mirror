@@ -168,7 +168,7 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
    * @param paused Whether the new subscription should be initialized as paused. Defaults to `false`.
    * @returns The new subscription.
    */
-  public pipe<M>(to: MutableSubscribable<any, M>, map: (input: ReadonlySet<T>) => M, paused?: boolean): Subscription;
+  public pipe<M>(to: MutableSubscribable<any, M>, map: (fromVal: ReadonlySet<T>, toVal: M) => M, paused?: boolean): Subscription;
   /**
    * Subscribes to and pipes this set's state to a mutable subscribable set. Whenever a key added or removed event is
    * received through the subscription, the same key will be added to or removed from the other set.
@@ -188,20 +188,20 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
    * @param paused Whether the new subscription should be initialized as paused. Defaults to `false`.
    * @returns The new subscription.
    */
-  public pipe<M>(to: MutableSubscribableSet<M>, map: (input: T) => M, paused?: boolean): Subscription;
+  public pipe<M>(to: MutableSubscribableSet<M>, map: (fromKey: T) => M, paused?: boolean): Subscription;
   // eslint-disable-next-line jsdoc/require-jsdoc
   public pipe<M>(
     to: MutableSubscribable<any, ReadonlySet<T>> | MutableSubscribable<any, M> | MutableSubscribableSet<T> | MutableSubscribableSet<M>,
-    arg2?: ((from: ReadonlySet<T>) => M) | ((input: T) => M) | boolean,
+    arg2?: ((fromVal: ReadonlySet<T>, toVal: M) => M) | ((fromKey: T) => M) | boolean,
     arg3?: boolean
   ): Subscription {
     let sub;
     let paused;
     if (typeof arg2 === 'function') {
       if ('isSubscribableSet' in to) {
-        sub = new SubscribableSetPipe(this, to as MutableSubscribableSet<M>, arg2 as (input: T) => M, this.onSubDestroyedFunc);
+        sub = new SubscribableSetPipe(this, to as MutableSubscribableSet<M>, arg2 as (fromKey: T) => M, this.onSubDestroyedFunc);
       } else {
-        sub = new SubscribablePipe(this, to as MutableSubscribable<any, M>, arg2 as (from: ReadonlySet<T>) => M, this.onSubDestroyedFunc);
+        sub = new SubscribablePipe(this, to as MutableSubscribable<any, M>, arg2 as (fromVal: ReadonlySet<T>, toVal: M) => M, this.onSubDestroyedFunc);
       }
 
       paused = arg3 ?? false;

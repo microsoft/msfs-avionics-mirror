@@ -1,0 +1,58 @@
+.confirm-dialog {
+  position: absolute;
+  top: 0px;
+  left: 64px;
+  width: 255px;
+  height: 217px;
+  background-image: url(../Shared/Assets/shade.png);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-dialog-box {
+  min-width: 120px;
+  max-width: 216px;
+  border: 1px solid white;
+}
+
+.confirm-dialog-box-inner {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  background-color: var(--gnsblue);
+  color: white;
+  border-style: outset;
+  font-size: 16px;
+  padding: 3px;
+  border-top: 3px solid #0cc;
+  border-right: 3px solid #011;
+  border-bottom: 3px solid #011;
+  border-left: 3px solid #0cc;
+}
+
+.confirm-dialog-box-inner>p {
+  font-size: 16px;
+}
+
+.confirm-dialog-box-inner>h2 {
+  color: var(--gnscyan);
+  font-size: 10px;
+}
+
+.confirm-dialog-box-inner>hr {
+  margin: 2px 0 2px 0;
+  height: 2px;
+  border-top: 1px solid black;
+  border-right: 1px solid black;
+  border-bottom: 1px solid #0bb;
+  border-left: 1px solid #0bb;
+}
+
+.confirm-dialog-box-inner>span {
+  padding: 1px;
+}
+
+.confirm-dialog-control {
+  padding-top: 1px;
+}

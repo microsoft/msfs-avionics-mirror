@@ -1,4 +1,4 @@
-import { FlightPlan, GeoProjectionPathStreamStack } from 'msfssdk';
+import { FlightPlan, GeoProjectionPathStreamStack } from '@microsoft/msfs-sdk';
 
 /**
  * Renders the path for procedure previews to canvas.

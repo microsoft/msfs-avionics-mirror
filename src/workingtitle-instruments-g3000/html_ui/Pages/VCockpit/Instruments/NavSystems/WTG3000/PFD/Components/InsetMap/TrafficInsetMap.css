@@ -1,0 +1,35 @@
+.traffic-inset-map {
+  font-family: "DejaVuSans-SemiBold";
+  font-size: 13px;
+  background: var(--g3000-color-black);
+}
+
+.traffic-inset-map .map-range-display {
+  font-size: 15px;
+}
+
+.traffic-inset-map .map-indicator-group-top-left {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+
+.traffic-inset-map .map-minicompass {
+  position: absolute;
+  left: 3px;
+  top: 24px;
+  font-size: 10px;
+}
+
+.traffic-inset-map .map-indicator-group-top-right {
+  position: absolute;
+  right: 1px;
+  top: 0;
+  width: 120px;
+  align-items: stretch;
+  text-align: center;
+}
+
+.traffic-inset-map .map-indicator-group-center {
+  font-size: 19px;
+}

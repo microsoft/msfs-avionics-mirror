@@ -37,10 +37,19 @@ export class NavMath {
   }
 
   /**
+   * Inverts a heading value by adding 180 and normalizing.
+   * @param heading The heading to invert/reciprocate.
+   * @returns The inverted/reciprocated heading.
+   * */
+  public static reciprocateHeading(heading: number): number {
+    return NavMath.normalizeHeading(heading + 180);
+  }
+
+  /**
    * Gets the turn radius for a given true airspeed.
-   * @param airspeedTrue The true airspeed of the plane.
+   * @param airspeedTrue The true airspeed of the plane, in knots.
    * @param bankAngle The bank angle of the plane, in degrees.
-   * @returns The airplane turn radius.
+   * @returns The airplane turn radius, in meters.
    */
   public static turnRadius(airspeedTrue: number, bankAngle: number): number {
     return (Math.pow(airspeedTrue, 2) / (11.26 * Math.tan(bankAngle * Avionics.Utils.DEG2RAD)))
@@ -49,8 +58,8 @@ export class NavMath {
 
   /**
    * Gets the required bank angle for a given true airspeed and turn radius.
-   * @param airspeedTrue The true airspeed of the plane.
-   * @param radius The airplane turn radius.
+   * @param airspeedTrue The true airspeed of the plane, in knots.
+   * @param radius The airplane turn radius, in meters.
    * @returns The required bank angle, in degrees.
    */
   public static bankAngle(airspeedTrue: number, radius: number): number {

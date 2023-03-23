@@ -1,12 +1,13 @@
 import {
-  APLateralModes, APModeType, APStateManager, APVerticalModes, ControlEvents, HEvent, KeyEventData, KeyInterceptManager, NavSourceType, SimVarValueType
-} from 'msfssdk';
+  APLateralModes, APModeType, APStateManager, APVerticalModes, ControlEvents, HEvent, KeyEventData, KeyEventManager, SimVarValueType
+} from '@microsoft/msfs-sdk';
 
 /**
- * A G1000 NXi autopilot state manager.
+ * A Garmin autopilot state manager.
  */
 export class GarminAPStateManager extends APStateManager {
   private vsLastPressed = 0;
+  private controlEventPub = this.bus.getPublisher<ControlEvents>();
 
   /** @inheritdoc */
   protected onAPListenerRegistered(): void {
@@ -21,7 +22,7 @@ export class GarminAPStateManager extends APStateManager {
   }
 
   /** @inheritdoc */
-  protected setupKeyIntercepts(manager: KeyInterceptManager): void {
+  protected setupKeyIntercepts(manager: KeyEventManager): void {
     //alt modes
     manager.interceptKey('AP_ALT_HOLD', false);
     manager.interceptKey('AP_ALT_HOLD', false);
@@ -72,9 +73,6 @@ export class GarminAPStateManager extends APStateManager {
     manager.interceptKey('AP_NAV1_HOLD_ON', false);
     manager.interceptKey('AP_NAV1_HOLD_OFF', false);
 
-    manager.interceptKey('AP_NAV_SELECT_SET', false);
-    manager.interceptKey('TOGGLE_GPS_DRIVES_NAV1', false);
-
     //hdg modes
     manager.interceptKey('AP_HDG_HOLD', false);
     manager.interceptKey('AP_HDG_HOLD_ON', false);
@@ -103,13 +101,12 @@ export class GarminAPStateManager extends APStateManager {
     manager.interceptKey('AP_BC_HOLD_ON', false);
     manager.interceptKey('AP_BC_HOLD_OFF', false);
 
-    //baro set intercept
-    manager.interceptKey('BAROMETRIC', true);
+    //TOGA intercept
+    manager.interceptKey('AUTO_THROTTLE_TO_GA', false);
   }
 
   /** @inheritdoc */
-  protected handleKeyIntercepted({ key, value }: KeyEventData): void {
-    const controlEventPub = this.bus.getPublisher<ControlEvents>();
+  protected handleKeyIntercepted({ key, value0 }: KeyEventData): void {
     switch (key) {
       case 'AP_NAV1_HOLD':
         this.sendApModeEvent(APModeType.LATERAL, APLateralModes.NAV);
@@ -164,8 +161,8 @@ export class GarminAPStateManager extends APStateManager {
         this.sendApModeEvent(APModeType.LATERAL, APLateralModes.HEADING, false);
         break;
       case 'AP_PANEL_HEADING_SET':
-        if (value !== undefined) {
-          this.sendApModeEvent(APModeType.LATERAL, APLateralModes.HEADING, value === 1 ? true : false);
+        if (value0 !== undefined) {
+          this.sendApModeEvent(APModeType.LATERAL, APLateralModes.HEADING, value0 === 1 ? true : false);
         }
         break;
       case 'AP_BANK_HOLD':
@@ -196,8 +193,8 @@ export class GarminAPStateManager extends APStateManager {
       case 'AP_PANEL_VS_SET':
       case 'AP_VS_SET':
         // TODO Remove this when the Bravo default mapping is fixed.
-        if (value !== undefined && this.vsLastPressed < Date.now() - 100) {
-          this.sendApModeEvent(APModeType.VERTICAL, APVerticalModes.VS, value === 1 ? true : false);
+        if (value0 !== undefined && this.vsLastPressed < Date.now() - 100) {
+          this.sendApModeEvent(APModeType.VERTICAL, APVerticalModes.VS, value0 === 1 ? true : false);
         }
         this.vsLastPressed = Date.now();
         break;
@@ -215,8 +212,8 @@ export class GarminAPStateManager extends APStateManager {
         this.sendApModeEvent(APModeType.VERTICAL, APVerticalModes.ALT, false);
         break;
       case 'AP_PANEL_ALTITUDE_SET':
-        if (value !== undefined) {
-          this.sendApModeEvent(APModeType.VERTICAL, APVerticalModes.ALT, value === 1 ? true : false);
+        if (value0 !== undefined) {
+          this.sendApModeEvent(APModeType.VERTICAL, APVerticalModes.ALT, value0 === 1 ? true : false);
         }
         break;
 
@@ -229,17 +226,8 @@ export class GarminAPStateManager extends APStateManager {
       case 'FLIGHT_LEVEL_CHANGE_OFF':
         this.sendApModeEvent(APModeType.VERTICAL, APVerticalModes.FLC, false);
         break;
-      case 'AP_NAV_SELECT_SET':
-        if (value !== undefined && value >= 1 && value <= 2) {
-          controlEventPub.pub('cdi_src_set', { type: NavSourceType.Nav, index: value }, true);
-        }
-        break;
-      case 'TOGGLE_GPS_DRIVES_NAV1':
-        controlEventPub.pub('cdi_src_gps_toggle', true, true);
-        break;
-      case 'BAROMETRIC':
-        controlEventPub.pub('baro_set', true, true);
-        break;
+      case 'AUTO_THROTTLE_TO_GA':
+        this.sendApModeEvent(APModeType.VERTICAL, APVerticalModes.TO);
     }
   }
 

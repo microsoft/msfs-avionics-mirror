@@ -1,4 +1,4 @@
-import { BitFlags, FacilityLoader, FacilityWaypointCache, FlightPlan, LegDefinition, LegDefinitionFlags, LegType } from 'msfssdk';
+import { BitFlags, FacilityLoader, FacilityWaypointCache, FlightPlan, LegDefinition, LegDefinitionFlags, LegType } from '@microsoft/msfs-sdk';
 
 import { MapWaypointRenderer, MapWaypointRenderRole } from '../MapWaypointRenderer';
 import {

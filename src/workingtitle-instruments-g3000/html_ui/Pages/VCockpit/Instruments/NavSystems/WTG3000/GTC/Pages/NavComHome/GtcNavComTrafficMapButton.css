@@ -1,0 +1,17 @@
+.gtc-nav-com-traffic-map-button-img {
+  position: absolute;
+  width: 56px;
+  top: -53px;
+}
+
+.gtc-nav-com-traffic-map-button .bg-img-touch-button-label {
+  top: 2px;
+  left: 1px;
+}
+
+.gtc-nav-com-traffic-map-button .toggle-status-bar {
+  top: 44px;
+  left: 8px;
+  width: 63px;
+  height: 8px;
+}

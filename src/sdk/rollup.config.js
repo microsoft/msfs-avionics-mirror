@@ -7,13 +7,14 @@ export default [
     output: {
       file: 'dist/msfssdk.js',
       format: 'iife',
-      name: 'msfssdk'
+      name: 'msfssdk',
+      sourcemap: true,
     },
     plugins: [resolve()]
   },
   {
-    input: "build/index.d.ts",
-    output: [{ file: "dist/msfssdk.d.ts", format: "es" }],
+    input: 'build/index.d.ts',
+    output: [{ file: 'dist/msfssdk.d.ts', format: 'es' }],
     plugins: [dts()],
   }
 ]

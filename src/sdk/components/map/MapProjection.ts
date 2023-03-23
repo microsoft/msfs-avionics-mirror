@@ -1,8 +1,8 @@
 import { LatLonInterface } from '../../geo/GeoInterfaces';
 import { GeoPoint, GeoPointInterface, GeoPointReadOnly } from '../../geo/GeoPoint';
 import { GeoProjection, MercatorProjection } from '../../geo/GeoProjection';
-import { BitFlags } from '../../math/BitFlags';
-import { ReadonlyFloat64Array, Vec2Math, VecNMath } from '../../math/VecMath';
+import { UnitType } from '../../math/NumberUnit';
+import { ReadonlyFloat64Array, Vec2Math, Vec3Math, VecNMath } from '../../math/VecMath';
 
 /**
  * A parameter object for MapProjection.
@@ -102,6 +102,7 @@ type MapProjectionParametersRecord = {
  * A geographic projection model for a map. MapProjection uses a mercator projection.
  */
 export class MapProjection {
+  private static readonly DEFAULT_SCALE_FACTOR = UnitType.GA_RADIAN.convertTo(1, UnitType.NMILE);
   private static readonly SCALE_FACTOR_MAX_ITER = 20;
   private static readonly SCALE_FACTOR_TOLERANCE = 1e-6;
 
@@ -111,6 +112,8 @@ export class MapProjection {
   private static readonly tempVec2_4 = new Float64Array(2);
   private static readonly tempGeoPoint_1 = new GeoPoint(0, 0);
   private static readonly tempGeoPoint_2 = new GeoPoint(0, 0);
+
+  private static readonly vec3Cache = [Vec3Math.create()];
 
   private readonly geoProjection: MercatorProjection;
 
@@ -311,8 +314,22 @@ export class MapProjection {
   private recompute(): void {
     const currentTargetProjected = this.geoProjection.project(this.target, MapProjection.tempVec2_1);
 
-    if (isNaN(currentTargetProjected[0] + currentTargetProjected[1])) {
-      return;
+    if (!isFinite(currentTargetProjected[0] + currentTargetProjected[1])) {
+      // Check if we can potentially fix the geo projection by resetting its scale factor and center to defaults.
+      const translation = this.geoProjection.getTranslation();
+      if (
+        isFinite(this.target.lat)
+        && isFinite(this.target.lon)
+        && isFinite(this.geoProjection.getPostRotation())
+        && isFinite(translation[0])
+        && isFinite(translation[1])
+      ) {
+        this.geoProjection.setScaleFactor(MapProjection.DEFAULT_SCALE_FACTOR);
+        this.geoProjection.setCenter(MapProjection.tempGeoPoint_1.set(0, 0));
+        this.geoProjection.setPreRotation(Vec3Math.set(0, 0, 0, MapProjection.vec3Cache[0]));
+      } else {
+        return;
+      }
     }
 
     const currentCenterProjected = MapProjection.tempVec2_2;
@@ -323,12 +340,13 @@ export class MapProjection {
     let currentRange = this.calculateRangeAtCenter(currentCenterProjected);
     let ratio = currentRange / this.range;
 
-    if (isNaN(ratio) || ratio === 0) {
+    if (!isFinite(ratio) || ratio === 0) {
       return;
     }
 
     // iteratively find the appropriate scale factor (empiric testing shows this typically takes less than 4 iterations
     // to converge)
+    let lastScaleFactor = this.geoProjection.getScaleFactor();
     let iterCount = 0;
     let ratioError = Math.abs(ratio - 1);
     let deltaRatioError = MapProjection.SCALE_FACTOR_TOLERANCE + 1;
@@ -337,7 +355,7 @@ export class MapProjection {
       && ratioError > MapProjection.SCALE_FACTOR_TOLERANCE
       && deltaRatioError > MapProjection.SCALE_FACTOR_TOLERANCE
     ) {
-      this.geoProjection.setScaleFactor(ratio * this.geoProjection.getScaleFactor());
+      this.geoProjection.setScaleFactor(ratio * lastScaleFactor);
 
       this.geoProjection.project(this.target, currentTargetProjected);
       currentCenterProjected.set(currentTargetProjected);
@@ -345,8 +363,24 @@ export class MapProjection {
       currentCenterProjected[1] -= this.targetProjectedOffset[1];
 
       currentRange = this.calculateRangeAtCenter(currentCenterProjected);
-      ratio = currentRange / this.range;
+      const newRatio = currentRange / this.range;
+      const ratioDelta = newRatio - ratio;
 
+      // Check to see if the ratio between current range and target range is invalid, did not change, or changed in the
+      // direction opposite to what we were expecting. If so, this means that our range measurements are close to the
+      // poles and range no longer monotonically increases with decreasing scale factor and vice versa. If we continue
+      // iteration, we will likely push our scale factor to 0 or infinity. Therefore, we halt immediately and settle
+      // for using the scale factor before we applied the most recent correction.
+      if (
+        !isFinite(ratio)
+        || ratio < 1 && ratioDelta <= 0
+        || ratio > 1 && ratioDelta >= 0
+      ) {
+        this.geoProjection.setScaleFactor(lastScaleFactor);
+      }
+
+      lastScaleFactor = this.geoProjection.getScaleFactor();
+      ratio = newRatio;
       const newRatioError = Math.abs(ratio - 1);
       deltaRatioError = Math.abs(newRatioError - ratioError);
       ratioError = newRatioError;
@@ -357,7 +391,7 @@ export class MapProjection {
     this.geoProjection.setCenter(this.center);
 
     // set the projection's pre-rotation to avoid anti-meridian wrapping issues
-    const preRotation = Vec2Math.set(-this.center.lon * Avionics.Utils.DEG2RAD, 0, MapProjection.tempVec2_1);
+    const preRotation = Vec3Math.set(-this.center.lon * Avionics.Utils.DEG2RAD, 0, 0, MapProjection.vec3Cache[0]);
     this.geoProjection.setPreRotation(preRotation);
 
     const width = this.projectedSize[0];
@@ -389,10 +423,18 @@ export class MapProjection {
     parameters.range !== undefined && (this.range = parameters.range);
     parameters.rangeEndpoints && this.rangeEndpoints.set(parameters.rangeEndpoints);
     parameters.rotation !== undefined && this.geoProjection.setPostRotation(parameters.rotation);
-    this.recompute();
 
-    const changeFlags = this.computeChangeFlags(this.oldParameters);
-    this.notifyChangeListeners(changeFlags);
+    let changeFlags = this.computeChangeFlags(this.oldParameters);
+
+    if (changeFlags !== 0) {
+      this.recompute();
+
+      changeFlags |= this.computeDerivedChangeFlags(this.oldParameters);
+
+      if (changeFlags !== 0) {
+        this.notifyChangeListeners(changeFlags);
+      }
+    }
   }
 
   /**
@@ -460,17 +502,23 @@ export class MapProjection {
    * @returns Change flags based on the specified old parameters.
    */
   private computeChangeFlags(oldParameters: MapProjectionParametersRecord): number {
-    return BitFlags.union(
-      oldParameters.target.equals(this.target) ? 0 : MapProjectionChangeType.Target,
-      oldParameters.center.equals(this.center) ? 0 : MapProjectionChangeType.Center,
-      Vec2Math.equals(oldParameters.targetProjected, this.targetProjected) ? 0 : MapProjectionChangeType.TargetProjected,
-      oldParameters.range === this.range ? 0 : MapProjectionChangeType.Range,
-      VecNMath.equals(oldParameters.rangeEndpoints, this.rangeEndpoints) ? 0 : MapProjectionChangeType.RangeEndpoints,
-      oldParameters.scaleFactor === this.geoProjection.getScaleFactor() ? 0 : MapProjectionChangeType.ScaleFactor,
-      oldParameters.rotation === this.getRotation() ? 0 : MapProjectionChangeType.Rotation,
-      Vec2Math.equals(oldParameters.projectedSize, this.projectedSize) ? 0 : MapProjectionChangeType.ProjectedSize,
-      oldParameters.projectedResolution === this.getProjectedResolution() ? 0 : MapProjectionChangeType.ProjectedResolution,
-    );
+    return (oldParameters.target.equals(this.target) ? 0 : MapProjectionChangeType.Target)
+      | (Vec2Math.equals(oldParameters.targetProjected, this.targetProjected) ? 0 : MapProjectionChangeType.TargetProjected)
+      | (oldParameters.range === this.range ? 0 : MapProjectionChangeType.Range)
+      | (VecNMath.equals(oldParameters.rangeEndpoints, this.rangeEndpoints) ? 0 : MapProjectionChangeType.RangeEndpoints)
+      | (oldParameters.rotation === this.getRotation() ? 0 : MapProjectionChangeType.Rotation)
+      | (Vec2Math.equals(oldParameters.projectedSize, this.projectedSize) ? 0 : MapProjectionChangeType.ProjectedSize);
+  }
+
+  /**
+   * Computes change flags for derived parameters given a set of old parameters.
+   * @param oldParameters The old parameters.
+   * @returns Change flags for derived parameters based on the specified old parameters.
+   */
+  private computeDerivedChangeFlags(oldParameters: MapProjectionParametersRecord): number {
+    return (oldParameters.center.equals(this.center) ? 0 : MapProjectionChangeType.Center)
+      | (oldParameters.scaleFactor === this.geoProjection.getScaleFactor() ? 0 : MapProjectionChangeType.ScaleFactor)
+      | (oldParameters.projectedResolution === this.getProjectedResolution() ? 0 : MapProjectionChangeType.ProjectedResolution);
   }
 
   /**
@@ -571,7 +619,9 @@ export class MapProjection {
    * @param changeFlags The types of changes that were made.
    */
   protected notifyChangeListeners(changeFlags: number): void {
-    this.changeListeners.forEach(listener => listener(this, changeFlags));
+    for (let i = 0; i < this.changeListeners.length; i++) {
+      this.changeListeners[i](this, changeFlags);
+    }
   }
 
   /**

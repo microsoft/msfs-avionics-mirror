@@ -1,44 +1,13 @@
-import { GeoCircle, GeoPoint, GeoPointInterface, GeoPointReadOnly, LatLonInterface, MagVar, NavMath } from '../geo';
-import { BitFlags, MathUtils, NumberUnitReadOnly, ReadonlyFloat64Array, UnitFamily, UnitType, Vec3Math } from '../math';
-import { Facility, FacilityType, FlightPlanLeg, ICAO, LegTurnDirection, LegType, VorFacility } from '../navigation/Facilities';
+import { GeoCircle, GeoPoint, GeoPointInterface, LatLonInterface, MagVar, NavMath } from '../geo';
+import { BitFlags, MathUtils, ReadonlyFloat64Array, UnitType, Vec3Math } from '../math';
+import { Facility, FacilityType, FlightPlanLeg, ICAO, LegTurnDirection, LegType, RunwayFacility, VorFacility } from '../navigation/Facilities';
+import { FlightPathState } from './FlightPathState';
 import { FlightPathUtils } from './FlightPathUtils';
 import {
   CircleInterceptBuilder, CircleVectorBuilder, DirectToPointBuilder, GreatCircleBuilder, JoinGreatCircleToPointBuilder, ProcedureTurnBuilder,
   TurnToCourseBuilder
 } from './FlightPathVectorBuilder';
-import { FlightPathVectorFlags, LegCalculations, LegDefinition } from './FlightPlanning';
-
-/**
- * The state of a calculating flight path.
- */
-export interface FlightPathState {
-  /** The current position of the flight path. */
-  currentPosition: GeoPoint | undefined;
-
-  /** The current true course bearing of the flight path. */
-  currentCourse: number | undefined;
-
-  /** Whether the flight path is in a fallback state. */
-  isFallback: boolean;
-
-  /** The position of the airplane. */
-  readonly planePosition: GeoPointReadOnly;
-
-  /** The true heading of the airplane. */
-  readonly planeHeading: number;
-
-  /** The altitude of the airplane. */
-  readonly planeAltitude: NumberUnitReadOnly<UnitFamily.Distance>;
-
-  /** The ground speed of the airplane. */
-  readonly planeSpeed: NumberUnitReadOnly<UnitFamily.Speed>;
-
-  /** The climb rate of the airplane. */
-  readonly planeClimbRate: NumberUnitReadOnly<UnitFamily.Speed>;
-
-  /** The desired turn radius. */
-  readonly desiredTurnRadius: NumberUnitReadOnly<UnitFamily.Distance>;
-}
+import { FlightPathVectorFlags, LegCalculations, LegDefinition, VectorTurnDirection } from './FlightPlanning';
 
 /**
  * A flight path calculator for individual flight plan legs.
@@ -102,28 +71,38 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
   }
 
   /**
-   * Gets the true course for a flight plan leg. If the leg defines an origin or fix VOR facility, then the magnetic
-   * variation defined at the VOR is used to adjust magnetic course, otherwise the computed magnetic variation for the
-   * specified point is used.
+   * Gets the magnetic variation, in degrees, to use when calculating a flight plan leg's course. If the leg defines
+   * an origin or fix VOR facility, then the magnetic variation defined at the VOR is used. Otherwise the computed
+   * magnetic variation for the specified point is used.
    * @param leg A flight plan leg.
    * @param point The location from which to get magnetic variation, if an origin VOR is not found.
-   * @returns the true course for the flight plan leg.
+   * @returns The magnetic variation, in degrees, to use when calculating the specified flight plan leg's course.
+   */
+  protected getLegMagVar(leg: FlightPlanLeg, point: LatLonInterface): number {
+    const facIcao = (leg.originIcao && ICAO.isFacility(leg.originIcao, FacilityType.VOR)) ? leg.originIcao
+      : (leg.fixIcao && ICAO.isFacility(leg.fixIcao, FacilityType.VOR)) ? leg.fixIcao
+        : undefined;
+
+    const facility = facIcao !== undefined ? this.facilityCache.get(facIcao) as VorFacility | undefined : undefined;
+
+    // The sign of magnetic variation on VOR facilities is the opposite of the standard east = positive convention.
+    return facility === undefined ? MagVar.get(point) : -facility.magneticVariation;
+  }
+
+  /**
+   * Gets the true course, in degrees, for a flight plan leg. If the leg defines an origin or fix VOR facility, then
+   * the magnetic variation defined at the VOR is used to adjust magnetic course. Otherwise the computed magnetic
+   * variation for the specified point is used.
+   * @param leg A flight plan leg.
+   * @param point The location from which to get magnetic variation, if an origin VOR is not found.
+   * @returns The true course, in degrees, for the flight plan leg.
    */
   protected getLegTrueCourse(leg: FlightPlanLeg, point: LatLonInterface): number {
     if (leg.trueDegrees) {
       return leg.course;
     }
 
-    const facIcao = (leg.originIcao && ICAO.isFacility(leg.originIcao) && ICAO.getFacilityType(leg.originIcao) === FacilityType.VOR) ? leg.originIcao
-      : (leg.fixIcao && ICAO.isFacility(leg.fixIcao) && ICAO.getFacilityType(leg.fixIcao) === FacilityType.VOR) ? leg.fixIcao
-        : undefined;
-
-    const facility = facIcao ? this.facilityCache.get(facIcao) as VorFacility | undefined : undefined;
-    const magVar = facility
-      ? -facility.magneticVariation
-      : Facilities.getMagVar(point.lat, point.lon);
-
-    return NavMath.normalizeHeading(leg.course + magVar);
+    return MagVar.magneticToTrue(leg.course, this.getLegMagVar(leg, point));
   }
 
   /** @inheritdoc */
@@ -135,6 +114,7 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
     resolveIngressToEgress = true
   ): LegCalculations {
     const calcs = legs[calculateIndex].calculated ??= {
+      courseMagVar: 0,
       startLat: undefined,
       startLon: undefined,
       endLat: undefined,
@@ -162,6 +142,7 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
     }
 
     try {
+      this.calculateMagVar(legs, calculateIndex, activeLegIndex, state);
       this.calculateVectors(legs, calculateIndex, activeLegIndex, state);
       resolveIngressToEgress && this.resolveIngressToEgress(calcs);
       calcs.endsInFallback = state.isFallback;
@@ -200,6 +181,16 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
   }
 
   /**
+   * Calculates the magnetic variation for a flight plan leg.
+   * @param legs A sequence of flight plan legs.
+   * @param calculateIndex The index of the leg to calculate.
+   * @param activeLegIndex The index of the active leg.
+   * @param state The current flight path state.
+   * @returns The number of vectors added to the sequence.
+   */
+  protected abstract calculateMagVar(legs: LegDefinition[], calculateIndex: number, activeLegIndex: number, state: FlightPathState): void;
+
+  /**
    * Calculates flight path vectors for a flight plan leg.
    * @param legs A sequence of flight plan legs.
    * @param calculateIndex The index of the leg to calculate.
@@ -219,9 +210,18 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
 }
 
 /**
- * Calculates flight path vectors for discontinuity legs.
+ * Calculates flight path vectors for legs with no path.
  */
-export class DiscontinuityLegCalculator extends AbstractFlightPathLegCalculator {
+export class NoPathLegCalculator extends AbstractFlightPathLegCalculator {
+  /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number
+  ): void {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    legs[calculateIndex].calculated!.courseMagVar = 0;
+  }
+
   /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
@@ -252,6 +252,18 @@ export class TrackToFixLegCalculator extends AbstractFlightPathLegCalculator {
    */
   constructor(facilityCache: Map<string, Facility>) {
     super(facilityCache, false);
+  }
+
+  /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const terminatorPos = this.getTerminatorPosition(leg.leg, leg.leg.fixIcao, this.geoPointCache[0]);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = terminatorPos === undefined ? 0 : MagVar.get(terminatorPos);
   }
 
   /** @inheritdoc */
@@ -322,6 +334,18 @@ export class DirectToFixLegCalculator extends AbstractFlightPathLegCalculator {
   }
 
   /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const terminatorPos = this.getTerminatorPosition(leg.leg, leg.leg.fixIcao, this.geoPointCache[0]);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = terminatorPos === undefined ? 0 : MagVar.get(terminatorPos);
+  }
+
+  /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
     calculateIndex: number,
@@ -346,9 +370,60 @@ export class DirectToFixLegCalculator extends AbstractFlightPathLegCalculator {
     state.currentPosition ??= terminatorPos.copy();
 
     const startPoint = this.geoPointCache[0].set(state.currentPosition);
-    const initialCourse = leg.course !== 0
-      ? leg.course % 360
-      : state.currentCourse ?? state.planeHeading;
+    let initialCourse: number;
+
+    if (leg.course !== 0) {
+      // If a course is defined on the leg, then honor it.
+      initialCourse = leg.trueDegrees ? leg.course % 360 : MagVar.magneticToTrue(leg.course, startPoint);
+    } else {
+      if (state.currentCourse === undefined) {
+        // If the current course from the previous leg is undefined, then attempt to select an initial course from
+        // the definition of the previous leg, if one exists.
+        const prevLeg = legs[calculateIndex - 1];
+        switch (prevLeg?.leg.type) {
+          case LegType.CA:
+          case LegType.CF:
+          case LegType.CR:
+          case LegType.FA:
+          case LegType.FC:
+          case LegType.FD:
+          case LegType.FM:
+          case LegType.VA:
+          case LegType.VD:
+          case LegType.VM:
+          case LegType.VR:
+          case LegType.HF:
+          case LegType.HM:
+          case LegType.HA:
+            // If the previous leg defines a course, then use that course.
+            initialCourse = this.getLegTrueCourse(prevLeg.leg, startPoint);
+            break;
+          case LegType.IF:
+            // If the previous leg is an IF for a runway fix, then use runway heading as the initial course.
+            if (ICAO.isFacility(prevLeg.leg.fixIcao, FacilityType.RWY)) {
+              const runwayFix = this.facilityCache.get(prevLeg.leg.fixIcao) as RunwayFacility | undefined;
+              if (runwayFix) {
+                initialCourse = runwayFix.runway.course;
+                break;
+              }
+            }
+          // eslint-disable-next-line no-fallthrough
+          default:
+            // If we can't select an initial course from the previous leg, then default to the course that puts us on a
+            // great-circle path from the start point to the terminator fix.
+            initialCourse = startPoint.bearingTo(terminatorPos);
+
+            // If the calculated course is NaN (only happens when the start and end points are coincident or antipodal),
+            // then just arbitrarily use true north.
+            if (isNaN(initialCourse)) {
+              initialCourse = 0;
+            }
+        }
+      } else {
+        // If the current course from the previous leg is defined, use it.
+        initialCourse = state.currentCourse;
+      }
+    }
 
     const startPath = this.geoCircleCache[0].setAsGreatCircle(startPoint, initialCourse);
 
@@ -384,6 +459,18 @@ export abstract class TurnToFixLegCalculator extends AbstractFlightPathLegCalcul
    */
   constructor(facilityCache: Map<string, Facility>) {
     super(facilityCache, false);
+  }
+
+  /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const terminatorPos = this.getTerminatorPosition(leg.leg, leg.leg.fixIcao, this.geoPointCache[0]);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = terminatorPos === undefined ? 0 : MagVar.get(terminatorPos);
   }
 
   /** @inheritdoc */
@@ -888,6 +975,19 @@ export class CourseToDmeLegCalculator extends CircleInterceptLegCalculator {
   }
 
   /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const dmeFacility = this.facilityCache.get(leg.leg.originIcao);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = dmeFacility === undefined ? 0 : this.getLegMagVar(leg.leg, dmeFacility);
+  }
+
+  /** @inheritdoc */
   protected getInterceptCourse(legs: LegDefinition[], index: number): number | undefined {
     const leg = legs[index].leg;
     const dmeFacility = this.facilityCache.get(leg.originIcao);
@@ -926,6 +1026,19 @@ export class CourseToRadialLegCalculator extends CircleInterceptLegCalculator {
    */
   constructor(facilityCache: Map<string, Facility>) {
     super(facilityCache, true);
+  }
+
+  /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const radialFacility = this.facilityCache.get(leg.leg.originIcao);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = radialFacility === undefined ? 0 : this.getLegMagVar(leg.leg, radialFacility);
   }
 
   /** @inheritdoc */
@@ -969,6 +1082,19 @@ export class CourseToInterceptLegCalculator extends CircleInterceptLegCalculator
    */
   constructor(facilityCache: Map<string, Facility>) {
     super(facilityCache, true);
+  }
+
+  /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number,
+    activeLegIndex: number,
+    state: FlightPathState
+  ): void {
+    const leg = legs[calculateIndex];
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = state.currentPosition === undefined ? 0 : this.getLegMagVar(leg.leg, state.currentPosition);
   }
 
   /** @inheritdoc */
@@ -1080,6 +1206,19 @@ export class FixToDmeLegCalculator extends AbstractFlightPathLegCalculator {
   }
 
   /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const startFacility = this.facilityCache.get(leg.leg.fixIcao);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = startFacility === undefined ? 0 : this.getLegMagVar(leg.leg, startFacility);
+  }
+
+  /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
     calculateIndex: number,
@@ -1170,6 +1309,19 @@ export class TrackFromFixLegCalculator extends AbstractFlightPathLegCalculator {
   }
 
   /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const startFacility = this.facilityCache.get(leg.leg.fixIcao);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = startFacility === undefined ? 0 : this.getLegMagVar(leg.leg, startFacility);
+  }
+
+  /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
     calculateIndex: number,
@@ -1257,6 +1409,19 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
   }
 
   /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const terminatorPos = this.getTerminatorPosition(leg.leg, leg.leg.fixIcao, this.geoPointCache[0]);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = terminatorPos === undefined ? 0 : this.getLegMagVar(leg.leg, terminatorPos);
+  }
+
+  /** @inheritdoc */
   protected calculateVectors(
     legs: LegDefinition[],
     calculateIndex: number,
@@ -1330,11 +1495,34 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
           state.isFallback = true;
         } else {
           const pathAngleDiff = Math.acos(MathUtils.clamp(Vec3Math.dot(startPath.center, endPath.center), -1, 1));
-          if (pathAngleDiff >= Math.PI - GeoCircle.ANGULAR_TOLERANCE) {
-            // The start and end paths are anti-parallel, which means we need to execute a procedure turn to do a 180.
+          if (pathAngleDiff >= 3.05432619 - GeoCircle.ANGULAR_TOLERANCE) {
+            // The start and end paths are anti-parallel (+/- 5 degrees), which means we need to execute a procedure turn to do a 180.
 
-            // Favor right turn unless we are explicitly told to turn left.
-            const desiredTurnDirection = leg.turnDirection === LegTurnDirection.Left ? 'left' : 'right';
+            let desiredTurnDirection: VectorTurnDirection;
+            switch (leg.turnDirection) {
+              // If the leg defines a turn direction, respect it.
+              case LegTurnDirection.Left:
+                desiredTurnDirection = 'left';
+                break;
+              case LegTurnDirection.Right:
+                desiredTurnDirection = 'right';
+                break;
+              default: {
+                const endDistanceFromStartPath = startPath.distance(endVec);
+                if (Math.abs(endDistanceFromStartPath) <= GeoCircle.ANGULAR_TOLERANCE) {
+                  // If the end point lies on the start path, then we want to turn toward the end path after passing
+                  // the end point along the start path (defaulting to a right turn if the start and end paths are
+                  // exactly antiparallel).
+                  const cross = Vec3Math.cross(startPath.center, endVec, this.vec3Cache[2]);
+                  desiredTurnDirection = Vec3Math.dot(cross, endPath.center) > 0 ? 'left' : 'right';
+                } else {
+                  // If the end point does not lie on the start path, then we want to turn toward the end point from
+                  // the start path.
+                  desiredTurnDirection = endDistanceFromStartPath < 0 ? 'left' : 'right';
+                }
+              }
+            }
+
             vectorIndex += this.procTurnBuilder.build(
               vectors, vectorIndex,
               startVec, startPath, endVec, endPath,
@@ -1342,6 +1530,17 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
               minTurnRadius, desiredTurnDirection,
               currentCourse, endCourse
             );
+
+            // procTurnBuilder will only build vectors up to the point where the proc turn intercepts the end path.
+            // So we need to check if we need to add a vector to connect the intercept point to the end point.
+            if (vectorIndex > 0) {
+              const lastVector = vectors[vectorIndex - 1];
+              const interceptVec = GeoPoint.sphericalToCartesian(lastVector.endLat, lastVector.endLon, this.vec3Cache[2]);
+              const interceptToEndDistance = endPath.angleAlong(interceptVec, endVec, Math.PI);
+              if (interceptToEndDistance > 1e-5 && interceptToEndDistance < Math.PI + GeoCircle.ANGULAR_TOLERANCE) { // ~60 meter tolerance
+                vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, this.geoPointCache[2].set(lastVector.endLat, lastVector.endLon), endPoint);
+              }
+            }
           } else if (
             endPath.angleAlong(startVec, endVec, Math.PI, GeoCircle.ANGULAR_TOLERANCE) < Math.PI + GeoCircle.ANGULAR_TOLERANCE
             && (
@@ -1511,6 +1710,19 @@ export class ProcedureTurnLegCalculator extends AbstractFlightPathLegCalculator 
     super(facilityCache, true);
   }
 
+  /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const originFacility = this.facilityCache.get(leg.leg.fixIcao);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = originFacility === undefined ? 0 : MagVar.get(originFacility);
+  }
+
   // eslint-disable-next-line jsdoc/require-jsdoc
   protected calculateVectors(
     legs: LegDefinition[],
@@ -1580,7 +1792,7 @@ export class ProcedureTurnLegCalculator extends AbstractFlightPathLegCalculator 
       origin, outboundPath,
       inboundPathEndpoint, inboundPath,
       turnInitialCourse,
-      state.desiredTurnRadius.asUnit(UnitType.METER), desiredTurnDirection,
+      state.desiredCourseReversalTurnRadius.asUnit(UnitType.METER), desiredTurnDirection,
       outboundCourse, inboundCourse
     );
 
@@ -1679,6 +1891,21 @@ export class CourseToManualLegCalculator extends AbstractFlightPathLegCalculator
     super(facilityCache, false);
   }
 
+  /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number,
+    activeLegIndex: number,
+    state: FlightPathState
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const origin = state.currentPosition ?? this.facilityCache.get(leg.leg.fixIcao);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = origin === undefined ? 0 : this.getLegMagVar(leg.leg, origin);
+  }
+
   // eslint-disable-next-line jsdoc/require-jsdoc
   protected calculateVectors(
     legs: LegDefinition[],
@@ -1701,7 +1928,7 @@ export class CourseToManualLegCalculator extends AbstractFlightPathLegCalculator
       return;
     }
 
-    const course = leg.trueDegrees ? leg.course : MagVar.magneticToTrue(leg.course, startPoint);
+    const course = this.getLegTrueCourse(leg, startPoint);
     const normalizedEnd = startPoint.offset(course, UnitType.NMILE.convertTo(1, UnitType.GA_RADIAN), this.geoPointCache[1]);
 
     vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, startPoint, normalizedEnd);
@@ -1729,6 +1956,21 @@ export class CourseToAltitudeLegCalculator extends AbstractFlightPathLegCalculat
    */
   constructor(facilityCache: Map<string, Facility>) {
     super(facilityCache, false);
+  }
+
+  /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number,
+    activeLegIndex: number,
+    state: FlightPathState
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const origin = state.currentPosition ?? this.facilityCache.get(leg.leg.fixIcao);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = origin === undefined ? 0 : this.getLegMagVar(leg.leg, origin);
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc
@@ -1807,6 +2049,19 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
     super(facilityCache, true);
   }
 
+  /** @inheritdoc */
+  protected calculateMagVar(
+    legs: LegDefinition[],
+    calculateIndex: number
+  ): void {
+    const leg = legs[calculateIndex];
+
+    const holdFacility = this.facilityCache.get(leg.leg.fixIcao);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    leg.calculated!.courseMagVar = holdFacility === undefined ? 0 : this.getLegMagVar(leg.leg, holdFacility);
+  }
+
   // eslint-disable-next-line jsdoc/require-jsdoc
   protected calculateVectors(
     legs: LegDefinition[],
@@ -1849,12 +2104,12 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
 
     const turnDirection = leg.turnDirection === LegTurnDirection.Right ? 'right' : 'left';
     const turnDirectionSign = turnDirection === 'left' ? -1 : 1;
-    const turnRadiusMeters = state.desiredTurnRadius.asUnit(UnitType.METER);
+    const turnRadiusMeters = state.desiredHoldTurnRadius.asUnit(UnitType.METER);
     const inboundPath = this.geoCircleCache[0].setAsGreatCircle(holdPos, course);
 
     const outboundTurnCenterCourse = NavMath.normalizeHeading(course + 90 * turnDirectionSign);
 
-    const turnRadiusRad = state.desiredTurnRadius.asUnit(UnitType.GA_RADIAN);
+    const turnRadiusRad = state.desiredHoldTurnRadius.asUnit(UnitType.GA_RADIAN);
     const outboundTurnCenter = holdPos.offset(outboundTurnCenterCourse, turnRadiusRad, this.geoPointCache[1]);
     const outboundTurnEnd = holdPos.offset(outboundTurnCenterCourse, turnRadiusRad * 2, this.geoPointCache[2]);
 

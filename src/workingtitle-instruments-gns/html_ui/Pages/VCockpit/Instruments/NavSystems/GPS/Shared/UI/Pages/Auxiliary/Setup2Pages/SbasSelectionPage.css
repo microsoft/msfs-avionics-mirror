@@ -1,0 +1,22 @@
+.sbas-selection-page {
+  border: 1px solid var(--gnscyan);
+  background: black;
+  display: grid;
+  grid-template-columns: 50% 50%;
+  font-size: 16px;
+  color: var(--gnsgreen);
+  padding: 4px;
+}
+
+.wt430 .sbas-selection-page {
+  font-size: 20px;
+}
+
+.sbas-selection-label {
+  height: 24px;
+}
+
+.sbas-selection-selector {
+  height: 24px;
+  text-align: right;
+}

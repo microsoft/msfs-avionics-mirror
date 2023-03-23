@@ -1,4 +1,4 @@
-import { AdsbOperatingMode, ComponentProps, DisplayComponent, FSComponent, Subscribable, VNode } from 'msfssdk';
+import { AdsbOperatingMode, ComponentProps, DisplayComponent, FSComponent, Subscribable, VNode } from '@microsoft/msfs-sdk';
 
 /**
  * Component props for TrafficMapBdsbModeIndicator.
@@ -20,7 +20,7 @@ export class TrafficMapAdsbModeIndicator extends DisplayComponent<TrafficMapAdsb
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class='map-traffic-adsb-opmode'>{this.text}</div>
+      <div class='traffic-map-adsb-opmode'>{this.text}</div>
     );
   }
 

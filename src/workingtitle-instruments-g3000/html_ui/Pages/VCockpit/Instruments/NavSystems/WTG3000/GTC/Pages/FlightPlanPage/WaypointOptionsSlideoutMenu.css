@@ -1,0 +1,11 @@
+.gtc-horizontal .waypoint-options {
+  --waypoint-options-dto-transform: scale(1.85);
+}
+
+.gtc-vertical .waypoint-options {
+  --waypoint-options-dto-transform: scale(1);
+}
+
+.waypoint-options .direct-to-button img {
+  transform: var(--waypoint-options-dto-transform);
+}

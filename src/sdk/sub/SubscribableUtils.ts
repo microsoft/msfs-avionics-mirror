@@ -28,7 +28,7 @@ export class SubscribableUtils {
    * @param query A query.
    * @returns Whether the query is a mutable subscribable.
    */
-  public static isMutableSubscribable<T = any, I = any>(query: unknown): query is MutableSubscribable<T, I> {
+  public static isMutableSubscribable<T = any, I = T>(query: unknown): query is MutableSubscribable<T, I> {
     return typeof query === 'object' && query !== null && (query as any).isMutableSubscribable === true;
   }
 

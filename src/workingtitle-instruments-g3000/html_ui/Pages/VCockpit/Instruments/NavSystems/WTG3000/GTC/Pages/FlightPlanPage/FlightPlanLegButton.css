@@ -1,0 +1,33 @@
+.gtc-horizontal .flight-plan-leg-button {
+  --flight-plan-leg-button-width: 334px;
+  --flight-plan-leg-button-direct-to-random-width: 516px;
+  --flight-plan-leg-button-direct-to-random-altitude-width: 182px;
+  --flight-plan-leg-button-direct-to-random-altitude-font-size: 35px;
+}
+
+.gtc-vertical .flight-plan-leg-button {
+  --flight-plan-leg-button-width: 180px;
+  --flight-plan-leg-button-direct-to-random-width: 279px;
+  --flight-plan-leg-button-direct-to-random-altitude-width: 98px;
+  --flight-plan-leg-button-direct-to-random-altitude-font-size: 19px;
+}
+
+.flight-plan-leg-button {
+  width: var(--flight-plan-leg-button-width);
+}
+
+.flight-plan-leg-button.touch-button-highlight {
+  --flight-plan-leg-display-name-color: var(--touch-button-highlight-text-color);
+}
+
+.direct-to-random-main-leg .flight-plan-leg-button {
+  width: var(--flight-plan-leg-button-direct-to-random-width);
+}
+
+.direct-to-random-main-leg .flight-plan-leg-button .altitude-constraint-display {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--flight-plan-leg-button-direct-to-random-altitude-width);
+  font-size: var(--flight-plan-leg-button-direct-to-random-altitude-font-size);
+}

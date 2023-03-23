@@ -1,0 +1,23 @@
+.gtc-horizontal .segment-list-item {
+  --segment-list-item-airway-dot-top: 36%;
+  --segment-list-item-airway-dot-left: -4px;
+  --segment-list-item-airway-dot-scale: 1.0;
+}
+
+.gtc-vertical .segment-list-item {
+  --segment-list-item-airway-dot-top: 23%;
+  --segment-list-item-airway-dot-left: -12px;
+  --segment-list-item-airway-dot-scale: 0.54;
+}
+
+.segment-list-item .airway-dot {
+  position: absolute;
+  top: var(--segment-list-item-airway-dot-top);
+  left: var(--segment-list-item-airway-dot-left);
+  transform: scale(var(--segment-list-item-airway-dot-scale));
+  display: none;
+}
+
+.segment-list-item.airway .airway-dot {
+  display: block;
+}

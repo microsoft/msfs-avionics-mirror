@@ -1,0 +1,30 @@
+.hsi-wind-container {
+  position: absolute;
+  top: .5%;
+  left: 16%;
+  width: 8%;
+  height: 10%;
+}
+
+.MFD .hsi-wind-container {
+  left: 3%;
+  top: 7%;
+}
+
+.hsi-wind-speed {
+  font-size: 20px;
+  text-align: center;
+  color: var(--wt21-colors-magenta);
+}
+
+.hsi-wind-arrow {
+  position: absolute;
+  top: 35%;
+  left: 38%;
+  height: 80%;
+  transition: all .5s ease-in;
+}
+
+.hsi-format-plan .hsi-wind-container {
+  display: none;
+}

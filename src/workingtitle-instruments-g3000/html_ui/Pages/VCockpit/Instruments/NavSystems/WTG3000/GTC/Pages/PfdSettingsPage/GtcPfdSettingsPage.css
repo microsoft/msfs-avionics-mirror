@@ -1,0 +1,148 @@
+.pfd-settings-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+
+  --pfd-settings-page-tab-list-height: calc(5 * var(--pfd-settings-page-tab-list-item-height) + 4 * var(--pfd-settings-page-tab-list-item-gap));
+}
+
+.pfd-settings-page-small-text {
+  font-size: 0.7em;
+}
+
+.gtc-horizontal .pfd-settings-page {
+  font-size: 32px;
+
+  --pfd-settings-page-master-list-right: 65px;
+  --pfd-settings-page-master-list-top: 50px;
+  --pfd-settings-page-master-list-width: 550px;
+  --pfd-settings-page-master-list-height: 695px;
+
+  --pfd-settings-page-tabs-left: 53px;
+  --pfd-settings-page-tabs-top: 45px;
+  --pfd-settings-page-tabs-width: 870px;
+  --pfd-settings-page-tabs-height: 705px;
+
+  --pfd-settings-page-tab-list-item-height: 130px;
+  --pfd-settings-page-tab-list-item-gap: 4px;
+  --pfd-settings-page-tab-list-left: 15px;
+  --pfd-settings-page-tab-list-top: 15px;
+  --pfd-settings-page-tab-list-width: calc(100% - 2 * 15px);
+
+  --pfd-settings-page-row-left-width: 326px;
+
+  --pfd-settings-page-row-right-font-size: 36px;
+}
+
+.gtc-vertical .pfd-settings-page {
+  font-size: 16px;
+
+  --pfd-settings-page-master-list-right: 20px;
+  --pfd-settings-page-master-list-top: 25px;
+  --pfd-settings-page-master-list-width: 300px;
+  --pfd-settings-page-master-list-height: 383px;
+
+  --pfd-settings-page-tabs-left: 3px;
+  --pfd-settings-page-tabs-top: 24px;
+  --pfd-settings-page-tabs-width: calc(100% - 3px);
+  --pfd-settings-page-tabs-height: 383px;
+
+  --pfd-settings-page-tab-list-item-height: 70px;
+  --pfd-settings-page-tab-list-item-gap: 2px;
+  --pfd-settings-page-tab-list-left: 10px;
+  --pfd-settings-page-tab-list-top: 10px;
+  --pfd-settings-page-tab-list-width: calc(100% - 2 * 10px);
+
+  --pfd-settings-page-row-left-width: 167px;
+
+  --pfd-settings-page-row-right-font-size: 18px;
+}
+
+.pfd-settings-page-master-list-container {
+  position: absolute;
+  right: var(--pfd-settings-page-master-list-right);
+  top: var(--pfd-settings-page-master-list-top);
+  width: var(--pfd-settings-page-master-list-width);
+  height: var(--pfd-settings-page-master-list-height);
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+}
+
+.pfd-settings-page-tabs {
+  position: absolute;
+  left: var(--pfd-settings-page-tabs-left);
+  top: var(--pfd-settings-page-tabs-top);
+  width: var(--pfd-settings-page-tabs-width);
+  height: var(--pfd-settings-page-tabs-height);
+}
+
+.gtc-list.pfd-settings-page-tab-list {
+  position: absolute;
+  left: var(--pfd-settings-page-tab-list-left);
+  top: var(--pfd-settings-page-tab-list-top);
+  width: var(--pfd-settings-page-tab-list-width);
+  height: var(--pfd-settings-page-tab-list-height);
+}
+
+.list-item.pfd-settings-page-row {
+  padding: 1px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.pfd-settings-page-row-left {
+  width: var(--pfd-settings-page-row-left-width);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.pfd-settings-page-row-right {
+  flex-grow: 1;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: var(--pfd-settings-page-row-right-font-size);
+
+  --touch-button-text-color: var(--g3000-color-cyan);
+}
+
+.pfd-settings-page-row-right.touch-button-toggle {
+  --touch-button-text-color: var(--g3000-color-white);
+}
+
+.pfd-settings-page-row-right .touch-button-value-value {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.pfd-settings-page-local-offset-row {
+  position: relative;
+}
+
+.pfd-settings-page-local-offset-default {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.pfd-settings-page-local-offset-button {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}

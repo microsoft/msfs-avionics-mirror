@@ -1,0 +1,72 @@
+.message-dialog {
+  position: absolute;
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .message-dialog {
+  left: calc(50% - 728px / 2);
+  top: calc(50% - 510px / 2);
+  width: 728px;
+  height: 510px;
+  font-size: 36px;
+
+  --message-dialog-content-padding: 10px;
+  --message-dialog-content-height: 280px;
+
+  --message-dialog-buttons-margin-top: 20px;
+  --message-dialog-button-width: 235px;
+  --message-dialog-button-height: 145px;
+}
+
+.gtc-vertical .message-dialog {
+  left: calc(50% - 400px / 2);
+  top: calc(50% - 280px / 2);
+  width: 400px;
+  height: 280px;
+  font-size: 21px;
+
+  --message-dialog-content-padding: 5px;
+  --message-dialog-content-height: 160px;
+
+  --message-dialog-buttons-margin-top: 5px;
+  --message-dialog-button-width: 130px;
+  --message-dialog-button-height: 78px;
+}
+
+.message-dialog-content {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  padding: 0 var(--message-dialog-content-padding);
+  width: 100%;
+  height: var(--message-dialog-content-height);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  white-space: pre-wrap;
+  text-align: center;
+  line-height: 1.3em;
+}
+
+.message-dialog-buttons {
+  position: absolute;
+  left: 0px;
+  top: calc(var(--message-dialog-content-height) + var(--message-dialog-buttons-margin-top));
+  width: 100%;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-around;
+}
+
+.message-dialog-button {
+  width: var(--message-dialog-button-width);
+  height: var(--message-dialog-button-height);
+}
+
+.message-dialog-button .touch-button-label {
+  white-space: pre-wrap;
+}

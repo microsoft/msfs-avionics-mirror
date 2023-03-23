@@ -1,5 +1,5 @@
-import { ComponentProps, DisplayComponent, EventBus, FSComponent, MinimumsMode, ObjectSubject, SetSubject, Subject, Subscribable, Subscription, VNode } from 'msfssdk';
-import { MinimumsAlertState } from './MinimumsAlerter';
+import { ComponentProps, DisplayComponent, EventBus, FSComponent, MinimumsMode, ObjectSubject, SetSubject, Subject, Subscribable, Subscription, VNode } from '@microsoft/msfs-sdk';
+import { MinimumsAlertState } from '../minimums/MinimumsAlerter';
 import { RadarAltimeterDataProvider } from './RadarAltimeterDataProvider';
 
 /**
@@ -67,35 +67,38 @@ export class RadarAltimeter extends DisplayComponent<RadarAltimeterProps> {
       this.valueText.set(isNaN(radarAlt) ? '' : radarAlt.toFixed(0));
     }, false, true);
 
-    const failedSub = this.failedSub = this.props.dataProvider.isDataFailed.sub(isFailed => {
-      if (isFailed) {
+    const isVisibleSub = this.isVisibleSub = this.props.dataProvider.radarAlt.sub(radarAlt => {
+      if (isNaN(radarAlt)) {
         radarAltSub.pause();
-        minimumsAlertSub.pause();
         minimumsModeSub.pause();
+        minimumsAlertSub.pause();
 
+        this.rootStyle.set('display', 'none');
+      } else {
+        radarAltSub.resume(true);
+        minimumsModeSub.resume(true);
+
+        this.rootStyle.set('display', '');
+      }
+    }, false, true);
+
+    this.failedSub = this.props.dataProvider.isDataFailed.sub(isFailed => {
+      if (isFailed) {
+        isVisibleSub.pause();
+        radarAltSub.pause();
+        minimumsModeSub.pause();
+        minimumsAlertSub.pause();
+
+        this.rootCssClass.delete('minimums-alert-atorbelow');
+
+        this.rootStyle.set('display', '');
         this.operatingStyle.set('display', 'none');
         this.failedStyle.set('display', '');
       } else {
         this.failedStyle.set('display', 'none');
         this.operatingStyle.set('display', '');
 
-        radarAltSub.resume(true);
-        minimumsModeSub.resume(true);
-      }
-    }, false, true);
-
-    this.isVisibleSub = this.props.dataProvider.radarAlt.sub(radarAlt => {
-      if (isNaN(radarAlt)) {
-        failedSub.pause();
-        radarAltSub.pause();
-        minimumsAlertSub.pause();
-        minimumsModeSub.pause();
-
-        this.rootStyle.set('display', 'none');
-      } else {
-        this.rootStyle.set('display', '');
-
-        failedSub.resume(true);
+        isVisibleSub.resume(true);
       }
     }, true);
   }

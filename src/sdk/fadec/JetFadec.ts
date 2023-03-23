@@ -1,5 +1,7 @@
-import { ConsumerSubject, EventBus, SimVarValueType } from '../data';
-import { ClockEvents } from '../instruments';
+import { ConsumerSubject, ConsumerValue, EventBus, IndexedEventType, SimVarValueType } from '../data';
+import { ClockEvents } from '../instruments/Clock';
+import { MathUtils } from '../math/MathUtils';
+import { FadecEvents } from './FadecEvents';
 
 /**
  * A control mode used by a jet FADEC.
@@ -11,8 +13,8 @@ export interface JetFadecMode {
   /**
    * Checks whether the FADEC should enter this mode for a specified engine.
    * @param index The index of the engine.
-   * @param throttleLeverPos The virtual position of the throttle lever, in the range of 0 - 1.
-   * @param throttle The current engine throttle setting, in the range of 0 - 1.
+   * @param throttleLeverPos The virtual position of the throttle lever, in the range of -1 to +1.
+   * @param throttle The current engine throttle setting, in the range of -1 to +1.
    * @param thrust The current net thrust delivered by the engine, in pounds.
    * @param n1 The current N1 value of the engine, in percent.
    * @param n1Corrected The current corrected N1 value of the engine, in percent.
@@ -23,21 +25,21 @@ export interface JetFadecMode {
   /**
    * Computes the desired engine throttle setting.
    * @param index The index of the engine.
-   * @param throttleLeverPos The virtual position of the throttle lever, in the range of 0 - 1.
-   * @param throttle The current engine throttle setting, in the range of 0 - 1.
+   * @param throttleLeverPos The virtual position of the throttle lever, in the range of -1 to +1.
+   * @param throttle The current engine throttle setting, in the range of -1 to +1.
    * @param thrust The current net thrust delivered by the engine, in pounds.
    * @param n1 The current N1 value of the engine, in percent.
    * @param n1Corrected The current corrected N1 value of the engine, in percent.
    * @param dt The elapsed time since the last FADEC update, in milliseconds.
-   * @returns The desired engine throttle setting, in the range of 0 - 1.
+   * @returns The desired engine throttle setting, in the range of -1 to +1.
    */
   computeDesiredThrottle(index: number, throttleLeverPos: number, throttle: number, thrust: number, n1: number, n1Corrected: number, dt: number): number;
 
   /**
    * Gets the visible position of the throttle lever for a specified engine.
    * @param index The index of the engine.
-   * @param throttleLeverPos The virtual position of the throttle lever, in the range of 0 - 1.
-   * @returns The visible position of the throttle lever, in the range of 0 - 1.
+   * @param throttleLeverPos The virtual position of the throttle lever, in the range of -1 to +1.
+   * @returns The visible position of the throttle lever, in the range of -1 to +1.
    */
   getVisibleThrottlePos(index: number, throttleLeverPos: number): number;
 }
@@ -57,17 +59,63 @@ export type JetFadecThrottleInfo = {
 };
 
 /**
+ * The state of an engine controlled by a jet FADEC.
+ */
+export type JetFadecEngineState = {
+  /** The current engine throttle lever position, in the range of -1 to +1. */
+  throttleLeverPos: number;
+
+  /** The current engine throttle setting, in the range of -1 to +1. */
+  throttle: number;
+
+  /** The current net thrust delivered by the engine, in pounds. */
+  thrust: number;
+
+  /** The current N1 value of the engine, in percent. */
+  n1: number;
+
+  /** The current corrected N1 value of the engine, in percent. */
+  n1Corrected: number;
+}
+
+/**
+ * Information for a throttle controlled by a jet FADEC, for internal use.
+ */
+export type JetFadecThrottleInfoInternal = JetFadecThrottleInfo & {
+  /** The name of the throttle's associated engine throttle SimVar. */
+  throttleSimVar: string;
+
+  /** The name of the throttle's associated engine thrust SimVar. */
+  thrustSimVar: string;
+
+  /** The name of the throttle's associated uncorrected N1 SimVar. */
+  n1SimVar: string;
+
+  /** The name of the throttle's associated corrected N1 SimVar. */
+  correctedN1SimVar: string;
+
+  /** The event bus topic for the throttle's associated FADEC mode. */
+  fadecModeTopic: IndexedEventType<'fadec_mode'>;
+};
+
+/**
  * A FADEC for turbojets. Controls engine throttle based on throttle lever position and other inputs.
  */
 export class JetFadec {
-  protected readonly throttleLeverPositionSubs: readonly ConsumerSubject<number>[];
+  protected readonly publisher = this.bus.getPublisher<FadecEvents>();
+
+  protected readonly throttleInfos: readonly JetFadecThrottleInfoInternal[];
+
+  protected readonly throttleLeverPositionValues: readonly ConsumerValue<number>[];
 
   private readonly updateHandler = this.update.bind(this);
   private readonly realTimeSub = ConsumerSubject.create(this.bus.getSubscriber<ClockEvents>().on('realTime'), 0);
   private updateTimer: NodeJS.Timeout | null = null;
   private lastUpdateTime = 0;
 
-  protected readonly lastModes: (JetFadecMode | null)[] = this.throttleInfos.map(() => null);
+  protected readonly engineStates: Record<number, JetFadecEngineState>;
+
+  protected readonly lastModes: (JetFadecMode | null)[];
 
   /**
    * Constructor.
@@ -81,13 +129,36 @@ export class JetFadec {
   constructor(
     protected readonly bus: EventBus,
     protected readonly modes: readonly JetFadecMode[],
-    protected readonly throttleInfos: readonly JetFadecThrottleInfo[]
+    throttleInfos: readonly JetFadecThrottleInfo[]
   ) {
+    this.throttleInfos = throttleInfos.map(info => {
+      return {
+        ...info,
+        throttleSimVar: `GENERAL ENG THROTTLE LEVER POSITION:${info.index}`,
+        thrustSimVar: `TURB ENG JET THRUST:${info.index}`,
+        n1SimVar: `TURB ENG N1:${info.index}`,
+        correctedN1SimVar: `TURB ENG CORRECTED N1:${info.index}`,
+        fadecModeTopic: `fadec_mode_${info.index}`
+      };
+    });
+    this.lastModes = this.throttleInfos.map(() => null);
+
     const sub = this.bus.getSubscriber<any>();
 
-    this.throttleLeverPositionSubs = throttleInfos.map(info => {
-      return ConsumerSubject.create(sub.on(info.leverPosTopic), 0);
+    this.throttleLeverPositionValues = throttleInfos.map(info => {
+      return ConsumerValue.create(sub.on(info.leverPosTopic), 0);
     });
+
+    this.engineStates = {};
+    for (const throttle of throttleInfos) {
+      this.engineStates[throttle.index] = {
+        throttleLeverPos: 0,
+        throttle: 0,
+        thrust: 0,
+        n1: 0,
+        n1Corrected: 0
+      };
+    }
   }
 
   /**
@@ -98,7 +169,7 @@ export class JetFadec {
   public start(frequency: number): void {
     this.stop();
 
-    this.bus.pub('fadec_active', true, true, true);
+    this.publisher.pub('fadec_active', true, true, true);
 
     this.updateTimer = setInterval(this.updateHandler, 1000 / frequency);
   }
@@ -118,7 +189,7 @@ export class JetFadec {
       this.setMode(i, null);
     }
 
-    this.bus.pub('fadec_active', false, true, true);
+    this.publisher.pub('fadec_active', false, true, true);
   }
 
   /**
@@ -141,10 +212,35 @@ export class JetFadec {
   }
 
   /**
-   * This method.
+   * A method called when this FADEC is updated.
    * @param dt The elapsed time, in milliseconds, since the last update.
    */
   protected onUpdate(dt: number): void {
+    this.updateEngineStates();
+    this.updateThrottles(dt);
+  }
+
+  /**
+   * Updates the states for this FADEC's engines.
+   */
+  protected updateEngineStates(): void {
+    for (let i = 0; i < this.throttleInfos.length; i++) {
+      const info = this.throttleInfos[i];
+      const state = this.engineStates[info.index];
+
+      state.throttleLeverPos = this.throttleLeverPositionValues[i].get();
+      state.throttle = SimVar.GetSimVarValue(info.throttleSimVar, SimVarValueType.Percent) / 100;
+      state.thrust = SimVar.GetSimVarValue(info.thrustSimVar, SimVarValueType.Pounds);
+      state.n1 = SimVar.GetSimVarValue(info.n1SimVar, SimVarValueType.Percent);
+      state.n1Corrected = SimVar.GetSimVarValue(info.correctedN1SimVar, SimVarValueType.Percent);
+    }
+  }
+
+  /**
+   * Updates this FADEC's engine throttles.
+   * @param dt The elapsed time, in milliseconds, since the last update.
+   */
+  protected updateThrottles(dt: number): void {
     for (let i = 0; i < this.throttleInfos.length; i++) {
       this.updateThrottle(i, dt);
     }
@@ -157,11 +253,7 @@ export class JetFadec {
    */
   protected updateThrottle(index: number, dt: number): void {
     const info = this.throttleInfos[index];
-    const throttleLeverPos = this.throttleLeverPositionSubs[index].get();
-    const throttle = SimVar.GetSimVarValue(`GENERAL ENG THROTTLE LEVER POSITION:${info.index}`, SimVarValueType.Percent) / 100;
-    const thrust = SimVar.GetSimVarValue(`TURB ENG JET THRUST:${info.index}`, SimVarValueType.Pounds);
-    const n1 = SimVar.GetSimVarValue(`TURB ENG N1:${info.index}`, SimVarValueType.Percent);
-    const n1Corrected = SimVar.GetSimVarValue(`TURB ENG CORRECTED N1:${info.index}`, SimVarValueType.Percent);
+    const { throttleLeverPos, throttle, thrust, n1, n1Corrected } = this.engineStates[info.index];
 
     let desiredThrottle = throttleLeverPos;
     let visibleThrottlePos = throttleLeverPos;
@@ -177,8 +269,8 @@ export class JetFadec {
       }
     }
 
-    SimVar.SetSimVarValue(`GENERAL ENG THROTTLE LEVER POSITION:${info.index}`, SimVarValueType.Percent, Utils.Clamp(desiredThrottle * 100, 0, 100));
-    SimVar.SetSimVarValue(info.visiblePosSimVar, 'number', Utils.Clamp(visibleThrottlePos, 0, 1));
+    SimVar.SetSimVarValue(info.throttleSimVar, SimVarValueType.Percent, MathUtils.clamp(desiredThrottle * 100, -100, 100));
+    SimVar.SetSimVarValue(info.visiblePosSimVar, 'number', MathUtils.clamp(visibleThrottlePos, -1, 1));
   }
 
   /**
@@ -192,6 +284,6 @@ export class JetFadec {
     }
 
     this.lastModes[index] = mode;
-    this.bus.pub(`fadec_mode_${this.throttleInfos[index].index}`, mode?.name ?? '', true, true);
+    this.publisher.pub(this.throttleInfos[index].fadecModeTopic, mode?.name ?? '', true, true);
   }
 }

@@ -1,4 +1,4 @@
-import { Adsb, AdsbOperatingMode } from 'msfssdk';
+import { Adsb, AdsbOperatingMode } from '@microsoft/msfs-sdk';
 
 import { TrafficUserSettings } from '../settings/TrafficUserSettings';
 

@@ -1,0 +1,116 @@
+.waypoint-frequencies-page {
+  background-color: var(--gnsblue);
+  padding: 0 3px 8px 6px;
+  height: 220px;
+}
+
+wt-gns530 .waypoint-frequencies-table {
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid var(--gnscyan);
+  margin-top: 10px;
+  width: 245px;
+  height: 180px;
+}
+
+wt-gns430 .waypoint-frequencies-table {
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid var(--gnscyan);
+  margin-top: 10px;
+  width: 260px;
+  height: 137px;
+}
+
+wt-gns530 .waypoint-frequencies-table>.ui-control-list {
+  width: 238px;
+  height: 175px;
+  line-height: 17px;
+}
+
+wt-gns430 .waypoint-frequencies-table>.ui-control-list {
+  width: 258px;
+  height: 135px;
+}
+
+.waypoint-frequencies-title {
+  height: 20px;
+  width: 32px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: -2px;
+  margin-top: 4px;
+}
+
+.waypoint-frequencies-ident {
+  height: 21px;
+  width: 150px;
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: 14px;
+  border: .8px solid var(--gnscyan);
+  ;
+  display: inline-block;
+  margin-top: 1px;
+}
+
+.waypoint-frequencies-ident-input {
+  display: inline-block;
+  padding-top: 4px;
+  width: 35px;
+}
+
+.waypoint-frequencies-page .waypoint-info-icon {
+  width: 14px;
+  height: 14px;
+  margin-left: 25px;
+  overflow: hidden;
+  display: inline-block;
+  margin-top: -2px;
+}
+
+.waypoint-frequencies-privacy {
+  display: inline-block;
+  padding-left: 20px;
+}
+
+.facility-frequency {
+  font-size: var(--gns-font-page-data);
+  padding-top: 4px;
+  padding-left: 4px;
+  display: inline-grid;
+}
+
+wt-gns530 .facility-frequency {
+  grid-template-columns: 165px 65px;
+}
+
+wt-gns430 .facility-frequency {
+  grid-template-columns: 165px 77px;
+}
+
+.facility-frequency-type {}
+
+.facility-frequency-frequency {
+  padding-top: 1px;
+  width: 66px;
+}
+
+.facility-frequency-unavailable {
+  font-size: 14px;
+  text-align: center;
+  padding-top: 5px;
+}
+
+wt-gns530 .waypoint-frequencies-table>.ui-control-list>.scroll-bar {
+  position: absolute;
+  top: 30px;
+  right: 1px;
+}
+
+wt-gns430 .waypoint-frequencies-table>.ui-control-list>.scroll-bar {
+  position: absolute;
+  margin-top: -4px;
+  margin-right: 2px;
+  right: 1px;
+}

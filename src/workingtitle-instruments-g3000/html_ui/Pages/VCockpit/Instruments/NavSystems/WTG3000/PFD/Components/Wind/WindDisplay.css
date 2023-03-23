@@ -1,0 +1,122 @@
+.wind {
+  position: relative;
+  color: var(--g3000-color-white);
+
+  --wind-arrows-fill: var(--g3000-color-white);
+  --wind-arrows-stroke: rgba(128, 128, 128, 0.5);
+  --wind-arrows-stroke-width: 1px;
+
+  --wind-option1-left: 7px;
+  --wind-option1-top: 7px;
+  --wind-option1-gap: 2px;
+  --wind-option1-arrows-size: 26px;
+  --wind-option1-font-size: 18px;
+
+  --wind-option2-3-left: 9px;
+  --wind-option2-3-arrows-size: 23px;
+
+  --wind-option2-gap: 4px;
+  --wind-option2-font-size: 18px;
+
+  --wind-option3-row-gap: 4px;
+  --wind-option3-col-gap: 4px;
+  --wind-option3-font-size: 15px;
+
+  --wind-no-data-font-size: 18px;
+}
+
+.wind.dead-reckoning {
+  color: var(--g3000-color-yellow);
+
+  --wind-arrows-fill: var(--g3000-color-yellow);
+}
+
+.wind-option1 {
+  position: absolute;
+  left: var(--wind-option1-left);
+  top: var(--wind-option1-top);
+  font-size: var(--wind-option1-font-size);
+  line-height: 1em;
+  display: grid;
+  grid-template-rows: auto auto;
+  grid-template-columns: auto auto;
+  justify-items: center;
+  align-items: center;
+  grid-row-gap: var(--wind-option1-gap);
+  grid-column-gap: var(--wind-option1-gap);
+}
+
+.wind-option1-arrows {
+  position: relative;
+  width: var(--wind-option1-arrows-size);
+  height: var(--wind-option1-arrows-size);
+}
+
+.wind-option1-stem,
+.wind-option1-arrow {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  fill: var(--wind-arrows-fill);
+  stroke: var(--wind-arrows-stroke);
+  stroke-width: var(--wind-arrows-stroke-width);
+}
+
+.wind-option2 {
+  position: absolute;
+  left: var(--wind-option2-3-left);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--wind-option2-font-size);
+  line-height: 1em;
+  display: grid;
+  grid-template-rows: auto auto;
+  grid-template-columns: auto auto;
+  justify-items: start;
+  align-items: center;
+  grid-column-gap: var(--wind-option2-gap);
+}
+
+.wind-option2-arrow {
+  width: var(--wind-option2-3-arrows-size);
+  height: var(--wind-option2-3-arrows-size);
+  fill: var(--wind-arrows-fill);
+  stroke: var(--wind-arrows-stroke);
+  stroke-width: var(--wind-arrows-stroke-width);
+}
+
+.wind-option3 {
+  position: absolute;
+  left: var(--wind-option2-3-left);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--wind-option3-font-size);
+  line-height: 1em;
+  display: grid;
+  grid-template-rows: auto;
+  grid-template-columns: auto auto;
+  justify-items: start;
+  align-items: center;
+  grid-row-gap: var(--wind-option3-row-gap);
+  grid-column-gap: var(--wind-option3-col-gap);
+}
+
+.wind-option3-arrow {
+  grid-area: 1 / 1 / 3 / 2;
+  width: var(--wind-option2-3-arrows-size);
+  height: var(--wind-option2-3-arrows-size);
+  fill: var(--wind-arrows-fill);
+  stroke: var(--wind-arrows-stroke);
+  stroke-width: var(--wind-arrows-stroke-width);
+}
+
+.wind-no-data {
+  position: absolute;
+  top: 50%;
+  width: 100%;
+  transform: translateY(-50%);
+  font-size: var(--wind-no-data-font-size);
+  text-align: center;
+}

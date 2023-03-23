@@ -1,0 +1,73 @@
+html {
+  --cursor-input-background: #464646;
+  --cursor-input-border-radius: 4px;
+
+  --cursor-input-slots-line-height: 1em;
+  --cursor-input-slots-padding: 0px;
+  --cursor-input-slots-justify: flex-start;
+
+  --cursor-input-cursor-end-offset: 2px;
+}
+
+.gtc-horizontal {
+  --cursor-input-cursor-end-width: 7px;
+}
+
+.gtc-vertical {
+  --cursor-input-cursor-end-width: 4px;
+}
+
+.cursor-input {
+  background: var(--cursor-input-background);
+  border-radius: var(--cursor-input-border-radius);
+  line-height: var(--cursor-input-slots-line-height);
+}
+
+.cursor-input-active {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.cursor-input-slots {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: var(--cursor-input-slots-justify);
+  align-items: baseline;
+  padding: var(--cursor-input-slots-padding);
+}
+
+@keyframes cursor-input-cursor-blink {
+  from {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.cursor-input-cursor {
+  background-color: var(--g3000-color-cyan);
+  transition: transform 250ms, width 250ms, height 250ms;
+  opacity: 1;
+}
+
+.cursor-input-cursor.cursor-blink {
+  animation: cursor-input-cursor-blink 1s infinite;
+}
+
+.cursor-input-inactive {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}

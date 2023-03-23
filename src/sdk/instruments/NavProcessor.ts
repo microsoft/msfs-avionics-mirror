@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import { ControlEvents } from '../data/ControlPublisher';
 import { EventBus, IndexedEventType } from '../data/EventBus';
@@ -8,111 +8,174 @@ import { HEvent } from '../data/HEventPublisher';
 import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
 import { RadioUtils } from '../utils/radio';
 import { BasePublisher, SimVarPublisher } from './BasePublishers';
-import { FrequencyBank, RadioEvents, RadioType } from './RadioCommon';
+import { AdfRadioIndex, FrequencyBank, NavRadioIndex, RadioEvents, RadioType } from './RadioCommon';
 
-/** Simvars used by a NavProcessor */
-export interface NavProcSimVars {
-  /** the selected OBS heading for Nav */
-  [nav_obs: IndexedEventType<'nav_obs'>]: number,
-  /** the course deviation for Nav */
-  [nav_cdi: IndexedEventType<'nav_cdi'>]: number,
-  /** the distance to Nav */
-  [nav_dme: IndexedEventType<'nav_dme'>]: number,
-  /** does the nav have DME */
-  [nav_has_dme: IndexedEventType<'nav_has_dme'>]: boolean,
-  /** does the nav have nav */
-  [nav_has_nav: IndexedEventType<'nav_has_nav'>]: boolean,
-  /** the radial for Nav */
-  [nav_radial: IndexedEventType<'nav_radial'>]: number,
-  /** signal strength for Nav */
-  [nav_signal: IndexedEventType<'nav_signal'>]: number,
-  /** the ident for Nav */
-  [nav_ident: IndexedEventType<'nav_ident'>]: string,
-  /** Nav tofrom flag */
-  [nav_to_from: IndexedEventType<'nav_to_from'>]: VorToFrom,
-  /** Nav localizer flag */
-  [nav_localizer: IndexedEventType<'nav_localizer'>]: boolean,
-  /** Nav localizer course */
-  [nav_localizer_crs: IndexedEventType<'nav_localizer_crs'>]: number,
-  /** Nav glideslope flag */
-  [nav_glideslope: IndexedEventType<'nav_glideslope'>]: boolean,
-  /** Nav glideslope error */
-  [nav_gs_error: IndexedEventType<'nav_gs_error'>]: number,
-  /** Nav raw glideslope angle */
-  [nav_raw_gs: IndexedEventType<'nav_raw_gs'>]: number,
-  /** Nav glideslope end position. */
-  [nav_gs_lla: IndexedEventType<'nav_gs_lla'>]: LatLongAlt,
-  /** Nav magvar correction */
-  [nav_magvar: IndexedEventType<'nav_magvar'>]: number,
-  /** DTK to the next GPS waypoint */
-  gps_dtk: number,
-  /** XTK error for the next GPS waypoint */
-  gps_xtk: number,
-  /** next GPS waypoint */
-  gps_wp: string,
-  /** next GPS waypoint bearing */
-  gps_wp_bearing: number,
-  /** next GPS waypoint distance */
-  gps_wp_distance: number
-  /** ADF signal strength */
-  [adf_signal: IndexedEventType<'adf_signal'>]: number,
-  /** ADF bearing */
-  [adf_bearing: IndexedEventType<'adf_bearing'>]: number,
-  /** Marker Beacon State */
-  mkr_bcn_state_simvar: MarkerBeaconState,
-  /** Nav Tuned LLA */
-  [nav_lla: IndexedEventType<'nav_lla'>]: LatLongAlt,
-  /** GPS Obs Active */
-  gps_obs_active_simvar: boolean,
-  /** GPS Obs Value Setting */
-  gps_obs_value_simvar: number,
+/**
+ * Nav radio data event roots.
+ */
+type NavRadioDataEventsRoot = {
+  /** Nav radio selected course, in degrees. */
+  nav_obs: number;
+
+  /** Nav radio signal strength, in arbitrary units. A value of `0` indicates no signal. */
+  nav_signal: number;
+
+  /** Whether a nav radio's tuned station has a DME component. */
+  nav_has_dme: boolean;
+
+  /** Whether a nav radio's tuned station has a VOR component. */
+  nav_has_nav: boolean;
+
+  /** Nav radio course needle deflection, scaled to +/-127. */
+  nav_cdi: number;
+
+  /** Nav radio DME distance, in nautical miles. */
+  nav_dme: number;
+
+  /** Nav radio radial, in degrees (the radial from the tuned station on which the airplane lies). */
+  nav_radial: number;
+
+  /** Nav radio ident string. */
+  nav_ident: string;
+
+  /** Nav radio to/from flag. */
+  nav_to_from: VorToFrom;
+
+  /** Whether a nav radio's tuned station is a localizer. */
+  nav_localizer: boolean;
+
+  /** The set course, in degrees, of a nav radio's tuned localizer. */
+  nav_localizer_crs: number;
+
+  /** The airport ident of a nav radio's tuned localizer. */
+  nav_loc_airport_ident: string;
+
+  /** The runway number of a nav radio's tuned localizer. */
+  nav_loc_runway_number: number;
+
+  /** The runway designator of a nav radio's tuned localizer. */
+  nav_loc_runway_designator: number;
+
+  /** Whether a nav radio's tuned station has a glideslope. */
+  nav_glideslope: boolean;
+
+  /** The angle of a nav radio's tuned glideslope, in degrees. */
+  nav_raw_gs: number;
+
+  /** Nav radio glideslope angle error, in degrees. Positive values indicate position above the glideslope. */
+  nav_gs_error: number;
+
+  /** The location of a nav radio's tuned VOR station. */
+  nav_lla: LatLongAlt;
+
+  /** The location of a nav radio's tuned DME station. */
+  nav_dme_lla: LatLongAlt;
+
+  /** The location of a nav radio's tuned glideslope antenna. */
+  nav_gs_lla: LatLongAlt;
+
+  /** The nominal magnetic variation defined for a nav radio's tuned station. */
+  nav_magvar: number;
+};
+
+/**
+ * Data events for an indexed nav radio.
+ */
+type NavRadioDataEventsIndexed<Index extends NavRadioIndex> = {
+  [Event in keyof NavRadioDataEventsRoot as `${Event}_${Index}`]: NavRadioDataEventsRoot[Event];
+};
+
+/**
+ * Events related to data received by nav radios.
+ */
+export interface NavRadioDataEvents extends
+  NavRadioDataEventsIndexed<1>,
+  NavRadioDataEventsIndexed<2>,
+  NavRadioDataEventsIndexed<3>,
+  NavRadioDataEventsIndexed<4> {
 }
 
+/**
+ * ADF radio data event roots.
+ */
+type AdfRadioDataEventsRoot = {
+  /** ADF radio signal strength, in arbitrary units. A value of `0` indicates no signal. */
+  adf_signal: number;
 
-/** Publish simvars for ourselves */
+  /** ADF radio relative bearing, in degrees (the bearing to the tuned station, relative to airplane heading). */
+  adf_bearing: number;
+
+  /** The location of an ADF radio's tuned station. */
+  adf_lla: LatLongAlt;
+};
+
+/**
+ * Data events for an indexed ADF radio.
+ */
+type AdfRadioDataEventsIndexed<Index extends AdfRadioIndex> = {
+  [Event in keyof AdfRadioDataEventsRoot as `${Event}_${Index}`]: AdfRadioDataEventsRoot[Event];
+};
+
+/**
+ * Events related to data received by ADF radios.
+ */
+export interface AdfRadioDataEvents extends
+  AdfRadioDataEventsIndexed<1>,
+  AdfRadioDataEventsIndexed<2> {
+}
+
+/**
+ * Events related to data received by ADF radios.
+ */
+export interface AdfRadioDataEvents {
+  /** ADF radio signal strength, in arbitrary units. A value of `0` indicates no signal. */
+  [adf_signal: IndexedEventType<'adf_signal'>]: number;
+
+  /** ADF radio relative bearing, in degrees (the bearing to the tuned station, relative to airplane heading). */
+  [adf_bearing: IndexedEventType<'adf_bearing'>]: number;
+
+  /** The location of an ADF radio's tuned station. */
+  [adf_lla: IndexedEventType<'adf_lla'>]: LatLongAlt;
+}
+
+/**
+ * Events related to data received by nav radios, ADF radios, marker beacons, and GPS.
+ */
+export interface NavProcSimVars extends NavRadioDataEvents, AdfRadioDataEvents {
+  /** DTK to the next GPS waypoint */
+  gps_dtk: number;
+  /** XTK error for the next GPS waypoint */
+  gps_xtk: number;
+  /** next GPS waypoint */
+  gps_wp: string;
+  /** next GPS waypoint bearing */
+  gps_wp_bearing: number;
+  /** next GPS waypoint distance */
+  gps_wp_distance: number;
+  /** Marker Beacon State */
+  mkr_bcn_state_simvar: MarkerBeaconState;
+  /** GPS Obs Active */
+  gps_obs_active_simvar: boolean;
+  /** GPS Obs Value Setting */
+  gps_obs_value_simvar: number;
+}
+
+/**
+ * A publisher of nav radio, ADF radio, GPS, and marker beacon-related sim var events.
+ */
 export class NavProcSimVarPublisher extends SimVarPublisher<NavProcSimVars> {
-  private static simvars = new Map<keyof NavProcSimVars, SimVarDefinition>([
-    ['nav_obs_1', { name: 'NAV OBS:1', type: SimVarValueType.Degree }],
-    ['nav_cdi_1', { name: 'NAV CDI:1', type: SimVarValueType.Number }],
-    ['nav_dme_1', { name: 'NAV DME:1', type: SimVarValueType.NM }],
-    ['nav_has_dme_1', { name: 'NAV HAS DME:1', type: SimVarValueType.Bool }],
-    ['nav_has_nav_1', { name: 'NAV HAS NAV:1', type: SimVarValueType.Bool }],
-    ['nav_radial_1', { name: 'NAV RADIAL:1', type: SimVarValueType.Radians }],
-    ['nav_signal_1', { name: 'NAV SIGNAL:1', type: SimVarValueType.Number }],
-    ['nav_ident_1', { name: 'NAV IDENT:1', type: SimVarValueType.String }],
-    ['nav_to_from_1', { name: 'NAV TOFROM:1', type: SimVarValueType.Enum }],
-    ['nav_localizer_1', { name: 'NAV HAS LOCALIZER:1', type: SimVarValueType.Bool }],
-    ['nav_localizer_crs_1', { name: 'NAV LOCALIZER:1', type: SimVarValueType.Number }],
-    ['nav_glideslope_1', { name: 'NAV HAS GLIDE SLOPE:1', type: SimVarValueType.Bool }],
-    ['nav_gs_error_1', { name: 'NAV GLIDE SLOPE ERROR:1', type: SimVarValueType.Degree }],
-    ['nav_raw_gs_1', { name: 'NAV RAW GLIDE SLOPE:1', type: SimVarValueType.Degree }],
-    ['nav_gs_lla_1', { name: 'NAV GS LATLONALT:1', type: SimVarValueType.LLA }],
-    ['nav_lla_1', { name: 'NAV VOR LATLONALT:1', type: SimVarValueType.LLA }],
-    ['nav_magvar_1', { name: 'NAV MAGVAR:1', type: SimVarValueType.Degree }],
-    ['nav_obs_2', { name: 'NAV OBS:2', type: SimVarValueType.Degree }],
-    ['nav_cdi_2', { name: 'NAV CDI:2', type: SimVarValueType.Number }],
-    ['nav_dme_2', { name: 'NAV DME:2', type: SimVarValueType.NM }],
-    ['nav_has_dme_2', { name: 'NAV HAS DME:2', type: SimVarValueType.Bool }],
-    ['nav_has_nav_2', { name: 'NAV HAS NAV:2', type: SimVarValueType.Bool }],
-    ['nav_radial_2', { name: 'NAV RADIAL:2', type: SimVarValueType.Radians }],
-    ['nav_signal_2', { name: 'NAV SIGNAL:2', type: SimVarValueType.Number }],
-    ['nav_ident_2', { name: 'NAV IDENT:2', type: SimVarValueType.String }],
-    ['nav_to_from_2', { name: 'NAV TOFROM:2', type: SimVarValueType.Enum }],
-    ['nav_localizer_2', { name: 'NAV HAS LOCALIZER:2', type: SimVarValueType.Bool }],
-    ['nav_localizer_crs_2', { name: 'NAV LOCALIZER:2', type: SimVarValueType.Number }],
-    ['nav_glideslope_2', { name: 'NAV HAS GLIDE SLOPE:2', type: SimVarValueType.Bool }],
-    ['nav_gs_error_2', { name: 'NAV GLIDE SLOPE ERROR:2', type: SimVarValueType.Degree }],
-    ['nav_raw_gs_2', { name: 'NAV RAW GLIDE SLOPE:2', type: SimVarValueType.Degree }],
-    ['nav_gs_lla_2', { name: 'NAV GS LATLONALT:2', type: SimVarValueType.LLA }],
-    ['nav_lla_2', { name: 'NAV VOR LATLONALT:2', type: SimVarValueType.LLA }],
-    ['nav_magvar_2', { name: 'NAV MAGVAR:2', type: SimVarValueType.Degree }],
+  private static readonly simvars = new Map<keyof NavProcSimVars, SimVarDefinition>([
+    ...NavProcSimVarPublisher.createNavRadioDefinitions(1),
+    ...NavProcSimVarPublisher.createNavRadioDefinitions(2),
+    ...NavProcSimVarPublisher.createNavRadioDefinitions(3),
+    ...NavProcSimVarPublisher.createNavRadioDefinitions(4),
+    ...NavProcSimVarPublisher.createAdfRadioDefinitions(1),
+    ...NavProcSimVarPublisher.createAdfRadioDefinitions(2),
     ['gps_dtk', { name: 'GPS WP DESIRED TRACK', type: SimVarValueType.Degree }],
     ['gps_xtk', { name: 'GPS WP CROSS TRK', type: SimVarValueType.NM }],
     ['gps_wp', { name: 'GPS WP NEXT ID', type: SimVarValueType.NM }],
     ['gps_wp_bearing', { name: 'GPS WP BEARING', type: SimVarValueType.String }],
     ['gps_wp_distance', { name: 'GPS WP DISTANCE', type: SimVarValueType.NM }],
-    ['adf_bearing_1', { name: 'ADF RADIAL:1', type: SimVarValueType.Radians }],
-    ['adf_signal_1', { name: 'ADF SIGNAL:1', type: SimVarValueType.Number }],
     ['mkr_bcn_state_simvar', { name: 'MARKER BEACON STATE', type: SimVarValueType.Number }],
     ['gps_obs_active_simvar', { name: 'GPS OBS ACTIVE', type: SimVarValueType.Bool }],
     ['gps_obs_value_simvar', { name: 'GPS OBS VALUE', type: SimVarValueType.Degree }]
@@ -125,6 +188,50 @@ export class NavProcSimVarPublisher extends SimVarPublisher<NavProcSimVars> {
    */
   public constructor(bus: EventBus, pacer: PublishPacer<NavProcSimVars> | undefined = undefined) {
     super(NavProcSimVarPublisher.simvars, bus, pacer);
+  }
+
+  /**
+   * Creates an array of nav radio sim var event definitions for an indexed nav radio.
+   * @param index The index of the nav radio.
+   * @returns An array of nav radio sim var event definitions for the specified nav radio.
+   */
+  private static createNavRadioDefinitions<Index extends NavRadioIndex>(index: Index): [keyof NavRadioDataEventsIndexed<Index>, SimVarDefinition][] {
+    return [
+      [`nav_signal_${index}`, { name: `NAV SIGNAL:${index}`, type: SimVarValueType.Number }],
+      [`nav_obs_${index}`, { name: `NAV OBS:${index}`, type: SimVarValueType.Degree }],
+      [`nav_has_dme_${index}`, { name: `NAV HAS DME:${index}`, type: SimVarValueType.Bool }],
+      [`nav_has_nav_${index}`, { name: `NAV HAS NAV:${index}`, type: SimVarValueType.Bool }],
+      [`nav_cdi_${index}`, { name: `NAV CDI:${index}`, type: SimVarValueType.Number }],
+      [`nav_dme_${index}`, { name: `NAV DME:${index}`, type: SimVarValueType.NM }],
+      [`nav_radial_${index}`, { name: `NAV RADIAL:${index}`, type: SimVarValueType.Degree }],
+      [`nav_ident_${index}`, { name: `NAV IDENT:${index}`, type: SimVarValueType.String }],
+      [`nav_to_from_${index}`, { name: `NAV TOFROM:${index}`, type: SimVarValueType.Enum }],
+      [`nav_localizer_${index}`, { name: `NAV HAS LOCALIZER:${index}`, type: SimVarValueType.Bool }],
+      [`nav_localizer_crs_${index}`, { name: `NAV LOCALIZER:${index}`, type: SimVarValueType.Number }],
+      [`nav_loc_airport_ident_${index}`, { name: `NAV LOC AIRPORT IDENT:${index}`, type: SimVarValueType.String }],
+      [`nav_loc_runway_designator_${index}`, { name: `NAV LOC RUNWAY DESIGNATOR:${index}`, type: SimVarValueType.Number }],
+      [`nav_loc_runway_number_${index}`, { name: `NAV LOC RUNWAY NUMBER:${index}`, type: SimVarValueType.Number }],
+      [`nav_glideslope_${index}`, { name: `NAV HAS GLIDE SLOPE:${index}`, type: SimVarValueType.Bool }],
+      [`nav_gs_error_${index}`, { name: `NAV GLIDE SLOPE ERROR:${index}`, type: SimVarValueType.Degree }],
+      [`nav_raw_gs_${index}`, { name: `NAV RAW GLIDE SLOPE:${index}`, type: SimVarValueType.Degree }],
+      [`nav_lla_${index}`, { name: `NAV VOR LATLONALT:${index}`, type: SimVarValueType.LLA }],
+      [`nav_dme_lla_${index}`, { name: `NAV DME LATLONALT:${index}`, type: SimVarValueType.LLA }],
+      [`nav_gs_lla_${index}`, { name: `NAV GS LATLONALT:${index}`, type: SimVarValueType.LLA }],
+      [`nav_magvar_${index}`, { name: `NAV MAGVAR:${index}`, type: SimVarValueType.Degree }]
+    ];
+  }
+
+  /**
+   * Creates an array of ADF radio sim var event definitions for an indexed ADF radio.
+   * @param index The index of the ADF radio.
+   * @returns An array of ADF radio sim var event definitions for the specified ADF radio.
+   */
+  private static createAdfRadioDefinitions<Index extends AdfRadioIndex>(index: Index): [keyof AdfRadioDataEventsIndexed<Index>, SimVarDefinition][] {
+    return [
+      [`adf_signal_${index}`, { name: `ADF SIGNAL:${index}`, type: SimVarValueType.Number }],
+      [`adf_bearing_${index}`, { name: `ADF RADIAL:${index}`, type: SimVarValueType.Degree }],
+      [`adf_lla_${index}`, { name: `ADF LATLONALT:${index}`, type: SimVarValueType.LLA }]
+    ];
   }
 }
 
@@ -488,7 +595,6 @@ class NavSourceBase implements NavSource {
    */
   public set bearing(bearing: number | null) {
     if (bearing !== null) {
-      bearing *= 57.2958;
       bearing = (bearing + 180) % 360;
     }
     this._bearing = bearing;
@@ -1181,7 +1287,9 @@ export class NavProcessor {
     });
 
     for (let i = 1; i <= this.config.numNav; i++) {
-      const src = new NavSourceBase({ type: NavSourceType.Nav, index: i });
+      const index = i as NavRadioIndex;
+
+      const src = new NavSourceBase({ type: NavSourceType.Nav, index });
       src.deviationHandler = this.publisher.publishDeviation.bind(this.publisher);
       src.obsHandler = this.publisher.publishObsHeading.bind(this.publisher);
       src.distHandler = this.onBrgDistance.bind(this);
@@ -1195,53 +1303,53 @@ export class NavProcessor {
       src.glideslopeAngleHandler = this.onGlideslopeAngle.bind(this);
       src.validHandler = this.onBrgValidity.bind(this);
 
-      this.simVarSubscriber.on(`nav_cdi_${i}`).whenChangedBy(1).handle((deviation) => {
+      this.simVarSubscriber.on(`nav_cdi_${index}`).whenChangedBy(1).handle((deviation) => {
         src.deviation = deviation;
       });
-      this.simVarSubscriber.on(`nav_obs_${i}`).whenChangedBy(1).handle((obs) => {
+      this.simVarSubscriber.on(`nav_obs_${index}`).whenChangedBy(1).handle((obs) => {
         src.obs = obs;
       });
-      this.simVarSubscriber.on(`nav_dme_${i}`).whenChangedBy(0.1).handle((distance) => {
+      this.simVarSubscriber.on(`nav_dme_${index}`).whenChangedBy(0.1).handle((distance) => {
         src.distance = distance;
         // TODO Fold DME logic into the distance handler.
         this.onDme(src.hasDme, src.distance, src.srcId);
       });
-      this.simVarSubscriber.on(`nav_radial_${i}`).handle((bearing) => {
+      this.simVarSubscriber.on(`nav_radial_${index}`).handle((bearing) => {
         src.bearing = bearing;
       });
-      this.simVarSubscriber.on(`nav_ident_${i}`).whenChanged().handle((ident) => {
+      this.simVarSubscriber.on(`nav_ident_${index}`).whenChanged().handle((ident) => {
         src.ident = ident;
       });
-      this.simVarSubscriber.on(`nav_signal_${i}`).withPrecision(0).handle((signal) => {
+      this.simVarSubscriber.on(`nav_signal_${index}`).withPrecision(0).handle((signal) => {
         src.signal = signal;
       });
-      this.simVarSubscriber.on(`nav_has_nav_${i}`).whenChanged().handle((valid) => {
+      this.simVarSubscriber.on(`nav_has_nav_${index}`).whenChanged().handle((valid) => {
         src.valid = !!valid;
       });
-      this.simVarSubscriber.on(`nav_has_dme_${i}`).whenChanged().handle((dme) => {
+      this.simVarSubscriber.on(`nav_has_dme_${index}`).whenChanged().handle((dme) => {
         src.hasDme = !!dme;
         // TODO Fold DME logic into the distance handler.
         this.onDme(src.hasDme, src.distance, src.srcId);
       });
-      this.simVarSubscriber.on(`nav_to_from_${i}`).whenChanged().handle((value) => {
+      this.simVarSubscriber.on(`nav_to_from_${index}`).whenChanged().handle((value) => {
         src.toFrom = value;
       });
-      this.simVarSubscriber.on(`nav_localizer_${i}`).whenChanged().handle((localizer) => {
+      this.simVarSubscriber.on(`nav_localizer_${index}`).whenChanged().handle((localizer) => {
         src.hasLocalizer = localizer;
       });
-      this.simVarSubscriber.on(`nav_localizer_crs_${i}`).whenChanged().handle((locCourse) => {
+      this.simVarSubscriber.on(`nav_localizer_crs_${index}`).whenChanged().handle((locCourse) => {
         src.localizerCourse = locCourse;
       });
-      this.simVarSubscriber.on(`nav_glideslope_${i}`).whenChanged().handle((gs) => {
+      this.simVarSubscriber.on(`nav_glideslope_${index}`).whenChanged().handle((gs) => {
         src.hasGlideslope = gs;
       });
-      this.simVarSubscriber.on(`nav_gs_error_${i}`).whenChanged().handle((gsDev) => {
+      this.simVarSubscriber.on(`nav_gs_error_${index}`).whenChanged().handle((gsDev) => {
         src.glideslopeDeviation = gsDev;
       });
-      this.simVarSubscriber.on(`nav_raw_gs_${i}`).whenChanged().handle((rawGs) => {
+      this.simVarSubscriber.on(`nav_raw_gs_${index}`).whenChanged().handle((rawGs) => {
         src.glideslopeAngle = rawGs;
       });
-      this.simVarSubscriber.on(`nav_magvar_${i}`).whenChanged().handle((magvar) => {
+      this.simVarSubscriber.on(`nav_magvar_${index}`).whenChanged().handle((magvar) => {
         src.magneticVariation = magvar;
       });
       this.navComSubscriber.on('set_radio_state').handle((radioState) => {
@@ -1289,7 +1397,7 @@ export class NavProcessor {
         // waypoint.  When we get the bearing from the GPS, we need to invert it
         // so the NavSource knows how to handle it correctly.
         // TODO Make bearing handling in NavSourceBase more consistent.
-        brg = (brg + Math.PI) % (2 * Math.PI);
+        brg = (brg * Avionics.Utils.RAD2DEG + 180) % 360;
         src.bearing = brg;
       });
       this.navSources.push(src);
@@ -1320,7 +1428,7 @@ export class NavProcessor {
         }
       });
       this.simVarSubscriber.on('adf_bearing_1').withPrecision(2).handle((brg) => {
-        brg = (brg + Math.PI) % (2 * Math.PI);
+        brg = (brg + 180) % 360;
         src.bearing = brg;
       });
       this.navSources.push(src);
@@ -1403,8 +1511,7 @@ export class NavProcessor {
     }
   }
 
-  /**srcent.
-   */
+  /** Initialize the CDI. */
   private initCdi(): void {
     const src = this.navSources[this.cdiSourceIdx];
     src.activeCdi = true;

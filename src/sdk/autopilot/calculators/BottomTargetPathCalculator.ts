@@ -1,14 +1,14 @@
 import { EventBus } from '../../data/EventBus';
 import {
   FlightPlan, FlightPlanCalculatedEvent, FlightPlanLegEvent, FlightPlanLegIterator, FlightPlanner, FlightPlannerEvents, FlightPlanSegmentEvent,
-  FlightPlanSegmentType, LegDefinition, LegDefinitionFlags
+  FlightPlanSegmentType, LegDefinition, LegDefinitionFlags, VerticalFlightPhase
 } from '../../flightplan';
 import { AdcEvents } from '../../instruments';
 import { BitFlags, UnitType } from '../../math';
 import { AltitudeRestrictionType, LegType } from '../../navigation';
 import { ReadonlySubEvent, SubEvent } from '../../sub';
 import { VNavControlEvents } from '../data/VNavControlEvents';
-import { VerticalFlightPhase, VerticalFlightPlan, VNavConstraint, VNavLeg } from '../VerticalNavigation';
+import { VerticalFlightPlan, VNavConstraint, AltitudeConstraintDetails, VNavLeg } from '../VerticalNavigation';
 import { VNavUtils } from '../VNavUtils';
 import { VNavPathCalculator } from './VNavPathCalculator';
 
@@ -29,7 +29,10 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
   /** The aircraft's current altitude in meters. */
   private currentAltitude = 0;
 
-  /** Sub Event fired when a path has been calculated, with the planIndex */
+  /** @inheritdoc */
+  public readonly planBuilt: ReadonlySubEvent<this, number> = new SubEvent<this, number>();
+
+  /** @inheritdoc */
   public readonly vnavCalculated: ReadonlySubEvent<this, number> = new SubEvent<this, number>();
 
   private flightPlanIterator = new FlightPlanLegIterator();
@@ -88,6 +91,7 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
   public createVerticalPlan(planIndex: number): VerticalFlightPlan {
     const verticalFlightPlan: VerticalFlightPlan = {
       planIndex,
+      length: 0,
       constraints: [],
       segments: [],
       destLegIndex: undefined,
@@ -97,6 +101,7 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
       missedApproachStartIndex: undefined,
       currentAlongLegDistance: undefined,
       verticalDirectIndex: undefined,
+      verticalDirectFpa: undefined,
       planChanged: true
     };
 
@@ -113,23 +118,37 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
   }
 
   /** @inheritdoc */
-  public getTargetAltitude(planIndex: number, globalLegIndex: number): number | undefined {
+  public getTargetConstraintIndex(planIndex: number, globalLegIndex: number): number {
     const verticalPlan = this.getVerticalFlightPlan(planIndex);
 
-    const priorConstraint = VNavUtils.getPriorConstraintFromLegIndex(verticalPlan, globalLegIndex);
+    const priorConstraintIndex = VNavUtils.getPriorConstraintIndexFromLegIndex(verticalPlan, globalLegIndex);
+    const priorConstraint = verticalPlan.constraints[priorConstraintIndex];
     if (priorConstraint && priorConstraint.nextVnavEligibleLegIndex && globalLegIndex < priorConstraint.nextVnavEligibleLegIndex) {
-      return priorConstraint.targetAltitude;
+      return priorConstraintIndex;
     }
 
     let i = verticalPlan.constraints.length - 1;
     while (i >= 0) {
       const constraint = verticalPlan.constraints[i];
       if (globalLegIndex <= constraint.index && constraint.isTarget && !constraint.isBeyondFaf) {
-        return constraint.targetAltitude;
+        return i;
       }
 
       i--;
     }
+
+    return -1;
+  }
+
+  /** @inheritdoc */
+  public getTargetConstraint(planIndex: number, globalLegIndex: number): VNavConstraint | undefined {
+    const verticalPlan = this.getVerticalFlightPlan(planIndex);
+    return verticalPlan.constraints[this.getTargetConstraintIndex(planIndex, globalLegIndex)];
+  }
+
+  /** @inheritdoc */
+  public getTargetAltitude(planIndex: number, globalLegIndex: number): number | undefined {
+    return this.getTargetConstraint(planIndex, globalLegIndex)?.targetAltitude;
   }
 
   /** @inheritdoc */
@@ -143,7 +162,6 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
         const constraint = VNavUtils.getConstraintFromLegIndex(verticalPlan, index);
         switch (constraint?.type) {
           case 'climb':
-          case 'dep':
           case 'missed':
             return VerticalFlightPhase.Climb;
         }
@@ -166,6 +184,21 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
   }
 
   /** @inheritdoc */
+  public getCurrentConstraintDetails(planIndex: number, globalLegIndex: number): AltitudeConstraintDetails {
+    const verticalPlan = this.getVerticalFlightPlan(planIndex);
+
+    const priorConstraint = VNavUtils.getPriorConstraintFromLegIndex(verticalPlan, globalLegIndex);
+    const currentConstraint = VNavUtils.getConstraintFromLegIndex(verticalPlan, globalLegIndex);
+    if (priorConstraint && priorConstraint.nextVnavEligibleLegIndex && globalLegIndex < priorConstraint.nextVnavEligibleLegIndex) {
+      return { type: AltitudeRestrictionType.At, altitude: Math.round(UnitType.METER.convertTo(priorConstraint.targetAltitude, UnitType.FOOT)) };
+    } else if (currentConstraint && currentConstraint.targetAltitude) {
+      return { type: AltitudeRestrictionType.At, altitude: Math.round(UnitType.METER.convertTo(currentConstraint.targetAltitude, UnitType.FOOT)) };
+    } else {
+      return { type: AltitudeRestrictionType.Unused, altitude: 0 };
+    }
+  }
+
+  /** @inheritdoc */
   public getNextConstraintAltitude(planIndex: number, globalLegIndex: number): number | undefined {
     const verticalPlan = this.getVerticalFlightPlan(planIndex);
 
@@ -173,20 +206,44 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
     return currentConstraint && currentConstraint.targetAltitude ? currentConstraint.targetAltitude : undefined;
   }
 
-  /**
-   * Gets the next altitude limit for the current phase of flight. (used to calculate the required VS and is not always the next constraint)
-   * In descent, this will return the next above altitude in the vertical plan.
-   * In climb, this will return the next below altitude in the vertical plan.
-   * @param activeLateralLeg The current active lateral leg.
-   * @returns The VNavConstraint not to exceed appropriate to the current phase of flight, or undefined if one does not exist.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public getNextRestrictionForFlightPhase(activeLateralLeg: number): VNavConstraint | undefined {
-    //unused
+  /** @inheritdoc */
+  public getNextRestrictionForFlightPhase(planIndex: number, activeLateralLeg: number): VNavConstraint | undefined {
+    const verticalPlan = this.getVerticalFlightPlan(planIndex);
+
+    const currentConstraint = VNavUtils.getConstraintFromLegIndex(verticalPlan, activeLateralLeg);
+    if (currentConstraint) {
+      const currentConstraintIndex = verticalPlan.constraints.indexOf(currentConstraint);
+
+      if (currentConstraintIndex > -1) {
+
+        if (this.getFlightPhase(planIndex) === VerticalFlightPhase.Climb) {
+          for (let i = currentConstraintIndex; i >= 0; i--) {
+            const constraint = verticalPlan.constraints[i];
+            if (constraint.type === 'climb' || constraint.type === 'missed') {
+              if (constraint.minAltitude > Number.NEGATIVE_INFINITY) {
+                return constraint;
+              }
+            } else {
+              return undefined;
+            }
+          }
+        } else {
+          for (let i = currentConstraintIndex; i >= 0; i--) {
+            const constraint = verticalPlan.constraints[i];
+            if (constraint.type === 'descent' || constraint.type === 'direct' || constraint.type === 'manual') {
+              if (constraint.maxAltitude < Number.POSITIVE_INFINITY) {
+                return constraint;
+              }
+            } else {
+              return undefined;
+            }
+          }
+        }
+      }
+    }
+
     return undefined;
   }
-
-
 
   /** @inheritdoc */
   public activateVerticalDirect(planIndex: number, constraintGlobalLegIndex: number): void {
@@ -271,7 +328,7 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
     let priorConstraintAlt = Number.POSITIVE_INFINITY;
     let pathIsDirect = false;
     let constraintContainsManualLeg = false;
-    let currentConstraint = this.createConstraint(0, 0, '$DEFAULT', 'normal');
+    let currentConstraint = this.createConstraint(0, 0, '$DEFAULT', 'descent');
     verticalPlan.segments.length = 0;
     verticalPlan.destLegIndex = Math.max(0, lateralPlan.length - 1);
     verticalPlan.missedApproachStartIndex = verticalPlan.destLegIndex;
@@ -380,11 +437,13 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
 
           currentConstraint.index = globalLegIndex;
           currentConstraint.name = isLastLeg ? '$DEST' : planLeg.name ?? '';
-          currentConstraint.type = isLastLeg ? 'dest' : pathIsDirect ? 'direct' : 'normal';
+          currentConstraint.type = isLastLeg ? 'dest' : pathIsDirect ? 'direct' : 'descent';
 
           //If we happen to be in the destination segment (i.e. the end of the plan)
           //set the alt to the next constraint alt so that the segment is flat
           currentConstraint.targetAltitude = globalLegIndex > verticalPlan.fafLegIndex ? priorConstraintAlt : currentConstraintAlt;
+          currentConstraint.minAltitude = currentConstraint.targetAltitude;
+          currentConstraint.maxAltitude = currentConstraint.targetAltitude;
 
           // TODO: Is this still needed?
           if (pathIsDirect) {
@@ -417,13 +476,21 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
 
           // Create a new empty constraint
           if (!isLastLeg) {
-            currentConstraint = this.createConstraint(lateralPlan.length - 1, 0, '$DEFAULT', 'normal');
+            currentConstraint = this.createConstraint(lateralPlan.length - 1, 0, '$DEFAULT', 'descent');
           }
         }
       }
     }
 
+    verticalPlan.length = lateralPlan.length;
+
+    verticalPlan.firstDescentConstraintLegIndex = verticalPlan.constraints[VNavUtils.getFirstDescentConstraintIndex(verticalPlan)]?.index;
+    verticalPlan.lastDescentConstraintLegIndex = verticalPlan.constraints[VNavUtils.getLastDescentConstraintIndex(verticalPlan)]?.index;
+
     verticalPlan.planChanged = false;
+
+    this.notifyBuilt(verticalPlan.planIndex);
+
     this.computeVnavPath(verticalPlan, lateralPlan);
   }
 
@@ -437,37 +504,41 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
 
     this.fillLegAndConstraintDistances(verticalPlan, lateralPlan);
 
-    if (this.checkInvalidConstrantsAndReinsertIfValid(verticalPlan, lateralPlan) || !this.computeFlightPathAngles(verticalPlan)) {
+    if (this.needRevalidateConstraints(verticalPlan, lateralPlan) || !this.computeFlightPathAngles(verticalPlan)) {
       this.buildVerticalPath(lateralPlan, verticalPlan, verticalPlan.verticalDirectIndex);
       return;
     }
 
     for (let constraintIndex = 0; constraintIndex < verticalPlan.constraints.length; constraintIndex++) {
       const constraint = verticalPlan.constraints[constraintIndex];
-      let altitude = constraint.targetAltitude;
 
-      for (let legIndex = 0; legIndex < constraint.legs.length; legIndex++) {
-        const leg = constraint.legs[legIndex];
-        leg.fpa = verticalPlan.fafLegIndex !== undefined && constraint.index <= verticalPlan.fafLegIndex ? constraint.fpa : 0;
-        leg.altitude = altitude;
+      if (constraint.type === 'descent' || constraint.type === 'direct' || constraint.type === 'manual' || constraint.type === 'dest') {
 
-        altitude += VNavUtils.altitudeForDistance(leg.fpa, leg.distance);
+        let altitude = constraint.targetAltitude;
 
-        if (legIndex === 0) {
-          leg.isAdvisory = false;
-        } else {
-          leg.isAdvisory = true;
-        }
+        for (let legIndex = 0; legIndex < constraint.legs.length; legIndex++) {
+          const leg = constraint.legs[legIndex];
+          leg.fpa = verticalPlan.fafLegIndex !== undefined && constraint.index <= verticalPlan.fafLegIndex ? constraint.fpa : 0;
+          leg.altitude = altitude;
 
-        if (legIndex === 0 && constraint.isTarget) {
-          leg.isBod = true;
-        } else {
-          leg.isBod = false;
+          altitude += VNavUtils.altitudeForDistance(leg.fpa, leg.distance);
+
+          if (legIndex === 0) {
+            leg.isAdvisory = false;
+          } else {
+            leg.isAdvisory = true;
+          }
+
+          if (legIndex === 0 && constraint.isTarget) {
+            leg.isBod = true;
+          } else {
+            leg.isBod = false;
+          }
         }
       }
     }
 
-    this.notify(verticalPlan.planIndex);
+    this.notifyCalculated(verticalPlan.planIndex);
   }
 
   /**
@@ -524,7 +595,7 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
         currentConstraint.isBeyondFaf = true;
       }
 
-      if (nextConstraint !== undefined && nextConstraint.type !== 'dep' && !nextConstraint.isPathEnd) {
+      if (nextConstraint !== undefined && nextConstraint.type !== 'climb' && !nextConstraint.isPathEnd) {
         const directFpa = VNavUtils.getFpa(currentConstraint.distance, nextConstraint.targetAltitude - currentConstraint.targetAltitude);
         const endAltitude = currentConstraint.targetAltitude + VNavUtils.altitudeForDistance(this.flightPathAngle, currentConstraint.distance);
 
@@ -579,7 +650,7 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
     if (verticalPlan.constraints.length > 0) {
       for (let i = verticalPlan.constraints.length - 1; i >= 0; i--) {
         const constraint = verticalPlan.constraints[i];
-        if (constraint.type !== 'dep') {
+        if (constraint.type !== 'climb' && constraint.type !== 'missed') {
           return constraint.targetAltitude;
         }
       }
@@ -605,15 +676,12 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
   }
 
   /**
-   * Finds previously invalidated constraints and checks if they're now valid and, if so, reinserts them into the vertical plan.
+   * Checks whether any previously invalid constraints in the flight plan have become valid.
    * @param verticalPlan The Vertical Flight Plan.
    * @param lateralPlan The Lateral Flight Plan.
-   * @returns Whether the invalid constrant is now valid.
+   * @returns Whether any previously invalid constraints in the flight plan have become valid.
    */
-  private checkInvalidConstrantsAndReinsertIfValid(verticalPlan: VerticalFlightPlan, lateralPlan: FlightPlan): boolean {
-
-    // Check if previously removed invalid constraints have become valid in the latest calculate
-
+  private needRevalidateConstraints(verticalPlan: VerticalFlightPlan, lateralPlan: FlightPlan): boolean {
     if (verticalPlan.constraints.length > 0 && lateralPlan.length > 0) {
       const lastGlobalLegIndex = Math.max(0, lateralPlan.length - 1);
 
@@ -625,8 +693,8 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
           const lateralLeg = lateralPlan.tryGetLeg(l);
           if (lateralLeg !== null) {
             const constraintAltitude = this.getConstraintAltitude(lateralLeg);
-            if (constraintAltitude !== undefined) {
-              const proposedConstraint = this.createConstraint(l, constraintAltitude, verticalLeg.name, 'normal');
+            if (isFinite(constraintAltitude)) {
+              const proposedConstraint = this.createConstraint(l, constraintAltitude, verticalLeg.name, 'descent');
               proposedConstraint.distance = VNavUtils.getConstraintDistanceFromLegs(proposedConstraint, previousConstraint, verticalPlan);
               if (
                 !BottomTargetPathCalculator.isConstraintHigherThanPriorConstraint(previousConstraint, proposedConstraint) &&
@@ -634,7 +702,6 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
               ) {
                 return true;
               }
-
             }
           }
         }
@@ -694,12 +761,12 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
    * @param type The type of constraint.
    * @returns A new empty constraint.
    */
-  private createConstraint(index: number, targetAltitude: number, name: string, type: 'normal'): VNavConstraint {
+  private createConstraint(index: number, targetAltitude: number, name: string, type: 'descent'): VNavConstraint {
     return {
       index,
       targetAltitude,
-      minAltitude: 0,
-      maxAltitude: 0,
+      minAltitude: Number.NEGATIVE_INFINITY,
+      maxAltitude: Number.POSITIVE_INFINITY,
       name,
       isTarget: false,
       isPathEnd: false,
@@ -736,12 +803,19 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
   }
 
   /**
-   * Sends an event when a vertical plan has been updated.
-   * @param planIndex The plan index that was updated.
+   * Sends an event when a vertical plan has been built or rebuilt.
+   * @param planIndex The index of the plan that was built.
    */
-  private notify(planIndex: number): void {
-    const subEvent = this.vnavCalculated as SubEvent<this, number>;
-    subEvent.notify(this, planIndex);
+  private notifyBuilt(planIndex: number): void {
+    (this.planBuilt as SubEvent<this, number>).notify(this, planIndex);
+  }
+
+  /**
+   * Sends an event when a vertical plan has been calculated.
+   * @param planIndex The index of the plan that was calculated.
+   */
+  private notifyCalculated(planIndex: number): void {
+    (this.vnavCalculated as SubEvent<this, number>).notify(this, planIndex);
   }
 
   /** @inheritdoc */

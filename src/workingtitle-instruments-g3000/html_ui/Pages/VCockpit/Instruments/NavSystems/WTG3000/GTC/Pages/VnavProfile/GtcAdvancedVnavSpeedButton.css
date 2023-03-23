@@ -1,0 +1,15 @@
+.advanced-vnav-speed-button {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.advanced-vnav-speed-button-label {
+  margin-bottom: var(--advanced-vnav-speed-button-label-margin-bottom, 0px);
+}
+
+.advanced-vnav-speed-button-value {
+  color: var(--g3000-color-cyan);
+  font-size: var(--advanced-vnav-speed-button-value-font-size, 1.4em);
+}

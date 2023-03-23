@@ -1,0 +1,130 @@
+.trip-planning-table {
+  grid-template-rows: 1fr 1fr;
+  grid-row-gap: 6px;
+  display: grid;
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid white;
+  left: 3%;
+  padding: 1px;
+  position: relative;
+}
+
+wt-gns530 .trip-planning-table {
+  grid-template-columns: 1fr 2fr 1fr;
+  column-gap: 25px;
+  height: 41px;
+}
+
+wt-gns430 .trip-planning-table {
+  grid-template-columns: 1fr 1.5fr 1fr;
+  column-gap: 22px;
+  height: 46px;
+}
+
+wt-gns530 .trip-planning-page-header {
+  padding-left: 4%;
+  font-size: 10px;
+  text-align: center;
+  padding-top: 4px;
+}
+
+wt-gns430 .trip-planning-page-header {
+  padding-left: 4%;
+  font-size: var(--gns-font-page-title2);
+  text-align: center;
+  padding-top: 6px;
+}
+
+.trip-planning-table>div.trip-planning-table-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#trip-planning-arrow {
+  display: inline-block;
+  position: absolute;
+  top: .3em;
+  width: 0;
+}
+
+wt-gns530 #trip-planning-arrow {
+  right: 88px;
+}
+
+wt-gns430 #trip-planning-arrow {
+  right: 88px;
+}
+
+wt-gns530 #trip-planning-to {
+  position: relative;
+  right: 1.15em;
+}
+
+.trip-planning-sun {
+  margin-top: 1em;
+}
+
+.trip-planning-sun-flex {
+  display: flex;
+  justify-content: space-between;
+  width: 240px;
+  margin-left: 3%;
+}
+
+.trip-planning-sun-flex>div {
+  display: inline-block;
+}
+
+.trip-planning-labels, .trip-planning-labels-bot {
+  position: relative;
+  display: inline-flex;
+  justify-content: space-between;
+  left: 3%;
+  padding: 0 1.2em;
+}
+
+wt-gns530 .trip-planning-labels, wt-gns530 .trip-planning-labels-bot {
+  width: 240px;
+}
+
+wt-gns430 .trip-planning-labels, wt-gns430 .trip-planning-labels-bot {
+  width: 255px;
+}
+
+.trip-planning-labels>div, .trip-planning-labels-bot>div {
+  text-align: center;
+  white-space: nowrap;
+  width: 4em;
+}
+
+wt-gns530 .trip-planning-labels {
+  padding-bottom: 5px;
+  padding-top: 2px;
+}
+
+wt-gns530 .trip-planning-labels-bot {
+  padding-top: 2px;
+}
+
+wt-gns430 .trip-planning-labels {
+  padding-top: 4px;
+}
+
+wt-gns430 .trip-planning-labels-bot {
+  padding-top: 6px;
+}
+
+wt-gns530 .trip-planning-page-header>h2 {
+  padding-left: 4%;
+  font-size: 10px;
+  text-align: left;
+}
+
+wt-gns430 .trip-planning-page-header>h2 {
+  padding-left: 4%;
+  font-size: 12px;
+  text-align: left;
+}

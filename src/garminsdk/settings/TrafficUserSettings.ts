@@ -1,4 +1,4 @@
-import { DefaultUserSettingManager, EventBus } from 'msfssdk';
+import { DefaultUserSettingManager, EventBus } from '@microsoft/msfs-sdk';
 
 export enum TrafficOperatingModeSetting {
   Standby = 'Standby',
@@ -34,6 +34,9 @@ export type TrafficUserSettingTypes = {
   /** The traffic system altitude mode setting. */
   trafficAltitudeMode: TrafficAltitudeModeSetting;
 
+  /** The traffic system relative altitude label setting.  */
+  trafficAltitudeRelative: boolean;
+
   /** The traffic system motion vector mode setting. */
   trafficMotionVectorMode: TrafficMotionVectorModeSetting;
 
@@ -65,6 +68,10 @@ export class TrafficUserSettings extends DefaultUserSettingManager<TrafficUserSe
       {
         name: 'trafficAltitudeMode',
         defaultValue: TrafficAltitudeModeSetting.Unrestricted
+      },
+      {
+        name: 'trafficAltitudeRelative',
+        defaultValue: true
       },
       {
         name: 'trafficMotionVectorMode',

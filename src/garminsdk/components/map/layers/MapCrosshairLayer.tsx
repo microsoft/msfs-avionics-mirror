@@ -1,4 +1,4 @@
-import { BitFlags, FSComponent, MapLayer, MapLayerProps, MapProjection, MapProjectionChangeType, VNode } from 'msfssdk';
+import { BitFlags, FSComponent, MapLayer, MapLayerProps, MapProjection, MapProjectionChangeType, VNode } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapCrosshairModule } from '../modules/MapCrosshairModule';

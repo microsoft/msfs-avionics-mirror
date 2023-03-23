@@ -1,3 +1,5 @@
+import { SpeedConstraint } from '../flightplan';
+import { AltitudeRestrictionType } from '../navigation';
 
 /**
  * The current vertical navigation state.
@@ -65,23 +67,15 @@ export enum VNavAltCaptureType {
 }
 
 /**
- * The current Vertical Flight Phase.
- */
-export enum VerticalFlightPhase {
-  /** The current vertical phase is Climb. */
-  Climb,
-
-  /** The current vertical phase is Descent. */
-  Descent
-}
-
-/**
  * A Vertical Flight Plan cooresponding to a lateral flight plan.
  */
 export interface VerticalFlightPlan {
 
   /** The Flight Plan Index */
   planIndex: number;
+
+  /** The number of legs in this flight plan. */
+  length: number;
 
   /** The Flight Plan Segments in the VerticalFlightPlan (should always be the same as the lateral plan) */
   segments: VNavPlanSegment[];
@@ -107,10 +101,16 @@ export interface VerticalFlightPlan {
   /** The global leg index of the currently active vertical direct leg, or undefined */
   verticalDirectIndex: number | undefined;
 
+  /**
+   * The flight path angle, in degrees, of this plan's vertical direct constraint, or `undefined` if there is no
+   * vertical direct constraint. Positive angles represent descending paths.
+   */
+  verticalDirectFpa: number | undefined;
+
   /** The current along leg distance for the active lateral leg in this flight plan */
   currentAlongLegDistance: number | undefined;
 
-  /** Whether the cooresponding lateral flight plan has changed */
+  /** Whether the corresponding lateral flight plan has changed since the last time this plan was calculated. */
   planChanged: boolean;
 }
 
@@ -121,7 +121,8 @@ export interface TodBodDetails {
   /**
    * The global index of the leg that contains the next BOD, or -1 if there is no BOD. The next BOD is defined as the
    * next point in the flight path including or after the active leg where the VNAV profile transitions from a descent
-   * to a level-off, discontinuity, or the end of the flight path.
+   * to a level-off, discontinuity, or the end of the flight path. The BOD is always located at the end of its
+   * containing leg.
    */
   bodLegIndex: number;
 
@@ -146,6 +147,35 @@ export interface TodBodDetails {
 }
 
 /**
+ * Details about the next TOC and BOC.
+ */
+export interface TocBocDetails {
+  /**
+   * The global index of the leg that contains the next BOC, or -1 if there is no BOC. The BOC is always located at the
+   * beginning of its containing leg.
+   */
+  bocLegIndex: number;
+
+  /** The global index of the leg that contains the next TOC, or -1 if there is no such TOC. */
+  tocLegIndex: number;
+
+  /** The distance from the TOC to the end of its containing leg, in meters. */
+  tocLegDistance: number;
+
+  /** The distance along the flight path from the airplane's present position to the TOC, in meters. */
+  distanceFromToc: number;
+
+  /** The distance along the flight path from the airplane's present position to the BOC, in meters. */
+  distanceFromBoc: number;
+
+  /** The index of the vertical constraint defining the TOC altitude, or -1 if there is no TOC. */
+  tocConstraintIndex: number;
+
+  /** The TOC altitude in meters. A negative value indicates there is no TOC. */
+  tocAltitude: number;
+}
+
+/**
  * A leg in the calculated Vertical Flight Plan.
  */
 export interface VNavLeg {
@@ -158,10 +188,10 @@ export interface VNavLeg {
   /** The name of the leg. */
   name: string,
 
-  /** The fpa of the leg. */
+  /** The fpa of the leg in degrees. Always a positive number. */
   fpa: number,
 
-  /** The distance of the leg. */
+  /** The distance of the leg in meters. */
   distance: number,
 
   /** Whether the leg is eligible for VNAV. */
@@ -173,7 +203,7 @@ export interface VNavLeg {
   /** Whether or not the altitude provided is advisory. */
   isAdvisory: boolean,
 
-  /** The altitude that the leg ends at. */
+  /** The altitude that the leg ends at in meters. */
   altitude: number,
 
   /** Whether or not the constraint at this leg is user defined. */
@@ -182,7 +212,7 @@ export interface VNavLeg {
   /** Whether or not the leg is a direct to target. */
   isDirectToTarget: boolean,
 
-  /** The constrant altitude assigned to this leg that is invalid, if one exists. */
+  /** The constrant altitude assigned to this leg that is invalid, in meters, if one exists. */
   invalidConstraintAltitude?: number
 }
 
@@ -193,13 +223,13 @@ export interface VNavConstraint {
   /** The global leg index for the constraint. */
   index: number,
 
-  /** The min altitude of the constraint. */
+  /** The minimum altitude of the constraint in meters, or negative infinity if the constraint has no minimum altitude. */
   minAltitude: number,
 
-  /** The max altitude of the constraint. */
+  /** The max altitude of the constraint in meters, or positive infinity if the constraint has no maximum altitude. */
   maxAltitude: number,
 
-  /** The target altitude of the constraint. */
+  /** The target altitude of the constraint in meters. */
   targetAltitude: number,
 
   /**
@@ -218,17 +248,18 @@ export interface VNavConstraint {
   /** The name of the leg at this constraint. */
   name: string,
 
-  /** The total distance of the legs that make up this constriant segment. */
+  /** The total distance of the legs that make up this constriant segment in meters. */
   distance: number,
 
-  /** The flight path angle to take through the legs in this constraint. */
+  /** The flight path angle to take through the legs in this constraint in degrees. Always a positive number. */
   fpa: number,
 
   /** The legs contained in this constraint segment. */
   legs: VNavLeg[],
 
   /** The type of constraint segment. */
-  type: 'normal' | 'dest' | 'cruise' | 'dep' | 'direct' | 'missed' | 'manual' | 'climb' | 'descent',
+  // type: 'normal' | 'dest' | 'cruise' | 'dep' | 'direct' | 'missed' | 'manual' | 'climb' | 'descent',
+  type: 'climb' | 'descent' | 'direct' | 'manual' | 'missed' | 'dest',
 
   /** Whether or not this constraint is beyond the FAF. */
   isBeyondFaf: boolean
@@ -252,3 +283,30 @@ export enum VNavAvailability {
   Available = 'Available',
   InvalidLegs = 'InvalidLegs'
 }
+
+/**
+ * The current altitude constraint details including target altitude and type.
+ */
+export type AltitudeConstraintDetails = {
+  /** The type of this constraint. */
+  type: Exclude<AltitudeRestrictionType, AltitudeRestrictionType.Between>;
+
+  /** The altitude for this constraint, in feet. */
+  altitude: number;
+};
+
+/**
+ * The current speed constraint details including the currently applicable speed constraint (if any),
+ * the next speed constraint (if any) and the distance to the next speed constraint (if any).
+ */
+export type SpeedConstraintDetails = {
+
+  /** The currently applicable speed constraint. */
+  readonly currentSpeedConstraint: SpeedConstraint;
+
+  /** The next applicable speed constraint. */
+  readonly nextSpeedConstraint: SpeedConstraint;
+
+  /** The distance to the next speed constraint, in NM. */
+  readonly distanceToNextSpeedConstraint?: number;
+};

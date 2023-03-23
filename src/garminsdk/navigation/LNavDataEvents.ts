@@ -1,6 +1,18 @@
 import {
-  EventBus, LNavDataSimVarEvents as BaseLNavDataSimVarEvents, LNavDataVars as BaseLNavDataVars, SimVarDefinition, SimVarPublisher, SimVarValueType
-} from 'msfssdk';
+  EventBus, LNavDataEvents as BaseLNavDataEvents, LNavDataSimVarEvents as BaseLNavDataSimVarEvents,
+  LNavDataVars as BaseLNavDataVars, SimVarDefinition, SimVarPublisher, SimVarValueType
+} from '@microsoft/msfs-sdk';
+
+/**
+ * Information on a vector associated with a nominal LNAV desired track.
+ */
+export type LNavDataDtkVector = {
+  /** The global index of the flight plan leg to which the vector belongs, or `-1` if there is no vector. */
+  globalLegIndex: number,
+
+  /** The index of the vector in its parent leg's `flightPath` array, or `-1` if there is no vector. */
+  vectorIndex: number;
+}
 
 /**
  * Valid CDI scale labels for the LVar scale enum.
@@ -19,6 +31,7 @@ export enum CDIScaleLabel {
   LP,
   LPPlusV,
   LPV,
+  RNP,
   Approach,
   MissedApproach
 }
@@ -51,17 +64,24 @@ export interface LNavDataSimVarEvents extends BaseLNavDataSimVarEvents {
   /** The nominal desired track at the beginning of the flight plan leg following the currently tracked leg, in degrees magnetic. */
   lnavdata_next_dtk_mag: number;
 
+  /** Information on the nominal current desired track vector. */
+  lnavdata_dtk_vector: LNavDataDtkVector;
+
+  /** Information on the nominal next desired track vector. */
+  lnavdata_next_dtk_vector: LNavDataDtkVector;
+
   /** The current CDI scale label. */
   lnavdata_cdi_scale_label: CDIScaleLabel;
 
-  /** The nominal distance remaining to the egress transition of the currently tracked flight plan leg, in nautical miles. */
+  /** The nominal along-track distance remaining to the egress transition of the currently tracked flight plan leg, in nautical miles. */
   lnavdata_egress_distance: number;
 }
 
 /**
  * Events related to Garmin LNAV data.
  */
-export type LNavDataEvents = LNavDataSimVarEvents;
+export interface LNavDataEvents extends LNavDataSimVarEvents, BaseLNavDataEvents {
+}
 
 /**
  * A publisher for Garmin LNAV-related data sim var events.

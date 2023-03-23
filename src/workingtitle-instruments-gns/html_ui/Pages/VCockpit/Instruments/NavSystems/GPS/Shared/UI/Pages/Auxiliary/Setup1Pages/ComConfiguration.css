@@ -1,0 +1,45 @@
+.com-configuration-container {
+  display: grid;
+  height: 18px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  grid-column-gap: 1em;
+  margin-top: .2em;
+  padding: 1em 6px 0;
+}
+
+.com-configuration-side-title {
+  font-size: 11px;
+  margin: auto;
+  width: 103px;
+}
+
+.com-configuration-table {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  padding: 1px;
+}
+
+div>.com-configuration-table {
+  width: 110px;
+}
+
+.com-configuration-table>.div {
+  width: 110px;
+}
+
+/* TODO we might wanna do the padding like this elsewhere */
+.com-configuration-spacing {
+  display: inline-block;
+  height: 15px;
+  line-height: 18px;
+  padding: 0 1px 0;
+  margin-top: 1px;
+}
+
+.com-configuration-dialog {
+  width: 87px !important;
+  top: 4.2em;
+  left: 17em;
+}

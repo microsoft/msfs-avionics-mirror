@@ -1,4 +1,4 @@
-import { BitFlags, BoundaryType } from 'msfssdk';
+import { BitFlags, BoundaryType } from '@microsoft/msfs-sdk';
 
 /**
  * Airspace show types for Garmin maps.

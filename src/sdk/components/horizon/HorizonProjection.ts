@@ -1,7 +1,7 @@
-import { LatLonInterface } from '../../geo';
+import { LatLonInterface } from '../../geo/GeoInterfaces';
 import { GeoPoint, GeoPointReadOnly } from '../../geo/GeoPoint';
-import { Transform3D, UnitType } from '../../math';
-import { BitFlags } from '../../math/BitFlags';
+import { UnitType } from '../../math/NumberUnit';
+import { Transform3D } from '../../math/Transform3D';
 import { TransformPerspective } from '../../math/TransformPerspective';
 import { ReadonlyFloat64Array, Vec2Math, Vec3Math, VecNMath } from '../../math/VecMath';
 import { SubEvent } from '../../sub/SubEvent';
@@ -412,18 +412,16 @@ export class HorizonProjection {
    * @returns Change flags based on the specified old parameters.
    */
   private computeChangeFlags(oldParameters: HorizonProjectionParametersRecord): number {
-    return BitFlags.union(
-      oldParameters.position.equals(this.position) ? 0 : HorizonProjectionChangeType.Position,
-      oldParameters.altitude === this.altitude ? 0 : HorizonProjectionChangeType.Altitude,
-      oldParameters.heading === this.heading ? 0 : HorizonProjectionChangeType.Heading,
-      oldParameters.pitch === this.pitch ? 0 : HorizonProjectionChangeType.Pitch,
-      oldParameters.roll === this.roll ? 0 : HorizonProjectionChangeType.Roll,
-      Vec3Math.equals(oldParameters.offset, this.offset) ? 0 : HorizonProjectionChangeType.Offset,
-      Vec2Math.equals(oldParameters.projectedSize, this.projectedSize) ? 0 : HorizonProjectionChangeType.ProjectedSize,
-      oldParameters.fov === this.fov ? 0 : HorizonProjectionChangeType.Fov,
-      VecNMath.equals(oldParameters.fovEndpoints, this.fovEndpoints) ? 0 : HorizonProjectionChangeType.ProjectedOffset,
-      Vec2Math.equals(oldParameters.projectedOffset, this.projectedOffset) ? 0 : HorizonProjectionChangeType.ProjectedOffset
-    );
+    return (oldParameters.position.equals(this.position) ? 0 : HorizonProjectionChangeType.Position)
+      | (oldParameters.altitude === this.altitude ? 0 : HorizonProjectionChangeType.Altitude)
+      | (oldParameters.heading === this.heading ? 0 : HorizonProjectionChangeType.Heading)
+      | (oldParameters.pitch === this.pitch ? 0 : HorizonProjectionChangeType.Pitch)
+      | (oldParameters.roll === this.roll ? 0 : HorizonProjectionChangeType.Roll)
+      | (Vec3Math.equals(oldParameters.offset, this.offset) ? 0 : HorizonProjectionChangeType.Offset)
+      | (Vec2Math.equals(oldParameters.projectedSize, this.projectedSize) ? 0 : HorizonProjectionChangeType.ProjectedSize)
+      | (oldParameters.fov === this.fov ? 0 : HorizonProjectionChangeType.Fov)
+      | (VecNMath.equals(oldParameters.fovEndpoints, this.fovEndpoints) ? 0 : HorizonProjectionChangeType.ProjectedOffset)
+      | (Vec2Math.equals(oldParameters.projectedOffset, this.projectedOffset) ? 0 : HorizonProjectionChangeType.ProjectedOffset);
   }
 
   /**
@@ -432,10 +430,8 @@ export class HorizonProjection {
    * @returns Change flags for derived parameters based on the specified old parameters.
    */
   private computeDerivedChangeFlags(oldParameters: HorizonProjectionParametersRecord): number {
-    return BitFlags.union(
-      oldParameters.scaleFactor === this.scaleFactor ? 0 : HorizonProjectionChangeType.ScaleFactor,
-      Vec2Math.equals(oldParameters.offsetCenterProjected, this.offsetCenterProjected) ? 0 : HorizonProjectionChangeType.OffsetCenterProjected
-    );
+    return (oldParameters.scaleFactor === this.scaleFactor ? 0 : HorizonProjectionChangeType.ScaleFactor)
+      | (Vec2Math.equals(oldParameters.offsetCenterProjected, this.offsetCenterProjected) ? 0 : HorizonProjectionChangeType.OffsetCenterProjected);
   }
 
   /**
@@ -466,7 +462,7 @@ export class HorizonProjection {
 
   /**
    * Projects a point relative to the position of the airplane in spherical space.
-   * @param bearing The true bearing of the point to project relative to the airplane, in degrees.
+   * @param bearing The true bearing from the airplane to the point to project, in degrees.
    * @param distance The geodetic horizontal distance from the point to project to the airplane, in meters.
    * @param height The geodetic height of the point to project relative to the airplane, in meters.
    * @param out The 2D vector to which to write the result.
@@ -484,7 +480,7 @@ export class HorizonProjection {
    * Projects a point relative to the position of the airplane in Euclidean space. The coordinate system is defined at
    * the position of the airplane, with the vertical axis perpendicular to the surface of the Earth and the horizontal
    * plane parallel to the Earth's surface at the point directly underneath the airplane.
-   * @param bearing The true bearing of the point to project relative to the airplane, in degrees.
+   * @param bearing The true bearing from the airplane to the point to project, in degrees.
    * @param distance The Euclidean horizontal distance from the point to project to the airplane, in meters.
    * @param height The Euclidean height of the point to project relative to the airplane, in meters.
    * @param out The 2D vector to which to write the result.
@@ -512,6 +508,51 @@ export class HorizonProjection {
    */
   private projectRelativeVec(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
     this.perspectiveTransform.apply(vec, out);
+
+    return Vec2Math.set(
+      out[1] * this.scaleFactor + this.projectedSize[0] / 2 + this.projectedOffset[0],
+      -out[0] * this.scaleFactor + this.projectedSize[1] / 2 + this.projectedOffset[1],
+      out
+    );
+  }
+
+  /**
+   * Projects a point relative to the position of the projection camera in Euclidean space. The coordinate system is
+   * defined at the position of the camera, with the vertical axis perpendicular to the surface of the Earth and the
+   * horizontal plane parallel to the Earth's surface at the point directly underneath the airplane.
+   * @param bearing The true bearing from the camera to the point to project, in degrees.
+   * @param distance The Euclidean horizontal distance from the point to project to the camera, in meters.
+   * @param height The Euclidean height of the point to project relative to the camera, in meters.
+   * @param out The 2D vector to which to write the result.
+   * @returns The projected point, as `[x, y]` in pixels.
+   */
+  public projectCameraRelativeEuclidean(bearing: number, distance: number, height: number, out: Float64Array): Float64Array {
+    const vec = Vec2Math.setFromPolar(distance, bearing * Avionics.Utils.DEG2RAD, HorizonProjection.vec3Cache[0]);
+
+    const x = height;
+    const y = vec[1];
+    const z = vec[0];
+
+    return this.projectCameraRelativeVec(Vec3Math.set(x, y, z, vec), out);
+  }
+
+  private static readonly cameraRelativeVec3Cache = [Vec3Math.create()];
+
+  /**
+   * Projects a 3D vector defined relative to the camera, as `[x, y, z]` in meters with the coordinate system
+   * defined as follows for an airplane with heading/roll/pitch of zero degrees:
+   * * The positive z axis points in the direction of the airplane.
+   * * The positive x axis points directly upward.
+   * * The positive y axis points to the right.
+   * @param vec The vector to project.
+   * @param out The 2D vector to which to write the result.
+   * @returns The projected vector.
+   */
+  private projectCameraRelativeVec(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
+    this.perspectiveTransform.apply(
+      Vec3Math.add(vec, this.perspectiveTransform.getCameraPosition(), HorizonProjection.cameraRelativeVec3Cache[0]),
+      out
+    );
 
     return Vec2Math.set(
       out[1] * this.scaleFactor + this.projectedSize[0] / 2 + this.projectedOffset[0],

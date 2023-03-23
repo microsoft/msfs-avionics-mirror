@@ -1,11 +1,10 @@
 import {
-  BitFlags, CircleVector, FlightPathLegLineRenderer, FlightPathLegLineStyle, FlightPathLegPatternRenderer, FlightPathLegPatternStyle, FlightPathLegRenderPart,
-  FlightPathUtils, FlightPathVectorFlags, FlightPlan, GeoCircle, GeoCircleLineRenderer, GeoPoint, GeoProjection, GeoProjectionPathStreamStack, LegDefinition,
-  LegDefinitionFlags, LegType, LNavTransitionMode, MagVar, UnitType
-} from 'msfssdk';
+  BitFlags, CircleVector, FlightPathLegLineRenderer, FlightPathLegLineStyle, FlightPathLegPatternRenderer, FlightPathLegPatternStyle,
+  FlightPathLegRenderPart, FlightPathUtils, FlightPathVectorFlags, FlightPlan, GeoCircle, GeoCircleLineRenderer, GeoPoint, GeoProjection,
+  GeoProjectionPathStreamStack, LegDefinition, LegDefinitionFlags, LegType, LNavTrackingState, LNavTransitionMode, MagVar, UnitType
+} from '@microsoft/msfs-sdk';
 
 import { FlightPathArrowPattern } from './MapFlightPathPatterns';
-import { FlightPathPlanRendererLNavData } from './MapFlightPathPlanRenderer';
 import { MapFlightPathStyleFlags, MapFlightPathStyles } from './MapFlightPathStyles';
 
 /**
@@ -374,7 +373,7 @@ export class FlightPathHoldLegRenderer {
     activeLeg: LegDefinition | undefined,
     legIndex: number,
     activeLegIndex: number,
-    lnavData: FlightPathPlanRendererLNavData | undefined
+    lnavData: LNavTrackingState | undefined
   ): void {
     const isMissedApproachActive = !!activeLeg && BitFlags.isAny(activeLeg.flags, LegDefinitionFlags.MissedApproach);
 
@@ -399,7 +398,7 @@ export class FlightPathHoldLegRenderer {
       }
     } else { // legIndex === activeLegIndex
       let partsToRender = 0;
-      if (!lnavData || lnavData.currentLegIndex !== legIndex) {
+      if (!lnavData || lnavData.globalLegIndex !== legIndex) {
         partsToRender = leg.leg.type === LegType.HF ? FlightPathLegRenderPart.All : FlightPathLegRenderPart.Ingress | FlightPathLegRenderPart.Base;
       } else {
         partsToRender = FlightPathLegRenderPart.Base;
@@ -624,14 +623,16 @@ export class FlightPathDirectToCourseLegRenderer {
     style: string,
     dash?: readonly number[]
   ): void {
-    if (leg.calculated?.endLat === undefined || leg.calculated?.endLon === undefined) {
+    // The leg should have a single base great-circle flight path vector ending at the direct-to fix
+    const vector = leg.calculated?.flightPath[0];
+
+    if (!vector) {
       return;
     }
 
-    const dtoFix = FlightPathDirectToCourseLegRenderer.geoPointCache[0].set(leg.calculated.endLat, leg.calculated.endLon);
-    const dtoCourseTrue = MagVar.magneticToTrue(leg.leg.course, dtoFix.lat, dtoFix.lon);
-    const dtoPath = FlightPathDirectToCourseLegRenderer.geoCircleCache[0].setAsGreatCircle(dtoFix, dtoCourseTrue);
-    const start = dtoPath.offsetDistanceAlong(dtoFix, UnitType.NMILE.convertTo(-500, UnitType.GA_RADIAN), FlightPathDirectToCourseLegRenderer.geoPointCache[1]);
+    const dtoFix = FlightPathDirectToCourseLegRenderer.geoPointCache[0].set(vector.endLat, vector.endLon);
+    const dtoPath = FlightPathUtils.setGeoCircleFromVector(vector, FlightPathDirectToCourseLegRenderer.geoCircleCache[0]);
+    const start = dtoPath.offsetDistanceAlong(dtoFix, UnitType.NMILE.convertTo(-500, UnitType.GA_RADIAN), FlightPathDirectToCourseLegRenderer.geoPointCache[1], Math.PI);
 
     this.lineRenderer.render(dtoPath, start.lat, start.lon, dtoFix.lat, dtoFix.lon, context, streamStack, width, style, dash);
   }
@@ -712,16 +713,18 @@ export class FlightPathVtfLegRenderer {
     style: string,
     dash?: readonly number[]
   ): void {
-    const vector = leg.calculated?.flightPath[0];
+    // VTF legs have their terminator coordinates and course written to the lat/lon and course properties, respectively.
 
-    if (!vector) {
+    if (leg.calculated === undefined || leg.leg.lat === undefined || leg.leg.lon === undefined) {
       return;
     }
 
-    const vectorCircle = FlightPathUtils.setGeoCircleFromVector(vector, FlightPathVtfLegRenderer.geoCircleCache[0]);
-    const end = FlightPathVtfLegRenderer.geoPointCache[0].set(vector.endLat, vector.endLon);
-    const start = vectorCircle.offsetDistanceAlong(end, UnitType.NMILE.convertTo(-30, UnitType.GA_RADIAN), FlightPathVtfLegRenderer.geoPointCache[1]);
+    const course = leg.leg.trueDegrees ? leg.leg.course : MagVar.magneticToTrue(leg.leg.course, leg.calculated.courseMagVar);
 
-    this.lineRenderer.render(vectorCircle, start.lat, start.lon, end.lat, end.lon, context, streamStack, width, style, dash);
+    const end = FlightPathVtfLegRenderer.geoPointCache[0].set(leg.leg.lat, leg.leg.lon);
+    const path = FlightPathVtfLegRenderer.geoCircleCache[0].setAsGreatCircle(end, course);
+    const start = path.offsetDistanceAlong(end, UnitType.NMILE.convertTo(-30, UnitType.GA_RADIAN), FlightPathVtfLegRenderer.geoPointCache[1]);
+
+    this.lineRenderer.render(path, start.lat, start.lon, end.lat, end.lon, context, streamStack, width, style, dash);
   }
 }

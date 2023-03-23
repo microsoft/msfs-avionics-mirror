@@ -1,0 +1,43 @@
+.told-config-defaults-popup {
+  position: absolute;
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.gtc-horizontal .told-config-defaults-popup {
+  left: calc(50% - 812px / 2);
+  top: 50px;
+  width: 780px;
+  height: 697px;
+  padding: 10px;
+  font-size: 29px;
+
+  --told-config-defaults-popup-button-height: 133px;
+  --told-config-defaults-popup-button-margin-bottom: 2px;
+}
+
+.gtc-vertical .told-config-defaults-popup {
+  left: calc(50% - 362px / 2);
+  top: 30px;
+  width: 362px;
+  height: 364px;
+  padding: 5px;
+  font-size: 16px;
+
+  --told-config-defaults-popup-button-height: 69px;
+  --told-config-defaults-popup-button-margin-bottom: 1px;
+}
+
+.told-config-defaults-popup-button {
+  height: var(--told-config-defaults-popup-button-height);
+  margin-bottom: var(--told-config-defaults-popup-button-margin-bottom);
+  --touch-button-value-label-center-y: 25%;
+}
+
+.told-config-defaults-popup-button .touch-button-value-value {
+  font-size: 1.3em;
+}

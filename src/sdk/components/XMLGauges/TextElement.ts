@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/Pages/VCockpit/Instruments/Shared/utils/XMLLogic" />
+/// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/utils/xmllogic" />
 
 import { ComponentProps } from '../FSComponent';
 import { XMLGaugeStyle } from './';

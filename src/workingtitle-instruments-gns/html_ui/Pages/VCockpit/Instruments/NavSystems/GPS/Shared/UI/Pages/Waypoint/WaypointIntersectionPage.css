@@ -1,0 +1,194 @@
+.waypoint-intersection-region {
+  color: var(--gnscyan);
+  padding-top: 6px;
+  left: 10px;
+  margin-left: 3px;
+}
+
+wt-gns530 .waypoint-intersection-region {
+  width: 110px;
+}
+
+wt-gns430 .waypoint-intersection-region {
+  width: 133px;
+}
+
+.waypoint-intersection-region>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid var(--gnscyan);
+  position: relative;
+  margin-left: -4px;
+  padding-left: 2px;
+}
+
+wt-gns530 .waypoint-intersection-region>div {
+  height: 17px;
+  padding: 1px;
+}
+
+wt-gns430 .waypoint-intersection-region>div {
+  height: 24px;
+  padding: 3px;
+}
+
+.waypoint-intersection-position {
+  color: var(--gnscyan);
+  padding-top: 9px;
+  left: 10px;
+  margin-left: 3px;
+}
+
+wt-gns530 .waypoint-intersection-position {
+  width: 110px;
+}
+
+wt-gns430 .waypoint-intersection-position {
+  width: 133px;
+}
+
+.waypoint-intersection-position>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid var(--gnscyan);
+  position: relative;
+  margin-left: -4px;
+  line-height: 19px;
+  padding-left: 5px;
+}
+
+wt-gns530 .waypoint-intersection-position>div {
+  height: 37px;
+  padding: 1px;
+}
+
+wt-gns430 .waypoint-intersection-position>div {
+  height: 40px;
+  padding: 2px;
+}
+
+.waypoint-intersection-position>div>.latlon-coord {
+  font-size: var(--gns-font-page-data);
+  text-align: right;
+  padding-right: 8px;
+  line-height: 18px;
+}
+
+.waypoint-intersection-nearestvor {
+  color: var(--gnscyan);
+  padding-top: 10px;
+  float: right;
+}
+
+wt-gns530 .waypoint-intersection-nearestvor {
+  width: 96px;
+  margin-top: -89px;
+  margin-right: 10px;
+}
+
+wt-gns430 .waypoint-intersection-nearestvor {
+  width: 124px;
+  margin-top: -109px;
+  margin-right: 0;
+}
+
+.waypoint-intersection-nearestvor>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid var(--gnscyan);
+  margin-left: -1px;
+}
+
+wt-gns530 .waypoint-intersection-nearestvor>div {
+  height: 17px;
+  padding: 1px;
+}
+
+wt-gns430 .waypoint-intersection-nearestvor>div {
+  height: 24px;
+  padding: 3px;
+}
+
+wt-gns430 .waypoint-intersection-nearestvor>div .waypoint-page-icon {
+  margin-bottom: 2px;
+  margin-left: 40px;
+}
+
+.waypoint-intersection-rad {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border-bottom: .8px solid var(--gnscyan);
+  border-left: .8px solid var(--gnscyan);
+  border-right: .8px solid var(--gnscyan);
+  margin-left: -1px;
+}
+
+wt-gns530 .waypoint-intersection-rad {
+  width: 49px;
+  height: 52px;
+  padding: 1px;
+}
+
+wt-gns430 .waypoint-intersection-rad {
+  width: 63px;
+  height: 36px;
+  padding: 2px;
+}
+
+.waypoint-intersection-rad-span {
+  color: var(--gnscyan);
+}
+
+.waypoint-intersection-dis {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border-bottom: .8px solid var(--gnscyan);
+  border-left: .8px solid var(--gnscyan);
+  border-right: .8px solid var(--gnscyan);
+  margin-left: -1px;
+  align-items: center;
+}
+
+wt-gns530 .waypoint-intersection-dis {
+  width: 49px;
+  height: 52px;
+  padding: 1px;
+}
+
+wt-gns430 .waypoint-intersection-dis {
+  width: 63px;
+  height: 36px;
+  padding: 2px;
+}
+
+.waypoint-intersection-dis-span {
+  color: var(--gnscyan);
+}
+
+.waypoint-intersection-dis-and-rad {
+  display: inline-flex;
+  color: var(--gnscyan);
+  padding-top: 38px;
+  float: right;
+}
+
+wt-gns530 .waypoint-intersection-dis-and-rad {
+  width: 96px;
+  margin-top: -90px;
+  margin-right: 10px;
+}
+
+wt-gns430 .waypoint-intersection-dis-and-rad {
+  width: 124px;
+  margin-top: -100px;
+}
+
+.waypoint-intersection-rad>div,
+.waypoint-intersection-dis>div {
+  text-align: center;
+}

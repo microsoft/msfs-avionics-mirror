@@ -16,7 +16,7 @@ export interface AvionicsSystemStateEvent {
   previous: AvionicsSystemState | undefined;
 
   /** The state that the system was changed to. */
-  current: AvionicsSystemState;
+  current: AvionicsSystemState | undefined;
 }
 
 /**

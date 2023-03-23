@@ -1,0 +1,238 @@
+.flight-plan-text-row {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 36px;
+  font-size: 18px;
+}
+
+.flight-plan-text-row>* {
+  position: absolute;
+}
+
+.flight-plan-text-row .name {
+  left: 30px;
+  color: var(--g3000-color-cyan);
+}
+
+.flight-plan-text-row.selected .name {
+  color: var(--g3000-color-black) !important;
+  background-color: var(--g3000-color-cyan);
+}
+
+.flight-plan-text-row.leg.selected .name .leg-suffix {
+  color: var(--g3000-color-black) !important;
+}
+
+.flight-plan-text-row.approach .name,
+.flight-plan-text-row.segment .name,
+.flight-plan-text-row.leg.airway-leg.use-airway-exit .name {
+  left: 18px;
+}
+
+.flight-plan-text-row.airway-leg .name {
+  left: 42px;
+}
+
+.flight-plan-text-row .name .appr-name,
+.flight-plan-text-row.approach .normal-name {
+  display: none;
+}
+
+.flight-plan-text-row.leg.airway-leg.use-airway-exit .name .normal-name,
+/* TODO Implement special display of DME ARC legs. */
+/* .flight-plan-text-row.leg.dme-arc .name .normal-name, */
+.flight-plan-text-row.leg.hold .name .normal-name {
+  display: inline;
+}
+
+.flight-plan-text-row.leg.airway-leg.use-airway-exit .name .leg-name,
+/* TODO Implement special display of DME ARC legs. */
+/* .flight-plan-text-row.leg.dme-arc .name .leg-name, */
+.flight-plan-text-row.leg.hold .name .leg-name {
+  display: none;
+}
+
+.flight-plan-text-row.approach .name .appr-name {
+  display: inline;
+}
+
+.flight-plan-text-row .hdg {
+  display: none;
+  left: 128px;
+}
+
+.flight-plan-text-row.hdg .hdg {
+  display: block;
+}
+
+.display-pane-half .flight-plan-text-row .hdg {
+  left: 134px;
+}
+
+.flight-plan-text-row .dtk {
+  left: 173px;
+}
+
+.display-pane-half .flight-plan-text-row .dtk {
+  left: 180px;
+}
+
+.flight-plan-text-row .dtk .dtk-string {
+  display: none;
+}
+
+/* TODO Implement special display of DME ARC legs. */
+/* .flight-plan-text-row.dme-arc .dtk .bearing-display {
+  display: none;
+}
+
+.flight-plan-text-row.dme-arc .dtk .dtk-string {
+  display: inline;
+} */
+
+.flight-plan-text-row .distance {
+  right: 430px;
+}
+
+.display-pane-half .flight-plan-text-row .distance {
+  right: 183px;
+}
+
+.flight-plan-text-row.leg.hold.hold-time .distance .distance-display {
+  display: none;
+}
+
+.flight-plan-text-row .distance .distance-string {
+  display: none;
+}
+
+.flight-plan-text-row.leg.hold.hold-time .distance .distance-string {
+  display: inline;
+}
+
+.flight-plan-text-row .altitude {
+  display: none;
+  right: 322px;
+  height: 100%;
+}
+
+.display-pane-half .flight-plan-text-row .altitude {
+  right: 92px;
+}
+
+.flight-plan-text-row.leg.show-altitude .altitude {
+  display: block;
+}
+
+.flight-plan-text-row .altitude .altitude-constraint-display {
+  justify-content: flex-end;
+  --altitude-constraint-display-solid-line-distance-single: 1.3em;
+  --altitude-constraint-display-solid-line-distance-double: 1.7em;
+  --altitude-constraint-display-pencil-icon-scale: 0.9;
+  --altitude-constraint-display-solid-line-height: 1px;
+}
+
+.flight-plan-text-row .altitude .altitude-constraint-display .altitudes {
+  width: auto;
+}
+
+.flight-plan-text-row .altitude .altitude-constraint-display.edited .altitudes {
+  left: unset;
+}
+
+.flight-plan-text-row .altitude .altitude-constraint-display .altitudes .lines-box {
+  align-items: flex-end;
+  margin-bottom: -2px;
+}
+
+.flight-plan-text-row .altitude .altitude-constraint-display.altitude-constraint-display-between .altitudes .lines-box {
+  margin-bottom: 0px;
+}
+
+.flight-plan-text-row .altitude .altitude-constraint-display.altitude-constraint-display-between .altitudes .lines-box .line {
+  height: 50%;
+  font-size: 0.78em !important;
+}
+
+.flight-plan-text-row .altitude .altitude-constraint-display .altitudes .solid-line-box {
+  width: 100%;
+}
+
+.flight-plan-text-row .altitude .altitude-constraint-display .pencil-icon {
+  transform: scale(0.9);
+  right: -22px;
+}
+
+.flight-plan-text-row .fuel {
+  right: 202px;
+}
+
+.flight-plan-text-row .ete {
+  right: 120px;
+}
+
+.display-pane-half .flight-plan-text-row .ete {
+  right: 6px;
+}
+
+.flight-plan-text-row .eta {
+  right: 6px;
+}
+
+.flight-plan-text-row .eta .time-sec {
+  display: none;
+}
+
+.display-pane-half .flight-plan-text-row .fuel,
+.display-pane-half .flight-plan-text-row .eta {
+  display: none;
+}
+
+.flight-plan-text-row .leg-name,
+.flight-plan-text-row.leg .normal-name {
+  display: none;
+}
+
+.flight-plan-text-row.leg .leg-name {
+  display: inline;
+}
+
+.flight-plan-text-row.leg.active-leg,
+.flight-plan-text-row.leg.active-leg .name,
+.flight-plan-text-row.leg.active-leg .name .leg-suffix {
+  color: var(--g3000-color-magenta) !important;
+}
+
+.flight-plan-text-row.leg.selected.active-leg .name {
+  color: var(--g3000-color-black) !important;
+  background-color: var(--g3000-color-magenta) !important;
+}
+
+.flight-plan-text-row.leg.selected.active-leg .name .leg-suffix {
+  color: var(--g3000-color-black);
+}
+
+.flight-plan-text-row.segment .data-field,
+.flight-plan-text-row.approach .data-field,
+.flight-plan-text-row.leg.use-airway-exit .data-field,
+.flight-plan-text-row.leg.first-leg .data-field {
+  display: none;
+}
+
+.flight-plan-text-row.leg .name .leg-suffix {
+  color: var(--g3000-color-white);
+  font-size: 0.9em;
+}
+
+.flight-plan-text-row.leg.hold .name {
+  color: var(--g3000-color-white);
+}
+
+.flight-plan-text-row.leg.hold .altitude,
+.flight-plan-text-row.leg.hold .fuel,
+.flight-plan-text-row.leg.hold .ete,
+.flight-plan-text-row.leg.hold .eta {
+  display: none;
+}

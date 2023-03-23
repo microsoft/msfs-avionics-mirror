@@ -1,0 +1,27 @@
+.navSourcePreset {
+  position: absolute;
+  top: 352px;
+}
+
+.navSourcePreset .label {
+  font-size: 24px;
+  margin-left: -4.5px;
+  transform: scale(0.87, 0.9);
+}
+
+.navSourcePreset .box {
+  border: 2.5px solid var(--wt21-colors-cyan);
+  position: absolute;
+  top: 23px;
+  left: 1px;
+  width: 59px;
+  height: 35px;
+}
+
+.navSourcePreset .box .standby {
+  font-size: 24px;
+  color: var(--wt21-colors-cyan);
+  position: absolute;
+  top: 5px;
+  left: 2px;
+}

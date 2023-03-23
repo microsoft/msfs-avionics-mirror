@@ -1,0 +1,31 @@
+{
+  "name": "workingtitle-instruments-wt21",
+  "version": "1.0.4",
+  "description": "Working Title MSFS WT21",
+  "main": "index.ts",
+  "types": "./index.d.ts",
+  "scripts": {
+    "build": "npm run build:compile && npm run build:rollup && npm run build:copies",
+    "build:compile": "npx tsc",
+    "build:rollup": "robocopy html_ui *.css build/workingtitle-instruments-wt21/html_ui /s & npx rollup -c rollup.config.js",
+    "build:copies": "npm run build:copies:extras & npm run build:copies:msfssdk",
+    "build:copies:extras": "robocopy html_ui *.svg *.png *.html *.json *.ttf dist/workingtitle-instruments-wt21/html_ui /s",
+    "build:copies:msfssdk": "xcopy node_modules\\@microsoft\\msfs-sdk\\msfssdk-iife.js dist\\workingtitle-instruments-wt21\\html_ui\\Pages\\VCockpit\\Instruments\\WT21\\Libraries\\msfssdk.js /Y /-I"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/msfs-avionics-mirror/"
+  },
+  "author": "Working Title Simulations, LLC",
+  "license": "Modified MIT",
+  "devDependencies": {
+    "@rollup/plugin-image": "^3.0.2",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@types/node": "^18.11.18",
+    "@microsoft/msfs-sdk": "0.4.0",
+    "@microsoft/msfs-types": "1.14.6",
+    "rollup": "^2.79.1",
+    "rollup-plugin-import-css": "^3.1.0",
+    "typescript": "4.5.5"
+  }
+}

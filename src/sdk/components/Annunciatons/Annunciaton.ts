@@ -1,5 +1,6 @@
-/// <reference types="msfstypes/Pages/VCockpit/Instruments/Shared/utils/XMLLogic" />
+/// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/utils/xmllogic" />
 
+import { UUID } from '../../utils';
 
 /** The acceptable priority types for a given annunciation. */
 export enum AnnunciationType {
@@ -13,6 +14,8 @@ export enum AnnunciationType {
 export class Annunciation {
   /** The priority type of the annunciation. */
   public readonly type: AnnunciationType;
+  /** An identifier tying every suffix for a given annunciation together. */
+  public readonly uuid: string;
   /** The text to show when we are displayed. */
   public readonly text: string;
   /** An XML logic element that will show when we are active. */
@@ -27,11 +30,13 @@ export class Annunciation {
    * @param text The text label to show.
    * @param condition The logic condition for setting it.
    * @param suffix Any suffix text to past to the end.
+   * @param uuid A preset UUID, or one will be generated.
    */
-  public constructor(type: AnnunciationType, text: string, condition: CompositeLogicXMLElement, suffix: string | undefined) {
+  public constructor(type: AnnunciationType, text: string, condition: CompositeLogicXMLElement, suffix: string | undefined, uuid: string | undefined) {
     this.type = type;
     this.text = text;
     this.condition = condition;
     this.suffix = suffix;
+    this.uuid = uuid ?? UUID.GenerateUuid();
   }
 }

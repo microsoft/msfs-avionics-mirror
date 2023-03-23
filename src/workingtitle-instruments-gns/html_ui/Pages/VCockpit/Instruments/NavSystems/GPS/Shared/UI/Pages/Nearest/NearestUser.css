@@ -1,0 +1,44 @@
+.aux-table-labels-nearest-user {
+  grid-template-columns: 3fr 1fr 3fr 4fr;
+}
+
+.nearest-user-table>.ui-control-list {
+  height: 177px;
+}
+
+.nearest-user-item {
+  display: grid;
+  grid-template-columns: 3fr 2fr 3fr 3fr;
+
+  height: 22px;
+  line-height: 14px;
+  padding-top: 4px;
+  padding-bottom: 17px;
+
+  margin-left: 2px;
+  /* TODO check other aux-items */
+}
+
+.nearest-user-item-icao {
+  padding-top: 2px;
+  padding-left: 1px;
+  padding-right: 1px;
+}
+
+.nearest-user-item-icon {
+  margin-top: 2px;
+}
+
+.nearest-user-item-icon-img {
+  position: relative;
+  left: .5em;
+  width: 10px;
+}
+
+.nearest-user-item-brg {
+  margin-left: 1.1em;
+}
+
+.nearest-user-item-dis {
+  margin-left: 2em;
+}

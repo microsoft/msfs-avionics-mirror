@@ -1,0 +1,186 @@
+.altitude-tick-marks {
+  position: absolute;
+  top: -15.5%;
+  right: 8%;
+}
+
+.altitude-tick-marks>svg {
+  height: 605px;
+}
+
+.altitude-box {
+  position: absolute;
+  top: 40%;
+  left: 8.5%;
+  height: 21%;
+}
+
+.metric-altitude-box {
+  background: var(--wt21-colors-black);
+  border: var(--wt21-borders-normal);
+  position: absolute;
+  top: 32.9%;
+  left: 8.5%;
+  width: 71%;
+  text-align: right;
+  padding-right: 2px
+}
+
+.metric-altitude-box .value {
+  color: var(--wt21-colors-green)
+}
+
+.metric-altitude-box .unit {
+  color: var(--wt21-colors-gray);
+}
+
+.altitude-preselect-bug {
+  position: absolute;
+  top: 39.9%;
+  right: 0;
+}
+
+.altitude-preselect-bug>svg {
+  height: 73px;
+}
+
+.fine-bug {
+  left: 2px;
+}
+
+.fine-bug-deviation {
+  stroke: var(--wt21-colors-yellow);
+}
+
+.altitude-baro-mins-bug {
+  position: absolute;
+  top: 45.5%;
+  right: 3%;
+}
+
+.altitude-baro-mins-bug>svg {
+  height: 35px;
+}
+
+.altimeter,
+.altitude-ground-group,
+.altitude-ground-ribbon {
+  height: 100%;
+}
+
+.altitude-ground-group {
+  margin-top: -170px;
+}
+
+.altitude-ground-group>div {
+  overflow: hidden;
+}
+
+.altitude-radio-mins-bar-container {
+  height: 2500px;
+  margin-top: -2330px;
+  position: relative;
+}
+
+.altitude-radio-mins-bar {
+  border: 2px solid var(--wt21-colors-cyan);
+  background: var(--wt21-colors-black);
+  border-bottom: none;
+  width: 7px;
+  height: 2000px;
+  margin-left: 1px;
+  position: absolute;
+  top: 2500px;
+}
+
+.scroller {
+  position: absolute;
+  top: 2%;
+  height: 96%;
+  overflow: hidden;
+}
+
+.scroller svg {
+  height: 800px
+}
+
+.no-zero .zero-digit,
+.alt-zero-digit {
+  fill: none !important;
+}
+
+.no-zero .alt-zero-digit {
+  fill: var(--wt21-colors-green) !important;
+}
+
+.show-below-msl {
+  fill: none !important;
+}
+
+.below-msl .show-below-msl {
+  fill: var(--wt21-colors-green) !important;
+}
+
+.below-msl .show-above-msl {
+  fill: none !important;
+}
+
+.trans-msl .top.show-above-msl,
+.trans-msl .bottom.show-below-msl {
+  fill: var(--wt21-colors-green) !important;
+}
+
+.trans-msl .top.show-below-msl,
+.trans-msl .bottom.show-above-msl {
+  fill: none !important;
+}
+
+.alt-ten-thousands-scroller {
+  left: 2.8%;
+}
+
+.alt-thousands-scroller {
+  left: 8%;
+}
+
+.alt-hundreds-scroller {
+  left: 13.5%;
+}
+
+.alt-tens-scroller {
+  left: 18.5%;
+}
+
+.baro-mins-flash {
+  stroke: var(--wt21-colors-yellow);
+  fill: var(--wt21-colors-yellow);
+}
+
+.ra-mins-flash {
+  border: 2px solid var(--wt21-colors-yellow);
+}
+
+.mininimums-flash {
+  animation: flasher .75s step-start 5;
+}
+
+@keyframes flasher {
+
+  50% {
+    opacity: 0;
+  }
+}
+
+.altimeter-box .fail-box {
+  top: 45.5%;
+  left: 29%;
+}
+
+.fail .altimeter,
+.fail .alt-select-box,
+.fail .altimeter-baro-preset-box,
+.warn .altimeter,
+.warn .alt-select-box,
+.warn .altimeter-baro-preset-box {
+  display: none;
+}

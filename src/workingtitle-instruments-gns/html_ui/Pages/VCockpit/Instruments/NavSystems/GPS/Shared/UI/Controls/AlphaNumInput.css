@@ -1,0 +1,39 @@
+.alpha-num-input {
+  font-size: var(--gns-font-page-data);
+}
+
+.alpha-num-active {
+  float: left;
+  height: 14px;
+  overflow: hidden;
+}
+
+wt-gns430 .alpha-num-active {
+  height: 16px;
+}
+
+.alpha-num-inactive {
+  float: left;
+  height: 14px;
+  overflow: hidden;
+}
+
+wt-gns430 .alpha-num-inactive {
+  height: 16px;
+}
+
+.alpha-num-keyboard {
+  float: left;
+}
+
+.alpha-num-kb-icon {
+  margin: 0 2px;
+}
+
+.alpha-num-slot {
+  padding-top: 1px;
+}
+
+.alpha-num-input-width {
+  width: var(--alpha-num-input-width, 60px);
+}

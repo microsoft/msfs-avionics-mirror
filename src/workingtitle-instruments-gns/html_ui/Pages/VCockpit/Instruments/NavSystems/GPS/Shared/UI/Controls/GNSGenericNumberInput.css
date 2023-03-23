@@ -1,0 +1,21 @@
+.number-input {
+  color: inherit;
+  height: 15px;
+}
+
+.number-input.input-disabled {
+  color: inherit;
+}
+
+.number-input.highlight-active {
+  color: inherit;
+}
+
+.number-input.highlight-select .sign-input,
+.number-input.highlight-select .digit-input,
+.number-input.highlight-active .sign-input,
+.number-input.highlight-active .digit-input,
+.number-input.input-disabled .sign-input,
+.number-input.input-disabled .digit-input {
+  color: inherit;
+}

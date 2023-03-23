@@ -48,7 +48,13 @@ export interface MapSystemFlightPlanLayerProps extends MapLayerProps<MapSystemFl
  * A map system layer that draws the flight plan.
  */
 export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerProps> {
+  private static readonly WAYPOINT_PREFIX = 'MapSystemFplLayer';
+
   private static readonly CLIP_BOUNDS_BUFFER = 10;
+
+  private static instanceId = 0;
+
+  protected readonly instanceId = MapSystemFlightPlanLayer.instanceId++;
 
   protected readonly flightPathLayerRef = FSComponent.createRef<MapCachedCanvasLayer>();
   protected readonly waypointLayerRef = FSComponent.createRef<MapSyncedCanvasLayer>();
@@ -56,8 +62,10 @@ export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerP
   protected readonly defaultRoleId = this.props.waypointRenderer.getRoleFromName(MapSystemWaypointRoles.FlightPlan) ?? 0;
   protected readonly planModule = this.props.model.getModule(MapSystemKeys.FlightPlan);
 
+  protected readonly waypointPrefix = `${MapSystemFlightPlanLayer.WAYPOINT_PREFIX}_${this.instanceId}`;
   protected readonly legWaypoints = new Map<LegDefinition, [Waypoint, number]>();
   protected waypointsUpdating = false;
+  protected waypointId = 0;
 
   protected readonly facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
   protected readonly facWaypointCache = DefaultFacilityWaypointCache.getCache(this.props.bus);
@@ -275,7 +283,9 @@ export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerP
       if (lastVector !== undefined) {
         if (!waypoint.location.get().equals(lastVector.endLat, lastVector.endLon)) {
           this.props.waypointRenderer.deregister(waypoint, currentRoleId, MapSystemWaypointRoles.FlightPlan);
-          const newWaypoint = new FlightPathWaypoint(lastVector.endLat, lastVector.endLon, leg.name ?? '');
+
+          const ident = leg.name ?? '';
+          const newWaypoint = new FlightPathWaypoint(lastVector.endLat, lastVector.endLon, leg, `${this.waypointPrefix}_${this.waypointId++}_${ident}`, ident);
 
           this.legWaypoints.set(leg, [newWaypoint, roleId]);
           this.props.waypointRenderer.register(newWaypoint, roleId, MapSystemWaypointRoles.FlightPlan);
@@ -291,7 +301,8 @@ export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerP
     } else {
       const lastVector = leg.calculated?.flightPath[leg.calculated?.flightPath.length - 1];
       if (lastVector !== undefined) {
-        const newWaypoint = new FlightPathWaypoint(lastVector.endLat, lastVector.endLon, leg.name ?? '');
+        const ident = leg.name ?? '';
+        const newWaypoint = new FlightPathWaypoint(lastVector.endLat, lastVector.endLon, leg, `${this.waypointPrefix}_${this.waypointId++}_${ident}`, ident);
 
         this.legWaypoints.set(leg, [newWaypoint, roleId]);
         this.props.waypointRenderer.register(newWaypoint, roleId, MapSystemWaypointRoles.FlightPlan);
@@ -317,8 +328,10 @@ export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerP
 
       if (facility !== undefined) {
         const waypoint = this.facWaypointCache.get(facility);
-        this.props.waypointRenderer.register(waypoint, roleId, MapSystemWaypointRoles.FlightPlan);
-        this.legWaypoints.set(leg, [waypoint, roleId]);
+        const ident = leg.name ?? '';
+        const newWaypoint = new FlightPathWaypoint(waypoint.location, leg, `${this.waypointPrefix}_${this.waypointId++}_${ident}`, ident);
+        this.props.waypointRenderer.register(newWaypoint, roleId, MapSystemWaypointRoles.FlightPlan);
+        this.legWaypoints.set(leg, [newWaypoint, roleId]);
       }
     } else {
       const [waypoint, currentRoleId] = legWaypoint;
@@ -335,9 +348,8 @@ export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerP
   public render(): VNode {
     return (
       <>
-        <MapCachedCanvasLayer ref={this.flightPathLayerRef} model={this.props.model} mapProjection={this.props.mapProjection}
-          useBuffer={true} overdrawFactor={Math.SQRT2} />
-        <MapSyncedCanvasLayer ref={this.waypointLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} />
+        <MapCachedCanvasLayer ref={this.flightPathLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} overdrawFactor={Math.SQRT2} class={this.props.class ?? ''} />
+        <MapSyncedCanvasLayer ref={this.waypointLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} class={this.props.class ?? ''} />
       </>
     );
   }

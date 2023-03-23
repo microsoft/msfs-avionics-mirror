@@ -1,0 +1,29 @@
+.gtc-horizontal .flight-plan-fpa-speed-box {
+  --flight-plan-fpa-speed-box-width: 195px;
+  --flight-plan-fpa-speed-box-font-size: 32px;
+}
+
+.gtc-vertical .flight-plan-fpa-speed-box {
+  --flight-plan-fpa-speed-box-width: 105px;
+  --flight-plan-fpa-speed-box-font-size: 18px;
+}
+
+.flight-plan-fpa-speed-box {
+  margin-left: auto;
+  color: var(--g3000-color-cyan);
+  font-size: var(--flight-plan-fpa-speed-box-font-size);
+  width: var(--flight-plan-fpa-speed-box-width);
+}
+
+.flight-plan-fpa-speed-box .main-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.flight-plan-fpa-speed-box .main-box .flight-path-angle-display {
+  margin-bottom: 0.1em;
+}

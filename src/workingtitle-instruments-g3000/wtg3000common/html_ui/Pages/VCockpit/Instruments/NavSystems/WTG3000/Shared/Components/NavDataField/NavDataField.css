@@ -1,0 +1,34 @@
+html {
+  --nav-data-field-gps-color: var(--g3000-color-magenta);
+}
+
+.nav-data-field {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.nav-data-field-title {
+  margin-right: 0.5em;
+  font-size: 0.75em;
+  color: var(--g3000-color-title-gray);
+}
+
+.nav-data-field .time-sec {
+  display: none;
+}
+
+.nav-data-field-white {
+  color: var(--g3000-color-white);
+}
+
+.nav-data-field-magenta {
+  color: var(--g3000-color-magenta);
+}
+
+.nav-data-field-gps {
+  color: var(--nav-data-field-gps-color);
+}

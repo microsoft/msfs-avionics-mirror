@@ -8,16 +8,16 @@ import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
  * Base events related to attitude and heading of the airplane.
  */
 export interface BaseAhrsEvents {
-  /** The heading of the airplane, in degrees magnetic. */
+  /** The indicated heading of the airplane, in degrees magnetic. */
   hdg_deg: number;
 
-  /** A heading of the airplane, in degrees true. */
+  /** The indicated heading of the airplane, in degrees true. */
   hdg_deg_true: number;
 
-  /** The pitch of the airplane, in degrees. Positive values indicate downward pitch. */
+  /** The indicated pitch of the airplane, in degrees. Positive values indicate downward pitch. */
   pitch_deg: number;
 
-  /** The roll (bank) of the airplane, in degrees. Positive values indicate leftward roll. */
+  /** The indicated roll (bank) of the airplane, in degrees. Positive values indicate leftward roll. */
   roll_deg: number;
 
   /** A turn coordinator ball value. */
@@ -25,6 +25,18 @@ export interface BaseAhrsEvents {
 
   /** The turn rate of the airplane, in degrees per second. */
   delta_heading_rate: number;
+
+  /** The actual heading of the airplane, in degrees magnetic. */
+  actual_hdg_deg: number;
+
+  /** The actual heading of the airplane, in degrees true. */
+  actual_hdg_deg_true: number;
+
+  /** The actual pitch of the airplane, in degrees. Positive values indicate downward pitch. */
+  actual_pitch_deg: number;
+
+  /** The actual roll (bank) of the airplane, in degrees. Positive values indicate leftward roll. */
+  actual_roll_deg: number;
 }
 
 /**
@@ -65,69 +77,23 @@ export class AhrsPublisher extends SimVarPublisher<AhrsEvents> {
   /**
    * Creates an AhrsPublisher.
    * @param bus The event bus to which to publish.
-   * @param attitudeIndicatorCount The number of attitude indicators.
-   * @param directionIndicatorCount The number of direction indicators.
    * @param pacer An optional pacer to use to control the rate of publishing.
    */
-  public constructor(bus: EventBus, attitudeIndicatorCount: number, directionIndicatorCount: number, pacer?: PublishPacer<AhrsEvents>) {
-    const nonIndexedSimVars: [Exclude<keyof BaseAhrsEvents, AhrsIndexedTopics>, SimVarPublisherEntry<any>][] = [
+  public constructor(bus: EventBus, pacer?: PublishPacer<AhrsEvents>) {
+    const simvars = new Map<keyof AhrsEvents, SimVarPublisherEntry<any>>([
+      ['pitch_deg', { name: 'ATTITUDE INDICATOR PITCH DEGREES:#index#', type: SimVarValueType.Degree, indexed: true }],
+      ['roll_deg', { name: 'ATTITUDE INDICATOR BANK DEGREES:#index#', type: SimVarValueType.Degree, indexed: true }],
+
+      ['hdg_deg', { name: 'HEADING INDICATOR:#index#', type: SimVarValueType.Degree, indexed: true }],
+      ['hdg_deg_true', { name: 'HEADING INDICATOR:#index#', type: SimVarValueType.Degree, map: (heading): number => MagVar.magneticToTrue(heading, this.magVar), indexed: true }],
+      ['delta_heading_rate', { name: 'DELTA HEADING RATE:#index#', type: SimVarValueType.Degree, indexed: true }],
+
       ['turn_coordinator_ball', { name: 'TURN COORDINATOR BALL', type: SimVarValueType.Number }],
-    ];
-
-    const attitudeIndexedSimVars: [Extract<keyof BaseAhrsEvents, AhrsAttitudeIndexedTopics>, SimVarPublisherEntry<any>][] = [
-      ['pitch_deg', { name: 'ATTITUDE INDICATOR PITCH DEGREES', type: SimVarValueType.Degree }],
-      ['roll_deg', { name: 'ATTITUDE INDICATOR BANK DEGREES', type: SimVarValueType.Degree }],
-    ];
-
-    const directionIndexedSimVars: [Extract<keyof BaseAhrsEvents, AhrsIndexedTopics>, SimVarPublisherEntry<any>][] = [
-      ['hdg_deg', { name: 'HEADING INDICATOR', type: SimVarValueType.Degree }],
-      ['hdg_deg_true', { name: 'HEADING INDICATOR', type: SimVarValueType.Degree, map: (heading): number => MagVar.magneticToTrue(heading, this.magVar) }],
-      ['delta_heading_rate', { name: 'DELTA HEADING RATE', type: SimVarValueType.Degree }],
-    ];
-
-    const simvars = new Map<keyof AhrsEvents, SimVarPublisherEntry<any>>(nonIndexedSimVars);
-
-    // set un-indexed topics to pull from index 1
-    for (const [topic, simvar] of [...attitudeIndexedSimVars, ...directionIndexedSimVars]) {
-      simvars.set(
-        `${topic}`,
-        {
-          name: `${simvar.name}:1`,
-          type: simvar.type,
-          map: simvar.map
-        }
-      );
-    }
-
-    // add attitude indicator indexed topics
-    attitudeIndicatorCount = Math.max(attitudeIndicatorCount, 1);
-    for (let i = 1; i <= attitudeIndicatorCount; i++) {
-      for (const [topic, simvar] of attitudeIndexedSimVars) {
-        simvars.set(
-          `${topic}_${i}`,
-          {
-            name: `${simvar.name}:${i}`,
-            type: simvar.type,
-            map: simvar.map
-          }
-        );
-      }
-    }
-
-    // add direction indicator indexed topics
-    directionIndicatorCount = Math.max(directionIndicatorCount, 1);
-    for (let i = 1; i <= directionIndicatorCount; i++) {
-      for (const [topic, simvar] of directionIndexedSimVars) {
-        simvars.set(
-          `${topic}_${i}`,
-          {
-            name: `${simvar.name}:${i}`,
-            type: simvar.type,
-            map: simvar.map
-          }
-        );
-      }
-    }
+      ['actual_hdg_deg', { name: 'PLANE HEADING DEGREES MAGNETIC', type: SimVarValueType.Degree }],
+      ['actual_hdg_deg_true', { name: 'PLANE HEADING DEGREES TRUE', type: SimVarValueType.Degree }],
+      ['actual_pitch_deg', { name: 'PLANE PITCH DEGREES', type: SimVarValueType.Degree }],
+      ['actual_roll_deg', { name: 'PLANE BANK DEGREES', type: SimVarValueType.Degree }],
+    ]);
 
     super(simvars, bus, pacer);
 

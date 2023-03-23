@@ -1,0 +1,114 @@
+.ndb-info-page .wpt-info-page-container {
+  position: absolute;
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.gtc-horizontal .ndb-info-page .wpt-info-page-container {
+  left: calc(50% - 685px / 2);
+  top: 55px;
+  width: 685px;
+  height: 705px;
+  padding-top: 10px;
+
+  --ndb-info-page-info-width: 540px;
+  --ndb-info-page-info-font-size: 32px;
+
+  --wpt-info-page-info-field-title-margin-bottom: 5px;
+
+  --wpt-info-page-info-city-region-height: 110px;
+  --wpt-info-page-info-city-region-padding-left: 30px;
+
+  --wpt-info-page-info-pos-height: 110px;
+  --wpt-info-page-info-coords-width: 260px;
+  --wpt-info-page-info-coords-margin-left: 20px;
+  --wpt-info-page-info-brg-width: 125px;
+  --wpt-info-page-info-brg-arrow-margin-left: 5px;
+  --wpt-info-page-info-dis-width: 135px;
+
+  --ndb-info-page-info-section-title-left: 30px;
+  --ndb-info-page-info-section-title-top: 15px;
+
+  --ndb-info-page-info-nrst-height: 120px;
+  --ndb-info-page-info-nrst-margin-top: 25px;
+
+  --ndb-info-page-info-freq-height: 120px;
+  --ndb-info-page-info-freq-value-left: 65px;
+  --ndb-info-page-info-freq-value-top: 70px;
+  --ndb-info-page-info-freq-value-font-size: 38px;
+}
+
+.gtc-vertical .ndb-info-page .wpt-info-page-container {
+  left: calc(50% - 365px / 2);
+  top: 27px;
+  width: 365px;
+  height: 380px;
+  padding-top: 3px;
+
+  --ndb-info-page-info-width: 290px;
+  --ndb-info-page-info-font-size: 18px;
+
+  --wpt-info-page-info-field-title-margin-bottom: 2px;
+
+  --wpt-info-page-info-city-region-height: 60px;
+  --wpt-info-page-info-city-region-padding-left: 15px;
+
+  --wpt-info-page-info-pos-height: 60px;
+  --wpt-info-page-info-coords-width: 135px;
+  --wpt-info-page-info-coords-margin-left: 10px;
+  --wpt-info-page-info-brg-width: 70px;
+  --wpt-info-page-info-brg-arrow-margin-left: 2px;
+  --wpt-info-page-info-dis-width: 75px;
+
+  --ndb-info-page-info-section-title-left: 15px;
+  --ndb-info-page-info-section-title-top: 7px;
+
+  --ndb-info-page-info-nrst-height: 65px;
+
+  --ndb-info-page-info-freq-height: 65px;
+  --ndb-info-page-info-freq-value-left: 35px;
+  --ndb-info-page-info-freq-value-top: 37px;
+  --ndb-info-page-info-freq-value-font-size: 22px;
+}
+
+.ndb-info-page .wpt-info-page-info {
+  width: var(--ndb-info-page-info-width);
+  font-size: var(--ndb-info-page-info-font-size);
+}
+
+.ndb-info-page .wpt-info-page-no-wpt {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.ndb-info-page-info-section-title {
+  position: absolute;
+  left: var(--ndb-info-page-info-section-title-left);
+  top: var(--ndb-info-page-info-section-title-top);
+  font-size: 0.8em;
+}
+
+.ndb-info-page-info-nrst {
+  position: relative;
+  height: var(--ndb-info-page-info-nrst-height);
+  margin-top: var(--ndb-info-page-info-nrst-margin-top);
+}
+
+.ndb-info-page-info-freq {
+  position: relative;
+  height: var(--ndb-info-page-info-freq-height);
+}
+
+.ndb-info-page-info-freq-value {
+  position: absolute;
+  left: var(--ndb-info-page-info-freq-value-left);
+  top: var(--ndb-info-page-info-freq-value-top);
+  font-size: var(--ndb-info-page-info-freq-value-font-size);
+}

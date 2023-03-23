@@ -1,0 +1,9 @@
+.hsi-course-needle-shadow {
+  stroke-width: 7;
+  /* opacity: 0.9; */
+  stroke: var(--wt21-colors-black);
+}
+
+.isLocalizer .hsi-course-needle-to-from-triangle {
+  display: none;
+}

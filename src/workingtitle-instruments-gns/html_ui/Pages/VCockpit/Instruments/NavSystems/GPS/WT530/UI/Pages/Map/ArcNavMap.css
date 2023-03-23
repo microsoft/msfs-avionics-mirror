@@ -1,0 +1,119 @@
+div.arc-nav-map {
+  padding: unset;
+}
+
+.arc-map-topbar {
+  height: 22px;
+}
+
+.arc-map-container {
+  position: relative;
+  width: 255px;
+  height: 138px;
+  overflow: hidden;
+  padding: unset;
+}
+
+.arc-map-bottombar {
+  height: 57px;
+}
+
+.map-data-field-label {
+  color: #0ff;
+}
+
+.map-data-field-label>span {
+  padding-top: 1px;
+}
+
+.map-data-field-field {
+  color: var(--gnsgreen);
+  font-size: 17px;
+}
+
+.map-data-field {
+  width: 56px;
+  height: 32px;
+  position: absolute;
+  background-color: black;
+  text-align: center;
+  padding: 2px;
+  z-index: 100;
+}
+
+.arc-map-topbar .map-data-field:first-of-type {
+  top: 0px;
+  left: 65px;
+}
+
+.arc-map-topbar .map-data-field:last-of-type {
+  top: 0px;
+  left: 266px;
+}
+
+.arc-map-bottombar .map-data-field:first-of-type {
+  bottom: 17px;
+  left: 65px;
+}
+
+.arc-map-bottombar .map-data-field:last-of-type {
+  bottom: 17px;
+  left: 266px;
+}
+
+.arc-map-track {
+  position: absolute;
+  top: 0px;
+  left: 153px;
+  height: 22px;
+  width: 80px;
+}
+
+.arc-map-track .map-data-field {
+  position: unset;
+}
+
+.arc-map-track .map-data-field-label {
+  position: absolute;
+  left: -3px;
+}
+
+.arc-map-track .map-data-field-field {
+  position: absolute;
+  left: 20px;
+  top: 0px;
+}
+
+.arc-map-track svg {
+  position: absolute;
+  left: 19px;
+  bottom: 0px;
+}
+
+.arc-map-waypoints {
+  font-size: 17px;
+  text-align: center;
+  color: var(--gnsgreen);
+}
+
+.leg-icon {
+  vertical-align: middle;
+  width: 20px;
+  padding-bottom: 2px;
+  margin: 0 10px 0 15px;
+}
+
+.arc-map-waypoints-from {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  text-align: right;
+  padding: 2px 26px 0 0;
+}
+
+.arc-map-waypoints-to {
+  display: inline-block;
+  width: 80px;
+  text-align: left;
+  padding: 2px 0 0 8px;
+}

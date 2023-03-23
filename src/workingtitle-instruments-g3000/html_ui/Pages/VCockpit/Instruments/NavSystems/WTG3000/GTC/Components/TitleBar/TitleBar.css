@@ -1,0 +1,94 @@
+.gtc-view-title {
+  display: none;
+  position: absolute;
+  z-index: 100;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  transform: translate3d(0px, 0px, 0px);
+  transition: transform 500ms ease-out;
+}
+
+.gtc-horizontal .gtc-view-title {
+  top: 0;
+  width: 992px;
+  height: 42px;
+  font-size: 33px;
+}
+
+.gtc-horizontal .gtc-view-title.empty-title {
+  transform: translate3d(0px, -44px, 0px);
+}
+
+.gtc-vertical .gtc-view-title {
+  top: 125px;
+  width: 100%;
+  height: 21px;
+  font-size: 18px;
+}
+
+.gtc-vertical .gtc-view-title.empty-title {
+  transform: translate3d(0px, -22px, 0px);
+}
+
+.gtc-view-title .gtc-view-title-inner {
+  border-bottom: 4px #7494A4 solid;
+  background: linear-gradient(90deg, var(--g3000-color-black) 0%, #004B7F 50%, var(--g3000-color-black) 100%);
+  transition: width 500ms ease-out;
+}
+
+.gtc-view-title .gtc-view-title-left,
+.gtc-view-title .gtc-view-title-right {
+  border-bottom: 4px #7494A4 solid;
+  width: 50px;
+  background: var(--g3000-color-black);
+  z-index: -1;
+}
+
+.gtc-view-title .gtc-view-title-left {
+  border-left: 4px #7494A4 solid;
+  -webkit-transform: skew(24deg, 0);
+  border-bottom-left-radius: 10px;
+  margin-right: -25px;
+}
+
+.gtc-view-title .gtc-view-title-right {
+  border-right: 4px #7494A4 solid;
+  -webkit-transform: skew(-24deg, 0);
+  border-bottom-right-radius: 10px;
+  margin-left: -25px;
+}
+
+.gtc-vertical .gtc-view-title .gtc-view-title-left,
+.gtc-vertical .gtc-view-title .gtc-view-title-inner,
+.gtc-vertical .gtc-view-title .gtc-view-title-right {
+  border-width: 2px;
+}
+
+.gtc-vertical .gtc-view-title .gtc-view-title-left {
+  border-bottom-left-radius: 7px;
+}
+
+.gtc-vertical .gtc-view-title .gtc-view-title-right {
+  border-bottom-right-radius: 7px;
+}
+
+
+.gtc-view-title .gtc-view-title-inner-text {
+  position: absolute;
+  top: 0px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  opacity: 1;
+  transition: opacity 300ms ease-out;
+  white-space: nowrap;
+  line-height: 1em;
+}
+
+.gtc-view-title.show-title-1 .title-2 {
+  opacity: 0;
+}
+
+.gtc-view-title.show-title-2 .title-1 {
+  opacity: 0;
+}

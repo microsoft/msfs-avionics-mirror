@@ -8,7 +8,7 @@ export class LinearServo {
    * Creates an instance of a LinearServo.
    * @param rate The rate, in units per second, to drive the servo.
    */
-  constructor(private rate: number) { }
+  constructor(public rate: number) { }
 
   /**
    * Drives the servo towards the set point.
@@ -34,5 +34,12 @@ export class LinearServo {
       : setValue;
 
     return output;
+  }
+
+  /**
+   * Resets the servo to initial state
+   */
+  public reset(): void {
+    this.currentTime = undefined;
   }
 }

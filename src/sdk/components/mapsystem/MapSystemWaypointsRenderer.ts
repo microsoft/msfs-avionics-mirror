@@ -1,5 +1,5 @@
 import { Vec2Math } from '../../math/VecMath';
-import { FacilityWaypoint, ICAO, Waypoint } from '../../navigation';
+import { FacilityWaypointUtils, ICAO, Waypoint } from '../../navigation';
 import { SubEvent } from '../../sub/SubEvent';
 import {
   MapCullableLocationTextLabel, MapCullableTextLabel, MapCullableTextLabelManager, MapWaypointIcon, MapWaypointImageIcon, MapWaypointRenderer,
@@ -290,7 +290,7 @@ export class MapSystemLabelFactory implements MapWaypointRendererLabelFactory<Wa
 
     let text = '';
 
-    if (waypoint instanceof FacilityWaypoint) {
+    if (FacilityWaypointUtils.isFacilityWaypoint(waypoint)) {
       text = ICAO.getIdent(waypoint.facility.get().icao);
     }
 

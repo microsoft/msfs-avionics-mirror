@@ -1,11 +1,21 @@
-/// <reference types="msfstypes/JS/Avionics" />
-
 import {
-  AhrsEvents, AvionicsSystemState, AvionicsSystemStateEvent, BitFlags, ConsumerSubject, EventBus, FSComponent, HorizonLayer, HorizonLayerProps,
-  HorizonProjection, HorizonProjectionChangeType, ObjectSubject, SetSubject, Subject, Subscribable, SubscribableMapFunctions, Subscription, VNode
-} from 'msfssdk';
+  AhrsEvents, APEvents, AvionicsSystemState, AvionicsSystemStateEvent, BitFlags, ConsumerSubject, CssTransformBuilder, EventBus,
+  FSComponent, HorizonLayer, HorizonLayerProps, HorizonProjection, HorizonProjectionChangeType, MappedSubject, MathUtils,
+  ObjectSubject, SetSubject, Subject, Subscribable, Subscription, VNode
+} from '@microsoft/msfs-sdk';
 
 import { AhrsSystemEvents } from '../../../system/AhrsSystem';
+
+/**
+ * Options for the roll scale.
+ */
+export type RollScaleOptions = {
+  /** Whether to show the arc. */
+  showArc: boolean;
+
+  /** The bank angle limit, in degrees, in Low Bank Mode. If not defined, the low-bank arc will not be displayed. */
+  lowBankAngle?: number;
+};
 
 /**
  * Styling options for the attitude indicator pitch ladder.
@@ -30,6 +40,9 @@ export interface AttitudeIndicatorProps extends HorizonLayerProps {
   /** Whether synthetic vision is enabled. */
   isSVTEnabled: Subscribable<boolean>;
 
+  /** Whether to show the arc on the roll scale. */
+  rollScaleOptions: RollScaleOptions;
+
   /** Styling options for the pitch ladder. */
   pitchLadderOptions: PitchLadderOptions;
 
@@ -52,19 +65,24 @@ export class AttitudeIndicator extends HorizonLayer<AttitudeIndicatorProps> {
   });
 
   private readonly bankStyle = ObjectSubject.create({
-    transform: 'rotate(0deg)'
+    transform: 'rotate3d(0, 0, 1, 0deg)'
   });
-  private readonly reverseBankStyle = ObjectSubject.create({
-    transform: 'rotate(0deg)'
-  });
+
+  private readonly lowBankStyle = this.props.rollScaleOptions.lowBankAngle === undefined
+    ? undefined
+    : ObjectSubject.create({
+      display: 'none'
+    });
 
   private readonly ahrsAlignStyle = ObjectSubject.create({
     display: 'none'
   });
 
   private readonly ahrsState = ConsumerSubject.create(null, { previous: undefined, current: AvionicsSystemState.On } as AvionicsSystemStateEvent);
+  private readonly isAttitudeDataValid = ConsumerSubject.create(null, true);
 
-  private readonly roll = Subject.create(0);
+  private readonly rollTransform = CssTransformBuilder.rotate3d('deg');
+
   private readonly turnCoordinatorBallSource = ConsumerSubject.create(null, 0);
   private readonly turnCoordinatorBall = Subject.create(0);
 
@@ -72,6 +90,7 @@ export class AttitudeIndicator extends HorizonLayer<AttitudeIndicatorProps> {
 
   private turnCoordinatorBallPipe?: Subscription;
   private ahrsIndexSub?: Subscription;
+  private lowBankSub?: Subscription;
 
   /** @inheritdoc */
   protected onVisibilityChanged(isVisible: boolean): void {
@@ -85,44 +104,39 @@ export class AttitudeIndicator extends HorizonLayer<AttitudeIndicatorProps> {
     this.pitchLadderRef.instance.onAttached();
     this.slipSkidRef.instance.onAttached();
 
-    const sub = this.props.bus.getSubscriber<AhrsEvents & AhrsSystemEvents>();
+    const sub = this.props.bus.getSubscriber<AhrsEvents & AhrsSystemEvents & APEvents>();
 
     this.turnCoordinatorBallPipe = this.turnCoordinatorBallSource.pipe(this.turnCoordinatorBall, true);
 
-    this.roll.map(SubscribableMapFunctions.withPrecision(0.1)).sub(roll => {
-      this.bankStyle.set('transform', `rotate(${-roll}deg)`);
-      this.reverseBankStyle.set('transform', `rotate(${roll}deg)`);
-    });
-
-    this.ahrsState.sub(this.onAhrsStateChanged.bind(this), true);
+    if (this.lowBankStyle !== undefined) {
+      this.lowBankSub = sub.on('ap_max_bank_id').whenChanged().handle(id => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this.lowBankStyle!.set('display', id === 1 ? '' : 'none');
+      });
+    }
 
     this.ahrsIndexSub = this.props.ahrsIndex.sub(index => {
       this.ahrsState.setConsumer(sub.on(`ahrs_state_${index}`));
       this.turnCoordinatorBallSource.setConsumer(sub.on(`ahrs_turn_coordinator_ball_${index}`).withPrecision(2));
+      this.isAttitudeDataValid.setConsumer(sub.on(`ahrs_attitude_data_valid_${index}`));
     }, true);
-  }
 
-  /**
-   * Responds to AHRS system state events.
-   * @param state An AHRS system state event.
-   */
-  private onAhrsStateChanged(state: AvionicsSystemStateEvent): void {
-    if (state.previous === undefined && state.current !== AvionicsSystemState.Off) {
-      this.setDisplayState('ok');
-    } else {
-      switch (state.current) {
-        case AvionicsSystemState.Off:
-        case AvionicsSystemState.Failed:
-          this.setDisplayState('failed');
-          break;
-        case AvionicsSystemState.Initializing:
-          this.setDisplayState('align');
-          break;
-        case AvionicsSystemState.On:
-          this.setDisplayState('ok');
-          break;
+    const dataState = MappedSubject.create(
+      this.ahrsState,
+      this.isAttitudeDataValid
+    );
+
+    dataState.sub(([ahrsState, isAttitudeDataValid]) => {
+      const isAhrsOk = ahrsState.current === undefined || ahrsState.current === AvionicsSystemState.On;
+
+      if (isAhrsOk) {
+        this.setDisplayState(isAttitudeDataValid ? 'ok' : 'failed');
+      } else {
+        this.setDisplayState(ahrsState.current === AvionicsSystemState.Initializing ? 'align' : 'failed');
       }
-    }
+    }, true);
+
+    this.needUpdateRoll = true;
   }
 
   /**
@@ -185,7 +199,8 @@ export class AttitudeIndicator extends HorizonLayer<AttitudeIndicatorProps> {
     this.slipSkidRef.instance.onUpdated();
 
     if (this.needUpdateRoll) {
-      this.roll.set(this.props.projection.getRoll());
+      this.rollTransform.set(0, 0, 1, -this.props.projection.getRoll(), 0.1);
+      this.bankStyle.set('transform', this.rollTransform.resolve());
       this.needUpdateRoll = false;
     }
   }
@@ -203,22 +218,20 @@ export class AttitudeIndicator extends HorizonLayer<AttitudeIndicatorProps> {
       <div class={this.rootCssClass} style={this.rootStyle}>
         <div class='failed-box' />
         <div class='attitude-bank' style={this.bankStyle}>
-          <svg viewBox='0 0 414 315' class='attitude-roll-scale'>
-            <path d='M 207 214 m 0 -193 l -10 -20 l 20 0 l -10 20 a 193 193 0 0 1 32.53 2.76 l 2.43 -13.79 l 1.97 0.35 l -2.43 13.79 a 193 193 0 0 1 29.63 7.86 l 4.79 -13.16 l 1.88 0.68 l -4.79 13.16 a 193 193 0 0 1 28.76 13.22 l 14 -24.25 l 1.73 1 l -14 24.25 a 193 193 0 0 1 38.56 29.26 l 9.9 -9.9 l 1.41 1.41 l -9.9 9.9 a 193 193 0 0 1 29.67 38.24 l 24.24 -14 l 1 1.73 l -25.98 15 a 191 191 0 0 0 -330.8 0 l -25.98 -15 l 1 -1.73 l 24.25 14 a 193 193 0 0 1 29.67 -38.24 l -9.9 -9.9 l 1.41 -1.41 l 9.9 9.9 a 193 193 0 0 1 38.56 -29.26 l -14 -24.25 l 1.73 -1 l 14 24.25 a 193 193 0 0 1 28.76 -13.22 l -4.79 -13.16 l 1.88 -0.68 l 4.79 13.16 a 193 193 0 0 1 29.63 -7.86 l -2.43 -13.79 l 1.97 -0.35 l 2.43 13.79 a 193 193 0 0 1 32.53 -2.76' />
-          </svg>
-          <div class='attitude-cutout' style={this.reverseBankStyle}>
-            <div class='attitude-inner-bank' style={this.bankStyle}>
-              <PitchLadder
-                ref={this.pitchLadderRef}
-                projection={this.props.projection}
-                isSVTEnabled={this.props.isSVTEnabled}
-                {...this.props.pitchLadderOptions}
-              />
-            </div>
+          {this.renderRollScale()}
+        </div>
+        <div class='attitude-cutout'>
+          <div class='attitude-inner-bank' style={this.bankStyle}>
+            <PitchLadder
+              ref={this.pitchLadderRef}
+              projection={this.props.projection}
+              isSVTEnabled={this.props.isSVTEnabled}
+              {...this.props.pitchLadderOptions}
+            />
           </div>
         </div>
         <svg viewBox='0 0 414 315' class='attitude-roll-pointer'>
-          <path d="M 207 214 m 0 -192 l -10 20 l 20 0 l -10 -20 " />
+          <path d='M 207 204 m 0 -180 l -10 20 l 20 0 l -10 -20' />
         </svg>
         <SlipSkidIndicator
           ref={this.slipSkidRef}
@@ -231,17 +244,46 @@ export class AttitudeIndicator extends HorizonLayer<AttitudeIndicatorProps> {
     );
   }
 
+  /**
+   * Renders this indicator's roll scale.
+   * @returns This indicator's roll scale, as a VNode.
+   */
+  private renderRollScale(): VNode {
+    const lowBankAngleRad = this.props.rollScaleOptions.lowBankAngle === undefined
+      ? undefined
+      : this.props.rollScaleOptions.lowBankAngle * Avionics.Utils.DEG2RAD;
+
+    return (
+      <>
+        <svg viewBox='0 0 414 315' class='attitude-roll-scale'>
+          <path d='M 207 21 l -10 -20 l 20 0 z' class='attitude-roll-scale-zero' />
+          {this.props.rollScaleOptions.showArc && <path d='M 49.38 113 A 182 182 0 0 1 364.62 113' class='attitude-roll-scale-arc-outline' />}
+          <path d='M 116 46.38 L 101 20.4 M 298 46.38 L 313 20.4 M 49.38 113 L 23.4 98 M 364.62 113 L 390.6 98 M 175.4 24.76 L 172.79 9.99 M 238.6 24.76 L 241.21 9.99 M 144.75 32.98 L 139.62 18.88 M 269.25 32.98 L 274.38 18.88 M 78.31 75.31 L 67.7 64.7 M 335.69 75.31 L 346.3 64.7' class='attitude-roll-scale-ticks-outline' />
+          {this.props.rollScaleOptions.showArc && <path d='M 49.38 113 A 182 182 0 0 1 364.62 113' class='attitude-roll-scale-arc-stroke' />}
+          <path d='M 116 46.38 L 101 20.4 M 298 46.38 L 313 20.4 M 49.38 113 L 23.4 98 M 364.62 113 L 390.6 98 M 175.4 24.76 L 172.79 9.99 M 238.6 24.76 L 241.21 9.99 M 144.75 32.98 L 139.62 18.88 M 269.25 32.98 L 274.38 18.88 M 78.31 75.31 L 67.7 64.7 M 335.69 75.31 L 346.3 64.7' class='attitude-roll-scale-ticks-stroke' />
+        </svg>
+        {lowBankAngleRad !== undefined && (
+          <svg viewBox='0 0 414 315' class='attitude-roll-scale-low-bank' style={this.lowBankStyle}>
+            <path d={`M ${207 + Math.cos(-MathUtils.HALF_PI - lowBankAngleRad) * 182} ${204 + Math.sin(-MathUtils.HALF_PI - lowBankAngleRad) * 182} A 182 182 0 0 1 ${207 + Math.cos(-MathUtils.HALF_PI + lowBankAngleRad) * 182} ${204 + Math.sin(-MathUtils.HALF_PI + lowBankAngleRad) * 182}`} />
+          </svg>
+        )}
+      </>
+    );
+  }
+
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.turnCoordinatorBallSource.destroy();
     this.ahrsState.destroy();
+    this.isAttitudeDataValid.destroy();
 
     this.ahrsIndexSub?.destroy();
+    this.lowBankSub?.destroy();
 
     this.pitchLadderRef.getOrDefault()?.destroy();
     this.slipSkidRef.getOrDefault()?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -249,14 +291,14 @@ export class AttitudeIndicator extends HorizonLayer<AttitudeIndicatorProps> {
  * Styling options for the pitch ladder.
  */
 export type PitchLadderStyles = {
-  /** The increment, in degrees, between minor pitch lines. */
-  minorLineIncrement: number;
-
-  /** The number of minor pitch lines for each medium pitch line. */
-  mediumLineFactor: number;
+  /** The increment, in degrees, between major pitch lines. */
+  majorLineIncrement: number;
 
   /** The number of medium pitch lines for each major pitch line. */
-  majorLineFactor: number;
+  mediumLineFactor: number;
+
+  /** The number of minor pitch lines for each medium pitch line. */
+  minorLineFactor: number;
 
   /** The maximum pitch at which to draw minor pitch lines. */
   minorLineMaxPitch: number;
@@ -281,6 +323,12 @@ export type PitchLadderStyles = {
 
   /** Whether to show numbers for major pitch lines. */
   majorLineShowNumber: boolean;
+
+  /** The minimum positive pitch value at which to display warning chevrons. */
+  chevronThresholdPositive: number;
+
+  /** The maximum negative pitch value at which to display warning chevrons. */
+  chevronThresholdNegative: number;
 };
 
 /**
@@ -329,7 +377,7 @@ class PitchLadder extends HorizonLayer<PitchLadderProps> {
 
     this.svtSub = this.props.isSVTEnabled.sub(() => { this.needRebuildLadder = true; }, true);
 
-    this.translation.map(SubscribableMapFunctions.withPrecision(0.1)).sub(translation => {
+    this.translation.sub(translation => {
       this.style.set('transform', `translate3d(0px, ${translation}px, 0px)`);
     });
   }
@@ -364,7 +412,16 @@ class PitchLadder extends HorizonLayer<PitchLadderProps> {
    * Repositions this ladder based on the current pitch.
    */
   private repositionLadder(): void {
-    this.translation.set(this.props.projection.getPitch() * this.pitchResolution);
+    // Approximate translation due to pitch using a constant pitch resolution (pixels per degree of pitch) derived
+    // from the projection's current field of view. This approximation always keeps the pitch ladder reading at the
+    // center of the projection (i.e. at the symbolic aircraft reference) accurate. However, the error increases as
+    // distance from the center of the projection increases because the true pitch resolution is not constant
+    // throughout screen space. To get a truly accurate pitch ladder, we would need to project and position each pitch
+    // line individually. Doing this via SVG is too performance-intensive (we would be redrawing the SVG every frame
+    // that the pitch ladder is moving) and doing it via canvas looks horrible due to it not being able to draw text
+    // with sub-pixel resolution.
+
+    this.translation.set(MathUtils.round(this.props.projection.getPitch() * this.pitchResolution, 0.1));
   }
 
   /**
@@ -376,20 +433,22 @@ class PitchLadder extends HorizonLayer<PitchLadderProps> {
 
     this.svgRef.instance.innerHTML = '';
 
-    const majorFactor = styles.majorLineFactor * styles.mediumLineFactor;
-    const len = Math.floor(90 / styles.minorLineIncrement);
-    for (let i = 1; i < len; i++) {
-      const pitch = i * styles.minorLineIncrement;
+    const majorLineSeparation = styles.majorLineIncrement * this.pitchResolution;
+    const minorFactor = styles.minorLineFactor * styles.mediumLineFactor;
+    const minorIncrement = styles.majorLineIncrement / minorFactor;
+    const len = Math.floor(90 / minorIncrement);
+    for (let i = 1; i <= len; i++) {
+      const pitch = i * minorIncrement;
       const y = pitch * this.pitchResolution;
 
       let lineLength: number | undefined;
       let showNumber = false;
 
-      if (i % majorFactor === 0) {
+      if (i % minorFactor === 0) {
         // major line
         lineLength = styles.majorLineLength;
         showNumber = styles.majorLineShowNumber;
-      } else if (i % styles.mediumLineFactor === 0 && pitch <= styles.mediumLineMaxPitch) {
+      } else if (i % styles.minorLineFactor === 0 && pitch <= styles.mediumLineMaxPitch) {
         // medium line
         lineLength = styles.mediumLineLength;
         showNumber = styles.mediumLineShowNumber;
@@ -403,6 +462,26 @@ class PitchLadder extends HorizonLayer<PitchLadderProps> {
         if (lineLength > 0) {
           FSComponent.render(<line x1={-lineLength / 2} y1={-y} x2={lineLength / 2} y2={-y}>.</line>, this.svgRef.instance);
           FSComponent.render(<line x1={-lineLength / 2} y1={y} x2={lineLength / 2} y2={y}>.</line>, this.svgRef.instance);
+
+          if (i % minorFactor === 0) {
+            // major line
+
+            const lastMajorPitch = pitch - styles.majorLineIncrement;
+            const widthFactor = 0.5 + (pitch / 90) * 0.5;
+            const height = 0.9 * majorLineSeparation;
+            const width = lineLength * widthFactor;
+            const legWidth = width * 0.3;
+
+            // positive pitch chevron
+            if (lastMajorPitch >= styles.chevronThresholdPositive) {
+              FSComponent.render(this.renderChevron(-y + majorLineSeparation / 2, height, width, legWidth, 1), this.svgRef.instance);
+            }
+
+            // negative pitch chevron
+            if (lastMajorPitch >= styles.chevronThresholdNegative) {
+              FSComponent.render(this.renderChevron(y - majorLineSeparation / 2, height, width, legWidth, -1), this.svgRef.instance);
+            }
+          }
         }
 
         if (showNumber) {
@@ -418,6 +497,28 @@ class PitchLadder extends HorizonLayer<PitchLadderProps> {
         }
       }
     }
+  }
+
+  /**
+   * Renders a warning chevron.
+   * @param centerY The y coordinate of the center of the chevron, in pixels.
+   * @param height The height of the chevron, in pixels.
+   * @param width The width of the chevron, in pixels.
+   * @param legWidth The width of each leg of the chevron, in pixels.
+   * @param direction The direction in which the chevron is pointed: `1` for the positive y direction, `-1` for the
+   * negative y direction.
+   * @returns A warning chevron, as a VNode.
+   */
+  private renderChevron(centerY: number, height: number, width: number, legWidth: number, direction: 1 | -1): VNode {
+    const top = centerY - height / 2 * direction;
+    const bottom = centerY + height / 2 * direction;
+    const halfWidth = width / 2;
+    const halfLegWidth = legWidth / 2;
+    const legJoinHeight = legWidth * height / (width - legWidth);
+
+    return (
+      <path d={`M ${-halfLegWidth} ${bottom} L ${-width / 2} ${top} L ${-halfWidth + legWidth} ${top} L ${0} ${bottom - legJoinHeight * direction} L ${halfWidth - legWidth} ${top} L ${halfWidth} ${top} L ${halfLegWidth} ${bottom} Z`} >.</path>
+    );
   }
 
   /** @inheritdoc */

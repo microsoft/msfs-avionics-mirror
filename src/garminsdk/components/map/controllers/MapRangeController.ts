@@ -1,7 +1,7 @@
 import {
   MapIndexedRangeModule, MapSystemContext, MapSystemController, MathUtils, NumberUnitInterface, Subject, Subscribable, Subscription, UnitFamily, UserSetting,
   UserSettingManager
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { UnitsDistanceSettingMode } from '../../../settings/UnitsUserSettings';
 import { GarminMapKeys } from '../GarminMapKeys';
@@ -102,12 +102,14 @@ export class MapRangeController extends MapSystemController<MapRangeControllerMo
   /**
    * Sets the map range index. If the index is out of bounds, it will be clamped before being set.
    * @param index The index to set.
+   * @param bypassUserSetting Whether to bypass the map range index user setting, if one is defined for
+   * this controller, and set the range index directly on the map range module. Defaults to `false`.
    * @returns The index that was set.
    */
-  public setRangeIndex(index: number): number {
+  public setRangeIndex(index: number, bypassUserSetting = false): number {
     index = MathUtils.clamp(index, 0, this.rangeModule.nominalRanges.get().length - 1);
 
-    if (this.rangeSetting !== undefined && (this.useSetting?.get() ?? true)) {
+    if (!bypassUserSetting && this.rangeSetting !== undefined && (this.useSetting?.get() ?? true)) {
       this.rangeSetting.value = index;
     } else {
       this.rangeModule.setNominalRangeIndex(index);
@@ -120,10 +122,12 @@ export class MapRangeController extends MapSystemController<MapRangeControllerMo
    * Changes the map range index by a given amount. If the change results in an index that is out of bounds, it will
    * be clamped before being set.
    * @param delta The change to apply to the index.
+   * @param bypassUserSetting Whether to bypass the map range index user setting, if one is defined for
+   * this controller, and change the range index directly on the map range module. Defaults to `false`.
    * @returns The final index that was set.
    */
-  public changeRangeIndex(delta: number): number {
-    return this.setRangeIndex(this.rangeModule.nominalRangeIndex.get() + delta);
+  public changeRangeIndex(delta: number, bypassUserSetting = false): number {
+    return this.setRangeIndex(this.rangeModule.nominalRangeIndex.get() + delta, bypassUserSetting);
   }
 
   /** @inheritdoc */

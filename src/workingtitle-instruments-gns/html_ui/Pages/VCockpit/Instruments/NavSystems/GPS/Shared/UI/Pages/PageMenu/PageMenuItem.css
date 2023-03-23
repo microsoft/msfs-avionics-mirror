@@ -1,0 +1,37 @@
+.page-menu-table {
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid white;
+}
+
+.page-menu-entry {
+  color: var(--gnsgreen);
+  font-size: var(--gns-font-page-data);
+  background-color: black;
+  margin-right: 7px;
+  margin-left: 7px;
+  margin-top: 6px;
+}
+
+wt-gns530 .page-menu-entry {
+  line-height: 20px;
+  height: 20px;
+}
+
+wt-gns430 .page-menu-entry {
+  padding-top: 3px;
+}
+
+wt-gns530 .page-menu-entry>div {
+  padding-top: 1px;
+}
+
+wt-gns430 .page-menu-entry>div {
+  padding-top: 2px;
+}
+
+.page-menu-item-disabled {
+  color: rgb(0, 96, 0);
+  /*font-size: 16px;*/
+  background-color: black;
+}

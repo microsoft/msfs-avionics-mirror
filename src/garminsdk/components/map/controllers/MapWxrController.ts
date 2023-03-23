@@ -1,4 +1,5 @@
-import { MapSystemController, MapSystemKeys, MapWxrModule, Subscription } from 'msfssdk';
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { MapSystemController, MapSystemKeys, MapWxrModule, Subscription } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapNexradModule } from '../modules/MapNexradModule';
@@ -15,19 +16,25 @@ export interface MapWxrControllerModules {
 }
 
 /**
- * Controls the display of weather based on the show NEXRAD value in {@link MapNexradModule}.
+ * Controls the display of weather on the map based on options set by {@link MapNexradModule}.
  */
 export class MapWxrController extends MapSystemController<MapWxrControllerModules> {
   private readonly nexradModule = this.context.model.getModule(GarminMapKeys.Nexrad);
   private readonly weatherModule = this.context.model.getModule(MapSystemKeys.Weather);
 
-  private showSub?: Subscription;
+  private nexradShowSub?: Subscription;
+  private nexradColorsSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterMapRender(): void {
-    this.showSub = this.nexradModule.showNexrad.sub(show => {
+    this.nexradColorsSub = this.nexradModule.colors.sub(colors => { this.weatherModule.weatherRadarColors.set(colors); }, false, true);
+
+    this.nexradShowSub = this.nexradModule.showNexrad.sub(show => {
       if (show) {
         this.weatherModule.weatherRadarMode.set(EWeatherRadar.TOPVIEW);
+        this.nexradColorsSub!.resume(true);
+      } else {
+        this.nexradColorsSub!.pause();
       }
       this.weatherModule.isEnabled.set(show);
     }, true);
@@ -42,6 +49,6 @@ export class MapWxrController extends MapSystemController<MapWxrControllerModule
   public destroy(): void {
     super.destroy();
 
-    this.showSub?.destroy();
+    this.nexradShowSub?.destroy();
   }
 }

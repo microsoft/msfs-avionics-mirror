@@ -1,9 +1,8 @@
-/// <reference types="msfstypes/JS/Avionics" />
-
 import {
-  BitFlags, GeoPoint, GeoPointInterface, MapProjection, MapProjectionChangeType, MapSystemContext, MapSystemController, MapSystemKeys, MathUtils,
-  ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, Subscription, Vec2Math, VecNMath, VecNSubject
-} from 'msfssdk';
+  BitFlags, GeoPoint, GeoPointInterface, MapProjection, MapProjectionChangeType, MapRotation, MapRotationModule, MapSystemContext, MapSystemController,
+  MapSystemKeys, MathUtils, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, Subscription, Vec2Math,
+  VecNMath, VecNSubject
+} from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapResourcePriority } from '../MapResourcePriority';
@@ -17,6 +16,9 @@ export interface MapPointerRTRControllerModules {
   /** Pointer module. */
   [GarminMapKeys.Pointer]: MapPointerModule;
 
+  /** Rotation module. */
+  [MapSystemKeys.Rotation]?: MapRotationModule;
+
   /** Orientation module. */
   [GarminMapKeys.Orientation]?: MapOrientationModule;
 }
@@ -28,8 +30,8 @@ export interface MapPointerRTRControllerContext {
   /** Resource moderator for control of the map's projection target. */
   [MapSystemKeys.TargetControl]?: ResourceModerator;
 
-  /** Resource moderator for control of the map's rotation. */
-  [MapSystemKeys.RotationControl]?: ResourceModerator;
+  /** Resource moderator for control of the map's rotation mode. */
+  [GarminMapKeys.RotationModeControl]?: ResourceModerator;
 
   /** Resource moderator for control of the map's range. */
   [MapSystemKeys.RangeControl]?: ResourceModerator;
@@ -43,6 +45,7 @@ export interface MapPointerRTRControllerContext {
  */
 export class MapPointerRTRController extends MapSystemController<MapPointerRTRControllerModules, any, any, MapPointerRTRControllerContext> {
   private readonly pointerModule = this.context.model.getModule(GarminMapKeys.Pointer);
+  private readonly rotationModule = this.context.model.getModule(MapSystemKeys.Rotation);
   private readonly orientationModule = this.context.model.getModule(GarminMapKeys.Orientation);
 
   private readonly mapProjectionParams = {
@@ -65,12 +68,15 @@ export class MapPointerRTRController extends MapSystemController<MapPointerRTRCo
     }
   };
 
-  private readonly rotationControl = this.context[MapSystemKeys.RotationControl];
+  private readonly rotationModeControl = this.context[GarminMapKeys.RotationModeControl];
 
-  private readonly rotationControlConsumer: ResourceConsumer = {
+  private readonly rotationModeControlConsumer: ResourceConsumer = {
     priority: MapResourcePriority.POINTER,
 
-    onAcquired: () => { }, // While pointer is active, the map keeps its initial rotation state when the pointer was activated, so we do nothing while we have control.
+    onAcquired: () => {
+      // While pointer is active, the map keeps its rotation from when the pointer was activated.
+      this.rotationModule?.rotationType.set(MapRotation.Undefined);
+    },
 
     onCeded: () => { }
   };
@@ -179,7 +185,12 @@ export class MapPointerRTRController extends MapSystemController<MapPointerRTRCo
    */
   protected onPointerActivated(): void {
     this.targetControl?.claim(this.targetControlConsumer);
-    this.rotationControl?.claim(this.rotationControlConsumer);
+    if (this.rotationModeControl) {
+      this.rotationModeControl.claim(this.rotationModeControlConsumer);
+    } else if (this.rotationModule) {
+      // While pointer is active, the map keeps its rotation from when the pointer was activated.
+      this.rotationModule.rotationType.set(MapRotation.Undefined);
+    }
     this.rangeControl?.claim(this.rangeControlConsumer);
     this.useRangeSetting?.claim(this.useRangeSettingConsumer);
 
@@ -191,7 +202,7 @@ export class MapPointerRTRController extends MapSystemController<MapPointerRTRCo
    */
   protected onPointerDeactivated(): void {
     this.targetControl?.forfeit(this.targetControlConsumer);
-    this.rotationControl?.forfeit(this.rotationControlConsumer);
+    this.rotationModeControl?.forfeit(this.rotationModeControlConsumer);
     this.rangeControl?.forfeit(this.rangeControlConsumer);
     this.useRangeSetting?.forfeit(this.useRangeSettingConsumer);
 
@@ -317,7 +328,7 @@ export class MapPointerRTRController extends MapSystemController<MapPointerRTRCo
     super.destroy();
 
     this.targetControl?.forfeit(this.targetControlConsumer);
-    this.rotationControl?.forfeit(this.rotationControlConsumer);
+    this.rotationModeControl?.forfeit(this.rotationModeControlConsumer);
     this.rangeControl?.forfeit(this.rangeControlConsumer);
     this.useRangeSetting?.forfeit(this.useRangeSettingConsumer);
 

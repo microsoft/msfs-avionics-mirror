@@ -1,4 +1,4 @@
-import { AdsbOperatingMode, ComponentProps, DisplayComponent, FSComponent, MappedSubject, Subscribable, TcasOperatingMode, VNode } from 'msfssdk';
+import { AdsbOperatingMode, ComponentProps, DisplayComponent, FSComponent, MappedSubject, Subscribable, TcasOperatingMode, VNode } from '@microsoft/msfs-sdk';
 
 import { MapBannerIndicator } from './MapBannerIndicator';
 
@@ -19,7 +19,10 @@ export interface TrafficMapAdsbOffBannerIndicatorProps extends ComponentProps {
 export class TrafficMapAdsbOffBannerIndicator extends DisplayComponent<TrafficMapAdsbOffBannerIndicatorProps> {
   private readonly show = MappedSubject.create(
     ([adsbMode, trafficMode]): boolean => {
-      return adsbMode === AdsbOperatingMode.Standby && trafficMode !== TcasOperatingMode.Standby;
+      return adsbMode === AdsbOperatingMode.Standby
+        && trafficMode !== TcasOperatingMode.Off
+        && trafficMode !== TcasOperatingMode.Standby
+        && trafficMode !== TcasOperatingMode.Failed;
     },
     this.props.adsbOperatingMode,
     this.props.trafficOperatingMode
@@ -28,7 +31,7 @@ export class TrafficMapAdsbOffBannerIndicator extends DisplayComponent<TrafficMa
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <MapBannerIndicator show={this.show} class='map-adsb-standby'>
+      <MapBannerIndicator show={this.show} class='traffic-map-banner-adsb-standby'>
         ADS-B TRFC OFF
       </MapBannerIndicator>
     );

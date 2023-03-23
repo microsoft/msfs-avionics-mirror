@@ -1,0 +1,30 @@
+html {
+  --touch-button-set-value-label-center-y: 35%;
+  --touch-button-set-value-bar-center-y: 75%;
+  --touch-button-set-value-bar-width: 50%;
+  --touch-button-set-value-bar-height: 10px;
+}
+
+.gtc-horizontal {
+  --touch-button-set-value-bar-height: 15px;
+}
+
+.gtc-vertical {
+  --touch-button-set-value-bar-height: 8px;
+}
+
+.touch-button-set-value {
+  --toggle-status-bar-border-radius: calc(var(--touch-button-set-value-bar-height) / 2);
+}
+
+.touch-button-set-value>.touch-button-label {
+  top: var(--touch-button-set-value-label-center-y);
+}
+
+.touch-button-set-value-status-bar {
+  position: absolute;
+  left: calc(50% - var(--touch-button-set-value-bar-width) / 2);
+  top: calc(var(--touch-button-set-value-bar-center-y) - var(--touch-button-set-value-bar-height) / 2);
+  width: var(--touch-button-set-value-bar-width);
+  height: var(--touch-button-set-value-bar-height);
+}

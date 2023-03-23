@@ -1,6 +1,6 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus, KeyEventData, KeyEvents, KeyInterceptManager, SimVarValueType } from '../../data';
+import { EventBus, KeyEventData, KeyEvents, KeyEventManager, SimVarValueType } from '../../data';
 import { AhrsEvents } from '../../instruments';
 import { MathUtils } from '../../math';
 import { APValues } from '../APConfig';
@@ -12,7 +12,7 @@ import { DirectorState, PlaneDirector } from './PlaneDirector';
 export class APPitchDirector implements PlaneDirector {
 
   public state: DirectorState;
-  private keyInterceptManager?: KeyInterceptManager;
+  private keyEventManager?: KeyEventManager;
 
   /** A callback called when the director activates. */
   public onActivate?: () => void;
@@ -47,8 +47,8 @@ export class APPitchDirector implements PlaneDirector {
     });
 
     // setup inc/dec event intercept
-    KeyInterceptManager.getManager(bus).then(manager => {
-      this.keyInterceptManager = manager;
+    KeyEventManager.getManager(bus).then(manager => {
+      this.keyEventManager = manager;
 
       manager.interceptKey('AP_PITCH_REF_INC_UP', false);
       manager.interceptKey('AP_PITCH_REF_INC_DN', false);

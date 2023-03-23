@@ -1,0 +1,107 @@
+.gtc-procedures-page {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--gtc-procedures-page-width);
+  height: var(--gtc-procedures-page-height);
+  top: var(--gtc-procedures-page-top);
+  left: var(--gtc-procedures-page-left);
+  font-size: var(--gtc-procedures-page-font-size);
+}
+
+.gtc-horizontal .gtc-procedures-page {
+  --gtc-procedures-page-font-size: 30px;
+  --gtc-procedures-page-width: 777px;
+  --gtc-procedures-page-height: 677px;
+  --gtc-procedures-page-top: 76px;
+  --gtc-procedures-page-left: 105px;
+  --gtc-procedures-page-column-width: 650px;
+  --gtc-procedures-page-column-height: 500px;
+  --gtc-procedures-page-column-button-height: 147px;
+  --gtc-procedures-page-row-height: 147px;
+  --gtc-procedures-page-row-button-width: 241px;
+
+  --gtc-procedures-page-proc-button-top-label-font-size: 30px;
+  --gtc-procedures-page-proc-button-top-label-top: 16px;
+  --gtc-procedures-page-proc-button-bottom-label-font-size: 39px;
+  --gtc-procedures-page-proc-button-bottom-label-top: 79px;
+  --gtc-procedures-page-proc-button-icon-scale: 2;
+  --gtc-procedures-page-proc-button-icon-top: 20px;
+  --gtc-procedures-page-proc-button-icon-left: 35px;
+}
+
+.gtc-vertical .gtc-procedures-page {
+  --gtc-procedures-page-font-size: 17px;
+  --gtc-procedures-page-width: 418px;
+  --gtc-procedures-page-height: 364px;
+  --gtc-procedures-page-top: 41px;
+  --gtc-procedures-page-left: 31px;
+  --gtc-procedures-page-column-width: 350px;
+  --gtc-procedures-page-column-height: 269px;
+  --gtc-procedures-page-column-button-height: 79px;
+  --gtc-procedures-page-row-height: 76px;
+  --gtc-procedures-page-row-button-width: 130px;
+
+  --gtc-procedures-page-proc-button-top-label-font-size: 17px;
+  --gtc-procedures-page-proc-button-top-label-top: 9px;
+  --gtc-procedures-page-proc-button-bottom-label-font-size: 21px;
+  --gtc-procedures-page-proc-button-bottom-label-top: 44px;
+  --gtc-procedures-page-proc-button-icon-scale: 1;
+  --gtc-procedures-page-proc-button-icon-top: 8px;
+  --gtc-procedures-page-proc-button-icon-left: 10px;
+}
+
+.gtc-procedures-page .procedures-top-column {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: var(--gtc-procedures-page-column-width);
+  height: var(--gtc-procedures-page-column-height);
+}
+
+.gtc-procedures-page .procedures-top-column .touch-button {
+  width: 100%;
+  height: var(--gtc-procedures-page-column-button-height);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gtc-procedures-page .procedures-top-column .touch-button .top-label {
+  position: absolute;
+  font-size: var(--gtc-procedures-page-proc-button-top-label-font-size);
+  top: var(--gtc-procedures-page-proc-button-top-label-top);
+}
+
+.gtc-procedures-page .procedures-top-column .touch-button .bottom-label {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  font-size: var(--gtc-procedures-page-proc-button-bottom-label-font-size);
+  top: var(--gtc-procedures-page-proc-button-bottom-label-top);
+}
+
+.gtc-procedures-page .procedures-top-column .touch-button img {
+  position: absolute;
+  transform: scale(var(--gtc-procedures-page-proc-button-icon-scale));
+  top: var(--gtc-procedures-page-proc-button-icon-top);
+  left: var(--gtc-procedures-page-proc-button-icon-left);
+}
+
+.gtc-procedures-page .procedures-bottom-row {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  height: var(--gtc-procedures-page-row-height);
+}
+
+.gtc-procedures-page .procedures-bottom-row .touch-button {
+  width: var(--gtc-procedures-page-row-button-width);
+  height: 100%;
+}

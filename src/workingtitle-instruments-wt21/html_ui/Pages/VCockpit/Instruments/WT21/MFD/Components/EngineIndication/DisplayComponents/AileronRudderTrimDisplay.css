@@ -1,0 +1,20 @@
+.flight-control-aileron-rudder {
+  position: relative;
+  width: 45%;
+}
+
+.flight-control-elevator {
+position: relative;
+
+}
+.flight-control-aileron-pointer {
+  position: absolute;
+  top: 43px;
+  left: 68px;
+}
+
+.flight-control-rudder-pointer {
+  position: absolute;
+  top: 72px;
+  left: 68px;
+}

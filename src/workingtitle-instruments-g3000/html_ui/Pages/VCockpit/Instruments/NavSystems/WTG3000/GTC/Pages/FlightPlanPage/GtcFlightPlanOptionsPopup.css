@@ -1,0 +1,55 @@
+.flight-plan-options {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+}
+
+.gtc-horizontal .flight-plan-options {
+  padding: 12px 24px;
+  top: 40px;
+  width: 835px;
+  height: 725px;
+}
+
+.gtc-vertical .flight-plan-options {
+  padding: 6px 12px;
+  top: 22px;
+  width: 450px;
+  height: 390px;
+}
+
+.flight-plan-options-row {
+  display: flex;
+  flex-direction: row;
+  margin: auto;
+}
+
+.gtc-horizontal .flight-plan-options-row .touch-button {
+  width: 251px;
+  height: 125px;
+  font-size: 31px;
+  font-weight: 600;
+}
+
+.gtc-horizontal .flight-plan-options>*+* {
+  margin-top: 14px;
+}
+
+.gtc-horizontal .flight-plan-options-row>*+* {
+  margin-left: 16px;
+}
+
+.gtc-vertical .flight-plan-options-row .touch-button {
+  width: 135px;
+  height: 69px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.gtc-vertical .flight-plan-options>*+* {
+  margin-top: 7px;
+}
+
+.gtc-vertical .flight-plan-options-row>*+* {
+  margin-left: 9px;
+}

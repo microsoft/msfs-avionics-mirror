@@ -12,7 +12,7 @@ export class FlightPlanDisplayBuilder extends WaypointDisplayBuilder {
   protected roleGroup: string = MapSystemWaypointRoles.FlightPlan;
 
   /**
-   * Creates an instance of the WaypointDisplayBuilder.
+   * Creates an instance of the FlightPlanDisplayBuilder.
    * @param iconFactory The icon factory to use with this builder.
    * @param labelFactory The label factory to use with this builder.
    * @param waypointRenderer The waypoint renderer to use with this builder.
@@ -20,7 +20,7 @@ export class FlightPlanDisplayBuilder extends WaypointDisplayBuilder {
    * @param planIndex The flight plan index to be displayed by this system.
    */
   constructor(iconFactory: MapSystemIconFactory, labelFactory: MapSystemLabelFactory, waypointRenderer: MapSystemWaypointsRenderer,
-    private readonly flightPlanRenderer: MapSystemPlanRenderer, private readonly planIndex: number) {
+    private readonly flightPlanRenderer: MapSystemPlanRenderer, public readonly planIndex: number) {
     super(iconFactory, labelFactory, waypointRenderer);
 
     this.roleGroup = `${MapSystemWaypointRoles.FlightPlan}_${planIndex}`;

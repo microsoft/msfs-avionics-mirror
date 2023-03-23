@@ -1,0 +1,113 @@
+html {
+  --flight-plan-leg-display-name-color: var(--g3000-color-cyan);
+  --flight-plan-leg-display-active-color: var(--g3000-color-magenta);
+}
+
+.gtc-horizontal .flight-plan-leg-display {
+  --flight-plan-leg-display-sub-label-max-width: 280px;
+
+  --flight-plan-leg-display-super-label-top: 2px;
+  --flight-plan-leg-display-super-label-left: 46px;
+  --flight-plan-leg-display-super-label-font-size: 30px;
+}
+
+.gtc-vertical .flight-plan-leg-display {
+  --flight-plan-leg-display-sub-label-max-width: 145px;
+
+  --flight-plan-leg-display-super-label-top: 1px;
+  --flight-plan-leg-display-super-label-left: 23px;
+  --flight-plan-leg-display-super-label-font-size: 17px;
+}
+
+.flight-plan-leg-display {
+  text-align: left;
+  width: 100%;
+  height: 100%;
+}
+
+.gtc-horizontal .flight-plan-leg-display {
+  padding-left: 42px;
+}
+
+.gtc-vertical .flight-plan-leg-display {
+  padding-left: 25px;
+}
+
+.flight-plan-leg-display .leg-name {
+  position: absolute;
+  color: var(--flight-plan-leg-display-name-color);
+  white-space: pre;
+}
+
+.active-leg .flight-plan-leg-display .leg-name {
+  color: var(--flight-plan-leg-display-active-color);
+}
+
+.gtc-horizontal .flight-plan-leg-display .leg-name {
+  top: 28px;
+  transform: scale(0.95, 1);
+}
+
+.gtc-vertical .flight-plan-leg-display .leg-name {
+  top: 15px;
+  left: 21px;
+  transform: scale(0.95, 1);
+}
+
+.flight-plan-leg-display .leg-sub-label {
+  position: absolute;
+  /* This makes it so the text doesn't get clipped in the middle of a character. */
+  word-break: break-all;
+  max-width: var(--flight-plan-leg-display-sub-label-max-width);
+}
+
+.gtc-horizontal .flight-plan-leg-display .leg-sub-label {
+  top: 78px;
+  left: 44px;
+  font-size: 30px;
+  line-height: 40px;
+  margin-right: 6px;
+}
+
+.gtc-vertical .flight-plan-leg-display .leg-sub-label {
+  top: 41px;
+  left: 23px;
+  font-size: 17px;
+  line-height: 22px;
+  margin-right: 3px;
+}
+
+.flight-plan-leg-display .leg-super-label {
+  position: absolute;
+  white-space: pre;
+  display: flex;
+  top: var(--flight-plan-leg-display-super-label-top);
+  left: var(--flight-plan-leg-display-super-label-left);
+  font-size: var(--flight-plan-leg-display-super-label-font-size);
+}
+
+.active-leg .flight-plan-leg-display .leg-sub-label,
+.active-leg .flight-plan-leg-display .leg-super-label {
+  color: var(--flight-plan-leg-display-active-color);
+}
+
+.gtc-horizontal .flight-plan-leg-display .leg-icon {
+  position: absolute;
+  transform: scale(1.895);
+  top: 37px;
+  right: 16px;
+}
+
+.gtc-vertical .flight-plan-leg-display .leg-icon {
+  position: absolute;
+  top: 15px;
+  right: 2px;
+}
+
+.gtc-horizontal .direct-to-random-leg .flight-plan-leg-display .leg-icon {
+  left: 289px;
+}
+
+.gtc-vertical .direct-to-random-leg .flight-plan-leg-display .leg-icon {
+  left: 150px;
+}

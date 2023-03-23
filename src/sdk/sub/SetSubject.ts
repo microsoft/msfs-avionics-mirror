@@ -80,6 +80,42 @@ export class SetSubject<T> extends AbstractSubscribableSet<T> implements Mutable
   }
 
   /**
+   * Toggles the presence of a key in this set.
+   * @param key The key to toggle.
+   * @returns Whether the key is present in this set after the toggle operation.
+   */
+  public toggle(key: T): boolean;
+  /**
+   * Toggles the presence of a key in this set.
+   * @param key The key to toggle.
+   * @param force The state of the key to force. If `true`, the key will be added to this set. If `false`, the key will
+   * be removed from this set.
+   * @returns Whether the key is present in this set after the toggle operation.
+   */
+  public toggle(key: T, force: boolean): boolean;
+  /**
+   * Toggles the presence of a key in this set.
+   * @param key The key to toggle.
+   * @param force The state of the key to force. If `true`, the key will be added to this set. If `false`, the key will
+   * be removed from this set. If not defined, the key will be added to this set if it is not already present and
+   * removed if it is already present.
+   * @returns Whether the key is present in this set after the toggle operation.
+   */
+  public toggle(key: T, force?: boolean): boolean {
+    const shouldAdd = force ?? !this.backingSet.has(key);
+
+    if (shouldAdd) {
+      this.add(key);
+    } else {
+      this.delete(key);
+    }
+
+    // Explicitly query the set again instead of just returning shouldAdd in case the key was manipulated in a handler
+    // triggered by its addition/removal
+    return this.backingSet.has(key);
+  }
+
+  /**
    * Removes all keys from this set.
    */
   public clear(): void {

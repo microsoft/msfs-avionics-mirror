@@ -1,0 +1,73 @@
+.nearest-wpt-page {
+  --gtc-wpt-button-ident-color: var(--g3000-color-white);
+
+  --nearest-wpt-page-gps-color: var(--g3000-color-white);
+}
+
+.nearest-wpt-page.dead-reckoning {
+  --nearest-wpt-page-gps-color: var(--g3000-color-yellow);
+}
+
+.gtc-horizontal .nearest-wpt-page {
+  --nearest-wpt-page-header-column-2-width: 170px;
+  --nearest-wpt-page-header-column-3-width: 170px;
+
+  --nearest-wpt-page-row-column-2-width: 170px;
+  --nearest-wpt-page-row-column-3-width: 170px;
+
+  --bearing-arrow-size: 50px;
+  --nearest-wpt-page-brg-arrow-margin-bottom: 10px;
+}
+
+.gtc-vertical .nearest-wpt-page {
+  --nearest-wpt-page-header-column-2-width: 90px;
+  --nearest-wpt-page-header-column-3-width: 90px;
+
+  --nearest-wpt-page-row-column-2-width: 90px;
+  --nearest-wpt-page-row-column-3-width: 90px;
+
+  --bearing-arrow-size: 25px;
+  --nearest-wpt-page-brg-arrow-margin-bottom: 5px;
+}
+
+.nearest-wpt-page .nearest-page-header {
+  grid-template-columns: var(--nearest-page-header-column-1-width) var(--nearest-wpt-page-header-column-2-width) var(--nearest-wpt-page-header-column-3-width) 1fr;
+}
+
+.nearest-wpt-page .nearest-page-header-brg,
+.nearest-wpt-page .nearest-page-header-dis {
+  text-align: center;
+}
+
+.nearest-page-list .nearest-wpt-list-list {
+  height: calc(var(--nearest-page-list-item-height) * 5 + var(--nearest-page-list-item-spacing) * 4);
+  margin: var(--nearest-page-list-margin);
+}
+
+.nearest-page-list .nearest-wpt-list-no-results {
+  font-size: 1.25em;
+}
+
+.nearest-wpt-page .nearest-wpt-list-item {
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: var(--nearest-page-row-column-1-width) var(--nearest-wpt-page-row-column-2-width) var(--nearest-wpt-page-row-column-3-width) 1fr;
+}
+
+.nearest-wpt-page .nearest-wpt-list-item-brg {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.nearest-wpt-page .nearest-wpt-list-item-brg,
+.nearest-wpt-page .nearest-wpt-list-item-dis {
+  justify-self: center;
+  align-self: center;
+  font-size: 1.3em;
+  color: var(--nearest-wpt-page-gps-color);
+}
+
+.nearest-wpt-page .bearing-arrow {
+  margin-bottom: var(--nearest-wpt-page-brg-arrow-margin-bottom);
+}

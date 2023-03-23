@@ -1,9 +1,9 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
-  FlightPlanner, FSComponent, MapIndexedRangeModule, MapOwnAirplanePropsKey, MapSystemBuilder, MapSystemContext, MapSystemGenericController,
-  MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, Subscription, UnitFamily,
-  UnitType, UserSettingManager, Vec2Math, Vec2Subject, VecNMath, VNode
-} from 'msfssdk';
+  FlightPlanner, FSComponent, MapIndexedRangeModule, MapOwnAirplaneIconModule, MapOwnAirplaneIconOrientation, MapOwnAirplanePropsKey, MapSystemBuilder,
+  MapSystemContext, MapSystemGenericController, MapSystemKeys, MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator,
+  Subject, Subscribable, Subscription, UnitFamily, UnitType, UserSettingManager, Vec2Math, Vec2Subject, VecNMath, VNode
+} from '@microsoft/msfs-sdk';
 
 import { WaypointIconImageCache } from '../../../graphics/img/WaypointIconImageCache';
 import { MapUserSettingTypes } from '../../../settings/MapUserSettings';
@@ -14,11 +14,13 @@ import { DefaultFlightPathPlanRenderer } from '../flightplan';
 import { GarminMapBuilder, TrafficIconOptions } from '../GarminMapBuilder';
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapDetailIndicator, MapTrafficOffScaleIndicator, MapTrafficStatusIndicator } from '../indicators';
+import { MapDeadReckoningLayer } from '../layers';
 import { MapRangeDisplay } from '../MapRangeDisplay';
+import { MapRunwayDesignationImageCache } from '../MapRunwayDesignationImageCache';
 import { MapTrafficOffScaleStatus } from '../MapTrafficOffScaleStatus';
 import { MapUtils } from '../MapUtils';
 import { MapWaypointDisplayBuilder } from '../MapWaypointDisplayBuilder';
-import { MapWaypointStyles } from '../MapWaypointStyles';
+import { NextGenMapWaypointStyles } from '../MapWaypointStyles';
 import { MapDeclutterMode, MapDeclutterModule, MapGarminTrafficModule, MapOrientation, MapOrientationModule, MapTerrainMode, MapUnitsModule } from '../modules';
 
 /**
@@ -34,11 +36,17 @@ export type NextGenHsiMapOptions = {
   /** The ID to assign to the map's bound Bing Map instance. */
   bingId: string;
 
+  /** The amount of time, in milliseconds, to delay binding the map's Bing Map instance. Defaults to 0. */
+  bingDelay?: number;
+
   /** The frequency, in hertz, with which player airplane and autopilot properties are updated from event bus data. */
   dataUpdateFreq: number | Subscribable<number>;
 
   /** The image cache from which to retrieve waypoint icon images. */
   waypointIconImageCache: WaypointIconImageCache;
+
+  /** The font type to use for waypoint labels. */
+  waypointStyleFontType: 'Roboto' | 'DejaVu';
 
   /** The scaling factor of waypoint icons and labels. Defaults to `1`. */
   waypointStyleScale?: number;
@@ -73,6 +81,15 @@ export type NextGenHsiMapOptions = {
    * top left and [1, 1] at the bottom right.
    */
   noHeadingAirplaneIconAnchor?: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
+
+  /** Whether to display airport runway outlines. Defaults to `false`. */
+  includeRunwayOutlines?: boolean;
+
+  /**
+   * The image cache from which to retrieve runway designation images. If not defined, runway designations will not be
+   * rendered. Ignored if `includeRunwayOutlines` is `false`.
+   */
+  runwayDesignationImageCache?: MapRunwayDesignationImageCache;
 
   /** Whether to display airspaces. Defaults to `true`. */
   includeAirspaces?: boolean;
@@ -143,6 +160,12 @@ export type NextGenHsiMapOptions = {
    * `settingManager` is not defined.
    */
   allowRelativeTerrainMode?: boolean;
+
+  /**
+   * The amount of time, in milliseconds, over which to blend the on-ground and relative terrain mode colors when
+   * transitioning between the two. Defaults to 10000 milliseconds.
+   */
+  groundRelativeTerrainBlendDuration?: number;
 
   /**
    * The minimum range index, inclusive, at which NEXRAD is visible.
@@ -219,12 +242,15 @@ export class NextGenHsiMapBuilder {
 
     options.useTerrainUserSettings ??= true;
     options.allowRelativeTerrainMode ??= true;
+    options.groundRelativeTerrainBlendDuration ??= 10000;
 
     options.nexradMinRangeIndex ??= 13;
     options.useNexradUserSettings ??= true;
 
     options.includeAirspaces ??= true;
     options.useAirspaceVisUserSettings ??= true;
+
+    options.includeRunwayOutlines ??= false;
 
     options.useWaypointVisUserSettings ??= true;
 
@@ -285,20 +311,23 @@ export class NextGenHsiMapBuilder {
         });
       })
       .with(GarminMapBuilder.declutter, options.useDeclutterUserSetting ? options.settingManager : undefined)
-      .withBing(options.bingId)
+      .withBing(options.bingId, options.bingDelay)
       .with(GarminMapBuilder.terrainColors,
         {
           [MapTerrainMode.None]: MapUtils.noTerrainEarthColors(),
           [MapTerrainMode.Absolute]: MapUtils.absoluteTerrainEarthColors(),
-          [MapTerrainMode.Relative]: MapUtils.relativeTerrainEarthColors()
+          [MapTerrainMode.Relative]: MapUtils.relativeTerrainEarthColors(),
+          [MapTerrainMode.Ground]: MapUtils.groundTerrainEarthColors()
         },
         options.useTerrainUserSettings ? options.settingManager : undefined,
-        options.allowRelativeTerrainMode
+        options.allowRelativeTerrainMode,
+        options.groundRelativeTerrainBlendDuration
       )
       .with(GarminMapBuilder.nexrad,
         options.nexradMinRangeIndex,
         options.useNexradUserSettings ? options.settingManager : undefined,
-        MapDeclutterMode.Level2
+        MapDeclutterMode.Level2,
+        MapUtils.connextPrecipRadarColors()
       );
 
     if (options.includeAirspaces) {
@@ -309,10 +338,13 @@ export class NextGenHsiMapBuilder {
       (builder: MapWaypointDisplayBuilder): void => {
         builder.withNormalStyles(
           options.waypointIconImageCache,
-          MapWaypointStyles.nextGenNormalIconStyles(1, options.waypointStyleScale),
-          MapWaypointStyles.nextGenNormalLabelStyles(1, options.waypointStyleScale)
+          NextGenMapWaypointStyles.normalIconStyles(1, options.waypointStyleScale),
+          NextGenMapWaypointStyles.normalLabelStyles(1, options.waypointStyleFontType, options.waypointStyleScale),
+          NextGenMapWaypointStyles.runwayOutlineIconStyles(1),
+          options.runwayDesignationImageCache
         );
       },
+      options.includeRunwayOutlines,
       options.useWaypointVisUserSettings ? options.settingManager : undefined
     );
 
@@ -325,18 +357,18 @@ export class NextGenHsiMapBuilder {
           builder
             .withFlightPlanInactiveStyles(
               options.waypointIconImageCache,
-              MapWaypointStyles.nextGenFlightPlanIconStyles(false, 2, options.waypointStyleScale),
-              MapWaypointStyles.nextGenFlightPlanLabelStyles(false, 2, options.waypointStyleScale)
+              NextGenMapWaypointStyles.flightPlanIconStyles(false, 2, options.waypointStyleScale),
+              NextGenMapWaypointStyles.flightPlanLabelStyles(false, 2, options.waypointStyleFontType, options.waypointStyleScale)
             )
             .withFlightPlanActiveStyles(
               options.waypointIconImageCache,
-              MapWaypointStyles.nextGenFlightPlanIconStyles(true, 3, options.waypointStyleScale),
-              MapWaypointStyles.nextGenFlightPlanLabelStyles(true, 3, options.waypointStyleScale)
+              NextGenMapWaypointStyles.flightPlanIconStyles(true, 3, options.waypointStyleScale),
+              NextGenMapWaypointStyles.flightPlanLabelStyles(true, 3, options.waypointStyleFontType, options.waypointStyleScale)
             )
             .withVNavStyles(
               options.waypointIconImageCache,
-              MapWaypointStyles.nextGenVNavIconStyles(4, options.waypointStyleScale),
-              MapWaypointStyles.nextGenVNavLabelStyles(4, options.waypointStyleScale)
+              NextGenMapWaypointStyles.vnavIconStyles(4, options.waypointStyleScale),
+              NextGenMapWaypointStyles.vnavLabelStyles(4, options.waypointStyleFontType, options.waypointStyleScale)
             );
         },
         false
@@ -349,8 +381,8 @@ export class NextGenHsiMapBuilder {
         (builder: MapWaypointDisplayBuilder) => {
           builder.withHighlightStyles(
             options.waypointIconImageCache,
-            MapWaypointStyles.nextGenHighlightIconStyles(5, options.waypointStyleScale),
-            MapWaypointStyles.nextGenHighlightLabelStyles(5, options.waypointStyleScale)
+            NextGenMapWaypointStyles.highlightIconStyles(5, options.waypointStyleScale),
+            NextGenMapWaypointStyles.highlightLabelStyles(5, options.waypointStyleFontType, options.waypointStyleScale)
           );
         }
       );
@@ -373,6 +405,7 @@ export class NextGenHsiMapBuilder {
         )
         .with(GarminMapBuilder.altitudeArc,
           {
+            renderMethod: 'canvas',
             verticalSpeedPrecision: UnitType.FPM.createNumber(50),
             verticalSpeedThreshold: UnitType.FPM.createNumber(150),
             altitudeDeviationThreshold: UnitType.FOOT.createNumber(150)
@@ -441,7 +474,7 @@ export class NextGenHsiMapBuilder {
     let airplaneIconAnchor = options.airplaneIconAnchor;
     if (options.supportDataIntegrity && options.noHeadingAirplaneIconSrc !== undefined && options.noHeadingAirplaneIconAnchor !== undefined) {
       airplaneIconSrc = Subject.create('');
-      airplaneIconAnchor = Vec2Subject.createFromVector(Vec2Math.create());
+      airplaneIconAnchor = Vec2Subject.create(Vec2Math.create());
     }
 
     const airplanePropBindings: MapOwnAirplanePropsKey[] = [
@@ -466,7 +499,23 @@ export class NextGenHsiMapBuilder {
     mapBuilder
       .withOwnAirplaneIcon(options.airplaneIconSize, airplaneIconSrc, airplaneIconAnchor)
       .withOwnAirplanePropBindings(airplanePropBindings, options.dataUpdateFreq)
-      .withFollowAirplane();
+      .withFollowAirplane()
+      .withInit<{ [MapSystemKeys.OwnAirplaneIcon]: MapOwnAirplaneIconModule }>(MapSystemKeys.OwnAirplaneIconOrientation, context => {
+        context.model.getModule(MapSystemKeys.OwnAirplaneIcon).orientation.set(MapOwnAirplaneIconOrientation.MapUp);
+      });
+
+    if (options.supportDataIntegrity) {
+      mapBuilder.withLayer(GarminMapKeys.DeadReckoning, context => {
+        return (
+          <MapDeadReckoningLayer
+            model={context.model}
+            mapProjection={context.projection}
+            airplaneIconSize={options.airplaneIconSize}
+            airplaneIconAnchor={airplaneIconAnchor}
+          />
+        );
+      });
+    }
 
     // Bottom-left indicators
     if (options.includeDetailIndicator || options.includeRangeIndicator) {

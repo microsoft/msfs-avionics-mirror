@@ -1,0 +1,11 @@
+.segment-list-item {
+  --touch-button-text-color: var(--g3000-color-white);
+}
+
+.segment-list-item-cyan {
+  --touch-button-text-color: var(--g3000-color-cyan);
+}
+
+.segment-list-item .touch-button-label {
+  white-space: pre-wrap;
+}

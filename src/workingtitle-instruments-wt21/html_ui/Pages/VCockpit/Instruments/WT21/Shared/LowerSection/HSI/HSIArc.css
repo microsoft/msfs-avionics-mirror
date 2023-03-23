@@ -1,0 +1,72 @@
+.hsi-arc {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotateX(0);
+}
+
+/* The parent to .hsi-arc-rotating.
+ * Used to mask the main rotating part of the HSI Arc.
+ * The width and height can be adjusted to whatever we want without messing with any layout. */
+.hsi-arc-rotating-mask {
+  width: var(--center-width);
+  height: 37.25%;
+  overflow: hidden;
+  position: relative;
+  margin: auto;
+}
+
+.hsi-arc-rotating-mask-foreground-square {
+  width: var(--center-width-narrow);
+  height: 100%;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+}
+
+.hsi-arc-rotating {
+  width: 100%;
+  height: 100%;
+}
+
+.hsi-arc-square {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+  width: var(--center-width);
+  height: 100%;
+  z-index: 0;
+}
+
+.hsi-arc-range-text-inner {
+  font-size: var(--hsi-range-text-font-size);
+  color: var(--wt21-colors-white);
+  position: absolute;
+  top: 50.55%;
+  left: 20%;
+  text-align: center;
+  width: 10%;
+}
+
+.hsi-arc-range-text-outer {
+  font-size: var(--hsi-range-text-font-size);
+  color: var(--wt21-colors-white);
+  position: absolute;
+  top: 38.45%;
+  left: -3.5%;
+  text-align: center;
+  width: 10%;
+}
+
+.hsi-arc-svg-static-background {
+  position: absolute;
+  top: 0;
+  z-index: 50;
+}

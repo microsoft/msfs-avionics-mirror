@@ -1,0 +1,191 @@
+.pfd-home {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gtc-horizontal .pfd-home {
+  padding: 55px 0px 15px 0px;
+
+  --pfd-home-top-row-height: 343px;
+  --pfd-home-top-row-column-gap: 17px;
+
+  --pfd-home-bearing-ptr-button-arrow-margin-vertical: 5px;
+
+  --pfd-home-cas-padding: 0px 5px;
+  --pfd-home-cas-title-bottom-margin: 5px;
+  --pfd-home-cas-button-height: 132px;
+  --pfd-home-cas-button-icon-height: 70px;
+
+  --pfd-home-button-margin-horizontal: 9px;
+}
+
+.gtc-vertical .pfd-home {
+  padding: 27px 0px 7px 0px;
+
+  --pfd-home-top-row-height: 183px;
+  --pfd-home-top-row-column-gap: 10px;
+
+  --pfd-home-bearing-ptr-button-arrow-margin-vertical: 2px;
+
+  --pfd-home-cas-padding: 0px 2px;
+  --pfd-home-cas-title-bottom-margin: 2px;
+  --pfd-home-cas-button-height: 70px;
+  --pfd-home-cas-button-icon-height: 35px;
+
+  --pfd-home-button-margin-horizontal: 5px;
+}
+
+.pfd-home-button {
+  width: var(--gtc-directory-button-width);
+  height: var(--gtc-directory-button-height);
+  font-size: var(--gtc-directory-button-font-size);
+}
+
+.pfd-home-button .touch-button-value-value {
+  font-size: 1.2em;
+}
+
+.pfd-home-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.pfd-home-row>.touch-button {
+  margin: 0px var(--pfd-home-button-margin-horizontal);
+}
+
+.pfd-home-row.pfd-home-top-row {
+  height: var(--pfd-home-top-row-height);
+  align-items: stretch;
+}
+
+.pfd-home-top-row-column {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pfd-home-top-row-column+.pfd-home-top-row-column {
+  margin-left: var(--pfd-home-top-row-column-gap);
+}
+
+.touch-button-toggle.pfd-home-obs-susp-button>.touch-button-label {
+  top: 18.75%;
+}
+
+.pfd-home-obs-susp-button img {
+  position: absolute;
+  left: 50%;
+  top: 52.5%;
+  transform: translate(-50%, -50%) scale(var(--gtc-directory-button-img-scale));
+}
+
+.pfd-home-obs-susp-button .touch-button-toggle-status-bar {
+  top: calc(87.5% - var(--touch-button-toggle-bar-height) / 2);
+}
+
+.touch-button.pfd-home-bearing-ptr-button {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.touch-button.pfd-home-bearing-ptr-button .touch-button-label {
+  position: relative;
+  top: 0%;
+  transform: none;
+  order: 1;
+}
+
+.touch-button.pfd-home-bearing-ptr-button .touch-button-value-value {
+  position: relative;
+  top: 0%;
+  transform: none;
+  order: 3;
+}
+
+.pfd-home-bearing-ptr-button-arrow {
+  width: 50%;
+  height: 1.5em;
+  margin: var(--pfd-home-bearing-ptr-button-arrow-margin-vertical) 0px;
+  fill: none;
+  order: 2;
+}
+
+.pfd-home-bearing-ptr-button-arrow-outline {
+  stroke: var(--g3000-color-black);
+  stroke-width: 15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pfd-home-bearing-ptr-button-arrow-stroke {
+  stroke: var(--g3000-color-cyan);
+  stroke-width: 5;
+}
+
+.pfd-home-top-row-column.pfd-home-cas {
+  width: var(--gtc-directory-button-width);
+  padding: var(--pfd-home-cas-padding);
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  font-size: var(--gtc-directory-button-font-size);
+  justify-content: center;
+  align-items: stretch;
+}
+
+.pfd-home-cas-title {
+  margin-bottom: var(--pfd-home-cas-title-bottom-margin);
+  text-align: center;
+}
+
+.touch-button-img.pfd-home-cas-button {
+  height: var(--pfd-home-cas-button-height);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pfd-home-cas-button .touch-button-label {
+  position: relative;
+  left: 0px;
+  top: 0px;
+  transform: none;
+}
+
+.pfd-home-cas-button .touch-button-img-img {
+  position: relative;
+  left: 0px;
+  top: 0px;
+  height: var(--pfd-home-cas-button-icon-height);
+  transform: none;
+}
+
+.touch-button.pfd-home-cas-button-up {
+  flex-flow: column nowrap;
+  border-bottom: solid 2px #c4ccd4;
+  border-radius: var(--touch-button-border-radius) var(--touch-button-border-radius) 0px 0px;
+}
+
+.touch-button.pfd-home-cas-button-down {
+  flex-flow: column-reverse nowrap;
+  border-top: solid 2px #c4ccd4;
+  border-radius: 0px 0px var(--touch-button-border-radius) var(--touch-button-border-radius);
+  background: var(--g3000-color-black);
+}
+
+.pfd-home-img-offset-button {
+  --touch-button-img-img-center-y: 35%;
+}

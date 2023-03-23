@@ -1,0 +1,9 @@
+.flight-control-elevator {
+  position: relative;
+}
+
+.flight-control-elevator-pointer {
+  position: absolute;
+  top: 71px;
+  right: 7px;
+}

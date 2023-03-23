@@ -1,0 +1,8 @@
+.cas-overlay-container {
+  display: none;
+  position: absolute;
+  top: 53%;
+  width: 100%;
+  height: 185px;
+  border-top: 2px solid var(--wt21-colors-white);
+}

@@ -1,9 +1,9 @@
-/// <reference types="msfstypes/JS/Avionics" />
+/// <reference types="@microsoft/msfs-types/js/avionics" />
 
 import {
   AbstractMapTrafficIntruderIcon, AdsbOperatingMode, MapFollowAirplaneModule, MapOwnAirplanePropsModule, MapProjection, MapTrafficModule, MathUtils,
   ReadonlyFloat64Array, TcasAlertLevel, TcasIntruder, TcasTcaPrediction, UnitType, Vec2Math
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { TrafficSystemType } from '../../traffic/TrafficSystemType';
 import { MapGarminTrafficModule, MapTrafficMotionVectorMode } from './modules/MapGarminTrafficModule';
@@ -22,7 +22,16 @@ export type MapTrafficIntruderIconOptions = {
   drawOffScale: boolean;
 
   /** Whether to support the display of ADS-B motion vectors. */
-  supportAdsbVector: boolean
+  supportAdsbVector: boolean;
+
+  /** Whether or not to force drawing of the non-arrow icons. */
+  forceDrawNoArrow?: boolean;
+
+  /** Whether or not to force TA and RA vectors to be drawn as normal motion vectors. */
+  drawTARAVectorAsNormalVector?: boolean;
+
+  /** Forces the motion vector length to a set pixel length. */
+  vectorLength?: number;
 };
 
 /**
@@ -48,6 +57,10 @@ export class MapTrafficIntruderIcon extends AbstractMapTrafficIntruderIcon {
   private static readonly vec2Cache = [Vec2Math.create(), Vec2Math.create()];
 
   private readonly supportTisVector = this.garminTrafficModule.trafficSystem.type === TrafficSystemType.Tis;
+
+  private lastDrawnAltitudeValue?: number;
+  private lastDrawnAltitudePrefix?: string;
+  private altitudeText = '';
 
   /**
    * Constructor.
@@ -108,7 +121,7 @@ export class MapTrafficIntruderIcon extends AbstractMapTrafficIntruderIcon {
       this.drawTisMotionVector(context, projection);
     }
 
-    if (isAdsbActive) {
+    if (isAdsbActive && !this.options.forceDrawNoArrow) {
       this.drawArrowIcon(context, projection, projectedPos, isOffScale, alertLevel);
     } else {
       this.drawNoArrowIcon(context, projection, projectedPos, isOffScale, alertLevel);
@@ -466,9 +479,13 @@ export class MapTrafficIntruderIcon extends AbstractMapTrafficIntruderIcon {
     const prefix = altitudeRounded < 0 ? '−'
       : isRelative ? '+' : '';
 
-    const altitudeText = `${prefix}${altitudeAbs}`;
+    if (altitudeAbs !== this.lastDrawnAltitudeValue || prefix !== this.lastDrawnAltitudePrefix) {
+      this.lastDrawnAltitudeValue = altitudeAbs;
+      this.lastDrawnAltitudePrefix = prefix;
+      this.altitudeText = `${prefix}${altitudeAbs}`;
+    }
 
-    const textWidth = context.measureText(altitudeText).width;
+    const textWidth = context.measureText(this.altitudeText).width;
     const textHeight = this.options.fontSize;
 
     // draw background
@@ -497,10 +514,10 @@ export class MapTrafficIntruderIcon extends AbstractMapTrafficIntruderIcon {
 
     if (isAltitudeAbove) {
       context.textBaseline = 'bottom';
-      context.fillText(altitudeText, 0, -0.5 * this.options.iconSize);
+      context.fillText(this.altitudeText, 0, -0.5 * this.options.iconSize);
     } else {
       context.textBaseline = 'top';
-      context.fillText(altitudeText, 0, 0.5 * this.options.iconSize);
+      context.fillText(this.altitudeText, 0, 0.5 * this.options.iconSize);
     }
   }
 
@@ -528,7 +545,7 @@ export class MapTrafficIntruderIcon extends AbstractMapTrafficIntruderIcon {
 
     const vector = this.intruder.velocityVec;
     const vectorDir = Vec2Math.theta(vector);
-    const vectorMag = Vec2Math.abs(vector);
+    const vectorMag = this.options.vectorLength !== undefined ? this.options.vectorLength : Vec2Math.abs(vector);
 
     const roundedVector = Vec2Math.setFromPolar(
       vectorMag,
@@ -555,13 +572,22 @@ export class MapTrafficIntruderIcon extends AbstractMapTrafficIntruderIcon {
       : this.intruder.relativeVelocityVec;
 
     const alertLevel = this.intruder.alertLevel.get();
-    if (alertLevel === TcasAlertLevel.None || alertLevel === TcasAlertLevel.ProximityAdvisory) {
+    if ((alertLevel === TcasAlertLevel.None || alertLevel === TcasAlertLevel.ProximityAdvisory) || this.options.drawTARAVectorAsNormalVector) {
+      let color;
+      if (alertLevel === TcasAlertLevel.ResolutionAdvisory) {
+        color = MapTrafficIntruderIcon.RA_COLOR;
+      } else if (alertLevel === TcasAlertLevel.TrafficAdvisory) {
+        color = MapTrafficIntruderIcon.TA_COLOR;
+      } else {
+        color = vectorMode === MapTrafficMotionVectorMode.Absolute
+          ? MapTrafficIntruderIcon.VECTOR_ABS_COLOR
+          : MapTrafficIntruderIcon.VECTOR_REL_COLOR;
+      }
+
       this.drawLookaheadVector(
         projection,
         context,
-        vectorMode === MapTrafficMotionVectorMode.Absolute
-          ? MapTrafficIntruderIcon.VECTOR_ABS_COLOR
-          : MapTrafficIntruderIcon.VECTOR_REL_COLOR,
+        color,
         vector,
         this.garminTrafficModule.motionVectorLookahead.get().asUnit(UnitType.SECOND)
       );
@@ -574,7 +600,7 @@ export class MapTrafficIntruderIcon extends AbstractMapTrafficIntruderIcon {
         prediction = this.intruder.tcaTA;
         color = MapTrafficIntruderIcon.TA_COLOR;
       }
-      this.drawTCAVector(projection, context, prediction, color, vector);
+      this.drawCPAVector(projection, context, prediction, color, vector);
     }
   }
 
@@ -599,7 +625,10 @@ export class MapTrafficIntruderIcon extends AbstractMapTrafficIntruderIcon {
     context.beginPath();
 
     const distance = Vec2Math.abs(vector) * lookaheadTime;
-    const distanceView = distance / UnitType.GA_RADIAN.convertTo(projection.getProjectedResolution(), UnitType.METER);
+    const distanceView = this.options.vectorLength !== undefined
+      ? this.options.vectorLength
+      : distance / UnitType.GA_RADIAN.convertTo(projection.getProjectedResolution(), UnitType.METER);
+
     const track = -Vec2Math.theta(vector);
     const angle = track + projection.getRotation();
     const end = Vec2Math.setFromPolar(distanceView, angle, MapTrafficIntruderIcon.vec2Cache[1]);
@@ -610,14 +639,14 @@ export class MapTrafficIntruderIcon extends AbstractMapTrafficIntruderIcon {
   }
 
   /**
-   * Draws a motion vector projected to TCA.
+   * Draws a motion vector projected to the point of closest horizontal approach (CPA).
    * @param projection The map projection.
    * @param context The canvas rendering context to which to draw the vector.
-   * @param prediction The TCA prediction to use.
+   * @param prediction The time of closest approach prediction to use.
    * @param color The color of the vector.
    * @param vector The vector to draw.
    */
-  private drawTCAVector(
+  private drawCPAVector(
     projection: MapProjection,
     context: CanvasRenderingContext2D,
     prediction: TcasTcaPrediction,
@@ -642,14 +671,14 @@ export class MapTrafficIntruderIcon extends AbstractMapTrafficIntruderIcon {
 
       context.setLineDash(MapTrafficIntruderIcon.EMPTY_LINE_DASH);
 
-      const distanceToTCA = Vec2Math.abs(vector) * prediction.tca.asUnit(UnitType.SECOND);
-      const distanceToTCAProjected = distanceToTCA / UnitType.GA_RADIAN.convertTo(projection.getProjectedResolution(), UnitType.METER);
-      if (distanceToTCAProjected > 0) {
+      const distanceToCPA = Vec2Math.abs(vector) * prediction.tcpa.asUnit(UnitType.SECOND);
+      const distanceToCPAProjected = distanceToCPA / UnitType.GA_RADIAN.convertTo(projection.getProjectedResolution(), UnitType.METER);
+      if (distanceToCPAProjected > 0) {
         context.beginPath();
 
-        const tca = Vec2Math.setFromPolar(distanceToTCAProjected, angle, MapTrafficIntruderIcon.vec2Cache[1]);
+        const cpa = Vec2Math.setFromPolar(distanceToCPAProjected, angle, MapTrafficIntruderIcon.vec2Cache[1]);
         context.moveTo(0, 0);
-        context.lineTo(tca[0], tca[1]);
+        context.lineTo(cpa[0], cpa[1]);
 
         context.stroke();
       }

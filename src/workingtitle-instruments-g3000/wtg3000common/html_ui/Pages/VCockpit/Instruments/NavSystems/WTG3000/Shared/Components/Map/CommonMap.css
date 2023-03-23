@@ -1,0 +1,65 @@
+.common-map {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  font-size: 14px;
+}
+
+.common-map .map-range-display {
+  font-size: 17px;
+}
+
+.common-map .map-minicompass {
+  position: absolute;
+  left: 5px;
+  top: 24px;
+}
+
+.common-map .map-pointerinfolayer-box {
+  position: absolute;
+  left: 90px;
+  top: 0px;
+}
+
+.common-map .map-pointerinfolayer-box-dis {
+  width: 90px;
+}
+
+.common-map .map-pointerinfolayer-box-brg {
+  width: 75px;
+}
+
+.common-map .map-indicator-group-top-left {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+
+.common-map .map-indicator-group-bottom-left {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+}
+
+.common-map .map-detail {
+  font-size: 14px;
+}
+
+.common-map .map-traffic-failed {
+  width: 120px;
+}
+
+.common-map .map-indicator-group-bottom-right {
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+}
+
+.common-map .map-terrainscale {
+  width: 55px;
+  margin-left: 1px;
+}
+
+.common-map .map-banner {
+  font-size: 20px;
+}

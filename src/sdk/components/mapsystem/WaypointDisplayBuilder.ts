@@ -1,3 +1,4 @@
+import { FacilityWaypointCache } from '../../navigation';
 import { Waypoint } from '../../navigation/Waypoint';
 import { MapCullableLocationTextLabel } from '../map/MapCullableTextLabel';
 import { MapWaypointIcon } from '../map/MapWaypointIcon';
@@ -11,6 +12,7 @@ export class WaypointDisplayBuilder {
 
   protected roleGroup: string = MapSystemWaypointRoles.Normal;
   protected isCenterTarget = false;
+  protected facilityWaypointCache: FacilityWaypointCache | undefined;
 
   /**
    * Creates an instance of the WaypointDisplayBuilder.
@@ -135,5 +137,23 @@ export class WaypointDisplayBuilder {
    */
   public getIsCenterTarget(): boolean {
     return this.isCenterTarget;
+  }
+
+  /**
+   * Configures the facility waypoint cache to use with the waypoint display.
+   * @param cache The facility waypoint cache to use, or undefined to use the default.
+   * @returns The modified builder.
+   */
+  public withWaypointCache(cache: FacilityWaypointCache | undefined): this {
+    this.facilityWaypointCache = cache;
+    return this;
+  }
+
+  /**
+   * Gets the currently set facility waypoint cache.
+   * @returns The currently set facility waypoint cache.
+   */
+  public getWaypointCache(): FacilityWaypointCache | undefined {
+    return this.facilityWaypointCache;
   }
 }

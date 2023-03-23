@@ -1,0 +1,85 @@
+.display-pane {
+  position: relative;
+  background: var(--g3000-color-black);
+  border: 2px solid var(--g3000-color-white);
+  transform: rotateX(0deg);
+
+  --display-pane-title-bar-height: 18px;
+  --display-pane-title-bar-font-size: 13px;
+
+  --display-pane-title-bar-background: var(--g3000-color-black);
+  --display-pane-title-bar-border-width: 2px;
+  --display-pane-title-bar-border-color: var(--g3000-color-white);
+
+  --display-pane-inset-gray-background-color: #202020;
+  --display-pane-inset-panel-border-width: 1px;
+  --display-pane-inset-panel-border-color: white;
+}
+
+.display-pane.display-pane-selected-left {
+  border: 2px solid var(--g3000-color-cyan);
+  --display-pane-title-bar-background: var(--g3000-color-cyan);
+  --display-pane-title-bar-border-color: var(--g3000-color-cyan);
+}
+
+.display-pane.display-pane-selected-right {
+  border: 2px solid #9881ff;
+  --display-pane-title-bar-background: #9881ff;
+  --display-pane-title-bar-border-color: #9881ff;
+}
+
+.display-pane .display-pane-title-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: var(--display-pane-title-bar-height);
+  font-size: var(--display-pane-title-bar-font-size);
+  background: var(--display-pane-title-bar-background);
+  border-bottom: var(--display-pane-title-bar-border-width) solid var(--display-pane-title-bar-border-color);
+}
+
+.display-pane .display-pane-title-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0 2px;
+  color: var(--g3000-color-white);
+  background-color: var(--g3000-color-black);
+  white-space: pre;
+}
+
+.display-pane .display-pane-content {
+  position: absolute;
+  left: 0;
+  top: calc(var(--display-pane-title-bar-height));
+  width: 100%;
+  height: calc(100% - var(--display-pane-title-bar-height));
+  overflow: hidden;
+}
+
+.pane-inset-panel {
+  position: relative;
+  border: var(--display-pane-inset-panel-border-width) solid var(--display-pane-inset-panel-border-color);
+  border-radius: 10px;
+  background-color: unset;
+}
+
+.pane-inset-panel::before {
+  position: absolute;
+  border-radius: 10px;
+  background: linear-gradient(#444 0px, black 25px);
+  width: 100%;
+  height: 100%;
+  content: '';
+}
+
+.pane-inset-panel .pane-inset-panel-title {
+  display: inline-block;
+  position: absolute;
+  top: -8px;
+  left: 14px;
+  font-size: 16px;
+  background-color: var(--display-pane-inset-gray-background-color);
+}

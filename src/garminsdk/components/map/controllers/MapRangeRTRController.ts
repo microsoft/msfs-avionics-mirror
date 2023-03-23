@@ -1,4 +1,4 @@
-import { MapIndexedRangeModule, MapSystemController, Subscription, UnitType } from 'msfssdk';
+import { MapIndexedRangeModule, MapSystemController, Subscription, UnitType } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 

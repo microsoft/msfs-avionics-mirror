@@ -13,18 +13,22 @@ export class GeoPointSubject extends AbstractSubscribable<GeoPointInterface> imp
   /**
    * Constructor.
    * @param value The value of this subject.
+   * @param tolerance The tolerance of this subject's equality check, defined as the maximum allowed great-circle
+   * distance between two equal points in great-arc radians. Defaults to {@link GeoPoint.EQUALITY_TOLERANCE}.
    */
-  private constructor(private readonly value: GeoPoint) {
+  private constructor(private readonly value: GeoPoint, private readonly tolerance?: number) {
     super();
   }
 
   /**
    * Creates a GeoPointSubject.
    * @param initialVal The initial value.
+   * @param tolerance The tolerance of the subject's equality check, defined as the maximum allowed great-circle
+   * distance between two equal points in great-arc radians. Defaults to {@link GeoPoint.EQUALITY_TOLERANCE}.
    * @returns A GeoPointSubject.
    */
-  public static create(initialVal: GeoPoint): GeoPointSubject {
-    return new GeoPointSubject(initialVal);
+  public static create(initialVal: GeoPoint, tolerance?: number): GeoPointSubject {
+    return new GeoPointSubject(initialVal, tolerance);
   }
 
   /**
@@ -56,7 +60,7 @@ export class GeoPointSubject extends AbstractSubscribable<GeoPointInterface> imp
   // eslint-disable-next-line jsdoc/require-jsdoc
   public set(arg1: LatLonInterface | number, arg2?: number): void {
     const isArg1Number = typeof arg1 === 'number';
-    const equals = isArg1Number ? this.value.equals(arg1 as number, arg2 as number) : this.value.equals(arg1 as LatLonInterface);
+    const equals = isArg1Number ? this.value.equals(arg1 as number, arg2 as number, this.tolerance) : this.value.equals(arg1 as LatLonInterface, this.tolerance);
     if (!equals) {
       isArg1Number ? (this.value as GeoPoint).set(arg1 as number, arg2 as number) : (this.value as GeoPoint).set(arg1 as LatLonInterface);
       this.notify();

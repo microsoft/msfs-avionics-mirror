@@ -1,0 +1,9 @@
+.hsi-ghost-needle {
+  color: var(--wt21-colors-cyan);
+}
+
+.hsi-ghost-needle-shadow {
+  stroke-width: 4.5;
+  /* opacity: 0.9; */
+  stroke: var(--wt21-colors-black);
+}

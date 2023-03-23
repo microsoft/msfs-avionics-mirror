@@ -1,8 +1,8 @@
 export * from './MapAirspaceShowTypes';
-export * from './MapAltitudeArcModule';
 export * from './MapCrosshairModule';
 export * from './MapDeclutterModule';
 export * from './MapFlightPlanFocusModule';
+export * from './MapGarminDataIntegrityModule';
 export * from './MapGarminTrafficModule';
 export * from './MapNexradModule';
 export * from './MapOrientationModule';
@@ -15,3 +15,4 @@ export * from './MapTrackVectorModule';
 export * from './MapUnitsModule';
 export * from './MapWaypointHighlightModule';
 export * from './MapWaypointsModule';
+export * from './WaypointMapSelectionModule';

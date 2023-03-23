@@ -1,0 +1,36 @@
+.traffic-map {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  font-size: 14px;
+}
+
+.traffic-map .map-range-display {
+  font-size: 17px;
+}
+
+.traffic-map .map-indicator-group-top-left {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+
+.traffic-map .map-minicompass {
+  position: absolute;
+  left: 5px;
+  top: 24px;
+}
+
+.traffic-map .map-indicator-group-top-right {
+  position: absolute;
+  right: 1px;
+  top: 0;
+  width: 150px;
+  font-size: 15px;
+  align-items: stretch;
+  text-align: center;
+}
+
+.traffic-map .map-indicator-group-center {
+  font-size: 24px;
+}

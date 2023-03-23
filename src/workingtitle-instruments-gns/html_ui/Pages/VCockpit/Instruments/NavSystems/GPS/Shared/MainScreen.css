@@ -1,0 +1,37 @@
+.wt530.mainscreen-left {
+  float: left;
+  width: 62px;
+  height: 215px;
+}
+
+.wt530.mainscreen-right {
+  width: 255px;
+  height: 217px;
+  margin-left: 65px;
+}
+
+.wt430.mainscreen-left {
+  float: left;
+  width: 78px;
+  height: 174px;
+}
+
+.wt430.mainscreen-right {
+  width: 272px;
+  height: 174px;
+  margin-left: 78px;
+}
+
+.mainscreen-footer {
+  width: 100%;
+  height: 16px;
+  border-top: 1px solid var(--gnscyan);
+  line-height: 16px;
+  display: grid;
+  grid-template-columns: 62px 44px 54px 160px;
+}
+
+.wt430.mainscreen-footer {
+  font-size: 14px;
+  grid-template-columns: 58px 92px 54px 146px;
+}

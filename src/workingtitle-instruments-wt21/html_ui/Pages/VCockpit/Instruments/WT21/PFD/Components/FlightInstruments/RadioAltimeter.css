@@ -1,0 +1,13 @@
+.radio-altimeter-box {
+  position: absolute;
+  bottom: 4.95%;
+  right: 46.2%;
+  text-align: right;
+  font-size: 3.1vh;
+  color: var(--wt21-colors-green);
+  text-shadow: var(--wt21-fonts-shadow-normal)
+}
+
+.radio-altimeter-box .fail {
+  display: none;
+}

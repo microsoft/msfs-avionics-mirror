@@ -1,0 +1,154 @@
+.map-settings-page {
+  width: 100%;
+  height: 100%;
+
+  --map-settings-page-tab-list-height: calc(5 * var(--map-settings-page-tab-list-item-height) + 4 * var(--map-settings-page-tab-list-item-gap));
+}
+
+.gtc-horizontal .map-settings-page {
+  --map-settings-page-font-size-regular: 26px;
+  --map-settings-page-font-size-large: 32px;
+
+  --map-settings-page-left-left: 65px;
+  --map-settings-page-left-top: 65px;
+  --map-settings-page-left-button-width: 220px;
+  --map-settings-page-left-button-height: 125px;
+  --map-settings-page-left-button-margin-top: 20px;
+
+  --map-settings-page-detail-button-height: 200px;
+  --map-settings-page-detail-button-icon-height: 118px;
+
+  --map-settings-page-right-right: 55px;
+  --map-settings-page-right-top: 50px;
+  --map-settings-page-right-width: 610px;
+  --map-settings-page-right-height: 705px;
+
+  --map-settings-page-tab-list-item-height: 130px;
+  --map-settings-page-tab-list-item-gap: 1px;
+  --map-settings-page-tab-list-left: 10px;
+  --map-settings-page-tab-list-top: 20px;
+  --map-settings-page-tab-list-width: calc(100% - 2 * 10px);
+
+  --map-settings-page-row-left-width: 218px;
+  --map-settings-page-row-right-width: 163px;
+}
+
+.gtc-vertical .map-settings-page {
+  --map-settings-page-font-size-regular: 13px;
+  --map-settings-page-font-size-large: 16px;
+
+  --map-settings-page-left-left: 10px;
+  --map-settings-page-left-top: 25px;
+  --map-settings-page-left-button-width: 118px;
+  --map-settings-page-left-button-height: 64px;
+  --map-settings-page-left-button-margin-top: 10px;
+
+  --map-settings-page-detail-button-height: 105px;
+  --map-settings-page-detail-button-icon-height: 64px;
+
+  --map-settings-page-right-right: 0px;
+  --map-settings-page-right-top: 25px;
+  --map-settings-page-right-width: 330px;
+  --map-settings-page-right-height: 380px;
+
+  --map-settings-page-tab-list-item-height: 70px;
+  --map-settings-page-tab-list-item-gap: 1px;
+  --map-settings-page-tab-list-left: 5px;
+  --map-settings-page-tab-list-top: 10px;
+  --map-settings-page-tab-list-width: 214px;
+
+  --map-settings-page-row-left-width: 114px;
+  --map-settings-page-row-right-width: 86px;
+}
+
+.map-settings-page .touch-button .touch-button-label,
+.map-settings-page .touch-button-value .touch-button-value-value {
+  white-space: pre;
+}
+
+.map-settings-page-left {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.map-settings-page-left {
+  position: absolute;
+  left: var(--map-settings-page-left-left);
+  top: var(--map-settings-page-left-top);
+  font-size: var(--map-settings-page-font-size-regular);
+}
+
+.map-settings-page-left .touch-button {
+  width: var(--map-settings-page-left-button-width);
+  height: var(--map-settings-page-left-button-height);
+  margin-top: var(--map-settings-page-left-button-margin-top);
+}
+
+.map-settings-page-left .touch-button.map-settings-page-detail-button {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-around;
+  align-items: center;
+  height: var(--map-settings-page-detail-button-height);
+}
+
+.map-settings-page-detail-button .touch-button-label {
+  position: relative;
+  left: 0;
+  top: 0;
+  width: auto;
+  transform: none;
+}
+
+.map-settings-page-detail-button-icon {
+  height: var(--map-settings-page-detail-button-icon-height);
+  object-fit: contain;
+}
+
+.gtc-tabbed-container.map-settings-page-right {
+  position: absolute;
+  right: var(--map-settings-page-right-right);
+  top: var(--map-settings-page-right-top);
+  width: var(--map-settings-page-right-width);
+  height: var(--map-settings-page-right-height);
+}
+
+.gtc-list.map-settings-page-tab-list {
+  position: absolute;
+  left: var(--map-settings-page-tab-list-left);
+  top: var(--map-settings-page-tab-list-top);
+  width: var(--map-settings-page-tab-list-width);
+  height: var(--map-settings-page-tab-list-height);
+}
+
+.list-item.map-settings-page-row {
+  padding: 1px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.map-settings-page-row-left {
+  width: var(--map-settings-page-row-left-width);
+  font-size: var(--map-settings-page-font-size-regular);
+}
+
+.touch-button.map-settings-page-row-left .touch-button-value-value {
+  font-size: var(--map-settings-page-font-size-large);
+}
+
+.map-settings-page-row-right {
+  width: var(--map-settings-page-row-right-width);
+  font-size: var(--map-settings-page-font-size-large);
+}
+
+.touch-button.map-settings-page-row-right .touch-button-label,
+.touch-button-value.map-settings-page-row-right .touch-button-value-value {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--g3000-color-cyan);
+}

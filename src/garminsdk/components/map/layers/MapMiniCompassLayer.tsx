@@ -1,4 +1,4 @@
-import { BitFlags, FSComponent, MapLayer, MapLayerProps, MapProjection, MapProjectionChangeType, SetSubject, Subscription, VNode } from 'msfssdk';
+import { BitFlags, FSComponent, MapLayer, MapLayerProps, MapProjection, MapProjectionChangeType, SetSubject, Subscription, VNode } from '@microsoft/msfs-sdk';
 
 /**
  * Component props for MapMiniCompassLayer.

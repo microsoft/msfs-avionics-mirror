@@ -1,4 +1,4 @@
-import { GeoPoint, MapSystemController } from 'msfssdk';
+import { GeoPoint, MapSystemController } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapPointerModule } from '../modules/MapPointerModule';

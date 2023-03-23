@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import { EventBus, SimVarValueType } from '../../data';
 import { NavMath } from '../../geo';

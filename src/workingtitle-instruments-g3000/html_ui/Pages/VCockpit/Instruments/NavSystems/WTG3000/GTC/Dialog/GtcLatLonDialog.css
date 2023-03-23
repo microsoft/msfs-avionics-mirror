@@ -1,0 +1,138 @@
+.latlon-dialog {
+  position: absolute;
+  box-sizing: border-box;
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .latlon-dialog {
+  top: 52px;
+  left: calc(50% - 870px / 2);
+  width: 865px;
+  height: calc(100% - 52px);
+
+  --latlon-dialog-input-center-x: 487px;
+  --latlon-dialog-input-top: 7px;
+  --latlon-dialog-input-width: 355px;
+  --latlon-dialog-input-height: 120px;
+  --latlon-dialog-input-font-size: 46px;
+  --latlon-input-row-gap: 15px;
+
+  --latlon-dialog-numpad-top: 127px;
+  --latlon-dialog-numpad-width: 480px;
+  --latlon-dialog-numpad-height: 580px;
+  --latlon-dialog-numpad-button-size: 135px;
+  --latlon-dialog-numpad-font-size: 80px;
+
+  --latlon-dialog-backspace-button-right: 57px;
+  --latlon-dialog-backspace-button-top: 5px;
+  --latlon-dialog-backspace-button-width: 120px;
+  --latlon-dialog-backspace-button-height: 120px;
+  --latlon-dialog-backspace-button-font-size: 32px;
+
+  --latlon-dialog-backspace-img-scale: 1.8;
+
+  --latlon-dialog-prefix-column-left: 80px;
+  --latlon-dialog-prefix-column-top: 95px;
+  --latlon-dialog-prefix-column-grid-gap: 20px;
+
+  --latlon-dialog-prefix-button-size: 125px;
+  --latlon-dialog-prefix-button-font-size: 76px;
+}
+
+.gtc-vertical .latlon-dialog {
+  top: 27px;
+  left: 0px;
+  width: 100%;
+  height: calc(100% - 27px);
+
+  --latlon-dialog-input-center-x: 267px;
+  --latlon-dialog-input-top: 3px;
+  --latlon-dialog-input-width: 197px;
+  --latlon-dialog-input-height: 65px;
+  --latlon-dialog-input-font-size: 25px;
+  --latlon-input-row-gap: 7px;
+
+  --latlon-dialog-numpad-top: 68px;
+  --latlon-dialog-numpad-width: 270px;
+  --latlon-dialog-numpad-height: 313px;
+  --latlon-dialog-numpad-button-size: 70px;
+  --latlon-dialog-numpad-font-size: 44px;
+
+  --latlon-dialog-backspace-button-right: 30px;
+  --latlon-dialog-backspace-button-top: 2px;
+  --latlon-dialog-backspace-button-width: 65px;
+  --latlon-dialog-backspace-button-height: 65px;
+  --latlon-dialog-backspace-button-font-size: 18px;
+
+  --latlon-dialog-backspace-img-scale: 1;
+
+  --latlon-dialog-prefix-column-left: 45px;
+  --latlon-dialog-prefix-column-top: 50px;
+  --latlon-dialog-prefix-column-grid-gap: 10px;
+
+  --latlon-dialog-prefix-button-size: 67px;
+  --latlon-dialog-prefix-button-font-size: 42px;
+}
+
+.latlon-dialog-input {
+  position: absolute;
+  left: calc(var(--latlon-dialog-input-center-x) - var(--latlon-dialog-input-width) / 2);
+  top: var(--latlon-dialog-input-top);
+  width: var(--latlon-dialog-input-width);
+  height: var(--latlon-dialog-input-height);
+  font-size: var(--latlon-dialog-input-font-size);
+  color: var(--g3000-color-cyan);
+  --cursor-input-slots-justify: center;
+}
+
+.latlon-dialog-input.cursor-input-edit-inactive {
+  color: var(--g3000-color-black);
+}
+
+.latlon-dialog-numpad {
+  position: absolute;
+  left: calc(var(--latlon-dialog-input-center-x) - var(--latlon-dialog-numpad-width) / 2);
+  top: var(--latlon-dialog-numpad-top);
+  width: var(--latlon-dialog-numpad-width);
+  height: var(--latlon-dialog-numpad-height);
+  font-size: var(--latlon-dialog-numpad-font-size);
+  justify-items: center;
+  align-items: center;
+}
+
+.latlon-dialog-numpad .number-pad-button {
+  width: var(--latlon-dialog-numpad-button-size);
+  height: var(--latlon-dialog-numpad-button-size);
+}
+
+.touch-button.latlon-dialog-backspace {
+  position: absolute;
+  right: var(--latlon-dialog-backspace-button-right);
+  top: var(--latlon-dialog-backspace-button-top);
+  width: var(--latlon-dialog-backspace-button-width);
+  height: var(--latlon-dialog-backspace-button-height);
+  font-size: var(--latlon-dialog-backspace-button-font-size);
+}
+
+.latlon-dialog-backspace .touch-button-img-img {
+  transform: translate(-50%, -50%) scale(var(--latlon-dialog-backspace-img-scale));
+}
+
+.latlon-dialog-prefix-column {
+  position: absolute;
+  left: var(--latlon-dialog-prefix-column-left);
+  top: var(--latlon-dialog-prefix-column-top);
+  display: grid;
+  grid-template-rows: repeat(4, min-content);
+  grid-template-columns: min-content;
+  grid-row-gap: var(--latlon-dialog-prefix-column-grid-gap);
+}
+
+.latlon-dialog-prefix-button {
+  width: var(--latlon-dialog-prefix-button-size);
+  height: var(--latlon-dialog-prefix-button-size);
+  font-size: var(--latlon-dialog-prefix-button-font-size);
+}

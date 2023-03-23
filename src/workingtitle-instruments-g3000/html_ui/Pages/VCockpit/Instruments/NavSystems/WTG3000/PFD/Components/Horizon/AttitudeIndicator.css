@@ -1,0 +1,129 @@
+.attitude-container {
+  position: absolute;
+  background: none;
+  overflow: hidden;
+  transform: rotateX(0deg);
+
+  --zero-pitch-y: 50%;
+}
+
+.attitude-bank {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 414px;
+  height: 315px;
+  transform-origin: 50% var(--zero-pitch-y);
+}
+
+.attitude-roll-scale {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.attitude-roll-scale-zero {
+  fill: var(--g3000-color-white);
+  stroke: var(--g3000-color-black);
+  stroke-width: 0.5;
+}
+
+.attitude-roll-scale-arc-outline,
+.attitude-roll-scale-ticks-outline {
+  fill: none;
+  stroke: var(--g3000-color-black);
+  stroke-width: 3;
+}
+
+.attitude-roll-scale-arc-stroke,
+.attitude-roll-scale-ticks-stroke {
+  fill: none;
+  stroke: var(--g3000-color-white);
+  stroke-width: 2;
+}
+
+.attitude-roll-scale-low-bank {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--g3000-color-green);
+  stroke-width: 4;
+}
+
+.attitude-cutout {
+  overflow: hidden;
+  position: absolute;
+  left: calc(50% - 180px);
+  top: calc(var(--zero-pitch-y) - 150px);
+  width: 360px;
+  height: 260px;
+  transform-origin: 50% 150px;
+}
+
+.attitude-inner-bank {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 150px;
+}
+
+.attitude-pitchladder {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  top: 150px;
+  left: 50%;
+  font-family: Roboto-Bold;
+  font-size: 20px;
+}
+
+.attitude-pitchladder line {
+  stroke: var(--g3000-color-white);
+  stroke-width: 1px;
+}
+
+.attitude-pitchladder path {
+  fill: var(--g3000-color-red);
+  stroke: var(--g3000-color-black);
+  stroke-width: 1px;
+}
+
+.attitude-pitchladder text {
+  fill: var(--g3000-color-white);
+  stroke: var(--g3000-color-black);
+  stroke-width: 0.75px;
+}
+
+.attitude-roll-pointer {
+  fill: var(--g3000-color-white);
+  stroke: var(--g3000-color-black);
+  stroke-width: 0.5;
+}
+
+.attitude-slip-skid {
+  position: absolute;
+  left: 192px;
+  top: 38px;
+  width: 30px;
+  height: 20px;
+  background: none;
+  fill: var(--g3000-color-white);
+  stroke: var(--g3000-color-black);
+  stroke-width: 0.5;
+}
+
+.ahrs-align-msg {
+  position: absolute;
+  left: 0px;
+  top: 150px;
+  width: 100%;
+  text-align: center;
+  font-size: 23px;
+}

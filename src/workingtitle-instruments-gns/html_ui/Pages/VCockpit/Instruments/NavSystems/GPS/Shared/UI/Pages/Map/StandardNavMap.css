@@ -1,0 +1,28 @@
+div.std-map {
+  padding: unset;
+}
+
+.standard-map-container {
+  position: relative;
+  width: 255px;
+  height: 217px;
+  overflow: hidden;
+}
+
+.std-map-left.with-setup {
+  float: left;
+  width: 116px;
+}
+
+.wt430 .std-map-left.with-setup {
+  width: 133px;
+}
+
+.std-map-left.with-fields {
+  float: left;
+  width: 186px;
+}
+
+.wt430 .std-map-left.with-fields {
+  width: 203px;
+}

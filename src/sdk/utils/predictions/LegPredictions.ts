@@ -53,6 +53,11 @@ export interface PassedLegPredictions extends BaseLegPredictions {
    Actual fuel on board at leg termination, in metric tonnes
    */
   actualFob: number | null,
+
+  /**
+   * The altitude when crossing the leg, in feet
+   */
+  actualAltitude: number | null,
 }
 
 /**

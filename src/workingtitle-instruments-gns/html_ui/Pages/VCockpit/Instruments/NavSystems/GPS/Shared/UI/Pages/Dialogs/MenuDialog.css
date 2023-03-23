@@ -1,0 +1,16 @@
+.menu-list {
+  max-height: 176px;
+  text-align: left;
+  position: relative;
+}
+
+.menu-list-item {
+  height: 16px;
+  padding-top: 1px;
+}
+
+.menu-list-item.disabled {
+  opacity: 0.65;
+  color: var(--gnscyan);
+  ;
+}

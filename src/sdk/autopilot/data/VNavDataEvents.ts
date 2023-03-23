@@ -7,8 +7,8 @@ import { BasePublisher } from '../../instruments';
 export interface VNavDataEvents {
 
 
-  /** Whether or not an RNAV-based glidepath is available for vertical guidance. */
-  gp_available: boolean,
+  /** Whether or not a loaded and active GPS Approach can support vertical guidance (GP). */
+  approach_supports_gp: boolean,
 
   /** Whether VNAV path details should be displayed. */
   vnav_path_display: boolean,
@@ -16,7 +16,10 @@ export interface VNavDataEvents {
   /** The active leg vnav calculated target altitude in meters. */
   vnav_active_leg_alt: number,
 
-  /** The full scale deflection of the vertical GSI due to GPS glidepath deviation, in meters. */
+  /** Whether or not vertical guidance (GP) is currently available for display and guidance. */
+  gp_available: boolean,
+
+  /** The full scale deflection of the vertical GSI due to GPS glidepath deviation, in feet. */
   gp_gsi_scaling: number
 }
 

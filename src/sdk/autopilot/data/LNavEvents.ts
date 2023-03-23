@@ -12,7 +12,13 @@ export enum LNavTransitionMode {
   Ingress,
 
   /** LNAV is attempting to track an egress vector. */
-  Egress
+  Egress,
+
+  /**
+   * LNAV is attempting to track a non-transition vector prior to where the ingress transition joins the base flight
+   * path after deactivating suspend mode.
+   */
+  Unsuspend
 }
 
 /**
@@ -75,7 +81,10 @@ export enum LNavVars {
    * The along-track distance from the current vector end where LNAV will sequence to the next vector.
    * A positive value means the vector will be sequenced this distance prior to the vector end.
    */
-  VectorAnticipationDistance = 'L:WTAP_LNav_Vector_Anticipation_Distance'
+  VectorAnticipationDistance = 'L:WTAP_LNav_Vector_Anticipation_Distance',
+
+  /** The current along-track ground speed of the airplane. */
+  AlongTrackSpeed = 'L:WTAP_LNav_Along_Track_Speed'
 }
 
 /**
@@ -138,12 +147,38 @@ interface LNavSimVarEvents {
    * A positive value means the vector will be sequenced this distance prior to the vector end.
    */
   lnav_vector_anticipation_distance: number;
+
+  /** The current along-track ground speed of the airplane, in knots. */
+  lnav_along_track_speed: number;
 }
+
+/**
+ * A LNAV tracking state.
+ */
+export type LNavTrackingState = {
+  /** Whether LNAV is currently tracking a flight path. */
+  isTracking: boolean;
+
+  /** The global index of the tracked flight plan leg. */
+  globalLegIndex: number;
+
+  /** The LNAV transition mode. */
+  transitionMode: LNavTransitionMode;
+
+  /** The index of the tracked flight path vector. */
+  vectorIndex: number;
+
+  /** Whether LNAV sequencing is suspended. */
+  isSuspended: boolean;
+};
 
 /**
  * Events published by LNAV.
  */
-export type LNavEvents = LNavSimVarEvents;
+export type LNavEvents = LNavSimVarEvents & {
+  /** The current LNAV tracking state. */
+  lnav_tracking_state: LNavTrackingState;
+};
 
 /**
  * A publisher for LNAV sim var events.
@@ -162,7 +197,8 @@ export class LNavSimVarPublisher extends SimVarPublisher<LNavSimVarEvents> {
     ['lnav_leg_distance_remaining', { name: LNavVars.LegDistanceRemaining, type: SimVarValueType.NM }],
     ['lnav_vector_distance_along', { name: LNavVars.VectorDistanceAlong, type: SimVarValueType.NM }],
     ['lnav_vector_distance_remaining', { name: LNavVars.VectorDistanceRemaining, type: SimVarValueType.NM }],
-    ['lnav_vector_anticipation_distance', { name: LNavVars.VectorAnticipationDistance, type: SimVarValueType.NM }]
+    ['lnav_vector_anticipation_distance', { name: LNavVars.VectorAnticipationDistance, type: SimVarValueType.NM }],
+    ['lnav_along_track_speed', { name: LNavVars.AlongTrackSpeed, type: SimVarValueType.Knots }]
   ]);
 
   /**

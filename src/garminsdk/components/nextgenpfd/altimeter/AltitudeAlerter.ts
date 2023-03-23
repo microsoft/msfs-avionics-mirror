@@ -1,7 +1,7 @@
 import {
   AdcEvents, AltitudeSelectEvents, APEvents, ApproachGuidanceMode, ConsumerSubject, DebounceTimer, EventBus, MappedSubject, Subject, Subscribable,
   SubscribableUtils, Subscription, VNavEvents, VNavPathMode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { AdcSystemEvents } from '../../../system/AdcSystem';
 

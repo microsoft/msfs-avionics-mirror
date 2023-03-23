@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, FSComponent, Subscribable, TcasOperatingMode, VNode } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, Subscribable, TcasOperatingMode, VNode } from '@microsoft/msfs-sdk';
 
 /**
  * Component props for TrafficMapOperatingModeIndicator.
@@ -20,7 +20,7 @@ export class TrafficMapOperatingModeIndicator extends DisplayComponent<TrafficMa
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class='map-traffic-opmode'>{this.text}</div>
+      <div class='traffic-map-opmode'>{this.text}</div>
     );
   }
 

@@ -1,0 +1,12 @@
+.digit-input {
+  color: inherit;
+  padding-top: 1px;
+}
+
+.digit-input.input-disabled {
+  color: whitesmoke;
+}
+
+.digit-input.highlight-active {
+  color: rgb(0, 0, 0);
+}

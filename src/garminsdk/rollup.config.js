@@ -9,11 +9,11 @@ export default [
       format: 'iife',
       name: 'garminsdk',
       globals: {
-        'msfssdk': 'msfssdk'
+        '@microsoft/msfs-sdk': 'msfssdk'
       }
     },
     plugins: [resolve()],
-    external: ['msfssdk']
+    external: ['@microsoft/msfs-sdk']
   },
   {
     input: "build/index.d.ts",

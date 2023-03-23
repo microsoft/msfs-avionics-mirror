@@ -1,0 +1,75 @@
+.gtc-horizontal .flight-plan-data-fields-page {
+  --flight-plan-data-fields-page-width: 371px;
+  --flight-plan-data-fields-page-height: 338px;
+  --flight-plan-data-fields-page-top: 215px;
+  --flight-plan-data-fields-page-title-top: 12px;
+  --flight-plan-data-fields-page-column-bottom: 12px;
+  --flight-plan-data-fields-page-column-width: 344px;
+  --flight-plan-data-fields-page-column-height: 255px;
+  --flight-plan-data-fields-page-column-button-height: 123px;
+  --flight-plan-data-fields-page-font-size-small: 30px;
+  --flight-plan-data-fields-page-font-size-medium: 38px;
+  --flight-plan-data-fields-page-font-size-large: 48px;
+}
+
+.gtc-vertical .flight-plan-data-fields-page {
+  --flight-plan-data-fields-page-width: 200px;
+  --flight-plan-data-fields-page-height: 182px;
+  --flight-plan-data-fields-page-top: 116px;
+  --flight-plan-data-fields-page-title-top: 6px;
+  --flight-plan-data-fields-page-column-bottom: 6px;
+  --flight-plan-data-fields-page-column-width: 185px;
+  --flight-plan-data-fields-page-column-height: 137px;
+  --flight-plan-data-fields-page-column-button-height: 66px;
+  --flight-plan-data-fields-page-font-size-small: 16px;
+  --flight-plan-data-fields-page-font-size-medium: 23px;
+  --flight-plan-data-fields-page-font-size-large: 28px;
+}
+
+.flight-plan-data-fields-page {
+  position: relative;
+  margin: auto;
+  margin-top: var(--flight-plan-data-fields-page-top);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--flight-plan-data-fields-page-width);
+  height: var(--flight-plan-data-fields-page-height);
+}
+
+.flight-plan-data-fields-page.gtc-panel .gtc-panel-title {
+  font-size: var(--flight-plan-data-fields-page-font-size-medium);
+  margin-top: var(--flight-plan-data-fields-page-title-top);
+}
+
+.flight-plan-data-fields-page .column {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  bottom: var(--flight-plan-data-fields-page-column-bottom);
+  width: var(--flight-plan-data-fields-page-column-width);
+  height: var(--flight-plan-data-fields-page-column-height);
+}
+
+.flight-plan-data-fields-page .touch-button {
+  height: var(--flight-plan-data-fields-page-column-button-height);
+}
+
+.flight-plan-data-fields-page .touch-button .touch-button-label {
+  font-size: var(--flight-plan-data-fields-page-font-size-small);
+}
+
+.flight-plan-data-fields-page .touch-button .touch-button-value-value {
+  font-size: var(--flight-plan-data-fields-page-font-size-large);
+}
+
+.gtc-horizontal .gtc-list-dialog.flight-plan-data-fields-page-list {
+  width: 803px;
+  --gtc-list-dialog-left: calc(50% - 803px / 2);
+}
+
+.gtc-vertical .gtc-list-dialog.flight-plan-data-fields-page-list {
+  width: 432px;
+  --gtc-list-dialog-left: calc(50% - 432px / 2);
+}

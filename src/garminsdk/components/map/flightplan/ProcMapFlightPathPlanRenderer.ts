@@ -1,7 +1,7 @@
 import {
   AbstractFlightPathPlanRenderer, BitFlags, CircleVector, FlightPathLegLineRenderer, FlightPathLegLineStyle, FlightPathLegRenderPart, FlightPathVectorFlags,
   FlightPlan, GeoProjection, GeoProjectionPathStreamStack, LegDefinition, LegDefinitionFlags, LegType
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { DefaultBaseFlightPathPlanRenderer } from './MapDefaultFlightPathPlanRenderer';
 import {
@@ -60,7 +60,7 @@ export class ProcMapFullFlightPathPlanRenderer extends AbstractFlightPathPlanRen
         this.procTurnRenderer.render(leg, context, streamStack, plan, activeLeg, legIndex, -1);
         break;
       case LegType.CF:
-        if (BitFlags.isAll(leg.flags, LegDefinitionFlags.VectorsToFinal)) {
+        if (BitFlags.isAll(leg.flags, LegDefinitionFlags.VectorsToFinalFaf)) {
           this.vtfRenderer.render(leg, context, streamStack, width, style);
           break;
         }

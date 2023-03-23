@@ -1,0 +1,10 @@
+.told-origin-dest-display {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.told-origin-dest-display-airport {
+  height: var(--told-origin-dest-display-airport-height, auto);
+}

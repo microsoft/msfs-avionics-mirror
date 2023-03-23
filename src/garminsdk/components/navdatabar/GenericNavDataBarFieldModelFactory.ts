@@ -1,11 +1,12 @@
 import {
-  AdcEvents, ClockEvents, EngineEvents, EventBus, FlightPlanCopiedEvent, FlightPlanIndicationEvent, FlightPlannerEvents, FlightPlanOriginDestEvent, GNSSEvents,
-  ICAO, LatLongInterface, LNavEvents, NavAngleSubject, NavAngleUnit, NavAngleUnitReferenceNorth, NavMath, NumberUnitInterface, NumberUnitSubject,
-  OriginDestChangeType, Subject, UnitFamily, UnitType, VNavDataEvents, VNavEvents
-} from 'msfssdk';
+  AdcEvents, AhrsEvents, BasicNavAngleSubject, BasicNavAngleUnit, ClockEvents, EngineEvents, EventBus, FlightPlanCopiedEvent,
+  FlightPlanIndicationEvent, FlightPlannerEvents, FlightPlanOriginDestEvent, GNSSEvents, ICAO, LNavEvents, NavAngleUnitFamily, NavMath, NumberUnitInterface,
+  NumberUnitSubject, OriginDestChangeType, Subject, Subscribable, UnitFamily, UnitType, VNavDataEvents, VNavEvents
+} from '@microsoft/msfs-sdk';
 
 import { Fms } from '../../flightplan/Fms';
 import { LNavDataEvents } from '../../navigation/LNavDataEvents';
+import { NavDataFieldGpsValidity } from '../navdatafield/NavDataFieldModel';
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
 import {
   NavDataBarFieldConsumerModel, NavDataBarFieldConsumerNumberUnitModel, NavDataBarFieldGenericModel, NavDataBarFieldModel, NavDataBarFieldModelFactory,
@@ -18,9 +19,10 @@ import {
 export interface NavDataBarFieldTypeModelFactory<T extends NavDataFieldType> {
   /**
    * Creates a navigation data bar field data model for this factory's data field type.
+   * @param gpsValidity The subscribable that provides the validity of the GPS data for the models.
    * @returns A navigation data bar field data model for this factory's data field type.
    */
-  create(): NavDataBarFieldTypeModelMap[T];
+  create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldTypeModelMap[T];
 }
 
 /**
@@ -30,6 +32,12 @@ export interface NavDataBarFieldTypeModelFactory<T extends NavDataFieldType> {
  */
 export class GenericNavDataBarFieldModelFactory implements NavDataBarFieldModelFactory {
   private readonly factories = new Map<NavDataFieldType, NavDataBarFieldTypeModelFactory<NavDataFieldType>>();
+
+  /**
+   * Creates an instance of aGenericNavDataBarFieldModelFactory.
+   * @param gpsValidity The subscribable that provides the validity of the GPS data for the models.
+   */
+  constructor(private readonly gpsValidity: Subscribable<NavDataFieldGpsValidity>) { }
 
   /**
    * Registers a single-type model factory with this factory.
@@ -56,7 +64,7 @@ export class GenericNavDataBarFieldModelFactory implements NavDataBarFieldModelF
    * @throws Error if an unsupported field type is specified.
    */
   public create<T extends NavDataFieldType>(type: T): NavDataBarFieldTypeModelMap[T] {
-    const model = this.factories.get(type)?.create();
+    const model = this.factories.get(type)?.create(this.gpsValidity);
 
     if (!model) {
       throw new Error(`GenericNavDataBarFieldModelFactory: no single-type model factory of data field type [${type}] is registered`);
@@ -81,7 +89,7 @@ export abstract class EventBusNavDataBarFieldTypeModelFactory<T extends NavDataF
   }
 
   /** @inheritdoc */
-  public abstract create(): NavDataBarFieldTypeModelMap[T];
+  public abstract create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldTypeModelMap[T];
 }
 
 /**
@@ -89,18 +97,19 @@ export abstract class EventBusNavDataBarFieldTypeModelFactory<T extends NavDataF
  */
 export class NavDataBarFieldBrgModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.BearingToWaypoint, GNSSEvents & LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<typeof NavAngleUnit.FAMILY>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<NavAngleUnitFamily>> {
     return new NavDataBarFieldConsumerModel(
-      NavAngleSubject.createFromNavAngle(new NavAngleUnit(NavAngleUnitReferenceNorth.Magnetic, 0, 0).createNumber(0)),
+      BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(0)),
+      gpsValidity,
       [
         this.sub.on('lnav_is_tracking').whenChanged(),
         this.sub.on('lnavdata_waypoint_bearing_mag').whenChanged(),
-        this.sub.on('gps-position')
+        this.sub.on('magvar')
       ],
-      [false, 0, { lat: 0, long: 0 }] as [boolean, number, LatLongInterface],
-      (sub, [isTracking, bearing, planePos]) => {
-        const latLong = planePos.get();
-        sub.set(isTracking.get() ? bearing.get() : NaN, latLong.lat, latLong.long);
+      [false, 0, 0] as [boolean, number, number],
+      (sub, validity, [isTracking, bearing, magVar]) => {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+        sub.set((isTracking.get() && gpsValid) ? bearing.get() : NaN, magVar.get());
       }
     );
   }
@@ -120,7 +129,7 @@ export class NavDataBarFieldDestModelFactory extends EventBusNavDataBarFieldType
   }
 
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<string> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<string> {
     let destinationIdent = '____';
 
     const originDestHandler = (event: FlightPlanOriginDestEvent): void => {
@@ -158,6 +167,7 @@ export class NavDataBarFieldDestModelFactory extends EventBusNavDataBarFieldType
 
     return new NavDataBarFieldGenericModel(
       Subject.create('____'),
+      gpsValidity,
       (sub) => {
         sub.set(destinationIdent);
       },
@@ -175,16 +185,18 @@ export class NavDataBarFieldDestModelFactory extends EventBusNavDataBarFieldType
  */
 export class NavDataBarFieldDisModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.DistanceToWaypoint, LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
     return new NavDataBarFieldConsumerModel(
-      NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(NaN)),
+      NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN)),
+      gpsValidity,
       [
         this.sub.on('lnav_is_tracking').whenChanged(),
         this.sub.on('lnavdata_waypoint_distance').whenChanged()
       ],
       [false, 0] as [boolean, number],
-      (sub, [isTracking, distance]) => {
-        sub.set(isTracking.get() ? distance.get() : NaN);
+      (sub, validity, [isTracking, distance]) => {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+        sub.set((isTracking.get() && gpsValid) ? distance.get() : NaN);
       }
     );
   }
@@ -195,16 +207,18 @@ export class NavDataBarFieldDisModelFactory extends EventBusNavDataBarFieldTypeM
  */
 export class NavDataBarFieldDtgModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.DistanceToDestination, LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
     return new NavDataBarFieldConsumerModel(
-      NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(NaN)),
+      NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN)),
+      gpsValidity,
       [
         this.sub.on('lnav_is_tracking').whenChanged(),
         this.sub.on('lnavdata_destination_distance').whenChanged()
       ],
       [false, 0] as [boolean, number],
-      (sub, [isTracking, distance]) => {
-        sub.set(isTracking.get() ? distance.get() : NaN);
+      (sub, validity, [isTracking, distance]) => {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+        sub.set((isTracking.get() && gpsValid) ? distance.get() : NaN);
       }
     );
   }
@@ -215,18 +229,19 @@ export class NavDataBarFieldDtgModelFactory extends EventBusNavDataBarFieldTypeM
  */
 export class NavDataBarFieldDtkModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.DesiredTrack, GNSSEvents & LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<typeof NavAngleUnit.FAMILY>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<NavAngleUnitFamily>> {
     return new NavDataBarFieldConsumerModel(
-      NavAngleSubject.createFromNavAngle(new NavAngleUnit(NavAngleUnitReferenceNorth.Magnetic, 0, 0).createNumber(0)),
+      BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(0)),
+      gpsValidity,
       [
         this.sub.on('lnav_is_tracking').whenChanged(),
         this.sub.on('lnavdata_dtk_mag').whenChanged(),
-        this.sub.on('gps-position')
+        this.sub.on('magvar')
       ],
-      [false, 0, { lat: 0, long: 0 }] as [boolean, number, LatLongInterface],
-      (sub, [isTracking, track, planePos]) => {
-        const latLong = planePos.get();
-        sub.set(isTracking.get() ? track.get() : NaN, latLong.lat, latLong.long);
+      [false, 0, 0] as [boolean, number, number],
+      (sub, validity, [isTracking, track, magVar]) => {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+        sub.set((isTracking.get() && gpsValid) ? track.get() : NaN, magVar.get());
       }
     );
   }
@@ -237,15 +252,16 @@ export class NavDataBarFieldDtkModelFactory extends EventBusNavDataBarFieldTypeM
  */
 export class NavDataBarFieldEndModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.Endurance, EngineEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Duration>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Duration>> {
     return new NavDataBarFieldConsumerModel(
-      NumberUnitSubject.createFromNumberUnit(UnitType.HOUR.createNumber(NaN)),
+      NumberUnitSubject.create(UnitType.HOUR.createNumber(NaN)),
+      gpsValidity,
       [
-        this.sub.on('fuel_total').whenChanged(),
+        this.sub.on('fuel_usable_total').whenChanged(),
         this.sub.on('fuel_flow_total').whenChanged()
       ],
       [0, 0] as [number, number],
-      (sub, [fuelRemaining, fuelFlow]) => {
+      (sub, validity, [fuelRemaining, fuelFlow]) => {
         let endurance = NaN;
         const fuelFlowGph = fuelFlow.get();
         if (fuelFlowGph > 0) {
@@ -263,18 +279,21 @@ export class NavDataBarFieldEndModelFactory extends EventBusNavDataBarFieldTypeM
  */
 export class NavDataBarFieldEnrModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TimeToDestination, GNSSEvents & LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Duration>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Duration>> {
     return new NavDataBarFieldConsumerModel(
-      NumberUnitSubject.createFromNumberUnit(UnitType.HOUR.createNumber(NaN)),
+      NumberUnitSubject.create(UnitType.HOUR.createNumber(NaN)),
+      gpsValidity,
       [
         this.sub.on('lnav_is_tracking').whenChanged(),
         this.sub.on('lnavdata_destination_distance').whenChanged(),
         this.sub.on('ground_speed').whenChanged()
       ],
       [false, 0, 0] as [boolean, number, number],
-      (sub, [isTracking, distance, gs]) => {
+      (sub, validity, [isTracking, distance, gs]) => {
         let time = NaN;
-        if (isTracking.get()) {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+
+        if (isTracking.get() && gpsValid) {
           const gsKnots = gs.get();
           if (gsKnots > 30) {
             const distanceNM = distance.get();
@@ -294,9 +313,10 @@ export class NavDataBarFieldEtaModelFactory
   extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TimeOfWaypointArrival, GNSSEvents & LNavEvents & LNavDataEvents & ClockEvents> {
 
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<number> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<number> {
     return new NavDataBarFieldConsumerModel(
       Subject.create(NaN),
+      gpsValidity,
       [
         this.sub.on('lnav_is_tracking').whenChanged(),
         this.sub.on('lnavdata_waypoint_distance').whenChanged(),
@@ -304,9 +324,11 @@ export class NavDataBarFieldEtaModelFactory
         this.sub.on('simTime')
       ],
       [false, 0, 0, NaN] as [boolean, number, number, number],
-      (sub, [isTracking, distance, gs, time]) => {
+      (sub, validity, [isTracking, distance, gs, time]) => {
         let eta = NaN;
-        if (isTracking.get()) {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+
+        if (isTracking.get() && gpsValid) {
           const gsKnots = gs.get();
           if (gsKnots > 30) {
             const distanceNM = distance.get();
@@ -324,18 +346,21 @@ export class NavDataBarFieldEtaModelFactory
  */
 export class NavDataBarFieldEteModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TimeToWaypoint, GNSSEvents & LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Duration>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Duration>> {
     return new NavDataBarFieldConsumerModel(
-      NumberUnitSubject.createFromNumberUnit(UnitType.HOUR.createNumber(NaN)),
+      NumberUnitSubject.create(UnitType.HOUR.createNumber(NaN)),
+      gpsValidity,
       [
         this.sub.on('lnav_is_tracking').whenChanged(),
         this.sub.on('lnavdata_waypoint_distance').whenChanged(),
         this.sub.on('ground_speed').whenChanged()
       ],
       [false, 0, 0] as [boolean, number, number],
-      (sub, [isTracking, distance, gs]) => {
+      (sub, validity, [isTracking, distance, gs]) => {
         let time = NaN;
-        if (isTracking.get()) {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+
+        if (isTracking.get() && gpsValid) {
           const gsKnots = gs.get();
           if (gsKnots > 30) {
             const distanceNM = distance.get();
@@ -353,9 +378,10 @@ export class NavDataBarFieldEteModelFactory extends EventBusNavDataBarFieldTypeM
  */
 export class NavDataBarFieldFobModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.FuelOnBoard, EngineEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Weight>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Weight>> {
     return new NavDataBarFieldConsumerNumberUnitModel(
-      this.sub.on('fuel_total'), 0, UnitType.GALLON_FUEL
+      gpsValidity,
+      this.sub.on('fuel_usable_total'), 0, UnitType.GALLON_FUEL
     );
   }
 }
@@ -367,20 +393,23 @@ export class NavDataBarFieldFodModelFactory
   extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.FuelOverDestination, GNSSEvents & LNavEvents & LNavDataEvents & EngineEvents> {
 
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Weight>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Weight>> {
     return new NavDataBarFieldConsumerModel(
-      NumberUnitSubject.createFromNumberUnit(UnitType.GALLON_FUEL.createNumber(NaN)),
+      NumberUnitSubject.create(UnitType.GALLON_FUEL.createNumber(NaN)),
+      gpsValidity,
       [
         this.sub.on('lnav_is_tracking').whenChanged(),
         this.sub.on('lnavdata_destination_distance').whenChanged(),
         this.sub.on('ground_speed').whenChanged(),
-        this.sub.on('fuel_total').whenChanged(),
+        this.sub.on('fuel_usable_total').whenChanged(),
         this.sub.on('fuel_flow_total').whenChanged()
       ],
       [false, 0, 0, 0, 0] as [boolean, number, number, number, number],
-      (sub, [isTracking, distance, gs, fuelRemaining, fuelFlow]) => {
+      (sub, validity, [isTracking, distance, gs, fuelRemaining, fuelFlow]) => {
         let fod = NaN;
-        if (isTracking.get()) {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+
+        if (isTracking.get() && gpsValid) {
           const gsKnots = gs.get();
           const fuelFlowGph = fuelFlow.get();
           if (gsKnots > 30 && fuelFlowGph > 0) {
@@ -400,9 +429,18 @@ export class NavDataBarFieldFodModelFactory
  */
 export class NavDataBarFieldGsModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.GroundSpeed, GNSSEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Speed>> {
-    return new NavDataBarFieldConsumerNumberUnitModel(
-      this.sub.on('ground_speed'), 0, UnitType.KNOT
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Speed>> {
+    return new NavDataBarFieldConsumerModel(
+      NumberUnitSubject.create(UnitType.KNOT.createNumber(NaN)),
+      gpsValidity,
+      [
+        this.sub.on('ground_speed')
+      ],
+      [0],
+      (sub, validity, [gs]) => {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+        sub.set(gpsValid ? gs.get() : NaN);
+      }
     );
   }
 }
@@ -412,8 +450,9 @@ export class NavDataBarFieldGsModelFactory extends EventBusNavDataBarFieldTypeMo
  */
 export class NavDataBarFieldIsaModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.ISA, AdcEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Temperature>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Temperature>> {
     return new NavDataBarFieldConsumerNumberUnitModel(
+      gpsValidity,
       this.sub.on('isa_temp_c'), 0, UnitType.CELSIUS
     );
   }
@@ -426,9 +465,10 @@ export class NavDataBarFieldLdgModelFactory
   extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TimeOfDestinationArrival, GNSSEvents & LNavEvents & LNavDataEvents & ClockEvents> {
 
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<number> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<number> {
     return new NavDataBarFieldConsumerModel(
       Subject.create(NaN),
+      gpsValidity,
       [
         this.sub.on('lnav_is_tracking').whenChanged(),
         this.sub.on('lnavdata_destination_distance').whenChanged(),
@@ -436,9 +476,11 @@ export class NavDataBarFieldLdgModelFactory
         this.sub.on('simTime')
       ],
       [false, 0, 0, NaN] as [boolean, number, number, number],
-      (sub, [isTracking, distance, gs, time]) => {
+      (sub, validity, [isTracking, distance, gs, time]) => {
         let eta = NaN;
-        if (isTracking.get()) {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+
+        if (isTracking.get() && gpsValid) {
           const gsKnots = gs.get();
           if (gsKnots > 30) {
             const distanceNM = distance.get();
@@ -456,8 +498,9 @@ export class NavDataBarFieldLdgModelFactory
  */
 export class NavDataBarFieldTasModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TrueAirspeed, AdcEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Speed>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Speed>> {
     return new NavDataBarFieldConsumerNumberUnitModel(
+      gpsValidity,
       this.sub.on('tas'), 0, UnitType.KNOT
     );
   }
@@ -468,17 +511,19 @@ export class NavDataBarFieldTasModelFactory extends EventBusNavDataBarFieldTypeM
  */
 export class NavDataBarFieldTkeModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TrackAngleError, GNSSEvents & LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Angle>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Angle>> {
     return new NavDataBarFieldConsumerModel(
-      NumberUnitSubject.createFromNumberUnit(UnitType.DEGREE.createNumber(NaN)),
+      NumberUnitSubject.create(UnitType.DEGREE.createNumber(NaN)),
+      gpsValidity,
       [
         this.sub.on('lnav_is_tracking').whenChanged(),
         this.sub.on('lnavdata_dtk_true').whenChanged(),
         this.sub.on('track_deg_true').whenChanged()
       ],
       [false, 0, 0] as [boolean, number, number],
-      (sub, [isTracking, dtk, track]) => {
-        sub.set(isTracking.get() ? NavMath.diffAngle(dtk.get(), track.get()) : NaN);
+      (sub, validity, [isTracking, dtk, track]) => {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+        sub.set((isTracking.get() && gpsValid) ? NavMath.diffAngle(dtk.get(), track.get()) : NaN);
       }
     );
   }
@@ -487,19 +532,27 @@ export class NavDataBarFieldTkeModelFactory extends EventBusNavDataBarFieldTypeM
 /**
  * Creates data models for Ground Track navigation data bar fields.
  */
-export class NavDataBarFieldTrkModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.GroundTrack, GNSSEvents> {
+export class NavDataBarFieldTrkModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.GroundTrack, GNSSEvents & AhrsEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<typeof NavAngleUnit.FAMILY>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<NavAngleUnitFamily>> {
     return new NavDataBarFieldConsumerModel(
-      NavAngleSubject.createFromNavAngle(new NavAngleUnit(NavAngleUnitReferenceNorth.Magnetic, 0, 0).createNumber(0)),
+      BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(0)),
+      gpsValidity,
       [
+        this.sub.on('hdg_deg_true'),
+        this.sub.on('ground_speed'),
         this.sub.on('track_deg_magnetic'),
-        this.sub.on('gps-position')
+        this.sub.on('magvar')
       ],
-      [0, { lat: 0, long: 0 }] as [number, LatLongInterface],
-      (sub, [track, planePos]) => {
-        const latLong = planePos.get();
-        sub.set(track.get(), latLong.lat, latLong.long);
+      [0, 0, 0, 0] as [number, number, number, number],
+      (sub, validity, [hdg, gs, track, magVar]) => {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+
+        if (gs.get() < 5) {
+          sub.set(gpsValid ? hdg.get() : NaN, magVar.get());
+        } else {
+          sub.set(gpsValid ? track.get() : NaN, magVar.get());
+        }
       }
     );
   }
@@ -510,16 +563,35 @@ export class NavDataBarFieldTrkModelFactory extends EventBusNavDataBarFieldTypeM
  */
 export class NavDataBarFieldVsrModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.VerticalSpeedRequired, VNavDataEvents & VNavEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Speed>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Speed>> {
     return new NavDataBarFieldConsumerModel(
-      NumberUnitSubject.createFromNumberUnit(UnitType.FPM.createNumber(NaN)),
-      [
-        this.sub.on('vnav_path_display').whenChanged(),
-        this.sub.on('vnav_required_vs').whenChanged()
-      ],
-      [false, 0] as [boolean, number],
-      (sub, [shouldDisplay, vsr]) => {
-        sub.set(shouldDisplay.get() ? vsr.get() : NaN);
+      NumberUnitSubject.create(UnitType.FPM.createNumber(NaN)),
+      gpsValidity,
+      [this.sub.on('vnav_required_vs')],
+      [0],
+      (sub, validity, [vsrSub]) => {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+        const vsr = vsrSub.get();
+        sub.set((gpsValid && vsr !== 0) ? vsr : NaN);
+      }
+    );
+  }
+}
+
+/**
+ * Creates data models for Active Wpt navigation data bar fields.
+ */
+export class NavDataBarFieldWptModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.Waypoint, LNavDataEvents> {
+  /** @inheritDoc */
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<string> {
+    return new NavDataBarFieldConsumerModel(
+      Subject.create('_____'),
+      gpsValidity,
+      [this.sub.on('lnavdata_waypoint_ident')],
+      [''],
+      (sub, validity, [identSubject]) => {
+        const ident = identSubject.get();
+        sub.set(ident === '' ? '_____' : ident);
       }
     );
   }
@@ -530,16 +602,18 @@ export class NavDataBarFieldVsrModelFactory extends EventBusNavDataBarFieldTypeM
  */
 export class NavDataBarFieldXtkModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.CrossTrack, LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
-  public create(): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
     return new NavDataBarFieldConsumerModel(
-      NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(NaN)),
+      NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN)),
+      gpsValidity,
       [
         this.sub.on('lnav_is_tracking').whenChanged(),
         this.sub.on('lnavdata_xtk').whenChanged()
       ],
       [false, 0] as [boolean, number],
-      (sub, [isTracking, xtk]) => {
-        sub.set(isTracking.get() ? xtk.get() : NaN);
+      (sub, validity, [isTracking, xtk]) => {
+        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+        sub.set((isTracking.get() && gpsValid) ? xtk.get() : NaN);
       }
     );
   }

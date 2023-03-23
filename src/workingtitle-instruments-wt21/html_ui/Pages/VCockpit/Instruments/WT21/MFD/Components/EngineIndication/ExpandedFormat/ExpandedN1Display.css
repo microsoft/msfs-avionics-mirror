@@ -1,0 +1,35 @@
+.expanded-n1-display-container {
+  padding-top: .8%;
+}
+
+.left-n1-pointer-mask, .right-n1-pointer-mask {
+  position: absolute;
+  left: 4.3%;
+  top: 5.7%;
+  height: 234px;
+  width: 20px;
+  overflow: hidden;
+}
+
+.right-n1-pointer-mask {
+  left: 21.5%;
+}
+
+.left-n1-pointer, .right-n1-pointer {
+  position: absolute;
+  top: 51px;
+}
+
+.right-n1-pointer {
+  right: 0;
+}
+
+.left-n1-bug, .right-n1-bug {
+  position: absolute;
+  top: -11px;
+  right: 1px;
+}
+
+.right-n1-bug {
+  left: 1px;
+}

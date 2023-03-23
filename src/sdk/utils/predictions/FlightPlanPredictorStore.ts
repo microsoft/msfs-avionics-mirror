@@ -1,7 +1,7 @@
-import { LNavDataSimVarEvents } from '../../autopilot/data';
+import { LNavDataSimVarEvents } from '../../autopilot';
 import { ConsumerSubject, EventBus } from '../../data';
 import { FlightPlanner, FlightPlannerEvents, LegDefinition } from '../../flightplan';
-import { ClockEvents, EngineEvents, GNSSEvents } from '../../instruments';
+import { AdcEvents, ClockEvents, EngineEvents, GNSSEvents } from '../../instruments';
 import { Subject, Subscribable } from '../../sub';
 
 /**
@@ -13,6 +13,8 @@ export class FlightPlanPredictorStore {
   public readonly ppos = ConsumerSubject.create(null, new LatLongAlt());
 
   public readonly groundSpeed = ConsumerSubject.create(null, 150);
+
+  public readonly altitude = ConsumerSubject.create(null, -1);
 
   /**
    * Total fuel quantity in gallons
@@ -45,10 +47,11 @@ export class FlightPlanPredictorStore {
     private readonly flightPlanner: FlightPlanner,
     private readonly planIndexSub: Subscribable<number>,
   ) {
-    const sub = this.bus.getSubscriber<GNSSEvents & EngineEvents & LNavDataSimVarEvents & FlightPlannerEvents & ClockEvents>();
+    const sub = this.bus.getSubscriber<AdcEvents & GNSSEvents & EngineEvents & LNavDataSimVarEvents & FlightPlannerEvents & ClockEvents>();
 
     this.ppos.setConsumer(sub.on('gps-position').atFrequency(1));
     this.groundSpeed.setConsumer(sub.on('ground_speed'));
+    this.altitude.setConsumer(sub.on('pressure_alt'));
     this.fuelFlow.setConsumer(sub.on('fuel_flow_total'));
     this.fuelTotalQuantity.setConsumer(sub.on('fuel_total'));
     this.fuelWeight.setConsumer(sub.on('fuel_weight_per_gallon'));

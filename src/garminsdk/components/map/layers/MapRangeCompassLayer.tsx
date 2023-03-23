@@ -1,10 +1,9 @@
-/// <reference types="msfstypes/JS/Avionics" />
-
 import {
-  APEvents, BitFlags, ComponentProps, Consumer, DisplayComponent, EventBus, FSComponent, MapCanvasLayer, MapFollowAirplaneModule, MapIndexedRangeModule,
-  MapLayer, MapLayerProps, MapOwnAirplanePropsModule, MappedSubject, MapProjection, MapProjectionChangeType, MapSyncedCanvasLayer, MapSystemKeys, NavAngleUnit,
-  NavMath, NumberUnitInterface, ReadonlyFloat64Array, Subject, Subscribable, Unit, UnitFamily, UnitType, Vec2Math, Vec2Subject, VNode
-} from 'msfssdk';
+  APEvents, ArrayUtils, BasicNavAngleUnit, BitFlags, ComponentProps, Consumer, DisplayComponent, EventBus, FSComponent, MapCanvasLayer,
+  MapFollowAirplaneModule, MapIndexedRangeModule, MapLayer, MapLayerProps, MapOwnAirplanePropsModule, MappedSubject, MapProjection,
+  MapProjectionChangeType, MapSyncedCanvasLayer, MapSystemKeys, MathUtils, NavMath, NumberUnitInterface, ReadonlyFloat64Array, Subject,
+  Subscribable, Unit, UnitFamily, UnitType, Vec2Math, Vec2Subject, VNode
+} from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapRangeDisplay } from '../MapRangeDisplay';
@@ -205,12 +204,12 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
 
   private readonly isFollowingAirplane = this.props.model.getModule(MapSystemKeys.FollowAirplane).isFollowing;
 
-  private readonly centerSubject = Vec2Subject.createFromVector(new Float64Array(2));
+  private readonly centerSubject = Vec2Subject.create(new Float64Array(2));
   private readonly radiusSubject = Subject.create(0);
   private readonly rotationSubject = Subject.create(0);
   private readonly magVarCorrectionSubject = MappedSubject.create(
     ([navAngle, magVar]) => navAngle.isMagnetic() ? magVar : 0,
-    this.unitsModule?.navAngle ?? Subject.create(NavAngleUnit.create(true)),
+    this.unitsModule?.navAngle ?? Subject.create(BasicNavAngleUnit.create(true)),
     this.props.model.getModule(MapSystemKeys.OwnAirplaneProps).magVar
   );
 
@@ -548,10 +547,10 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
    */
   private updateParameters(): void {
     const center = this.props.mapProjection.getTargetProjected();
-    const radius = (this.rangeModule.nominalRange.get().asUnit(UnitType.GA_RADIAN) as number) / this.props.mapProjection.getProjectedResolution();
-    const rotation = Math.round((this.props.mapProjection.getRotation() + this.magVarCorrectionSubject.get() * Avionics.Utils.DEG2RAD) * 1e4) / 1e4;
+    const radius = Math.round((this.rangeModule.nominalRange.get().asUnit(UnitType.GA_RADIAN) as number) / this.props.mapProjection.getProjectedResolution());
+    const rotation = MathUtils.round((this.props.mapProjection.getRotation() + this.magVarCorrectionSubject.get() * Avionics.Utils.DEG2RAD), 1e-3);
 
-    this.centerSubject.set(center);
+    this.centerSubject.set(Math.round(center[0]), Math.round(center[1]));
     this.radiusSubject.set(radius);
     this.rotationSubject.set(rotation);
   }
@@ -857,6 +856,15 @@ interface MapRangeCompassRoseLabelsProps extends MapRangeCompassSubLayerProps {
 class MapRangeCompassRoseLabels extends MapSyncedCanvasLayer<MapRangeCompassRoseLabelsProps> {
   private static readonly vec2Cache = [new Float64Array(2), new Float64Array(2)];
 
+  private readonly labels = ArrayUtils.create(Math.floor(360 / this.props.interval), index => {
+    const bearing = index * this.props.interval;
+    const bearingRounded = Math.round(bearing);
+    return {
+      bearingRad: bearing * Avionics.Utils.DEG2RAD,
+      text: (bearingRounded === 0 ? 360 : bearingRounded).toString().padStart(3, '0')
+    };
+  });
+
   /** @inheritdoc */
   public onAttached(): void {
     super.onAttached();
@@ -889,20 +897,20 @@ class MapRangeCompassRoseLabels extends MapSyncedCanvasLayer<MapRangeCompassRose
   public redraw(): void {
     this.display.clear();
 
-    const PI2 = Math.PI * 2;
     const center = this.props.compassCenterSubject.get();
     const radius = this.props.compassRadiusSubject.get();
     const rotation = this.props.compassRotationSubject.get();
     const halfAngularWidth = this.props.angularWidth / 2 * Avionics.Utils.DEG2RAD;
-    const centerBearing = (-rotation + PI2) % PI2;
+    const centerBearing = (-rotation + MathUtils.TWO_PI) % MathUtils.TWO_PI;
 
-    const intervalRad = this.props.interval * Avionics.Utils.DEG2RAD;
-    for (let bearing = 0; bearing < PI2; bearing += intervalRad) {
-      if (Math.min(Math.abs(bearing - centerBearing), PI2 - Math.abs(bearing - centerBearing)) > halfAngularWidth) {
+    for (let i = 0; i < this.labels.length; i++) {
+      const label = this.labels[i];
+
+      if (MathUtils.diffAngle(label.bearingRad, centerBearing, false) > halfAngularWidth) {
         continue;
       }
 
-      this.drawBearingLabel(center, radius, rotation, bearing);
+      this.drawBearingLabel(center, radius, rotation, label.bearingRad, label.text);
     }
   }
 
@@ -912,10 +920,9 @@ class MapRangeCompassRoseLabels extends MapSyncedCanvasLayer<MapRangeCompassRose
    * @param radius The radius of the compass, in pixels.
    * @param rotation The rotation of the compass, in radians.
    * @param bearing The label's bearing, in radians.
+   * @param text The label's text.
    */
-  private drawBearingLabel(center: ReadonlyFloat64Array, radius: number, rotation: number, bearing: number): void {
-    // TODO: support the T superscript for true bearings.
-    const text = (360 - (360 - (bearing * Avionics.Utils.RAD2DEG)) % 360).toFixed(0).padStart(3, '0');
+  private drawBearingLabel(center: ReadonlyFloat64Array, radius: number, rotation: number, bearing: number, text: string): void {
     const angle = bearing - Math.PI / 2 + rotation;
     const textWidth = this.display.context.measureText(text).width;
     const textHeight = this.props.fontSize;
@@ -928,10 +935,15 @@ class MapRangeCompassRoseLabels extends MapSyncedCanvasLayer<MapRangeCompassRose
       MapRangeCompassRoseLabels.vec2Cache[0]
     );
 
+    this.display.context.translate(labelPos[0], labelPos[1]);
+    this.display.context.rotate(1e-3); // Applying a rotation will enable sub-pixel positioning of the text.
+
     if (this.props.outlineWidth > 0) {
-      this.display.context.strokeText(text, labelPos[0], labelPos[1]);
+      this.display.context.strokeText(text, 0, 0);
     }
-    this.display.context.fillText(text, labelPos[0], labelPos[1]);
+    this.display.context.fillText(text, 0, 0);
+
+    this.display.context.resetTransform();
   }
 }
 

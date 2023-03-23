@@ -1,0 +1,19 @@
+.gtc-wpt-button .null-label {
+  display: none;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2em;
+}
+
+.gtc-wpt-button.touch-button-highlight {
+  --gtc-wpt-display-ident-color: var(--touch-button-highlight-text-color);
+}
+
+.gtc-wpt-button.show-null-label .null-label {
+  display: flex;
+}
+
+.gtc-wpt-button.show-null-label .gtc-wpt-display {
+  display: none;
+}

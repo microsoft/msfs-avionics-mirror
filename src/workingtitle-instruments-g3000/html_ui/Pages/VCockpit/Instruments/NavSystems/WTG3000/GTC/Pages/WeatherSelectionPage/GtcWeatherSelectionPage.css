@@ -1,0 +1,30 @@
+.weather-selection {
+  position: absolute;
+  left: 0px;
+  width: 100%;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+}
+
+.gtc-horizontal .weather-selection {
+  top: 45px;
+  height: calc(100% - 145px);
+
+  --weather-selection-button-horiz-margin: 15px;
+  --weather-selection-button-vert-margin: 20px;
+}
+
+.gtc-vertical .weather-selection {
+  top: 25px;
+  height: calc(100% - 75px);
+
+  --weather-selection-button-horiz-margin: 7px;
+  --weather-selection-button-vert-margin: 10px;
+}
+
+.weather-selection .touch-button {
+  margin: 0 calc(var(--weather-selection-button-horiz-margin) / 2) var(--weather-selection-button-vert-margin) calc(var(--weather-selection-button-horiz-margin) / 2);
+}

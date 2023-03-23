@@ -249,7 +249,15 @@ export class MapSystemTrafficLayer extends MapLayer<MapSystemTrafficLayerProps> 
    * Updates this layer's visibility.
    */
   private updateVisibility(): void {
-    this.setVisible(this.trafficModule.tcas.getOperatingMode() !== TcasOperatingMode.Standby && this.trafficModule.show.get());
+    const operatingMode = this.trafficModule.tcas.getOperatingMode();
+    this.setVisible(
+      this.trafficModule.show.get()
+      && (
+        operatingMode === TcasOperatingMode.TAOnly
+        || operatingMode === TcasOperatingMode.TA_RA
+        || operatingMode === TcasOperatingMode.Test
+      )
+    );
   }
 
   /**
@@ -291,7 +299,7 @@ export class MapSystemTrafficLayer extends MapLayer<MapSystemTrafficLayerProps> 
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <MapSyncedCanvasLayer ref={this.iconLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} />
+      <MapSyncedCanvasLayer ref={this.iconLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} class={this.props.class ?? ''} />
     );
   }
 }

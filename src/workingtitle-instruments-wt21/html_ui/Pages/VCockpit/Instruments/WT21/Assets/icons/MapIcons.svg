@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox=" 0 0 30 30">
+
+  <!-- NDB -->
+  <!-- <circle cx="15" cy="15" r="8" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" />
+  <circle cx="15" cy="15" r="4" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" /> -->
+
+  <!-- Airport -->
+  <!-- <circle cx="15" cy="15" r="12" fill="none" stroke="rgb(0,255,0)" stroke-width="2px" /> -->
+
+  <!-- 4-point star -->
+  <!-- <path d="M 15 1 l -3 11 l -11 3 l 11 3 l 3 11 l 3 -11 l 11 -3 l -11 -3 l -3 -11" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" /> -->
+
+  <!-- Intersection -->
+  <!-- <path d="M 15 4 l -9 22 l 17 0 z" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" /> -->
+
+  <!-- VOR -->
+  <!-- <path d="M 15 7 l 5 0 l 4 8 l -4 8 l -10 0 l -4 -8 l 4 -8 z" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" /> -->
+
+  <!-- DME -->
+  <!-- <path d="M 15 6 l 10 0 l 0 18 l -20 0 l 0 -18 z" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" /> -->
+
+
+  <!-- VORTAC -->
+  <!-- <path d="M 15 5 l 5 0 l 4 8 l -4 8 l -10 0 l -4 -8 l 4 -8 z" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" />
+  <path d="M 10 21 l 0 6 l 10 0 l 0 -6" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" />
+  <path d="M 20 5 l 5.48 -2.735 l 3.993 8.115 l -5.473 2.62 " fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" />
+  <path d="M 6 13 l -5.423 -2.747 l 4.146 -7.962 l 5.277 2.709" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" /> -->
+
+  <!-- TACAN -->
+  <!-- <path d="M 15 5 l 5 0 m 4 8 l -4 8 m -10 0 l -4 -8 m 4 -8 l 5 0" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" />
+  <path d="M 10 21 l 0 6 l 10 0 l 0 -6" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" />
+  <path d="M 20 5 l 5.48 -2.735 l 3.993 8.115 l -5.473 2.62 " fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" />
+  <path d="M 6 13 l -5.423 -2.747 l 4.146 -7.962 l 5.277 2.709" fill="none" stroke="hsl(192, 100%, 50%)" stroke-width="2px" stroke-linejoin="round" stroke-linecap="round" /> -->
+
+
+</svg>

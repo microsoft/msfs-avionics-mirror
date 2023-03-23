@@ -1,5 +1,6 @@
+import { VerticalFlightPhase } from '../../flightplan/FlightPlanning';
 import { ReadonlySubEvent } from '../../sub';
-import { VerticalFlightPhase, VerticalFlightPlan, VNavConstraint } from '../VerticalNavigation';
+import { VerticalFlightPlan, VNavConstraint, AltitudeConstraintDetails } from '../VerticalNavigation';
 
 /**
  * VNav Path Calculator Interface
@@ -12,8 +13,11 @@ export interface VNavPathCalculator {
   /** The maximum FPA allowed for path calculator */
   maxFlightPathAngle: number;
 
-  /** Sub Event fired when a path has been calculated, with the planIndex */
-  vnavCalculated: ReadonlySubEvent<this, number>
+  /** An event fired when a vertical plan has been built or rebuilt, with the index of the plan as the event data. */
+  readonly planBuilt: ReadonlySubEvent<this, number>
+
+  /** An event fired when a path has been calculated, with the index of the plan as the event data. */
+  readonly vnavCalculated: ReadonlySubEvent<this, number>;
 
   /**
    * Gets a vertical flight plan by index, or throws not found if the plan does not exist.
@@ -31,10 +35,28 @@ export interface VNavPathCalculator {
   createVerticalPlan(planIndex: number): VerticalFlightPlan;
 
   /**
-   * Gets the VNAV target altitude for the given leg index.
-   * @param planIndex The vertical flight plan index.
-   * @param globalLegIndex The global leg index of the leg.
-   * @returns The next VNAV target altitude, or undefined if none exists.
+   * Gets the index of the VNAV constraint defining the target VNAV altitude for a flight plan leg.
+   * @param planIndex The flight plan index.
+   * @param globalLegIndex The global index of the flight plan leg.
+   * @returns The index of the VNAV constraint defining the target VNAV altitude for the specified flight plan leg, or
+   * `-1` if one could not be found.
+   */
+  getTargetConstraintIndex(planIndex: number, globalLegIndex: number): number;
+
+  /**
+   * Gets the VNAV constraint defining the target VNAV altitude for a flight plan leg.
+   * @param planIndex The flight plan index.
+   * @param globalLegIndex The global index of the flight plan leg.
+   * @returns The VNAV constraint defining the target VNAV altitude for the specified flight plan leg, or `undefined`
+   * if one could not be found.
+   */
+  getTargetConstraint(planIndex: number, globalLegIndex: number): VNavConstraint | undefined;
+
+  /**
+   * Gets the VNAV target altitude for a flight plan leg.
+   * @param planIndex The flight plan index.
+   * @param globalLegIndex The global index of the flight plan leg.
+   * @returns The VNAV target altitude for the specified flight plan leg, or `undefined` if none exists.
    */
   getTargetAltitude(planIndex: number, globalLegIndex: number): number | undefined;
 
@@ -46,18 +68,26 @@ export interface VNavPathCalculator {
   getFlightPhase(planIndex: number): VerticalFlightPhase;
 
   /**
-   * Gets and returns the current constraint altitude.
+   * Gets and returns the current constraint altitude in meters.
    * @param planIndex The vertical flight plan index.
-   * @param globalLegIndex is the global leg index to check.
-   * @returns the altitude or undefined.
+   * @param globalLegIndex The global index of the leg for which to get the current constraint.
+   * @returns The current constraint altitude in meters, or `undefined` if there is no current constraint.
    */
   getCurrentConstraintAltitude(planIndex: number, globalLegIndex: number): number | undefined;
 
   /**
-   * Gets and returns the next constraint altitude.
+   * Gets and returns the current constraint details.
    * @param planIndex The vertical flight plan index.
    * @param globalLegIndex is the global leg index to check.
-   * @returns the altitude or undefined.
+   * @returns the VNavConstraintDetails.
+   */
+  getCurrentConstraintDetails(planIndex: number, globalLegIndex: number): AltitudeConstraintDetails;
+
+  /**
+   * Gets and returns the next constraint altitude in meters.
+   * @param planIndex The vertical flight plan index.
+   * @param globalLegIndex The global index of the leg for which to get the next constraint.
+   * @returns The next constraint altitude in meters or `undefined` if there is no next constraint.
    */
   getNextConstraintAltitude(planIndex: number, globalLegIndex: number): number | undefined;
 
@@ -84,13 +114,6 @@ export interface VNavPathCalculator {
    * @param constraintGlobalLegIndex The global leg index of the constraint to go direct to.
    */
   activateVerticalDirect(planIndex: number, constraintGlobalLegIndex: number): void;
-
-  /**
-   * Sets how far along the current leg the aircraft currently is.
-   * @param planIndex The vertical flight plan index.
-   * @param distance The distance along the leg, in meters.
-   */
-  setCurrentAlongLegDistance(planIndex: number, distance: number): void;
 
   /**
    * Request an out-of-cycle path computation for a specified vertical flight plan.

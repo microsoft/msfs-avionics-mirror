@@ -1,0 +1,30 @@
+.systems2-data-container {
+  position: relative;
+  display: flex;
+  background-color: var(--wt21-colors-black);
+  flex-grow: 1;
+}
+
+.systems2-aileron-pointer {
+  position: absolute;
+  left: 148px;
+  top: 42px;
+}
+
+.systems2-rudder-pointer {
+  position: absolute;
+  left: 308px;
+  top: 73px;
+}
+
+.systems2-elevator-left-pointer {
+  position: absolute;
+  left: 471px;
+  top: 56px;
+}
+
+.systems2-elevator-right-pointer {
+  position: absolute;
+  left: 501px;
+  top: 56px;
+}

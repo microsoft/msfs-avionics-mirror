@@ -1,0 +1,264 @@
+.bottom-info {
+  position: relative;
+
+  --bottom-info-ui-center-x: 50%;
+
+  --bottom-info-padding-top: 2px;
+  --bottom-info-padding-bottom: 2px;
+
+  --bottom-info-separator-padding-top: 4px;
+  --bottom-info-separator-padding-bottom: 4px;
+
+  --bottom-info-speed-info-width: 82px;
+  --bottom-info-speed-info-margin-left: 2px;
+  --bottom-info-speed-info-margin-right: 6px;
+
+  --bottom-info-temperature-info-width: 82px;
+  --bottom-info-temperature-info-margin-left: 3px;
+  --bottom-info-temperature-info-margin-right: 3px;
+
+  --bottom-info-wind-width: 83px;
+  --bottom-info-wind-margin-left: 3px;
+  --bottom-info-wind-margin-right: 3px;
+
+  --bottom-info-time-info-left-offset: 174px;
+  --bottom-info-time-info-width: 124px;
+  --bottom-info-time-info-margin-left: 3px;
+  --bottom-info-time-info-margin-right: 3px;
+
+  --bottom-info-nav-status-width: 340px;
+  --bottom-info-nav-status-leg-font-size: 1.2em;
+
+  /* Computed vars */
+  --bottom-info-padding-height: calc(100% - var(--bottom-info-padding-top) - var(--bottom-info-padding-bottom));
+  --bottom-info-separator-height: calc(100% - var(--bottom-info-separator-padding-top) - var(--bottom-info-separator-padding-bottom));
+  --bottom-info-speed-info-margin-width: calc(var(--bottom-info-speed-info-margin-left) + var(--bottom-info-speed-info-width) + var(--bottom-info-speed-info-margin-right));
+}
+
+.bottom-info-softkey {
+  background: transparent;
+
+  --bottom-info-softkey-background-fill: #0f1419;
+  --bottom-info-softkey-background-arc-outline-stroke: #393f44;
+  --bottom-info-softkey-background-arc-outline-stroke-width: 1px;
+}
+
+.bottom-info-softkey-background {
+  position: absolute;
+  left: calc(var(--bottom-info-ui-center-x) - 640px);
+  top: 0px;
+  width: 1280px;
+  height: 100%;
+}
+
+.bottom-info-softkey-background-fill {
+  fill: var(--bottom-info-softkey-background-fill);
+}
+
+.bottom-info-softkey-background-arc-outline {
+  fill: none;
+  stroke: var(--bottom-info-softkey-background-arc-outline-stroke);
+  stroke-width: var(--bottom-info-softkey-background-arc-outline-stroke-width);
+}
+
+.bottom-info-nosoftkey {
+  background: linear-gradient(to top, #0a0d10, #131a20);
+}
+
+.bottom-info-use-banners {
+  --bottom-info-bearing-info-width: 166px;
+  --bottom-info-bearing-info-center-margin: 4px;
+}
+
+.bottom-info-no-banners {
+  --bottom-info-nav-dme-info-right: calc(var(--bottom-info-ui-center-x) + 177px);
+  --bottom-info-nav-dme-info-width: 240px;
+  --bottom-info-nav-dme-info-padding-right: 60px;
+
+  --bottom-info-bearing-info-left: calc(var(--bottom-info-ui-center-x) + 177px);
+  --bottom-info-bearing-info-width: 240px;
+}
+
+.display-pane-full .bottom-info-no-banners {
+  --bottom-info-time-info-left-offset: 417px;
+}
+
+/* ---- Separators ---- */
+
+.bottom-info-separator {
+  position: absolute;
+  top: var(--bottom-info-separator-padding-top);
+  height: var(--bottom-info-separator-height);
+  width: 0px;
+  border-left: solid 1px #303030;
+}
+
+.bottom-info-separator-1 {
+  left: var(--bottom-info-speed-info-margin-width);
+}
+
+.bottom-info-separator-2 {
+  left: calc(var(--bottom-info-ui-center-x) - 174px);
+}
+
+.bottom-info-separator-3 {
+  left: calc(var(--bottom-info-ui-center-x) + 173px);
+}
+
+.bottom-info-separator-4 {
+  left: calc(var(--bottom-info-ui-center-x) + 416px);
+}
+
+.display-pane-half .bottom-info-separator-4 {
+  display: none;
+}
+
+/* ---- Speed info ---- */
+
+.bottom-info .speed-info {
+  position: absolute;
+  left: var(--bottom-info-speed-info-margin-left);
+  top: var(--bottom-info-padding-top);
+  width: var(--bottom-info-speed-info-width);
+  height: var(--bottom-info-padding-height);
+  padding-left: var(--bottom-info-speed-info-padding-left);
+  padding-right: var(--bottom-info-speed-info-padding-right);
+}
+
+/* ---- Temperature info ---- */
+
+.bottom-info .temperature-info {
+  position: absolute;
+  left: calc(var(--bottom-info-speed-info-margin-width) + 1px + var(--bottom-info-temperature-info-margin-left));
+  top: var(--bottom-info-padding-top);
+  width: var(--bottom-info-temperature-info-width);
+  height: var(--bottom-info-padding-height);
+}
+
+/* ---- Wind display ---- */
+
+.bottom-info .wind {
+  position: absolute;
+  left: calc(var(--bottom-info-speed-info-margin-width) + 1px + var(--bottom-info-wind-margin-left));
+  top: var(--bottom-info-padding-top);
+  width: var(--bottom-info-wind-width);
+  height: var(--bottom-info-padding-height);
+
+  --wind-option1-top: 0px;
+}
+
+/* ---- Time info ---- */
+
+.bottom-info .time-info {
+  position: absolute;
+  left: calc(var(--bottom-info-ui-center-x) + var(--bottom-info-time-info-left-offset) + var(--bottom-info-time-info-margin-left));
+  top: var(--bottom-info-padding-top);
+  width: var(--bottom-info-time-info-width);
+  height: var(--bottom-info-padding-height);
+}
+
+/* ---- Navigation status box ---- */
+
+.bottom-info-nav-status-container {
+  position: absolute;
+  left: calc(var(--bottom-info-ui-center-x) - var(--bottom-info-nav-status-width) / 2);
+  top: var(--bottom-info-padding-top);
+  width: var(--bottom-info-nav-status-width);
+  height: var(--bottom-info-padding-height);
+}
+
+.bottom-info-nav-status-container .nav-status {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.bottom-info-nav-status-container .nav-status-fields {
+  letter-spacing: -0.5px;
+}
+
+.bottom-info-nav-status-container .nav-data-field-title {
+  margin-right: 5px;
+}
+
+.bottom-info-softkey .nav-status {
+  --nav-status-fields-top: 0px;
+  --nav-status-leg-top: calc(50% + 1px);
+  --nav-status-field-width: calc(50% - 77px);
+}
+
+.bottom-info-nosoftkey .nav-status {
+  --nav-status-fields-left: calc(50% - 105px);
+  --nav-status-fields-width: 210px;
+  --nav-status-field-width: calc(50% - 15px);
+}
+
+/* ---- NAV/DME information display ---- */
+
+.bottom-info-nav-dme-info-container {
+  position: absolute;
+  right: var(--bottom-info-nav-dme-info-right);
+  top: var(--bottom-info-padding-top);
+  width: var(--bottom-info-nav-dme-info-width);
+  height: var(--bottom-info-padding-height);
+}
+
+.bottom-info-nav-dme-info-container .nav-dme-info {
+  position: absolute;
+  right: var(--bottom-info-nav-dme-info-padding-right);
+  top: 0px;
+  width: calc(100% - var(--bottom-info-nav-dme-info-padding-right));
+  height: 100%;
+}
+
+/* ---- Bearing information display ---- */
+
+.bottom-info-bearing-info-container {
+  position: absolute;
+  top: var(--bottom-info-padding-top);
+  height: var(--bottom-info-padding-height);
+}
+
+.bottom-info-use-banners .bottom-info-bearing-info-container {
+  left: calc(var(--bottom-info-ui-center-x) - var(--bottom-info-bearing-info-width) - var(--bottom-info-bearing-info-center-margin));
+  width: calc(2 * (var(--bottom-info-bearing-info-width) + var(--bottom-info-bearing-info-center-margin)));
+}
+
+.bottom-info-use-banners .bearing-info {
+  position: absolute;
+  top: 0px;
+  height: 100%;
+  width: var(--bottom-info-bearing-info-width);
+
+  --bearing-info-top-center-margin: 4px;
+}
+
+.bottom-info-use-banners.bottom-info-softkey .bearing-info {
+  --bearing-info-top-center-margin: 75px;
+}
+
+.bottom-info-use-banners.bottom-info-nosoftkey .bearing-info {
+  --bearing-info-top-center-margin: var(--bottom-info-bearing-info-center-margin);
+}
+
+.bottom-info-use-banners .bearing-info-1 {
+  right: calc(50% + var(--bottom-info-bearing-info-center-margin));
+}
+
+.bottom-info-use-banners .bearing-info-2 {
+  left: calc(50% + var(--bottom-info-bearing-info-center-margin));
+}
+
+.bottom-info-no-banners .bottom-info-bearing-info-container {
+  left: var(--bottom-info-bearing-info-left);
+  width: var(--bottom-info-bearing-info-width);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.bottom-info-no-banners .bearing-info {
+  height: 50%;
+}

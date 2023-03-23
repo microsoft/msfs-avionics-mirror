@@ -28,7 +28,7 @@ export class HorizonSyncedCanvasLayer extends HorizonCanvasLayer<HorizonCanvasLa
   }
 
   /** @inheritdoc */
-  public onMapProjectionChanged(projection: HorizonProjection, changeFlags: number): void {
+  public onProjectionChanged(projection: HorizonProjection, changeFlags: number): void {
     if (BitFlags.isAll(changeFlags, HorizonProjectionChangeType.ProjectedSize)) {
       this.updateFromProjectedSize(projection.getProjectedSize());
     }

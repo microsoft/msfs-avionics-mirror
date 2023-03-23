@@ -1,0 +1,96 @@
+.gtc-horizontal .vnav-constraint-slideout-menu {
+  --vnav-constraint-slideout-menu-main-width: 373px;
+  --vnav-constraint-slideout-menu-main-height: 627px;
+  --vnav-constraint-slideout-menu-main-top: 68px;
+
+  --vnav-constraint-slideout-menu-button-width: 180px;
+  --vnav-constraint-slideout-menu-button-height: 138px;
+  --vnav-constraint-slideout-menu-button-label-font-size: 27px;
+  --vnav-constraint-slideout-menu-button-value-font-size: 36px;
+  --vnav-constraint-slideout-menu-bottom-row-button-font-size: 31px;
+
+  --vnav-constraint-slideout-menu-between-button-height: 110px;
+  --vnav-constraint-slideout-menu-between-button-spacing: 13px;
+}
+
+.gtc-vertical .vnav-constraint-slideout-menu {
+  --vnav-constraint-slideout-menu-main-width: 202px;
+  --vnav-constraint-slideout-menu-main-height: 337px;
+  --vnav-constraint-slideout-menu-main-top: 36px;
+
+  --vnav-constraint-slideout-menu-button-width: 97px;
+  --vnav-constraint-slideout-menu-button-height: 74px;
+  --vnav-constraint-slideout-menu-button-label-font-size: 15px;
+  --vnav-constraint-slideout-menu-button-value-font-size: 20px;
+  --vnav-constraint-slideout-menu-bottom-row-button-font-size: 16px;
+
+  --vnav-constraint-slideout-menu-between-button-height: 59px;
+  --vnav-constraint-slideout-menu-between-button-spacing: 8px;
+}
+
+.vnav-constraint-slideout-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.vnav-constraint-slideout-menu .main {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: var(--vnav-constraint-slideout-menu-main-width);
+  height: var(--vnav-constraint-slideout-menu-main-height);
+  top: var(--vnav-constraint-slideout-menu-main-top);
+}
+
+.vnav-constraint-slideout-menu .main .row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vnav-constraint-slideout-menu .main .row .touch-button {
+  width: var(--vnav-constraint-slideout-menu-button-width);
+  height: var(--vnav-constraint-slideout-menu-button-height);
+}
+
+.vnav-constraint-slideout-menu .main .row .touch-button .touch-button-label {
+  font-size: var(--vnav-constraint-slideout-menu-button-label-font-size);
+}
+
+.vnav-constraint-slideout-menu .main .row .touch-button .touch-button-value-value {
+  font-size: var(--vnav-constraint-slideout-menu-button-value-font-size);
+}
+
+.vnav-constraint-slideout-menu .main .row .altitude-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.vnav-constraint-slideout-menu .main .row .altitude-column .bottom-altitude-button {
+  display: none;
+}
+
+.vnav-constraint-slideout-menu.Between .main .row .altitude-column .bottom-altitude-button {
+  display: block;
+}
+
+.vnav-constraint-slideout-menu.Between .main .row .altitude-column .touch-button {
+  height: var(--vnav-constraint-slideout-menu-between-button-height);
+}
+
+.vnav-constraint-slideout-menu.Between .main .row .altitude-column>*+* {
+  margin-top: var(--vnav-constraint-slideout-menu-between-button-spacing);
+}
+
+.vnav-constraint-slideout-menu .main .row .altitude-column .touch-button .touch-button-label {
+  color: var(--g3000-color-cyan);
+  font-size: var(--vnav-constraint-slideout-menu-button-value-font-size);
+}
+
+.vnav-constraint-slideout-menu .main .row.bottom-row .touch-button .touch-button-label {
+  font-size: var(--vnav-constraint-slideout-menu-bottom-row-button-font-size);
+}

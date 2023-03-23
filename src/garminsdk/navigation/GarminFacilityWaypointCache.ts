@@ -1,4 +1,4 @@
-import { AirportFacility, EventBus, Facility, FacilityType, FacilityWaypoint, FacilityWaypointCache, ICAO } from 'msfssdk';
+import { AirportFacility, BasicFacilityWaypoint, EventBus, Facility, FacilityType, FacilityUtils, FacilityWaypoint, FacilityWaypointCache, ICAO } from '@microsoft/msfs-sdk';
 
 import { AirportWaypoint } from './AirportWaypoint';
 
@@ -8,7 +8,7 @@ import { AirportWaypoint } from './AirportWaypoint';
 export class GarminFacilityWaypointCache implements FacilityWaypointCache {
   private static INSTANCE: GarminFacilityWaypointCache | undefined;
 
-  private readonly cache = new Map<string, FacilityWaypoint<any>>();
+  private readonly cache = new Map<string, FacilityWaypoint>();
 
   /**
    * Constructor.
@@ -24,26 +24,27 @@ export class GarminFacilityWaypointCache implements FacilityWaypointCache {
    * @returns A waypoint.
    */
   public get<T extends Facility>(facility: Facility): FacilityWaypoint<T> {
-    let existing = this.cache.get(facility.icao);
+    const key = GarminFacilityWaypointCache.getFacilityKey(facility);
+    let existing = this.cache.get(key);
     if (!existing) {
       if (ICAO.getFacilityType(facility.icao) === FacilityType.Airport) {
         existing = new AirportWaypoint(facility as unknown as AirportFacility, this.bus);
       } else {
-        existing = new FacilityWaypoint(facility, this.bus);
+        existing = new BasicFacilityWaypoint(facility, this.bus);
       }
-      this.addToCache(facility, existing);
+      this.addToCache(key, existing);
     }
-    return existing;
+    return existing as FacilityWaypoint<T>;
   }
 
   /**
    * Adds a waypoint to this cache. If the size of the cache is greater than the maximum after the new waypoint is
    * added, a waypoint will be removed from the cache in FIFO order.
-   * @param facility The facility associated with the waypoint to add.
+   * @param key The key of the waypoint to add.
    * @param waypoint The waypoint to add.
    */
-  private addToCache(facility: Facility, waypoint: FacilityWaypoint<any>): void {
-    this.cache.set(facility.icao, waypoint);
+  private addToCache(key: string, waypoint: FacilityWaypoint): void {
+    this.cache.set(key, waypoint);
     if (this.cache.size > this.size) {
       this.cache.delete(this.cache.keys().next().value);
     }
@@ -56,5 +57,18 @@ export class GarminFacilityWaypointCache implements FacilityWaypointCache {
    */
   public static getCache(bus: EventBus): GarminFacilityWaypointCache {
     return GarminFacilityWaypointCache.INSTANCE ??= new GarminFacilityWaypointCache(bus, 1000);
+  }
+
+  /**
+   * Gets the cache key for a facility.
+   * @param facility A facility.
+   * @returns The cache key for the specified facility.
+   */
+  private static getFacilityKey(facility: Facility): string {
+    if (FacilityUtils.isFacilityType(facility, FacilityType.Intersection) && ICAO.getFacilityType(facility.icao) !== FacilityType.Intersection) {
+      return `mismatch.${facility.icao}`;
+    }
+
+    return facility.icao;
   }
 }

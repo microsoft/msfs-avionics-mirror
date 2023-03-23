@@ -1,0 +1,45 @@
+div.tfc-map {
+  position: relative;
+  padding: unset;
+}
+
+.tfc-map-toggle {
+  padding: 3px;
+  position: absolute;
+  top: 0px;
+}
+
+.tfc-map-toggle label {
+  font-size: 10px;
+  color: var(--gnscyan);
+}
+
+.wt430 .tfc-map-toggle label {
+  font-size: 14px;
+}
+
+.tfc-map-toggle-selection {
+  font-size: 10px;
+  color: var(--gnsgreen);
+}
+
+.wt430 .tfc-map-toggle-selection {
+  font-size: 14px;
+}
+
+.tfc-map-toggle-traffic {
+  left: 0px;
+}
+
+.tfc-map-toggle-mode {
+  right: 0px;
+}
+
+.tfc-map-standby {
+  position: absolute;
+  font-size: 24px;
+  top: 92px;
+  text-align: center;
+  width: 100%;
+  text-shadow: -2px -2px 0 #000, 0 -2px 0 #000, 2px -2px 0 #000, 2px 0 0 #000, 2px 2px 0 #000, 0 2px 0 #000, -2px 2px 0 #000, -2px 0 0 #000;
+}

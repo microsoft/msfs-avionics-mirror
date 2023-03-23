@@ -1,4 +1,4 @@
-import { MapLayerProps, MapSyncedCanvasLayer, Waypoint } from 'msfssdk';
+import { MapLayerProps, MapSyncedCanvasLayer, Waypoint } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapWaypointRenderer, MapWaypointRenderRole } from '../MapWaypointRenderer';

@@ -5,12 +5,12 @@ import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
 /**
  * A basic event-bus publisher.
  */
-export class BasePublisher<E> {
+export class BasePublisher<E extends Record<string, any>> {
 
-  private bus: EventBus;
-  private publisher: Publisher<E>;
-  private publishActive: boolean;
-  private pacer: PublishPacer<E> | undefined;
+  protected readonly bus: EventBus;
+  protected readonly publisher: Publisher<E>;
+  protected publishActive: boolean;
+  protected readonly pacer: PublishPacer<E> | undefined;
 
   /**
    * Creates an instance of BasePublisher.
@@ -101,13 +101,209 @@ export type SimVarPublisherEntry<T> = SimVarDefinition & {
    * raw simvar value will be published to the bus as-is.
    */
   map?: (value: any) => T;
+
+  /**
+   * Whether the simvar is indexed. Indexes are positive integers. If the simvar is indexed, then the indexed simvars -
+   * with the index replacing the `#index#` macro in the simvar name - will published to topics suffixed with
+   * `_[index]`. The index-1 version of the simvar will be published to the unsuffixed topic in addition to the topic
+   * suffixed with index 1.
+   */
+  indexed?: boolean;
 };
+
+/**
+ * An entry for a fully resolved sim var publisher topic.
+ */
+type ResolvedSimVarPublisherEntry<T> = Omit<SimVarPublisherEntry<T>, 'indexed'>;
 
 /**
  * A base class for publishers that need to handle simvars with built-in
  * support for pacing callbacks.
  */
-export class SimVarPublisher<E> extends BasePublisher<E> {
+export class SimVarPublisher<E extends Record<string, any>> extends BasePublisher<E> {
+  protected static readonly INDEXED_REGEX = /(.*)_([1-9]\d*)$/;
+
+  protected readonly resolvedSimVars = new Map<keyof E & string, ResolvedSimVarPublisherEntry<any>>();
+
+  protected readonly indexedSimVars = new Map<keyof E & string, SimVarPublisherEntry<any>>();
+
+  protected readonly subscribed = new Set<keyof E & string>();
+
+  /**
+   * Create a SimVarPublisher
+   * @param simVarMap A map of simvar event type keys to a SimVarDefinition.
+   * @param bus The EventBus to use for publishing.
+   * @param pacer An optional pacer to control the rate of publishing.
+   */
+  public constructor(
+    simVarMap: Map<keyof E & string, SimVarPublisherEntry<any>>,
+    bus: EventBus,
+    pacer?: PublishPacer<E>
+  ) {
+    super(bus, pacer);
+
+    for (const [topic, entry] of simVarMap) {
+      if (entry.indexed) {
+        this.indexedSimVars.set(topic, entry);
+        this.resolveIndexedSimVar(topic, entry); // resolve indexed topic to its non-suffixed form
+      } else {
+        this.resolvedSimVars.set(topic, entry);
+      }
+    }
+
+    const handleSubscribedTopic = (topic: string): void => {
+      if (this.resolvedSimVars.has(topic)) {
+        // If topic matches an already resolved topic -> start publishing.
+        this.onTopicSubscribed(topic);
+      } else {
+        // Check if topic matches indexed topic.
+        this.tryMatchIndexedSubscribedTopic(topic);
+      }
+    };
+
+    // Iterate over each subscribed topic on the bus to see if it matches any of our topics. If so, start publishing.
+    this.bus.forEachSubscribedTopic(handleSubscribedTopic);
+
+    // Listen to first-time topic subscriptions. If any of them match our topics, start publishing.
+    this.bus.getSubscriber<EventBusMetaEvents>().on('event_bus_topic_first_sub').handle(handleSubscribedTopic);
+  }
+
+  /**
+   * Checks if a subscribed topic matches one of this publisher's indexed topics, and if so resolves and starts
+   * publishing the indexed topic.
+   * @param topic The subscribed topic to check.
+   */
+  protected tryMatchIndexedSubscribedTopic(topic: string): void {
+    if (this.indexedSimVars.size === 0) {
+      return;
+    }
+
+    if (!SimVarPublisher.INDEXED_REGEX.test(topic)) { // Don't generate an array if we don't have to.
+      return;
+    }
+
+    const match = topic.match(SimVarPublisher.INDEXED_REGEX) as RegExpMatchArray;
+    const [, matchedTopic, index] = match;
+    const entry = this.indexedSimVars.get(matchedTopic);
+    if (entry) {
+      this.onTopicSubscribed(this.resolveIndexedSimVar(matchedTopic, entry, parseInt(index)));
+    }
+  }
+
+  /**
+   * Resolves an indexed topic with an index, generating a version of the topic which is mapped to an indexed simvar.
+   * The resolved indexed topic can then be published.
+   * @param topic The topic to resolve.
+   * @param entry The entry of the topic to resolve.
+   * @param index The index with which to resolve the topic. If not defined, the topic will resolve to itself (without
+   * a suffix) and will be mapped the index-1 version of its simvar.
+   * @returns The resolved indexed topic.
+   */
+  protected resolveIndexedSimVar(topic: keyof E & string, entry: SimVarPublisherEntry<any>, index?: number): string {
+    const resolvedTopic = index === undefined ? topic : `${topic}_${index}`;
+
+    if (this.resolvedSimVars.has(resolvedTopic)) {
+      return resolvedTopic;
+    }
+
+    this.resolvedSimVars.set(resolvedTopic, { name: entry.name.replace('#index#', `${index ?? 1}`), type: entry.type, map: entry.map });
+
+    return resolvedTopic;
+  }
+
+  /**
+   * Responds to when one of this publisher's topics is subscribed to for the first time.
+   * @param topic The topic that was subscribed to.
+   */
+  protected onTopicSubscribed(topic: keyof E & string): void {
+    if (this.subscribed.has(topic)) {
+      return;
+    }
+
+    this.subscribed.add(topic);
+
+    // Immediately publish the current value if publishing is active.
+    if (this.publishActive) {
+      this.publishTopic(topic);
+    }
+  }
+
+  /**
+   * NOOP - For backwards compatibility.
+   * @deprecated
+   * @param data Key of the event type in the simVarMap
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public subscribe(data: keyof E): void {
+    return;
+  }
+
+  /**
+   * NOOP - For backwards compatibility.
+   * @deprecated
+   * @param data Key of the event type in the simVarMap
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public unsubscribe(data: keyof E): void {
+    return;
+  }
+
+  /**
+   * Publish all subscribed data points to the bus.
+   */
+  public onUpdate(): void {
+    for (const topic of this.subscribed.values()) {
+      this.publishTopic(topic);
+    }
+  }
+
+  /**
+   * Publishes data to the event bus for a topic.
+   * @param topic The topic to publish.
+   */
+  protected publishTopic(topic: keyof E & string): void {
+    const value = this.getValue(topic);
+    if (value !== undefined) {
+      this.publish(topic, value);
+    }
+  }
+
+  /**
+   * Gets the current value for a topic.
+   * @param topic A topic.
+   * @returns The current value for the specified topic.
+   */
+  protected getValue<K extends keyof E & string>(topic: K): E[K] | undefined {
+    const entry = this.resolvedSimVars.get(topic);
+    if (entry === undefined) {
+      return undefined;
+    }
+
+    return entry.map === undefined
+      ? this.getSimVarValue(entry)
+      : entry.map(this.getSimVarValue(entry));
+  }
+
+  /**
+   * Gets the value of the SimVar
+   * @param entry The SimVar definition entry
+   * @returns The value of the SimVar
+   */
+  private getSimVarValue(entry: ResolvedSimVarPublisherEntry<any>): any {
+    const svValue = SimVar.GetSimVarValue(entry.name, entry.type);
+    if (entry.type === SimVarValueType.Bool) {
+      return svValue === 1;
+    }
+    return svValue;
+  }
+}
+
+
+/**
+ * A base class for publishers that need to handle simvars with built-in
+ * support for pacing callbacks.
+ */
+export class GameVarPublisher<E extends Record<string, any>> extends BasePublisher<E> {
   protected readonly simvars: Map<keyof E & string, SimVarPublisherEntry<any>>;
   protected readonly subscribed: Set<keyof E & string>;
 
@@ -147,7 +343,16 @@ export class SimVarPublisher<E> extends BasePublisher<E> {
    * @param topic The topic that was subscribed to.
    */
   protected onTopicSubscribed(topic: keyof E & string): void {
+    if (this.subscribed.has(topic)) {
+      return;
+    }
+
     this.subscribed.add(topic);
+
+    // Immediately publish the current value if publishing is active.
+    if (this.publishActive) {
+      this.publishTopic(topic);
+    }
   }
 
   /**
@@ -202,8 +407,8 @@ export class SimVarPublisher<E> extends BasePublisher<E> {
     }
 
     return entry.map === undefined
-      ? this.getSimVarValue(entry)
-      : entry.map(this.getSimVarValue(entry));
+      ? this.getGameVarValue(entry)
+      : entry.map(this.getGameVarValue(entry));
   }
 
   /**
@@ -211,11 +416,12 @@ export class SimVarPublisher<E> extends BasePublisher<E> {
    * @param entry The SimVar definition entry
    * @returns The value of the SimVar
    */
-  private getSimVarValue(entry: SimVarPublisherEntry<any>): any {
-    const svValue = SimVar.GetSimVarValue(entry.name, entry.type);
+  private getGameVarValue(entry: SimVarPublisherEntry<any>): any {
+    const svValue = SimVar.GetGameVarValue(entry.name, entry.type);
     if (entry.type === SimVarValueType.Bool) {
       return svValue === 1;
     }
     return svValue;
   }
 }
+

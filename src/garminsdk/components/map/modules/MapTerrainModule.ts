@@ -1,4 +1,4 @@
-import { Subject } from 'msfssdk';
+import { Subject } from '@microsoft/msfs-sdk';
 
 /**
  * Map terrain display mode.
@@ -19,4 +19,7 @@ export class MapTerrainModule {
 
   /** Whether to show the terrain scale. */
   public readonly showScale = Subject.create<boolean>(false);
+
+  /** Whether the relative terrain mode is in a failed state. */
+  public readonly isRelativeModeFailed = Subject.create<boolean>(false);
 }

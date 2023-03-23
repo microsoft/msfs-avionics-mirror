@@ -1,0 +1,53 @@
+.temperature-info {
+  position: relative;
+  color: var(--g3000-color-white);
+
+  --temperature-info-failed-box-width: 45px;
+}
+
+.temperature-info-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.temperature-info-oat {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 50%;
+}
+
+.temperature-info-isa {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  height: 50%;
+}
+
+.temperature-info-title {
+  font-size: 0.7em;
+}
+
+.temperature-info .failed-box-container {
+  position: relative;
+  display: none;
+  width: var(--temperature-info-failed-box-width);
+}
+
+.temperature-info .failed-box {
+  position: relative;
+  display: inline-block;
+  height: 0.8em;
+}
+
+.data-failed .temperature-info-value {
+  display: none;
+}
+
+.temperature-info.data-failed .failed-box-container {
+  display: block;
+}

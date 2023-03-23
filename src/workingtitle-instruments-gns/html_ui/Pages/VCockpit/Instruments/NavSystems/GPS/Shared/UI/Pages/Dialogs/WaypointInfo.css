@@ -1,0 +1,117 @@
+.waypoint-info {
+  text-align: left;
+}
+
+.waypoint-info>div {
+  background-color: black;
+  color: var(--gnsgreen);
+  border: 1px solid var(--gnscyan);
+  ;
+  padding: 2px;
+  width: 200px;
+}
+
+.waypoint-info>h2 {
+  margin-left: 3px;
+}
+
+wt-gns530 .waypoint-info-input {
+  display: inline-block;
+  width: 68px;
+}
+
+wt-gns430 .waypoint-info-input {
+  display: inline-block;
+  width: 116px;
+}
+
+wt-gns530 .waypoint-info-input>div {
+  display: inline-block;
+}
+
+wt-gns430 .waypoint-info-input>div {
+  display: inline-block;
+  width: 58px;
+  padding-right: 30px;
+}
+
+wt-gns530 .waypoint-info-icon {
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  vertical-align: top;
+  overflow: hidden;
+  display: inline-block;
+}
+
+
+wt-gns430 .waypoint-info-icon {
+  width: 14px;
+  height: 14px;
+  margin-left: -39px;
+  vertical-align: top;
+  overflow: hidden;
+  display: inline-block;
+}
+
+
+
+wt-gns530 .waypoint-info-region {
+  margin-left: 8px;
+  width: 100px;
+  display: inline-block;
+  vertical-align: top;
+}
+
+wt-gns430 .waypoint-info-region {
+  margin-left: 3px;
+  width: 100px;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.waypoint-info-name {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  width: 194px;
+}
+
+.waypoint-info-city {
+  height: 14px;
+}
+
+.waypoint-info>div.waypoint-info-posbox {
+  display: inline-block;
+  height: 36px;
+  width: 98px;
+  margin-bottom: 4px;
+}
+
+.waypoint-info-identbox {
+  margin-bottom: 4px;
+}
+
+.waypoint-info>div.waypoint-info-msg {
+  display: inline-block;
+  border: none;
+  background-color: transparent;
+  color: var(--gnscyan);
+  ;
+  height: 28px;
+  line-height: 14px;
+  width: 74px;
+  font-size: 12px;
+  vertical-align: top;
+  margin: 4px 0 0 30px;
+}
+
+.waypoint-info-ent {
+  border: 1px solid var(--gnscyan);
+  ;
+  padding: 1px 1px 0 0;
+}
+
+.waypoint-info-posbox>.latlon-coord {
+  text-align: right;
+  line-height: 17px;
+}

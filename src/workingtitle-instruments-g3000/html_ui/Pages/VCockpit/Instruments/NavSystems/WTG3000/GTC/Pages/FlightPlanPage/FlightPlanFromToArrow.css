@@ -1,0 +1,16 @@
+.gtc-horizontal .flight-plan-from-to-arrow {
+  --flight-plan-from-to-arrow-top: 50px;
+  --flight-plan-from-to-arrow-left: 10px;
+}
+
+.gtc-vertical .flight-plan-from-to-arrow {
+  --flight-plan-from-to-arrow-top: 27px;
+  --flight-plan-from-to-arrow-left: 3px;
+}
+
+.flight-plan-from-to-arrow {
+  position: absolute;
+  top: var(--flight-plan-from-to-arrow-top);
+  left: var(--flight-plan-from-to-arrow-left);
+  width: 60px;
+}

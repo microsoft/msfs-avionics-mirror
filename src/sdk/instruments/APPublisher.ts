@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import { EventBus, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
@@ -55,17 +55,41 @@ interface APSimVarEvents {
   /** Whether the autopilot is in pitch hold mode. */
   ap_pitch_hold: boolean;
 
+  /** Whether the autopilot is in TO/GA mode. */
+  ap_toga_hold: boolean;
+
   /** The autopilot's selected pitch target, in degrees. */
   ap_pitch_selected: number;
 
-  /** The autopilot's selected heading, in degrees. */
+  /** The autopilot's selected heading in slot 1, in degrees. */
   ap_heading_selected: number;
 
-  /** The autopilot's selected altitude, in feet. */
+  /** The autopilot's selected heading in slot 1, in degrees. */
+  ap_heading_selected_1: number;
+
+  /** The autopilot's selected heading in slot 2, in degrees. */
+  ap_heading_selected_2: number;
+
+  /** The autopilot's selected heading in slot 3, in degrees. */
+  ap_heading_selected_3: number;
+
+  /** The autopilot's selected altitude in slot 1, in feet. */
   ap_altitude_selected: number;
+
+  /** The autopilot's selected altitude in slot 1, in feet. */
+  ap_altitude_selected_1: number;
+
+  /** The autopilot's selected altitude in slot 2, in feet. */
+  ap_altitude_selected_2: number;
+
+  /** The autopilot's selected altitude in slot 3, in feet. */
+  ap_altitude_selected_3: number;
 
   /** The autopilot's selected vertical speed target, in feet per minute. */
   ap_vs_selected: number; // should eventually be APIndexedData
+
+  /** The autopilot's selected flight path angle target, in degrees */
+  ap_fpa_selected: number;
 
   /** The autopilot's selected airspeed target, in knots. */
   ap_ias_selected: number; // should eventually be APIndexedData
@@ -75,6 +99,9 @@ interface APSimVarEvents {
 
   /** Whether the autopilot's selected airspeed target is in mach. */
   ap_selected_speed_is_mach: boolean;
+
+  /** Whether the autopilot's selected airspeed target is manually set. */
+  ap_selected_speed_is_manual: boolean;
 
   /** The bank commanded by the flight director, in degrees. */
   flight_director_bank: number;
@@ -128,9 +155,14 @@ export interface APEvents extends APSimVarEvents {
 /** base publisher for simvars */
 class APSimVarPublisher extends SimVarPublisher<APSimVarEvents> {
   private static simvars = new Map<keyof APSimVarEvents, SimVarDefinition>([
-    // TODO extend the next two to handle multiple APs?
     ['ap_heading_selected', { name: 'AUTOPILOT HEADING LOCK DIR:1', type: SimVarValueType.Degree }],
+    ['ap_heading_selected_1', { name: 'AUTOPILOT HEADING LOCK DIR:1', type: SimVarValueType.Degree }],
+    ['ap_heading_selected_2', { name: 'AUTOPILOT HEADING LOCK DIR:2', type: SimVarValueType.Degree }],
+    ['ap_heading_selected_3', { name: 'AUTOPILOT HEADING LOCK DIR:3', type: SimVarValueType.Degree }],
     ['ap_altitude_selected', { name: 'AUTOPILOT ALTITUDE LOCK VAR:1', type: SimVarValueType.Feet }],
+    ['ap_altitude_selected_1', { name: 'AUTOPILOT ALTITUDE LOCK VAR:1', type: SimVarValueType.Feet }],
+    ['ap_altitude_selected_2', { name: 'AUTOPILOT ALTITUDE LOCK VAR:2', type: SimVarValueType.Feet }],
+    ['ap_altitude_selected_3', { name: 'AUTOPILOT ALTITUDE LOCK VAR:3', type: SimVarValueType.Feet }],
     ['ap_master_status', { name: 'AUTOPILOT MASTER', type: SimVarValueType.Bool }],
     ['ap_yd_status', { name: 'AUTOPILOT YAW DAMPER', type: SimVarValueType.Bool }],
     ['ap_heading_hold', { name: 'AUTOPILOT HEADING LOCK', type: SimVarValueType.Bool }],
@@ -146,10 +178,13 @@ class APSimVarPublisher extends SimVarPublisher<APSimVarEvents> {
     ['ap_alt_hold', { name: 'AUTOPILOT ALTITUDE LOCK', type: SimVarValueType.Bool }],
     ['ap_glideslope_hold', { name: 'AUTOPILOT GLIDESLOPE HOLD', type: SimVarValueType.Bool }],
     ['ap_pitch_hold', { name: 'AUTOPILOT PITCH HOLD', type: SimVarValueType.Bool }],
+    ['ap_toga_hold', { name: 'AUTOPILOT TAKEOFF POWER ACTIVE', type: SimVarValueType.Bool }],
     ['ap_vs_selected', { name: 'AUTOPILOT VERTICAL HOLD VAR:1', type: SimVarValueType.FPM }],
+    ['ap_fpa_selected', { name: 'L:WT_AP_FPA_Target:1', type: SimVarValueType.Degree }],
     ['ap_ias_selected', { name: 'AUTOPILOT AIRSPEED HOLD VAR', type: SimVarValueType.Knots }],
     ['ap_mach_selected', { name: 'AUTOPILOT MACH HOLD VAR', type: SimVarValueType.Number }],
     ['ap_selected_speed_is_mach', { name: 'AUTOPILOT MANAGED SPEED IN MACH', type: SimVarValueType.Bool }],
+    ['ap_selected_speed_is_manual', { name: 'L:XMLVAR_SpeedIsManuallySet', type: SimVarValueType.Bool }],
     ['flight_director_bank', { name: 'AUTOPILOT FLIGHT DIRECTOR BANK', type: SimVarValueType.Degree }],
     ['flight_director_pitch', { name: 'AUTOPILOT FLIGHT DIRECTOR PITCH', type: SimVarValueType.Degree }],
     ['flight_director_is_active_1', { name: 'AUTOPILOT FLIGHT DIRECTOR ACTIVE:1', type: SimVarValueType.Bool }],

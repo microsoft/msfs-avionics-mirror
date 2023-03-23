@@ -1,0 +1,87 @@
+.tfc-settings {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: flex-start;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .tfc-settings {
+  --tfc-settings-group-width: 395px;
+  --tfc-settings-group-gap: 15px;
+  --tfc-settings-group-padding: 0px 10px 10px 10px;
+
+  --tfc-settings-group-title-margin: 5px 0px;
+  --tfc-settings-group-title-font-size: 0.8em;
+
+  --tfc-settings-group-button-height: 115px;
+  --tfc-settings-group-button-gap: 10px;
+
+  --tfc-settings-tis-mute-button-margin-top: 30px;
+}
+
+.gtc-vertical .tfc-settings {
+  --tfc-settings-group-width: 215px;
+  --tfc-settings-group-gap: 7px;
+  --tfc-settings-group-padding: 0px 5px 5px 5px;
+
+  --tfc-settings-group-title-margin: 5px 0px;
+  --tfc-settings-group-title-font-size: 0.8em;
+
+  --tfc-settings-group-button-height: 60px;
+  --tfc-settings-group-button-gap: 5px;
+
+  --tfc-settings-tis-mute-button-margin-top: 15px;
+}
+
+.tfc-settings-tis {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.tfc-settings-tis-mute-button {
+  height: var(--tfc-settings-group-button-height);
+  margin-top: var(--tfc-settings-tis-mute-button-margin-top);
+  line-height: 1em;
+}
+
+.tfc-settings>.tfc-settings-group+.tfc-settings-group {
+  margin-left: var(--tfc-settings-group-gap);
+}
+
+.tfc-settings-group {
+  width: var(--tfc-settings-group-width);
+  flex-shrink: 1;
+  padding: var(--tfc-settings-group-padding);
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.tfc-settings .xpdr-tcas-group.tfc-settings-group {
+  --xpdr-tcas-group-title-margin: var(--tfc-settings-group-title-margin);
+  --xpdr-tcas-group-title-font-size: var(--tfc-settings-group-title-font-size);
+
+  --xpdr-tcas-group-button-height: var(--tfc-settings-group-button-height);
+  --xpdr-tcas-group-button-gap: var(--tfc-settings-group-button-gap);
+}
+
+.tfc-settings-group-title {
+  margin: var(--tfc-settings-group-title-margin);
+  font-size: var(--tfc-settings-group-title-font-size);
+  text-align: center;
+}
+
+.tfc-settings-group .touch-button {
+  height: var(--tfc-settings-group-button-height);
+}
+
+.tfc-settings-group>.touch-button+.touch-button {
+  margin-top: var(--tfc-settings-group-button-gap);
+}

@@ -1,0 +1,12 @@
+.map-no-gps-position {
+  background-color: black;
+  position: absolute;
+  color: yellow;
+  z-index: 0;
+  font-size: 16px;
+  text-align: center;
+}
+
+.wt430 .map-no-gps-position {
+  font-size: 20px;
+}

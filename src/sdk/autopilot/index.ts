@@ -3,6 +3,7 @@ export * from './APStates';
 export * from './Autopilot';
 export * from './VerticalNavigation';
 export * from './GpsSynchronizer';
+export * from './LNavUtils';
 export * from './VNavUtils';
 
 export * from './directors';

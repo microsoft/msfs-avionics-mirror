@@ -70,7 +70,7 @@ export abstract class DisplayComponent<P, Contexts extends unknown[] = []> {
    * @param props The propertis of the component.
    */
   constructor(props: P) {
-    this.props = props;
+    this.props = props as P & ComponentProps;
   }
 
   /**
@@ -354,11 +354,11 @@ export namespace FSComponent {
         props.children = children;
       }
 
-      if (typeof type === 'function' && type.name === 'Fragment') {
+      if (typeof type === 'function' && type.name === Fragment.name) {
         let childNodes = (type as FragmentFactory)(props as any) as VNode[] | null;
 
         //Handle the case where the single fragment children is an array of nodes passsed down from above
-        while (childNodes !== null && childNodes.length > 0 && Array.isArray(childNodes[0])) {
+        while (childNodes !== null && childNodes.length === 1 && Array.isArray(childNodes[0])) {
           childNodes = childNodes[0];
         }
 
@@ -677,26 +677,39 @@ export namespace FSComponent {
    * @param node The node to visit.
    * @param visitor The visitor function to inspect VNodes with. Return true if the search should stop at the visited
    * node and not proceed any further down the node's children.
-   * @returns True if the visitation should break, or false otherwise.
    */
-  export function visitNodes(node: VNode, visitor: (node: VNode) => boolean): boolean {
+  export function visitNodes(node: VNode, visitor: (node: VNode) => boolean): void {
+    if (node === undefined || node === null) {
+      return;
+    }
+
     const stopVisitation = visitor(node);
-    if (node !== undefined && node !== null && !stopVisitation && node.children !== undefined && node.children !== null) {
+
+    if (!stopVisitation && node.children !== undefined && node.children !== null) {
       for (let i = 0; i < node.children.length; i++) {
-        visitNodes(node.children[i], visitor);
+        const child = node.children[i];
+        if (Array.isArray(child)) {
+          for (let childIndex = 0; childIndex < child.length; childIndex++) {
+            visitNodes(child[childIndex], visitor);
+          }
+        } else {
+          visitNodes(child, visitor);
+        }
       }
     }
 
-    return true;
+    return;
   }
 
   /**
    * Parses a space-delimited CSS class string into an array of CSS classes.
    * @param classString A space-delimited CSS class string.
+   * @param filter A function which filters parsed classes. For each class, the function should return `true` if the
+   * class should be included in the output array and `false` otherwise.
    * @returns An array of CSS classes derived from the specified CSS class string.
    */
-  export function parseCssClassesFromString(classString: string): string[] {
-    return classString.split(' ').filter(str => str !== '');
+  export function parseCssClassesFromString(classString: string, filter?: (cssClass: string) => boolean): string[] {
+    return classString.split(' ').filter(str => str !== '' && (filter === undefined || filter(str)));
   }
 
   /**
@@ -740,10 +753,49 @@ export namespace FSComponent {
   }
 
   /**
+   * Traverses a VNode tree in depth-first order and destroys the first {@link DisplayComponent} encountered in each
+   * branch of the tree.
+   * @param root The root of the tree to traverse.
+   */
+  export function shallowDestroy(root: VNode): void {
+    FSComponent.visitNodes(root, node => {
+      if (node !== root && node.instance instanceof DisplayComponent) {
+        node.instance.destroy();
+        return true;
+      }
+
+      return false;
+    });
+  }
+
+  /**
    * An empty callback handler.
    */
   export const EmptyHandler = (): void => { return; };
 }
+
+/**
+ * An interface for global plugin definitions.
+ */
+interface GlobalJsPlugin {
+  /** The target instrument.  */
+  target: string;
+  /** The VFS path to the plugin */
+  path: string;
+}
+
+/**
+ * An interface for a list of global plugin definitions
+ */
+interface GlobalJsPlugins {
+  /** 
+   * The array of plugin definitions.
+   */
+  plugins: GlobalJsPlugin[]
+}
+
+// global type to check if the listener is available in the sim build
+declare const PluginsListener: any;
 
 /**
  * A system that handles the registration and boostrapping of plugin scripts.
@@ -764,14 +816,55 @@ export class PluginSystem<T extends AvionicsPlugin<B>, B> {
   /** An event subscribable that publishes when a component has finished rendering. */
   public readonly renderedHandlers: ((node: VNode) => void)[] = [];
 
+  private pluginViewListener: ViewListener.ViewListener | undefined;
+
+  private readonly initViewListenerPromise: Promise<void>;
+
+  /**
+   * Ctor
+   */
+  constructor() {
+    this.initViewListenerPromise = new Promise<void>((resolve) => {
+      this.pluginViewListener = RegisterViewListener('JS_LISTENER_PLUGINS', () => {
+        resolve();
+      });
+    });
+  }
+
   /**
    * Adds plugin scripts to load to the system.
    * @param document The panel.xml document to load scripts from.
    * @param instrumentId The ID of the instrument.
+   * @param globalPluginTargetFunc A function that returns true if a global plugin should be loaded.
+   * @example
+   * await this.pluginSystem.addScripts(this.instrument.xmlConfig, this.instrument.templateID, (target) => {
+   *   return target === this.instrument.templateID;
+   * });
    */
-  public addScripts(document: XMLDocument, instrumentId: string): void {
+  public async addScripts(document: XMLDocument, instrumentId: string, globalPluginTargetFunc: (target: string) => boolean): Promise<void> {
     let pluginTags: HTMLCollectionOf<Element> | undefined = undefined;
 
+    await this.initViewListenerPromise;
+    // check if the listener exists
+    if (typeof PluginsListener !== 'undefined') {
+      // wait for init of the plugin viewlistener
+      if (this.pluginViewListener !== undefined) {
+        // get global plugins
+        const pluginsResp = await this.pluginViewListener.call('GET_PLUGINS');
+        const globalPlugins: GlobalJsPlugins = pluginsResp;
+        for (let i = 0; i < globalPlugins.plugins.length; i++) {
+          const plugin = globalPlugins.plugins[i];
+          if (globalPluginTargetFunc(plugin.target) === true) {
+            const scriptUri = plugin.path;
+            if (scriptUri !== null) {
+              this.scripts.push(scriptUri);
+            }
+          }
+        }
+      }
+    }
+
+    // get from panel.xml
     const instrumentConfigs = document.getElementsByTagName('Instrument');
     for (let i = 0; i < instrumentConfigs.length; i++) {
       const el = instrumentConfigs.item(i);

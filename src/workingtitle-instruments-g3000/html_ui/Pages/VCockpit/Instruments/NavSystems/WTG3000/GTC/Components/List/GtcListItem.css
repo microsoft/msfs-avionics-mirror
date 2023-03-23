@@ -1,0 +1,33 @@
+.gtc-list .list-item {
+  position: relative;
+  width: auto;
+  height: var(--touch-list-item-height);
+  border: 2px #3C4854 solid;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: row;
+  padding: 1px;
+}
+
+.gtc-list .list-item>.touch-button {
+  height: 100%;
+  /* Ridge borders bug out when you have too many in a list. */
+  border-style: solid;
+}
+
+.gtc-list .list-item .touch-button.full-size-list-item-button {
+  width: 100%;
+  height: 100%;
+}
+
+.gtc-horizontal .gtc-list .list-item.padded-list-item {
+  padding: 3px 4px 3px 4px;
+}
+
+.gtc-vertical .gtc-list .list-item.padded-list-item {
+  padding: 1px 2px 1px 2px;
+}
+
+.gtc-list .list-item.hide-border {
+  border: none;
+}

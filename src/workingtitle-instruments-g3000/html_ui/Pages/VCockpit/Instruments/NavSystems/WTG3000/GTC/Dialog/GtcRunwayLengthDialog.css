@@ -1,0 +1,15 @@
+.runway-length-dialog-input .cursor-input-inactive {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  height: auto;
+  transform: translateY(-50%);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+}
+
+.runway-length-dialog-input-inactive-value-text {
+  background: var(--g3000-color-cyan);
+}

@@ -1,7 +1,7 @@
 import {
   AdcEvents, BitFlags, ConsumerSubject, EventBus, ExpSmoother, FSComponent, GNSSEvents, HorizonLayer, HorizonLayerProps, HorizonProjection,
   HorizonProjectionChangeType, MappedSubject, MathUtils, ObjectSubject, Subscribable, UnitType, Vec2Math, Vec2Subject, VNode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 /**
  * Component props for FlightPathMarker.

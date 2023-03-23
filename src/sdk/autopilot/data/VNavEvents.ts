@@ -1,6 +1,9 @@
 import { EventBus, SimVarDefinition, SimVarValueType } from '../../data';
 import { SimVarPublisher } from '../../instruments';
-import { ApproachGuidanceMode, VNavAltCaptureType, VNavAvailability, VNavPathMode, VNavState } from '../VerticalNavigation';
+import {
+  ApproachGuidanceMode, VNavAltCaptureType, VNavAvailability, AltitudeConstraintDetails,
+  VNavPathMode, VNavState
+} from '../VerticalNavigation';
 
 /**
  * Sim var names for VNAV data.
@@ -27,6 +30,9 @@ export enum VNavVars {
   /** The distance to the next TOD in meters, or -1 if one does not exist. */
   TODDistance = 'L:WTAP_VNav_Distance_To_TOD',
 
+  /** The distance to the next BOD in meters, or -1 if one does not exist. */
+  BODDistance = 'L:WTAP_VNav_Distance_To_BOD',
+
   /** The index of the leg for the next TOD. */
   TODLegIndex = 'L:WTAP_VNav_TOD_Leg_Index',
 
@@ -36,6 +42,21 @@ export enum VNavVars {
   /** The index of the leg for the next BOD. */
   BODLegIndex = 'L:WTAP_VNav_BOD_Leg_Index',
 
+  /** The distance to the next TOC in meters, or -1 if one does not exist. */
+  TOCDistance = 'L:WTAP_VNav_Distance_To_TOC',
+
+  /** The distance to the next BOC in meters, or -1 if one does not exist. */
+  BOCDistance = 'L:WTAP_VNav_Distance_To_BOC',
+
+  /** The index of the leg for the next TOC. */
+  TOCLegIndex = 'L:WTAP_VNav_TOC_Leg_Index',
+
+  /** The distance from the end of the TOC leg that the TOC is, in meters. */
+  TOCDistanceInLeg = 'L:WTAP_VNav_TOC_Distance_In_Leg',
+
+  /** The index of the leg for the next BOC. */
+  BOCLegIndex = 'L:WTAP_VNav_BOC_Leg_Index',
+
   /** The index of the leg for the next constraint. */
   CurrentConstraintLegIndex = 'L:WTAP_VNav_Constraint_Leg_Index',
 
@@ -44,9 +65,6 @@ export enum VNavVars {
 
   /** The next constraint altitude, in feet. */
   NextConstraintAltitude = 'L:WTAP_VNav_Next_Constraint_Altitude',
-
-  /** The distance to the next BOD, or -1 if one does not exist, in meters. */
-  BODDistance = 'L:WTAP_VNav_Distance_To_BOD',
 
   /** The current required flight path angle, in degrees. */
   FPA = 'L:WTAP_VNav_FPA',
@@ -67,14 +85,20 @@ export enum VNavVars {
   GPFpa = 'L:WTAP_GP_FPA',
 
   /** The required VS to the current constraint, in FPM. */
-  GPRequiredVS = 'L:WTAP_GP_Required_VS'
+  GPRequiredVS = 'L:WTAP_GP_Required_VS',
+
+  /** The approach glidepath service level. */
+  GPServiceLevel = 'L:WTAP_GP_Service_Level'
 }
 
 /**
  * Events derived from VNAV sim vars.
  */
 interface VNavSimVarEvents {
-  /** The vertical deviation, in feet, of the airplane from the calculated VNAV path. */
+  /**
+   * The vertical deviation, in feet, of the calculated VNAV path from the airplane's indicated altitude. Positive
+   * values indicate the path lies above the airplane.
+   */
   vnav_vertical_deviation: number,
 
   /** The target altitude, in feet, of the currently active VNAV constraint. */
@@ -111,9 +135,30 @@ interface VNavSimVarEvents {
   /**
    * The global index of the flight plan leg that contains the next VNAV BOD, or -1 if there is no BOD. The next BOD
    * is defined as the next point in the flight path including or after the active leg where the VNAV profile
-   * transitions from a descent to a level-off, discontinuity, or the end of the flight path.
+   * transitions from a descent to a level-off, discontinuity, or the end of the flight path. The BOD is always located
+   * at the end of its containing leg.
    */
   vnav_bod_global_leg_index: number,
+
+  /** The distance along the flight path from the airplane's present position to the current VNAV TOC, in meters. */
+  vnav_toc_distance: number,
+
+  /** The distance along the flight path from the current VNAV TOC to the end of its containing leg, in meters. */
+  vnav_toc_leg_distance: number,
+
+  /** The distance along the flight path from the airplane's present position to the next VNAV BOC, in meters. */
+  vnav_boc_distance: number,
+
+  /**
+   * The global index of the flight plan leg that contains the current VNAV TOC, or -1 if there is no such TOC.
+   */
+  vnav_toc_global_leg_index: number,
+
+  /**
+   * The global index of the flight plan leg that contains the next VNAV BOC, or -1 if there is no such BOC. The BOC
+   * is always located at the beginning of its containing leg.
+   */
+  vnav_boc_global_leg_index: number,
 
   /** The global index of the leg that contains the current VNAV constraint. */
   vnav_constraint_global_leg_index: number,
@@ -139,17 +184,20 @@ interface VNavSimVarEvents {
   /** The VNAV approach guidance mode. */
   gp_approach_mode: ApproachGuidanceMode,
 
-  /** The current glidepath vertical deviation. */
+  /** The current glidepath vertical deviation, in feet. */
   gp_vertical_deviation: number,
 
-  /** The current distance to the glidepath endpoint. */
+  /** The current distance to the glidepath endpoint, in feet. */
   gp_distance: number,
 
   /** The current glidepath FPA. */
   gp_fpa: number,
 
   /** The vertical speed, in feet per minute, required for the airplane to reach the glidepath target. */
-  gp_required_vs: number
+  gp_required_vs: number,
+
+  /** The approach glidepath service level. */
+  gp_service_level: number
 }
 
 /**
@@ -161,6 +209,9 @@ export interface VNavEvents extends VNavSimVarEvents {
 
   /** The current availability of VNAV from the director. */
   vnav_availability: VNavAvailability,
+
+  /** The current VNAV target altitude restriction feet and type. */
+  vnav_altitude_constraint_details: Readonly<AltitudeConstraintDetails>
 }
 
 
@@ -178,6 +229,11 @@ export class VNavSimVarPublisher extends SimVarPublisher<VNavEvents> {
     ['vnav_bod_distance', { name: VNavVars.BODDistance, type: SimVarValueType.Meters }],
     ['vnav_tod_global_leg_index', { name: VNavVars.TODLegIndex, type: SimVarValueType.Number }],
     ['vnav_bod_global_leg_index', { name: VNavVars.BODLegIndex, type: SimVarValueType.Number }],
+    ['vnav_toc_distance', { name: VNavVars.TOCDistance, type: SimVarValueType.Meters }],
+    ['vnav_toc_leg_distance', { name: VNavVars.TOCDistanceInLeg, type: SimVarValueType.Meters }],
+    ['vnav_boc_distance', { name: VNavVars.BOCDistance, type: SimVarValueType.Meters }],
+    ['vnav_toc_global_leg_index', { name: VNavVars.TOCLegIndex, type: SimVarValueType.Number }],
+    ['vnav_boc_global_leg_index', { name: VNavVars.BOCLegIndex, type: SimVarValueType.Number }],
     ['vnav_constraint_global_leg_index', { name: VNavVars.CurrentConstraintLegIndex, type: SimVarValueType.Number }],
     ['vnav_constraint_altitude', { name: VNavVars.CurrentConstraintAltitude, type: SimVarValueType.Feet }],
     ['vnav_next_constraint_altitude', { name: VNavVars.NextConstraintAltitude, type: SimVarValueType.Feet }],
@@ -185,9 +241,10 @@ export class VNavSimVarPublisher extends SimVarPublisher<VNavEvents> {
     ['vnav_required_vs', { name: VNavVars.RequiredVS, type: SimVarValueType.FPM }],
     ['gp_approach_mode', { name: VNavVars.GPApproachMode, type: SimVarValueType.Number }],
     ['gp_vertical_deviation', { name: VNavVars.GPVerticalDeviation, type: SimVarValueType.Feet }],
-    ['gp_distance', { name: VNavVars.GPDistance, type: SimVarValueType.Meters }],
+    ['gp_distance', { name: VNavVars.GPDistance, type: SimVarValueType.Feet }],
     ['gp_fpa', { name: VNavVars.GPFpa, type: SimVarValueType.Degree }],
-    ['gp_required_vs', { name: VNavVars.GPRequiredVS, type: SimVarValueType.FPM }]
+    ['gp_required_vs', { name: VNavVars.GPRequiredVS, type: SimVarValueType.FPM }],
+    ['gp_service_level', { name: VNavVars.GPServiceLevel, type: SimVarValueType.Number }]
   ]);
 
   /**

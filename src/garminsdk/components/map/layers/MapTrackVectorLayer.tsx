@@ -1,7 +1,7 @@
 import {
-  ExpSmoother, FSComponent, MapLayer, MapLayerProps, MapOwnAirplanePropsModule, MappedSubject, MappedSubscribable, MapProjection, MapSyncedCanvasLayer,
+  ExpSmoother, FSComponent, MapDataIntegrityModule, MapLayer, MapLayerProps, MapOwnAirplanePropsModule, MappedSubject, MappedSubscribable, MapProjection, MapSyncedCanvasLayer,
   MapSystemKeys, NumberUnitInterface, Subject, Subscribable, Subscription, UnitFamily, UnitType, Vec2Math, Vec2Subject, VNode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapTrackVectorModule } from '../modules/MapTrackVectorModule';
@@ -15,6 +15,9 @@ export interface MapTrackVectorLayerModules {
 
   /** Track vector module. */
   [GarminMapKeys.TrackVector]: MapTrackVectorModule;
+
+  /** Data integrity module. */
+  [MapSystemKeys.DataIntegrity]?: MapDataIntegrityModule;
 }
 
 /**
@@ -99,11 +102,18 @@ export class MapTrackVectorLayer extends MapLayer<MapTrackVectorLayerProps> {
 
     const scheduleUpdate = (): void => { this.needUpdate = true; };
 
-    this.isVectorVisible = MappedSubject.create(([show, isOnGround]) => show && !isOnGround, this.trackVectorModule.show, this.ownAirplanePropsModule.isOnGround);
-    this.isVectorVisible.sub(
-      isVisible => { this.setVisible(isVisible); },
-      true
+    const dataIntegrityModule = this.props.model.getModule(MapSystemKeys.DataIntegrity);
+
+    this.isVectorVisible = MappedSubject.create(
+      ([show, isOnGround, isGpsValid, isHeadingValid, isAttitudeValid, isAdcValid]) => show && !isOnGround && isGpsValid && isAdcValid && (isHeadingValid || isAttitudeValid),
+      this.trackVectorModule.show,
+      this.ownAirplanePropsModule.isOnGround,
+      dataIntegrityModule?.gpsSignalValid ?? Subject.create(true),
+      dataIntegrityModule?.headingSignalValid ?? Subject.create(true),
+      dataIntegrityModule?.attitudeSignalValid ?? Subject.create(true),
+      dataIntegrityModule?.adcSignalValid ?? Subject.create(true)
     );
+    this.isVectorVisible.sub(isVisible => { this.setVisible(isVisible); }, true);
 
     this.subscriptions.push(this.projectedPlanePosition.sub(scheduleUpdate));
 

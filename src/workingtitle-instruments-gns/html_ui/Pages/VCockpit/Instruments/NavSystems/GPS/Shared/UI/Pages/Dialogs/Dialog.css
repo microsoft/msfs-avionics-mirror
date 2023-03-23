@@ -1,0 +1,56 @@
+.dialog {
+  position: absolute;
+  top: 0px;
+  left: 64px;
+  width: 255px;
+  height: 217px;
+  background-image: url(../Shared/Assets/shade.png);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.wt430 .dialog {
+  left: 78px;
+  width: 272px;
+  height: 174px;
+}
+
+.dialog-box {
+  min-width: 70px;
+  max-width: 235px;
+  border: 1px solid white;
+}
+
+.dialog-box-inner {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  background-color: var(--gnsblue);
+  color: white;
+  border-style: outset;
+  font-size: 16px;
+  padding: 3px;
+  border-top: 3px solid #0cc;
+  border-right: 3px solid #011;
+  border-bottom: 3px solid #011;
+  border-left: 3px solid #0cc;
+}
+
+.dialog-box-inner p {
+  font-size: 16px;
+}
+
+.dialog-box-inner h2 {
+  font-size: 10px;
+}
+
+.dialog-box-inner hr {
+  margin: 1px 0 3px 0;
+  height: 2px;
+  border-top: 1px solid black;
+  border-right: 1px solid black;
+  border-bottom: 1px solid #0bb;
+  border-left: 1px solid #0bb;
+}

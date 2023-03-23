@@ -1,0 +1,13 @@
+.waypoint-leg {
+  display: inline-block;
+}
+
+.waypoint-leg-type {
+  color: magenta;
+  font-size: .6em;
+  margin-left: 2px;
+}
+
+.waypoint-leg-icon {
+
+}

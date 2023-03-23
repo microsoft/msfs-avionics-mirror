@@ -1,0 +1,164 @@
+html {
+  --g3000-color-black: black;
+  --g3000-color-white: white;
+  --g3000-color-whitesmoke: whitesmoke;
+  --g3000-color-red: red;
+  --g3000-color-magenta: magenta;
+  --g3000-color-cyan: cyan;
+  --g3000-color-green: lime;
+  --g3000-color-dark-green: #008000;
+  --g3000-color-yellow: yellow;
+  --g3000-color-amber: #ffdc24;
+  --g3000-color-gray: grey;
+  --g3000-color-title-gray: #b7b7b7;
+  --g3000-color-disabled-gray: #464646;
+  --g3000-color-border-gray: #969696;
+}
+
+/* TODO Get rid of all the color classes. */
+.cyan {
+  color: var(--g3000-color-cyan);
+}
+
+.green {
+  color: var(--g3000-color-green);
+}
+
+.magenta {
+  color: var(--g3000-color-magenta);
+}
+
+.grey {
+  color: var(--g3000-color-gray);
+}
+
+.white {
+  color: var(--g3000-color-white);
+}
+
+#highlight {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  transform: rotateX(0deg);
+  pointer-events: none;
+}
+
+#Mainframe {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+#Electricity {
+  width: 100%;
+  height: 100%;
+}
+
+#Electricity[state="off"] {
+  display: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.visibility-hidden {
+  visibility: hidden !important;
+}
+
+@font-face {
+  font-family: "Roboto";
+  src: url("/Fonts/Roboto-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Roboto-Light";
+  src: url("/Fonts/RobotoMono-Light.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Roboto-Bold";
+  src: url("/Fonts/Roboto-Bold.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "DejaVuSans-SemiBold";
+  src: url("/Pages/VCockpit/Instruments/NavSystems/WTG3000/Assets/Fonts/DejaVuSans-SemiBold.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* TODO Get rid of all the .size* classes and any classes changing font-size. */
+.size6 {
+  font-size: 6px;
+}
+
+.size8 {
+  font-size: 8px;
+}
+
+.size10 {
+  font-size: 10px;
+}
+
+.size12 {
+  font-size: 12px;
+}
+
+.size14 {
+  font-size: 14px;
+}
+
+.size16 {
+  font-size: 16px;
+}
+
+.size18 {
+  font-size: 18px;
+}
+
+.size20 {
+  font-size: 20px;
+}
+
+.roboto-font {
+  font-family: Roboto;
+}
+
+.smallText {
+  font-size: 14px;
+}
+
+.smaller {
+  font-size: .75em;
+}
+
+.failed-box {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 150;
+  background-color: transparent;
+  --fail-bg-color: rgba(135, 0, 0, 0.4);
+  --fail-fg-color: rgba(244, 0, 0, 1);
+  background: linear-gradient(to top right, var(--fail-bg-color) calc(50% - 1.4px), var(--fail-fg-color), var(--fail-bg-color) calc(50% + 1.4px)),
+    linear-gradient(to top left, var(--fail-bg-color) calc(50% - 1.4px), var(--fail-fg-color), var(--fail-bg-color) calc(50% + 1.4px));
+}
+
+.failed-instr .failed-box {
+  display: block;
+}

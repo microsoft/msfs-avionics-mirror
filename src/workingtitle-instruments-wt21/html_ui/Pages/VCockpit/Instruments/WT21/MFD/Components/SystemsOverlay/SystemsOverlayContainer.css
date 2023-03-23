@@ -1,0 +1,31 @@
+.systems-overlay-container {
+  position: absolute;
+  bottom: 4%;
+  border: 2px solid var(--wt21-colors-white);
+  height: 17%;
+  width: 95%;
+  left: 2.5%;
+  display: flex;
+  flex-direction: column;
+  z-index: 75;
+}
+
+.systems-overlay-title {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  background: var(--wt21-colors-blue);
+  font-size: 22px;
+  height: 32px;
+  min-height: 32px;
+  border-bottom: 2px solid var(--wt21-colors-white);
+}
+
+.systems1-data-container {
+  position: relative;
+  display: flex;
+  justify-content: space-around;
+  padding-top: 3px;
+  background-color: var(--wt21-colors-black);
+  flex-grow: 1;
+}

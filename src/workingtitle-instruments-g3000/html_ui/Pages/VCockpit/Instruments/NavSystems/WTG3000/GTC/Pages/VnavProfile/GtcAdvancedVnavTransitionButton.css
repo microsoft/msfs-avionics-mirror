@@ -1,0 +1,13 @@
+.gtc-horizontal .advanced-vnav-transition-button {
+  padding: 20px 0px 10px 0px;
+
+  --advanced-vnav-speed-button-label-margin-bottom: 10px;
+  --advanced-vnav-altitude-limit-button-ceiling-label-margin-left: 40px;
+}
+
+.gtc-vertical .advanced-vnav-transition-button {
+  padding: 10px 0px 5px 0px;
+
+  --advanced-vnav-speed-button-label-margin-bottom: 5px;
+  --advanced-vnav-altitude-limit-button-ceiling-label-margin-left: 20px;
+}

@@ -1,0 +1,16 @@
+.nearest-wpt-list {
+  position: relative;
+}
+
+.nearest-wpt-list-no-results {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  white-space: pre;
+}

@@ -1,37 +1,100 @@
 import { EventBus } from '../data/EventBus';
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { GeoPoint } from '../geo';
+import { GeoPoint } from '../geo/GeoPoint';
 import { GeoKdTree, GeoKdTreeSearchFilter, GeoKdTreeSearchVisitor } from '../utils/datastructures';
-import { Facility, FacilityType, ICAO } from './Facilities';
+import { Facility, FacilityType, FacilityUtils, ICAO } from './Facilities';
 
 /**
  * Topics published by {@link FacilityRepository} on the event bus.
  */
 export interface FacilityRepositoryEvents {
+  /** A facility was added. */
+  facility_added: Facility;
+
+  /** A facility was changed. */
+  facility_changed: Facility;
+
   /** A facility was changed. The suffix of the topic specifies the ICAO of the changed facility. */
   [facility_changed: `facility_changed_${string}`]: Facility;
+
+  /** A facility was removed. */
+  facility_removed: Facility;
+
+  /** A facility was removed. The suffix of the topic specifies the ICAO of the removed facility. */
+  [facility_removed: `facility_removed_${string}`]: Facility;
 }
 
+/**
+ * Types of facility repository sync events.
+ */
 enum FacilityRepositorySyncType {
-  Add,
-  Remove,
-  DumpRequest,
-  DumpResponse
+  Add = 'Add',
+  Remove = 'Remove',
+  DumpRequest = 'DumpRequest',
+  DumpResponse = 'DumpResponse'
+}
+
+/**
+ * A facility repository sync event describing the addition of a facility.
+ */
+type FacilityRepositoryAdd = {
+  /** The type of this event. */
+  type: FacilityRepositorySyncType.Add;
+
+  /** The facilities that were added. */
+  facs: Facility[];
+}
+
+/**
+ * A facility repository sync event describing the removal of a facility.
+ */
+type FacilityRepositoryRemove = {
+  /** The type of this event. */
+  type: FacilityRepositorySyncType.Remove;
+
+  /** The ICAOs of the facilities that were removed. */
+  facs: string[];
+}
+
+/**
+ * A request for a dump of all facilities registered with the facility repository.
+ */
+type FacilityRepositoryDumpRequest = {
+  /** The type of this event. */
+  type: FacilityRepositorySyncType.DumpRequest;
+
+  /** The unique ID associated with this event. */
+  uid: number;
+}
+
+/**
+ * A response to a facility repository dump request.
+ */
+type FacilityRepositoryDumpResponse = {
+  /** The type of this event. */
+  type: FacilityRepositorySyncType.DumpResponse;
+
+  /** The unique ID associated with the dump request that this event is responding to. */
+  uid: number;
+
+  /** All facilities registered with the repository that sent the response. */
+  facs: Facility[];
 }
 
 /**
  * Data provided by a sync event.
  */
-type FacilityRepositoryCacheSyncData = {
-  /** The type of sync event. */
-  type: FacilityRepositorySyncType;
+type FacilityRepositorySyncData = FacilityRepositoryAdd | FacilityRepositoryRemove | FacilityRepositoryDumpRequest | FacilityRepositoryDumpResponse;
 
-  /** This event's facilities. */
-  facs?: Facility[];
-};
+/**
+ * Events related to data sync between facility repository instances.
+ */
+interface FacilityRepositorySyncEvents {
+  /** A facility repository sync event. */
+  facilityrepo_sync: FacilityRepositorySyncData;
+}
 
 /** Facility types for which {@link FacilityRepository} supports spatial searches. */
-export type SearchableFacilityTypes = FacilityType.USR;
+export type SearchableFacilityTypes = FacilityType.USR | FacilityType.VIS;
 
 /**
  * A repository of facilities.
@@ -45,12 +108,16 @@ export class FacilityRepository {
 
   private static INSTANCE: FacilityRepository | undefined;
 
-  private readonly repos: Partial<Record<FacilityType, Map<string, Facility>>> = {};
+  private readonly publisher = this.bus.getPublisher<FacilityRepositoryEvents & FacilityRepositorySyncEvents>();
+
+  private readonly repos = new Map<FacilityType, Map<string, Facility>>();
   private readonly trees: Record<SearchableFacilityTypes, GeoKdTree<Facility>> = {
-    [FacilityType.USR]: new GeoKdTree(FacilityRepository.treeKeyFunc)
+    [FacilityType.USR]: new GeoKdTree(FacilityRepository.treeKeyFunc),
+    [FacilityType.VIS]: new GeoKdTree(FacilityRepository.treeKeyFunc),
   };
 
   private ignoreSync = false;
+  private lastDumpRequestUid?: number;
 
   /**
    * Constructor.
@@ -58,7 +125,32 @@ export class FacilityRepository {
    */
   private constructor(private readonly bus: EventBus) {
     bus.getSubscriber<any>().on(FacilityRepository.SYNC_TOPIC).handle(this.onSyncEvent.bind(this));
-    this.pubSyncEvent(FacilityRepositorySyncType.DumpRequest);
+
+    // Request a dump from any existing instances on other instruments to initialize the repository.
+    this.pubSyncEvent({
+      type: FacilityRepositorySyncType.DumpRequest, uid: this.lastDumpRequestUid = Math.random() * Number.MAX_SAFE_INTEGER
+    });
+  }
+
+  /**
+   * Gets the number of facilities stored in this repository.
+   * @param types The types of facilities to count. Defaults to all facility types.
+   * @returns The number of facilities stored in this repository.
+   */
+  public size(types?: readonly FacilityType[]): number {
+    let size = 0;
+
+    if (types === undefined) {
+      for (const repo of this.repos.values()) {
+        size += repo.size;
+      }
+    } else {
+      for (let i = 0; i < types.length; i++) {
+        size += this.repos.get(types[i])?.size ?? 0;
+      }
+    }
+
+    return size;
   }
 
   /**
@@ -71,11 +163,11 @@ export class FacilityRepository {
       return undefined;
     }
 
-    return this.repos[ICAO.getFacilityType(icao)]?.get(icao);
+    return this.repos.get(ICAO.getFacilityType(icao))?.get(icao);
   }
 
   /**
-   * Searches for facilities around a point. Only supported for USR facilities.
+   * Searches for facilities around a point. Only supported for USR and VIS facilities.
    * @param type The type of facility for which to search.
    * @param lat The latitude of the query point, in degrees.
    * @param lon The longitude of the query point, in degrees.
@@ -87,7 +179,7 @@ export class FacilityRepository {
    */
   public search(type: SearchableFacilityTypes, lat: number, lon: number, radius: number, visitor: GeoKdTreeSearchVisitor<Facility>): void;
   /**
-   * Searches for facilities around a point. Only supported for USR facilities.
+   * Searches for facilities around a point. Only supported for USR and VIS facilities.
    * @param type The type of facility for which to search.
    * @param lat The latitude of the query point, in degrees.
    * @param lon The longitude of the query point, in degrees.
@@ -116,7 +208,7 @@ export class FacilityRepository {
     out?: Facility[],
     filter?: GeoKdTreeSearchFilter<Facility>
   ): void | Facility[] {
-    if (type !== FacilityType.USR) {
+    if (type !== FacilityType.USR && type !== FacilityType.VIS) {
       throw new Error(`FacilityRepository: spatial searches are not supported for facility type ${type}`);
     }
 
@@ -140,21 +232,42 @@ export class FacilityRepository {
     }
 
     this.addToRepo(fac);
-    this.pubSyncEvent(FacilityRepositorySyncType.Add, [fac]);
+    this.pubSyncEvent({ type: FacilityRepositorySyncType.Add, facs: [fac] });
+  }
+
+  /**
+   * Adds multiple facilities from this repository and all other repositories synced with this one. For each added
+   * facility, if this repository already contains a facility with the same ICAO, the existing facility will be
+   * replaced with the new one.
+   * @param facs The facilities to add.
+   */
+  public addMultiple(facs: readonly Facility[]): void {
+    this.addMultipleToRepo(facs);
+    this.pubSyncEvent({ type: FacilityRepositorySyncType.Add, facs: Array.from(facs) });
   }
 
   /**
    * Removes a facility from this repository and all other repositories synced with this one.
-   * @param fac The facility to remove.
+   * @param fac The facility to remove, or the ICAO of the facility to remove.
    * @throws Error if the facility has an invalid ICAO.
    */
-  public remove(fac: Facility): void {
-    if (!ICAO.isFacility(fac.icao)) {
-      throw new Error(`FacilityRepository: invalid facility ICAO ${fac.icao}`);
+  public remove(fac: Facility | string): void {
+    const icao = typeof fac === 'string' ? fac : fac.icao;
+    if (!ICAO.isFacility(icao)) {
+      throw new Error(`FacilityRepository: invalid facility ICAO ${icao}`);
     }
 
-    this.removeFromRepo(fac);
-    this.pubSyncEvent(FacilityRepositorySyncType.Remove, [fac]);
+    this.removeFromRepo(icao);
+    this.pubSyncEvent({ type: FacilityRepositorySyncType.Remove, facs: [icao] });
+  }
+
+  /**
+   * Removes multiple facilities from this repository and all other repositories synced with this one.
+   * @param facs The facilities to remove, or the ICAOs of the facilties to remove.
+   */
+  public removeMultiple(facs: readonly (Facility | string)[]): void {
+    this.removeMultipleFromRepo(facs);
+    this.pubSyncEvent({ type: FacilityRepositorySyncType.Remove, facs: facs.map(fac => typeof fac === 'object' ? fac.icao : fac) });
   }
 
   /**
@@ -162,12 +275,15 @@ export class FacilityRepository {
    * @param fn A visitor function.
    * @param types The types of facilities over which to iterate. Defaults to all facility types.
    */
-  public forEach(fn: (fac: Facility) => void, types?: FacilityType[]): void {
-    const keys = types ?? Object.keys(this.repos);
-
-    const len = keys.length;
-    for (let i = 0; i < len; i++) {
-      this.repos[keys[i] as FacilityType]?.forEach(fn);
+  public forEach(fn: (fac: Facility) => void, types?: readonly FacilityType[]): void {
+    if (types === undefined) {
+      for (const repo of this.repos.values()) {
+        repo.forEach(fn);
+      }
+    } else {
+      for (let i = 0; i < types.length; i++) {
+        this.repos.get(types[i])?.forEach(fn);
+      }
     }
   }
 
@@ -178,13 +294,16 @@ export class FacilityRepository {
   private addToRepo(fac: Facility): void {
     const facilityType = ICAO.getFacilityType(fac.icao);
 
-    const repo = this.repos[facilityType] ??= new Map<string, Facility>();
+    let repo = this.repos.get(facilityType);
+    if (repo === undefined) {
+      this.repos.set(facilityType, repo = new Map<string, Facility>());
+    }
 
     const existing = repo.get(fac.icao);
 
     repo.set(fac.icao, fac);
 
-    if (facilityType === FacilityType.USR) {
+    if (facilityType === FacilityType.USR || facilityType === FacilityType.VIS) {
       if (existing === undefined) {
         this.trees[facilityType].insert(fac);
       } else {
@@ -192,34 +311,155 @@ export class FacilityRepository {
       }
     }
 
-    if (existing !== undefined) {
-      this.bus.pub(`facility_changed_${fac.icao}`, fac, false, false);
+    if (existing === undefined) {
+      this.publisher.pub('facility_added', fac, false, false);
+    } else {
+      this.publisher.pub(`facility_changed_${fac.icao}`, fac, false, false);
+      this.publisher.pub('facility_changed', fac, false, false);
+    }
+  }
+
+  /**
+   * Adds multiple facilities to this repository.
+   * @param facs The facilities to add.
+   */
+  private addMultipleToRepo(facs: readonly Facility[]): void {
+    if (facs.length === 0) {
+      return;
+    }
+
+    const addedFacilities: Facility[] = [];
+    const changedFacilitiesRemoved: Facility[] = [];
+    const changedFacilitiesAdded: Facility[] = [];
+
+    for (let i = 0; i < facs.length; i++) {
+      const fac = facs[i];
+      const facilityType = ICAO.getFacilityType(fac.icao);
+
+      let repo = this.repos.get(facilityType);
+      if (repo === undefined) {
+        this.repos.set(facilityType, repo = new Map<string, Facility>());
+      }
+
+      const existing = repo.get(fac.icao);
+
+      repo.set(fac.icao, fac);
+
+      if (existing === undefined) {
+        addedFacilities.push(fac);
+      } else {
+        changedFacilitiesRemoved.push(existing);
+        changedFacilitiesAdded.push(fac);
+      }
+    }
+
+    const addedUserFacilities = facs.filter(fac => FacilityUtils.isFacilityType(fac, FacilityType.USR));
+    if (addedUserFacilities.length > 0) {
+      const removedUserFacilities = changedFacilitiesRemoved.filter(fac => FacilityUtils.isFacilityType(fac, FacilityType.USR));
+      this.trees[FacilityType.USR].removeAndInsert(removedUserFacilities, addedUserFacilities);
+    }
+
+    const addedVisFacilities = facs.filter(fac => FacilityUtils.isFacilityType(fac, FacilityType.VIS));
+    if (addedVisFacilities.length > 0) {
+      const removedVisFacilities = changedFacilitiesRemoved.filter(fac => FacilityUtils.isFacilityType(fac, FacilityType.VIS));
+      this.trees[FacilityType.VIS].removeAndInsert(removedVisFacilities, addedVisFacilities);
+    }
+
+    for (let i = 0; i < addedFacilities.length; i++) {
+      const fac = addedFacilities[i];
+      this.publisher.pub('facility_added', fac, false, false);
+    }
+    for (let i = 0; i < changedFacilitiesAdded.length; i++) {
+      const fac = changedFacilitiesAdded[i];
+      this.publisher.pub(`facility_changed_${fac.icao}`, fac, false, false);
+      this.publisher.pub('facility_changed', fac, false, false);
     }
   }
 
   /**
    * Removes a facility from this repository.
-   * @param fac The facility to remove.
+   * @param fac The facility to remove, or the ICAO of the facility to remove.
    */
-  private removeFromRepo(fac: Facility): void {
-    const facilityType = ICAO.getFacilityType(fac.icao);
-    this.repos[ICAO.getFacilityType(fac.icao)]?.delete(fac.icao);
+  private removeFromRepo(fac: Facility | string): void {
+    const icao = typeof fac === 'string' ? fac : fac.icao;
+    const facilityType = ICAO.getFacilityType(icao);
+    const repo = this.repos.get(ICAO.getFacilityType(icao));
 
-    if (facilityType !== FacilityType.USR) {
+    if (repo === undefined) {
       return;
     }
 
-    this.trees[facilityType].remove(fac);
+    const facilityInRepo = repo.get(icao);
+
+    if (facilityInRepo === undefined) {
+      return;
+    }
+
+    repo.delete(icao);
+
+    if (facilityType === FacilityType.USR || facilityType === FacilityType.VIS) {
+      this.trees[facilityType].remove(facilityInRepo);
+    }
+
+    this.publisher.pub(`facility_removed_${icao}`, facilityInRepo, false, false);
+    this.publisher.pub('facility_removed', facilityInRepo, false, false);
   }
 
   /**
-   * Publishes a sync event over the event bus.
-   * @param type The type of sync event.
-   * @param facs The event's user facilities.
+   * Removes multiple facilities from this repository.
+   * @param facs The facilities to remove, or the ICAOs of the facilities to remove.
    */
-  private pubSyncEvent(type: FacilityRepositorySyncType, facs?: Facility[]): void {
+  private removeMultipleFromRepo(facs: readonly (Facility | string)[]): void {
+    if (facs.length === 0) {
+      return;
+    }
+
+    const removedFacilities: Facility[] = [];
+
+    for (let i = 0; i < facs.length; i++) {
+      const fac = facs[i];
+      const icao = typeof fac === 'string' ? fac : fac.icao;
+      const repo = this.repos.get(ICAO.getFacilityType(icao));
+
+      if (repo === undefined) {
+        continue;
+      }
+
+      const facilityInRepo = repo.get(icao);
+
+      if (facilityInRepo === undefined) {
+        continue;
+      }
+
+      repo.delete(icao);
+
+      removedFacilities.push(facilityInRepo);
+    }
+
+    const removedUserFacilities = removedFacilities.filter(fac => FacilityUtils.isFacilityType(fac, FacilityType.USR));
+    if (removedUserFacilities.length > 0) {
+      this.trees[FacilityType.USR].removeAll(removedUserFacilities);
+    }
+
+    const removedVisFacilities = removedFacilities.filter(fac => FacilityUtils.isFacilityType(fac, FacilityType.VIS));
+    if (removedVisFacilities.length > 0) {
+      this.trees[FacilityType.VIS].removeAll(removedVisFacilities);
+    }
+
+    for (let i = 0; i < removedFacilities.length; i++) {
+      const removedFac = removedFacilities[i];
+      this.publisher.pub(`facility_removed_${removedFac.icao}`, removedFac, false, false);
+      this.publisher.pub('facility_removed', removedFac, false, false);
+    }
+  }
+
+  /**
+   * Publishes a facility added or removed sync event over the event bus.
+   * @param data The event data.
+   */
+  private pubSyncEvent(data: FacilityRepositorySyncData): void {
     this.ignoreSync = true;
-    this.bus.pub(FacilityRepository.SYNC_TOPIC, { type, facs }, true, false);
+    this.publisher.pub(FacilityRepository.SYNC_TOPIC, data, true, false);
     this.ignoreSync = false;
   }
 
@@ -227,24 +467,40 @@ export class FacilityRepository {
    * A callback which is called when a sync event occurs.
    * @param data The event data.
    */
-  private onSyncEvent(data: FacilityRepositoryCacheSyncData): void {
+  private onSyncEvent(data: FacilityRepositorySyncData): void {
     if (this.ignoreSync) {
       return;
     }
 
     switch (data.type) {
-      case FacilityRepositorySyncType.Add:
       case FacilityRepositorySyncType.DumpResponse:
-        data.facs!.forEach(fac => this.addToRepo(fac));
+        // Only accept responses to your own dump requests.
+        if (data.uid !== this.lastDumpRequestUid) {
+          break;
+        } else {
+          this.lastDumpRequestUid = undefined;
+        }
+      // eslint-disable-next-line no-fallthrough
+      case FacilityRepositorySyncType.Add:
+        if (data.facs.length === 1) {
+          this.addToRepo(data.facs[0]);
+        } else {
+          this.addMultipleToRepo(data.facs);
+        }
         break;
       case FacilityRepositorySyncType.Remove:
-        data.facs!.forEach(fac => this.removeFromRepo(fac));
+        if (data.facs.length === 1) {
+          this.removeFromRepo(data.facs[0]);
+        } else {
+          this.removeMultipleFromRepo(data.facs);
+        }
         break;
       case FacilityRepositorySyncType.DumpRequest:
-        {
+        // Don't respond to your own dump requests.
+        if (data.uid !== this.lastDumpRequestUid) {
           const facs: Facility[] = [];
           this.forEach(fac => facs.push(fac));
-          this.pubSyncEvent(FacilityRepositorySyncType.DumpResponse, facs);
+          this.pubSyncEvent({ type: FacilityRepositorySyncType.DumpResponse, uid: data.uid, facs });
         }
         break;
     }

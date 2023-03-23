@@ -1,0 +1,136 @@
+.std-map-setup {
+  float: left;
+  width: 139px;
+  height: 217px;
+  background-color: var(--gnsblue);
+  border-left: 1px solid var(--gnscyan);
+  ;
+}
+
+wt-gns530 .map-setup-title {
+  text-align: center;
+}
+
+wt-gns430 .map-setup-title {
+  text-align: center;
+}
+
+wt-gns430 .std-map-setup h3 {
+  font-size: 10px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+wt-gns430 .std-map-setup h3 {
+  font-size: 13px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  text-align: center;
+}
+
+.std-map-setup label {
+  font-size: 10px;
+  color: var(--gnscyan);
+  ;
+  width: 42px;
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.map-setup-group-select {
+  width: 84px;
+  border: 1px solid var(--gnscyan);
+  ;
+  padding: 2px;
+  background-color: black;
+  height: 20px;
+  font-size: 16px;
+  margin-left: 6px;
+  display: inline-block;
+  color: var(--gnsgreen);
+}
+
+.map-setup-settings-labels {
+  float: left;
+  width: 50px;
+  height: 160px;
+  padding-top: 4px;
+}
+
+.map-setup-settings-header {
+  height: 16px;
+  color: var(--gnscyan);
+  text-align: right;
+  margin-right: 8px;
+  padding-top: 4px;
+}
+
+.map-setup-settings-header span {
+  width: 50px;
+  display: inline-block;
+}
+
+wt-gns530 .map-setting-label {
+  height: 20px;
+}
+
+wt-gns430 .map-setting-label {
+  height: 29px;
+}
+
+
+wt-gns530 .map-setting-control {
+  color: var(--gnsgreen);
+  height: 20px;
+  font-size: 16px;
+}
+
+wt-gns430 .map-setting-control {
+  color: var(--gnsgreen);
+  height: 29px;
+  margin-top: 1px;
+  font-size: 16px;
+}
+
+.map-setting-control.dual span:first-child {
+  width: 28px;
+  display: inline-block;
+}
+
+.map-setting-control.dual span:last-child {
+  width: 50px;
+  text-align: right;
+  display: inline-block;
+}
+
+.map-setup-settings-controls span {
+  height: 16px;
+}
+
+.map-setting-control span {
+  padding-top: 1px;
+}
+
+.map-setup-settings-labels label.right {
+  text-align: right;
+}
+
+wt-gns530 .map-setup-settings-controls {
+  float: left;
+  width: 84px;
+  height: 160px;
+  padding: 2px;
+  background-color: black;
+  border: 1px solid var(--gnscyan);
+
+}
+
+wt-gns430 .map-setup-settings-controls {
+  float: left;
+  width: 84px;
+  height: 120px;
+  padding: 2px;
+  background-color: black;
+  border: 1px solid var(--gnscyan);
+
+}

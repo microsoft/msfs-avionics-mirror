@@ -1,0 +1,144 @@
+.gtc-horizontal .gtc-hold-page {
+  --gtc-hold-page-font-size-large: 38px;
+  --gtc-hold-page-font-size-medium: 30px;
+
+  --gtc-hold-page-width: 766px;
+  --gtc-hold-page-height: 707px;
+  --gtc-hold-page-top: 46px;
+
+  --gtc-hold-page-top-row-height: 340px;
+  --gtc-hold-page-top-row-panel-title-height: 51px;
+  --gtc-hold-page-top-row-panel-width: 241px;
+  --gtc-hold-page-top-row-column-height: 274px;
+  --gtc-hold-page-top-row-button-width: 213px;
+  --gtc-hold-page-top-row-button-height: 132px;
+
+  --gtc-hold-page-hold-description-top: 350px;
+  --gtc-hold-page-hold-description-width: 816px;
+  --gtc-hold-page-hold-description-height: 66px;
+  --gtc-hold-page-hold-description-border-radius: 4px;
+
+  --gtc-hold-page-expect-button-bottom: 147px;
+  --gtc-hold-page-expect-button-width: 418px;
+  --gtc-hold-page-expect-button-height: 132px;
+
+  --gtc-hold-page-bottom-row-height: 132px;
+  --gtc-hold-page-bottom-row-button-width: 260px;
+}
+
+.gtc-vertical .gtc-hold-page {
+  --gtc-hold-page-font-size-large: 21px;
+  --gtc-hold-page-font-size-medium: 16px;
+
+  --gtc-hold-page-width: 412px;
+  --gtc-hold-page-height: 380px;
+  --gtc-hold-page-top: 25px;
+
+  --gtc-hold-page-top-row-height: 183px;
+  --gtc-hold-page-top-row-panel-title-height: 26px;
+  --gtc-hold-page-top-row-panel-width: 130px;
+  --gtc-hold-page-top-row-column-height: 148px;
+  --gtc-hold-page-top-row-button-width: 115px;
+  --gtc-hold-page-top-row-button-height: 71px;
+
+  --gtc-hold-page-hold-description-top: 188px;
+  --gtc-hold-page-hold-description-width: 437px;
+  --gtc-hold-page-hold-description-height: 35px;
+  --gtc-hold-page-hold-description-border-radius: 2px;
+
+  --gtc-hold-page-expect-button-bottom: 79px;
+  --gtc-hold-page-expect-button-width: 225px;
+  --gtc-hold-page-expect-button-height: 71px;
+
+  --gtc-hold-page-bottom-row-height: 71px;
+  --gtc-hold-page-bottom-row-button-width: 140px;
+}
+
+.gtc-hold-page {
+  position: relative;
+  margin: 0 auto;
+  margin-top: var(--gtc-hold-page-top);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: var(--gtc-hold-page-font-size-medium);
+  width: var(--gtc-hold-page-width);
+  height: var(--gtc-hold-page-height);
+}
+
+.gtc-hold-page .touch-button .touch-button-value-value {
+  font-size: var(--gtc-hold-page-font-size-large);
+}
+
+.gtc-hold-page .row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.gtc-hold-page .top-row {
+  height: var(--gtc-hold-page-top-row-height);
+}
+
+.gtc-hold-page .top-row .gtc-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  width: var(--gtc-hold-page-top-row-panel-width);
+}
+
+.gtc-hold-page .top-row .gtc-panel .gtc-panel-title {
+  position: absolute;
+  margin-top: 0.3em;
+}
+
+.gtc-hold-page .top-row .column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-top: var(--gtc-hold-page-top-row-panel-title-height);
+  width: var(--gtc-hold-page-top-row-button-width);
+  height: var(--gtc-hold-page-top-row-column-height);
+}
+
+.gtc-hold-page .top-row .column .touch-button {
+  width: 100%;
+  height: var(--gtc-hold-page-top-row-button-height);
+}
+
+.gtc-hold-page .hold-description {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--g3000-color-black);
+  top: var(--gtc-hold-page-hold-description-top);
+  width: var(--gtc-hold-page-hold-description-width);
+  height: var(--gtc-hold-page-hold-description-height);
+  border-radius: var(--gtc-hold-page-hold-description-border-radius);
+}
+
+.gtc-hold-page .expect-button {
+  position: absolute;
+  bottom: var(--gtc-hold-page-expect-button-bottom);
+  width: var(--gtc-hold-page-expect-button-width);
+  height: var(--gtc-hold-page-expect-button-height);
+}
+
+.gtc-hold-page .bottom-row {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: var(--gtc-hold-page-bottom-row-height);
+}
+
+.gtc-hold-page .bottom-row .touch-button {
+  width: var(--gtc-hold-page-bottom-row-button-width);
+  height: 100%;
+}
+
+.gtc-hold-page .touch-button.no-label .touch-button-value-value {
+  top: 50%;
+}

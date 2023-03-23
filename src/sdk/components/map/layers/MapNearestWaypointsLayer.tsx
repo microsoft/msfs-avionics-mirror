@@ -2,9 +2,11 @@ import { EventBus } from '../../../data';
 import { GeoPoint, GeoPointReadOnly, LatLonInterface } from '../../../geo';
 import { BitFlags, UnitType, Vec2Math } from '../../../math';
 import {
-  Facility, FacilityLoader, FacilityRepository, FacilitySearchType, ICAO, NearestAirportSearchSession, NearestIntersectionSearchSession, NearestSearchResults,
-  NearestSearchSession, NearestUserFacilitySearchSession, NearestVorSearchSession
+  Facility, FacilityLoader, FacilityRepository, FacilityRepositoryEvents, FacilitySearchType, FacilityType, ICAO,
+  NearestAirportSearchSession, NearestIntersectionSearchSession, NearestSearchResults,
+  NearestSearchSession, NearestRepoFacilitySearchSession, NearestVorSearchSession, UserFacility
 } from '../../../navigation';
+import { Subscription } from '../../../sub/Subscription';
 import { FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps } from '../MapLayer';
 import { MapProjection, MapProjectionChangeType } from '../MapProjection';
@@ -61,7 +63,7 @@ export interface MapAbstractNearestWaypointsLayerProps<R extends MapWaypointRend
 
   /** A callback called when the search sessions are started. */
   onSessionsStarted?: (airportSession: NearestAirportSearchSession, vorSession: NearestVorSearchSession, ndbSession: NearestSearchSession<string, string>,
-    intSession: NearestIntersectionSearchSession, userSession: NearestUserFacilitySearchSession) => void
+    intSession: NearestIntersectionSearchSession, userSession: NearestRepoFacilitySearchSession<UserFacility>) => void
 }
 
 /**
@@ -70,8 +72,8 @@ export interface MapAbstractNearestWaypointsLayerProps<R extends MapWaypointRend
  */
 export class MapNearestWaypointsLayer
   <
-  R extends MapWaypointRenderer<any> = MapWaypointRenderer,
-  P extends MapAbstractNearestWaypointsLayerProps<R> = MapAbstractNearestWaypointsLayerProps<R>
+    R extends MapWaypointRenderer<any> = MapWaypointRenderer,
+    P extends MapAbstractNearestWaypointsLayerProps<R> = MapAbstractNearestWaypointsLayerProps<R>
   >
   extends MapLayer<P> {
 
@@ -92,16 +94,23 @@ export class MapNearestWaypointsLayer
     [FacilitySearchType.Ndb]: MapNearestWaypointsLayerSearch,
     /** A nearest intersection search session. */
     [FacilitySearchType.Intersection]: MapNearestWaypointsLayerSearch
-    /** A nearest intersection search session. */
+    /** A nearest user waypoint search session. */
     [FacilitySearchType.User]: MapNearestWaypointsLayerSearch
   };
 
   private searchRadius = 0;
   private searchMargin = 0;
 
-  private readonly icaosToShow = new Set<string>();
+  private userFacilityHasChanged = false;
+
+  /** A set of the ICAOs of all waypoints that should be rendered. */
+  private readonly icaosToRender = new Set<string>();
+  /** A map of rendered waypoints from their ICAOs. */
+  private readonly cachedRenderedWaypoints = new Map<string, MapWaypointRendererType<R>>();
 
   private isInit = false;
+
+  private readonly facilityRepoSubs: Subscription[] = [];
 
   /**
    * A callback called when the facility loaded finishes initialization.
@@ -118,7 +127,7 @@ export class MapNearestWaypointsLayer
       NearestVorSearchSession,
       NearestSearchSession<string, string>,
       NearestIntersectionSearchSession,
-      NearestUserFacilitySearchSession
+      NearestRepoFacilitySearchSession<UserFacility>,
     ]) => {
       const [airportSession, vorSession, ndbSession, intSession, userSession] = value;
       this.onSessionsStarted(airportSession, vorSession, ndbSession, intSession, userSession);
@@ -134,7 +143,7 @@ export class MapNearestWaypointsLayer
    * @param userSession The user facility search session.
    */
   protected onSessionsStarted(airportSession: NearestAirportSearchSession, vorSession: NearestVorSearchSession, ndbSession: NearestSearchSession<string, string>,
-    intSession: NearestIntersectionSearchSession, userSession: NearestUserFacilitySearchSession): void {
+    intSession: NearestIntersectionSearchSession, userSession: NearestRepoFacilitySearchSession<UserFacility>): void {
     const callback = this.processSearchResults.bind(this);
     this.facilitySearches = {
       [FacilitySearchType.Airport]: new MapNearestWaypointsLayerSearch(airportSession, callback),
@@ -143,6 +152,28 @@ export class MapNearestWaypointsLayer
       [FacilitySearchType.Intersection]: new MapNearestWaypointsLayerSearch(intSession, callback),
       [FacilitySearchType.User]: new MapNearestWaypointsLayerSearch(userSession, callback)
     };
+
+    const sub = this.props.bus.getSubscriber<FacilityRepositoryEvents>();
+
+    // Watch for changes to user facilities so that we can trigger search refreshes to ensure that the layer does not
+    // display outdated user waypoints.
+    this.facilityRepoSubs.push(
+      sub.on('facility_added').handle(fac => {
+        if (ICAO.isFacility(fac.icao, FacilityType.USR)) {
+          this.userFacilityHasChanged = true;
+        }
+      }),
+      sub.on('facility_changed').handle(fac => {
+        if (ICAO.isFacility(fac.icao, FacilityType.USR)) {
+          this.userFacilityHasChanged = true;
+        }
+      }),
+      sub.on('facility_removed').handle(fac => {
+        if (ICAO.isFacility(fac.icao, FacilityType.USR)) {
+          this.userFacilityHasChanged = true;
+        }
+      })
+    );
 
     this.props.onSessionsStarted && this.props.onSessionsStarted(airportSession, vorSession, ndbSession, intSession, userSession);
 
@@ -185,10 +216,19 @@ export class MapNearestWaypointsLayer
     this.props.initRenderer && this.props.initRenderer(this.props.waypointRenderer, this.canvasLayerRef.instance);
   }
 
+  /** Forces a refresh of all the waypoints. */
+  public refreshWaypoints(): void {
+    this.tryRefreshAllSearches(undefined, undefined, true);
+    this.cachedRenderedWaypoints.forEach(w => {
+      this.props.deregisterWaypoint(w, this.props.waypointRenderer);
+    });
+    this.cachedRenderedWaypoints.forEach(w => {
+      this.props.registerWaypoint(w, this.props.waypointRenderer);
+    });
+  }
+
   /** @inheritdoc */
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
-    super.onMapProjectionChanged(mapProjection, changeFlags);
-
     this.canvasLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
 
     if (BitFlags.isAny(changeFlags, MapProjectionChangeType.Range | MapProjectionChangeType.RangeEndpoints | MapProjectionChangeType.ProjectedSize)) {
@@ -203,13 +243,26 @@ export class MapNearestWaypointsLayer
    * Updates the desired nearest facility search radius based on the current map projection.
    */
   private updateSearchRadius(): void {
-    const mapHalfDiagRange = Vec2Math.abs(this.props.mapProjection.getProjectedSize()) * this.props.mapProjection.getProjectedResolution() / 2;
+    let mapHalfDiagRange = Vec2Math.abs(this.props.mapProjection.getProjectedSize()) * this.props.mapProjection.getProjectedResolution() / 2;
+    //Limit lower end of radius so that even at high zooms the surrounding area waypoints are captured.
+    mapHalfDiagRange = Math.max(mapHalfDiagRange, UnitType.NMILE.convertTo(5, UnitType.GA_RADIAN));
+
     this.searchRadius = mapHalfDiagRange * MapNearestWaypointsLayer.SEARCH_RADIUS_OVERDRAW_FACTOR;
     this.searchMargin = mapHalfDiagRange * (MapNearestWaypointsLayer.SEARCH_RADIUS_OVERDRAW_FACTOR - 1);
   }
 
   /** @inheritdoc */
   public onUpdated(time: number, elapsed: number): void {
+    // If a user facility was added, changed, or removed, schedule a user waypoint search refresh so that we always
+    // have the latest user facility data.
+    if (this.userFacilityHasChanged) {
+      const search = this.facilitySearches?.[FacilitySearchType.User];
+      if (search !== undefined) {
+        this.userFacilityHasChanged = false;
+        this.scheduleSearchRefresh(FacilitySearchType.User, search, this.getSearchCenter(), this.searchRadius);
+      }
+    }
+
     this.updateSearches(elapsed);
   }
 
@@ -236,12 +289,13 @@ export class MapNearestWaypointsLayer
    * @param center The center of the search area. Defaults to this layer's automatically calculated search center.
    * @param radius The radius of the search area, in great-arc radians. Defaults to this layer's automatically
    * calculated search radius.
+   * @param force Whether to force a refresh of all waypoints. Defaults to false.
    */
-  public tryRefreshAllSearches(center?: LatLonInterface, radius?: number): void {
+  public tryRefreshAllSearches(center?: LatLonInterface, radius?: number, force?: boolean): void {
     center ??= this.getSearchCenter();
     radius ??= this.searchRadius;
 
-    this._tryRefreshAllSearches(center, radius);
+    this._tryRefreshAllSearches(center, radius, force);
   }
 
   /**
@@ -252,25 +306,27 @@ export class MapNearestWaypointsLayer
    * @param center The center of the search area. Defaults to this layer's automatically calculated search center.
    * @param radius The radius of the search area, in great-arc radians. Defaults to this layer's automatically
    * calculated search radius.
+   * @param force Whether to force a refresh of all waypoints. Defaults to false.
    */
-  public tryRefreshSearch(type: MapNearestWaypointsLayerSearchTypes, center?: LatLonInterface, radius?: number): void {
+  public tryRefreshSearch(type: MapNearestWaypointsLayerSearchTypes, center?: LatLonInterface, radius?: number, force?: boolean): void {
     center ??= this.getSearchCenter();
     radius ??= this.searchRadius;
 
-    this._tryRefreshSearch(type, center, radius);
+    this._tryRefreshSearch(type, center, radius, force);
   }
 
   /**
    * Attempts to refresh all of the nearest facility searches.
    * @param center The center of the search area.
    * @param radius The radius of the search area, in great-arc radians.
+   * @param force Whether to force a refresh of all waypoints. Defaults to false.
    */
-  private _tryRefreshAllSearches(center: LatLonInterface, radius: number): void {
-    this._tryRefreshSearch(FacilitySearchType.Airport, center, radius);
-    this._tryRefreshSearch(FacilitySearchType.Vor, center, radius);
-    this._tryRefreshSearch(FacilitySearchType.Ndb, center, radius);
-    this._tryRefreshSearch(FacilitySearchType.Intersection, center, radius);
-    this._tryRefreshSearch(FacilitySearchType.User, center, radius);
+  private _tryRefreshAllSearches(center: LatLonInterface, radius: number, force?: boolean): void {
+    this._tryRefreshSearch(FacilitySearchType.Airport, center, radius, force);
+    this._tryRefreshSearch(FacilitySearchType.Vor, center, radius, force);
+    this._tryRefreshSearch(FacilitySearchType.Ndb, center, radius, force);
+    this._tryRefreshSearch(FacilitySearchType.Intersection, center, radius, force);
+    this._tryRefreshSearch(FacilitySearchType.User, center, radius, force);
   }
 
   /**
@@ -280,15 +336,22 @@ export class MapNearestWaypointsLayer
    * @param type The type of nearest search to refresh.
    * @param center The center of the search area.
    * @param radius The radius of the search area, in great-arc radians.
+   * @param force Whether to force a refresh of all waypoints. Defaults to false.
    */
-  private _tryRefreshSearch(type: MapNearestWaypointsLayerSearchTypes, center: LatLonInterface, radius: number): void {
+  private _tryRefreshSearch(type: MapNearestWaypointsLayerSearchTypes, center: LatLonInterface, radius: number, force?: boolean): void {
     const search = this.facilitySearches && this.facilitySearches[type];
 
-    if (!search || !this.shouldRefreshSearch(type, center, radius)) {
+    if (!search || (!force && !this.shouldRefreshSearch(type, center, radius))) {
       return;
     }
 
-    if (search.lastRadius !== radius || search.lastCenter.distance(center) >= this.searchMargin) {
+    const radiusLimit = this.props.searchRadiusLimit ? this.props.searchRadiusLimit(type, center, radius) : undefined;
+
+    if (radiusLimit !== undefined && isFinite(radiusLimit)) {
+      radius = Math.min(radius, Math.max(0, radiusLimit));
+    }
+
+    if (force || search.lastRadius !== radius || search.lastCenter.distance(center) >= this.searchMargin) {
       this.scheduleSearchRefresh(type, search, center, radius);
     }
   }
@@ -318,12 +381,6 @@ export class MapNearestWaypointsLayer
     radius: number
   ): void {
     const itemLimit = this.props.searchItemLimit ? this.props.searchItemLimit(type, center, radius) : 100;
-    const radiusLimit = this.props.searchRadiusLimit ? this.props.searchRadiusLimit(type, center, radius) : undefined;
-
-    if (radiusLimit !== undefined && isFinite(radiusLimit)) {
-      radius = Math.min(radius, Math.max(0, radiusLimit));
-    }
-
     search.scheduleRefresh(center, radius, itemLimit, this.searchDebounceDelay);
   }
 
@@ -363,15 +420,20 @@ export class MapNearestWaypointsLayer
    * layer using a waypoint renderer.
    * @param icao The ICAO string to register.
    */
-  private registerIcao(icao: string): void {
-    this.icaosToShow.add(icao);
-    this.facLoader.getFacility(ICAO.getFacilityType(icao), icao).then(facility => {
-      if (!this.icaosToShow.has(icao)) {
+  private async registerIcao(icao: string): Promise<void> {
+    this.icaosToRender.add(icao);
+
+    try {
+      const facility = await this.facLoader.getFacility(ICAO.getFacilityType(icao), icao);
+
+      if (!this.icaosToRender.has(icao)) {
         return;
       }
 
       this.registerWaypointWithRenderer(this.props.waypointRenderer, facility);
-    });
+    } catch {
+      // noop
+    }
   }
 
   /**
@@ -381,6 +443,7 @@ export class MapNearestWaypointsLayer
    */
   private registerWaypointWithRenderer(renderer: R, facility: Facility): void {
     const waypoint = this.props.waypointForFacility(facility);
+    this.cachedRenderedWaypoints.set(facility.icao, waypoint);
     this.props.registerWaypoint(waypoint, renderer);
   }
 
@@ -388,15 +451,32 @@ export class MapNearestWaypointsLayer
    * Deregisters an ICAO string from this layer.
    * @param icao The ICAO string to deregister.
    */
-  private deregisterIcao(icao: string): void {
-    this.icaosToShow.delete(icao);
-    this.facLoader.getFacility(ICAO.getFacilityType(icao), icao).then(facility => {
-      if (this.icaosToShow.has(icao)) {
+  private async deregisterIcao(icao: string): Promise<void> {
+    this.icaosToRender.delete(icao);
+
+    try {
+      const facility = await this.facLoader.getFacility(ICAO.getFacilityType(icao), icao);
+
+      if (this.icaosToRender.has(icao)) {
         return;
       }
 
       this.deregisterWaypointWithRenderer(this.props.waypointRenderer, facility);
-    });
+    } catch {
+      if (this.icaosToRender.has(icao)) {
+        return;
+      }
+
+      // If we can't find the facility from the ICAO, it could be that the facility has been removed, in which case
+      // we grab the cached waypoint (the waypoint that was most recently registered with the renderer under the
+      // removed ICAO) and deregister it.
+
+      const cachedWaypoint = this.cachedRenderedWaypoints.get(icao);
+      if (cachedWaypoint !== undefined) {
+        this.cachedRenderedWaypoints.delete(icao);
+        this.props.deregisterWaypoint(cachedWaypoint, this.props.waypointRenderer);
+      }
+    }
   }
 
   /**
@@ -406,14 +486,30 @@ export class MapNearestWaypointsLayer
    */
   private deregisterWaypointWithRenderer(renderer: R, facility: Facility): void {
     const waypoint = this.props.waypointForFacility(facility);
+    this.cachedRenderedWaypoints.delete(facility.icao);
     this.props.deregisterWaypoint(waypoint, renderer);
+  }
+
+  /** @inheritdoc */
+  public setVisible(val: boolean): void {
+    super.setVisible(val);
+    this.canvasLayerRef.instance.setVisible(val);
   }
 
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <MapSyncedCanvasLayer ref={this.canvasLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} />
+      <MapSyncedCanvasLayer ref={this.canvasLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} class={this.props.class ?? ''} />
     );
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this.canvasLayerRef.getOrDefault()?.destroy();
+
+    this.facilityRepoSubs.forEach(sub => { sub.destroy(); });
+
+    super.destroy();
   }
 }
 
@@ -469,8 +565,10 @@ export class MapNearestWaypointsLayerSearch<S extends NearestSearchSession<strin
     this._lastRadius = radius;
     this.maxItemCount = maxItemCount;
 
-    this.refreshDebounceTimer = delay;
-    this.isRefreshScheduled = true;
+    if (!this.isRefreshScheduled) {
+      this.refreshDebounceTimer = delay;
+      this.isRefreshScheduled = true;
+    }
   }
 
   /**

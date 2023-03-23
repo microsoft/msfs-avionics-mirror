@@ -1,0 +1,337 @@
+.gtc-horizontal .gtc-page-flight-plan {
+  --gtc-page-flight-plan-font-size: 31px;
+
+  --gtc-page-flight-plan-buton-column-dto-transform: scale(1.85);
+
+  --gtc-page-flight-plan-offroute-dto-label-top: 48px;
+
+  --gtc-page-flight-plan-direct-to-random-legs-top: 82px;
+  --gtc-page-flight-plan-direct-to-random-legs-left: 1px;
+  --gtc-page-flight-plan-direct-to-random-legs-width: 725px;
+
+  --gtc-page-flight-plan-direct-to-random-bar-top: 224px;
+  --gtc-page-flight-plan-direct-to-random-bar-top-with-hold: 360px;
+}
+
+.gtc-vertical .gtc-page-flight-plan {
+  --gtc-page-flight-plan-font-size: 16px;
+
+  --gtc-page-flight-plan-buton-column-dto-transform: scale(1);
+
+  --gtc-page-flight-plan-offroute-dto-label-top: 25px;
+
+  --gtc-page-flight-plan-direct-to-random-legs-top: 43px;
+  --gtc-page-flight-plan-direct-to-random-legs-left: 0px;
+  --gtc-page-flight-plan-direct-to-random-legs-width: 392px;
+
+  --gtc-page-flight-plan-direct-to-random-bar-top: 119px;
+  --gtc-page-flight-plan-direct-to-random-bar-top-with-hold: 192px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .touch-button {
+  border-width: 1px !important;
+}
+
+.gtc-page-flight-plan .button-column {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .button-column {
+  top: 46px;
+  left: 53px;
+  width: 130px;
+  height: 706px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .button-column {
+  top: 25px;
+  left: 3px;
+  width: 70px;
+  height: 379px;
+}
+
+.gtc-page-flight-plan .button-column .touch-button {
+  width: 100%;
+  font-weight: 600;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .button-column .touch-button {
+  height: 129px;
+  font-size: 37px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .button-column .touch-button {
+  height: 69px;
+  font-size: 20px;
+}
+
+.gtc-page-flight-plan .button-column .touch-button .touch-button-label {
+  white-space: pre;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .button-column .touch-button.small-font {
+  font-size: 27px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .button-column .touch-button.small-font {
+  font-size: 14px;
+}
+
+.gtc-page-flight-plan .direct-to-button img {
+  transform: var(--gtc-page-flight-plan-buton-column-dto-transform);
+}
+
+.gtc-page-flight-plan .flight-plan-box {
+  position: absolute;
+  border: 2px #828C96 solid;
+  background: linear-gradient(#202F3D 0px, var(--g3000-color-black) 20px, var(--g3000-color-black) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .flight-plan-box {
+  top: 40px;
+  left: 193px;
+  width: 745px;
+  height: 725px;
+  border-radius: 8px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .flight-plan-box {
+  top: 22px;
+  left: 78px;
+  width: 401px;
+  height: 390px;
+  border-radius: 5px;
+}
+
+.gtc-page-flight-plan .list-top-section {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  font-weight: 600;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .list-top-section {
+  height: 38px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .list-top-section {
+  height: 20px;
+}
+
+.gtc-page-flight-plan .column-header-1 {
+  position: absolute;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .column-header-1 {
+  left: 16px;
+  font-size: 36px;
+  top: 3px;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .direct-to-random .column-header-1 {
+  top: 265px;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .direct-to-random.direct-to-random-with-hold .column-header-1 {
+  top: 401px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .column-header-1 {
+  left: 8px;
+  font-size: 20px;
+  top: -1px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .direct-to-random .column-header-1 {
+  top: 142px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .direct-to-random.direct-to-random-with-hold .column-header-1 {
+  top: 215px;
+}
+
+.gtc-page-flight-plan .column-header-divider-1,
+.gtc-page-flight-plan .column-header-divider-2 {
+  position: absolute;
+  background-color: #9DAFCB;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .column-header-divider-1,
+.gtc-horizontal .gtc-page-flight-plan .column-header-divider-2 {
+  top: 2px;
+  width: 3px;
+  height: 35px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .column-header-divider-1,
+.gtc-vertical .gtc-page-flight-plan .column-header-divider-2 {
+  top: 0px;
+  width: 2px;
+  height: 19px;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .column-header-divider-1 {
+  left: 338px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .column-header-divider-1 {
+  left: 181px;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .column-header-2 {
+  position: absolute;
+  top: 0;
+  left: 349px;
+  width: 167px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .column-header-2 {
+  position: absolute;
+  left: 185px;
+  width: 94px;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .column-header-divider-2 {
+  left: 516px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .column-header-divider-2 {
+  left: 277px;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .column-header-3 {
+  position: absolute;
+  top: 0;
+  left: 519px;
+  width: 200px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .column-header-3 {
+  position: absolute;
+  left: 275px;
+  width: 118px;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .column-header-2,
+.gtc-horizontal .gtc-page-flight-plan .column-header-3 {
+  text-align: center;
+  font-size: 30px;
+  top: 6px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .column-header-2,
+.gtc-vertical .gtc-page-flight-plan .column-header-3 {
+  text-align: center;
+  font-size: 16px;
+  top: 2px;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .gtc-list.flight-plan-list {
+  position: absolute;
+  top: 38px;
+  left: 1px;
+  width: 738px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .gtc-list.flight-plan-list {
+  position: absolute;
+  top: 20px;
+  left: 0px;
+  width: 397px;
+}
+
+.gtc-page-flight-plan .flight-plan-box.direct-to-random .gtc-list.flight-plan-list {
+  top: unset;
+  bottom: 0;
+}
+
+.gtc-page-flight-plan .gtc-list .touch-button {
+  font-weight: 600;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .gtc-list .medium-font,
+.gtc-horizontal .gtc-page-flight-plan .gtc-list .medium-font .touch-button {
+  font-size: 38px;
+  line-height: 52px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .gtc-list .medium-font,
+.gtc-vertical .gtc-page-flight-plan .gtc-list .medium-font .touch-button {
+  font-size: 22px;
+  line-height: 29px;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .gtc-list .large-font,
+.gtc-horizontal .gtc-page-flight-plan .gtc-list .large-font .touch-button {
+  font-size: 53px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .gtc-list .large-font,
+.gtc-vertical .gtc-page-flight-plan .gtc-list .large-font .touch-button {
+  font-size: 26px;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .touch-button.add-enroute-waypoint-button {
+  width: 531px;
+  height: 123px !important;
+  margin-right: 3px;
+}
+
+.gtc-vertical .gtc-page-flight-plan .touch-button.add-enroute-waypoint-button {
+  width: 286px;
+  height: 66px !important;
+  margin-right: 1px;
+}
+
+.gtc-horizontal .gtc-page-flight-plan .touch-button.add-enroute-waypoint-done-button {
+  width: 182px;
+  height: 123px !important;
+}
+
+.gtc-vertical .gtc-page-flight-plan .touch-button.add-enroute-waypoint-done-button {
+  width: 98px;
+  height: 66px !important;
+}
+
+.gtc-page-flight-plan .offroute-dto-label {
+  position: absolute;
+  top: var(--gtc-page-flight-plan-offroute-dto-label-top);
+  left: 0.5em;
+  font-size: var(--gtc-page-flight-plan-font-size);
+  display: none;
+  color: var(--g3000-color-magenta);
+}
+
+.gtc-page-flight-plan .direct-to-random-bar {
+  position: absolute;
+  top: var(--gtc-page-flight-plan-direct-to-random-bar-top);
+  width: 98%;
+  height: 2px;
+  display: none;
+  background-color: var(--g3000-color-white);
+}
+
+.gtc-page-flight-plan .direct-to-random-with-hold .direct-to-random-bar {
+  top: var(--gtc-page-flight-plan-direct-to-random-bar-top-with-hold);
+}
+
+.gtc-page-flight-plan .direct-to-random .offroute-dto-label,
+.gtc-page-flight-plan .direct-to-random .direct-to-random-bar {
+  display: block;
+}
+
+.gtc-page-flight-plan .direct-to-random-legs {
+  position: absolute;
+  top: var(--gtc-page-flight-plan-direct-to-random-legs-top);
+  left: var(--gtc-page-flight-plan-direct-to-random-legs-left);
+  width: var(--gtc-page-flight-plan-direct-to-random-legs-width);
+}

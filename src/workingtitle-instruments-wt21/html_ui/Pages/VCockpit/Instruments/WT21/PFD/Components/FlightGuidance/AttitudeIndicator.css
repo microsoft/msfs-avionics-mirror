@@ -1,0 +1,73 @@
+.attitude-container {
+  position: absolute;
+  top: 60px;
+  height: 350px;
+  left: 179px;
+  width: 414px;
+}
+
+.turn-coordinator {
+  position: absolute;
+  top: 18px;
+  left: 195px;
+}
+
+.attitude-arc {
+  position: relative;
+  top: 8px;
+  left: -5px;
+}
+
+.attitude-bank {
+  position: absolute;
+  top: 20px;
+  left: 0px;
+  height: 350px;
+  width: 414px;
+}
+
+.attitude-half-bank-arc {
+  position: absolute;
+  top: 0;
+}
+
+.attitude-cutout {
+  overflow: hidden;
+  position: absolute;
+  left: 0px;
+  top: 26px;
+  height: 90%;
+  width: 100%;
+}
+
+.attitude-pitchlines {
+  height: 100%;
+  width: 100%;
+  top: -19px;
+  position: relative;
+}
+
+.attitude-arrow {
+  position: absolute;
+  top: -3px;
+  left: 46.5%;
+  width: 30px;
+  height: 40px;
+}
+
+.attitude-plane {
+  position: absolute;
+  top: -0.5%;
+}
+
+.fail .attitude-arc,
+.fail .attitude-bank,
+.fail .flight-director,
+.warn .attitude-arc,
+.warn .attitude-bank,
+.warn .flight-director,
+.align .attitude-arc,
+.align .attitude-bank,
+.align .flight-director {
+  display: none;
+}

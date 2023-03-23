@@ -34,29 +34,35 @@ export class DmsFormatter {
    * Builds a DMS string out of the given latitude.
    * @param value The latitude.
    * @param spaceAfterDirection Whether to insert a space after the direction letter.
+   * @param minuteApostrophe Whether to insert an apostrophe (') after the string.
+   * @param precision Decimal precision for the minutes part.
+   * @param padMinutesTo Padding applied to integer part of minutes.
    * @returns The DMS string.
    */
-  public getLatDmsStr(value: number, spaceAfterDirection = true): string {
+  public getLatDmsStr(value: number, spaceAfterDirection = true, minuteApostrophe = true, precision = 2, padMinutesTo = 3): string {
     const parts = this.parseLat(value);
     if (parts.minutes >= 59.5) {
       parts.minutes = 0;
       parts.degrees++;
     }
-    return `${parts.direction}${spaceAfterDirection ? ' ' : ''}${parts.degrees.toString().padStart(2, '0')}°${parts.minutes.toFixed(2).padStart(5, '0')}'`;
+    return `${parts.direction}${spaceAfterDirection ? ' ' : ''}${parts.degrees.toString().padStart(2, '0')}°${parts.minutes.toFixed(precision).padStart(padMinutesTo + precision, '0')}${minuteApostrophe ? '\'' : ''}`;
   }
 
   /**
    * Builds a DMS string out of the given longitude.
    * @param value The longitude.
+   * @param minuteApostrophe Whether to insert an apostrophe (') after the string.
+   * @param precision Decimal precision for the minutes part.
+   * @param padMinutesTo Padding applied to integer part of minutes.
    * @returns The DMS string.
    */
-  public getLonDmsStr(value: number): string {
+  public getLonDmsStr(value: number, minuteApostrophe = true, precision = 2, padMinutesTo = 3): string {
     const parts = this.parseLon(value);
     if (parts.minutes >= 59.5) {
       parts.minutes = 0;
       parts.degrees++;
     }
-    return `${parts.direction}${parts.degrees.toString().padStart(3, '0')}°${parts.minutes.toFixed(2).padStart(5, '0')}'`;
+    return `${parts.direction}${parts.degrees.toString().padStart(3, '0')}°${parts.minutes.toFixed(precision).padStart(padMinutesTo + precision, '0')}${minuteApostrophe ? '\'' : ''}`;
   }
 
   /**

@@ -14,6 +14,8 @@ export class GarminMapKeys {
 
   public static readonly OrientationRTR = 'orientationRTR' as const;
 
+  public static readonly RotationModeControl = 'rotationModeControlModerator' as const;
+
   public static readonly OrientationControl = 'orientationControlModerator' as const;
 
   public static readonly Declutter = 'declutter' as const;
@@ -54,17 +56,21 @@ export class GarminMapKeys {
 
   public static readonly PointerInfo = 'pointerInfo' as const;
 
-  public static readonly AltitudeArc = 'altitudeArc' as const;
-
   public static readonly TrackVector = 'trackVector' as const;
 
   public static readonly MiniCompass = 'miniCompass' as const;
+
+  public static readonly WaypointSelection = 'waypointSelection' as const;
+
+  public static readonly WaypointRTR = 'waypointRTR' as const;
 
   public static readonly Nearest = 'nearest' as const;
 
   public static readonly ProcedurePreview = 'procedurePreview' as const;
 
   public static readonly DataIntegrityRTR = 'dataIntegrityRTR' as const;
+
+  public static readonly DeadReckoning = 'deadReckoning' as const;
 
   public static readonly TopLeftIndicators = 'topLeftIndicators' as const;
 

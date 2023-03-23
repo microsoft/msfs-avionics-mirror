@@ -1,0 +1,75 @@
+.nav-info-page {
+  padding: 4px 5px;
+  background-color: var(--gnsblue);
+}
+
+.nav-info-fromto,
+.nav-info-fields {
+  background-color: black;
+}
+
+.nav-info-fromto {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  width: 261px;
+  margin: 6px 0 8px;
+  padding: 1px;
+  border: 1px solid var(--gnscyan);
+
+  color: var(--gnsgreen);
+
+  font-size: 21px;
+}
+
+.leg-icon {
+  width: 27px;
+  padding-top: 3px;
+  padding-bottom: 0;
+}
+
+.nav-info-field-labels {
+  display: flex;
+  justify-content: center;
+
+  width: 261px;
+  margin-top: 2px;
+
+  font-size: 13px;
+}
+
+.nav-info-field-labels>span {
+  width: 8em;
+  text-align: center;
+  color: var(--gnscyan);
+}
+
+.nav-info-field-labels>span>div {
+  /* selected state div */
+  padding-top: 2px;
+  height: 13px;
+}
+
+.nav-info-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  grid-row-gap: 8px;
+
+  justify-items: center;
+  justify-content: center;
+
+  width: 261px;
+  height: 58px;
+
+  margin-left: 0;
+  margin-right: 0;
+  padding-top: 4px;
+  padding-bottom: 3px;
+  border: 1px solid var(--gnscyan);
+}
+
+.nav-info-fields .gns-data-field {
+  font-size: 22px;
+}

@@ -1,6 +1,6 @@
 import {
   MapIndexedRangeModule, MappedSubject, MappedSubscribable, MapSystemContext, MapSystemController, Subject, Subscribable, UserSettingManager
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { MapUserSettingTypes } from '../../../settings/MapUserSettings';
 import { GarminMapKeys } from '../GarminMapKeys';
@@ -53,7 +53,7 @@ export class MapNexradController extends MapSystemController<MapNexradController
     context: MapSystemContext<MapNexradControllerModules, any, any, any>,
     private readonly minRangeIndex: number,
     settingManager?: UserSettingManager<Partial<MapNexradUserSettings>>,
-    private readonly maxDeclutterMode = MapDeclutterMode.Level2,
+    private readonly maxDeclutterMode = MapDeclutterMode.Level2
   ) {
     super(context);
 

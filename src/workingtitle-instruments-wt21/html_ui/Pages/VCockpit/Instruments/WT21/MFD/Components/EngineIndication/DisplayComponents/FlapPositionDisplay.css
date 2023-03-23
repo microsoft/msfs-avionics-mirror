@@ -1,0 +1,13 @@
+.flight-control-flaps {
+  position: relative;
+}
+
+.flight-control-flaps-pointer {
+  position: absolute;
+  left: 110px;
+  transform-origin: 5px 15px;
+}
+
+.flight-control-flaps-markings {
+  position: absolute;
+}

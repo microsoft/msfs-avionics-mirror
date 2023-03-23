@@ -1,0 +1,243 @@
+.frequency-dialog {
+  position: absolute;
+  box-sizing: border-box;
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  color: var(--g3000-color-white);
+
+  --frequency-dialog-content-offset-x: 0px;
+}
+
+.gtc-horizontal .frequency-dialog {
+  top: 0px;
+  left: calc(50% - 870px / 2);
+  width: 870px;
+  height: 100%;
+
+  --frequency-dialog-active-freq-top: 50px;
+  --frequency-dialog-active-freq-width: 350px;
+  --frequency-dialog-active-freq-font-size: 32px;
+
+  --frequency-dialog-input-top: 95px;
+  --frequency-dialog-input-width: 315px;
+  --frequency-dialog-input-height: 70px;
+  --frequency-dialog-input-font-size: 56px;
+
+  --frequency-dialog-numpad-top: 175px;
+  --frequency-dialog-numpad-width: 480px;
+  --frequency-dialog-numpad-height: 580px;
+  --frequency-dialog-numpad-button-size: 135px;
+  --frequency-dialog-numpad-font-size: 80px;
+
+  --frequency-dialog-button-font-size: 32px;
+
+  --frequency-dialog-top-button-outer: 130px;
+  --frequency-dialog-top-button-top: 55px;
+  --frequency-dialog-top-button-width: 120px;
+  --frequency-dialog-top-button-height: 120px;
+
+  --frequency-dialog-backspace-img-scale: 1.8;
+
+  --frequency-dialog-find-icon-width: 90px;
+
+  --frequency-dialog-xfer-right: 140px;
+  --frequency-dialog-xfer-bottom: 20px;
+  --frequency-dialog-xfer-width: 195px;
+  --frequency-dialog-xfer-height: 120px;
+  --frequency-dialog-xfer-font-size: 40px;
+  --frequency-dialog-xfer-icon-width: 29px;
+
+  --frequency-dialog-adf-mode-left: 10px;
+  --frequency-dialog-adf-mode-bottom: 5px;
+  --frequency-dialog-adf-mode-left-padding: 10px;
+
+  --frequency-dialog-adf-mode-button-width: 200px;
+  --frequency-dialog-adf-mode-button-height: 124px;
+  --frequency-dialog-adf-mode-button-margin-top: 5px;
+  --frequency-dialog-adf-mode-button-font-size: 34px;
+}
+
+.gtc-vertical .frequency-dialog {
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+
+  --frequency-dialog-active-freq-top: 25px;
+  --frequency-dialog-active-freq-width: 190px;
+  --frequency-dialog-active-freq-font-size: 18px;
+
+  --frequency-dialog-input-top: 50px;
+  --frequency-dialog-input-width: 175px;
+  --frequency-dialog-input-height: 40px;
+  --frequency-dialog-input-font-size: 32px;
+
+  --frequency-dialog-numpad-top: 97px;
+  --frequency-dialog-numpad-width: 270px;
+  --frequency-dialog-numpad-height: 313px;
+  --frequency-dialog-numpad-button-size: 70px;
+  --frequency-dialog-numpad-font-size: 44px;
+
+  --frequency-dialog-button-font-size: 18px;
+
+  --frequency-dialog-top-button-outer: 72px;
+  --frequency-dialog-top-button-top: 30px;
+  --frequency-dialog-top-button-width: 65px;
+  --frequency-dialog-top-button-height: 65px;
+
+  --frequency-dialog-backspace-img-scale: 1;
+
+  --frequency-dialog-find-icon-width: 50px;
+
+  --frequency-dialog-xfer-right: 78px;
+  --frequency-dialog-xfer-bottom: 7px;
+  --frequency-dialog-xfer-width: 105px;
+  --frequency-dialog-xfer-height: 65px;
+  --frequency-dialog-xfer-font-size: 24px;
+  --frequency-dialog-xfer-icon-width: 16px;
+
+  --frequency-dialog-adf-mode-left: 5px;
+  --frequency-dialog-adf-mode-bottom: 2px;
+  --frequency-dialog-adf-mode-left-padding: 5px;
+
+  --frequency-dialog-adf-mode-button-width: 110px;
+  --frequency-dialog-adf-mode-button-height: 66px;
+  --frequency-dialog-adf-mode-button-margin-top: 2px;
+  --frequency-dialog-adf-mode-button-font-size: 18px;
+}
+
+.gtc-horizontal .frequency-dialog.frequency-dialog-show-adf-mode {
+  --frequency-dialog-content-offset-x: 120px;
+}
+
+.gtc-vertical .frequency-dialog.frequency-dialog-show-adf-mode {
+  --frequency-dialog-content-offset-x: 65px;
+}
+
+.frequency-dialog-main-content {
+  position: absolute;
+  left: var(--frequency-dialog-content-offset-x);
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.frequency-dialog-active-freq {
+  position: absolute;
+  left: calc(50% - var(--frequency-dialog-active-freq-width) / 2);
+  top: var(--frequency-dialog-active-freq-top);
+  width: var(--frequency-dialog-active-freq-width);
+  text-align: left;
+  font-size: var(--frequency-dialog-active-freq-font-size);
+}
+
+.frequency-dialog-input {
+  position: absolute;
+  left: calc(50% - var(--frequency-dialog-input-width) / 2);
+  top: var(--frequency-dialog-input-top);
+  width: var(--frequency-dialog-input-width);
+  height: var(--frequency-dialog-input-height);
+  font-size: var(--frequency-dialog-input-font-size);
+  color: var(--g3000-color-cyan);
+  --cursor-input-slots-justify: center;
+}
+
+.frequency-dialog-input.cursor-input-edit-inactive {
+  color: var(--g3000-color-black);
+}
+
+.frequency-dialog-numpad {
+  position: absolute;
+  left: calc(50% - var(--frequency-dialog-numpad-width) / 2);
+  top: var(--frequency-dialog-numpad-top);
+  width: var(--frequency-dialog-numpad-width);
+  height: var(--frequency-dialog-numpad-height);
+  font-size: var(--frequency-dialog-numpad-font-size);
+  justify-items: center;
+  align-items: center;
+}
+
+.frequency-dialog-numpad .number-pad-button {
+  width: var(--frequency-dialog-numpad-button-size);
+  height: var(--frequency-dialog-numpad-button-size);
+}
+
+.touch-button.frequency-dialog-backspace {
+  position: absolute;
+  right: var(--frequency-dialog-top-button-outer);
+  top: var(--frequency-dialog-top-button-top);
+  width: var(--frequency-dialog-top-button-width);
+  height: var(--frequency-dialog-top-button-height);
+  font-size: var(--frequency-dialog-button-font-size);
+}
+
+.frequency-dialog-backspace .touch-button-img-img {
+  transform: translate(-50%, -50%) scale(var(--frequency-dialog-backspace-img-scale));
+}
+
+.touch-button.frequency-dialog-find {
+  position: absolute;
+  left: var(--frequency-dialog-top-button-outer);
+  top: var(--frequency-dialog-top-button-top);
+  width: var(--frequency-dialog-top-button-width);
+  height: var(--frequency-dialog-top-button-height);
+  font-size: var(--frequency-dialog-button-font-size);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.frequency-dialog-find img {
+  width: var(--frequency-dialog-find-icon-width);
+  height: auto;
+}
+
+.touch-button.frequency-dialog-xfer {
+  position: absolute;
+  right: var(--frequency-dialog-xfer-right);
+  bottom: var(--frequency-dialog-xfer-bottom);
+  width: var(--frequency-dialog-xfer-width);
+  height: var(--frequency-dialog-xfer-height);
+  font-size: var(--frequency-dialog-xfer-font-size);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.frequency-dialog-xfer img {
+  width: var(--frequency-dialog-xfer-icon-width);
+  height: auto;
+}
+
+.frequency-dialog-adf-mode-container {
+  display: none;
+  position: absolute;
+  left: var(--frequency-dialog-adf-mode-left);
+  bottom: var(--frequency-dialog-adf-mode-bottom);
+  padding: var(--frequency-dialog-adf-mode-left-padding);
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.frequency-dialog-show-adf-mode .frequency-dialog-adf-mode-container {
+  display: flex;
+}
+
+.frequency-dialog-adf-mode-title {
+  text-align: center;
+  font-size: var(--frequency-dialog-button-font-size);
+}
+
+.frequency-dialog-adf-mode-button {
+  width: var(--frequency-dialog-adf-mode-button-width);
+  height: var(--frequency-dialog-adf-mode-button-height);
+  margin-top: var(--frequency-dialog-adf-mode-button-margin-top);
+  font-size: var(--frequency-dialog-adf-mode-button-font-size);
+
+  --touch-button-toggle-label-center-y: 40%;
+  --touch-button-toggle-bar-center-y: 80%;
+  --touch-button-toggle-bar-width: 60%;
+}

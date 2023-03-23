@@ -1,0 +1,582 @@
+.altimeter {
+  /* Top/bottom box vars */
+
+  --altimeter-top-box-height: 32px;
+  --altimeter-bottom-box-height: 32px;
+
+  /* Tape vars */
+
+  --altimeter-tape-bg: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5));
+  --altimeter-tape-bg-border-radius: 10px;
+  --altimeter-tape-top-border-color: #646464;
+  --altimeter-tape-bottom-border-color: #2c2c2c;
+
+  --altimeter-tick-minor-width: 8%;
+  --altimeter-tick-minor-stroke-width: 2px;
+  --altimeter-tick-major-width: 16%;
+  --altimeter-tick-major-stroke-width: 2px;
+
+  --altimeter-tape-label-margin-right: 0.25em;
+  --altimeter-tape-label-font-size: 1em;
+  --altimeter-tape-label-tens-font-size: 0.85em;
+
+  --altimeter-tape-overflow-background: rgba(30, 30, 30, 0.5);
+
+  /* Indicated alt display box vars */
+
+  --altimeter-indicatedalt-box-margin-left: 0%;
+  --altimeter-indicatedalt-box-height: 2.4em;
+  --altimeter-indicatedalt-box-font-size: 1.25em;
+  --altimeter-indicatedalt-box-tens-font-size: 0.85em;
+  --altimeter-indicatedalt-box-border-width: 1px;
+
+  /* Metric indicated alt display vars */
+
+  --altimeter-metric-indicatedalt-margin-right: 3px;
+  --altimeter-metric-indicatedalt-margin-bottom: 1px;
+  --altimeter-metric-indicatedalt-width: calc(100% - var(--altimeter-tick-major-width) - var(--altimeter-metric-indicatedalt-margin-right) - 5px);
+  --altimeter-metric-indicatedalt-padding: 0 5px;
+  --altimeter-metric-indicatedalt-font-size: 0.85em;
+  --altimeter-metric-indicatedalt-background: var(--g3000-color-black);
+  --altimeter-metric-indicatedalt-border-radius: 4px;
+
+  /* Metric selected alt display vars */
+
+  --altimeter-metric-selectedalt-margin-right: 3px;
+  --altimeter-metric-selectedalt-margin-top: -1px;
+  --altimeter-metric-selectedalt-width: calc(100% - var(--altimeter-tick-major-width) - var(--altimeter-metric-selectedalt-margin-right) - 5px);
+  --altimeter-metric-selectedalt-padding: 0 5px;
+  --altimeter-metric-selectedalt-font-size: 0.85em;
+  --altimeter-metric-selectedalt-background: var(--g3000-color-black);
+  --altimeter-metric-selectedalt-border-radius: 2px;
+
+  /* Selected altitude display vars */
+
+  --altimeter-selectedalt-font-size: 1.1em;
+  --altimeter-selectedalt-tens-font-size: 0.75em;
+  --altimeter-selectedalt-bg-color: rgba(0, 0, 0, 0.8);
+  --altimeter-selectedalt-icon-margin-left: 6px;
+  --altimeter-selectedalt-icon-width: 8px;
+  --altimeter-selectedalt-icon-height: 16px;
+
+  /* Baro setting display vars */
+
+  --altimeter-baro-font-size: 0.9em;
+  --altimeter-baro-preselect-title-font-size: 0.7em;
+  --altimeter-baro-bg-color: rgba(0, 0, 0, 0.8);
+  --altimeter-baro-preselect-bg-color: var(--g3000-color-black);
+
+  /* Selected altitude bug vars */
+
+  --altimeter-selectedalt-bug-width: calc(var(--altimeter-indicatedalt-box-margin-left) + (100% - var(--altimeter-indicatedalt-box-margin-left)) * 0.12);
+  --altimeter-selectedalt-bug-height: calc(var(--altimeter-indicatedalt-box-font-size) * 0.8);
+  --altimeter-selectedalt-bug-fill: var(--g3000-color-cyan);
+  --altimeter-selectedalt-bug-stroke: #505050;
+
+  /* Minimums bug vars */
+  --altimeter-minimums-bug-width: calc(var(--altimeter-indicatedalt-box-margin-left) + (100% - var(--altimeter-indicatedalt-box-margin-left)) * 0.19);
+  --altimeter-minimums-bug-height: calc(var(--altimeter-indicatedalt-box-height) * 0.6);
+  --altimeter-minimums-bug-left-margin: 3px;
+
+  /* Trend vector vars */
+
+  --altimeter-trend-width: 6px;
+
+  /* Private vars */
+
+  --altimeter-minimums-bug-fill: var(--g3000-color-cyan);
+
+  /* Computed vars */
+
+  --altimeter-tape-topright-border-radius: var(--altimeter-tape-bg-border-radius);
+  --altimeter-tape-bottomright-border-radius: var(--altimeter-tape-bg-border-radius);
+
+  --altimeter-tape-top-border: 1px solid var(--altimeter-tape-top-border-color);
+  --altimeter-tape-bottom-border: 1px solid var(--altimeter-tape-bottom-border-color);
+
+  --altimeter-tape-top-border-actual: var(--altimeter-tape-top-border);
+  --altimeter-tape-bottom-border-actual: var(--altimeter-tape-bottom-border);
+}
+
+.altimeter.altimeter-top-visible {
+  --altimeter-tape-topright-border-radius: 0px;
+  --altimeter-tape-top-border-actual: none;
+}
+
+.altimeter.altimeter-bottom-visible {
+  --altimeter-tape-bottomright-border-radius: 0px;
+  --altimeter-tape-bottom-border-actual: none;
+}
+
+.altimeter.minimums-alert-within100 {
+  --altimeter-minimums-bug-fill: var(--g3000-color-white);
+}
+
+.altimeter.minimums-alert-atorbelow {
+  --altimeter-minimums-bug-fill: var(--g3000-color-yellow);
+}
+
+.altimeter-top-container {
+  position: absolute;
+  top: 0%;
+  left: 0%;
+  width: 100%;
+  height: var(--altimeter-top-box-height);
+  transform: rotateX(0deg);
+}
+
+.altimeter-selectedalt-container {
+  position: absolute;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 100%;
+  background: var(--altimeter-selectedalt-bg-color);
+  border-radius: 0 var(--altimeter-tape-bg-border-radius) 0 0;
+  border: var(--altimeter-tape-top-border);
+  border-bottom: none;
+  color: var(--g3000-color-cyan);
+  fill: var(--g3000-color-cyan);
+}
+
+.altimeter-selectedalt-container.alt-alert-within1000 {
+  background: var(--g3000-color-cyan);
+  color: var(--g3000-color-black);
+  fill: var(--g3000-color-black);
+}
+
+.altimeter-selectedalt-container.alt-alert-deviation {
+  color: var(--g3000-color-yellow);
+  fill: var(--g3000-color-yellow);
+}
+
+@keyframes alt-alert-within1000-flash {
+  0% {
+    background: var(--altimeter-selectedalt-bg-color);
+    color: var(--g3000-color-cyan);
+    fill: var(--g3000-color-cyan);
+  }
+
+  50% {
+    background: var(--altimeter-selectedalt-bg-color);
+    color: var(--g3000-color-cyan);
+    fill: var(--g3000-color-cyan);
+  }
+
+  100% {
+    background: var(--g3000-color-cyan);
+    color: var(--g3000-color-black);
+    fill: var(--g3000-color-black);
+  }
+}
+
+@keyframes alt-alert-within200-flash {
+  0% {
+    color: var(--g3000-color-cyan);
+    fill: var(--g3000-color-cyan);
+  }
+
+  50% {
+    color: var(--g3000-color-cyan);
+    fill: var(--g3000-color-cyan);
+  }
+
+  100% {
+    color: var(--altimeter-selectedalt-bg-color);
+    fill: var(--altimeter-selectedalt-bg-color);
+  }
+}
+
+@keyframes alt-alert-deviation-flash {
+  0% {
+    color: var(--g3000-color-yellow);
+    fill: var(--g3000-color-yellow);
+  }
+
+  50% {
+    color: var(--g3000-color-yellow);
+    fill: var(--g3000-color-yellow);
+  }
+
+  100% {
+    color: var(--altimeter-selectedalt-bg-color);
+    fill: var(--altimeter-selectedalt-bg-color);
+  }
+}
+
+.altimeter-selectedalt-container.alt-alert-within1000-flash {
+  animation: alt-alert-within1000-flash 1s infinite;
+}
+
+.altimeter-selectedalt-container.alt-alert-within200-flash {
+  animation: alt-alert-within200-flash 1s infinite;
+}
+
+.altimeter-selectedalt-container.alt-alert-deviation-flash {
+  animation: alt-alert-deviation-flash 1s infinite;
+}
+
+.altimeter-selectedalt-icon {
+  position: absolute;
+  left: var(--altimeter-selectedalt-icon-margin-left);
+  top: calc(50% - var(--altimeter-selectedalt-icon-height) / 2);
+  width: var(--altimeter-selectedalt-icon-width);
+  height: var(--altimeter-selectedalt-icon-height);
+}
+
+.altimeter-selectedalt-text {
+  position: absolute;
+  left: 52.5%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-size: var(--altimeter-selectedalt-font-size);
+}
+
+.altimeter-selectedalt-text-tens {
+  font-size: var(--altimeter-selectedalt-tens-font-size);
+}
+
+.altimeter-selectedalt-default {
+  position: absolute;
+  left: 52.5%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.altimeter-bottom-container {
+  position: absolute;
+  left: 0%;
+  bottom: 0%;
+  width: 100%;
+  height: var(--altimeter-bottom-box-height);
+  transform: rotateX(0deg);
+}
+
+.altimeter-baro-container {
+  position: absolute;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 100%;
+  background: var(--altimeter-baro-bg-color);
+  border-radius: 0 0 var(--altimeter-tape-bg-border-radius) 0;
+  border: var(--altimeter-tape-bottom-border);
+  border-top: none;
+  font-size: var(--altimeter-baro-font-size);
+}
+
+.altimeter-baro-setting-value,
+.altimeter-baro-std {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--g3000-color-cyan);
+  white-space: nowrap;
+}
+
+.altimeter-baro-std {
+  letter-spacing: -0.5px;
+}
+
+.altimeter-baro-preselect {
+  position: absolute;
+  left: 0%;
+  bottom: 100%;
+  width: 100%;
+  height: var(--altimeter-bottom-box-height);
+  background: var(--altimeter-baro-preselect-bg-color);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.altimeter-baro-preselect-title {
+  margin-right: 4px;
+  color: var(--g3000-color-white);
+  font-size: var(--altimeter-baro-preselect-title-font-size);
+}
+
+.altimeter-baro-preselect-value {
+  color: var(--g3000-color-title-gray);
+  letter-spacing: -1px;
+}
+
+.altimeter-tape-container {
+  position: absolute;
+  left: 0%;
+  top: var(--altimeter-top-box-height);
+  width: 100%;
+  height: calc(100% - var(--altimeter-top-box-height) - var(--altimeter-bottom-box-height));
+  background: var(--altimeter-tape-bg);
+  border-radius: 0 var(--altimeter-tape-topright-border-radius) var(--altimeter-tape-bottomright-border-radius) 0;
+}
+
+.altimeter-tape-border-top {
+  position: absolute;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 50%;
+  border-radius: 0 var(--altimeter-tape-topright-border-radius) 0 0;
+  border: var(--altimeter-tape-top-border);
+  border-top: var(--altimeter-tape-top-border-actual);
+  border-bottom: none;
+}
+
+.altimeter-tape-border-bottom {
+  position: absolute;
+  left: 0%;
+  bottom: 0%;
+  width: 100%;
+  height: 50%;
+  border-radius: 0 0 var(--altimeter-tape-bottomright-border-radius) 0;
+  border: var(--altimeter-tape-bottom-border);
+  border-bottom: var(--altimeter-tape-bottom-border-actual);
+  border-top: none;
+}
+
+.altimeter-tape-window {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  border-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) var(--altimeter-tape-bg-border-radius), var(--altimeter-tape-top-border-color) calc(var(--altimeter-tape-bg-border-radius) + 1px), var(--altimeter-tape-bottom-border-color) calc(100% - var(--altimeter-tape-bg-border-radius) - 1px), rgba(0, 0, 0, 0) calc(100% - var(--altimeter-tape-bg-border-radius))) 1 100%;
+  border-width: 1px;
+  border-top: 1px none;
+  border-bottom: 1px none;
+}
+
+.altimeter-tape {
+  position: absolute;
+  bottom: 50%;
+  width: 100%;
+}
+
+.altimeter-tape-tick-minor-container {
+  position: absolute;
+  left: 0%;
+  width: var(--altimeter-tick-minor-width);
+  height: 100%;
+  stroke: var(--g3000-color-white);
+  stroke-width: var(--altimeter-tick-minor-stroke-width);
+}
+
+.altimeter-tape-tick-major-container {
+  position: absolute;
+  left: 0%;
+  width: var(--altimeter-tick-major-width);
+  height: 100%;
+  stroke: var(--g3000-color-white);
+  stroke-width: var(--altimeter-tick-major-stroke-width);
+}
+
+.altimeter-tape-label-container {
+  position: absolute;
+  right: var(--altimeter-tape-label-margin-right);
+  width: calc(100% - var(--altimeter-tape-label-margin-right) - var(--altimeter-tick-major-width));
+  height: 100%;
+  font-size: var(--altimeter-tape-label-font-size);
+  color: var(--g3000-color-white);
+  text-align: right;
+}
+
+.altimeter-tape-label-tens {
+  font-size: var(--altimeter-tape-label-tens-font-size);
+}
+
+.altimeter-tape-overflow {
+  background: var(--altimeter-tape-overflow-background);
+}
+
+.altimeter-indicatedalt-box {
+  position: absolute;
+  left: var(--altimeter-indicatedalt-box-margin-left);
+  width: calc(100% - var(--altimeter-indicatedalt-box-margin-left));
+  top: 50%;
+  height: var(--altimeter-indicatedalt-box-height);
+  transform: translateY(-50%);
+  font-size: var(--altimeter-indicatedalt-box-font-size);
+  color: var(--g3000-color-white);
+
+  --altimeter-indicatedalt-box-fill: var(--g3000-color-black);
+  --altimeter-indicatedalt-box-stroke: var(--g3000-color-white);
+  --altimeter-indicatedalt-box-bg: linear-gradient(to bottom, rgba(0, 0, 0, 1.0), rgb(30, 30, 30), rgba(0, 0, 0, 1.0));
+  --altimeter-indicatedalt-box-scroller-mask-bg: linear-gradient(to bottom, rgba(0, 0, 0, 1) 5%, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0) 80%, rgba(0, 0, 0, 1) 95%);
+}
+
+.airspeed-alert-overspeed .altimeter-indicatedalt-box,
+.airspeed-alert-underspeed .altimeter-indicatedalt-box {
+  --altimeter-indicatedalt-box-fill: var(--g3000-color-red);
+  --altimeter-indicatedalt-box-stroke: var(--g3000-color-red);
+  --altimeter-indicatedalt-box-bg: var(--g3000-color-red);
+  --altimeter-indicatedalt-box-scroller-mask-bg: transparent;
+}
+
+.airspeed-alert-trend-overspeed .altimeter-indicatedalt-box,
+.airspeed-alert-trend-underspeed .altimeter-indicatedalt-box {
+  color: var(--g3000-color-yellow);
+  --altimeter-indicatedalt-box-bg: var(--g3000-color-black);
+  --altimeter-indicatedalt-box-scroller-mask-bg: transparent;
+}
+
+.altimeter-indicatedalt-box-bg {
+  width: 100%;
+  height: 100%;
+  fill: var(--altimeter-indicatedalt-box-fill);
+  stroke: var(--altimeter-indicatedalt-box-stroke);
+  stroke-width: var(--altimeter-indicatedalt-box-border-width);
+}
+
+.altimeter-indicatedalt-box-scrollers {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.altimeter-indicatedalt-box-digit-container {
+  position: relative;
+  width: calc(20.7% - 2px);
+  height: calc(60% - 2 * var(--altimeter-indicatedalt-box-border-width));
+  margin: 0 1px;
+  overflow: hidden;
+}
+
+.altimeter-indicatedalt-box-digit-container.altimeter-indicatedalt-box-tens {
+  width: calc(37.8% - 2px);
+  height: calc(100% - 2 * var(--altimeter-indicatedalt-box-border-width));
+}
+
+.altimeter-indicatedalt-box-tens .digit-scroller-digit {
+  font-size: var(--altimeter-indicatedalt-box-tens-font-size);
+}
+
+.altimeter-indicatedalt-box-digit-container .digit-scroller {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+}
+
+.altimeter-indicatedalt-box-negative-sign {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  transform: translateY(-50%);
+  text-align: center;
+}
+
+.altimeter-indicatedalt-box-digit-bg {
+  position: absolute;
+  left: 0;
+  top: 0%;
+  width: 100%;
+  height: 100%;
+  background: var(--altimeter-indicatedalt-box-bg);
+}
+
+.altimeter-indicatedalt-box-scroller-mask {
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: var(--altimeter-indicatedalt-box-scroller-mask-bg);
+}
+
+.altimeter-metric-indicatedalt {
+  position: absolute;
+  right: var(--altimeter-metric-indicatedalt-margin-right);
+  bottom: calc(50% + var(--altimeter-indicatedalt-box-height) / 2 + var(--altimeter-metric-indicatedalt-margin-bottom));
+  width: var(--altimeter-metric-indicatedalt-width);
+  padding: var(--altimeter-metric-indicatedalt-padding);
+  font-size: var(--altimeter-metric-indicatedalt-font-size);
+  color: var(--g3000-color-white);
+  background: var(--altimeter-metric-indicatedalt-background);
+  border-radius: var(--altimeter-metric-indicatedalt-border-radius);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-end;
+
+  transform: rotateX(0deg);
+}
+
+.altimeter-metric-selectedalt {
+  position: absolute;
+  right: var(--altimeter-metric-selectedalt-margin-right);
+  top: var(--altimeter-metric-selectedalt-margin-top);
+  width: var(--altimeter-metric-selectedalt-width);
+  padding: var(--altimeter-metric-selectedalt-padding);
+  font-size: var(--altimeter-metric-selectedalt-font-size);
+  color: var(--g3000-color-cyan);
+  background: var(--altimeter-metric-selectedalt-background);
+  border-radius: var(--altimeter-metric-selectedalt-border-radius);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-end;
+
+  transform: rotateX(0deg);
+}
+
+.altimeter-ground-line {
+  width: 100%;
+  border: solid 1px var(--g3000-color-white);
+  background: #54360a url("/Pages/VCockpit/Instruments/NavSystems/WTG3000/Assets/Images/PFD/altimeter_ground_line_stripes.png");
+}
+
+.altimeter-selectedalt-bug {
+  left: 0%;
+  width: var(--altimeter-selectedalt-bug-width);
+  height: var(--altimeter-selectedalt-bug-height);
+}
+
+.altimeter-selectedalt-bug-icon {
+  width: 100%;
+  height: 100%;
+  fill: var(--altimeter-selectedalt-bug-fill);
+  stroke: var(--altimeter-selectedalt-bug-stroke);
+  stroke-width: 1px;
+}
+
+.altimeter-minimums-bug {
+  left: var(--altimeter-minimums-bug-left-margin);
+  width: var(--altimeter-minimums-bug-width);
+  height: var(--altimeter-minimums-bug-height);
+}
+
+.altimeter-minimums-bug-icon {
+  width: 100%;
+  height: 100%;
+  fill: var(--altimeter-minimums-bug-fill);
+}
+
+.altimeter-trend {
+  left: 0%;
+  width: var(--altimeter-trend-width);
+  background: var(--g3000-color-magenta);
+  border: 1px solid var(--g3000-color-white);
+}
+
+.altimeter .failed-box {
+  position: absolute;
+  left: 0%;
+  top: var(--altimeter-top-box-height);
+  width: 100%;
+  height: calc(100% - var(--altimeter-top-box-height) - var(--altimeter-bottom-box-height));
+}
+
+.altimeter.data-failed .failed-box {
+  display: block;
+}
+
+.data-failed .altimeter-tape-label-container {
+  display: none;
+}

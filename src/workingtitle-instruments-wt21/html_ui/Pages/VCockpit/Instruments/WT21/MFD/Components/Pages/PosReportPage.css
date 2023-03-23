@@ -1,0 +1,55 @@
+.mfd-page-pos-report-container {
+  position: absolute;
+  left: 20%;
+  top: 10%;
+  display: flex;
+  flex-direction: column;
+}
+
+.pos-report-header-margin {
+  margin-bottom: 30px;
+}
+
+.pos-report-grid-container {
+  display: grid;
+  grid-template-columns: 100px 250px 108px 95px;
+  grid-template-rows: repeat(3, 22px);
+  margin-bottom: 20px;
+}
+
+.grid-coordinates {
+  grid-column-start: 2;
+  grid-column-end: 5;
+  text-align: center;
+  padding-right: 70px;
+}
+
+.grid-indent {
+  padding-left: 40px;
+}
+
+.pos-grid-spacing1 {
+  padding-right: 145px;
+}
+
+.pos-grid-spacing2 {
+  padding-right: 107px;
+}
+
+.pos-report-weather {
+  align-self: left;
+  display: grid;
+  grid-template-columns: 247px 105px 175px;
+  grid-template-rows: repeat(2, 22px);
+}
+
+.pos-report-dest {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 145px 185px 150px 75px;
+  grid-template-rows: repeat(3, 22px);
+}
+
+.pos-report-dest-spacing {
+  padding-right: 120px;
+}

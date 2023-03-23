@@ -1,0 +1,153 @@
+.wpt-dup-dialog {
+  position: absolute;
+  top: 0px;
+  height: 100%;
+  background: var(--g3000-color-black);
+  color: var(--g3000-color-white);
+
+  --gtc-wpt-button-ident-color: var(--g3000-color-white);
+
+  --wpt-dup-dialog-gps-color: var(--g3000-color-white);
+
+  /* Computed vars */
+
+  --wpt-dup-dialog-list-height: calc(var(--wpt-dup-dialog-list-item-height) * 4 + var(--wpt-dup-dialog-list-item-spacing) * 3);
+}
+
+.wpt-dup-dialog.dead-reckoning {
+  --wpt-dup-dialog-gps-color: var(--g3000-color-yellow);
+}
+
+.gtc-horizontal .wpt-dup-dialog {
+  left: calc(50% - 890px / 2);
+  width: 890px;
+  font-size: 29px;
+
+  --wpt-dup-dialog-label-left: 10px;
+  --wpt-dup-dialog-label-top: 50px;
+
+  --wpt-dup-dialog-header-column1-right: 605px;
+  --wpt-dup-dialog-header-column2-right: 805px;
+
+  --wpt-dup-dialog-list-top: 120px;
+  --wpt-dup-dialog-list-width: 100%;
+  --wpt-dup-dialog-list-padding: 5px;
+  --wpt-dup-dialog-list-item-height: 145px;
+  --wpt-dup-dialog-list-item-spacing: 10px;
+
+  --wpt-dup-dialog-list-column1-width: 435px;
+  --wpt-dup-dialog-list-column2-width: 180px;
+  --wpt-dup-dialog-list-column3-width: 180px;
+
+  --wpt-dup-dialog-bearing-margin-right: 5px;
+  --wpt-dup-dialog-bearing-arrow-margin-right: 5px;
+
+  --wpt-dup-dialog-row-separator-width: 2px;
+  --wpt-dup-dialog-row-separator-height: 110px;
+}
+
+.gtc-vertical .wpt-dup-dialog {
+  left: 0px;
+  width: 100%;
+  font-size: 16px;
+
+  --wpt-dup-dialog-label-left: 5px;
+  --wpt-dup-dialog-label-top: 25px;
+
+  --wpt-dup-dialog-header-column1-right: 325px;
+  --wpt-dup-dialog-header-column2-right: 435px;
+
+  --wpt-dup-dialog-list-top: 65px;
+  --wpt-dup-dialog-list-width: 100%;
+  --wpt-dup-dialog-list-padding: 2px;
+  --wpt-dup-dialog-list-item-height: 80px;
+  --wpt-dup-dialog-list-item-spacing: 5px;
+
+  --wpt-dup-dialog-list-column1-width: 235px;
+  --wpt-dup-dialog-list-column2-width: 95px;
+  --wpt-dup-dialog-list-column3-width: 95px;
+
+  --wpt-dup-dialog-bearing-margin-right: 2px;
+  --wpt-dup-dialog-bearing-arrow-margin-right: 2px;
+
+  --wpt-dup-dialog-row-separator-width: 1px;
+  --wpt-dup-dialog-row-separator-height: 57px;
+}
+
+.wpt-dup-dialog-label {
+  position: absolute;
+  left: var(--wpt-dup-dialog-label-left);
+  top: var(--wpt-dup-dialog-label-top);
+  font-size: 1.3em;
+  white-space: nowrap;
+}
+
+.wpt-dup-dialog-header {
+  position: absolute;
+  left: 0px;
+  width: 100%;
+  bottom: calc(100% - var(--wpt-dup-dialog-list-top));
+  display: grid;
+  grid-template-rows: auto;
+  grid-template-columns: var(--wpt-dup-dialog-header-column1-right) calc(var(--wpt-dup-dialog-header-column2-right) - var(--wpt-dup-dialog-header-column1-right));
+  justify-items: end;
+  align-items: center;
+}
+
+.wpt-dup-dialog-list-container {
+  position: absolute;
+  left: 0px;
+  top: var(--wpt-dup-dialog-list-top);
+  width: 100%;
+  padding: var(--wpt-dup-dialog-list-padding);
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.wpt-dup-dialog-list {
+  height: var(--wpt-dup-dialog-list-height);
+}
+
+.wpt-dup-dialog-list .list-item.wpt-dup-dialog-row {
+  display: grid;
+  grid-template-rows: auto;
+  grid-template-columns: var(--wpt-dup-dialog-list-column1-width) var(--wpt-dup-dialog-list-column2-width) var(--wpt-dup-dialog-row-separator-width) var(--wpt-dup-dialog-list-column3-width);
+  justify-items: end;
+  align-items: center;
+}
+
+.wpt-dup-dialog-button {
+  justify-self: stretch;
+  align-self: stretch;
+}
+
+.wpt-dup-dialog-button-city-region {
+  white-space: pre;
+  overflow: hidden;
+}
+
+.wpt-dup-dialog-bearing {
+  margin-right: var(--wpt-dup-dialog-bearing-margin-right);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.wpt-dup-dialog-bearing .bearing-arrow {
+  margin-right: var(--wpt-dup-dialog-bearing-arrow-margin-right);
+}
+
+.wpt-dup-dialog-row-separator {
+  justify-self: stretch;
+  height: var(--wpt-dup-dialog-row-separator-height);
+  background: #7d7d7d;
+}
+
+.wpt-dup-dialog-pos-value {
+  font-size: 1.3em;
+  color: var(--wpt-dup-dialog-gps-color);
+}

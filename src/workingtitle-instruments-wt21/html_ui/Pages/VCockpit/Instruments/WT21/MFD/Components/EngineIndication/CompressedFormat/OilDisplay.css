@@ -1,0 +1,21 @@
+.oil-display-container {
+  padding-top: 15px;
+  font-size: 20px;
+  width: 90%;
+  margin: auto;
+  height: 70px;
+}
+
+.oil-display-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 22px;
+}
+
+.oil-display-values {
+  color: var(--wt21-colors-green);
+  font-size: 24px;
+  text-align: right;
+  width: 36px;
+}

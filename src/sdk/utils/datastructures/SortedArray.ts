@@ -88,27 +88,67 @@ export class SortedArray<T> {
   }
 
   /**
+   * Gets the element at a specified index.
+   * @param index An index.
+   * @returns The element at the specified index.
+   * @throws RangeError if index is out of bounds.
+   */
+  public get(index: number): T {
+    if (index < 0 || index >= this._array.length) {
+      throw new RangeError();
+    }
+
+    return this._array[index];
+  }
+
+  /**
    * Gets the element at a specified index, if it exists.
    * @param index An index.
    * @returns The element at the specified index, or undefined if the index is out of bounds.
    */
-  public get(index: number): T | undefined {
+  public peek(index: number): T | undefined {
     return this._array[index];
+  }
+
+  /**
+   * Gets the first element in this array.
+   * @returns The first element in this array.
+   * @throws RangeError if this array is empty.
+   */
+  public first(): T {
+    if (this._array.length === 0) {
+      throw new RangeError();
+    }
+
+    return this._array[0];
   }
 
   /**
    * Gets the first element in this array, if it exists.
    * @returns The first element in this array, or undefined if this array is empty.
    */
-  public first(): T | undefined {
+  public peekFirst(): T | undefined {
     return this._array[0];
+  }
+
+  /**
+   * Gets the last element in this array.
+   * @returns The last element in this array.
+   * @throws RangeError if this array is empty.
+   */
+  public last(): T {
+    if (this._array.length === 0) {
+      throw new RangeError();
+    }
+
+    return this._array[this._array.length - 1];
   }
 
   /**
    * Gets the last element in this array, if it exists.
    * @returns The last element in this array, or undefined if this array is empty.
    */
-  public last(): T | undefined {
+  public peekLast(): T | undefined {
     return this._array[this._array.length - 1];
   }
 
@@ -209,6 +249,19 @@ export class SortedArray<T> {
   }
 
   /**
+   * Removes an element at a specific index from this array and returns it.
+   * @param index The index of the element to remove.
+   * @returns The removed element, or `undefined` if no element was removed.
+   */
+  public removeAt(index: number): T | undefined {
+    if (index < 0 || index >= this._array.length) {
+      return undefined;
+    }
+
+    return this._array.splice(index, 1)[0];
+  }
+
+  /**
    * Removes the last element from this array and returns it.
    * @returns The removed element, or `undefined` if the array was empty.
    */
@@ -222,6 +275,13 @@ export class SortedArray<T> {
    */
   public shift(): T | undefined {
     return this._array.shift();
+  }
+
+  /**
+   * Re-sorts this array using its sorting function.
+   */
+  public resort(): void {
+    this._array.sort(this.comparatorFunc);
   }
 
   /**

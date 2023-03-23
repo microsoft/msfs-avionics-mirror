@@ -1,0 +1,9 @@
+.course-dialog-input .cursor-input-inactive {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: auto;
+  height: auto;
+  transform: translate(-50%, -50%);
+  background: var(--g3000-color-cyan);
+}

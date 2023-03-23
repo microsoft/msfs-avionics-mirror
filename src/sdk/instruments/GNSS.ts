@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/JS/SimPlane" />
+/// <reference types="@microsoft/msfs-types/js/simplane" />
 
 import { EventBus } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';

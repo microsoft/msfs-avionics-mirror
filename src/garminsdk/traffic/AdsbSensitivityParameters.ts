@@ -1,4 +1,4 @@
-import { MathUtils, NumberUnitInterface, TcasTcaParameters, UnitFamily, UnitType } from 'msfssdk';
+import { MathUtils, NumberUnitInterface, TcasTcaParameters, UnitFamily, UnitType } from '@microsoft/msfs-sdk';
 
 import { CDIScaleLabel } from '../navigation/LNavDataEvents';
 
@@ -8,37 +8,37 @@ import { CDIScaleLabel } from '../navigation/LNavDataEvents';
 export class AdsbSensitivityParameters {
   private static readonly TA_LEVELS: TcasTcaParameters[] = [
     {
-      lookaheadTime: UnitType.SECOND.createNumber(20),
+      tau: UnitType.SECOND.createNumber(20),
       protectedRadius: UnitType.NMILE.createNumber(0.2),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(25),
+      tau: UnitType.SECOND.createNumber(25),
       protectedRadius: UnitType.NMILE.createNumber(0.2),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(30),
+      tau: UnitType.SECOND.createNumber(30),
       protectedRadius: UnitType.NMILE.createNumber(0.35),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(40),
+      tau: UnitType.SECOND.createNumber(40),
       protectedRadius: UnitType.NMILE.createNumber(0.55),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(45),
+      tau: UnitType.SECOND.createNumber(45),
       protectedRadius: UnitType.NMILE.createNumber(0.8),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(48),
+      tau: UnitType.SECOND.createNumber(48),
       protectedRadius: UnitType.NMILE.createNumber(1.1),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(48),
+      tau: UnitType.SECOND.createNumber(48),
       protectedRadius: UnitType.NMILE.createNumber(1.1),
       protectedHeight: UnitType.FOOT.createNumber(1200)
     }

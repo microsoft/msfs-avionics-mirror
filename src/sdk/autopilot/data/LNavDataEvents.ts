@@ -56,7 +56,7 @@ export interface LNavDataSimVarEvents {
   /** The nominal bearing to the next waypoint currently tracked by LNAV, in degrees true. */
   lnavdata_waypoint_bearing_true: number;
 
-  /** The nominal earing to the next waypoint tracked by LNAV, in degrees magnetic. */
+  /** The nominal bearing to the next waypoint tracked by LNAV, in degrees magnetic. */
   lnavdata_waypoint_bearing_mag: number;
 
   /** The nominal distance remaining to the next waypoint currently tracked by LNAV, in nautical miles. */
@@ -69,7 +69,10 @@ export interface LNavDataSimVarEvents {
 /**
  * Events related to LNAV data.
  */
-export type LNavDataEvents = LNavDataSimVarEvents;
+export interface LNavDataEvents extends LNavDataSimVarEvents {
+  /** The nominal ident of the next waypoint tracked by LNAV. */
+  lnavdata_waypoint_ident: string;
+}
 
 /**
  * A publisher for LNAV-related data sim var events.

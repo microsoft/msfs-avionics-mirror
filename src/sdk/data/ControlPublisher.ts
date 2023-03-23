@@ -24,9 +24,9 @@ export interface ControlEvents {
   cdi_src_gps_toggle: boolean,
   /** Set the source of a given bearing needle */
   brg_src_set: IndexedNavSourceSetting,
-  /**Increment the source of a given bearing needle number */
+  /** Increment the source of a given bearing needle number */
   brg_src_switch: number,
-  /**Publish radio state */
+  /** Publish radio state */
   publish_radio_states: boolean,
   /** Set new xpdr code */
   [publish_xpdr_code: IndexedEventType<'publish_xpdr_code'>]: number,

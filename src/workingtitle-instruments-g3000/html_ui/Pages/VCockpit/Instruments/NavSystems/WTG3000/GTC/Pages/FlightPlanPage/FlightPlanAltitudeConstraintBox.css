@@ -1,0 +1,29 @@
+.gtc-horizontal .flight-plan-altitude-box {
+  --gtc-flight-plan-altitude-box-width: 182px;
+  --gtc-flight-plan-altitude-box-font-size: 35px;
+}
+
+.gtc-vertical .flight-plan-altitude-box {
+  --gtc-flight-plan-altitude-box-width: 98px;
+  --gtc-flight-plan-altitude-box-font-size: 19px;
+}
+
+.flight-plan-altitude-box {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  width: var(--gtc-flight-plan-altitude-box-width);
+  font-size: var(--gtc-flight-plan-altitude-box-font-size);
+}
+
+.flight-plan-altitude-box .altitude-constraint-display {
+  position: absolute;
+  pointer-events: none;
+}
+
+.flight-plan-altitude-box .touch-button {
+  width: 100%;
+  height: 100%;
+}

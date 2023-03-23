@@ -1,9 +1,9 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
-  AdsbOperatingMode, FlightPlanner, FSComponent, MapDataIntegrityModule, MapOwnAirplanePropsModule, MapSystemBuilder, MapSystemContext,
-  MapSystemGenericController, MapSystemKeys, MapTrafficIntruderIconFactory, MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer,
-  ResourceModerator, Subject, Subscribable, Subscription, TcasOperatingMode, UnitFamily, UserSettingManager, VNode
-} from 'msfssdk';
+  AdsbOperatingMode, FlightPlanner, FSComponent, MapDataIntegrityModule, MapOwnAirplaneIconModule, MapOwnAirplaneIconOrientation, MapOwnAirplanePropsModule,
+  MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys, MapTrafficIntruderIconFactory, MutableSubscribable, NumberUnitInterface,
+  ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, SubscribableUtils, Subscription, TcasOperatingMode, UnitFamily, UserSettingManager, VNode
+} from '@microsoft/msfs-sdk';
 
 import { WaypointIconImageCache } from '../../../graphics/img/WaypointIconImageCache';
 import { TrafficUserSettingTypes } from '../../../settings/TrafficUserSettings';
@@ -15,16 +15,16 @@ import { DefaultFlightPathPlanRenderer, MapFlightPathPlanRenderer } from '../fli
 import { GarminMapBuilder, TrafficIconOptions, TrafficRangeRingOptions } from '../GarminMapBuilder';
 import { GarminMapKeys } from '../GarminMapKeys';
 import {
-  MapOrientationIndicator, TrafficMapAdsbModeIndicator, TrafficMapAdsbOffBannerIndicator, TrafficMapAltitudeModeIndicator, TrafficMapOperatingModeIndicator,
-  TrafficMapStandbyBannerIndicator
+  MapOrientationIndicator, TrafficMapAdsbModeIndicator, TrafficMapAdsbOffBannerIndicator, TrafficMapAltitudeModeIndicator, TrafficMapFailedBannerIndicator,
+  TrafficMapOperatingModeIndicator, TrafficMapStandbyBannerIndicator
 } from '../indicators';
 import { MapMiniCompassLayer } from '../layers';
 import { MapTrafficOffScaleStatus } from '../MapTrafficOffScaleStatus';
 import { MapUtils } from '../MapUtils';
 import { MapWaypointDisplayBuilder } from '../MapWaypointDisplayBuilder';
-import { MapWaypointStyles } from '../MapWaypointStyles';
+import { NextGenMapWaypointStyles } from '../MapWaypointStyles';
 import {
-  MapGarminTrafficModule, MapOrientation, MapOrientationModule, MapTrafficAlertLevelMode, MapTrafficAltitudeRestrictionMode, MapUnitsModule
+  MapGarminDataIntegrityModule, MapGarminTrafficModule, MapOrientation, MapOrientationModule, MapTrafficAlertLevelMode, MapTrafficAltitudeRestrictionMode, MapUnitsModule
 } from '../modules';
 
 /**
@@ -113,6 +113,9 @@ export type TrafficMapOptions = {
   /** The URI of the mini-compass's image asset. Required to display the mini-compass. */
   miniCompassImgSrc?: string;
 
+  /** The orientation of the map. */
+  orientation: MapOrientation | Subscribable<MapOrientation>;
+
   /** Whether to include an orientation indicator. Defaults to `true`. */
   includeOrientationIndicator?: boolean;
 
@@ -155,6 +158,9 @@ export type TrafficMapOptions = {
   /** Whether to include an ADS-B standby mode warning banner. Defaults to `true`. Ignored if ADS-B is not supported. */
   includeAdsbOffBanner?: boolean;
 
+  /** Whether to include a traffic system failed mode warning banner. Defaults to `true`. */
+  includeFailedBanner?: boolean;
+
   /**
    * A user setting manager containing settings controlling the operation of the traffic system.
    */
@@ -189,13 +195,16 @@ export type NextGenTrafficMapOptions
   = Omit<
     TrafficMapOptions,
     'nauticalRangeArray' | 'metricRangeArray' | 'trafficIconOptions' | 'includeRangeRings' | 'flightPathRenderer'
-    | 'configureFlightPlan' | 'orientationText' | 'operatingModeText' | 'adsbModeText' | 'altitudeModeText' | 'standbyText'
+    | 'configureFlightPlan' | 'orientation' | 'orientationText' | 'operatingModeText' | 'adsbModeText' | 'altitudeModeText' | 'standbyText'
   > & {
     /** Configuration options for traffic icons. */
     trafficIconOptions: NextGenTrafficMapIconOptions;
 
     /** The image cache from which to retrieve waypoint icon images. */
     waypointIconImageCache: WaypointIconImageCache;
+
+    /** The font type to use for waypoint labels. */
+    waypointStyleFontType: 'Roboto' | 'DejaVu';
 
     /** The scaling factor of waypoint icons and labels. Defaults to `1`. */
     waypointStyleScale?: number;
@@ -244,6 +253,7 @@ export class TrafficMapBuilder {
     options.includeAltitudeModeIndicator ??= true;
     options.includeStandbyBanner ??= true;
     options.includeAdsbOffBanner ??= true;
+    options.includeFailedBanner ??= true;
 
     mapBuilder
       .withModule(GarminMapKeys.Units, () => new MapUnitsModule(options.unitsSettingManager))
@@ -254,15 +264,19 @@ export class TrafficMapBuilder {
         any, any,
         { [GarminMapKeys.OrientationControl]: ResourceModerator }
       >('trafficMapOrientation', context => {
+        const orientation = SubscribableUtils.toSubscribable(options.orientation, true);
         const orientationModule = context.model.getModule(GarminMapKeys.Orientation);
+        const orientationPipe = orientation.pipe(orientationModule.orientation, true);
         const orientationControlConsumer: ResourceConsumer = {
           priority: Number.MAX_SAFE_INTEGER,
 
           onAcquired: () => {
-            orientationModule.orientation.set(MapOrientation.HeadingUp);
+            orientationPipe.resume(true);
           },
 
-          onCeded: () => { }
+          onCeded: () => {
+            orientationPipe.pause();
+          }
         };
 
         let controller: MapSystemGenericController;
@@ -278,6 +292,7 @@ export class TrafficMapBuilder {
 
           onDestroyed: (contextArg): void => {
             contextArg[GarminMapKeys.OrientationControl].forfeit(orientationControlConsumer);
+            orientationPipe.destroy();
           }
         });
       });
@@ -317,7 +332,10 @@ export class TrafficMapBuilder {
         'hdgTrue',
         'isOnGround'
       ], options.dataUpdateFreq)
-      .withFollowAirplane();
+      .withFollowAirplane()
+      .withInit<{ [MapSystemKeys.OwnAirplaneIcon]: MapOwnAirplaneIconModule }>(MapSystemKeys.OwnAirplaneIconOrientation, context => {
+        context.model.getModule(MapSystemKeys.OwnAirplaneIcon).orientation.set(MapOwnAirplaneIconOrientation.MapUp);
+      });
 
     if (options.miniCompassImgSrc !== undefined) {
       mapBuilder.with(GarminMapBuilder.miniCompass, options.miniCompassImgSrc);
@@ -427,9 +445,10 @@ export class TrafficMapBuilder {
     }
 
     // Center indicators
-    if (options.includeStandbyBanner || (options.trafficSystem.adsb !== null && options.includeAdsbOffBanner)) {
+    if (options.includeStandbyBanner || (options.trafficSystem.adsb !== null && options.includeAdsbOffBanner) || options.includeFailedBanner) {
       const standbyRef = FSComponent.createRef<TrafficMapStandbyBannerIndicator>();
       const adsbOffRef = FSComponent.createRef<TrafficMapAdsbOffBannerIndicator>();
+      const failedRef = FSComponent.createRef<TrafficMapFailedBannerIndicator>();
 
       const factories: ((context: MapSystemContext<any, any, any, any>) => VNode)[] = [];
 
@@ -471,6 +490,23 @@ export class TrafficMapBuilder {
         );
       }
 
+      if (options.includeFailedBanner) {
+        factories.push(
+          (context: MapSystemContext<{
+            [GarminMapKeys.Traffic]: MapGarminTrafficModule
+          }>): VNode => {
+            const trafficModule = context.model.getModule(GarminMapKeys.Traffic);
+
+            return (
+              <TrafficMapFailedBannerIndicator
+                ref={failedRef}
+                operatingMode={trafficModule.operatingMode}
+              />
+            );
+          }
+        );
+      }
+
       mapBuilder.with(GarminMapBuilder.indicatorGroup,
         GarminMapKeys.CenterIndicators,
         factories,
@@ -478,6 +514,7 @@ export class TrafficMapBuilder {
           onDetached: () => {
             standbyRef.getOrDefault()?.destroy();
             adsbOffRef.getOrDefault()?.destroy();
+            failedRef.getOrDefault()?.destroy();
           }
         },
         'map-indicator-group-center'
@@ -486,7 +523,7 @@ export class TrafficMapBuilder {
 
     if (options.supportDataIntegrity) {
       mapBuilder
-        .withModule(MapSystemKeys.DataIntegrity, () => new MapDataIntegrityModule())
+        .withModule(MapSystemKeys.DataIntegrity, () => new MapGarminDataIntegrityModule())
         .withController<
           MapSystemGenericController,
           { [MapSystemKeys.DataIntegrity]: MapDataIntegrityModule },
@@ -551,7 +588,9 @@ export class TrafficMapBuilder {
     mapBuilder: MapBuilder,
     options: NextGenTrafficMapOptions
   ): MapBuilder {
-    const optionsToUse = Object.assign({}, options) as TrafficMapOptions;
+    const optionsToUse = Object.assign({
+      orientation: MapOrientation.HeadingUp
+    }, options) as TrafficMapOptions;
 
     optionsToUse.nauticalRangeArray ??= MapUtils.nextGenTrafficMapRanges();
     optionsToUse.metricRangeArray ??= MapUtils.nextGenTrafficMapRanges();
@@ -583,15 +622,21 @@ export class TrafficMapBuilder {
 
     if (options.trafficSystem.type === TrafficSystemType.TcasII) {
       optionsToUse.operatingModeText = {
+        [TcasOperatingMode.Off]: operatingModePrefix + 'FAIL',
+        [TcasOperatingMode.Failed]: operatingModePrefix + 'FAIL',
         [TcasOperatingMode.Standby]: operatingModePrefix + 'STANDBY',
         [TcasOperatingMode.TAOnly]: operatingModePrefix + 'TA ONLY',
-        [TcasOperatingMode.TA_RA]: operatingModePrefix + 'TA/RA'
+        [TcasOperatingMode.TA_RA]: operatingModePrefix + 'TA/RA',
+        [TcasOperatingMode.Test]: operatingModePrefix + 'TEST'
       };
     } else {
       optionsToUse.operatingModeText = {
+        [TcasOperatingMode.Off]: operatingModePrefix + 'FAILED',
+        [TcasOperatingMode.Failed]: operatingModePrefix + 'FAILED',
         [TcasOperatingMode.Standby]: operatingModePrefix + 'STANDBY',
         [TcasOperatingMode.TAOnly]: operatingModePrefix + 'OPERATING',
         [TcasOperatingMode.TA_RA]: operatingModePrefix + 'OPERATING',
+        [TcasOperatingMode.Test]: operatingModePrefix + 'TEST'
       };
     }
 
@@ -615,18 +660,18 @@ export class TrafficMapBuilder {
         builder
           .withFlightPlanInactiveStyles(
             options.waypointIconImageCache,
-            MapWaypointStyles.nextGenFlightPlanIconStyles(false, 2, options.waypointStyleScale),
-            MapWaypointStyles.nextGenFlightPlanLabelStyles(false, 2, options.waypointStyleScale)
+            NextGenMapWaypointStyles.flightPlanIconStyles(false, 2, options.waypointStyleScale),
+            NextGenMapWaypointStyles.flightPlanLabelStyles(false, 2, options.waypointStyleFontType, options.waypointStyleScale)
           )
           .withFlightPlanActiveStyles(
             options.waypointIconImageCache,
-            MapWaypointStyles.nextGenFlightPlanIconStyles(true, 3, options.waypointStyleScale),
-            MapWaypointStyles.nextGenFlightPlanLabelStyles(true, 3, options.waypointStyleScale)
+            NextGenMapWaypointStyles.flightPlanIconStyles(true, 3, options.waypointStyleScale),
+            NextGenMapWaypointStyles.flightPlanLabelStyles(true, 3, options.waypointStyleFontType, options.waypointStyleScale)
           )
           .withVNavStyles(
             options.waypointIconImageCache,
-            MapWaypointStyles.nextGenVNavIconStyles(4, options.waypointStyleScale),
-            MapWaypointStyles.nextGenVNavLabelStyles(4, options.waypointStyleScale)
+            NextGenMapWaypointStyles.vnavIconStyles(4, options.waypointStyleScale),
+            NextGenMapWaypointStyles.vnavLabelStyles(4, options.waypointStyleFontType, options.waypointStyleScale)
           );
       };
     }

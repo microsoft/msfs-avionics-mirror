@@ -1,0 +1,57 @@
+.navinfo-pane>div.navinfo-ident,
+.navinfo-pane>div.navinfo-radial,
+.navinfo-pane>div.navinfo-distance,
+.navinfo-pane>div.navinfo-airport,
+.navinfo-pane>div.navinfo-runway {
+  height: 16px;
+  padding-top: unset;
+}
+
+.navinfo-ident>div,
+.navinfo-radial>div,
+.navinfo-distance>div {
+  display: inline-block;
+  width: 42px;
+  text-align: right;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.navinfo-radial,
+.navinfo-airport {
+  margin-bottom: 2px;
+}
+
+.navinfo-pane>div.navinfo-airport,
+.navinfo-pane>div.navinfo-runway {
+  padding-top: 3px;
+}
+
+.navinfo-pane label {
+  font-size: 10px;
+  width: 16px;
+  margin-left: 3px;
+}
+
+.navinfo-pane hr {
+  width: 80%;
+  margin: 0 auto 0 auto;
+  height: 1px;
+  border: unset;
+  border-bottom: 1px solid #0aa;
+}
+
+.navinfo-ident label {
+  color: var(--gnscyan);
+}
+
+.navinfo-radial label,
+.navinfo-distance label {
+  color: var(--gnscyan-dark);
+}
+
+.navinfo-airport,
+.navinfo-runway {
+  font-size: 14px;
+  text-align: center;
+}

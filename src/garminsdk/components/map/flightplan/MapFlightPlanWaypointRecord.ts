@@ -1,6 +1,6 @@
 import {
   CustomWaypoint, FacilityLoader, FacilityWaypoint, FacilityWaypointCache, FlightPathWaypoint, GeoPoint, GeoPointSubject, ICAO, LegDefinition, Waypoint
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { MapWaypointRenderer, MapWaypointRenderRole } from '../MapWaypointRenderer';
 
@@ -188,12 +188,12 @@ export class FlightPathTerminatorWaypointsRecord extends AbstractFlightPlanLegWa
     const lastVector = this.leg.calculated?.flightPath[this.leg.calculated.flightPath.length - 1];
 
     if (lastVector) {
-      this._waypointLocation ??= GeoPointSubject.createFromGeoPoint(new GeoPoint(0, 0));
+      this._waypointLocation ??= GeoPointSubject.create(new GeoPoint(0, 0));
       this._waypointLocation.set(lastVector.endLat, lastVector.endLon);
 
       if (!this._waypoint) {
         const ident = this.leg.name ?? '';
-        this._waypoint = new FlightPathWaypoint(this._waypointLocation, `${FlightPathWaypoint.UID_PREFIX}_${ident}_${this.id}`, ident);
+        this._waypoint = new FlightPathWaypoint(this._waypointLocation, this.leg, `${ident}_${this.id}`, ident);
 
         this.registerWaypoint(this._waypoint, this.inactiveRenderRole);
         if (this.isActive) {

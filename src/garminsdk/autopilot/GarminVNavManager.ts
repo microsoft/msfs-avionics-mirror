@@ -1,9 +1,12 @@
 import {
-  AdcEvents, APEvents, APLateralModes, APValues, APVerticalModes, ConsumerSubject, EventBus, FlightPlan, FlightPlanner, GeoPoint, GlidePathCalculator,
-  GNSSEvents, LegDefinition, LNavEvents, MathUtils, NavEvents, NavSourceId, NavSourceType, ObjectSubject, SimVarValueType, Subject, TodBodDetails, UnitType,
-  VerticalFlightPhase, VerticalFlightPlan, VNavAltCaptureType, VNavAvailability, VNavControlEvents, VNavDataEvents, VNavEvents, VNavManager, VNavPathCalculator,
-  VNavPathMode, VNavState, VNavUtils, VNavVars
-} from 'msfssdk';
+  AdcEvents, AdditionalApproachType, APEvents, APLateralModes, APValues, APVerticalModes, BottomTargetPathCalculator, ConsumerSubject, EventBus, FlightPlan, FlightPlanner,
+  GeoPoint, GlidePathCalculator, GNSSEvents, LegDefinition, LNavEvents, MathUtils, NavEvents, NavSourceId, NavSourceType, ObjectSubject, RnavTypeFlags, SimVarValueType,
+  Subject, TodBodDetails, UnitType, VerticalFlightPhase, VerticalFlightPlan, VNavAltCaptureType, VNavAvailability, VNavControlEvents, VNavDataEvents, VNavEvents,
+  VNavManager, VNavPathCalculator, VNavPathMode, VNavState, VNavUtils, VNavVars
+} from '@microsoft/msfs-sdk';
+import { ApproachDetails, FmsEvents } from '../flightplan/Fms';
+import { FmsUtils } from '../flightplan/FmsUtils';
+import { GlidepathServiceLevel } from './GarminVerticalNavigation';
 
 /**
  * A Garmin VNAV Manager.
@@ -14,14 +17,24 @@ export class GarminVNavManager implements VNavManager {
 
   private pathMode = VNavPathMode.None;
 
-  private gpAvailable = false;
-
   private readonly planePos = new GeoPoint(0, 0);
   private currentAltitude = 0;
   private currentGpsAltitude = 0;
   private preselectedAltitude = 0;
   private currentGroundSpeed = 0;
   private currentVS = 0;
+
+  private readonly approachDetails = ConsumerSubject.create<Readonly<ApproachDetails>>(null, {
+    isLoaded: false,
+    type: ApproachType.APPROACH_TYPE_UNKNOWN,
+    isRnpAr: false,
+    bestRnavType: RnavTypeFlags.None,
+    rnavTypeFlags: RnavTypeFlags.None,
+    isCircling: false,
+    isVtf: false,
+    referenceFacility: null
+  }, FmsUtils.approachDetailsEquals);
+  private readonly gpAvailable = ConsumerSubject.create(null, false);
 
   private readonly vnavUnavailable = Subject.create<boolean>(false);
 
@@ -83,7 +96,7 @@ export class GarminVNavManager implements VNavManager {
    * @param hasNonPathVnav Whether this VNav Director provides non-path climb and descent restriction adherence (false by default).
    * @param guidanceEndsAtFaf Whether this VNav Director terminates vertical guidance at the FAF (true by default).
    */
-  constructor(private readonly bus: EventBus, private readonly flightPlanner: FlightPlanner, public readonly calculator: VNavPathCalculator,
+  constructor(private readonly bus: EventBus, private readonly flightPlanner: FlightPlanner, public readonly calculator: BottomTargetPathCalculator,
     private readonly apValues: APValues, private readonly primaryPlanIndex: number,
     private readonly hasNonPathVnav = false, private readonly guidanceEndsAtFaf = true) {
 
@@ -102,7 +115,8 @@ export class GarminVNavManager implements VNavManager {
     });
     gnss.on('ground_speed').handle(gs => this.currentGroundSpeed = gs);
 
-    this.bus.getSubscriber<VNavDataEvents>().on('gp_available').handle(available => this.gpAvailable = available);
+    this.approachDetails.setConsumer(bus.getSubscriber<FmsEvents>().on('fms_approach_details'));
+    this.gpAvailable.setConsumer(bus.getSubscriber<VNavDataEvents>().on('approach_supports_gp'));
     this.bus.getSubscriber<VNavControlEvents>().on('vnav_set_state').handle(d => {
       if (d) {
         this.setState(VNavState.Enabled_Inactive);
@@ -253,7 +267,7 @@ export class GarminVNavManager implements VNavManager {
 
   /** Method called to arm Path Mode. */
   private armPath(): void {
-    if (this.awaitingAltCap < 0 && this.awaitingRearm < 0 && this.apValues.verticalActive.get() !== APVerticalModes.CAP) {
+    if (this.awaitingAltCap < 0 && this.awaitingRearm < 0) {
       if (this.pathMode !== VNavPathMode.PathArmed) {
         this.pathMode = VNavPathMode.PathArmed;
         SimVar.SetSimVarValue(VNavVars.PathMode, SimVarValueType.Number, this.pathMode);
@@ -356,7 +370,7 @@ export class GarminVNavManager implements VNavManager {
         if (currentLeg?.calculated?.distanceWithTransitions && constraintAltitude !== undefined) {
           const distance = this.constraintDistance +
             UnitType.METER.convertTo(currentLeg.calculated.distanceWithTransitions - alongLegDistance, UnitType.NMILE);
-          requiredVs = this.getRequiredVs(distance, constraintAltitude);
+          requiredVs = this.getRequiredVs(distance, UnitType.METER.convertTo(constraintAltitude, UnitType.FOOT));
         }
 
       } else {
@@ -384,9 +398,15 @@ export class GarminVNavManager implements VNavManager {
 
         const fafLegIndex = verticalPlan.fafLegIndex;
 
-        if (this.apValues.verticalActive.get() === APVerticalModes.GP ||
-          (fafLegIndex !== undefined && this.apValues.approachHasGP.get() && this.state !== VNavState.Enabled_Active && lateralPlan.activeLateralLeg >= fafLegIndex)) {
-          requiredVs = this.getRequiredVs(UnitType.METER.convertTo(lpvDistance, UnitType.NMILE), this.glidepathCalculator.getRunwayAltitude(), this.currentGpsAltitude);
+        if (
+          this.apValues.verticalActive.get() === APVerticalModes.GP
+          || (fafLegIndex !== undefined && this.apValues.approachHasGP.get() && this.state !== VNavState.Enabled_Active && lateralPlan.activeLateralLeg >= fafLegIndex)
+        ) {
+          requiredVs = this.getRequiredVs(
+            UnitType.METER.convertTo(lpvDistance, UnitType.NMILE),
+            UnitType.METER.convertTo(this.glidepathCalculator.getRunwayAltitude(), UnitType.FOOT),
+            this.currentGpsAltitude
+          );
         }
         SimVar.SetSimVarValue(VNavVars.RequiredVS, SimVarValueType.FPM, requiredVs);
 
@@ -500,7 +520,7 @@ export class GarminVNavManager implements VNavManager {
 
     if (this.pathMode === VNavPathMode.PathArmed || this.pathMode == VNavPathMode.PathActive) {
 
-      if (verticalDeviation <= 100 && verticalDeviation >= -50 && this.pathMode === VNavPathMode.PathArmed) {
+      if (verticalDeviation <= VNavUtils.getPathErrorDistance(this.currentGroundSpeed) && verticalDeviation >= -50 && this.pathMode === VNavPathMode.PathArmed) {
         if (Math.abs(deviationFromTarget) > 75 && (!this.isAltCaptured && fpa !== 0)) {
           this.activatePath();
         }
@@ -621,8 +641,33 @@ export class GarminVNavManager implements VNavManager {
     let lpvDeviation = -1001;
     let lpvDistance = -1;
     let gpCalculated = false;
+    let gpServiceLevel = GlidepathServiceLevel.None;
 
-    if (lateralPlan && this.gpAvailable && finalLeg?.calculated !== undefined) {
+    if (lateralPlan && this.gpAvailable.get() && finalLeg?.calculated !== undefined) {
+      // TODO: Maybe one day we will model service degradation, but for now we will just use the maximum possible
+      // service level for a given approach
+
+      // Note: because the GP available flag is true, we don't have to check for circling approaches
+      const approachDetails = this.approachDetails.get();
+      if (approachDetails.type === AdditionalApproachType.APPROACH_TYPE_VISUAL) {
+        gpServiceLevel = GlidepathServiceLevel.Visual;
+      } else {
+        switch (approachDetails.bestRnavType) {
+          case RnavTypeFlags.LNAV:
+            gpServiceLevel = GlidepathServiceLevel.LNavPlusV;
+            break;
+          case RnavTypeFlags.LNAVVNAV:
+            gpServiceLevel = GlidepathServiceLevel.LNavVNav;
+            break;
+          case RnavTypeFlags.LP:
+            gpServiceLevel = GlidepathServiceLevel.LpPlusV;
+            break;
+          case RnavTypeFlags.LPV:
+            gpServiceLevel = GlidepathServiceLevel.Lpv;
+            break;
+        }
+      }
+
       lpvDistance = this.glidepathCalculator.getGlidepathDistance(lateralPlan.activeLateralLeg, alongLegDistance);
       const desiredLPVAltitude = this.glidepathCalculator.getDesiredGlidepathAltitude(lpvDistance);
       const desiredLPVAltitudeFeet = UnitType.METER.convertTo(desiredLPVAltitude, UnitType.FOOT);
@@ -631,6 +676,7 @@ export class GarminVNavManager implements VNavManager {
       gpCalculated = true;
     }
 
+    SimVar.SetSimVarValue(VNavVars.GPServiceLevel, SimVarValueType.Number, gpServiceLevel);
     SimVar.SetSimVarValue(VNavVars.GPVerticalDeviation, SimVarValueType.Feet, lpvDeviation);
     SimVar.SetSimVarValue(VNavVars.GPDistance, SimVarValueType.Meters, lpvDistance);
     SimVar.SetSimVarValue(VNavVars.GPFpa, SimVarValueType.Degree, this.glidepathCalculator.glidepathFpa);
@@ -640,10 +686,10 @@ export class GarminVNavManager implements VNavManager {
 
   /**
    * Gets the current required vertical speed.
-   * @param distance is the distance to the constraint.
-   * @param targetAltitude is the target altitude for the constraint.
-   * @param currentAltitude is the current altitude (defaults to baro alt)
-   * @returns the required vs in fpm.
+   * @param distance The distance to the constraint, in nautical miles.
+   * @param targetAltitude The target altitude for the constraint, in feet.
+   * @param currentAltitude The current altitude, in feet. (defaults to baro alt)
+   * @returns The required vertical speed in feet per minute.
    */
   private getRequiredVs(distance: number, targetAltitude: number, currentAltitude = this.currentAltitude): number {
     if (targetAltitude > 0) {

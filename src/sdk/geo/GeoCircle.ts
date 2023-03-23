@@ -628,12 +628,13 @@ export class GeoCircle {
    * @param point2 The second point that lies on the new great circle.
    * @returns a great circle.
    */
+  /* eslint-disable jsdoc/require-jsdoc */
   public static createGreatCircle(point1: ReadonlyFloat64Array | LatLonInterface, point2: ReadonlyFloat64Array | LatLonInterface): GeoCircle;
   public static createGreatCircle(point: ReadonlyFloat64Array | LatLonInterface, bearing: number): GeoCircle;
-  // eslint-disable-next-line jsdoc/require-jsdoc
   public static createGreatCircle(arg1: ReadonlyFloat64Array | LatLonInterface, arg2: ReadonlyFloat64Array | LatLonInterface | number): GeoCircle {
     return new GeoCircle(GeoCircle._getGreatCircleNormal(arg1, arg2, GeoCircle.vec3Cache[0]), Math.PI / 2);
   }
+  /* eslint-enable jsdoc/require-jsdoc */
 
   /**
    * Creates a new great circle defined by one point and a bearing offset. The new great circle will be equivalent to

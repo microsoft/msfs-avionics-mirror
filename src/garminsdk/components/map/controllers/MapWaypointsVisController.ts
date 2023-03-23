@@ -1,4 +1,4 @@
-import { MapIndexedRangeModule, MapSystemContext, MapSystemController, MapSystemKeys, Subject, UserSettingManager } from 'msfssdk';
+import { MapIndexedRangeModule, MapSystemContext, MapSystemController, MapSystemKeys, Subject, UserSettingManager } from '@microsoft/msfs-sdk';
 
 import { AirportSize } from '../../../navigation/AirportWaypoint';
 import { MapUserSettingTypes } from '../../../settings/MapUserSettings';
@@ -144,6 +144,14 @@ export class MapWaypointsVisController extends MapSystemController<MapWaypointsV
         this.waypointsModule.userShow
       ));
     }
+
+    this.controllers.push(new MapSymbolVisController(
+      context,
+      Subject.create(true),
+      Subject.create(Number.MAX_SAFE_INTEGER),
+      MapDeclutterMode.Level2,
+      this.waypointsModule.runwayShow
+    ));
   }
 
   /** @inheritdoc */

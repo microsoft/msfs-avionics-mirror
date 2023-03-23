@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import { EventBus, SimVarValueType } from '../../data';
 import { AdcEvents, AhrsEvents } from '../../instruments';
@@ -28,17 +28,17 @@ export class APFLCDirector implements PlaneDirector {
   private selectedAltitude = 0;
   private currentAltitude = 0;
   private currentPitch = 0;
-  private accelerationController = new PidController(.3, 0, 0.5, 10, -10);
-  private pitchController = new PidController(1.5, 0, 0, 15, -15);
-  private filter = new ExpSmoother(5);
+  private pitchController = new PidController(2, 0, 0, 15, -15);
+  private filter = new ExpSmoother(2.5);
 
   /**
    * Creates an instance of the FLC Director.
    * @param bus The event bus to use with this instance.
    * @param apValues is the AP selected values subject.
    * @param pitchClamp is the maximum pitch angle, in degrees, to clamp FLC at.
+   * @param forceCurrentIasOnActivation Whether this director should force set the current IAS as the target speed on activation.
    */
-  constructor(private readonly bus: EventBus, apValues: APValues, private pitchClamp = 15) {
+  constructor(private readonly bus: EventBus, apValues: APValues, protected pitchClamp = 15, private forceCurrentIasOnActivation = true) {
     this.state = DirectorState.Inactive;
 
     const sub = this.bus.getSubscriber<AdcEvents & AhrsEvents>();
@@ -75,7 +75,7 @@ export class APFLCDirector implements PlaneDirector {
     this.onActivate && this.onActivate();
     SimVar.SetSimVarValue('AUTOPILOT FLIGHT LEVEL CHANGE', 'Bool', true);
     // Make sure we sync the selected IAS when FLC activates.
-    SimVar.SetSimVarValue('K:AP_SPD_VAR_SET', 'number', this.currentIas);
+    this.forceCurrentIasOnActivation && SimVar.SetSimVarValue('K:AP_SPD_VAR_SET', 'number', this.currentIas);
   }
 
   /**
@@ -107,28 +107,36 @@ export class APFLCDirector implements PlaneDirector {
   /**
    * Initializes this director on activation.
    */
-  private initialize(): void {
-    this._lastTime = 0;
-    this.accelerationController.reset();
+  protected initialize(): void {
+    this.resetFilter();
     this.pitchController.reset();
   }
 
   /**
-   * Gets a desired pitch from the selected vs value.
+   * Gets a desired pitch from the current AP speed target
    * @returns The desired pitch angle.
    */
   private getDesiredPitch(): number {
+    const targetIas = this.isSelectedSpeedInMach ? Simplane.getMachToKias(this.selectedMach) : this.selectedIas;
+
+    return this.getDesiredPitchFromSpeed(targetIas);
+  }
+
+  /**
+   * Gets a desired pitch from a given speed target
+   * @param targetIas target airspeed in knots
+   * @returns The desired pitch angle.
+   */
+  protected getDesiredPitchFromSpeed(targetIas: number): number {
     const time = performance.now() / 1000;
     let dt = time - this._lastTime;
     if (this._lastTime === 0) {
       dt = 0;
     }
 
-    const targetIas = this.isSelectedSpeedInMach ? Simplane.getMachToKias(this.selectedMach) : this.selectedIas;
-
     //step 1 - we want to find the IAS error from target and set a target acceleration
     const iasError = this.currentIas - targetIas;
-    const targetAcceleration = this.accelerationController.getOutput(dt, -iasError);
+    const targetAcceleration = MathUtils.clamp(iasError / 5, -2, 2) * -1;
 
     //step 2 - we want to find the current acceleration, feed that to the pid to manage to the target acceleration
     const acceleration = UnitType.FOOT.convertTo(SimVar.GetSimVarValue('ACCELERATION BODY Z', 'feet per second squared'), UnitType.NMILE) * 3600;
@@ -151,9 +159,14 @@ export class APFLCDirector implements PlaneDirector {
    * Sets the desired AP pitch angle.
    * @param targetPitch The desired AP pitch angle.
    */
-  private setPitch(targetPitch: number): void {
+  protected setPitch(targetPitch: number): void {
     if (isFinite(targetPitch)) {
       SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, -targetPitch);
     }
+  }
+
+  /** Reset the pitch filter */
+  protected resetFilter(): void {
+    this._lastTime = 0;
   }
 }

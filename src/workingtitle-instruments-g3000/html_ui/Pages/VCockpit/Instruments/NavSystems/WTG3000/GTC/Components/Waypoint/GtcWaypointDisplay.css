@@ -1,0 +1,52 @@
+html {
+  --gtc-wpt-display-ident-color: var(--g3000-color-cyan);
+}
+
+.gtc-horizontal {
+  --gtc-wpt-display-padding: 0px 10px;
+  --gtc-wpt-display-ident-font-size: 1.6em;
+  --gtc-wpt-display-name-margin-top: 4px;
+  --gtc-wpt-display-icon-scale: 1.85;
+  --gtc-wpt-display-icon-offset-x: -15px;
+}
+
+.gtc-vertical {
+  --gtc-wpt-display-padding: 0px 4px;
+  --gtc-wpt-display-ident-font-size: 1.6em;
+  --gtc-wpt-display-name-margin-top: 2px;
+  --gtc-wpt-display-icon-scale: 1;
+  --gtc-wpt-display-icon-offset-x: -7px;
+}
+
+.touch-button .gtc-wpt-display {
+  width: 100%;
+  height: 100%;
+  padding: var(--gtc-wpt-display-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.gtc-wpt-display-main {
+  overflow: hidden;
+}
+
+.gtc-wpt-display-ident {
+  float: left;
+  color: var(--gtc-wpt-display-ident-color);
+  font-size: var(--gtc-wpt-display-ident-font-size);
+  white-space: nowrap;
+}
+
+.gtc-wpt-display-icon {
+  float: right;
+  transform-origin: top right;
+  transform: translateX(var(--gtc-wpt-display-icon-offset-x)) scale(var(--gtc-wpt-display-icon-scale));
+}
+
+.gtc-wpt-display-name {
+  margin-top: var(--gtc-wpt-display-name-margin-top);
+  white-space: nowrap;
+  overflow: hidden;
+}

@@ -1,4 +1,4 @@
-import { MetricAltitudeSelectSetting } from 'msfssdk';
+import { MetricAltitudeSelectSetting } from '@microsoft/msfs-sdk';
 
 /**
  * Altimeter user settings.

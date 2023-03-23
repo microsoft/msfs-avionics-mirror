@@ -1,0 +1,49 @@
+.cas-container {
+  transform: rotateX(0);
+  height: 185px;
+  border-bottom: 2px solid white;
+  margin: 5px;
+  padding: 2px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(7, minmax(25px, 25px));
+  grid-column-gap: 12px;
+  grid-auto-flow: column;
+  overflow: hidden;
+  background: linear-gradient(white, white) no-repeat center/2px 100%;
+}
+
+.cas-container>div {
+  width: 370px;
+  overflow: hidden;
+}
+
+.cas-warning {
+  color: var(--wt21-colors-red);
+}
+
+.cas-caution {
+  color: var(--wt21-colors-yellow);
+}
+
+.cas-advisory {
+  color: var(--wt21-colors-cyan);
+}
+
+.cas-blink {
+  animation: cas-blink .75s step-start infinite;
+}
+
+@keyframes cas-blink {
+  0% {
+    opacity: 0;
+  }
+
+  75% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}

@@ -13,37 +13,37 @@ export class TcasIISensitivityParameters {
 
   private static readonly TA_LEVELS = [
     {
-      lookaheadTime: UnitType.SECOND.createNumber(20),
+      tau: UnitType.SECOND.createNumber(20),
       protectedRadius: UnitType.NMILE.createNumber(0.3),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(25),
+      tau: UnitType.SECOND.createNumber(25),
       protectedRadius: UnitType.NMILE.createNumber(0.33),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(30),
+      tau: UnitType.SECOND.createNumber(30),
       protectedRadius: UnitType.NMILE.createNumber(0.48),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(40),
+      tau: UnitType.SECOND.createNumber(40),
       protectedRadius: UnitType.NMILE.createNumber(0.75),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(45),
+      tau: UnitType.SECOND.createNumber(45),
       protectedRadius: UnitType.NMILE.createNumber(1),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(48),
+      tau: UnitType.SECOND.createNumber(48),
       protectedRadius: UnitType.NMILE.createNumber(1.3),
       protectedHeight: UnitType.FOOT.createNumber(850)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(48),
+      tau: UnitType.SECOND.createNumber(48),
       protectedRadius: UnitType.NMILE.createNumber(1.3),
       protectedHeight: UnitType.FOOT.createNumber(1200)
     }
@@ -51,46 +51,53 @@ export class TcasIISensitivityParameters {
 
   private static readonly RA_LEVELS = [
     {
-      lookaheadTime: UnitType.SECOND.createNumber(15),
+      tau: UnitType.SECOND.createNumber(15),
       protectedRadius: UnitType.NMILE.createNumber(0.2),
       protectedHeight: UnitType.FOOT.createNumber(600),
-      alim: UnitType.FOOT.createNumber(300)
+      alim: UnitType.FOOT.createNumber(300),
+      hmd: UnitType.NMILE.createNumber(0.4)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(15),
+      tau: UnitType.SECOND.createNumber(15),
       protectedRadius: UnitType.NMILE.createNumber(0.2),
       protectedHeight: UnitType.FOOT.createNumber(600),
-      alim: UnitType.FOOT.createNumber(300)
+      alim: UnitType.FOOT.createNumber(300),
+      hmd: UnitType.NMILE.createNumber(0.4)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(20),
+      tau: UnitType.SECOND.createNumber(20),
       protectedRadius: UnitType.NMILE.createNumber(0.35),
       protectedHeight: UnitType.FOOT.createNumber(600),
-      alim: UnitType.FOOT.createNumber(300)
+      alim: UnitType.FOOT.createNumber(300),
+      hmd: UnitType.NMILE.createNumber(0.57)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(25),
+      tau: UnitType.SECOND.createNumber(25),
       protectedRadius: UnitType.NMILE.createNumber(0.55),
       protectedHeight: UnitType.FOOT.createNumber(600),
-      alim: UnitType.FOOT.createNumber(350)
+      alim: UnitType.FOOT.createNumber(350),
+      hmd: UnitType.NMILE.createNumber(0.74)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(30),
+      tau: UnitType.SECOND.createNumber(30),
       protectedRadius: UnitType.NMILE.createNumber(0.8),
       protectedHeight: UnitType.FOOT.createNumber(600),
-      alim: UnitType.FOOT.createNumber(400)
+      alim: UnitType.FOOT.createNumber(400),
+      hmd: UnitType.NMILE.createNumber(0.82)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(35),
+      tau: UnitType.SECOND.createNumber(35),
       protectedRadius: UnitType.NMILE.createNumber(1.1),
       protectedHeight: UnitType.FOOT.createNumber(700),
-      alim: UnitType.FOOT.createNumber(600)
+      alim: UnitType.FOOT.createNumber(600),
+      hmd: UnitType.NMILE.createNumber(0.98)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(35),
+      tau: UnitType.SECOND.createNumber(35),
       protectedRadius: UnitType.NMILE.createNumber(1.1),
       protectedHeight: UnitType.FOOT.createNumber(800),
-      alim: UnitType.FOOT.createNumber(700)
+      alim: UnitType.FOOT.createNumber(700),
+      hmd: UnitType.NMILE.createNumber(0.98)
     }
   ];
 

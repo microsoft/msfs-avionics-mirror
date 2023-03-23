@@ -1,0 +1,33 @@
+.nearest-directory-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gtc-horizontal .nearest-directory-page {
+  padding: 135px 0px 15px 0px;
+
+  --nearest-directory-page-button-margin-horizontal: 45px;
+}
+
+.gtc-vertical .nearest-directory-page {
+  padding: 72px 0px 7px 0px;
+
+  --nearest-directory-page-button-margin-horizontal: 24px;
+}
+
+.nearest-directory-page-row {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.nearest-directory-page-row .touch-button {
+  margin: 0px var(--nearest-directory-page-button-margin-horizontal);
+}

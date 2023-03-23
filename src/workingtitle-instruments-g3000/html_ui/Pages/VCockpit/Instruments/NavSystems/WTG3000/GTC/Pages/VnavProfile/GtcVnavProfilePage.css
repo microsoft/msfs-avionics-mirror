@@ -1,0 +1,177 @@
+.gtc-horizontal .vnav-profile-page {
+  --vnav-profile-page-width: 836px;
+  --vnav-profile-page-height: 702px;
+  --vnav-profile-page-top: 46px;
+  --vnav-profile-page-left: 76px;
+
+  --vnav-profile-page-font-size-small: 30px;
+  --vnav-profile-page-font-size-medium: 33px;
+  --vnav-profile-page-font-size-large: 36px;
+
+  --vnav-profile-page-vnav-enabled-button-top: 25px;
+  --vnav-profile-page-vnav-enabled-button-left: 72px;
+  --vnav-profile-page-vnav-enabled-button-width: 278px;
+  --vnav-profile-page-vnav-enabled-button-height: 123px;
+
+  --vnav-profile-page-active-vnav-waypoint-top: 23px;
+  --vnav-profile-page-active-vnav-waypoint-right: 40px;
+  --vnav-profile-page-active-vnav-waypoint-width: 357px;
+  --vnav-profile-page-active-vnav-waypoint-height: 135px;
+  --vnav-profile-page-active-vnav-waypoint-column-gap: 20px;
+  --vnav-profile-page-active-vnav-waypoint-row-width: 385px;
+
+  --vnav-profile-page-second-row-top: 175px;
+  --vnav-profile-page-second-row-width: 669px;
+  --vnav-profile-page-second-row-height: 157px;
+  --vnav-profile-page-second-row-button-width: 260px;
+
+  --vnav-profile-page-main-data-row-top: 374px;
+  --vnav-profile-page-main-data-row-width: 743px;
+  --vnav-profile-page-main-data-row-height: 133px;
+
+  --vnav-profile-page-vnav-direct-to-button-bottom: 28px;
+  --vnav-profile-page-vnav-direct-to-button-width: 260px;
+  --vnav-profile-page-vnav-direct-to-button-height: 123px;
+}
+
+.gtc-vertical .vnav-profile-page {
+  --vnav-profile-page-width: 450px;
+  --vnav-profile-page-height: 378px;
+  --vnav-profile-page-top: 25px;
+  --vnav-profile-page-left: 15px;
+
+  --vnav-profile-page-font-size-small: 16px;
+  --vnav-profile-page-font-size-medium: 18px;
+  --vnav-profile-page-font-size-large: 20px;
+
+  --vnav-profile-page-vnav-enabled-button-top: 12px;
+  --vnav-profile-page-vnav-enabled-button-left: 38px;
+  --vnav-profile-page-vnav-enabled-button-width: 150px;
+  --vnav-profile-page-vnav-enabled-button-height: 66px;
+
+  --vnav-profile-page-active-vnav-waypoint-top: 10px;
+  --vnav-profile-page-active-vnav-waypoint-right: 15px;
+  --vnav-profile-page-active-vnav-waypoint-width: 200px;
+  --vnav-profile-page-active-vnav-waypoint-height: 75px;
+  --vnav-profile-page-active-vnav-waypoint-column-gap: 10px;
+  --vnav-profile-page-active-vnav-waypoint-row-width: 210px;
+
+  --vnav-profile-page-second-row-top: 93px;
+  --vnav-profile-page-second-row-width: 360px;
+  --vnav-profile-page-second-row-height: 84px;
+  --vnav-profile-page-second-row-button-width: 140px;
+
+  --vnav-profile-page-main-data-row-top: 199px;
+  --vnav-profile-page-main-data-row-width: 405px;
+  --vnav-profile-page-main-data-row-height: 76px;
+
+  --vnav-profile-page-vnav-direct-to-button-bottom: 15px;
+  --vnav-profile-page-vnav-direct-to-button-width: 140px;
+  --vnav-profile-page-vnav-direct-to-button-height: 66px;
+}
+
+.vnav-profile-page {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  width: var(--vnav-profile-page-width);
+  height: var(--vnav-profile-page-height);
+  top: var(--vnav-profile-page-top);
+  left: var(--vnav-profile-page-left);
+  font-size: var(--vnav-profile-page-font-size-small);
+}
+
+.vnav-profile-page .touch-button .touch-button-label {
+  font-size: var(--vnav-profile-page-font-size-small);
+}
+
+.vnav-profile-page .touch-button .touch-button-value-value {
+  font-size: var(--vnav-profile-page-font-size-large);
+}
+
+.vnav-profile-page .vnav-enabled-button {
+  position: absolute;
+  top: var(--vnav-profile-page-vnav-enabled-button-top);
+  left: var(--vnav-profile-page-vnav-enabled-button-left);
+  width: var(--vnav-profile-page-vnav-enabled-button-width);
+  height: var(--vnav-profile-page-vnav-enabled-button-height);
+}
+
+.vnav-profile-page .active-vnav-waypoint-box {
+  position: absolute;
+  top: var(--vnav-profile-page-active-vnav-waypoint-top);
+  right: var(--vnav-profile-page-active-vnav-waypoint-right);
+  width: var(--vnav-profile-page-active-vnav-waypoint-width);
+  height: var(--vnav-profile-page-active-vnav-waypoint-height);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 100%;
+  justify-items: center;
+}
+
+.vnav-profile-page .active-vnav-waypoint-box .row {
+  justify-self: stretch;
+  position: relative;
+  width: var(--vnav-profile-page-active-vnav-waypoint-row-width);
+  height: 100%;
+  font-size: var(--vnav-profile-page-font-size-large);
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: calc((var(--vnav-profile-page-active-vnav-waypoint-width) - var(--vnav-profile-page-active-vnav-waypoint-column-gap)) / 2) 1fr;
+  grid-column-gap: var(--vnav-profile-page-active-vnav-waypoint-column-gap);
+  align-items: center;
+}
+
+.vnav-profile-page .active-vnav-waypoint-box .waypoint-ident {
+  justify-self: center;
+}
+
+.vnav-profile-page .active-vnav-waypoint-box .altitude-constraint-display {
+  justify-self: start;
+  justify-content: flex-start;
+}
+
+.vnav-profile-page .row.second-row {
+  position: absolute;
+  top: var(--vnav-profile-page-second-row-top);
+  width: var(--vnav-profile-page-second-row-width);
+  height: var(--vnav-profile-page-second-row-height);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.vnav-profile-page .row.second-row .touch-button {
+  width: var(--vnav-profile-page-second-row-button-width);
+}
+
+.vnav-profile-page .main-data-row {
+  position: absolute;
+  top: var(--vnav-profile-page-main-data-row-top);
+  width: var(--vnav-profile-page-main-data-row-width);
+  height: var(--vnav-profile-page-main-data-row-height);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  font-size: var(--vnav-profile-page-font-size-medium);
+}
+
+.vnav-profile-page .main-data-row .box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  width: 33.33%;
+}
+
+.vnav-profile-page .main-data-row .box .label {
+  white-space: pre;
+  text-align: center;
+}
+
+.vnav-profile-page .vnav-direct-to-button {
+  position: absolute;
+  bottom: var(--vnav-profile-page-vnav-direct-to-button-bottom);
+  width: var(--vnav-profile-page-vnav-direct-to-button-width);
+  height: var(--vnav-profile-page-vnav-direct-to-button-height);
+}

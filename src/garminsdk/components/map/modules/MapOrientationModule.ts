@@ -1,4 +1,4 @@
-import { Subject } from 'msfssdk';
+import { Subject } from '@microsoft/msfs-sdk';
 
 /**
  * Orientation types for a map.

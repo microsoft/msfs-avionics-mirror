@@ -1,0 +1,139 @@
+.vor-info-page .wpt-info-page-container {
+  position: absolute;
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.gtc-horizontal .vor-info-page .wpt-info-page-container {
+  left: calc(50% - 685px / 2);
+  top: 55px;
+  width: 685px;
+  height: 705px;
+  padding-top: 10px;
+
+  --vor-info-page-info-width: 540px;
+  --vor-info-page-info-font-size: 32px;
+
+  --wpt-info-page-info-field-title-margin-bottom: 5px;
+
+  --wpt-info-page-info-city-region-height: 110px;
+  --wpt-info-page-info-city-region-padding-left: 30px;
+
+  --wpt-info-page-info-pos-height: 110px;
+  --wpt-info-page-info-coords-width: 260px;
+  --wpt-info-page-info-coords-margin-left: 20px;
+  --wpt-info-page-info-brg-width: 125px;
+  --wpt-info-page-info-brg-arrow-margin-left: 5px;
+  --wpt-info-page-info-dis-width: 135px;
+
+  --vor-info-page-info-type-magvar-height: 105px;
+  --vor-info-page-info-type-magvar-padding: 5px 0px;
+  --vor-info-page-info-type-magvar-left-margin-left: 30px;
+  --vor-info-page-info-type-magvar-right-width: 190px;
+
+  --vor-info-page-info-nrst-height: 110px;
+  --vor-info-page-info-nrst-title-left: 30px;
+  --vor-info-page-info-nrst-title-top: 15px;
+
+  --vor-info-page-info-freq-button-height: 120px;
+
+  --vor-info-page-info-freq-button-freq-margin-left: 25px;
+  --vor-info-page-info-freq-button-freq-font-size: 56px;
+}
+
+.gtc-vertical .vor-info-page .wpt-info-page-container {
+  left: calc(50% - 365px / 2);
+  top: 27px;
+  width: 365px;
+  height: 380px;
+  padding-top: 3px;
+
+  --vor-info-page-info-width: 290px;
+  --vor-info-page-info-font-size: 18px;
+
+  --wpt-info-page-info-field-title-margin-bottom: 2px;
+
+  --wpt-info-page-info-city-region-height: 60px;
+  --wpt-info-page-info-city-region-padding-left: 15px;
+
+  --wpt-info-page-info-pos-height: 60px;
+  --wpt-info-page-info-coords-width: 135px;
+  --wpt-info-page-info-coords-margin-left: 10px;
+  --wpt-info-page-info-brg-width: 70px;
+  --wpt-info-page-info-brg-arrow-margin-left: 2px;
+  --wpt-info-page-info-dis-width: 75px;
+
+  --vor-info-page-info-type-magvar-height: 57px;
+  --vor-info-page-info-type-magvar-padding: 2px 0px;
+  --vor-info-page-info-type-magvar-left-margin-left: 15px;
+  --vor-info-page-info-type-magvar-right-width: 90px;
+
+  --vor-info-page-info-nrst-height: 60px;
+  --vor-info-page-info-nrst-title-left: 15px;
+  --vor-info-page-info-nrst-title-top: 7px;
+
+  --vor-info-page-info-freq-button-height: 60px;
+
+  --vor-info-page-info-freq-button-freq-margin-left: 15px;
+  --vor-info-page-info-freq-button-freq-font-size: 25px;
+}
+
+.vor-info-page .wpt-info-page-info {
+  width: var(--vor-info-page-info-width);
+  font-size: var(--vor-info-page-info-font-size);
+}
+
+.vor-info-page .wpt-info-page-no-wpt {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.vor-info-page-info-type-magvar {
+  height: var(--vor-info-page-info-type-magvar-height);
+  padding: var(--vor-info-page-info-type-magvar-padding);
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 50% var(--vor-info-page-info-type-magvar-right-width);
+  align-items: center;
+}
+
+.vor-info-page-info-type-magvar-left {
+  justify-self: flex-start;
+  margin-left: var(--vor-info-page-info-type-magvar-left-margin-left);
+}
+
+.vor-info-page-info-type-magvar-right {
+  justify-self: center;
+}
+
+.vor-info-page-info-nrst {
+  position: relative;
+  height: var(--vor-info-page-info-nrst-height);
+}
+
+.vor-info-page-info-nrst-title {
+  position: absolute;
+  left: var(--vor-info-page-info-nrst-title-left);
+  top: var(--vor-info-page-info-nrst-title-top);
+  font-size: 0.8em;
+}
+
+.vor-info-page-info-freq-button {
+  height: var(--vor-info-page-info-freq-button-height);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.vor-info-page-info-freq-button-freq {
+  margin-left: var(--vor-info-page-info-freq-button-freq-margin-left);
+  font-size: var(--vor-info-page-info-freq-button-freq-font-size);
+}

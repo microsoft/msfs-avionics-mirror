@@ -1,27 +1,39 @@
 import {
-  AdcEvents, AhrsEvents, AvionicsSystemState, AvionicsSystemStateEvent, BitFlags, ClockEvents, ComponentProps, ConsumerSubject, DisplayComponent, EventBus,
-  FSComponent, GeoPoint, GNSSEvents, HorizonComponent, HorizonProjection, HorizonProjectionChangeType, MappedSubject, ReadonlyFloat64Array, Subject,
-  Subscribable, SubscribableSet, SubscribableUtils, Subscription, UserSettingManager, VecNMath, VecNSubject, VNode
-} from 'msfssdk';
+  AdcEvents, AhrsEvents, BitFlags, ClockEvents, ComponentProps, ConsumerSubject, DisplayComponent, EventBus,
+  FSComponent, GeoPoint, GNSSEvents, HorizonComponent, HorizonProjection, HorizonProjectionChangeType, MappedSubject,
+  ReadonlyFloat64Array, Subject, Subscribable, SubscribableSet, SubscribableUtils, Subscription, UserSettingManager,
+  VecNMath, VecNSubject, VNode
+} from '@microsoft/msfs-sdk';
 
 import { SynVisUserSettingTypes } from '../../../settings/SynVisUserSettings';
 import { AhrsSystemEvents } from '../../../system/AhrsSystem';
-import { ArtificialHorizon } from './ArtificialHorizon';
-import { AttitudeAircraftSymbol } from './AttitudeAircraftSymbol';
+import { FmsPositionMode, FmsPositionSystemEvents } from '../../../system/FmsPositionSystem';
+import { ArtificalHorizonProps, ArtificialHorizon } from './ArtificialHorizon';
+import { AttitudeAircraftSymbol, AttitudeAircraftSymbolProps } from './AttitudeAircraftSymbol';
 import { AttitudeIndicator, AttitudeIndicatorProps, PitchLadderStyles } from './AttitudeIndicator';
 import { FlightDirector, FlightDirectorProps } from './FlightDirector';
 import { FlightPathMarker, FlightPathMarkerProps } from './FlightPathMarker';
 import { SyntheticVision, SyntheticVisionProps } from './SyntheticVision';
 
 /**
+ * Options for the symbolic aircraft.
+ */
+export type AircraftSymbolOptions = Pick<AttitudeAircraftSymbolProps, 'color'>;
+
+/**
  * Options for the attitude indicator.
  */
-export type AttitudeIndicatorOptions = Pick<AttitudeIndicatorProps, 'slipSkidOptions'>;
+export type AttitudeIndicatorOptions = Pick<AttitudeIndicatorProps, 'rollScaleOptions' | 'slipSkidOptions'>;
 
 /**
  * Options for the flight director.
  */
 export type FlightDirectorOptions = Pick<FlightDirectorProps, 'maxPitch'>;
+
+/**
+ * Options for the artificial horizon.
+ */
+export type ArtificialHorizonOptions = Pick<ArtificalHorizonProps, 'horizonLineOptions' | 'options'>;
 
 /**
  * Options for synthetic vision.
@@ -43,6 +55,9 @@ export interface HorizonDisplayProps extends ComponentProps {
   /** The index of the AHRS that is the source of the horizon display's data. */
   ahrsIndex: number | Subscribable<number>;
 
+  /** The index of the FMS positioning system that is the source of the horizon display's data. */
+  fmsPosIndex: number | Subscribable<number>;
+
   /** The size, as `[width, height]` in pixels, of the horizon display. */
   projectedSize: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 
@@ -55,8 +70,11 @@ export interface HorizonDisplayProps extends ComponentProps {
   /** The string ID to assign to the synthetic vision layer's bound Bing instance. */
   bingId: string;
 
-  /** Whether to use an extended field of view when synthetic vision is disabled. */
-  useExtendedFov: boolean;
+  /** The amount of time, in milliseconds, to delay binding the synthetic vision layer's Bing instance. Defaults to 0. */
+  bingDelay?: number;
+
+  /** Options for the symbolic aircraft. */
+  aircraftSymbolOptions: AircraftSymbolOptions;
 
   /** Options for the attitude indicator. */
   attitudeIndicatorOptions: AttitudeIndicatorOptions;
@@ -64,11 +82,27 @@ export interface HorizonDisplayProps extends ComponentProps {
   /** Options for the flight director. */
   flightDirectorOptions: FlightDirectorOptions;
 
+  /** Options for the artificial horizon. */
+  artificialHorizonOptions: ArtificialHorizonOptions;
+
   /** Options for the synthetic vision display. */
   svtOptions: SyntheticVisionOptions;
 
+  /**
+   * Whether to support advanced SVT features. Advanced SVT features include:
+   * * The ability to display horizon heading labels when SVT is disabled.
+   * * The ability to display the flight path marker when SVT is disabled.
+   */
+  supportAdvancedSvt: boolean;
+
+  /** Whether to show magnetic heading information instead of true heading. */
+  useMagneticHeading: Subscribable<boolean>;
+
   /** A manager for synthetic vision settings. */
   svtSettingManager: UserSettingManager<SynVisUserSettingTypes>;
+
+  /** Whether the display should be decluttered. */
+  declutter: Subscribable<boolean>;
 
   /** Normal field of view, in degrees. Defaults to 55 degrees. */
   normalFov?: number;
@@ -90,6 +124,12 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
   private static readonly DEFAULT_NORMAL_FOV = 55; // degrees
   private static readonly DEFAULT_EXTENDED_FOV = 110; // degrees
 
+  private static readonly SVT_SUPPORTED_FMS_POS_MODES = [
+    FmsPositionMode.Gps,
+    FmsPositionMode.Hns,
+    FmsPositionMode.Dme
+  ];
+
   private readonly horizonRef = FSComponent.createRef<HorizonComponent>();
 
   private readonly projectionParams = {
@@ -101,8 +141,10 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
   };
 
   private readonly ahrsIndex = SubscribableUtils.toSubscribable(this.props.ahrsIndex, true);
+  private readonly fmsPosIndex = SubscribableUtils.toSubscribable(this.props.fmsPosIndex, true);
 
   private ahrsIndexSub?: Subscription;
+  private fmsPosIndexSub?: Subscription;
 
   private readonly position = ConsumerSubject.create(null, new LatLongAlt(0, 0, 0));
   private readonly heading = ConsumerSubject.create(null, 0);
@@ -120,26 +162,49 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
   private pitchSub?: Subscription;
   private rollSub?: Subscription;
 
-  private readonly ahrsState = ConsumerSubject.create(null, { previous: undefined, current: AvionicsSystemState.On } as AvionicsSystemStateEvent);
+  private readonly isHeadingDataValid = ConsumerSubject.create(null, true);
+  private readonly isAttitudeDataValid = ConsumerSubject.create(null, true);
 
-  private readonly isAhrsOn = Subject.create(true);
+  private readonly fmsPosMode = ConsumerSubject.create(null, FmsPositionMode.None);
 
   private readonly isSvtEnabled = MappedSubject.create(
-    ([isAhrsOn, svtEnabledSetting]): boolean => isAhrsOn && svtEnabledSetting,
-    this.isAhrsOn,
+    ([isHeadingDataValid, isAttitudeDataValid, fmsPosMode, svtEnabledSetting]): boolean => {
+      return svtEnabledSetting && isHeadingDataValid && isAttitudeDataValid && HorizonDisplay.SVT_SUPPORTED_FMS_POS_MODES.includes(fmsPosMode);
+    },
+    this.isHeadingDataValid,
+    this.isAttitudeDataValid,
+    this.fmsPosMode,
     this.props.svtSettingManager.getSetting('svtEnabled')
+  );
+
+  private readonly showFpm = this.props.supportAdvancedSvt
+    ? MappedSubject.create(
+      ([isHeadingDataValid, isAttitudeDataValid, svtEnabledSetting, svtDisabledFpmShowSetting]): boolean => {
+        return isHeadingDataValid && isAttitudeDataValid && (svtEnabledSetting || svtDisabledFpmShowSetting);
+      },
+      this.isHeadingDataValid,
+      this.isAttitudeDataValid,
+      this.props.svtSettingManager.getSetting('svtEnabled'),
+      this.props.svtSettingManager.getSetting('svtDisabledFpmShow')
+    )
+    : undefined;
+
+  private readonly showFlightDirector = MappedSubject.create(
+    ([declutter, isAttitudeDataValid]): boolean => !declutter && isAttitudeDataValid,
+    this.props.declutter,
+    this.isAttitudeDataValid
   );
 
   private readonly normalFov = this.props.normalFov ?? HorizonDisplay.DEFAULT_NORMAL_FOV;
   private readonly extendedFov = this.props.extendedFov ?? HorizonDisplay.DEFAULT_EXTENDED_FOV;
 
-  private readonly fov = this.props.useExtendedFov
-    ? this.isSvtEnabled.map(isEnabled => isEnabled ? HorizonDisplay.BING_FOV : this.extendedFov)
-    : this.isSvtEnabled.map(isEnabled => isEnabled ? HorizonDisplay.BING_FOV : this.normalFov);
+  private readonly fov = this.props.supportAdvancedSvt
+    ? this.isSvtEnabled.map(isEnabled => isEnabled ? HorizonDisplay.BING_FOV : this.normalFov)
+    : this.isSvtEnabled.map(isEnabled => isEnabled ? HorizonDisplay.BING_FOV : this.extendedFov);
 
   private readonly nonSvtFovEndpoints = VecNMath.create(4, 0.5, 0, 0.5, 1);
-  private readonly svtFovEndpoints = VecNSubject.createFromVector(VecNMath.create(4, 0.5, 0, 0.5, 1));
-  private readonly fovEndpoints = VecNSubject.createFromVector(VecNMath.create(4, 0.5, 0, 0.5, 1));
+  private readonly svtFovEndpoints = VecNSubject.create(VecNMath.create(4, 0.5, 0, 0.5, 1));
+  private readonly fovEndpoints = VecNSubject.create(VecNMath.create(4, 0.5, 0, 0.5, 1));
 
   private isAlive = true;
   private isAwake = true;
@@ -159,7 +224,7 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       this.horizonRef.instance.sleep();
     }
 
-    const sub = this.props.bus.getSubscriber<AdcEvents & AhrsEvents & GNSSEvents & AhrsSystemEvents>();
+    const sub = this.props.bus.getSubscriber<AdcEvents & AhrsEvents & GNSSEvents & AhrsSystemEvents & FmsPositionSystemEvents>();
 
     this.position.sub(pos => {
       this.projectionParams.position.set(pos.lat, pos.long);
@@ -178,10 +243,8 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       this.projectionParams.roll = -roll;
     }, true);
 
-    this.ahrsState.sub(this.onAhrsStateChanged.bind(this), true);
-
-    this.isAhrsOn.sub(value => {
-      if (value) {
+    this.isAttitudeDataValid.sub(isValid => {
+      if (isValid) {
         this.headingSub?.resume(true);
         this.pitchSub?.resume(true);
         this.rollSub?.resume(true);
@@ -196,14 +259,18 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       }
     }, true);
 
-    this.position.setConsumer(sub.on('gps-position'));
-
     this.ahrsIndexSub = this.ahrsIndex.sub(index => {
       this.heading.setConsumer(sub.on(`ahrs_hdg_deg_true_${index}`));
       this.pitch.setConsumer(sub.on(`ahrs_pitch_deg_${index}`));
       this.roll.setConsumer(sub.on(`ahrs_roll_deg_${index}`));
 
-      this.ahrsState.setConsumer(sub.on(`ahrs_state_${index}`));
+      this.isHeadingDataValid.setConsumer(sub.on(`ahrs_heading_data_valid_${index}`));
+      this.isAttitudeDataValid.setConsumer(sub.on(`ahrs_attitude_data_valid_${index}`));
+    }, true);
+
+    this.fmsPosIndexSub = this.fmsPosIndex.sub(index => {
+      this.position.setConsumer(sub.on(`fms_pos_gps-position_${index}`));
+      this.fmsPosMode.setConsumer(sub.on(`fms_pos_mode_${index}`));
     }, true);
 
     const svtEndpointsPipe = this.svtFovEndpoints.pipe(this.fovEndpoints, true);
@@ -227,18 +294,6 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
         .atFrequency(freq)
         .handle(this.updateCycleHandler, !this.isAwake);
     }, true);
-  }
-
-  /**
-   * Responds to AHRS system state events.
-   * @param state An AHRS system state event.
-   */
-  private onAhrsStateChanged(state: AvionicsSystemStateEvent): void {
-    if (state.previous === undefined && state.current !== AvionicsSystemState.Off) {
-      this.isAhrsOn.set(true);
-    } else {
-      this.isAhrsOn.set(state.current === AvionicsSystemState.On);
-    }
   }
 
   /**
@@ -347,16 +402,21 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
           projection={projection}
           bus={this.props.bus}
           show={MappedSubject.create(
-            ([isAhrsOn, isSvtEnabled]): boolean => isAhrsOn && !isSvtEnabled,
-            this.isAhrsOn,
+            ([isAttitudeDataValid, isSvtEnabled]): boolean => isAttitudeDataValid && !isSvtEnabled,
+            this.isAttitudeDataValid,
             this.isSvtEnabled
           )}
+          showHeadingLabels={this.props.supportAdvancedSvt ? this.props.svtSettingManager.getSetting('svtHeadingLabelShow') : false}
+          useMagneticHeading={this.props.useMagneticHeading}
+          {...this.props.artificialHorizonOptions}
         />
         <SyntheticVision
           projection={projection}
           bingId={this.props.bingId}
+          bingDelay={this.props.bingDelay}
           isEnabled={this.isSvtEnabled}
           showHeadingLabels={this.props.svtSettingManager.getSetting('svtHeadingLabelShow')}
+          useMagneticHeading={this.props.useMagneticHeading}
           {...this.props.svtOptions}
         />
         <AttitudeIndicator
@@ -365,7 +425,7 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
           ahrsIndex={this.ahrsIndex}
           isSVTEnabled={this.isSvtEnabled}
           pitchLadderOptions={{
-            svtDisabledStyles: this.props.useExtendedFov ? HorizonDisplay.getExtendedFovPitchLadderStyles() : HorizonDisplay.getNormalFovPitchLadderStyles(),
+            svtDisabledStyles: this.props.supportAdvancedSvt ? HorizonDisplay.getNormalFovPitchLadderStyles() : HorizonDisplay.getExtendedFovPitchLadderStyles(),
             svtEnabledStyles: HorizonDisplay.getNormalFovPitchLadderStyles()
           }}
           {...this.props.attitudeIndicatorOptions}
@@ -373,34 +433,40 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
         <FlightPathMarker
           projection={projection}
           bus={this.props.bus}
-          show={this.isSvtEnabled}
+          show={this.showFpm ?? this.isSvtEnabled}
         />
         <FlightDirector
           projection={projection}
           bus={this.props.bus}
-          show={this.isAhrsOn}
+          show={this.showFlightDirector}
           {...this.props.flightDirectorOptions}
         />
-        <AttitudeAircraftSymbol projection={projection} show={Subject.create(true)} />
+        <AttitudeAircraftSymbol projection={projection} show={Subject.create(true)} color={this.props.aircraftSymbolOptions.color} />
       </HorizonComponent>
     );
   }
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.isAlive = false;
 
-    this.isSvtEnabled.destroy();
     this.paramSubjects.forEach(subject => { subject.destroy(); });
-    this.ahrsState.destroy();
+
+    this.isHeadingDataValid.destroy();
+    this.isAttitudeDataValid.destroy();
+    this.fmsPosMode.destroy();
+    this.isSvtEnabled.destroy();
+    this.showFpm?.destroy();
+    this.showFlightDirector.destroy();
 
     this.updateFreqSub?.destroy();
     this.updateCycleSub?.destroy();
     this.ahrsIndexSub?.destroy();
+    this.fmsPosIndexSub?.destroy();
 
     this.horizonRef.getOrDefault()?.destroy();
+
+    super.destroy();
   }
 
   /**
@@ -409,9 +475,9 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
    */
   private static getNormalFovPitchLadderStyles(): PitchLadderStyles {
     return {
-      minorLineIncrement: 2.5,
+      majorLineIncrement: 10,
       mediumLineFactor: 2,
-      majorLineFactor: 2,
+      minorLineFactor: 2,
       minorLineMaxPitch: 20,
       mediumLineMaxPitch: 30,
       minorLineShowNumber: false,
@@ -419,7 +485,9 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       majorLineShowNumber: true,
       minorLineLength: 25,
       mediumLineLength: 50,
-      majorLineLength: 100
+      majorLineLength: 100,
+      chevronThresholdPositive: 50,
+      chevronThresholdNegative: 30
     };
   }
 
@@ -429,9 +497,9 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
    */
   private static getExtendedFovPitchLadderStyles(): PitchLadderStyles {
     return {
-      minorLineIncrement: 2.5,
+      majorLineIncrement: 10,
       mediumLineFactor: 2,
-      majorLineFactor: 2,
+      minorLineFactor: 2,
       minorLineMaxPitch: 20,
       mediumLineMaxPitch: 30,
       minorLineShowNumber: false,
@@ -439,7 +507,9 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       majorLineShowNumber: true,
       minorLineLength: 25,
       mediumLineLength: 50,
-      majorLineLength: 100
+      majorLineLength: 100,
+      chevronThresholdPositive: 50,
+      chevronThresholdNegative: 30
     };
   }
 }

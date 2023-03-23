@@ -22,6 +22,8 @@ export class GeoCircleLineRenderer {
    * @param width The width of the rendered line.
    * @param style The style of the rendered line.
    * @param dash The dash array of the rendered line. Defaults to no dash.
+   * @param outlineWidth The width of the outline, in pixels. Defaults to 0 pixels.
+   * @param outlineStyle The style of the outline. Defaults to `'black'`.
    */
   public render(
     circle: GeoCircle,
@@ -33,9 +35,18 @@ export class GeoCircleLineRenderer {
     streamStack: GeoProjectionPathStreamStack,
     width: number,
     style: string,
-    dash?: readonly number[]
+    dash?: readonly number[],
+    outlineWidth = 0,
+    outlineStyle = 'black',
   ): void {
     this.pathRenderer.render(circle, startLat, startLon, endLat, endLon, streamStack);
+
+    if (outlineWidth > 0) {
+      context.lineWidth = width + (outlineWidth * 2);
+      context.strokeStyle = outlineStyle;
+      context.setLineDash(dash ?? GeoCircleLineRenderer.EMPTY_DASH);
+      context.stroke();
+    }
 
     context.lineWidth = width;
     context.strokeStyle = style;

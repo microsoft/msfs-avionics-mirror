@@ -1,0 +1,15 @@
+.attitude-aircraft-symbol {
+  --attitude-aircraft-symbol-bar-stroke-width: 1;
+  --attitude-aircraft-symbol-arrow-stroke-width: 0.5;
+  --attitude-aircraft-symbol-stroke: var(--g3000-color-black);
+}
+
+.attitude-aircraft-symbol-yellow {
+  --attitude-aircraft-symbol-fill-light: var(--g3000-color-yellow);
+  --attitude-aircraft-symbol-fill-dark: rgb(152, 140, 0);
+}
+
+.attitude-aircraft-symbol-white {
+  --attitude-aircraft-symbol-fill-light: var(--g3000-color-white);
+  --attitude-aircraft-symbol-fill-dark: rgb(150, 150, 150);
+}

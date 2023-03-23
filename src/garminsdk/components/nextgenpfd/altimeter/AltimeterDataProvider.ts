@@ -1,7 +1,8 @@
 import {
-  AdcEvents, AltitudeSelectEvents, APEvents, ClockEvents, ConsumerSubject, EventBus, MappedSubject, MappedSubscribable, MinimumsEvents, MinimumsMode, Subject,
+  AdcEvents, AltitudeSelectEvents, APEvents, AvionicsSystemState, AvionicsSystemStateEvent, ClockEvents,
+  ConsumerSubject, EventBus, MappedSubject, MappedSubscribable, MinimumsEvents, MinimumsMode, Subject,
   Subscribable, SubscribableUtils, Subscription
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { AdcSystemEvents } from '../../../system/AdcSystem';
 import { RadarAltimeterSystemEvents } from '../../../system/RadarAltimeterSystem';
@@ -34,6 +35,9 @@ export interface AltimeterDataProvider {
 
   /** The current radar altitude, in feet, or `null` if there is no valid radar altitude. */
   readonly radarAlt: Subscribable<number | null>;
+
+  /** Whether altitude data is in a failure state. */
+  readonly isDataFailed: Subscribable<boolean>;
 }
 
 /**
@@ -95,7 +99,12 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
   private readonly _radarAlt = Subject.create<number | null>(null);
   public readonly radarAlt = this._radarAlt as Subscribable<number | null>;
 
+  private readonly _isDataFailed = Subject.create(false);
+  /** @inheritdoc */
+  public readonly isDataFailed = this._isDataFailed as Subscribable<boolean>;
+
   private readonly adcIndex: Subscribable<number>;
+  private readonly adcSystemState = ConsumerSubject.create<AvionicsSystemStateEvent>(null, { previous: undefined, current: undefined });
 
   private readonly simTime = ConsumerSubject.create(null, 0);
   private readonly isOnGround = ConsumerSubject.create(null, false);
@@ -166,6 +175,7 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
       this._baroIsStdActive.setConsumer(sub.on(`adc_altimeter_baro_is_std_${index}`));
       this._baroPreselect.setConsumer(sub.on(`adc_altimeter_baro_preselect_inhg_${index}`));
       this.verticalSpeed.setConsumer(sub.on(`adc_vertical_speed_${index}`));
+      this.adcSystemState.setConsumer(sub.on(`adc_state_${index}`));
     }, true);
 
     this.selectedAltSource.setConsumer(sub.on('ap_altitude_selected'));
@@ -203,7 +213,7 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
 
       const radarMinimums = MappedSubject.create(
         ([minimumsMode, radarMinimumsSource, radarAlt, indicatedAlt]): number | null => {
-          return minimumsMode === MinimumsMode.RA && radarAlt !== null && isNaN(radarAlt)
+          return minimumsMode === MinimumsMode.RA && radarAlt !== null && !isNaN(radarAlt)
             ? indicatedAlt - radarAlt + radarMinimumsSource
             : null;
         },
@@ -239,6 +249,14 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
       baroMinimums.pipe(this._minimums);
     }
 
+    this.adcSystemState.sub(state => {
+      if (state.current === undefined || state.current === AvionicsSystemState.On) {
+        this._isDataFailed.set(false);
+      } else {
+        this._isDataFailed.set(true);
+      }
+    }, true);
+
     if (paused) {
       this.pause();
     }
@@ -254,7 +272,7 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
       throw new Error('DefaultAltimeterDataProvider: cannot resume a dead provider');
     }
 
-    if (!this.isPaused) {
+    if (!this.isPaused || !this.isInit) {
       return;
     }
 
@@ -279,6 +297,8 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
     this.minimumsMode.resume();
     this.baroMinimumsSource.resume();
     this.radarMinimumsSource.resume();
+
+    this.adcSystemState.resume();
   }
 
   /**
@@ -290,7 +310,7 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
       throw new Error('DefaultAltimeterDataProvider: cannot pause a dead provider');
     }
 
-    if (this.isPaused) {
+    if (this.isPaused || !this.isInit) {
       return;
     }
 
@@ -314,6 +334,8 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
     this.minimumsMode.pause();
     this.baroMinimumsSource.pause();
     this.radarMinimumsSource.pause();
+
+    this.adcSystemState.pause();
 
     this.isPaused = true;
   }
@@ -342,6 +364,8 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
     this.minimumsMode.destroy();
     this.baroMinimumsSource.destroy();
     this.radarMinimumsSource.destroy();
+
+    this.adcSystemState.destroy();
 
     this.adcIndexSub?.destroy();
     this.radarAltIsFailedSub?.destroy();

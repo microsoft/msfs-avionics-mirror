@@ -1,7 +1,8 @@
 import {
+  BasicNavAngleUnit,
   DefaultUserSettingManager, EventBus, NavAngleUnit, Subject, Subscribable, Unit, UnitFamily, UnitType, UserSettingDefinition, UserSettingManagerEntry,
   UserSettingManagerSyncData, UserSettingValue
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 /**
  * Setting modes for nav angle units.
@@ -16,15 +17,17 @@ export enum UnitsNavAngleSettingMode {
  */
 export enum UnitsDistanceSettingMode {
   Metric = 'metric',
-  Nautical = 'nautical'
+  Nautical = 'nautical',
+  Statute = 'statute'
 }
 
 /**
- * Setting modes for altitude/vertical speed units.
+ * Setting modes for altitude units.
  */
 export enum UnitsAltitudeSettingMode {
   Feet = 'feet',
-  Meters = 'meters'
+  Meters = 'meters',
+  MetersMps = 'metersMps'
 }
 
 /**
@@ -44,6 +47,17 @@ export enum UnitsWeightSettingMode {
 }
 
 /**
+ * Setting modes for fuel units.
+ */
+export enum UnitsFuelSettingMode {
+  Gallons = 'gallons',
+  ImpGal = 'imp gals',
+  Kilograms = 'kilograms',
+  Liters = 'liters',
+  Pounds = 'pounds'
+}
+
+/**
  * Type descriptions for display units user settings.
  */
 export type UnitsUserSettingTypes = {
@@ -53,7 +67,7 @@ export type UnitsUserSettingTypes = {
   /** The distance/speed units setting. */
   unitsDistance: UnitsDistanceSettingMode;
 
-  /** The altitude/vertical speed units setting. */
+  /** The altitude units setting. */
   unitsAltitude: UnitsAltitudeSettingMode;
 
   /** The temperature units setting. */
@@ -61,6 +75,10 @@ export type UnitsUserSettingTypes = {
 
   /** The weight units setting. */
   unitsWeight: UnitsWeightSettingMode;
+
+  /** The fuel units setting. */
+  unitsFuel: UnitsFuelSettingMode;
+
 }
 
 /**
@@ -69,8 +87,8 @@ export type UnitsUserSettingTypes = {
  * settings.
  */
 export class UnitsUserSettingManager extends DefaultUserSettingManager<UnitsUserSettingTypes> {
-  private static readonly TRUE_BEARING = NavAngleUnit.create(false);
-  private static readonly MAGNETIC_BEARING = NavAngleUnit.create(true);
+  private static readonly TRUE_BEARING = BasicNavAngleUnit.create(false);
+  private static readonly MAGNETIC_BEARING = BasicNavAngleUnit.create(true);
 
   private readonly navAngleUnitsSub = Subject.create(UnitsUserSettingManager.MAGNETIC_BEARING);
   public readonly navAngleUnits = this.navAngleUnitsSub as Subscribable<NavAngleUnit>;
@@ -93,12 +111,25 @@ export class UnitsUserSettingManager extends DefaultUserSettingManager<UnitsUser
   private readonly temperatureUnitsSub = Subject.create(UnitType.CELSIUS);
   public readonly temperatureUnits = this.temperatureUnitsSub as Subscribable<Unit<UnitFamily.Temperature>>;
 
+  private readonly temperatureDeltaUnitsSub = Subject.create(UnitType.DELTA_CELSIUS);
+  public readonly temperatureDeltaUnits = this.temperatureDeltaUnitsSub as Subscribable<Unit<UnitFamily.TemperatureDelta>>;
+
   private readonly weightUnitsSub = Subject.create(UnitType.POUND);
   public readonly weightUnits = this.weightUnitsSub as Subscribable<Unit<UnitFamily.Weight>>;
+
+  private readonly fuelUnitsSub = Subject.create(UnitType.GALLON_FUEL);
+  public readonly fuelUnits = this.fuelUnitsSub as Subscribable<Unit<UnitFamily.Weight>>;
+
+  private readonly fuelFlowUnitsSub = Subject.create(UnitType.GPH_FUEL);
+  public readonly fuelFlowUnits = this.fuelFlowUnitsSub as Subscribable<Unit<UnitFamily.WeightFlux>>;
+
+  private areSubscribablesInit = false;
 
   /** @inheritdoc */
   constructor(bus: EventBus, settingDefs: UserSettingDefinition<UnitsUserSettingTypes[keyof UnitsUserSettingTypes]>[]) {
     super(bus, settingDefs);
+
+    this.areSubscribablesInit = true;
 
     for (const entry of this.settings.values()) {
       this.updateUnitsSubjects(entry.setting.definition.name, entry.setting.value);
@@ -110,25 +141,23 @@ export class UnitsUserSettingManager extends DefaultUserSettingManager<UnitsUser
     entry: UserSettingManagerEntry<UnitsUserSettingTypes[K]>,
     value: UnitsUserSettingTypes[K]
   ): void {
-    this.updateUnitsSubjects(entry.setting.definition.name, value);
+    if (this.areSubscribablesInit) {
+      this.updateUnitsSubjects(entry.setting.definition.name, value);
+    }
 
     super.onSettingValueChanged(entry, value);
   }
 
   /** @inheritdoc */
-  protected onSettingValueSynced<K extends keyof UnitsUserSettingTypes>(
+  protected syncSettingFromEvent<K extends keyof UnitsUserSettingTypes>(
     entry: UserSettingManagerEntry<UnitsUserSettingTypes[K]>,
     data: UserSettingManagerSyncData<UnitsUserSettingTypes[K]>
   ): void {
-    // protect against race conditions by not responding to sync events older than the last time this manager synced
-    // the setting
-    if (data.syncTime < entry.syncTime) {
-      return;
+    if (this.areSubscribablesInit) {
+      this.updateUnitsSubjects(entry.setting.definition.name, data.value);
     }
 
-    this.updateUnitsSubjects(entry.setting.definition.name, data.value);
-
-    super.onSettingValueSynced(entry, data);
+    super.syncSettingFromEvent(entry, data);
   }
 
   /**
@@ -139,33 +168,75 @@ export class UnitsUserSettingManager extends DefaultUserSettingManager<UnitsUser
   protected updateUnitsSubjects(settingName: string, value: UserSettingValue): void {
     switch (settingName) {
       case 'unitsNavAngle':
-        this.navAngleUnitsSub?.set(value === UnitsNavAngleSettingMode.Magnetic ? UnitsUserSettingManager.MAGNETIC_BEARING : UnitsUserSettingManager.TRUE_BEARING);
+        this.navAngleUnitsSub.set(value === UnitsNavAngleSettingMode.True ? UnitsUserSettingManager.TRUE_BEARING : UnitsUserSettingManager.MAGNETIC_BEARING);
         break;
       case 'unitsDistance':
-        if (value === UnitsDistanceSettingMode.Nautical) {
-          this.distanceUnitsLargeSub?.set(UnitType.NMILE);
-          this.distanceUnitsSmallSub?.set(UnitType.FOOT);
-          this.speedUnitsSub?.set(UnitType.KNOT);
-        } else {
-          this.distanceUnitsLargeSub?.set(UnitType.KILOMETER);
-          this.distanceUnitsSmallSub?.set(UnitType.METER);
-          this.speedUnitsSub?.set(UnitType.KPH);
+        switch (value) {
+          case UnitsDistanceSettingMode.Metric:
+            this.distanceUnitsLargeSub.set(UnitType.KILOMETER);
+            this.distanceUnitsSmallSub.set(UnitType.METER);
+            this.speedUnitsSub.set(UnitType.KPH);
+            break;
+          case UnitsDistanceSettingMode.Statute:
+            this.distanceUnitsLargeSub.set(UnitType.MILE);
+            this.distanceUnitsSmallSub.set(UnitType.FOOT);
+            this.speedUnitsSub.set(UnitType.MPH);
+            break;
+          default:
+            this.distanceUnitsLargeSub.set(UnitType.NMILE);
+            this.distanceUnitsSmallSub.set(UnitType.FOOT);
+            this.speedUnitsSub.set(UnitType.KNOT);
         }
         break;
       case 'unitsAltitude':
-        if (value === UnitsAltitudeSettingMode.Feet) {
-          this.altitudeUnitsSub?.set(UnitType.FOOT);
-          this.verticalSpeedUnitsSub?.set(UnitType.FPM);
-        } else {
-          this.altitudeUnitsSub?.set(UnitType.METER);
-          this.verticalSpeedUnitsSub?.set(UnitType.MPM);
+        switch (value) {
+          case UnitsAltitudeSettingMode.Meters:
+            this.altitudeUnitsSub.set(UnitType.METER);
+            this.verticalSpeedUnitsSub.set(UnitType.MPM);
+            break;
+          case UnitsAltitudeSettingMode.MetersMps:
+            this.altitudeUnitsSub.set(UnitType.METER);
+            this.verticalSpeedUnitsSub.set(UnitType.MPS);
+            break;
+          default:
+            this.altitudeUnitsSub.set(UnitType.FOOT);
+            this.verticalSpeedUnitsSub.set(UnitType.FPM);
         }
         break;
       case 'unitsTemperature':
-        this.temperatureUnitsSub?.set(value === UnitsTemperatureSettingMode.Celsius ? UnitType.CELSIUS : UnitType.FAHRENHEIT);
+        if (value === UnitsTemperatureSettingMode.Fahrenheit) {
+          this.temperatureUnitsSub.set(UnitType.FAHRENHEIT);
+          this.temperatureDeltaUnitsSub.set(UnitType.DELTA_FAHRENHEIT);
+        } else {
+          this.temperatureUnitsSub.set(UnitType.CELSIUS);
+          this.temperatureDeltaUnitsSub.set(UnitType.DELTA_CELSIUS);
+        }
         break;
       case 'unitsWeight':
-        this.weightUnitsSub?.set(value === UnitsWeightSettingMode.Pounds ? UnitType.POUND : UnitType.KILOGRAM);
+        this.weightUnitsSub.set(value === UnitsWeightSettingMode.Kilograms ? UnitType.KILOGRAM : UnitType.POUND);
+        break;
+      case 'unitsFuel':
+        switch (value) {
+          case UnitsFuelSettingMode.ImpGal:
+            this.fuelUnitsSub.set(UnitType.IMP_GALLON_FUEL);
+            this.fuelFlowUnitsSub.set(UnitType.IGPH_FUEL);
+            break;
+          case UnitsFuelSettingMode.Liters:
+            this.fuelUnitsSub.set(UnitType.LITER_FUEL);
+            this.fuelFlowUnitsSub.set(UnitType.LPH_FUEL);
+            break;
+          case UnitsFuelSettingMode.Kilograms:
+            this.fuelUnitsSub.set(UnitType.KILOGRAM);
+            this.fuelFlowUnitsSub.set(UnitType.KGH);
+            break;
+          case UnitsFuelSettingMode.Pounds:
+            this.fuelUnitsSub.set(UnitType.POUND);
+            this.fuelFlowUnitsSub.set(UnitType.PPH);
+            break;
+          default:
+            this.fuelUnitsSub.set(UnitType.GALLON_FUEL);
+            this.fuelFlowUnitsSub.set(UnitType.GPH_FUEL);
+        }
         break;
     }
   }
@@ -203,6 +274,10 @@ export class UnitsUserSettings {
       {
         name: 'unitsWeight',
         defaultValue: UnitsWeightSettingMode.Pounds
+      },
+      {
+        name: 'unitsFuel',
+        defaultValue: UnitsFuelSettingMode.Gallons
       }
     ]);
   }

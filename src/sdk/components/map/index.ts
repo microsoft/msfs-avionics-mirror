@@ -22,6 +22,7 @@ export * from './MapAirspaceRenderer';
 export * from './MapSingleLineAirspaceRenderer';
 export * from './MapMultiLineAirspaceRenderer';
 export * from './MapAirspaceRenderManager';
+export * from './MapFieldOfViewCalculator';
 
 export * from './modules/MapOwnAirplaneIconModule';
 export * from './modules/MapOwnAirplanePropsModule';
@@ -31,6 +32,7 @@ export * from './modules/MapIndexedRangeModule';
 export * from './modules/MapAirspaceModule';
 export * from './modules/MapDataIntegrityModule';
 
+export * from './layers/MapAltitudeArcLayer';
 export * from './layers/MapBingLayer';
 export * from './layers/MapCanvasLayer';
 export * from './layers/MapSyncedCanvasLayer';

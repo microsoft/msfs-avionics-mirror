@@ -1,7 +1,7 @@
 import {
-  DebounceTimer, EventBus, MathUtils, NumberUnitInterface, Tcas, TcasAdvisoryParameters, TcasAlertLevel, TcasOperatingMode, TcasSensitivity,
+  EventBus, MappedSubject, MathUtils, NumberUnitInterface, Subject, Tcas, TcasAdvisoryParameters, TcasAlertLevel, TcasOperatingMode, TcasSensitivity,
   TcasSensitivityParameters, TcasTcaParameters, TrafficContact, TrafficInstrument, UnitFamily, UnitType, Vec2Math
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { TrafficOperatingModeSetting, TrafficUserSettings } from '../settings/TrafficUserSettings';
 import { GarminTcasIntruder } from './GarminTcasIntruder';
@@ -22,15 +22,13 @@ export class TrafficInfoService extends Tcas<GarminTcasIntruder, TisSensitivity>
 
   private static readonly TA_ON_HYSTERESIS = 2000; // ms
   private static readonly TA_OFF_HYSTERESIS = 8000; // ms
-  private static readonly TAKEOFF_OPER_DELAY = 8000; // milliseconds
-  private static readonly LANDING_STANDBY_DELAY = 24000; // milliseconds
 
   public readonly type = TrafficSystemType.Tis;
   public readonly adsb = null;
 
+  private readonly _isPowered = Subject.create(true);
   private readonly operatingModeSetting = TrafficUserSettings.getManager(this.bus).getSetting('trafficOperatingMode');
-
-  private readonly operatingModeChangeTimer = new DebounceTimer();
+  private readonly operatingModeState = MappedSubject.create(this._isPowered, this.operatingModeSetting);
 
   /**
    * Constructor.
@@ -64,24 +62,31 @@ export class TrafficInfoService extends Tcas<GarminTcasIntruder, TisSensitivity>
   public init(): void {
     super.init();
 
-    this.operatingModeSetting.sub(value => {
-      switch (value) {
-        case TrafficOperatingModeSetting.Operating:
-        case TrafficOperatingModeSetting.Auto:
-        case TrafficOperatingModeSetting.TAOnly:
-          this.operatingModeSub.set(TcasOperatingMode.TAOnly);
-          break;
-        default:
-          this.operatingModeSub.set(TcasOperatingMode.Standby);
+    this.operatingModeState.sub(([isPowered, operatingModeSetting]) => {
+      if (!isPowered) {
+        this.operatingModeSub.set(TcasOperatingMode.Off);
+      } else {
+        switch (operatingModeSetting) {
+          case TrafficOperatingModeSetting.Operating:
+          case TrafficOperatingModeSetting.Auto:
+          case TrafficOperatingModeSetting.TAOnly:
+            this.operatingModeSub.set(TcasOperatingMode.TAOnly);
+            break;
+          default:
+            this.operatingModeSub.set(TcasOperatingMode.Standby);
+        }
       }
     }, true);
+  }
 
-    this.operatingModeSub.sub(this.cancelOperatingModeChange.bind(this));
-    this.ownAirplaneSubs.isOnGround.sub(this.onGroundChanged.bind(this));
+  /** @inheritdoc */
+  public isPowered(): boolean {
+    return this._isPowered.get();
+  }
 
-    if (!this.ownAirplaneSubs.isOnGround.get()) {
-      this.operatingModeSetting.value = TrafficOperatingModeSetting.Operating;
-    }
+  /** @inheritdoc */
+  public setPowered(isPowered: boolean): void {
+    this._isPowered.set(isPowered);
   }
 
   /** @inheritdoc */
@@ -129,42 +134,6 @@ export class TrafficInfoService extends Tcas<GarminTcasIntruder, TisSensitivity>
     const dt = simTime - intruder.taOnTime;
     return dt < 0 || dt >= TrafficInfoService.TA_OFF_HYSTERESIS;
   }
-
-  /**
-   * A callback which is called when whether own airplane is on the ground changes.
-   * @param isOnGround Whether own airplane is on the ground.
-   */
-  private onGroundChanged(isOnGround: boolean): void {
-    this.cancelOperatingModeChange();
-
-    if (isOnGround) {
-      if (this.operatingModeSetting.value === TrafficOperatingModeSetting.Operating) {
-        this.scheduleOperatingModeChange(TrafficOperatingModeSetting.Standby, TrafficInfoService.LANDING_STANDBY_DELAY);
-      }
-    } else {
-      if (this.operatingModeSetting.value === TrafficOperatingModeSetting.Standby) {
-        this.scheduleOperatingModeChange(TrafficOperatingModeSetting.Operating, TrafficInfoService.TAKEOFF_OPER_DELAY);
-      }
-    }
-  }
-
-  /**
-   * Schedules a delayed operating mode change.
-   * @param toMode The target operating mode.
-   * @param delay The delay, in milliseconds.
-   */
-  private scheduleOperatingModeChange(toMode: TrafficOperatingModeSetting, delay: number): void {
-    this.operatingModeChangeTimer.schedule(() => {
-      this.operatingModeSetting.value = toMode;
-    }, delay);
-  }
-
-  /**
-   * Cancels the currently scheduled operating mode change, if one exists.
-   */
-  private cancelOperatingModeChange(): void {
-    this.operatingModeChangeTimer.clear();
-  }
 }
 
 /**
@@ -178,12 +147,12 @@ export class TisSensitivityParameters {
 
   private static readonly TA_LEVELS = [
     {
-      lookaheadTime: UnitType.SECOND.createNumber(20),
+      tau: UnitType.SECOND.createNumber(20),
       protectedRadius: UnitType.NMILE.createNumber(0.2),
       protectedHeight: UnitType.FOOT.createNumber(600)
     },
     {
-      lookaheadTime: UnitType.SECOND.createNumber(30),
+      tau: UnitType.SECOND.createNumber(30),
       protectedRadius: UnitType.NMILE.createNumber(0.55),
       protectedHeight: UnitType.FOOT.createNumber(800)
     }
@@ -270,7 +239,7 @@ export class TisSensitivity implements TcasSensitivity {
     parametersTA: this.sensitivity.getTA(0),
 
     parametersRA: {
-      lookaheadTime: UnitType.SECOND.createNumber(NaN),
+      tau: UnitType.SECOND.createNumber(NaN),
       protectedRadius: UnitType.NMILE.createNumber(NaN),
       protectedHeight: UnitType.FOOT.createNumber(NaN),
       alim: UnitType.FOOT.createNumber(NaN)

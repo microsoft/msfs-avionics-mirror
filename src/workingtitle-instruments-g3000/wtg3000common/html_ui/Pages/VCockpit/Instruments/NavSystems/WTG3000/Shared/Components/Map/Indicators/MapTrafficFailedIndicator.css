@@ -1,0 +1,14 @@
+.map-traffic-failed {
+  display: block;
+  padding: 0.2em 0px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid var(--map-indicator-border-color);
+  border-radius: var(--map-indicator-border-radius);
+  color: var(--g3000-color-yellow);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.map-traffic-failed.failed-mode-off {
+  display: none;
+}

@@ -1,0 +1,232 @@
+.waypoint-usr-ref-wpt-1 {
+  color: var(--gnscyan);
+  padding-top: 6px;
+  left: 10px;
+  margin-left: 10px;
+}
+
+.waypoint-usr-ref-wpt-1>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  text-align: center;
+  border-bottom: .8px solid var(--gnscyan);
+  border-top: .8px solid var(--gnscyan);
+  border-left: .8px solid var(--gnscyan);
+  position: relative;
+  margin-left: -4px;
+  line-height: 19px;
+  padding-left: 2px;
+  height: 21px;
+  top: -1px;
+}
+
+wt-gns530 .waypoint-usr-ref-wpt-1>div {
+  width: 60px;
+}
+
+wt-gns430 .waypoint-usr-ref-wpt-1>div {
+  width: 69px;
+  padding-top: 2px;
+}
+
+.waypoint-usr-ref-wpt-2 {
+  margin-left: 10px;
+}
+
+.waypoint-usr-ref-wpt-2>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  text-align: center;
+  border-bottom: .8px solid var(--gnscyan);
+  border-left: .8px solid var(--gnscyan);
+  position: relative;
+  margin-left: -4px;
+  line-height: 19px;
+  padding-left: 2px;
+  height: 21px;
+}
+
+wt-gns530 .waypoint-usr-ref-wpt-2>div {
+  width: 60px;
+}
+
+wt-gns430 .waypoint-usr-ref-wpt-2>div {
+  width: 69px;
+  padding-top: 2px;
+}
+
+.waypoint-usr-rad-1 {
+  color: var(--gnscyan);
+  left: 10px;
+}
+
+wt-gns530 .waypoint-usr-rad-1 {
+  margin-top: -32px;
+  margin-left: 74px;
+}
+
+wt-gns430 .waypoint-usr-rad-1 {
+  margin-top: -35px;
+  margin-left: 83px;
+}
+
+.waypoint-usr-rad-1>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border-bottom: .8px solid var(--gnscyan);
+  border-top: .8px solid var(--gnscyan);
+  border-left: .8px solid var(--gnscyan);
+  margin-left: -8px;
+  line-height: 19px;
+  padding-left: 2px;
+  height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+wt-gns530 .waypoint-usr-rad-1>div {
+  width: 60px;
+}
+
+wt-gns430 .waypoint-usr-rad-1>div {
+  width: 69px;
+}
+
+.waypoint-usr-rad-2 {
+  color: var(--gnscyan);
+  left: 10px;
+  margin-top: -23px;
+}
+
+wt-gns530 .waypoint-usr-rad-2 {
+  margin-left: 66px;
+}
+
+wt-gns430 .waypoint-usr-rad-2 {
+  margin-left: 75px;
+  margin-top: -24px;
+}
+
+.waypoint-usr-rad-2>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border-bottom: .8px solid var(--gnscyan);
+  border-right: .8px solid var(--gnscyan);
+  border-left: .8px solid var(--gnscyan);
+  line-height: 19px;
+  padding-left: 2px;
+  height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+wt-gns530 .waypoint-usr-rad-2>div {
+  width: 61px;
+  /* I don't know why, but 66px here is not the same as 66px above. Go figure. */
+
+}
+
+wt-gns430 .waypoint-usr-rad-2>div {
+  width: 70px;
+  /* I don't know why, but 66px here is not the same as 66px above. Go figure. */
+}
+
+.waypoint-usr-dis-1 {
+  color: var(--gnscyan);
+  left: 10px;
+}
+
+wt-gns530 .waypoint-usr-dis-1 {
+  margin-top: -31px;
+  margin-left: 134px;
+}
+
+wt-gns430 .waypoint-usr-dis-1 {
+  margin-top: -34px;
+  margin-left: 152px;
+}
+
+.waypoint-usr-dis-1>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid var(--gnscyan);
+  position: relative;
+  margin-left: -8px;
+  line-height: 19px;
+  padding-left: 2px;
+  height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+wt-gns530 .waypoint-usr-dis-1>div {
+  width: 60px;
+}
+
+wt-gns430 .waypoint-usr-dis-1>div {
+  width: 69px;
+}
+
+wt-gns530 .waypoint-usr-position {
+  color: var(--gnscyan);
+  padding-top: 23px;
+  left: 10px;
+  width: 110px;
+  margin-left: 10px;
+}
+
+
+wt-gns430 .waypoint-usr-position {
+  color: var(--gnscyan);
+  padding-top: 23px;
+  left: 10px;
+  width: 110px;
+  margin-left: 10px;
+}
+
+wt-gns530 .waypoint-usr-position>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid var(--gnscyan);
+  height: 35px;
+  position: relative;
+  margin-left: -4px;
+  line-height: 19px;
+  padding-left: 2px;
+}
+
+wt-gns430 .waypoint-usr-position>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid var(--gnscyan);
+  height: 40px;
+  position: relative;
+  margin-left: -4px;
+  line-height: 19px;
+  padding-left: 2px;
+}
+
+
+wt-gns530 .waypoint-usr-position>div>.latlon-coord {
+  font-size: var(--gns-font-page-data);
+  text-align: right;
+  padding-right: 20px;
+  line-height: 18px;
+}
+
+wt-gns430 .waypoint-usr-position>div>.latlon-coord {
+  font-size: var(--gns-font-page-data);
+  text-align: right;
+  line-height: 18px;
+  padding-top: 2px;
+}

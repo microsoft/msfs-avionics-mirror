@@ -1,4 +1,4 @@
-import { Subject } from 'msfssdk';
+import { Subject } from '@microsoft/msfs-sdk';
 
 import { FlightPlanFocus } from '../../../flightplan/FlightPlanFocus';
 import { MapFlightPlanDataProvider } from '../flightplan';

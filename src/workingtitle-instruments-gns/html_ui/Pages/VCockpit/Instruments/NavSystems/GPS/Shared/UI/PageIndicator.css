@@ -1,0 +1,51 @@
+.page-indicator {
+  height: 16px;
+  border-left: 1px solid var(--gnscyan);
+  background-color: var(--gnsblue);
+}
+
+.page-label {
+  display: inline-block;
+  height: 16px;
+}
+
+wt-gns530 .page-label {
+  font-size: 15px;
+  width: 40px;
+  line-height: 18px;
+  margin-left: 5px;
+}
+
+wt-gns430 .page-label {
+  font-size: 15px;
+  width: 38px;
+  line-height: 17px;
+  margin-left: 2px;
+  padding-top: 1px;
+}
+
+.pager {
+  display: inline-block;
+  height: 16px;
+}
+
+.pager>svg {
+  vertical-align: middle;
+  margin-right: 3px;
+  fill: none;
+  stroke: var(--gnscyan);
+  stroke-width: 2px;
+}
+
+wt-gns530 .pager>svg {
+  margin-bottom: 8px;
+}
+
+wt-gns430 .pager>svg {
+  margin-bottom: 6px;
+}
+
+.pager>svg.active {
+  fill: white;
+  stroke: none;
+}

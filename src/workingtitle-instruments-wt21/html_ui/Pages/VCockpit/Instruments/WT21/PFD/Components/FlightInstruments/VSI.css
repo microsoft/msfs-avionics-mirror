@@ -1,0 +1,24 @@
+.vs-readout-top, .vs-readout-bottom {
+  position: absolute;
+  right: 8%;
+  color: var(--wt21-colors-green);
+  font-size: 25px;
+}
+
+.vs-readout-top {
+  top: 1%;
+}
+
+.vs-readout-bottom {
+  bottom: 1%;
+}
+
+.vertical-speed-box .fail-box {
+  top: 46%;
+  left: 20%;
+}
+
+.fail .vsi,
+.warn .vsi {
+  display: none;
+}

@@ -1,4 +1,4 @@
-import { MapAirspaceModule, MapIndexedRangeModule, MapSystemContext, MapSystemController, MapSystemKeys, Subject, UserSettingManager } from 'msfssdk';
+import { MapAirspaceModule, MapIndexedRangeModule, MapSystemContext, MapSystemController, MapSystemKeys, Subject, UserSettingManager } from '@microsoft/msfs-sdk';
 
 import { MapUserSettingTypes } from '../../../settings/MapUserSettings';
 import { GarminMapKeys } from '../GarminMapKeys';

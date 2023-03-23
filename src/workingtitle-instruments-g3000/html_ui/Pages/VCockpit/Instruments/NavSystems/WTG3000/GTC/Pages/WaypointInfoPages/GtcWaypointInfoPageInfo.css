@@ -1,0 +1,72 @@
+.wpt-info-page-info {
+  position: relative;
+  white-space: pre;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.wpt-info-page-info-section-bottom-separator {
+  border-bottom: solid 2px #808080;
+}
+
+.wpt-info-page-info-field {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.wpt-info-page-info-gps-field {
+  color: var(--wpt-info-page-gps-color);
+}
+
+.wpt-info-page-info-field-title {
+  margin-bottom: var(--wpt-info-page-info-field-title-margin-bottom);
+  font-size: 0.8em;
+  color: var(--g3000-color-white);
+}
+
+.wpt-info-page-info-city-region {
+  height: var(--wpt-info-page-info-city-region-height);
+  padding-left: var(--wpt-info-page-info-city-region-padding-left);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.wpt-info-page-info-pos {
+  height: var(--wpt-info-page-info-pos-height);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.wpt-info-page-info-coords {
+  width: var(--wpt-info-page-info-coords-width);
+  margin-left: var(--wpt-info-page-info-coords-margin-left);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.wpt-info-page-info-brg {
+  width: var(--wpt-info-page-info-brg-width);
+}
+
+.wpt-info-page-info-brg-value {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.wpt-info-page-info-brg-value .bearing-arrow {
+  margin-left: var(--wpt-info-page-info-brg-arrow-margin-left);
+}
+
+.wpt-info-page-info-dis {
+  width: var(--wpt-info-page-info-dis-width);
+}

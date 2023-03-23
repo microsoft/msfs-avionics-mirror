@@ -1,0 +1,13 @@
+{
+  "name": "wtg3000common",
+  "version": "1.0.6",
+  "description": "Working Title MSFS G3000 Common Library",
+  "main": "wtg3000common.js",
+  "files": ["wtg3000common.js", "wtg3000common.d.ts", "wtg3000common.css"],
+  "repository": {
+    "type": "git",
+    "url": "https://workingtitlesim@dev.azure.com/workingtitlesim/KittyHawk/_git/ProjectGolf"
+  },
+  "author": "Working Title Simulations, LLC",
+  "license": "Modified MIT"
+}

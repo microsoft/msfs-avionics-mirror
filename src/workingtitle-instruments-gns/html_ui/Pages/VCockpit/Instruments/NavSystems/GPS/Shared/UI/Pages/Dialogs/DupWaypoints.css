@@ -1,0 +1,49 @@
+.dup-waypoints-ident {
+  text-align: left;
+  margin-left: 4px;
+}
+
+.dup-waypoints-ident>span {
+  color: var(--gnscyan);
+  ;
+  font-size: 12px;
+}
+
+.dup-waypoint {
+  height: 32px;
+  margin-bottom: 3px;
+}
+
+.dup-waypoints-list {
+  height: 67px;
+  width: 130px;
+  text-align: left;
+  margin-left: 8px;
+  position: relative;
+}
+
+.dup-waypoints-list .scroll-bar .scroll-bar-bar {
+  fill: none;
+}
+
+.dup-waypoints-list .scroll-bar .scroll-bar-bar.filled {
+  fill: var(--gnscyan);
+  ;
+}
+
+.dup-waypoint-type {
+  display: inline-block;
+}
+
+.dup-waypoint-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  overflow: hidden;
+  margin: 0 60px 0 12px;
+}
+
+.dup-waypoint-region {
+  width: 100px;
+  padding-top: 1px;
+}

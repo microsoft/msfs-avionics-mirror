@@ -1,0 +1,177 @@
+.altitude-constraint-display {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--g3000-color-white);
+
+  /* For non GTC */
+  --altitude-constraint-display-solid-line-width: 3.5em;
+  --altitude-constraint-display-solid-line-height: 2px;
+  --altitude-constraint-display-solid-line-distance-single: 1.4em;
+  --altitude-constraint-display-solid-line-distance-double: 2.2em;
+  --altitude-constraint-display-altitudes-box-left: 13px;
+  --altitude-constraint-display-pencil-icon-scale: 0.9;
+  --altitude-constraint-display-pencil-icon-right: 2px;
+  --altitude-constraint-display-line-inner-padding-bottom: 0.25em;
+}
+
+.gtc-horizontal .altitude-constraint-display {
+  --altitude-constraint-display-solid-line-width: 3.5em;
+  --altitude-constraint-display-solid-line-height: 2px;
+  --altitude-constraint-display-solid-line-distance-single: 1.4em;
+  --altitude-constraint-display-solid-line-distance-double: 2.2em;
+  --altitude-constraint-display-altitudes-box-left: 13px;
+  --altitude-constraint-display-pencil-icon-scale: 1.8;
+  --altitude-constraint-display-pencil-icon-right: 2px;
+  --altitude-constraint-display-line-inner-padding-bottom: 0.25em;
+}
+
+.gtc-vertical .altitude-constraint-display {
+  --altitude-constraint-display-solid-line-width: 3.5em;
+  --altitude-constraint-display-solid-line-height: 1px;
+  --altitude-constraint-display-solid-line-distance-single: 1.4em;
+  --altitude-constraint-display-solid-line-distance-double: 2.2em;
+  --altitude-constraint-display-altitudes-box-left: 7px;
+  --altitude-constraint-display-pencil-icon-scale: 1;
+  --altitude-constraint-display-pencil-icon-right: 2px;
+  --altitude-constraint-display-line-inner-padding-bottom: 0.25em;
+}
+
+.altitude-constraint-display.altitude-constraint-display-cyan {
+  color: var(--g3000-color-cyan);
+}
+
+.altitude-constraint-display .pencil-icon {
+  display: none;
+  position: absolute;
+  right: var(--altitude-constraint-display-pencil-icon-right);
+  transform: scale(var(--altitude-constraint-display-pencil-icon-scale));
+  transform-origin: 100% 50%;
+}
+
+.altitude-constraint-display.edited .pencil-icon {
+  display: block;
+}
+
+.altitude-constraint-display .altitudes {
+  --altitude-constraint-display-font-size-scale: 1em;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  width: var(--altitude-constraint-display-solid-line-width);
+  height: var(--altitude-constraint-display-solid-line-distance-single);
+}
+
+.altitude-constraint-display-between .altitudes {
+  height: var(--altitude-constraint-display-solid-line-distance-double);
+}
+
+.altitude-constraint-display.edited .altitudes {
+  left: var(--altitude-constraint-display-altitudes-box-left);
+}
+
+.altitude-constraint-display .altitudes .lines-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.altitude-constraint-display .invalid-image {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+
+.altitude-constraint-display.invalid .invalid-image.single {
+  display: block;
+}
+
+.altitude-constraint-display-between.invalid .invalid-image.single {
+  display: none;
+}
+
+.altitude-constraint-display-between.invalid .invalid-image.double {
+  display: block;
+}
+
+.altitude-constraint-display span.FT {
+  font-size: 0.75em;
+  line-height: 0.9em;
+}
+
+.altitude-constraint-display.FL1 .line-1 span.FT {
+  display: none;
+}
+
+.altitude-constraint-display.FL2 .line-2 span.FT {
+  display: none;
+}
+
+.altitude-constraint-display .line {
+  font-size: var(--altitude-constraint-display-font-size-scale);
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.altitude-constraint-display-between .line {
+  height: 46%;
+}
+
+.altitude-constraint-display .line.line-2 {
+  display: none;
+}
+
+.altitude-constraint-display .line .line-inner {
+  line-height: 0.9em;
+  padding-bottom: var(--altitude-constraint-display-line-inner-padding-bottom);
+}
+
+.altitude-constraint-display-between .line .line-inner {
+  padding-bottom: 0px;
+}
+
+.altitude-constraint-display-between .line.line-2 {
+  display: block;
+}
+
+.altitude-constraint-display .solid-line-box {
+  position: absolute;
+  border-color: currentColor;
+  width: var(--altitude-constraint-display-solid-line-width);
+  height: var(--altitude-constraint-display-solid-line-distance-single);
+  border-width: var(--altitude-constraint-display-solid-line-height) !important;
+}
+
+.altitude-constraint-display-at .solid-line-box {
+  border-top: solid;
+  border-bottom: solid;
+}
+
+.altitude-constraint-display-atorabove .solid-line-box {
+  border-bottom: solid;
+}
+
+.altitude-constraint-display-atorbelow .solid-line-box {
+  border-top: solid;
+}
+
+.altitude-constraint-display-between .solid-line-box {
+  border-top: solid;
+  border-bottom: solid;
+  height: var(--altitude-constraint-display-solid-line-distance-double);
+}
+
+/* Bars don't show on user constraints in simple mode. */
+.altitude-constraint-display.simple-vnav.user .solid-line-box {
+  border: none !important;
+}

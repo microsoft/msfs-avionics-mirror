@@ -1,6 +1,6 @@
-/// <reference types="msfstypes/JS/common" />
-/// <reference types="msfstypes/JS/Types" />
-/// <reference types="msfstypes/JS/NetBingMap" />
+/// <reference types="@microsoft/msfs-types/js/common" />
+/// <reference types="@microsoft/msfs-types/js/types" />
+/// <reference types="@microsoft/msfs-types/js/netbingmap" />
 
 import { ReadonlyFloat64Array } from '../../math';
 import { Subscribable, SubscribableArray, SubscribableSet } from '../../sub';
@@ -8,11 +8,14 @@ import { BingComponent } from '../bing/BingComponent';
 import { ComponentProps, DisplayComponent, FSComponent, VNode } from '../FSComponent';
 
 /**
- * Component props for the MapComponent.
+ * Component props for the SynVisComponent.
  */
 export interface SynVisProps extends ComponentProps {
-  /** The unique ID to assign to this Bing map. */
+  /** The unique ID to assign to the component's bound Bing instance. */
   bingId: string;
+
+  /** The amount of time, in milliseconds, to delay binding the component's Bing instance. Defaults to 0. */
+  bingDelay?: number;
 
   /**
    * A subscribable which provides the internal resolution for the Bing component.
@@ -20,10 +23,19 @@ export interface SynVisProps extends ComponentProps {
   resolution: Subscribable<ReadonlyFloat64Array>;
 
   /**
-   * A subscribable array which provides the earth colors. The array should have a length of exactly 61, with index 0
-   * defining the water color and indexes 1 through 60 defining terrain colors from 0 to 60000 feet.
+   * The earth colors for the display. Index 0 defines the water color, and indexes 1 to the end of the array define
+   * the terrain colors. If not defined, all colors default to black.
    */
   earthColors?: SubscribableArray<number>;
+
+  /**
+   * The elevation range over which to assign the earth terrain colors, as `[minimum, maximum]` in feet. The terrain
+   * colors are assigned at regular intervals over the entire elevation range, starting with the first terrain color at
+   * the minimum elevation and ending with the last terrain color at the maximum elevation. Terrain below and above the
+   * minimum and maximum elevation are assigned the first and last terrain colors, respectively. Defaults to
+   * `[0, 30000]`.
+   */
+  earthColorsElevationRange?: Subscribable<ReadonlyFloat64Array>;
 
   /**
    * A subscribable which provides the sky color.
@@ -35,7 +47,7 @@ export interface SynVisProps extends ComponentProps {
 }
 
 /**
- * A FSComponent that display the MSFS Bing Map, weather radar, and 3D terrain.
+ * A synthetic vision display.
  */
 export class SynVisComponent extends DisplayComponent<SynVisProps> {
   protected readonly bingRef = FSComponent.createRef<HTMLImageElement>();
@@ -59,7 +71,10 @@ export class SynVisComponent extends DisplayComponent<SynVisProps> {
         mode={EBingMode.HORIZON}
         onBoundCallback={this.onBingBound}
         resolution={this.props.resolution}
-        earthColors={this.props.earthColors} skyColor={this.props.skyColor}
+        earthColors={this.props.earthColors}
+        earthColorsElevationRange={this.props.earthColorsElevationRange}
+        skyColor={this.props.skyColor}
+        delay={this.props.bingDelay}
         class={this.props.class}
       />
     );

@@ -1,0 +1,63 @@
+.obs-label {
+  font-size: 15px;
+  color: var(--gnsgreen);
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.msg-label {
+  font-size: 15px;
+  line-height: 18px;
+  color: rgb(230, 215, 0);
+  text-align: center;
+}
+
+.msg-yellow-box {
+  padding-top: 2px;
+  padding-right: 2px;
+}
+
+.waypoint-alerter {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 159px;
+  height: 16px;
+  background-color: #ccc;
+  color: black;
+  font-size: 13px;
+  padding-left: 4px;
+  padding-top: 1px;
+}
+
+.wt430 .waypoint-alerter {
+  width: 145px;
+  height: 15px;
+}
+
+@keyframes waypoint-alert-animation {
+  0% {
+    background-color: #ccc;
+    color: black;
+  }
+
+  74.9% {
+    background-color: #ccc;
+    color: black;
+  }
+
+  75% {
+    background-color: black;
+    color: white
+  }
+
+  99.9% {
+    background-color: black;
+    color: white
+  }
+}
+
+.waypoint-alerter.flashing {
+  animation: waypoint-alert-animation 1s linear 0s infinite;
+}

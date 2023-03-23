@@ -1,9 +1,9 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus } from '../../data';
+import { EventBus, SimVarValueType } from '../../data';
 import { GeoPoint, MagVar, NavMath } from '../../geo';
 import {
-  AdcEvents, AhrsEvents, CdiDeviation, GNSSEvents, Localizer, NavEvents, NavRadioEvents, NavSourceId, NavSourceType, ObsSetting
+  AdcEvents, AhrsEvents, CdiDeviation, GNSSEvents, Localizer, NavEvents, NavRadioEvents, NavRadioIndex, NavSourceId, NavSourceType, ObsSetting
 } from '../../instruments';
 import { MathUtils, UnitType } from '../../math';
 import { Subject } from '../../sub';
@@ -24,9 +24,37 @@ import { DirectorState, PlaneDirector } from './PlaneDirector';
 export type APNavDirectorInterceptFunc = (distanceToSource: number, deflection: number, tas: number, isLoc?: boolean) => number;
 
 /**
+ * Options for {@link APNavDirector}.
+ */
+export type APNavDirectorOptions = {
+  /**
+   * The maximum bank angle, in degrees, supported by the director, or a function which returns it. If not defined,
+   * the director will use the maximum bank angle defined by its parent autopilot (via `apValues`).
+   */
+  maxBankAngle: number | (() => number) | undefined;
+
+  /**
+   * A function used to translate DTK and XTK into a track intercept angle.
+   */
+  lateralInterceptCurve: APNavDirectorInterceptFunc;
+
+  /**
+   * Whether to disable arming on the director. If `true`, the director will always skip the arming phase and instead
+   * immediately activate itself when requested.
+   */
+  disableArming: boolean;
+
+  /**
+   * Force the director to always use a certain NAV/CDI source
+   */
+  forceNavSource: NavRadioIndex;
+};
+
+/**
  * A Nav/Loc autopilot director.
  */
 export class APNavDirector implements PlaneDirector {
+  private static readonly BANK_SERVO_RATE = 10; // degrees per second
 
   public state: DirectorState;
 
@@ -39,7 +67,7 @@ export class APNavDirector implements PlaneDirector {
   /** A callback called when the director deactivates. */
   public onDeactivate?: () => void;
 
-  private readonly bankServo = new LinearServo(10);
+  private readonly bankServo = new LinearServo(APNavDirector.BANK_SERVO_RATE);
   private currentBankRef = 0;
   private currentHeading = 0;
   private currentTrack = 0;
@@ -57,19 +85,43 @@ export class APNavDirector implements PlaneDirector {
 
   private isNavLock = Subject.create<boolean>(false);
 
+  private readonly maxBankAngleFunc: () => number;
+  private readonly lateralInterceptCurve?: APNavDirectorInterceptFunc;
+  private readonly disableArming: boolean;
+  private readonly forceNavSource: NavRadioIndex | undefined;
+
   /**
    * Creates an instance of the LateralDirector.
    * @param bus The event bus to use with this instance.
-   * @param apValues Is the apValues object.
-   * @param mode is the APLateralMode for this instance of the director.
-   * @param lateralInterceptCurve The optional curve used to translate DTK and XTK into a track intercept angle.
+   * @param apValues Autopilot values from this director's parent autopilot.
+   * @param mode The APLateralMode for this instance of the director.
+   * @param options Options to configure the new director. Option values default to the following if not defined:
+   * * `maxBankAngle`: `undefined`
+   * * `lateralInterceptCurve`: A default function tuned for slow GA aircraft.
+   * * `disableArming`: `false`
    */
   constructor(
     private readonly bus: EventBus,
     private readonly apValues: APValues,
     private readonly mode: APLateralModes,
-    private readonly lateralInterceptCurve?: APNavDirectorInterceptFunc
+    options?: Partial<Readonly<APNavDirectorOptions>>
   ) {
+    const maxBankAngleOpt = options?.maxBankAngle ?? undefined;
+    switch (typeof maxBankAngleOpt) {
+      case 'number':
+        this.maxBankAngleFunc = () => maxBankAngleOpt;
+        break;
+      case 'function':
+        this.maxBankAngleFunc = maxBankAngleOpt;
+        break;
+      default:
+        this.maxBankAngleFunc = this.apValues.maxBankAngle.get.bind(this.apValues.maxBankAngle);
+    }
+
+    this.lateralInterceptCurve = options?.lateralInterceptCurve;
+    this.disableArming = options?.disableArming ?? false;
+    this.forceNavSource = options?.forceNavSource;
+
     this.state = DirectorState.Inactive;
     this.monitorEvents();
 
@@ -90,6 +142,7 @@ export class APNavDirector implements PlaneDirector {
     }
     this.setNavLock(true);
     this.state = DirectorState.Active;
+    this.bankServo.reset();
   }
 
   /**
@@ -131,7 +184,7 @@ export class APNavDirector implements PlaneDirector {
       this.deactivate();
     }
     if (this.state === DirectorState.Armed) {
-      if (this.canActivate()) {
+      if (this.disableArming || this.canActivate()) {
         this.activate();
       }
     }
@@ -240,7 +293,7 @@ export class APNavDirector implements PlaneDirector {
       const turnDirection = NavMath.getTurnDirection(this.currentTrack, desiredTrack);
       const trackDiff = Math.abs(NavMath.diffAngle(this.currentTrack, desiredTrack));
 
-      let baseBank = Math.min(1.25 * trackDiff, 25);
+      let baseBank = Math.min(1.25 * trackDiff, this.maxBankAngleFunc());
       baseBank *= (turnDirection === 'left' ? 1 : -1);
 
       return baseBank;
@@ -280,6 +333,7 @@ export class APNavDirector implements PlaneDirector {
    */
   private setBank(bankAngle: number): void {
     if (isFinite(bankAngle)) {
+      this.bankServo.rate = APNavDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
       this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
       SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
     }
@@ -302,19 +356,33 @@ export class APNavDirector implements PlaneDirector {
   private monitorEvents(): void {
     const sub = this.bus.getSubscriber<AdcEvents & AhrsEvents & GNSSEvents & NavRadioEvents & NavEvents>();
 
-    sub.on('nav_radio_active_cdi_deviation').handle(cdi => this.cdi = cdi);
-    sub.on('nav_radio_active_obs_setting').handle(obs => this.obs = obs);
-    sub.on('nav_radio_active_localizer').handle(loc => this.loc = loc);
-    sub.on('cdi_select').handle((source) => {
-      this.navSource = source;
-      if (this.state === DirectorState.Active) {
-        this.deactivate();
-      }
-    });
-    sub.on('nav_radio_active_nav_location').handle((loc) => {
-      this.navLocation.set(loc.lat, loc.long);
-    });
-    sub.on('nav_radio_active_magvar').handle(magVar => { this.magVar = magVar; });
+    if (this.forceNavSource) {
+      this.navSource = {
+        index: this.forceNavSource,
+        type: NavSourceType.Nav,
+      };
+      sub.on(`nav_radio_cdi_${this.forceNavSource}`).handle(cdi => this.cdi = cdi);
+      sub.on(`nav_radio_obs_${this.forceNavSource}`).handle(obs => this.obs = obs);
+      sub.on(`nav_radio_localizer_${this.forceNavSource}`).handle(loc => this.loc = loc);
+      sub.on(`nav_radio_nav_location_${this.forceNavSource}`).handle((loc) => {
+        this.navLocation.set(loc.lat, loc.long);
+      });
+      sub.on(`nav_radio_magvar_${this.forceNavSource}`).handle(magVar => { this.magVar = magVar; });
+    } else {
+      sub.on('nav_radio_active_cdi_deviation').handle(cdi => this.cdi = cdi);
+      sub.on('nav_radio_active_obs_setting').handle(obs => this.obs = obs);
+      sub.on('nav_radio_active_localizer').handle(loc => this.loc = loc);
+      sub.on('cdi_select').handle((source) => {
+        this.navSource = source;
+        if (this.state === DirectorState.Active) {
+          this.deactivate();
+        }
+      });
+      sub.on('nav_radio_active_nav_location').handle((loc) => {
+        this.navLocation.set(loc.lat, loc.long);
+      });
+      sub.on('nav_radio_active_magvar').handle(magVar => { this.magVar = magVar; });
+    }
 
     sub.on('hdg_deg')
       .withPrecision(0)

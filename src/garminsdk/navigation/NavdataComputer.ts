@@ -1,31 +1,41 @@
 import {
-  ActiveLegType, AdditionalApproachType, AirportFacility, BitFlags, ClockEvents, ConsumerSubject, EventBus, FacilityLoader, FacilityType, FixTypeFlags,
+  ActiveLegType, AdditionalApproachType, AirportFacility, BitFlags, ClockEvents, ConsumerSubject, ControlEvents, EventBus, FacilityLoader, FacilityType, FixTypeFlags,
   FlightPathUtils, FlightPathVectorFlags, FlightPlan, FlightPlanLegEvent, FlightPlanner, FlightPlannerEvents, FlightPlanOriginDestEvent, FlightPlanSegment,
-  FlightPlanSegmentType, GeoCircle, GeoPoint, GeoPointInterface, GNSSEvents, LatLonInterface, LegDefinition, LegDefinitionFlags, LegType, LNavDataVars, LNavDirector,
-  LNavEvents, LNavTransitionMode, MagVar, NavEvents, NavMath, ObjectSubject, OriginDestChangeType, RnavTypeFlags, SimVarValueType, Subject, UnitType
-} from 'msfssdk';
+  FlightPlanSegmentType, FlightPlanUtils, GeoCircle, GeoPoint, GeoPointInterface, GNSSEvents, LegCalculations, LegDefinition, LegDefinitionFlags, LegType, LNavDataVars,
+  LNavEvents, LNavTransitionMode, MagVar, MathUtils, NavEvents, NavMath, ObjectSubject, OriginDestChangeType, RnavTypeFlags, SimVarValueType, Subject,
+  UnitType, Vec3Math, VNavDataEvents, VNavEvents
+} from '@microsoft/msfs-sdk';
 
-import { ApproachDetails, FmsUtils } from '../flightplan';
+import { GlidepathServiceLevel } from '../autopilot/GarminVerticalNavigation';
+import { ApproachDetails, FmsEvents, FmsUtils } from '../flightplan';
 import { GarminControlEvents } from '../instruments';
-import { CDIScaleLabel, GarminLNavDataVars } from './LNavDataEvents';
+import { CDIScaleLabel, GarminLNavDataVars, LNavDataEvents, LNavDataDtkVector } from './LNavDataEvents';
 
 /**
  * Computes Garmin LNAV-related data.
  */
 export class NavdataComputer {
-  private readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)];
-  private readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0)];
+  private static readonly GLIDEPATH_ANGULAR_SCALE = 0.8; // degrees
+  private static readonly GLIDEPATH_SCALE_TAN = Math.tan(NavdataComputer.GLIDEPATH_ANGULAR_SCALE * Avionics.Utils.DEG2RAD);
+
+  private readonly geoPointCache = [new GeoPoint(0, 0)];
+
+  private readonly publisher = this.bus.getPublisher<LNavDataEvents & VNavDataEvents>();
 
   private readonly planePos = new GeoPoint(0, 0);
+  private readonly magVar: ConsumerSubject<number>;
   private readonly isObsActive: ConsumerSubject<boolean>;
 
   private readonly obsAvailable = Subject.create<boolean>(false);
-  private approachDetails: ApproachDetails = {
-    approachLoaded: false,
-    approachType: ApproachType.APPROACH_TYPE_UNKNOWN,
-    approachRnavType: RnavTypeFlags.None,
-    approachIsActive: false,
-    approachIsCircling: false
+  private approachDetails: Readonly<ApproachDetails> = {
+    isLoaded: false,
+    type: ApproachType.APPROACH_TYPE_UNKNOWN,
+    isRnpAr: false,
+    bestRnavType: RnavTypeFlags.None,
+    rnavTypeFlags: RnavTypeFlags.None,
+    isCircling: false,
+    isVtf: false,
+    referenceFacility: null
   };
 
   private readonly lnavIsTracking: ConsumerSubject<boolean>;
@@ -35,7 +45,14 @@ export class NavdataComputer {
   private readonly lnavIsSuspended: ConsumerSubject<boolean>;
   private readonly lnavDtk: ConsumerSubject<number>;
   private readonly lnavXtk: ConsumerSubject<number>;
-  private readonly lnavVectorAnticipationDistance: ConsumerSubject<number>;
+  private readonly lnavLegDistanceAlong: ConsumerSubject<number>;
+  private readonly lnavLegDistanceRemaining: ConsumerSubject<number>;
+  private readonly lnavVectorDistanceAlong: ConsumerSubject<number>;
+
+  private readonly isMaprActive: ConsumerSubject<boolean>;
+
+  private readonly gpServiceLevel: ConsumerSubject<GlidepathServiceLevel>;
+  private readonly gpDistance: ConsumerSubject<number>;
 
   private readonly lnavData = ObjectSubject.create({
     dtkTrue: 0,
@@ -48,11 +65,25 @@ export class NavdataComputer {
     waypointBearingTrue: 0,
     waypointBearingMag: 0,
     waypointDistance: 0,
+    waypointIdent: '',
     destinationDistance: 0,
     egressDistance: 0
   });
 
-  private readonly initialDtk = { true: 0, mag: 0 };
+  private readonly vnavData = ObjectSubject.create({
+    gpScale: 0
+  });
+
+  private readonly dtkVector: LNavDataDtkVector = {
+    globalLegIndex: -1,
+    vectorIndex: -1
+  };
+  private readonly nextDtkVector: LNavDataDtkVector = {
+    globalLegIndex: -1,
+    vectorIndex: -1
+  };
+
+  private readonly nominalPathCircle = { vectorIndex: -1, circle: new GeoCircle(Vec3Math.create(), 0) };
 
   private originFacility?: AirportFacility;
 
@@ -64,9 +95,12 @@ export class NavdataComputer {
    * @param flightPlanner The flight planner to use with this instance.
    * @param facilityLoader The facility loader to use with this instance.
    */
-  constructor(private bus: EventBus, private flightPlanner: FlightPlanner, private facilityLoader: FacilityLoader) {
-    const sub = this.bus.getSubscriber<NavEvents & GNSSEvents & LNavEvents & FlightPlannerEvents & ClockEvents & GarminControlEvents>();
+  constructor(private readonly bus: EventBus, private readonly flightPlanner: FlightPlanner, private readonly facilityLoader: FacilityLoader) {
+    const sub = this.bus.getSubscriber<
+      NavEvents & GNSSEvents & LNavEvents & VNavEvents & VNavDataEvents & FlightPlannerEvents & FmsEvents & ClockEvents & ControlEvents
+    >();
 
+    this.magVar = ConsumerSubject.create(sub.on('magvar'), 0);
     this.isObsActive = ConsumerSubject.create(sub.on('gps_obs_active'), false);
 
     this.lnavIsTracking = ConsumerSubject.create(sub.on('lnav_is_tracking'), false);
@@ -76,7 +110,14 @@ export class NavdataComputer {
     this.lnavIsSuspended = ConsumerSubject.create(sub.on('lnav_is_suspended'), false);
     this.lnavDtk = ConsumerSubject.create(sub.on('lnav_dtk'), 0);
     this.lnavXtk = ConsumerSubject.create(sub.on('lnav_xtk'), 0);
-    this.lnavVectorAnticipationDistance = ConsumerSubject.create(sub.on('lnav_vector_anticipation_distance'), 0);
+    this.lnavLegDistanceAlong = ConsumerSubject.create(sub.on('lnav_leg_distance_along'), 0);
+    this.lnavLegDistanceRemaining = ConsumerSubject.create(sub.on('lnav_leg_distance_remaining'), 0);
+    this.lnavVectorDistanceAlong = ConsumerSubject.create(sub.on('lnav_vector_distance_along'), 0);
+
+    this.isMaprActive = ConsumerSubject.create(sub.on('activate_missed_approach'), false);
+
+    this.gpServiceLevel = ConsumerSubject.create(sub.on('gp_service_level'), GlidepathServiceLevel.None);
+    this.gpDistance = ConsumerSubject.create(sub.on('gp_distance'), 0);
 
     sub.on('gps-position').handle(lla => { this.planePos.set(lla.lat, lla.long); });
     sub.on('fplOriginDestChanged').handle(this.flightPlanOriginDestChanged.bind(this));
@@ -84,12 +125,11 @@ export class NavdataComputer {
     sub.on('fplLegChange').handle(this.onLegChanged);
     sub.on('fplIndexChanged').handle(() => this.onActiveLegChanged());
     sub.on('fplSegmentChange').handle(() => this.onActiveLegChanged());
-    sub.on('approach_details_set').handle(d => { this.approachDetails = d; });
-    sub.on('realTime').atFrequency(1).handle(() => {
-      this.computeCDIScaling();
-    });
+    sub.on('fms_approach_details').handle(d => { this.approachDetails = d; });
     sub.on('realTime').handle(() => {
-      this.computeTrackingVars(MagVar.get(this.planePos));
+      this.computeTrackingData();
+      this.computeCdiScaling();
+      this.computeGpScaling();
     });
 
     this.lnavData.sub((obj, key, value) => {
@@ -104,8 +144,15 @@ export class NavdataComputer {
         case 'waypointBearingTrue': SimVar.SetSimVarValue(LNavDataVars.WaypointBearingTrue, SimVarValueType.Degree, value); break;
         case 'waypointBearingMag': SimVar.SetSimVarValue(LNavDataVars.WaypointBearingMagnetic, SimVarValueType.Degree, value); break;
         case 'waypointDistance': SimVar.SetSimVarValue(LNavDataVars.WaypointDistance, SimVarValueType.NM, value); break;
+        case 'waypointIdent': this.publisher.pub('lnavdata_waypoint_ident', value as string, true, true); break;
         case 'destinationDistance': SimVar.SetSimVarValue(LNavDataVars.DestinationDistance, SimVarValueType.NM, value); break;
         case 'egressDistance': SimVar.SetSimVarValue(GarminLNavDataVars.EgressDistance, SimVarValueType.NM, value); break;
+      }
+    }, true);
+
+    this.vnavData.sub((obj, key, value) => {
+      switch (key) {
+        case 'gpScale': this.publisher.pub('gp_gsi_scaling', value as number, true, true); break;
       }
     }, true);
 
@@ -172,23 +219,30 @@ export class NavdataComputer {
 
   /**
    * Computes the nav tracking data, such as XTK, DTK, and distance to turn.
-   * @param magVar The computed current location magvar.
    */
-  private computeTrackingVars(magVar: number): void {
+  private computeTrackingData(): void {
+    const magVar = this.magVar.get();
+
     let xtk = 0;
+    let dtkLegIndex = -1;
+    let dtkVectorIndex = -1;
     let dtkTrue = 0;
     let dtkMag = 0;
+    let nextDtkLegIndex = -1;
+    let nextDtkVectorIndex = -1;
     let nextDtkTrue = 0;
     let nextDtkMag = 0;
     let distance = 0;
     let waypointBearingTrue = 0;
     let waypointBearingMag = 0;
+    let waypointIdent = '';
     let egressDistance = 0;
     let totalDistance = 0;
 
     if (this.lnavIsTracking.get()) {
       const plan = this.flightPlanner.hasActiveFlightPlan() && this.flightPlanner.getActiveFlightPlan();
 
+      const isSuspended = this.lnavIsSuspended.get();
       const trackedLegIndex = this.lnavLegIndex.get();
       const nextLegIndex = trackedLegIndex + 1;
 
@@ -198,6 +252,7 @@ export class NavdataComputer {
       if (currentLeg?.calculated) {
         distance = this.getActiveDistance(currentLeg, this.planePos);
         totalDistance = this.getTotalDistance(trackedLegIndex, distance);
+        waypointIdent = currentLeg.name ?? '';
 
         if (currentLeg.calculated.endLat !== undefined && currentLeg.calculated.endLon) {
           waypointBearingTrue = this.planePos.bearingTo(currentLeg.calculated.endLat, currentLeg.calculated.endLon);
@@ -205,45 +260,64 @@ export class NavdataComputer {
         }
       }
 
-      if (nextLeg) {
-        ({ true: nextDtkTrue, mag: nextDtkMag } = this.getInitialDtk(nextLeg, this.initialDtk));
+      // Next DTK is only valid if we are actually going to sequence into the next leg, so we have to make sure LNAV is not suspended
+      // and won't go into suspend at the end of the leg.
+      if (
+        nextLeg !== undefined
+        && nextLeg.calculated?.startLat !== undefined && nextLeg.calculated?.startLon !== undefined
+        && !isSuspended
+        && nextLeg.leg.type !== LegType.Discontinuity
+        && (!BitFlags.isAny(nextLeg.flags, LegDefinitionFlags.MissedApproach) || this.isMaprActive.get())
+      ) {
+        const result = this.getNominalPathCircle(nextLeg, 0, LNavTransitionMode.Ingress, this.nominalPathCircle);
+        if (result.vectorIndex >= 0) {
+          nextDtkLegIndex = nextLegIndex;
+          nextDtkVectorIndex = result.vectorIndex;
+          nextDtkTrue = result.circle.bearingAt(this.geoPointCache[0].set(nextLeg.calculated.startLat, nextLeg.calculated.startLon), Math.PI);
+          nextDtkMag = MagVar.trueToMagnetic(nextDtkTrue, nextLeg.calculated.startLat, nextLeg.calculated.startLon);
+        }
       }
 
       if (this.isObsActive.get()) {
         xtk = this.lnavXtk.get();
+        dtkLegIndex = trackedLegIndex;
+        dtkVectorIndex = -1;
         dtkTrue = this.lnavDtk.get();
         dtkMag = MagVar.trueToMagnetic(dtkTrue, magVar);
-        egressDistance = Number.MAX_VALUE;
+        egressDistance = this.lnavLegDistanceRemaining.get();
       } else {
         const transitionMode = this.lnavTransitionMode.get();
 
         let circle;
         if (transitionMode === LNavTransitionMode.Egress && nextLeg?.calculated?.flightPath.length) {
-          circle = this.getNominalPathCircle(nextLeg, 0, LNavTransitionMode.Ingress, this.geoCircleCache[0]);
-
-          egressDistance = this.getDistanceToTurn(nextLeg, this.planePos, 0);
-        } else if (currentLeg?.calculated?.flightPath.length) {
-          const vectorIndex = this.lnavVectorIndex.get();
-          const isSuspended = this.lnavIsSuspended.get();
-
-          circle = this.getNominalPathCircle(currentLeg, vectorIndex, transitionMode, this.geoCircleCache[0]);
-
-          // Check if the next vector after the current tracked vector is the first egress vector of the leg, or the
-          // start of the next leg if the current leg has no egress.
-          let isNextVectorFirstEgress = false;
-          if (!isSuspended) { // LNAV can only sequence to the egress if it is not suspended
-            switch (transitionMode) {
-              case LNavTransitionMode.Ingress:
-                isNextVectorFirstEgress = currentLeg.calculated.ingressToEgress.length === 0
-                  && vectorIndex === currentLeg.calculated.ingress.length - 1;
-                break;
-              case LNavTransitionMode.None:
-                isNextVectorFirstEgress = vectorIndex === currentLeg.calculated.ingressToEgress.length - 1;
-                break;
-            }
+          const result = this.getNominalPathCircle(nextLeg, 0, LNavTransitionMode.Ingress, this.nominalPathCircle);
+          if (result.vectorIndex >= 0) {
+            dtkLegIndex = nextLegIndex;
+            dtkVectorIndex = result.vectorIndex;
+            circle = result.circle;
           }
 
-          egressDistance = this.getDistanceToTurn(currentLeg, this.planePos, isNextVectorFirstEgress ? this.lnavVectorAnticipationDistance.get() : 0);
+          egressDistance = UnitType.METER.convertTo(nextLeg.calculated.distanceWithTransitions, UnitType.NMILE) - NavdataComputer.getEgressDistance(nextLeg)
+            + this.lnavLegDistanceRemaining.get();
+        } else if (currentLeg?.calculated?.flightPath.length) {
+          const vectorIndex = this.lnavVectorIndex.get();
+
+          const result = this.getNominalPathCircle(currentLeg, vectorIndex, transitionMode, this.nominalPathCircle);
+          if (result.vectorIndex >= 0) {
+            dtkLegIndex = trackedLegIndex;
+            dtkVectorIndex = result.vectorIndex;
+            circle = result.circle;
+          }
+
+          if (FlightPlanUtils.isManualDiscontinuityLeg(currentLeg.leg.type)) {
+            // MANSEQ legs aren't supposed to have an "end", so set egress distance to an arbitrarily large value.
+            egressDistance = Number.MAX_SAFE_INTEGER;
+          } else {
+            egressDistance = this.lnavLegDistanceRemaining.get() - (
+              // Distance remaining published by LNAV does not include egress if suspend is active
+              isSuspended ? 0 : NavdataComputer.getEgressDistance(currentLeg)
+            );
+          }
         }
 
         if (circle !== undefined) {
@@ -262,28 +336,59 @@ export class NavdataComputer {
     this.lnavData.set('waypointBearingTrue', waypointBearingTrue);
     this.lnavData.set('waypointBearingMag', waypointBearingMag);
     this.lnavData.set('waypointDistance', distance);
+    this.lnavData.set('waypointIdent', waypointIdent);
     this.lnavData.set('destinationDistance', totalDistance);
+
+    this.updateDtkVector('lnavdata_dtk_vector', dtkLegIndex, dtkVectorIndex);
+    this.updateDtkVector('lnavdata_next_dtk_vector', nextDtkLegIndex, nextDtkVectorIndex);
+
     this.lnavData.set('egressDistance', egressDistance);
   }
 
   /**
-   * Computes the CDI scaling for the given LNAV data.
+   * Updates a nominal desired track vector, and publishes the data to the event bus if necessary.
+   * @param topic The event bus topic associated with the vector.
+   * @param globalLegIndex The global index of the leg to which the vector belongs, or `-1` if there is no vector.
+   * @param vectorIndex The index of the vector in its parent leg's `flightPath` array, or `-1` if there is no vector.
    */
-  private computeCDIScaling(): void {
+  private updateDtkVector(
+    topic: 'lnavdata_dtk_vector' | 'lnavdata_next_dtk_vector',
+    globalLegIndex: number,
+    vectorIndex: number
+  ): void {
+    const dtkVector = topic === 'lnavdata_dtk_vector' ? this.dtkVector : this.nextDtkVector;
+
+    const needUpdate = dtkVector.globalLegIndex !== globalLegIndex
+      || dtkVector.vectorIndex !== vectorIndex;
+
+    if (needUpdate) {
+      dtkVector.globalLegIndex = globalLegIndex;
+      dtkVector.vectorIndex = vectorIndex;
+
+      this.publisher.pub(topic, Object.assign({}, dtkVector), true, true);
+    }
+  }
+
+  /**
+   * Computes CDI scaling.
+   */
+  private computeCdiScaling(): void {
     let scale = 2.0;
     let scaleLabel = CDIScaleLabel.Enroute;
     const flightPlan = this.flightPlanner.hasActiveFlightPlan() ? this.flightPlanner.getActiveFlightPlan() : undefined;
+    const activeLegIndex = this.lnavLegIndex.get();
 
-    if (flightPlan && flightPlan.length > 0 && flightPlan.activeLateralLeg < flightPlan.length) {
-      const activeSegment = flightPlan.getSegment(flightPlan.getSegmentIndex(flightPlan.activeLateralLeg));
+    if (flightPlan && flightPlan.length > 0 && activeLegIndex < flightPlan.length) {
+      const activeSegment = flightPlan.getSegment(flightPlan.getSegmentIndex(activeLegIndex));
 
       let previousLeg: LegDefinition | undefined;
       try {
-        previousLeg = flightPlan.getLeg(flightPlan.activeLateralLeg - 1);
+        previousLeg = flightPlan.getLeg(activeLegIndex - 1);
       } catch { /*Do nothing*/ }
 
-      //We are currently in the departure segment
       if (activeSegment.segmentType === FlightPlanSegmentType.Departure) {
+        // We are currently in the departure segment
+
         scale = 0.3;
         scaleLabel = CDIScaleLabel.Departure;
 
@@ -292,25 +397,25 @@ export class NavdataComputer {
           scale = 1.0;
           scaleLabel = CDIScaleLabel.Terminal;
         }
-      }
+      } else {
+        // We are not in the departure segment
 
-      //We are not in the departure segment any longer
-      if (this.originFacility !== undefined && activeSegment.segmentType !== FlightPlanSegmentType.Departure) {
-        const distance = UnitType.GA_RADIAN.convertTo(this.planePos.distance(this.originFacility), UnitType.NMILE);
-        scale = 2.0 - NavMath.clamp(31 - distance, 0, 1);
+        if (this.originFacility !== undefined) {
+          const distance = UnitType.GA_RADIAN.convertTo(this.planePos.distance(this.originFacility), UnitType.NMILE);
+          scale = 2.0 - NavMath.clamp(31 - distance, 0, 1);
 
-        if (distance <= 30) {
-          scaleLabel = CDIScaleLabel.Terminal;
+          if (distance <= 30) {
+            scaleLabel = CDIScaleLabel.Terminal;
+          }
         }
-      }
 
-      //Check for distance to destination
-      if (this.destinationFacility !== undefined && activeSegment.segmentType !== FlightPlanSegmentType.Departure) {
-        const distance = UnitType.GA_RADIAN.convertTo(this.planePos.distance(this.destinationFacility), UnitType.NMILE);
-        scale = 2.0 - NavMath.clamp(31 - distance, 0, 1);
+        if (this.destinationFacility !== undefined) {
+          const distance = UnitType.GA_RADIAN.convertTo(this.planePos.distance(this.destinationFacility), UnitType.NMILE);
+          scale = 2.0 - NavMath.clamp(31 - distance, 0, 1);
 
-        if (distance <= 30) {
-          scaleLabel = CDIScaleLabel.Terminal;
+          if (distance <= 30) {
+            scaleLabel = CDIScaleLabel.Terminal;
+          }
         }
       }
 
@@ -320,53 +425,49 @@ export class NavdataComputer {
 
         //If we're going from the start of the arrival (i.e. the second leg)
         if (
-          flightPlan.activeLateralLeg === activeSegment.offset + 1
+          activeLegIndex === activeSegment.offset + 1
           && firstArrivalLeg.calculated?.startLat !== undefined
           && firstArrivalLeg.calculated?.startLon !== undefined
           && firstArrivalLeg.calculated?.endLat !== undefined
           && firstArrivalLeg.calculated?.endLon !== undefined
         ) {
-          const start = this.geoPointCache[1].set(firstArrivalLeg.calculated.startLat, firstArrivalLeg.calculated.startLon);
-          const end = this.geoPointCache[2].set(firstArrivalLeg.calculated.endLat, firstArrivalLeg.calculated.endLon);
-          const distance = NavMath.alongTrack(start, end, this.planePos);
+          const distance = this.lnavLegDistanceAlong.get();
           scale = 2.0 - NavMath.clamp(distance, 0, 1);
 
           if (distance >= 1) {
             scaleLabel = CDIScaleLabel.Terminal;
           }
-        } else if (flightPlan.activeLateralLeg > activeSegment.offset + 1) {
+        } else if (activeLegIndex > activeSegment.offset + 1) {
           scale = 1.0;
           scaleLabel = CDIScaleLabel.Terminal;
         }
-      }
-
-      //We are in the approach
-      if (activeSegment.segmentType === FlightPlanSegmentType.Approach) {
+      } else if (activeSegment.segmentType === FlightPlanSegmentType.Approach) {
 
         scale = 1.0;
         scaleLabel = CDIScaleLabel.Terminal;
 
         const fafIndex = this.getFafIndex(activeSegment);
 
-        const currentLeg = flightPlan.activeLateralLeg >= 0 && flightPlan.activeLateralLeg < flightPlan.length ? flightPlan.getLeg(flightPlan.activeLateralLeg) : undefined;
+        const currentLeg = activeLegIndex >= 0 && activeLegIndex < flightPlan.length ? flightPlan.getLeg(activeLegIndex) : undefined;
 
-        if (fafIndex !== undefined && flightPlan.activeLateralLeg === fafIndex) {
+        if (fafIndex !== undefined && activeLegIndex === fafIndex) {
           const fafCalc = flightPlan.getLeg(fafIndex).calculated;
 
           if (fafCalc?.endLat !== undefined && fafCalc?.endLon !== undefined) {
             const distance = UnitType.GA_RADIAN.convertTo(this.planePos.distance(fafCalc.endLat, fafCalc.endLon), UnitType.NMILE);
             scale = 1.0 - (0.7 * (NavMath.clamp(2 - distance, 0, 2) / 2));
-
-            if (distance <= 2) {
-              scaleLabel = this.getApproachCdiScale();
-            }
           }
-        } else if (currentLeg?.calculated?.endLat && currentLeg?.calculated?.endLon && fafIndex !== undefined && flightPlan.activeLateralLeg > fafIndex) {
+
+          scaleLabel = this.getApproachCdiScale();
+
+        } else if (currentLeg?.calculated?.endLat && currentLeg?.calculated?.endLon && fafIndex !== undefined && activeLegIndex > fafIndex) {
 
           if (currentLeg && BitFlags.isAll(currentLeg.flags, LegDefinitionFlags.MissedApproach)) {
             scale = 1.0;
             scaleLabel = CDIScaleLabel.MissedApproach;
           } else {
+            // TODO: this computation is incorrect for any approach that has >1 leg between the FAF and the missed approach
+
             const legLength = currentLeg.calculated.distance;
             const distance = UnitType.GA_RADIAN.convertTo(this.planePos.distance(currentLeg.calculated.endLat, currentLeg.calculated.endLon), UnitType.NMILE);
 
@@ -379,6 +480,22 @@ export class NavdataComputer {
 
     this.lnavData.set('cdiScale', scale);
     this.lnavData.set('cdiScaleLabel', scaleLabel);
+  }
+
+  /**
+   * Computes glidepath scaling.
+   */
+  private computeGpScaling(): void {
+    const gpServiceLevel = this.gpServiceLevel.get();
+    if (gpServiceLevel !== GlidepathServiceLevel.None) {
+      const maxScaleFeet = 492; // 150 meters
+      const minScaleFeet = gpServiceLevel === GlidepathServiceLevel.Lpv ? 49 : 148; // 15/45 meters
+
+      const scale = MathUtils.clamp(NavdataComputer.GLIDEPATH_SCALE_TAN * this.gpDistance.get(), minScaleFeet, maxScaleFeet);
+      this.vnavData.set('gpScale', scale);
+    } else {
+      this.vnavData.set('gpScale', 0);
+    }
   }
 
   /**
@@ -402,48 +519,7 @@ export class NavdataComputer {
     if (fafLeg !== undefined) {
       return segment.offset + fafIndex;
     }
-  }
-
-  /**
-   * Gets the initial desired track of a flight plan leg in degrees true and magnetic.
-   * @param leg A flight plan leg.
-   * @param out The object to which to write the result.
-   * @param out.true The desired track, in degrees true.
-   * @param out.mag The desired track, in degrees magnetic.
-   * @returns The initial desired track of a flight plan leg in degrees true and magnetic.
-   */
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  private getInitialDtk(leg: LegDefinition, out: { true: number, mag: number }): { true: number, mag: number } {
-    out.true = 0;
-    out.mag = 0;
-
-    if (leg.calculated) {
-      switch (leg.leg.type) {
-        case LegType.DF: {
-          const vector = leg.calculated.flightPath[leg.calculated.flightPath.length - 1];
-          if (vector) {
-            const circle = FlightPathUtils.setGeoCircleFromVector(vector, this.geoCircleCache[0]);
-            const point = circle.isGreatCircle()
-              ? this.geoPointCache[0].set(vector.startLat, vector.startLon)
-              : this.geoPointCache[0].set(vector.endLat, vector.endLon);
-
-            out.true = circle.bearingAt(point, Math.PI);
-            out.mag = MagVar.trueToMagnetic(out.true, point);
-          }
-
-          break;
-        }
-        default:
-          if (leg.calculated.initialDtk) {
-            out.mag = leg.calculated.initialDtk;
-            out.true = leg.calculated.startLat !== undefined && leg.calculated.startLon !== undefined
-              ? MagVar.magneticToTrue(out.mag, leg.calculated.startLat, leg.calculated.startLon)
-              : out.mag;
-          }
-      }
-    }
-
-    return out;
+    return undefined;
   }
 
   /**
@@ -451,69 +527,136 @@ export class NavdataComputer {
    * @param leg The flight plan leg currently tracked by LNAV.
    * @param vectorIndex The index of the vector currently tracked by LNAV.
    * @param transitionMode The current LNAV transition mode.
-   * @param out The geo circle to which to write the result.
-   * @returns The geo circle describing the initial path of a flight plan leg, or undefined if one could not be
-   * determined.
+   * @param out The object to which to write the result.
+   * @param out.vectorIndex The index of the flight path vector associated with the geo circle.
+   * @param out.circle The geo circle.
+   * @returns The geo circle describing the initial path of a flight plan leg.
    */
-  private getNominalPathCircle(leg: LegDefinition, vectorIndex: number, transitionMode: LNavTransitionMode, out: GeoCircle): GeoCircle | undefined {
+  private getNominalPathCircle(
+    leg: LegDefinition,
+    vectorIndex: number,
+    transitionMode: LNavTransitionMode,
+    // eslint-disable-next-line jsdoc/require-jsdoc
+    out: { vectorIndex: number, circle: GeoCircle }
+  ): typeof out {
+    out.vectorIndex = -1;
+
     if (!leg.calculated) {
-      return undefined;
+      return out;
     }
 
     const legCalc = leg.calculated;
 
+    // Fallback resolution paths are equivalent to DF legs.
+    if (!legCalc.endsInFallback && BitFlags.isAll(legCalc.flightPath[0]?.flags ?? 0, FlightPathVectorFlags.Fallback | FlightPathVectorFlags.Direct)) {
+      return this.getNominalPathCircleForEndCourseLeg(legCalc, out);
+    }
+
     switch (leg.leg.type) {
-      case LegType.DF: {
-        const vector = legCalc.flightPath[legCalc.flightPath.length - 1];
-
-        if (!vector) {
-          return undefined;
-        }
-
-        if (FlightPathUtils.isVectorGreatCircle(vector)) {
-          return FlightPathUtils.setGeoCircleFromVector(vector, out);
-        } else {
-          const turn = FlightPathUtils.setGeoCircleFromVector(vector, out);
-          const turnEnd = this.geoPointCache[0].set(vector.endLat, vector.endLon);
-          const bearingAtEnd = turn.bearingAt(turnEnd);
-          return isNaN(bearingAtEnd) ? undefined : out.setAsGreatCircle(turnEnd, bearingAtEnd);
-        }
-      }
+      case LegType.FA:
+      case LegType.CA:
+      case LegType.VA:
+      case LegType.FM:
+      case LegType.VM:
+      case LegType.DF:
+      case LegType.CD:
+      case LegType.VD:
+      case LegType.CR:
+      case LegType.VR:
+      case LegType.CI:
+      case LegType.VI:
+        return this.getNominalPathCircleForEndCourseLeg(legCalc, out);
       case LegType.HM:
       case LegType.HF:
-      case LegType.HA: {
-        const vectors = transitionMode === LNavTransitionMode.None
-          ? LNavDirector.getVectorsForTransitionMode(legCalc, transitionMode, this.lnavIsSuspended.get())
-          : legCalc.flightPath;
-        const searchStartIndex = transitionMode === LNavTransitionMode.None
-          ? vectorIndex
-          : transitionMode === LNavTransitionMode.Ingress
-            ? 0
-            : 3;
+      case LegType.HA:
+        return this.getNominalPathCircleForHoldLeg(legCalc, out);
+      default: {
+        let nominalVectorIndex: number;
 
-        let vector;
-        for (let i = searchStartIndex; i < vectors.length; i++) {
-          const holdVector = vectors[i];
-          if (BitFlags.isAny(holdVector.flags, FlightPathVectorFlags.HoldOutboundLeg | FlightPathVectorFlags.HoldInboundLeg)) {
-            vector = holdVector;
+        switch (transitionMode) {
+          case LNavTransitionMode.Ingress:
+            nominalVectorIndex = 0;
             break;
-          }
+          case LNavTransitionMode.Egress:
+            nominalVectorIndex = legCalc.flightPath.length - 1;
+            break;
+          default:
+            nominalVectorIndex = vectorIndex;
         }
 
-        return vector ? FlightPathUtils.setGeoCircleFromVector(vector, out) : undefined;
-      }
-      default: {
-        const vector = legCalc.flightPath[
-          transitionMode === LNavTransitionMode.None
-            ? vectorIndex
-            : transitionMode === LNavTransitionMode.Ingress
-              ? 0
-              : legCalc.flightPath.length - 1
-        ];
+        const vector = legCalc.flightPath[nominalVectorIndex];
 
-        return vector ? FlightPathUtils.setGeoCircleFromVector(vector, out) : undefined;
+        if (vector !== undefined) {
+          out.vectorIndex = nominalVectorIndex;
+          FlightPathUtils.setGeoCircleFromVector(vector, out.circle);
+        }
       }
     }
+
+    return out;
+  }
+
+  /**
+   * Gets the geo circle describing the nominal path tracked by LNAV for a flight plan leg whose nominal path is
+   * defined by the course at the end of the leg.
+   * @param legCalc The calculations for the flight plan leg.
+   * @param out The object to which to write the result.
+   * @param out.vectorIndex The index of the flight path vector associated with the geo circle.
+   * @param out.circle The geo circle.
+   * @returns The geo circle describing the initial path of a flight plan leg.
+   */
+  private getNominalPathCircleForEndCourseLeg(
+    legCalc: LegCalculations,
+    // eslint-disable-next-line jsdoc/require-jsdoc
+    out: { vectorIndex: number, circle: GeoCircle }
+  ): typeof out {
+    out.vectorIndex = -1;
+
+    const nominalVectorIndex = legCalc.flightPath.length - 1;
+    const vector = legCalc.flightPath[nominalVectorIndex];
+
+    if (!vector) {
+      return out;
+    }
+
+    if (FlightPathUtils.isVectorGreatCircle(vector)) {
+      out.vectorIndex = nominalVectorIndex;
+      FlightPathUtils.setGeoCircleFromVector(vector, out.circle);
+    } else {
+      const turn = FlightPathUtils.setGeoCircleFromVector(vector, out.circle);
+      const turnEnd = this.geoPointCache[0].set(vector.endLat, vector.endLon);
+      const bearingAtEnd = turn.bearingAt(turnEnd, Math.PI);
+      if (!isNaN(bearingAtEnd)) {
+        out.vectorIndex = nominalVectorIndex;
+        out.circle.setAsGreatCircle(turnEnd, bearingAtEnd);
+      }
+    }
+
+    return out;
+  }
+
+  /**
+   * Gets the geo circle describing the nominal path tracked by LNAV for a hold leg.
+   * @param legCalc The calculations for the hold leg.
+   * @param out The object to which to write the result.
+   * @param out.vectorIndex The index of the flight path vector associated with the geo circle.
+   * @param out.circle The geo circle.
+   * @returns The geo circle describing the initial path of a flight plan leg.
+   */
+  private getNominalPathCircleForHoldLeg(
+    legCalc: LegCalculations,
+    // eslint-disable-next-line jsdoc/require-jsdoc
+    out: { vectorIndex: number, circle: GeoCircle }
+  ): typeof out {
+    out.vectorIndex = -1;
+
+    // The last base flight path vector for hold legs should always be the inbound leg
+    if (legCalc.flightPath.length > 0) {
+      out.vectorIndex = legCalc.flightPath.length - 1;
+      FlightPathUtils.setGeoCircleFromVector(legCalc.flightPath[out.vectorIndex], out.circle);
+    }
+
+    return out;
   }
 
   /**
@@ -555,47 +698,6 @@ export class NavdataComputer {
   }
 
   /**
-   * Gets the active distance from the plane position to the next leg turn.
-   * @param leg The leg to get the distance for.
-   * @param pos The current plane position.
-   * @param anticipation The vector anticipation to apply, in nautical miles.
-   * @returns The distance, in nautical miles.
-   */
-  private getDistanceToTurn(leg: LegDefinition, pos: GeoPointInterface, anticipation: number): number {
-    let turnStart: LatLonInterface | undefined;
-
-    if (leg.calculated !== undefined) {
-      const firstEgressVector = leg.calculated.egress[0];
-
-      const prevVector = leg.calculated.ingressToEgress[leg.calculated.ingressToEgress.length - 1]
-        ?? leg.calculated.ingress[leg.calculated.ingress.length - 1];
-
-      if (anticipation !== 0 && prevVector !== undefined) {
-        if (prevVector.distance > UnitType.NMILE.convertTo(anticipation, UnitType.METER)) {
-          const vectorCircle = FlightPathUtils.setGeoCircleFromVector(prevVector, this.geoCircleCache[1]);
-          turnStart = vectorCircle.offsetDistanceAlong(
-            this.geoPointCache[0].set(prevVector.endLat, prevVector.endLon),
-            UnitType.NMILE.convertTo(-anticipation, UnitType.GA_RADIAN),
-            this.geoPointCache[0]
-          );
-        } else {
-          turnStart = this.geoPointCache[0].set(prevVector.startLat, prevVector.startLon);
-        }
-      }
-
-      if (turnStart === undefined) {
-        if (firstEgressVector) {
-          turnStart = this.geoPointCache[0].set(firstEgressVector.startLat, firstEgressVector.startLon);
-        } else if (leg.calculated.endLat !== undefined && leg.calculated.endLon !== undefined) {
-          turnStart = this.geoPointCache[0].set(leg.calculated.endLat, leg.calculated.endLon);
-        }
-      }
-    }
-
-    return turnStart === undefined ? 0 : UnitType.GA_RADIAN.convertTo(pos.distance(turnStart), UnitType.NMILE);
-  }
-
-  /**
    * Updates whether OBS is available based on the current active flight plan leg, and sends a control event if OBS
    * availability has changed since the last update.
    * @param activeLeg The active flight plan leg, or `null` if none exists.
@@ -624,22 +726,48 @@ export class NavdataComputer {
    * @returns The CDIScaleLabel appropriate for the approach.
    */
   private getApproachCdiScale(): CDIScaleLabel {
-    switch (this.approachDetails.approachType) {
+    switch (this.approachDetails.type) {
       case ApproachType.APPROACH_TYPE_GPS:
       case ApproachType.APPROACH_TYPE_RNAV:
-        switch (this.approachDetails.approachRnavType) {
-          case RnavTypeFlags.LPV:
-            return CDIScaleLabel.LPV;
-          case RnavTypeFlags.LP:
-            return this.approachDetails.approachIsCircling ? CDIScaleLabel.LP : CDIScaleLabel.LPPlusV;
-          case RnavTypeFlags.LNAVVNAV:
-            return CDIScaleLabel.LNavVNav;
+        if (this.approachDetails.isRnpAr) {
+          return CDIScaleLabel.RNP;
         }
-        return this.approachDetails.approachIsCircling ? CDIScaleLabel.LNav : CDIScaleLabel.LNavPlusV;
+        switch (this.gpServiceLevel.get()) {
+          case GlidepathServiceLevel.LNavPlusV:
+          case GlidepathServiceLevel.LNavPlusVBaro:
+            return CDIScaleLabel.LNavPlusV;
+          case GlidepathServiceLevel.LNavVNav:
+          case GlidepathServiceLevel.LNavVNavBaro:
+            return CDIScaleLabel.LNavVNav;
+          case GlidepathServiceLevel.LpPlusV:
+            return CDIScaleLabel.LPPlusV;
+          case GlidepathServiceLevel.Lpv:
+            return CDIScaleLabel.LPV;
+          default:
+            return CDIScaleLabel.LNav;
+        }
       case AdditionalApproachType.APPROACH_TYPE_VISUAL:
         return CDIScaleLabel.Visual;
-      default:
-        return CDIScaleLabel.Terminal;
     }
+
+    return CDIScaleLabel.Terminal;
+  }
+
+  /**
+   * Gets the total distance of the egress transition of a flight plan leg, in nautical miles.
+   * @param leg The leg to get the distance for.
+   * @returns The total distance distance of the egress transition of the specified flight plan leg, in nautical miles.
+   */
+  private static getEgressDistance(leg: LegDefinition): number {
+    if (leg.calculated === undefined) {
+      return 0;
+    }
+
+    let distance = 0;
+    for (let i = 0; i < leg.calculated.egress.length; i++) {
+      distance += leg.calculated.egress[i].distance;
+    }
+
+    return UnitType.METER.convertTo(distance, UnitType.NMILE);
   }
 }

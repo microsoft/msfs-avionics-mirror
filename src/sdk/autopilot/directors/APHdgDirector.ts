@@ -1,6 +1,6 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus } from '../../data';
+import { EventBus, SimVarValueType } from '../../data';
 import { NavMath } from '../../geo';
 import { AhrsEvents } from '../../instruments';
 import { LinearServo } from '../../utils/controllers';
@@ -8,9 +8,27 @@ import { APValues } from '../APConfig';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
+ * Options for {@link APHdgDirector}.
+ */
+export type APHdgDirectorOptions = {
+  /**
+   * The maximum bank angle, in degrees, supported by the director, or a function which returns it. If not defined,
+   * the director will use the maximum bank angle defined by its parent autopilot (via `apValues`).
+   */
+  maxBankAngle: number | (() => number) | undefined;
+
+  /**
+   * Whether the director is to be used as a TO/GA lateral mode. If `true`, the director will not control the
+   * `AUTOPILOT HEADING LOCK` simvar.
+   */
+  isToGaMode: boolean;
+};
+
+/**
  * A heading autopilot director.
  */
 export class APHdgDirector implements PlaneDirector {
+  private static readonly BANK_SERVO_RATE = 10; // degrees per second
 
   public state: DirectorState;
 
@@ -22,16 +40,40 @@ export class APHdgDirector implements PlaneDirector {
 
   private currentBankRef = 0;
   private currentHeading = 0;
+  private toGaHeading = 0;
 
-  private readonly bankServo = new LinearServo(10);
+  private readonly bankServo = new LinearServo(APHdgDirector.BANK_SERVO_RATE);
 
+  private readonly maxBankAngleFunc: () => number;
+  private readonly isToGaMode: boolean;
 
   /**
-   * Creates an instance of the LateralDirector.
+   * Creates a new instance of APHdgDirector.
    * @param bus The event bus to use with this instance.
-   * @param apValues The AP Values from the Autopilot.
+   * @param apValues Autopilot values from this director's parent autopilot.
+   * @param options Options to configure the new director. Option values default to the following if not defined:
+   * * `maxBankAngle`: `undefined`
+   * * `isToGaMode`: `false`
    */
-  constructor(private readonly bus: EventBus, private readonly apValues: APValues) {
+  constructor(
+    private readonly bus: EventBus,
+    private readonly apValues: APValues,
+    options?: Partial<Readonly<APHdgDirectorOptions>>
+  ) {
+    const maxBankAngleOpt = options?.maxBankAngle ?? undefined;
+    switch (typeof maxBankAngleOpt) {
+      case 'number':
+        this.maxBankAngleFunc = () => maxBankAngleOpt;
+        break;
+      case 'function':
+        this.maxBankAngleFunc = maxBankAngleOpt;
+        break;
+      default:
+        this.maxBankAngleFunc = this.apValues.maxBankAngle.get.bind(this.apValues.maxBankAngle);
+    }
+
+    this.isToGaMode = options?.isToGaMode ?? false;
+
     this.state = DirectorState.Inactive;
 
     const ahrs = this.bus.getSubscriber<AhrsEvents>();
@@ -48,8 +90,14 @@ export class APHdgDirector implements PlaneDirector {
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
-    SimVar.SetSimVarValue('AUTOPILOT HEADING LOCK', 'Bool', true);
+    if (!this.isToGaMode) {
+      SimVar.SetSimVarValue('AUTOPILOT HEADING LOCK', 'Bool', true);
+    } else {
+      this.toGaHeading = this.currentHeading;
+    }
+
     this.state = DirectorState.Active;
+    this.bankServo.reset();
   }
 
   /**
@@ -66,7 +114,7 @@ export class APHdgDirector implements PlaneDirector {
    * Deactivates this director.
    */
   public async deactivate(): Promise<void> {
-    await SimVar.SetSimVarValue('AUTOPILOT HEADING LOCK', 'Bool', false);
+    if (!this.isToGaMode) { await SimVar.SetSimVarValue('AUTOPILOT HEADING LOCK', 'Bool', false); }
     this.state = DirectorState.Inactive;
   }
 
@@ -75,9 +123,14 @@ export class APHdgDirector implements PlaneDirector {
    */
   public update(): void {
     if (this.state === DirectorState.Active) {
-      // let bankAngle = this.desiredBank(NavMath.normalizeHeading(this.dtk + interceptAngle), this.xtk);
-
-      this.setBank(this.desiredBank(this.apValues.selectedHeading.get()));
+      if (this.isToGaMode) {
+        if (Simplane.getIsGrounded()) {
+          this.toGaHeading = this.currentHeading;
+        }
+        this.setBank(this.desiredBank(this.toGaHeading));
+      } else {
+        this.setBank(this.desiredBank(this.apValues.selectedHeading.get()));
+      }
     }
   }
 
@@ -90,7 +143,7 @@ export class APHdgDirector implements PlaneDirector {
     const turnDirection = NavMath.getTurnDirection(this.currentHeading, targetHeading);
     const headingDiff = Math.abs(NavMath.diffAngle(this.currentHeading, targetHeading));
 
-    let baseBank = Math.min(1.25 * headingDiff, this.apValues.maxBankAngle.get());
+    let baseBank = Math.min(1.25 * headingDiff, this.maxBankAngleFunc());
     baseBank *= (turnDirection === 'left' ? 1 : -1);
 
     return baseBank;
@@ -103,6 +156,7 @@ export class APHdgDirector implements PlaneDirector {
    */
   private setBank(bankAngle: number): void {
     if (isFinite(bankAngle)) {
+      this.bankServo.rate = APHdgDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
       this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
       SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
     }

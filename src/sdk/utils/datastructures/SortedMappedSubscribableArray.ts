@@ -90,12 +90,14 @@ export class SortedMappedSubscribableArray<T> extends AbstractSubscribableArray<
       elements instanceof Array ? this.sorted.insertAll(elements) : this.sorted.insert(elements);
       this.notify(0, SubscribableArrayEventType.Added, elements instanceof Array ? this.sorted.array : elements);
     } else {
-      const sorted = elements instanceof Array ? Array.from(elements).sort(this.comparatorFunc) : [elements];
-
-      const len = sorted.length;
-      for (let i = 0; i < len; i++) {
-        const toInsert = sorted[i];
-        this.notify(this.sorted.insert(toInsert), SubscribableArrayEventType.Added, toInsert);
+      if (elements instanceof Array) {
+        const len = elements.length;
+        for (let i = 0; i < len; i++) {
+          const toInsert = elements[i];
+          this.notify(this.sorted.insert(toInsert), SubscribableArrayEventType.Added, toInsert);
+        }
+      } else {
+        this.notify(this.sorted.insert(elements), SubscribableArrayEventType.Added, elements);
       }
     }
   }
@@ -105,14 +107,19 @@ export class SortedMappedSubscribableArray<T> extends AbstractSubscribableArray<
    * @param elements An element or array of elements to remove.
    */
   private remove(elements: T | readonly T[]): void {
-    const sorted = elements instanceof Array ? Array.from(elements).sort(this.comparatorFunc) : [elements];
-
-    const len = sorted.length;
-    for (let i = 0; i < len; i++) {
-      const toRemove = sorted[i];
-      const removedIndex = this.sorted.remove(toRemove);
+    if (elements instanceof Array) {
+      const len = elements.length;
+      for (let i = 0; i < len; i++) {
+        const toRemove = elements[i];
+        const removedIndex = this.sorted.remove(toRemove);
+        if (removedIndex >= 0) {
+          this.notify(removedIndex, SubscribableArrayEventType.Removed, toRemove);
+        }
+      }
+    } else {
+      const removedIndex = this.sorted.remove(elements);
       if (removedIndex >= 0) {
-        this.notify(removedIndex, SubscribableArrayEventType.Removed, toRemove);
+        this.notify(removedIndex, SubscribableArrayEventType.Removed, elements);
       }
     }
   }

@@ -1,5 +1,20 @@
 // Common definitions relevant to all radio types.
 
+/**
+ * Com radio index.
+ */
+export type ComRadioIndex = 1 | 2 | 3;
+
+/**
+ * Nav radio index.
+ */
+export type NavRadioIndex = 1 | 2 | 3 | 4;
+
+/**
+ * ADF radio index.
+ */
+export type AdfRadioIndex = 1 | 2;
+
 /** The basic radio types. */
 export enum RadioType {
   Com = 'COM',

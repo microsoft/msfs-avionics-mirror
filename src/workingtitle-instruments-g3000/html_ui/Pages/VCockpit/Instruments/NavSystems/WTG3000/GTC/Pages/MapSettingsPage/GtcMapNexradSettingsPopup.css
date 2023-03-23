@@ -1,0 +1,30 @@
+.map-nexrad-settings {
+  position: absolute;
+  left: calc(50% - var(--map-nexrad-settings-width) / 2);
+  top: calc(50% - var(--map-nexrad-settings-height) / 2);
+  width: var(--map-nexrad-settings-width);
+  height: var(--map-nexrad-settings-height);
+  padding: var(--map-nexrad-settings-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-content: stretch;
+}
+
+.gtc-horizontal .map-nexrad-settings {
+  --map-nexrad-settings-width: 380px;
+  --map-nexrad-settings-height: 650px;
+  --map-nexrad-settings-padding: 25px 45px;
+  --map-nexrad-settings-button-height: 135px;
+}
+
+.gtc-vertical .map-nexrad-settings {
+  --map-nexrad-settings-width: 204px;
+  --map-nexrad-settings-height: 350px;
+  --map-nexrad-settings-padding: 12px 22px;
+  --map-nexrad-settings-button-height: 74px;
+}
+
+.map-nexrad-settings-button {
+  height: var(--map-nexrad-settings-button-height);
+}

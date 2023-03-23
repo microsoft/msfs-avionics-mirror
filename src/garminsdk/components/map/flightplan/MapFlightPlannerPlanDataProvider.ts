@@ -1,9 +1,8 @@
 import {
-  ActiveLegType, ConsumerSubject, EventBus, FlightPlan, FlightPlanner, FlightPlannerEvents, LNavEvents, LNavTransitionMode, NavEvents, NumberUnitInterface,
-  NumberUnitSubject, SubEvent, Subject, Subscribable, UnitFamily, UnitType, VNavEvents, VNavPathMode, VNavState
-} from 'msfssdk';
+  ActiveLegType, ConsumerSubject, EventBus, FlightPlan, FlightPlanner, FlightPlannerEvents, LNavEvents, LNavTrackingState, LNavUtils, NavEvents, NumberUnitInterface,
+  NumberUnitSubject, SubEvent, Subject, Subscribable, Subscription, UnitFamily, UnitType, VNavEvents, VNavPathMode, VNavState
+} from '@microsoft/msfs-sdk';
 
-import { FlightPathPlanRendererLNavData } from './MapFlightPathPlanRenderer';
 import { MapFlightPlanDataProvider } from './MapFlightPlanDataProvider';
 
 /**
@@ -11,16 +10,20 @@ import { MapFlightPlanDataProvider } from './MapFlightPlanDataProvider';
  */
 export class MapFlightPlannerPlanDataProvider implements MapFlightPlanDataProvider {
   private readonly planSub = Subject.create<FlightPlan | null>(null);
+  /** @inheritdoc */
   public readonly plan: Subscribable<FlightPlan | null> = this.planSub;
 
+  /** @inheritdoc */
   public readonly planModified = new SubEvent<this, void>();
 
+  /** @inheritdoc */
   public readonly planCalculated = new SubEvent<this, void>();
 
   private readonly activeLegIndexSub = Subject.create(0);
+  /** @inheritdoc */
   public readonly activeLateralLegIndex: Subscribable<number> = this.activeLegIndexSub;
 
-  private readonly lnavDataSub = Subject.create<FlightPathPlanRendererLNavData | undefined>(
+  private readonly lnavDataSub = Subject.create<LNavTrackingState | undefined>(
     undefined,
     (a, b) => {
       if (!a && !b) {
@@ -28,50 +31,61 @@ export class MapFlightPlannerPlanDataProvider implements MapFlightPlanDataProvid
       }
 
       if (a && b) {
-        return a.currentLegIndex === b.currentLegIndex
-          && a.vectorIndex === b.vectorIndex
-          && a.transitionMode === b.transitionMode
-          && a.isSuspended === b.isSuspended;
+        return LNavUtils.lnavTrackingStateEquals(a, b);
       }
 
       return false;
     }
   );
-  public readonly lnavData: Subscribable<FlightPathPlanRendererLNavData | undefined> = this.lnavDataSub;
+  /** @inheritdoc */
+  public readonly lnavData: Subscribable<LNavTrackingState | undefined> = this.lnavDataSub;
 
   public readonly vnavState: Subscribable<VNavState>;
+  /** @inheritdoc */
   public readonly vnavPathMode: Subscribable<VNavPathMode>;
 
   private readonly vnavTodLegIndexSub = Subject.create(-1);
+  /** @inheritdoc */
   public readonly vnavTodLegIndex: Subscribable<number> = this.vnavTodLegIndexSub;
 
   private readonly vnavBodLegIndexSub = Subject.create(-1);
+  /** @inheritdoc */
   public readonly vnavBodLegIndex: Subscribable<number> = this.vnavBodLegIndexSub;
 
-  private readonly vnavTodLegDistanceSub = NumberUnitSubject.createFromNumberUnit(UnitType.METER.createNumber(0));
+  private readonly vnavTodLegDistanceSub = NumberUnitSubject.create(UnitType.METER.createNumber(0));
+  /** @inheritdoc */
   public readonly vnavTodLegDistance: Subscribable<NumberUnitInterface<UnitFamily.Distance>> = this.vnavTodLegDistanceSub;
 
-  private readonly vnavDistanceToTodSub = NumberUnitSubject.createFromNumberUnit(UnitType.METER.createNumber(0));
+  private readonly vnavDistanceToTodSub = NumberUnitSubject.create(UnitType.METER.createNumber(0));
+  /** @inheritdoc */
   public readonly vnavDistanceToTod: Subscribable<NumberUnitInterface<UnitFamily.Distance>> = this.vnavDistanceToTodSub;
 
+  private readonly vnavTocLegIndexSub = Subject.create(-1);
+  /** @inheritdoc */
+  public readonly vnavTocLegIndex: Subscribable<number> = this.vnavTocLegIndexSub;
+
+  private readonly vnavBocLegIndexSub = Subject.create(-1);
+  /** @inheritdoc */
+  public readonly vnavBocLegIndex: Subscribable<number> = this.vnavBocLegIndexSub;
+
+  private readonly vnavTocLegDistanceSub = NumberUnitSubject.create(UnitType.METER.createNumber(0));
+  /** @inheritdoc */
+  public readonly vnavTocLegDistance: Subscribable<NumberUnitInterface<UnitFamily.Distance>> = this.vnavTocLegDistanceSub;
+
+  private readonly vnavDistanceToTocSub = NumberUnitSubject.create(UnitType.METER.createNumber(0));
+  /** @inheritdoc */
+  public readonly vnavDistanceToToc: Subscribable<NumberUnitInterface<UnitFamily.Distance>> = this.vnavDistanceToTocSub;
+
   private readonly obsCourseSub = Subject.create<number | undefined>(undefined);
+  /** @inheritdoc */
   public readonly obsCourse: Subscribable<number | undefined> = this.obsCourseSub;
 
   private planIndex = -1;
 
-  private readonly lnavDataCache: FlightPathPlanRendererLNavData[] = [
-    { currentLegIndex: 0, vectorIndex: 0, transitionMode: LNavTransitionMode.None, isSuspended: false },
-    { currentLegIndex: 0, vectorIndex: 0, transitionMode: LNavTransitionMode.None, isSuspended: false }
-  ];
-
-  private activeLNavDataValue = this.lnavDataCache[0];
-
-  private vnavTodLegIndexValue = -1;
-  private vnavBodLegIndexValue = -1;
-  private vnavTodLegDistanceMeters = 0;
-
   private isObsActive = false;
   private obsCourseValue = 0;
+
+  private readonly activePlanSubs: Subscription[];
 
   /**
    * Constructor.
@@ -91,61 +105,52 @@ export class MapFlightPlannerPlanDataProvider implements MapFlightPlanDataProvid
     plannerEvents.on('fplActiveLegChange').handle(data => { data.planIndex === this.planIndex && data.type === ActiveLegType.Lateral && this.updateActiveLegIndex(); });
     plannerEvents.on('fplCalculated').handle(data => { data.planIndex === this.planIndex && this.planCalculated.notify(this); });
 
-    this.lnavData.sub(data => {
-      const oldActiveData = this.activeLNavDataValue;
-      this.activeLNavDataValue = this.lnavDataCache[data === this.lnavDataCache[0] ? 1 : 0];
-
-      if (oldActiveData !== this.activeLNavDataValue) {
-        Object.assign(this.activeLNavDataValue, oldActiveData);
-      }
-    });
-
     const lnavEvents = bus.getSubscriber<LNavEvents>();
-    lnavEvents.on('lnav_tracked_leg_index').whenChanged().handle(index => {
-      this.activeLNavDataValue.currentLegIndex = index;
-      this.updateLNavData();
-    });
-    lnavEvents.on('lnav_tracked_vector_index').whenChanged().handle(index => {
-      this.activeLNavDataValue.vectorIndex = index;
-      this.updateLNavData();
-    });
-    lnavEvents.on('lnav_transition_mode').whenChanged().handle(mode => {
-      this.activeLNavDataValue.transitionMode = mode;
-      this.updateLNavData();
-    });
-    lnavEvents.on('lnav_is_suspended').whenChanged().handle(isSuspended => {
-      this.activeLNavDataValue.isSuspended = isSuspended;
-      this.updateLNavData();
-    });
-
     const vnavEvents = bus.getSubscriber<VNavEvents>();
-    this.vnavState = ConsumerSubject.create(vnavEvents.on('vnav_state').whenChanged(), VNavState.Disabled);
-    this.vnavPathMode = ConsumerSubject.create(vnavEvents.on('vnav_path_mode').whenChanged(), VNavPathMode.None);
-    vnavEvents.on('vnav_tod_global_leg_index').whenChanged().handle(legIndex => {
-      this.vnavTodLegIndexValue = legIndex;
-      this.updateVNavTodLegIndex();
-    });
-    vnavEvents.on('vnav_bod_global_leg_index').whenChanged().handle(legIndex => {
-      this.vnavBodLegIndexValue = legIndex;
-      this.updateVNavBodLegIndex();
-    });
-    vnavEvents.on('vnav_tod_leg_distance').withPrecision(0).handle(distance => {
-      this.vnavTodLegDistanceMeters = distance;
-      this.updateVNavTodLegDistance();
-    });
-    vnavEvents.on('vnav_tod_distance').withPrecision(0).handle(distance => {
-      this.vnavDistanceToTodSub.set(distance, UnitType.METER);
-    });
-
     const navEvents = this.bus.getSubscriber<NavEvents>();
-    navEvents.on('gps_obs_active').whenChanged().handle(isActive => {
-      this.isObsActive = isActive;
-      this.updateObsCourse();
-    });
-    navEvents.on('gps_obs_value').whenChanged().handle(course => {
-      this.obsCourseValue = course;
-      this.updateObsCourse();
-    });
+
+    this.vnavState = ConsumerSubject.create(vnavEvents.on('vnav_state'), VNavState.Disabled);
+    this.vnavPathMode = ConsumerSubject.create(vnavEvents.on('vnav_path_mode'), VNavPathMode.None);
+
+    this.activePlanSubs = [
+      lnavEvents.on('lnav_tracking_state').handle(state => {
+        this.lnavDataSub.set(state);
+      }, true),
+
+      vnavEvents.on('vnav_tod_global_leg_index').whenChanged().handle(legIndex => {
+        this.vnavTodLegIndexSub.set(legIndex);
+      }, true),
+      vnavEvents.on('vnav_bod_global_leg_index').whenChanged().handle(legIndex => {
+        this.vnavBodLegIndexSub.set(legIndex);
+      }, true),
+      vnavEvents.on('vnav_tod_leg_distance').withPrecision(0).handle(distance => {
+        this.vnavTodLegDistanceSub.set(distance, UnitType.METER);
+      }, true),
+      vnavEvents.on('vnav_tod_distance').withPrecision(0).handle(distance => {
+        this.vnavDistanceToTodSub.set(distance, UnitType.METER);
+      }, true),
+      vnavEvents.on('vnav_toc_global_leg_index').whenChanged().handle(legIndex => {
+        this.vnavTocLegIndexSub.set(legIndex);
+      }, true),
+      vnavEvents.on('vnav_boc_global_leg_index').whenChanged().handle(legIndex => {
+        this.vnavBocLegIndexSub.set(legIndex);
+      }, true),
+      vnavEvents.on('vnav_toc_leg_distance').withPrecision(0).handle(distance => {
+        this.vnavTocLegDistanceSub.set(distance, UnitType.METER);
+      }, true),
+      vnavEvents.on('vnav_toc_distance').withPrecision(0).handle(distance => {
+        this.vnavDistanceToTocSub.set(distance, UnitType.METER);
+      }, true),
+
+      navEvents.on('gps_obs_active').whenChanged().handle(isActive => {
+        this.isObsActive = isActive;
+        this.updateObsCourse();
+      }, true),
+      navEvents.on('gps_obs_value').whenChanged().handle(course => {
+        this.obsCourseValue = course;
+        this.updateObsCourse();
+      }, true)
+    ];
   }
 
   /**
@@ -178,11 +183,23 @@ export class MapFlightPlannerPlanDataProvider implements MapFlightPlanDataProvid
    */
   private updateActivePlanRelatedSubs(): void {
     this.updateActiveLegIndex();
-    this.updateLNavData();
-    this.updateVNavTodLegIndex();
-    this.updateVNavBodLegIndex();
-    this.updateVNavTodLegDistance();
-    this.updateObsCourse();
+
+    if (this.planIndex === this.planner.activePlanIndex) {
+      this.activePlanSubs.forEach(sub => { sub.resume(true); });
+    } else {
+      this.activePlanSubs.forEach(sub => { sub.pause(); });
+
+      this.lnavDataSub.set(undefined);
+      this.vnavTodLegIndexSub.set(-1);
+      this.vnavBodLegIndexSub.set(-1);
+      this.vnavTodLegDistanceSub.set(0);
+      this.vnavDistanceToTodSub.set(0);
+      this.vnavTocLegIndexSub.set(-1);
+      this.vnavBocLegIndexSub.set(-1);
+      this.vnavTocLegDistanceSub.set(0);
+      this.vnavDistanceToTocSub.set(0);
+      this.obsCourseSub.set(undefined);
+    }
   }
 
   /**
@@ -194,37 +211,9 @@ export class MapFlightPlannerPlanDataProvider implements MapFlightPlanDataProvid
   }
 
   /**
-   * Updates the LNAV data.
-   */
-  private updateLNavData(): void {
-    this.lnavDataSub.set(this.planIndex === this.planner.activePlanIndex ? this.activeLNavDataValue : undefined);
-  }
-
-  /**
-   * Updates the index of the VNAV top-of-descent leg.
-   */
-  private updateVNavTodLegIndex(): void {
-    this.vnavTodLegIndexSub.set(this.planIndex === this.planner.activePlanIndex ? this.vnavTodLegIndexValue : -1);
-  }
-
-  /**
-   * Updates the index of the VNAV bottom-of-descent leg.
-   */
-  private updateVNavBodLegIndex(): void {
-    this.vnavBodLegIndexSub.set(this.planIndex === this.planner.activePlanIndex ? this.vnavBodLegIndexValue : -1);
-  }
-
-  /**
-   * Updates the distance from the VNAV top-of-descent point to the end of the top-of-descent leg.
-   */
-  private updateVNavTodLegDistance(): void {
-    this.vnavTodLegDistanceSub.set(this.planIndex === this.planner.activePlanIndex ? this.vnavTodLegDistanceMeters : 0, UnitType.METER);
-  }
-
-  /**
    * Updates the OBS course.
    */
   private updateObsCourse(): void {
-    this.obsCourseSub.set(this.planIndex === this.planner.activePlanIndex && this.isObsActive ? this.obsCourseValue : undefined);
+    this.obsCourseSub.set(this.isObsActive ? this.obsCourseValue : undefined);
   }
 }

@@ -1,7 +1,9 @@
 import {
-  AhrsEvents, APValues, CdiDeviation, ClockEvents, Consumer, ControlEvents, EventBus, FacilityFrequency, FixTypeFlags, FlightPlanner, FrequencyBank, GeoPoint,
-  GNSSEvents, LNavEvents, Localizer, NavEvents, NavMath, NavRadioEvents, NavSourceId, NavSourceType, NavToNavManager, Radio, RadioEvents, RadioType, UnitType
-} from 'msfssdk';
+  AhrsEvents, APValues, CdiDeviation, ClockEvents, Consumer, ControlEvents, EventBus, FixTypeFlags, FlightPlanner, FrequencyBank, GeoPoint,
+  GNSSEvents, LNavEvents, Localizer, NavEvents, NavMath, NavRadioEvents, NavSourceId, NavSourceType, NavToNavManager, Radio, RadioEvents,
+  RadioType, RnavTypeFlags, UnitType
+} from '@microsoft/msfs-sdk';
+import { ApproachDetails, FmsEvents } from '../flightplan/Fms';
 
 /**
  * A Garmin nav-to-nav manager.
@@ -9,8 +11,20 @@ import {
 export class GarminNavToNavManager implements NavToNavManager {
 
   public onTransferred = (): void => { };
+
   private currentHeading = 0;
-  private approachFrequency: undefined | FacilityFrequency = undefined;
+
+  private approachDetails: Readonly<ApproachDetails> = {
+    isLoaded: false,
+    type: ApproachType.APPROACH_TYPE_UNKNOWN,
+    isRnpAr: false,
+    bestRnavType: RnavTypeFlags.None,
+    rnavTypeFlags: RnavTypeFlags.None,
+    isCircling: false,
+    isVtf: false,
+    referenceFacility: null
+  };
+
   private nav1Frequency = 0;
   private nav1Localizer?: Localizer;
   private nav1Cdi?: CdiDeviation;
@@ -72,8 +86,18 @@ export class GarminNavToNavManager implements NavToNavManager {
    * Updates the canArmIndex after inputs from the event bus or changes in the approach frequency.
    */
   private updateState(): void {
-    if (this.approachFrequency !== undefined && this.apValues.approachIsActive.get()) {
-      const apprFreq = Math.round(this.approachFrequency.freqMHz * 100) / 100;
+    if (
+      this.approachDetails.referenceFacility
+      && (
+        // Nav-to-nav supports all approaches that use a localizer except backcourse approaches.
+        this.approachDetails.type === ApproachType.APPROACH_TYPE_ILS
+        || this.approachDetails.type === ApproachType.APPROACH_TYPE_LOCALIZER
+        || this.approachDetails.type === ApproachType.APPROACH_TYPE_LDA
+        || this.approachDetails.type === ApproachType.APPROACH_TYPE_SDF
+      )
+      && this.apValues.approachIsActive.get()
+    ) {
+      const apprFreq = Math.round(this.approachDetails.referenceFacility.freqMHz * 100) / 100;
       if (apprFreq > 107) {
         if (apprFreq == this.nav1Frequency && this.nav1Localizer && this.nav1Localizer.isValid) {
           this.canArmIndex = 1;
@@ -166,7 +190,7 @@ export class GarminNavToNavManager implements NavToNavManager {
    * Method to monitor nav events to keep track of NAV related data needed for guidance.
    */
   private monitorEvents(): void {
-    const sub = this.bus.getSubscriber<RadioEvents & NavEvents & NavRadioEvents & AhrsEvents & GNSSEvents & LNavEvents & ControlEvents & ClockEvents>();
+    const sub = this.bus.getSubscriber<RadioEvents & NavEvents & NavRadioEvents & AhrsEvents & GNSSEvents & LNavEvents & ControlEvents & ClockEvents & FmsEvents>();
 
     sub.on('set_radio_state').handle((state) => {
       this.updateRadioState(state);
@@ -205,10 +229,14 @@ export class GarminNavToNavManager implements NavToNavManager {
 
     sub.on('gps-position').handle(lla => { this.planePos.set(lla.lat, lla.long); });
 
-    sub.on('approach_freq_set').handle((v) => {
-      this.approachFrequency = v;
+    sub.on('fms_approach_details').handle((v) => {
+      this.approachDetails = v;
       this.navToNavCompleted = false;
       this.updateState();
+    });
+
+    sub.on('fms_approach_activate').handle(() => {
+      this.navToNavCompleted = false;
     });
 
     sub.on('lnav_tracked_leg_index').handle(index => {

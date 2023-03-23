@@ -1,7 +1,7 @@
 import {
-  MapIndexedRangeModule, MapSystemContext, MapSystemController, MapSystemKeys, ResourceConsumer, ResourceModerator, Subscribable, Subscription, UnitType,
-  Waypoint
-} from 'msfssdk';
+  MapIndexedRangeModule, MapSystemContext, MapSystemController, MapSystemKeys, ResourceConsumer, ResourceModerator,
+  Subscribable, Subscription, UnitType
+} from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapResourcePriority } from '../MapResourcePriority';
@@ -57,7 +57,6 @@ export class NearestMapRTRController extends MapSystemController<
 
     onAcquired: () => {
       this.hasRangeControl = true;
-      this.trySetRangeForWaypoint(this.waypointHighlightModule.waypoint.get());
     },
 
     onCeded: () => { this.hasRangeControl = false; }
@@ -86,18 +85,19 @@ export class NearestMapRTRController extends MapSystemController<
   }
 
   /**
-   * Attempts to set the range of the map so that the specified waypoint is in view. If this controller does not have
-   * permission to change the map's range, the operation will be aborted.
-   * @param waypoint The waypoint for which to set the map range.
+   * Attempts to set the range of this controller's map so that the highlighted waypoint is in view. If there is no
+   * highlighted waypoint or this controller does not have map range control privileges, this method does nothing.
    */
-  private trySetRangeForWaypoint(waypoint: Waypoint | null): void {
+  public trySetRangeForWaypoint(): void {
     if (!this.hasRangeControl) {
       return;
     }
 
+    const waypoint = this.waypointHighlightModule.waypoint.get();
+
     if (waypoint === null) {
       if (this.defaultNoTargetRangeIndex !== null) {
-        this.context.getController(GarminMapKeys.Range).setRangeIndex(this.defaultNoTargetRangeIndex.get());
+        this.setRangeIndex(this.defaultNoTargetRangeIndex.get());
       }
     } else {
       const distanceFromTarget = this.context.projection.getTarget().distance(waypoint.location.get());
@@ -108,8 +108,16 @@ export class NearestMapRTRController extends MapSystemController<
         index = ranges.length - 1;
       }
 
-      this.context.getController(GarminMapKeys.Range).setRangeIndex(index);
+      this.setRangeIndex(index);
     }
+  }
+
+  /**
+   * Sets the range index of this controller's map.
+   * @param index The index to set.
+   */
+  private setRangeIndex(index: number): void {
+    this.context.getController(GarminMapKeys.Range).setRangeIndex(index, true);
   }
 
   /** @inheritdoc */

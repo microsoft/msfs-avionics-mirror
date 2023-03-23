@@ -1,0 +1,29 @@
+.hsi-plan {
+  position: absolute;
+  top: -6px;
+  left: 0;
+  right: 0;
+  margin: auto;
+  width: var(--center-width);
+  height: 100%;
+  transform: rotateX(0);
+}
+
+.hsi-plan .hsi-plan-north-symbol {
+  color: rgb(128, 128, 128);
+  position: absolute;
+  top: 4%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.hsi-plan .hsi-plan-range-text-outer {
+  font-size: var(--hsi-range-text-font-size);
+  color: var(--wt21-colors-white);
+  position: absolute;
+  top: 33%;
+  left: 7%;
+  width: 10%;
+  text-align: center;
+}

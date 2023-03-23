@@ -1,0 +1,79 @@
+.map-traffic-settings-popup {
+  position: absolute;
+  box-sizing: border-box;
+  max-width: 100%;
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+}
+
+.gtc-horizontal .map-traffic-settings-popup {
+  left: 50%;
+  top: 45px;
+  height: calc(100% - 45px);
+  transform: translateX(-50%);
+  padding: 30px 15px 15px 15px;
+  font-size: 30px;
+
+  --map-traffic-settings-popup-map-settings-button-bottom: 25px;
+  --map-traffic-settings-popup-map-settings-button-width: 140px;
+  --map-traffic-settings-popup-map-settings-button-height: 100px;
+
+  --map-traffic-settings-popup-map-settings-button-right-offset: -1px;
+}
+
+.gtc-vertical .map-traffic-settings-popup {
+  left: 50%;
+  top: 25px;
+  height: calc(100% - 25px);
+  transform: translateX(-50%);
+  padding: 15px 7px 7px 7px;
+  font-size: 16px;
+
+  --map-traffic-settings-popup-map-settings-button-bottom: 12px;
+  --map-traffic-settings-popup-map-settings-button-width: 75px;
+  --map-traffic-settings-popup-map-settings-button-height: 60px;
+
+  --map-traffic-settings-popup-map-settings-button-right-offset: 0px;
+}
+
+.map-traffic-settings-popup-map-settings-button {
+  position: absolute;
+  bottom: var(--map-traffic-settings-popup-map-settings-button-bottom);
+  width: var(--map-traffic-settings-popup-map-settings-button-width);
+  height: var(--map-traffic-settings-popup-map-settings-button-height);
+  transform: translateX(-50%);
+}
+
+.map-traffic-settings-popup-map-settings-button.map-settings-button-pos-center {
+  left: 50%;
+}
+
+.map-traffic-settings-popup-map-settings-button.map-settings-button-pos-right {
+  left: calc(75% + var(--map-traffic-settings-popup-map-settings-button-right-offset));
+}
+
+.map-traffic-settings-map-settings {
+  position: absolute;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
+}
+
+.gtc-horizontal .map-traffic-settings-map-settings {
+  left: calc(50% - 630px / 2);
+  top: 120px;
+  width: 630px;
+  height: 375px;
+  padding: 25px 40px;
+  grid-gap: 30px 45px;
+}
+
+.gtc-vertical .map-traffic-settings-map-settings {
+  left: calc(50% - 345px / 2);
+  top: 65px;
+  width: 345px;
+  height: 200px;
+  padding: 12px 20px;
+  grid-gap: 15px 22px;
+}

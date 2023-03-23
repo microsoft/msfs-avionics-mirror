@@ -1,0 +1,36 @@
+.map-compass-north-arrow {
+  width: 24px;
+  height: 24px;
+  transform-origin: center;
+}
+
+.map-compass-north-arrow>svg {
+  width: 100%;
+}
+
+wt-gns530 .map-compass-north {
+  width: 24px;
+  height: 24px;
+  position: absolute;
+  top: 4px;
+  left: 8px;
+}
+
+wt-gns430 .map-compass-north {
+  width: 24px;
+  height: 24px;
+  position: absolute;
+  top: 25px;
+  left: 8px;
+}
+
+.map-compass-north-label {
+  width: 24px;
+  height: 24px;
+  font-size: 8px;
+  text-align: center;
+  line-height: 24px;
+  position: absolute;
+  top: 1px;
+  left: 0px;
+}

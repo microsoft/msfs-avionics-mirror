@@ -1,4 +1,4 @@
-import { FlightPlan, Subject } from 'msfssdk';
+import { FlightPlan, Subject } from '@microsoft/msfs-sdk';
 
 import { ProcedureType } from '../../../flightplan/Fms';
 

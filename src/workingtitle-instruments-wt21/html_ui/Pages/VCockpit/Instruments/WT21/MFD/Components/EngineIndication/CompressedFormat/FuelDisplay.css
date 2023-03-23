@@ -1,0 +1,25 @@
+.fueldisplay-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 91%;
+  margin: auto;
+}
+
+.fueldisplay-box {
+  color: var(--wt21-colors-green);
+  font-size: 24px;
+  line-height: 19px;
+  text-align: right;
+  border: 1px solid white;
+  padding: 7px 5px 2px 5px;
+  width: 63px;
+}
+
+.fueldisplay-title {
+  font-size: 20px;
+  line-height: 16px;
+  text-align: center;
+  width: 42px;
+  padding-top: 3px;
+}

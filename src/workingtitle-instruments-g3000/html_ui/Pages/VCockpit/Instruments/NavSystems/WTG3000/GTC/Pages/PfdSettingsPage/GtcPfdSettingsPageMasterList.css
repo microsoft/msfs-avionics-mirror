@@ -1,0 +1,27 @@
+.pfd-settings-page-master-list {
+  position: absolute;
+  height: calc(4 * var(--pfd-settings-page-master-list-item-height) + 3 * var(--pfd-settings-page-master-list-item-gap));
+  line-height: 1em;
+}
+
+.gtc-horizontal .pfd-settings-page-master-list {
+  top: 10px;
+  right: 2px;
+  width: calc(100% - 7px);
+
+  --pfd-settings-page-master-list-item-height: 162px;
+  --pfd-settings-page-master-list-item-gap: 6px;
+
+  --pfd-settings-page-row-left-width: 204px;
+}
+
+.gtc-vertical .pfd-settings-page-master-list {
+  top: 5px;
+  right: 1px;
+  width: calc(100% - 3px);
+
+  --pfd-settings-page-master-list-item-height: 88px;
+  --pfd-settings-page-master-list-item-gap: 4px;
+
+  --pfd-settings-page-row-left-width: 109px;
+}

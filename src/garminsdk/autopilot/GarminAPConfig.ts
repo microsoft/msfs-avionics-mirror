@@ -1,28 +1,112 @@
 import {
   APAltCapDirector, APAltDirector, APBackCourseDirector, APConfig, APFLCDirector, APGPDirector, APGSDirector, APHdgDirector, APLateralModes, APLvlDirector,
-  APNavDirector, APPitchDirector, APRollDirector, APValues, APVerticalModes, APVNavPathDirector, APVSDirector, BottomTargetPathCalculator, EventBus,
-  FlightPlanner, LNavDirector, NavMath, PlaneDirector, UnitType, VNavManager
-} from 'msfssdk';
+  APNavDirector, APPitchDirector, APRollDirector, APTogaPitchDirector, APValues, APVerticalModes, APVNavPathDirector, APVSDirector, EventBus,
+  FlightPlanner, LNavDirector, LNavDirectorOptions, NavMath, PlaneDirector, UnitType, VNavManager, VNavPathCalculator
+} from '@microsoft/msfs-sdk';
 
 import { GarminObsDirector } from './directors';
 import { GarminNavToNavManager } from './GarminNavToNavManager';
-import { GarminVNavManager } from './GarminVNavManager';
+import { GarminVNavGuidanceOptions, GarminVNavManager2 } from './GarminVNavManager2';
+
+/**
+ * Options for configuring a Garmin LNAV director.
+ */
+export type GarminLNavDirectorOptions = Pick<LNavDirectorOptions, 'disableArming'>;
+
+/**
+ * Options for configuring Garmin autopilot directors.
+ */
+export type GarminAPConfigDirectorOptions = {
+  /** Options for the LNAV director. */
+  lnavOptions: Partial<Readonly<GarminLNavDirectorOptions>>;
+
+  /** Options for the VNAV director. */
+  vnavOptions: Partial<Readonly<GarminVNavGuidanceOptions>>;
+
+  /** The minimum bank angle, in degrees, supported by the ROL director. */
+  rollMinBankAngle: number;
+
+  /** The maximum bank angle, in degrees, supported by the ROL director. */
+  rollMaxBankAngle: number;
+
+  /** The maximum bank angle, in degrees, supported by the HDG director. */
+  hdgMaxBankAngle: number;
+
+  /** The maximum bank angle, in degrees, supported by the VOR director. */
+  vorMaxBankAngle: number;
+
+  /** The maximum bank angle, in degrees, supported by the LOC director. */
+  locMaxBankAngle: number;
+
+  /** The maximum bank angle, in degrees, supported by the LNAV director. */
+  lnavMaxBankAngle: number;
+
+  /** The maximum bank angle, in degrees, to apply to the HDG, VOR, LOC, and LNAV directors while in Low Bank Mode. */
+  lowBankAngle: number;
+};
 
 /**
  * A Garmin Autopilot Configuration.
  */
 export class GarminAPConfig implements APConfig {
+  /** The default minimum bank angle, in degrees, for ROL director. */
+  public static readonly DEFAULT_ROLL_MIN_BANK_ANGLE = 6;
+
+  /** The default maximum bank angle, in degrees, for ROL, HDG, NAV, and LNAV directors. */
+  public static readonly DEFAULT_MAX_BANK_ANGLE = 25;
+
+  /** The default maximum bank angle, in degrees, in Low Bank Mode. */
+  public static readonly DEFAULT_LOW_BANK_ANGLE = 15;
+
   public defaultLateralMode = APLateralModes.ROLL;
   public defaultVerticalMode = APVerticalModes.PITCH;
-  public defaultMaxBankAngle = 25; // Note this is the max bank angle for most G1000/GFC700 installations, but not all. Some are 22, some are 27.
-  private obsDirector = new GarminObsDirector(this.bus);
+  public defaultMaxBankAngle = GarminAPConfig.DEFAULT_MAX_BANK_ANGLE;
+
+  /** Options for the LNAV director. */
+  private readonly lnavOptions: Partial<Readonly<GarminLNavDirectorOptions>>;
+
+  /** Options for the VNAV director. */
+  private readonly vnavOptions: Partial<Readonly<GarminVNavGuidanceOptions>>;
+
+  private readonly rollMinBankAngle: number;
+  private readonly rollMaxBankAngle: number;
+  private readonly hdgMaxBankAngle: number;
+  private readonly vorMaxBankAngle: number;
+  private readonly locMaxBankAngle: number;
+  private readonly lnavMaxBankAngle: number;
+  private readonly lowBankAngle: number;
+
   /**
-   * Instantiates the AP Config for the Autopilot.
-   * @param bus is an instance of the Event Bus.
-   * @param flightPlanner is an instance of the flight planner.
-   * @param verticalPathCalculator The instance of the vertical path calculator to use for the vnav director.
+   * Creates a new instance of GarminAPConfig.
+   * @param bus The event bus.
+   * @param flightPlanner The flight planner.
+   * @param verticalPathCalculator The vertical path calculator to use for the VNAV director.
+   * @param options Options to configure the directors. Option values default to the following if not defined:
+   * * `lnavOptions`: `undefined`
+   * * `vnavOptions`: `undefined`
+   * * `rollMinBankAngle`: `GarminAPConfig.DEFAULT_ROLL_MIN_BANK_ANGLE`
+   * * `rollMaxBankAngle`: `GarminAPConfig.DEFAULT_MAX_BANK_ANGLE`
+   * * `hdgMaxBankAngle`: `GarminAPConfig.DEFAULT_MAX_BANK_ANGLE`
+   * * `vorMaxBankAngle`: `GarminAPConfig.DEFAULT_MAX_BANK_ANGLE`
+   * * `locMaxBankAngle`: `GarminAPConfig.DEFAULT_MAX_BANK_ANGLE`
+   * * `lnavMaxBankAngle`: `GarminAPConfig.DEFAULT_MAX_BANK_ANGLE`
+   * * `lowBankAngle`: `GarminAPConfig.DEFAULT_LOW_BANK_ANGLE`
    */
-  constructor(private readonly bus: EventBus, private readonly flightPlanner: FlightPlanner, private readonly verticalPathCalculator: BottomTargetPathCalculator) {
+  constructor(
+    private readonly bus: EventBus,
+    private readonly flightPlanner: FlightPlanner,
+    private readonly verticalPathCalculator: VNavPathCalculator,
+    options?: Partial<Readonly<GarminAPConfigDirectorOptions>>
+  ) {
+    this.lnavOptions = { ...options?.lnavOptions };
+    this.vnavOptions = { ...options?.vnavOptions };
+    this.rollMinBankAngle = options?.rollMinBankAngle ?? GarminAPConfig.DEFAULT_ROLL_MIN_BANK_ANGLE;
+    this.rollMaxBankAngle = options?.rollMaxBankAngle ?? GarminAPConfig.DEFAULT_MAX_BANK_ANGLE;
+    this.hdgMaxBankAngle = options?.hdgMaxBankAngle ?? GarminAPConfig.DEFAULT_MAX_BANK_ANGLE;
+    this.vorMaxBankAngle = options?.vorMaxBankAngle ?? GarminAPConfig.DEFAULT_MAX_BANK_ANGLE;
+    this.locMaxBankAngle = options?.locMaxBankAngle ?? GarminAPConfig.DEFAULT_MAX_BANK_ANGLE;
+    this.lnavMaxBankAngle = options?.lnavMaxBankAngle ?? GarminAPConfig.DEFAULT_MAX_BANK_ANGLE;
+    this.lowBankAngle = options?.lowBankAngle ?? GarminAPConfig.DEFAULT_LOW_BANK_ANGLE;
   }
 
   /** @inheritdoc */
@@ -32,13 +116,29 @@ export class GarminAPConfig implements APConfig {
 
   /** @inheritdoc */
   public createHeadingDirector(apValues: APValues): APHdgDirector {
-    return new APHdgDirector(this.bus, apValues);
+    return new APHdgDirector(this.bus, apValues, {
+      maxBankAngle: () => apValues.maxBankId.get() === 1 ? Math.min(this.hdgMaxBankAngle, this.lowBankAngle) : this.hdgMaxBankAngle
+    });
+  }
+
+  /** @inheritdoc */
+  createHeadingHoldDirector(): undefined {
+    return undefined;
+  }
+
+  /** @inheritdoc */
+  createTrackDirector(): undefined {
+    return undefined;
+  }
+
+  /** @inheritdoc */
+  createTrackHoldDirector(): undefined {
+    return undefined;
   }
 
   /** @inheritdoc */
   public createRollDirector(apValues: APValues): APRollDirector {
-    // Note: This max bank angle is for the C172, while other aircraft have higher limits.
-    return new APRollDirector(this.bus, apValues, { minimumBankAngle: 6, maximumBankAngle: 22 });
+    return new APRollDirector(this.bus, apValues, { minBankAngle: this.rollMinBankAngle, maxBankAngle: this.rollMaxBankAngle });
   }
 
   /** @inheritdoc */
@@ -48,22 +148,52 @@ export class GarminAPConfig implements APConfig {
 
   /** @inheritdoc */
   public createGpssDirector(apValues: APValues): LNavDirector {
-    return new LNavDirector(this.bus, apValues, this.flightPlanner, this.obsDirector, this.lnavInterceptCurve.bind(this), true);
+    const maxBankAngle = (): number => apValues.maxBankId.get() === 1 ? Math.min(this.lnavMaxBankAngle, this.lowBankAngle) : this.lnavMaxBankAngle;
+
+    return new LNavDirector(
+      this.bus,
+      apValues,
+      this.flightPlanner,
+      new GarminObsDirector(this.bus, apValues, {
+        maxBankAngle,
+        lateralInterceptCurve: GarminAPConfig.lnavInterceptCurve,
+      }),
+      {
+        maxBankAngle,
+        lateralInterceptCurve: GarminAPConfig.lnavInterceptCurve,
+        hasVectorAnticipation: true,
+        ...this.lnavOptions
+      }
+    );
   }
 
   /** @inheritdoc */
   public createVorDirector(apValues: APValues): APNavDirector {
-    return new APNavDirector(this.bus, apValues, APLateralModes.VOR, this.navInterceptCurve.bind(this));
+    return new APNavDirector(this.bus, apValues, APLateralModes.VOR, {
+      maxBankAngle: () => apValues.maxBankId.get() === 1 ? Math.min(this.vorMaxBankAngle, this.lowBankAngle) : this.vorMaxBankAngle,
+      lateralInterceptCurve: GarminAPConfig.navInterceptCurve
+    });
   }
 
   /** @inheritdoc */
   public createLocDirector(apValues: APValues): APNavDirector {
-    return new APNavDirector(this.bus, apValues, APLateralModes.LOC, this.navInterceptCurve.bind(this));
+    return new APNavDirector(this.bus, apValues, APLateralModes.LOC, {
+      maxBankAngle: () => apValues.maxBankId.get() === 1 ? Math.min(this.locMaxBankAngle, this.lowBankAngle) : this.locMaxBankAngle,
+      lateralInterceptCurve: GarminAPConfig.navInterceptCurve
+    });
   }
 
   /** @inheritdoc */
   public createBcDirector(apValues: APValues): APBackCourseDirector {
-    return new APBackCourseDirector(this.bus, apValues, APLateralModes.BC, this.navInterceptCurve.bind(this));
+    return new APBackCourseDirector(this.bus, apValues, APLateralModes.BC, {
+      maxBankAngle: () => apValues.maxBankId.get() === 1 ? Math.min(this.locMaxBankAngle, this.lowBankAngle) : this.locMaxBankAngle,
+      lateralInterceptCurve: GarminAPConfig.navInterceptCurve
+    });
+  }
+
+  /** @inheritDoc */
+  public createRolloutDirector(): undefined {
+    return undefined;
   }
 
   /** @inheritdoc */
@@ -74,6 +204,11 @@ export class GarminAPConfig implements APConfig {
   /** @inheritdoc */
   public createVsDirector(apValues: APValues): APVSDirector {
     return new APVSDirector(this.bus, apValues);
+  }
+
+  /** @inheritdoc */
+  public createFpaDirector(): undefined {
+    return undefined;
   }
 
   /** @inheritdoc */
@@ -91,11 +226,9 @@ export class GarminAPConfig implements APConfig {
     return new APAltCapDirector(this.bus, apValues);
   }
 
-  private vnavManager?: VNavManager;
-
   /** @inheritdoc */
   public createVNavManager(apValues: APValues): VNavManager {
-    return this.vnavManager ??= new GarminVNavManager(this.bus, this.flightPlanner, this.verticalPathCalculator, apValues, 0);
+    return new GarminVNavManager2(this.bus, this.flightPlanner, this.verticalPathCalculator, apValues, 0, this.vnavOptions);
   }
 
   /** @inheritdoc */
@@ -114,6 +247,33 @@ export class GarminAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
+  public createFlareDirector(): undefined {
+    return undefined;
+  }
+
+  /** @inheritdoc */
+  public createToVerticalDirector(): PlaneDirector | undefined {
+    //TODO: This value should be read in from the systems.cfg 'pitch_takeoff_ga' value
+
+    return new APTogaPitchDirector(10);
+  }
+
+  /** @inheritdoc */
+  public createGaVerticalDirector(): PlaneDirector | undefined {
+    return new APTogaPitchDirector(7.5);
+  }
+
+  /** @inheritdoc */
+  public createToLateralDirector(): PlaneDirector | undefined {
+    return new APLvlDirector(this.bus, true);
+  }
+
+  /** @inheritdoc */
+  public createGaLateralDirector(): PlaneDirector | undefined {
+    return new APLvlDirector(this.bus, true);
+  }
+
+  /** @inheritdoc */
   public createNavToNavManager(apValues: APValues): GarminNavToNavManager {
     return new GarminNavToNavManager(this.bus, this.flightPlanner, apValues);
   }
@@ -127,13 +287,13 @@ export class GarminAPConfig implements APConfig {
    * @param isLoc Whether the source of the navigation signal is a localizer. Defaults to `false`.
    * @returns The intercept angle, in degrees, to capture the desired track from the navigation signal.
    */
-  private navInterceptCurve(distanceToSource: number, deflection: number, tas: number, isLoc?: boolean): number {
+  private static navInterceptCurve(distanceToSource: number, deflection: number, tas: number, isLoc?: boolean): number {
     if (isLoc) {
-      return this.localizerInterceptCurve(distanceToSource, deflection, tas);
+      return GarminAPConfig.localizerInterceptCurve(distanceToSource, deflection, tas);
     } else {
-      // max deflection is 2.5 degrees or 0.0436332 radians
-      const fullScaleDeflectionInRadians = 0.0436332;
-      return this.defaultInterceptCurve(Math.sin(fullScaleDeflectionInRadians * -deflection) * distanceToSource, tas);
+      // max deflection is 10 degrees or 0.175 radians
+      const fullScaleDeflectionInRadians = 0.175;
+      return GarminAPConfig.defaultInterceptCurve(Math.sin(fullScaleDeflectionInRadians * -deflection) * distanceToSource, tas);
     }
   }
 
@@ -145,8 +305,8 @@ export class GarminAPConfig implements APConfig {
    * @param tas The true airspeed of the plane, in knots.
    * @returns The intercept angle, in degrees, to capture the desired track from the navigation signal.
    */
-  private lnavInterceptCurve(dtk: number, xtk: number, tas: number): number {
-    return this.defaultInterceptCurve(xtk, tas);
+  private static lnavInterceptCurve(dtk: number, xtk: number, tas: number): number {
+    return GarminAPConfig.defaultInterceptCurve(xtk, tas);
   }
 
   /**
@@ -157,7 +317,7 @@ export class GarminAPConfig implements APConfig {
    * @param tas The true airspeed of the plane, in knots.
    * @returns The intercept angle, in degrees, to capture the localizer course.
    */
-  private localizerInterceptCurve(distanceToSource: number, deflection: number, tas: number): number {
+  private static localizerInterceptCurve(distanceToSource: number, deflection: number, tas: number): number {
     // max deflection is 2.5 degrees or 0.0436332 radians
     const fullScaleDeflectionInRadians = 0.0436332;
 
@@ -172,7 +332,7 @@ export class GarminAPConfig implements APConfig {
     }
 
     const turnRadiusMeters = NavMath.turnRadius(tas, 22.5);
-    const interceptAngle = this.calculateTurnBasedInterceptAngle(turnRadiusMeters, xtkMeters);
+    const interceptAngle = GarminAPConfig.calculateTurnBasedInterceptAngle(turnRadiusMeters, xtkMeters);
 
     return NavMath.clamp(interceptAngle, 0, 20);
   }
@@ -184,7 +344,7 @@ export class GarminAPConfig implements APConfig {
    * @param tas The true airspeed of the plane, in knots.
    * @returns The intercept angle, in degrees, to capture the desired track.
    */
-  private defaultInterceptCurve(xtk: number, tas: number): number {
+  private static defaultInterceptCurve(xtk: number, tas: number): number {
     const xtkMeters = UnitType.NMILE.convertTo(xtk, UnitType.METER);
     const xtkMetersAbs = Math.abs(xtkMeters);
 
@@ -193,7 +353,7 @@ export class GarminAPConfig implements APConfig {
     }
 
     const turnRadiusMeters = NavMath.turnRadius(tas, 22.5);
-    const interceptAngle = this.calculateTurnBasedInterceptAngle(turnRadiusMeters, xtkMeters);
+    const interceptAngle = GarminAPConfig.calculateTurnBasedInterceptAngle(turnRadiusMeters, xtkMeters);
 
     return NavMath.clamp(interceptAngle, 0, 45);
   }
@@ -212,7 +372,7 @@ export class GarminAPConfig implements APConfig {
    * @param xtk The cross-track error, in the same units as `turnRadius`.
    * @returns The calculated intercept angle, in degrees.
    */
-  private calculateTurnBasedInterceptAngle(turnRadius: number, xtk: number): number {
+  private static calculateTurnBasedInterceptAngle(turnRadius: number, xtk: number): number {
     return UnitType.RADIAN.convertTo(Math.acos(NavMath.clamp((turnRadius - Math.abs(xtk)) / turnRadius, -1, 1)), UnitType.DEGREE) / 2;
   }
 }

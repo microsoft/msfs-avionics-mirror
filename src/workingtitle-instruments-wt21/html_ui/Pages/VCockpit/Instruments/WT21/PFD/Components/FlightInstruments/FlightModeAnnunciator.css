@@ -1,0 +1,166 @@
+.fma-container {
+  padding-top: 12px;
+}
+
+.fma-ap-mode {
+  position: absolute;
+  left: 47.5%;
+}
+
+.fma-ap-source-arrow {
+  position: absolute;
+  top: 70%;
+  left: 46%;
+  height: 16px;
+  width: 43px;
+}
+
+.fma-active-vertical-mode {
+  position: absolute;
+  left: 57%;
+  white-space: pre;
+}
+
+.fma-active-lateral-mode {
+  position: absolute;
+  left: 10%;
+  text-align: right;
+  width: 30%;
+}
+
+.fma-armed-vertical-mode {
+  position: absolute;
+  top: 60%;
+  left: 59%;
+  padding: 0 5px;
+}
+
+.fma-armed-lateral-mode {
+  position: absolute;
+  top: 60%;
+  left: 15%;
+  padding: 0 5px;
+}
+
+.fma-armed-vertical-path {
+  position: absolute;
+  top: 60%;
+  left: 72%;
+  padding: 0 5px;
+  z-index: 1;
+}
+
+.fma-armed-glideslope {
+  position: absolute;
+  top: 60%;
+  left: 89%;
+  padding: 0 5px;
+}
+
+.fma-active {
+  font-size: 22px;
+  color: var(--wt21-colors-green);
+}
+
+.fma-armed {
+  font-size: 20px;
+  color: var(--wt21-colors-white);
+}
+
+.fma-flc-speed {
+  position: absolute;
+  top: 19%;
+  left: 70%;
+  color: var(--wt21-colors-cyan);
+  width: 30%;
+  font-size: 22px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.fma-flc-speed div {
+  flex-grow: 1;
+  padding-left: 5px;
+}
+
+.fma-vs-speed {
+  position: absolute;
+  top: 18%;
+  left: 67.5%;
+  width: 25%;
+}
+
+.fma-vs-speed-value {
+  position: absolute;
+  top: 6%;
+  left: 20%;
+  width: 47%;
+  font-size: 22px;
+  color: var(--wt21-colors-cyan);
+  text-align: right;
+}
+
+.fma-vs-arrow {
+  position: absolute;
+  top: 8%;
+  left: 67%;
+}
+
+.fma-vs-arrow>svg {
+  display: block;
+}
+
+.fma-control-wheel-steering {
+  position: absolute;
+  top: 60%;
+  left: 2%;
+}
+
+.fma-blinking {
+  animation: fma-blink 1.0s step-end;
+  animation-iteration-count: 5;
+}
+
+@keyframes fma-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.fma-invalid-mode {
+  animation: fma-blink 1.0s step-start;
+  animation-iteration-count: 10;
+  border-bottom: 2px solid yellow;
+  height: 18%;
+}
+
+.fma-ap-manual-cancel {
+  animation: fma-blink .75s step-start;
+  animation-iteration-count: 2;
+  animation-fill-mode: forwards;
+  color: var(--wt21-colors-red);
+  fill: var(--wt21-colors-red);
+  stroke: var(--wt21-colors-red);
+}
+
+.fma-auto-cancel {
+  animation: fma-blink .75s step-start infinite;
+  color: var(--wt21-colors-red);
+}
+
+.fma-yd-manual-cancel {
+  animation: fma-blink .75s step-start;
+  animation-iteration-count: 2;
+  animation-fill-mode: forwards;
+  color: var(--wt21-colors-yellow);
+}
+
+.fma-ap-source-arrow {
+  fill: var(--wt21-colors-white);
+  stroke: var(--wt21-colors-white);
+}
+
+.fma-arrow-green {
+  fill: var(--wt21-colors-green);
+  stroke: var(--wt21-colors-green);
+}

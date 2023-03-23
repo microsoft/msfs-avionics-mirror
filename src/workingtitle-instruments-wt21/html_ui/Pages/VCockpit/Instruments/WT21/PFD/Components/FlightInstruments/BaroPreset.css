@@ -1,0 +1,43 @@
+@keyframes baro-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.baro-preset-current {
+  position: absolute;
+  top: 4%;
+  font-size: 26px;
+  text-align: center;
+  width: 100%;
+  color: var(--wt21-colors-cyan);
+  text-shadow: var(--wt21-fonts-shadow-normal)
+}
+
+.baro-preset-current.blink{
+  animation: baro-blink 1.0s step-start infinite;
+}
+
+.baro-preset-box {
+  font-size: 26px;
+  background: black;
+  padding-top: 28px;
+  height: 58px;
+  border: 2px solid var(--wt21-colors-white);
+}
+
+.baro-preset-units {
+  font-size: 20px;
+}
+
+.baro-preset-value {
+  color: var(--wt21-colors-white);
+  text-align: left;
+  padding-left: 1px;
+}
+
+.baro-preset-arrow {
+  position: absolute;
+  top: 30px;
+  left: 106px;
+}

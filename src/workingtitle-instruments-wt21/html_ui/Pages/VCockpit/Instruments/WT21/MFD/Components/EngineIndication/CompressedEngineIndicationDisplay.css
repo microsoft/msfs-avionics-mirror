@@ -1,0 +1,44 @@
+.eis-compressed-container {
+  transform: rotateX(0);
+  height: 185px;
+  display: flex;
+}
+
+.eis-compressed-primary-group {
+  display: flex;
+}
+
+.eis-compressed-secondary-group {
+  padding-top: 1%;
+  padding-left: 3%;
+}
+
+.eis-compressed-trim-group {
+  display: flex;
+  justify-content: space-around;
+  margin-top: -.5%;
+  padding-left: 1%;
+}
+
+.eis-compressed-trim-label {
+  position: absolute;
+  right: 2%;
+}
+
+.eis-compressed-flap-position {
+  position: absolute;
+  left: 73.6%;
+  top: 64%;
+}
+
+.eis-compressed-ign-left {
+  position: absolute;
+  top: 5%;
+  left: 24%;
+}
+
+.eis-compressed-ign-right {
+  position: absolute;
+  top: 5%;
+  left: 43.5%;
+}

@@ -1,7 +1,9 @@
 import {
+  BasicNavAngleSubject,
+  BasicNavAngleUnit,
   BitFlags, FSComponent, GeoPoint, GeoPointSubject, LatLonDisplay, MapLayer, MapLayerProps, MapOwnAirplanePropsModule, MapProjection, MapProjectionChangeType,
-  MapSystemKeys, NavAngleSubject, NavAngleUnit, NavAngleUnitReferenceNorth, NumberFormatter, NumberUnitSubject, Subject, Unit, UnitFamily, UnitType, VNode
-} from 'msfssdk';
+  MapSystemKeys, NumberFormatter, NumberUnitSubject, Subject, Unit, UnitFamily, UnitType, VNode
+} from '@microsoft/msfs-sdk';
 
 import { BearingDisplay } from '../../common/BearingDisplay';
 import { NumberUnitDisplay } from '../../common/NumberUnitDisplay';
@@ -54,13 +56,13 @@ export class MapPointerInfoLayer extends MapLayer<MapPointerInfoLayerProps> {
   private readonly unitsModule = this.props.model.getModule(GarminMapKeys.Units);
   private readonly distanceLargeUnits = this.unitsModule?.distanceLarge ?? Subject.create(UnitType.NMILE);
   private readonly distanceSmallUnits = this.unitsModule?.distanceSmall ?? Subject.create(UnitType.FOOT);
-  private readonly navAngleUnits = this.unitsModule?.navAngle ?? Subject.create(NavAngleUnit.create(true));
+  private readonly navAngleUnits = this.unitsModule?.navAngle ?? Subject.create(BasicNavAngleUnit.create(true));
 
-  private readonly distance = NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(NaN));
+  private readonly distance = NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN));
   private readonly distanceUnit = Subject.create(UnitType.NMILE as Unit<UnitFamily.Distance>);
-  private readonly bearing = NavAngleSubject.createFromNavAngle(new NavAngleUnit(NavAngleUnitReferenceNorth.True, 0, 0).createNumber(NaN));
+  private readonly bearing = BasicNavAngleSubject.create(BasicNavAngleUnit.create(false).createNumber(NaN));
 
-  private readonly latLon = GeoPointSubject.createFromGeoPoint(new GeoPoint(0, 0));
+  private readonly latLon = GeoPointSubject.create(new GeoPoint(0, 0));
 
   private readonly scheduleUpdateHandler = (): void => { this.needUpdate = true; };
 
@@ -124,7 +126,7 @@ export class MapPointerInfoLayer extends MapLayer<MapPointerInfoLayerProps> {
     this.distance.set(airplanePos.distance(latLon), UnitType.GA_RADIAN);
     this.updateDistanceUnit();
 
-    this.bearing.set(airplanePos.bearingTo(latLon), airplanePos.lat, airplanePos.lon);
+    this.bearing.set(airplanePos.bearingTo(latLon), this.ownAirplanePropsModule.magVar.get());
   }
 
   /**

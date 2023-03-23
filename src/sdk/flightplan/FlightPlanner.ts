@@ -3,7 +3,7 @@ import { UnitType } from '../math';
 import { FlightPlanLeg, ICAO, LegType } from '../navigation/Facilities';
 import { SubEvent } from '../sub/SubEvent';
 import { FlightPathCalculator } from './FlightPathCalculator';
-import { ActiveLegType, DirectToData, FlightPlan, OriginDestChangeType, PlanChangeType, PlanEvents } from './FlightPlan';
+import { ActiveLegType, DirectToData, FlightPlan, LegEventType, OriginDestChangeType, PlanEvents, SegmentEventType } from './FlightPlan';
 import { FlightPlanSegment, LegDefinition, ProcedureDetails } from './FlightPlanning';
 
 /**
@@ -68,8 +68,8 @@ export interface FlightPlanCalculatedEvent {
  * An event fired when there are leg related changes.
  */
 export interface FlightPlanLegEvent {
-  /** The type of the leg change. */
-  readonly type: PlanChangeType;
+  /** The type of the leg event. */
+  readonly type: LegEventType;
 
   /** The index of the flight plan. */
   readonly planIndex: number;
@@ -80,8 +80,8 @@ export interface FlightPlanLegEvent {
   /** The index of the changed leg in the segment. */
   readonly legIndex: number;
 
-  /** The leg that was added or removed. */
-  readonly leg?: LegDefinition;
+  /** The leg that was added, removed, or changed. */
+  readonly leg: LegDefinition;
 }
 
 /**
@@ -91,7 +91,7 @@ export interface FlightPlanActiveLegEvent {
   /** The index of the flight plan. */
   readonly planIndex: number;
 
-  /** The index of the changed leg in the segment. */
+  /** The global index of the active leg. */
   readonly index: number;
 
   /** The index of the segment in which the active leg is. */
@@ -115,7 +115,7 @@ export interface FlightPlanActiveLegEvent {
  */
 export interface FlightPlanSegmentEvent {
   /** The type of the leg change. */
-  readonly type: PlanChangeType;
+  readonly type: SegmentEventType;
 
   /** The index of the flight plan. */
   readonly planIndex: number;
@@ -159,6 +159,8 @@ export interface FlightPlanProcedureDetailsEvent {
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface FlightPlanRequestEvent {
+  /** A unique ID attached to the request. */
+  readonly uid: number;
 }
 
 /**
@@ -166,6 +168,9 @@ export interface FlightPlanRequestEvent {
  * flight plan set request.
  */
 export interface FlightPlanResponseEvent {
+  /** The unique ID of the request that triggered this response. */
+  readonly uid: number;
+
   /** The plans contained by the flight planner. */
   readonly flightPlans: FlightPlan[];
 
@@ -190,6 +195,9 @@ export interface FlightPlanCopiedEvent {
 
   /** The index that the flight plan was copied to. */
   readonly targetPlanIndex: number;
+
+  /** Whether this copy should include flight plan calculations. */
+  readonly copyCalcs: boolean;
 }
 
 /**
@@ -248,6 +256,8 @@ export class FlightPlanner {
   /** The active flight plan index. */
   private _activePlanIndex = 0;
 
+  private lastRequestUid?: number;
+
   public flightPlanSynced = new SubEvent<this, boolean>();
 
   /**
@@ -279,7 +289,7 @@ export class FlightPlanner {
     this.publisher = bus.getPublisher<FlightPlannerEvents>();
     const subscriber = bus.getSubscriber<FlightPlannerSyncEvents>();
 
-    subscriber.on('fplsync_fplRequest').handle(() => !this.ignoreSync && this.onFlightPlanRequest());
+    subscriber.on('fplsync_fplRequest').handle(data => !this.ignoreSync && this.onFlightPlanRequest(data));
     subscriber.on('fplsync_fplResponse').handle(data => !this.ignoreSync && this.onFlightPlanResponse(data));
     subscriber.on('fplsync_fplCreated').handle(data => !this.ignoreSync && this.onPlanCreated(data));
     subscriber.on('fplsync_fplDeleted').handle(data => !this.ignoreSync && this.onPlanDeleted(data));
@@ -305,10 +315,12 @@ export class FlightPlanner {
 
   /**
    * An event generated when a set of flight plans is requested.
+   * @param data The event data.
    */
-  private onFlightPlanRequest(): void {
+  private onFlightPlanRequest(data: FlightPlanRequestEvent): void {
     this.ignoreSync = true;
     this.publisher.pub('fplsync_fplResponse', {
+      uid: data.uid,
       flightPlans: this.flightPlans.map(plan => {
         const newPlan = Object.assign({}, plan) as any;
         newPlan.calculator = undefined;
@@ -324,7 +336,7 @@ export class FlightPlanner {
    */
   private sendFlightPlanRequest(): void {
     this.ignoreSync = true;
-    this.publisher.pub('fplsync_fplRequest', {}, true, false);
+    this.publisher.pub('fplsync_fplRequest', { uid: this.lastRequestUid = Math.trunc(Math.random() * Number.MAX_SAFE_INTEGER) }, true, false);
     this.ignoreSync = false;
   }
 
@@ -333,7 +345,18 @@ export class FlightPlanner {
    * @param data The event data.
    */
   private onFlightPlanResponse(data: FlightPlanResponseEvent): void {
+    if (data.uid !== this.lastRequestUid) {
+      return;
+    }
+
+    this.lastRequestUid = undefined;
+
     for (let i = 0; i < data.flightPlans.length; i++) {
+      // ignore bogus flight plans
+      if (data.flightPlans[i].segmentCount === 0) {
+        continue;
+      }
+
       const newPlan = Object.assign(new FlightPlan(i, this.calculator, this.onLegNameRequested), data.flightPlans[i]);
       newPlan.events = this.buildPlanEventHandlers(i);
 
@@ -489,20 +512,21 @@ export class FlightPlanner {
    * Copies a flight plan to another flight plan slot.
    * @param sourcePlanIndex The source flight plan index.
    * @param targetPlanIndex The target flight plan index.
+   * @param copyCalcs Whether to copy leg calculations (defaults to false).
    * @param notify Whether or not to notify subscribers that the plan has been copied.
    */
-  public copyFlightPlan(sourcePlanIndex: number, targetPlanIndex: number, notify = true): void {
+  public copyFlightPlan(sourcePlanIndex: number, targetPlanIndex: number, copyCalcs = false, notify = true): void {
     const sourcePlan = this.flightPlans[sourcePlanIndex];
     if (!sourcePlan) {
       return;
     }
 
-    const newPlan = sourcePlan.copy(targetPlanIndex);
+    const newPlan = sourcePlan.copy(targetPlanIndex, copyCalcs);
     newPlan.events = this.buildPlanEventHandlers(targetPlanIndex);
     this.flightPlans[targetPlanIndex] = newPlan;
 
     if (notify) {
-      this.sendPlanCopied(sourcePlanIndex, targetPlanIndex);
+      this.sendPlanCopied(sourcePlanIndex, targetPlanIndex, copyCalcs);
     }
   }
 
@@ -511,7 +535,7 @@ export class FlightPlanner {
    * @param data The event data.
    */
   private onPlanCopied(data: FlightPlanCopiedEvent): void {
-    this.copyFlightPlan(data.planIndex, data.targetPlanIndex, false);
+    this.copyFlightPlan(data.planIndex, data.targetPlanIndex, data.copyCalcs, false);
 
     this.sendEvent('fplCopied', data, false);
   }
@@ -520,9 +544,10 @@ export class FlightPlanner {
    * Sends a leg change event.
    * @param planIndex The index of the flight plan that was the source of the copy.
    * @param targetPlanIndex The index of the copy.
+   * @param copyCalcs Whether to leg calculations were copied.
    */
-  private sendPlanCopied(planIndex: number, targetPlanIndex: number): void {
-    const data = { planIndex, targetPlanIndex };
+  private sendPlanCopied(planIndex: number, targetPlanIndex: number, copyCalcs: boolean): void {
+    const data = { planIndex, targetPlanIndex, copyCalcs };
     this.sendEvent('fplCopied', data, true);
   }
 
@@ -533,23 +558,30 @@ export class FlightPlanner {
   private onLegChanged(data: FlightPlanLegEvent): void {
     const plan = this.getFlightPlan(data.planIndex);
 
-    let localLeg: LegDefinition | undefined = undefined;
+    let localLeg: LegDefinition;
 
     switch (data.type) {
-      case PlanChangeType.Added:
-        localLeg = data.leg && plan.addLeg(data.segmentIndex, data.leg.leg, data.legIndex, data.leg.flags, false);
+      case LegEventType.Added: {
+        localLeg = plan.addLeg(data.segmentIndex, data.leg.leg, data.legIndex, data.leg.flags, false);
         break;
-      case PlanChangeType.Removed:
-        localLeg = plan.removeLeg(data.segmentIndex, data.legIndex, false) ?? undefined;
+      }
+      case LegEventType.Removed: {
+        const leg = plan.removeLeg(data.segmentIndex, data.legIndex, false);
+        // We don't want to send the event locally if we didn't find a leg
+        if (!leg) { return; }
+        localLeg = leg;
         break;
-      case PlanChangeType.Changed:
+      }
+      case LegEventType.Changed: {
         try {
           localLeg = plan.getLeg(data.segmentIndex, data.legIndex);
         } catch {
-          // noop
+          // We don't want to send the event locally if we didn't find a leg
+          return;
         }
-        data.leg && data.leg.verticalData && plan.setLegVerticalData(data.segmentIndex, data.legIndex, data.leg.verticalData, false);
+        plan.setLegVerticalData(data.segmentIndex, data.legIndex, data.leg.verticalData, false);
         break;
+      }
     }
 
     // We need to send a reference to the local flight plan's copy of the leg with the local event so that
@@ -573,7 +605,7 @@ export class FlightPlanner {
    * @param type The type of change.
    * @param leg The leg that was changed.
    */
-  private sendLegChanged(planIndex: number, segmentIndex: number, index: number, type: PlanChangeType, leg?: LegDefinition): void {
+  private sendLegChanged(planIndex: number, segmentIndex: number, index: number, type: LegEventType, leg: LegDefinition): void {
     const data = {
       planIndex, segmentIndex, legIndex: index, type, leg
     };
@@ -593,22 +625,23 @@ export class FlightPlanner {
     let localSegment: FlightPlanSegment | undefined = undefined;
 
     switch (data.type) {
-      case PlanChangeType.Added:
+      case SegmentEventType.Added:
         localSegment = data.segment && plan.addSegment(data.segmentIndex, data.segment.segmentType, data.segment.airway, false);
         break;
-      case PlanChangeType.Inserted:
+      case SegmentEventType.Inserted:
         localSegment = data.segment && plan.insertSegment(data.segmentIndex, data.segment.segmentType, data.segment.airway, false);
         break;
-      case PlanChangeType.Removed:
-        try {
-          localSegment = plan.getSegment(data.segmentIndex);
-        } catch {
-          // noop
-        }
+      case SegmentEventType.Removed:
+        localSegment = plan.tryGetSegment(data.segmentIndex) ?? undefined;
         plan.removeSegment(data.segmentIndex, false);
         break;
-      case PlanChangeType.Changed:
-        data.segment && plan.setAirway(data.segmentIndex, data.segment.airway, false);
+      case SegmentEventType.Changed:
+        localSegment = data.segment === undefined ? undefined : plan.tryGetSegment(data.segmentIndex) ?? undefined;
+        if (localSegment === undefined) {
+          return;
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        plan.setAirway(data.segmentIndex, data.segment!.airway, false);
         break;
     }
 
@@ -631,7 +664,7 @@ export class FlightPlanner {
    * @param type The type of change.
    * @param segment The segment that was changed.
    */
-  private sendSegmentChanged(planIndex: number, index: number, type: PlanChangeType, segment?: FlightPlanSegment): void {
+  private sendSegmentChanged(planIndex: number, index: number, type: SegmentEventType, segment?: FlightPlanSegment): void {
     const data = {
       planIndex, segmentIndex: index, type, segment
     };
@@ -666,7 +699,7 @@ export class FlightPlanner {
   /**
    * Sends an active leg change event.
    * @param planIndex The index of the flight plan.
-   * @param index The index of the leg.
+   * @param index The global index of the leg.
    * @param segmentIndex The index of the plan segment.
    * @param legIndex The index of the leg within the segment.
    * @param previousSegmentIndex The index of the segment in which the previously active leg is.
@@ -695,6 +728,10 @@ export class FlightPlanner {
     }
 
     await plan.calculate(data.index, false);
+
+    if (this.flightPlans[data.planIndex] !== plan) {
+      return;
+    }
 
     this.sendEvent('fplCalculated', data, false);
   }

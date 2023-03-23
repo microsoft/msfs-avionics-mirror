@@ -1,0 +1,28 @@
+.load-or-activate-button-approach {
+  text-align: center;
+  font-size: var(--gns-font-page-data);
+}
+
+wt-gns530 .load-or-activate-button-approach {
+  margin-top: -20px;
+}
+
+.load-or-activate-button-arrival {
+  text-align: center;
+  font-size: var(--gns-font-page-data);
+}
+
+.load-or-activate-button-departure {
+  text-align: center;
+  font-size: var(--gns-font-page-data);
+}
+
+.load-or-activate-button-or {
+  color: var(--gnscyan);
+  font-size: 10px;
+  margin-top: 3px;
+}
+
+.load-or-activate-button span {
+  padding-top: 1px;
+}

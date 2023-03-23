@@ -1,0 +1,18 @@
+.map-traffic-offscale {
+  display: none;
+  padding: 0.2em 0.4em;
+  background: var(--g3000-color-black);
+  border: 1px solid var(--map-indicator-border-color);
+  border-radius: var(--map-indicator-border-radius);
+  white-space: nowrap;
+}
+
+.map-traffic-offscale.offscale-mode-ta {
+  display: block;
+  color: var(--color-amber);
+}
+
+.map-traffic-offscale.offscale-mode-ra {
+  display: block;
+  color: var(--color-red);
+}

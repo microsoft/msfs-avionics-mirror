@@ -1,0 +1,24 @@
+html {
+  --map-pointer-size: 25px;
+}
+
+.map-pointer {
+  width: var(--map-pointer-size);
+  height: var(--map-pointer-size);
+  fill: var(--g3000-color-white);
+  stroke: var(--g3000-color-black);
+  stroke-width: 4;
+  animation: map-pointer-flash 1s infinite step-end;
+}
+
+@keyframes map-pointer-flash {
+  0% {
+    fill: var(--g3000-color-white);
+    stroke: var(--g3000-color-black);
+  }
+
+  90% {
+    fill: var(--g3000-color-black);
+    stroke: var(--g3000-color-white);
+  }
+}

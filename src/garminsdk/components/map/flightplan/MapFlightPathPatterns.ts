@@ -1,4 +1,4 @@
-import { PathPattern, PathStream } from 'msfssdk';
+import { PathPattern, PathStream } from '@microsoft/msfs-sdk';
 
 /**
  * A repeating pattern of triangular arrows pointing in the direction of the input path.

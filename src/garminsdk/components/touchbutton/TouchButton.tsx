@@ -1,6 +1,6 @@
 import {
-  ComponentProps, DisplayComponent, FSComponent, SetSubject, Subject, Subscribable, SubscribableSet, SubscribableUtils, Subscription, VNode
-} from 'msfssdk';
+  ComponentProps, DisplayComponent, FSComponent, SetSubject, Subscribable, SubscribableMapFunctions, SubscribableSet, SubscribableUtils, Subscription, VNode
+} from '@microsoft/msfs-sdk';
 
 /**
  * Component props for TouchButton.
@@ -15,12 +15,15 @@ export interface TouchButtonProps extends ComponentProps {
   /** Whether the button is highlighted, or a subscribable which provides it. Defaults to `false`. */
   isHighlighted?: boolean | Subscribable<boolean>;
 
-  /** Whether the button is or not. Defaults to `true`. */
+  /** Whether the button is visible. Defaults to `true`. */
   isVisible?: boolean | Subscribable<boolean>;
 
   /**
    * The label for the button. Can be defined as either a static `string`, a subscribable which provides the label
    * `string`, or a VNode. If not defined, the button will not have a label.
+   *
+   * If the label is defined as a VNode, all first-level DisplayComponents in the VNode tree will be destroyed when
+   * the button is destroyed.
    */
   label?: string | Subscribable<string> | VNode;
 
@@ -29,6 +32,27 @@ export interface TouchButtonProps extends ComponentProps {
    * @param button The button that was pressed.
    */
   onPressed?: <B extends TouchButton = TouchButton>(button: B) => void;
+
+  /**
+   * Whether the pad should focus all mouse events when dragging, preventing them from bubbling up to any ancestors
+   * in the DOM tree. Defaults to `false`.
+   */
+  focusOnDrag?: boolean;
+
+  /** Whether this button should refire a mousedown event on its parent and unprime
+   * when mouse is clicked and dragged past the dragThresholdPx or on mouseleave.
+   * Defaults to false. */
+  inhibitOnDrag?: boolean;
+
+  /** How far the mouse can be clicked and moved from the click position before propogating the mousedown event and unpriming.
+   * Only applies when inhibitOnDrag is true.
+   * Defaults to 40px. */
+  dragThresholdPx?: number;
+
+  /** Which axis to apply the drag threshold to.
+   * Only applies when inhibitOnDrag is true.
+   * Defaults to both. */
+  inhibitOnDragAxis?: 'x' | 'y' | 'both';
 
   /** A callback function which will be called when the button is destroyed. */
   onDestroy?: () => void;
@@ -47,46 +71,50 @@ export interface TouchButtonProps extends ComponentProps {
  * The root element optionally contains a child label element with the CSS class `touch-button-label`.
  */
 export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends DisplayComponent<P> {
+  protected static readonly RESERVED_CSS_CLASSES = new Set([
+    'touch-button',
+    'touch-button-disabled',
+    'touch-button-primed',
+    'touch-button-highlight',
+    'touch-button-hidden'
+  ]);
+
   protected readonly rootRef = FSComponent.createRef<HTMLDivElement>();
+
+  protected readonly cssClassSet = SetSubject.create(['touch-button']);
 
   protected readonly mouseDownListener = this.onMouseDown.bind(this);
   protected readonly mouseUpListener = this.onMouseUp.bind(this);
   protected readonly mouseLeaveListener = this.onMouseLeave.bind(this);
+  protected readonly mouseMoveListener = this.onMouseMove.bind(this);
 
-  protected readonly isEnabled = Subject.create(true);
-  protected readonly isHighlighted = Subject.create(false);
-  protected readonly isVisible = Subject.create(true);
+  protected readonly isEnabled = SubscribableUtils.toSubscribable(this.props.isEnabled ?? true, true);
+  protected readonly isHighlighted = SubscribableUtils.toSubscribable(this.props.isHighlighted ?? false, true);
+  protected readonly isVisible = SubscribableUtils.toSubscribable(this.props.isVisible ?? true, true);
+
+  protected readonly labelContent = this.props.label !== undefined && SubscribableUtils.isSubscribable(this.props.label)
+    ? this.props.label.map(SubscribableMapFunctions.identity())
+    : this.props.label;
+
   protected isPrimed = false;
 
-  protected readonly cssClassSet = SetSubject.create(['touch-button']);
-
-  protected isEnabledPipe?: Subscription;
-  protected isHighlightedPipe?: Subscription;
-  protected isVisiblePipe?: Subscription;
+  protected isEnabledSub?: Subscription;
+  protected isHighlightedSub?: Subscription;
+  protected isVisibleSub?: Subscription;
   protected cssClassSub?: Subscription;
+
+  protected readonly mouseClickPosition = new Vec2();
+  protected readonly currentMousePosition = new Vec2();
+
+  protected readonly focusOnDrag = this.props.focusOnDrag ?? false;
+  protected readonly inhibitOnDrag = this.props.inhibitOnDrag ?? false;
+  protected readonly dragThresholdPxActual = this.props.dragThresholdPx ?? 40;
+  protected readonly inhibitOnDragAxisActual = this.props.inhibitOnDragAxis ?? 'both';
 
   /** @inheritdoc */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public onAfterRender(node: VNode): void {
-    if (typeof this.props.isEnabled === 'object') {
-      this.isEnabledPipe = this.props.isEnabled.pipe(this.isEnabled);
-    } else {
-      this.isEnabled.set(this.props.isEnabled ?? true);
-    }
-
-    if (typeof this.props.isHighlighted === 'object') {
-      this.isHighlightedPipe = this.props.isHighlighted.pipe(this.isHighlighted);
-    } else {
-      this.isHighlighted.set(this.props.isHighlighted ?? false);
-    }
-
-    if (SubscribableUtils.isSubscribable(this.props.isVisible)) {
-      this.isVisiblePipe = this.props.isVisible.pipe(this.isVisible);
-    } else {
-      this.isVisible.set(this.props.isVisible ?? true);
-    }
-
-    this.isEnabled.sub(isEnabled => {
+    this.isEnabledSub = this.isEnabled.sub(isEnabled => {
       if (isEnabled) {
         this.cssClassSet.delete('touch-button-disabled');
       } else {
@@ -98,7 +126,7 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
       }
     }, true);
 
-    this.isHighlighted.sub(isHighlighted => {
+    this.isHighlightedSub = this.isHighlighted.sub(isHighlighted => {
       if (isHighlighted) {
         this.cssClassSet.add('touch-button-highlight');
       } else {
@@ -106,7 +134,7 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
       }
     }, true);
 
-    this.isVisible.sub(isVisible => {
+    this.isVisibleSub = this.isVisible.sub(isVisible => {
       if (isVisible) {
         this.cssClassSet.delete('touch-button-hidden');
       } else {
@@ -131,17 +159,29 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
     this.isPrimed = isPrimed;
     if (isPrimed) {
       this.cssClassSet.add('touch-button-primed');
+      if (this.inhibitOnDrag) {
+        this.rootRef.instance.addEventListener('mousemove', this.mouseMoveListener);
+      }
     } else {
       this.cssClassSet.delete('touch-button-primed');
+      if (this.inhibitOnDrag) {
+        this.rootRef.instance.removeEventListener('mousemove', this.mouseMoveListener);
+      }
     }
 
   }
 
   /**
    * Responds to mouse down events on this button's root element.
+   * @param e The mouse event.
    */
-  protected onMouseDown(): void {
+  protected onMouseDown(e: MouseEvent): void {
     if (this.isEnabled.get()) {
+      if (this.focusOnDrag) {
+        this.mouseClickPosition.x = e.clientX;
+        this.mouseClickPosition.y = e.clientY;
+        e.stopPropagation();
+      }
       this.setPrimed(true);
     }
   }
@@ -159,9 +199,58 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
 
   /**
    * Responds to mouse leave events on this button's root element.
+   * @param e The mouse event.
    */
-  protected onMouseLeave(): void {
+  protected onMouseLeave(e: MouseEvent): void {
+    if (!this.isPrimed) {
+      return;
+    }
     this.setPrimed(false);
+    if (this.focusOnDrag) {
+      const newE = new MouseEvent('mousedown', {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        bubbles: true,
+      });
+      this.rootRef.instance.parentElement?.dispatchEvent(newE);
+    }
+  }
+
+  /**
+   * Handle mouse moving after clicking.
+   * @param e The mouse event.
+   */
+  protected onMouseMove(e: MouseEvent): void {
+    if (!this.isPrimed) {
+      return;
+    }
+
+    this.currentMousePosition.x = e.clientX;
+    this.currentMousePosition.y = e.clientY;
+
+    if (this.getDragDistance() > this.dragThresholdPxActual) {
+      this.setPrimed(false);
+
+      const newE = new MouseEvent('mousedown', {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        bubbles: true,
+      });
+      this.rootRef.instance.parentElement?.dispatchEvent(newE);
+
+    }
+  }
+
+  /**
+   * Get the distance that the mouse has been dragged on the correct axis.
+   * @returns The distance.
+   */
+  protected getDragDistance(): number {
+    switch (this.inhibitOnDragAxisActual) {
+      case 'x': return Math.abs(this.mouseClickPosition.x - this.currentMousePosition.x);
+      case 'y': return Math.abs(this.mouseClickPosition.y - this.currentMousePosition.y);
+      case 'both': return this.mouseClickPosition.Distance(this.currentMousePosition);
+    }
   }
 
   /**
@@ -177,8 +266,8 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
 
     if (typeof this.props.class === 'object') {
       this.cssClassSub = FSComponent.bindCssClassSet(this.cssClassSet, this.props.class, reservedClasses);
-    } else {
-      for (const cssClassToAdd of FSComponent.parseCssClassesFromString(this.props.class ?? '').filter(cssClass => !reservedClasses.has(cssClass))) {
+    } else if (this.props.class !== undefined && this.props.class.length > 0) {
+      for (const cssClassToAdd of FSComponent.parseCssClassesFromString(this.props.class, cssClass => !reservedClasses.has(cssClass))) {
         this.cssClassSet.add(cssClassToAdd);
       }
     }
@@ -196,12 +285,12 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
    * @returns This button's rendered label, or `null` if this button does not have a label.
    */
   protected renderLabel(): VNode | null {
-    if (this.props.label === undefined) {
+    if (this.labelContent === undefined) {
       return null;
     }
 
     return (
-      <div class='touch-button-label'>{this.props.label}</div>
+      <div class='touch-button-label'>{this.labelContent}</div>
     );
   }
 
@@ -209,24 +298,39 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
    * Gets the CSS classes that are reserved for this button's root element.
    * @returns The CSS classes that are reserved for this button's root element.
    */
-  protected getReservedCssClasses(): Set<string> {
-    return new Set(['touch-button', 'touch-button-disabled', 'touch-button-primed',
-      'touch-button-highlight', 'touch-button-hidden']);
+  protected getReservedCssClasses(): ReadonlySet<string> {
+    return TouchButton.RESERVED_CSS_CLASSES;
   }
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
+    this.props.onDestroy && this.props.onDestroy();
 
-    this.isEnabledPipe?.destroy();
-    this.isHighlightedPipe?.destroy();
-    this.isVisiblePipe?.destroy();
+    if (this.labelContent !== undefined) {
+      if (SubscribableUtils.isSubscribable(this.labelContent)) {
+        this.labelContent.destroy();
+      } else if (typeof this.labelContent === 'object') {
+        FSComponent.visitNodes(this.labelContent, node => {
+          if (node.instance instanceof DisplayComponent) {
+            node.instance.destroy();
+            return true;
+          }
+
+          return false;
+        });
+      }
+    }
+
+    this.isEnabledSub?.destroy();
+    this.isHighlightedSub?.destroy();
+    this.isVisibleSub?.destroy();
     this.cssClassSub?.destroy();
 
     this.rootRef.instance.removeEventListener('mousedown', this.mouseDownListener);
     this.rootRef.instance.removeEventListener('mouseup', this.mouseUpListener);
     this.rootRef.instance.removeEventListener('mouseleave', this.mouseLeaveListener);
+    this.rootRef.instance.removeEventListener('mousemove', this.mouseMoveListener);
 
-    this.props.onDestroy && this.props.onDestroy();
+    super.destroy();
   }
 }

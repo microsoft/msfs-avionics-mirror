@@ -1,0 +1,31 @@
+.advanced-vnav-speed-button.advanced-vnav-schedule-button {
+  justify-content: flex-start;
+}
+
+.gtc-horizontal .advanced-vnav-schedule-button {
+  height: var(--advanced-vnav-schedule-button-height, 165px);
+  padding: 10px 0px 5px 0px;
+
+  --advanced-vnav-speed-button-label-margin-bottom: 10px;
+  --advanced-vnav-schedule-button-params-slash-margin: 30px;
+}
+
+.gtc-vertical .advanced-vnav-schedule-button {
+  height: var(--advanced-vnav-schedule-button-height, 89px);
+  padding: 5px 0px 2px 0px;
+
+  --advanced-vnav-speed-button-label-margin-bottom: 5px;
+  --advanced-vnav-schedule-button-params-slash-margin: 15px;
+}
+
+.advanced-vnav-schedule-button-params-row {
+  align-self: stretch;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: baseline;
+}
+
+.advanced-vnav-schedule-button-params-slash {
+  margin: 0px var(--advanced-vnav-schedule-button-params-slash-margin);
+}

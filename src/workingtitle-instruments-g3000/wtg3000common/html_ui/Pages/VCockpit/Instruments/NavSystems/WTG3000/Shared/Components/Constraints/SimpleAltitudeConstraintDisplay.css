@@ -1,0 +1,11 @@
+.simple-altitude-constraint-display {
+  display: inline;
+}
+
+.simple-altitude-constraint-display span.FT {
+  font-size: 0.75em;
+}
+
+.simple-altitude-constraint-display.FL span.FT {
+  display: none;
+}

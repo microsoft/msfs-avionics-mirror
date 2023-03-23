@@ -1,0 +1,253 @@
+.advanced-vnav-profile-tab {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  font-size: var(--advanced-vnav-profile-tab-font-size-small);
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .advanced-vnav-profile-tab {
+  padding: 5px 10px;
+
+  --advanced-vnav-profile-tab-font-size-small: 30px;
+  --advanced-vnav-profile-tab-font-size-medium: 33px;
+  --advanced-vnav-profile-tab-font-size-large: 36px;
+
+  --advanced-vnav-profile-tab-active-vnav-waypoint-height: 118px;
+  --advanced-vnav-profile-tab-active-vnav-waypoint-column-gap: 28px;
+  --advanced-vnav-profile-tab-active-vnav-waypoint-altitude-width: 210px;
+
+  --advanced-vnav-profile-tab-button-row-height: 118px;
+  --advanced-vnav-profile-tab-button-row-column-gap: 10px;
+
+  --advanced-vnav-profile-tab-main-data-row-margin-top: 7px;
+  --advanced-vnav-profile-tab-main-data-row-height: 90px;
+
+  --advanced-vnav-profile-tab-vnav-enabled-button-width: 47.5%;
+  --advanced-vnav-profile-tab-vnav-enabled-button-height: 125px;
+  --advanced-vnav-profile-tab-vnav-enabled-button-margin: 7px 0px;
+
+  --advanced-vnav-profile-tab-active-speed-target-row-margin-top: 7px;
+
+  --advanced-vnav-profile-tab-fms-speed-row-margin-top: 7px;
+
+  --advanced-vnav-profile-tab-fms-speed-user-pencil-left: 250px;
+  --advanced-vnav-profile-tab-fms-speed-user-pencil-scale: 1.8;
+}
+
+.gtc-vertical .advanced-vnav-profile-tab {
+  padding: 3px 5px;
+
+  --advanced-vnav-profile-tab-font-size-small: 16px;
+  --advanced-vnav-profile-tab-font-size-medium: 18px;
+  --advanced-vnav-profile-tab-font-size-large: 20px;
+
+  --advanced-vnav-profile-tab-active-vnav-waypoint-height: 64px;
+  --advanced-vnav-profile-tab-active-vnav-waypoint-column-gap: 14px;
+  --advanced-vnav-profile-tab-active-vnav-waypoint-altitude-width: 120px;
+
+  --advanced-vnav-profile-tab-button-row-height: 65px;
+  --advanced-vnav-profile-tab-button-row-column-gap: 2px;
+
+  --advanced-vnav-profile-tab-main-data-row-margin-top: 3px;
+  --advanced-vnav-profile-tab-main-data-row-height: 48px;
+
+  --advanced-vnav-profile-tab-vnav-enabled-button-width: 47.5%;
+  --advanced-vnav-profile-tab-vnav-enabled-button-height: 68px;
+  --advanced-vnav-profile-tab-vnav-enabled-button-margin: 2px 0px;
+
+  --advanced-vnav-profile-tab-active-speed-target-row-margin-top: 2px;
+
+  --advanced-vnav-profile-tab-fms-speed-row-margin-top: 2px;
+
+  --advanced-vnav-profile-tab-fms-speed-user-pencil-left: 124px;
+  --advanced-vnav-profile-tab-fms-speed-user-pencil-scale: 1;
+}
+
+.advanced-vnav-profile-tab .touch-button .touch-button-label {
+  font-size: var(--advanced-vnav-profile-tab-font-size-small);
+}
+
+.advanced-vnav-profile-tab .touch-button .touch-button-value-value {
+  font-size: var(--advanced-vnav-profile-tab-font-size-large);
+}
+
+.advanced-vnav-profile-tab .active-vnav-waypoint-box {
+  height: var(--advanced-vnav-profile-tab-active-vnav-waypoint-height);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 100%;
+  justify-items: center;
+}
+
+.advanced-vnav-profile-tab .active-vnav-waypoint-row {
+  justify-self: stretch;
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr 1fr;
+  grid-column-gap: var(--advanced-vnav-profile-tab-active-vnav-waypoint-column-gap);
+  align-items: center;
+}
+
+.advanced-vnav-profile-tab .active-vnav-waypoint-row-left {
+  justify-self: end;
+  font-size: var(--advanced-vnav-profile-tab-font-size-large);
+}
+
+.advanced-vnav-profile-tab .active-vnav-waypoint-box .altitude-constraint-display {
+  justify-self: start;
+  width: var(--advanced-vnav-profile-tab-active-vnav-waypoint-altitude-width);
+  justify-content: flex-start;
+  font-size: var(--advanced-vnav-profile-tab-font-size-small);
+
+  --altitude-constraint-display-solid-line-width: 5em;
+}
+
+.advanced-vnav-profile-tab .active-vnav-waypoint-row-crz-alt-value {
+  justify-self: start;
+  font-size: var(--advanced-vnav-profile-tab-font-size-large);
+}
+
+.advanced-vnav-profile-tab .row.second-row {
+  position: relative;
+  height: var(--advanced-vnav-profile-tab-button-row-height);
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: 1fr 1fr;
+  grid-column-gap: var(--advanced-vnav-profile-tab-button-row-column-gap);
+}
+
+.flight-path-angle-button-climb {
+  display: none;
+}
+
+.flight-path-angle-button-climb-phase .flight-path-angle-button-climb {
+  display: block;
+}
+
+.flight-path-angle-button-climb-phase .flight-path-angle-button-fpa {
+  display: none;
+}
+
+.advanced-vnav-profile-tab .main-data-row {
+  position: relative;
+  height: var(--advanced-vnav-profile-tab-main-data-row-height);
+  margin-top: var(--advanced-vnav-profile-tab-main-data-row-margin-top);
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: 40% 20% 40%;
+  font-size: var(--advanced-vnav-profile-tab-font-size-medium);
+}
+
+.advanced-vnav-profile-tab .main-data-row .box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.advanced-vnav-profile-tab .main-data-row .box .label {
+  white-space: pre;
+}
+
+.advanced-vnav-profile-tab .vnav-enabled-button {
+  align-self: center;
+  width: var(--advanced-vnav-profile-tab-vnav-enabled-button-width);
+  height: var(--advanced-vnav-profile-tab-vnav-enabled-button-height);
+  margin: var(--advanced-vnav-profile-tab-vnav-enabled-button-margin);
+
+  --touch-button-toggle-label-center-y: 45%;
+  --touch-button-toggle-bar-center-y: 85%;
+}
+
+.advanced-vnav-profile-tab .active-speed-target-row {
+  margin-top: var(--advanced-vnav-profile-tab-active-speed-target-row-margin-top);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.advanced-vnav-profile-tab .active-speed-target-row .label {
+  height: 50%;
+  font-size: var(--advanced-vnav-profile-tab-font-size-medium);
+}
+
+.advanced-vnav-profile-tab .active-speed-target-row .active-speed-target {
+  height: 50%;
+  font-size: var(--advanced-vnav-profile-tab-font-size-large);
+}
+
+.advanced-vnav-profile-tab .fms-speed-row {
+  position: relative;
+  height: var(--advanced-vnav-profile-tab-button-row-height);
+  margin-top: var(--advanced-vnav-profile-tab-fms-speed-row-margin-top);
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: 1fr 1fr;
+  grid-column-gap: var(--advanced-vnav-profile-tab-button-row-column-gap);
+}
+
+.advanced-vnav-profile-tab-fms-speed-cell {
+  position: relative;
+}
+
+.advanced-vnav-profile-tab-fms-speed {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+
+  --advanced-vnav-profile-tab-fms-speed-value-color: var(--g3000-color-magenta);
+}
+
+.advanced-vnav-profile-tab-fms-speed-label {
+  position: absolute;
+  top: 33%;
+  width: 100%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: var(--advanced-vnav-profile-tab-font-size-small);
+}
+
+.advanced-vnav-profile-tab-fms-speed-value {
+  position: absolute;
+  top: 75%;
+  width: 100%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: var(--advanced-vnav-profile-tab-font-size-large);
+  color: var(--advanced-vnav-profile-tab-fms-speed-value-color);
+}
+
+.advanced-vnav-profile-tab-fms-speed-user-button {
+  --advanced-vnav-profile-tab-fms-speed-value-color: var(--g3000-color-cyan);
+}
+
+.advanced-vnav-profile-tab-fms-speed-user-button-value-row {
+  position: absolute;
+  top: 75%;
+  width: 100%;
+  transform: translateY(-50%);
+  text-align: center;
+}
+
+.advanced-vnav-profile-tab-fms-speed-user-button-value {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.advanced-vnav-profile-tab-fms-speed-user-pencil {
+  position: absolute;
+  top: 50%;
+  left: var(--advanced-vnav-profile-tab-fms-speed-user-pencil-left);
+  transform: translateY(-50%) scale(var(--advanced-vnav-profile-tab-fms-speed-user-pencil-scale));
+  transform-origin: 0% 50%;
+}

@@ -92,6 +92,22 @@ export interface MutableSubscribableSet<T> extends SubscribableSet<T> {
    */
   delete(key: T): boolean;
 
+
+  /**
+   * Toggles the presence of a key in this set.
+   * @param key The key to toggle.
+   * @returns Whether the key is present in this set after the toggle operation.
+   */
+  toggle(key: T): boolean;
+  /**
+   * Toggles the presence of a key in this set.
+   * @param key The key to toggle.
+   * @param force The state of the key to force. If `true`, the key will be added to this set. If `false`, the key will
+   * be removed from this set.
+   * @returns Whether the key is present in this set after the toggle operation.
+   */
+  toggle(key: T, force: boolean): boolean;
+
   /**
    * Removes all keys from this set.
    */

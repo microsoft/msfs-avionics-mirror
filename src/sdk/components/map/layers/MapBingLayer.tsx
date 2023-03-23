@@ -1,9 +1,12 @@
-/// <reference types="msfstypes/JS/common" />
-/// <reference types="msfstypes/JS/Types" />
-/// <reference types="msfstypes/JS/NetBingMap" />
+/// <reference types="@microsoft/msfs-types/js/common" />
+/// <reference types="@microsoft/msfs-types/js/types" />
+/// <reference types="@microsoft/msfs-types/js/netbingmap" />
 
+import { CssTransformBuilder } from '../../../graphics/css/CssTransform';
 import { BitFlags, ReadonlyFloat64Array, UnitType, Vec2Math, Vec2Subject } from '../../../math';
-import { Subscribable, SubscribableArray } from '../../../sub';
+import { ObjectSubject } from '../../../sub/ObjectSubject';
+import { Subscribable } from '../../../sub/Subscribable';
+import { SubscribableArray } from '../../../sub/SubscribableArray';
 import { BingComponent, WxrMode } from '../../bing';
 import { FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps } from '../MapLayer';
@@ -17,11 +20,20 @@ export interface MapBingLayerProps<M> extends MapLayerProps<M> {
   bingId: string;
 
   /**
-   * A subscribable array which provides the earth colors for the layer's Bing component. The array should have a
-   * length of exactly 61, with index 0 defining the water color and indexes 1 through 60 defining terrain colors from
-   * 0 to 60000 feet.
+   * The earth colors for the layer's Bing component. Index 0 defines the water color, and indexes 1 to the end of the
+   * array define the terrain colors. Each color should be expressed as `R + G * 256 + B * 256^2`. If not defined, all
+   * colors default to black.
    */
   earthColors: SubscribableArray<number>;
+
+  /**
+   * The elevation range over which to assign the earth terrain colors, as `[minimum, maximum]` in feet. The terrain
+   * colors are assigned at regular intervals over the entire elevation range, starting with the first terrain color at
+   * the minimum elevation and ending with the last terrain color at the maximum elevation. Terrain below and above the
+   * minimum and maximum elevation are assigned the first and last terrain colors, respectively. Defaults to
+   * `[0, 30000]`.
+   */
+  earthColorsElevationRange?: Subscribable<ReadonlyFloat64Array>;
 
   /**
    * A subscribable which provides the reference mode for the layer's Bing component.
@@ -34,16 +46,30 @@ export interface MapBingLayerProps<M> extends MapLayerProps<M> {
   wxrMode?: Subscribable<WxrMode>;
 
   /**
+   * The weather radar colors for the layer's Bing component. Each entry `E_i` of the array is a tuple `[color, rate]`
+   * that defines a color stop, where `color` is an RGBA color expressed as `R + G * 256 + B * 256^2 + A * 256^3` and
+   * `rate` is a precipitation rate in millimeters per hour.
+   *
+   * In general, the color defined by `E_i` is applied to precipitation rates ranging from the rate defined by `E_i-1`
+   * to the rate defined by `E_i`. There are two special cases. The color defined by `E_0` is applied to the
+   * precipitation rates from zero to the rate defined by `E_0`. The color defined by `E_n-1`, where `n` is the length
+   * of the array, is applied to the precipitation rates from the rate defined by `E_n-2` to positive infinity.
+   *
+   * If not defined, the colors default to {@link BingComponent.DEFAULT_WEATHER_COLORS}.
+   */
+  wxrColors?: SubscribableArray<readonly [number, number]>;
+
+  /**
    * A subscribable which provides whether or not the map isolines are visible.
    */
   isoLines?: Subscribable<boolean>;
 
   /**
-   * How long to delay binding the map in ms.
+   * How long to delay binding the map in milliseconds. Defaults to zero milliseconds.
    */
   delay?: number;
 
-  /** The mode to put the map in. */
+  /** The mode to put the map in. Defaults to {@link EBingMode.PLANE}. */
   mode?: EBingMode;
 }
 
@@ -51,18 +77,34 @@ export interface MapBingLayerProps<M> extends MapLayerProps<M> {
  * A FSComponent that display the MSFS Bing Map, weather radar, and 3D terrain.
  */
 export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
-  public static readonly OVERDRAW_FACTOR = Math.SQRT2;
-
-  private readonly wrapperRef = FSComponent.createRef<HTMLDivElement>();
   private readonly bingRef = FSComponent.createRef<BingComponent>();
 
-  private readonly resolutionSub = Vec2Subject.createFromVector(new Float64Array([1024, 1024]));
+  private readonly wrapperStyle = ObjectSubject.create({
+    'position': 'absolute',
+    'left': '0px',
+    'top': '0px',
+    'width': '0px',
+    'height': '0px',
+    'display': '',
+    'transform': ''
+  });
 
+  private readonly resolution = Vec2Subject.create(Vec2Math.create(1024, 1024));
+
+  private readonly rotationTransform = CssTransformBuilder.rotate('rad');
+
+  /** The length of this layer's diagonal, in pixels. */
   private size = 0;
+
   private needUpdate = false;
 
   /** @inheritdoc */
-  public onAfterRender(): void {
+  public onVisibilityChanged(isVisible: boolean): void {
+    this.wrapperStyle.set('display', isVisible ? '' : 'none');
+  }
+
+  /** @inheritdoc */
+  public onAttached(): void {
     this.updateFromProjectedSize(this.props.mapProjection.getProjectedSize());
 
     if (this.props.wxrMode !== undefined) {
@@ -88,6 +130,8 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
    * @param projectedSize The size of the projected map window.
    */
   private updateFromProjectedSize(projectedSize: ReadonlyFloat64Array): void {
+    let offsetX: number, offsetY: number;
+
     if (this.props.wxrMode && this.props.wxrMode.get().mode === EWeatherRadar.HORIZONTAL) {
       const offsetSize = new Float64Array([projectedSize[0], projectedSize[1]]);
       const offset = this.props.mapProjection.getTargetProjectedOffset();
@@ -96,28 +140,26 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
       offsetSize[1] += offset[1];
       this.size = this.getSize(offsetSize);
 
-      const offsetX = ((projectedSize[0] - this.size) / 2) + offset[0];
-      const offsetY = ((projectedSize[1] - this.size) / 2) + offset[1];
-      this.wrapperRef.instance.style.left = `${offsetX}px`;
-      this.wrapperRef.instance.style.top = `${offsetY}px`;
-      this.wrapperRef.instance.style.width = `${this.size}px`;
-      this.wrapperRef.instance.style.height = `${this.size}px`;
+      offsetX = ((projectedSize[0] - this.size) / 2) + offset[0];
+      offsetY = ((projectedSize[1] - this.size) / 2) + offset[1];
     } else {
       this.size = this.getSize(projectedSize);
 
-      const offsetX = (projectedSize[0] - this.size) / 2;
-      const offsetY = (projectedSize[1] - this.size) / 2;
-      this.wrapperRef.instance.style.left = `${offsetX}px`;
-      this.wrapperRef.instance.style.top = `${offsetY}px`;
-      this.wrapperRef.instance.style.width = `${this.size}px`;
-      this.wrapperRef.instance.style.height = `${this.size}px`;
+      offsetX = (projectedSize[0] - this.size) / 2;
+      offsetY = (projectedSize[1] - this.size) / 2;
     }
 
-    this.resolutionSub.set(this.size, this.size);
+    this.wrapperStyle.set('left', `${offsetX}px`);
+    this.wrapperStyle.set('top', `${offsetY}px`);
+    this.wrapperStyle.set('width', `${this.size}px`);
+    this.wrapperStyle.set('height', `${this.size}px`);
+
+    this.resolution.set(this.size, this.size);
   }
 
   /**
    * Gets an appropriate size, in pixels, for this Bing layer given specific map projection window dimensions.
+   * We get the length of the hypotenuse so that the map edges won't show when rotating.
    * @param projectedSize - the size of the projected map window.
    * @returns an appropriate size for this Bing layer.
    */
@@ -127,7 +169,7 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
 
   /** @inheritdoc */
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
-    if (BitFlags.isAll(changeFlags, MapProjectionChangeType.ProjectedSize)) {
+    if (BitFlags.isAny(changeFlags, MapProjectionChangeType.ProjectedSize | MapProjectionChangeType.TargetProjected)) {
       this.updateFromProjectedSize(mapProjection.getProjectedSize());
     }
 
@@ -155,11 +197,6 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
     this.needUpdate = false;
   }
 
-  /** @inheritdoc */
-  public setVisible(val: boolean): void {
-    this.wrapperRef.instance.style.display = val ? '' : 'none';
-  }
-
   /**
    * Resets the underlying Bing component's img src attribute.
    */
@@ -176,10 +213,12 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
     this.bingRef.instance.setPositionRadius(new LatLong(center.lat, center.lon), radius);
 
     if (!this.props.wxrMode || (this.props.wxrMode && this.props.wxrMode.get().mode !== EWeatherRadar.HORIZONTAL)) {
-      this.wrapperRef.instance.style.transform = `rotate(${this.props.mapProjection.getRotation() * Avionics.Utils.RAD2DEG}deg)`;
+      this.rotationTransform.set(this.props.mapProjection.getRotation(), 1e-3);
     } else {
-      this.wrapperRef.instance.style.transform = '';
+      this.rotationTransform.set(0);
     }
+
+    this.wrapperStyle.set('transform', this.rotationTransform.resolve());
   }
 
   /**
@@ -197,15 +236,17 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div ref={this.wrapperRef} style='position: absolute;' class={this.props.class ?? ''}>
+      <div style={this.wrapperStyle} class={this.props.class ?? ''}>
         <BingComponent
           ref={this.bingRef} id={this.props.bingId}
           onBoundCallback={this.onBingBound.bind(this)}
-          resolution={this.resolutionSub}
+          resolution={this.resolution}
           mode={this.props.mode ?? EBingMode.PLANE}
           earthColors={this.props.earthColors}
+          earthColorsElevationRange={this.props.earthColorsElevationRange}
           reference={this.props.reference}
           wxrMode={this.props.wxrMode}
+          wxrColors={this.props.wxrColors}
           isoLines={this.props.isoLines}
           delay={this.props.delay}
         />

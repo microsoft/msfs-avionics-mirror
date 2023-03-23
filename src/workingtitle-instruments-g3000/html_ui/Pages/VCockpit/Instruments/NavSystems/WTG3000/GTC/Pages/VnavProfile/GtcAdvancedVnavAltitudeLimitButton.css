@@ -1,0 +1,31 @@
+.gtc-horizontal .advanced-vnav-altitude-limit-button {
+  padding: 10px 0px 5px 0px;
+
+  --advanced-vnav-speed-button-label-margin-bottom: 10px;
+  --advanced-vnav-altitude-limit-button-ceiling-below-margin-left: 40px;
+}
+
+.gtc-vertical .advanced-vnav-altitude-limit-button {
+  padding: 5px 0px 2px 0px;
+
+  --advanced-vnav-speed-button-label-margin-bottom: 5px;
+  --advanced-vnav-altitude-limit-button-ceiling-below-margin-left: 20px;
+}
+
+.advanced-vnav-altitude-limit-button-ceiling-row {
+  align-self: stretch;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.advanced-vnav-altitude-limit-button-ceiling-below {
+  position: relative;
+  left: var(--advanced-vnav-altitude-limit-button-ceiling-below-margin-left);
+  width: 0%;
+}
+
+.advanced-vnav-altitude-limit-button-ceiling-value {
+  width: 100%;
+  text-align: center;
+}

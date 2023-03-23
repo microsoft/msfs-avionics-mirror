@@ -1,0 +1,36 @@
+.minimums-source-dialog {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.gtc-horizontal .minimums-source-dialog {
+  top: 92px;
+  width: 305px;
+  height: 640px;
+  padding: 20px 18px 20px 18px;
+  font-size: 38px;
+
+  --minimums-source-dialog-button-height: 130px;
+}
+
+.gtc-vertical .minimums-source-dialog {
+  top: 50px;
+  width: 165px;
+  height: 340px;
+  padding: 10px 9px 10px 9px;
+  font-size: 19px;
+
+  --minimums-source-dialog-button-height: 70px;
+}
+
+.minimums-source-dialog-button {
+  height: var(--minimums-source-dialog-button-height);
+}

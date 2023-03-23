@@ -1,0 +1,92 @@
+#MsgInfo {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  font-size: 22px;
+}
+
+#MsgInfo #PFDMessageTopLeft {
+  position: absolute;
+  top: 2.5%;
+  left: 1%;
+  width: 12.5%;
+  text-align: left;
+}
+
+#MsgInfo #PFDMessageTopRight {
+  position: absolute;
+  top: 2.5%;
+  left: 1%;
+  width: 12.5%;
+  text-align: right;
+}
+
+#MsgInfo #PFDMessageBotLeft {
+  position: absolute;
+  top: 6.5%;
+  left: 1%;
+  width: 12.5%;
+  text-align: left;
+}
+
+#MsgInfo #PFDMessageBotRight {
+  position: absolute;
+  top: 6.5%;
+  left: 1%;
+  width: 12.5%;
+  text-align: right;
+}
+
+#MsgInfo #MFDMessageTopRight {
+  position: absolute;
+  top: 10%;
+  left: 82%;
+  width: 15%;
+  text-align: left;
+}
+
+#MsgInfo #PFDMessageMap {
+  top: 54.5%;
+  left: 0;
+  right: 0;
+  margin: auto;
+  width: 50%;
+  position: absolute;
+  text-align: center;
+  font-size: 24px;
+  text-shadow: var(--wt21-fonts-shadow-normal);
+}
+
+.hsi-format-rose #MsgInfo #PFDMessageMap,
+.hsi-format-plan #MsgInfo #PFDMessageMap {
+  top: 41.5%;
+}
+
+.hsi-format-ppos #MsgInfo #PFDMessageMap {
+  top: 53%;
+}
+
+.hsi-format-gwx #MsgInfo #PFDMessageMap,
+.hsi-format-tcas #MsgInfo #PFDMessageMap {
+  display: none;
+}
+
+#MsgInfo .msg-info-blink {
+  animation: msg-info-blink .75s step-start infinite;
+}
+
+@keyframes msg-info-blink {
+  0% {
+    opacity: 0;
+  }
+
+  75% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}

@@ -1,0 +1,90 @@
+ .gtc-horizontal .speed-constraint-display {
+   --speed-constraint-display-lines-thickness: 2px;
+
+   --speed-constraint-display-pencil-icon-scale: 1.8;
+   --speed-constraint-display-pencil-icon-right: 0.5em;
+ }
+
+ .gtc-vertical .speed-constraint-display {
+   --speed-constraint-display-lines-thickness: 1px;
+
+   --speed-constraint-display-pencil-icon-scale: 1;
+   --speed-constraint-display-pencil-icon-right: 0.2em;
+ }
+
+ .speed-constraint-display {
+   display: flex;
+   justify-content: center;
+   align-items: center;
+
+   /* For non GTC. */
+   --speed-constraint-display-lines-thickness: 2px;
+
+   --speed-constraint-display-pencil-icon-scale: 1.8;
+   --speed-constraint-display-pencil-icon-right: 0.5em;
+ }
+
+ .speed-constraint-display .lines-box {
+   text-align: center;
+   width: 3em;
+   border-width: var(--speed-constraint-display-lines-thickness) !important;
+   border-color: var(--g3000-color-cyan);
+   border-style: solid;
+   border-left: none;
+   border-right: none;
+   border-top: none;
+   border-bottom: none;
+ }
+
+ .speed-constraint-display.at .lines-box {
+   border-top: solid;
+   border-bottom: solid;
+ }
+
+ .speed-constraint-display.above .lines-box {
+   border-bottom: solid;
+ }
+
+ .speed-constraint-display.below .lines-box {
+   border-top: solid;
+ }
+
+ .speed-constraint-display.mach .lines-box {
+   width: 4em;
+ }
+
+ .speed-constraint-display.edited.mach .lines-box {
+   margin-right: 1em;
+ }
+
+ .speed-constraint-display .lines-box .mach {
+   white-space: pre;
+ }
+
+ .speed-constraint-display.ias .lines-box .mach {
+   display: none;
+ }
+
+ .speed-constraint-display.mach .lines-box .speed-number-unit {
+   display: none;
+ }
+
+ .speed-constraint-display .lines-box .invalid-image {
+   position: absolute;
+   display: none;
+ }
+
+ .speed-constraint-display.invalid .lines-box .invalid-image {
+   display: block;
+ }
+
+ .speed-constraint-display .pencil-icon {
+   position: absolute;
+   display: none;
+   right: var(--speed-constraint-display-pencil-icon-right);
+   transform: scale(var(--speed-constraint-display-pencil-icon-scale));
+ }
+
+ .speed-constraint-display.edited .pencil-icon {
+   display: block;
+ }

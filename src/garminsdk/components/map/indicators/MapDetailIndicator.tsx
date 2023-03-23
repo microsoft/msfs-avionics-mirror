@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, FSComponent, Subscribable, Subscription, VNode } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, Subscribable, Subscription, VNode } from '@microsoft/msfs-sdk';
 
 import { MapDeclutterMode } from '../modules/MapDeclutterModule';
 

@@ -1,0 +1,141 @@
+.waypoint-ndb-location {
+  color: var(--gnscyan);
+  padding-top: 5px;
+  left: 10px;
+  margin-left: 1px;
+}
+
+wt-gns530 .waypoint-ndb-location {
+  width: 244px;
+}
+
+wt-gns430 .waypoint-ndb-location {
+  width: 100%;
+}
+
+.waypoint-ndb-location>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid var(--gnscyan);
+  position: relative;
+  margin-left: -1px;
+  line-height: 19px;
+}
+
+wt-gns530 .waypoint-ndb-location>div {
+  height: 57px;
+  padding: 1px;
+}
+
+wt-gns430 .waypoint-ndb-location>div {
+  height: 60px;
+  padding: 2px;
+}
+
+.waypoint-ndb-position {
+  color: var(--gnscyan);
+  padding-top: 10px;
+  left: 10px;
+  margin-left: 1px;
+  float: left;
+}
+
+wt-gns530 .waypoint-ndb-position {
+  width: 113px;
+}
+
+wt-gns430 .waypoint-ndb-position {
+  width: 136px;
+}
+
+.waypoint-ndb-position>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid var(--gnscyan);
+  margin-left: -1px;
+}
+
+wt-gns530 .waypoint-ndb-position>div {
+  height: 35px;
+  padding: 1px;
+}
+
+wt-gns430 .waypoint-ndb-position>div {
+  height: 40px;
+  padding: 2px;
+}
+
+.waypoint-ndb-position>div>.latlon-coord {
+  font-size: var(--gns-font-page-data);
+  text-align: right;
+}
+
+wt-gns530 .waypoint-ndb-position>div>.latlon-coord {
+  padding-right: 12px;
+}
+
+wt-gns430 .waypoint-ndb-position>div>.latlon-coord {
+  padding-right: 9px;
+}
+
+.waypoint-ndb-freq {
+  color: var(--gnscyan);
+  padding-top: 10px;
+  margin-left: 1px;
+}
+
+wt-gns530 .waypoint-ndb-freq {
+  width: 65px;
+  float: left;
+}
+
+wt-gns430 .waypoint-ndb-freq {
+  width: 85px;
+  float: right;
+}
+
+.waypoint-ndb-freq>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  margin-left: -1px;
+  display: flex;
+}
+
+wt-gns530 .waypoint-ndb-freq>div {
+  border-top: .8px solid var(--gnscyan);
+  border-bottom: .8px solid var(--gnscyan);
+  height: 35px;
+  padding: 1px;
+  align-items: center;
+  justify-content: center;
+}
+
+wt-gns430 .waypoint-ndb-freq>div {
+  border: .8px solid var(--gnscyan);
+  height: 40px;
+  padding: 2px;
+  justify-content: center;
+}
+
+.waypoint-ndb-wxbrdcst {
+  color: var(--gnscyan);
+  padding-top: 10px;
+  width: 65px;
+  float: left;
+  margin-left: 1px;
+}
+
+.waypoint-ndb-wxbrdcst>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid var(--gnscyan);
+  height: 35px;
+  margin-left: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -1,0 +1,32 @@
+.told-runway-display {
+  width: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+  text-align: center;
+}
+
+.gtc-vertical .told-runway-display {
+  padding: 0px 5px;
+  font-size: 18px;
+}
+
+.told-runway-display-name {
+  font-size: 1.4em;
+}
+
+.told-runway-display-dimension {
+  display: inline-block;
+}
+
+.told-runway-display-bottom {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+}
+
+.told-runway-display-lighting {
+  min-width: 25%;
+}

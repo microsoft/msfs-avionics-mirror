@@ -1,0 +1,16 @@
+.flight-plan-text-inset {
+  background-color: var(--display-pane-inset-gray-background-color);
+  width: 100%;
+  height: 100%;
+  flex-grow: 1;
+  display: none;
+  flex-direction: row;
+}
+
+.nav-map-pane-inset-fpl .flight-plan-text-inset {
+  display: flex;
+}
+
+.small-text {
+  font-size: 0.75em;
+}

@@ -1,0 +1,7 @@
+.origin-segment-list-item-row-cyan {
+  color: var(--g3000-color-cyan);
+}
+
+.touch-button-highlight .origin-segment-list-item-row-cyan {
+  color: var(--touch-button-highlight-text-color);
+}

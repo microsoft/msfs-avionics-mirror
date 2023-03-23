@@ -1,4 +1,4 @@
-import { AvionicsSystemStateEvent, BasicAvionicsSystem, EventBus, SystemPowerKey } from 'msfssdk';
+import { AvionicsSystemStateEvent, BasicAvionicsSystem, EventBus, SystemPowerKey } from '@microsoft/msfs-sdk';
 
 /**
  * Events fired by the magnetometer system.

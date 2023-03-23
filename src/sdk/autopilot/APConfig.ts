@@ -12,7 +12,11 @@ export enum APVerticalModes {
   PATH,
   GP,
   GS,
-  CAP
+  CAP,
+  TO,
+  GA,
+  FPA,
+  FLARE
 }
 
 export enum APLateralModes {
@@ -24,7 +28,13 @@ export enum APLateralModes {
   VOR,
   LOC,
   BC,
-  NAV
+  ROLLOUT,
+  NAV,
+  TO,
+  GA,
+  HEADING_HOLD,
+  TRACK,
+  TRACK_HOLD,
 }
 
 export enum APAltitudeModes {
@@ -41,6 +51,9 @@ export type APValues = {
   /** The selected vertical speed target, in feet per minute. */
   readonly selectedVerticalSpeed: Subject<number>;
 
+  /** The selected flight path angle target, in degrees */
+  readonly selectedFlightPathAngle: Subject<number>;
+
   /** The selected indicated airspeed target, in knots. */
   readonly selectedIas: Subject<number>;
 
@@ -52,6 +65,9 @@ export type APValues = {
 
   /** The selected pitch target, in degrees. */
   readonly selectedPitch: Subject<number>;
+
+  /** The maximum bank setting ID. */
+  readonly maxBankId: Subject<number>;
 
   /** The maximum Bank Angle the autopilot may command in absolute degrees. */
   readonly maxBankAngle: Subject<number>;
@@ -73,6 +89,12 @@ export type APValues = {
 
   /** The Nav 2 Radio is tuned to an ILS with a GS signal */
   readonly nav2HasGs: Subject<boolean>;
+
+  /** The Nav 3 Radio is tuned to an ILS with a GS signal */
+  readonly nav3HasGs: Subject<boolean>;
+
+  /** The Nav 4 Radio is tuned to an ILS with a GS signal */
+  readonly nav4HasGs: Subject<boolean>;
 
   /** The Active Lateral Mode */
   readonly lateralActive: Subject<APLateralModes>;
@@ -134,6 +156,27 @@ export interface APConfig {
   createHeadingDirector(apValues: APValues): PlaneDirector | undefined;
 
   /**
+   * Creates the autopilot's heading hold (level off and then capture heading)
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's heading hold director.
+   */
+  createHeadingHoldDirector(apValues: APValues): PlaneDirector | undefined;
+
+  /**
+   * Creates the autopilot's track mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's heading mode director.
+   */
+  createTrackDirector(apValues: APValues): PlaneDirector | undefined;
+
+  /**
+   * Creates the autopilot's track hold (level off and then capture track)
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's heading hold director.
+   */
+  createTrackHoldDirector(apValues: APValues): PlaneDirector | undefined;
+
+  /**
    * Creates the autopilot's roll mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's heading mode director.
@@ -176,6 +219,12 @@ export interface APConfig {
   createBcDirector(apValues: APValues): PlaneDirector | undefined;
 
   /**
+   * Creates the autopilot's ROLLOUT mode director.
+   * @returns The autopilot's ROLLOUT mode director.
+   */
+  createRolloutDirector(): PlaneDirector | undefined;
+
+  /**
    * Creates the autopilot's pitch mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's pitch mode director.
@@ -188,6 +237,13 @@ export interface APConfig {
    * @returns The autopilot's vertical speed mode director.
    */
   createVsDirector(apValues: APValues): PlaneDirector | undefined;
+
+  /**
+   * Creates the autopilot's flight path angle mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's flight path angle mode director.
+   */
+  createFpaDirector(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's flight level change mode director.
@@ -224,12 +280,52 @@ export interface APConfig {
    */
   createGsDirector(apValues: APValues): PlaneDirector | undefined;
 
+  /**
+   * Creates the auto land FLARE mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's FLARE mode director.
+   */
+  createFlareDirector(): PlaneDirector | undefined;
+
+  /**
+   * Creates the autopilot's vertical takeoff mode director (or combined vertical takeoff/go-around mode director).
+   * @returns The autopilot's vertical takeoff mode director.
+   */
+  createToVerticalDirector(apValues: APValues): PlaneDirector | undefined;
+
+  /**
+   * Creates the autopilot's vertical go-around mode director.
+   * @returns The autopilot's vertical go-around mode director.
+   */
+  createGaVerticalDirector(apValues: APValues): PlaneDirector | undefined;
+
+  /**
+   * Creates the autopilot's lateral takeoff mode director (or combined lateral takeoff/go-around mode director).
+   * @returns The autopilot's lateral takeoff mode director.
+   */
+  createToLateralDirector(apValues: APValues): PlaneDirector | undefined;
+
+  /**
+   * Creates the autopilot's lateral go-around mode director.
+   * @returns The autopilot's lateral go-around mode director.
+   */
+  createGaLateralDirector(apValues: APValues): PlaneDirector | undefined;
+
   /** The autopilot's default lateral mode. */
-  defaultLateralMode: APLateralModes;
+  defaultLateralMode: APLateralModes | (() => APLateralModes);
 
   /** The autopilot's default vertical mode. */
-  defaultVerticalMode: APVerticalModes;
+  defaultVerticalMode: APVerticalModes | (() => APVerticalModes);
 
   /** The default maximum bank angle the autopilot may command in degrees. */
   defaultMaxBankAngle: number;
+
+  /** The altitude hold slot index to use. Defaults to 1 */
+  altitudeHoldSlotIndex?: 1 | 2 | 3;
+
+  /** The default altitude hold value set during init, defaults to 0 */
+  altitudeHoldDefaultAltitude?: number;
+
+  /** The heading hold slot index to use. Defaults to 1 */
+  headingHoldSlotIndex?: 1 | 2 | 3;
 }

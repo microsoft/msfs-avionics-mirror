@@ -1,11 +1,14 @@
-import { MutableSubscribable, Subscribable, Subscription } from '../../../sub';
+
+import { MappedSubject, MappedSubscribableInputs } from '../../../sub/MappedSubject';
+import { MappedSubscribable, MutableSubscribable, Subscribable } from '../../../sub/Subscribable';
+import { Subscription } from '../../../sub/Subscription';
 import { MapSystemContext } from '../MapSystemContext';
 import { MapSystemController } from '../MapSystemController';
 
 /**
  * A binding from a source to a target.
  */
-export type MapBinding<T> = {
+export type MapSimpleBinding<T> = {
   /** The source of the binding. */
   source: Subscribable<T>;
 
@@ -28,38 +31,60 @@ export type MapTransformedBinding<S, T> = {
 }
 
 /**
+ * A binding from multiple sources to a target.
+ */
+export type MapMultiTransformedBinding<I extends readonly any[], T> = {
+  /** The sources of the binding. */
+  sources: MappedSubscribableInputs<I>;
+
+  /** The target of the binding. */
+  target: MutableSubscribable<any, T>;
+
+  /** A function which transforms source values, as a tuple, before they are applied to the target. */
+  map: (sources: Readonly<I>) => T;
+}
+
+/**
+ * A binding which can be maintained by {@link MapBindingsController}.
+ */
+export type MapBinding = MapSimpleBinding<any> | MapTransformedBinding<any, any> | MapMultiTransformedBinding<any, any>;
+
+/**
  * A controller which maintains an arbitrary number of bindings.
  */
 export class MapBindingsController extends MapSystemController {
-  private pipes?: Subscription[];
+  private readonly maps: MappedSubscribable<any>[] = [];
+  private readonly pipes: Subscription[] = [];
 
   /**
    * Constructor.
    * @param context This controller's map context.
    * @param bindings This controller's bindings.
+   * @param onDestroy A function to execute when the controller is destroyed.
    */
   constructor(
     context: MapSystemContext<any, any, any, any>,
-    private readonly bindings: Iterable<MapBinding<any> | MapTransformedBinding<any, any>>
+    private readonly bindings: Iterable<MapBinding>,
+    private readonly onDestroy?: () => void
   ) {
     super(context);
   }
 
   /** @inheritdoc */
   public onAfterMapRender(): void {
-    const bindings = Array.from(this.bindings);
-
-    if (bindings.length === 0) {
-      this.destroy();
-    }
-
-    this.pipes = bindings.map(binding => {
+    for (const binding of this.bindings) {
       if ('map' in binding) {
-        return binding.source.pipe(binding.target, binding.map);
+        if ('sources' in binding) {
+          const map = MappedSubject.create(...binding.sources);
+          this.maps.push(map);
+          this.pipes.push(map.pipe(binding.target, binding.map));
+        } else {
+          this.pipes.push(binding.source.pipe(binding.target, binding.map));
+        }
       } else {
-        return binding.source.pipe(binding.target);
+        this.pipes.push(binding.source.pipe(binding.target));
       }
-    });
+    }
   }
 
   /** @inheritdoc */
@@ -69,18 +94,23 @@ export class MapBindingsController extends MapSystemController {
 
   /** @inheritdoc */
   public onWake(): void {
-    this.pipes?.forEach(pipe => { pipe.resume(true); });
+    this.maps.forEach(map => { map.resume(); });
+    this.pipes.forEach(pipe => { pipe.resume(true); });
   }
 
   /** @inheritdoc */
   public onSleep(): void {
-    this.pipes?.forEach(pipe => { pipe.pause(); });
+    this.maps.forEach(map => { map.pause(); });
+    this.pipes.forEach(pipe => { pipe.pause(); });
   }
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
+    this.onDestroy && this.onDestroy();
 
-    this.pipes?.forEach(pipe => { pipe.destroy(); });
+    this.maps.forEach(map => { map.destroy(); });
+    this.pipes.forEach(pipe => { pipe.destroy(); });
+
+    super.destroy();
   }
 }

@@ -1,0 +1,74 @@
+.status-pane {
+  width: 64px;
+  height: 52px;
+  border: 1px solid var(--gnscyan);
+  box-shadow: 1px 1px 0px 0px #ccc;
+  margin-bottom: 1px;
+  font-size: 15px;
+}
+
+.wt430 .status-pane {
+  width: 78px;
+  height: 46px;
+  margin-top: 1px;
+  border: unset;
+  border-top: 2px solid var(--gnscyan);
+  border-left: 2px solid var(--gnscyan);
+  border-right: 2px solid var(--gnscyan);
+  box-shadow: unset;
+  margin-bottom: unset;
+}
+
+.status-pane>div {
+  height: 34%;
+  text-align: center;
+  line-height: 18px;
+  color: var(--gnsgreen);
+}
+
+.wt430 .status-pane>div {
+  height: 36%;
+  line-height: 15px;
+  font-size: 14px;
+}
+
+.status-pane>div:not(:last-child) {
+  border-bottom: 1px solid var(--gnscyan);
+  margin-bottom: .1em;
+}
+
+.wt430 .status-pane>div:not(:last-child) {
+  border-bottom: 2px solid var(--gnscyan);
+  margin-bottom: unset;
+}
+
+.cdi-scale-rnav {
+  color: black;
+  background-color: #0c0;
+  border: 1px solid black;
+  line-height: unset;
+  height: 16px;
+}
+
+.wt430 .cdi-scale-rnav {
+  border: unset;
+  height: 14px;
+}
+
+.status-pane-integ {
+  color: black;
+  background-color: yellow;
+  border: 1px solid black;
+  line-height: 15px;
+  font-size: 14px;
+  height: 15px;
+}
+
+.wt430 .status-pane-integ {
+  color: black;
+  background-color: yellow;
+  border: unset;
+  line-height: 16px;
+  font-size: 13px;
+  height: 13px;
+}

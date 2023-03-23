@@ -1,0 +1,613 @@
+.nav-com-home {
+  --standby-transition-duration: 0.5s;
+}
+
+.gtc-horizontal .nav-com-home.gtc-page {
+  --com-column-width: 211px;
+  --scooped-corner-size: 12px;
+  display: grid;
+  grid-template-columns: 148px var(--com-column-width) 482px;
+  grid-template-rows: repeat(6, 1fr);
+  grid-column-gap: 37px;
+  grid-row-gap: 6px;
+  grid-template-areas:
+    "transponder com1 keypad"
+    "transponder com1 keypad"
+    "isolate micmon keypad"
+    "music micmon keypad"
+    "audio com2 keypad"
+    "audio com2 keypad";
+  padding-top: 49px;
+  --audio-button-top-height: 116px;
+  --audio-button-top-margin-bottom: -11px;
+  --audio-label-bg-img-touch-button-label-: 148px;
+  --audio-label-bg-img-touch-button-label-font-size: 28px;
+  --audio-label-bg-img-touch-button-label-line-height: 34px;
+  --intercom-bg-img-touch-button-label: 27px;
+  --com-button-top-height: 136px;
+  --com-button-bottom-height: 112px;
+  --com-button-bottom-margin-top: -20px;
+  --com-label-width: 212px;
+  --com-label-font-size: 32px;
+  --com-active-label-top: 10px;
+  --com-active-label-left: 12px;
+  --com-label-stby-top: 20px;
+  --com-label-stby-left: 10px;
+  --com-arrow-left: 90px;
+  --com-arrow-top: 98px;
+  --com-arrow-height: 38px;
+  --com-standby-highlight-left: 7px;
+  --com-standby-highlight-bottom: 8px;
+  --frequency-top: 44px;
+  --frequency-left: -6px;
+  --frequency-font-size: 57px;
+  --frequency-spacing-833-font-size: 48px;
+  --frequency-stby-left: -6px;
+  --frequency-stby-frequency-stby-label-top: 47px;
+  --frequency-stby-frequency-stby-label-spacing-833-top: 53px;
+  --mic-mon-button-height: 116px;
+  --mic-mon-button-font-size: 30px;
+  --mic-mon-button-left: 30px;
+  --mic-button-bg-img-touch-button-label-top: 11px;
+  --mic-button-bg-img-touch-button-label-letter-spacing: 1px;
+  --mon-button-bg-img-touch-button-label-top: 65px;
+  --triangle-height: 37px;
+  --triangle-width: 45px;
+  --triangle-font-size: 30px;
+  --triangle-padding-left: 14px;
+  --mic-triangle-top: 50px;
+  --mon-triangle-top: 12px;
+  --triangle-1-padding-top: 6px;
+  --triangle-1-left: 60px;
+  --triangle-2-left: 106px;
+  --xpdr-ident-bg-img-touch-button-label-margin-top: -7px;
+  --xpdr-ident-bg-img-touch-button-label-font-size: 32px;
+  --xpdr-ident-bg-img-touch-button-label-letter-spacing: -2px;
+  --xpdr-ident-bg-img-touch-button-label-line-height: 44px;
+  --xpdr-mode-top: 30px;
+  --xpdr-mode-margin-left: 12px;
+  --xpdr-mode-font-size: 31px;
+  --xpdr-code-top: 74px;
+  --xpdr-code-margin-left: -1px;
+  --xpdr-code-font-size: 54px;
+}
+
+.gtc-vertical .nav-com-home.gtc-page {
+  display: grid;
+  grid-template-columns: 78px 112px 73px 112px 78px;
+  grid-column-gap: 6px;
+  grid-template-areas: "audio com1 micmon com2 transponder";
+  justify-content: start;
+  align-items: start;
+  padding-top: 1px;
+  margin-left: 1px;
+  --audio-button-top-height: 62px;
+  --audio-button-top-margin-bottom: -37px;
+  --audio-label-bg-img-touch-button-label-: 78px;
+  --audio-label-bg-img-touch-button-label-font-size: 15px;
+  --audio-label-bg-img-touch-button-label-line-height: 19px;
+  --intercom-bg-img-touch-button-label: 15px;
+  --com-button-top-height: 73px;
+  --com-button-bottom-height: 60px;
+  --com-button-bottom-margin-top: -11px;
+  --com-label-width: 112px;
+  --com-label-font-size: 17px;
+  --com-active-label-top: 4px;
+  --com-active-label-left: 7px;
+  --com-label-stby-top: 9px;
+  --com-label-stby-left: 5px;
+  --com-arrow-left: 50px;
+  --com-arrow-top: 51px;
+  --com-arrow-height: 20px;
+  --com-standby-highlight-left: 4px;
+  --com-standby-highlight-bottom: 4px;
+  --frequency-top: 22px;
+  --frequency-left: 4px;
+  --frequency-font-size: 30px;
+  --frequency-spacing-833-font-size: 26px;
+  --frequency-stby-left: 4px;
+  --frequency-stby-frequency-stby-label-top: 24px;
+  --frequency-stby-frequency-stby-label-spacing-833-top: 26px;
+  --mic-mon-button-height: 62px;
+  --mic-mon-button-font-size: 17px;
+  --mic-mon-button-left: -2px;
+  --mic-button-bg-img-touch-button-label-top: 6px;
+  --mic-button-bg-img-touch-button-label-letter-spacing: 0px;
+  --mon-button-bg-img-touch-button-label-top: 35px;
+  --triangle-height: 24px;
+  --triangle-width: 20px;
+  --triangle-font-size: 17px;
+  --triangle-padding-left: 8px;
+  --mic-triangle-top: 27px;
+  --mon-triangle-top: 7px;
+  --triangle-1-padding-top: 3px;
+  --triangle-1-left: 15px;
+  --triangle-2-left: 40px;
+  --xpdr-ident-bg-img-touch-button-label-margin-top: -5px;
+  --xpdr-ident-bg-img-touch-button-label-font-size: 17px;
+  --xpdr-ident-bg-img-touch-button-label-letter-spacing: -1px;
+  --xpdr-ident-bg-img-touch-button-label-line-height: 24px;
+  --xpdr-mode-top: 44px;
+  --xpdr-mode-margin-left: 9px;
+  --xpdr-mode-font-size: 17px;
+  --xpdr-code-top: 69px;
+  --xpdr-code-margin-left: 0;
+  --xpdr-code-font-size: 28px;
+}
+
+.gtc-horizontal .gtc-nav-com-popup {
+  width: 894px;
+  height: 100%;
+}
+
+.gtc-vertical .gtc-nav-com-popup {
+  width: 100%;
+  height: 100%;
+}
+
+.nav-com-home .bordered {
+  border: 1px solid var(--g3000-color-white);
+  border-radius: 4px;
+}
+
+.zero-opacity {
+  opacity: 0;
+}
+
+.nav-com-home .black-text {
+  color: black;
+}
+
+.nav-com-home .active-color {
+  color: var(--g3000-color-green);
+}
+
+.nav-com-home .stby-color {
+  color: var(--g3000-color-cyan);
+}
+
+.nav-com-home .navcom-area-transponder {
+  grid-area: transponder;
+}
+
+.nav-com-home .navcom-area-isolate {
+  grid-area: isolate;
+}
+
+.nav-com-home .navcom-area-music {
+  grid-area: music;
+}
+
+.nav-com-home .navcom-area-audio {
+  grid-area: audio;
+}
+
+.nav-com-home .navcom-area-com1 {
+  grid-area: com1;
+}
+
+.nav-com-home .navcom-area-micmon {
+  grid-area: micmon;
+}
+
+.gtc-vertical .nav-com-home .navcom-area-micmon {
+  position: relative;
+  width: 73px;
+  top: -1px;
+  /*left: 1px;*/
+}
+
+.nav-com-home .navcom-area-com2 {
+  grid-area: com2;
+}
+
+.nav-com-home .navcom-area-keypad {
+  grid-area: keypad;
+  padding-top: 145px;
+  padding-left: 8px;
+}
+
+.nav-com-home .touch-button {
+  width: 100%;
+  height: 112px;
+  border: 1px solid var(--g3000-color-white);
+  border-radius: 4px;
+}
+
+.nav-com-home .touch-button-label {
+  font-size: 30px;
+  line-height: 34px;
+  z-index: 1;
+}
+
+.nav-com-home .touch-button-primed>.mouse-down-img {
+  visibility: visible;
+  opacity: .8;
+}
+
+.nav-com-home .navcom-area-music .touch-button-toggle-status-bar {
+  top: 85px;
+  left: 12px;
+  width: 120px;
+}
+
+.nav-com-home .nested-buttons {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-com-home .audio-label,
+.nav-com-home .bg-img-touch-button-label {
+  position: absolute;
+  width: var(--audio-label-bg-img-touch-button-label-);
+  text-align: center;
+  font-size: var(--audio-label-bg-img-touch-button-label-font-size);
+  line-height: var(--audio-label-bg-img-touch-button-label-line-height);
+}
+
+.gtc-vertical .nav-com-home .audio-label,
+.gtc-vertical .nav-com-home .bg-img-touch-button-label {
+  margin-top: -1px;
+}
+
+.nav-com-home .audio-button-top {
+  height: var(--audio-button-top-height);
+  margin-bottom: var(--audio-button-top-margin-bottom);
+  z-index: 1;
+}
+
+.nav-com-home .bg-img-touch-button {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.nav-com-home .audio-button-bottom {
+  height: 128px;
+}
+
+.nav-com-home .xpdr-ident .bg-img-touch-button-label {
+  margin-top: var(--xpdr-ident-bg-img-touch-button-label-margin-top);
+  font-size: var(--xpdr-ident-bg-img-touch-button-label-font-size);
+  letter-spacing: var(--xpdr-ident-bg-img-touch-button-label-letter-spacing);
+  line-height: var(--xpdr-ident-bg-img-touch-button-label-line-height);
+}
+
+.nav-com-home .tcas .xpdr-ident {
+  color: var(--g3000-color-cyan)
+}
+
+.nav-com-home .xpdr-mode {
+  top: var(--xpdr-mode-top);
+  margin-left: var(--xpdr-mode-margin-left);
+  font-size: var(--xpdr-mode-font-size);
+  text-align: left;
+}
+
+.nav-com-home .xpdr-code {
+  top: var(--xpdr-code-top);
+  margin-left: var(--xpdr-code-margin-left);
+  font-size: var(--xpdr-code-font-size);
+  letter-spacing: -1px;
+}
+
+.nav-com-home .intercom .bg-img-touch-button-label {
+  margin-top: -4px;
+  font-size: var(--intercom-bg-img-touch-button-label);
+}
+
+.nav-com-home .navcom-area-isolate .touch-button-label {
+  font-size: 30px;
+  line-height: 38px;
+  margin-top: 2px;
+}
+
+.nav-com-home .navcom-area-music .touch-button-label {
+  margin-top: 12px;
+  font-size: 28px;
+  letter-spacing: -1px;
+}
+
+.nav-com-home .com-button-top {
+  height: var(--com-button-top-height);
+}
+
+.nav-com-home .com-button-bottom {
+  height: var(--com-button-bottom-height);
+  margin-top: var(--com-button-bottom-margin-top);
+}
+
+.nav-com-home .com-label {
+  position: absolute;
+  width: var(--com-label-width);
+  font-size: var(--com-label-font-size);
+}
+
+.nav-com-home .com-active-label {
+  top: var(--com-active-label-top);
+  left: var(--com-active-label-left);
+  letter-spacing: -1px;
+}
+
+.nav-com-home .com-label-stby {
+  top: var(--com-label-stby-top);
+  left: var(--com-label-stby-left);
+  transition: color var(--standby-transition-duration);
+}
+
+.nav-com-home .com-arrow {
+  position: absolute;
+  left: var(--com-arrow-left);
+  top: var(--com-arrow-top);
+  height: var(--com-arrow-height);
+}
+
+.nav-com-home .com-standby-highlight {
+  position: absolute;
+  left: var(--com-standby-highlight-left);
+  bottom: var(--com-standby-highlight-bottom);
+  transition: opacity var(--standby-transition-duration);
+}
+
+.nav-com-home .com-standby-border {
+  position: absolute;
+  left: 3px;
+  bottom: 4px;
+  transition: opacity var(--standby-transition-duration);
+}
+
+.nav-com-home .frequency {
+  position: absolute;
+  width: var(--com-column-width);
+  text-align: center;
+  top: var(--frequency-top);
+  left: var(--frequency-left);
+  font-size: var(--frequency-font-size);
+  letter-spacing: -1px;
+}
+
+.nav-com-home .frequency-stby-label {
+  transition: color var(--standby-transition-duration);
+}
+
+.nav-com-home .frequency.spacing-833 {
+  font-size: var(--frequency-spacing-833-font-size);
+}
+
+.gtc-vertical .nav-com-home .frequency.spacing-833 {
+  margin-left: -1px;
+  margin-top: 1px;
+}
+
+.nav-com-home .frequency-stby {
+  top: 45px;
+  left: var(--frequency-stby-left);
+}
+
+.nav-com-home .frequency-stby.spacing-833 {
+  top: 48px;
+}
+
+.nav-com-home .frequency-stby.frequency-stby-label {
+  top: var(--frequency-stby-frequency-stby-label-top);
+}
+
+.nav-com-home .frequency-stby.frequency-stby-label.spacing-833 {
+  top: var(--frequency-stby-frequency-stby-label-spacing-833-top);
+}
+
+.nav-com-home .cursor-input {
+  bottom: -3px;
+  left: 3px;
+  background: none;
+  color: var(--g3000-color-cyan);
+}
+
+.nav-com-home .cursor-input.cursor-input-edit-inactive {
+  color: var(--g3000-color-black);
+}
+
+.nav-com-home .mic-mon-button {
+  height: var(--mic-mon-button-height);
+}
+
+.nav-com-home .mic-mon-button .bg-img-touch-button-label {
+  font-size: var(--mic-mon-button-font-size);
+  left: var(--mic-mon-button-left);
+}
+
+.nav-com-home .mic-button .bg-img-touch-button-label {
+  top: var(--mic-button-bg-img-touch-button-label-top);
+  letter-spacing: var(--mic-button-bg-img-touch-button-label-letter-spacing);
+}
+
+.nav-com-home .mon-button .bg-img-touch-button-label {
+  top: var(--mon-button-bg-img-touch-button-label-top);
+}
+
+.nav-com-home .triangle {
+  position: absolute;
+  height: var(--triangle-height);
+  width: var(--triangle-width);
+  background-size: 100%;
+  background-repeat: no-repeat;
+  font-size: var(--triangle-font-size);
+  padding-left: var(--triangle-padding-left);
+  color: var(--g3000-color-black);
+}
+
+.nav-com-home .mic-triangle {
+  top: var(--mic-triangle-top);
+}
+
+.nav-com-home .mon-triangle {
+  top: var(--mon-triangle-top);
+}
+
+.nav-com-home .triangle-1 {
+  padding-top: var(--triangle-1-padding-top);
+  left: var(--triangle-1-left);
+}
+
+.nav-com-home .triangle-2 {
+  left: var(--triangle-2-left);
+}
+
+.gtc-vertical .nav-com-home .triangle.triangle-2 {
+  padding-top: 4px;
+  padding-left: 2px;
+  font-size: 15px;
+}
+
+.nav-com-home .keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 136px);
+  grid-template-rows: repeat(4, 136px);
+  grid-column-gap: 30px;
+  grid-row-gap: 8px;
+}
+
+.nav-com-home .keypad-background {
+  position: absolute;
+  top: 182px;
+  left: 460px;
+  width: 502px;
+  height: 447px;
+  border-radius: 8px;
+  background-color: var(--g3000-color-black);
+  z-index: -1;
+}
+
+.nav-com-home .keypad-background-bottom {
+  position: absolute;
+  bottom: 2px;
+  right: 197px;
+  width: 163px;
+  height: 140px;
+  background-color: var(--g3000-color-black);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  z-index: -1;
+}
+
+.nav-com-home .keypad-scooped-corner {
+  position: absolute;
+  overflow: hidden;
+  top: 3px;
+  width: var(--scooped-corner-size);
+  height: var(--scooped-corner-size);
+}
+
+.nav-com-home .keypad-scooped-corner::before {
+  content: '';
+  position: absolute;
+  height: 200%;
+  width: 200%;
+  border-radius: 100%;
+  bottom: -100%;
+  box-shadow: 10px 10px 5px 100px var(--g3000-color-black);
+}
+
+.nav-com-home .keypad-background-bottom-left {
+  left: calc(-1 * var(--scooped-corner-size));
+}
+
+.nav-com-home .keypad-background-bottom-left::before {
+  left: -100%;
+}
+
+.nav-com-home .keypad-background-bottom-right {
+  right: calc(-1 * var(--scooped-corner-size));
+}
+
+.nav-com-home .keypad-background-bottom-right::before {
+  right: -100%;
+}
+
+.nav-com-home .keypad-button {
+  position: absolute;
+  width: 148px;
+}
+
+.nav-com-home .top-keypad-button {
+  top: 49px;
+  height: 122px;
+}
+
+.nav-com-home .bottom-keypad-button {
+  bottom: 4px;
+  height: 126px;
+}
+
+.nav-com-home .left-keypad-button {
+  left: 471px;
+}
+
+.nav-com-home .right-keypad-button {
+  right: 37px;
+}
+
+.nav-com-home .keypad-icon {
+  position: absolute;
+}
+
+.nav-com-home .keypad-button-label {
+  position: relative;
+  width: 100%;
+  text-align: center;
+}
+
+.nav-com-home .find-button .touch-button-img-img {
+  width: 92px;
+  top: 36px;
+  left: 72px;
+}
+
+.nav-com-home .find-button .touch-button-label {
+  top: 99px;
+  font-size: 30px;
+}
+
+.nav-com-home .bksp-button .touch-button-img-img {
+  width: 92px;
+  top: 49px;
+  left: 74px;
+}
+
+.nav-com-home .bksp-button .touch-button-label {
+  top: 98px;
+  font-size: 34px;
+}
+
+.nav-com-home .play-button .touch-button-img-img {
+  width: 50px;
+  top: 44px;
+  left: 77px;
+}
+
+.nav-com-home .play-button .touch-button-label {
+  top: 95px;
+  font-size: 34px;
+}
+
+.nav-com-home .xfer-button .touch-button-img-img {
+  height: 45px;
+  top: 62px;
+  left: 28px;
+}
+
+.nav-com-home .xfer-button .touch-button-label {
+  top: 62px;
+  left: 15px;
+  font-size: 31px;
+}
+
+.nav-com-home .numpad-touch-button .bg-img-touch-button-label {
+  font-size: 86px;
+  margin-top: 2px;
+}
+
+.nav-com-home .gtc-nav-com-traffic-map-button {
+  top: 61px;
+}

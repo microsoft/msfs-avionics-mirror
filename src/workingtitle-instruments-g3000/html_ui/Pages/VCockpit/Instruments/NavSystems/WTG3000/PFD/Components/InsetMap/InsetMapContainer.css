@@ -1,0 +1,18 @@
+.inset-map-container {
+  position: relative;
+  border: 1px solid rgb(100, 100, 100);
+  overflow: hidden;
+}
+
+.inset-map-container .nav-inset-map,
+.inset-map-container .traffic-inset-map {
+  display: none;
+}
+
+.inset-map-container.inset-map-container-nav .nav-inset-map {
+  display: block;
+}
+
+.inset-map-container.inset-map-container-traffic .traffic-inset-map {
+  display: block;
+}

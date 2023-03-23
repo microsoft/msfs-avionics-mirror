@@ -4,4 +4,5 @@ export * from './AttitudeIndicator';
 export * from './FlightDirector';
 export * from './FlightPathMarker';
 export * from './HorizonDisplay';
+export * from './HorizonLine';
 export * from './SyntheticVision';

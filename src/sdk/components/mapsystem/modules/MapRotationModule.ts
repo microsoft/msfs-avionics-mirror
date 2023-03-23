@@ -4,7 +4,10 @@ import { Subject } from '../../../sub/Subject';
  * An enumeration of possible map rotation types.
  */
 export enum MapRotation {
-  /** Map rotation points towards north up. */
+  /** Map up position does not follow a defined pattern. */
+  Undefined = 'Undefined',
+
+  /** Map up position points towards true north. */
   NorthUp = 'NorthUp',
 
   /** Map up position points towards the current airplane track. */

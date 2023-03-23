@@ -1,0 +1,39 @@
+.marker-beacon-flag {
+  width: 42px;
+  background: black;
+  height: 38px;
+  border: 3px solid var(--wt21-colors-white);
+  font-size: 28px;
+  text-align: center;
+  line-height: 42px;
+  box-shadow: inset 1px 1px 2px black, 1px 1px 1px black;
+  display: none;
+}
+
+.outer-animation {
+  display: block;
+  color: var(--wt21-colors-cyan);
+  border: 3px solid var(--wt21-colors-cyan);
+  animation: flasher .8s infinite step-end;
+}
+
+.middle-animation {
+  display: block;
+  color: var(--wt21-colors-yellow);
+  border: 3px solid var(--wt21-colors-yellow);
+  animation: flasher .8s infinite step-end;
+}
+
+.inner-animation {
+  display: block;
+  color: var(--wt21-colors-white);
+  border: 3px solid var(--wt21-colors-white);
+  animation: flasher .8s infinite step-end;
+}
+
+@keyframes flasher {
+
+  50% {
+    opacity: 0;
+  }
+}

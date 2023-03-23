@@ -1,0 +1,28 @@
+.expanded-oil-press-temp-container {
+  position: relative;
+}
+
+.left-oil-psi-pointer {
+  position: absolute;
+  top: 20px;
+  left: 7px;
+  height: 70px;
+}
+
+.right-oil-psi-pointer {
+  position: absolute;
+  top: 20px;
+  left: 70px;
+}
+
+.left-oil-temp-pointer {
+  position: absolute;
+  top: 20px;
+  left: 100px;
+}
+
+.right-oil-temp-pointer {
+  position: absolute;
+  top: 20px;
+  left: 161px;
+}

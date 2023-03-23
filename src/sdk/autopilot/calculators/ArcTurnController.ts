@@ -9,11 +9,11 @@ export class ArcTurnController {
 
   private readonly precessionController = new PidController(0.025, 0, 0, 300, -300);
 
-  private previousTime = (new Date() as any).appTime();
+  private previousTime?: number;
 
   private previousRadiusError?: number;
 
-  private filter = new ExpSmoother(500);
+  private readonly filter = new ExpSmoother(500);
 
   /**
    * Gets the bank angle output for a given radius error.
@@ -22,10 +22,10 @@ export class ArcTurnController {
    */
   public getOutput(radiusError: number): number {
     const currentTime = (new Date() as any).appTime();
-    const dTime = currentTime - this.previousTime;
 
     let bankAngle = 0;
-    if (this.previousRadiusError !== undefined) {
+    if (this.previousRadiusError !== undefined && this.previousTime !== undefined) {
+      const dTime = currentTime - this.previousTime;
       const input = ((radiusError - this.previousRadiusError) / dTime) * 1000;
       const precessionRate = isNaN(this.filter.last() ?? NaN)
         ? this.filter.reset(input)
@@ -35,11 +35,6 @@ export class ArcTurnController {
       const precessionError = targetPrecessionRate - precessionRate;
 
       bankAngle = this.bankController.getOutput(dTime, precessionError);
-
-      SimVar.SetSimVarValue('L:AP_RADUIS_ERROR', 'number', radiusError);
-      SimVar.SetSimVarValue('L:AP_PRECESSION_RATE', 'number', precessionRate);
-      SimVar.SetSimVarValue('L:AP_TARGET_PRECESSION_RATE', 'number', targetPrecessionRate);
-      SimVar.SetSimVarValue('L:AP_BANK_ADJUSTMENT', 'number', bankAngle);
     }
 
     this.previousTime = currentTime;
@@ -52,10 +47,11 @@ export class ArcTurnController {
    * Resets the controller.
    */
   public reset(): void {
-    this.previousTime = Date.now();
+    this.previousTime = undefined;
     this.previousRadiusError = undefined;
 
     this.precessionController.reset();
     this.bankController.reset();
+    this.filter.reset();
   }
 }

@@ -1,0 +1,20 @@
+.display-pane-container {
+  position: absolute;
+  display: flex;
+  flex-flow: row nowrap;
+
+  --display-pane-container-left-pane-width: 50%;
+  --display-pane-container-right-pane-width: 50%;
+}
+
+.display-pane-container .display-pane-left {
+  width: var(--display-pane-container-left-pane-width);
+  height: 100%;
+  flex-grow: 1;
+}
+
+.display-pane-container .display-pane-right {
+  width: var(--display-pane-container-right-pane-width);
+  height: 100%;
+  flex-grow: 1;
+}

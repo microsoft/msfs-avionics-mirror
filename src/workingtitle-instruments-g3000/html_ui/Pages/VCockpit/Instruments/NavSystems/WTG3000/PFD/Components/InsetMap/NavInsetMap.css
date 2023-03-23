@@ -1,0 +1,61 @@
+.nav-inset-map {
+  font-family: "DejaVuSans-SemiBold";
+  font-size: 13px;
+}
+
+.nav-inset-map .map-range-display {
+  font-size: 15px;
+}
+
+.nav-inset-map .map-minicompass {
+  position: absolute;
+  left: 3px;
+  top: 46px;
+  font-size: 10px;
+}
+
+.nav-inset-map .map-pointer {
+  --map-pointer-size: 25px;
+}
+
+.nav-inset-map .map-pointerinfolayer-box {
+  position: absolute;
+  left: 50px;
+  top: 0px;
+}
+
+.nav-inset-map .map-indicator-group-top-left {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  height: 46px;
+  display: grid;
+  grid-template-rows: 18px 28px;
+  grid-template-columns: auto;
+  justify-items: start;
+  align-items: start;
+}
+
+.nav-inset-map .map-indicator-group-top-left .map-range-display {
+  align-self: center;
+}
+
+.nav-inset-map .map-indicator-group-bottom-left {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+}
+
+.nav-inset-map .map-traffic-failed {
+  width: 110px;
+}
+
+.nav-inset-map .map-indicator-group-bottom-right {
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+}
+
+.nav-inset-map .map-banner {
+  font-size: 20px;
+}

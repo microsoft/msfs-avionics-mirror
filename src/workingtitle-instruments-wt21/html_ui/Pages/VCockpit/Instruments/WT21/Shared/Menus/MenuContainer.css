@@ -1,0 +1,140 @@
+.popup-menu {
+  position: absolute;
+  font-size: 24px;
+  display: inline-block;
+  background: var(--wt21-colors-black);
+  border: 1px solid var(--wt21-colors-gray);
+}
+
+.pfd-popup-menu,
+.pfd-popup-menu-brgsrc,
+.pfd-popup-menu-config,
+.pfd-popup-menu-overlays,
+.pfd-popup-menu-refs,
+.pfd-popup-menu-baroset {
+  top: 45.9%;
+  width: 27%;
+  left: 1%;
+}
+
+.pfd-popup-menu-brgsrc {
+  width: 35%;
+}
+
+.pfd-popup-menu-config {
+  width: 60%;
+}
+
+.pfd-popup-menu-overlays {
+  width: 22.5%;
+}
+
+.pfd-popup-menu-refs {
+  width: 24%;
+}
+
+.pfd-popup-menu-baroset {
+  width: 21%;
+}
+
+.mfd-upr-popup-menu {
+  top: 20%;
+  left: 1%;
+  width: 24.5%;
+}
+
+.mfd-lwr-popup-menu,
+.mfd-lwr-popup-menu-overlays,
+.mfd-lwr-popup-menu-map-symbols {
+  top: 44%;
+  left: 1%;
+  width: 27%;
+}
+
+.mfd-lwr-popup-menu-overlays {
+  width: 22.5%;
+}
+
+.mfd-lwr-popup-menu-map-symbols {
+  width: 25%;
+}
+
+.popup-menu-title, .popup-submenu-title {
+  padding: 0 4px;
+  background: var(--wt21-colors-lightblue);
+}
+
+.popup-menu-section-title {
+  padding: 0 4px;
+  background: var(--wt21-colors-blue);
+}
+
+.submenu .popup-menu-title {
+  background: var(--wt21-colors-gray);
+}
+
+.popup-menu-title, .popup-submenu-title {
+  line-height: 18px;
+  border-bottom: 1px solid var(--wt21-colors-gray);
+}
+
+.popup-submenu-title svg {
+  height: 15px;
+  margin: 3px 4px -1px 0;
+}
+
+.popup-menu-section-title {
+  padding: 0 4px;
+  line-height: 22px;
+  margin: -6px 0 6px -2px;
+  display: table;
+}
+
+.popup-menu-title>span, .popup-submenu-title>span, .popup-menu-section-title>span {
+  vertical-align: -7px;
+}
+
+.popup-menu-section {
+  padding: 6px 4px 0 4px;
+  border-bottom: 1px solid var(--wt21-colors-gray);
+}
+
+.popup-menu-section:last-child {
+  border-bottom: none;
+}
+
+.popup-menu-line, .popup-menu-radio.inline {
+  margin: -4px 0;
+  line-height: 17px;
+  border: 2px solid transparent;
+  padding: 1px
+}
+
+.popup-menu-line:last-child, .popup-menu-radio.inline:last-child {
+  margin-bottom: 2px;
+}
+
+.popup-menu-line.highlight, .popup-menu-radio.highlight, .popup-menu-radio.inline.highlight {
+  border: 2px solid var(--wt21-colors-cyan);
+}
+
+.popup-menu-line>span {
+  margin-left: 25px;
+  vertical-align: -6px;
+}
+
+.popup-menu-submenu svg {
+  position: absolute;
+  margin-top: 1px;
+  margin-left: 6px;
+}
+
+input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  z-index: -1;
+}

@@ -1,5 +1,5 @@
-/// <reference types="msfstypes/Pages/VCockpit/Instruments/Shared/utils/XMLLogic" />
-/// <reference types="msfstypes/Pages/VCockpit/Instruments/Shared/BaseInstrument" />
+/// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/utils/xmllogic" />
+/// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/baseinstrument" />
 
 import { EventBus } from '../../data';
 import * as d from './GaugeDefinitions';
@@ -636,6 +636,7 @@ export class XMLGaugeConfigFactory {
     if (smoothElem.length > 0 && smoothElem[0]?.textContent !== null) {
       return smoothElem.length > 0 ? parseFloat(smoothElem[0].textContent) : undefined;
     }
+    return undefined;
   }
 
   /**

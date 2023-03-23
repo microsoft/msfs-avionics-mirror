@@ -1,4 +1,4 @@
-import { MapSystemController, Subscription } from 'msfssdk';
+import { MapSystemController, Subscription } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapOrientation, MapOrientationModule } from '../modules/MapOrientationModule';

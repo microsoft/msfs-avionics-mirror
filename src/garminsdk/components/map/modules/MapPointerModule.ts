@@ -1,4 +1,4 @@
-import { GeoPoint, GeoPointSubject, Subject, Vec2Subject } from 'msfssdk';
+import { GeoPoint, GeoPointSubject, Subject, Vec2Subject } from '@microsoft/msfs-sdk';
 
 /**
  * A module describing the map pointer.

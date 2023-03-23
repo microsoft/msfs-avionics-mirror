@@ -1,0 +1,61 @@
+.fma-mode {
+  color: var(--g3000-color-green);
+  padding: 0px 2px;
+  border-radius: 4px;
+}
+
+@keyframes fma-mode-alert-flash {
+  0% {
+    color: var(--g3000-color-black);
+    background-color: var(--g3000-color-green);
+  }
+
+  74.9% {
+    color: var(--g3000-color-black);
+    background-color: var(--g3000-color-green);
+  }
+
+  75% {
+    color: var(--g3000-color-green);
+    background-color: transparent;
+  }
+
+  99.9% {
+    color: var(--g3000-color-green);
+    background-color: transparent;
+  }
+}
+
+@keyframes fma-mode-failed-flash {
+  0% {
+    color: var(--g3000-color-black);
+    background-color: var(--g3000-color-yellow);
+  }
+
+  74.9% {
+    color: var(--g3000-color-black);
+    background-color: var(--g3000-color-yellow);
+  }
+
+  75% {
+    color: var(--g3000-color-yellow);
+    background-color: transparent;
+  }
+
+  99.9% {
+    color: var(--g3000-color-yellow);
+    background-color: transparent;
+  }
+}
+
+.fma-mode-alert {
+  animation-name: fma-mode-alert-flash;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
+}
+
+.fma-mode-failed {
+  animation-name: fma-mode-failed-flash;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
+}

@@ -1,8 +1,8 @@
 import {
   ClippedPathStream, EventBus, FacilityLoader, FacilityRepository, FlightPlan, FlightPlanSegmentType, FSComponent, GeoCircleResampler,
-  GeoProjectionPathStreamStack, MapCachedCanvasLayer, MapLayer, MapLayerProps, MapProjection, NullPathStream, Subscribable, UnitType, VecNSubject, VNavPathMode,
-  VNavState, VNavWaypoint, VNode
-} from 'msfssdk';
+  GeoProjectionPathStreamStack, MapCachedCanvasLayer, MapLayer, MapLayerProps, MapProjection, NullPathStream, Subscribable, Subscription,
+  UnitType, VecNSubject, VNavState, VNavWaypoint, VNode
+} from '@microsoft/msfs-sdk';
 
 import { FmsUtils } from '../../../flightplan/FmsUtils';
 import { GarminFacilityWaypointCache } from '../../../navigation/GarminFacilityWaypointCache';
@@ -39,7 +39,8 @@ export interface MapFlightPlanLayerProps extends MapLayerProps<any> {
  */
 export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
   private static readonly CLIP_BOUNDS_BUFFER = 10; // number of pixels from edge of canvas to extend the clipping bounds, in pixels
-  private static readonly TOD_DISTANCE_THRESHOLD = UnitType.METER.createNumber(100); // minimum distance from TOD for which to display TOD waypoint
+
+  private static vnavWaypointUidSource = 0;
 
   private readonly flightPathLayerRef = FSComponent.createRef<MapCachedCanvasLayer<any>>();
 
@@ -57,8 +58,12 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
 
   private readonly pathStreamStack = new GeoProjectionPathStreamStack(NullPathStream.INSTANCE, this.props.mapProjection.getGeoProjection(), this.resampler);
 
+  private readonly vnavWaypointUid = MapFlightPlanLayer.vnavWaypointUidSource++;
   private todWaypoint?: VNavWaypoint;
   private bodWaypoint?: VNavWaypoint;
+  private tocWaypoint?: VNavWaypoint;
+  private bocWaypoint?: VNavWaypoint;
+  private renderedVNavWaypoint?: VNavWaypoint;
 
   private isObsActive = false;
   private obsCourse = 0;
@@ -66,6 +71,9 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
   private needDrawRoute = false;
   private needRefreshWaypoints = false;
   private needRepickWaypoints = false;
+  private needUpdateVNavWaypoint = false;
+
+  private readonly subs: Subscription[] = [];
 
   /** @inheritdoc */
   public onAttached(): void {
@@ -77,45 +85,45 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
     this.pathStreamStack.setConsumer(this.flightPathLayerRef.instance.display.context);
 
     this.initFlightPlanHandlers();
-    this.onTodBodChanged();
+    this.updateVNavWaypoint();
   }
 
   /**
    * Initializes handlers to respond to flight plan events.
    */
   private initFlightPlanHandlers(): void {
-    this.props.drawEntirePlan.sub(() => { this.scheduleUpdates(true, true, true); });
+    this.subs.push(
+      this.props.drawEntirePlan.sub(() => { this.scheduleUpdates(true, true, true); }),
 
-    this.props.dataProvider.plan.sub(() => { this.scheduleUpdates(true, true, true); }, true);
-    this.props.dataProvider.planModified.on(() => { this.scheduleUpdates(false, true, true); });
-    this.props.dataProvider.planCalculated.on(() => {
-      this.scheduleUpdates(true, true, false);
-      this.onTodBodChanged();
-    });
-    this.props.dataProvider.activeLateralLegIndex.sub(() => { this.scheduleUpdates(true, true, true); });
+      this.props.dataProvider.plan.sub(() => { this.scheduleUpdates(true, true, true); }, true),
+      this.props.dataProvider.planModified.on(() => { this.scheduleUpdates(false, true, true); }),
+      this.props.dataProvider.planCalculated.on(() => {
+        this.scheduleUpdates(true, true, false);
+        this.needUpdateVNavWaypoint = true;
+      }),
+      this.props.dataProvider.activeLateralLegIndex.sub(() => { this.scheduleUpdates(true, true, true); }),
 
-    this.props.dataProvider.lnavData.sub(() => { this.scheduleUpdates(true, false, false); });
+      this.props.dataProvider.lnavData.sub(() => { this.scheduleUpdates(true, false, false); }),
 
-    this.props.dataProvider.vnavState.sub(() => { this.onTodBodChanged(); });
-    this.props.dataProvider.vnavPathMode.sub(() => { this.onTodBodChanged(); });
-    this.props.dataProvider.vnavTodLegIndex.sub(() => { this.onTodBodChanged(); });
-    this.props.dataProvider.vnavBodLegIndex.sub(() => { this.onTodBodChanged(); });
-    this.props.dataProvider.vnavTodLegDistance.sub(() => { this.todWaypoint && this.onTodBodChanged(); });
-    this.props.dataProvider.vnavDistanceToTod.sub(distance => {
-      const comparison = distance.compare(MapFlightPlanLayer.TOD_DISTANCE_THRESHOLD);
-      if ((comparison < 0 && this.todWaypoint) || (comparison >= 0 && !this.todWaypoint)) {
-        this.onTodBodChanged();
-      }
-    });
+      this.props.dataProvider.vnavState.sub(() => { this.needUpdateVNavWaypoint = true; }, true),
+      this.props.dataProvider.vnavTodLegIndex.sub(() => { this.needUpdateVNavWaypoint = true; }),
+      this.props.dataProvider.vnavBodLegIndex.sub(() => { this.needUpdateVNavWaypoint = true; }),
+      this.props.dataProvider.vnavTodLegDistance.sub(() => { this.needUpdateVNavWaypoint ||= this.renderedVNavWaypoint?.ident === 'TOD'; }),
+      this.props.dataProvider.vnavDistanceToTod.sub(() => { this.needUpdateVNavWaypoint = true; }),
+      this.props.dataProvider.vnavTocLegIndex.sub(() => { this.needUpdateVNavWaypoint = true; }),
+      this.props.dataProvider.vnavBocLegIndex.sub(() => { this.needUpdateVNavWaypoint = true; }),
+      this.props.dataProvider.vnavTocLegDistance.sub(() => { this.needUpdateVNavWaypoint ||= this.renderedVNavWaypoint?.ident === 'TOC'; }),
+      this.props.dataProvider.vnavDistanceToToc.sub(() => { this.needUpdateVNavWaypoint = true; }),
 
-    this.props.dataProvider.obsCourse.sub((course: number | undefined) => {
-      const isActive = course !== undefined;
-      const needFullUpdate = isActive !== this.isObsActive;
-      this.isObsActive = isActive;
-      this.obsCourse = course ?? this.obsCourse;
+      this.props.dataProvider.obsCourse.sub((course: number | undefined) => {
+        const isActive = course !== undefined;
+        const needFullUpdate = isActive !== this.isObsActive;
+        this.isObsActive = isActive;
+        this.obsCourse = course ?? this.obsCourse;
 
-      this.scheduleUpdates(needFullUpdate || this.isObsActive, needFullUpdate, needFullUpdate);
-    });
+        this.scheduleUpdates(needFullUpdate || this.isObsActive, needFullUpdate, needFullUpdate);
+      })
+    );
   }
 
   /** @inheritdoc */
@@ -145,6 +153,7 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
     this.updateFromFlightPathLayerInvalidation();
     this.updateRedrawRoute();
     this.updateRefreshWaypoints();
+    this.updateVNavWaypoint();
   }
 
   /**
@@ -268,51 +277,112 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
   }
 
   /**
-   * Recreates the TOD and BOD leg indexes when any values change.
+   * Responds to when the VNAV TOD/BOD/TOC/BOC waypoints change.
    */
-  private onTodBodChanged(): void {
-    this.todWaypoint && this.props.waypointRenderer.deregister(this.todWaypoint, MapWaypointRenderRole.VNav, 'flightplan-layer');
-    this.bodWaypoint && this.props.waypointRenderer.deregister(this.bodWaypoint, MapWaypointRenderRole.VNav, 'flightplan-layer');
-    this.todWaypoint = undefined;
-    this.bodWaypoint = undefined;
+  private updateVNavWaypoint(): void {
+    if (!this.needUpdateVNavWaypoint) {
+      return;
+    }
+
+    this.needUpdateVNavWaypoint = false;
 
     const plan = this.props.dataProvider.plan.get();
+
+    // TODO: Support Off-route DTOs
     if (!plan || plan.segmentCount < 1 || plan.getSegment(0).segmentType === FlightPlanSegmentType.RandomDirectTo) {
+      this.renderedVNavWaypoint && this.props.waypointRenderer.deregister(this.renderedVNavWaypoint, MapWaypointRenderRole.VNav, 'flightplan-layer');
+      this.renderedVNavWaypoint = undefined;
       return;
     }
 
     const vnavState = this.props.dataProvider.vnavState.get();
 
     if (vnavState === VNavState.Disabled) {
+      this.renderedVNavWaypoint && this.props.waypointRenderer.deregister(this.renderedVNavWaypoint, MapWaypointRenderRole.VNav, 'flightplan-layer');
+      this.renderedVNavWaypoint = undefined;
       return;
     }
 
-    const vnavPathMode = this.props.dataProvider.vnavPathMode.get();
     const todLegIndex = this.props.dataProvider.vnavTodLegIndex.get();
     const bodLegIndex = this.props.dataProvider.vnavBodLegIndex.get();
-    const todLegEndDistance = this.props.dataProvider.vnavTodLegDistance.get();
-    const distanceToTod = this.props.dataProvider.vnavDistanceToTod.get();
+    const tocLegIndex = this.props.dataProvider.vnavTocLegIndex.get();
+    const bocLegIndex = this.props.dataProvider.vnavBocLegIndex.get();
 
-    if (todLegIndex >= 0 && distanceToTod.compare(MapFlightPlanLayer.TOD_DISTANCE_THRESHOLD) >= 0 && vnavPathMode !== VNavPathMode.PathActive) {
+    const todDistance = this.props.dataProvider.vnavDistanceToTod.get();
+    const tocDistance = this.props.dataProvider.vnavDistanceToToc.get();
+
+    let waypointToRender: VNavWaypoint | undefined;
+
+    if (todLegIndex >= 0 && todDistance.number > 0) {
+      const todLegEndDistance = this.props.dataProvider.vnavTodLegDistance.get();
+
       if (isFinite(todLegEndDistance.number) && plan.length > 0) {
-        try {
-          const leg = plan.getLeg(todLegIndex);
-          this.todWaypoint = new VNavWaypoint(leg, todLegEndDistance.asUnit(UnitType.METER), 'tod');
-          this.props.waypointRenderer.register(this.todWaypoint, MapWaypointRenderRole.VNav, 'flightplan-layer');
-        } catch {
-          console.warn(`Invalid tod leg at: ${todLegIndex}`);
+        const leg = plan.tryGetLeg(todLegIndex);
+
+        if (leg) {
+          if (this.todWaypoint === undefined) {
+            this.todWaypoint = new VNavWaypoint(leg, todLegEndDistance.asUnit(UnitType.METER), `flightplan-layer-${this.vnavWaypointUid}-vnav-tod`, 'TOD');
+          } else {
+            this.todWaypoint.setLocation(leg, todLegEndDistance.asUnit(UnitType.METER));
+          }
+
+          waypointToRender = this.todWaypoint;
         }
       } else if (!isFinite(todLegEndDistance.number)) {
         console.warn(`Invalid TOD leg end distance: ${todLegEndDistance}`);
       }
     } else if (bodLegIndex >= 0) {
-      try {
-        const leg = plan.getLeg(bodLegIndex);
-        this.bodWaypoint = new VNavWaypoint(leg, 0, 'bod');
-        this.props.waypointRenderer.register(this.bodWaypoint, MapWaypointRenderRole.VNav, 'flightplan-layer');
-      } catch {
-        console.warn(`Invalid bod leg at: ${bodLegIndex}`);
+      const leg = plan.tryGetLeg(bodLegIndex);
+
+      if (leg) {
+        if (this.bodWaypoint === undefined) {
+          this.bodWaypoint = new VNavWaypoint(leg, 0, `flightplan-layer-${this.vnavWaypointUid}-vnav-bod`, 'BOD');
+        } else {
+          this.bodWaypoint.setLocation(leg, 0);
+        }
+
+        waypointToRender = this.bodWaypoint;
       }
+    } else if (tocLegIndex >= 0 && tocDistance.number > 0) {
+      const tocLegEndDistance = this.props.dataProvider.vnavTocLegDistance.get();
+
+      if (isFinite(tocLegEndDistance.number) && plan.length > 0) {
+        const leg = plan.tryGetLeg(tocLegIndex);
+
+        if (leg) {
+          if (this.tocWaypoint === undefined) {
+            this.tocWaypoint = new VNavWaypoint(leg, tocLegEndDistance.asUnit(UnitType.METER), `flightplan-layer-${this.vnavWaypointUid}-vnav-toc`, 'TOC');
+          } else {
+            this.tocWaypoint.setLocation(leg, tocLegEndDistance.asUnit(UnitType.METER));
+          }
+
+          waypointToRender = this.tocWaypoint;
+        }
+      } else if (!isFinite(tocLegEndDistance.number)) {
+        console.warn(`Invalid TOC leg end distance: ${tocLegEndDistance}`);
+      }
+    } else if (bocLegIndex >= 0) {
+      const leg = plan.tryGetLeg(bocLegIndex);
+
+      if (leg) {
+        if (this.bocWaypoint === undefined) {
+          this.bocWaypoint = new VNavWaypoint(leg, leg.calculated?.distanceWithTransitions ?? 0, `flightplan-layer-${this.vnavWaypointUid}-vnav-boc`, 'BOC');
+        } else {
+          this.bocWaypoint.setLocation(leg, leg.calculated?.distanceWithTransitions ?? 0);
+        }
+
+        waypointToRender = this.bocWaypoint;
+      }
+    }
+
+    if (this.renderedVNavWaypoint !== undefined && waypointToRender !== this.renderedVNavWaypoint) {
+      this.props.waypointRenderer.deregister(this.renderedVNavWaypoint, MapWaypointRenderRole.VNav, 'flightplan-layer');
+    }
+
+    this.renderedVNavWaypoint = waypointToRender;
+
+    if (waypointToRender !== undefined) {
+      this.props.waypointRenderer.register(waypointToRender, MapWaypointRenderRole.VNav, 'flightplan-layer');
     }
   }
 
@@ -324,10 +394,18 @@ export class MapFlightPlanLayer extends MapLayer<MapFlightPlanLayerProps> {
           ref={this.flightPathLayerRef}
           model={this.props.model}
           mapProjection={this.props.mapProjection}
-          useBuffer={true}
           overdrawFactor={Math.SQRT2}
         />
       </div>
     );
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this.flightPathLayerRef.getOrDefault()?.destroy();
+
+    this.subs.forEach(sub => { sub.destroy(); });
+
+    super.destroy();
   }
 }

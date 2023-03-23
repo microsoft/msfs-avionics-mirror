@@ -1,21 +1,4 @@
-import { FlightPlan, GeoProjectionPathStreamStack, LNavTransitionMode } from 'msfssdk';
-
-/**
- * LNav data used by MapFlightPlanPathRenderer.
- */
-export type FlightPathPlanRendererLNavData = {
-  /** The global leg index of the currently tracked flight plan leg. */
-  currentLegIndex: number;
-
-  /** The index of the currently tracked flight path vector. */
-  vectorIndex: number;
-
-  /** The currently active LNAV transition mode. */
-  transitionMode: LNavTransitionMode;
-
-  /** Whether LNAV sequencing is suspended. */
-  isSuspended: boolean;
-};
+import { FlightPlan, GeoProjectionPathStreamStack, LNavTrackingState } from '@microsoft/msfs-sdk';
 
 /**
  * Renders the path for flight plans to canvas.
@@ -39,7 +22,7 @@ export interface MapFlightPathPlanRenderer {
     streamStack: GeoProjectionPathStreamStack,
     renderEntirePlan: boolean,
     activeLegIndex: number,
-    lnavData?: FlightPathPlanRendererLNavData,
+    lnavData?: LNavTrackingState,
     obsCourse?: number
   ): void;
 }

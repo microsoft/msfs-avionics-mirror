@@ -1,11 +1,17 @@
-import { GeoPointInterface } from '../../../geo/GeoPoint';
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { CssTransformBuilder } from '../../../graphics/css/CssTransform';
 import { BitFlags } from '../../../math/BitFlags';
-import { ReadonlyFloat64Array, Vec2Math } from '../../../math/VecMath';
+import { UnitType } from '../../../math/NumberUnit';
+import { ReadonlyFloat64Array, Vec2Math, VecNMath } from '../../../math/VecMath';
+import { ObjectSubject } from '../../../sub/ObjectSubject';
 import { Subscribable } from '../../../sub/Subscribable';
+import { SubscribableMapFunctions } from '../../../sub/SubscribableMapFunctions';
+import { SubscribableUtils } from '../../../sub/SubscribableUtils';
+import { Subscription } from '../../../sub/Subscription';
 import { FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps } from '../MapLayer';
-import { MapProjection } from '../MapProjection';
-import { MapOwnAirplaneIconModule } from '../modules/MapOwnAirplaneIconModule';
+import { MapProjection, MapProjectionChangeType } from '../MapProjection';
+import { MapOwnAirplaneIconModule, MapOwnAirplaneIconOrientation } from '../modules/MapOwnAirplaneIconModule';
 import { MapOwnAirplanePropsModule } from '../modules/MapOwnAirplanePropsModule';
 
 /**
@@ -24,146 +30,276 @@ export interface MapOwnAirplaneLayerModules {
  */
 export interface MapOwnAirplaneLayerProps<M extends MapOwnAirplaneLayerModules> extends MapLayerProps<M> {
   /** The path to the icon's image file. */
-  imageFilePath: Subscribable<string>;
+  imageFilePath: string | Subscribable<string>;
 
   /** The size of the airplane icon, in pixels. */
-  iconSize: number;
+  iconSize: number | Subscribable<number>;
 
   /**
    * The point on the icon which is anchored to the airplane's position, expressed relative to the icon's width and
    * height, with [0, 0] at the top left and [1, 1] at the bottom right.
    */
-  iconAnchor: Subscribable<ReadonlyFloat64Array>;
+  iconAnchor: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 }
 
 /**
- * A layer which draws an own airplane icon.
+ * A layer which draws an own airplane icon. The icon is positioned at the projected location of the airplane and is
+ * rotated to match the airplane's heading.
  */
 export class MapOwnAirplaneLayer<M extends MapOwnAirplaneLayerModules = MapOwnAirplaneLayerModules> extends MapLayer<MapOwnAirplaneLayerProps<M>> {
-  protected static readonly UPDATE_VISIBILITY = 1;
-  protected static readonly UPDATE_TRANSFORM = 1 << 1;
+  protected static readonly vec2Cache = [Vec2Math.create()];
 
-  private static readonly tempVec2_1 = new Float64Array(2);
+  protected readonly imageFilePath = SubscribableUtils.isSubscribable(this.props.imageFilePath)
+    ? this.props.imageFilePath.map(SubscribableMapFunctions.identity())
+    : this.props.imageFilePath;
 
-  protected readonly iconImgRef = FSComponent.createRef<HTMLImageElement>();
-  protected readonly iconOffset = new Float64Array(2);
-  protected updateFlags = 0;
+  protected readonly style = ObjectSubject.create({
+    display: '',
+    position: 'absolute',
+    left: '0px',
+    top: '0px',
+    width: '0px',
+    height: '0px',
+    transform: 'translate3d(0, 0, 0) rotate(0deg)',
+    'transform-origin': '50% 50%'
+  });
 
-  // eslint-disable-next-line jsdoc/require-jsdoc, @typescript-eslint/no-unused-vars
+  protected readonly ownAirplanePropsModule = this.props.model.getModule('ownAirplaneProps');
+  protected readonly ownAirplaneIconModule = this.props.model.getModule('ownAirplaneIcon');
+
+  protected readonly iconSize = SubscribableUtils.toSubscribable(this.props.iconSize, true);
+  protected readonly iconAnchor = SubscribableUtils.toSubscribable(this.props.iconAnchor, true);
+
+  protected readonly iconOffset = Vec2Math.create();
+  protected readonly visibilityBounds = VecNMath.create(4);
+
+  protected readonly iconTransform = CssTransformBuilder.concat(
+    CssTransformBuilder.translate3d('px'),
+    CssTransformBuilder.rotate('deg')
+  );
+
+  protected readonly isGsAboveTrackThreshold = this.ownAirplanePropsModule.groundSpeed.map(gs => gs.asUnit(UnitType.KNOT) >= 5).pause();
+
+  protected showIcon = true;
+  protected isInsideVisibilityBounds = true;
+  protected planeRotation = 0;
+
+  protected needUpdateVisibility = false;
+  protected needUpdatePositionRotation = false;
+
+  protected showSub?: Subscription;
+  protected positionSub?: Subscription;
+  protected headingSub?: Subscription;
+  protected trackSub?: Subscription;
+  protected trackThresholdSub?: Subscription;
+  protected iconSizeSub?: Subscription;
+  protected iconAnchorSub?: Subscription;
+  protected orientationSub?: Subscription;
+
+  /** @inheritdoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public onVisibilityChanged(isVisible: boolean): void {
-    this.scheduleUpdate(MapOwnAirplaneLayer.UPDATE_VISIBILITY);
+    this.needUpdateVisibility = true;
+    this.needUpdatePositionRotation = this.showIcon = isVisible && this.ownAirplaneIconModule.show.get();
   }
 
   /** @inheritdoc */
   public onAttached(): void {
-    const ownAirplaneIconModule = this.props.model.getModule('ownAirplaneIcon');
-    ownAirplaneIconModule.show.sub(this.onIconShowChanged.bind(this));
+    this.showSub = this.ownAirplaneIconModule.show.sub(show => {
+      this.needUpdateVisibility = true;
+      this.needUpdatePositionRotation = this.showIcon = show && this.isVisible();
+    });
 
-    const ownAirplanePropsModule = this.props.model.getModule('ownAirplaneProps');
-    ownAirplanePropsModule.position.sub(this.onAirplanePositionChanged.bind(this));
-    ownAirplanePropsModule.hdgTrue.sub(this.onAirplaneHeadingChanged.bind(this));
+    this.positionSub = this.ownAirplanePropsModule.position.sub(() => {
+      this.needUpdatePositionRotation = this.showIcon;
+    });
 
-    this.props.iconAnchor.sub(anchor => {
-      this.iconOffset.set(anchor);
-      Vec2Math.multScalar(this.iconOffset, -this.props.iconSize, this.iconOffset);
+    this.headingSub = this.ownAirplanePropsModule.hdgTrue.sub(hdg => {
+      this.planeRotation = hdg;
+      this.needUpdatePositionRotation = this.showIcon;
+    }, false, true);
+    this.trackSub = this.ownAirplanePropsModule.trackTrue.sub(track => {
+      this.planeRotation = track;
+      this.needUpdatePositionRotation = this.showIcon;
+    }, false, true);
+    this.trackThresholdSub = this.isGsAboveTrackThreshold.sub(isAboveThreshold => {
+      if (isAboveThreshold) {
+        this.headingSub!.pause();
+        this.trackSub!.resume(true);
+      } else {
+        this.trackSub!.pause();
+        this.headingSub!.resume(true);
+      }
+    }, false, true);
 
-      const img = this.iconImgRef.instance;
-      img.style.left = `${this.iconOffset[0]}px`;
-      img.style.top = `${this.iconOffset[1]}px`;
-      img.style.transformOrigin = `${anchor[0] * 100}% ${anchor[1] * 100}%`;
+    this.iconSizeSub = this.iconSize.sub(size => {
+      this.style.set('width', `${size}px`);
+      this.style.set('height', `${size}px`);
 
-      this.scheduleUpdate(MapOwnAirplaneLayer.UPDATE_VISIBILITY | MapOwnAirplaneLayer.UPDATE_TRANSFORM);
+      this.updateOffset();
     }, true);
 
-    this.props.imageFilePath.sub(path => {
-      this.iconImgRef.instance.src = path;
-      this.scheduleUpdate(MapOwnAirplaneLayer.UPDATE_VISIBILITY | MapOwnAirplaneLayer.UPDATE_TRANSFORM);
+    this.iconAnchorSub = this.iconAnchor.sub(() => {
+      this.updateOffset();
+    });
+
+    this.orientationSub = this.ownAirplaneIconModule.orientation.sub(orientation => {
+      switch (orientation) {
+        case MapOwnAirplaneIconOrientation.HeadingUp:
+          this.isGsAboveTrackThreshold.pause();
+          this.trackThresholdSub!.pause();
+          this.trackSub!.pause();
+          this.headingSub!.resume(true);
+          break;
+        case MapOwnAirplaneIconOrientation.TrackUp:
+          this.headingSub!.pause();
+          this.trackSub!.pause();
+          this.isGsAboveTrackThreshold.resume();
+          this.trackThresholdSub!.resume(true);
+          break;
+        default:
+          this.needUpdatePositionRotation = this.showIcon;
+          this.isGsAboveTrackThreshold.pause();
+          this.trackThresholdSub!.pause();
+          this.headingSub!.pause();
+          this.trackSub!.pause();
+          this.planeRotation = 0;
+      }
     }, true);
 
-    this.scheduleUpdate(MapOwnAirplaneLayer.UPDATE_VISIBILITY | MapOwnAirplaneLayer.UPDATE_TRANSFORM);
-  }
-
-  // eslint-disable-next-line jsdoc/require-jsdoc, @typescript-eslint/no-unused-vars
-  public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
-    this.scheduleUpdate(MapOwnAirplaneLayer.UPDATE_TRANSFORM);
+    this.needUpdateVisibility = true;
+    this.needUpdatePositionRotation = true;
   }
 
   /**
-   * Schedules an update.
-   * @param updateFlags The types of updates to schedule.
+   * Updates the icon's offset from the projected position of the airplane.
    */
-  protected scheduleUpdate(updateFlags: number): void {
-    this.updateFlags = BitFlags.union(this.updateFlags, updateFlags);
+  protected updateOffset(): void {
+    const anchor = this.iconAnchor.get();
+
+    this.iconOffset.set(anchor);
+    Vec2Math.multScalar(this.iconOffset, -this.iconSize.get(), this.iconOffset);
+
+    this.style.set('left', `${this.iconOffset[0]}px`);
+    this.style.set('top', `${this.iconOffset[1]}px`);
+    this.style.set('transform-origin', `${anchor[0] * 100}% ${anchor[1] * 100}%`);
+
+    this.updateVisibilityBounds();
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc, @typescript-eslint/no-unused-vars
+  /**
+   * Updates the boundaries within the map's projected window that define a region such that if the airplane's
+   * projected position falls outside of it, the icon is not visible and therefore does not need to be updated.
+   */
+  protected updateVisibilityBounds(): void {
+    const size = this.iconSize.get();
+
+    // Find the maximum possible protrusion of the icon from its anchor point, defined as the distance from the
+    // anchor point to the farthest point within the bounds of the icon. This farthest point is always one of the
+    // four corners of the icon.
+
+    const maxProtrusion = Math.max(
+      Math.hypot(this.iconOffset[0], this.iconOffset[1]),                  // top left corner
+      Math.hypot(this.iconOffset[0] + size, this.iconOffset[1]),           // top right corner
+      Math.hypot(this.iconOffset[0] + size, this.iconOffset[1] + size),    // bottom right corner
+      Math.hypot(this.iconOffset[0], this.iconOffset[1] + size),           // bottom left corner
+    );
+
+    const boundsOffset = maxProtrusion + 50; // Add some additional buffer
+
+    const projectedSize = this.props.mapProjection.getProjectedSize();
+
+    this.visibilityBounds[0] = -boundsOffset;
+    this.visibilityBounds[1] = -boundsOffset;
+    this.visibilityBounds[2] = projectedSize[0] + boundsOffset;
+    this.visibilityBounds[3] = projectedSize[1] + boundsOffset;
+
+    this.needUpdatePositionRotation = this.showIcon;
+  }
+
+  /** @inheritdoc */
+  public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
+    if (BitFlags.isAll(changeFlags, MapProjectionChangeType.ProjectedSize)) {
+      this.updateVisibilityBounds();
+    }
+
+    this.needUpdatePositionRotation = this.showIcon;
+  }
+
+  /** @inheritdoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public onUpdated(time: number, elapsed: number): void {
-    if (this.updateFlags === 0) {
-      return;
-    }
-
-    if (BitFlags.isAll(this.updateFlags, MapOwnAirplaneLayer.UPDATE_VISIBILITY)) {
+    if (this.needUpdatePositionRotation) {
+      this.updateIconPositionRotation();
+      this.needUpdatePositionRotation = false;
+      this.needUpdateVisibility = false;
+    } else if (this.needUpdateVisibility) {
       this.updateIconVisibility();
+      this.needUpdateVisibility = false;
     }
-    if (BitFlags.isAll(this.updateFlags, MapOwnAirplaneLayer.UPDATE_TRANSFORM)) {
-      this.updateIconTransform();
-    }
-
-    this.updateFlags = BitFlags.not(this.updateFlags, MapOwnAirplaneLayer.UPDATE_VISIBILITY | MapOwnAirplaneLayer.UPDATE_TRANSFORM);
   }
 
   /**
    * Updates the airplane icon's visibility.
    */
   protected updateIconVisibility(): void {
-    const show = this.isVisible() && this.props.model.getModule('ownAirplaneIcon').show.get();
-    this.iconImgRef.instance.style.display = show ? 'block' : 'none';
+    this.style.set('display', this.isInsideVisibilityBounds && this.showIcon ? '' : 'none');
   }
 
   /**
-   * Updates the airplane icon's display transformation.
+   * Updates the airplane icon's projected position and rotation.
    */
-  protected updateIconTransform(): void {
-    const ownAirplanePropsModule = this.props.model.getModule('ownAirplaneProps');
+  protected updateIconPositionRotation(): void {
+    const projected = this.props.mapProjection.project(this.ownAirplanePropsModule.position.get(), MapOwnAirplaneLayer.vec2Cache[0]);
 
-    const projected = this.props.mapProjection.project(ownAirplanePropsModule.position.get(), MapOwnAirplaneLayer.tempVec2_1);
-    const rotation = ownAirplanePropsModule.hdgTrue.get() + this.props.mapProjection.getRotation() * Avionics.Utils.RAD2DEG;
+    this.isInsideVisibilityBounds = this.props.mapProjection.isInProjectedBounds(projected, this.visibilityBounds);
 
-    this.iconImgRef.instance.style.transform = `translate(${projected[0].toFixed(1)}px, ${projected[1].toFixed(1)}px) rotate(${rotation.toFixed(1)}deg) rotateX(0deg)`;
-  }
+    // If the projected position of the icon is far enough out of bounds that the icon is not visible, do not bother to
+    // update the icon.
+    if (this.isInsideVisibilityBounds) {
+      let rotation: number;
+      switch (this.ownAirplaneIconModule.orientation.get()) {
+        case MapOwnAirplaneIconOrientation.HeadingUp:
+        case MapOwnAirplaneIconOrientation.TrackUp:
+          rotation = this.planeRotation + this.props.mapProjection.getRotation() * Avionics.Utils.RAD2DEG;
+          break;
+        default:
+          rotation = 0;
+      }
 
-  /**
-   * A callback which is called when the show airplane icon property changes.
-   * @param show The new value of the show airplane icon property.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private onIconShowChanged(show: boolean): void {
-    this.scheduleUpdate(MapOwnAirplaneLayer.UPDATE_VISIBILITY);
-  }
+      this.iconTransform.getChild(0).set(projected[0], projected[1], 0, 0.1);
+      this.iconTransform.getChild(1).set(rotation, 0.1);
 
-  /**
-   * A callback which is called when the airplane's position changes.
-   * @param pos The new position of the airplane.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private onAirplanePositionChanged(pos: GeoPointInterface): void {
-    this.scheduleUpdate(MapOwnAirplaneLayer.UPDATE_TRANSFORM);
-  }
+      this.style.set('transform', this.iconTransform.resolve());
+    }
 
-  /**
-   * A callback which is called when the airplane's true heading changes.
-   * @param hdgTrue - the new true heading of the airplane.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private onAirplaneHeadingChanged(hdgTrue: number): void {
-    this.scheduleUpdate(MapOwnAirplaneLayer.UPDATE_TRANSFORM);
+    this.updateIconVisibility();
   }
 
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <img ref={this.iconImgRef} class={this.props.class ?? ''} src={this.props.imageFilePath}
-        style={`position: absolute; width: ${this.props.iconSize}px; height: ${this.props.iconSize}px; transform: rotateX(0deg);`} />
+      <img src={this.imageFilePath} class={this.props.class ?? ''} style={this.style} />
     );
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    if (SubscribableUtils.isSubscribable(this.imageFilePath)) {
+      this.imageFilePath.destroy();
+    }
+
+    this.isGsAboveTrackThreshold.destroy();
+
+    this.showSub?.destroy();
+    this.positionSub?.destroy();
+    this.headingSub?.destroy();
+    this.trackSub?.destroy();
+    this.trackThresholdSub?.destroy();
+    this.iconSizeSub?.destroy();
+    this.iconAnchorSub?.destroy();
+    this.orientationSub?.destroy();
+
+    super.destroy();
   }
 }

@@ -3,10 +3,10 @@
  */
 export type NumberFormatterOptions = {
   /** The precision to which to round the number. A value of 0 denotes no rounding. */
-  precision: number,
+  precision: number;
 
   /** Rounding behavior. Always round down = `-1`. Always round up = `+1`. Normal rounding = `0`. */
-  round: -1 | 0 | 1,
+  round: -1 | 0 | 1;
 
   /**
    * The maximum number of digits to enforce. Digits to the _right_ of the decimal point will be omitted (with proper
@@ -14,7 +14,7 @@ export type NumberFormatterOptions = {
    * of this option or until there are no more digits to omit. Digits to the _left_ of the decimal point are always
    * preserved, even if it means the number of digits in the output will exceed the value of this option.
    */
-  maxDigits: number,
+  maxDigits: number;
 
   /**
    * Whether to force trailing zeroes to the right of the decimal point. The number of trailing zeroes is determined
@@ -22,19 +22,39 @@ export type NumberFormatterOptions = {
    * to represent the value of `precision` (and therefore, any possible output rounded to `precision`) with no
    * rounding.
    */
-  forceDecimalZeroes: boolean,
+  forceDecimalZeroes: boolean;
 
   /** The number of digits to which to pad with zeroes to the left of the decimal point. */
-  pad: number,
+  pad: number;
 
   /** Whether to show commas. */
-  showCommas: boolean,
+  showCommas: boolean;
+
+  /** Whether to use a minus sign (`−`) in place of a dash (`-`) in front of negative numbers. */
+  useMinusSign: boolean;
 
   /** Whether to force the display of a positive sign. */
-  forceSign: boolean,
+  forceSign: boolean;
 
   /** The string to output for an input of NaN. */
   nanString: string;
+
+  /** Whether to cache and reuse the previously generated string when possible. */
+  cache: boolean;
+};
+
+/**
+ * Options used for formatting numbers, for internal use.
+ */
+type NumberFormatterOptionsInternal = NumberFormatterOptions & {
+  /** The function to use to round the number before formatting. */
+  roundFunc: (value: number) => number;
+
+  /** The number used to generate the cached formatted string. */
+  cachedNumber?: number;
+
+  /** The cached formatted string. */
+  cachedString?: string;
 };
 
 /**
@@ -52,8 +72,10 @@ export class NumberFormatter {
     forceDecimalZeroes: true,
     pad: 1,
     showCommas: false,
+    useMinusSign: false,
     forceSign: false,
-    nanString: 'NaN'
+    nanString: 'NaN',
+    cache: false
   };
 
   private static readonly roundFuncs = {
@@ -62,39 +84,58 @@ export class NumberFormatter {
     [1]: Math.ceil
   };
 
+  private static readonly TRAILING_ZERO_REGEX = /0+$/;
+  private static readonly LEADING_ZERO_REGEX = /^0\./;
+  private static readonly COMMAS_REGEX = /\B(?=(\d{3})+(?!\d))/g;
+
   /**
    * Formats a number to a string.
-   * @param precision The precision to which to round the number. A value of 0 denotes no rounding.
-   * @param roundFunc The rounding function to use.
-   * @param maxDigits The maximum number of digits to enforce.
-   * @param forceDecimalZeroes Whether to force trailing zeroes after the decimal point.
-   * @param pad The number of digits to which to pad with zeroes in front of the decimal point.
-   * @param showCommas Whether to show commas.
-   * @param forceSign Whether to force the display of a positive sign.
-   * @param nanString The string to use for NaN.
    * @param number The number to format.
-   * @returns A formatted string.
+   * @param opts Options describing how to format the number.
+   * @returns The formatted string representation of the specified number.
    */
   private static formatNumber(
-    precision: number,
-    roundFunc: (number: number) => number,
-    maxDigits: number,
-    forceDecimalZeroes: boolean,
-    pad: number,
-    showCommas: boolean,
-    forceSign: boolean,
-    nanString: string,
-    number: number
+    number: number,
+    opts: NumberFormatterOptionsInternal
   ): string {
     if (isNaN(number)) {
-      return nanString;
+      return opts.nanString;
     }
 
-    const sign = number < 0 ? '-' : '+';
+    const {
+      precision,
+      roundFunc,
+      maxDigits,
+      forceDecimalZeroes,
+      pad,
+      showCommas,
+      useMinusSign,
+      forceSign,
+      cache
+    } = opts;
+
+    const sign = number < 0 ? -1 : 1;
     const abs = Math.abs(number);
+    let rounded = abs;
+
+    if (precision !== 0) {
+      rounded = roundFunc(abs / precision) * precision;
+    }
+
+    if (cache) {
+      if (opts.cachedString !== undefined && opts.cachedNumber === rounded) {
+        return opts.cachedString;
+      }
+
+      opts.cachedNumber = rounded;
+    }
+
+    const signText = sign === -1
+      ? useMinusSign ? '−' : '-'
+      : '+';
     let formatted: string;
+
     if (precision != 0) {
-      const rounded = roundFunc(abs / precision) * precision;
       const precisionString = `${precision}`;
       const decimalIndex = precisionString.indexOf('.');
       if (decimalIndex >= 0) {
@@ -108,7 +149,7 @@ export class NumberFormatter {
 
     let decimalIndex = formatted.indexOf('.');
     if (!forceDecimalZeroes && decimalIndex >= 0) {
-      formatted = formatted.replace(/0+$/, '');
+      formatted = formatted.replace(NumberFormatter.TRAILING_ZERO_REGEX, '');
       if (formatted.indexOf('.') == formatted.length - 1) {
         formatted = formatted.substring(0, formatted.length - 1);
       }
@@ -123,7 +164,7 @@ export class NumberFormatter {
     formatted;
 
     if (pad === 0) {
-      formatted = formatted.replace(/^0\./, '.');
+      formatted = formatted.replace(NumberFormatter.LEADING_ZERO_REGEX, '.');
     } else if (pad > 1) {
       decimalIndex = formatted.indexOf('.');
       if (decimalIndex < 0) {
@@ -134,11 +175,17 @@ export class NumberFormatter {
 
     if (showCommas) {
       const parts = formatted.split('.');
-      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      parts[0] = parts[0].replace(NumberFormatter.COMMAS_REGEX, ',');
       formatted = parts.join('.');
     }
 
-    return ((forceSign || sign === '-') ? sign : '') + formatted;
+    formatted = ((forceSign || signText !== '+') ? signText : '') + formatted;
+
+    if (cache) {
+      opts.cachedString = formatted;
+    }
+
+    return formatted;
   }
 
   /**
@@ -153,24 +200,18 @@ export class NumberFormatter {
    * * `forceDecimalZeroes = true`
    * * `pad = 1`
    * * `showCommas = false`
+   * * `useMinusSign = false`
    * * `forceSign = false`
    * * `nanString = 'NaN'`
+   * * `cache = false`
    * @returns A function which formats numeric values to strings.
    */
   public static create(options: Partial<NumberFormatterOptions>): (number: number) => string {
-    const optsToUse = Object.assign({}, NumberFormatter.DEFAULT_OPTIONS);
-    Object.assign(optsToUse, options);
+    const optsToUse = Object.assign({}, NumberFormatter.DEFAULT_OPTIONS, options) as unknown as NumberFormatterOptionsInternal;
+    optsToUse.roundFunc = NumberFormatter.roundFuncs[optsToUse.round];
 
-    return (NumberFormatter.formatNumber as any).bind(
-      undefined,
-      optsToUse.precision,
-      NumberFormatter.roundFuncs[optsToUse.round],
-      optsToUse.maxDigits,
-      optsToUse.forceDecimalZeroes,
-      optsToUse.pad,
-      optsToUse.showCommas,
-      optsToUse.forceSign,
-      optsToUse.nanString
-    );
+    return (number: number): string => {
+      return NumberFormatter.formatNumber(number, optsToUse);
+    };
   }
 }

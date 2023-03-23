@@ -1,4 +1,4 @@
-import { FSComponent, MapLayer, MapLayerProps, Subscription, VNode } from 'msfssdk';
+import { FSComponent, MapLayer, MapLayerProps, Subscription, VNode } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapPointerModule } from '../modules/MapPointerModule';

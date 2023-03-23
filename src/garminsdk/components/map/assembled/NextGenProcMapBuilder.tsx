@@ -1,8 +1,9 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
-  FSComponent, MapDataIntegrityModule, MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys, MutableSubscribable, NumberUnitInterface,
-  ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, UnitFamily, UserSettingManager, Vec2Math, Vec2Subject, VecNMath, VNode
-} from 'msfssdk';
+  FSComponent, MapDataIntegrityModule, MapOwnAirplaneIconOrientation, MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys,
+  MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, UnitFamily,
+  UserSettingManager, Vec2Math, Vec2Subject, VecNMath, VNode
+} from '@microsoft/msfs-sdk';
 
 import { WaypointIconImageCache } from '../../../graphics/img/WaypointIconImageCache';
 import { MapUserSettingTypes } from '../../../settings/MapUserSettings';
@@ -11,9 +12,9 @@ import { ProcMapFlightPathPlanRenderer } from '../flightplan';
 import { GarminMapBuilder, RangeRingOptions } from '../GarminMapBuilder';
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapBannerIndicator, MapOrientationIndicator } from '../indicators';
-import { MapPointerInfoLayerSize } from '../layers';
+import { MapDeadReckoningLayer, MapPointerInfoLayerSize } from '../layers';
 import { MapUtils } from '../MapUtils';
-import { MapWaypointStyles } from '../MapWaypointStyles';
+import { NextGenMapWaypointStyles } from '../MapWaypointStyles';
 import { MapFlightPlanFocusModule, MapOrientation, MapOrientationModule, MapPointerModule, MapTerrainMode, MapTerrainModule, MapUnitsModule } from '../modules';
 
 /**
@@ -23,11 +24,17 @@ export type NextGenProcMapOptions = {
   /** The ID to assign to the map's bound Bing Map instance. */
   bingId: string;
 
+  /** The amount of time, in milliseconds, to delay binding the map's Bing Map instance. Defaults to 0. */
+  bingDelay?: number;
+
   /** The frequency, in hertz, with which the player airplane's properties are updated from event bus data. */
   dataUpdateFreq: number | Subscribable<number>;
 
   /** The image cache from which to retrieve waypoint icon images. */
   waypointIconImageCache: WaypointIconImageCache;
+
+  /** The font type to use for waypoint labels. */
+  waypointStyleFontType: 'Roboto' | 'DejaVu';
 
   /** The scaling factor of waypoint icons and labels. Defaults to `1`. */
   waypointStyleScale?: number;
@@ -63,6 +70,9 @@ export type NextGenProcMapOptions = {
    */
   noHeadingAirplaneIconAnchor?: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 
+  /** The text of the banner that is displayed when GPS position is not available. Defaults to `'NO GPS POSITION'`. */
+  noGpsBannerText?: string;
+
   /**
    * A subscribable which provides the nominal focus margins, as `[left, top, right, bottom]` in pixels. The nominal
    * margins define the offset of the boundaries of the focus region relative to the map's projected window,
@@ -93,6 +103,9 @@ export type NextGenProcMapOptions = {
    * left and [1, 1] at the bottom right.
    */
   airplaneIconAnchor: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
+
+  /** The orientation of the player airplane icon. Defaults to `MapOwnAirplaneIconOrientation.HeadingUp`. */
+  airplaneIconOrientation?: MapOwnAirplaneIconOrientation | Subscribable<MapOwnAirplaneIconOrientation>;
 
   /**
    * The offset of the boundary surrounding the area in which the pointer can freely move, from the edge of the
@@ -182,6 +195,8 @@ export class NextGenProcMapBuilder {
     options.useTerrainUserSettings ??= false;
     options.allowRelativeTerrainMode ??= false;
 
+    options.airplaneIconOrientation ??= MapOwnAirplaneIconOrientation.HeadingUp;
+
     options.rangeRingOptions.labelRadial ??= 225;
 
     options.includeOrientationIndicator ??= false;
@@ -229,7 +244,7 @@ export class NextGenProcMapBuilder {
         });
       })
       .with(GarminMapBuilder.declutter, options.useDeclutterUserSetting ? options.settingManager : undefined)
-      .withBing(options.bingId)
+      .withBing(options.bingId, options.bingDelay)
       .with(GarminMapBuilder.terrainColors,
         {
           [MapTerrainMode.None]: MapUtils.noTerrainEarthColors(),
@@ -247,13 +262,13 @@ export class NextGenProcMapBuilder {
           builder
             .withProcTransitionPreviewStyles(
               options.waypointIconImageCache,
-              MapWaypointStyles.nextGenProcTransitionPreviewIconStyles(1, options.waypointStyleScale),
-              MapWaypointStyles.nextGenProcTransitionPreviewLabelStyles(1, options.waypointStyleScale)
+              NextGenMapWaypointStyles.procTransitionPreviewIconStyles(1, options.waypointStyleScale),
+              NextGenMapWaypointStyles.procTransitionPreviewLabelStyles(1, options.waypointStyleFontType, options.waypointStyleScale)
             )
             .withProcPreviewStyles(
               options.waypointIconImageCache,
-              MapWaypointStyles.nextGenProcPreviewIconStyles(2, options.waypointStyleScale),
-              MapWaypointStyles.nextGenProcPreviewLabelStyles(2, options.waypointStyleScale)
+              NextGenMapWaypointStyles.procPreviewIconStyles(2, options.waypointStyleScale),
+              NextGenMapWaypointStyles.procPreviewLabelStyles(2, options.waypointStyleFontType, options.waypointStyleScale)
             );
         }
       )
@@ -265,17 +280,31 @@ export class NextGenProcMapBuilder {
     let airplaneIconAnchor = options.airplaneIconAnchor;
     if (options.supportDataIntegrity && options.noHeadingAirplaneIconSrc !== undefined && options.noHeadingAirplaneIconAnchor !== undefined) {
       airplaneIconSrc = Subject.create('');
-      airplaneIconAnchor = Vec2Subject.createFromVector(Vec2Math.create());
+      airplaneIconAnchor = Vec2Subject.create(Vec2Math.create());
     }
 
     mapBuilder
       .withOwnAirplaneIcon(options.airplaneIconSize, airplaneIconSrc, airplaneIconAnchor)
+      .withOwnAirplaneIconOrientation(options.airplaneIconOrientation)
       .withOwnAirplanePropBindings([
         'position',
         'hdgTrue',
         'isOnGround'
       ], options.dataUpdateFreq)
       .withFollowAirplane();
+
+    if (options.supportDataIntegrity) {
+      mapBuilder.withLayer(GarminMapKeys.DeadReckoning, context => {
+        return (
+          <MapDeadReckoningLayer
+            model={context.model}
+            mapProjection={context.projection}
+            airplaneIconSize={options.airplaneIconSize}
+            airplaneIconAnchor={airplaneIconAnchor}
+          />
+        );
+      });
+    }
 
     if (options.miniCompassImgSrc !== undefined) {
       mapBuilder.with(GarminMapBuilder.miniCompass, options.miniCompassImgSrc);
@@ -328,7 +357,7 @@ export class NextGenProcMapBuilder {
                 show={dataIntegrityModule.gpsSignalValid.map(isValid => !isValid)}
                 class='map-banner-no-gps'
               >
-                NO GPS POSITION
+                {options.noGpsBannerText ?? 'NO GPS POSITION'}
               </MapBannerIndicator>
             );
           }

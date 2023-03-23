@@ -1,0 +1,43 @@
+.waypoint-page-selector-box {
+  border: 1px solid var(--gnscyan);
+  background-color: black;
+  color: var(--gnsgreen);
+  font-size: var(--gns-font-page-data);
+}
+
+wt-gns530 .waypoint-page-selector-box {
+  padding: 2px;
+  height: 22px;
+}
+
+wt-gns430 .waypoint-page-selector-box {
+  padding: 2px;
+  height: 22px;
+}
+
+.waypoint-page-selector-label {
+  color: var(--gnscyan);
+  padding-left: 3px;
+}
+
+.waypoint-page-selector {
+  margin: 0 0 8px 2px;
+  text-align: left;
+}
+
+.waypoint-page-selector .dialog-box-inner {
+  text-align: left;
+}
+
+.waypoint-input {
+  height: 14px;
+}
+
+wt-gns430 .waypoint-input {
+  height: 16px;
+}
+
+.waypoint-page-selector-item {
+  padding-top: 1px;
+  height: 16px;
+}

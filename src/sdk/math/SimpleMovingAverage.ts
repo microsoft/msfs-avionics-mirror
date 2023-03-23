@@ -16,18 +16,15 @@ export class SimpleMovingAverage {
    * @returns The numerical average.
    */
   public getAverage(input: number): number {
-    let samples = this.samples;
-    if (this._values.length === samples) {
+    if (this._values.length === this.samples) {
       this._values.splice(0, 1);
-    } else {
-      samples = this._values.length;
     }
     this._values.push(input);
     let sum = 0;
     this._values.forEach((v) => {
       sum += v;
     });
-    return sum / samples;
+    return sum / this._values.length;
   }
 
   /**

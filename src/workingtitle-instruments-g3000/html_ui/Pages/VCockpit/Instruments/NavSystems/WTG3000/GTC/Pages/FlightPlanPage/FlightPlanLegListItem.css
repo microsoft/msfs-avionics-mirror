@@ -1,0 +1,137 @@
+.gtc-horizontal .flight-plan-leg-list-item {
+  --flight-plan-leg-list-item-airway-connector-first-top: -57px;
+  --flight-plan-leg-list-item-airway-connector-first-left: -30px;
+  --flight-plan-leg-list-item-airway-connector-first-scale: 1.0;
+
+  --flight-plan-leg-list-item-airway-connector-top: -93px;
+  --flight-plan-leg-list-item-airway-connector-left: -39px;
+  --flight-plan-leg-list-item-airway-connector-scale: 1.0;
+
+  --flight-plan-leg-list-item-airway-connector-dashed-top: -88px;
+  --flight-plan-leg-list-item-airway-connector-dashed-left: -30px;
+  --flight-plan-leg-list-item-airway-connector-dashed-scale: 1.0;
+}
+
+.gtc-vertical .flight-plan-leg-list-item {
+  --flight-plan-leg-list-item-airway-connector-first-top: -62px;
+  --flight-plan-leg-list-item-airway-connector-first-left: -24px;
+  --flight-plan-leg-list-item-airway-connector-first-scale: 0.54;
+
+  --flight-plan-leg-list-item-airway-connector-top: -91px;
+  --flight-plan-leg-list-item-airway-connector-left: -31px;
+  --flight-plan-leg-list-item-airway-connector-scale: 0.54;
+
+  --flight-plan-leg-list-item-airway-connector-dashed-top: -86px;
+  --flight-plan-leg-list-item-airway-connector-dashed-left: -24px;
+  --flight-plan-leg-list-item-airway-connector-dashed-scale: 0.54;
+}
+
+.gtc-horizontal .flight-plan-leg-list-item .altitude-button {
+  width: 181px;
+}
+
+.gtc-vertical .flight-plan-leg-list-item .altitude-button {
+  width: 98px;
+}
+
+.gtc-horizontal .flight-plan-leg-list-item.airway-leg {
+  width: 685px;
+  margin-left: 36px;
+}
+
+.gtc-vertical .flight-plan-leg-list-item.airway-leg {
+  width: 368px;
+  margin-left: 20px;
+}
+
+.gtc-horizontal .flight-plan-leg-list-item.airway-leg .flight-plan-leg-button {
+  width: 298px;
+}
+
+.gtc-vertical .flight-plan-leg-list-item.airway-leg .flight-plan-leg-button {
+  width: 160px;
+}
+
+.flight-plan-leg-list-item .airway-connector-first {
+  position: absolute;
+  top: var(--flight-plan-leg-list-item-airway-connector-first-top);
+  left: var(--flight-plan-leg-list-item-airway-connector-first-left);
+  transform: scale(var(--flight-plan-leg-list-item-airway-connector-first-scale));
+  display: none;
+}
+
+.flight-plan-leg-list-item .airway-connector {
+  position: absolute;
+  top: var(--flight-plan-leg-list-item-airway-connector-top);
+  left: var(--flight-plan-leg-list-item-airway-connector-left);
+  transform: scale(var(--flight-plan-leg-list-item-airway-connector-scale));
+  display: none;
+}
+
+.flight-plan-leg-list-item .airway-connector-dashed {
+  position: absolute;
+  top: var(--flight-plan-leg-list-item-airway-connector-dashed-top);
+  left: var(--flight-plan-leg-list-item-airway-connector-dashed-left);
+  transform: scale(var(--flight-plan-leg-list-item-airway-connector-dashed-scale));
+  display: none;
+}
+
+.flight-plan-leg-list-item.airway-leg.first-visible-leg-in-segment .airway-connector-first {
+  display: block;
+}
+
+.flight-plan-leg-list-item.airway-leg .airway-connector {
+  display: block;
+}
+
+.flight-plan-leg-list-item.airway-leg.use-airway-exit-list-item .airway-connector-dashed {
+  display: block;
+}
+
+.flight-plan-leg-list-item.airway-leg.use-airway-exit-list-item.first-visible-leg-in-segment .airway-connector-dashed {
+  display: none;
+}
+
+.flight-plan-leg-list-item.airway-leg.first-visible-leg-in-segment .airway-connector,
+.flight-plan-leg-list-item.airway-leg.use-airway-exit-list-item .airway-connector {
+  display: none;
+}
+
+.flight-plan-leg-list-item.airway-leg.use-airway-exit-list-item .flight-plan-altitude-box,
+.flight-plan-leg-list-item.airway-leg.use-airway-exit-list-item .flight-plan-fpa-speed-box,
+.flight-plan-leg-list-item.airway-leg.use-airway-exit-list-item .flight-plan-data-fields-box,
+.flight-plan-leg-list-item.airway-leg.use-airway-exit-list-item .flight-plan-leg-display {
+  display: none;
+}
+
+.flight-plan-leg-list-item .airway-exit-text {
+  display: none;
+}
+
+.flight-plan-leg-list-item.airway-leg.use-airway-exit-list-item .airway-exit-text {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--g3000-color-cyan);
+}
+
+.flight-plan-leg-list-item.airway-leg.use-airway-exit-list-item .touch-button-highlight .airway-exit-text {
+  color: var(--g3000-color-black);
+}
+
+.flight-plan-leg-list-item.airway-leg.use-airway-exit-list-item .flight-plan-leg-button {
+  width: 100%;
+}
+
+.flight-plan-leg-list-item.direct-to-random-hold-leg {
+  margin-top: var(--touch-list-item-margin);
+}
+
+.flight-plan-leg-list-item.direct-to-random-leg .flight-plan-from-to-arrow {
+  display: none;
+}
+
+.flight-plan-leg-list-item.direct-to-random-leg.active-leg .flight-plan-from-to-arrow {
+  display: block;
+}

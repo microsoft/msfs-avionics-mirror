@@ -1,16 +1,13 @@
 {
-  "name": "msfstypes",
+  "name": "@microsoft/msfs-types",
   "version": "1.14.6",
   "description": "Base MSFS TS Types",
   "main": "index.js",
   "typings": "index.d.ts",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
-    "url": "https://workingtitlesim@dev.azure.com/workingtitlesim/KittyHawk/_git/ProjectGolf"
+    "url": "https://github.com/microsoft/msfs-avionics-mirror/"
   },
-  "author": "Asobo Studio",
-  "license": "ISC"
+  "author": "Asobo Studio / Working Title Simulations",
+  "license": "MIT"
 }

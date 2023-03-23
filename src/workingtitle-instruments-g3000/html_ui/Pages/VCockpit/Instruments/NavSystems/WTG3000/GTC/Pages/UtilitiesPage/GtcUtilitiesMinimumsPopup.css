@@ -1,0 +1,33 @@
+.utilities-minimums-popup {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.gtc-horizontal .utilities-minimums-popup {
+  font-size: 32px;
+
+  --utilities-minimums-popup-charts-left: 125px;
+  --utilities-minimums-popup-charts-bottom: 55px;
+  --utilities-minimums-popup-charts-width: 200px;
+  --utilities-minimums-popup-charts-height: 165px;
+}
+
+.gtc-vertical .utilities-minimums-popup {
+  font-size: 16px;
+
+  --utilities-minimums-popup-charts-left: 40px;
+  --utilities-minimums-popup-charts-bottom: 30px;
+  --utilities-minimums-popup-charts-width: 105px;
+  --utilities-minimums-popup-charts-height: 87px;
+}
+
+.touch-button.utilities-minimums-popup-charts {
+  position: absolute;
+  left: var(--utilities-minimums-popup-charts-left);
+  bottom: var(--utilities-minimums-popup-charts-bottom);
+  width: var(--utilities-minimums-popup-charts-width);
+  height: var(--utilities-minimums-popup-charts-height);
+}

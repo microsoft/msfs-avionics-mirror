@@ -1,0 +1,148 @@
+.fuel-planning-page {
+  background-color: var(--gnsblue);
+  padding: 0 3px 8px 6px;
+}
+
+wt-gns430 .fuel-planning-page {
+  background-color: var(--gnsblue);
+  padding: 0 3px 8px 6px;
+
+  height: 174px;
+}
+
+wt-gns530 .fuel-planning-page-header>h2 {
+  padding-left: 4%;
+  font-size: var(--gns-font-page-title2);
+  text-align: left;
+  padding-top: 4px;
+}
+
+wt-gns430 .fuel-planning-page-header>h2 {
+  padding-left: 4%;
+  font-size: var(--gns-font-page-title2);
+  text-align: left;
+  padding-top: 6px;
+}
+
+wt-gns530 .fuel-planning-table-header {
+  color: white;
+  font-size: var(--gns-font-page-title2);
+  padding: 4px 0 2px 0;
+  padding-bottom: 6px;
+  text-align: center;
+}
+
+wt-gns430 .fuel-planning-table-header {
+  color: white;
+  font-size: var(--gns-font-page-title2);
+  padding: 4px 0 2px 0;
+  padding-bottom: 6px;
+  text-align: center;
+}
+
+.fuel-planning-input-table {
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 22px;
+  display: grid;
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid white;
+  height: 45px;
+  left: 3%;
+  width: 94%;
+  padding: 1px;
+  position: relative;
+}
+
+wt-gns530 .fuel-planning-input-table {
+  grid-column-gap: 45px;
+}
+
+wt-gns430 .fuel-planning-input-table {
+  grid-column-gap: 31px;
+}
+
+.fuel-planning-input-table>div.fuel-planning-input-table-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#fuel-planning-arrow {
+  display: inline-block;
+  position: absolute;
+  top: .3em;
+  width: 0;
+}
+
+wt-gns530 #fuel-planning-arrow {
+  right: 5.3em;
+}
+wt-gns430 #fuel-planning-arrow {
+  right: 4.3em;
+}
+
+wt-gns530 #fuel-planning-to {
+  position: relative;
+  right: 1.15em;
+}
+
+#fuel-planning-data-table {
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 22px;
+  display: grid;
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid white;
+  height: 44px;
+  left: 3%;
+  width: 94%;
+  position: relative;
+}
+
+wt-gns530 #fuel-planning-data-table {
+  grid-column-gap: 38px;
+}
+
+wt-gns430 #fuel-planning-data-table {
+  grid-column-gap: 20px;
+}
+
+.fuel-planning-output-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.fuel-planning-labels, .fuel-planning-labels-bot {
+  position: relative;
+  display: inline-flex;
+  justify-content: space-between;
+  width: 94%;
+  left: 3%;
+  padding: 0 1.2em;
+}
+
+.fuel-planning-labels>div, .fuel-planning-labels-bot>div {
+  text-align: center;
+  width: 3em;
+}
+
+wt-gns530 .fuel-planning-labels {
+  padding-bottom: 5px;
+  padding-top: 2px;
+}
+
+wt-gns530 .fuel-planning-labels-bot {
+  padding-top: 2px;
+}
+
+wt-gns430 .fuel-planning-labels {
+  padding-top: 4px;
+}
+
+wt-gns430 .fuel-planning-labels-bot {
+  padding-top: 6px;
+}

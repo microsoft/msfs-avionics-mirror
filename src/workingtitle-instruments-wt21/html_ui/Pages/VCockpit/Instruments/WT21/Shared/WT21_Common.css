@@ -1,0 +1,150 @@
+@font-face {
+  font-family: "WT21";
+  src: url("/Pages/VCockpit/Instruments/WT21/Assets/Fonts/Custom_Altimeter_wt21-LightCondensed.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "WT21 FMC";
+  src: url("/Pages/VCockpit/Instruments/WT21/Assets/Fonts/wt21-Condensed.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+html {
+  /*
+  This is a repository for common style parameters. Use these whenever you can, so that we can make global adjustments at just this point.
+  Use as var(--wt21-x-y-z) to replace any value in conventional notation.
+  Keep these colors in sync with WT21_Colors.ts.
+  */
+  /* Color Styling */
+  --wt21-colors-black: black;
+  --wt21-colors-black-translucent: rgba(0, 0, 0, 0.35);
+  --wt21-colors-white: white;
+  --wt21-colors-gray: hsl(0, 0%, 70%);
+  --wt21-colors-dark-gray: hsl(0, 0%, 60%);
+  --wt21-colors-lightblue: hsl(210, 100%, 50%);
+  --wt21-colors-blue: hsl(230, 100%, 51%);
+  --wt21-colors-red: red;
+  --wt21-colors-amber: orange;
+  --wt21-colors-yellow: yellow;
+  --wt21-colors-green: #49e700;
+  --wt21-colors-magenta: magenta;
+  --wt21-colors-cyan: hsl(195, 100%, 50%);
+
+  /* Font Styling */
+  --wt21-fonts-family-general: "WT21";
+  --wt21-fonts-family-fmc: "WT21 FMC";
+  --wt21-fonts-weight-bold: 700;
+  --wt21-fonts-weight-normal: 400;
+  --wt21-fonts-weight-light: 300;
+  --wt21-fonts-shadow-normal: 1px 1px var(--wt21-colors-black), -1px -1px var(--wt21-colors-black), 1px -1px var(--wt21-colors-black), -1px 1px var(--wt21-colors-black);
+  --wt21-fonts-shadow-light: 1px 1px var(--wt21-colors-black-translucent), -1px -1px var(--wt21-colors-black-translucent), 1px -1px var(--wt21-colors-black-translucent), -1px 1px var(--wt21-colors-black-translucent);
+  /* Border Styling */
+  --wt21-borders-xlight: 1px solid var(--wt21-colors-grey);
+  --wt21-borders-light: 1px solid var(--wt21-colors-white);
+  --wt21-borders-normal: 2px solid var(--wt21-colors-white);
+  --wt21-borders-strong: 3px solid var(--wt21-colors-white);
+}
+
+/** HINT: Don't show the white highlight since the instruments is in general not interactive */
+#vignettage {
+  display: none;
+  visibility: hidden;
+}
+
+#highlight {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.visibility-hidden {
+  visibility: hidden !important;
+}
+
+.menudisabled {
+  color: var(--wt21-colors-dark-gray);
+}
+
+.white-text {
+  color: var(--wt21-colors-white)
+}
+
+.magenta-text {
+  color: var(--wt21-colors-magenta);
+}
+
+.cyan-text {
+  color: var(--wt21-colors-cyan);
+}
+
+.green-text {
+  color: var(--wt21-colors-green);
+}
+
+.yellow-text {
+  color: var(--wt21-colors-yellow);
+}
+
+.fail-box,
+.fail-box-small,
+.info-box {
+  background: var(--wt21-colors-black);
+  color: var(--wt21-colors-cyan);
+  border: 0.175rem solid var(--wt21-colors-cyan);
+  font-size: 1.75rem;
+  position: absolute;
+  padding: 0.4rem 0.15rem 0 0.15rem;
+  line-height: 0.8;
+  display: none;
+}
+
+.fail-box-small {
+  font-size: 1.5rem;
+}
+
+.fail .fail-box,
+.fail .fail-box-small {
+  color: var(--wt21-colors-red);
+  border: 0.175rem solid var(--wt21-colors-red);
+  display: block;
+}
+
+.warn .fail-box,
+.warn .fail-box-small {
+  color: var(--wt21-colors-yellow);
+  border: 0.175rem solid var(--wt21-colors-yellow);
+  display: block;
+}
+
+.fail .fail-box,
+.fail .fail-box-small,
+.warn .fail-box,
+.warn .fail-box-small,
+.align .fail-box,
+.align .fail-box-small {
+  animation: fail-blink 0.75s step-start;
+  animation-iteration-count: 6;
+}
+
+@keyframes fail-blink {
+  0% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}

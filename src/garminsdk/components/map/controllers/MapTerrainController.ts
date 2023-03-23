@@ -1,7 +1,7 @@
 import {
-  MapIndexedRangeModule, MapOwnAirplanePropsModule, MappedSubject, MappedSubscribable, MapSystemContext, MapSystemController, MapSystemKeys, Subject,
-  Subscribable, Subscription, UserSettingManager
-} from 'msfssdk';
+  MapDataIntegrityModule, MapIndexedRangeModule, MapOwnAirplanePropsModule, MappedSubject, MappedSubscribable, MapSystemContext, MapSystemController, MapSystemKeys,
+  Subject, Subscribable, Subscription, UserSettingManager
+} from '@microsoft/msfs-sdk';
 
 import { MapTerrainSettingMode, MapUserSettingTypes } from '../../../settings/MapUserSettings';
 import { GarminMapKeys } from '../GarminMapKeys';
@@ -29,6 +29,9 @@ export interface MapTerrainControllerModules {
 
   /** Own airplane properties module. */
   [MapSystemKeys.OwnAirplaneProps]?: MapOwnAirplanePropsModule;
+
+  /** Data integrity module. */
+  [MapSystemKeys.DataIntegrity]?: MapDataIntegrityModule;
 }
 
 /**
@@ -39,12 +42,13 @@ export class MapTerrainController extends MapSystemController<MapTerrainControll
 
   private readonly rangeIndex = this.context.model.getModule(GarminMapKeys.Range).nominalRangeIndex;
   private readonly isOnGround = this.context.model.getModule(MapSystemKeys.OwnAirplaneProps)?.isOnGround ?? Subject.create(false);
+  private readonly isGpsDataValid = this.context.model.getModule(MapSystemKeys.DataIntegrity)?.gpsSignalValid ?? Subject.create(true);
 
   private readonly modeSetting?: Subscribable<MapTerrainSettingMode>;
   private readonly rangeIndexSetting: Subscribable<number>;
   private readonly showScaleSetting?: Subscribable<boolean>;
 
-  private terrainMode?: MappedSubscribable<MapTerrainMode>;
+  private terrainModeState?: MappedSubscribable<readonly [MapTerrainSettingMode, number, number, boolean, boolean]>;
   private showScalePipe?: Subscription;
 
   /**
@@ -70,31 +74,38 @@ export class MapTerrainController extends MapSystemController<MapTerrainControll
   /** @inheritdoc */
   public onAfterMapRender(): void {
     if (this.modeSetting !== undefined) {
-      this.terrainMode = MappedSubject.create(
-        ([modeSetting, rangeIndexSetting, rangeIndex, isOnGround]): MapTerrainMode => {
-          let mode = MapTerrainMode.None;
-          if (rangeIndex <= rangeIndexSetting) {
-            switch (modeSetting) {
-              case MapTerrainSettingMode.Absolute:
-                mode = MapTerrainMode.Absolute;
-                break;
-              case MapTerrainSettingMode.Relative:
-                if (this.allowRelative && !isOnGround) {
-                  mode = MapTerrainMode.Relative;
-                }
-                break;
-            }
-          }
-
-          return mode;
-        },
+      this.terrainModeState = MappedSubject.create(
         this.modeSetting,
         this.rangeIndexSetting,
         this.rangeIndex,
-        this.isOnGround
+        this.isOnGround,
+        this.isGpsDataValid
       );
 
-      this.terrainMode.pipe(this.terrainModule.terrainMode);
+      this.terrainModeState.sub(([modeSetting, rangeIndexSetting, rangeIndex, isOnGround, isGpsDataValid]): void => {
+        let mode = MapTerrainMode.None;
+        let isRelativeFailed = false;
+
+        if (rangeIndex <= rangeIndexSetting) {
+          switch (modeSetting) {
+            case MapTerrainSettingMode.Absolute:
+              mode = MapTerrainMode.Absolute;
+              break;
+            case MapTerrainSettingMode.Relative:
+              if (this.allowRelative) {
+                if (isGpsDataValid) {
+                  mode = isOnGround ? MapTerrainMode.Ground : MapTerrainMode.Relative;
+                } else {
+                  isRelativeFailed = true;
+                }
+              }
+              break;
+          }
+        }
+
+        this.terrainModule.terrainMode.set(mode);
+        this.terrainModule.isRelativeModeFailed.set(isRelativeFailed);
+      }, true);
     }
 
     this.showScalePipe = this.showScaleSetting?.pipe(this.terrainModule.showScale);
@@ -109,7 +120,7 @@ export class MapTerrainController extends MapSystemController<MapTerrainControll
   public destroy(): void {
     super.destroy();
 
-    this.terrainMode?.destroy();
+    this.terrainModeState?.destroy();
     this.showScalePipe?.destroy();
   }
 }

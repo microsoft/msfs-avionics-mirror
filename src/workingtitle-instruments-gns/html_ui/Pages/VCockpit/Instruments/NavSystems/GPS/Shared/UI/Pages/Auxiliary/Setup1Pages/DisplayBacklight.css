@@ -1,0 +1,142 @@
+wt-gns530 .display-backlight-container {
+  display: grid;
+  height: 36px;
+  grid-template-columns: 1fr 3fr;
+  grid-template-rows: 2fr 3fr;
+  grid-column-gap: 1em;
+  padding: 0 6px;
+  margin-top: .2em;
+}
+
+wt-gns430 .display-backlight-container {
+  display: grid;
+  height: 36px;
+  grid-template-columns: 1fr 3fr;
+  grid-template-rows: 2fr 3fr;
+  grid-column-gap: 1em;
+  padding: 0 6px;
+  margin-top: 10px;
+}
+
+wt-gns530 .display-backlight-side-title {
+  margin: auto;
+}
+
+wt-gns430 .display-backlight-side-title {}
+
+wt-gns530 .display-backlight-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 15px 0;
+}
+
+wt-gns430 .display-backlight-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 6px;
+  width: 170px;
+}
+
+.display-backlight-table {
+  display: flex;
+  margin: 0;
+  padding: 1px;
+}
+
+wt-gns530 .display-backlight-table {
+  width: 170px;
+}
+
+wt-gns430 .display-backlight-table {
+  width: 170px;
+  margin-top: -5px;
+}
+
+wt-gns430 .display-backlight-table2 {
+  width: 170px;
+  position: absolute;
+  margin-left: 87px;
+  margin-top: -16px;
+}
+
+/* TODO we might wanna do the padding like this elsewhere */
+.display-backlight-mode {
+  display: inline-block;
+  height: 15px;
+  line-height: 18px;
+  padding: 0 1px 0;
+  margin-top: 1px;
+  margin-left: 7px;
+}
+
+/* TODO we might wanna do the padding like this elsewhere */
+.display-backlight-brightness {
+  display: inline-block;
+  height: 15px;
+  line-height: 18px;
+  padding: 0 1px 0;
+  margin-top: 1px;
+  margin-left: auto;
+  margin-right: 7px;
+}
+
+.backlight-mode-option-dialog {
+  width: 70px !important;
+  top: 4.5em;
+  left: 15em;
+  position: absolute;
+  margin-left: -186px;
+  margin-top: -105px;
+}
+
+wt-gns530 .display-backlight-side-title2 {
+  margin: auto;
+}
+
+wt-gns430 .display-backlight-side-title2 {
+  margin-top: 40px;
+  margin-left: 10px;
+}
+
+wt-gns530 .display-backlight-table-header2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 15px 0;
+}
+
+wt-gns430 .display-backlight-table-header2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 6px;
+  width: 170px;
+  right: 5px;
+  padding-top: 20px;
+  /* margin-left: -183px; */
+  position: absolute;
+}
+
+/* TODO we might wanna do the padding like this elsewhere */
+.display-backlight-mode2 {
+  display: inline-block;
+  height: 15px;
+  line-height: 18px;
+  padding: 0 1px 0;
+  margin-top: 1px;
+  margin-left: 7px;
+}
+
+/* TODO we might wanna do the padding like this elsewhere */
+.display-backlight-brightness2 {
+  display: inline-block;
+  height: 15px;
+  line-height: 18px;
+  padding: 0 1px 0;
+  margin-top: 1px;
+  position: absolute;
+  margin-left: 50px;
+  margin-right: 7px;
+}

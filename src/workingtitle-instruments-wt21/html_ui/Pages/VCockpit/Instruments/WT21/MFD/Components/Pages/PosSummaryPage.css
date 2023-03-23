@@ -1,0 +1,28 @@
+.pos-summary-title-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pos-summary-title-header > div {
+  margin-bottom: 20px;
+}
+
+.pos-summary-grid {
+  display: grid;
+  grid-template-columns: 240px 150px 60px;
+  grid-template-rows: repeat(6, 22px);
+}
+
+.pos-summary-grid-title {
+  display: grid;
+  grid-template-columns: 240px 150px 60px;
+  grid-template-rows: auto;
+  margin-bottom: 20px;
+}
+
+.pos-summary-grid-indent {
+  padding-left: 10px;
+  grid-column-start: 1;
+  grid-column-end: 4;
+}

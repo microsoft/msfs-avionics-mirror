@@ -913,7 +913,9 @@ export class InterceptGreatCircleToPointBuilder {
       end = GeoPoint.sphericalToCartesian(end as LatLonInterface, InterceptGreatCircleToPointBuilder.vec3Cache[1]);
     }
 
-    if (Math.acos(Vec3Math.dot(startPath.center, endPath.center)) <= GeoCircle.ANGULAR_TOLERANCE) {
+    const startToEndPathAngleRad = Math.acos(Vec3Math.dot(startPath.center, endPath.center));
+
+    if (startToEndPathAngleRad <= GeoCircle.ANGULAR_TOLERANCE) {
       // initial and final paths are parallel
       return 0;
     }
@@ -926,7 +928,6 @@ export class InterceptGreatCircleToPointBuilder {
 
     const startTurnRadiusRad = UnitType.METER.convertTo(startTurnRadius, UnitType.GA_RADIAN);
     if (startTurnDirection === undefined) {
-      let target: ReadonlyFloat64Array;
 
       // Calculate the intercept point if the intercept path were to pass through the start point.
       const interceptCount = interceptPathCenters.intersection(
@@ -936,15 +937,45 @@ export class InterceptGreatCircleToPointBuilder {
 
       if (interceptCount === 0) {
         // No great-circle path passing through the start point can intercept the final path at the desired intercept angle.
-        target = end;
+        startTurnDirection = startPath.encircles(end) ? 'left' : 'right';
       } else {
-        target = Vec3Math.cross(
-          intersections[0], endPath.center,
+        let intersectionIndex = 0;
+
+        if (interceptCount > 1) {
+          // There are two great-circle paths passing through the start point that intercept the final path at the
+          // desired angle. One of them will be directed toward the end path and the other will be directed away from
+          // it. We want to choose the one directed toward it.
+          intersectionIndex = endPath.encircles(start) ? 0 : 1;
+        }
+
+        let cross = Vec3Math.cross(
+          startPath.center, intersections[intersectionIndex],
           InterceptGreatCircleToPointBuilder.vec3Cache[2]
         );
-      }
 
-      startTurnDirection = startPath.encircles(target) ? 'left' : 'right';
+        // sin x ~= x for x near 0, so to check if the angle between the start path and intercept path is parallel or
+        // antiparallel we just have to check the magnitude of their cross product instead of the arcsine of the
+        // magnitude.
+        if (Vec3Math.abs(cross) <= GeoCircle.ANGULAR_TOLERANCE) {
+          // If start and intercept paths are parallel or antiparallel, it doesn't really matter which direction we
+          // turn, so we will just turn in the direction that aligns us with the end path.
+
+          cross = Vec3Math.cross(
+            startPath.center, endPath.center,
+            InterceptGreatCircleToPointBuilder.vec3Cache[2]
+          );
+
+          if (Vec3Math.abs(cross) <= GeoCircle.ANGULAR_TOLERANCE) {
+            // If start and end paths are antiparallel (they can't be parallel since we would have returned from the
+            // method by now), then we just arbitrarily choose to turn right.
+            startTurnDirection = 'right';
+          } else {
+            startTurnDirection = Vec3Math.dot(cross, start) >= 0 ? 'left' : 'right';
+          }
+        } else {
+          startTurnDirection = Vec3Math.dot(cross, start) >= 0 ? 'left' : 'right';
+        }
+      }
     }
 
     const startTurnCircle = FlightPathUtils.getTurnCircleStartingFromPath(
@@ -999,15 +1030,34 @@ export class InterceptGreatCircleToPointBuilder {
       return 0;
     }
 
-    // The start turn is considered to overshoot if any part of the turn circle lies on the contralateral side of the
-    // final path. The contralateral side is defined as the right side for left turns and the left side for right turns.
-    // If the start turn overshoots, then the desired intercept path will intercept the final path from the contralateral side.
-    const doesStartTurnOvershoot = endPath.distance(startTurnCircle.center) > -startTurnCircle.radius + GeoCircle.ANGULAR_TOLERANCE;
+    const interceptPath = InterceptGreatCircleToPointBuilder.geoCircleCache[1];
+    let interceptCrossSign: number;
 
-    const interceptPath = InterceptGreatCircleToPointBuilder.geoCircleCache[1].set(
-      intersections[interceptPathCount === 1 || !doesStartTurnOvershoot ? 0 : 1],
-      MathUtils.HALF_PI
-    );
+    if (startToEndPathAngleRad >= interceptAngleRad) {
+      // The start turn is considered to overshoot if it crosses to the contralateral side of the final path before
+      // joining the intercept path that requires the shortest turn to join. The contralateral side is defined as the
+      // right side for left turns and the left side for right turns. If this occurs, we need to choose the second
+      // intercept path (if it exists). This is because choosing the first intercept path would trigger a case below
+      // that attempts to end the start turn early, which could produce a path that requires the plane to track toward
+      // the final path at an angle greater than the intercept angle.
+      const overshootThreshold = Math.asin(MathUtils.clamp(Math.cos(interceptAngleRad) * Math.sin(startTurnRadiusRad), 0, 1));
+      const doesStartTurnOvershoot = endPath.distance(startTurnCircle.center) > -overshootThreshold + GeoCircle.ANGULAR_TOLERANCE;
+      interceptPath.set(
+        intersections[interceptPathCount === 1 || !doesStartTurnOvershoot ? 0 : 1],
+        MathUtils.HALF_PI
+      );
+      interceptCrossSign = doesStartTurnOvershoot === (startTurnDirection === 'right') ? 1 : -1;
+    } else {
+      // If the start path intersects the final path at a shallower angle than the intercept path, then we always want
+      // to choose the intercept path that requires the shortest turn to join. Even if the turn has overshot the final
+      // path by the time it can join the chosen intercept path, we handle that case below by attempting to end the
+      // start turn early. We are guaranteed that ending the start turn early will not result in a path that requires
+      // the plane to track toward the final path at an angle greater than the intercept angle because if it did, that
+      // would mean the start turn does not overshoot the final path and therefore we wouldn't have needed to end the
+      // start turn early in the first place.
+      interceptPath.set(intersections[Math.max(1, intersections.length - 1)], MathUtils.HALF_PI);
+      interceptCrossSign = startTurnDirection === 'right' ? 1 : -1;
+    }
 
     const startTurnEnd = interceptPath.closest(
       startTurnCircle.closest(interceptPath.center, InterceptGreatCircleToPointBuilder.vec3Cache[2]),
@@ -1019,7 +1069,7 @@ export class InterceptGreatCircleToPointBuilder {
         Vec3Math.cross(interceptPath.center, endPath.center, InterceptGreatCircleToPointBuilder.vec3Cache[3]),
         InterceptGreatCircleToPointBuilder.vec3Cache[3]
       ),
-      doesStartTurnOvershoot === (startTurnDirection === 'right') ? 1 : -1,
+      interceptCrossSign,
       InterceptGreatCircleToPointBuilder.vec3Cache[3]
     );
 
@@ -1083,7 +1133,7 @@ export class InterceptGreatCircleToPointBuilder {
           startTurnCenter,
           startTurnRadiusRad + endTurnRadiusRad
         );
-        // The set of centers of all geo circles of the desried end turn radius that are tangent to the end path
+        // The set of centers of all geo circles of the desired end turn radius that are tangent to the end path
         const endPathEndTurnTangentCenters = InterceptGreatCircleToPointBuilder.geoCircleCache[2].set(
           endPath.center,
           endPath.radius + endTurnRadiusRad * (startTurnDirection === 'left' ? 1 : -1)
@@ -1372,10 +1422,11 @@ export class JoinGreatCircleToPointBuilder {
     if (needCalculateTwoTurnPath) {
       const interceptFlag = includeInterceptFlag ? FlightPathVectorFlags.InterceptCourse : 0;
 
-      // Attempt to make a turn to intercept the end path at 45 degrees
+      // Attempt to make a turn to intercept the end path at 45 degrees. At this point we are in fallback territory
+      // so we won't honor the desired starting turn direction.
       const numInterceptVectors = this.interceptGreatCircleToPointBuilder.build(
         vectors, vectorIndex,
-        start, startPath, minTurnRadius, desiredTurnDirection,
+        start, startPath, minTurnRadius, undefined,
         JoinGreatCircleToPointBuilder.INTERCEPT_ANGLE,
         end, endPath, minTurnRadius,
         turnFlags | interceptFlag, flags | interceptFlag, turnFlags | interceptFlag

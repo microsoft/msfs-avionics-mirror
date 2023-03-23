@@ -1,0 +1,206 @@
+.gtc-horizontal .gtc-direct-to {
+  --gtc-direct-to-font-size-small: 28px;
+  --gtc-direct-to-font-size-medium: 30px;
+  --gtc-direct-to-font-size-medium-large: 33px;
+  --gtc-direct-to-font-size-large: 38px;
+  --gtc-direct-to-width: 100%;
+  --gtc-direct-to-padding-top: 4.5%;
+
+  --gtc-tabbed-container-width: 90%;
+  --gtc-tabbed-container-height: 99%;
+}
+
+.gtc-vertical .gtc-direct-to {
+  --gtc-direct-to-font-size-small: 15px;
+  --gtc-direct-to-font-size-medium: 16px;
+  --gtc-direct-to-font-size-medium-large: 18px;
+  --gtc-direct-to-font-size-large: 23px;
+  --gtc-direct-to-width: 100%;
+  --gtc-direct-to-padding-top: 5%;
+
+  --gtc-tabbed-container-width: 478px;
+  --gtc-tabbed-container-height: 98%;
+  --gtc-tabbed-container-vert-tab-width: 94px;
+  --gtc-tabbed-container-tab-font-size: 17px;
+}
+
+.gtc-direct-to {
+  height: 100%;
+  width: var(--gtc-direct-to-width);
+  padding-top: var(--gtc-direct-to-padding-top);
+  padding-left: .5%;
+  display: flex;
+  justify-content: center;
+}
+
+.gtc-direct-to .gtc-tabbed-container {
+  width: var(--gtc-tabbed-container-width);
+  height: var(--gtc-tabbed-container-height);
+}
+
+.gtc-direct-to .select-waypoint-button {
+  font-size: var(--gtc-direct-to-font-size-medium);
+  padding: 10px;
+}
+
+.gtc-horizontal .gtc-direct-to .select-waypoint-button {
+  width: 74%;
+  height: 134px;
+  left: 13%;
+  margin-top: 12px;
+}
+
+.gtc-vertical .gtc-direct-to .select-waypoint-button {
+  width: 72.5%;
+  height: 75px;
+  left: 13.5%;
+  margin-top: 5px;
+}
+
+.gtc-direct-to-waypoint-tab {
+  display: flex;
+  flex-direction: column;
+}
+
+.gtc-direct-to-waypoint-data {
+  display: flex;
+  flex-direction: row;
+  font-size: var(--gtc-direct-to-font-size-medium);
+}
+
+.gtc-direct-to-waypoint-data>div {
+  display: inline-block;
+  text-align: center;
+  width: 25%;
+  padding-left: 10px;
+  padding-right: 10px;
+  white-space: nowrap;
+}
+
+.gtc-direct-to-waypoint-data .bearing-display {
+  display: inline-block;
+  padding-right: 10px;
+}
+
+.gtc-horizontal .gtc-direct-to-waypoint-data {
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+
+.gtc-vertical .gtc-direct-to-waypoint-data {
+  margin-top: 7px;
+}
+
+.gtc-direct-to-waypoint-data .waypoint-location {
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 50%;
+}
+
+.gtc-horizontal .gtc-direct-to-waypoint-data .waypoint-location {
+  margin-left: 10px;
+}
+
+.gtc-horizontal .gtc-direct-to-waypoint-data .waypoint-location {
+  margin-left: 5px;
+}
+
+.gtc-horizontal .gtc-direct-to-button-grid {
+  margin-bottom: 15px;
+}
+
+.gtc-direct-to-button-grid .button-grid-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.gtc-direct-to-button-grid .button-grid-button {
+  display: inline-block;
+  width: 43%;
+  margin: 5px;
+}
+
+.gtc-direct-to-button-grid .touch-button.button-grid-button .touch-button-label {
+  font-size: var(--gtc-direct-to-font-size-medium);
+}
+
+.gtc-direct-to-button-grid .touch-button.button-grid-button .touch-button-value-value,
+.gtc-direct-to-button-grid .touch-button.button-grid-button .altitude-constraint-display {
+  font-size: var(--gtc-direct-to-font-size-large);
+}
+
+.gtc-direct-to-button-grid .touch-button.button-grid-button .altitude-constraint-display .altitudes {
+  left: unset;
+  top: 50%;
+}
+
+.gtc-direct-to-button-grid .touch-button.button-grid-button .altitude-constraint-display .pencil-icon {
+  right: 15%;
+  top: 65%;
+}
+
+.gtc-horizontal .gtc-direct-to-button-grid .button-grid-row-1 .button-grid-button {
+  height: 137px;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.gtc-horizontal .gtc-direct-to-button-grid .button-grid-row-2 .button-grid-button {
+  height: 121px;
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-top: 10px;
+}
+
+.gtc-vertical .gtc-direct-to-button-grid .button-grid-row-1 .button-grid-button {
+  height: 78px;
+}
+
+.gtc-vertical .gtc-direct-to-button-grid .button-grid-row-2 .button-grid-button {
+  height: 65px;
+}
+
+.gtc-direct-to-button-row-bottom {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  padding: 1%;
+}
+
+.gtc-horizontal .gtc-direct-to-button-row-bottom {
+  margin-top: 10px;
+}
+
+.gtc-direct-to-button-row-bottom .button-grid-button {
+  display: inline-block;
+  margin: 5px 2px 5px 2px;
+}
+
+.gtc-horizontal .gtc-direct-to-button-row-bottom .button-grid-button {
+  width: 31.5%;
+  height: 125px;
+}
+
+.gtc-vertical .gtc-direct-to-button-row-bottom .button-grid-button {
+  width: 100%;
+  height: 68px;
+}
+
+.gtc-direct-to-button-row-bottom .button-grid-button .touch-button-label {
+  font-size: var(--gtc-direct-to-font-size-small);
+}
+
+.gtc-direct-to-button-row-bottom .button-grid-button .touch-button-value-value {
+  font-size: var(--gtc-direct-to-font-size-medium-large);
+  color: var(--g3000-color-white)
+}
+
+.gtc-direct-to-button-row-bottom .touch-button.cancel-button .touch-button-value-value {
+  color: var(--g3000-color-magenta);
+}
+
+.gtc-direct-to-button-row-bottom .touch-button.cancel-button.touch-button-disabled .touch-button-value-value {
+  color: var(--g3000-color-white);
+}

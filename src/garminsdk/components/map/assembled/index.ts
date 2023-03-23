@@ -1,3 +1,4 @@
+export * from './NextGenConnextMapBuilder';
 export * from './NextGenHsiMapBuilder';
 export * from './NextGenNavMapBuilder';
 export * from './NextGenNearestMapBuilder';

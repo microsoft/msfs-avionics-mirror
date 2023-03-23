@@ -1,0 +1,30 @@
+.page {
+  font-size: var(--gns-font-page-title2);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+wt-gns530 .page {
+  padding: 0 3px 3px 3px;
+  height: 216px;
+}
+
+wt-gns530 .page.page-no-padding {
+  padding: 0;
+}
+
+wt-gns430 .page {
+  padding: 0 3px 3px 3px;
+  font-size: 13px;
+}
+
+wt-gns430 .page.page-no-padding {
+  padding: 0;
+}
+
+h2.page-header {
+  padding-bottom: 2px;
+  font-size: var(--gns-font-page-title2);
+  text-align: center;
+}

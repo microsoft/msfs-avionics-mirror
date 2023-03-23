@@ -1,0 +1,131 @@
+.vertical-deviation-indicator {
+  height: 100%;
+  border-right: 2px solid var(--wt21-colors-dark-gray);
+  background-color: var(--wt21-colors-black-translucent);
+  overflow: hidden;
+}
+
+.vertical-deviation-indicator svg {
+  position: absolute;
+  top: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.vertical-deviation-indicator svg.dots {
+  left: 0px;
+}
+
+.vertical-deviation-indicator svg.waypoint {
+  left: -1px;
+}
+
+.vertical-deviation-indicator svg.diamond,
+.vertical-deviation-indicator svg.diamondUp,
+.vertical-deviation-indicator svg.diamondDown {
+  left: -2px;
+}
+
+.vertical-deviation-indicator svg.waypoint path {
+  transform: translate(50%, 50%);
+}
+
+.vertical-deviation-indicator .NAV svg.waypoint {
+  display: none;
+}
+
+.vertical-deviation-indicator svg.diamond path {
+  transform: translate(50%, 50%);
+}
+
+.vertical-deviation-indicator .FMS svg.diamond,
+.vertical-deviation-indicator .FMS svg.diamondDown,
+.vertical-deviation-indicator .FMS svg.diamondUp {
+  display: none;
+}
+
+.vertical-deviation-indicator .maxDeviationDown svg.diamond path,
+.vertical-deviation-indicator .maxDeviationUp svg.diamond path {
+  display: none;
+}
+
+.vertical-deviation-indicator svg.diamondDown {
+  bottom: 0%;
+  transform: none;
+}
+
+.vertical-deviation-indicator svg.diamondDown path {
+  transform: translate(50%, 85%);
+  display: none;
+}
+
+.vertical-deviation-indicator .maxDeviationDown svg.diamondDown path {
+  display: block !important;
+}
+
+.vertical-deviation-indicator svg.diamondUp {
+  top: 0;
+  transform: none;
+}
+
+.vertical-deviation-indicator svg.diamondUp path {
+  transform: translate(50%, 15%);
+  display: none;
+}
+
+.vertical-deviation-indicator .maxDeviationUp svg.diamondUp path {
+  display: block !important;
+}
+
+.vertical-deviation-indicator svg .shadow {
+  stroke: var(--wt21-colors-black);
+  stroke-width: 4.5;
+  opacity: 0.5;
+}
+
+.vertical-deviation-indicator .activeNavSourceDeviation {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.vertical-deviation-indicator .activeNavSourceDeviation.NAV {
+  color: var(--wt21-colors-green);
+}
+
+.vertical-deviation-indicator .activeNavSourceDeviation.FMS {
+  color: var(--wt21-colors-magenta);
+}
+
+.vertical-deviation-indicator .translatable {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.vertical-deviation-indicator .ghostNeedleDeviation {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--wt21-colors-cyan);
+}
+
+.vertical-deviation-box .fail-box-small {
+  top: 100%;
+  right: 50%
+}
+
+.fail .vertical-deviation-indicator,
+.warn .vertical-deviation-indicator {
+  display: block !important;
+}
+
+.fail .activeNavSourceDeviation,
+.fail .ghostNeedleDeviation,
+.warn .activeNavSourceDeviation,
+.warn .ghostNeedleDeviation {
+  display: none;
+}

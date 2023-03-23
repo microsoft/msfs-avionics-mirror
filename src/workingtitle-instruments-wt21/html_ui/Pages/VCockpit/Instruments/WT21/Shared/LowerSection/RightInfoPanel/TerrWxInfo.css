@@ -1,0 +1,52 @@
+.terr-wx-info {
+  position: absolute;
+  top: 73.65%;
+  right: 0;
+  color: var(--wt21-colors-white);
+  text-align: right;
+  font-size: 24px;
+  letter-spacing: -1.75px;
+}
+
+.terr-wx-info > * + * {
+  margin-top: -6px;
+  /* font-size: 26px; */
+}
+
+.terr-wx-info.TERR .terr-label {
+  /* Active mode is larger font */
+  font-size: 26px;
+  margin-top: -4px;
+}
+
+.terr-wx-info.TERR.format-supported .terr-label {
+  color: var(--wt21-colors-cyan);
+}
+
+.terr-wx-info.WX .wx-label {
+  /* Active mode is larger font */
+  font-size: 26px;
+  margin-top: -8px;
+}
+
+.terr-wx-info.WX.format-supported .wx-label {
+  color: var(--wt21-colors-cyan);
+}
+
+.terr-wx-info .line-3,
+.terr-wx-info .line-4,
+.terr-wx-info .line-5 {
+  margin-top: -8px;
+  /* Lines 3,4,5 are shifted left a tiny bit */
+  margin-right: 1px;
+}
+
+.terr-wx-info.format-supported .line-3,
+.terr-wx-info.format-supported .line-4,
+.terr-wx-info.format-supported .line-5 {
+  color: var(--wt21-colors-cyan);
+}
+
+.terr-wx-info .line-3 {
+  margin-top: -10px;
+}

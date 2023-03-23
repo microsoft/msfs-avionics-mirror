@@ -1,0 +1,123 @@
+.flight-plan-text-panel {
+  margin: 7px 4px;
+  flex-grow: 1;
+  height: 226px;
+}
+
+.flight-plan-text-panel .column-headers {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  height: 34px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+}
+
+.flight-plan-text-panel .column-headers>* {
+  position: absolute;
+  bottom: 0px;
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.flight-plan-text-panel .column-headers .dtk {
+  left: 179px;
+}
+
+.display-pane-half .flight-plan-text-panel .column-headers .dtk {
+  left: 186px;
+}
+
+.flight-plan-text-panel .column-headers .distance {
+  left: 270px;
+}
+
+.display-pane-half .flight-plan-text-panel .column-headers .distance {
+  left: 253px;
+}
+
+.flight-plan-text-panel .column-headers .altitude {
+  left: 379px;
+}
+
+.display-pane-half .flight-plan-text-panel .column-headers .altitude {
+  left: 345px;
+}
+
+.flight-plan-text-panel .column-headers .fuel {
+  left: 486px;
+}
+
+.flight-plan-text-panel .column-headers .ete {
+  left: 587px;
+}
+
+.display-pane-half .flight-plan-text-panel .column-headers .ete {
+  left: 439px;
+}
+
+.flight-plan-text-panel .column-headers .eta {
+  left: 686px;
+}
+
+.display-pane-half .flight-plan-text-panel .column-headers .fuel,
+.display-pane-half .flight-plan-text-panel .column-headers .eta {
+  display: none;
+}
+
+.flight-plan-text-panel .header-line {
+  position: absolute;
+  top: 35px;
+  left: 0px;
+  width: 100%;
+  height: var(--display-pane-inset-panel-border-width);
+  background-color: var(--display-pane-inset-panel-border-color);
+}
+
+.flight-plan-text-panel .text-rows {
+  position: absolute;
+  top: 36px;
+  left: 0px;
+  padding-top: 2px;
+  height: 188px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  border-bottom-left-radius: 8px;
+}
+
+.flight-plan-text-panel .direct-to-random-label {
+  display: none;
+  position: absolute;
+  top: 16px;
+  left: 8px;
+  width: 100px;
+  height: 1em;
+  white-space: pre;
+  font-size: 16px;
+  color: var(--g3000-color-magenta);
+}
+
+.flight-plan-text-panel .direct-to-random-line {
+  display: none;
+  position: absolute;
+  top: 78px;
+  left: 0px;
+  width: 100%;
+  height: var(--display-pane-inset-panel-border-width);
+  background-color: var(--display-pane-inset-panel-border-color);
+}
+
+.flight-plan-text-panel.direct-to-random-with-hold .direct-to-random-line {
+  top: 114px;
+}
+
+.flight-plan-text-panel.direct-to-random .direct-to-random-label,
+.flight-plan-text-panel.direct-to-random .direct-to-random-line {
+  display: block;
+}

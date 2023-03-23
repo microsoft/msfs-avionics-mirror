@@ -1,0 +1,82 @@
+#PageSection {
+  position: absolute;
+  top: 185px;
+  background: var(--wt21-colors-black);
+  width: 100%;
+  height: 824px;
+  z-index: 51;
+  padding-top: 7px;
+  display: none;
+}
+
+.mfd-page-box {
+  border: 5px solid var(--wt21-colors-white);
+  height: 820px;
+  position: relative;
+  font-size: 24px;
+}
+
+.mfd-page-box::before {
+  content: "";
+  display: block;
+  height: 35px;
+  width: 60px;
+  background: var(--wt21-colors-black);
+  position: absolute;
+  right: -5px;
+  top: -10px;
+}
+
+.mfd-page-box::after {
+  content: "";
+  display: block;
+  border-bottom: 5px solid var(--wt21-colors-white);
+  border-left: 8px solid var(--wt21-colors-white);
+  height: 35px;
+  width: 160px;
+  background: var(--wt21-colors-black);
+  position: absolute;
+  right: 15px;
+  top: -5px;
+  transform: skew(57deg);
+}
+
+.mfd-page-main-container {
+  position: absolute;
+  left: 12%;
+  top: 10%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 550px;
+}
+
+.mfd-page-title-header {
+  display: flex;
+  width: 550px;
+  justify-content: space-between;
+  color: var(--wt21-colors-cyan);
+}
+
+.header-hidden {
+  visibility: hidden;
+}
+
+.grid-center {
+  justify-self: center;
+  white-space: nowrap;
+}
+
+.grid-right {
+  justify-self: right;
+  white-space: nowrap;
+}
+
+.grid-left {
+  justify-self: left;
+  white-space: nowrap;
+}
+
+.text-right {
+  text-align: right
+}

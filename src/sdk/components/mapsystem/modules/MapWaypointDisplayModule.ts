@@ -1,8 +1,9 @@
 import { NumberUnitSubject, UnitType } from '../../../math';
 import {
   AirportFacility, Facility, FacilityWaypoint, IntersectionFacility, NdbFacility, NearestAirportSearchSession, NearestIntersectionSearchSession,
-  NearestVorSearchSession, VorFacility
+  NearestVorSearchSession, VorFacility, Waypoint
 } from '../../../navigation';
+import { SubEvent } from '../../../sub';
 import { Subject } from '../../../sub/Subject';
 
 /**
@@ -66,64 +67,71 @@ interface ExtendedAirportFilters {
 export class MapWaypointDisplayModule {
 
   /** A handler that dictates airport waypoint visibility. */
-  public showAirports = Subject.create<WaypointVisibilityHandler<AirportFacility>>(() => true);
+  public readonly showAirports = Subject.create<WaypointVisibilityHandler<AirportFacility>>(() => true);
 
   /** A handler that dictates intersection waypoint visibility. */
-  public showIntersections = Subject.create<WaypointVisibilityHandler<IntersectionFacility>>(() => false);
+  public readonly showIntersections = Subject.create<WaypointVisibilityHandler<IntersectionFacility>>(() => false);
 
   /** A handler that dictates NDB waypoint visibility. */
-  public showNdbs = Subject.create<WaypointVisibilityHandler<NdbFacility>>(() => true);
+  public readonly showNdbs = Subject.create<WaypointVisibilityHandler<NdbFacility>>(() => true);
 
   /** A handler that dictates VOR waypoint visibility. */
-  public showVors = Subject.create<WaypointVisibilityHandler<VorFacility>>(() => true);
+  public readonly showVors = Subject.create<WaypointVisibilityHandler<VorFacility>>(() => true);
 
   /** The maximum range at which airport waypoints should be searched for. */
-  public airportsRange = NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(50));
+  public readonly airportsRange = NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(50));
 
   /** The maximum range at which intersection waypoints should be searched for. */
-  public intersectionsRange = NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(50));
+  public readonly intersectionsRange = NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(50));
 
   /** The maximum range at which NDB waypoints should be searched for. */
-  public ndbsRange = NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(500));
+  public readonly ndbsRange = NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(500));
 
   /** The maximum range at which VOR waypoints should be searched for. */
-  public vorsRange = NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(500));
+  public readonly vorsRange = NumberUnitSubject.createFromNumberUnit(UnitType.NMILE.createNumber(500));
 
   /** The maximum number of airports that should be displayed. */
-  public numAirports = Subject.create(40);
+  public readonly numAirports = Subject.create(40);
 
   /** The maximum number of intersections that should be displayed. */
-  public numIntersections = Subject.create(40);
+  public readonly numIntersections = Subject.create(40);
 
   /** The maximum number of NDBs that should be displayed. */
-  public numNdbs = Subject.create(40);
+  public readonly numNdbs = Subject.create(40);
 
   /** The maximum number of VORs that should be displayed. */
-  public numVors = Subject.create(40);
+  public readonly numVors = Subject.create(40);
 
   /** The filter to apply to the intersection search. */
-  public intersectionsFilter = Subject.create<IntersectionFilters>({
+  public readonly intersectionsFilter = Subject.create<IntersectionFilters>({
     typeMask: NearestIntersectionSearchSession.Defaults.TypeMask,
     showTerminalWaypoints: true
   });
 
   /** The filter to apply to the VOR search. */
-  public vorsFilter = Subject.create<VorFilters>({
+  public readonly vorsFilter = Subject.create<VorFilters>({
     typeMask: NearestVorSearchSession.Defaults.TypeMask,
     classMask: NearestVorSearchSession.Defaults.ClassMask
   });
 
   /** The filter to apply to the airport search. */
-  public airportsFilter = Subject.create<AirportFilters>({
+  public readonly airportsFilter = Subject.create<AirportFilters>({
     classMask: NearestAirportSearchSession.Defaults.ClassMask,
     showClosed: NearestAirportSearchSession.Defaults.ShowClosed
   });
 
   /** The extended airport filter to apply to the airport search. */
-  public extendedAirportsFilter = Subject.create<ExtendedAirportFilters>({
+  public readonly extendedAirportsFilter = Subject.create<ExtendedAirportFilters>({
     runwaySurfaceTypeMask: NearestAirportSearchSession.Defaults.SurfaceTypeMask,
     approachTypeMask: NearestAirportSearchSession.Defaults.ApproachTypeMask,
     minimumRunwayLength: NearestAirportSearchSession.Defaults.MinimumRunwayLength,
     toweredMask: NearestAirportSearchSession.Defaults.ToweredMask
   });
+
+  /** A function that will be called with a waypoint when it is registered,
+   * and should return the role to use for that waypoint. */
+  public readonly waypointRoleSelector = Subject.create<((waypoint: Waypoint) => string) | undefined>(undefined);
+
+  /** Forces a refresh of all the waypoints. Useful if a waypoint needs a different role to be selected. */
+  public readonly refreshWaypoints = new SubEvent<void, void>();
 }

@@ -1,0 +1,81 @@
+.bearingPointerDataFields {
+  position: absolute;
+  top: 428px;
+  font-size: 24px;
+}
+
+.bearingPointer1 {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.bearingPointer2 {
+  position: absolute;
+  top: 44px;
+  left: 0;
+}
+
+.bearingPointerDataFields .isLocalizer {
+  visibility: hidden !important;
+}
+
+.bearingPointerDataFields .bearingPointer-row {
+  margin: -6px 0;
+  position: relative;
+}
+
+.bearingPointerDataFields .bearingPointer-row1 {
+  display: flex;
+  flex-direction: row;
+}
+
+.bearingPointerDataFields .bearingPointer1 {
+  color: var(--wt21-colors-cyan);
+}
+
+.bearingPointerDataFields .bearingPointer2 {
+  color: var(--wt21-colors-white);
+  margin-top: 3px;
+}
+
+.bearingPointerDataFields svg.bearingPointer-arrow-icon {
+  position: absolute;
+  stroke-width: 2px;
+  stroke: currentColor;
+  fill: none;
+  overflow: visible;
+  top: 20px;
+  left: 63px;
+}
+
+.bearingPointerDataFields .ADF svg.bearingPointer-arrow-icon {
+  left: 48px;
+}
+
+.bearingPointerDataFields .bearingPointer-distance {
+  margin-left: 23px;
+}
+
+.bearingPointerDataFields .ADF .bearingPointer-ident {
+  display: none;
+}
+
+.bearingPointerDataFields .ADF .bearingPointer-frequencyNAV,
+.bearingPointerDataFields .FMS .bearingPointer-frequencyNAV,
+.bearingPointerDataFields .NAV .bearingPointer-frequencyADF,
+.bearingPointerDataFields .FMS .bearingPointer-frequencyADF {
+  display: none;
+}
+
+.bearingPointerDataFields .NAV.showFrequency .bearingPointer-ident {
+  display: none;
+}
+
+.bearingPointerDataFields .NAV.showFrequency .bearingPointer-frequencyNAV {
+  display: block !important;
+}
+
+.bearingPointerDataFields .NAV .bearingPointer-frequencyNAV {
+  display: none;
+}

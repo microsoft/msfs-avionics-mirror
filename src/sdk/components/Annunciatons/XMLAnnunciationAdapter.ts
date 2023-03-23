@@ -1,6 +1,7 @@
-/// <reference types="msfstypes/Pages/VCockpit/Instruments/Shared/utils/XMLLogic" />
-/// <reference types="msfstypes/Pages/VCockpit/Instruments/Shared/BaseInstrument" />
+/// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/utils/xmllogic" />
+/// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/baseinstrument" />
 
+import { UUID } from '../../utils';
 import { Annunciation, AnnunciationType } from './Annunciaton';
 
 /** Create a list of annunciations from the instrument XML config. */
@@ -33,6 +34,8 @@ export class XMLAnnunciationFactory {
       let type: AnnunciationType;
       let suffix: string | undefined;
 
+      const uuid = UUID.GenerateUuid();
+
       // Priority type that this alert has.
       const typeElem = ann.getElementsByTagName('Type');
       if (typeElem.length == 0) {
@@ -51,30 +54,32 @@ export class XMLAnnunciationFactory {
           continue;
       }
 
-      // Get the XML logic condition for state control.
-      const condElem = ann.getElementsByTagName('Condition');
-      if (condElem.length == 0) {
-        continue;
-      }
-      const condition = new CompositeLogicXMLElement(this.instrument, condElem[0]);
-
       // The actual text shown when the alert is displayed.
       const textElem = ann.getElementsByTagName('Text');
       if (textElem.length == 0 || textElem[0].textContent == null) {
         continue;
       }
+
       const text = textElem[0].textContent;
-
-
-      // A suffix put on the text when it's shown.
-      const suffElem = ann.getElementsByTagName('Suffix');
-      if (suffElem.length != 0 && suffElem[0].textContent !== null) {
-        suffix = suffElem[0].textContent;
-      } else {
-        suffix = undefined;
+      // Get the XML logic condition for state control.
+      const condElem = ann.getElementsByTagName('Condition');
+      if (condElem.length == 0) {
+        continue;
       }
 
-      annunciations.push(new Annunciation(type, text, condition, suffix));
+      for (const condition of condElem) {
+        const logic = new CompositeLogicXMLElement(this.instrument, condition);
+
+        // A suffix put on the text when it's shown.
+        const suffElem = condition.getAttribute('Suffix');
+        if (suffElem !== null) {
+          suffix = suffElem;
+        } else {
+          suffix = undefined;
+        }
+
+        annunciations.push(new Annunciation(type, text, logic, suffix, uuid));
+      }
     }
 
     return annunciations;

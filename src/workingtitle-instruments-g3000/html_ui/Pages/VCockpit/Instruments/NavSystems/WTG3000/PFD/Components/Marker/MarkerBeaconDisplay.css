@@ -1,0 +1,59 @@
+.marker-beacon {
+  width: 25px;
+  height: 23px;
+  border-radius: 5px;
+  color: var(--g3000-color-black);
+  font-size: 16px;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.marker-beacon.marker-beacon-outer {
+  animation: marker-beacon-flash-outer .8s infinite step-end;
+}
+
+.marker-beacon.marker-beacon-middle {
+  animation: marker-beacon-flash-middle .35s infinite step-end;
+}
+
+.marker-beacon.marker-beacon-inner {
+  animation: marker-beacon-flash-inner .25s infinite step-end;
+}
+
+@keyframes marker-beacon-flash-outer {
+  0% {
+    background: var(--g3000-color-cyan);
+    color: var(--g3000-color-black);
+  }
+
+  60% {
+    background: var(--g3000-color-black);
+    color: var(--g3000-color-cyan);
+  }
+}
+
+@keyframes marker-beacon-flash-middle {
+  0% {
+    background: var(--g3000-color-yellow);
+    color: var(--g3000-color-black);
+  }
+
+  70% {
+    background: var(--g3000-color-black);
+    color: var(--g3000-color-yellow);
+  }
+}
+
+@keyframes marker-beacon-flash-inner {
+  0% {
+    background: var(--g3000-color-white);
+    color: var(--g3000-color-black);
+  }
+
+  50% {
+    background: var(--g3000-color-black);
+    color: var(--g3000-color-white);
+  }
+}

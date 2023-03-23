@@ -1,0 +1,37 @@
+.number-pad {
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.gtc-horizontal .number-pad {
+  --number-pad-sign-button-font-size: 60px;
+}
+
+.gtc-vertical .number-pad {
+  --number-pad-sign-button-font-size: 30px;
+}
+
+.number-pad .number-pad-button-0 {
+  grid-area: 4 / 2;
+}
+
+.number-pad-button-sign {
+  grid-area: 4 / 1;
+  display: none;
+
+  --numpad-touch-button-font-size: var(--number-pad-sign-button-font-size);
+}
+
+.show-sign-button .number-pad-button-sign {
+  display: flex;
+}
+
+.number-pad-button-decimal {
+  grid-area: 4 / 3;
+  display: none;
+}
+
+.show-decimal-button .number-pad-button-decimal {
+  display: flex;
+}

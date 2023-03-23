@@ -1,0 +1,104 @@
+.hsi-course-needle-active {
+  position: relative;
+
+  --hsi-course-needle-active-rose-outline-width: 1px;
+  --hsi-course-needle-active-rose-stroke-width: 2.5px;
+
+  --hsi-course-needle-active-map-outline-width: 1.5px;
+  --hsi-course-needle-active-map-stroke-width: 2px;
+
+  /* Full-scale (2 dots) deflection */
+  --hsi-course-needle-deviation-full: 64px;
+
+  /* Private vars */
+
+  --hsi-course-needle-active-color: var(--g3000-color-green);
+}
+
+.hsi-course-needle-active.hsi-course-needle-gps1,
+.hsi-course-needle-active.hsi-course-needle-gps2 {
+  --hsi-course-needle-active-color: var(--g3000-color-magenta);
+}
+
+.hsi-course-needle-active-closed,
+.hsi-course-needle-active-open {
+  display: none;
+}
+
+.hsi-course-needle-nav1 .hsi-course-needle-active-closed,
+.hsi-course-needle-gps1 .hsi-course-needle-active-closed {
+  display: block;
+}
+
+.hsi-course-needle-nav2 .hsi-course-needle-active-open,
+.hsi-course-needle-gps2 .hsi-course-needle-active-open {
+  display: block;
+}
+
+.hsi-course-needle-active-rose,
+.hsi-course-needle-active-map {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.hsi-course-needle-active-dots {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--g3000-color-white);
+  stroke-width: 1;
+}
+
+.hsi-course-needle-active-tofrom,
+.hsi-course-needle-active-deviation {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.hsi-course-needle-active-fill {
+  fill: var(--hsi-course-needle-active-color);
+  stroke: var(--g3000-color-black);
+}
+
+.hsi-course-needle-active-rose .hsi-course-needle-active-fill {
+  stroke-width: var(--hsi-course-needle-active-rose-outline-width);
+}
+
+.hsi-course-needle-active-map .hsi-course-needle-active-fill {
+  stroke-width: var(--hsi-course-needle-active-map-outline-width);
+}
+
+.hsi-course-needle-active-open .hsi-course-needle-active-fill {
+  fill: none;
+  stroke: var(--hsi-course-needle-active-color);
+}
+
+.hsi-course-needle-active-rose .hsi-course-needle-active-open .hsi-course-needle-active-fill {
+  stroke-width: var(--hsi-course-needle-active-rose-stroke-width);
+}
+
+.hsi-course-needle-active-map .hsi-course-needle-active-open .hsi-course-needle-active-fill {
+  stroke-width: var(--hsi-course-needle-active-map-stroke-width);
+}
+
+.hsi-course-needle-active-open .hsi-course-needle-active-outline {
+  fill: none;
+  stroke: var(--g3000-color-black);
+}
+
+.hsi-course-needle-active-rose .hsi-course-needle-active-open .hsi-course-needle-active-outline {
+  stroke-width: calc(var(--hsi-course-needle-active-rose-stroke-width) + 2 * var(--hsi-course-needle-active-rose-outline-width));
+}
+
+.hsi-course-needle-active-map .hsi-course-needle-active-open .hsi-course-needle-active-outline {
+  stroke-width: calc(var(--hsi-course-needle-active-map-stroke-width) + 2 * var(--hsi-course-needle-active-map-outline-width));
+}

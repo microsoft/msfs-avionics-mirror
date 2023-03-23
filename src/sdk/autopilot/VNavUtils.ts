@@ -1,7 +1,7 @@
-import { FlightPlan, FlightPlanLegIterator, LegDefinition } from '../flightplan';
+import { FlightPlan, FlightPlanLegIterator, FlightPlanUtils, LegDefinition, SpeedConstraint } from '../flightplan';
 import { BitFlags, UnitType } from '../math';
-import { FixTypeFlags, LegType } from '../navigation';
-import { TodBodDetails, VerticalFlightPlan, VNavConstraint, VNavLeg, VNavPlanSegment } from './VerticalNavigation';
+import { AltitudeRestrictionType, FixTypeFlags, LegType } from '../navigation';
+import { TodBodDetails, VerticalFlightPlan, VNavConstraint, VNavLeg, VNavPlanSegment, AltitudeConstraintDetails, SpeedConstraintDetails, TocBocDetails } from './VerticalNavigation';
 
 /**
  * A Utility Class for VNAV
@@ -23,39 +23,45 @@ export class VNavUtils {
   }
 
   /**
-   * Gets the current required vertical speed.
-   * @param distance is the distance to the constraint (in nautical miles).
-   * @param targetAltitude is the target altitude for the constraint (in meters).
-   * @param currentAltitude is the current altitude (in feet)
-   * @param groundSpeed is the current groundspeed
-   * @returns the required vs in fpm.
+   * Gets the required vertical speed to meet an altitude constraint.
+   * @param distance The distance to the constraint, in nautical miles.
+   * @param targetAltitude The target altitude for the constraint, in feet.
+   * @param currentAltitude The current altitude, in feet.
+   * @param groundSpeed The current groundspeed, in knots.
+   * @returns The required vertical speed, in feet per minute, to meet the altitude constraint.
    */
   public static getRequiredVs(distance: number, targetAltitude: number, currentAltitude: number, groundSpeed: number): number {
-    if (targetAltitude > 0) {
-      const deviation = currentAltitude - UnitType.METER.convertTo(targetAltitude, UnitType.FOOT);
-      if (Math.abs(deviation) > 0 && distance > 0) {
-        const fpaRequired = UnitType.RADIAN.convertTo(Math.atan((deviation / UnitType.NMILE.convertTo(distance, UnitType.FOOT))), UnitType.DEGREE);
-        return UnitType.NMILE.convertTo(groundSpeed / 60, UnitType.FOOT) * Math.tan(UnitType.DEGREE.convertTo(-fpaRequired, UnitType.RADIAN));
-      }
-    }
-    return 0;
+    const delta = targetAltitude - currentAltitude;
+    const minutesToConstraint = distance / groundSpeed * 60;
+    return delta / minutesToConstraint;
   }
 
   /**
-   * Gets the requiured vertical speed for a given FPA and groundspeed.
-   * @param fpa The FPA in degrees
-   * @param groundspeed The current groundspeed.
-   * @returns The rate of descent required to descend at the specified FPA in ft/minute.
+   * Gets the vertical speed required to maintain a given flight path angle and groundspeed.
+   * @param fpa The flight path angle, in degrees. Positive angles represent an ascending flight path.
+   * @param groundspeed The groundspeed, in knots.
+   * @returns The vertical speed required to maintain the specified flight path angle and groundspeed.
    */
   public static getVerticalSpeedFromFpa(fpa: number, groundspeed: number): number {
-    const nmToFeetConverstion = 101.2686667; // the number of feet in 1/60th of a nautical mile.
-    return -1 * nmToFeetConverstion * groundspeed * Math.tan(fpa * (Math.PI / 180));
+    return UnitType.NMILE.convertTo(groundspeed / 60, UnitType.FOOT) * Math.tan(fpa * Avionics.Utils.DEG2RAD);
   }
 
   /**
-   * Gets the flight path angle for a given distance and altitude.
-   * @param distance The distance to get the angle for.
-   * @param altitude The altitude to get the angle for.
+   * Gets the equivalent flight path angle for a given vertical speed and groundspeed. For this calculation, positive
+   * flight path angles represent an ascending flight path.
+   * @param vs The vertical speed, in feet per minute.
+   * @param groundspeed The groundspeed, in knots.
+   * @returns The flight path angle equivalent to the specified vertical speed and ground speed.
+   */
+  public static getFpaFromVerticalSpeed(vs: number, groundspeed: number): number {
+    return this.getFpa(UnitType.NMILE.convertTo(groundspeed / 60, UnitType.FOOT), vs);
+  }
+
+  /**
+   * Gets the flight path angle for a given distance and altitude. Positive flight path angles represent an ascending
+   * flight path.
+   * @param distance The distance to get the angle for, in the same unit as `altitude`.
+   * @param altitude The altitude to get the angle for, in the same unit as `distance`.
    * @returns The required flight path angle, in degrees.
    */
   public static getFpa(distance: number, altitude: number): number {
@@ -63,22 +69,22 @@ export class VNavUtils {
   }
 
   /**
-   * Gets an increase in altitude for a given flight path angle and
-   * lateral distance.
-   * @param fpa The flight path angle to use, in degrees.
-   * @param distance The lateral distance.
-   * @returns The increase in altitude.
+   * Gets the change in altitude along a flight path angle for a given lateral distance covered.
+   * @param fpa The flight path angle, in degrees. Positive values represent an ascending flight path.
+   * @param distance The lateral distance covered.
+   * @returns The change in altitude along the specified flight path angle for the specified lateral distance covered,
+   * expressed in the same units as `distance`.
    */
   public static altitudeForDistance(fpa: number, distance: number): number {
     return Math.tan(UnitType.DEGREE.convertTo(fpa, UnitType.RADIAN)) * distance;
   }
 
   /**
-   * Gets a lateral distance for a given altitude increase and flight
-   * path angle.
-   * @param fpa The flight path angle to use, in degrees.
-   * @param altitude The increase in altitude.
-   * @returns The lateral distance.
+   * Gets the lateral distance covered along a flight path angle for a given change in altitude.
+   * @param fpa The flight path angle, in degrees. Positive values represent an ascending flight path.
+   * @param altitude The change in the altitude.
+   * @returns The lateral distance covered along the specified flight path angle for the specified change in altitude,
+   * expressed in the same units as `altitude`.
    */
   public static distanceForAltitude(fpa: number, altitude: number): number {
     return altitude / Math.tan(UnitType.DEGREE.convertTo(fpa, UnitType.RADIAN));
@@ -90,16 +96,15 @@ export class VNavUtils {
    * @returns The Destination leg global leg index.
    */
   public static getMissedApproachLegIndex(plan: FlightPlan): number {
-    let destLegIndex = Math.max(0, plan.length - 1);
     if (plan.length > 0) {
       for (let l = plan.length - 1; l > 0; l--) {
         const planLeg = plan.tryGetLeg(l);
         if (planLeg && BitFlags.isAll(planLeg.leg.fixTypeFlags, FixTypeFlags.MAP)) {
-          destLegIndex = Math.max(0, l);
+          return l;
         }
       }
     }
-    return destLegIndex;
+    return Math.max(0, plan.length - 1);
   }
 
   /**
@@ -108,17 +113,16 @@ export class VNavUtils {
    * @returns The FAF index in the plan.
    */
   public static getFafIndex(plan: FlightPlan): number | undefined {
-    let fafIndex;
 
     if (plan.length > 0) {
       for (let l = plan.length - 1; l > 0; l--) {
         const planLeg = plan.tryGetLeg(l);
         if (planLeg && BitFlags.isAll(planLeg.leg.fixTypeFlags, FixTypeFlags.FAF)) {
-          fafIndex = Math.max(0, l);
+          return l;
         }
       }
     }
-    return fafIndex;
+    return undefined;
   }
 
   /**
@@ -142,16 +146,15 @@ export class VNavUtils {
   }
 
   /**
-   * Gets the index of the constraint containing an indexed leg.
-   * @param verticalPlan The vertical flight plan
-   * @param globalLegIndex The global leg index to find the constraint for.
-   * @returns The index of the constraint containing the leg at the specified global index, or -1 if one could not be
-   * found.
+   * Gets the index of the VNAV constraint that contains a flight plan leg.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global leg index of the flight plan leg.
+   * @returns The index of the VNAV constraint that contains the specified flight plan leg, or `-1` if one could not
+   * be found.
    */
   public static getConstraintIndexFromLegIndex(verticalPlan: VerticalFlightPlan, globalLegIndex: number): number {
     for (let c = verticalPlan.constraints.length - 1; c >= 0; c--) {
-      const constraintIndex = verticalPlan.constraints[c].index;
-      if (constraintIndex >= globalLegIndex) {
+      if (verticalPlan.constraints[c].index >= globalLegIndex) {
         return c;
       }
     }
@@ -159,19 +162,41 @@ export class VNavUtils {
   }
 
   /**
-   * Gets the VNAV Constraint immediately prior to the constraint that contains a flight plan leg.
-   * @param verticalPlan The vertical flight plan
-   * @param globalLegIndex The global leg index of a flight plan leg.
-   * @returns The VNAV Constraint immediately prior to the constraint that contains the flight plan leg with the
-   * specified global leg index.
+   * Gets the VNAV constraint that contains a flight plan leg.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global leg index of the flight plan leg.
+   * @returns The VNAV constraint that contains the specified flight plan leg, or `undefined` if one could not be
+   * found.
    */
-  public static getPriorConstraintFromLegIndex(verticalPlan: VerticalFlightPlan, globalLegIndex: number): VNavConstraint | undefined {
+  public static getConstraintFromLegIndex(verticalPlan: VerticalFlightPlan, globalLegIndex: number): VNavConstraint | undefined {
+    return verticalPlan.constraints[VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, globalLegIndex)];
+  }
+
+  /**
+   * Gets the index of the VNAV constraint immediately prior to the constraint that contains a flight plan leg.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global leg index of the flight plan leg.
+   * @returns The index of the VNAV constraint immediately prior to the constraint that contains the specified flight
+   * plan leg, or `-1` if one could nto be found.
+   */
+  public static getPriorConstraintIndexFromLegIndex(verticalPlan: VerticalFlightPlan, globalLegIndex: number): number {
     for (let c = 0; c < verticalPlan.constraints.length; c++) {
       if (verticalPlan.constraints[c].index < globalLegIndex) {
-        return verticalPlan.constraints[c];
+        return c;
       }
     }
-    return undefined;
+    return -1;
+  }
+
+  /**
+   * Gets the VNAV constraint immediately prior to the constraint that contains a flight plan leg.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global leg index of the flight plan leg.
+   * @returns The VNAV constraint immediately prior to the constraint that contains the specified flight plan leg, or
+   * `undefined` if one could nto be found.
+   */
+  public static getPriorConstraintFromLegIndex(verticalPlan: VerticalFlightPlan, globalLegIndex: number): VNavConstraint | undefined {
+    return verticalPlan.constraints[VNavUtils.getPriorConstraintIndexFromLegIndex(verticalPlan, globalLegIndex)];
   }
 
   /**
@@ -189,16 +214,6 @@ export class VNavUtils {
   }
 
   /**
-   * Gets the VNAV Constraint that contains the supplied leg index.
-   * @param verticalPlan The vertical flight plan.
-   * @param globalLegIndex The flight plan global leg index to find the constraint for.
-   * @returns The VNAV Constraint that contains the input leg index.
-   */
-  public static getConstraintFromLegIndex(verticalPlan: VerticalFlightPlan, globalLegIndex: number): VNavConstraint | undefined {
-    return verticalPlan.constraints[VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, globalLegIndex)];
-  }
-
-  /**
    * Gets the global leg index for the constraint containing an indexed leg.
    * @param verticalPlan The vertical plan.
    * @param globalLegIndex A global leg index.
@@ -212,7 +227,7 @@ export class VNavUtils {
   /**
    * Gets a constraint segment distance from the constraint legs.
    * @param constraint The constraint to calculate a distance for.
-   * @returns The constraint distance.
+   * @returns The constraint distance, in meters.
    */
   public static getConstraintDistanceFromConstraint(constraint: VNavConstraint): number {
     let distance = 0;
@@ -229,7 +244,7 @@ export class VNavUtils {
    * @param constraint The constraint to calculate a distance for.
    * @param previousConstraint The constraint that preceds the constraint we are calculating the distance for.
    * @param verticalPlan The Vertical Flight Plan.
-   * @returns The constraint distance.
+   * @returns The constraint distance, in meters.
    */
   public static getConstraintDistanceFromLegs(constraint: VNavConstraint, previousConstraint: VNavConstraint | undefined, verticalPlan: VerticalFlightPlan): number {
     let distance = 0;
@@ -253,20 +268,70 @@ export class VNavUtils {
    * @returns the distance to the constraint, or positive infinity if a discontinuity exists between the ppos and the constraint.
    */
   public static getDistanceToConstraint(constraint: VNavConstraint, lateralPlan: FlightPlan, activeLegIndex: number, distanceAlongLeg: number): number {
+    if (activeLegIndex > constraint.index) {
+      return 0;
+    }
+
     let distance = 0;
 
-    for (let l = activeLegIndex; l <= constraint.index; l++) {
-      const leg = lateralPlan.tryGetLeg(l);
-      if (leg?.leg.type === LegType.Discontinuity || leg?.leg.type === LegType.ThruDiscontinuity) {
+    let index = activeLegIndex;
+    for (const leg of lateralPlan.legs(false, activeLegIndex)) {
+      if (FlightPlanUtils.isDiscontinuityLeg(leg.leg.type)) {
         return Number.POSITIVE_INFINITY;
-      } else if (leg !== null && leg.calculated !== undefined) {
-        distance += leg.calculated.distance;
+      } else if (leg.calculated !== undefined) {
+        distance += leg.calculated.distanceWithTransitions;
+      }
+
+      if (++index > constraint.index) {
+        break;
       }
     }
 
     distance -= distanceAlongLeg;
 
     return distance;
+  }
+
+  /**
+   * Gets VNAV Constraint Details from a constraint.
+   * @param constraint The constraint to get details from.
+   * @param out The object to which write the results.
+   * @returns The VNav Constraint Details.
+   */
+  public static getConstraintDetails(constraint: VNavConstraint, out: AltitudeConstraintDetails): AltitudeConstraintDetails {
+
+    if (constraint.maxAltitude === constraint.minAltitude) {
+      out.type = AltitudeRestrictionType.At;
+      out.altitude = Math.round(UnitType.METER.convertTo(constraint.minAltitude, UnitType.FOOT));
+    } else if (constraint.maxAltitude < Number.POSITIVE_INFINITY || constraint.minAltitude > Number.NEGATIVE_INFINITY) {
+
+      switch (constraint.type) {
+        case 'climb':
+        case 'missed':
+          if (constraint.maxAltitude < Number.POSITIVE_INFINITY) {
+            out.type = AltitudeRestrictionType.AtOrBelow;
+            out.altitude = Math.round(UnitType.METER.convertTo(constraint.maxAltitude, UnitType.FOOT));
+          } else {
+            out.type = AltitudeRestrictionType.AtOrAbove;
+            out.altitude = Math.round(UnitType.METER.convertTo(constraint.minAltitude, UnitType.FOOT));
+          }
+          break;
+        default:
+          if (constraint.minAltitude > Number.NEGATIVE_INFINITY) {
+            out.type = AltitudeRestrictionType.AtOrAbove;
+            out.altitude = Math.round(UnitType.METER.convertTo(constraint.minAltitude, UnitType.FOOT));
+          } else {
+            out.type = AltitudeRestrictionType.AtOrBelow;
+            out.altitude = Math.round(UnitType.METER.convertTo(constraint.maxAltitude, UnitType.FOOT));
+          }
+      }
+
+    } else {
+      out.type = AltitudeRestrictionType.At;
+      out.altitude = Math.round(UnitType.METER.convertTo(constraint.minAltitude, UnitType.FOOT));
+    }
+
+    return out;
   }
 
   /**
@@ -295,28 +360,105 @@ export class VNavUtils {
   }
 
   /**
-   * Gets the next climb constraint with a max altitude less than POSITIVE_INFINITY.
+   * Gets the next descent constraint with a defined minimum altitude at or after a flight plan leg.
    * @param verticalPlan The vertical flight plan.
-   * @param globalLegIndex The global leg index to find the constraint for.
-   * @returns the VNavConstraint or undefined
+   * @param globalLegIndex The global index of the flight plan leg to find the constraint for.
+   * @returns The next descent constraint with a defined minimum altitude at or after the specified flight
+   * plan leg, or `undefined` if no such constraint exists.
    */
-  public static getNextClimbConstraint(verticalPlan: VerticalFlightPlan, globalLegIndex: number): VNavConstraint | undefined {
-    const currentConstraint = VNavUtils.getConstraintFromLegIndex(verticalPlan, globalLegIndex);
-    if (currentConstraint?.type === 'climb' && currentConstraint?.maxAltitude < Number.POSITIVE_INFINITY) {
-      return currentConstraint;
+  public static getNextDescentTargetConstraint(verticalPlan: VerticalFlightPlan, globalLegIndex: number): VNavConstraint | undefined {
+    const currentConstraintIndex = VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, globalLegIndex);
+    for (let c = currentConstraintIndex; c >= 0; c--) {
+      const constraint = verticalPlan.constraints[c];
+      if ((constraint.type === 'descent' || constraint.type === 'direct' || constraint.type === 'manual') && constraint.minAltitude > Number.NEGATIVE_INFINITY) {
+        return constraint;
+      }
     }
-    if (currentConstraint?.type === 'climb' && currentConstraint?.maxAltitude === Number.POSITIVE_INFINITY) {
-      const currentConstraintIndex = VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, globalLegIndex);
-      const lastIndexToCheck = verticalPlan.firstDescentConstraintLegIndex !== undefined ?
-        VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, verticalPlan.firstDescentConstraintLegIndex) : 0;
-      for (let c = currentConstraintIndex - 1; c >= lastIndexToCheck; c--) {
-        const constraint = verticalPlan.constraints[c];
-        if (constraint.type === 'climb' && constraint.maxAltitude < Number.POSITIVE_INFINITY) {
-          return constraint;
+
+    return undefined;
+  }
+
+  /**
+   * Gets the next descent constraint minimum altitude at or after a flight plan leg, or undefined if none exists.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global index of the flight plan leg to find the constraint for.
+   * @returns The next descent constraint defined minimum altitude in meters at or after the specified flight plan leg, or
+   * `undefined` if no such constraint exists.
+   */
+  public static getNextDescentTargetAltitude(verticalPlan: VerticalFlightPlan, globalLegIndex: number): number | undefined {
+    const constraint = VNavUtils.getNextDescentTargetConstraint(verticalPlan, globalLegIndex);
+    return constraint !== undefined ? constraint.minAltitude : undefined;
+  }
+
+  /**
+   * Gets the next climb constraint with a defined maximum altitude at or after a flight plan leg.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global index of the flight plan leg to find the constraint for.
+   * @returns The next climb constraint with a defined maximum altitude at or after the specified flight plan leg, or
+   * `undefined` if no such constraint exists.
+   */
+  public static getNextClimbTargetConstraint(verticalPlan: VerticalFlightPlan, globalLegIndex: number): VNavConstraint | undefined {
+    const currentConstraint = VNavUtils.getConstraintFromLegIndex(verticalPlan, globalLegIndex);
+    if (currentConstraint) {
+      if (currentConstraint.type === 'climb' && currentConstraint.maxAltitude < Number.POSITIVE_INFINITY) {
+        return currentConstraint;
+      } else if (currentConstraint.type === 'climb' && currentConstraint.maxAltitude === Number.POSITIVE_INFINITY) {
+        const currentConstraintIndex = VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, globalLegIndex);
+        const lastIndexToCheck = verticalPlan.firstDescentConstraintLegIndex !== undefined ?
+          VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, verticalPlan.firstDescentConstraintLegIndex) : 0;
+        for (let c = currentConstraintIndex - 1; c >= lastIndexToCheck; c--) {
+          const constraint = verticalPlan.constraints[c];
+          if (constraint.type === 'climb' && constraint.maxAltitude < Number.POSITIVE_INFINITY) {
+            return constraint;
+          }
         }
       }
     }
+
     return undefined;
+  }
+
+  /**
+   * Gets the next climb constraint maximum altitude at or after a flight plan leg, or undefined if none exists.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global index of the flight plan leg to find the constraint for.
+   * @returns The next climb constraint defined maximum altitude in meters at or after the specified flight plan leg, or
+   * `undefined` if no such constraint exists.
+   */
+  public static getNextClimbTargetAltitude(verticalPlan: VerticalFlightPlan, globalLegIndex: number): number | undefined {
+    const constraint = VNavUtils.getNextClimbTargetConstraint(verticalPlan, globalLegIndex);
+    return constraint !== undefined ? constraint.maxAltitude : undefined;
+  }
+
+  /**
+   * Gets the next missed approach constraint with a defined maximum altitude at or after a flight plan leg.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global index of the flight plan leg to find the constraint for.
+   * @returns The next missed approach constraint with a defined maximum altitude at or after the specified flight
+   * plan leg, or `undefined` if no such constraint exists.
+   */
+  public static getNextMaprTargetConstraint(verticalPlan: VerticalFlightPlan, globalLegIndex: number): VNavConstraint | undefined {
+    const currentConstraintIndex = VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, globalLegIndex);
+    for (let c = currentConstraintIndex; c >= 0; c--) {
+      const constraint = verticalPlan.constraints[c];
+      if (constraint.type === 'missed' && constraint.maxAltitude < Number.POSITIVE_INFINITY) {
+        return constraint;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Gets the next missed approach constraint maximum altitude at or after a flight plan leg, or undefined if none exists.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global index of the flight plan leg to find the constraint for.
+   * @returns The next missed approach constraint defined maximum altitude in meters at or after the specified flight plan leg, or
+   * `undefined` if no such constraint exists.
+   */
+  public static getNextMaprTargetAltitude(verticalPlan: VerticalFlightPlan, globalLegIndex: number): number | undefined {
+    const constraint = VNavUtils.getNextMaprTargetConstraint(verticalPlan, globalLegIndex);
+    return constraint !== undefined ? constraint.maxAltitude : undefined;
   }
 
   /**
@@ -361,12 +503,14 @@ export class VNavUtils {
    * @param out The object to which to write the TOD/BOD details.
    * @returns The VNAV TOD/BOD details.
    */
-  public static getTodBodDetails(verticalPlan: VerticalFlightPlan,
+  public static getTodBodDetails(
+    verticalPlan: VerticalFlightPlan,
     activeLegIndex: number,
     distanceAlongLeg: number,
     currentAltitude: number,
     currentVS: number,
-    out: TodBodDetails): TodBodDetails {
+    out: TodBodDetails
+  ): TodBodDetails {
 
     out.todLegIndex = -1;
     out.bodLegIndex = -1;
@@ -377,9 +521,14 @@ export class VNavUtils {
 
     const activeConstraintIndex = VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, activeLegIndex);
     const activeConstraint = verticalPlan.constraints[activeConstraintIndex];
-    const priorConstraint = VNavUtils.getPriorConstraintFromLegIndex(verticalPlan, activeLegIndex);
 
-    if (!activeConstraint || (priorConstraint?.nextVnavEligibleLegIndex !== undefined && priorConstraint.nextVnavEligibleLegIndex > activeLegIndex)) {
+    // There is no TOD/BOD if...
+    if (
+      // ... there is no active VNAV constraint.
+      !activeConstraint
+      // ... the active constraint contains a VNAV-ineligible leg after the active leg.
+      || (activeConstraint?.nextVnavEligibleLegIndex !== undefined && activeConstraint.nextVnavEligibleLegIndex > activeLegIndex)
+    ) {
       return out;
     }
 
@@ -396,6 +545,12 @@ export class VNavUtils {
     let bodConstraintIndex, bodConstraint;
     for (let i = activeConstraintIndex; i >= 0; i--) {
       const constraint = verticalPlan.constraints[i];
+
+      // If we encounter a climb constraint, skip it.
+      if (constraint.type === 'climb' || constraint.type === 'missed') {
+        continue;
+      }
+
       if (constraint.fpa > 0 && constraint.legs[0]?.isBod && constraint.targetAltitude <= altitude) {
         bodConstraintIndex = i;
         bodConstraint = constraint;
@@ -418,13 +573,26 @@ export class VNavUtils {
 
     for (let i = todConstraintIndex; i < verticalPlan.constraints.length; i++) {
       const prevConstraint = verticalPlan.constraints[i + 1];
-      if (!prevConstraint || prevConstraint.index < activeLegIndex || prevConstraint.targetAltitude > altitude || prevConstraint.fpa <= 0 || prevConstraint.isPathEnd) {
+      if (
+        !prevConstraint
+        || prevConstraint.index < activeLegIndex
+        || prevConstraint.type === 'climb'
+        || prevConstraint.type === 'missed'
+        || prevConstraint.targetAltitude > altitude
+        || prevConstraint.fpa <= 0
+        || prevConstraint.isPathEnd
+      ) {
         todConstraintIndex = i;
         break;
       }
     }
 
     const todConstraint = verticalPlan.constraints[todConstraintIndex];
+
+    // Now that we have found the TOD constraint, we need to find the TOD leg: the leg on which the TOD actually lies.
+    // To do this, we calculate the along-track distance from the end of the TOD constraint to the TOD, then iterate
+    // through the legs in the constraint backwards while keeping track of the total along-track distance covered by
+    // each leg.
 
     let distance = VNavUtils.distanceForAltitude(todConstraint.fpa, altitude - todConstraint.targetAltitude);
     let constraintIndex = todConstraintIndex;
@@ -434,6 +602,8 @@ export class VNavUtils {
     while (distance > 0 && constraintIndex < verticalPlan.constraints.length) {
       const constraint = verticalPlan.constraints[constraintIndex];
 
+      // Remember that flight plan legs in a VNAV constraint appear in reverse order relative to how they are ordered
+      // in the flight plan.
       for (let i = 0; i < constraint.legs.length; i++) {
         if (!constraint.legs[i].isEligible) {
           // We've encounted a VNAV-ineligible leg. Since we cannot calculate a vertical path through this leg, we have
@@ -515,6 +685,306 @@ export class VNavUtils {
 
     out.distanceFromBod = distanceToBOD;
     out.distanceFromTod = distanceToTOD;
+
+    return out;
+  }
+
+  /**
+   * Gets the VNAV TOC/BOC details for a vertical flight plan.
+   * @param verticalPlan The vertical flight plan.
+   * @param activeLegIndex The current active leg index.
+   * @param distanceAlongLeg The distance the plane is along the current leg in meters.
+   * @param currentGroundSpeed The current ground speed, in knots.
+   * @param currentAltitude The current indicated altitude in meters.
+   * @param currentVS The current vertical speed in meters per minute.
+   * @param out The object to which to write the TOC/BOC details.
+   * @returns The VNAV TOC/BOC details.
+   */
+  public static getTocBocDetails(
+    verticalPlan: VerticalFlightPlan,
+    activeLegIndex: number,
+    distanceAlongLeg: number,
+    currentGroundSpeed: number,
+    currentAltitude: number,
+    currentVS: number,
+    out: TocBocDetails
+  ): TocBocDetails {
+
+    out.bocLegIndex = -1;
+    out.tocLegIndex = -1;
+    out.tocLegDistance = 0;
+    out.distanceFromBoc = 0;
+    out.distanceFromToc = 0;
+    out.tocConstraintIndex = -1;
+    out.tocAltitude = -1;
+
+    const activeConstraintIndex = VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, activeLegIndex);
+    const activeConstraint = verticalPlan.constraints[activeConstraintIndex];
+
+    // There is no BOC/TOC if...
+    if (
+      // ... there is no active VNAV constraint.
+      !activeConstraint
+      // ... the active VNAV constraint is not a climb-type constraint.
+      || (activeConstraint.type !== 'climb' && activeConstraint.type !== 'missed')
+    ) {
+      return out;
+    }
+
+    // Find the TOC. To do this, we need to first find the earliest climb constraint subsequent to and including the
+    // active constraint that has a maximum altitude (i.e. is an AT, AT OR BELOW, or BETWEEN constraint). Additionally,
+    // the TOC must not be separated from the active constraint by a descent-type constraint.
+
+    let tocConstraintIndex: number | undefined, tocConstraint: VNavConstraint | undefined;
+
+    for (let i = activeConstraintIndex; i >= 0; i--) {
+      const constraint = verticalPlan.constraints[i];
+
+      // If we encounter a descent constraint, immediately terminate the search.
+      if (constraint.type !== 'climb' && constraint.type !== 'missed') {
+        break;
+      }
+
+      if (isFinite(constraint.maxAltitude)) {
+        tocConstraintIndex = i;
+        tocConstraint = constraint;
+        break;
+      }
+    }
+
+    // If there is no next TOC, there also can be no next BOC since the next BOC must follow the next TOC.
+    if (!tocConstraint) {
+      return out;
+    }
+
+    out.tocConstraintIndex = tocConstraintIndex as number;
+    out.tocAltitude = tocConstraint.maxAltitude;
+
+    // Calculate distance to TOC.
+
+    const deltaAltitude = tocConstraint.maxAltitude - currentAltitude;
+    const timeToTocMin = deltaAltitude / Math.max(0, currentVS);
+    let distanceRemaining = currentGroundSpeed === 0 ? 0 : timeToTocMin * UnitType.KNOT.convertTo(currentGroundSpeed, UnitType.MPM);
+
+    // Find the leg on which the TOC lies.
+
+    const activeLeg = activeConstraint.legs[activeConstraint.index - activeLegIndex] as VNavLeg | undefined;
+
+    let tocLegIndex: number | undefined;
+
+    let currentConstraintIndex = activeConstraintIndex;
+    let currentConstraint: VNavConstraint;
+    let currentConstraintLegIndex = activeConstraint.index - activeLegIndex;
+    let currentLeg = activeLeg;
+
+    const activeLegDistanceRemaining = (activeLeg?.distance ?? 0) - distanceAlongLeg;
+    if (distanceRemaining > activeLegDistanceRemaining) {
+      distanceRemaining -= activeLegDistanceRemaining;
+
+      if (currentConstraintLegIndex <= 0) {
+        --currentConstraintIndex;
+      } else {
+        currentLeg = activeConstraint.legs[--currentConstraintLegIndex];
+      }
+
+      while (currentConstraintIndex >= (tocConstraintIndex as number)) {
+        currentConstraint = verticalPlan.constraints[currentConstraintIndex];
+        currentLeg = currentConstraint.legs[currentConstraintLegIndex];
+
+        if (currentLeg !== undefined) {
+          if (distanceRemaining > currentLeg.distance) {
+            out.distanceFromToc += currentLeg.distance;
+            distanceRemaining -= currentLeg.distance;
+          } else {
+            out.distanceFromToc += distanceRemaining;
+            tocLegIndex = currentConstraint.index - currentConstraintLegIndex;
+            distanceRemaining -= currentLeg.distance;
+            break;
+          }
+        }
+
+        if (currentConstraintLegIndex <= 0) {
+          --currentConstraintIndex;
+        } else {
+          currentLeg = currentConstraint.legs[--currentConstraintLegIndex];
+        }
+      }
+    } else {
+      out.distanceFromToc = distanceRemaining;
+      tocLegIndex = activeLegIndex;
+      distanceRemaining -= activeLegDistanceRemaining;
+    }
+
+    if (tocLegIndex === undefined) {
+      // If we still haven't found the TOC yet, set it to the end of the last leg of the TOC constraint.
+      out.tocLegIndex = tocConstraint.index;
+      out.tocLegDistance = 0;
+    } else {
+      out.tocLegIndex = tocLegIndex;
+      out.tocLegDistance = -distanceRemaining;
+    }
+
+    // Find the next BOC, which is located at the beginning of the earliest climb constraint subsequent to (and not
+    // including) the TOC constraint with a maximum altitude greater than the TOC constraint. Additionally, the BOC
+    // must not be separated from the TOC constraint by a descent-type constraint.
+
+    let lastClimbConstraintIndex = tocConstraintIndex as number;
+
+    let bocConstraintIndex: number | undefined, bocConstraint: VNavConstraint | undefined;
+    for (let i = (tocConstraintIndex as number) - 1; i >= 0; i--) {
+      const constraint = verticalPlan.constraints[i];
+
+      // If we encounter a descent constraint, immediately terminate the search.
+      if (constraint.type !== 'climb' && constraint.type !== 'missed') {
+        break;
+      }
+
+      if (constraint.maxAltitude > tocConstraint.maxAltitude) {
+        bocConstraintIndex = i;
+        bocConstraint = constraint;
+        break;
+      }
+
+      lastClimbConstraintIndex = i;
+    }
+
+    let bocDistanceStopConstraintIndex: number | undefined = undefined;
+
+    if (bocConstraint) {
+      out.bocLegIndex = bocConstraint.index - (bocConstraint.legs.length - 1);
+      bocDistanceStopConstraintIndex = bocConstraintIndex;
+    } else {
+      // If we did not find a climb constraint subsequent to the TOC constraint with a maximum altitude greater than the
+      // the TOC constraint, then the BOC will be located at the last climb constraint.
+
+      const lastClimbConstraint = verticalPlan.constraints[lastClimbConstraintIndex];
+      if (lastClimbConstraint && lastClimbConstraint.index + 1 < verticalPlan.length) {
+        out.bocLegIndex = lastClimbConstraint.index + 1;
+        bocDistanceStopConstraintIndex = lastClimbConstraintIndex - 1;
+      }
+    }
+
+    // Calculate distance to BOC
+    if (bocDistanceStopConstraintIndex !== undefined) {
+      let distanceToEndOfActiveConstraint = (activeLeg?.distance ?? 0) - distanceAlongLeg;
+
+      for (let i = Math.min(activeConstraint.index - activeLegIndex, activeConstraint.legs.length) - 1; i >= 0; i--) {
+        distanceToEndOfActiveConstraint += activeConstraint.legs[i].distance;
+      }
+
+      out.distanceFromBoc = distanceToEndOfActiveConstraint;
+      for (let i = activeConstraintIndex - 1; i > bocDistanceStopConstraintIndex; i--) {
+        out.distanceFromBoc += verticalPlan.constraints[i].distance;
+      }
+    }
+
+    return out;
+  }
+
+  /**
+   * Gets the VNAV TOC/BOC to cruise altitude details for a vertical flight plan.
+   * @param lateralPlan The lateral flight plan.
+   * @param verticalPlan The vertical flight plan.
+   * @param activeLegIndex The current active leg index.
+   * @param distanceAlongLeg The distance the plane is along the current leg in meters.
+   * @param currentGroundSpeed The current ground speed, in knots.
+   * @param currentAltitude The current indicated altitude in meters.
+   * @param currentVS The current vertical speed in meters per minute.
+   * @param cruiseAltitude The cruise altitude, in meters.
+   * @param out The object to which to write the TOC/BOC details.
+   * @returns The VNAV TOC/BOC to cruise altitude details.
+   */
+  public static getCruiseTocBocDetails(
+    lateralPlan: FlightPlan,
+    verticalPlan: VerticalFlightPlan,
+    activeLegIndex: number,
+    distanceAlongLeg: number,
+    currentGroundSpeed: number,
+    currentAltitude: number,
+    currentVS: number,
+    cruiseAltitude: number,
+    out: TocBocDetails
+  ): TocBocDetails {
+
+    out.bocLegIndex = -1;
+    out.tocLegIndex = -1;
+    out.tocLegDistance = 0;
+    out.distanceFromBoc = 0;
+    out.distanceFromToc = 0;
+    out.tocConstraintIndex = -1;
+    out.tocAltitude = -1;
+
+    // Find the last climb constraint
+    const lastClimbConstraintIndex = VNavUtils.getLastClimbConstraintIndex(verticalPlan);
+    const lastClimbConstraint = verticalPlan.constraints[lastClimbConstraintIndex] as VNavConstraint | undefined;
+
+    const firstDescentConstraintIndex = VNavUtils.getFirstDescentConstraintIndex(verticalPlan);
+    const firstDescentConstraint = verticalPlan.constraints[firstDescentConstraintIndex] as VNavConstraint | undefined;
+
+    // If the active leg is past the first descent constraint, both cruise BOC and cruise TOC are undefined.
+    if (firstDescentConstraint && activeLegIndex > firstDescentConstraint.index) {
+      return out;
+    }
+
+    const activeLeg = lateralPlan.tryGetLeg(activeLegIndex);
+    const activeLegDistanceRemaining = (activeLeg?.calculated?.distanceWithTransitions ?? 0) - distanceAlongLeg;
+
+    // Cruise BOC will always be located at the beginning of the first leg after the last climb constraint. If there
+    // are no climb constraints in the plan, then cruise BOC is undefined.
+
+    if (lastClimbConstraint && lastClimbConstraint.index < lateralPlan.length - 1 && activeLegIndex <= lastClimbConstraint.index) {
+      const lastClimbConstraintLeg = lateralPlan.tryGetLeg(lastClimbConstraint.index);
+
+      out.bocLegIndex = lastClimbConstraint.index + 1;
+      out.distanceFromBoc = activeLegDistanceRemaining
+        + (lastClimbConstraintLeg?.calculated?.cumulativeDistanceWithTransitions ?? 0) - (activeLeg?.calculated?.cumulativeDistanceWithTransitions ?? 0);
+    }
+
+    // Calculate distance to TOC.
+
+    const deltaAltitude = cruiseAltitude - currentAltitude;
+    const timeToTocMin = deltaAltitude / Math.max(0, currentVS);
+    let distanceRemaining = currentGroundSpeed === 0 ? 0 : timeToTocMin * UnitType.KNOT.convertTo(currentGroundSpeed, UnitType.MPM);
+
+    // Find the leg on which the TOC lies. The TOC is restricted to legs prior to the first descent constraint.
+
+    let tocLegIndex: number | undefined;
+
+    const lastLegIndex = firstDescentConstraint?.index ?? lateralPlan.length - 1;
+
+    if (distanceRemaining > activeLegDistanceRemaining) {
+      let legIndex = activeLegIndex + 1;
+      for (const leg of lateralPlan.legs(false, legIndex, lastLegIndex + 1)) {
+        const legDistance = leg.calculated?.distanceWithTransitions ?? 0;
+
+        if (distanceRemaining > legDistance) {
+          out.distanceFromToc += legDistance;
+          distanceRemaining -= legDistance;
+        } else {
+          out.distanceFromToc += distanceRemaining;
+          tocLegIndex = legIndex;
+          distanceRemaining -= legDistance;
+          break;
+        }
+
+        legIndex++;
+      }
+    } else {
+      out.distanceFromToc = distanceRemaining;
+      tocLegIndex = activeLegIndex;
+      distanceRemaining -= activeLegDistanceRemaining;
+    }
+
+    if (tocLegIndex === undefined) {
+      // If we still haven't found the TOC yet, set it to the end of the last viable leg.
+      out.tocLegIndex = lastLegIndex;
+      out.tocLegDistance = 0;
+    } else {
+      out.tocLegIndex = tocLegIndex;
+      out.tocLegDistance = -distanceRemaining;
+    }
+
+    out.tocAltitude = cruiseAltitude;
 
     return out;
   }
@@ -660,4 +1130,119 @@ export class VNavUtils {
     };
   }
 
+  /**
+   * Finds the index of the first climb constraint in a vertical plan.
+   * @param verticalPlan A vertical flight plan.
+   * @returns The index of the first climb constraint in the specified vertical plan, or `-1` if the plan has no
+   * climb constraints.
+   */
+  public static getFirstClimbConstraintIndex(verticalPlan: VerticalFlightPlan): number {
+    for (let i = verticalPlan.constraints.length - 1; i >= 0; i--) {
+      if (verticalPlan.constraints[i].type === 'climb') {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
+  /**
+   * Finds the index of the last climb constraint in a vertical plan.
+   * @param verticalPlan A vertical flight plan.
+   * @returns The index of the last climb constraint in the specified vertical plan, or `-1` if the plan has no
+   * climb constraints.
+   */
+  public static getLastClimbConstraintIndex(verticalPlan: VerticalFlightPlan): number {
+    for (let i = 0; i < verticalPlan.constraints.length; i++) {
+      if (verticalPlan.constraints[i].type === 'climb') {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
+  /**
+   * Finds the index of the first descent constraint in a vertical plan.
+   * @param verticalPlan A vertical flight plan.
+   * @returns The index of the first descent constraint in the specified vertical plan, or `-1` if the plan has no
+   * descent constraints.
+   */
+  public static getFirstDescentConstraintIndex(verticalPlan: VerticalFlightPlan): number {
+    let index = -1;
+
+    for (let c = 0; c < verticalPlan.constraints.length; c++) {
+      const type = verticalPlan.constraints[c].type;
+      if (type === 'descent' || type === 'manual') {
+        index = c;
+      }
+      if (type === 'direct') {
+        return c;
+      }
+    }
+    return index;
+  }
+
+  /**
+   * Finds the index of the last descent constraint in a vertical plan.
+   * @param verticalPlan A vertical flight plan.
+   * @returns The index of the last descent constraint in the specified vertical plan, or `-1` if the plan has no
+   * descent constraints.
+   */
+  public static getLastDescentConstraintIndex(verticalPlan: VerticalFlightPlan): number {
+    for (let i = 0; i < verticalPlan.constraints.length; i++) {
+      const type = verticalPlan.constraints[i].type;
+      if (type === 'descent' || type === 'direct' || type === 'manual') {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * Checks whether two speed constraints are equal.
+   * @param a The first speed constraint.
+   * @param b The second speed constraint.
+   * @returns Whether the two speed constraints are equal.
+   */
+  public static speedConstraintEquals(a: SpeedConstraint, b: SpeedConstraint): boolean {
+    return a.speedDesc === b.speedDesc && a.speed === b.speed && a.speedUnit === b.speedUnit;
+  }
+
+  /**
+   * Checks whether two altitude constraint details are equal.
+   * @param a The first altitude constraint details.
+   * @param b The second altitude constraint details.
+   * @returns Whether the two altitude constraint details are equal.
+   */
+  public static altitudeConstraintDetailsEquals(a: AltitudeConstraintDetails, b: AltitudeConstraintDetails): boolean {
+    return a.type === b.type && a.altitude === b.altitude;
+  }
+
+  /**
+   * Checks whether two speed constraint details are equal.
+   * @param a The first speed constraint details.
+   * @param b The second speed constraint details.
+   * @returns Whether the two speed constraint details are equal.
+   */
+  public static speedConstraintDetailsEquals(a: SpeedConstraintDetails, b: SpeedConstraintDetails): boolean {
+    return a.distanceToNextSpeedConstraint === b.distanceToNextSpeedConstraint
+      && VNavUtils.speedConstraintEquals(a.currentSpeedConstraint, b.currentSpeedConstraint)
+      && VNavUtils.speedConstraintEquals(a.nextSpeedConstraint, b.nextSpeedConstraint);
+  }
+
+  /**
+   * Computes the path error distance that should be used given the groundspeed.
+   * @param groundSpeed The current groundspeed, in knots.
+   * @returns The path error distance to use.
+   */
+  public static getPathErrorDistance(groundSpeed: number): number {
+    if (groundSpeed <= 190) {
+      return 100;
+    } else if (groundSpeed >= 210) {
+      return 250;
+    } else {
+      return 100 + (((groundSpeed - 190) / 20) * 150);
+    }
+  }
 }

@@ -1,0 +1,145 @@
+.gtc-horizontal .gtc-airway-selection-dialog {
+  --gtc-airway-selection-dialog-width: 793px;
+  --gtc-airway-selection-dialog-height: 725px;
+  --gtc-airway-selection-dialog-top: 40px;
+  --gtc-airway-selection-dialog-font-size: 30px;
+
+  --gtc-airway-selection-dialog-main-column-width: 260px;
+  --gtc-airway-selection-dialog-main-column-height: 501px;
+  --gtc-airway-selection-dialog-main-column-top: 24px;
+  --gtc-airway-selection-dialog-main-column-left: 82px;
+  --gtc-airway-selection-dialog-main-column-button-height: 147px;
+  --gtc-airway-selection-dialog-main-column-button-value-font-size: 38px;
+
+  --gtc-airway-selection-dialog-bottom-row-width: 389px;
+  --gtc-airway-selection-dialog-bottom-row-height: 147px;
+  --gtc-airway-selection-dialog-bottom-row-bottom: 20px;
+  --gtc-airway-selection-dialog-bottom-row-left: 17px;
+  --gtc-airway-selection-dialog-bottom-row-button-width: 185px;
+
+  --gtc-airway-selection-dialog-sequence-panel-width: 358px;
+  --gtc-airway-selection-dialog-sequence-panel-title-margin-top: 5px;
+  --gtc-airway-selection-dialog-sequence-panel-items-container-padding: 10px 22px;
+}
+
+.gtc-vertical .gtc-airway-selection-dialog {
+  --gtc-airway-selection-dialog-width: 426px;
+  --gtc-airway-selection-dialog-height: 390px;
+  --gtc-airway-selection-dialog-top: 22px;
+  --gtc-airway-selection-dialog-font-size: 16px;
+
+  --gtc-airway-selection-dialog-main-column-width: 140px;
+  --gtc-airway-selection-dialog-main-column-height: 269px;
+  --gtc-airway-selection-dialog-main-column-top: 12px;
+  --gtc-airway-selection-dialog-main-column-left: 43px;
+  --gtc-airway-selection-dialog-main-column-button-height: 79px;
+  --gtc-airway-selection-dialog-main-column-button-value-font-size: 22px;
+
+  --gtc-airway-selection-dialog-bottom-row-width: 210px;
+  --gtc-airway-selection-dialog-bottom-row-height: 79px;
+  --gtc-airway-selection-dialog-bottom-row-bottom: 10px;
+  --gtc-airway-selection-dialog-bottom-row-left: 8px;
+  --gtc-airway-selection-dialog-bottom-row-button-width: 100px;
+
+  --gtc-airway-selection-dialog-sequence-panel-width: 193px;
+  --gtc-airway-selection-dialog-sequence-panel-title-margin-top: 3px;
+  --gtc-airway-selection-dialog-sequence-panel-items-container-padding: 5px 12px;
+
+  --gtc-airway-selection-dialog-list-select-button-big-font: 26px;
+}
+
+.gtc-airway-selection-dialog {
+  position: absolute;
+  width: var(--gtc-airway-selection-dialog-width);
+  height: var(--gtc-airway-selection-dialog-height);
+  top: var(--gtc-airway-selection-dialog-top);
+}
+
+.gtc-airway-selection-dialog,
+.gtc-airway-selection-dialog .touch-button,
+.gtc-airway-selection-dialog .sequence-box.gtc-panel .gtc-panel-title {
+  font-size: var(--gtc-airway-selection-dialog-font-size);
+}
+
+.gtc-airway-selection-dialog .main-column {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: var(--gtc-airway-selection-dialog-main-column-width);
+  height: var(--gtc-airway-selection-dialog-main-column-height);
+  top: var(--gtc-airway-selection-dialog-main-column-top);
+  left: var(--gtc-airway-selection-dialog-main-column-left);
+}
+
+.gtc-airway-selection-dialog .main-column .touch-button {
+  height: var(--gtc-airway-selection-dialog-main-column-button-height);
+}
+
+.gtc-airway-selection-dialog .main-column .touch-button .touch-button-value-value {
+  font-size: var(--gtc-airway-selection-dialog-main-column-button-value-font-size);
+}
+
+.gtc-airway-selection-dialog .bottom-row {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  width: var(--gtc-airway-selection-dialog-bottom-row-width);
+  height: var(--gtc-airway-selection-dialog-bottom-row-height);
+  bottom: var(--gtc-airway-selection-dialog-bottom-row-bottom);
+  left: var(--gtc-airway-selection-dialog-bottom-row-left);
+}
+
+.gtc-airway-selection-dialog .bottom-row .touch-button {
+  height: 100%;
+  width: var(--gtc-airway-selection-dialog-bottom-row-button-width);
+}
+
+.gtc-airway-selection-dialog .sequence-box {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  height: calc(100% + 4px);
+  width: var(--gtc-airway-selection-dialog-sequence-panel-width);
+}
+
+.gtc-airway-selection-dialog .sequence-box.gtc-panel .gtc-panel-title {
+  margin-top: var(--gtc-airway-selection-dialog-sequence-panel-title-margin-top);
+}
+
+.gtc-airway-selection-dialog .sequence-box .touch-list .items-container {
+  padding: var(--gtc-airway-selection-dialog-sequence-panel-items-container-padding);
+}
+
+.gtc-airway-selection-dialog .sequence-box .sequence-item {
+  height: var(--touch-list-item-height);
+  font-size: var(--gtc-airway-selection-dialog-main-column-button-value-font-size);
+}
+
+.gtc-horizontal .gtc-list-dialog.gtc-airway-selection-list-dialog {
+  --gtc-airway-selection-dialog-list-select-width: 358px;
+  --gtc-airway-selection-dialog-list-select-height: 725px;
+  --gtc-airway-selection-dialog-list-select-top: 40px;
+  --gtc-airway-selection-dialog-list-select-right: 99px;
+}
+
+.gtc-vertical .gtc-list-dialog.gtc-airway-selection-list-dialog {
+  --gtc-airway-selection-dialog-list-select-width: 193px;
+  --gtc-airway-selection-dialog-list-select-height: 390px;
+  --gtc-airway-selection-dialog-list-select-top: 22px;
+  --gtc-airway-selection-dialog-list-select-right: 27px;
+}
+
+/* TODO Add list top label thing */
+.gtc-list-dialog.gtc-airway-selection-list-dialog {
+  left: unset;
+  width: var(--gtc-airway-selection-dialog-list-select-width);
+  height: var(--gtc-airway-selection-dialog-list-select-height);
+  top: var(--gtc-airway-selection-dialog-list-select-top);
+  right: var(--gtc-airway-selection-dialog-list-select-right);
+  --gtc-wpt-display-ident-color: var(--g3000-color-white);
+}
+
+.gtc-list-dialog.gtc-airway-selection-list-dialog .gtc-wpt-display .gtc-wpt-display-ident {
+  margin-left: 0.75em;
+}

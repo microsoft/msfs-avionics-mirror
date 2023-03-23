@@ -1,0 +1,265 @@
+.user-info-page .wpt-info-page-container {
+  position: absolute;
+  left: 0px;
+  width: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.gtc-horizontal .user-info-page .wpt-info-page-container {
+  top: 50px;
+
+  --user-info-page-header-margin-bottom: 5px;
+
+  --user-info-page-tab-container-width: 860px;
+  --user-info-page-tab-container-height: 560px;
+
+  --user-info-page-tab-content-left: 12px;
+  --user-info-page-tab-content-top: 10px;
+  --user-info-page-tab-content-width: 480px;
+  --user-info-page-tab-content-height: 530px;
+
+  --user-info-page-bearing-arrow-margin-left: 5px;
+
+  /* ---- Info tab ---- */
+
+  --user-info-page-info-font-size: 32px;
+  --user-info-page-info-field-title-margin-bottom: 5px;
+
+  --user-info-page-info-type-margin-bottom: 15px;
+
+  --user-info-page-info-params-pos-height: 185px;
+  --user-info-page-info-params-pos-padding-left: 15px;
+
+  --user-info-page-info-params-height: 185px;
+  --user-info-page-info-params-padding: 28px 0px 0px 20px;
+
+  --user-info-page-info-params-dis-margin-right: 15px;
+
+  --user-info-page-info-pos-height: 110px;
+  --user-info-page-info-pos-column-gap: 30px;
+
+  --user-info-page-info-coords-height: 100px;
+
+  /* ---- Waypoint list tab ---- */
+
+  --user-info-page-list-list-left: 1px;
+  --user-info-page-list-list-top: 1px;
+  --user-info-page-list-list-width: 474px;
+  --user-info-page-list-list-item-height: 130px;
+  --user-info-page-list-list-item-spacing: 1px;
+}
+
+.gtc-vertical .user-info-page .wpt-info-page-container {
+  top: 27px;
+
+  --user-info-page-header-margin-bottom: 3px;
+
+  --user-info-page-tab-container-width: 465px;
+  --user-info-page-tab-container-height: 300px;
+  --gtc-tabbed-container-vert-tab-width: 92px;
+
+  --user-info-page-tab-content-left: 5px;
+  --user-info-page-tab-content-top: 3px;
+  --user-info-page-tab-content-width: 262px;
+  --user-info-page-tab-content-height: 285px;
+
+  --user-info-page-bearing-arrow-margin-left: 2px;
+
+  /* ---- Info tab ---- */
+
+  --user-info-page-info-font-size: 18px;
+  --user-info-page-info-field-title-margin-bottom: 2px;
+
+  --user-info-page-info-type-margin-bottom: 7px;
+
+  --user-info-page-info-params-pos-height: 100px;
+  --user-info-page-info-params-pos-padding-left: 5px;
+
+  --user-info-page-info-params-height: 100px;
+  --user-info-page-info-params-padding: 15px 0px 0px 10px;
+
+  --user-info-page-info-params-dis-margin-right: 7px;
+
+  --user-info-page-info-pos-height: 60px;
+  --user-info-page-info-pos-column-gap: 15px;
+
+  --user-info-page-info-coords-height: 55px;
+
+  /* ---- Waypoint list tab  ---- */
+
+  --user-info-page-list-list-left: 0px;
+  --user-info-page-list-list-top: 0px;
+  --user-info-page-list-list-width: 256px;
+  --user-info-page-list-list-item-height: 69px;
+  --user-info-page-list-list-item-spacing: 1px;
+}
+
+.user-info-page .wpt-info-page-header {
+  margin-bottom: var(--user-info-page-header-margin-bottom);
+}
+
+.user-info-page-tab-container {
+  width: var(--user-info-page-tab-container-width);
+  height: var(--user-info-page-tab-container-height);
+}
+
+.user-info-page-tab-container .wpt-info-page-no-wpt {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--gtc-tabbed-container-content-border-radius);
+}
+
+.user-info-page-tab {
+  position: absolute;
+  box-sizing: border-box;
+  left: var(--user-info-page-tab-content-left);
+  top: var(--user-info-page-tab-content-top);
+  width: var(--user-info-page-tab-content-width);
+  height: var(--user-info-page-tab-content-height);
+  overflow: hidden;
+}
+
+.user-info-page-bearing {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.user-info-page .bearing-arrow {
+  margin-left: var(--user-info-page-bearing-arrow-margin-left);
+}
+
+/* ---- Info tab ---- */
+
+.user-info-page-info {
+  font-size: var(--user-info-page-info-font-size);
+  white-space: pre;
+}
+
+.user-info-page-info-section {
+  width: 100%;
+}
+
+.user-info-page-info-section-bottom-separator {
+  border-bottom: solid 2px #808080;
+}
+
+.user-info-page-info-params-pos {
+  height: var(--user-info-page-info-params-pos-height);
+  padding-left: var(--user-info-page-info-params-pos-padding-left);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.user-info-page-info-params-pos-type {
+  margin-bottom: var(--user-info-page-info-type-margin-bottom);
+}
+
+.user-info-page-info-params-pos-values {
+  align-self: stretch;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+}
+
+.user-info-page-info-params-pos-field {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.user-info-page-info-params-pos .user-info-page-bearing {
+  position: relative;
+  justify-content: flex-start;
+  align-items: baseline;
+}
+
+.user-info-page .user-info-page-info-params-pos .bearing-arrow {
+  position: absolute;
+  left: calc(100% + var(--user-info-page-bearing-arrow-margin-left));
+  bottom: 0px;
+}
+
+.user-info-page-info-params {
+  height: var(--user-info-page-info-params-height);
+  padding: var(--user-info-page-info-params-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.user-info-page-info-params-type {
+  margin-bottom: var(--user-info-page-info-type-margin-bottom);
+}
+
+.user-info-page-info-params-row {
+  align-self: stretch;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto;
+  grid-template-columns: 3.8fr 2fr 3.2fr;
+}
+
+.user-info-page-info-params-dis {
+  justify-self: end;
+  margin-right: var(--user-info-page-info-params-dis-margin-right);
+}
+
+.user-info-page-info-pos {
+  height: var(--user-info-page-info-pos-height);
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: 1fr 1fr;
+  grid-column-gap: var(--user-info-page-info-pos-column-gap);
+}
+
+.user-info-page-info-field {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  color: var(--wpt-info-page-gps-color);
+}
+
+.user-info-page-info-field-title {
+  margin-bottom: var(--user-info-page-info-field-title-margin-bottom);
+  font-size: 0.75em;
+  color: var(--g3000-color-white);
+}
+
+.user-info-page-info-coords {
+  height: var(--user-info-page-info-coords-height);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+/* ---- Waypoint list tab ---- */
+
+.user-info-page-list {
+  border: 2px solid #828c96;
+  border-radius: 4px;
+}
+
+.user-info-page-list-list {
+  position: absolute;
+  left: var(--user-info-page-list-list-left);
+  top: var(--user-info-page-list-list-top);
+  width: var(--user-info-page-list-list-width);
+  height: calc(var(--user-info-page-list-list-item-height) * 4 + var(--user-info-page-list-list-item-spacing) * 3);
+}
+
+.user-info-page-list-wpt-button {
+  flex-grow: 1;
+}

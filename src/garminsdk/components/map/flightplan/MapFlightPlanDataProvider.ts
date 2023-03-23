@@ -1,6 +1,4 @@
-import { FlightPlan, NumberUnitInterface, SubEvent, Subscribable, UnitFamily, VNavPathMode, VNavState } from 'msfssdk';
-
-import { FlightPathPlanRendererLNavData } from './MapFlightPathPlanRenderer';
+import { FlightPlan, SubEventInterface, NumberUnitInterface, Subscribable, UnitFamily, VNavPathMode, VNavState, LNavTrackingState } from '@microsoft/msfs-sdk';
 
 /**
  * A provider of flight plan data for MapFlightPlanLayer.
@@ -10,10 +8,10 @@ export interface MapFlightPlanDataProvider {
   readonly plan: Subscribable<FlightPlan | null>;
 
   /** An event which notifies when the displayed plan has been modified. */
-  readonly planModified: SubEvent<MapFlightPlanDataProvider, void>;
+  readonly planModified: SubEventInterface<MapFlightPlanDataProvider, void>;
 
   /** An event which notifies when the displayed plan has been calculated.  */
-  readonly planCalculated: SubEvent<MapFlightPlanDataProvider, void>;
+  readonly planCalculated: SubEventInterface<MapFlightPlanDataProvider, void>;
 
   /**
    * A subscribable which provides the index of the active lateral leg of the displayed flight plan, or -1 if no such
@@ -24,7 +22,7 @@ export interface MapFlightPlanDataProvider {
   /**
    * A subscribable which provides LNAV data.
    */
-  readonly lnavData: Subscribable<FlightPathPlanRendererLNavData | undefined>;
+  readonly lnavData: Subscribable<LNavTrackingState | undefined>;
 
   /** A subscribable which provides the current VNAV state. */
   readonly vnavState: Subscribable<VNavState>;
@@ -55,6 +53,30 @@ export interface MapFlightPlanDataProvider {
    * top-of-descent.
    */
   readonly vnavDistanceToTod: Subscribable<NumberUnitInterface<UnitFamily.Distance>>;
+
+  /**
+   * A subscribable which provides the index of the leg within which the VNAV top-of-climb point lies, or -1 if no
+   * such leg exists.
+   */
+  readonly vnavTocLegIndex: Subscribable<number>;
+
+  /**
+   * A subscribable which provides the index of the leg within which the VNAV bottom-of-climb point lies, or -1 if
+   * no such leg exists.
+   */
+  readonly vnavBocLegIndex: Subscribable<number>;
+
+  /**
+   * A subscribable which provides the distance along the flight path from the VNAV top-of-climb point to the end
+   * of the TOC leg.
+   */
+  readonly vnavTocLegDistance: Subscribable<NumberUnitInterface<UnitFamily.Distance>>;
+
+  /**
+   * A subscribable which provides the distance along the flight path from the plane's current position to the next
+   * top-of-climb.
+   */
+  readonly vnavDistanceToToc: Subscribable<NumberUnitInterface<UnitFamily.Distance>>;
 
   /** A subscribable which provides the current OBS course, or undefined if OBS is not active. */
   readonly obsCourse: Subscribable<number | undefined>;

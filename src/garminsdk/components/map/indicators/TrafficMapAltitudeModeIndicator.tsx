@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, FSComponent, Subscribable, VNode } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, Subscribable, VNode } from '@microsoft/msfs-sdk';
 
 import { MapTrafficAltitudeRestrictionMode } from '../modules/MapGarminTrafficModule';
 
@@ -22,7 +22,7 @@ export class TrafficMapAltitudeModeIndicator extends DisplayComponent<TrafficMap
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class='map-traffic-altmode'>{this.text}</div>
+      <div class='traffic-map-altmode'>{this.text}</div>
     );
   }
 

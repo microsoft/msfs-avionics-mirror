@@ -1,0 +1,109 @@
+wt-gns530 .units-position-container {
+  height: 18px;
+  line-height: 18px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  grid-column-gap: 1em;
+  margin-left: 11px;
+}
+
+wt-gns430 .units-position-container {
+  height: 14px;
+  line-height: 25px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  grid-column-gap: 1em;
+  margin-left: 11px;
+}
+
+wt-gns530 .units-position-table {
+  justify-content: center;
+  margin: 0;
+  padding: 1px;
+  width: 165px;
+  height: 110px;
+  margin-left: 75px;
+  margin-top: -20px;
+  line-height: 14px;
+  padding-right: 10px;
+}
+
+wt-gns430 .units-position-table {
+  justify-content: center;
+  margin: 0;
+  padding: 1px;
+  width: 165px;
+  height: 150px;
+  margin-left: 75px;
+  margin-top: -20px;
+  line-height: 25px;
+  padding-right: 10px;
+}
+
+/* TODO we might wanna do the padding like this elsewhere */
+.units-position-spacing {
+  display: inline-block;
+  height: 15px;
+  line-height: 18px;
+  padding: 0 1px 0;
+  margin-top: 1px;
+}
+
+.units-position-dialog-position {
+  width: 120px !important;
+  top: 4.2em;
+  left: 17em;
+  margin-left: -82px;
+  margin-top: 25px;
+}
+
+
+.units-position-position-format {
+  justify-content: center;
+  margin-top: 2px;
+  margin-left: 0px;
+  line-height: 14px;
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid white;
+  width: 125px;
+}
+
+.units-position-position-format>.aux-table {
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid white;
+  width: 125px;
+}
+
+.aux-table>.units-position-position-format {
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid white;
+  width: 125px;
+}
+
+.units-position-position-format-title {
+  color: var(--gnscyan);
+  margin-left: 5px;
+  margin-top: 9px;
+}
+
+
+.units-position-map-datum-format {
+  justify-content: center;
+  margin-top: 2px;
+  margin-left: 0px;
+  line-height: 14px;
+  font-size: 14px;
+  height: 17px;
+  padding-top: 2px;
+  padding-left: 2px;
+}
+
+.units-position-position-map-title {
+  color: var(--gnscyan);
+  margin-left: 10px;
+  margin-top: 10px;
+  font-size: 10px;
+}

@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/Pages/VCockpit/Instruments/Shared/utils/XMLLogic" />
+/// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/utils/xmllogic" />
 
 import { XMLFunction } from '../components/XMLGauges';
 
@@ -38,8 +38,16 @@ export class CompositeLogicXMLHost {
   private isPaused = false;
 
   /**
-   * Set to pause the logic update loop. 
-   * @param isPaused True to pause, false to resume. 
+   * Ctor
+   * @param startPaused True to start paused.
+   */
+  constructor(startPaused = false) {
+    this.isPaused = startPaused;
+  }
+
+  /**
+   * Set to pause the logic update loop.
+   * @param isPaused True to pause, false to resume.
    */
   public setIsPaused(isPaused: boolean): void {
     this.isPaused = isPaused;

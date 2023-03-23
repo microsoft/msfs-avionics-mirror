@@ -1,0 +1,21 @@
+.map-range-display {
+  padding: 0px 2px;
+  color: var(--g3000-color-cyan);
+  background: var(--g3000-color-black);
+  border: 1px solid var(--map-indicator-border-color);
+  border-radius: var(--map-indicator-border-radius);
+}
+
+.map-range-display[auto-override='true'] {
+  color: var(--g3000-color-black);
+  background: var(--g3000-color-cyan);
+  border: 1px solid var(--g3000-color-black);
+}
+
+.map-range-display-auto {
+  font-size: 0.75em;
+}
+
+.map-range-display[auto='true'] .map-range-display-auto {
+  display: block;
+}

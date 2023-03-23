@@ -1,0 +1,7 @@
+.traffic-map-opmode {
+  padding: 0px 2px;
+  color: var(--g3000-color-white);
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid var(--map-indicator-border-color);
+  border-radius: var(--map-indicator-border-radius);
+}

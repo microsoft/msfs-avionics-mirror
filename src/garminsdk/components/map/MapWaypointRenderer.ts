@@ -1,4 +1,4 @@
-import { MapCullableTextLabelManager, MapWaypointRenderer as BaseMapWaypointRenderer, Waypoint } from 'msfssdk';
+import { MapCullableTextLabelManager, MapWaypointRenderer as BaseMapWaypointRenderer, Waypoint } from '@microsoft/msfs-sdk';
 
 /**
  * Render roles for MapWaypointRenderer.

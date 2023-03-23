@@ -1,6 +1,6 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus } from '../../data';
+import { EventBus, SimVarValueType } from '../../data';
 import { GeoPoint, MagVar, NavMath } from '../../geo';
 import { AdcEvents, AhrsEvents, CdiDeviation, GNSSEvents, Localizer, NavEvents, NavRadioEvents, NavSourceId, NavSourceType } from '../../instruments';
 import { MathUtils, UnitType } from '../../math';
@@ -11,9 +11,26 @@ import { APNavDirectorInterceptFunc } from './APNavDirector';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
+ * Options for {@link APBackCourseDirector}.
+ */
+export type APBackCourseDirectorOptions = {
+  /**
+   * The maximum bank angle, in degrees, supported by the director, or a function which returns it. If not defined,
+   * the director will use the maximum bank angle defined by its parent autopilot (via `apValues`).
+   */
+  maxBankAngle: number | (() => number) | undefined;
+
+  /**
+   * A function used to translate DTK and XTK into a track intercept angle.
+   */
+  lateralInterceptCurve: APNavDirectorInterceptFunc;
+};
+
+/**
  * A BackCourse autopilot director.
  */
 export class APBackCourseDirector implements PlaneDirector {
+  private static readonly BANK_SERVO_RATE = 10; // degrees per second
 
   public state: DirectorState;
 
@@ -26,7 +43,7 @@ export class APBackCourseDirector implements PlaneDirector {
   /** A callback called when the director deactivates. */
   public onDeactivate?: () => void;
 
-  private readonly bankServo = new LinearServo(10);
+  private readonly bankServo = new LinearServo(APBackCourseDirector.BANK_SERVO_RATE);
   private currentBankRef = 0;
   private currentHeading = 0;
   private currentTrack = 0;
@@ -41,19 +58,38 @@ export class APBackCourseDirector implements PlaneDirector {
 
   private isApproachMode = Subject.create<boolean>(false);
 
+  private readonly maxBankAngleFunc: () => number;
+  private readonly lateralInterceptCurve?: APNavDirectorInterceptFunc;
+
   /**
-   * Creates an instance of the BC LateralDirector.
+   * Creates a new instance of APBackCourseDirector.
    * @param bus The event bus to use with this instance.
-   * @param apValues Is the apValues object.
-   * @param mode is the APLateralMode for this instance of the director.
-   * @param lateralInterceptCurve The optional curve used to translate DTK and XTK into a track intercept angle.
+   * @param apValues Autopilot values from this director's parent autopilot.
+   * @param mode The APLateralMode for this instance of the director.
+   * @param options Options to configure the new director. Option values default to the following if not defined:
+   * * `maxBankAngle`: `undefined`
+   * * `lateralInterceptCurve`: A default function tuned for slow GA aircraft.
    */
   constructor(
     private readonly bus: EventBus,
     private readonly apValues: APValues,
     private readonly mode: APLateralModes,
-    private readonly lateralInterceptCurve?: APNavDirectorInterceptFunc
+    options?: Partial<Readonly<APBackCourseDirectorOptions>>
   ) {
+    const maxBankAngleOpt = options?.maxBankAngle ?? undefined;
+    switch (typeof maxBankAngleOpt) {
+      case 'number':
+        this.maxBankAngleFunc = () => maxBankAngleOpt;
+        break;
+      case 'function':
+        this.maxBankAngleFunc = maxBankAngleOpt;
+        break;
+      default:
+        this.maxBankAngleFunc = this.apValues.maxBankAngle.get.bind(this.apValues.maxBankAngle);
+    }
+
+    this.lateralInterceptCurve = options?.lateralInterceptCurve;
+
     this.state = DirectorState.Inactive;
     this.monitorEvents();
   }
@@ -70,6 +106,7 @@ export class APBackCourseDirector implements PlaneDirector {
     SimVar.SetSimVarValue('AUTOPILOT BACKCOURSE HOLD', 'Bool', true);
     SimVar.SetSimVarValue('AUTOPILOT APPROACH ACTIVE', 'Bool', true);
     this.state = DirectorState.Active;
+    this.bankServo.reset();
   }
 
   /**
@@ -195,7 +232,7 @@ export class APBackCourseDirector implements PlaneDirector {
       const turnDirection = NavMath.getTurnDirection(this.currentTrack, desiredTrack);
       const trackDiff = Math.abs(NavMath.diffAngle(this.currentTrack, desiredTrack));
 
-      let baseBank = Math.min(1.25 * trackDiff, 25);
+      let baseBank = Math.min(1.25 * trackDiff, this.maxBankAngleFunc());
       baseBank *= (turnDirection === 'left' ? 1 : -1);
 
       return baseBank;
@@ -235,6 +272,7 @@ export class APBackCourseDirector implements PlaneDirector {
    */
   private setBank(bankAngle: number): void {
     if (isFinite(bankAngle)) {
+      this.bankServo.rate = APBackCourseDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
       this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
       SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
     }

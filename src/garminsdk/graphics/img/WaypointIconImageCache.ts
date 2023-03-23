@@ -1,4 +1,4 @@
-import { Waypoint } from 'msfssdk';
+import { Waypoint } from '@microsoft/msfs-sdk';
 
 /**
  * A cache of images for waypoint icons.

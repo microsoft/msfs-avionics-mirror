@@ -1,0 +1,61 @@
+.hsi {
+  position: relative;
+
+  --hsi-hdg-box-font-size: 1.5em;
+
+  /* Private vars */
+  --hsi-nav-color: var(--g3000-color-green);
+}
+
+.hsi.hsi-active-nav-gps {
+  --hsi-nav-color: var(--g3000-color-magenta);
+}
+
+.hsi .hsi-rose {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  --hsi-rose-nav-color: var(--hsi-nav-color);
+}
+
+.hsi .hsi-map-container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  --hsi-map-nav-color: var(--hsi-nav-color);
+}
+
+.hsi-hdgcrs-box {
+  position: absolute;
+  top: 26px;
+  width: 86px;
+  height: 26px;
+  padding: 2px;
+  background: var(--g3000-color-pfd-box-background);
+  border-radius: 5px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+  transform: rotateX(0deg);
+}
+
+.hsi-hdgcrs-box-title {
+  font-size: 0.7em;
+}
+
+.hsi-hdg-box {
+  left: 4px;
+}
+
+.hsi-hdg-box-value {
+  color: var(--g3000-color-cyan);
+}
+
+.hsi-crs-box {
+  left: 276px;
+}
+
+.hsi-crs-box-value {
+  color: var(--hsi-nav-color);
+}

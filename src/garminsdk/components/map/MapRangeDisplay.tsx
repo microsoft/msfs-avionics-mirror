@@ -1,6 +1,6 @@
 import {
   ComponentProps, DisplayComponent, FSComponent, NumberFormatter, NumberUnitInterface, Subject, Subscribable, Unit, UnitFamily, UnitType, VNode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { NumberUnitDisplay } from '../common/NumberUnitDisplay';
 

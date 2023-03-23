@@ -1,0 +1,150 @@
+.gtc-horizontal .number-dialog.vnav-altitude-dialog {
+  --vnav-altitude-dialog-width: 855px;
+  --vnav-altitude-dialog-height: 693px;
+  --vnav-altitude-dialog-inactive-msl-min-width: 133px;
+  --vnav-altitude-dialog-inactive-fl-min-width: 112px;
+  --vnav-altitude-dialog-input-height: 44px;
+  --vnav-altitude-dialog-button-margin: 9px;
+  --vnav-altitude-dialog-button-width: 232px;
+  --vnav-altitude-dialog-button-height: 123px;
+  --vnav-altitude-dialog-button-font-size: 30px;
+  --vnav-altitude-dialog-vnav-dto-button-left: 403px;
+  --vnav-altitude-dialog-input-left: 181px;
+  --vnav-altitude-dialog-input-top: 23px;
+  --vnav-altitude-dialog-numpad-left: 75px;
+  --vnav-altitude-dialog-numpad-top: 110px;
+  --vnav-altitude-dialog-backspace-top: 20px;
+  --vnav-altitude-dialog-backspace-right: 53px;
+  --vnav-altitude-dialog-mode-panel-top: 184px;
+  --vnav-altitude-dialog-mode-panel-right: 31px;
+  --vnav-altitude-dialog-mode-panel-width: 167px;
+  --vnav-altitude-dialog-mode-panel-height: 483px;
+  --vnav-altitude-dialog-mode-panel-button-width: 145px;
+  --vnav-altitude-dialog-mode-panel-button-height: 129px;
+  --vnav-altitude-dialog-mode-panel-button-spacing: 11px;
+  --vnav-altitude-dialog-mode-panel-button-font-size: 36px;
+}
+
+.gtc-vertical .number-dialog.vnav-altitude-dialog {
+  --vnav-altitude-dialog-width: 460px;
+  --vnav-altitude-dialog-height: 373px;
+  --vnav-altitude-dialog-inactive-msl-min-width: 73px;
+  --vnav-altitude-dialog-inactive-fl-min-width: 65px;
+  --vnav-altitude-dialog-input-height: 24px;
+  --vnav-altitude-dialog-button-margin: 5px;
+  --vnav-altitude-dialog-button-width: 125px;
+  --vnav-altitude-dialog-button-height: 66px;
+  --vnav-altitude-dialog-button-font-size: 16px;
+  --vnav-altitude-dialog-vnav-dto-button-left: 216px;
+  --vnav-altitude-dialog-input-left: 95px;
+  --vnav-altitude-dialog-input-top: 12px;
+  --vnav-altitude-dialog-numpad-left: 38px;
+  --vnav-altitude-dialog-numpad-top: 55px;
+  --vnav-altitude-dialog-backspace-top: 10px;
+  --vnav-altitude-dialog-backspace-right: 28px;
+  --vnav-altitude-dialog-mode-panel-top: 98px;
+  --vnav-altitude-dialog-mode-panel-right: 16px;
+  --vnav-altitude-dialog-mode-panel-width: 90px;
+  --vnav-altitude-dialog-mode-panel-height: 260px;
+  --vnav-altitude-dialog-mode-panel-button-width: 78px;
+  --vnav-altitude-dialog-mode-panel-button-height: 69px;
+  --vnav-altitude-dialog-mode-panel-button-spacing: 7px;
+  --vnav-altitude-dialog-mode-panel-button-font-size: 20px;
+}
+
+.number-dialog.vnav-altitude-dialog {
+  left: unset;
+  width: var(--vnav-altitude-dialog-width);
+  height: var(--vnav-altitude-dialog-height);
+}
+
+.vnav-altitude-dialog .cursor-input-inactive {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.vnav-altitude-dialog .vnav-altitude-dialog-input-inactive {
+  text-align: right;
+  background-color: var(--g3000-color-cyan);
+  min-width: var(--vnav-altitude-dialog-inactive-msl-min-width);
+  height: var(--vnav-altitude-dialog-input-height);
+}
+
+.vnav-altitude-dialog .fl-input .vnav-altitude-dialog-input-inactive {
+  display: flex;
+  justify-content: space-between;
+  min-width: var(--vnav-altitude-dialog-inactive-fl-min-width);
+}
+
+.vnav-altitude-dialog .cursor-input-active {
+  height: var(--vnav-altitude-dialog-input-height);
+}
+
+.vnav-altitude-dialog .remove-button,
+.vnav-altitude-dialog .vnav-dto-button {
+  width: var(--vnav-altitude-dialog-button-width);
+  height: var(--vnav-altitude-dialog-button-height);
+  font-size: var(--vnav-altitude-dialog-button-font-size);
+}
+
+.vnav-altitude-dialog .remove-button {
+  position: absolute;
+  left: var(--vnav-altitude-dialog-button-margin);
+  bottom: var(--vnav-altitude-dialog-button-margin);
+}
+
+.vnav-altitude-dialog .vnav-dto-button {
+  position: absolute;
+  left: var(--vnav-altitude-dialog-vnav-dto-button-left);
+  bottom: var(--vnav-altitude-dialog-button-margin);
+}
+
+.vnav-altitude-dialog .cursor-input.number-dialog-input {
+  left: var(--vnav-altitude-dialog-input-left);
+  top: var(--vnav-altitude-dialog-input-top);
+}
+
+.vnav-altitude-dialog .vnav-altitude-dialog-numpad-container {
+  left: var(--vnav-altitude-dialog-numpad-left);
+  top: var(--vnav-altitude-dialog-numpad-top);
+}
+
+.vnav-altitude-dialog .vnav-altitude-dialog-backspace {
+  position: absolute;
+  top: var(--vnav-altitude-dialog-backspace-top);
+  right: var(--vnav-altitude-dialog-backspace-right);
+}
+
+.vnav-altitude-dialog .mode-panel {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  top: var(--vnav-altitude-dialog-mode-panel-top);
+  right: var(--vnav-altitude-dialog-mode-panel-right);
+  width: var(--vnav-altitude-dialog-mode-panel-width);
+  height: var(--vnav-altitude-dialog-mode-panel-height);
+}
+
+.vnav-altitude-dialog .mode-panel .gtc-panel-title {
+  margin: var(--vnav-altitude-dialog-mode-panel-button-spacing) 0px;
+}
+
+.vnav-altitude-dialog .mode-panel .touch-button {
+  width: var(--vnav-altitude-dialog-mode-panel-button-width);
+  height: var(--vnav-altitude-dialog-mode-panel-button-height);
+  margin-bottom: var(--vnav-altitude-dialog-mode-panel-button-spacing);
+  font-size: var(--vnav-altitude-dialog-mode-panel-button-font-size);
+}
+
+.vnav-altitude-dialog .mode-panel .touch-button-toggle>.touch-button-label {
+  top: 45%;
+}
+
+.vnav-altitude-dialog .mode-panel .touch-button-toggle-status-bar {
+  width: 85%;
+  left: 7.5%;
+  top: unset;
+  bottom: 8%;
+}

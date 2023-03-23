@@ -1,5 +1,6 @@
-/// <reference types="msfstypes/JS/Avionics" />
+/// <reference types="@microsoft/msfs-types/js/avionics" />
 
+import { UnitType } from '../../../math';
 import { Subscription } from '../../../sub/Subscription';
 import { ResourceConsumer, ResourceModerator } from '../../../utils/resource';
 import { MapOwnAirplanePropsModule } from '../../map/modules/MapOwnAirplanePropsModule';
@@ -53,7 +54,7 @@ export class MapRotationController extends MapSystemController<MapRotationContro
     }
   };
 
-  private readonly rotationFuncs = {
+  private readonly rotationFuncs: Partial<Record<MapRotation, () => number>> = {
     [MapRotation.NorthUp]: (): number => 0,
 
     [MapRotation.HeadingUp]: this.ownAirplanePropsModule === undefined
@@ -64,12 +65,16 @@ export class MapRotationController extends MapSystemController<MapRotationContro
     [MapRotation.TrackUp]: this.ownAirplanePropsModule === undefined
       ? (): number => 0
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      : (): number => -this.ownAirplanePropsModule!.trackTrue.get() * Avionics.Utils.DEG2RAD,
+      : (): number => this.ownAirplanePropsModule!.groundSpeed.get().asUnit(UnitType.KNOT) < 5
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        ? -this.ownAirplanePropsModule!.hdgTrue.get() * Avionics.Utils.DEG2RAD
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        : -this.ownAirplanePropsModule!.trackTrue.get() * Avionics.Utils.DEG2RAD,
 
     [MapRotation.DtkUp]: (): number => 0 // TODO
   };
 
-  private rotationFunc: () => number = this.rotationFuncs[MapRotation.HeadingUp];
+  private rotationFunc?: () => number;
 
   private rotationSub?: Subscription;
 
@@ -84,7 +89,7 @@ export class MapRotationController extends MapSystemController<MapRotationContro
 
   /** @inheritdoc */
   public onBeforeUpdated(): void {
-    if (this.hasRotationControl) {
+    if (this.hasRotationControl && this.rotationFunc !== undefined) {
       this.rotationParam.rotation = this.rotationFunc();
       this.context.projection.setQueued(this.rotationParam);
     }

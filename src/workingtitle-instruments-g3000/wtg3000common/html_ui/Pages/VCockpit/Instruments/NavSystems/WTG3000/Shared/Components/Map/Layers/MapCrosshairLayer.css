@@ -1,0 +1,22 @@
+html {
+  --map-crosshair-size: 10px;
+  --map-crosshair-stroke-width: 10px;
+  --map-crosshair-stroke-color: var(--g3000-color-white);
+  --map-crosshair-outline-width: 10px;
+  --map-crosshair-outline-color: var(--g3000-color-black);
+}
+
+.map-crosshair {
+  width: var(--map-crosshair-size);
+  height: var(--map-crosshair-size);
+}
+
+.map-crosshair-stroke {
+  stroke-width: var(--map-crosshair-stroke-width);
+  stroke: var(--map-crosshair-stroke-color);
+}
+
+.map-crosshair-outline {
+  stroke-width: calc(var(--map-crosshair-stroke-width) + 2 * var(--map-crosshair-outline-width));
+  stroke: var(--map-crosshair-outline-color);
+}

@@ -1,16 +1,19 @@
 import {
-  AbstractNumberUnitDisplay, AbstractNumberUnitDisplayProps, FSComponent, NavAngleUnit, NumberUnitInterface, Subject, SubscribableSet, Unit, VNode
-} from 'msfssdk';
+  AbstractNumberUnitDisplay, AbstractNumberUnitDisplayProps, FSComponent, NavAngleUnit, NavAngleUnitFamily, NumberUnitInterface, Subject, SubscribableSet, Unit, VNode
+} from '@microsoft/msfs-sdk';
 
 /**
  * Component props for BearingDisplay.
  */
-export interface BearingDisplayProps extends AbstractNumberUnitDisplayProps<typeof NavAngleUnit.FAMILY> {
+export interface BearingDisplayProps extends AbstractNumberUnitDisplayProps<NavAngleUnitFamily> {
   /** A function which formats numbers. */
   formatter: (number: number) => string;
 
   /** Whether to display 360 in place of 0. True by default. */
   use360?: boolean;
+
+  /** Whether to hide the ° symbol when value is NaN. False by default. */
+  hideDegreeSymbolWhenNan?: boolean;
 
   /** CSS class(es) to add to the root of the bearing display component. */
   class?: string | SubscribableSet<string>;
@@ -19,8 +22,9 @@ export interface BearingDisplayProps extends AbstractNumberUnitDisplayProps<type
 /**
  * Displays a bearing value.
  */
-export class BearingDisplay extends AbstractNumberUnitDisplay<typeof NavAngleUnit.FAMILY, BearingDisplayProps> {
+export class BearingDisplay extends AbstractNumberUnitDisplay<NavAngleUnitFamily, BearingDisplayProps> {
   private readonly unitTextSmallRef = FSComponent.createRef<HTMLSpanElement>();
+  private readonly bearingUnitRef = FSComponent.createRef<HTMLDivElement>();
 
   private readonly numberTextSub = Subject.create('');
   private readonly unitTextSmallSub = Subject.create('');
@@ -41,12 +45,12 @@ export class BearingDisplay extends AbstractNumberUnitDisplay<typeof NavAngleUni
   }
 
   /** @inheritdoc */
-  protected onValueChanged(value: NumberUnitInterface<typeof NavAngleUnit.FAMILY>): void {
+  protected onValueChanged(value: NumberUnitInterface<NavAngleUnitFamily>): void {
     this.setDisplay(value, this.displayUnit.get());
   }
 
   /** @inheritdoc */
-  protected onDisplayUnitChanged(displayUnit: Unit<typeof NavAngleUnit.FAMILY> | null): void {
+  protected onDisplayUnitChanged(displayUnit: Unit<NavAngleUnitFamily> | null): void {
     this.setDisplay(this.value.get(), displayUnit);
   }
 
@@ -55,7 +59,7 @@ export class BearingDisplay extends AbstractNumberUnitDisplay<typeof NavAngleUni
    * @param value The current value.
    * @param displayUnit The current display unit.
    */
-  private setDisplay(value: NumberUnitInterface<typeof NavAngleUnit.FAMILY>, displayUnit: Unit<typeof NavAngleUnit.FAMILY> | null): void {
+  private setDisplay(value: NumberUnitInterface<NavAngleUnitFamily>, displayUnit: Unit<NavAngleUnitFamily> | null): void {
     if (!displayUnit || !value.unit.canConvert(displayUnit)) {
       displayUnit = value.unit;
     }
@@ -67,7 +71,16 @@ export class BearingDisplay extends AbstractNumberUnitDisplay<typeof NavAngleUni
     }
 
     this.numberTextSub.set(numberText);
-    this.unitTextSmallSub.set((displayUnit as NavAngleUnit).isMagnetic() ? '' : 'T');
+
+    if (this.props.hideDegreeSymbolWhenNan === true) {
+      this.bearingUnitRef.instance.style.display = isNaN(number) ? 'none' : 'inline';
+    }
+
+    if (this.props.hideDegreeSymbolWhenNan === true && isNaN(number)) {
+      this.unitTextSmallSub.set('');
+    } else {
+      this.unitTextSmallSub.set((displayUnit as NavAngleUnit).isMagnetic() ? '' : 'T');
+    }
   }
 
   /** @inheritdoc */
@@ -75,7 +88,7 @@ export class BearingDisplay extends AbstractNumberUnitDisplay<typeof NavAngleUni
     return (
       <div class={this.props.class ?? ''} style='white-space: nowrap;'>
         <span class='bearing-num'>{this.numberTextSub}</span>
-        <span class='bearing-unit'>°</span>
+        <span ref={this.bearingUnitRef} class='bearing-unit'>°</span>
         <span ref={this.unitTextSmallRef} class='bearing-unit-small'>{this.unitTextSmallSub}</span>
       </div>
     );

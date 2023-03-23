@@ -1,0 +1,12 @@
+.fpl-segment-header {
+  font-size: 14px;
+  color: var(--gnscyan);
+  height: 27px;
+}
+
+.fpl-segment-header>span {
+  display: inline-block;
+  width: 75%;
+  padding-top: 1px;
+  margin-top: 7px;
+}

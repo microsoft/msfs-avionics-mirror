@@ -1,0 +1,140 @@
+.avionics-settings-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+
+  --avionics-settings-page-tab-list-height: calc(4 * var(--avionics-settings-page-tab-list-item-height) + 3 * var(--avionics-settings-page-tab-list-item-gap));
+}
+
+.avionics-settings-page-small-text {
+  font-size: 0.7em;
+}
+
+.gtc-horizontal .avionics-settings-page {
+  font-size: 32px;
+
+  --avionics-settings-page-header-height: 45px;
+  --avionics-settings-page-header-padding-horizontal: 10px;
+
+  --avionics-settings-page-tabs-left: 53px;
+  --avionics-settings-page-tabs-top: 45px;
+  --avionics-settings-page-tabs-width: 870px;
+  --avionics-settings-page-tabs-height: 695px;
+
+  --avionics-settings-page-tab-list-item-height: 155px;
+  --avionics-settings-page-tab-list-item-gap: 6px;
+  --avionics-settings-page-tab-list-left: 15px;
+  --avionics-settings-page-tab-list-top: 15px;
+  --avionics-settings-page-tab-list-width: calc(100% - 2 * 15px);
+
+  --avionics-settings-page-row-left-margin-right: 2px;
+
+  --avionics-settings-page-row-right-width: 310px;
+  --avionics-settings-page-row-right-font-size: 36px;
+}
+
+.gtc-vertical .avionics-settings-page {
+  font-size: 16px;
+
+  --avionics-settings-page-header-height: 24px;
+  --avionics-settings-page-header-padding-horizontal: 5px;
+
+  --avionics-settings-page-tabs-left: 3px;
+  --avionics-settings-page-tabs-top: 24px;
+  --avionics-settings-page-tabs-width: calc(100% - 3px);
+  --avionics-settings-page-tabs-height: 383px;
+
+  --avionics-settings-page-tab-list-item-height: 85px;
+  --avionics-settings-page-tab-list-item-gap: 4px;
+  --avionics-settings-page-tab-list-left: 10px;
+  --avionics-settings-page-tab-list-top: 10px;
+  --avionics-settings-page-tab-list-width: calc(100% - 2 * 10px);
+
+  --avionics-settings-page-row-left-margin-right: 1px;
+
+  --avionics-settings-page-row-right-width: 170px;
+  --avionics-settings-page-row-right-font-size: 18px;
+}
+
+.avionics-settings-page-header {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: var(--avionics-settings-page-header-height);
+  background: #404040;
+  color: var(--g3000-color-white);
+}
+
+.avionics-settings-page-header-date {
+  position: absolute;
+  left: var(--avionics-settings-page-header-padding-horizontal);
+  bottom: 0px;
+}
+
+.avionics-settings-page-header-time {
+  position: absolute;
+  right: var(--avionics-settings-page-header-padding-horizontal);
+  bottom: 0px;
+}
+
+.avionics-settings-page-tabs {
+  position: absolute;
+  left: var(--avionics-settings-page-tabs-left);
+  top: var(--avionics-settings-page-tabs-top);
+  width: var(--avionics-settings-page-tabs-width);
+  height: var(--avionics-settings-page-tabs-height);
+}
+
+.gtc-list.avionics-settings-page-tab-list {
+  position: absolute;
+  left: var(--avionics-settings-page-tab-list-left);
+  top: var(--avionics-settings-page-tab-list-top);
+  width: var(--avionics-settings-page-tab-list-width);
+  height: var(--avionics-settings-page-tab-list-height);
+}
+
+.list-item.avionics-settings-page-row {
+  padding: 1px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.avionics-settings-page-row {
+  --touch-button-toggle-label-center-y: 45%;
+  --touch-button-toggle-bar-center-y: 85%;
+  --touch-button-toggle-bar-width: 40%;
+}
+
+.avionics-settings-page-row-left {
+  flex-grow: 1;
+  margin-right: var(--avionics-settings-page-row-left-margin-right);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.avionics-settings-page-row-right {
+  width: var(--avionics-settings-page-row-right-width);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: var(--avionics-settings-page-row-right-font-size);
+
+  --touch-button-text-color: var(--g3000-color-cyan);
+}
+
+.avionics-settings-page-row-right .touch-button-value-value {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}

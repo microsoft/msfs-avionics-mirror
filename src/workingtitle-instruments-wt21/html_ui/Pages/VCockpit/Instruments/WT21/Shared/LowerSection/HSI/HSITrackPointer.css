@@ -1,0 +1,12 @@
+.hsi-track-pointer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.fail .hsi-track-pointer,
+.align .hsi-track-pointer {
+  display: none;
+}

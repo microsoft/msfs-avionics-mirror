@@ -1,0 +1,61 @@
+.perf-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .perf-page {
+  padding: 90px 0px 0px 0px;
+  font-size: 29px;
+
+  --perf-page-database-width: 540px;
+  --perf-page-database-height: 190px;
+  --perf-page-database-margin-bottom: 56px;
+
+  --perf-page-button-margin-horizontal: 45px;
+  --perf-page-button-margin-bottom: 60px;
+}
+
+.gtc-vertical .perf-page {
+  padding: 48px 0px 0px 0px;
+  font-size: 16px;
+
+  --perf-page-database-width: 286px;
+  --perf-page-database-height: 100px;
+  --perf-page-database-margin-bottom: 30px;
+
+  --perf-page-button-margin-horizontal: 24px;
+  --perf-page-button-margin-bottom: 32px;
+}
+
+.perf-page-database {
+  width: var(--perf-page-database-width);
+  height: var(--perf-page-database-height);
+  margin-bottom: var(--perf-page-database-margin-bottom);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.perf-page-buttons {
+  width: 100%;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-content: flex-start;
+}
+
+.perf-page .touch-button {
+  margin: 0px var(--perf-page-button-margin-horizontal) var(--perf-page-button-margin-bottom) var(--perf-page-button-margin-horizontal);
+}
+
+.perf-page-told-invalid .perf-page-database-told {
+  color: var(--g3000-color-yellow);
+}

@@ -1,0 +1,35 @@
+wt-gns530 .scroll-bar {
+  flex: 0 0 6px;
+  padding-left: 2px;
+}
+
+wt-gns430 .scroll-bar {
+  flex: 0 0 6px;
+  padding-left: 2px;
+  padding-top: 3px;
+}
+
+.scroll-bar-arrow {
+  fill: none;
+  stroke: var(--gnscyan);
+  ;
+  stroke-width: 1px;
+}
+
+.scroll-bar-arrow.hide-element {
+  fill: none;
+  stroke: none;
+  stroke-width: 0;
+}
+
+.scroll-bar-bar {
+  fill: none;
+  stroke: var(--gnscyan);
+  ;
+  stroke-width: 1px;
+}
+
+.scroll-bar-bar.filled {
+  fill: var(--gnscyan);
+  ;
+}

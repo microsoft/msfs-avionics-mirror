@@ -1,6 +1,6 @@
-import { NavAngleUnit, Subject, Subscribable, Unit, UnitFamily, UnitType } from 'msfssdk';
+import { BasicNavAngleUnit, NavAngleUnit, Subject, Subscribable, Unit, UnitFamily, UnitType } from '@microsoft/msfs-sdk';
 
-import { UnitsDistanceSettingMode, UnitsNavAngleSettingMode, UnitsUserSettingManager } from '../../../settings/UnitsUserSettings';
+import { UnitsAltitudeSettingMode, UnitsDistanceSettingMode, UnitsNavAngleSettingMode, UnitsUserSettingManager } from '../../../settings/UnitsUserSettings';
 
 /**
  * A module which defines display units.
@@ -9,11 +9,14 @@ export class MapUnitsModule {
   /** Distance units mode. */
   public readonly distanceMode: Subscribable<UnitsDistanceSettingMode> = this.unitsSettingManager?.getSetting('unitsDistance') ?? Subject.create(UnitsDistanceSettingMode.Nautical);
 
-  /** Distance units mode. */
+  /** Altitude units mode. */
+  public readonly altitudeMode: Subscribable<UnitsAltitudeSettingMode> = this.unitsSettingManager?.getSetting('unitsAltitude') ?? Subject.create(UnitsAltitudeSettingMode.Feet);
+
+  /** Nav angle units mode. */
   public readonly navAngleMode: Subscribable<UnitsNavAngleSettingMode> = this.unitsSettingManager?.getSetting('unitsNavAngle') ?? Subject.create(UnitsNavAngleSettingMode.Magnetic);
 
-  /** Distance units. */
-  public readonly navAngle: Subscribable<NavAngleUnit> = this.unitsSettingManager?.navAngleUnits ?? Subject.create(NavAngleUnit.create(true));
+  /** Nav angle units. */
+  public readonly navAngle: Subscribable<NavAngleUnit> = this.unitsSettingManager?.navAngleUnits ?? Subject.create(BasicNavAngleUnit.create(true));
 
   /** Large distance units. */
   public readonly distanceLarge: Subscribable<Unit<UnitFamily.Distance>> = this.unitsSettingManager?.distanceUnitsLarge ?? Subject.create(UnitType.NMILE);

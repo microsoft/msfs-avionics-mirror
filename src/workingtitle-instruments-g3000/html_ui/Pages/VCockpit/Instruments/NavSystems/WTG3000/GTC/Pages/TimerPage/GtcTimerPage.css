@@ -1,0 +1,114 @@
+.timer-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .timer-page {
+  font-size: 36px;
+
+  --timer-page-value-button-top: 115px;
+  --timer-page-value-button-width: 370px;
+  --timer-page-value-button-height: 135px;
+
+  --timer-page-count-container-top: 325px;
+  --timer-page-count-container-padding: 10px 25px 2px 25px;
+
+  --timer-page-count-title-margin-bottom: 5px;
+
+  --timer-page-count-button-width: 240px;
+  --timer-page-count-button-height: 120px;
+  --timer-page-count-button-margin-bottom: 5px;
+
+  --timer-page-side-button-outer: 105px;
+  --timer-page-side-button-top: 470px;
+  --timer-page-side-button-width: 200px;
+  --timer-page-side-button-height: 135px;
+}
+
+.gtc-vertical .timer-page {
+  font-size: 18px;
+
+  --timer-page-value-button-top: 62px;
+  --timer-page-value-button-width: 200px;
+  --timer-page-value-button-height: 70px;
+
+  --timer-page-count-container-top: 175px;
+  --timer-page-count-container-padding: 5px 12px 0px 12px;
+
+  --timer-page-count-title-margin-bottom: 2px;
+
+  --timer-page-count-button-width: 125px;
+  --timer-page-count-button-height: 62px;
+  --timer-page-count-button-margin-bottom: 3px;
+
+  --timer-page-side-button-outer: 30px;
+  --timer-page-side-button-top: 250px;
+  --timer-page-side-button-width: 105px;
+  --timer-page-side-button-height: 70px;
+}
+
+.touch-button.timer-page-value-button {
+  position: absolute;
+  left: 50%;
+  top: var(--timer-page-value-button-top);
+  width: var(--timer-page-value-button-width);
+  height: var(--timer-page-value-button-height);
+  transform: translateX(-50%);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.timer-page-value-button-label {
+  font-size: 0.9em;
+}
+
+.timer-page-value-button-value {
+  font-size: 1.3em;
+  color: var(--g3000-color-cyan);
+}
+
+.timer-page-count-container {
+  position: absolute;
+  left: 50%;
+  top: var(--timer-page-count-container-top);
+  padding: var(--timer-page-count-container-padding);
+  transform: translateX(-50%);
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.timer-page-count-title {
+  margin-bottom: var(--timer-page-count-title-margin-bottom);
+  font-size: 0.9em;
+}
+
+.timer-page-count-button {
+  width: var(--timer-page-count-button-width);
+  height: var(--timer-page-count-button-height);
+  margin-bottom: var(--timer-page-count-button-margin-bottom);
+}
+
+.touch-button.timer-page-side-button {
+  position: absolute;
+  top: var(--timer-page-side-button-top);
+  width: var(--timer-page-side-button-width);
+  height: var(--timer-page-side-button-height);
+}
+
+.timer-page-reset-button {
+  left: var(--timer-page-side-button-outer);
+}
+
+.timer-page-start-stop-button {
+  right: var(--timer-page-side-button-outer);
+}

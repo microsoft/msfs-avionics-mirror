@@ -10,6 +10,7 @@ export interface FsInstrument {
   onInteractionEvent(_args: Array<string>): void;
   onFlightStart(): void;
   onGameStateChanged(oldState: GameState, newState: GameState): void;
+  onSoundEnd(soundEventId: Name_Z): void;
 }
 
 /**
@@ -67,6 +68,14 @@ export abstract class FsBaseInstrument<T extends FsInstrument> extends BaseInstr
     super.onFlightStart();
     if (this.fsInstrument) {
       this.fsInstrument.onFlightStart();
+    }
+  }
+
+  /** @inheritdoc */
+  public onSoundEnd(soundEventId: Name_Z): void {
+    super.onSoundEnd(soundEventId);
+    if (this.fsInstrument) {
+      this.fsInstrument.onSoundEnd(soundEventId);
     }
   }
 

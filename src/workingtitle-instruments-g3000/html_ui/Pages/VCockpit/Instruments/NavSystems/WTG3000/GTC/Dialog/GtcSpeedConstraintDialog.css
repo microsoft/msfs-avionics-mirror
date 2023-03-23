@@ -1,0 +1,139 @@
+.gtc-horizontal .number-dialog.speed-constraint-dialog {
+  --speed-constraint-dialog-width: 873px;
+  --speed-constraint-dialog-height: 693px;
+  --speed-constraint-dialog-inactive-min-width: 120px;
+  --speed-constraint-dialog-input-height: 44px;
+
+  --speed-constraint-dialog-button-margin: 16px;
+  --speed-constraint-dialog-button-width: 217px;
+  --speed-constraint-dialog-button-height: 129px;
+  --speed-constraint-dialog-button-font-size: 36px;
+
+  --speed-constraint-dialog-backspace-top: 20px;
+  --speed-constraint-dialog-backspace-right: 38px;
+
+  --speed-constraint-dialog-units-panel-top: 166px;
+  --speed-constraint-dialog-units-panel-right: 12px;
+  --speed-constraint-dialog-units-panel-width: 167px;
+  --speed-constraint-dialog-units-panel-height: 334px;
+  --speed-constraint-dialog-units-panel-button-width: 145px;
+  --speed-constraint-dialog-units-panel-button-height: 129px;
+  --speed-constraint-dialog-units-panel-button-spacing: 11px;
+  --speed-constraint-dialog-units-panel-button-font-size: 36px;
+
+  --speed-constraint-dialog-type-panel-top: 17px;
+  --speed-constraint-dialog-type-panel-height: 483px;
+}
+
+.gtc-vertical .number-dialog.speed-constraint-dialog {
+  --speed-constraint-dialog-width: 460px;
+  --speed-constraint-dialog-height: 373px;
+  --speed-constraint-dialog-inactive-min-width: 73px;
+  --speed-constraint-dialog-input-height: 24px;
+
+  --speed-constraint-dialog-button-margin: 5px;
+  --speed-constraint-dialog-button-width: 125px;
+  --speed-constraint-dialog-button-height: 66px;
+  --speed-constraint-dialog-button-font-size: 16px;
+
+  --speed-constraint-dialog-backspace-top: 10px;
+  --speed-constraint-dialog-backspace-right: 18px;
+
+  --speed-constraint-dialog-units-panel-top: 98px;
+  --speed-constraint-dialog-units-panel-right: 5px;
+  --speed-constraint-dialog-units-panel-width: 90px;
+  --speed-constraint-dialog-units-panel-height: 180px;
+  --speed-constraint-dialog-units-panel-button-width: 78px;
+  --speed-constraint-dialog-units-panel-button-height: 69px;
+  --speed-constraint-dialog-units-panel-button-spacing: 7px;
+  --speed-constraint-dialog-units-panel-button-font-size: 20px;
+
+  --speed-constraint-dialog-type-panel-top: 5px;
+  --speed-constraint-dialog-type-panel-height: 260px;
+}
+
+.number-dialog.speed-constraint-dialog {
+  left: unset;
+  width: var(--speed-constraint-dialog-width);
+  height: var(--speed-constraint-dialog-height);
+}
+
+.speed-constraint-dialog .cursor-input-inactive {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.speed-constraint-dialog .speed-constraint-dialog-input-inactive {
+  text-align: right;
+  background-color: var(--g3000-color-cyan);
+  min-width: var(--speed-constraint-dialog-inactive-min-width);
+  height: var(--speed-constraint-dialog-input-height);
+}
+
+.speed-constraint-dialog .cursor-input-active {
+  height: var(--speed-constraint-dialog-input-height);
+}
+
+.speed-constraint-dialog .remove-button {
+  position: absolute;
+  left: var(--speed-constraint-dialog-button-margin);
+  bottom: var(--speed-constraint-dialog-button-margin);
+  width: var(--speed-constraint-dialog-button-width);
+  height: var(--speed-constraint-dialog-button-height);
+  font-size: var(--speed-constraint-dialog-button-font-size);
+}
+
+.speed-constraint-dialog .speed-constraint-dialog-backspace {
+  position: absolute;
+  top: var(--speed-constraint-dialog-backspace-top);
+  right: var(--speed-constraint-dialog-backspace-right);
+}
+
+.speed-constraint-dialog .units-panel {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  top: var(--speed-constraint-dialog-units-panel-top);
+  right: var(--speed-constraint-dialog-units-panel-right);
+  width: var(--speed-constraint-dialog-units-panel-width);
+  height: var(--speed-constraint-dialog-units-panel-height);
+}
+
+.speed-constraint-dialog .type-panel {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  top: var(--speed-constraint-dialog-type-panel-top);
+  left: var(--speed-constraint-dialog-units-panel-right);
+  width: var(--speed-constraint-dialog-units-panel-width);
+  height: var(--speed-constraint-dialog-type-panel-height);
+}
+
+.speed-constraint-dialog .units-panel .gtc-panel-title,
+.speed-constraint-dialog .type-panel .gtc-panel-title {
+  margin: var(--speed-constraint-dialog-units-panel-button-spacing) 0px;
+}
+
+.speed-constraint-dialog .units-panel .touch-button,
+.speed-constraint-dialog .type-panel .touch-button {
+  width: var(--speed-constraint-dialog-units-panel-button-width);
+  height: var(--speed-constraint-dialog-units-panel-button-height);
+  margin-bottom: var(--speed-constraint-dialog-units-panel-button-spacing);
+  font-size: var(--speed-constraint-dialog-units-panel-button-font-size);
+}
+
+.speed-constraint-dialog .units-panel .touch-button-toggle>.touch-button-label,
+.speed-constraint-dialog .type-panel .touch-button-toggle>.touch-button-label {
+  top: 45%;
+}
+
+.speed-constraint-dialog .units-panel .touch-button-toggle-status-bar,
+.speed-constraint-dialog .type-panel .touch-button-toggle-status-bar {
+  width: 85%;
+  left: 7.5%;
+  top: unset;
+  bottom: 8%;
+}

@@ -1,0 +1,136 @@
+.fpl-page {
+  background-color: var(--gnsblue);
+  padding: 0 0 8px 3px;
+}
+
+.fpl-storage-id {
+  color: var(--gnsgreen);
+  border: 0.8px solid white;
+  line-height: 20px;
+  width: 22px;
+  height: 20px;
+  font-size: 16px;
+  background-color: black;
+  display: inline-block;
+  text-align: center;
+}
+
+wt-gns530 .fpl-storage-id {
+  margin-left: 16px;
+}
+
+.fpl-name {
+  color: var(--gnsgreen);
+  display: inline-block;
+  border: 0.8px solid white;
+  line-height: 20px;
+  height: 20px;
+  font-size: 16px;
+  background-color: black;
+  margin-left: 4px;
+}
+
+wt-gns530 .fpl-name {
+  width: 190px;
+}
+
+wt-gns430 .fpl-name {
+  width: 240px;
+}
+
+.fpln-name-dto {
+  margin-left: 1em;
+}
+
+.fpl-name-dto-icon {
+  width: 14px;
+  height: 14px;
+  transform: scale(1.65) translateY(.5px);
+  margin-top: 2px;
+  margin-left: 3.2em;
+}
+
+.fpln-name-dto-ident {
+  margin-left: 5px;
+}
+
+.fpl-page-table-header {
+  color: cyan;
+  padding: 6px 0 2px 0;
+}
+
+wt-gns530 .fpl-table-header-wpt {
+  padding-left: 12px;
+}
+
+wt-gns430 .fpl-table-header-wpt {
+  padding-left: 3px;
+}
+
+wt-gns530 .fpl-table-header-dtk {
+  padding-left: 44px;
+}
+
+wt-gns430 .fpl-table-header-dtk {
+  padding-left: 68px;
+}
+
+wt-gns530 .fpl-table-header-dis {
+  padding-left: 35px;
+}
+
+wt-gns430 .fpl-table-header-dis {
+  padding-left: 68px;
+}
+
+.fpl-table-header-cum {
+  padding-left: 40px;
+}
+
+wt-gns530 .fpl-page-table {
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid white;
+  position: relative;
+  overflow-y: hidden;
+}
+
+wt-gns430 .fpl-page-table {
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid white;
+  position: relative;
+  overflow-y: hidden;
+  width: 260px;
+}
+
+wt-gns530 .fpl-page-table {
+  width: 246px;
+  height: 162px;
+}
+
+wt-gns430 .fpl-page-table {
+  height: 112px;
+}
+
+.fpl-page-table>div::-webkit-scrollbar {
+  display: none;
+}
+
+wt-gns530 .fpl-page-body>.scroll-bar {
+  position: absolute;
+  top: 50px;
+  right: 1px;
+}
+
+wt-gns430 .fpl-page-body>.scroll-bar {
+  position: absolute;
+  top: 56px;
+  right: 3px;
+}
+
+.fpl-leg-arrow {
+  width: 10px;
+  height: 27px;
+  vertical-align: top;
+}

@@ -147,7 +147,7 @@ export abstract class HardwareUiControlList<T,
     };
 
     const element = this.renderToDom(controlNode, indexToAdd, currentItemElement);
-    this.register(controlNode.instance as HardwareUiControl<E, P>, indexToAdd);
+    this.register(controlNode.instance as HardwareUiControl<E, P>, indexToAdd >= 0 ? indexToAdd : undefined);
 
     if (element !== null && controlNode.instance !== null) {
       this.addToOrderTracking(controlNode.instance as HardwareUiControl<E, P>, dataItem, element);
@@ -375,12 +375,13 @@ export abstract class HardwareUiControlList<T,
   /**
    * Ensures an indexed list item is in view.
    * @param index The index of the list item.
+   * @param pinDirection The end of the container which the element should be pinned to.
    */
-  public ensureIndexInView(index: number): void {
+  public ensureIndexInView(index: number, pinDirection: 'none' | 'top' | 'bottom' = 'none'): void {
     const el = this.getElement(index);
     const container = this.props.scrollContainer?.getOrDefault() ?? this.itemsContainer.getOrDefault();
     if (el && container && !this.props.disableContainerScroll) {
-      ScrollUtils.ensureInView(el, container);
+      ScrollUtils.ensureInView(el, container, pinDirection);
     }
   }
 

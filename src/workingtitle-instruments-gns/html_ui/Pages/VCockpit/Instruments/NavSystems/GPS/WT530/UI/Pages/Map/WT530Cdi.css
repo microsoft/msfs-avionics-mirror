@@ -1,0 +1,32 @@
+.arc-cdi-wt530 {
+  position: absolute;
+  width: 144px;
+  left: 121px;
+  bottom: 24px;
+  height: 24px;
+}
+
+.arc-cdi-wt530>svg {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+}
+
+.arc-cdi-xtk-label-left {
+  position: absolute;
+  color: var(--gnsgreen);
+  background-color: black;
+  width: 30px;
+  top: 8px;
+  left: 26px;
+}
+
+.arc-cdi-xtk-label-right {
+  position: absolute;
+  color: var(--gnsgreen);
+  background-color: black;
+  width: 30px;
+  top: 8px;
+  left: 86px;
+  text-align: right;
+}

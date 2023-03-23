@@ -1,7 +1,7 @@
 import {
   ClippedPathStream, EventBus, FacilityLoader, FacilityRepository, FSComponent, GeoCircleResampler, GeoProjectionPathStreamStack, MapCachedCanvasLayer,
   MapLayer, MapLayerProps, MapProjection, MapSyncedCanvasLayer, NullPathStream, VecNSubject, VNode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { ProcedureType } from '../../../flightplan/Fms';
 import { GarminFacilityWaypointCache } from '../../../navigation/GarminFacilityWaypointCache';
@@ -223,7 +223,6 @@ export class MapProcedurePreviewLayer extends MapLayer<MapProcedurePreviewLayerP
           ref={this.flightPathLayerRef}
           model={this.props.model}
           mapProjection={this.props.mapProjection}
-          useBuffer={true}
           overdrawFactor={Math.SQRT2}
         />
         <MapSyncedCanvasLayer ref={this.waypointLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} />

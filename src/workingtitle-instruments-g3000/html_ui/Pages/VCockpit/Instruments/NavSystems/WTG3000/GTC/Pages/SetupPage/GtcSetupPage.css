@@ -1,0 +1,30 @@
+.setup-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--setup-page-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.gtc-horizontal .setup-page {
+  --setup-page-padding: 100px 110px 35px 110px;
+}
+
+.gtc-vertical .setup-page {
+  --setup-page-padding: 55px 25px 20px 25px;
+}
+
+.setup-page-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+}
+
+.gtc-directory-button.setup-page-sirius-button {
+  font-size: calc(var(--gtc-directory-button-font-size) * 0.9);
+}

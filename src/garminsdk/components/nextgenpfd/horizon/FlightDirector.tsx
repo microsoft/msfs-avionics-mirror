@@ -1,7 +1,7 @@
 import {
   APEvents, BitFlags, ConsumerSubject, EventBus, FSComponent, HorizonLayer, HorizonLayerProps, HorizonProjection, HorizonProjectionChangeType, LinearServo,
   MappedSubject, MathUtils, ObjectSubject, SimpleMovingAverage, Subscribable, Vec2Math, Vec2Subject, VNode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { GarminControlEvents } from '../../../instruments/GarminControlEvents';
 import { AhrsSystemEvents } from '../../../system/AhrsSystem';
@@ -81,7 +81,7 @@ export class FlightDirector extends HorizonLayer<FlightDirectorProps> {
     this.isFdActive.setConsumer(sub.on('flight_director_is_active_1'));
 
     this.pitchBank.sub(([pitch, bank]) => {
-      this.style.set('transform', `translate3d(0px, ${pitch}px, 0px) rotate(${bank}deg)`);
+      this.style.set('transform', `rotate(${bank}deg) translate3d(0px, ${pitch}px, 0px)`);
     });
 
     this.isVisibleSubject.sub(isVisible => {

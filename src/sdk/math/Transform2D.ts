@@ -295,6 +295,153 @@ export class Transform2D {
     return this;
   }
 
+  private static readonly addCache = [new Transform2D(), new Transform2D()];
+
+  /**
+   * Adds a translation to this transformation.
+   * @param x The x translation.
+   * @param y The y translation.
+   * @param order The order in which to add the translation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addTranslation(x: number, y: number, order: 'before' | 'after' = 'after'): this {
+    if (order === 'before') {
+      Transform2D.addCache[0].toTranslation(x, y);
+      Transform2D.addCache[1].set(this);
+    } else {
+      Transform2D.addCache[0].set(this);
+      Transform2D.addCache[1].toTranslation(x, y);
+    }
+
+    return Transform2D.concat(this, Transform2D.addCache);
+  }
+
+  /**
+   * Adds a scaling about the origin (0, 0) to this transformation.
+   * @param x The x scaling factor.
+   * @param y The y scaling factor.
+   * @param order The order in which to add the scaling, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addScale(x: number, y: number, order?: 'before' | 'after'): this;
+  /**
+   * Adds a scaling about an arbitrary origin to this transformation.
+   * @param x The x scaling factor.
+   * @param y The y scaling factor.
+   * @param originX The x-coordinate of the scaling origin.
+   * @param originY The y-coordinate of the scaling origin.
+   * @param order The order in which to add the scaling, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addScale(x: number, y: number, originX: number, originY: number, order?: 'before' | 'after'): this;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public addScale(x: number, y: number, arg3?: number | 'before' | 'after', arg4?: number, arg5?: 'before' | 'after'): this {
+    let originX: number | undefined, originY: number | undefined, order: 'before' | 'after' | undefined;
+
+    if (typeof arg3 === 'number') {
+      originX = arg3;
+      originY = arg4 as number;
+      order = arg5 as 'before' | 'after';
+    } else {
+      order = arg3;
+    }
+
+    if (order === 'before') {
+      originX === undefined ? Transform2D.addCache[0].toScale(x, y) : Transform2D.addCache[0].toScale(x, y, originX, originY as number);
+      Transform2D.addCache[1].set(this);
+    } else {
+      Transform2D.addCache[0].set(this);
+      originX === undefined ? Transform2D.addCache[1].toScale(x, y) : Transform2D.addCache[1].toScale(x, y, originX, originY as number);
+    }
+
+    return Transform2D.concat(this, Transform2D.addCache);
+  }
+
+  /**
+   * Adds a rotation about the origin (0, 0) to this transformation.
+   * @param theta The rotation angle, in radians.
+   * @param order The order in which to add the rotation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addRotation(theta: number, order?: 'before' | 'after'): this;
+  /**
+   * Adds a rotation about an arbitrary origin to this transformation.
+   * @param theta The rotation angle, in radians.
+   * @param originX The x-coordinate of the rotation origin.
+   * @param originY The y-coordinate of the rotation origin.
+   * @param order The order in which to add the rotation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addRotation(theta: number, originX: number, originY: number, order?: 'before' | 'after'): this;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public addRotation(theta: number, arg2?: number | 'before' | 'after', arg3?: number, arg4?: 'before' | 'after'): this {
+    let originX: number | undefined, originY: number | undefined, order: 'before' | 'after' | undefined;
+
+    if (typeof arg2 === 'number') {
+      originX = arg2;
+      originY = arg3 as number;
+      order = arg4 as 'before' | 'after';
+    } else {
+      order = arg2;
+    }
+
+    if (order === 'before') {
+      originX === undefined ? Transform2D.addCache[0].toRotation(theta) : Transform2D.addCache[0].toRotation(theta, originX, originY as number);
+      Transform2D.addCache[1].set(this);
+    } else {
+      Transform2D.addCache[0].set(this);
+      originX === undefined ? Transform2D.addCache[1].toRotation(theta) : Transform2D.addCache[1].toRotation(theta, originX, originY as number);
+    }
+
+    return Transform2D.concat(this, Transform2D.addCache);
+  }
+
+  /**
+   * Adds a reflection across a line passing through the origin (0, 0) to this transformation.
+   * @param theta The angle of the reflection line, in radians, with respect to the positive x axis.
+   * @param order The order in which to add the reflection, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addReflection(theta: number, order?: 'before' | 'after'): this;
+  /**
+   * Adds a reflection across a line passing through an arbitrary origin to this transformation.
+   * @param theta The angle of the reflection line, in radians, with respect to the positive x axis.
+   * @param originX The x-coordinate of the reflection origin.
+   * @param originY The y-coordinate of the reflection origin.
+   * @param order The order in which to add the reflection, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addReflection(theta: number, originX: number, originY: number, order?: 'before' | 'after'): this;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public addReflection(theta: number, arg2?: number | 'before' | 'after', arg3?: number, arg4?: 'before' | 'after'): this {
+    let originX: number | undefined, originY: number | undefined, order: 'before' | 'after' | undefined;
+
+    if (typeof arg2 === 'number') {
+      originX = arg2;
+      originY = arg3 as number;
+      order = arg4 as 'before' | 'after';
+    } else {
+      order = arg2;
+    }
+
+    if (order === 'before') {
+      originX === undefined ? Transform2D.addCache[0].toReflection(theta) : Transform2D.addCache[0].toReflection(theta, originX, originY as number);
+      Transform2D.addCache[1].set(this);
+    } else {
+      Transform2D.addCache[0].set(this);
+      originX === undefined ? Transform2D.addCache[1].toReflection(theta) : Transform2D.addCache[1].toReflection(theta, originX, originY as number);
+    }
+
+    return Transform2D.concat(this, Transform2D.addCache);
+  }
+
   private static readonly concatCache = [new Transform2D(), new Transform2D()];
 
   /**

@@ -1,0 +1,56 @@
+.minimums {
+  position: relative;
+  background: var(--g3000-color-pfd-box-background);
+  border-radius: 5px;
+  padding: 0 2px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+
+  --minimums-title-width: 33%;
+  --minimums-mode-margin-left: 2px;
+  --minimums-mode-font-size: 0.6em;
+  --minimums-mode-line-height: 1em;
+  --minimums-min-margin-left: 4px;
+  --minimums-min-font-size: 0.75em;
+  --minimums-min-line-height: 1em;
+
+  /* Private vars */
+  --minimums-value-color: var(--g3000-color-cyan);
+}
+
+.minimums.minimums-alert-within100 {
+  --minimums-value-color: var(--g3000-color-white);
+}
+
+.minimums.minimums-alert-atorbelow {
+  --minimums-value-color: var(--g3000-color-yellow);
+}
+
+.minimums-title {
+  width: var(--minimums-title-width);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+  color: var(--g3000-color-white);
+}
+
+.minimums-mode {
+  margin-left: var(--minimums-mode-margin-left);
+  font-size: var(--minimums-mode-font-size);
+  text-align: center;
+  line-height: var(--minimums-mode-line-height);
+}
+
+.minimums-min {
+  margin-left: var(--minimums-min-margin-left);
+  font-size: var(--minimums-min-font-size);
+  text-align: left;
+  line-height: var(--minimums-min-line-height);
+}
+
+.minimums-value {
+  color: var(--minimums-value-color);
+}

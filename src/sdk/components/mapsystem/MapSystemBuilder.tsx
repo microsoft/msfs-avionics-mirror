@@ -4,7 +4,7 @@ import { FlightPlanner } from '../../flightplan/FlightPlanner';
 import { NumberUnitInterface, UnitFamily, UnitType } from '../../math';
 import { ReadonlyFloat64Array, Vec2Math } from '../../math/VecMath';
 import { VecNSubject } from '../../math/VectorSubject';
-import { LodBoundary, LodBoundaryCache } from '../../navigation';
+import { FacilityWaypointCache, LodBoundary, LodBoundaryCache } from '../../navigation';
 import { Subject } from '../../sub/Subject';
 import { Subscribable } from '../../sub/Subscribable';
 import { MutableSubscribableSet, SubscribableSet } from '../../sub/SubscribableSet';
@@ -22,13 +22,14 @@ import { MapLayer } from '../map/MapLayer';
 import { MapProjection } from '../map/MapProjection';
 import { MapAirspaceModule, MapAirspaceShowTypes } from '../map/modules/MapAirspaceModule';
 import { MapAutopilotPropsModule } from '../map/modules/MapAutopilotPropsModule';
-import { MapOwnAirplaneIconModule } from '../map/modules/MapOwnAirplaneIconModule';
+import { MapOwnAirplaneIconModule, MapOwnAirplaneIconOrientation } from '../map/modules/MapOwnAirplaneIconModule';
 import { MapOwnAirplanePropsModule } from '../map/modules/MapOwnAirplanePropsModule';
 import { MapAutopilotPropsController, MapAutopilotPropsControllerModules, MapAutopilotPropsKey } from './controllers/MapAutopilotPropsController';
-import { MapBinding, MapBindingsController, MapTransformedBinding } from './controllers/MapBindingsController';
+import { MapBindingsController, MapBinding } from './controllers/MapBindingsController';
 import { MapClockUpdateController, MapClockUpdateControllerContext } from './controllers/MapClockUpdateController';
 import { MapFlightPlanController, MapFlightPlanControllerContext, MapFlightPlanControllerModules } from './controllers/MapFlightPlanController';
 import { MapFollowAirplaneController, MapFollowAirplaneControllerContext, MapFollowAirplaneControllerModules } from './controllers/MapFollowAirplaneController';
+import { MapOwnAirplaneIconOrientationController, MapOwnAirplaneIconOrientationControllerModules } from './controllers/MapOwnAirplaneIconOrientationController';
 import { MapOwnAirplanePropsController, MapOwnAirplanePropsControllerModules, MapOwnAirplanePropsKey } from './controllers/MapOwnAirplanePropsController';
 import { MapRotationController, MapRotationControllerContext, MapRotationControllerModules } from './controllers/MapRotationController';
 import { FlightPlanDisplayBuilder } from './FlightPlanDisplayBuilder';
@@ -65,7 +66,7 @@ export type MapSystemCustomBuilder<
   RequiredModules extends ModuleRecord = any,
   RequiredLayers extends LayerRecord = any,
   RequiredContext extends ContextRecord = any
-  > = (mapBuilder: MapSystemBuilder<RequiredModules, RequiredLayers, any, RequiredContext>, ...args: Args) => MapSystemBuilder<any, any, any, any>;
+> = (mapBuilder: MapSystemBuilder<RequiredModules, RequiredLayers, any, RequiredContext>, ...args: Args) => MapSystemBuilder<any, any, any, any>;
 
 /**
  * Retrieves the extra arguments, after the map builder, of a custom builder.
@@ -146,7 +147,7 @@ type ConditionalReturn<
   Context,
   RequiredContext,
   ReturnType
-  > = Modules extends RequiredModules ? Layers extends RequiredLayers ? Context extends RequiredContext ? ReturnType : never : never : never;
+> = Modules extends RequiredModules ? Layers extends RequiredLayers ? Context extends RequiredContext ? ReturnType : never : never : never;
 
 /** Checks if a type is exactly the `any` type. */
 type IsAny<T> = boolean extends (T extends never ? true : false) ? true : false;
@@ -193,7 +194,7 @@ export class MapSystemBuilder<
   Layers extends LayerRecord = any,
   Controllers extends ControllerRecord = any,
   Context extends ContextRecord = any,
-  > {
+> {
 
   protected static readonly RESTRICTED_CONTEXT_KEYS = new Set([
     'bus',
@@ -329,7 +330,7 @@ export class MapSystemBuilder<
    * @returns This builder, after the map layer has been added, or `never` if this builder does not have all the
    * modules required by the layer.
    */
-  public withLayer<L extends MapLayer = any, UseModules = any, UseContext = any>(
+  public withLayer<L extends MapLayer = any, UseModules extends ModuleRecord = any, UseContext extends ContextRecord = any>(
     key: string,
     factory: (context: MapSystemContext<DefaultIfAny<UseModules, Modules>, EmptyRecord, EmptyRecord, DefaultIfAny<UseContext, Context>>) => VNode,
     order?: number
@@ -358,10 +359,10 @@ export class MapSystemBuilder<
    */
   public withController<
     Controller extends MapSystemController<any, any, any, any>,
-    UseModules = any,
+    UseModules extends ModuleRecord = any,
     UseLayers extends LayerRecord = any,
     UseControllers extends ControllerRecord = any,
-    UseContext = any
+    UseContext extends ContextRecord = any
   >(
     key: string,
     factory: (
@@ -394,7 +395,7 @@ export class MapSystemBuilder<
    * @param factory A function which creates the value of the property.
    * @returns This builder, after the context property has been added.
    */
-  public withContext<UseContext = any>(
+  public withContext<UseContext extends ContextRecord = any>(
     key: Exclude<string, keyof MapSystemContext>,
     factory: (context: MapSystemContext<Record<never, never>, Record<never, never>, Record<never, never>, DefaultIfAny<UseContext, Context>>) => any
   ): this {
@@ -415,10 +416,10 @@ export class MapSystemBuilder<
    * @returns This builder, after the callback has been added.
    */
   public withInit<
-    UseModules = any,
+    UseModules extends ModuleRecord = any,
     UseLayers extends LayerRecord = any,
     UseControllers extends ControllerRecord = any,
-    UseContext = any
+    UseContext extends ContextRecord = any
   >(
     key: string,
     callback: (
@@ -457,12 +458,13 @@ export class MapSystemBuilder<
    * subscribables.
    * @param key The key of the controller.
    * @param bindings The bindings to maintain.
+   * @param onDestroy A function to execute when the controller is destroyed.
    * @returns This builder, after it has been configured.
    */
   public withBindings<
-    UseModules = any,
+    UseModules extends ModuleRecord = any,
     UseLayers extends LayerRecord = any,
-    UseContext = any
+    UseContext extends ContextRecord = any
   >(
     key: string,
     bindings: (context: MapSystemContext<
@@ -470,9 +472,10 @@ export class MapSystemBuilder<
       DefaultIfAny<UseLayers, Layers>,
       EmptyRecord,
       DefaultIfAny<UseContext, Context>
-    >) => Iterable<MapBinding<any> | MapTransformedBinding<any, any>>
+    >) => Iterable<MapBinding>,
+    onDestroy?: () => void
   ): this {
-    return this.withController(key, context => new MapBindingsController(context, bindings(context as any)));
+    return this.withController(key, context => new MapBindingsController(context, bindings(context as any), onDestroy));
   }
 
   /**
@@ -608,7 +611,7 @@ export class MapSystemBuilder<
    * @returns This builder, after it has been configured.
    */
   public withOwnAirplaneIcon(
-    iconSize: number,
+    iconSize: number | Subscribable<number>,
     iconFilePath: string | Subscribable<string>,
     iconAnchor: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>,
     cssClass?: string | SubscribableSet<string>,
@@ -622,13 +625,41 @@ export class MapSystemBuilder<
           <MapOwnAirplaneLayer
             model={context.model}
             mapProjection={context.projection}
-            imageFilePath={typeof iconFilePath === 'string' ? Subject.create(iconFilePath) : iconFilePath}
+            imageFilePath={iconFilePath}
             iconSize={iconSize}
-            iconAnchor={'isSubscribable' in iconAnchor ? iconAnchor : Subject.create(iconAnchor)}
+            iconAnchor={iconAnchor}
             class={cssClass}
           />
         );
       }, order);
+  }
+
+  /**
+   * Configures this builder to add a controller which controls and optimizes the orientation of the own airplane icon
+   * in response to a desired orientation and the map rotation type. If the desired orientation matches the map
+   * rotation (e.g. both Heading Up), the icon orientation is set to Map Up; otherwise the orientation is set to the
+   * desired orientation.
+   *
+   * Requires the modules `[MapSystemKeys.OwnAirplaneIcon]: MapOwnAirplaneIconModule` and
+   * `[MapSystemKeys.Rotation]: MapRotationModule`.
+   *
+   * Adds the controller `[MapSystemKeys.OwnAirplaneIconOrientation]: MapOwnAirplaneIconOrientationController`.
+   * @param desiredOrientation The desired orientation of the own airplane icon.
+   * @returns This builder, after it has been configured.
+   */
+  public withOwnAirplaneIconOrientation<UseModules = any>(
+    desiredOrientation: MapOwnAirplaneIconOrientation | Subscribable<MapOwnAirplaneIconOrientation>,
+  ): ConditionalReturn<
+    DefaultIfAny<UseModules, Modules>,
+    MapOwnAirplaneIconOrientationControllerModules,
+    any, any,
+    any, any,
+    this
+  > {
+    return this.withController<MapOwnAirplaneIconOrientationController, MapOwnAirplaneIconOrientationControllerModules>(
+      MapSystemKeys.OwnAirplaneIconOrientation,
+      context => new MapOwnAirplaneIconOrientationController(context, desiredOrientation)
+    ) as any;
   }
 
   /**
@@ -708,9 +739,14 @@ export class MapSystemBuilder<
    * @param order The order value to assign to the text layer. Layers with lower assigned order will be attached to
    * the map before and appear below layers with greater assigned order values. Defaults to the number of layers
    * already added to this builder.
+   * @param cssClass The CSS class(es) to apply to the text layer.
    * @returns This builder, after it has been configured.
    */
-  public withTextLayer(enableCulling: boolean, order?: number): this {
+  public withTextLayer(
+    enableCulling: boolean,
+    order?: number,
+    cssClass?: string | SubscribableSet<string>,
+  ): this {
     return this.withContext(MapSystemKeys.TextManager, () => new MapCullableTextLabelManager(enableCulling))
       .withLayer(MapSystemKeys.TextLayer, (context): VNode => {
         return (
@@ -718,6 +754,7 @@ export class MapSystemBuilder<
             model={context.model}
             mapProjection={context.projection}
             manager={context.textManager}
+            class={cssClass}
           />
         );
       }, order);
@@ -741,13 +778,15 @@ export class MapSystemBuilder<
    * @param order The order value to assign to the Bing layer. Layers with lower assigned order will be attached to the
    * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
    * added to the map builder.
+   * @param cssClass The CSS class(es) to apply to the root of the map bing layer.
    * @returns This builder, after it has been configured.
    */
   public withBing(
     bingId: string,
     delay = 0,
     mode?: EBingMode,
-    order?: number
+    order?: number,
+    cssClass?: string | SubscribableSet<string>,
   ): this {
     return this
       .withModule(MapSystemKeys.TerrainColors, () => new MapTerrainColorsModule())
@@ -766,10 +805,13 @@ export class MapSystemBuilder<
             bingId={bingId}
             reference={terrainColors.reference}
             earthColors={terrainColors.colors}
+            earthColorsElevationRange={terrainColors.colorsElevationRange}
             isoLines={terrainColors.showIsoLines}
             wxrMode={weather.wxrMode}
+            wxrColors={weather.weatherRadarColors}
             mode={mode}
             delay={delay}
+            class={cssClass}
           />
         );
       }, order);
@@ -832,30 +874,37 @@ export class MapSystemBuilder<
    * @param order The order to assign to the waypoint layer. Layers with lower assigned order will be attached to the
    * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
    * added to this builder.
+   * @param cssClass The CSS class(es) to apply to the root of the nearest waypoints layer.
    * @returns This builder, after it has been configured.
    */
   public withNearestWaypoints(
     configure: (builder: WaypointDisplayBuilder) => void,
     enableTextCulling = false,
-    order?: number
+    order?: number,
+    cssClass?: string | SubscribableSet<string>,
   ): this {
     this
       .withTextLayer(enableTextCulling)
       .withModule(MapSystemKeys.NearestWaypoints, () => new MapWaypointDisplayModule())
       .withWaypoints()
       .withContext(MapSystemKeys.IconFactory, () => new MapSystemIconFactory())
-      .withContext(MapSystemKeys.LabelFactory, () => new MapSystemLabelFactory())
-      .withContext<{
-        [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
-        [MapSystemKeys.IconFactory]: MapSystemIconFactory,
-        [MapSystemKeys.LabelFactory]: MapSystemLabelFactory
-      }>('useTargetAsWaypointSearchCenter', context => {
-        context[MapSystemKeys.WaypointRenderer].addRenderRole(MapSystemWaypointRoles.Normal, undefined, MapSystemWaypointRoles.Normal);
+      .withContext(MapSystemKeys.LabelFactory, () => new MapSystemLabelFactory());
 
-        const builder = new WaypointDisplayBuilder(context[MapSystemKeys.IconFactory], context[MapSystemKeys.LabelFactory], context[MapSystemKeys.WaypointRenderer]);
-        configure(builder);
-        return builder.getIsCenterTarget();
-      });
+    let facilityWaypointCache: FacilityWaypointCache | undefined = undefined;
+
+    this.withContext<{
+      [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
+      [MapSystemKeys.IconFactory]: MapSystemIconFactory,
+      [MapSystemKeys.LabelFactory]: MapSystemLabelFactory
+    }>('useTargetAsWaypointSearchCenter', context => {
+      context[MapSystemKeys.WaypointRenderer].addRenderRole(MapSystemWaypointRoles.Normal, undefined, MapSystemWaypointRoles.Normal);
+
+      const builder = new WaypointDisplayBuilder(context[MapSystemKeys.IconFactory], context[MapSystemKeys.LabelFactory], context[MapSystemKeys.WaypointRenderer]);
+      configure(builder);
+
+      facilityWaypointCache = builder.getWaypointCache();
+      return builder.getIsCenterTarget();
+    });
 
     const layerCount = this.layerCount;
 
@@ -879,6 +928,8 @@ export class MapSystemBuilder<
             iconFactory={context[MapSystemKeys.IconFactory]}
             labelFactory={context[MapSystemKeys.LabelFactory]}
             useMapTargetAsSearchCenter={context.useTargetAsWaypointSearchCenter}
+            waypointCache={facilityWaypointCache}
+            class={cssClass}
           />
         );
       }, order)
@@ -917,6 +968,7 @@ export class MapSystemBuilder<
    * @param order The order to assign to the plan layer. Layers with lower assigned order will be attached to the
    * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
    * added to this builder.
+   * @param cssClass The CSS class(es) to apply to the flight plan canvas elements.
    * @returns This builder, after it has been configured.
    */
   public withFlightPlan(
@@ -924,10 +976,11 @@ export class MapSystemBuilder<
     flightPlanner: FlightPlanner,
     planIndex: number,
     enableTextCulling = false,
-    order?: number
+    order?: number,
+    cssClass?: string | SubscribableSet<string>,
   ): this {
     this
-      .withTextLayer(enableTextCulling)
+      .withTextLayer(enableTextCulling, undefined, 'flight-plan-text-layer')
       .withModule(MapSystemKeys.FlightPlan, () => new MapFlightPlanModule())
       .withWaypoints()
       .withContext(MapSystemKeys.FlightPlanner, () => flightPlanner)
@@ -984,6 +1037,7 @@ export class MapSystemBuilder<
             labelFactory={context[MapSystemKeys.LabelFactory]}
             flightPathRenderer={context[MapSystemKeys.FlightPathRenderer]}
             planIndex={planIndex}
+            class={cssClass}
           />
         );
       }, order)
@@ -1074,13 +1128,14 @@ export class MapSystemBuilder<
    * @param order The order to assign to the traffic layer. Layers with lower assigned order will be attached to the
    * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
    * added to this builder.
+   * @param cssClass The CSS class(es) to apply to the root of the traffic component.
    * @returns This builder, after it has been configured.
    */
   public withTraffic<
-    UseModules = any,
+    UseModules extends ModuleRecord = any,
     UseLayers extends LayerRecord = any,
     UserControllers extends ControllerRecord = any,
-    UseContext = any
+    UseContext extends ContextRecord = any
   >(
     tcas: Tcas,
     iconFactory: MapTrafficIntruderIconFactory<
@@ -1097,7 +1152,8 @@ export class MapSystemBuilder<
         DefaultIfAny<UserControllers, Controllers>,
         DefaultIfAny<UseContext, Context>
       >) => TrafficOffScaleOobOptions,
-    order?: number
+    order?: number,
+    cssClass?: string | SubscribableSet<string>
   ): this {
     return this
       .withModule(MapSystemKeys.OwnAirplaneProps, () => new MapOwnAirplanePropsModule())
@@ -1117,6 +1173,7 @@ export class MapSystemBuilder<
             mapProjection={context.projection}
             iconFactory={iconFactory}
             initCanvasStyles={initCanvasStyles}
+            class={cssClass}
             {...options as any}
           />
         );
@@ -1165,10 +1222,10 @@ export class MapSystemBuilder<
    * @returns A compiled map.
    */
   public build<
-    UseModules = any,
+    UseModules extends ModuleRecord = any,
     UseLayers extends LayerRecord = any,
     UseControllers extends ControllerRecord = any,
-    UseContext = any
+    UseContext extends ContextRecord = any
   >(
     cssClass?: string | SubscribableSet<string>
   ): CompiledMapSystem<

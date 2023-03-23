@@ -1,0 +1,42 @@
+.gtc-horizontal .flight-path-angle-display {
+  --flight-path-angle-display-pencil-icon-scale: 1.8;
+  --flight-path-angle-display-pencil-icon-right: 0.5em;
+}
+
+.gtc-vertical .flight-path-angle-display {
+  --flight-path-angle-display-pencil-icon-scale: 1;
+  --flight-path-angle-display-pencil-icon-right: 0.2em;
+}
+
+.flight-path-angle-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* For non GTC. */
+  --flight-path-angle-display-pencil-icon-scale: 1.8;
+  --flight-path-angle-display-pencil-icon-right: 0.5em;
+}
+
+.flight-path-angle-display .phase {
+  display: none;
+}
+
+.flight-path-angle-display.show-phase .phase {
+  display: block;
+}
+
+.flight-path-angle-display.show-phase .fpa-number-unit {
+  display: none;
+}
+
+.flight-path-angle-display .pencil-icon {
+  position: absolute;
+  display: none;
+  right: var(--flight-path-angle-display-pencil-icon-right);
+  transform: scale(var(--flight-path-angle-display-pencil-icon-scale));
+}
+
+.flight-path-angle-display.edited .pencil-icon {
+  display: block;
+}

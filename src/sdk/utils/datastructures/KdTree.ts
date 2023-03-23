@@ -395,6 +395,7 @@ export class KdTree<T> {
       return false;
     }
 
+    this.resetIndexArrays();
     this.rebuild();
 
     return true;
@@ -412,6 +413,7 @@ export class KdTree<T> {
     }
 
     if (removed) {
+      this.resetIndexArrays();
       this.rebuild();
     }
 
@@ -439,17 +441,22 @@ export class KdTree<T> {
     this.elements.length--;
     this.keys.length--;
 
+    return true;
+  }
+
+  /**
+   * Resets this tree's index arrays such that each array contains the indexes 0 to N-1 in order, where N is the
+   * number of elements in the tree.
+   */
+  private resetIndexArrays(): void {
     for (let i = 0; i < this.dimensionCount; i++) {
       const array = this.indexArrays[i];
-      const indexInArray = array.indexOf(index);
+      array.length = this.elements.length;
 
-      if (indexInArray >= 0) {
-        array[indexInArray] = array[array.length - 1];
-        array.length--;
+      for (let j = 0; j < array.length; j++) {
+        array[j] = j;
       }
     }
-
-    return true;
   }
 
   /**
@@ -461,8 +468,13 @@ export class KdTree<T> {
    * @param toInsert An iterable of the elements to insert.
    */
   public removeAndInsert(toRemove: Iterable<T>, toInsert: Iterable<T>): void {
+    let removed = false;
     for (const element of toRemove) {
-      this.removeElementFromArrays(element);
+      removed = this.removeElementFromArrays(element) || removed;
+    }
+
+    if (removed) {
+      this.resetIndexArrays();
     }
 
     this.insertAll(toInsert);
@@ -472,12 +484,12 @@ export class KdTree<T> {
    * Rebuilds and balances this tree.
    */
   public rebuild(): void {
+    // clear the tree structure
+    this.nodes.length = 0;
+
     if (this.size === 0) {
       return;
     }
-
-    // clear the tree structure
-    this.nodes.length = 0;
 
     // sort index arrays
     for (let i = 0; i < this.dimensionCount; i++) {

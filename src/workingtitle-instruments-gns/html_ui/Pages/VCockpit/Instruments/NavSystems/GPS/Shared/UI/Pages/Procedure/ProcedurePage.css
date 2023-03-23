@@ -1,0 +1,161 @@
+wt-gns530 .proc-page {
+  background-color: var(--gnsblue);
+  padding: 0 10px 8px 10px;
+  height: 218px;
+}
+
+wt-gns430 .proc-page {
+  background-color: var(--gnsblue);
+  padding: 0 10px 8px 10px;
+  height: 174px;
+}
+
+.proc-flightPlanning-storage-id {
+  color: var(--gnsgreen);
+  border: 0.8px solid white;
+  line-height: 20px;
+  width: 22px;
+  height: 20px;
+  font-size: 16px;
+  background-color: black;
+  display: inline-block;
+  text-align: center;
+  margin-left: 16px;
+}
+
+.proc-table-header {
+  color: white;
+  font-size: 10px;
+  padding: 4px 0 2px 0;
+  padding-bottom: 6px;
+  text-align: center;
+}
+
+.proc-table {
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid var(--gnscyan);
+  ;
+  padding-top: 2px;
+}
+
+.proc-table>.ui-control-list>.ui-control-list-content>.page-menu-entry {
+  margin-top: 0px;
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+.proc-table>h2 {
+  color: var(--gnscyan);
+  ;
+  padding: 2px 0 2px 0;
+  font-size: 10px;
+  text-align: center;
+}
+
+.proc-loaded-procedures {
+  grid-template-columns: 30px 40px 175px;
+  grid-auto-rows: 18px;
+  display: grid;
+  grid-gap: 1px;
+  font-size: 14px;
+  height: 62px;
+  padding-left: 2px;
+}
+
+.proc-loaded-procedures-header {
+  color: var(--gnscyan);
+  ;
+  padding-top: 5px;
+  width: 100%;
+  text-align: center;
+}
+
+.proc-loaded-procedures>div {
+  display: flex;
+  align-items: flex-end;
+}
+
+.proc-loaded-procedures-labels {
+  color: var(--gnscyan);
+  ;
+  font-size: 10px;
+  line-height: 15px;
+}
+
+wt-gns530 .proc-table-full-height {
+  height: 120px;
+}
+
+wt-gns430 .proc-table-full-height {
+  height: 149px;
+}
+
+.proc-flightPlanning-options-box {
+  border: 1px solid var(--gnscyan);
+  ;
+}
+
+.proc-flightPlanning-table-header {
+  color: white;
+  padding: 4px 0 2px 0;
+}
+
+.proc-table-labels,
+.proc-table-labels-two {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-column-gap: 3.6em;
+  width: 94%;
+  left: 3%;
+  padding: 0
+}
+
+.proc-table-labels>div {
+  text-align: center;
+  /*transform: translate(-50%);*/
+}
+
+.proc-table-labels>div>span {
+  width: 5em;
+  /*transform: translate(-50%);*/
+}
+
+.proc-table-labels-two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.proc-table-labels-two>div {
+  text-align: center;
+}
+
+.proc-entry {
+  color: var(--gnsgreen);
+  display: inline-block;
+  line-height: 20px;
+  font-size: 16px;
+  background-color: black;
+  margin-left: 0px;
+}
+
+.proc-menuItem-name {
+  margin-left: 7px;
+  margin-top: 7px;
+  display: inline-block;
+  width: 300px;
+}
+
+.proc-menuItem-unselectable {
+  margin-left: 7px;
+  color: rgb(0, 96, 0);
+  margin-top: 7px;
+  display: inline-block;
+}
+
+
+.proc-planning-page-header>h2 {
+  padding-left: 4%;
+  font-size: 10px;
+  text-align: center;
+}

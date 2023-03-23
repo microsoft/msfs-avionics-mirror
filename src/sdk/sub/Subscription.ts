@@ -27,17 +27,19 @@ export interface Subscription {
   /**
    * Pauses this subscription. Once paused, this subscription will not receive notifications from its source until it
    * is resumed.
+   * @returns This subscription, after it has been paused.
    * @throws Error if this subscription is not alive.
    */
-  pause(): void;
+  pause(): this;
 
   /**
    * Resumes this subscription. Once resumed, this subscription will receive notifications from its source.
    * @param initialNotify Whether to immediately send a notification to this subscription's handler when it is resumed
    * if this subscription supports initial notifications. Defaults to `false`.
+   * @returns This subscription, after it has been resumed.
    * @throws Error if this subscription is not alive.
    */
-  resume(initialNotify?: boolean): void;
+  resume(initialNotify?: boolean): this;
 
   /**
    * Destroys this subscription. Once destroyed, this subscription will no longer receive notifications from its

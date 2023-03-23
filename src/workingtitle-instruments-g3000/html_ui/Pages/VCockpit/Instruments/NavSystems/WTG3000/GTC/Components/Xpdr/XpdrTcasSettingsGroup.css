@@ -1,0 +1,39 @@
+.xpdr-tcas-group {
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.gtc-horizontal .xpdr-tcas-group {
+  --xpdr-tcas-group-title-margin: 5px 0px;
+  --xpdr-tcas-group-title-font-size: 0.8em;
+
+  --xpdr-tcas-group-button-height: 115px;
+  --xpdr-tcas-group-button-gap: 10px;
+}
+
+.gtc-vertical .xpdr-tcas-group {
+  --xpdr-tcas-group-title-margin: 5px 0px;
+  --xpdr-tcas-group-title-font-size: 0.8em;
+
+  --xpdr-tcas-group-button-height: 60px;
+  --xpdr-tcas-group-button-gap: 5px;
+}
+
+.xpdr-tcas-group-title {
+  margin: var(--xpdr-tcas-group-title-margin);
+  font-size: var(--xpdr-tcas-group-title-font-size);
+  text-align: center;
+}
+
+.xpdr-tcas-group .touch-button {
+  height: var(--xpdr-tcas-group-button-height);
+}
+
+.xpdr-tcas-group>.touch-button+.touchbutton {
+  margin-top: var(--xpdr-tcas-group-button-gap);
+}

@@ -3,6 +3,7 @@ export * from './BinaryHeap';
 export * from './BinomialHeap';
 export * from './SortedArray';
 export * from './LerpLookupTable';
+export * from './LerpVectorLookupTable';
 export * from './Table3D';
 export * from './KdTree';
 export * from './GeoKdTree';

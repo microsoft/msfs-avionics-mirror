@@ -1,7 +1,7 @@
 import {
   MapDataIntegrityModule, MapOwnAirplaneIconModule, MapSystemContext, MapSystemController, MapSystemKeys, MutableSubscribable, ReadonlyFloat64Array,
   ResourceConsumer, ResourceModerator, Subscribable, Subscription
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapResourcePriority } from '../MapResourcePriority';

@@ -1,0 +1,23 @@
+.arc-cdi-wt430 {
+  width: 261px;
+  height: 38px;
+}
+
+.arc-cdi-xtk-label-left {
+  position: absolute;
+  color: var(--gnsgreen);
+  background-color: black;
+  width: 30px;
+  top: 8px;
+  left: 26px;
+}
+
+.arc-cdi-xtk-label-right {
+  position: absolute;
+  color: var(--gnsgreen);
+  background-color: black;
+  width: 30px;
+  top: 8px;
+  left: 86px;
+  text-align: right;
+}

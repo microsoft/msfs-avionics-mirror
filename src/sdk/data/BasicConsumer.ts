@@ -119,7 +119,7 @@ export class BasicConsumer<T> implements Consumer<T> {
 
   /** @inheritdoc */
   public withPrecision(precision: number): Consumer<T> {
-    return new BasicConsumer<T>(this.subscribe, { lastValue: 0 }, this.getWithPrecisionHandler(precision));
+    return new BasicConsumer<T>(this.subscribe, { lastValue: 0, hasLastValue: false }, this.getWithPrecisionHandler(precision));
   }
 
   /**
@@ -133,7 +133,8 @@ export class BasicConsumer<T> implements Consumer<T> {
       const multiplier = Math.pow(10, precision);
 
       const currentValueAtPrecision = Math.round(dataValue * multiplier) / multiplier;
-      if (currentValueAtPrecision !== state.lastValue) {
+      if (!state.hasLastValue || currentValueAtPrecision !== state.lastValue) {
+        state.hasLastValue = true;
         state.lastValue = currentValueAtPrecision;
 
         this.with((currentValueAtPrecision as unknown) as T, next);
@@ -143,7 +144,7 @@ export class BasicConsumer<T> implements Consumer<T> {
 
   /** @inheritdoc */
   public whenChangedBy(amount: number): Consumer<T> {
-    return new BasicConsumer<T>(this.subscribe, { lastValue: 0 }, this.getWhenChangedByHandler(amount));
+    return new BasicConsumer<T>(this.subscribe, { lastValue: 0, hasLastValue: false }, this.getWhenChangedByHandler(amount));
   }
 
   /**
@@ -156,7 +157,8 @@ export class BasicConsumer<T> implements Consumer<T> {
       const dataValue = (data as unknown) as number;
       const diff = Math.abs(dataValue - state.lastValue);
 
-      if (diff >= amount) {
+      if (!state.hasLastValue || diff >= amount) {
+        state.hasLastValue = true;
         state.lastValue = dataValue;
         this.with(data, next);
       }
@@ -165,7 +167,7 @@ export class BasicConsumer<T> implements Consumer<T> {
 
   /** @inheritdoc */
   public whenChanged(): Consumer<T> {
-    return new BasicConsumer<T>(this.subscribe, { lastValue: '' }, this.getWhenChangedHandler());
+    return new BasicConsumer<T>(this.subscribe, { lastValue: '', hasLastValue: false }, this.getWhenChangedHandler());
   }
 
   /**
@@ -174,7 +176,8 @@ export class BasicConsumer<T> implements Consumer<T> {
    */
   private getWhenChangedHandler(): (data: any, state: any, next: Handler<T>) => void {
     return (data, state, next): void => {
-      if (state.lastValue !== data) {
+      if (!state.hasLastValue || state.lastValue !== data) {
+        state.hasLastValue = true;
         state.lastValue = data;
         this.with(data, next);
       }
@@ -248,13 +251,15 @@ class ConsumerSubscription implements Subscription {
   }
 
   /** @inheritdoc */
-  public pause(): void {
+  public pause(): this {
     this.sub.pause();
+    return this;
   }
 
   /** @inheritdoc */
-  public resume(initialNotify = false): void {
+  public resume(initialNotify = false): this {
     this.sub.resume(initialNotify);
+    return this;
   }
 
   /** @inheritdoc */

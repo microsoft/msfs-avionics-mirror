@@ -1,13 +1,14 @@
 import {
-  BitFlags, CombinedSubject, ComponentProps, DigitScroller, DisplayComponent, EventBus, FSComponent, MappedSubject, MappedSubscribable, MathUtils,
-  MutableSubscribable, NodeReference, NumberFormatter, NumberUnitSubject, ObjectSubject, SetSubject, SubEvent, Subject, Subscribable, SubscribableMapFunctions,
-  SubscribableSet, SubscribableUtils, Subscription, UnitType, UserSettingManager, VNode
-} from 'msfssdk';
+  BitFlags, ComponentProps, DigitScroller, DisplayComponent, EventBus, FSComponent, MappedSubject, MappedSubscribable, MathUtils,
+  MutableSubscribable, NodeReference, NumberFormatter, NumberUnitSubject, ObjectSubject, SetSubject, SubEvent, Subject, Subscribable,
+  SubscribableMapFunctions, SubscribableSet, SubscribableUtils, Subscription, UnitType, UserSettingManager, VNode
+} from '@microsoft/msfs-sdk';
 
-import { VSpeedUserSettingTypes } from '../../../settings/VSpeedUserSettings';
+import { VSpeedUserSettingTypes, VSpeedUserSettingUtils } from '../../../settings/VSpeedUserSettings';
 import { NumberUnitDisplay } from '../../common/NumberUnitDisplay';
 import { AirspeedIndicatorColorRange, AirspeedIndicatorColorRangeColor, AirspeedIndicatorColorRangeWidth } from './AirspeedIndicatorColorRange';
 import { AirspeedAlert, AirspeedIndicatorDataProvider } from './AirspeedIndicatorDataProvider';
+import { VSpeedAnnunciation, VSpeedAnnunciationDataProvider } from './VSpeedAnnunciationDataProvider';
 
 /**
  * Scale options for an airspeed tape.
@@ -64,6 +65,12 @@ export type VSpeedBugDefinition = {
 
   /** The bug's label text. */
   readonly label: string;
+
+  /** Whether to show an off-scale label for the bug when the airspeed is off-scale. */
+  readonly showOffscale: boolean;
+
+  /** Whether to show a legend for the bug at the bottom of the airspeed tape. */
+  readonly showLegend: boolean;
 }
 
 /**
@@ -86,6 +93,12 @@ export interface AirspeedIndicatorProps extends ComponentProps {
 
   /** A data provider for the indicator. */
   dataProvider: AirspeedIndicatorDataProvider;
+
+  /** A provider of V-speed annunciation data. If not defined, the indicator will not display V-speed annunciations. */
+  vSpeedAnnunciationDataProvider?: VSpeedAnnunciationDataProvider;
+
+  /** Whether the indicator should be decluttered. */
+  declutter: Subscribable<boolean>;
 
   /** Scale options for the airspeed tape. */
   tapeScaleOptions: Readonly<AirspeedTapeScaleOptions>;
@@ -135,8 +148,12 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
     }
   });
 
+  private readonly showTopDisplay = this.props.declutter.map(SubscribableMapFunctions.not());
+
   private readonly isReferenceDisplayVisible = Subject.create(false);
-  private readonly isBottomSpeedDisplayVisible = Subject.create(false);
+  private readonly isBottomDisplayVisible = Subject.create(false);
+
+  private isDataFailedSub?: Subscription;
 
   /** @inheritdoc */
   constructor(props: AirspeedIndicatorProps) {
@@ -157,15 +174,23 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
       }
     }, true);
 
-    this.isBottomSpeedDisplayVisible.sub(isVisible => {
+    this.isBottomDisplayVisible.sub(isVisible => {
       if (isVisible) {
-        this.rootCssClass.add('airspeed-bottom-speed-display-visible');
+        this.rootCssClass.add('airspeed-bottom-display-visible');
       } else {
-        this.rootCssClass.delete('airspeed-bottom-speed-display-visible');
+        this.rootCssClass.delete('airspeed-bottom-display-visible');
       }
     }, true);
 
     this.activeAlert.sub(this.updateAlertClass.bind(this), true);
+
+    this.isDataFailedSub = this.props.dataProvider.isDataFailed.sub(isDataFailed => {
+      if (isDataFailed) {
+        this.rootCssClass.add('data-failed');
+      } else {
+        this.rootCssClass.delete('data-failed');
+      }
+    }, true);
   }
 
   /**
@@ -196,8 +221,75 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
 
   /** @inheritdoc */
   public render(): VNode {
+    let isTasDisplayVisible: Subject<boolean> | undefined;
+    let isMachDisplayVisible: Subject<boolean> | undefined;
+    let isTakeoffVSpeedAnnuncVisible: Subject<boolean> | undefined;
+    let isLandingVSpeedAnnuncVisible: Subject<boolean> | undefined;
+
+    let showTas: Subscribable<boolean> | undefined;
+    let showMach: Subscribable<boolean> | undefined;
+    let showTakeoffVSpeedAnnunc: Subscribable<boolean> | undefined;
+    let showLandingVSpeedAnnunc: Subscribable<boolean> | undefined;
+
+    if (this.props.bottomDisplayOptions.mode === AirspeedIndicatorBottomDisplayMode.TrueAirspeed) {
+      // Bottom displays TAS.
+
+      isTasDisplayVisible = Subject.create<boolean>(false);
+
+      if (this.props.vSpeedAnnunciationDataProvider) {
+        isTakeoffVSpeedAnnuncVisible = Subject.create<boolean>(false);
+        isLandingVSpeedAnnuncVisible = Subject.create<boolean>(false);
+
+        // TAS display is hidden whenever any V-speed annunciation is active.
+        showTas = MappedSubject.create(
+          ([isTakeoffVSpeedVisible, isLandingVSpeedVisible]) => !(isTakeoffVSpeedVisible || isLandingVSpeedVisible),
+          isTakeoffVSpeedAnnuncVisible,
+          isLandingVSpeedAnnuncVisible
+        );
+
+        showTakeoffVSpeedAnnunc = Subject.create(true);
+        showLandingVSpeedAnnunc = Subject.create(true);
+
+        MappedSubject.create(
+          ([isTasVisible, isTakeoffVSpeedVisible, isLandingVSpeedVisible]) => isTasVisible || isTakeoffVSpeedVisible || isLandingVSpeedVisible,
+          isTasDisplayVisible,
+          isTakeoffVSpeedAnnuncVisible,
+          isLandingVSpeedAnnuncVisible
+        ).pipe(this.isBottomDisplayVisible);
+      } else {
+        showTas = Subject.create(true);
+        isTasDisplayVisible.pipe(this.isBottomDisplayVisible);
+      }
+    } else {
+      // Bottom displays Mach.
+
+      isMachDisplayVisible = Subject.create<boolean>(false);
+
+      if (this.props.vSpeedAnnunciationDataProvider) {
+        isTakeoffVSpeedAnnuncVisible = Subject.create<boolean>(false);
+        isLandingVSpeedAnnuncVisible = Subject.create<boolean>(false);
+
+        // Mach display is hidden when the takeoff V-speed annunciation is active.
+        showMach = isTakeoffVSpeedAnnuncVisible.map(SubscribableMapFunctions.not());
+
+        showTakeoffVSpeedAnnunc = Subject.create(true);
+        // Landing V-speed annunciation is hidden when the mach display is visible.
+        showLandingVSpeedAnnunc = isMachDisplayVisible.map(SubscribableMapFunctions.not());
+
+        MappedSubject.create(
+          ([isTasVisible, isTakeoffVSpeedVisible, isLandingVSpeedVisible]) => isTasVisible || isTakeoffVSpeedVisible || isLandingVSpeedVisible,
+          isMachDisplayVisible,
+          isTakeoffVSpeedAnnuncVisible,
+          isLandingVSpeedAnnuncVisible
+        ).pipe(this.isBottomDisplayVisible);
+      } else {
+        showMach = Subject.create(true);
+        isMachDisplayVisible.pipe(this.isBottomDisplayVisible);
+      }
+    }
+
     return (
-      <div class={this.rootCssClass}>
+      <div class={this.rootCssClass} data-checklist="checklist-airspeed">
         <AirspeedTape
           ref={this.tapeRef}
           dataProvider={this.props.dataProvider}
@@ -206,51 +298,79 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
           {...this.props.trendVectorOptions}
           {...this.props.vSpeedBugOptions}
         />
-        <div class='airspeed-top-container'>
+        <div class='airspeed-top-container' data-checklist="checklist-airspeed-top">
           <AirspeedReferenceDisplay
             ref={this.referenceRef}
+            show={this.showTopDisplay}
             referenceIas={this.props.dataProvider.referenceIas}
             referenceMach={this.props.dataProvider.referenceMach}
+            referenceIsManual={this.props.dataProvider.referenceIsManual}
             isAirspeedHoldActive={this.props.dataProvider.isAirspeedHoldActive}
             isVisible={this.isReferenceDisplayVisible}
           />
           <AirspeedProtectionAnnunciation
             ref={this.alertRef}
+            show={this.showTopDisplay}
             isOverspeedProtectionActive={this.props.dataProvider.isOverspeedProtectionActive}
             isUnderspeedProtectionActive={this.props.dataProvider.isUnderspeedProtectionActive}
           />
         </div>
-        <div class='airspeed-bottom-container'>
-          {
-            this.props.bottomDisplayOptions.mode === AirspeedIndicatorBottomDisplayMode.TrueAirspeed
-              ? (
-                <AirspeedTasDisplay
-                  tasKnots={this.props.dataProvider.tasKnots}
-                  isVisible={this.isBottomSpeedDisplayVisible}
-                />
-              )
-              : (
-                <AirspeedMachDisplay
-                  mach={this.props.dataProvider.mach}
-                  threshold={this.props.bottomDisplayOptions.machThreshold ?? Subject.create(0)}
-                  isVisible={this.isBottomSpeedDisplayVisible}
-                />
-              )
-          }
+        <div class='airspeed-bottom-container' data-checklist="checklist-airspeed-bottom">
+          {this.props.bottomDisplayOptions.mode === AirspeedIndicatorBottomDisplayMode.TrueAirspeed && (
+            <AirspeedTasDisplay
+              show={showTas as Subscribable<boolean>}
+              tasKnots={this.props.dataProvider.tasKnots}
+              isDataFailed={this.props.dataProvider.isDataFailed}
+              isVisible={isTasDisplayVisible as Subject<boolean>}
+            />
+          )}
+          {this.props.vSpeedAnnunciationDataProvider !== undefined && (
+            <AirspeedVSpeedAnnunciation
+              annunciationType={VSpeedAnnunciation.Landing}
+              show={showLandingVSpeedAnnunc as Subscribable<boolean>}
+              activeAnnunciation={this.props.vSpeedAnnunciationDataProvider.annunciation}
+              isDataFailed={this.props.dataProvider.isDataFailed}
+              isVisible={isLandingVSpeedAnnuncVisible as Subject<boolean>}
+            />
+          )}
+          {this.props.bottomDisplayOptions.mode === AirspeedIndicatorBottomDisplayMode.Mach && (
+            <AirspeedMachDisplay
+              show={showMach as Subscribable<boolean>}
+              mach={this.props.dataProvider.mach}
+              threshold={this.props.bottomDisplayOptions.machThreshold ?? Subject.create(0)}
+              isDataFailed={this.props.dataProvider.isDataFailed}
+              isVisible={isMachDisplayVisible as Subject<boolean>}
+            />
+          )}
+          {this.props.vSpeedAnnunciationDataProvider !== undefined && (
+            <AirspeedVSpeedAnnunciation
+              annunciationType={VSpeedAnnunciation.Takeoff}
+              show={showTakeoffVSpeedAnnunc as Subscribable<boolean>}
+              activeAnnunciation={this.props.vSpeedAnnunciationDataProvider.annunciation}
+              isDataFailed={this.props.dataProvider.isDataFailed}
+              isVisible={isTakeoffVSpeedAnnuncVisible as Subject<boolean>}
+            />
+          )}
         </div>
+
+        <div class='failed-box' />
       </div>
     );
   }
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.referenceRef.getOrDefault()?.destroy();
     this.alertRef.getOrDefault()?.destroy();
     this.tapeRef.getOrDefault()?.destroy();
 
     this.activeAlert.destroy();
+
+    this.showTopDisplay.destroy();
+
+    this.isDataFailedSub?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -301,9 +421,10 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
   private readonly majorTickContainerRef = FSComponent.createRef<HTMLElement>();
   private readonly labelContainerRef = FSComponent.createRef<HTMLElement>();
   private readonly colorRangeRefs: NodeReference<AirspeedColorRange>[] = [];
-  private readonly manualRefSpeedBugRef = FSComponent.createRef<ManualReferenceSpeedBug>();
+  private readonly manualRefSpeedBugRef = FSComponent.createRef<ReferenceSpeedBug>();
   private readonly vSpeedBugRefs: NodeReference<VSpeedBug>[] = [];
   private readonly vSpeedOffScaleLabelRefs: NodeReference<VSpeedOffScaleLabel>[] = [];
+  private readonly vSpeedLegendRefs: NodeReference<VSpeedLegend>[] = [];
 
   private readonly rootCssClass = SetSubject.create(['airspeed-tape-container']);
 
@@ -350,6 +471,14 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
     overflow: 'hidden'
   });
 
+  private readonly vSpeedLegendContainerStyle = ObjectSubject.create({
+    display: 'none',
+    'flex-flow': 'column-reverse nowrap',
+    position: 'absolute',
+    bottom: '0%',
+    overflow: 'hidden'
+  });
+
   private readonly currentLength = Subject.create(0);
   private currentMinimum = 0;
   private readonly currentTranslate = Subject.create(0);
@@ -360,7 +489,7 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
   private readonly majorTickInterval = SubscribableUtils.toSubscribable(this.props.majorTickInterval, true);
   private readonly minorTickFactor = SubscribableUtils.toSubscribable(this.props.minorTickFactor, true);
 
-  private readonly options = CombinedSubject.create(
+  private readonly options = MappedSubject.create(
     this.minimum,
     this.maximum,
     this.window,
@@ -393,12 +522,14 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
   );
 
   private readonly iasTapeValue = MappedSubject.create(
-    ([iasKnots, minimum, maximum]): number => {
-      return MathUtils.clamp(iasKnots, minimum, maximum);
+    ([iasKnots, minimum, maximum, window, isDataFailed]): number => {
+      return isDataFailed ? minimum + window / 2 : MathUtils.clamp(iasKnots, minimum, maximum);
     },
     this.props.dataProvider.iasKnots,
     this.minimum,
-    this.maximum
+    this.maximum,
+    this.window,
+    this.props.dataProvider.isDataFailed
   );
 
   private readonly iasBoxValue = MappedSubject.create(
@@ -412,17 +543,18 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
   private readonly trendThreshold = SubscribableUtils.toSubscribable(this.props.trendThreshold, true);
 
   private readonly showTrendVector = MappedSubject.create(
-    ([iasKnot, minimum, maximum, threshold, iasTrend]): boolean => {
-      return iasKnot >= minimum && iasKnot < maximum && Math.abs(iasTrend) >= threshold;
+    ([iasKnot, minimum, maximum, threshold, iasTrend, isDataFailed]): boolean => {
+      return !isDataFailed && iasKnot >= minimum && iasKnot < maximum && Math.abs(iasTrend) >= threshold;
     },
     this.props.dataProvider.iasKnots,
     this.minimum,
     this.maximum,
     this.trendThreshold,
-    this.props.dataProvider.iasTrend
+    this.props.dataProvider.iasTrend,
+    this.props.dataProvider.isDataFailed
   );
 
-  private readonly iasTrendParams = CombinedSubject.create(
+  private readonly iasTrendParams = MappedSubject.create(
     this.props.dataProvider.iasTrend,
     this.window
   );
@@ -434,6 +566,10 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
   private readonly updateTapeWindowEvent = new SubEvent<this, void>();
 
   private readonly colorRangeSubscribables: MappedSubscribable<number>[] = [];
+
+  private readonly vSpeedBugSubscribables: MappedSubscribable<any>[] = [];
+
+  private readonly showAirspeedData = this.props.dataProvider.isDataFailed.map(SubscribableMapFunctions.not());
 
   /** @inheritdoc */
   constructor(props: AirspeedTapeProps) {
@@ -519,6 +655,8 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
     this.labelTexts.length = 0;
 
     this.minorTickContainerRef.instance.innerHTML = '';
+    this.majorTickContainerRef.instance.innerHTML = '';
+    this.labelContainerRef.instance.innerHTML = '';
 
     const majorTickCount = Math.ceil(window / majorTickInterval) * 2 + 1;
     const desiredRange = (majorTickCount - 1) * majorTickInterval;
@@ -627,8 +765,10 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
 
   /** @inheritdoc */
   public render(): VNode {
+    const { bugs: vSpeedBugs, offscale: vSpeedOffscaleLabels, legends: vSpeedLegends } = this.renderVSpeedBugs();
+
     return (
-      <div class={this.rootCssClass}>
+      <div class={this.rootCssClass} data-checklist="checklist-airspeed-tape">
 
         <div class='airspeed-tape-border-top'></div>
         <div class='airspeed-tape-border-bottom'></div>
@@ -660,26 +800,36 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
             <div class='airspeed-tape-overflow' style={this.tapeOverflowTopStyle}></div>
             <div class='airspeed-tape-overflow' style='position: absolute; left: 0; top: 100%; width: 100%; height: 50%;'></div>
           </div>
+
+          <div class='airspeed-vspeed-legend-container' style={this.vSpeedLegendContainerStyle}>
+            {vSpeedLegends}
+          </div>
         </div>
 
         <div class='airspeed-trend' style={this.trendVectorStyle}>
         </div>
 
         <div class='airspeed-vspeed-offscale-container' style={this.vSpeedOffScaleContainerStyle}>
-          {this.renderOffScaleVSpeedLabels()}
+          {vSpeedOffscaleLabels}
         </div>
 
         <div class='airspeed-vspeed-bug-container' style='position: absolute; top: 0; height: 100%; overflow: hidden;'>
-          {this.renderVSpeedBugs()}
+          {vSpeedBugs}
         </div>
 
-        <AirspeedIasDisplayBox ref={this.iasBoxRef} ias={this.iasBoxValue} />
+        <AirspeedIasDisplayBox
+          ref={this.iasBoxRef}
+          show={this.showAirspeedData}
+          ias={this.iasBoxValue}
+        />
 
         <div class='airspeed-refspeed-bug-container' style='position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden;'>
-          <ManualReferenceSpeedBug
+          <ReferenceSpeedBug
             ref={this.manualRefSpeedBugRef}
+            show={this.showAirspeedData}
             referenceIas={this.props.dataProvider.referenceIas}
             referenceMach={this.props.dataProvider.referenceMach}
+            referenceIsManual={this.props.dataProvider.referenceIsManual}
             machToKias={this.props.dataProvider.machToKias}
             isAirspeedHoldActive={this.props.dataProvider.isAirspeedHoldActive}
             updateEvent={this.updateTapeWindowEvent}
@@ -717,6 +867,7 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
           ref={ref}
           width={definition.width}
           color={definition.color}
+          show={this.showAirspeedData}
           minimum={minimum}
           maximum={maximum}
           updateEvent={this.updateTapeEvent}
@@ -729,70 +880,126 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
   }
 
   /**
-   * Renders this tape's reference V-speed bugs.
-   * @returns This tape's reference V-speed bugs, as an array of VNodes.
+   * Renders this tape's reference V-speed bugs and off-scale labels.
+   * @returns This tape's reference V-speed bugs and off-scale labels, as arrays of VNodes.
    */
-  private renderVSpeedBugs(): VNode[] {
+  private renderVSpeedBugs(): {
+    /** The reference V-speed bugs. */
+    bugs: VNode[],
+    /** The off-scale reference V-speed labels. */
+    offscale: VNode[],
+    /** The reference V-speed legends. */
+    legends: VNode[]
+  } {
     const getPosition = this.calculateWindowTapePosition.bind(this);
     const bugs: VNode[] = [];
+    const offscale: VNode[] = [];
+    const legends: VNode[] = [];
+    const legendShow: Subscribable<boolean>[] = [];
 
     for (const def of this.props.vSpeedBugDefinitions) {
-      const valueSetting = this.props.vSpeedSettingManager.tryGetSetting(`vSpeedValue_${def.name}`);
       const showSetting = this.props.vSpeedSettingManager.tryGetSetting(`vSpeedShow_${def.name}`);
 
-      if (valueSetting !== undefined && showSetting !== undefined) {
-        const ref = FSComponent.createRef<VSpeedBug>();
-        this.vSpeedBugRefs.push(ref);
+      if (showSetting !== undefined) {
+        const bugRef = FSComponent.createRef<VSpeedBug>();
+        this.vSpeedBugRefs.push(bugRef);
+
+        const activeValue = VSpeedUserSettingUtils.activeValue(def.name, this.props.vSpeedSettingManager, true);
+        const isFmsValueActive = VSpeedUserSettingUtils.isFmsValueActive(def.name, this.props.vSpeedSettingManager);
+        const isFmsConfigMiscompare = this.props.vSpeedSettingManager.tryGetSetting(`vSpeedFmsConfigMiscompare_${def.name}`) ?? Subject.create(false);
+
+        const showBug = MappedSubject.create(
+          ([showAirspeedData, isIasOffScale, show, value, isConfigMiscompare]): boolean => showAirspeedData && !isIasOffScale && show && value > 0 && !isConfigMiscompare,
+          this.showAirspeedData,
+          this.isIasOffScale,
+          showSetting,
+          activeValue,
+          isFmsConfigMiscompare
+        );
+
+        this.vSpeedBugSubscribables.push(activeValue);
+        this.vSpeedBugSubscribables.push(isFmsValueActive);
+        this.vSpeedBugSubscribables.push(showBug);
 
         bugs.push(
           <VSpeedBug
-            ref={ref}
-            value={valueSetting}
+            ref={bugRef}
+            value={activeValue}
+            isFmsValueActive={isFmsValueActive}
             label={def.label}
-            isVisible={MappedSubject.create(([isIasOffScale, show]): boolean => !isIasOffScale && show, this.isIasOffScale, showSetting)}
+            show={showBug}
             updateEvent={this.updateTapeWindowEvent}
             getPosition={getPosition}
           />
         );
+
+        if (def.showOffscale) {
+          const labelRef = FSComponent.createRef<VSpeedOffScaleLabel>();
+          this.vSpeedOffScaleLabelRefs.push(labelRef);
+
+          const showLabel = MappedSubject.create(
+            ([showAirspeedData, show, value]): boolean => showAirspeedData && show && value > 0,
+            this.showAirspeedData,
+            showSetting,
+            activeValue
+          );
+          this.vSpeedBugSubscribables.push(showLabel);
+
+          offscale.push(
+            <VSpeedOffScaleLabel
+              ref={labelRef}
+              value={activeValue}
+              isFmsValueActive={isFmsValueActive}
+              isFmsConfigMiscompare={isFmsConfigMiscompare}
+              label={def.label}
+              show={showLabel}
+            />
+          );
+        }
+
+        if (def.showLegend) {
+          const legendRef = FSComponent.createRef<VSpeedLegend>();
+          this.vSpeedLegendRefs.push(legendRef);
+
+          legendShow.push(showBug);
+
+          legends.push(
+            <VSpeedLegend
+              ref={legendRef}
+              value={activeValue}
+              isFmsValueActive={isFmsValueActive}
+              isFmsConfigMiscompare={isFmsConfigMiscompare}
+              label={def.label}
+              show={showBug}
+            />
+          );
+        }
       }
     }
 
-    return bugs;
-  }
+    if (legendShow.length > 0) {
+      // Initialize logic to show/hide the V-speed legend container. The container should be visible if and only if IAS
+      // is not below scale and at least one legend is visible.
+      MappedSubject.create(
+        inputs => {
+          if (inputs[0]) { // IAS is below scale
+            return false;
+          }
 
-  /**
-   * Renders this tape's reference V-speed off-scale labels.
-   * @returns This tape's reference V-speed off-scale labels, as an array of VNodes.
-   */
-  private renderOffScaleVSpeedLabels(): VNode[] {
-    const labels: VNode[] = [];
-
-    for (const def of this.props.vSpeedBugDefinitions) {
-      const valueSetting = this.props.vSpeedSettingManager.tryGetSetting(`vSpeedValue_${def.name}`);
-      const showSetting = this.props.vSpeedSettingManager.tryGetSetting(`vSpeedShow_${def.name}`);
-
-      if (valueSetting !== undefined && showSetting !== undefined) {
-        const ref = FSComponent.createRef<VSpeedOffScaleLabel>();
-        this.vSpeedOffScaleLabelRefs.push(ref);
-
-        labels.push(
-          <VSpeedOffScaleLabel
-            ref={ref}
-            value={valueSetting}
-            label={def.label}
-            isVisible={showSetting}
-          />
-        );
-      }
+          return inputs.includes(true, 1);
+        },
+        this.isIasBelowScale,
+        ...legendShow
+      ).sub(show => {
+        this.vSpeedLegendContainerStyle.set('display', show ? 'flex' : 'none');
+      }, true);
     }
 
-    return labels;
+    return { bugs, offscale, legends };
   }
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.iasBoxRef.getOrDefault()?.destroy();
 
     for (const ref of this.colorRangeRefs) {
@@ -809,6 +1016,10 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
       ref.getOrDefault()?.destroy();
     }
 
+    for (const ref of this.vSpeedLegendRefs) {
+      ref.getOrDefault()?.destroy();
+    }
+
     this.options.destroy();
     this.isIasBelowScale.destroy();
     this.isIasAboveScale.destroy();
@@ -820,6 +1031,12 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
     for (const subscribable of this.colorRangeSubscribables) {
       subscribable.destroy();
     }
+
+    for (const subscribable of this.vSpeedBugSubscribables) {
+      subscribable.destroy();
+    }
+
+    super.destroy();
   }
 }
 
@@ -827,6 +1044,9 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
  * Component props for AirspeedIasDisplayBox.
  */
 interface AirspeedIasDisplayBoxProps extends ComponentProps {
+  /** Whether to show the display. */
+  show: Subscribable<boolean>;
+
   /** The indicated airspeed value to display. */
   ias: Subscribable<number>;
 }
@@ -837,6 +1057,27 @@ interface AirspeedIasDisplayBoxProps extends ComponentProps {
 class AirspeedIasDisplayBox extends DisplayComponent<AirspeedIasDisplayBoxProps> {
   private readonly scrollerRefs: NodeReference<DigitScroller>[] = [];
 
+  private readonly rootStyle = ObjectSubject.create({
+    display: 'none'
+  });
+
+  private readonly ias = this.props.ias.map(SubscribableMapFunctions.identity()).pause();
+
+  private showSub?: Subscription;
+
+  /** @inheritdoc */
+  public onAfterRender(): void {
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        this.rootStyle.set('display', '');
+        this.ias.resume();
+      } else {
+        this.rootStyle.set('display', 'none');
+        this.ias.pause();
+      }
+    }, true);
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     const onesScrollerRef = FSComponent.createRef<DigitScroller>();
@@ -846,7 +1087,7 @@ class AirspeedIasDisplayBox extends DisplayComponent<AirspeedIasDisplayBoxProps>
     this.scrollerRefs.push(onesScrollerRef, tensScrollerRef, hundredsScrollerRef);
 
     return (
-      <div class='airspeed-ias-box'>
+      <div class='airspeed-ias-box' style={this.rootStyle}>
         <svg viewBox="0 0 90 70" class='airspeed-ias-box-bg' preserveAspectRatio='none'>
           <path
             vector-effect='non-scaling-stroke'
@@ -858,7 +1099,7 @@ class AirspeedIasDisplayBox extends DisplayComponent<AirspeedIasDisplayBoxProps>
             <div class='airspeed-ias-box-digit-bg' />
             <DigitScroller
               ref={hundredsScrollerRef}
-              value={this.props.ias}
+              value={this.ias}
               base={10}
               factor={100}
               scrollThreshold={99}
@@ -869,7 +1110,7 @@ class AirspeedIasDisplayBox extends DisplayComponent<AirspeedIasDisplayBoxProps>
             <div class='airspeed-ias-box-digit-bg' />
             <DigitScroller
               ref={tensScrollerRef}
-              value={this.props.ias}
+              value={this.ias}
               base={10}
               factor={10}
               scrollThreshold={9}
@@ -879,7 +1120,7 @@ class AirspeedIasDisplayBox extends DisplayComponent<AirspeedIasDisplayBoxProps>
             <div class='airspeed-ias-box-digit-bg' />
             <DigitScroller
               ref={onesScrollerRef}
-              value={this.props.ias}
+              value={this.ias}
               base={10}
               factor={1}
             />
@@ -892,11 +1133,15 @@ class AirspeedIasDisplayBox extends DisplayComponent<AirspeedIasDisplayBoxProps>
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     for (const ref of this.scrollerRefs) {
       ref.getOrDefault()?.destroy();
     }
+
+    this.ias.destroy();
+
+    this.showSub?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -909,6 +1154,9 @@ interface AirspeedColorRangeProps extends ComponentProps {
 
   /** The color of the color range. */
   color: AirspeedIndicatorColorRangeColor;
+
+  /** Whether the color range should be visible. */
+  show: Subscribable<boolean>;
 
   /** The minimum speed of the color range, in knots. */
   minimum: number | Subscribable<number>;
@@ -938,16 +1186,26 @@ class AirspeedColorRange extends DisplayComponent<AirspeedColorRangeProps> {
     [AirspeedIndicatorColorRangeColor.BarberPole]: 'airspeed-tape-color-range-barber-pole',
   };
 
-  private readonly style = ObjectSubject.create({
+  private readonly rootStyle = ObjectSubject.create({
     display: '',
     position: 'absolute',
     top: '0%',
-    height: '0%'
+    height: this.props.color === AirspeedIndicatorColorRangeColor.BarberPole ? '0%' : '100%',
+    transform: `translate3d(0px, 0px, 0px) scaleY(${this.props.color === AirspeedIndicatorColorRangeColor.BarberPole ? 1 : 0})`,
+    'transform-origin': '50% 0%'
   });
 
   private readonly minimum = SubscribableUtils.toSubscribable(this.props.minimum, true);
   private readonly maximum = SubscribableUtils.toSubscribable(this.props.maximum, true);
 
+  private minPos = 0;
+  private maxPos = 0;
+
+  private readonly setStyles = this.props.color === AirspeedIndicatorColorRangeColor.BarberPole
+    ? this.setStylesTopHeight.bind(this)
+    : this.setStylesTransform.bind(this);
+
+  private showSub?: Subscription;
   private minimumSub?: Subscription;
   private maximumSub?: Subscription;
   private updateEventSub?: Subscription;
@@ -956,9 +1214,25 @@ class AirspeedColorRange extends DisplayComponent<AirspeedColorRangeProps> {
   public onAfterRender(): void {
     const handler = this.updatePosition.bind(this);
 
-    this.minimumSub = this.minimum.sub(handler);
-    this.maximumSub = this.maximum.sub(handler);
-    this.updateEventSub = this.props.updateEvent.on(handler);
+    const minSub = this.minimumSub = this.minimum.sub(handler, false, true);
+    const maxSub = this.maximumSub = this.maximum.sub(handler, false, true);
+    const updateSub = this.updateEventSub = this.props.updateEvent.on(handler, true);
+
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        minSub.resume();
+        maxSub.resume();
+        updateSub.resume();
+
+        this.updatePosition();
+      } else {
+        minSub.pause();
+        maxSub.pause();
+        updateSub.pause();
+
+        this.rootStyle.set('display', 'none');
+      }
+    }, true);
 
     this.updatePosition();
   }
@@ -967,17 +1241,50 @@ class AirspeedColorRange extends DisplayComponent<AirspeedColorRangeProps> {
    * Updates this color range's start and end positions on its parent airspeed tape.
    */
   private updatePosition(): void {
-    const minPos = MathUtils.clamp(this.props.getPosition(this.minimum.get(), true), 0, 1);
-    const maxPos = MathUtils.clamp(this.props.getPosition(this.maximum.get(), true), 0, 1);
+    const minimum = this.minimum.get();
+    const maximum = this.maximum.get();
+
+    if (isNaN(maximum - minimum)) {
+      this.rootStyle.set('display', 'none');
+      return;
+    }
+
+    const minPos = MathUtils.clamp(MathUtils.round(this.props.getPosition(minimum, true), 0.001), 0, 1);
+    const maxPos = MathUtils.clamp(MathUtils.round(this.props.getPosition(maximum, true), 0.001), 0, 1);
 
     if (minPos <= maxPos) {
-      this.style.set('display', 'none');
+      this.rootStyle.set('display', 'none');
     } else {
-      this.style.set('display', '');
+      this.rootStyle.set('display', '');
 
-      this.style.set('top', `${maxPos * 100}%`);
-      this.style.set('height', `${(minPos - maxPos) * 100}%`);
+      if (minPos !== this.minPos || maxPos !== this.maxPos) {
+        this.setStyles(minPos, maxPos);
+        this.minPos = minPos;
+        this.maxPos = maxPos;
+      }
     }
+  }
+
+  /**
+   * Positions this color range using the top and height styles.
+   * @param minPos The position of this color range's minimum airspeed on its parent tape.
+   * @param maxPos The position of this color range's maximum airspeed on its parent tape.
+   */
+  private setStylesTopHeight(minPos: number, maxPos: number): void {
+    this.rootStyle.set('top', `${maxPos * 100}%`);
+    this.rootStyle.set('height', `${(minPos - maxPos) * 100}%`);
+  }
+
+  /**
+   * Positions this color range using the transform style.
+   * @param minPos The position of this color range's minimum airspeed on its parent tape.
+   * @param maxPos The position of this color range's maximum airspeed on its parent tape.
+   */
+  private setStylesTransform(minPos: number, maxPos: number): void {
+    const translate = maxPos * 100;
+    const scale = minPos - maxPos;
+
+    this.rootStyle.set('transform', `translate3d(0px, ${translate}%, 0px) scaleY(${scale})`);
   }
 
   /** @inheritdoc */
@@ -986,17 +1293,18 @@ class AirspeedColorRange extends DisplayComponent<AirspeedColorRangeProps> {
     const colorClass = AirspeedColorRange.COLOR_CLASS[this.props.color];
 
     return (
-      <div class={`airspeed-tape-color-range ${widthClass} ${colorClass}`} style={this.style}></div>
+      <div class={`airspeed-tape-color-range ${widthClass} ${colorClass}`} style={this.rootStyle}></div>
     );
   }
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
+    this.showSub?.destroy();
     this.minimumSub?.destroy();
     this.maximumSub?.destroy();
     this.updateEventSub?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -1004,11 +1312,11 @@ class AirspeedColorRange extends DisplayComponent<AirspeedColorRangeProps> {
  * Component props for SpeedBug.
  */
 interface SpeedBugProps extends ComponentProps {
+  /** Whether the speed bug should be visible. */
+  show: Subscribable<boolean>;
+
   /** The reference speed of the bug, in knots. */
   speedKnots: Subscribable<number>;
-
-  /** Whether the speed bug is visible. */
-  isVisible: Subscribable<boolean>;
 
   /** An event which signals that the speed bug needs to be updated with a new tape window position. */
   updateEvent: SubEvent<any, void>;
@@ -1033,38 +1341,36 @@ class SpeedBug extends DisplayComponent<SpeedBugProps> {
 
   private readonly position = Subject.create(0);
 
-  private speedKnotsRounded?: MappedSubscribable<number>;
+  private readonly speedKnotsRounded = this.props.speedKnots.map(SubscribableMapFunctions.withPrecision(1)).pause();
 
   private cssClassSub?: Subscription;
-  private isVisibleSub?: Subscription;
+  private showSub?: Subscription;
   private updateEventSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
     const updateHandler = this.updatePosition.bind(this);
 
-    this.speedKnotsRounded = this.props.speedKnots.map(SubscribableMapFunctions.withPrecision(1));
-    this.speedKnotsRounded.pause();
-    this.speedKnotsRounded.sub(updateHandler);
-    this.updateEventSub = this.props.updateEvent.on(updateHandler, true);
+    const speedKnotsRoundedSub = this.speedKnotsRounded.sub(updateHandler, false, true);
+    const updateSub = this.updateEventSub = this.props.updateEvent.on(updateHandler, true);
 
     this.position.sub(translate => {
       this.style.set('top', `${translate}%`);
     });
 
-    this.isVisibleSub = this.props.isVisible.sub(isVisible => {
-      if (isVisible) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.speedKnotsRounded!.resume();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.updateEventSub!.resume();
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        this.speedKnotsRounded.resume();
+        speedKnotsRoundedSub.resume();
+        updateSub.resume();
+
+        this.updatePosition();
 
         this.style.set('display', '');
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.speedKnotsRounded!.pause();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.updateEventSub!.pause();
+        this.speedKnotsRounded.pause();
+        speedKnotsRoundedSub.pause();
+        updateSub.pause();
 
         this.style.set('display', 'none');
       }
@@ -1099,13 +1405,13 @@ class SpeedBug extends DisplayComponent<SpeedBugProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
-    this.speedKnotsRounded?.destroy();
+    this.speedKnotsRounded.destroy();
 
     this.cssClassSub?.destroy();
-    this.isVisibleSub?.destroy();
+    this.showSub?.destroy();
     this.updateEventSub?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -1113,11 +1419,17 @@ class SpeedBug extends DisplayComponent<SpeedBugProps> {
  * Component props for ReferenceSpeedBug.
  */
 interface ReferenceSpeedBugProps extends ComponentProps {
+  /** Whether the bug should be visible. */
+  show: Subscribable<boolean>;
+
   /** The reference indicated airspeed, in knots, or `null` if no such value exists. */
   referenceIas: Subscribable<number | null>;
 
   /** The reference mach number, or `null` if no such value exists. */
   referenceMach: Subscribable<number | null>;
+
+  /** Whether the reference airspeed was set manually. */
+  referenceIsManual: Subscribable<boolean>;
 
   /** The current conversion factor from mach number to knots indicated airspeed. */
   machToKias: Subscribable<number>;
@@ -1135,22 +1447,43 @@ interface ReferenceSpeedBugProps extends ComponentProps {
 /**
  * A reference speed bug.
  */
-abstract class ReferenceSpeedBug extends DisplayComponent<ReferenceSpeedBugProps> {
+class ReferenceSpeedBug extends DisplayComponent<ReferenceSpeedBugProps> {
   private readonly bugRef = FSComponent.createRef<SpeedBug>();
 
-  private readonly state = CombinedSubject.create(
+  private readonly bugCssClass = SetSubject.create(['airspeed-refspeed-bug']);
+
+  private readonly manualStyle = ObjectSubject.create({
+    display: 'none'
+  });
+  private readonly fmsStyle = ObjectSubject.create({
+    display: 'none'
+  });
+
+  private readonly state = MappedSubject.create(
     this.props.referenceIas,
     this.props.referenceMach,
+    this.props.referenceIsManual,
     this.props.machToKias,
     this.props.isAirspeedHoldActive
   );
 
-  private readonly isVisible = Subject.create(false);
+  private readonly show = Subject.create(false);
   private readonly speedKnots = Subject.create(0);
+
+  private showSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.state.sub(this.update.bind(this), true);
+    const stateSub = this.state.sub(this.update.bind(this), false, true);
+
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        stateSub.resume(true);
+      } else {
+        stateSub.pause();
+        this.show.set(false);
+      }
+    }, true);
   }
 
   /**
@@ -1161,21 +1494,33 @@ abstract class ReferenceSpeedBug extends DisplayComponent<ReferenceSpeedBugProps
     state: readonly [
       referenceIas: number | null,
       referenceMach: number | null,
+      referenceIsManual: boolean,
       machToKias: number,
       isAirspeedHoldActive: boolean
     ]
   ): void {
-    const [ias, mach, machToKias, isAirspeedHoldActive] = state;
+    const [ias, mach, referenceIsManual, machToKias, isAirspeedHoldActive] = state;
 
     if (isAirspeedHoldActive && (ias !== null || mach !== null)) {
+      this.bugCssClass.toggle('airspeed-refspeed-bug-manual', referenceIsManual);
+      this.bugCssClass.toggle('airspeed-refspeed-bug-fms', !referenceIsManual);
+
+      if (referenceIsManual) {
+        this.fmsStyle.set('display', 'none');
+        this.manualStyle.set('display', '');
+      } else {
+        this.manualStyle.set('display', 'none');
+        this.fmsStyle.set('display', '');
+      }
+
       if (ias !== null) {
         this.speedKnots.set(ias);
       } else {
         this.speedKnots.set(mach as number * machToKias);
       }
-      this.isVisible.set(true);
+      this.show.set(true);
     } else {
-      this.isVisible.set(false);
+      this.show.set(false);
     }
   }
 
@@ -1185,41 +1530,30 @@ abstract class ReferenceSpeedBug extends DisplayComponent<ReferenceSpeedBugProps
       <SpeedBug
         ref={this.bugRef}
         speedKnots={this.speedKnots}
-        isVisible={this.isVisible}
+        show={this.show}
         updateEvent={this.props.updateEvent}
         getPosition={(iasKnots: number): number => MathUtils.clamp(this.props.getPosition(iasKnots, true), 0, 1)}
-        class='airspeed-refspeed-bug'
+        class={this.bugCssClass}
       >
-        {this.renderContent()}
+        <svg viewBox='0 0 100 100' preserveAspectRatio='none' class='airspeed-refspeed-bug-icon airspeed-refspeed-bug-icon-manual' style={this.manualStyle}>
+          <path d="M 5 5 h 90 v 90 h -90 v -30 L 55 50 L 5 30 Z" vector-effect='non-scaling-stroke' />
+        </svg>
+        <svg viewBox='0 0 100 100' preserveAspectRatio='none' class='airspeed-refspeed-bug-icon airspeed-refspeed-bug-icon-fms' style={this.fmsStyle}>
+          <path d="M 5 5 v 90 l 90 -45 Z" vector-effect='non-scaling-stroke' />
+        </svg>
       </SpeedBug>
     );
   }
 
-  /**
-   * Renders this speed bug's content.
-   */
-  protected abstract renderContent(): VNode;
-
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.bugRef.getOrDefault()?.destroy();
-    this.state.destroy();
-  }
-}
 
-/**
- * A manual reference speed bug.
- */
-class ManualReferenceSpeedBug extends ReferenceSpeedBug {
-  /** @inheritdoc */
-  protected renderContent(): VNode {
-    return (
-      <svg viewBox='0 0 100 100' preserveAspectRatio='none' class='airspeed-refspeed-bug-manual-icon'>
-        <path d="M 5 5 h 90 v 90 h -90 v -30 L 55 50 L 5 30 Z" vector-effect='non-scaling-stroke' />
-      </svg>
-    );
+    this.state.destroy();
+
+    this.showSub?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -1247,11 +1581,14 @@ interface VSpeedBugProps extends ComponentProps {
   /** The value of the bug's reference V-speed, in knots. */
   value: Subscribable<number>;
 
+  /** Whether the FMS-defined value is the active value for this bug's reference V-speed. */
+  isFmsValueActive: Subscribable<boolean>;
+
   /** The bug's label text. */
   label: string;
 
   /** Whether the speed bug should be visible. */
-  isVisible: Subscribable<boolean>;
+  show: Subscribable<boolean>;
 
   /** An event which signals that the speed bug needs to be updated with a new tape window position. */
   updateEvent: SubEvent<any, void>;
@@ -1266,16 +1603,36 @@ interface VSpeedBugProps extends ComponentProps {
 class VSpeedBug extends DisplayComponent<VSpeedBugProps> {
   private readonly bugRef = FSComponent.createRef<SpeedBug>();
 
+  private readonly cssClass = SetSubject.create(['airspeed-vspeed-bug']);
+
+  private showSub?: Subscription;
+  private fmsSub?: Subscription;
+
+  /** @inheritdoc */
+  public onAfterRender(): void {
+    const fmsSub = this.fmsSub = this.props.isFmsValueActive.sub(isFmsValueActive => {
+      this.cssClass.toggle('airspeed-vspeed-fms', isFmsValueActive);
+    }, false, true);
+
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        fmsSub.resume(true);
+      } else {
+        fmsSub.pause();
+      }
+    }, true);
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     return (
       <SpeedBug
         ref={this.bugRef}
         speedKnots={this.props.value}
-        isVisible={this.props.isVisible}
+        show={this.props.show}
         updateEvent={this.props.updateEvent}
         getPosition={(iasKnots: number): number => MathUtils.clamp(this.props.getPosition(iasKnots, false), -0.5, 1.5)}
-        class='airspeed-vspeed-bug'
+        class={this.cssClass}
       >
         <VSpeedBugIcon>{this.props.label}</VSpeedBugIcon>
       </SpeedBug>
@@ -1284,9 +1641,12 @@ class VSpeedBug extends DisplayComponent<VSpeedBugProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.bugRef.getOrDefault()?.destroy();
+
+    this.showSub?.destroy();
+    this.fmsSub?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -1294,45 +1654,81 @@ class VSpeedBug extends DisplayComponent<VSpeedBugProps> {
  * Component props for VSpeedOffScaleLabel.
  */
 interface VSpeedOffScaleLabelProps extends ComponentProps {
-  /** The value of the bug's reference V-speed, in knots. */
+  /** The value of the label's reference V-speed, in knots. */
   value: Subscribable<number>;
+
+  /** Whether the FMS-defined value is the active value for this label's reference V-speed. */
+  isFmsValueActive: Subscribable<boolean>;
+
+  /**
+   * Whether the aircraft configuration does not match the one used by the FMS to calculate the value of this label's
+   * V-speed reference.
+   */
+  isFmsConfigMiscompare: Subscribable<boolean>;
 
   /** The bug's label text. */
   label: string;
 
   /** Whether the label should be visible. */
-  isVisible: Subscribable<boolean>;
+  show: Subscribable<boolean>;
 }
 
 /**
  * A reference V-speed label displayed when the airspeed tape is off-scale.
  */
 class VSpeedOffScaleLabel extends DisplayComponent<VSpeedOffScaleLabelProps> {
+  private readonly rootCssClass = SetSubject.create(['airspeed-vspeed-offscale-label']);
+
   private readonly style = ObjectSubject.create({
     display: '',
     order: '0'
   });
 
-  private readonly valueText = this.props.value.map(NumberFormatter.create({ precision: 1 }));
+  private readonly valueText = MappedSubject.create(
+    ([value, isFmsValueActive, miscompare]) => isFmsValueActive && miscompare ? '–––' : value.toFixed(0),
+    this.props.value,
+    this.props.isFmsValueActive,
+    this.props.isFmsConfigMiscompare
+  ).pause();
 
-  private isVisibleSub?: Subscription;
+  private showSub?: Subscription;
   private valueSub?: Subscription;
+  private fmsSub?: Subscription;
+  private configSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.isVisibleSub = this.props.isVisible.sub(isVisible => {
-      this.style.set('display', isVisible ? '' : 'none');
-    }, true);
+    const fmsSub = this.fmsSub = this.props.isFmsValueActive.sub(isFmsValueActive => {
+      this.rootCssClass.toggle('airspeed-vspeed-fms', isFmsValueActive);
+    }, false, true);
+
+    const configSub = this.configSub = this.props.isFmsConfigMiscompare.sub(miscompare => {
+      this.rootCssClass.toggle('airspeed-vspeed-fms-config-miscompare', miscompare);
+    }, false, true);
 
     this.valueSub = this.props.value.sub(value => {
       this.style.set('order', value.toFixed(0));
+    }, true);
+
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        this.valueText.resume();
+        fmsSub.resume(true);
+        configSub.resume(true);
+        this.style.set('display', '');
+      } else {
+        this.valueText.pause();
+        fmsSub.pause();
+        configSub.pause();
+        this.style.set('display', 'none');
+      }
     }, true);
   }
 
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class='airspeed-vspeed-offscale-label' style={this.style}>
+      <div class={this.rootCssClass} style={this.style}>
         <div class='airspeed-vspeed-offscale-label-value'>{this.valueText}</div>
         <VSpeedBugIcon>{this.props.label}</VSpeedBugIcon>
       </div>
@@ -1341,11 +1737,110 @@ class VSpeedOffScaleLabel extends DisplayComponent<VSpeedOffScaleLabelProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.valueText.destroy();
-    this.isVisibleSub?.destroy();
+    this.showSub?.destroy();
     this.valueSub?.destroy();
+    this.fmsSub?.destroy();
+    this.configSub?.destroy();
+
+    super.destroy();
+  }
+}
+
+/**
+ * Component props for VSpeedLegend.
+ */
+interface VSpeedLegendProps extends ComponentProps {
+  /** The value of the legend's reference V-speed, in knots. */
+  value: Subscribable<number>;
+
+  /** Whether the FMS-defined value is the active value for this legend's reference V-speed. */
+  isFmsValueActive: Subscribable<boolean>;
+
+  /**
+   * Whether the aircraft configuration does not match the one used by the FMS to calculate the value of this legend's
+   * V-speed reference.
+   */
+  isFmsConfigMiscompare: Subscribable<boolean>;
+
+  /** The legend's label text. */
+  label: string;
+
+  /** Whether the legend should be visible. */
+  show: Subscribable<boolean>;
+}
+
+/**
+ * A reference V-speed legend.
+ */
+class VSpeedLegend extends DisplayComponent<VSpeedLegendProps> {
+  private readonly rootCssClass = SetSubject.create(['airspeed-vspeed-legend']);
+
+  private readonly style = ObjectSubject.create({
+    display: '',
+    order: '0'
+  });
+
+  private readonly valueText = MappedSubject.create(
+    ([value, isFmsValueActive, miscompare]) => isFmsValueActive && miscompare ? '–––' : value.toFixed(0),
+    this.props.value,
+    this.props.isFmsValueActive,
+    this.props.isFmsConfigMiscompare
+  ).pause();
+
+  private showSub?: Subscription;
+  private valueSub?: Subscription;
+  private fmsSub?: Subscription;
+  private configSub?: Subscription;
+
+  /** @inheritdoc */
+  public onAfterRender(): void {
+    const fmsSub = this.fmsSub = this.props.isFmsValueActive.sub(isFmsValueActive => {
+      this.rootCssClass.toggle('airspeed-vspeed-fms', isFmsValueActive);
+    }, false, true);
+
+    const configSub = this.configSub = this.props.isFmsConfigMiscompare.sub(miscompare => {
+      this.rootCssClass.toggle('airspeed-vspeed-fms-config-miscompare', miscompare);
+    }, false, true);
+
+    this.valueSub = this.props.value.sub(value => {
+      this.style.set('order', value.toFixed(0));
+    }, true);
+
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        this.valueText.resume();
+        fmsSub.resume(true);
+        configSub.resume(true);
+        this.style.set('display', '');
+      } else {
+        this.valueText.pause();
+        fmsSub.pause();
+        configSub.pause();
+        this.style.set('display', 'none');
+      }
+    }, true);
+  }
+
+  /** @inheritdoc */
+  public render(): VNode {
+    return (
+      <div class={this.rootCssClass} style={this.style}>
+        <div class='airspeed-vspeed-legend-name'>{this.props.label}</div>
+        <div class='airspeed-vspeed-legend-value'>{this.valueText}</div>
+      </div>
+    );
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this.valueText.destroy();
+    this.showSub?.destroy();
+    this.valueSub?.destroy();
+    this.fmsSub?.destroy();
+    this.configSub?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -1353,11 +1848,17 @@ class VSpeedOffScaleLabel extends DisplayComponent<VSpeedOffScaleLabelProps> {
  * Component props for AirspeedReferenceDisplay.
  */
 interface AirspeedReferenceDisplayProps extends ComponentProps {
+  /** Whether the display should be visible. */
+  show: Subscribable<boolean>;
+
   /** The reference indicated airspeed, in knots, or `null` if no such value exists. */
   referenceIas: Subscribable<number | null>;
 
   /** The reference mach number, or `null` if no such value exists. */
   referenceMach: Subscribable<number | null>;
+
+  /** Whether the reference airspeed was set manually. */
+  referenceIsManual: Subscribable<boolean>;
 
   /** Whether an airspeed hold mode is active on the flight director. */
   isAirspeedHoldActive: Subscribable<boolean>;
@@ -1373,6 +1874,12 @@ class AirspeedReferenceDisplay extends DisplayComponent<AirspeedReferenceDisplay
   private readonly rootStyle = ObjectSubject.create({
     display: 'none'
   });
+  private readonly manualStyle = ObjectSubject.create({
+    display: 'none'
+  });
+  private readonly fmsStyle = ObjectSubject.create({
+    display: 'none'
+  });
   private readonly iasStyle = ObjectSubject.create({
     display: 'none'
   });
@@ -1380,28 +1887,56 @@ class AirspeedReferenceDisplay extends DisplayComponent<AirspeedReferenceDisplay
     display: 'none'
   });
 
+  private readonly rootCssClass = SetSubject.create(['airspeed-refspeed-container']);
+
   private readonly referenceIas = NumberUnitSubject.create(UnitType.KNOT.createNumber(0));
   private readonly referenceMach = Subject.create(0);
 
-  private readonly state = CombinedSubject.create(
+  private readonly state = MappedSubject.create(
     this.props.referenceIas,
     this.props.referenceMach,
+    this.props.referenceIsManual,
     this.props.isAirspeedHoldActive
   );
 
+  private showSub?: Subscription;
+
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.state.sub(this.update.bind(this), true);
+    const stateSub = this.state.sub(this.update.bind(this), false, true);
+
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        stateSub.resume(true);
+      } else {
+        stateSub.pause();
+
+        this.rootStyle.set('display', 'none');
+
+        this.props.isVisible.set(false);
+      }
+    }, true);
   }
 
   /**
    * Updates this display.
    * @param state The current reference airspeed state.
    */
-  private update(state: readonly [referenceIas: number | null, referenceMach: number | null, isAirspeedHoldActive: boolean]): void {
-    const [ias, mach, isAirspeedHoldActive] = state;
+  private update(state: readonly [referenceIas: number | null, referenceMach: number | null, referenceIsManual: boolean, isAirspeedHoldActive: boolean]): void {
+    const [ias, mach, referenceIsManual, isAirspeedHoldActive] = state;
 
     if (isAirspeedHoldActive && (ias !== null || mach !== null)) {
+      this.rootCssClass.toggle('airspeed-refspeed-container-manual', referenceIsManual);
+      this.rootCssClass.toggle('airspeed-refspeed-container-fms', !referenceIsManual);
+
+      if (referenceIsManual) {
+        this.fmsStyle.set('display', 'none');
+        this.manualStyle.set('display', '');
+      } else {
+        this.manualStyle.set('display', 'none');
+        this.fmsStyle.set('display', '');
+      }
+
       if (ias !== null) {
         this.iasStyle.set('display', '');
         this.machStyle.set('display', 'none');
@@ -1425,9 +1960,12 @@ class AirspeedReferenceDisplay extends DisplayComponent<AirspeedReferenceDisplay
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class='airspeed-refspeed-container' style={this.rootStyle}>
-        <svg class='airspeed-refspeed-icon' viewBox='0 0 100 100' preserveAspectRatio='none'>
+      <div class={this.rootCssClass} style={this.rootStyle}>
+        <svg class='airspeed-refspeed-icon airspeed-refspeed-icon-manual' viewBox='0 0 100 100' preserveAspectRatio='none' style={this.manualStyle}>
           <path d='M 5 5 h 90 v 90 h -90 v -30 L 55 50 L 5 30 Z' vector-effect='non-scaling-stroke' />
+        </svg>
+        <svg class='airspeed-refspeed-icon airspeed-refspeed-icon-fms' viewBox='0 0 100 100' preserveAspectRatio='none' style={this.fmsStyle}>
+          <path d='M 5 5 v 90 l 90 -45 Z' vector-effect='non-scaling-stroke' />
         </svg>
         <div class='airspeed-refspeed-text'>
           <div class='airspeed-refspeed-ias' style={this.iasStyle}>
@@ -1448,6 +1986,8 @@ class AirspeedReferenceDisplay extends DisplayComponent<AirspeedReferenceDisplay
     super.destroy();
 
     this.state.destroy();
+
+    this.showSub?.destroy();
   }
 }
 
@@ -1455,6 +1995,9 @@ class AirspeedReferenceDisplay extends DisplayComponent<AirspeedReferenceDisplay
  * Component props for AirspeedAlertAnnunciation.
  */
 interface AirspeedProtectionAnnunciationProps extends ComponentProps {
+  /** Whether the display should be visible. */
+  show: Subscribable<boolean>;
+
   /** Whether autopilot overspeed protection is active. */
   isOverspeedProtectionActive: Subscribable<boolean>;
 
@@ -1472,14 +2015,16 @@ class AirspeedProtectionAnnunciation extends DisplayComponent<AirspeedProtection
 
   private readonly text = Subject.create('');
 
-  private readonly protectionState = CombinedSubject.create(
+  private readonly protectionState = MappedSubject.create(
     this.props.isOverspeedProtectionActive,
     this.props.isUnderspeedProtectionActive
   );
 
+  private showSub?: Subscription;
+
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.protectionState.sub(([isOverspeedActive, isUnderspeedActive]) => {
+    const stateSub = this.protectionState.sub(([isOverspeedActive, isUnderspeedActive]) => {
       if (isUnderspeedActive) {
         this.text.set('MINSPD');
         this.rootStyle.set('display', '');
@@ -1487,6 +2032,16 @@ class AirspeedProtectionAnnunciation extends DisplayComponent<AirspeedProtection
         this.text.set('MAXSPD');
         this.rootStyle.set('display', '');
       } else {
+        this.rootStyle.set('display', 'none');
+      }
+    }, false, true);
+
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        stateSub.resume(true);
+      } else {
+        stateSub.pause();
+
         this.rootStyle.set('display', 'none');
       }
     }, true);
@@ -1506,6 +2061,8 @@ class AirspeedProtectionAnnunciation extends DisplayComponent<AirspeedProtection
     super.destroy();
 
     this.protectionState.destroy();
+
+    this.showSub?.destroy();
   }
 }
 
@@ -1513,8 +2070,14 @@ class AirspeedProtectionAnnunciation extends DisplayComponent<AirspeedProtection
  * Component props for AirspeedTasDisplay.
  */
 interface AirspeedTasDisplayProps extends ComponentProps {
+  /** Whether to the show the display. */
+  show: Subscribable<boolean>;
+
   /** The current true airspeed, in knots. */
   tasKnots: Subscribable<number>;
+
+  /** Whether airspeed data is in a failed state. */
+  isDataFailed: Subscribable<boolean>;
 
   /** A subscribable to bind to this display's visibility state. */
   isVisible: MutableSubscribable<boolean>;
@@ -1524,19 +2087,45 @@ interface AirspeedTasDisplayProps extends ComponentProps {
  * A true airspeed display for an airspeed indicator.
  */
 class AirspeedTasDisplay extends DisplayComponent<AirspeedTasDisplayProps> {
-  private readonly style = ObjectSubject.create({
+  private readonly rootStyle = ObjectSubject.create({
     display: ''
   });
 
   private readonly tas = NumberUnitSubject.create(UnitType.KNOT.createNumber(0));
 
+  private showSub?: Subscription;
   private tasSub?: Subscription;
+  private isDataFailedSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.tasSub = this.props.tasKnots.sub(this.update.bind(this), true);
+    const tasSub = this.tasSub = this.props.tasKnots.sub(this.update.bind(this), false, true);
 
-    this.props.isVisible.set(true);
+    const isDataFailedSub = this.isDataFailedSub = this.props.isDataFailed.sub(isFailed => {
+      if (isFailed) {
+        tasSub.pause();
+
+        this.rootStyle.set('display', 'none');
+        this.props.isVisible.set(false);
+      } else {
+        this.rootStyle.set('display', '');
+        this.props.isVisible.set(true);
+
+        tasSub.resume(true);
+      }
+    }, false, true);
+
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        isDataFailedSub.resume(true);
+      } else {
+        isDataFailedSub.pause();
+        tasSub.pause();
+
+        this.rootStyle.set('display', 'none');
+        this.props.isVisible.set(false);
+      }
+    }, true);
   }
 
   /**
@@ -1550,7 +2139,7 @@ class AirspeedTasDisplay extends DisplayComponent<AirspeedTasDisplayProps> {
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class='airspeed-bottom-speed-display airspeed-tas-display' style={this.style}>
+      <div class='airspeed-bottom-display airspeed-tas-display' style={this.rootStyle}>
         <div class='airspeed-tas-display-title'>TAS</div>
         <NumberUnitDisplay
           value={this.tas}
@@ -1564,9 +2153,10 @@ class AirspeedTasDisplay extends DisplayComponent<AirspeedTasDisplayProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.tasSub?.destroy();
+    this.isDataFailedSub?.destroy();
+
+    super.destroy();
   }
 }
 
@@ -1574,11 +2164,17 @@ class AirspeedTasDisplay extends DisplayComponent<AirspeedTasDisplayProps> {
  * Component props for AirspeedMachDisplay.
  */
 interface AirspeedMachDisplayProps extends ComponentProps {
+  /** Whether to the show the display. */
+  show: Subscribable<boolean>;
+
   /** The current mach number. */
   mach: Subscribable<number>;
 
   /** The minimum mach number required to show the display. */
   threshold: number | Subscribable<number>;
+
+  /** Whether airspeed data is in a failed state. */
+  isDataFailed: Subscribable<boolean>;
 
   /** A subscribable to bind to this display's visibility state. */
   isVisible: MutableSubscribable<boolean>;
@@ -1588,20 +2184,46 @@ interface AirspeedMachDisplayProps extends ComponentProps {
  * A mach display for an airspeed indicator.
  */
 class AirspeedMachDisplay extends DisplayComponent<AirspeedMachDisplayProps> {
-  private readonly style = ObjectSubject.create({
+  private readonly rootStyle = ObjectSubject.create({
     display: 'none'
   });
 
   private readonly roundedMach = Subject.create(0);
 
-  private readonly state = CombinedSubject.create(
+  private readonly state = MappedSubject.create(
     this.props.mach,
     SubscribableUtils.toSubscribable(this.props.threshold, true)
   );
 
+  private showSub?: Subscription;
+  private isDataFailedSub?: Subscription;
+
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.state.sub(this.update.bind(this), true);
+    const stateSub = this.state.sub(this.update.bind(this), false, true);
+
+    const isDataFailedSub = this.isDataFailedSub = this.props.isDataFailed.sub(isFailed => {
+      if (isFailed) {
+        stateSub.pause();
+
+        this.rootStyle.set('display', 'none');
+        this.props.isVisible.set(false);
+      } else {
+        stateSub.resume(true);
+      }
+    }, false, true);
+
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        isDataFailedSub.resume(true);
+      } else {
+        isDataFailedSub.pause();
+        stateSub.pause();
+
+        this.rootStyle.set('display', 'none');
+        this.props.isVisible.set(false);
+      }
+    }, true);
   }
 
   /**
@@ -1612,12 +2234,12 @@ class AirspeedMachDisplay extends DisplayComponent<AirspeedMachDisplayProps> {
     const [mach, threshold] = state;
 
     if (mach < threshold) {
-      this.style.set('display', 'none');
+      this.rootStyle.set('display', 'none');
       this.props.isVisible.set(false);
     } else {
       this.roundedMach.set(MathUtils.round(mach, 0.001));
 
-      this.style.set('display', '');
+      this.rootStyle.set('display', '');
       this.props.isVisible.set(true);
     }
   }
@@ -1625,7 +2247,7 @@ class AirspeedMachDisplay extends DisplayComponent<AirspeedMachDisplayProps> {
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class='airspeed-bottom-speed-display airspeed-mach-display' style={this.style}>
+      <div class='airspeed-bottom-display airspeed-mach-display' style={this.rootStyle}>
         <div class='airspeed-mach-display-value'>M {this.roundedMach.map(NumberFormatter.create({ precision: 0.001, pad: 0 }))}</div>
       </div>
     );
@@ -1633,8 +2255,116 @@ class AirspeedMachDisplay extends DisplayComponent<AirspeedMachDisplayProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.state.destroy();
+
+    this.showSub?.destroy();
+    this.isDataFailedSub?.destroy();
+
+    super.destroy();
+  }
+}
+
+/**
+ * Component props for AirspeedVSpeedAnnunciation.
+ */
+interface AirspeedVSpeedAnnunciationProps extends ComponentProps {
+  /** The type of V-speed annunciation that the component displays. */
+  annunciationType: VSpeedAnnunciation;
+
+  /** Whether to the show the annunciation. */
+  show: Subscribable<boolean>;
+
+  /** The currently active V-speed annunciation. */
+  activeAnnunciation: Subscribable<VSpeedAnnunciation>;
+
+  /** Whether airspeed data is in a failed state. */
+  isDataFailed: Subscribable<boolean>;
+
+  /** A subscribable to bind to this annunciation's visibility state. */
+  isVisible: MutableSubscribable<boolean>;
+}
+
+/**
+ * A V-speed annunciation an airspeed indicator.
+ */
+class AirspeedVSpeedAnnunciation extends DisplayComponent<AirspeedVSpeedAnnunciationProps> {
+  private readonly rootStyle = ObjectSubject.create({
+    display: ''
+  });
+
+  private showSub?: Subscription;
+  private annunciationSub?: Subscription;
+  private isDataFailed?: Subscription;
+
+  /** @inheritdoc */
+  public onAfterRender(): void {
+    const annunciationSub = this.annunciationSub = this.props.activeAnnunciation.sub(this.update.bind(this), false, true);
+
+    const isDataFailedSub = this.isDataFailed = this.props.isDataFailed.sub(isFailed => {
+      if (isFailed) {
+        annunciationSub.pause();
+
+        this.rootStyle.set('display', 'none');
+        this.props.isVisible.set(false);
+      } else {
+        annunciationSub.resume(true);
+      }
+    }, false, true);
+
+    this.showSub = this.props.show.sub(show => {
+      if (show) {
+        isDataFailedSub.resume(true);
+      } else {
+        isDataFailedSub.pause();
+        annunciationSub.pause();
+
+        this.rootStyle.set('display', 'none');
+        this.props.isVisible.set(false);
+      }
+    }, true);
+  }
+
+  /**
+   * Updates this display.
+   * @param annunciation The current true airspeed, in knots.
+   */
+  private update(annunciation: VSpeedAnnunciation): void {
+    if (annunciation === this.props.annunciationType) {
+      this.rootStyle.set('display', '');
+      this.props.isVisible.set(true);
+    } else {
+      this.rootStyle.set('display', 'none');
+      this.props.isVisible.set(false);
+    }
+  }
+
+  /** @inheritdoc */
+  public render(): VNode {
+    let typeClass: string;
+    switch (this.props.annunciationType) {
+      case VSpeedAnnunciation.Takeoff:
+        typeClass = 'airspeed-vspeed-annunciation-takeoff';
+        break;
+      case VSpeedAnnunciation.Landing:
+        typeClass = 'airspeed-vspeed-annunciation-landing';
+        break;
+      default:
+        typeClass = '';
+    }
+
+    return (
+      <div class={`airspeed-bottom-display airspeed-vspeed-annunciation ${typeClass}`} style={this.rootStyle}>
+        <div class='airspeed-vspeed-annunciation-box'>VSPEEDS</div>
+      </div>
+    );
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this.showSub?.destroy();
+    this.isDataFailed?.destroy();
+    this.annunciationSub?.destroy();
+
+    super.destroy();
   }
 }

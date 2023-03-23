@@ -1,16 +1,35 @@
-/// <reference types="msfstypes/JS/simvar" />
-
 import {
-  DirectorState, EventBus, FlightPathUtils, GeoCircle, GeoPoint, GeoPointSubject, GNSSEvents, HEvent, LegDefinition, LinearServo, LNavEvents, LNavTransitionMode, LNavVars,
-  MagVar, MathUtils, NavEvents, NavMath, NavSourceType, ObjectSubject, ObsDirector, SimVarValueType, SubscribableType, UnitType
-} from 'msfssdk';
+  AdcEvents, APValues, DirectorState, EventBus, FlightPathUtils, GeoCircle, GeoPoint, GeoPointSubject, GNSSEvents, HEvent, LegDefinition, LinearServo,
+  LNavDirectorInterceptFunc, LNavEvents, LNavTrackingState, LNavTransitionMode, LNavVars, MagVar, MathUtils, NavEvents, NavMath, NavSourceType,
+  ObjectSubject, ObsDirector, SimVarValueType, SubscribableType, UnitType
+} from '@microsoft/msfs-sdk';
+
+/**
+ * Options for {@link GarminObsDirector}.
+ */
+export type GarminObsDirectorOptions = {
+  /**
+   * The maximum bank angle, in degrees, supported by the director, or a function which returns it. If not defined,
+   * the director will use the maximum bank angle defined by its parent autopilot (via `apValues`).
+   */
+  maxBankAngle: number | (() => number) | undefined;
+
+  /**
+   * A function used to translate DTK and XTK into a track intercept angle.
+   */
+  lateralInterceptCurve: LNavDirectorInterceptFunc;
+};
 
 /**
  * A director that handles OBS Lateral Navigation.
  */
 export class GarminObsDirector implements ObsDirector {
+  private static readonly BANK_SERVO_RATE = 10; // degrees per second
+
   private readonly geoPointCache = [new GeoPoint(0, 0)];
   private readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
+
+  private readonly publisher = this.bus.getPublisher<LNavEvents>();
 
   public state: DirectorState;
 
@@ -27,15 +46,17 @@ export class GarminObsDirector implements ObsDirector {
   public obsActive = false;
   private dtk: number | undefined = undefined;
   private xtk: number | undefined = undefined;
+  private distanceRemaining = 0;
 
   private legIndex = 0;
   private leg: LegDefinition | null = null;
 
   private currentBankRef = 0;
-  private readonly bankServo = new LinearServo(10);
+  private readonly bankServo = new LinearServo(GarminObsDirector.BANK_SERVO_RATE);
 
   private planePos = new GeoPoint(0, 0);
   private groundTrack = 0;
+  private tas = 0;
 
   private readonly obsFix = GeoPointSubject.create(new GeoPoint(0, 0));
   private readonly obsMagVar = this.obsFix.map(fix => MagVar.get(fix));
@@ -46,6 +67,13 @@ export class GarminObsDirector implements ObsDirector {
   private readonly lnavData = ObjectSubject.create({
     dtk: 0,
     xtk: 0,
+    trackingState: {
+      isTracking: false,
+      globalLegIndex: 0,
+      transitionMode: LNavTransitionMode.None,
+      vectorIndex: 0,
+      isSuspended: true
+    } as LNavTrackingState,
     isTracking: false,
     legIndex: 0,
     transitionMode: LNavTransitionMode.None,
@@ -76,15 +104,41 @@ export class GarminObsDirector implements ObsDirector {
       case 'legDistanceRemaining': SimVar.SetSimVarValue(LNavVars.LegDistanceRemaining, SimVarValueType.NM, value); break;
       case 'alongVectorDistance': SimVar.SetSimVarValue(LNavVars.VectorDistanceAlong, SimVarValueType.NM, value); break;
       case 'vectorDistanceRemaining': SimVar.SetSimVarValue(LNavVars.VectorDistanceRemaining, SimVarValueType.NM, value); break;
+      case 'trackingState': this.publisher.pub('lnav_tracking_state', value as LNavTrackingState, true, true); break;
     }
   };
+
+  private readonly maxBankAngleFunc: () => number;
+  private readonly lateralInterceptCurve?: LNavDirectorInterceptFunc;
 
   /**
    * Creates an instance of the GPS OBS Director.
    * @param bus The event bus to use with this instance.
+   * @param apValues Autopilot values from this director's parent autopilot.
+   * @param options Options to configure the new director. Option values default to the following if not defined:
+   * * `maxBankAngle`: `undefined`
+   * * `lateralInterceptCurve`: A default function tuned for slow GA aircraft.
    */
-  constructor(private readonly bus: EventBus) {
-    const sub = bus.getSubscriber<HEvent & NavEvents & LNavEvents & GNSSEvents>();
+  constructor(
+    private readonly bus: EventBus,
+    private readonly apValues: APValues,
+    options?: Partial<Readonly<GarminObsDirectorOptions>>
+  ) {
+    const maxBankAngleOpt = options?.maxBankAngle ?? undefined;
+    switch (typeof maxBankAngleOpt) {
+      case 'number':
+        this.maxBankAngleFunc = () => maxBankAngleOpt;
+        break;
+      case 'function':
+        this.maxBankAngleFunc = maxBankAngleOpt;
+        break;
+      default:
+        this.maxBankAngleFunc = this.apValues.maxBankAngle.get.bind(this.apValues.maxBankAngle);
+    }
+
+    this.lateralInterceptCurve = options?.lateralInterceptCurve;
+
+    const sub = bus.getSubscriber<HEvent & NavEvents & LNavEvents & GNSSEvents & AdcEvents>();
 
     const adjustCourseSub = sub.on('hEvent').handle((e: string) => {
       if (e === 'AS1000_PFD_CRS_INC' || e === 'AS1000_MFD_CRS_INC') {
@@ -137,8 +191,11 @@ export class GarminObsDirector implements ObsDirector {
       this.obsSetting = value;
     });
 
-    sub.on('track_deg_magnetic').whenChanged().handle((v) => {
+    sub.on('track_deg_true').whenChanged().handle((v) => {
       this.groundTrack = v;
+    });
+    sub.on('tas').whenChanged().handle((v) => {
+      this.tas = v;
     });
     sub.on('gps-position').whenChanged().handle((v) => {
       this.planePos.set(v.lat, v.long);
@@ -150,6 +207,7 @@ export class GarminObsDirector implements ObsDirector {
   /** @inheritdoc */
   public activate(): void {
     this.state = DirectorState.Active;
+    this.bankServo.reset();
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
@@ -225,6 +283,27 @@ export class GarminObsDirector implements ObsDirector {
       this.calculateTracking();
     }
 
+    const isTracking = this.dtk !== undefined && this.xtk !== undefined;
+    const dtk = this.dtk ?? 0;
+    const xtk = this.xtk ?? 0;
+
+    this.lnavData.set('isTracking', isTracking);
+    this.lnavData.set('dtk', dtk);
+    this.lnavData.set('xtk', xtk);
+    this.lnavData.set('legDistanceRemaining', this.distanceRemaining);
+    this.lnavData.set('vectorDistanceRemaining', this.distanceRemaining);
+
+    const trackingState = this.lnavData.get().trackingState;
+    if (trackingState.isTracking !== isTracking || trackingState.globalLegIndex !== this.legIndex) {
+      this.lnavData.set('trackingState', {
+        isTracking: isTracking,
+        globalLegIndex: this.legIndex,
+        transitionMode: LNavTransitionMode.None,
+        vectorIndex: 0,
+        isSuspended: true
+      });
+    }
+
     if (this.dtk === undefined || this.xtk === undefined) {
       SimVar.SetSimVarValue('K:GPS_OBS_OFF', SimVarValueType.Number, 0);
     }
@@ -243,7 +322,7 @@ export class GarminObsDirector implements ObsDirector {
    * Gets the current obs xtk.
    */
   private calculateTracking(): void {
-    let distanceRemaining = 0;
+    this.distanceRemaining = 0;
 
     if (this.leg?.calculated?.endLat !== undefined && this.leg?.calculated?.endLon !== undefined) {
       const end = this.geoPointCache[0].set(this.leg.calculated.endLat, this.leg.calculated.endLon);
@@ -256,17 +335,11 @@ export class GarminObsDirector implements ObsDirector {
       this.xtk = UnitType.GA_RADIAN.convertTo(path.distance(this.planePos), UnitType.NMILE);
 
       const angleRemaining = (path.angleAlong(this.planePos, end, Math.PI) + Math.PI) % MathUtils.TWO_PI - Math.PI;
-      distanceRemaining = UnitType.GA_RADIAN.convertTo(angleRemaining, UnitType.NMILE);
+      this.distanceRemaining = UnitType.GA_RADIAN.convertTo(angleRemaining, UnitType.NMILE);
     } else {
       this.dtk = undefined;
       this.xtk = undefined;
     }
-
-    this.lnavData.set('isTracking', this.dtk !== undefined && this.xtk !== undefined);
-    this.lnavData.set('dtk', this.dtk ?? 0);
-    this.lnavData.set('xtk', this.xtk ?? 0);
-    this.lnavData.set('legDistanceRemaining', distanceRemaining);
-    this.lnavData.set('vectorDistanceRemaining', distanceRemaining);
   }
 
   /**
@@ -277,10 +350,20 @@ export class GarminObsDirector implements ObsDirector {
       return;
     }
 
-    const absInterceptAngle = Math.min(Math.pow(Math.abs(this.xtk) * 20, 1.35) + (Math.abs(this.xtk) * 50), 45);
+    let absInterceptAngle: number;
+
+    if (this.lateralInterceptCurve !== undefined) {
+      absInterceptAngle = this.lateralInterceptCurve(this.dtk, this.xtk, this.tas);
+    } else {
+      absInterceptAngle = Math.min(Math.pow(Math.abs(this.xtk) * 20, 1.35) + (Math.abs(this.xtk) * 50), 45);
+      if (absInterceptAngle <= 2.5) {
+        absInterceptAngle = NavMath.clamp(Math.abs(this.xtk * 150), 0, 2.5);
+      }
+    }
+
     const interceptAngle = this.xtk < 0 ? absInterceptAngle : -1 * absInterceptAngle;
     const courseToSteer = NavMath.normalizeHeading(this.dtk + interceptAngle);
-    const bankAngle = this.desiredBank(courseToSteer, this.xtk);
+    const bankAngle = this.desiredBank(courseToSteer);
 
     if (this.state === DirectorState.Active) {
       this.setBank(bankAngle);
@@ -303,19 +386,14 @@ export class GarminObsDirector implements ObsDirector {
   /**
    * Gets a desired bank from a desired track.
    * @param desiredTrack The desired track.
-   * @param xtk The cross track.
    * @returns The desired bank angle.
    */
-  private desiredBank(desiredTrack: number, xtk: number): number {
+  private desiredBank(desiredTrack: number): number {
     const turnDirection = NavMath.getTurnDirection(this.groundTrack, desiredTrack);
     const headingDiff = Math.abs(NavMath.diffAngle(this.groundTrack, desiredTrack));
 
-    let baseBank = Math.min(1.25 * headingDiff, 25);
-    if (baseBank <= 2.5) {
-      baseBank = NavMath.clamp(xtk * 100, -2.5, 2.5);
-    } else {
-      baseBank *= (turnDirection === 'left' ? 1 : -1);
-    }
+    let baseBank = Math.min(1.25 * headingDiff, this.maxBankAngleFunc());
+    baseBank *= (turnDirection === 'left' ? 1 : -1);
 
     return baseBank;
   }
@@ -326,6 +404,7 @@ export class GarminObsDirector implements ObsDirector {
    */
   private setBank(bankAngle: number): void {
     if (isFinite(bankAngle)) {
+      this.bankServo.rate = GarminObsDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
       this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
       SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
     }

@@ -1,0 +1,29 @@
+.gtc-horizontal .number-dialog.local-time-offset-dialog {
+  height: 680px;
+
+  --number-dialog-input-top: 10px;
+
+  --number-dialog-backspace-right: 20px;
+  --number-dialog-backspace-top: 20px;
+
+  --local-time-offset-dialog-sign-button-font-size: 60px;
+}
+
+.gtc-vertical .number-dialog.local-time-offset-dialog {
+  height: 375px;
+
+  --number-dialog-input-top: 5px;
+
+  --number-dialog-backspace-right: 14px;
+  --number-dialog-backspace-top: 10px;
+
+  --local-time-offset-dialog-sign-button-font-size: 30px;
+}
+
+.round-touch-button.local-time-offset-dialog-sign-button {
+  position: absolute;
+  left: calc(var(--number-dialog-numpad-width) / 6);
+  bottom: calc(var(--number-dialog-numpad-height) / 8);
+  transform: translate(-50%, 50%);
+  font-size: var(--local-time-offset-dialog-sign-button-font-size);
+}

@@ -1,0 +1,50 @@
+.gtc-horizontal {
+  --gtc-slider-thumb-icon-length: 30px;
+  --gtc-slider-thumb-icon-border-width: 2px;
+  --gtc-slider-thumb-icon-border-radius: 4px;
+  --gtc-slider-thumb-icon-ridge-length: 22px;
+}
+
+.gtc-vertical {
+  --gtc-slider-thumb-icon-length: 16px;
+  --gtc-slider-thumb-icon-border-width: 1px;
+  --gtc-slider-thumb-icon-border-radius: 2px;
+  --gtc-slider-thumb-icon-ridge-length: 11px;
+}
+
+.gtc-slider-thumb-icon {
+  width: 100%;
+  height: 100%;
+  border: var(--gtc-slider-thumb-icon-border-width) solid #00fefe;
+  border-radius: var(--gtc-slider-thumb-icon-border-radius);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.gtc-slider-thumb-icon-horizontal {
+  background: linear-gradient(to bottom, #008f8f 0%, #00c1c1 8.5%, #00f1f1 20%, #00fefe 28%, #009090 100%);
+  flex-flow: column nowrap;
+  --gtc-slider-thumb-icon-ridge-width: var(--gtc-slider-thumb-icon-ridge-length);
+  --gtc-slider-thumb-icon-ridge-height: 0px;
+}
+
+.gtc-slider-thumb-icon-vertical {
+  background: linear-gradient(to right, #008f8f 0%, #00c1c1 8.5%, #00f1f1 20%, #00fefe 28%, #009090 100%);
+  flex-flow: row nowrap;
+  --gtc-slider-thumb-icon-ridge-width: 0px;
+  --gtc-slider-thumb-icon-ridge-height: var(--gtc-slider-thumb-icon-ridge-length);
+}
+
+.gtc-slider-thumb-icon-vertical .gtc-slider-thumb-icon-ridge {
+  border-left: 3px ridge #00fefe;
+}
+
+.gtc-slider-thumb-icon-horizontal .gtc-slider-thumb-icon-ridge {
+  border-top: 3px ridge #00fefe;
+}
+
+.gtc-slider-thumb-icon-ridge {
+  width: var(--gtc-slider-thumb-icon-ridge-width);
+  height: var(--gtc-slider-thumb-icon-ridge-height);
+}

@@ -1,0 +1,26 @@
+.n2display-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 5px;
+  width: 100%;
+  margin: auto;
+}
+
+.n2display-box {
+  color: var(--wt21-colors-green);
+  font-size: 24px;
+  line-height: 19px;
+  text-align: right;
+  border: 1px solid white;
+  padding: 7px 1px 3px 3px;
+  width: 71px;
+}
+
+.n2display-title {
+  font-size: 20px;
+  line-height: 16px;
+  text-align: center;
+  width: 50px;
+  white-space: nowrap;
+}

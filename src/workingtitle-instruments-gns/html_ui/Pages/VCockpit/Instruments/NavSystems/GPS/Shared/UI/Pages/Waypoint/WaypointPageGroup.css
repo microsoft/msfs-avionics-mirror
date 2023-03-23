@@ -1,0 +1,135 @@
+.waypoint-page {
+  background-color: var(--gnsblue);
+  padding: 0 1px 3px 3px;
+}
+
+.waypoint-page-header {
+  display: flex;
+  align-items: center;
+  height: 18px;
+  margin-bottom: 2px;
+}
+
+wt-gns430 .waypoint-page-header {
+  height: 21px;
+}
+
+.waypoint-page-header>span {
+  font-size: 10px;
+  display: inline-block;
+  margin: 0 6px 0 2px;
+}
+
+.waypoint-page-done {
+  font-size: 17px;
+  padding-top: 1px;
+  padding-left: 1px;
+  padding-right: 1px;
+  height: 16px;
+  margin-top: 1px;
+  margin-left: 1.5em;
+}
+
+wt-gns530 .waypoint-page-inputbox {
+  display: inline-block;
+  border: 1px solid var(--gnscyan);
+  width: 158px;
+  height: 100%;
+  background-color: black;
+  color: var(--gnsgreen);
+  vertical-align: top;
+  padding: 1px;
+}
+
+wt-gns430 .waypoint-page-inputbox {
+  display: inline-block;
+  border: 1px solid var(--gnscyan);
+  width: 174px;
+  height: 100%;
+  background-color: black;
+  color: var(--gnsgreen);
+  vertical-align: top;
+  padding: 1px;
+}
+
+.waypoint-page-title {
+  padding-top: 1px;
+}
+
+.waypoint-page-ident {
+  height: 21px;
+  width: 150px;
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: 14px;
+  border: .8px solid var(--gnscyan);
+  display: inline-block;
+  margin-top: 1px;
+}
+
+.waypoint-page-ident-input {
+  display: inline-block;
+  width: 78px;
+}
+
+.waypoint-page-icon {
+  width: 14px;
+  height: 14px;
+  overflow: hidden;
+  display: inline-block;
+  margin-left: -7px;
+}
+
+.waypoint-page-privacy {
+  float: right;
+  width: 55px;
+  font-size: var(--gns-font-page-data);
+}
+
+.waypoint-page-body {
+  display: flex;
+}
+
+.waypoint-page-map {
+  flex: 5;
+  border: 1px solid var(--gnscyan);
+  height: 100%;
+  background-color: black;
+  height: 194px;
+  position: relative;
+  overflow: hidden;
+}
+
+.waypoint-page-selectors {
+  flex: 2;
+  position: relative;
+  padding-top: 18px;
+}
+
+.approach>.waypoint-page-selector-box {
+  height: 36px;
+  letter-spacing: -.04em;
+}
+
+.transition>.waypoint-page-selector-box {
+  letter-spacing: -.04em;
+}
+
+.waypoint-page-selectors .dialog-box {
+  position: fixed;
+  min-width: unset;
+  right: 60px;
+  text-align: left;
+}
+
+.latlon-lat>.latlon-prefix {
+  padding-right: 4px;
+}
+
+.latlon-prefix {
+  display: inline-block;
+}
+
+.latlon-num {
+  display: inline-block;
+}

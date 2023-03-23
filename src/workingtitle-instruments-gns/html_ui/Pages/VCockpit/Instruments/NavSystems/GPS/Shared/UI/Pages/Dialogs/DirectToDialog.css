@@ -1,0 +1,416 @@
+wt-gns530 .dto-dialog {
+  width: 222px;
+  height: 190px;
+}
+
+wt-gns430 .dto-dialog>.alpha-num-kb-icon {
+  margin: 0 2px;
+  margin-left: 60px;
+  position: absolute;
+  margin-top: -15px;
+}
+
+
+wt-gns430 .dto-dialog {
+  width: 277px;
+  text-align: center;
+  background-color: var(--gnsblue);
+  color: white;
+  font-size: 21px;
+  padding: 3px;
+  border-style: outset !important;
+  border-top: -0px solid rgba(204, 187, 35, 0) !important;
+  border-right: -0px solid rgba(204, 187, 35, 0) !important;
+  border-bottom: -0px solid rgba(204, 187, 35, 0) !important;
+  border-left: -0px solid rgba(204, 187, 35, 0) !important;
+  margin-top: -15px;
+  margin-left: -25px;
+  margin-bottom: -15px;
+  height: 174px;
+}
+
+wt-gns430 .div>.dto-dialog {
+  width: 277px;
+  text-align: center;
+  background-color: var(--gnsblue);
+  color: white;
+  font-size: 21px;
+  padding: 3px;
+  border-style: outset !important;
+  border-top: -0px solid rgba(204, 187, 35, 0) !important;
+  border-right: -0px solid rgba(204, 187, 35, 0) !important;
+  border-bottom: -0px solid rgba(204, 187, 35, 0) !important;
+  border-left: -0px solid rgba(204, 187, 35, 0) !important;
+  margin-top: -15px;
+  margin-left: -25px;
+  margin-bottom: -15px;
+  height: 173px;
+}
+
+
+wt-gns430 .h2>.white {
+  font-size: 13px;
+}
+
+
+wt-gns430 .dialog-box-inner>.h2 {
+  font-size: 13px;
+}
+
+wt-gns430 h2>.white>.dialog-box-inner>.h2 {
+  font-size: 13px;
+}
+
+wt-gns430 .white {
+  font-size: 13px;
+}
+
+wt-gns530 .dto-title-icon {
+  width: 17px;
+  margin: 0 .35em;
+}
+
+wt-gns430 .dto-title-icon {
+  width: 18px;
+  margin: 0 .35em;
+}
+
+wt-gns530 .dto-separator {
+  height: 0;
+  border-top: 1px solid cyan;
+  margin: .5em .4em;
+}
+
+wt-gns430 .dto-separator {
+  height: 0;
+  margin: .5em .4em;
+}
+
+wt-gns430 .hide-title {
+  visibility: hidden;
+}
+
+wt-gns530 .dto-waypoint-info {
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+wt-gns430 .dto-waypoint-info {
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-top: -14px;
+}
+
+.dto-waypoint-info>div {
+  background-color: black;
+  color: #0f0;
+  border: 1px solid cyan;
+  padding: 2px;
+  width: 218px;
+  height: 56px;
+}
+
+
+wt-gns430 .dto-waypoint-info>div {
+  background-color: black;
+  color: #0f0;
+  border: 1px solid cyan;
+  padding: 2px;
+  width: 262px;
+  height: 65px;
+}
+
+.dto-waypoint-info>h2 {
+  margin-left: 3px;
+}
+
+.dto-waypoint-info-input {
+  display: inline-block;
+  height: 15px;
+
+}
+
+wt-gns430 .alpha-num-input.dto-waypoint-info-input {
+  --alpha-num-input-width: 60px !important;
+}
+
+wt-gns530 .dto-waypoint-info-input>div {
+  display: inline-block;
+
+}
+
+wt-gns430 .dto-waypoint-info-input>div {
+  display: inline-block;
+}
+
+.dto-waypoint-info-icon {
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  vertical-align: top;
+  overflow: hidden;
+  display: inline-block;
+}
+
+wt-gns530 .dto-waypoint-info-region {
+  margin-left: 8px;
+  width: 125px;
+  display: inline-block;
+  vertical-align: top;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+wt-gns430 .dto-waypoint-info-region {
+  margin-left: 8px;
+  width: 150px;
+  display: inline-block;
+  vertical-align: top;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.dto-waypoint-info-name,
+.dto-waypoint-info-city {
+  height: 16px;
+  overflow: hidden;
+}
+
+wt-gns430 .dto-waypoint-info-name,
+.dto-waypoint-info-city {
+  height: 19px;
+}
+
+.dto-waypoint-info-identbox {
+  margin-bottom: 4px;
+}
+
+wt-gns530 .dto-waypoint-info-posbox {
+  width: 126px !important;
+  grid-row: span 2;
+  display: inline-block;
+  height: 40px;
+  margin-bottom: 4px;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+wt-gns430 .dto-waypoint-info-posbox {
+  width: 146px !important;
+  grid-row: span 2;
+  display: inline-block;
+  height: 48px;
+  margin-bottom: 4px;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+wt-gns530 .dto-waypoint-info-posbox>.latlon-coord {
+  text-align: right;
+  margin-right: 17px;
+  margin-top: 2px;
+  line-height: 17px;
+}
+
+wt-gns430 .dto-waypoint-info-posbox>.latlon-coord {
+  text-align: right;
+  margin-right: 17px;
+  margin-top: 5px;
+  line-height: 17px;
+}
+
+wt-gns530 .dto-middle-container {
+  display: flex;
+  align-items: center;
+}
+
+wt-gns430 .dto-middle-container {
+  display: flex;
+  align-items: center;
+  margin-top: -5px;
+  width: 265px;
+}
+
+wt-gns530 .dto-fpln-title {
+  margin-left: .3em
+}
+
+wt-gns430 .dto-fpln-title {
+  font-size: 13px;
+}
+
+wt-gns530 .dto-fpln {
+  width: 74px;
+  height: 21px;
+  margin-left: .2em;
+  margin-right: 1em;
+}
+
+wt-gns430 .dto-fpln {
+  width: 74px;
+  height: 23px;
+  margin-left: .2em;
+  margin-right: 1em;
+}
+
+wt-gns530 .dto-fpln-nrst-inside {
+  position: absolute;
+  margin-top: 2px;
+  margin-left: -34px;
+}
+
+wt-gns430 .dto-fpln-nrst-inside {
+  position: absolute;
+  margin-top: 2px;
+  margin-left: -34px;
+  height: 18px;
+}
+
+wt-gns530 .dto-nrst-title {
+  margin-left: auto;
+  margin-right: .2em
+}
+
+wt-gns430 .dto-nrst-title {
+  margin-left: auto;
+  margin-right: .2em;
+  font-size: 14px;
+}
+
+wt-gns430 .h2>.cyan>.dto-nrst-title {
+  margin-left: auto;
+  margin-right: .2em;
+  font-size: 14px;
+}
+
+
+wt-gns530 .dto-nrst {
+  width: 74px;
+  height: 21px;
+  margin-left: .2em;
+  margin-right: 3px;
+}
+
+wt-gns430 .dto-nrst {
+  width: 74px;
+  height: 23px;
+  margin-left: .2em;
+  margin-right: 3px;
+}
+
+
+wt-gns530 .dto-bottom-container {
+  display: grid;
+  grid-template-columns: 5fr 3fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  grid-column-gap: 1.2em;
+  text-align: left;
+  height: 42px;
+}
+
+wt-gns430 .dto-bottom-container {
+  display: grid;
+  grid-template-columns: 5fr 3fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  grid-column-gap: 1.2em;
+  text-align: left;
+  height: 42px;
+  margin-top: -15px;
+  width: 288px;
+}
+
+wt-gns430 .h2>.cyan>.crs-position {
+  font-size: 14px;
+}
+
+.dto-bottom-container h2 {
+  margin-left: 4px;
+}
+
+.dto-course {
+  display: flex;
+  align-items: center;
+  width: 74px !important;
+  padding-left: 1px;
+  padding-right: 1px;
+  height: 23px;
+}
+
+wt-gns530 .dto-activate-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-top: 3px;
+  margin-left: 1px;
+  padding: 1px;
+}
+
+wt-gns430 .dto-activate-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-top: 3px;
+  margin-left: -17px;
+  padding: 1px;
+}
+
+.dto-flight-plan-waypoints-dialog {
+
+  margin-left: -35px;
+  margin-top: 55px;
+}
+
+.dto-flight-plan-waypoints-dialog>.dialog-box>.dialog-box-inner>.ui-control-list {
+  height: 50px;
+  overflow-y: scroll;
+}
+
+.dto-flight-plan-waypoints-dialog>.dialog-box>.dialog-box-inner>.ui-control-list>.scroll-bar {
+  top: 25px;
+  right: 4px;
+}
+
+.dialog-box>.dialog-box-inner>.ui-control-list>.scroll-bar {
+  top: 0px;
+}
+
+.dto-dialog>.ui-control-list>.scroll-bar {
+  top: 30px;
+  right: 1px;
+}
+
+.dto-nearest-airport-dialog {
+  margin-left: 60px;
+  margin-top: 55px;
+  width: 35px;
+}
+
+.dto-nearest-airport-dialog>.dialog-box>.dialog-box-inner>.ui-control-list {
+  height: 50px;
+  overflow-y: scroll;
+}
+
+.dto-nearest-airport-dialog>.dialog-box>.dialog-box-inner>.ui-control-list>.scroll-bar {
+  top: 25px;
+  right: -30px;
+}
+
+wt-gns430 .crs-position {
+  left: -35px;
+  top: 18px;
+  position: relative;
+  font-size: 14px;
+}
+
+wt-gns430 .white-box {
+  width: 6px;
+  top: 177px;
+  right: 99px;
+  height: 12px;
+  background: white;
+  position: absolute;
+}

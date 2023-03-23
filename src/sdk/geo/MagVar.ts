@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/Coherent/Facilities" />
+/// <reference types="@microsoft/msfs-types/coherent/facilities" />
 
 import { LatLonInterface } from './GeoInterfaces';
 import { NavMath } from './NavMath';

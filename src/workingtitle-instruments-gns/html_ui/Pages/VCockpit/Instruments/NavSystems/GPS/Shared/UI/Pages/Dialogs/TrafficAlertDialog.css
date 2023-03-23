@@ -1,0 +1,29 @@
+.tfc-alert-dialog {
+  font-size: 10px;
+  color: var(--gnscyan);
+}
+
+.wt430 .tfc-alert-dialog {
+  font-size: 14px;
+}
+
+.tfc-alert-dialog-button {
+  border: 1px solid var(--gnscyan);
+  padding: 1px;
+  display: inline-block;
+  vertical-align: middle;
+  margin: 1px 0px;
+}
+
+.tfc-alert-dialog-map {
+  width: 120px;
+  height: 120px;
+  background-color: black;
+  margin: 0 auto;
+  position: relative;
+}
+
+.wt430 .tfc-alert-dialog-map {
+  width: 130px;
+  height: 114px;
+}

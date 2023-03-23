@@ -1,8 +1,8 @@
 import {
-  AhrsEvents, AvionicsSystemState, AvionicsSystemStateEvent, BaseAhrsEvents, BasicAvionicsSystem, EventBus, Subscription,
+  AhrsEvents, AvionicsSystemState, AvionicsSystemStateEvent, BaseAhrsEvents, BasicAvionicsSystem, EventBus, EventBusMetaEvents, Subscription,
   SystemPowerKey
-} from 'msfssdk';
-
+} from '@microsoft/msfs-sdk';
+import { AdcSystemEvents } from './AdcSystem';
 import { MagnetometerSystemEvents } from './MagnetometerSystem';
 
 /**
@@ -13,24 +13,49 @@ type AhrsDataEvents = {
 };
 
 /**
- * Events published by the AHRS system.
+ * Events published by AHRS systems.
  */
 export interface AhrsSystemEvents extends AhrsDataEvents {
-  /** An event fired when the AHRS system state changes. */
+  /** An event fired when an AHRS system state changes. */
   [ahrs_state: `ahrs_state_${number}`]: AvionicsSystemStateEvent;
+
+  /** An event fired when the heading data state of an AHRS system changes. */
+  [ahrs_heading_data_valid: `ahrs_heading_data_valid_${number}`]: boolean;
+
+  /** An event fired when the attitude data state of an AHRS system changes. */
+  [ahrs_attitude_data_valid: `ahrs_attitude_data_valid_${number}`]: boolean;
 }
 
 /**
  * A Garmin AHRS system.
  */
 export class AhrsSystem extends BasicAvionicsSystem<AhrsSystemEvents> {
-
   protected initializationTime = 45000;
-  private magState: AvionicsSystemState | undefined;
+
+  private magnetometerState: AvionicsSystemState | undefined = undefined;
+  private adcState: AvionicsSystemState | undefined = undefined;
+  // TODO: add GPS data state
+
+  private isHeadingDataValid = true;
+  private isAttitudeDataValid = true;
 
   private readonly rollSub = this.bus.getSubscriber<AhrsEvents>().on('roll_deg').whenChanged().handle(this.onRollChanged.bind(this), true);
 
-  private readonly dataSubs: Subscription[] = [];
+  private readonly headingDataSourceTopicMap = {
+    [`ahrs_hdg_deg_${this.index}`]: `hdg_deg_${this.directionIndicatorIndex}`,
+    [`ahrs_hdg_deg_true_${this.index}`]: `hdg_deg_true_${this.directionIndicatorIndex}`
+  } as const;
+  private readonly attitudeDataSourceTopicMap = {
+    [`ahrs_delta_heading_rate_${this.index}`]: `delta_heading_rate_${this.attitudeIndicatorIndex}`,
+    [`ahrs_pitch_deg_${this.index}`]: `pitch_deg_${this.attitudeIndicatorIndex}`,
+    [`ahrs_roll_deg_${this.index}`]: `roll_deg_${this.attitudeIndicatorIndex}`,
+    [`ahrs_turn_coordinator_ball_${this.index}`]: 'turn_coordinator_ball'
+  } as const;
+
+  private readonly dataSourceSubscriber = this.bus.getSubscriber<AhrsEvents>();
+
+  private readonly headingDataSubs: Subscription[] = [];
+  private readonly attitudeDataSubs: Subscription[] = [];
 
   /**
    * Creates an instance of an AHRS system.
@@ -46,18 +71,29 @@ export class AhrsSystem extends BasicAvionicsSystem<AhrsSystemEvents> {
     bus: EventBus,
     private readonly attitudeIndicatorIndex: number,
     private readonly directionIndicatorIndex: number,
-    powerSource?: SystemPowerKey | CompositeLogicXMLElement,
+    private readonly powerSource?: SystemPowerKey | CompositeLogicXMLElement,
   ) {
     super(index, bus, `ahrs_state_${index}` as const);
 
-    if (powerSource !== undefined) {
-      this.connectToPower(powerSource);
+    if (this.powerSource !== undefined) {
+      this.connectToPower(this.powerSource);
     }
+
+    this.publisher.pub(`ahrs_heading_data_valid_${index}`, this.isHeadingDataValid);
+    this.publisher.pub(`ahrs_attitude_data_valid_${index}`, this.isAttitudeDataValid);
 
     this.bus.getSubscriber<MagnetometerSystemEvents>()
       .on(`magnetometer_state_${index}`)
       .handle(evt => {
-        this.onUpstreamStatesChanged(this.isPowered, evt.current);
+        this.magnetometerState = evt.current;
+        this.updateHeadingDataState();
+      });
+
+    this.bus.getSubscriber<AdcSystemEvents>()
+      .on(`adc_state_${index}`)
+      .handle(evt => {
+        this.adcState = evt.current;
+        this.updateAttitudeDataState();
       });
 
     this.startDataPublish();
@@ -65,73 +101,129 @@ export class AhrsSystem extends BasicAvionicsSystem<AhrsSystemEvents> {
 
   /** @inheritdoc */
   protected onPowerChanged(isPowered: boolean): void {
-    this.onUpstreamStatesChanged(isPowered, this.magState);
-  }
+    const wasPowered = this.isPowered;
 
-  /**
-   * Starts publishing AHRS data on the event bus.
-   */
-  private startDataPublish(): void {
-    const sub = this.bus.getSubscriber<AhrsEvents>();
-    const pub = this.bus.getPublisher<AhrsSystemEvents>();
-    const paused = this.state === AvionicsSystemState.Failed || this.state === AvionicsSystemState.Off;
+    this.isPowered = isPowered;
 
-    this.dataSubs.push(sub.on(`hdg_deg_${this.directionIndicatorIndex}`).handle(val => { pub.pub(`ahrs_hdg_deg_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on(`hdg_deg_true_${this.directionIndicatorIndex}`).handle(val => { pub.pub(`ahrs_hdg_deg_true_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on(`delta_heading_rate_${this.attitudeIndicatorIndex}`).handle(val => { pub.pub(`ahrs_delta_heading_rate_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on(`pitch_deg_${this.attitudeIndicatorIndex}`).handle(val => { pub.pub(`ahrs_pitch_deg_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on(`roll_deg_${this.attitudeIndicatorIndex}`).handle(val => { pub.pub(`ahrs_roll_deg_${this.index}`, val); }, paused));
-
-    this.dataSubs.push(sub.on('turn_coordinator_ball').handle(val => { pub.pub(`ahrs_turn_coordinator_ball_${this.index}`, val); }, paused));
-  }
-
-  /** @inheritdoc */
-  protected onStateChanged(previousState: AvionicsSystemState | undefined, currentState: AvionicsSystemState): void {
-    if (currentState === AvionicsSystemState.Failed || currentState === AvionicsSystemState.Off) {
-      for (const sub of this.dataSubs) {
-        sub.pause();
-      }
-    } else {
-      for (const sub of this.dataSubs) {
-        sub.resume(true);
-      }
-    }
-  }
-
-  /**
-   * A callback called when changes occur in this system's upstream states.
-   * @param isPowered Whether or not the AHRS is powered.
-   * @param magState The current state of the magnetometer.
-   */
-  private onUpstreamStatesChanged(isPowered: boolean | undefined, magState: AvionicsSystemState | undefined): void {
-    if (this.isPowered === undefined || this.magState === undefined) {
-      if (isPowered && magState === AvionicsSystemState.On) {
-        this.setState(AvionicsSystemState.On);
-      }
+    if (wasPowered === undefined) {
+      this.setState(isPowered ? AvionicsSystemState.On : AvionicsSystemState.Off);
     } else {
       if (isPowered) {
-        if (magState === AvionicsSystemState.On) {
-          this.setState(AvionicsSystemState.Initializing);
-          this.rollSub.resume(true);
+        this.setState(AvionicsSystemState.Initializing);
+        this.rollSub.resume(true);
 
-          this.initializationTimer.schedule(() => {
-            this.rollSub.pause();
-            this.setState(AvionicsSystemState.On);
-          }, 45000);
-        } else {
+        this.initializationTimer.schedule(() => {
           this.rollSub.pause();
-          this.initializationTimer.clear();
-          this.setState(AvionicsSystemState.Failed);
-        }
+          this.setState(AvionicsSystemState.On);
+        }, 45000);
       } else {
         this.rollSub.pause();
         this.initializationTimer.clear();
         this.setState(AvionicsSystemState.Off);
       }
     }
+  }
 
-    this.isPowered = isPowered;
-    this.magState = magState;
+  /**
+   * Starts publishing AHRS data on the event bus.
+   */
+  private startDataPublish(): void {
+    for (const topic of Object.keys(this.headingDataSourceTopicMap)) {
+      if (this.bus.getTopicSubscriberCount(topic) > 0) {
+        this.onHeadingTopicSubscribed(topic as keyof AhrsDataEvents);
+      }
+    }
+
+    for (const topic of Object.keys(this.attitudeDataSourceTopicMap)) {
+      if (this.bus.getTopicSubscriberCount(topic) > 0) {
+        this.onAttitudeTopicSubscribed(topic as keyof AhrsDataEvents);
+      }
+    }
+
+    this.bus.getSubscriber<EventBusMetaEvents>().on('event_bus_topic_first_sub').handle(topic => {
+      if (topic in this.headingDataSourceTopicMap) {
+        this.onHeadingTopicSubscribed(topic as keyof AhrsDataEvents);
+      } else if (topic in this.attitudeDataSourceTopicMap) {
+        this.onAttitudeTopicSubscribed(topic as keyof AhrsDataEvents);
+      }
+    });
+  }
+
+  /**
+   * Responds to when someone first subscribes to one of this system's heading data topics on the event bus.
+   * @param topic The topic that was subscribed to.
+   */
+  private onHeadingTopicSubscribed(topic: keyof AhrsDataEvents): void {
+    this.headingDataSubs.push(this.dataSourceSubscriber.on(this.headingDataSourceTopicMap[topic]).handle(val => {
+      this.publisher.pub(topic, val, false, true);
+    }, !this.isHeadingDataValid));
+  }
+
+  /**
+   * Responds to when someone first subscribes to one of this system's attitude data topics on the event bus.
+   * @param topic The topic that was subscribed to.
+   */
+  private onAttitudeTopicSubscribed(topic: keyof AhrsDataEvents): void {
+    this.attitudeDataSubs.push(this.dataSourceSubscriber.on(this.attitudeDataSourceTopicMap[topic]).handle(val => {
+      this.publisher.pub(topic, val, false, true);
+    }, !this.isAttitudeDataValid));
+  }
+
+  /** @inheritdoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected onStateChanged(previousState: AvionicsSystemState | undefined, currentState: AvionicsSystemState): void {
+    this.updateHeadingDataState();
+    this.updateAttitudeDataState();
+  }
+
+  /**
+   * Updates the validity state of this system's heading data. If heading data is valid, this system will start
+   * publishing heading data. If heading data is invalid, this system will stop publishing heading data.
+   */
+  private updateHeadingDataState(): void {
+    const isHeadingDataValid = (this._state === undefined || this._state === AvionicsSystemState.On)
+      && (this.magnetometerState === undefined || this.magnetometerState === AvionicsSystemState.On);
+
+    if (isHeadingDataValid !== this.isHeadingDataValid) {
+      this.isHeadingDataValid = isHeadingDataValid;
+
+      if (isHeadingDataValid) {
+        for (const sub of this.headingDataSubs) {
+          sub.resume(true);
+        }
+      } else {
+        for (const sub of this.headingDataSubs) {
+          sub.pause();
+        }
+      }
+
+      this.publisher.pub(`ahrs_heading_data_valid_${this.index}`, this.isHeadingDataValid, false, true);
+    }
+  }
+
+  /**
+   * Updates the validity state of this system's attitude data. If attitude data is valid, this system will start
+   * publishing attitude data. If attitude data is invalid, this system will stop publishing attitude data.
+   */
+  private updateAttitudeDataState(): void {
+    const isAttitudeDataValid = (this._state === undefined || this._state === AvionicsSystemState.On);
+    // TODO: add logic for no-ADC and no-GPS reversionary modes
+
+    if (isAttitudeDataValid !== this.isAttitudeDataValid) {
+      this.isAttitudeDataValid = isAttitudeDataValid;
+
+      if (isAttitudeDataValid) {
+        for (const sub of this.attitudeDataSubs) {
+          sub.resume(true);
+        }
+      } else {
+        for (const sub of this.attitudeDataSubs) {
+          sub.pause();
+        }
+      }
+
+      this.publisher.pub(`ahrs_attitude_data_valid_${this.index}`, this.isAttitudeDataValid, false, true);
+    }
   }
 
   /**

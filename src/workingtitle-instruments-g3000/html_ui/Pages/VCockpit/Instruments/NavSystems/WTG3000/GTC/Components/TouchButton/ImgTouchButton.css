@@ -1,0 +1,18 @@
+html {
+  --touch-button-img-img-center-y: 31.25%;
+  --touch-button-img-label-center-y: 76.5%;
+}
+
+.touch-button-img>.touch-button-label {
+  top: var(--touch-button-img-label-center-y);
+  z-index: 1;
+}
+
+.touch-button-img-img {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: var(--touch-button-img-img-center-y);
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}

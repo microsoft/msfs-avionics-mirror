@@ -1,0 +1,84 @@
+div.terrain-map-page {
+  position: relative;
+  padding: unset;
+}
+
+.terrain-map-container {
+  position: relative;
+  width: 255px;
+  height: 217px;
+  overflow: hidden;
+}
+
+wt-gns530 .terrain-map-name {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  background-color: black;
+  color: var(--gnscyan);
+  font-size: 10px;
+  padding-top: 1px;
+}
+
+wt-gns430 .terrain-map-name {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  background-color: black;
+  color: var(--gnscyan);
+  font-size: 10px;
+  padding-top: 1px;
+}
+
+.wt430 .terrain-map-name,
+.wt430 .terrain-map-trk,
+.wt430 .terrain-map-gsl label {
+  font-size: 14px;
+}
+
+.terrain-map-trk {
+  position: absolute;
+  top: 5px;
+  left: 128px;
+  background-color: black;
+  color: var(--gnscyan);
+  font-size: 10px;
+  padding-top: 1px;
+}
+
+.wt430 .terrain-map-trk {
+  left: 156px;
+}
+
+.terrain-map-gsl {
+  position: absolute;
+  padding-top: 2px;
+  top: 0px;
+  right: 0px;
+  height: 24px;
+  background-color: black;
+  font-size: 14px;
+  color: var(--gnsgreen);
+}
+
+.wt430 .terrain-map-gsl {
+  font-size: 18px;
+  height: 34px;
+}
+
+.terrain-map-gsl label {
+  display: block;
+  text-align: center;
+  font-size: 10px;
+  color: var(--gnscyan);
+}
+
+.terrain-map-compass {
+  stroke: var(--gnscyan);
+  fill: none;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 255px;
+  height: 217px;
+}

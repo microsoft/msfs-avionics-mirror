@@ -1,7 +1,7 @@
 import { GeoPoint } from '../geo/GeoPoint';
 import { NavMath } from '../geo/NavMath';
 import { UnitType } from '../math/NumberUnit';
-import { AirportFacility, AirportRunway, ApproachProcedure, FacilityFrequency, OneWayRunway, RunwayFacility, RunwaySurfaceType } from './Facilities';
+import { AirportFacility, AirportRunway, ApproachProcedure, FacilityFrequency, OneWayRunway, RunwayFacility, RunwayLightingType, RunwaySurfaceType } from './Facilities';
 
 export enum RunwaySurfaceCategory {
   Unknown = 1 << 0,
@@ -92,12 +92,32 @@ export class RunwayUtils {
       runwayDesignator: RunwayDesignator.RUNWAY_DESIGNATOR_NONE,
       course: 0,
       elevation: 0,
+      elevationEnd: 0,
+      gradient: 0,
       latitude: 0,
       longitude: 0,
       length: 0,
+      width: 0,
       startThresholdLength: 0,
-      endThresholdLength: 0
+      endThresholdLength: 0,
+      surface: RunwaySurfaceType.Concrete,
+      lighting: RunwayLightingType.Unknown
     };
+  }
+
+  /**
+   * Utility method to return all of the one-way runways from a single airport facility
+   * @param airport is the Airport Facility to evaluate
+   * @returns all of the one-way runways in the airport facility, sorted.
+   */
+  public static getOneWayRunwaysFromAirport(airport: AirportFacility): OneWayRunway[] {
+    const runways: OneWayRunway[] = [];
+    airport.runways.map((r, i) => RunwayUtils.getOneWayRunways(r, i)).forEach(d => {
+      runways.push(d[0]);
+      runways.push(d[1]);
+    });
+    runways.sort(RunwayUtils.sortRunways);
+    return runways;
   }
 
   /**
@@ -116,6 +136,7 @@ export class RunwayUtils {
       let course = 0;
       let thresholdDistanceFromCenter = 0;
       let thresholdElevation = 0;
+      let endThresholdElevation = 0;
       let ilsFrequency;
       let startThresholdLength = 0, endThresholdLength = 0;
       if (i === 0) {
@@ -123,6 +144,7 @@ export class RunwayUtils {
         course = runway.direction;
         thresholdDistanceFromCenter = (runway.length / 2) - runway.primaryThresholdLength;
         thresholdElevation = runway.primaryElevation;
+        endThresholdElevation = runway.secondaryElevation;
         ilsFrequency = runway.primaryILSFrequency.freqMHz === 0 ? undefined : runway.primaryILSFrequency;
         startThresholdLength = runway.primaryThresholdLength;
         endThresholdLength = runway.secondaryThresholdLength;
@@ -131,6 +153,7 @@ export class RunwayUtils {
         course = NavMath.normalizeHeading(runway.direction + 180);
         thresholdDistanceFromCenter = (runway.length / 2) - runway.secondaryThresholdLength;
         thresholdElevation = runway.secondaryElevation;
+        endThresholdElevation = runway.primaryElevation;
         ilsFrequency = runway.secondaryILSFrequency.freqMHz === 0 ? undefined : runway.secondaryILSFrequency;
         startThresholdLength = runway.secondaryThresholdLength;
         endThresholdLength = runway.primaryThresholdLength;
@@ -148,15 +171,38 @@ export class RunwayUtils {
         runwayDesignator: designator,
         course,
         elevation: thresholdElevation,
+        elevationEnd: endThresholdElevation,
+        gradient: (endThresholdElevation - thresholdElevation) / (runway.length - startThresholdLength - endThresholdLength) * 100,
         latitude: coordinates.lat,
         longitude: coordinates.lon,
         ilsFrequency,
         length: runway.length,
+        width: runway.width,
         startThresholdLength,
-        endThresholdLength
+        endThresholdLength,
+        surface: runway.surface,
+        lighting: runway.lighting
       });
     }
     return splitRunways;
+  }
+
+  /**
+   * Gets a name for a paired runway. Names are formatted as dash-separated pairs of directional (one-way) runway
+   * designations, with optional leading zero padding of the runway numbers. If the specified runway is not paired,
+   * then the name will be the designation of the primary runway only.
+   * @param runway A paired runway.
+   * @param padded Whether the runway numbers should be padded with leading zeroes. Defaults to `true`.
+   * @returns The name for the specified paired runway.
+   */
+  public static getRunwayPairNameString(runway: AirportRunway, padded = true): string {
+    const pad = padded ? 2 : 0;
+    const dashIndex = runway.designation.search('-');
+
+    const primary = `${(dashIndex < 0 ? runway.designation : runway.designation.substring(0, dashIndex)).padStart(pad)}${RunwayUtils.getDesignatorLetter(runway.designatorCharPrimary)}`;
+    const secondary = dashIndex < 0 ? '' : `-${runway.designation.substring(dashIndex + 1).padStart(pad)}${RunwayUtils.getDesignatorLetter(runway.designatorCharSecondary)}`;
+
+    return primary + secondary;
   }
 
   /**
@@ -174,6 +220,35 @@ export class RunwayUtils {
     }
 
     return prefix + numberText + RunwayUtils.getDesignatorLetter(designator);
+  }
+
+  /**
+   * Gets the primary runway number for a paired runway.
+   * @param runway A paired runway.
+   * @returns The primary runway number for the specified runway.
+   */
+  public static getRunwayNumberPrimary(runway: AirportRunway): number {
+    const dashIndex = runway.designation.search('-');
+    if (dashIndex < 0) {
+      return parseInt(runway.designation);
+    } else {
+      return parseInt(runway.designation.substring(0, dashIndex));
+    }
+  }
+
+  /**
+   * Gets the secondary runway number for a paired runway.
+   * @param runway A paired runway.
+   * @returns The secondary runway number for the specified runway, or `undefined` if the runway has no secondary
+   * runway.
+   */
+  public static getRunwayNumberSecondary(runway: AirportRunway): number | undefined {
+    const dashIndex = runway.designation.search('-');
+    if (dashIndex < 0) {
+      return undefined;
+    } else {
+      return parseInt(runway.designation.substring(dashIndex + 1));
+    }
   }
 
   /**
@@ -396,12 +471,13 @@ export class RunwayUtils {
 
   /**
    * Gets the ICAO string for the runway facility associated with a one-way runway.
-   * @param airport The runway's parent airport.
+   * @param airport The runway's parent airport, or the ICAO of the airport.
    * @param runway A one-way runway.
    * @returns the ICAO string for the runway facility associated with the one-way runway.
    */
-  public static getRunwayFacilityIcao(airport: AirportFacility, runway: OneWayRunway): string {
-    return `R  ${airport.icao.substr(7, 4)}RW${runway.designation.padEnd(3, ' ')}`;
+  public static getRunwayFacilityIcao(airport: AirportFacility | string, runway: OneWayRunway): string {
+    const icao = typeof airport === 'string' ? airport : airport.icao;
+    return `R  ${icao.substring(7, 11)}RW${runway.designation.padEnd(3, ' ')}`;
   }
 
   /**
@@ -434,16 +510,18 @@ export class RunwayUtils {
   }
 
   /**
-   * Gets the runway surface category from a runway based on its surface type.
-   * @param runway An {@link AirportRunway}.
-   * @returns The surface category of that runway.
+   * Gets the runway surface category from a runway or runway surface type.
+   * @param runway A runway or runway surface type.
+   * @returns The surface category of the specified runway or runway surface type.
    */
-  public static getSurfaceCategory(runway: AirportRunway): RunwaySurfaceCategory {
-    if (this.SURFACES_HARD.includes(runway.surface)) {
+  public static getSurfaceCategory(runway: AirportRunway | OneWayRunway | RunwaySurfaceType): RunwaySurfaceCategory {
+    const surface = typeof runway === 'object' ? runway.surface : runway;
+
+    if (this.SURFACES_HARD.includes(surface)) {
       return RunwaySurfaceCategory.Hard;
-    } else if (this.SURFACES_SOFT.includes(runway.surface)) {
+    } else if (this.SURFACES_SOFT.includes(surface)) {
       return RunwaySurfaceCategory.Soft;
-    } else if (this.SURFACES_WATER.includes(runway.surface)) {
+    } else if (this.SURFACES_WATER.includes(surface)) {
       return RunwaySurfaceCategory.Water;
     } else {
       return RunwaySurfaceCategory.Unknown;

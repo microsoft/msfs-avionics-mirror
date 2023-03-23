@@ -1,0 +1,39 @@
+.obs-dialog {
+  width: 120px;
+  height: 66px;
+}
+
+.obs-dialog-title { /* TODO maybe common to all h2s */
+  margin-top: 1px;
+}
+
+.obs-dialog .aux-table {
+  width: 105px;
+  margin: 1px auto 0;
+  border-color: var(--gnscyan);
+}
+
+.obs-dialog .obs-dialog-table {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 1px;
+}
+
+.obs-dialog .obs-dialog-table-crs {
+  margin-top: .7em;
+  margin-left: 2.8em;
+  margin-right: 3px;
+  font-size: 9px; /* TODO make this h3 ? */
+}
+
+.obs-dialog .obs-dialog-table-from {
+  margin-top: 2px;
+  margin-left: 1px;
+  font-size: 15px;
+}
+
+.obs-dialog .obs-action-text {
+  font-size: 14px;
+  line-height: 14px;
+  margin: 3px auto 0;
+}

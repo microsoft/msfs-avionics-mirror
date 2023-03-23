@@ -1,0 +1,319 @@
+.waypoint-airport-page {
+  background-color: var(--gnsblue);
+  padding: 0 3px 8px 6px;
+  height: 220px;
+}
+
+.waypoint-airport-title {
+  height: 20px;
+  width: 32px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: -2px;
+  margin-top: 4px;
+}
+
+.waypoint-airport-ident {
+  height: 21px;
+  width: 150px;
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: 14px;
+  border: 1.4px solid var(--gnscyan);
+  display: inline-block;
+  margin-top: 1px;
+}
+
+.waypoint-airport-ident-input {
+  display: inline-block;
+  width: 75px;
+}
+
+.waypoint-airport-icon {
+  width: 14px;
+  height: 14px;
+  margin-left: 25px;
+  overflow: hidden;
+  display: inline-block;
+  margin-top: -2px;
+}
+
+.waypoint-airport-privacy {
+  display: inline-block;
+  padding-left: 20px;
+}
+
+.waypoint-airport-location {
+  color: var(--gnscyan);
+  padding-top: 5px;
+  left: 10px;
+  width: 100%;
+  margin-left: 1px;
+}
+
+.waypoint-airport-location>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: 1.4px solid var(--gnscyan);
+  position: relative;
+  margin-left: -1px;
+  line-height: 19px;
+}
+
+wt-gns530 .waypoint-airport-location>div {
+  height: 57px;
+  padding-left: 2px;
+  height: 57px;
+  padding-left: 2px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+
+  white-space: nowrap;
+}
+
+wt-gns430 .waypoint-airport-location>div {
+  height: 41px;
+  padding: 2px;
+}
+
+.waypoint-airport-position {
+  color: var(--gnscyan);
+  left: 10px;
+  margin-left: 1px;
+  float: left;
+}
+
+wt-gns530 .waypoint-airport-position {
+  width: 113px;
+  padding-top: 10px;
+}
+
+wt-gns430 .waypoint-airport-position {
+  width: 128px;
+  padding-top: 5px;
+}
+
+.waypoint-airport-position>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: 1.4px solid var(--gnscyan);
+  margin-left: -1px;
+}
+
+wt-gns530 .waypoint-airport-position>div {
+  height: 35px;
+  padding: 2px;
+}
+
+wt-gns430 .waypoint-airport-position>div {
+  height: 40px;
+  padding: 2px;
+}
+
+.waypoint-airport-position>div>.latlon-coord {
+  text-align: right;
+  line-height: 18px;
+}
+
+wt-gns530 .waypoint-airport-position>div>.latlon-coord {
+  padding-right: 11px;
+  line-height: 16px;
+}
+
+wt-gns430 .waypoint-airport-position>div>.latlon-coord {
+  padding-right: 7px;
+}
+
+.waypoint-airport-elev {
+  color: var(--gnscyan);
+  margin-left: 1px;
+  float: left;
+}
+
+wt-gns530 .waypoint-airport-elev {
+  width: 66px;
+  padding-top: 10px;
+}
+
+wt-gns430 .waypoint-airport-elev {
+  width: 68.5px;
+  padding-top: 5px;
+}
+
+.waypoint-airport-elev>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border-top: 1.4px solid var(--gnscyan);
+  border-bottom: 1.4px solid var(--gnscyan);
+  margin-left: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+wt-gns530 .waypoint-airport-elev>div {
+  height: 35px;
+  padding: 1px;
+}
+
+wt-gns430 .waypoint-airport-elev>div {
+  height: 40px;
+  padding: 2px;
+}
+
+.waypoint-airport-fuel {
+  color: var(--gnscyan);
+  float: left;
+  margin-left: 1px;
+}
+
+wt-gns530 .waypoint-airport-fuel {
+  width: 66px;
+  padding-top: 10px;
+}
+
+wt-gns430 .waypoint-airport-fuel {
+  width: 67px;
+  padding-top: 5px;
+}
+
+.waypoint-airport-fuel>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: 1.4px solid var(--gnscyan);
+  position: relative;
+  margin-left: -1px;
+}
+
+wt-gns530 .waypoint-airport-fuel>div {
+  height: 35px;
+}
+
+wt-gns430 .waypoint-airport-fuel>div {
+  height: 40px;
+}
+
+.waypoint-airport-approach {
+  color: var(--gnscyan);
+  left: 10px;
+  margin-left: 1px;
+  float: left;
+}
+
+wt-gns530 .waypoint-airport-approach {
+  width: 113px;
+  padding-top: 10px;
+}
+
+wt-gns430 .waypoint-airport-approach {
+  display: flex;
+  align-items: center;
+  padding-top: 5px;
+}
+
+.waypoint-airport-approach>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: 1.4px solid var(--gnscyan);
+  position: relative;
+  margin-left: -1px;
+  text-align: center;
+}
+
+wt-gns530 .waypoint-airport-approach>div {
+  height: 20px;
+  padding-top: 2px;
+}
+
+wt-gns430 .waypoint-airport-approach>div {
+  width: 40px;
+  height: 22px;
+  margin-left: 3px;
+  margin-bottom: 1px;
+  padding-top: 2px;
+}
+
+.waypoint-airport-radar {
+  color: var(--gnscyan);
+  float: left;
+}
+
+wt-gns530 .waypoint-airport-radar {
+  width: 69px;
+  padding-top: 10px;
+  margin-left: -2px;
+}
+
+wt-gns430 .waypoint-airport-radar {
+  display: flex;
+  align-items: center;
+  padding-top: 5px;
+  margin-left: 7px;
+}
+
+.waypoint-airport-radar>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border-top: 1.4px solid var(--gnscyan);
+  border-bottom: 1.4px solid var(--gnscyan);
+  position: relative;
+  margin-left: -1px;
+}
+
+wt-gns530 .waypoint-airport-radar>div {
+  height: 20px;
+  margin-left: 2px;
+}
+
+wt-gns430 .waypoint-airport-radar>div {
+  width: 38px;
+  height: 22px;
+  margin-left: 2px;
+  margin-bottom: 1px;
+  border-left: 1.4px solid var(--gnscyan);
+  border-right: 1.4px solid var(--gnscyan);
+}
+
+.waypoint-airport-airspace {
+  color: var(--gnscyan);
+  float: left;
+}
+
+wt-gns530 .waypoint-airport-airspace {
+  width: 66px;
+  padding-top: 10px;
+  margin-left: 1px;
+}
+
+wt-gns430 .waypoint-airport-airspace {
+  display: flex;
+  align-items: center;
+  padding-top: 5px;
+  margin-left: 4px;
+}
+
+.waypoint-airport-airspace>div {
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: 1.4px solid var(--gnscyan);
+  position: relative;
+  margin-left: -1px;
+}
+
+wt-gns530 .waypoint-airport-airspace>div {
+  height: 20px;
+}
+
+wt-gns430 .waypoint-airport-airspace>div {
+  width: 51px;
+  height: 22px;
+  margin-left: 3px;
+  margin-bottom: 1px;
+}

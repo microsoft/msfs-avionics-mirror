@@ -1,6 +1,6 @@
-import { Consumer, ConsumerSubject, NumberUnitSubject, Subscribable, SubscribableType, Unit } from 'msfssdk';
+import { Consumer, ConsumerSubject, NumberUnitSubject, Subscribable, SubscribableType, Unit } from '@microsoft/msfs-sdk';
 
-import { NavDataFieldModel } from '../navdatafield/NavDataFieldModel';
+import { NavDataFieldModel, NavDataFieldGpsValidity } from '../navdatafield/NavDataFieldModel';
 import { NavDataFieldType, NavDataFieldTypeModelMap } from '../navdatafield/NavDataFieldType';
 
 /**
@@ -39,7 +39,10 @@ export interface NavDataBarFieldModelFactory {
  * A navigation data bar field data model which uses an arbitrary subscribable to provide its value and function to
  * update the value.
  */
-export class NavDataBarFieldGenericModel<S extends Subscribable<any>, U extends (sub: S, ...args: any[]) => void = (sub: S) => void>
+export class NavDataBarFieldGenericModel<
+  S extends Subscribable<any>,
+  U extends (sub: S, gpsValidity: Subscribable<NavDataFieldGpsValidity>, ...args: any[]) => void = (sub: S) => void
+>
   implements NavDataBarFieldModel<SubscribableType<S>> {
 
   public readonly value: Subscribable<SubscribableType<S>>;
@@ -47,17 +50,18 @@ export class NavDataBarFieldGenericModel<S extends Subscribable<any>, U extends 
   /**
    * Constructor.
    * @param sub The subscribable used to provide this model's value.
+   * @param gpsValidity The current validity state of the GPS data for this model.
    * @param updateFunc The function used to update this model's value. Can take an arbitrary number of arguments, but
-   * the first must be the subscribable used to provide this model's value.
+   * the first must be the subscribable used to provide this model's value, and the second the model's GPS validity.
    * @param destroyFunc A function which is executed when this model is destroyed.
    */
-  constructor(sub: S, protected readonly updateFunc: U, protected readonly destroyFunc?: () => void) {
+  constructor(sub: S, public readonly gpsValidity: Subscribable<NavDataFieldGpsValidity>, protected readonly updateFunc: U, protected readonly destroyFunc?: () => void) {
     this.value = sub;
   }
 
   /** @inheritdoc */
   public update(): void {
-    this.updateFunc(this.value as S);
+    this.updateFunc(this.value as S, this.gpsValidity);
   }
 
   /** @inheritdoc */
@@ -98,13 +102,14 @@ type SubscribableTypeMap<Types extends [...any[]]> = {
  * update the value using data cached from one or more event bus consumers.
  */
 export class NavDataBarFieldConsumerModel<S extends Subscribable<any>, C extends [...any[]]>
-  extends NavDataBarFieldGenericModel<S, (sub: S, consumerSubs: Readonly<SubscribableTypeMap<C>>) => void> {
+  extends NavDataBarFieldGenericModel<S, (sub: S, gpsValidity: Subscribable<NavDataFieldGpsValidity>, consumerSubs: Readonly<SubscribableTypeMap<C>>) => void> {
 
   protected readonly consumerSubs: ConsumerSubjectTypeMap<C>;
 
   /**
    * Constructor.
    * @param sub The subscribable used to provide this model's value.
+   * @param gpsValidity The current validity state of the GPS data for this model.
    * @param consumers The event bus consumers used by this model.
    * @param initialValues The initial consumer values with which to initialize this model. These values will be used
    * until they are replaced by consumed values from the event bus.
@@ -112,8 +117,9 @@ export class NavDataBarFieldConsumerModel<S extends Subscribable<any>, C extends
    * subscribable used to provide this model's value. The second argument is a tuple of Subscribables providing the
    * cached values from this model's consumers.
    */
-  constructor(sub: S, consumers: ConsumerTypeMap<C>, initialValues: C, updateFunc: (sub: S, consumerSubs: Readonly<SubscribableTypeMap<C>>) => void) {
-    super(sub, updateFunc, () => {
+  constructor(sub: S, gpsValidity: Subscribable<NavDataFieldGpsValidity>, consumers: ConsumerTypeMap<C>, initialValues: C,
+    updateFunc: (sub: S, gpsValidity: Subscribable<NavDataFieldGpsValidity>, consumerSubs: Readonly<SubscribableTypeMap<C>>) => void) {
+    super(sub, gpsValidity, updateFunc, () => {
       for (let i = 0; i < this.consumerSubs.length; i++) {
         this.consumerSubs[i].destroy();
       }
@@ -124,7 +130,7 @@ export class NavDataBarFieldConsumerModel<S extends Subscribable<any>, C extends
 
   /** @inheritdoc */
   public update(): void {
-    this.updateFunc(this.value as S, this.consumerSubs);
+    this.updateFunc(this.value as S, this.gpsValidity, this.consumerSubs);
   }
 }
 
@@ -135,17 +141,19 @@ export class NavDataBarFieldConsumerModel<S extends Subscribable<any>, C extends
 export class NavDataBarFieldConsumerNumberUnitModel<F extends string, U extends Unit<F> = Unit<F>> extends NavDataBarFieldConsumerModel<NumberUnitSubject<F, U>, [number]> {
   /**
    * Constructor.
+   * @param gpsValidity The current validity state of the GPS data for this model.
    * @param consumer The event bus consumer used to derive this model's value.
    * @param initialVal The initial consumer value with which to initialize this model. This value will be used until it
    * is replaced by a consumed value from the event bus.
    * @param consumerUnit The unit type of the values consumed from the event bus.
    */
-  constructor(consumer: Consumer<number>, initialVal: number, consumerUnit: U) {
+  constructor(gpsValidity: Subscribable<NavDataFieldGpsValidity>, consumer: Consumer<number>, initialVal: number, consumerUnit: U) {
     super(
       NumberUnitSubject.createFromNumberUnit(consumerUnit.createNumber(initialVal)),
+      gpsValidity,
       [consumer],
       [initialVal],
-      (sub, consumerSubs) => { sub.set(consumerSubs[0].get()); }
+      (sub, validity, consumerSubs) => { sub.set(consumerSubs[0].get()); }
     );
   }
 }

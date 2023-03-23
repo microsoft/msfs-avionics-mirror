@@ -190,6 +190,92 @@ export class Vec2Math {
   public static copy(from: ReadonlyFloat64Array, to: Float64Array): Float64Array {
     return Vec2Math.set(from[0], from[1], to);
   }
+
+  /**
+   * Checks if a point is within a polygon.
+   * @param polygon The polygon to check against.
+   * @param point The point to test.
+   * @returns True if the point is within or on the polygon, false otherwise.
+   * @throws An error if first and last points in a polygon are not the same.
+   */
+  public static pointWithinPolygon(polygon: ReadonlyFloat64Array[], point: Float64Array): boolean | undefined {
+    //Adapted from https://github.com/rowanwins/point-in-polygon-hao
+    let k = 0;
+    let f = 0;
+    let u1 = 0;
+    let v1 = 0;
+    let u2 = 0;
+    let v2 = 0;
+    let currentP: ReadonlyFloat64Array | null = null;
+    let nextP = null;
+
+    const x = point[0];
+    const y = point[1];
+
+    const contourLen = polygon.length - 1;
+
+    currentP = polygon[0];
+    if (currentP[0] !== polygon[contourLen][0] &&
+      currentP[1] !== polygon[contourLen][1]) {
+      throw new Error('First and last coordinates in a ring must be the same');
+    }
+
+    u1 = currentP[0] - x;
+    v1 = currentP[1] - y;
+
+    for (let i = 0; i < polygon.length - 1; i++) {
+      nextP = polygon[i + 1];
+
+      v2 = nextP[1] - y;
+
+      if ((v1 < 0 && v2 < 0) || (v1 > 0 && v2 > 0)) {
+        currentP = nextP;
+        v1 = v2;
+        u1 = currentP[0] - x;
+        continue;
+      }
+
+      u2 = nextP[0] - point[0];
+
+      if (v2 > 0 && v1 <= 0) {
+        f = (u1 * v2) - (u2 * v1);
+        if (f > 0) {
+          k = k + 1;
+        } else if (f === 0) {
+          return undefined;
+        }
+      } else if (v1 > 0 && v2 <= 0) {
+        f = (u1 * v2) - (u2 * v1);
+        if (f < 0) {
+          k = k + 1;
+        } else if (f === 0) {
+          return undefined;
+        }
+      } else if (v2 === 0 && v1 < 0) {
+        f = (u1 * v2) - (u2 * v1);
+        if (f === 0) {
+          return undefined;
+        }
+      } else if (v1 === 0 && v2 < 0) {
+        f = u1 * v2 - u2 * v1;
+        if (f === 0) {
+          return undefined;
+        }
+      } else if (v1 === 0 && v2 === 0) {
+        if (u2 <= 0 && u1 >= 0) {
+          return undefined;
+        } else if (u1 <= 0 && u2 >= 0) {
+          return undefined;
+        }
+      }
+      currentP = nextP;
+      v1 = v2;
+      u1 = u2;
+    }
+
+    if (k % 2 === 0) { return false; }
+    return true;
+  }
 }
 
 /**
@@ -493,7 +579,17 @@ export class VecNMath {
    * @returns Whether the two vectors are equal.
    */
   public static equals(vec1: ReadonlyFloat64Array, vec2: ReadonlyFloat64Array): boolean {
-    return vec1.length === vec2.length && vec1.every((element, index) => element === vec2[index]);
+    if (vec1.length !== vec2.length) {
+      return false;
+    }
+
+    for (let i = 0; i < vec1.length; i++) {
+      if (vec1[i] !== vec2[i]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**

@@ -110,13 +110,17 @@ export interface NumberUnitInterface<F extends string, U extends Unit<F> = Unit<
   compare(value: number, unit?: Unit<F>): number;
 
   /**
-   * Checks whether this NumberUnit is equal to another value.
+   * Checks whether this NumberUnit is equal to another value. Two values are considered equal if and only if their
+   * unit types are interconvertable and when converted to the same unit type, their numeric values are equal to each
+   * other or both equal to `NaN`.
    * @param value The other value.
    * @returns Whether this NumberUnit is equal to the other value.
    */
   equals(value: NumberUnitInterface<string>): boolean;
   /**
-   * Checks whether this NumberUnit is equal to another value.
+   * Checks whether this NumberUnit is equal to another value. Two values are considered equal if and only if their
+   * unit types are interconvertable and when converted to the same unit type, their numeric values are equal to each
+   * other or both equal to `NaN`.
    * @param value The other value.
    * @param unit The unit type of the other value. Defaults to this NumberUnit's unit type.
    * @returns Whether this NumberUnit is equal to the other value.
@@ -259,6 +263,7 @@ export class NumberUnit<F extends string, U extends Unit<F> = Unit<F>> implement
       if (out) {
         out.set(this.number + converted, this.unit);
       } else {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         out = this;
         this._number += converted;
       }
@@ -309,6 +314,7 @@ export class NumberUnit<F extends string, U extends Unit<F> = Unit<F>> implement
       if (out) {
         out.set(this.number - converted, this.unit);
       } else {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         out = this;
         this._number -= converted;
       }
@@ -426,13 +432,17 @@ export class NumberUnit<F extends string, U extends Unit<F> = Unit<F>> implement
   }
 
   /**
-   * Checks whether this NumberUnit is equal to another value.
+   * Checks whether this NumberUnit is equal to another value. Two values are considered equal if and only if their
+   * unit types are interconvertable and when converted to the same unit type, their numeric values are equal to each
+   * other or both equal to `NaN`.
    * @param value The other value.
    * @returns Whether this NumberUnit is equal to the other value.
    */
   public equals(value: NumberUnitInterface<string>): boolean;
   /**
-   * Checks whether this NumberUnit is equal to another value.
+   * Checks whether this NumberUnit is equal to another value. Two values are considered equal if and only if their
+   * unit types are interconvertable and when converted to the same unit type, their numeric values are equal to each
+   * other or both equal to `NaN`.
    * @param value The other value.
    * @param unit The unit type of the other value. Defaults to this NumberUnit's unit type.
    * @returns Whether this NumberUnit is equal to the other value.
@@ -445,8 +455,12 @@ export class NumberUnit<F extends string, U extends Unit<F> = Unit<F>> implement
       return false;
     }
 
+    if (isNaN(converted) && this.isNaN()) {
+      return true;
+    }
+
     const diff = this.number - converted;
-    return Math.abs(diff) < 1e-14;
+    return !isNaN(diff) && Math.abs(diff) < 1e-14;
   }
 
   /**
@@ -629,13 +643,17 @@ export class NumberUnitReadOnly<F extends string, U extends Unit<F> = Unit<F>> i
   }
 
   /**
-   * Checks whether this NumberUnit is equal to another value.
+   * Checks whether this NumberUnit is equal to another value. Two values are considered equal if and only if their
+   * unit types are interconvertable and when converted to the same unit type, their numeric values are equal to each
+   * other or both equal to `NaN`.
    * @param value The other value.
    * @returns Whether this NumberUnit is equal to the other value.
    */
   public equals(value: NumberUnitInterface<string>): boolean;
   /**
-   * Checks whether this NumberUnit is equal to another value.
+   * Checks whether this NumberUnit is equal to another value. Two values are considered equal if and only if their
+   * unit types are interconvertable and when converted to the same unit type, their numeric values are equal to each
+   * other or both equal to `NaN`.
    * @param value The other value.
    * @param unit The unit type of the other value. Defaults to this NumberUnit's unit type.
    * @returns Whether this NumberUnit is equal to the other value.
@@ -901,6 +919,7 @@ export enum UnitFamily {
   Volume = 'volume',
   Pressure = 'pressure',
   Temperature = 'temperature',
+  TemperatureDelta = 'temperature_delta',
   Speed = 'speed',
   Acceleration = 'acceleration',
   WeightFlux = 'weight_flux',
@@ -938,8 +957,10 @@ export class UnitType {
 
   /** Weight equivalent of one liter of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
   public static readonly LITER_FUEL = new SimpleUnit(UnitFamily.Weight, 'liter', 0.80283679);
-  /** Weight equivalent of one pound of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
+  /** Weight equivalent of one gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
   public static readonly GALLON_FUEL = new SimpleUnit(UnitFamily.Weight, 'gallon', 3.0390664);
+  /** Weight equivalent of one imperial gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
+  public static readonly IMP_GALLON_FUEL = new SimpleUnit(UnitFamily.Weight, 'imperial gallon', 3.6497683);
 
   public static readonly LITER = new SimpleUnit(UnitFamily.Volume, 'liter', 1);
   public static readonly GALLON = new SimpleUnit(UnitFamily.Volume, 'gallon', 3.78541);
@@ -953,8 +974,15 @@ export class UnitType {
   /** Millimeter of mercury. */
   public static readonly MM_HG = new SimpleUnit(UnitFamily.Pressure, 'millimeter of mercury', 1.33322);
 
+  public static readonly KELVIN = new SimpleUnit(UnitFamily.Temperature, 'kelvin', 1, 0);
   public static readonly CELSIUS = new SimpleUnit(UnitFamily.Temperature, '° Celsius', 1, 273.15);
   public static readonly FAHRENHEIT = new SimpleUnit(UnitFamily.Temperature, '° Fahrenheit', 5 / 9, 459.67);
+  public static readonly RANKINE = new SimpleUnit(UnitFamily.Temperature, '° Rankine', 5 / 9, 0);
+
+  /** Change in degrees Celsius. */
+  public static readonly DELTA_CELSIUS = new SimpleUnit(UnitFamily.TemperatureDelta, 'Δ° Celsius', 1);
+  /** Change in degrees Fahrenheit. */
+  public static readonly DELTA_FAHRENHEIT = new SimpleUnit(UnitFamily.TemperatureDelta, 'Δ° Fahrenheit', 5 / 9);
 
   public static readonly KNOT = new CompoundUnit(UnitFamily.Speed, [UnitType.NMILE], [UnitType.HOUR], 'knot');
   /** Kilometer per hour. */
@@ -987,6 +1015,8 @@ export class UnitType {
   public static readonly PPH = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.POUND], [UnitType.HOUR]);
   /** Weight equivalent of one liter of fuel per hour, using the generic conversion 1 gallon = 6.7 pounds. */
   public static readonly LPH_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.LITER_FUEL], [UnitType.HOUR]);
-  /** Weight equivalent of one gallon fuel per hour, using the generic conversion 1 gallon = 6.7 pounds. */
+  /** Weight equivalent of one gallon of fuel per hour, using the generic conversion 1 gallon = 6.7 pounds. */
   public static readonly GPH_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.GALLON_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one imperial gallon of fuel per hour, using the generic conversion 1 gallon = 6.7 pounds. */
+  public static readonly IGPH_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.IMP_GALLON_FUEL], [UnitType.HOUR]);
 }

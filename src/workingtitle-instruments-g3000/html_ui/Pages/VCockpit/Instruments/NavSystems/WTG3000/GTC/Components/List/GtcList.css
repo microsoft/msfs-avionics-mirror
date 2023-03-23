@@ -1,0 +1,40 @@
+.gtc-list {
+  position: relative;
+  overflow: hidden;
+}
+
+.gtc-horizontal .gtc-list {
+  --gtc-list-scroll-bar-width: 7px;
+  --gtc-list-scroll-bar-margin: 6px;
+}
+
+.gtc-vertical .gtc-list {
+  --gtc-list-scroll-bar-width: 4px;
+  --gtc-list-scroll-bar-margin: 2px;
+}
+
+.gtc-list .touch-list {
+  position: relative;
+  width: calc(100% - var(--gtc-list-scroll-bar-width) - var(--gtc-list-scroll-bar-margin));
+}
+
+/* Scroll Bar */
+.gtc-list .gtc-list-scroll-bar-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--gtc-list-scroll-bar-width);
+  height: calc(100% - 2px);
+  overflow: hidden;
+}
+
+.gtc-list .gtc-list-scroll-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 20%;
+  background-color: white;
+  opacity: 0;
+  transition: opacity 1s;
+}

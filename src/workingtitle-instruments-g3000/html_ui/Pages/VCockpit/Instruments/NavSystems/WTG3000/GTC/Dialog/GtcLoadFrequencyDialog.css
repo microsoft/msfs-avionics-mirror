@@ -1,0 +1,126 @@
+.gtc-horizontal .load-frequency-dialog {
+  --gtc-load-frequency-dialog-panel-width: 714px;
+  --gtc-load-frequency-dialog-panel-height: 652px;
+  --gtc-load-frequency-dialog-panel-top: 58px;
+
+  --gtc-load-frequency-dialog-load-panels-width: 604px;
+  --gtc-load-frequency-dialog-load-panels-height: 390px;
+  --gtc-load-frequency-dialog-load-panels-top: 79px;
+
+  --gtc-load-frequency-dialog-load-panel-width: 269px;
+  --gtc-load-frequency-dialog-load-panel-title-margin-top: 10px;
+
+  --gtc-load-frequency-dialog-load-panel-column-width: 185px;
+  --gtc-load-frequency-dialog-load-panel-column-height: 292px;
+  --gtc-load-frequency-dialog-load-panel-column-top: 60px;
+
+  --gtc-load-frequency-dialog-load-panel-column-button-height: 134px;
+  --gtc-load-frequency-dialog-load-panel-column-button-font-size: 30px;
+
+  --gtc-load-frequency-dialog-favorites-button-width: 446px;
+  --gtc-load-frequency-dialog-favorites-button-height: 123px;
+  --gtc-load-frequency-dialog-favorites-button-bottom: 28px;
+
+  --gtc-load-frequency-dialog-favorites-button-icon-top: 36px;
+  --gtc-load-frequency-dialog-favorites-button-icon-left: 40px;
+  --gtc-load-frequency-dialog-favorites-button-icon-scale: 1.85;
+
+  --gtc-load-frequency-dialog-favorites-button-label-left: 45px;
+  --gtc-load-frequency-dialog-favorites-button-label-font-size: 32px;
+}
+
+.gtc-vertical .load-frequency-dialog {
+  --gtc-load-frequency-dialog-panel-width: 384px;
+  --gtc-load-frequency-dialog-panel-height: 351px;
+  --gtc-load-frequency-dialog-panel-top: 31px;
+
+  --gtc-load-frequency-dialog-load-panels-width: 325px;
+  --gtc-load-frequency-dialog-load-panels-height: 210px;
+  --gtc-load-frequency-dialog-load-panels-top: 42px;
+
+  --gtc-load-frequency-dialog-load-panel-width: 145px;
+  --gtc-load-frequency-dialog-load-panel-title-margin-top: 6px;
+
+  --gtc-load-frequency-dialog-load-panel-column-width: 100px;
+  --gtc-load-frequency-dialog-load-panel-column-height: 158px;
+  --gtc-load-frequency-dialog-load-panel-column-top: 32px;
+
+  --gtc-load-frequency-dialog-load-panel-column-button-height: 73px;
+  --gtc-load-frequency-dialog-load-panel-column-button-font-size: 18px;
+
+  --gtc-load-frequency-dialog-favorites-button-width: 240px;
+  --gtc-load-frequency-dialog-favorites-button-height: 66px;
+  --gtc-load-frequency-dialog-favorites-button-bottom: 14px;
+
+  --gtc-load-frequency-dialog-favorites-button-icon-top: 10px;
+  --gtc-load-frequency-dialog-favorites-button-icon-left: 15px;
+  --gtc-load-frequency-dialog-favorites-button-icon-scale: 1;
+
+  --gtc-load-frequency-dialog-favorites-button-label-left: 24px;
+  --gtc-load-frequency-dialog-favorites-button-label-font-size: 18px;
+}
+
+.load-frequency-dialog {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--gtc-load-frequency-dialog-panel-width);
+  height: var(--gtc-load-frequency-dialog-panel-height);
+  top: var(--gtc-load-frequency-dialog-panel-top);
+}
+
+.load-frequency-dialog .load-panels {
+  position: absolute;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: var(--gtc-load-frequency-dialog-load-panels-width);
+  height: var(--gtc-load-frequency-dialog-load-panels-height);
+  top: var(--gtc-load-frequency-dialog-load-panels-top);
+}
+
+.load-frequency-dialog .load-panels .gtc-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--gtc-load-frequency-dialog-load-panel-width);
+}
+
+.load-frequency-dialog .load-panels .gtc-panel .gtc-panel-title {
+  margin-top: var(--gtc-load-frequency-dialog-load-panel-title-margin-top);
+}
+
+.load-frequency-dialog .load-panels .gtc-panel .column {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: var(--gtc-load-frequency-dialog-load-panel-column-width);
+  height: var(--gtc-load-frequency-dialog-load-panel-column-height);
+  top: var(--gtc-load-frequency-dialog-load-panel-column-top);
+}
+
+.load-frequency-dialog .load-panels .gtc-panel .column .touch-button {
+  height: var(--gtc-load-frequency-dialog-load-panel-column-button-height);
+  font-size: var(--gtc-load-frequency-dialog-load-panel-column-button-font-size);
+}
+
+.load-frequency-dialog .favorites-button {
+  position: absolute;
+  width: var(--gtc-load-frequency-dialog-favorites-button-width);
+  height: var(--gtc-load-frequency-dialog-favorites-button-height);
+  bottom: var(--gtc-load-frequency-dialog-favorites-button-bottom);
+}
+
+.load-frequency-dialog .favorites-button .star-icon {
+  position: absolute;
+  top: var(--gtc-load-frequency-dialog-favorites-button-icon-top);
+  left: var(--gtc-load-frequency-dialog-favorites-button-icon-left);
+  transform: scale(var(--gtc-load-frequency-dialog-favorites-button-icon-scale));
+}
+
+.load-frequency-dialog .favorites-button .touch-button-label {
+  left: var(--gtc-load-frequency-dialog-favorites-button-label-left);
+  font-size: var(--gtc-load-frequency-dialog-favorites-button-label-font-size);
+}

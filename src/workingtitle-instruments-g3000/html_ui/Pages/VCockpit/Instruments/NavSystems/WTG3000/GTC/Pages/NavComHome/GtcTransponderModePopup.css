@@ -1,0 +1,58 @@
+.transponder-mode-popup {
+  display: grid;
+  grid-template-areas: "modes active" "modes flightId";
+  grid-template-columns: 1fr 1fr;
+  padding: 20px 10px 4px;
+}
+
+.transponder-mode-popup .xpdr-tcas-group {
+  grid-area: modes;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  --xpdr-tcas-group-title-font-size: 22px;
+  --xpdr-tcas-group-button-height: 64px;
+}
+
+.transponder-mode-popup .xpdr-tcas-group .touch-button {
+  width: 130px;
+  margin-bottom: 4px;
+}
+
+.transponder-mode-popup .xpdr-tcas-group .touch-button .touch-button-label {
+  top: 45%;
+  font-size: 16px;
+}
+
+.transponder-mode-popup .xpdr-tcas-group .toggle-status-bar {
+  top: unset;
+  bottom: 4px;
+}
+
+.transponder-mode-popup .touch-button {
+  height: 64px;
+  font-size: 16px;
+}
+
+.transponder-mode-popup .active-xpdr-button {
+  grid-area: active;
+  align-self: center;
+  justify-self: center;
+  width: 60%;
+}
+
+.transponder-mode-popup .active-xpdr-button .touch-button-value-value {
+  font-size: 22px;
+}
+
+.transponder-mode-popup .flight-id-button {
+  grid-area: flightId;
+  align-self: center;
+  justify-self: center;
+  margin-top: -40px;
+  width: 85%;
+}
+
+.transponder-mode-popup .flight-id-button .touch-button-label {
+  font-size: 20px;
+}

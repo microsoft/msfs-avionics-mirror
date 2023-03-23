@@ -1,4 +1,4 @@
-import { AvionicsSystemState, ClockEvents, ConsumerSubject, EventBus, LinearServo, MathUtils, Subject, Subscribable, SubscribableUtils, Subscription } from 'msfssdk';
+import { AvionicsSystemState, ClockEvents, ConsumerSubject, EventBus, LinearServo, MathUtils, Subject, Subscribable, SubscribableUtils, Subscription } from '@microsoft/msfs-sdk';
 
 import { RadarAltimeterSystemEvents } from '../../../system/RadarAltimeterSystem';
 
@@ -86,7 +86,7 @@ export class DefaultRadarAltimeterDataProvider implements RadarAltimeterDataProv
     const sub = this.bus.getSubscriber<RadarAltimeterSystemEvents & ClockEvents>();
 
     this.radarAltSystemStateSub = sub.on('radaralt_state_1').handle(state => {
-      if (state.current === AvionicsSystemState.On) {
+      if (state.current === undefined || state.current === AvionicsSystemState.On) {
         this._isDataFailed.set(false);
       } else {
         this._isDataFailed.set(true);
@@ -99,7 +99,7 @@ export class DefaultRadarAltimeterDataProvider implements RadarAltimeterDataProv
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this.radarAltRoundedSub!.pause();
 
-      this.servo.drive(this.currentValue, this.currentValue); // reset servo's internal clock
+      this.servo.reset(); // reset servo's internal clock
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this.clockSub!.resume(true);
     }, false, true);

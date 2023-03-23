@@ -357,7 +357,7 @@ export class Transform3D {
   public toScale(x: number, y: number, z: number, originX: number, originY: number, originZ: number): this;
   // eslint-disable-next-line jsdoc/require-jsdoc
   public toScale(x: number, y: number, z: number, originX?: number, originY?: number, originZ?: number): this {
-    this.set(x, 0, 0, 0, 0, y, 0, 0, 0, 0, 1, 0);
+    this.set(x, 0, 0, 0, 0, y, 0, 0, 0, 0, z, 0);
     if (originX !== undefined && originY !== undefined && originZ !== undefined) {
       this.offsetOrigin(originX, originY, originZ);
     }
@@ -491,6 +491,258 @@ export class Transform3D {
       this.offsetOrigin(originX, originY, originZ);
     }
     return this;
+  }
+
+  private static readonly addCache = [new Transform3D(), new Transform3D()];
+
+  /**
+   * Adds a translation to this transformation.
+   * @param x The x translation.
+   * @param y The y translation.
+   * @param z The z translation.
+   * @param order The order in which to add the translation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addTranslation(x: number, y: number, z: number, order: 'before' | 'after' = 'after'): this {
+    if (order === 'before') {
+      Transform3D.addCache[0].toTranslation(x, y, z);
+      Transform3D.addCache[1].set(this);
+    } else {
+      Transform3D.addCache[0].set(this);
+      Transform3D.addCache[1].toTranslation(x, y, z);
+    }
+
+    return Transform3D.concat(this, Transform3D.addCache);
+  }
+
+  /**
+   * Adds a scaling about the origin (0, 0, 0) to this transformation.
+   * @param x The x scaling factor.
+   * @param y The y scaling factor.
+   * @param z The z scaling factor.
+   * @param order The order in which to add the scaling, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addScale(x: number, y: number, z: number, order?: 'before' | 'after'): this;
+  /**
+   * Adds a scaling about an arbitrary origin to this transformation.
+   * @param x The x scaling factor.
+   * @param y The y scaling factor.
+   * @param z The z scaling factor.
+   * @param originX The x-coordinate of the scaling origin.
+   * @param originY The y-coordinate of the scaling origin.
+   * @param originZ The z-coordinate of the scaling origin.
+   * @param order The order in which to add the scaling, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addScale(x: number, y: number, z: number, originX: number, originY: number, originZ: number, order?: 'before' | 'after'): this;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public addScale(x: number, y: number, z: number, arg4?: number | 'before' | 'after', arg5?: number, arg6?: number, arg7?: 'before' | 'after'): this {
+    let originX: number | undefined, originY: number | undefined, originZ: number | undefined, order: 'before' | 'after' | undefined;
+
+    if (typeof arg4 === 'number') {
+      originX = arg4;
+      originY = arg5 as number;
+      originZ = arg6 as number;
+      order = arg7 as 'before' | 'after';
+    } else {
+      order = arg4;
+    }
+
+    if (order === 'before') {
+      originX === undefined ? Transform3D.addCache[0].toScale(x, y, z) : Transform3D.addCache[0].toScale(x, y, z, originX, originY as number, originZ as number);
+      Transform3D.addCache[1].set(this);
+    } else {
+      Transform3D.addCache[0].set(this);
+      originX === undefined ? Transform3D.addCache[1].toScale(x, y, z) : Transform3D.addCache[1].toScale(x, y, z, originX, originY as number, originZ as number);
+    }
+
+    return Transform3D.concat(this, Transform3D.addCache);
+  }
+
+  /**
+   * Adds a rotation about an axis parallel to the x axis passing through the origin (0, 0, 0) to this transformation.
+   * @param theta The rotation angle, in radians.
+   * @param order The order in which to add the rotation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addRotationX(theta: number, order?: 'before' | 'after'): this;
+  /**
+   * Adds a rotation about an axis parallel to the x axis passing through an arbitrary point to this transformation.
+   * @param theta The rotation angle, in radians.
+   * @param originX The x-coordinate of the rotation origin.
+   * @param originY The y-coordinate of the rotation origin.
+   * @param originZ The z-coordinate of the rotation origin.
+   * @param order The order in which to add the rotation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addRotationX(theta: number, originX: number, originY: number, originZ: number, order?: 'before' | 'after'): this;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public addRotationX(theta: number, arg2?: number | 'before' | 'after', arg3?: number, arg4?: number, arg5?: 'before' | 'after'): this {
+    let originX: number | undefined, originY: number | undefined, originZ: number | undefined, order: 'before' | 'after' | undefined;
+
+    if (typeof arg2 === 'number') {
+      originX = arg2;
+      originY = arg3 as number;
+      originZ = arg4 as number;
+      order = arg5 as 'before' | 'after';
+    } else {
+      order = arg2;
+    }
+
+    if (order === 'before') {
+      originX === undefined ? Transform3D.addCache[0].toRotationX(theta) : Transform3D.addCache[0].toRotationX(theta, originX, originY as number, originZ as number);
+      Transform3D.addCache[1].set(this);
+    } else {
+      Transform3D.addCache[0].set(this);
+      originX === undefined ? Transform3D.addCache[1].toRotationX(theta) : Transform3D.addCache[1].toRotationX(theta, originX, originY as number, originZ as number);
+    }
+
+    return Transform3D.concat(this, Transform3D.addCache);
+  }
+
+  /**
+   * Adds a rotation about an axis parallel to the y axis passing through the origin (0, 0, 0) to this transformation.
+   * @param theta The rotation angle, in radians.
+   * @param order The order in which to add the rotation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addRotationY(theta: number, order?: 'before' | 'after'): this;
+  /**
+   * Adds a rotation about an axis parallel to the y axis passing through an arbitrary point to this transformation.
+   * @param theta The rotation angle, in radians.
+   * @param originX The x-coordinate of the rotation origin.
+   * @param originY The y-coordinate of the rotation origin.
+   * @param originZ The z-coordinate of the rotation origin.
+   * @param order The order in which to add the rotation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addRotationY(theta: number, originX: number, originY: number, originZ: number, order?: 'before' | 'after'): this;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public addRotationY(theta: number, arg2?: number | 'before' | 'after', arg3?: number, arg4?: number, arg5?: 'before' | 'after'): this {
+    let originX: number | undefined, originY: number | undefined, originZ: number | undefined, order: 'before' | 'after' | undefined;
+
+    if (typeof arg2 === 'number') {
+      originX = arg2;
+      originY = arg3 as number;
+      originZ = arg4 as number;
+      order = arg5 as 'before' | 'after';
+    } else {
+      order = arg2;
+    }
+
+    if (order === 'before') {
+      originX === undefined ? Transform3D.addCache[0].toRotationY(theta) : Transform3D.addCache[0].toRotationY(theta, originX, originY as number, originZ as number);
+      Transform3D.addCache[1].set(this);
+    } else {
+      Transform3D.addCache[0].set(this);
+      originX === undefined ? Transform3D.addCache[1].toRotationY(theta) : Transform3D.addCache[1].toRotationY(theta, originX, originY as number, originZ as number);
+    }
+
+    return Transform3D.concat(this, Transform3D.addCache);
+  }
+
+  /**
+   * Adds a rotation about an axis parallel to the z axis passing through the origin (0, 0, 0) to this transformation.
+   * @param theta The rotation angle, in radians.
+   * @param order The order in which to add the rotation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addRotationZ(theta: number, order?: 'before' | 'after'): this;
+  /**
+   * Adds a rotation about an axis parallel to the z axis passing through an arbitrary point to this transformation.
+   * @param theta The rotation angle, in radians.
+   * @param originX The x-coordinate of the rotation origin.
+   * @param originY The y-coordinate of the rotation origin.
+   * @param originZ The z-coordinate of the rotation origin.
+   * @param order The order in which to add the rotation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addRotationZ(theta: number, originX: number, originY: number, originZ: number, order?: 'before' | 'after'): this;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public addRotationZ(theta: number, arg2?: number | 'before' | 'after', arg3?: number, arg4?: number, arg5?: 'before' | 'after'): this {
+    let originX: number | undefined, originY: number | undefined, originZ: number | undefined, order: 'before' | 'after' | undefined;
+
+    if (typeof arg2 === 'number') {
+      originX = arg2;
+      originY = arg3 as number;
+      originZ = arg4 as number;
+      order = arg5 as 'before' | 'after';
+    } else {
+      order = arg2;
+    }
+
+    if (order === 'before') {
+      originX === undefined ? Transform3D.addCache[0].toRotationZ(theta) : Transform3D.addCache[0].toRotationZ(theta, originX, originY as number, originZ as number);
+      Transform3D.addCache[1].set(this);
+    } else {
+      Transform3D.addCache[0].set(this);
+      originX === undefined ? Transform3D.addCache[1].toRotationZ(theta) : Transform3D.addCache[1].toRotationZ(theta, originX, originY as number, originZ as number);
+    }
+
+    return Transform3D.concat(this, Transform3D.addCache);
+  }
+
+  /**
+   * Adds a rotation about an arbitrary axis passing through the origin (0, 0, 0) to this transformation.
+   * @param theta The rotation angle, in radians.
+   * @param axisX The x component of the vector defining the direction of the rotation axis.
+   * @param axisY The y component of the vector defining the direction of the rotation axis.
+   * @param axisZ The z component of the vector defining the direction of the rotation axis.
+   * @param order The order in which to add the rotation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addRotation(theta: number, axisX: number, axisY: number, axisZ: number, order?: 'before' | 'after'): this;
+  /**
+   * Adds a rotation about an arbitrary axis passing through an arbitrary point to this transformation.
+   * @param theta The rotation angle, in radians.
+   * @param axisX The x component of the vector defining the direction of the rotation axis.
+   * @param axisY The y component of the vector defining the direction of the rotation axis.
+   * @param axisZ The z component of the vector defining the direction of the rotation axis.
+   * @param originX The x-coordinate of the rotation origin.
+   * @param originY The y-coordinate of the rotation origin.
+   * @param originZ The z-coordinate of the rotation origin.
+   * @param order The order in which to add the rotation, relative to this existing transformation, either
+   * `'before'` or `'after'`. Defaults to `'after'`.
+   * @returns This transformation, after it has been changed.
+   */
+  public addRotation(theta: number, axisX: number, axisY: number, axisZ: number, originX: number, originY: number, originZ: number, order?: 'before' | 'after'): this;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public addRotation(theta: number, axisX: number, axisY: number, axisZ: number, arg5?: number | 'before' | 'after', arg6?: number, arg7?: number, arg8?: 'before' | 'after'): this {
+    let originX: number | undefined, originY: number | undefined, originZ: number | undefined, order: 'before' | 'after' | undefined;
+
+    if (typeof arg5 === 'number') {
+      originX = arg5;
+      originY = arg6 as number;
+      originZ = arg7 as number;
+      order = arg8 as 'before' | 'after';
+    } else {
+      order = arg5;
+    }
+
+    if (order === 'before') {
+      originX === undefined
+        ? Transform3D.addCache[0].toRotation(theta, axisX, axisY, axisZ)
+        : Transform3D.addCache[0].toRotation(theta, axisX, axisY, axisZ, originX, originY as number, originZ as number);
+      Transform3D.addCache[1].set(this);
+    } else {
+      Transform3D.addCache[0].set(this);
+      originX === undefined
+        ? Transform3D.addCache[1].toRotation(theta, axisX, axisY, axisZ)
+        : Transform3D.addCache[1].toRotation(theta, axisX, axisY, axisZ, originX, originY as number, originZ as number);
+    }
+
+    return Transform3D.concat(this, Transform3D.addCache);
   }
 
   private static readonly concatCache = [new Transform3D(), new Transform3D()];

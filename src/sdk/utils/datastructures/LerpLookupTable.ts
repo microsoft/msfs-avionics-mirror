@@ -1,4 +1,4 @@
-import { MathUtils } from '../../math';
+import { MathUtils } from '../../math/MathUtils';
 import { SortedArray } from './SortedArray';
 
 /**
@@ -42,8 +42,8 @@ export class LerpLookupTable {
    * @param breakpoints An array of breakpoints with which to initialize the new table. Each breakpoint should be
    * expressed as a number array, where the first element represents the breakpoint value, and the next N elements
    * represent the breakpoint key in each dimension. If not all breakpoint arrays have the same length, the dimension
-   * of the table will be set equal to `N - 1`, where `N` is the length of the shortest array. For arrays with length
-   * greater than `N`, all keys after index `N - 1` will be ignored. If the table ends up with zero dimensions, it will
+   * of the table will be set equal to `L - 1`, where `L` is the length of the shortest array. For arrays with length
+   * greater than `L`, all keys after index `L - 1` will be ignored. If the table ends up with zero dimensions, it will
    * be initialized to an empty table.
    */
   constructor(breakpoints: readonly (readonly number[])[]);
@@ -118,7 +118,7 @@ export class LerpLookupTable {
    * Looks up a value in this table using a specified key. The returned value will be linearly interpolated from
    * surrounding breakpoints if the key is not an exact match for any of the table's breakpoints.
    * @param key The lookup key, as an ordered N-tuple of numbers.
-   * @returns The value corresponding to the specified key, or undefined if a value could not be retrieved.
+   * @returns The value corresponding to the specified key.
    * @throws Error if this table has zero dimensions, the key has fewer dimensions than this table, or a value could
    * not be retrieved.
    */
@@ -153,14 +153,14 @@ export class LerpLookupTable {
     query.key = dimensionKey;
 
     const index = lookupArray.matchIndex(query);
-    let start;
-    let end;
+    let start: DimensionalBreakpoint | undefined;
+    let end: DimensionalBreakpoint | undefined;
     if (index >= 0) {
-      start = lookupArray.get(index);
+      start = lookupArray.peek(index);
       end = start;
     } else {
-      start = lookupArray.get(-index - 2);
-      end = lookupArray.get(-index - 1);
+      start = lookupArray.peek(-index - 2);
+      end = lookupArray.peek(-index - 1);
       if (!start) {
         start = end;
       }

@@ -52,6 +52,12 @@ export type DurationDisplayOptions = {
   /** A function used to format units. */
   unitFormatter: (value: number, unit: Unit<UnitFamily.Duration>) => string,
 
+  /** Whether to use a minus sign (`−`) in place of a dash (`-`) in front of negative numbers. */
+  useMinusSign: boolean;
+
+  /** Whether to force the display of a positive sign. */
+  forceSign: boolean;
+
   /** The string to display when the value is NaN. */
   nanString: string
 };
@@ -63,8 +69,17 @@ export interface DurationDisplayProps extends ComponentProps {
   /** The duration to display, or a subscribable which provides it. */
   value: NumberUnitInterface<UnitFamily.Duration> | Subscribable<NumberUnitInterface<UnitFamily.Duration>>;
 
-  /** Formatting options. Any options not explicitly set will revert to the default. */
-  options?: Partial<DurationDisplayOptions>;
+  /**
+   * Formatting options. Options not explicitly defined will be set to the following default values:
+   * * `pad = 0`
+   * * `format = DurationDisplayFormat.hh_mm_ss`
+   * * `delim = DurationDisplayDelim.Colon`
+   * * `showUnits = false`
+   * * `useMinusSign = false`
+   * * `forceSign = false`
+   * * `nanString = ''`
+   */
+  options?: Partial<Readonly<DurationDisplayOptions>>;
 
   /** CSS class(es) to add to the root of the icon component. */
   class?: string | SubscribableSet<string>;
@@ -75,13 +90,15 @@ export interface DurationDisplayProps extends ComponentProps {
  */
 export class DurationDisplay extends DisplayComponent<DurationDisplayProps> {
   /** Default formatting options. */
-  public static readonly DEFAULT_OPTIONS: DurationDisplayOptions = {
+  public static readonly DEFAULT_OPTIONS: Readonly<DurationDisplayOptions> = {
     pad: 0,
     format: DurationDisplayFormat.hh_mm_ss,
     delim: DurationDisplayDelim.Colon,
     showUnits: false,
     numberFormatter: (value: number): string => value.toFixed(0),
     unitFormatter: (value: number, unit: Unit<UnitFamily.Duration>): string => unit.name[0],
+    useMinusSign: false,
+    forceSign: false,
     nanString: ''
   };
 
@@ -93,6 +110,8 @@ export class DurationDisplay extends DisplayComponent<DurationDisplayProps> {
 
   private readonly options: DurationDisplayOptions = Object.assign({}, DurationDisplay.DEFAULT_OPTIONS, this.props.options);
   private readonly delim: string;
+  private readonly negativeSign = this.options.useMinusSign ? '−' : '-';
+  private readonly positiveSign = this.options.forceSign ? '+' : '';
 
   private readonly text = Subject.create('');
 
@@ -144,7 +163,10 @@ export class DurationDisplay extends DisplayComponent<DurationDisplayProps> {
       let hrDelim = '';
       let minDelim = '';
 
-      const hours = Math.floor(value.asUnit(UnitType.HOUR));
+      const valueAsSeconds = Math.abs(value.asUnit(UnitType.SECOND));
+      const isNegative = value.number < 0;
+
+      let hours = Math.floor(valueAsSeconds / 3600);
       if (this.options.format != DurationDisplayFormat.mm_ss && !(this.options.format === DurationDisplayFormat.hh_mm_or_mm_ss && hours == 0)) {
         hrText = hours.toFixed(0);
         if (this.options.delim === DurationDisplayDelim.ColonOrCross) {
@@ -158,32 +180,38 @@ export class DurationDisplay extends DisplayComponent<DurationDisplayProps> {
         }
       }
 
+      const hoursInMinutes = hours * 60;
       let minutes: number;
       let seconds: number;
 
       if (this.options.format === DurationDisplayFormat.hh_mm || (this.options.format === DurationDisplayFormat.hh_mm_or_mm_ss && hours !== 0)) {
-        minutes = value.asUnit(UnitType.MINUTE) % 60;
+        minutes = valueAsSeconds / 60 - hoursInMinutes;
         minText = this.options.numberFormatter(minutes);
       } else {
-        minutes = Math.floor(value.asUnit(UnitType.MINUTE) - hours * 60);
+        minutes = Math.floor(valueAsSeconds / 60 - hoursInMinutes);
         minText = minutes.toFixed(0);
         minDelim = this.options.delim === DurationDisplayDelim.ColonOrCross ? ':' : this.delim;
 
-        seconds = value.asUnit(UnitType.SECOND) % 60;
+        seconds = valueAsSeconds - (hoursInMinutes + minutes) * 60;
         secText = this.options.numberFormatter(seconds);
       }
 
       if (secText && secText.replace(/\b0+/, '').substring(0, 2) === '60') {
-        secText = this.options.numberFormatter(parseFloat(secText) - 60);
-        minText = `${minutes + 1}`;
+        seconds = parseFloat(secText) - 60;
+        minutes++;
+        secText = this.options.numberFormatter(seconds);
+        minText = `${minutes}`;
       }
       if (minText && minText.replace(/\b0+/, '').substring(0, 2) === '60' && hrText) {
         if (secText) {
+          minutes = 0;
           minText = '00';
         } else {
-          minText = this.options.numberFormatter(parseFloat(minText) - 60);
+          minutes = parseFloat(minText) - 60;
+          minText = this.options.numberFormatter(minutes);
         }
-        hrText = `${(hours + 1)}`;
+        hours++;
+        hrText = `${hours}`;
       }
 
       // pad parts with leading zeroes
@@ -207,7 +235,10 @@ export class DurationDisplay extends DisplayComponent<DurationDisplayProps> {
         secText && (secUnitText = this.options.unitFormatter(parseFloat(secText), UnitType.SECOND));
       }
 
-      text = `${hrText}${hrUnitText}${hrDelim}${minText}${minUnitText}${minDelim}${secText}${secUnitText}`;
+      // compute sign
+      const sign = isNegative ? this.negativeSign : this.positiveSign;
+
+      text = `${sign}${hrText}${hrUnitText}${hrDelim}${minText}${minUnitText}${minDelim}${secText}${secUnitText}`;
     }
 
     this.text.set(text);

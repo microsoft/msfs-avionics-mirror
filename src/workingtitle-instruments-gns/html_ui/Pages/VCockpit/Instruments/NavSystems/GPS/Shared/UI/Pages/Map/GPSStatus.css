@@ -1,0 +1,232 @@
+.page.gps-status {
+  background-color: var(--gnsblue);
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-template-rows: 100px 60px 60px;
+  padding: unset;
+}
+
+.gps-status-map {
+  border: 1px solid var(--gnscyan);
+  background-color: black;
+  margin: 1px 0 0 5px;
+}
+
+wt-gns530 .gps-status-statuscontainer {
+  margin-top: 2px;
+  margin-left: 3px;
+  width: calc(100% - 5px);
+}
+
+wt-gns430 .gps-status-statuscontainer {
+  margin-top: 2px;
+  width: 148px;
+  margin-left: -14px;
+}
+
+.gps-status-statuscontainer h3,
+.gps-status-statuscontainer label {
+  color: var(--gnscyan);
+  font-size: 10px;
+  display: block;
+}
+
+.gps-status-statuscontainer h3 {
+  margin-left: 3px;
+}
+
+wt-gns530 .gps-status-statuscontainer label {
+  height: 10px;
+  text-align: left;
+  margin: 8px 8px 0 24px;
+}
+
+wt-gns430 .gps-status-statuscontainer label {
+  height: 10px;
+  text-align: left;
+  margin: 8px 8px 0 24px;
+  font-size: 16px;
+}
+
+.gps-status-status {
+  font-size: 16px;
+  color: var(--gnsgreen);
+  border: 1px solid var(--gnscyan);
+  background-color: black;
+  height: 20px;
+  padding: 2px;
+  margin-bottom: 3px;
+}
+
+.gps-status-values {
+  display: grid;
+  grid-template-columns: 50% 50%;
+}
+
+wt-gns530 .gps-status-values>div:first-child {
+  text-align: right;
+}
+
+wt-gns430.gps-status-values>div:first-child {
+  text-align: right;
+  margin-top: -4px;
+}
+
+.gps-status-values>div:last-child {
+  text-align: right;
+  font-size: 16px;
+  color: var(--gnsgreen);
+  border: 1px solid var(--gnscyan);
+  background-color: black;
+  padding: 3px;
+}
+
+wt-gns530 .gps-status-bargraph {
+  border: 1px solid var(--gnscyan);
+  width: 247px;
+  height: 46px;
+  margin: 0px 2px 0 5px;
+  background-color: black;
+  grid-column: 1 / span 2;
+}
+
+wt-gns430 .gps-status-bargraph {
+  border: 1px solid var(--gnscyan);
+  height: 46px;
+  margin: 14px 2px 0 5px;
+  background-color: black;
+  grid-column: 1 / span 2;
+}
+
+.gps-status-bargraph hr {
+  border: unset;
+  border-bottom: 1px solid var(--gnscyan);
+  margin-top: 10px;
+}
+
+wt-gns530 .gps-status-bargraph-items {
+  position: absolute;
+  top: 100px;
+  left: 72px;
+  height: 58px;
+  width: 247px;
+  font-size: 10px;
+  overflow: hidden;
+}
+
+wt-gns430 .gps-status-bargraph-items {
+  position: absolute;
+  top: 114px;
+  height: 58px;
+  font-size: 10px;
+  overflow: hidden;
+}
+
+.gps-status-bargraph-item {
+  display: inline-block;
+  height: 58px;
+  position: relative;
+  width: 16px;
+}
+
+wt-gns530 .gps-status-bargraph-prn {
+  font-size: 10px;
+  color: #ccc;
+  position: absolute;
+  bottom: 0px;
+  left: 0px;
+  text-align: center;
+}
+
+wt-gns430 .gps-status-bargraph-prn {
+  font-size: 13px;
+  color: #ccc;
+  position: absolute;
+  bottom: -3px;
+  left: 0px;
+  text-align: center;
+}
+
+.gps-status-bargraph-bar {
+  position: absolute;
+  bottom: 13px;
+  left: 0px;
+  width: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.gps-status-bargraph-bar>span {
+  position: absolute;
+  bottom: 0px;
+  color: black;
+  left: 4px;
+}
+
+.gps-status-bargraph-bar.inverse {
+  height: 42px;
+}
+
+.gps-status-bargraph-bar.inverse>span {
+  color: var(--gnsgreen);
+}
+
+.gps-status-bargraph-bar.in-use {
+  background-color: var(--gnsgreen);
+}
+
+.gps-status-bargraph-bar.data-collected {
+  background-color: var(--gnscyan);
+}
+
+.gps-status-bargraph-bar.acquired {
+  border-top: 1px solid var(--gnscyan);
+  border-left: 1px solid var(--gnscyan);
+  border-right: 1px solid var(--gnscyan);
+  background-color: black;
+}
+
+.gps-status-postimealt {
+  display: grid;
+  grid-template-columns: 40% 30% 30%;
+  color: var(--gnsgreen);
+  font-size: 16px;
+  grid-column: 1 / span 2;
+  padding: 0 1px;
+}
+
+.gps-status-postimealt h3 {
+  font-size: 10px;
+  color: var(--gnscyan);
+  margin-left: 3px;
+}
+
+.gps-status-positionbox,
+.gps-status-timebox,
+.gps-status-altbox {
+  background-color: black;
+  border-color: var(--gnscyan);
+  border-width: 1px 0 1px 1px;
+  border-style: solid;
+  height: 40px;
+  text-align: center;
+}
+
+.gps-status-positionbox,
+.gps-status-timebox {
+  border-width: 1px 0 1px 1px;
+}
+
+.gps-status-altbox {
+  border-width: 1px;
+}
+
+.gps-status-positionbox {
+  padding-top: 3px;
+}
+
+.gps-status-timebox,
+.gps-status-altbox {
+  padding-top: 11px;
+}

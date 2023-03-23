@@ -1,14 +1,23 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import { EventBus, SimVarValueType } from '../../data';
 import { GeoPoint } from '../../geo';
-import { AdcEvents, Glideslope, GNSSEvents, NavRadioEvents } from '../../instruments';
+import { Glideslope, NavRadioEvents, NavRadioIndex } from '../../instruments';
 import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
 import { APLateralModes, APValues } from '../APConfig';
 import { VNavVars } from '../data/VNavEvents';
 import { ApproachGuidanceMode } from '../VerticalNavigation';
-import { VNavUtils } from '../VNavUtils';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
+
+/**
+ * Options for {@link APGSDirector}.
+ */
+export type APGSDirectorOptions = {
+  /**
+   * Force the director to always use a certain NAV/GS source
+   */
+  forceNavSource: NavRadioIndex;
+};
 
 /**
  * A glideslope autopilot director.
@@ -23,36 +32,30 @@ export class APGSDirector implements PlaneDirector {
   /** A callback called when the director arms. */
   public onArm?: () => void;
 
-  private geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)];
-  private ppos = new GeoPoint(0, 0);
   private gsLocation = new GeoPoint(NaN, NaN);
   private glideslope?: Glideslope;
   private verticalWindAverage = new SimpleMovingAverage(10);
-  private tas = 0;
-  private groundSpeed = 0;
 
   /**
    * Creates an instance of the LateralDirector.
    * @param bus The event bus to use with this instance.
    * @param apValues is the APValues object from the Autopilot.
+   * @param options APGSDirector options.
    */
-  constructor(private readonly bus: EventBus, private readonly apValues: APValues) {
+  constructor(private readonly bus: EventBus, private readonly apValues: APValues, options?: Partial<Readonly<APGSDirectorOptions>>) {
     this.state = DirectorState.Inactive;
     const nav = this.bus.getSubscriber<NavRadioEvents>();
-    nav.on('nav_radio_active_glideslope').handle(gs => this.glideslope = gs);
-    nav.on('nav_radio_active_gs_location').handle((loc) => {
-      this.gsLocation.set(loc.lat, loc.long);
-    });
-    const gnss = this.bus.getSubscriber<GNSSEvents>();
-    gnss.on('gps-position').atFrequency(1).handle((lla) => {
-      this.ppos.set(lla.lat, lla.long);
-    });
-    gnss.on('ground_speed').withPrecision(0).handle((gs) => {
-      this.groundSpeed = gs;
-    });
-    this.bus.getSubscriber<AdcEvents>().on('tas').withPrecision(0).handle((tas) => {
-      this.tas = tas;
-    });
+    if (options?.forceNavSource) {
+      nav.on(`nav_radio_glideslope_${options.forceNavSource}`).handle(gs => this.glideslope = gs);
+      nav.on(`nav_radio_gs_location_${options.forceNavSource}`).handle((loc) => {
+        this.gsLocation.set(loc.lat, loc.long);
+      });
+    } else {
+      nav.on('nav_radio_active_glideslope').handle(gs => this.glideslope = gs);
+      nav.on('nav_radio_active_gs_location').handle((loc) => {
+        this.gsLocation.set(loc.lat, loc.long);
+      });
+    }
   }
 
   /**
@@ -132,35 +135,45 @@ export class APGSDirector implements PlaneDirector {
    * Tracks the Glideslope.
    */
   private trackGlideslope(): void {
-    if (this.glideslope !== undefined && this.glideslope.isValid) {
-      let gsDistance = UnitType.NMILE.convertTo(5, UnitType.METER);
-      if (!isNaN(this.gsLocation.lat)) {
-        const gsPosition = this.geoPointCache[0];
-        gsPosition.set(this.gsLocation);
+    if (this.glideslope !== undefined && this.glideslope.isValid && !isNaN(this.gsLocation.lat + this.gsLocation.lon)) {
+      const distanceM = UnitType.GA_RADIAN.convertTo(
+        this.gsLocation.distance(
+          SimVar.GetSimVarValue('PLANE LATITUDE', SimVarValueType.Degree),
+          SimVar.GetSimVarValue('PLANE LONGITUDE', SimVarValueType.Degree)
+        ),
+        UnitType.METER
+      );
 
-        const planePosGP = this.geoPointCache[1];
-        planePosGP.set(this.ppos);
+      // We want the altitude of the plane above the glideslope antenna, which we can calculate from distance,
+      // glideslope angle, and glideslope error.
+      const altitudeM = distanceM * Math.tan((this.glideslope.gsAngle + this.glideslope.deviation) * Avionics.Utils.DEG2RAD);
 
-        gsDistance = UnitType.GA_RADIAN.convertTo(planePosGP.distance(gsPosition), UnitType.METER);
-      }
+      const groundSpeedMps = SimVar.GetSimVarValue('GROUND VELOCITY', SimVarValueType.MetersPerSecond);
 
-      const gainDenominator = MathUtils.clamp((2200 - (0.4 * gsDistance)) / 3000, 0.1, 1);
-      const fpaPercentage = Math.max(this.glideslope.deviation / gainDenominator, -1) + 1;
+      // Set our desired closure rate in degrees per second - this is the rate at which we want to reduce our
+      // glideslope error. We will target 0.1 degrees per second at full-scale deviation, decreasing linearly
+      // down to 0 at no deviation. This is equivalent to a constant time-to-intercept of 7 seconds at full-scale
+      // deviation or less.
+      const desiredClosureRate = MathUtils.lerp(Math.abs(this.glideslope.deviation), 0, 0.7, 0, 0.1, true, true);
+      const desiredAngleRate = Math.sign(this.glideslope.deviation) * -1 * desiredClosureRate;
 
-      const pitchForFpa = MathUtils.clamp(this.glideslope.gsAngle * fpaPercentage * -1, -8, 3);
-      const vsRequiredForFpa = VNavUtils.getVerticalSpeedFromFpa(-pitchForFpa, this.groundSpeed);
+      const vsRequiredForClosure = MathUtils.clamp(
+        (Avionics.Utils.DEG2RAD * desiredAngleRate * (distanceM * distanceM + altitudeM * altitudeM) - altitudeM * groundSpeedMps) / distanceM,
+        -3000,
+        0
+      );
 
       //We need the instant vertical wind component here so we're avoiding the bus
-      const verticalWindComponent = this.verticalWindAverage.getAverage(SimVar.GetSimVarValue('AMBIENT WIND Y', SimVarValueType.FPM));
+      const verticalWindComponent = this.verticalWindAverage.getAverage(SimVar.GetSimVarValue('AMBIENT WIND Y', SimVarValueType.MetersPerSecond));
 
-      const vsRequiredWithVerticalWind = vsRequiredForFpa - verticalWindComponent;
+      const vsRequiredWithVerticalWind = vsRequiredForClosure - verticalWindComponent;
 
-      const pitchForVerticalSpeed = VNavUtils.getFpa(UnitType.NMILE.convertTo(this.tas / 60, UnitType.FOOT), vsRequiredWithVerticalWind);
+      const pitchForVerticalSpeed = Math.asin(MathUtils.clamp(vsRequiredWithVerticalWind / SimVar.GetSimVarValue('AIRSPEED TRUE', SimVarValueType.MetersPerSecond), -1, 1)) * Avionics.Utils.RAD2DEG;
 
       //We need the instant AOA here so we're avoiding the bus
       const aoa = SimVar.GetSimVarValue('INCIDENCE ALPHA', SimVarValueType.Degree);
 
-      const targetPitch = aoa + pitchForVerticalSpeed;
+      const targetPitch = aoa + MathUtils.clamp(pitchForVerticalSpeed, -8, 3);
 
       SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, -targetPitch);
     } else {

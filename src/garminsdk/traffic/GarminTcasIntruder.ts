@@ -1,4 +1,4 @@
-import { AbstractTcasIntruder, Subscribable, TcasAlertLevel, TrafficContact } from 'msfssdk';
+import { AbstractTcasIntruder, Subscribable, TcasAlertLevel, TrafficContact } from '@microsoft/msfs-sdk';
 
 /**
  * An intruder tracked by Garmin traffic systems.

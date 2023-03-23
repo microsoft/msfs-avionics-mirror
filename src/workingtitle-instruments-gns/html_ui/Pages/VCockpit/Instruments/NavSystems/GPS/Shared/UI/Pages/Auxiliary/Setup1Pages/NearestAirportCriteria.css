@@ -1,0 +1,47 @@
+.nearest-airport-criteria-container {
+  display: grid;
+  height: 54px;
+  grid-template-columns: 3fr 4fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  grid-column-gap: 1em;
+  padding: 0 6px;
+  margin-top: .2em;
+}
+
+.nearest-airport-criteria-side-title {
+  font-size: 11px;
+  margin: auto;
+  width: 98px;
+}
+
+.nearest-airport-criteria-table {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  padding: 1px;
+}
+
+
+.nearest-airport-criteria-table>.div {
+  width: 130px;
+}
+
+div>.nearest-airport-criteria-table {
+  width: 130px;
+}
+
+
+/* TODO we might wanna do the padding like this elsewhere */
+.nearest-airport-criteria-surface {
+  display: inline-block;
+  height: 15px;
+  line-height: 18px;
+  padding: 0 1px 0;
+  margin-top: 1px;
+}
+
+.nearest-airport-criteria-option-dialog {
+  width: 90px !important;
+  top: 4.5em;
+  left: 15em;
+}

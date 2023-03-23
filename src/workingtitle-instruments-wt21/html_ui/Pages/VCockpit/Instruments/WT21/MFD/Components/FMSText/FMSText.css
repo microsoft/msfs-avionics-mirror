@@ -1,0 +1,51 @@
+.fms-text-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform: rotateX(0);
+  padding-left: 85px;
+  font-size: 24px;
+}
+
+.fms-text-row {
+  display: grid;
+  grid-template-rows: auto;
+  grid-template-columns: repeat(auto-fill, 100px);
+}
+
+.fms-text-row-right-align {
+  text-align: right;
+}
+
+.fms-text-vnav {
+  position: absolute;
+  left: 395px;
+  top: 0;
+  width: calc(100% - 395px);
+  height: 100%;
+  display: grid;
+  grid-template-rows: repeat(4, min-content);
+  grid-template-columns: 15px 100px 1fr;
+  color: var(--wt21-colors-green);
+  background: black;
+}
+
+.fms-text-vnav-divider {
+  color: var(--wt21-colors-white);
+}
+
+.fms-text-incompatible {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: black;
+}
+
+.fms-text-incompatible div {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}

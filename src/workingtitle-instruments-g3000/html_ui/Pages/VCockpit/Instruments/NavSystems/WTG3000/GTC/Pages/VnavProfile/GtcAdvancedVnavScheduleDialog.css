@@ -1,0 +1,13 @@
+.gtc-horizontal .gtc-list-dialog.advanced-vnav-schedule-dialog {
+  --gtc-list-dialog-left: calc(50% - 812px / 2);
+  --gtc-list-dialog-width: 812px;
+  --gtc-list-dialog-padding: 10px;
+  --gtc-list-dialog-font-size: 38px;
+}
+
+.gtc-vertical .gtc-list-dialog.advanced-vnav-schedule-dialog {
+  --gtc-list-dialog-left: calc(50% - 435px / 2);
+  --gtc-list-dialog-width: 435px;
+  --gtc-list-dialog-padding: 5px;
+  --gtc-list-dialog-font-size: 20px;
+}

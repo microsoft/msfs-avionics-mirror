@@ -1,0 +1,35 @@
+.avionics-settings-page-row-right.avionics-settings-page-touchdown-settings-button {
+  --touch-button-text-color: var(--g3000-color-white);
+}
+
+.touchdown-callouts-popup {
+  position: absolute;
+  display: grid;
+  grid-template-rows: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
+
+  --touch-button-toggle-label-center-y: 50%;
+  --touch-button-toggle-bar-center-y: 85%;
+}
+
+.gtc-horizontal .touchdown-callouts-popup {
+  left: 70px;
+  top: 45px;
+  width: calc(100% - 2 * 70px);
+  height: calc(100% - 50px);
+  padding: 15px;
+  grid-row-gap: 25px;
+  grid-column-gap: 50px;
+  font-size: 32px;
+}
+
+.gtc-vertical .touchdown-callouts-popup {
+  left: 15px;
+  top: 25px;
+  width: calc(100% - 2 * 15px);
+  height: calc(100% - 25px);
+  padding: 7px;
+  grid-row-gap: 12px;
+  grid-column-gap: 25px;
+  font-size: 16px;
+}

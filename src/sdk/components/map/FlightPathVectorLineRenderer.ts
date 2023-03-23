@@ -19,6 +19,8 @@ export class FlightPathVectorLineRenderer {
    * @param width The width of the rendered line.
    * @param style The style of the rendered line.
    * @param dash The dash array of the rendered line. Defaults to no dash.
+   * @param outlineWidth The width of the outline, in pixels. Defaults to 0 pixels.
+   * @param outlineStyle The style of the outline. Defaults to `'black'`.
    */
   public render(
     vector: CircleVector,
@@ -26,9 +28,11 @@ export class FlightPathVectorLineRenderer {
     streamStack: GeoProjectionPathStreamStack,
     width: number,
     style: string,
-    dash?: readonly number[]
+    dash?: readonly number[],
+    outlineWidth?: number,
+    outlineStyle?: string,
   ): void {
     const circle = FlightPathUtils.setGeoCircleFromVector(vector, FlightPathVectorLineRenderer.geoCircleCache[0]);
-    this.renderer.render(circle, vector.startLat, vector.startLon, vector.endLat, vector.endLon, context, streamStack, width, style, dash);
+    this.renderer.render(circle, vector.startLat, vector.startLon, vector.endLat, vector.endLon, context, streamStack, width, style, dash, outlineWidth, outlineStyle);
   }
 }

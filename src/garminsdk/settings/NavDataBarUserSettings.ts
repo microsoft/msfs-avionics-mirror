@@ -1,4 +1,4 @@
-import { DefaultUserSettingManager, EventBus } from 'msfssdk';
+import { DefaultUserSettingManager, EventBus } from '@microsoft/msfs-sdk';
 
 import { NavDataFieldType } from '../components/navdatafield/NavDataFieldType';
 

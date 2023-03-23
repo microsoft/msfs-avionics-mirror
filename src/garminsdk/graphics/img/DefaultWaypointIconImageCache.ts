@@ -1,6 +1,7 @@
 import {
-  AirportFacility, AirportPrivateType, FacilityType, FacilityWaypoint, FlightPathWaypoint, ICAO, VNavWaypoint, VorFacility, VorType, Waypoint
-} from 'msfssdk';
+  AirportFacility, AirportPrivateType, FacilityType, FacilityWaypoint, FacilityWaypointUtils, FlightPathWaypoint, ICAO,
+  VNavWaypoint, VorFacility, VorType, Waypoint
+} from '@microsoft/msfs-sdk';
 
 import { WaypointIconImageCache } from './WaypointIconImageCache';
 
@@ -56,12 +57,12 @@ export class DefaultWaypointIconImageCache implements WaypointIconImageCache {
 
   /** @inheritdoc */
   public getForWaypoint(waypoint: Waypoint): HTMLImageElement | undefined {
-    if (waypoint instanceof FacilityWaypoint) {
+    if (FacilityWaypointUtils.isFacilityWaypoint(waypoint)) {
       switch (ICAO.getFacilityType(waypoint.facility.get().icao)) {
         case FacilityType.Airport:
-          return this.getForAirport(waypoint);
+          return this.getForAirport(waypoint as FacilityWaypoint<AirportFacility>);
         case FacilityType.VOR:
-          return this.getForVor(waypoint);
+          return this.getForVor(waypoint as FacilityWaypoint<VorFacility>);
         case FacilityType.NDB:
           return this.get(DefaultWaypointIconImageKey.Ndb);
         case FacilityType.Intersection:

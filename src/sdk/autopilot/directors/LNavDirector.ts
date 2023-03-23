@@ -1,10 +1,10 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import { ControlEvents, EventBus, SimVarValueType } from '../../data';
 import {
-  ActiveLegType, CircleVector, FlightPathUtils, FlightPathVector, FlightPlanner, FlightPlannerEvents, LegCalculations, LegDefinition, LegDefinitionFlags
+  ActiveLegType, CircleVector, FlightPathUtils, FlightPathVector, FlightPlan, FlightPlanner, FlightPlannerEvents, LegDefinition, LegDefinitionFlags
 } from '../../flightplan';
-import { GeoCircle, GeoPoint, MagVar, NavMath } from '../../geo';
+import { GeoCircle, GeoPoint, NavMath } from '../../geo';
 import { AdcEvents, AhrsEvents, GNSSEvents, NavEvents, NavSourceType } from '../../instruments';
 import { MathUtils, UnitType } from '../../math';
 import { BitFlags } from '../../math/BitFlags';
@@ -15,8 +15,52 @@ import { SubscribableType } from '../../sub/Subscribable';
 import { LinearServo } from '../../utils/controllers/LinearServo';
 import { APValues } from '../APConfig';
 import { ArcTurnController } from '../calculators/ArcTurnController';
-import { LNavTransitionMode, LNavVars } from '../data/LNavEvents';
+import { LNavEvents, LNavTrackingState, LNavTransitionMode, LNavVars } from '../data/LNavEvents';
+import { LNavUtils } from '../LNavUtils';
 import { DirectorState, ObsDirector, PlaneDirector } from './PlaneDirector';
+
+/**
+ * An encapsulation of an LNAV tracking state.
+ */
+type LNavState = {
+  /** The global index of the tracked flight plan leg. */
+  globalLegIndex: number;
+
+  /** The transition mode. */
+  transitionMode: LNavTransitionMode;
+
+  /** The index of the tracked flight path vector. */
+  vectorIndex: number;
+
+  /** Whether leg sequencing is suspended. */
+  isSuspended: boolean;
+
+  /** The global index of the flight plan leg for which suspend is inhibited, or `-1` if there is no such leg. */
+  inhibitedSuspendLegIndex: number;
+
+  /** Whether to reset the tracked vector to the beginning of the suspended leg once suspend ends. */
+  resetVectorsOnSuspendEnd: boolean;
+
+  /** Whether the missed approach is active. */
+  isMissedApproachActive: boolean;
+};
+
+/**
+ * An encapsulation of an LNAV's desired bank angle state.
+ */
+type LNavBankAngleState = {
+  /** A controller for computing desired bank angle for arc vectors. */
+  arcController: ArcTurnController;
+
+  /** Whether the bank angle should be calculated for an intercept from an armed state. */
+  isInterceptingFromArmedState: boolean;
+
+  /** The airplane's ground track, in degrees true, when LNAV was last activated. */
+  trackAtActivation: number;
+
+  /** The desired bank angle, in degrees. Positive values indicate leftward bank. */
+  desiredBankAngle: number;
+};
 
 /**
  * Calculates an intercept angle, in degrees, to capture the desired GPS track for {@link LNavDirector}.
@@ -29,20 +73,54 @@ import { DirectorState, ObsDirector, PlaneDirector } from './PlaneDirector';
 export type LNavDirectorInterceptFunc = (dtk: number, xtk: number, tas: number) => number;
 
 /**
+ * Options for {@link LNavDirector}.
+ */
+export type LNavDirectorOptions = {
+  /**
+   * The maximum bank angle, in degrees, supported by the director, or a function which returns it. If not defined,
+   * the director will use the maximum bank angle defined by its parent autopilot (via `apValues`).
+   */
+  maxBankAngle: number | (() => number) | undefined;
+
+  /**
+   * A function used to translate DTK and XTK into a track intercept angle.
+   */
+  lateralInterceptCurve: LNavDirectorInterceptFunc;
+
+  /**
+   * Whether the director supports vector anticipation. If `true`, the director will begin tracking the next flight
+   * path vector before
+   */
+  hasVectorAnticipation: boolean;
+
+  /**
+   * The minimum radio altitude, in feet, required for the director to activate, or `undefined` if there is no minimum
+   * altitude.
+   */
+  minimumActivationAltitude: number | undefined;
+
+  /**
+   * Whether to disable arming on the director. If `true`, the director will always skip the arming phase and instead
+   * immediately activate itself when requested.
+   */
+  disableArming: boolean;
+};
+
+/**
  * A class that handles lateral navigation.
  */
 export class LNavDirector implements PlaneDirector {
+  private static readonly ANGULAR_TOLERANCE = GeoCircle.ANGULAR_TOLERANCE;
+  private static readonly ANGULAR_TOLERANCE_METERS = UnitType.GA_RADIAN.convertTo(GeoCircle.ANGULAR_TOLERANCE, UnitType.METER);
+
+  private static readonly BANK_SERVO_RATE = 10; // degrees per second
+  private static readonly VECTOR_ANTICIPATION_BANK_RATE = 5; // degrees per second
+
   private readonly vec3Cache = [new Float64Array(3), new Float64Array(3)];
   private readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0)];
   private readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
 
-  public previousLegIndex = 0;
-
-  /** The current active leg index. */
-  public currentLegIndex = 0;
-
-  /** The current flight path vector index. */
-  public currentVectorIndex = 0;
+  private readonly publisher = this.bus.getPublisher<LNavEvents>();
 
   public state: DirectorState;
 
@@ -60,10 +138,13 @@ export class LNavDirector implements PlaneDirector {
     windSpeed: 0,
     windDirection: 0,
     planePos: new GeoPoint(0, 0),
-    hdgTrue: 0
+    hdgTrue: 0,
+    altAgl: 0,
+    bank: 0
   };
 
   private currentLeg: LegDefinition | undefined = undefined;
+  private currentVector: FlightPathVector | undefined = undefined;
 
   private dtk = 0;
   private xtk = 0;
@@ -72,25 +153,57 @@ export class LNavDirector implements PlaneDirector {
   private alongVectorDistance = 0;
   private vectorDistanceRemaining = 0;
   private vectorAnticipationDistance = 0;
+  private alongTrackSpeed = 0;
 
-  private transitionMode = LNavTransitionMode.None;
+  private anticipationVector: FlightPathVector | undefined = undefined;
 
-  private isSuspended = false;
-  private suspendedLegIndex = 0;
-  private resetVectorsOnSuspendEnd = false;
+  private anticipationDtk = 0;
+  private anticipationXtk = 0;
+  private anticipationBearingToVectorEnd = 0;
+
   private inhibitNextSequence = false;
-
-  private missedApproachActive = false;
 
   private currentBankRef = 0;
 
-  private readonly arcController = new ArcTurnController();
+  private readonly bankServo = new LinearServo(LNavDirector.BANK_SERVO_RATE);
 
-  private readonly bankServo = new LinearServo(10);
+  private readonly currentState: LNavState = {
+    globalLegIndex: 0,
+    transitionMode: LNavTransitionMode.None,
+    vectorIndex: 0,
+    isSuspended: false,
+    inhibitedSuspendLegIndex: -1,
+    resetVectorsOnSuspendEnd: false,
+    isMissedApproachActive: false
+  };
+
+  private readonly anticipationState: LNavState = {
+    globalLegIndex: 0,
+    transitionMode: LNavTransitionMode.None,
+    vectorIndex: 0,
+    isSuspended: false,
+    inhibitedSuspendLegIndex: -1,
+    resetVectorsOnSuspendEnd: false,
+    isMissedApproachActive: false
+  };
+
+  private readonly currentBankAngleState: LNavBankAngleState = {
+    arcController: new ArcTurnController(),
+    isInterceptingFromArmedState: false,
+    trackAtActivation: 0,
+    desiredBankAngle: 0
+  };
 
   private readonly lnavData = ObjectSubject.create({
     dtk: 0,
     xtk: 0,
+    trackingState: {
+      isTracking: false,
+      globalLegIndex: 0,
+      transitionMode: LNavTransitionMode.None,
+      vectorIndex: 0,
+      isSuspended: false
+    } as LNavTrackingState,
     isTracking: false,
     legIndex: 0,
     transitionMode: LNavTransitionMode.None,
@@ -101,14 +214,13 @@ export class LNavDirector implements PlaneDirector {
     legDistanceRemaining: 0,
     alongVectorDistance: 0,
     vectorDistanceRemaining: 0,
-    vectorAnticipationDistance: 0
+    vectorAnticipationDistance: 0,
+    alongTrackSpeed: 0
   });
 
   private isObsDirectorTracking = false;
 
   private canArm = false;
-  private trackAtActivation = 0;
-  private isInterceptingFromArmedState = false;
 
   private awaitCalculateId = 0;
   private isAwaitingCalculate = false;
@@ -134,8 +246,16 @@ export class LNavDirector implements PlaneDirector {
       case 'alongVectorDistance': SimVar.SetSimVarValue(LNavVars.VectorDistanceAlong, SimVarValueType.NM, value); break;
       case 'vectorDistanceRemaining': SimVar.SetSimVarValue(LNavVars.VectorDistanceRemaining, SimVarValueType.NM, value); break;
       case 'vectorAnticipationDistance': SimVar.SetSimVarValue(LNavVars.VectorAnticipationDistance, SimVarValueType.NM, value); break;
+      case 'alongTrackSpeed': SimVar.SetSimVarValue(LNavVars.AlongTrackSpeed, SimVarValueType.Knots, value); break;
+      case 'trackingState': this.publisher.pub('lnav_tracking_state', value as LNavTrackingState, true, true); break;
     }
   };
+
+  private readonly maxBankAngleFunc: () => number;
+  private readonly lateralInterceptCurve?: LNavDirectorInterceptFunc;
+  private readonly hasVectorAnticipation: boolean;
+  private readonly minimumActivationAltitude: number | undefined;
+  private readonly disableArming: boolean;
 
   /**
    * Creates an instance of the LateralDirector.
@@ -143,17 +263,37 @@ export class LNavDirector implements PlaneDirector {
    * @param apValues The AP Values.
    * @param flightPlanner The flight planner to use with this instance.
    * @param obsDirector The OBS Director.
-   * @param lateralInterceptCurve The optional curve used to translate DTK and XTK into a track intercept angle.
-   * @param hasVectorAnticipation Whether this lnav director supports anticipating the roll by sequencing to the next vector early.
+   * @param options Options to configure the new director. Option values default to the following if not defined:
+   * * `maxBankAngle`: `undefined`
+   * * `lateralInterceptCurve`: A default function tuned for slow GA aircraft.
+   * * `hasVectorAnticipation`: `false`
+   * * `minimumActivationAltitude`: `undefined`
+   * * `disableArming`: `false`
    */
   constructor(
     private readonly bus: EventBus,
     private readonly apValues: APValues,
     private readonly flightPlanner: FlightPlanner,
     private readonly obsDirector?: ObsDirector,
-    private readonly lateralInterceptCurve?: LNavDirectorInterceptFunc,
-    private readonly hasVectorAnticipation?: boolean
+    options?: Partial<Readonly<LNavDirectorOptions>>
   ) {
+
+    const maxBankAngleOpt = options?.maxBankAngle ?? undefined;
+    switch (typeof maxBankAngleOpt) {
+      case 'number':
+        this.maxBankAngleFunc = () => maxBankAngleOpt;
+        break;
+      case 'function':
+        this.maxBankAngleFunc = maxBankAngleOpt;
+        break;
+      default:
+        this.maxBankAngleFunc = this.apValues.maxBankAngle.get.bind(this.apValues.maxBankAngle);
+    }
+
+    this.lateralInterceptCurve = options?.lateralInterceptCurve;
+    this.hasVectorAnticipation = options?.hasVectorAnticipation ?? false;
+    this.minimumActivationAltitude = options?.minimumActivationAltitude;
+    this.disableArming = options?.disableArming ?? false;
 
     const sub = bus.getSubscriber<AdcEvents & AhrsEvents & ControlEvents & FlightPlannerEvents & GNSSEvents>();
 
@@ -164,6 +304,8 @@ export class LNavDirector implements PlaneDirector {
     sub.on('tas').handle(tas => this.aircraftState.tas = tas);
     sub.on('hdg_deg_true').handle(hdg => this.aircraftState.hdgTrue = hdg);
     sub.on('ground_speed').handle(gs => this.aircraftState.gs = gs);
+    sub.on('radio_alt').handle(alt => this.aircraftState.altAgl = alt);
+    sub.on('roll_deg').handle(roll => this.aircraftState.bank = roll);
 
     const nav = this.bus.getSubscriber<NavEvents>();
     nav.on('cdi_select').handle((src) => {
@@ -172,23 +314,33 @@ export class LNavDirector implements PlaneDirector {
       }
     });
 
-    sub.on('suspend_sequencing').handle((v) => {
-      this.trySetSuspended(v);
+    sub.on('suspend_sequencing').handle(suspend => {
+      const flightPlan = this.flightPlanner.hasActiveFlightPlan() ? this.flightPlanner.getActiveFlightPlan() : undefined;
+
+      if (flightPlan) {
+        // We are receiving an explicit command to suspend, so clear any suspend inhibits.
+        if (suspend) {
+          this.currentState.inhibitedSuspendLegIndex = -1;
+        }
+
+        this.trySetSuspended(flightPlan, this.currentState, suspend, this.currentState, false, false);
+      }
     });
 
     sub.on('activate_missed_approach').handle((v) => {
-      this.missedApproachActive = v;
+      this.currentState.isMissedApproachActive = v;
     });
 
     sub.on('lnav_inhibit_next_sequence').handle(inhibit => {
       this.inhibitNextSequence = inhibit;
       if (inhibit) {
-        this.suspendedLegIndex = 0;
+        this.currentState.inhibitedSuspendLegIndex = -1;
       }
     });
 
     sub.on('fplActiveLegChange').handle(e => {
       if (e.planIndex === this.flightPlanner.activePlanIndex && e.type === ActiveLegType.Lateral) {
+        this.currentState.inhibitedSuspendLegIndex = -1;
         this.resetVectors();
       }
     });
@@ -222,8 +374,8 @@ export class LNavDirector implements PlaneDirector {
    * Resets the current vectors and transition mode.
    */
   private resetVectors(): void {
-    this.currentVectorIndex = 0;
-    this.transitionMode = LNavTransitionMode.Ingress;
+    this.currentState.vectorIndex = 0;
+    this.currentState.transitionMode = LNavTransitionMode.Ingress;
     this.inhibitNextSequence = false;
     this.awaitCalculate();
   }
@@ -232,13 +384,14 @@ export class LNavDirector implements PlaneDirector {
    * Activates the LNAV director.
    */
   public activate(): void {
-    this.isInterceptingFromArmedState = true;
-    this.trackAtActivation = this.aircraftState.track;
+    this.currentBankAngleState.isInterceptingFromArmedState = !this.disableArming;
+    this.currentBankAngleState.trackAtActivation = this.aircraftState.track;
     this.state = DirectorState.Active;
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
     this.setNavLock(true);
+    this.bankServo.reset();
   }
 
   /**
@@ -246,7 +399,7 @@ export class LNavDirector implements PlaneDirector {
    */
   public arm(): void {
     if (this.state === DirectorState.Inactive) {
-      this.isInterceptingFromArmedState = false;
+      this.currentBankAngleState.isInterceptingFromArmedState = false;
       if (this.canArm) {
         this.state = DirectorState.Armed;
         if (this.onArm !== undefined) {
@@ -265,7 +418,7 @@ export class LNavDirector implements PlaneDirector {
     if (this.obsDirector && this.obsDirector.state !== DirectorState.Inactive) {
       this.obsDirector.deactivate();
     }
-    this.isInterceptingFromArmedState = false;
+    this.currentBankAngleState.isInterceptingFromArmedState = false;
     this.setNavLock(false);
   }
 
@@ -284,38 +437,45 @@ export class LNavDirector implements PlaneDirector {
     let clearInhibitNextSequence = false;
 
     const flightPlan = this.flightPlanner.hasActiveFlightPlan() ? this.flightPlanner.getActiveFlightPlan() : undefined;
-    this.currentLegIndex = flightPlan ? flightPlan.activeLateralLeg : 0;
+    this.currentState.globalLegIndex = flightPlan ? flightPlan.activeLateralLeg : 0;
 
-    let isTracking = !!flightPlan && this.currentLegIndex <= flightPlan.length - 1;
+    let isTracking = !!flightPlan && this.currentState.globalLegIndex <= flightPlan.length - 1;
 
     if (flightPlan && isTracking) {
       if (this.isAwaitingCalculate) {
         return;
       }
 
-      this.currentLeg = flightPlan.getLeg(this.currentLegIndex);
+      this.currentLeg = flightPlan.getLeg(this.currentState.globalLegIndex);
 
       // We don't want to clear the inhibit next sequence flag until the active leg has been calculated
       // since we never sequence through non-calculated legs.
       clearInhibitNextSequence = !!this.currentLeg.calculated;
 
-      this.calculateTracking();
+      this.calculateTracking(flightPlan);
 
       if (this.isAwaitingCalculate) {
         return;
       }
 
-      isTracking = this.currentLegIndex <= flightPlan.length - 1;
+      if (this.hasVectorAnticipation) {
+        this.updateVectorAnticipation(flightPlan);
+      }
+
+      isTracking = this.currentState.globalLegIndex < flightPlan.length
+        && this.currentVector !== undefined
+        && this.currentVector.radius > LNavDirector.ANGULAR_TOLERANCE
+        && this.currentVector.distance > LNavDirector.ANGULAR_TOLERANCE_METERS;
 
       if (isTracking) {
         const calcs = this.currentLeg.calculated;
 
         if (this.obsDirector) {
-          this.obsDirector.setLeg(this.currentLegIndex, this.currentLeg);
+          this.obsDirector.setLeg(this.currentState.globalLegIndex, this.currentLeg);
 
           if (this.obsDirector.obsActive) {
-            this.isSuspended = true;
-            this.suspendedLegIndex = this.currentLegIndex;
+            this.currentState.isSuspended = true;
+            this.currentState.inhibitedSuspendLegIndex = this.currentState.globalLegIndex;
 
             if (!this.isObsDirectorTracking) {
               this.lnavData.unsub(this.lnavDataHandler);
@@ -344,37 +504,77 @@ export class LNavDirector implements PlaneDirector {
 
         isTracking = calcs !== undefined;
 
-        if (this.state !== DirectorState.Inactive && calcs !== undefined) {
-          this.navigateFlightPath(calcs);
+        if (this.state !== DirectorState.Inactive) {
+          this.navigateFlightPath();
         }
       }
+    } else {
+      // We can't be suspended if there is no flight plan or the active leg is past the end of the flight plan.
+      this.currentState.isSuspended = false;
+      clearInhibitNextSequence = true;
     }
 
+    // If we have reached this point and isObsDirectorTracking is true, then it means that OBS was just deactivated.
     if (this.isObsDirectorTracking) {
-      this.isSuspended = false;
+      this.currentState.isSuspended = false;
     }
 
     this.canArm = isTracking;
 
     this.lnavData.set('isTracking', isTracking);
-    this.lnavData.set('isSuspended', this.isSuspended);
+    this.lnavData.set('isSuspended', this.currentState.isSuspended);
 
     if (isTracking) {
+      const trackingState = this.lnavData.get().trackingState;
+      if (
+        trackingState.isTracking !== isTracking
+        || trackingState.globalLegIndex !== this.currentState.globalLegIndex
+        || trackingState.transitionMode !== this.currentState.transitionMode
+        || trackingState.vectorIndex !== this.currentState.vectorIndex
+        || trackingState.isSuspended !== this.currentState.isSuspended
+      ) {
+        this.lnavData.set('trackingState', {
+          isTracking: isTracking,
+          globalLegIndex: this.currentState.globalLegIndex,
+          transitionMode: this.currentState.transitionMode,
+          vectorIndex: this.currentState.vectorIndex,
+          isSuspended: this.currentState.isSuspended
+        });
+      }
+
       this.lnavData.set('dtk', this.dtk);
       this.lnavData.set('xtk', this.xtk);
-      this.lnavData.set('legIndex', this.currentLegIndex);
-      this.lnavData.set('vectorIndex', this.currentVectorIndex);
-      this.lnavData.set('transitionMode', this.transitionMode);
+      this.lnavData.set('legIndex', this.currentState.globalLegIndex);
+      this.lnavData.set('vectorIndex', this.currentState.vectorIndex);
+      this.lnavData.set('transitionMode', this.currentState.transitionMode);
       this.lnavData.set('courseToSteer', this.courseToSteer);
       this.lnavData.set('alongVectorDistance', this.alongVectorDistance);
       this.lnavData.set('vectorDistanceRemaining', this.vectorDistanceRemaining);
       this.lnavData.set('vectorAnticipationDistance', this.vectorAnticipationDistance);
+      this.lnavData.set('alongTrackSpeed', this.alongTrackSpeed);
 
-      const currentLeg = this.currentLeg as LegDefinition;
-      this.lnavData.set('alongLegDistance', this.getAlongLegDistance(currentLeg, this.currentVectorIndex, this.alongVectorDistance));
-      this.lnavData.set('legDistanceRemaining', this.getLegDistanceRemaining(currentLeg, this.currentVectorIndex, this.vectorDistanceRemaining));
+      this.lnavData.set('alongLegDistance', this.getAlongLegDistance(flightPlan as FlightPlan, this.currentState, this.alongVectorDistance));
+      this.lnavData.set('legDistanceRemaining', this.getLegDistanceRemaining(flightPlan as FlightPlan, this.currentState, this.vectorDistanceRemaining));
     } else {
       this.currentLeg = undefined;
+      this.currentVector = undefined;
+
+      const trackingState = this.lnavData.get().trackingState;
+      if (
+        trackingState.isTracking
+        || trackingState.globalLegIndex !== 0
+        || trackingState.transitionMode !== LNavTransitionMode.None
+        || trackingState.vectorIndex !== 0
+        || trackingState.isSuspended !== this.currentState.isSuspended
+      ) {
+        this.lnavData.set('trackingState', {
+          isTracking: false,
+          globalLegIndex: 0,
+          transitionMode: LNavTransitionMode.None,
+          vectorIndex: 0,
+          isSuspended: this.currentState.isSuspended
+        });
+      }
 
       this.lnavData.set('dtk', 0);
       this.lnavData.set('xtk', 0);
@@ -387,8 +587,10 @@ export class LNavDirector implements PlaneDirector {
       this.lnavData.set('alongVectorDistance', 0);
       this.lnavData.set('legDistanceRemaining', 0);
       this.lnavData.set('vectorAnticipationDistance', 0);
+      this.lnavData.set('alongTrackSpeed', 0);
     }
 
+    // If we have reached this point and isObsDirectorTracking is true, then it means that OBS was just deactivated.
     if (this.isObsDirectorTracking) {
       this.obsDirector?.stopTracking();
       this.lnavData.sub(this.lnavDataHandler, true);
@@ -403,41 +605,30 @@ export class LNavDirector implements PlaneDirector {
   }
 
   /**
-   * Navigates the provided leg flight path.
-   * @param calcs The legs calculations that has the provided flight path.
+   * Navigates the currently tracked flight path.
    */
-  private navigateFlightPath(calcs: LegCalculations): void {
-    let absInterceptAngle;
-    let naturalAbsInterceptAngle = 0;
+  private navigateFlightPath(): void {
+    let bankAngle: number | undefined;
 
-    if (this.lateralInterceptCurve !== undefined) {
-      naturalAbsInterceptAngle = this.lateralInterceptCurve(this.dtk, this.xtk, this.aircraftState.tas);
-    } else {
-      naturalAbsInterceptAngle = Math.min(Math.pow(Math.abs(this.xtk) * 20, 1.35) + (Math.abs(this.xtk) * 50), 45);
-      if (naturalAbsInterceptAngle <= 2.5) {
-        naturalAbsInterceptAngle = NavMath.clamp(Math.abs(this.xtk * 150), 0, 2.5);
-      }
+    if (
+      this.anticipationVector
+      && this.vectorAnticipationDistance > 0
+      && this.vectorDistanceRemaining <= this.vectorAnticipationDistance
+      // Do not fly the anticipated vector if our current-vector crosstrack error is greater than the anticipated
+      // vector's radius. This keeps us from flying the wrong "side" of an anticipated vector.
+      && Math.abs(this.xtk) < UnitType.GA_RADIAN.convertTo(FlightPathUtils.getVectorTurnRadius(this.anticipationVector), UnitType.NMILE)
+    ) {
+      this.updateBankAngle(this.anticipationVector, this.anticipationDtk, this.anticipationXtk, this.anticipationBearingToVectorEnd, this.currentBankAngleState);
+      bankAngle = this.currentBankAngleState.desiredBankAngle;
     }
 
-    if (this.isInterceptingFromArmedState) {
-      absInterceptAngle = Math.abs(NavMath.diffAngle(this.trackAtActivation, this.dtk));
-      if (absInterceptAngle > naturalAbsInterceptAngle || absInterceptAngle < 5 || absInterceptAngle < Math.abs(NavMath.diffAngle(this.dtk, this.bearingToVectorEnd))) {
-        absInterceptAngle = naturalAbsInterceptAngle;
-        this.isInterceptingFromArmedState = false;
+    if (bankAngle === undefined) {
+      if (!this.currentVector || this.currentVector.radius === 0 || this.currentVector.distance <= LNavDirector.ANGULAR_TOLERANCE_METERS) {
+        return;
       }
-    } else {
-      absInterceptAngle = naturalAbsInterceptAngle;
-    }
 
-    const interceptAngle = this.xtk < 0 ? absInterceptAngle : -1 * absInterceptAngle;
-    this.courseToSteer = NavMath.normalizeHeading(this.dtk + interceptAngle);
-
-    let bankAngle = this.desiredBank(this.courseToSteer);
-
-    const vector = LNavDirector.getVectorsForTransitionMode(calcs, this.transitionMode, this.isSuspended)[this.currentVectorIndex];
-
-    if (vector !== undefined && !FlightPathUtils.isVectorGreatCircle(vector)) {
-      bankAngle = this.adjustBankAngleForArc(vector, bankAngle);
+      this.updateBankAngle(this.currentVector, this.dtk, this.xtk, this.bearingToVectorEnd, this.currentBankAngleState);
+      bankAngle = this.currentBankAngleState.desiredBankAngle;
     }
 
     if (this.state === DirectorState.Active) {
@@ -446,45 +637,47 @@ export class LNavDirector implements PlaneDirector {
   }
 
   /**
-   * Adjusts the desired bank angle for arc vectors.
-   * @param vector The arc vector to adjust for.
-   * @param bankAngle The current starting input desired bank angle.
-   * @returns The adjusted bank angle.
+   * Updates a bank angle state for a tracked flight path vector.
+   * @param vector The tracked flight path vector.
+   * @param dtk The desired track, in degrees true.
+   * @param xtk The cross-track error, in nautical miles.
+   * @param bearingToVectorEnd The bearing from the airplane to the end of the tracked vector, in degrees true.
+   * @param bankAngleState The bank angle state to udpate.
+   * @returns The updated bank angle state.
    */
-  private adjustBankAngleForArc(vector: CircleVector, bankAngle: number): number {
-    const circle = FlightPathUtils.setGeoCircleFromVector(vector, this.geoCircleCache[0]);
-    const turnDirection = FlightPathUtils.getTurnDirectionFromCircle(circle);
-    const radius = UnitType.GA_RADIAN.convertTo(FlightPathUtils.getTurnRadiusFromCircle(circle), UnitType.METER);
+  private updateBankAngle(vector: CircleVector, dtk: number, xtk: number, bearingToVectorEnd: number, bankAngleState: LNavBankAngleState): LNavBankAngleState {
+    let absInterceptAngle;
+    let naturalAbsInterceptAngle = 0;
 
-    const relativeWindHeading = NavMath.normalizeHeading(this.aircraftState.windDirection - this.aircraftState.hdgTrue);
-    const headwind = this.aircraftState.windSpeed * Math.cos(relativeWindHeading * Avionics.Utils.DEG2RAD);
-
-    const distance = UnitType.GA_RADIAN.convertTo(circle.distance(this.aircraftState.planePos), UnitType.METER);
-    const bankAdjustment = this.arcController.getOutput(distance);
-
-    const turnBankAngle = NavMath.bankAngle(this.aircraftState.tas - headwind, radius) * (turnDirection === 'left' ? 1 : -1);
-    const turnRadius = NavMath.turnRadius(this.aircraftState.tas - headwind, 25);
-
-    const bankBlendFactor = Math.max(1 - (Math.abs(UnitType.NMILE.convertTo(this.xtk, UnitType.METER)) / turnRadius), 0);
-
-    bankAngle = (bankAngle * (1 - bankBlendFactor)) + (turnBankAngle * bankBlendFactor) + bankAdjustment;
-
-    return MathUtils.clamp(bankAngle, -30, 30);
-  }
-
-  /**
-   * Sets the desired AP bank angle.
-   * @param bankAngle The desired AP bank angle.
-   */
-  private setBank(bankAngle: number): void {
-    if (isFinite(bankAngle)) {
-      const maxBank = this.apValues.maxBankAngle.get();
-
-      bankAngle = MathUtils.clamp(bankAngle, -maxBank, maxBank);
-
-      this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
-      SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
+    if (this.lateralInterceptCurve !== undefined) {
+      naturalAbsInterceptAngle = this.lateralInterceptCurve(dtk, xtk, this.aircraftState.tas);
+    } else {
+      naturalAbsInterceptAngle = Math.min(Math.pow(Math.abs(xtk) * 20, 1.35) + (Math.abs(xtk) * 50), 45);
+      if (naturalAbsInterceptAngle <= 2.5) {
+        naturalAbsInterceptAngle = NavMath.clamp(Math.abs(xtk * 150), 0, 2.5);
+      }
     }
+
+    if (bankAngleState.isInterceptingFromArmedState) {
+      absInterceptAngle = Math.abs(NavMath.diffAngle(bankAngleState.trackAtActivation, dtk));
+      if (absInterceptAngle > naturalAbsInterceptAngle || absInterceptAngle < 5 || absInterceptAngle < Math.abs(NavMath.diffAngle(dtk, bearingToVectorEnd))) {
+        absInterceptAngle = naturalAbsInterceptAngle;
+        bankAngleState.isInterceptingFromArmedState = false;
+      }
+    } else {
+      absInterceptAngle = naturalAbsInterceptAngle;
+    }
+
+    const interceptAngle = xtk < 0 ? absInterceptAngle : -1 * absInterceptAngle;
+    const courseToSteer = NavMath.normalizeHeading(dtk + interceptAngle);
+
+    bankAngleState.desiredBankAngle = this.desiredBank(courseToSteer);
+
+    if (vector !== undefined && !FlightPathUtils.isVectorGreatCircle(vector)) {
+      this.adjustBankAngleForArc(vector, bankAngleState);
+    }
+
+    return bankAngleState;
   }
 
   /**
@@ -496,19 +689,63 @@ export class LNavDirector implements PlaneDirector {
     const turnDirection = NavMath.getTurnDirection(this.aircraftState.track, desiredTrack);
     const headingDiff = Math.abs(NavMath.diffAngle(this.aircraftState.track, desiredTrack));
 
-    let baseBank = Math.min(1.25 * headingDiff, 30);
+    let baseBank = Math.min(1.25 * headingDiff, this.maxBankAngleFunc());
     baseBank *= (turnDirection === 'left' ? 1 : -1);
 
     return baseBank;
   }
 
   /**
-   * Calculates the tracking from the current leg.
+   * Adjusts a bank angle state's desired bank angle for arc vectors.
+   * @param vector The arc vector to adjust for.
+   * @param bankAngleState The bank angle state to adjust.
+   * @returns The adjusted bank angle state.
    */
-  private calculateTracking(): void {
-    const plan = this.flightPlanner.getActiveFlightPlan();
+  private adjustBankAngleForArc(vector: CircleVector, bankAngleState: LNavBankAngleState): LNavBankAngleState {
+    const circle = FlightPathUtils.setGeoCircleFromVector(vector, this.geoCircleCache[0]);
+    const turnDirection = FlightPathUtils.getTurnDirectionFromCircle(circle);
+    const radius = UnitType.GA_RADIAN.convertTo(FlightPathUtils.getTurnRadiusFromCircle(circle), UnitType.METER);
 
-    let didAdvance;
+    const relativeWindHeading = NavMath.normalizeHeading(this.aircraftState.windDirection - this.aircraftState.hdgTrue);
+    const headwind = this.aircraftState.windSpeed * Math.cos(relativeWindHeading * Avionics.Utils.DEG2RAD);
+
+    const distance = UnitType.GA_RADIAN.convertTo(circle.distance(this.aircraftState.planePos), UnitType.METER);
+    const bankAdjustment = bankAngleState.arcController.getOutput(distance);
+
+    const turnBankAngle = NavMath.bankAngle(this.aircraftState.tas - headwind, radius) * (turnDirection === 'left' ? 1 : -1);
+    const turnRadius = NavMath.turnRadius(this.aircraftState.tas - headwind, 25);
+
+    const bankBlendFactor = Math.max(1 - (Math.abs(UnitType.NMILE.convertTo(this.xtk, UnitType.METER)) / turnRadius), 0);
+
+    const maxBank = this.maxBankAngleFunc();
+    bankAngleState.desiredBankAngle = MathUtils.clamp(
+      (bankAngleState.desiredBankAngle * (1 - bankBlendFactor)) + (turnBankAngle * bankBlendFactor) + bankAdjustment,
+      -maxBank,
+      maxBank
+    );
+
+    return bankAngleState;
+  }
+
+  /**
+   * Sets the desired AP bank angle.
+   * @param bankAngle The desired AP bank angle.
+   */
+  private setBank(bankAngle: number): void {
+    if (isFinite(bankAngle)) {
+      this.bankServo.rate = LNavDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
+      this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
+      SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
+    }
+  }
+
+  /**
+   * Calculates the tracking from the current leg.
+   * @param plan The active flight plan.
+   */
+  private calculateTracking(plan: FlightPlan): void {
+    let didAdvance: boolean;
+
     do {
       didAdvance = false;
 
@@ -516,239 +753,528 @@ export class LNavDirector implements PlaneDirector {
         break;
       }
 
-      //Don't really need to fly the intial leg?
-      if (this.currentLeg.leg.type === LegType.IF && this.currentLegIndex === 0 && plan.length > 1) {
-        this.currentLeg = plan.getLeg(++this.currentLegIndex);
+      // Don't really need to fly the intial leg?
+      if (this.currentLeg.leg.type === LegType.IF && this.currentState.globalLegIndex === 0 && plan.length > 1) {
+        this.currentLeg = plan.getLeg(++this.currentState.globalLegIndex);
 
-        plan.setCalculatingLeg(this.currentLegIndex);
-        plan.setLateralLeg(this.currentLegIndex);
+        plan.setCalculatingLeg(this.currentState.globalLegIndex);
+        plan.setLateralLeg(this.currentState.globalLegIndex);
 
         continue;
       }
 
-      const transitionMode = this.transitionMode;
-      const legIndex = this.currentLegIndex;
-      const vectorIndex = this.currentVectorIndex;
-      const isSuspended = this.isSuspended;
+      const transitionMode = this.currentState.transitionMode;
+      const legIndex = this.currentState.globalLegIndex;
+      const vectorIndex = this.currentState.vectorIndex;
+      const isSuspended = this.currentState.isSuspended;
 
       const calcs = this.currentLeg.calculated;
 
       if (calcs) {
-        const vectors = LNavDirector.getVectorsForTransitionMode(calcs, this.transitionMode, this.isSuspended);
-        const vector = vectors[this.currentVectorIndex];
+        const vectors = LNavUtils.getVectorsForTransitionMode(calcs, this.currentState.transitionMode, this.currentState.isSuspended);
+        const vector = vectors[this.currentState.vectorIndex];
+        const isVectorValid = vector && vector.radius > LNavDirector.ANGULAR_TOLERANCE && vector.distance > LNavDirector.ANGULAR_TOLERANCE_METERS;
+        const isUnsuspendInvalid = this.currentState.transitionMode === LNavTransitionMode.Unsuspend
+          && (calcs.ingress.length === 0 || calcs.flightPath[calcs.ingressJoinIndex] === undefined);
 
-        if (vector && vector.radius > 0) {
+        if (isVectorValid && !isUnsuspendInvalid) {
           const planePos = this.aircraftState.planePos;
 
           const circle = FlightPathUtils.setGeoCircleFromVector(vector, this.geoCircleCache[0]);
           const start = GeoPoint.sphericalToCartesian(vector.startLat, vector.startLon, this.vec3Cache[0]);
-          const end = GeoPoint.sphericalToCartesian(vector.endLat, vector.endLon, this.vec3Cache[1]);
+          let endLat: number, endLon: number;
+          let end: Float64Array;
+          let vectorDistanceNM: number;
+
+          // If we are in unsuspend mode and tracking the vector at which the ingress transition joins the base flight
+          // path, then we treat the point at which the ingress joins the vector as the de-facto end of the vector,
+          // because at that point we want to sequence into the ingress-to-egress vector array. In all other cases,
+          // we use the entire length of the tracked vector.
+          if (transitionMode === LNavTransitionMode.Unsuspend && vectorIndex === calcs.ingressJoinIndex && calcs.ingress.length > 0) {
+            const lastIngressVector = calcs.ingress[calcs.ingress.length - 1];
+            endLat = lastIngressVector.endLat;
+            endLon = lastIngressVector.endLon;
+            end = GeoPoint.sphericalToCartesian(endLat, endLon, this.vec3Cache[1]);
+            vectorDistanceNM = UnitType.GA_RADIAN.convertTo(circle.distanceAlong(start, end, Math.PI), UnitType.NMILE);
+          } else {
+            endLat = vector.endLat;
+            endLon = vector.endLon;
+            end = GeoPoint.sphericalToCartesian(endLat, endLon, this.vec3Cache[1]);
+            vectorDistanceNM = UnitType.METER.convertTo(vector.distance, UnitType.NMILE);
+          }
 
           this.xtk = UnitType.GA_RADIAN.convertTo(circle.distance(planePos), UnitType.NMILE);
           this.dtk = circle.bearingAt(planePos, Math.PI);
 
-          this.bearingToVectorEnd = MagVar.trueToMagnetic(planePos.bearingTo(vector.endLat, vector.endLon), planePos);
+          this.bearingToVectorEnd = planePos.bearingTo(endLat, endLon);
+
+          const alongTrackSpeed = FlightPathUtils.projectVelocityToCircle(this.aircraftState.gs, planePos, this.aircraftState.track, circle);
+          this.alongTrackSpeed = isNaN(alongTrackSpeed) ? this.aircraftState.gs : alongTrackSpeed;
 
           const normDist = FlightPathUtils.getAlongArcNormalizedDistance(circle, start, end, planePos);
 
-          const vectorDistanceNM = UnitType.METER.convertTo(vector.distance, UnitType.NMILE);
           this.alongVectorDistance = normDist * vectorDistanceNM;
           this.vectorDistanceRemaining = (1 - normDist) * vectorDistanceNM;
 
-          if (this.hasVectorAnticipation) {
-            const rollTimeSeconds = (this.apValues.maxBankAngle.get() + Math.abs(this.currentBankRef)) / 5;
-            this.vectorAnticipationDistance = UnitType.SECOND.convertTo(rollTimeSeconds, UnitType.HOUR) * this.aircraftState.gs;
-          }
-
-          if (normDist > 1 || (this.hasVectorAnticipation && this.vectorDistanceRemaining < this.vectorAnticipationDistance)) {
-            this.advanceVector(this.currentLeg);
+          if (normDist > 1) {
+            this.advanceToNextVector(plan, this.currentState, true, this.currentState);
           }
         } else {
           this.alongVectorDistance = 0;
           this.vectorDistanceRemaining = 0;
           this.vectorAnticipationDistance = 0;
-          this.advanceVector(this.currentLeg);
+          this.advanceToNextVector(plan, this.currentState, true, this.currentState);
         }
 
-        didAdvance = transitionMode !== this.transitionMode
-          || legIndex !== this.currentLegIndex
-          || vectorIndex !== this.currentVectorIndex
-          || isSuspended !== this.isSuspended;
+        didAdvance = transitionMode !== this.currentState.transitionMode
+          || legIndex !== this.currentState.globalLegIndex
+          || vectorIndex !== this.currentState.vectorIndex
+          || isSuspended !== this.currentState.isSuspended;
+
+        if (legIndex !== this.currentState.globalLegIndex) {
+          this.currentLeg = plan.tryGetLeg(this.currentState.globalLegIndex) ?? undefined;
+
+          plan.setCalculatingLeg(this.currentState.globalLegIndex);
+          plan.setLateralLeg(this.currentState.globalLegIndex);
+        }
       }
-    } while (!this.isAwaitingCalculate && didAdvance && this.currentLegIndex <= plan.length - 1);
+    } while (!this.isAwaitingCalculate && didAdvance && this.currentState.globalLegIndex <= plan.length - 1);
+
+    if (
+      this.currentState.transitionMode === LNavTransitionMode.Egress
+      && this.currentState.globalLegIndex + 1 < plan.length
+      && plan.activeCalculatingLeg !== this.currentState.globalLegIndex + 1
+    ) {
+      plan.setCalculatingLeg(this.currentState.globalLegIndex + 1);
+    }
+
+    this.currentVector = this.currentLeg?.calculated
+      ? LNavUtils.getVectorsForTransitionMode(this.currentLeg.calculated, this.currentState.transitionMode, this.currentState.isSuspended)[this.currentState.vectorIndex]
+      : undefined;
+  }
+
+  /**
+   * Updates this director's vector anticipation data, including the anticipation distance, DTK and XTK for the
+   * anticipated vector, and bearing from the airplane to the end of the anticipated vector.
+   * @param plan The active flight plan.
+   */
+  private updateVectorAnticipation(plan: FlightPlan): void {
+    this.anticipationVector = undefined;
+    this.vectorAnticipationDistance = 0;
+    this.anticipationDtk = 0;
+    this.anticipationXtk = 0;
+    this.anticipationBearingToVectorEnd = 0;
+
+    if (!this.currentVector || this.currentVector.radius === 0 || this.currentVector.distance <= LNavDirector.ANGULAR_TOLERANCE_METERS) {
+      return;
+    }
+
+    // Find the vector that will be tracked after we sequence past the current one.
+    this.advanceToNextVector(plan, this.currentState, false, this.anticipationState);
+
+    const anticipationCalcs = plan.tryGetLeg(this.anticipationState.globalLegIndex)?.calculated;
+
+    if (!anticipationCalcs) {
+      return;
+    }
+
+    const anticipationVectors = LNavUtils.getVectorsForTransitionMode(anticipationCalcs, this.anticipationState.transitionMode, this.anticipationState.isSuspended);
+    this.anticipationVector = anticipationVectors[this.anticipationState.vectorIndex];
+
+    if (
+      !this.anticipationVector
+      || this.anticipationVector === this.currentVector
+      || this.anticipationVector.radius === 0
+      || this.anticipationVector.distance <= LNavDirector.ANGULAR_TOLERANCE_METERS
+    ) {
+      this.anticipationVector = undefined;
+      return;
+    }
+
+    const circle = FlightPathUtils.setGeoCircleFromVector(this.anticipationVector, this.geoCircleCache[0]);
+
+    this.anticipationXtk = UnitType.GA_RADIAN.convertTo(circle.distance(this.aircraftState.planePos), UnitType.NMILE);
+    this.anticipationDtk = circle.bearingAt(this.aircraftState.planePos, Math.PI);
+    this.anticipationBearingToVectorEnd = this.aircraftState.planePos.bearingTo(this.anticipationVector.endLat, this.anticipationVector.endLon);
+
+    // Find the bank angles that are required to keep the airplane following the current and anticipated vectors
+    // assuming zero XTK error and wind. Then approximate how long it will take the airplane to roll from one to the
+    // other -> this will be the anticipation time. Finally, convert the anticipation time to a distance by multiplying
+    // by along-track speed.
+
+    const maxBankAngle = this.maxBankAngleFunc();
+    const currentVectorIdealBankAngle = MathUtils.clamp(LNavDirector.getVectorIdealBankAngle(this.currentVector, this.aircraftState.gs), -maxBankAngle, maxBankAngle);
+    const anticipationIdealBankAngle = MathUtils.clamp(LNavDirector.getVectorIdealBankAngle(this.anticipationVector, this.aircraftState.gs), -maxBankAngle, maxBankAngle);
+
+    const deltaBank = Math.abs(currentVectorIdealBankAngle - anticipationIdealBankAngle);
+    const rollTimeSeconds = deltaBank / LNavDirector.VECTOR_ANTICIPATION_BANK_RATE;
+    this.vectorAnticipationDistance = Math.min(
+      rollTimeSeconds / 3600 * this.alongTrackSpeed,
+      // Limit vector anticipation to the radius of the anticipated vector so that we don't start flying anticipated
+      // arc/turn vectors too early with a large XTK error and veer off in the wrong direction.
+      UnitType.GA_RADIAN.convertTo(FlightPathUtils.getVectorTurnRadius(this.anticipationVector), UnitType.NMILE)
+    );
   }
 
   /**
    * Applies suspends that apply at the end of a leg.
+   * @param plan The active flight plan.
+   * @param state The current LNAV state.
+   * @param out The LNAV state to which to write.
+   * @returns The LNAV state after applying end-of-leg suspends.
    */
-  private applyEndOfLegSuspends(): void {
-    const plan = this.flightPlanner.getActiveFlightPlan();
-    const leg = plan.getLeg(plan.activeLateralLeg);
+  private applyEndOfLegSuspends(plan: FlightPlan, state: Readonly<LNavState>, out: LNavState): LNavState {
+    if (state !== out) {
+      LNavDirector.copyStateInfo(state, out);
+    }
 
-    if (leg.leg.type === LegType.FM || leg.leg.type === LegType.VM || leg.leg.type === LegType.Discontinuity || this.inhibitNextSequence) {
-      this.trySetSuspended(true, this.inhibitNextSequence, true);
-    } else if (plan.activeLateralLeg < plan.length - 1) {
-      const nextLeg = plan.getLeg(plan.activeLateralLeg + 1);
+    const leg = plan.tryGetLeg(state.globalLegIndex);
+
+    if (!leg) {
+      return out;
+    }
+
+    // Do not allow suspend on thru discontinuities.
+    const inhibitNextSequence = this.inhibitNextSequence
+      && leg.leg.type !== LegType.ThruDiscontinuity;
+
+    if (leg.leg.type === LegType.FM || leg.leg.type === LegType.VM || leg.leg.type === LegType.Discontinuity) {
+      return this.trySetSuspended(plan, state, true, out, true, false);
+    } else if (inhibitNextSequence) {
+      return this.trySetSuspended(plan, state, true, out, false, true);
+    } else if (state.globalLegIndex < plan.length - 1) {
+      const nextLeg = plan.getLeg(state.globalLegIndex + 1);
       if (
-        !this.missedApproachActive
+        !state.isMissedApproachActive
         && (
           leg.leg.fixTypeFlags === FixTypeFlags.MAP
           || (!BitFlags.isAll(leg.flags, LegDefinitionFlags.MissedApproach) && BitFlags.isAll(nextLeg.flags, LegDefinitionFlags.MissedApproach))
         )
       ) {
-        this.trySetSuspended(true, undefined, true);
+        return this.trySetSuspended(plan, state, true, out, true, false);
       }
     }
+
+    return out;
   }
 
   /**
    * Applies suspends that apply at the beginning of a leg.
+   * @param plan The active flight plan.
+   * @param state The current LNAV state.
+   * @param out The LNAV state to which to write.
+   * @returns The LNAV state after applying start-of-leg suspends.
    */
-  private applyStartOfLegSuspends(): void {
-    const plan = this.flightPlanner.getActiveFlightPlan();
-    const leg = plan.getLeg(plan.activeLateralLeg);
-
-    if (leg.leg.type === LegType.HM || plan.activeLateralLeg === plan.length - 1) {
-      this.trySetSuspended(true);
+  private applyStartOfLegSuspends(plan: FlightPlan, state: Readonly<LNavState>, out: LNavState): LNavState {
+    if (state !== out) {
+      LNavDirector.copyStateInfo(state, out);
     }
+
+    const leg = plan.getLeg(state.globalLegIndex);
+
+    if (!leg) {
+      return out;
+    }
+
+    if (leg.leg.type === LegType.HM || state.globalLegIndex === plan.length - 1) {
+      return this.trySetSuspended(plan, state, true, out, false, false);
+    }
+
+    return out;
   }
 
   /**
-   * Advances the current flight path vector along the flight path.
-   * @param leg The definition of the leg being flown.
+   * Advances an LNAV state to the next trackable vector.
+   * @param plan The active flight plan.
+   * @param state The state from which to advance.
+   * @param awaitCalculateOnNextLeg Whether to await leg calculations when advancing to the next leg. If `true`, the
+   * state will only advance as far as the first vector of the next leg.
+   * @param out The state to which to write the results.
+   * @returns The LNAV state after advancing to the next trackable vector.
    */
-  private advanceVector(leg: LegDefinition): void {
+  private advanceToNextVector(
+    plan: FlightPlan,
+    state: Readonly<LNavState>,
+    awaitCalculateOnNextLeg: boolean,
+    out: LNavState
+  ): LNavState {
+    if (state !== out) {
+      LNavDirector.copyStateInfo(state, out);
+    }
+
+    let leg = plan.tryGetLeg(state.globalLegIndex);
+
+    if (!leg) {
+      return out;
+    }
+
+    let legIndex = state.globalLegIndex;
+    let transitionMode = state.transitionMode;
+    let isSuspended = state.isSuspended;
+    let vectors = leg.calculated ? LNavUtils.getVectorsForTransitionMode(leg.calculated, transitionMode, isSuspended) : undefined;
+    let vectorIndex = state.vectorIndex + 1;
+    let vectorEndIndex = vectors?.length ?? 0;
     let didAdvance = false;
+    let isDone = false;
 
-    const plan = this.flightPlanner.getActiveFlightPlan();
+    // If we are in unsuspended mode, we are tracking the base flight path vector array, and we want to switch to the
+    // ingress-to-egress array when we reach the vector at which the ingress transition joins the base flight path.
+    if (transitionMode === LNavTransitionMode.Unsuspend && leg.calculated) {
+      if (leg.calculated.ingressJoinIndex < 0) {
+        vectorEndIndex = 0;
+      } else {
+        const ingress = leg.calculated.ingress;
+        const ingressJoinVector = leg.calculated.flightPath[leg.calculated.ingressJoinIndex];
+        // If the ingress joins the base flight path at the beginning of the joined vector, then we want to switch to
+        // the ingress-to-egress array once we reach the joined vector. Otherwise, we want to switch when we pass the
+        // joined vector.
+        if (
+          ingress.length > 0
+          && ingressJoinVector
+          && GeoPoint.equals(
+            ingress[ingress.length - 1].endLat,
+            ingress[ingress.length - 1].endLon,
+            ingressJoinVector.startLat,
+            ingressJoinVector.startLon
+          )
+        ) {
+          vectorEndIndex = leg.calculated.ingressJoinIndex;
+        } else {
+          vectorEndIndex = leg.calculated.ingressJoinIndex + 1;
+        }
+      }
+    }
 
-    this.currentVectorIndex++;
-
-    const calcs = leg.calculated;
-    let vectors = calcs ? LNavDirector.getVectorsForTransitionMode(calcs, this.transitionMode, this.isSuspended) : undefined;
-
-    while (!vectors || this.currentVectorIndex >= vectors.length) {
-      switch (this.transitionMode) {
+    // Continue advancing until we reach a vector with non-zero radius and distance.
+    while (!vectors || vectorIndex >= vectorEndIndex || vectors[vectorIndex].radius === 0 || vectors[vectorIndex].distance <= LNavDirector.ANGULAR_TOLERANCE_METERS) {
+      switch (transitionMode) {
         case LNavTransitionMode.Ingress:
-          this.arcController.reset();
-          this.transitionMode = LNavTransitionMode.None;
-          vectors = calcs ? LNavDirector.getVectorsForTransitionMode(calcs, this.transitionMode, this.isSuspended) : undefined;
-          this.currentVectorIndex = Math.max(0, this.isSuspended ? calcs?.ingressJoinIndex ?? 0 : 0);
+          transitionMode = LNavTransitionMode.None;
+          vectors = leg.calculated ? LNavUtils.getVectorsForTransitionMode(leg.calculated, transitionMode, isSuspended) : undefined;
+          vectorIndex = Math.max(0, isSuspended ? leg.calculated?.ingressJoinIndex ?? 0 : 0);
+          didAdvance = true;
+          break;
+        case LNavTransitionMode.Unsuspend:
+          transitionMode = LNavTransitionMode.None;
+          vectors = leg.calculated?.ingressToEgress;
+          vectorIndex = 0;
           didAdvance = true;
           break;
         case LNavTransitionMode.None:
-          if (!this.isSuspended) {
-            plan.setCalculatingLeg(this.currentLegIndex + 1);
-            this.transitionMode = LNavTransitionMode.Egress;
-            vectors = calcs ? LNavDirector.getVectorsForTransitionMode(calcs, this.transitionMode, this.isSuspended) : undefined;
-            this.currentVectorIndex = 0;
+          if (!isSuspended) {
+            transitionMode = LNavTransitionMode.Egress;
+            vectors = leg.calculated ? LNavUtils.getVectorsForTransitionMode(leg.calculated, transitionMode, isSuspended) : undefined;
+            vectorIndex = 0;
             didAdvance = true;
           } else if (leg.leg.type === LegType.HM) {
-            vectors = calcs?.flightPath;
-            this.currentVectorIndex = 0;
+            vectors = leg.calculated?.flightPath;
+            vectorIndex = 0;
             didAdvance = true;
           } else {
             if (!didAdvance && vectors) {
-              this.currentVectorIndex = Math.max(0, vectors.length - 1);
+              vectorIndex = Math.max(0, vectors.length - 1);
             }
-            return;
+            isDone = true;
           }
           break;
         case LNavTransitionMode.Egress:
-          this.advanceEgressToIngress(leg);
-          return;
+          out.globalLegIndex = legIndex;
+          out.transitionMode = transitionMode;
+          out.vectorIndex = vectorIndex;
+          out.isSuspended = isSuspended;
+
+          this.advanceToNextLeg(plan, out, out);
+
+          // If we are awaiting calculate when advancing to the next leg or if we can't advance to the next leg,
+          // we are done since either way we cannot advance any farther.
+          if (awaitCalculateOnNextLeg || out.globalLegIndex === legIndex) {
+            return out;
+          }
+
+          leg = plan.tryGetLeg(out.globalLegIndex);
+
+          if (!leg?.calculated) {
+            // If the next leg is not calculated yet, we can't advance any farther because we don't know what the
+            // vectors will be when the leg is calculated.
+            return out;
+          } else {
+            legIndex = out.globalLegIndex;
+            transitionMode = out.transitionMode;
+            vectors = LNavUtils.getVectorsForTransitionMode(leg.calculated, out.transitionMode, out.isSuspended);
+            vectorIndex = out.vectorIndex;
+            isSuspended = out.isSuspended;
+            didAdvance = false;
+          }
       }
+
+      if (isDone) {
+        break;
+      }
+
+      vectorEndIndex = vectors?.length ?? 0;
     }
+
+    out.globalLegIndex = legIndex;
+    out.transitionMode = transitionMode;
+    out.vectorIndex = vectorIndex;
+    out.isSuspended = isSuspended;
+
+    return out;
   }
 
   /**
-   * Advances the current flight plan leg to the next leg.
-   * @param leg The current leg being flown.
-   * @returns Whether the leg was advanced.
+   * Advances an LNAV state to the next leg.
+   * @param plan The active flight plan.
+   * @param state The state from which to advance.
+   * @param out The state to which to write the results.
+   * @returns The LNAV state after advancing to the next leg.
    */
-  private advanceEgressToIngress(leg: LegDefinition): boolean {
-    const plan = this.flightPlanner.getActiveFlightPlan();
-    this.applyEndOfLegSuspends();
+  private advanceToNextLeg(plan: FlightPlan, state: Readonly<LNavState>, out: LNavState): LNavState {
+    this.applyEndOfLegSuspends(plan, state, out);
 
-    if (!this.isSuspended) {
-      if (this.currentLegIndex + 1 >= plan.length) {
-        this.transitionMode = LNavTransitionMode.None;
-        this.currentVectorIndex = Math.max(0, (leg.calculated?.flightPath.length ?? 0) - 1);
-        return false;
+    if (!out.isSuspended) {
+      if (out.globalLegIndex + 1 >= plan.length) {
+        out.transitionMode = LNavTransitionMode.None;
+        out.vectorIndex = Math.max(0, (plan.tryGetLeg(out.globalLegIndex)?.calculated?.flightPath.length ?? 0) - 1);
+        return out;
       }
 
-      this.currentLeg = plan.getLeg(++this.currentLegIndex);
-      this.transitionMode = LNavTransitionMode.Ingress;
-      this.currentVectorIndex = 0;
-      this.suspendedLegIndex = 0;
+      out.globalLegIndex++;
+      out.transitionMode = LNavTransitionMode.Ingress;
+      out.vectorIndex = 0;
+      out.inhibitedSuspendLegIndex = -1;
 
-      plan.setCalculatingLeg(this.currentLegIndex);
-      plan.setLateralLeg(this.currentLegIndex);
-
-      this.applyStartOfLegSuspends();
-
-      return true;
-    } else {
-      return false;
+      this.applyStartOfLegSuspends(plan, out, out);
     }
+
+    return out;
   }
 
   /**
-   * Sets flight plan advance in or out of SUSP.
-   * @param isSuspended Whether or not advance is suspended.
-   * @param resetVectorsOnSuspendEnd Whether to reset the tracked vector to the beginning of the leg when the applied
-   * suspend ends. Ignored if `isSuspended` is false. Defaults to false.
-   * @param inhibitResuspend Whether to allow re-suspending a previously suspended leg.
+   * Attempts to activate/deactivate suspend on an LNAV state.
+   * @param plan The active flight plan.
+   * @param state The state for which to set suspended.
+   * @param suspend The suspended state to set.
+   * @param out The state to which to write the results.
+   * @param inhibitResuspend Whether to inhibit resuspend of the suspended leg once suspend ends on that leg. Ignored
+   * if `suspend` is `false`. Defaults to `false`.
+   * @param resetVectorsOnSuspendEnd Whether to reset the tracked vector to the beginning of the suspended leg once
+   * suspend ends on that leg. Ignored if `suspend` is `false`. Defaults to `false`.
+   * @returns The LNAV state after the suspend state has been set.
    */
-  private trySetSuspended(isSuspended: boolean, resetVectorsOnSuspendEnd?: boolean, inhibitResuspend?: boolean): void {
-    if (isSuspended && this.currentLegIndex === this.suspendedLegIndex) {
-      return;
+  private trySetSuspended(
+    plan: FlightPlan,
+    state: Readonly<LNavState>,
+    suspend: boolean,
+    out: LNavState,
+    inhibitResuspend = false,
+    resetVectorsOnSuspendEnd = false
+  ): LNavState {
+    if (state !== out) {
+      LNavDirector.copyStateInfo(state, out);
     }
 
-    if (isSuspended) {
-      this.suspendedLegIndex = inhibitResuspend ? this.currentLegIndex : -1;
-      this.resetVectorsOnSuspendEnd = resetVectorsOnSuspendEnd ?? false;
+    if (suspend && state.globalLegIndex === state.inhibitedSuspendLegIndex) {
+      return out;
     }
 
-    if (this.isSuspended !== isSuspended) {
-      this.isSuspended = isSuspended;
+    if (suspend) {
+      out.inhibitedSuspendLegIndex = inhibitResuspend ? state.globalLegIndex : -1;
+      out.resetVectorsOnSuspendEnd = resetVectorsOnSuspendEnd;
+    }
 
-      if (!isSuspended && this.resetVectorsOnSuspendEnd) {
-        this.transitionMode = LNavTransitionMode.Ingress;
-        this.currentVectorIndex = 0;
-        this.resetVectorsOnSuspendEnd = false;
+    if (state.isSuspended !== suspend) {
+      out.isSuspended = suspend;
+
+      if (!suspend && state.resetVectorsOnSuspendEnd) {
+        out.transitionMode = LNavTransitionMode.None;
+        out.vectorIndex = 0;
+        out.resetVectorsOnSuspendEnd = false;
       } else {
-        const legCalc = this.currentLeg?.calculated;
+        const leg = plan.tryGetLeg(state.globalLegIndex);
+        const legCalc = leg?.calculated;
         const ingressJoinVector = legCalc?.flightPath[legCalc.ingressJoinIndex];
-        if (legCalc && this.transitionMode === LNavTransitionMode.None && legCalc.ingressJoinIndex >= 0 && ingressJoinVector && legCalc.ingress.length > 0) {
-          // reconcile vector indexes
+        if (
+          legCalc
+          && state.transitionMode === LNavTransitionMode.None
+          && legCalc.ingressJoinIndex >= 0
+          && ingressJoinVector
+          && legCalc.ingress.length > 0
+        ) {
+          // Because we are switching between tracking the base flight path vector array and the ingress-to-egress
+          // array, we need to reconcile the vector index.
 
-          const vectors = isSuspended ? legCalc.flightPath : legCalc.ingressToEgress;
           const lastIngressVector = legCalc.ingress[legCalc.ingress.length - 1];
-          const offset = (this.geoPointCache[0].set(lastIngressVector.endLat, lastIngressVector.endLon).equals(ingressJoinVector.endLat, ingressJoinVector.endLon)
-            ? 2
-            : 1
-          ) * (isSuspended ? 1 : -1);
+          let vectors: FlightPathVector[];
+          let offset: number;
+
+          if (suspend) {
+            // Unsuspended -> Suspended.
+            vectors = legCalc.flightPath;
+            if (GeoPoint.equals(lastIngressVector.endLat, lastIngressVector.endLon, ingressJoinVector.endLat, ingressJoinVector.endLon)) {
+              offset = legCalc.ingressJoinIndex + 1;
+            } else {
+              offset = legCalc.ingressJoinIndex;
+            }
+          } else {
+            // Suspended -> Unsuspended.
+            let pastIngressJoin = state.vectorIndex > legCalc.ingressJoinIndex;
+
+            if (!pastIngressJoin && state.vectorIndex === legCalc.ingressJoinIndex && legCalc.flightPath[legCalc.ingressJoinIndex]) {
+              const vector = legCalc.flightPath[legCalc.ingressJoinIndex];
+              const circle = FlightPathUtils.setGeoCircleFromVector(vector, this.geoCircleCache[0]);
+              const start = GeoPoint.sphericalToCartesian(vector.startLat, vector.startLon, this.vec3Cache[0]);
+              const end = GeoPoint.sphericalToCartesian(ingressJoinVector.endLat, ingressJoinVector.endLon, this.vec3Cache[1]);
+              pastIngressJoin = FlightPathUtils.getAlongArcNormalizedDistance(circle, start, end, this.aircraftState.planePos) >= 1;
+            }
+
+            if (pastIngressJoin) {
+              vectors = legCalc.ingressToEgress;
+              if (GeoPoint.equals(lastIngressVector.endLat, lastIngressVector.endLon, ingressJoinVector.endLat, ingressJoinVector.endLon)) {
+                offset = -(legCalc.ingressJoinIndex + 1);
+              } else {
+                offset = -legCalc.ingressJoinIndex;
+              }
+            } else {
+              vectors = legCalc.flightPath;
+              offset = 0;
+              out.transitionMode = LNavTransitionMode.Unsuspend;
+            }
+          }
 
           // Not using Utils.Clamp() because I need it to clamp to >=0 last.
-          this.currentVectorIndex = Math.max(0, Math.min(this.currentVectorIndex + offset, vectors.length - 1));
+          out.vectorIndex = Math.max(0, Math.min(state.vectorIndex + offset, vectors.length - 1));
         }
 
-        if (this.isSuspended && this.transitionMode === LNavTransitionMode.Egress) {
-          this.transitionMode = LNavTransitionMode.None;
-          this.currentVectorIndex = Math.max(0, (legCalc?.flightPath.length ?? 1) - 1);
+        // If we are in unsuspend mode and have become suspended again, change the transition mode back to none. Vector
+        // index stays the same because we are tracking the base flight path vector array both before and after.
+        if (suspend && state.transitionMode === LNavTransitionMode.Unsuspend) {
+          out.transitionMode = LNavTransitionMode.None;
+        }
+
+        if (suspend && state.transitionMode === LNavTransitionMode.Egress) {
+          out.transitionMode = LNavTransitionMode.None;
+          out.vectorIndex = Math.max(0, (legCalc?.flightPath.length ?? 1) - 1);
         }
       }
     }
+
+    return out;
   }
 
   /**
    * Tries to activate when armed.
    */
   private tryActivate(): void {
-    const headingDiff = NavMath.diffAngle(this.aircraftState.track, this.dtk);
-    if (Math.abs(this.xtk) < 0.6 && Math.abs(headingDiff) < 110) {
+    if (this.disableArming) {
       this.activate();
+      return;
+    }
+    if (this.minimumActivationAltitude === undefined || this.aircraftState.altAgl >= this.minimumActivationAltitude) {
+      const headingDiff = NavMath.diffAngle(this.aircraftState.track, this.dtk);
+      if (Math.abs(this.xtk) < 0.6 && Math.abs(headingDiff) < 110) {
+        this.activate();
+      }
     }
   }
 
@@ -778,35 +1304,33 @@ export class LNavDirector implements PlaneDirector {
   }
 
   /**
-   * Gets the along-track distance from the start of the currently tracked flight plan leg to the airplane's present
-   * position, in nautical miles.
-   * @param leg The currently tracked flight plan leg.
-   * @param vectorIndex The index of the currently tracked vector.
-   * @param alongVectorDistance The along-track distance from the start of the currently tracked vector to the
-   * airplane's present position, in nautical miles.
-   * @returns The along-track distance from the start of the currently tracked flight plan leg to the airplane's
-   * present position, in nautical miles.
+   * Gets an along-track distance from the start of a tracked flight plan leg given a distance along a tracked vector.
+   * @param plan The active flight plan.
+   * @param state The LNAV state.
+   * @param alongVectorDistance The along-track distance from the start of the tracked vector, in nautical miles.
+   * @returns The along-track distance, in nautical miles, from the start of the specified flight plan leg given the
+   * specified state and along-vector distance.
    */
-  private getAlongLegDistance(leg: LegDefinition, vectorIndex: number, alongVectorDistance: number): number {
-    const calcs = leg.calculated;
+  private getAlongLegDistance(plan: FlightPlan, state: Readonly<LNavState>, alongVectorDistance: number): number {
+    const calcs = plan.tryGetLeg(state.globalLegIndex)?.calculated;
 
     if (!calcs) {
       return 0;
     }
 
-    let vectors = LNavDirector.getVectorsForTransitionMode(calcs, this.transitionMode, false);
-    const vector = vectors[vectorIndex];
+    let vectors = LNavUtils.getVectorsForTransitionMode(calcs, state.transitionMode, false);
+    const vector = vectors[state.vectorIndex];
 
     if (!vector) {
       return 0;
     }
 
     let distanceAlong = 0;
-    for (let i = vectorIndex - 1; i >= 0; i--) {
+    for (let i = state.vectorIndex - 1; i >= 0; i--) {
       distanceAlong += vectors[i].distance;
     }
 
-    switch (this.transitionMode) {
+    switch (state.transitionMode) {
       case LNavTransitionMode.Egress:
         vectors = calcs.ingressToEgress;
         for (let i = vectors.length - 1; i >= 0; i--) {
@@ -814,57 +1338,112 @@ export class LNavDirector implements PlaneDirector {
         }
       // eslint-disable-next-line no-fallthrough
       case LNavTransitionMode.None:
+      case LNavTransitionMode.Unsuspend:
         vectors = calcs.ingress;
         for (let i = vectors.length - 1; i >= 0; i--) {
           distanceAlong += vectors[i].distance;
         }
     }
 
+    if (state.transitionMode === LNavTransitionMode.Unsuspend) {
+      const lastIngressVector = calcs.ingress[calcs.ingress.length - 1];
+      const ingressJoinVector = calcs.flightPath[calcs.ingressJoinIndex];
+
+      if (ingressJoinVector && lastIngressVector) {
+        // If we are in unsuspend mode and a valid ingress transition exists, then we need to subtract the distance
+        // from the start of the current vector to where the ingress transition joins the base flight path.
+
+        for (let i = state.vectorIndex; i < calcs.ingressJoinIndex; i++) {
+          distanceAlong -= vectors[i].distance;
+        }
+
+        // If the current vector is before or equal to the vector at which the ingress joins the base flight path, we
+        // need to subtract the distance from the start of the joined vector to where the ingress joins.
+        if (state.vectorIndex <= calcs.ingressJoinIndex) {
+          const circle = FlightPathUtils.setGeoCircleFromVector(ingressJoinVector, this.geoCircleCache[0]);
+          const start = GeoPoint.sphericalToCartesian(ingressJoinVector.startLat, ingressJoinVector.startLon, this.vec3Cache[0]);
+          const end = GeoPoint.sphericalToCartesian(lastIngressVector.endLat, lastIngressVector.endLon, this.vec3Cache[1]);
+          distanceAlong -= UnitType.GA_RADIAN.convertTo(circle.distanceAlong(start, end, Math.PI), UnitType.METER);
+        }
+      }
+    }
+
     return UnitType.METER.convertTo(distanceAlong, UnitType.NMILE) + alongVectorDistance;
   }
 
   /**
-   * Gets the along-track distance from the airplane's present position to the end of the currently tracked flight plan
-   * leg, in nautical miles.
-   * @param leg The currently tracked flight plan leg.
-   * @param vectorIndex The index of the currently tracked vector.
-   * @param vectorDistanceRemaining The along-track distance from the airplane's present position to the end of the
-   * currently tracked vector, in nautical miles.
-   * @returns The along-track distance from the airplane's present position to the end of the currently tracked flight
-   * plan leg, in nautical miles.
+   * Gets an along-track distance from the end of a tracked flight plan leg given a distance remaining along a tracked
+   * vector.
+   * @param plan The active flight plan.
+   * @param state The LNAV state.
+   * @param vectorDistanceRemaining The along-track distance from the end of the tracked vector, in nautical miles.
+   * @returns The along-track distance, in nautical miles, from the end of the specified flight plan leg given the
+   * specified state and along-vector distance.
    */
-  private getLegDistanceRemaining(leg: LegDefinition, vectorIndex: number, vectorDistanceRemaining: number): number {
-    const calcs = leg.calculated;
+  private getLegDistanceRemaining(plan: FlightPlan, state: Readonly<LNavState>, vectorDistanceRemaining: number): number {
+    const calcs = plan.tryGetLeg(state.globalLegIndex)?.calculated;
 
     if (!calcs) {
       return 0;
     }
 
-    let vectors = LNavDirector.getVectorsForTransitionMode(calcs, this.transitionMode, this.isSuspended);
-    const vector = vectors[vectorIndex];
+    let vectors = LNavUtils.getVectorsForTransitionMode(calcs, state.transitionMode, state.isSuspended);
+    const vector = vectors[state.vectorIndex];
 
     if (!vector) {
       return 0;
     }
 
+    let vectorIndex = state.vectorIndex;
     let distanceRemaining = 0;
+
+    if (state.transitionMode === LNavTransitionMode.Unsuspend) {
+      const lastIngressVector = calcs.ingress[calcs.ingress.length - 1];
+      const ingressJoinVector = calcs.flightPath[calcs.ingressJoinIndex];
+
+      if (ingressJoinVector && lastIngressVector) {
+        // If we are in unsuspend mode and a valid ingress transition exists, then we need to add the distance from
+        // the end of the current vector to where the ingress transition joins the base flight path.
+
+        for (let i = state.vectorIndex + 1; i < calcs.ingressJoinIndex; i++) {
+          distanceRemaining += vectors[i].distance;
+        }
+
+        // If the current vector is before the vector at which the ingress joins the base flight path, we need to
+        // add the distance from the start of the joined vector to where the ingress joins.
+        if (state.vectorIndex < calcs.ingressJoinIndex) {
+          const circle = FlightPathUtils.setGeoCircleFromVector(ingressJoinVector, this.geoCircleCache[0]);
+          const start = GeoPoint.sphericalToCartesian(ingressJoinVector.startLat, ingressJoinVector.startLon, this.vec3Cache[0]);
+          const end = GeoPoint.sphericalToCartesian(lastIngressVector.endLat, lastIngressVector.endLon, this.vec3Cache[1]);
+          distanceRemaining += UnitType.GA_RADIAN.convertTo(circle.distanceAlong(start, end, Math.PI), UnitType.METER);
+        }
+
+        // Reset the vector index to -1 so that we add the distance of all the ingress-to-egress vectors (it will be
+        // incremented to 0 below).
+        vectorIndex = -1;
+      }
+
+      vectors = calcs.ingressToEgress;
+    }
+
     for (let i = vectorIndex + 1; i < vectors.length; i++) {
       distanceRemaining += vectors[i].distance;
     }
 
-    switch (this.transitionMode) {
+    switch (state.transitionMode) {
       case LNavTransitionMode.Ingress:
-        vectors = LNavDirector.getVectorsForTransitionMode(calcs, LNavTransitionMode.None, this.isSuspended);
-        for (let i = Math.max(0, this.isSuspended ? calcs.ingressJoinIndex : 0); i < vectors.length; i++) {
+        vectors = LNavUtils.getVectorsForTransitionMode(calcs, LNavTransitionMode.None, state.isSuspended);
+        for (let i = Math.max(0, state.isSuspended ? calcs.ingressJoinIndex : 0); i < vectors.length; i++) {
           const currentVector = vectors[i];
 
-          if (this.isSuspended && i === calcs.ingressJoinIndex) {
+          if (state.isSuspended && i === calcs.ingressJoinIndex) {
             const lastIngressVector = calcs.ingress[calcs.ingress.length - 1];
             if (lastIngressVector) {
               const circle = FlightPathUtils.setGeoCircleFromVector(currentVector, this.geoCircleCache[0]);
               distanceRemaining += UnitType.GA_RADIAN.convertTo(circle.distanceAlong(
                 this.geoPointCache[0].set(lastIngressVector.endLat, lastIngressVector.endLon),
-                this.geoPointCache[1].set(currentVector.endLat, currentVector.endLon)
+                this.geoPointCache[1].set(currentVector.endLat, currentVector.endLon),
+                Math.PI
               ), UnitType.METER);
               continue;
             }
@@ -874,7 +1453,8 @@ export class LNavDirector implements PlaneDirector {
         }
       // eslint-disable-next-line no-fallthrough
       case LNavTransitionMode.None:
-        if (!this.isSuspended) {
+      case LNavTransitionMode.Unsuspend:
+        if (!state.isSuspended) {
           vectors = calcs.egress;
           for (let i = 0; i < vectors.length; i++) {
             distanceRemaining += vectors[i].distance;
@@ -886,20 +1466,42 @@ export class LNavDirector implements PlaneDirector {
   }
 
   /**
-   * Gets the flight path vectors to navigate for a leg and a given transition mode.
-   * @param calc The calculations for a flight plan leg.
-   * @param mode A transition mode.
-   * @param isSuspended Whether sequencing is suspended.
-   * @returns The flight path vectors to navigate for the given leg and transition mode.
+   * Copies one LNAV state object to another.
+   * @param source The LNAV state from which to copy.
+   * @param target The LNAV state to which to copy.
+   * @returns The target LNAV state of the copy operation.
    */
-  public static getVectorsForTransitionMode(calc: LegCalculations, mode: LNavTransitionMode, isSuspended: boolean): FlightPathVector[] {
-    switch (mode) {
-      case LNavTransitionMode.None:
-        return isSuspended ? calc.flightPath : calc.ingressToEgress;
-      case LNavTransitionMode.Ingress:
-        return calc.ingress;
-      case LNavTransitionMode.Egress:
-        return calc.egress;
+  private static copyStateInfo(source: Readonly<LNavState>, target: LNavState): LNavState {
+    target.globalLegIndex = source.globalLegIndex;
+    target.transitionMode = source.transitionMode;
+    target.vectorIndex = source.vectorIndex;
+    target.isSuspended = source.isSuspended;
+    target.inhibitedSuspendLegIndex = source.inhibitedSuspendLegIndex;
+    target.resetVectorsOnSuspendEnd = source.resetVectorsOnSuspendEnd;
+    target.isMissedApproachActive = source.isMissedApproachActive;
+
+    return target;
+  }
+
+  /**
+   * Gets the ideal bank angle, in degrees, to follow a flight path vector under conditions of no cross-track error
+   * and no wind, at a given ground speed.
+   * @param vector The flight path vector to follow.
+   * @param groundSpeed Ground speed, in knots.
+   * @returns The ideal bank angle, in degrees, to follow the specified flight path vector at the specified ground
+   * speed.
+   */
+  private static getVectorIdealBankAngle(vector: FlightPathVector, groundSpeed: number): number {
+    if (FlightPathUtils.isVectorGreatCircle(vector)) {
+      return 0;
+    }
+
+    if (vector.radius < MathUtils.HALF_PI) {
+      // left turn
+      return NavMath.bankAngle(groundSpeed, UnitType.GA_RADIAN.convertTo(vector.radius, UnitType.METER));
+    } else {
+      // right turn
+      return -NavMath.bankAngle(groundSpeed, UnitType.GA_RADIAN.convertTo(Math.PI - vector.radius, UnitType.METER));
     }
   }
 }

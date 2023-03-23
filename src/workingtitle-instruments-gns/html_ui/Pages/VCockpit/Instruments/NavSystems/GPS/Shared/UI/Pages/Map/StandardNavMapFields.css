@@ -1,0 +1,62 @@
+.std-map-data-fields {
+  float: left;
+  width: 69px;
+  height: 217px;
+  background-color: var(--gnsblue);
+  border-left: 1px solid var(--gnscyan);
+  ;
+}
+
+wt-gns530 .std-map-data-fields {
+  padding-top: 1.5em;
+}
+
+wt-gns430 .std-map-data-fields {
+  padding-top: 0.5em;
+}
+
+.std-map-data-fields h3 {
+  font-size: 10px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.std-map-data-fields .map-data-field-label {
+  text-align: left;
+}
+
+.std-map-data-fields .map-data-field {
+  width: 68px;
+
+  position: static;
+  background: none;
+}
+
+wt-gns530 .std-map-data-fields .map-data-field {
+  margin-bottom: .8em;
+}
+
+wt-gns430 .std-map-data-fields .map-data-field {
+  margin-bottom: .6em;
+}
+
+.std-map-data-fields .map-data-field-field {
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid white;
+  padding: 2px;
+}
+
+wt-gns530 .std-map-data-fields .map-data-field-field {
+  height: 20px;
+}
+
+wt-gns430 .std-map-data-fields .map-data-field-field {
+  height: 21px;
+  font-size: var(--gns-font-page-data);
+}
+
+.time-without-seconds-or-suffix .time-sec,
+.time-without-seconds-or-suffix .time-suffix {
+  display: none;
+}

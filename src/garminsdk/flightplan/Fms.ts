@@ -1,14 +1,38 @@
 import {
-  ActiveLegType, AdditionalApproachType, AirportFacility, AirwayObject, AltitudeRestrictionType, ApproachProcedure, ArrivalProcedure, BitFlags,
-  BottomTargetPathCalculator, ConsumerSubject, ControlEvents, DepartureProcedure, EventBus, ExtendedApproachType, Facility, FacilityFrequency, FacilityLoader,
-  FacilityRepository, FacilityType, FixTypeFlags, FlightPathCalculator, FlightPathUtils, FlightPlan, FlightPlanLeg, FlightPlanner, FlightPlannerEvents, FlightPlanSegment,
-  FlightPlanSegmentType, GeoCircle, GeoPoint, GeoPointInterface, GNSSEvents, ICAO, IntersectionFacility, LegDefinition, LegDefinitionFlags, LegTurnDirection, LegType, MagVar, NavComSimVars,
-  NavEvents, NavSourceId, NavSourceType, OneWayRunway, RnavTypeFlags, RunwayUtils, Subject, UnitType, UserFacility, VerticalData, VisualFacility,
-  VNavControlEvents, VNavDataEvents
-} from 'msfssdk';
+  ActiveLegType, AdcEvents, AdditionalApproachType, AirportFacility, AirwayObject, AltitudeConstraintAdvanced, AltitudeConstraintSimple, AltitudeRestrictionType, ApproachProcedure,
+  ApproachUtils, ArrivalProcedure, BitFlags, ConsumerSubject, ConsumerValue, ControlEvents, DebounceTimer, DepartureProcedure, EventBus, ExtendedApproachType, Facility,
+  FacilityLoader, FacilityRepository, FacilityType, FixTypeFlags, FlightPathCalculator, FlightPathUtils, FlightPlan, FlightPlanLeg, FlightPlanner,
+  FlightPlannerEvents, FlightPlanSegment, FlightPlanSegmentType, FlightPlanUtils, GeoCircle, GeoPoint, GeoPointInterface, GNSSEvents, ICAO, IntersectionFacility, LatLonInterface,
+  LegDefinition, LegDefinitionFlags, LegTurnDirection, LegType, LNavEvents, MathUtils, NavComSimVars, NavEvents, NavSourceId, NavSourceType, ObjectSubject, OneWayRunway,
+  RnavTypeFlags, RunwayUtils, SpeedConstraint, SpeedRestrictionType, SpeedUnit, UnitType, UserFacility, VerticalData, VerticalFlightPhase, VisualFacility,
+  VNavControlEvents, VNavDataEvents, VNavPathCalculator, VNavUtils, VorFacility, Wait
+} from '@microsoft/msfs-sdk';
 
+import { GarminVNavUtils } from '../autopilot/GarminVNavUtils';
 import { GarminControlEvents } from '../instruments/GarminControlEvents';
 import { FmsUtils } from './FmsUtils';
+
+/**
+ * FMS-related events.
+ */
+export interface FmsEvents {
+  /** Details related to the primary flight plan approach. */
+  fms_approach_details: Readonly<ApproachDetails>;
+
+  /** Details related to the current FMS phase of flight. */
+  fms_flight_phase: Readonly<FmsFlightPhase>;
+
+  /** An approach was manually activated. */
+  fms_approach_activate: void;
+}
+
+/**
+ * Events used by FMS to sync data across instruments.
+ */
+interface FmsSyncEvents {
+  /** Approach details sync event. */
+  fms_approach_details_sync: Readonly<ApproachDetails>;
+}
 
 export enum DirectToState {
   NONE,
@@ -31,19 +55,59 @@ export enum AirwayLegType {
   EXIT_ENTRY
 }
 
-/** FMS Approach Details */
+/**
+ * Details on the primary flight plan's approach procedure.
+ */
 export type ApproachDetails = {
   /** Whether an approach is loaded */
-  approachLoaded: boolean,
+  isLoaded: boolean;
+
   /** The Approach Type */
-  approachType: ExtendedApproachType,
+  type: ExtendedApproachType;
+
+  /** Whether the approach is an RNAV RNP (AR) approach. */
+  isRnpAr: boolean;
+
   /** The Approach RNAV Type */
-  approachRnavType: RnavTypeFlags,
-  /** Whether the approach is active */
-  approachIsActive: boolean,
+  bestRnavType: RnavTypeFlags;
+
+  /** The collection of RNAV type minimum flags available on this approach. */
+  rnavTypeFlags: RnavTypeFlags;
+
   /** Whether the approach is circling */
-  approachIsCircling: boolean
+  isCircling: boolean;
+
+  /** Whether the approach is a vectors-to-final approach. */
+  isVtf: boolean;
+
+  /** The reference navaid facility for the approach. */
+  referenceFacility: VorFacility | null;
 }
+
+/**
+ * Details on the current FMS phase of flight.
+ */
+export type FmsFlightPhase = {
+  /** Whether the approach is active. */
+  isApproachActive: boolean;
+
+  /** Whether the active leg is past the final approach fix. */
+  isPastFaf: boolean;
+
+  /** Whether the missed approach is active. */
+  isInMissedApproach: boolean;
+};
+
+/**
+ * Options for visual approach procedures.
+ */
+export type FmsVisualApproachOptions = {
+  /** The distance from the FINAL fix to the runway fix, in nautical miles. */
+  finalFixDistance: number;
+
+  /** The distance from the STRGHT fix to the FINAL fix, in nautical miles. */
+  strghtFixDistance: number;
+};
 
 /** Interface for inverting the plan */
 interface LegList {
@@ -72,56 +136,163 @@ type InsertProcedureObject = {
 }
 
 /**
- * A fms menu system tracker.
+ * A Garmin flight management system.
  */
 export class Fms {
   public static readonly PRIMARY_PLAN_INDEX = 0;
   public static readonly DTO_RANDOM_PLAN_INDEX = 1;
   public static readonly PROC_PREVIEW_PLAN_INDEX = 2;
 
+  private static readonly DEFAULT_VISUAL_APPROACH_OPTIONS: Readonly<FmsVisualApproachOptions> = {
+    finalFixDistance: 2.5,
+    strghtFixDistance: 2.5
+  };
+
+  private static readonly VTF_FAF_DATA_KEY = 'vtf_faf_data';
+
   private static readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0)];
   private static readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
+
+  private readonly publisher = this.bus.getPublisher<FmsEvents & FmsSyncEvents & VNavControlEvents & ControlEvents & VNavDataEvents>();
+
+  private readonly visualApproachOptions: Readonly<FmsVisualApproachOptions>;
 
   public readonly ppos = new GeoPoint(0, 0);
 
   private readonly facRepo = FacilityRepository.getRepository(this.bus);
   public readonly facLoader = new FacilityLoader(this.facRepo);
 
-  public approachDetails: ApproachDetails = {
-    approachLoaded: false,
-    approachType: ApproachType.APPROACH_TYPE_UNKNOWN,
-    approachRnavType: RnavTypeFlags.None,
-    approachIsActive: false,
-    approachIsCircling: false
-  };
+  private readonly approachDetails = ObjectSubject.create<ApproachDetails>({
+    isLoaded: false,
+    type: ApproachType.APPROACH_TYPE_UNKNOWN,
+    isRnpAr: false,
+    bestRnavType: RnavTypeFlags.None,
+    rnavTypeFlags: RnavTypeFlags.None,
+    isCircling: false,
+    isVtf: false,
+    referenceFacility: null
+  });
+  private needPublishApproachDetails = false;
+
+  private readonly flightPhase = ObjectSubject.create<FmsFlightPhase>({
+    isApproachActive: false,
+    isPastFaf: false,
+    isInMissedApproach: false
+  });
+  private needPublishFlightPhase = false;
+
+  private readonly flightPhaseDebounceTimer = new DebounceTimer();
+  private readonly updateFlightPhaseFunc = this.updateFlightPhase.bind(this);
+
+  private readonly activateMaprState = ConsumerSubject.create(null, false);
 
   private readonly navActiveFreqs: Record<1 | 2, ConsumerSubject<number>>;
 
-  private approachFrequency = Subject.create<FacilityFrequency | undefined>(undefined);
-  private _lastApproachFrequencyEventValue: FacilityFrequency | undefined = undefined;
   private cdiSource: NavSourceId = { type: NavSourceType.Gps, index: 1 };
-  private missedApproachActive = false;
+
+  private readonly indicatedAlt: ConsumerValue<number>;
+  private readonly lnavTrackedLegIndex = ConsumerSubject.create(null, 0);
+  private readonly lnavLegDistanceRemaining: ConsumerValue<number>;
 
   /**
-   * Initialize an instance of the FMS.
-   * @param bus is the event bus
-   * @param flightPlanner is the flight planner
-   * @param verticalPathCalculator is the optional Vertical Path Calculator.
+   * Creates an instance of the FMS.
+   * @param isPrimary Whether this FMS is the primary instance. Only the primary FMS will execute certain operations
+   * that have global effects across the entire airplane.
+   * @param bus The event bus.
+   * @param flightPlanner The flight planner.
+   * @param verticalPathCalculator The vertical path calculator. Required to support the vertical direct-to
+   * functionality.
+   * @param isAdvancedVnav Whether advanced VNAV is supported. Defaults to `false`.
+   * @param procedureLegValid A function which transforms unsupported leg types in procedures to supported leg types.
+   * If not defined, all legs in procedures will retain their original types.
+   * @param visualApproachOptions Options for visual approach procedures. If not defined, defaults to
+   * {@link Fms.DEFAULT_VISUAL_APPROACH_OPTIONS}.
    */
   constructor(
+    public readonly isPrimary: boolean,
     public readonly bus: EventBus,
     public readonly flightPlanner: FlightPlanner,
-    public readonly verticalPathCalculator?: BottomTargetPathCalculator
+    public readonly verticalPathCalculator?: VNavPathCalculator,
+    public readonly isAdvancedVnav = false,
+    private readonly procedureLegValid = (leg: FlightPlanLeg): undefined | FlightPlanLeg => { return leg; },
+    visualApproachOptions: Readonly<FmsVisualApproachOptions> = Fms.DEFAULT_VISUAL_APPROACH_OPTIONS
   ) {
 
-    const sub = this.bus.getSubscriber<GNSSEvents & NavEvents & FlightPlannerEvents & NavComSimVars & ControlEvents & GarminControlEvents & VNavControlEvents>();
+    this.visualApproachOptions = visualApproachOptions === undefined ? Fms.DEFAULT_VISUAL_APPROACH_OPTIONS : Object.assign({}, visualApproachOptions);
+
+    const sub = this.bus.getSubscriber<
+      AdcEvents & GNSSEvents & NavEvents & FlightPlannerEvents & FmsEvents & FmsSyncEvents & NavComSimVars & LNavEvents & ControlEvents & GarminControlEvents
+    >();
 
     sub.on('gps-position').atFrequency(1).handle(pos => this.ppos.set(pos.lat, pos.long));
     sub.on('cdi_select').handle(source => this.cdiSource = source);
 
-    sub.on('fplActiveLegChange').handle(data => this.onActiveLegChanged(data.type, data.planIndex));
-    sub.on('fplLoaded').handle(() => this.checkApproachState());
+    sub.on('fplIndexChanged').handle(() => { this.scheduleUpdateFlightPhase(); });
+    sub.on('fplActiveLegChange').handle(e => {
+      if (e.planIndex === this.flightPlanner.activePlanIndex && e.type === ActiveLegType.Lateral) {
+        this.scheduleUpdateFlightPhase();
+      }
+    });
+    sub.on('fplSegmentChange').handle(e => {
+      if (e.planIndex === this.flightPlanner.activePlanIndex) {
+        this.scheduleUpdateFlightPhase();
+      }
+    });
+    sub.on('fplLegChange').handle(e => {
+      if (e.planIndex === this.flightPlanner.activePlanIndex) {
+        this.scheduleUpdateFlightPhase();
+      }
+    });
+    sub.on('fplLoaded').handle(e => {
+      if (e.planIndex === this.flightPlanner.activePlanIndex) {
+        this.updateApproachDetails();
+        this.scheduleUpdateFlightPhase();
+      }
+    });
+    sub.on('fplCopied').handle(e => {
+      if (e.planIndex === this.flightPlanner.activePlanIndex) {
+        this.updateApproachDetails();
+        this.scheduleUpdateFlightPhase();
+      }
+    });
 
+    if (this.isPrimary) {
+      this.initObsDeactivationListener();
+    }
+
+    this.navActiveFreqs = {
+      1: ConsumerSubject.create(sub.on('nav_active_frequency_1'), 0),
+      2: ConsumerSubject.create(sub.on('nav_active_frequency_2'), 0)
+    };
+
+    this.activateMaprState.setConsumer(sub.on('activate_missed_approach'));
+
+    this.activateMaprState.sub(activate => {
+      if (activate) {
+        this.bus.getPublisher<ControlEvents>().pub('suspend_sequencing', false, true);
+      }
+    }, true);
+
+    this.indicatedAlt = ConsumerValue.create(sub.on('indicated_alt'), 0);
+    this.lnavTrackedLegIndex.setConsumer(sub.on('lnav_tracked_leg_index'));
+    this.lnavLegDistanceRemaining = ConsumerValue.create(sub.on('lnav_leg_distance_remaining'), 0);
+
+    this.approachDetails.sub(() => { this.needPublishApproachDetails = true; });
+    this.flightPhase.sub(() => { this.needPublishFlightPhase = true; });
+
+    // Publish initial approach details and flight phase to have cached values available.
+    this.publisher.pub('fms_approach_details', this.approachDetails.get(), false, true);
+    this.publisher.pub('fms_flight_phase', this.flightPhase.get(), false, true);
+
+    sub.on('fms_approach_details_sync').handle(this.onApproachDetailsSet.bind(this));
+  }
+
+  /**
+   * Initializes a listener which listens for OBS deactivation and converts the deactivated OBS to a on-route
+   * Direct-To.
+   */
+  private initObsDeactivationListener(): void {
+    const sub = this.bus.getSubscriber<NavEvents>();
     const obsCourse = ConsumerSubject.create(sub.on('gps_obs_value'), 0);
     let obsWasActive = false;
     sub.on('gps_obs_active').whenChanged().handle(isActive => {
@@ -135,39 +306,15 @@ export class Fms {
         obsWasActive = false;
       }
     });
-
-    this.navActiveFreqs = {
-      1: ConsumerSubject.create(sub.on('nav_active_frequency_1'), 0),
-      2: ConsumerSubject.create(sub.on('nav_active_frequency_2'), 0)
-    };
-
-    this.approachFrequency.sub((v) => {
-      if (v !== this._lastApproachFrequencyEventValue) {
-        this.bus.getPublisher<ControlEvents>().pub('approach_freq_set', v, true);
-      }
-    });
-
-    sub.on('approach_freq_set').handle((v) => {
-      this._lastApproachFrequencyEventValue = v;
-      this.approachFrequency.set(v);
-    });
-
-    sub.on('activate_missed_approach').handle(v => {
-      this.missedApproachActive = v;
-      if (this.missedApproachActive) {
-        this.bus.getPublisher<ControlEvents>().pub('suspend_sequencing', false, true);
-        this.setApproachDetails(undefined, undefined, undefined, false);
-      }
-    });
-
-    sub.on('approach_details_set').handle(this.onApproachDetailsSet);
   }
 
   /**
    * Initializes the primary flight plan. Does nothing if the primary flight plan already exists.
+   *
+   * @param force Whether to force a new primary flight plan to be created, even if one already exists
    */
-  public async initPrimaryFlightPlan(): Promise<void> {
-    if (this.flightPlanner.hasFlightPlan(Fms.PRIMARY_PLAN_INDEX)) {
+  public async initPrimaryFlightPlan(force = false): Promise<void> {
+    if (!force && this.flightPlanner.hasFlightPlan(Fms.PRIMARY_PLAN_INDEX)) {
       return;
     }
 
@@ -229,64 +376,131 @@ export class Fms {
   }
 
   /**
-   * Handles when a flight plan active leg changes.
-   * @param legType The type of flight plan active leg change.
-   * @param planIndex The index of the plan whose active leg changed.
+   * Sets the name of the flight plan.
+   * @param planIndex The index of the plan the change the name for.
+   * @param name The new name for the flight plan.
    */
-  private onActiveLegChanged(legType: ActiveLegType, planIndex: number): void {
-    if (legType === ActiveLegType.Lateral && planIndex === 0) {
+  public setFlightPlanName(planIndex: number, name: string): void {
+    this.getFlightPlan(planIndex).setUserData('name', name);
+  }
+
+  /**
+   * Clears the name of the flight plan.
+   * @param planIndex The index of the plan the clear the name for.
+   */
+  public deleteFlightPlanName(planIndex: number): void {
+    this.getFlightPlan(planIndex).deleteUserData('name');
+  }
+
+  /**
+   * Schedules a flight phase update operation if one is not already pending.
+   */
+  private scheduleUpdateFlightPhase(): void {
+    // Debounce the update so we aren't spamming it every time we get a long sequence of consecutive flight plan events.
+
+    if (this.flightPhaseDebounceTimer.isPending()) {
+      return;
+    }
+
+    this.flightPhaseDebounceTimer.schedule(this.updateFlightPhaseFunc, 0);
+  }
+
+  /**
+   * Updates flight phase information.
+   */
+  private updateFlightPhase(): void {
+    let isApproachActive = false;
+    let isPastFaf = false;
+    let isInMissedApproach = false;
+
+    if (this.flightPlanner.hasActiveFlightPlan()) {
       const activePlan = this.flightPlanner.getActiveFlightPlan();
-      if (activePlan.length > 0 && !this.missedApproachActive) {
-        const activeSegment = activePlan.getSegment(activePlan.getSegmentIndex(Math.max(0, activePlan.activeLateralLeg)));
+      if (activePlan.length > 0) {
+        const activeSegment = activePlan.getSegment(activePlan.getSegmentIndex(Math.min(activePlan.length - 1, activePlan.activeLateralLeg)));
         if (activeSegment.segmentType === FlightPlanSegmentType.Approach && activePlan.activeLateralLeg - activeSegment.offset > 0) {
-          this.setApproachDetails(undefined, undefined, undefined, true);
-        } else {
-          this.setApproachDetails(undefined, undefined, undefined, false);
+          isApproachActive = true;
+
+          if (
+            activePlan.activeLateralLeg - activeSegment.offset < activeSegment.legs.length
+              ? BitFlags.isAll(activeSegment.legs[activePlan.activeLateralLeg - activeSegment.offset]?.flags ?? 0, LegDefinitionFlags.MissedApproach)
+              : BitFlags.isAll(activeSegment.legs[activeSegment.legs.length - 1]?.flags ?? 0, LegDefinitionFlags.MissedApproach)
+          ) {
+            isPastFaf = true;
+            isInMissedApproach = true;
+          } else {
+            // Find the faf
+
+            let fafSegmentLegIndex = -1;
+
+            for (let i = activeSegment.legs.length - 1; i >= 0; i--) {
+              if (BitFlags.isAll(activeSegment.legs[i].leg.fixTypeFlags, FixTypeFlags.FAF)) {
+                fafSegmentLegIndex = i;
+                break;
+              }
+            }
+
+            isPastFaf = activePlan.activeLateralLeg > activeSegment.offset + fafSegmentLegIndex;
+          }
         }
-      } else {
-        this.setApproachDetails(undefined, undefined, undefined, false);
       }
-      if (
-        !this.missedApproachActive
-        && activePlan.activeLateralLeg < activePlan.length - 1
-        && BitFlags.isAll(activePlan.getLeg(activePlan.activeLateralLeg).flags, LegDefinitionFlags.MissedApproach)
-      ) {
-        this.bus.getPublisher<ControlEvents>().pub('activate_missed_approach', true, true);
-      }
+    }
+
+    this.flightPhase.set('isApproachActive', isApproachActive);
+    this.flightPhase.set('isPastFaf', isPastFaf);
+    this.flightPhase.set('isInMissedApproach', isInMissedApproach);
+
+    if (this.needPublishFlightPhase) {
+      this.needPublishFlightPhase = false;
+
+      this.publisher.pub('fms_flight_phase', Object.assign({}, this.flightPhase.get()), false, true);
+    }
+
+    const flightPhase = this.flightPhase.get();
+
+    this.publisher.pub('approach_available', flightPhase.isApproachActive, true);
+    this.publisher.pub('approach_supports_gp', this.doesApproachSupportGp(), true);
+
+    // If we are in the missed approach, make sure that the activate missed approach state reflects this.
+    if (flightPhase.isInMissedApproach && !this.activateMaprState.get()) {
+      this.publisher.pub('activate_missed_approach', true, true);
     }
   }
 
   /**
    * A method to check the current approach state.
    */
-  private async checkApproachState(): Promise<void> {
+  private async updateApproachDetails(): Promise<void> {
     const plan = this.getFlightPlan();
     let approachLoaded = false;
-    let approachIsActive = false;
     let approachType: ExtendedApproachType | undefined;
     let approachRnavType: RnavTypeFlags | undefined;
+    let approachRnavTypeFlags: RnavTypeFlags | undefined;
     let approachIsCircling = false;
+    let approachIsVtf = false;
+    let referenceFacility: VorFacility | null = null;
+
     if (plan.destinationAirport && (plan.procedureDetails.approachIndex > -1 || plan.getUserData('visual_approach') !== undefined)) {
       approachLoaded = true;
-      if (plan.length > 0 && plan.activeLateralLeg < plan.length && plan.activeLateralLeg > 0) {
-        const segment = plan.getSegment(plan.getSegmentIndex(plan.activeLateralLeg));
-        approachIsActive = segment.segmentType === FlightPlanSegmentType.Approach;
-      }
       if (plan.procedureDetails.approachIndex > -1) {
         const facility = await this.facLoader.getFacility(FacilityType.Airport, plan.destinationAirport);
         const approach = facility.approaches[plan.procedureDetails.approachIndex];
         if (approach) {
           approachType = approach.approachType;
           approachRnavType = FmsUtils.getBestRnavType(approach.rnavTypeFlags);
+          approachRnavTypeFlags = approach.rnavTypeFlags;
           approachIsCircling = !approach.runway;
+          approachIsVtf = plan.procedureDetails.approachTransitionIndex < 0;
+          if (FmsUtils.approachHasNavFrequency(approach)) {
+            referenceFacility = (await ApproachUtils.getReferenceFacility(approach, this.facLoader) as VorFacility | undefined) ?? null;
+          }
         }
       } else {
         approachType = AdditionalApproachType.APPROACH_TYPE_VISUAL;
         approachRnavType = RnavTypeFlags.None;
       }
-
     }
-    this.setApproachDetails(approachLoaded, approachType, approachRnavType, approachIsActive, approachIsCircling);
+
+    this.setApproachDetails(false, approachLoaded, approachType, approachRnavType, approachRnavTypeFlags, approachIsCircling, approachIsVtf, referenceFacility);
   }
 
   /**
@@ -299,6 +513,12 @@ export class Fms {
     const plan = this.getFlightPlan();
     const directToData = plan.directToData;
     if (directToData && directToData.segmentIndex > -1) {
+      // Removing a lateral direct-to also cancels any existing vertical direct-to
+      this.publisher.pub('vnav_set_vnav_direct_to', {
+        planIndex: Fms.PRIMARY_PLAN_INDEX,
+        globalLegIndex: -1
+      }, true, false);
+
       plan.removeLeg(directToData.segmentIndex, directToData.segmentLegIndex + 1, true);
       plan.removeLeg(directToData.segmentIndex, directToData.segmentLegIndex + 1, true);
       plan.removeLeg(directToData.segmentIndex, directToData.segmentLegIndex + 1, true);
@@ -332,6 +552,10 @@ export class Fms {
       return false;
     }
 
+    if (BitFlags.isAll(leg.flags, LegDefinitionFlags.VectorsToFinalFaf)) {
+      return true;
+    }
+
     switch (leg.leg.type) {
       case LegType.CF:
       case LegType.FC:
@@ -352,6 +576,7 @@ export class Fms {
       case LegType.CA:
       case LegType.VM:
       case LegType.Discontinuity:
+      case LegType.ThruDiscontinuity:
         return false;
     }
 
@@ -374,7 +599,7 @@ export class Fms {
 
     const leg = plan.tryGetLeg(segmentIndex, segmentLegIndex);
 
-    if (!leg || leg.leg.fixIcao === '' || leg.leg.fixIcao === ICAO.emptyIcao) {
+    if (!leg || leg.leg.fixIcao === '' || leg.leg.fixIcao === ICAO.emptyIcao || BitFlags.isAny(leg.flags, LegDefinitionFlags.DirectTo)) {
       return false;
     }
 
@@ -401,7 +626,7 @@ export class Fms {
       if (plan.segmentCount > 0 && plan.getSegment(0).segmentType === FlightPlanSegmentType.RandomDirectTo) {
         return DirectToState.TORANDOM;
       }
-    } else {
+    } else if (this.hasPrimaryFlightPlan()) {
       const plan = this.getPrimaryFlightPlan();
       const directDataExists = plan.directToData.segmentIndex > -1 && plan.directToData.segmentLegIndex > -1;
       if (directDataExists && plan.segmentCount >= plan.directToData.segmentIndex
@@ -490,97 +715,202 @@ export class Fms {
   }
 
   /**
-   * Method to insert a waypoint to the flightplan.
-   * @param segmentIndex is index of the segment to add the waypoint to
-   * @param facility is the new facility to add a leg to.
-   * @param legIndex is the index to insert the waypoint (if none, append)
-   * @returns whether the waypoint was successfully inserted.
+   * Inserts a waypoint into the primary flight plan.
+   * @param segmentIndex The index of the flight plan segment into which to insert the waypoint.
+   * @param facility The waypoint facility to insert.
+   * @param legIndex The index in the segment at which to insert the waypoint. If a leg already exists at the index,
+   * the existing leg and all subsequent legs will be shifted to the right. If not defined, the waypoint will be
+   * inserted at the end of the segment.
+   * @returns The leg that was inserted into the flight plan, or `undefined` if the insertion operation could not be
+   * carried out.
    */
-  public insertWaypoint(segmentIndex: number, facility: Facility, legIndex?: number): boolean {
+  public insertWaypoint(segmentIndex: number, facility: Facility, legIndex?: number): LegDefinition | undefined {
+    const plan = this.getFlightPlan();
+
+    // Check to see if we are trying to insert a leg between a direct-to target leg and the direct-to leg, which is
+    // an illegal operation.
+    if (segmentIndex === plan.directToData.segmentIndex && legIndex !== undefined) {
+      const legIndexDelta = legIndex - plan.directToData.segmentLegIndex;
+      if (legIndexDelta > 0 && legIndexDelta <= FmsUtils.DTO_LEG_OFFSET) {
+        return undefined;
+      }
+    }
+
     const leg = FlightPlan.createLeg({
       type: LegType.TF,
       fixIcao: facility.icao
     });
 
-    const plan = this.getFlightPlan();
-    const segment = plan.getSegment(segmentIndex);
+
+    let segment = plan.getSegment(segmentIndex);
     const prevLeg = plan.getPrevLeg(segmentIndex, legIndex ?? Infinity);
     const nextLeg = plan.getNextLeg(segmentIndex, legIndex === undefined ? Infinity : legIndex - 1);
 
     // Make sure we are not inserting a duplicate leg
     if ((prevLeg && this.isDuplicateLeg(prevLeg.leg, leg)) || (nextLeg && this.isDuplicateLeg(leg, nextLeg.leg))) {
-      return false;
+      return undefined;
+    }
+
+    // Editing the plan prior to an existing vertical direct-to cancels the vertical direct-to
+    if (this.verticalPathCalculator) {
+      const globalLegIndex = segment.offset + (legIndex ?? segment.legs.length);
+      const verticalPlan = this.verticalPathCalculator.getVerticalFlightPlan(Fms.PRIMARY_PLAN_INDEX);
+      if (verticalPlan.verticalDirectIndex !== undefined && verticalPlan.verticalDirectIndex >= globalLegIndex) {
+        this.publisher.pub('vnav_set_vnav_direct_to', {
+          planIndex: Fms.PRIMARY_PLAN_INDEX,
+          globalLegIndex: -1
+        }, true, false);
+      }
+    }
+
+    // Check if we are trying to insert a waypoint after an airway entry or exit. If so, change the leg indexes so that
+    // we are inserting at the beginning of the next segment instead (which is an equivalent operation) in order to
+    // correctly trigger (or not) the airway handling section below.
+    if (legIndex === undefined || legIndex >= segment.legs.length) {
+      const airwayLegType = this.getAirwayLegType(plan, segmentIndex, segment.legs.length - 1);
+      switch (airwayLegType) {
+        case AirwayLegType.ENTRY:
+        case AirwayLegType.EXIT_ENTRY:
+        case AirwayLegType.EXIT:
+          segment = plan.getSegment(++segmentIndex);
+          legIndex = 0;
+          break;
+      }
     }
 
     // Deal with whether this insert is in an airway segment
     if (segment.airway) {
-      legIndex ??= segment.legs.length - 1;
-
-      // Get the displaced legs from the airway segment
-      const legsToMove: FlightPlanLeg[] = [];
-      const legsLength = segment.legs.length;
-      for (let i = legIndex; i < legsLength; i++) {
-        legsToMove.push(segment.legs[i].leg);
-      }
-
-      // Save the airway name
-      const airway = segment.airway?.split('.')[0] ?? '';
-
-      const nextSegment = plan.getSegment(segmentIndex + 1);
-
-      const needFirstAirwaySegment = legIndex > 0; // We don't need to keep the original airway segment around if we've displaced all of its enroute waypoints.
-      const needSecondAirwaySegment = legsToMove.length > 2; // Only create a second airway segment if we've displaced at least three waypoints in the original airway
-      const needNewEnrouteSegment = needFirstAirwaySegment && (needSecondAirwaySegment || nextSegment.airway || nextSegment.segmentType !== FlightPlanSegmentType.Enroute);
-
-      const firstAirwaySegmentIndex = needFirstAirwaySegment ? segmentIndex : -1;
-      const enrouteSegmentIndex = needFirstAirwaySegment ? segmentIndex + 1 : segmentIndex - 1;
-      const secondAirwaySegmentIndex = needSecondAirwaySegment ? enrouteSegmentIndex + 1 : -1;
-
-      if (needNewEnrouteSegment) {
-        this.planInsertSegmentOfType(FlightPlanSegmentType.Enroute, segmentIndex + 1);
-      }
-      if (needSecondAirwaySegment) {
-        this.planInsertSegmentOfType(FlightPlanSegmentType.Enroute, segmentIndex + 1);
-      }
-
-      // Add the inserted leg to its enroute segment
-      this.planAddLeg(enrouteSegmentIndex, leg);
-
-      if (!needFirstAirwaySegment) {
-        this.planRemoveSegment(segmentIndex);
-      } else {
-        for (let i = legsLength - 1; i >= legIndex; i--) {
-          this.planRemoveLeg(segmentIndex, i, true, true);
-        }
-      }
-
-      if (legsToMove.length > 0) {
-        this.planAddLeg(enrouteSegmentIndex, legsToMove[0]); // Always add first displaced waypoint to the enroute segment in case it is an airway entry
-
-        const toAddSegmentIndex = secondAirwaySegmentIndex < 0 ? enrouteSegmentIndex : secondAirwaySegmentIndex;
-        for (let i = 1; i < legsToMove.length; i++) {
-          this.planAddLeg(toAddSegmentIndex, legsToMove[i]);
-        }
-      }
-
-      // Update names of the airway segments as appropriate.
-
-      if (firstAirwaySegmentIndex >= 0) {
-        segment.airway = airway + '.' + segment.legs[legIndex - 1].name;
-        plan.setAirway(firstAirwaySegmentIndex, segment.airway);
-      }
-
-      if (secondAirwaySegmentIndex >= 0) {
-        const newAirwaySegment = plan.getSegment(secondAirwaySegmentIndex);
-        newAirwaySegment.airway = airway + '.' + newAirwaySegment.legs[newAirwaySegment.legs.length - 1].name;
-        plan.setAirway(secondAirwaySegmentIndex, newAirwaySegment.airway);
-      }
-
-      return true;
+      return this.handleAirwayInsertLeg(plan, segmentIndex, leg, legIndex);
     }
 
-    this.planAddLeg(segmentIndex, leg, legIndex);
-    return true;
+    // If we are inserting a leg before a VTF faf leg, we need to check whether the leg terminates at the same
+    // facility as the leg prior to the faf in the published procedure.
+    if (legIndex !== undefined && segment.segmentType === FlightPlanSegmentType.Approach && FmsUtils.isVtfApproachLoaded(plan)) {
+      const vtfFafLeg = FmsUtils.getApproachVtfLeg(plan);
+
+      if (vtfFafLeg !== undefined) {
+        const vtfFafLegIndex = segment.legs.indexOf(vtfFafLeg);
+        const discoLegExists = BitFlags.isAll(segment.legs[vtfFafLegIndex - 1]?.flags ?? 0, LegDefinitionFlags.VectorsToFinal);
+
+        if (vtfFafLeg !== undefined && legIndex === vtfFafLegIndex - (discoLegExists ? 1 : 0)) {
+          const publishedLegIcao = plan.getUserData<string>(Fms.VTF_FAF_DATA_KEY) ?? '';
+          const legTerminatorIcao = FlightPlanUtils.getTerminatorIcao(leg) ?? '';
+
+          const needDisco = !ICAO.isFacility(publishedLegIcao) || !ICAO.isFacility(legTerminatorIcao) || publishedLegIcao !== legTerminatorIcao;
+
+          if (needDisco && !discoLegExists) {
+            plan.addLeg(segmentIndex, FlightPlan.createLeg({ type: LegType.ThruDiscontinuity }), vtfFafLegIndex, LegDefinitionFlags.VectorsToFinal);
+
+            if (plan.activeLateralLeg >= segment.offset + vtfFafLegIndex) {
+              plan.setLateralLeg(plan.activeLateralLeg + 1);
+              plan.setCalculatingLeg(plan.activeCalculatingLeg + 1);
+            }
+          } else if (!needDisco && discoLegExists) {
+            plan.removeLeg(segmentIndex, vtfFafLegIndex - 1);
+
+            if (plan.activeLateralLeg >= segment.offset + vtfFafLegIndex) {
+              plan.setLateralLeg(plan.activeLateralLeg - 1);
+              plan.setCalculatingLeg(plan.activeCalculatingLeg - 1);
+            }
+          }
+        }
+      }
+    }
+
+    return this.planAddLeg(segmentIndex, leg, legIndex);
+  }
+
+  /**
+   * Handles inserting a flight plan leg into an airway segment.
+   * @param plan The flight plan into which to insert the leg.
+   * @param segmentIndex The index of the airway segment.
+   * @param leg The leg to insert.
+   * @param segmentLegIndex The index in the airway segment at which to insert the leg. If not defined, the leg will be
+   * inserted at the end of the segment.
+   * @returns The leg that was inserted into the airway segment, or `undefined` if the segment does not exist or is not
+   * an airway segment.
+   */
+  private handleAirwayInsertLeg(plan: FlightPlan, segmentIndex: number, leg: FlightPlanLeg, segmentLegIndex?: number): LegDefinition | undefined {
+    const segment = plan.tryGetSegment(segmentIndex);
+    if (segment === null || segment.airway === undefined) {
+      return undefined;
+    }
+
+    segmentLegIndex ??= segment.legs.length - 1;
+
+    // Get the displaced legs from the airway segment
+    const legsToMove: FlightPlanLeg[] = [];
+    const legsLength = segment.legs.length;
+    for (let i = segmentLegIndex; i < legsLength; i++) {
+      legsToMove.push(segment.legs[i].leg);
+    }
+
+    // Save the airway name
+    const airway = segment.airway?.split('.')[0] ?? '';
+
+    const prevSegment = plan.getSegment(segmentIndex - 1);
+    const nextSegment = plan.getSegment(segmentIndex + 1);
+
+    const isPrevSegmentEnroute = prevSegment.segmentType === FlightPlanSegmentType.Enroute && prevSegment.airway === undefined;
+    const needFirstAirwaySegment = segmentLegIndex > 0; // We don't need to keep the original airway segment around if we've displaced all of its enroute waypoints.
+    const needSecondAirwaySegment = legsToMove.length > 2; // Only create a second airway segment if we've displaced at least three waypoints in the original airway
+    const needNewEnrouteSegment = !isPrevSegmentEnroute || (
+      needFirstAirwaySegment
+      && (needSecondAirwaySegment || nextSegment.airway !== undefined || nextSegment.segmentType !== FlightPlanSegmentType.Enroute)
+    );
+
+    const firstAirwaySegmentIndex = needFirstAirwaySegment ? segmentIndex : -1;
+
+    let enrouteSegment: FlightPlanSegment;
+    let secondAirwaySegment: FlightPlanSegment | undefined;
+
+    if (needSecondAirwaySegment) {
+      secondAirwaySegment = plan.getSegment(this.planInsertSegmentOfType(FlightPlanSegmentType.Enroute, segmentIndex + 1));
+    }
+
+    if (needNewEnrouteSegment) {
+      enrouteSegment = plan.getSegment(this.planInsertSegmentOfType(FlightPlanSegmentType.Enroute, segmentIndex + 1));
+    } else {
+      if (needFirstAirwaySegment) {
+        enrouteSegment = plan.getSegment(segmentIndex + 1);
+      } else {
+        enrouteSegment = plan.getSegment(segmentIndex - 1);
+      }
+    }
+
+    // Add the inserted leg to its enroute segment
+    const legDefinition = this.planAddLeg(enrouteSegment.segmentIndex, leg);
+
+    if (!needFirstAirwaySegment) {
+      this.planRemoveSegment(segmentIndex);
+    } else {
+      for (let i = legsLength - 1; i >= segmentLegIndex; i--) {
+        this.planRemoveLeg(segmentIndex, i, true, true);
+      }
+    }
+
+    if (legsToMove.length > 0) {
+      this.planAddLeg(enrouteSegment.segmentIndex, legsToMove[0]); // Always add first displaced waypoint to the enroute segment in case it is an airway entry
+
+      const toAddSegmentIndex = secondAirwaySegment ? secondAirwaySegment.segmentIndex : enrouteSegment.segmentIndex;
+      for (let i = 1; i < legsToMove.length; i++) {
+        this.planAddLeg(toAddSegmentIndex, legsToMove[i]);
+      }
+    }
+
+    // Update names of the airway segments as appropriate.
+
+    if (firstAirwaySegmentIndex >= 0) {
+      segment.airway = airway + '.' + segment.legs[segmentLegIndex - 1].name;
+      plan.setAirway(firstAirwaySegmentIndex, segment.airway);
+    }
+
+    if (secondAirwaySegment) {
+      secondAirwaySegment.airway = airway + '.' + secondAirwaySegment.legs[secondAirwaySegment.legs.length - 1].name;
+      plan.setAirway(secondAirwaySegment.segmentIndex, secondAirwaySegment.airway);
+    }
+
+    return legDefinition;
   }
 
   /**
@@ -601,11 +931,26 @@ export class Fms {
       return false;
     }
 
+    const wasActiveLegInApproach = this.getDirectToState() === DirectToState.NONE && plan.activeLateralLeg >= (FmsUtils.getApproachSegment(plan)?.offset ?? Infinity);
+
     const legDeleted = this.planRemoveLeg(segmentIndex, segmentLegIndex);
     const nextLeg = plan.tryGetLeg(segmentIndex, segmentLegIndex);
     if (legDeleted && nextLeg && (nextLeg.leg.type === LegType.HA || nextLeg.leg.type === LegType.HM || nextLeg.leg.type === LegType.HF)) {
       if (plan.tryGetLeg(segmentIndex, segmentLegIndex)) {
         this.planRemoveLeg(segmentIndex, segmentLegIndex, true, true, true);
+      }
+    }
+
+    // If removing the leg caused the active leg to move from before the approach into the approach, activate the
+    // approach instead.
+    if (!wasActiveLegInApproach) {
+      const isActiveLegInApproach = this.getDirectToState() === DirectToState.NONE && plan.activeLateralLeg >= (FmsUtils.getApproachSegment(plan)?.offset ?? Infinity);
+      if (isActiveLegInApproach) {
+        if (this.isApproachVtf()) {
+          this.activateVtf();
+        } else {
+          this.activateApproach();
+        }
       }
     }
 
@@ -620,22 +965,20 @@ export class Fms {
    * @returns The airway leg type of the query leg.
    */
   private getAirwayLegType(plan: FlightPlan, segmentIndex: number, segmentLegIndex: number): AirwayLegType {
+    const isLegDtoTarget = plan.directToData.segmentIndex === segmentIndex && plan.directToData.segmentLegIndex === segmentLegIndex;
     const segment = plan.getSegment(segmentIndex);
     const segmentIsAirway = segment.airway !== undefined;
     const nextSegmentIsAirway = segmentIndex + 1 < plan.segmentCount && plan.getSegment(segmentIndex + 1).airway !== undefined;
-    const legIsLast = segmentLegIndex == segment.legs.length - 1;
-    if ((segmentIsAirway && legIsLast && nextSegmentIsAirway)) {
-      return AirwayLegType.EXIT_ENTRY;
+    const legIsLast = segmentLegIndex + (isLegDtoTarget ? FmsUtils.DTO_LEG_OFFSET : 0) === segment.legs.length - 1;
+
+    if (legIsLast && nextSegmentIsAirway) {
+      return segmentIsAirway ? AirwayLegType.EXIT_ENTRY : AirwayLegType.ENTRY;
     }
-    if ((legIsLast && nextSegmentIsAirway)) {
-      return AirwayLegType.ENTRY;
-    }
+
     if (segmentIsAirway) {
-      if (legIsLast) {
-        return AirwayLegType.EXIT;
-      }
-      return AirwayLegType.ONROUTE;
+      return legIsLast ? AirwayLegType.EXIT : AirwayLegType.ONROUTE;
     }
+
     return AirwayLegType.NONE;
   }
 
@@ -675,7 +1018,6 @@ export class Fms {
       }
     } else {
       plan.removeOriginAirport();
-      this.setApproachDetails(false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, false);
       this.planClearSegment(segmentIndex, FlightPlanSegmentType.Departure);
     }
 
@@ -708,6 +1050,23 @@ export class Fms {
     }
 
     plan.calculate(0);
+  }
+
+  /**
+   * Moves any current legs in the destination segment to the end of the last enroute segment.
+   */
+  public moveCurrentDestinationLegToEnroute(): void {
+    const plan = this.getFlightPlan();
+    const destinationSegmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Destination);
+    const destinationSegment = plan.getSegment(destinationSegmentIndex);
+    if (destinationSegment.legs.length > 0) {
+      const lastEnrouteSegmentIndex = this.findLastEnrouteSegmentIndex(plan);
+      for (let l = 0; l < destinationSegment.legs.length; l++) {
+        const newLeg = Object.assign({}, destinationSegment.legs[l].leg);
+        this.planRemoveLeg(destinationSegmentIndex, l);
+        this.planAddLeg(lastEnrouteSegmentIndex, newLeg);
+      }
+    }
   }
 
   /**
@@ -779,15 +1138,8 @@ export class Fms {
    */
   public invertFlightplan(): void {
     const plan = this.getFlightPlan();
-    const activeLegIcao = plan.getLeg(plan.activeLateralLeg).leg.fixIcao;
 
-    if (plan.directToData.segmentIndex >= 0 && plan.directToData.segmentLegIndex >= 0) {
-      this.removeDirectToExisting();
-    }
-
-    if (!Simplane.getIsGrounded() && activeLegIcao) {
-      this.createDirectToRandom(activeLegIcao);
-    }
+    this.removeDirectToExisting();
 
     const newOriginIcao = plan.destinationAirport;
     const newDestinationIcao = plan.originAirport;
@@ -892,7 +1244,9 @@ export class Fms {
       });
     }
 
-    this.setApproachDetails(false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, false);
+    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null);
+    plan.deleteUserData(Fms.VTF_FAF_DATA_KEY);
+
     plan.calculate(0);
   }
 
@@ -913,9 +1267,13 @@ export class Fms {
   ): void {
     const plan = this.getFlightPlan();
     plan.setDeparture(facility.icao, departureIndex, enrouteTransitionIndex, departureRunwayIndex);
-    const segmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Departure);
 
-    this.planClearSegment(segmentIndex, FlightPlanSegmentType.Departure);
+    let departureSegment = plan.getSegment(this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Departure));
+
+    this.planClearSegment(departureSegment.segmentIndex, FlightPlanSegmentType.Departure);
+
+    // planClearSegment() actually removes and replaces the segment, so we need to get a reference to the new segment.
+    departureSegment = FmsUtils.getDepartureSegment(plan) as FlightPlanSegment;
 
     const insertProcedureObject: InsertProcedureObject = this.buildDepartureLegs(facility, departureIndex, enrouteTransitionIndex, departureRunwayIndex, oneWayRunway);
 
@@ -929,16 +1287,15 @@ export class Fms {
       plan.setOriginAirport(facility.icao);
     }
 
-    insertProcedureObject.procedureLegs.forEach(l => this.planAddLeg(segmentIndex, l));
+    insertProcedureObject.procedureLegs.forEach(l => this.planAddLeg(departureSegment.segmentIndex, l));
 
-    const nextLeg = plan.getNextLeg(segmentIndex, Infinity);
-    const depSegment = plan.getSegment(segmentIndex);
-    const lastDepLeg = depSegment.legs[depSegment.legs.length - 1];
+    const nextLeg = plan.getNextLeg(departureSegment.segmentIndex, Infinity);
+    const lastDepLeg = departureSegment.legs[departureSegment.legs.length - 1];
     if (nextLeg && lastDepLeg && this.isDuplicateLeg(lastDepLeg.leg, nextLeg.leg)) {
       this.planRemoveDuplicateLeg(lastDepLeg, nextLeg);
     }
 
-    this.setVerticalData(plan, segmentIndex);
+    this.autoDesignateProcedureConstraints(plan, departureSegment.segmentIndex);
 
     plan.calculate(0);
   }
@@ -979,7 +1336,8 @@ export class Fms {
 
     if (runwayTransition !== undefined && runwayTransition.legs.length > 0) {
       runwayTransition.legs.forEach((leg) => {
-        insertProcedureObject.procedureLegs.push(FlightPlan.createLeg(leg));
+        const insertLeg = this.procedureLegValid(leg);
+        insertLeg && insertProcedureObject.procedureLegs.push(FlightPlan.createLeg(insertLeg));
       });
     }
 
@@ -991,7 +1349,8 @@ export class Fms {
           this.mergeDuplicateLegData(insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1], leg);
         continue;
       }
-      insertProcedureObject.procedureLegs.push(leg);
+      const insertLeg = this.procedureLegValid(leg);
+      insertLeg && insertProcedureObject.procedureLegs.push(FlightPlan.createLeg(insertLeg));
     }
 
     if (enRouteTransition) {
@@ -1003,7 +1362,8 @@ export class Fms {
             this.mergeDuplicateLegData(insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1], leg);
           continue;
         }
-        insertProcedureObject.procedureLegs.push(enRouteTransition.legs[i]);
+        const insertLeg = this.procedureLegValid(enRouteTransition.legs[i]);
+        insertLeg && insertProcedureObject.procedureLegs.push(FlightPlan.createLeg(insertLeg));
       }
     }
 
@@ -1016,17 +1376,17 @@ export class Fms {
    * @param arrivalIndex is the index of the arrival procedure.
    * @param arrivalRunwayTransitionIndex is the index of the arrival runway transition.
    * @param enrouteTransitionIndex is the index of the enroute transition.
-   * @param oneWayRunway is the one way runway to set as the destination leg.
+   * @param arrivalRunway is the one way runway to set as the destination leg.
    */
   public insertArrival(
     facility: AirportFacility,
     arrivalIndex: number,
     arrivalRunwayTransitionIndex: number,
     enrouteTransitionIndex: number,
-    oneWayRunway?: OneWayRunway | undefined
+    arrivalRunway?: OneWayRunway,
   ): void {
     const plan = this.getFlightPlan();
-    plan.setArrival(facility.icao, arrivalIndex, enrouteTransitionIndex, arrivalRunwayTransitionIndex);
+    plan.setArrival(facility.icao, arrivalIndex, enrouteTransitionIndex, arrivalRunwayTransitionIndex, arrivalRunway);
 
     if (plan.length > 0 && plan.procedureDetails.approachIndex < 0 && plan.destinationAirport) {
       if (!this.moveDirectToDestinationLeg(plan, FlightPlanSegmentType.Enroute)) {
@@ -1040,16 +1400,19 @@ export class Fms {
 
     if (plan.procedureDetails.approachIndex < 0) {
       plan.setDestinationAirport(facility.icao);
-      plan.setDestinationRunway(oneWayRunway);
+      plan.setDestinationRunway(arrivalRunway);
     }
 
-    const segmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Arrival);
+    let arrivalSegment = plan.getSegment(this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Arrival));
 
-    if (plan.getSegment(segmentIndex).legs.length > 0) {
-      this.planClearSegment(segmentIndex, FlightPlanSegmentType.Arrival);
+    if (arrivalSegment.legs.length > 0) {
+      this.planClearSegment(arrivalSegment.segmentIndex, FlightPlanSegmentType.Arrival);
+
+      // planClearSegment() actually removes and replaces the segment, so we need to get a reference to the new segment.
+      arrivalSegment = FmsUtils.getArrivalSegment(plan) as FlightPlanSegment;
     }
 
-    const insertProcedureObject: InsertProcedureObject = this.buildArrivalLegs(facility, arrivalIndex, enrouteTransitionIndex, arrivalRunwayTransitionIndex, oneWayRunway);
+    const insertProcedureObject: InsertProcedureObject = this.buildArrivalLegs(facility, arrivalIndex, enrouteTransitionIndex, arrivalRunwayTransitionIndex, arrivalRunway);
 
     let directTargetLeg: FlightPlanLeg | undefined;
     let handleDirectToDestination = false;
@@ -1066,32 +1429,31 @@ export class Fms {
       }
     }
 
-    insertProcedureObject.procedureLegs.forEach(l => this.planAddLeg(segmentIndex, l));
+    insertProcedureObject.procedureLegs.forEach(l => this.planAddLeg(arrivalSegment.segmentIndex, l));
 
-    const arrSegment = plan.getSegment(segmentIndex);
-    const prevLeg = plan.getPrevLeg(segmentIndex, 0);
-    const firstArrLeg = arrSegment.legs[0];
+    const prevLeg = plan.getPrevLeg(arrivalSegment.segmentIndex, 0);
+    const firstArrLeg = arrivalSegment.legs[0];
     if (prevLeg && firstArrLeg && this.isDuplicateLeg(prevLeg.leg, firstArrLeg.leg)) {
       this.planRemoveDuplicateLeg(prevLeg, firstArrLeg);
     }
 
     this.removeDestLegFromSegments();
 
-    const nextLeg = plan.getNextLeg(segmentIndex, Infinity);
-    const lastArrLeg = arrSegment.legs[arrSegment.legs.length - 1];
+    const nextLeg = plan.getNextLeg(arrivalSegment.segmentIndex, Infinity);
+    const lastArrLeg = arrivalSegment.legs[arrivalSegment.legs.length - 1];
     if (nextLeg && lastArrLeg && this.isDuplicateLeg(lastArrLeg.leg, nextLeg.leg)) {
       this.planRemoveDuplicateLeg(lastArrLeg, nextLeg);
     }
 
     if (handleDirectToDestination) {
-      this.moveDirectToDestinationLeg(plan, FlightPlanSegmentType.Arrival, segmentIndex);
-      this.activateLeg(segmentIndex, arrSegment.legs.length - 1);
+      this.moveDirectToDestinationLeg(plan, FlightPlanSegmentType.Arrival, arrivalSegment.segmentIndex);
+      this.activateLeg(arrivalSegment.segmentIndex, arrivalSegment.legs.length - 1);
     } else if (directToState === DirectToState.TOEXISTING && directTargetLeg && directTargetLeg.fixIcao === plan.destinationAirport) {
       this.removeDirectToExisting();
       this.createDirectToRandom(plan.destinationAirport);
     }
 
-    this.setVerticalData(plan, segmentIndex);
+    this.autoDesignateProcedureConstraints(plan, arrivalSegment.segmentIndex);
 
     plan.calculate(0);
   }
@@ -1102,14 +1464,14 @@ export class Fms {
    * @param procedureIndex is the procedure index to build legs from.
    * @param enrouteTransitionIndex is the enroute transition index to build legs from.
    * @param runwayTransitionIndex is the runway transition index to build legs from.
-   * @param oneWayRunway is the one way runway, if one is specified in the procedure.
+   * @param arrivalRunway is the one way runway, if one is specified in the procedure.
    * @returns InsertProcedureObject to insert into the flight plan.
    */
   private buildArrivalLegs(facility: AirportFacility,
     procedureIndex: number,
     enrouteTransitionIndex: number,
     runwayTransitionIndex: number,
-    oneWayRunway?: OneWayRunway): InsertProcedureObject {
+    arrivalRunway?: OneWayRunway): InsertProcedureObject {
 
     const arrival = facility.arrivals[procedureIndex];
     const enRouteTransition = arrival.enRouteTransitions[enrouteTransitionIndex];
@@ -1118,7 +1480,8 @@ export class Fms {
 
     if (enRouteTransition !== undefined && enRouteTransition.legs.length > 0) {
       enRouteTransition.legs.forEach((leg) => {
-        insertProcedureObject.procedureLegs.push(FlightPlan.createLeg(leg));
+        const insertLeg = this.procedureLegValid(leg);
+        insertLeg && insertProcedureObject.procedureLegs.push(FlightPlan.createLeg(insertLeg));
       });
     }
 
@@ -1130,7 +1493,8 @@ export class Fms {
           this.mergeDuplicateLegData(insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1], leg);
         continue;
       }
-      insertProcedureObject.procedureLegs.push(leg);
+      const insertLeg = this.procedureLegValid(leg);
+      insertLeg && insertProcedureObject.procedureLegs.push(FlightPlan.createLeg(insertLeg));
     }
 
     if (runwayTransition) {
@@ -1142,12 +1506,13 @@ export class Fms {
             this.mergeDuplicateLegData(insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1], leg);
           continue;
         }
-        insertProcedureObject.procedureLegs.push(leg);
+        const insertLeg = this.procedureLegValid(leg);
+        insertLeg && insertProcedureObject.procedureLegs.push(FlightPlan.createLeg(insertLeg));
       }
     }
 
-    const destinationLeg = oneWayRunway
-      ? FmsUtils.buildRunwayLeg(facility, oneWayRunway, false)
+    const destinationLeg = arrivalRunway
+      ? FmsUtils.buildRunwayLeg(facility, arrivalRunway, false)
       : FlightPlan.createLeg({
         lat: facility.lat,
         lon: facility.lon,
@@ -1204,11 +1569,26 @@ export class Fms {
   }
 
   /**
+   * Method to find the first enroute segment of the supplied flight plan.
+   * @param plan is the flight plan to find the first enroute segment in.
+   * @returns a segment index.
+   */
+  public findFirstEnrouteSegmentIndex(plan: FlightPlan): number {
+    for (let i = 1; i < plan.segmentCount; i++) {
+      const segment = plan.getSegment(i);
+      if (segment.segmentType === FlightPlanSegmentType.Enroute) {
+        return i;
+      }
+    }
+    return 1;
+  }
+
+  /**
    * Method to find the last enroute segment of the supplied flight plan.
    * @param plan is the flight plan to find the last enroute segment in.
    * @returns a segment index.
    */
-  private findLastEnrouteSegmentIndex(plan: FlightPlan): number {
+  public findLastEnrouteSegmentIndex(plan: FlightPlan): number {
     let enrouteSegmentFound = 0;
     for (let i = 1; i < plan.segmentCount; i++) {
       const segment = plan.getSegment(i);
@@ -1264,10 +1644,8 @@ export class Fms {
    * @param approachTransitionIndex is the index of the approach transition.
    * @param visualRunwayNumber is the visual runway number, if any.
    * @param visualRunwayDesignator is the visual runway designator, if any.
-   * @param transStartIndex is the starting leg index for the transition, if any.
    * @param skipCourseReversal Whether to skip the course reversal. False by default.
-   * @param skipAutotune Whether to skip autotuning of the approach frequency, if one exists, to the nav radios. False
-   * by default.
+   * @param activate Whether to activate the approach once it is loaded into the flight plan. Defaults to `false`.
    * @returns A Promise which is fulfilled with whether the approach was inserted.
    */
   public async insertApproach(
@@ -1276,9 +1654,8 @@ export class Fms {
     approachTransitionIndex: number,
     visualRunwayNumber?: number,
     visualRunwayDesignator?: RunwayDesignator,
-    transStartIndex?: number,
     skipCourseReversal = false,
-    skipAutotune = false
+    activate = false
   ): Promise<boolean> {
 
     const plan = this.getFlightPlan();
@@ -1292,11 +1669,16 @@ export class Fms {
     }
 
     const opId = ++this.insertApproachOpId;
-    const insertProcedureObject = await this.buildApproachLegs(facility, approachIndex, approachTransitionIndex, visualRunway, transStartIndex, skipCourseReversal);
+    const insertProcedureObject = await this.buildApproachLegs(facility, approachIndex, approachTransitionIndex, visualRunway, skipCourseReversal);
 
     if (opId !== this.insertApproachOpId) {
       return false;
     }
+
+    const originalPlanLength = plan.length;
+
+    // Loading a new approach will always kick us out of any existing missed approach, so deactivate the missed approach.
+    this.publisher.pub('activate_missed_approach', false, true);
 
     let skipDestinationLegCheck = false;
 
@@ -1326,6 +1708,8 @@ export class Fms {
       plan.deleteUserData('visual_approach');
     }
 
+    plan.setUserData('skipCourseReversal', skipCourseReversal);
+
     plan.setApproach(facility.icao, approachIndex, approachTransitionIndex);
 
     if (plan.procedureDetails.arrivalIndex < 0) {
@@ -1341,43 +1725,62 @@ export class Fms {
       this.removeDestLegFromSegments();
     }
 
-    const segmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Approach);
+    let approachSegment = plan.getSegment(this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Approach));
 
-    if (plan.getSegment(segmentIndex).legs.length > 0) {
-      this.planClearSegment(segmentIndex, FlightPlanSegmentType.Approach);
+    if (approachSegment.legs.length > 0) {
+      this.planClearSegment(approachSegment.segmentIndex, FlightPlanSegmentType.Approach);
+
+      // planClearSegment() actually removes and replaces the segment, so we need to get a reference to the new segment.
+      approachSegment = FmsUtils.getApproachSegment(plan) as FlightPlanSegment;
     }
 
     if (insertProcedureObject.runway) {
       plan.setDestinationRunway(insertProcedureObject.runway);
     }
 
+    let didAddVtfFafLeg = false;
     let haveAddedMap = false;
-    insertProcedureObject.procedureLegs.forEach((l) => {
+    insertProcedureObject.procedureLegs.forEach((leg, index, array) => {
       let isMissedLeg = false;
       if (visualRunway !== undefined) {
         // If the leg's fix is a visual approach fix, we need to add it to the facility repository so that others can
         // look it up properly.
-        if (l.type !== LegType.Discontinuity && l.type !== LegType.ThruDiscontinuity) {
-          this.addVisualFacilityFromLeg(l, visualRunway.designation);
+        if (leg.type !== LegType.Discontinuity && leg.type !== LegType.ThruDiscontinuity) {
+          this.addVisualFacilityFromLeg(leg, visualRunway.designation);
         }
         if (haveAddedMap) {
           isMissedLeg = true;
         }
-        if (l.fixTypeFlags & FixTypeFlags.MAP) {
+        if (leg.fixTypeFlags & FixTypeFlags.MAP) {
           haveAddedMap = true;
         }
       }
 
-      let flags = l.legDefinitionFlags ?? LegDefinitionFlags.None;
+      let flags = leg.legDefinitionFlags ?? LegDefinitionFlags.None;
+
+      // If we are inserting a VTF leg, we need to save the terminator ICAO of the prior leg in the published procedure
+      // to the plan user data.
+      if (BitFlags.isAll(flags, LegDefinitionFlags.VectorsToFinalFaf)) {
+        const prevLeg = array[index - 1];
+        const fixIcao = prevLeg === undefined ? undefined : FlightPlanUtils.getTerminatorIcao(prevLeg);
+
+        plan.setUserData(Fms.VTF_FAF_DATA_KEY, fixIcao ?? '');
+        didAddVtfFafLeg = true;
+      }
+
       if (isMissedLeg) {
         flags |= LegDefinitionFlags.MissedApproach;
       }
 
-      this.planAddLeg(segmentIndex, l, undefined, flags);
+      this.planAddLeg(approachSegment.segmentIndex, leg, undefined, flags);
     });
 
-    const prevLeg = plan.getPrevLeg(segmentIndex, 0);
-    const firstAppLeg = plan.getSegment(segmentIndex).legs[0];
+    if (!didAddVtfFafLeg) {
+      plan.deleteUserData(Fms.VTF_FAF_DATA_KEY);
+    }
+
+    const prevLeg = plan.getPrevLeg(approachSegment.segmentIndex, 0);
+    const firstAppLeg = approachSegment.legs[0];
     if (prevLeg && firstAppLeg && this.isDuplicateLeg(prevLeg.leg, firstAppLeg.leg)) {
       this.planRemoveDuplicateLeg(prevLeg, firstAppLeg);
     }
@@ -1397,30 +1800,34 @@ export class Fms {
           }
         }
         for (let n = 0; n < missedLegs.length; n++) {
-          const newLeg = FlightPlan.createLeg(missedLegs[n]);
-          if (maphIndex >= 0 && n === maphIndex) {
-            newLeg.fixTypeFlags |= FixTypeFlags.MAHP;
-            this.planAddLeg(segmentIndex, newLeg, undefined, LegDefinitionFlags.MissedApproach);
-          } else {
-            this.planAddLeg(segmentIndex, newLeg, undefined, LegDefinitionFlags.MissedApproach);
+          const validLeg = this.procedureLegValid(missedLegs[n]);
+          if (validLeg) {
+            const newLeg = FlightPlan.createLeg(validLeg);
+            if (maphIndex >= 0 && n === maphIndex) {
+              newLeg.fixTypeFlags |= FixTypeFlags.MAHP;
+              this.planAddLeg(approachSegment.segmentIndex, newLeg, undefined, LegDefinitionFlags.MissedApproach);
+            } else {
+              this.planAddLeg(approachSegment.segmentIndex, newLeg, undefined, LegDefinitionFlags.MissedApproach);
+            }
           }
         }
       }
     }
 
     const approachType = visualRunway ? AdditionalApproachType.APPROACH_TYPE_VISUAL : facility.approaches[approachIndex].approachType;
-    const rnavTypeFlag = visualRunway ? RnavTypeFlags.None : FmsUtils.getBestRnavType(facility.approaches[approachIndex].rnavTypeFlags);
+    const bestRnavType = visualRunway ? RnavTypeFlags.None : FmsUtils.getBestRnavType(facility.approaches[approachIndex].rnavTypeFlags);
+    const rnavTypeFlags = visualRunway ? RnavTypeFlags.None : facility.approaches[approachIndex].rnavTypeFlags;
     const approachIsCircling = !visualRunway && !facility.approaches[approachIndex].runway ? true : false;
-    this.setApproachDetails(true, approachType, rnavTypeFlag, false, approachIsCircling);
+    const isVtf = approachTransitionIndex < 0;
 
-    this.setVerticalData(plan, segmentIndex);
-
-    this.loadApproachFrequency(facility, approachIndex);
-
-    if (!skipAutotune) {
-      this.setLocFrequency(1);
-      this.setLocFrequency(2);
+    let referenceFacility: VorFacility | null = null;
+    if (!visualRunway && FmsUtils.approachHasNavFrequency(facility.approaches[approachIndex])) {
+      referenceFacility = (await ApproachUtils.getReferenceFacility(facility.approaches[approachIndex], this.facLoader) as VorFacility | undefined) ?? null;
     }
+
+    this.setApproachDetails(true, true, approachType, bestRnavType, rnavTypeFlags, approachIsCircling, isVtf, referenceFacility);
+
+    this.autoDesignateProcedureConstraints(plan, approachSegment.segmentIndex);
 
     await plan.calculate();
 
@@ -1428,20 +1835,37 @@ export class Fms {
       return false;
     }
 
-    if (isDtoExistingToRunwayActive && this.getDirectToState() !== DirectToState.TOEXISTING) {
+    if (!activate && isDtoExistingToRunwayActive && this.getDirectToState() !== DirectToState.TOEXISTING) {
       // Direct To Existing to the destination runway was canceled as a result of adding the approach
       if (isDtoExistingToApproachRunway) {
         // DTO target runway matches the runway of the loaded approach -> need to reactivate DTO to the new runway leg
         // in the approach
-        const runwayLegIndex = plan.getSegment(segmentIndex).legs.findIndex(leg => leg.leg.fixIcao === approachRunwayIcao);
+        const runwayLegIndex = approachSegment.legs.findIndex(leg => leg.leg.fixIcao === approachRunwayIcao);
         if (runwayLegIndex >= 0) {
-          this.createDirectToExisting(segmentIndex, runwayLegIndex, dtoExistingToRunwayCourse);
+          this.createDirectToExisting(approachSegment.segmentIndex, runwayLegIndex, dtoExistingToRunwayCourse);
         }
       } else {
         // DTO target runway does not match the runway of the loaded approach (or the approach is circling only) ->
         // activate DTO random to the old runway
         this.createDirectToRandom(dtoExistingToRunwayIcao, dtoExistingToRunwayCourse);
       }
+    } else {
+      // If there were fewer than 2 legs in the flight plan before the approach was loaded, then we are forced to
+      // activate the approach.
+      activate ||= originalPlanLength < 2;
+    }
+
+    if (activate) {
+      if (approachTransitionIndex < 0) {
+        this.activateVtf();
+      } else {
+        this.activateApproach();
+      }
+    } else {
+      // Only auto-tune approach frequency if not activating the approach, because activating the approach will also
+      // trigger auto-tune.
+      this.setLocFrequency(1);
+      this.setLocFrequency(2);
     }
 
     return true;
@@ -1453,7 +1877,6 @@ export class Fms {
    * @param approachIndex The approach procedure index to build legs from.
    * @param approachTransitionIndex The transition index to build legs from.
    * @param visualRunway If this is a visual approach, the visual approach one way runway object.
-   * @param transStartIndex The starting leg index for the transition, if any.
    * @param skipCourseReversal Whether to skip the course reversal.
    * @returns A Promise which is fulfilled with an `InsertProcedureObject` containing the flight plan legs to insert
    * into the flight plan.
@@ -1463,27 +1886,29 @@ export class Fms {
     approachIndex: number,
     approachTransitionIndex: number,
     visualRunway?: OneWayRunway,
-    transStartIndex?: number,
     skipCourseReversal?: boolean
   ): Promise<InsertProcedureObject> {
     const isVisual = !!visualRunway;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const approach = isVisual ? FmsUtils.buildVisualApproach(facility, visualRunway!, 1, 2.5) : facility.approaches[approachIndex];
+    const approach = isVisual
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      ? FmsUtils.buildVisualApproach(facility, visualRunway!, this.visualApproachOptions.finalFixDistance, this.visualApproachOptions.strghtFixDistance)
+      : facility.approaches[approachIndex];
+
     const transition = approach.transitions[approachTransitionIndex];
     const isVtf = approachTransitionIndex < 0;
     const insertProcedureObject: InsertProcedureObject = { procedureLegs: [] };
 
     if (transition !== undefined && transition.legs.length > 0) {
-      const startIndex = transStartIndex !== undefined ? transStartIndex : 0;
-      for (let t = startIndex; t < transition.legs.length; t++) {
-        insertProcedureObject.procedureLegs.push(FlightPlan.createLeg(transition.legs[t]));
+      for (let t = 0; t < transition.legs.length; t++) {
+        const insertLeg = this.procedureLegValid(transition.legs[t]);
+        insertLeg && insertProcedureObject.procedureLegs.push(FlightPlan.createLeg(insertLeg));
       }
     }
 
     const lastTransitionLeg = insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1];
 
     if (isVtf) {
-      insertProcedureObject.procedureLegs.push(FlightPlan.createLeg({ type: LegType.Discontinuity }));
+      insertProcedureObject.procedureLegs.push(FlightPlan.createLeg({ type: LegType.ThruDiscontinuity }));
     }
 
     const finalLegs = approach.finalLegs;
@@ -1510,9 +1935,12 @@ export class Fms {
           insertProcedureObject.procedureLegs.push(approach.missedLegs[0]);
         }
       } else {
-        insertProcedureObject.procedureLegs.push(leg);
         if (isVtf && BitFlags.isAll(leg.fixTypeFlags, FixTypeFlags.FAF)) {
-          await this.insertVtfLegs(insertProcedureObject, leg, finalLegs[i - 1], finalLegs[i + 1]);
+          // If this is a VTF approach, replace the faf leg with a VTF leg
+          await this.insertVtfLeg(insertProcedureObject, leg, finalLegs[i - 1], finalLegs[i + 1]);
+        } else {
+          const insertLeg = this.procedureLegValid(leg);
+          insertLeg && insertProcedureObject.procedureLegs.push(FlightPlan.createLeg(insertLeg));
         }
       }
     }
@@ -1531,42 +1959,89 @@ export class Fms {
         insertProcedureObject.runway = RunwayUtils.matchOneWayRunway(facility, approach.runwayNumber, approach.runwayDesignator);
       }
 
-      return insertProcedureObject;
+      if (isVtf) {
+        // If the first leg (not counting the discontinuity leg) of the VTF approach is not already an IF leg, replace
+        // it with one unless it is also the faf and a CF leg.
+        // Note that we can skip checking for certain leg types because they are handled by tryInsertIfLeg().
+
+        const firstLeg = insertProcedureObject.procedureLegs[1];
+
+        switch (firstLeg?.type) {
+          case LegType.TF:
+          case LegType.DF:
+          case LegType.CF:
+            if (BitFlags.isAll(firstLeg.fixTypeFlags, FixTypeFlags.FAF)) {
+              break;
+            }
+          // eslint-disable-next-line no-fallthrough
+          case LegType.AF:
+          case LegType.RF:
+            insertProcedureObject.procedureLegs[1] = FlightPlan.createLeg({
+              type: LegType.IF,
+              fixIcao: firstLeg.fixIcao,
+              fixTypeFlags: firstLeg.fixTypeFlags
+            });
+            break;
+          default:
+            // If we are not replacing the leg, we need to remove altitude restrictions from the leg unless it is the faf
+            if (!BitFlags.isAll(firstLeg.fixTypeFlags, FixTypeFlags.FAF)) {
+              firstLeg.altDesc = AltitudeRestrictionType.Unused;
+              firstLeg.altitude1 = 0;
+              firstLeg.altitude2 = 0;
+            }
+        }
+      }
     }
 
     return insertProcedureObject;
   }
 
   /**
-   * Inserts vectors-to-final legs into an insert procedure object. Vectors to final legs consist of a discontinuity
-   * leg followed by a CF leg to the final approach fix. The course of the CF leg (the vectors-to-final course) is
-   * defined as follows:
+   * Inserts a vector-to-final (VTF) leg into a procedure insertion object. A VTF leg is a CF leg to the final approach
+   * fix with the {@link LegDefinitionFlags.VectorsToFinalFaf} flag applied to it.
+   *
+   * The course of the VTF leg is defined as follows:
    * * If the leg to the faf is a CF leg, the VTF course is equal to the CF leg course.
    * * If the leg to the faf is not an IF leg, the VTF course is defined by the great-circle path from the fix
    * immediately prior to the faf to the faf.
    * * If the leg to the faf is an IF leg, the VTF course is defined by the great-circle path from the faf to the fix
    * immediately following it.
    *
-   * If a VTF course cannot be defined, then no vectors-to-final legs are inserted.
-   * @param proc The insert procedure object to which to insert the vectors-to-final legs.
-   * @param fafLeg The leg to the final approach fix in the procedure.
-   * @param prevLeg The leg immediately prior to the faf leg.
-   * @param nextLeg The leg immediately after the faf leg.
+   * If a VTF course cannot be defined, then the normal faf leg is inserted instead of the VTF leg.
+   * @param insertProcedureObject The procedure insertion object into which to insert the leg.
+   * @param fafLeg The leg to the final approach fix.
+   * @param prevLeg The leg before the faf leg.
+   * @param nextLeg The leg after the faf leg.
    */
-  private async insertVtfLegs(proc: InsertProcedureObject, fafLeg: FlightPlanLeg, prevLeg?: FlightPlanLeg, nextLeg?: FlightPlanLeg): Promise<void> {
-    if (fafLeg.type === LegType.CF) {
-      // faf leg is a CF -> copy the leg into the VTF sequence.
+  private async insertVtfLeg(insertProcedureObject: InsertProcedureObject, fafLeg: FlightPlanLeg, prevLeg?: FlightPlanLeg, nextLeg?: FlightPlanLeg): Promise<void> {
+    switch (fafLeg.type) {
+      case LegType.CF:
+      case LegType.TF:
+      case LegType.IF:
+      case LegType.DF:
+        break;
+      default:
+        insertProcedureObject.procedureLegs.push(fafLeg);
+        return;
+    }
 
-      const discoLeg: InsertProcedureObjectLeg = FlightPlan.createLeg({ type: LegType.ThruDiscontinuity });
-      discoLeg.legDefinitionFlags = LegDefinitionFlags.VectorsToFinal;
-      proc.procedureLegs.push(discoLeg);
-      proc.procedureLegs.push(Object.assign({ legDefinitionFlags: LegDefinitionFlags.VectorsToFinal }, fafLeg));
-    } else {
-      try {
-        const fafFacility = await this.facLoader.getFacility(ICAO.getFacilityType(fafLeg.fixIcao), fafLeg.fixIcao);
+    try {
+      const fafFacility: LatLonInterface = ICAO.isFacility(fafLeg.fixIcao, FacilityType.VIS)
+        // If the faf fix is a visual facility, we can't retrieve it from facility loader because it is not guaranteed
+        // to exist yet. However, because we are dealing with a visual approach, the leg should define the fix's
+        // lat/lon coordinates.
+        ? { lat: fafLeg.lat ?? 0, lon: fafLeg.lon ?? 0 }
+        : await this.facLoader.getFacility(ICAO.getFacilityType(fafLeg.fixIcao), fafLeg.fixIcao);
+
+      let course: number | undefined;
+      let trueDegrees: boolean;
+
+      if (fafLeg.type === LegType.CF) {
+        course = fafLeg.course;
+        trueDegrees = fafLeg.trueDegrees;
+      } else {
         const fafPoint = Fms.geoPointCache[0].set(fafFacility);
 
-        let course;
         if (fafLeg.type === LegType.IF) {
           // faf leg is an IF, meaning it is the first leg in the approach -> get the course from the next leg.
 
@@ -1584,8 +2059,10 @@ export class Fms {
               nextLegFixIcao = nextLeg.fixIcao;
           }
 
-          const nextLegFacility = await this.facLoader.getFacility(ICAO.getFacilityType(nextLegFixIcao), nextLegFixIcao);
-          course = MagVar.trueToMagnetic(fafPoint.bearingTo(nextLegFacility), fafPoint);
+          if (ICAO.isFacility(nextLegFixIcao)) {
+            const nextLegFacility = await this.facLoader.getFacility(ICAO.getFacilityType(nextLegFixIcao), nextLegFixIcao);
+            course = fafPoint.bearingTo(nextLegFacility);
+          }
         } else {
           // faf leg is not the first leg in the approach -> get the course from the previous leg.
 
@@ -1603,28 +2080,45 @@ export class Fms {
               prevLegFixIcao = prevLeg.fixIcao;
           }
 
-          const prevLegFacility = await this.facLoader.getFacility(ICAO.getFacilityType(prevLegFixIcao), prevLegFixIcao);
-          course = MagVar.trueToMagnetic(fafPoint.bearingFrom(prevLegFacility), fafPoint);
+          if (ICAO.isFacility(prevLegFixIcao)) {
+            const prevLegFacility = await this.facLoader.getFacility(ICAO.getFacilityType(prevLegFixIcao), prevLegFixIcao);
+            course = fafPoint.bearingFrom(prevLegFacility);
+          }
         }
 
-        const discoLeg: InsertProcedureObjectLeg = FlightPlan.createLeg({ type: LegType.Discontinuity });
-        discoLeg.legDefinitionFlags = LegDefinitionFlags.VectorsToFinal;
-        const vtfLeg: InsertProcedureObjectLeg = FlightPlan.createLeg({
-          type: LegType.CF,
-          fixIcao: fafLeg.fixIcao,
-          course,
-          fixTypeFlags: fafLeg.fixTypeFlags,
-          altDesc: fafLeg.altDesc,
-          altitude1: fafLeg.altitude1,
-          altitude2: fafLeg.altitude2
-        });
-        vtfLeg.legDefinitionFlags = LegDefinitionFlags.VectorsToFinal;
-
-        proc.procedureLegs.push(discoLeg);
-        proc.procedureLegs.push(vtfLeg);
-      } catch {
-        // noop
+        trueDegrees = true;
       }
+
+      if (course === undefined) {
+        insertProcedureObject.procedureLegs.push(fafLeg);
+        return;
+      }
+
+      const vtfFafLeg: InsertProcedureObjectLeg = FlightPlan.createLeg({
+        type: LegType.CF,
+        lat: fafFacility.lat,
+        lon: fafFacility.lon,
+        fixIcao: fafLeg.fixIcao,
+        course,
+        trueDegrees,
+        originIcao: fafLeg.originIcao,
+        fixTypeFlags: fafLeg.fixTypeFlags,
+        altDesc: fafLeg.altDesc,
+        altitude1: fafLeg.altitude1,
+        altitude2: fafLeg.altitude2,
+        speedRestriction: fafLeg.speedRestriction
+      });
+
+      vtfFafLeg.legDefinitionFlags = LegDefinitionFlags.VectorsToFinalFaf;
+
+      insertProcedureObject.procedureLegs.push(vtfFafLeg);
+    } catch (e) {
+      console.warn(`Fms: could not insert VTF legs due to error... ${e}`);
+      if (e instanceof Error) {
+        console.error(e.stack);
+      }
+
+      insertProcedureObject.procedureLegs.push(fafLeg);
     }
   }
 
@@ -1633,60 +2127,394 @@ export class Fms {
    * @param plan The Flight Plan.
    * @param segmentIndex The segment index for the inserted procedure.
    */
-  private setVerticalData(plan: FlightPlan, segmentIndex: number): void {
+  private autoDesignateProcedureConstraints(plan: FlightPlan, segmentIndex: number): void {
     const segment = plan.getSegment(segmentIndex);
+    const isDeparture = segment.segmentType === FlightPlanSegmentType.Origin || segment.segmentType === FlightPlanSegmentType.Departure;
+    const isApproach = segment.segmentType === FlightPlanSegmentType.Approach;
+
     for (let l = 0; l < segment.legs.length; l++) {
       const leg = segment.legs[l];
-      const altitude1 = leg.leg.altitude1;
-      const altitude2 = leg.leg.altitude2;
-      const altDesc = leg.leg.altDesc;
+      const isMapr = isApproach && BitFlags.isAny(leg.flags, LegDefinitionFlags.MissedApproach);
+
+      const isAltitudeDesignable = this.isAltitudeAutoDesignable(segment, leg);
+
+      let phase = VerticalFlightPhase.Descent;
+      let altDesc = AltitudeRestrictionType.Unused;
+      let altitude1 = 0;
+      let altitude2 = 0;
+
+      if (isAltitudeDesignable) {
+        // For simple VNAV, convert all constraints to AT constraints (for BETWEEN constraints, use the lower altitude).
+        if (!this.isAdvancedVnav) {
+          phase = VerticalFlightPhase.Descent;
+          altDesc = leg.leg.altDesc === AltitudeRestrictionType.Unused ? AltitudeRestrictionType.Unused : AltitudeRestrictionType.At;
+          altitude1 = leg.leg.altDesc === AltitudeRestrictionType.Between ? leg.leg.altitude2 : leg.leg.altitude1;
+          altitude2 = 0;
+        } else {
+          phase = isDeparture || isMapr ? VerticalFlightPhase.Climb : VerticalFlightPhase.Descent;
+          altDesc = leg.leg.altDesc;
+          altitude1 = leg.leg.altitude1;
+          altitude2 = leg.leg.altitude2;
+        }
+      }
+
       const verticalData: VerticalData = {
-        altDesc: altDesc,
-        altitude1: altitude1,
-        altitude2: altitude2
+        phase,
+        altDesc,
+        altitude1,
+        altitude2,
+        displayAltitude1AsFlightLevel: FmsUtils.displayAltitudeAsFlightLevel(altitude1),
+        displayAltitude2AsFlightLevel: FmsUtils.displayAltitudeAsFlightLevel(altitude2),
+        speed: leg.leg.speedRestriction,
+        speedDesc: FmsUtils.getPublishedSpeedDescBasedOnSegment(leg.leg.speedRestriction, segment.segmentType),
+        speedUnit: SpeedUnit.IAS,
       };
+
       plan.setLegVerticalData(segmentIndex, l, verticalData);
     }
+  }
+
+  /**
+   * Checks whether an altitude constraint defined for a flight plan leg in a procedure can be auto-designated.
+   * @param segment The procedure segment containing the flight plan leg to evaluate.
+   * @param leg The flight plan leg to evaluate.
+   * @returns Whether an altitude constraint defined for the specified orocedure flight plan leg can be
+   * auto-designated.
+   */
+  private isAltitudeAutoDesignable(segment: FlightPlanSegment, leg: LegDefinition): boolean {
+    if (BitFlags.isAny(leg.leg.fixTypeFlags, FixTypeFlags.MAP)) {
+      return false;
+    }
+
+    if (this.isAdvancedVnav) {
+      switch (leg.leg.type) {
+        case LegType.FM:
+        case LegType.VM:
+        case LegType.HM:
+        case LegType.HA:
+          return false;
+      }
+    } else {
+
+      // Departure altitudes are not designable in simple VNAV mode.
+      if (segment.segmentType === FlightPlanSegmentType.Origin || segment.segmentType === FlightPlanSegmentType.Departure) {
+        return false;
+      }
+
+      // Missed approach altitudes are not designable in simple VNAV mode.
+      if (BitFlags.isAny(leg.flags, LegDefinitionFlags.MissedApproach)) {
+        return false;
+      }
+
+      switch (leg.leg.type) {
+        case LegType.FM:
+        case LegType.VM:
+        case LegType.HM:
+        case LegType.CI:
+        case LegType.VI:
+        case LegType.CR:
+        case LegType.VR:
+        case LegType.CA:
+        case LegType.FA:
+        case LegType.VA:
+        case LegType.HA:
+        case LegType.HF:
+          return false;
+      }
+    }
+
+    return true;
   }
 
   /**
    * Method to set a user altitude constraint.
    * @param segmentIndex The segment index to insert the constraint at.
    * @param segmentLegIndex The leg index to insert the constraint at.
-   * @param altitude The altitude to set the constraint at; if undefined, delete user constraint.
-   * @param revert Whether to revert the constraint data to the nav data constraint.
+   * @param altitudeFeet The altitude, in feet, to set the constraint at; if undefined, delete user constraint.
+   * @param displayAsFlightLevel Whether the constraint should be displayed as a flight level. Defaults to false.
+   * @throws Error if altitude is NaN.
    */
-  public setUserConstraint(segmentIndex: number, segmentLegIndex: number, altitude?: number, revert = false): void {
-    if (this.hasPrimaryFlightPlan()) {
-      const plan = this.getPrimaryFlightPlan();
-      const verticalData: VerticalData = {
-        altDesc: altitude !== undefined ? AltitudeRestrictionType.At : AltitudeRestrictionType.Unused,
-        altitude1: altitude !== undefined ? UnitType.FOOT.convertTo(altitude, UnitType.METER) : 0,
-        altitude2: 0
-      };
-      if (revert) {
-        const leg = plan.tryGetLeg(segmentIndex, segmentLegIndex);
-        if (leg !== null) {
-          const altitude1 = leg.leg.altitude1;
-          const altitude2 = leg.leg.altitude2;
-          const altDesc = leg.leg.altDesc;
-          verticalData.altDesc = altDesc;
-          verticalData.altitude1 = altitude1;
-          verticalData.altitude2 = altitude2;
-        }
-      }
-      plan.setLegVerticalData(segmentIndex, segmentLegIndex, verticalData);
-
-      const directToData = plan.directToData;
-      if (this.getDirectToState() === DirectToState.TOEXISTING && segmentIndex === directToData.segmentIndex
-        && segmentLegIndex === directToData.segmentLegIndex + FmsUtils.DTO_LEG_OFFSET) {
-        plan.setLegVerticalData(segmentIndex, directToData.segmentLegIndex, verticalData);
-      }
-
-      plan.calculate();
+  public setUserConstraint(segmentIndex: number, segmentLegIndex: number, altitudeFeet?: number, displayAsFlightLevel = false): void {
+    if (altitudeFeet !== undefined && isNaN(altitudeFeet)) {
+      throw new Error('altitudeFeet must not be NaN');
     }
+
+    if (!this.hasPrimaryFlightPlan()) {
+      return;
+    }
+
+    const plan = this.getPrimaryFlightPlan();
+
+    const verticalData: AltitudeConstraintSimple & Partial<VerticalData> = {
+      phase: VerticalFlightPhase.Descent,
+      altDesc: altitudeFeet !== undefined ? AltitudeRestrictionType.At : AltitudeRestrictionType.Unused,
+      altitude1: altitudeFeet !== undefined ? UnitType.FOOT.convertTo(altitudeFeet, UnitType.METER) : 0,
+      displayAltitude1AsFlightLevel: displayAsFlightLevel,
+    };
+
+    // When setting an altitude constraint other than "At", delete the FPA
+    if (verticalData.altDesc !== AltitudeRestrictionType.At) {
+      verticalData.fpa = undefined;
+    }
+
+    this.setLegVerticalData(plan, segmentIndex, segmentLegIndex, verticalData);
   }
 
+  /**
+   * Method to set a user altitude constraint.
+   * @param segmentIndex The segment index to insert the constraint at.
+   * @param segmentLegIndex The leg index to insert the constraint at.
+   * @param phase The vertical restriction type.
+   * @param altDesc The altitude restriction type.
+   * @param altitude1Meters The altitude 1 in meters.
+   * @param displayAltitude1AsFlightLevel Whether to display altitude 1 as a flight level.
+   * @param altitude2Meters The altitude 2 in meters. Optional.
+   * @param displayAltitude2AsFlightLevel Whether to display altitude 2 as a flight level.
+   * @throws Error if either altitude is NaN.
+   */
+  public setUserConstraintAdvanced(
+    segmentIndex: number,
+    segmentLegIndex: number,
+    phase: VerticalFlightPhase,
+    altDesc: AltitudeRestrictionType,
+    altitude1Meters: number,
+    displayAltitude1AsFlightLevel: boolean,
+    altitude2Meters = 0,
+    displayAltitude2AsFlightLevel = false,
+  ): void {
+    if (isNaN(altitude1Meters)) {
+      throw new Error('altitude1Meters must not be NaN');
+    }
+    if (isNaN(altitude2Meters)) {
+      throw new Error('altitude2Meters must not be NaN');
+    }
+
+    if (!this.hasPrimaryFlightPlan()) { return; }
+
+    const plan = this.getPrimaryFlightPlan();
+
+    const verticalData: AltitudeConstraintAdvanced & Partial<VerticalData> = {
+      phase,
+      altDesc,
+      altitude1: altitude1Meters,
+      displayAltitude1AsFlightLevel,
+      altitude2: altitude2Meters,
+      displayAltitude2AsFlightLevel,
+    };
+
+    // When setting an altitude constraint other than "At", delete the FPA
+    if (verticalData.altDesc !== AltitudeRestrictionType.At) {
+      verticalData.fpa = undefined;
+    }
+
+    this.setLegVerticalData(plan, segmentIndex, segmentLegIndex, verticalData);
+  }
+
+  /**
+   * Reverts an altitude constraint to the published data.
+   * @param segmentIndex The segment index to revert the constraint at.
+   * @param segmentLegIndex The leg index to revert the constraint at.
+   */
+  public revertAltitudeConstraint(segmentIndex: number, segmentLegIndex: number): void {
+    if (!this.hasPrimaryFlightPlan()) { return; }
+
+    const plan = this.getPrimaryFlightPlan();
+    const segment = plan.tryGetSegment(segmentIndex);
+    const leg = segment?.legs[segmentLegIndex];
+
+    if (segment === null || leg === undefined) { return; }
+
+    let phase = VerticalFlightPhase.Descent;
+    let altDesc = AltitudeRestrictionType.Unused;
+    let altitude1 = 0;
+    let altitude2 = 0;
+
+    if (!this.isAdvancedVnav) {
+      phase = VerticalFlightPhase.Descent;
+      altDesc = leg.leg.altDesc === AltitudeRestrictionType.Unused ? AltitudeRestrictionType.Unused : AltitudeRestrictionType.At;
+      altitude1 = leg.leg.altDesc === AltitudeRestrictionType.Between ? leg.leg.altitude2 : leg.leg.altitude1;
+      altitude2 = 0;
+    } else {
+      const isDeparture = segment.segmentType === FlightPlanSegmentType.Departure;
+      const isMapr = BitFlags.isAny(leg.flags, LegDefinitionFlags.MissedApproach);
+
+      phase = isDeparture || isMapr ? VerticalFlightPhase.Climb : VerticalFlightPhase.Descent;
+      altDesc = leg.leg.altDesc;
+      altitude1 = leg.leg.altitude1;
+      altitude2 = leg.leg.altitude2;
+    }
+
+    const verticalData: AltitudeConstraintAdvanced & Partial<VerticalData> = {
+      phase,
+      altDesc,
+      altitude1,
+      altitude2,
+      displayAltitude1AsFlightLevel: FmsUtils.displayAltitudeAsFlightLevel(altitude1),
+      displayAltitude2AsFlightLevel: FmsUtils.displayAltitudeAsFlightLevel(altitude2),
+    };
+
+    // When setting an altitude constraint other than "At", delete the FPA
+    if (verticalData.altDesc !== AltitudeRestrictionType.At) {
+      verticalData.fpa = undefined;
+    }
+
+    this.setLegVerticalData(plan, segmentIndex, segmentLegIndex, verticalData);
+  }
+
+  /**
+   * Method to set a user speed constraint.
+   * @param planIndex The flight plan index to use.
+   * @param segmentIndex The segment index to insert the constraint at.
+   * @param segmentLegIndex The leg index to insert the constraint at.
+   * @param speed The speed, in knots IAS or Mach (should match the given speedDesc),
+   * to set the constraint at; if undefined, delete user constraint.
+   * @param speedUnit The speed units.
+   * @param speedDesc The speed restriction type to set.
+   * @throws Error if speed is NaN.
+   */
+  public setUserSpeedConstraint(
+    planIndex: number,
+    segmentIndex: number,
+    segmentLegIndex: number,
+    speed?: number,
+    speedUnit?: SpeedUnit,
+    speedDesc?: SpeedRestrictionType,
+  ): void {
+    if (speed !== undefined && isNaN(speed)) {
+      throw new Error('speed must not be NaN');
+    }
+
+    if (!this.hasFlightPlan(planIndex)) { return; }
+
+    const plan = this.getFlightPlan(planIndex);
+
+    let verticalData: SpeedConstraint;
+
+    const leg = plan.tryGetLeg(segmentIndex, segmentLegIndex);
+
+    if (leg === null) { return; }
+
+    if (speed !== undefined && speedUnit !== undefined && speedDesc !== undefined) {
+      verticalData = {
+        speed,
+        speedUnit,
+        speedDesc,
+      };
+    } else {
+      verticalData = {
+        speed: 0,
+        speedUnit: SpeedUnit.IAS,
+        speedDesc: SpeedRestrictionType.Unused,
+      };
+    }
+
+    this.setLegVerticalData(plan, segmentIndex, segmentLegIndex, verticalData);
+  }
+
+  /**
+   * Method to revert the speed constraint back to published value.
+   * @param planIndex The flight plan index to use.
+   * @param segmentIndex The segment index to revert the constraint at.
+   * @param segmentLegIndex The leg index to revert the constraint at.
+   */
+  public revertSpeedConstraint(planIndex: number, segmentIndex: number, segmentLegIndex: number): void {
+    if (!this.hasFlightPlan(planIndex)) { return; }
+
+    const plan = this.getFlightPlan(planIndex);
+    const leg = plan.tryGetLeg(segmentIndex, segmentLegIndex);
+
+    if (leg === null) { return; }
+
+    const segment = plan.getSegment(segmentIndex);
+    const verticalData: SpeedConstraint = {
+      speed: leg.leg.speedRestriction,
+      // There is no published speedDesc in the nav data, so they are all in knots IAS
+      speedUnit: SpeedUnit.IAS,
+      // Nav data doesn't have a speed desc, so we pick one based on the segment
+      speedDesc: FmsUtils.getPublishedSpeedDescBasedOnSegment(leg.leg.speedRestriction, segment.segmentType),
+    };
+
+    this.setLegVerticalData(plan, segmentIndex, segmentLegIndex, verticalData);
+  }
+
+  /**
+   * Method to set a user flight path angle.
+   * @param planIndex The flight plan index to use.
+   * @param segmentIndex The segment index to insert the fpa at.
+   * @param segmentLegIndex The leg index to insert the fpa at.
+   * @param fpa The fpa, in degrees, to set the fpa to; if undefined, deletes the fpa.
+   * @throws Error if fpa is NaN.
+   */
+  public setUserFpa(planIndex: number, segmentIndex: number, segmentLegIndex: number, fpa?: number): void {
+    if (fpa !== undefined && isNaN(fpa)) {
+      throw new Error('fpa must not be NaN');
+    }
+
+    if (!this.hasFlightPlan(planIndex)) { return; }
+
+    const plan = this.getFlightPlan(planIndex);
+    const leg = plan.tryGetLeg(segmentIndex, segmentLegIndex);
+
+    if (leg === null) { return; }
+
+    const verticalData: Partial<VerticalData> = { fpa };
+
+    // Setting a user FPA auto converts the altitude constraint to an "At" constraint
+    if (fpa !== undefined) {
+      verticalData.altDesc = AltitudeRestrictionType.At;
+    }
+
+    this.setLegVerticalData(plan, segmentIndex, segmentLegIndex, verticalData);
+  }
+
+  /**
+   * Sets vertical data into the plan and the direct to if necessary, then calculates the plan.
+   * @param plan The flight plan to use.
+   * @param segmentIndex The segment index to set the vertical data for.
+   * @param segmentLegIndex The leg index to set the vertical data for.
+   * @param verticalData The vertical data to set, will be merged with existing data.
+   */
+  private setLegVerticalData(plan: FlightPlan, segmentIndex: number, segmentLegIndex: number, verticalData: Partial<VerticalData>): void {
+    const segment = plan.tryGetSegment(segmentIndex);
+
+    if (segment === null || segment.legs.length <= segmentLegIndex) {
+      return;
+    }
+
+    // If we are editing an altitude constraint before a vertical direct-to, cancel the vertical direct-to.
+    // Note that we don't need to make any corrections for lateral direct-to indexes. The VDTO leg index can only
+    // point to the lateral direct-to leg, never the lateral direct-to target leg. Since the lateral direct-to leg
+    // index is always greater than the target leg index, editing either leg will correctly cancel the VDTO if it
+    // is targeting the direct-to leg.
+    if (this.verticalPathCalculator && verticalData.altDesc !== undefined) {
+      const verticalPlan = this.verticalPathCalculator.getVerticalFlightPlan(Fms.PRIMARY_PLAN_INDEX);
+      if (verticalPlan.verticalDirectIndex !== undefined && verticalPlan.verticalDirectIndex >= segment.offset + segmentLegIndex) {
+        this.publisher.pub('vnav_set_vnav_direct_to', {
+          planIndex: Fms.PRIMARY_PLAN_INDEX,
+          globalLegIndex: -1
+        }, true, false);
+      }
+    }
+
+    plan.setLegVerticalData(segmentIndex, segmentLegIndex, verticalData);
+
+    const directToData = plan.directToData;
+
+    // If we are editing a direct-to leg or the direct-to target leg, we need to also edit the other leg in the pair
+    if (
+      plan === this.getPrimaryFlightPlan() && this.getDirectToState() === DirectToState.TOEXISTING
+      && segmentIndex === directToData.segmentIndex
+    ) {
+      // TODO Change nxi to not deal with adding + 3 when calling setUserConstraint and other vertical data methods
+      if (segmentLegIndex === directToData.segmentLegIndex + FmsUtils.DTO_LEG_OFFSET) {
+        plan.setLegVerticalData(segmentIndex, directToData.segmentLegIndex, verticalData);
+      } else if (segmentLegIndex === directToData.segmentLegIndex) {
+        plan.setLegVerticalData(segmentIndex, directToData.segmentLegIndex + FmsUtils.DTO_LEG_OFFSET, verticalData);
+      }
+    }
+
+    plan.calculate();
+  }
 
   /**
    * Method to check if a leg has a user specified constraint.
@@ -1905,6 +2733,8 @@ export class Fms {
     const plan = this.getFlightPlan();
     const segmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Departure);
 
+    const wasActiveLegInApproach = this.getDirectToState() === DirectToState.NONE && plan.activeLateralLeg >= (FmsUtils.getApproachSegment(plan)?.offset ?? Infinity);
+
     plan.setDeparture();
 
     this.planClearSegment(segmentIndex, FlightPlanSegmentType.Departure);
@@ -1921,6 +2751,19 @@ export class Fms {
     }
 
     plan.calculate(0);
+
+    // If removing the segment caused the active leg to move from before the approach into the approach, activate the
+    // approach instead.
+    if (!wasActiveLegInApproach) {
+      const isActiveLegInApproach = this.getDirectToState() === DirectToState.NONE && plan.activeLateralLeg >= (FmsUtils.getApproachSegment(plan)?.offset ?? Infinity);
+      if (isActiveLegInApproach) {
+        if (this.isApproachVtf()) {
+          this.activateVtf();
+        } else {
+          this.activateApproach();
+        }
+      }
+    }
   }
 
   /**
@@ -1929,6 +2772,8 @@ export class Fms {
   public async removeArrival(): Promise<void> {
     const plan = this.getFlightPlan();
     const segmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Arrival);
+
+    const wasActiveLegInApproach = this.getDirectToState() === DirectToState.NONE && plan.activeLateralLeg >= (FmsUtils.getApproachSegment(plan)?.offset ?? Infinity);
 
     plan.setArrival();
 
@@ -1946,16 +2791,30 @@ export class Fms {
     }
 
     plan.calculate(0);
+
+    // If removing the segment caused the active leg to move from before the approach into the approach, activate the
+    // approach instead.
+    if (!wasActiveLegInApproach) {
+      const isActiveLegInApproach = this.getDirectToState() === DirectToState.NONE && plan.activeLateralLeg >= (FmsUtils.getApproachSegment(plan)?.offset ?? Infinity);
+      if (isActiveLegInApproach) {
+        if (this.isApproachVtf()) {
+          this.activateVtf();
+        } else {
+          this.activateApproach();
+        }
+      }
+    }
   }
 
   /**
    * Method to remove the approach from the flight plan.
    */
   public async removeApproach(): Promise<void> {
-    this.loadApproachFrequency();
-    this.setApproachDetails(false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, false);
-
     const plan = this.getFlightPlan();
+
+    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null);
+    plan.deleteUserData(Fms.VTF_FAF_DATA_KEY);
+
     const hasArrival = plan.procedureDetails.arrivalIndex >= 0;
     const segmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Approach);
 
@@ -1993,6 +2852,12 @@ export class Fms {
     if (plan.getUserData('visual_approach')) {
       plan.deleteUserData('visual_approach');
     }
+    if (plan.getUserData('skipCourseReversal')) {
+      plan.deleteUserData('skipCourseReversal');
+    }
+
+    // Without an approach, we can't be in a missed approach, so deactivate the missed approach.
+    this.publisher.pub('activate_missed_approach', false, true);
 
     plan.calculate(0);
   }
@@ -2004,62 +2869,293 @@ export class Fms {
    * @param fplnIndex is the index of the flight plan in which to activate the leg.
    * @param inhibitImmediateSequence Whether to inhibit immediate automatic sequencing past the activated leg.
    */
-  public activateLeg(segmentIndex: number, legIndex: number, fplnIndex = 0, inhibitImmediateSequence = false): void {
+  public activateLeg(segmentIndex: number, legIndex: number, fplnIndex = Fms.PRIMARY_PLAN_INDEX, inhibitImmediateSequence = false): void {
     const plan = this.getFlightPlan(fplnIndex);
-    const indexInFlightplan = plan.getSegment(segmentIndex).offset + legIndex;
+    const segment = plan.getSegment(segmentIndex);
+    const globalLegIndex = segment.offset + legIndex;
 
-    if (fplnIndex === 0 && this.flightPlanner.activePlanIndex > 0) {
-      this.flightPlanner.setActivePlanIndex(0);
+    const oldDtoState = this.getDirectToState();
+
+    if (fplnIndex === Fms.PRIMARY_PLAN_INDEX && this.flightPlanner.activePlanIndex != Fms.PRIMARY_PLAN_INDEX) {
+      this.flightPlanner.setActivePlanIndex(Fms.PRIMARY_PLAN_INDEX);
+      this.flightPlanner.deleteFlightPlan(Fms.DTO_RANDOM_PLAN_INDEX);
     }
 
-    if (this.missedApproachActive) {
-      const segment = plan.getSegment(segmentIndex);
-      if (segment.legs[legIndex] && !BitFlags.isAll(segment.legs[legIndex].flags, LegDefinitionFlags.MissedApproach)) {
-        this.bus.getPublisher<ControlEvents>().pub('activate_missed_approach', false, true);
-      }
+    if (
+      oldDtoState === DirectToState.TORANDOM
+      || (oldDtoState === DirectToState.TOEXISTING && (segmentIndex !== plan.directToData.segmentIndex || legIndex !== plan.directToData.segmentLegIndex))
+    ) {
+      // Removing a lateral direct-to also cancels any existing vertical direct-to
+      this.publisher.pub('vnav_set_vnav_direct_to', {
+        planIndex: Fms.PRIMARY_PLAN_INDEX,
+        globalLegIndex: -1
+      }, true, false);
     }
 
+    // Activate or deactivate missed approach state depending on if we are activating a leg in the missed approach.
+    if (segment.legs[legIndex]) {
+      this.publisher.pub('activate_missed_approach', BitFlags.isAll(segment.legs[legIndex].flags, LegDefinitionFlags.MissedApproach), true);
+    }
+
+    // If we are activating a leg before a direct to existing sequence, we need to remove the sequence.
     if (
       fplnIndex === 0
       && (segmentIndex < plan.directToData.segmentIndex || (segmentIndex === plan.directToData.segmentIndex && legIndex <= plan.directToData.segmentLegIndex))
     ) {
-      this.removeDirectToExisting(indexInFlightplan);
+      this.removeDirectToExisting(globalLegIndex);
     } else {
-      plan.setCalculatingLeg(indexInFlightplan);
-      plan.calculate(Math.max(0, indexInFlightplan - 1));
-      plan.setLateralLeg(indexInFlightplan);
+      plan.setCalculatingLeg(globalLegIndex);
+      plan.calculate(Math.max(0, globalLegIndex - 1));
+      plan.setLateralLeg(globalLegIndex);
+    }
+
+    // If we are activating a leg before a VTF leg, we need to check to see if we need to remove the discontinuity leg
+    // preceding the VTF leg.
+    if (FmsUtils.isVtfApproachLoaded(plan)) {
+      const approachSegment = FmsUtils.getApproachSegment(plan);
+      const vtfFafLeg = FmsUtils.getApproachVtfLeg(plan);
+
+      if (approachSegment !== undefined && vtfFafLeg !== undefined) {
+        const vtfLegSegmentLegIndex = approachSegment.legs.indexOf(vtfFafLeg);
+        const discoLegExists = BitFlags.isAll(approachSegment.legs[vtfLegSegmentLegIndex - 1]?.flags ?? 0, LegDefinitionFlags.VectorsToFinal);
+
+        if (discoLegExists && plan.activeLateralLeg < approachSegment.offset + vtfLegSegmentLegIndex) {
+          const prevLeg = approachSegment.legs[vtfLegSegmentLegIndex - 2];
+
+          const publishedLegIcao = plan.getUserData<string>(Fms.VTF_FAF_DATA_KEY) ?? '';
+          const legTerminatorIcao = prevLeg === undefined ? '' : FlightPlanUtils.getTerminatorIcao(prevLeg.leg) ?? '';
+
+          if (ICAO.isFacility(publishedLegIcao) && ICAO.isFacility(legTerminatorIcao) && publishedLegIcao === legTerminatorIcao) {
+            plan.removeLeg(approachSegment.segmentIndex, vtfLegSegmentLegIndex - 1);
+          }
+        }
+      }
     }
 
     const controlEvents = this.bus.getPublisher<ControlEvents>();
 
-    controlEvents.pub('suspend_sequencing', false, true);
+    controlEvents.pub('suspend_sequencing', false, true, false);
     if (inhibitImmediateSequence) {
-      controlEvents.pub('lnav_inhibit_next_sequence', true, true);
+      controlEvents.pub('lnav_inhibit_next_sequence', true, true, false);
     }
   }
 
   /**
+   * Gets the required flight path angle, in degrees, for a vertical direct-to if it were to be activated immediately.
+   * Positive angles represent descending paths.
+   * @param constraintGlobalLegIndex The global index of the target flight plan leg of the vertical direct-to.
+   * @param altitudeMeters The target altitude, in meters, of the vertical direct-to.
+   * @returns The required flight path angle, in degrees, for the specified vertical direct-to if it were to be
+   * activated immediately, or `undefined` if an angle cannot be calculated. Positive angles represent descending
+   * paths.
+   */
+  public async getVerticalDirectRequiredFpa(constraintGlobalLegIndex: number, altitudeMeters: number): Promise<number | undefined> {
+    const activePlanIndex = this.flightPlanner.activePlanIndex;
+
+    // TODO: support off-route direct to
+    if (activePlanIndex !== Fms.PRIMARY_PLAN_INDEX) {
+      return undefined;
+    }
+
+    if (!this.flightPlanner.hasFlightPlan(activePlanIndex) || !this.verticalPathCalculator) {
+      return undefined;
+    }
+
+    const lateralPlan = this.flightPlanner.getFlightPlan(activePlanIndex);
+
+    if (constraintGlobalLegIndex >= lateralPlan.length) {
+      return undefined;
+    }
+
+    let verticalDirectLegIndex = constraintGlobalLegIndex;
+
+    // Check if we are trying to activate VDTO on a direct-to target leg
+    const segmentIndex = lateralPlan.getSegmentIndex(constraintGlobalLegIndex);
+    const segmentLegIndex = lateralPlan.getSegmentLegIndex(constraintGlobalLegIndex);
+    if (lateralPlan.directToData.segmentIndex === segmentIndex && lateralPlan.directToData.segmentLegIndex === segmentLegIndex) {
+      verticalDirectLegIndex += FmsUtils.DTO_LEG_OFFSET;
+    } else if (lateralPlan.directToData.segmentIndex === segmentIndex && lateralPlan.directToData.segmentLegIndex === segmentLegIndex - FmsUtils.DTO_LEG_OFFSET) {
+      constraintGlobalLegIndex -= FmsUtils.DTO_LEG_OFFSET;
+    }
+
+    let activeLegIndex = this.lnavTrackedLegIndex.get();
+
+    // Cannot activate VDTO to a constraint that is located before the active leg.
+    if (activeLegIndex > verticalDirectLegIndex) {
+      return undefined;
+    }
+
+    // We need to make sure all legs from the active leg to the VDTO target leg are calculated, so we force a calculate.
+    try {
+      await lateralPlan.calculate();
+    } catch {
+      // Abort the operation if the calculate failed.
+      return undefined;
+    }
+
+    activeLegIndex = this.lnavTrackedLegIndex.get();
+
+    // Check active plan index, plan length, and active leg index again in case they changed.
+    if (activePlanIndex !== this.flightPlanner.activePlanIndex || verticalDirectLegIndex >= lateralPlan.length || activeLegIndex > verticalDirectLegIndex) {
+      return undefined;
+    }
+
+    return this.getVerticalDirectFpa(
+      lateralPlan,
+      verticalDirectLegIndex,
+      altitudeMeters,
+      activeLegIndex,
+      UnitType.NMILE.convertTo(this.lnavLegDistanceRemaining.get(), UnitType.METER),
+      UnitType.FOOT.convertTo(this.indicatedAlt.get(), UnitType.METER)
+    );
+  }
+
+  /**
    * Activates a vertical direct to a selected constraint.
-   * @param constraintGlobalLegIndex The global leg index of the constraint to set vertical direct to.
+   * @param constraintGlobalLegIndex The global index of the target flight plan leg of the vertical direct-to.
+   * @param altitudeMeters The target altitude, in meters, of the vertical direct-to.
+   * @param displayAsFlightLevel Whether the target altitude should be displayed as a flight level. Defaults to false.
+   * @param fpa The flight path angle, in degrees, for the vertical direct-to. Positive values indicate descending
+   * paths. The FPA will be clamped to between 0 and 6 degrees. If not defined, then the flight path angle will be set
+   * to the default VNAV descent FPA.
    * @returns Whether the vertical direct was activated or not.
    */
-  public activateVerticalDirect(constraintGlobalLegIndex: number): boolean {
-    if (this.flightPlanner.hasFlightPlan(Fms.PRIMARY_PLAN_INDEX) && this.verticalPathCalculator) {
-      const lateralPlan = this.flightPlanner.getFlightPlan(Fms.PRIMARY_PLAN_INDEX);
-      const verticalData: VerticalData = {
-        altDesc: AltitudeRestrictionType.Unused,
-        altitude1: 0,
-        altitude2: 0
-      };
-      if (lateralPlan.length > constraintGlobalLegIndex) {
-        for (let i = 0; i < constraintGlobalLegIndex; i++) {
-          lateralPlan.setLegVerticalData(i, verticalData);
-        }
-        this.verticalPathCalculator.activateVerticalDirect(Fms.PRIMARY_PLAN_INDEX, constraintGlobalLegIndex);
-        return true;
-      }
+  public activateVerticalDirect(
+    constraintGlobalLegIndex: number,
+    altitudeMeters: number,
+    displayAsFlightLevel = false,
+    fpa: number | undefined
+  ): boolean {
+    const activePlanIndex = this.flightPlanner.activePlanIndex;
+
+    // TODO: support off-route direct to
+    if (activePlanIndex !== Fms.PRIMARY_PLAN_INDEX) {
+      return false;
     }
-    return false;
+
+    if (!this.flightPlanner.hasFlightPlan(activePlanIndex)) {
+      return false;
+    }
+
+    const lateralPlan = this.flightPlanner.getFlightPlan(activePlanIndex);
+
+    if (constraintGlobalLegIndex >= lateralPlan.length) {
+      return false;
+    }
+
+    let verticalDirectLegIndex = constraintGlobalLegIndex;
+
+    // Check if we are trying to activate VDTO on a direct-to target leg
+    const segmentIndex = lateralPlan.getSegmentIndex(constraintGlobalLegIndex);
+    const segmentLegIndex = lateralPlan.getSegmentLegIndex(constraintGlobalLegIndex);
+    if (lateralPlan.directToData.segmentIndex === segmentIndex && lateralPlan.directToData.segmentLegIndex === segmentLegIndex) {
+      verticalDirectLegIndex += FmsUtils.DTO_LEG_OFFSET;
+    } else if (lateralPlan.directToData.segmentIndex === segmentIndex && lateralPlan.directToData.segmentLegIndex === segmentLegIndex - FmsUtils.DTO_LEG_OFFSET) {
+      constraintGlobalLegIndex -= FmsUtils.DTO_LEG_OFFSET;
+    }
+
+    // Cannot activate VDTO to a constraint that is located before the active leg.
+    if (this.lnavTrackedLegIndex.get() > verticalDirectLegIndex) {
+      return false;
+    }
+
+    // Does delete the user FPA
+    const verticalData: Partial<VerticalData> = {
+      altDesc: AltitudeRestrictionType.Unused,
+      altitude1: 0,
+      altitude2: 0,
+      displayAltitude1AsFlightLevel: false,
+      displayAltitude2AsFlightLevel: false,
+      fpa: undefined,
+    };
+
+    // Delete all constraints before the vnav direct to leg
+    for (let i = 0; i < constraintGlobalLegIndex; i++) {
+      lateralPlan.setLegVerticalData(i, verticalData);
+    }
+
+    // Create an "At" constraint at the vnav direct to leg, and delete the fpa
+    this.setLegVerticalData(lateralPlan, segmentIndex, segmentLegIndex, {
+      phase: VerticalFlightPhase.Descent,
+      altDesc: AltitudeRestrictionType.At,
+      altitude1: altitudeMeters,
+      altitude2: 0,
+      displayAltitude1AsFlightLevel: displayAsFlightLevel,
+      displayAltitude2AsFlightLevel: false,
+      fpa: undefined,
+    });
+
+    this.publisher.pub('vnav_set_vnav_direct_to', {
+      planIndex: activePlanIndex,
+      globalLegIndex: verticalDirectLegIndex,
+      fpa: fpa === undefined ? undefined : MathUtils.clamp(fpa, 0, 6),
+    }, true, false);
+
+    return true;
+  }
+
+  /**
+   * Cancels the currently active vertical direct-to.
+   */
+  public cancelVerticalDirectTo(): void {
+    const activePlanIndex = this.flightPlanner.activePlanIndex;
+
+    // TODO: support off-route direct to
+    if (activePlanIndex !== Fms.PRIMARY_PLAN_INDEX) {
+      return;
+    }
+
+    this.publisher.pub('vnav_set_vnav_direct_to', {
+      planIndex: activePlanIndex,
+      globalLegIndex: -1
+    }, true, false);
+  }
+
+  /**
+   * Computes the desired flight path angle, in degrees, for a vertical direct-to. Positive angles represent descending
+   * paths. The FPA is computed such that the vertical path for the direct-to is placed 200 feet above the airplane,
+   * with the TOD some distance in front of the airplane.
+   *
+   * If there are any uncalculated or VNAV-ineligible legs between the active leg and the vertical direct-to target leg
+   * (inclusive), the FPA cannot be computed and will be `undefined`. If the airplane's indicated altitude is at or
+   * below the vertical direct-to target altitude, the computed FPA will be zero.
+   * @param plan The lateral flight plan for which to
+   * @param directLegIndex The global index of the vertical direct-to target flight plan leg.
+   * @param directAltitude The target altitude of the vertical direct-to, in meters.
+   * @param activeLegIndex The global index of the active flight plan leg.
+   * @param legDistanceRemaining The along-track distance from the airplane's present position to the end of the active
+   * flight plan leg, in meters.
+   * @param indicatedAlt The indicated altitude of the airplane, in meters.
+   * @returns The desired flight path angle, in degrees, for the specified vertical direct-to, or `undefined` if the
+   * FPA could not be computed. Positive angles represent descending paths.
+   */
+  private getVerticalDirectFpa(
+    plan: FlightPlan,
+    directLegIndex: number,
+    directAltitude: number,
+    activeLegIndex: number,
+    legDistanceRemaining: number,
+    indicatedAlt: number
+  ): number | undefined {
+    let distance = Math.max(0, legDistanceRemaining);
+    for (const leg of plan.legs(false, activeLegIndex + 1, directLegIndex + 1)) {
+      if (leg.calculated === undefined) {
+        return undefined;
+      }
+
+      if (!GarminVNavUtils.isLegVNavEligible(leg)) {
+        return undefined;
+      }
+
+      distance += leg.calculated.distanceWithTransitions;
+    }
+
+    const altitudeDelta = indicatedAlt - directAltitude;
+    if (altitudeDelta < 30) {
+      return 0;
+    }
+
+    return VNavUtils.getFpa(distance, indicatedAlt - directAltitude + 60);
   }
 
   /**
@@ -2088,8 +3184,9 @@ export class Fms {
 
     const approachSegmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Approach, false);
     this.createDirectToExisting(approachSegmentIndex, 0);
-    this.setLocFrequency(1, true);
-    this.setLocFrequency(2, true);
+    this.setLocFrequency(1);
+    this.setLocFrequency(2);
+    this.publisher.pub('fms_approach_activate', undefined, true, false);
   }
 
   /**
@@ -2119,9 +3216,9 @@ export class Fms {
 
     const plan = this.getPrimaryFlightPlan();
 
-    let vtfLeg = FmsUtils.getApproachVtfLeg(plan);
     let approachType: ExtendedApproachType = ApproachType.APPROACH_TYPE_UNKNOWN;
-    if (!vtfLeg) {
+
+    if (!FmsUtils.isVtfApproachLoaded(plan)) {
       // if a VTF approach is not loaded; replace the current approach with its VTF counterpart.
 
       try {
@@ -2143,27 +3240,48 @@ export class Fms {
           approachType = AdditionalApproachType.APPROACH_TYPE_VISUAL;
           await this.insertApproach(airport, -1, -1, runway.direction, runway.runwayDesignator);
         }
-
-        vtfLeg = FmsUtils.getApproachVtfLeg(plan);
-      } catch {
+      } catch (e) {
+        console.warn(`Fms: failed to activate VTF approach... ${e}`);
+        if (e instanceof Error) {
+          console.error(e.stack);
+        }
         return;
       }
     } else {
-      approachType = this.approachDetails.approachType;
+      approachType = this.approachDetails.get().type;
     }
 
-    if (!vtfLeg) {
+    const approachSegment = FmsUtils.getApproachSegment(plan);
+
+    if (approachSegment === undefined) {
+      // This should never happen.
       return;
     }
 
-    const segment = plan.getSegmentFromLeg(vtfLeg);
-    if (!segment) {
+    // If a VTF leg was not inserted, activate the normal faf leg.
+    const legToActivate = FmsUtils.getApproachVtfLeg(plan) ?? FmsUtils.getApproachFafLeg(plan);
+
+    if (legToActivate === undefined) {
+      console.warn('Fms: failed to activate VTF approach');
       return;
     }
 
-    this.activateLeg(segment.segmentIndex, segment.legs.indexOf(vtfLeg), Fms.PRIMARY_PLAN_INDEX, true);
-    this.setLocFrequency(1, true);
-    this.setLocFrequency(2, true);
+    let legToActivateSegmentLegIndex = approachSegment.legs.indexOf(legToActivate);
+
+    // If we are activating a VTF leg, check to see if it is preceded by a discontinuity leg. If it is not, then
+    // we need to add one.
+    if (
+      BitFlags.isAll(legToActivate.flags, LegDefinitionFlags.VectorsToFinalFaf)
+      && !BitFlags.isAll(approachSegment.legs[legToActivateSegmentLegIndex - 1]?.flags, LegDefinitionFlags.VectorsToFinal)
+    ) {
+      plan.addLeg(approachSegment.segmentIndex, FlightPlan.createLeg({ type: LegType.ThruDiscontinuity }), legToActivateSegmentLegIndex, LegDefinitionFlags.VectorsToFinal);
+      legToActivateSegmentLegIndex++;
+    }
+
+    this.activateLeg(approachSegment.segmentIndex, legToActivateSegmentLegIndex, Fms.PRIMARY_PLAN_INDEX, true);
+    this.setLocFrequency(1);
+    this.setLocFrequency(2);
+    this.publisher.pub('fms_approach_activate', undefined, true, false);
 
     switch (approachType) {
       case ApproachType.APPROACH_TYPE_ILS:
@@ -2191,12 +3309,25 @@ export class Fms {
   }
 
   /**
-   * Method to check if there is a currently loaded missed approach to be activated.
-   * @returns whether the approach can activate
+   * Checks if the missed approach can be activated.
+   * @returns whether the missed approach can be activated.
    */
   public canMissedApproachActivate(): boolean {
-    const plan = this.getFlightPlan();
-    if (this.cdiSource.type === NavSourceType.Gps && plan && plan.activeLateralLeg < plan.length - 1 && plan.segmentCount > 0) {
+    if (this.activateMaprState.get()) {
+      return false;
+    }
+
+    if (this.getDirectToState() === DirectToState.TORANDOM) {
+      return false;
+    }
+
+    const plan = this.hasPrimaryFlightPlan() && this.getPrimaryFlightPlan();
+
+    if (!plan) {
+      return false;
+    }
+
+    if (this.cdiSource.type === NavSourceType.Gps && plan.activeLateralLeg < plan.length - 1 && plan.segmentCount > 0) {
       const segmentIndex = plan.getSegmentIndex(plan.activeLateralLeg);
       if (segmentIndex > 0) {
         const segment = plan.getSegment(segmentIndex);
@@ -2228,27 +3359,38 @@ export class Fms {
   }
 
   /**
-   * Creates and activates a Direct To a waypoint not in the primary flight plan.
-   * @param icao The ICAO for the Direct To destination.
-   * @param course The magnetic course for the Direct To. If undefined, the Direct To will be initiated from the
-   * airplane's present position.
+   * Creates and activates a direct-to a waypoint not in the primary flight plan (off-route direct-to).
+   * @param icao The ICAO for the direct-to's target waypoint.
+   * @param course The magnetic course for the direct-to, in degrees. If undefined, the direct-to will be initiated
+   * from the airplane's present position.
    */
   public createDirectToRandom(icao: string, course?: number): void;
   /**
-   * Creates and activates a Direct To a waypoint not in the primary flight plan.
-   * @param waypoint The Direct To destination.
-   * @param course The magnetic course for the Direct To. If undefined, the Direct To will be initiated from the
-   * airplane's present position.
+   * Creates and activates a direct-to a waypoint not in the primary flight plan (off-route direct-to).
+   * @param waypoint The direct-to's target waypoint facility.
+   * @param course The magnetic course for the direct-to, in degrees. If undefined, the direct-to will be initiated
+   * from the airplane's present position.
    */
   public createDirectToRandom(waypoint: Facility, course?: number): void;
   // eslint-disable-next-line jsdoc/require-jsdoc
   public createDirectToRandom(target: string | Facility, course?: number): void {
+
+    // Creating a lateral direct-to also cancels any existing vertical direct-to
+    this.publisher.pub('vnav_set_vnav_direct_to', {
+      planIndex: Fms.PRIMARY_PLAN_INDEX,
+      globalLegIndex: -1
+    }, true, false);
+
+    // We can't be in an missed approach while on an off-route direct-to, so deactivate the missed approach.
+    this.publisher.pub('activate_missed_approach', false, true);
+
     const icao = typeof target === 'string' ? target : target.icao;
     const plan = this.flightPlanner.createFlightPlan(1);
 
     plan.setCalculatingLeg(0);
     plan.setLateralLeg(0);
 
+    // Delete all segments for the random dto plan
     for (let i = plan.segmentCount - 1; i >= 0; i--) {
       if (plan.getSegment(i) !== undefined) {
         plan.removeSegment(i);
@@ -2260,7 +3402,7 @@ export class Fms {
 
     if (segment) {
       const discoLeg = FlightPlan.createLeg({ type: LegType.Discontinuity });
-      // Dup the disco leg if we have a defined course so that DTO sequences are always 3 legs long
+      // Dupe the disco leg if we have a defined course so that DTO sequences are always 3 legs long
       const dtoOriginLeg = course === undefined ? this.createDTOOriginLeg(this.ppos) : discoLeg;
       const dtoTargetLeg = this.createDTODirectLeg(icao, undefined, course);
 
@@ -2276,26 +3418,28 @@ export class Fms {
         this.flightPlanner.setActivePlanIndex(1);
       }
 
-      this.bus.getPublisher<ControlEvents>().pub('suspend_sequencing', false, true);
+      this.bus.getPublisher<ControlEvents>().pub('suspend_sequencing', false, true, false);
     }
   }
 
   /**
-   * Method to create a direct to an existing waypoint in the plan. This method will also then call activateLeg.
-   * @param segmentIndex is the index of the segment containing the leg to activate as direct to.
-   * @param legIndex is the index of the leg in the specified segment to activate as direct to.
-   * @param course The magnetic course for the Direct To. If undefined, the Direct To will be initiated from the
-   * airplane's present position.
+   * Creates and activates an direct-to to an existing waypoint in the primary flight plan (on-route direct-to).
+   * @param segmentIndex The index of the segment containing the direct-to's target flight plan leg.
+   * @param segmentLegIndex The index of the direct-to's target flight plan leg in its containing segment.
+   * @param course The magnetic course for the direct-to, in degrees. If undefined, the direct-to will be initiated
+   * from the airplane's present position.
+   * @param deletePriorConstraints Whether to delete all altitude constraints before the direct-to target leg.
+   * User-defined flight path angles will be preserved.
    */
-  public createDirectToExisting(segmentIndex: number, legIndex: number, course?: number): void {
+  public createDirectToExisting(segmentIndex: number, segmentLegIndex: number, course?: number, deletePriorConstraints = false): void {
     const plan = this.getFlightPlan();
     const segment = plan.getSegment(segmentIndex);
-    const leg = segment.legs[legIndex];
+    const leg = segment.legs[segmentLegIndex];
 
     let legIndexDelta = 0;
 
     if (plan.directToData.segmentIndex > -1 && plan.directToData.segmentLegIndex > -1) {
-      legIndexDelta -= plan.directToData.segmentIndex === segmentIndex && legIndex > plan.directToData.segmentLegIndex ? 3 : 0;
+      legIndexDelta -= plan.directToData.segmentIndex === segmentIndex && segmentLegIndex > plan.directToData.segmentLegIndex ? 3 : 0;
 
       if (this.getDirectToState() === DirectToState.TOEXISTING) {
         this.removeDirectToExisting();
@@ -2306,7 +3450,13 @@ export class Fms {
       }
     }
 
-    plan.setDirectToData(segmentIndex, legIndex + legIndexDelta);
+    // Creating a lateral direct-to also cancels any existing vertical direct-to
+    this.publisher.pub('vnav_set_vnav_direct_to', {
+      planIndex: Fms.PRIMARY_PLAN_INDEX,
+      globalLegIndex: -1
+    }, true, false);
+
+    plan.setDirectToData(segmentIndex, segmentLegIndex + legIndexDelta);
 
     if (segment && leg) {
       const discoLeg = FlightPlan.createLeg({ type: LegType.Discontinuity });
@@ -2314,13 +3464,39 @@ export class Fms {
       const dtoOriginLeg = course === undefined ? this.createDTOOriginLeg(this.ppos) : discoLeg;
       const dtoTargetLeg = this.createDTODirectLeg(leg.leg.fixIcao, leg.leg, course);
 
-      plan.addLeg(segmentIndex, discoLeg, legIndex + legIndexDelta + 1, LegDefinitionFlags.DirectTo);
-      plan.addLeg(segmentIndex, dtoOriginLeg, legIndex + legIndexDelta + 2, LegDefinitionFlags.DirectTo);
-      plan.addLeg(segmentIndex, dtoTargetLeg, legIndex + legIndexDelta + FmsUtils.DTO_LEG_OFFSET, (leg.flags & LegDefinitionFlags.MissedApproach) | LegDefinitionFlags.DirectTo);
+      const dtoLegFlags = (leg.flags & LegDefinitionFlags.MissedApproach) | LegDefinitionFlags.DirectTo;
 
-      plan.setLegVerticalData(segmentIndex, legIndex + legIndexDelta + FmsUtils.DTO_LEG_OFFSET, leg.verticalData);
+      plan.addLeg(segmentIndex, discoLeg, segmentLegIndex + legIndexDelta + 1, dtoLegFlags);
+      plan.addLeg(segmentIndex, dtoOriginLeg, segmentLegIndex + legIndexDelta + 2, dtoLegFlags);
+      plan.addLeg(segmentIndex, dtoTargetLeg, segmentLegIndex + legIndexDelta + FmsUtils.DTO_LEG_OFFSET, dtoLegFlags);
 
-      this.activateLeg(segmentIndex, legIndex + legIndexDelta + FmsUtils.DTO_LEG_OFFSET);
+      plan.setLegVerticalData(segmentIndex, segmentLegIndex + legIndexDelta + FmsUtils.DTO_LEG_OFFSET, leg.verticalData);
+
+      this.activateLeg(segmentIndex, segmentLegIndex + legIndexDelta + FmsUtils.DTO_LEG_OFFSET);
+
+      if (deletePriorConstraints) {
+        // Does not delete the user FPA
+        const verticalData: Partial<VerticalData> = {
+          altDesc: AltitudeRestrictionType.Unused,
+          altitude1: 0,
+          altitude2: 0,
+          displayAltitude1AsFlightLevel: false,
+          displayAltitude2AsFlightLevel: false,
+        };
+
+        const globalLegIndex = segment.offset + segmentLegIndex + legIndexDelta;
+
+        // Delete all constraints before the new direct to leg
+        for (let i = 0; i < globalLegIndex; i++) {
+          plan.setLegVerticalData(i, verticalData);
+        }
+      }
+
+      // If advanced VNAV is not supported, activating a lateral direct-to will also activate a vertical direct-to with
+      // minimum FPA of 3 degrees.
+      if (!this.isAdvancedVnav) {
+        this.handleDirectToVerticalDirect(segmentIndex, segmentLegIndex + legIndexDelta);
+      }
     }
   }
 
@@ -2348,50 +3524,139 @@ export class Fms {
     let legType: LegType;
     if (course === undefined) {
       legType = LegType.DF;
-      const planeHeading = SimVar.GetSimVarValue('PLANE HEADING DEGREES TRUE', 'degrees');
+      const planeHeading = SimVar.GetSimVarValue('PLANE HEADING DEGREES MAGNETIC', 'degrees');
       course = planeHeading === 0 ? 360 : planeHeading;
     } else {
       legType = LegType.CF;
     }
 
-    if (leg) {
-      const directLeg = Object.assign({}, leg);
-      directLeg.type = legType;
-      directLeg.course = course as number;
-      directLeg.turnDirection = LegTurnDirection.None;
-      return directLeg;
-    } else {
-      return FlightPlan.createLeg({
-        type: legType,
-        fixIcao: icao,
-        course
-      });
+    const dtoLeg = FlightPlan.createLeg(leg ?? {});
+    dtoLeg.type = legType;
+    dtoLeg.fixIcao = icao;
+    dtoLeg.course = course as number;
+    dtoLeg.trueDegrees = false;
+    dtoLeg.turnDirection = LegTurnDirection.None;
+
+    return dtoLeg;
+  }
+
+  /**
+   * Handles the automatic activation of a vertical direct-to after a lateral direct-to has been activated. This will
+   * activate a vertical direct-to targeting the first constraint at or after the target leg of the lateral direct-to,
+   * with a minimum flight path angle of 3 degrees. If the first constraint at or after the target leg of the lateral
+   * direct-to is not a descent constraint, the vertical direct-to will not be activated.
+   * @param segmentIndex The index of the segment containing the target flight plan leg of the new lateral direct-to.
+   * @param segmentLegIndex The index of the target flight plan leg of the new lateral direct-to in its segment.
+   */
+  private async handleDirectToVerticalDirect(segmentIndex: number, segmentLegIndex: number): Promise<void> {
+    if (!this.verticalPathCalculator) {
+      return;
+    }
+
+    const lateralPlan = this.getPrimaryFlightPlan();
+    const segment = lateralPlan.getSegment(segmentIndex);
+    const dtoLegSegmentLegIndex = segmentLegIndex + FmsUtils.DTO_LEG_OFFSET;
+
+    const verticalPlan = this.verticalPathCalculator.getVerticalFlightPlan(Fms.PRIMARY_PLAN_INDEX);
+
+    try {
+      // Wait until the vertical plan has been rebuilt with the direct-to legs included. Abort after 5 seconds.
+      await Wait.awaitSubEvent(this.verticalPathCalculator.vnavCalculated, planIndex => {
+        if (planIndex !== Fms.PRIMARY_PLAN_INDEX) {
+          return false;
+        }
+
+        const verticalLeg = VNavUtils.getVerticalLegFromPlan(verticalPlan, segment.offset + dtoLegSegmentLegIndex);
+        return verticalLeg.segmentIndex === segmentIndex && verticalLeg.legIndex === dtoLegSegmentLegIndex;
+      }, 5000);
+
+      // Wait until LNAV is tracking the newly created direct-to leg. Abort after 2 seconds.
+      await Wait.awaitSubscribable(this.lnavTrackedLegIndex, index => {
+        return index === segment.offset + dtoLegSegmentLegIndex;
+      }, true, 2000);
+
+      // If the lateral direct-to has changed or has been removed, abort.
+      if (lateralPlan.directToData.segmentIndex !== segmentIndex || lateralPlan.directToData.segmentLegIndex !== segmentLegIndex) {
+        return;
+      }
+
+      const constraint = VNavUtils.getConstraintFromLegIndex(verticalPlan, segment.offset + dtoLegSegmentLegIndex);
+      if (constraint && constraint.type !== 'climb' && constraint.type !== 'missed') {
+        const lateralLeg = lateralPlan.tryGetLeg(constraint.index);
+        if (lateralLeg) {
+          let fpa = await this.getVerticalDirectRequiredFpa(constraint.index, lateralLeg.verticalData.altitude1);
+
+          if (lateralPlan.tryGetLeg(constraint.index) === lateralLeg) {
+            if (fpa !== undefined) {
+              fpa = MathUtils.clamp(fpa, 3, 6);
+            }
+            this.activateVerticalDirect(constraint.index, lateralLeg.verticalData.altitude1, lateralLeg.verticalData.displayAltitude1AsFlightLevel, fpa);
+          }
+        }
+      }
+    } catch {
+      // noop
     }
   }
 
   /**
-   * Empties the primary flight plan.
-   * @param doNotCreateDirectTo Option to skip creating a direct to random when deleting the plan. 
+   * Cancels the currently active on-route or off-route direct-to.
+   * @returns Whether an active direct-to was cancelled.
    */
-  public async emptyPrimaryFlightPlan(doNotCreateDirectTo = false): Promise<void> {
+  public cancelDirectTo(): boolean {
+    const directToState = this.getDirectToState();
+
+    if (directToState === DirectToState.TOEXISTING) {
+      const plan = this.getPrimaryFlightPlan();
+      this.activateLeg(plan.directToData.segmentIndex, plan.directToData.segmentLegIndex);
+      return true;
+    } else if (directToState === DirectToState.TORANDOM) {
+      if (this.activateNearestLeg()) {
+        return true;
+      }
+
+      // We failed to activate the nearest leg...
+      if (this.hasPrimaryFlightPlan()) {
+        const plan = this.getPrimaryFlightPlan();
+
+        if (plan.length > 0) {
+          // If the plan is not empty, activate the first leg.
+          const segmentIndex = plan.getSegmentIndex(0);
+          this.activateLeg(segmentIndex, 0, Fms.PRIMARY_PLAN_INDEX, false);
+        } else {
+          // If the primary plan is empty, then just reset the active flight plan to the primary plan.
+          this.flightPlanner.setActivePlanIndex(Fms.PRIMARY_PLAN_INDEX);
+          this.flightPlanner.deleteFlightPlan(Fms.DTO_RANDOM_PLAN_INDEX);
+        }
+
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Empties the primary flight plan.
+   */
+  public async emptyPrimaryFlightPlan(): Promise<void> {
     if (!this.flightPlanner.hasFlightPlan(Fms.PRIMARY_PLAN_INDEX)) {
       return;
     }
 
+    // Cancel any existing vertical direct-to.
+    this.publisher.pub('vnav_set_vnav_direct_to', {
+      planIndex: Fms.PRIMARY_PLAN_INDEX,
+      globalLegIndex: -1
+    }, true, false);
+
+    // Deactivate the missed approach.
+    this.publisher.pub('activate_missed_approach', false, true);
+
     const plan = this.flightPlanner.getFlightPlan(Fms.PRIMARY_PLAN_INDEX);
-    const directToState = this.getDirectToState();
-    if (!doNotCreateDirectTo && (directToState === DirectToState.TOEXISTING ||
-      (directToState !== DirectToState.TORANDOM && !Simplane.getIsGrounded() && plan.activeLateralLeg > 0))) {
-      const directToIcao = plan.getLeg(plan.activeLateralLeg).leg.fixIcao;
-      if (directToIcao) {
-        const facType = ICAO.getFacilityType(directToIcao);
-        const fac = await this.facLoader.getFacility(facType, directToIcao);
-        this.createDirectToRandom(fac);
-      }
-    }
 
     for (let i = plan.segmentCount - 1; i >= 0; i--) {
-      this.planRemoveSegment(i);
+      plan.removeSegment(i);
     }
     plan.addSegment(0, FlightPlanSegmentType.Departure);
     plan.addSegment(1, FlightPlanSegmentType.Enroute);
@@ -2400,11 +3665,43 @@ export class Fms {
     plan.removeOriginAirport();
     plan.removeDestinationAirport();
     plan.setDirectToData(-1);
-    this.setApproachDetails(false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, false);
+
+    plan.setDeparture();
+    plan.setArrival();
+    plan.setApproach();
+
+    plan.deleteUserData('visual_approach');
+    plan.deleteUserData('skipCourseReversal');
+
+    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null);
+    plan.deleteUserData(Fms.VTF_FAF_DATA_KEY);
 
     plan.setCalculatingLeg(0);
     plan.setLateralLeg(0);
     plan.setVerticalLeg(0);
+  }
+
+  /**
+   * Empties the primary flight plan and delete user data.
+   */
+  public async deletePrimaryFlightPlan(): Promise<void> {
+    if (!this.flightPlanner.hasFlightPlan(Fms.PRIMARY_PLAN_INDEX)) {
+      return;
+    }
+    const plan = this.flightPlanner.getFlightPlan(Fms.PRIMARY_PLAN_INDEX);
+
+    plan.deleteUserData('name');
+
+    await this.emptyPrimaryFlightPlan();
+  }
+
+  /**
+   * Resets all flight plans to their initial empty states, and cancels any active off-route Direct-To.
+   */
+  public async resetAllFlightPlans(): Promise<void> {
+    await this.deletePrimaryFlightPlan();
+    this.flightPlanner.setActivePlanIndex(Fms.PRIMARY_PLAN_INDEX);
+    this.flightPlanner.deleteFlightPlan(Fms.DTO_RANDOM_PLAN_INDEX);
   }
 
   /**
@@ -2418,7 +3715,6 @@ export class Fms {
    * @param rwyTransIndex The runway transition index selected, if any.
    * @param visualRunwayNumber is the visual runway number, if any.
    * @param visualRunwayDesignator is the visual runway designator, if any.
-   * @param transStartIndex The transition start offset, if any.
    * @returns A Promise which is fulfilled with whether the preview plan was successfully built.
    */
   public async buildProcedurePreviewPlan(
@@ -2431,14 +3727,13 @@ export class Fms {
     rwyTransIndex?: number,
     visualRunwayNumber?: number,
     visualRunwayDesignator?: RunwayDesignator,
-    transStartIndex?: number
   ): Promise<FlightPlan> {
     const plan = new FlightPlan(0, calculator, FlightPlanner.buildDefaultLegName);
 
     let procedureLegObject: InsertProcedureObject | undefined;
     switch (procType) {
       case ProcedureType.APPROACH:
-        procedureLegObject = await this.buildApproachLegs(facility, procIndex, transIndex, undefined, transStartIndex !== undefined ? transStartIndex : 0);
+        procedureLegObject = await this.buildApproachLegs(facility, procIndex, transIndex, undefined);
         plan.addSegment(0, FlightPlanSegmentType.Approach, undefined, false);
         break;
       case ProcedureType.ARRIVAL: {
@@ -2463,20 +3758,6 @@ export class Fms {
     }
 
     if (procedureLegObject && procedureLegObject.procedureLegs.length > 0) {
-      // remove discontinuity legs from the start of the procedure
-      while (procedureLegObject.procedureLegs[0]?.type === LegType.Discontinuity) {
-        procedureLegObject.procedureLegs.shift();
-      }
-
-      if (procedureLegObject.procedureLegs[0].type !== LegType.IF) {
-        const replacementLeg = FlightPlan.createLeg({
-          type: LegType.IF,
-          fixIcao: procedureLegObject.procedureLegs[0].fixIcao,
-          fixTypeFlags: procedureLegObject.procedureLegs[0].fixTypeFlags,
-        });
-        procedureLegObject.procedureLegs.splice(0, 1, replacementLeg);
-      }
-
       const visualRunway = visualRunwayNumber !== undefined && visualRunwayDesignator !== undefined
         ? RunwayUtils.matchOneWayRunway(facility, visualRunwayNumber, visualRunwayDesignator)
         : undefined;
@@ -2777,16 +4058,37 @@ export class Fms {
   }
 
   /**
-   * Adds an airway and airway segment to the flight plan.
+   * Inserts an airway segment into the flight plan.
    * @param airway The airway object.
    * @param entry The entry intersection facility.
    * @param exit The exit intersection facility.
-   * @param segmentIndex Is the segment index for the entry leg.
-   * @param legIndex Is the leg index of the entry leg in the segment of the
+   * @param segmentIndex The index of the segment containing the airway entry leg.
+   * @param segmentLegIndex The index of the airway entry leg in its containing leg.
+   * @returns The index of the inserted airway segment.
    */
-  public insertAirwaySegment(airway: AirwayObject, entry: IntersectionFacility, exit: IntersectionFacility, segmentIndex: number, legIndex: number): void {
+  public insertAirwaySegment(airway: AirwayObject, entry: IntersectionFacility, exit: IntersectionFacility, segmentIndex: number, segmentLegIndex: number): number {
     const plan = this.getFlightPlan();
-    const airwaySegmentIndex = this.prepareAirwaySegment(`${airway.name}.${ICAO.getIdent(exit.icao)}`, segmentIndex, legIndex);
+
+    // If the entry leg is the target of a direct-to, insert the airway segment after the direct-to leg sequence.
+    if (plan.directToData.segmentIndex === segmentIndex && plan.directToData.segmentLegIndex === segmentLegIndex) {
+      segmentLegIndex += FmsUtils.DTO_LEG_OFFSET;
+    }
+
+    const entrySegment = plan.tryGetSegment(segmentIndex);
+
+    // Editing the plan prior to an existing vertical direct-to cancels the vertical direct-to
+    if (entrySegment && this.verticalPathCalculator) {
+      const entryLegGlobalIndex = entrySegment.offset + segmentLegIndex;
+      const verticalPlan = this.verticalPathCalculator.getVerticalFlightPlan(Fms.PRIMARY_PLAN_INDEX);
+      if (verticalPlan.verticalDirectIndex !== undefined && verticalPlan.verticalDirectIndex > entryLegGlobalIndex) {
+        this.publisher.pub('vnav_set_vnav_direct_to', {
+          planIndex: Fms.PRIMARY_PLAN_INDEX,
+          globalLegIndex: -1
+        }, true, false);
+      }
+    }
+
+    const airwaySegmentIndex = this.prepareAirwaySegment(`${airway.name}.${ICAO.getIdent(exit.icao)}`, segmentIndex, segmentLegIndex);
     const airwayLegObject = this.buildAirwayLegs(airway, entry, exit);
     const airwayLegs = airwayLegObject.procedureLegs;
 
@@ -2812,6 +4114,7 @@ export class Fms {
     }
 
     plan.calculate(0, true);
+    return airwaySegmentIndex;
   }
 
   /**
@@ -2874,9 +4177,11 @@ export class Fms {
       }
     }
 
-    if (entrySegment.legs.length - 1 > entrySegmentLegIndex) {
-      // entry leg is not the last leg in its segment -> split the segment after the entry leg
-      airwaySegmentIndex = this.splitSegment(plan, entrySegmentIndex, entrySegmentLegIndex);
+    const entryLegIsNotLastLegInEntrySegment = entrySegment.legs.length - 1 > entrySegmentLegIndex;
+
+    if (entryLegIsNotLastLegInEntrySegment) {
+      // split the segment after the entry leg
+      airwaySegmentIndex = this.splitSegmentForAirway(plan, entrySegmentIndex, entrySegmentLegIndex);
     } else if (
       plan.getSegment(entrySegmentIndex).segmentType === FlightPlanSegmentType.Enroute
       && (nextSegment?.segmentType !== FlightPlanSegmentType.Enroute)
@@ -2890,27 +4195,38 @@ export class Fms {
   }
 
   /**
-   * Splits a segment into two segments if type is enroute; if departure, remove legs after the legIndex, else do nothing.
-   * @param plan is the flight plan to edit.
-   * @param segmentIndex Is the segment index for the entry leg.
-   * @param legIndex Is the leg index of the entry leg in the segment of the
-   * @returns the segment number of the new airway segment if one was created, else the current segment or if no action was taken.
+   * Splits a segment in preparation for inserting an airway segment after an entry leg within the segment to be split.
+   * If the segment containing the entry leg is an enroute segment, it will be split into two enroute segments, with
+   * the split occurring immediately after the entry leg. If the segment containing the entry leg is a departure
+   * segment, all legs after the entry leg will be removed from the segment.
+   * @param plan The flight plan to edit.
+   * @param segmentIndex The index of the segment containing the airway entry leg.
+   * @param segmentLegIndex The index of the airway entry leg in its containing segment.
+   * @returns The index into which to insert the new airway segment now that the segment containing the entry leg has
+   * been split.
    */
-  private splitSegment(plan: FlightPlan, segmentIndex: number, legIndex: number): number {
+  private splitSegmentForAirway(plan: FlightPlan, segmentIndex: number, segmentLegIndex: number): number {
     const segment = plan.getSegment(segmentIndex);
+
     if (segment.segmentType === FlightPlanSegmentType.Enroute) {
       const nextSegmentIndex = this.planInsertSegmentOfType(FlightPlanSegmentType.Enroute, segmentIndex + 1);
-      for (let i = legIndex + 1; i < segment.legs.length; i++) {
+      // Move legs after leg index to new segment
+      // It's funky without the i++, but it works correctly because the length of the segment is changing
+      for (let i = segmentLegIndex + 1; i < segment.legs.length;) {
         const leg = segment.legs[i].leg;
         this.planAddLeg(nextSegmentIndex, leg);
         this.planRemoveLeg(segmentIndex, i);
       }
       return nextSegmentIndex;
     } else if (segment.segmentType === FlightPlanSegmentType.Departure) {
-      for (let i = legIndex + 1; i < segment.legs.length; i++) {
+      // Remove legs after leg index
+      // It's funky without the i++, but it works correctly because the length of the segment is changing
+      for (let i = segmentLegIndex + 1; i < segment.legs.length;) {
         this.planRemoveLeg(segmentIndex, i);
       }
+      return segmentIndex + 1;
     }
+
     return segmentIndex;
   }
 
@@ -2953,33 +4269,58 @@ export class Fms {
    */
   public removeAirway(segmentIndex: number): void {
     const plan = this.getFlightPlan();
+    const segment = plan.tryGetSegment(segmentIndex);
+
+    if (segment === null || segment.airway === undefined) {
+      return;
+    }
+
+    const wasActiveLegInApproach = this.getDirectToState() === DirectToState.NONE && plan.activeLateralLeg >= (FmsUtils.getApproachSegment(plan)?.offset ?? Infinity);
+
     let combineSegments = false;
     const nextSegmentIsAirway = plan.getSegment(segmentIndex + 1).airway;
-    if (segmentIndex > 0) {
-      const priorSegmentEnrouteNonAirway = plan.getSegment(segmentIndex - 1).segmentType === FlightPlanSegmentType.Enroute
-        && plan.getSegment(segmentIndex - 1).airway === undefined;
-      const nextSegmentEnrouteNonAirway = plan.getSegment(segmentIndex + 1).segmentType === FlightPlanSegmentType.Enroute
-        && plan.getSegment(segmentIndex + 1).airway === undefined;
-      if (priorSegmentEnrouteNonAirway && nextSegmentEnrouteNonAirway) {
-        combineSegments = true;
-      }
-      let entryLeg: FlightPlanLeg | undefined = undefined;
-      if (nextSegmentIsAirway) {
-        const segment = plan.getSegment(segmentIndex);
-        entryLeg = segment.legs[segment.legs.length - 1].leg;
-      }
-      this.planRemoveSegment(segmentIndex);
-      if (combineSegments) {
-        this.mergeSegments(plan, segmentIndex - 1);
-      }
-      if (priorSegmentEnrouteNonAirway && entryLeg !== undefined) {
-        this.planAddLeg(segmentIndex - 1, entryLeg);
-      } else if (entryLeg !== undefined) {
-        const newSegmentIndex = this.planInsertSegmentOfType(FlightPlanSegmentType.Enroute, segmentIndex);
-        this.planAddLeg(newSegmentIndex, entryLeg);
+
+    const priorSegmentEnrouteNonAirway = plan.getSegment(segmentIndex - 1).segmentType === FlightPlanSegmentType.Enroute
+      && plan.getSegment(segmentIndex - 1).airway === undefined;
+    const nextSegmentEnrouteNonAirway = plan.getSegment(segmentIndex + 1).segmentType === FlightPlanSegmentType.Enroute
+      && plan.getSegment(segmentIndex + 1).airway === undefined;
+
+    if (priorSegmentEnrouteNonAirway && nextSegmentEnrouteNonAirway) {
+      combineSegments = true;
+    }
+
+    let entryLeg: FlightPlanLeg | undefined = undefined;
+    if (nextSegmentIsAirway) {
+      entryLeg = segment.legs[segment.legs.length - 1].leg;
+    }
+
+    this.planRemoveSegment(segmentIndex);
+
+    if (combineSegments) {
+      this.mergeSegments(plan, segmentIndex - 1);
+    }
+
+    if (priorSegmentEnrouteNonAirway && entryLeg !== undefined) {
+      this.planAddLeg(segmentIndex - 1, entryLeg);
+    } else if (entryLeg !== undefined) {
+      const newSegmentIndex = this.planInsertSegmentOfType(FlightPlanSegmentType.Enroute, segmentIndex);
+      this.planAddLeg(newSegmentIndex, entryLeg);
+    }
+
+    plan.calculate(0);
+
+    // If removing the segment caused the active leg to move from before the approach into the approach, activate the
+    // approach instead.
+    if (!wasActiveLegInApproach) {
+      const isActiveLegInApproach = this.getDirectToState() === DirectToState.NONE && plan.activeLateralLeg >= (FmsUtils.getApproachSegment(plan)?.offset ?? Infinity);
+      if (isActiveLegInApproach) {
+        if (this.isApproachVtf()) {
+          this.activateVtf();
+        } else {
+          this.activateApproach();
+        }
       }
     }
-    plan.calculate(0, true);
   }
 
   /**
@@ -3006,73 +4347,164 @@ export class Fms {
   }
 
   /**
-   * Inserts a hold-at-waypoint leg to the primary flight plan. The hold leg will be inserted immediately after the
-   * specified parent leg. The hold leg must have the same fix as the parent leg.
-   * @param planIndex The plan index to add the hold to.
+   * Inserts a hold-at-waypoint leg to a flight plan. The hold leg will be inserted immediately after the specified
+   * parent leg. The hold leg must have the same fix as the parent leg.
+   * @param planIndex The index of the flight plan to add the hold to.
    * @param segmentIndex The index of the segment that contains the hold's parent leg.
-   * @param legIndex The index of the hold's parent leg in its segment.
+   * @param segmentLegIndex The index of the hold's parent leg in its segment.
    * @param holdLeg The hold leg to add.
-   * @returns Whether the hold-at-waypoint leg was successfully inserted.
+   * @returns The inserted hold-at-waypoint leg, or `undefined` if the leg could not be inserted.
    */
-  public insertHold(planIndex: number, segmentIndex: number, legIndex: number, holdLeg: FlightPlanLeg): boolean {
+  public insertHold(planIndex: number, segmentIndex: number, segmentLegIndex: number, holdLeg: FlightPlanLeg): LegDefinition | undefined {
     const plan = this.hasFlightPlan(planIndex) && this.getFlightPlan(planIndex);
     if (!plan) {
-      return false;
+      return undefined;
     }
 
-    const prevLeg = plan.getPrevLeg(segmentIndex, legIndex + 1);
-    if (prevLeg?.leg.fixIcao !== holdLeg.fixIcao) {
-      return false;
+    const parentLeg = plan.tryGetLeg(segmentIndex, segmentLegIndex);
+    if (parentLeg?.leg.fixIcao !== holdLeg.fixIcao) {
+      return undefined;
     }
 
     if (planIndex === Fms.PRIMARY_PLAN_INDEX) {
-      this.planAddLeg(segmentIndex, holdLeg, legIndex + 1);
-      return true;
+      const airwayLegType = this.getAirwayLegType(plan, segmentIndex, segmentLegIndex);
+      switch (airwayLegType) {
+        case AirwayLegType.ONROUTE:
+        case AirwayLegType.EXIT:
+        case AirwayLegType.EXIT_ENTRY: {
+          // Insert the hold leg. The hold leg is guaranteed to end up in a non-airway enroute segment.
+          const insertedHoldLeg = this.handleAirwayInsertLeg(plan, segmentIndex, holdLeg, segmentLegIndex + 1);
+          if (!insertedHoldLeg) {
+            return undefined;
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const holdLegSegment = plan.getSegmentFromLeg(insertedHoldLeg)!;
+          const holdLegSegmentIndex = holdLegSegment.legs.indexOf(insertedHoldLeg);
+
+          // We need to move the hold's parent leg out of the airway and into the same segment as the hold leg. The
+          // parent leg's segment index and segment leg index should not have been changed by inserting the hold leg.
+          this.planRemoveLeg(segmentIndex, segmentLegIndex);
+          this.planAddLeg(holdLegSegment.segmentIndex, parentLeg.leg, holdLegSegmentIndex);
+          this.setLegVerticalData(plan, holdLegSegment.segmentIndex, holdLegSegmentIndex, parentLeg.verticalData);
+
+          return insertedHoldLeg;
+        }
+        case AirwayLegType.ENTRY: // Inserting a hold at an airway entry leg turns the hold leg into the entry leg, so there is no extra logic needed.
+        default:
+          return this.planAddLeg(segmentIndex, holdLeg, segmentLegIndex + 1);
+      }
     } else {
-      plan.addLeg(segmentIndex, holdLeg);
-      this.bus.getPublisher<ControlEvents>().pub('suspend_sequencing', false, true);
-      return true;
+      const insertedHoldLeg = plan.addLeg(segmentIndex, holdLeg);
+      this.bus.getPublisher<ControlEvents>().pub('suspend_sequencing', false, true, false);
+      return insertedHoldLeg;
     }
   }
 
   /**
-   * Activates the nearest and most applicable leg of the primary flightplan.
+   * Edits a hold in a flight plan. The existing hold leg will be removed from the flight plan and a new hold leg with
+   * the edited parameters will be inserted in its place.
+   * @param planIndex The index of the flight plan containing the hold to edit.
+   * @param segmentIndex The index of the segment containing the hold to edit.
+   * @param segmentLegIndex The index of the hold leg in its containing segment.
+   * @param holdLeg A leg describing the new hold parameters to apply.
+   * @returns The edited hold leg, or `undefined` if the hold could not be edited.
    */
-  public activateNearestLeg(): void {
+  public editHold(planIndex: number, segmentIndex: number, segmentLegIndex: number, holdLeg: FlightPlanLeg): LegDefinition | undefined {
+    const plan = this.hasFlightPlan(planIndex) && this.getFlightPlan(planIndex);
+    if (!plan) {
+      return undefined;
+    }
+
+    const leg = plan.tryGetLeg(segmentIndex, segmentLegIndex);
+    if (!leg || !FlightPlanUtils.isHoldLeg(leg.leg.type)) {
+      return undefined;
+    }
+
+    const parentLeg = plan.tryGetLeg(segmentIndex, segmentLegIndex - 1);
+    if (parentLeg?.leg.fixIcao !== holdLeg.fixIcao) {
+      return undefined;
+    }
+
+    const verticalData = leg.verticalData;
+
+    plan.removeLeg(segmentIndex, segmentLegIndex);
+    const insertedHoldLeg = plan.addLeg(segmentIndex, holdLeg, segmentLegIndex);
+    plan.setLegVerticalData(segmentIndex, segmentLegIndex, verticalData);
+
+    return insertedHoldLeg;
+  }
+
+  /**
+   * Activates the nearest and most applicable leg of the primary flightplan.
+   * @param allowMissedApproach Whether to allow activation of missed approach legs. Defaults to `false`.
+   * @returns Whether a leg was successfully activated.
+   */
+  public activateNearestLeg(allowMissedApproach = false): boolean {
     const plan = this.hasPrimaryFlightPlan() && this.getPrimaryFlightPlan();
     if (!plan) {
-      return;
+      return false;
     }
+
+    let index = 0;
+    let lastAllowableLegIndex = -1;
+    let hasReachedMapr = false;
 
     //Filter to legs that we are potentially on
     const validLegs: LegDefinition[] = [];
     for (const leg of plan.legs()) {
-      const calcs = leg.calculated;
-      if (calcs !== undefined) {
-        const position = this.getLegReferencePosition(leg);
-        if (position !== undefined && position >= 0 && position <= 1) {
-          validLegs.push(leg);
+      const isDto = BitFlags.isAll(leg.flags, LegDefinitionFlags.DirectTo);
+      const isMapr = BitFlags.isAll(leg.flags, LegDefinitionFlags.MissedApproach);
+      const isDisco = FlightPlanUtils.isDiscontinuityLeg(leg.leg.type);
+
+      hasReachedMapr ||= isMapr;
+
+      const isLegAllowed = !isDto && !isDisco && (allowMissedApproach || !hasReachedMapr);
+
+      if (isLegAllowed) {
+        lastAllowableLegIndex = index;
+
+        const calcs = leg.calculated;
+        if (calcs !== undefined) {
+          const position = this.getLegReferencePosition(leg);
+          if (position !== undefined && position >= 0 && position <= 1) {
+            validLegs.push(leg);
+          }
         }
       }
+
+      index++;
     }
 
-    //Try to active the second or last leg if we're beyond the end or the beginning of the plan
-    if (validLegs.length === 0 && plan.length >= 2) {
-      const secondLeg = plan.tryGetLeg(2);
-      if (secondLeg !== null) {
+    //Try to activate the second or last leg if we're beyond the end or the beginning of the plan
+    if (validLegs.length === 0 && plan.length > 1) {
+      let secondLegGlobalIndex = 1;
+
+      // If the first leg is the target of an on-route direct-to, then the second leg's index must be offset to
+      // account for this.
+      const firstLegSegmentIndex = plan.getSegmentIndex(0);
+      if (plan.directToData.segmentIndex === firstLegSegmentIndex && plan.directToData.segmentLegIndex === 0) {
+        secondLegGlobalIndex += FmsUtils.DTO_LEG_OFFSET;
+      }
+
+      if (lastAllowableLegIndex >= secondLegGlobalIndex) {
+        const secondLeg = plan.getLeg(secondLegGlobalIndex);
+
         const secondLegPosition = this.getLegReferencePosition(secondLeg);
         if (secondLegPosition !== undefined && secondLegPosition > 1) {
-          const segmentIndex = plan.getSegmentIndex(plan.length - 1);
+          const segmentIndex = plan.getSegmentIndex(lastAllowableLegIndex);
           const segment = plan.getSegment(segmentIndex);
 
           if (segment !== null) {
-            this.activateLeg(segment.segmentIndex, segment.legs.length - 1);
+            this.activateLeg(segment.segmentIndex, lastAllowableLegIndex - segment.offset, Fms.PRIMARY_PLAN_INDEX, false);
+            return true;
           }
         } else if (secondLegPosition !== undefined && secondLegPosition <= 1) {
           const segment = plan.getSegmentFromLeg(secondLeg);
 
           if (segment !== null) {
-            this.activateLeg(segment.segmentIndex, segment.legs.indexOf(secondLeg));
+            this.activateLeg(segment.segmentIndex, secondLegGlobalIndex - segment.offset, Fms.PRIMARY_PLAN_INDEX, false);
+            return true;
           }
         }
       }
@@ -3099,8 +4531,11 @@ export class Fms {
 
       if (segment !== null) {
         this.activateLeg(segment.segmentIndex, segment.legs.indexOf(closestLeg));
+        return true;
       }
     }
+
+    return false;
   }
 
   /**
@@ -3177,6 +4612,7 @@ export class Fms {
         }
       }));
     }
+    return undefined;
   }
 
   /**
@@ -3207,8 +4643,9 @@ export class Fms {
    * @param index The index of the leg in the segment to insert. Will add to the end of the segment if ommitted.
    * @param flags Leg definition flags to apply to the new leg. Defaults to `None` (0).
    * @param notify Whether or not to send notifications after the operation.
+   * @returns the new leg definition.
    */
-  private planAddLeg(segmentIndex: number, leg: FlightPlanLeg, index?: number, flags = 0, notify = true): void {
+  private planAddLeg(segmentIndex: number, leg: FlightPlanLeg, index?: number, flags = 0, notify = true): LegDefinition {
     const plan = this.getFlightPlan();
 
     const dtoLegIndex = plan.directToData.segmentLegIndex;
@@ -3233,7 +4670,7 @@ export class Fms {
       flags |= LegDefinitionFlags.MissedApproach;
     }
 
-    plan.addLeg(segmentIndex, leg, index, flags, notify);
+    const legDefinition = plan.addLeg(segmentIndex, leg, index, flags, notify);
     plan.calculate(plan.activeLateralLeg - 1);
     const activeSegmentIndex = plan.getSegmentIndex(plan.activeLateralLeg);
     if (activeSegmentIndex !== -1) {
@@ -3246,6 +4683,7 @@ export class Fms {
     } else {
       console.error('planAddLeg: activeSegmentIndex was -1');
     }
+    return legDefinition;
   }
 
   /**
@@ -3265,12 +4703,14 @@ export class Fms {
       return false;
     }
 
-    const toRemoveLeg = plan.getSegment(segmentIndex).legs[segmentLegIndex];
+    const segment = plan.getSegment(segmentIndex);
+
+    const toRemoveLeg = segment.legs[segmentLegIndex];
     if (!toRemoveLeg) {
       return false;
     }
 
-    const removeLegGlobalIndex = plan.getSegment(segmentIndex).offset + segmentLegIndex;
+    const removeLegGlobalIndex = segment.offset + segmentLegIndex;
 
     const isDirectToExistingActive = this.getDirectToState() === DirectToState.TOEXISTING;
 
@@ -3315,8 +4755,55 @@ export class Fms {
       }
     }
 
+    // Editing the plan prior to an existing vertical direct-to cancels the vertical direct-to
+    if (removed && this.verticalPathCalculator) {
+      const verticalPlan = this.verticalPathCalculator.getVerticalFlightPlan(Fms.PRIMARY_PLAN_INDEX);
+      if (verticalPlan.verticalDirectIndex !== undefined && verticalPlan.verticalDirectIndex >= removeLegGlobalIndex) {
+        this.publisher.pub('vnav_set_vnav_direct_to', {
+          planIndex: Fms.PRIMARY_PLAN_INDEX,
+          globalLegIndex: -1
+        }, true, false);
+      }
+    }
+
     const prevLeg = removeLegGlobalIndex - 1 >= 0 ? plan.getLeg(removeLegGlobalIndex - 1) : null;
     const nextLeg = removeLegGlobalIndex < plan.length ? plan.getLeg(removeLegGlobalIndex) : null;
+
+    // If we are removing a leg before a VTF faf leg, we need to check whether the new leg prior to the faf leg
+    // terminates at the same facility as the leg prior to the faf in the published procedure.
+    if (segment.segmentType === FlightPlanSegmentType.Approach && FmsUtils.isVtfApproachLoaded(plan)) {
+      const vtfFafLeg = FmsUtils.getApproachVtfLeg(plan);
+
+      if (vtfFafLeg !== undefined) {
+        // Note that by now we have already removed the leg, so all leg indexes after the removed leg have been shifted by -1.
+
+        const vtfFafSegmentLegIndex = segment.legs.indexOf(vtfFafLeg);
+        const discoLegExists = BitFlags.isAll(segment.legs[vtfFafSegmentLegIndex - 1]?.flags ?? 0, LegDefinitionFlags.VectorsToFinal);
+
+        if (vtfFafLeg !== undefined && segmentLegIndex === vtfFafSegmentLegIndex - (discoLegExists ? 1 : 0)) {
+          const publishedLegIcao = plan.getUserData<string>(Fms.VTF_FAF_DATA_KEY) ?? '';
+          const legTerminatorIcao = prevLeg === null ? '' : FlightPlanUtils.getTerminatorIcao(prevLeg.leg) ?? '';
+
+          const needDisco = !ICAO.isFacility(publishedLegIcao) || !ICAO.isFacility(legTerminatorIcao) || publishedLegIcao !== legTerminatorIcao;
+
+          if (needDisco && !discoLegExists) {
+            plan.addLeg(segmentIndex, FlightPlan.createLeg({ type: LegType.ThruDiscontinuity }), vtfFafSegmentLegIndex, LegDefinitionFlags.VectorsToFinal);
+
+            if (plan.activeLateralLeg >= segment.offset + vtfFafSegmentLegIndex) {
+              plan.setLateralLeg(plan.activeLateralLeg + 1);
+              plan.setCalculatingLeg(plan.activeCalculatingLeg + 1);
+            }
+          } else if (!needDisco && discoLegExists) {
+            plan.removeLeg(segmentIndex, vtfFafSegmentLegIndex - 1);
+
+            if (plan.activeLateralLeg >= segment.offset + vtfFafSegmentLegIndex) {
+              plan.setLateralLeg(plan.activeLateralLeg - 1);
+              plan.setCalculatingLeg(plan.activeCalculatingLeg - 1);
+            }
+          }
+        }
+      }
+    }
 
     // Detect if we have created consecutive duplicate legs. If we have, we need to delete one of them.
     if (!skipDupCheck && prevLeg && nextLeg && this.isDuplicateLeg(prevLeg.leg, nextLeg.leg)) {
@@ -3375,10 +4862,14 @@ export class Fms {
           plan.setAirway(segmentIndex, segment.airway!.replace(/\..*/, `.${segment.legs[segmentLegIndex - 1].name}`));
         }
 
-        // We need to move the leg immediately after the removed leg to the next enroute segment
+        // We need to move the leg immediately after the removed leg to the next non-airway enroute segment
         // (if the next enroute segment does not exist we will create one)
 
-        if (plan.segmentCount <= segmentIndex + 1 || plan.getSegment(segmentIndex + 1).segmentType !== FlightPlanSegmentType.Enroute) {
+        if (
+          plan.segmentCount <= segmentIndex + 1
+          || plan.getSegment(segmentIndex + 1).segmentType !== FlightPlanSegmentType.Enroute
+          || plan.getSegment(segmentIndex + 1).airway !== undefined
+        ) {
           plan.insertSegment(segmentIndex + 1, FlightPlanSegmentType.Enroute);
         }
 
@@ -3394,7 +4885,7 @@ export class Fms {
           let newAirwaySegmentIndex = segmentIndex + 2;
           if (newEntrySegment.legs.length > 1) {
             // need to split the segment containing the entry leg of the new airway segment
-            newAirwaySegmentIndex = this.splitSegment(plan, segmentIndex + 1, 0);
+            newAirwaySegmentIndex = this.splitSegmentForAirway(plan, segmentIndex + 1, 0);
           }
 
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -3685,6 +5176,18 @@ export class Fms {
   private planInsertSegment(segmentIndex: number, segmentType: FlightPlanSegmentType = FlightPlanSegmentType.Enroute, airway?: string, notify = true): FlightPlanSegment {
     const plan = this.getFlightPlan();
 
+    // Editing the plan prior to an existing vertical direct-to cancels the vertical direct-to
+    if (this.verticalPathCalculator) {
+      const verticalPlan = this.verticalPathCalculator.getVerticalFlightPlan(Fms.PRIMARY_PLAN_INDEX);
+      const currentSegment = plan.tryGetSegment(segmentIndex);
+      if (verticalPlan.verticalDirectIndex !== undefined && currentSegment !== null && verticalPlan.verticalDirectIndex >= currentSegment.offset) {
+        this.publisher.pub('vnav_set_vnav_direct_to', {
+          planIndex: Fms.PRIMARY_PLAN_INDEX,
+          globalLegIndex: -1
+        }, true, false);
+      }
+    }
+
     const segment = plan.insertSegment(segmentIndex, segmentType, airway, notify);
     plan.calculate(plan.activeLateralLeg - 1);
 
@@ -3707,6 +5210,17 @@ export class Fms {
     const segment = plan.getSegment(segmentIndex);
     const activeSegmentIndex = plan.getSegmentIndex(plan.activeLateralLeg);
 
+    // Editing the plan prior to an existing vertical direct-to cancels the vertical direct-to
+    if (this.verticalPathCalculator) {
+      const verticalPlan = this.verticalPathCalculator.getVerticalFlightPlan(Fms.PRIMARY_PLAN_INDEX);
+      if (verticalPlan.verticalDirectIndex !== undefined && verticalPlan.verticalDirectIndex >= segment.offset) {
+        this.publisher.pub('vnav_set_vnav_direct_to', {
+          planIndex: Fms.PRIMARY_PLAN_INDEX,
+          globalLegIndex: -1
+        }, true, false);
+      }
+    }
+
     if (plan.directToData.segmentIndex >= 0) {
       if (segmentIndex < plan.directToData.segmentIndex) {
         plan.setDirectToData(plan.directToData.segmentIndex - 1, plan.directToData.segmentLegIndex);
@@ -3717,8 +5231,7 @@ export class Fms {
 
     if (activeSegmentIndex === segmentIndex && !Simplane.getIsGrounded() && plan.length > 1) {
       const directIcao = plan.getLeg(plan.activeLateralLeg).leg.fixIcao;
-      this.removeDirectToExisting();
-      if (this.getDirectToState() !== DirectToState.TORANDOM) {
+      if (ICAO.isFacility(directIcao) && this.getDirectToState() !== DirectToState.TORANDOM) {
         this.createDirectToRandom(directIcao);
       }
     }
@@ -3962,32 +5475,18 @@ export class Fms {
 
   /**
    * Loads an approach frequency into the fms.
-   * @param facility The airport facility.
-   * @param approachIndex The approach Index.
-   */
-  private loadApproachFrequency(facility?: AirportFacility, approachIndex?: number): void {
-    this.approachFrequency.set(FmsUtils.getApproachFrequency(facility, approachIndex));
-  }
-
-  /**
-   * Loads an approach frequency into the fms.
    * @param radioIndex The radio index to set (1 or 2).
-   * @param forceNotify resets the subject to force a cross-instrument notification.
    */
-  private setLocFrequency(radioIndex: 1 | 2, forceNotify = false): void {
-    const approachFrequency = this.approachFrequency.get();
-    if (forceNotify) {
-      this.approachFrequency.set(undefined);
-      this.approachFrequency.set(approachFrequency);
-    }
+  private setLocFrequency(radioIndex: 1 | 2): void {
+    const approachReferenceFac = this.approachDetails.get().referenceFacility;
 
-    if (approachFrequency === undefined || Math.abs(this.navActiveFreqs[radioIndex].get() - approachFrequency.freqMHz) < 0.001) {
+    if (!approachReferenceFac || Math.abs(this.navActiveFreqs[radioIndex].get() - approachReferenceFac.freqMHz) < 0.001) {
       return;
     }
 
     const setActive = this.cdiSource.type === NavSourceType.Gps || this.cdiSource.index !== radioIndex;
 
-    SimVar.SetSimVarValue(`K:NAV${radioIndex}_STBY_SET_HZ`, 'Hz', approachFrequency.freqMHz * 1000000);
+    SimVar.SetSimVarValue(`K:NAV${radioIndex}_STBY_SET_HZ`, 'Hz', approachReferenceFac.freqMHz * 1000000);
     if (setActive) {
       SimVar.SetSimVarValue(`K:NAV${radioIndex}_RADIO_SWAP`, 'Bool', 1);
     }
@@ -3995,46 +5494,55 @@ export class Fms {
 
   /**
    * Sets the approach details for the loaded approach and sends an event across the bus.
-   * @param approachLoaded Whether an approach is loaded.
-   * @param approachType The approach type.
-   * @param approachRnavType The approach RNAV type.
-   * @param approachIsActive Whether the approach is active.
-   * @param approachIsCircling Whether the approach is a circling approach.
+   * @param sync Whether to sync the details to other instruments.
+   * @param isLoaded Whether an approach is loaded.
+   * @param type The approach type.
+   * @param bestRnavType The best available approach RNAV type.
+   * @param rnavTypeFlags The RNAV minimum type flags for the approach.
+   * @param isCircling Whether the approach is a circling approach.
+   * @param isVtf Whether the approach is a vectors-to-final approach.
+   * @param referenceFacility The approach's reference facility.
    */
   private setApproachDetails(
-    approachLoaded?: boolean,
-    approachType?: ExtendedApproachType,
-    approachRnavType?: RnavTypeFlags,
-    approachIsActive?: boolean,
-    approachIsCircling?: boolean): void {
-    const approachDetails: ApproachDetails = {
-      approachLoaded: approachLoaded !== undefined ? approachLoaded : this.approachDetails.approachLoaded,
-      approachType: approachType !== undefined ? approachType : this.approachDetails.approachType,
-      approachRnavType: approachRnavType !== undefined ? approachRnavType : this.approachDetails.approachRnavType,
-      approachIsActive: approachIsActive !== undefined ? approachIsActive : this.approachDetails.approachIsActive,
-      approachIsCircling: approachIsCircling !== undefined ? approachIsCircling : this.approachDetails.approachIsCircling
-    };
-    if (approachDetails.approachIsActive && !approachDetails.approachLoaded) {
-      this.checkApproachState();
-      return;
-    }
+    sync: boolean,
+    isLoaded?: boolean,
+    type?: ExtendedApproachType,
+    bestRnavType?: RnavTypeFlags,
+    rnavTypeFlags?: RnavTypeFlags,
+    isCircling?: boolean,
+    isVtf?: boolean,
+    referenceFacility?: VorFacility | null
+  ): void {
+    isLoaded !== undefined && this.approachDetails.set('isLoaded', isLoaded);
+    type !== undefined && this.approachDetails.set('type', type);
+    bestRnavType !== undefined && this.approachDetails.set('bestRnavType', bestRnavType);
+    rnavTypeFlags !== undefined && this.approachDetails.set('rnavTypeFlags', rnavTypeFlags);
+    isCircling !== undefined && this.approachDetails.set('isCircling', isCircling);
+    isVtf !== undefined && this.approachDetails.set('isVtf', isVtf);
+    referenceFacility !== undefined && this.approachDetails.set('referenceFacility', referenceFacility);
 
-    if (approachDetails !== this.approachDetails) {
-      this.approachDetails = approachDetails;
+    const approachDetails = this.approachDetails.get();
 
-      this.bus.getPublisher<GarminControlEvents>().pub('approach_details_set', this.approachDetails, true);
-      this.bus.getPublisher<ControlEvents>().pub('approach_available', approachDetails.approachIsActive && approachDetails.approachLoaded, true);
-      this.bus.getPublisher<VNavDataEvents>().pub('gp_available', this.isGpAvailable(), true);
+    // If an approach is flagged as RNAV but has no defined RNAV minima, assume it is an RNP (AR) approach if it is not circling.
+    this.approachDetails.set('isRnpAr', approachDetails.type === ApproachType.APPROACH_TYPE_RNAV && approachDetails.bestRnavType === 0 && !approachDetails.isCircling);
+
+    if (this.needPublishApproachDetails) {
+      this.needPublishApproachDetails = false;
+
+      this.publisher.pub('fms_approach_details', Object.assign({}, approachDetails), false, true);
+      this.publisher.pub('fms_approach_details_sync', approachDetails, sync, false);
     }
   }
 
   /**
-   * Checks whether the approach details indicate that a GP should be available for tracking and display.
-   * @returns whether or not the GP is available.
+   * Checks whether the approach details indicate that vertical guidance (GP) can be supported.
+   * @returns whether or not vertical guidance is supported.
    */
-  private isGpAvailable(): boolean {
-    if (this.approachDetails.approachLoaded && this.approachDetails.approachIsActive && !this.approachDetails.approachIsCircling) {
-      switch (this.approachDetails.approachType) {
+  private doesApproachSupportGp(): boolean {
+    const approachDetails = this.approachDetails.get();
+
+    if (approachDetails.isLoaded && !approachDetails.isCircling && this.flightPhase.get().isApproachActive) {
+      switch (approachDetails.type) {
         case ApproachType.APPROACH_TYPE_GPS:
         case ApproachType.APPROACH_TYPE_RNAV:
         case AdditionalApproachType.APPROACH_TYPE_VISUAL:
@@ -4048,9 +5556,17 @@ export class Fms {
    * Sets the approach details when an approach_details_set event is received from the bus.
    * @param approachDetails The approachDetails received from the bus.
    */
-  private onApproachDetailsSet = (approachDetails: ApproachDetails): void => {
-    if (approachDetails !== this.approachDetails) {
-      this.approachDetails = approachDetails;
+  private onApproachDetailsSet(approachDetails: Readonly<ApproachDetails>): void {
+    // If the event came from this Fms, then the objects will be equal by reference, so we only bother setting the
+    // object if they are different.
+    if (approachDetails !== this.approachDetails.get()) {
+      this.approachDetails.set(approachDetails);
+
+      if (this.needPublishApproachDetails) {
+        this.needPublishApproachDetails = false;
+
+        this.publisher.pub('fms_approach_details', Object.assign({}, this.approachDetails.get()), false, true);
+      }
     }
-  };
+  }
 }

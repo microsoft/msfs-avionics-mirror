@@ -1,6 +1,6 @@
 import {
   ComponentProps, DisplayComponent, FSComponent, MappedSubscribable, Subject, Subscribable, SubscribableMapFunctions, SubscribableSet, Subscription, VNode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 /**
  * Time display formats.
@@ -72,7 +72,7 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
   /**
    * Updates the displayed time.
    */
-  private updateDisplayedTime(): void {
+  protected updateDisplayedTime(): void {
     const utcTime = this.timeSeconds.get();
     const format = this.format.get();
 
@@ -91,8 +91,10 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
       const hour = this.date.getUTCHours();
       isAm = hour < 12;
 
-      const mod = format === TimeDisplayFormat.Local12 ? 12 : 24;
-      const displayHour = mod - (mod - (hour % mod)) % mod;
+      const displayHour = format === TimeDisplayFormat.Local12
+        ? 12 - (12 - (hour % 12)) % 12 // Need to display hours 0 and 12 as '12'
+        : hour % 24;
+
       this.hourText.set(displayHour.toString().padStart(2, '0'));
 
       this.minText.set(this.date.getUTCMinutes().toString().padStart(2, '0'));
@@ -100,13 +102,22 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
       this.secText.set(this.date.getUTCSeconds().toString().padStart(2, '0'));
     }
 
+    this.suffixText.set(this.getSuffix(format, isAm));
+  }
 
+  /**
+   * Gets the suffix to append to the time display.
+   * @param format The format of the time display.
+   * @param isAm Whether or not the current time is AM or PM.
+   * @returns The time display suffix.
+   */
+  protected getSuffix(format: TimeDisplayFormat, isAm: boolean): string {
     if (format === TimeDisplayFormat.UTC) {
-      this.suffixText.set('UTC');
+      return 'UTC';
     } else if (format === TimeDisplayFormat.Local24) {
-      this.suffixText.set('LCL');
+      return 'LCL';
     } else {
-      this.suffixText.set(isAm ? 'AM' : 'PM');
+      return isAm ? 'AM' : 'PM';
     }
   }
 

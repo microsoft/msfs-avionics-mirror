@@ -1,0 +1,76 @@
+.gtc-horizontal .number-dialog.fms-speed-dialog {
+  --fms-speed-dialog-both-input-center: 320px;
+  --fms-speed-dialog-both-backspace-right: 50px;
+
+  --fms-speed-dialog-mode-panel-bottom: 10px;
+  --fms-speed-dialog-mode-panel-right: 10px;
+  --fms-speed-dialog-mode-panel-width: 167px;
+  --fms-speed-dialog-mode-panel-height: 334px;
+  --fms-speed-dialog-mode-panel-padding: 5px 5px 10px 5px;
+
+  --fms-speed-dialog-mode-panel-button-height: 129px;
+  --fms-speed-dialog-mode-panel-button-font-size: 36px;
+}
+
+.gtc-vertical .number-dialog.fms-speed-dialog {
+  --fms-speed-dialog-both-input-center: 174px;
+  --fms-speed-dialog-both-backspace-right: 25px;
+
+  --fms-speed-dialog-mode-panel-bottom: 5px;
+  --fms-speed-dialog-mode-panel-right: 5px;
+  --fms-speed-dialog-mode-panel-width: 90px;
+  --fms-speed-dialog-mode-panel-height: 180px;
+  --fms-speed-dialog-mode-panel-padding: 2px 2px 5px 2px;
+
+  --fms-speed-dialog-mode-panel-button-height: 69px;
+  --fms-speed-dialog-mode-panel-button-font-size: 20px;
+}
+
+.fms-speed-dialog.fms-speed-dialog-both {
+  --number-dialog-input-center: var(--fms-speed-dialog-both-input-center);
+  --number-dialog-backspace-right: var(--fms-speed-dialog-both-backspace-right);
+}
+
+.fms-speed-dialog-input .cursor-input-inactive {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  height: auto;
+  transform: translateY(-50%);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+}
+
+.fms-speed-dialog-input-inactive-value-text {
+  background: var(--g3000-color-cyan);
+}
+
+.fms-speed-dialog-mode-panel {
+  position: absolute;
+  right: var(--fms-speed-dialog-mode-panel-right);
+  bottom: var(--fms-speed-dialog-mode-panel-bottom);
+  width: var(--fms-speed-dialog-mode-panel-width);
+  height: var(--fms-speed-dialog-mode-panel-height);
+  padding: var(--fms-speed-dialog-mode-panel-padding);
+  display: none;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+
+  --gtc-panel-title-margin-top: 0px;
+
+  --touch-button-set-value-label-center-y: 45%;
+  --touch-button-set-value-bar-center-y: 85%;
+  --touch-button-set-value-bar-width: 86%;
+}
+
+.fms-speed-dialog-both .fms-speed-dialog-mode-panel {
+  display: flex;
+}
+
+.fms-speed-dialog-mode-panel .touch-button {
+  height: var(--fms-speed-dialog-mode-panel-button-height);
+  font-size: var(--fms-speed-dialog-mode-panel-button-font-size);
+}

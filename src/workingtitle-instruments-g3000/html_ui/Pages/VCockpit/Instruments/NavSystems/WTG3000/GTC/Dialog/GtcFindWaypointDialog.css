@@ -1,0 +1,27 @@
+.gtc-horizontal .gtc-find-wpt-dialog {
+  --gtc-find-dialog-width: 90%;
+  --gtc-tabbed-container-width: 99.5%;
+}
+
+.gtc-vertical .gtc-find-wpt-dialog {
+  --gtc-find-dialog-width: 100%;
+  --gtc-tabbed-container-width: 478px;
+
+  --gtc-tabbed-container-vert-tab-width: 94px;
+  --gtc-tabbed-container-tab-font-size: 17px;
+}
+
+.gtc-find-wpt-dialog {
+  height: 100%;
+  width: var(--gtc-find-dialog-width);
+  padding-top: 3.75%;
+  padding-left: .5%;
+  display: flex;
+  justify-content: center;
+  background: var(--g3000-color-black);
+}
+
+.gtc-find-wpt-dialog .gtc-tabbed-container {
+  width: var(--gtc-tabbed-container-width);
+  height: 98%;
+}

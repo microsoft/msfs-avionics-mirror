@@ -1,0 +1,265 @@
+.vsi-container {
+  /* Scale vars */
+
+  --vsi-scale-margin-top: 2px;
+  --vsi-scale-background-width: 48px;
+
+  --vsi-tick-minor-width: 10px;
+  --vsi-tick-minor-stroke-width: 2px;
+  --vsi-tick-major-width: 15px;
+  --vsi-tick-major-stroke-width: 2px;
+
+  --vsi-tape-label-margin-left: 8px;
+  --vsi-tape-label-font-size: 1em;
+
+  /* VNAV target altitude display vars */
+
+  --vsi-vnavalt-display-width: 68px;
+  --vsi-vnavalt-display-height: 23px;
+  --vsi-vnavalt-display-font-size: 1em;
+  --vsi-vnavalt-display-bg: var(--g3000-color-pfd-box-background);
+  --vsi-vnavalt-display-bar-margin-vertical: 1px;
+
+  /* Selected VS display vars */
+
+  --vsi-selectedvs-display-width: 68px;
+  --vsi-selectedvs-display-height: 23px;
+  --vsi-selectedvs-display-margin-top: 2px;
+  --vsi-selectedvs-display-font-size: 1em;
+  --vsi-selectedvs-display-bg: var(--g3000-color-pfd-box-background);
+
+  /* Pointer bug vars */
+
+  --vsi-pointer-bug-width: 68px;
+  --vsi-pointer-bug-height: 24px;
+  --vsi-pointer-bug-font-size: 1em;
+  --vsi-pointer-bug-margin-right: 3px;
+
+  /* Selected VS bug vars */
+
+  --vsi-selectedvs-bug-width: 8px;
+  --vsi-selectedvs-bug-height: 18px;
+
+  /* Required VS bug vars */
+
+  --vsi-requiredvs-bug-width: 16px;
+  --vsi-requiredvs-bug-height: 28px;
+
+  /* Computed vars */
+
+  --vsi-scale-top: calc(var(--vsi-vnavalt-display-height) + var(--vsi-selectedvs-display-margin-top) + var(--vsi-selectedvs-display-height) + var(--vsi-scale-margin-top));
+  --vsi-scale-height: calc((50% - var(--vsi-scale-top)) * 2);
+
+  /* Private vars */
+
+  --vsi-pointer-bug-background-color: var(--g3000-color-black);
+  --vsi-pointer-bug-background-stroke-width: 0px;
+}
+
+.vsi.vsi-ra-warn {
+  --vsi-pointer-bug-background-color: var(--g3000-color-red);
+  --vsi-pointer-bug-background-stroke-width: 1px;
+}
+
+.vsi-container .vsi {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.vsi-vnavalt-display {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: var(--vsi-vnavalt-display-width);
+  height: var(--vsi-vnavalt-display-height);
+  background: var(--vsi-vnavalt-display-bg);
+  border-radius: 5px;
+  font-size: var(--vsi-vnavalt-display-font-size);
+  color: var(--g3000-color-magenta);
+  overflow: hidden;
+}
+
+.vsi-vnavalt-display-text-container {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.vsi-vnavalt-display-bar {
+  display: none;
+  position: absolute;
+  box-sizing: border-box;
+  left: 0px;
+  top: var(--vsi-vnavalt-display-bar-margin-vertical);
+  width: 100%;
+  height: calc(100% - var(--vsi-vnavalt-display-bar-margin-vertical) * 2);
+  border-color: var(--g3000-color-magenta);
+  border-width: 1px;
+}
+
+.advanced-vnav .vsi-vnavalt-display-bar {
+  display: block;
+}
+
+.vsi-vnavalt-display-at .vsi-vnavalt-display-bar,
+.vsi-vnavalt-display-atorabove .vsi-vnavalt-display-bar {
+  border-bottom-style: solid;
+}
+
+.vsi-vnavalt-display-at .vsi-vnavalt-display-bar,
+.vsi-vnavalt-display-atorbelow .vsi-vnavalt-display-bar {
+  border-top-style: solid;
+}
+
+.vsi-selectedvs-display {
+  position: absolute;
+  left: 0px;
+  top: calc(var(--vsi-vnavalt-display-height) + var(--vsi-selectedvs-display-margin-top));
+  width: var(--vsi-selectedvs-display-width);
+  height: var(--vsi-selectedvs-display-height);
+  background: var(--vsi-selectedvs-display-bg);
+  border-radius: 5px;
+  font-size: var(--vsi-selectedvs-display-font-size);
+  color: var(--g3000-color-cyan);
+  overflow: hidden;
+}
+
+.vsi-selectedvs-display-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.vsi-container .vsi-scale-background {
+  position: absolute;
+  left: 0px;
+  top: var(--vsi-scale-top);
+  width: var(--vsi-scale-background-width);
+  height: var(--vsi-scale-height);
+}
+
+.vsi-scale {
+  position: absolute;
+  left: 1px;
+  top: var(--vsi-scale-top);
+  width: calc(100% - 1px);
+  height: var(--vsi-scale-height);
+}
+
+.vsi-scale-ra-color-range-container {
+  left: 0px;
+  width: var(--vsi-scale-background-width);
+  -webkit-clip-path: polygon(1px 0%, 100% 0%, 100% calc(41.3% - 1px), 0% calc(50% - 1px), 0% calc(50% + 1px), 100% calc(58.7% + 1px), 100% calc(100% - 1px), 0% calc(100% - 1px));
+}
+
+.vsi-scale-ra-color-range {
+  left: 0px;
+  width: var(--vsi-tick-major-width);
+}
+
+.vsi-scale-ra-color-range-max,
+.vsi-scale-ra-color-range-min {
+  background: var(--g3000-color-red);
+}
+
+.vsi-scale-ra-color-range-flyto {
+  background: var(--g3000-color-green);
+}
+
+.vsi-scale-tick-minor-container {
+  left: 0px;
+  width: var(--vsi-tick-minor-width);
+  stroke: var(--g3000-color-white);
+  stroke-width: var(--vsi-tick-minor-stroke-width);
+}
+
+.vsi-scale-tick-major-container {
+  left: 0px;
+  width: var(--vsi-tick-major-width);
+  stroke: var(--g3000-color-white);
+  stroke-width: var(--vsi-tick-major-stroke-width);
+}
+
+.vsi-scale-label-container {
+  left: calc(var(--vsi-tick-major-width) + var(--vsi-tape-label-margin-left));
+  width: calc(100% - var(--vsi-tick-major-width) - var(--vsi-tape-label-margin-left));
+  font-size: var(--vsi-tape-label-font-size);
+  color: var(--g3000-color-white);
+  text-align: left;
+}
+
+.vsi-pointer-bug {
+  left: 0%;
+  width: var(--vsi-pointer-bug-width);
+  height: var(--vsi-pointer-bug-height);
+  font-size: var(--vsi-pointer-bug-font-size);
+  color: var(--g3000-color-white);
+}
+
+.vsi-pointer-bug-background {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  fill: var(--vsi-pointer-bug-background-color);
+  stroke-width: var(--vsi-pointer-bug-background-stroke-width);
+  stroke: var(--g3000-color-white);
+}
+
+.vsi-pointer-bug-text {
+  position: absolute;
+  right: var(--vsi-pointer-bug-margin-right);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.vsi-selectedvs-bug {
+  left: 0%;
+  width: var(--vsi-selectedvs-bug-width);
+  height: var(--vsi-selectedvs-bug-height);
+}
+
+.vsi-selectedvs-bug-icon {
+  width: 100%;
+  height: 100%;
+  fill: var(--g3000-color-cyan);
+  stroke: #505050;
+  stroke-width: 1px;
+}
+
+.vsi-requiredvs-bug {
+  left: 0%;
+  width: var(--vsi-requiredvs-bug-width);
+  height: var(--vsi-requiredvs-bug-height);
+}
+
+.vsi-requiredvs-bug-icon {
+  width: 100%;
+  height: 100%;
+  fill: var(--g3000-color-magenta);
+  stroke: var(--g3000-color-black);
+  stroke-width: 1px;
+}
+
+.vsi .failed-box {
+  position: absolute;
+  left: 0px;
+  top: var(--vsi-scale-top);
+  width: var(--vsi-scale-background-width);
+  height: var(--vsi-scale-height);
+}
+
+.vsi.data-failed .failed-box {
+  display: block;
+}
+
+.data-failed .vsi-scale-label-container,
+.data-failed .vsi-scale-vsi-scale-ra-color-range-container {
+  display: none;
+}

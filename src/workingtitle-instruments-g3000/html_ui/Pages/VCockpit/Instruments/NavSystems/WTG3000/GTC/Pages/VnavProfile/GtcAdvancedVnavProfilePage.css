@@ -1,0 +1,27 @@
+.gtc-horizontal .advanced-vnav-profile {
+  font-size: 32px;
+
+  --advanced-vnav-profile-tabbed-container-width: 91%;
+  --advanced-vnav-profile-tabbed-container-height: 93%;
+  --advanced-vnav-profile-tabbed-container-top: 4.5%;
+}
+
+.gtc-vertical .advanced-vnav-profile {
+  font-size: 16px;
+
+  --advanced-vnav-profile-tabbed-container-width: 96%;
+  --advanced-vnav-profile-tabbed-container-height: 94%;
+  --advanced-vnav-profile-tabbed-container-top: 5%;
+}
+
+.advanced-vnav-profile {
+  width: 100%;
+  height: 100%;
+}
+
+.advanced-vnav-profile .gtc-tabbed-container {
+  width: var(--advanced-vnav-profile-tabbed-container-width);
+  height: var(--advanced-vnav-profile-tabbed-container-height);
+  margin: 0 auto;
+  margin-top: var(--advanced-vnav-profile-tabbed-container-top);
+}

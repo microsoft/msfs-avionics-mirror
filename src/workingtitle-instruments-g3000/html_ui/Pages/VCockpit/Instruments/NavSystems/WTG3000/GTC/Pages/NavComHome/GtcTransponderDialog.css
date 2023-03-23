@@ -1,0 +1,253 @@
+.transponder-popup {
+  display: inherit;
+}
+
+.gtc-horizontal .transponder-popup {
+  --mode-buttons-border: 1px solid hsl(0, 0%, 33%);
+  --mode-buttons-border-radius: 6px;
+  --mode-buttons-margin: 7px;
+  --mode-buttons-padding: 3px 8px;
+  --mode-buttons-height: 463px;
+  --mode-label-font-size: 31px;
+  --mode-buttons-touch-button-toggle-width: 200px;
+  --mode-buttons-touch-button-toggle-height: 124px;
+  --mode-buttons-touch-button-toggle-margin-bottom: 16px;
+  --mode-buttons-touch-button-label-font-size: 27px;
+  --mode-buttons-touch-button-label-margin-top: 9px;
+  --mode-buttons-touch-button-label-margin-left: -2px;
+  --mode-buttons-touch-button-label-line-height: 34px;
+  --mode-buttons-toggle-status-bar-left: 34px;
+  --mode-buttons-toggle-status-bar-width: 120px;
+  --mode-buttons-toggle-status-bar-top: 86px;
+  --mode-buttons-toggle-status-bar-height: 14px;
+  --numpad-top: 140px;
+  --numpad-left: 21px;
+  --numpad-width: 610px;
+  --numpad-height: 318px;
+  --active-xpdr-touch-button-width: 224px;
+  --active-xpdr-touch-button-height: 124px;
+  --active-xpdr-touch-button-bottom: 27px;
+  --active-xpdr-touch-button-left: 308px;
+  --active-xpdr-label-container-line-height: 55px;
+  --active-xpdr-label-container-margin-top: -4px;
+  --active-xpdr-label-font-size: 30px;
+  --active-xpdr-value-font-size: 41px;
+  --vfr-touch-button-right: 86px;
+  --vfr-touch-button-bottom: 98px;
+  --vfr-touch-button-width: 224px;
+  --vfr-touch-button-height: 124px;
+  --vfr-touch-button-touch-button-label-font-size: 38px;
+  --cursor-input-width: 324px;
+  --cursor-input-height: 74px;
+  --cursor-input-top: 65px;
+  --cursor-input-left: 424px;
+  --cursor-input-font-size: 60px;
+  --backspace-button-width: 124px;
+  --backspace-button-height: 122px;
+  --backspace-button-top: 18px;
+  --backspace-button-left: 773px;
+  --backspace-button-img-width: 94px;
+  --backspace-button-img-margin-left: -1px;
+  --backspace-button-img-margin-top: 8px;
+  --backspace-button-touch-button-label-font-size: 34px;
+}
+
+.gtc-vertical .transponder-popup {
+  --mode-buttons-border: 2px solid hsl(0, 0%, 33%);
+  --mode-buttons-border-radius: 4px;
+  --mode-buttons-margin: 3px;
+  --mode-buttons-padding: 1px 3px;
+  --mode-buttons-height: 249px;
+  --mode-label-font-size: 16px;
+  --mode-buttons-touch-button-toggle-width: 107px;
+  --mode-buttons-touch-button-toggle-height: 66px;
+  --mode-buttons-touch-button-toggle-margin-bottom: 9px;
+  --mode-buttons-touch-button-label-font-size: 15px;
+  --mode-buttons-touch-button-label-margin-top: 5px;
+  --mode-buttons-touch-button-label-margin-left: -1px;
+  --mode-buttons-touch-button-label-line-height: 19px;
+  --mode-buttons-toggle-status-bar-left: 20px;
+  --mode-buttons-toggle-status-bar-width: 62px;
+  --mode-buttons-toggle-status-bar-top: 47px;
+  --mode-buttons-toggle-status-bar-height: 7px;
+  --numpad-top: 76px;
+  --numpad-left: 13px;
+  --numpad-width: 330px;
+  --numpad-height: 170px;
+  --active-xpdr-touch-button-width: 121px;
+  --active-xpdr-touch-button-height: 67px;
+  --active-xpdr-touch-button-bottom: 15px;
+  --active-xpdr-touch-button-left: 139px;
+  --active-xpdr-label-container-line-height: 32px;
+  --active-xpdr-label-container-margin-top: -1px;
+  --active-xpdr-label-font-size: 17px;
+  --active-xpdr-value-font-size: 22px;
+  --vfr-touch-button-right: 20px;
+  --vfr-touch-button-bottom: 52px;
+  --vfr-touch-button-width: 120px;
+  --vfr-touch-button-height: 67px;
+  --vfr-touch-button-touch-button-label-font-size: 21px;
+  --cursor-input-width: 174px;
+  --cursor-input-height: 40px;
+  --cursor-input-top: 35px;
+  --cursor-input-left: 203px;
+  --cursor-input-font-size: 32px;
+  --backspace-button-width: 67px;
+  --backspace-button-height: 66px;
+  --backspace-button-top: 10px;
+  --backspace-button-left: 390px;
+  --backspace-button-img-width: 50px;
+  --backspace-button-img-margin-left: 0;
+  --backspace-button-img-margin-top: 4px;
+  --backspace-button-touch-button-label-font-size: 19px;
+}
+
+.gtc-vertical .transponder-popup.code-only {
+  --cursor-input-top: 55px;
+  --cursor-input-left: 143px;
+  --backspace-button-top: 30px;
+  --backspace-button-left: 330px;
+  --numpad-top: 116px;
+  --numpad-left: 75px;
+  --vfr-touch-button-right: 100px;
+  --vfr-touch-button-bottom: 40px;
+}
+
+.transponder-popup .mode-buttons {
+  border: var(--mode-buttons-border);
+  border-radius: var(--mode-buttons-border-radius);
+  margin: var(--mode-buttons-margin);
+  padding: var(--mode-buttons-padding);
+  height: var(--mode-buttons-height);
+}
+
+.transponder-popup .mode-label {
+  font-size: var(--mode-label-font-size);
+  margin-bottom: 3px;
+}
+
+.gtc-vertical .transponder-popup .mode-label {
+  margin-left: 1px;
+}
+
+.transponder-popup .mode-buttons .touch-button-toggle {
+  width: var(--mode-buttons-touch-button-toggle-width);
+  height: var(--mode-buttons-touch-button-toggle-height);
+  margin-bottom: var(--mode-buttons-touch-button-toggle-margin-bottom);
+}
+
+.transponder-popup .mode-buttons .touch-button-label {
+  font-size: var(--mode-buttons-touch-button-label-font-size);
+  margin-top: var(--mode-buttons-touch-button-label-margin-top);
+  margin-left: var(--mode-buttons-touch-button-label-margin-left);
+  line-height: var(--mode-buttons-touch-button-label-line-height);
+}
+
+.transponder-popup .mode-buttons .toggle-status-bar {
+  left: var(--mode-buttons-toggle-status-bar-left);
+  width: var(--mode-buttons-toggle-status-bar-width);
+  top: var(--mode-buttons-toggle-status-bar-top);
+  height: var(--mode-buttons-toggle-status-bar-height);
+}
+
+.transponder-popup .numpad {
+  position: relative;
+  top: var(--numpad-top);
+  left: var(--numpad-left);
+  display: flex;
+  flex-wrap: wrap;
+  place-content: space-around space-between;
+  width: var(--numpad-width);
+  height: var(--numpad-height);
+}
+
+.transponder-popup .active-xpdr.touch-button {
+  position: absolute;
+  width: var(--active-xpdr-touch-button-width);
+  height: var(--active-xpdr-touch-button-height);
+  bottom: var(--active-xpdr-touch-button-bottom);
+  left: var(--active-xpdr-touch-button-left);
+}
+
+.transponder-popup .active-xpdr-label-container {
+  line-height: var(--active-xpdr-label-container-line-height);
+  margin-top: var(--active-xpdr-label-container-margin-top);
+}
+
+.gtc-horizontal .transponder-popup .active-xpdr-label-container {
+  margin-left: -2px;
+}
+
+.transponder-popup .active-xpdr-label {
+  font-size: var(--active-xpdr-label-font-size);
+}
+
+.transponder-popup .active-xpdr-value {
+  font-size: var(--active-xpdr-value-font-size);
+  color: cyan;
+}
+
+.gtc-horizontal .transponder-popup .active-xpdr-value {
+  letter-spacing: -1px;
+}
+
+.transponder-popup.code-only .ident {
+  position: absolute;
+  left: var(--vfr-touch-button-right);
+  bottom: var(--vfr-touch-button-bottom);
+  width: var(--vfr-touch-button-width);
+  height: var(--vfr-touch-button-height);
+}
+
+.transponder-popup .vfr.touch-button {
+  position: absolute;
+  right: var(--vfr-touch-button-right);
+  bottom: var(--vfr-touch-button-bottom);
+  width: var(--vfr-touch-button-width);
+  height: var(--vfr-touch-button-height);
+}
+
+.transponder-popup .vfr.touch-button .touch-button-label,
+.transponder-popup .ident.touch-button .touch-button-label
+{
+  font-size: var(--vfr-touch-button-touch-button-label-font-size);
+  bottom: 0;
+}
+
+.gtc-horizontal .transponder-popup .vfr.touch-button .touch-button-label {
+  left: -1px;
+}
+
+.transponder-popup .cursor-input {
+  position: absolute;
+  width: var(--cursor-input-width);
+  height: var(--cursor-input-height);
+  top: var(--cursor-input-top);
+  left: var(--cursor-input-left);
+  font-size: var(--cursor-input-font-size);
+  --cursor-input-slots-justify: center;
+}
+
+.transponder-popup .backspace-button {
+  --touch-button-border: 1px solid white;
+  position: absolute;
+  width: var(--backspace-button-width);
+  height: var(--backspace-button-height);
+  top: var(--backspace-button-top);
+  left: var(--backspace-button-left);
+}
+
+.transponder-popup .backspace-button img {
+  width: var(--backspace-button-img-width);
+  margin-left: var(--backspace-button-img-margin-left);
+  margin-top: var(--backspace-button-img-margin-top);
+}
+
+.transponder-popup .backspace-button .touch-button-label {
+  font-size: var(--backspace-button-touch-button-label-font-size);
+  margin-top: -1px;
+}
+
+.gtc-vertical .transponder-popup .backspace-button .touch-button-label {
+  margin-left: -1px;
+}

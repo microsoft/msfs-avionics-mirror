@@ -1,0 +1,75 @@
+.current-vnav-profile-panel {
+  display: none;
+  width: 23.6%;
+  margin: 7px 4px;
+  margin-left: 0;
+  height: 226px;
+  font-size: 16px;
+}
+
+.show-vnav-box .current-vnav-profile-panel {
+  display: flex;
+}
+
+.current-vnav-profile-panel .sub-title {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+}
+
+.current-vnav-profile-panel .waypoint-row {
+  position: absolute;
+  top: 46px;
+  left: 6px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 86%;
+}
+
+.current-vnav-profile-panel .altitude-constraint-display {
+  font-size: 18px;
+  margin-top: 7px;
+  width: 100px;
+}
+
+.current-vnav-profile-panel .crz-alt-value {
+  margin-right: 12px;
+}
+
+.current-vnav-profile-panel .data-rows {
+  position: absolute;
+  top: 92px;
+  left: 7px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 116px;
+  width: 95%;
+}
+
+.current-vnav-profile-panel .row {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+}
+
+.current-vnav-profile-panel .data {
+  position: absolute;
+  right: 10px;
+}
+
+.current-vnav-profile-panel .fpa .data {
+  position: absolute;
+  right: 23px;
+}
+
+.current-vnav-profile-panel .dev .data {
+  position: absolute;
+  right: 19px;
+}
+
+.current-vnav-profile-panel .tod-bod .data {
+  position: absolute;
+  right: 34px;
+}

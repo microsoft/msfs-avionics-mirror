@@ -1,0 +1,73 @@
+.fpl-entry {
+  color: var(--gnsgreen);
+  display: inline-block;
+  height: 27px;
+  font-size: var(--gns-font-page-data);
+  background-color: black;
+  width: 246px;
+}
+
+.fpl-entry-name {
+  display: inline-block;
+}
+
+wt-gns530 .fpl-entry-name {
+  width: 78px;
+  height: 16px;
+}
+
+wt-gns430 .fpl-entry-name {
+  width: 116px;
+  padding-top: 1px;
+}
+
+wt-gns430 .fpl-entry-name>.waypoint-leg-name {
+  padding-top: 4px;
+}
+
+.fpl-entry-name>.waypoint-leg-name {
+  width: 3.2em;
+  overflow: hidden;
+  display: inline-block;
+  margin-top: 4px;
+  line-height: 16px;
+  padding-top: 2px;
+}
+
+.fpl-entry-name>.waypoint-leg-name.extended {
+  width: 3.5em;
+}
+
+.fpl-entry-name>.waypoint-leg-name.extended2 {
+  width: 5em;
+}
+
+.fpl-entry-name>.waypoint-leg-name.smaller-font {
+  font-size: var(--gns-font-page-data-smaller);
+}
+
+.fpl-entry-col1 {
+  display: inline-block;
+  width: 41px;
+  text-align: right;
+}
+
+.fpl-entry-col2 {
+  display: inline-block;
+
+  text-align: right;
+}
+
+wt-gns530 .fpl-entry-col2 {
+  width: 55px;
+}
+
+wt-gns430 .fpl-entry-col2 {
+  width: 79px;
+}
+
+.fpl-entry-col3 {
+  display: inline-block;
+  width: 58px;
+  text-align: right;
+}

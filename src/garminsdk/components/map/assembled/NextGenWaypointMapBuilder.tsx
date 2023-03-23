@@ -1,23 +1,24 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
-  FlightPlanner, FSComponent, MapDataIntegrityModule, MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys, MutableSubscribable,
-  NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, UnitFamily, UserSettingManager, Vec2Math, Vec2Subject,
-  VecNMath, VNode
-} from 'msfssdk';
+  FlightPlanner, FSComponent, MapDataIntegrityModule, MapOwnAirplaneIconOrientation, MapSystemBuilder, MapSystemContext, MapSystemGenericController,
+  MapSystemKeys, MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator,
+  Subject, Subscribable, SubscribableUtils, UnitFamily, UserSettingManager, Vec2Math, Vec2Subject, VecNMath, VNode
+} from '@microsoft/msfs-sdk';
 
 import { WaypointIconImageCache } from '../../../graphics/img/WaypointIconImageCache';
 import { MapUserSettingTypes } from '../../../settings/MapUserSettings';
 import { UnitsDistanceSettingMode, UnitsUserSettingManager } from '../../../settings/UnitsUserSettings';
-import { WaypointMapRTRController, WaypointMapRTRControllerContext, WaypointMapRTRControllerModules } from '../controllers';
+import { WaypointMapHighlightController, WaypointMapRTRController, WaypointMapRTRControllerContext, WaypointMapRTRControllerModules } from '../controllers';
 import { DefaultFlightPathPlanRenderer } from '../flightplan';
 import { GarminMapBuilder, RangeRingOptions, WaypointHighlightLineOptions } from '../GarminMapBuilder';
 import { GarminMapKeys } from '../GarminMapKeys';
-import { MapBannerIndicator, MapOrientationIndicator } from '../indicators';
-import { MapPointerInfoLayerSize } from '../layers';
+import { MapBannerIndicator, MapDetailIndicator, MapOrientationIndicator } from '../indicators';
+import { MapDeadReckoningLayer, MapPointerInfoLayerSize } from '../layers';
+import { MapRunwayDesignationImageCache } from '../MapRunwayDesignationImageCache';
 import { MapUtils } from '../MapUtils';
 import { MapWaypointDisplayBuilder } from '../MapWaypointDisplayBuilder';
-import { MapWaypointStyles } from '../MapWaypointStyles';
-import { MapDeclutterMode, MapOrientation, MapOrientationModule, MapPointerModule, MapTerrainMode, MapUnitsModule } from '../modules';
+import { NextGenMapWaypointStyles } from '../MapWaypointStyles';
+import { MapDeclutterMode, MapDeclutterModule, MapOrientation, MapOrientationModule, MapPointerModule, MapTerrainMode, MapUnitsModule, WaypointMapSelectionModule } from '../modules';
 
 /**
  * Options for creating a next-generation (NXi, G3000, etc) Garmin waypoint map.
@@ -26,44 +27,44 @@ export type NextGenWaypointMapOptions = {
   /** The ID to assign to the map's bound Bing Map instance. */
   bingId: string;
 
+  /** The amount of time, in milliseconds, to delay binding the map's Bing Map instance. Defaults to 0. */
+  bingDelay?: number;
+
   /** The frequency, in hertz, with which the player airplane's properties are updated from event bus data. */
   dataUpdateFreq: number | Subscribable<number>;
 
-  /** whether the map draws a line from the highlighted waypoint to the player airplane. Defaults to `false`. */
+  /** Whether the map draws a line from the highlighted waypoint to the player airplane. Defaults to `false`. */
   includeLine?: boolean;
 
   /** Styling options for the waypoint highlight line. Ignored if `includeLine` is `false`. */
   lineOptions?: WaypointHighlightLineOptions;
 
   /**
-   * The default map range index to apply when there is no highlighted waypoint, or `null` if no range index should be
-   * applied. Defaults to `null`.
-   */
-  defaultNoTargetRangeIndex?: number | Subscribable<number> | null;
-
-  /**
-   * The default map range index to apply when targeting the highlighted waypoint, or `null` if no range index should
-   * be applied. Defaults to `null`.
-   */
-  defaultTargetRangeIndex?: number | Subscribable<number> | null;
-
-  /**
-   * Whether the map should automatically adjust its range when an airport is the highlighted waypoint to give an
-   * appropriate view of all runways. If `false`, the map will attempt to apply the range index defined by
-   * `defaultTargetRangeIndex` instead. Defaults to `false`.
+   * Whether the map should automatically adjust its range when the selected waypoint is an airport to give an
+   * appropriate view of the selected runway, or all runways if there is no selected runway. If `false`, the map will
+   * attempt to apply the range index defined by `defaultTargetRangeIndex` instead. Defaults to `false`.
    */
   supportAirportAutoRange?: boolean;
 
   /**
-   * The offset of the boundaries of this controller's enforced display area relative to the boundaries of the map's
-   * projected window, *excluding* the dead zone, as `[left, top, right, bottom]` in pixels. Positive offsets are
-   * directed toward the center of the map. When this controller selects a map range when targeting an airport, it will
-   * attempt to keep all runways within the display area. Ignored if `supportAirportAutoRange` is `false`.
+   * The default map range index to apply when a range cannot be automatically selected for an airport. Ignored if
+   * `supportAirportAutoRange` is `false`. If not defined, the map range will not be reset when targeting an airport
+   * and a range cannot be automatically selected.
    */
-  boundsOffset?: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
+  defaultAirportRangeIndex?: number | Subscribable<number>;
+
+  /**
+   * The nominal margins (relative to the map's dead zone boundaries), to respect when calculating the map range for
+   * airports, as `[left, top, right, bottom]` in pixels. Ignored if `supportAirportAutoRange` is `false`. Defaults to
+   * `[0, 0, 0, 0]`.
+   */
+  airportAutoRangeMargins?: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 
   /** The image cache from which to retrieve waypoint icon images. */
   waypointIconImageCache: WaypointIconImageCache;
+
+  /** The font type to use for waypoint labels. */
+  waypointStyleFontType: 'Roboto' | 'DejaVu';
 
   /** The scaling factor of waypoint icons and labels. Defaults to `1`. */
   waypointStyleScale?: number;
@@ -99,8 +100,20 @@ export type NextGenWaypointMapOptions = {
    */
   noHeadingAirplaneIconAnchor?: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 
+  /** The text of the banner that is displayed when GPS position is not available. Defaults to `'NO GPS POSITION'`. */
+  noGpsBannerText?: string;
+
   /** Styling options for the range ring. */
   rangeRingOptions: RangeRingOptions;
+
+  /** Whether to display airport runway outlines. Defaults to `false`. */
+  includeRunwayOutlines?: boolean;
+
+  /**
+   * The image cache from which to retrieve runway designation images. If not defined, runway designations will not be
+   * rendered. Ignored if `includeRunwayOutlines` is `false`.
+   */
+  runwayDesignationImageCache?: MapRunwayDesignationImageCache;
 
   /** Whether to display airspaces. Defaults to `false`. */
   includeAirspaces?: boolean;
@@ -117,6 +130,9 @@ export type NextGenWaypointMapOptions = {
    * left and [1, 1] at the bottom right.
    */
   airplaneIconAnchor: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
+
+  /** The orientation of the player airplane icon. Defaults to `MapOwnAirplaneIconOrientation.HeadingUp`. */
+  airplaneIconOrientation?: MapOwnAirplaneIconOrientation | Subscribable<MapOwnAirplaneIconOrientation>;
 
   /**
    * The offset of the boundary surrounding the area in which the pointer can freely move, from the edge of the
@@ -141,6 +157,12 @@ export type NextGenWaypointMapOptions = {
   /** Whether to include an orientation indicator. Defaults to `true`. */
   includeOrientationIndicator?: boolean;
 
+  /** Whether to include a detail indicator. Defaults to `false`. */
+  includeDetailIndicator?: boolean;
+
+  /** Whether to show the detail indicator title. Defaults to `false`. Ignored if `includeDetailIndicator` is `false`. */
+  showDetailIndicatorTitle?: boolean;
+
   /**
    * A user setting manager containing map settings. If not defined, map options will not be controlled by user
    * settings.
@@ -154,10 +176,16 @@ export type NextGenWaypointMapOptions = {
   useTerrainUserSettings?: boolean;
 
   /**
-   * Whether to allow relative terrain mode. Defaults to `true`. Ignored if `useTerrainUserSettings` is `false` or
+   * Whether to allow relative terrain mode. Defaults to `false`. Ignored if `useTerrainUserSettings` is `false` or
    * `settingManager` is not defined.
    */
   allowRelativeTerrainMode?: boolean;
+
+  /**
+   * The amount of time, in milliseconds, over which to blend the on-ground and relative terrain mode colors when
+   * transitioning between the two. Defaults to 2000 milliseconds.
+   */
+  groundRelativeTerrainBlendDuration?: number;
 
   /**
    * The minimum range index, inclusive, at which NEXRAD is visible.
@@ -221,8 +249,6 @@ export class NextGenWaypointMapBuilder {
 
     options.includeLine ??= false;
 
-    options.defaultNoTargetRangeIndex ??= null;
-    options.defaultTargetRangeIndex ??= null;
     options.supportAirportAutoRange ??= false;
 
     options.rangeEndpoints ??= VecNMath.create(4, 0.5, 0.5, 0.5, 0.25);
@@ -233,20 +259,28 @@ export class NextGenWaypointMapBuilder {
 
     options.useTerrainUserSettings ??= true;
     options.allowRelativeTerrainMode ??= false;
+    options.groundRelativeTerrainBlendDuration ??= 2000;
 
     options.nexradMinRangeIndex ??= 13;
     options.useNexradUserSettings ??= false;
 
+    options.airplaneIconOrientation ??= MapOwnAirplaneIconOrientation.HeadingUp;
+
     options.includeAirspaces ??= false;
     options.useAirspaceVisUserSettings ??= true;
+
+    options.includeRunwayOutlines ??= false;
 
     options.useWaypointVisUserSettings ??= true;
 
     options.rangeRingOptions.labelRadial ??= 225;
 
     options.includeOrientationIndicator ??= true;
+    options.includeDetailIndicator ??= false;
+    options.showDetailIndicatorTitle ??= false;
 
     mapBuilder
+      .withModule(GarminMapKeys.WaypointSelection, () => new WaypointMapSelectionModule())
       .withModule(GarminMapKeys.Units, () => new MapUnitsModule(options.unitsSettingManager))
       .with(GarminMapBuilder.range,
         options.nauticalRangeArray ?? MapUtils.nextGenMapRanges(UnitsDistanceSettingMode.Nautical),
@@ -289,20 +323,23 @@ export class NextGenWaypointMapBuilder {
         });
       })
       .with(GarminMapBuilder.declutter, options.useDeclutterUserSetting ? options.settingManager : undefined)
-      .withBing(options.bingId)
+      .withBing(options.bingId, options.bingDelay)
       .with(GarminMapBuilder.terrainColors,
         {
           [MapTerrainMode.None]: MapUtils.noTerrainEarthColors(),
           [MapTerrainMode.Absolute]: MapUtils.absoluteTerrainEarthColors(),
-          [MapTerrainMode.Relative]: MapUtils.relativeTerrainEarthColors()
+          [MapTerrainMode.Relative]: MapUtils.relativeTerrainEarthColors(),
+          [MapTerrainMode.Ground]: MapUtils.groundTerrainEarthColors()
         },
         options.useTerrainUserSettings ? options.settingManager : undefined,
-        options.allowRelativeTerrainMode
+        options.allowRelativeTerrainMode,
+        options.groundRelativeTerrainBlendDuration
       )
       .with(GarminMapBuilder.nexrad,
         options.nexradMinRangeIndex,
         options.useNexradUserSettings ? options.settingManager : undefined,
-        MapDeclutterMode.Level2
+        MapDeclutterMode.Level2,
+        MapUtils.connextPrecipRadarColors()
       );
 
     if (options.includeAirspaces) {
@@ -313,10 +350,13 @@ export class NextGenWaypointMapBuilder {
       (builder: MapWaypointDisplayBuilder): void => {
         builder.withNormalStyles(
           options.waypointIconImageCache,
-          MapWaypointStyles.nextGenNormalIconStyles(1, options.waypointStyleScale),
-          MapWaypointStyles.nextGenNormalLabelStyles(1, options.waypointStyleScale)
+          NextGenMapWaypointStyles.normalIconStyles(1, options.waypointStyleScale),
+          NextGenMapWaypointStyles.normalLabelStyles(1, options.waypointStyleFontType, options.waypointStyleScale),
+          NextGenMapWaypointStyles.runwayOutlineIconStyles(1),
+          options.runwayDesignationImageCache
         );
       },
+      options.includeRunwayOutlines,
       options.useWaypointVisUserSettings ? options.settingManager : undefined
     );
 
@@ -329,23 +369,16 @@ export class NextGenWaypointMapBuilder {
           builder
             .withFlightPlanInactiveStyles(
               options.waypointIconImageCache,
-              MapWaypointStyles.nextGenFlightPlanIconStyles(false, 2, options.waypointStyleScale),
-              MapWaypointStyles.nextGenFlightPlanLabelStyles(false, 2, options.waypointStyleScale)
+              NextGenMapWaypointStyles.flightPlanIconStyles(false, 2, options.waypointStyleScale),
+              NextGenMapWaypointStyles.flightPlanLabelStyles(false, 2, options.waypointStyleFontType, options.waypointStyleScale)
             )
             .withFlightPlanActiveStyles(
               options.waypointIconImageCache,
-              MapWaypointStyles.nextGenFlightPlanIconStyles(true, 3, options.waypointStyleScale),
-              MapWaypointStyles.nextGenFlightPlanLabelStyles(true, 3, options.waypointStyleScale)
+              NextGenMapWaypointStyles.flightPlanIconStyles(true, 3, options.waypointStyleScale),
+              NextGenMapWaypointStyles.flightPlanLabelStyles(true, 3, options.waypointStyleFontType, options.waypointStyleScale)
             );
         }
       );
-    }
-
-    if (typeof options.defaultNoTargetRangeIndex === 'number') {
-      options.defaultNoTargetRangeIndex = Subject.create(options.defaultNoTargetRangeIndex);
-    }
-    if (typeof options.defaultTargetRangeIndex === 'number') {
-      options.defaultTargetRangeIndex = Subject.create(options.defaultTargetRangeIndex);
     }
 
     mapBuilder
@@ -354,29 +387,35 @@ export class NextGenWaypointMapBuilder {
         (builder: MapWaypointDisplayBuilder) => {
           builder.withHighlightStyles(
             options.waypointIconImageCache,
-            MapWaypointStyles.nextGenHighlightIconStyles(4, options.waypointStyleScale),
-            MapWaypointStyles.nextGenHighlightLabelStyles(4, options.waypointStyleScale)
+            NextGenMapWaypointStyles.highlightIconStyles(4, options.waypointStyleScale),
+            NextGenMapWaypointStyles.highlightLabelStyles(4, options.waypointStyleFontType, options.waypointStyleScale)
           );
         },
         options.lineOptions,
       )
+      .withController(GarminMapKeys.WaypointHighlight, context => {
+        return new WaypointMapHighlightController(context);
+      })
       .withController<
         WaypointMapRTRController,
         WaypointMapRTRControllerModules,
         any, any,
         WaypointMapRTRControllerContext
-      >(GarminMapKeys.Nearest, context => {
-        let boundsOffset = undefined;
-        if (options.supportAirportAutoRange && options.boundsOffset !== undefined) {
-          boundsOffset = 'isSubscribable' in options.boundsOffset ? options.boundsOffset : Subject.create(options.boundsOffset);
+      >(GarminMapKeys.WaypointRTR, context => {
+        let defaultAirportRangeIndex: Subscribable<number> | undefined = undefined;
+        let margins: Subscribable<ReadonlyFloat64Array> | undefined = undefined;
+        if (options.supportAirportAutoRange && options.defaultAirportRangeIndex !== undefined) {
+          defaultAirportRangeIndex = SubscribableUtils.toSubscribable(options.defaultAirportRangeIndex, true);
+        }
+        if (options.supportAirportAutoRange && options.airportAutoRangeMargins !== undefined) {
+          margins = SubscribableUtils.toSubscribable(options.airportAutoRangeMargins, true);
         }
 
         return new WaypointMapRTRController(
           context,
-          options.defaultNoTargetRangeIndex as Subscribable<number> | null,
-          options.defaultTargetRangeIndex as Subscribable<number> | null,
           options.supportAirportAutoRange as boolean,
-          boundsOffset,
+          defaultAirportRangeIndex,
+          margins,
         );
       });
 
@@ -384,13 +423,14 @@ export class NextGenWaypointMapBuilder {
     let airplaneIconAnchor = options.airplaneIconAnchor;
     if (options.supportDataIntegrity && options.noHeadingAirplaneIconSrc !== undefined && options.noHeadingAirplaneIconAnchor !== undefined) {
       airplaneIconSrc = Subject.create('');
-      airplaneIconAnchor = Vec2Subject.createFromVector(Vec2Math.create());
+      airplaneIconAnchor = Vec2Subject.create(Vec2Math.create());
     }
 
     mapBuilder
       .with(GarminMapBuilder.rangeRing, options.rangeRingOptions)
       .with(GarminMapBuilder.crosshair)
       .withOwnAirplaneIcon(options.airplaneIconSize, airplaneIconSrc, airplaneIconAnchor)
+      .withOwnAirplaneIconOrientation(options.airplaneIconOrientation)
       .withOwnAirplanePropBindings([
         'position',
         'hdgTrue',
@@ -398,10 +438,24 @@ export class NextGenWaypointMapBuilder {
       ], options.dataUpdateFreq)
       .withFollowAirplane();
 
+    if (options.supportDataIntegrity) {
+      mapBuilder.withLayer(GarminMapKeys.DeadReckoning, context => {
+        return (
+          <MapDeadReckoningLayer
+            model={context.model}
+            mapProjection={context.projection}
+            airplaneIconSize={options.airplaneIconSize}
+            airplaneIconAnchor={airplaneIconAnchor}
+          />
+        );
+      });
+    }
+
     if (options.miniCompassImgSrc !== undefined) {
       mapBuilder.with(GarminMapBuilder.miniCompass, options.miniCompassImgSrc);
     }
 
+    // Top-left indicators
     if (options.includeOrientationIndicator) {
       const ref = FSComponent.createRef<MapOrientationIndicator>();
 
@@ -430,6 +484,42 @@ export class NextGenWaypointMapBuilder {
       );
     }
 
+    // Bottom-left indicators
+    if (options.includeDetailIndicator) {
+      const detailRef = FSComponent.createRef<MapDetailIndicator>();
+
+      const factories: ((context: MapSystemContext<any, any, any, any>) => VNode)[] = [];
+
+      if (options.includeDetailIndicator) {
+        factories.push(
+          (context: MapSystemContext<{
+            [GarminMapKeys.Declutter]: MapDeclutterModule
+          }>): VNode => {
+            const declutterModule = context.model.getModule(GarminMapKeys.Declutter);
+
+            return (
+              <MapDetailIndicator
+                ref={detailRef}
+                declutterMode={declutterModule.mode}
+                showTitle={options.showDetailIndicatorTitle as boolean}
+              />
+            );
+          }
+        );
+      }
+
+      mapBuilder.with(GarminMapBuilder.indicatorGroup,
+        GarminMapKeys.BottomLeftIndicators,
+        factories,
+        {
+          onDetached: () => {
+            detailRef.getOrDefault()?.destroy();
+          }
+        },
+        'map-indicator-group-bottom-left'
+      );
+    }
+
     // Center indicators
     if (options.supportDataIntegrity) {
       const noGpsRef = FSComponent.createRef<MapBannerIndicator>();
@@ -449,7 +539,7 @@ export class NextGenWaypointMapBuilder {
                 show={dataIntegrityModule.gpsSignalValid.map(isValid => !isValid)}
                 class='map-banner-no-gps'
               >
-                NO GPS POSITION
+                {options.noGpsBannerText ?? 'NO GPS POSITION'}
               </MapBannerIndicator>
             );
           }

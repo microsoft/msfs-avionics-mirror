@@ -1,0 +1,516 @@
+.airport-info-page .wpt-info-page-container {
+  position: absolute;
+  left: 0px;
+  width: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.gtc-horizontal .airport-info-page .wpt-info-page-container {
+  top: 50px;
+
+  --airport-info-page-header-margin-bottom: 5px;
+
+  --airport-info-page-tab-container-width: 860px;
+  --airport-info-page-tab-container-height: 560px;
+
+  --airport-info-page-tab-content-left: 12px;
+  --airport-info-page-tab-content-top: 10px;
+  --airport-info-page-tab-content-width: 480px;
+  --airport-info-page-tab-content-height: 530px;
+
+  --airport-info-page-bearing-arrow-margin-left: 5px;
+
+  /* ---- Info tab ---- */
+
+  --airport-info-page-info-font-size: 32px;
+  --airport-info-page-info-column-gap: 30px;
+  --airport-info-page-info-field-title-margin-bottom: 5px;
+
+  --airport-info-page-info-city-region-height: 125px;
+  --airport-info-page-info-city-region-padding-left: 20px;
+
+  --airport-info-page-info-pos-height: 195px;
+
+  --airport-info-page-info-elev-time-height: 100px;
+
+  --airport-info-page-info-fuel-access-height: 110px;
+
+  /* ---- Freq tab ---- */
+
+  --airport-info-page-freq-list-left: 1px;
+  --airport-info-page-freq-list-top: 1px;
+  --airport-info-page-freq-list-width: 474px;
+  --airport-info-page-freq-list-item-height: 130px;
+  --airport-info-page-freq-list-item-spacing: 1px;
+
+  --airport-info-page-freq-row-left-margin: 30px 0px 0px 15px;
+  --airport-info-page-freq-row-left-font-size: 38px;
+
+  --airport-info-page-freq-row-right-width: 175px;
+  --airport-info-page-freq-row-right-font-size: 32px;
+
+  /* ---- Weather tab ---- */
+
+  --airport-info-page-weather-list-left: 1px;
+  --airport-info-page-weather-list-top: 1px;
+  --airport-info-page-weather-list-width: 474px;
+  --airport-info-page-weather-list-height: 523px;
+
+  --airport-info-page-weather-list-content-width: 465px;
+
+  --airport-info-page-weather-row-padding: 5px;
+  --airport-info-page-weather-row-title-margin-bottom: 5px;
+
+  --airport-info-page-weather-header-pos-gap: 30px;
+
+  --airport-info-page-weather-clouds-row-margin-bottom: 5px;
+
+  /* ---- Runways tab ---- */
+
+  --airport-info-page-runways-list-left: 1px;
+  --airport-info-page-runways-list-top: 1px;
+  --airport-info-page-runways-list-width: 474px;
+  --airport-info-page-runways-list-item-height: 174px;
+  --airport-info-page-runways-list-item-spacing: 1px;
+
+  --airport-info-page-runways-row-button-padding: 20px 0px 15px 0px;
+  --airport-info-page-runways-row-name-font-size: 43px;
+
+  /* ---- Proc tab ---- */
+
+  --airport-info-page-proc-list-left: 1px;
+  --airport-info-page-proc-list-top: 1px;
+  --airport-info-page-proc-list-width: 474px;
+  --airport-info-page-proc-list-item-height: 130px;
+  --airport-info-page-proc-list-item-spacing: 1px;
+
+  --airport-info-page-proc-row-title-left: 15px;
+  --airport-info-page-proc-row-title-top: 10px;
+
+  --airport-info-page-proc-row-label-top: 65px;
+  --airport-info-page-proc-row-label-font-size: 32px;
+}
+
+.gtc-vertical .airport-info-page .wpt-info-page-container {
+  top: 27px;
+
+  --airport-info-page-header-margin-bottom: 3px;
+
+  --airport-info-page-tab-container-width: 465px;
+  --airport-info-page-tab-container-height: 300px;
+  --gtc-tabbed-container-vert-tab-width: 92px;
+
+  --airport-info-page-tab-content-left: 5px;
+  --airport-info-page-tab-content-top: 3px;
+  --airport-info-page-tab-content-width: 260px;
+  --airport-info-page-tab-content-height: 285px;
+
+  --airport-info-page-bearing-arrow-margin-left: 2px;
+
+  /* ---- Info tab ---- */
+
+  --airport-info-page-info-font-size: 18px;
+  --airport-info-page-info-column-gap: 15px;
+  --airport-info-page-info-field-title-margin-bottom: 2px;
+
+  --airport-info-page-info-city-region-height: 65px;
+  --airport-info-page-info-city-region-padding-left: 10px;
+
+  --airport-info-page-info-pos-height: 105px;
+
+  --airport-info-page-info-elev-time-height: 55px;
+
+  --airport-info-page-info-fuel-access-height: 60px;
+
+  /* ---- Freq tab ---- */
+
+  --airport-info-page-freq-list-left: 0px;
+  --airport-info-page-freq-list-top: 0px;
+  --airport-info-page-freq-list-width: 256px;
+  --airport-info-page-freq-list-item-height: 69px;
+  --airport-info-page-freq-list-item-spacing: 1px;
+
+  --airport-info-page-freq-row-left-margin: 15px 0px 0px 10px;
+  --airport-info-page-freq-row-left-font-size: 21px;
+
+  --airport-info-page-freq-row-right-width: 92px;
+  --airport-info-page-freq-row-right-font-size: 18px;
+
+  /* ---- Weather tab ---- */
+
+  --airport-info-page-weather-list-left: 0px;
+  --airport-info-page-weather-list-top: 0px;
+  --airport-info-page-weather-list-width: 256px;
+  --airport-info-page-weather-list-height: 279px;
+
+  --airport-info-page-weather-list-content-width: 252px;
+
+  --airport-info-page-weather-row-padding: 2px;
+  --airport-info-page-weather-row-title-margin-bottom: 2px;
+
+  --airport-info-page-weather-header-pos-gap: 15px;
+
+  --airport-info-page-weather-clouds-row-margin-bottom: 2px;
+
+  /* ---- Runways tab ---- */
+
+  --airport-info-page-runways-list-left: 0px;
+  --airport-info-page-runways-list-top: 0px;
+  --airport-info-page-runways-list-width: 256px;
+  --airport-info-page-runways-list-item-height: 92px;
+  --airport-info-page-runways-list-item-spacing: 1px;
+
+  --airport-info-page-runways-row-button-padding: 7px 0px 5px 0px;
+  --airport-info-page-runways-row-name-font-size: 24px;
+
+  /* ---- Proc tab ---- */
+
+  --airport-info-page-proc-list-left: 0px;
+  --airport-info-page-proc-list-top: 0px;
+  --airport-info-page-proc-list-width: 256px;
+  --airport-info-page-proc-list-item-height: 69px;
+  --airport-info-page-proc-list-item-spacing: 1px;
+
+  --airport-info-page-proc-row-title-left: 8px;
+  --airport-info-page-proc-row-title-top: 4px;
+
+  --airport-info-page-proc-row-label-top: 32px;
+  --airport-info-page-proc-row-label-font-size: 18px;
+}
+
+.airport-info-page .wpt-info-page-header {
+  margin-bottom: var(--airport-info-page-header-margin-bottom);
+}
+
+.airport-info-page-tab-container {
+  width: var(--airport-info-page-tab-container-width);
+  height: var(--airport-info-page-tab-container-height);
+}
+
+.airport-info-page-tab-container .wpt-info-page-no-wpt {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--gtc-tabbed-container-content-border-radius);
+}
+
+.airport-info-page-tab {
+  position: absolute;
+  box-sizing: border-box;
+  left: var(--airport-info-page-tab-content-left);
+  top: var(--airport-info-page-tab-content-top);
+  width: var(--airport-info-page-tab-content-width);
+  height: var(--airport-info-page-tab-content-height);
+  overflow: hidden;
+}
+
+.airport-info-page-bearing {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.airport-info-page .bearing-arrow {
+  margin-left: var(--airport-info-page-bearing-arrow-margin-left);
+}
+
+/* ---- Info tab ---- */
+
+.airport-info-page-info {
+  font-size: var(--airport-info-page-info-font-size);
+  white-space: pre;
+}
+
+.airport-info-page-info-section {
+  width: 100%;
+}
+
+.airport-info-page-info-section-bottom-separator {
+  border-bottom: solid 2px #808080;
+}
+
+.airport-info-page-info-field {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.airport-info-page-info-gps-field {
+  color: var(--wpt-info-page-gps-color);
+}
+
+.airport-info-page-info-field-title {
+  margin-bottom: var(--airport-info-page-info-field-title-margin-bottom);
+  font-size: 0.75em;
+  color: var(--g3000-color-white);
+}
+
+.airport-info-page-info-city-region {
+  height: var(--airport-info-page-info-city-region-height);
+  padding-left: var(--airport-info-page-info-city-region-padding-left);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.airport-info-page-info-pos {
+  height: var(--airport-info-page-info-pos-height);
+}
+
+.airport-info-page-info-pos-top {
+  height: 50%;
+  width: 100%;
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: 1fr 1fr;
+  grid-column-gap: var(--airport-info-page-info-column-gap);
+}
+
+.airport-info-page-info-coords {
+  height: 50%;
+  width: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.airport-info-page-info-elev-time {
+  height: var(--airport-info-page-info-elev-time-height);
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: 1fr 1fr;
+  grid-column-gap: var(--airport-info-page-info-column-gap);
+}
+
+.airport-info-page-info-fuel-access {
+  height: var(--airport-info-page-info-fuel-access-height);
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: 1fr 1fr;
+  grid-column-gap: var(--airport-info-page-info-column-gap);
+}
+
+/* ---- Freq tab ---- */
+
+.airport-info-page-freq {
+  border: 2px solid #828c96;
+  border-radius: 4px;
+}
+
+.airport-info-page-freq-list {
+  position: absolute;
+  left: var(--airport-info-page-freq-list-left);
+  top: var(--airport-info-page-freq-list-top);
+  width: var(--airport-info-page-freq-list-width);
+  height: calc(var(--airport-info-page-freq-list-item-height) * 4 + var(--airport-info-page-freq-list-item-spacing) * 3);
+}
+
+.airport-info-page-freq-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.airport-info-page-freq-row-left {
+  margin: var(--airport-info-page-freq-row-left-margin);
+  font-size: var(--airport-info-page-freq-row-left-font-size);
+}
+
+.airport-info-page-freq-row-right {
+  width: var(--airport-info-page-freq-row-right-width);
+  font-size: var(--airport-info-page-freq-row-right-font-size);
+}
+
+/* ---- Weather tab ---- */
+
+.airport-info-page-weather {
+  border: 2px solid #828c96;
+  border-radius: 4px;
+}
+
+.airport-info-page-weather-nometar {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--gtc-tabbed-container-content-border-radius);
+  color: var(--g3000-color-white);
+  background: var(--g3000-color-black);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.airport-info-page-weather-list {
+  position: absolute;
+  left: var(--airport-info-page-weather-list-left);
+  top: var(--airport-info-page-weather-list-top);
+  width: var(--airport-info-page-weather-list-width);
+  height: var(--airport-info-page-weather-list-height);
+}
+
+.airport-info-page-weather-list-content {
+  position: relative;
+  width: var(--airport-info-page-weather-list-content-width);
+}
+
+.airport-info-page-weather-row {
+  padding: var(--airport-info-page-weather-row-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.airport-info-page-weather-row-bottom-border {
+  border-bottom: solid 2px #808080;
+}
+
+.airport-info-page-weather-row-title {
+  margin-bottom: var(--airport-info-page-weather-row-title-margin-bottom);
+  font-size: 0.75em;
+}
+
+.airport-info-page-weather-header-title {
+  margin-bottom: var(--airport-info-page-weather-row-title-margin-bottom);
+  font-size: 1.2em;
+}
+
+.airport-info-page-weather-header-pos {
+  align-self: stretch;
+  display: grid;
+  grid-template-rows: auto;
+  grid-template-columns: 1fr 1fr;
+  grid-column-gap: var(--airport-info-page-weather-header-pos-gap);
+}
+
+.airport-info-page-weather-field {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.airport-info-page-weather-gps-field {
+  color: var(--wpt-info-page-gps-color);
+}
+
+.airport-info-page-weather-field-title {
+  margin-bottom: var(--airport-info-page-weather-field-title-margin-bottom);
+  font-size: 0.75em;
+  color: var(--g3000-color-white);
+}
+
+.airport-info-page-weather-vis-value {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.airport-info-page-weather-clouds-list {
+  align-self: stretch;
+  white-space: pre-wrap;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  text-align: center;
+}
+
+.airport-info-page-weather-clouds-row {
+  margin-bottom: var(--airport-info-page-weather-clouds-row-margin-bottom);
+  line-height: 1em;
+}
+
+.airport-info-page-weather-clouds-alt {
+  display: inline-block;
+}
+
+/* ---- Runways tab ---- */
+
+.airport-info-page-runways {
+  border: 2px solid #828c96;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.airport-info-page-runways-list {
+  position: absolute;
+  left: var(--airport-info-page-runways-list-left);
+  top: var(--airport-info-page-runways-list-top);
+  width: var(--airport-info-page-runways-list-width);
+  height: calc(var(--airport-info-page-runways-list-item-height) * 4 + var(--airport-info-page-runways-list-item-spacing) * 3);
+}
+
+.airport-info-page-runways-row-button {
+  padding: var(--airport-info-page-runways-row-button-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+  text-align: center;
+}
+
+.airport-info-page-runways-row-name {
+  font-size: var(--airport-info-page-runways-row-name-font-size);
+}
+
+.airport-info-page-runways-row-dimension {
+  display: inline-block;
+}
+
+.airport-info-page-runways-row-bottom {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+}
+
+.airport-info-page-runways-row-surface {
+  position: relative;
+  left: 5%;
+  width: 50%;
+}
+
+.airport-info-page-runways-row-lighting {
+  width: 50%;
+}
+
+/* ---- Proc tab ---- */
+
+.airport-info-page-proc {
+  border: 2px solid #828c96;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.airport-info-page-proc-list {
+  position: absolute;
+  left: var(--airport-info-page-proc-list-left);
+  top: var(--airport-info-page-proc-list-top);
+  width: var(--airport-info-page-proc-list-width);
+  height: calc(var(--airport-info-page-proc-list-item-height) * 4 + var(--airport-info-page-proc-list-item-spacing) * 3);
+}
+
+.airport-info-page-proc-row-title {
+  position: absolute;
+  left: var(--airport-info-page-proc-row-title-left);
+  top: var(--airport-info-page-proc-row-title-top);
+}
+
+.airport-info-page-proc-row-label {
+  position: absolute;
+  left: 50%;
+  top: var(--airport-info-page-proc-row-label-top);
+  transform: translateX(-50%);
+  font-size: var(--airport-info-page-proc-row-label-font-size);
+}

@@ -1,0 +1,17 @@
+.option-dialog {
+  position: absolute;
+  width: 84px;
+}
+
+.option-dialog .dialog-box-inner {
+  text-align: left;
+}
+
+.waypoint-input {
+  height: 14px;
+}
+
+.option-dialog-item {
+  padding-top: 1px;
+  height: 16px;
+}

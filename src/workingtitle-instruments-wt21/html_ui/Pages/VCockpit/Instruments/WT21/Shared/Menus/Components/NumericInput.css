@@ -1,0 +1,21 @@
+.popup-menu-numeric {
+  white-space: nowrap;
+  word-break: keep-all;
+  margin: -4px 0;
+  padding-left: 25px
+}
+
+.popup-menu-numeric div {
+  padding: 1px 0;
+  display: inline-block;
+}
+
+.popup-menu-numeric-label {
+  width: 105px;
+  vertical-align: -6px;
+}
+
+.popup-menu-numeric-value {
+  color: var(--wt21-colors-cyan);
+  vertical-align: -6px;
+}

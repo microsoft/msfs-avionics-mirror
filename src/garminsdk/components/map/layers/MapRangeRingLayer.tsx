@@ -1,7 +1,7 @@
 import {
   FSComponent, MapLabeledRingLabel, MapLabeledRingLayer, MapLayerProps, MapProjection, MapRangeModule, NumberUnitInterface, Subject, Subscribable, Unit,
   UnitFamily, UnitType, VNode
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapRangeDisplay } from '../MapRangeDisplay';

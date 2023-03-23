@@ -107,7 +107,7 @@ export type FlightPathVector = CircleVector;
  */
 export class ProcedureDetails {
   /** The origin runway object, consisting of the index of the origin runway
-   * in the origin runway information and the direction */
+   * in the origin runway information and the direction. */
   public originRunway: OneWayRunway | undefined = undefined;
 
   /** The ICAO for the facility associated with the departure procedure. */
@@ -134,6 +134,10 @@ export class ProcedureDetails {
   /** The index of the selected runway transition at the destination airport arrival information. */
   public arrivalRunwayTransitionIndex = -1;
 
+  /** The arrival runway object, consisting of the index of the destination runway
+   * in the destination runway information and the direction. */
+  public arrivalRunway: OneWayRunway | undefined = undefined;
+
   /** The ICAO for the facility associated with the approach procedure. */
   public approachFacilityIcao: string | undefined;
 
@@ -143,10 +147,8 @@ export class ProcedureDetails {
   /** The index of the approach transition in the destination airport approach information.*/
   public approachTransitionIndex = -1;
 
-  /**
-   * The destination runway object, consisting of the index of the destination runway
-   * in the destination runway information and the direction
-   */
+  /** The destination runway object, consisting of the index of the destination runway
+   * in the destination runway information and the direction. */
   public destinationRunway: OneWayRunway | undefined = undefined;
 }
 
@@ -192,7 +194,10 @@ export class FlightPlanSegment {
  */
 export interface LegCalculations {
 
-  /** The initial DTK of the leg. */
+  /** The magnetic variation, in degrees, used when calculating this leg's course. */
+  courseMagVar: number;
+
+  /** The initial DTK of the leg in degrees magnetic. */
   initialDtk: number | undefined;
 
   /** The leg's total distance in meters, not cut short by ingress/egress turn radii. */
@@ -249,35 +254,74 @@ export enum LegDefinitionFlags {
   DirectTo = 1 << 0,
   MissedApproach = 1 << 1,
   Obs = 1 << 2,
-  VectorsToFinal = 1 << 3
+  VectorsToFinal = 1 << 3,
+  VectorsToFinalFaf = 1 << 4
+}
+
+/**
+ * Vertical flight phase.
+ */
+export enum VerticalFlightPhase {
+  Climb = 'Climb',
+  Descent = 'Descent'
 }
 
 /**
  * Vertical metadata about a flight plan leg.
  */
 export interface VerticalData {
+  /** The vertical flight phase for the leg. */
+  phase: VerticalFlightPhase;
+
   /** The type of altitude restriction for the leg. */
   altDesc: AltitudeRestrictionType;
 
-  /** The first altitude field for restrictions. */
+  /** The first altitude field for restrictions, in meters. */
   altitude1: number;
 
-  /** The second altitude field for restrictions. */
+  /** The second altitude field for restrictions, in meters. */
   altitude2: number;
 
-  /** The optional speed restriction for this leg. */
-  speed?: number;
+  /** Whether altitude 1 should be displayed as a flight level. */
+  displayAltitude1AsFlightLevel: boolean;
 
-  /** The speed type/unit. */
-  speedDesc?: SpeedType;
+  /** Whether altitude 2 should be displayed as a flight level. */
+  displayAltitude2AsFlightLevel: boolean;
 
-  /** The FPA for this constraint, optional. */
+  /** The optional speed restriction for this leg, in knots IAS or Mach, depends on speedUnit. */
+  speed: number;
+
+  /** The type of speed restriction for the leg. */
+  speedDesc: SpeedRestrictionType;
+
+  /** The speed unit. */
+  speedUnit: SpeedUnit;
+
+  /** The FPA for this constraint, in degrees, optional. */
   fpa?: number;
 }
 
-export enum SpeedType {
+/** Just the simple altitude constraint fields from the {@link VerticalData} interface. */
+export type AltitudeConstraintSimple = Pick<VerticalData, 'altDesc' | 'altitude1' | 'displayAltitude1AsFlightLevel'>;
+
+/** Just the advanced altitude constraint fields from the {@link VerticalData} interface. */
+export type AltitudeConstraintAdvanced = AltitudeConstraintSimple & Pick<VerticalData, 'altitude2' | 'displayAltitude2AsFlightLevel'>;
+
+/** Just the speed constraint fields from the {@link VerticalData} interface. */
+export type SpeedConstraint = Pick<VerticalData, 'speedDesc' | 'speed' | 'speedUnit'>;
+
+export enum SpeedUnit {
   IAS,
   MACH,
+}
+
+/** Types of speed restrictions on legs. */
+export enum SpeedRestrictionType {
+  Unused,
+  At,
+  AtOrAbove,
+  AtOrBelow,
+  Between,
 }
 
 /**
@@ -294,7 +338,7 @@ export interface LegDefinition {
   /** The leg of the flight plan. */
   leg: Readonly<FlightPlanLeg>;
 
-  /** Leg definition flags. */
+  /** Leg definition flags. See {@link LegDefinitionFlags}. Use BitFlags to check. */
   readonly flags: number;
 
   /** Vertical Leg Data. All the fields should be readonly except for calculated fields like `fpa`. */

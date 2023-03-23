@@ -1,5 +1,6 @@
 import { GeoPointInterface } from '../../geo/GeoPoint';
 import { ReadonlyFloat64Array, Vec2Math, VecNMath } from '../../math/VecMath';
+import { MappedSubject } from '../../sub';
 import { Subscribable } from '../../sub/Subscribable';
 import { SubscribableUtils } from '../../sub/SubscribableUtils';
 import { MapProjection } from './MapProjection';
@@ -117,6 +118,8 @@ export abstract class AbstractMapTextLabel implements MapTextLabel {
   /** The outline color of this label's background. */
   public readonly bgOutlineColor: Subscribable<string>;
 
+  private fontStr: MappedSubject<[number, string], string>;
+
   /**
    * Constructor.
    * @param text The text of this label, or a subscribable which provides it.
@@ -132,6 +135,9 @@ export abstract class AbstractMapTextLabel implements MapTextLabel {
 
     this.font = SubscribableUtils.toSubscribable(options?.font ?? '', true);
     this.fontSize = SubscribableUtils.toSubscribable(options?.fontSize ?? 10, true);
+    this.fontStr = MappedSubject.create(([s, f]): string => {
+      return `${s}px ${f}`;
+    }, this.fontSize, this.font);
     this.fontColor = SubscribableUtils.toSubscribable(options?.fontColor ?? 'white', true);
     this.fontOutlineWidth = SubscribableUtils.toSubscribable(options?.fontOutlineWidth ?? 0, true);
     this.fontOutlineColor = SubscribableUtils.toSubscribable(options?.fontOutlineColor ?? 'black', true);
@@ -146,29 +152,33 @@ export abstract class AbstractMapTextLabel implements MapTextLabel {
 
   // eslint-disable-next-line jsdoc/require-jsdoc
   public draw(context: CanvasRenderingContext2D, mapProjection: MapProjection): void {
-    this.setTextStyle(context);
 
-    const width = context.measureText(this.text.get()).width;
-    const height = this.fontSize.get();
+    if (this.fontSize.get() !== 0) {
+      this.setTextStyle(context);
 
-    const showBg = this.showBg.get();
-    const bgPadding = this.bgPadding.get();
-    const bgOutlineWidth = this.bgOutlineWidth.get();
+      const width = context.measureText(this.text.get()).width;
+      const height = this.fontSize.get();
 
-    const bgExtraWidth = showBg ? bgPadding[1] + bgPadding[3] + bgOutlineWidth * 2 : 0;
-    const bgExtraHeight = showBg ? bgPadding[0] + bgPadding[2] + bgOutlineWidth * 2 : 0;
+      const showBg = this.showBg.get();
+      const bgPadding = this.bgPadding.get();
+      const bgOutlineWidth = this.bgOutlineWidth.get();
 
-    const anchor = this.anchor.get();
+      const bgExtraWidth = showBg ? bgPadding[1] + bgPadding[3] + bgOutlineWidth * 2 : 0;
+      const bgExtraHeight = showBg ? bgPadding[0] + bgPadding[2] + bgOutlineWidth * 2 : 0;
 
-    const pos = this.getPosition(mapProjection, AbstractMapTextLabel.tempVec2);
-    const centerX = pos[0] - (anchor[0] - 0.5) * (width + bgExtraWidth);
-    const centerY = pos[1] - (anchor[1] - 0.5) * (height + bgExtraHeight);
+      const anchor = this.anchor.get();
 
-    if (showBg) {
-      this.drawBackground(context, centerX, centerY, width, height);
+      const pos = this.getPosition(mapProjection, AbstractMapTextLabel.tempVec2);
+      const centerX = pos[0] - (anchor[0] - 0.5) * (width + bgExtraWidth);
+      const centerY = pos[1] - (anchor[1] - 0.5) * (height + bgExtraHeight);
+
+      if (showBg) {
+        this.drawBackground(context, centerX, centerY, width, height);
+      }
+
+      this.drawText(context, centerX, centerY);
     }
 
-    this.drawText(context, centerX, centerY);
   }
 
   /**
@@ -184,7 +194,7 @@ export abstract class AbstractMapTextLabel implements MapTextLabel {
    * @param context The canvas rendering context to use.
    */
   protected setTextStyle(context: CanvasRenderingContext2D): void {
-    context.font = `${this.fontSize.get()}px ${this.font.get()}`;
+    context.font = this.fontStr.get();
     context.textBaseline = 'middle';
     context.textAlign = 'center';
   }

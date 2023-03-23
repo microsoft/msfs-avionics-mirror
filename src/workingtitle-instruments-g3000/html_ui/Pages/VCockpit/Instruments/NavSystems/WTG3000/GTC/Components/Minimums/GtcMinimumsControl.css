@@ -1,0 +1,150 @@
+.gtc-horizontal .minimums-control {
+  --minimums-control-label-font-size: 32px;
+
+  --minimums-control-input-left: 395px;
+  --minimums-control-input-top: 82px;
+  --minimums-control-input-width: 280px;
+  --minimums-control-input-height: 60px;
+  --minimums-control-input-font-size: 44px;
+
+  --minimums-control-input-baro-feet-inactive-value-right: 52px;
+  --minimums-control-input-baro-meters-inactive-value-right: 71px;
+  --minimums-control-input-radar-feet-inactive-value-right: 66px;
+  --minimums-control-input-radar-meters-inactive-value-right: 85px;
+
+  --minimums-control-numpad-left: 375px;
+  --minimums-control-numpad-top: 185px;
+  --minimums-control-numpad-width: 495px;
+  --minimums-control-numpad-height: 580px;
+
+  --minimums-control-backspace-right: 140px;
+  --minimums-control-backspace-top: 50px;
+  --minimums-control-backspace-width: 120px;
+  --minimums-control-backspace-height: 120px;
+  --minimums-control-backspace-img-scale: 1.8;
+
+  --minimums-control-mode-left: 85px;
+  --minimums-control-mode-top: 65px;
+  --minimums-control-mode-width: 275px;
+  --minimums-control-mode-height: 140px;
+}
+
+.gtc-vertical .minimums-control {
+  --minimums-control-label-font-size: 16px;
+
+  --minimums-control-input-left: 187px;
+  --minimums-control-input-top: 45px;
+  --minimums-control-input-width: 153px;
+  --minimums-control-input-height: 34px;
+  --minimums-control-input-font-size: 22px;
+
+  --minimums-control-input-baro-feet-inactive-value-right: 33px;
+  --minimums-control-input-baro-meters-inactive-value-right: 42px;
+  --minimums-control-input-radar-feet-inactive-value-right: 40px;
+  --minimums-control-input-radar-meters-inactive-value-right: 49px;
+
+  --minimums-control-numpad-left: 175px;
+  --minimums-control-numpad-top: 100px;
+  --minimums-control-numpad-width: 264px;
+  --minimums-control-numpad-height: 312px;
+
+  --minimums-control-backspace-right: 47px;
+  --minimums-control-backspace-top: 25px;
+  --minimums-control-backspace-width: 65px;
+  --minimums-control-backspace-height: 65px;
+  --minimums-control-backspace-img-scale: 1;
+
+  --minimums-control-mode-left: 20px;
+  --minimums-control-mode-top: 35px;
+  --minimums-control-mode-width: 150px;
+  --minimums-control-mode-height: 75px;
+}
+
+.minimums-control-input {
+  position: absolute;
+  left: var(--minimums-control-input-left);
+  top: var(--minimums-control-input-top);
+  width: var(--minimums-control-input-width);
+  height: var(--minimums-control-input-height);
+  font-size: var(--minimums-control-input-font-size);
+  color: var(--g3000-color-cyan);
+  --cursor-input-slots-justify: center;
+}
+
+.minimums-control-input.cursor-input-edit-inactive {
+  color: var(--g3000-color-black);
+}
+
+.minimums-control-input .cursor-input-inactive {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.minimums-control-input-inactive-value {
+  position: relative;
+  background: var(--g3000-color-cyan);
+}
+
+.minimums-control-input-baro-feet-inactive-value {
+  right: var(--minimums-control-input-baro-feet-inactive-value-right);
+}
+
+.minimums-control-input-baro-meters-inactive-value {
+  right: var(--minimums-control-input-baro-meters-inactive-value-right);
+}
+
+.minimums-control-input-radar-feet-inactive-value {
+  right: var(--minimums-control-input-radar-feet-inactive-value-right);
+}
+
+.minimums-control-input-radar-meters-inactive-value {
+  right: var(--minimums-control-input-radar-meters-inactive-value-right);
+}
+
+.minimums-control-input-empty {
+  position: absolute;
+  left: var(--minimums-control-input-left);
+  top: var(--minimums-control-input-top);
+  width: var(--minimums-control-input-width);
+  height: var(--minimums-control-input-height);
+  background: var(--cursor-input-background);
+  border-radius: var(--cursor-input-border-radius);
+}
+
+.minimums-control-numpad {
+  position: absolute;
+  left: var(--minimums-control-numpad-left);
+  top: var(--minimums-control-numpad-top);
+  width: var(--minimums-control-numpad-width);
+  height: var(--minimums-control-numpad-height);
+  justify-items: center;
+  align-items: center;
+}
+
+.touch-button.minimums-control-backspace {
+  position: absolute;
+  right: var(--minimums-control-backspace-right);
+  top: var(--minimums-control-backspace-top);
+  width: var(--minimums-control-backspace-width);
+  height: var(--minimums-control-backspace-height);
+  font-size: var(--minimums-control-label-font-size);
+}
+
+.minimums-control-backspace .touch-button-img-img {
+  transform: translate(-50%, -50%) scale(var(--minimums-control-backspace-img-scale));
+}
+
+.touch-button.minimums-control-mode {
+  position: absolute;
+  left: var(--minimums-control-mode-left);
+  top: var(--minimums-control-mode-top);
+  width: var(--minimums-control-mode-width);
+  height: var(--minimums-control-mode-height);
+  font-size: var(--minimums-control-label-font-size);
+}
+
+.minimums-control-mode .touch-button-value-value {
+  font-size: 1.2em;
+}

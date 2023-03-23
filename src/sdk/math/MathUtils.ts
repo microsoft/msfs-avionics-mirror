@@ -64,4 +64,29 @@ export class MathUtils {
       return y0;
     }
   }
+
+  /**
+   * Linearly interpolates a keyed vector along one dimension. If the known vectors and the result vector have unequal
+   * lengths, then only the components shared by all vectors are interpolated in the result.
+   * @param out The object to which to write the result.
+   * @param x The key of the vector to interpolate.
+   * @param x0 The key of the first known vector.
+   * @param x1 The key of the second known vector.
+   * @param y0 The first known vector.
+   * @param y1 The second known vector.
+   * @param clampStart Whether to clamp the components of the interpolated vector to those of the first known vector.
+   * Defaults to false.
+   * @param clampEnd Whether to clamp the components of the interpolated vector to those of the second known vector.
+   * Defaults to false.
+   * @returns The interpolated vector corresponding to the specified key.
+   */
+  public static lerpVector(out: Float64Array, x: number, x0: number, x1: number, y0: ArrayLike<number>, y1: ArrayLike<number>, clampStart = false, clampEnd = false): Float64Array {
+    const length = Math.min(y0.length, y1.length, out.length);
+
+    for (let i = 0; i < length; i++) {
+      out[i] = MathUtils.lerp(x, x0, x1, y0[i], y1[i], clampStart, clampEnd);
+    }
+
+    return out;
+  }
 }

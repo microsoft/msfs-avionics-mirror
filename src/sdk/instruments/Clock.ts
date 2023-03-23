@@ -10,13 +10,26 @@ export interface ClockEvents {
 
   /** A UNIX timestamp corresponding to the simulation time. */
   simTime: number;
+
+  /**
+   * A UNIX timestamp corresponding to the simulation time, fired every sim frame
+   * instead of on each Coherent animation frame. USE THIS EVENT SPARINGLY, as it
+   * will impact performance and ignores the user set glass cockpit refresh setting.
+   */
+  simTimeHiFreq: number;
 }
 
 /**
  * A publisher of clock events.
  */
 export class ClockPublisher extends BasePublisher<ClockEvents> {
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
+  public startPublish(): void {
+    super.startPublish();
+    setInterval(() => this.publish('simTimeHiFreq', ClockPublisher.absoluteTimeToUNIXTime(SimVar.GetSimVarValue('E:ABSOLUTE TIME', 'seconds'))), 0);
+  }
+
+  /** @inheritdoc */
   public onUpdate(): void {
     this.publish('realTime', Date.now());
     this.publish('simTime', ClockPublisher.absoluteTimeToUNIXTime(SimVar.GetSimVarValue('E:ABSOLUTE TIME', 'seconds')));

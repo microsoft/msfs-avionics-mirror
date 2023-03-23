@@ -1,11 +1,11 @@
-/// <reference types="msfstypes/JS/Avionics" />
-
 import {
-  BitFlags, MapOwnAirplanePropsModule, MapProjection, MapProjectionChangeType, MapRotation, MapRotationModule, MapSystemContext, MapSystemController,
-  MapSystemKeys, MapSystemUtils, ReadonlyFloat64Array, Subscribable, SubscribableUtils, Subscription, Vec2Math, VecNMath, VecNSubject
-} from 'msfssdk';
+  BitFlags, MapProjection, MapProjectionChangeType, MapRotation, MapRotationModule, MapSystemContext, MapSystemController,
+  MapSystemKeys, MapSystemUtils, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subscribable, SubscribableUtils,
+  Subscription, Vec2Math, VecNMath, VecNSubject
+} from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
+import { MapResourcePriority } from '../MapResourcePriority';
 import { MapOrientation, MapOrientationModule } from '../modules/MapOrientationModule';
 
 /**
@@ -17,22 +17,43 @@ export interface MapOrientationRTRControllerModules {
 
   /** Orientation module. */
   [GarminMapKeys.Orientation]: MapOrientationModule;
+}
 
-  /** Own airplane properties module. */
-  [MapSystemKeys.OwnAirplaneProps]?: MapOwnAirplanePropsModule;
+/**
+ * Context properties required by MapOrientationRTRController.
+ */
+export interface MapOrientationRTRControllerContext {
+  /** Resource moderator for control of the map's rotation mode. */
+  [GarminMapKeys.RotationModeControl]: ResourceModerator;
 }
 
 /**
  * Controls the rotation, range, and projected target offset of a map based on the orientation module's orientation
  * value.
  */
-export class MapOrientationRTRController extends MapSystemController<MapOrientationRTRControllerModules> {
+export class MapOrientationRTRController extends MapSystemController<MapOrientationRTRControllerModules, any, any, MapOrientationRTRControllerContext> {
   private static readonly DEFAULT_TARGET_OFFSET = Vec2Math.create();
   private static readonly DEFAULT_RANGE_ENDPOINTS = VecNMath.create(4, 0.5, 0.5, 0.5, 0);
 
   private readonly orientationModule = this.context.model.getModule(GarminMapKeys.Orientation);
   private readonly rotationModule = this.context.model.getModule(MapSystemKeys.Rotation);
-  private readonly ownAirplanePropsModule = this.context.model.getModule(MapSystemKeys.OwnAirplaneProps);
+
+  private readonly rotationModeControl = this.context[GarminMapKeys.RotationModeControl];
+
+  private hasRotationModeControl = false;
+
+  private readonly rotationModeControlConsumer: ResourceConsumer = {
+    priority: MapResourcePriority.ORIENTATION_ROTATION,
+
+    onAcquired: () => {
+      this.hasRotationModeControl = true;
+      this.updateRotation();
+    },
+
+    onCeded: () => {
+      this.hasRotationModeControl = false;
+    }
+  };
 
   private readonly targetOffsetParam = {
     targetProjectedOffset: Vec2Math.create()
@@ -48,7 +69,6 @@ export class MapOrientationRTRController extends MapSystemController<MapOrientat
   private needUpdateRangeEndpoints = false;
 
   private orientationSub?: Subscription;
-  private onGroundSub?: Subscription;
   private targetOffsetPipe?: Subscription;
   private rangeEndpointsPipe?: Subscription;
 
@@ -61,7 +81,7 @@ export class MapOrientationRTRController extends MapSystemController<MapOrientat
    * orientation does not have defined range endpoints, it will default to `[0.5, 0.5, 0.5, 0]`.
    */
   constructor(
-    context: MapSystemContext<MapOrientationRTRControllerModules>,
+    context: MapSystemContext<MapOrientationRTRControllerModules, any, any, MapOrientationRTRControllerContext>,
     private readonly nominalTargetOffsets?: Partial<Record<MapOrientation, ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>>>,
     private readonly nominalRangeEndpoints?: Partial<Record<MapOrientation, ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>>>
   ) {
@@ -70,31 +90,12 @@ export class MapOrientationRTRController extends MapSystemController<MapOrientat
 
   /** @inheritdoc */
   public onAfterMapRender(): void {
-    this.onGroundSub = this.ownAirplanePropsModule?.isOnGround.sub(isOnGround => {
-      if (this.orientationModule.orientation.get() === MapOrientation.TrackUp) {
-        this.rotationModule.rotationType.set(isOnGround ? MapRotation.HeadingUp : MapRotation.TrackUp);
-      }
-    });
+    this.rotationModeControl.claim(this.rotationModeControlConsumer);
 
     this.orientationSub = this.orientationModule.orientation.sub(orientation => {
-      let rotationType: MapRotation;
-
-      switch (orientation) {
-        case MapOrientation.HeadingUp:
-          rotationType = MapRotation.HeadingUp;
-          break;
-        case MapOrientation.TrackUp:
-          if (this.ownAirplanePropsModule?.isOnGround.get() ?? false) {
-            rotationType = MapRotation.HeadingUp;
-          } else {
-            rotationType = MapRotation.TrackUp;
-          }
-          break;
-        default:
-          rotationType = MapRotation.NorthUp;
+      if (this.hasRotationModeControl) {
+        this.updateRotation();
       }
-
-      this.rotationModule.rotationType.set(rotationType);
 
       this.targetOffsetPipe?.destroy();
       this.rangeEndpointsPipe?.destroy();
@@ -151,6 +152,26 @@ export class MapOrientationRTRController extends MapSystemController<MapOrientat
   }
 
   /**
+   * Updates the map rotation mode based on the current map orientation.
+   */
+  private updateRotation(): void {
+    let rotationType: MapRotation;
+
+    switch (this.orientationModule.orientation.get()) {
+      case MapOrientation.HeadingUp:
+        rotationType = MapRotation.HeadingUp;
+        break;
+      case MapOrientation.TrackUp:
+        rotationType = MapRotation.TrackUp;
+        break;
+      default:
+        rotationType = MapRotation.NorthUp;
+    }
+
+    this.rotationModule.rotationType.set(rotationType);
+  }
+
+  /**
    * Updates this controller's projected target offset.
    */
   private updateTargetOffset(): void {
@@ -192,11 +213,12 @@ export class MapOrientationRTRController extends MapSystemController<MapOrientat
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
+    this.rotationModeControl.forfeit(this.rotationModeControlConsumer);
 
     this.orientationSub?.destroy();
-    this.onGroundSub?.destroy();
     this.targetOffsetPipe?.destroy();
     this.rangeEndpointsPipe?.destroy();
+
+    super.destroy();
   }
 }

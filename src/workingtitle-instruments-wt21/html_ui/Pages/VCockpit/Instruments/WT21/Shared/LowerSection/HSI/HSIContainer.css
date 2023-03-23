@@ -1,0 +1,213 @@
+.hsi-container {
+  width: 100%;
+  height: 100%;
+  --hsi-range-text-font-size: 24px;
+}
+
+.hsi-container.hsi-format-plan .hsi-heading-infos {
+  display: none;
+}
+
+.hsi-square {
+  position: relative;
+  height: 100%;
+}
+
+.hsi-container svg {
+  stroke-width: 2px;
+}
+
+.hsi-selected-heading-readout {
+  position: absolute;
+  left: 13%;
+  top: 0.25%;
+  display: flex;
+  align-items: baseline;
+  width: 12%;
+  justify-content: space-between;
+  color: var(--wt21-colors-cyan);
+  z-index: 0;
+}
+
+.hsi-selected-heading-background {
+  position: absolute;
+  top: -1px;
+  left: -4px;
+  background-color: var(--wt21-colors-black);
+  width: 102px;
+  height: 29px;
+  z-index: -1;
+}
+
+.hsi-selected-heading-legend {
+  font-size: 2.4vh;
+}
+
+.hsi-selected-heading-value {
+  font-size: 3.1vh;
+  margin-left: 10%;
+}
+
+.hsi-static-heading-box {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: auto;
+}
+
+.hsi-heading-box-lubber-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: auto;
+  width: 300px;
+  height: 150px;
+}
+
+.hsi-static-current-heading {
+  color: var(--wt21-colors-green);
+  font-size: 3.1vh;
+  text-align: center;
+  padding-top: 0.3%;
+  position: relative;
+}
+
+.hsi-rotating-large {
+  position: absolute;
+  width: 100vw;
+  height: 100vw;
+  /* This "left: 50%" is offset in the code where the rotation transform is applied. */
+  /* This is done so that we can center an absolutely positioned element on it's parent even though it is wider than the parent. */
+  left: 50%;
+}
+
+.hsi-rotating-large svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hsi-absolute-square {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.hsi-tfc-ticks {
+  display: none;
+}
+
+.tfc-enabled .hsi-tfc-ticks {
+  display: block;
+}
+
+.hsi-tfc-ticks-25NM,
+.hsi-tfc-ticks-10NM,
+.hsi-tfc-ticks-5NM {
+  display: none;
+}
+
+.hsi-range-25NM .hsi-tfc-ticks-25NM {
+  display: block;
+}
+
+.hsi-range-10NM .hsi-tfc-ticks-10NM {
+  display: block;
+}
+
+.hsi-range-5NM .hsi-tfc-ticks-5NM {
+  display: block;
+}
+
+.hsi-arc-map {
+  transform: rotateX(0);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+.mfd-extended-map .hsi-arc-map {
+  margin-top: -260px;
+}
+
+.mfd-extended-map .hsi-arc-map>div:nth-child(2) {
+  height: 824px !important;
+}
+
+.mfd-extended-map .hsi-arc-mask {
+  fill: none;
+}
+
+.mfd-extended-map .hsi-selected-heading-background {
+  display: none;
+}
+
+.hsi-heading-infos {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+  width: var(--center-width);
+  height: 100%;
+}
+
+.hsi-map-ownship-icon {
+  stroke: var(--wt21-colors-white);
+  stroke-width: 2;
+}
+
+.hsi-heading-infos .fail-box {
+  left: 45.5%
+}
+
+.fail .hsi-static-heading-box,
+.warn .hsi-static-heading-box,
+.align .hsi-static-heading-box {
+  display: none;
+}
+
+.hsi-container.align .fail-box {
+  display: block;
+  color: var(--wt21-colors-red);
+  border-color: var(--wt21-colors-red);
+}
+
+.hsi-container.fail .map-fail-flag,
+.hsi-container.align .map-fail-flag {
+  display: block;
+  color: var(--wt21-colors-yellow);
+  position: absolute;
+  top: 28%;
+  left: 46.9%;
+}
+
+.hsi-container.mfd-extended-map .map-fail-flag {
+  top: 50.6%;
+}
+
+.hsi-container .map-fail-flag,
+.hsi-container.hsi-format-rose .map-fail-flag,
+.hsi-container.hsi-format-arc .map-fail-flag,
+.hsi-container.hsi-format-tcas .map-fail-flag,
+.hsi-container.fail .hsi-arc-map>div>div,
+.hsi-container.align .hsi-arc-map>div>div {
+  display: none;
+}
+
+#copyrightInfo {
+  position: absolute;
+  top: 59.2%;
+  left: 33.75%;
+  font-size: 1.5rem;
+}
+
+.MFD #copyrightInfo {
+  left: 27.5%;
+}
+
+.align#copyrightInfo {
+  display: block;
+}

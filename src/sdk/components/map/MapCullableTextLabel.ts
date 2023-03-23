@@ -1,5 +1,5 @@
 import { GeoPointInterface } from '../../geo/GeoPoint';
-import { ReadonlySubEvent, SubEvent } from '../../sub/SubEvent';
+import { SubEventInterface, ReadonlySubEvent, SubEvent } from '../../sub/SubEvent';
 import { Subscribable } from '../../sub/Subscribable';
 import { SubscribableUtils } from '../../sub/SubscribableUtils';
 import { Subscription } from '../../sub/Subscription';
@@ -37,7 +37,7 @@ export class MapCullableLocationTextLabel extends MapLocationTextLabel implement
   public readonly bounds = new Float64Array(4);
 
   /** @inheritdoc */
-  public readonly invalidation = new SubEvent<this, void>();
+  public readonly invalidation: SubEventInterface<this, void> = new SubEvent<this, void>();
 
   private readonly subs: Subscription[] = [];
 

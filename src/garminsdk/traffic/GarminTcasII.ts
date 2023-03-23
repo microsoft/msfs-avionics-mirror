@@ -1,7 +1,7 @@
 import {
-  AdsbOperatingMode, EventBus, MappedSubject, NumberUnitInterface, Tcas, TcasAlertLevel, TcasIISensitivityParameters, TcasOperatingMode, TcasSensitivity,
+  AdsbOperatingMode, EventBus, MappedSubject, NumberUnitInterface, Subject, Tcas, TcasAlertLevel, TcasIISensitivityParameters, TcasOperatingMode, TcasSensitivity,
   TcasSensitivityParameters, TrafficContact, TrafficInstrument, UnitFamily, UnitType
-} from 'msfssdk';
+} from '@microsoft/msfs-sdk';
 
 import { CDIScaleLabel, LNavDataEvents } from '../navigation/LNavDataEvents';
 import { TrafficOperatingModeSetting, TrafficUserSettings } from '../settings/TrafficUserSettings';
@@ -26,7 +26,9 @@ export class GarminTcasII extends Tcas<GarminTcasIntruder, GarminTcasIISensitivi
 
   private cdiScalingLabel: CDIScaleLabel = CDIScaleLabel.Enroute;
 
+  private readonly _isPowered = Subject.create(true);
   private readonly operatingModeSetting = TrafficUserSettings.getManager(this.bus).getSetting('trafficOperatingMode');
+  private readonly operatingModeState = MappedSubject.create(this._isPowered, this.operatingModeSetting);
 
   private readonly raAltitudeInhibitFlag = MappedSubject.create(
     ([radarAlt, isClimbing]): boolean => {
@@ -70,31 +72,45 @@ export class GarminTcasII extends Tcas<GarminTcasIntruder, GarminTcasIISensitivi
 
     this.bus.getSubscriber<LNavDataEvents>().on('lnavdata_cdi_scale_label').whenChanged().handle(label => { this.cdiScalingLabel = label; });
 
-    this.operatingModeSetting.sub(value => {
-      switch (value) {
-        case TrafficOperatingModeSetting.Operating:
-        case TrafficOperatingModeSetting.Auto:
-          if (this.raAltitudeInhibitFlag.get()) {
-            this.setOperatingMode(TcasOperatingMode.TAOnly);
-          } else {
-            this.setOperatingMode(TcasOperatingMode.TA_RA);
-          }
-          break;
-        case TrafficOperatingModeSetting.TAOnly:
-          this.operatingModeSub.set(TcasOperatingMode.TAOnly);
-          break;
-        default:
-          this.operatingModeSub.set(TcasOperatingMode.Standby);
+    this.operatingModeState.sub(([isPowered, operatingModeSetting]) => {
+      if (!isPowered) {
+        this.operatingModeSub.set(TcasOperatingMode.Off);
+      } else {
+        switch (operatingModeSetting) {
+          case TrafficOperatingModeSetting.Operating:
+          case TrafficOperatingModeSetting.Auto:
+            if (this.raAltitudeInhibitFlag.get()) {
+              this.setOperatingMode(TcasOperatingMode.TAOnly);
+            } else {
+              this.setOperatingMode(TcasOperatingMode.TA_RA);
+            }
+            break;
+          case TrafficOperatingModeSetting.TAOnly:
+            this.operatingModeSub.set(TcasOperatingMode.TAOnly);
+            break;
+          default:
+            this.operatingModeSub.set(TcasOperatingMode.Standby);
+        }
       }
     }, true);
 
     this.raAltitudeInhibitFlag.sub(inhibit => {
-      if (this.operatingModeSetting.value === TrafficOperatingModeSetting.Auto) {
+      if (this._isPowered.get() && this.operatingModeSetting.value === TrafficOperatingModeSetting.Auto) {
         this.setOperatingMode(inhibit ? TcasOperatingMode.TAOnly : TcasOperatingMode.TA_RA);
       }
     });
 
     this.adsb?.init();
+  }
+
+  /** @inheritdoc */
+  public isPowered(): boolean {
+    return this._isPowered.get();
+  }
+
+  /** @inheritdoc */
+  public setPowered(isPowered: boolean): void {
+    this._isPowered.set(isPowered);
   }
 
   /** @inheritdoc */

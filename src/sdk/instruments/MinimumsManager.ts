@@ -1,4 +1,4 @@
-import { EventBus, EventSubscriber, KeyEvents, KeyInterceptManager } from '../data';
+import { EventBus, EventSubscriber, KeyEvents, KeyEventManager } from '../data';
 import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
 import { Unit, UnitFamily, UnitType } from '../math';
 import { SimVarPublisher } from './BasePublishers';
@@ -79,7 +79,7 @@ export class MinimumsManager {
     SimVar.SetSimVarValue('K:SET_DECISION_HEIGHT', 'number', 0);
     SimVar.SetSimVarValue('K:SET_DECISION_ALTITUDE_MSL', 'number', 0);
 
-    KeyInterceptManager.getManager(bus).then(manager => {
+    KeyEventManager.getManager(bus).then(manager => {
       manager.interceptKey('INCREASE_DECISION_HEIGHT', false);
       manager.interceptKey('DECREASE_DECISION_HEIGHT', false);
       manager.interceptKey('INCREASE_DECISION_ALTITUDE_MSL', false);
@@ -112,7 +112,7 @@ export class MinimumsManager {
       let curVal: number | undefined;
       let direction: 'up' | 'down' = 'up';
       let unit: Unit<UnitFamily.Distance> | undefined;
-      if (evt.value !== undefined) {
+      if (evt.value0 !== undefined) {
         switch (evt.key) {
           case 'DECREASE_DECISION_HEIGHT':
             direction = 'down';
@@ -138,7 +138,7 @@ export class MinimumsManager {
           // we have now way of knowing  about it so will force a conversion that's not
           // needed.This is a fairly minor flaw, but worth acknowledging until a
           // workaround can be found.
-          const increment = unit.convertTo(evt.value, UnitType.FOOT) * (direction == 'down' ? -1 : 1);
+          const increment = unit.convertTo(evt.value0, UnitType.FOOT) * (direction == 'down' ? -1 : 1);
           SimVar.SetSimVarValue(simvar, 'number', curVal + increment);
         }
       }

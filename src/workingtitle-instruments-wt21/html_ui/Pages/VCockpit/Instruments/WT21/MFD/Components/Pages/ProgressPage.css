@@ -1,0 +1,42 @@
+.progress-row {
+  padding-left: 20px;
+  margin-top: 20px;
+  white-space: nowrap;
+}
+
+.progress-grid,
+.dest-grid {
+  align-self: left;
+  display: grid;
+  grid-template-columns: 100px 120px 210px 90px;
+}
+
+.progress-grid {
+  margin-top: 28px;
+  grid-template-rows: 22px 42px 42px 42px 42px 42px 42px 42px;
+}
+
+.dest-grid {
+  grid-template-rows: repeat(6, 22px);
+}
+
+.dest-indent {
+  padding-left: 15px;
+  grid-column-start: 1;
+  grid-column-end: 5;
+}
+
+.fuel-column {
+  grid-column-start: 3;
+  padding-left: 40px;
+}
+
+.progress-fuel-label {
+  position: absolute;
+  top: 9.7%;
+  left: 97%;
+}
+
+.vnav-ident {
+  margin-left: 12px;
+}

@@ -1,5 +1,6 @@
-import { GeoCircle, GeoPoint, LatLonInterface } from '../geo';
+import { GeoCircle, GeoPoint, LatLonInterface, NavMath } from '../geo';
 import { MathUtils, ReadonlyFloat64Array, UnitType, Vec3Math } from '../math';
+import { FlightPlanLeg, VorFacility } from '../navigation/Facilities';
 import { CircleVector, FlightPathVector, FlightPathVectorFlags, LegCalculations, VectorTurnDirection } from './FlightPlanning';
 
 /**
@@ -85,6 +86,24 @@ export class FlightPathUtils {
   }
 
   /**
+   * Gets the direction of a turn described by a flight path circle vector.
+   * @param vector The flight path circle vector describing the turn.
+   * @returns The direction of the turn described by the flight path circle vector.
+   */
+  public static getVectorTurnDirection(vector: CircleVector): VectorTurnDirection {
+    return vector.radius > MathUtils.HALF_PI ? 'right' : 'left';
+  }
+
+  /**
+   * Gets the radius of a turn described by a flight path circle vector.
+   * @param vector The flight path circle vector describing the turn.
+   * @returns The radius of the turn described by the flight path circle vector, in great-arc radians.
+   */
+  public static getVectorTurnRadius(vector: CircleVector): number {
+    return Math.min(vector.radius, Math.PI - vector.radius);
+  }
+
+  /**
    * Gets the initial true course bearing of a flight path vector.
    * @param vector A flight path vector.
    * @returns The initial true course bearing of the vector, or undefined if one could not be calculated.
@@ -106,6 +125,25 @@ export class FlightPathUtils {
       vector,
       FlightPathUtils.geoCircleCache[0]
     ).bearingAt(FlightPathUtils.geoPointCache[0].set(vector.endLat, vector.endLon), Math.PI);
+  }
+
+  /**
+   * Gets the true course for a flight plan leg.
+   * @param leg A flight plan leg.
+   * @param point The location from which to get magnetic variation if `magVarFacility` is not defined.
+   * @param magVarFacility The VOR facility which defines the magnetic variation used for the leg's course.
+   * @returns The true course for the specified flight plan leg.
+   */
+  public static getLegTrueCourse(leg: FlightPlanLeg, point: LatLonInterface, magVarFacility?: VorFacility): number {
+    if (leg.trueDegrees) {
+      return leg.course;
+    }
+
+    const magVar = magVarFacility
+      ? -magVarFacility.magneticVariation // The sign of magnetic variation on VOR facilities is the opposite of the standard east = positive convention.
+      : Facilities.getMagVar(point.lat, point.lon);
+
+    return NavMath.normalizeHeading(leg.course + magVar);
   }
 
   /**
@@ -361,6 +399,97 @@ export class FlightPathUtils {
     const signedDiff = (angle - end) * (end >= 0 ? 1 : -1);
 
     return inclusive ? signedDiff <= angularTolerance : signedDiff < -angularTolerance;
+  }
+
+  /**
+   * Projects an instantaneous velocity at a point along a bearing onto a geo circle.
+   * 
+   * The projected velocity is defined as the limit as dt goes to 0 of:
+   * 
+   * `distance( project(p(0)), project(p(dt)) ) / dt`
+   * 
+   * * `p(0)` is the position at which the velocity to project is measured.
+   * * `p(x)` returns `p(0)` offset by the velocity to project after `x` time has elapsed.
+   * * `project(x)` projects `x` onto the geo circle onto which the velocity is to be projected.
+   * * `distance(x, y)` returns the distance from `x` to `y` along the geo circle onto which the velocity is to be
+   * projected, in the range `(-c / 2, c / 2]`, where `c` is the circumference of the geo circle.
+   * @param speed The magnitude of the velocity to project.
+   * @param position The position at which the velocity is measured.
+   * @param bearing The true bearing, in degrees, defining the direction of the velocity to project.
+   * @param projectTo The geo circle to which to project the velocity.
+   * @returns The signed magnitude of the velocity projected onto the specified geo circle. A positive sign indicates
+   * the projected velocity follows the same direction as the circle, while a negative sign indicates the projected
+   * velocity follows the opposite direction as the circle.
+   */
+  public static projectVelocityToCircle(
+    speed: number,
+    position: LatLonInterface | ReadonlyFloat64Array,
+    bearing: number,
+    projectTo: GeoCircle
+  ): number;
+  /**
+   * Projects an instantaneous velocity at a point along a geo circle onto another geo circle.
+   * 
+   * The projected velocity is defined as the limit as dt goes to 0 of:
+   * 
+   * `distance( project(p(0)), project(p(dt)) ) / dt`
+   * 
+   * * `p(0)` is the position at which the velocity to project is measured.
+   * * `p(x)` returns `p(0)` offset by the velocity to project after `x` time has elapsed.
+   * * `project(x)` projects `x` onto the geo circle onto which the velocity is to be projected.
+   * * `distance(x, y)` returns the distance from `x` to `y` along the geo circle onto which the velocity is to be
+   * projected, in the range `(-c / 2, c / 2]`, where `c` is the circumference of the geo circle.
+   * @param speed The magnitude of the velocity to project.
+   * @param position The position at which the velocity is measured.
+   * @param path The geo circle defining the path parallel to the velocity to project.
+   * @param projectTo The geo circle to which to project the velocity.
+   * @returns The signed magnitude of the velocity projected onto the specified geo circle. A positive sign indicates
+   * the projected velocity follows the same direction as the circle, while a negative sign indicates the projected
+   * velocity follows the opposite direction as the circle.
+   */
+  public static projectVelocityToCircle(
+    speed: number,
+    position: LatLonInterface | ReadonlyFloat64Array,
+    path: GeoCircle,
+    projectTo: GeoCircle
+  ): number;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static projectVelocityToCircle(
+    speed: number,
+    position: LatLonInterface | ReadonlyFloat64Array,
+    direction: number | GeoCircle,
+    projectTo: GeoCircle
+  ): number {
+    if (projectTo.radius <= GeoCircle.ANGULAR_TOLERANCE) {
+      return NaN;
+    }
+
+    if (speed === 0) {
+      return 0;
+    }
+
+    if (!(position instanceof Float64Array)) {
+      position = GeoPoint.sphericalToCartesian(position as LatLonInterface, FlightPathUtils.vec3Cache[0]);
+    }
+
+    const velocityPath = typeof direction === 'number'
+      ? FlightPathUtils.geoCircleCache[0].setAsGreatCircle(position, direction)
+      : direction.isGreatCircle()
+        ? direction
+        : FlightPathUtils.geoCircleCache[0].setAsGreatCircle(
+          position,
+          FlightPathUtils.geoCircleCache[0].setAsGreatCircle(direction.center, position).center
+        );
+
+    const sign = velocityPath.encircles(projectTo.center) ? 1 : -1;
+    const velocityPathNormal = Vec3Math.copy(velocityPath.center, FlightPathUtils.vec3Cache[1]);
+
+    const projectedRadialNormal = FlightPathUtils.geoCircleCache[0].setAsGreatCircle(projectTo.center, position).center;
+    const dot = Vec3Math.dot(projectedRadialNormal, velocityPathNormal);
+
+    const sinTheta = Math.sqrt(1 - MathUtils.clamp(dot * dot, 0, 1));
+
+    return speed * sinTheta * sign;
   }
 
   /**

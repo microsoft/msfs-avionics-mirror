@@ -1,11 +1,12 @@
-import { AdcEvents, AvionicsSystemState, AvionicsSystemStateEvent, BaseAdcEvents, BasicAvionicsSystem, EventBus, Subscription, SystemPowerKey } from 'msfssdk';
+import { AdcEvents, AvionicsSystemState, AvionicsSystemStateEvent, BaseAdcEvents, BasicAvionicsSystem, EventBus, EventBusMetaEvents, Subscription, SystemPowerKey } from '@microsoft/msfs-sdk';
 
 /**
  * Topics for bus events from which ADC data is sourced.
  */
-type AdcDataSourceTopics = 'ias' | 'tas' | 'mach_number' | 'mach_to_kias_factor' | 'indicated_alt' | 'pressure_alt'
-  | 'vertical_speed' | 'altimeter_baro_setting_inhg' | 'altimeter_baro_preselect_inhg' | 'altimeter_baro_is_std'
-  | 'aoa' | 'ambient_temp_c' | 'ambient_pressure_inhg' | 'ram_air_temp_c';
+type AdcDataSourceTopics = 'ias' | 'tas' | 'mach_number' | 'mach_to_kias_factor'
+  | 'indicated_alt' | 'pressure_alt' | 'vertical_speed'
+  | 'altimeter_baro_setting_inhg' | 'altimeter_baro_preselect_inhg' | 'altimeter_baro_preselect_mb' | 'altimeter_baro_preselect_raw' | 'altimeter_baro_is_std'
+  | 'ambient_temp_c' | 'ambient_pressure_inhg' | 'isa_temp_c' | 'ram_air_temp_c';
 
 /**
  * Data events published by the ADC system.
@@ -26,6 +27,28 @@ export interface AdcSystemEvents extends AdcDataEvents {
  * A Garmin ADC system.
  */
 export class AdcSystem extends BasicAvionicsSystem<AdcSystemEvents> {
+  protected initializationTime = 15000;
+
+  private readonly dataSourceTopicMap = {
+    [`adc_ias_${this.index}`]: `ias_${this.airspeedIndicatorIndex}`,
+    [`adc_tas_${this.index}`]: `tas_${this.airspeedIndicatorIndex}`,
+    [`adc_mach_to_kias_factor_${this.index}`]: `mach_to_kias_factor_${this.airspeedIndicatorIndex}`,
+    [`adc_indicated_alt_${this.index}`]: `indicated_alt_${this.altimeterIndex}`,
+    [`adc_altimeter_baro_setting_inhg_${this.index}`]: `altimeter_baro_setting_inhg_${this.altimeterIndex}`,
+    [`adc_altimeter_baro_preselect_inhg_${this.index}`]: `altimeter_baro_preselect_inhg_${this.altimeterIndex}`,
+    [`adc_altimeter_baro_preselect_mb_${this.index}`]: `altimeter_baro_preselect_mb_${this.altimeterIndex}`,
+    [`adc_altimeter_baro_preselect_raw_${this.index}`]: `altimeter_baro_preselect_raw_${this.altimeterIndex}`,
+    [`adc_altimeter_baro_is_std_${this.index}`]: `altimeter_baro_is_std_${this.altimeterIndex}`,
+    [`adc_mach_number_${this.index}`]: 'mach_number',
+    [`adc_pressure_alt_${this.index}`]: 'pressure_alt',
+    [`adc_vertical_speed_${this.index}`]: 'vertical_speed',
+    [`adc_ambient_temp_c_${this.index}`]: 'ambient_temp_c',
+    [`adc_ambient_pressure_inhg_${this.index}`]: 'ambient_pressure_inhg',
+    [`adc_isa_temp_c_${this.index}`]: 'isa_temp_c',
+    [`adc_ram_air_temp_c_${this.index}`]: 'ram_air_temp_c'
+  } as const;
+
+  private readonly dataSourceSubscriber = this.bus.getSubscriber<AdcEvents>();
 
   private readonly dataSubs: Subscription[] = [];
 
@@ -58,25 +81,29 @@ export class AdcSystem extends BasicAvionicsSystem<AdcSystemEvents> {
    * Starts publishing ADC data on the event bus.
    */
   private startDataPublish(): void {
-    const sub = this.bus.getSubscriber<AdcEvents>();
-    const pub = this.bus.getPublisher<AdcSystemEvents>();
+    for (const topic of Object.keys(this.dataSourceTopicMap)) {
+      if (this.bus.getTopicSubscriberCount(topic) > 0) {
+        this.onTopicSubscribed(topic as keyof AdcDataEvents);
+      }
+    }
+
+    this.bus.getSubscriber<EventBusMetaEvents>().on('event_bus_topic_first_sub').handle(topic => {
+      if (topic in this.dataSourceTopicMap) {
+        this.onTopicSubscribed(topic as keyof AdcDataEvents);
+      }
+    });
+  }
+
+  /**
+   * Responds to when someone first subscribes to one of this system's data topics on the event bus.
+   * @param topic The topic that was subscribed to.
+   */
+  private onTopicSubscribed(topic: keyof AdcDataEvents): void {
     const paused = this.state === AvionicsSystemState.Failed || this.state === AvionicsSystemState.Off;
 
-    this.dataSubs.push(sub.on(`ias_${this.airspeedIndicatorIndex}`).handle(val => { pub.pub(`adc_ias_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on(`tas_${this.airspeedIndicatorIndex}`).handle(val => { pub.pub(`adc_tas_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on(`mach_to_kias_factor_${this.airspeedIndicatorIndex}`).handle(val => { pub.pub(`adc_mach_to_kias_factor_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on(`indicated_alt_${this.altimeterIndex}`).handle(val => { pub.pub(`adc_indicated_alt_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on(`altimeter_baro_setting_inhg_${this.altimeterIndex}`).handle(val => { pub.pub(`adc_altimeter_baro_setting_inhg_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on(`altimeter_baro_preselect_inhg_${this.altimeterIndex}`).handle(val => { pub.pub(`adc_altimeter_baro_preselect_inhg_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on(`altimeter_baro_is_std_${this.altimeterIndex}`).handle(val => { pub.pub(`adc_altimeter_baro_is_std_${this.index}`, val); }, paused));
-
-    this.dataSubs.push(sub.on('mach_number').handle(val => { pub.pub(`adc_mach_number_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on('pressure_alt').handle(val => { pub.pub(`adc_pressure_alt_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on('vertical_speed').handle(val => { pub.pub(`adc_vertical_speed_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on('aoa').handle(val => { pub.pub(`adc_aoa_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on('ambient_temp_c').handle(val => { pub.pub(`adc_ambient_temp_c_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on('ambient_pressure_inhg').handle(val => { pub.pub(`adc_ambient_pressure_inhg_${this.index}`, val); }, paused));
-    this.dataSubs.push(sub.on('ram_air_temp_c').handle(val => { pub.pub(`adc_ram_air_temp_c_${this.index}`, val); }, paused));
+    this.dataSubs.push(this.dataSourceSubscriber.on(this.dataSourceTopicMap[topic]).handle(val => {
+      this.publisher.pub(topic, val, false, true);
+    }, paused));
   }
 
   /** @inheritdoc */

@@ -2,10 +2,10 @@
 export class PidController {
 
   /** The previously sampled error. */
-  private previousError = 0;
+  private previousError: number | undefined = undefined;
 
   /** The previously generated output. */
-  private previousOutput = 0;
+  private previousOutput: number | undefined = undefined;
 
   /** The currently accumulated integral. */
   private integral = 0;
@@ -33,8 +33,7 @@ export class PidController {
   public getOutput(deltaTime: number, error: number): number {
     const p = this.kP * error;
 
-
-    if (Math.sign(error) === Math.sign(this.previousError)) {
+    if (this.previousError !== undefined && Math.sign(error) === Math.sign(this.previousError)) {
       this.integral += ((error * deltaTime) + ((deltaTime * (error - this.previousError)) / 2)) * this.kI;
       this.integral = PidController.clamp(this.integral, this.maxI, this.minI);
     } else {
@@ -42,7 +41,7 @@ export class PidController {
     }
 
     const i = this.integral;
-    const d = this.kD * ((error - this.previousError) / deltaTime);
+    const d = this.kD * ((error - (this.previousError ?? error)) / deltaTime);
 
     const output = PidController.clamp(p + i + d, this.maxOut, this.minOut);
     this.previousError = error;
@@ -53,8 +52,8 @@ export class PidController {
 
   /** Resets the controller. */
   public reset(): void {
-    this.previousError = 0;
-    this.previousOutput = 0;
+    this.previousError = undefined;
+    this.previousOutput = undefined;
     this.integral = 0;
   }
 

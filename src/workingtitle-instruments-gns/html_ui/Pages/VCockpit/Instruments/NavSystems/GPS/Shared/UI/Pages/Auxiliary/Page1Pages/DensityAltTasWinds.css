@@ -1,0 +1,36 @@
+.datw-table {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr;
+  grid-auto-rows: 20px;
+
+  color: var(--gnsgreen);
+  background-color: black;
+  font-size: var(--gns-font-page-data);
+  border: .8px solid white;
+  height: 41px;
+  left: 3%;
+  width: 94%;
+  padding: .5px;
+  position: relative;
+}
+
+.datw-table>div.datw-table-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  bottom: 0;
+}
+
+wt-gns430 .aux-table-labels>div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-align: center;
+}
+
+.datw-table-at {
+  width: 0;
+  position: relative;
+  left: 16px;
+  bottom: 0;
+}

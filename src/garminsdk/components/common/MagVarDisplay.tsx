@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, FSComponent, MappedSubscribable, Subscribable, SubscribableSet, VNode } from 'msfssdk';
+import { ComponentProps, DisplayComponent, FSComponent, MappedSubscribable, Subscribable, SubscribableSet, VNode } from '@microsoft/msfs-sdk';
 
 /**
  * Component props for displaing a magvar.

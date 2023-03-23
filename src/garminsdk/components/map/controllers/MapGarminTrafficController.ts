@@ -1,4 +1,4 @@
-import { MapIndexedRangeModule, MapSystemContext, MapSystemController, Subject, Subscribable, Subscription, UnitType, UserSettingManager } from 'msfssdk';
+import { MapIndexedRangeModule, MapSystemContext, MapSystemController, Subject, Subscribable, Subscription, UnitType, UserSettingManager } from '@microsoft/msfs-sdk';
 
 import { MapTrafficAlertLevelSettingMode, MapUserSettingTypes } from '../../../settings/MapUserSettings';
 import { TrafficAltitudeModeSetting, TrafficMotionVectorModeSetting, TrafficUserSettingTypes } from '../../../settings/TrafficUserSettings';
@@ -57,12 +57,14 @@ export class MapGarminTrafficController extends MapSystemController<MapGarminTra
   private readonly garminTrafficModule = this.context.model.getModule(GarminMapKeys.Traffic);
 
   private readonly altitudeModeSetting: Subscribable<TrafficAltitudeModeSetting>;
+  private readonly altitudeRelativeSetting: Subscribable<boolean>;
   private readonly motionVectorModeSetting: Subscribable<TrafficMotionVectorModeSetting>;
   private readonly motionVectorLookaheadSetting: Subscribable<number>;
 
   private readonly alertLevelModeSetting: Subscribable<MapTrafficAlertLevelSettingMode> | undefined;
 
   private altitudeModeSettingPipe?: Subscription;
+  private altitudeRelativeSettingPipe?: Subscription;
   private motionVectorModeSettingPipe?: Subscription;
   private motionVectorLookaheadSettingSub?: Subscription;
 
@@ -86,6 +88,9 @@ export class MapGarminTrafficController extends MapSystemController<MapGarminTra
 
     this.altitudeModeSetting = trafficSettingManager.tryGetSetting('trafficAltitudeMode')
       ?? Subject.create(TrafficAltitudeModeSetting.Normal);
+
+    this.altitudeRelativeSetting = trafficSettingManager.tryGetSetting('trafficAltitudeRelative')
+      ?? Subject.create(true);
 
     this.motionVectorModeSetting = trafficSettingManager.tryGetSetting('trafficMotionVectorMode')
       ?? Subject.create(TrafficMotionVectorModeSetting.Off);
@@ -129,6 +134,8 @@ export class MapGarminTrafficController extends MapSystemController<MapGarminTra
       setting => MapGarminTrafficController.ALT_MODE_MAP[setting] ?? MapTrafficAltitudeRestrictionMode.Unrestricted
     );
 
+    this.altitudeRelativeSettingPipe = this.altitudeRelativeSetting.pipe(this.garminTrafficModule.isAltitudeRelative);
+
     this.motionVectorModeSettingPipe = this.motionVectorModeSetting.pipe(
       this.garminTrafficModule.motionVectorMode,
       setting => MapGarminTrafficController.MOTION_VECTOR_MODE_MAP[setting] ?? MapTrafficMotionVectorMode.Off
@@ -157,6 +164,7 @@ export class MapGarminTrafficController extends MapSystemController<MapGarminTra
     super.destroy();
 
     this.altitudeModeSettingPipe?.destroy();
+    this.altitudeRelativeSettingPipe?.destroy();
     this.motionVectorModeSettingPipe?.destroy();
     this.motionVectorLookaheadSettingSub?.destroy();
 

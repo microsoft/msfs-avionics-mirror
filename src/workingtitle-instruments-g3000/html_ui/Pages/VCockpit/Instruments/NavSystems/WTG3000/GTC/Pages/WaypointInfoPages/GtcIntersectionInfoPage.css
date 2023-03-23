@@ -1,0 +1,126 @@
+.int-info-page .wpt-info-page-container {
+  position: absolute;
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.gtc-horizontal .int-info-page .wpt-info-page-container {
+  left: calc(50% - 685px / 2);
+  top: 55px;
+  width: 685px;
+  height: 705px;
+  padding-top: 10px;
+
+  --int-info-page-info-width: 540px;
+  --int-info-page-info-font-size: 32px;
+
+  --wpt-info-page-info-field-title-margin-bottom: 5px;
+
+  --wpt-info-page-info-city-region-height: 127px;
+  --wpt-info-page-info-city-region-padding-left: 30px;
+
+  --wpt-info-page-info-pos-height: 147px;
+  --wpt-info-page-info-coords-width: 260px;
+  --wpt-info-page-info-coords-margin-left: 20px;
+  --wpt-info-page-info-brg-width: 125px;
+  --wpt-info-page-info-brg-arrow-margin-left: 5px;
+  --wpt-info-page-info-dis-width: 135px;
+
+  --int-info-page-info-nrst-height: 190px;
+  --int-info-page-info-nrst-margin-top: 45px;
+
+  --int-info-page-info-nrst-title-padding-left: 30px;
+
+  --int-info-page-info-nrst-vor-padding-right: 275px;
+  --int-info-page-info-nrst-ident-margin-right: 20px;
+  --int-info-page-info-nrst-icon-size: 35px;
+
+  --int-info-page-info-nrst-pos-gap: 30px;
+}
+
+.gtc-vertical .int-info-page .wpt-info-page-container {
+  left: calc(50% - 365px / 2);
+  top: 27px;
+  width: 365px;
+  height: 380px;
+  padding-top: 3px;
+
+  --int-info-page-info-width: 290px;
+  --int-info-page-info-font-size: 18px;
+
+  --wpt-info-page-info-field-title-margin-bottom: 2px;
+
+  --wpt-info-page-info-city-region-height: 67px;
+  --wpt-info-page-info-city-region-padding-left: 15px;
+
+  --wpt-info-page-info-pos-height: 80px;
+  --wpt-info-page-info-coords-width: 135px;
+  --wpt-info-page-info-coords-margin-left: 10px;
+  --wpt-info-page-info-brg-width: 70px;
+  --wpt-info-page-info-brg-arrow-margin-left: 2px;
+  --wpt-info-page-info-dis-width: 75px;
+
+  --int-info-page-info-nrst-height: 105px;
+  --int-info-page-info-nrst-margin-top: 25px;
+
+  --int-info-page-info-nrst-title-padding-left: 15px;
+
+  --int-info-page-info-nrst-vor-padding-right: 150px;
+  --int-info-page-info-nrst-ident-margin-right: 10px;
+  --int-info-page-info-nrst-icon-size: 18px;
+
+  --int-info-page-info-nrst-pos-gap: 15px;
+}
+
+.int-info-page .wpt-info-page-info {
+  width: var(--int-info-page-info-width);
+  font-size: var(--int-info-page-info-font-size);
+}
+
+.int-info-page .wpt-info-page-no-wpt {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.int-info-page-info-nrst {
+  position: relative;
+  height: var(--int-info-page-info-nrst-height);
+  margin-top: var(--int-info-page-info-nrst-margin-top);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.int-info-page-info-nrst-title {
+  padding-left: var(--int-info-page-info-nrst-title-padding-left);
+}
+
+.int-info-page-info-nrst-vor {
+  text-align: right;
+  padding-right: var(--int-info-page-info-nrst-vor-padding-right);
+}
+
+.int-info-page-info-nrst-ident {
+  margin-right: var(--int-info-page-info-nrst-ident-margin-right);
+}
+
+.int-info-page-info-nrst-icon {
+  width: var(--int-info-page-info-nrst-icon-size);
+  height: var(--int-info-page-info-nrst-icon-size);
+  object-fit: contain;
+}
+
+.int-info-page-info-nrst-pos {
+  display: grid;
+  grid-template-rows: min-content;
+  grid-template-columns: 1fr 1fr;
+  grid-column-gap: var(--int-info-page-info-nrst-pos-gap);
+}

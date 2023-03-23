@@ -1,4 +1,4 @@
-/// <reference types="msfstypes/JS/simvar" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import { EventBus, SimVarValueType } from '../../data';
 import { AdcEvents, GNSSEvents } from '../../instruments';
@@ -24,13 +24,13 @@ export class APVNavPathDirector implements PlaneDirector {
   /** @inheritdoc */
   public onDeactivate?: () => void;
 
-  private deviation = 0;
+  protected deviation = 0;
 
-  private fpa = 0;
+  protected fpa = 0;
 
-  private verticalWindAverage = new SimpleMovingAverage(10);
-  private tas = 0;
-  private groundSpeed = 0;
+  protected verticalWindAverage = new SimpleMovingAverage(10);
+  protected tas = 0;
+  protected groundSpeed = 0;
 
   /**
    * Creates an instance of the APVNavPathDirector.
@@ -94,12 +94,12 @@ export class APVNavPathDirector implements PlaneDirector {
    * Gets a desired pitch from the FPA, AOA and Deviation.
    * @returns The desired pitch angle.
    */
-  private getDesiredPitch(): number {
+  protected getDesiredPitch(): number {
 
-    const fpaPercentage = Math.max(this.deviation / -100, -1) + 1;
+    const fpaVsRequired = VNavUtils.getVerticalSpeedFromFpa(this.fpa, this.groundSpeed) * -1;
+    const fpaPercentage = Math.max(this.deviation / (VNavUtils.getPathErrorDistance(this.groundSpeed) * -1), -1) + 1;
 
-    const pitchForFpa = MathUtils.clamp(this.fpa * fpaPercentage * -1, -8, 3);
-    const vsRequiredForFpa = VNavUtils.getVerticalSpeedFromFpa(-pitchForFpa, this.groundSpeed);
+    const vsRequiredForFpa = MathUtils.clamp(fpaVsRequired * fpaPercentage, fpaVsRequired - 1500, 1000);
 
     //We need the instant vertical wind component here so we're avoiding the bus
     const verticalWindComponent = this.verticalWindAverage.getAverage(SimVar.GetSimVarValue('AMBIENT WIND Y', SimVarValueType.FPM));
@@ -118,7 +118,7 @@ export class APVNavPathDirector implements PlaneDirector {
    * Sets the desired AP pitch angle.
    * @param targetPitch The desired AP pitch angle.
    */
-  private setPitch(targetPitch: number): void {
+  protected setPitch(targetPitch: number): void {
     if (isFinite(targetPitch)) {
       SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, -targetPitch);
     }

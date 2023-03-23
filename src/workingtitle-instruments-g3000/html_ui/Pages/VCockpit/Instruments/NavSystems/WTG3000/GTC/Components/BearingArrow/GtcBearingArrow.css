@@ -1,0 +1,13 @@
+.gtc-horizontal {
+  --bearing-arrow-size: 32px;
+}
+
+.gtc-vertical {
+  --bearing-arrow-size: 18px;
+}
+
+.bearing-arrow {
+  width: var(--bearing-arrow-size);
+  height: var(--bearing-arrow-size);
+  object-fit: contain;
+}

@@ -1,0 +1,16 @@
+.hsi-gps-annunc {
+  border-radius: 5px;
+  padding: 0 2px;
+  background: var(--hsi-gps-annunc-background-color);
+  color: var(--hsi-gps-annunc-foreground-color);
+  white-space: pre;
+  text-align: center;
+
+  --hsi-gps-annunc-foreground-color: var(--g3000-color-black);
+  --hsi-gps-annunc-background-color: var(--g3000-color-yellow);
+}
+
+.hsi-gps-annunc-ok {
+  --hsi-gps-annunc-foreground-color: var(--g3000-color-white);
+  --hsi-gps-annunc-background-color: var(--g3000-color-black);
+}

@@ -1,0 +1,7 @@
+.map-orientation {
+  padding: 0px 2px;
+  color: var(--g3000-color-cyan);
+  background: var(--g3000-color-black);
+  border: 1px solid var(--map-indicator-border-color);
+  border-radius: var(--map-indicator-border-radius);
+}

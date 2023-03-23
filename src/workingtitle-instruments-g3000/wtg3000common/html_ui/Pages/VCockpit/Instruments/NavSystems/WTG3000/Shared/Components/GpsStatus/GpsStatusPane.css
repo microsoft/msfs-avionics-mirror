@@ -1,0 +1,135 @@
+.gps-status-pane {
+  display: grid;
+  grid-template-columns: 50% 50%;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  background: #222;
+}
+
+.gps-status-box {
+  background: linear-gradient(to bottom, #202f3d 0px, #010101 30px, #000000 31px);
+  border: 1px solid var(--g3000-color-cyan);
+  border-radius: 4px;
+  position: relative;
+  font-size: 15px;
+  padding: 16px 4px 4px 4px;
+}
+
+.gps-status-box>h2 {
+  position: absolute;
+  font-size: 15px;
+  background-color: #222;
+  top: -7px;
+  left: 16px;
+}
+
+.gps-status-sigstrength {
+  position: relative;
+  height: 100%;
+}
+
+.gps-status-sigstrength-bg {
+  position: absolute;
+  top: 13px;
+  right: 6px;
+  height: calc(100% - 18px);
+  border: 1px solid #555;
+  width: 180px;
+}
+
+.gps-status-sigstrength-bg>div {
+  display: inline-block;
+  height: 100%;
+  width: 45px;
+}
+
+.gps-status-sigstrength-bg>div:not(:last-child) {
+  border-right: 1px solid #bbb;
+}
+
+.gps-status-leftcol {
+  padding-right: 8px;
+}
+
+.gps-status-rightcol {
+  display: grid;
+  grid-template-rows: 33.33% 51.66% 25%;
+  height: 646px;
+  padding-left: 8px;
+}
+
+.gps-status-satstatus,
+.gps-status-gpsstatus {
+  margin-top: 16px;
+}
+
+.gps-status-bargraph-item {
+  position: relative;
+  font-size: 15px;
+  width: 200px;
+  height: 32px;
+  margin: 8px 0px;
+}
+
+.gps-status-bargraph-prn {
+  display: inline-block;
+  width: 32px;
+  line-height: 32px;
+}
+
+.gps-status-bargraph-bar {
+  position: absolute;
+  left: 32px;
+  top: 0px;
+  line-height: 32px;
+  height: 32px;
+  color: black;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.gps-status-bargraph-bar.inverse {
+  color: white;
+}
+
+.gps-status-bargraph-bar.in-use {
+  background-color: var(--g3000-color-green);
+}
+
+.gps-status-bargraph-bar.acquired {
+  border: 1px solid var(--g3000-color-cyan);
+  background-color: black;
+}
+
+.gps-status-bargraph-bar.data-collected {
+  background-color: var(--g3000-color-cyan);
+}
+
+.gps-status-box table {
+  width: 100%;
+}
+
+.gps-status-box table tr {
+  line-height: 27px;
+}
+
+.gps-status-box table tr td:first-child {
+  width: 42%;
+  color: #aaa;
+  vertical-align: bottom;
+}
+
+.gps-status-box table tr td:last-child {
+  width: 58%;
+  font-size: 18px;
+  text-align: right;
+}
+
+.gps-status-cyanvalue {
+  color: var(--g3000-color-cyan);
+}
+
+.gps-status-alt {
+  display: inline-block;
+}

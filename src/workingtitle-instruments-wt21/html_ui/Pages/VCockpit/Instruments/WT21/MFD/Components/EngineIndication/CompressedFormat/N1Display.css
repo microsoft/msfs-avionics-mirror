@@ -1,0 +1,36 @@
+.n1-compressed-display-container {
+  margin-top: .8%;
+  margin-left: 1%;
+}
+
+.left-n1-compressed-pointer-mask, .right-n1-compressed-pointer-mask {
+  position: absolute;
+  left: 1.8%;
+  top: 8.3%;
+  height: 132px;
+  width: 20px;
+  overflow: hidden;
+}
+
+.right-n1-compressed-pointer-mask {
+  left: 19.1%;
+}
+
+.left-n1-compressed-pointer, .right-n1-compressed-pointer {
+  position: absolute;
+  top: 51px;
+}
+
+.right-n1-compressed-pointer {
+  right: 0;
+}
+
+.left-n1-compressed-bug, .right-n1-compressed-bug {
+  position: absolute;
+  top: -11px;
+  right: 1px;
+}
+
+.right-n1-compressed-bug {
+  left: 1px;
+}

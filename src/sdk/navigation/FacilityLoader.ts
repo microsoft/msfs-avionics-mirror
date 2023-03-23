@@ -1,15 +1,139 @@
-/// <reference types="msfstypes/JS/common" />
-/// <reference types="msfstypes/JS/Simplane" />
+/// <reference types="@microsoft/msfs-types/js/common" />
+/// <reference types="@microsoft/msfs-types/js/simplane" />
 
 import { GeoPoint } from '../geo';
 import { BitFlags, UnitType } from '../math';
 import { GeoKdTreeSearchFilter } from '../utils/datastructures';
 import {
-  AirportClass, AirportFacility, AirwaySegment, BoundaryFacility, Facility, FacilitySearchType, FacilitySearchTypeLatLon, FacilityType, FacilityTypeMap, ICAO,
-  IntersectionFacility, IntersectionType, Metar, NdbFacility, NearestSearchResults, UserFacility, VorClass, VorFacility, VorType
+  AirportClass, AirportFacility, AirwaySegment, BoundaryFacility, Facility, FacilitySearchType, FacilityType,
+  FacilityTypeMap, ICAO, IntersectionFacility, IntersectionType, Metar, NdbFacility, NearestSearchResults, UserFacility, VisualFacility,
+  VorClass, VorFacility, VorType,
 } from './Facilities';
 import { FacilityRepository } from './FacilityRepository';
 import { RunwayUtils } from './RunwayUtils';
+
+const airportIcaoRegionPattern = new RegExp(/^A../);
+
+/**
+ * Facility search types for facilities with a defined latitude and longitude.
+ */
+export type FacilitySearchTypeLatLon =
+  FacilitySearchType.All |
+  FacilitySearchType.Airport |
+  FacilitySearchType.Intersection |
+  FacilitySearchType.Vor |
+  FacilitySearchType.Ndb |
+  FacilitySearchType.User |
+  FacilitySearchType.Visual |
+  FacilitySearchType.AllExceptVisual;
+
+/**
+ * A type map of search type to concrete search session type.
+ */
+export type SessionTypeMap = {
+  /** All facilities search session. */
+  [FacilitySearchType.All]: NearestSearchSession<any, any>;
+
+  /** Airport search session. */
+  [FacilitySearchType.Airport]: NearestAirportSearchSession;
+
+  /** Intersection search session. */
+  [FacilitySearchType.Intersection]: NearestIntersectionSearchSession;
+
+  /** VOR search session. */
+  [FacilitySearchType.Vor]: NearestVorSearchSession;
+
+  /** NDB search session. */
+  [FacilitySearchType.Ndb]: NearestSearchSession<string, string>;
+
+  /** Boundary search session. */
+  [FacilitySearchType.Boundary]: NearestBoundarySearchSession;
+
+  /** Nearest user facility search session. */
+  [FacilitySearchType.User]: NearestRepoFacilitySearchSession<UserFacility>;
+
+  /** Nearest visual facility search session. */
+  [FacilitySearchType.Visual]: NearestRepoFacilitySearchSession<VisualFacility>;
+
+  /** All facilities search session. */
+  [FacilitySearchType.AllExceptVisual]: NearestSearchSession<any, any>;
+}
+
+/**
+ * A type map of search type to facility type.
+ */
+export type SearchTypeMap = {
+  /** All facilities. */
+  [FacilitySearchType.All]: Facility;
+
+  /** Airports. */
+  [FacilitySearchType.Airport]: AirportFacility;
+
+  /** Intersections. */
+  [FacilitySearchType.Intersection]: IntersectionFacility;
+
+  /** VORs. */
+  [FacilitySearchType.Vor]: VorFacility;
+
+  /** NDBs. */
+  [FacilitySearchType.Ndb]: NdbFacility;
+
+  /** Boundaries. */
+  [FacilitySearchType.Boundary]: BoundaryFacility;
+
+  /** User facilities. */
+  [FacilitySearchType.User]: UserFacility;
+
+  /** Visual facilities. */
+  [FacilitySearchType.Visual]: VisualFacility;
+
+  /** All facilities except visual facilities. */
+  [FacilitySearchType.AllExceptVisual]: Facility;
+}
+
+/**
+ * A type map of facility type to facility search type.
+ */
+export const FacilityTypeSearchType = {
+  /** Airport facility type. */
+  [FacilityType.Airport]: FacilitySearchType.Airport,
+
+  /** Intersection facility type. */
+  [FacilityType.Intersection]: FacilitySearchType.Intersection,
+
+  /** NDB facility type. */
+  [FacilityType.NDB]: FacilitySearchType.Ndb,
+
+  /** VOR facility type. */
+  [FacilityType.VOR]: FacilitySearchType.Vor,
+
+  /** USR facility type. */
+  [FacilityType.USR]: FacilitySearchType.User,
+
+  /** Visual facility type. */
+  [FacilityType.VIS]: FacilitySearchType.Visual
+} as const;
+
+/**
+ * Facility search types supported by sim-side searches.
+ */
+type CoherentSearchType
+  = FacilitySearchType.Airport
+  | FacilitySearchType.Vor
+  | FacilitySearchType.Ndb
+  | FacilitySearchType.Intersection
+  | FacilitySearchType.Boundary
+  | FacilitySearchType.All;
+
+/**
+ * Facility search types supported by {@link FacilityRepository} searches.
+ */
+type RepoSearchType = FacilitySearchType.User | FacilitySearchType.Visual;
+
+/**
+ * Facility types stored in a {@link FacilityRepository}
+ */
+type RepoFacilityType = UserFacility | VisualFacility;
 
 /**
  * A facility loader request for the request queue.
@@ -40,94 +164,6 @@ type SearchRequest<TAdded, TRemoved> = {
 }
 
 /**
- * A type map of search type to concrete search session type.
- */
-export type SessionTypeMap = {
-  /** Plain search session. */
-  [FacilitySearchType.All]: NearestSearchSession<any, any>,
-
-  /** Airport search session. */
-  [FacilitySearchType.Airport]: NearestAirportSearchSession,
-
-  /** Intersection search session. */
-  [FacilitySearchType.Intersection]: NearestIntersectionSearchSession,
-
-  /** VOR search session. */
-  [FacilitySearchType.Vor]: NearestVorSearchSession,
-
-  /** NDB search session. */
-  [FacilitySearchType.Ndb]: NearestSearchSession<string, string>,
-
-  /** Boundary search session. */
-  [FacilitySearchType.Boundary]: NearestBoundarySearchSession,
-
-  /** Nearest user facility search session. */
-  [FacilitySearchType.User]: NearestUserFacilitySearchSession
-}
-
-/**
- * A type map of search type to concrete search session type.
- */
-export type SearchTypeMap = {
-  /** Plain search session. */
-  [FacilitySearchType.All]: Facility,
-
-  /** Airport search session. */
-  [FacilitySearchType.Airport]: AirportFacility,
-
-  /** Intersection search session. */
-  [FacilitySearchType.Intersection]: IntersectionFacility,
-
-  /** VOR search session. */
-  [FacilitySearchType.Vor]: VorFacility,
-
-  /** NDB search session. */
-  [FacilitySearchType.Ndb]: NdbFacility,
-
-  /** Boundary search session. */
-  [FacilitySearchType.Boundary]: BoundaryFacility,
-
-  /** Nearest user facility search session. */
-  [FacilitySearchType.User]: UserFacility
-}
-
-/**
- * A type map of facility type to facility search type.
- */
-export const FacilityTypeSearchType = {
-  /** Airport facility type. */
-  [FacilityType.Airport]: FacilitySearchType.Airport,
-
-  /** Intersection facility type. */
-  [FacilityType.Intersection]: FacilitySearchType.Intersection,
-
-  /** NDB facility type. */
-  [FacilityType.NDB]: FacilitySearchType.Ndb,
-
-  /** VOR facility type. */
-  [FacilityType.VOR]: FacilitySearchType.Vor,
-
-  /** USR facility type. */
-  [FacilityType.USR]: FacilitySearchType.User
-};
-
-/**
- * Facility search types supported by sim-side searches.
- */
-type CoherentSearchType
-  = FacilitySearchType.Airport
-  | FacilitySearchType.Vor
-  | FacilitySearchType.Ndb
-  | FacilitySearchType.Intersection
-  | FacilitySearchType.Boundary
-  | FacilitySearchType.All;
-
-/**
- * Facility search types supported by {@link FacilityRepository} searches.
- */
-type RepoSearchType = FacilitySearchType.User;
-
-/**
  * A class that handles loading facility data from the simulator.
  */
 export class FacilityLoader {
@@ -144,7 +180,13 @@ export class FacilityLoader {
   private static readonly airwayCache: Map<string, AirwayObject> = new Map();
 
   private static readonly searchSessions = new Map<number, NearestSearchSession<any, any>>();
-  private static readonly facRepositorySearchTypes = [FacilityType.USR];
+
+  private static readonly facRepositorySearchTypes: Partial<Record<FacilitySearchType, FacilityType[]>> = {
+    [FacilitySearchType.All]: [FacilityType.USR, FacilityType.VIS],
+    [FacilitySearchType.User]: [FacilityType.USR],
+    [FacilitySearchType.Visual]: [FacilityType.VIS],
+    [FacilitySearchType.AllExceptVisual]: [FacilityType.USR]
+  };
 
   private static repoSearchSessionId = -1;
 
@@ -192,7 +234,7 @@ export class FacilityLoader {
    * Waits until this facility loader is initialized.
    * @returns A Promise which is fulfilled when this facility loader is initialized.
    */
-  private awaitInitialization(): Promise<void> {
+  public awaitInitialization(): Promise<void> {
     if (FacilityLoader.isInitialized) {
       return Promise.resolve();
     } else {
@@ -258,6 +300,11 @@ export class FacilityLoader {
    */
   private async getFacilityFromCoherent<T extends FacilityType>(type: T, icao: string): Promise<FacilityTypeMap[T]> {
     const isMismatch = ICAO.getFacilityType(icao) !== type;
+
+    // Remove the region code from the icao
+    if (type === FacilityType.Airport) {
+      icao = icao.replace(airportIcaoRegionPattern, 'A  ');
+    }
 
     let queue = FacilityLoader.requestQueue;
     let cache = FacilityLoader.facCache;
@@ -351,7 +398,10 @@ export class FacilityLoader {
   public async startNearestSearchSession<T extends FacilitySearchType>(type: T): Promise<SessionTypeMap[T]> {
     switch (type) {
       case FacilitySearchType.User:
+      case FacilitySearchType.Visual:
         return this.startRepoNearestSearchSession(type) as unknown as Promise<SessionTypeMap[T]>;
+      case FacilitySearchType.AllExceptVisual:
+        return this.startCoherentNearestSearchSession(FacilitySearchType.All) as unknown as Promise<SessionTypeMap[T]>;
       default:
         return this.startCoherentNearestSearchSession(type) as unknown as Promise<SessionTypeMap[T]>;
     }
@@ -378,7 +428,7 @@ export class FacilityLoader {
         session = new NearestIntersectionSearchSession(sessionId) as SessionTypeMap[T];
         break;
       case FacilitySearchType.Vor:
-        session = new NearestIntersectionSearchSession(sessionId) as SessionTypeMap[T];
+        session = new NearestVorSearchSession(sessionId) as SessionTypeMap[T];
         break;
       case FacilitySearchType.Boundary:
         session = new NearestBoundarySearchSession(sessionId) as SessionTypeMap[T];
@@ -405,7 +455,9 @@ export class FacilityLoader {
 
     switch (type) {
       case FacilitySearchType.User:
-        return new NearestUserFacilitySearchSession(this.facilityRepo, sessionId);
+        return new NearestRepoFacilitySearchSession<UserFacility>(this.facilityRepo, sessionId) as SessionTypeMap[T];
+      case FacilitySearchType.Visual:
+        return new NearestRepoFacilitySearchSession<VisualFacility>(this.facilityRepo, sessionId) as SessionTypeMap[T];
       default:
         throw new Error();
     }
@@ -472,17 +524,24 @@ export class FacilityLoader {
    * Searches for ICAOs by their ident portion only.
    * @param filter The type of facility to filter by. Selecting ALL will search all facility type ICAOs.
    * @param ident The partial or complete ident to search for.
-   * @param maxItems The max number of matches to return.
-   * @returns A collection of matched ICAOs.
+   * @param maxItems The maximum number of matches to return. Defaults to 40.
+   * @returns An array of matched ICAOs. Exact matches are sorted before partial matches.
    */
   public async searchByIdent(filter: FacilitySearchType, ident: string, maxItems = 40): Promise<string[]> {
     if (!FacilityLoader.isInitialized) {
       await this.awaitInitialization();
     }
 
-    const results = await Coherent.call('SEARCH_BY_IDENT', ident, filter, maxItems) as Array<string>;
+    let results: string[];
+    if (filter !== FacilitySearchType.User && filter !== FacilitySearchType.Visual) {
+      const coherentFilter = filter === FacilitySearchType.AllExceptVisual ? FacilitySearchType.All : filter;
+      results = await Coherent.call('SEARCH_BY_IDENT', ident, coherentFilter, maxItems) as Array<string>;
+    } else {
+      results = [];
+    }
 
-    if (filter === FacilitySearchType.User || filter === FacilitySearchType.All) {
+    const facRepositorySearchTypes = FacilityLoader.facRepositorySearchTypes[filter];
+    if (facRepositorySearchTypes) {
       this.facilityRepo.forEach(fac => {
         const facIdent = ICAO.getIdent(fac.icao);
 
@@ -491,7 +550,7 @@ export class FacilityLoader {
         } else if (facIdent.startsWith(ident)) {
           results.push(fac.icao);
         }
-      }, FacilityLoader.facRepositorySearchTypes);
+      }, facRepositorySearchTypes);
     }
 
     return results;
@@ -503,10 +562,16 @@ export class FacilityLoader {
    * @param ident The exact ident to search for. (ex: DEN, KDEN, ITADO)
    * @param lat The latitude to find facilities nearest to.
    * @param lon The longitude to find facilities nearest to.
-   * @param maxItems The max number of matches to return.
+   * @param maxItems The maximum number of matches to return. Defaults to 40.
    * @returns An array of matching facilities, sorted by distance to the given lat/lon, with nearest at the beginning of the array.
    */
-  public async findNearestFacilitiesByIdent<T extends FacilitySearchTypeLatLon>(filter: T, ident: string, lat: number, lon: number, maxItems = 40): Promise<SearchTypeMap[T][]> {
+  public async findNearestFacilitiesByIdent<T extends FacilitySearchTypeLatLon>(
+    filter: T,
+    ident: string,
+    lat: number,
+    lon: number,
+    maxItems = 40
+  ): Promise<SearchTypeMap[T][]> {
 
     const results = await this.searchByIdent(filter, ident, maxItems);
 
@@ -759,10 +824,10 @@ export class NearestBoundarySearchSession extends CoherentNearestSearchSession<B
 }
 
 /**
- * A session for searching for nearest user facilities.
+ * A session for searching for nearest facilities that uses the facility repository.
  */
-export class NearestUserFacilitySearchSession implements NearestSearchSession<string, string> {
-  private filter: GeoKdTreeSearchFilter<UserFacility> | undefined = undefined;
+export class NearestRepoFacilitySearchSession<F extends RepoFacilityType> implements NearestSearchSession<string, string> {
+  private filter: GeoKdTreeSearchFilter<F> | undefined = undefined;
 
   private readonly cachedResults = new Set<string>();
 
@@ -811,7 +876,7 @@ export class NearestUserFacilitySearchSession implements NearestSearchSession<st
    * Sets the filter for this search session.
    * @param filter A function to filter the search results.
    */
-  public setUserFacilityFilter(filter?: GeoKdTreeSearchFilter<UserFacility>): void {
+  public setUserFacilityFilter(filter?: GeoKdTreeSearchFilter<F>): void {
     this.filter = filter;
   }
 }

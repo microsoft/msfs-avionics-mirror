@@ -1,0 +1,145 @@
+import { BitFlags } from '../math/BitFlags';
+import {
+  AirportFacility, ApproachProcedure, FacilityFrequency, FacilityType, FixTypeFlags, FlightPlanLeg, ICAO,
+  NdbFacility, RnavTypeFlags, VorFacility, VorType
+} from './Facilities';
+import { FacilityLoader } from './FacilityLoader';
+import { RunwayUtils } from './RunwayUtils';
+
+/**
+ * A utility class for working with approach procedures.
+ */
+export class ApproachUtils {
+  /**
+   * Gets the best RNAV minimum type available for a given approach.
+   * @param query The approach to check, or its RNAV type flags.
+   * @returns The best RNAV minimum type available for the specified approach.
+   */
+  public static getBestRnavType(query: ApproachProcedure | RnavTypeFlags): RnavTypeFlags {
+    const rnavTypeFlags = typeof query === 'number' ? query : query.rnavTypeFlags;
+
+    if (rnavTypeFlags & RnavTypeFlags.LPV) {
+      return RnavTypeFlags.LPV;
+    }
+    if (rnavTypeFlags & RnavTypeFlags.LNAVVNAV) {
+      return RnavTypeFlags.LNAVVNAV;
+    }
+    if (rnavTypeFlags & RnavTypeFlags.LP) {
+      return RnavTypeFlags.LP;
+    }
+    if (rnavTypeFlags & RnavTypeFlags.LNAV) {
+      return RnavTypeFlags.LNAV;
+    }
+    return RnavTypeFlags.None;
+  }
+
+  /**
+   * Checks whether an approach procedure is an RNP (AR) approach.
+   * @param approach The approach procedure to check.
+   * @returns Whether the approach procedure is an RNP (AR) approach.
+   */
+  public static isRnpAr(approach: ApproachProcedure): boolean {
+    return approach.approachType === ApproachType.APPROACH_TYPE_RNAV
+      && approach.rnavTypeFlags === RnavTypeFlags.None
+      && approach.runwayNumber !== 0;
+  }
+
+  /**
+   * Gets an approach frequency from its parent airport facility record.
+   * @param facility The approach's parent airport facility.
+   * @param approach The approach for which to get a frequency.
+   * @returns The frequency of the specified approach, or `undefined` if one could not be found.
+   */
+  public static getFrequencyFromAirport(facility: AirportFacility, approach: ApproachProcedure): FacilityFrequency | undefined;
+  /**
+   * Gets an approach frequency from its parent airport facility record.
+   * @param facility The approach's parent airport facility.
+   * @param approachIndex The index of the approach for which to get a frequency.
+   * @returns The frequency of the specified approach, or `undefined` if one could not be found.
+   */
+  public static getFrequencyFromAirport(facility: AirportFacility, approachIndex: number): FacilityFrequency | undefined;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static getFrequencyFromAirport(facility: AirportFacility, approach: ApproachProcedure | number): FacilityFrequency | undefined {
+    if (typeof approach === 'number') {
+      approach = facility.approaches[approach];
+    }
+
+    if (approach) {
+      switch (approach.approachType) {
+        case ApproachType.APPROACH_TYPE_ILS:
+        case ApproachType.APPROACH_TYPE_LOCALIZER:
+        case ApproachType.APPROACH_TYPE_LDA:
+        case ApproachType.APPROACH_TYPE_SDF:
+          return RunwayUtils.getLocFrequency(facility, approach.runwayNumber, approach.runwayDesignator);
+        case ApproachType.APPROACH_TYPE_LOCALIZER_BACK_COURSE:
+          return RunwayUtils.getBcFrequency(facility, approach.runwayNumber, approach.runwayDesignator);
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Gets the reference facility for an approach. Only ILS, LOC (BC), LDA, SDF, VOR(DME), and NDB(DME) approaches can
+   * have reference facilities.
+   * @param approach The approach for which to get a reference facility.
+   * @param facLoader The facility loader.
+   * @returns A Promise which is fulfilled with the reference facility for the specified approach, or `undefined` if
+   * one could not be found.
+   */
+  public static async getReferenceFacility(approach: ApproachProcedure, facLoader: FacilityLoader): Promise<VorFacility | NdbFacility | undefined> {
+    let facilityType: FacilityType;
+    let isLoc = false;
+
+    switch (approach.approachType) {
+      case ApproachType.APPROACH_TYPE_ILS:
+      case ApproachType.APPROACH_TYPE_LOCALIZER:
+      case ApproachType.APPROACH_TYPE_LOCALIZER_BACK_COURSE:
+      case ApproachType.APPROACH_TYPE_LDA:
+      case ApproachType.APPROACH_TYPE_SDF:
+        isLoc = true;
+      // eslint-disable-next-line no-fallthrough
+      case ApproachType.APPROACH_TYPE_VOR:
+      case ApproachType.APPROACH_TYPE_VORDME:
+        facilityType = FacilityType.VOR;
+        break;
+      case ApproachType.APPROACH_TYPE_NDB:
+      case ApproachType.APPROACH_TYPE_NDBDME:
+        facilityType = FacilityType.NDB;
+        break;
+      default:
+        return undefined;
+    }
+
+    const finalLegs = approach.finalLegs;
+
+    // Find the faf
+    let fafLeg: FlightPlanLeg | undefined = undefined;
+    for (let i = 0; i < finalLegs.length; i++) {
+      const leg = finalLegs[i];
+      if (BitFlags.isAll(leg.fixTypeFlags, FixTypeFlags.FAF)) {
+        fafLeg = leg;
+        break;
+      }
+    }
+
+    if (!fafLeg) {
+      return undefined;
+    }
+
+    if (!ICAO.isFacility(fafLeg.originIcao, facilityType)) {
+      return undefined;
+    }
+
+    try {
+      const facility = await facLoader.getFacility(facilityType, fafLeg.originIcao);
+      if (isLoc && (facility as VorFacility).type !== VorType.ILS) {
+        return undefined;
+      } else {
+        return facility;
+      }
+    } catch {
+      return undefined;
+    }
+  }
+}

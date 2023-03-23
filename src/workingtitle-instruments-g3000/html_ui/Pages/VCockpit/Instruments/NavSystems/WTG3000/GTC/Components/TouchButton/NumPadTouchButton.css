@@ -1,0 +1,17 @@
+.gtc-horizontal {
+  --numpad-touch-button-width: 136px;
+  --numpad-touch-button-height: 136px;
+  --numpad-touch-button-font-size: 86px;
+}
+
+.gtc-vertical {
+  --numpad-touch-button-width: 73px;
+  --numpad-touch-button-height: 73px;
+  --numpad-touch-button-font-size: 45px;
+}
+
+.numpad-touch-button {
+  width: var(--numpad-touch-button-width);
+  height: var(--numpad-touch-button-height);
+  font-size: var(--numpad-touch-button-font-size);
+}

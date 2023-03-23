@@ -1,0 +1,12 @@
+<svg width='144px' height='24px' xmlns="http://www.w3.org/2000/svg">
+  <rect x='0px' y='0px' width='144px' height='24px' stroke='cyan' stroke-width='2px' />
+  <rect x='18px' y='10px' width='4px' height='4px' fill='cyan' />
+  <rect x='44px' y='10px' width='4px' height='4px' fill='cyan' />
+  <rect x='96px' y='10px' width='4px' height='4px' fill='cyan' />
+  <rect x='122px' y='10px' width='4px' height='4px' fill='cyan' />
+  <path d='M 60 14 l 12 -10 l 12 10 z' fill='#0f0' />
+  <path d='M 60 10 l 12 10 l 12 -10 z' fill='#0f0' />
+  <rect x='69px' y='2px' width='6px' height='20px' stroke='#0f0' stroke-width='2px' fill='transparent' />
+  <path d='M 122 10 l 4 0 l 0 -4 l 12 6 l -12 6 l 0 -4 l -4 0 z' fill='#0f0' />
+  <path d='M 22 10 l -4 0 l 0 -4 l -12 6 l 12 6 l 0 -4 l 4 0 z' fill='#0f0' />
+</svg>

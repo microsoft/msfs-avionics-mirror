@@ -1,0 +1,11 @@
+.gtc-horizontal .avionics-settings-page-mfd-fields-list {
+  --avionics-settings-page-row-right-width: 410px;
+}
+
+.gtc-vertical .avionics-settings-page-mfd-fields-list {
+  --avionics-settings-page-row-right-width: 225px;
+}
+
+.avionics-settings-page-mfd-fields-small-text {
+  font-size: 0.8em;
+}

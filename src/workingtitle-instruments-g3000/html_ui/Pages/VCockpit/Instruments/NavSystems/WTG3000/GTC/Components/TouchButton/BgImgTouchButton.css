@@ -1,0 +1,20 @@
+.bg-img-touch-button-up-img {
+  position: absolute;
+}
+
+.bg-img-touch-button-down-img {
+  position: absolute;
+  display: none;
+}
+
+.touch-button-primed > .bg-img-touch-button-down-img {
+  display: unset;
+}
+
+.bg-img-touch-button > .bg-img-touch-button-label {
+  z-index: 1;
+}
+
+.bg-img-touch-button.touch-button-disabled {
+  filter: brightness(35%);
+}

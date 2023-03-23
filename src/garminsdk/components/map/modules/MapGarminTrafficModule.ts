@@ -1,4 +1,4 @@
-import { AdsbOperatingMode, NumberUnitSubject, Subject, Subscribable, TcasOperatingMode, UnitType } from 'msfssdk';
+import { AdsbOperatingMode, NumberUnitSubject, Subject, Subscribable, TcasOperatingMode, UnitType } from '@microsoft/msfs-sdk';
 
 import { TrafficSystem } from '../../../traffic';
 

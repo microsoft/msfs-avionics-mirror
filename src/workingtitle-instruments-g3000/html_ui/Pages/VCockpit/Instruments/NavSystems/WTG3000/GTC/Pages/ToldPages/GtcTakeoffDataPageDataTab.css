@@ -1,0 +1,146 @@
+.gtc-horizontal .takeoff-data-page-data {
+  --told-data-page-data-chk-flaps-margin-top: 20px;
+
+  --takeoff-data-page-data-result-length-section-height: 156px;
+  --takeoff-data-page-data-result-length-section-title-margin-bottom: 10px;
+
+  --takeoff-data-page-data-result-weight-section-height: 120px;
+
+  --takeoff-data-page-data-result-valid-wind-section-height: 110px;
+
+  --takeoff-data-page-data-result-weight-limit-section-margin-top: 10px;
+
+  --takeoff-data-page-data-result-runway-weight-limit-section-height: 188px;
+
+  --takeoff-data-page-data-result-alt-section-height: 150px;
+
+  --takeoff-data-page-data-result-temp-section-height: 120px;
+  --takeoff-data-page-data-temp-result-alt-value-margin-bottom: 5px;
+
+  --takeoff-data-page-data-result-wind-section-height: 120px;
+}
+
+.gtc-vertical .takeoff-data-page-data {
+  --told-data-page-data-chk-flaps-margin-top: 10px;
+
+  --takeoff-data-page-data-result-length-section-height: 88px;
+  --takeoff-data-page-data-result-length-section-title-margin-bottom: 5px;
+
+  --takeoff-data-page-data-result-weight-section-height: 63px;
+
+  --takeoff-data-page-data-result-valid-wind-section-height: 60px;
+
+  --takeoff-data-page-data-result-weight-limit-section-margin-top: 5px;
+
+  --takeoff-data-page-data-result-runway-weight-limit-section-height: 98px;
+
+  --takeoff-data-page-data-result-alt-section-height: 85px;
+
+  --takeoff-data-page-data-result-temp-section-height: 63px;
+  --takeoff-data-page-data-temp-result-alt-value-margin-bottom: 2px;
+
+  --takeoff-data-page-data-result-wind-section-height: 63px;
+}
+
+.told-data-page-data-chk-flaps {
+  margin-top: var(--told-data-page-data-chk-flaps-margin-top);
+  color: var(--g3000-color-yellow);
+}
+
+.takeoff-data-result-valid .takeoff-data-page-data-result-valid,
+.takeoff-data-result-length .takeoff-data-page-data-result-length,
+.takeoff-data-result-weight .takeoff-data-page-data-result-weight,
+.takeoff-data-result-alt .takeoff-data-page-data-result-alt,
+.takeoff-data-result-temp .takeoff-data-page-data-result-temp,
+.takeoff-data-result-wind .takeoff-data-page-data-result-wind {
+  display: flex;
+}
+
+.takeoff-data-page-data-result-length-section {
+  position: relative;
+  height: var(--takeoff-data-page-data-result-length-section-height);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.takeoff-data-page-data-result-length-section-title {
+  margin-bottom: var(--takeoff-data-page-data-result-length-section-title-margin-bottom);
+}
+
+.takeoff-data-page-data-result-length-fields {
+  display: flex;
+  align-items: center;
+}
+
+.takeoff-data-page-data-result-length-field {
+  flex-grow: 1;
+}
+
+.takeoff-data-page-data-result-weight-section {
+  height: var(--takeoff-data-page-data-result-weight-section-height);
+}
+
+.takeoff-data-page-data-result-valid .takeoff-data-page-data-result-length-avail-value {
+  color: var(--g3000-color-cyan);
+}
+
+.takeoff-data-page-data-result-valid-wind-section {
+  height: var(--takeoff-data-page-data-result-valid-wind-section-height);
+  display: flex;
+  align-items: center;
+}
+
+.takeoff-data-page-data-result-valid .takeoff-data-page-data-result-wind-field {
+  flex-grow: 1;
+}
+
+.takeoff-data-page-data-result-length .takeoff-data-page-data-result-length-required-value,
+.takeoff-data-page-data-result-length .takeoff-data-page-data-result-weight-value {
+  color: var(--g3000-color-yellow);
+}
+
+.takeoff-data-page-data-result-runway-weight-limit-section {
+  height: var(--takeoff-data-page-data-result-runway-weight-limit-section-height);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.takeoff-data-page-data-result-weight .takeoff-data-page-data-result-weight-value {
+  color: var(--g3000-color-yellow);
+}
+
+.takeoff-data-page-data-result-weight-limit-section {
+  margin-top: var(--takeoff-data-page-data-result-weight-limit-section-margin-top);
+}
+
+.takeoff-data-page-data-result-alt-section {
+  height: var(--takeoff-data-page-data-result-alt-section-height);
+}
+
+.takeoff-data-page-data-result-alt-value {
+  color: var(--g3000-color-yellow);
+}
+
+.takeoff-data-page-data-result-temp-section {
+  height: var(--takeoff-data-page-data-result-temp-section-height);
+}
+
+.takeoff-data-page-data-result-temp-value {
+  color: var(--g3000-color-yellow);
+}
+
+.takeoff-data-page-data-temp-result-alt-value {
+  margin-bottom: var(--takeoff-data-page-data-temp-result-alt-value-margin-bottom);
+}
+
+.takeoff-data-page-data-result-wind-section {
+  height: var(--takeoff-data-page-data-result-wind-section-height);
+}
+
+.takeoff-data-page-data-result-wind .takeoff-data-page-data-result-wind-value {
+  color: var(--g3000-color-yellow);
+}

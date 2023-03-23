@@ -176,7 +176,7 @@ export class DigitScroller extends DisplayComponent<DigitScrollerProps> {
       const digit = zeroIndexOffset - index;
 
       return (
-        <div style={`position: absolute; left: 0; top: ${50 + (index - zeroIndexOffset - 0.5) * this.translationPerDigit}%; width: 100%; height: ${this.translationPerDigit}%;`}>
+        <div style={`position: absolute; left: 0; top: calc(var(--digit-scroller-line-offset-y, 0px) + ${50 + (index - zeroIndexOffset - 0.5) * this.translationPerDigit}%); width: 100%; height: ${this.translationPerDigit}%; line-height: var(--digit-scroller-line-height, 1em);`}>
           <span class='digit-scroller-digit' style='vertical-align: baseline;'>{renderFunc(digit)}</span>
         </div>
       );
