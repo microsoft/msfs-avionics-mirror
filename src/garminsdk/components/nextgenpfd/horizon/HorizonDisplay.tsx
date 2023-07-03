@@ -1,19 +1,37 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import {
-  AdcEvents, AhrsEvents, BitFlags, ClockEvents, ComponentProps, ConsumerSubject, DisplayComponent, EventBus,
-  FSComponent, GeoPoint, GNSSEvents, HorizonComponent, HorizonProjection, HorizonProjectionChangeType, MappedSubject,
-  ReadonlyFloat64Array, Subject, Subscribable, SubscribableSet, SubscribableUtils, Subscription, UserSettingManager,
-  VecNMath, VecNSubject, VNode
+  AdcEvents, AhrsEvents, APEvents, ArraySubject, AvionicsSystemState, AvionicsSystemStateEvent, BitFlags, ClockEvents,
+  ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FSComponent, GeoPoint, GNSSEvents, HorizonComponent,
+  HorizonProjection, HorizonProjectionChangeType, HorizonSharedCanvasLayer, MappedSubject, MutableSubscribable,
+  ReadonlyFloat64Array, Subject, Subscribable, SubscribableArray, SubscribableMapFunctions, SubscribableSet,
+  SubscribableUtils, Subscription, UserSettingManager, VecNMath, VecNSubject, VNode
 } from '@microsoft/msfs-sdk';
 
 import { SynVisUserSettingTypes } from '../../../settings/SynVisUserSettings';
+import { AdcSystemEvents } from '../../../system/AdcSystem';
 import { AhrsSystemEvents } from '../../../system/AhrsSystem';
 import { FmsPositionMode, FmsPositionSystemEvents } from '../../../system/FmsPositionSystem';
-import { ArtificalHorizonProps, ArtificialHorizon } from './ArtificialHorizon';
-import { AttitudeAircraftSymbol, AttitudeAircraftSymbolProps } from './AttitudeAircraftSymbol';
-import { AttitudeIndicator, AttitudeIndicatorProps, PitchLadderStyles } from './AttitudeIndicator';
-import { FlightDirector, FlightDirectorProps } from './FlightDirector';
+import { TcasRaCommandDataProvider } from '../../../traffic/TcasRaCommandDataProvider';
+import { FailureBox } from '../../common/FailureBox';
+import { ArtificialHorizon, ArtificialHorizonOptions } from './ArtificialHorizon';
+import { AttitudeAircraftSymbol, AttitudeAircraftSymbolFormat, AttitudeAircraftSymbolProps } from './AttitudeAircraftSymbol';
+import { DefaultFlightDirectorDataProvider } from './FlightDirectorDataProvider';
+import { FlightDirectorDualCue, FlightDirectorDualCueProps } from './FlightDirectorDualCue';
+import { FlightDirectorFormat } from './FlightDirectorFormat';
+import { FlightDirectorSingleCue, FlightDirectorSingleCueProps } from './FlightDirectorSingleCue';
 import { FlightPathMarker, FlightPathMarkerProps } from './FlightPathMarker';
-import { SyntheticVision, SyntheticVisionProps } from './SyntheticVision';
+import { HorizonLine, HorizonLineOptions } from './HorizonLine';
+import { HorizonOcclusionArea } from './HorizonOcclusionArea';
+import { PitchLadder, PitchLadderProps } from './PitchLadder';
+import { RollIndicator, RollIndicatorOptions } from './RollIndicator';
+import { SyntheticVision } from './SyntheticVision';
+import { TcasRaPitchCueLayer, TcasRaPitchCueLayerProps } from './TcasRaPitchCueLayer';
+
+/**
+ * Options for the pitch ladder.
+ */
+export type HorizonPitchLadderOptions = Pick<PitchLadderProps, 'clipBounds' | 'options'>;
 
 /**
  * Options for the symbolic aircraft.
@@ -21,24 +39,25 @@ import { SyntheticVision, SyntheticVisionProps } from './SyntheticVision';
 export type AircraftSymbolOptions = Pick<AttitudeAircraftSymbolProps, 'color'>;
 
 /**
- * Options for the attitude indicator.
- */
-export type AttitudeIndicatorOptions = Pick<AttitudeIndicatorProps, 'rollScaleOptions' | 'slipSkidOptions'>;
-
-/**
  * Options for the flight director.
  */
-export type FlightDirectorOptions = Pick<FlightDirectorProps, 'maxPitch'>;
+export type FlightDirectorOptions = {
+  /** The time constant used to smooth flight director pitch commands, in milliseconds. */
+  pitchSmoothingTau?: number;
+
+  /** The time constant used to smooth flight director bank commands, in milliseconds. */
+  bankSmoothingTau?: number;
+};
 
 /**
- * Options for the artificial horizon.
+ * Options for the single-cue flight director.
  */
-export type ArtificialHorizonOptions = Pick<ArtificalHorizonProps, 'horizonLineOptions' | 'options'>;
+export type FlightDirectorSingleCueOptions = Pick<FlightDirectorSingleCueProps, 'conformalBounds' | 'conformalBankLimit'>;
 
 /**
- * Options for synthetic vision.
+ * Options for the dual-cue flight director.
  */
-export type SyntheticVisionOptions = Pick<SyntheticVisionProps, 'horizonLineOptions'>;
+export type FlightDirectorDualCueOptions = Pick<FlightDirectorDualCueProps, 'conformalBounds' | 'pitchErrorFactor' | 'bankErrorFactor' | 'bankErrorConstant'>;
 
 /**
  * Options for the flight path marker.
@@ -46,11 +65,19 @@ export type SyntheticVisionOptions = Pick<SyntheticVisionProps, 'horizonLineOpti
 export type FlightPathMarkerOptions = Pick<FlightPathMarkerProps, 'minGroundSpeed' | 'lookahead'>;
 
 /**
+ * Options for the TCAS resolution advisory pitch cue layer.
+ */
+export type TcasRaPitchCueLayerOptions = Pick<TcasRaPitchCueLayerProps, 'clipBounds' | 'conformalBounds' | 'tasSmoothingTau' | 'pitchSmoothingTau'>;
+
+/**
  * Component props for HorizonDisplay.
  */
 export interface HorizonDisplayProps extends ComponentProps {
   /** Event bus. */
   bus: EventBus;
+
+  /** The index of the ADC that is the source of the horizon display's data. */
+  adcIndex: number | Subscribable<number>;
 
   /** The index of the AHRS that is the source of the horizon display's data. */
   ahrsIndex: number | Subscribable<number>;
@@ -73,20 +100,38 @@ export interface HorizonDisplayProps extends ComponentProps {
   /** The amount of time, in milliseconds, to delay binding the synthetic vision layer's Bing instance. Defaults to 0. */
   bingDelay?: number;
 
-  /** Options for the symbolic aircraft. */
-  aircraftSymbolOptions: AircraftSymbolOptions;
-
-  /** Options for the attitude indicator. */
-  attitudeIndicatorOptions: AttitudeIndicatorOptions;
-
-  /** Options for the flight director. */
-  flightDirectorOptions: FlightDirectorOptions;
-
   /** Options for the artificial horizon. */
   artificialHorizonOptions: ArtificialHorizonOptions;
 
-  /** Options for the synthetic vision display. */
-  svtOptions: SyntheticVisionOptions;
+  /** Options for the horizon line. */
+  horizonLineOptions: Readonly<HorizonLineOptions>;
+
+  /** Options for the pitch ladder. */
+  pitchLadderOptions: HorizonPitchLadderOptions;
+
+  /** Options for the roll indicator. */
+  rollIndicatorOptions: RollIndicatorOptions;
+
+  /** Options for the symbolic aircraft. */
+  aircraftSymbolOptions: AircraftSymbolOptions;
+
+  /** Options for the flight director. */
+  flightDirectorOptions?: Readonly<FlightDirectorOptions>;
+
+  /** Options for the single-cue flight director. Required to display the single-cue director. */
+  flightDirectorSingleCueOptions?: Readonly<FlightDirectorSingleCueOptions>;
+
+  /** Options for the dual-cue flight director. Required to display the dual-cue director. */
+  flightDirectorDualCueOptions?: Readonly<FlightDirectorDualCueOptions>;
+
+  /** Options for the TCAS resolution advisory pitch cue layer. Required to display the TCAS RA pitch cue layer. */
+  tcasRaPitchCueLayerOptions?: Readonly<TcasRaPitchCueLayerOptions>;
+
+  /**
+   * A provider of TCAS-II resolution advisory vertical speed command data. Required to display the TCAS RA pitch cue
+   * layer.
+   */
+  tcasRaCommandDataProvider?: TcasRaCommandDataProvider;
 
   /**
    * Whether to support advanced SVT features. Advanced SVT features include:
@@ -97,6 +142,12 @@ export interface HorizonDisplayProps extends ComponentProps {
 
   /** Whether to show magnetic heading information instead of true heading. */
   useMagneticHeading: Subscribable<boolean>;
+
+  /** The flight director format to display. */
+  flightDirectorFormat: FlightDirectorFormat | Subscribable<FlightDirectorFormat>;
+
+  /** The set of occlusion areas to apply to certain horizon elements. If not defined, no occlusion will be applied. */
+  occlusions?: SubscribableArray<HorizonOcclusionArea>;
 
   /** A manager for synthetic vision settings. */
   svtSettingManager: UserSettingManager<SynVisUserSettingTypes>;
@@ -109,6 +160,9 @@ export interface HorizonDisplayProps extends ComponentProps {
 
   /** Extended field of view, in degrees. Defaults to 110 degrees. */
   extendedFov?: number;
+
+  /** A mutable subscribable to which to write whether SVT is enabled. */
+  isSvtEnabled?: MutableSubscribable<any, boolean>;
 
   /** CSS class(es) to apply to the root of the horizon display. */
   class?: string | SubscribableSet<string>;
@@ -140,9 +194,11 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
     roll: 0
   };
 
+  private readonly adcIndex = SubscribableUtils.toSubscribable(this.props.adcIndex, true);
   private readonly ahrsIndex = SubscribableUtils.toSubscribable(this.props.ahrsIndex, true);
   private readonly fmsPosIndex = SubscribableUtils.toSubscribable(this.props.fmsPosIndex, true);
 
+  private adcIndexSub?: Subscription;
   private ahrsIndexSub?: Subscription;
   private fmsPosIndexSub?: Subscription;
 
@@ -162,10 +218,30 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
   private pitchSub?: Subscription;
   private rollSub?: Subscription;
 
+  private readonly simRate = ConsumerSubject.create(null, 1);
+
+  private readonly adcState = ConsumerSubject.create<AvionicsSystemStateEvent | undefined>(null, undefined);
+
+  private readonly ahrsState = ConsumerSubject.create<AvionicsSystemStateEvent | undefined>(null, undefined);
   private readonly isHeadingDataValid = ConsumerSubject.create(null, true);
   private readonly isAttitudeDataValid = ConsumerSubject.create(null, true);
 
   private readonly fmsPosMode = ConsumerSubject.create(null, FmsPositionMode.None);
+
+  private readonly verticalSpeed = this.props.tcasRaPitchCueLayerOptions && this.props.tcasRaCommandDataProvider
+    ? ConsumerSubject.create(null, 0)
+    : undefined;
+  private readonly tas = this.props.tcasRaPitchCueLayerOptions && this.props.tcasRaCommandDataProvider
+    ? ConsumerSubject.create(null, 0)
+    : undefined;
+
+  private readonly turnCoordinatorBall = ConsumerSubject.create(null, 0);
+
+  private readonly fdDataProvider = new DefaultFlightDirectorDataProvider(
+    this.props.bus,
+    this.props.flightDirectorOptions?.pitchSmoothingTau ?? 500 / Math.LN2,
+    this.props.flightDirectorOptions?.bankSmoothingTau ?? 500 / Math.LN2
+  );
 
   private readonly isSvtEnabled = MappedSubject.create(
     ([isHeadingDataValid, isAttitudeDataValid, fmsPosMode, svtEnabledSetting]): boolean => {
@@ -176,6 +252,24 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
     this.fmsPosMode,
     this.props.svtSettingManager.getSetting('svtEnabled')
   );
+
+  private readonly horizonLineShowHeadingLabels = MappedSubject.create(
+    SubscribableMapFunctions.and(),
+    this.isHeadingDataValid,
+    this.props.svtSettingManager.getSetting('svtHeadingLabelShow'),
+    this.props.supportAdvancedSvt ? Subject.create(true) : this.isSvtEnabled,
+  );
+
+  private readonly apMaxBankId = ConsumerSubject.create(null, 0);
+  private readonly showLowBankArc = this.apMaxBankId.map(id => id === 1);
+
+  private readonly showTcasRaPitchCueLayer = this.props.tcasRaPitchCueLayerOptions && this.props.tcasRaCommandDataProvider
+    ? MappedSubject.create(
+      ([isAttitudeDataValid, adcState]) => isAttitudeDataValid && adcState !== undefined && (adcState.current === undefined || adcState.current === AvionicsSystemState.On),
+      this.isAttitudeDataValid,
+      this.adcState,
+    )
+    : undefined;
 
   private readonly showFpm = this.props.supportAdvancedSvt
     ? MappedSubject.create(
@@ -190,10 +284,31 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
     : undefined;
 
   private readonly showFlightDirector = MappedSubject.create(
-    ([declutter, isAttitudeDataValid]): boolean => !declutter && isAttitudeDataValid,
+    ([declutter, isAttitudeDataValid, isFdActive]): boolean => !declutter && isAttitudeDataValid && isFdActive,
     this.props.declutter,
-    this.isAttitudeDataValid
+    this.isAttitudeDataValid,
+    this.fdDataProvider.isFdActive
   );
+
+  private readonly showFlightDirectorSingleCue = SubscribableUtils.isSubscribable(this.props.flightDirectorFormat)
+    ? MappedSubject.create(
+      ([show, format]) => show && format === FlightDirectorFormat.SingleCue,
+      this.showFlightDirector,
+      this.props.flightDirectorFormat
+    )
+    : this.props.flightDirectorFormat === FlightDirectorFormat.SingleCue;
+
+  private readonly showFlightDirectorDualCue = SubscribableUtils.isSubscribable(this.props.flightDirectorFormat)
+    ? MappedSubject.create(
+      ([show, format]) => show && format === FlightDirectorFormat.DualCue,
+      this.showFlightDirector,
+      this.props.flightDirectorFormat
+    )
+    : this.props.flightDirectorFormat === FlightDirectorFormat.DualCue;
+
+  private readonly aircraftSymbolFormat = SubscribableUtils.isSubscribable(this.props.flightDirectorFormat)
+    ? this.props.flightDirectorFormat.map(format => format === FlightDirectorFormat.DualCue ? AttitudeAircraftSymbolFormat.DualCue : AttitudeAircraftSymbolFormat.SingleCue)
+    : this.props.flightDirectorFormat === FlightDirectorFormat.DualCue ? AttitudeAircraftSymbolFormat.DualCue : AttitudeAircraftSymbolFormat.SingleCue;
 
   private readonly normalFov = this.props.normalFov ?? HorizonDisplay.DEFAULT_NORMAL_FOV;
   private readonly extendedFov = this.props.extendedFov ?? HorizonDisplay.DEFAULT_EXTENDED_FOV;
@@ -206,6 +321,24 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
   private readonly svtFovEndpoints = VecNSubject.create(VecNMath.create(4, 0.5, 0, 0.5, 1));
   private readonly fovEndpoints = VecNSubject.create(VecNMath.create(4, 0.5, 0, 0.5, 1));
 
+  private readonly occlusions = this.props.occlusions ?? ArraySubject.create();
+
+  private readonly ahrsAlignState = MappedSubject.create(
+    ([ahrsState, isAttitudeDataValid]) => {
+      const isAhrsOk = ahrsState === undefined || ahrsState.current === undefined || ahrsState.current === AvionicsSystemState.On;
+
+      if (isAhrsOk) {
+        return isAttitudeDataValid ? 'ok' : 'failed';
+      } else {
+        return ahrsState.current === AvionicsSystemState.Initializing ? 'aligning' : 'failed';
+      }
+    },
+    this.ahrsState,
+    this.isAttitudeDataValid
+  );
+  private readonly ahrsAlignDisplay = this.ahrsAlignState.map(state => state === 'aligning' ? '' : 'none');
+  private readonly showFailureBox = this.ahrsAlignState.map(state => state === 'failed');
+
   private isAlive = true;
   private isAwake = true;
 
@@ -213,6 +346,7 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
 
   private updateFreqSub?: Subscription;
   private updateCycleSub?: Subscription;
+  private isSvtEnabledPipe?: Subscription;
 
   private readonly updateCycleHandler = this.onUpdated.bind(this);
 
@@ -224,7 +358,12 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       this.horizonRef.instance.sleep();
     }
 
-    const sub = this.props.bus.getSubscriber<AdcEvents & AhrsEvents & GNSSEvents & AhrsSystemEvents & FmsPositionSystemEvents>();
+    const sub = this.props.bus.getSubscriber<
+      ClockEvents & AdcEvents & AhrsEvents & GNSSEvents & AdcSystemEvents & AhrsSystemEvents & FmsPositionSystemEvents
+      & APEvents
+    >();
+
+    this.simRate.setConsumer(sub.on('simRate'));
 
     this.position.sub(pos => {
       this.projectionParams.position.set(pos.lat, pos.long);
@@ -259,11 +398,21 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       }
     }, true);
 
+    this.adcIndexSub = this.adcIndex.sub(index => {
+      this.verticalSpeed?.setConsumer(sub.on(`adc_vertical_speed_${index}`));
+      this.tas?.setConsumer(sub.on(`adc_tas_${index}`));
+
+      this.adcState.setConsumer(sub.on(`adc_state_${index}`));
+    }, true);
+
     this.ahrsIndexSub = this.ahrsIndex.sub(index => {
       this.heading.setConsumer(sub.on(`ahrs_hdg_deg_true_${index}`));
       this.pitch.setConsumer(sub.on(`ahrs_pitch_deg_${index}`));
       this.roll.setConsumer(sub.on(`ahrs_roll_deg_${index}`));
 
+      this.turnCoordinatorBall.setConsumer(sub.on(`ahrs_turn_coordinator_ball_${index}`));
+
+      this.ahrsState.setConsumer(sub.on(`ahrs_state_${index}`));
       this.isHeadingDataValid.setConsumer(sub.on(`ahrs_heading_data_valid_${index}`));
       this.isAttitudeDataValid.setConsumer(sub.on(`ahrs_attitude_data_valid_${index}`));
     }, true);
@@ -272,6 +421,8 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       this.position.setConsumer(sub.on(`fms_pos_gps-position_${index}`));
       this.fmsPosMode.setConsumer(sub.on(`fms_pos_mode_${index}`));
     }, true);
+
+    this.apMaxBankId.setConsumer(sub.on('ap_max_bank_id'));
 
     const svtEndpointsPipe = this.svtFovEndpoints.pipe(this.fovEndpoints, true);
 
@@ -283,6 +434,12 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
         this.fovEndpoints.set(this.nonSvtFovEndpoints);
       }
     }, true);
+
+    this.fdDataProvider.init(!this.isAwake);
+
+    if (this.props.isSvtEnabled) {
+      this.isSvtEnabledPipe = this.isSvtEnabled.pipe(this.props.isSvtEnabled);
+    }
 
     this.recomputeSvtFovEndpoints(this.horizonRef.instance.projection);
 
@@ -309,7 +466,13 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       return;
     }
 
-    this.paramSubjects.forEach(subject => { subject.resume(); });
+    this.isAwake = true;
+
+    for (const subject of this.paramSubjects) {
+      subject.resume();
+    }
+
+    this.fdDataProvider.resume();
 
     this.horizonRef.getOrDefault()?.wake();
     this.updateCycleSub?.resume(true);
@@ -328,7 +491,13 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       return;
     }
 
-    this.paramSubjects.forEach(subject => { subject.pause(); });
+    this.isAwake = false;
+
+    for (const subject of this.paramSubjects) {
+      subject.pause();
+    }
+
+    this.fdDataProvider.pause();
 
     this.horizonRef.getOrDefault()?.sleep();
     this.updateCycleSub?.pause();
@@ -380,6 +549,8 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
    * @param time The current time, as a UNIX timestamp in milliseconds.
    */
   private onUpdated(time: number): void {
+    this.fdDataProvider.update(time);
+
     this.horizonRef.instance.projection.set(this.projectionParams);
     this.horizonRef.instance.update(time);
   }
@@ -398,50 +569,91 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
         projectedOffset={this.props.projectedOffset}
         class={this.props.class}
       >
-        <ArtificialHorizon
-          projection={projection}
-          bus={this.props.bus}
-          show={MappedSubject.create(
-            ([isAttitudeDataValid, isSvtEnabled]): boolean => isAttitudeDataValid && !isSvtEnabled,
-            this.isAttitudeDataValid,
-            this.isSvtEnabled
-          )}
-          showHeadingLabels={this.props.supportAdvancedSvt ? this.props.svtSettingManager.getSetting('svtHeadingLabelShow') : false}
-          useMagneticHeading={this.props.useMagneticHeading}
-          {...this.props.artificialHorizonOptions}
-        />
         <SyntheticVision
           projection={projection}
           bingId={this.props.bingId}
           bingDelay={this.props.bingDelay}
           isEnabled={this.isSvtEnabled}
-          showHeadingLabels={this.props.svtSettingManager.getSetting('svtHeadingLabelShow')}
-          useMagneticHeading={this.props.useMagneticHeading}
-          {...this.props.svtOptions}
         />
-        <AttitudeIndicator
+        <HorizonSharedCanvasLayer projection={projection}>
+          <ArtificialHorizon
+            show={MappedSubject.create(
+              ([isAttitudeDataValid, isSvtEnabled]): boolean => isAttitudeDataValid && !isSvtEnabled,
+              this.isAttitudeDataValid,
+              this.isSvtEnabled
+            )}
+            options={this.props.artificialHorizonOptions}
+          />
+          <HorizonLine
+            show={this.isAttitudeDataValid}
+            showHeadingLabels={this.horizonLineShowHeadingLabels}
+            useMagneticHeading={this.props.useMagneticHeading}
+            approximate={this.isSvtEnabled.map(SubscribableMapFunctions.not())}
+            occlusions={this.occlusions}
+            options={this.props.horizonLineOptions}
+          />
+        </HorizonSharedCanvasLayer>
+        <PitchLadder
           projection={projection}
-          bus={this.props.bus}
-          ahrsIndex={this.ahrsIndex}
+          show={this.isAttitudeDataValid}
           isSVTEnabled={this.isSvtEnabled}
-          pitchLadderOptions={{
-            svtDisabledStyles: this.props.supportAdvancedSvt ? HorizonDisplay.getNormalFovPitchLadderStyles() : HorizonDisplay.getExtendedFovPitchLadderStyles(),
-            svtEnabledStyles: HorizonDisplay.getNormalFovPitchLadderStyles()
-          }}
-          {...this.props.attitudeIndicatorOptions}
+          clipBounds={this.props.pitchLadderOptions.clipBounds}
+          options={this.props.pitchLadderOptions.options}
+        />
+        <div class='ahrs-align-msg' style={{ 'display': this.ahrsAlignDisplay }}>AHRS ALIGN: Keep Wings Level</div>
+        {this.props.tcasRaPitchCueLayerOptions !== undefined && this.props.tcasRaCommandDataProvider !== undefined && (
+          <TcasRaPitchCueLayer
+            projection={projection}
+            show={this.showTcasRaPitchCueLayer!}
+            dataProvider={this.props.tcasRaCommandDataProvider}
+            verticalSpeed={this.verticalSpeed!}
+            tas={this.tas!}
+            simRate={this.simRate}
+            {...this.props.tcasRaPitchCueLayerOptions}
+          />
+        )}
+        <RollIndicator
+          projection={projection}
+          show={Subject.create(true)}
+          showSlipSkid={this.isAttitudeDataValid}
+          showLowBankArc={this.showLowBankArc}
+          turnCoordinatorBall={this.turnCoordinatorBall}
+          options={this.props.rollIndicatorOptions}
         />
         <FlightPathMarker
           projection={projection}
           bus={this.props.bus}
           show={this.showFpm ?? this.isSvtEnabled}
         />
-        <FlightDirector
+        {
+          this.showFlightDirectorSingleCue !== false && this.props.flightDirectorSingleCueOptions !== undefined && (
+            <FlightDirectorSingleCue
+              projection={projection}
+              show={this.showFlightDirectorSingleCue === true ? this.showFlightDirector : this.showFlightDirectorSingleCue}
+              fdPitch={this.fdDataProvider.fdPitch}
+              fdBank={this.fdDataProvider.fdBank}
+              {...this.props.flightDirectorSingleCueOptions}
+            />
+          )
+        }
+        <AttitudeAircraftSymbol
           projection={projection}
-          bus={this.props.bus}
-          show={this.showFlightDirector}
-          {...this.props.flightDirectorOptions}
+          show={Subject.create(true)}
+          format={this.aircraftSymbolFormat}
+          color={this.props.aircraftSymbolOptions.color}
         />
-        <AttitudeAircraftSymbol projection={projection} show={Subject.create(true)} color={this.props.aircraftSymbolOptions.color} />
+        {
+          this.showFlightDirectorDualCue !== false && this.props.flightDirectorDualCueOptions !== undefined && (
+            <FlightDirectorDualCue
+              projection={projection}
+              show={this.showFlightDirectorDualCue === true ? this.showFlightDirector : this.showFlightDirectorDualCue}
+              fdPitch={this.fdDataProvider.fdPitch}
+              fdBank={this.fdDataProvider.fdBank}
+              {...this.props.flightDirectorDualCueOptions}
+            />
+          )
+        }
+        <FailureBox show={this.showFailureBox} class='attitude-failure-box' />
       </HorizonComponent>
     );
   }
@@ -450,66 +662,44 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
   public destroy(): void {
     this.isAlive = false;
 
-    this.paramSubjects.forEach(subject => { subject.destroy(); });
+    for (const subject of this.paramSubjects) {
+      subject.destroy();
+    }
 
+    this.fdDataProvider.destroy();
+
+    this.adcState.destroy();
+    this.ahrsState.destroy();
     this.isHeadingDataValid.destroy();
     this.isAttitudeDataValid.destroy();
     this.fmsPosMode.destroy();
     this.isSvtEnabled.destroy();
+    this.apMaxBankId.destroy();
+    this.horizonLineShowHeadingLabels.destroy();
     this.showFpm?.destroy();
     this.showFlightDirector.destroy();
 
+    if (SubscribableUtils.isSubscribable(this.aircraftSymbolFormat)) {
+      this.aircraftSymbolFormat.destroy();
+    }
+
+    if (SubscribableUtils.isSubscribable(this.showFlightDirectorSingleCue)) {
+      this.showFlightDirectorSingleCue.destroy();
+    }
+
+    if (SubscribableUtils.isSubscribable(this.showFlightDirectorDualCue)) {
+      this.showFlightDirectorDualCue.destroy();
+    }
+
     this.updateFreqSub?.destroy();
     this.updateCycleSub?.destroy();
+    this.adcIndexSub?.destroy();
     this.ahrsIndexSub?.destroy();
     this.fmsPosIndexSub?.destroy();
+    this.isSvtEnabledPipe?.destroy();
 
     this.horizonRef.getOrDefault()?.destroy();
 
     super.destroy();
-  }
-
-  /**
-   * Gets pitch ladder styling options for a normal field of view.
-   * @returns Pitch ladder styling options for a normal field of view.
-   */
-  private static getNormalFovPitchLadderStyles(): PitchLadderStyles {
-    return {
-      majorLineIncrement: 10,
-      mediumLineFactor: 2,
-      minorLineFactor: 2,
-      minorLineMaxPitch: 20,
-      mediumLineMaxPitch: 30,
-      minorLineShowNumber: false,
-      mediumLineShowNumber: true,
-      majorLineShowNumber: true,
-      minorLineLength: 25,
-      mediumLineLength: 50,
-      majorLineLength: 100,
-      chevronThresholdPositive: 50,
-      chevronThresholdNegative: 30
-    };
-  }
-
-  /**
-   * Gets pitch ladder styling options for an extended field of view.
-   * @returns Pitch ladder styling options for an extended field of view.
-   */
-  private static getExtendedFovPitchLadderStyles(): PitchLadderStyles {
-    return {
-      majorLineIncrement: 10,
-      mediumLineFactor: 2,
-      minorLineFactor: 2,
-      minorLineMaxPitch: 20,
-      mediumLineMaxPitch: 30,
-      minorLineShowNumber: false,
-      mediumLineShowNumber: false,
-      majorLineShowNumber: true,
-      minorLineLength: 25,
-      mediumLineLength: 50,
-      majorLineLength: 100,
-      chevronThresholdPositive: 50,
-      chevronThresholdNegative: 30
-    };
   }
 }

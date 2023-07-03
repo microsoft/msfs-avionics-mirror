@@ -12,7 +12,7 @@ export abstract class MapSystemController<
   Layers extends LayerRecord = any,
   Controllers extends ControllerRecord = any,
   Context extends ContextRecord = any
-  > {
+> {
 
   private _isAlive = true;
   // eslint-disable-next-line jsdoc/require-returns
@@ -61,7 +61,7 @@ export abstract class MapSystemController<
 
   /**
    * This method is called immediately before this controller's map updates its layers.
-   * @param time The current sim time, as a UNIX timestamp in milliseconds.
+   * @param time The current time, as a Javascript timestamp.
    * @param elapsed The elapsed time, in milliseconds, since the last update.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -71,7 +71,7 @@ export abstract class MapSystemController<
 
   /**
    * This method is called immediately after this controller's map updates its layers.
-   * @param time The current sim time, as a UNIX timestamp in milliseconds.
+   * @param time The current time, as a Javascript timestamp.
    * @param elapsed The elapsed time, in milliseconds, since the last update.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

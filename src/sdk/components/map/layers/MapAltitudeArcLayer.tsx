@@ -275,7 +275,8 @@ export class MapAltitudeArcLayer extends MapLayer<MapAltitudeArcLayerProps> {
       outlineStyle: this.outlineStyle,
       outlineLineCap: this.outlineLineCap,
       projectedArcPosition: this.projectedArcPosition,
-      projectedArcAngle: this.projectedArcAngle
+      projectedArcAngle: this.projectedArcAngle,
+      class: this.props.class,
     };
 
     return this.props.renderMethod === 'canvas'
@@ -451,7 +452,7 @@ class MapAltitudeArcCanvasLayer extends MapLayer<MapAltitudeArcSubLayerProps> {
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <MapSyncedCanvasLayer ref={this.canvasLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} />
+      <MapSyncedCanvasLayer ref={this.canvasLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} class={this.props.class} />
     );
   }
 
@@ -565,7 +566,7 @@ class MapAltitudeArcSvgLayer extends MapLayer<MapAltitudeArcSubLayerProps> {
     const path = svgPathStream.getSvgPath();
 
     return (
-      <svg viewBox={`${(this.totalArcThickness / 2 + 1) - this.width} ${-this.height / 2} ${this.width} ${this.height}`} style={this.svgStyle}>
+      <svg viewBox={`${(this.totalArcThickness / 2 + 1) - this.width} ${-this.height / 2} ${this.width} ${this.height}`} style={this.svgStyle} class={this.props.class}>
         <path d={path} fill="none" stroke={this.props.outlineStyle} stroke-width={this.totalArcThickness} stroke-linecap={this.props.outlineLineCap} />
         <path d={path} fill='none' stroke={this.props.strokeStyle} stroke-width={this.props.strokeWidth} stroke-linecap={this.props.strokeLineCap} />
       </svg>

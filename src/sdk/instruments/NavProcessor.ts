@@ -1,13 +1,14 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import { ControlEvents } from '../data/ControlPublisher';
-import { EventBus, IndexedEventType } from '../data/EventBus';
+import { EventBus } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { EventSubscriber } from '../data/EventSubscriber';
 import { HEvent } from '../data/HEventPublisher';
 import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
 import { RadioUtils } from '../utils/radio';
 import { BasePublisher, SimVarPublisher } from './BasePublishers';
+import { MarkerBeaconState, NavComEvents, VorToFrom } from './NavCom';
 import { AdfRadioIndex, FrequencyBank, NavRadioIndex, RadioEvents, RadioType } from './RadioCommon';
 
 /**
@@ -26,7 +27,10 @@ type NavRadioDataEventsRoot = {
   /** Whether a nav radio's tuned station has a VOR component. */
   nav_has_nav: boolean;
 
-  /** Nav radio course needle deflection, scaled to +/-127. */
+  /**
+   * Nav radio course needle deflection, scaled to +/-127. Positive values indicate needle deflection to the right, or
+   * equivalently, that the airplane is deviated to the left of course.
+   */
   nav_cdi: number;
 
   /** Nav radio DME distance, in nautical miles. */
@@ -34,6 +38,14 @@ type NavRadioDataEventsRoot = {
 
   /** Nav radio radial, in degrees (the radial from the tuned station on which the airplane lies). */
   nav_radial: number;
+
+  /**
+   * The difference, in degrees, between the course from the airplane to a nav radio's tuned station and the radio's
+   * reference course. The radio's reference course is the selected course if the tuned station is a VOR or the
+   * localizer course if the tuned station is a localizer. Positive values indicate the airplane is to the left of the
+   * reference course.
+   */
+  nav_radial_error: number;
 
   /** Nav radio ident string. */
   nav_ident: string;
@@ -59,7 +71,7 @@ type NavRadioDataEventsRoot = {
   /** Whether a nav radio's tuned station has a glideslope. */
   nav_glideslope: boolean;
 
-  /** The angle of a nav radio's tuned glideslope, in degrees. */
+  /** The angle of a nav radio's tuned glideslope, in degrees. Positive values indicate a descending path. */
   nav_raw_gs: number;
 
   /** Nav radio glideslope angle error, in degrees. Positive values indicate position above the glideslope. */
@@ -87,6 +99,8 @@ type NavRadioDataEventsIndexed<Index extends NavRadioIndex> = {
 
 /**
  * Events related to data received by nav radios.
+ *
+ * @deprecated Please use `NavRadioTuneEvents` instead.
  */
 export interface NavRadioDataEvents extends
   NavRadioDataEventsIndexed<1>,
@@ -118,6 +132,8 @@ type AdfRadioDataEventsIndexed<Index extends AdfRadioIndex> = {
 
 /**
  * Events related to data received by ADF radios.
+ *
+ * @deprecated Please use `AdfRadioTuneEvents` instead.
  */
 export interface AdfRadioDataEvents extends
   AdfRadioDataEventsIndexed<1>,
@@ -125,21 +141,9 @@ export interface AdfRadioDataEvents extends
 }
 
 /**
- * Events related to data received by ADF radios.
- */
-export interface AdfRadioDataEvents {
-  /** ADF radio signal strength, in arbitrary units. A value of `0` indicates no signal. */
-  [adf_signal: IndexedEventType<'adf_signal'>]: number;
-
-  /** ADF radio relative bearing, in degrees (the bearing to the tuned station, relative to airplane heading). */
-  [adf_bearing: IndexedEventType<'adf_bearing'>]: number;
-
-  /** The location of an ADF radio's tuned station. */
-  [adf_lla: IndexedEventType<'adf_lla'>]: LatLongAlt;
-}
-
-/**
  * Events related to data received by nav radios, ADF radios, marker beacons, and GPS.
+ *
+ * @deprecated Please use {@link NavComEvents} instead.
  */
 export interface NavProcSimVars extends NavRadioDataEvents, AdfRadioDataEvents {
   /** DTK to the next GPS waypoint */
@@ -162,6 +166,8 @@ export interface NavProcSimVars extends NavRadioDataEvents, AdfRadioDataEvents {
 
 /**
  * A publisher of nav radio, ADF radio, GPS, and marker beacon-related sim var events.
+ *
+ * @deprecated Please use `NavComSimVarPublisher` instead.
  */
 export class NavProcSimVarPublisher extends SimVarPublisher<NavProcSimVars> {
   private static readonly simvars = new Map<keyof NavProcSimVars, SimVarDefinition>([
@@ -174,7 +180,7 @@ export class NavProcSimVarPublisher extends SimVarPublisher<NavProcSimVars> {
     ['gps_dtk', { name: 'GPS WP DESIRED TRACK', type: SimVarValueType.Degree }],
     ['gps_xtk', { name: 'GPS WP CROSS TRK', type: SimVarValueType.NM }],
     ['gps_wp', { name: 'GPS WP NEXT ID', type: SimVarValueType.NM }],
-    ['gps_wp_bearing', { name: 'GPS WP BEARING', type: SimVarValueType.String }],
+    ['gps_wp_bearing', { name: 'GPS WP BEARING', type: SimVarValueType.Degree }],
     ['gps_wp_distance', { name: 'GPS WP DISTANCE', type: SimVarValueType.NM }],
     ['mkr_bcn_state_simvar', { name: 'MARKER BEACON STATE', type: SimVarValueType.Number }],
     ['gps_obs_active_simvar', { name: 'GPS OBS ACTIVE', type: SimVarValueType.Bool }],
@@ -204,6 +210,7 @@ export class NavProcSimVarPublisher extends SimVarPublisher<NavProcSimVars> {
       [`nav_cdi_${index}`, { name: `NAV CDI:${index}`, type: SimVarValueType.Number }],
       [`nav_dme_${index}`, { name: `NAV DME:${index}`, type: SimVarValueType.NM }],
       [`nav_radial_${index}`, { name: `NAV RADIAL:${index}`, type: SimVarValueType.Degree }],
+      [`nav_radial_error_${index}`, { name: `NAV RADIAL ERROR:${index}`, type: SimVarValueType.Degree }],
       [`nav_ident_${index}`, { name: `NAV IDENT:${index}`, type: SimVarValueType.String }],
       [`nav_to_from_${index}`, { name: `NAV TOFROM:${index}`, type: SimVarValueType.Enum }],
       [`nav_localizer_${index}`, { name: `NAV HAS LOCALIZER:${index}`, type: SimVarValueType.Bool }],
@@ -243,13 +250,6 @@ export enum NavSourceType {
   Nav,
   Gps,
   Adf
-}
-
-//* ENUM for VOR To/From Flag */
-export enum VorToFrom {
-  OFF = 0,
-  TO = 1,
-  FROM = 2
 }
 
 /** Specified for a particular navigation source */
@@ -381,14 +381,6 @@ export type BearingIsLoc = {
   index: number,
   /** if the source is a loc */
   isLoc: boolean | null
-}
-
-/** Marker beacon signal state. */
-export enum MarkerBeaconState {
-  Inactive,
-  Outer,
-  Middle,
-  Inner
 }
 
 /** navprocessor events */
@@ -1035,7 +1027,7 @@ export class NavProcessorConfig {
   public courseIncEvents = new Set<string>();
   public courseDecEvents = new Set<string>();
   public courseSyncEvents = new Set<string>();
-  public simVarPublisher?: NavProcSimVarPublisher;
+  public simVarPublisher?: BasePublisher<NavProcSimVars>;
   public additionalSources = new Array<NavSource>();
 }
 
@@ -1224,11 +1216,10 @@ export class NavProcessor {
   private cdiSourceIdx: number;
   private bearingSourceIdxs: Array<number>;
   private hEvents: EventSubscriber<HEvent>;
-  private navComSubscriber: EventSubscriber<RadioEvents>;
+  private radioEventsSubscriber: EventSubscriber<RadioEvents>;
   private publisher: NavProcPublisher;
-  private simVarPublisher: NavProcSimVarPublisher;
   private controlSubscriber: EventSubscriber<ControlEvents>;
-  private simVarSubscriber: EventSubscriber<NavProcSimVars>;
+  private navComSubscriber: EventSubscriber<NavComEvents>;
   private navSources: Array<NavSource>;
   private readonly brgSrcAsoboMap = [-1, 0, 1, 3, 2];
 
@@ -1242,11 +1233,10 @@ export class NavProcessor {
     this.bus = bus;
     this.config = config;
     this.publisher = new NavProcPublisher(bus);
-    this.simVarPublisher = config.simVarPublisher ? config.simVarPublisher : new NavProcSimVarPublisher(this.bus);
     this.hEvents = bus.getSubscriber<HEvent>();
     this.controlSubscriber = bus.getSubscriber<ControlEvents>();
-    this.simVarSubscriber = new EventSubscriber<NavProcSimVars>(bus);
-    this.navComSubscriber = bus.getSubscriber<RadioEvents>();
+    this.navComSubscriber = bus.getSubscriber<NavComEvents>();
+    this.radioEventsSubscriber = bus.getSubscriber<RadioEvents>();
     this.navSources = new Array<NavSource>();
     this.bearingSourceIdxs = [-1, -1];
     this.cdiSourceIdx = 0;
@@ -1257,7 +1247,6 @@ export class NavProcessor {
    */
   public init(): void {
     this.publisher.startPublish();
-    this.simVarPublisher.startPublish();
 
     this.hEvents.on('hEvent').handle(this.eventHandler);
 
@@ -1276,13 +1265,13 @@ export class NavProcessor {
     this.controlSubscriber.on('brg_src_switch').handle(this.cycleBrgSrc.bind(this));
 
     // TODO Determine why this throttle doesn't work but does on the client end.
-    this.simVarSubscriber.on('mkr_bcn_state_simvar').whenChanged().handle((state) => {
+    this.navComSubscriber.on('mkr_bcn_state_simvar').whenChanged().handle((state) => {
       this.publisher.publishMarkerBeacon(state);
     });
-    this.simVarSubscriber.on('gps_obs_active_simvar').whenChanged().handle((state) => {
+    this.navComSubscriber.on('gps_obs_active_simvar').whenChanged().handle((state) => {
       this.publisher.publishGpsObsState(state);
     });
-    this.simVarSubscriber.on('gps_obs_value_simvar').whenChangedBy(1).handle((value) => {
+    this.navComSubscriber.on('gps_obs_value_simvar').whenChangedBy(1).handle((value) => {
       this.publisher.publishGpsObsValue(value);
     });
 
@@ -1303,61 +1292,61 @@ export class NavProcessor {
       src.glideslopeAngleHandler = this.onGlideslopeAngle.bind(this);
       src.validHandler = this.onBrgValidity.bind(this);
 
-      this.simVarSubscriber.on(`nav_cdi_${index}`).whenChangedBy(1).handle((deviation) => {
+      this.navComSubscriber.on(`nav_cdi_${index}`).whenChangedBy(1).handle((deviation) => {
         src.deviation = deviation;
       });
-      this.simVarSubscriber.on(`nav_obs_${index}`).whenChangedBy(1).handle((obs) => {
+      this.navComSubscriber.on(`nav_obs_${index}`).whenChangedBy(1).handle((obs) => {
         src.obs = obs;
       });
-      this.simVarSubscriber.on(`nav_dme_${index}`).whenChangedBy(0.1).handle((distance) => {
+      this.navComSubscriber.on(`nav_dme_${index}`).whenChangedBy(0.1).handle((distance) => {
         src.distance = distance;
         // TODO Fold DME logic into the distance handler.
         this.onDme(src.hasDme, src.distance, src.srcId);
       });
-      this.simVarSubscriber.on(`nav_radial_${index}`).handle((bearing) => {
+      this.navComSubscriber.on(`nav_radial_${index}`).handle((bearing) => {
         src.bearing = bearing;
       });
-      this.simVarSubscriber.on(`nav_ident_${index}`).whenChanged().handle((ident) => {
+      this.navComSubscriber.on(`nav_ident_${index}`).whenChanged().handle((ident) => {
         src.ident = ident;
       });
-      this.simVarSubscriber.on(`nav_signal_${index}`).withPrecision(0).handle((signal) => {
+      this.navComSubscriber.on(`nav_signal_${index}`).withPrecision(0).handle((signal) => {
         src.signal = signal;
       });
-      this.simVarSubscriber.on(`nav_has_nav_${index}`).whenChanged().handle((valid) => {
+      this.navComSubscriber.on(`nav_has_nav_${index}`).whenChanged().handle((valid) => {
         src.valid = !!valid;
       });
-      this.simVarSubscriber.on(`nav_has_dme_${index}`).whenChanged().handle((dme) => {
+      this.navComSubscriber.on(`nav_has_dme_${index}`).whenChanged().handle((dme) => {
         src.hasDme = !!dme;
         // TODO Fold DME logic into the distance handler.
         this.onDme(src.hasDme, src.distance, src.srcId);
       });
-      this.simVarSubscriber.on(`nav_to_from_${index}`).whenChanged().handle((value) => {
+      this.navComSubscriber.on(`nav_to_from_${index}`).whenChanged().handle((value) => {
         src.toFrom = value;
       });
-      this.simVarSubscriber.on(`nav_localizer_${index}`).whenChanged().handle((localizer) => {
+      this.navComSubscriber.on(`nav_localizer_${index}`).whenChanged().handle((localizer) => {
         src.hasLocalizer = localizer;
       });
-      this.simVarSubscriber.on(`nav_localizer_crs_${index}`).whenChanged().handle((locCourse) => {
+      this.navComSubscriber.on(`nav_localizer_crs_${index}`).whenChanged().handle((locCourse) => {
         src.localizerCourse = locCourse;
       });
-      this.simVarSubscriber.on(`nav_glideslope_${index}`).whenChanged().handle((gs) => {
+      this.navComSubscriber.on(`nav_glideslope_${index}`).whenChanged().handle((gs) => {
         src.hasGlideslope = gs;
       });
-      this.simVarSubscriber.on(`nav_gs_error_${index}`).whenChanged().handle((gsDev) => {
+      this.navComSubscriber.on(`nav_gs_error_${index}`).whenChanged().handle((gsDev) => {
         src.glideslopeDeviation = gsDev;
       });
-      this.simVarSubscriber.on(`nav_raw_gs_${index}`).whenChanged().handle((rawGs) => {
+      this.navComSubscriber.on(`nav_raw_gs_${index}`).whenChanged().handle((rawGs) => {
         src.glideslopeAngle = rawGs;
       });
-      this.simVarSubscriber.on(`nav_magvar_${index}`).whenChanged().handle((magvar) => {
+      this.navComSubscriber.on(`nav_magvar_${index}`).whenChanged().handle((magvar) => {
         src.magneticVariation = magvar;
       });
-      this.navComSubscriber.on('set_radio_state').handle((radioState) => {
+      this.radioEventsSubscriber.on('set_radio_state').handle((radioState) => {
         if (radioState.radioType === RadioType.Nav && radioState.index == i && radioState.activeFrequency) {
           src.isLocalizerFrequency = this.frequencyIsLocalizer(radioState.activeFrequency) as boolean;
         }
       });
-      this.navComSubscriber.on('set_frequency').handle((setFrequency) => {
+      this.radioEventsSubscriber.on('set_frequency').handle((setFrequency) => {
         if (setFrequency.radio.radioType === RadioType.Nav && setFrequency.radio.index == i
           && setFrequency.bank == FrequencyBank.Active) {
           src.isLocalizerFrequency = this.frequencyIsLocalizer(setFrequency.frequency) as boolean;
@@ -1386,13 +1375,13 @@ export class NavProcessor {
       src.distHandler = this.onBrgDistance.bind(this);
       src.brgHandler = this.onBrgDirection.bind(this);
       src.identHandler = this.onBrgIdent.bind(this);
-      this.simVarSubscriber.on('gps_xtk').whenChangedBy(1).handle((deviation) => {
+      this.navComSubscriber.on('gps_xtk').whenChangedBy(1).handle((deviation) => {
         src.deviation = deviation as number;
       });
-      this.simVarSubscriber.on('gps_dtk').whenChangedBy(1).handle((obs) => {
+      this.navComSubscriber.on('gps_dtk').whenChangedBy(1).handle((obs) => {
         src.obs = obs as number;
       });
-      this.simVarSubscriber.on('gps_wp_bearing').withPrecision(2).handle((brg) => {
+      this.navComSubscriber.on('gps_wp_bearing').withPrecision(2).handle((brg) => {
         // The nav source bearing expects to be a radial, not the bearing to the
         // waypoint.  When we get the bearing from the GPS, we need to invert it
         // so the NavSource knows how to handle it correctly.
@@ -1410,7 +1399,7 @@ export class NavProcessor {
       src.brgHandler = this.onBrgDirection.bind(this);
       src.identHandler = this.onBrgIdent.bind(this);
       src.validHandler = this.onBrgValidity.bind(this);
-      this.simVarSubscriber.on('adf_signal_1').withPrecision(0).handle((signal) => {
+      this.navComSubscriber.on('adf_signal_1').withPrecision(0).handle((signal) => {
         src.signal = signal;
         if (signal > 0) {
           if (!src.valid) {
@@ -1422,12 +1411,12 @@ export class NavProcessor {
           }
         }
       });
-      this.navComSubscriber.on('adf_active_frequency_1').handle((freq) => {
+      this.radioEventsSubscriber.on('adf_active_frequency_1').handle((freq) => {
         if (src.ident !== freq.toFixed(1)) {
           src.ident = freq.toFixed(1);
         }
       });
-      this.simVarSubscriber.on('adf_bearing_1').withPrecision(2).handle((brg) => {
+      this.navComSubscriber.on('adf_bearing_1').withPrecision(2).handle((brg) => {
         brg = (brg + 180) % 360;
         src.bearing = brg;
       });
@@ -1809,6 +1798,6 @@ export class NavProcessor {
    * Perform events for the update loop.
    */
   public onUpdate(): void {
-    this.simVarPublisher.onUpdate();
+    // noop
   }
 }

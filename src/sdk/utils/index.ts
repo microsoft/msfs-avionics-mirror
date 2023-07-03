@@ -7,4 +7,5 @@ export * from './sound';
 export * from './strings';
 export * from './task';
 export * from './time';
+export * from './types';
 export * from './uuid';

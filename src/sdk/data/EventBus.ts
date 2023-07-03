@@ -35,6 +35,13 @@ type CachedEvent = {
 export type IndexedEventType<T extends string> = `${T}_${number}`;
 
 /**
+ * Creates an indexed events type. Indexed events have keys of the form `event_[index]`.
+ */
+export type IndexedEvents<Events extends { [event: string]: any }, Index extends number> = {
+  [Event in keyof Events as `${Event & string}_${Index}`]: Events[Event];
+};
+
+/**
  * Mock event types.
  */
 export interface MockEventTypes {

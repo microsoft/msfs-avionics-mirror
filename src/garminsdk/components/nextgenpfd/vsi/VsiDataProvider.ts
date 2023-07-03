@@ -1,7 +1,8 @@
 import {
-  AdcEvents, APEvents, AvionicsSystemState, AvionicsSystemStateEvent, BitFlags, ConsumerSubject, EventBus, MappedSubject, Subject,
-  Subscribable, SubscribableUtils, Subscription, Tcas, TcasEvents, TcasResolutionAdvisoryFlags, TcasResolutionAdvisoryType, UnitType, VNavDataEvents, VNavEvents
+  AdcEvents, APEvents, AvionicsSystemState, AvionicsSystemStateEvent, ConsumerSubject, EventBus, MappedSubject, Subject,
+  Subscribable, SubscribableUtils, Subscription, TcasEvents, VNavDataEvents, VNavEvents
 } from '@microsoft/msfs-sdk';
+
 import { VNavDataProvider, VNavTargetAltitudeRestriction } from '../../../navigation/VNavDataProvider';
 import { AdcSystemEvents } from '../../../system/AdcSystem';
 
@@ -18,34 +19,8 @@ export interface VsiDataProvider {
   /** The target VNAV altitude restriction. */
   readonly targetRestriction: Subscribable<VNavTargetAltitudeRestriction | null>;
 
-  /**
-   * The current vertical speed required to meet the next VNAV altitude restriction, in feet per minute.
-   */
+  /** The current vertical speed required to meet the next VNAV altitude restriction, in feet per minute. */
   readonly vsRequired: Subscribable<number | null>;
-
-  /**
-   * The minimum allowed vertical speed, in feet per minute, commanded by the current resolution advisory, or `null`
-   * if there is no such value.
-   */
-  readonly raMinVs: Subscribable<number | null>;
-
-  /**
-   * The maximum allowed vertical speed, in feet per minute, commanded by the current resolution advisory, or `null`
-   * if there is no such value.
-   */
-  readonly raMaxVs: Subscribable<number | null>;
-
-  /**
-   * The lower bound vertical speed, in feet per minute, of the current resolution advisory's fly-to command, or
-   * `null` if there is no such value.
-   */
-  readonly raFlyToMinVs: Subscribable<number | null>;
-
-  /**
-   * The upper bound vertical speed, in feet per minute, of the current resolution advisory's fly-to command, or
-   * `null` if there is no such value.
-   */
-  readonly raFlyToMaxVs: Subscribable<number | null>;
 
   /** Whether vertical speed data is in a failure state. */
   readonly isDataFailed: Subscribable<boolean>;
@@ -77,22 +52,6 @@ export class DefaultVsiDataProvider implements VsiDataProvider {
   /** @inheritdoc */
   public readonly vsRequired = this.vnavDataProvider.vsRequired;
 
-  private readonly _raMinVs = Subject.create<number | null>(null);
-  /** @inheritdoc */
-  public readonly raMinVs = this._raMinVs as Subscribable<number | null>;
-
-  private readonly _raMaxVs = Subject.create<number | null>(null);
-  /** @inheritdoc */
-  public readonly raMaxVs = this._raMaxVs as Subscribable<number | null>;
-
-  private readonly _raFlyToMinVs = Subject.create<number | null>(null);
-  /** @inheritdoc */
-  public readonly raFlyToMinVs = this._raFlyToMinVs as Subscribable<number | null>;
-
-  private readonly _raFlyToMaxVs = Subject.create<number | null>(null);
-  /** @inheritdoc */
-  public readonly raFlyToMaxVs = this._raFlyToMaxVs as Subscribable<number | null>;
-
   private readonly _isDataFailed = Subject.create(false);
   /** @inheritdoc */
   public readonly isDataFailed = this._isDataFailed as Subscribable<boolean>;
@@ -105,21 +64,17 @@ export class DefaultVsiDataProvider implements VsiDataProvider {
   private isPaused = false;
 
   private adcIndexSub?: Subscription;
-  private readonly tcasRaSubs: Subscription[] = [];
 
   /**
    * Constructor.
    * @param bus The event bus.
    * @param adcIndex The index of the ADC that is the source of this provider's data.
    * @param vnavDataProvider A provider of VNAV data.
-   * @param tcas The TCAS which from which this data provider sources resolution advisory fly-to commands. If not
-   * defined, this data provider does not support RA fly-to commands.
    */
   constructor(
     private readonly bus: EventBus,
     adcIndex: number | Subscribable<number>,
-    private readonly vnavDataProvider: VNavDataProvider,
-    public readonly tcas?: Tcas
+    private readonly vnavDataProvider: VNavDataProvider
   ) {
     this.adcIndex = SubscribableUtils.toSubscribable(adcIndex, true);
   }
@@ -161,70 +116,8 @@ export class DefaultVsiDataProvider implements VsiDataProvider {
       }
     }, true);
 
-    if (this.tcas !== undefined) {
-      const updateRaSpeeds = this.updateRaSpeeds.bind(this);
-
-      updateRaSpeeds();
-      this.tcasRaSubs.push(
-        sub.on('tcas_ra_issued').handle(updateRaSpeeds),
-        sub.on('tcas_ra_updated').handle(updateRaSpeeds),
-        sub.on('tcas_ra_canceled').handle(updateRaSpeeds)
-      );
-    }
-
     if (paused) {
       this.pause();
-    }
-  }
-
-  /**
-   * Update vertical speeds commaned by TCAS resolution advisories.
-   */
-  private updateRaSpeeds(): void {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const host = this.tcas!.getResolutionAdvisoryHost();
-
-    if (host.primaryType === TcasResolutionAdvisoryType.Clear) {
-      this._raMinVs.set(null);
-      this._raMaxVs.set(null);
-      this._raFlyToMinVs.set(null);
-      this._raFlyToMaxVs.set(null);
-      return;
-    }
-
-    const minVsFpm = host.minVerticalSpeed.asUnit(UnitType.FPM);
-    const maxVsFpm = host.maxVerticalSpeed.asUnit(UnitType.FPM);
-
-    if (host.secondaryType === null) {
-      // Single RA
-
-      if (BitFlags.isAll(host.primaryFlags, TcasResolutionAdvisoryFlags.UpSense)) {
-        // Upward sense
-        this._raMaxVs.set(null);
-        this._raMinVs.set(minVsFpm > -100 && minVsFpm < 100 ? -100 : minVsFpm);
-      } else {
-        // Downward sense
-        this._raMinVs.set(null);
-        this._raMaxVs.set(maxVsFpm > -100 && maxVsFpm < 100 ? 100 : maxVsFpm);
-      }
-
-      if (BitFlags.isAny(host.primaryFlags, TcasResolutionAdvisoryFlags.Climb | TcasResolutionAdvisoryFlags.Descend)) {
-        // Positive
-        this._raFlyToMaxVs.set(maxVsFpm);
-        this._raFlyToMinVs.set(minVsFpm);
-      } else {
-        // Negative
-        this._raFlyToMinVs.set(null);
-        this._raFlyToMaxVs.set(null);
-      }
-    } else {
-      // Composite RA
-
-      this._raFlyToMinVs.set(null);
-      this._raFlyToMaxVs.set(null);
-
-      this._raMinVs.set(minVsFpm > -100 && minVsFpm < 100 ? -100 : minVsFpm);
-      this._raMaxVs.set(maxVsFpm > -100 && maxVsFpm < 100 ? 100 : maxVsFpm);
     }
   }
 
@@ -250,9 +143,6 @@ export class DefaultVsiDataProvider implements VsiDataProvider {
     this.isVsHoldActive.resume();
 
     this.adcSystemState.resume();
-
-    this.updateRaSpeeds();
-    this.tcasRaSubs.forEach(sub => { sub.resume(); });
   }
 
   /**
@@ -275,8 +165,6 @@ export class DefaultVsiDataProvider implements VsiDataProvider {
 
     this.adcSystemState.pause();
 
-    this.tcasRaSubs.forEach(sub => { sub.pause(); });
-
     this.isPaused = true;
   }
 
@@ -295,6 +183,5 @@ export class DefaultVsiDataProvider implements VsiDataProvider {
     this.adcSystemState.destroy();
 
     this.adcIndexSub?.destroy();
-    this.tcasRaSubs.forEach(sub => { sub.destroy(); });
   }
 }

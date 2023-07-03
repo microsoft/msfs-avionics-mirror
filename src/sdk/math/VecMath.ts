@@ -103,6 +103,16 @@ export class Vec2Math {
   }
 
   /**
+   * Gets the determinant of two vectors.
+   * @param v1 The first vector.
+   * @param v2 The second vector.
+   * @returns The determinant of the vectors.
+   */
+  public static det(v1: ReadonlyFloat64Array, v2: ReadonlyFloat64Array): number {
+    return v1[0] * v2[1] - v1[1] * v2[0];
+  }
+
+  /**
    * Multiplies a vector by a scalar.
    * @param v1 The vector to multiply.
    * @param scalar The scalar to apply.
@@ -179,6 +189,15 @@ export class Vec2Math {
    */
   public static equals(vec1: ReadonlyFloat64Array, vec2: ReadonlyFloat64Array): boolean {
     return vec1[0] === vec2[0] && vec1[1] === vec2[1];
+  }
+
+  /**
+   * Checks if a vector is finite. A vector is considered finite if all of its components are finite.
+   * @param vec The vector to check.
+   * @returns Whether the specified vector is finite.
+   */
+  public static isFinite(vec: ReadonlyFloat64Array): boolean {
+    return isFinite(vec[0]) && isFinite(vec[1]);
   }
 
   /**
@@ -307,18 +326,18 @@ export class Vec3Math {
   }
 
   /**
-   * Gets the spherical angle theta of a vector in radians.
-   * @param vec - a vector.
-   * @returns the spherical angle theta of the vector.
+   * Gets the spherical angle theta (polar angle) of a vector in radians.
+   * @param vec A vector.
+   * @returns The spherical angle theta of the vector.
    */
   public static theta(vec: ReadonlyFloat64Array): number {
     return Math.atan2(Math.hypot(vec[0], vec[1]), vec[2]);
   }
 
   /**
-   * Gets the spherical angle phi of a vector in radians.
-   * @param vec - a vector.
-   * @returns the spherical angle phi of the vector.
+   * Gets the spherical angle phi (azimuthal angle) of a vector in radians.
+   * @param vec A vector.
+   * @returns The spherical angle phi of the vector.
    */
   public static phi(vec: ReadonlyFloat64Array): number {
     return Math.atan2(vec[1], vec[0]);
@@ -326,11 +345,11 @@ export class Vec3Math {
 
   /**
    * Sets the components of a vector.
-   * @param x - the new x-component.
-   * @param y - the new y-component.
-   * @param z - the new z-component.
-   * @param vec - the vector to change.
-   * @returns the vector after it has been changed.
+   * @param x The new x-component.
+   * @param y The new y-component.
+   * @param z The new z-component.
+   * @param vec The vector to change.
+   * @returns The vector after it has been changed.
    */
   public static set(x: number, y: number, z: number, vec: Float64Array): Float64Array {
     vec[0] = x;
@@ -341,17 +360,17 @@ export class Vec3Math {
 
   /**
    * Sets the spherical components of a vector.
-   * @param r - the new length (magnitude).
-   * @param theta - the new spherical angle theta, in radians.
-   * @param phi - the new spherical angle phi, in radians.
-   * @param vec - the vector to change.
-   * @returns the vector after it has been changed.
+   * @param r The new length (magnitude).
+   * @param theta The new spherical angle theta (polar angle), in radians.
+   * @param phi The new spherical angle phi (azimuthal angle), in radians.
+   * @param vec The vector to change.
+   * @returns The vector after it has been changed.
    */
   public static setFromSpherical(r: number, theta: number, phi: number, vec: Float64Array): Float64Array {
     const sinTheta = Math.sin(theta);
-    vec[0] = sinTheta * Math.cos(phi);
-    vec[1] = sinTheta * Math.sin(phi);
-    vec[2] = Math.cos(theta);
+    vec[0] = r * sinTheta * Math.cos(phi);
+    vec[1] = r * sinTheta * Math.sin(phi);
+    vec[2] = r * Math.cos(theta);
     return vec;
   }
 
@@ -476,6 +495,15 @@ export class Vec3Math {
   }
 
   /**
+   * Checks if a vector is finite. A vector is considered finite if all of its components are finite.
+   * @param vec The vector to check.
+   * @returns Whether the specified vector is finite.
+   */
+  public static isFinite(vec: ReadonlyFloat64Array): boolean {
+    return isFinite(vec[0]) && isFinite(vec[1]) && isFinite(vec[2]);
+  }
+
+  /**
    * Copies one vector to another.
    * @param from The vector from which to copy.
    * @param to The vector to which to copy.
@@ -585,6 +613,21 @@ export class VecNMath {
 
     for (let i = 0; i < vec1.length; i++) {
       if (vec1[i] !== vec2[i]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Checks if a vector is finite. A vector is considered finite if all of its components are finite.
+   * @param vec The vector to check.
+   * @returns Whether the specified vector is finite.
+   */
+  public static isFinite(vec: ReadonlyFloat64Array): boolean {
+    for (let i = 0; i < vec.length; i++) {
+      if (!isFinite(vec[i])) {
         return false;
       }
     }

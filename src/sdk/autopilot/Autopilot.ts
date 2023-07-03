@@ -1,18 +1,24 @@
 /// <reference types="@microsoft/msfs-types/coherent/apcontroller" />
 
-import { ControlEvents, EventBus } from '../data';
-import { FlightPlanner } from '../flightplan';
-import { AdcEvents, APEvents, NavEvents, NavProcSimVars, NavSourceId, NavSourceType } from '../instruments';
-import { MSFSAPStates } from '../navigation';
-import { Subject } from '../sub';
+import { ControlEvents } from '../data/ControlPublisher';
+import { EventBus } from '../data/EventBus';
+import { FlightPlanner } from '../flightplan/FlightPlanner';
+import { APEvents } from '../instruments/APPublisher';
+import { AdcEvents } from '../instruments/Adc';
+import { ClockEvents } from '../instruments/Clock';
+import { NavComEvents } from '../instruments/NavCom';
+import { NavEvents, NavSourceId, NavSourceType } from '../instruments/NavProcessor';
+import { MSFSAPStates } from '../navigation/AutopilotListener';
+import { Subject } from '../sub/Subject';
 import { APAltitudeModes, APConfig, APLateralModes, APValues, APVerticalModes } from './APConfig';
+import { AutopilotDriver } from './AutopilotDriver';
+import { VNavAltCaptureType, VNavState } from './VerticalNavigation';
 import { VNavEvents } from './data/VNavEvents';
 import { APNoneLateralDirector, APNoneVerticalDirector } from './directors/APNoneDirectors';
 import { DirectorState, PlaneDirector } from './directors/PlaneDirector';
 import { APModePressEvent, APStateManager } from './managers/APStateManager';
 import { NavToNavManager } from './managers/NavToNavManager';
 import { VNavManager } from './managers/VNavManager';
-import { VNavAltCaptureType, VNavState } from './VerticalNavigation';
 
 /**
  * A collection of autopilot plane directors.
@@ -93,6 +99,12 @@ export type APDirectors = {
 
   /** The autopilot's lateral go-around mode director. */
   readonly gaLateralDirector?: PlaneDirector;
+
+  /** The autopilot's lateral FMS LOC mode director */
+  readonly fmsLocLateralDirector?: PlaneDirector;
+
+  /** The autopilot's lateral FMS LOC mode director */
+  readonly takeoffLocLateralDirector?: PlaneDirector;
 }
 
 /**
@@ -110,6 +122,9 @@ export class Autopilot {
 
   /** This autopilot's variable bank angle Manager. */
   public readonly variableBankManager: Record<any, any> | undefined;
+
+  /** This autopilot's variable bank angle Manager. */
+  private readonly apDriver: AutopilotDriver;
 
   protected cdiSource: NavSourceId = { type: NavSourceType.Nav, index: 0 };
 
@@ -131,6 +146,7 @@ export class Autopilot {
   protected requireApproachIsActiveForNavToNav = true;
 
   public readonly apValues: APValues = {
+    simRate: Subject.create(0),
     selectedAltitude: Subject.create(0),
     selectedVerticalSpeed: Subject.create(0),
     selectedFlightPathAngle: Subject.create(0),
@@ -186,13 +202,22 @@ export class Autopilot {
       this.onInitialized();
     });
 
-    this.flightPlanner.flightPlanSynced.on((sender, v) => {
-      if (!this.flightPlanSynced && v) {
-        this.stateManager.stateManagerInitialized.set(false);
-        this.stateManager.initialize(true);
-        this.flightPlanSynced = true;
-      }
-    });
+    if (this.config.initializeStateManagerOnFirstFlightPlanSync || this.config.initializeStateManagerOnFirstFlightPlanSync === undefined) {
+      this.flightPlanner.flightPlanSynced.on((sender, v) => {
+        if (!this.flightPlanSynced && v) {
+          this.stateManager.stateManagerInitialized.set(false);
+          this.stateManager.initialize(true);
+          this.flightPlanSynced = true;
+        }
+      });
+    }
+
+    this.apDriver = new AutopilotDriver(
+      this.bus,
+      this.apValues,
+      this.stateManager.apMasterOn,
+      this.config.autopilotDriverOptions
+    );
 
     this.initLateralModes();
     this.initVerticalModes();
@@ -232,7 +257,9 @@ export class Autopilot {
       gaVerticalDirector: config.createGaVerticalDirector(this.apValues),
       toLateralDirector: config.createToLateralDirector(this.apValues),
       gaLateralDirector: config.createGaLateralDirector(this.apValues),
-      flareDirector: config.createFlareDirector()
+      flareDirector: config.createFlareDirector(),
+      fmsLocLateralDirector: config.createFmsLocLateralDirector(this.apValues),
+      takeoffLocLateralDirector: config.createTakeoffLocLateralDirector?.(this.apValues),
     };
   }
 
@@ -242,6 +269,7 @@ export class Autopilot {
   public update(): void {
     if (this.autopilotInitialized) {
       this.onBeforeUpdate();
+      this.apDriver.update();
       this.checkModes();
       this.manageAltitudeCapture();
       this.updateModes();
@@ -286,8 +314,10 @@ export class Autopilot {
       }
     }
     if (set === undefined || set === true) {
-      if (!this.stateManager.isFlightDirectorOn.get()) {
+      if (this.config.autoEngageFd !== false && !this.stateManager.isFlightDirectorOn.get()) {
         this.stateManager.setFlightDirector(true);
+      } else if (this.config.autoEngageFd === false && !this.stateManager.isFlightDirectorOn.get() && !this.stateManager.apMasterOn.get()) {
+        return;
       }
       switch (mode) {
         case APLateralModes.NONE:
@@ -300,6 +330,7 @@ export class Autopilot {
         case APLateralModes.TRACK_HOLD:
         case APLateralModes.LOC:
         case APLateralModes.BC:
+        case APLateralModes.FMS_LOC:
           this.lateralModes.get(mode)?.arm();
           break;
         case APLateralModes.NAV:
@@ -330,8 +361,10 @@ export class Autopilot {
       }
     }
     if (set === undefined || set === true) {
-      if (!this.stateManager.isFlightDirectorOn.get()) {
+      if (this.config.autoEngageFd !== false && !this.stateManager.isFlightDirectorOn.get()) {
         this.stateManager.setFlightDirector(true);
+      } else if (this.config.autoEngageFd === false && !this.stateManager.isFlightDirectorOn.get() && !this.stateManager.apMasterOn.get()) {
+        return;
       }
       switch (mode) {
         case APVerticalModes.NONE:
@@ -385,16 +418,20 @@ export class Autopilot {
         const activeNavMode = lateralActive.get() === APLateralModes.LOC ? APLateralModes.LOC
           : lateralActive.get() === APLateralModes.VOR ? APLateralModes.VOR
             : lateralActive.get() === APLateralModes.GPSS ? APLateralModes.GPSS
-              : APLateralModes.NONE;
+              : lateralActive.get() === APLateralModes.FMS_LOC ? APLateralModes.FMS_LOC
+                : APLateralModes.NONE;
         if (activeNavMode !== APLateralModes.NONE) {
-          this.lateralModes.get(activeNavMode)?.deactivate();
-          this.lateralModes.get(this.getDefaultLateralMode())?.arm();
-          lateralActive.set(this.getDefaultLateralMode());
+          if (this.config.onlyDisarmLnavOnOffEvent === undefined || !this.config.onlyDisarmLnavOnOffEvent) {
+            this.lateralModes.get(activeNavMode)?.deactivate();
+            this.lateralModes.get(this.getDefaultLateralMode())?.arm();
+            lateralActive.set(this.getDefaultLateralMode());
+          }
         }
         const armedNavMode = lateralArmed.get() === APLateralModes.LOC ? APLateralModes.LOC
           : lateralArmed.get() === APLateralModes.VOR ? APLateralModes.VOR
             : lateralArmed.get() === APLateralModes.GPSS ? APLateralModes.GPSS
-              : APLateralModes.NONE;
+              : lateralArmed.get() === APLateralModes.FMS_LOC ? APLateralModes.FMS_LOC
+                : APLateralModes.NONE;
         if (armedNavMode !== APLateralModes.NONE) {
           this.lateralModes.get(armedNavMode)?.deactivate();
           lateralArmed.set(APLateralModes.NONE);
@@ -571,7 +608,7 @@ export class Autopilot {
    * Callback to set the vertical active mode.
    * @param mode is the mode being set.
    */
-  private setVerticalActive(mode: APVerticalModes): void {
+  protected setVerticalActive(mode: APVerticalModes): void {
     const { verticalActive, verticalArmed } = this.apValues;
     this.checkPitchModeActive();
     if (verticalArmed.get() === mode) {
@@ -628,6 +665,7 @@ export class Autopilot {
    * Initializes the Autopilot with the available lateral modes from the config.
    */
   private initLateralModes(): void {
+
     if (this.directors.rollDirector) {
       this.lateralModes.set(APLateralModes.ROLL, this.directors.rollDirector);
       this.directors.rollDirector.onActivate = (): void => {
@@ -721,8 +759,33 @@ export class Autopilot {
         this.setLateralActive(APLateralModes.GA);
       };
     }
+    if (this.directors.fmsLocLateralDirector) {
+      this.lateralModes.set(APLateralModes.FMS_LOC, this.directors.fmsLocLateralDirector);
+      this.directors.fmsLocLateralDirector.onArm = (): void => {
+        this.setLateralArmed(APLateralModes.FMS_LOC);
+      };
+      this.directors.fmsLocLateralDirector.onActivate = (): void => {
+        this.setLateralActive(APLateralModes.FMS_LOC);
+      };
+    }
+    if (this.directors.takeoffLocLateralDirector) {
+      this.lateralModes.set(APLateralModes.TO_LOC, this.directors.takeoffLocLateralDirector);
+      this.directors.takeoffLocLateralDirector.onArm = (): void => {
+        this.setLateralArmed(APLateralModes.TO_LOC);
+      };
+      this.directors.takeoffLocLateralDirector.onActivate = (): void => {
+        this.setLateralActive(APLateralModes.TO_LOC);
+      };
+    }
 
-    this.lateralModes.set(APLateralModes.NONE, new APNoneLateralDirector());
+    this.lateralModes.forEach(director => {
+      director.setBank = this.apDriver.setBank.bind(this.apDriver);
+      director.driveBank = this.apDriver.driveBank.bind(this.apDriver);
+    });
+
+    const noneDirector = new APNoneLateralDirector();
+    noneDirector.onActivate = (): void => this.setLateralActive(APLateralModes.NONE);
+    this.lateralModes.set(APLateralModes.NONE, noneDirector);
   }
 
   /**
@@ -765,6 +828,7 @@ export class Autopilot {
    * Initializes the Autopilot with the available vertical modes from the config.
    */
   private initVerticalModes(): void {
+
     if (this.directors.pitchDirector) {
       this.verticalModes.set(APVerticalModes.PITCH, this.directors.pitchDirector);
       this.directors.pitchDirector.onActivate = (): void => {
@@ -878,7 +942,14 @@ export class Autopilot {
       };
     }
 
-    this.verticalModes.set(APVerticalModes.NONE, new APNoneVerticalDirector());
+    this.verticalModes.forEach(director => {
+      director.drivePitch = this.apDriver.drivePitch.bind(this.apDriver);
+      director.setPitch = this.apDriver.setPitch.bind(this.apDriver);
+    });
+
+    const noneDirector = new APNoneVerticalDirector();
+    noneDirector.onActivate = (): void => this.setVerticalActive(APVerticalModes.NONE);
+    this.verticalModes.set(APVerticalModes.NONE, noneDirector);
   }
 
   /**
@@ -1028,6 +1099,9 @@ export class Autopilot {
     // Sets up the subs for selected speed, selected mach and selected is mach.
     this.monitorApSpeedValues();
 
+    const clock = this.bus.getSubscriber<ClockEvents>();
+    clock.on('simRate').withPrecision(0).handle(this.apValues.simRate.set.bind(this.apValues.simRate));
+
     const ap = this.bus.getSubscriber<APEvents>();
     ap.on(`ap_altitude_selected_${this.config.altitudeHoldSlotIndex ?? 1}`).withPrecision(0).handle((alt) => {
       this.apValues.selectedAltitude.set(alt);
@@ -1054,7 +1128,7 @@ export class Autopilot {
       this.cdiSource = src;
     });
 
-    const navproc = this.bus.getSubscriber<NavProcSimVars>();
+    const navproc = this.bus.getSubscriber<NavComEvents>();
     navproc.on('nav_glideslope_1').whenChanged().handle((hasgs) => {
       this.apValues.nav1HasGs.set(hasgs);
     });
@@ -1126,7 +1200,7 @@ export class Autopilot {
   protected handleApFdStateChange(): void {
     const ap = this.stateManager.apMasterOn.get();
     const fd = this.stateManager.isFlightDirectorOn.get();
-    if (ap && !fd) {
+    if (ap && !fd && this.config.autoEngageFd !== false) {
       this.stateManager.setFlightDirector(true);
     } else if (!ap && !fd) {
       this.lateralModes.forEach((mode) => {
@@ -1182,7 +1256,7 @@ export class Autopilot {
    * Get the default lateral mode from APConfig
    * @returns default lateral mode
    */
-  private getDefaultLateralMode(): APLateralModes {
+  protected getDefaultLateralMode(): APLateralModes {
     if (typeof this.config.defaultLateralMode === 'number') {
       return this.config.defaultLateralMode;
     } else {
@@ -1194,7 +1268,7 @@ export class Autopilot {
    * Get the default vertical mode from APConfig
    * @returns default vertical mode
    */
-  private getDefaultVerticalMode(): APVerticalModes {
+  protected getDefaultVerticalMode(): APVerticalModes {
     if (typeof this.config.defaultVerticalMode === 'number') {
       return this.config.defaultVerticalMode;
     } else {

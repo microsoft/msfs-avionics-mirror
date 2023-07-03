@@ -261,7 +261,6 @@ class FlightTimer {
     const modeSign = this.mode === FlightTimerMode.CountingDown ? -1 : 1;
 
     const value = this.referenceValue + (time - this.referenceTime) * modeSign;
-
     this.currentValue = value;
     SimVar.SetSimVarValue(this.simVars.currentValue, SimVarValueType.Number, value);
   }

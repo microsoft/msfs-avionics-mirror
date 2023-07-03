@@ -97,13 +97,13 @@ export class MapSystemLegRenderer extends AbstractFlightPathLegRenderer {
       this.vectorRenderer.render(
         vector, context, streamStack,
         currentRenderStyle.width, currentRenderStyle.style, currentRenderStyle.dash,
-        currentRenderStyle.outlineWidth, currentRenderStyle.outlineStyle);
+        currentRenderStyle.outlineWidth, currentRenderStyle.outlineStyle, currentRenderStyle.lineCap);
     } else {
       if (this.currentRenderStyle.isDisplayed) {
         this.vectorRenderer.render(
           vector, context, streamStack,
           this.currentRenderStyle.width, this.currentRenderStyle.style, this.currentRenderStyle.dash,
-          this.currentRenderStyle.outlineWidth, this.currentRenderStyle.outlineStyle);
+          this.currentRenderStyle.outlineWidth, this.currentRenderStyle.outlineStyle, this.currentRenderStyle.lineCap);
       }
     }
   }
@@ -134,6 +134,9 @@ export class FlightPathRenderStyle {
 
   /** The style of the outline. Defaults to `'black'`. */
   public outlineStyle?: string;
+
+  /** The line cap style to use. Defaults to `'butt'`. */
+  public lineCap?: CanvasLineCap;
 
   /** An optional override of which parts to render for the leg. */
   public partsToRender?: FlightPathLegRenderPart;

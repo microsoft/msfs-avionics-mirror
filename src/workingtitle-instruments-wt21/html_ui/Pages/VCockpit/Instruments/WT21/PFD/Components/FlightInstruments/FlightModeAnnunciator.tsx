@@ -124,14 +124,11 @@ export class FlightModeAnnunciator extends DisplayComponent<FlightModeAnnunciato
     //and flashes red when AP is disconnected then goes back to white. Use "fma-arrow-colors"
 
     const ap = this.props.bus.getSubscriber<APEvents>();
-    ap.on('ap_master_engage').handle((engaged) => {
-      if (engaged) {
+    ap.on('ap_master_status').handle(status => {
+      if (status) {
         this.apMaster.set(true);
         this.onApFdYdChange();
-      }
-    });
-    ap.on('ap_master_disengage').handle((disengaged) => {
-      if (disengaged) {
+      } else {
         this.apMaster.set(false);
         this.onApFdYdChange();
         this.apMode.instance.classList.add('hidden');

@@ -1,24 +1,28 @@
 import {
-  DisplayComponent, FSComponent, VNode, ComponentProps, EventBus,
-  BasicNavAngleSubject, BasicNavAngleUnit, NumberUnitSubject, UnitType,
-  NumberFormatter, Subscribable, Subject, SetSubject, Subscription, AltitudeRestrictionType,
-  DurationDisplay, DurationDisplayFormat, DurationDisplayDelim, DefaultUserSettingManager,
-  FlightPlanSegmentType, ApproachProcedure, AirportFacility, MappedSubject, LegType,
+  AirportFacility, AltitudeRestrictionType, ApproachProcedure, BasicNavAngleSubject, BasicNavAngleUnit, ComponentProps,
+  DefaultUserSettingManager, DisplayComponent, DurationDisplay, DurationDisplayDelim, DurationDisplayFormat, EventBus,
+  FSComponent, FlightPlanSegmentType, LegType, MappedSubject, NumberFormatter, NumberUnitSubject, SetSubject,
+  Subject, Subscribable, Subscription, UnitType, VNode,
 } from '@microsoft/msfs-sdk';
+
 import {
   ApproachNameDisplay, BearingDisplay, DateTimeFormatSettingMode, DateTimeUserSettingTypes, FmsUtils, NumberUnitDisplay,
   TimeDisplay, TimeDisplayFormat, UnitsUserSettingManager,
 } from '@microsoft/msfs-garminsdk';
-import {
-  FlightPlanLegListData, FlightPlanSegmentListData, FlightPlanStore, FlightPlanTextData,
-  FlightPlanTextRowData
-} from '../../../FlightPlan';
-import { LegNameDisplay } from '../../Leg';
-import { AltitudeConstraintDisplay } from '../../Constraints';
+
+import { FlightPlanLegListData } from '../../../FlightPlan/FlightPlanLegListData';
+import { FlightPlanSegmentListData } from '../../../FlightPlan/FlightPlanSegmentListData';
+import { FlightPlanStore } from '../../../FlightPlan/FlightPlanStore';
+import { FlightPlanTextData, FlightPlanTextRowData } from '../../../FlightPlan/FlightPlanTextUpdater';
+import { AltitudeConstraintDisplay } from '../../Constraints/AltitudeConstraintDisplay';
+import { LegNameDisplay } from '../../Leg/LegNameDisplay';
+
 import './FlightPlanTextRow.css';
 
-/** The properties for the {@link FlightPlanTextRow} component. */
-interface FlightPlanTextRowProps extends ComponentProps {
+/**
+ * The properties for the {@link FlightPlanTextRow} component.
+ */
+export interface FlightPlanTextRowProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
   /** The row index. */
@@ -46,7 +50,10 @@ const DATE_TIME_FORMAT_SETTING_MAP = {
   [DateTimeFormatSettingMode.UTC]: TimeDisplayFormat.UTC
 };
 
-/** The FlightPlanTextRow component. */
+/**
+ * A single row in a flight plan text panel. Displays information on a single flight plan leg or a header describing a
+ * flight plan segment.
+ */
 export class FlightPlanTextRow extends DisplayComponent<FlightPlanTextRowProps> {
   private readonly rowData = this.props.data.map(x => x?.rows[this.props.index]);
 

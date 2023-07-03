@@ -1,6 +1,8 @@
 import { EventBus } from '../data/EventBus';
 import { GameStateProvider } from '../data/GameStateProvider';
 import { ElectricalEvents } from '../instruments/Electrical';
+import { Subscribable } from '../sub/Subscribable';
+import { SubscribableUtils } from '../sub/SubscribableUtils';
 import { Subscription } from '../sub/Subscription';
 import { DebounceTimer } from '../utils/time/DebounceTimer';
 import { AvionicsSystem, AvionicsSystemState, AvionicsSystemStateEvent } from './AvionicsSystem';
@@ -77,10 +79,11 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
   }
 
   /**
-   * Connects this system's power state to an {@link ElectricalEvents} topic or electricity logic element.
+   * Connects this system's power state to an {@link ElectricalEvents} topic, electricity logic element, or
+   * {@link Subscribable}.
    * @param source The source to which to connect this system's power state.
    */
-  protected connectToPower(source: SystemPowerKey | CompositeLogicXMLElement): void {
+  protected connectToPower(source: SystemPowerKey | CompositeLogicXMLElement | Subscribable<boolean>): void {
     this.electricalPowerSub?.destroy();
     this.electricalPowerSub = undefined;
     this.electricalPowerLogic = undefined;
@@ -90,6 +93,8 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
         .on(source)
         .whenChanged()
         .handle(this.onPowerChanged.bind(this), !this.isPowerValid);
+    } else if (SubscribableUtils.isSubscribable(source)) {
+      this.electricalPowerSub = source.sub(this.onPowerChanged.bind(this), true, !this.isPowerValid);
     } else {
       this.electricalPowerLogic = source;
       this.updatePowerFromLogic();

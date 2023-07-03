@@ -307,7 +307,6 @@ export class AuralAlertSystemXmlAdapter {
 
   /**
    * Registers this adapter's alerts with {@link AuralAlertSystem} and starts automatically managing alert states.
-   * This method should be called before 
    */
   public start(): void {
     if (!this.auralRegistrationManager || !this.alertDefinitions) {

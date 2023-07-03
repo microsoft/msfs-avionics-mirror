@@ -1,4 +1,4 @@
-import { EventBus, IndexedEventType, KeyEventData, KeyEvents, KeyEventManager, ConsumerValue } from '../data';
+import { ConsumerValue, EventBus, IndexedEventType, KeyEventData, KeyEventManager, KeyEvents } from '../data';
 import { MathUtils } from '../math/MathUtils';
 import { ArrayUtils } from '../utils/datastructures/ArrayUtils';
 

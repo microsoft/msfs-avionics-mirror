@@ -1,18 +1,26 @@
-import { ConsumerSubject, EventBus } from '../../data';
-import { GeoPoint } from '../../geo';
-import { ClockEvents, GNSSEvents } from '../../instruments';
-import { Vec3Math } from '../../math';
-import { Subject, Subscribable, Subscription } from '../../sub';
+
+import { ConsumerValue } from '../../data/ConsumerValue';
+import { EventBus } from '../../data/EventBus';
+import { GeoPoint } from '../../geo/GeoPoint';
+import { ClockEvents } from '../../instruments/Clock';
+import { GNSSEvents } from '../../instruments/GNSS';
+import { MathUtils } from '../../math/MathUtils';
+import { UnitType } from '../../math/NumberUnit';
+import { Vec3Math } from '../../math/VecMath';
+import { Subject } from '../../sub/Subject';
+import { Subscribable } from '../../sub/Subscribable';
+import { Subscription } from '../../sub/Subscription';
 
 /**
- * A controler for automated backlighting levels based upon the angle of the sun in the sky.
+ * A controller for automated backlighting levels based upon the angle of the sun in the sky.
  */
 export class BacklightLevelController {
-  private static readonly AUTO_MAX_SOLAR_ANGLE = 3; // The solar altitude angle at which auto backlight reaches maximum intensity.
-  private static readonly AUTO_MIN_SOLAR_ANGLE = -8; // The solar altitude angle at which auto backlight reaches minimum intensity.
-  private static readonly AUTO_MAX_SOLAR_ANGLE_SIN = Math.sin(BacklightLevelController.AUTO_MAX_SOLAR_ANGLE * Avionics.Utils.DEG2RAD);
-  private static readonly AUTO_MIN_SOLAR_ANGLE_SIN = Math.sin(BacklightLevelController.AUTO_MIN_SOLAR_ANGLE * Avionics.Utils.DEG2RAD);
-  private static readonly AUTO_SOLAR_ANGLE_RANGE_SIN = BacklightLevelController.AUTO_MAX_SOLAR_ANGLE_SIN - BacklightLevelController.AUTO_MIN_SOLAR_ANGLE_SIN;
+  /** The difference, in degrees, between horizon zenith angle and solar zenith angle at which auto backlight reaches maximum intensity. */
+  private static readonly AUTO_MAX_SOLAR_HORIZON_ANGLE = 4;
+  /** The difference, in degrees, between horizon zenith angle and solar zenith angle at which auto backlight reaches minimum intensity. */
+  private static readonly AUTO_MIN_SOLAR_HORIZON_ANGLE = -6;
+  private static readonly AUTO_MAX_SOLAR_HORIZON_ANGLE_RAD = BacklightLevelController.AUTO_MAX_SOLAR_HORIZON_ANGLE * Avionics.Utils.DEG2RAD;
+  private static readonly AUTO_MIN_SOLAR_HORIZON_ANGLE_RAD = BacklightLevelController.AUTO_MIN_SOLAR_HORIZON_ANGLE * Avionics.Utils.DEG2RAD;
 
   private static readonly AUTO_UPDATE_REALTIME_FREQ = 10; // max frequency (Hz) of auto backlight level updates in real time
   private static readonly AUTO_UPDATE_SIMTIME_THRESHOLD = 60000; // minimum interval (ms) between auto backlight level updates in sim time
@@ -24,21 +32,22 @@ export class BacklightLevelController {
 
   private static tempVec3 = new Float64Array(3);
 
-  private readonly simTime = ConsumerSubject.create(null, 0);
+  private readonly simTime = ConsumerValue.create(null, 0);
   private readonly ppos = new Float64Array(3);
+  private altitude = 0;
 
   private needRecalcAuto = true;
   private lastSimTime = 0;
 
   private _autoMaxIntensity: number; // The maximum intensity applied by auto backlight.
   private _autoMinIntensity: number; // The minimum intensity applied by auto backlight.
-  private _autoIntensityRange: number;
   private paused = false;
 
   private readonly pposSub: Subscription;
   private readonly updateSub: Subscription;
 
   private readonly _intensity = Subject.create(0);
+  /** The automatic backlight intensity computed by this controller. */
   public readonly intensity = this._intensity as Subscribable<number>;
 
   /**
@@ -56,7 +65,6 @@ export class BacklightLevelController {
   ) {
     this._autoMinIntensity = minIntensity;
     this._autoMaxIntensity = maxIntensity;
-    this._autoIntensityRange = this.autoMaxIntensity - this.autoMinIntensity;
     this.needRecalcAuto = true;
 
     const sub = bus.getSubscriber<ClockEvents & GNSSEvents>();
@@ -81,7 +89,6 @@ export class BacklightLevelController {
    */
   public set autoMaxIntensity(max_intensity: number) {
     this._autoMaxIntensity = max_intensity;
-    this._autoIntensityRange = this._autoMaxIntensity - this._autoMinIntensity;
     this.needRecalcAuto = true;
   }
 
@@ -99,7 +106,6 @@ export class BacklightLevelController {
    */
   public set autoMinIntensity(min_intensity: number) {
     this._autoMinIntensity = min_intensity;
-    this._autoIntensityRange = this._autoMinIntensity - min_intensity;
     this.needRecalcAuto = true;
   }
 
@@ -130,11 +136,14 @@ export class BacklightLevelController {
    */
   private onPPosChanged(ppos: LatLongAlt): void {
     const pposVec = GeoPoint.sphericalToCartesian(ppos.lat, ppos.long, BacklightLevelController.tempVec3);
-    if (Vec3Math.dot(pposVec, this.ppos) >= 1 - 1e-4) { // ~600 m
+    // If the new position is within ~3000 m laterally and 60 m vertically of the last position used to calculate the
+    // backlight, there's no need to update the calculation.
+    if (Vec3Math.dot(pposVec, this.ppos) >= 0.999999875 && Math.abs(ppos.alt - this.altitude) <= 60) {
       return;
     }
 
     Vec3Math.copy(pposVec, this.ppos);
+    this.altitude = ppos.alt;
     this.needRecalcAuto = true;
   }
 
@@ -160,11 +169,21 @@ export class BacklightLevelController {
     this.lastSimTime = simTime;
 
     const subSolarPoint = BacklightLevelController.calculateSubSolarPoint(simTime, BacklightLevelController.tempVec3);
-    const sinSolarAngle = Vec3Math.dot(this.ppos, subSolarPoint);
-    const sinSolarAngleClamped = Utils.Clamp(sinSolarAngle, BacklightLevelController.AUTO_MIN_SOLAR_ANGLE_SIN, BacklightLevelController.AUTO_MAX_SOLAR_ANGLE_SIN);
-    const intensityFrac = (sinSolarAngleClamped - BacklightLevelController.AUTO_MIN_SOLAR_ANGLE_SIN) / BacklightLevelController.AUTO_SOLAR_ANGLE_RANGE_SIN;
+    // The sun is far enough from the earth (~1.5e11 meters) compared to one earth radius (~6.4e6 meters) that for the
+    // purposes of the following calculations we can treat the earth as a single point. Therefore, the subsolar point
+    // vector becomes the unit position vector from any point on earth to the sun.
+    const solarZenithAngle = Math.acos(MathUtils.clamp(Vec3Math.dot(this.ppos, subSolarPoint), -1, 1));
 
-    this._intensity.set(this._autoMinIntensity + intensityFrac * this._autoIntensityRange);
+    const horizonZenithAngle = MathUtils.HALF_PI + Math.acos(1 / (1 + UnitType.METER.convertTo(Math.max(0, this.altitude), UnitType.GA_RADIAN)));
+
+    this._intensity.set(MathUtils.lerp(
+      horizonZenithAngle - solarZenithAngle,
+      BacklightLevelController.AUTO_MIN_SOLAR_HORIZON_ANGLE_RAD,
+      BacklightLevelController.AUTO_MAX_SOLAR_HORIZON_ANGLE_RAD,
+      this._autoMinIntensity,
+      this._autoMaxIntensity,
+      true, true
+    ));
   }
 
   /**

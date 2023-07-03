@@ -1,7 +1,9 @@
 import { FlightPlan, FlightPlanLegIterator, FlightPlanUtils, LegDefinition, SpeedConstraint } from '../flightplan';
 import { BitFlags, UnitType } from '../math';
 import { AltitudeRestrictionType, FixTypeFlags, LegType } from '../navigation';
-import { TodBodDetails, VerticalFlightPlan, VNavConstraint, VNavLeg, VNavPlanSegment, AltitudeConstraintDetails, SpeedConstraintDetails, TocBocDetails } from './VerticalNavigation';
+import {
+  AltitudeConstraintDetails, SpeedConstraintDetails, TocBocDetails, TodBodDetails, VerticalFlightPlan, VNavConstraint, VNavLeg, VNavPlanSegment,
+} from './VerticalNavigation';
 
 /**
  * A Utility Class for VNAV
@@ -58,21 +60,26 @@ export class VNavUtils {
   }
 
   /**
-   * Gets the flight path angle for a given distance and altitude. Positive flight path angles represent an ascending
-   * flight path.
-   * @param distance The distance to get the angle for, in the same unit as `altitude`.
-   * @param altitude The altitude to get the angle for, in the same unit as `distance`.
-   * @returns The required flight path angle, in degrees.
+   * Gets the flight path angle required to travel a given lateral distance and altitude. Positive flight path angles
+   * represent an ascending flight path. By convention, the flight path angle required to travel zero altitude equals
+   * zero degrees for all distances.
+   * @param distance The lateral distance to travel, in the same units as `altitude`.
+   * @param altitude The altitude to travel, in the same units as `distance`.
+   * @returns The flight path angle, in degrees, required to travel the specified altitude and distance.
    */
   public static getFpa(distance: number, altitude: number): number {
+    if (altitude === 0) {
+      return 0;
+    }
+
     return UnitType.RADIAN.convertTo(Math.atan(altitude / distance), UnitType.DEGREE);
   }
 
   /**
-   * Gets the change in altitude along a flight path angle for a given lateral distance covered.
+   * Gets the change in altitude along a flight path angle for a given lateral distance traveled.
    * @param fpa The flight path angle, in degrees. Positive values represent an ascending flight path.
-   * @param distance The lateral distance covered.
-   * @returns The change in altitude along the specified flight path angle for the specified lateral distance covered,
+   * @param distance The lateral distance traveled.
+   * @returns The change in altitude along the specified flight path angle for the specified lateral distance traveled,
    * expressed in the same units as `distance`.
    */
   public static altitudeForDistance(fpa: number, distance: number): number {
@@ -80,10 +87,10 @@ export class VNavUtils {
   }
 
   /**
-   * Gets the lateral distance covered along a flight path angle for a given change in altitude.
+   * Gets the lateral distance traveled along a flight path angle for a given change in altitude.
    * @param fpa The flight path angle, in degrees. Positive values represent an ascending flight path.
    * @param altitude The change in the altitude.
-   * @returns The lateral distance covered along the specified flight path angle for the specified change in altitude,
+   * @returns The lateral distance traveled along the specified flight path angle for the specified change in altitude,
    * expressed in the same units as `altitude`.
    */
   public static distanceForAltitude(fpa: number, altitude: number): number {
@@ -360,6 +367,63 @@ export class VNavUtils {
   }
 
   /**
+   * Gets the index of the next descent constraint at or after a flight plan leg.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global index of the flight plan leg to find the constraint for.
+   * @returns The index of the next descent constraint at or after the specified flight plan leg, or `-1` if one could
+   * not be found.
+   */
+  public static getNextDescentConstraintIndex(verticalPlan: VerticalFlightPlan, globalLegIndex: number): number {
+    const currentConstraintIndex = VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, globalLegIndex);
+    for (let c = currentConstraintIndex; c >= 0; c--) {
+      const constraint = verticalPlan.constraints[c];
+      if (constraint.type !== 'climb' && constraint.type !== 'missed') {
+        return c;
+      }
+    }
+
+    return -1;
+  }
+
+  /**
+   * Gets the index of the next climb constraint at or after a flight plan leg.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global index of the flight plan leg to find the constraint for.
+   * @returns The index of the next climb constraint at or after the specified flight plan leg, or `-1` if one could
+   * not be found.
+   */
+  public static getNextClimbConstraintIndex(verticalPlan: VerticalFlightPlan, globalLegIndex: number): number {
+    const currentConstraintIndex = VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, globalLegIndex);
+    for (let c = currentConstraintIndex; c >= 0; c--) {
+      const constraint = verticalPlan.constraints[c];
+      if (constraint.type === 'climb') {
+        return c;
+      }
+    }
+
+    return -1;
+  }
+
+  /**
+   * Gets the index of the next missed approach constraint at or after a flight plan leg.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global index of the flight plan leg to find the constraint for.
+   * @returns The index of the next missed approach constraint at or after the specified flight plan leg, or `-1` if
+   * one could not be found.
+   */
+  public static getNextMaprConstraintIndex(verticalPlan: VerticalFlightPlan, globalLegIndex: number): number {
+    const currentConstraintIndex = VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, globalLegIndex);
+    for (let c = currentConstraintIndex; c >= 0; c--) {
+      const constraint = verticalPlan.constraints[c];
+      if (constraint.type === 'missed') {
+        return c;
+      }
+    }
+
+    return -1;
+  }
+
+  /**
    * Gets the next descent constraint with a defined minimum altitude at or after a flight plan leg.
    * @param verticalPlan The vertical flight plan.
    * @param globalLegIndex The global index of the flight plan leg to find the constraint for.
@@ -415,6 +479,20 @@ export class VNavUtils {
       }
     }
 
+    return undefined;
+  }
+
+  /**
+   * Gets the current climb constraint, if one exists.
+   * @param verticalPlan The vertical flight plan.
+   * @param globalLegIndex The global index of the flight plan leg to find the constraint for.
+   * @returns The current climb constraint, or `undefined` if no such constraint exists.
+   */
+  public static getCurrentClimbConstraint(verticalPlan: VerticalFlightPlan, globalLegIndex: number): VNavConstraint | undefined {
+    const currentConstraint = VNavUtils.getConstraintFromLegIndex(verticalPlan, globalLegIndex);
+    if (currentConstraint && currentConstraint.type === 'climb') {
+      return currentConstraint;
+    }
     return undefined;
   }
 

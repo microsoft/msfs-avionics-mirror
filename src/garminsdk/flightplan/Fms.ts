@@ -2520,6 +2520,7 @@ export class Fms {
    * Method to check if a leg has a user specified constraint.
    * @param segmentIndex The segment index to insert the constraint at.
    * @param segmentLegIndex The leg index to insert the constraint at.
+   * @deprecated Use FmsUtils.isLegAltitudeEdited in preference to this.
    * @returns Whether the leg has a user constraint.
    */
   public isConstraintUser(segmentIndex: number, segmentLegIndex: number): boolean {

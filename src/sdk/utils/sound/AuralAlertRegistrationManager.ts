@@ -38,7 +38,7 @@ export class AuralAlertRegistrationManager {
    * @param definition The definition of the alert to register.
    */
   private publishRegistration(definition: Readonly<AuralAlertDefinition>): void {
-    this.publisher.pub('aural_alert_register', definition, true);
+    this.publisher.pub('aural_alert_register', definition, true, false);
   }
 
   /**

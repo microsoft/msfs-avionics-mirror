@@ -1,36 +1,80 @@
-/// <reference types="@microsoft/msfs-types/js/simvar" />
-
-import { EventBus, SimVarValueType } from '../../data';
-import { LinearServo } from '../../utils/controllers';
+import { EventBus } from '../../data/EventBus';
+import { APValues } from '../APConfig';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
+
+/**
+ * Options for {@link APLvlDirector}.
+ */
+export type APLvlDirectorOptions = {
+  /**
+   * The bank rate to enforce when the director commands changes in bank angle, in degrees per second, or a function
+   * which returns it. If not undefined, a default bank rate will be used. Defaults to `undefined`.
+   */
+  bankRate?: number | (() => number) | undefined;
+
+  /**
+   * Whether the director is to be used as a TO/GA lateral mode. If `true`, the director will not control the
+   * `AUTOPILOT HEADING LOCK` simvar. Defaults to `false`.
+   */
+  isToGaMode?: boolean;
+};
 
 /**
  * An autopilot wing leveler director.
  */
 export class APLvlDirector implements PlaneDirector {
-  private static readonly BANK_SERVO_RATE = 10; // degrees per second
-
   public state: DirectorState;
 
-  /** A callback called when the wing leveler director activates. */
+  /** @inheritdoc */
   public onActivate?: () => void;
 
-  /** A callback called when the wing leveler director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
 
-  private currentBankRef = 0;
-  private desiredBank = 0;
+  /** @inheritdoc */
+  public driveBank?: (bank: number, rate?: number) => void;
 
-  private readonly bankServo = new LinearServo(APLvlDirector.BANK_SERVO_RATE);
+  private readonly driveBankFunc: (bank: number) => void;
 
+  private readonly isToGaMode: boolean;
 
   /**
    * Creates an instance of the wing leveler.
    * @param bus The event bus to use with this instance.
-   * @param isToGaMode Whether this director is being used as a TO/GA lateral mode
-   * (and thus shouldn't set the 'AUTOPILOT WING LEVELER' simvar)
+   * @param apValues Autopilot values from this director's parent autopilot.
+   * @param options Options to configure the new director.
    */
-  constructor(private readonly bus: EventBus, private isToGaMode = false) {
+  constructor(
+    private readonly bus: EventBus,
+    private readonly apValues: APValues,
+    options?: Readonly<APLvlDirectorOptions>
+  ) {
+    const bankRateOpt = options?.bankRate;
+    switch (typeof bankRateOpt) {
+      case 'number':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt * this.apValues.simRate.get());
+          }
+        };
+        break;
+      case 'function':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt() * this.apValues.simRate.get());
+          }
+        };
+        break;
+      default:
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank);
+          }
+        };
+    }
+
+    this.isToGaMode = options?.isToGaMode ?? false;
+
     this.state = DirectorState.Inactive;
   }
 
@@ -39,12 +83,10 @@ export class APLvlDirector implements PlaneDirector {
    */
   public activate(): void {
     this.state = DirectorState.Active;
-    this.desiredBank = 0;
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
     if (!this.isToGaMode) { SimVar.SetSimVarValue('AUTOPILOT WING LEVELER', 'Bool', true); }
-    this.bankServo.reset();
   }
 
   /**
@@ -62,7 +104,6 @@ export class APLvlDirector implements PlaneDirector {
    */
   public deactivate(): void {
     this.state = DirectorState.Inactive;
-    this.desiredBank = 0;
     if (!this.isToGaMode) { SimVar.SetSimVarValue('AUTOPILOT WING LEVELER', 'Bool', false); }
   }
 
@@ -71,20 +112,7 @@ export class APLvlDirector implements PlaneDirector {
    */
   public update(): void {
     if (this.state === DirectorState.Active) {
-      this.setBank(this.desiredBank);
-    }
-  }
-
-
-  /**
-   * Sets the desired AP bank angle.
-   * @param bankAngle The desired AP bank angle.
-   */
-  private setBank(bankAngle: number): void {
-    if (isFinite(bankAngle)) {
-      this.bankServo.rate = APLvlDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
-      this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
-      SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
+      this.driveBankFunc(0);
     }
   }
 }

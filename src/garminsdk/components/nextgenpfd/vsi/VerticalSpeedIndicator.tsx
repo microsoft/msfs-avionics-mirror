@@ -1,10 +1,14 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import {
   AltitudeRestrictionType, ComponentProps, DisplayComponent, EventBus, FSComponent, MappedSubject, MathUtils, NumberFormatter,
   ObjectSubject, SetSubject, SubEvent, Subject, Subscribable, SubscribableMapFunctions, SubscribableSet, SubscribableUtils,
   Subscription, VNode
 } from '@microsoft/msfs-sdk';
+
 import { VNavTargetAltitudeRestriction, VNavTargetAltitudeRestrictionType } from '../../../navigation/VNavDataProvider';
 import { VsiDataProvider } from './VsiDataProvider';
+import { TcasRaCommandDataProvider } from '../../../traffic/TcasRaCommandDataProvider';
 
 /**
  * Scale options for a vertical speed indicator.
@@ -29,6 +33,12 @@ export interface VerticalSpeedIndicatorProps extends ComponentProps {
 
   /** A data provider for the indicator. */
   dataProvider: VsiDataProvider;
+
+  /**
+   * A provider of TCAS-II resolution advisory vertical speed command data. If not defined, then the indicator will
+   * not display resolution advisory commands.
+   */
+  tcasRaCommandDataProvider?: TcasRaCommandDataProvider;
 
   /** Whether the indicator should be decluttered. */
   declutter: Subscribable<boolean>;
@@ -100,13 +110,17 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
 
   private readonly updateTapeEvent = new SubEvent<this, void>();
 
-  private readonly raFlyToState = MappedSubject.create(this.props.dataProvider.raFlyToMinVs, this.props.dataProvider.raFlyToMaxVs);
+  private readonly raFlyToState = this.props.tcasRaCommandDataProvider
+    ? MappedSubject.create(this.props.tcasRaCommandDataProvider.raFlyToMinVs, this.props.tcasRaCommandDataProvider.raFlyToMaxVs)
+    : undefined;
 
-  private readonly raVsAvoidanceState = MappedSubject.create(
-    this.props.dataProvider.verticalSpeed,
-    this.props.dataProvider.raMaxVs,
-    this.props.dataProvider.raMinVs
-  ).pause();
+  private readonly raVsAvoidanceState = this.props.tcasRaCommandDataProvider
+    ? MappedSubject.create(
+      this.props.dataProvider.verticalSpeed,
+      this.props.tcasRaCommandDataProvider.raMaxVs,
+      this.props.tcasRaCommandDataProvider.raMinVs
+    ).pause()
+    : undefined;
 
   private readonly showBugs = this.props.dataProvider.isDataFailed.map(SubscribableMapFunctions.not());
   private readonly showDisplays = MappedSubject.create(
@@ -123,34 +137,36 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
   public onAfterRender(): void {
     this.options.sub(this.rebuildScale.bind(this), true);
 
-    this.raFlyToState.sub(([minVs, maxVs]) => {
-      this.updateRaFlyToVsColorRange(minVs, maxVs);
-    }, true);
+    if (this.props.tcasRaCommandDataProvider) {
+      this.raFlyToState!.sub(([minVs, maxVs]) => {
+        this.updateRaFlyToVsColorRange(minVs, maxVs);
+      }, true);
 
-    this.raMaxVsSub = this.props.dataProvider.raMaxVs.sub(this.updateRaMaxVsColorRange.bind(this), true);
-    this.raMinVsSub = this.props.dataProvider.raMinVs.sub(this.updateRaMinVsColorRange.bind(this), true);
+      this.raMaxVsSub = this.props.tcasRaCommandDataProvider.raMaxVs.sub(this.updateRaMaxVsColorRange.bind(this), true);
+      this.raMinVsSub = this.props.tcasRaCommandDataProvider.raMinVs.sub(this.updateRaMinVsColorRange.bind(this), true);
 
-    const raVsAvoidanceStateSub = this.raVsAvoidanceState.sub(([vs, maxVs, minVs]) => {
-      maxVs ??= Infinity;
-      minVs ??= -Infinity;
+      const raVsAvoidanceStateSub = this.raVsAvoidanceState!.sub(([vs, maxVs, minVs]) => {
+        maxVs ??= Infinity;
+        minVs ??= -Infinity;
 
-      this.rootCssClass.toggle('vsi-ra-warn', vs > maxVs || vs < minVs);
-    }, false, true);
+        this.rootCssClass.toggle('vsi-ra-warn', vs > maxVs || vs < minVs);
+      }, false, true);
 
-    this.isDataFailedSub = this.props.dataProvider.isDataFailed.sub(isDataFailed => {
-      if (isDataFailed) {
-        this.rootCssClass.add('data-failed');
-        this.rootCssClass.delete('vsi-ra-warn');
+      this.isDataFailedSub = this.props.dataProvider.isDataFailed.sub(isDataFailed => {
+        if (isDataFailed) {
+          this.rootCssClass.add('data-failed');
+          this.rootCssClass.delete('vsi-ra-warn');
 
-        raVsAvoidanceStateSub.pause();
-        this.raVsAvoidanceState.pause();
-      } else {
-        this.rootCssClass.delete('data-failed');
+          raVsAvoidanceStateSub.pause();
+          this.raVsAvoidanceState!.pause();
+        } else {
+          this.rootCssClass.delete('data-failed');
 
-        this.raVsAvoidanceState.resume();
-        raVsAvoidanceStateSub.resume(true);
-      }
-    }, true);
+          this.raVsAvoidanceState!.resume();
+          raVsAvoidanceStateSub.resume(true);
+        }
+      }, true);
+    }
 
     this.rootCssClass.toggle('advanced-vnav', this.props.isAdvancedVnav);
   }
@@ -214,9 +230,11 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
 
     this.updateTapeEvent.notify(this);
 
-    this.updateRaMaxVsColorRange(this.props.dataProvider.raMaxVs.get());
-    this.updateRaMinVsColorRange(this.props.dataProvider.raMinVs.get());
-    this.updateRaFlyToVsColorRange(this.props.dataProvider.raFlyToMinVs.get(), this.props.dataProvider.raFlyToMaxVs.get());
+    if (this.props.tcasRaCommandDataProvider) {
+      this.updateRaMaxVsColorRange(this.props.tcasRaCommandDataProvider.raMaxVs.get());
+      this.updateRaMinVsColorRange(this.props.tcasRaCommandDataProvider.raMinVs.get());
+      this.updateRaFlyToVsColorRange(this.props.tcasRaCommandDataProvider.raFlyToMinVs.get(), this.props.tcasRaCommandDataProvider.raFlyToMaxVs.get());
+    }
   }
 
   /**
@@ -374,8 +392,8 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
     this.selectedVsDisplayRef.getOrDefault()?.destroy();
 
     this.options.destroy();
-    this.raFlyToState.destroy();
-    this.raVsAvoidanceState.destroy();
+    this.raFlyToState?.destroy();
+    this.raVsAvoidanceState?.destroy();
     this.showBugs.destroy();
     this.showDisplays.destroy();
 

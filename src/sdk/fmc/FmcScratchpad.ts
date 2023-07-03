@@ -20,6 +20,9 @@ export interface FmcScratchpadOptions {
 
   /** Whether error text is centered. Defaults to false. */
   errorTextCentered?: boolean,
+
+  /** Whether other scratchpad contents are cleared when an error is set. Defaults to false. */
+  clearScratchpadOnError?: boolean,
 }
 
 /**
@@ -32,6 +35,7 @@ export class FmcScratchpad {
     deleteText: 'DELETE',
     surroundingText: ['', ''],
     errorTextCentered: false,
+    clearScratchpadOnError: false,
   };
 
   public contents = Subject.create('');
@@ -84,10 +88,15 @@ export class FmcScratchpad {
 
   /**
    * Clears the scratchpad
+   *
+   * @param clearError whether to clear any scratchpad error content, defaults to `true`
    */
-  public clear(): void {
-    this.clearError();
-    this.delete(false);
+  public clear(clearError = true): void {
+    if (clearError) {
+      this.clearError();
+    }
+
+    this.delete(false, false);
 
     this.contents.set('');
   }
@@ -100,12 +109,28 @@ export class FmcScratchpad {
   }
 
   /**
+   * Sets the scratchpad to an error message
+   * @param error The error message
+   */
+  public error(error: string): void {
+    if (this.options.clearScratchpadOnError) {
+      this.isInDelete.set(false);
+      this.contents.set('');
+    }
+
+    this.errorContents.set(error);
+  }
+
+  /**
    * Sets the scratchpad in DELETE mode (or not)
    *
    * @param value optional value to force, otherwise the value is set to `true`
+   * @param clearError whether to clear any scratchpad error content, defaults to `true`
    */
-  public delete(value?: boolean): void {
-    this.clearError();
+  public delete(value?: boolean, clearError = true): void {
+    if (clearError) {
+      this.clearError();
+    }
 
     this.isInDelete.set(value ?? !this.isInDelete.get());
   }
@@ -121,15 +146,19 @@ export class FmcScratchpad {
     // causing a lack of repaints in some situations.
 
     let renderText;
-    if (this.isInDelete.get()) {
-      renderText = this.options.deleteText;
-    } else if (this.errorContents.get()) {
+    if (this.errorContents.get()) {
       const errorContents = this.errorContents.get();
 
-      const leftPad = '\u00a0'.repeat(Math.floor((spaceToPadTo - errorContents.length) / 2));
-      const rightPad = '\u00a0'.repeat(Math.ceil((spaceToPadTo - errorContents.length) / 2));
+      if (this.options.errorTextCentered) {
+        const leftPad = '\u00a0'.repeat(Math.floor((spaceToPadTo - errorContents.length) / 2));
+        const rightPad = '\u00a0'.repeat(Math.ceil((spaceToPadTo - errorContents.length) / 2));
 
-      renderText = `${leftPad}${errorContents}${rightPad}`;
+        renderText = `${leftPad}${errorContents}${rightPad}`;
+      } else {
+        renderText = errorContents.padEnd(spaceToPadTo, '\u00a0');
+      }
+    } else if (this.isInDelete.get()) {
+      renderText = this.options.deleteText.padEnd(spaceToPadTo, '\u00a0');
     } else {
       renderText = this.contents.get().padEnd(spaceToPadTo, '\u00a0');
     }

@@ -1,4 +1,4 @@
-import { AvionicsPlugin, EventBus, InstrumentBackplane } from '@microsoft/msfs-sdk';
+import { AvionicsPlugin, EventBus, FacilityLoader, FlightPathCalculator, InstrumentBackplane } from '@microsoft/msfs-sdk';
 import { Fms } from '@microsoft/msfs-garminsdk';
 import { AvionicsConfig } from './AvionicsConfig/AvionicsConfig';
 import { FmsSpeedUserSettingManager } from './Settings/FmsSpeedUserSettings';
@@ -17,6 +17,12 @@ export interface G3000PluginBinder {
 
   /** The avionics configuration. */
   config: AvionicsConfig;
+
+  /** The facility loader. */
+  facLoader: FacilityLoader;
+
+  /** The lateral flight plan path calculator. */
+  flightPathCalculator: FlightPathCalculator;
 
   /** The FMS instance. */
   fms: Fms;

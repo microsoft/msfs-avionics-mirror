@@ -1,9 +1,8 @@
-/// <reference types="@microsoft/msfs-types/js/simvar" />
-
-import { EventBus, SimVarValueType } from '../../data';
-import { NavMath } from '../../geo';
-import { AhrsEvents } from '../../instruments';
-import { LinearServo } from '../../utils/controllers';
+import { ConsumerValue } from '../../data/ConsumerValue';
+import { EventBus } from '../../data/EventBus';
+import { NavMath } from '../../geo/NavMath';
+import { AhrsEvents } from '../../instruments/Ahrs';
+import { MathUtils } from '../../math/MathUtils';
 import { APValues } from '../APConfig';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
@@ -13,52 +12,71 @@ import { DirectorState, PlaneDirector } from './PlaneDirector';
 export type APHdgDirectorOptions = {
   /**
    * The maximum bank angle, in degrees, supported by the director, or a function which returns it. If not defined,
-   * the director will use the maximum bank angle defined by its parent autopilot (via `apValues`).
+   * the director will use the maximum bank angle defined by its parent autopilot (via `apValues`). Defaults to
+   * `undefined`.
    */
-  maxBankAngle: number | (() => number) | undefined;
+  maxBankAngle?: number | (() => number) | undefined;
+
+  /**
+   * The bank rate to enforce when the director commands changes in bank angle, in degrees per second, or a function
+   * which returns it. If not undefined, a default bank rate will be used. Defaults to `undefined`.
+   */
+  bankRate?: number | (() => number) | undefined;
+
+  /**
+   * The threshold difference between selected heading and current heading, in degrees, at which the director unlocks
+   * its commanded turn direction and chooses a new optimal turn direction to establish on the selected heading,
+   * potentially resulting in a turn reversal. Any value less than or equal to 180 degrees effectively prevents the
+   * director from locking a commanded turn direction. Any value greater than or equal to 360 degrees will require the
+   * selected heading to traverse past the current heading in the desired turn direction in order for the director to
+   * issue a turn reversal. Defaults to `0`.
+   */
+  turnReversalThreshold?: number;
 
   /**
    * Whether the director is to be used as a TO/GA lateral mode. If `true`, the director will not control the
-   * `AUTOPILOT HEADING LOCK` simvar.
+   * `AUTOPILOT HEADING LOCK` simvar. Defaults to `false`.
    */
-  isToGaMode: boolean;
+  isToGaMode?: boolean;
 };
 
 /**
  * A heading autopilot director.
  */
 export class APHdgDirector implements PlaneDirector {
-  private static readonly BANK_SERVO_RATE = 10; // degrees per second
-
   public state: DirectorState;
 
-  /** A callback called when the director activates. */
+  /** @inheritdoc */
   public onActivate?: () => void;
 
-  /** A callback called when the director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
 
-  private currentBankRef = 0;
-  private currentHeading = 0;
+  /** @inheritdoc */
+  public driveBank?: (bank: number, rate?: number) => void;
+
+  private readonly currentHeading = ConsumerValue.create(null, 0);
   private toGaHeading = 0;
 
-  private readonly bankServo = new LinearServo(APHdgDirector.BANK_SERVO_RATE);
+  private lastHeadingDiff: number | undefined = undefined;
+  private readonly turnReversalThreshold: number;
+  private lockedTurnDirection: 'left' | 'right' | undefined = undefined;
 
   private readonly maxBankAngleFunc: () => number;
+  private readonly driveBankFunc: (bank: number) => void;
+
   private readonly isToGaMode: boolean;
 
   /**
    * Creates a new instance of APHdgDirector.
    * @param bus The event bus to use with this instance.
    * @param apValues Autopilot values from this director's parent autopilot.
-   * @param options Options to configure the new director. Option values default to the following if not defined:
-   * * `maxBankAngle`: `undefined`
-   * * `isToGaMode`: `false`
+   * @param options Options to configure the new director.
    */
   constructor(
-    private readonly bus: EventBus,
+    bus: EventBus,
     private readonly apValues: APValues,
-    options?: Partial<Readonly<APHdgDirectorOptions>>
+    options?: Readonly<APHdgDirectorOptions>
   ) {
     const maxBankAngleOpt = options?.maxBankAngle ?? undefined;
     switch (typeof maxBankAngleOpt) {
@@ -72,32 +90,67 @@ export class APHdgDirector implements PlaneDirector {
         this.maxBankAngleFunc = this.apValues.maxBankAngle.get.bind(this.apValues.maxBankAngle);
     }
 
+    const bankRateOpt = options?.bankRate;
+    switch (typeof bankRateOpt) {
+      case 'number':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt * this.apValues.simRate.get());
+          }
+        };
+        break;
+      case 'function':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt() * this.apValues.simRate.get());
+          }
+        };
+        break;
+      default:
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank);
+          }
+        };
+    }
+
+    this.turnReversalThreshold = options?.turnReversalThreshold ?? 0;
+
     this.isToGaMode = options?.isToGaMode ?? false;
+
+    this.currentHeading.setConsumer(bus.getSubscriber<AhrsEvents>().on('hdg_deg').withPrecision(1));
+
+    this.pauseSubs();
 
     this.state = DirectorState.Inactive;
 
-    const ahrs = this.bus.getSubscriber<AhrsEvents>();
-    ahrs.on('hdg_deg').withPrecision(0).handle((h) => {
-      this.currentHeading = h;
-    });
+  }
 
+  /** Resumes Subscriptions. */
+  private resumeSubs(): void {
+    this.currentHeading.resume();
+  }
+
+  /** Pauses Subscriptions. */
+  private pauseSubs(): void {
+    this.currentHeading.pause();
   }
 
   /**
    * Activates this director.
    */
   public activate(): void {
+    this.resumeSubs();
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
     if (!this.isToGaMode) {
       SimVar.SetSimVarValue('AUTOPILOT HEADING LOCK', 'Bool', true);
     } else {
-      this.toGaHeading = this.currentHeading;
+      this.toGaHeading = this.currentHeading.get();
     }
 
     this.state = DirectorState.Active;
-    this.bankServo.reset();
   }
 
   /**
@@ -114,8 +167,11 @@ export class APHdgDirector implements PlaneDirector {
    * Deactivates this director.
    */
   public async deactivate(): Promise<void> {
+    this.pauseSubs();
     if (!this.isToGaMode) { await SimVar.SetSimVarValue('AUTOPILOT HEADING LOCK', 'Bool', false); }
     this.state = DirectorState.Inactive;
+    this.lastHeadingDiff = undefined;
+    this.lockedTurnDirection = undefined;
   }
 
   /**
@@ -123,14 +179,19 @@ export class APHdgDirector implements PlaneDirector {
    */
   public update(): void {
     if (this.state === DirectorState.Active) {
+      let bank: number;
+
       if (this.isToGaMode) {
         if (Simplane.getIsGrounded()) {
-          this.toGaHeading = this.currentHeading;
+          this.toGaHeading = this.currentHeading.get();
         }
-        this.setBank(this.desiredBank(this.toGaHeading));
+
+        bank = this.desiredBank(this.toGaHeading);
       } else {
-        this.setBank(this.desiredBank(this.apValues.selectedHeading.get()));
+        bank = this.desiredBank(this.apValues.selectedHeading.get());
       }
+
+      this.driveBankFunc(bank);
     }
   }
 
@@ -140,25 +201,44 @@ export class APHdgDirector implements PlaneDirector {
    * @returns The desired bank angle.
    */
   private desiredBank(targetHeading: number): number {
-    const turnDirection = NavMath.getTurnDirection(this.currentHeading, targetHeading);
-    const headingDiff = Math.abs(NavMath.diffAngle(this.currentHeading, targetHeading));
+    const currentHeading = this.currentHeading.get();
+    const headingDiff = MathUtils.diffAngleDeg(currentHeading, targetHeading);
 
-    let baseBank = Math.min(1.25 * headingDiff, this.maxBankAngleFunc());
+    let turnDirection: 'left' | 'right' | undefined = undefined;
+    let directionalHeadingDiff: number;
+
+    if (this.lockedTurnDirection !== undefined) {
+      turnDirection = this.lockedTurnDirection;
+      directionalHeadingDiff = turnDirection === 'left' ? (360 - headingDiff) % 360 : headingDiff;
+
+      if (directionalHeadingDiff >= this.turnReversalThreshold) {
+        turnDirection = undefined;
+      } else if (this.lastHeadingDiff !== undefined) {
+        // Check if the heading difference passed through zero in the positive to negative direction since the last
+        // update. If so, we may need to issue a turn reversal.
+        const headingDiffDelta = (MathUtils.diffAngleDeg(this.lastHeadingDiff, directionalHeadingDiff) + 180) % 360 - 180; // -180 to +180
+        if (this.lastHeadingDiff + headingDiffDelta < 0) {
+          turnDirection = undefined;
+        }
+      }
+    }
+
+    if (turnDirection === undefined) {
+      turnDirection = NavMath.getTurnDirection(currentHeading, targetHeading);
+      directionalHeadingDiff = turnDirection === 'left' ? (360 - headingDiff) % 360 : headingDiff;
+    }
+
+    if (this.turnReversalThreshold > 180) {
+      this.lockedTurnDirection = turnDirection;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    this.lastHeadingDiff = directionalHeadingDiff!;
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    let baseBank = Math.min(1.25 * directionalHeadingDiff!, this.maxBankAngleFunc());
     baseBank *= (turnDirection === 'left' ? 1 : -1);
 
     return baseBank;
-  }
-
-
-  /**
-   * Sets the desired AP bank angle.
-   * @param bankAngle The desired AP bank angle.
-   */
-  private setBank(bankAngle: number): void {
-    if (isFinite(bankAngle)) {
-      this.bankServo.rate = APHdgDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
-      this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
-      SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
-    }
   }
 }

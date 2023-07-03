@@ -102,6 +102,9 @@ export type JetFadecThrottleInfoInternal = JetFadecThrottleInfo & {
  * A FADEC for turbojets. Controls engine throttle based on throttle lever position and other inputs.
  */
 export class JetFadec {
+  // This is pulled from the native sim code. Commonly used when correcting N1.
+  protected static readonly MSFS_STANDARD_SEA_LEVEL_TEMP_RANKINE = 518.69;
+
   protected readonly publisher = this.bus.getPublisher<FadecEvents>();
 
   protected readonly throttleInfos: readonly JetFadecThrottleInfoInternal[];
@@ -125,11 +128,15 @@ export class JetFadec {
    * order of modes in the array determines their priority during mode selection. On every update cycle, the FADEC
    * iterates through the modes array in order, calling `accept()` on each mode until a value of `true` is returned.
    * Therefore, modes positioned earlier in the array have a higher priority for selection.
+   * @param desiredThrottleMin The min value to limit the desiredThrottle by. Defaults to -100.
+   * @param desiredThrottleMax The max value to limit the desiredThrottle by. Defaults to 100.
    */
   constructor(
     protected readonly bus: EventBus,
     protected readonly modes: readonly JetFadecMode[],
-    throttleInfos: readonly JetFadecThrottleInfo[]
+    throttleInfos: readonly JetFadecThrottleInfo[],
+    protected readonly desiredThrottleMin = -100,
+    protected readonly desiredThrottleMax = 100,
   ) {
     this.throttleInfos = throttleInfos.map(info => {
       return {
@@ -213,7 +220,7 @@ export class JetFadec {
 
   /**
    * A method called when this FADEC is updated.
-   * @param dt The elapsed time, in milliseconds, since the last update.
+   * @param dt The elapsed real time, in milliseconds, since the last update.
    */
   protected onUpdate(dt: number): void {
     this.updateEngineStates();
@@ -238,7 +245,7 @@ export class JetFadec {
 
   /**
    * Updates this FADEC's engine throttles.
-   * @param dt The elapsed time, in milliseconds, since the last update.
+   * @param dt The elapsed real time, in milliseconds, since the last update.
    */
   protected updateThrottles(dt: number): void {
     for (let i = 0; i < this.throttleInfos.length; i++) {
@@ -255,6 +262,7 @@ export class JetFadec {
     const info = this.throttleInfos[index];
     const { throttleLeverPos, throttle, thrust, n1, n1Corrected } = this.engineStates[info.index];
 
+    // These values are expected to be changed in the for loop below
     let desiredThrottle = throttleLeverPos;
     let visibleThrottlePos = throttleLeverPos;
 
@@ -269,7 +277,9 @@ export class JetFadec {
       }
     }
 
-    SimVar.SetSimVarValue(info.throttleSimVar, SimVarValueType.Percent, MathUtils.clamp(desiredThrottle * 100, -100, 100));
+    const clampedThrottle = MathUtils.clamp(desiredThrottle * 100, this.desiredThrottleMin, this.desiredThrottleMax);
+
+    SimVar.SetSimVarValue(info.throttleSimVar, SimVarValueType.Percent, clampedThrottle);
     SimVar.SetSimVarValue(info.visiblePosSimVar, 'number', MathUtils.clamp(visibleThrottlePos, -1, 1));
   }
 

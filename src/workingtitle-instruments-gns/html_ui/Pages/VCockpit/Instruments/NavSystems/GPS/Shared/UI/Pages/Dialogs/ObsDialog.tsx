@@ -1,6 +1,6 @@
 import {
-  ConsumerSubject, ControlPublisher, FSComponent, NavEvents, NavProcSimVars, NumberUnitSubject, SimVarValueType,
-  Subject, Unit, UnitFamily, UnitType, VNode, MappedSubject,
+  ConsumerSubject, ControlPublisher, FSComponent, NavEvents, NumberUnitSubject, SimVarValueType,
+  Subject, Unit, UnitFamily, UnitType, VNode, MappedSubject, NavComEvents,
 } from '@microsoft/msfs-sdk';
 
 import { ObsSuspModes } from '@microsoft/msfs-garminsdk';
@@ -39,7 +39,7 @@ export class ObsDialog extends Dialog {
   constructor(props: PageProps) {
     super(props);
 
-    const sub = this.props.bus.getSubscriber<GnsObsEvents & NavProcSimVars & NavEvents>();
+    const sub = this.props.bus.getSubscriber<GnsObsEvents & NavComEvents & NavEvents>();
 
     this.obsMode.setConsumer(sub.on('obs_susp_mode'));
     this.navObsValue.setConsumer(sub.on('nav_obs_1'));

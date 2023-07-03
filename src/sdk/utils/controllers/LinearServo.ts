@@ -6,29 +6,32 @@ export class LinearServo {
 
   /**
    * Creates an instance of a LinearServo.
-   * @param rate The rate, in units per second, to drive the servo.
+   * @param rate The default rate to drive this servo, in units per second.
    */
   constructor(public rate: number) { }
 
   /**
-   * Drives the servo towards the set point.
+   * Drives this servo towards the set point.
    * @param currentValue The current value.
    * @param setValue The value to drive towards.
+   * @param time The current timestamp, in milliseconds. Defaults to the current operating system time, as a Javascript
+   * timestamp.
+   * @param rate The rate to use to drive this servo, in units per second. Defaults to this servo's default rate.
    * @returns The output value.
    */
-  public drive(currentValue: number, setValue: number): number {
+  public drive(currentValue: number, setValue: number, time = Date.now(), rate = this.rate): number {
     if (this.currentTime === undefined) {
-      this.currentTime = (new Date() as any).appTime();
+      this.currentTime = time;
       return currentValue;
     }
 
-    const currentTime = (new Date() as any).appTime();
+    const currentTime = time;
     const deltaTime = currentTime - this.currentTime;
     this.currentTime = currentTime;
 
     const deltaValue = setValue - currentValue;
 
-    const maximumDrive = this.rate * (deltaTime / 1000);
+    const maximumDrive = rate * (deltaTime / 1000);
     const output = Math.abs(deltaValue) > maximumDrive
       ? currentValue + (Math.sign(deltaValue) * maximumDrive)
       : setValue;

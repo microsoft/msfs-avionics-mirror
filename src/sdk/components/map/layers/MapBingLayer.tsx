@@ -71,6 +71,9 @@ export interface MapBingLayerProps<M> extends MapLayerProps<M> {
 
   /** The mode to put the map in. Defaults to {@link EBingMode.PLANE}. */
   mode?: EBingMode;
+
+  /** The opacity of Map Bing Layer as set by pilot. Default to 1. */
+  opacity?: Subscribable<number>;
 }
 
 /**
@@ -86,7 +89,8 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
     'width': '0px',
     'height': '0px',
     'display': '',
-    'transform': ''
+    'transform': '',
+    'opacity': '',
   });
 
   private readonly resolution = Vec2Subject.create(Vec2Math.create(1024, 1024));
@@ -106,6 +110,10 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
   /** @inheritdoc */
   public onAttached(): void {
     this.updateFromProjectedSize(this.props.mapProjection.getProjectedSize());
+
+    this.props.opacity?.sub((v: number) => {
+      this.wrapperStyle.set('opacity', v.toString());
+    }, true);
 
     if (this.props.wxrMode !== undefined) {
       this.props.wxrMode.sub(() => {

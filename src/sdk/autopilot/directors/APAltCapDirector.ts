@@ -1,10 +1,27 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus, SimVarValueType } from '../../data';
-import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
+import { DirectorState, PlaneDirector } from './PlaneDirector';
+import { SimVarValueType } from '../../data/SimVars';
+import { MathUtils } from '../../math/MathUtils';
+import { UnitType } from '../../math/NumberUnit';
 import { APValues } from '../APConfig';
 import { VNavUtils } from '../VNavUtils';
-import { DirectorState, PlaneDirector } from './PlaneDirector';
+
+/**
+ * Options for {@link APAltCapDirector}.
+ */
+export type APAltCapDirectorOptions = {
+
+  /**
+   * An optional function that contains the logic for the capturing. Has to return the desired pitch as input for the pitch controller.
+   */
+  captureAltitude: APAltCapDirectorCaptureFunc | undefined;
+
+  /**
+   * A function that returns true if the capturing shall start.
+   */
+  shouldActivate: APAltCapDirectorActivationFunc | undefined;
+};
 
 /**
  * A function which calculates a desired pitch angle, in degrees, to capture a target altitude.
@@ -12,8 +29,6 @@ import { DirectorState, PlaneDirector } from './PlaneDirector';
  * @param indicatedAltitude The current indicated altitude, in feet.
  * @param initialFpa The flight path angle of the airplane, in degrees, when altitude capture was first activated.
  * Positive values indicate a descending path.
- * @param aoa The current angle of attack, in degrees. Positive values indicate nose-up attitude.
- * @param verticalSpeed The current vertical speed of the airplane, in feet per minute.
  * @param tas The current true airspeed of the airplane, in knots.
  * @returns The desired pitch angle, in degrees, to capture the specified altitude. Positive values indicate nose-up
  * pitch.
@@ -22,10 +37,21 @@ export type APAltCapDirectorCaptureFunc = (
   targetAltitude: number,
   indicatedAltitude: number,
   initialFpa: number,
-  aoa: number,
-  verticalSpeed: number,
   tas: number
 ) => number;
+
+
+/**
+ * A function which returns true if the capturing shall be activated
+ * @param vs Current vertical speed in [ft/min]
+ * @param targetAltitude Target altitude [ft]
+ * @param currentAltitude Current altitude [ft]
+ * @returns True if the capturing shall be activated
+ */
+export type APAltCapDirectorActivationFunc = (
+  vs: number,
+  targetAltitude: number,
+  currentAltitude: number) => boolean;
 
 /**
  * An altitude capture autopilot director.
@@ -34,49 +60,56 @@ export class APAltCapDirector implements PlaneDirector {
 
   public state: DirectorState;
 
-  /** A callback called when the director activates. */
+  /** @inheritdoc */
   public onActivate?: () => void;
 
-  /** A callback called when the director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
 
-  private capturedAltitude = 0;
-  private initialFpa = 0;
-  private selectedAltitude = 0;
-  private verticalWindAverage = new SimpleMovingAverage(10);
+  /** @inheritdoc */
+  public drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean) => void;
 
+  private initialFpa = 0;
+  private readonly captureAltitude: APAltCapDirectorCaptureFunc = APAltCapDirector.captureAltitude;
+  private readonly shouldActivate: APAltCapDirectorActivationFunc = APAltCapDirector.shouldActivate;
 
   /**
    * Creates an instance of the APAltCapDirector.
-   * @param bus The event bus to use with this director.
    * @param apValues Autopilot data for this director.
-   * @param captureAltitude A function which calculates desired pitch angles to capture a target altitude. If not
+   * @param options Optional options object with these:
+   * --> shouldActivate: An optional function which returns true if the capturing shall be activated. If not
+   * defined, a default function is used.
+   * --> captureAltitude: An optional function which calculates desired pitch angles to capture a target altitude. If not
    * defined, a default function is used.
    */
   constructor(
-    private readonly bus: EventBus,
     private readonly apValues: APValues,
-    private readonly captureAltitude: APAltCapDirectorCaptureFunc = APAltCapDirector.captureAltitude
+    options?: Partial<Readonly<APAltCapDirectorOptions>>
   ) {
     this.state = DirectorState.Inactive;
-
-    this.apValues.capturedAltitude.sub((cap) => {
-      this.capturedAltitude = Math.round(cap);
-    });
-    this.apValues.selectedAltitude.sub((alt) => {
-      this.selectedAltitude = alt;
-    });
+    if (options?.captureAltitude !== undefined) {
+      this.captureAltitude = options.captureAltitude;
+    }
+    if (options?.shouldActivate !== undefined) {
+      this.shouldActivate = options.shouldActivate;
+    }
   }
+
 
   /**
    * Activates this director.
+   * @param vs Optionally, the current vertical speed, in FPM.
+   * @param alt Optionally, the current indicated altitude, in Feet.
    */
-  public activate(): void {
+  public activate(vs?: number, alt?: number): void {
     this.state = DirectorState.Active;
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
-    this.setCaptureFpa(SimVar.GetSimVarValue('VERTICAL SPEED', SimVarValueType.FPM));
+    this.setCaptureFpa(
+      vs !== undefined ? vs : SimVar.GetSimVarValue('VERTICAL SPEED', SimVarValueType.FPM),
+      alt !== undefined ? alt : SimVar.GetSimVarValue('INDICATED ALTITUDE', SimVarValueType.Feet)
+    );
     SimVar.SetSimVarValue('AUTOPILOT ALTITUDE LOCK', 'Bool', true);
   }
 
@@ -100,7 +133,6 @@ export class APAltCapDirector implements PlaneDirector {
     if (!captured) {
       SimVar.SetSimVarValue('AUTOPILOT ALTITUDE LOCK', 'Bool', false);
     }
-    //this.capturedAltitude = 0;
   }
 
   /**
@@ -108,17 +140,15 @@ export class APAltCapDirector implements PlaneDirector {
    */
   public update(): void {
     if (this.state === DirectorState.Active) {
-      const tas = SimVar.GetSimVarValue('AIRSPEED TRUE', SimVarValueType.Knots);
-      this.setPitch(this.captureAltitude(
-        this.capturedAltitude,
+
+      this.drivePitch && this.drivePitch(-this.captureAltitude(
+        this.apValues.capturedAltitude.get(),
         SimVar.GetSimVarValue('INDICATED ALTITUDE', SimVarValueType.Feet),
         this.initialFpa,
-        SimVar.GetSimVarValue('INCIDENCE ALPHA', SimVarValueType.Degree),
-        SimVar.GetSimVarValue('VERTICAL SPEED', SimVarValueType.FPM),
-        tas
-      ), tas);
-    }
-    if (this.state === DirectorState.Armed) {
+        SimVar.GetSimVarValue('AIRSPEED TRUE', SimVarValueType.Knots)
+      ), true, true);
+
+    } else if (this.state === DirectorState.Armed) {
       this.tryActivate();
     }
   }
@@ -127,23 +157,33 @@ export class APAltCapDirector implements PlaneDirector {
    * Attempts to activate altitude capture.
    */
   private tryActivate(): void {
-    const indicatedAlt = SimVar.GetSimVarValue('INDICATED ALTITUDE', SimVarValueType.Feet);
+    const selectedAltitude = this.apValues.selectedAltitude.get();
     const vs = SimVar.GetSimVarValue('VERTICAL SPEED', SimVarValueType.FPM);
-    const deviationFromTarget = Math.abs(this.selectedAltitude - indicatedAlt);
-
-    if (deviationFromTarget <= Math.abs(vs / 6)) {
-      this.apValues.capturedAltitude.set(Math.round(this.selectedAltitude));
-      this.activate();
+    const alt = SimVar.GetSimVarValue('INDICATED ALTITUDE', SimVarValueType.Feet);
+    if (this.shouldActivate(vs, selectedAltitude, alt)) {
+      this.apValues.capturedAltitude.set(Math.round(selectedAltitude));
+      this.activate(vs, alt);
     }
   }
 
   /**
-   * Sets the initial capture FPA from the current vs value when capture is initiated.
-   * @param vs target vertical speed.
+   * A function which returns true if the capturing shall be activated
+   * @param vs Current vertical speed in [ft/min]
+   * @param targetAltitude Target altitude [ft]
+   * @param currentAltitude Current altitude [ft]
+   * @returns True if the capturing shall be activated
    */
-  private setCaptureFpa(vs: number): void {
-    const indicatedAlt = SimVar.GetSimVarValue('INDICATED ALTITUDE', SimVarValueType.Feet);
-    const altCapDeviation = indicatedAlt - this.selectedAltitude;
+  private static shouldActivate(vs: number, targetAltitude: number, currentAltitude: number): boolean {
+    return (Math.abs(targetAltitude - currentAltitude) <= Math.abs(vs / 6));
+  }
+
+  /**
+   * Sets the initial capture FPA from the current vs value when capture is initiated.
+   * @param vs The current vertical speed, in FPM.
+   * @param alt The current indicated altitude, in Feet.
+   */
+  private setCaptureFpa(vs: number, alt: number): void {
+    const altCapDeviation = alt - this.apValues.selectedAltitude.get();
 
     if (altCapDeviation < 0) {
       vs = Math.max(400, vs);
@@ -156,27 +196,11 @@ export class APAltCapDirector implements PlaneDirector {
   }
 
   /**
-   * Sets the desired AP pitch angle.
-   * @param targetPitch The desired AP pitch angle.
-   * @param tas The airplane's current true airspeed, in knots.
-   */
-  private setPitch(targetPitch: number, tas: number): void {
-    if (isFinite(targetPitch)) {
-      const verticalWindComponent = this.verticalWindAverage.getAverage(SimVar.GetSimVarValue('AMBIENT WIND Y', SimVarValueType.FPM));
-      const verticalWindPitchAdjustment = VNavUtils.getFpa(UnitType.KNOT.convertTo(tas, UnitType.FPM), -verticalWindComponent);
-
-      SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, -(targetPitch + verticalWindPitchAdjustment));
-    }
-  }
-
-  /**
    * Calculates a desired pitch angle, in degrees, to capture a target altitude.
    * @param targetAltitude The altitude to capture, in feet.
    * @param indicatedAltitude The current indicated altitude, in feet.
    * @param initialFpa The flight path angle of the airplane, in degrees, when altitude capture was first activated.
    * Positive values indicate a descending path.
-   * @param aoa The current angle of attack, in degrees. Positive values indicate nose-up attitude.
-   * @param verticalSpeed The current vertical speed of the airplane, in feet per minute.
    * @param tas The current true airspeed of the airplane, in knots.
    * @returns The desired pitch angle, in degrees, to capture the specified altitude. Positive values indicate nose-up
    * pitch.
@@ -185,8 +209,6 @@ export class APAltCapDirector implements PlaneDirector {
     targetAltitude: number,
     indicatedAltitude: number,
     initialFpa: number,
-    aoa: number,
-    verticalSpeed: number,
     tas: number
   ): number {
     const initialFpaAbs = Math.abs(initialFpa);
@@ -202,6 +224,6 @@ export class APAltCapDirector implements PlaneDirector {
     const desiredVs = deltaAltitude / (desiredClosureTime / 60);
 
     const desiredFpa = MathUtils.clamp(Math.asin(desiredVs / UnitType.KNOT.convertTo(tas, UnitType.FPM)) * Avionics.Utils.RAD2DEG, -initialFpaAbs, initialFpaAbs);
-    return MathUtils.clamp(aoa + desiredFpa, -15, 15);
+    return MathUtils.clamp(desiredFpa, -15, 15);
   }
 }

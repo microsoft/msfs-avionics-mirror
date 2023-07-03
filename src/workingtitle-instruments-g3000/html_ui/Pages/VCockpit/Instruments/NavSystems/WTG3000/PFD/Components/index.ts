@@ -1,6 +1,7 @@
 export * from './Airspeed';
 export * from './Altimeter';
 export * from './Aoa';
+export * from './BearingInfo';
 export * from './BottomInfoPanel';
 export * from './CAS';
 export * from './ComInfoBox';

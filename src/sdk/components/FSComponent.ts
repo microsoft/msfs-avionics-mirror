@@ -219,6 +219,25 @@ class ContextProvider<T> extends DisplayComponent<ContextProviderProps<T>> {
 }
 
 /**
+ * A record of class names which can be bound to an HTML element's `class` attribute through JSX. Each of the record's
+ * keys defines a class name, and the key's value is a boolean or boolean-valued `Subscribable` that determines whether
+ * the class name appears in the element's class list.
+ */
+export interface ToggleableClassNameRecord {
+  [className: string]: boolean | Subscribable<boolean>;
+}
+
+/**
+ * A record of styles which can be bound an HTML element's `style` attribute through JSX. Each of the record's keys
+ * defines a style name, and the key's value is a string or `undefined` or a similarly valued `Subscribable` that
+ * determines the value of the style. If a style's value is `undefined`, then that style will not appear in the
+ * element's `style` attribute (equivalent to setting the style value to the empty string).
+ */
+export interface StyleRecord {
+  [styleName: string]: string | Subscribable<string | undefined> | undefined;
+}
+
+/**
  * The FS component namespace.
  */
 // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -232,12 +251,40 @@ export namespace FSComponent {
     /**
      * The intrinsic DOM elements that can be defined.
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     export interface IntrinsicElements {
-      [elemName: string]: any;
+      [elemName: string]: {
+        [attrName: string]: any | Subscribable<any>;
 
-      /** A reference to the HTML element node. */
-      ref?: NodeReference<any>;
+        /** The {@link NodeReference} passed to this prop will have its `instance` field updated
+         * with a reference to the rendered DOM element once rendered. */
+        ref?: NodeReference<any>;
+
+        /**
+         * When an {@link ObjectSubject} is passed, it will be bound to the `style` attribute,
+         * so that if any prop in the subject changes,
+         * it will be updated on the element's style using `element.style.setProperty()`.
+         *
+         * When a {@link StyleRecord} is used,
+         * fields with a string will have the style set immediately to the value,
+         * and fields with a {@link Subscribable<string>} will be subscribed to,
+         * such that when the value changes, it will be be set as the new value for that style.
+         */
+        style?: string | Subscribable<string> | ObjectSubject<any> | StyleRecord;
+
+        /**
+         * When a {@link SubscribableSet<string>} (such as `SetSubject`) is used,
+         * the {@link SubscribableSet} will be bound to the `class` attribute,
+         * such that when a string is added or removed from the set,
+         * it will be added or removed from the element's classList.
+         *
+         * When a {@link ToggleableClassNameRecord} is used,
+         * fields with `true` will be added to the classList,
+         * fields with `false` will not be added,
+         * and fields with a {@link Subscribable<boolean>} will be subscribed to,
+         * such that when the value changes, it will be added or removed from the classList.
+         */
+        class?: string | Subscribable<string> | SubscribableSet<string> | ToggleableClassNameRecord;
+      };
     }
   }
 
@@ -330,6 +377,36 @@ export namespace FSComponent {
                 prop.sub((v: any) => {
                   element.setAttribute(key, v);
                 }, true);
+              }
+            } else if (key === 'class' && typeof prop === 'object') {
+              // Bind CSS classes to an object of key value pairs where the values can be boolean | Subscribable<boolean>
+              for (const className in prop) {
+                if (className.trim().length === 0) {
+                  continue;
+                }
+                const value = prop[className];
+                if (typeof value === 'object' && 'isSubscribable' in value) {
+                  value.sub((showClass: boolean) => {
+                    element.classList.toggle(className, !!showClass);
+                  }, true);
+                } else {
+                  element.classList.toggle(className, !!value);
+                }
+              }
+            } else if (key === 'style' && typeof prop === 'object') {
+              // Bind styles to an object of key value pairs
+              for (const style in prop) {
+                if (style.trim().length === 0) {
+                  continue;
+                }
+                const value = prop[style] as StyleRecord[string];
+                if (typeof value === 'object' && 'isSubscribable' in value) {
+                  value.sub(newValue => {
+                    element.style.setProperty(style, newValue ?? '');
+                  }, true);
+                } else {
+                  element.style.setProperty(style, value ?? '');
+                }
               }
             } else {
               element.setAttribute(key, prop);
@@ -482,30 +559,30 @@ export namespace FSComponent {
    * @param position The RenderPosition to put the item in.
    */
   export function render(node: VNode, element: HTMLElement | SVGElement | null, position = RenderPosition.In): void {
-    if (node.children && node.children.length > 0 && element !== null) {
+    if (node.instance instanceof HTMLElement || node.instance instanceof SVGElement) {
+      if (element !== null) {
+        insertNode(node, position, element);
+      }
+    } else if (node.children && node.children.length > 0 && element !== null) {
       const componentInstance = node.instance as DisplayComponent<any> | null;
 
       if (componentInstance !== null && componentInstance.onBeforeRender !== undefined) {
         componentInstance.onBeforeRender();
       }
 
-      if (node.instance instanceof HTMLElement || node.instance instanceof SVGElement) {
-        insertNode(node, position, element);
+      if (position === RenderPosition.After) {
+        for (let i = node.children.length - 1; i >= 0; i--) {
+          if (node.children[i] === undefined || node.children[i] === null) {
+            continue;
+          }
+          insertNode(node.children[i], position, element);
+        }
       } else {
-        if (position === RenderPosition.After) {
-          for (let i = node.children.length - 1; i >= 0; i--) {
-            if (node.children[i] === undefined || node.children[i] === null) {
-              continue;
-            }
-            insertNode(node.children[i], position, element);
+        for (let i = 0; i < node.children.length; i++) {
+          if (node.children[i] === undefined || node.children[i] === null) {
+            continue;
           }
-        } else {
-          for (let i = 0; i < node.children.length; i++) {
-            if (node.children[i] === undefined || node.children[i] === null) {
-              continue;
-            }
-            insertNode(node.children[i], position, element);
-          }
+          insertNode(node.children[i], position, element);
         }
       }
 
@@ -716,7 +793,7 @@ export namespace FSComponent {
    * Binds a {@link MutableSubscribableSet} to a subscribable set of CSS classes. CSS classes added to and removed from
    * the subscribed set will also be added to and removed from the bound set, with the exception of a set of reserved
    * classes. The presence or absence of any of the reserved classes in the bound set is not affected by the subscribed
-   * set; these reserved classes may be freely added to and removed from the bound set.
+   * set.
    * @param setToBind The set to bind.
    * @param classesToSubscribe A set of CSS classes to which to subscribe.
    * @param reservedClasses An iterable of reserved classes.
@@ -726,9 +803,51 @@ export namespace FSComponent {
     setToBind: MutableSubscribableSet<string>,
     classesToSubscribe: SubscribableSet<string>,
     reservedClasses: Iterable<string>
-  ): Subscription {
+  ): Subscription;
+  /**
+   * Binds a {@link MutableSubscribableSet} to a record of CSS classes. CSS classes toggled in the record will also be
+   * added to and removed from the bound set, with the exception of a set of reserved classes. The presence or absence
+   * of any of the reserved classes in the bound set is not affected by the subscribed record.
+   * @param setToBind The set to bind.
+   * @param classesToSubscribe A record of CSS classes to which to subscribe.
+   * @param reservedClasses An iterable of reserved classes.
+   * @returns The newly created subscriptions to the CSS class record.
+   */
+  export function bindCssClassSet(
+    setToBind: MutableSubscribableSet<string>,
+    classesToSubscribe: ToggleableClassNameRecord,
+    reservedClasses: Iterable<string>
+  ): Subscription[];
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  export function bindCssClassSet(
+    setToBind: MutableSubscribableSet<string>,
+    classesToSubscribe: SubscribableSet<string> | ToggleableClassNameRecord,
+    reservedClasses: Iterable<string>
+  ): Subscription | Subscription[] {
     const reservedClassSet = new Set(reservedClasses);
 
+    if (classesToSubscribe.isSubscribableSet === true) {
+      return bindCssClassSetToSubscribableSet(setToBind, classesToSubscribe as SubscribableSet<string>, reservedClassSet);
+    } else {
+      return bindCssClassSetToRecord(setToBind, classesToSubscribe as ToggleableClassNameRecord, reservedClassSet);
+    }
+  }
+
+  /**
+   * Binds a {@link MutableSubscribableSet} to a subscribable set of CSS classes. CSS classes added to and removed from
+   * the subscribed set will also be added to and removed from the bound set, with the exception of a set of reserved
+   * classes. The presence or absence of any of the reserved classes in the bound set is not affected by the subscribed
+   * set.
+   * @param setToBind The set to bind.
+   * @param classesToSubscribe A set of CSS classes to which to subscribe.
+   * @param reservedClassSet A set of reserved classes.
+   * @returns The newly created subscription to the subscribed CSS class set.
+   */
+  function bindCssClassSetToSubscribableSet(
+    setToBind: MutableSubscribableSet<string>,
+    classesToSubscribe: SubscribableSet<string>,
+    reservedClassSet: Set<string>
+  ): Subscription {
     if (reservedClassSet.size === 0) {
       return classesToSubscribe.sub((set, type, key) => {
         if (type === SubscribableSetEventType.Added) {
@@ -750,6 +869,84 @@ export namespace FSComponent {
         }
       }, true);
     }
+  }
+
+  /**
+   * Binds a {@link MutableSubscribableSet} to a record of CSS classes. CSS classes toggled in the record will also be
+   * added to and removed from the bound set, with the exception of a set of reserved classes. The presence or absence
+   * of any of the reserved classes in the bound set is not affected by the subscribed record.
+   * @param setToBind The set to bind.
+   * @param classesToSubscribe A record of CSS classes to which to subscribe.
+   * @param reservedClassSet A set of reserved classes.
+   * @returns The newly created subscriptions to the CSS class record.
+   */
+  function bindCssClassSetToRecord(
+    setToBind: MutableSubscribableSet<string>,
+    classesToSubscribe: ToggleableClassNameRecord,
+    reservedClassSet: Set<string>
+  ): Subscription[] {
+    const subs: Subscription[] = [];
+
+    for (const cssClass in classesToSubscribe) {
+      if (reservedClassSet.has(cssClass)) {
+        continue;
+      }
+
+      const value = classesToSubscribe[cssClass];
+      if (typeof value === 'object') {
+        subs.push(value.sub(setToBind.toggle.bind(setToBind, cssClass), true));
+      } else if (value === true) {
+        setToBind.add(cssClass);
+      } else {
+        setToBind.delete(cssClass);
+      }
+    }
+
+    return subs;
+  }
+
+  /**
+   * Adds CSS classes to a {@link ToggleableClassNameRecord}.
+   * @param record The CSS class record to which to add the new classes. The record will be mutated as classes are
+   * added.
+   * @param classesToAdd The CSS classes to add to the record, as a space-delimited class string, an iterable of
+   * individual class names, or a {@link ToggleableClassNameRecord}.
+   * @param allowOverwrite Whether to allow the new classes to overwrite existing entries in the CSS class record.
+   * Defaults to `true`.
+   * @param filter A function which filters the classes to add. For each class, the function should return `true` if
+   * the class should be included in the record and `false` otherwise.
+   * @returns The mutated CSS class record, after the new classes have been added.
+   */
+  export function addCssClassesToRecord(
+    record: ToggleableClassNameRecord,
+    classesToAdd: string | Iterable<string> | ToggleableClassNameRecord,
+    allowOverwrite = true,
+    filter?: (cssClass: string) => boolean
+  ): ToggleableClassNameRecord {
+    if (classesToAdd === '') {
+      return record;
+    }
+
+    if (typeof classesToAdd === 'string') {
+      classesToAdd = FSComponent.parseCssClassesFromString(classesToAdd, filter);
+      filter = undefined;
+    }
+
+    if (typeof (classesToAdd as any)[Symbol.iterator] === 'function') {
+      for (const cssClass of classesToAdd as Iterable<string>) {
+        if ((allowOverwrite || record[cssClass] === undefined) && (!filter || filter(cssClass))) {
+          record[cssClass] = true;
+        }
+      }
+    } else {
+      for (const cssClass in classesToAdd as ToggleableClassNameRecord) {
+        if ((allowOverwrite || record[cssClass] === undefined) && (!filter || filter(cssClass))) {
+          record[cssClass] = (classesToAdd as ToggleableClassNameRecord)[cssClass];
+        }
+      }
+    }
+
+    return record;
   }
 
   /**
@@ -788,7 +985,7 @@ interface GlobalJsPlugin {
  * An interface for a list of global plugin definitions
  */
 interface GlobalJsPlugins {
-  /** 
+  /**
    * The array of plugin definitions.
    */
   plugins: GlobalJsPlugin[]
@@ -973,7 +1170,7 @@ export class PluginSystem<T extends AvionicsPlugin<B>, B> {
    * @param component The component that was created.
    */
   public onComponentCreated(component: DisplayComponent<any>): void {
-    for (let i = 0; i < this.creatingHandlers.length; i++) {
+    for (let i = 0; i < this.createdHandlers.length; i++) {
       this.createdHandlers[i](component);
     }
   }
@@ -991,7 +1188,7 @@ export class PluginSystem<T extends AvionicsPlugin<B>, B> {
    * @param node The node that was rendered.
    */
   public onComponentRendered(node: VNode): void {
-    for (let i = 0; i < this.creatingHandlers.length; i++) {
+    for (let i = 0; i < this.renderedHandlers.length; i++) {
       this.renderedHandlers[i](node);
     }
   }

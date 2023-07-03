@@ -1,5 +1,5 @@
 import { LNavDataEvents } from '@microsoft/msfs-garminsdk';
-import { ConsumerSubject, EventBus, LNavEvents, NavMath, NavProcSimVars, Publisher, Wait } from '@microsoft/msfs-sdk';
+import { ConsumerSubject, EventBus, LNavEvents, NavComEvents, NavMath, Publisher, Wait } from '@microsoft/msfs-sdk';
 import { AlertMessage, AlertMessageEvents } from '../UI/Pages/Dialogs/AlertsSubject';
 
 /**
@@ -27,13 +27,13 @@ export class GnsCourseController {
     switch (navIndex) {
       case 2:
         //TODO: Is there a way to verify that there is a second CDI installed?
-        this.navObs = ConsumerSubject.create(bus.getSubscriber<NavProcSimVars>().on('nav_obs_2'), 0);
+        this.navObs = ConsumerSubject.create(bus.getSubscriber<NavComEvents>().on('nav_obs_2'), 0);
         break;
       case 3:
-        this.navObs = ConsumerSubject.create(bus.getSubscriber<NavProcSimVars>().on('nav_obs_3'), 0);
+        this.navObs = ConsumerSubject.create(bus.getSubscriber<NavComEvents>().on('nav_obs_3'), 0);
         break;
       default:
-        this.navObs = ConsumerSubject.create(bus.getSubscriber<NavProcSimVars>().on('nav_obs_1'), 0);
+        this.navObs = ConsumerSubject.create(bus.getSubscriber<NavComEvents>().on('nav_obs_1'), 0);
     }
 
     this.navObs.sub(v => {

@@ -54,10 +54,10 @@ interface ExtendedAirportFilters {
   /** A bitmask of allowable approach types. */
   approachTypeMask: number,
 
-  /** A bitmask of whether or not to show towered or untowered airports. */
+  /** A bitmask of whether or not to show towered or untowered airports. A bitmask of untowered (1) or towered (2) bits. */
   toweredMask: number,
 
-  /** The minimum runway length to allow. */
+  /** The minimum runway length to allow, in meters. */
   minimumRunwayLength: number
 }
 

@@ -120,14 +120,14 @@ export class MapSystemWaypointsLayer extends MapLayer<MapSystemWaypointsLayerPro
    */
   private onSessionsStarted(airportSession: NearestAirportSearchSession, vorSession: NearestVorSearchSession, ndbSession: NearestSearchSession<string, string>,
     intSession: NearestIntersectionSearchSession): void {
-    this.displayModule.intersectionsFilter.sub(filters => intSession.setIntersectionFilter(filters.typeMask));
-    this.displayModule.vorsFilter.sub(filters => vorSession.setVorFilter(filters.classMask, filters.typeMask));
+    this.displayModule.intersectionsFilter.sub(filters => intSession.setIntersectionFilter(filters.typeMask, filters.showTerminalWaypoints), true);
+    this.displayModule.vorsFilter.sub(filters => vorSession.setVorFilter(filters.classMask, filters.typeMask), true);
     this.displayModule.airportsFilter.sub(filters => {
       airportSession.setAirportFilter(filters.showClosed, filters.classMask);
-    });
+    }, true);
     this.displayModule.extendedAirportsFilter.sub(filters => {
       airportSession.setExtendedAirportFilters(filters.runwaySurfaceTypeMask, filters.approachTypeMask, filters.toweredMask, filters.minimumRunwayLength);
-    });
+    }, true);
   }
 
   /**

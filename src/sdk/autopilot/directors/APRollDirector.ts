@@ -1,9 +1,5 @@
-/// <reference types="@microsoft/msfs-types/js/simvar" />
-
-import { EventBus, SimVarValueType } from '../../data';
-import { AhrsEvents } from '../../instruments';
-import { MathUtils } from '../../math';
-import { LinearServo } from '../../utils/controllers';
+import { SimVarValueType } from '../../data/SimVars';
+import { MathUtils } from '../../math/MathUtils';
 import { APValues } from '../APConfig';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
@@ -13,50 +9,51 @@ import { DirectorState, PlaneDirector } from './PlaneDirector';
 export type APRollDirectorOptions = {
   /**
    * The minimum bank angle, in degrees, below which the roll director will command wings level, or a function which
-   * returns it.
+   * returns it. Defaults to `0`.
    */
-  minBankAngle: number | (() => number);
+  minBankAngle?: number | (() => number);
 
   /**
    * The maximum bank angle, in degrees, that the roll director will not exceed, or a function which returns it. If not
    * defined, the director will use the maximum bank angle defined by its parent autopilot (via `apValues`).
    */
-  maxBankAngle: number | (() => number) | undefined;
+  maxBankAngle?: number | (() => number) | undefined;
+
+  /**
+   * The bank rate to enforce when the director commands changes in bank angle, in degrees per second, or a function
+   * which returns it. If not undefined, a default bank rate will be used. Defaults to `undefined`.
+   */
+  bankRate?: number | (() => number) | undefined;
 };
 
 /**
  * An autopilot roll director.
  */
 export class APRollDirector implements PlaneDirector {
-  private static readonly BANK_SERVO_RATE = 10; // degrees per second
-
   public state: DirectorState;
 
-  /** A callback called when the LNAV director activates. */
+  /** @inheritdoc */
   public onActivate?: () => void;
-
-  /** A callback called when the LNAV director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
+
+  /** @inheritdoc */
+  public driveBank?: (bank: number, rate?: number) => void;
 
   private currentBankRef = 0;
   private desiredBank = 0;
   private actualBank = 0;
 
-  private readonly bankServo = new LinearServo(APRollDirector.BANK_SERVO_RATE);
-
   private readonly minBankAngleFunc: () => number;
   private readonly maxBankAngleFunc: () => number;
-
+  private readonly driveBankFunc: (bank: number) => void;
 
   /**
    * Creates an instance of the LateralDirector.
-   * @param bus The event bus to use with this instance.
    * @param apValues The AP Values.
-   * @param options Options to configure the new director. Option values default to the following if not defined:
-   * * `minBankAngle`: `0`
-   * * `maxBankAngle`: `undefined`
+   * @param options Options to configure the new director.
    */
-  constructor(private readonly bus: EventBus, private readonly apValues: APValues, options?: Partial<Readonly<APRollDirectorOptions>>) {
+  constructor(private readonly apValues: APValues, options?: Readonly<APRollDirectorOptions>) {
     const minBankAngleOpt = options?.minBankAngle ?? 0;
     if (typeof minBankAngleOpt === 'number') {
       this.minBankAngleFunc = () => minBankAngleOpt;
@@ -76,12 +73,31 @@ export class APRollDirector implements PlaneDirector {
         this.maxBankAngleFunc = this.apValues.maxBankAngle.get.bind(this.apValues.maxBankAngle);
     }
 
-    this.state = DirectorState.Inactive;
+    const bankRateOpt = options?.bankRate;
+    switch (typeof bankRateOpt) {
+      case 'number':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt * this.apValues.simRate.get());
+          }
+        };
+        break;
+      case 'function':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt() * this.apValues.simRate.get());
+          }
+        };
+        break;
+      default:
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank);
+          }
+        };
+    }
 
-    const sub = this.bus.getSubscriber<AhrsEvents>();
-    sub.on('roll_deg').withPrecision(1).handle((roll) => {
-      this.actualBank = roll;
-    });
+    this.state = DirectorState.Inactive;
   }
 
   /**
@@ -90,13 +106,16 @@ export class APRollDirector implements PlaneDirector {
   public activate(): void {
     this.state = DirectorState.Active;
 
+    this.actualBank = SimVar.GetSimVarValue('PLANE BANK DEGREES', SimVarValueType.Degree);
+    this.currentBankRef = this.actualBank;
+
     const maxBank = this.maxBankAngleFunc();
     const minBank = this.minBankAngleFunc();
 
-    if (Math.abs(this.actualBank) < minBank) {
+    if (Math.abs(this.currentBankRef) < minBank) {
       this.desiredBank = 0;
     } else {
-      this.desiredBank = MathUtils.clamp(this.actualBank, -maxBank, maxBank);
+      this.desiredBank = MathUtils.clamp(this.currentBankRef, -maxBank, maxBank);
     }
 
     if (this.onActivate !== undefined) {
@@ -104,8 +123,6 @@ export class APRollDirector implements PlaneDirector {
     }
 
     SimVar.SetSimVarValue('AUTOPILOT BANK HOLD', 'Bool', true);
-
-    this.bankServo.reset();
   }
 
   /**
@@ -132,29 +149,7 @@ export class APRollDirector implements PlaneDirector {
    */
   public update(): void {
     if (this.state === DirectorState.Active) {
-      const maxBank = this.maxBankAngleFunc();
-      const minBank = this.minBankAngleFunc();
-
-      if (Math.abs(this.actualBank) < minBank) {
-        this.desiredBank = 0;
-      } else {
-        this.desiredBank = MathUtils.clamp(this.actualBank, -maxBank, maxBank);
-      }
-
-      this.setBank(this.desiredBank);
-    }
-  }
-
-
-  /**
-   * Sets the desired AP bank angle.
-   * @param bankAngle The desired AP bank angle.
-   */
-  private setBank(bankAngle: number): void {
-    if (isFinite(bankAngle)) {
-      this.bankServo.rate = APRollDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
-      this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
-      SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
+      this.driveBankFunc(this.desiredBank);
     }
   }
 }

@@ -42,6 +42,9 @@ export interface SoundServerEvents {
 
   /** A sound packet has finished playing. The event data is the key of the packet. */
   sound_server_packet_ended: string;
+
+  /** Whether the sound server is awake. */
+  sound_server_is_awake: boolean;
 }
 
 /**
@@ -150,7 +153,7 @@ type SoundPacketEntry = {
 /**
  * A server which plays and manages sounds. Commands to start or stop playing sounds can be sent to the server via the
  * event bus.
- * 
+ *
  * The server plays sounds as _packets_. Each sound packet consists of a string key and zero or more _sound atoms_ that
  * are played in sequence. Each sound atom represents a single playable sound file from within the sim. Sound packets
  * can be played as a one-shot or be looped continuously. Only one packet with a given key can be played at a time.
@@ -166,12 +169,15 @@ export class SoundServer {
 
   private readonly queued = new Map<string, SoundPacketEntry[]>();
 
+  private isAwake = true;
+
   /**
-   * Creates a new instance of SoundServer.
+   * Creates a new instance of SoundServer. The server is initially awake after being created.
    * @param bus The event bus.
    */
   public constructor(private readonly bus: EventBus) {
     this.publisher.pub('sound_server_initialized', false, true, true);
+    this.publisher.pub('sound_server_is_awake', true, true, true);
     this.init();
   }
 
@@ -222,10 +228,43 @@ export class SoundServer {
   }
 
   /**
+   * Wakes this server. Once awake, this server will respond to commands.
+   */
+  public wake(): void {
+    if (this.isAwake) {
+      return;
+    }
+
+    this.isAwake = true;
+
+    this.publisher.pub('sound_server_is_awake', true, true, true);
+  }
+
+  /**
+   * Puts this server to sleep. This will stop all currently playing sound packets at the earliest opportunity and
+   * clears all queued packets. While asleep, this server will not respond to any commands.
+   */
+  public sleep(): void {
+    if (!this.isAwake) {
+      return;
+    }
+
+    this.isAwake = false;
+
+    this.queued.clear();
+
+    this.publisher.pub('sound_server_is_awake', false, true, true);
+  }
+
+  /**
    * Plays a sound packet if and only if there is no currently playing packet with the same key.
    * @param packet The packet to play.
    */
   private playPacket(packet: Readonly<SoundPacket>): void {
+    if (!this.isAwake) {
+      return;
+    }
+
     if (!this.active.get(packet.key)) {
       this.queuePacket(packet);
     }
@@ -239,6 +278,10 @@ export class SoundServer {
    * @param packet The packet to play.
    */
   private interruptPacket(packet: Readonly<SoundPacket>): void {
+    if (!this.isAwake) {
+      return;
+    }
+
     const active = this.active.get(packet.key);
     if (active) {
       active.alive = false;
@@ -255,6 +298,10 @@ export class SoundServer {
    * @param packet The packet to queue.
    */
   private queuePacket(packet: Readonly<SoundPacket>): void {
+    if (!this.isAwake) {
+      return;
+    }
+
     const sequence = SoundServer.getSoundSequence(packet);
 
     const entry: SoundPacketEntry = {
@@ -285,6 +332,10 @@ export class SoundServer {
    * @param key The key of the packet to stop.
    */
   private stopPacket(key: string): void {
+    if (!this.isAwake) {
+      return;
+    }
+
     this.queued.delete(key);
 
     const active = this.active.get(key);
@@ -299,6 +350,10 @@ export class SoundServer {
    * @param key The key of the packet to kill.
    */
   private killPacket(key: string): void {
+    if (!this.isAwake) {
+      return;
+    }
+
     this.queued.delete(key);
 
     const active = this.active.get(key);
@@ -312,6 +367,10 @@ export class SoundServer {
    * queued packets.
    */
   private stopAllPackets(): void {
+    if (!this.isAwake) {
+      return;
+    }
+
     this.queued.clear();
 
     for (const entry of this.active.values()) {
@@ -324,6 +383,10 @@ export class SoundServer {
    * packets.
    */
   private killAllPackets(): void {
+    if (!this.isAwake) {
+      return;
+    }
+
     this.queued.clear();
 
     for (const entry of this.active.values()) {
@@ -372,7 +435,7 @@ export class SoundServer {
    * @param entry The entry of the packet to advance.
    */
   private advancePacket(entry: SoundPacketEntry): void {
-    if (!entry.alive) {
+    if (!this.isAwake || !entry.alive) {
       this.cleanupPacket(entry);
       return;
     }

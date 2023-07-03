@@ -98,9 +98,10 @@ export class FlightPlanSimSyncManager {
 
   /**
    * Loads the flight plan from the sim.
+   * @param flattenAirways Whether to flatten airways to their constituent legs. Defaults to `false`.
    * @returns A Promise which is fulfilled when the flight plan has been loaded.
    */
-  public async loadFromSim(): Promise<void> {
+  public async loadFromSim(flattenAirways = false): Promise<void> {
     Coherent.call('LOAD_CURRENT_ATC_FLIGHTPLAN');
     // Coherent.call('LOAD_CURRENT_GAME_FLIGHT');
     await Wait.awaitDelay(3000);
@@ -150,7 +151,7 @@ export class FlightPlanSimSyncManager {
       }
 
       // Add enroute waypoints and airways.
-      lastEnrouteSegment = this.setEnroute(data, plan);
+      lastEnrouteSegment = this.setEnroute(data, plan, flattenAirways);
 
       // If the last waypoint is not an airport, insert it as an enroute waypoint.
       if (destFacilityType !== FacilityType.Airport && destFacilityType !== undefined) {
@@ -217,8 +218,13 @@ export class FlightPlanSimSyncManager {
       // transitions, so we have to do the OOB checks ourselves.
 
       const departure = facility.departures[data.departureProcIndex];
-      if (data.departureRunwayIndex >= 0 && data.departureRunwayIndex < departure.runwayTransitions.length) {
-        const runwayTransition = departure.runwayTransitions[data.departureRunwayIndex];
+
+      const runwayTransitionIndex = data.departureRunwayIndex < 0 || data.departureRunwayIndex >= departure.runwayTransitions.length
+        ? -1
+        : data.departureRunwayIndex;
+
+      if (runwayTransitionIndex >= 0) {
+        const runwayTransition = departure.runwayTransitions[runwayTransitionIndex];
         const runwayString = RunwayUtils.getRunwayNameString(runwayTransition.runwayNumber, runwayTransition.runwayDesignation);
         originOneWayRunway = RunwayUtils.matchOneWayRunwayFromDesignation(facility, runwayString);
       }
@@ -227,7 +233,7 @@ export class FlightPlanSimSyncManager {
         ? -1
         : data.departureEnRouteTransitionIndex;
 
-      this.fms.insertDeparture(facility, data.departureProcIndex, data.departureRunwayIndex, enrouteTransitionIndex, originOneWayRunway);
+      this.fms.insertDeparture(facility, data.departureProcIndex, runwayTransitionIndex, enrouteTransitionIndex, originOneWayRunway);
     } else {
       this.fms.setOrigin(facility, originOneWayRunway);
     }
@@ -247,8 +253,12 @@ export class FlightPlanSimSyncManager {
 
       const arrival = facility.arrivals[data.arrivalProcIndex];
 
-      if (data.arrivalRunwayIndex >= 0 && data.arrivalRunwayIndex < arrival.runwayTransitions.length) {
-        const runwayTransition = arrival.runwayTransitions[data.arrivalRunwayIndex];
+      const runwayTransitionIndex = data.arrivalRunwayIndex < 0 || data.arrivalRunwayIndex >= arrival.runwayTransitions.length
+        ? -1
+        : data.arrivalRunwayIndex;
+
+      if (runwayTransitionIndex >= 0) {
+        const runwayTransition = arrival.runwayTransitions[runwayTransitionIndex];
         if (runwayTransition !== undefined) {
           const runwayString = RunwayUtils.getRunwayNameString(runwayTransition.runwayNumber, runwayTransition.runwayDesignation);
           destOneWayRunway = RunwayUtils.matchOneWayRunwayFromDesignation(facility, runwayString);
@@ -259,7 +269,7 @@ export class FlightPlanSimSyncManager {
         ? -1
         : data.arrivalEnRouteTransitionIndex;
 
-      this.fms.insertArrival(facility, data.arrivalProcIndex, data.arrivalRunwayIndex, enrouteTransitionIndex, destOneWayRunway);
+      this.fms.insertArrival(facility, data.arrivalProcIndex, runwayTransitionIndex, enrouteTransitionIndex, destOneWayRunway);
     }
 
     if (data.approachIndex !== -1) {
@@ -282,9 +292,10 @@ export class FlightPlanSimSyncManager {
    * Syncs the enroute portion of a sim flight plan to a JS flight plan.
    * @param data The sim flight plan data object to sync from.
    * @param plan The flight plan to sync to.
+   * @param flattenAirways Whether to flatten airways to their constituent legs. Defaults to `false`.
    * @returns The index of the last enroute segment that was added to the plan.
    */
-  private setEnroute(data: any, plan: FlightPlan): number {
+  private setEnroute(data: any, plan: FlightPlan, flattenAirways = false): number {
     // If there is no departure, start at index 1 (index 0 is always the "origin")
     // If there is a departure, start at the last departure wpt (a departure guarantees an origin, so the
     // departure itself starts at index 1 -> the last departure wpt is at [1 + departureWaypointsSize - 1]). The
@@ -320,7 +331,7 @@ export class FlightPlanSimSyncManager {
     for (let i = 0; i < enroute.length; i++) {
       const wpt = enroute[i];
       const segment = plan.getSegment(currentSegment);
-      if (wpt.airwayIdent) {
+      if (wpt.airwayIdent && !flattenAirways) {
         if (currentSegment == 1 && lastDepartureLegIcao == wpt.icao && plan.length === initialPlanLength) {
           // We are entering an airway at the last departure wpt -> in this case we don't want to duplicate the
           // wpt and the airway segment immediately follows the departure segment.

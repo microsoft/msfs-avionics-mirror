@@ -5,7 +5,7 @@ import { MutableSubscribableSet, SubscribableSetEventType } from './Subscribable
 /**
  * A subscribable set whose keys can be freely added and removed.
  */
-export class SetSubject<T> extends AbstractSubscribableSet<T> implements MutableSubscribable<ReadonlySet<T>>, MutableSubscribableSet<T> {
+export class SetSubject<T> extends AbstractSubscribableSet<T> implements MutableSubscribable<ReadonlySet<T>, Iterable<T>>, MutableSubscribableSet<T> {
   public readonly isMutableSubscribable = true;
   public readonly isMutableSubscribableSet = true;
 
@@ -13,8 +13,8 @@ export class SetSubject<T> extends AbstractSubscribableSet<T> implements Mutable
 
   /**
    * Constructor.
-   * @param initialKeys The keys with which to initialize this set. If not defined, this set will be initialized to the
-   * empty set.
+   * @param initialKeys The keys initially contained in the new set. If not defined, then the new set will be
+   * initialized to the empty set.
    */
   private constructor(initialKeys?: Iterable<T>) {
     super();
@@ -24,8 +24,8 @@ export class SetSubject<T> extends AbstractSubscribableSet<T> implements Mutable
 
   /**
    * Creates and returns a new SetSubject.
-   * @param initialKeys The keys initially contained in the new set. If not undefined, the new set will be initialized
-   * to the empty set.
+   * @param initialKeys The keys initially contained in the new set. If not defined, then the new set will be
+   * initialized to the empty set.
    * @returns A new SetSubject instance.
    */
   public static create<T>(initialKeys?: Iterable<T>): SetSubject<T> {

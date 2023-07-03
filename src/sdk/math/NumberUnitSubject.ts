@@ -1,6 +1,8 @@
 import { AbstractSubscribable } from '../sub/AbstractSubscribable';
-import { MutableSubscribable } from '../sub/Subscribable';
+import { MappedSubscribable, MutableSubscribable, Subscribable } from '../sub/Subscribable';
 import { NumberUnit, NumberUnitInterface, Unit } from './NumberUnit';
+import { MappedSubject } from '../sub/MappedSubject';
+import { SubscribableUtils } from '../sub/SubscribableUtils';
 
 /**
  * A Subject which provides a {@link NumberUnitInterface} value.
@@ -64,5 +66,16 @@ export class NumberUnitSubject<F extends string, U extends Unit<F> = Unit<F>>
       isArg1Number ? (this.value as NumberUnit<F, U>).set(arg1 as number, arg2) : (this.value as NumberUnit<F, U>).set(arg1 as NumberUnitInterface<F>);
       this.notify();
     }
+  }
+
+  /**
+   * Returns a number {@link Subscribable} of this `NumberUnit` converted according to a unit or unit `Subscribable`
+   *
+   * @param unit the unit to subscribe to
+   *
+   * @returns a `MappedSubscribable<number>`
+   */
+  public asUnit(unit: Unit<F> | Subscribable<Unit<F>>): MappedSubscribable<number> {
+    return MappedSubject.create(([numberUnit, toUnit]) => numberUnit.asUnit(toUnit), this, SubscribableUtils.toSubscribable(unit, true));
   }
 }

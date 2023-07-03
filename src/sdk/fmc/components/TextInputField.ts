@@ -76,7 +76,7 @@ export class TextInputField<T = string, V = T> extends EditableField<T, V> {
 
           return true;
         } else {
-          return Promise.reject('INVALID DELETE');
+          return Promise.reject(this.page.screen.options.textInputFieldDisallowedDeleteThrowValue);
         }
       };
     }
@@ -86,6 +86,7 @@ export class TextInputField<T = string, V = T> extends EditableField<T, V> {
    * Creates an {@link TextInputField} that uses a {@link RawValidator} and {@link RawFormatter}
    * @param page the parent {@link FmcPage}
    * @returns the {@link TextInputField}
+   * @deprecated (0.5.X) use constructor instead
    */
   public static createRawTextInput(page: AbstractFmcPage): TextInputField<string | null> {
     return new TextInputField<string | null, string | null>(page, {
@@ -104,7 +105,7 @@ export class TextInputField<T = string, V = T> extends EditableField<T, V> {
 
         return true;
       } else {
-        return Promise.reject('INVALID DELETE');
+        return Promise.reject(this.page.screen.options.textInputFieldDisallowedDeleteThrowValue);
       }
     }
 
@@ -147,7 +148,7 @@ export class TextInputField<T = string, V = T> extends EditableField<T, V> {
         return true;
       }
     } else {
-      return Promise.reject('INVALID ENTRY');
+      return Promise.reject(this.page.screen.options.textInputFieldParseFailThrowValue);
     }
   }
 

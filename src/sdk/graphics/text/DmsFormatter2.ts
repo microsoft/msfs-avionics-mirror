@@ -3,6 +3,17 @@
 import { MathUtils, NumberUnitInterface, Unit, UnitFamily, UnitType } from '../../math';
 
 /**
+ * Options for creating a degree-minute-second formatter.
+ */
+export type DmsFormatter2Options = {
+  /** The string to output when the input duration is `NaN`. */
+  nanString: string;
+
+  /** Whether to cache and reuse the previously generated string when possible. */
+  cache: boolean;
+};
+
+/**
  * A utility class for creating degree-minute-second formatters for angle values.
  *
  * Each DMS formatter is a function which generates output strings from input angle values. The formatting behavior
@@ -18,8 +29,7 @@ import { MathUtils, NumberUnitInterface, Unit, UnitFamily, UnitType } from '../.
  * The negative sign string is defined by `y`. If `y` is not defined, the negative sign string defaults to `'-'`
  * (dash). The positive sign string is defined by `x`. If the positive sign token does not appear in the fragment
  * definition, the positive sign string defaults to `''` (the empty string), otherwise it defaults to `'+'`.
- * * Numeric fragment. In EBNF notation, these take the form
- * `{x}, ['?'], ['.', [{x}], ['(', {x}, ')']]`
+ * * Numeric fragment. In EBNF notation, these take the form `{x}, ['?'], ['.', [{x}], ['(', {x}, ')']]`,
  * where `x = 'D' | 'M' | 'S' | 'd' | 'm' | 's'`. Each numeric fragment is replaced with the numeric value of the
  * duration in degrees, minutes, or seconds, depending on which character is used for `x`. With uppercase letters, the
  * entire portion of the input value is used. With lowercase letters, only the portion of the input value that does not
@@ -38,33 +48,33 @@ import { MathUtils, NumberUnitInterface, Unit, UnitFamily, UnitType } from '../.
  *
  * @example <caption>Formatting to degrees-minutes-seconds</caption>
  * const formatter = DmsFormatter2.create('{d}°{mm}\'{ss}"', UnitType.DEGREE);
- * console.log(formatter(10));  // 10°00'00"
- * console.log(formatter(10.51)); // 10°30'36"
+ * formatter(10);         // 10°00'00"
+ * formatter(10.51);      // 10°30'36"
  *
  * @example <caption>Formatting to degrees-minutes-seconds with decimal precision</caption>
  * const formatter = DmsFormatter2.create('{d}°{mm}\'{ss.s(s)}"', UnitType.DEGREE);
- * console.log(formatter(10)); // 10°00'00.0"
- * console.log(formatter(10.09169)); // 10°05'30.08"
+ * formatter(10);         // 10°00'00.0"
+ * formatter(10.09169);   // 10°05'30.08"
  *
  * @example <caption>Formatting to degrees-minutes</caption>
  * const formatter = DmsFormatter2.create('{d}°{mm.mm}\'', UnitType.DEGREE);
- * console.log(formatter(10.09169));  // 10°05.50'
+ * formatter(10.09169);   // 10°05.50'
  *
  * @example <caption>Formatting with signs</caption>
  * const formatter = DmsFormatter2.create('{-}{d}°{mm}\'', UnitType.DEGREE);
- * console.log(formatter(10));  // 10°00'
- * console.log(formatter(-10)); // -10°00'
+ * formatter(10);                   // 10°00'
+ * formatter(-10);                  // -10°00'
  *
  * const formatterWithPositiveSign = DmsFormatter2.create('{+-}{d}°{mm}\'', UnitType.DEGREE);
- * console.log(formatterWithPositiveSign(10));  // +10°00'
+ * formatterWithPositiveSign(10);   // +10°00'
  * 
  * const formatterWithRealMinusSign = DmsFormatter2.create('{-[–]}{d}°{mm}\'', UnitType.DEGREE);
- * console.log(formatterWithRealMinusSign(10));  // –10°00'
+ * formatterWithRealMinusSign(10);  // –10°00'
  */
 export class DmsFormatter2 {
   private static readonly FORMAT_REGEXP = /({[^{}]*})/;
   private static readonly SIGN_FRAGMENT_REGEX = /^(?:(\+)(?:\[(.*)\])?)?-(?:\[(.*)\])?$/;
-  private static readonly NUM_FRAGMENT_REGEXP = /^(([DMSdms])+)(\?)?(?:(\.(\2*)(?:\((\2+)\))?)?)$/;
+  private static readonly NUM_FRAGMENT_REGEXP = /^(([DMSdms])\2*)(\?)?(?:(\.(\2*)(?:\((\2+)\))?)?)$/;
 
   private static readonly NUM_FRAGMENT_UNIT_INFO = {
     ['d']: { unit: UnitType.DEGREE, mod: Infinity },
@@ -75,6 +85,31 @@ export class DmsFormatter2 {
     ['S']: { unit: UnitType.ARC_SEC, mod: Infinity }
   };
 
+  /** The default options for degree-minute-second formatters. */
+  public static readonly DEFAULT_OPTIONS: Readonly<DmsFormatter2Options> = {
+    nanString: 'NaN',
+    cache: false
+  };
+
+  /**
+   * Creates a function which formats angles, expressed as numeric values, to strings. The formatting behavior of
+   * the function is defined by a specified format template. For more information on format templates and their syntax,
+   * please refer to the {@link DmsFormatter2} class documentation. All formatter options except `nanString`, if
+   * specified, will use their default values.
+   * @param format A template defining how the function formats angles.
+   * @param unit The unit type in which the input angle values are expressed.
+   * @param precision The precision of the formatter, in the unit type defined by the `unit` argument. Input values
+   * will be rounded to the nearest multiple of this quantity. Precision values less than or equal to zero will be
+   * taken to mean infinite precision (i.e. no rounding will take place).
+   * @param nanString The string to output when the input angle is `NaN`. Defaults to `'NaN'`.
+   * @returns A function which formats angles, expressed as numeric values, to strings.
+   */
+  public static create(
+    format: string,
+    unit: Unit<UnitFamily.Angle>,
+    precision: number,
+    nanString?: string
+  ): (angle: number) => string;
   /**
    * Creates a function which formats angles, expressed as numeric values, to strings. The formatting behavior of
    * the function is defined by a specified format template. For more information on format templates and their syntax,
@@ -84,21 +119,85 @@ export class DmsFormatter2 {
    * @param precision The precision of the formatter, in the unit type defined by the `unit` argument. Input values
    * will be rounded to the nearest multiple of this quantity. Precision values less than or equal to zero will be
    * taken to mean infinite precision (i.e. no rounding will take place).
-   * @param nanString The string to output when the input angle is `NaN`. Defaults to `'NaN'`.
+   * @param options Options to configure the formatter. Options not explicitly defined will be set to the following
+   * default values:
+   * * `nanString = 'NaN'`
+   * * `cache = false`
    * @returns A function which formats angles, expressed as numeric values, to strings.
    */
-  public static create(format: string, unit: Unit<UnitFamily.Angle>, precision: number, nanString = 'NaN'): (angle: number) => string {
+  public static create(
+    format: string,
+    unit: Unit<UnitFamily.Angle>,
+    precision: number,
+    options?: Readonly<Partial<DmsFormatter2Options>>
+  ): (angle: number) => string;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static create(
+    format: string,
+    unit: Unit<UnitFamily.Angle>,
+    precision: number,
+    arg4?: string | Readonly<Partial<DmsFormatter2Options>>
+  ): (angle: number) => string {
     const builder = DmsFormatter2.createBuilder(format, precision, unit);
+    const options = DmsFormatter2.resolveOptions(typeof arg4 === 'string' ? { nanString: arg4 } : arg4);
 
-    return (angle: number): string => {
-      if (isNaN(angle)) {
-        return nanString;
-      }
+    const built = Array.from(builder, () => '');
 
-      return builder.reduce((string, part) => string + part(angle, unit), '');
-    };
+    if (options.cache) {
+      let cachedInput: number | undefined = undefined;
+      let cachedOutput: string | undefined = undefined;
+
+      return (angle: number): string => {
+        if (isNaN(angle)) {
+          return options.nanString;
+        }
+
+        const roundedInput = MathUtils.round(angle, precision);
+
+        if (cachedInput !== undefined && cachedOutput !== undefined && roundedInput === cachedInput) {
+          return cachedOutput;
+        }
+
+        cachedInput = roundedInput;
+
+        for (let i = 0; i < builder.length; i++) {
+          built[i] = builder[i](angle, unit);
+        }
+
+        return cachedOutput = built.join('');
+      };
+    } else {
+      return (angle: number): string => {
+        if (isNaN(angle)) {
+          return options.nanString;
+        }
+
+        for (let i = 0; i < builder.length; i++) {
+          built[i] = builder[i](angle, unit);
+        }
+
+        return built.join('');
+      };
+    }
   }
 
+  /**
+   * Creates a function which formats angles, expressed as {@link NumberUnitInterface} objects, to strings. The
+   * formatting behavior of the function is defined by a specified format template. For more information on format
+   * templates and their syntax, please refer to the {@link DmsFormatter2} class documentation. All formatter options
+   * except `nanString`, if specified, will use their default values.
+   * @param format A template defining how the function formats angles.
+   * @param precision The precision of the formatter. Input values will be rounded to the nearest multiple of this
+   * quantity. Precision values less than or equal to zero will be taken to mean infinite precision (i.e. no rounding
+   * will take place).
+   * @param nanString The string to output when the input angle is `NaN`. Defaults to `'NaN'`.
+   * @returns A function which formats angles, expressed as {@link NumberUnitInterface} objects, to strings.
+   */
+  public static createForNumberUnit(
+    format: string,
+    precision: NumberUnitInterface<UnitFamily.Angle>,
+    nanString?: string
+  ): (angle: NumberUnitInterface<UnitFamily.Angle>) => string;
   /**
    * Creates a function which formats angles, expressed as {@link NumberUnitInterface} objects, to strings. The
    * formatting behavior of the function is defined by a specified format template. For more information on format
@@ -107,19 +206,81 @@ export class DmsFormatter2 {
    * @param precision The precision of the formatter. Input values will be rounded to the nearest multiple of this
    * quantity. Precision values less than or equal to zero will be taken to mean infinite precision (i.e. no rounding
    * will take place).
-   * @param nanString The string to output when the input angle is `NaN`. Defaults to `'NaN'`.
+   * @param options Options to configure the formatter. Options not explicitly defined will be set to the following
+   * default values:
+   * * `nanString = 'NaN'`
+   * * `cache = false`
    * @returns A function which formats angles, expressed as {@link NumberUnitInterface} objects, to strings.
    */
-  public static createForNumberUnit(format: string, precision: NumberUnitInterface<UnitFamily.Angle>, nanString = 'NaN'): (angle: NumberUnitInterface<UnitFamily.Angle>) => string {
+  public static createForNumberUnit(
+    format: string,
+    precision: NumberUnitInterface<UnitFamily.Angle>,
+    options?: Readonly<Partial<DmsFormatter2Options>>
+  ): (angle: NumberUnitInterface<UnitFamily.Angle>) => string;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static createForNumberUnit(
+    format: string,
+    precision: NumberUnitInterface<UnitFamily.Angle>,
+    arg3?: string | Readonly<Partial<DmsFormatter2Options>>
+  ): (angle: NumberUnitInterface<UnitFamily.Angle>) => string {
     const builder = DmsFormatter2.createBuilder(format, precision.number, precision.unit);
+    const options = DmsFormatter2.resolveOptions(typeof arg3 === 'string' ? { nanString: arg3 } : arg3);
 
-    return (angle: NumberUnitInterface<UnitFamily.Angle>): string => {
-      if (angle.isNaN()) {
-        return nanString;
-      }
+    const built = Array.from(builder, () => '');
 
-      return builder.reduce((string, part) => string + part(angle.number, angle.unit), '');
-    };
+    if (options.cache) {
+      let cachedInput: number | undefined = undefined;
+      let cachedOutput: string | undefined = undefined;
+
+      return (angle: NumberUnitInterface<UnitFamily.Angle>): string => {
+        if (angle.isNaN()) {
+          return options.nanString;
+        }
+
+        const roundedInput = MathUtils.round(angle.asUnit(precision.unit), precision.number);
+
+        if (cachedInput !== undefined && cachedOutput !== undefined && roundedInput === cachedInput) {
+          return cachedOutput;
+        }
+
+        cachedInput = roundedInput;
+
+        for (let i = 0; i < builder.length; i++) {
+          built[i] = builder[i](angle.number, angle.unit);
+        }
+
+        return cachedOutput = built.join('');
+      };
+    } else {
+      return (angle: NumberUnitInterface<UnitFamily.Angle>): string => {
+        if (angle.isNaN()) {
+          return options.nanString;
+        }
+
+        for (let i = 0; i < builder.length; i++) {
+          built[i] = builder[i](angle.number, angle.unit);
+        }
+
+        return built.join('');
+      };
+    }
+  }
+
+  /**
+   * Resolves a full set of options from a partial options object. Any option not explicitly defined by the partial
+   * options object will revert to its default value.
+   * @param options A partial options object.
+   * @returns A new options object containing the full set of options resolved from the specified partial options
+   * object.
+   */
+  private static resolveOptions(options?: Readonly<Partial<DmsFormatter2Options>>): DmsFormatter2Options {
+    const resolved = Object.assign({}, options) as any;
+
+    for (const key in DmsFormatter2.DEFAULT_OPTIONS) {
+      resolved[key] ??= DmsFormatter2.DEFAULT_OPTIONS[key as keyof DmsFormatter2Options];
+    }
+
+    return resolved;
   }
 
   /**
@@ -172,6 +333,7 @@ export class DmsFormatter2 {
     const numericMatch = fragment.match(DmsFormatter2.NUM_FRAGMENT_REGEXP);
 
     if (!numericMatch) {
+      console.warn(`DmsFormatter2: discarding fragment due to invalid syntax: {${fragment}}`);
       return (): string => '';
     }
 
@@ -213,6 +375,7 @@ export class DmsFormatter2 {
 
     if (rightMatch) {
       if (rightMatch.length === 1) {
+        // Unlimited decimal precision
         return (angle: number, unit: Unit<UnitFamily.Angle>): string => {
           const converted = unitInfo.unit.convertFrom(Math.abs(angle), unit) % unitInfo.mod;
           const decimal = converted % 1;

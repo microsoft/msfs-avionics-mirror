@@ -21,6 +21,7 @@ export class FlightPathVectorLineRenderer {
    * @param dash The dash array of the rendered line. Defaults to no dash.
    * @param outlineWidth The width of the outline, in pixels. Defaults to 0 pixels.
    * @param outlineStyle The style of the outline. Defaults to `'black'`.
+   * @param lineCap The line cap style to use. Defaults to `'butt'`.
    */
   public render(
     vector: CircleVector,
@@ -31,8 +32,24 @@ export class FlightPathVectorLineRenderer {
     dash?: readonly number[],
     outlineWidth?: number,
     outlineStyle?: string,
+    lineCap: CanvasLineCap = 'butt',
   ): void {
     const circle = FlightPathUtils.setGeoCircleFromVector(vector, FlightPathVectorLineRenderer.geoCircleCache[0]);
-    this.renderer.render(circle, vector.startLat, vector.startLon, vector.endLat, vector.endLon, context, streamStack, width, style, dash, outlineWidth, outlineStyle);
+
+    this.renderer.render(
+      circle,
+      vector.startLat,
+      vector.startLon,
+      vector.endLat,
+      vector.endLon,
+      context,
+      streamStack,
+      width,
+      style,
+      dash,
+      outlineWidth,
+      outlineStyle,
+      lineCap,
+    );
   }
 }

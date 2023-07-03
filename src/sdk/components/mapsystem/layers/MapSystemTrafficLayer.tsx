@@ -9,7 +9,7 @@ import { MapLayer, MapLayerProps, MapProjection, MapProjectionChangeType, MapSyn
 import { MapOwnAirplanePropsModule } from '../../map/modules/MapOwnAirplanePropsModule';
 import { MapSystemContext } from '../MapSystemContext';
 import { MapSystemKeys } from '../MapSystemKeys';
-import { ControllerRecord, LayerRecord } from '../MapSystemTypes';
+import { ContextRecord, ControllerRecord, LayerRecord, ModuleRecord } from '../MapSystemTypes';
 import { MapTrafficAlertLevelVisibility, MapTrafficModule } from '../modules/MapTrafficModule';
 
 /**
@@ -48,8 +48,12 @@ export interface MapTrafficIntruderIcon {
  * @param intruder The intruder for which to create an icon.
  * @param context The context of the icon's parent map.
  */
-export type MapTrafficIntruderIconFactory<Modules = any, Layers extends LayerRecord = any, Controllers extends ControllerRecord = any, Context = any>
-  = (intruder: TcasIntruder, context: MapSystemContext<Modules, Layers, Controllers, Context>) => MapTrafficIntruderIcon;
+export type MapTrafficIntruderIconFactory<
+  Modules extends ModuleRecord = any,
+  Layers extends LayerRecord = any,
+  Controllers extends ControllerRecord = any,
+  Context extends ContextRecord = any
+> = (intruder: TcasIntruder, context: MapSystemContext<Modules, Layers, Controllers, Context>) => MapTrafficIntruderIcon;
 
 /**
  * Component props for MapSystemTrafficLayer.

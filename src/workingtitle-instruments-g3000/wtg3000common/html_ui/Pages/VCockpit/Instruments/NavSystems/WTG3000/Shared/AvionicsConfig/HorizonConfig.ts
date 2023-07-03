@@ -16,6 +16,12 @@ export class HorizonConfig implements Config {
   /** The color of the symbolic aircraft. */
   public readonly symbolColor: AttitudeAircraftSymbolColor;
 
+  /** Whether to show the roll indicator arc. */
+  public readonly showRollArc: boolean;
+
+  /** Whether to render the roll indicator with a ground pointer or a sky pointer. */
+  public readonly rollPointerStyle: 'ground' | 'sky';
+
   /** Whether to support advanced SVT features. */
   public readonly advancedSvt: boolean;
 
@@ -27,6 +33,8 @@ export class HorizonConfig implements Config {
     if (element === undefined) {
       this.directorCue = 'single';
       this.symbolColor = 'yellow';
+      this.showRollArc = true;
+      this.rollPointerStyle = 'ground';
       this.advancedSvt = false;
     } else {
       if (element.tagName !== 'Horizon') {
@@ -62,6 +70,34 @@ export class HorizonConfig implements Config {
         default:
           console.warn(`Invalid HorizonConfig definition: unrecognized symbolic aircraft color option "${symbolColor}". Defaulting to "yellow".`);
           this.symbolColor = 'yellow';
+      }
+
+      const showRollArc = element.getAttribute('roll-arc')?.toLowerCase();
+      switch (showRollArc) {
+        case 'true':
+        case undefined:
+          this.showRollArc = true;
+          break;
+        case 'false':
+          this.showRollArc = false;
+          break;
+        default:
+          console.warn(`Invalid HorizonConfig definition: unrecognized roll arc option "${showRollArc}" (expected "true" or "false"). Defaulting to "true".`);
+          this.showRollArc = false;
+      }
+
+      const rollPointerStyle = element.getAttribute('roll-pointer')?.toLowerCase();
+      switch (rollPointerStyle) {
+        case 'ground':
+        case undefined:
+          this.rollPointerStyle = 'ground';
+          break;
+        case 'sky':
+          this.rollPointerStyle = 'sky';
+          break;
+        default:
+          console.warn(`Invalid HorizonConfig definition: unrecognized roll pointer option "${rollPointerStyle}" (expected "ground" or "sky"). Defaulting to "ground".`);
+          this.rollPointerStyle = 'ground';
       }
 
       const advancedSvt = element.getAttribute('advanced-svt')?.toLowerCase();

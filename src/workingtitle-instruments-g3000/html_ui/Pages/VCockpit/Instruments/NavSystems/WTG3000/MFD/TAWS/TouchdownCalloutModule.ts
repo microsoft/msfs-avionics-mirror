@@ -1,9 +1,10 @@
 import {
-  AirportFacility, AuralAlertControlEvents, AuralAlertRegistrationManager, EventBus, OneWayRunway, RunwayUtils, UnitType, UserSetting
+  AirportFacility, AuralAlertControlEvents, AuralAlertRegistrationManager, EventBus, FacilityLoader,
+  GeoPointInterface, NearestAirportSubscription, OneWayRunway, RunwaySurfaceType, RunwayUtils, UnitType, UserSetting
 } from '@microsoft/msfs-sdk';
 import {
-  AuralAlertUserSettings, AuralAlertVoiceSetting, G3000AuralAlertIds, G3000AuralAlertUtils, G3000NearestContext,
-  TawsOperatingMode, TouchdownCalloutUserSettings
+  AuralAlertUserSettings, AuralAlertVoiceSetting, G3000AuralAlertIds, G3000AuralAlertUtils, TawsOperatingMode,
+  TouchdownCalloutUserSettings
 } from '@microsoft/msfs-wtg3000-common';
 import { TawsData, TawsModule } from './TawsModule';
 
@@ -34,14 +35,27 @@ type TouchdownCalloutEntry = {
  * A TAWS module which handles touchdown callouts.
  */
 export class TouchdownCalloutModule implements TawsModule {
-  private static readonly NEAREST_AIRPORT_THRESHOLD = UnitType.NMILE.convertTo(5, UnitType.GA_RADIAN);
+  private static readonly NEAREST_AIRPORT_UPDATE_INTERVAL = 3000; // milliseconds
+  private static readonly NEAREST_AIRPORT_RADIUS_METERS = UnitType.NMILE.convertTo(5, UnitType.METER);
+  private static readonly NEAREST_AIRPORT_RADIUS_GAR = UnitType.NMILE.convertTo(5, UnitType.GA_RADIAN);
+  private static readonly RUNWAY_NO_WATER_MASK = ~(
+    1 << RunwaySurfaceType.WaterFSX
+    | 1 << RunwaySurfaceType.Lake
+    | 1 << RunwaySurfaceType.Ocean
+    | 1 << RunwaySurfaceType.Pond
+    | 1 << RunwaySurfaceType.River
+    | 1 << RunwaySurfaceType.WasteWater
+    | 1 << RunwaySurfaceType.Water
+  );
+
   private static readonly NEAREST_RUNWAY_REFRESH_INTERVAL = 3000; // milliseconds
 
   private readonly publisher = this.bus.getPublisher<AuralAlertControlEvents>();
 
   private readonly registrationManager = new AuralAlertRegistrationManager(this.bus);
 
-  private nearestContext?: G3000NearestContext;
+  private readonly nearestSubscription: NearestAirportSubscription;
+  private lastNearestSubscriptionUpdateTime: number | undefined = undefined;
 
   private readonly masterEnabledSetting: UserSetting<boolean>;
   private readonly auralAlertVoice = AuralAlertUserSettings.getManager(this.bus).voice;
@@ -58,8 +72,9 @@ export class TouchdownCalloutModule implements TawsModule {
   /**
    * Creates a new instance of TouchdownCalloutModule.
    * @param bus The event bus.
+   * @param facLoader The facility loader.
    */
-  constructor(private readonly bus: EventBus) {
+  constructor(private readonly bus: EventBus, facLoader: FacilityLoader) {
 
     const settingManager = TouchdownCalloutUserSettings.getManager(bus);
 
@@ -79,7 +94,9 @@ export class TouchdownCalloutModule implements TawsModule {
       };
     });
 
-    G3000NearestContext.getInstance().then(context => { this.nearestContext = context; });
+    this.nearestSubscription = new NearestAirportSubscription(facLoader);
+    this.nearestSubscription.setExtendedFilters(TouchdownCalloutModule.RUNWAY_NO_WATER_MASK, ~0, ~0, 0);
+    this.nearestSubscription.start();
 
     this.registrationManager.register({
       uuid: G3000AuralAlertIds.TouchdownCallout,
@@ -98,7 +115,9 @@ export class TouchdownCalloutModule implements TawsModule {
   }
 
   /** @inheritdoc */
-  public onUpdate(simTime: number, operatingMode: TawsOperatingMode, data: Readonly<TawsData>): void {
+  public onUpdate(operatingMode: TawsOperatingMode, data: Readonly<TawsData>, realTime: number): void {
+    this.updateNearestAirportSubscription(realTime, data.gpsPos);
+
     if (operatingMode !== TawsOperatingMode.Normal || data.isOnGround) {
       this.reset();
       return;
@@ -106,9 +125,11 @@ export class TouchdownCalloutModule implements TawsModule {
 
     if (data.isGpsPosValid) {
       // Refresh nearest airport
-      const nearestAirport = this.nearestContext?.airports.get(0);
-      if (nearestAirport && data.gpsPos.distance(nearestAirport) <= TouchdownCalloutModule.NEAREST_AIRPORT_THRESHOLD) {
-        this.updateNearestRunway(nearestAirport, data);
+      const nearestAirport = this.nearestSubscription.tryGet(0);
+      // Sometimes the nearest search retains airports that are outside the search radius, so we need to check the
+      // distance to the airport ourselves.
+      if (nearestAirport && data.gpsPos.distance(nearestAirport) <= TouchdownCalloutModule.NEAREST_AIRPORT_RADIUS_GAR) {
+        this.updateNearestRunway(realTime, nearestAirport, data);
       } else {
         this.nearestAirport = undefined;
         this.nearestAirportRunways = undefined;
@@ -124,18 +145,32 @@ export class TouchdownCalloutModule implements TawsModule {
   }
 
   /**
+   * Updates this module's nearest airport subscription, if necessary.
+   * @param realTime The current real (operating system) time, as a UNIX timestamp in milliseconds.
+   * @param position The current position of the airplane.
+   */
+  private updateNearestAirportSubscription(realTime: number, position: GeoPointInterface): void {
+    if (
+      this.lastNearestSubscriptionUpdateTime === undefined
+      || realTime - this.lastNearestSubscriptionUpdateTime >= TouchdownCalloutModule.NEAREST_AIRPORT_UPDATE_INTERVAL
+    ) {
+      this.nearestSubscription.update(position.lat, position.lon, TouchdownCalloutModule.NEAREST_AIRPORT_RADIUS_METERS, 1);
+      this.lastNearestSubscriptionUpdateTime = realTime;
+    }
+  }
+
+  /**
    * Updates the nearest runway to the airplane.
+   * @param realTime The current real (operating system) time, as a UNIX timestamp in milliseconds.
    * @param nearestAirport The nearest airport to the airplane.
    * @param data The current TAWS data.
    */
-  private updateNearestRunway(nearestAirport: AirportFacility, data: Readonly<TawsData>): void {
+  private updateNearestRunway(realTime: number, nearestAirport: AirportFacility, data: Readonly<TawsData>): void {
     if (nearestAirport.icao !== this.nearestAirport?.icao) {
       this.nearestAirport = nearestAirport;
       this.nearestAirportRunways = RunwayUtils.getOneWayRunwaysFromAirport(nearestAirport);
       this.lastNearestRunwayRefreshTime = undefined;
     }
-
-    const realTime = Date.now();
 
     if (this.lastNearestRunwayRefreshTime === undefined || realTime - this.lastNearestRunwayRefreshTime >= TouchdownCalloutModule.NEAREST_RUNWAY_REFRESH_INTERVAL) {
       this.nearestRunwayAltitude = undefined;

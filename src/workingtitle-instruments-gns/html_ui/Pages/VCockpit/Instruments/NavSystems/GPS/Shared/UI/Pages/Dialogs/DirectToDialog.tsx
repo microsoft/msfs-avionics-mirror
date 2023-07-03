@@ -136,8 +136,8 @@ export class DirectToDialog extends Dialog<DirectToProps> {
    * @param legDefinition The leg definition.
    */
   public acceptPreviewFacility(facility: Facility, legDefinition?: LegDefinition): void {
-    this.controller.directToExistingLegDefinition = legDefinition ?? null;
     this.previewFacility.set(facility);
+    this.controller.directToExistingLegDefinition = legDefinition ?? null;
     this.input.instance.set(ICAO.getIdent(facility.icao));
     this.input.instance.focusSelf();
   }
@@ -278,12 +278,18 @@ export class DirectToDialog extends Dialog<DirectToProps> {
       }
     }
 
-    if (evt === InteractionEvent.FPL || evt === InteractionEvent.VNAV || evt === InteractionEvent.PROC || evt === InteractionEvent.DirectTo || evt === InteractionEvent.OBS) {
-      ViewService.back();
-
-      if (evt === InteractionEvent.DirectTo) {
+    if (evt === InteractionEvent.DirectTo) {
+      if (this.controller.directToExistingLegDefinition !== null) {
+        ViewService.activateLegDialog(this.props.fms.getPrimaryFlightPlan().getLegIndexFromLeg(this.controller.directToExistingLegDefinition));
+        return true;
+      } else {
+        ViewService.back();
         return true;
       }
+    }
+
+    if (evt === InteractionEvent.FPL || evt === InteractionEvent.VNAV || evt === InteractionEvent.PROC || evt === InteractionEvent.OBS) {
+      ViewService.back();
     }
 
     if (evt === InteractionEvent.MENU) {
@@ -357,7 +363,7 @@ export class DirectToDialog extends Dialog<DirectToProps> {
       }
         break;
       case DirectToState.TORANDOM:
-        if (!this.props.fms.activateNearestLeg()){
+        if (!this.props.fms.activateNearestLeg()) {
           this.props.fms.cancelDirectTo();
         }
 
@@ -415,17 +421,17 @@ export class DirectToDialog extends Dialog<DirectToProps> {
     }
   }
 
-    /**
-     * Updates the waypoint icon display.
-     * @param waypoint The waypoint to get the icon for.
-     */
-    private updateIcon(waypoint: Waypoint | null): void {
-      if (waypoint !== null && FacilityWaypointUtils.isFacilityWaypoint(waypoint)) {
-        this.icon.instance.src = Icons.getByFacility(waypoint.facility.get()).src;
-      } else {
-        this.icon.instance.src = '';
-      }
+  /**
+   * Updates the waypoint icon display.
+   * @param waypoint The waypoint to get the icon for.
+   */
+  private updateIcon(waypoint: Waypoint | null): void {
+    if (waypoint !== null && FacilityWaypointUtils.isFacilityWaypoint(waypoint)) {
+      this.icon.instance.src = Icons.getByFacility(waypoint.facility.get()).src;
+    } else {
+      this.icon.instance.src = '';
     }
+  }
 
 
   /**

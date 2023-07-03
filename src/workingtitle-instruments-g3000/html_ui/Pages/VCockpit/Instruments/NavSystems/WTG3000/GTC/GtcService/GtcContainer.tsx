@@ -4,7 +4,7 @@ import { AvionicsConfig, DisplayPaneControlGtcIndex } from '@microsoft/msfs-wtg3
 
 import { ButtonBar } from '../Components/ButtonBar/ButtonBar';
 import { GtcNavComTopBar } from '../Components/GtcNavComTopBar/GtcNavComTopBar';
-import { LabelBar } from '../Components/LabelBar/LabelBar';
+import { LabelBar, LabelBarPluginHandlers } from '../Components/LabelBar/LabelBar';
 import { TitleBar } from '../Components/TitleBar/TitleBar';
 import { GtcNavComHome } from '../Pages/NavComHome/GtcNavComHome';
 import { GtcService, GtcViewStackContainer, ViewStackRefs } from './GtcService';
@@ -18,6 +18,12 @@ export interface GtcContainerProps extends ComponentProps {
 
   /** The instrument's general configuration object. */
   config: AvionicsConfig;
+
+  /**
+   * An array of plugin label bar handlers. The array should be ordered such that the handlers appear in the order in
+   * which their parent plugins were loaded.
+   */
+  pluginLabelBarHandlers: readonly Readonly<LabelBarPluginHandlers>[];
 }
 
 /** Top level GTC component. */
@@ -133,7 +139,7 @@ export class GtcContainer extends DisplayComponent<GtcContainerProps> {
         </div>
         <TitleBar gtcService={this.props.gtcService} />
         <ButtonBar gtcService={this.props.gtcService} />
-        <LabelBar gtcService={this.props.gtcService} />
+        <LabelBar gtcService={this.props.gtcService} pluginHandlers={this.props.pluginLabelBarHandlers} />
       </div>
     );
   }

@@ -1,14 +1,32 @@
 .nav-dme-info-banner {
   position: relative;
-  width: 203px;
-  height: 52px;
 
-  --nav-dme-info-banner-padding-left: 3px;
-  --nav-dme-info-banner-padding-right: 30px;
-  --nav-dme-info-banner-padding-top: 3px;
-  --nav-dme-info-banner-padding-bottom: 3px;
+  --nav-dme-info-banner-padding-left: 2px;
+  --nav-dme-info-banner-padding-top: 2px;
+  --nav-dme-info-banner-padding-bottom: 2px;
   --nav-dme-info-banner-background-fill: var(--g3000-color-pfd-box-background);
-  --nav-dme-info-banner-background-stroke: #393f44;
+  --nav-dme-info-banner-background-stroke: var(--g3000-color-pfd-banner-border-color);
+}
+
+.nav-dme-info-banner-upper {
+  width: 201px;
+  height: 50px;
+
+  --nav-dme-info-banner-padding-right: 29px;
+}
+
+.nav-dme-info-banner-lower {
+  width: 352px;
+  height: 50px;
+
+  --nav-dme-info-banner-padding-right: 180px;
+}
+
+.nav-dme-info-banner-lower-softkey {
+  width: 241px;
+  height: 50px;
+
+  --nav-dme-info-banner-padding-right: 69px;
 }
 
 .nav-dme-info-banner-background {
@@ -20,6 +38,8 @@
   fill: var(--nav-dme-info-banner-background-fill);
   stroke: var(--nav-dme-info-banner-background-stroke);
   stroke-width: 1px;
+  stroke-linejoin: round;
+  overflow: visible;
 }
 
 .nav-dme-info-banner .nav-dme-info {

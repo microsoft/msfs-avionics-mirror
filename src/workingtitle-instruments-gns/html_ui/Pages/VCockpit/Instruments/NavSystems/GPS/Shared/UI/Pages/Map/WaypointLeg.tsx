@@ -13,13 +13,16 @@ interface WaypointLegProps extends GNSUiControlProps {
 
   /** Whether or not this is the arc nav map. */
   isArcMap?: boolean
+
+  /** Whether to use blanks instead of underscores for a null value. */
+  nullIsBlank?: boolean
 }
 
 /**
  * A component that displays a waypoint leg, with fix type labels.
  */
 export class WaypointLeg extends GNSUiControl<WaypointLegProps> {
-  private readonly legName = Subject.create('_____');
+  private readonly legName = Subject.create(this.props.nullIsBlank ? '     ' : '_____');
   private readonly legType = Subject.create('');
   private readonly nameEl = FSComponent.createRef<HTMLElement>();
   private iconElement = FSComponent.createRef<HTMLImageElement>();
@@ -59,7 +62,7 @@ export class WaypointLeg extends GNSUiControl<WaypointLegProps> {
 
       this.legType.set(this.getFixType(leg.leg.fixTypeFlags));
     } else {
-      this.legName.set('_____');
+      this.legName.set(this.props.nullIsBlank ? '     ' : '_____');
       this.legType.set('');
     }
   }

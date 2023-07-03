@@ -1,6 +1,6 @@
 import {
   AvionicsSystemState, AvionicsSystemStateEvent, BasicAvionicsSystem, EventBus, EventBusMetaEvents, MarkerBeaconState,
-  NavProcSimVars, Subscription, SystemPowerKey
+  NavComEvents, Subscription, SystemPowerKey
 } from '@microsoft/msfs-sdk';
 
 /**
@@ -58,7 +58,7 @@ export class MarkerBeaconSystem extends BasicAvionicsSystem<MarkerBeaconSystemEv
     const topic = `marker_mkr_bcn_state_${this.index}` as const;
     const paused = this.state === AvionicsSystemState.Failed || this.state === AvionicsSystemState.Off;
 
-    this.beaconStateSub = this.bus.getSubscriber<NavProcSimVars>().on('mkr_bcn_state_simvar').handle(val => {
+    this.beaconStateSub = this.bus.getSubscriber<NavComEvents>().on('marker_beacon_state').handle(val => {
       this.publisher.pub(topic, val);
     }, paused);
   }

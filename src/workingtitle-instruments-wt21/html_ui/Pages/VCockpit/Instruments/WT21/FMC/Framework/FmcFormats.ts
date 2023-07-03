@@ -168,12 +168,12 @@ export class ComFrequencyFormat implements Validator<number>, Formatter<number> 
       switch (input.length) {
         case 3: {
           const inputNum = parseFloat(input);
-          output = normalizeInput(inputNum / (inputNum > 136.0 ? 10 : 1));
+          output = normalizeInput(inputNum / (inputNum > 137.0 ? 10 : 1));
           break;
         }
         case 4: {
           const inputNum = parseFloat(input);
-          output = normalizeInput(parseFloat(input) / (inputNum > 1360 ? 100 : 10));
+          output = normalizeInput(parseFloat(input) / (inputNum > 1370 ? 100 : 10));
           break;
         }
         case 5:
@@ -185,7 +185,7 @@ export class ComFrequencyFormat implements Validator<number>, Formatter<number> 
       }
     }
 
-    if (output < 118 || output > 136) {
+    if (output < 118 || output > 137) {
       return null;
     }
 

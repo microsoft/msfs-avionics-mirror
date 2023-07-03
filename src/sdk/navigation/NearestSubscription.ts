@@ -196,7 +196,7 @@ export abstract class AbstractNearestSubscription<T extends Facility, TAdded, TR
       this.facilities.splice(index, 1);
       this.facilityIndex.delete(key);
 
-      this.notify(this.facilities.length - 1, SubscribableArrayEventType.Removed, facility);
+      this.notify(index, SubscribableArrayEventType.Removed, facility);
     }
   }
 }
@@ -339,11 +339,12 @@ export class NearestIntersectionSubscription extends NearestWaypointSubscription
 
   /**
    * Sets the intersection search filter.
-   * @param typeMask A bitmask representing the classes of intersections to show.
+   * @param typeMask A bitmask representing the types of intersections to include in the search.
+   * @param showTerminalWaypoints Whether to include terminal intersections in the search.
    */
-  public setFilter(typeMask: number): void {
+  public setFilter(typeMask: number, showTerminalWaypoints = true): void {
     if (this.session !== undefined) {
-      (this.session as NearestIntersectionSearchSession).setIntersectionFilter(typeMask);
+      (this.session as NearestIntersectionSearchSession).setIntersectionFilter(typeMask, showTerminalWaypoints);
     }
   }
 

@@ -1,17 +1,23 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { FSComponent, VNode, EventBus, Subject, SetSubject, Subscribable } from '@microsoft/msfs-sdk';
+
+import { EventBus, FSComponent, SetSubject, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+
 import { VNavDataProvider } from '@microsoft/msfs-garminsdk';
-import { FlightPlanListManager, FlightPlanStore } from '../../../FlightPlan';
+
+import { FlightPlanListManager } from '../../../FlightPlan/FlightPlanListManager';
+import { FlightPlanStore } from '../../../FlightPlan/FlightPlanStore';
 import { DisplayPaneInsetView, DisplayPaneInsetViewProps } from '../../DisplayPanes/DisplayPaneInsetView';
-import { DisplayPaneSizeMode } from '../../DisplayPanes';
+import { DisplayPaneSizeMode } from '../../DisplayPanes/DisplayPaneTypes';
 import { FlightPlanTextUpdateData } from '../NavigationMapPaneViewEvents';
 import { CurrentVnavProfilePanel } from './CurrentVnavProfilePanel';
 import { FlightPlanTextPanel } from './FlightPlanTextPanel';
+
 import './FlightPlanTextInset.css';
 
-/** The properties for the {@link FlightPlanTextInset} component. */
-interface FlightPlanTextInsetProps extends DisplayPaneInsetViewProps {
+/**
+ * The properties for the {@link FlightPlanTextInset} component.
+ */
+export interface FlightPlanTextInsetProps extends DisplayPaneInsetViewProps {
   /** An instance of the event bus. */
   bus: EventBus;
   /** The flight plan store. */
@@ -24,7 +30,10 @@ interface FlightPlanTextInsetProps extends DisplayPaneInsetViewProps {
   vnavDataProvider: VNavDataProvider;
 }
 
-/** The FlightPlanTextInset component. */
+/**
+ * A flight plan text inset for the navigation map pane. Diplays information on up to five flight plan legs and
+ * information related to the current VNAV profile.
+ */
 export class FlightPlanTextInset extends DisplayPaneInsetView<FlightPlanTextInsetProps> {
   private readonly textPanelRef = FSComponent.createRef<FlightPlanTextPanel>();
   private readonly vnavProfilePanelRef = FSComponent.createRef<CurrentVnavProfilePanel>();
@@ -41,6 +50,7 @@ export class FlightPlanTextInset extends DisplayPaneInsetView<FlightPlanTextInse
   }
 
   /** @inheritdoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public override onResume(size: DisplayPaneSizeMode, width: number, height: number): void {
     this.displayPaneSizeMode.set(size);
     this.textPanelRef.instance.resume();
@@ -54,6 +64,7 @@ export class FlightPlanTextInset extends DisplayPaneInsetView<FlightPlanTextInse
   }
 
   /** @inheritdoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public override onResize(size: DisplayPaneSizeMode, width: number, height: number): void {
     this.displayPaneSizeMode.set(size);
   }

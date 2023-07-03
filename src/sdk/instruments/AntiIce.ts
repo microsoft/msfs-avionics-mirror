@@ -12,6 +12,9 @@ export interface AntiIceNonIndexedEvents {
 
   /** Whether the windshield anti-ice switch is in the on position. */
   anti_ice_windshield_switch_on: boolean;
+
+  /** The amount of ice on the airplane structure, from 0 (no ice) to 100 (fully iced). */
+  anti_ice_structural_ice_pct: number;
 }
 
 /**
@@ -43,7 +46,8 @@ export type AntiIceEvents = AntiIceNonIndexedEvents & AntiIceEngineIndexedEvents
 export class AntiIcePublisher extends SimVarPublisher<AntiIceEvents> {
   private static readonly nonIndexedSimVars = [
     ['anti_ice_structural_switch_on', { name: 'STRUCTURAL DEICE SWITCH', type: SimVarValueType.Bool }],
-    ['anti_ice_windshield_switch_on', { name: 'WINDSHIELD DEICE SWITCH', type: SimVarValueType.Bool }]
+    ['anti_ice_windshield_switch_on', { name: 'WINDSHIELD DEICE SWITCH', type: SimVarValueType.Bool }],
+    ['anti_ice_structural_ice_pct', { name: 'STRUCTURAL ICE PCT', type: SimVarValueType.Percent }]
   ] as const;
 
   /**

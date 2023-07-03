@@ -17,3 +17,4 @@ export * from './DefaultFacilityWaypointCache';
 export * from './Waypoint';
 export * from './DefaultLodBoundaryCache';
 export * from './NearestContext';
+export * from './Wind';

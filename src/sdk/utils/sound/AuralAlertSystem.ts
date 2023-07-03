@@ -65,7 +65,7 @@ export type AuralAlertActivation = {
 
   /**
    * The alias to use to activate or trigger the alert instead of the alert's registered ID. The alias must be unique.
-   * 
+   *
    * If an alias is defined, it will be used in place of the alert's registered ID when determining activation or
    * trigger state. Alerts activated or triggered with multiple aliases will play once per alias. In effect, using an
    * alias behaves as if a copy of the aliased alert were temporarily registered with the alias as its ID for as long
@@ -76,12 +76,12 @@ export type AuralAlertActivation = {
   /**
    * The suffix to append to the alert's ID to activate or trigger the alert. Suffixing an alert ID will generate a
    * suffixed ID in the form ``` `${uuid}::${suffix}` ```. The suffixed ID must be unique.
-   * 
+   *
    * If a suffix is defined, the suffixed ID will be used to determine activation/triggered state. An alert can be
    * activated or triggered with multiple suffixes. However, it will still only be played once regardless of how many
    * of its suffixes are active or triggered. An alert is considered deactivated or untriggered only when all of its
    * suffixes are deactivated or untriggered.
-   * 
+   *
    * If both an alias and a suffix are defined, the suffix will be appended to the _alias_ instead of the alert's
    * registered ID.
    */
@@ -130,7 +130,7 @@ export interface AuralAlertControlEvents {
    * Activates an aural alert. The event data should be the unique ID of the alert or an activation data object that
    * contains the unique ID and optional override parameters. If no override parameters are provided, then the alert
    * will play as it was defined during registration.
-   * 
+   *
    * Once activated, the alert will be queued to play once all higher-priority alerts that are playing or queued have
    * finished playing. If the alert is already active, then this command has no effect.
    */
@@ -139,7 +139,7 @@ export interface AuralAlertControlEvents {
   /**
    * Deactivates an aural alert. The event data should be an (optionally suffixed) alert ID. An alert is considered
    * deactivated only when all of its suffixes are deactivated (the un-suffixed ID also counts as a suffix).
-   * 
+   *
    * Deactivating an alert will clear any queued activated instances of the alert. If the activated alert is already
    * playing, it will finish playing but will not loop if it is continuous.
    */
@@ -149,7 +149,7 @@ export interface AuralAlertControlEvents {
    * Triggers an aural alert. The event data should be the unique ID of the alert or an activation data object that
    * contains the unique ID and optional override parameters. If no override parameters are provided, then the alert
    * will play as it was defined during registration.
-   * 
+   *
    * Once triggered, the alert will be queued to play once all higher-priority alerts that are playing or queued have
    * finished playing. A triggered alert is not considered active. Triggering an alert while an existing triggered
    * instance is queued will replace the existing instance with the new instance. Triggered alerts automatically
@@ -160,7 +160,7 @@ export interface AuralAlertControlEvents {
   /**
    * Untriggers an aural alert. The event data should be an (optionally suffixed) alert ID. An alert is considered
    * untriggered only when all of its suffixes are deactivated (the un-suffixed ID also counts as a suffix).
-   * 
+   *
    * Untriggering an alert will clear any queued triggered instances of the alert. If the triggered alert is already
    * playing, it will finish playing but will not loop if it is continuous.
    */
@@ -168,7 +168,7 @@ export interface AuralAlertControlEvents {
 
   /**
    * Kills an aural alert. The event data should be an (optionally suffixed) alert ID.
-   * 
+   *
    * Killing an alert will deactivate and untrigger the alert. If the alert is already playing, it will be stopped at
    * the earliest opportunity.
    */
@@ -217,7 +217,7 @@ type QueuedAuralAlert = {
 
 /**
  * A system which manages and plays aural alerts using a priority queue system.
- * 
+ *
  * The system collects registered alerts, and manages how they are played. Each alert belongs to a queue. Only one
  * alert from each queue can play simultaneously. Alerts are queued to be played when they become activated or triggered.
  * If two alerts are queued at the same time, the one with higher priority is played first. Alerts cannot interrupt an
@@ -263,17 +263,21 @@ export class AuralAlertSystem {
   private readonly triggeredAlerts = new Map<string, QueuedAuralAlert>();
 
   private isSoundServerInit = false;
+  private isSoundServerAwake = false;
 
   private isAwake = false;
 
+  private isActive = false;
+
   /**
-   * Creates a new AuralAlertSystem. The system is asleep when created.
+   * Creates a new AuralAlertSystem. The system is initially asleep after being created.
    * @param bus The event bus.
    */
   public constructor(private readonly bus: EventBus) {
     this.controlSub.on('aural_alert_register').handle(this.onAlertRegistered.bind(this));
     this.publisher.pub('aural_alert_request_all_registrations', undefined, true, false);
 
+    this.soundServerSub.on('sound_server_is_awake').whenChanged().handle(this.onSoundServerWakeChanged.bind(this));
     this.soundServerSub.on('sound_server_packet_ended').handle(this.onPacketEnded.bind(this));
 
     this.controlSub.on('aural_alert_activate').handle(this.activateAlert.bind(this));
@@ -296,9 +300,10 @@ export class AuralAlertSystem {
   }
 
   /**
-   * Wakes this system. All active continuous alerts will be re-queued to play. While this system is awake, activation
-   * of alerts will queue them to be played. Activation of any alerts that were already active when the system woke up
-   * will not queue them to be played unless the alert was deactivated in the interim.
+   * Wakes this system. If the sound server is also awake, all active continuous or repeating alerts will be re-queued
+   * to play. While both this system and the sound server are awake, activation of alerts will queue them to be played.
+   * Activation of any alerts that were already active when the system woke up will not queue them to be played unless
+   * the alert was deactivated in the interim.
    */
   public wake(): void {
     if (this.isAwake) {
@@ -307,12 +312,7 @@ export class AuralAlertSystem {
 
     this.isAwake = true;
 
-    // Find all active alerts that are repeatable or continuous and re-queue them.
-    for (const alert of this.activeAlerts.values()) {
-      if (alert.repeat || alert.packet.continuous) {
-        this.queueAlert(alert);
-      }
-    }
+    this.updateActiveState();
   }
 
   /**
@@ -327,21 +327,7 @@ export class AuralAlertSystem {
 
     this.isAwake = false;
 
-    // Clears all triggered alerts.
-    this.triggeredAlerts.clear();
-    this.triggeredAliasToUuid.clear();
-    this.triggeredSuffixedIdToId.clear();
-    this.idToTriggeredSuffixedIds.clear();
-
-    // Clear all queued alerts.
-    for (const queueEntry of this.queues.values()) {
-      queueEntry.queue.clear();
-    }
-
-    // Kills all alerts that are currently playing.
-    for (const playing of this.playing.values()) {
-      this.soundServerPublisher.pub('sound_server_kill', playing.packet.key, true, false);
-    }
+    this.updateActiveState();
   }
 
   /**
@@ -478,7 +464,7 @@ export class AuralAlertSystem {
 
     this.activeAlerts.set(queuedId, queuedAlert);
 
-    if (this.isAwake) {
+    if (this.isActive) {
       this.queueAlert(queuedAlert);
     }
   }
@@ -503,7 +489,7 @@ export class AuralAlertSystem {
    * @param activation The ID of the alert to trigger, or data describing the alert to trigger.
    */
   private triggerAlert(activation: string | Readonly<AuralAlertActivation>): void {
-    if (!this.isAwake) {
+    if (!this.isActive) {
       return;
     }
 
@@ -627,7 +613,7 @@ export class AuralAlertSystem {
    * @param entry The queue entry.
    */
   private dequeueAlert(entry: QueueEntry): void {
-    if (this.isAwake) {
+    if (this.isActive) {
       // Find the next alert in the queue that is active or triggered.
       let next: QueuedAuralAlert | undefined = undefined;
       while (entry.queue.size > 0) {
@@ -935,6 +921,76 @@ export class AuralAlertSystem {
     this.playing.delete(queueName);
 
     this.dequeueAlert(queueEntry);
+  }
+
+  /**
+   * Responds to when the wake state of the sound server changes.
+   * @param isAwake Whether the sound server is awake.
+   */
+  private onSoundServerWakeChanged(isAwake: boolean): void {
+    if (this.isSoundServerAwake === isAwake) {
+      return;
+    }
+
+    this.isSoundServerAwake = isAwake;
+
+    this.updateActiveState();
+
+    if (!isAwake) {
+      // If the sound server is asleep, it will automatically stop playing all sound packets. Additionally, any
+      // commands we sent to the server to start playing packets while the server was asleep but before we got the
+      // notification were ignored (so we will never receive a packet ended event for them). Therefore, we need to
+      // clear all playing alerts to ensure that alerts don't get stuck in the 'playing' state.
+      this.playing.clear();
+    }
+  }
+
+  /**
+   * Updates this system's activity state. This system is considered active if both it and the sound server are awake.
+   * On activation, all active continuous or repeating alerts are re-queued to play. On deactivation, all triggered and
+   * queued alerts are cleared and all currently playing alerts are stopped at the earliest opportunity.
+   */
+  private updateActiveState(): void {
+    const isActive = this.isAwake && this.isSoundServerAwake;
+
+    if (isActive === this.isActive) {
+      return;
+    }
+
+    this.isActive = isActive;
+
+    if (isActive) {
+
+      // Find all active alerts that are repeatable or continuous and re-queue them.
+      for (const alert of this.activeAlerts.values()) {
+        if (alert.repeat || alert.packet.continuous) {
+          this.queueAlert(alert);
+        }
+      }
+
+    } else {
+
+      // Clears all triggered alerts.
+      this.triggeredAlerts.clear();
+      this.triggeredAliasToUuid.clear();
+      this.triggeredSuffixedIdToId.clear();
+      this.idToTriggeredSuffixedIds.clear();
+
+      // Clear all queued alerts.
+      for (const queueEntry of this.queues.values()) {
+        queueEntry.queue.clear();
+      }
+
+      // If the sound server is awake, kill all alerts that are currently playing. If the sound server is asleep, it
+      // will stop all packets automatically and will not respond to commands, so there is no need to send the kill
+      // commands.
+      if (this.isSoundServerAwake) {
+        for (const playing of this.playing.values()) {
+          this.soundServerPublisher.pub('sound_server_kill', playing.packet.key, true, false);
+        }
+      }
+
+    }
   }
 
   /**

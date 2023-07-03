@@ -272,6 +272,8 @@ export class DefaultAoaDataProvider implements AoaDataProvider {
     this.clockSub?.pause();
     this.lastAoaCoefTime = undefined;
 
+    this.aoaCoefSmoother.reset();
+
     this.isPaused = true;
   }
 
@@ -282,21 +284,20 @@ export class DefaultAoaDataProvider implements AoaDataProvider {
   private update(time: number): void {
     if (this._isDataFailed.get() || this.isAdcDataFailed || this._isOnGround.get()) {
       this._normAoaIasCoef.set(null);
+      this.aoaCoefSmoother.reset();
+      this.lastAoaCoefTime = undefined;
       return;
     }
+
+    const dt = this.lastAoaCoefTime === undefined ? 0 : Math.max(0, time - this.lastAoaCoefTime);
+    this.lastAoaCoefTime = time;
 
     const normAoa = this._normAoa.get();
     const ias = this.ias.get();
     const iasSquared = ias * ias;
     const coef = normAoa * iasSquared;
 
-    if (this.lastAoaCoefTime === undefined) {
-      this._normAoaIasCoef.set(this.aoaCoefSmoother.reset(coef));
-    } else {
-      this._normAoaIasCoef.set(this.aoaCoefSmoother.next(coef, time - this.lastAoaCoefTime));
-    }
-
-    this.lastAoaCoefTime = time;
+    this._normAoaIasCoef.set(this.aoaCoefSmoother.next(coef, dt));
   }
 
   /**

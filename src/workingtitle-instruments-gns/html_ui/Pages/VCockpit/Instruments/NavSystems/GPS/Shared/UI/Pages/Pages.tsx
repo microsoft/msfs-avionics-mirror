@@ -91,6 +91,7 @@ export interface ViewPresenter {
   openObsDialog(): void;
   openMenu(definition: MenuEntry[] | MenuDefinition, title?: string): Page;
   openPageGroup<T extends Page = Page>(group: string, replace: boolean, pageNumber?: number): T | undefined;
+  openActivateLegDialog(legIndex: number): void;
   back(): void;
   default(): void;
 }
@@ -179,6 +180,14 @@ export class ViewService {
    */
   public static obsDialog(): void {
     this.presenter?.openObsDialog();
+  }
+
+  /**
+   * Opens the Activate Leg dialog for activating a future leg on the existing flight plan.
+   * @param legIndex The global index of the leg to activate.
+   */
+  public static activateLegDialog(legIndex: number): void {
+    this.presenter?.openActivateLegDialog(legIndex);
   }
 
   /**

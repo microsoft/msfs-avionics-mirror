@@ -1,0 +1,23 @@
+.radio-altimeter {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  bottom: 5px;
+  height: 25px;
+  right: 0px;
+  width: 75px;
+  background: rgba(0, 0, 0, 0.5);
+  font-size: 16px;
+  padding-left: 1px;
+  padding-right: 1px;
+  border-radius: 4px;
+}
+
+.radio-altimeter span {
+  align-self: flex-end;
+}
+
+.radio-altimeter-altitude {
+  font-size: 24px;
+  margin-bottom: -2px;
+}

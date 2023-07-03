@@ -15,7 +15,7 @@ export type FmsSpeedValue = {
 }
 
 /**
- * A provider of FMS speed target data for the GTC.
+ * A provider of FMS speed target data.
  */
 export interface FmsSpeedTargetDataProvider {
   /** The nominal target speed computed by the FMS. The value is negative if there is no nominal target speed. */

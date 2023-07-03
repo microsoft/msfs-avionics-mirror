@@ -1,21 +1,12 @@
 import {
-  BitFlags, EventBus, FSComponent, HorizonLayer, HorizonLayerProps, HorizonProjection, HorizonProjectionChangeType,
-  HorizonSyncedCanvasLayer,
-  MathUtils, ObjectSubject, Subject, Subscribable, Subscription, Transform2D, Vec2Math, Vec2Subject, VNode
+  BitFlags, ComponentProps, HorizonProjection, HorizonProjectionChangeType, HorizonSharedCanvasSubLayer,
+  Subscribable, Subscription, Transform2D, Vec2Math
 } from '@microsoft/msfs-sdk';
-import { HorizonLine, HorizonLineProps } from './HorizonLine';
 
 /**
- * Styling options for the synthetic vision horizon line.
+ * Options for {@link ArtificialHorizon}.
  */
-export type HorizonLineOptions = Omit<
-  HorizonLineProps, keyof HorizonLayerProps | 'approximate' | 'useMagneticHeading' | 'showHeadingTicks' | 'showHeadingLabels'
->;
-
-/**
- * Color options for the artificial horizon.
- */
-export interface ArtificialHorizonColorOptions {
+export interface ArtificialHorizonOptions {
   /** The color of the ground. */
   groundColor: string;
 
@@ -34,147 +25,99 @@ export type ArtificialHorizonSkyColor = [distance: number, color: string];
 /**
  * Component props for ArtificialHorizon.
  */
-export interface ArtificalHorizonProps extends HorizonLayerProps {
-  /** An instance of the event bus. */
-  bus: EventBus;
-
+export interface ArtificalHorizonProps extends ComponentProps {
   /** Whether to show the artificial horizon. */
   show: Subscribable<boolean>;
 
-  /** Whether to show horizon heading labels. */
-  showHeadingLabels: boolean | Subscribable<boolean>;
-
-  /** Whether to show magnetic heading ticks and labels instead of true heading. */
-  useMagneticHeading: Subscribable<boolean>;
-
-  /** Styling options for the horizon line. */
-  horizonLineOptions: HorizonLineOptions;
-
-  /** The color options for the artificial horizon. */
-  options: ArtificialHorizonColorOptions;
+  /** Options for the artificial horizon. */
+  options: ArtificialHorizonOptions;
 }
 
 /**
- * A PFD artificial horizon. Displays a horizon line, and sky and ground boxes.
+ * A PFD artificial horizon. Renders sky and ground boxes.
  */
-export class ArtificialHorizon extends HorizonLayer<ArtificalHorizonProps> {
-  private static readonly BACKGROUND_UPDATE_FLAGS
+export class ArtificialHorizon extends HorizonSharedCanvasSubLayer<ArtificalHorizonProps> {
+  private static readonly UPDATE_FLAGS
     = HorizonProjectionChangeType.ScaleFactor
     | HorizonProjectionChangeType.Fov
     | HorizonProjectionChangeType.Pitch
-    | HorizonProjectionChangeType.Roll;
-
-  private readonly horizonLineRef = FSComponent.createRef<HorizonLine>();
-  private readonly canvasLayerRef = FSComponent.createRef<HorizonSyncedCanvasLayer>();
-
-  private readonly rootStyle = ObjectSubject.create({
-    display: '',
-    position: 'absolute',
-    left: '0px',
-    top: '0px',
-    width: '100%',
-    height: '100%'
-  });
+    | HorizonProjectionChangeType.Roll
+    | HorizonProjectionChangeType.ProjectedSize;
 
   private readonly vec2Cache = [Vec2Math.create(), Vec2Math.create(), Vec2Math.create(), Vec2Math.create()];
-  private readonly bgTranslation = Vec2Subject.create(Vec2Math.create());
-  private readonly bgRotation = Subject.create(0);
-  private readonly windowTransform = new Transform2D();
-  private maxSkyColorStopPx = 0;
 
-  private needUpdateBackgroundTransforms = false;
-  private needRedrawBackground = false;
-  private forceRedrawBackground = false;
+  private readonly bgTranslation = Vec2Math.create();
+  private bgRotation = 0;
+
+  private readonly windowTransform = new Transform2D();
+
+  private readonly maxSkyColorStopPx = Math.max(...this.props.options.skyColors.map(c => c[0]));
+
+  private needUpdate = false;
 
   private showSub?: Subscription;
-
-  /** @inheritdoc */
-  protected onVisibilityChanged(isVisible: boolean): void {
-    this.rootStyle.set('display', isVisible ? '' : 'none');
-  }
 
   /** @inheritdoc */
   public onAttached(): void {
     super.onAttached();
 
-    this.canvasLayerRef.instance.onAttached();
-    this.horizonLineRef.instance.onAttached();
+    this.showSub = this.props.show.sub(() => { this.needUpdate = true; }, true);
 
-    this.maxSkyColorStopPx = Math.max(...this.props.options.skyColors.map(c => c[0]));
-
-    this.bgTranslation.sub(() => { this.needRedrawBackground = true; });
-    this.bgRotation.sub(() => { this.needRedrawBackground = true; });
-
-    this.showSub = this.props.show.sub(show => { this.setVisible(show); }, true);
-    this.needUpdateBackgroundTransforms = true;
-    this.forceRedrawBackground = true;
+    this.needUpdate = true;
   }
 
   /** @inheritdoc */
   public onProjectionChanged(projection: HorizonProjection, changeFlags: number): void {
-    this.canvasLayerRef.instance.onProjectionChanged(projection, changeFlags);
-    this.horizonLineRef.instance.onProjectionChanged(projection, changeFlags);
-
-    if (BitFlags.isAny(changeFlags, ArtificialHorizon.BACKGROUND_UPDATE_FLAGS)) {
-      this.needUpdateBackgroundTransforms = true;
-    }
-
-    // If the projected size was changed, the background canvas will have been reset, so we need to draw the background
-    // again
-    if (BitFlags.isAny(changeFlags, HorizonProjectionChangeType.ProjectedSize)) {
-      this.needUpdateBackgroundTransforms = true;
-      this.forceRedrawBackground = true;
+    if (BitFlags.isAny(changeFlags, ArtificialHorizon.UPDATE_FLAGS)) {
+      this.needUpdate = true;
     }
   }
 
   /** @inheritdoc */
+  public shouldInvalidate(): boolean {
+    return this.needUpdate && this.isVisible();
+  }
+
+  /** @inheritdoc */
   public onUpdated(): void {
-    if (!this.isVisible()) {
+    if (!this.display.isInvalidated || !this.isVisible()) {
       return;
     }
 
-    this.horizonLineRef.instance.onUpdated();
+    if (this.props.show.get()) {
+      // Approximate translation due to pitch using a constant pitch resolution (pixels per degree of pitch) derived
+      // from the projection's current field of view. The error of this approximation increases with the absolute
+      // deviation of the pitch angle from 0 degrees. We do this instead of simply projecting the true horizon line
+      // because we need to keep the line in sync with the attitude pitch ladder, which uses the same approximation.
 
-    if (!this.needUpdateBackgroundTransforms && !this.forceRedrawBackground) {
-      return;
+      const projection = this.projection;
+      const pitchResolution = projection.getScaleFactor() / projection.getFov();
+      const pitch = projection.getPitch();
+      const roll = projection.getRoll();
+
+      Vec2Math.set(0, pitchResolution * pitch, this.bgTranslation);
+      this.bgRotation = -roll;
+
+      this.drawHorizonRects(this.display.context, projection);
     }
 
-    // Approximate translation due to pitch using a constant pitch resolution (pixels per degree of pitch) derived
-    // from the projection's current field of view. The error of this approximation increases with the absolute
-    // deviation of the pitch angle from 0 degrees. We do this instead of simply projecting the true horizon line
-    // because we need to keep the line in sync with the attitude pitch ladder, which uses the same approximation.
-
-    const pitchResolution = this.props.projection.getScaleFactor() / this.props.projection.getFov();
-    const pitch = this.props.projection.getPitch();
-    const roll = this.props.projection.getRoll();
-
-    this.bgTranslation.set(0, MathUtils.round(pitchResolution * pitch, 0.1));
-    this.bgRotation.set(MathUtils.round(-roll, 0.1));
-
-    if (this.forceRedrawBackground || this.needRedrawBackground) {
-      this.drawHorizonRects();
-      this.needRedrawBackground = false;
-      this.forceRedrawBackground = false;
-    }
+    this.needUpdate = false;
   }
 
   /**
-   * Draws the horizon rects to the canvas.
+   * Draws the horizon rects.
+   * @param context The canvas rendering context to which to draw.
+   * @param projection The horizon projection.
    */
-  private drawHorizonRects(): void {
-    const context = this.canvasLayerRef.instance.display.context;
+  private drawHorizonRects(context: CanvasRenderingContext2D, projection: HorizonProjection): void {
+    const projectedCenter = projection.getOffsetCenterProjected();
+    const projectedSize = projection.getProjectedSize();
 
-    const projectedCenter = this.props.projection.getOffsetCenterProjected();
-    const projectedSize = this.props.projection.getProjectedSize();
-
-    context.clearRect(0, 0, projectedSize[0], projectedSize[1]);
-
-    const bgTranslation = this.bgTranslation.get();
     this.windowTransform.toIdentity();
     const transform = this.windowTransform
       .addTranslation(-projectedCenter[0], -projectedCenter[1])
-      .addRotation(-this.bgRotation.get() * Avionics.Utils.DEG2RAD)
-      .addTranslation(-bgTranslation[0], -bgTranslation[1]);
+      .addRotation(-this.bgRotation * Avionics.Utils.DEG2RAD)
+      .addTranslation(-this.bgTranslation[0], -this.bgTranslation[1]);
 
     const windowUl = transform.apply(Vec2Math.set(0, 0, this.vec2Cache[0]), this.vec2Cache[0]);
     const windowUr = transform.apply(Vec2Math.set(projectedSize[0], 0, this.vec2Cache[1]), this.vec2Cache[1]);
@@ -241,34 +184,7 @@ export class ArtificialHorizon extends HorizonLayer<ArtificalHorizonProps> {
   }
 
   /** @inheritdoc */
-  public onDetached(): void {
-    super.onDetached();
-
-    this.destroy();
-  }
-
-  /** @inheritdoc */
-  public render(): VNode {
-    return (
-      <div class='artificial-horizon' style={this.rootStyle}>
-        <HorizonSyncedCanvasLayer projection={this.props.projection} ref={this.canvasLayerRef} />
-        <HorizonLine
-          ref={this.horizonLineRef}
-          projection={this.props.projection}
-          approximate={true}
-          showHeadingTicks={this.props.showHeadingLabels}
-          showHeadingLabels={this.props.showHeadingLabels}
-          useMagneticHeading={this.props.useMagneticHeading}
-          {...this.props.horizonLineOptions}
-        />
-      </div>
-    );
-  }
-
-  /** @inheritdoc */
   public destroy(): void {
-    this.horizonLineRef.getOrDefault()?.destroy();
-
     this.showSub?.destroy();
 
     super.destroy();

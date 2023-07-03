@@ -7,7 +7,7 @@ import {
   CircleInterceptBuilder, CircleVectorBuilder, DirectToPointBuilder, GreatCircleBuilder, JoinGreatCircleToPointBuilder, ProcedureTurnBuilder,
   TurnToCourseBuilder
 } from './FlightPathVectorBuilder';
-import { FlightPathVectorFlags, LegCalculations, LegDefinition, VectorTurnDirection } from './FlightPlanning';
+import { FlightPathVector, FlightPathVectorFlags, LegCalculations, LegDefinition, VectorTurnDirection } from './FlightPlanning';
 
 /**
  * A flight path calculator for individual flight plan legs.
@@ -1384,7 +1384,7 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
     LegType.PI
   ];
 
-  private readonly vec3Cache = [new Float64Array(3), new Float64Array(3), new Float64Array(3)];
+  private readonly vec3Cache = [new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3)];
   private readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)];
   private readonly geoCircleCache = [
     new GeoCircle(new Float64Array(3), 0),
@@ -1466,8 +1466,10 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
       const endPath = this.geoCircleCache[1].setAsGreatCircle(endPoint, endCourse);
 
       if (!startPoint || (prevLeg && (prevLeg.leg.type === LegType.FM || prevLeg.leg.type === LegType.VM))) {
-        // Begins at a discontinuity OR previous leg is a manual termination leg.
-        // Default to a track with start arbitrarily placed 5 NM from the terminator fix.
+        // ---- CASE A ----
+        // The leg begins at a discontinuity OR the previous leg is a manual termination leg.
+        // Create a great-circle vector with a start point arbitrarily placed 5 NM from the terminator fix.
+
         const midPoint = endPath.offsetDistanceAlong(endVec, UnitType.NMILE.convertTo(-5, UnitType.GA_RADIAN), this.geoPointCache[2]);
         vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, midPoint, endPoint);
       } else {
@@ -1479,24 +1481,111 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
         const startToEndPath = this.geoCircleCache[3].setAsGreatCircle(startVec, endVec);
         const isStartEqualToEnd = startPoint.equals(endPoint);
 
+        const pathAngleDiff = Math.acos(MathUtils.clamp(Vec3Math.dot(startPath.center, endPath.center), -1, 1));
+
         // A great circle defining the threshold of the terminator fix - everything to the LEFT of (i.e. encircled by)
         // this great circle is past the terminator fix as projected along the end path.
         const threshold = this.geoCircleCache[2].setAsGreatCircle(endPath.center, endVec);
+        const isStartPastThreshold = threshold.encircles(startVec, false);
 
-        if (
-          !leg.flyOver
-          && !CourseToFixLegCalculator.FALLBACK_INELIGIBLE_LEG_TYPES.includes(legs[calculateIndex + 1]?.leg.type)
-          && threshold.encircles(startVec, false)
-        ) {
-          // The start point is past the terminator threshold -> end the leg at the start point and set a fallback state
+        // 175 degrees
+        const areStartEndPathsAntiParallel = pathAngleDiff >= 3.05432619 - GeoCircle.ANGULAR_TOLERANCE;
 
-          (state.currentPosition ??= new GeoPoint(0, 0)).set(startPoint);
-          state.currentCourse ??= currentCourse;
-          state.isFallback = true;
-        } else {
-          const pathAngleDiff = Math.acos(MathUtils.clamp(Vec3Math.dot(startPath.center, endPath.center), -1, 1));
-          if (pathAngleDiff >= 3.05432619 - GeoCircle.ANGULAR_TOLERANCE) {
-            // The start and end paths are anti-parallel (+/- 5 degrees), which means we need to execute a procedure turn to do a 180.
+        let isDone = false;
+
+        if (!areStartEndPathsAntiParallel && isStartPastThreshold) {
+          // ---- CASE B ----
+          // The start and end paths are not antiparallel and the start point is past the terminator threshold.
+
+          let shouldTryFallback = true;
+
+          const desiredTurnDirection = leg.turnDirection === LegTurnDirection.Left ? 'left'
+            : leg.turnDirection === LegTurnDirection.Right ? 'right'
+              : undefined;
+
+          if (
+            pathAngleDiff >= MathUtils.HALF_PI
+            && (desiredTurnDirection === undefined || (desiredTurnDirection === 'left') === startPath.encircles(endVec))
+          ) {
+            // The start path is either heading toward the terminator threshold or is parallel to it and the desired
+            // turn direction is not away from the end point. We now need to find the intersections between the start
+            // and end paths. There should be two intersections since both paths are great circles and they are not
+            // parallel or antiparallel.
+
+            const intersections = this.intersectionCache;
+            const solutionCount = startPath.intersection(endPath, intersections);
+
+            if (solutionCount === 2) {
+              // There are two general cases:
+              //
+              // 1. The end point lies past the intersection as measured along the end path.
+              // 2. The end point lies before the intersection as measured along the end path.
+              //
+              // In case 1, we can use the default algorithm for joining the start and end paths. Therefore there is
+              // nothing to do here; we just need to make sure the code falls through to Case E below.
+              //
+              // In case 2, we will try to join the start and end paths with a single constant radius turn. This will
+              // generate a "loop" where the path follows the start path initially away from the end point and then
+              // turns back onto the end path to head back to the end point. If that is not possible or the generated
+              // path is too long, we will fall through to Case E.
+
+              shouldTryFallback = false;
+
+              // Choose the intersection closest to the start point.
+              const intersection = Vec3Math.dot(intersections[0], startVec) > 0
+                ? intersections[0]
+                : intersections[1];
+
+              const intersectionToEndDot = Vec3Math.dot(Vec3Math.cross(endPath.center, intersection, this.vec3Cache[2]), endVec);
+              const isEndPastIntersection = intersectionToEndDot > GeoCircle.ANGULAR_TOLERANCE;
+
+              if (!isEndPastIntersection) {
+                vectorIndex += this.joinGreatCircleToPointBuilder.build(
+                  vectors, vectorIndex,
+                  startVec, startPath,
+                  endVec, endPath,
+                  desiredTurnDirection, minTurnRadius,
+                  true, false, intersection
+                );
+
+                if (vectorIndex !== 0) {
+                  // Find all the great-circle vectors in the path. These are all guaranteed to be parallel to either
+                  // the start or end paths. If the total distance of all these vectors is greater than a maximum
+                  // threshold, erase the vectors and let the code fall through to Case E, which will generate a
+                  // shorter path.
+
+                  let distance = 0;
+                  for (let i = 0; i < vectorIndex; i++) {
+                    const vector = vectors[i];
+                    if (FlightPathUtils.isVectorGreatCircle(vector)) {
+                      distance += vector.distance;
+                    }
+                  }
+
+                  if (distance > 37040 /* 20 nautical miles */) {
+                    vectorIndex = 0;
+                  }
+                }
+
+                isDone = vectorIndex > 0;
+              }
+            }
+          }
+
+          if (shouldTryFallback && !leg.flyOver && !CourseToFixLegCalculator.FALLBACK_INELIGIBLE_LEG_TYPES.includes(legs[calculateIndex + 1]?.leg.type)) {
+            // The leg does not end in a fly-over fix and the next leg is eligible for fallback -> end the current leg
+            // at the start point and set a fallback state.
+            (state.currentPosition ??= new GeoPoint(0, 0)).set(startPoint);
+            state.currentCourse ??= currentCourse;
+            state.isFallback = true;
+            isDone = true;
+          }
+        }
+
+        if (!isDone) {
+          if (areStartEndPathsAntiParallel) {
+            // ---- CASE C ----
+            // The start and end paths are antiparallel. We need to execute a procedure turn to do a 180.
 
             let desiredTurnDirection: VectorTurnDirection;
             switch (leg.turnDirection) {
@@ -1552,18 +1641,21 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
               )
             )
           ) {
-            /*
-            * The start and end paths are parallel, so we can just connect the start and end with a track.
-            *
-            * OR the start point lies on the final course path (within a generous tolerance) and the previous leg has at
-            * least one calculated vector. In this case we will simply create a track from the start to end and let turn
-            * anticipation handle the initial turn into the final course.
-            */
+            // ---- CASE D ----
+            // The start and end paths are parallel, so we can just connect the start and end with a track.
+            // Or the start point lies on the final course path (within a generous tolerance) and the previous leg has at
+            // least one calculated vector. In this case we will simply create a track from the start to end and let turn
+            // anticipation handle the initial turn into the final course.
 
             if (!isStartEqualToEnd) {
               vectorIndex += this.greatCircleBuilder.build(vectors, vectorIndex, startPoint, endPoint);
             }
           } else {
+            // ---- CASE E ----
+            // The default case. We will attempt to join the start and end paths with a single constant-radius turn
+            // toward the end point. If that is not possible, we will fall back to using two constant-radius turns. If
+            // that is not possible, we will fall back to a direct-to path from the start point to the end point.
+
             const desiredTurnDirection = leg.turnDirection === LegTurnDirection.Left ? 'left'
               : leg.turnDirection === LegTurnDirection.Right ? 'right'
                 : undefined;
@@ -1575,104 +1667,138 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
               desiredTurnDirection, minTurnRadius
             );
 
-            const lastVector = vectors[vectorIndex - 1];
+            const lastVector = vectors[vectorIndex - 1] as FlightPathVector | undefined;
 
             if (
               lastVector !== undefined
-              && Math.abs(FlightPathUtils.getVectorFinalCourse(lastVector) - endCourse) > 1
               && !leg.flyOver
               && !CourseToFixLegCalculator.FALLBACK_INELIGIBLE_LEG_TYPES.includes(legs[calculateIndex + 1]?.leg.type)
             ) {
-              // We are allowed to use a fallback path which does not end at the defined terminator fix and a fallback
-              // direct course was calculated -> check if the direct course path crosses the terminator threshold at
-              // any point and if so, end the path where it crosses and set a fallback state.
+              const lastVectorEndVec = GeoPoint.sphericalToCartesian(lastVector.endLat, lastVector.endLon, this.vec3Cache[2]);
+              const lastVectorEndPath = FlightPathUtils.getGreatCircleTangentToVector(lastVectorEndVec, lastVector, this.geoCircleCache[3]);
+              const lastVectorCourseDiff = Math.acos(MathUtils.clamp(Vec3Math.dot(lastVectorEndPath.center, endPath.center), -1, 1));
 
-              const minTurnRadiusRad = UnitType.METER.convertTo(minTurnRadius, UnitType.GA_RADIAN);
+              if (lastVectorCourseDiff > 0.0174533 /* 1 degree */) {
+                // We are allowed to use a fallback path which does not end at the defined terminator fix and a fallback
+                // direct-to path was calculated. We need to determine if we should end the direct-to path early if it
+                // crosses past the terminator threshold or remove it entirely and end the leg immediately at the start
+                // point.
 
-              let startTurnCircle: GeoCircle | undefined;
-              let startTurnEnd: Float64Array | undefined;
+                const minTurnRadiusRad = UnitType.METER.convertTo(minTurnRadius, UnitType.GA_RADIAN);
 
-              /*
-               * The direct course builder can produce 0 to 2 vectors: an optional starting turn toward the target
-               * point and an optional great-circle path connecting the turn to the target point.
-               *
-               * We are not concerned with the case with zero vectors, because this means the start and end points are
-               * coincident.
-               *
-               * We are also not concerned with the case of the single great-circle vector, because this means that
-               * either the starting point and the entire path are behind the terminator threshold, or both are past
-               * the threshold, which would have been handled in another case above.
-               *
-               * Thus, we are left with only the cases where there is a single turn vector or a turn vector followed
-               * by a great-circle vector.
-               */
+                let useImmediateFallback = false;
+                let startTurnCircle: GeoCircle | undefined;
+                let startTurnEnd: Float64Array | undefined;
 
-              const isLastVectorGreatCircle = FlightPathUtils.isVectorGreatCircle(lastVector);
+                // The direct-to path can consist of either a single turn vector, a single great-circle vector, or a
+                // starting turn vector followed by a great-circle vector.
 
-              if (isLastVectorGreatCircle && vectors[vectorIndex - 2] !== undefined) {
-                const startTurnVector = vectors[vectorIndex - 2];
-                startTurnCircle = FlightPathUtils.setGeoCircleFromVector(startTurnVector, this.geoCircleCache[3]);
-                startTurnEnd = GeoPoint.sphericalToCartesian(startTurnVector.endLat, startTurnVector.endLon, this.vec3Cache[2]);
-              } else if (!isLastVectorGreatCircle) {
-                // If the direct course calculation produced only a single turn vector, it possibly reduced the radius
-                // of the starting turn below the minimum radius in order to build a valid path to the terminator.
-                // We always want the starting turn to respect the minimum turn radius, so we will define it ourselves.
+                if (FlightPathUtils.isVectorGreatCircle(lastVector)) {
+                  if (vectorIndex < 2) {
+                    // The direct-to path has a single great-circle vector. If the direct-to course differs from the end
+                    // course by more than 90 degrees, then the entire direct-to path is past the terminator threshold.
+                    // In that case we will end this leg at the start point and set a fallback state. If the direct-to
+                    // course is within 90 degrees of the end course, then the path must be entirely behind the
+                    // threshold. In that case we will leave the path in place.
+                    if (lastVectorCourseDiff > MathUtils.HALF_PI) {
+                      useImmediateFallback = true;
+                    }
+                  } else {
+                    // The direct-to path consists of a starting turn followed by a great-circle vector. If the course of
+                    // the great-circle vector differs from the end course by more than 90 degrees, then we need to
+                    // deal with the possibility that the direct-to path starts behind the terminator threshold and then
+                    // crosses past the threshold. If the courses differ by 90 or degrees or less, then we will leave
+                    // the direct-to path in place.
 
-                startTurnCircle = FlightPathUtils.getTurnCircleStartingFromPath(
-                  startVec, startPath,
-                  minTurnRadiusRad, desiredTurnDirection ?? (startPath.encircles(endVec) ? 'left' : 'right'),
-                  this.geoCircleCache[3]
-                );
-
-                // If the direct course turn radius was reduced, then the terminator fix lies inside the starting turn
-                // circle of minimum radius. Therefore, the turn technically never ends because there is no point on
-                // the turn circle that either includes the terminator fix or is tangent to a great-circle path which
-                // includes the terminator fix.
-                if (Math.min(lastVector.radius, Math.PI - lastVector.radius) >= minTurnRadiusRad - GeoCircle.ANGULAR_TOLERANCE) {
-                  startTurnEnd = GeoPoint.sphericalToCartesian(lastVector.endLat, lastVector.endLon, this.vec3Cache[2]);
-                }
-              }
-
-              if (startTurnCircle !== undefined) {
-                const intersections = this.intersectionCache;
-                const intersectionCount = threshold.intersection(startTurnCircle, intersections);
-                if (intersectionCount === 1) {
-                  // The starting turn is tangent to the threshold, which means it is either entirely past the
-                  // threshold or entirely behind it.
-                  if (threshold.encircles(FlightPathUtils.getTurnCenterFromCircle(startTurnCircle, this.vec3Cache[2]))) {
-                    // The entire starting turn lies beyond the threshold, which means the starting point must also
-                    // lie beyond the threshold -> end the leg immediately with no vectors and set the fallback state.
-                    vectorIndex = 0;
-                    (state.currentPosition ??= new GeoPoint(0, 0)).set(startPoint);
-                    state.currentCourse ??= currentCourse;
-                    state.isFallback = true;
+                    if (lastVectorCourseDiff > MathUtils.HALF_PI) {
+                      if (isStartPastThreshold) {
+                        // If the start point is past the terminator threshold, then the entire direct-to path is
+                        // guaranteed to be past the terminator threshold. Therefore we will end this leg at the start
+                        // point and set a fallback state.
+                        useImmediateFallback = true;
+                      } else {
+                        // If the start point is not past the terminator threshold, then that means at some point the
+                        // direct-to path (specifically the starting turn) must cross the threshold. Therefore we will
+                        // trigger the evaluation code below to find out where we need to end the path early as it
+                        // crosses the threshold.
+                        const startTurnVector = vectors[vectorIndex - 2];
+                        startTurnCircle = FlightPathUtils.setGeoCircleFromVector(startTurnVector, this.geoCircleCache[3]);
+                        startTurnEnd = GeoPoint.sphericalToCartesian(startTurnVector.endLat, startTurnVector.endLon, this.vec3Cache[3]);
+                      }
+                    }
                   }
-                } else if (startTurnEnd === undefined || intersectionCount === 2) {
-                  // If we are in this case, then the starting point is guaranteed to be behind the terminator
-                  // threshold. Therefore, the next intersection of the starting turn circle with the threshold will
-                  // take the path past the threshold.
+                } else {
+                  // The direct-to path is a single turn vector.
 
-                  const thresholdCrossing = intersections[0];
+                  if (isStartPastThreshold) {
+                    // If the start point is past the terminator threshold, we will end this leg at the start point and
+                    // set a fallback state.
+                    useImmediateFallback = true;
+                  } else {
+                    // If the start point is behind the terminator threshold, then it is possible the turn crosses past
+                    // the threshold before it ends. Therefore we will trigger the evaluation code below to find out if
+                    // we need to end the path early as it crosses the threshold.
 
-                  const thresholdCrossingAngle = startTurnCircle.angleAlong(startVec, thresholdCrossing, Math.PI, GeoCircle.ANGULAR_TOLERANCE);
+                    // If the direct course calculation produced only a single turn vector, it possibly reduced the radius
+                    // of the starting turn below the minimum radius in order to build a valid path to the terminator.
+                    // We always want the starting turn to respect the minimum turn radius, so we will define it ourselves.
 
-                  if (
-                    startTurnEnd === undefined
-                    || startTurnCircle.angleAlong(startVec, startTurnEnd, Math.PI, GeoCircle.ANGULAR_TOLERANCE) > thresholdCrossingAngle + GeoCircle.ANGULAR_TOLERANCE
-                  ) {
-                    // The starting turn crosses the terminator threshold before the end of the turn -> end the turn
-                    // at the crossing point and set the fallback state.
-
-                    vectorIndex = 0;
-
-                    vectorIndex += this.circleVectorBuilder.build(
-                      vectors, vectorIndex,
-                      startTurnCircle, startVec, thresholdCrossing,
-                      FlightPathVectorFlags.TurnToCourse | FlightPathVectorFlags.Fallback
+                    startTurnCircle = FlightPathUtils.getTurnCircleStartingFromPath(
+                      startVec, startPath,
+                      minTurnRadiusRad, desiredTurnDirection ?? (startPath.encircles(endVec) ? 'left' : 'right'),
+                      this.geoCircleCache[3]
                     );
 
-                    state.isFallback = true;
+                    // If the direct course turn radius was reduced, then the terminator fix lies inside the starting turn
+                    // circle of minimum radius. Therefore, the turn technically never ends because there is no point on
+                    // the turn circle that either includes the terminator fix or is tangent to a great-circle path which
+                    // includes the terminator fix.
+                    if (Math.min(lastVector.radius, Math.PI - lastVector.radius) >= minTurnRadiusRad - GeoCircle.ANGULAR_TOLERANCE) {
+                      startTurnEnd = GeoPoint.sphericalToCartesian(lastVector.endLat, lastVector.endLon, this.vec3Cache[3]);
+                    }
                   }
+                }
+
+                if (startTurnCircle !== undefined) {
+                  // Find the intersections of the direct-to starting turn circle with the terminator threshold.
+                  const intersections = this.intersectionCache;
+                  const intersectionCount = threshold.intersection(startTurnCircle, intersections);
+
+                  // If the starting turn is tangent to the threshold, then the entire turn must be behind the threshold
+                  // because we are guaranteed that the start point is behind the threshold if we made it into this case.
+                  // Therefore, we only care about starting turns that are secant to the threshold.
+                  if (intersectionCount === 2) {
+                    // Because the start point is guaranteed to be behind the threshold, the next intersection of the
+                    // starting turn circle with the threshold will take the path past the threshold.
+
+                    const thresholdCrossing = intersections[0];
+                    const thresholdCrossingAngle = startTurnCircle.angleAlong(startVec, thresholdCrossing, Math.PI, GeoCircle.ANGULAR_TOLERANCE);
+
+                    if (
+                      startTurnEnd === undefined
+                      || startTurnCircle.angleAlong(startVec, startTurnEnd, Math.PI, GeoCircle.ANGULAR_TOLERANCE) > thresholdCrossingAngle + GeoCircle.ANGULAR_TOLERANCE
+                    ) {
+                      // The starting turn crosses the terminator threshold before the end of the turn (or the turn has
+                      // no end) -> end the turn at the crossing point and set the fallback state.
+
+                      vectorIndex = 0;
+
+                      vectorIndex += this.circleVectorBuilder.build(
+                        vectors, vectorIndex,
+                        startTurnCircle, startVec, thresholdCrossing,
+                        FlightPathVectorFlags.TurnToCourse | FlightPathVectorFlags.Fallback
+                      );
+
+                      state.isFallback = true;
+                    }
+                  }
+                }
+
+                if (useImmediateFallback) {
+                  vectorIndex = 0;
+                  (state.currentPosition ??= new GeoPoint(0, 0)).set(startPoint);
+                  state.currentCourse ??= currentCourse;
+                  state.isFallback = true;
                 }
               }
             }

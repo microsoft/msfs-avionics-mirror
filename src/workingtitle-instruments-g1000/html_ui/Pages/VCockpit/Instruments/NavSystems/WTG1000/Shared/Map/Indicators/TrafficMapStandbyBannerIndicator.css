@@ -1,0 +1,11 @@
+.traffic-map-banner-standby {
+  padding: 0px 2px;
+  color: var(--amber);
+  background: black;
+  border: 1px solid whitesmoke;
+  border-radius: 5px;
+}
+
+.traffic-map-banner-standby.traffic-map-banner-standby-onground {
+  color: white;
+}

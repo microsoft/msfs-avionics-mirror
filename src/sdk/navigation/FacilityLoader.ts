@@ -771,9 +771,10 @@ export class NearestIntersectionSearchSession extends CoherentNearestSearchSessi
   /**
    * Sets the filter for the intersection nearest search.
    * @param typeMask A bitmask to determine which JS intersection types to show.
+   * @param showTerminalWaypoints Whether or not to show terminal waypoints. Defaults to true.
    */
-  public setIntersectionFilter(typeMask: number): void {
-    Coherent.call('SET_NEAREST_INTERSECTION_FILTER', this.sessionId, typeMask);
+  public setIntersectionFilter(typeMask: number, showTerminalWaypoints = true): void {
+    Coherent.call('SET_NEAREST_INTERSECTION_FILTER', this.sessionId, typeMask, showTerminalWaypoints ? 1 : 0);
   }
 }
 

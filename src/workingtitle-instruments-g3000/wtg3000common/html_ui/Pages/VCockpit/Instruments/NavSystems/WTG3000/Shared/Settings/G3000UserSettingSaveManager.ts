@@ -19,6 +19,7 @@ import { TouchdownCalloutUserSettings } from './TouchdownCalloutSettings';
  */
 export class G3000UserSettingSaveManager extends UserSettingSaveManager {
   private static readonly PFD_SETTINGS: (keyof PfdAliasedUserSettingTypes)[] = [
+    'flightDirectorFormat',
     'aoaDisplayMode',
     'windDisplayMode',
     'pfdMapLayout',

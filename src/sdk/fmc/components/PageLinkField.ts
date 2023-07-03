@@ -9,6 +9,8 @@ interface PageLinkFieldOptions extends FmcComponentOptions {
   label: string,
   /** The route to navigate to. */
   route: string,
+  /** The params for the route */
+  params?: Record<string, unknown>,
 }
 
 /**
@@ -22,7 +24,7 @@ export class PageLinkField extends DisplayField<string> {
       style: options.disabled ? '[disabled]' : '',
       disabled: options.disabled,
       clearScratchpadOnSelectedHandled: false,
-      onSelected: options.onSelected ?? (async (): Promise<boolean> => { page.screen.navigateTo(options.route); return true; }),
+      onSelected: options.onSelected ?? (async (): Promise<boolean> => { page.screen.navigateTo(options.route, options.params); return true; }),
     };
     super(page, opts);
     this.takeValue(options.label);
@@ -34,10 +36,11 @@ export class PageLinkField extends DisplayField<string> {
    * @param label  the label to display
    * @param route the route to navigate to (will disable link when empty)
    * @param disabled whether the link is disabled
+   * @param params Parameters for the route
    * @returns the {@link PageLinkField}
    */
-  static createLink(page: AbstractFmcPage, label: string, route: string, disabled = false): PageLinkField {
+  static createLink(page: AbstractFmcPage, label: string, route: string, disabled = false, params?: Record<string, unknown>): PageLinkField {
     if (route === '') { disabled = true; }
-    return new PageLinkField(page, { label, route, disabled });
+    return new PageLinkField(page, { label, route, disabled, params });
   }
 }

@@ -749,6 +749,7 @@ export class NextGenNavMapBuilder {
       const trafficRef = FSComponent.createRef<MapTrafficOffScaleIndicator>();
       const relTerrainRef = FSComponent.createRef<MapRelativeTerrainStatusIndicator>();
       let showRelTerrain: MappedSubscribable<boolean> | undefined = undefined;
+      let trafficRelTerrainContainerStyle: MappedSubscribable<string> | undefined = undefined;
 
       const factories: ((context: MapSystemContext<any, any, any, any>) => VNode)[] = [];
 
@@ -771,8 +772,14 @@ export class NextGenNavMapBuilder {
               );
             }
 
+            trafficRelTerrainContainerStyle = MappedSubject.create(
+              ([showTraffic, showTerrain]) => showTraffic || showTerrain ? '' : 'display: none;',
+              trafficModule?.show ?? Subject.create(false),
+              showRelTerrain ?? Subject.create(false)
+            );
+
             return (
-              <div class='map-traffic-rel-terrain-indicator-container'>
+              <div class='map-traffic-rel-terrain-indicator-container' style={trafficRelTerrainContainerStyle}>
                 {trafficModule !== undefined && (
                   <MapTrafficStatusIndicator
                     ref={trafficRef}
@@ -825,6 +832,7 @@ export class NextGenNavMapBuilder {
             trafficRef.getOrDefault()?.destroy();
             relTerrainRef.getOrDefault()?.destroy();
             showRelTerrain?.destroy();
+            trafficRelTerrainContainerStyle?.destroy();
           }
         },
         'map-indicator-group-bottom-right'

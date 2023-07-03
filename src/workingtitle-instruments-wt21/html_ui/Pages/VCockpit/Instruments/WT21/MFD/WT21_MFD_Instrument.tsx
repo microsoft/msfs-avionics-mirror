@@ -11,7 +11,7 @@ import {
   FlightPlanPredictor, FSComponent,
   FsInstrument,
   GNSSPublisher, HEventPublisher, InstrumentBackplane, InstrumentEvents, LNavSimVarPublisher, MinimumsSimVarPublisher, NavComSimVarPublisher,
-  NavProcSimVarPublisher, PressurizationPublisher, SimVarValueType,
+  PressurizationPublisher, SimVarValueType,
   SoundServer,
   StallWarningEvents,
   StallWarningPublisher,
@@ -54,6 +54,7 @@ import { WT21ElectricalSetup } from '../Shared/Systems/WT21ElectricalSetup';
 
 import '../Shared/WT21_Common.css';
 import './WT21_MFD.css';
+import { WT21XmlAuralsConfig } from '../Shared/WT21XmlAuralsConfig';
 
 /**
  * The WT21 MFD Instrument
@@ -82,7 +83,6 @@ export class WT21_MFD_Instrument implements FsInstrument {
   private readonly settingSaveManager: UserSettingSaveManager;
   private readonly navSources: WT21NavSources;
   private readonly navIndicators: WT21NavIndicators;
-  private readonly navProcSimVarPublisher: NavProcSimVarPublisher;
   private readonly navComSimVarPublisher: NavComSimVarPublisher;
   private readonly uprMenuViewService: MfdUprMenuViewService;
   private readonly lwrMenuViewService: MfdLwrMenuViewService;
@@ -111,6 +111,7 @@ export class WT21_MFD_Instrument implements FsInstrument {
   private readonly dispatchModeTimer: DebounceTimer = new DebounceTimer();
   private isMasterBatteryOn = false;
   private isAv1BusOn = false;
+  private auralsConfig: WT21XmlAuralsConfig;
 
   /**
    * Creates an instance of the WT21_MFD.
@@ -203,9 +204,6 @@ export class WT21_MFD_Instrument implements FsInstrument {
     this.backplane.addPublisher('eis', this.eisInstrument.eisPub);
     this.backplane.addPublisher('controlsurfaces', this.eisInstrument.surfacesPub);
     this.backplane.addPublisher('electrics', this.eisInstrument.elecPub);
-
-    this.navProcSimVarPublisher = new NavProcSimVarPublisher(this.bus);
-    this.backplane.addPublisher('nav', this.navProcSimVarPublisher);
 
     this.navComSimVarPublisher = new NavComSimVarPublisher(this.bus);
     this.backplane.addPublisher('navCom', this.navComSimVarPublisher);
@@ -355,6 +353,8 @@ export class WT21_MFD_Instrument implements FsInstrument {
     this.eisInstrument.fadecPub.startPublish();
     this.fmcSimVarPublisher.startPublish();
     this.initPrimaryFlightPlan();
+
+    this.auralsConfig = new WT21XmlAuralsConfig(this.instrument, this.xmlLogicHost, this.bus);
   }
 
   /** @inheritdoc */

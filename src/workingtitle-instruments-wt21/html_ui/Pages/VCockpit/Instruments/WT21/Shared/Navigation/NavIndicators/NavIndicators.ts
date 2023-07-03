@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { Instrument, Subject, Subscribable } from '@microsoft/msfs-sdk';
 
-import { NavBaseControlEvents, NavBaseEvents } from '../';
-import { NavBase, NavBaseFields } from '../NavBase';
+import { NavBase, NavBaseControlEvents, NavBaseEvents, NavBaseFields } from '../NavBase';
 import { NavSourceBase, NavSources } from '../NavSources/NavSourceBase';
 
 /** NavBaseFields plus NavIndicator specific fields. */

@@ -1,13 +1,11 @@
 import {
-  VNavManager, VNavState, Subject, VNavPathMode, GeoPoint, APVerticalModes,
-  GlidePathCalculator, ObjectSubject, VNavAltCaptureType, ConsumerSubject,
-  EventBus, FlightPlanner, VNavPathCalculator, APValues, LNavEvents,
-  APEvents, AdcEvents, GNSSEvents, ClockEvents, FlightPlannerEvents, UnitType,
-  VNavControlEvents, APLateralModes, VNavEvents, VNavAvailability, VNavVars, SimVarValueType,
-  VerticalFlightPhase, VNavUtils, VerticalFlightPlan, FlightPlan, VNavConstraint,
-  MathUtils, NavMath, LNavDataEvents, AltitudeConstraintDetails,
-  AltitudeRestrictionType, RnavTypeFlags, SpeedConstraint, SpeedRestrictionType, SpeedUnit, FlightPlanSegmentType,
-  GPSSystemState, Subscribable, TocBocDetails, VNavLeg, BitFlags, LegDefinitionFlags
+  AdcEvents, AltitudeConstraintDetails, AltitudeRestrictionType, APEvents, APLateralModes, APValues, APVerticalModes,
+  BitFlags, ClockEvents, ConsumerSubject, ConsumerValue, ControlEvents, EventBus, FlightPlan, FlightPlanner, FlightPlannerEvents,
+  FlightPlanSegmentType, GeoPoint, GlidePathCalculator, GNSSEvents, GPSSystemState, LegDefinitionFlags, LNavDataEvents,
+  LNavEvents, MathUtils, NavMath, ObjectSubject, RnavTypeFlags, SimVarValueType, SpeedConstraint, SpeedRestrictionType,
+  SpeedUnit, Subject, Subscribable, TocBocDetails, UnitType, VerticalFlightPhase, VerticalFlightPlan, VNavAltCaptureType,
+  VNavAvailability, VNavConstraint, VNavControlEvents, VNavEvents, VNavLeg, VNavManager, VNavPathCalculator,
+  VNavPathMode, VNavState, VNavUtils, VNavVars
 } from '@microsoft/msfs-sdk';
 
 import { ApproachDetails, FmsEvents, FmsUtils } from '../flightplan';
@@ -217,14 +215,16 @@ export class GarminVNavManager2 implements VNavManager {
   );
 
   // LNAV Consumer Subjects
-  private readonly lnavLegIndex: ConsumerSubject<number>;
-  private readonly lnavLegDistanceAlong: ConsumerSubject<number>;
-  private readonly lnavLegDistanceRemaining: ConsumerSubject<number>;
-  private readonly lnavXtk: ConsumerSubject<number>;
-  private readonly lnavDtk: ConsumerSubject<number>;
-  private readonly lnavDataCdiScale: ConsumerSubject<number>;
+  private readonly lnavLegIndex: ConsumerValue<number>;
+  private readonly lnavLegDistanceAlong: ConsumerValue<number>;
+  private readonly lnavLegDistanceRemaining: ConsumerValue<number>;
+  private readonly lnavXtk: ConsumerValue<number>;
+  private readonly lnavDtk: ConsumerValue<number>;
+  private readonly lnavDataCdiScale: ConsumerValue<number>;
 
-  private readonly gpSupported: ConsumerSubject<boolean>;
+  private readonly gpSupported: ConsumerValue<boolean>;
+
+  private readonly activateMaprState: ConsumerValue<boolean>;
 
   private readonly noVNavTae = Subject.create<boolean>(false);
   private readonly noVNavXtk = Subject.create<boolean>(false);
@@ -278,45 +278,49 @@ export class GarminVNavManager2 implements VNavManager {
       this.approachDetails
     );
 
-    const lnav = this.bus.getSubscriber<LNavEvents>();
-    this.lnavLegIndex = ConsumerSubject.create(lnav.on('lnav_tracked_leg_index'), 0);
-    this.lnavLegDistanceAlong = ConsumerSubject.create(lnav.on('lnav_leg_distance_along'), 0);
-    this.lnavLegDistanceRemaining = ConsumerSubject.create(lnav.on('lnav_leg_distance_remaining'), 0);
-    this.lnavXtk = ConsumerSubject.create(lnav.on('lnav_xtk'), 0);
-    this.lnavDtk = ConsumerSubject.create(lnav.on('lnav_dtk'), 0);
+    const sub = this.bus.getSubscriber<
+      LNavEvents & LNavDataEvents & APEvents & AdcEvents & GNSSEvents & ClockEvents & FlightPlannerEvents
+      & FmsEvents & VNavDataEvents & VNavControlEvents & ControlEvents
+    >();
 
-    const lnavData = this.bus.getSubscriber<LNavDataEvents>();
-    this.lnavDataCdiScale = ConsumerSubject.create(lnavData.on('lnavdata_cdi_scale'), 4);
+    this.lnavLegIndex = ConsumerValue.create(sub.on('lnav_tracked_leg_index'), 0);
+    this.lnavLegDistanceAlong = ConsumerValue.create(sub.on('lnav_leg_distance_along'), 0);
+    this.lnavLegDistanceRemaining = ConsumerValue.create(sub.on('lnav_leg_distance_remaining'), 0);
+    this.lnavXtk = ConsumerValue.create(sub.on('lnav_xtk'), 0);
+    this.lnavDtk = ConsumerValue.create(sub.on('lnav_dtk'), 0);
 
-    this.bus.getSubscriber<APEvents>().on('ap_altitude_selected').handle(selected => this.preselectedAltitude = selected);
-    this.bus.getSubscriber<AdcEvents>().on('indicated_alt').handle(alt => this.currentAltitude = alt);
-    this.bus.getSubscriber<AdcEvents>().on('vertical_speed').whenChangedBy(1).handle(vs => this.currentVS = vs);
-    this.bus.getSubscriber<GNSSEvents>().on('track_deg_true').whenChangedBy(1).handle(trueTrack => this.trueTrack = trueTrack);
-    this.bus.getSubscriber<ClockEvents>().on('realTime').whenChangedBy(100).handle(t => this._realTime = t);
+    this.lnavDataCdiScale = ConsumerValue.create(sub.on('lnavdata_cdi_scale'), 4);
+
+    sub.on('ap_altitude_selected').handle(selected => this.preselectedAltitude = selected);
+    sub.on('indicated_alt').handle(alt => this.currentAltitude = alt);
+    sub.on('vertical_speed').whenChangedBy(1).handle(vs => this.currentVS = vs);
+    sub.on('track_deg_true').whenChangedBy(1).handle(trueTrack => this.trueTrack = trueTrack);
+    sub.on('realTime').whenChangedBy(100).handle(t => this._realTime = t);
 
     // Proxy for executing a plan change
-    this.bus.getSubscriber<FlightPlannerEvents>().on('fplCopied').handle(e => {
+    sub.on('fplCopied').handle(e => {
       if (this.pathMode.get() === VNavPathMode.PathActive && e.targetPlanIndex === 0 && !this.lateralPlanChanged) {
         this.lateralPlanChanged = true;
         this.lateralPlanChangedTimer = Date.now();
       }
     });
 
-    const gnss = this.bus.getSubscriber<GNSSEvents>();
-    gnss.on('gps-position').handle(lla => {
+    sub.on('gps-position').handle(lla => {
       this.planePos.set(lla.lat, lla.long);
       this.currentGpsAltitude = UnitType.METER.convertTo(lla.alt, UnitType.FOOT);
     });
-    gnss.on('ground_speed').handle(gs => this.currentGroundSpeed = gs);
+    sub.on('ground_speed').handle(gs => this.currentGroundSpeed = gs);
 
-    this.approachDetails.setConsumer(bus.getSubscriber<FmsEvents>().on('fms_approach_details'));
-    this.gpSupported = ConsumerSubject.create(this.bus.getSubscriber<VNavDataEvents>().on('approach_supports_gp'), false);
+    this.approachDetails.setConsumer(sub.on('fms_approach_details'));
+    this.gpSupported = ConsumerValue.create(sub.on('approach_supports_gp'), false);
+
+    this.activateMaprState = ConsumerValue.create(sub.on('activate_missed_approach'), false);
 
     this.apValues.approachHasGP.sub(v => {
       this.bus.getPublisher<VNavDataEvents>().pub('gp_available', v, true);
     });
 
-    this.bus.getSubscriber<VNavControlEvents>().on('vnav_set_state').handle(d => {
+    sub.on('vnav_set_state').handle(d => {
       if (d) {
         this.setState(VNavState.Enabled_Inactive);
       } else {
@@ -711,37 +715,6 @@ export class GarminVNavManager2 implements VNavManager {
           verticalPlan, currentConstraintIndex, lateralLegIndex, alongLegDistance, currentAltitudeMetric, currentVSMetric, this.todBodDetails
         );
 
-        const tocBocDetails = this.tocBocDetails;
-        if (this.options.enableAdvancedVNav) {
-          VNavUtils.getTocBocDetails(
-            verticalPlan, lateralLegIndex, alongLegDistance, this.currentGroundSpeed, currentAltitudeMetric, currentVSMetric, this.tocBocDetails
-          );
-
-          // If TOC and BOC are defined, check if the airplane's current altitude is above the BOC suppression threshold
-          // and suppress the BOC as appropriate.
-          if (
-            tocBocDetails.tocLegIndex >= 0
-            && tocBocDetails.bocLegIndex >= 0
-            && currentAltitudeMetric > tocBocDetails.tocAltitude + GarminVNavManager2.BOC_SUPPRESS_ALTITUDE_THRESHOLD
-          ) {
-            tocBocDetails.bocLegIndex = -1;
-            tocBocDetails.distanceFromBoc = 0;
-          }
-
-          // If TOC is defined, check if the airplane's current altitude is above the TOC suppression threshold and
-          // suppress the TOC as appropriate.
-          if (
-            tocBocDetails.tocLegIndex >= 0
-            && currentAltitudeMetric >= tocBocDetails.tocAltitude - GarminVNavManager2.TOC_SUPPRESS_ALTITUDE_THRESHOLD
-          ) {
-            tocBocDetails.tocLegIndex = -1;
-            tocBocDetails.distanceFromToc = 0;
-            tocBocDetails.tocLegDistance = 0;
-            tocBocDetails.tocConstraintIndex = -1;
-            tocBocDetails.tocAltitude = -1;
-          }
-        }
-
         // Update VNAV flight and tracking phases.
 
         const firstDescentConstraintIndex = this.firstDescentConstraintLegIndex < 0
@@ -749,7 +722,7 @@ export class GarminVNavManager2 implements VNavManager {
           : VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, this.firstDescentConstraintLegIndex);
 
         const isInDeparture = lateralPlan.getSegment(lateralPlan.getSegmentIndex(lateralLegIndex)).segmentType === FlightPlanSegmentType.Departure;
-        const isInMapr = BitFlags.isAll(lateralPlan.getLeg(lateralLegIndex).flags, LegDefinitionFlags.MissedApproach);
+        const isInMapr = this.activateMaprState.get() || BitFlags.isAll(lateralPlan.getLeg(lateralLegIndex).flags, LegDefinitionFlags.MissedApproach);
         const isPastTod = this.firstDescentConstraintLegIndex >= 0 && firstDescentConstraintIndex >= 0 // There is at least one descent constraint and...
           && (
             // ... we are past the first descent constraint...
@@ -800,8 +773,6 @@ export class GarminVNavManager2 implements VNavManager {
           this.vnavTrackingPhase.set(GarminVNavTrackingPhase.MissedApproach);
         } else if (isPastTod) {
           this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Descent);
-        } else if (isInDeparture) {
-          this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Climb);
         } else if (isInCruise) {
           this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Cruise);
         } else {
@@ -812,6 +783,23 @@ export class GarminVNavManager2 implements VNavManager {
         const inClimb = vnavTrackingPhase === GarminVNavTrackingPhase.Climb || vnavTrackingPhase === GarminVNavTrackingPhase.MissedApproach;
 
         this.currentConstraintLegIndex.set(currentConstraint.index);
+
+        // Find the constraint matching the current tracking phase that applies to the active flight plan leg.
+        let currentPhaseConstraintIndex: number;
+        if (isInMapr) {
+          currentPhaseConstraintIndex = currentConstraint.type === 'missed'
+            ? currentConstraintIndex
+            : VNavUtils.getNextMaprConstraintIndex(verticalPlan, lateralLegIndex);
+        } else if (inClimb) {
+          currentPhaseConstraintIndex = currentConstraint.type === 'climb'
+            ? currentConstraintIndex
+            : VNavUtils.getNextClimbConstraintIndex(verticalPlan, lateralLegIndex);
+        } else {
+          currentPhaseConstraintIndex = currentConstraint.type !== 'climb' && currentConstraint.type !== 'missed'
+            ? currentConstraintIndex
+            : VNavUtils.getNextDescentConstraintIndex(verticalPlan, lateralLegIndex);
+        }
+        const currentPhaseConstraint = verticalPlan.constraints[currentPhaseConstraintIndex] as VNavConstraint | undefined;
 
         if (trackError) {
           // If one or more LNAV track error limits have been exceeded, reset all vertical tracking data but still
@@ -825,29 +813,77 @@ export class GarminVNavManager2 implements VNavManager {
           this.resetTocBocVars();
 
           if (inClimb) {
-            // The active constraint is the current constraint unless it is not a climb-type constraint.
+            // The active constraint is the current phase constraint.
 
-            if (currentConstraint.type !== 'climb' && currentConstraint.type !== 'missed') {
-              this.vnavActiveConstraintLegIndex.set(-1);
-            } else {
-              this.vnavActiveConstraintLegIndex.set(currentConstraint.index);
-            }
-
+            this.vnavActiveConstraintLegIndex.set(currentPhaseConstraint === undefined ? -1 : currentPhaseConstraint.index);
             this.fpa.set(null);
           } else {
             // The active constraint and FPA are based on the last known active path constraint, if one exists and does
             // not precede (in flight plan order) the current constraint (the constraint containing the active flight
-            // plan leg). Otherwise, they are based on the current constraint.
+            // plan leg). Otherwise, they are based on the current phase constraint.
 
             const activeConstraintIndex = this.activePathConstraintIndex < 0 || this.activePathConstraintIndex > currentConstraintIndex
-              ? currentConstraintIndex
+              ? currentPhaseConstraintIndex
               : this.activePathConstraintIndex;
 
-            const activeConstraint = verticalPlan.constraints[activeConstraintIndex] ?? currentConstraint;
-            this.vnavActiveConstraintLegIndex.set(activeConstraint.index);
-            this.fpa.set(activeConstraint.type === 'climb' || activeConstraint.type === 'missed' ? null : activeConstraint.fpa);
+            const activeConstraint = verticalPlan.constraints[activeConstraintIndex] as VNavConstraint | undefined;
+            if (activeConstraint) {
+              this.vnavActiveConstraintLegIndex.set(activeConstraint.index);
+              this.fpa.set(activeConstraint.fpa);
+            } else {
+              this.vnavActiveConstraintLegIndex.set(-1);
+              this.fpa.set(null);
+            }
           }
         } else {
+
+          // If we are in the climb or missed approach tracking phases and advanced VNAV is supported, calculate
+          // TOC/BOC details. Otherwise blank the TOC/BOC details.
+
+          const tocBocDetails = this.tocBocDetails;
+          if (inClimb && this.options.enableAdvancedVNav) {
+            GarminVNavUtils.getTocBocDetails(
+              verticalPlan,
+              currentConstraintIndex,
+              lateralLegIndex, alongLegDistance,
+              this.currentGroundSpeed, currentAltitudeMetric, currentVSMetric,
+              isInMapr,
+              this.tocBocDetails
+            );
+
+            // If TOC and BOC are defined, check if the airplane's current altitude is above the BOC suppression threshold
+            // and suppress the BOC as appropriate.
+            if (
+              tocBocDetails.tocLegIndex >= 0
+              && tocBocDetails.bocLegIndex >= 0
+              && currentAltitudeMetric > tocBocDetails.tocAltitude + GarminVNavManager2.BOC_SUPPRESS_ALTITUDE_THRESHOLD
+            ) {
+              tocBocDetails.bocLegIndex = -1;
+              tocBocDetails.distanceFromBoc = 0;
+            }
+
+            // If TOC is defined, check if the airplane's current altitude is above the TOC suppression threshold and
+            // suppress the TOC as appropriate.
+            if (
+              tocBocDetails.tocLegIndex >= 0
+              && currentAltitudeMetric >= tocBocDetails.tocAltitude - GarminVNavManager2.TOC_SUPPRESS_ALTITUDE_THRESHOLD
+            ) {
+              tocBocDetails.tocLegIndex = -1;
+              tocBocDetails.distanceFromToc = 0;
+              tocBocDetails.tocLegDistance = 0;
+              tocBocDetails.tocConstraintIndex = -1;
+              tocBocDetails.tocAltitude = -1;
+            }
+          } else {
+            GarminVNavUtils.getTocBocDetails(
+              verticalPlan,
+              -1,
+              lateralLegIndex, alongLegDistance,
+              this.currentGroundSpeed, currentAltitudeMetric, currentVSMetric,
+              isInMapr,
+              this.tocBocDetails
+            );
+          }
 
           // Publish TOD/BOD and TOC/BOC data.
           this.manageTodBodTocBocDetails(lateralLegIndex, todBodDetails, tocBocDetails);
@@ -878,17 +914,15 @@ export class GarminVNavManager2 implements VNavManager {
 
           this.activePathConstraintIndex = activePathConstraintIndex;
 
-          // If we are tracking a climb or there is no active path constraint, the current constraint is the active
+          // If we are tracking a climb or there is no active path constraint, the current phase constraint is the active
           // constraint; otherwise the active path constraint is the active constraint.
           if (inClimb || activePathConstraintIndex < 0) {
-            // If we are tracking a climb and the current constraint is not a climb-type constraint, then there is
-            // no active constraint because VNAV will not try to capture a non-climb constraint when tracking a climb.
-            if (inClimb && currentConstraint.type !== 'climb' && currentConstraint.type !== 'missed') {
+            if (currentPhaseConstraint) {
+              activeConstraintIndex = currentPhaseConstraintIndex;
+              this.vnavActiveConstraintLegIndex.set(currentPhaseConstraint.index);
+            } else {
               activeConstraintIndex = -1;
               this.vnavActiveConstraintLegIndex.set(-1);
-            } else {
-              activeConstraintIndex = currentConstraintIndex;
-              this.vnavActiveConstraintLegIndex.set(currentConstraint.index);
             }
           } else {
             activeConstraintIndex = activePathConstraintIndex;
@@ -902,16 +936,25 @@ export class GarminVNavManager2 implements VNavManager {
           this._isActive = this.state === VNavState.Enabled_Active;
 
           if (!inClimb && !this.isClimbArmed) {
-            this.fpa.set(verticalPlan.constraints[activeConstraintIndex].fpa);
+            const activeConstraint = verticalPlan.constraints[activeConstraintIndex];
+            this.fpa.set(activeConstraint === undefined ? null : activeConstraint.fpa);
             this.setCurrentConstraintDetails(verticalPlan, activeConstraintIndex, lateralLegIndex);
             this.pathAvailable.set(true);
             this.trackDescent(verticalPlan, lateralPlan, todBodDetails, activeConstraintIndex, activePathConstraintIndex);
           } else if (this.options.enableAdvancedVNav && (inClimb || this.isClimbArmed)) {
+            if (this._isActive) {
+              this.disarmPath();
+            }
+
             this.fpa.set(null);
             this.setCurrentConstraintDetails(verticalPlan, activeConstraintIndex, lateralLegIndex);
             this.pathAvailable.set(false);
             this.trackClimb(verticalPlan, lateralPlan, tocBocDetails, activeConstraintIndex);
           } else {
+            if (this._isActive) {
+              this.disarmPath();
+            }
+
             this.fpa.set(null);
             this.resetVNavTrackingVars();
           }

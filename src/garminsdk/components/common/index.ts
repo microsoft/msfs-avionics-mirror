@@ -1,5 +1,6 @@
 export * from './ApproachNameDisplay';
 export * from './BearingDisplay';
+export * from './FailureBox';
 export * from './LatLonDisplay';
 export * from './MagVarDisplay';
 export * from './MapRangeValueDisplay';

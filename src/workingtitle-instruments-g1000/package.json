@@ -1,0 +1,31 @@
+{
+  "name": "workingtitle-instruments-g1000",
+  "version": "1.2.2",
+  "description": "Working Title Garmin G1000 NXi",
+  "main": "index.ts",
+  "scripts": {
+    "build": "npm run build:compile && npm run build:rollup && npm run build:copies",
+    "build:compile": "npx tsc",
+    "build:rollup": "robocopy html_ui *.css build/workingtitle-instruments-g1000/html_ui /s & npx rollup -c rollup.config.js",
+    "build:copies": "npm run build:copies:extras & npm run build:copies:garminsdk & npm run build:copies:msfssdk",
+    "build:copies:extras": "robocopy html_ui *.svg *.png *.html *.json *.ttf dist/workingtitle-instruments-g1000/html_ui /s",
+    "build:copies:garminsdk": "xcopy node_modules\\@microsoft\\msfs-garminsdk\\garminsdk-iife.js dist\\workingtitle-instruments-g1000\\html_ui\\Pages\\VCockpit\\Instruments\\NavSystems\\WTG1000\\Libraries\\garminsdk.js /Y /-I",
+    "build:copies:msfssdk": "xcopy node_modules\\@microsoft\\msfs-sdk\\msfssdk-iife.js dist\\workingtitle-instruments-g1000\\html_ui\\Pages\\VCockpit\\Instruments\\NavSystems\\WTG1000\\Libraries\\msfssdk.js /Y /-I"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/msfs-avionics-mirror/"
+  },
+  "author": "Working Title Simulations, LLC",
+  "license": "Modified MIT",
+  "devDependencies": {
+    "@microsoft/msfs-sdk": "0.5.0",
+    "@microsoft/msfs-types": "1.14.6",
+    "@microsoft/msfs-garminsdk": "0.3.0",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@types/node": "^18.11.18",
+    "rollup": "^2.79.1",
+    "rollup-plugin-import-css": "^3.1.0",
+    "typescript": "4.5.5"
+  }
+}

@@ -1,5 +1,6 @@
 import { AbstractSubscribable } from '../sub/AbstractSubscribable';
 import { MutableSubscribable } from '../sub/Subscribable';
+import { SubscribableUtils } from '../sub/SubscribableUtils';
 import { ReadonlyFloat64Array, Vec2Math, Vec3Math } from './VecMath';
 
 /**
@@ -65,7 +66,7 @@ export class Vec2Subject extends AbstractSubscribable<ReadonlyFloat64Array>
       y = arg1[1];
     }
 
-    const equals = x === this.value[0] && y === this.value[1];
+    const equals = SubscribableUtils.NUMERIC_NAN_EQUALITY(x, this.value[0]) && SubscribableUtils.NUMERIC_NAN_EQUALITY(y, this.value[1]);
     if (!equals) {
       Vec2Math.set(x, y, this.value);
       this.notify();
@@ -138,7 +139,9 @@ export class Vec3Subject extends AbstractSubscribable<ReadonlyFloat64Array>
       z = arg1[2];
     }
 
-    const equals = x === this.value[0] && y === this.value[1] && z === this.value[2];
+    const equals = SubscribableUtils.NUMERIC_NAN_EQUALITY(x, this.value[0])
+      && SubscribableUtils.NUMERIC_NAN_EQUALITY(y, this.value[1])
+      && SubscribableUtils.NUMERIC_NAN_EQUALITY(z, this.value[2]);
     if (!equals) {
       Vec3Math.set(x, y, z, this.value as Float64Array);
       this.notify();
@@ -216,7 +219,7 @@ export class VecNSubject extends AbstractSubscribable<ReadonlyFloat64Array>
     let equals = true;
     const len = array.length;
     for (let i = 0; i < len; i++) {
-      if (array[i] !== this.value[i]) {
+      if (!SubscribableUtils.NUMERIC_NAN_EQUALITY(array[i], this.value[i])) {
         equals = false;
         break;
       }

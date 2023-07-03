@@ -916,6 +916,7 @@ export enum UnitFamily {
   Angle = 'angle',
   Duration = 'duration',
   Weight = 'weight',
+  Mass = 'weight',
   Volume = 'volume',
   Pressure = 'pressure',
   Temperature = 'temperature',
@@ -923,7 +924,10 @@ export enum UnitFamily {
   Speed = 'speed',
   Acceleration = 'acceleration',
   WeightFlux = 'weight_flux',
-  VolumeFlux = 'volume_flux'
+  MassFlux = 'weight_flux',
+  VolumeFlux = 'volume_flux',
+  Density = 'density',
+  Force = 'force'
 }
 
 /**
@@ -940,6 +944,9 @@ export class UnitType {
   /** Great-arc radian. The average radius of Earth. */
   public static readonly GA_RADIAN = new SimpleUnit(UnitFamily.Distance, 'great arc radian', 6378100);
 
+  /** 9.80665 meters, for internal use. */
+  private static readonly G_METER = new SimpleUnit(UnitFamily.Distance, '9.80665 meter', 9.80665);
+
   public static readonly RADIAN = new SimpleUnit(UnitFamily.Angle, 'radian', 1);
   public static readonly DEGREE = new SimpleUnit(UnitFamily.Angle, 'degree', Math.PI / 180);
   public static readonly ARC_MIN = new SimpleUnit(UnitFamily.Angle, 'minute', Math.PI / 180 / 60);
@@ -952,6 +959,7 @@ export class UnitType {
 
   public static readonly KILOGRAM = new SimpleUnit(UnitFamily.Weight, 'kilogram', 1);
   public static readonly POUND = new SimpleUnit(UnitFamily.Weight, 'pound', 0.453592);
+  public static readonly SLUG = new SimpleUnit(UnitFamily.Weight, 'slug', 14.59390);
   public static readonly TON = new SimpleUnit(UnitFamily.Weight, 'ton', 907.185);
   public static readonly TONNE = new SimpleUnit(UnitFamily.Weight, 'tonne', 1000);
 
@@ -973,6 +981,8 @@ export class UnitType {
   public static readonly IN_HG = new SimpleUnit(UnitFamily.Pressure, 'inch of mercury', 33.8639);
   /** Millimeter of mercury. */
   public static readonly MM_HG = new SimpleUnit(UnitFamily.Pressure, 'millimeter of mercury', 1.33322);
+  /** Pound per square inch. */
+  public static readonly PSI = new SimpleUnit(UnitFamily.Pressure, 'pound per square inch', 68.9476);
 
   public static readonly KELVIN = new SimpleUnit(UnitFamily.Temperature, 'kelvin', 1, 0);
   public static readonly CELSIUS = new SimpleUnit(UnitFamily.Temperature, '° Celsius', 1, 273.15);
@@ -1006,8 +1016,10 @@ export class UnitType {
   public static readonly FPM_PER_SEC = new CompoundUnit(UnitFamily.Acceleration, [UnitType.FOOT], [UnitType.MINUTE, UnitType.SECOND]);
   /** Foot per second per second. */
   public static readonly FPS_PER_SEC = new CompoundUnit(UnitFamily.Acceleration, [UnitType.FOOT], [UnitType.SECOND, UnitType.SECOND]);
+  /** Knot per second. */
+  public static readonly KNOT_PER_SEC = new CompoundUnit(UnitFamily.Acceleration, [UnitType.NMILE], [UnitType.HOUR, UnitType.SECOND]);
   /** Average gravitational acceleration on Earth at sea level. */
-  public static readonly G_ACCEL = new CompoundUnit(UnitFamily.Acceleration, [new SimpleUnit(UnitFamily.Distance, '9.80665 meter', 9.80665)], [UnitType.SECOND, UnitType.SECOND]);
+  public static readonly G_ACCEL = new CompoundUnit(UnitFamily.Acceleration, [UnitType.G_METER], [UnitType.SECOND, UnitType.SECOND]);
 
   /** Kilogram per hour. */
   public static readonly KGH = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.KILOGRAM], [UnitType.HOUR]);
@@ -1019,4 +1031,14 @@ export class UnitType {
   public static readonly GPH_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.GALLON_FUEL], [UnitType.HOUR]);
   /** Weight equivalent of one imperial gallon of fuel per hour, using the generic conversion 1 gallon = 6.7 pounds. */
   public static readonly IGPH_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.IMP_GALLON_FUEL], [UnitType.HOUR]);
+
+  /** Density in slugs per cubic foot */
+  public static readonly SLUG_PER_FT3 = new CompoundUnit(UnitFamily.Density, [UnitType.SLUG], [UnitType.FOOT, UnitType.FOOT, UnitType.FOOT]);
+  /** Density in kilograms per cubic meter */
+  public static readonly KG_PER_M3 = new CompoundUnit(UnitFamily.Density, [UnitType.KILOGRAM], [UnitType.METER, UnitType.METER, UnitType.METER]);
+
+  /** Newton. */
+  public static readonly NEWTON = new CompoundUnit(UnitFamily.Force, [UnitType.KILOGRAM, UnitType.METER], [UnitType.SECOND, UnitType.SECOND]);
+  /** Pound (force). */
+  public static readonly POUND_FORCE = new CompoundUnit(UnitFamily.Force, [UnitType.POUND, UnitType.G_METER], [UnitType.SECOND, UnitType.SECOND]);
 }

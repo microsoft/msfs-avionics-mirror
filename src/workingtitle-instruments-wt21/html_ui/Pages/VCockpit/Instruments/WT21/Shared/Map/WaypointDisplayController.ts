@@ -1,4 +1,4 @@
-import { BitFlags, FacilityType, FacilityWaypointUtils, MapSystemContext, MapSystemController, MapSystemKeys, MapWaypointDisplayModule, UserSettingManager, Waypoint } from '@microsoft/msfs-sdk';
+import { AirportClass, AirportFacility, BitFlags, FacilityType, FacilityWaypointUtils, MapSystemContext, MapSystemController, MapSystemKeys, MapWaypointDisplayModule, NearestAirportSearchSession, UnitType, UserSettingManager, Waypoint } from '@microsoft/msfs-sdk';
 import { MapFacilitySelectModule } from './MapFacilitySelectModule';
 
 import { MapSettingsMfdAliased, MapSettingsPfdAliased, MapUserSettings, MapWaypointsDisplay, PfdOrMfd } from './MapUserSettings';
@@ -46,6 +46,20 @@ export class WaypointDisplayController extends MapSystemController<WaypointDispl
   /** @inheritdoc */
   public onAfterMapRender(): void {
     this.wireSettings();
+
+    this.waypoints.airportsRange.set(200, UnitType.NMILE);
+
+    this.waypoints.airportsFilter.set({
+      classMask: BitFlags.union(BitFlags.createFlag(AirportClass.HardSurface), BitFlags.createFlag(AirportClass.Private)),
+      showClosed: NearestAirportSearchSession.Defaults.ShowClosed
+    });
+
+    this.waypoints.extendedAirportsFilter.set({
+      approachTypeMask: NearestAirportSearchSession.Defaults.ApproachTypeMask,
+      runwaySurfaceTypeMask: NearestAirportSearchSession.Defaults.SurfaceTypeMask,
+      minimumRunwayLength: 2000,
+      toweredMask: NearestAirportSearchSession.Defaults.ToweredMask
+    });
   }
 
   /**
@@ -68,6 +82,16 @@ export class WaypointDisplayController extends MapSystemController<WaypointDispl
     return (w) => {
       if (FacilityWaypointUtils.isFacilityWaypoint(w) && w.facility.get().icao === this.selectWaypointModule.facilityIcao.get()) {
         return true;
+      }
+
+      if (facType === FacilityType.Airport && FacilityWaypointUtils.isFacilityWaypoint(w)) {
+        const airport = w.facility.get() as AirportFacility;
+        if (airport.airportClass !== AirportClass.HardSurface && airport.airportClass !== AirportClass.Private) {
+          return false;
+        }
+        if (airport.runways.findIndex(runway => runway.length - runway.primaryThresholdLength - runway.secondaryThresholdLength >= 600) === -1) {
+          return false;
+        }
       }
 
       const maxRange = this.facilityMaxRange.get(facType) ?? 600;

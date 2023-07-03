@@ -1,5 +1,5 @@
 import {
-  AdcEvents, AvionicsSystemState, AvionicsSystemStateEvent, ClockEvents, ConsumerSubject, EventBus, ExpSmoother, GNSSEvents, NavMath, Subject,
+  AdcEvents, AvionicsSystemState, AvionicsSystemStateEvent, ClockEvents, ConsumerSubject, ConsumerValue, EventBus, ExpSmoother, GNSSEvents, NavMath, Subject,
   Subscribable, SubscribableUtils, Subscription
 } from '@microsoft/msfs-sdk';
 import { AdcSystemEvents } from '../system/AdcSystem';
@@ -71,7 +71,7 @@ export class DefaultWindDataProvider implements WindDataProvider {
   /** @inheritdoc */
   public readonly crosswind = this._crosswind as Subscribable<number>;
 
-  private readonly _magVar = ConsumerSubject.create(null, 0);
+  private readonly _magVar = ConsumerSubject.create(null, 0).pause();
   /** @inheritdoc */
   public readonly magVar = this._magVar as Subscribable<number>;
 
@@ -83,22 +83,22 @@ export class DefaultWindDataProvider implements WindDataProvider {
   /** @inheritdoc */
   public readonly isDataFailed = this._isDataFailed as Subscribable<boolean>;
 
-  private readonly windDirectionSource = ConsumerSubject.create(null, 0);
-  private readonly windSpeedSource = ConsumerSubject.create(null, 0);
+  private readonly windDirectionSource = ConsumerValue.create(null, 0).pause();
+  private readonly windSpeedSource = ConsumerValue.create(null, 0).pause();
 
-  private readonly isOnGround = ConsumerSubject.create(null, false);
-  private readonly tas = ConsumerSubject.create(null, 0);
-  private readonly headingTrue = ConsumerSubject.create(null, 0);
+  private readonly isOnGround = ConsumerValue.create(null, false).pause();
+  private readonly tas = ConsumerValue.create(null, 0).pause();
+  private readonly headingTrue = ConsumerValue.create(null, 0).pause();
 
   private readonly adcIndex: Subscribable<number>;
-  private readonly adcSystemState = ConsumerSubject.create<AvionicsSystemStateEvent>(null, { previous: undefined, current: undefined });
+  private readonly adcSystemState = ConsumerSubject.create<AvionicsSystemStateEvent>(null, { previous: undefined, current: undefined }).pause();
   private readonly isAdcDataValid = this.adcSystemState.map(state => state.current === undefined || state.current === AvionicsSystemState.On);
 
   private readonly ahrsIndex: Subscribable<number>;
-  private readonly isHeadingDataValid = ConsumerSubject.create(null, false);
+  private readonly isHeadingDataValid = ConsumerValue.create(null, false).pause();
 
   private readonly fmsPosIndex: Subscribable<number>;
-  private readonly fmsPosMode = ConsumerSubject.create(null, FmsPositionMode.None);
+  private readonly fmsPosMode = ConsumerValue.create(null, FmsPositionMode.None).pause();
 
   private readonly directionSmoother = new ExpSmoother(this.smoothingTau);
   private readonly speedSmoother = new ExpSmoother(this.smoothingTau);
@@ -107,7 +107,19 @@ export class DefaultWindDataProvider implements WindDataProvider {
 
   private isInit = false;
   private isAlive = true;
-  private isPaused = false;
+  private isPaused = true;
+
+  private readonly pauseable = [
+    this.windDirectionSource,
+    this.windSpeedSource,
+    this._magVar,
+    this.isOnGround,
+    this.tas,
+    this.headingTrue,
+    this.adcSystemState,
+    this.isHeadingDataValid,
+    this.fmsPosMode,
+  ];
 
   private adcIndexSub?: Subscription;
   private ahrsIndexSub?: Subscription;
@@ -155,7 +167,6 @@ export class DefaultWindDataProvider implements WindDataProvider {
     }
 
     this.isInit = true;
-    this.isPaused = paused;
 
     const sub = this.bus.getSubscriber<ClockEvents & AdcEvents & GNSSEvents & AdcSystemEvents & AhrsSystemEvents & FmsPositionSystemEvents>();
 
@@ -181,8 +192,8 @@ export class DefaultWindDataProvider implements WindDataProvider {
 
     this.clockSub = sub.on('simTime').handle(this.update.bind(this));
 
-    if (paused) {
-      this.pause();
+    if (!paused) {
+      this.resume();
     }
   }
 
@@ -196,24 +207,15 @@ export class DefaultWindDataProvider implements WindDataProvider {
       throw new Error('DefaultWindDataProvider: cannot resume a dead provider');
     }
 
-    if (!this.isPaused) {
+    if (!this.isInit || !this.isPaused) {
       return;
     }
 
     this.isPaused = false;
 
-    this.windDirectionSource.resume();
-    this.windSpeedSource.resume();
-    this._magVar.resume();
-
-    this.isOnGround.resume();
-    this.tas.resume();
-    this.headingTrue.resume();
-
-    this.adcSystemState.resume();
-    this.isHeadingDataValid.resume();
-
-    this.fmsPosMode.resume();
+    for (const pauseable of this.pauseable) {
+      pauseable.resume();
+    }
 
     this.clockSub?.resume(true);
   }
@@ -227,29 +229,20 @@ export class DefaultWindDataProvider implements WindDataProvider {
       throw new Error('DefaultWindDataProvider: cannot pause a dead provider');
     }
 
-    if (this.isPaused) {
+    if (!this.isInit || this.isPaused) {
       return;
     }
 
-    this.windDirectionSource.pause();
-    this.windSpeedSource.pause();
-    this._magVar.pause();
+    this.isPaused = true;
 
-    this.isOnGround.pause();
-    this.tas.pause();
-    this.headingTrue.pause();
-
-    this.adcSystemState.pause();
-    this.isHeadingDataValid.pause();
-
-    this.fmsPosMode.pause();
+    for (const pauseable of this.pauseable) {
+      pauseable.pause();
+    }
 
     this.clockSub?.pause();
 
     this.directionSmoother.reset();
     this.speedSmoother.reset();
-
-    this.isPaused = true;
   }
 
   /**
@@ -276,7 +269,7 @@ export class DefaultWindDataProvider implements WindDataProvider {
     }
 
     this._isGpsDeadReckoning.set(fmsPosMode === FmsPositionMode.DeadReckoning || fmsPosMode === FmsPositionMode.DeadReckoningExpired);
-    this._isDataFailed.set(simTime - this.lastDeadTime < this.accumulateTime);
+    this._isDataFailed.set(isDead || simTime - this.lastDeadTime < this.accumulateTime);
 
     let windDirection = this.windDirectionSource.get();
     const windSpeed = this.windSpeedSource.get();
@@ -313,18 +306,9 @@ export class DefaultWindDataProvider implements WindDataProvider {
   public destroy(): void {
     this.isAlive = false;
 
-    this.windDirectionSource.destroy();
-    this.windSpeedSource.destroy();
-    this._magVar.destroy();
-
-    this.isOnGround.destroy();
-    this.tas.destroy();
-    this.headingTrue.destroy();
-
-    this.adcSystemState.destroy();
-    this.isHeadingDataValid.destroy();
-
-    this.fmsPosMode.destroy();
+    for (const pauseable of this.pauseable) {
+      pauseable.destroy();
+    }
 
     this.adcIndexSub?.destroy();
     this.ahrsIndexSub?.destroy();

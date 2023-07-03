@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { EventBus, NavComSimVars, NavProcSimVars, NavRadioIndex, NavSourceType, RadioUtils, Subject } from '@microsoft/msfs-sdk';
+import { EventBus, NavComEvents, NavComSimVars, NavRadioIndex, NavSourceType, RadioUtils, Subject } from '@microsoft/msfs-sdk';
 
 import { NavSourceBase } from './NavSourceBase';
 
@@ -15,19 +15,19 @@ export class NavRadioNavSource<T extends readonly string[]> extends NavSourceBas
   public constructor(bus: EventBus, name: T[number], index: NavRadioIndex) {
     super(bus, name, index);
 
-    const navProcSimVarsSubscriber = this.bus.getSubscriber<NavProcSimVars>();
-    navProcSimVarsSubscriber.on(`nav_dme_${index}`).whenChanged().handle(this.navDme.set.bind(this.navDme));
-    navProcSimVarsSubscriber.on(`nav_has_dme_${index}`).whenChanged().handle(this.setters.get('hasDme')!);
-    navProcSimVarsSubscriber.on(`nav_ident_${index}`).whenChanged().handle(this.setters.get('ident')!);
-    navProcSimVarsSubscriber.on(`nav_localizer_${index}`).whenChanged().handle(this.setters.get('hasLocalizer')!);
-    navProcSimVarsSubscriber.on(`nav_localizer_crs_${index}`).whenChanged().handle(this.navLocalizerCrsRad.set.bind(this.navLocalizerCrsRad));
-    navProcSimVarsSubscriber.on(`nav_gs_error_${index}`).whenChanged().handle(this.glideSlopeErrorDegrees.set.bind(this.glideSlopeErrorDegrees));
-    navProcSimVarsSubscriber.on(`nav_glideslope_${index}`).whenChanged().handle(this.setters.get('hasGlideSlope')!);
-    navProcSimVarsSubscriber.on(`nav_obs_${index}`).whenChanged().handle(this.setters.get('course')!);
-    navProcSimVarsSubscriber.on(`nav_radial_${index}`).whenChanged().handle(this.navRadial.set.bind(this.navRadial));
-    navProcSimVarsSubscriber.on(`nav_cdi_${index}`).whenChanged().handle(this.navCdi.set.bind(this.navCdi));
-    navProcSimVarsSubscriber.on(`nav_has_nav_${index}`).whenChanged().handle(this.setters.get('hasNav')!);
-    navProcSimVarsSubscriber.on(`nav_to_from_${index}`).whenChanged().handle(this.setters.get('toFrom')!);
+    const navComSubscriber = this.bus.getSubscriber<NavComEvents>();
+    navComSubscriber.on(`nav_dme_${index}`).whenChanged().handle(this.navDme.set.bind(this.navDme));
+    navComSubscriber.on(`nav_has_dme_${index}`).whenChanged().handle(this.setters.get('hasDme')!);
+    navComSubscriber.on(`nav_ident_${index}`).whenChanged().handle(this.setters.get('ident')!);
+    navComSubscriber.on(`nav_localizer_${index}`).whenChanged().handle(this.setters.get('hasLocalizer')!);
+    navComSubscriber.on(`nav_localizer_crs_${index}`).whenChanged().handle(this.navLocalizerCrsRad.set.bind(this.navLocalizerCrsRad));
+    navComSubscriber.on(`nav_gs_error_${index}`).whenChanged().handle(this.glideSlopeErrorDegrees.set.bind(this.glideSlopeErrorDegrees));
+    navComSubscriber.on(`nav_glideslope_${index}`).whenChanged().handle(this.setters.get('hasGlideSlope')!);
+    navComSubscriber.on(`nav_obs_${index}`).whenChanged().handle(this.setters.get('course')!);
+    navComSubscriber.on(`nav_radial_${index}`).whenChanged().handle(this.navRadial.set.bind(this.navRadial));
+    navComSubscriber.on(`nav_cdi_${index}`).whenChanged().handle(this.navCdi.set.bind(this.navCdi));
+    navComSubscriber.on(`nav_has_nav_${index}`).whenChanged().handle(this.setters.get('hasNav')!);
+    navComSubscriber.on(`nav_to_from_${index}`).whenChanged().handle(this.setters.get('toFrom')!);
 
     const navComSimVarsSubscriber = this.bus.getSubscriber<NavComSimVars>();
     navComSimVarsSubscriber.on(`nav_active_frequency_${index}`).whenChanged().handle(this.setters.get('activeFrequency')!);

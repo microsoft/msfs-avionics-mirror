@@ -13,7 +13,7 @@ import {
 import { GtcUserSettings } from '../Settings/GtcUserSettings';
 import { GtcInteractionEvent, GtcInteractionEventUtils, GtcInteractionHandler } from './GtcInteractionEvent';
 import { GtcKnobHandler } from './GtcKnobHandler';
-import { GtcKnobStates } from './GtcKnobStates';
+import { GtcKnobStatePluginOverrides, GtcKnobStates, GtcKnobStatesManager } from './GtcKnobStates';
 import { GtcView } from './GtcView';
 import { GtcViewKeys } from './GtcViewKeys';
 
@@ -265,8 +265,11 @@ export class GtcService {
   public readonly radioBeingTuned: Subject<ComRadio> = Subject.create<ComRadio>('COM1');
   public readonly navComEventHandler = Subject.create<GtcInteractionHandler | null>(null);
 
-  public readonly gtcKnobStates = new GtcKnobStates(this);
-  private readonly gtcKnobHandler = new GtcKnobHandler(this);
+  /** The control states of the hardware knobs attached to this service's parent GTC. */
+  public readonly gtcKnobStates: GtcKnobStates;
+
+  private readonly gtcKnobHandler: GtcKnobHandler;
+  private pluginInteractionHandler?: GtcInteractionHandler;
 
   /** Should be populated before anyone uses it. */
   private viewStackRefs!: ViewStackRefs;
@@ -288,8 +291,13 @@ export class GtcService {
     public readonly controlSetup: GtcControlSetup,
     public readonly pfdControlIndex: PfdIndex,
     public readonly displayPaneControlIndex: DisplayPaneControlGtcIndex,
-    public readonly isAdvancedVnav: boolean,
+    public readonly isAdvancedVnav: boolean
   ) {
+
+    // These need to be instantiated after everything else is set up because they require a fully initialized GtcService.
+    this.gtcKnobStates = new GtcKnobStatesManager(this);
+    this.gtcKnobHandler = new GtcKnobHandler(this);
+
     const sub = this.bus.getSubscriber<HEvent>();
     sub.on('hEvent').handle(this.handleHEvent);
 
@@ -497,6 +505,23 @@ export class GtcService {
   public onGtcContainerRendered(viewStackRefs: ViewStackRefs): void {
     this.viewStackRefs = viewStackRefs;
     Object.keys(viewStackRefs).forEach(key => this.registeredViews.set(key as ViewStackKey, new Map()));
+  }
+
+  /**
+   * Attaches plugin-defined knob control state overrides.
+   * @param overrides An array of plugin-defined knob control state overrides. The array should be ordered such that
+   * the overrides appear in the order in which their parent plugins were loaded.
+   */
+  public attachPluginKnobStateOverrides(overrides: readonly Readonly<GtcKnobStatePluginOverrides>[]): void {
+    (this.gtcKnobStates as GtcKnobStatesManager).attachPluginOverrides(overrides);
+  }
+
+  /**
+   * Attaches an interaction event handler which executes event handling logic defined by plugins.
+   * @param handler The interaction event handler to attach.
+   */
+  public attachPluginInteractionhandler(handler: GtcInteractionHandler): void {
+    this.pluginInteractionHandler = handler;
   }
 
   /**
@@ -1354,8 +1379,9 @@ export class GtcService {
       return;
     }
 
-    const wasHandled: boolean = this.activeViewEntry.ref.onGtcInteractionEvent(event);
-    !wasHandled && this.gtcKnobHandler.handleDefaultInteractionBehavior(event);
+    this.activeViewEntry.ref.onGtcInteractionEvent(event)                                               // Active view gets to respond first ...
+      || (this.pluginInteractionHandler && this.pluginInteractionHandler.onGtcInteractionEvent(event))  // ... then plugins ...
+      || this.gtcKnobHandler.handleDefaultInteractionBehavior(event);                                   // ... and finally the default handler.
   }
 
   /**
@@ -1438,7 +1464,11 @@ export class GtcService {
     // Setting isVisible to false is OK because there's a built-in delay before that takes effect.
     view.isVisible.set(false);
     view.occlusion.set('none');
-    view.popupBackgroundOcclusion.set(undefined);
+
+    // TODO: If a popup view is closed (not via a back operation), opened again with a different occlusion type, then
+    // the original popup is opened again via a back operation, it will be opened with the incorrect occlusion type
+    // that it was opened with the second time. The only way to resolve this is to save the popup occlusion type within
+    // the history stack.
 
     const viewType = view.type.get();
 

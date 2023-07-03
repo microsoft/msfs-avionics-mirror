@@ -8,7 +8,7 @@
 import {
   AdcPublisher, AhrsPublisher, APEvents, APRadioNavInstrument, AutopilotInstrument, BaseInstrumentPublisher, Clock, ClockEvents,
   ControlPublisher, EISPublisher, ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner, FsInstrument,
-  GNSSPublisher, GpsSynchronizer, InstrumentBackplane, LNavSimVarPublisher, NavComSimVarPublisher, NavProcSimVars, NavSourceType,
+  GNSSPublisher, GpsSynchronizer, InstrumentBackplane, LNavSimVarPublisher, NavComEvents, NavComSimVarPublisher, NavSourceType,
   SimVarValueType, SmoothingPathCalculator, Subject, UserSettingSaveManager, VNavSimVarPublisher, Wait, XPDRInstrument
 } from '@microsoft/msfs-sdk';
 
@@ -310,11 +310,11 @@ export class WT21_FMC_Instrument implements FsInstrument {
     // Course
     const course1Setting = FgpUserSettings.getManager(this.bus).getSetting('course1');
     SimVar.SetSimVarValue('K:VOR1_SET', SimVarValueType.Number, course1Setting.value);
-    this.bus.getSubscriber<NavProcSimVars>().on('nav_obs_1').whenChanged().handle(x => course1Setting.value = x);
+    this.bus.getSubscriber<NavComEvents>().on('nav_obs_1').whenChanged().handle(x => course1Setting.value = x);
 
     const course2Setting = FgpUserSettings.getManager(this.bus).getSetting('course2');
     SimVar.SetSimVarValue('K:VOR2_SET', SimVarValueType.Number, course2Setting.value);
-    this.bus.getSubscriber<NavProcSimVars>().on('nav_obs_2').whenChanged().handle(x => course2Setting.value = x);
+    this.bus.getSubscriber<NavComEvents>().on('nav_obs_2').whenChanged().handle(x => course2Setting.value = x);
   }
 
   /**

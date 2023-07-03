@@ -1,10 +1,11 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus, SimVarValueType } from '../../data';
+import { SimVarValueType } from '../../data';
 import { NavMath } from '../../geo';
-import { AdcEvents } from '../../instruments';
-import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
+import { MathUtils } from '../../math';
+import { Subscription } from '../../sub';
 import { APValues } from '../APConfig';
+import { VNavUtils } from '../VNavUtils';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
@@ -14,43 +15,49 @@ export class APAltDirector implements PlaneDirector {
 
   public state: DirectorState;
 
-  /** A callback called when the director activates. */
+  /** @inheritdoc */
+  public drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean) => void;
+
+  /** @inheritdoc */
   public onActivate?: () => void;
 
-  /** A callback called when the director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
 
-  private tas = 0;
   private capturedAltitude = 0;
-  private indicatedAltitude = 0;
-  private verticalWindAverage = new SimpleMovingAverage(10);
 
+  private setCapturedAltitude = (alt: number): void => {
+    this.capturedAltitude = Math.round(alt);
+  };
+
+  private readonly capturedAltitudeSub: Subscription;
 
   /**
    * Creates an instance of the LateralDirector.
-   * @param bus The event bus to use with this instance.
    * @param apValues are the ap selected values for the autopilot.
    */
-  constructor(private readonly bus: EventBus, apValues: APValues) {
+  constructor(apValues: APValues) {
     this.state = DirectorState.Inactive;
 
-    this.bus.getSubscriber<AdcEvents>().on('tas').withPrecision(0).handle((tas) => {
-      this.tas = tas;
-    });
+    this.capturedAltitudeSub = apValues.capturedAltitude.sub(this.setCapturedAltitude, true);
+    this.pauseSubs();
+  }
 
-    this.bus.getSubscriber<AdcEvents>().on('indicated_alt').withPrecision(0).handle((alt) => {
-      this.indicatedAltitude = alt;
-    });
+  /** Resumes Subscriptions. */
+  private resumeSubs(): void {
+    this.capturedAltitudeSub.resume(true);
+  }
 
-    apValues.capturedAltitude.sub((cap) => {
-      this.capturedAltitude = Math.round(cap);
-    });
+  /** Pauses Subscriptions. */
+  private pauseSubs(): void {
+    this.capturedAltitudeSub.pause();
   }
 
   /**
    * Activates this director.
    */
   public activate(): void {
+    this.resumeSubs();
     this.state = DirectorState.Active;
     if (this.onActivate !== undefined) {
       this.onActivate();
@@ -63,6 +70,7 @@ export class APAltDirector implements PlaneDirector {
    * This director has no armed mode, so it activates immediately.
    */
   public arm(): void {
+    this.resumeSubs();
     this.state = DirectorState.Armed;
     if (this.onArm !== undefined) {
       this.onArm();
@@ -75,6 +83,7 @@ export class APAltDirector implements PlaneDirector {
   public deactivate(): void {
     this.state = DirectorState.Inactive;
     SimVar.SetSimVarValue('AUTOPILOT ALTITUDE LOCK', 'Bool', false);
+    this.pauseSubs();
   }
 
   /**
@@ -93,7 +102,7 @@ export class APAltDirector implements PlaneDirector {
    * Attempts to activate altitude capture.
    */
   private tryActivate(): void {
-    const deviationFromTarget = Math.abs(this.capturedAltitude - this.indicatedAltitude);
+    const deviationFromTarget = Math.abs(this.capturedAltitude - SimVar.GetSimVarValue('INDICATED ALTITUDE', SimVarValueType.Feet));
 
     if (deviationFromTarget <= 20) {
       this.activate();
@@ -105,7 +114,7 @@ export class APAltDirector implements PlaneDirector {
    * @param targetAltitude is the captured targed altitude
    */
   private holdAltitude(targetAltitude: number): void {
-    const deltaAlt = this.indicatedAltitude - targetAltitude;
+    const deltaAlt = SimVar.GetSimVarValue('INDICATED ALTITUDE', SimVarValueType.Feet) - targetAltitude;
     let setVerticalSpeed = 0;
     const correction = MathUtils.clamp(10 * Math.abs(deltaAlt), 100, 500);
     if (deltaAlt > 10) {
@@ -113,7 +122,7 @@ export class APAltDirector implements PlaneDirector {
     } else if (deltaAlt < -10) {
       setVerticalSpeed = correction;
     }
-    this.setPitch(this.getDesiredPitch(setVerticalSpeed));
+    this.drivePitch && this.drivePitch(this.getDesiredPitch(setVerticalSpeed), true, true);
   }
 
   /**
@@ -122,31 +131,7 @@ export class APAltDirector implements PlaneDirector {
    * @returns The desired pitch angle.
    */
   private getDesiredPitch(vs: number): number {
-    //We need the instant AOA and VS here so we're avoiding the bus
-    const aoa = SimVar.GetSimVarValue('INCIDENCE ALPHA', SimVarValueType.Degree);
-    const verticalWindComponent = this.verticalWindAverage.getAverage(SimVar.GetSimVarValue('AMBIENT WIND Y', SimVarValueType.FPM));
-
-    const desiredPitch = this.getFpa(UnitType.NMILE.convertTo(this.tas / 60, UnitType.FOOT), vs - verticalWindComponent);
-    return NavMath.clamp(aoa + desiredPitch, -10, 10);
-  }
-
-  /**
-   * Gets a desired fpa.
-   * @param distance is the distance traveled per minute.
-   * @param altitude is the vertical speed per minute.
-   * @returns The desired pitch angle.
-   */
-  private getFpa(distance: number, altitude: number): number {
-    return UnitType.RADIAN.convertTo(Math.atan(altitude / distance), UnitType.DEGREE);
-  }
-
-  /**
-   * Sets the desired AP pitch angle.
-   * @param targetPitch The desired AP pitch angle.
-   */
-  private setPitch(targetPitch: number): void {
-    if (isFinite(targetPitch)) {
-      SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, -targetPitch);
-    }
+    const desiredPitch = VNavUtils.getFpa(SimVar.GetSimVarValue('AIRSPEED TRUE', SimVarValueType.FPM), vs);
+    return -NavMath.clamp(desiredPitch, -10, 10);
   }
 }

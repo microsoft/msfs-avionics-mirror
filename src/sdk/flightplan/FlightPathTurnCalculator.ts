@@ -1,17 +1,25 @@
 import { GeoCircle, GeoPoint, LatLonInterface, NavMath } from '../geo';
-import { BitFlags, ReadonlyFloat64Array, UnitType, Vec3Math } from '../math';
+import { BitFlags, MathUtils, ReadonlyFloat64Array, UnitType, Vec3Math } from '../math';
+import { LegType } from '../navigation/Facilities';
 import { FlightPathUtils } from './FlightPathUtils';
 import { ProcedureTurnBuilder } from './FlightPathVectorBuilder';
+import { FlightPlanUtils } from './FlightPlanUtils';
 import { CircleVector, FlightPathVectorFlags, LegCalculations, LegDefinition, VectorTurnDirection } from './FlightPlanning';
 
 /**
  * A flight path calculator for turns between legs.
  */
 export class FlightPathTurnCalculator {
-  private static readonly vector3Cache = [new Float64Array(3), new Float64Array(3)];
-  private static readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)];
+  private static readonly vector3Cache = [
+    new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3),
+    new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3),
+  ];
+  private static readonly geoPointCache = [
+    new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0),
+    new GeoPoint(0, 0), new GeoPoint(0, 0), new GeoPoint(0, 0)
+  ];
   private static readonly geoCircleCache = [
-    new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0),
+    new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0),
     new GeoCircle(new Float64Array(3), 0), new GeoCircle(new Float64Array(3), 0)
   ];
   private static readonly intersectionVecArrayCache = [new Float64Array(3), new Float64Array(3)];
@@ -41,9 +49,17 @@ export class FlightPathTurnCalculator {
     const end = startIndex + count;
     let currentIndex = startIndex;
     while (currentIndex < end) {
-      const fromLegCalc = legs[currentIndex]?.calculated;
-      const toLegCalc = legs[currentIndex + 1]?.calculated;
-      if (fromLegCalc && toLegCalc) {
+      const fromLeg = legs[currentIndex] as LegDefinition | undefined;
+      const toLeg = legs[currentIndex + 1] as LegDefinition | undefined;
+      const fromLegCalc = fromLeg?.calculated;
+      const toLegCalc = toLeg?.calculated;
+      if (
+        fromLegCalc
+        && toLegCalc
+        && !FlightPlanUtils.isManualDiscontinuityLeg(fromLeg.leg.type)
+        && !FlightPlanUtils.isDiscontinuityLeg(fromLeg.leg.type)
+        && !FlightPlanUtils.isDiscontinuityLeg(toLeg.leg.type)
+      ) {
         const fromVector = fromLegCalc.flightPath[fromLegCalc.flightPath.length - 1];
         const toVector = toLegCalc.flightPath[0];
         if (
@@ -344,10 +360,13 @@ export class FlightPathTurnCalculator {
     isArcFirst: boolean,
     desiredTurnRadius: number
   ): number {
+    const fromLeg = legs[fromIndex];
+    const toLeg = legs[toIndex];
+
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const fromLegCalc = legs[fromIndex].calculated!;
+    const fromLegCalc = fromLeg.calculated!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const toLegCalc = legs[toIndex].calculated!;
+    const toLegCalc = toLeg.calculated!;
 
     if (arc.distance === 0 || track.distance === 0) {
       this.setEmptyTurn(fromLegCalc, toLegCalc);
@@ -369,8 +388,27 @@ export class FlightPathTurnCalculator {
     const fromVectorEndPoint = FlightPathTurnCalculator.geoPointCache[0].set(fromVector.endLat, fromVector.endLon);
     const toVectorStartPoint = FlightPathTurnCalculator.geoPointCache[1].set(toVector.startLat, toVector.startLon);
 
-    if (!fromVectorEndPoint.equals(toVectorStartPoint, 1e-5)) {
-      return toIndex;
+    const areLegsContinuous = fromVectorEndPoint.equals(toVectorStartPoint, 1e-5);
+
+    if (!areLegsContinuous) {
+      // The from-leg does not end within ~60 meters of the start of the to-leg.
+
+      let shouldQuit = true;
+
+      // Either the from- or to- leg is an AF or RF leg. These legs often end up discontinuous with the preceding or
+      // proceeding leg due to the arcs being slightly offset from the intended origin and/or terminator fixes.
+      if (
+        fromLeg.leg.type === LegType.AF
+        || fromLeg.leg.type === LegType.RF
+        || toLeg.leg.type === LegType.AF
+        || toLeg.leg.type === LegType.RF
+      ) {
+        shouldQuit = false;
+      }
+
+      if (shouldQuit) {
+        return toIndex;
+      }
     }
 
     const fromVectorEndBearing = FlightPathUtils.getVectorFinalCourse(fromVector);
@@ -381,26 +419,39 @@ export class FlightPathTurnCalculator {
       return toIndex;
     }
 
-    const circle = FlightPathUtils.setGeoCircleFromVector(arc, FlightPathTurnCalculator.geoCircleCache[0]);
-    const arcCenter = FlightPathUtils.getTurnCenterFromCircle(circle, FlightPathTurnCalculator.geoPointCache[2]);
-    const arcRadius = FlightPathUtils.getTurnRadiusFromCircle(circle);
-    const arcDirection = FlightPathUtils.getTurnDirectionFromCircle(circle);
+    // Define the circles
 
-    // define the circles
-    const arcCircle = FlightPathTurnCalculator.geoCircleCache[0].set(arcCenter, arcRadius);
-    const trackPath = FlightPathUtils.setGeoCircleFromVector(track, FlightPathTurnCalculator.geoCircleCache[1]);
+    const arcPath = FlightPathUtils.setGeoCircleFromVector(arc, FlightPathTurnCalculator.geoCircleCache[0]);
+    const arcCenter = FlightPathUtils.getTurnCenterFromCircle(arcPath, FlightPathTurnCalculator.geoPointCache[2]);
+    const arcRadiusRad = FlightPathUtils.getTurnRadiusFromCircle(arcPath);
+    const arcDirection = FlightPathUtils.getTurnDirectionFromCircle(arcPath);
+
+    const arcCircle = FlightPathTurnCalculator.geoCircleCache[1].set(arcCenter, arcRadiusRad);
+    const trackPath = FlightPathUtils.setGeoCircleFromVector(track, FlightPathTurnCalculator.geoCircleCache[2]);
     const trackPathNormalPoint = FlightPathTurnCalculator.geoPointCache[3].setFromCartesian(trackPath.center);
 
-    const arcStartRadial = arcCircle.bearingAt(FlightPathTurnCalculator.geoPointCache[4].set(arc.startLat, arc.startLon), Math.PI) + 90;
-    const arcEndRadial = arcCircle.bearingAt(FlightPathTurnCalculator.geoPointCache[4].set(arc.endLat, arc.endLon), Math.PI) + 90;
+    const fromVectorPath = isArcFirst ? arcPath : trackPath;
+    const toVectorPath = isArcFirst ? trackPath : arcPath;
 
     // calculate whether the arc intersects the track; if they don't (or if they are entirely coincident), something
     // has gone wrong!
-    const arcTrackIntersectionCount = arcCircle.numIntersectionPoints(trackPath);
+    const arcTrackIntersections = FlightPathTurnCalculator.intersectionVecArrayCache;
+    const arcTrackIntersectionCount = arcCircle.intersection(trackPath, arcTrackIntersections);
     if (arcTrackIntersectionCount === 0 || isNaN(arcTrackIntersectionCount)) {
       this.setEmptyTurn(fromLegCalc, toLegCalc);
       return toIndex;
     }
+
+    const fromVectorEndVec = fromVectorEndPoint.toCartesian(FlightPathTurnCalculator.vector3Cache[0]);
+    const toVectorStartVec = toVectorStartPoint.toCartesian(FlightPathTurnCalculator.vector3Cache[1]);
+
+    const fromVectorHalfDistanceRad = UnitType.METER.convertTo(fromVector.distance / 2, UnitType.GA_RADIAN);
+    const toVectorHalfDistanceRad = UnitType.METER.convertTo(toVector.distance / 2, UnitType.GA_RADIAN);
+
+    const intersectionPoint = FlightPathTurnCalculator.geoPointCache[4];
+    const intersectionVec = FlightPathTurnCalculator.vector3Cache[2];
+    let intersectionFromVectorEndOffset = 0;
+    let intersectionToVectorStartOffset = 0;
 
     const turnDirection = NavMath.getTurnDirection(fromVectorEndBearing, toVectorStartBearing);
     let isInside: boolean;
@@ -408,12 +459,82 @@ export class FlightPathTurnCalculator {
     let arcCircleOffsetSign: 1 | -1;
     let trackPathOffsetSign: 1 | -1;
     if (arcTrackIntersectionCount === 1) {
-      // arc circle and track path are tangent
+      // The arc circle and track path are tangent.
+
+      if (areLegsContinuous) {
+        Vec3Math.copy(fromVectorEndVec, intersectionVec);
+      } else {
+        // The from-leg does not end within ~60 meters of the start of the to-leg.
+
+        Vec3Math.copy(arcTrackIntersections[0], intersectionVec);
+
+        intersectionFromVectorEndOffset = FlightPathTurnCalculator.getAlongCircleOffset(fromVectorPath, fromVectorEndVec, intersectionVec);
+        intersectionToVectorStartOffset = FlightPathTurnCalculator.getAlongCircleOffset(toVectorPath, intersectionVec, toVectorStartVec);
+
+        if (!this.isArcTrackIntersectionValid(
+          intersectionVec,
+          fromVectorPath, fromVectorEndVec, fromVectorHalfDistanceRad, intersectionFromVectorEndOffset,
+          toVectorPath, toVectorStartVec, toVectorHalfDistanceRad, intersectionToVectorStartOffset
+        )) {
+          this.setEmptyTurn(fromLegCalc, toLegCalc);
+          return toIndex;
+        }
+      }
+
       const isForward = Math.abs(NavMath.diffAngle(fromVectorEndBearing, toVectorStartBearing)) < 90;
       if (isForward) {
-        this.setEmptyTurn(fromLegCalc, toLegCalc);
+        if (intersectionFromVectorEndOffset === 0 && intersectionToVectorStartOffset === 0) {
+          this.setEmptyTurn(fromLegCalc, toLegCalc);
+        } else {
+          if (intersectionFromVectorEndOffset !== 0) {
+            // The intersection is not coincident with the end of the from-vector. The egress path will start 1
+            // nautical mile before the intersection point or at the end of the from-vector, whichever comes
+            // earlier (without going past the mid-point of the from-vector) and follow the from-vector path.
+            if (fromVectorHalfDistanceRad + intersectionFromVectorEndOffset <= 1e-5) {
+              // The intersection is at the mid-point of the from-vector.
+              this.setAnticipatedTurnEgress(fromLegCalc, fromVectorPath, intersectionVec, intersectionVec);
+            } else {
+              const egressStartVec = fromVectorPath.offsetDistanceAlong(
+                intersectionVec,
+                -Math.min(
+                  0.00029,
+                  Math.max(0, intersectionFromVectorEndOffset),
+                  fromVectorHalfDistanceRad + intersectionFromVectorEndOffset
+                ),
+                FlightPathTurnCalculator.vector3Cache[3],
+                Math.PI
+              );
+              this.setAnticipatedTurnEgress(fromLegCalc, fromVectorPath, egressStartVec, intersectionVec);
+            }
+          }
+
+          if (intersectionToVectorStartOffset !== 0) {
+            // The intersection is not coincident with the start of the to-vector. The ingress path will end 1
+            // nautical mile after the intersection point or at the start of the to-vector, whichever comes
+            // later (without going past the mid-point of the to-vector) and follow the to-vector path.
+            if (toVectorHalfDistanceRad + intersectionToVectorStartOffset <= 1e-5) {
+              // The intersection is at the mid-point of the to-vector.
+              this.setAnticipatedTurnIngress(toLegCalc, toVectorPath, intersectionVec, intersectionVec);
+            } else {
+              const ingressEndVec = toVectorPath.offsetDistanceAlong(
+                intersectionVec,
+                Math.min(
+                  0.00029,
+                  Math.max(0, intersectionToVectorStartOffset),
+                  toVectorHalfDistanceRad + intersectionToVectorStartOffset
+                ),
+                FlightPathTurnCalculator.vector3Cache[3],
+                Math.PI
+              );
+              this.setAnticipatedTurnIngress(toLegCalc, toVectorPath, intersectionVec, ingressEndVec);
+            }
+          }
+        }
+
         return toIndex;
       } else {
+        intersectionPoint.setFromCartesian(intersectionVec);
+
         // in this case, the plane effectively needs to make a 180...
         isInside = false;
         turnRadiusRad = UnitType.METER.convertTo(desiredTurnRadius, UnitType.GA_RADIAN);
@@ -421,11 +542,95 @@ export class FlightPathTurnCalculator {
         trackPathOffsetSign = trackPath.encircles(arcCenter) ? -1 : 1;
       }
     } else {
+      // The arc circle and track path are secant.
+
+      let arcStartVec: Float64Array;
+      let arcEndVec: Float64Array;
+
+      let fromVectorIntersectionBearing: number;
+      let toVectorIntersectionBearing: number;
+
+      if (areLegsContinuous) {
+        intersectionPoint.set(fromVectorEndPoint);
+        Vec3Math.copy(fromVectorEndVec, intersectionVec);
+
+        arcStartVec = GeoPoint.sphericalToCartesian(arc.startLat, arc.startLon, FlightPathTurnCalculator.vector3Cache[3]);
+        arcEndVec = GeoPoint.sphericalToCartesian(arc.endLat, arc.endLon, FlightPathTurnCalculator.vector3Cache[4]);
+
+        fromVectorIntersectionBearing = fromVectorEndBearing;
+        toVectorIntersectionBearing = toVectorStartBearing;
+      } else {
+        const intersection0FromVectorEndOffset = FlightPathTurnCalculator.getAlongCircleOffset(fromVectorPath, fromVectorEndVec, arcTrackIntersections[0]);
+        const intersection0ToVectorStartOffset = FlightPathTurnCalculator.getAlongCircleOffset(toVectorPath, arcTrackIntersections[0], toVectorStartVec);
+
+        const intersection1FromVectorEndOffset = FlightPathTurnCalculator.getAlongCircleOffset(fromVectorPath, fromVectorEndVec, arcTrackIntersections[1]);
+        const intersection1ToVectorStartOffset = FlightPathTurnCalculator.getAlongCircleOffset(toVectorPath, arcTrackIntersections[1], toVectorStartVec);
+
+        const isIntersection0Valid = this.isArcTrackIntersectionValid(
+          arcTrackIntersections[0],
+          fromVectorPath, fromVectorEndVec, fromVectorHalfDistanceRad, intersection0FromVectorEndOffset,
+          toVectorPath, toVectorStartVec, toVectorHalfDistanceRad, intersection0ToVectorStartOffset
+        );
+        const isIntersection1Valid = this.isArcTrackIntersectionValid(
+          arcTrackIntersections[1],
+          fromVectorPath, fromVectorEndVec, fromVectorHalfDistanceRad, intersection1FromVectorEndOffset,
+          toVectorPath, toVectorStartVec, toVectorHalfDistanceRad, intersection1ToVectorStartOffset
+        );
+
+        if (!isIntersection0Valid && !isIntersection1Valid) {
+          this.setEmptyTurn(fromLegCalc, toLegCalc);
+          return toIndex;
+        }
+
+        let intersectionIndex: 0 | 1;
+
+        if (!isIntersection0Valid) {
+          intersectionIndex = 1;
+        } else if (!isIntersection1Valid) {
+          intersectionIndex = 0;
+        } else {
+          // Both intersections are valid. We will bias toward intersections that lie after the end of the from-vector
+          // and before the start of the to-vector.
+
+          if (intersection0FromVectorEndOffset + intersection0ToVectorStartOffset >= intersection1FromVectorEndOffset + intersection1ToVectorStartOffset) {
+            intersectionIndex = 0;
+          } else {
+            intersectionIndex = 1;
+          }
+        }
+
+        if (intersectionIndex === 0) {
+          Vec3Math.copy(arcTrackIntersections[0], intersectionVec);
+          intersectionFromVectorEndOffset = intersection0FromVectorEndOffset;
+          intersectionToVectorStartOffset = intersection0ToVectorStartOffset;
+        } else if (isIntersection1Valid) {
+          Vec3Math.copy(arcTrackIntersections[1], intersectionVec);
+          intersectionFromVectorEndOffset = intersection1FromVectorEndOffset;
+          intersectionToVectorStartOffset = intersection1ToVectorStartOffset;
+        }
+
+        intersectionPoint.setFromCartesian(intersectionVec);
+
+        if (isArcFirst) {
+          arcStartVec = GeoPoint.sphericalToCartesian(arc.startLat, arc.startLon, FlightPathTurnCalculator.vector3Cache[3]);
+          arcEndVec = intersectionVec;
+        } else {
+          arcStartVec = intersectionVec;
+          arcEndVec = GeoPoint.sphericalToCartesian(arc.endLat, arc.endLon, FlightPathTurnCalculator.vector3Cache[4]);
+        }
+
+        fromVectorIntersectionBearing = fromVectorPath.bearingAt(intersectionVec, Math.PI);
+        toVectorIntersectionBearing = toVectorPath.bearingAt(intersectionVec, Math.PI);
+      }
+
+      const arcStartRadial = arcCircle.bearingAt(arcStartVec, Math.PI) + 90;
+      const arcEndRadial = arcCircle.bearingAt(arcEndVec, Math.PI) + 90;
+
       const desiredTurnRadiusRad = UnitType.METER.convertTo(desiredTurnRadius, UnitType.GA_RADIAN);
 
       isInside = isArcFirst
-        ? Math.abs(NavMath.diffAngle(fromVectorEndPoint.bearingFrom(arcCenter), toVectorStartBearing)) >= 90
-        : Math.abs(NavMath.diffAngle(fromVectorEndPoint.bearingFrom(arcCenter), fromVectorEndBearing)) < 90;
+        ? Math.abs(NavMath.diffAngle(intersectionPoint.bearingFrom(arcCenter), toVectorIntersectionBearing)) >= 90
+        : Math.abs(NavMath.diffAngle(intersectionPoint.bearingFrom(arcCenter), fromVectorIntersectionBearing)) < 90;
 
       /**
        * Now we must calculate the maximum allowed turn radius such that the turn does not start or end beyond the
@@ -434,31 +639,28 @@ export class FlightPathTurnCalculator {
        * used to compute the turn radius that would result in a turn which has an endpoint exactly at the limit.
        */
 
-      const turnVertexRadialNormal = GeoCircle.getGreatCircleNormal(arcCenter, fromVectorEndPoint, FlightPathTurnCalculator.vector3Cache[0]);
-      // if the turn is inside the arc, then clamp track limit distance to half the length of the track path within the
+      const turnVertexRadialNormal = GeoCircle.getGreatCircleNormal(arcCenter, intersectionVec, FlightPathTurnCalculator.vector3Cache[5]);
+      // If the turn is inside the arc, then clamp track limit distance to half the length of the track path within the
       // arc, since that is the point at which turn radius is maximized.
       const maxTrackLimitDistance = isInside
-        ? Math.atan(Math.abs(Vec3Math.dot(trackPath.center, turnVertexRadialNormal)) * Math.tan(arcRadius))
+        ? Math.atan(Math.abs(Vec3Math.dot(trackPath.center, turnVertexRadialNormal)) * Math.tan(arcRadiusRad))
         : Infinity;
-      const trackLimitDistance = Math.min(UnitType.METER.convertTo(track.distance / 2, UnitType.GA_RADIAN), maxTrackLimitDistance);
-      const trackLimitPoint = isArcFirst
-        ? toVectorStartPoint.offset(toVectorStartBearing, trackLimitDistance, FlightPathTurnCalculator.geoPointCache[4])
-        : fromVectorEndPoint.offset(fromVectorEndBearing + 180, trackLimitDistance, FlightPathTurnCalculator.geoPointCache[4]);
+      const trackLimitPoint = FlightPathTurnCalculator.geoPointCache[5];
+      if (isArcFirst) {
+        const trackLimitDistance = Math.min(toVectorHalfDistanceRad + intersectionToVectorStartOffset, maxTrackLimitDistance);
+        intersectionPoint.offset(toVectorStartBearing, trackLimitDistance, trackLimitPoint);
+      } else {
+        const trackLimitDistance = Math.min(fromVectorHalfDistanceRad + intersectionFromVectorEndOffset, maxTrackLimitDistance);
+        intersectionPoint.offset(fromVectorEndBearing + 180, trackLimitDistance, trackLimitPoint);
+      }
       // the great circle which passes through the center of the arc and is perpendicular to the track
-      const trackPerpendicularDiameter = FlightPathTurnCalculator.geoCircleCache[2].set(
-        Vec3Math.cross(
-          Vec3Math.multScalar(trackPath.center, (isArcFirst === isInside ? -1 : 1), FlightPathTurnCalculator.vector3Cache[1]),
-          arcCircle.center,
-          FlightPathTurnCalculator.vector3Cache[1]
-        ),
-        Math.PI / 2
-      );
+      const trackPerpendicularDiameter = FlightPathTurnCalculator.geoCircleCache[3].setAsGreatCircle(trackPath.center, arcCircle.center);
       const antipodes = FlightPathTurnCalculator.intersectionVecArrayCache;
       trackPerpendicularDiameter.intersection(arcCircle, antipodes);
 
-      // compute the great circle which passes through the appropriate antipode and the track limit endpoint. The
+      // Compute the great circle which passes through the appropriate antipode and the track limit endpoint. The
       // intersection of this great circle with the arc that is NOT the antipode is the pseudo-arc limit endpoint.
-      const intersectingPath = FlightPathTurnCalculator.geoCircleCache[3].setAsGreatCircle(isInside === (turnDirection === 'left') ? antipodes[0] : antipodes[1], trackLimitPoint);
+      const intersectingPath = FlightPathTurnCalculator.geoCircleCache[4].setAsGreatCircle(arcDirection === 'left' ? antipodes[0] : antipodes[1], trackLimitPoint);
       const arcIntersections = FlightPathTurnCalculator.intersectionGeoPointArrayCache;
       const numArcIntersections = intersectingPath.intersectionGeoPoint(arcCircle, arcIntersections);
 
@@ -470,28 +672,31 @@ export class FlightPathTurnCalculator {
       }
 
       let arcTurnRadiusLimit = 0;
-      const arcAngularWidth = ((arcDirection === 'left' ? (arcStartRadial - arcEndRadial) : (arcEndRadial - arcStartRadial)) + 360) % 360;
-      arcLimitAngularWidth = Math.min(arcLimitAngularWidth, arcAngularWidth / 2);
+      // the angular width of the portion of the arc path from the intersection to the mid-point of the arc vector
+      const arcMidPointAngularWidth = Avionics.Utils.RAD2DEG * (isArcFirst
+        ? fromVectorPath.angularWidth(fromVectorHalfDistanceRad + intersectionFromVectorEndOffset)
+        : toVectorPath.angularWidth(toVectorHalfDistanceRad + intersectionToVectorStartOffset));
+      arcLimitAngularWidth = Math.min(arcLimitAngularWidth, arcMidPointAngularWidth);
       if (arcLimitAngularWidth > 0) {
-        const arcLimitPointAngle = (isArcFirst ? arcEndRadial : arcStartRadial) + arcLimitAngularWidth * (arcDirection === 'left' ? -1 : 1);
-        const arcLimitPoint = arcCenter.offset(arcLimitPointAngle, arcRadius, FlightPathTurnCalculator.geoPointCache[4]);
-        const arcLimitRadialPath = FlightPathTurnCalculator.geoCircleCache[2].setAsGreatCircle(arcCenter, arcLimitPoint);
+        const arcLimitPointAngle = (isArcFirst ? arcEndRadial : arcStartRadial) + arcLimitAngularWidth * ((arcDirection === 'left') === isArcFirst ? 1 : -1);
+        const arcLimitPoint = arcCenter.offset(arcLimitPointAngle, arcRadiusRad, FlightPathTurnCalculator.geoPointCache[5]);
+        const arcLimitRadialPath = FlightPathTurnCalculator.geoCircleCache[3].setAsGreatCircle(arcCenter, arcLimitPoint);
         // the angle between the radial to the arc endpoint and the track path (directed away from the arc at the point of intersection)
         const theta = Math.acos(Vec3Math.dot(arcLimitRadialPath.center, trackPath.center) * (isArcFirst === isInside ? -1 : 1));
         if (theta >= Math.PI / 2) {
           if (isInside) {
-            const d = Math.asin(Math.sin(Math.acos(Math.abs(Vec3Math.dot(trackPath.center, turnVertexRadialNormal)))) * Math.sin(arcRadius));
-            arcTurnRadiusLimit = (arcRadius - d) / 2;
+            const d = Math.asin(Math.sin(Math.acos(Math.abs(Vec3Math.dot(trackPath.center, turnVertexRadialNormal)))) * Math.sin(arcRadiusRad));
+            arcTurnRadiusLimit = (arcRadiusRad - d) / 2;
           } else {
             arcTurnRadiusLimit = Infinity;
           }
         } else {
           const arcLimitRadialTrackIntersections = FlightPathTurnCalculator.intersectionVecArrayCache;
           arcLimitRadialPath.intersection(trackPath, arcLimitRadialTrackIntersections);
-          const arcLimitPointVec = arcLimitPoint.toCartesian(FlightPathTurnCalculator.vector3Cache[0]);
+          const arcLimitPointVec = arcLimitPoint.toCartesian(FlightPathTurnCalculator.vector3Cache[5]);
           const thresholdNormal = Vec3Math.normalize(
-            Vec3Math.cross(arcLimitRadialPath.center, arcLimitPointVec, FlightPathTurnCalculator.vector3Cache[1]),
-            FlightPathTurnCalculator.vector3Cache[1]
+            Vec3Math.cross(arcLimitRadialPath.center, arcLimitPointVec, FlightPathTurnCalculator.vector3Cache[6]),
+            FlightPathTurnCalculator.vector3Cache[6]
           );
           const arcLimitRadialTrackIntersection =
             arcLimitRadialTrackIntersections[Vec3Math.dot(arcLimitRadialTrackIntersections[0], thresholdNormal) >= 0 ? 0 : 1];
@@ -515,8 +720,8 @@ export class FlightPathTurnCalculator {
       return toIndex;
     }
 
-    const arcCircleOffset = FlightPathTurnCalculator.geoCircleCache[2].set(arcCircle.center, arcCircle.radius + turnRadiusRad * arcCircleOffsetSign);
-    const trackPathOffset = FlightPathTurnCalculator.geoCircleCache[3].set(trackPath.center, trackPath.radius + turnRadiusRad * trackPathOffsetSign);
+    const arcCircleOffset = FlightPathTurnCalculator.geoCircleCache[3].set(arcCircle.center, arcCircle.radius + turnRadiusRad * arcCircleOffsetSign);
+    const trackPathOffset = FlightPathTurnCalculator.geoCircleCache[4].set(trackPath.center, trackPath.radius + turnRadiusRad * trackPathOffsetSign);
 
     const intersections = FlightPathTurnCalculator.intersectionGeoPointArrayCache;
     const intersectionCount = arcCircleOffset.intersectionGeoPoint(trackPathOffset, FlightPathTurnCalculator.intersectionGeoPointArrayCache);
@@ -527,7 +732,7 @@ export class FlightPathTurnCalculator {
 
     let turnCenter;
     if (intersectionCount === 2) {
-      if (arcTrackIntersectionCount === 1 || fromVectorEndPoint.distance(intersections[0]) >= fromVectorEndPoint.distance(intersections[1])) {
+      if (arcTrackIntersectionCount === 1 || intersectionPoint.distance(intersections[0]) >= intersectionPoint.distance(intersections[1])) {
         turnCenter = intersections[1];
       } else {
         turnCenter = intersections[0];
@@ -554,15 +759,122 @@ export class FlightPathTurnCalculator {
     const turnEnd = turnCenter.offset(turnEndBearing, turnRadiusRad, FlightPathTurnCalculator.geoPointCache[1]);
     const turnMiddle = turnCenter.offset(turnMiddleBearing, turnRadiusRad, FlightPathTurnCalculator.geoPointCache[2]);
 
-    turnRadiusRad = UnitType.GA_RADIAN.convertTo(turnRadiusRad, UnitType.METER);
+    const turnRadiusMeters = UnitType.GA_RADIAN.convertTo(turnRadiusRad, UnitType.METER);
 
     this.setAnticipatedTurn(
       fromLegCalc, toLegCalc,
-      turnDirection, turnRadiusRad,
-      turnCenter, turnStart, turnMiddle, turnEnd
+      turnDirection, turnRadiusMeters,
+      turnCenter, turnStart, turnMiddle, turnEnd,
+      areLegsContinuous
     );
 
+    // If the from- and to- legs are not continuous, then we need to check if we need to extend the turn anticipation
+    // path beyond the turn vector to join the from- and to- vectors. If the legs are continuous, we don't need to
+    // check because the turn vector is guaranteed to begin before the end of the from-vector and end after the start
+    // of the to-vector.
+    if (!areLegsContinuous) {
+      const intersectionTurnStartOffset = FlightPathTurnCalculator.getAlongCircleOffset(fromVectorPath, turnStart, intersectionVec);
+      const intersectionTurnEndOffset = FlightPathTurnCalculator.getAlongCircleOffset(toVectorPath, intersectionVec, turnEnd);
+
+      if (intersectionTurnStartOffset > intersectionFromVectorEndOffset + 1e-5) {
+        // The turn begins after the end of the from-vector. We need to join the turn vector to the end of the
+        // from-vector.
+
+        Object.assign(fromLegCalc.egress[1] ??= FlightPathUtils.createEmptyCircleVector(), fromLegCalc.egress[0]);
+
+        FlightPathUtils.setCircleVector(
+          fromLegCalc.egress[0],
+          fromVectorPath,
+          fromVectorEndPoint,
+          turnStart,
+          fromLegCalc.egress[0].flags
+        );
+
+        fromLegCalc.egress.length = 2;
+      } else {
+        fromLegCalc.egress.length = 1;
+      }
+
+      if (intersectionTurnEndOffset < intersectionToVectorStartOffset - 1e-5) {
+        // The turn ends before the start of the to-vector. We need to join the turn vector to the start of the
+        // to-vector.
+
+        toLegCalc.ingress[1] ??= FlightPathUtils.createEmptyCircleVector();
+
+        FlightPathUtils.setCircleVector(
+          toLegCalc.ingress[1],
+          toVectorPath,
+          turnEnd,
+          toVectorStartPoint,
+          toLegCalc.ingress[0].flags
+        );
+
+        toLegCalc.ingress.length = 2;
+      } else {
+        toLegCalc.ingress.length = 1;
+      }
+    }
+
     return toIndex;
+  }
+
+  private static readonly isArcTrackIntersectionValidCache = {
+    vec3: [Vec3Math.create(), Vec3Math.create()]
+  };
+
+  /**
+   * Checks if an intersection between an arc path and a track path is valid for computing turn anticipation between
+   * arc and track vectors. The intersection is considered valid if and only if all the following conditions are true:
+   * - The intersection is within one nautical mile of the end of the vector on which the turn begins.
+   * - The intersection is within one nautical mile of the start of the vector on which the turn ends.
+   * - The intersection is located after the mid-point of the vector on which the turn begins.
+   * - The intersection is located before the mid-point of the vector on which the turn ends.
+   * @param intersection The intersection to check.
+   * @param fromVectorPath A geo circle defining the path of the vector on which the turn begins.
+   * @param fromVectorEnd The end point of the vector on which the turn begins.
+   * @param fromVectorHalfDistance Half of the distance covered by the vector on which the turn begins.
+   * @param intersectionFromVectorEndOffset The along-vector offset distance, in great-arc radians, of the intersection
+   * from the end point of the vector on which the turn begins. Positive offsets indicate the intersection is located
+   * after the end point.
+   * @param toVectorPath A geo circle defining the path of the vector on which the turn ends.
+   * @param toVectorStart The start point of the vector on which the turn ends.
+   * @param toVectorHalfDistance Half of the distance covered by the vector on which the turn ends.
+   * @param intersectionToVectorStartOffset The along-vector offset distance, in great-arc radians, of the intersection
+   * from the start point of the vector on which the turn ends. Positive offsets indicate the intersection is located
+   * before the start point.
+   * @returns Whether the specified intersection is valid for computing turn anticipation between arc and track
+   * vectors.
+   */
+  private isArcTrackIntersectionValid(
+    intersection: ReadonlyFloat64Array,
+    fromVectorPath: GeoCircle,
+    fromVectorEnd: ReadonlyFloat64Array,
+    fromVectorHalfDistance: number,
+    intersectionFromVectorEndOffset: number,
+    toVectorPath: GeoCircle,
+    toVectorStart: ReadonlyFloat64Array,
+    toVectorHalfDistance: number,
+    intersectionToVectorStartOffset: number
+  ): boolean {
+    const fromVectorMidVec = fromVectorPath.offsetDistanceAlong(
+      fromVectorEnd,
+      -fromVectorHalfDistance,
+      FlightPathTurnCalculator.isArcTrackIntersectionValidCache.vec3[0],
+      Math.PI
+    );
+    const toVectorMidVec = toVectorPath.offsetDistanceAlong(
+      toVectorStart,
+      toVectorHalfDistance,
+      FlightPathTurnCalculator.isArcTrackIntersectionValidCache.vec3[1],
+      Math.PI
+    );
+
+    return (
+      Math.abs(intersectionFromVectorEndOffset) <= 2.9e-4
+      && Math.abs(intersectionToVectorStartOffset) <= 2.9e-4
+      && FlightPathUtils.isPointAlongArc(fromVectorPath, fromVectorMidVec, Math.PI, intersection)
+      && !FlightPathUtils.isPointAlongArc(toVectorPath, toVectorMidVec, Math.PI, intersection)
+    );
   }
 
   /**
@@ -592,6 +904,8 @@ export class FlightPathTurnCalculator {
    * @param start The location of the start of the turn.
    * @param middle The location of the midpoint of the turn.
    * @param end The location of the end of the turn.
+   * @param setIngressEgressArrayLengths Whether to set the ingress and egress vector array lengths to 1. Defaults to
+   * `true`.
    */
   private setAnticipatedTurn(
     fromLegCalc: LegCalculations,
@@ -601,33 +915,101 @@ export class FlightPathTurnCalculator {
     center: ReadonlyFloat64Array | LatLonInterface,
     start: ReadonlyFloat64Array | LatLonInterface,
     middle: ReadonlyFloat64Array | LatLonInterface,
-    end: ReadonlyFloat64Array | LatLonInterface
+    end: ReadonlyFloat64Array | LatLonInterface,
+    setIngressEgressArrayLengths = true
   ): void {
-    const egress = fromLegCalc.egress[0] ??= FlightPathUtils.createEmptyCircleVector();
-    const ingress = toLegCalc.ingress[0] ??= FlightPathUtils.createEmptyCircleVector();
-
-    fromLegCalc.egress.length = 1;
-    toLegCalc.ingress.length = 1;
-
-    fromLegCalc.egressJoinIndex = fromLegCalc.flightPath.length - 1;
-    toLegCalc.ingressJoinIndex = 0;
-
     const circle = FlightPathUtils.getTurnCircle(
       center, UnitType.METER.convertTo(radius, UnitType.GA_RADIAN), direction,
       FlightPathTurnCalculator.setAnticipatedTurnCache.geoCircle[0]
     );
 
+    this.setAnticipatedTurnEgress(fromLegCalc, circle, start, middle, setIngressEgressArrayLengths);
+    this.setAnticipatedTurnIngress(toLegCalc, circle, middle, end, setIngressEgressArrayLengths);
+  }
+
+  /**
+   * Adds an egress flight path vector to a leg for an anticipated leg to leg turn.
+   * @param legCalc The calculations for the leg on which the turn begins.
+   * @param circle The geo circle describing the turn path.
+   * @param start The location of the start of the turn.
+   * @param end The location of the end of the egress portion of the turn.
+   * @param setEgressArrayLength Whether to set the egress vector array length to 1. Defaults to `true`.
+   */
+  private setAnticipatedTurnEgress(
+    legCalc: LegCalculations,
+    circle: GeoCircle,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
+    setEgressArrayLength = true
+  ): void {
+    const egress = legCalc.egress[0] ??= FlightPathUtils.createEmptyCircleVector();
+
+    if (setEgressArrayLength) {
+      legCalc.egress.length = 1;
+    }
+    legCalc.egressJoinIndex = legCalc.flightPath.length - 1;
+
     const egressFlags
       = FlightPathVectorFlags.LegToLegTurn
       | FlightPathVectorFlags.AnticipatedTurn
-      | (fromLegCalc.flightPath[fromLegCalc.egressJoinIndex].flags & FlightPathVectorFlags.Fallback);
+      | (legCalc.flightPath[legCalc.egressJoinIndex].flags & FlightPathVectorFlags.Fallback);
+
+    FlightPathUtils.setCircleVector(egress, circle, start, end, egressFlags);
+  }
+
+  /**
+   * Adds an ingress flight path vector to a leg for an anticipated leg to leg turn.
+   * @param legCalc The calculations for the leg on which the turn ends.
+   * @param circle The geo circle describing the turn path.
+   * @param start The location of the start of the ingress portion of the turn.
+   * @param end The location of the end of the turn.
+   * @param setIngressArrayLength Whether to set the ingress vector array length to 1. Defaults to `true`.
+   */
+  private setAnticipatedTurnIngress(
+    legCalc: LegCalculations,
+    circle: GeoCircle,
+    start: ReadonlyFloat64Array | LatLonInterface,
+    end: ReadonlyFloat64Array | LatLonInterface,
+    setIngressArrayLength = true
+  ): void {
+    const ingress = legCalc.ingress[0] ??= FlightPathUtils.createEmptyCircleVector();
+
+    if (setIngressArrayLength) {
+      legCalc.ingress.length = 1;
+    }
+
+    legCalc.ingressJoinIndex = 0;
 
     const ingressFlags
       = FlightPathVectorFlags.LegToLegTurn
       | FlightPathVectorFlags.AnticipatedTurn
-      | (toLegCalc.flightPath[toLegCalc.ingressJoinIndex].flags & FlightPathVectorFlags.Fallback);
+      | (legCalc.flightPath[legCalc.ingressJoinIndex].flags & FlightPathVectorFlags.Fallback);
 
-    FlightPathUtils.setCircleVector(egress, circle, start, middle, egressFlags);
-    FlightPathUtils.setCircleVector(ingress, circle, middle, end, ingressFlags);
+    FlightPathUtils.setCircleVector(ingress, circle, start, end, ingressFlags);
+  }
+
+  /**
+   * Gets the along-circle offset distance from a reference point to a query point, in great-arc radians. The offset
+   * is signed, with positive values indicating offsets in the direction of the circle. The calculated offset has the
+   * range `[-c / 2, c / 2)`, where `c` is the circumference of the circle.
+   * @param circle The geo circle along which to measure the offset.
+   * @param reference The reference point.
+   * @param query The query point.
+   * @param equalityTolerance The tolerance for considering the reference and query points to be equal, in great-arc
+   * radians. If the absolute (direction-agnostic) along-circle distance between the reference and query points is less
+   * than or equal to this value, then zero will be returned. Defaults to `0`.
+   * @returns The along-circle offset distance from the specified reference point to the query point, in great-arc
+   * radians.
+   */
+  private static getAlongCircleOffset(
+    circle: GeoCircle,
+    reference: LatLonInterface | ReadonlyFloat64Array,
+    query: LatLonInterface | ReadonlyFloat64Array,
+    equalityTolerance?: number
+  ): number {
+    const circumference = circle.arcLength(MathUtils.TWO_PI);
+    const halfCircumference = circumference / 2;
+
+    return (circle.distanceAlong(reference, query, Math.PI, equalityTolerance) + halfCircumference) % circumference - halfCircumference;
   }
 }

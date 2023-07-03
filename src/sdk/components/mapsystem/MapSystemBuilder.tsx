@@ -25,7 +25,7 @@ import { MapAutopilotPropsModule } from '../map/modules/MapAutopilotPropsModule'
 import { MapOwnAirplaneIconModule, MapOwnAirplaneIconOrientation } from '../map/modules/MapOwnAirplaneIconModule';
 import { MapOwnAirplanePropsModule } from '../map/modules/MapOwnAirplanePropsModule';
 import { MapAutopilotPropsController, MapAutopilotPropsControllerModules, MapAutopilotPropsKey } from './controllers/MapAutopilotPropsController';
-import { MapBindingsController, MapBinding } from './controllers/MapBindingsController';
+import { MapBinding, MapBindingsController } from './controllers/MapBindingsController';
 import { MapClockUpdateController, MapClockUpdateControllerContext } from './controllers/MapClockUpdateController';
 import { MapFlightPlanController, MapFlightPlanControllerContext, MapFlightPlanControllerModules } from './controllers/MapFlightPlanController';
 import { MapFollowAirplaneController, MapFollowAirplaneControllerContext, MapFollowAirplaneControllerModules } from './controllers/MapFollowAirplaneController';
@@ -779,6 +779,7 @@ export class MapSystemBuilder<
    * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
    * added to the map builder.
    * @param cssClass The CSS class(es) to apply to the root of the map bing layer.
+   * @param opacity The opacity to apply to the layer. If not defined, control of opacity will be left to CSS.
    * @returns This builder, after it has been configured.
    */
   public withBing(
@@ -787,6 +788,7 @@ export class MapSystemBuilder<
     mode?: EBingMode,
     order?: number,
     cssClass?: string | SubscribableSet<string>,
+    opacity?: Subscribable<number>,
   ): this {
     return this
       .withModule(MapSystemKeys.TerrainColors, () => new MapTerrainColorsModule())
@@ -812,6 +814,7 @@ export class MapSystemBuilder<
             mode={mode}
             delay={delay}
             class={cssClass}
+            opacity={opacity}
           />
         );
       }, order);
@@ -972,7 +975,16 @@ export class MapSystemBuilder<
    * @returns This builder, after it has been configured.
    */
   public withFlightPlan(
-    configure: (builder: FlightPlanDisplayBuilder) => void,
+    configure: (builder: FlightPlanDisplayBuilder, context: MapSystemContext<
+      { [MapSystemKeys.FlightPlan]: MapFlightPlanModule },
+      any, any,
+      {
+        [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
+        [MapSystemKeys.IconFactory]: MapSystemIconFactory,
+        [MapSystemKeys.LabelFactory]: MapSystemLabelFactory,
+        [MapSystemKeys.FlightPathRenderer]: MapSystemPlanRenderer,
+      }
+    >) => void,
     flightPlanner: FlightPlanner,
     planIndex: number,
     enableTextCulling = false,
@@ -994,7 +1006,8 @@ export class MapSystemBuilder<
         MapFlightPlanControllerContext
       >(MapSystemKeys.FlightPlan, context => new MapFlightPlanController(context))
       .withInit<
-        any, any, any,
+        { [MapSystemKeys.FlightPlan]: MapFlightPlanModule },
+        any, any,
         {
           [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
           [MapSystemKeys.IconFactory]: MapSystemIconFactory,
@@ -1011,7 +1024,7 @@ export class MapSystemBuilder<
         );
 
         context[MapSystemKeys.WaypointRenderer].insertRenderRole(MapSystemWaypointRoles.FlightPlan, MapSystemWaypointRoles.Normal, undefined, `${MapSystemWaypointRoles.FlightPlan}_${planIndex}`);
-        configure(builder);
+        configure(builder, context);
       });
 
     const layerCount = this.layerCount;
@@ -1158,7 +1171,7 @@ export class MapSystemBuilder<
     return this
       .withModule(MapSystemKeys.OwnAirplaneProps, () => new MapOwnAirplanePropsModule())
       .withModule(MapSystemKeys.Traffic, () => new MapTrafficModule(tcas))
-      .withLayer<MapSystemTrafficLayer, MapSystemTrafficLayerModules>('traffic', context => {
+      .withLayer<MapSystemTrafficLayer, MapSystemTrafficLayerModules>(MapSystemKeys.Traffic, context => {
 
         const options = offScaleOobOptions !== undefined ? { ...offScaleOobOptions(context as any) } : {};
 

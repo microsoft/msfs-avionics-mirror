@@ -1,17 +1,18 @@
 import {
   AdcPublisher, APRadioNavInstrument, AutopilotInstrument, Clock, CombinedSubject, ComponentProps, ComRadioIndex,
   ComSpacing, ConsumerSubject, ControlPublisher, DisplayComponent, EventBus, FacilityLoader, FacilityRepository, FlightPathCalculator, FlightPlanner,
-  FlightPlannerEvents, FSComponent, VNavControlEvents, GNSSPublisher, GPSSatComputer, GpsSynchronizer, HEvent, InstrumentBackplane, LNavEvents,
-  LNavSimVarPublisher, MappedSubject, NavEvents, NavProcSimVarPublisher, NavRadioIndex, NearestContext, RadioType, SBASGroupName, SetSubject,
-  TrafficInstrument, VNavDataEventPublisher, VNavSimVarPublisher, VNode, Wait, SimVarValueType, Subject, ControlEvents, NavSourceType, FlightPathAirplaneSpeedMode
+  FSComponent, VNavControlEvents, GNSSPublisher, GPSSatComputer, GpsSynchronizer, HEvent, InstrumentBackplane, LNavEvents,
+  LNavSimVarPublisher, MappedSubject, NavEvents, NavRadioIndex, NearestContext, RadioType, SBASGroupName, SetSubject,
+  TrafficInstrument, VNavDataEventPublisher, VNavSimVarPublisher, VNode, Wait, SimVarValueType, Subject, ControlEvents, NavSourceType,
+  FlightPathAirplaneSpeedMode, BitFlags, IntersectionType
 } from '@microsoft/msfs-sdk';
 
 import {
-  Fms, GarminAdsb, GarminControlEvents, LNavDataSimVarPublisher, NavdataComputer, NavEventsPublisher, ObsSuspModes, TrafficAdvisorySystem
+  FlightPlanSimSyncManager, Fms, GarminAdsb, GarminControlEvents, LNavDataSimVarPublisher, NavdataComputer, NavEventsPublisher,
+  ObsSuspModes, TrafficAdvisorySystem
 } from '@microsoft/msfs-garminsdk';
 
 import { GNSAPConfig } from './Autopilot/GNSAPConfig';
-import { FlightPlanAsoboSync } from './Navigation/FlightPlanAsoboSync';
 import { GNSAutopilot } from './Autopilot/GNSAutopilot';
 import { GnsVnavController } from './Navigation/Vnav/GnsVnavController';
 import { CDINavSource, GnsCdiMode } from './Instruments/CDINavSource';
@@ -104,7 +105,6 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
   public trafficInstrument: TrafficInstrument;
   public adsb: GarminAdsb;
   public adsbPublisher: GNSAdsbPublisher;
-  public navProcSimVarPublisher!: NavProcSimVarPublisher;
   public navEventsPublisher: NavEventsPublisher;
   public lNavPublisher!: LNavSimVarPublisher;
   public vNavPublisher!: VNavSimVarPublisher;
@@ -122,6 +122,11 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
   public calculator: FlightPathCalculator;
   public fms: Fms;
   public navdataComputer: NavdataComputer;
+
+  private primaryFlightPlanInitPromiseResolve!: () => void;
+  private readonly primaryFlightPlanInitPromise = new Promise<void>(resolve => { this.primaryFlightPlanInitPromiseResolve = resolve; });
+
+  private flightPlanSimSyncManager?: FlightPlanSimSyncManager;
 
   private readonly settingsProvider = new GNSSettingsProvider(this.props.bus);
   private cdiNavSource!: CDINavSource;
@@ -185,7 +190,6 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     this.adcPublisher = new AdcPublisher(this.props.bus);
     this.ahrsPublisher = new GnsAhrsPublisher(this.props.bus);
 
-    this.navProcSimVarPublisher = new NavProcSimVarPublisher(this.props.bus);
     this.navEventsPublisher = new NavEventsPublisher(this.props.bus);
     this.lNavPublisher = new LNavSimVarPublisher(this.props.bus);
     this.vNavPublisher = new VNavSimVarPublisher(this.props.bus);
@@ -207,6 +211,20 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     // Flight Planning Items
     this.facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus), () => {
       NearestContext.initialize(this.facLoader, this.props.bus);
+
+      const intersections = NearestContext.getInstance().intersections;
+      intersections.awaitStart().then(() => {
+        intersections.setFilter(BitFlags.union(
+          BitFlags.createFlag(IntersectionType.None),
+          BitFlags.createFlag(IntersectionType.Named),
+          BitFlags.createFlag(IntersectionType.Unnamed),
+          BitFlags.createFlag(IntersectionType.Offroute),
+          BitFlags.createFlag(IntersectionType.IAF),
+          BitFlags.createFlag(IntersectionType.FAF),
+          BitFlags.createFlag(IntersectionType.RNAV)
+        ), true);
+      });
+
       setInterval(() => NearestContext.getInstance().update(), 2000);
     });
 
@@ -264,7 +282,6 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     this.props.backplane.addPublisher('adc', this.adcPublisher);
     this.props.backplane.addPublisher('ahrs', this.ahrsPublisher);
     this.props.backplane.addPublisher('gnss', this.gnssPublisher);
-    this.props.backplane.addPublisher('navSimVars', this.navProcSimVarPublisher);
     this.props.backplane.addPublisher('navEvents', this.navEventsPublisher);
     this.props.backplane.addPublisher('lnav', this.lNavPublisher);
     this.props.backplane.addPublisher('vnav', this.vNavPublisher);
@@ -397,21 +414,17 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
 
     // Initialize the primary plan in case one was not synced
     if (!this.planner.hasFlightPlan(Fms.PRIMARY_PLAN_INDEX)) {
-      if (this.isPrimaryInstrument) {
-        await this.fms.initPrimaryFlightPlan();
-        await FlightPlanAsoboSync.init();
-      } else {
-        await this.fms.initPrimaryFlightPlan();
-      }
+      await this.fms.initPrimaryFlightPlan();
     } else if (this.isPrimaryInstrument) {
       const plan = this.fms.getPrimaryFlightPlan();
       const numSegments = plan.segmentCount;
 
       if (numSegments === 0) {
         await this.fms.initPrimaryFlightPlan(true);
-        await FlightPlanAsoboSync.init();
       }
     }
+
+    this.primaryFlightPlanInitPromiseResolve();
 
     // Setup AP
     if (this.isPrimaryInstrument) {
@@ -458,15 +471,32 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
         return;
       }
 
-      Wait.awaitCondition(() => this.planner.hasFlightPlan(Fms.PRIMARY_PLAN_INDEX), 1000)
-        .then(async () => {
-          await FlightPlanAsoboSync.loadFromGame(this.fms);
-          this.props.bus.getSubscriber<FlightPlannerEvents>().on('fplLegChange').handle(() => {
-            FlightPlanAsoboSync.SaveToGame(this.fms);
-            this.gamePlanSynced = true;
-          });
-        });
+      this.initFlightPlanSimSync();
     }
+  }
+
+  /**
+   * Initializes flight plan sync to and from the sim. This method should only be called once the flight has finished
+   * loading (i.e. when the game state is either briefing or ingame).
+   */
+  private async initFlightPlanSimSync(): Promise<void> {
+    [this.flightPlanSimSyncManager] = await Promise.all([
+      FlightPlanSimSyncManager.getManager(this.props.bus, this.fms),
+      this.primaryFlightPlanInitPromise,
+      Wait.awaitDelay(5000) // Ensure we wait at least 5 seconds because trying to load the sim flight plan too early sometimes ends up with missing waypoints.
+    ]);
+
+    try {
+      await this.flightPlanSimSyncManager.loadFromSim(true);
+    } catch (e) {
+      console.error(e);
+      if (e instanceof Error) {
+        console.error(e.stack);
+      }
+    }
+
+    this.flightPlanSimSyncManager.startAutoSync();
+    this.gamePlanSynced = true;
   }
 
   private lastCalculate = 0;

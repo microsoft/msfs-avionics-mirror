@@ -258,6 +258,7 @@ export class FlightPlanner {
 
   private lastRequestUid?: number;
 
+  /** Invoked when we receive a flight plan response event. */
   public flightPlanSynced = new SubEvent<this, boolean>();
 
   /**
@@ -357,7 +358,8 @@ export class FlightPlanner {
         continue;
       }
 
-      const newPlan = Object.assign(new FlightPlan(i, this.calculator, this.onLegNameRequested), data.flightPlans[i]);
+      const newPlan = new FlightPlan(i, this.calculator, this.onLegNameRequested);
+      newPlan.copyFrom(data.flightPlans[i], true);
       newPlan.events = this.buildPlanEventHandlers(i);
 
       this.flightPlans[i] = newPlan;
@@ -366,7 +368,12 @@ export class FlightPlanner {
       // Make sure the newly loaded plans are calculated at least once from the beginning
       newPlan.calculate(0);
     }
-    this.setActivePlanIndex(data.planIndex);
+
+    // Only process a plan index changed event if the plan actually exists.
+    if (this.flightPlans[data.planIndex]) {
+      this.onPlanIndexChanged(data);
+    }
+
     this.flightPlanSynced.notify(this, true);
   }
 
@@ -795,7 +802,9 @@ export class FlightPlanner {
       return;
     }
 
-    plan.setProcedureDetails(data.details, false);
+    // We do object assign against new proc details in case the incoming details are missing fields because of coming from json
+    // and because we want to overwrite the entire object, instead of just some fields.
+    plan.setProcedureDetails(Object.assign(new ProcedureDetails(), data.details), false);
 
     this.sendEvent('fplProcDetailsChanged', data, false);
   }

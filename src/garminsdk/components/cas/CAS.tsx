@@ -1,15 +1,16 @@
 import {
-  AnnunciationType, CasActiveMessage, ComponentProps, DisplayComponent, EventBus, FSComponent, NodeReference, ObjectSubject, SubscribableArray, SubscribableArrayEventType, VNode
+  AnnunciationType, CasActiveMessage, ComponentProps, DebounceTimer, DisplayComponent, EventBus, FSComponent,
+  ObjectSubject, SetSubject, Subject, Subscribable, SubscribableArray, SubscribableArrayEventType, SubscribableUtils,
+  Subscription, VNode
 } from '@microsoft/msfs-sdk';
-
 
 /** A data structure for passing back info on the display status. */
 export type CASAlertCounts = {
-  /** The total number of alerts that are active. */
+  /** The total number of messages that are displayed. */
   totalAlerts: number;
-  /** The number present above the selected window. */
+  /** The number of scrollable messages that are out of view above the selected window. */
   countAboveWindow: number;
-  /** The number present below the selected window. */
+  /** The number of scrollable messages that are out of view below the selected window. */
   countBelowWindow: number;
   /** The number of warnings present.*/
   numWarning: number;
@@ -28,84 +29,146 @@ export interface CASProps extends ComponentProps {
   /** Alert subject. */
   annunciations: SubscribableArray<CasActiveMessage>,
   /** The number of annunciations to display at once. */
-  numAnnunciationsShown: number;
+  numAnnunciationsShown: number | Subscribable<number>;
   /** An optional subject to pass back the alert counts. */
   alertCounts?: ObjectSubject<CASAlertCounts>
 }
 
-/** A component for displaying CAS messages and playing sounds. */
-export class CASDisplay<T extends CASProps> extends DisplayComponent<T> {
-  private readonly casDiv = FSComponent.createRef<HTMLDivElement>();
-  private readonly annDivs: NodeReference<HTMLDivElement>[] = [];
-  private readonly activeAnns: Array<CasActiveMessage> = [];
+/**
+ * An entry describing a CAS display message slot.
+ */
+type CASDisplayMessageSlotEntry = {
+  /** Whether the slot is visible. */
+  isVisible: Subject<boolean>;
 
-  private _topAlertIndex = 0;
+  /** The text displayed in the slot. */
+  text: Subject<string>;
 
-  /** @inheritdoc */
-  public constructor(props: T) {
-    super(props);
-    this.props.annunciations.sub((idx, type, item) => {
-      if (Array.isArray(item)) {
-        // Insert into the specified index from the end of the array to keep
-        // the provided order.
-        for (let i = item.length - 1; i >= 0; i--) {
-          this.handleArrayEvent(idx, type, item[i]);
-        }
-      } else {
-        this.handleArrayEvent(idx, type, item as CasActiveMessage | undefined);
-      }
-    });
-  }
+  /** The CSS classes applied to the slot. */
+  cssClass: SetSubject<string>;
 
   /**
-   * Handle a SubscribableArrayEventType on a per-item bases.
-   * @param idx The index of the item to operate on
-   * @param type The type of event we're handling
-   * @param item The individual item to manage.
+   * Whether the slot's message has been acknowledged, or `undefined` if the slot is not displaying a message or the
+   * slot's message cannot be acknowledged.
    */
-  private handleArrayEvent(idx: number, type: SubscribableArrayEventType, item: CasActiveMessage | undefined): void {
-    if (type == SubscribableArrayEventType.Cleared) {
-      this.clearAnnunciations();
-    } else if (item === undefined) {
-      console.error('Unable to handle CAS array event with undefined item.');
-    } else {
-      switch (type) {
-        case SubscribableArrayEventType.Added:
-          this.addAnnunciation(idx, item as CasActiveMessage); break;
-        case SubscribableArrayEventType.Removed:
-          this.removeAnnunciation(idx, item); break;
-      }
-    }
-  }
+  isAcknowledged: boolean | undefined;
+};
+
+/** A component for displaying CAS messages. */
+export class CASDisplay<T extends CASProps> extends DisplayComponent<T> {
+  private readonly casDiv = FSComponent.createRef<HTMLDivElement>();
+
+  private readonly messageCount = SubscribableUtils.toSubscribable(this.props.numAnnunciationsShown, true);
+
+  private readonly activeAnns: Array<CasActiveMessage> = [];
+
+  private readonly messageSlots: CASDisplayMessageSlotEntry[] = [];
+
+  /** The index of the message that is currently displayed in the top (first) slot. */
+  protected topAlertIndex = 0;
+
+  private readonly refreshNewMessageCssClassTimer = new DebounceTimer();
+  private readonly refreshNewMessageCssClassCallback = this.refreshNewMessageCssClass.bind(this);
+
+  private messageCountSub?: Subscription;
+  private messageSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.renderAlertDivs();
+    this.renderMessageSlots();
+    this.updateAlertCounts();
+
+    this.messageCountSub = this.messageCount.sub(this.onMessageCountChanged.bind(this));
+
+    this.messageSub = this.props.annunciations.sub(this.onMessagesChanged.bind(this), true);
   }
 
-  /** Render our the divs for our alerts. */
-  protected renderAlertDivs(): void {
-    for (let i = 0; i < this.props.numAnnunciationsShown; i++) {
-      this.annDivs.push(FSComponent.createRef<HTMLDivElement>());
-      const div = <div class='annunciation' ref={this.annDivs[i]} />;
-      this.casDiv.instance.appendChild(div.instance);
+  /**
+   * Responds to when the maximum displayed message count changes.
+   */
+  private onMessageCountChanged(): void {
+    this.renderMessageSlots();
+
+    // Ensure we are not scrolled past the last slot.
+    this.topAlertIndex = Math.min(this.topAlertIndex, Math.max(0, this.activeAnns.length - this.messageCount.get()));
+
+    this.updateAlertCounts();
+    this.updateDisplayedAnnunciations();
+  }
+
+  /**
+   * Render our the divs for our alerts.
+   */
+  private renderMessageSlots(): void {
+    const count = Math.max(0, this.messageCount.get());
+
+    if (count > this.messageSlots.length) {
+      // Add additional slots.
+
+      while (this.messageSlots.length < count) {
+        const entry = {
+          isVisible: Subject.create(false),
+          text: Subject.create(''),
+          cssClass: SetSubject.create(['annunciation']),
+          isAcknowledged: undefined
+        };
+        this.messageSlots.push(entry);
+
+        FSComponent.render(
+          <div class={entry.cssClass} style={{ 'display': entry.isVisible.map(visible => visible ? '' : 'none') }}>{entry.text}</div>,
+          this.casDiv.instance
+        );
+      }
+    } else if (count < this.messageSlots.length) {
+      // Remove excess slots.
+
+      while (this.messageSlots.length > count) {
+        this.messageSlots.pop();
+
+        const element = this.casDiv.instance.lastElementChild;
+        if (element) {
+          this.casDiv.instance.removeChild(element);
+        }
+      }
     }
   }
 
   /**
-   * Get the current index of the top displayed message.
-   * @returns The index of the top message
+   * Responds to when the list of displayed CAS messages changes.
+   * @param idx The index of the first message that changed.
+   * @param type The type of change that occurred.
+   * @param item The message or messages that changed.
    */
-  protected get topAlertIndex(): number {
-    return this._topAlertIndex;
+  private onMessagesChanged(idx: number, type: SubscribableArrayEventType, item?: CasActiveMessage | readonly CasActiveMessage[]): void {
+    if (type === SubscribableArrayEventType.Cleared) {
+      this.clearAnnunciations();
+      return;
+    }
+
+    if (Array.isArray(item)) {
+      // Insert into the specified index from the end of the array to keep
+      // the provided order.
+      for (let i = item.length - 1; i >= 0; i--) {
+        this.handleMessageChanged(idx, type, item[i]);
+      }
+    } else {
+      this.handleMessageChanged(idx, type, item as CasActiveMessage);
+    }
   }
 
   /**
-   * Set the current index of the top displayed message and adjust our message counts.
-   * @param index The new top index to use
+   * Handles when a displayed CAS message is added or removed.
+   * @param idx The index of the message that changed.
+   * @param type The type of change that occurred.
+   * @param item The message that changed.
    */
-  protected set topAlertIndex(index: number) {
-    this._topAlertIndex = index;
+  private handleMessageChanged(idx: number, type: SubscribableArrayEventType.Added | SubscribableArrayEventType.Removed, item: CasActiveMessage): void {
+    switch (type) {
+      case SubscribableArrayEventType.Added:
+        this.addAnnunciation(idx, item); break;
+      case SubscribableArrayEventType.Removed:
+        this.removeAnnunciation(idx, item); break;
+    }
   }
 
   /**
@@ -146,7 +209,7 @@ export class CASDisplay<T extends CASProps> extends DisplayComponent<T> {
     // b) the removal is at the bottom and brings the alert count within the number of annunciations
     // allowed to be shown, meaning we need to display stuff higher up -- UNLESS we're already at the
     // top.  Got it?
-    if ((idx <= this.topAlertIndex || this.activeAnns.length - this.props.numAnnunciationsShown - this.topAlertIndex <= 0) && this.topAlertIndex > 0) {
+    if ((idx <= this.topAlertIndex || this.activeAnns.length - this.messageCount.get() - this.topAlertIndex <= 0) && this.topAlertIndex > 0) {
       this.topAlertIndex--;
     }
 
@@ -171,8 +234,8 @@ export class CASDisplay<T extends CASProps> extends DisplayComponent<T> {
    * Clear the annunciation display.
    */
   private clearAnnunciations(): void {
-    this.activeAnns.splice(0, this.activeAnns.length);
-    this.updateDisplayedAnnunciations();
+    this.activeAnns.length = 0;
+
     if (this.props.alertCounts !== undefined) {
       this.props.alertCounts.set('numWarning', 0);
       this.props.alertCounts.set('numCaution', 0);
@@ -180,52 +243,7 @@ export class CASDisplay<T extends CASProps> extends DisplayComponent<T> {
       this.props.alertCounts.set('numSafeOp', 0);
       this.updateAlertCounts();
     }
-  }
-
-  /**
-   * Update the displayed divs with current annunciation status.
-   */
-  protected updateDisplayedAnnunciations(): void {
-    let divIter = 0;
-    for (let annIter = this.topAlertIndex; annIter < this.activeAnns.length && divIter < this.props.numAnnunciationsShown; annIter++) {
-      const ann = this.activeAnns[annIter];
-      const div = this.annDivs[divIter++];
-      div.instance.innerHTML = ann.message + (ann.suffixes !== undefined ? ' ' + ann.suffixes?.join('-') : '');
-      div.instance.style.display = 'block';
-      div.instance.className = 'annunciation';
-
-      switch (ann.priority) {
-        case AnnunciationType.Caution:
-          div.instance.classList.add('caution');
-          break;
-        case AnnunciationType.Warning:
-          div.instance.classList.add('warning');
-          break;
-        case AnnunciationType.Advisory:
-          div.instance.classList.add('advisory');
-          break;
-        case AnnunciationType.SafeOp:
-          div.instance.classList.add('safe-op');
-          break;
-      }
-
-      if ([AnnunciationType.Caution, AnnunciationType.Warning].includes(ann.priority)) {
-        if (!this.activeAnns[annIter].acknowledged) {
-          // The timeout here helps the DOM notice that the class has changed
-          // so that it will re-start the blinking animation.
-          setTimeout(() => { div.instance.classList.add('new'); }, 0);
-        } else {
-          div.instance.classList.add('acked');
-        }
-      }
-    }
-
-    for (let i = divIter; i < this.annDivs.length; i++) {
-      const div = this.annDivs[i];
-      div.instance.innerHTML = '';
-      div.instance.style.display = 'none';
-      div.instance.className = 'annunciation';
-    }
+    this.updateDisplayedAnnunciations();
   }
 
   /**
@@ -235,11 +253,70 @@ export class CASDisplay<T extends CASProps> extends DisplayComponent<T> {
    */
   private updateAlertCounts(): void {
     if (this.props.alertCounts !== undefined) {
-      this.props.alertCounts.set({
-        totalAlerts: this.activeAnns.length,
-        countAboveWindow: this.topAlertIndex,
-        countBelowWindow: Math.max(this.activeAnns.length - this.props.numAnnunciationsShown - this.topAlertIndex, 0),
-      });
+      this.props.alertCounts.set('totalAlerts', this.activeAnns.length);
+      this.props.alertCounts.set('countAboveWindow', this.topAlertIndex);
+      this.props.alertCounts.set('countBelowWindow', Math.max(this.activeAnns.length - this.messageCount.get() - this.topAlertIndex, 0));
+    }
+  }
+
+  /**
+   * Update the displayed divs with current annunciation status.
+   */
+  protected updateDisplayedAnnunciations(): void {
+    const end = Math.min(this.messageSlots.length, this.activeAnns.length - this.topAlertIndex);
+
+    for (let i = 0; i < end; i++) {
+      const ann = this.activeAnns[i + this.topAlertIndex];
+      const entry = this.messageSlots[i];
+
+      entry.isVisible.set(true);
+
+      entry.text.set(ann.message + (ann.suffixes !== undefined ? ' ' + ann.suffixes?.join('-') : ''));
+
+      entry.cssClass.toggle('warning', ann.priority === AnnunciationType.Warning);
+      entry.cssClass.toggle('caution', ann.priority === AnnunciationType.Caution);
+      entry.cssClass.toggle('advisory', ann.priority === AnnunciationType.Advisory);
+      entry.cssClass.toggle('safe-op', ann.priority === AnnunciationType.SafeOp);
+
+      if (ann.priority === AnnunciationType.Caution || ann.priority === AnnunciationType.Warning) {
+        // If the message is a caution or warning, we need to handle the acknowledged/unacknowledged state.
+        // Typically, unacknowledged messages will need to be flashing, and we want all such messages to flash in sync
+        // with each other. To accomplish that, whenever any slot is changed, we will remove the unacknowledged CSS
+        // class from all slots, then wait one frame and add that class back to all slots displaying an unacknowledged
+        // message. This ensures that any animations that are applied using the CSS class are reset for all
+        // unacknowledged messages at the same time.
+
+        entry.isAcknowledged = ann.acknowledged;
+        entry.cssClass.delete('new');
+        entry.cssClass.toggle('acked', ann.acknowledged);
+
+        if (!ann.acknowledged && !this.refreshNewMessageCssClassTimer.isPending()) {
+          this.refreshNewMessageCssClassTimer.schedule(this.refreshNewMessageCssClassCallback, 0);
+        }
+      } else {
+        entry.isAcknowledged = undefined;
+        entry.cssClass.delete('acked');
+        entry.cssClass.delete('new');
+      }
+    }
+
+    for (let i = end; i < this.messageSlots.length; i++) {
+      const entry = this.messageSlots[i];
+      entry.isVisible.set(false);
+      entry.isAcknowledged = undefined;
+    }
+  }
+
+  /**
+   * Adds the `new` CSS class to all of this display's message slots that are currently displaying an unacknowledged
+   * message.
+   */
+  private refreshNewMessageCssClass(): void {
+    for (let i = 0; i < this.messageSlots.length; i++) {
+      const entry = this.messageSlots[i];
+      if (entry.isAcknowledged === false) {
+        entry.cssClass.add('new');
+      }
     }
   }
 
@@ -247,7 +324,7 @@ export class CASDisplay<T extends CASProps> extends DisplayComponent<T> {
    * Scroll the message window down.
    */
   public scrollDown(): void {
-    if (this.topAlertIndex < this.activeAnns.length - this.props.numAnnunciationsShown && this.activeAnns.length > this.props.numAnnunciationsShown) {
+    if (this.topAlertIndex < this.activeAnns.length - this.messageCount.get() && this.activeAnns.length > this.messageCount.get()) {
       this.topAlertIndex++;
       this.updateDisplayedAnnunciations();
       this.updateAlertCounts();
@@ -267,7 +344,19 @@ export class CASDisplay<T extends CASProps> extends DisplayComponent<T> {
 
   /** @inheritdoc */
   public render(): VNode {
-    return <div class='cas-display' ref={this.casDiv}>
-    </div>;
+    return (
+      <div class='cas-display' ref={this.casDiv}>
+      </div>
+    );
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this.refreshNewMessageCssClassTimer.clear();
+
+    this.messageCountSub?.destroy();
+    this.messageSub?.destroy();
+
+    super.destroy();
   }
 }

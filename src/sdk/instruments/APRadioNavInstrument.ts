@@ -1,9 +1,10 @@
-/// <reference types="@microsoft/msfs-types/js/common" />
-
-import { EventBus, Publisher } from '../data';
+import { EventBus, IndexedEvents, Publisher } from '../data/EventBus';
 import { NavMath } from '../geo/NavMath';
+import { ArrayUtils } from '../utils/datastructures/ArrayUtils';
 import { Instrument } from './Backplane';
-import { CdiDeviation, Glideslope, Localizer, NavEvents, NavProcSimVarPublisher, NavProcSimVars, NavSourceId, NavSourceType, ObsSetting } from './NavProcessor';
+import { NavComEvents } from './NavCom';
+import { CdiDeviation, Glideslope, Localizer, NavEvents, NavSourceId, NavSourceType, ObsSetting } from './NavProcessor';
+import { NavRadioIndex } from './RadioCommon';
 
 /**
  * Radio data for autopilot navigation.
@@ -27,141 +28,104 @@ interface APNavRadioData {
   /** The OBS setting. */
   obs: ObsSetting;
 
-  /** The magnetic variation. */
+  /** The radial error, in degrees. */
+  radialError: number;
+
+  /** The magnetic variation, in degrees. */
   magVar: number;
 }
 
 /**
+ * Event roots for an indexed nav radio.
+ */
+type NavRadioIndexedEventsRoot = {
+  /** Course deviation data for a nav radio. */
+  nav_radio_cdi: CdiDeviation;
+
+  /** Selected course data for a nav radio. */
+  nav_radio_obs: ObsSetting;
+
+  /**
+   * The difference, in degrees, between the course from the airplane to a nav radio's tuned station and the radio's
+   * reference course. The radio's reference course is the selected course if the tuned station is a VOR or the
+   * localizer course if the tuned station is a localizer. Positive values indicate the airplane is to the left of the
+   * reference course.
+   */
+  nav_radio_radial_error: number;
+
+  /** Localizer data for a nav radio. */
+  nav_radio_localizer: Localizer;
+
+  /** Glideslope data for a nav radio. */
+  nav_radio_glideslope: Glideslope;
+
+  /** The location of a nav radio's tuned VOR station. */
+  nav_radio_nav_location: LatLongAlt;
+
+  /** The location of a nav radio's tuned glideslope antenna. */
+  nav_radio_gs_location: LatLongAlt;
+
+  /** The calibrated magnetic variation, in degrees, of a nav radio's tuned station. */
+  nav_radio_magvar: number;
+};
+
+/**
  * Events related to the active navigation radio.
  */
-export interface NavRadioEvents {
-  /** The location of the tuned glideslope on the active nav radio. */
-  nav_radio_active_gs_location: LatLongAlt;
-  /** The location of the tuned station on the active nav radio. */
-  nav_radio_active_nav_location: LatLongAlt;
+export interface NavRadioEvents extends IndexedEvents<NavRadioIndexedEventsRoot, NavRadioIndex> {
+  /** Course deviation data for the active nav radio. */
+  nav_radio_active_cdi_deviation: CdiDeviation;
+
+  /** Selected course data for the active nav radio. */
+  nav_radio_active_obs_setting: ObsSetting;
+
+  /**
+   * The difference, in degrees, between the course from the airplane to the active nav radio's tuned station and the
+   * radio's reference course. The radio's reference course is the selected course if the tuned station is a VOR or the
+   * localizer course if the tuned station is a localizer. Positive values indicate the airplane is to the left of the
+   * reference course.
+   */
+  nav_radio_active_radial_error: number;
+
   /** Localizer data for the active nav radio. */
   nav_radio_active_localizer: Localizer;
+
   /** Glideslope data for the active nav radio. */
   nav_radio_active_glideslope: Glideslope;
-  /** The obs setting of the current nav radio. */
-  nav_radio_active_obs_setting: ObsSetting;
-  /** The CDI deviation of the current nav radio. */
-  nav_radio_active_cdi_deviation: CdiDeviation;
-  /** The magnetic variation, in degrees, of the tuned station on the active nav radio. */
+
+  /** The location of the active nav radio's tuned VOR station. */
+  nav_radio_active_nav_location: LatLongAlt;
+
+  /** The location of the active nav radio's tuned glideslope antenna. */
+  nav_radio_active_gs_location: LatLongAlt;
+
+  /** The calibrated magnetic variation, in degrees, of the active nav radio's tuned station. */
   nav_radio_active_magvar: number;
-  /** The Nav1 Localizer. */
-  nav_radio_localizer_1: Localizer;
-  /** The Nav2 Localizer. */
-  nav_radio_localizer_2: Localizer;
-  /** The Nav3 Localizer. */
-  nav_radio_localizer_3: Localizer;
-  /** The Nav4 Localizer. */
-  nav_radio_localizer_4: Localizer;
-  /** The Nav1 CdiDeviation. */
-  nav_radio_cdi_1: CdiDeviation;
-  /** The Nav2 CdiDeviation. */
-  nav_radio_cdi_2: CdiDeviation;
-  /** The Nav3 CdiDeviation. */
-  nav_radio_cdi_3: CdiDeviation;
-  /** The Nav4 CdiDeviation. */
-  nav_radio_cdi_4: CdiDeviation;
-  /** The Nav1 obs setting. */
-  nav_radio_obs_1: ObsSetting;
-  /** The Nav2 obs setting. */
-  nav_radio_obs_2: ObsSetting;
-  /** The Nav3 obs setting. */
-  nav_radio_obs_3: ObsSetting;
-  /** The Nav4 obs setting. */
-  nav_radio_obs_4: ObsSetting;
-  /** The Nav1 tuned station location. */
-  nav_radio_nav_location_1: LatLongAlt;
-  /** The Nav2 tuned station location. */
-  nav_radio_nav_location_2: LatLongAlt;
-  /** The Nav3 tuned station location. */
-  nav_radio_nav_location_3: LatLongAlt;
-  /** The Nav4 tuned station location. */
-  nav_radio_nav_location_4: LatLongAlt;
-  /** The Nav1 station declination (difference between true north and 0 radial). */
-  nav_radio_magvar_1: number;
-  /** The Nav2 station declination (difference between true north and 0 radial). */
-  nav_radio_magvar_2: number;
-  /** The Nav3 station declination (difference between true north and 0 radial). */
-  nav_radio_magvar_3: number;
-  /** The Nav4 station declination (difference between true north and 0 radial). */
-  nav_radio_magvar_4: number;
-  /** The Nav1 Glideslope. */
-  nav_radio_glideslope_1: Glideslope;
-  /** The Nav2 Glideslope. */
-  nav_radio_glideslope_2: Glideslope;
-  /** The Nav3 Glideslope. */
-  nav_radio_glideslope_3: Glideslope;
-  /** The Nav4 Glideslope. */
-  nav_radio_glideslope_4: Glideslope;
-  /** The Nav1 tuned GS location. */
-  nav_radio_gs_location_1: LatLongAlt;
-  /** The Nav2 tuned GS location. */
-  nav_radio_gs_location_2: LatLongAlt;
-  /** The Nav3 tuned GS location. */
-  nav_radio_gs_location_3: LatLongAlt;
-  /** The Nav4 tuned GS location. */
-  nav_radio_gs_location_4: LatLongAlt;
 }
 
 /**
  * An instrument that gathers localizer and glideslope information for use by
  * the AP systems.
+ *
+ * Requires that the topics defined in {@link NavComEvents} are published to the event bus.
  */
 export class APRadioNavInstrument implements Instrument {
 
-  private readonly navRadioData: { [index: number]: APNavRadioData } = {
-    0: {
-      gsLocation: new LatLongAlt(0, 0),
-      navLocation: new LatLongAlt(0, 0),
-      glideslope: this.createEmptyGlideslope({ index: 1, type: NavSourceType.Nav }),
-      localizer: this.createEmptyLocalizer({ index: 1, type: NavSourceType.Nav }),
-      cdi: this.createEmptyCdi({ index: 1, type: NavSourceType.Nav }),
-      obs: this.createEmptyObs({ index: 1, type: NavSourceType.Nav }),
-      magVar: 0
-    },
-    1: {
-      gsLocation: new LatLongAlt(0, 0),
-      navLocation: new LatLongAlt(0, 0),
-      glideslope: this.createEmptyGlideslope({ index: 1, type: NavSourceType.Nav }),
-      localizer: this.createEmptyLocalizer({ index: 1, type: NavSourceType.Nav }),
-      cdi: this.createEmptyCdi({ index: 1, type: NavSourceType.Nav }),
-      obs: this.createEmptyObs({ index: 1, type: NavSourceType.Nav }),
-      magVar: 0
-    },
-    2: {
-      gsLocation: new LatLongAlt(0, 0),
-      navLocation: new LatLongAlt(0, 0),
-      glideslope: this.createEmptyGlideslope({ index: 2, type: NavSourceType.Nav }),
-      localizer: this.createEmptyLocalizer({ index: 2, type: NavSourceType.Nav }),
-      cdi: this.createEmptyCdi({ index: 2, type: NavSourceType.Nav }),
-      obs: this.createEmptyObs({ index: 2, type: NavSourceType.Nav }),
-      magVar: 0
-    },
-    3: {
-      gsLocation: new LatLongAlt(0, 0),
-      navLocation: new LatLongAlt(0, 0),
-      glideslope: this.createEmptyGlideslope({ index: 3, type: NavSourceType.Nav }),
-      localizer: this.createEmptyLocalizer({ index: 3, type: NavSourceType.Nav }),
-      cdi: this.createEmptyCdi({ index: 3, type: NavSourceType.Nav }),
-      obs: this.createEmptyObs({ index: 3, type: NavSourceType.Nav }),
-      magVar: 0
-    },
-    4: {
-      gsLocation: new LatLongAlt(0, 0),
-      navLocation: new LatLongAlt(0, 0),
-      glideslope: this.createEmptyGlideslope({ index: 4, type: NavSourceType.Nav }),
-      localizer: this.createEmptyLocalizer({ index: 4, type: NavSourceType.Nav }),
-      cdi: this.createEmptyCdi({ index: 4, type: NavSourceType.Nav }),
-      obs: this.createEmptyObs({ index: 4, type: NavSourceType.Nav }),
-      magVar: 0
-    }
-  };
+  private readonly navRadioData = ArrayUtils.create<APNavRadioData>(5, index => {
+    index = Math.max(1, index);
 
-  private readonly navProc: NavProcSimVarPublisher;
+    return {
+      gsLocation: new LatLongAlt(0, 0),
+      navLocation: new LatLongAlt(0, 0),
+      glideslope: this.createEmptyGlideslope({ index, type: NavSourceType.Nav }),
+      localizer: this.createEmptyLocalizer({ index, type: NavSourceType.Nav }),
+      cdi: this.createEmptyCdi({ index, type: NavSourceType.Nav }),
+      obs: this.createEmptyObs({ index, type: NavSourceType.Nav }),
+      radialError: 0,
+      magVar: 0
+    };
+  });
+
   private readonly publisher: Publisher<NavRadioEvents>;
   private currentCdiIndex = 1;
 
@@ -170,63 +134,27 @@ export class APRadioNavInstrument implements Instrument {
    * @param bus The event bus to use with this instance.
    */
   constructor(private readonly bus: EventBus) {
-    this.navProc = new NavProcSimVarPublisher(bus);
     this.publisher = bus.getPublisher<NavRadioEvents>();
   }
 
   /** @inheritdoc */
   public init(): void {
-    this.navProc.startPublish();
+    const navComSubscriber = this.bus.getSubscriber<NavComEvents>();
 
-
-    const navProcSubscriber = this.bus.getSubscriber<NavProcSimVars>();
-    navProcSubscriber.on('nav_glideslope_1').whenChanged().handle(hasGs => this.setGlideslopeValue(1, 'isValid', hasGs));
-    navProcSubscriber.on('nav_gs_lla_1').handle(lla => this.setGlideslopePosition(1, lla));
-    navProcSubscriber.on('nav_gs_error_1').whenChanged().handle(gsError => this.setGlideslopeValue(1, 'deviation', gsError));
-    navProcSubscriber.on('nav_raw_gs_1').whenChanged().handle(rawGs => this.setGlideslopeValue(1, 'gsAngle', rawGs));
-    navProcSubscriber.on('nav_localizer_1').whenChanged().handle(hasLoc => this.setLocalizerValue(1, 'isValid', hasLoc));
-    navProcSubscriber.on('nav_localizer_crs_1').whenChanged().handle(locCourse => this.setLocalizerValue(1, 'course', locCourse));
-    navProcSubscriber.on('nav_cdi_1').whenChanged().handle(deviation => this.setCDIValue(1, 'deviation', deviation));
-    navProcSubscriber.on('nav_obs_1').whenChanged().handle(obs => this.setOBSValue(1, 'heading', obs));
-    navProcSubscriber.on('nav_lla_1').handle(lla => this.setNavPosition(1, lla));
-    navProcSubscriber.on('nav_magvar_1').whenChanged().handle(magVar => this.setMagVar(1, magVar));
-    navProcSubscriber.on('nav_has_nav_1').whenChanged().handle(hasNav => !hasNav && this.setCDIValue(1, 'deviation', null));
-
-    navProcSubscriber.on('nav_glideslope_2').whenChanged().handle(hasGs => this.setGlideslopeValue(2, 'isValid', hasGs));
-    navProcSubscriber.on('nav_gs_lla_2').handle(lla => this.setGlideslopePosition(2, lla));
-    navProcSubscriber.on('nav_gs_error_2').whenChanged().handle(gsError => this.setGlideslopeValue(2, 'deviation', gsError));
-    navProcSubscriber.on('nav_raw_gs_2').whenChanged().handle(rawGs => this.setGlideslopeValue(2, 'gsAngle', rawGs));
-    navProcSubscriber.on('nav_localizer_2').whenChanged().handle(hasLoc => this.setLocalizerValue(2, 'isValid', hasLoc));
-    navProcSubscriber.on('nav_localizer_crs_2').whenChanged().handle(locCourse => this.setLocalizerValue(2, 'course', locCourse));
-    navProcSubscriber.on('nav_cdi_2').whenChanged().handle(deviation => this.setCDIValue(2, 'deviation', deviation));
-    navProcSubscriber.on('nav_obs_2').whenChanged().handle(obs => this.setOBSValue(2, 'heading', obs));
-    navProcSubscriber.on('nav_lla_2').handle(lla => this.setNavPosition(2, lla));
-    navProcSubscriber.on('nav_magvar_2').whenChanged().handle(magVar => this.setMagVar(2, magVar));
-    navProcSubscriber.on('nav_has_nav_2').whenChanged().handle(hasNav => !hasNav && this.setCDIValue(2, 'deviation', null));
-
-    navProcSubscriber.on('nav_glideslope_3').whenChanged().handle(hasGs => this.setGlideslopeValue(3, 'isValid', hasGs));
-    navProcSubscriber.on('nav_gs_lla_3').handle(lla => this.setGlideslopePosition(3, lla));
-    navProcSubscriber.on('nav_gs_error_3').whenChanged().handle(gsError => this.setGlideslopeValue(3, 'deviation', gsError));
-    navProcSubscriber.on('nav_raw_gs_3').whenChanged().handle(rawGs => this.setGlideslopeValue(3, 'gsAngle', rawGs));
-    navProcSubscriber.on('nav_localizer_3').whenChanged().handle(hasLoc => this.setLocalizerValue(3, 'isValid', hasLoc));
-    navProcSubscriber.on('nav_localizer_crs_3').whenChanged().handle(locCourse => this.setLocalizerValue(3, 'course', locCourse));
-    navProcSubscriber.on('nav_cdi_3').whenChanged().handle(deviation => this.setCDIValue(3, 'deviation', deviation));
-    navProcSubscriber.on('nav_obs_3').whenChanged().handle(obs => this.setOBSValue(3, 'heading', obs));
-    navProcSubscriber.on('nav_lla_3').handle(lla => this.setNavPosition(3, lla));
-    navProcSubscriber.on('nav_magvar_3').whenChanged().handle(magVar => this.setMagVar(3, magVar));
-    navProcSubscriber.on('nav_has_nav_3').whenChanged().handle(hasNav => !hasNav && this.setCDIValue(3, 'deviation', null));
-
-    navProcSubscriber.on('nav_glideslope_4').whenChanged().handle(hasGs => this.setGlideslopeValue(4, 'isValid', hasGs));
-    navProcSubscriber.on('nav_gs_lla_4').handle(lla => this.setGlideslopePosition(4, lla));
-    navProcSubscriber.on('nav_gs_error_4').whenChanged().handle(gsError => this.setGlideslopeValue(4, 'deviation', gsError));
-    navProcSubscriber.on('nav_raw_gs_4').whenChanged().handle(rawGs => this.setGlideslopeValue(4, 'gsAngle', rawGs));
-    navProcSubscriber.on('nav_localizer_4').whenChanged().handle(hasLoc => this.setLocalizerValue(4, 'isValid', hasLoc));
-    navProcSubscriber.on('nav_localizer_crs_4').whenChanged().handle(locCourse => this.setLocalizerValue(4, 'course', locCourse));
-    navProcSubscriber.on('nav_cdi_4').whenChanged().handle(deviation => this.setCDIValue(4, 'deviation', deviation));
-    navProcSubscriber.on('nav_obs_4').whenChanged().handle(obs => this.setOBSValue(4, 'heading', obs));
-    navProcSubscriber.on('nav_lla_4').handle(lla => this.setNavPosition(4, lla));
-    navProcSubscriber.on('nav_magvar_4').whenChanged().handle(magVar => this.setMagVar(4, magVar));
-    navProcSubscriber.on('nav_has_nav_4').whenChanged().handle(hasNav => !hasNav && this.setCDIValue(4, 'deviation', null));
+    for (let i = 1 as NavRadioIndex; i < 5; i++) {
+      navComSubscriber.on(`nav_glideslope_${i}`).whenChanged().handle(this.setGlideslopeValue.bind(this, i, 'isValid' as keyof Glideslope));
+      navComSubscriber.on(`nav_gs_lla_${i}`).handle(this.setGlideslopePosition.bind(this, i));
+      navComSubscriber.on(`nav_gs_error_${i}`).whenChanged().handle(this.setGlideslopeValue.bind(this, i, 'deviation' as keyof Glideslope));
+      navComSubscriber.on(`nav_raw_gs_${i}`).whenChanged().handle(this.setGlideslopeValue.bind(this, i, 'gsAngle' as keyof Glideslope));
+      navComSubscriber.on(`nav_localizer_${i}`).whenChanged().handle(this.setLocalizerValue.bind(this, i, 'isValid' as keyof Localizer));
+      navComSubscriber.on(`nav_localizer_crs_${i}`).whenChanged().handle(this.setLocalizerValue.bind(this, i, 'course' as keyof Localizer));
+      navComSubscriber.on(`nav_cdi_${i}`).whenChanged().handle(this.setCDIValue.bind(this, i, 'deviation' as keyof CdiDeviation));
+      navComSubscriber.on(`nav_has_nav_${i}`).whenChanged().handle(hasNav => !hasNav && this.setCDIValue(i, 'deviation', null));
+      navComSubscriber.on(`nav_obs_${i}`).whenChanged().handle(this.setOBSValue.bind(this, i, 'heading' as keyof ObsSetting));
+      navComSubscriber.on(`nav_lla_${i}`).handle(this.setNavPosition.bind(this, i));
+      navComSubscriber.on(`nav_radial_error_${i}`).whenChanged().handle(this.setRadialError.bind(this, i));
+      navComSubscriber.on(`nav_magvar_${i}`).whenChanged().handle(this.setMagVar.bind(this, i));
+    }
 
     const navEvents = this.bus.getSubscriber<NavEvents>();
     navEvents.on('cdi_select').handle(source => {
@@ -242,6 +170,7 @@ export class APRadioNavInstrument implements Instrument {
         this.publisher.pub('nav_radio_active_localizer', data.localizer);
         this.publisher.pub('nav_radio_active_cdi_deviation', data.cdi);
         this.publisher.pub('nav_radio_active_obs_setting', data.obs);
+        this.publisher.pub('nav_radio_active_radial_error', data.radialError);
         this.publisher.pub('nav_radio_active_magvar', data.magVar);
       }
     });
@@ -249,7 +178,7 @@ export class APRadioNavInstrument implements Instrument {
 
   /** @inheritdoc */
   public onUpdate(): void {
-    this.navProc.onUpdate();
+    // noop
   }
 
   /**
@@ -420,6 +349,33 @@ export class APRadioNavInstrument implements Instrument {
         break;
       case 4:
         this.publisher.pub('nav_radio_obs_4', this.navRadioData[index].obs);
+        break;
+    }
+  }
+
+  /**
+   * Sets the radial error of a nav radio signal source.
+   * @param index The index of the nav radio.
+   * @param radialError The radial error to set.
+   */
+  private setRadialError(index: number, radialError: number): void {
+    this.navRadioData[index].radialError = radialError;
+    if (this.currentCdiIndex === index) {
+      this.publisher.pub('nav_radio_active_radial_error', radialError);
+    }
+
+    switch (index) {
+      case 1:
+        this.publisher.pub('nav_radio_radial_error_1', this.navRadioData[index].radialError);
+        break;
+      case 2:
+        this.publisher.pub('nav_radio_radial_error_2', this.navRadioData[index].radialError);
+        break;
+      case 3:
+        this.publisher.pub('nav_radio_radial_error_3', this.navRadioData[index].radialError);
+        break;
+      case 4:
+        this.publisher.pub('nav_radio_radial_error_4', this.navRadioData[index].radialError);
         break;
     }
   }

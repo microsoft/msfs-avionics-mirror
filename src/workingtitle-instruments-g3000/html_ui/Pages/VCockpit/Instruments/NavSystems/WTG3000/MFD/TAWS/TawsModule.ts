@@ -40,11 +40,13 @@ export interface TawsModule {
 
   /**
    * A method which is called every time this module's parent TAWS system is updated.
-   * @param simTime The current sim time, as a UNIX timestamp in milliseconds.
    * @param operatingMode The current operating mode of TAWS.
    * @param data The data provided by TAWS.
+   * @param realTime The current real (operating system) time, as a UNIX timestamp in milliseconds.
+   * @param simTime The current sim time, as a UNIX timestamp in milliseconds.
+   * @param simRate The current simulation rate factor.
    */
-  onUpdate(simTime: number, operatingMode: TawsOperatingMode, data: Readonly<TawsData>): void;
+  onUpdate(operatingMode: TawsOperatingMode, data: Readonly<TawsData>, realTime: number, simTime: number, simRate: number): void;
 
   /**
    * A method which is called when this module's parent TAWS system is destroyed.

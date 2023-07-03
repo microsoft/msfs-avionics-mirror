@@ -7,7 +7,7 @@ import { Subject } from '../../../sub';
  */
 export class MapOwnAirplanePropsModule {
   /** The airplane's position. */
-  public readonly position = GeoPointSubject.createFromGeoPoint(new GeoPoint(0, 0));
+  public readonly position = GeoPointSubject.create(new GeoPoint(0, 0));
 
   /** The airplane's true heading, in degrees. */
   public readonly hdgTrue = Subject.create(0);
@@ -16,16 +16,16 @@ export class MapOwnAirplanePropsModule {
   public readonly turnRate = Subject.create(0);
 
   /** The airplane's indicated altitude. */
-  public readonly altitude = NumberUnitSubject.createFromNumberUnit(UnitType.FOOT.createNumber(0));
+  public readonly altitude = NumberUnitSubject.create(UnitType.FOOT.createNumber(0));
 
   /** The airplane's vertical speed. */
-  public readonly verticalSpeed = NumberUnitSubject.createFromNumberUnit(UnitType.FPM.createNumber(0));
+  public readonly verticalSpeed = NumberUnitSubject.create(UnitType.FPM.createNumber(0));
 
   /** The airplane's true ground track, in degrees. */
   public readonly trackTrue = Subject.create(0);
 
   /** The airplane's ground speed. */
-  public readonly groundSpeed = NumberUnitSubject.createFromNumberUnit(UnitType.KNOT.createNumber(0));
+  public readonly groundSpeed = NumberUnitSubject.create(UnitType.KNOT.createNumber(0));
 
   /** Whether the airplane is on the ground. */
   public readonly isOnGround = Subject.create(true);

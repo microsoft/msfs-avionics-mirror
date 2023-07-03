@@ -71,10 +71,10 @@ export class SwitchLabel extends EditableField<number, number> {
 
       switch (this.options.caret) {
         case 'left':
-          string = `<${string}`;
+          string = `<[]${string}`;
           break;
         case 'right':
-          string = `${string}>`;
+          string = `${string}>[]`;
           break;
       }
     }

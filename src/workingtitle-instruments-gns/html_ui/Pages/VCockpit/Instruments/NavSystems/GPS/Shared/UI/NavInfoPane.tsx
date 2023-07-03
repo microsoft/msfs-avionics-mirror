@@ -1,5 +1,5 @@
 import {
-  ComponentProps, ComputedSubject, DisplayComponent, EventBus, FSComponent, GeoPoint, GeoPointSubject, GNSSEvents, MagVar, NavProcSimVars,
+  ComponentProps, ComputedSubject, DisplayComponent, EventBus, FSComponent, GeoPoint, GeoPointSubject, GNSSEvents, MagVar, NavComEvents,
   NavRadioIndex, NumberUnitSubject, RunwayUtils, Subject, UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
@@ -44,7 +44,7 @@ export class NavInfoPane extends DisplayComponent<NavInfoPaneProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    const sub = this.props.bus.getSubscriber<NavProcSimVars & GNSSEvents>();
+    const sub = this.props.bus.getSubscriber<NavComEvents & GNSSEvents>();
     sub.on(`nav_lla_${this.props.radioIndex}`).handle(pos => this.radioPosition.set(pos.lat, pos.long));
     sub.on(`nav_dme_lla_${this.props.radioIndex}`).handle(pos => this.dmePosition.set(pos.lat, pos.long));
     sub.on(`nav_ident_${this.props.radioIndex}`).handle(ident => this.ident.set(ident !== '' ? ident : '____'));

@@ -3,7 +3,7 @@ import {
   AdcPublisher, AhrsPublisher, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, Clock, ControlSurfacesPublisher,
   DebounceTimer, EISPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator,
   FlightPlanner, FlightTimerPublisher, FsInstrument, GameStateProvider, GNSSPublisher, GPSSatComputer, HEventPublisher,
-  InstrumentBackplane, LNavSimVarPublisher, MinimumsSimVarPublisher, SBASGroupName, SimVarValueType, SmoothingPathCalculator,
+  InstrumentBackplane, LNavSimVarPublisher, MinimumsSimVarPublisher, NavComSimVarPublisher, SBASGroupName, SimVarValueType, SmoothingPathCalculator,
   VNavSimVarPublisher, Wait
 } from '@microsoft/msfs-sdk';
 
@@ -100,6 +100,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
   protected readonly lNavPublisher = new LNavSimVarPublisher(this.bus);
   protected readonly lNavDataPublisher = new LNavDataSimVarPublisher(this.bus);
   protected readonly vNavPublisher = new VNavSimVarPublisher(this.bus);
+  protected readonly navComSimVarPublisher = new NavComSimVarPublisher(this.bus);
   protected readonly minimumsPublisher = new MinimumsSimVarPublisher(this.bus);
   protected readonly navEventsPublisher = new NavEventsPublisher(this.bus);
   protected readonly eisPublisher = new EISPublisher(this.bus);
@@ -148,6 +149,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
     this.backplane.addPublisher(InstrumentBackplaneNames.LNav, this.lNavPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.LNavData, this.lNavDataPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.VNav, this.vNavPublisher);
+    this.backplane.addPublisher(InstrumentBackplaneNames.NavCom, this.navComSimVarPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.Minimums, this.minimumsPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.NavEvents, this.navEventsPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.Eis, this.eisPublisher);

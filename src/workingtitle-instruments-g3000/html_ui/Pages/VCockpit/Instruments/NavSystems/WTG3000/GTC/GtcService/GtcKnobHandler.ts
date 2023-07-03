@@ -5,7 +5,7 @@ import {
 } from '@microsoft/msfs-wtg3000-common';
 
 import { GtcInteractionEvent } from './GtcInteractionEvent';
-import { GtcCenterKnobState, GtcDualKnobRotationState, GtcMapKnobState } from './GtcKnobStates';
+import { GtcCenterKnobState, GtcDualKnobState, GtcMapKnobState } from './GtcKnobStates';
 import { GtcService } from './GtcService';
 import { GtcViewKeys } from './GtcViewKeys';
 
@@ -130,18 +130,18 @@ export class GtcKnobHandler {
    */
   private handleInnerKnobRotate(event: GtcInteractionEvent, incOrDec: GtcKnobDirection): void {
     switch (this.gtcService.gtcKnobStates.dualKnobState.get()) {
-      case GtcDualKnobRotationState.CRS:
+      case GtcDualKnobState.CRS:
         this.changeCourse(incOrDec);
         return;
-      case GtcDualKnobRotationState.DisplayPanes:
-      case GtcDualKnobRotationState.DisplayPanesAndRadarControl:
+      case GtcDualKnobState.DisplayPanes:
+      case GtcDualKnobState.DisplayPanesAndRadarControl:
         this.changeSelectedDisplayPane(incOrDec);
         return;
-      case GtcDualKnobRotationState.MapPointerControl:
+      case GtcDualKnobState.MapPointerControl:
         this.sendMapPointerMoveEvent(incOrDec === 'inc' ? MapPointerJoystickDirection.Up : MapPointerJoystickDirection.Down);
         return;
-      case GtcDualKnobRotationState.NAVCOM1:
-      case GtcDualKnobRotationState.NAVCOM2:
+      case GtcDualKnobState.NAVCOM1:
+      case GtcDualKnobState.NAVCOM2:
         this.gtcService.navComEventHandler.get()?.onGtcInteractionEvent(event);
         return;
     }
@@ -154,13 +154,12 @@ export class GtcKnobHandler {
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private handleInnerKnobPush(event: GtcInteractionEvent, isLong: boolean): void {
-    const dualKnobState: GtcDualKnobRotationState = this.gtcService.gtcKnobStates.dualKnobState.get();
-    switch (dualKnobState) {
-      case GtcDualKnobRotationState.MapPointerControl:
+    switch (this.gtcService.gtcKnobStates.dualKnobState.get()) {
+      case GtcDualKnobState.MapPointerControl:
         this.sendMapPointerActiveSetEvent(false);
         break;
-      case GtcDualKnobRotationState.NAVCOM1:
-      case GtcDualKnobRotationState.NAVCOM2:
+      case GtcDualKnobState.NAVCOM1:
+      case GtcDualKnobState.NAVCOM2:
         this.gtcService.navComEventHandler.get()?.onGtcInteractionEvent(event);
         break;
     }
@@ -173,18 +172,18 @@ export class GtcKnobHandler {
    */
   private handleOuterKnobRotate(event: GtcInteractionEvent, incOrDec: GtcKnobDirection): void {
     switch (this.gtcService.gtcKnobStates.dualKnobState.get()) {
-      case GtcDualKnobRotationState.CRS:
+      case GtcDualKnobState.CRS:
         this.changeCourse(incOrDec);
         return;
-      case GtcDualKnobRotationState.DisplayPanes:
-      case GtcDualKnobRotationState.DisplayPanesAndRadarControl:
+      case GtcDualKnobState.DisplayPanes:
+      case GtcDualKnobState.DisplayPanesAndRadarControl:
         this.changeSelectedDisplayPane(incOrDec);
         return;
-      case GtcDualKnobRotationState.MapPointerControl:
+      case GtcDualKnobState.MapPointerControl:
         this.sendMapPointerMoveEvent(incOrDec === 'inc' ? MapPointerJoystickDirection.Right : MapPointerJoystickDirection.Left);
         return;
-      case GtcDualKnobRotationState.NAVCOM1:
-      case GtcDualKnobRotationState.NAVCOM2:
+      case GtcDualKnobState.NAVCOM1:
+      case GtcDualKnobState.NAVCOM2:
         this.gtcService.navComEventHandler.get()?.onGtcInteractionEvent(event);
         return;
     }
@@ -325,7 +324,7 @@ export class GtcKnobHandler {
       return;
     } else {
       this.publisher.pub('display_pane_view_event', {
-        displayPaneIndex: displayPaneIndex,
+        displayPaneIndex: displayPaneIndex as DisplayPaneIndex,
         eventType: `display_pane_map_range_${incOrDec}`,
         eventData: undefined
       }, true);
@@ -344,7 +343,7 @@ export class GtcKnobHandler {
       return;
     } else {
       this.publisher.pub('display_pane_view_event', {
-        displayPaneIndex: displayPaneIndex,
+        displayPaneIndex: displayPaneIndex as DisplayPaneIndex,
         eventType: 'display_pane_map_pointer_active_set',
         eventData: activate
       }, true);
@@ -364,7 +363,7 @@ export class GtcKnobHandler {
     } else {
       const delta = this.mapPointerJoystickHandler.onInput(direction, GtcKnobHandler.vec2Cache[0]);
       this.publisher.pub('display_pane_view_event', {
-        displayPaneIndex: displayPaneIndex,
+        displayPaneIndex: displayPaneIndex as DisplayPaneIndex,
         eventType: 'display_pane_map_pointer_move',
         eventData: [delta[0], delta[1]]
       }, true);

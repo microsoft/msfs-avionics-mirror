@@ -379,6 +379,10 @@ export class CasSystem {
    * @param priority The priority of the alert to fire.
    */
   private scheduleAlert(alertKey: CasAlertKey, priority: AnnunciationType): void {
+    if (!this.checkValidAlertKey(alertKey)) {
+      return;
+    }
+
     const debounceTime = this.registeredAlerts.get(alertKey.uuid)?.debounceTime;
     if (debounceTime === undefined) {
       this.activateAlert(alertKey, priority);
@@ -423,30 +427,33 @@ export class CasSystem {
   private checkScheduledAlerts(timestamp: number): void {
     if (this.previousScheduleCheckTime !== -1) {
       const deltaTime = NavMath.clamp(timestamp - this.previousScheduleCheckTime, 0, 10000);
-      // Handle unsuffixed alerts.
-      for (const [uuid, uuidMap] of this.scheduledUnsuffixedAlerts) {
-        for (const [priority, delay] of uuidMap) {
-          const newDelay = delay - deltaTime;
-          if (newDelay <= 0) {
-            this.activateAlert({ uuid: uuid }, priority);
-            uuidMap.delete(priority);
-          } else {
-            uuidMap.set(priority, newDelay);
-          }
-        }
-      }
 
-      // And then suffixed ones.
-      for (const [uuid, uuidMap] of this.scheduledSuffixedAlerts) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for (const [suffix, suffixMap] of uuidMap) {
-          for (const [priority, delay] of suffixMap) {
+      if (deltaTime > 0) {
+        // Handle unsuffixed alerts.
+        for (const [uuid, uuidMap] of this.scheduledUnsuffixedAlerts) {
+          for (const [priority, delay] of uuidMap) {
             const newDelay = delay - deltaTime;
             if (newDelay <= 0) {
-              this.activateAlert({ uuid: uuid, suffix: suffix }, priority);
-              suffixMap.delete(priority);
+              uuidMap.delete(priority);
+              this.activateAlert({ uuid: uuid }, priority);
             } else {
-              suffixMap.set(priority, newDelay);
+              uuidMap.set(priority, newDelay);
+            }
+          }
+        }
+
+        // And then suffixed ones.
+        for (const [uuid, uuidMap] of this.scheduledSuffixedAlerts) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          for (const [suffix, suffixMap] of uuidMap) {
+            for (const [priority, delay] of suffixMap) {
+              const newDelay = delay - deltaTime;
+              if (newDelay <= 0) {
+                suffixMap.delete(priority);
+                this.activateAlert({ uuid: uuid, suffix: suffix }, priority);
+              } else {
+                suffixMap.set(priority, newDelay);
+              }
             }
           }
         }
@@ -534,14 +541,21 @@ export class CasSystem {
         const suffixes = uuidMessageAtPriority.suffixes as string[];
         const acknowledgedSuffixes = uuidMessageAtPriority.acknowledgedSuffixes as string[];
 
-        // Get the index of the suffix in the suffixes array.
-        suffixes.splice(suffixes.indexOf(alertKey.suffix), 1);
+        // Remove the suffix from the message's suffix array.
+        const index = suffixes.indexOf(alertKey.suffix);
+        if (index >= 0) {
+          suffixes.splice(index, 1);
+        }
 
         if (suffixes.length == 0) {
           // We've just removed the last suffix, we can fully disable this alert.
           messagesAtPriority?.delete(alertKey.uuid);
         } else {
-          acknowledgedSuffixes.splice(acknowledgedSuffixes.indexOf(alertKey.suffix), 1);
+          // Remove the suffix from the message's acknowledged suffix array.
+          const acknowledgedIndex = acknowledgedSuffixes.indexOf(alertKey.suffix);
+          if (acknowledgedIndex >= 0) {
+            acknowledgedSuffixes.splice(acknowledgedIndex, 1);
+          }
         }
       }
     }

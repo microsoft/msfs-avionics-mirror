@@ -3,7 +3,7 @@ import {
   LegDefinition, FlightPlanUtils, ICAO, LegType, StringUtils,
   Subscribable, SubscribableUtils, MappedSubject,
 } from '@microsoft/msfs-sdk';
-import { GtcOrientation } from '../..';
+import { GtcOrientation } from '../../CommonTypes';
 
 /** The properties for the {@link LegNameDisplay} component. */
 interface LegNameDisplayProps extends ComponentProps {

@@ -1,8 +1,0 @@
-.flight-director-container {
-  position: absolute;
-  transform-origin: 50% var(--zero-pitch-y);
-  --zero-pitch-y: 50%;
-  --flight-director-fill: var(--g3000-color-magenta);
-  --flight-director-stroke: var(--g3000-color-black);
-  --flight-director-stroke-width: 0.5;
-}

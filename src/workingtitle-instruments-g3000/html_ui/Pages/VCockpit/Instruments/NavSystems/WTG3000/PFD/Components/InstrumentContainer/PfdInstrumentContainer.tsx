@@ -5,14 +5,15 @@ import {
 
 import {
   AltimeterDataProvider, DateTimeUserSettings, DefaultAoaDataProvider, DefaultMarkerBeaconDataProvider, DefaultNavStatusBoxDataProvider,
-  DefaultObsSuspDataProvider, DmeUserSettings, Fms, FmsPositionMode, GpsIntegrityDataProvider, HsiGpsIntegrityAnnunciationMode,
-  MinimumsAlerter, MinimumsAlertState, MinimumsDataProvider, PfdDeclutterManager, RadarAltimeterDataProvider, SoftKeyBar,
-  SoftKeyMenuSystem, TrafficSystem, TrafficSystemType, UnitsUserSettings, VNavDataProvider, WaypointAlertComputer, WindDataProvider
+  DefaultObsSuspDataProvider, DefaultTcasRaCommandDataProvider, DmeUserSettings, Fms, FmsPositionMode, GpsIntegrityDataProvider,
+  HsiGpsIntegrityAnnunciationMode, MinimumsAlerter, MinimumsAlertState, MinimumsDataProvider, PfdDeclutterManager,
+  RadarAltimeterDataProvider, SoftKeyBar, SoftKeyMenuSystem, TrafficSystem, TrafficSystemType, UnitsUserSettings, VNavDataProvider,
+  WaypointAlertComputer, WindDataProvider
 } from '@microsoft/msfs-garminsdk';
 
 import {
   AuralAlertUserSettings, AuralAlertVoiceSetting, AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, AvionicsStatusEvents,
-  AvionicsStatusUtils, CAS, DisplayPaneIndex, DisplayPaneSizeMode, DisplayPaneView, DisplayPaneViewEvent, DisplayPaneViewProps,
+  AvionicsStatusUtils, G3000FullCASDisplay, DisplayPaneIndex, DisplayPaneSizeMode, DisplayPaneView, DisplayPaneViewEvent, DisplayPaneViewProps,
   G3000AuralAlertIds, G3000AuralAlertUtils, G3000DmeInfoNavIndicator, G3000NavIndicators, G3000NavInfoNavIndicator,
   IauUserSettingManager, MapUserSettings, PfdAliasedUserSettingTypes, PfdMapLayoutSettingMode, SoftKeyHEventMap, VSpeedUserSettingManager
 } from '@microsoft/msfs-wtg3000-common';
@@ -37,6 +38,7 @@ import { AirspeedIndicator } from '../Airspeed/AirspeedIndicator';
 import { Altimeter } from '../Altimeter/Altimeter';
 import { RadarAltimeter } from '../Altimeter/RadarAltimeter';
 import { AoaIndicator } from '../Aoa/AoaIndicator';
+import { BearingInfoBanner } from '../BearingInfo/BearingInfoBanner';
 import { BottomInfoPanel } from '../BottomInfoPanel/BottomInfoPanel';
 import { ComInfoBox } from '../ComInfoBox/ComInfoBox';
 import { Fma } from '../Fma/Fma';
@@ -135,7 +137,7 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
       this.props.bus,
       SoftKeyHEventMap.create(
         `AS3000_PFD_${this.pfdIndex}`,
-        this.props.instrumentConfig.layout.splitModeInstrumentSide ?? (this.pfdIndex === 1 ? 'left' : 'right'),
+        this.props.instrumentConfig.layout.splitModeInstrumentSide === 'auto' ? (this.pfdIndex === 1 ? 'left' : 'right') : this.props.instrumentConfig.layout.splitModeInstrumentSide,
         this.isInSplitMode
       )
     )
@@ -183,6 +185,9 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
   private readonly obsSuspDataProvider = new DefaultObsSuspDataProvider(this.props.bus);
 
   private readonly tcasAdvisoryDataProvider = new DefaultTcasAdvisoryDataProvider(this.props.bus, this.props.trafficSystem);
+  private readonly tcasRaCommandDataProvider = this.props.trafficSystem.type === TrafficSystemType.TcasII
+    ? new DefaultTcasRaCommandDataProvider(this.props.bus, this.props.trafficSystem)
+    : undefined;
 
   private readonly markerBeaconDataProvider = new DefaultMarkerBeaconDataProvider(this.props.bus, 1);
 
@@ -193,7 +198,18 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
 
   private readonly trafficAlertMapManager = new PfdTrafficAlertMapManager(this.pfdIndex, this.props.bus, this.tcasAdvisoryDataProvider);
 
-  private readonly declutterNavDmeBanner = this.props.instrumentConfig.layout.useBanners
+  private readonly navDmeBannerPosition = this.props.instrumentConfig.layout.useNavDmeInfoBanner
+    ? 'upper'
+    : this.props.instrumentConfig.layout.includeSoftKeys ? 'lower-softkey' : 'lower';
+  private readonly declutterNavDmeBanner = this.props.instrumentConfig.layout.useNavDmeInfoBanner
+    ? undefined
+    : MappedSubject.create(
+      ([declutter, isInSplitMode]): boolean => declutter || !isInSplitMode,
+      this.declutterManager.declutter,
+      this.isInSplitMode
+    );
+
+  private readonly declutterBearingInfoBanner = this.props.instrumentConfig.layout.useNavStatusBanner
     ? undefined
     : MappedSubject.create(
       ([declutter, isInSplitMode]): boolean => declutter || !isInSplitMode,
@@ -303,13 +319,15 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
     this.navStatusDataProvider.init();
     this.obsSuspDataProvider.init();
     this.tcasAdvisoryDataProvider.init();
+    this.tcasRaCommandDataProvider?.init();
     this.markerBeaconDataProvider.init();
 
     this.declutterManager.init();
     this.trafficAlertMapManager.init();
 
     this.rootCssClass.add(this.softKeyMenuSystem === undefined ? 'pfd-nosoftkey' : 'pfd-softkey');
-    this.rootCssClass.add(this.props.instrumentConfig.layout.useBanners ? 'pfd-use-banners' : 'pfd-no-banners');
+    this.rootCssClass.add(this.props.instrumentConfig.layout.useNavStatusBanner ? 'pfd-use-nav-status-banner' : 'pfd-no-nav-status-banner');
+    this.rootCssClass.add(this.props.instrumentConfig.layout.useNavDmeInfoBanner ? 'pfd-use-nav-dme-banner' : 'pfd-no-nav-dme-banner');
 
     this.minimumsAlerter.init();
 
@@ -442,6 +460,7 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
           projectedSize={this.horizonSize}
           projectedOffset={this.horizonOffset}
           lowBankAngle={this.props.config.autopilot.lowBankOptions.maxBankAngle}
+          tcasRaCommandDataProvider={this.tcasRaCommandDataProvider}
           iauSettingManager={this.iauAliasedSettingManager}
           pfdSettingManager={this.props.pfdSettingManager}
           unitsSettingManager={UnitsUserSettings.getManager(this.props.bus)}
@@ -453,10 +472,12 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
           supportAutothrottle={this.props.config.autothrottle}
         />
         {this.props.instrumentConfig.cas.casEnabled && (
-          <CAS
+          <G3000FullCASDisplay
             bus={this.props.bus}
             annunciations={this.props.casSystem.casActiveMessageSubject}
-            numAnnunciationsShown={this.props.instrumentConfig.cas.alertCountFullScreen}
+            numAnnunciationsShown={this.isInSplitMode.map(isSplit => {
+              return isSplit ? this.props.instrumentConfig.cas.alertCountSplitScreen : this.props.instrumentConfig.cas.alertCountFullScreen;
+            })}
             pfdIndices={[this.pfdIndex]}
           />
         )}
@@ -486,7 +507,7 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
           bus={this.props.bus}
           config={this.props.instrumentConfig.vsi}
           vnavDataProvider={this.props.vnavDataProvider}
-          tcas={this.props.trafficSystem.type === TrafficSystemType.TcasII ? this.props.trafficSystem : undefined}
+          tcasRaCommandDataProvider={this.tcasRaCommandDataProvider}
           iauSettingManager={this.iauAliasedSettingManager}
           declutter={this.declutterManager.declutter}
           isAdvancedVnav={this.props.fms.isAdvancedVnav}
@@ -508,7 +529,7 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
           settingManager={this.props.pfdSettingManager}
         />
         {
-          this.props.instrumentConfig.layout.useBanners && (
+          this.props.instrumentConfig.layout.useWindBanner && (
             <WindDisplay
               dataProvider={this.props.windDataProvider}
               windDisplaySettingManager={this.props.pfdSettingManager}
@@ -555,9 +576,10 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
           unitsSettingManager={UnitsUserSettings.getManager(this.props.bus)}
           isHsiMapEnabled={this.isHsiMapEnabled}
           declutter={this.declutterNavDmeBanner ?? this.declutterManager.declutter}
+          position={this.navDmeBannerPosition}
         />
         {
-          this.props.instrumentConfig.layout.useBanners && (
+          this.props.instrumentConfig.layout.useNavStatusBanner && (
             <NavStatusBoxBanner
               bus={this.props.bus}
               config={this.props.instrumentConfig.navStatusBox}
@@ -566,6 +588,19 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
               unitsSettingManager={UnitsUserSettings.getManager(this.props.bus)}
               isHsiMapEnabled={this.isHsiMapEnabled}
               declutter={this.declutterManager.declutter}
+            />
+          )
+        }
+        {
+          this.declutterBearingInfoBanner && (
+            <BearingInfoBanner
+              bus={this.props.bus}
+              adfRadioCount={this.props.config.radios.adfCount}
+              navIndicators={this.props.navIndicators}
+              unitsSettingManager={UnitsUserSettings.getManager(this.props.bus)}
+              isHsiMapEnabled={this.isHsiMapEnabled}
+              declutter={this.declutterBearingInfoBanner}
+              softkey={this.props.instrumentConfig.layout.includeSoftKeys}
             />
           )
         }
@@ -642,6 +677,7 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
     this.navStatusDataProvider.destroy();
     this.obsSuspDataProvider.destroy();
     this.tcasAdvisoryDataProvider.destroy();
+    this.tcasRaCommandDataProvider?.destroy();
     this.markerBeaconDataProvider.destroy();
     this.declutterManager.destroy();
     this.trafficAlertMapManager.destroy();

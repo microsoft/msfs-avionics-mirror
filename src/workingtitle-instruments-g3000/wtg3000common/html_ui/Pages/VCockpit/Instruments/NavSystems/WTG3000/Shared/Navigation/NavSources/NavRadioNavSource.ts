@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { CombinedSubject, ConsumerSubject, EventBus, GeoPoint, NavComSimVars, NavProcSimVars, NavRadioIndex, NavSourceType, RadioUtils, Subject, Subscription } from '@microsoft/msfs-sdk';
+import { ConsumerSubject, EventBus, GeoPoint, MappedSubject, NavComEvents, NavRadioIndex, NavSourceType, RadioUtils, Subject, Subscription } from '@microsoft/msfs-sdk';
 import { AbstractNavBase } from '../NavBase';
 import { NavSource } from './NavSource';
 
@@ -27,29 +27,27 @@ export class NavRadioNavSource<NameType extends string> extends AbstractNavBase 
   public constructor(bus: EventBus, public readonly name: NameType, public readonly index: NavRadioIndex) {
     super();
 
-    const navProcSimVarsSubscriber = bus.getSubscriber<NavProcSimVars>();
-    navProcSimVarsSubscriber.on(`nav_signal_${index}`).handle(val => { this.signalStrength.set(val); });
-    navProcSimVarsSubscriber.on(`nav_has_dme_${index}`).handle(val => { this.hasDme.set(val); });
-    navProcSimVarsSubscriber.on(`nav_has_nav_${index}`).handle(val => { this.hasNav.set(val); });
-    navProcSimVarsSubscriber.on(`nav_ident_${index}`).handle(val => { this.ident.set(val); });
-    navProcSimVarsSubscriber.on(`nav_localizer_${index}`).handle(val => { this.hasLocalizer.set(val); });
-    navProcSimVarsSubscriber.on(`nav_localizer_crs_${index}`).handle(val => { this.navLocalizerCrsRad.set(val); });
-    navProcSimVarsSubscriber.on(`nav_gs_error_${index}`).handle(val => { this.glideSlopeErrorDegrees.set(val); });
-    navProcSimVarsSubscriber.on(`nav_glideslope_${index}`).handle(val => { this.hasGlideSlope.set(val); });
-    navProcSimVarsSubscriber.on(`nav_obs_${index}`).handle(val => { this.course.set(val); });
-    navProcSimVarsSubscriber.on(`nav_cdi_${index}`).handle(val => { this.navCdi.set(val); });
-    navProcSimVarsSubscriber.on(`nav_to_from_${index}`).handle(val => { this.toFrom.set(val); });
+    const navComSubscriber = bus.getSubscriber<NavComEvents>();
+    navComSubscriber.on(`nav_signal_${index}`).handle(val => { this.signalStrength.set(val); });
+    navComSubscriber.on(`nav_has_dme_${index}`).handle(val => { this.hasDme.set(val); });
+    navComSubscriber.on(`nav_has_nav_${index}`).handle(val => { this.hasNav.set(val); });
+    navComSubscriber.on(`nav_ident_${index}`).handle(val => { this.ident.set(val); });
+    navComSubscriber.on(`nav_localizer_${index}`).handle(val => { this.hasLocalizer.set(val); });
+    navComSubscriber.on(`nav_localizer_crs_${index}`).handle(val => { this.navLocalizerCrsRad.set(val); });
+    navComSubscriber.on(`nav_gs_error_${index}`).handle(val => { this.glideSlopeErrorDegrees.set(val); });
+    navComSubscriber.on(`nav_glideslope_${index}`).handle(val => { this.hasGlideSlope.set(val); });
+    navComSubscriber.on(`nav_obs_${index}`).handle(val => { this.course.set(val); });
+    navComSubscriber.on(`nav_cdi_${index}`).handle(val => { this.navCdi.set(val); });
+    navComSubscriber.on(`nav_to_from_${index}`).handle(val => { this.toFrom.set(val); });
+    navComSubscriber.on(`nav_active_frequency_${index}`).handle(val => { this.activeFrequency.set(val); });
 
-    const navComSimVarsSubscriber = bus.getSubscriber<NavComSimVars>();
-    navComSimVarsSubscriber.on(`nav_active_frequency_${index}`).handle(val => { this.activeFrequency.set(val); });
+    this.dmePipe = navComSubscriber.on(`nav_dme_${index}`).handle(val => { this.distance.set(val); }, true);
+    this.bearingPipe = navComSubscriber.on(`nav_radial_${index}`).handle(val => { this.bearing.set((val + 180) % 360); }, true);
 
-    this.dmePipe = navProcSimVarsSubscriber.on(`nav_dme_${index}`).handle(val => { this.distance.set(val); }, true);
-    this.bearingPipe = navProcSimVarsSubscriber.on(`nav_radial_${index}`).handle(val => { this.bearing.set((val + 180) % 360); }, true);
-
-    this.vorLla = ConsumerSubject.create(navProcSimVarsSubscriber.on(`nav_lla_${index}`), new LatLongAlt(0, 0), (a, b) => {
+    this.vorLla = ConsumerSubject.create(navComSubscriber.on(`nav_lla_${index}`), new LatLongAlt(0, 0), (a, b) => {
       return a.lat === b.lat && a.long === b.long;
     }).pause();
-    this.dmeLla = ConsumerSubject.create(navProcSimVarsSubscriber.on(`nav_dme_lla_${index}`), new LatLongAlt(0, 0), (a, b) => {
+    this.dmeLla = ConsumerSubject.create(navComSubscriber.on(`nav_dme_lla_${index}`), new LatLongAlt(0, 0), (a, b) => {
       return a.lat === b.lat && a.long === b.long;
     }).pause();
 
@@ -73,7 +71,7 @@ export class NavRadioNavSource<NameType extends string> extends AbstractNavBase 
       }
     }, true);
 
-    const locationState = CombinedSubject.create(
+    const locationState = MappedSubject.create(
       this.hasLocalizer,
       this.hasNav,
       this.hasDme
@@ -103,7 +101,7 @@ export class NavRadioNavSource<NameType extends string> extends AbstractNavBase 
     }, true);
 
     // Distance
-    CombinedSubject.create(
+    MappedSubject.create(
       this.hasDme,
       this.hasSignal
     ).sub(([hasDme, hasSignal]) => {
@@ -116,7 +114,7 @@ export class NavRadioNavSource<NameType extends string> extends AbstractNavBase 
     }, true);
 
     // Bearing
-    CombinedSubject.create(
+    MappedSubject.create(
       this.hasNav,
       this.hasSignal
     ).sub(([hasNav, hasSignal]) => {

@@ -1,4 +1,4 @@
-import { BasicNavAngleUnit, FocusPosition, FSComponent, NavProcSimVars, NumberUnitSubject, UnitType, VNode } from '@microsoft/msfs-sdk';
+import { BasicNavAngleUnit, FocusPosition, FSComponent, NavComEvents, NumberUnitSubject, UnitType, VNode } from '@microsoft/msfs-sdk';
 
 import { PowerEvents, PowerState } from '../../Instruments/Power';
 import { GNSSettingsProvider } from '../../Settings/GNSSettingsProvider';
@@ -36,7 +36,7 @@ export class SelfTest extends Page<SelfTestProps> {
   public onAfterRender(node: VNode): void {
     super.onAfterRender(node);
 
-    this.props.bus.getSubscriber<NavProcSimVars>().on(`nav_obs_${this.props.navRadioIndex}`).withPrecision(0).handle(obs => this.obs.set(obs));
+    this.props.bus.getSubscriber<NavComEvents>().on(`nav_obs_${this.props.navRadioIndex}`).withPrecision(0).handle(obs => this.obs.set(obs));
     this.props.bus.getSubscriber<PowerEvents>().on('instrument_powered').handle(this.onPowerStateChanged.bind(this));
   }
 

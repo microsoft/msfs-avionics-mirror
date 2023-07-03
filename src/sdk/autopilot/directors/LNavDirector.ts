@@ -1,5 +1,3 @@
-/// <reference types="@microsoft/msfs-types/js/simvar" />
-
 import { ControlEvents, EventBus, SimVarValueType } from '../../data';
 import {
   ActiveLegType, CircleVector, FlightPathUtils, FlightPathVector, FlightPlan, FlightPlanner, FlightPlannerEvents, LegDefinition, LegDefinitionFlags
@@ -12,7 +10,6 @@ import { FixTypeFlags, LegType } from '../../navigation';
 import { Subject } from '../../sub';
 import { ObjectSubject } from '../../sub/ObjectSubject';
 import { SubscribableType } from '../../sub/Subscribable';
-import { LinearServo } from '../../utils/controllers/LinearServo';
 import { APValues } from '../APConfig';
 import { ArcTurnController } from '../calculators/ArcTurnController';
 import { LNavEvents, LNavTrackingState, LNavTransitionMode, LNavVars } from '../data/LNavEvents';
@@ -78,32 +75,53 @@ export type LNavDirectorInterceptFunc = (dtk: number, xtk: number, tas: number) 
 export type LNavDirectorOptions = {
   /**
    * The maximum bank angle, in degrees, supported by the director, or a function which returns it. If not defined,
-   * the director will use the maximum bank angle defined by its parent autopilot (via `apValues`).
+   * the director will use the maximum bank angle defined by its parent autopilot (via `apValues`). Defaults to
+   * `undefined`.
    */
-  maxBankAngle: number | (() => number) | undefined;
+  maxBankAngle?: number | (() => number) | undefined;
 
   /**
-   * A function used to translate DTK and XTK into a track intercept angle.
+   * The bank rate to enforce when the director commands changes in bank angle, in degrees per second, or a function
+   * which returns it. If not undefined, a default bank rate will be used. Defaults to `undefined`.
    */
-  lateralInterceptCurve: LNavDirectorInterceptFunc;
+  bankRate?: number | (() => number) | undefined;
+
+  /**
+   * A function used to translate DTK and XTK into a track intercept angle. If not defined, a function that computes
+   * a default curve tuned for slow GA aircraft will be used.
+   */
+  lateralInterceptCurve?: LNavDirectorInterceptFunc;
 
   /**
    * Whether the director supports vector anticipation. If `true`, the director will begin tracking the next flight
-   * path vector before
+   * path vector in advance based on the predicted amount of time required to transition to the new bank angle required
+   * to track the upcoming vector. Defaults to `false`.
    */
-  hasVectorAnticipation: boolean;
+  hasVectorAnticipation?: boolean;
+
+  /**
+   * The bank rate used to determine the vector anticipation distance, in degrees per second. Ignored if
+   * `hasVectorAnticipation` is `false`. Defaults to `5`.
+   */
+  vectorAnticipationBankRate?: number;
 
   /**
    * The minimum radio altitude, in feet, required for the director to activate, or `undefined` if there is no minimum
-   * altitude.
+   * altitude. Defaults to `undefined`.
    */
-  minimumActivationAltitude: number | undefined;
+  minimumActivationAltitude?: number | undefined;
 
   /**
    * Whether to disable arming on the director. If `true`, the director will always skip the arming phase and instead
-   * immediately activate itself when requested.
+   * immediately activate itself when requested. Defaults to `false`.
    */
-  disableArming: boolean;
+  disableArming?: boolean;
+
+  /**
+   * Whether to disable auto-suspend at the missed approach point. If `true`, the director will not suspend sequencing
+   * once the missed approach point is the active leg. Defaults to `false`.
+   */
+  disableAutoSuspendAtMissedApproachPoint?: boolean;
 };
 
 /**
@@ -113,9 +131,6 @@ export class LNavDirector implements PlaneDirector {
   private static readonly ANGULAR_TOLERANCE = GeoCircle.ANGULAR_TOLERANCE;
   private static readonly ANGULAR_TOLERANCE_METERS = UnitType.GA_RADIAN.convertTo(GeoCircle.ANGULAR_TOLERANCE, UnitType.METER);
 
-  private static readonly BANK_SERVO_RATE = 10; // degrees per second
-  private static readonly VECTOR_ANTICIPATION_BANK_RATE = 5; // degrees per second
-
   private readonly vec3Cache = [new Float64Array(3), new Float64Array(3)];
   private readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0)];
   private readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
@@ -124,11 +139,14 @@ export class LNavDirector implements PlaneDirector {
 
   public state: DirectorState;
 
-  /** A callback called when the LNAV director activates. */
+  /** @inheritdoc */
   public onActivate?: () => void;
 
-  /** A callback called when the LNAV director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
+
+  /** @inheritdoc */
+  public driveBank?: (bank: number, rate?: number) => void;
 
   private readonly aircraftState = {
     tas: 0,
@@ -163,9 +181,7 @@ export class LNavDirector implements PlaneDirector {
 
   private inhibitNextSequence = false;
 
-  private currentBankRef = 0;
-
-  private readonly bankServo = new LinearServo(LNavDirector.BANK_SERVO_RATE);
+  private readonly vectorAnticipationBankRate: number;
 
   private readonly currentState: LNavState = {
     globalLegIndex: 0,
@@ -224,6 +240,7 @@ export class LNavDirector implements PlaneDirector {
 
   private awaitCalculateId = 0;
   private isAwaitingCalculate = false;
+  private isAwaitingCalculatePublished = false;
 
   private isNavLock = Subject.create<boolean>(false);
 
@@ -252,10 +269,12 @@ export class LNavDirector implements PlaneDirector {
   };
 
   private readonly maxBankAngleFunc: () => number;
+  private readonly driveBankFunc: (bank: number) => void;
   private readonly lateralInterceptCurve?: LNavDirectorInterceptFunc;
   private readonly hasVectorAnticipation: boolean;
   private readonly minimumActivationAltitude: number | undefined;
   private readonly disableArming: boolean;
+  private readonly disableAutoSuspendAtMissedApproachPoint: boolean;
 
   /**
    * Creates an instance of the LateralDirector.
@@ -263,12 +282,7 @@ export class LNavDirector implements PlaneDirector {
    * @param apValues The AP Values.
    * @param flightPlanner The flight planner to use with this instance.
    * @param obsDirector The OBS Director.
-   * @param options Options to configure the new director. Option values default to the following if not defined:
-   * * `maxBankAngle`: `undefined`
-   * * `lateralInterceptCurve`: A default function tuned for slow GA aircraft.
-   * * `hasVectorAnticipation`: `false`
-   * * `minimumActivationAltitude`: `undefined`
-   * * `disableArming`: `false`
+   * @param options Options to configure the new director.
    */
   constructor(
     private readonly bus: EventBus,
@@ -290,10 +304,36 @@ export class LNavDirector implements PlaneDirector {
         this.maxBankAngleFunc = this.apValues.maxBankAngle.get.bind(this.apValues.maxBankAngle);
     }
 
+    const bankRateOpt = options?.bankRate;
+    switch (typeof bankRateOpt) {
+      case 'number':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt * this.apValues.simRate.get());
+          }
+        };
+        break;
+      case 'function':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt() * this.apValues.simRate.get());
+          }
+        };
+        break;
+      default:
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank);
+          }
+        };
+    }
+
     this.lateralInterceptCurve = options?.lateralInterceptCurve;
     this.hasVectorAnticipation = options?.hasVectorAnticipation ?? false;
     this.minimumActivationAltitude = options?.minimumActivationAltitude;
     this.disableArming = options?.disableArming ?? false;
+    this.disableAutoSuspendAtMissedApproachPoint = options?.disableAutoSuspendAtMissedApproachPoint ?? false;
+    this.vectorAnticipationBankRate = options?.vectorAnticipationBankRate ?? 5;
 
     const sub = bus.getSubscriber<AdcEvents & AhrsEvents & ControlEvents & FlightPlannerEvents & GNSSEvents>();
 
@@ -367,7 +407,14 @@ export class LNavDirector implements PlaneDirector {
       }
     });
 
+    if (this.obsDirector !== undefined) {
+      this.obsDirector.driveBank = this.obsDriveBank.bind(this);
+    }
+
     this.state = DirectorState.Inactive;
+
+    this.isAwaitingCalculatePublished = this.isAwaitingCalculate;
+    this.publisher.pub('lnav_is_awaiting_calc', this.isAwaitingCalculate, true, true);
   }
 
   /**
@@ -391,7 +438,6 @@ export class LNavDirector implements PlaneDirector {
       this.onActivate();
     }
     this.setNavLock(true);
-    this.bankServo.reset();
   }
 
   /**
@@ -434,6 +480,11 @@ export class LNavDirector implements PlaneDirector {
    * Updates the lateral director.
    */
   public update(): void {
+    if (this.isAwaitingCalculatePublished !== this.isAwaitingCalculate) {
+      this.isAwaitingCalculatePublished = this.isAwaitingCalculate;
+      this.publisher.pub('lnav_is_awaiting_calc', this.isAwaitingCalculate, true, true);
+    }
+
     let clearInhibitNextSequence = false;
 
     const flightPlan = this.flightPlanner.hasActiveFlightPlan() ? this.flightPlanner.getActiveFlightPlan() : undefined;
@@ -632,7 +683,7 @@ export class LNavDirector implements PlaneDirector {
     }
 
     if (this.state === DirectorState.Active) {
-      this.setBank(bankAngle);
+      this.driveBankFunc(bankAngle);
     }
   }
 
@@ -725,18 +776,6 @@ export class LNavDirector implements PlaneDirector {
     );
 
     return bankAngleState;
-  }
-
-  /**
-   * Sets the desired AP bank angle.
-   * @param bankAngle The desired AP bank angle.
-   */
-  private setBank(bankAngle: number): void {
-    if (isFinite(bankAngle)) {
-      this.bankServo.rate = LNavDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
-      this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
-      SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
-    }
   }
 
   /**
@@ -907,7 +946,7 @@ export class LNavDirector implements PlaneDirector {
     const anticipationIdealBankAngle = MathUtils.clamp(LNavDirector.getVectorIdealBankAngle(this.anticipationVector, this.aircraftState.gs), -maxBankAngle, maxBankAngle);
 
     const deltaBank = Math.abs(currentVectorIdealBankAngle - anticipationIdealBankAngle);
-    const rollTimeSeconds = deltaBank / LNavDirector.VECTOR_ANTICIPATION_BANK_RATE;
+    const rollTimeSeconds = deltaBank / this.vectorAnticipationBankRate;
     this.vectorAnticipationDistance = Math.min(
       rollTimeSeconds / 3600 * this.alongTrackSpeed,
       // Limit vector anticipation to the radius of the anticipated vector so that we don't start flying anticipated
@@ -945,7 +984,8 @@ export class LNavDirector implements PlaneDirector {
     } else if (state.globalLegIndex < plan.length - 1) {
       const nextLeg = plan.getLeg(state.globalLegIndex + 1);
       if (
-        !state.isMissedApproachActive
+        !this.disableAutoSuspendAtMissedApproachPoint
+        && !state.isMissedApproachActive
         && (
           leg.leg.fixTypeFlags === FixTypeFlags.MAP
           || (!BitFlags.isAll(leg.flags, LegDefinitionFlags.MissedApproach) && BitFlags.isAll(nextLeg.flags, LegDefinitionFlags.MissedApproach))
@@ -1503,5 +1543,15 @@ export class LNavDirector implements PlaneDirector {
       // right turn
       return -NavMath.bankAngle(groundSpeed, UnitType.GA_RADIAN.convertTo(Math.PI - vector.radius, UnitType.METER));
     }
+  }
+
+  /**
+   * A method to support the OBS director's `driveBank()` method.
+   * @param bank The desired bank angle, in degrees. Positive values indicate left bank.
+   * @param rate The rate at which to drive the commanded bank angle, in degrees per second. If not defined, a default
+   * rate will be used.
+   */
+  private obsDriveBank(bank: number, rate?: number): void {
+    this.driveBank && this.driveBank(bank, rate);
   }
 }

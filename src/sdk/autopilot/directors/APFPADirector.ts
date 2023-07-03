@@ -1,13 +1,13 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus, SimVarValueType } from '../../data';
-import { AdcEvents } from '../../instruments';
-import { MathUtils, UnitType } from '../../math';
-import { APValues } from '../APConfig';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
+import { SimVarValueType } from '../../data/SimVars';
+import { MathUtils } from '../../math/MathUtils';
+import { MappedSubscribable } from '../../sub';
+import { APValues } from '../APConfig';
 
 /**
- * Options for {@link APHdgDirector}.
+ * Options for {@link APFPADirector}.
  */
 export type APFPADirectorOptions = {
   /**
@@ -24,25 +24,26 @@ export class APFPADirector implements PlaneDirector {
 
   public state: DirectorState;
 
-  /** A callback called when the director activates. */
+  /** @inheritdoc */
   public onActivate?: () => void;
 
-  /** A callback called when the director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
+
+  /** @inheritdoc */
+  public drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean) => void;
 
   private readonly maxFpaFunc: () => number;
 
-  private tas = 0;
-  private selectedFpa = 0;
+  private readonly selectedFpa: MappedSubscribable<number>;
 
   /**
-   * Creates an instance of the LateralDirector.
-   * @param bus The event bus to use with this instance.
+   * Creates an instance of the FPA Director.
    * @param apValues are the ap selected values for the autopilot.
    * @param options Options to configure the new director. Option values default to the following if not defined:
    * * `maxFpa`: `undefined`
    */
-  constructor(private readonly bus: EventBus, apValues: APValues, options?: Partial<Readonly<APFPADirectorOptions>>) {
+  constructor(private readonly apValues: APValues, options?: Partial<Readonly<APFPADirectorOptions>>) {
     const maxBankAngleOpt = options?.maxFpa ?? undefined;
     switch (typeof maxBankAngleOpt) {
       case 'number':
@@ -55,27 +56,36 @@ export class APFPADirector implements PlaneDirector {
         this.maxFpaFunc = () => Infinity;
     }
 
+    this.selectedFpa = this.apValues.selectedFlightPathAngle.map(fpa => {
+      const maxFpa = this.maxFpaFunc();
+      return -MathUtils.clamp(fpa, -maxFpa, maxFpa);
+    });
+
     this.state = DirectorState.Inactive;
 
-    this.bus.getSubscriber<AdcEvents>().on('tas').withPrecision(0).handle((tas) => {
-      this.tas = tas;
-    });
+    this.pauseSubs();
+  }
 
-    apValues.selectedFlightPathAngle.sub((fpa) => {
-      const maxFpa = this.maxFpaFunc();
-      this.selectedFpa = MathUtils.clamp(fpa, -maxFpa, maxFpa);
-    });
+  /** Resumes Subscriptions. */
+  private resumeSubs(): void {
+    this.selectedFpa.resume();
+  }
+
+  /** Pauses Subscriptions. */
+  private pauseSubs(): void {
+    this.selectedFpa.pause();
   }
 
   /**
    * Activates this director.
    */
   public activate(): void {
+    this.resumeSubs();
     this.state = DirectorState.Active;
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
-    const fpa = this.getFpaFromVs(Simplane.getVerticalSpeed());
+    const fpa = this.getCurrentFpa();
     SimVar.SetSimVarValue('L:WT_AP_FPA_Target:1', 'degree', fpa);
     SimVar.SetSimVarValue('AUTOPILOT VERTICAL HOLD', 'Bool', true);
   }
@@ -85,6 +95,7 @@ export class APFPADirector implements PlaneDirector {
    * This director has no armed mode, so it activates immediately.
    */
   public arm(): void {
+    this.resumeSubs();
     if (this.state == DirectorState.Inactive) {
       this.activate();
     }
@@ -96,6 +107,7 @@ export class APFPADirector implements PlaneDirector {
   public deactivate(): void {
     this.state = DirectorState.Inactive;
     SimVar.SetSimVarValue('AUTOPILOT VERTICAL HOLD', 'Bool', false);
+    this.pauseSubs();
   }
 
   /**
@@ -103,48 +115,17 @@ export class APFPADirector implements PlaneDirector {
    */
   public update(): void {
     if (this.state === DirectorState.Active) {
-      this.setPitch(this.getDesiredPitch());
+      this.drivePitch && this.drivePitch(this.selectedFpa.get(), true, true);
     }
   }
 
   /**
-   * Gets a desired pitch from the selected vs value.
-   * @returns The desired pitch angle.
+   * Gets the current aircraft FPA.
+   * @returns The current aircraft FPA, in degrees.
    */
-  private getDesiredPitch(): number {
-    //We need the instant AOA here so we're avoiding the bus
+  private getCurrentFpa(): number {
     const aoa = SimVar.GetSimVarValue('INCIDENCE ALPHA', SimVarValueType.Degree);
-
-    const desiredPitch = this.selectedFpa;
-    return MathUtils.clamp(aoa + (isNaN(desiredPitch) ? 9.9 : desiredPitch), -18, 18);
-  }
-
-  /**
-   * Gets a desired fpa.
-   * @param vs Vertical speed in feet/min to calculate as FPA for
-   * @returns The desired pitch angle.
-   */
-  private getFpaFromVs(vs: number): number {
-    if (this.tas < 60) {
-      return 0;
-    }
-
-    const verticalWindComponent = SimVar.GetSimVarValue('AMBIENT WIND Y', SimVarValueType.FPM);
-    const distance = UnitType.NMILE.convertTo(this.tas / 60, UnitType.FOOT);
-    const altitude = vs - verticalWindComponent;
-
-    const maxFpa = this.maxFpaFunc();
-    return MathUtils.clamp(UnitType.RADIAN.convertTo(Math.atan(altitude / distance), UnitType.DEGREE), -maxFpa, maxFpa);
-  }
-
-
-  /**
-   * Sets the desired AP pitch angle.
-   * @param targetPitch The desired AP pitch angle.
-   */
-  private setPitch(targetPitch: number): void {
-    if (isFinite(targetPitch)) {
-      SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, -targetPitch);
-    }
+    const pitch = -SimVar.GetSimVarValue('PLANE PITCH DEGREES', SimVarValueType.Degree);
+    return pitch - aoa;
   }
 }

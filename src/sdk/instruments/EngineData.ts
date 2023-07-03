@@ -1,8 +1,9 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus, IndexedEventType } from '../data/EventBus';
+import { EventBus, IndexedEvents, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { SimVarValueType } from '../data/SimVars';
+import { NumberToRangeUnion } from '../utils';
 import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
 
 /**
@@ -11,63 +12,50 @@ import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
 interface BaseEngineEvents {
   /** A pressure value for vacuum system */
   vac: number;
-
   /** Total fuel flow rate, in gallons per hour. */
   fuel_flow_total: number;
-
   /** The amount of fuel remaining (usable + unusable) in all tanks, in gallons. */
   fuel_total: number;
-
   /** The amount of fuel remaining (usable + unusable)in all tanks, in pounds. */
   fuel_total_weight: number;
-
   /** The usable amount of fuel remaining in all tanks, in gallons. */
   fuel_usable_total: number;
-
   /** The usable amount of fuel remaining in all tanks, in pounds. */
   fuel_usable_total_weight: number;
-
   /** The amount of fuel remaining in all tanks on the left side, in gallons. */
   fuel_left: number;
-
   /** The amount of fuel remaining in all tanks on the right side, in gallons. */
   fuel_right: number;
-
   /** The amount of fuel remaining in the left main tank, in gallons. */
   fuel_left_main: number;
-
   /** The amount of fuel remaining in the left main tank, as a percent of maximum capacity. */
   fuel_left_main_pct: number;
-
   /** The amount of fuel remaining in the right main tank, in gallons. */
   fuel_right_main: number;
-
   /** The amount of fuel remaining in the right main tank, as a percent of maximum capacity. */
   fuel_right_main_pct: number;
-
   /** The amount of fuel remaining in the center tank, in gallons. */
   fuel_center: number;
-
   /** The fuel weight per gallon, in pounds per gallon. */
   fuel_weight_per_gallon: number;
-
   /** The state of fuel tank selector 1. */
   fuel_tank_selector_state_1: number;
-
   /** The state of fuel tank selector 2. */
   fuel_tank_selector_state_2: number;
-
   /** The state of fuel tank selector 3. */
   fuel_tank_selector_state_3: number;
-
   /** The state of fuel tank selector 4. */
   fuel_tank_selector_state_4: number;
-
   /** A hours value for engine 1 total elapsed time. */
   eng_hours_1: number;
-
   /** The APU rpm in %. */
   apu_pct: number;
+  /** The APU stater rpm in %. */
+  apu_pct_starter: number;
+  /** The APU switch state */
+  apu_switch: boolean;
+  /** Whether the engine starter is active. */
+  eng_starter_active: boolean;
 }
 
 /**
@@ -114,25 +102,22 @@ interface EngineIndexedTopics {
   eng_fuel_pump_switch_state: 0 | 1 | 2;
   /** The Engine Vibration */
   eng_vibration: number;
-  /** The Engine fuel flow switch */
-  eng_fuel_flow_switch: boolean;
 }
 
-/**
- * Indexed events related to the engines.
- */
+/** Indexed topics. */
+type IndexedTopics = 'eng_starter_active';
+
+
+/** Indexed events. */
 type EngineIndexedEvents = {
-  [P in keyof EngineIndexedTopics as IndexedEventType<P>]: EngineIndexedTopics[P];
+  [P in keyof Pick<BaseEngineEvents, IndexedTopics> as IndexedEventType<P>]: BaseEngineEvents[P];
 };
 
-/**
- * Events related to the planes engines.
- */
-export type EngineEvents = BaseEngineEvents & EngineIndexedEvents;
+/** Events related to the planes engines. */
+export type EngineEvents<E extends number = number> = BaseEngineEvents & IndexedEvents<EngineIndexedTopics, NumberToRangeUnion<E>> & EngineIndexedEvents;
 
-/**
- * A publisher for Engine information.
- */
+
+/** A publisher for Engine information. */
 export class EISPublisher extends SimVarPublisher<EngineEvents> {
   private readonly engineCount: number;
 
@@ -167,7 +152,9 @@ export class EISPublisher extends SimVarPublisher<EngineEvents> {
       ['fuel_tank_selector_state_4', { name: 'FUEL TANK SELECTOR:4', type: SimVarValueType.Number }],
       ['eng_hours_1', { name: 'GENERAL ENG ELAPSED TIME:1', type: SimVarValueType.Hours }],
       ['apu_pct', { name: 'APU PCT RPM', type: SimVarValueType.Percent }],
-
+      ['apu_pct_starter', { name: 'APU PCT STARTER', type: SimVarValueType.Percent }],
+      ['apu_switch', { name: 'APU SWITCH', type: SimVarValueType.Bool }],
+      ['eng_starter_active', { name: 'GENERAL ENG STARTER ACTIVE:#index#', type: SimVarValueType.Bool, indexed: true }],
     ];
 
     const engineIndexedSimVars: [keyof EngineIndexedTopics, SimVarPublisherEntry<any>][] = [
@@ -190,7 +177,6 @@ export class EISPublisher extends SimVarPublisher<EngineEvents> {
       ['eng_fuel_pump_on', { name: 'GENERAL ENG FUEL PUMP ON', type: SimVarValueType.Bool }],
       ['eng_fuel_pump_switch_state', { name: 'GENERAL ENG FUEL PUMP SWITCH EX1', type: SimVarValueType.Number }],
       ['eng_vibration', { name: 'ENG VIBRATION', type: SimVarValueType.Number }],
-      ['eng_fuel_flow_switch', { name: 'FUELSYSTEM VALVE OPEN', type: SimVarValueType.Bool }],
       ['fuel_flow_pph', { name: 'ENG FUEL FLOW PPH', type: SimVarValueType.PPH }],
     ];
 

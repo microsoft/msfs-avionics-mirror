@@ -86,7 +86,7 @@
 
     <Parameters Type="Default">
       <SET_STATE_EXTERNAL>p0 0 &gt; if{ (&gt;H:AS3000_PFD_#BARO_KEY_ID#_BARO_INC) } els{ (&gt;H:AS3000_PFD_#BARO_KEY_ID#_BARO_DEC) }</SET_STATE_EXTERNAL>
-      <PUSH_SET_STATE_EXTERNAL>(&gt;H:AS3000_PFD_#BARO_KEY_ID#_BARO_PUSH)</PUSH_BTN_SET_STATE_EXTERNAL>
+      <PUSH_SET_STATE_EXTERNAL>(&gt;H:AS3000_PFD_#BARO_KEY_ID#_BARO_PUSH)</PUSH_SET_STATE_EXTERNAL>
       <GET_BARO>(L:WTG3000_PFD_Altimeter_Baro_TT:#BARO_TT_ID#, inHg)</GET_BARO>
     </Parameters>
 
@@ -123,7 +123,7 @@
       <KNOB_ID>Course_#ID#</KNOB_ID>
       <BTN_ID_EXTERNAL>Course_#ID#_Sync</BTN_ID_EXTERNAL>
       <ANIM_NAME>AUTOPILOT_Knob_Course_#ID#</ANIM_NAME>
-      
+
       <COUNT>72</COUNT>
       <THRESHOLD_X_INPUT>0.01</THRESHOLD_X_INPUT>
       <THRESHOLD_X_MOUSE>0.002</THRESHOLD_X_MOUSE>
@@ -749,6 +749,48 @@
         <PAN_NODE_ID>#AS1000#_Joystick_Range_Pan#SUFFIX_ID#</PAN_NODE_ID>
         <HIGHLIGHT_NODE_ID>#AS1000#_Joystick_Range#SUFFIX_ID#</HIGHLIGHT_NODE_ID>
         <KEY_PREFIX>#RANGE_KEY_PREFIX#</KEY_PREFIX>
+      </UseTemplate>
+    </Component>
+  </Template>
+
+  <!-- G3000 TO/GA button -->
+
+  <Template Name="WT_G3000_Button_Toga_Template">
+    <Parameters Type="Default">
+      <ID>1</ID>
+    </Parameters>
+
+    <Parameters Type="Default">
+      <BTN_ID>TOGA_#ID#</BTN_ID>
+      <NODE_ID>ENGINE_Push_TOGA_#ID#</NODE_ID>
+      <ANIM_NAME>ENGINE_Push_TOGA_#ID#</ANIM_NAME>
+      <PART_ID>ENGINE_Push_TOGA</PART_ID>
+
+      <VAR_NAME>WT_TOGA_ACTIVE</VAR_NAME>
+
+      <WWISE_EVENT_1>engine_toga_switch_on</WWISE_EVENT_1>
+      <NORMALIZED_TIME_1>0.1</NORMALIZED_TIME_1>
+      <WWISE_EVENT_2>engine_toga_switch_off</WWISE_EVENT_2>
+      <NORMALIZED_TIME_2>0.5</NORMALIZED_TIME_2>
+
+      <TOOLTIP_TITLE>@TT_Package.ENGINE_PUSH_TOGA_TITLE</TOOLTIP_TITLE>
+      <TT_DESCRIPTION_ID>@TT_Package.ENGINE_PUSH_TOGA_ACTION</TT_DESCRIPTION_ID>
+    </Parameters>
+
+    <Component ID="#NODE_ID#" Node="#NODE_ID#">
+      <Parameters Type="Override">
+        <TOOLTIP_ENTRY_0>ENGINE_#BTN_ID#</TOOLTIP_ENTRY_0>
+      </Parameters>
+
+      <UseInputEvent ID="ENGINE">
+        <SET_STATE_EXTERNAL>(&gt;K:AUTO_THROTTLE_TO_GA) (L:#VAR_NAME#, Bool) (&gt;O:ENGINE_#BTN_ID#_Position)</SET_STATE_EXTERNAL>
+        <GET_STATE_EXTERNAL>(L:#VAR_NAME#, Bool) sp0</GET_STATE_EXTERNAL>
+        <SIM_STATE_IS_ON_EXTERNAL>l0</SIM_STATE_IS_ON_EXTERNAL>
+        <LOCAL_VAR_TO_WATCH_0>#VAR_NAME#</LOCAL_VAR_TO_WATCH_0>
+      </UseInputEvent>
+
+      <UseTemplate Name="ASOBO_GT_Push_Button">
+        <LEFT_SINGLE_CODE>(&gt;B:ENGINE_#BTN_ID#_Toggle)</LEFT_SINGLE_CODE>
       </UseTemplate>
     </Component>
   </Template>

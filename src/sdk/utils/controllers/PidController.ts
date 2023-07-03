@@ -1,3 +1,24 @@
+/**
+ * Options for {@link PidController}.
+ */
+export type PidOptions = {
+  /** kP  */
+  kP: number,
+  /** kP  */
+  kI: number,
+  /** kP  */
+  kD: number,
+  /** maxOut */
+  maxOut: number,
+  /** minOut */
+  minOut: number,
+  /** maxI (optional) */
+  maxI?: number,
+  /** minI (optional) */
+  minI?: number
+};
+
+
 /** A PID controller. */
 export class PidController {
 
@@ -25,6 +46,14 @@ export class PidController {
   }
 
   /**
+   * Gets this controller's most recent error input since it was created or reset.
+   * @returns This controller's most recent error input since it was created or reset.
+   */
+  public getPreviousError(): number | undefined {
+    return this.previousError;
+  }
+
+  /**
    * Gets the output of the PID controller at a given time.
    * @param deltaTime The difference in time between the previous sample and this sample.
    * @param error The amount of error seen between the desired output and the current output.
@@ -41,7 +70,7 @@ export class PidController {
     }
 
     const i = this.integral;
-    const d = this.kD * ((error - (this.previousError ?? error)) / deltaTime);
+    const d = deltaTime === 0 ? 0 : this.kD * ((error - (this.previousError ?? error)) / deltaTime);
 
     const output = PidController.clamp(p + i + d, this.maxOut, this.minOut);
     this.previousError = error;

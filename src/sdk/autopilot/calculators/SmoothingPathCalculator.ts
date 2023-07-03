@@ -18,38 +18,43 @@ import { VNavPathCalculator } from './VNavPathCalculator';
  * Options for a SmoothingPathCalculator.
  */
 export type SmoothingPathCalculatorOptions = {
-  /** The default flight path angle, in degrees, for descent paths. Increasingly positive values indicate steeper descents. */
-  defaultFpa: number;
+  /**
+   * The default flight path angle, in degrees, for descent paths. Increasingly positive values indicate steeper
+   * descents. Defaults to 3 degrees.
+   */
+  defaultFpa?: number;
 
   /**
    * The minimum allowed flight path angle, in degrees, for descent paths. Increasingly positive values indicate
    * steeper descents. Paths that require angles less than the minimum value will be assigned the default flight path
    * angle instead to create a step-down descent. Vertical direct-to paths are exempt from the minimum FPA requirement.
+   * Defaults to 1.5 degrees.
    */
-  minFpa: number;
+  minFpa?: number;
 
   /**
    * The maximum allowed flight path angle, in degrees, for descent paths. Increasingly positive values indicate
    * steeper descents. Paths that require angles greater than the maximum value will have their FPAs clamped to the
-   * maximum value, even if this would create a discontinuity in the vertical profile.
+   * maximum value, even if this would create a discontinuity in the vertical profile. Defaults to 6 degrees.
    */
-  maxFpa: number;
+  maxFpa?: number;
 
-  /** Whether to force the first constraint in the approach to an AT constraint. */
-  forceFirstApproachAtConstraint: boolean;
+  /** Whether to force the first constraint in the approach to an AT constraint. Defaults to `false`. */
+  forceFirstApproachAtConstraint?: boolean;
 
-  /** The offset of a lateral direct-to leg from its direct-to target leg. */
-  directToLegOffset: number;
+  /** The index offset of a lateral direct-to leg from its direct-to target leg. Defaults to `3`. */
+  directToLegOffset?: number;
 
   /**
    * A function which checks whether a lateral flight plan leg is eligible for VNAV. VNAV descent paths will not be
-   * calculated through VNAV-ineligible legs.
+   * calculated through VNAV-ineligible legs. If not defined, a leg will be considered eligible if and only if it
+   * does not contain a discontinuity.
    */
-  isLegEligible: (lateralLeg: LegDefinition) => boolean;
+  isLegEligible?: (lateralLeg: LegDefinition) => boolean;
 
   /**
    * A function which checks whether an altitude constraint defined for a lateral flight plan leg should be used for
-   * VNAV.
+   * VNAV. If not defined, all constraints will be used.
    * @param lateralPlan The lateral flight plan that hosts the altitude constraint.
    * @param lateralLeg The lateral flight plan leg that hosts the altitude constraint.
    * @param globalLegIndex The global index of the lateral flight plan leg that hosts the altitude constraint.
@@ -59,11 +64,11 @@ export type SmoothingPathCalculatorOptions = {
    * @returns Whether the altitude constraint defined for the specified lateral flight plan leg should be used for
    * VNAV.
    */
-  shouldUseConstraint: (lateralPlan: FlightPlan, lateralLeg: LegDefinition, globalLegIndex: number, segment: FlightPlanSegment, segmentLegIndex: number) => boolean;
+  shouldUseConstraint?: (lateralPlan: FlightPlan, lateralLeg: LegDefinition, globalLegIndex: number, segment: FlightPlanSegment, segmentLegIndex: number) => boolean;
 
   /**
    * A function which checks whether a climb constraint should be invalidated. Invalidated constraints will not appear
-   * in the vertical flight plan.
+   * in the vertical flight plan. If not defined, no climb constraints will be invalidated.
    * @param constraint A descent constraint.
    * @param index The index of the constraint to check.
    * @param constraints The array of VNAV constraints currently in the vertical flight plan.
@@ -77,7 +82,7 @@ export type SmoothingPathCalculatorOptions = {
    * constraints of the same category (climb or missed approach) are included.
    * @returns Whether the specified climb constraint should be invalidated.
    */
-  invalidateClimbConstraint: (
+  invalidateClimbConstraint?: (
     constraint: VNavConstraint,
     index: number,
     constraints: readonly VNavConstraint[],
@@ -88,7 +93,7 @@ export type SmoothingPathCalculatorOptions = {
 
   /**
    * A function which checks whether a descent constraint should be invalidated. Invalidated constraints will not
-   * appear in the vertical flight plan.
+   * appear in the vertical flight plan. If not defined, no descent constraints will be invalidated.
    * @param constraint A descent constraint.
    * @param index The index of the constraint to check.
    * @param constraints The array of VNAV constraints currently in the vertical flight plan.
@@ -106,7 +111,7 @@ export type SmoothingPathCalculatorOptions = {
    * @param maxFpa The maximum allowed flight path angle, in degrees. Positive values indicate a descending path.
    * @returns Whether the specified descent constraint should be invalidated.
    */
-  invalidateDescentConstraint: (
+  invalidateDescentConstraint?: (
     constraint: VNavConstraint,
     index: number,
     constraints: readonly VNavConstraint[],
@@ -188,25 +193,13 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
    * @param bus The EventBus to use with this instance.
    * @param flightPlanner The flight planner to use with this instance.
    * @param primaryPlanIndex The primary flight plan index to use to calculate a path from.
-   * @param options Options for the calculator. Options that are not explicitly provided default to the following:
-   * * `defaultFpa`: 3 degrees.
-   * * `minFpa`: 1.5 degrees.
-   * * `maxFpa`: 6 degrees.
-   * * `excludeFirstLegConstraint`: `false`.
-   * * `forceFirstApproachAtConstraint`: `false`.
-   * * `directToLegOffset`: `3`.
-   * * `isLegEligible`: a function which designates a leg as eligible if and only if it is not a discontinuity leg or
-   * a manual termination leg that ends in a discontinuity.
-   * * `shouldUseConstraint`: a function which always returns `true`.
-   * * `invalidateClimbConstraint`: a function which does not invalidate any climb constraint.
-   * * `invalidateDescentConstraint`: a function which invalidates a descent constraint if and only if it requires an
-   * ascending path or a flight path angle greater than the maximum in order to meet it from the preceding constraint.
+   * @param options Options for the calculator.
    */
   constructor(
     protected readonly bus: EventBus,
     protected readonly flightPlanner: FlightPlanner,
     protected readonly primaryPlanIndex: number,
-    options?: Partial<SmoothingPathCalculatorOptions>
+    options?: SmoothingPathCalculatorOptions
   ) {
 
     this.flightPathAngle = options?.defaultFpa ?? SmoothingPathCalculator.DEFAULT_DEFAULT_FPA;
@@ -505,11 +498,7 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
     verticalPlan.verticalDirectFpa = fpa ?? this.flightPathAngle;
     const lateralPlan = this.flightPlanner.getFlightPlan(planIndex);
     this.buildVerticalFlightPlanAndNotify(lateralPlan, verticalPlan);
-    if (verticalPlan.constraints.length > 0) {
-      if (!this.computePathAndNotify(lateralPlan, verticalPlan)) {
-        verticalPlan.planChanged = true;
-      }
-    }
+    this.computePathAndNotify(lateralPlan, verticalPlan);
   }
 
   /**
@@ -527,11 +516,7 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
     verticalPlan.verticalDirectFpa = undefined;
     const lateralPlan = this.flightPlanner.getFlightPlan(planIndex);
     this.buildVerticalFlightPlanAndNotify(lateralPlan, verticalPlan);
-    if (verticalPlan.constraints.length > 0) {
-      if (!this.computePathAndNotify(lateralPlan, verticalPlan)) {
-        verticalPlan.planChanged = true;
-      }
-    }
+    this.computePathAndNotify(lateralPlan, verticalPlan);
   }
 
   /**
@@ -548,10 +533,7 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
         const lateralPlan = this.flightPlanner.hasFlightPlan(i) ? this.flightPlanner.getFlightPlan(i) : undefined;
         const verticalPlan = this.verticalFlightPlans[i];
         if (lateralPlan && verticalPlan) {
-          if (!this.computePathAndNotify(lateralPlan, verticalPlan)) {
-            verticalPlan.planChanged = true;
-            this.notifyCalculated(i);
-          }
+          this.computePathAndNotify(lateralPlan, verticalPlan);
         }
       }
     }
@@ -591,27 +573,23 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
    * @param event The Flight Plan Calculated Event
    */
   protected onPlanCalculated(event: FlightPlanCalculatedEvent): void {
-    const lateralPlan = this.flightPlanner.getFlightPlan(event.planIndex);
-    const verticalPlan = this.getVerticalFlightPlan(event.planIndex);
+    this.buildVerticalFlightPlanAndComputeAndNotify(event.planIndex);
+  }
+
+  /**
+   * Builds a vertical flight plan if its corresponding lateral flight plan has been changed since the last rebuild,
+   * then computes the vertical path sends events notifying subscribers that the plan was built and calculated.
+   * @param planIndex The index of the plan to build and compute.
+   */
+  protected buildVerticalFlightPlanAndComputeAndNotify(planIndex: number): void {
+    const lateralPlan = this.flightPlanner.getFlightPlan(planIndex);
+    const verticalPlan = this.getVerticalFlightPlan(planIndex);
 
     if (verticalPlan.planChanged) {
       this.buildVerticalFlightPlanAndNotify(lateralPlan, verticalPlan);
-      if (verticalPlan.constraints.length > 0) {
-        if (!this.computePathAndNotify(lateralPlan, verticalPlan)) {
-          verticalPlan.planChanged = true;
-        }
-      } else {
-        this.notifyCalculated(event.planIndex);
-      }
-    } else {
-      if (verticalPlan.constraints.length > 0) {
-        if (!this.computePathAndNotify(lateralPlan, verticalPlan)) {
-          verticalPlan.planChanged = true;
-        }
-      } else {
-        this.notifyCalculated(event.planIndex);
-      }
     }
+
+    this.computePathAndNotify(lateralPlan, verticalPlan);
   }
 
   /**
@@ -792,35 +770,23 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
   }
 
   /**
-   * Computes the vertical path for a flight plan and if successful, sends an event notifying subscribers that the plan
-   * was calculated.
+   * Computes the vertical path for a flight plan and sends an event notifying subscribers that the plan was
+   * calculated.
    * @param lateralPlan The lateral flight plan for which to compute a path.
    * @param verticalPlan The vertical flight plan for which to compute a path.
-   * @returns Whether a path was successfully computed.
    */
-  protected computePathAndNotify(lateralPlan: FlightPlan, verticalPlan: VerticalFlightPlan): boolean {
-    if (this.computePath(lateralPlan, verticalPlan)) {
-      this.notifyCalculated(lateralPlan.planIndex);
-      return true;
-    } else {
-      return false;
-    }
+  protected computePathAndNotify(lateralPlan: FlightPlan, verticalPlan: VerticalFlightPlan): void {
+    this.computePath(lateralPlan, verticalPlan);
+    this.notifyCalculated(lateralPlan.planIndex);
   }
 
   /**
    * Computes the vertical path for a flight plan.
    * @param lateralPlan The lateral flight plan for which to compute a path.
    * @param verticalPlan The vertical flight plan for which to compute a path.
-   * @returns Whether a path was successfully computed.
    */
-  protected computePath(lateralPlan: FlightPlan, verticalPlan: VerticalFlightPlan): boolean {
-    if (verticalPlan.constraints.length < 1) {
-      return false;
-    }
-
+  protected computePath(lateralPlan: FlightPlan, verticalPlan: VerticalFlightPlan): void {
     this.computeDescentPath(lateralPlan, verticalPlan);
-
-    return true;
   }
 
   /**
@@ -830,16 +796,16 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
    */
   protected computeDescentPath(lateralPlan: FlightPlan, verticalPlan: VerticalFlightPlan): void {
 
-    if (verticalPlan.constraints.length < 1) {
-      return;
-    }
-
     this.fillLegDistances(lateralPlan, verticalPlan);
 
     // Updated leg distances could cause some invalidated constraints to become valid, so we will re-insert all
     // invalidated constraints and filter them again.
     this.reinsertInvalidConstraints(verticalPlan, lateralPlan);
     this.findAndRemoveInvalidConstraints(verticalPlan);
+
+    if (verticalPlan.constraints.length < 1) {
+      return;
+    }
 
     this.populateConstraints(verticalPlan);
 
@@ -1278,7 +1244,9 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
             verticalPlan,
             targetConstraintIndex,
             newTargetConstraintIndex,
-            flatSegmentAltitude,
+            // Maximum altitude is not needed because we are guaranteed that the target altitudes of all smoothed
+            // constraints are equal to the flat segment altitude.
+            Infinity,
             this.applyPathValuesResult
           );
 
@@ -1306,7 +1274,9 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
               verticalPlan,
               targetConstraintIndex,
               currentConstraintIndex,
-              flatSegmentAltitude,
+              // Maximum altitude is not needed because we are guaranteed that the target altitudes of all smoothed
+              // constraints are equal to the flat segment altitude.
+              Infinity,
               this.applyPathValuesResult
             );
 

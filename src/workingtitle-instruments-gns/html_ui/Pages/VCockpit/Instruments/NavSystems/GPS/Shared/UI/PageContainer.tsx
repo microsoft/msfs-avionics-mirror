@@ -14,6 +14,7 @@ import { AuxFlightPlanning } from './Pages/Auxiliary/AuxFlightPlanning';
 import { AuxSetup1 } from './Pages/Auxiliary/AuxSetup1';
 import { AuxSetup2 } from './Pages/Auxiliary/AuxSetup2';
 import { AuxUtility } from './Pages/Auxiliary/AuxUtility';
+import { ActivateLegDialog } from './Pages/Dialogs/ActivateLeg';
 import { ConfirmDialog } from './Pages/Dialogs/ConfirmDialog';
 import { Dialog } from './Pages/Dialogs/Dialog';
 import { DirectToDialog } from './Pages/Dialogs/DirectToDialog';
@@ -103,6 +104,7 @@ export class PageContainer extends DisplayComponent<PageContainerProps> implemen
   private readonly menuDialog = FSComponent.createRef<MenuDialog>();
   private readonly directToDialog = FSComponent.createRef<DirectToDialog>();
   private readonly obsDialog = FSComponent.createRef<ObsDialog>();
+  private readonly activateLegDialog = FSComponent.createRef<ActivateLegDialog>();
 
   private readonly trafficAlertDialog = FSComponent.createRef<TrafficAlertDialog>();
   private readonly tcasDataProvider = new DefaultTcasAdvisoryDataProvider(this.props.bus, this.props.trafficSystem);
@@ -322,6 +324,12 @@ export class PageContainer extends DisplayComponent<PageContainerProps> implemen
     }
 
     this.openPageGroup('NAV', false, 0);
+  }
+
+  /** @inheritdoc */
+  public openActivateLegDialog(legIndex: number): void {
+    this.activateLegDialog.instance.legIndex = legIndex;
+    this.openDialog(this.activateLegDialog.instance);
   }
 
   /** @inheritdoc */
@@ -586,6 +594,7 @@ export class PageContainer extends DisplayComponent<PageContainerProps> implemen
         <DupWaypoints bus={this.props.bus} gnsType={this.props.gnsType} ref={this.dupWaypoints} fms={this.props.fms} />
         <MenuDialog bus={this.props.bus} gnsType={this.props.gnsType} ref={this.menuDialog} fms={this.props.fms} />
         <DirectToDialog bus={this.props.bus} gnsType={this.props.gnsType} ref={this.directToDialog} fms={this.props.fms} />
+        <ActivateLegDialog bus={this.props.bus} gnsType={this.props.gnsType} ref={this.activateLegDialog} fms={this.props.fms} />
         <ObsDialog bus={this.props.bus} gnsType={this.props.gnsType} ref={this.obsDialog} />
         <TrafficAlertDialog bus={this.props.bus} gnsType={this.props.gnsType} trafficSystem={this.props.trafficSystem} ref={this.trafficAlertDialog} />
         <MessageDialog bus={this.props.bus} gnsType={this.props.gnsType} ref={this.messageDialog} alerts={this.props.alerts} />

@@ -71,6 +71,19 @@ export class AeroMath {
     return Math.pow(1 + 0.2 * mach * mach, 3.5);
   }
 
+  // ---- Temperature ratios ----
+
+  /**
+   * Gets the ratio of total air temperature to static air temperature for a given mach number.
+   * @param mach The mach number.
+   * @param recovery The recovery factor. This is a value in the range `[0, 1]` representing the fraction of the
+   * kinetic energy of the airflow that is converted to heat. Defaults to 1.
+   * @returns The ratio of total air temperature to static air temperature for the specified mach number.
+   */
+  public static totalTemperatureRatioAir(mach: number, recovery = 1): number {
+    return 1 + 0.2 * recovery * mach * mach;
+  }
+
   // ---- ISA modeling ----
 
   /**
@@ -124,38 +137,98 @@ export class AeroMath {
 
     if (altitude < -610) {
       // Modeling stops at -610 meters, so return the pressure for -610 meters for any altitude below this.
-      return 1099.15;
+      return 1088.707021458965;
     } else if (altitude <= 11000) {
       // Troposphere
       // dT/dh = -0.0065 kelvin per meter
-      return 1013.25 * Math.pow(1 - 2.2558e-5 * altitude, 5.2558);
+      return 1013.25 * Math.pow(1 - 2.25577e-5 * altitude, 5.25580);
     } else if (altitude <= 20000) {
       // Tropopause
       // dT/dh = 0
-      return 226.320 * Math.exp(-1.57686e-4 * (altitude - 11000));
+      return 226.32547681422847 * Math.exp(-1.57686e-4 * (altitude - 11000));
     } else if (altitude <= 32000) {
       // Lower stratosphere
       // dT/dh = 0.001 kelvin per meter
-      return 54.7499 * Math.pow(1 + 4.61574e-6 * (altitude - 20000), -34.1627);
+      return 54.7512459834976 * Math.pow(1 + 4.61574e-6 * (altitude - 20000), -34.1627);
     } else if (altitude <= 47000) {
       // Upper stratosphere
       // dT/dh = 0.0028 kelvin per meter
-      return 8.68058 * Math.pow(1 + 1.22458e-5 * (altitude - 32000), -12.2010);
+      return 8.68079131804552 * Math.pow(1 + 1.22458e-5 * (altitude - 32000), -12.2010);
     } else if (altitude <= 51000) {
       // Stratopause
       // dT/dh = 0
-      return 1.10914 * Math.exp(-1.26225e-4 * (altitude - 47000));
+      return 1.1091650294132658 * Math.exp(-1.26225e-4 * (altitude - 47000));
     } else if (altitude <= 71000) {
       // Lower mesosphere
       // dT/dh = -0.0028 kelvin per meter
-      return 0.669439 * Math.pow(1 - 1.03455e-5 * (altitude - 51000), 12.2010);
+      return 0.6694542213945832 * Math.pow(1 - 1.03455e-5 * (altitude - 51000), 12.2010);
     } else if (altitude <= 80000) {
       // Upper mesosphere
       // dT/dh = -0.002 kelvin per meter
-      return 0.0395680 * Math.pow(1 - 9.31749e-6 * (altitude - 71000), 17.0814);
+      return 0.03956893750841349 * Math.pow(1 - 9.31749e-6 * (altitude - 71000), 17.0814);
     } else {
       // Modeling stops at 80000 meters, so return the pressure for 80000 meters for any altitude above this.
-      return 0.0088638;
+      return 0.008864013902895545;
+    }
+  }
+
+  /**
+   * Gets the pressure altitude, in meters above MSL, corresponding to a given ISA pressure. The supported pressure
+   * altitude range is from -610 to 80000 meters above MSL. This method will return -610 meters for all pressures above
+   * the pressure at -610 meters, and 80000 meters for all pressures below the pressure at 80000 meters.
+   * @param pressure The ISA pressure for which to get the altitude, in hectopascals.
+   * @returns The pressure altitude, in meters above MSL, corresponding to the specified ISA pressure.
+   */
+  public static isaAltitude(pressure: number): number {
+    // ISA pressure modeling uses the following equation:
+    // dP/dh = -density/g
+
+    // Using the ideal gas law to substitute density with temperature and solving the above DE generates two
+    // different equations depending on whether temperature is constant with respect to altitude:
+
+    // Temperature varies with altitude:
+    // h(P) = T(h0) / dT/dh * ((P / P(h0)) ^ (-(R * dT/dh) / g) - 1) + h0
+
+    // Temperature constant with altitude:
+    // h(P) = -(R * T) / g * ln(P / P(h0)) + h0
+
+    // g = gravitational acceleration
+    // R = specific gas constant of dry air
+
+    if (pressure > 1088.707021458965) {
+      // Modeling stops at -610 meters, so return -610 meters for any pressure above the pressure at this altitude.
+      return -610;
+    } else if (pressure > 226.32547681422847) {
+      // Troposphere
+      // dT/dh = -0.0065 kelvin per meter
+      return -44330.76067152236 * (Math.pow(pressure / 1013.25, 0.1902659918566155) - 1);
+    } else if (pressure > 54.7512459834976) {
+      // Tropopause
+      // dT/dh = 0
+      return -6341.717083317479 * Math.log(pressure / 226.32547681422847) + 11000;
+    } else if (pressure > 8.68079131804552) {
+      // Lower stratosphere
+      // dT/dh = 0.001 kelvin per meter
+      return 216649.984617851092 * (Math.pow(pressure / 54.7512459834976, -0.02927169105486393) - 1) + 20000;
+    } else if (pressure > 1.1091650294132658) {
+      // Upper stratosphere
+      // dT/dh = 0.0028 kelvin per meter
+      return 81660.6509987098 * (Math.pow(pressure / 8.68079131804552, -0.08196049504139005) - 1) + 32000;
+    } else if (pressure > 0.6694542213945832) {
+      // Stratopause
+      // dT/dh = 0
+      return -7922.360863537334 * Math.log(pressure / 1.1091650294132658) + 47000;
+    } else if (pressure > 0.03956893750841349) {
+      // Lower mesosphere
+      // dT/dh = -0.0028 kelvin per meter
+      return -96660.38374172345 * (Math.pow(pressure / 0.6694542213945832, 0.08196049504139005) - 1) + 51000;
+    } else if (pressure > 0.008864013902895545) {
+      // Upper mesosphere
+      // dT/dh = -0.002 kelvin per meter
+      return -107325.0414006347 * (Math.pow(pressure / 0.03956893750841349, 0.05854321074385004) - 1) + 71000;
+    } else {
+      // Modeling stops at 80000 meters, so return 80000 meters for any pressure below the pressure at this altitude.
+      return 80000;
     }
   }
 
@@ -180,6 +253,16 @@ export class AeroMath {
   public static soundSpeedIsa(altitude: number, deltaIsa = 0): number {
     return this.soundSpeedAir(AeroMath.isaTemperature(altitude) + deltaIsa);
   }
+
+  /**
+   * Gets the offset to apply to pressure altitude, in meters, to obtain indicated altitude for a given barometric setting.
+   * @param baro The barometic setting for which to get the offset, in hectopascals.
+   * @returns The offset to apply to pressure altitude, in meters, to obtain indicated altitude for the specified barometric setting.
+   */
+  public static baroPressureAltitudeOffset(baro: number): number {
+    return 44307.694 * (Math.pow(baro / 1013.25, 0.190284) - 1);
+  }
+
 
   // ---- Speed conversions ----
 

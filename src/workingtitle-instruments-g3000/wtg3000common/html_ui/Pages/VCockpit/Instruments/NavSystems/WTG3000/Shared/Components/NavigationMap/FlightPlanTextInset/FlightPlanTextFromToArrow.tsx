@@ -5,8 +5,10 @@ import {
 
 import './FlightPlanTextFromToArrow.css';
 
-/** The properties for the {@link FlightPlanTextFromToArrow} component. */
-interface FlightPlanTextFromToArrowProps extends ComponentProps {
+/**
+ * The properties for the {@link FlightPlanTextFromToArrow} component.
+ */
+export interface FlightPlanTextFromToArrowProps extends ComponentProps {
   /** The visible index of the from leg in the list. */
   readonly fromIndex: Subscribable<number | undefined>;
   /** The visible index of the to leg in the list. */
@@ -15,7 +17,9 @@ interface FlightPlanTextFromToArrowProps extends ComponentProps {
   readonly listItemHeightPx: number;
 }
 
-/** The FlightPlanTextFromToArrow component. */
+/**
+ * An arrow displayed in the flight plan text inset which indicates the "from" and "to" flight plan legs.
+ */
 export class FlightPlanTextFromToArrow extends DisplayComponent<FlightPlanTextFromToArrowProps> {
   private readonly rootStyle = ObjectSubject.create({ height: '', 'margin-top': '', 'margin-left': '' });
 

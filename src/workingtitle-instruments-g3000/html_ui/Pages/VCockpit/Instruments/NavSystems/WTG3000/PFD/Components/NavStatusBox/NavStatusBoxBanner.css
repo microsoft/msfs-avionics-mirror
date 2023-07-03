@@ -1,14 +1,14 @@
 .nav-status-banner {
   position: relative;
-  width: 325px;
-  height: 52px;
+  width: 324px;
+  height: 50px;
 
-  --nav-status-banner-padding-right: 3px;
+  --nav-status-banner-padding-right: 2px;
   --nav-status-banner-padding-width: 252px;
-  --nav-status-banner-padding-top: 3px;
-  --nav-status-banner-padding-bottom: 3px;
+  --nav-status-banner-padding-top: 2px;
+  --nav-status-banner-padding-bottom: 2px;
   --nav-status-banner-background-fill: var(--g3000-color-pfd-box-background);
-  --nav-status-banner-background-stroke: #393f44;
+  --nav-status-banner-background-stroke: var(--g3000-color-pfd-banner-border-color);
 
   --nav-status-banner-fields-margin-left: 25px;
   --nav-status-banner-fields-margin-right: 25px;
@@ -23,6 +23,8 @@
   fill: var(--nav-status-banner-background-fill);
   stroke: var(--nav-status-banner-background-stroke);
   stroke-width: 1px;
+  stroke-linejoin: round;
+  overflow: visible;
 }
 
 .nav-status-banner .nav-status {

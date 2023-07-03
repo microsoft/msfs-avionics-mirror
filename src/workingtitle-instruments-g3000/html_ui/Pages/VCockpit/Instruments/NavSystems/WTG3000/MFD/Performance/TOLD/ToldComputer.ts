@@ -1,5 +1,6 @@
 import {
   AdcEvents,
+  AeroMath,
   AirportFacility, AvionicsSystemState, AvionicsSystemStateEvent, ClockEvents, ConsumerSubject, ControlSurfacesEvents, EventBus, FacilityLoader,
   FacilityType, FlightPlannerEvents, ICAO, MappedSubject, MappedSubscribable, OneWayRunway, RunwayUtils, Subject, Subscription, UnitType, UserSetting
 } from '@microsoft/msfs-sdk';
@@ -1571,7 +1572,7 @@ export class ToldComputer {
    * @returns The pressure altitude at the runway, in feet, given the specified elevation and QNH setting.
    */
   private static getRunwayPressureAltitude(elevation: number, qnh: number): number {
-    return elevation + 145366.45 * (1 - Math.pow(qnh / 1013.25, 0.190284));
+    return elevation - UnitType.METER.convertTo(AeroMath.baroPressureAltitudeOffset(qnh), UnitType.FOOT);
   }
 
   /**

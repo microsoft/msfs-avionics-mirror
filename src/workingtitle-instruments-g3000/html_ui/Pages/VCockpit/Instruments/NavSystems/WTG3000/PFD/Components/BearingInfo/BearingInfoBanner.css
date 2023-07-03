@@ -1,0 +1,61 @@
+.bearing-info-banner {
+  position: relative;
+
+  --bearing-info-banner-padding-right: 0px;
+  --bearing-info-banner-padding-width: 240px;
+  --bearing-info-banner-padding-top: 2px;
+  --bearing-info-banner-padding-bottom: 2px;
+  --bearing-info-banner-background-fill: var(--g3000-color-pfd-box-background);
+  --bearing-info-banner-background-stroke: var(--g3000-color-pfd-banner-border-color);
+}
+
+.bearing-info-banner-no-softkey {
+  width: 410px;
+  height: 50px;
+}
+
+.bearing-info-banner-softkey {
+  position: relative;
+  width: 299px;
+  height: 50px;
+}
+
+.bearing-info-banner-background {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  fill: var(--bearing-info-banner-background-fill);
+  stroke: var(--bearing-info-banner-background-stroke);
+  stroke-width: 1px;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+
+.bearing-info-banner-row-container {
+  position: absolute;
+  right: var(--bearing-info-banner-padding-right);
+  top: var(--bearing-info-banner-padding-top);
+  width: var(--bearing-info-banner-padding-width);
+  height: calc(100% - var(--bearing-info-banner-padding-top) - var(--bearing-info-banner-padding-bottom));
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.bearing-info-banner-softkey .bearing-info-banner-row-container {
+  transform: scaleX(0.97);
+  transform-origin: 100% 50%;
+}
+
+.bearing-info-banner-row {
+  position: relative;
+  height: 50%;
+}
+
+.bearing-info-banner .bearing-info {
+  width: 100%;
+  height: 100%;
+  letter-spacing: -1px;
+}

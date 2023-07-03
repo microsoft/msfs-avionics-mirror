@@ -1,5 +1,5 @@
-import { ComponentProps, DisplayComponent, EventBus, FSComponent, Subscribable, Tcas, UserSettingManager, VNode } from '@microsoft/msfs-sdk';
-import { DefaultVsiDataProvider, VerticalSpeedIndicator as BaseVerticalSpeedIndicator, VNavDataProvider, VsiScaleOptions } from '@microsoft/msfs-garminsdk';
+import { ComponentProps, DisplayComponent, EventBus, FSComponent, Subscribable, UserSettingManager, VNode } from '@microsoft/msfs-sdk';
+import { DefaultVsiDataProvider, VerticalSpeedIndicator as BaseVerticalSpeedIndicator, VNavDataProvider, VsiScaleOptions, TcasRaCommandDataProvider } from '@microsoft/msfs-garminsdk';
 import { IauUserSettingTypes } from '@microsoft/msfs-wtg3000-common';
 
 import { VsiConfig } from './VsiConfig';
@@ -20,10 +20,10 @@ export interface VerticalSpeedIndicatorProps extends ComponentProps {
   vnavDataProvider: VNavDataProvider;
 
   /**
-   * The TCAS from which to source resolution advisory fly-to commands. If not defined, the VSI will not display RA
-   * fly-to commands.
+   * A provider of TCAS-II resolution advisory vertical speed command data. If not defined, then the indicator will
+   * not display resolution advisory commands.
    */
-  tcas?: Tcas;
+  tcasRaCommandDataProvider?: TcasRaCommandDataProvider;
 
   /** A manager for IAU user settings. */
   iauSettingManager: UserSettingManager<IauUserSettingTypes>;
@@ -60,8 +60,7 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
     this.dataProvider = new DefaultVsiDataProvider(
       this.props.bus,
       adcIndex,
-      this.props.vnavDataProvider,
-      this.props.tcas
+      this.props.vnavDataProvider
     );
   }
 
@@ -84,6 +83,7 @@ export class VerticalSpeedIndicator extends DisplayComponent<VerticalSpeedIndica
           ref={this.ref}
           bus={this.props.bus}
           dataProvider={this.dataProvider}
+          tcasRaCommandDataProvider={this.props.tcasRaCommandDataProvider}
           declutter={this.props.declutter}
           scaleOptions={scaleOptions}
           isAdvancedVnav={this.props.isAdvancedVnav}

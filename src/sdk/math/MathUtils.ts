@@ -8,6 +8,12 @@ export class MathUtils {
   /** Half the value of pi. */
   public static readonly HALF_PI = Math.PI / 2;
 
+  /** Square root of 3. */
+  public static readonly SQRT3 = Math.sqrt(3);
+
+  /** Square root of 1/3. */
+  public static readonly SQRT1_3 = 1 / Math.sqrt(3);
+
   /**
    * Clamps a numerical value to the min/max range.
    * @param value The value to be clamped.
@@ -31,6 +37,26 @@ export class MathUtils {
   }
 
   /**
+   * Ceils a number.
+   * @param value The number to ceil.
+   * @param precision The precision with which to ceil. Defaults to `1`.
+   * @returns The ceiled number.
+   */
+  public static ceil(value: number, precision = 1): number {
+    return Math.ceil(value / precision) * precision;
+  }
+
+  /**
+   * Floors a number.
+   * @param value The number to floor.
+   * @param precision The precision with which to floor. Defaults to `1`.
+   * @returns The floored number.
+   */
+  public static floor(value: number, precision = 1): number {
+    return Math.floor(value / precision) * precision;
+  }
+
+  /**
    * Calculates the angular difference between two angles in the range `[0, 2 * pi)`. The calculation supports both
    * directional and non-directional differences. The directional difference is the angle swept from the start angle
    * to the end angle proceeding in the direction of increasing angle. The non-directional difference is the smaller
@@ -43,6 +69,21 @@ export class MathUtils {
   public static diffAngle(start: number, end: number, directional = true): number {
     const diff = ((end - start) % MathUtils.TWO_PI + MathUtils.TWO_PI) % MathUtils.TWO_PI;
     return directional ? diff : Math.min(diff, MathUtils.TWO_PI - diff);
+  }
+
+  /**
+   * Calculates the angular difference between two angles in the range `[0, 360)`. The calculation supports both
+   * directional and non-directional differences. The directional difference is the angle swept from the start angle
+   * to the end angle proceeding in the direction of increasing angle. The non-directional difference is the smaller
+   * of the two angles swept from the start angle to the end angle proceeding in either direction.
+   * @param start The starting angle, in degrees.
+   * @param end The ending angle, in degrees.
+   * @param directional Whether to calculate the directional difference. Defaults to `true`.
+   * @returns The angular difference between the two angles, in degrees, in the range `[0, 360)`.
+   */
+  public static diffAngleDeg(start: number, end: number, directional = true): number {
+    const diff = ((end - start) % 360 + 360) % 360;
+    return directional ? diff : Math.min(diff, 360 - diff);
   }
 
   /**

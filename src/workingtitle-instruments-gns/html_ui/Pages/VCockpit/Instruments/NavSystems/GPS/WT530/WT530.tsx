@@ -6,7 +6,7 @@
 /// <reference types="@microsoft/msfs-types/js/Avionics" />
 
 import {
-  BaseInstrumentPublisher, ComRadioIndex, EventBus, FSComponent, HEventPublisher, InstrumentBackplane, NavComInstrument, NavRadioIndex, SimVarValueType
+  BaseInstrumentPublisher, ComRadioIndex, EventBus, FSComponent, HEventPublisher, InstrumentBackplane, NavComInstrument, NavComSimVarPublisher, NavRadioIndex, SimVarValueType
 } from '@microsoft/msfs-sdk';
 
 import { PowerEvents, PowerState } from '../Shared/Instruments/Power';
@@ -26,6 +26,7 @@ class WT530 extends BaseInstrument {
   private readonly backplane: InstrumentBackplane;
 
   private readonly hEventPublisher = new HEventPublisher(this.bus);
+  private readonly navComSimVarPublisher = new NavComSimVarPublisher(this.bus);
   private readonly navComInstrument = new NavComInstrument(this.bus, undefined, 2, 2, false);
 
   private settingSaveManager: GNSSettingSaveManager;
@@ -53,6 +54,7 @@ class WT530 extends BaseInstrument {
     this.baseInstrumentPublisher = new BaseInstrumentPublisher(this, this.bus);
     this.backplane = new InstrumentBackplane();
     this.backplane.addPublisher('base', this.baseInstrumentPublisher);
+    this.backplane.addPublisher('navcom', this.navComSimVarPublisher);
     this.backplane.addInstrument('navcom', this.navComInstrument);
     this.settingSaveManager = new GNSSettingSaveManager(this.bus);
   }

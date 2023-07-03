@@ -267,7 +267,7 @@ export class GarminVNavManager implements VNavManager {
 
   /** Method called to arm Path Mode. */
   private armPath(): void {
-    if (this.awaitingAltCap < 0 && this.awaitingRearm < 0) {
+    if (this.awaitingAltCap < 0 && this.awaitingRearm < 0 && this.apValues.verticalActive.get() !== APVerticalModes.CAP) {
       if (this.pathMode !== VNavPathMode.PathArmed) {
         this.pathMode = VNavPathMode.PathArmed;
         SimVar.SetSimVarValue(VNavVars.PathMode, SimVarValueType.Number, this.pathMode);

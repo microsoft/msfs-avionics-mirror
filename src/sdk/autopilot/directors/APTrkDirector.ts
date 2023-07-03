@@ -1,48 +1,83 @@
-/// <reference types="@microsoft/msfs-types/js/simvar" />
-
-import { EventBus, SimVarValueType } from '../../data';
-import { NavMath } from '../../geo';
-import { GNSSEvents } from '../../instruments';
-import { LinearServo } from '../../utils/controllers';
+import { ConsumerValue } from '../../data/ConsumerValue';
+import { EventBus } from '../../data/EventBus';
+import { NavMath } from '../../geo/NavMath';
+import { GNSSEvents, GNSSPublisher } from '../../instruments/GNSS';
+import { MathUtils } from '../../math/MathUtils';
 import { APValues } from '../APConfig';
-import { APHdgDirectorOptions } from './APHdgDirector';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
+
+/**
+ * Options for {@link APTrkDirector}.
+ */
+export type APTrkDirectorOptions = {
+  /**
+   * The maximum bank angle, in degrees, supported by the director, or a function which returns it. If not defined,
+   * the director will use the maximum bank angle defined by its parent autopilot (via `apValues`). Defaults to
+   * `undefined`.
+   */
+  maxBankAngle?: number | (() => number) | undefined;
+
+  /**
+   * The bank rate to enforce when the director commands changes in bank angle, in degrees per second, or a function
+   * which returns it. If not undefined, a default bank rate will be used. Defaults to `undefined`.
+   */
+  bankRate?: number | (() => number) | undefined;
+
+  /**
+   * The threshold difference between selected track and current track, in degrees, at which the director unlocks its
+   * commanded turn direction and chooses a new optimal turn direction to establish on the selected track, potentially
+   * resulting in a turn reversal. Any value less than or equal to 180 degrees effectively prevents the director from
+   * locking a commanded turn direction. Any value greater than or equal to 360 degrees will require the selected track
+   * to traverse past the current track in the desired turn direction in order for the director to issue a turn
+   * reversal. Defaults to `0`.
+   */
+  turnReversalThreshold?: number;
+
+  /**
+   * Whether the director is to be used as a TO/GA lateral mode. If `true`, the director will not control the
+   * `AUTOPILOT HEADING LOCK` simvar. Defaults to `false`.
+   */
+  isToGaMode?: boolean;
+};
 
 /**
  * A heading autopilot director.
  */
 export class APTrkDirector implements PlaneDirector {
-  private static readonly BANK_SERVO_RATE = 10; // degrees per second
-
   public state: DirectorState;
 
-  /** A callback called when the director activates. */
+  /** @inheritdoc */
   public onActivate?: () => void;
 
-  /** A callback called when the director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
 
-  private currentBankRef = 0;
-  private currentTrack = 0;
+  /** @inheritdoc */
+  public driveBank?: (bank: number, rate?: number) => void;
+
   private toGaTrack = 0;
 
-  private readonly bankServo = new LinearServo(APTrkDirector.BANK_SERVO_RATE);
+  private readonly magVar = ConsumerValue.create(null, 0);
+
+  private lastTrackDiff: number | undefined = undefined;
+  private readonly turnReversalThreshold: number;
+  private lockedTurnDirection: 'left' | 'right' | undefined = undefined;
 
   private readonly maxBankAngleFunc: () => number;
+  private readonly driveBankFunc: (bank: number) => void;
+
   private readonly isToGaMode: boolean;
 
   /**
    * Creates a new instance of APHdgDirector.
    * @param bus The event bus to use with this instance.
    * @param apValues Autopilot values from this director's parent autopilot.
-   * @param options Options to configure the new director. Option values default to the following if not defined:
-   * * `maxBankAngle`: `undefined`
-   * * `isToGaMode`: `false`
+   * @param options Options to configure the new director.
    */
   constructor(
     private readonly bus: EventBus,
     private readonly apValues: APValues,
-    options?: Partial<Readonly<APHdgDirectorOptions>>
+    options?: Readonly<APTrkDirectorOptions>
   ) {
     const maxBankAngleOpt = options?.maxBankAngle ?? undefined;
     switch (typeof maxBankAngleOpt) {
@@ -56,33 +91,66 @@ export class APTrkDirector implements PlaneDirector {
         this.maxBankAngleFunc = this.apValues.maxBankAngle.get.bind(this.apValues.maxBankAngle);
     }
 
+    const bankRateOpt = options?.bankRate;
+    switch (typeof bankRateOpt) {
+      case 'number':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt * this.apValues.simRate.get());
+          }
+        };
+        break;
+      case 'function':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt() * this.apValues.simRate.get());
+          }
+        };
+        break;
+      default:
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank);
+          }
+        };
+    }
+
+    this.turnReversalThreshold = options?.turnReversalThreshold ?? 0;
+
     this.isToGaMode = options?.isToGaMode ?? false;
 
     this.state = DirectorState.Inactive;
 
-    const ahrs = this.bus.getSubscriber<GNSSEvents>();
-    ahrs.on('track_deg_magnetic').withPrecision(0).handle((h) => {
-      this.currentTrack = h;
-    });
+    this.magVar.setConsumer(this.bus.getSubscriber<GNSSEvents>().on('magvar'));
 
+    this.pauseSubs();
+  }
+
+  /** Resumes Subscriptions. */
+  private resumeSubs(): void {
+    this.magVar.resume();
+  }
+
+  /** Pauses Subscriptions. */
+  private pauseSubs(): void {
+    this.magVar.pause();
   }
 
   /**
    * Activates this director.
    */
   public activate(): void {
+    this.resumeSubs();
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
     if (!this.isToGaMode) {
       SimVar.SetSimVarValue('AUTOPILOT HEADING LOCK', 'Bool', true);
     } else {
-      this.toGaTrack = this.currentTrack;
+      this.toGaTrack = this.getMagneticTrack();
     }
 
     this.state = DirectorState.Active;
-
-    this.bankServo.reset();
   }
 
   /**
@@ -101,6 +169,7 @@ export class APTrkDirector implements PlaneDirector {
   public async deactivate(): Promise<void> {
     if (!this.isToGaMode) { await SimVar.SetSimVarValue('AUTOPILOT HEADING LOCK', 'Bool', false); }
     this.state = DirectorState.Inactive;
+    this.pauseSubs();
   }
 
   /**
@@ -108,14 +177,18 @@ export class APTrkDirector implements PlaneDirector {
    */
   public update(): void {
     if (this.state === DirectorState.Active) {
+      let bank = 0;
       if (this.isToGaMode) {
         if (Simplane.getIsGrounded()) {
-          this.toGaTrack = this.currentTrack;
+          this.toGaTrack = this.getMagneticTrack();
+        } else {
+          bank = this.desiredBank(this.toGaTrack);
         }
-        this.setBank(this.desiredBank(this.toGaTrack));
       } else {
-        this.setBank(this.desiredBank(this.apValues.selectedHeading.get()));
+        bank = this.desiredBank(this.apValues.selectedHeading.get());
       }
+
+      this.driveBankFunc(bank);
     }
   }
 
@@ -125,25 +198,53 @@ export class APTrkDirector implements PlaneDirector {
    * @returns The desired bank angle.
    */
   private desiredBank(targetTrack: number): number {
-    const turnDirection = NavMath.getTurnDirection(this.currentTrack, targetTrack);
-    const trackDiff = Math.abs(NavMath.diffAngle(this.currentTrack, targetTrack));
+    const currentTrack = this.getMagneticTrack();
+    const trackDiff = MathUtils.diffAngleDeg(currentTrack, targetTrack);
 
-    let baseBank = Math.min(1.25 * trackDiff, this.maxBankAngleFunc());
+    let turnDirection: 'left' | 'right' | undefined = undefined;
+    let directionalTrackDiff: number;
+
+    if (this.lockedTurnDirection !== undefined) {
+      turnDirection = this.lockedTurnDirection;
+      directionalTrackDiff = turnDirection === 'left' ? (360 - trackDiff) % 360 : trackDiff;
+
+      if (directionalTrackDiff >= this.turnReversalThreshold) {
+        turnDirection = undefined;
+      } else if (this.lastTrackDiff !== undefined) {
+        // Check if the track difference passed through zero in the positive to negative direction since the last
+        // update. If so, we may need to issue a turn reversal.
+        const trackDiffDelta = (MathUtils.diffAngleDeg(this.lastTrackDiff, directionalTrackDiff) + 180) % 360 - 180; // -180 to +180
+        if (this.lastTrackDiff + trackDiffDelta < 0) {
+          turnDirection = undefined;
+        }
+      }
+    }
+
+    if (turnDirection === undefined) {
+      turnDirection = NavMath.getTurnDirection(currentTrack, targetTrack);
+      directionalTrackDiff = turnDirection === 'left' ? (360 - trackDiff) % 360 : trackDiff;
+    }
+
+    if (this.turnReversalThreshold > 180) {
+      this.lockedTurnDirection = turnDirection;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    this.lastTrackDiff = directionalTrackDiff!;
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    let baseBank = Math.min(1.25 * directionalTrackDiff!, this.maxBankAngleFunc());
     baseBank *= (turnDirection === 'left' ? 1 : -1);
 
     return baseBank;
   }
 
-
   /**
-   * Sets the desired AP bank angle.
-   * @param bankAngle The desired AP bank angle.
+   * Gets the instantanious magnetic track.
+   * @returns Magnetic Track, in degrees.
    */
-  private setBank(bankAngle: number): void {
-    if (isFinite(bankAngle)) {
-      this.bankServo.rate = APTrkDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
-      this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
-      SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
-    }
+  private getMagneticTrack(): number {
+    const trueTrack = GNSSPublisher.getInstantaneousTrack();
+    return NavMath.normalizeHeading(trueTrack - this.magVar.get());
   }
 }

@@ -1,16 +1,17 @@
 /**
- * Applies time-weighted exponential smoothing (i.e. an exponential moving average) to a sequence of raw values. When
- * a new raw value is added to the sequence, it and the last smoothed value are weighted according to the time elapsed
- * since the last smoothed value was calculated (i.e. since the last raw value was added) and averaged. The calculation
- * of the weighting is such that the weight of each raw value in the sequence decays exponentially with the "age"
- * (i.e. time elapsed between when that value was added to the sequence and when the latest value was added to the
- * sequence) of the value.
+ * Applies time-weighted exponential smoothing (i.e. an exponential moving average) to a sequence of raw values.
+ *
+ * When a new raw value is added to the sequence, it and the last smoothed value are weighted according to the time
+ * elapsed since the last smoothed value was calculated (i.e. since the last raw value was added) and averaged. The
+ * calculation of the weighting is such that the weight of each raw value in the sequence decays exponentially with the
+ * "age" (i.e. time elapsed between when that value was added to the sequence and when the latest value was added to
+ * the sequence) of the value.
  */
 export class ExpSmoother {
   private lastValue: number | null;
 
   /**
-   * Constructor.
+   * Creates a new instance of ExpSmoother.
    * @param tau This smoother's time constant. The larger the constant, the greater the smoothing effect. A value less
    * than or equal to 0 is equivalent to no smoothing.
    * @param initial The initial smoothed value of this smoother. Defaults to null.

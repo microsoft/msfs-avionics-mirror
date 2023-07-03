@@ -1,7 +1,6 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import { EventBus, KeyEventData, KeyEvents, KeyEventManager, SimVarValueType } from '../../data';
-import { AhrsEvents } from '../../instruments';
 import { MathUtils } from '../../math';
 import { APValues } from '../APConfig';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
@@ -14,13 +13,14 @@ export class APPitchDirector implements PlaneDirector {
   public state: DirectorState;
   private keyEventManager?: KeyEventManager;
 
-  /** A callback called when the director activates. */
+  /** @inheritdoc */
   public onActivate?: () => void;
-  /** A callback called when the director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
+  /** @inheritdoc */
+  public setPitch?: (pitch: number) => void;
 
   private selectedPitch = 0;
-  private currentPitch = 0;
 
   /**
    * Creates an instance of the LateralDirector.
@@ -30,20 +30,17 @@ export class APPitchDirector implements PlaneDirector {
    * @param minPitch is the negative minimum pitch angle, in degrees, to clamp the pitch to. (default: -15)
    * @param maxPitch is the positive maximum pitch angle, in degrees, to clamp the pitch to. (default: 20)
    */
-  constructor(private readonly bus: EventBus, private readonly apValues: APValues,
+  constructor(bus: EventBus, private readonly apValues: APValues,
     private readonly pitchIncrement = 0.5, private readonly minPitch = -15, private readonly maxPitch = 20) {
+
     this.state = DirectorState.Inactive;
+
     this.apValues.selectedPitch.sub((p) => {
       this.selectedPitch = p;
       if (this.state == DirectorState.Active) {
         // send it in again to make sure its clamped
-        this.setPitch(p);
+        this.setPitch && this.setPitch(p);
       }
-    });
-
-    const ahrsSub = this.bus.getSubscriber<AhrsEvents>();
-    ahrsSub.on('pitch_deg').withPrecision(1).handle((p) => {
-      this.currentPitch = p;
     });
 
     // setup inc/dec event intercept
@@ -53,7 +50,7 @@ export class APPitchDirector implements PlaneDirector {
       manager.interceptKey('AP_PITCH_REF_INC_UP', false);
       manager.interceptKey('AP_PITCH_REF_INC_DN', false);
 
-      const keySub = this.bus.getSubscriber<KeyEvents>();
+      const keySub = bus.getSubscriber<KeyEvents>();
       keySub.on('key_intercept').handle(this.onKeyIntercepted.bind(this));
 
     });
@@ -67,7 +64,8 @@ export class APPitchDirector implements PlaneDirector {
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
-    this.setPitch(this.currentPitch);
+    const currentPitch = SimVar.GetSimVarValue('PLANE PITCH DEGREES', SimVarValueType.Degree);
+    this.setPitch && this.setPitch(MathUtils.clamp(currentPitch, -this.maxPitch, -this.minPitch));
     SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD', 'Bool', true);
   }
 
@@ -97,7 +95,7 @@ export class APPitchDirector implements PlaneDirector {
     switch (k.key) {
       case 'AP_PITCH_REF_INC_UP':
       case 'AP_PITCH_REF_INC_DN':
-        this.setPitch(this.selectedPitch + (k.key === 'AP_PITCH_REF_INC_UP' ? -this.pitchIncrement : this.pitchIncrement));
+        this.setPitch && this.setPitch(this.selectedPitch + (k.key === 'AP_PITCH_REF_INC_UP' ? -this.pitchIncrement : this.pitchIncrement));
         break;
       default:
         return;
@@ -109,16 +107,5 @@ export class APPitchDirector implements PlaneDirector {
    */
   public update(): void {
     //noop
-  }
-
-  /**
-   * Sets the desired AP pitch angle.
-   * @param targetPitch The desired AP pitch angle.
-   */
-  private setPitch(targetPitch: number): void {
-    if (isFinite(targetPitch)) {
-      // HINT: min/max pitch are reversed as the pitch is inverted in the sim
-      SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, MathUtils.clamp(targetPitch, -this.maxPitch, -this.minPitch));
-    }
   }
 }

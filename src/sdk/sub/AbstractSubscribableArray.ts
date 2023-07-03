@@ -11,7 +11,9 @@ export abstract class AbstractSubscribableArray<T> implements SubscribableArray<
   /** @inheritdoc */
   public abstract readonly length: number;
 
-  protected subs: HandlerSubscription<SubscribableArrayHandler<T>>[] = [];
+  protected singletonSub?: HandlerSubscription<SubscribableArrayHandler<T>>;
+
+  protected subs?: HandlerSubscription<SubscribableArrayHandler<T>>[];
   protected notifyDepth = 0;
 
   /** A function which sends initial notifications to subscriptions. */
@@ -20,10 +22,26 @@ export abstract class AbstractSubscribableArray<T> implements SubscribableArray<
   /** A function which responds to when a subscription to this subscribable is destroyed. */
   protected readonly onSubDestroyedFunc = this.onSubDestroyed.bind(this);
 
+  /**
+   * Adds a subscription to this array.
+   * @param sub The subscription to add.
+   */
+  protected addSubscription(sub: HandlerSubscription<SubscribableArrayHandler<T>>): void {
+    if (this.subs) {
+      this.subs.push(sub);
+    } else if (this.singletonSub) {
+      this.subs = [this.singletonSub, sub];
+      delete this.singletonSub;
+    } else {
+      this.singletonSub = sub;
+    }
+  }
+
   /** @inheritdoc */
   public sub(handler: SubscribableArrayHandler<T>, initialNotify = false, paused = false): Subscription {
     const sub = new HandlerSubscription(handler, this.initialNotifyFunc, this.onSubDestroyedFunc);
-    this.subs.push(sub);
+
+    this.addSubscription(sub);
 
     if (paused) {
       sub.pause();
@@ -36,7 +54,14 @@ export abstract class AbstractSubscribableArray<T> implements SubscribableArray<
 
   /** @inheritdoc */
   public unsub(handler: SubscribableArrayHandler<T>): void {
-    const toDestroy = this.subs.find(sub => sub.handler === handler);
+    let toDestroy: HandlerSubscription<SubscribableArrayHandler<T>> | undefined = undefined;
+
+    if (this.singletonSub && this.singletonSub.handler === handler) {
+      toDestroy = this.singletonSub;
+    } else if (this.subs) {
+      toDestroy = this.subs.find(sub => sub.handler === handler);
+    }
+
     toDestroy?.destroy();
   }
 
@@ -76,19 +101,34 @@ export abstract class AbstractSubscribableArray<T> implements SubscribableArray<
     let needCleanUpSubs = false;
     this.notifyDepth++;
 
-    const subLen = this.subs.length;
-    for (let i = 0; i < subLen; i++) {
+    if (this.singletonSub) {
       try {
-        const sub = this.subs[i];
-        if (sub.isAlive && !sub.isPaused) {
-          sub.handler(index, type, modifiedItem, this.getArray());
+        if (this.singletonSub.isAlive && !this.singletonSub.isPaused) {
+          this.singletonSub.handler(index, type, modifiedItem, this.getArray());
         }
 
-        needCleanUpSubs ||= !sub.isAlive;
+        needCleanUpSubs ||= !this.singletonSub.isAlive;
       } catch (error) {
-        console.error(`ArraySubject: error in handler: ${error}`);
+        console.error(`AbstractSubscribableArray: error in handler: ${error}`);
         if (error instanceof Error) {
           console.error(error.stack);
+        }
+      }
+    } else if (this.subs) {
+      const subLen = this.subs.length;
+      for (let i = 0; i < subLen; i++) {
+        try {
+          const sub = this.subs[i];
+          if (sub.isAlive && !sub.isPaused) {
+            sub.handler(index, type, modifiedItem, this.getArray());
+          }
+
+          needCleanUpSubs ||= !sub.isAlive;
+        } catch (error) {
+          console.error(`AbstractSubscribableArray: error in handler: ${error}`);
+          if (error instanceof Error) {
+            console.error(error.stack);
+          }
         }
       }
     }
@@ -96,7 +136,11 @@ export abstract class AbstractSubscribableArray<T> implements SubscribableArray<
     this.notifyDepth--;
 
     if (needCleanUpSubs && this.notifyDepth === 0) {
-      this.subs = this.subs.filter(sub => sub.isAlive);
+      if (this.singletonSub && !this.singletonSub.isAlive) {
+        delete this.singletonSub;
+      } else if (this.subs) {
+        this.subs = this.subs.filter(sub => sub.isAlive);
+      }
     }
   }
 
@@ -117,7 +161,14 @@ export abstract class AbstractSubscribableArray<T> implements SubscribableArray<
     // If we are not in the middle of a notify operation, remove the subscription.
     // Otherwise, do nothing and let the post-notify clean-up code handle it.
     if (this.notifyDepth === 0) {
-      this.subs.splice(this.subs.indexOf(sub), 1);
+      if (this.singletonSub === sub) {
+        delete this.singletonSub;
+      } else if (this.subs) {
+        const index = this.subs.indexOf(sub);
+        if (index >= 0) {
+          this.subs.splice(index, 1);
+        }
+      }
     }
   }
 }

@@ -24,6 +24,7 @@ export class GeoCircleLineRenderer {
    * @param dash The dash array of the rendered line. Defaults to no dash.
    * @param outlineWidth The width of the outline, in pixels. Defaults to 0 pixels.
    * @param outlineStyle The style of the outline. Defaults to `'black'`.
+   * @param lineCap The line cap style to use. Defaults to `'butt'`.
    */
   public render(
     circle: GeoCircle,
@@ -38,18 +39,21 @@ export class GeoCircleLineRenderer {
     dash?: readonly number[],
     outlineWidth = 0,
     outlineStyle = 'black',
+    lineCap: CanvasLineCap = 'butt',
   ): void {
     this.pathRenderer.render(circle, startLat, startLon, endLat, endLon, streamStack);
 
     if (outlineWidth > 0) {
       context.lineWidth = width + (outlineWidth * 2);
       context.strokeStyle = outlineStyle;
+      context.lineCap = lineCap;
       context.setLineDash(dash ?? GeoCircleLineRenderer.EMPTY_DASH);
       context.stroke();
     }
 
     context.lineWidth = width;
     context.strokeStyle = style;
+    context.lineCap = lineCap;
     context.setLineDash(dash ?? GeoCircleLineRenderer.EMPTY_DASH);
     context.stroke();
   }

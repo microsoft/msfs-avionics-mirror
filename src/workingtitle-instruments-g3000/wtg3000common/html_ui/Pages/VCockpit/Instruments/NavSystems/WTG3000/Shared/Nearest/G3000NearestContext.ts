@@ -1,9 +1,11 @@
 import {
   AdaptiveNearestContext, AdaptiveNearestSubscription, AirportFacility, BitFlags, ConsumerSubject, EventBus,
   FacilityFrequencyType, FacilityLoader, FacilityType, FacilityTypeMap, GeoPoint, GeoPointSubject, IntersectionFacility,
-  MappedSubject, NdbFacility, NearestAirportSubscription, NearestSubscription, RadioUtils, ReadonlySubEvent, RunwayUtils,
-  SubEvent, Subscribable, SubscribableUtils, Subscription, UnitType, UserFacility, VorClass, VorFacility, VorType
+  IntersectionType, MappedSubject, NdbFacility, NearestAirportSubscription, NearestSubscription, RadioUtils,
+  ReadonlySubEvent, RunwayUtils, SubEvent, Subscribable, SubscribableUtils, Subscription, UnitType, UserFacility,
+  VorClass, VorFacility, VorType
 } from '@microsoft/msfs-sdk';
+
 import { ComRadioSpacingSettingMode, ComRadioUserSettings, FmsPositionMode, FmsPositionSystemEvents, NearestAirportUserSettings } from '@microsoft/msfs-garminsdk';
 
 /**
@@ -161,6 +163,15 @@ export class G3000NearestContext {
       });
     }, true);
 
+    this.context.intersections.innerSubscription.setFilter(BitFlags.union(
+      BitFlags.createFlag(IntersectionType.None),
+      BitFlags.createFlag(IntersectionType.Named),
+      BitFlags.createFlag(IntersectionType.Unnamed),
+      BitFlags.createFlag(IntersectionType.Offroute),
+      BitFlags.createFlag(IntersectionType.IAF),
+      BitFlags.createFlag(IntersectionType.FAF),
+      BitFlags.createFlag(IntersectionType.RNAV)
+    ), true);
     this.context.intersections.innerSubscription.setFilterDupTerminal(true);
   }
 

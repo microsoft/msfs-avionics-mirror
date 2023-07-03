@@ -237,6 +237,49 @@ export class FlightPathUtils {
   }
 
   /**
+   * Gets the great circle tangent to a given path at a given tangent point. The tangent circle will contain the
+   * tangent point and have the same direction as the path at the tangent point.
+   * @param point The tangent point. If the point does not lie on the path, it will be projected onto the path.
+   * @param path The geo circle describing the path.
+   * @param out A GeoCircle object to which to write the result.
+   * @returns The great circle tangent to the specified path at the specified point.
+   */
+  public static getGreatCircleTangentToPath(
+    point: ReadonlyFloat64Array | LatLonInterface,
+    path: GeoCircle,
+    out: GeoCircle
+  ): GeoCircle {
+    if (!(point instanceof Float64Array)) {
+      point = GeoPoint.sphericalToCartesian(point as LatLonInterface, FlightPathUtils.vec3Cache[0]);
+    }
+
+    const radialNormal = Vec3Math.normalize(Vec3Math.cross(path.center, point, FlightPathUtils.vec3Cache[1]), FlightPathUtils.vec3Cache[1]);
+    return out.set(Vec3Math.cross(point, radialNormal, FlightPathUtils.vec3Cache[1]), MathUtils.HALF_PI);
+  }
+
+  /**
+   * Gets the great circle tangent to a given flight path vector at a given tangent point. The tangent circle will
+   * contain the tangent point and have the same direction as the vector at the tangent point.
+   * @param point The tangent point. If the point does not lie on the vector, it will be projected onto the vector.
+   * @param vector The flight path vector.
+   * @param out A GeoCircle object to which to write the result.
+   * @returns The great circle tangent to the specified flight path vector at the specified point.
+   */
+  public static getGreatCircleTangentToVector(
+    point: ReadonlyFloat64Array | LatLonInterface,
+    vector: FlightPathVector,
+    out: GeoCircle
+  ): GeoCircle {
+    if (!(point instanceof Float64Array)) {
+      point = GeoPoint.sphericalToCartesian(point as LatLonInterface, FlightPathUtils.vec3Cache[0]);
+    }
+
+    const centerVec = Vec3Math.set(vector.centerX, vector.centerY, vector.centerZ, FlightPathUtils.vec3Cache[1]);
+    const radialNormal = Vec3Math.normalize(Vec3Math.cross(centerVec, point, FlightPathUtils.vec3Cache[1]), FlightPathUtils.vec3Cache[1]);
+    return out.set(Vec3Math.cross(point, radialNormal, FlightPathUtils.vec3Cache[1]), MathUtils.HALF_PI);
+  }
+
+  /**
    * Calculates and returns a circle describing a turn starting from a path at a specified point.
    * @param start The starting point of the turn.
    * @param path The circle describing the path from which the turn starts.
@@ -403,11 +446,11 @@ export class FlightPathUtils {
 
   /**
    * Projects an instantaneous velocity at a point along a bearing onto a geo circle.
-   * 
+   *
    * The projected velocity is defined as the limit as dt goes to 0 of:
-   * 
+   *
    * `distance( project(p(0)), project(p(dt)) ) / dt`
-   * 
+   *
    * * `p(0)` is the position at which the velocity to project is measured.
    * * `p(x)` returns `p(0)` offset by the velocity to project after `x` time has elapsed.
    * * `project(x)` projects `x` onto the geo circle onto which the velocity is to be projected.
@@ -429,11 +472,11 @@ export class FlightPathUtils {
   ): number;
   /**
    * Projects an instantaneous velocity at a point along a geo circle onto another geo circle.
-   * 
+   *
    * The projected velocity is defined as the limit as dt goes to 0 of:
-   * 
+   *
    * `distance( project(p(0)), project(p(dt)) ) / dt`
-   * 
+   *
    * * `p(0)` is the position at which the velocity to project is measured.
    * * `p(x)` returns `p(0)` offset by the velocity to project after `x` time has elapsed.
    * * `project(x)` projects `x` onto the geo circle onto which the velocity is to be projected.

@@ -1,0 +1,21 @@
+.pitch-ladder {
+  font-size: 16px;
+}
+
+.pitch-ladder-line {
+  stroke: var(--g3000-color-white);
+  stroke-width: 1.5px;
+}
+
+.pitch-ladder-text {
+  paint-order: stroke;
+  fill: var(--g3000-color-white);
+  stroke: var(--g3000-color-black);
+  stroke-width: 1px;
+}
+
+.pitch-ladder-chevron {
+  fill: var(--g3000-color-red);
+  stroke: var(--g3000-color-black);
+  stroke-width: 1px;
+}

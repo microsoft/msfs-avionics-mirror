@@ -1,10 +1,10 @@
-import { EventBus, EventRepublisher, NavEvents, NavProcSimVars } from '@microsoft/msfs-sdk';
+import { EventBus, EventRepublisher, NavComEvents, NavEvents } from '@microsoft/msfs-sdk';
 
 /**
  * Publishes select {@link NavEvents} topics in lieu of NavProcessor.
  */
 export class NavEventsPublisher {
-  private readonly republisher = new EventRepublisher<NavProcSimVars, NavEvents>(this.bus);
+  private readonly republisher = new EventRepublisher<NavComEvents, NavEvents>(this.bus);
 
   private _isPublishing = false;
 
@@ -27,7 +27,7 @@ export class NavEventsPublisher {
 
     this.republisher.startRepublish('gps_obs_active_simvar', 'gps_obs_active', false, true);
     this.republisher.startRepublish('gps_obs_value_simvar', 'gps_obs_value', false, true);
-    this.republisher.startRepublish('mkr_bcn_state_simvar', 'mkr_bcn_state', false, true);
+    this.republisher.startRepublish('marker_beacon_state', 'mkr_bcn_state', false, true);
   }
 
   /**

@@ -1,4 +1,4 @@
-import { CASConfig, DefaultConfigFactory } from '@microsoft/msfs-wtg3000-common';
+import { DefaultConfigFactory } from '@microsoft/msfs-wtg3000-common';
 import { StartupScreenConfig } from '../Components/Startup/StartupScreenConfig';
 
 /**
@@ -10,8 +10,6 @@ export class MfdConfig {
   /** The index of the IAU used by the MFD. */
   public readonly iauIndex: number;
 
-  public readonly cas: CASConfig;
-
   /** A config which defines options for the MFD startup screen. */
   public readonly startupScreen?: StartupScreenConfig;
 
@@ -22,9 +20,7 @@ export class MfdConfig {
    * instrument.
    */
   constructor(xmlConfig: Document, instrumentConfig: Element | undefined) {
-    const root = xmlConfig.getElementsByTagName('PlaneHTMLConfig')[0];
     this.iauIndex = this.parseIauIndex(instrumentConfig);
-    this.cas = this.parseCasConfig(root, instrumentConfig);
     this.startupScreen = this.parseStartupScreenConfig(instrumentConfig);
   }
 
@@ -48,41 +44,6 @@ export class MfdConfig {
     }
 
     return 1;
-  }
-
-  /**
-   * Parses a CAS display configuration object from a configuration document. This method looks in the
-   * instrument-specific section first for a config definition. If none can be found or parsed without error, this
-   * method will next look in the general section. If none can be found or parsed without error there either, this
-   * method will return a default configuration object.
-   * @param config The root of the configuration document.
-   * @param instrumentConfig The root element of the configuration document's section pertaining to this config's
-   * instrument.
-   * @returns The CAR display configuration defined by the configuration document, or a default version if the
-   * document does not define a valid configuration.
-   */
-  private parseCasConfig(config: Element, instrumentConfig: Element | undefined): CASConfig {
-    if (instrumentConfig !== undefined) {
-      try {
-        const cas = instrumentConfig.querySelector(':scope>CAS');
-        if (cas !== null) {
-          return new CASConfig(cas, this.factory);
-        }
-      } catch (e) {
-        console.warn(e);
-      }
-    }
-
-    try {
-      const cas = config.querySelector(':scope>CAS');
-      if (cas !== null) {
-        return new CASConfig(cas, this.factory);
-      }
-    } catch (e) {
-      console.warn(e);
-    }
-
-    return new CASConfig(undefined, this.factory);
   }
 
   /**

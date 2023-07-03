@@ -1,20 +1,25 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { DateTimeUserSettings, UnitsUserSettings } from '@microsoft/msfs-garminsdk';
+
 import {
-  DisplayComponent, FSComponent, VNode, ComponentProps, EventBus, Subject,
-  ClockEvents, Subscription, StringUtils, SetSubject, Subscribable, FlightPlanSegment,
+  ClockEvents, ComponentProps, DisplayComponent, EventBus, FSComponent, FlightPlanSegment, SetSubject, StringUtils,
+  Subject, Subscribable, Subscription, VNode,
 } from '@microsoft/msfs-sdk';
-import {
-  FlightPlanListManager, FlightPlanStore, FlightPlanTextData, FlightPlanTextRowData,
-  FlightPlanTextUpdater,
-} from '../../../FlightPlan';
+
+import { DateTimeUserSettings, UnitsUserSettings } from '@microsoft/msfs-garminsdk';
+
+import { FlightPlanListManager } from '../../../FlightPlan/FlightPlanListManager';
+import { FlightPlanStore } from '../../../FlightPlan/FlightPlanStore';
+import { FlightPlanTextData, FlightPlanTextRowData, FlightPlanTextUpdater } from '../../../FlightPlan/FlightPlanTextUpdater';
 import { FlightPlanTextUpdateData } from '../NavigationMapPaneViewEvents';
-import { FlightPlanTextRow } from './FlightPlanTextRow';
 import { FlightPlanTextFromToArrow } from './FlightPlanTextFromToArrow';
+import { FlightPlanTextRow } from './FlightPlanTextRow';
+
 import './FlightPlanTextPanel.css';
 
-/** The properties for the {@link FlightPlanTextPanel} component. */
-interface FlightPlanTextPanelProps extends ComponentProps {
+/**
+ * The properties for the {@link FlightPlanTextPanel} component.
+ */
+export interface FlightPlanTextPanelProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
   /** The flight plan store. */
@@ -25,7 +30,9 @@ interface FlightPlanTextPanelProps extends ComponentProps {
   mapInsetTextCumulativeSetting: Subscribable<boolean>;
 }
 
-/** The FlightPlanTextPanel component. */
+/**
+ * A flight plan text panel which displays information on up to five flight plan legs.
+ */
 export class FlightPlanTextPanel extends DisplayComponent<FlightPlanTextPanelProps> {
   private readonly unitsSettingManager = UnitsUserSettings.getManager(this.props.bus);
   private readonly dateTimeSettingManager = DateTimeUserSettings.getManager(this.props.bus);

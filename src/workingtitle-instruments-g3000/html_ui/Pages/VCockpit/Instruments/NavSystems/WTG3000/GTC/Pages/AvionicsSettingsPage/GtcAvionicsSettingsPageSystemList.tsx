@@ -8,7 +8,7 @@ import {
   UnitsDistanceSettingMode, UnitsUserSettings
 } from '@microsoft/msfs-garminsdk';
 
-import { NumberUnitDisplay } from '@microsoft/msfs-wtg3000-common';
+import { FlightDirectorFormatSettingMode, HorizonDirectorCueOption, NumberUnitDisplay, PfdUserSettings } from '@microsoft/msfs-wtg3000-common';
 
 import { GtcList } from '../../Components/List/GtcList';
 import { GtcListItem } from '../../Components/List/GtcListItem';
@@ -30,6 +30,9 @@ import './GtcAvionicsSettingsPageSystemList.css';
 export interface GtcAvionicsSettingsPageSystemListProps extends ComponentProps {
   /** The GTC service. */
   gtcService: GtcService;
+
+  /** PFD horizon display flight director cue style support. */
+  horizonDirectorCueOption: HorizonDirectorCueOption;
 
   /** The height of each list item, in pixels. */
   listItemHeight: number;
@@ -58,6 +61,7 @@ export class GtcAvionicsSettingsPageSystemList extends DisplayComponent<GtcAvion
   private readonly comRadioSettingManager = ComRadioUserSettings.getManager(this.props.gtcService.bus);
   private readonly nearestAirportSettingManager = NearestAirportUserSettings.getManager(this.props.gtcService.bus);
   private readonly unitsSettingManager = UnitsUserSettings.getManager(this.props.gtcService.bus);
+  private readonly pfdSettingManager = PfdUserSettings.getAliasedManager(this.props.gtcService.bus, this.props.gtcService.pfdControlIndex);
 
   private readonly isLocalOffsetEditable = this.dateTimeSettingManager.getSetting('dateTimeFormat').map(format => {
     return format !== DateTimeFormatSettingMode.UTC;
@@ -191,9 +195,37 @@ export class GtcAvionicsSettingsPageSystemList extends DisplayComponent<GtcAvion
           <div class='avionics-settings-page-row-left'>
             <div>Flight Director<br />Active Format</div>
           </div>
-          <div class='avionics-settings-page-row-right'>
-            Single Cue
-          </div>
+          {
+            this.props.horizonDirectorCueOption === 'both'
+              ? (
+                <GtcListSelectTouchButton
+                  gtcService={this.props.gtcService}
+                  listDialogKey={GtcViewKeys.ListDialog1}
+                  state={this.pfdSettingManager.getSetting('flightDirectorFormat')}
+                  renderValue={(value): string => value === FlightDirectorFormatSettingMode.Dual ? 'Dual Cue' : 'Single Cue'}
+                  listParams={{
+                    title: 'Flight Director Active Format',
+                    inputData: [
+                      {
+                        value: FlightDirectorFormatSettingMode.Single,
+                        labelRenderer: () => 'Single Cue'
+                      },
+                      {
+                        value: FlightDirectorFormatSettingMode.Dual,
+                        labelRenderer: () => 'Dual Cue'
+                      }
+                    ],
+                    selectedValue: this.pfdSettingManager.getSetting('flightDirectorFormat')
+                  }}
+                  isInList
+                  class='avionics-settings-page-row-right'
+                />
+              ) : (
+                <div class='avionics-settings-page-row-right'>
+                  {this.props.horizonDirectorCueOption === 'dual' ? 'Dual Cue' : 'Single Cue'}
+                </div>
+              )
+          }
         </GtcListItem>
         <GtcListItem class='avionics-settings-page-row'>
           <div class='avionics-settings-page-row-left'>

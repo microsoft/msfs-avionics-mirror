@@ -106,12 +106,17 @@ export type FlightPathVector = CircleVector;
  * The details of procedures selected in the flight plan.
  */
 export class ProcedureDetails {
+  // *********************************************************************************************************
+  // ******** When adding new fields, they MUST be initialized, even if it just gets set to undefined ********
+  // ******** This is so that it can be used with Object.keys()                                       ********
+  // *********************************************************************************************************
+
   /** The origin runway object, consisting of the index of the origin runway
    * in the origin runway information and the direction. */
   public originRunway: OneWayRunway | undefined = undefined;
 
   /** The ICAO for the facility associated with the departure procedure. */
-  public departureFacilityIcao: string | undefined;
+  public departureFacilityIcao: string | undefined = undefined;
 
   /** The index of the departure in the origin airport information. */
   public departureIndex = -1;
@@ -123,7 +128,7 @@ export class ProcedureDetails {
   public departureRunwayIndex = -1;
 
   /** The ICAO for the facility associated with the arrival procedure. */
-  public arrivalFacilityIcao: string | undefined;
+  public arrivalFacilityIcao: string | undefined = undefined;
 
   /** The index of the arrival in the destination airport information. */
   public arrivalIndex = -1;
@@ -139,7 +144,7 @@ export class ProcedureDetails {
   public arrivalRunway: OneWayRunway | undefined = undefined;
 
   /** The ICAO for the facility associated with the approach procedure. */
-  public approachFacilityIcao: string | undefined;
+  public approachFacilityIcao: string | undefined = undefined;
 
   /** The index of the apporach in the destination airport information.*/
   public approachIndex = -1;
@@ -279,7 +284,7 @@ export interface VerticalData {
   /** The first altitude field for restrictions, in meters. */
   altitude1: number;
 
-  /** The second altitude field for restrictions, in meters. */
+  /** The second altitude field for restrictions, in meters. Only used for the lower value of a between constraint. */
   altitude2: number;
 
   /** Whether altitude 1 should be displayed as a flight level. */

@@ -1,0 +1,29 @@
+.tcas-ra-pitch-nofly {
+  width: 382px;
+  height: 140px;
+  stroke-width: 1px;
+  stroke: var(--g3000-color-black);
+}
+
+.tcas-ra-pitch-nofly-main {
+  fill: var(--g3000-color-red);
+}
+
+.tcas-ra-pitch-nofly-end {
+  fill: #960000;
+}
+
+.tcas-ra-pitch-flyto {
+  width: 108px;
+  outline: solid 5px var(--g3000-color-black);
+  outline-offset: -5px;
+}
+
+.tcas-ra-pitch-flyto::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  outline: solid 3px var(--g3000-color-green);
+  outline-offset: -4px;
+}

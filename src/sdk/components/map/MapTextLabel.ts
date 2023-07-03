@@ -12,7 +12,10 @@ export interface MapTextLabel {
   /** The text of this label. */
   readonly text: Subscribable<string>;
 
-  /** The render priority of this label. */
+  /**
+   * The render priority of this label.
+   * Higher numbers will render on top of labels with lower numbers when used with a {@link MapCullableTextLabelManager}.
+   */
   readonly priority: Subscribable<number>;
 
   /**

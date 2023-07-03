@@ -1,0 +1,7 @@
+.traffic-map-banner-failed {
+  padding: 0px 2px;
+  color: var(--amber);
+  background: black;
+  border: 1px solid whitesmoke;
+  border-radius: 5px;
+}

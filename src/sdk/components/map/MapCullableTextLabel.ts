@@ -1,5 +1,5 @@
 import { GeoPointInterface } from '../../geo/GeoPoint';
-import { SubEventInterface, ReadonlySubEvent, SubEvent } from '../../sub/SubEvent';
+import { ReadonlySubEvent, SubEvent, SubEventInterface } from '../../sub/SubEvent';
 import { Subscribable } from '../../sub/Subscribable';
 import { SubscribableUtils } from '../../sub/SubscribableUtils';
 import { Subscription } from '../../sub/Subscription';
@@ -27,7 +27,7 @@ export interface MapCullableTextLabel extends MapTextLabel {
 }
 
 /**
- * A cullable text label associated with a specific geographic location.
+ * A cullable (hides labels that collide with other labels) text label associated with a specific geographic location.
  */
 export class MapCullableLocationTextLabel extends MapLocationTextLabel implements MapCullableTextLabel {
   /** @inheritdoc */
@@ -207,16 +207,16 @@ export class MapCullableTextLabelManager {
       }
     }
 
-    this._visibleLabels = [];
-    if (this.cullingEnabled) {
+    const labelArray = Array.from(this.registered.keys())
+      .sort(MapCullableTextLabelManager.SORT_FUNC);
 
-      const labelArray = Array.from(this.registered.keys());
+    if (this.cullingEnabled) {
+      this._visibleLabels = [];
+
       const len = labelArray.length;
       for (let i = 0; i < len; i++) {
         labelArray[i].updateBounds(mapProjection);
       }
-
-      labelArray.sort(MapCullableTextLabelManager.SORT_FUNC);
 
       const collisionArray: Float64Array[] = [];
       for (let i = 0; i < len; i++) {
@@ -239,7 +239,7 @@ export class MapCullableTextLabelManager {
         }
       }
     } else {
-      this._visibleLabels.push(...this.registered.keys());
+      this._visibleLabels = labelArray;
     }
 
     this.lastScaleFactor = mapProjection.getScaleFactor();

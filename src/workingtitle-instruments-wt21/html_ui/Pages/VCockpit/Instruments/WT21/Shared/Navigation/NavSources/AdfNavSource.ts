@@ -1,4 +1,4 @@
-import { AdfRadioIndex, AhrsEvents, EventBus, NavComSimVars, NavProcSimVars, NavSourceType, Subject } from '@microsoft/msfs-sdk';
+import { AdfRadioIndex, AhrsEvents, EventBus, NavComEvents, NavComSimVars, NavSourceType, Subject } from '@microsoft/msfs-sdk';
 
 import { NavSourceBase } from './NavSourceBase';
 
@@ -17,9 +17,9 @@ export class AdfRadioSource<T extends readonly string[]> extends NavSourceBase<T
       .withPrecision(2)
       .handle(this.heading.set.bind(this.heading));
 
-    const navProcSimVarsSubscriber = this.bus.getSubscriber<NavProcSimVars>();
-    navProcSimVarsSubscriber.on(`adf_bearing_${index}`).withPrecision(2).handle(this.adfRadial.set.bind(this.adfRadial));
-    navProcSimVarsSubscriber.on(`adf_signal_${index}`).withPrecision(0).handle(this.adfSignal.set.bind(this.adfSignal));
+    const navComSubscriber = this.bus.getSubscriber<NavComEvents>();
+    navComSubscriber.on(`adf_bearing_${index}`).withPrecision(2).handle(this.adfRadial.set.bind(this.adfRadial));
+    navComSubscriber.on(`adf_signal_${index}`).withPrecision(0).handle(this.adfSignal.set.bind(this.adfSignal));
 
     const navComSimVarsSubscriber = this.bus.getSubscriber<NavComSimVars>();
     navComSimVarsSubscriber.on(`adf_active_frequency_${index}`).whenChanged().handle(this.activeFrequency.set.bind(this.activeFrequency));

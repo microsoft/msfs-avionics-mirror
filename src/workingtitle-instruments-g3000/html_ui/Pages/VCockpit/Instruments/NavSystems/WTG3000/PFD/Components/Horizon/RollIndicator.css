@@ -1,0 +1,27 @@
+.roll-scale-stroke {
+  stroke: var(--g3000-color-white);
+  stroke-width: 2px;
+}
+
+.roll-scale-fill {
+  fill: var(--g3000-color-white);
+}
+
+.roll-scale-ref-pointer {
+  stroke: var(--g3000-color-black);
+  stroke-width: 0.5px;
+}
+
+.roll-indicator-fill {
+  fill: var(--g3000-color-white);
+}
+
+.roll-indicator-pointer {
+  stroke: var(--g3000-color-black);
+  stroke-width: 0.5px;
+}
+
+.roll-indicator-low-bank-arc {
+  stroke: var(--g3000-color-green);
+  stroke-width: 4px;
+}

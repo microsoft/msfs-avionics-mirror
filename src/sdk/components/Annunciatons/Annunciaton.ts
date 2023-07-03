@@ -1,6 +1,6 @@
 /// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/utils/xmllogic" />
 
-import { UUID } from '../../utils';
+import { UUID } from '../../utils/uuid/UUID';
 
 /** The acceptable priority types for a given annunciation. */
 export enum AnnunciationType {

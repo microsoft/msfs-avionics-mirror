@@ -2,7 +2,7 @@ import { AltitudeRestrictionType, FlightPlanLeg, ICAO, OneWayRunway } from '../n
 import { FlightPathCalculator } from './FlightPathCalculator';
 import {
   FlightPlanSegment, FlightPlanSegmentType, LegDefinition, ProcedureDetails,
-  SpeedRestrictionType, SpeedUnit, VerticalData, VerticalFlightPhase,
+  SpeedRestrictionType, SpeedUnit, VerticalData, VerticalFlightPhase
 } from './FlightPlanning';
 
 export enum LegEventType {
@@ -730,7 +730,9 @@ export class FlightPlan {
    * @param notify Whether or not to send notifications after the operation.
    */
   public setProcedureDetails(details: Partial<ProcedureDetails>, notify = true): void {
-    for (const key of Object.keys(this.procedureDetails)) {
+    // We iterate of the keys of `details` because we need to be able to set fields to undefined
+    // and we only want to overwrite fields that were in the `details` object
+    for (const key of Object.keys(details)) {
       (this.procedureDetails as any)[key] = details[key as keyof ProcedureDetails];
     }
 
@@ -1110,38 +1112,63 @@ export class FlightPlan {
     if (planIndex === undefined) {
       planIndex = this.planIndex;
     }
-
     const newPlan = new FlightPlan(planIndex, this.calculator, this.onLegNameRequested);
-    newPlan.setProcedureDetails(this.procedureDetails, false);
-    newPlan.setDirectToData(this.directToData.segmentIndex, this.directToData.segmentLegIndex);
 
-    for (const segment of this.segments()) {
-      newPlan.addSegment(segment.segmentIndex, segment.segmentType, segment.airway, false);
-      for (const leg of segment.legs) {
-        const newLeg = newPlan.addLeg(segment.segmentIndex, leg.leg, undefined, leg.flags, false);
-        const legIndex = newPlan.getLegIndexFromLeg(newLeg);
-        newPlan.setLegVerticalData(legIndex, leg.verticalData);
-        copyCalcs && this.copyLegCalculations(leg, newLeg);
+    newPlan.copyFrom(this, copyCalcs);
+
+    return newPlan;
+  }
+
+  /**
+   * Copies a source flight plan into this one, overriding everything in this plan with everything from the source plan.
+   * @param sourcePlan The plan to copy from.
+   * @param copyCalcs Whether to copy leg calculations (defaults to false).
+   */
+  public copyFrom(sourcePlan: FlightPlan, copyCalcs = false): void {
+    if (sourcePlan._originAirport !== undefined) {
+      this.setOriginAirport(sourcePlan._originAirport, false);
+    } else {
+      this.removeOriginAirport();
+    }
+
+    if (sourcePlan._destinationAirport !== undefined) {
+      this.setDestinationAirport(sourcePlan._destinationAirport, false);
+    } else {
+      this.removeDestinationAirport();
+    }
+
+    // We do object assign against new proc details in case the incoming details are missing fields because of coming from json
+    // and because we want to overwrite the entire object, instead of just some fields.
+    this.setProcedureDetails(Object.assign(new ProcedureDetails(), sourcePlan.procedureDetails), false);
+
+    for (let i = 0; i < sourcePlan.planSegments.length; i++) {
+      const segment = sourcePlan.planSegments[i];
+
+      if (segment !== undefined) {
+        this.addSegment(segment.segmentIndex, segment.segmentType, segment.airway, false);
+        for (const leg of segment.legs) {
+          const newLeg = this.addLeg(segment.segmentIndex, leg.leg, undefined, leg.flags, false);
+          const legIndex = this.getLegIndexFromLeg(newLeg);
+          this.setLegVerticalData(legIndex, leg.verticalData);
+          copyCalcs && FlightPlan.copyLegCalculations(leg, newLeg);
+        }
       }
     }
 
-    if (this.originAirport !== undefined) {
-      newPlan.setOriginAirport(this.originAirport, false);
-    }
+    this.setDirectToData(sourcePlan.directToData.segmentIndex, sourcePlan.directToData.segmentLegIndex);
 
-    if (this.destinationAirport !== undefined) {
-      newPlan.setDestinationAirport(this.destinationAirport, false);
-    }
-
-    newPlan.setLateralLeg(this.activeLateralLeg);
-    newPlan.setVerticalLeg(this.activeVerticalLeg);
-    newPlan.setCalculatingLeg(this.activeCalculatingLeg);
+    // Have to copy from the private fields, because the public ones are getters, which would be lost when stringified
+    this.setLateralLeg(sourcePlan._activeLateralLeg);
+    this.setVerticalLeg(sourcePlan._activeVerticalLeg);
+    this.setCalculatingLeg(sourcePlan._activeCalculatingLeg);
 
     for (const key in this.userData) {
-      newPlan.setUserData(key, this.userData[key], false);
+      this.deleteUserData(key);
     }
 
-    return newPlan;
+    for (const key in sourcePlan.userData) {
+      this.setUserData(key, sourcePlan.userData[key], false);
+    }
   }
 
   /**
@@ -1150,7 +1177,7 @@ export class FlightPlan {
    * @param newLeg The leg that we want to copy the calcs to.
    * @returns the newLeg with the copied calcs.
    */
-  private copyLegCalculations(existingLeg: LegDefinition, newLeg: LegDefinition): LegDefinition {
+  private static copyLegCalculations(existingLeg: LegDefinition, newLeg: LegDefinition): LegDefinition {
     if (existingLeg.calculated !== undefined) {
       newLeg.calculated = {
         courseMagVar: existingLeg.calculated.courseMagVar,
@@ -1197,6 +1224,7 @@ export class FlightPlan {
     altitude1: 0,
     altitude2: 0,
     course: 0,
-    fixTypeFlags: 0
+    fixTypeFlags: 0,
+    verticalAngle: 0,
   }, partial);
 }

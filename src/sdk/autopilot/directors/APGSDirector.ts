@@ -1,22 +1,97 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus, SimVarValueType } from '../../data';
-import { GeoPoint } from '../../geo';
-import { Glideslope, NavRadioEvents, NavRadioIndex } from '../../instruments';
-import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
+import { ConsumerValue } from '../../data/ConsumerValue';
+import { EventBus } from '../../data/EventBus';
+import { SimVarValueType } from '../../data/SimVars';
+import { GeoPoint } from '../../geo/GeoPoint';
+import { NavRadioEvents } from '../../instruments/APRadioNavInstrument';
+import { GNSSEvents } from '../../instruments/GNSS';
+import { Glideslope, NavSourceType } from '../../instruments/NavProcessor';
+import { NavRadioIndex } from '../../instruments/RadioCommon';
+import { MathUtils } from '../../math/MathUtils';
+import { UnitType } from '../../math/NumberUnit';
+import { Subscription } from '../../sub/Subscription';
 import { APLateralModes, APValues } from '../APConfig';
 import { VNavVars } from '../data/VNavEvents';
 import { ApproachGuidanceMode } from '../VerticalNavigation';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
+ * A function which calculates a desired angle closure rate, in degrees per second, to track a glideslope. The angle
+ * closure rate is the rate of reduction of glideslope angle error. Positive values reduce glideslope angle error while
+ * negative values increase glideslope angle error.
+ * @param gsAngleError The glideslope angle error, in degrees, defined as the difference between the angle from the
+ * glideslope antenna to the airplane and the glideslope angle. Positive values indicate deviation of the airplane
+ * above the glideslope.
+ * @param gsAngle The glideslope angle, in degrees.
+ * @param currentAngleRate The current rate of change of glideslope angle error, in degrees per second.
+ * @param distance The lateral distance from the airplane to the glideslope antenna, in meters.
+ * @param height The height of the airplane above the glideslope antenna, in meters.
+ * @param groundSpeed The airplane's current ground speed, in meters per second.
+ * @param vs The airplane's current vertical speed, in meters per second.
+ * @returns The desired angle closure rate, in degrees per second, toward the glideslope.
+ */
+export type APGSDirectorAngleClosureRateFunc = (
+  gsAngleError: number,
+  gsAngle: number,
+  currentAngleRate: number,
+  distance: number,
+  height: number,
+  groundSpeed: number,
+  vs: number
+) => number;
+
+/**
+ * A function which calculates a desired vertical speed to target, in feet per minute, to track a glideslope.
+ * @param gsAngleError The glideslope angle error, in degrees, defined as the difference between the angle from the
+ * glideslope antenna to the airplane and the glideslope angle. Positive values indicate deviation of the airplane
+ * above the glideslope.
+ * @param gsAngle The glideslope angle, in degrees.
+ * @param currentAngleRate The current rate of change of glideslope angle error, in degrees per second.
+ * @param distance The lateral distance from the airplane to the glideslope antenna, in meters.
+ * @param height The height of the airplane above the glideslope antenna, in meters.
+ * @param groundSpeed The airplane's current ground speed, in meters per second.
+ * @param vs The airplane's current vertical speed, in meters per second.
+ * @returns The desired vertical speed to target, in feet per minute.
+ */
+export type APGSDirectorVsTargetFunc = (
+  gsAngleError: number,
+  gsAngle: number,
+  currentAngleRate: number,
+  distance: number,
+  height: number,
+  groundSpeed: number,
+  vs: number
+) => number;
+
+/**
  * Options for {@link APGSDirector}.
  */
 export type APGSDirectorOptions = {
   /**
-   * Force the director to always use a certain NAV/GS source
+   * The index of the nav radio to force the director to use. If not defined, the director will use the nav radio
+   * specified by the active autopilot navigation source.
    */
-  forceNavSource: NavRadioIndex;
+  forceNavSource?: NavRadioIndex;
+
+  /**
+   * A function which returns the desired angle closure rate to track a glideslope. The angle closure rate is the rate
+   * of reduction of glideslope angle error. If not defined, the director will use a default angle closure rate curve.
+   * The output of this function will be overridden by the `vsTarget` function if the latter is defined.
+   */
+  angleClosureRate?: APGSDirectorAngleClosureRateFunc;
+
+  /**
+   * A function which returns the desired vertical speed target to track a glideslope. If defined, the output of this
+   * function will override that of the `angleClosureRate` function.
+   */
+  vsTarget?: APGSDirectorVsTargetFunc;
+
+  /** The minimum vertical speed the director can target, in feet per minute. Defaults to `-3000`. */
+  minVs?: number;
+
+  /** The maximum vertical speed the director can target, in feet per minute. Defaults to `0`. */
+  maxVs?: number;
 };
 
 /**
@@ -26,15 +101,27 @@ export class APGSDirector implements PlaneDirector {
 
   public state: DirectorState;
 
-  /** A callback called when the director activates. */
+  /** @inheritdoc */
   public onActivate?: () => void;
 
-  /** A callback called when the director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
 
-  private gsLocation = new GeoPoint(NaN, NaN);
-  private glideslope?: Glideslope;
-  private verticalWindAverage = new SimpleMovingAverage(10);
+  /** @inheritdoc */
+  public drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean) => void;
+
+  private readonly sub = this.bus.getSubscriber<GNSSEvents & NavRadioEvents>();
+
+  private readonly glideslope = ConsumerValue.create<Glideslope>(null, { isValid: false, deviation: 0, gsAngle: 0, source: { index: 0, type: NavSourceType.Nav } });
+
+  private navLocation = new GeoPoint(NaN, NaN);
+  private readonly navLocationSub: Subscription;
+
+  private readonly angleClosureRateFunc: APGSDirectorAngleClosureRateFunc;
+  private readonly vsTargetFunc?: APGSDirectorVsTargetFunc;
+
+  private readonly minVs: number;
+  private readonly maxVs: number;
 
   /**
    * Creates an instance of the LateralDirector.
@@ -42,26 +129,44 @@ export class APGSDirector implements PlaneDirector {
    * @param apValues is the APValues object from the Autopilot.
    * @param options APGSDirector options.
    */
-  constructor(private readonly bus: EventBus, private readonly apValues: APValues, options?: Partial<Readonly<APGSDirectorOptions>>) {
+  constructor(private readonly bus: EventBus, private readonly apValues: APValues, options?: Readonly<APGSDirectorOptions>) {
     this.state = DirectorState.Inactive;
-    const nav = this.bus.getSubscriber<NavRadioEvents>();
+
     if (options?.forceNavSource) {
-      nav.on(`nav_radio_glideslope_${options.forceNavSource}`).handle(gs => this.glideslope = gs);
-      nav.on(`nav_radio_gs_location_${options.forceNavSource}`).handle((loc) => {
-        this.gsLocation.set(loc.lat, loc.long);
-      });
+      this.navLocationSub = this.sub.on(`nav_radio_gs_location_${options.forceNavSource}`).handle(lla => this.navLocation.set(lla.lat, lla.long));
+      this.glideslope.setConsumer(this.sub.on(`nav_radio_glideslope_${options.forceNavSource}`));
     } else {
-      nav.on('nav_radio_active_glideslope').handle(gs => this.glideslope = gs);
-      nav.on('nav_radio_active_gs_location').handle((loc) => {
-        this.gsLocation.set(loc.lat, loc.long);
-      });
+      this.navLocationSub = this.sub.on('nav_radio_active_gs_location').handle(lla => this.navLocation.set(lla.lat, lla.long));
+      this.glideslope.setConsumer(this.sub.on('nav_radio_active_glideslope'));
     }
+
+    this.angleClosureRateFunc = options?.angleClosureRate ?? APGSDirector.defaultAngleClosureRate;
+    this.vsTargetFunc = options?.vsTarget;
+
+    const vsUnit = this.vsTargetFunc ? UnitType.FPM : UnitType.MPS;
+    this.minVs = UnitType.FPM.convertTo(options?.minVs ?? -3000, vsUnit);
+    this.maxVs = UnitType.FPM.convertTo(options?.maxVs ?? 0, vsUnit);
+
+    this.pauseSubs();
+  }
+
+  /** Resumes Subscriptions. */
+  private resumeSubs(): void {
+    this.navLocationSub.resume(true);
+    this.glideslope.resume();
+  }
+
+  /** Pauses Subscriptions. */
+  private pauseSubs(): void {
+    this.navLocationSub.pause();
+    this.glideslope.pause();
   }
 
   /**
    * Activates this director.
    */
   public activate(): void {
+    this.resumeSubs();
     this.state = DirectorState.Active;
     SimVar.SetSimVarValue(VNavVars.GPApproachMode, SimVarValueType.Number, ApproachGuidanceMode.GSActive);
     if (this.onActivate !== undefined) {
@@ -76,6 +181,7 @@ export class APGSDirector implements PlaneDirector {
    * Arms this director.
    */
   public arm(): void {
+    this.resumeSubs();
     if (this.canArm() && this.state === DirectorState.Inactive) {
       this.state = DirectorState.Armed;
       SimVar.SetSimVarValue(VNavVars.GPApproachMode, SimVarValueType.Number, ApproachGuidanceMode.GSArmed);
@@ -97,6 +203,7 @@ export class APGSDirector implements PlaneDirector {
     SimVar.SetSimVarValue('AUTOPILOT GLIDESLOPE ARM', 'Bool', false);
     SimVar.SetSimVarValue('AUTOPILOT GLIDESLOPE ACTIVE', 'Bool', false);
     SimVar.SetSimVarValue('AUTOPILOT APPROACH ACTIVE', 'Bool', false);
+    this.pauseSubs();
   }
 
   /**
@@ -104,8 +211,9 @@ export class APGSDirector implements PlaneDirector {
    */
   public update(): void {
     if (this.state === DirectorState.Armed) {
+      const glideslope = this.glideslope.get();
       if (this.apValues.lateralActive.get() === APLateralModes.LOC && this.glideslope !== undefined &&
-        this.glideslope.isValid && this.glideslope.deviation <= 0.1 && this.glideslope.deviation >= -0.1) {
+        glideslope.isValid && glideslope.deviation <= 0.1 && glideslope.deviation >= -0.1) {
         this.activate();
       }
       if (!this.canArm()) {
@@ -125,7 +233,8 @@ export class APGSDirector implements PlaneDirector {
    * @returns Whether or not this director can arm.
    */
   private canArm(): boolean {
-    if ((this.apValues.navToNavLocArm && this.apValues.navToNavLocArm()) || (this.glideslope !== undefined && this.glideslope.isValid)) {
+    const glideslope = this.glideslope.get();
+    if ((this.apValues.navToNavLocArm && this.apValues.navToNavLocArm()) || (glideslope !== undefined && glideslope.isValid)) {
       return true;
     }
     return false;
@@ -135,49 +244,65 @@ export class APGSDirector implements PlaneDirector {
    * Tracks the Glideslope.
    */
   private trackGlideslope(): void {
-    if (this.glideslope !== undefined && this.glideslope.isValid && !isNaN(this.gsLocation.lat + this.gsLocation.lon)) {
+    const glideslope = this.glideslope.get();
+    const location = this.navLocation;
+    if (glideslope !== undefined && glideslope.isValid && !isNaN(location.lat + location.lon)) {
       const distanceM = UnitType.GA_RADIAN.convertTo(
-        this.gsLocation.distance(
+        location.distance(
           SimVar.GetSimVarValue('PLANE LATITUDE', SimVarValueType.Degree),
           SimVar.GetSimVarValue('PLANE LONGITUDE', SimVarValueType.Degree)
         ),
         UnitType.METER
       );
 
-      // We want the altitude of the plane above the glideslope antenna, which we can calculate from distance,
+      // We want the height of the plane above the glideslope antenna, which we can calculate from distance,
       // glideslope angle, and glideslope error.
-      const altitudeM = distanceM * Math.tan((this.glideslope.gsAngle + this.glideslope.deviation) * Avionics.Utils.DEG2RAD);
-
+      const heightM = distanceM * Math.tan((glideslope.gsAngle + glideslope.deviation) * Avionics.Utils.DEG2RAD);
       const groundSpeedMps = SimVar.GetSimVarValue('GROUND VELOCITY', SimVarValueType.MetersPerSecond);
+      const vsMps = SimVar.GetSimVarValue('VERTICAL SPEED', SimVarValueType.MetersPerSecond);
 
-      // Set our desired closure rate in degrees per second - this is the rate at which we want to reduce our
-      // glideslope error. We will target 0.1 degrees per second at full-scale deviation, decreasing linearly
-      // down to 0 at no deviation. This is equivalent to a constant time-to-intercept of 7 seconds at full-scale
-      // deviation or less.
-      const desiredClosureRate = MathUtils.lerp(Math.abs(this.glideslope.deviation), 0, 0.7, 0, 0.1, true, true);
-      const desiredAngleRate = Math.sign(this.glideslope.deviation) * -1 * desiredClosureRate;
+      const hypotSq = distanceM * distanceM + heightM * heightM;
+      const heightTimesGs = heightM * groundSpeedMps;
 
-      const vsRequiredForClosure = MathUtils.clamp(
-        (Avionics.Utils.DEG2RAD * desiredAngleRate * (distanceM * distanceM + altitudeM * altitudeM) - altitudeM * groundSpeedMps) / distanceM,
-        -3000,
-        0
-      );
+      const currentAngleRate = (vsMps * distanceM + heightTimesGs) / hypotSq;
 
-      //We need the instant vertical wind component here so we're avoiding the bus
-      const verticalWindComponent = this.verticalWindAverage.getAverage(SimVar.GetSimVarValue('AMBIENT WIND Y', SimVarValueType.MetersPerSecond));
+      let targetVs: number;
+      let unit: string;
 
-      const vsRequiredWithVerticalWind = vsRequiredForClosure - verticalWindComponent;
+      if (this.vsTargetFunc) {
+        targetVs = this.vsTargetFunc(glideslope.deviation, glideslope.gsAngle, currentAngleRate, distanceM, heightM, groundSpeedMps, vsMps);
+        unit = SimVarValueType.FPM;
+      } else {
+        const desiredClosureRate = this.angleClosureRateFunc(glideslope.deviation, glideslope.gsAngle, currentAngleRate, distanceM, heightM, groundSpeedMps, vsMps);
+        const desiredAngleRate = Math.sign(glideslope.deviation) * -1 * desiredClosureRate;
 
-      const pitchForVerticalSpeed = Math.asin(MathUtils.clamp(vsRequiredWithVerticalWind / SimVar.GetSimVarValue('AIRSPEED TRUE', SimVarValueType.MetersPerSecond), -1, 1)) * Avionics.Utils.RAD2DEG;
+        targetVs = (Avionics.Utils.DEG2RAD * desiredAngleRate * hypotSq - heightTimesGs) / distanceM;
+        unit = SimVarValueType.MetersPerSecond;
+      }
 
-      //We need the instant AOA here so we're avoiding the bus
-      const aoa = SimVar.GetSimVarValue('INCIDENCE ALPHA', SimVarValueType.Degree);
+      targetVs = MathUtils.clamp(targetVs, this.minVs, this.maxVs);
 
-      const targetPitch = aoa + MathUtils.clamp(pitchForVerticalSpeed, -8, 3);
+      const pitchForVerticalSpeed = Math.asin(MathUtils.clamp(targetVs / SimVar.GetSimVarValue('AIRSPEED TRUE', unit), -1, 1)) * Avionics.Utils.RAD2DEG;
+      const targetPitch = MathUtils.clamp(pitchForVerticalSpeed, -8, 3);
 
-      SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, -targetPitch);
+      this.drivePitch && this.drivePitch(-targetPitch, true, true);
     } else {
       this.deactivate();
     }
+  }
+
+  /**
+   * A default function which calculates a desired angle closure rate, in degrees per second, to track a glideslope. The angle
+   * closure rate is the rate of reduction of glideslope angle error. Positive values reduce glideslope angle error while
+   * negative values increase glideslope angle error.
+   * @param gsAngleError The glideslope angle error, in degrees, defined as the difference between the angle from the
+   * glideslope antenna to the airplane and the glideslope angle. Positive values indicate deviation of the airplane
+   * above the glideslope.
+   * @returns The desired angle closure rate, in degrees per second, toward the glideslope.
+   */
+  private static defaultAngleClosureRate(gsAngleError: number): number {
+    // We will target 0.1 degrees per second by default at full-scale deviation, decreasing linearly down to 0 at no
+    // deviation. This is equivalent to a constant time-to-intercept of 7 seconds at full-scale deviation or less.
+    return MathUtils.lerp(Math.abs(gsAngleError), 0, 0.7, 0, 0.1, true, true);
   }
 }

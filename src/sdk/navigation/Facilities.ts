@@ -75,7 +75,7 @@ export interface FacilityILSFrequency {
   /** The glideslope angle for this localizer. */
   readonly glideslopeAngle: number;
 
-  /** The course, in degrees true, for this localizer. */
+  /** The course, in degrees magnetic, for this localizer. */
   readonly localizerCourse: number;
 
   /** The magvar at this localizer's position. */
@@ -230,6 +230,9 @@ export interface FlightPlanLeg {
 
   /** Flags indicating the approach fix type. See {@link FixTypeFlags}. Use BitFlags to check. */
   fixTypeFlags: number;
+
+  /** Vertical glide path angle for the leg in degrees + 360 (e.g -3° descent = 357), or 0 if invalid */
+  verticalAngle: number;
 }
 
 /** Additional Approach Types (additive to those defined in simplane). */

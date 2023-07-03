@@ -3,6 +3,7 @@ export * from './GarminAdsb';
 export * from './GarminTcasII';
 export * from './GarminTcasIntruder';
 export * from './GarminXpdrTcasManager';
+export * from './TcasRaCommandDataProvider';
 export * from './TrafficAdvisorySystem';
 export * from './TrafficInfoService';
 export * from './TrafficOperatingModeManager';

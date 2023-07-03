@@ -1,5 +1,5 @@
 import {
-  AdcEvents, AvionicsSystemState, CombinedSubject, ConsumerSubject, EventBus, MappedSubject, MinimumsEvents, MinimumsMode, Subject, Subscribable,
+  AdcEvents, AvionicsSystemState, ConsumerSubject, EventBus, MappedSubject, MinimumsEvents, MinimumsMode, Subject, Subscribable,
   SubscribableUtils, Subscription
 } from '@microsoft/msfs-sdk';
 
@@ -118,11 +118,7 @@ export class MinimumsAlerter {
       this.radarAlt.setConsumer(sub.on('radaralt_radio_alt_1'));
 
       this.radarAltSystemStateSub = sub.on('radaralt_state_1').handle(state => {
-        if (state.current === AvionicsSystemState.On) {
-          this.isRadarAltimeterOperating.set(true);
-        } else {
-          this.isRadarAltimeterOperating.set(false);
-        }
+        this.isRadarAltimeterOperating.set(state.current === undefined || state.current === AvionicsSystemState.On);
       });
     }
 
@@ -130,7 +126,7 @@ export class MinimumsAlerter {
     this.baroMinimumsSource.setConsumer(sub.on('decision_altitude_feet'));
     this.radarMinimumsSource.setConsumer(sub.on('decision_height_feet'));
 
-    const baroMinimumsState = CombinedSubject.create(
+    const baroMinimumsState = MappedSubject.create(
       this.indicatedAlt,
       this.baroMinimumsSource,
       this.isAdcOperating
@@ -144,7 +140,7 @@ export class MinimumsAlerter {
       }
     }, false, true);
 
-    const radarMinimumsState = CombinedSubject.create(
+    const radarMinimumsState = MappedSubject.create(
       this.radarAlt,
       this.radarMinimumsSource,
       this.isRadarAltimeterOperating

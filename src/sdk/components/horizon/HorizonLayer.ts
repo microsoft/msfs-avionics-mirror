@@ -101,7 +101,7 @@ export abstract class HorizonLayer<P extends HorizonLayerProps = HorizonLayerPro
 
   /**
    * This method is called once every update cycle.
-   * @param time The current time as a UNIX timestamp.
+   * @param time The current time as a UNIX timestamp in milliseconds.
    * @param elapsed The elapsed time, in milliseconds, since the last update.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

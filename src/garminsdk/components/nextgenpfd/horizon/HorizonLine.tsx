@@ -1,25 +1,16 @@
 import {
-  BitFlags, ClippedPathStream, FSComponent, HorizonLayer, HorizonLayerProps, HorizonProjection, HorizonProjectionChangeType,
-  HorizonSyncedCanvasLayer, MagVar, MathUtils, NullPathStream, ReadonlyFloat64Array, Subscribable, SubscribableUtils, Subscription,
-  Transform2D, Vec2Math, VecNMath, VecNSubject, VNode
+  AffineTransformPathStream,
+  BitFlags, ClippedPathStream, ComponentProps, HorizonProjection, HorizonProjectionChangeType,
+  HorizonSharedCanvasSubLayer, MagVar, MathUtils, NullPathStream, ReadonlyFloat64Array, Subscribable,
+  SubscribableArray, SubscribableUtils, Subscription, Transform2D, Vec2Math, VecNMath, VecNSubject
 } from '@microsoft/msfs-sdk';
 
+import { HorizonOcclusionArea } from './HorizonOcclusionArea';
+
 /**
- * Component props for HorizonLine.
+ * Options for {@link HorizonLine}.
  */
-export interface HorizonLineProps extends HorizonLayerProps {
-  /** Whether to approximate pitch scale based on FOV instead of performing a full projection. */
-  approximate: boolean;
-
-  /** Whether to show magnetic heading. */
-  useMagneticHeading: Subscribable<boolean>;
-
-  /** Whether to show heading ticks. */
-  showHeadingTicks: boolean | Subscribable<boolean>;
-
-  /** Whether to show heading labels. */
-  showHeadingLabels: boolean | Subscribable<boolean>;
-
+export type HorizonLineOptions = {
   /** The width of the horizon line stroke, in pixels. Defaults to 2 pixels. */
   strokeWidth?: number;
 
@@ -31,6 +22,9 @@ export interface HorizonLineProps extends HorizonLayerProps {
 
   /** The color of the horizon line outline. Defaults to `'black'`. */
   outlineColor?: string;
+
+  /** The size of the heading reference pointer. as `[width, height]` in pixels. */
+  headingPointerSize: ReadonlyFloat64Array;
 
   /** The length of a heading tick, in pixels, when the tick is projected to the center of the projection. */
   headingTickLength: number;
@@ -56,15 +50,41 @@ export interface HorizonLineProps extends HorizonLayerProps {
   /** The color of the heading label font outline. Defaults to `'black'`. */
   fontOutlineColor?: string;
 
-  /** The offset of the heading label from its tick, in pixels. Positive offsets shift the label away from the tick. */
-  labelOffset: number;
+  /**
+   * The offset of the heading label from its tick, in pixels. Positive offsets shift the label away from the tick.
+   * Defaults to 0 pixels.
+   */
+  labelOffset?: number;
+};
+
+/**
+ * Component props for HorizonLine.
+ */
+export interface HorizonLineProps extends ComponentProps {
+  /** Whether to show the horizon line. */
+  show: Subscribable<boolean>;
+
+  /** Whether to show heading labels. */
+  showHeadingLabels: boolean | Subscribable<boolean>;
+
+  /** Whether to approximate pitch scale based on FOV instead of performing a full projection. */
+  approximate: boolean | Subscribable<boolean>;
+
+  /** Whether to show magnetic heading. */
+  useMagneticHeading: Subscribable<boolean>;
+
+  /** The occlusion areas to apply to the horizon heading ticks and labels. */
+  occlusions: SubscribableArray<HorizonOcclusionArea>;
+
+  /** Options for the horizon line. */
+  options: Readonly<HorizonLineOptions>;
 }
 
 /**
- * A synthetic vision horizon line. Displays a horizon line with heading tick marks every 10 degrees and optional
- * heading labels every 30 degrees.
+ * A PFD horizon line with optional heading reference pointer, optional heading tick marks every 10 degrees, and
+ * optional heading labels every 30 degrees.
  */
-export class HorizonLine extends HorizonLayer<HorizonLineProps> {
+export class HorizonLine extends HorizonSharedCanvasSubLayer<HorizonLineProps> {
   private static readonly TICK_INCREMENT = 10; // degrees per tick
   private static readonly TICK_COUNT = 360 / HorizonLine.TICK_INCREMENT;
   private static readonly LABEL_FACTOR = 3; // number of ticks per label
@@ -85,33 +105,37 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
 
   private static readonly vec2Cache = [Vec2Math.create(), Vec2Math.create()];
 
-  private readonly canvasLayerRef = FSComponent.createRef<HorizonSyncedCanvasLayer>();
+  private readonly lineStrokeWidth = this.props.options.strokeWidth ?? HorizonLine.DEFAULT_LINE_STROKE_WIDTH;
+  private readonly lineStrokeColor = this.props.options.strokeColor ?? HorizonLine.DEFAULT_LINE_STROKE_COLOR;
+  private readonly lineOutlineWidth = this.props.options.outlineWidth ?? HorizonLine.DEFAULT_LINE_OUTLINE_WIDTH;
+  private readonly lineOutlineColor = this.props.options.outlineColor ?? HorizonLine.DEFAULT_LINE_OUTLINE_COLOR;
 
-  private readonly lineStrokeWidth = this.props.strokeWidth ?? HorizonLine.DEFAULT_LINE_STROKE_WIDTH;
-  private readonly lineStrokeColor = this.props.strokeColor ?? HorizonLine.DEFAULT_LINE_STROKE_COLOR;
-  private readonly lineOutlineWidth = this.props.outlineWidth ?? HorizonLine.DEFAULT_LINE_OUTLINE_WIDTH;
-  private readonly lineOutlineColor = this.props.outlineColor ?? HorizonLine.DEFAULT_LINE_OUTLINE_COLOR;
+  private readonly tickStrokeWidth = this.props.options.headingTickWidth ?? HorizonLine.DEFAULT_TICK_STROKE_WIDTH;
+  private readonly tickStrokeColor = this.props.options.headingTickColor ?? HorizonLine.DEFAULT_TICK_STROKE_COLOR;
 
-  private readonly tickStrokeWidth = this.props.headingTickWidth ?? HorizonLine.DEFAULT_TICK_STROKE_WIDTH;
-  private readonly tickStrokeColor = this.props.headingTickColor ?? HorizonLine.DEFAULT_TICK_STROKE_COLOR;
+  private readonly font = `${this.props.options.fontSize}px ${this.props.options.font}`;
+  private readonly fontColor = this.props.options.fontColor ?? HorizonLine.DEFAULT_FONT_COLOR;
+  private readonly fontOutlineWidth = this.props.options.fontOutlineWidth ?? HorizonLine.DEFAULT_FONT_OUTLINE_WIDTH;
+  private readonly fontOutlineColor = this.props.options.fontOutlineColor ?? HorizonLine.DEFAULT_FONT_OUTLINE_COLOR;
 
-  private readonly font = `${this.props.fontSize}px ${this.props.font}`;
-  private readonly fontColor = this.props.fontColor ?? HorizonLine.DEFAULT_FONT_COLOR;
-  private readonly fontOutlineWidth = this.props.fontOutlineWidth ?? HorizonLine.DEFAULT_FONT_OUTLINE_WIDTH;
-  private readonly fontOutlineColor = this.props.fontOutlineColor ?? HorizonLine.DEFAULT_FONT_OUTLINE_COLOR;
+  private readonly labelOffset = this.props.options.labelOffset ?? 0;
 
-  private readonly showHeadingTicks = SubscribableUtils.toSubscribable(this.props.showHeadingTicks, true);
+  private readonly approximate = SubscribableUtils.toSubscribable(this.props.approximate, true);
+
   private readonly showHeadingLabels = SubscribableUtils.toSubscribable(this.props.showHeadingLabels, true);
 
   private readonly bounds = VecNSubject.create(
     VecNMath.create(4, -HorizonLine.BOUNDS_BUFFER, -HorizonLine.BOUNDS_BUFFER, HorizonLine.BOUNDS_BUFFER, HorizonLine.BOUNDS_BUFFER)
   );
 
-  private readonly pathStream = new ClippedPathStream(NullPathStream.INSTANCE, this.bounds);
+  private readonly clipPathStream = new ClippedPathStream(NullPathStream.INSTANCE, this.bounds);
+  private readonly transformPathStream = new AffineTransformPathStream(this.clipPathStream);
 
   private readonly nodes = Array.from({ length: HorizonLine.TICK_COUNT }, (v, index) => {
+    const heading = index * HorizonLine.TICK_INCREMENT;
     return {
-      heading: index * HorizonLine.TICK_INCREMENT,
+      heading,
+      labelText: index % HorizonLine.LABEL_FACTOR === 0 ? (heading === 0 ? 360 : heading).toFixed(0).padStart(3, '0') : undefined,
       projected: Vec2Math.create(),
       drawTick: false,
       tickEndProjected: Vec2Math.create(),
@@ -120,15 +144,11 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
     };
   });
 
-  private readonly recomputeNodes = this.props.approximate ? this.approximateNodes.bind(this) : this.projectNodes.bind(this);
-
   private readonly approximateTransform = new Transform2D();
 
   private needUpdate = false;
 
-  private showTicksSub?: Subscription;
-  private showLabelsSub?: Subscription;
-  private useMagneticSub?: Subscription;
+  private readonly subscriptions: Subscription[] = [];
 
   /** @inheritdoc */
   public onAttached(): void {
@@ -136,27 +156,25 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
 
     this.updateBounds();
 
-    this.canvasLayerRef.instance.onAttached();
-    this.pathStream.setConsumer(this.canvasLayerRef.instance.display.context);
+    this.clipPathStream.setConsumer(this.display.context);
 
-    this.setGlobalCanvasStyles();
+    const scheduleUpdate = (): void => { this.needUpdate = true; };
 
-    this.showTicksSub = this.showHeadingTicks.sub(() => { this.needUpdate = true; });
-    this.showLabelsSub = this.showHeadingLabels.sub(() => { this.needUpdate = true; });
-    this.useMagneticSub = this.props.useMagneticHeading.sub(() => { this.needUpdate = true; });
+    this.subscriptions.push(
+      this.props.show.sub(scheduleUpdate),
+      this.approximate.sub(scheduleUpdate),
+      this.showHeadingLabels.sub(scheduleUpdate),
+      this.props.useMagneticHeading.sub(scheduleUpdate),
+      this.props.occlusions.sub(scheduleUpdate)
+    );
 
     this.needUpdate = true;
   }
 
   /** @inheritdoc */
   public onProjectionChanged(projection: HorizonProjection, changeFlags: number): void {
-    this.canvasLayerRef.instance.onProjectionChanged(projection, changeFlags);
-
     if (BitFlags.isAll(changeFlags, HorizonProjectionChangeType.ProjectedSize)) {
       this.updateBounds();
-
-      // Changing the size of the canvas will reset its state, so we need to re-apply global styles.
-      this.setGlobalCanvasStyles();
     }
 
     this.needUpdate = true;
@@ -166,7 +184,7 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
    * Updates this layer's drawing bounds.
    */
   private updateBounds(): void {
-    const projectedSize = this.props.projection.getProjectedSize();
+    const projectedSize = this.projection.getProjectedSize();
     this.bounds.set(
       -HorizonLine.BOUNDS_BUFFER,
       -HorizonLine.BOUNDS_BUFFER,
@@ -175,35 +193,93 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
     );
   }
 
-  /**
-   * Sets global styles on this layer's canvas.
-   */
-  private setGlobalCanvasStyles(): void {
-    this.canvasLayerRef.instance.display.context.font = this.font;
-    this.canvasLayerRef.instance.display.context.textAlign = 'center';
-    this.canvasLayerRef.instance.display.context.fillStyle = this.fontColor;
+  /** @inheritdoc */
+  public shouldInvalidate(): boolean {
+    return this.needUpdate && this.isVisible();
   }
 
   /** @inheritdoc */
   public onUpdated(): void {
-    if (!this.needUpdate) {
+    if (!this.display.isInvalidated || !this.isVisible()) {
       return;
     }
 
-    const display = this.canvasLayerRef.instance.display;
-    display.clear();
+    if (this.props.show.get()) {
+      const context = this.display.context;
+      context.font = this.font;
+      context.textAlign = 'center';
+      context.fillStyle = this.fontColor;
 
-    const projection = this.props.projection;
+      const projection = this.projection;
 
-    const position = projection.getPosition();
-    const useMagnetic = this.props.useMagneticHeading.get();
-    const headingOffset = useMagnetic ? MagVar.get(position.lat, position.lon) : 0;
+      const position = projection.getPosition();
+      const useMagnetic = this.props.useMagneticHeading.get();
+      const headingOffset = useMagnetic ? MagVar.get(position.lat, position.lon) : 0;
+      const approximate = this.approximate.get();
 
-    this.recomputeNodes(projection, headingOffset);
-    this.drawLine(display.context);
-    this.drawTicks(display.context, projection);
+      if (approximate) {
+        const center = projection.getOffsetCenterProjected();
+        const pitchResolution = projection.getScaleFactor() / projection.getFov();
+
+        this.approximateTransform
+          .toTranslation(0, pitchResolution * projection.getPitch())
+          .addRotation(-projection.getRoll() * Avionics.Utils.DEG2RAD)
+          .addTranslation(center[0], center[1]);
+
+        this.approximateNodes(projection, headingOffset);
+      } else {
+        this.projectNodes(projection, headingOffset);
+      }
+
+      this.drawLine(context);
+
+      if (this.showHeadingLabels.get()) {
+        const occlusionsApplied = this.applyOcclusionClipPath(context, this.props.occlusions.getArray());
+        if (occlusionsApplied) {
+          context.save();
+        }
+
+        this.drawTicks(context, projection);
+
+        if (occlusionsApplied) {
+          context.restore();
+        }
+
+        this.drawHeadingPointer(context, projection);
+      }
+    }
 
     this.needUpdate = false;
+  }
+
+  /**
+   * Applies a clip path based on this layer's occlusion areas. If there are no occlusion areas, then a clip path will
+   * not be applied.
+   * @param context The canvas rendering context to which to apply the clip path.
+   * @param occlusions The occlusion areas to apply.
+   * @returns Whether a clip path was applied.
+   */
+  private applyOcclusionClipPath(context: CanvasRenderingContext2D, occlusions: readonly HorizonOcclusionArea[]): boolean {
+    if (occlusions.length === 0) {
+      return false;
+    }
+
+    const size = this.projection.getProjectedSize();
+
+    context.beginPath();
+    context.moveTo(0, 0);
+    context.lineTo(size[0], 0);
+    context.lineTo(size[0], size[1]);
+    context.lineTo(0, size[1]);
+    context.lineTo(0, 0);
+
+    for (let i = 0; i < occlusions.length; i++) {
+      occlusions[i].path(context);
+    }
+
+    context.clip('evenodd');
+
+    return true;
   }
 
   /**
@@ -216,14 +292,13 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
     // matter because it gets factored out with the perspective projection) within the zero-pitch/zero-roll plane
     // centered on the projection camera.
 
-    const drawTicks = this.showHeadingTicks.get();
     const drawLabels = this.showHeadingLabels.get();
 
     // Compute the virtual tick length and label font size required to achieve the desired projected tick lengths and
     // font sizes, respectively.
     const scaledFocalLength = projection.getScaleFactor() * projection.getFocalLength();
-    const virtualTickLength = this.props.headingTickLength / scaledFocalLength;
-    const virtualFontSize = this.props.fontSize / scaledFocalLength;
+    const virtualTickLength = this.props.options.headingTickLength / scaledFocalLength;
+    const virtualFontSize = this.props.options.fontSize / scaledFocalLength;
 
     for (let i = 0; i < this.nodes.length; i++) {
       const drawLabel = i % HorizonLine.LABEL_FACTOR === 0 && drawLabels;
@@ -234,7 +309,7 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
       projection.projectCameraRelativeEuclidean(nominalHeading, 1, 0, node.projected);
       const isInBounds = projection.isInProjectedBounds(node.projected, this.bounds.get());
 
-      if (isInBounds && drawTicks) {
+      if (isInBounds && drawLabels) {
         node.drawTick = true;
 
         projection.projectCameraRelativeEuclidean(
@@ -283,23 +358,14 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
     // view. Finally, apply the rotation transformation due to roll. The error of this approximation increases with
     // the absolute deviation of the pitch and roll angles from 0 degrees.
 
-    const drawTicks = this.showHeadingTicks.get();
     const drawLabels = this.showHeadingLabels.get();
 
-    const center = projection.getOffsetCenterProjected();
     const scaleFactor = projection.getScaleFactor();
-    const pitchResolution = scaleFactor / projection.getFov();
     const headingRad = projection.getHeading() * Avionics.Utils.DEG2RAD;
-    const pitch = projection.getPitch();
-    const roll = projection.getRoll();
-
-    this.approximateTransform
-      .toTranslation(center[0], center[1] + pitchResolution * pitch)
-      .addRotation(-roll * Avionics.Utils.DEG2RAD, center[0], center[1]);
 
     for (let i = 0; i < this.nodes.length; i++) {
-      const drawLabel = i % HorizonLine.LABEL_FACTOR === 0 && drawLabels;
       const node = this.nodes[i];
+      const drawLabel = drawLabels && node.labelText !== undefined;
 
       const angle = (MathUtils.diffAngle(headingRad, (node.heading + headingOffset) * Avionics.Utils.DEG2RAD) + Math.PI) % MathUtils.TWO_PI - Math.PI;
       if (Math.abs(angle) < MathUtils.HALF_PI) {
@@ -312,10 +378,10 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
         this.approximateTransform.apply(Vec2Math.set(projectedX, 0, HorizonLine.vec2Cache[0]), node.projected);
         const isInBounds = projection.isInProjectedBounds(node.projected, this.bounds.get());
 
-        if (isInBounds && drawTicks) {
+        if (isInBounds && drawLabels) {
           node.drawTick = true;
 
-          const tickLength = this.props.headingTickLength * ratio;
+          const tickLength = this.props.options.headingTickLength * ratio;
           this.approximateTransform.apply(Vec2Math.set(projectedX, -tickLength, HorizonLine.vec2Cache[0]), node.tickEndProjected);
         } else {
           node.drawTick = false;
@@ -323,7 +389,7 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
 
         if (isInBounds && drawLabel) {
           node.drawLabel = true;
-          node.labelFontSize = this.props.fontSize * ratio;
+          node.labelFontSize = this.props.options.fontSize * ratio;
         } else {
           node.drawLabel = false;
         }
@@ -340,19 +406,72 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
    * @param context The canvas rendering context to which to draw the line.
    */
   private drawLine(context: CanvasRenderingContext2D): void {
-    this.pathStream.beginPath();
+    this.clipPathStream.beginPath();
 
-    const first = this.nodes[0].projected;
-    this.pathStream.moveTo(first[0], first[1]);
+    let needMoveTo = true;
 
-    for (let i = 1; i < this.nodes.length; i++) {
+    for (let i = 0; i < this.nodes.length; i++) {
       const projected = this.nodes[i].projected;
-      this.pathStream.lineTo(projected[0], projected[1]);
+
+      if (Vec2Math.isFinite(projected)) {
+        if (needMoveTo) {
+          this.clipPathStream.moveTo(projected[0], projected[1]);
+          needMoveTo = false;
+        } else {
+          this.clipPathStream.lineTo(projected[0], projected[1]);
+        }
+      } else {
+        needMoveTo = true;
+      }
     }
 
-    this.pathStream.lineTo(first[0], first[1]);
+    const first = this.nodes[0].projected;
+
+    if (!needMoveTo && Vec2Math.isFinite(first)) {
+      this.clipPathStream.lineTo(first[0], first[1]);
+    }
 
     this.strokePath(context, this.lineStrokeWidth, this.lineStrokeColor, this.lineOutlineWidth, this.lineOutlineColor);
+  }
+
+  /**
+   * Draws this horizon line's heading reference pointer.
+   * @param context The canvas rendering context to which to draw the pointer.
+   * @param projection The horizon projection.
+   */
+  private drawHeadingPointer(context: CanvasRenderingContext2D, projection: HorizonProjection): void {
+    const size = this.props.options.headingPointerSize;
+
+    const currentHeading = projection.getHeading();
+
+    const currentHeadingProjected = HorizonLine.vec2Cache[0];
+    if (this.approximate.get()) {
+      this.approximateTransform.apply(Vec2Math.set(0, 0, currentHeadingProjected), currentHeadingProjected);
+    } else {
+      projection.projectCameraRelativeAngular(1, currentHeading, 0, currentHeadingProjected);
+    }
+
+    if (!projection.isInProjectedBounds(currentHeadingProjected, this.bounds.get())) {
+      return;
+    }
+
+    const halfWidth = size[0] / 2;
+
+    this.transformPathStream
+      .resetTransform()
+      .addTranslation(0, -(this.lineStrokeWidth / 2 + this.lineOutlineWidth))
+      .addRotation(-projection.getRoll() * Avionics.Utils.DEG2RAD)
+      .addTranslation(currentHeadingProjected[0], currentHeadingProjected[1]);
+
+    this.transformPathStream.beginPath();
+    this.transformPathStream.moveTo(0, 0);
+    this.transformPathStream.lineTo(-halfWidth, -size[1]);
+    this.transformPathStream.lineTo(halfWidth, -size[1]);
+    this.transformPathStream.closePath();
+
+    context.fillStyle = this.lineStrokeColor;
+    context.fill();
+    this.strokePath(context, this.lineOutlineWidth, this.lineOutlineColor);
   }
 
   /**
@@ -368,10 +487,10 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
         projection,
         node.projected,
         node.tickEndProjected,
-        node.heading,
         node.drawTick ? this.tickStrokeWidth : 0,
+        node.labelText,
         node.drawLabel ? node.labelFontSize : undefined,
-        this.props.labelOffset
+        this.labelOffset
       );
     }
   }
@@ -382,8 +501,8 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
    * @param projection The horizon projection.
    * @param startProjected The projected position of the start of the tick.
    * @param endProjected The projected position of the end of the tick.
-   * @param heading The nominal heading of the tick.
    * @param tickStrokeWidth The stroke width of the tick, in pixels.
+   * @param labelText The text to render for the tick's heading label, or `undefined` if there is no label.
    * @param fontSize The virtual font size of the tick's heading label, or `undefined` if there is no label.
    * @param labelOffset The virtual offset of the tick's heading label, or `undefined` if there is no label.
    */
@@ -392,8 +511,8 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
     projection: HorizonProjection,
     startProjected: ReadonlyFloat64Array,
     endProjected: ReadonlyFloat64Array,
-    heading: number,
     tickStrokeWidth: number,
+    labelText?: string,
     fontSize?: number,
     labelOffset?: number
   ): void {
@@ -405,14 +524,12 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
       this.strokePath(context, tickStrokeWidth, this.tickStrokeColor);
     }
 
-    if (fontSize !== undefined && labelOffset !== undefined) {
-      const text = (heading === 0 ? 360 : heading).toFixed(0);
-
+    if (labelText !== undefined && fontSize !== undefined && labelOffset !== undefined) {
       const delta = Vec2Math.normalize(Vec2Math.sub(endProjected, startProjected, HorizonLine.vec2Cache[1]), HorizonLine.vec2Cache[1]);
 
       const labelOriginX = endProjected[0] + delta[0] * labelOffset;
       const labelOriginY = endProjected[1] + delta[1] * labelOffset;
-      const fontSizeScale = fontSize / this.props.fontSize;
+      const fontSizeScale = fontSize / this.props.options.fontSize;
 
       context.translate(labelOriginX, labelOriginY);
       context.scale(fontSizeScale, fontSizeScale);
@@ -421,9 +538,9 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
       if (this.fontOutlineWidth > 0) {
         context.lineWidth = this.fontOutlineWidth * 2;
         context.strokeStyle = this.fontOutlineColor;
-        context.strokeText(text, 0, 0);
+        context.strokeText(labelText, 0, 0);
       }
-      context.fillText(text, 0, 0);
+      context.fillText(labelText, 0, 0);
 
       context.resetTransform();
     }
@@ -456,21 +573,11 @@ export class HorizonLine extends HorizonLayer<HorizonLineProps> {
   }
 
   /** @inheritdoc */
-  public render(): VNode {
-    return (
-      <HorizonSyncedCanvasLayer ref={this.canvasLayerRef} projection={this.props.projection} />
-    );
-  }
-
-  /** @inheritdoc */
   public destroy(): void {
-    this.showTicksSub?.destroy();
-    this.showLabelsSub?.destroy();
-    this.useMagneticSub?.destroy();
-
-    this.canvasLayerRef.getOrDefault()?.destroy();
+    for (const sub of this.subscriptions) {
+      sub.destroy();
+    }
 
     super.destroy();
-
   }
 }

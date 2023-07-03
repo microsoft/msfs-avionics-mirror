@@ -1,15 +1,16 @@
-import { CasSystem, CompositeLogicXMLHost, FSComponent, NavComSimVarPublisher, NavProcSimVarPublisher, PluginSystem, SetSubject, Subject, TrafficInstrument, Vec2Math, VNode, Wait } from '@microsoft/msfs-sdk';
+import { CasSystem, CompositeLogicXMLHost, FSComponent, PluginSystem, SetSubject, Subject, TrafficInstrument, Vec2Math, VNode, Wait } from '@microsoft/msfs-sdk';
 
-import { DefaultAltimeterDataProvider, DefaultGpsIntegrityDataProvider, DefaultRadarAltimeterDataProvider, DefaultVNavDataProvider, DefaultWindDataProvider, Fms } from '@microsoft/msfs-garminsdk';
+import {
+  DefaultAltimeterDataProvider, DefaultGpsIntegrityDataProvider, DefaultRadarAltimeterDataProvider, DefaultVNavDataProvider, DefaultWindDataProvider, Fms
+} from '@microsoft/msfs-garminsdk';
 
 import {
   AdfRadioSource, AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, ConnextWeatherPaneView, DisplayPaneContainer, DisplayPaneIndex, DisplayPaneViewFactory,
-  DisplayPaneViewKeys, FlightPlanListManager, FlightPlanStore, G3000ActiveSourceNavIndicator,
-  G3000ApproachPreviewDataProvider,
-  G3000ApproachPreviewNavIndicator, G3000BearingPointerNavIndicator, G3000DmeInfoNavIndicator,
-  G3000FilePaths, G3000NavIndicator, G3000NavIndicatorName, G3000NavIndicators, G3000NavInfoNavIndicator, G3000NavSourceName, G3000NavSources, GpsSource,
-  InstrumentBackplaneNames, NavigationMapPaneView, NavIndicators, NavRadioNavSource, NavSource, NavSources, NearestPaneView, ObsAutoSlew, PfdIndex, PfdUserSettings,
-  ProcedurePreviewPaneView, TrafficMapPaneView, WaypointInfoPaneView, WeatherRadarPaneView, WTG3000BaseInstrument, WTG3000FsInstrument
+  DisplayPaneViewKeys, FlightPlanListManager, FlightPlanStore, G3000ActiveSourceNavIndicator, G3000ApproachPreviewDataProvider, G3000ApproachPreviewNavIndicator,
+  G3000BearingPointerNavIndicator, G3000DmeInfoNavIndicator, G3000FilePaths, G3000NavIndicator, G3000NavIndicatorName, G3000NavIndicators, G3000NavInfoNavIndicator,
+  G3000NavSourceName, G3000NavSources, GpsSource, InstrumentBackplaneNames, NavigationMapPaneView, NavIndicatorsCollection, NavRadioNavSource, NavSource, NavSources,
+  NearestPaneView, ObsAutoSlew, PfdIndex, PfdUserSettings, ProcedurePreviewPaneView, TrafficMapPaneView, WaypointInfoPaneView, WeatherRadarPaneView,
+  WTG3000BaseInstrument, WTG3000FsInstrument
 } from '@microsoft/msfs-wtg3000-common';
 
 import { PfdInstrumentContainer } from './Components/InstrumentContainer/PfdInstrumentContainer';
@@ -41,9 +42,6 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
   private readonly flightPlanStore = new FlightPlanStore(this.bus, this.fms, Fms.PRIMARY_PLAN_INDEX, this.config.vnav.advanced);
 
   private readonly flightPlanListManager = new FlightPlanListManager(this.bus, this.flightPlanStore, this.fms, Fms.PRIMARY_PLAN_INDEX, Subject.create(false));
-
-  private readonly navComSimVarPublisher = new NavComSimVarPublisher(this.bus);
-  private readonly navProcSimVarPublisher = new NavProcSimVarPublisher(this.bus);
 
   private readonly navSources: G3000NavSources;
   private readonly navIndicators: G3000NavIndicators;
@@ -133,7 +131,7 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
 
     this.approachPreviewDataProvider = new G3000ApproachPreviewDataProvider(this.navSources, this.bus);
 
-    this.navIndicators = new NavIndicators(new Map<G3000NavIndicatorName, G3000NavIndicator>([
+    this.navIndicators = new NavIndicatorsCollection(new Map<G3000NavIndicatorName, G3000NavIndicator>([
       ['activeSource', new G3000ActiveSourceNavIndicator(this.navSources, this.bus, 1)],
       ['bearingPointer1', new G3000BearingPointerNavIndicator(this.navSources, this.bus, 1, this.pfdSettingManager)],
       ['bearingPointer2', new G3000BearingPointerNavIndicator(this.navSources, this.bus, 2, this.pfdSettingManager)],
@@ -164,8 +162,6 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
       this.bus
     );
 
-    this.backplane.addPublisher(InstrumentBackplaneNames.NavCom, this.navComSimVarPublisher);
-    this.backplane.addPublisher(InstrumentBackplaneNames.NavProc, this.navProcSimVarPublisher);
     this.backplane.addInstrument(InstrumentBackplaneNames.Traffic, this.trafficInstrument);
 
     this.doInit();
@@ -190,6 +186,8 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
       backplane: this.backplane,
       config: this.config,
       instrumentConfig: this.instrumentConfig,
+      facLoader: this.facLoader,
+      flightPathCalculator: this.flightPathCalculator,
       navIndicators: this.navIndicators,
       fms: this.fms,
       iauSettingManager: this.iauSettingManager,
@@ -361,7 +359,9 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
    */
   private renderComponents(): VNode {
     const isLeftPfd = this.instrument.instrumentIndex === 1;
-    const splitModeInstrumentSide = this.instrumentConfig.layout.splitModeInstrumentSide ?? (isLeftPfd ? 'left' : 'right');
+    const splitModeInstrumentSide = this.instrumentConfig.layout.splitModeInstrumentSide === 'auto'
+      ? (isLeftPfd ? 'left' : 'right')
+      : this.instrumentConfig.layout.splitModeInstrumentSide;
 
     return (
       <>

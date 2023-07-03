@@ -1454,8 +1454,6 @@ export class JoinGreatCircleToPointBuilder {
       // intersection of the start and end paths (the only case where the turn starts before the intersection is
       // handled above).
 
-      minD = Math.min(minD, Math.PI / 2);
-
       if (minD > Math.PI / 2) {
         // No amount of anticipation can provide a turn which joins the start and end paths of the desired radius.
         needDirectFallback = allowDirectFallback;

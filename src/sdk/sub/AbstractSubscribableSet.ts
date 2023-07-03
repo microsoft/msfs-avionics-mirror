@@ -19,7 +19,9 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
     return this.get().size;
   }
 
-  protected subs: HandlerSubscription<SubscribableSetHandler<T>>[] = [];
+  protected singletonSub?: HandlerSubscription<SubscribableSetHandler<T>>;
+
+  protected subs?: HandlerSubscription<SubscribableSetHandler<T>>[];
   protected notifyDepth = 0;
 
   /** A function which sends initial notifications to subscriptions. */
@@ -27,6 +29,21 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
 
   /** A function which responds to when a subscription to this subscribable is destroyed. */
   protected readonly onSubDestroyedFunc = this.onSubDestroyed.bind(this);
+
+  /**
+   * Adds a subscription to this set.
+   * @param sub The subscription to add.
+   */
+  protected addSubscription(sub: HandlerSubscription<SubscribableSetHandler<T>>): void {
+    if (this.subs) {
+      this.subs.push(sub);
+    } else if (this.singletonSub) {
+      this.subs = [this.singletonSub, sub];
+      delete this.singletonSub;
+    } else {
+      this.singletonSub = sub;
+    }
+  }
 
   /** @inheritdoc */
   public abstract get(): ReadonlySet<T>;
@@ -39,7 +56,8 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
   /** @inheritdoc */
   public sub(handler: SubscribableSetHandler<T>, initialNotify = false, paused = false): Subscription {
     const sub = new HandlerSubscription(handler, this.initialNotifyFunc, this.onSubDestroyedFunc);
-    this.subs.push(sub);
+
+    this.addSubscription(sub);
 
     if (paused) {
       sub.pause();
@@ -52,7 +70,14 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
 
   /** @inheritdoc */
   public unsub(handler: SubscribableSetHandler<T>): void {
-    const toDestroy = this.subs.find(sub => sub.handler === handler);
+    let toDestroy: HandlerSubscription<SubscribableSetHandler<T>> | undefined = undefined;
+
+    if (this.singletonSub && this.singletonSub.handler === handler) {
+      toDestroy = this.singletonSub;
+    } else if (this.subs) {
+      toDestroy = this.subs.find(sub => sub.handler === handler);
+    }
+
     toDestroy?.destroy();
   }
 
@@ -67,19 +92,34 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
     let needCleanUpSubs = false;
     this.notifyDepth++;
 
-    const subLen = this.subs.length;
-    for (let i = 0; i < subLen; i++) {
+    if (this.singletonSub) {
       try {
-        const sub = this.subs[i];
-        if (sub.isAlive && !sub.isPaused) {
-          sub.handler(set, type, key);
+        if (this.singletonSub.isAlive && !this.singletonSub.isPaused) {
+          this.singletonSub.handler(set, type, key);
         }
 
-        needCleanUpSubs ||= !sub.isAlive;
+        needCleanUpSubs ||= !this.singletonSub.isAlive;
       } catch (error) {
         console.error(`AbstractSubscribableSet: error in handler: ${error}`);
         if (error instanceof Error) {
           console.error(error.stack);
+        }
+      }
+    } else if (this.subs) {
+      const subLen = this.subs.length;
+      for (let i = 0; i < subLen; i++) {
+        try {
+          const sub = this.subs[i];
+          if (sub.isAlive && !sub.isPaused) {
+            sub.handler(set, type, key);
+          }
+
+          needCleanUpSubs ||= !sub.isAlive;
+        } catch (error) {
+          console.error(`AbstractSubscribableSet: error in handler: ${error}`);
+          if (error instanceof Error) {
+            console.error(error.stack);
+          }
         }
       }
     }
@@ -87,7 +127,11 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
     this.notifyDepth--;
 
     if (needCleanUpSubs && this.notifyDepth === 0) {
-      this.subs = this.subs.filter(sub => sub.isAlive);
+      if (this.singletonSub && !this.singletonSub.isAlive) {
+        delete this.singletonSub;
+      } else if (this.subs) {
+        this.subs = this.subs.filter(sub => sub.isAlive);
+      }
     }
   }
 
@@ -110,7 +154,14 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
     // If we are not in the middle of a notify operation, remove the subscription.
     // Otherwise, do nothing and let the post-notify clean-up code handle it.
     if (this.notifyDepth === 0) {
-      this.subs.splice(this.subs.indexOf(sub), 1);
+      if (this.singletonSub === sub) {
+        delete this.singletonSub;
+      } else if (this.subs) {
+        const index = this.subs.indexOf(sub);
+        if (index >= 0) {
+          this.subs.splice(index, 1);
+        }
+      }
     }
   }
 
@@ -215,7 +266,7 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
       paused = arg2 ?? false;
     }
 
-    this.subs.push(sub);
+    this.addSubscription(sub);
 
     if (paused) {
       sub.pause();

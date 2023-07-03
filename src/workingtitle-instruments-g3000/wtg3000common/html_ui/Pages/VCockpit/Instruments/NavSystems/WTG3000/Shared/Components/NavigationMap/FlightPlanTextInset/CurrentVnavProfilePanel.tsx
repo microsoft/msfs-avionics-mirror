@@ -1,16 +1,22 @@
 import {
-  DisplayComponent, FSComponent, VNode, ComponentProps, EventBus,
-  DurationDisplay, DurationDisplayFormat, DurationDisplayDelim, NumberFormatter, UnitType, SetSubject
+  ComponentProps, DisplayComponent, DurationDisplay, DurationDisplayDelim, DurationDisplayFormat, EventBus, FSComponent,
+  NumberFormatter, SetSubject, UnitType, VNode
 } from '@microsoft/msfs-sdk';
+
 import { Fms, NumberUnitDisplay, UnitsUserSettings, VNavDataProvider } from '@microsoft/msfs-garminsdk';
-import { FlightPlanStore } from '../../../FlightPlan';
-import { VnavProfileStore } from '../../../Vnav';
-import { AltitudeConstraintDisplay, FpaDisplay } from '../../Constraints';
-import { LegNameDisplay } from '../../Leg';
+
+import { FlightPlanStore } from '../../../FlightPlan/FlightPlanStore';
+import { VnavProfileStore } from '../../../Vnav/VnavProfileStore';
+import { AltitudeConstraintDisplay } from '../../Constraints/AltitudeConstraintDisplay';
+import { FpaDisplay } from '../../Constraints/FpaDisplay';
+import { LegNameDisplay } from '../../Leg/LegNameDisplay';
+
 import './CurrentVnavProfilePanel.css';
 
-/** The properties for the {@link CurrentVnavProfilePanel} component. */
-interface CurrentVnavProfilePanelProps extends ComponentProps {
+/**
+ * The properties for the {@link CurrentVnavProfilePanel} component.
+ */
+export interface CurrentVnavProfilePanelProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
   /** The Fms. */
@@ -27,7 +33,9 @@ const VERTICAL_SPEED_FORMATTER = NumberFormatter.create({ precision: 1, nanStrin
 const FPA_FORMATTER = NumberFormatter.create({ precision: 0.01, nanString: '_____', useMinusSign: true });
 const ALTITUDE_FORMATTER = NumberFormatter.create({ precision: 1, nanString: '_____', useMinusSign: true });
 
-/** The CurrentVnavProfilePanel component. */
+/**
+ * A panel which displays information related to the current VNAV profile.
+ */
 export class CurrentVnavProfilePanel extends DisplayComponent<CurrentVnavProfilePanelProps> {
   private thisNode?: VNode;
 
@@ -63,7 +71,6 @@ export class CurrentVnavProfilePanel extends DisplayComponent<CurrentVnavProfile
     return (
       <div class="current-vnav-profile-panel pane-inset-panel">
         <div class="pane-inset-panel-title">Current VNAV Profile</div>
-        {/* TODO Can change to say CRZ ALT. */}
         <div class="sub-title">Active VNAV Waypoint</div>
         <div class={this.activeWaypointCssClass}>
           <div>

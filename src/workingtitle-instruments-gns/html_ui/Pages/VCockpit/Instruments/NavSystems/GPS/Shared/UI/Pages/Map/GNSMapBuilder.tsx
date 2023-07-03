@@ -1,9 +1,9 @@
 
 
 import {
-  DefaultLodBoundaryCache, EventBus, FlightPlanDisplayBuilder, FlightPlanner, FSComponent, MapAirspaceModule, MapDataIntegrityModule, MapFlightPlanModule,
-  MapOwnAirplaneIconOrientation, MapSystemBuilder, MapSystemFlightPlanLayer, MapSystemIconFactory, MapSystemKeys, MapSystemLabelFactory, MapSystemPlanRenderer,
-  MapSystemWaypointRoles, MapSystemWaypointsRenderer, MapWaypointDisplayModule, NumberUnit, TcasAdvisoryDataProvider, UnitType, Vec2Math
+  BitFlags, DefaultLodBoundaryCache, EventBus, FlightPlanDisplayBuilder, FlightPlanner, FSComponent, IntersectionType, MapAirspaceModule, MapDataIntegrityModule,
+  MapFlightPlanModule, MapOwnAirplaneIconOrientation, MapSystemBuilder, MapSystemFlightPlanLayer, MapSystemIconFactory, MapSystemKeys, MapSystemLabelFactory,
+  MapSystemPlanRenderer, MapSystemWaypointRoles, MapSystemWaypointsRenderer, MapWaypointDisplayModule, NumberUnit, TcasAdvisoryDataProvider, UnitType, Vec2Math
 } from '@microsoft/msfs-sdk';
 
 import { GarminAirspaceShowTypeMap, GarminMapBuilder, MapUnitsModule, TrafficSystem } from '@microsoft/msfs-garminsdk';
@@ -60,6 +60,23 @@ export class GNSMapBuilder {
       .withModule(GNSMapKeys.Declutter, () => new MapDeclutterModule())
       .withAirspaces(DefaultLodBoundaryCache.getCache(), GarminAirspaceShowTypeMap.MAP, MapAirspaceRendering.selectRenderer, MapAirspaceRendering.renderOrder)
       .withNearestWaypoints(MapSystemConfig.configureWaypoints(bus, settingsProvider, gnsType), true)
+      .withInit<{
+        /** Nearest waypoint display module. */
+        [MapSystemKeys.NearestWaypoints]: MapWaypointDisplayModule
+      }>('intersectionFilter', context => {
+        context.model.getModule(MapSystemKeys.NearestWaypoints).intersectionsFilter.set({
+          typeMask: BitFlags.union(
+            BitFlags.createFlag(IntersectionType.None),
+            BitFlags.createFlag(IntersectionType.Named),
+            BitFlags.createFlag(IntersectionType.Unnamed),
+            BitFlags.createFlag(IntersectionType.Offroute),
+            BitFlags.createFlag(IntersectionType.IAF),
+            BitFlags.createFlag(IntersectionType.FAF),
+            BitFlags.createFlag(IntersectionType.RNAV)
+          ),
+          showTerminalWaypoints: true
+        });
+      })
       .withOwnAirplaneIcon(gnsType === 'wt430' ? 22 : 16, OwnshipIconPath, Vec2Math.create(0.5, 0.5))
       .withOwnAirplaneIconOrientation(MapOwnAirplaneIconOrientation.TrackUp)
       .withFlightPlan(MapSystemConfig.configureFlightPlan(settingsProvider, gnsType, bus), flightPlanner, 0, true)
@@ -106,6 +123,23 @@ export class GNSMapBuilder {
       .with(b => GNSMapBuilder.airportRunways(b, gnsType))
       .withAirspaces(DefaultLodBoundaryCache.getCache(), GarminAirspaceShowTypeMap.MAP, MapAirspaceRendering.selectRenderer, MapAirspaceRendering.renderOrder)
       .withNearestWaypoints(MapSystemConfig.configureWaypoints(bus, settingsProvider, gnsType), true)
+      .withInit<{
+        /** Nearest waypoint display module. */
+        [MapSystemKeys.NearestWaypoints]: MapWaypointDisplayModule
+      }>('intersectionFilter', context => {
+        context.model.getModule(MapSystemKeys.NearestWaypoints).intersectionsFilter.set({
+          typeMask: BitFlags.union(
+            BitFlags.createFlag(IntersectionType.None),
+            BitFlags.createFlag(IntersectionType.Named),
+            BitFlags.createFlag(IntersectionType.Unnamed),
+            BitFlags.createFlag(IntersectionType.Offroute),
+            BitFlags.createFlag(IntersectionType.IAF),
+            BitFlags.createFlag(IntersectionType.FAF),
+            BitFlags.createFlag(IntersectionType.RNAV)
+          ),
+          showTerminalWaypoints: true
+        });
+      })
       .withFlightPlan(MapSystemConfig.configureFlightPlan(settingsProvider, gnsType, bus), flightPlanner, 0, true)
       .withFlightPlan(MapSystemConfig.configureFlightPlan(settingsProvider, gnsType, bus), flightPlanner, 1, true)
       .withLayer(GNSMapKeys.Obs, c => <ObsLayer bus={bus} model={c.model} mapProjection={c.projection} />)
@@ -156,6 +190,23 @@ export class GNSMapBuilder {
       .with(b => GNSMapBuilder.airportRunways(b, gnsType))
       .withAirspaces(DefaultLodBoundaryCache.getCache(), GarminAirspaceShowTypeMap.MAP, MapAirspaceRendering.selectRenderer, MapAirspaceRendering.renderOrder)
       .withNearestWaypoints(MapSystemConfig.configureWaypoints(bus, settingsProvider, gnsType), true)
+      .withInit<{
+        /** Nearest waypoint display module. */
+        [MapSystemKeys.NearestWaypoints]: MapWaypointDisplayModule
+      }>('intersectionFilter', context => {
+        context.model.getModule(MapSystemKeys.NearestWaypoints).intersectionsFilter.set({
+          typeMask: BitFlags.union(
+            BitFlags.createFlag(IntersectionType.None),
+            BitFlags.createFlag(IntersectionType.Named),
+            BitFlags.createFlag(IntersectionType.Unnamed),
+            BitFlags.createFlag(IntersectionType.Offroute),
+            BitFlags.createFlag(IntersectionType.IAF),
+            BitFlags.createFlag(IntersectionType.FAF),
+            BitFlags.createFlag(IntersectionType.RNAV)
+          ),
+          showTerminalWaypoints: true
+        });
+      })
       .withOwnAirplaneIcon(gnsType === 'wt430' ? 22 : 16, OwnshipIconPath, Vec2Math.create(0.5, 0.5))
       .withOwnAirplaneIconOrientation(MapOwnAirplaneIconOrientation.TrackUp)
       .withLayer(GNSMapKeys.RangeLegend, c => <RangeLegendLayer model={c.model} mapProjection={c.projection} />)

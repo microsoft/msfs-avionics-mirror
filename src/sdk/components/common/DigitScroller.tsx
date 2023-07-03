@@ -43,7 +43,20 @@ export interface DigitScrollerProps extends ComponentProps {
 }
 
 /**
- * A scrolling digit display.
+ * A scrolling digit display. The display supports number bases greater than or equal to 3. The display renders a
+ * one digit for each of the following values:
+ * ```
+ * -(base + 2), -(base + 1), -(base), ... , -1, 0, 1, ... , base, base + 1, base + 2` 
+ * ```
+ * The total number of rendered digits equals `(base + 2) * 2 + 1`. The display will scroll between the rendered
+ * digits based on a bound value.
+ * 
+ * When styling the scroller with CSS, select the `digit-scroller-digit` class to style all rendered digits. Each
+ * individual digit can also be selected with the `digit-scroller-digit-[index]` classes, where `[index]` is replaced
+ * with `0, 1, 2, ...`, starting with the lowest-valued digit. Select the `digit-scroller-nan` class to style the text
+ * rendered for `NaN` values. The `--digit-scroller-line-height` variable is used to control the vertical spacing
+ * between each digit (defaults to `1em`). The `--digit-scroller-line-offset-y` variable is used to control the
+ * vertical offset of each digit (defaults to `0px`).
  */
 export class DigitScroller extends DisplayComponent<DigitScrollerProps> {
   private readonly digitCount = (this.props.base + 2) * 2 + 1;
@@ -177,7 +190,7 @@ export class DigitScroller extends DisplayComponent<DigitScrollerProps> {
 
       return (
         <div style={`position: absolute; left: 0; top: calc(var(--digit-scroller-line-offset-y, 0px) + ${50 + (index - zeroIndexOffset - 0.5) * this.translationPerDigit}%); width: 100%; height: ${this.translationPerDigit}%; line-height: var(--digit-scroller-line-height, 1em);`}>
-          <span class='digit-scroller-digit' style='vertical-align: baseline;'>{renderFunc(digit)}</span>
+          <span class={`digit-scroller-digit digit-scroller-digit-${index}`} style='vertical-align: baseline;'>{renderFunc(digit)}</span>
         </div>
       );
     });

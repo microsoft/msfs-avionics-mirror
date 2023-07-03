@@ -11,7 +11,7 @@ import {
   FlightPathAirplaneSpeedMode,
   FlightPathCalculator, FlightPlanner, FSComponent, FsInstrument, GNSSPublisher, HEventPublisher, InstrumentBackplane, LNavSimVarPublisher,
   MinimumsEvents, MinimumsManager, MinimumsSimVarPublisher, NavComSimVarPublisher,
-  NavProcSimVarPublisher, SimVarValueType, TrafficInstrument, UserSettingSaveManager, VNavSimVarPublisher, Wait,
+  SimVarValueType, TrafficInstrument, UserSettingSaveManager, VNavSimVarPublisher, Wait,
   XPDRSimVarPublisher
 } from '@microsoft/msfs-sdk';
 
@@ -80,7 +80,6 @@ export class WT21_PFD_Instrument implements FsInstrument {
   private readonly navSources: WT21NavSources;
   private readonly navIndicators: WT21NavIndicators;
   private readonly navComSimVarPublisher: NavComSimVarPublisher;
-  private readonly navProcSimVarPublisher: NavProcSimVarPublisher;
   private readonly dcpController: DcpController;
   private readonly elapsedTime: ElapsedTime;
   private readonly refsSettings: DefaultUserSettingManager<RefsSettings>;
@@ -181,9 +180,6 @@ export class WT21_PFD_Instrument implements FsInstrument {
 
     this.wt21ControlPublisher = new WT21ControlPublisher(this.bus);
     this.backplane.addPublisher('wt21', this.wt21ControlPublisher);
-
-    this.navProcSimVarPublisher = new NavProcSimVarPublisher(this.bus);
-    this.backplane.addPublisher('nav', this.navProcSimVarPublisher);
 
     this.navComSimVarPublisher = new NavComSimVarPublisher(this.bus);
     this.backplane.addPublisher('navCom', this.navComSimVarPublisher);

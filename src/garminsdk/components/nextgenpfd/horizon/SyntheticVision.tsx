@@ -2,14 +2,6 @@ import {
   ArraySubject, BingComponent, BitFlags, FSComponent, HorizonLayer, HorizonLayerProps, HorizonProjection, HorizonProjectionChangeType,
   ObjectSubject, Subject, Subscribable, Subscription, SynVisComponent, Vec2Math, Vec2Subject, VNode
 } from '@microsoft/msfs-sdk';
-import { HorizonLine, HorizonLineProps } from './HorizonLine';
-
-/**
- * Styling options for the synthetic vision horizon line.
- */
-export type SvtHorizonLineOptions = Omit<
-  HorizonLineProps, keyof HorizonLayerProps | 'approximate' | 'useMagneticHeading' | 'showHeadingTicks' | 'showHeadingLabels'
->;
 
 /**
  * Component props for SyntheticVision.
@@ -23,15 +15,6 @@ export interface SyntheticVisionProps extends HorizonLayerProps {
 
   /** Whether synthetic vision is enabled. */
   isEnabled: Subscribable<boolean>;
-
-  /** Whether to show horizon heading labels. */
-  showHeadingLabels: Subscribable<boolean>;
-
-  /** Whether to show magnetic heading ticks and labels instead of true heading. */
-  useMagneticHeading: Subscribable<boolean>;
-
-  /** Styling options for the horizon line. */
-  horizonLineOptions: SvtHorizonLineOptions;
 }
 
 /**
@@ -39,8 +22,6 @@ export interface SyntheticVisionProps extends HorizonLayerProps {
  */
 export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
   private static readonly SKY_COLOR = '#0033E6';
-
-  private readonly horizonLineRef = FSComponent.createRef<HorizonLine>();
 
   private readonly rootStyle = ObjectSubject.create({
     position: 'absolute',
@@ -51,41 +32,30 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
     height: '100%'
   });
 
-  private readonly bingStyle = ObjectSubject.create({
-    position: 'absolute',
-    display: '',
-    left: '0',
-    top: '0',
-    width: '100%',
-    height: '100%'
-  });
-
   private readonly resolution = Vec2Subject.createFromVector(Vec2Math.create(100, 100));
 
+  private needUpdateVisibility = false;
   private needUpdate = false;
 
   private isEnabledSub?: Subscription;
 
   /** @inheritdoc */
-  protected onVisibilityChanged(isVisible: boolean): void {
-    this.rootStyle.set('display', isVisible ? '' : 'none');
+  protected onVisibilityChanged(): void {
+    this.needUpdateVisibility = true;
   }
 
   /** @inheritdoc */
   public onAttached(): void {
     super.onAttached();
 
-    this.horizonLineRef.instance.onAttached();
+    this.isEnabledSub = this.props.isEnabled.sub(this.setVisible.bind(this), true);
 
-    this.isEnabledSub = this.props.isEnabled.sub(isEnabled => { this.setVisible(isEnabled); }, true);
-
+    this.needUpdateVisibility = true;
     this.needUpdate = true;
   }
 
   /** @inheritdoc */
   public onProjectionChanged(projection: HorizonProjection, changeFlags: number): void {
-    this.horizonLineRef.instance.onProjectionChanged(projection, changeFlags);
-
     if (BitFlags.isAny(
       changeFlags,
       HorizonProjectionChangeType.ProjectedSize | HorizonProjectionChangeType.ProjectedOffset
@@ -96,13 +66,13 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
 
   /** @inheritdoc */
   public onUpdated(): void {
-    if (!this.isVisible()) {
-      return;
+    const isVisible = this.isVisible();
+
+    if (this.needUpdateVisibility) {
+      this.rootStyle.set('display', isVisible ? '' : 'none');
     }
 
-    this.horizonLineRef.instance.onUpdated();
-
-    if (!this.needUpdate) {
+    if (!this.needUpdate || !isVisible) {
       return;
     }
 
@@ -121,10 +91,10 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
 
     this.resolution.set(bingWidth, bingHeight);
 
-    this.bingStyle.set('left', `${offsetCenterProjected[0] - bingWidth / 2}px`);
-    this.bingStyle.set('top', `${offsetCenterProjected[1] - bingHeight / 2}px`);
-    this.bingStyle.set('width', `${bingWidth}px`);
-    this.bingStyle.set('height', `${bingHeight}px`);
+    this.rootStyle.set('left', `${offsetCenterProjected[0] - bingWidth / 2}px`);
+    this.rootStyle.set('top', `${offsetCenterProjected[1] - bingHeight / 2}px`);
+    this.rootStyle.set('width', `${bingWidth}px`);
+    this.rootStyle.set('height', `${bingHeight}px`);
 
     this.needUpdate = false;
   }
@@ -140,24 +110,13 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
   public render(): VNode {
     return (
       <div style={this.rootStyle}>
-        <div style={this.bingStyle}>
-          <SynVisComponent
-            bingId={this.props.bingId}
-            bingDelay={this.props.bingDelay}
-            resolution={this.resolution}
-            skyColor={Subject.create(BingComponent.hexaToRGBColor(SyntheticVision.SKY_COLOR))}
-            earthColors={ArraySubject.create(SyntheticVision.createEarthColors())}
-            earthColorsElevationRange={Vec2Subject.create(Vec2Math.create(-1400, 29000))}
-          />
-        </div>
-        <HorizonLine
-          ref={this.horizonLineRef}
-          projection={this.props.projection}
-          approximate={false}
-          showHeadingTicks={true}
-          showHeadingLabels={this.props.showHeadingLabels}
-          useMagneticHeading={this.props.useMagneticHeading}
-          {...this.props.horizonLineOptions}
+        <SynVisComponent
+          bingId={this.props.bingId}
+          bingDelay={this.props.bingDelay}
+          resolution={this.resolution}
+          skyColor={Subject.create(BingComponent.hexaToRGBColor(SyntheticVision.SKY_COLOR))}
+          earthColors={ArraySubject.create(SyntheticVision.createEarthColors())}
+          earthColorsElevationRange={Vec2Subject.create(Vec2Math.create(-1400, 29000))}
         />
       </div>
     );
@@ -168,8 +127,6 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
     super.destroy();
 
     this.isEnabledSub?.destroy();
-
-    this.horizonLineRef.getOrDefault()?.destroy();
   }
 
   /**

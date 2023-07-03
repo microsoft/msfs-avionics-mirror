@@ -48,13 +48,13 @@ export class FmsPositionSystemSelector {
   }
 
   /**
-   * Initializes this manager. Once initialized, this manager will automatically select the FMS geo-positioning system
+   * Initializes this selector. Once initialized, this selector will automatically select the FMS geo-positioning system
    * that currently provides the most accurate position data.
-   * @throws Error if this manager has been destroyed.
+   * @throws Error if this selector has been destroyed.
    */
   public init(): void {
     if (!this.isAlive) {
-      throw new Error('GpsReceiverSelector: cannot initialize a dead manager');
+      throw new Error('GpsReceiverSelector: cannot initialize a dead selector');
     }
 
     if (this.isInit) {
@@ -75,6 +75,8 @@ export class FmsPositionSystemSelector {
         this.fmsPosModes.set(key, fmsPosState);
 
         fmsPosState.sub(selectIndex);
+      } else {
+        this.fmsPosModes.delete(key);
       }
 
       selectIndex();
@@ -94,15 +96,16 @@ export class FmsPositionSystemSelector {
 
     if (this.fmsPosModes.size === 1) {
       this._selectedIndex.set(this.fmsPosModes.keys().next().value);
+      return;
     }
 
     let bestIndex = this._selectedIndex.get();
-    let bestState = this.fmsPosModes.get(bestIndex)?.get() ?? FmsPositionMode.None;
+    let bestState = this.fmsPosModes.get(bestIndex)?.get();
 
     for (const index of this.fmsPosModes.keys()) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const state = this.fmsPosModes.get(index)!.get();
-      if (bestIndex < 0 || FmsPositionSystemSelector.compareFmsPosMode(state, bestState) < 0) {
+      if (bestIndex < 0 || !bestState || FmsPositionSystemSelector.compareFmsPosMode(state, bestState) < 0) {
         bestIndex = index;
         bestState = state;
       }
@@ -111,7 +114,7 @@ export class FmsPositionSystemSelector {
     const preferredIndex = this.preferredSystemIndex.get();
     if (preferredIndex >= 0) {
       const preferredIndexState = this.fmsPosModes.get(preferredIndex)?.get();
-      if (preferredIndexState !== undefined && FmsPositionSystemSelector.compareFmsPosMode(preferredIndexState, bestState) <= 0) {
+      if (preferredIndexState !== undefined && FmsPositionSystemSelector.compareFmsPosMode(preferredIndexState, bestState as FmsPositionMode) <= 0) {
         bestIndex = preferredIndex;
       }
     }

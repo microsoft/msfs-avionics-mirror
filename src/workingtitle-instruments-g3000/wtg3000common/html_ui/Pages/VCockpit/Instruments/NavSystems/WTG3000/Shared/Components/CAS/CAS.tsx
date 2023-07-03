@@ -1,44 +1,53 @@
-import { AnnunciationType, CasActiveMessage, DisplayComponent, EventBus, FSComponent, ObjectSubject, Subject, Subscribable, SubscribableArray, VNode } from '@microsoft/msfs-sdk';
+import {
+  AnnunciationType, CasActiveMessage, DisplayComponent, EventBus, FSComponent, ObjectSubject, Subject,
+  Subscribable, SubscribableArray, Subscription, VNode
+} from '@microsoft/msfs-sdk';
 
 import { CASAlertCounts, CASDisplay, CASProps } from '@microsoft/msfs-garminsdk';
 
 import { PfdIndex } from '../../CommonTypes';
 import { CASControlEvents } from './CASControlEvents';
 
-/** Props for the G3000-specific CAS display. */
+/**
+ * Component props for G3000CASDisplay.
+ */
 export interface G3000CASDisplayProps extends CASProps {
   /** The index of the PFD(s) that we process control messages for. */
   pfdIndices: PfdIndex[];
 }
 
-/** Our version of a CAS. */
+/**
+ * A G3000 scrolling CAS display which supports the event bus scroll commands defined by {@link CASControlEvents}.
+ */
 export class G3000CASDisplay extends CASDisplay<G3000CASDisplayProps> {
-  protected controlEventsPub = this.props.bus.getPublisher<CASControlEvents>();
-  protected controlEventsSub = this.props.bus.getSubscriber<CASControlEvents>();
+  protected readonly controlEventsPub = this.props.bus.getPublisher<CASControlEvents>();
+  protected readonly controlEventsSub = this.props.bus.getSubscriber<CASControlEvents>();
+
+  private alertCountsSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
     super.onAfterRender();
-    if (this.props.alertCounts) {
-      this.props.alertCounts.sub((data: CASAlertCounts, key: keyof CASAlertCounts, newValue: number, oldValue: number): void => {
-        switch (key) {
-          case 'countAboveWindow':
-            if (newValue > 0 && oldValue === 0) {
-              this.handleScrollUpEnable(true);
-            } else if (newValue === 0 && oldValue > 0) {
-              this.handleScrollUpEnable(false);
-            }
-            break;
-          case 'countBelowWindow':
-            if (newValue > 0 && oldValue === 0) {
-              this.handleScrollDownEnable(true);
-            } else if (newValue === 0 && oldValue > 0) {
-              this.handleScrollDownEnable(false);
-            }
-            break;
-        }
-      });
-    }
+
+    this.alertCountsSub = this.props.alertCounts?.sub((data: CASAlertCounts, key: keyof CASAlertCounts, newValue: number, oldValue: number): void => {
+      switch (key) {
+        case 'countAboveWindow':
+          if (newValue > 0 && oldValue === 0) {
+            this.handleScrollUpEnable(true);
+          } else if (newValue === 0 && oldValue > 0) {
+            this.handleScrollUpEnable(false);
+          }
+          break;
+        case 'countBelowWindow':
+          if (newValue > 0 && oldValue === 0) {
+            this.handleScrollDownEnable(true);
+          } else if (newValue === 0 && oldValue > 0) {
+            this.handleScrollDownEnable(false);
+          }
+          break;
+      }
+    });
+
     this.subscribeForScollCommands();
   }
 
@@ -63,10 +72,17 @@ export class G3000CASDisplay extends CASDisplay<G3000CASDisplayProps> {
     (this.props.pfdIndices ?? []).map(idx => this.controlEventsSub.on(`cas_scroll_up_${idx}`).handle((v: boolean) => v && this.scrollUp()));
     (this.props.pfdIndices ?? []).map(idx => this.controlEventsSub.on(`cas_scroll_down_${idx}`).handle((v: boolean) => v && this.scrollDown()));
   }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this.alertCountsSub?.destroy();
+
+    super.destroy();
+  }
 }
 
 /**
- * Properties for the component that shows CAS message counts.
+ * Component props for CASMessageCount.
  */
 export interface CASMessageCountProps {
   /** The bus. */
@@ -79,13 +95,20 @@ export interface CASMessageCountProps {
   highestAlertState: Subscribable<AnnunciationType | null>
 }
 
-/** The UI component that displays CAS message counts. */
+/**
+ * A component which displays out-of-view CAS message counts for scrollable CAS message displays.
+ */
 export class CASMessageCount extends DisplayComponent<CASMessageCountProps> {
   private casSpanRef = FSComponent.createRef<HTMLSpanElement>();
 
+  private readonly countAboveWindowText = this.props.countAboveWindow.map(count => count.toString());
+  private readonly countBelowWindowText = this.props.countBelowWindow.map(count => count.toString());
+
+  private highestAlertStateSub?: Subscription;
+
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.props.highestAlertState.sub((v: AnnunciationType | null): void => {
+    this.highestAlertStateSub = this.props.highestAlertState.sub((v: AnnunciationType | null): void => {
       switch (v) {
         case AnnunciationType.Warning:
           this.casSpanRef.instance.classList.remove('caution');
@@ -106,16 +129,26 @@ export class CASMessageCount extends DisplayComponent<CASMessageCountProps> {
   public render(): VNode {
     return <div class='cas-message-count'>
       <span class='cas-message-count-header' ref={this.casSpanRef}>CAS</span>
-      <span>{this.props.countAboveWindow}↑</span>
-      <span>{this.props.countBelowWindow}↓</span>
+      <span>{this.countAboveWindowText}↑</span>
+      <span>{this.countBelowWindowText}↓</span>
     </div>;
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this.countAboveWindowText.destroy();
+    this.countBelowWindowText.destroy();
+
+    this.highestAlertStateSub?.destroy();
+
+    super.destroy();
   }
 }
 
 /**
- * Properties for the G3000-specific CAS display.
+ * Component props for G3000FullCASDisplay.
  */
-export interface G3000CASProps {
+export interface G3000FullCASDisplayProps {
   /** The event bus */
   bus: EventBus;
 
@@ -123,14 +156,19 @@ export interface G3000CASProps {
   annunciations: SubscribableArray<CasActiveMessage>;
 
   /** The maximum number of annunciations that can be displayed at the same time. */
-  numAnnunciationsShown: number;
+  numAnnunciationsShown: number | Subscribable<number>;
 
   /** The indices of the PFD(s) this display processes control messages for. */
   pfdIndices: PfdIndex[];
 }
 
-/** Our cas display */
-export class CAS extends DisplayComponent<G3000CASProps> {
+/**
+ * A G3000 scrolling CAS display which displays out-of-view message counts and supports the event bus scroll commands
+ * defined by {@link CASControlEvents}.
+ */
+export class G3000FullCASDisplay extends DisplayComponent<G3000FullCASDisplayProps> {
+  private thisNode?: VNode;
+
   private readonly alertCounts = ObjectSubject.create<CASAlertCounts>({
     totalAlerts: 0,
     countAboveWindow: 0,
@@ -146,11 +184,12 @@ export class CAS extends DisplayComponent<G3000CASProps> {
   private readonly totalAlerts = Subject.create(0);
   private readonly highestAlertState = Subject.create<AnnunciationType | null>(null);
 
-  private divRef = FSComponent.createRef<HTMLDivElement>();
+  private readonly divRef = FSComponent.createRef<HTMLDivElement>();
 
   /** @inheritdoc */
-  public constructor(props: G3000CASProps) {
-    super(props);
+  public onAfterRender(thisNode: VNode): void {
+    this.thisNode = thisNode;
+
     this.alertCounts.sub((data: CASAlertCounts, key: keyof CASAlertCounts, newValue: number): void => {
       switch (key) {
         case 'totalAlerts':
@@ -167,10 +206,7 @@ export class CAS extends DisplayComponent<G3000CASProps> {
           break;
       }
     }, true);
-  }
 
-  /** @inheritdoc */
-  public onAfterRender(): void {
     this.totalAlerts.sub((v: number) => {
       if (v === 0) {
         this.divRef.instance.style.display = 'none';
@@ -200,4 +236,14 @@ export class CAS extends DisplayComponent<G3000CASProps> {
       </div>
     );
   }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this.thisNode && FSComponent.shallowDestroy(this.thisNode);
+
+    super.destroy();
+  }
 }
+
+// For backwards compatibility.
+export { type G3000FullCASDisplayProps as G3000CASProps, G3000FullCASDisplay as CAS };

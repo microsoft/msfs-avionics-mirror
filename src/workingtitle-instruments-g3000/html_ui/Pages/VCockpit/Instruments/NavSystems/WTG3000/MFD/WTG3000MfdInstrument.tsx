@@ -1,8 +1,8 @@
 import {
-  APRadioNavInstrument, ArrayUtils, AuralAlertSystem, AuralAlertSystemXmlAdapter, CasSystem, CasSystemLegacyAdapter, CompositeLogicXMLHost,
+  APRadioNavInstrument, ArrayUtils, AuralAlertSystem, AuralAlertSystemWarningAdapter, AuralAlertSystemXmlAdapter, CasSystem, CasSystemLegacyAdapter, CompositeLogicXMLHost,
   ControlEvents, DefaultXmlAuralAlertParser, FlightPlanCalculatedEvent, FlightPlannerEvents, FlightTimerInstrument, FlightTimerMode,
   FSComponent, GameStateProvider, GpsSynchronizer, GPSSystemState, MinimumsManager, NavComInstrument, NavSourceType, PluginSystem,
-  SetSubject, SimVarValueType, SoundServer, Subject, TrafficInstrument, UserSetting, Vec2Math, VNode, Wait, XPDRInstrument
+  SetSubject, SimVarValueType, SoundServer, Subject, TrafficInstrument, UserSetting, Vec2Math, VNode, Wait, XMLWarningFactory, XPDRInstrument
 } from '@microsoft/msfs-sdk';
 import {
   ComRadioSpacingManager, DateTimeUserSettings, DefaultGpsIntegrityDataProvider, DefaultRadarAltimeterDataProvider, DefaultVNavDataProvider, DmeUserSettings,
@@ -91,6 +91,12 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     this.instrument.xmlConfig.getElementsByTagName('PlaneHTMLConfig')[0].querySelector(':scope>AuralAlerts'),
     new DefaultXmlAuralAlertParser(this.instrument, 'g3000-aural-$$xml-default$$')
   );
+  private readonly auralAlertWarningAdapter = new AuralAlertSystemWarningAdapter(
+    this.bus,
+    this.logicHost,
+    new XMLWarningFactory(this.instrument).parseConfig(this.instrument.xmlConfig),
+    'g3000-aural-$$warning-default$$'
+  );
 
   private readonly flightPathCalcManager = new FlightPathCalculatorManager(
     this.bus,
@@ -166,7 +172,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     : undefined;
 
   private readonly taws = new Taws(this.bus, this.fmsPositionSelector.selectedIndex)
-    .addModule(new TouchdownCalloutModule(this.bus));
+    .addModule(new TouchdownCalloutModule(this.bus, this.facLoader));
 
   private readonly xpdrTcasManager?: GarminXpdrTcasManager;
 
@@ -307,6 +313,8 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
       backplane: this.backplane,
       config: this.config,
       instrumentConfig: this.instrumentConfig,
+      facLoader: this.facLoader,
+      flightPathCalculator: this.flightPathCalculator,
       fms: this.fms,
       iauSettingManager: this.iauSettingManager,
       vSpeedSettingManager: this.vSpeedSettingManager,
@@ -328,6 +336,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     this.initPersistentSettings(pluginPersistentSettings.values());
 
     this.auralAlertXmlAdapter.start();
+    this.auralAlertWarningAdapter.start();
 
     this.pluginSystem.callPlugins((plugin: G3000MfdPlugin) => {
       plugin.onInit();

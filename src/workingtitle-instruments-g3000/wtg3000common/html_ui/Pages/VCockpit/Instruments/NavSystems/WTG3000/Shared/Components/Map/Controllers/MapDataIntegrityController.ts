@@ -64,7 +64,7 @@ export class MapDataIntegrityController extends MapSystemController<MapDataInteg
 
     this.ahrsHeadingDataValid.pipe(this.dataIntegrityModule.headingSignalValid);
     this.ahrsAttitudeDataValid.pipe(this.dataIntegrityModule.attitudeSignalValid);
-    this.adcSystemState.pipe(this.dataIntegrityModule.adcSignalValid, state => state !== null && state.current === AvionicsSystemState.On);
+    this.adcSystemState.pipe(this.dataIntegrityModule.adcSignalValid, state => state !== null && (state.current === undefined || state.current === AvionicsSystemState.On));
     this.fmsPosMode.pipe(this.dataIntegrityModule.gpsSignalValid, mode => mode !== FmsPositionMode.None);
     this.fmsPosMode.pipe(this.dataIntegrityModule.isDeadReckoning, mode => mode === FmsPositionMode.DeadReckoning || mode === FmsPositionMode.DeadReckoningExpired);
   }

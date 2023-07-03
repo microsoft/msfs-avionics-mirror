@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
-  ClockEvents, FacilityWaypoint, FSComponent, IntersectionFacility, NavComSimVarPublisher, NavProcSimVarPublisher, NdbFacility,
+  ClockEvents, FacilityWaypoint, FSComponent, IntersectionFacility, NdbFacility,
   PluginSystem, SetSubject, Subject, UserFacility, VNode, VorFacility, Wait, XPDRSimVarPublisher,
 } from '@microsoft/msfs-sdk';
 import {
@@ -9,10 +9,11 @@ import {
 import {
   AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, DefaultFmsSpeedTargetDataProvider, ExistingUserWaypointsArray, FlightPlanListManager,
   FlightPlanStore, G3000ActiveSourceNavIndicator, G3000FilePaths, G3000NavIndicator, G3000NavIndicatorName, G3000NavIndicators, G3000NavSourceName,
-  G3000NavSources, G3000NearestContext, G3000Plugin, G3000PluginBinder, GpsSource, NavIndicators, NavRadioNavSource, NavSource, NavSources,
+  G3000NavSources, G3000NearestContext, G3000Plugin, GpsSource, InstrumentBackplaneNames, NavIndicatorsCollection, NavRadioNavSource, NavSource, NavSources,
   WTG3000BaseInstrument, WTG3000FsInstrument,
 } from '@microsoft/msfs-wtg3000-common';
 
+import { LabelBarPluginHandlers } from './Components';
 import { GtcConfig } from './Config';
 import {
   GtcAirwaySelectionDialog, GtcAltitudeDialog, GtcBaroPressureDialog, GtcCourseDialog, GtcDistanceDialog, GtcDurationDialog,
@@ -21,7 +22,8 @@ import {
   GtcSpeedConstraintDialog, GtcSpeedDialog, GtcTemperatureDialog, GtcUserWaypointDialog, GtcVnavAltitudeDialog, GtcVnavFlightPathAngleDialog, GtcWeightDialog,
 } from './Dialog';
 import { G3000GtcPlugin, G3000GtcPluginBinder } from './G3000GTCPlugin';
-import { GtcContainer, GtcService, GtcViewKeys, GtcViewLifecyclePolicy } from './GtcService';
+import { G3000GtcViewContext } from './G3000GtcViewContext';
+import { GtcContainer, GtcInteractionHandler, GtcKnobStatePluginOverrides, GtcService, GtcViewKeys, GtcViewLifecyclePolicy } from './GtcService';
 import { GtcDefaultPositionHeadingDataProvider, GtcUserWaypointEditController } from './Navigation';
 import {
   GtcAdvancedVnavProfilePage, GtcAirportInfoPage, GtcApproachPage, GtcArrivalPage, GtcAudioRadiosPopup,
@@ -51,8 +53,6 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
 
   private readonly bootSplashCssClass = SetSubject.create(['gtc-boot-splash', `gtc-boot-splash-${this.instrumentConfig.orientation}`]);
 
-  private readonly navComSimVarPublisher = new NavComSimVarPublisher(this.bus);
-  private readonly navProcSimVarPublisher = new NavProcSimVarPublisher(this.bus);
   private readonly xpdrSimVarPublisher = new XPDRSimVarPublisher(this.bus);
 
   private readonly navSources: G3000NavSources;
@@ -108,7 +108,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
 
   private readonly userWaypointEditController = new GtcUserWaypointEditController(this.facRepo, this.fms);
 
-  private readonly pluginSystem = new PluginSystem<G3000GtcPlugin, G3000PluginBinder>();
+  private readonly pluginSystem = new PluginSystem<G3000GtcPlugin, G3000GtcPluginBinder>();
 
   /**
    * Constructs a new WTG3000GtcInstrument.
@@ -132,13 +132,11 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
 
     this.navSources = new NavSources<G3000NavSourceName>(...navSources);
 
-    this.navIndicators = new NavIndicators(new Map<G3000NavIndicatorName, G3000NavIndicator>([
+    this.navIndicators = new NavIndicatorsCollection(new Map<G3000NavIndicatorName, G3000NavIndicator>([
       ['activeSource', new G3000ActiveSourceNavIndicator(this.navSources, this.bus, 1)]
     ]));
 
-    this.backplane.addPublisher('navCom', this.navComSimVarPublisher);
-    this.backplane.addPublisher('navProc', this.navProcSimVarPublisher);
-    this.backplane.addPublisher('xpdr', this.xpdrSimVarPublisher);
+    this.backplane.addPublisher(InstrumentBackplaneNames.Xpdr, this.xpdrSimVarPublisher);
 
     this.doInit();
   }
@@ -155,10 +153,14 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
       backplane: this.backplane,
       config: this.config,
       instrumentConfig: this.instrumentConfig,
+      facLoader: this.facLoader,
+      flightPathCalculator: this.flightPathCalculator,
+      navIndicators: this.navIndicators,
       fms: this.fms,
       iauSettingManager: this.iauSettingManager,
       vSpeedSettingManager: this.vSpeedSettingManager,
       fmsSpeedsSettingManager: this.fmsSpeedsSettingManager,
+      gtcService: this.gtcService,
       flightPlanStore: this.flightPlanStore,
     };
 
@@ -188,11 +190,57 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
 
     (this.instrument as WTG3000BaseInstrument<this>).setHighlightElement(this.highlightRef.instance);
 
-    // Must be called *after* GTC_Container has rendered, as it's the parent
-    // element of the views which are about to be registered and rendered.
-    this.registerViews();
+    // ---- Attach plugin knob state overrides ----
+    const knobStateOverrides: GtcKnobStatePluginOverrides[] = [];
     this.pluginSystem.callPlugins((plugin: G3000GtcPlugin) => {
-      plugin.registerGtcViews(this.gtcService);
+      const overrides = plugin.getKnobStateOverrides(this.gtcService);
+      if (overrides) {
+        knobStateOverrides.push(overrides);
+      }
+    });
+    this.gtcService.attachPluginKnobStateOverrides(knobStateOverrides);
+
+    // ---- Attach plugin interaction event handler ----
+    const interactionEventHandlers: GtcInteractionHandler[] = [];
+    this.pluginSystem.callPlugins((plugin: G3000GtcPlugin) => {
+      interactionEventHandlers.push(plugin);
+    });
+    this.gtcService.attachPluginInteractionhandler({
+      /** @inheritdoc */
+      onGtcInteractionEvent(event) {
+        for (let i = interactionEventHandlers.length - 1; i >= 0; i--) {
+          if (interactionEventHandlers[i].onGtcInteractionEvent(event)) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+    });
+
+    // ---- Register GTC views ----
+    // Must be called *after* GtcContainer has rendered, since it's the parent
+    // element of the views which are about to be registered and rendered.
+
+    const context: G3000GtcViewContext = {
+      posHeadingDataProvider: this.posHeadingDataProvider,
+      posHeadingDataProvider1Hz: this.posHeadingDataProvider1Hz,
+      minimumsDataProvider: this.minimumsDataProvider,
+      vnavDataProvider: this.vnavDataProvider,
+      obsSuspDataProvider: this.obsSuspDataProvider,
+      fmsSpeedTargetDataProvider: this.fmsSpeedTargetDataProvider,
+      flightPlanListManager: this.flightPlanListManager,
+      wptInfoSelectedIntersection: Subject.create<FacilityWaypoint<IntersectionFacility> | null>(null),
+      wptInfoSelectedVor: Subject.create<FacilityWaypoint<VorFacility> | null>(null),
+      wptInfoSelectedNdb: Subject.create<FacilityWaypoint<NdbFacility> | null>(null),
+      wptInfoSelectedUserWpt: Subject.create<FacilityWaypoint<UserFacility> | null>(null),
+      userWptEditController: this.userWaypointEditController,
+      existingUserWptArray: this.existingUserWaypointsArray
+    };
+
+    this.registerViews(context);
+    this.pluginSystem.callPlugins((plugin: G3000GtcPlugin) => {
+      plugin.registerGtcViews(this.gtcService, context);
     });
 
     this.gtcService.initialize();
@@ -206,9 +254,18 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
    * @returns This instrument's rendered components, as a VNode.
    */
   private renderComponents(): VNode {
+    // ---- Get plugin label bar handlers ----
+    const labelBarHandlers: LabelBarPluginHandlers[] = [];
+    this.pluginSystem.callPlugins((plugin: G3000GtcPlugin) => {
+      const handlers = plugin.getLabelBarHandlers();
+      if (handlers) {
+        labelBarHandlers.push(handlers);
+      }
+    });
+
     return (
       <>
-        <GtcContainer gtcService={this.gtcService} config={this.config} />
+        <GtcContainer gtcService={this.gtcService} config={this.config} pluginLabelBarHandlers={labelBarHandlers} />
         <div class={this.bootSplashCssClass}>
           <img src={`${G3000FilePaths.ASSETS_PATH}/Images/GTC/garmin_logo_gtc.png`} class="gtc-boot-splash-icon" />
         </div>
@@ -220,8 +277,9 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
 
   /**
    * Registers all default GTC views with the GTC service.
+   * @param context A context containing references to items used to create the default GTC views.
    */
-  private registerViews(): void {
+  private registerViews(context: Readonly<G3000GtcViewContext>): void {
 
     const supportPerfPage = this.config.vnav.advanced || this.config.performance.isToldSupported;
 
@@ -237,7 +295,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             controlMode={controlMode}
             radiosConfig={this.config.radios}
             activeNavIndicator={this.navIndicators.get('activeSource')}
-            obsSuspDataProvider={this.obsSuspDataProvider}
+            obsSuspDataProvider={context.obsSuspDataProvider}
           />
         );
       }
@@ -265,7 +323,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
     this.gtcService.registerView(
       GtcViewLifecyclePolicy.Transient,
       GtcViewKeys.Minimums, 'PFD',
-      (gtcService, controlMode) => <GtcMinimumsPage gtcService={gtcService} controlMode={controlMode} minimumsDataProvider={this.minimumsDataProvider} />
+      (gtcService, controlMode) => <GtcMinimumsPage gtcService={gtcService} controlMode={controlMode} minimumsDataProvider={context.minimumsDataProvider} />
     );
     this.gtcService.registerView(
       GtcViewLifecyclePolicy.Transient,
@@ -365,7 +423,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
             fms={this.fms}
-            posHeadingDataProvider={this.posHeadingDataProvider1Hz}
+            posHeadingDataProvider={context.posHeadingDataProvider1Hz}
             flightPlanStore={this.flightPlanStore!}
           />
         );
@@ -375,8 +433,19 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
     this.gtcService.registerView(
       GtcViewLifecyclePolicy.Static,
       GtcViewKeys.FlightPlan, 'MFD',
-      (gtcService, controlMode, displayPaneIndex) => <GtcFlightPlanPage gtcService={gtcService} controlMode={controlMode} displayPaneIndex={displayPaneIndex!}
-        fms={this.fms} planIndex={Fms.PRIMARY_PLAN_INDEX} store={this.flightPlanStore!} listManager={this.flightPlanListManager!} />
+      (gtcService, controlMode, displayPaneIndex) => {
+        return (
+          <GtcFlightPlanPage
+            gtcService={gtcService}
+            controlMode={controlMode}
+            displayPaneIndex={displayPaneIndex!}
+            fms={this.fms}
+            planIndex={Fms.PRIMARY_PLAN_INDEX}
+            store={this.flightPlanStore!}
+            listManager={context.flightPlanListManager!}
+          />
+        );
+      }
     );
     if (this.config.vnav.advanced) {
       this.gtcService.registerView(
@@ -390,9 +459,9 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
               displayPaneIndex={displayPaneIndex!}
               fms={this.fms}
               flightPlanStore={this.flightPlanStore!}
-              vnavDataProvider={this.vnavDataProvider}
+              vnavDataProvider={context.vnavDataProvider}
               fmsSpeedSettingManager={this.fmsSpeedsSettingManager!}
-              fmsSpeedTargetDataProvider={this.fmsSpeedTargetDataProvider!}
+              fmsSpeedTargetDataProvider={context.fmsSpeedTargetDataProvider!}
             />
           );
         }
@@ -409,7 +478,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
               displayPaneIndex={displayPaneIndex!}
               fms={this.fms}
               store={this.flightPlanStore!}
-              vnavDataProvider={this.vnavDataProvider}
+              vnavDataProvider={context.vnavDataProvider}
             />
           );
         }
@@ -493,7 +562,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             store={this.flightPlanStore!}
             calculator={this.flightPathCalculator}
             allowRnpAr={this.config.fms.approach.supportRnpAr}
-            minimumsDataProvider={this.minimumsDataProvider}
+            minimumsDataProvider={context.minimumsDataProvider}
           />
         );
       }
@@ -508,7 +577,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             gtcService={gtcService}
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
-            minimumsDataProvider={this.minimumsDataProvider}
+            minimumsDataProvider={context.minimumsDataProvider}
           />
         );
       }
@@ -532,6 +601,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             gtcService={gtcService}
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
+            horizonDirectorCueOption={this.config.horizon.directorCue}
             auralAlertsConfig={this.config.auralAlerts}
             touchdownCalloutsConfig={this.config.taws.touchdownCallouts}
           />
@@ -565,7 +635,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
           displayPaneIndex={displayPaneIndex}
           destinationFacility={this.flightPlanStore!.destinationFacility}
           weightLimits={this.config.performance.weightLimits}
-          gpsHasFailed={this.posHeadingDataProvider.isGpsDataFailed}
+          gpsHasFailed={context.posHeadingDataProvider.isGpsDataFailed}
         />
     );
 
@@ -621,7 +691,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
                 perfConfig={this.config.performance}
                 vSpeedGroups={this.config.vSpeedGroups}
                 flightPlanStore={this.flightPlanStore!}
-                posHeadingDataProvider={this.posHeadingDataProvider}
+                posHeadingDataProvider={context.posHeadingDataProvider}
               />
             );
           }
@@ -662,7 +732,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
             facLoader={this.facLoader}
-            posHeadingDataProvider={this.posHeadingDataProvider}
+            posHeadingDataProvider={context.posHeadingDataProvider}
             fms={this.fms}
             flightPlanStore={this.flightPlanStore!}
             allowRnpAr={this.config.fms.approach.supportRnpAr}
@@ -671,7 +741,6 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
       }
     );
 
-    const selectedIntersection = Subject.create<FacilityWaypoint<IntersectionFacility> | null>(null);
     this.gtcService.registerView(
       GtcViewLifecyclePolicy.Persistent,
       GtcViewKeys.IntersectionInfo, 'MFD',
@@ -682,14 +751,13 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
             facLoader={this.facLoader}
-            posHeadingDataProvider={this.posHeadingDataProvider}
-            selectedIntersection={selectedIntersection}
+            posHeadingDataProvider={context.posHeadingDataProvider}
+            selectedIntersection={context.wptInfoSelectedIntersection}
           />
         );
       }
     );
 
-    const selectedVor = Subject.create<FacilityWaypoint<VorFacility> | null>(null);
     this.gtcService.registerView(
       GtcViewLifecyclePolicy.Persistent,
       GtcViewKeys.VorInfo, 'MFD',
@@ -700,14 +768,13 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
             facLoader={this.facLoader}
-            posHeadingDataProvider={this.posHeadingDataProvider}
-            selectedVor={selectedVor}
+            posHeadingDataProvider={context.posHeadingDataProvider}
+            selectedVor={context.wptInfoSelectedVor}
           />
         );
       }
     );
 
-    const selectedNdb = Subject.create<FacilityWaypoint<NdbFacility> | null>(null);
     this.gtcService.registerView(
       GtcViewLifecyclePolicy.Persistent,
       GtcViewKeys.NdbInfo, 'MFD',
@@ -718,14 +785,13 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
             facLoader={this.facLoader}
-            posHeadingDataProvider={this.posHeadingDataProvider}
-            selectedNdb={selectedNdb}
+            posHeadingDataProvider={context.posHeadingDataProvider}
+            selectedNdb={context.wptInfoSelectedNdb}
           />
         );
       }
     );
 
-    const selectedUserWaypoint = Subject.create<FacilityWaypoint<UserFacility> | null>(null);
     this.gtcService.registerView(
       GtcViewLifecyclePolicy.Persistent,
       GtcViewKeys.UserWaypointInfo, 'MFD',
@@ -736,10 +802,10 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
             facLoader={this.facLoader}
-            posHeadingDataProvider={this.posHeadingDataProvider}
-            controller={this.userWaypointEditController}
-            userWaypoints={this.existingUserWaypointsArray}
-            selectedUserWaypoint={selectedUserWaypoint}
+            posHeadingDataProvider={context.posHeadingDataProvider}
+            controller={context.userWptEditController}
+            userWaypoints={context.existingUserWptArray}
+            selectedUserWaypoint={context.wptInfoSelectedUserWpt}
           />
         );
       }
@@ -759,7 +825,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             gtcService={gtcService}
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
-            posHeadingDataProvider={this.posHeadingDataProvider1Hz}
+            posHeadingDataProvider={context.posHeadingDataProvider1Hz}
             allowRnpAr={this.config.fms.approach.supportRnpAr}
           />
         );
@@ -774,7 +840,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             gtcService={gtcService}
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
-            posHeadingDataProvider={this.posHeadingDataProvider1Hz}
+            posHeadingDataProvider={context.posHeadingDataProvider1Hz}
           />
         );
       }
@@ -788,7 +854,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             gtcService={gtcService}
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
-            posHeadingDataProvider={this.posHeadingDataProvider1Hz}
+            posHeadingDataProvider={context.posHeadingDataProvider1Hz}
           />
         );
       }
@@ -802,7 +868,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             gtcService={gtcService}
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
-            posHeadingDataProvider={this.posHeadingDataProvider1Hz}
+            posHeadingDataProvider={context.posHeadingDataProvider1Hz}
           />
         );
       }
@@ -816,7 +882,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             gtcService={gtcService}
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
-            posHeadingDataProvider={this.posHeadingDataProvider1Hz}
+            posHeadingDataProvider={context.posHeadingDataProvider1Hz}
           />
         );
       }
@@ -830,7 +896,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             gtcService={gtcService}
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
-            posHeadingDataProvider={this.posHeadingDataProvider1Hz}
+            posHeadingDataProvider={context.posHeadingDataProvider1Hz}
           />
         );
       }
@@ -934,7 +1000,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             controlMode={controlMode}
             displayPaneIndex={displayPaneIndex}
             fms={this.fms}
-            posHeadingDataProvider={this.posHeadingDataProvider1Hz}
+            posHeadingDataProvider={context.posHeadingDataProvider1Hz}
           />
         );
       }
@@ -947,7 +1013,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
           gtcService={gtcService}
           controlMode={controlMode}
           displayPaneIndex={displayPaneIndex}
-          posHeadingDataProvider={this.posHeadingDataProvider1Hz}
+          posHeadingDataProvider={context.posHeadingDataProvider1Hz}
         />
       )
     );
@@ -1192,8 +1258,8 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             displayPaneIndex={displayPaneIndex}
             facRepo={this.facRepo}
             facLoader={this.facLoader}
-            controller={this.userWaypointEditController}
-            posHeadingDataProvider={this.posHeadingDataProvider}
+            controller={context.userWptEditController}
+            posHeadingDataProvider={context.posHeadingDataProvider}
           />
         );
       }

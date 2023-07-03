@@ -1,4 +1,3 @@
-
 import { BitFlags, ReadonlyFloat64Array } from '../../../math';
 import { HorizonProjection, HorizonProjectionChangeType } from '../HorizonProjection';
 import { HorizonCanvasLayer, HorizonCanvasLayerProps } from './HorizonCanvasLayer';

@@ -2,20 +2,44 @@ import { ComponentProps, DisplayComponent, FSComponent, MappedSubject, SetSubjec
 
 import { ControllableDisplayPaneIndex, DisplayPaneEvents } from '@microsoft/msfs-wtg3000-common';
 
-import { GtcCenterKnobState, GtcDualKnobRotationState, GtcMapKnobState } from '../../GtcService/GtcKnobStates';
+import { GtcCenterKnobState, GtcDualKnobState, GtcMapKnobState } from '../../GtcService/GtcKnobStates';
 import { GtcService } from '../../GtcService/GtcService';
 import { GtcSidebar } from '../../GtcService/Sidebar';
 import { BtnImagePath } from '../../ButtonBackgroundImagePaths';
 
 import './LabelBar.css';
 
-/** The properties for the LabelBar component. */
-interface LabelBarProps extends ComponentProps {
+/**
+ * A set of plugin-defined functions which return labels to apply to the GTC label bar.
+ */
+export type LabelBarPluginHandlers = {
+  /** A function which returns a GTC dual concentric knob label, or `null` to defer label generation. */
+  dualKnobLabel?: (knobState: string) => string | null;
+
+  /** A function which returns a GTC center knob label, or `null` to defer label generation. */
+  centerKnobLabel?: (knobState: string) => string | null;
+
+  /** A function which returns a GTC map knob label, or `null` to defer label generation. */
+  mapKnobLabel?: (knobState: string) => string | null;
+};
+
+/**
+ * Component props for LabelBar.
+ */
+export interface LabelBarProps extends ComponentProps {
   /** The GtcService. */
   gtcService: GtcService;
+
+  /**
+   * An array of plugin label handlers. The array should be ordered such that the handlers appear in the order in which
+   * their parent plugins were loaded.
+   */
+  pluginHandlers: readonly Readonly<LabelBarPluginHandlers>[];
 }
 
-/** The LabelBar component. */
+/**
+ * A GTC label bar which displays text describing the context-sensitive functions of the GTC knobs.
+ */
 export class LabelBar extends DisplayComponent<LabelBarProps> {
   private readonly selectedPaneDisplayRef = FSComponent.createRef<HTMLDivElement>();
   private readonly selectedPaneIconColorRef = FSComponent.createRef<HTMLDivElement>();
@@ -28,30 +52,56 @@ export class LabelBar extends DisplayComponent<LabelBarProps> {
   private readonly pilotOrCopilot = this.props.gtcService.gtcThisSide === 'left' ? 'Pilot' : 'Copilot';
   private readonly isHoz = this.props.gtcService.orientation === 'horizontal';
 
-  private readonly dualKnobLabel = MappedSubject.create(([override, state]) => {
+  private readonly dualKnobPluginHandlers = this.props.pluginHandlers
+    .map(handlers => handlers.dualKnobLabel)
+    .filter(handler => !!handler) as ((knobState: string) => string | null)[];
+  private readonly centerKnobPluginHandlers = this.props.pluginHandlers
+    .map(handlers => handlers.centerKnobLabel)
+    .filter(handler => !!handler) as ((knobState: string) => string | null)[];
+  private readonly mapKnobPluginHandlers = this.props.pluginHandlers
+    .map(handlers => handlers.mapKnobLabel)
+    .filter(handler => !!handler) as ((knobState: string) => string | null)[];
+
+  private readonly dualKnobLabel = MappedSubject.create(([override, knobState]) => {
     if (override !== null) {
       return GtcSidebar.renderDualConcentricKnobLabel(override, this.props.gtcService.orientation);
     }
-    switch (state as GtcDualKnobRotationState) {
-      case GtcDualKnobRotationState.Blank: return '';
-      case GtcDualKnobRotationState.CRS: return 'CRS';
-      case GtcDualKnobRotationState.DisplayPanes: return '';
-      case GtcDualKnobRotationState.DisplayPanesAndRadarControl: return 'Push:\nRadar\nControl';
-      case GtcDualKnobRotationState.NAVCOM1:
+
+    for (let i = this.dualKnobPluginHandlers.length - 1; i >= 0; i--) {
+      const label = this.dualKnobPluginHandlers[i](knobState);
+      if (label !== null) {
+        return label;
+      }
+    }
+
+    switch (knobState) {
+      case GtcDualKnobState.Blank: return '';
+      case GtcDualKnobState.CRS: return 'CRS';
+      case GtcDualKnobState.DisplayPanes: return '';
+      case GtcDualKnobState.DisplayPanesAndRadarControl: return 'Push:\nRadar\nControl';
+      case GtcDualKnobState.NAVCOM1:
         return this.isHoz ? 'COM1\nFreq\nPush:\n1–2\nHold:↕' : 'COM1 Freq\nPush:1–2 Hold:↕';
-      case GtcDualKnobRotationState.NAVCOM2:
+      case GtcDualKnobState.NAVCOM2:
         return this.isHoz ? 'COM2\nFreq\nPush:\n1–2\nHold:↕' : 'COM2 Freq\nPush:1–2 Hold:↕';
-      case GtcDualKnobRotationState.MapPointerControl:
+      case GtcDualKnobState.MapPointerControl:
         return this.isHoz ? 'Pan/\nPoint\nPush:\nPan Off' : '';
       default: throw new Error('GTC Dual Knob rotation state not handled');
     }
   }, this.sidebarState.dualConcentricKnobLabel, this.props.gtcService.gtcKnobStates.dualKnobState);
 
-  private readonly centerKnobLabel = MappedSubject.create(([override, state]) => {
+  private readonly centerKnobLabel = MappedSubject.create(([override, knobState]) => {
     if (override !== null) {
       return override;
     }
-    switch (state as GtcCenterKnobState) {
+
+    for (let i = this.centerKnobPluginHandlers.length - 1; i >= 0; i--) {
+      const label = this.centerKnobPluginHandlers[i](knobState);
+      if (label !== null) {
+        return label;
+      }
+    }
+
+    switch (knobState) {
       case GtcCenterKnobState.Blank: return '';
       // TODO Pilot/copilot can change on the audios and radios page
       case GtcCenterKnobState.NAVCOM1: return `${this.pilotOrCopilot} COM1 Volume`;
@@ -60,11 +110,19 @@ export class LabelBar extends DisplayComponent<LabelBarProps> {
     }
   }, this.sidebarState.centerKnobLabel, this.props.gtcService.gtcKnobStates.centerKnobState);
 
-  private readonly mapKnobLabel = MappedSubject.create(([override, state]) => {
+  private readonly mapKnobLabel = MappedSubject.create(([override, knobState]) => {
     if (override !== null) {
       return override;
     }
-    switch (state) {
+
+    for (let i = this.mapKnobPluginHandlers.length - 1; i >= 0; i--) {
+      const label = this.mapKnobPluginHandlers[i](knobState);
+      if (label !== null) {
+        return label;
+      }
+    }
+
+    switch (knobState) {
       case GtcMapKnobState.Blank: return '';
       case GtcMapKnobState.NAVCOM1: return 'Pilot\nCOM1\nVolume';
       case GtcMapKnobState.NAVCOM2: return 'Pilot\nCOM2\nVolume';

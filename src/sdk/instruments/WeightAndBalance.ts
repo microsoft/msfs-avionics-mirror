@@ -1,16 +1,34 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus } from '../data/EventBus';
+import { EventBus, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
-import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
-import { SimVarPublisher } from './BasePublishers';
+import { SimVarValueType } from '../data/SimVars';
+import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
 
 /**
- * An interface that describes the possible Weight and Balance events.
+ * An interface that describes the base Weight and Balance events.
  */
-export interface WeightBalanceEvents {
+export interface BaseWeightBalanceEvents {
   /** A total weight value for the aircraft, in pounds. */
   total_weight: number;
+  /** The weight value of a payload station with the given index */
+  payload_station_weight: number;
+}
+
+/** Indexed topics. */
+type IndexedTopics = 'payload_station_weight';
+
+/**
+ * Indexed events related to Weight and Balance.
+ */
+type WeightBalanceIndexedEvents = {
+  [P in keyof Pick<BaseWeightBalanceEvents, IndexedTopics> as IndexedEventType<P>]: BaseWeightBalanceEvents[P];
+}
+
+/**
+ * Events related to Weight and Balance.
+ */
+export interface WeightBalanceEvents extends BaseWeightBalanceEvents, WeightBalanceIndexedEvents {
 }
 
 /**
@@ -23,10 +41,11 @@ export class WeightBalanceSimvarPublisher extends SimVarPublisher<WeightBalanceE
    * @param bus The EventBus to publish to
    * @param pacer An optional pacer to use to control the rate of publishing
    */
-  public constructor(bus: EventBus, pacer: PublishPacer<WeightBalanceEvents> | undefined = undefined) {
+  public constructor(bus: EventBus, pacer?: PublishPacer<WeightBalanceEvents>) {
 
-    const simvars = new Map<keyof WeightBalanceEvents, SimVarDefinition>([
+    const simvars = new Map<keyof WeightBalanceEvents, SimVarPublisherEntry<any>>([
       ['total_weight', { name: 'TOTAL WEIGHT', type: SimVarValueType.Pounds }],
+      ['payload_station_weight', { name: 'PAYLOAD STATION WEIGHT:#index#', type: SimVarValueType.Pounds, indexed: true }],
     ]);
 
     super(simvars, bus, pacer);

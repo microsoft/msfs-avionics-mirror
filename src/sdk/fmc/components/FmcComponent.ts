@@ -7,7 +7,7 @@ import { LineSelectKeyEvent } from '../FmcInteractionEvents';
  */
 export interface FmcComponentOptions {
   /** Disables this component, not handling any lsk events.  */
-  disabled?: boolean,
+  disabled?: boolean | (() => boolean),
 
   /**
    * Handler for an LSK pressed where the component is.
@@ -54,6 +54,7 @@ export interface FmcComponentOptions {
  * 4. call {@link onHandleSelectKey} - overridden by a subclass
  */
 export abstract class FmcComponent<O extends FmcComponentOptions = FmcComponentOptions> /* implements SelectKeyHandler, ScrollKeyHandler */ {
+  public isDisabled = this.options.disabled !== undefined && typeof this.options.disabled === 'function' ? this.options.disabled : () => !!this.options.disabled;
 
   /** @inheritDoc */
   protected constructor(
@@ -77,7 +78,7 @@ export abstract class FmcComponent<O extends FmcComponentOptions = FmcComponentO
   /** @inheritDoc */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async handleSelectKey(event: LineSelectKeyEvent): Promise<boolean | string> {
-    if (this.options.disabled) {
+    if (this.isDisabled()) {
       return false;
     }
 

@@ -1,4 +1,4 @@
-import { AdfRadioIndex, AhrsEvents, ConsumerSubject, EventBus, GeoPoint, MappedSubject, NavComSimVars, NavMath, NavProcSimVars, NavSourceType } from '@microsoft/msfs-sdk';
+import { AdfRadioIndex, AhrsEvents, ConsumerSubject, EventBus, GeoPoint, MappedSubject, NavComEvents, NavComSimVars, NavMath, NavSourceType } from '@microsoft/msfs-sdk';
 import { AbstractNavBase } from '../NavBase';
 import { NavSource } from './NavSource';
 
@@ -17,15 +17,15 @@ export class AdfRadioSource<NameType extends string> extends AbstractNavBase imp
   public constructor(bus: EventBus, public readonly name: NameType, public readonly index: AdfRadioIndex) {
     super();
 
-    const navProcSimVarsSubscriber = bus.getSubscriber<NavProcSimVars>();
-    this.signal = ConsumerSubject.create(navProcSimVarsSubscriber.on(`adf_signal_${index}`), 0);
-    this.relativeBearing = ConsumerSubject.create(navProcSimVarsSubscriber.on(`adf_bearing_${index}`), 0);
+    const navComSubscriber = bus.getSubscriber<NavComEvents>();
+    this.signal = ConsumerSubject.create(navComSubscriber.on(`adf_signal_${index}`), 0);
+    this.relativeBearing = ConsumerSubject.create(navComSubscriber.on(`adf_bearing_${index}`), 0);
 
     const tempLocation = new GeoPoint(0, 0);
 
     // Pretty sure there is no NDB at {0 N, 0 E}, so we can safely assume if we ever get that data from the sim there
     // is no valid tuned station.
-    navProcSimVarsSubscriber.on(`adf_lla_${index}`).handle(val => {
+    navComSubscriber.on(`adf_lla_${index}`).handle(val => {
       if (val.lat === 0 && val.long === 0) {
         this.location.set(null);
       } else {

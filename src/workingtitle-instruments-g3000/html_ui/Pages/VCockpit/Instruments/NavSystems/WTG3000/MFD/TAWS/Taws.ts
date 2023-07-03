@@ -1,6 +1,6 @@
 import {
   AdcEvents, APVerticalModes, AvionicsSystemState, AvionicsSystemStateEvent, ClockEvents, ConsumerSubject, ConsumerValue, EventBus,
-  ExpSmoother, GeoPoint, MappedSubject, Subject, Subscribable, SubscribableUtils, Subscription, UnitType
+  GeoPoint, MappedSubject, MultiExpSmoother, Subject, Subscribable, SubscribableUtils, Subscription, UnitType
 } from '@microsoft/msfs-sdk';
 import { FmaData, FmaDataEvents, FmsPositionMode, FmsPositionSystemEvents, RadarAltimeterSystemEvents } from '@microsoft/msfs-garminsdk';
 import { TawsOperatingMode } from '@microsoft/msfs-wtg3000-common';
@@ -17,6 +17,8 @@ export class Taws {
 
   private readonly fmsPosIndex: Subscribable<number>;
 
+  private readonly simRate = ConsumerValue.create(null, 1);
+
   private readonly isOnGround = ConsumerValue.create(null, false);
 
   private readonly _hasGpsPos = Subject.create(false);
@@ -24,7 +26,7 @@ export class Taws {
 
   private readonly radarAltimeterState = ConsumerSubject.create<AvionicsSystemStateEvent | undefined>(null, undefined);
   private readonly radarAltitudeSource = ConsumerValue.create(null, 0);
-  private readonly radarAltitudeSmoother = new ExpSmoother(1000 / Math.LN2);
+  private readonly radarAltitudeSmoother = new MultiExpSmoother(2000 / Math.LN2, 1000 / Math.LN2, undefined, null, null, null, 10000);
 
   private readonly fmaData = ConsumerSubject.create<FmaData | undefined>(null, undefined);
 
@@ -41,7 +43,7 @@ export class Taws {
   private readonly _isPowered = Subject.create(true);
   private readonly operatingModeState = MappedSubject.create(this._isPowered);
 
-  private lastUpdateTime: number | undefined = undefined;
+  private lastUpdateRealTime: number | undefined = undefined;
 
   private isAlive = true;
   private isInit = false;
@@ -103,6 +105,8 @@ export class Taws {
 
     const sub = this.bus.getSubscriber<ClockEvents & FmsPositionSystemEvents & RadarAltimeterSystemEvents & AdcEvents & FmaDataEvents>();
 
+    this.simRate.setConsumer(sub.on('simRate'));
+
     this.isOnGround.setConsumer(sub.on('on_ground'));
 
     this.radarAltimeterState.setConsumer(sub.on('radaralt_state_1'));
@@ -134,7 +138,7 @@ export class Taws {
     }, true);
 
     this.radarAltimeterState.sub(state => {
-      this.data.isRadarAltitudeValid = state !== undefined && state.current === AvionicsSystemState.On;
+      this.data.isRadarAltitudeValid = state !== undefined && (state.current === undefined || state.current === AvionicsSystemState.On);
     }, true);
 
     this.fmaData.sub(data => {
@@ -170,17 +174,19 @@ export class Taws {
    * @param simTime The current sim time, as a UNIX timestamp in milliseconds.
    */
   private update(simTime: number): void {
-    const dt = Math.max(0, simTime - (this.lastUpdateTime ?? simTime));
+    const realTime = Date.now();
+    const simRate = this.simRate.get();
+    const dt = Math.min(realTime - (this.lastUpdateRealTime ?? realTime), 1000) * simRate;
 
     this.data.isOnGround = this.isOnGround.get();
     this.data.radarAltitude = this.radarAltitudeSmoother.next(this.radarAltitudeSource.get(), dt);
 
     const operatingMode = this.operatingMode.get();
     for (let i = 0; i < this.modules.length; i++) {
-      this.modules[i].onUpdate(simTime, operatingMode, this.data);
+      this.modules[i].onUpdate(operatingMode, this.data, realTime, simTime, simRate);
     }
 
-    this.lastUpdateTime = simTime;
+    this.lastUpdateRealTime = realTime;
   }
 
   /**

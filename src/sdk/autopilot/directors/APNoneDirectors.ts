@@ -10,6 +10,9 @@ export class APNoneVerticalDirector implements PlaneDirector {
   public state = DirectorState.Inactive;
 
   /** @inheritdoc */
+  public drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean) => void;
+
+  /** @inheritdoc */
   public activate(): void {
     this.state = DirectorState.Active;
 
@@ -61,6 +64,9 @@ export class APNoneLateralDirector implements PlaneDirector {
 
   /** @inheritdoc */
   public state = DirectorState.Inactive;
+
+  /** @inheritdoc */
+  public setBank?: (bank: number) => void;
 
   /** @inheritdoc */
   public activate(): void {

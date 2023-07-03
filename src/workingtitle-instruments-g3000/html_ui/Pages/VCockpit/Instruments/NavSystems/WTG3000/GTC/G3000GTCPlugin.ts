@@ -1,9 +1,13 @@
 import { AvionicsPlugin } from '@microsoft/msfs-sdk';
 
-import { FlightPlanStore, G3000Plugin, G3000PluginBinder } from '@microsoft/msfs-wtg3000-common';
+import { FlightPlanStore, G3000NavSourceName, G3000Plugin, G3000PluginBinder, NavIndicators } from '@microsoft/msfs-wtg3000-common';
 
+import { LabelBarPluginHandlers } from './Components/LabelBar/LabelBar';
 import { GtcConfig } from './Config/GtcConfig';
-import { GtcService } from './GtcService';
+import { G3000GtcViewContext } from './G3000GtcViewContext';
+import { GtcInteractionEvent, GtcInteractionHandler } from './GtcService/GtcInteractionEvent';
+import { GtcKnobStatePluginOverrides } from './GtcService/GtcKnobStates';
+import { GtcService } from './GtcService/GtcService';
 
 /**
  * A plugin binder for G3000 GTC plugins.
@@ -11,6 +15,12 @@ import { GtcService } from './GtcService';
 export interface G3000GtcPluginBinder extends G3000PluginBinder {
   /** The instrument configuration. */
   instrumentConfig: GtcConfig;
+
+  /** The collection of navigation indicators available on the instrument. */
+  navIndicators: NavIndicators<G3000NavSourceName, 'activeSource'>;
+
+  /** The GTC service. */
+  gtcService: GtcService;
 
   /**
    * The flight plan store to access plan data. The store is only provided for GTCs that support the MFD control mode.
@@ -21,12 +31,29 @@ export interface G3000GtcPluginBinder extends G3000PluginBinder {
 /**
  * A G3000 GTC plugin.
  */
-export interface G3000GtcPlugin extends G3000Plugin<G3000GtcPluginBinder> {
+export interface G3000GtcPlugin extends G3000Plugin<G3000GtcPluginBinder>, GtcInteractionHandler {
   /**
    * Registers GTC views.
    * @param gtcService The GTC service with which to register views.
+   * @param context A context containing references to items used to create the base G3000's GTC views.
    */
-  registerGtcViews(gtcService: GtcService): void;
+  registerGtcViews(gtcService: GtcService, context: Readonly<G3000GtcViewContext>): void;
+
+  /**
+   * Gets a set of GTC knob control state overrides. The knob control state overrides (if they are not `null`) will be
+   * applied in place of the states defined by the base G3000 system _and_ any plugins that were loaded before this
+   * one.
+   * @param gtcService The GTC service.
+   * @returns A set of GTC knob state overrides, or `null` if this plugin does not define any overrides.
+   */
+  getKnobStateOverrides(gtcService: GtcService): Readonly<GtcKnobStatePluginOverrides> | null;
+
+  /**
+   * Gets a set of GTC label bar handlers. The labels returned by the handlers (if they are not `null`) will be applied
+   * in place of the labels defined by the base G3000 system _and_ any plugins that were loaded before this one.
+   * @returns A set of GTC label bar handlers, or `null` if this plugin does not define any handlers.
+   */
+  getLabelBarHandlers(): Readonly<LabelBarPluginHandlers> | null;
 }
 
 /**
@@ -46,7 +73,25 @@ export abstract class AbstractG3000GtcPlugin extends AvionicsPlugin<G3000GtcPlug
 
   /** @inheritdoc */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public registerGtcViews(gtcService: GtcService): void {
+  public registerGtcViews(gtcService: GtcService, context: Readonly<G3000GtcViewContext>): void {
     // noop
+  }
+
+  /** @inheritdoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public getKnobStateOverrides(gtcService: GtcService): Readonly<GtcKnobStatePluginOverrides> | null {
+    return null;
+  }
+
+  /** @inheritdoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public getLabelBarHandlers(): Readonly<LabelBarPluginHandlers> | null {
+    return null;
+  }
+
+  /** @inheritdoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onGtcInteractionEvent(event: GtcInteractionEvent): boolean {
+    return false;
   }
 }

@@ -1,8 +1,8 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus, SimVarValueType } from '../../data';
-import { AdcEvents } from '../../instruments';
-import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
+import { SimVarValueType } from '../../data/SimVars';
+import { MathUtils } from '../../math/MathUtils';
+import { UnitType } from '../../math/NumberUnit';
 import { APValues } from '../APConfig';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
@@ -13,32 +13,25 @@ export class APVSDirector implements PlaneDirector {
 
   public state: DirectorState;
 
-  /** A callback called when the director activates. */
+  /** @inheritdoc */
   public onActivate?: () => void;
 
-  /** A callback called when the director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
 
-  private tas = 0;
-  private selectedVS = 0;
-  private verticalWindAverage = new SimpleMovingAverage(10);
+  /** @inheritdoc */
+  public drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean) => void;
 
 
   /**
    * Creates an instance of the LateralDirector.
-   * @param bus The event bus to use with this instance.
    * @param apValues are the ap selected values for the autopilot.
+   * @param vsIncrement The number that vertical speed can be incremented by, in feet per minute.
+   * Upon activation, the actual vs will be rounded using this increment.
+   * If undefined, the value will not be rounded before passed to the sim. Defaults to undefined.
    */
-  constructor(private readonly bus: EventBus, apValues: APValues) {
+  constructor(private readonly apValues: APValues, private readonly vsIncrement: number | undefined = undefined) {
     this.state = DirectorState.Inactive;
-
-    this.bus.getSubscriber<AdcEvents>().on('tas').withPrecision(0).handle((tas) => {
-      this.tas = tas;
-    });
-
-    apValues.selectedVerticalSpeed.sub((vs) => {
-      this.selectedVS = vs;
-    });
   }
 
   /**
@@ -49,7 +42,10 @@ export class APVSDirector implements PlaneDirector {
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
-    Coherent.call('AP_VS_VAR_SET_ENGLISH', 1, Simplane.getVerticalSpeed());
+    const currentVs = this.vsIncrement === undefined
+      ? Simplane.getVerticalSpeed()
+      : MathUtils.round(Simplane.getVerticalSpeed(), this.vsIncrement);
+    Coherent.call('AP_VS_VAR_SET_ENGLISH', 1, currentVs);
     SimVar.SetSimVarValue('AUTOPILOT VERTICAL HOLD', 'Bool', true);
   }
 
@@ -76,7 +72,7 @@ export class APVSDirector implements PlaneDirector {
    */
   public update(): void {
     if (this.state === DirectorState.Active) {
-      this.setPitch(this.getDesiredPitch());
+      this.drivePitch && this.drivePitch(this.getDesiredPitch(), true, true);
     }
   }
 
@@ -85,12 +81,9 @@ export class APVSDirector implements PlaneDirector {
    * @returns The desired pitch angle.
    */
   private getDesiredPitch(): number {
-    //We need the instant AOA and VS here so we're avoiding the bus
-    const aoa = SimVar.GetSimVarValue('INCIDENCE ALPHA', SimVarValueType.Degree);
-    const verticalWindComponent = this.verticalWindAverage.getAverage(SimVar.GetSimVarValue('AMBIENT WIND Y', SimVarValueType.FPM));
-
-    const desiredPitch = this.getFpa(UnitType.NMILE.convertTo(this.tas / 60, UnitType.FOOT), this.selectedVS - verticalWindComponent);
-    return MathUtils.clamp(aoa + (isNaN(desiredPitch) ? 10 : desiredPitch), -10, 10);
+    const tas = SimVar.GetSimVarValue('AIRSPEED TRUE', SimVarValueType.Knots);
+    const desiredPitch = this.getFpa(UnitType.NMILE.convertTo(tas / 60, UnitType.FOOT), this.apValues.selectedVerticalSpeed.get());
+    return -MathUtils.clamp(isNaN(desiredPitch) ? 0 : desiredPitch, -15, 15);
   }
 
   /**
@@ -101,16 +94,5 @@ export class APVSDirector implements PlaneDirector {
    */
   private getFpa(distance: number, altitude: number): number {
     return UnitType.RADIAN.convertTo(Math.atan(altitude / distance), UnitType.DEGREE);
-  }
-
-
-  /**
-   * Sets the desired AP pitch angle.
-   * @param targetPitch The desired AP pitch angle.
-   */
-  private setPitch(targetPitch: number): void {
-    if (isFinite(targetPitch)) {
-      SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, -targetPitch);
-    }
   }
 }

@@ -3,6 +3,17 @@
 import { MathUtils, NumberUnitInterface, Unit, UnitFamily, UnitType } from '../../math';
 
 /**
+ * Options for creating a duration formatter.
+ */
+export type DurationFormatterOptions = {
+  /** The string to output when the input duration is `NaN`. */
+  nanString: string;
+
+  /** Whether to cache and reuse the previously generated string when possible. */
+  cache: boolean;
+};
+
+/**
  * A utility class for creating duration formatters.
  *
  * Each duration formatter is a function which generates output strings from input duration values. The formatting
@@ -19,12 +30,11 @@ import { MathUtils, NumberUnitInterface, Unit, UnitFamily, UnitType } from '../.
  * (dash). The positive sign string is defined by `x`. If the positive sign token does not appear in the fragment
  * definition, the positive sign string defaults to `''` (the empty string), otherwise it defaults to `'+'`.
  * * Numeric fragment. In EBNF notation, these take the form
- * `{x}, ['?'], ['.', [{x}], ['(', {x}, ')']]`
- * where `x = 'H' | 'M' | 'S' | 'h' | 'm' | 's'`. Each numeric fragment is replaced with the numeric value of the
- * duration in hours, minutes, or seconds, depending on which character is used for `x`. With uppercase letters, the
- * entire portion of the input value is used. With lowercase letters, only the portion of the input value that does not
- * divide evenly into the next smallest unit is used (for hours, which is the largest unit, there is no difference
- * between using `'H'` and `'h'`).
+ * `{x}, ['?'], ['.', [{x}], ['(', {x}, ')']]`, where `x = 'H' | 'M' | 'S' | 'h' | 'm' | 's'`. Each numeric fragment is
+ * replaced with the numeric value of the duration in hours, minutes, or seconds, depending on which character is used
+ * for `x`. With uppercase letters, the entire portion of the input value is used. With lowercase letters, only the
+ * portion of the input value that does not divide evenly into the next smallest unit is used (for hours, which is the
+ * largest unit, there is no difference between using `'H'` and `'h'`).
  *   * The number of `x` characters to the left of the decimal point (including all characters if no decimal point is
  * present) in the definition controls the number of leading zeroes with which the output will be padded.
  *   * If the optional `'?'` character is present, the output will drop all digits to the left of the decimal point if
@@ -38,34 +48,34 @@ import { MathUtils, NumberUnitInterface, Unit, UnitFamily, UnitType } from '../.
  *
  * @example <caption>Formatting to hours-minutes-seconds</caption>
  * const formatter = DurationFormatter.create('{h}:{mm}:{ss}', UnitType.SECOND);
- * console.log(formatter(3616));  // 1:00:16
- * console.log(formatter(36016.9)); // 10:00:16
+ * formatter(3616);       // 1:00:16
+ * formatter(36016.9);    // 10:00:16
  *
  * @example <caption>Formatting to hours-minutes-seconds with decimal precision</caption>
  * const formatter = DurationFormatter.create('{h}:{mm}:{ss.s(s)}', UnitType.SECOND);
- * console.log(formatter(3600)); // 1:00:00.0
- * console.log(formatter(3600.55)); // 1:00:00.55
+ * formatter(3600);       // 1:00:00.0
+ * formatter(3600.55);    // 1:00:00.55
  *
  * @example <caption>Formatting to minutes-seconds</caption>
  * const formatter = DurationFormatter.create('{MM}:{ss}', UnitType.SECOND);
- * console.log(formatter(600));  // 10:00
- * console.log(formatter(4200)); // 70:00
+ * formatter(600);        // 10:00
+ * formatter(4200);       // 70:00
  *
  * @example <caption>Formatting with signs</caption>
  * const formatter = DurationFormatter.create('{-}{h}:{mm}', UnitType.SECOND);
- * console.log(formatter(3600));  // 1:00
- * console.log(formatter(-3600)); // -1:00
+ * formatter(3600);                   // 1:00
+ * formatter(-3600);                  // -1:00
  *
  * const formatterWithPositiveSign = DurationFormatter.create('{+-}{h}:{mm}', UnitType.SECOND);
- * console.log(formatterWithPositiveSign(3600));  // +1:00
+ * formatterWithPositiveSign(3600);   // +1:00
  * 
  * const formatterWithRealMinusSign = DurationFormatter.create('{-[–]}{h}:{mm}', UnitType.SECOND);
- * console.log(formatterWithRealMinusSign(3600));  // –1:00
+ * formatterWithRealMinusSign(3600);  // –1:00
  */
 export class DurationFormatter {
   private static readonly FORMAT_REGEXP = /({[^{}]*})/;
   private static readonly SIGN_FRAGMENT_REGEX = /^(?:(\+)(?:\[(.*)\])?)?-(?:\[(.*)\])?$/;
-  private static readonly NUM_FRAGMENT_REGEXP = /^(([HMShms])+)(\?)?(?:(\.(\2*)(?:\((\2+)\))?)?)$/;
+  private static readonly NUM_FRAGMENT_REGEXP = /^(([HMShms])\2*)(\?)?(?:(\.(\2*)(?:\((\2+)\))?)?)$/;
 
   private static readonly NUM_FRAGMENT_UNIT_INFO = {
     ['h']: { unit: UnitType.HOUR, mod: Infinity },
@@ -76,12 +86,31 @@ export class DurationFormatter {
     ['S']: { unit: UnitType.SECOND, mod: Infinity }
   };
 
-  private static readonly NUM_FRAGMENT_ROUND_FUNCS = {
-    ['+']: Math.ceil,
-    ['-']: Math.floor,
-    ['~']: Math.round
+  /** The default options for duration formatters. */
+  public static readonly DEFAULT_OPTIONS: Readonly<DurationFormatterOptions> = {
+    nanString: 'NaN',
+    cache: false
   };
 
+  /**
+   * Creates a function which formats durations, expressed as numeric values, to strings. The formatting behavior of
+   * the function is defined by a specified format template. For more information on format templates and their syntax,
+   * please refer to the {@link DurationFormatter} class documentation. All formatter options except `nanString`, if
+   * specified, will use their default values.
+   * @param format A template defining how the function formats durations.
+   * @param unit The unit type in which the input duration values are expressed.
+   * @param precision The precision of the formatter, in the unit type defined by the `unit` argument. Input values
+   * will be rounded to the nearest multiple of this quantity. Precision values less than or equal to zero will be
+   * taken to mean infinite precision (i.e. no rounding will take place).
+   * @param nanString The string to output when the input duration is `NaN`. Defaults to `'NaN'`.
+   * @returns A function which formats durations, expressed as numeric values, to strings.
+   */
+  public static create(
+    format: string,
+    unit: Unit<UnitFamily.Duration>,
+    precision: number,
+    nanString?: string
+  ): (duration: number) => string;
   /**
    * Creates a function which formats durations, expressed as numeric values, to strings. The formatting behavior of
    * the function is defined by a specified format template. For more information on format templates and their syntax,
@@ -91,21 +120,85 @@ export class DurationFormatter {
    * @param precision The precision of the formatter, in the unit type defined by the `unit` argument. Input values
    * will be rounded to the nearest multiple of this quantity. Precision values less than or equal to zero will be
    * taken to mean infinite precision (i.e. no rounding will take place).
-   * @param nanString The string to output when the input duration is `NaN`. Defaults to `'NaN'`.
+   * @param options Options to configure the formatter. Options not explicitly defined will be set to the following
+   * default values:
+   * * `nanString = 'NaN'`
+   * * `cache = false`
    * @returns A function which formats durations, expressed as numeric values, to strings.
    */
-  public static create(format: string, unit: Unit<UnitFamily.Duration>, precision: number, nanString = 'NaN'): (duration: number) => string {
+  public static create(
+    format: string,
+    unit: Unit<UnitFamily.Duration>,
+    precision: number,
+    options?: Readonly<Partial<DurationFormatterOptions>>
+  ): (duration: number) => string;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static create(
+    format: string,
+    unit: Unit<UnitFamily.Duration>,
+    precision: number,
+    arg4?: string | Readonly<Partial<DurationFormatterOptions>>
+  ): (duration: number) => string {
     const builder = DurationFormatter.createBuilder(format, precision, unit);
+    const options = DurationFormatter.resolveOptions(typeof arg4 === 'string' ? { nanString: arg4 } : arg4);
 
-    return (duration: number): string => {
-      if (isNaN(duration)) {
-        return nanString;
-      }
+    const built = Array.from(builder, () => '');
 
-      return builder.reduce((string, part) => string + part(duration, unit), '');
-    };
+    if (options.cache) {
+      let cachedInput: number | undefined = undefined;
+      let cachedOutput: string | undefined = undefined;
+
+      return (duration: number): string => {
+        if (isNaN(duration)) {
+          return options.nanString;
+        }
+
+        const roundedInput = MathUtils.round(duration, precision);
+
+        if (cachedInput !== undefined && cachedOutput !== undefined && roundedInput === cachedInput) {
+          return cachedOutput;
+        }
+
+        cachedInput = roundedInput;
+
+        for (let i = 0; i < builder.length; i++) {
+          built[i] = builder[i](duration, unit);
+        }
+
+        return cachedOutput = built.join('');
+      };
+    } else {
+      return (duration: number): string => {
+        if (isNaN(duration)) {
+          return options.nanString;
+        }
+
+        for (let i = 0; i < builder.length; i++) {
+          built[i] = builder[i](duration, unit);
+        }
+
+        return built.join('');
+      };
+    }
   }
 
+  /**
+   * Creates a function which formats durations, expressed as {@link NumberUnitInterface} objects, to strings. The
+   * formatting behavior of the function is defined by a specified format template. For more information on format
+   * templates and their syntax, please refer to the {@link DurationFormatter} class documentation. All formatter
+   * options except `nanString`, if specified, will use their default values.
+   * @param format A template defining how the function formats durations.
+   * @param precision The precision of the formatter. Input values will be rounded to the nearest multiple of this
+   * quantity. Precision values less than or equal to zero will be taken to mean infinite precision (i.e. no rounding
+   * will take place).
+   * @param nanString The string to output when the input duration is `NaN`. Defaults to `'NaN'`.
+   * @returns A function which formats durations, expressed as {@link NumberUnitInterface} objects, to strings.
+   */
+  public static createForNumberUnit(
+    format: string,
+    precision: NumberUnitInterface<UnitFamily.Duration>,
+    nanString?: string
+  ): (duration: NumberUnitInterface<UnitFamily.Duration>) => string;
   /**
    * Creates a function which formats durations, expressed as {@link NumberUnitInterface} objects, to strings. The
    * formatting behavior of the function is defined by a specified format template. For more information on format
@@ -114,19 +207,81 @@ export class DurationFormatter {
    * @param precision The precision of the formatter. Input values will be rounded to the nearest multiple of this
    * quantity. Precision values less than or equal to zero will be taken to mean infinite precision (i.e. no rounding
    * will take place).
-   * @param nanString The string to output when the input duration is `NaN`. Defaults to `'NaN'`.
+   * @param options Options to configure the formatter. Options not explicitly defined will be set to the following
+   * default values:
+   * * `nanString = 'NaN'`
+   * * `cache = false`
    * @returns A function which formats durations, expressed as {@link NumberUnitInterface} objects, to strings.
    */
-  public static createForNumberUnit(format: string, precision: NumberUnitInterface<UnitFamily.Duration>, nanString = 'NaN'): (duration: NumberUnitInterface<UnitFamily.Duration>) => string {
+  public static createForNumberUnit(
+    format: string,
+    precision: NumberUnitInterface<UnitFamily.Duration>,
+    options?: Readonly<Partial<DurationFormatterOptions>>
+  ): (duration: NumberUnitInterface<UnitFamily.Duration>) => string;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static createForNumberUnit(
+    format: string,
+    precision: NumberUnitInterface<UnitFamily.Duration>,
+    arg3?: string | Readonly<Partial<DurationFormatterOptions>>
+  ): (duration: NumberUnitInterface<UnitFamily.Duration>) => string {
     const builder = DurationFormatter.createBuilder(format, precision.number, precision.unit);
+    const options = DurationFormatter.resolveOptions(typeof arg3 === 'string' ? { nanString: arg3 } : arg3);
 
-    return (duration: NumberUnitInterface<UnitFamily.Duration>): string => {
-      if (duration.isNaN()) {
-        return nanString;
-      }
+    const built = Array.from(builder, () => '');
 
-      return builder.reduce((string, part) => string + part(duration.number, duration.unit), '');
-    };
+    if (options.cache) {
+      let cachedInput: number | undefined = undefined;
+      let cachedOutput: string | undefined = undefined;
+
+      return (duration: NumberUnitInterface<UnitFamily.Duration>): string => {
+        if (duration.isNaN()) {
+          return options.nanString;
+        }
+
+        const roundedInput = MathUtils.round(duration.asUnit(precision.unit), precision.number);
+
+        if (cachedInput !== undefined && cachedOutput !== undefined && roundedInput === cachedInput) {
+          return cachedOutput;
+        }
+
+        cachedInput = roundedInput;
+
+        for (let i = 0; i < builder.length; i++) {
+          built[i] = builder[i](duration.number, duration.unit);
+        }
+
+        return cachedOutput = built.join('');
+      };
+    } else {
+      return (duration: NumberUnitInterface<UnitFamily.Duration>): string => {
+        if (duration.isNaN()) {
+          return options.nanString;
+        }
+
+        for (let i = 0; i < builder.length; i++) {
+          built[i] = builder[i](duration.number, duration.unit);
+        }
+
+        return built.join('');
+      };
+    }
+  }
+
+  /**
+   * Resolves a full set of options from a partial options object. Any option not explicitly defined by the partial
+   * options object will revert to its default value.
+   * @param options A partial options object.
+   * @returns A new options object containing the full set of options resolved from the specified partial options
+   * object.
+   */
+  private static resolveOptions(options?: Readonly<Partial<DurationFormatterOptions>>): DurationFormatterOptions {
+    const resolved = Object.assign({}, options) as any;
+
+    for (const key in DurationFormatter.DEFAULT_OPTIONS) {
+      resolved[key] ??= DurationFormatter.DEFAULT_OPTIONS[key as keyof DurationFormatterOptions];
+    }
+
+    return resolved;
   }
 
   /**
@@ -179,6 +334,7 @@ export class DurationFormatter {
     const numericMatch = fragment.match(DurationFormatter.NUM_FRAGMENT_REGEXP);
 
     if (!numericMatch) {
+      console.warn(`DurationFormatter: discarding fragment due to invalid syntax: {${fragment}}`);
       return (): string => '';
     }
 
@@ -221,6 +377,7 @@ export class DurationFormatter {
 
     if (rightMatch) {
       if (rightMatch.length === 1) {
+        // Unlimited decimal precision
         return (duration: number, unit: Unit<UnitFamily.Duration>): string => {
           const converted = unitInfo.unit.convertFrom(Math.abs(duration), unit) % unitInfo.mod;
           const decimal = converted % 1;

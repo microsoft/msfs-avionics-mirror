@@ -1,0 +1,27 @@
+.map-traffic-rel-terrain-indicator-container {
+  padding: 0.2em calc(0.2em - 1px);
+  padding-right: -2px;
+  background-color: black;
+  border: solid 1px whitesmoke;
+  border-radius: 5px;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  overflow: hidden;
+}
+
+.map-traffic-rel-terrain-indicator-container .map-traffic-status {
+  margin: 0px 1px;
+  padding: 0px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0px;
+}
+
+.map-traffic-rel-terrain-indicator-container .map-rel-terrain-status {
+  margin: 0px 1px;
+  padding: 0px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0px;
+}

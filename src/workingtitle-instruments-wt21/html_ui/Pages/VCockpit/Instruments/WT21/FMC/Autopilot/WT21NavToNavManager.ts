@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
-  AhrsEvents, APLateralModes, APValues, ControlEvents, EventBus, NavEvents, NavMath, NavProcSimVars, NavSourceId, NavSourceType,
-  NavToNavManager,
-  Subject
+  AhrsEvents, APLateralModes, APValues, ControlEvents, EventBus, NavComEvents, NavEvents, NavMath, NavSourceId, NavSourceType,
+  NavToNavManager, Subject
 } from '@microsoft/msfs-sdk';
 import { WT21FmsUtils } from '../../Shared/FlightPlan/WT21FmsUtils';
 
@@ -47,11 +46,11 @@ export class WT21NavToNavManager implements NavToNavManager {
       this.scalingLabel = x;
       this.currentState.onScalingLabelChange();
     });
-    this.bus.getSubscriber<NavProcSimVars>().on('nav_localizer_crs_1').whenChanged().handle(x => {
+    this.bus.getSubscriber<NavComEvents>().on('nav_localizer_crs_1').whenChanged().handle(x => {
       this.localizerCourse = x ? x * Avionics.Utils.RAD2DEG : x;
       this.currentState.onLocalizerCourseChange();
     });
-    this.bus.getSubscriber<NavProcSimVars>().on('nav_cdi_1').whenChanged().handle(x => {
+    this.bus.getSubscriber<NavComEvents>().on('nav_cdi_1').whenChanged().handle(x => {
       this.nav1LateralDeviation = x;
       this.currentState.onLateralDeviationChange();
     });

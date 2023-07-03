@@ -5,9 +5,5 @@ import { NumberUnitSubject, UnitType } from '../../../math';
  */
 export class MapAutopilotPropsModule {
   /** The altitude preselector setting. */
-  public readonly selectedAltitude = NumberUnitSubject.createFromNumberUnit(UnitType.FOOT.createNumber(0));
-
-  private readonly apSelectedAltitudeHandler = (alt: number): void => {
-    this.selectedAltitude.set(alt);
-  };
+  public readonly selectedAltitude = NumberUnitSubject.create(UnitType.FOOT.createNumber(0));
 }

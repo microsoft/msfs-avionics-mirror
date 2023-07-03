@@ -1,6 +1,5 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { SimVarValueType } from '../../data';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
@@ -10,10 +9,14 @@ export class APTogaPitchDirector implements PlaneDirector {
 
   public state: DirectorState;
 
-  /** A callback called when the director activates. */
+  /** @inheritdoc */
   public onActivate?: () => void;
-  /** A callback called when the director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
+  /** @inheritdoc */
+  public drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean) => void;
+  /** @inheritdoc */
+  public setPitch?: (pitch: number) => void;
 
   /**
    * Creates an instance of the LateralDirector.
@@ -31,7 +34,7 @@ export class APTogaPitchDirector implements PlaneDirector {
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
-    this.setPitch(-this.targetPitchValue);
+    this.setPitch && this.setPitch(-this.targetPitchValue);
 
     // TODO: The simvar is not currently writeable, so the line below has no effect.
     SimVar.SetSimVarValue('AUTOPILOT TAKEOFF POWER ACTIVE', 'Bool', true);
@@ -64,16 +67,5 @@ export class APTogaPitchDirector implements PlaneDirector {
    */
   public update(): void {
     //noop
-  }
-
-  /**
-   * Sets the desired AP pitch angle.
-   * @param targetPitch The desired AP pitch angle.
-   */
-  private setPitch(targetPitch: number): void {
-    if (isFinite(targetPitch)) {
-      // HINT: min/max pitch are reversed as the pitch is inverted in the sim
-      SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, targetPitch);
-    }
   }
 }

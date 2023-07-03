@@ -8,37 +8,22 @@
   /* Configurable vars */
   --horizon-display-center-x: 640px;
   --horizon-display-center-y: 275px;
-  --horizon-display-attitude-width: 414px;
-  --horizon-display-attitude-height: 315px;
-  --horizon-display-attitude-top: 71px;
-
-  /* Computed vars */
-  --horizon-display-attitude-left: calc(var(--horizon-display-center-x) - var(--horizon-display-attitude-width) / 2);
-  --horizon-display-attitude-zero-pitch-y: calc(var(--horizon-display-center-y) - var(--horizon-display-attitude-top));
 }
 
-.horizon-display .attitude-container {
+.horizon-display .ahrs-align-msg {
   position: absolute;
-  left: var(--horizon-display-attitude-left);
-  top: var(--horizon-display-attitude-top);
-  width: var(--horizon-display-attitude-width);
-  height: var(--horizon-display-attitude-height);
-  --zero-pitch-y: var(--horizon-display-attitude-zero-pitch-y);
+  left: var(--horizon-display-center-x);
+  top: 221px;
+  text-align: center;
+  font-size: 23px;
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
 
-.horizon-display .flight-director-container {
+.horizon-display .attitude-failure-box {
   position: absolute;
-  left: var(--horizon-display-attitude-left);
-  top: var(--horizon-display-attitude-top);
-  width: var(--horizon-display-attitude-width);
-  height: var(--horizon-display-attitude-height);
-  --zero-pitch-y: var(--horizon-display-attitude-zero-pitch-y);
-}
-
-.horizon-display .attitude-aircraft-symbol {
-  position: absolute;
-  left: var(--horizon-display-attitude-left);
-  top: var(--horizon-display-attitude-top);
-  width: var(--horizon-display-attitude-width);
-  height: var(--horizon-display-attitude-height);
+  left: calc(var(--horizon-display-center-x) - 240px);
+  top: calc(var(--horizon-display-center-y) - 227px);
+  width: 480px;
+  height: 350px;
 }

@@ -1,12 +1,8 @@
-/// <reference types="@microsoft/msfs-types/js/simvar" />
-
 import { EventBus, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { EventSubscriber } from '../data/EventSubscriber';
-import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
-import { BasePublisher, SimVarPublisher } from './BasePublishers';
-
-// import { HEvent } from '../data/HEventPublisher';
+import { SimVarValueType } from '../data/SimVars';
+import { BasePublisher, SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
 
 /** Data related to autopilot */
 interface APSimVarEvents {
@@ -15,6 +11,9 @@ interface APSimVarEvents {
 
   /** Whether the yaw damper is active. */
   ap_yd_status: boolean;
+
+  /** Whether the autopilot is disengaged. */
+  ap_disengage_status: boolean;
 
   /** Whether the autopilot is in heading hold mode. */
   ap_heading_hold: boolean;
@@ -64,38 +63,38 @@ interface APSimVarEvents {
   /** The autopilot's selected heading in slot 1, in degrees. */
   ap_heading_selected: number;
 
-  /** The autopilot's selected heading in slot 1, in degrees. */
-  ap_heading_selected_1: number;
-
-  /** The autopilot's selected heading in slot 2, in degrees. */
-  ap_heading_selected_2: number;
-
-  /** The autopilot's selected heading in slot 3, in degrees. */
-  ap_heading_selected_3: number;
+  /** The autopilot's selected heading in an indexed slot, in degrees. */
+  [ap_heading_selected: IndexedEventType<'ap_heading_selected'>]: number;
 
   /** The autopilot's selected altitude in slot 1, in feet. */
   ap_altitude_selected: number;
 
-  /** The autopilot's selected altitude in slot 1, in feet. */
-  ap_altitude_selected_1: number;
+  /** The autopilot's selected altitude in an indexed slot, in feet. */
+  [ap_altitude_selected: IndexedEventType<'ap_altitude_selected'>]: number;
 
-  /** The autopilot's selected altitude in slot 2, in feet. */
-  ap_altitude_selected_2: number;
+  /** The autopilot's selected vertical speed target in slot 1, in feet per minute. */
+  ap_vs_selected: number;
 
-  /** The autopilot's selected altitude in slot 3, in feet. */
-  ap_altitude_selected_3: number;
+  /** The autopilot's selected vertical speed target in an indexed slot, in feet per minute. */
+  [ap_vs_selected: IndexedEventType<'ap_vs_selected'>]: number;
 
-  /** The autopilot's selected vertical speed target, in feet per minute. */
-  ap_vs_selected: number; // should eventually be APIndexedData
-
-  /** The autopilot's selected flight path angle target, in degrees */
+  /** The autopilot's selected flight path angle target in slot 1, in degrees. */
   ap_fpa_selected: number;
 
-  /** The autopilot's selected airspeed target, in knots. */
-  ap_ias_selected: number; // should eventually be APIndexedData
+  /** The autopilot's selected flight path angle target in an indexed slot, in degrees. */
+  [ap_fpa_selected: IndexedEventType<'ap_fpa_selected'>]: number;
 
-  /** The autopilot's selected mach target. */
+  /** The autopilot's selected airspeed target in slot 1, in knots. */
+  ap_ias_selected: number;
+
+  /** The autopilot's selected airspeed target in an indexed slot, in knots. */
+  [ap_ias_selected: IndexedEventType<'ap_ias_selected'>]: number;
+
+  /** The autopilot's selected mach target in slot 1. */
   ap_mach_selected: number;
+
+  /** The autopilot's selected mach target in an indexed slot. */
+  [ap_mach_selected: IndexedEventType<'ap_mach_selected'>]: number;
 
   /** Whether the autopilot's selected airspeed target is in mach. */
   ap_selected_speed_is_mach: boolean;
@@ -133,17 +132,17 @@ export enum APLockType {
 
 /** The events related to an autopilot */
 export interface APEvents extends APSimVarEvents {
-  /** Autopilot has been engaged. */
-  ap_master_engage: true;
+  /** The autopilot has been activated. */
+  ap_master_on: true;
 
-  /** Autopilot has been disengaged. */
-  ap_master_disengage: true;
+  /** The autopilot has been deactivated. */
+  ap_master_off: true;
 
-  /** Yaw damper has been engaged. */
-  ap_yd_engage: true;
+  /** The yaw damper has been activated. */
+  ap_yd_on: true;
 
-  /** Yaw damper has been disengaged. */
-  ap_yd_disengage: true;
+  /** The yaw damper has been deactivated. */
+  ap_yd_off: true;
 
   /** An autopilot lock has been set. */
   ap_lock_set: APLockType;
@@ -154,17 +153,10 @@ export interface APEvents extends APSimVarEvents {
 
 /** base publisher for simvars */
 class APSimVarPublisher extends SimVarPublisher<APSimVarEvents> {
-  private static simvars = new Map<keyof APSimVarEvents, SimVarDefinition>([
-    ['ap_heading_selected', { name: 'AUTOPILOT HEADING LOCK DIR:1', type: SimVarValueType.Degree }],
-    ['ap_heading_selected_1', { name: 'AUTOPILOT HEADING LOCK DIR:1', type: SimVarValueType.Degree }],
-    ['ap_heading_selected_2', { name: 'AUTOPILOT HEADING LOCK DIR:2', type: SimVarValueType.Degree }],
-    ['ap_heading_selected_3', { name: 'AUTOPILOT HEADING LOCK DIR:3', type: SimVarValueType.Degree }],
-    ['ap_altitude_selected', { name: 'AUTOPILOT ALTITUDE LOCK VAR:1', type: SimVarValueType.Feet }],
-    ['ap_altitude_selected_1', { name: 'AUTOPILOT ALTITUDE LOCK VAR:1', type: SimVarValueType.Feet }],
-    ['ap_altitude_selected_2', { name: 'AUTOPILOT ALTITUDE LOCK VAR:2', type: SimVarValueType.Feet }],
-    ['ap_altitude_selected_3', { name: 'AUTOPILOT ALTITUDE LOCK VAR:3', type: SimVarValueType.Feet }],
+  private static simvars = new Map<keyof APSimVarEvents, SimVarPublisherEntry<any>>([
     ['ap_master_status', { name: 'AUTOPILOT MASTER', type: SimVarValueType.Bool }],
     ['ap_yd_status', { name: 'AUTOPILOT YAW DAMPER', type: SimVarValueType.Bool }],
+    ['ap_disengage_status', { name: 'AUTOPILOT DISENGAGED', type: SimVarValueType.Bool }],
     ['ap_heading_hold', { name: 'AUTOPILOT HEADING LOCK', type: SimVarValueType.Bool }],
     ['ap_nav_hold', { name: 'AUTOPILOT NAV1 LOCK', type: SimVarValueType.Bool }],
     ['ap_bank_hold', { name: 'AUTOPILOT BANK HOLD', type: SimVarValueType.Bool }],
@@ -179,18 +171,20 @@ class APSimVarPublisher extends SimVarPublisher<APSimVarEvents> {
     ['ap_glideslope_hold', { name: 'AUTOPILOT GLIDESLOPE HOLD', type: SimVarValueType.Bool }],
     ['ap_pitch_hold', { name: 'AUTOPILOT PITCH HOLD', type: SimVarValueType.Bool }],
     ['ap_toga_hold', { name: 'AUTOPILOT TAKEOFF POWER ACTIVE', type: SimVarValueType.Bool }],
-    ['ap_vs_selected', { name: 'AUTOPILOT VERTICAL HOLD VAR:1', type: SimVarValueType.FPM }],
-    ['ap_fpa_selected', { name: 'L:WT_AP_FPA_Target:1', type: SimVarValueType.Degree }],
-    ['ap_ias_selected', { name: 'AUTOPILOT AIRSPEED HOLD VAR', type: SimVarValueType.Knots }],
-    ['ap_mach_selected', { name: 'AUTOPILOT MACH HOLD VAR', type: SimVarValueType.Number }],
+    ['ap_heading_selected', { name: 'AUTOPILOT HEADING LOCK DIR:#index#', type: SimVarValueType.Degree, indexed: true }],
+    ['ap_altitude_selected', { name: 'AUTOPILOT ALTITUDE LOCK VAR:#index#', type: SimVarValueType.Feet, indexed: true }],
+    ['ap_pitch_selected', { name: 'AUTOPILOT PITCH HOLD REF', type: SimVarValueType.Degree }],
+    ['ap_vs_selected', { name: 'AUTOPILOT VERTICAL HOLD VAR:#index#', type: SimVarValueType.FPM, indexed: true }],
+    ['ap_fpa_selected', { name: 'L:WT_AP_FPA_Target:#index#', type: SimVarValueType.Degree, indexed: true }],
+    ['ap_ias_selected', { name: 'AUTOPILOT AIRSPEED HOLD VAR:#index#', type: SimVarValueType.Knots, indexed: true }],
+    ['ap_mach_selected', { name: 'AUTOPILOT MACH HOLD VAR:#index#', type: SimVarValueType.Number, indexed: true }],
     ['ap_selected_speed_is_mach', { name: 'AUTOPILOT MANAGED SPEED IN MACH', type: SimVarValueType.Bool }],
     ['ap_selected_speed_is_manual', { name: 'L:XMLVAR_SpeedIsManuallySet', type: SimVarValueType.Bool }],
     ['flight_director_bank', { name: 'AUTOPILOT FLIGHT DIRECTOR BANK', type: SimVarValueType.Degree }],
     ['flight_director_pitch', { name: 'AUTOPILOT FLIGHT DIRECTOR PITCH', type: SimVarValueType.Degree }],
     ['flight_director_is_active_1', { name: 'AUTOPILOT FLIGHT DIRECTOR ACTIVE:1', type: SimVarValueType.Bool }],
     ['flight_director_is_active_2', { name: 'AUTOPILOT FLIGHT DIRECTOR ACTIVE:2', type: SimVarValueType.Bool }],
-    ['vnav_active', { name: 'L:XMLVAR_VNAVButtonValue', type: SimVarValueType.Bool }],
-    ['ap_pitch_selected', { name: 'AUTOPILOT PITCH HOLD REF', type: SimVarValueType.Degree }]
+    ['vnav_active', { name: 'L:XMLVAR_VNAVButtonValue', type: SimVarValueType.Bool }]
   ]);
 
   /**
@@ -220,28 +214,28 @@ class AutopilotPublisher extends BasePublisher<APEvents> {
    * Publish an AP master engage event
    */
   public publishMasterEngage(): void {
-    this.publish('ap_master_engage', true);
+    this.publish('ap_master_on', true);
   }
 
   /**
    * Publish an AP master disengage event
    */
   public publishMasterDisengage(): void {
-    this.publish('ap_master_disengage', true);
+    this.publish('ap_master_off', true);
   }
 
   /**
    * Publish a YD engage event
    */
   public publishYdEngage(): void {
-    this.publish('ap_yd_engage', true);
+    this.publish('ap_yd_on', true);
   }
 
   /**
    * Publish a YD disengage event
    */
   public publishYdDisengage(): void {
-    this.publish('ap_yd_disengage', true);
+    this.publish('ap_yd_off', true);
   }
 
   /**

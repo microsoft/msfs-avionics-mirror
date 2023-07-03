@@ -11,10 +11,15 @@ export class VnavProfileStore {
   private readonly vnavState = ConsumerSubject.create(null, VNavState.Disabled).pause();
   private readonly selectedAlt = ConsumerValue.create(null, 0).pause();
 
+  private readonly _activeVnavWaypoint = Subject.create<LegDefinition | undefined>(undefined);
+  private readonly _showCruiseAltitude = Subject.create(false);
+
   private readonly _cruiseAltitude = NumberUnitSubject.create(UnitType.FOOT.createNumber(NaN));
   private readonly _verticalSpeedTarget = NumberUnitSubject.create(UnitType.FPM.createNumber(NaN));
   private readonly _fpa = Subject.create(NaN, SubscribableUtils.NUMERIC_NAN_EQUALITY);
-  private readonly _fpaShowClimb = this.vnavDataProvider.phase.map(phase => phase === VerticalFlightPhase.Climb).pause();
+  private readonly _fpaShowClimb = this._activeVnavWaypoint.map(activeWaypoint => {
+    return activeWaypoint !== undefined && activeWaypoint.verticalData.phase === VerticalFlightPhase.Climb;
+  }).pause();
   private readonly _verticalSpeedRequired = NumberUnitSubject.create(UnitType.FPM.createNumber(NaN));
   private readonly _timeToValue = NumberUnitSubject.create(UnitType.SECOND.createNumber(NaN));
   private readonly _verticalDeviation = NumberUnitSubject.create(UnitType.FOOT.createNumber(NaN));
@@ -26,10 +31,7 @@ export class VnavProfileStore {
     this.isPathEditable,
     this.vnavDataProvider.fpa,
     this.vnavDataProvider.activeConstraintLeg
-  );
-
-  private readonly _activeVnavWaypoint = Subject.create<LegDefinition | undefined>(undefined);
-  private readonly _showCruiseAltitude = Subject.create(false);
+  ).pause();
 
   private readonly _altDesc = Subject.create(AltitudeRestrictionType.Unused);
   private readonly _altitude1 = NumberUnitSubject.create(UnitType.METER.createNumber(NaN));
@@ -99,6 +101,15 @@ export class VnavProfileStore {
   public readonly isAltitudeEdited = this._isAltitudeEdited as ToSubscribable<typeof this._isAltitudeEdited>;
   public readonly isVnavDirectToButtonEnabled = this._isVnavDirectToButtonEnabled as ToSubscribable<typeof this._isVnavDirectToButtonEnabled>;
 
+  private isPaused = true;
+
+  private readonly pauseable = [
+    this.vnavState,
+    this.selectedAlt,
+    this._fpaShowClimb,
+    this._isPathEditButtonEnabled
+  ];
+
   private activeConstraintLegSub?: Subscription;
   private fpaPipe?: Subscription;
 
@@ -127,11 +138,17 @@ export class VnavProfileStore {
 
   /** Resumes the store's subscriptions. */
   public resume(): void {
-    this.vnavState.resume();
-    this.selectedAlt.resume();
+    if (!this.isPaused) {
+      return;
+    }
+
+    this.isPaused = false;
+
+    for (const pauseable of this.pauseable) {
+      pauseable.resume();
+    }
 
     this.activeConstraintLegSub?.resume(true);
-    this._fpaShowClimb.resume();
     this.fpaPipe?.resume(true);
 
     this.updateSub.resume(true);
@@ -139,13 +156,19 @@ export class VnavProfileStore {
 
   /** Pauses the store's subscriptions. */
   public pause(): void {
+    if (this.isPaused) {
+      return;
+    }
+
+    this.isPaused = true;
+
     this.updateSub.pause();
 
-    this.vnavState.pause();
-    this.selectedAlt.pause();
+    for (const pauseable of this.pauseable) {
+      pauseable.pause();
+    }
 
     this.activeConstraintLegSub?.pause();
-    this._fpaShowClimb.pause();
     this.fpaPipe?.pause();
   }
 
@@ -383,8 +406,10 @@ export class VnavProfileStore {
     this.vnavState.destroy();
     this.selectedAlt.destroy();
 
-    this.activeConstraintLegSub?.destroy();
     this._fpaShowClimb.destroy();
+    this._isPathEditButtonEnabled.destroy();
+
+    this.activeConstraintLegSub?.destroy();
     this.fpaPipe?.destroy();
   }
 }

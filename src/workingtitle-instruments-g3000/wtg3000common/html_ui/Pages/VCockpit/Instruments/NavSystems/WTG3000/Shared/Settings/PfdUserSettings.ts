@@ -5,6 +5,22 @@ import { AltimeterUserSettingTypes, SynVisUserSettingTypes } from '@microsoft/ms
 import { PfdIndex } from '../CommonTypes';
 
 /**
+ * Setting modes for flight director format.
+ */
+export enum FlightDirectorFormatSettingMode {
+  Single = 'Single',
+  Dual = 'Dual'
+}
+
+/**
+ * Flight director user settings.
+ */
+export type FlightDirectorUserSettingTypes = {
+  /** The format of the flight director. */
+  flightDirectorFormat: FlightDirectorFormatSettingMode;
+};
+
+/**
  * Setting modes for angle of attack indicator display.
  */
 export enum AoaIndicatorDisplaySettingMode {
@@ -87,6 +103,7 @@ export type PfdBearingPointerUserSettingTypes = {
 export type PfdAliasedUserSettingTypes =
   SynVisUserSettingTypes
   & AltimeterUserSettingTypes
+  & FlightDirectorUserSettingTypes
   & AoaIndicatorUserSettingTypes
   & WindDisplayUserSettingTypes
   & PfdMapLayoutUserSettingTypes
@@ -126,6 +143,7 @@ export class PfdUserSettings {
     'svtPathwaysShow',
     'svtTrafficShow',
     'altimeterBaroMetric',
+    'flightDirectorFormat',
     'aoaDisplayMode',
     'windDisplayMode',
     'pfdMapLayout',
@@ -206,6 +224,7 @@ export class PfdUserSettings {
       'svtPathwaysShow': false,
       'svtTrafficShow': false,
       'altimeterBaroMetric': false,
+      'flightDirectorFormat': FlightDirectorFormatSettingMode.Single,
       'aoaDisplayMode': AoaIndicatorDisplaySettingMode.Auto,
       'windDisplayMode': WindDisplaySettingMode.Off,
       'pfdMapLayout': PfdMapLayoutSettingMode.Off,

@@ -983,12 +983,20 @@ export class WT21Fms {
     });
 
     let plan = this.getPlanForFmcRender();
+    let createdModPlan = false;
 
     if (segmentIndex === undefined) {
       const lastSegment = plan.segmentCount > 0 ? plan.getSegment(plan.segmentCount - 1) : undefined;
+
       if (lastSegment) {
         if (lastSegment.segmentType !== FlightPlanSegmentType.Enroute) {
           segmentIndex = this.planInsertSegmentOfType(FlightPlanSegmentType.Enroute, lastSegment.segmentIndex + 1);
+
+          if (plan.planIndex !== WT21Fms.PRIMARY_MOD_PLAN_INDEX) {
+            createdModPlan = true;
+          }
+
+          plan = this.getModFlightPlan();
         } else {
           segmentIndex = lastSegment.segmentIndex;
         }
@@ -1003,6 +1011,9 @@ export class WT21Fms {
 
     // Make sure we are not inserting a duplicate leg
     if ((prevLeg && this.isDuplicateLeg(prevLeg.leg, leg)) || (nextLeg && this.isDuplicateLeg(leg, nextLeg.leg))) {
+      if (createdModPlan) {
+        this.cancelMod();
+      }
       return false;
     }
 
@@ -1012,6 +1023,9 @@ export class WT21Fms {
       const isDirectToTarget = BitFlags.isAll(prevLeg?.flags, WT21LegDefinitionFlags.DirectToTarget);
 
       if (isInDirectTo && !isDirectToTarget) {
+        if (createdModPlan) {
+          this.cancelMod();
+        }
         return false;
       }
     }

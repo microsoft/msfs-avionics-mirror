@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "build/workingtitle-instruments-g1000/html_ui/Pages/VCockpit/Instruments/NavSystems/WTG1000"
+  },
+  "exclude": [
+    "Gulpfile.ts",
+    "**/node_modules",
+    "**/build",
+    "**/dist"
+  ]
+}

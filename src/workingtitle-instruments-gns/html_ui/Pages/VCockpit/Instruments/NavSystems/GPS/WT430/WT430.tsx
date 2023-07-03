@@ -3,7 +3,7 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import {
-  BaseInstrumentPublisher, ComRadioIndex, EventBus, FSComponent, HEventPublisher, InstrumentBackplane, NavComInstrument, NavRadioIndex, SimVarValueType
+  BaseInstrumentPublisher, ComRadioIndex, EventBus, FSComponent, HEventPublisher, InstrumentBackplane, NavComInstrument, NavComSimVarPublisher, NavRadioIndex, SimVarValueType
 } from '@microsoft/msfs-sdk';
 
 import { PowerEvents, PowerState } from '../Shared/Instruments/Power';
@@ -23,6 +23,7 @@ class WT430 extends BaseInstrument {
   private readonly backplane: InstrumentBackplane;
 
   private readonly hEventPublisher = new HEventPublisher(this.bus);
+  private readonly navComSimVarPublisher = new NavComSimVarPublisher(this.bus);
   private readonly navComInstrument = new NavComInstrument(this.bus, undefined, 2, 2, false);
 
   private settingSaveManager: GNSSettingSaveManager;
@@ -50,6 +51,7 @@ class WT430 extends BaseInstrument {
     this.baseInstrumentPublisher = new BaseInstrumentPublisher(this, this.bus);
     this.backplane = new InstrumentBackplane();
     this.backplane.addPublisher('base', this.baseInstrumentPublisher);
+    this.backplane.addPublisher('navcom', this.navComSimVarPublisher);
     this.backplane.addInstrument('navcom', this.navComInstrument);
     this.settingSaveManager = new GNSSettingSaveManager(this.bus);
   }
@@ -197,9 +199,9 @@ function setup(): void {
     const queryParts = searchString.split('&');
     const disabledVar = decodeURIComponent(queryParts[0].split('=')[1]);
     const guid = decodeURIComponent(queryParts[1].split('=')[1]);
-    const instrumentId = decodeURIComponent(queryParts[3].split('=')[1]);
-    const instrumentIdx = decodeURIComponent(queryParts[4].split('=')[1]);
-    const isPrimary = decodeURIComponent(queryParts[2].split('=')[1]) === 'true' ? true : false;
+    const instrumentId = decodeURIComponent(queryParts[2].split('=')[1]);
+    const instrumentIdx = decodeURIComponent(queryParts[3].split('=')[1]);
+    const isPrimary = decodeURIComponent(queryParts[4].split('=')[1]) === 'true' ? true : false;
     let viewListener: any = undefined;
     let isNavigating = false;
     let initted = false;

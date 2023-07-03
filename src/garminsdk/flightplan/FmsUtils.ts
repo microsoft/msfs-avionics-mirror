@@ -1021,6 +1021,45 @@ export class FmsUtils {
   }
 
   /**
+   * Determines if a flight plan leg's altitude constraint is considered to be edited. If the leg does not have a
+   * designated altitude constraint, `false` will be returned.
+   * @param leg A flight plan leg.
+   * @param isAdvancedVNav Whether advanced VNAV is supported.
+   * @returns Whether the specified flight plan leg's altitude constraint is considered to be edited.
+   */
+  public static isLegAltitudeEdited(leg: LegDefinition, isAdvancedVNav: boolean): boolean {
+    const publishedAltDesc = leg.leg.altDesc;
+    const constraintAltDesc = leg.verticalData.altDesc;
+
+    if (constraintAltDesc === AltitudeRestrictionType.Unused) {
+      return false;
+    }
+
+    const altitude1Feet = Math.round(UnitType.METER.convertTo(leg.verticalData.altitude1, UnitType.FOOT));
+    const altitude2Feet = Math.round(UnitType.METER.convertTo(leg.verticalData.altitude2, UnitType.FOOT));
+    const altitude1FeetPublished = Math.round(UnitType.METER.convertTo(leg.leg.altitude1, UnitType.FOOT));
+    const altitude2FeetPublished = Math.round(UnitType.METER.convertTo(leg.leg.altitude2, UnitType.FOOT));
+
+    if (isAdvancedVNav) {
+      return constraintAltDesc !== publishedAltDesc
+        || altitude1Feet !== altitude1FeetPublished
+        || altitude2Feet !== altitude2FeetPublished;
+    } else {
+      if (publishedAltDesc === AltitudeRestrictionType.Unused) {
+        return true;
+      }
+
+      // In simple mode, the auto-designated altitude is derived from altitude2 for between constraints and from
+      // altitude1 for all other constraints.
+      if (publishedAltDesc === AltitudeRestrictionType.Between) {
+        return altitude1Feet !== altitude2FeetPublished;
+      } else {
+        return altitude1Feet !== altitude1FeetPublished;
+      }
+    }
+  }
+
+  /**
    * Checks whether a flight plan leg's altitude constraint should be editable.
    * @param plan The flight plan containing the leg to evaluate.
    * @param leg The flight plan leg to evaluate.

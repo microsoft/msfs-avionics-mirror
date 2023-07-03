@@ -5,7 +5,7 @@ import {
 
 import { DateTimeFormatSettingMode, DateTimeUserSettings, TimeDisplayFormat } from '@microsoft/msfs-garminsdk';
 
-import { AuralAlertsConfig, TimeDisplay, TouchdownCalloutsConfig } from '@microsoft/msfs-wtg3000-common';
+import { AuralAlertsConfig, HorizonDirectorCueOption, TimeDisplay, TouchdownCalloutsConfig } from '@microsoft/msfs-wtg3000-common';
 
 import { TabbedContainer, TabConfiguration } from '../../Components/Tabs/TabbedContainer';
 import { TabbedContent } from '../../Components/Tabs/TabbedContent';
@@ -24,6 +24,9 @@ import './GtcAvionicsSettingsPage.css';
  * Component props for GtcAvionicsSettingsPage.
  */
 export interface GtcAvionicsSettingsPageProps extends GtcViewProps {
+  /** PFD horizon display flight director cue style support. */
+  horizonDirectorCueOption: HorizonDirectorCueOption;
+
   /** An aural alerts configuration object. */
   auralAlertsConfig: AuralAlertsConfig;
 
@@ -179,6 +182,7 @@ export class GtcAvionicsSettingsPage extends GtcView<GtcAvionicsSettingsPageProp
       <GtcAvionicsSettingsPageSystemList
         ref={contentRef}
         gtcService={this.props.gtcService}
+        horizonDirectorCueOption={this.props.horizonDirectorCueOption}
         listItemHeight={this.listItemHeight}
         listItemSpacing={this.listItemSpacing}
         sidebarState={sidebarState}

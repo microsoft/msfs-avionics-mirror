@@ -103,31 +103,52 @@ export type SimVarPublisherEntry<T> = SimVarDefinition & {
   map?: (value: any) => T;
 
   /**
-   * Whether the simvar is indexed. Indexes are positive integers. If the simvar is indexed, then the indexed simvars -
-   * with the index replacing the `#index#` macro in the simvar name - will published to topics suffixed with
-   * `_[index]`. The index-1 version of the simvar will be published to the unsuffixed topic in addition to the topic
-   * suffixed with index 1.
+   * Whether the simvar is indexed. Indexes are non-negative integers. To declare an indexed simvar, this value must be
+   * either (1) an iterable of valid indexes, or (2) `true` (in which case all non-negative indexes are considered
+   * valid). If the simvar is indexed, then the indexed simvars - with the index replacing the `#index#` macro in the
+   * simvar name - will published to topics suffixed with `_[index]`. If `defaultIndex` is not null, then that simvar
+   * index will also be published to the unsuffixed topic. Defaults to `false`.
    */
-  indexed?: boolean;
+  indexed?: boolean | Iterable<number>;
+
+  /**
+   * The default simvar index to publish to the unsuffixed topic, or `null` if the unsuffixed topic should not be
+   * published. Ignored if the simvar is not indexed. Defaults to `1`.
+   */
+  defaultIndex?: number | null;
 };
 
 /**
- * An entry for a fully resolved sim var publisher topic.
+ * An entry describing an indexed sim var publisher topic.
  */
-type ResolvedSimVarPublisherEntry<T> = Omit<SimVarPublisherEntry<T>, 'indexed'>;
+type IndexedSimVarPublisherEntry<T> = Omit<SimVarPublisherEntry<T>, 'indexed'> & {
+  /** The valid indexes for the topic, or `undefined` if all non-negative integer indexes are valid. */
+  indexes: Set<number> | undefined;
+};
+
+/**
+ * An entry describing a fully resolved sim var publisher topic.
+ */
+type ResolvedSimVarPublisherEntry<T> = Omit<SimVarPublisherEntry<T>, 'indexed' | 'defaultIndex'> & {
+  /**
+   * An additional unsuffixed topic to which to publish the entry's simvar value. Should only be defined for indexed
+   * simvar topics that have been resolved to the topic's default index.
+   */
+  unsuffixedTopic?: string;
+};
 
 /**
  * A base class for publishers that need to handle simvars with built-in
  * support for pacing callbacks.
  */
-export class SimVarPublisher<E extends Record<string, any>> extends BasePublisher<E> {
-  protected static readonly INDEXED_REGEX = /(.*)_([1-9]\d*)$/;
+export class SimVarPublisher<Events extends Record<string, any>, IndexedEventRoots extends Record<string, any> = Events> extends BasePublisher<Events> {
+  protected static readonly INDEXED_REGEX = /(.*)_(0|[1-9]\d*)$/;
 
-  protected readonly resolvedSimVars = new Map<keyof E & string, ResolvedSimVarPublisherEntry<any>>();
+  protected readonly resolvedSimVars = new Map<keyof Events & string, ResolvedSimVarPublisherEntry<any>>();
 
-  protected readonly indexedSimVars = new Map<keyof E & string, SimVarPublisherEntry<any>>();
+  protected readonly indexedSimVars = new Map<keyof IndexedEventRoots & string, IndexedSimVarPublisherEntry<any>>();
 
-  protected readonly subscribed = new Set<keyof E & string>();
+  protected readonly subscribed = new Set<keyof Events & string>();
 
   /**
    * Create a SimVarPublisher
@@ -136,18 +157,23 @@ export class SimVarPublisher<E extends Record<string, any>> extends BasePublishe
    * @param pacer An optional pacer to control the rate of publishing.
    */
   public constructor(
-    simVarMap: Map<keyof E & string, SimVarPublisherEntry<any>>,
+    simVarMap: Map<keyof (Events & IndexedEventRoots) & string, SimVarPublisherEntry<any>>,
     bus: EventBus,
-    pacer?: PublishPacer<E>
+    pacer?: PublishPacer<Events>
   ) {
     super(bus, pacer);
 
     for (const [topic, entry] of simVarMap) {
       if (entry.indexed) {
-        this.indexedSimVars.set(topic, entry);
-        this.resolveIndexedSimVar(topic, entry); // resolve indexed topic to its non-suffixed form
+        this.indexedSimVars.set(topic, {
+          name: entry.name,
+          type: entry.type,
+          map: entry.map,
+          indexes: entry.indexed === true ? undefined : new Set(entry.indexed),
+          defaultIndex: entry.defaultIndex,
+        });
       } else {
-        this.resolvedSimVars.set(topic, entry);
+        this.resolvedSimVars.set(topic, { ...entry });
       }
     }
 
@@ -178,35 +204,64 @@ export class SimVarPublisher<E extends Record<string, any>> extends BasePublishe
       return;
     }
 
+    let entry = this.indexedSimVars.get(topic);
+    if (entry) {
+      // The subscribed topic matches an unsuffixed topic -> check if the unsuffixed topic should be published and if
+      // so, resolve the default index.
+      if (entry.defaultIndex !== null) {
+        const resolved = this.resolveIndexedSimVar(topic, entry, entry.defaultIndex ?? 1);
+        if (resolved !== undefined) {
+          this.onTopicSubscribed(resolved);
+        }
+      }
+      return;
+    }
+
     if (!SimVarPublisher.INDEXED_REGEX.test(topic)) { // Don't generate an array if we don't have to.
       return;
     }
 
     const match = topic.match(SimVarPublisher.INDEXED_REGEX) as RegExpMatchArray;
     const [, matchedTopic, index] = match;
-    const entry = this.indexedSimVars.get(matchedTopic);
+    entry = this.indexedSimVars.get(matchedTopic);
     if (entry) {
-      this.onTopicSubscribed(this.resolveIndexedSimVar(matchedTopic, entry, parseInt(index)));
+      const resolved = this.resolveIndexedSimVar(matchedTopic, entry, parseInt(index));
+      if (resolved !== undefined) {
+        this.onTopicSubscribed(resolved);
+      }
     }
   }
 
   /**
-   * Resolves an indexed topic with an index, generating a version of the topic which is mapped to an indexed simvar.
-   * The resolved indexed topic can then be published.
+   * Attempts to resolve an indexed topic with an index, generating a version of the topic which is mapped to an
+   * indexed simvar. The resolved indexed topic can then be published.
    * @param topic The topic to resolve.
    * @param entry The entry of the topic to resolve.
    * @param index The index with which to resolve the topic. If not defined, the topic will resolve to itself (without
    * a suffix) and will be mapped the index-1 version of its simvar.
-   * @returns The resolved indexed topic.
+   * @returns The resolved indexed topic, or `undefined` if the topic could not be resolved with the specified index.
    */
-  protected resolveIndexedSimVar(topic: keyof E & string, entry: SimVarPublisherEntry<any>, index?: number): string {
-    const resolvedTopic = index === undefined ? topic : `${topic}_${index}`;
+  protected resolveIndexedSimVar(topic: keyof IndexedEventRoots & string, entry: IndexedSimVarPublisherEntry<any>, index: number): string | undefined {
+    index ??= 1;
+    const resolvedTopic = `${topic}_${index}`;
 
     if (this.resolvedSimVars.has(resolvedTopic)) {
       return resolvedTopic;
     }
 
-    this.resolvedSimVars.set(resolvedTopic, { name: entry.name.replace('#index#', `${index ?? 1}`), type: entry.type, map: entry.map });
+    const defaultIndex = entry.defaultIndex === undefined ? 1 : entry.defaultIndex;
+
+    // Ensure that the index we are trying to resolve is a valid index for the topic.
+    if (entry.indexes !== undefined && !entry.indexes.has(index)) {
+      return undefined;
+    }
+
+    this.resolvedSimVars.set(resolvedTopic, {
+      name: entry.name.replace('#index#', `${index ?? 1}`),
+      type: entry.type,
+      map: entry.map,
+      unsuffixedTopic: defaultIndex === index ? topic : undefined
+    });
 
     return resolvedTopic;
   }
@@ -215,7 +270,7 @@ export class SimVarPublisher<E extends Record<string, any>> extends BasePublishe
    * Responds to when one of this publisher's topics is subscribed to for the first time.
    * @param topic The topic that was subscribed to.
    */
-  protected onTopicSubscribed(topic: keyof E & string): void {
+  protected onTopicSubscribed(topic: keyof Events & string): void {
     if (this.subscribed.has(topic)) {
       return;
     }
@@ -234,7 +289,7 @@ export class SimVarPublisher<E extends Record<string, any>> extends BasePublishe
    * @param data Key of the event type in the simVarMap
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public subscribe(data: keyof E): void {
+  public subscribe(data: keyof Events): void {
     return;
   }
 
@@ -244,7 +299,7 @@ export class SimVarPublisher<E extends Record<string, any>> extends BasePublishe
    * @param data Key of the event type in the simVarMap
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public unsubscribe(data: keyof E): void {
+  public unsubscribe(data: keyof Events): void {
     return;
   }
 
@@ -261,10 +316,16 @@ export class SimVarPublisher<E extends Record<string, any>> extends BasePublishe
    * Publishes data to the event bus for a topic.
    * @param topic The topic to publish.
    */
-  protected publishTopic(topic: keyof E & string): void {
-    const value = this.getValue(topic);
-    if (value !== undefined) {
+  protected publishTopic(topic: keyof Events & string): void {
+    const entry = this.resolvedSimVars.get(topic);
+    if (entry !== undefined) {
+      const value = this.getValueFromEntry(entry);
       this.publish(topic, value);
+
+      // Check if we need to publish the same value to the unsuffixed version of the topic.
+      if (entry.unsuffixedTopic) {
+        this.publish(entry.unsuffixedTopic, value);
+      }
     }
   }
 
@@ -273,12 +334,21 @@ export class SimVarPublisher<E extends Record<string, any>> extends BasePublishe
    * @param topic A topic.
    * @returns The current value for the specified topic.
    */
-  protected getValue<K extends keyof E & string>(topic: K): E[K] | undefined {
+  protected getValue<K extends keyof Events & string>(topic: K): Events[K] | undefined {
     const entry = this.resolvedSimVars.get(topic);
     if (entry === undefined) {
       return undefined;
     }
 
+    return this.getValueFromEntry(entry);
+  }
+
+  /**
+   * Gets the current value for a resolved topic entry.
+   * @param entry An entry for a resolved topic.
+   * @returns The current value for the specified entry.
+   */
+  protected getValueFromEntry<T>(entry: ResolvedSimVarPublisherEntry<T>): T {
     return entry.map === undefined
       ? this.getSimVarValue(entry)
       : entry.map(this.getSimVarValue(entry));

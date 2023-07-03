@@ -1,5 +1,7 @@
 export * from './Adc';
 export * from './Ahrs';
+export * from './AiPilotPublisher';
+export * from './Ambient';
 export * from './AntiIce';
 export * from './APPublisher';
 export * from './APRadioNavInstrument';
@@ -18,6 +20,7 @@ export * from './GPSSat';
 export * from './InstrumentEvents';
 export * from './MinimumsManager';
 export * from './NavCom';
+export * from './NavComInstrument';
 export * from './NavProcessor';
 export * from './Pitot';
 export * from './PressurizationPublisher';

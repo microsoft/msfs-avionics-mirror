@@ -84,41 +84,33 @@ export class DateTimePage extends AuxPage<DateTimePageProps> {
    * @param v The offset being set
    */
   private onOffsetAccepted(v: number): void {
-    let sign = true;
-    let hours;
-    let mins;
-    let numberString;
+    let hours = '0';
+    let mins = '0';
     let milliTime = 0;
+    let posOffset = true;
 
-    if (v >= 0) {
-      sign = true;
-      numberString = String(v);
-    } else {
-      sign = false;
-      numberString = String(v);
+    if (v < 0) {
+      posOffset = false;
     }
+
+    const numberString = String(v);
 
     if (numberString.length === 4) {
-      hours = String(v).slice(0, 2);
-      mins = String(v).slice(2, 4);
+      hours = numberString.slice(0, 2);
+      mins = numberString.slice(2, 4);
     } else if (numberString.length === 3) {
-      hours = String(v).slice(0, 1);
-      mins = String(v).slice(1, 3);
+      hours = numberString.slice(0, 1);
+      mins = numberString.slice(1, 3);
     } else if (numberString.length === 2) {
-      mins = String(v).slice(0, 2);
+      mins = numberString.slice(0, 2);
     } else if (numberString.length === 1) {
-      mins = String(v).slice(0, 1);
-    } else {
-      hours = 0;
-      mins = 0;
+      mins = numberString.slice(0, 1);
     }
 
-    if (hours != undefined && mins != undefined) {
-      if (sign) {
-        milliTime = ((Number(hours) * 3600000) + (Number(mins) * 60000));
-      } else {
-        milliTime = -((Number(hours) * 3600000) + (Number(mins) * 60000));
-      }
+    // The hours portion is negative already if we have a negative offset due to the string parsing,
+    // but minutes will need to be inverted manually.
+    if (hours != '0' || mins != '0') {
+      milliTime = ((Number(hours) * 3600000) + (Number(mins) * 60000 * (posOffset ? 1 : -1)));
     }
     this.offset.set(milliTime);
     this.dateTimeSettingManager.getSetting('dateTimeLocalOffset').set(milliTime);

@@ -345,7 +345,7 @@ export class HsiMap extends DisplayComponent<HsiMapProps> {
         this.deviationCssClass.delete('hsi-map-deviation-fail');
         this.noDeviationText.pause();
 
-        this.deviationTranslate.set(MathUtils.clamp(Math.round(deviation * 74), -89, 89));
+        this.deviationTranslate.set(MathUtils.clamp(Math.round(deviation * 71), -89, 89));
       }
     }, false, true);
 
@@ -376,7 +376,7 @@ export class HsiMap extends DisplayComponent<HsiMapProps> {
         this.previewDeviationStyle.set('display', 'none');
       } else {
         this.previewDeviationStyle.set('display', '');
-        this.previewDeviationTranslate.set(MathUtils.clamp(Math.round(deviation * 74), -89, 89));
+        this.previewDeviationTranslate.set(MathUtils.clamp(Math.round(deviation * 71), -89, 89));
       }
     }, false, true);
 
@@ -544,11 +544,11 @@ export class HsiMap extends DisplayComponent<HsiMapProps> {
           <svg class="hsi-map-deviation-markings">
             <line x1="89" y1="1" x2="89" y2="22" class="hsi-map-deviation-center" />
 
-            <circle cx="52" cy="11.5" r="3" class="hsi-map-deviation-dot-1" />
-            <circle cx="126" cy="11.5" r="3" class="hsi-map-deviation-dot-1" />
+            <circle cx="53.4" cy="11.5" r="3" class="hsi-map-deviation-dot-1" />
+            <circle cx="124.6" cy="11.5" r="3" class="hsi-map-deviation-dot-1" />
 
-            <circle cx="15" cy="11.5" r="3" class="hsi-map-deviation-dot-2" />
-            <circle cx="163" cy="11.5" r="3" class="hsi-map-deviation-dot-2" />
+            <circle cx="17.8" cy="11.5" r="3" class="hsi-map-deviation-dot-2" />
+            <circle cx="160.2" cy="11.5" r="3" class="hsi-map-deviation-dot-2" />
           </svg>
           <div class="hsi-map-deviation-bug-container" style={this.previewDeviationStyle}>
             <svg class="hsi-map-deviation-bug hsi-map-deviation-bug-preview">

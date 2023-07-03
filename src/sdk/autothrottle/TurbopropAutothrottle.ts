@@ -14,10 +14,21 @@ export class TurbopropAutothrottle extends AbstractAutothrottle {
     info: AutothrottleThrottleInfo,
     servoSpeed: number,
     powerSmoothingConstant: number,
+    powerSmoothingVelocityConstant: number | undefined,
     powerLookahead: Subscribable<number>,
+    powerLookaheadSmoothingConstant: number | undefined,
+    powerLookaheadSmoothingVelocityConstant: number | undefined,
     throttleLeverManager: ThrottleLeverManager | undefined
   ): AutothrottleThrottle {
-    return new TurbopropAutothrottleThrottle(bus, info, servoSpeed, powerSmoothingConstant, powerLookahead, throttleLeverManager);
+    return new TurbopropAutothrottleThrottle(
+      bus,
+      info,
+      servoSpeed,
+      powerSmoothingConstant, powerSmoothingVelocityConstant,
+      powerLookahead,
+      powerLookaheadSmoothingConstant, powerLookaheadSmoothingVelocityConstant,
+      throttleLeverManager
+    );
   }
 }
 
@@ -33,10 +44,21 @@ class TurbopropAutothrottleThrottle extends AutothrottleThrottle {
     info: AutothrottleThrottleInfo,
     servoSpeed: number,
     powerSmoothingConstant: number,
+    powerSmoothingVelocityConstant: number | undefined,
     powerLookahead: Subscribable<number>,
+    powerLookaheadSmoothingConstant: number | undefined,
+    powerLookaheadSmoothingVelocityConstant: number | undefined,
     throttleLeverManager?: ThrottleLeverManager
   ) {
-    super(bus, info, servoSpeed, powerSmoothingConstant, powerLookahead, throttleLeverManager);
+    super(
+      bus,
+      info,
+      servoSpeed,
+      powerSmoothingConstant, powerSmoothingVelocityConstant,
+      powerLookahead,
+      powerLookaheadSmoothingConstant, powerLookaheadSmoothingVelocityConstant,
+      throttleLeverManager
+    );
 
     this.torqueSimVar = `TURB ENG MAX TORQUE PERCENT:${this.index}`;
   }

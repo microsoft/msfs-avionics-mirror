@@ -8,12 +8,12 @@ import {
   G3000DmeInfoNavIndicator, G3000NavIndicators, G3000NavInfoNavIndicator, IauUserSettingTypes, PfdAliasedUserSettingTypes, PfdIndex, RadiosConfig
 } from '@microsoft/msfs-wtg3000-common';
 
-import { PfdLayoutConfig } from '../../Config/PfdLayoutConfig';
+import { BottomInfoPanelCellAContent, PfdLayoutConfig } from '../../Config/PfdLayoutConfig';
+import { BearingInfo } from '../BearingInfo/BearingInfo';
 import { NavDmeInfo } from '../NavDmeInfo/NavDmeInfo';
 import { NavStatusBox } from '../NavStatusBox/NavStatusBox';
 import { NavStatusBoxConfig } from '../NavStatusBox/NavStatusBoxConfig';
 import { WindDisplay } from '../Wind/WindDisplay';
-import { BearingInfo } from './BearingInfo/BearingInfo';
 import { SpeedInfo } from './SpeedInfo/SpeedInfo';
 import { DefaultSpeedInfoDataProvider } from './SpeedInfo/SpeedInfoDataProvider';
 import { TemperatureInfo } from './TemperatureInfo/TemperatureInfo';
@@ -78,21 +78,42 @@ export interface BottomInfoPanelProps extends ComponentProps {
 
 /**
  * A G3000 PFD bottom information panel.
+ * 
+ * The panel consists of five cells, lettered A through E from left to right. Cell C occupies the center of the panel.
+ * Cells B and D (on either side of cell C) are only visible when the PFD is in full mode.
+ * 
+ * Cell A contains some combination of two of the speed, temperature, wind, and time displays. Not all combinations are
+ * valid due to space constraints.
+ * 
+ * Cell B contains either (1) the NAV/DME information display, or (2) nothing if NAV/DME information is rendered in a
+ * banner instead.
+ * 
+ * Cell C contains either (1) the navigation status box, or (2) the bearing info displays if the navigation status box
+ * is rendered in a banner instead.
+ * 
+ * Cell D contains the bearing info displays if cell C contains the navigation status box. If instead the bearing info
+ * displays are contained in cell C, cell D contains either (1) the time display, or (2) nothing.
+ * 
+ * Cell E contains the time display or is empty. If the time display is normally contained in cell D, then cell E will
+ * contain the time display when the PFD is in half mode.
  */
 export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
   private readonly rootCssClass = SetSubject.create([
     'bottom-info',
     this.props.layoutConfig.includeSoftKeys ? 'bottom-info-softkey' : 'bottom-info-nosoftkey',
-    this.props.layoutConfig.useBanners ? 'bottom-info-use-banners' : 'bottom-info-no-banners'
+    this.props.layoutConfig.useNavStatusBanner ? 'bottom-info-no-nav-status' : 'bottom-info-use-nav-status',
+    this.props.layoutConfig.useNavDmeInfoBanner ? 'bottom-info-no-nav-dme' : 'bottom-info-use-nav-dme'
   ]);
 
-  private readonly speedInfoDataProvider = new DefaultSpeedInfoDataProvider(
-    this.props.bus,
-    this.props.iauSettingManager.getSetting('iauAdcIndex'),
-    this.props.pfdIndex
-  );
+  private readonly speedInfoDataProvider = this.props.layoutConfig.bottomInfoCellAContent.includes(BottomInfoPanelCellAContent.Speed)
+    ? new DefaultSpeedInfoDataProvider(
+      this.props.bus,
+      this.props.iauSettingManager.getSetting('iauAdcIndex'),
+      this.props.pfdIndex
+    )
+    : undefined;
 
-  private readonly temperatureInfoDataProvider = this.props.layoutConfig.useBanners
+  private readonly temperatureInfoDataProvider = this.props.layoutConfig.bottomInfoCellAContent.includes(BottomInfoPanelCellAContent.Temperature)
     ? new DefaultTemperatureInfoDataProvider(
       this.props.bus,
       this.props.iauSettingManager.getSetting('iauAdcIndex')
@@ -101,7 +122,7 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
 
   private readonly timeInfoDataProvider = new DefaultTimeInfoDataProvider(this.props.bus, 1);
 
-  private readonly declutterNavDmeInfo = this.props.layoutConfig.useBanners
+  private readonly declutterNavDmeInfo = this.props.layoutConfig.useNavDmeInfoBanner
     ? undefined
     : MappedSubject.create(
       ([declutter, isInSplitMode]): boolean => declutter || isInSplitMode,
@@ -109,7 +130,7 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
       this.props.isInSplitMode
     );
 
-  private readonly declutterBearingInfo = this.props.layoutConfig.useBanners
+  private readonly declutterBearingInfo = this.props.layoutConfig.useNavStatusBanner
     ? undefined
     : MappedSubject.create(
       ([declutter, isInSplitMode]): boolean => declutter || isInSplitMode,
@@ -125,7 +146,7 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
   public onAfterRender(thisNode: VNode): void {
     this.thisNode = thisNode;
 
-    this.speedInfoDataProvider.init();
+    this.speedInfoDataProvider?.init();
     this.temperatureInfoDataProvider?.init();
     this.timeInfoDataProvider.init();
 
@@ -136,34 +157,22 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
 
   /** @inheritdoc */
   public render(): VNode {
-    return this.props.layoutConfig.includeSoftKeys
-      ? (
-        <div class={this.rootCssClass}>
+    return (
+      <div class={this.rootCssClass}>
+        {this.props.layoutConfig.includeSoftKeys && (
           <svg viewBox='0 0 1280 53' preserveAspectRatio='none' class='bottom-info-softkey-background'>
             <path d='M 0 0 l 0 53 l 1280 0 l 0 -53 m -553 0 a 150 150 0 0 1 -174 0 L 0 0' class='bottom-info-softkey-background-fill' />
             <path d='M 553 0 a 150 150 0 0 0 174 0' vector-effect='non-scaling-stroke' class='bottom-info-softkey-background-arc-outline' />
           </svg>
-          {this.renderSeparators()}
-          {this.renderSpeedInfo()}
-          {this.renderTemperatureInfo()}
-          {this.renderWindDisplay()}
-          {this.renderTimeInfo()}
-          {this.renderNavStatusBox()}
-          {this.renderNavDmeInfo()}
-          {this.renderBearingInfos()}
-        </div>
-      ) : (
-        <div class={this.rootCssClass}>
-          {this.renderSeparators()}
-          {this.renderSpeedInfo()}
-          {this.renderTemperatureInfo()}
-          {this.renderWindDisplay()}
-          {this.renderTimeInfo()}
-          {this.renderNavStatusBox()}
-          {this.renderNavDmeInfo()}
-          {this.renderBearingInfos()}
-        </div>
-      );
+        )}
+        {this.renderSeparators()}
+        {this.renderCellA()}
+        {!this.props.layoutConfig.bottomInfoCellAContent.includes(BottomInfoPanelCellAContent.Time) && this.renderTimeInfo()}
+        {this.renderNavStatusBox()}
+        {this.renderNavDmeInfo()}
+        {this.renderBearingInfos()}
+      </div>
+    );
   }
 
   /**
@@ -173,12 +182,11 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
   private renderSeparators(): VNode {
     return (
       <>
-        <div class='bottom-info-separator bottom-info-separator-1' />
-        <div class='bottom-info-separator bottom-info-separator-2' />
-        <div class='bottom-info-separator bottom-info-separator-3' />
+        <div class='bottom-info-separator bottom-info-separator-c-left' />
+        <div class='bottom-info-separator bottom-info-separator-c-right' />
         {
-          !this.props.layoutConfig.useBanners && (
-            <div class='bottom-info-separator bottom-info-separator-4' />
+          !this.props.layoutConfig.useNavStatusBanner && (
+            <div class='bottom-info-separator bottom-info-separator-d-right' />
           )
         }
       </>
@@ -186,10 +194,42 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
   }
 
   /**
+   * Renders this panel's cell A content.
+   * @returns This panel's cell A content, as a VNode.
+   */
+  private renderCellA(): VNode {
+    const [left, right] = this.props.layoutConfig.bottomInfoCellAContent;
+
+    const renderTable: Record<BottomInfoPanelCellAContent, () => VNode | null> = {
+      [BottomInfoPanelCellAContent.Empty]: () => <div class='bottom-info-cell-a-empty' />,
+      [BottomInfoPanelCellAContent.Speed]: this.renderSpeedInfo.bind(this),
+      [BottomInfoPanelCellAContent.Temperature]: this.renderTemperatureInfo.bind(this),
+      [BottomInfoPanelCellAContent.Wind]: this.renderWindDisplay.bind(this),
+      [BottomInfoPanelCellAContent.Time]: this.renderTimeInfo.bind(this),
+    };
+
+    const isTimeIncluded = left === BottomInfoPanelCellAContent.Time || right === BottomInfoPanelCellAContent.Time;
+
+    return (
+      <div class={`bottom-info-cell-a ${isTimeIncluded ? 'bottom-info-cell-a-full' : ''}`}>
+        <div class='bottom-info-cell-a-slot bottom-info-cell-a-slot-left'>{renderTable[left]()}</div>
+        {left !== BottomInfoPanelCellAContent.Time && right !== BottomInfoPanelCellAContent.Time && (
+          <div class='bottom-info-separator bottom-info-separator-a-middle' />
+        )}
+        <div class='bottom-info-cell-a-slot bottom-info-cell-a-slot-right'>{renderTable[right]()}</div>
+      </div>
+    );
+  }
+
+  /**
    * Renders this panel's speed information display.
    * @returns This panel's speed information display, as a VNode.
    */
-  private renderSpeedInfo(): VNode {
+  private renderSpeedInfo(): VNode | null {
+    if (this.speedInfoDataProvider === undefined) {
+      return null;
+    }
+
     return (
       <SpeedInfo
         dataProvider={this.speedInfoDataProvider}
@@ -223,7 +263,7 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
    * @returns This panel's wind display, as a VNode, or `null` if this panel does not have such a display.
    */
   private renderWindDisplay(): VNode | null {
-    if (this.props.layoutConfig.useBanners) {
+    if (this.props.layoutConfig.useWindBanner) {
       return null;
     }
 
@@ -257,7 +297,7 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
    * display.
    */
   private renderNavStatusBox(): VNode | null {
-    if (this.props.layoutConfig.useBanners) {
+    if (this.props.layoutConfig.useNavStatusBanner) {
       return null;
     }
 
@@ -281,7 +321,7 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
    * display.
    */
   private renderNavDmeInfo(): VNode | null {
-    if (this.props.layoutConfig.useBanners) {
+    if (this.props.layoutConfig.useNavDmeInfoBanner) {
       return null;
     }
 
@@ -307,26 +347,30 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
   private renderBearingInfos(): VNode {
     return (
       <div class='bottom-info-bearing-info-container'>
-        <BearingInfo
-          bus={this.props.bus}
-          index={1}
-          adfRadioCount={this.props.radiosConfig.adfCount}
-          indicator={this.props.navIndicators.get('bearingPointer1')}
-          unitsSettingManager={this.props.unitsSettingManager}
-          declutter={this.declutterBearingInfo ?? this.props.declutter}
-          mode={this.props.layoutConfig.useBanners ? 'center' : 'offset'}
-          side={'left'}
-        />
-        <BearingInfo
-          bus={this.props.bus}
-          index={2}
-          adfRadioCount={this.props.radiosConfig.adfCount}
-          indicator={this.props.navIndicators.get('bearingPointer2')}
-          unitsSettingManager={this.props.unitsSettingManager}
-          declutter={this.declutterBearingInfo ?? this.props.declutter}
-          mode={this.props.layoutConfig.useBanners ? 'center' : 'offset'}
-          side={'right'}
-        />
+        <div class='bottom-info-bearing-info-wrapper'>
+          <BearingInfo
+            bus={this.props.bus}
+            index={1}
+            adfRadioCount={this.props.radiosConfig.adfCount}
+            indicator={this.props.navIndicators.get('bearingPointer1')}
+            unitsSettingManager={this.props.unitsSettingManager}
+            declutter={this.declutterBearingInfo ?? this.props.declutter}
+            mode={this.props.layoutConfig.useNavStatusBanner ? 'center' : 'offset'}
+            side={'left'}
+          />
+        </div>
+        <div class='bottom-info-bearing-info-wrapper'>
+          <BearingInfo
+            bus={this.props.bus}
+            index={2}
+            adfRadioCount={this.props.radiosConfig.adfCount}
+            indicator={this.props.navIndicators.get('bearingPointer2')}
+            unitsSettingManager={this.props.unitsSettingManager}
+            declutter={this.declutterBearingInfo ?? this.props.declutter}
+            mode={this.props.layoutConfig.useNavStatusBanner ? 'center' : 'offset'}
+            side={'right'}
+          />
+        </div>
       </div>
     );
   }
@@ -343,6 +387,10 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
         }
       });
     }
+
+    this.speedInfoDataProvider?.destroy();
+    this.temperatureInfoDataProvider?.destroy();
+    this.timeInfoDataProvider.destroy();
 
     this.declutterSub?.destroy();
 

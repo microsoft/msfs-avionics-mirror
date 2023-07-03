@@ -1,0 +1,42 @@
+.map-rel-terrain-status {
+  padding: 0.2em;
+  background-color: black;
+  border: 1px solid whitesmoke;
+  border-radius: 5px;
+}
+
+.map-rel-terrain-status-icon-container {
+  position: relative;
+  width: var(--map-rel-terrain-status-icon-width, 1.3em);
+  height: var(--map-rel-terrain-status-icon-height, 1.2em);
+}
+
+.map-rel-terrain-status-icon {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.map-rel-terrain-status-failed {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.map-rel-terrain-status-failed-cross {
+  fill: transparent;
+}
+
+.map-rel-terrain-status-failed-cross-outline {
+  stroke-width: 20;
+  stroke: black;
+}
+
+.map-rel-terrain-status-failed-cross-stroke {
+  stroke-width: 15;
+  stroke: black;
+}

@@ -23,6 +23,10 @@ export interface BrakeEvents {
   right_wheel_rpm: number;
   /** Whether parking brake is set */
   parking_brake_set: boolean;
+  /** Position of the autobrake switch */
+  autobrake_switch_pos: number;
+  /** Autobrake active, true while armed autobrake is applying brake force */
+  autobrake_active: boolean;
 }
 
 /**
@@ -45,6 +49,8 @@ export class BrakeSimvarPublisher extends SimVarPublisher<BrakeEvents> {
       ['left_wheel_rpm', { name: 'LEFT WHEEL RPM', type: SimVarValueType.RPM }],
       ['right_wheel_rpm', { name: 'RIGHT WHEEL RPM', type: SimVarValueType.RPM }],
       ['parking_brake_set', { name: 'BRAKE PARKING POSITION', type: SimVarValueType.Bool }],
+      ['autobrake_switch_pos', { name: 'AUTO BRAKE SWITCH CB', type: SimVarValueType.Number }],
+      ['autobrake_active', { name: 'AUTOBRAKES ACTIVE', type: SimVarValueType.Bool }],
     ]);
 
     super(simvars, bus, pacer);

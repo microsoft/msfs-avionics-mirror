@@ -4,6 +4,9 @@ import { EventBus, JetFadec, LerpLookupTable, SimVarValueType, ThrottleLeverMana
  * The CJ4 FADEC.
  */
 export class CJ4Fadec {
+  // This is pulled from the native sim code. Commonly used when correcting N1.
+  private static readonly MSFS_STANDARD_SEA_LEVEL_TEMP_RANKINE = 518.69;
+
   private static readonly UPDATE_FREQ = 60; // hertz
 
   private static readonly TO_DETENT = 0.958;
@@ -240,7 +243,7 @@ export class CJ4Fadec {
    */
   private static adjustThrottleForN1(targetN1: number, index: number): number {
     const inletTemp = SimVar.GetSimVarValue(`TURB ENG INLET TEMPERATURE:${index}`, 'Rankine');
-    const thetaTotalTempRatio = inletTemp / 518.69; //Divide by sim normal SL temp constant to get thetaTTR
+    const thetaTotalTempRatio = inletTemp / CJ4Fadec.MSFS_STANDARD_SEA_LEVEL_TEMP_RANKINE; //Divide by sim normal SL temp constant to get thetaTTR
     const uncorrectedN1 = targetN1 * Math.sqrt(thetaTotalTempRatio);
 
     const throttlePct = (uncorrectedN1 - CJ4Fadec.MIN_N1) / (100 - CJ4Fadec.MIN_N1);

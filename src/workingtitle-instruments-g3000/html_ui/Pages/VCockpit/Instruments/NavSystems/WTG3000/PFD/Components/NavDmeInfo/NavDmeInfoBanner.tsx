@@ -30,21 +30,43 @@ export interface NavDmeInfoBannerProps extends ComponentProps {
 
   /** Whether the display should be decluttered. */
   declutter: Subscribable<boolean>;
+
+  /** The position of the banner. */
+  position: 'upper' | 'lower' | 'lower-softkey'
 }
 
 /**
  * A G3000 NAV/DME information display banner.
  */
 export class NavDmeInfoBanner extends DisplayComponent<NavDmeInfoBannerProps> {
-  private static readonly BACKGROUND_PATH_NORMAL = 'M 1 3 l 0 46 a 2 2 0 0 0 2 2 l 199 0 a 165 165 0 0 1 -15 -50 L 3 1 a 2 2 0 0 0 -2 2';
-  private static readonly BACKGROUND_PATH_HSI_MAP = 'M 1 3 l 0 46 a 2 2 0 0 0 2 2 l 175.2 0 a 177 177 0 0 1 4.9 -50 L 3 1 a 2 2 0 0 0 -2 2';
+  private static readonly BACKGROUND_STYLES = {
+    ['upper']: {
+      viewBox: '0 0 201 50',
+      pathNormal: 'M 0 2 l 0 46 a 2 2 0 0 0 2 2 l 199 0 a 165 165 0 0 1 -15 -50 L 2 0 a 2 2 0 0 0 -2 2',
+      hsiMap: 'M 0 2 l 0 46 a 2 2 0 0 0 2 2 l 175.2 0 a 177 177 0 0 1 4.9 -50 L 2 0 a 2 2 0 0 0 -2 2'
+    },
+
+    ['lower']: {
+      viewBox: '0 0 352 50',
+      pathNormal: 'M 0 2 l 0 46 a 2 2 0 0 0 2 2 l 350 0 a 173 173 0 0 1 -119.66 -50 L 2 0 a 2 2 0 0 0 -2 2',
+      hsiMap: 'M 0 2 l 0 46 a 2 2 0 0 0 2 2 l 215.77 0 a 177 177 0 0 1 -29.17 -50 L 2 0 a 2 2 0 0 0 -2 2'
+    },
+
+    ['lower-softkey']: {
+      viewBox: '0 0 241 50',
+      pathNormal: 'M 0 2 l 0 46 a 2 2 0 0 0 2 2 l 238.75 0 a 165 165 0 0 1 -36.17 -50 L 2 0 a 2 2 0 0 0 -2 2',
+      hsiMap: 'M 0 2 l 0 46 a 2 2 0 0 0 2 2 l 185.48 0 a 177 177 0 0 1 -10.2 -50 L 2 0 a 2 2 0 0 0 -2 2'
+    }
+  } as const;
 
   private readonly infoRef = FSComponent.createRef<NavDmeInfo>();
 
-  private readonly rootCssClass = SetSubject.create(['nav-dme-info-banner']);
+  private readonly rootCssClass = SetSubject.create(['nav-dme-info-banner', `nav-dme-info-banner-${this.props.position}`]);
+
+  private readonly backgroundStyles = NavDmeInfoBanner.BACKGROUND_STYLES[this.props.position];
 
   private readonly backgroundPath = this.props.isHsiMapEnabled.map(isEnabled => {
-    return isEnabled ? NavDmeInfoBanner.BACKGROUND_PATH_HSI_MAP : NavDmeInfoBanner.BACKGROUND_PATH_NORMAL;
+    return isEnabled ? this.backgroundStyles.hsiMap : this.backgroundStyles.pathNormal;
   });
 
   private readonly isVisible = MappedSubject.create(
@@ -72,7 +94,7 @@ export class NavDmeInfoBanner extends DisplayComponent<NavDmeInfoBannerProps> {
   public render(): VNode {
     return (
       <div class={this.rootCssClass}>
-        <svg viewBox='0 0 203 52' class='nav-dme-info-banner-background'>
+        <svg viewBox={this.backgroundStyles.viewBox} class='nav-dme-info-banner-background'>
           <path d={this.backgroundPath} vector-effect='non-scaling-stroke' />
         </svg>
         <NavDmeInfo

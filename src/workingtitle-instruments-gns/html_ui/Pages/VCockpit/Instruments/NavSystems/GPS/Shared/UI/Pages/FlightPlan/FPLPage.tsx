@@ -558,8 +558,14 @@ export class FPLPageMenu extends MenuDefinition {
   public readonly entries: readonly MenuEntry[] = [
     {
       label: 'Activate Leg?', disabled: Subject.create<boolean>(true), action: (): void => {
-        this.fms.activateLeg(this.segmentIndex, this.legIndex, Fms.PRIMARY_PLAN_INDEX, true);
-        ViewService.back();
+        const plan = this.fms.getPrimaryFlightPlan();
+        const leg = plan.tryGetLeg(this.segmentIndex, this.legIndex);
+        if (leg === null) {
+          console.warn(`Trying to activate invalid leg from flight plan: segment ${this.segmentIndex} leg ${this.legIndex}`);
+          ViewService.back();
+        } else {
+          ViewService.activateLegDialog(plan.getLegIndexFromLeg(leg));
+        }
       }
     },
     { label: 'Crossfill?', disabled: Subject.create<boolean>(true), action: (): void => { } },

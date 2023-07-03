@@ -1,4 +1,8 @@
-import { BitFlags, FlightPlan, FlightPlanSegment, FlightPlanUtils, LegDefinition, LegDefinitionFlags, LegType, MathUtils, VerticalFlightPlan, VNavConstraint, VNavUtils } from '@microsoft/msfs-sdk';
+import {
+  BitFlags, FlightPlan, FlightPlanSegment, FlightPlanUtils, LegDefinition, LegDefinitionFlags, LegType, MathUtils,
+  TocBocDetails, UnitType, VerticalFlightPlan, VNavConstraint, VNavLeg, VNavUtils
+} from '@microsoft/msfs-sdk';
+
 import { FmsUtils } from '../flightplan/FmsUtils';
 import { GarminTodBodDetails } from './GarminVerticalNavigation';
 
@@ -362,6 +366,191 @@ export class GarminVNavUtils {
 
     out.distanceFromBod = distanceToBOD;
     out.distanceFromTod = distanceToTOD;
+
+    return out;
+  }
+
+  /**
+   * Gets the VNAV TOC/BOC details for a vertical flight plan.
+   * @param verticalPlan The vertical flight plan.
+   * @param activeConstraintIndex The index of the vertical constraint containing the active flight plan leg.
+   * @param activeLegIndex The index of the active flight plan leg.
+   * @param distanceAlongLeg The distance the plane is along the active flight plan leg in meters.
+   * @param currentGroundSpeed The current ground speed, in knots.
+   * @param currentAltitude The current indicated altitude in meters.
+   * @param currentVS The current vertical speed in meters per minute.
+   * @param isMapr Whether to get TOC/BOC details for the missed approach.
+   * @param out The object to which to write the TOC/BOC details.
+   * @returns The VNAV TOC/BOC details.
+   */
+  public static getTocBocDetails(
+    verticalPlan: VerticalFlightPlan,
+    activeConstraintIndex: number,
+    activeLegIndex: number,
+    distanceAlongLeg: number,
+    currentGroundSpeed: number,
+    currentAltitude: number,
+    currentVS: number,
+    isMapr: boolean,
+    out: TocBocDetails
+  ): TocBocDetails {
+
+    out.bocLegIndex = -1;
+    out.tocLegIndex = -1;
+    out.tocLegDistance = 0;
+    out.distanceFromBoc = 0;
+    out.distanceFromToc = 0;
+    out.tocConstraintIndex = -1;
+    out.tocAltitude = -1;
+
+    const activeConstraint = verticalPlan.constraints[activeConstraintIndex];
+
+    // There is no BOC/TOC if there is no active VNAV constraint.
+    if (!activeConstraint) {
+      return out;
+    }
+
+    const constraintType = isMapr ? 'missed' : 'climb';
+
+    // Find the TOC. To do this, we need to first find the earliest climb constraint subsequent to and including the
+    // active constraint that has a maximum altitude (i.e. is an AT, AT OR BELOW, or BETWEEN constraint).
+
+    let tocConstraintIndex: number | undefined, tocConstraint: VNavConstraint | undefined;
+
+    for (let i = activeConstraintIndex; i >= 0; i--) {
+      const constraint = verticalPlan.constraints[i];
+
+      if (constraint.type === constraintType && isFinite(constraint.maxAltitude)) {
+        tocConstraintIndex = i;
+        tocConstraint = constraint;
+        break;
+      }
+    }
+
+    // If there is no next TOC, there also can be no next BOC since the next BOC must follow the next TOC.
+    if (!tocConstraint) {
+      return out;
+    }
+
+    out.tocConstraintIndex = tocConstraintIndex as number;
+    out.tocAltitude = tocConstraint.maxAltitude;
+
+    // Calculate distance to TOC.
+
+    const deltaAltitude = tocConstraint.maxAltitude - currentAltitude;
+    const timeToTocMin = deltaAltitude / Math.max(0, currentVS);
+    let distanceRemaining = currentGroundSpeed === 0 ? 0 : timeToTocMin * UnitType.KNOT.convertTo(currentGroundSpeed, UnitType.MPM);
+
+    // Find the leg on which the TOC lies.
+
+    const activeLeg = activeConstraint.legs[activeConstraint.index - activeLegIndex] as VNavLeg | undefined;
+
+    let tocLegIndex: number | undefined;
+
+    let currentConstraintIndex = activeConstraintIndex;
+    let currentConstraint: VNavConstraint;
+    let currentConstraintLegIndex = activeConstraint.index - activeLegIndex;
+    let currentLeg = activeLeg;
+
+    const activeLegDistanceRemaining = (activeLeg?.distance ?? 0) - distanceAlongLeg;
+    if (distanceRemaining > activeLegDistanceRemaining) {
+      distanceRemaining -= activeLegDistanceRemaining;
+
+      if (currentConstraintLegIndex <= 0) {
+        --currentConstraintIndex;
+      } else {
+        currentLeg = activeConstraint.legs[--currentConstraintLegIndex];
+      }
+
+      while (currentConstraintIndex >= (tocConstraintIndex as number)) {
+        currentConstraint = verticalPlan.constraints[currentConstraintIndex];
+        currentLeg = currentConstraint.legs[currentConstraintLegIndex];
+
+        if (currentLeg !== undefined) {
+          if (distanceRemaining > currentLeg.distance) {
+            out.distanceFromToc += currentLeg.distance;
+            distanceRemaining -= currentLeg.distance;
+          } else {
+            out.distanceFromToc += distanceRemaining;
+            tocLegIndex = currentConstraint.index - currentConstraintLegIndex;
+            distanceRemaining -= currentLeg.distance;
+            break;
+          }
+        }
+
+        if (currentConstraintLegIndex <= 0) {
+          --currentConstraintIndex;
+        } else {
+          currentLeg = currentConstraint.legs[--currentConstraintLegIndex];
+        }
+      }
+    } else {
+      out.distanceFromToc = distanceRemaining;
+      tocLegIndex = activeLegIndex;
+      distanceRemaining -= activeLegDistanceRemaining;
+    }
+
+    if (tocLegIndex === undefined) {
+      // If we still haven't found the TOC yet, set it to the end of the last leg of the TOC constraint.
+      out.tocLegIndex = tocConstraint.index;
+      out.tocLegDistance = 0;
+    } else {
+      out.tocLegIndex = tocLegIndex;
+      out.tocLegDistance = -distanceRemaining;
+    }
+
+    // Find the next BOC, which is located at the beginning of the earliest climb constraint subsequent to (and not
+    // including) the TOC constraint with a maximum altitude greater than the TOC constraint. Additionally, the BOC
+    // must not be separated from the TOC constraint by a constraint of the incorrect type.
+
+    let lastClimbConstraintIndex = tocConstraintIndex as number;
+
+    let bocConstraintIndex: number | undefined, bocConstraint: VNavConstraint | undefined;
+    for (let i = (tocConstraintIndex as number) - 1; i >= 0; i--) {
+      const constraint = verticalPlan.constraints[i];
+
+      if (constraint.type !== constraintType) {
+        break;
+      }
+
+      if (constraint.maxAltitude > tocConstraint.maxAltitude) {
+        bocConstraintIndex = i;
+        bocConstraint = constraint;
+        break;
+      }
+
+      lastClimbConstraintIndex = i;
+    }
+
+    let bocDistanceStopConstraintIndex: number | undefined = undefined;
+
+    if (bocConstraint) {
+      out.bocLegIndex = bocConstraint.index - (bocConstraint.legs.length - 1);
+      bocDistanceStopConstraintIndex = bocConstraintIndex;
+    } else {
+      // If we did not find a climb constraint subsequent to the TOC constraint with a maximum altitude greater than the
+      // the TOC constraint, then the BOC will be located at the last climb constraint.
+
+      const lastClimbConstraint = verticalPlan.constraints[lastClimbConstraintIndex];
+      if (lastClimbConstraint && lastClimbConstraint.index + 1 < verticalPlan.length) {
+        out.bocLegIndex = lastClimbConstraint.index + 1;
+        bocDistanceStopConstraintIndex = lastClimbConstraintIndex - 1;
+      }
+    }
+
+    // Calculate distance to BOC
+    if (bocDistanceStopConstraintIndex !== undefined) {
+      let distanceToEndOfActiveConstraint = (activeLeg?.distance ?? 0) - distanceAlongLeg;
+
+      for (let i = Math.min(activeConstraint.index - activeLegIndex, activeConstraint.legs.length) - 1; i >= 0; i--) {
+        distanceToEndOfActiveConstraint += activeConstraint.legs[i].distance;
+      }
+
+      out.distanceFromBoc = distanceToEndOfActiveConstraint;
+      for (let i = activeConstraintIndex - 1; i > bocDistanceStopConstraintIndex; i--) {
+        out.distanceFromBoc += verticalPlan.constraints[i].distance;
+      }
+    }
 
     return out;
   }

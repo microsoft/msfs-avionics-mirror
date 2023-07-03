@@ -1,4 +1,5 @@
-import { Subject } from '../sub';
+import { Subject } from '../sub/Subject';
+import { AutopilotDriverOptions } from './AutopilotDriver';
 import { PlaneDirector } from './directors/PlaneDirector';
 import { NavToNavManager } from './managers/NavToNavManager';
 import { VNavManager } from './managers/VNavManager';
@@ -35,6 +36,8 @@ export enum APLateralModes {
   HEADING_HOLD,
   TRACK,
   TRACK_HOLD,
+  FMS_LOC,
+  TO_LOC,
 }
 
 export enum APAltitudeModes {
@@ -43,8 +46,13 @@ export enum APAltitudeModes {
   ALTV
 }
 
-/** AP Values Object */
+/**
+ * An object containing values pertinent to autopilot operation.
+ */
 export type APValues = {
+  /** The current simulation rate. */
+  readonly simRate: Subject<number>;
+
   /** The selected altitude, in feet. */
   readonly selectedAltitude: Subject<number>;
 
@@ -311,6 +319,20 @@ export interface APConfig {
    */
   createGaLateralDirector(apValues: APValues): PlaneDirector | undefined;
 
+  /**
+   * Creates the autopilot's FMC LOC-style mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's FMS LOC mode director.
+   */
+  createFmsLocLateralDirector(apValues: APValues): PlaneDirector | undefined;
+
+  /**
+   * Creates the autopilot's takeoff LOC mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's takeoff LOC mode director.
+   */
+  createTakeoffLocLateralDirector?(apValues: APValues): PlaneDirector | undefined;
+
   /** The autopilot's default lateral mode. */
   defaultLateralMode: APLateralModes | (() => APLateralModes);
 
@@ -328,4 +350,28 @@ export interface APConfig {
 
   /** The heading hold slot index to use. Defaults to 1 */
   headingHoldSlotIndex?: 1 | 2 | 3;
+
+  /**
+   * Whether to only allow disarming (not deactivating) LNAV when receiving the `AP_NAV1_HOLD_OFF` event
+   */
+  onlyDisarmLnavOnOffEvent?: boolean;
+
+  /**
+   * Whether to automatically engage the FD(s) with AP or mode button presses, defaults to true.
+   * Lateral/Vertical press events will be ignored if this is false and neither AP nor FDs are engaged.
+   */
+  autoEngageFd?: boolean;
+
+  /**
+   * When true, will initialize the state manager when the flight plan is next synced.
+   * This is a work around to delay initialization of autopilot,
+   * and you may not need it if you handle initialization of the ap state manager in your code.
+   * Defaults to true.
+   */
+  readonly initializeStateManagerOnFirstFlightPlanSync?: boolean;
+
+  /**
+   * Options for the Autopilot Driver
+   */
+  readonly autopilotDriverOptions?: Readonly<AutopilotDriverOptions>;
 }

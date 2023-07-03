@@ -3,8 +3,8 @@
  */
 export class G3000Version {
   /** The current version string. */
-  public static readonly VERSION = 'WT1.1.0';
+  public static readonly VERSION = 'WT1.1.6';
 
   /** The release date of the current version, as a UNIX timestamp in milliseconds. */
-  public static readonly VERSION_DATE = Date.parse('2023-02-24');
+  public static readonly VERSION_DATE = Date.parse('2023-06-07');
 }

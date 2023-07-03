@@ -1,6 +1,8 @@
 import {
-  AirportFacility, EventBus, FacilitySearchType, FacilityType, FacilityWaypointUtils, FSComponent, ICAO, MapLayer, MapLayerProps, MapNearestWaypointsLayer,
-  MapNearestWaypointsLayerSearchTypes, MapProjection, MapSyncedCanvasLayer, MapSystemKeys, RunwayUtils, UnitType, VNode, Waypoint
+  AirportFacility, BitFlags, EventBus, FacilitySearchType, FacilityType, FacilityWaypointUtils, FSComponent, ICAO,
+  IntersectionType, MapLayer, MapLayerProps, MapNearestWaypointsLayer, MapNearestWaypointsLayerSearchTypes,
+  MapProjection, MapSyncedCanvasLayer, MapSystemKeys, NearestAirportSearchSession, NearestIntersectionSearchSession,
+  NearestSearchSession, NearestVorSearchSession, RunwayUtils, UnitType, VNode, Waypoint
 } from '@microsoft/msfs-sdk';
 
 import { AirportSize, AirportWaypoint } from '../../../navigation/AirportWaypoint';
@@ -175,6 +177,30 @@ export class MapWaypointsLayer extends MapLayer<MapWaypointsLayerProps> {
   }
 
   /**
+   * Responds to when this layer's facility search sessions have been started.
+   * @param airportSession The airport search session.
+   * @param vorSession The VOR search session.
+   * @param ndbSession The NDB search session.
+   * @param intSession The intersection search session.
+   */
+  private onSessionsStarted(
+    airportSession: NearestAirportSearchSession,
+    vorSession: NearestVorSearchSession,
+    ndbSession: NearestSearchSession<string, string>,
+    intSession: NearestIntersectionSearchSession
+  ): void {
+    intSession.setIntersectionFilter(BitFlags.union(
+      BitFlags.createFlag(IntersectionType.None),
+      BitFlags.createFlag(IntersectionType.Named),
+      BitFlags.createFlag(IntersectionType.Unnamed),
+      BitFlags.createFlag(IntersectionType.Offroute),
+      BitFlags.createFlag(IntersectionType.IAF),
+      BitFlags.createFlag(IntersectionType.FAF),
+      BitFlags.createFlag(IntersectionType.RNAV)
+    ), true);
+  }
+
+  /**
    * Checks whether a waypoint is visible.
    * @param waypoint A waypoint.
    * @returns whether the waypoint is visible.
@@ -294,6 +320,7 @@ export class MapWaypointsLayer extends MapLayer<MapWaypointsLayerProps> {
         waypointRenderer={this.props.waypointRenderer}
         waypointForFacility={(facility): Waypoint => this.waypointCache.get(facility)}
         initRenderer={this.initWaypointRenderer.bind(this)}
+        onSessionsStarted={this.onSessionsStarted.bind(this)}
         registerWaypoint={this.registerWaypoint.bind(this)}
         deregisterWaypoint={this.deregisterWaypoint.bind(this)}
         searchItemLimit={(type): number => MapWaypointsLayer.SEARCH_ITEM_LIMITS[type]}

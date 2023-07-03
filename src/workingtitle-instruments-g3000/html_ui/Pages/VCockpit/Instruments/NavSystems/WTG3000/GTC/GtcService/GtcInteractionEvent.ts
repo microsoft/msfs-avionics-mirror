@@ -1,5 +1,8 @@
 import { GtcOrientation } from '@microsoft/msfs-wtg3000-common';
 
+/**
+ * Interaction events triggered by GTC button bar buttons.
+ */
 enum GtcButtonBarEvent {
   ButtonBarUpPressed = 'ButtonBarUpPressed',
   ButtonBarDownPressed = 'ButtonBarDownPressed',
@@ -7,6 +10,9 @@ enum GtcButtonBarEvent {
   ButtonBarCancelPressed = 'ButtonBarCancelPressed',
 }
 
+/**
+ * Interaction events triggered by GTC hardware knobs or bezel keys.
+ */
 export enum GtcHardwareControlEvent {
   InnerKnobInc = 'InnerKnobInc',
   InnerKnobDec = 'InnerKnobDec',
@@ -33,17 +39,21 @@ export const GtcInteractionEvent = { ...GtcButtonBarEvent, ...GtcHardwareControl
 /** An interaction event targeting the GTC, like a GTC button or knob press/turn, or a button bar button press. */
 export type GtcInteractionEvent = typeof GtcInteractionEvent[keyof typeof GtcInteractionEvent];
 
-/** Something that can handle a GtcInteractionEvent. */
+/**
+ * A handler which can respond to and optionally handle instances of {@link GtcInteractionEvent}.
+ */
 export interface GtcInteractionHandler {
   /**
-   * Handles GtcInteractionEvents.
-   * @param event The event.
-   * @returns Whether the event was handled or not.
+   * Handles a {@link GtcInteractionEvent}.
+   * @param event The event to handle.
+   * @returns Whether the event was handled.
    */
   onGtcInteractionEvent(event: GtcInteractionEvent): boolean
 }
 
-/** Collection of function for working with GtcInteractionEvents. */
+/**
+ * A utility class for working with GTC interaction events.
+ */
 export class GtcInteractionEventUtils {
   private static readonly HORIZONTAL_H_EVENT_MAP: Partial<Record<string, GtcHardwareControlEvent>> = {
     TopKnob_Small_INC: GtcHardwareControlEvent.InnerKnobInc,

@@ -96,12 +96,12 @@ export class GNSAPConfig implements APConfig {
 
   /** @inheritdoc */
   public createRollDirector(apValues: APValues): APRollDirector {
-    return new APRollDirector(this.bus, apValues, { minBankAngle: 6, maxBankAngle: 22 });
+    return new APRollDirector(apValues, { minBankAngle: 6, maxBankAngle: 22 });
   }
 
   /** @inheritdoc */
-  public createWingLevelerDirector(): APLvlDirector {
-    return new APLvlDirector(this.bus);
+  public createWingLevelerDirector(apValues: APValues): APLvlDirector {
+    return new APLvlDirector(this.bus, apValues);
   }
 
   /** @inheritdoc */
@@ -133,7 +133,7 @@ export class GNSAPConfig implements APConfig {
     if (this.disableBackcourse) {
       return undefined;
     } else {
-      return new APBackCourseDirector(this.bus, apValues, APLateralModes.BC, { lateralInterceptCurve: this.navInterceptCurve.bind(this) });
+      return new APBackCourseDirector(this.bus, apValues, { lateralInterceptCurve: this.navInterceptCurve.bind(this) });
     }
   }
 
@@ -149,7 +149,7 @@ export class GNSAPConfig implements APConfig {
 
   /** @inheritdoc */
   public createVsDirector(apValues: APValues): APVSDirector {
-    return new APVSDirector(this.bus, apValues);
+    return new APVSDirector(apValues);
   }
 
   /** @inheritdoc */
@@ -159,17 +159,17 @@ export class GNSAPConfig implements APConfig {
 
   /** @inheritdoc */
   public createFlcDirector(apValues: APValues): APFLCDirector {
-    return new APFLCDirector(this.bus, apValues);
+    return new APFLCDirector(apValues);
   }
 
   /** @inheritdoc */
   public createAltHoldDirector(apValues: APValues): APAltDirector {
-    return new APAltDirector(this.bus, apValues);
+    return new APAltDirector(apValues);
   }
 
   /** @inheritdoc */
   public createAltCapDirector(apValues: APValues): APAltCapDirector {
-    return new APAltCapDirector(this.bus, apValues);
+    return new APAltCapDirector(apValues);
   }
 
   private vnavManager?: VNavManager;
@@ -225,6 +225,11 @@ export class GNSAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
+  public createFmsLocLateralDirector(): undefined {
+    return undefined;
+  }
+
+  /** @inheritdoc */
   public createNavToNavManager(apValues: APValues): GarminNavToNavManager {
     return new GarminNavToNavManager(this.bus, this.flightPlanner, apValues);
   }
@@ -233,18 +238,18 @@ export class GNSAPConfig implements APConfig {
    * Calculates intercept angles for radio nav.
    * @param distanceToSource The distance from the plane to the source of the navigation signal, in nautical miles.
    * @param deflection The lateral deflection of the desired track relative to the plane, normalized from `-1` to `1`.
-   * Negative values indicate that the desired track is to the left of the plane.
+   * Positive values indicate that the desired track is to the right of the plane.
+   * @param xtk The cross-track error of the plane from the desired track, in nautical miles. Positive values indicate
+   * indicate that the plane is to the right of the track.
    * @param tas The true airspeed of the plane, in knots.
    * @param isLoc Whether the source of the navigation signal is a localizer. Defaults to `false`.
    * @returns The intercept angle, in degrees, to capture the desired track from the navigation signal.
    */
-  private navInterceptCurve(distanceToSource: number, deflection: number, tas: number, isLoc?: boolean): number {
+  private navInterceptCurve(distanceToSource: number, deflection: number, xtk: number, tas: number, isLoc?: boolean): number {
     if (isLoc) {
-      return this.localizerInterceptCurve(distanceToSource, deflection, tas);
+      return this.localizerInterceptCurve(xtk, tas);
     } else {
-      // max deflection is 10 degrees or 0.175 radians
-      const fullScaleDeflectionInRadians = 0.175;
-      return this.defaultInterceptCurve(Math.sin(fullScaleDeflectionInRadians * -deflection) * distanceToSource, tas);
+      return this.defaultInterceptCurve(xtk, tas);
     }
   }
 
@@ -262,24 +267,19 @@ export class GNSAPConfig implements APConfig {
 
   /**
    * Calculates intercept angles for localizers.
-   * @param distanceToSource The distance from the plane to the localizer, in nautical miles.
-   * @param deflection The lateral deflection of the desired track relative to the plane, normalized from `-1` to `1`.
-   * Negative values indicate that the desired track is to the left of the plane.
+   * @param xtk The cross-track error of the plane from the desired track, in nautical miles. Positive values indicate
+   * indicate that the plane is to the right of the track.
    * @param tas The true airspeed of the plane, in knots.
    * @returns The intercept angle, in degrees, to capture the localizer course.
    */
-  private localizerInterceptCurve(distanceToSource: number, deflection: number, tas: number): number {
-    // max deflection is 2.5 degrees or 0.0436332 radians
-    const fullScaleDeflectionInRadians = 0.0436332;
-
-    const xtkNM = Math.sin(fullScaleDeflectionInRadians * -deflection) * distanceToSource;
-    const xtkMeters = UnitType.NMILE.convertTo(xtkNM, UnitType.METER);
+  private localizerInterceptCurve(xtk: number, tas: number): number {
+    const xtkMeters = UnitType.NMILE.convertTo(xtk, UnitType.METER);
     const xtkMetersAbs = Math.abs(xtkMeters);
 
     if (xtkMetersAbs < 4) {
       return 0;
     } else if (xtkMetersAbs < 250) {
-      return NavMath.clamp(Math.abs(xtkNM * 75), 1, 5);
+      return NavMath.clamp(Math.abs(xtk * 75), 1, 5);
     }
 
     const turnRadiusMeters = NavMath.turnRadius(tas, 22.5);

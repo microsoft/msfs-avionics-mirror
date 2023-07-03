@@ -11,7 +11,7 @@ export class FmcListUtility<T> {
   /**
    * FMC List Utility Class
    * @param page                  The Fmc Page
-   * @param data                  The row input data (SubscribableArray<T>)
+   * @param data                  The row input data
    * @param renderRow             Function to call when the list needs to be re-rendered with new data
    * @param size                  row count of the list per page
    * @param firstPageSize         row count of the first page of the list

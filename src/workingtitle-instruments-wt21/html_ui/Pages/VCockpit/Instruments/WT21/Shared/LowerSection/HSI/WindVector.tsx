@@ -1,6 +1,7 @@
 import {
   AdcEvents, AhrsEvents, ComponentProps, DisplayComponent, EventBus, FSComponent, GNSSEvents, MappedSubject, Subject, VNode,
 } from '@microsoft/msfs-sdk';
+import { NavIndicatorAnimator } from './NavIndicatorAnimator';
 
 import './WindVector.css';
 
@@ -24,9 +25,12 @@ export class WindVector extends DisplayComponent<WindVectorProps> {
   private windSpeed = Subject.create(0);
   private windDirection = 0;
   private groundSpeed = Subject.create(0);
+  private windArrowRotation = Subject.create(0);
 
   private readonly speedValid = Subject.create(false);
   private readonly groundSpeedValid = Subject.create(false);
+
+  private readonly windArrowAnimator = new NavIndicatorAnimator();
 
   /** @inheritdoc */
   public onAfterRender(): void {
@@ -66,6 +70,14 @@ export class WindVector extends DisplayComponent<WindVectorProps> {
         const groundSpeedThresh = this.groundSpeedValid.get() ? 36 : 40;
         this.groundSpeedValid.set(value >= groundSpeedThresh);
       });
+
+    this.windArrowRotation.sub(this.windArrowAnimator.setTargetValue, true);
+
+    this.windArrowAnimator.output.sub(rotation => {
+      this.windArrowRef.instance.style.transform = `rotate3d(0,0,1, ${rotation}deg)`;
+    }, true);
+
+    this.windArrowAnimator.start();
   }
 
   /**
@@ -81,17 +93,15 @@ export class WindVector extends DisplayComponent<WindVectorProps> {
    * Updates the wind vector arrow.
    */
   private updateRotation(): void {
-    if (this.speedValid.get()) {
-      let rotate = this.windDirection - this.currentHeading;
-      if (rotate > 180) {
-        rotate = rotate - 360;
-      } else if (rotate < -180) {
-        rotate = rotate + 360;
-      }
-      rotate = (rotate + 180) % 360;
-
-      this.windArrowRef.instance.style.transform = `rotate3d(0,0,1, ${rotate}deg)`;
+    let rotate = this.windDirection - this.currentHeading;
+    if (rotate > 180) {
+      rotate = rotate - 360;
+    } else if (rotate < -180) {
+      rotate = rotate + 360;
     }
+    rotate = (rotate + 180) % 360;
+
+    this.windArrowRotation.set(rotate);
   }
 
   /** @inheritdoc */

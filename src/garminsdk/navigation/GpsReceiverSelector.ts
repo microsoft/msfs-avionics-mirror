@@ -34,8 +34,8 @@ export class GpsReceiverSelector {
    * @param bus The event bus.
    * @param enabledReceiverIndexes The indexes of the GPS receivers from which to select.
    * @param preferredReceiverIndex The index of this selector's preferred GPS receiver, or `-1` if there is no such
-   * receiver. This selector is guaranteed to select the the preferred GPS receiver's if its state is at least as
-   * desirable as the state of all other receivers from which to select.
+   * receiver. This selector is guaranteed to select the preferred GPS receiver if its state is at least as desirable
+   * as the state of all other receivers from which to select. Defaults to `-1`.
    */
   public constructor(
     private readonly bus: EventBus,
@@ -47,13 +47,13 @@ export class GpsReceiverSelector {
   }
 
   /**
-   * Initializes this manager. Once initialized, this manager will automatically keep the minimums unit in sync with
-   * the Garmin altitude display units setting until it is destroyed.
-   * @throws Error if this manager has been destroyed.
+   * Initializes this selector. Once initialized, this selector will automatically select the best GPS receiver among
+   * its candidates.
+   * @throws Error if this selector has been destroyed.
    */
   public init(): void {
     if (!this.isAlive) {
-      throw new Error('GpsReceiverSelector: cannot initialize a dead manager');
+      throw new Error('GpsReceiverSelector: cannot initialize a dead selector');
     }
 
     if (this.isInit) {
@@ -74,6 +74,8 @@ export class GpsReceiverSelector {
         this.gpsStates.set(key, gpsState);
 
         gpsState.sub(selectIndex);
+      } else {
+        this.gpsStates.delete(key);
       }
 
       selectIndex();
@@ -93,15 +95,16 @@ export class GpsReceiverSelector {
 
     if (this.gpsStates.size === 1) {
       this._selectedIndex.set(this.gpsStates.keys().next().value);
+      return;
     }
 
     let bestIndex = this._selectedIndex.get();
-    let bestState = this.gpsStates.get(bestIndex)?.get() ?? GPSSystemState.Searching;
+    let bestState = this.gpsStates.get(bestIndex)?.get();
 
     for (const index of this.gpsStates.keys()) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const state = this.gpsStates.get(index)!.get();
-      if (bestIndex < 0 || GpsReceiverSelector.compareGpsState(state, bestState) < 0) {
+      if (bestIndex < 0 || !bestState || GpsReceiverSelector.compareGpsState(state, bestState) < 0) {
         bestIndex = index;
         bestState = state;
       }
@@ -110,7 +113,7 @@ export class GpsReceiverSelector {
     const preferredIndex = this.preferredReceiverIndex.get();
     if (preferredIndex >= 0) {
       const preferredIndexState = this.gpsStates.get(preferredIndex)?.get();
-      if (preferredIndexState !== undefined && GpsReceiverSelector.compareGpsState(preferredIndexState, bestState) <= 0) {
+      if (preferredIndexState !== undefined && GpsReceiverSelector.compareGpsState(preferredIndexState, bestState as GPSSystemState) <= 0) {
         bestIndex = preferredIndex;
       }
     }
@@ -119,7 +122,7 @@ export class GpsReceiverSelector {
   }
 
   /**
-   * Destroys this manager.
+   * Destroys this selector.
    */
   public destroy(): void {
     this.isAlive = false;

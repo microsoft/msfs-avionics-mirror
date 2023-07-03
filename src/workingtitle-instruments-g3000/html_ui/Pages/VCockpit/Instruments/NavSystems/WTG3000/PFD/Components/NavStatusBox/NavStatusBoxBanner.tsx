@@ -35,8 +35,8 @@ export interface NavDmeInfoBoxProps extends ComponentProps {
  * A G3000 navigation status box banner.
  */
 export class NavStatusBoxBanner extends DisplayComponent<NavDmeInfoBoxProps> {
-  private static readonly BACKGROUND_PATH_NORMAL = 'M 324 49 l 0 -46 a 2 2 90 0 0 -2 -2 l -271 0 a 165 165 90 0 1 22 50 L 322 51 a 2 2 90 0 0 2 -2';
-  private static readonly BACKGROUND_PATH_HSI_MAP = 'M 324 49 l 0 -46 a 2 2 90 0 0 -2 -2 l -321 0 a 177 177 90 0 1 55.9 50 L 322 51 a 2 2 90 0 0 2 -2';
+  private static readonly BACKGROUND_PATH_NORMAL = 'M 324 48 l 0 -46 a 2 2 90 0 0 -2 -2 l -271 0 a 165 165 90 0 1 22 50 L 322 50 a 2 2 90 0 0 2 -2';
+  private static readonly BACKGROUND_PATH_HSI_MAP = 'M 324 48 l 0 -46 a 2 2 90 0 0 -2 -2 l -321 0 a 177 177 90 0 1 55.9 50 L 322 50 a 2 2 90 0 0 2 -2';
 
   private readonly boxRef = FSComponent.createRef<NavStatusBox>();
 
@@ -59,7 +59,7 @@ export class NavStatusBoxBanner extends DisplayComponent<NavDmeInfoBoxProps> {
   public render(): VNode {
     return (
       <div class={this.rootCssClass}>
-        <svg viewBox='0 0 325 52' class='nav-status-banner-background'>
+        <svg viewBox='0 0 324 50' class='nav-status-banner-background'>
           <path d={this.backgroundPath} vector-effect='non-scaling-stroke' />
         </svg>
         <NavStatusBox

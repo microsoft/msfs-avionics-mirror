@@ -1,7 +1,7 @@
 import { EventBus, KeyEventData, KeyEvents, KeyEventManager, SimVarValueType } from '../../data';
 import { APEvents, APLockType } from '../../instruments';
 import { MSFSAPStates } from '../../navigation';
-import { SubEventInterface, SubEvent, Subject } from '../../sub';
+import { SubEventInterface, SubEvent, Subject, Subscribable } from '../../sub';
 import { APConfig, APLateralModes, APVerticalModes } from '../APConfig';
 
 /** AP Mode Types */
@@ -24,11 +24,11 @@ export interface APModePressEvent {
  */
 export abstract class APStateManager {
 
-  private keyEventManager?: KeyEventManager;
+  protected keyEventManager?: KeyEventManager;
 
   private readonly apListener: ViewListener.ViewListener;
 
-  private apListenerRegistered = false;
+  protected apListenerRegistered = false;
   private managedModeSet = false;
   public stateManagerInitialized = Subject.create(false);
 
@@ -38,8 +38,10 @@ export abstract class APStateManager {
   public vnavPressed: SubEventInterface<this, boolean> = new SubEvent<this, boolean>();
 
   public apMasterOn = Subject.create(false);
-  public isFlightDirectorOn = Subject.create(false);
-  public isFlightDirectorCoPilotOn = Subject.create(false);
+  protected _isFlightDirectorOn = Subject.create(false);
+  public isFlightDirectorOn = this._isFlightDirectorOn as Subscribable<boolean>;
+  protected _isFlightDirectorCoPilotOn = Subject.create(false);
+  public isFlightDirectorCoPilotOn = this._isFlightDirectorCoPilotOn as Subscribable<boolean>;
 
   /**
    * Creates an instance of the APStateManager.
@@ -78,21 +80,15 @@ export abstract class APStateManager {
       }
     });
 
-    ap.on('ap_master_disengage').handle(() => {
-      this.apMasterOn.set(false);
-    });
-
-    ap.on('ap_master_engage').handle(() => {
-      this.apMasterOn.set(true);
-    });
+    ap.on('ap_master_status').handle(this.apMasterOn.set.bind(this.apMasterOn));
 
     ap.on('flight_director_is_active_1').whenChanged().handle((fd) => {
-      this.isFlightDirectorOn.set(fd);
+      this._isFlightDirectorOn.set(fd);
       this.setFlightDirector(fd);
     });
 
     ap.on('flight_director_is_active_2').whenChanged().handle((fd) => {
-      this.isFlightDirectorCoPilotOn.set(fd);
+      this._isFlightDirectorCoPilotOn.set(fd);
       this.setFlightDirector(fd);
     });
   }
@@ -119,10 +115,15 @@ export abstract class APStateManager {
     if (force || (this.keyEventManager && this.apListenerRegistered)) {
       this.setManagedMode(true).then(() => {
         SimVar.SetSimVarValue('AUTOPILOT ALTITUDE LOCK VAR', SimVarValueType.Feet, this.apConfig.altitudeHoldDefaultAltitude ?? 0);
-        this.setFlightDirector(false);
+        this.initFlightDirector();
         this.stateManagerInitialized.set(true);
       });
     }
+  }
+
+  /** Initializes the flight director to a default value. */
+  protected initFlightDirector(): void {
+    this.setFlightDirector(false);
   }
 
   /**
@@ -134,11 +135,11 @@ export abstract class APStateManager {
     setTimeout(() => {
       if (on !== this.isFlightDirectorOn.get()) {
         SimVar.SetSimVarValue('K:TOGGLE_FLIGHT_DIRECTOR', 'number', 1);
-        this.isFlightDirectorOn.set(on);
+        this._isFlightDirectorOn.set(on);
       }
       if (on !== this.isFlightDirectorCoPilotOn.get()) {
         SimVar.SetSimVarValue('K:TOGGLE_FLIGHT_DIRECTOR', 'number', 2);
-        this.isFlightDirectorCoPilotOn.set(on);
+        this._isFlightDirectorCoPilotOn.set(on);
       }
     }, 0);
   }

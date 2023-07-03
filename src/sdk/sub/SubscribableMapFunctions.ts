@@ -22,6 +22,46 @@ export class SubscribableMapFunctions {
   }
 
   /**
+   * Generates a function which maps an input boolean tuple to `true` if at least one tuple member is `true` and to
+   * `false` otherwise. A zero-length tuple is mapped to `false`.
+   * @returns A function which maps an input boolean tuple to `true` if at least one tuple member is `true` and to
+   * `false` otherwise.
+   */
+  public static or(): (input: readonly boolean[], currentVal?: boolean) => boolean {
+    return (input: readonly boolean[]): boolean => input.length > 0 && input.includes(true);
+  }
+
+  /**
+   * Generates a function which maps an input boolean tuple to `true` if no tuple member is `true` and to
+   * `false` otherwise. A zero-length tuple is mapped to `true`.
+   * @returns A function which maps an input boolean tuple to `true` if no tuple member is `true` or there are no
+   * tuple members, and to `false` otherwise.
+   */
+  public static nor(): (input: readonly boolean[], currentVal?: boolean) => boolean {
+    return (input: readonly boolean[]): boolean => !input.includes(true);
+  }
+
+  /**
+   * Generates a function which maps an input boolean tuple to `true` if all tuple members are `true` and to `false`
+   * otherwise. A zero-length tuple is mapped to `false`.
+   * @returns A function which maps an input boolean tuple to `true` if all tuple members are `true` and to `false`
+   * otherwise.
+   */
+  public static and(): (input: readonly boolean[], currentVal?: boolean) => boolean {
+    return (input: readonly boolean[]): boolean => input.length > 0 && !input.includes(false);
+  }
+
+  /**
+   * Generates a function which maps an input boolean tuple to `false` if all tuple members are `true` and to `false`
+   * otherwise. A zero-length tuple is mapped to `true`.
+   * @returns A function which maps an input boolean tuple to `true` if all tuple members are `true` and to `false`
+   * otherwise.
+   */
+  public static nand(): (input: readonly boolean[], currentVal?: boolean) => boolean {
+    return (input: readonly boolean[]): boolean => input.length < 1 || input.includes(false);
+  }
+
+  /**
    * Generates a function which maps an input number to its negation.
    * @returns A function which maps an input number to its negation.
    */

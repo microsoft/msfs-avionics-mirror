@@ -1,11 +1,50 @@
-/// <reference types="@microsoft/msfs-types/js/simvar" />
-
-import { EventBus, SimVarValueType } from '../../data';
-import { AdcEvents, AhrsEvents } from '../../instruments';
-import { ExpSmoother, MathUtils, UnitType } from '../../math';
-import { PidController } from '../../utils/controllers';
+import { SimVarValueType } from '../../data/SimVars';
+import { AeroMath } from '../../math/AeroMath';
+import { MathUtils } from '../../math/MathUtils';
 import { APValues } from '../APConfig';
+import { GenericFlcComputer } from '../calculators/GenericFlcComputer';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
+
+/**
+ * A command for {@link APFLCDirector} to set selected speed targets.
+ */
+export type APFLCDirectorSetSpeedCommand = {
+  /** The selected IAS target to set, in knots, or `undefined` if the selected IAS target should remain unchanged. */
+  ias: number | undefined;
+
+  /** The selected mach target to set, or `undefined` if the selected mach target should remain unchanged. */
+  mach: number | undefined;
+
+  /** Whether the selected speed target should be in mach, or `undefined` if the setting should remain unchanged. */
+  isSelectedSpeedInMach: boolean | undefined;
+};
+
+/**
+ * Options for {@link APFLCDirector}.
+ */
+export type APFLCDirectorOptions = {
+  /**
+   * The maximum absolute pitch up angle, in degrees, supported by the director, or a function which returns it.
+   */
+  maxPitchUpAngle: number | (() => number);
+
+  /**
+   * The maximum absolute pitch down angle, in degrees, supported by the director, or a function which returns it.
+   */
+  maxPitchDownAngle: number | (() => number);
+
+  /**
+   * A function which commands the director to set selected speed targets when the director is activated. The function
+   * takes the following as parameters:
+   * * The airplane's current indicated airspeed, in knots
+   * * The airplane's current mach number
+   * * Whether the current selected speed target is in mach
+   * * An object which defines commands to set selected speed targets.
+   * The function should use the command object to set certain selected IAS and mach targets, and whether the selected
+   * speed target should be in mach. Any undefined commands will leave the current settings unchanged.
+   */
+  setSpeedOnActivation: (currentIas: number, currentMach: number, isSelectedSpeedInMach: boolean, command: APFLCDirectorSetSpeedCommand) => void;
+};
 
 /**
  * A Flight Level Change autopilot director.
@@ -14,56 +53,65 @@ export class APFLCDirector implements PlaneDirector {
 
   public state: DirectorState;
 
-  /** A callback called when the director activates. */
+  private readonly flcComputer: GenericFlcComputer;
+
+  /** @inheritdoc */
   public onActivate?: () => void;
 
-  /** A callback called when the director arms. */
+  /** @inheritdoc */
   public onArm?: () => void;
 
-  private _lastTime = 0;
-  private currentIas = 0;
-  private selectedIas = 0;
-  private selectedMach = 0;
-  private isSelectedSpeedInMach = false;
-  private selectedAltitude = 0;
-  private currentAltitude = 0;
-  private currentPitch = 0;
-  private pitchController = new PidController(2, 0, 0, 15, -15);
-  private filter = new ExpSmoother(2.5);
+  /** @inheritdoc */
+  public drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean) => void;
+
+  private readonly setSpeedCommand: APFLCDirectorSetSpeedCommand = {
+    ias: undefined,
+    mach: undefined,
+    isSelectedSpeedInMach: undefined
+  };
+
+  private readonly maxPitchUpAngleFunc: () => number;
+  private readonly maxPitchDownAngleFunc: () => number;
+  private readonly setSpeedOnActivationFunc: (currentIas: number, currentMach: number, isSelectedSpeedInMach: boolean, command: APFLCDirectorSetSpeedCommand) => void;
 
   /**
-   * Creates an instance of the FLC Director.
-   * @param bus The event bus to use with this instance.
-   * @param apValues is the AP selected values subject.
-   * @param pitchClamp is the maximum pitch angle, in degrees, to clamp FLC at.
-   * @param forceCurrentIasOnActivation Whether this director should force set the current IAS as the target speed on activation.
+   * Creates a new instance of APFLCDirector.
+   * @param apValues Autopilot values from this director's parent autopilot.
+   * @param options Options to configure the new director. Option values default to the following if not defined:
+   * * `maxPitchUpAngle`: `15`
+   * * `maxPitchDownAngle`: `15`
+   * * `setSpeedOnActivation`: A function which sets the selected IAS or mach target to the airplane's current IAS or
+   * mach, depending on whether IAS or mach is currently being targeted.
    */
-  constructor(private readonly bus: EventBus, apValues: APValues, protected pitchClamp = 15, private forceCurrentIasOnActivation = true) {
+  constructor(private readonly apValues: APValues, options?: Partial<Readonly<APFLCDirectorOptions>>) {
+    const maxPitchUpAngleOpt = options?.maxPitchUpAngle ?? undefined;
+    switch (typeof maxPitchUpAngleOpt) {
+      case 'number':
+        this.maxPitchUpAngleFunc = () => maxPitchUpAngleOpt;
+        break;
+      case 'function':
+        this.maxPitchUpAngleFunc = maxPitchUpAngleOpt;
+        break;
+      default:
+        this.maxPitchUpAngleFunc = () => 15;
+    }
+
+    const maxPitchDownAngleOpt = options?.maxPitchDownAngle ?? undefined;
+    switch (typeof maxPitchDownAngleOpt) {
+      case 'number':
+        this.maxPitchDownAngleFunc = () => maxPitchDownAngleOpt;
+        break;
+      case 'function':
+        this.maxPitchDownAngleFunc = maxPitchDownAngleOpt;
+        break;
+      default:
+        this.maxPitchDownAngleFunc = () => 15;
+    }
+
+    this.setSpeedOnActivationFunc = options?.setSpeedOnActivation ?? APFLCDirector.defaultSetSpeedOnActivation;
+
     this.state = DirectorState.Inactive;
-
-    const sub = this.bus.getSubscriber<AdcEvents & AhrsEvents>();
-    sub.on('indicated_alt').withPrecision(0).handle((alt) => {
-      this.currentAltitude = alt;
-    });
-    sub.on('ias').withPrecision(2).handle((ias) => {
-      this.currentIas = ias;
-    });
-    sub.on('pitch_deg').withPrecision(1).handle((pitch) => {
-      this.currentPitch = -pitch;
-    });
-
-    apValues.selectedIas.sub((ias) => {
-      this.selectedIas = ias;
-    });
-    apValues.selectedMach.sub((mach) => {
-      this.selectedMach = mach;
-    });
-    apValues.isSelectedSpeedInMach.sub((isMach) => {
-      this.isSelectedSpeedInMach = isMach;
-    });
-    apValues.selectedAltitude.sub((alt) => {
-      this.selectedAltitude = alt;
-    });
+    this.flcComputer = new GenericFlcComputer({ kP: 2, kI: 0, kD: 0, maxOut: 90, minOut: -90 });
   }
 
   /**
@@ -71,16 +119,43 @@ export class APFLCDirector implements PlaneDirector {
    */
   public activate(): void {
     this.state = DirectorState.Active;
-    this.initialize();
     this.onActivate && this.onActivate();
+
+    // Handle setting selected speed on activation.
+
+    this.setSpeedCommand.ias = undefined;
+    this.setSpeedCommand.mach = undefined;
+    this.setSpeedCommand.isSelectedSpeedInMach = undefined;
+
+    this.setSpeedOnActivationFunc(
+      SimVar.GetSimVarValue('AIRSPEED INDICATED:1', SimVarValueType.Knots),
+      SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Number),
+      this.apValues.isSelectedSpeedInMach.get(),
+      this.setSpeedCommand
+    );
+
+    if (this.setSpeedCommand.ias !== undefined) {
+      SimVar.SetSimVarValue('K:AP_SPD_VAR_SET', SimVarValueType.Number, this.setSpeedCommand.ias);
+    }
+    if (this.setSpeedCommand.mach !== undefined) {
+      SimVar.SetSimVarValue('K:AP_MACH_VAR_SET', SimVarValueType.Number, Math.round(this.setSpeedCommand.mach * 100));
+    }
+    if (this.setSpeedCommand.isSelectedSpeedInMach !== undefined) {
+      SimVar.SetSimVarValue(this.setSpeedCommand.isSelectedSpeedInMach ? 'K:AP_MANAGED_SPEED_IN_MACH_ON' : 'K:AP_MANAGED_SPEED_IN_MACH_OFF', SimVarValueType.Number, 0);
+    }
+
+    // Activate sim FLC hold and initialize FLC computer climb mode state
+
     SimVar.SetSimVarValue('AUTOPILOT FLIGHT LEVEL CHANGE', 'Bool', true);
-    // Make sure we sync the selected IAS when FLC activates.
-    this.forceCurrentIasOnActivation && SimVar.SetSimVarValue('K:AP_SPD_VAR_SET', 'number', this.currentIas);
+
+    const currentAltitude = SimVar.GetSimVarValue('INDICATED ALTITUDE', SimVarValueType.Feet);
+    this.flcComputer.activate(this.apValues.selectedAltitude.get() > currentAltitude);
   }
 
   /**
    * Arms this director.
    * This director can be armed, but it will never automatically activate and remain in the armed state.
+   * Therefore we do not resume subs until activation.
    */
   public arm(): void {
     this.state = DirectorState.Armed;
@@ -93,80 +168,55 @@ export class APFLCDirector implements PlaneDirector {
   public deactivate(): void {
     this.state = DirectorState.Inactive;
     SimVar.SetSimVarValue('AUTOPILOT FLIGHT LEVEL CHANGE', 'Bool', false);
+    this.flcComputer.deactivate();
   }
 
   /**
    * Updates this director.
    */
   public update(): void {
-    if (this.state === DirectorState.Active) {
-      this.setPitch(this.getDesiredPitch());
-    }
-  }
-
-  /**
-   * Initializes this director on activation.
-   */
-  protected initialize(): void {
-    this.resetFilter();
-    this.pitchController.reset();
-  }
-
-  /**
-   * Gets a desired pitch from the current AP speed target
-   * @returns The desired pitch angle.
-   */
-  private getDesiredPitch(): number {
-    const targetIas = this.isSelectedSpeedInMach ? Simplane.getMachToKias(this.selectedMach) : this.selectedIas;
-
-    return this.getDesiredPitchFromSpeed(targetIas);
-  }
-
-  /**
-   * Gets a desired pitch from a given speed target
-   * @param targetIas target airspeed in knots
-   * @returns The desired pitch angle.
-   */
-  protected getDesiredPitchFromSpeed(targetIas: number): number {
-    const time = performance.now() / 1000;
-    let dt = time - this._lastTime;
-    if (this._lastTime === 0) {
-      dt = 0;
+    if (this.state !== DirectorState.Active) {
+      return;
     }
 
-    //step 1 - we want to find the IAS error from target and set a target acceleration
-    const iasError = this.currentIas - targetIas;
-    const targetAcceleration = MathUtils.clamp(iasError / 5, -2, 2) * -1;
+    const currentAltitude = SimVar.GetSimVarValue('INDICATED ALTITUDE', SimVarValueType.Feet);
+    this.flcComputer.setClimbMode(this.apValues.selectedAltitude.get() > currentAltitude);
 
-    //step 2 - we want to find the current acceleration, feed that to the pid to manage to the target acceleration
-    const acceleration = UnitType.FOOT.convertTo(SimVar.GetSimVarValue('ACCELERATION BODY Z', 'feet per second squared'), UnitType.NMILE) * 3600;
-    const accelerationError = acceleration - targetAcceleration;
-    const pitchCorrection = this.pitchController.getOutput(dt, accelerationError);
-
-    const aoa = SimVar.GetSimVarValue('INCIDENCE ALPHA', SimVarValueType.Degree);
-    this._lastTime = time;
-    let targetPitch = isNaN(pitchCorrection) ? this.currentPitch - aoa : (this.currentPitch - aoa) + pitchCorrection;
-    targetPitch = this.filter.next(targetPitch, dt);
-
-    if (this.selectedAltitude > this.currentAltitude) {
-      return MathUtils.clamp(targetPitch + aoa, aoa, this.pitchClamp);
+    if (this.apValues.isSelectedSpeedInMach.get()) {
+      const mach = this.apValues.selectedMach.get();
+      let ias = Simplane.getMachToKias(mach);
+      if (!isFinite(ias)) {
+        // Sometimes getMachToKias returns a NaN value. If so, fall back to doing the conversion ourselves.
+        ias = AeroMath.machToCas(mach, SimVar.GetSimVarValue('AMBIENT PRESSURE', SimVarValueType.HPA));
+      }
+      this.flcComputer.setTargetSpeed(ias);
     } else {
-      return MathUtils.clamp(targetPitch + aoa, -this.pitchClamp, aoa);
+      this.flcComputer.setTargetSpeed(this.apValues.selectedIas.get());
     }
+
+    this.flcComputer.update();
+    const pitchTarget = this.flcComputer.pitchTarget.get();
+
+    // The flcComputer takes care of the aoa adjustment since it needs aoa anyhow,
+    // and there is no vertical wind correction for an FLC mode.
+    pitchTarget !== null && this.drivePitch && this.drivePitch(MathUtils.clamp(pitchTarget, -this.maxPitchUpAngleFunc(), this.maxPitchDownAngleFunc()), false, false);
   }
 
   /**
-   * Sets the desired AP pitch angle.
-   * @param targetPitch The desired AP pitch angle.
+   * Executes default logic for setting selected speed targets when the FLC director is activated. If the current
+   * selected speed target is in IAS, then the selected IAS target will be set to the airplane's current indicated
+   * airspeed. If the current selected speed target is in mach, then the selected mach target will be set to the
+   * airplane's current mach number.
+   * @param currentIas The airplane's current indicated airspeed, in knots.
+   * @param currentMach The airplane's current mach number.
+   * @param isSelectedSpeedInMach Whether the current selected speed target is in mach.
+   * @param command The command to set selected speed targets.
    */
-  protected setPitch(targetPitch: number): void {
-    if (isFinite(targetPitch)) {
-      SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, -targetPitch);
+  private static defaultSetSpeedOnActivation(currentIas: number, currentMach: number, isSelectedSpeedInMach: boolean, command: APFLCDirectorSetSpeedCommand): void {
+    if (isSelectedSpeedInMach) {
+      command.mach = currentMach;
+    } else {
+      command.ias = currentIas;
     }
-  }
-
-  /** Reset the pitch filter */
-  protected resetFilter(): void {
-    this._lastTime = 0;
   }
 }

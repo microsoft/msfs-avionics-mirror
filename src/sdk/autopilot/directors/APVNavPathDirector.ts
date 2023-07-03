@@ -1,9 +1,7 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { EventBus, SimVarValueType } from '../../data';
-import { AdcEvents, GNSSEvents } from '../../instruments';
-import { MathUtils, SimpleMovingAverage, UnitType } from '../../math';
-import { APValues } from '../APConfig';
+import { ConsumerValue, EventBus, SimVarValueType } from '../../data';
+import { MathUtils, SimpleMovingAverage } from '../../math';
 import { VNavEvents } from '../data/VNavEvents';
 import { VNavUtils } from '../VNavUtils';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
@@ -24,36 +22,46 @@ export class APVNavPathDirector implements PlaneDirector {
   /** @inheritdoc */
   public onDeactivate?: () => void;
 
-  protected deviation = 0;
+  /** @inheritdoc */
+  public drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean) => void;
 
-  protected fpa = 0;
+  protected readonly deviation = ConsumerValue.create(null, Number.MAX_SAFE_INTEGER);
+  protected readonly fpa = ConsumerValue.create(null, 0);
 
   protected verticalWindAverage = new SimpleMovingAverage(10);
-  protected tas = 0;
-  protected groundSpeed = 0;
 
   /**
    * Creates an instance of the APVNavPathDirector.
    * @param bus The event bus to use with this instance.
-   * @param apValues are the ap selected values for the autopilot.
    */
-  constructor(private readonly bus: EventBus, private readonly apValues: APValues) {
+  constructor(bus: EventBus) {
     this.state = DirectorState.Inactive;
 
-    this.bus.getSubscriber<VNavEvents>().on('vnav_vertical_deviation').whenChanged().handle(dev => this.deviation = dev);
-    this.bus.getSubscriber<VNavEvents>().on('vnav_fpa').whenChanged().handle(fpa => this.fpa = fpa);
-    this.bus.getSubscriber<AdcEvents>().on('tas').withPrecision(0).handle((tas) => {
-      this.tas = tas;
-    });
-    this.bus.getSubscriber<GNSSEvents>().on('ground_speed').withPrecision(0).handle((gs) => {
-      this.groundSpeed = gs;
-    });
+    const sub = bus.getSubscriber<VNavEvents>();
+
+    this.deviation.setConsumer(sub.on('vnav_vertical_deviation').whenChanged());
+    this.fpa.setConsumer(sub.on('vnav_fpa').whenChanged());
+
+    this.pauseSubs();
+  }
+
+  /** Resumes Subscriptions. */
+  private resumeSubs(): void {
+    this.deviation.resume();
+    this.fpa.resume();
+  }
+
+  /** Pauses Subscriptions. */
+  private pauseSubs(): void {
+    this.deviation.pause();
+    this.fpa.pause();
   }
 
   /**
    * Activates this director.
    */
   public activate(): void {
+    this.resumeSubs();
     this.state = DirectorState.Active;
     SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD', 'Bool', 0);
     if (this.onActivate !== undefined) {
@@ -65,6 +73,7 @@ export class APVNavPathDirector implements PlaneDirector {
    * Arms this director.
    */
   public arm(): void {
+    this.resumeSubs();
     if (this.state === DirectorState.Inactive) {
       this.state = DirectorState.Armed;
       if (this.onArm !== undefined) {
@@ -79,6 +88,7 @@ export class APVNavPathDirector implements PlaneDirector {
   public deactivate(): void {
     this.state = DirectorState.Inactive;
     this.onDeactivate && this.onDeactivate();
+    this.pauseSubs();
   }
 
   /**
@@ -86,7 +96,7 @@ export class APVNavPathDirector implements PlaneDirector {
    */
   public update(): void {
     if (this.state === DirectorState.Active) {
-      this.setPitch(this.getDesiredPitch());
+      this.drivePitch && this.drivePitch(this.getDesiredPitch(), true, true);
     }
   }
 
@@ -95,32 +105,13 @@ export class APVNavPathDirector implements PlaneDirector {
    * @returns The desired pitch angle.
    */
   protected getDesiredPitch(): number {
+    // fpa value is positive for down
+    const fpa = this.fpa.get();
+    const groundSpeed = SimVar.GetSimVarValue('GROUND VELOCITY', SimVarValueType.Knots);
 
-    const fpaVsRequired = VNavUtils.getVerticalSpeedFromFpa(this.fpa, this.groundSpeed) * -1;
-    const fpaPercentage = Math.max(this.deviation / (VNavUtils.getPathErrorDistance(this.groundSpeed) * -1), -1) + 1;
+    const fpaPercentage = Math.max(this.deviation.get() / (VNavUtils.getPathErrorDistance(groundSpeed) * -1), -1) + 1;
 
-    const vsRequiredForFpa = MathUtils.clamp(fpaVsRequired * fpaPercentage, fpaVsRequired - 1500, 1000);
-
-    //We need the instant vertical wind component here so we're avoiding the bus
-    const verticalWindComponent = this.verticalWindAverage.getAverage(SimVar.GetSimVarValue('AMBIENT WIND Y', SimVarValueType.FPM));
-
-    const vsRequiredWithVerticalWind = vsRequiredForFpa - verticalWindComponent;
-
-    const pitchForVerticalSpeed = VNavUtils.getFpa(UnitType.NMILE.convertTo(this.tas / 60, UnitType.FOOT), vsRequiredWithVerticalWind);
-
-    //We need the instant AOA here so we're avoiding the bus
-    const aoa = SimVar.GetSimVarValue('INCIDENCE ALPHA', SimVarValueType.Degree);
-
-    return aoa + pitchForVerticalSpeed;
-  }
-
-  /**
-   * Sets the desired AP pitch angle.
-   * @param targetPitch The desired AP pitch angle.
-   */
-  protected setPitch(targetPitch: number): void {
-    if (isFinite(targetPitch)) {
-      SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, -targetPitch);
-    }
+    // We limit desired pitch to avoid divebombing if something like a flight plan change suddenly puts you way above the path
+    return Math.min(MathUtils.clamp(fpa * fpaPercentage, -1, fpa + 3), 10);
   }
 }

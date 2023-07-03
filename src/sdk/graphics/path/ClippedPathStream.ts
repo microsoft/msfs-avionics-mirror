@@ -1,5 +1,7 @@
-import { ReadonlyFloat64Array, Vec2Math, Vec3Math } from '../../math';
+import { MathUtils } from '../../math/MathUtils';
+import { ReadonlyFloat64Array, Vec2Math, Vec3Math } from '../../math/VecMath';
 import { Subscribable } from '../../sub/Subscribable';
+import { Subscription } from '../../sub/Subscription';
 import { AbstractTransformingPathStream, PathStream } from './PathStream';
 
 /**
@@ -14,6 +16,20 @@ enum Outcode {
 }
 
 /**
+ * An intersection between a circle and a bounding box.
+ */
+type CircleBoundsIntersection = {
+  /** The coordinates of the intersection, as `[x, y]`. */
+  point: Float64Array;
+
+  /**
+   * The radial of the circle, in radians, along which the intersection lies. A radial of zero is in the direction of
+   * the positive x axis, with increasing radials proceeding clockwise.
+   */
+  radial: number;
+};
+
+/**
  * A path stream which performs clipping to an axis-aligned rectangular bounding box before sending the clipped path
  * to another stream. Clipping is only supported for path segments added via the `lineTo()` and `arc()` methods. Path
  * segments added via `bezierCurveTo()` and `quadraticCurveTo()` will be passed to the consumer stream unclipped.
@@ -22,11 +38,9 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
   private static readonly vec2Cache = [new Float64Array(2), new Float64Array(2), new Float64Array(2), new Float64Array(2)];
   private static readonly vec3Cache = [new Float64Array(3), new Float64Array(3)];
 
-  private static readonly intersectionCache = Array.from({ length: 8 }, () => {
-    return { point: new Float64Array(2), radial: 0 };
+  private static readonly intersectionCache: CircleBoundsIntersection[] = Array.from({ length: 8 }, () => {
+    return { point: new Float64Array(2), radial: Infinity };
   });
-
-  private readonly boundsHandler = this.onBoundsChanged.bind(this);
 
   private readonly boundsLines = [
     new Float64Array(3),
@@ -40,6 +54,8 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
   private readonly prevPoint = new Float64Array([NaN, NaN]);
   private prevPointOutcode = 0;
 
+  private readonly boundsSub: Subscription;
+
   /**
    * Constructor.
    * @param consumer The path stream that consumes this stream's transformed output.
@@ -49,7 +65,7 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
   constructor(consumer: PathStream, private readonly bounds: Subscribable<ReadonlyFloat64Array>) {
     super(consumer);
 
-    bounds.sub(this.boundsHandler, true);
+    this.boundsSub = bounds.sub(this.onBoundsChanged.bind(this), true);
   }
 
   /** @inheritdoc */
@@ -136,10 +152,13 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
           }
         }
       } else {
+        // The connecting line crosses zones diagonally -> we need to check if the intersection of the line and each
+        // boundary falls outside the bounds of the orthogonal axis.
+
         // find entry point
         for (let i = 0; i < 4; i++) {
           if (this.prevPointOutcode & (1 << i)) {
-            const boundsAxisIndex = i % 2;
+            const boundsAxisIndex = (i + 1) % 2;
             const intersection = ClippedPathStream.findLineLineIntersection(line, this.boundsLines[i], ClippedPathStream.vec2Cache[0]);
             if (intersection && intersection[boundsAxisIndex] >= bounds[boundsAxisIndex] && intersection[boundsAxisIndex] <= bounds[boundsAxisIndex + 2]) {
               entryPoint = intersection;
@@ -151,7 +170,7 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
         // find exit point
         for (let i = 0; i < 4; i++) {
           if (outcode & (1 << i)) {
-            const boundsAxisIndex = i % 2;
+            const boundsAxisIndex = (i + 1) % 2;
             const intersection = ClippedPathStream.findLineLineIntersection(line, this.boundsLines[i], ClippedPathStream.vec2Cache[1]);
             if (intersection && intersection[boundsAxisIndex] >= bounds[boundsAxisIndex] && intersection[boundsAxisIndex] <= bounds[boundsAxisIndex + 2]) {
               exitPoint = intersection;
@@ -250,8 +269,9 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
       endAngle = startAngle + angleDiff * directionSign;
     }
 
-    // Clamp to 2pi because we don't need to draw anything past a full circle.
+    // Canvas context arc() clamps angular width to 2pi, so we will too.
     const angularWidth = Math.min(pi2, (endAngle - startAngle) * directionSign);
+    endAngle = startAngle + angularWidth * directionSign;
 
     const bounds = this.bounds.get();
     const radiusSq = radius * radius;
@@ -276,8 +296,8 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
       this.lineTo(startPoint[0], startPoint[1]);
     }
 
-    // find all intersections of the arc circle with the clipping bounds; there can be up to 8 (two for each boundary
-    // line)
+    // Find all intersections of the arc circle with the clipping bounds; there can be up to 8 (two for each boundary
+    // line).
 
     const intersections = ClippedPathStream.intersectionCache;
     let intersectionCount = 0;
@@ -289,6 +309,8 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
       const deltaToBound = bounds[i] - centerAxisCoord;
 
       if (Math.abs(deltaToBound) < radius) {
+        const radialOffsetSign = axisCoordIndex === 0 ? 1 : -1;
+
         const crossAxisBoundMin = bounds[crossAxisCoordIndex];
         const crossAxisBoundMax = bounds[crossAxisCoordIndex + 2];
 
@@ -301,7 +323,7 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
             const intersection = intersections[intersectionCount];
             intersection.point[axisCoordIndex] = bounds[i];
             intersection.point[crossAxisCoordIndex] = intersectionCrossAxisCoord;
-            const radial = axisCoordIndex * Math.PI / 2 + (intersectionRadialOffset ??= Math.acos(deltaToBound / radius)) * (axisCoordIndex === 0 ? 1 : -1);
+            const radial = axisCoordIndex * Math.PI / 2 + (intersectionRadialOffset ??= Math.acos(MathUtils.clamp(deltaToBound / radius, -1, 1))) * radialOffsetSign;
             intersection.radial = (radial + pi2) % pi2; // [0, 2 * pi)
             intersectionCount++;
           }
@@ -312,12 +334,22 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
             const intersection = intersections[intersectionCount];
             intersection.point[axisCoordIndex] = bounds[i];
             intersection.point[crossAxisCoordIndex] = intersectionCrossAxisCoord;
-            const radial = axisCoordIndex * Math.PI / 2 - (intersectionRadialOffset ??= Math.acos(deltaToBound / radius)) * (axisCoordIndex === 0 ? 1 : -1);
+            const radial = axisCoordIndex * Math.PI / 2 - (intersectionRadialOffset ??= Math.acos(MathUtils.clamp(deltaToBound / radius, -1, 1))) * radialOffsetSign;
             intersection.radial = (radial + pi2) % pi2; // [0, 2 * pi)
             intersectionCount++;
           }
         }
       }
+    }
+
+    if (intersectionCount > 1) {
+      // Set all unused intersection radials to infinity so they are guaranteed to be sorted last.
+      for (let i = intersectionCount; i < intersections.length; i++) {
+        intersections[i].radial = Infinity;
+      }
+
+      // Sort the intersections such that they are in clockwise order.
+      intersections.sort(ClippedPathStream.compareCircleBoundsIntersections);
     }
 
     // Begin at the start radial, then in order (either clockwise or counterclockwise depending on the arc direction)
@@ -327,13 +359,12 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
     // is past the end radial of the arc.
 
     let isOutside = startPointOutcode !== Outcode.Inside;
-    const startAngleNormalized = ((startAngle % pi2) + pi2) % pi2; // [0, 2 * pi)
-    let lastRadial = startAngleNormalized;
+    let prevRadial = startAngle;
 
     let intersectionStartIndex = -1;
     let minAngularDiff = Infinity;
     for (let i = 0; i < intersectionCount; i++) {
-      const angularDiff = ((intersections[i].radial - startAngleNormalized) * directionSign + pi2) % pi2;
+      const angularDiff = MathUtils.diffAngle(startAngle * directionSign, intersections[i].radial * directionSign);
       if (angularDiff < minAngularDiff) {
         intersectionStartIndex = i;
         minAngularDiff = angularDiff;
@@ -341,35 +372,39 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
     }
 
     if (intersectionStartIndex >= 0) {
+      let angularWidthRemaining = angularWidth;
       for (let i = 0; i < intersectionCount; i++) {
         const index = (intersectionStartIndex + intersectionCount + i * directionSign) % intersectionCount;
         const intersection = intersections[index];
-        if (((intersection.radial - startAngleNormalized) * directionSign + pi2) % pi2 >= angularWidth) {
+        const segmentAngularWidth = MathUtils.diffAngle(prevRadial * directionSign, intersection.radial * directionSign);
+        if (segmentAngularWidth >= angularWidthRemaining) {
+          angularWidthRemaining = 0;
           break;
         }
+
+        const currentRadial = prevRadial + segmentAngularWidth * directionSign;
 
         if (isOutside) {
           this.consumer.moveTo(intersection.point[0], intersection.point[1]);
         } else {
-          const segmentAngularWidth = ((intersection.radial - lastRadial) * directionSign + pi2) % pi2;
-          this.consumer.arc(x, y, radius, lastRadial, lastRadial + segmentAngularWidth * directionSign, counterClockwise);
+          this.consumer.arc(x, y, radius, prevRadial, currentRadial, counterClockwise);
         }
 
         isOutside = !isOutside;
-        lastRadial = intersection.radial;
+        prevRadial = currentRadial;
+        angularWidthRemaining = (endAngle - prevRadial) * directionSign;
       }
     }
 
-    const endAngleNormalized = (startAngleNormalized + angularWidth * directionSign + pi2) % pi2; // [0, 2 * pi)
-
     if (!isOutside) {
-      const segmentAngularWidth = ((endAngleNormalized - lastRadial) * directionSign + pi2) % pi2;
-      this.consumer.arc(x, y, radius, lastRadial, lastRadial + segmentAngularWidth * directionSign, counterClockwise);
-      if (Math.abs((endAngleNormalized - endAngle) % pi2) > 1e-14) {
-        // This can happen if we clamped the angular width to 2pi -> we need to move the current point to the actual
-        // end point to keep the state of the consumer stream consistent with ours.
-        this.consumer.moveTo(endPoint[0], endPoint[1]);
-      }
+      // If the last segment is not outside, then we will path an arc to the end radial.
+      this.consumer.arc(x, y, radius, prevRadial, endAngle, counterClockwise);
+    } else if (endPointOutcode === Outcode.Inside) {
+      // If the last segment is outside but the endpoint is inside, then this means the endpoint is very close to the
+      // clipping bounds and floating point error caused the discrepancy. In this case, we will not bother to draw an
+      // arc because any such arc would be extremely short. Instead, we will move to the end point to ensure we leave
+      // the consumer stream in the correct state for the next path command.
+      this.consumer.moveTo(endPoint[0], endPoint[1]);
     }
 
     Vec2Math.copy(endPoint, this.prevPoint);
@@ -437,7 +472,7 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
    * Destroys this stream.
    */
   public destroy(): void {
-    this.bounds.unsub(this.boundsHandler);
+    this.boundsSub.destroy();
   }
 
   /**
@@ -471,5 +506,17 @@ export class ClippedPathStream extends AbstractTransformingPathStream {
     }
 
     return Vec2Math.set(cross[0] / w, cross[1] / w, out);
+  }
+
+  /**
+   * Compares two circle-bounding box intersections and returns whether the first intersection's radial is less than,
+   * greater than, or equal to the second's radial.
+   * @param a The first intersection to compare.
+   * @param b The second intersection to compare.
+   * @returns A negative number if the first intersection's radial is less than the second, a positive number if the
+   * first intersection's radial is greater than the second, or zero if both intersections' radials are equal.
+   */
+  private static compareCircleBoundsIntersections(a: CircleBoundsIntersection, b: CircleBoundsIntersection): number {
+    return a.radial - b.radial;
   }
 }

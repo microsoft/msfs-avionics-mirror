@@ -4,7 +4,8 @@ import {
 } from '@microsoft/msfs-sdk';
 
 import { ComRadioSpacingSettingMode, ComRadioUserSettings, DateTimeFormatSettingMode, DateTimeUserSettings } from '@microsoft/msfs-garminsdk';
-import { AoaIndicatorDisplaySettingMode, HorizonDirectorCueOption, PfdUserSettings, WindDisplaySettingMode } from '@microsoft/msfs-wtg3000-common';
+
+import { AoaIndicatorDisplaySettingMode, FlightDirectorFormatSettingMode, HorizonDirectorCueOption, PfdUserSettings, WindDisplaySettingMode } from '@microsoft/msfs-wtg3000-common';
 
 import { GtcList } from '../../Components/List/GtcList';
 import { GtcListItem } from '../../Components/List/GtcListItem';
@@ -163,9 +164,37 @@ export class GtcPfdSettingsPageMasterList extends DisplayComponent<GtcPfdSetting
           <div class='pfd-settings-page-row-left'>
             <div>Flight<br />Director<br />Active<br />Format</div>
           </div>
-          <div class='pfd-settings-page-row-right'>
-            Single Cue
-          </div>
+          {
+            this.props.horizonDirectorCueOption === 'both'
+              ? (
+                <GtcListSelectTouchButton
+                  gtcService={this.props.gtcService}
+                  listDialogKey={GtcViewKeys.ListDialog1}
+                  state={this.pfdSettingManager.getSetting('flightDirectorFormat')}
+                  renderValue={(value): string => value === FlightDirectorFormatSettingMode.Dual ? 'Dual Cue' : 'Single Cue'}
+                  listParams={{
+                    title: 'Flight Director Active Format',
+                    inputData: [
+                      {
+                        value: FlightDirectorFormatSettingMode.Single,
+                        labelRenderer: () => 'Single Cue'
+                      },
+                      {
+                        value: FlightDirectorFormatSettingMode.Dual,
+                        labelRenderer: () => 'Dual Cue'
+                      }
+                    ],
+                    selectedValue: this.pfdSettingManager.getSetting('flightDirectorFormat')
+                  }}
+                  isInList
+                  class='pfd-settings-page-row-right'
+                />
+              ) : (
+                <div class='pfd-settings-page-row-right'>
+                  {this.props.horizonDirectorCueOption === 'dual' ? 'Dual Cue' : 'Single Cue'}
+                </div>
+              )
+          }
         </GtcListItem>
         <GtcListItem paddedListItem class='pfd-settings-page-row'>
           <div class='pfd-settings-page-row-left'>
@@ -421,7 +450,7 @@ export class GtcPfdSettingsPageMasterList extends DisplayComponent<GtcPfdSetting
             class='pfd-settings-page-row-right'
           />
         </GtcListItem>
-      </GtcList>
+      </GtcList >
     );
   }
 

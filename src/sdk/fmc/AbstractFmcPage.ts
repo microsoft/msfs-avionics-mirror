@@ -260,13 +260,7 @@ export abstract class AbstractFmcPage {
       }
     }
 
-    const handledByPage = await this.onHandleSelectKey(event);
-
-    if (!handledByPage) {
-      return Promise.reject('KEY NOT ACTIVE');
-    }
-
-    return handledByPage;
+    return await this.onHandleSelectKey(event);
   }
 
   /**

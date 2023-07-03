@@ -178,6 +178,9 @@ export type LNavTrackingState = {
 export type LNavEvents = LNavSimVarEvents & {
   /** The current LNAV tracking state. */
   lnav_tracking_state: LNavTrackingState;
+
+  /** Whether LNAV tracking is currently paused while awaiting lateral flight path calculations to finish. */
+  lnav_is_awaiting_calc: boolean;
 };
 
 /**

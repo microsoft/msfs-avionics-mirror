@@ -1,6 +1,6 @@
 import {
-  AdcEvents, ControlEvents, FlightPathVectorFlags, FlightPlan, FlightPlanLeg, FlightPlannerEvents, GNSSEvents, HoldMaxSpeedRule, HoldUtils, ICAO, LegDefinition,
-  LegTurnDirection, LegType, LNavEvents, MappedSubject, Subject, UnitType
+  AdcEvents, ControlEvents, FlightPathUtils, FlightPathVectorFlags, FlightPlan, FlightPlanLeg, FlightPlannerEvents, GNSSEvents, HoldMaxSpeedRule, HoldUtils, ICAO, LegDefinition,
+  LegTurnDirection, LegType, LNavEvents, MagVar, MappedSubject, Subject, UnitType
 } from '@microsoft/msfs-sdk';
 
 import { WT21Fms } from '../../Shared/FlightPlan/WT21Fms';
@@ -147,13 +147,22 @@ class FplnHoldPageController {
     } else {
       // Have to create a new hold
 
+      let course = 100;
+      if (targetLeg.calculated) {
+        const trueCourse = FlightPathUtils.getLegFinalCourse(targetLeg.calculated);
+
+        if (trueCourse !== undefined) {
+          course = MagVar.trueToMagnetic(trueCourse, targetLeg.calculated.courseMagVar);
+        }
+      }
+
       const newLeg = FlightPlan.createLeg({
         type: LegType.HM,
         turnDirection: LegTurnDirection.Left,
-        course: 100, // FIXME
         distance: 1,
         distanceMinutes: true,
         fixIcao: targetLeg.leg.fixIcao,
+        course,
       });
 
       const segmentIndex = this.fms.getPlanForFmcRender().getSegmentIndex(atLeg);

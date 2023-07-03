@@ -21,6 +21,27 @@ export interface FmcScreenOptions {
   }
 
   /**
+   * The value that is thrown when an LSK event is not handled by anything.
+   *
+   * Default: the string 'KEY NOT ACTIVE'.
+   */
+  lskNotHandledThrowValue?: any,
+
+  /**
+   * The value that is thrown when a text input fields receives a DELETE when `deleteAllowed` is false.
+   *
+   * Default: the string 'INVALID DELETE'.
+   */
+  textInputFieldDisallowedDeleteThrowValue?: any,
+
+  /**
+   * The value that is thrown when a text input fields fails to parse a scratchpad entry.
+   *
+   * Default: the string 'INVALID ENTRY'.
+   */
+  textInputFieldParseFailThrowValue?: any,
+
+  /**
    * Whether to enable the scratchpad. Defaults to `true`.
    */
   enableScratchpad?: boolean,
@@ -51,6 +72,9 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
       cellWidth: 24,
       cellHeight: 12,
     },
+    lskNotHandledThrowValue: 'KEY NOT ACTIVE',
+    textInputFieldDisallowedDeleteThrowValue: 'INVALID DELETE',
+    textInputFieldParseFailThrowValue: 'INVALID ENTRY',
     enableScratchpad: true,
     eventPrefix: '',
   };
@@ -91,7 +115,7 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
   }
 
   /**
-   * Gets the current subpage index for the current displayed page
+   * Gets the current subpage index for the current displayed page, 1-indexed
    *
    * @returns a number
    */
@@ -235,7 +259,8 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
   protected acceptPageOutput(output: FmcOutputTemplate, template: FmcRenderTemplate, atRowIndex: number): void {
     const rows = [...output];
 
-    for (let i = rows.length; i < this.renderer.options.screenCellHeight - 2; i++) {
+    const totalRows = this.options.screenDimensions.cellHeight - (this.options.enableScratchpad ? 2 : 0);
+    for (let i = rows.length; i < totalRows; i++) {
       rows.push(['']);
     }
 
@@ -269,13 +294,15 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
   }
 
   /**
-   * Called when an LSK event is not handled by any code. Does nothing unless overridden.
+   * Called when an LSK event is not handled by any code.
    *
    * @param selectKeyEvent the LSK event
+   *
+   * @throws the value of `options.lskNotHandledThrowValue` by default
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected onLineSelectKeyUnhandled(selectKeyEvent: LineSelectKeyEvent): void {
-    // noop
+    throw this.options.lskNotHandledThrowValue;
   }
 
   /**

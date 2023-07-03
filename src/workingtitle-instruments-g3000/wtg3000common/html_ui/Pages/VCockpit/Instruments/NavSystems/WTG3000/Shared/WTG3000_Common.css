@@ -162,3 +162,15 @@ html {
 .failed-instr .failed-box {
   display: block;
 }
+
+.failure-box {
+  --fail-bg-color: rgba(135, 0, 0, 0.4);
+  --fail-fg-color: rgba(244, 0, 0, 1);
+
+  background: var(--fail-bg-color);
+}
+
+.failure-box-line {
+  stroke: var(--fail-fg-color);
+  stroke-width: var(--fail-cross-stroke-width, 2px);
+}

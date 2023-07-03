@@ -24,7 +24,24 @@ export class GameStateProvider {
     if (window.parent?.document.body.hasAttribute('gamestate')) {
       const attribute = window.parent.document.body.getAttribute('gamestate');
       if (attribute !== null) {
-        this.gameState.set((GameState as any)[attribute]);
+        const state = (GameState as any)[attribute];
+
+        // The game state is set briefly to ingame after loading is finished before changing to briefing. In order to
+        // not notify subscribers of this erroneous ingame state, we will debounce any state changes into ingame by two
+        // frames.
+        if (state === GameState.ingame && this.gameState.get() !== GameState.ingame) {
+          setTimeout(() => {
+            setTimeout(() => {
+              const newAttribute = window.parent.document.body.getAttribute('gamestate');
+              if (newAttribute !== null) {
+                this.gameState.set((GameState as any)[newAttribute]);
+              }
+            });
+          });
+        } else {
+          this.gameState.set(state);
+        }
+
         return;
       }
     }

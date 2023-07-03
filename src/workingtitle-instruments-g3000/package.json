@@ -1,6 +1,6 @@
 {
   "name": "workingtitle-instruments-g3000",
-  "version": "1.0.7",
+  "version": "1.1.6",
   "description": "Working Title MSFS G3000",
   "main": "wtg3000.js",
   "scripts": {
@@ -24,10 +24,10 @@
   "author": "Working Title Simulations, LLC",
   "license": "Modified MIT",
   "devDependencies": {
-    "@microsoft/msfs-sdk": "0.4.0",
+    "@microsoft/msfs-sdk": "0.5.0",
     "@microsoft/msfs-types": "1.14.6",
-    "@microsoft/msfs-garminsdk": "0.2.0",
-    "@microsoft/msfs-wtg3000-common": "./wtg3000common/dist/wtg3000common-1.0.6.tgz",
+    "@microsoft/msfs-garminsdk": "0.3.0",
+    "@microsoft/msfs-wtg3000-common": "./wtg3000common/dist/wtg3000common-1.1.6.tgz",
     "@rollup/plugin-image": "^3.0.2",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "rollup": "^2.79.1",

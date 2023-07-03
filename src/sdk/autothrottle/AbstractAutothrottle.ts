@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import { ConsumerSubject } from '../data/ConsumerSubject';
 import { EventBus } from '../data/EventBus';
 import { KeyEventManager } from '../data/KeyEventManager';
@@ -6,6 +8,7 @@ import { ThrottleLeverManager, VirtualThrottleLeverEvents } from '../fadec/Throt
 import { ClockEvents } from '../instruments/Clock';
 import { ExpSmoother } from '../math/ExpSmoother';
 import { MathUtils } from '../math/MathUtils';
+import { MultiExpSmoother } from '../math/MultiExpSmoother';
 import { Subject } from '../sub/Subject';
 import { Subscribable } from '../sub/Subscribable';
 import { SubscribableUtils } from '../sub/SubscribableUtils';
@@ -73,6 +76,13 @@ export type AutothrottleOptions = {
   speedSmoothingConstant: number;
 
   /**
+   * The smoothing time constant, in seconds, to use to smooth estimated airspeed velocity (i.e. acceleration) while
+   * smoothing airspeed data. A value of zero is equivalent to no smoothing. If not defined, estimated airspeed
+   * velocity will not be used to adjust smoothed airspeed data.
+   */
+  speedSmoothingVelocityConstant?: number;
+
+  /**
    * The lookahead time, in seconds, to use for airspeed data. If less than or equal to zero, the autothrottle will
    * use the current (smoothed) airspeed. If greater than zero, the autothrottle will use the (smoothed) airspeed trend
    * projected into the future by amount of time equal to the lookahead.
@@ -80,10 +90,86 @@ export type AutothrottleOptions = {
   speedLookahead: number | Subscribable<number>;
 
   /**
+   * The smoothing time constant, in seconds, to use to smooth lookahead airspeed data. A value of zero is equivalent
+   * to no smoothing. If not defined, defaults to the value of `speedSmoothingConstant`.
+   */
+  speedLookaheadSmoothingConstant?: number;
+
+  /**
+   * The smoothing time constant, in seconds, to use to smooth estimated lookahead airspeed velocity (i.e.
+   * acceleration) while smoothing lookahead airspeed data. A value of zero is equivalent to no smoothing. If not
+   * defined, estimated lookahead airspeed velocity will not be used to adjust smoothed lookahead airspeed data.
+   * Defaults to the value of `speedSmoothingVelocityConstant`.
+   */
+  speedLookaheadSmoothingVelocityConstant?: number;
+
+  /**
+   * A function which generates an acceleration target, in knots per second, from a given selected airspeed error. If
+   * not defined, then the speed controller will directly target selected airspeed instead of acceleration.
+   * @param iasError The selected airspeed error, in knots. Positive values indicate the target airspeed is greater
+   * than the airplane's effective airspeed.
+   * @param targetIas The target indicated airspeed, in knots.
+   * @param effectiveIas The airplane's effective indicated airspeed, in knots. If smoothing and/or lookahead are
+   * specified for airspeed data, then they will be applied to the effective airspeed.
+   * @returns An acceleration to target, in knots per second, for the specified selected airspeed error.
+   */
+  selectedSpeedAccelTarget?: (iasError: number, targetIas: number, effectiveIas: number) => number;
+
+  /**
+   * A function which generates an acceleration target, in knots per second, from a given overspeed protection airspeed
+   * error. Defaults to the function specified for `selectedSpeedAccelTarget`.
+   * @param iasError The overspeed protection airspeed error, in knots. Positive values indicate the target airspeed is
+   * greater than the airplane's effective airspeed.
+   * @param targetIas The target indicated airspeed, in knots.
+   * @param effectiveIas The airplane's effective indicated airspeed, in knots. If smoothing and/or lookahead are
+   * specified for airspeed data, then they will be applied to the effective airspeed.
+   * @returns An acceleration to target, in knots per second, for the specified overspeed protection airspeed error.
+   */
+  overspeedAccelTarget?: (iasError: number, targetIas: number, effectiveIas: number) => number;
+
+  /**
+   * A function which generates an acceleration target, in knots per second, from a given underspeed protection
+   * airspeed error. Defaults to the function specified for `selectedSpeedAccelTarget`.
+   * @param iasError The underspeed protection airspeed error, in knots. Positive values indicate the target airspeed
+   * is greater than the airplane's effective airspeed.
+   * @param targetIas The target indicated airspeed, in knots.
+   * @param effectiveIas The airplane's effective indicated airspeed, in knots. If smoothing and/or lookahead are
+   * specified for airspeed data, then they will be applied to the effective airspeed.
+   * @returns An acceleration to target, in knots per second, for the specified underspeed protection airspeed error.
+   */
+  underspeedAccelTarget?: (iasError: number, targetIas: number, effectiveIas: number) => number;
+
+  /**
+   * The smoothing time constant, in seconds, to use to smooth observed acceleration used by the speed controller to
+   * generate error terms when targeting acceleration. A value of zero is equivalent to no smoothing.
+   */
+  accelSmoothingConstant?: number;
+
+  /**
+   * The smoothing time constant, in seconds, to use to smooth estimated acceleration velocity while smoothing observed
+   * acceleration. A value of zero is equivalent to no smoothing. If not defined, estimated acceleration velocity will
+   * not be used to adjust smoothed observed acceleration.
+   */
+  accelSmoothingVelocityConstant?: number;
+
+  /**
+   * The smoothing time constant, in seconds, to use to smooth acceleration targets commanded by the speed controller.
+   * A value of zero is equivalent to no smoothing. Defaults to `0`.
+   */
+  accelTargetSmoothingConstant?: number;
+
+  /**
    * The smoothing time constant, in seconds, to use to smooth engine power data. A value of zero is equivalent to no
    * smoothing.
    */
   powerSmoothingConstant: number;
+
+  /**
+   * The smoothing time constant, in seconds, to use to smooth estimated power velocity while smoothing engine power
+   * data. A value of zero is equivalent to no smoothing. If not defined, estimated power velocity will not be used to
+   * adjust smoothed engine power data.
+   */
+  powerSmoothingVelocityConstant?: number;
 
   /**
    * The lookahead time, in seconds, to use for engine power data. If less than or equal to zero, the autothrottle will
@@ -93,8 +179,23 @@ export type AutothrottleOptions = {
   powerLookahead: number | Subscribable<number>;
 
   /**
-   * Parameters for the target speed PID controller. The input of the PID is indicated airspeed error, in knots. The
-   * output of the PID is an engine power adjustment.
+   * The smoothing time constant, in seconds, to use to smooth lookahead engine power data. A value of zero is
+   * equivalent to no smoothing. If not defined, defaults to the value of `powerSmoothingConstant`.
+   */
+  powerLookaheadSmoothingConstant?: number;
+
+  /**
+   * The smoothing time constant, in seconds, to use to smooth estimated power velocity while smoothing lookahead
+   * engine power data. A value of zero is equivalent to no smoothing. If not defined, estimated power velocity will
+   * not be used to adjust smoothed lookahead engine power data. If not defined, defaults to the value of
+   * `powerSmoothingVelocityConstant`.
+   */
+  powerLookaheadSmoothingVelocityConstant?: number;
+
+  /**
+   * Parameters for the target speed PID controller. The input of the PID is either indicated airspeed error (in knots)
+   * if the speed controller is directly targeting airspeed or acceleration error (in knots per second) if the speed
+   * controller is targeting acceleration. The output of the PID is an engine power adjustment.
    */
   speedTargetPid: AutothrottlePidParams;
 
@@ -135,6 +236,30 @@ export type AutothrottleOptions = {
    * controller.
    */
   overpowerPid?: AutothrottlePidParams;
+
+  /**
+   * The threshold, in knots per second, such that if the rate of change of the speed target exceeds the threshold, the
+   * speed target PID controller will ignore any contribution to the derivative term from the changing speed target.
+   * This threshold is meant to prevent instantaneous changes in the speed target from unduly influencing the PID
+   * output. Defaults to infinity.
+   */
+  speedTargetChangeThreshold?: number;
+
+  /**
+   * The threshold, in knots per second, such that if the rate of change of the overspeed protection limit exceeds the
+   * threshold, the overspeed protection PID controller will ignore any contribution to the derivative term from the
+   * changing limit. This threshold is meant to prevent instantaneous changes in the overspeed protection limit from
+   * unduly influencing the PID output. Defaults to infinity.
+   */
+  overspeedChangeThreshold?: number;
+
+  /**
+   * The threshold, in knots per second, such that if the rate of change of the underspeed protection limit exceeds the
+   * threshold, the underspeed protection PID controller will ignore any contribution to the derivative term from the
+   * changing limit. This threshold is meant to prevent instantaneous changes in the underspeed protection limit from
+   * unduly influencing the PID output. Defaults to infinity.
+   */
+  underspeedChangeThreshold?: number;
 };
 
 /**
@@ -219,10 +344,22 @@ export abstract class AbstractAutothrottle {
   protected readonly machToKiasSmoother: ExpSmoother;
 
   protected readonly iasLookahead: Subscribable<number>;
-  protected readonly iasSmoother: ExpSmoother;
-  protected readonly lookaheadIasSmoother: ExpSmoother;
+  protected readonly iasSmoother: MultiExpSmoother;
+  protected readonly lookaheadIasSmoother: MultiExpSmoother;
   protected lastIasLookahead: number;
   protected lastSmoothedIas: number | undefined = undefined;
+
+  protected readonly shouldTargetAccel: boolean;
+
+  protected readonly selectedSpeedAccelTargetFunc?: (iasError: number, targetIas: number, effectiveIas: number) => number;
+  protected readonly overspeedAccelTargetFunc?: (iasError: number, targetIas: number, effectiveIas: number) => number;
+  protected readonly underspeedAccelTargetFunc?: (iasError: number, targetIas: number, effectiveIas: number) => number;
+
+  protected readonly accelSmoother?: MultiExpSmoother;
+
+  protected readonly selectedSpeedAccelTargetSmoother?: ExpSmoother;
+  protected readonly overspeedProtAccelTargetSmoother?: ExpSmoother;
+  protected readonly underspeedProtAccelTargetSmoother?: ExpSmoother;
 
   protected readonly powerLookahead: Subscribable<number>;
 
@@ -231,6 +368,14 @@ export abstract class AbstractAutothrottle {
   protected readonly underspeedPid: PidController;
   protected readonly selectedPowerPids: Record<AutothrottleThrottleIndex, PidController>;
   protected readonly overpowerPids: Record<AutothrottleThrottleIndex, PidController>;
+
+  protected readonly speedTargetChangeThreshold: number;
+  protected readonly overspeedChangeThreshold: number;
+  protected readonly underspeedChangeThreshold: number;
+
+  protected lastTargetIas: number | undefined = undefined;
+  protected lastOverspeedIas: number | undefined = undefined;
+  protected lastUnderspeedIas: number | undefined = undefined;
 
   protected readonly selectedSpeedPowerTargetSmoother: ExpSmoother;
   protected readonly overspeedProtPowerTargetSmoother: ExpSmoother;
@@ -285,16 +430,43 @@ export abstract class AbstractAutothrottle {
 
     this.powerLookahead = SubscribableUtils.toSubscribable(options.powerLookahead, true);
     this.throttles = throttleInfos.map(info => {
-      return this.createThrottle(bus, info, options.servoSpeed, options.powerSmoothingConstant, this.powerLookahead, throttleLeverManager);
+      return this.createThrottle(
+        bus,
+        info,
+        options.servoSpeed,
+        options.powerSmoothingConstant,
+        options.powerSmoothingVelocityConstant,
+        this.powerLookahead,
+        options.powerLookaheadSmoothingConstant,
+        options.powerLookaheadSmoothingVelocityConstant,
+        throttleLeverManager
+      );
     });
 
     this.machToKiasSmoother = new ExpSmoother(options.speedSmoothingConstant);
 
     this.iasLookahead = SubscribableUtils.toSubscribable(options.speedLookahead, true);
-    this.iasSmoother = new ExpSmoother(options.speedSmoothingConstant);
-    this.lookaheadIasSmoother = new ExpSmoother(options.speedSmoothingConstant);
+    this.iasSmoother = new MultiExpSmoother(options.speedSmoothingConstant, options.speedSmoothingVelocityConstant);
+    this.lookaheadIasSmoother = new MultiExpSmoother(
+      options.speedLookaheadSmoothingConstant ?? options.speedSmoothingConstant,
+      options.speedLookaheadSmoothingVelocityConstant ?? options.speedSmoothingVelocityConstant
+    );
 
     this.lastIasLookahead = this.iasLookahead.get();
+
+    this.shouldTargetAccel = options.selectedSpeedAccelTarget !== undefined;
+    this.selectedSpeedAccelTargetFunc = options.selectedSpeedAccelTarget;
+    this.overspeedAccelTargetFunc = options.overspeedAccelTarget ?? options.selectedSpeedAccelTarget;
+    this.underspeedAccelTargetFunc = options.underspeedAccelTarget ?? options.selectedSpeedAccelTarget;
+
+    if (this.shouldTargetAccel) {
+      this.accelSmoother = new MultiExpSmoother(options.accelSmoothingConstant ?? 0, options.accelSmoothingVelocityConstant);
+
+      const accelTargetTau = options.accelTargetSmoothingConstant ?? 0;
+      this.selectedSpeedAccelTargetSmoother = new ExpSmoother(accelTargetTau);
+      this.overspeedProtAccelTargetSmoother = new ExpSmoother(accelTargetTau);
+      this.underspeedProtAccelTargetSmoother = new ExpSmoother(accelTargetTau);
+    }
 
     this.selectedSpeedPid = AbstractAutothrottle.createPidFromParams(options.speedTargetPid);
     this.overspeedPid = AbstractAutothrottle.createPidFromParams(options.overspeedPid ?? options.speedTargetPid);
@@ -312,6 +484,10 @@ export abstract class AbstractAutothrottle {
       [3]: AbstractAutothrottle.createPidFromParams(options.overpowerPid ?? options.powerTargetPid),
       [4]: AbstractAutothrottle.createPidFromParams(options.overpowerPid ?? options.powerTargetPid)
     };
+
+    this.speedTargetChangeThreshold = options.speedTargetChangeThreshold ?? Infinity;
+    this.overspeedChangeThreshold = options.overspeedChangeThreshold ?? Infinity;
+    this.underspeedChangeThreshold = options.underspeedChangeThreshold ?? Infinity;
 
     this.selectedSpeedPowerTargetSmoother = new ExpSmoother(options.powerTargetSmoothingConstant);
     this.overspeedProtPowerTargetSmoother = new ExpSmoother(options.powerTargetSmoothingConstant);
@@ -354,7 +530,16 @@ export abstract class AbstractAutothrottle {
    * @param servoSpeed The speed delivered by the servo controlling the throttle, in units of normalized position per
    * second.
    * @param powerSmoothingConstant The smoothing time constant, in seconds, to use to smooth engine power data.
+   * @param powerSmoothingVelocityConstant The smoothing time constant, in seconds, to use to smooth estimated power
+   * velocity while smoothing engine power data. A value of zero is equivalent to no smoothing. If not defined,
+   * estimated power velocity will not be used to adjust smoothed engine power data.
    * @param powerLookahead The lookahead time, in seconds, to use for engine power data.
+   * @param powerLookaheadSmoothingConstant The smoothing time constant, in seconds, to use to smooth lookahead engine
+   * power data. If not defined, defaults to the value of {@linkcode powerSmoothingConstant}.
+   * @param powerLookaheadSmoothingVelocityConstant The smoothing time constant, in seconds, to use to smooth estimated
+   * power velocity while smoothing lookahead engine power data. A value of zero is equivalent to no smoothing. If not
+   * defined, estimated power velocity will not be used to adjust smoothed lookahead engine power data. If not defined,
+   * defaults to the value of {@linkcode powerSmoothingVelocityConstant}.
    * @param throttleLeverManager The throttle lever manager to use to request position changes for the throttle's
    * lever.
    * @returns A new throttle controlled by this autothrottle system.
@@ -364,7 +549,10 @@ export abstract class AbstractAutothrottle {
     info: AutothrottleThrottleInfo,
     servoSpeed: number,
     powerSmoothingConstant: number,
+    powerSmoothingVelocityConstant: number | undefined,
     powerLookahead: Subscribable<number>,
+    powerLookaheadSmoothingConstant: number | undefined,
+    powerLookaheadSmoothingVelocityConstant: number | undefined,
     throttleLeverManager: ThrottleLeverManager | undefined
   ): AutothrottleThrottle;
 
@@ -548,9 +736,20 @@ export abstract class AbstractAutothrottle {
     this.lookaheadIasSmoother.reset();
     this.lastSmoothedIas = undefined;
 
+    this.accelSmoother?.reset();
+
+    this.selectedSpeedAccelTargetSmoother?.reset();
+    this.overspeedProtAccelTargetSmoother?.reset();
+    this.underspeedProtAccelTargetSmoother?.reset();
+
     this.selectedSpeedPid.reset();
     this.overspeedPid.reset();
     this.underspeedPid.reset();
+
+    this.lastTargetIas = undefined;
+    this.lastOverspeedIas = undefined;
+    this.lastUnderspeedIas = undefined;
+
     this.selectedSpeedPowerTargetSmoother.reset();
     this.overspeedProtPowerTargetSmoother.reset();
     this.underspeedProtPowerTargetSmoother.reset();
@@ -576,12 +775,12 @@ export abstract class AbstractAutothrottle {
 
     const dt = (realTime - this.lastUpdateTime) / 1000;
 
+    this.lastUpdateTime = realTime;
+
     // This shouldn't really ever happen, but just in case...
     if (dt <= 0) {
       return;
     }
-
-    this.lastUpdateTime = realTime;
 
     // Check if the current time has diverged from the event bus value by more than 1 second.
     // If it has, we are probably paused in the menu and should skip the update.
@@ -630,7 +829,6 @@ export abstract class AbstractAutothrottle {
         if (isTargetPosOob) {
           // If the commanded throttle lever position is out of bounds, clamp it to within bounds.
 
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           targetPos = MathUtils.clamp(targetPos!, minThrottlePos, maxThrottlePos);
           speed = targetPos - throttle.normPosition;
         } else if (isThrottlePosOob && targetPos === undefined) {
@@ -694,20 +892,26 @@ export abstract class AbstractAutothrottle {
 
     let effectiveIas: number;
 
-    if (lookahead > 0 && this.lastSmoothedIas !== undefined) {
-      const delta = smoothedIas - this.lastSmoothedIas;
+    const deltaIas = smoothedIas - (this.lastSmoothedIas === undefined ? smoothedIas : this.lastSmoothedIas);
 
+    if (lookahead > 0 && this.lastSmoothedIas !== undefined) {
       // Somehow, NaN values can creep in here. So we will make sure if that happens we don't leave the system in an
       // unrecoverable state by resetting the smoother when the last smoothed value is NaN.
       const last = this.lookaheadIasSmoother.last();
       effectiveIas = last === null || isFinite(last)
-        ? this.lookaheadIasSmoother.next(ias + delta * lookahead / dt, dt)
-        : this.lookaheadIasSmoother.reset(ias + delta * lookahead / dt);
+        ? this.lookaheadIasSmoother.next(ias + deltaIas * lookahead / dt, dt)
+        : this.lookaheadIasSmoother.reset(ias + deltaIas * lookahead / dt);
     } else {
       effectiveIas = smoothedIas;
     }
 
     this.lastSmoothedIas = smoothedIas;
+
+    let effectiveAccel = 0;
+
+    if (this.shouldTargetAccel) {
+      effectiveAccel = this.accelSmoother!.next(deltaIas / dt, dt);
+    }
 
     const isTargetSpeed = this.targetMode.get() === AutothrottleTargetMode.Speed;
     const isOverspeedProtActive = this.isOverspeedProtActive.get();
@@ -719,26 +923,104 @@ export abstract class AbstractAutothrottle {
 
     if (isOverspeedProtActive) {
       const maxIas = Math.min(this.maxMach.get() * machToKias, this.maxIas.get());
-      overspeedProtDelta = this.overspeedPid.getOutput(dt, maxIas - effectiveIas);
+
+      if (this.shouldTargetAccel) {
+        overspeedProtDelta = this.updateAccelTargetPid(
+          this.overspeedPid,
+          this.overspeedAccelTargetFunc!,
+          this.overspeedProtAccelTargetSmoother!,
+          effectiveAccel,
+          effectiveIas,
+          maxIas,
+          this.lastOverspeedIas,
+          dt,
+          this.overspeedChangeThreshold
+        );
+      } else {
+        overspeedProtDelta = this.updateSpeedTargetPid(
+          this.overspeedPid,
+          effectiveIas,
+          maxIas,
+          this.lastOverspeedIas,
+          dt,
+          this.overspeedChangeThreshold
+        );
+      }
+
       out.isOverspeed = effectiveIas > maxIas;
+      this.lastOverspeedIas = maxIas;
     } else {
       this.overspeedPid.reset();
+      this.overspeedProtAccelTargetSmoother?.reset();
+      this.lastOverspeedIas = undefined;
     }
 
     if (isUnderspeedProtActive) {
       const minIas = Math.max(this.minMach.get() * machToKias, this.minIas.get());
-      underspeedProtDelta = this.underspeedPid.getOutput(dt, minIas - effectiveIas);
+
+      if (this.shouldTargetAccel) {
+        underspeedProtDelta = this.updateAccelTargetPid(
+          this.underspeedPid,
+          this.underspeedAccelTargetFunc!,
+          this.underspeedProtAccelTargetSmoother!,
+          effectiveAccel,
+          effectiveIas,
+          minIas,
+          this.lastUnderspeedIas,
+          dt,
+          this.underspeedChangeThreshold
+        );
+      } else {
+        underspeedProtDelta = this.updateSpeedTargetPid(
+          this.underspeedPid,
+          effectiveIas,
+          minIas,
+          this.lastUnderspeedIas,
+          dt,
+          this.underspeedChangeThreshold
+        );
+      }
+
       out.isUnderspeed = effectiveIas < minIas;
+      this.lastUnderspeedIas = minIas;
     } else {
       this.underspeedPid.reset();
+      this.underspeedProtAccelTargetSmoother?.reset();
+      this.lastUnderspeedIas = undefined;
     }
 
     if (isTargetSpeed) {
       // Targeting speed
       const targetIas = this.selectedSpeedIsMach.get() ? this.selectedMach.get() * machToKias : this.selectedIas.get();
-      selectedSpeedDelta = this.selectedSpeedPid.getOutput(dt, targetIas - effectiveIas);
+
+      if (this.shouldTargetAccel) {
+        selectedSpeedDelta = this.updateAccelTargetPid(
+          this.selectedSpeedPid,
+          this.selectedSpeedAccelTargetFunc!,
+          this.selectedSpeedAccelTargetSmoother!,
+          effectiveAccel,
+          effectiveIas,
+          targetIas,
+          this.lastTargetIas,
+          dt,
+          this.speedTargetChangeThreshold
+        );
+      } else {
+        selectedSpeedDelta = this.updateSpeedTargetPid(
+          this.selectedSpeedPid,
+          effectiveIas,
+          targetIas,
+          this.lastTargetIas,
+          dt,
+          this.speedTargetChangeThreshold
+        );
+      }
+
+      this.lastTargetIas = targetIas;
     } else {
       this.selectedSpeedPid.reset();
+      this.selectedSpeedAccelTargetSmoother?.reset();
+      this.lastTargetIas = undefined;
     }
 
     let throttlePowerSum = 0;
@@ -775,6 +1057,89 @@ export abstract class AbstractAutothrottle {
     }
 
     return out;
+  }
+
+  /**
+   * Updates a speed PID controller when directly targeting airspeed.
+   * @param pid The PID controller to update.
+   * @param effectiveIas The airplane's current effective indicated airspeed, in knots.
+   * @param targetIas The target indicated airspeed, in knots.
+   * @param lastTargetIas The target indicated airspeed during the last update, in knots.
+   * @param dt The elapsed time since the last update, in seconds.
+   * @param targetChangeThreshold The threshold, in knots per second, such that if the rate of change of the target
+   * speed exceeds the threshold, the PID controller will ignore any contribution to the derivative term from the
+   * changing target speed.
+   * @returns The output of the speed PID controller.
+   */
+  private updateSpeedTargetPid(
+    pid: PidController,
+    effectiveIas: number,
+    targetIas: number,
+    lastTargetIas: number | undefined,
+    dt: number,
+    targetChangeThreshold: number
+  ): number {
+    const error = targetIas - effectiveIas;
+
+    // Cancel out any derivative term contributed by changes in the target speed.
+    if (lastTargetIas !== undefined) {
+      const targetIasDelta = targetIas - lastTargetIas;
+      const lastError = pid.getPreviousError();
+      if (lastError !== undefined && Math.abs(targetIasDelta / dt) >= targetChangeThreshold) {
+        pid.getOutput(0, lastError + targetIasDelta);
+      }
+    }
+
+    return pid.getOutput(dt, error);
+  }
+
+  /**
+   * Updates a speed PID controller when targeting acceleration.
+   * @param pid The PID controller to update.
+   * @param accelTargetFunc A function which generates an acceleration to target, in knots per second, for a given
+   * airspeed error.
+   * @param accelTargetSmoother The smoother to use to smooth the target acceleration.
+   * @param effectiveAccel The airplane's effective indicated acceleration, in knots per second.
+   * @param effectiveIas The airplane's current effective indicated airspeed, in knots.
+   * @param targetIas The target indicated airspeed, in knots.
+   * @param lastTargetIas The target indicated airspeed during the last update, in knots.
+   * @param dt The elapsed time since the last update, in seconds.
+   * @param targetChangeThreshold The threshold, in knots per second, such that if the rate of change of the target
+   * speed exceeds the threshold, the PID controller will ignore any contribution to the derivative term from the
+   * changing target speed.
+   * @returns The output of the speed PID controller.
+   */
+  private updateAccelTargetPid(
+    pid: PidController,
+    accelTargetFunc: (iasError: number, targetIas: number, effectiveIas: number) => number,
+    accelTargetSmoother: ExpSmoother,
+    effectiveAccel: number,
+    effectiveIas: number,
+    targetIas: number,
+    lastTargetIas: number | undefined,
+    dt: number,
+    targetChangeThreshold: number
+  ): number {
+    const iasError = targetIas - effectiveIas;
+    const lastTargetAccel = accelTargetSmoother.last();
+    const targetAccel = accelTargetSmoother.next(accelTargetFunc(iasError, targetIas, effectiveIas), dt);
+
+    // Cancel out any derivative term contributed by changes in the target speed.
+    if (lastTargetIas !== undefined) {
+      const targetIasDelta = targetIas - lastTargetIas;
+      const lastError = pid.getPreviousError();
+      if (lastError !== undefined && Math.abs(targetIasDelta / dt) >= targetChangeThreshold) {
+        accelTargetSmoother.reset(lastTargetAccel);
+        const correctedTargetAccel = accelTargetSmoother.next(accelTargetFunc(iasError, targetIas - targetIasDelta, effectiveIas), dt);
+        const targetAccelDelta = targetAccel - correctedTargetAccel;
+
+        pid.getOutput(0, lastError + targetAccelDelta);
+        accelTargetSmoother.reset(targetAccel);
+      }
+    }
+
+    const error = targetAccel - effectiveAccel;
+    return pid.getOutput(dt, error);
   }
 
   /**
@@ -1012,8 +1377,8 @@ export abstract class AutothrottleThrottle {
   private readonly throttleSetKVar: string;
   private readonly throttleLeverManager?: ThrottleLeverManager;
 
-  private readonly powerSmoother: ExpSmoother;
-  private readonly lookaheadPowerSmoother: ExpSmoother;
+  private readonly powerSmoother: MultiExpSmoother;
+  private readonly lookaheadPowerSmoother: MultiExpSmoother;
   private lastPowerLookahead = this.powerLookahead.get();
   private lastSmoothedPower: number | undefined = undefined;
 
@@ -1024,7 +1389,16 @@ export abstract class AutothrottleThrottle {
    * @param servoSpeed The speed delivered by the servo controlling this throttle, in units of normalized position per
    * second.
    * @param powerSmoothingConstant The smoothing time constant, in seconds, to use to smooth engine power data.
+   * @param powerSmoothingVelocityConstant The smoothing time constant, in seconds, to use to smooth estimated power
+   * velocity while smoothing engine power data. A value of zero is equivalent to no smoothing. If not defined,
+   * estimated power velocity will not be used to adjust smoothed engine power data.
    * @param powerLookahead The lookahead time, in seconds, to use for engine power data.
+   * @param powerLookaheadSmoothingConstant The smoothing time constant, in seconds, to use to smooth lookahead engine
+   * power data. If not defined, defaults to the value of {@linkcode powerSmoothingConstant}.
+   * @param powerLookaheadSmoothingVelocityConstant The smoothing time constant, in seconds, to use to smooth estimated
+   * power velocity while smoothing lookahead engine power data. A value of zero is equivalent to no smoothing. If not
+   * defined, estimated power velocity will not be used to adjust smoothed lookahead engine power data. If not defined,
+   * defaults to the value of {@linkcode powerSmoothingVelocityConstant}.
    * @param throttleLeverManager The throttle lever manager to use to request position changes for this throttle's
    * lever. If not defined, position changes for the lever will be requested using key events (specifically the
    * `THROTTLE[N]_SET` event).
@@ -1034,7 +1408,10 @@ export abstract class AutothrottleThrottle {
     info: AutothrottleThrottleInfo,
     public readonly servoSpeed: number,
     powerSmoothingConstant: number,
+    powerSmoothingVelocityConstant: number | undefined,
     private readonly powerLookahead: Subscribable<number>,
+    powerLookaheadSmoothingConstant: number | undefined,
+    powerLookaheadSmoothingVelocityConstant: number | undefined,
     throttleLeverManager?: ThrottleLeverManager
   ) {
     this.initKeyManager(bus);
@@ -1045,14 +1422,12 @@ export abstract class AutothrottleThrottle {
       this.virtualPos = ConsumerSubject.create(bus.getSubscriber<VirtualThrottleLeverEvents>().on(`v_throttle_lever_pos_${this.index}`), 0),
 
         this.getPosition = (): number => {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           return this.virtualPos!.get();
         };
     } else {
       this.throttlePosSimVar = `GENERAL ENG THROTTLE LEVER POSITION:${this.index}`;
 
       this.getPosition = (): number => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return SimVar.GetSimVarValue(this.throttlePosSimVar!, SimVarValueType.Percent) / 100;
       };
     }
@@ -1065,8 +1440,11 @@ export abstract class AutothrottleThrottle {
     const isServoActiveTopic = `at_servo_${this.index}_is_active` as const;
     this._isServoActive.sub(val => { bus.getPublisher<AutothrottleEvents>().pub(isServoActiveTopic, val, true, true); });
 
-    this.powerSmoother = new ExpSmoother(powerSmoothingConstant);
-    this.lookaheadPowerSmoother = new ExpSmoother(powerSmoothingConstant);
+    this.powerSmoother = new MultiExpSmoother(powerSmoothingConstant, powerSmoothingVelocityConstant);
+    this.lookaheadPowerSmoother = new MultiExpSmoother(
+      powerLookaheadSmoothingConstant ?? powerSmoothingConstant,
+      powerLookaheadSmoothingVelocityConstant ?? powerSmoothingVelocityConstant
+    );
   }
 
   /**

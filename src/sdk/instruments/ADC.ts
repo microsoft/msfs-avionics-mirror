@@ -3,6 +3,7 @@
 import { EventBus, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { SimVarValueType } from '../data/SimVars';
+import { AeroMath } from '../math/AeroMath';
 import { UnitType } from '../math/NumberUnit';
 import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
 
@@ -46,6 +47,9 @@ export interface BaseAdcEvents {
 
   /** Whether the altimeter baro setting is set to STD (true=STD, false=set pressure). */
   altimeter_baro_is_std: boolean;
+
+  /** The ambient air density, in slugs per cubic foot */
+  ambient_density: number;
 
   /** The ambient temperature, in degrees Celsius. */
   ambient_temp_c: number;
@@ -119,7 +123,8 @@ export interface AdcEvents extends BaseAdcEvents, AdcIndexedEvents {
  */
 export class AdcPublisher extends SimVarPublisher<AdcEvents> {
   private mach: number;
-  private needUpdateMach: boolean;
+  private pressure: number;
+  private needUpdateMachToKiasData: boolean;
 
   /**
    * Creates an AdcPublisher.
@@ -136,7 +141,7 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
           name: 'AIRSPEED INDICATED:#index#',
           type: SimVarValueType.Knots,
           map: (kias: number): number => {
-            const factor = kias < 1 ? Simplane.getMachToKias(1) : kias / this.mach;
+            const factor = kias < 1 || this.mach === 0 ? AeroMath.machToCas(1, this.pressure) : kias / this.mach;
             return isFinite(factor) ? factor : 1;
           },
           indexed: true
@@ -154,6 +159,7 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
       ['radio_alt', { name: 'RADIO HEIGHT', type: SimVarValueType.Feet }],
       ['pressure_alt', { name: 'PRESSURE ALTITUDE', type: SimVarValueType.Feet }],
       ['vertical_speed', { name: 'VERTICAL SPEED', type: SimVarValueType.FPM }],
+      ['ambient_density', { name: 'AMBIENT DENSITY', type: SimVarValueType.SlugsPerCubicFoot }],
       ['ambient_temp_c', { name: 'AMBIENT TEMPERATURE', type: SimVarValueType.Celsius }],
       ['ambient_pressure_inhg', { name: 'AMBIENT PRESSURE', type: SimVarValueType.InHG }],
       ['isa_temp_c', { name: 'STANDARD ATM TEMPERATURE', type: SimVarValueType.Celsius }],
@@ -170,7 +176,8 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
     super(simvars, bus, pacer);
 
     this.mach = 0;
-    this.needUpdateMach ??= false;
+    this.pressure = 1013.25;
+    this.needUpdateMachToKiasData ??= false;
   }
 
   /** @inheritdoc */
@@ -178,7 +185,7 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
     super.onTopicSubscribed(topic);
 
     if (topic.startsWith('mach_to_kias_factor')) {
-      this.needUpdateMach = true;
+      this.needUpdateMachToKiasData = true;
     }
   }
 
@@ -186,8 +193,9 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
   public onUpdate(): void {
     const isSlewing = SimVar.GetSimVarValue('IS SLEW ACTIVE', 'bool');
     if (!isSlewing) {
-      if (this.needUpdateMach) {
+      if (this.needUpdateMachToKiasData) {
         this.mach = SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Number);
+        this.pressure = SimVar.GetSimVarValue('AMBIENT PRESSURE', SimVarValueType.HPA);
       }
 
       super.onUpdate();

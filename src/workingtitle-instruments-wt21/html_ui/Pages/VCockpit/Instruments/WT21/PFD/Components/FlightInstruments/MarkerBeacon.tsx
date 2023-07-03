@@ -1,4 +1,4 @@
-import { ComputedSubject, DisplayComponent, EventBus, FSComponent, MarkerBeaconState, NavProcSimVars, VNode } from '@microsoft/msfs-sdk';
+import { ComputedSubject, DisplayComponent, EventBus, FSComponent, MarkerBeaconState, NavComEvents, VNode } from '@microsoft/msfs-sdk';
 
 import './MarkerBeacon.css';
 
@@ -32,8 +32,8 @@ export class MarkerBeacon extends DisplayComponent<MarkerBeaconProps> {
    * A callback called after the component renders.
    */
   public onAfterRender(): void {
-    const nav = this.props.bus.getSubscriber<NavProcSimVars>();
-    nav.on('mkr_bcn_state_simvar').whenChanged().handle(this.onMarkerBeacon);
+    const nav = this.props.bus.getSubscriber<NavComEvents>();
+    nav.on('marker_beacon_state').whenChanged().handle(this.onMarkerBeacon);
   }
 
   /**

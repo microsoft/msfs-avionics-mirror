@@ -278,7 +278,8 @@ export class GnsFmsUtils {
           altitude2: leg.altitude2,
           lat: leg.lat,
           lon: leg.lon,
-          fixTypeFlags: leg.fixTypeFlags
+          fixTypeFlags: leg.fixTypeFlags,
+          verticalAngle: leg.verticalAngle,
         };
       default:
         return leg;

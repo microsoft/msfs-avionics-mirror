@@ -1,0 +1,44 @@
+.activate-leg-dialog .activate-leg-dialog-middle {
+  margin-top: 3px;
+  padding-top: 3px;
+  color: var(--gnsgreen);
+  background-color: black;
+  border: .8px solid cyan;
+  width: 190px;
+}
+
+.activate-leg-dialog .activate-leg-dialog-middle>p {
+  color: var(--gnsgreen);
+}
+
+.activate-leg-dialog .activate-leg-waypoint {
+  text-align: left;
+  display: inline-block;
+  width: 42%;
+}
+
+.activate-leg-dialog .activate-leg-arrow {
+  display: inline-block;
+}
+
+.activate-leg-dialog .activate-leg-prompt {
+  color: white;
+  text-align: center;
+  width: 38%;
+  display: inline-block;
+}
+
+.activate-leg-dialog .activate-leg-confirm {
+  width: 100%;
+  padding-top: 4px;
+}
+
+.activate-leg-dialog .activate-leg-spacer {
+  /* border: thin solid green; */
+  display: inline-block;
+  width: 62%;
+}
+
+wt-gns430 .activate-leg-dialog .activate-leg-header {
+  margin-bottom: 10px;
+}

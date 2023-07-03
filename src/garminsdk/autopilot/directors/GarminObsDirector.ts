@@ -1,5 +1,5 @@
 import {
-  AdcEvents, APValues, DirectorState, EventBus, FlightPathUtils, GeoCircle, GeoPoint, GeoPointSubject, GNSSEvents, HEvent, LegDefinition, LinearServo,
+  AdcEvents, APValues, DirectorState, EventBus, FlightPathUtils, GeoCircle, GeoPoint, GeoPointSubject, GNSSEvents, HEvent, LegDefinition,
   LNavDirectorInterceptFunc, LNavEvents, LNavTrackingState, LNavTransitionMode, LNavVars, MagVar, MathUtils, NavEvents, NavMath, NavSourceType,
   ObjectSubject, ObsDirector, SimVarValueType, SubscribableType, UnitType
 } from '@microsoft/msfs-sdk';
@@ -12,20 +12,25 @@ export type GarminObsDirectorOptions = {
    * The maximum bank angle, in degrees, supported by the director, or a function which returns it. If not defined,
    * the director will use the maximum bank angle defined by its parent autopilot (via `apValues`).
    */
-  maxBankAngle: number | (() => number) | undefined;
+  maxBankAngle?: number | (() => number) | undefined;
 
   /**
-   * A function used to translate DTK and XTK into a track intercept angle.
+   * The bank rate to enforce when the director commands changes in bank angle, in degrees per second, or a function
+   * which returns it. If not undefined, a default bank rate will be used. Defaults to `undefined`.
    */
-  lateralInterceptCurve: LNavDirectorInterceptFunc;
+  bankRate?: number | (() => number) | undefined;
+
+  /**
+   * A function used to translate DTK and XTK into a track intercept angle. If not defined, a function that computes
+   * a default curve tuned for slow GA aircraft will be used.
+   */
+  lateralInterceptCurve?: LNavDirectorInterceptFunc;
 };
 
 /**
  * A director that handles OBS Lateral Navigation.
  */
 export class GarminObsDirector implements ObsDirector {
-  private static readonly BANK_SERVO_RATE = 10; // degrees per second
-
   private readonly geoPointCache = [new GeoPoint(0, 0)];
   private readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
 
@@ -42,6 +47,9 @@ export class GarminObsDirector implements ObsDirector {
   /** @inheritdoc */
   public onDeactivate?: () => void;
 
+  /** @inheritdoc */
+  public driveBank?: (bank: number, rate?: number) => void;
+
   private obsSetting = 0;
   public obsActive = false;
   private dtk: number | undefined = undefined;
@@ -50,9 +58,6 @@ export class GarminObsDirector implements ObsDirector {
 
   private legIndex = 0;
   private leg: LegDefinition | null = null;
-
-  private currentBankRef = 0;
-  private readonly bankServo = new LinearServo(GarminObsDirector.BANK_SERVO_RATE);
 
   private planePos = new GeoPoint(0, 0);
   private groundTrack = 0;
@@ -109,20 +114,19 @@ export class GarminObsDirector implements ObsDirector {
   };
 
   private readonly maxBankAngleFunc: () => number;
+  private readonly driveBankFunc: (bank: number) => void;
   private readonly lateralInterceptCurve?: LNavDirectorInterceptFunc;
 
   /**
    * Creates an instance of the GPS OBS Director.
    * @param bus The event bus to use with this instance.
    * @param apValues Autopilot values from this director's parent autopilot.
-   * @param options Options to configure the new director. Option values default to the following if not defined:
-   * * `maxBankAngle`: `undefined`
-   * * `lateralInterceptCurve`: A default function tuned for slow GA aircraft.
+   * @param options Options to configure the new director.
    */
   constructor(
     private readonly bus: EventBus,
     private readonly apValues: APValues,
-    options?: Partial<Readonly<GarminObsDirectorOptions>>
+    options?: Readonly<GarminObsDirectorOptions>
   ) {
     const maxBankAngleOpt = options?.maxBankAngle ?? undefined;
     switch (typeof maxBankAngleOpt) {
@@ -134,6 +138,30 @@ export class GarminObsDirector implements ObsDirector {
         break;
       default:
         this.maxBankAngleFunc = this.apValues.maxBankAngle.get.bind(this.apValues.maxBankAngle);
+    }
+
+    const bankRateOpt = options?.bankRate;
+    switch (typeof bankRateOpt) {
+      case 'number':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt * this.apValues.simRate.get());
+          }
+        };
+        break;
+      case 'function':
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank, bankRateOpt() * this.apValues.simRate.get());
+          }
+        };
+        break;
+      default:
+        this.driveBankFunc = bank => {
+          if (isFinite(bank) && this.driveBank) {
+            this.driveBank(bank);
+          }
+        };
     }
 
     this.lateralInterceptCurve = options?.lateralInterceptCurve;
@@ -207,7 +235,6 @@ export class GarminObsDirector implements ObsDirector {
   /** @inheritdoc */
   public activate(): void {
     this.state = DirectorState.Active;
-    this.bankServo.reset();
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
@@ -366,7 +393,7 @@ export class GarminObsDirector implements ObsDirector {
     const bankAngle = this.desiredBank(courseToSteer);
 
     if (this.state === DirectorState.Active) {
-      this.setBank(bankAngle);
+      this.driveBankFunc(bankAngle);
     }
 
     this.lnavData.set('courseToSteer', courseToSteer);
@@ -396,17 +423,5 @@ export class GarminObsDirector implements ObsDirector {
     baseBank *= (turnDirection === 'left' ? 1 : -1);
 
     return baseBank;
-  }
-
-  /**
-   * Sets the desired AP bank angle.
-   * @param bankAngle The desired AP bank angle.
-   */
-  private setBank(bankAngle: number): void {
-    if (isFinite(bankAngle)) {
-      this.bankServo.rate = GarminObsDirector.BANK_SERVO_RATE * SimVar.GetSimVarValue('E:SIMULATION RATE', SimVarValueType.Number);
-      this.currentBankRef = this.bankServo.drive(this.currentBankRef, bankAngle);
-      SimVar.SetSimVarValue('AUTOPILOT BANK HOLD REF', 'degrees', this.currentBankRef);
-    }
   }
 }

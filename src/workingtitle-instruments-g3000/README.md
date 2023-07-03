@@ -2,7 +2,7 @@
 
 Folks who want to build the G3000 from this source should be aware of two things.
 
-First, the G3000 uses a two-phased build, first compiling a shared code library that is then used by the individual components of the project.  For this reason, two distinct build commants need to be run to get a full build.
+First, the G3000 uses a two-phased build, first compiling a shared code library that is then used by the individual components of the project.  For this reason, two distinct build commands need to be run to get a full build.
 
     cd wtg3000common
     npm i && npm run build

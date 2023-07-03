@@ -39,7 +39,7 @@ export class CasRegistrationManager {
   private publishRegistration(uuid: string): void {
     const definition = this.registrations.get(uuid);
     if (definition) {
-      this.publisher.pub('cas_register_alert', definition, true);
+      this.publisher.pub('cas_register_alert', definition, true, false);
     }
   }
 

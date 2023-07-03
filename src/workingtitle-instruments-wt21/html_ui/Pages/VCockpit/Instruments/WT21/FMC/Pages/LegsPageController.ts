@@ -1,7 +1,7 @@
 import {
   AltitudeRestrictionType, BitFlags, ComputedSubject, ConsumerSubject, ControlEvents, EventBus, FixTypeFlags, FlightPathUtils, FlightPlan,
   FlightPlanActiveLegEvent, FlightPlanCalculatedEvent, FlightPlanLegEvent, FlightPlannerEvents, FlightPlanSegment, FlightPlanSegmentType,
-  GeoPoint, GNSSEvents, ICAO, LegTurnDirection, LegType, LNavDataSimVarEvents, LNavEvents, SpeedRestrictionType, SpeedUnit,
+  GeoPoint, GNSSEvents, ICAO, LegTurnDirection, LegType, LNavDataSimVarEvents, LNavEvents, MagVar, SpeedRestrictionType, SpeedUnit,
   Subject, VNavConstraint, VNavLeg,
 } from '@microsoft/msfs-sdk';
 
@@ -504,13 +504,22 @@ export class LegsPageController {
     const parentLegSegmentIndex = renderPlan.getSegmentIndex(parentLegIndex);
     const parentLegSegment = renderPlan.getSegment(parentLegSegmentIndex);
 
+    let course = 100;
+    if (parentLeg.calculated) {
+      const trueCourse = FlightPathUtils.getLegFinalCourse(parentLeg.calculated);
+
+      if (trueCourse !== undefined) {
+        course = MagVar.trueToMagnetic(trueCourse, parentLeg.calculated.courseMagVar);
+      }
+    }
+
     const holdLeg = FlightPlan.createLeg({
       type: LegType.HM,
       fixIcao: parentLeg.leg.fixIcao,
       turnDirection: LegTurnDirection.Right,
       distanceMinutes: true,
       distance: 1,
-      course: 100, // FIXME tmpy
+      course,
     });
 
     const holdInserted = this.fms.insertHold(parentLegSegmentIndex, parentLegIndex - parentLegSegment.offset, holdLeg);
@@ -594,11 +603,20 @@ export class LegsPageController {
 
         const storeFacilityIdent = ICAO.getIdent(holdAtFacility.icao);
 
+        let course = 100;
+        if (data.legDefinition?.calculated) {
+          const trueCourse = FlightPathUtils.getLegFinalCourse(data.legDefinition.calculated);
+
+          if (trueCourse !== undefined) {
+            course = MagVar.trueToMagnetic(trueCourse, data.legDefinition.calculated.courseMagVar);
+          }
+        }
+
         if (scratchpadRest === storeFacilityIdent) {
           const holdLeg = FlightPlan.createLeg({
             type: LegType.HM,
             turnDirection: LegTurnDirection.Right,
-            course: 100, // FIXME
+            course,
             distance: 1,
             distanceMinutes: true,
             fixIcao: holdAtFacility.icao,
