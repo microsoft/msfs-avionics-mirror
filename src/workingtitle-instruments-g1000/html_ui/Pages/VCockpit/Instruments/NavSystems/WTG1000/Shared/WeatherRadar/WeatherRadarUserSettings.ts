@@ -37,6 +37,14 @@ export class WeatherRadarUserSettings {
       {
         name: 'wxrShowTiltLine',
         defaultValue: false
+      },
+      {
+        name: 'wxrCalibratedGain',
+        defaultValue: true
+      },
+      {
+        name: 'wxrGain',
+        defaultValue: 0
       }
     ]);
   }

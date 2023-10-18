@@ -13,6 +13,7 @@ export * from './instruments';
 export * from './math';
 export * from './navigation';
 export * from './settings';
+export * from './simbrief';
 export * from './sub';
 export * from './system';
 export * from './traffic';

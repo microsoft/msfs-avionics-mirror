@@ -1,8 +1,10 @@
-import { AirportClass, AirportFacility, BitFlags, FacilityType, FacilityWaypointUtils, MapSystemContext, MapSystemController, MapSystemKeys, MapWaypointDisplayModule, NearestAirportSearchSession, UnitType, UserSettingManager, Waypoint } from '@microsoft/msfs-sdk';
+import { AirportClass, AirportFacility, BitFlags, FacilityType, FacilityWaypointUtils, MapFlightPlanModule, MapSystemContext, MapSystemController, MapSystemKeys, MapWaypointDisplayModule, NearestAirportSearchSession, UnitType, UserSettingManager, Waypoint } from '@microsoft/msfs-sdk';
 import { MapFacilitySelectModule } from './MapFacilitySelectModule';
 
 import { MapSettingsMfdAliased, MapSettingsPfdAliased, MapUserSettings, MapWaypointsDisplay, PfdOrMfd } from './MapUserSettings';
 import { WT21MapKeys } from './WT21MapKeys';
+import { WT21FixInfoManager } from '../../FMC/Systems/WT21FixInfoManager';
+import { WT21Fms } from '../FlightPlan/WT21Fms';
 
 /**
  * Modules required by WaypointDisplayController.
@@ -12,6 +14,8 @@ export interface WaypointDisplayControllerModules {
   [MapSystemKeys.NearestWaypoints]: MapWaypointDisplayModule;
   /** Waypoints display module. */
   [WT21MapKeys.CtrWpt]: MapFacilitySelectModule;
+  /** Waypoints display module. */
+  [MapSystemKeys.FlightPlan]: MapFlightPlanModule;
 }
 
 /**
@@ -21,6 +25,7 @@ export class WaypointDisplayController extends MapSystemController<WaypointDispl
   private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>;
   private readonly waypoints: MapWaypointDisplayModule = this.context.model.getModule(MapSystemKeys.NearestWaypoints);
   private readonly selectWaypointModule: MapFacilitySelectModule = this.context.model.getModule(WT21MapKeys.CtrWpt);
+  private readonly flightPlanModule: MapFlightPlanModule = this.context.model.getModule(MapSystemKeys.FlightPlan);
   private rangeSetting = 0;
   private readonly facilityMaxRange = new Map<FacilityType, number>([
     [FacilityType.Airport, 600],
@@ -33,10 +38,12 @@ export class WaypointDisplayController extends MapSystemController<WaypointDispl
    * Creates an instance of the WaypointDisplayController.
    * @param context The map system context to use with this controller.
    * @param pfdOrMfd Whether or not the map is on the PFD or MFD.
+   * @param fixInfo The fix info manager.
    */
   constructor(
     context: MapSystemContext<WaypointDisplayControllerModules>,
     pfdOrMfd: PfdOrMfd,
+    private readonly fixInfo?: WT21FixInfoManager,
   ) {
     super(context);
 
@@ -80,8 +87,25 @@ export class WaypointDisplayController extends MapSystemController<WaypointDispl
    */
   private shouldShowWaypoint(facType: FacilityType, shouldShow: boolean): (w: Waypoint) => boolean {
     return (w) => {
-      if (FacilityWaypointUtils.isFacilityWaypoint(w) && w.facility.get().icao === this.selectWaypointModule.facilityIcao.get()) {
-        return true;
+      if (FacilityWaypointUtils.isFacilityWaypoint(w)) {
+        // Don't show waypoint if it's in the active plan
+        const plan = this.flightPlanModule.getPlanSubjects(WT21Fms.PRIMARY_ACT_PLAN_INDEX).flightPlan.get();
+        if (plan) {
+          for (const leg of plan.legs()) {
+            if (leg.leg.fixIcao === w.facility.get().icao) {
+              return false;
+            }
+          }
+        }
+
+        if (w.facility.get().icao === this.selectWaypointModule.facilityIcao.get()) {
+          return true;
+        }
+
+        // Show waypoint if it's a fix info waypoint
+        if (this.fixInfo && this.fixInfo.ndWaypoints.getArray().some(x => x.fixIcao === w.facility.get().icao)) {
+          return true;
+        }
       }
 
       if (facType === FacilityType.Airport && FacilityWaypointUtils.isFacilityWaypoint(w)) {

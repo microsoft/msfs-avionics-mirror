@@ -78,6 +78,14 @@ html {
   height: 100%;
 }
 
+.touch-slider-slider-inset {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
 .touch-slider-slider-thumb-translate {
   position: absolute;
 }

@@ -58,6 +58,8 @@ export class GarminMapKeys {
 
   public static readonly TrackVector = 'trackVector' as const;
 
+  public static readonly WindVector = 'windVector' as const;
+
   public static readonly MiniCompass = 'miniCompass' as const;
 
   public static readonly WaypointSelection = 'waypointSelection' as const;

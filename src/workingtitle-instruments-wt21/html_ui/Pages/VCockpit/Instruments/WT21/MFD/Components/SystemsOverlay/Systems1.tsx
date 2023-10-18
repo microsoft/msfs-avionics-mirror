@@ -76,7 +76,7 @@ export class Systems1 extends DisplayComponent<Systems1Props> {
    */
   private onElecDataUpdate(data: EisElectricsData, prop: keyof EisElectricsData, newValue: number): void {
     switch (prop) {
-      case 'elec_bat_v_1':
+      case 'elec_bus_main_v_3':
         this.batteryRef.instance.updateVoltage(newValue);
         break;
       case 'elec_bat_a_1':

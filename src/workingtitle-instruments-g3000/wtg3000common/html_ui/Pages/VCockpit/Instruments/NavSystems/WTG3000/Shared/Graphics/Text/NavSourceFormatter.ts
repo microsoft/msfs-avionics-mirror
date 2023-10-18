@@ -1,5 +1,8 @@
 import { NavSourceType } from '@microsoft/msfs-sdk';
-import { G3000NavIndicator, G3000NavSourceName, NavSource } from '../../Navigation';
+
+import { NavReferenceSource } from '@microsoft/msfs-garminsdk';
+
+import { G3000NavIndicator, G3000NavSourceName } from '../../NavReference/G3000NavReference';
 import { PfdBearingPointerSource } from '../../Settings/PfdUserSettings';
 
 /**
@@ -49,10 +52,10 @@ export class NavSourceFormatter {
     showGpsIndex: boolean,
     showDmeIndex: boolean,
     showAdfIndex: boolean
-  ): (source: NavSource<G3000NavSourceName>) => string {
+  ): (source: NavReferenceSource<G3000NavSourceName>) => string {
     const formatter = NavSourceFormatter.create(gpsName, showGpsIndex, showDmeIndex, showAdfIndex);
 
-    return (source: NavSource<G3000NavSourceName>) => {
+    return (source: NavReferenceSource<G3000NavSourceName>) => {
       return formatter(source.name);
     };
   }

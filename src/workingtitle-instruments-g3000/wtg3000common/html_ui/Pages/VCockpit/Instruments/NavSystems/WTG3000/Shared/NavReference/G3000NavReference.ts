@@ -5,11 +5,13 @@ import {
   ConsumerSubject, EventBus, ExtendedApproachType, GeoPoint, GeoPointInterface, GeoPointSubject, GNSSEvents, MappedSubject, MappedSubscribable,
   NavSourceType, RadioFrequencyFormatter, RnavTypeFlags, Subject, Subscribable, Subscription, UnitType, UserSettingManager
 } from '@microsoft/msfs-sdk';
-import { ActiveNavSource, ApproachDetails, FmsEvents, FmsFlightPhase, FmsUtils, GarminNavEvents } from '@microsoft/msfs-garminsdk';
+
+import {
+  ActiveNavSource, ApproachDetails, BasicNavReferenceIndicator, FmsEvents, FmsFlightPhase, FmsUtils, GarminNavEvents, NavReferenceBase,
+  NavReferenceIndicator, NavReferenceIndicators, NavReferenceSource, NavReferenceSources
+} from '@microsoft/msfs-garminsdk';
+
 import { PfdBearingPointerSource, PfdBearingPointerUserSettingTypes } from '../Settings/PfdUserSettings';
-import { NavBase } from './NavBase';
-import { BasicNavIndicator, NavIndicator, NavIndicators } from './NavIndicators/NavIndicators';
-import { NavSource, NavSources } from './NavSources/NavSource';
 
 /** The names of the available nav sources in the G3000 for the course needle. */
 export const courseNeedleNavSourceNames = [
@@ -18,35 +20,37 @@ export const courseNeedleNavSourceNames = [
   'NAV2',
 ] as const;
 
-/** A valid nav source name in the G3000. */
+/** A valid {@link NavReferenceSource} name for the G3000. */
 export type G3000NavSourceName = 'NAV1' | 'NAV2' | 'DME1' | 'DME2' | 'ADF1' | 'ADF2' | 'FMS1' | 'FMS2';
 /** The names of the available nav sources in the G3000 for the course needle. */
 export type G3000CourseNeedleNavSourceName = typeof courseNeedleNavSourceNames[number];
-/** A NavSource that can be used with a G3000 NavIndicator.*/
-export type G3000NavSource = NavSource<G3000NavSourceName>;
-/** A collection of NavSources that can be used with the G3000 NavIndicators. */
-export type G3000NavSources = NavSources<G3000NavSourceName>;
+/** A G3000 {@link NavReferenceSource}. */
+export type G3000NavSource = NavReferenceSource<G3000NavSourceName>;
+/** A collection of G3000 {@link NavReferenceSource|NavReferenceSources}. */
+export type G3000NavSources = NavReferenceSources<G3000NavSourceName>;
 /** A collection of NavSources that can be used with the G3000CourseNeedle. */
-export type G3000CourseNeedleNavSources = NavSources<G3000CourseNeedleNavSourceName>;
+export type G3000CourseNeedleNavSources = NavReferenceSources<G3000CourseNeedleNavSourceName>;
 /** A NavSource for the G3000CourseNeedle. */
-export type G3000CourseNeedleNavSource = NavSource<G3000CourseNeedleNavSourceName>;
+export type G3000CourseNeedleNavSource = NavReferenceSource<G3000CourseNeedleNavSourceName>;
 
-/** A valid nav indicator name in the G3000. */
+/** A valid {@link NavReferenceIndicator} name for the G3000. */
 export type G3000NavIndicatorName = 'bearingPointer1' | 'bearingPointer2' | 'activeSource' | 'approachPreview' | 'navInfo' | 'dmeInfo';
-/** A G3000 NavIndicator. */
-export type G3000NavIndicator = NavIndicator<G3000NavSourceName>;
-/** A collection of all the G3000 NavIndicators. */
-export type G3000NavIndicators = NavIndicators<G3000NavSourceName, G3000NavIndicatorName>;
+/** A G3000 {@link NavReferenceIndicator}. */
+export type G3000NavIndicator = NavReferenceIndicator<G3000NavSourceName>;
+/** A collection of G3000 {@link NavReferenceIndicator|NavReferenceIndicators}. */
+export type G3000NavIndicators = NavReferenceIndicators<G3000NavSourceName, G3000NavIndicatorName>;
 
 /**
- * An active navigation source nav indicator.
+ * A G3000 active navigation source {@link NavReferenceIndicator}.
  */
-export class G3000ActiveSourceNavIndicator extends BasicNavIndicator<G3000NavSourceName> {
+export class G3000ActiveSourceNavIndicator extends BasicNavReferenceIndicator<G3000NavSourceName> {
   private readonly navSource: ConsumerSubject<ActiveNavSource>;
 
-  /** NavIndicator constructor.
-   * @param navSources The possible nav sources that could be pointed to.
-   * @param bus The bus.
+  /**
+   * Creates a new instance of G3000ActiveSourceNavIndicator.
+   * @param navSources A collection of {@link NavReferenceSource|NavReferenceSources} from which the indicator can
+   * source data.
+   * @param bus The event bus.
    * @param index The index of this indicator's active nav source.
    */
   public constructor(navSources: G3000NavSources, private readonly bus: EventBus, index: 1 | 2) {
@@ -128,9 +132,9 @@ export class G3000ApproachPreviewDataProvider {
   ).pause();
 
   /**
-   * NavIndicator constructor.
-   * @param navSources The possible nav sources that could be pointed to.
-   * @param bus The bus.
+   * Creates a new instance of G3000ApproachPreviewDataProvider.
+   * @param navSources A collection of G3000 {@link NavReferenceSource|NavReferenceSources}.
+   * @param bus The event bus.
    */
   public constructor(private readonly navSources: G3000NavSources, bus: EventBus) {
     const sub = bus.getSubscriber<FmsEvents & GarminNavEvents>();
@@ -180,12 +184,13 @@ export class G3000ApproachPreviewDataProvider {
 }
 
 /**
- * An approach preview (LOC and glideslope) nav indicator.
+ * A G3000 approach preview (LOC and glideslope) {@link NavReferenceIndicator}.
  */
-export class G3000ApproachPreviewNavIndicator extends BasicNavIndicator<G3000NavSourceName> {
+export class G3000ApproachPreviewNavIndicator extends BasicNavReferenceIndicator<G3000NavSourceName> {
   /**
-   * Constructor.
-   * @param navSources The possible nav sources that could be pointed to.
+   * Creates a new instance of G3000ApproachPreviewNavIndicator.
+   * @param navSources A collection of {@link NavReferenceSource|NavReferenceSources} from which the indicator can
+   * source data.
    * @param dataProvider A provider of approach preview data.
    */
   public constructor(navSources: G3000NavSources, dataProvider: G3000ApproachPreviewDataProvider) {
@@ -196,14 +201,14 @@ export class G3000ApproachPreviewNavIndicator extends BasicNavIndicator<G3000Nav
 }
 
 /**
- * A bearing pointer nav indicator.
+ * A G3000 bearing pointer {@link NavReferenceIndicator}.
  */
-export class G3000BearingPointerNavIndicator extends BasicNavIndicator<G3000NavSourceName> {
+export class G3000BearingPointerNavIndicator extends BasicNavReferenceIndicator<G3000NavSourceName> {
   private static readonly ADF_FREQ_FORMATTER = RadioFrequencyFormatter.createAdf('');
 
-  private static readonly EMPTY_FILTER: (keyof NavBase)[] = [];
-  private static readonly NAV_FILTER: (keyof NavBase)[] = ['distance'];
-  private static readonly ADF_FILTER: (keyof NavBase)[] = ['distance', 'ident'];
+  private static readonly EMPTY_FILTER: (keyof NavReferenceBase)[] = [];
+  private static readonly NAV_FILTER: (keyof NavReferenceBase)[] = ['distance'];
+  private static readonly ADF_FILTER: (keyof NavReferenceBase)[] = ['distance', 'ident'];
 
   private readonly ppos = GeoPointSubject.create(new GeoPoint(0, 0));
 
@@ -213,9 +218,16 @@ export class G3000BearingPointerNavIndicator extends BasicNavIndicator<G3000NavS
   private readonly disSub: Subscription;
   private readonly freqIdentPipe: Subscription;
 
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of G3000BearingPointerNavIndicator.
+   * @param navSources A collection of {@link NavReferenceSource|NavReferenceSources} from which the indicator can
+   * source data.
+   * @param bus The event bus.
+   * @param index The index of the indicator's bearing pointer.
+   * @param settingManager A manager for bearing pointer user settings.
+   */
   public constructor(
-    navSources: NavSources<G3000NavSourceName>,
+    navSources: NavReferenceSources<G3000NavSourceName>,
     bus: EventBus,
     index: 1 | 2,
     settingManager: UserSettingManager<PfdBearingPointerUserSettingTypes>
@@ -273,7 +285,7 @@ export class G3000BearingPointerNavIndicator extends BasicNavIndicator<G3000NavS
 
   /** @inheritdoc */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected updateFromSource(newSource: NavSource<G3000NavSourceName> | null, oldSource: NavSource<G3000NavSourceName> | null): void {
+  protected updateFromSource(newSource: NavReferenceSource<G3000NavSourceName> | null, oldSource: NavReferenceSource<G3000NavSourceName> | null): void {
     this.sourceSubs.forEach(sub => { sub.destroy(); });
     this.sourceSubs.length = 0;
 
@@ -324,9 +336,9 @@ export class G3000BearingPointerNavIndicator extends BasicNavIndicator<G3000NavS
 }
 
 /**
- * A Nav info nav indicator.
+ * A G3000 Nav info {@link NavReferenceIndicator}.
  */
-export class G3000NavInfoNavIndicator extends BasicNavIndicator<G3000NavSourceName> {
+export class G3000NavInfoNavIndicator extends BasicNavReferenceIndicator<G3000NavSourceName> {
   private static readonly SOURCE_MAP = {
     [ActiveNavSource.Nav1]: 'NAV1',
     [ActiveNavSource.Nav2]: 'NAV2',
@@ -341,10 +353,11 @@ export class G3000NavInfoNavIndicator extends BasicNavIndicator<G3000NavSourceNa
   private readonly previewSourceSub: Subscription;
 
   /**
-   * Constructor.
-   * @param navSources The possible nav sources that could be pointed to.
+   * Creates a new instance of G3000NavInfoNavIndicator.
+   * @param navSources A collection of {@link NavReferenceSource|NavReferenceSources} from which the indicator can
+   * source data.
    * @param bus The event bus.
-   * @param index The index of the active nav source associated with this indicator.
+   * @param index The index of the active nav source associated with the indicator.
    * @param previewDataProvider A provider of approach preview data.
    */
   public constructor(
@@ -373,9 +386,9 @@ export class G3000NavInfoNavIndicator extends BasicNavIndicator<G3000NavSourceNa
 }
 
 /**
- * A DME info nav indicator.
+ * A G3000 DME info {@link NavReferenceIndicator}.
  */
-export class G3000DmeInfoNavIndicator extends BasicNavIndicator<G3000NavSourceName> {
+export class G3000DmeInfoNavIndicator extends BasicNavReferenceIndicator<G3000NavSourceName> {
   private readonly _isPreview = Subject.create(false);
   /** Whether this indicator is in preview mode. */
   public readonly isPreview = this._isPreview as Subscribable<boolean>;
@@ -383,10 +396,11 @@ export class G3000DmeInfoNavIndicator extends BasicNavIndicator<G3000NavSourceNa
   private readonly previewSourceSub?: Subscription;
 
   /**
-   * Constructor.
-   * @param navSources The possible nav sources that could be pointed to.
+   * Creates a new instance of G3000DmeInfoNavIndicator.
+   * @param navSources A collection of {@link NavReferenceSource|NavReferenceSources} from which the indicator can
+   * source data.
    * @param bus The event bus.
-   * @param index The index of the active nav source associated with this indicator.
+   * @param index The index of the active nav source associated with the indicator.
    * @param dmeRadioCount The number of supported DME radios.
    * @param previewDataProvider A provider of approach preview data.
    */

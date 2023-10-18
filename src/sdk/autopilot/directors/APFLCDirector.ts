@@ -1,6 +1,7 @@
 import { SimVarValueType } from '../../data/SimVars';
 import { AeroMath } from '../../math/AeroMath';
 import { MathUtils } from '../../math/MathUtils';
+import { UnitType } from '../../math/NumberUnit';
 import { APValues } from '../APConfig';
 import { GenericFlcComputer } from '../calculators/GenericFlcComputer';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
@@ -187,7 +188,7 @@ export class APFLCDirector implements PlaneDirector {
       let ias = Simplane.getMachToKias(mach);
       if (!isFinite(ias)) {
         // Sometimes getMachToKias returns a NaN value. If so, fall back to doing the conversion ourselves.
-        ias = AeroMath.machToCas(mach, SimVar.GetSimVarValue('AMBIENT PRESSURE', SimVarValueType.HPA));
+        ias = UnitType.KNOT.convertFrom(AeroMath.machToCas(mach, SimVar.GetSimVarValue('AMBIENT PRESSURE', SimVarValueType.HPA)), UnitType.MPS);
       }
       this.flcComputer.setTargetSpeed(ias);
     } else {

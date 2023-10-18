@@ -33,7 +33,9 @@ export class WeatherRadarUserSettings {
     'wxrScanMode',
     'wxrRangeIndex',
     'wxrShowBearingLine',
-    'wxrShowTiltLine'
+    'wxrShowTiltLine',
+    'wxrCalibratedGain',
+    'wxrGain'
   ] as readonly WeatherRadarIndexedUserSettingNames[];
 
   private static masterInstance?: UserSettingManager<WeatherRadarAllUserSettingTypes>;
@@ -76,7 +78,9 @@ export class WeatherRadarUserSettings {
       ['wxrScanMode']: WeatherRadarScanMode.Horizontal,
       ['wxrRangeIndex']: 1, // 20 NM
       ['wxrShowBearingLine']: false,
-      ['wxrShowTiltLine']: false
+      ['wxrShowTiltLine']: false,
+      ['wxrCalibratedGain']: true,
+      ['wxrGain']: 0
     };
   }
 

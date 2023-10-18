@@ -189,6 +189,7 @@ export class MapUserSettings {
       ['mapTrackVectorShow']: false,
       ['mapTrackVectorLookahead']: 60, // seconds
       ['mapAltitudeArcShow']: false,
+      ['mapWindVectorShow']: false,
       ['mapInsetMode']: MapInsetSettingMode.None,
       ['mapInsetTextCumulative']: false,
     };
@@ -348,6 +349,7 @@ export class G3000MapUserSettingUtils {
     'mapTrackVectorShow',
     'mapTrackVectorLookahead',
     'mapAltitudeArcShow',
+    'mapWindVectorShow',
     'mapInsetMode',
     'mapInsetTextCumulative',
   ];

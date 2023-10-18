@@ -4,13 +4,13 @@ import {
   PluginSystem, SetSubject, Subject, UserFacility, VNode, VorFacility, Wait, XPDRSimVarPublisher,
 } from '@microsoft/msfs-sdk';
 import {
-  DefaultObsSuspDataProvider, DefaultVNavDataProvider, Fms, GarminFacilityWaypointCache, TrafficSystemType,
+  DefaultObsSuspDataProvider, DefaultVNavDataProvider, Fms, GarminFacilityWaypointCache, GpsNavSource,
+  NavReferenceIndicatorsCollection, NavRadioNavSource, NavReferenceSource, TrafficSystemType, NavReferenceSourceCollection,
 } from '@microsoft/msfs-garminsdk';
 import {
   AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, DefaultFmsSpeedTargetDataProvider, ExistingUserWaypointsArray, FlightPlanListManager,
   FlightPlanStore, G3000ActiveSourceNavIndicator, G3000FilePaths, G3000NavIndicator, G3000NavIndicatorName, G3000NavIndicators, G3000NavSourceName,
-  G3000NavSources, G3000NearestContext, G3000Plugin, GpsSource, InstrumentBackplaneNames, NavIndicatorsCollection, NavRadioNavSource, NavSource, NavSources,
-  WTG3000BaseInstrument, WTG3000FsInstrument,
+  G3000NavSources, G3000NearestContext, G3000Plugin, InstrumentBackplaneNames, WTG3000BaseInstrument, WTG3000FsInstrument,
 } from '@microsoft/msfs-wtg3000-common';
 
 import { LabelBarPluginHandlers } from './Components';
@@ -27,13 +27,14 @@ import { GtcContainer, GtcInteractionHandler, GtcKnobStatePluginOverrides, GtcSe
 import { GtcDefaultPositionHeadingDataProvider, GtcUserWaypointEditController } from './Navigation';
 import {
   GtcAdvancedVnavProfilePage, GtcAirportInfoPage, GtcApproachPage, GtcArrivalPage, GtcAudioRadiosPopup,
-  GtcAvionicsSettingsPage, GtcConnextWeatherSettingsPage, GtcDeparturePage, GtcDirectToPage, GtcFlapSpeedsPage, GtcFlightPlanPage, GtcHoldPage,
-  GtcIntersectionInfoPage, GtcLandingDataPage, GtcMapSettingsPage, GtcMfdHomePage, GtcMinimumsPage, GtcNavComHome, GtcNdbInfoPage, GtcNearestAirportPage,
-  GtcNearestDirectoryPage, GtcNearestIntersectionPage, GtcNearestNdbPage, GtcNearestUserWaypointPage, GtcNearestVorPage,
-  GtcNearestWeatherPage, GtcPerfPage, GtcPfdHomePage, GtcPfdMapSettingsPage, GtcPfdSettingsPage, GtcProceduresPage, GtcSetupPage,
-  GtcSpeedBugsPage, GtcTakeoffDataPage, GtcTimerPage, GtcToldFactorDialog, GtcTrafficSettingsPage, GtcTransponderDialog, GtcTransponderModePopup,
-  GtcUserWaypointInfoPage, GtcUtilitiesPage, GtcVnavProfilePage, GtcVorInfoPage, GtcWaypointInfoDirectoryPage, GtcWeatherRadarSettingsPage,
-  GtcWeatherSelectionPage, GtcWeightFuelPage,
+  GtcAvionicsSettingsPage, GtcConnextWeatherSettingsPage, GtcDeparturePage, GtcDirectToPage, GtcFlapSpeedsPage,
+  GtcFlightPlanPage, GtcHoldPage, GtcIntersectionInfoPage, GtcLandingDataPage, GtcMapSettingsPage, GtcMfdHomePage,
+  GtcMinimumsPage, GtcNavComHome, GtcNdbInfoPage, GtcNearestAirportPage, GtcNearestDirectoryPage, GtcNearestIntersectionPage,
+  GtcNearestNdbPage, GtcNearestUserWaypointPage, GtcNearestVorPage, GtcNearestWeatherPage, GtcPerfPage, GtcPfdHomePage,
+  GtcPfdMapSettingsPage, GtcPfdSettingsPage, GtcProceduresPage, GtcSetupPage, GtcSpeedBugsPage, GtcTakeoffDataPage,
+  GtcTimerPage, GtcToldFactorDialog, GtcTrafficSettingsPage, GtcTransponderDialog, GtcTransponderModePopup,
+  GtcUserWaypointInfoPage, GtcUtilitiesPage, GtcVnavProfilePage, GtcVorInfoPage, GtcWaypointInfoDirectoryPage,
+  GtcWeatherRadarSettingsPage, GtcWeatherSelectionPage, GtcWeightFuelPage,
 } from './Pages';
 import { GtcMapPointerControlPopup } from './Popups';
 
@@ -64,6 +65,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
     this.instrument.instrumentIndex,
     this.orientation,
     this.instrumentConfig.controlSetup,
+    this.instrumentConfig.defaultControlMode,
     this.instrumentConfig.pfdControlIndex,
     this.instrumentConfig.paneControlIndex,
     this.config.vnav.advanced
@@ -123,16 +125,16 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
 
     this.createSystems();
 
-    const navSources: NavSource<G3000NavSourceName>[] = [
+    const navSources: NavReferenceSource<G3000NavSourceName>[] = [
       new NavRadioNavSource<G3000NavSourceName>(this.bus, 'NAV1', 1),
       new NavRadioNavSource<G3000NavSourceName>(this.bus, 'NAV2', 2),
-      new GpsSource<G3000NavSourceName>(this.bus, 'FMS1', 1),
-      new GpsSource<G3000NavSourceName>(this.bus, 'FMS2', 2)
+      new GpsNavSource<G3000NavSourceName>(this.bus, 'FMS1', 1),
+      new GpsNavSource<G3000NavSourceName>(this.bus, 'FMS2', 2)
     ];
 
-    this.navSources = new NavSources<G3000NavSourceName>(...navSources);
+    this.navSources = new NavReferenceSourceCollection<G3000NavSourceName>(...navSources);
 
-    this.navIndicators = new NavIndicatorsCollection(new Map<G3000NavIndicatorName, G3000NavIndicator>([
+    this.navIndicators = new NavReferenceIndicatorsCollection(new Map<G3000NavIndicatorName, G3000NavIndicator>([
       ['activeSource', new G3000ActiveSourceNavIndicator(this.navSources, this.bus, 1)]
     ]));
 
@@ -409,7 +411,16 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
       this.gtcService.registerView(
         GtcViewLifecyclePolicy.Transient,
         GtcViewKeys.WeatherRadarSettings, 'MFD',
-        (gtcService, controlMode, displayPaneIndex) => <GtcWeatherRadarSettingsPage gtcService={gtcService} controlMode={controlMode} displayPaneIndex={displayPaneIndex} />
+        (gtcService, controlMode, displayPaneIndex) => {
+          return (
+            <GtcWeatherRadarSettingsPage
+              gtcService={gtcService}
+              controlMode={controlMode}
+              displayPaneIndex={displayPaneIndex}
+              weatherRadarConfig={this.config.sensors.weatherRadarDefinition!}
+            />
+          );
+        }
       );
     }
 

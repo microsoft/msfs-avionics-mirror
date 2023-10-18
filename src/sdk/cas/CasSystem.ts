@@ -62,7 +62,7 @@ export type CasActiveMessage = {
   acknowledgedSuffixes?: string[];
 }
 
-/** A compound type identifying a specific allert and suffix combination. */
+/** A compound type identifying a specific alert and suffix combination. */
 export type CasAlertKey = {
   /** The UUID of the alert. */
   uuid: string;
@@ -99,7 +99,7 @@ export interface CasEvents {
   /** Sets whether newly activated alerts are initialized as acknowledged. */
   'cas_set_initial_acknowledge': boolean;
 
-  /** Broadcast an master acknowledge event. */
+  /** Broadcast a master acknowledge event. */
   'cas_master_acknowledge': AnnunciationType.Caution | AnnunciationType.Warning;
 
   /** Enable a CAS inhibit state. */
@@ -109,13 +109,13 @@ export interface CasEvents {
   'cas_deactivate_inhibit_state': string;
 
   /**
-   * Request a republish of a single CAS registation.  Anything that can send a `cas_register_alert` message
+   * Request a republish of a single CAS registration.  Anything that can send a `cas_register_alert` message
    * _must_ be capable of responding to this.
    */
   'cas_publish_registration': string;
 
   /**
-   * Request a republish of a all CAS registrations.  Anything that can send a `cas_register_alert` message
+   * Request a republish of all CAS registrations.  Anything that can send a `cas_register_alert` message
    * _must_ be capable of responding to this.
    */
   'cas_publish_all_registrations': boolean;
@@ -170,11 +170,11 @@ export interface CasStateEvents {
 
 /**
  * A system for CAS management.
- * 
+ *
  * Every avionics system must have exactly one instance of CasSystem configured as the primary system. This is the one
  * that is responsible for triggering sim-level master caution/warning alerts and intercepting and handling master
  * acknowledge events.
- * 
+ *
  * Each JS instrument should have at most one instance of CasSystem. Multiple instances of CasSystem on a single
  * instrument will cause duplicated events to be published to the topics defined by {@link CasStateEvents}.
  */

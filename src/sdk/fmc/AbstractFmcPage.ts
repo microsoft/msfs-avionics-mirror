@@ -2,9 +2,8 @@ import { Subscription } from '../sub';
 import { FmcComponent } from './components';
 import { FmcOutputTemplate, FmcRenderTemplate } from './FmcRenderer';
 import { FmcScreen } from './FmcScreen';
-import { EventBus } from '../data';
+import { ConsumerSubject, EventBus } from '../data';
 import { ClockEvents } from '../instruments';
-import { Binding } from './FmcDataBinding';
 import { FmcPagingEvents, LineSelectKeyEvent } from './FmcInteractionEvents';
 
 /**
@@ -44,7 +43,7 @@ export abstract class AbstractFmcPage {
 
   protected readonly memorizedComponents: [FmcComponent | null, FmcComponent | null, FmcComponent | null][] = [];
 
-  private readonly bindings: Subscription[] = [];
+  private readonly bindings: (Subscription | ConsumerSubject<any>)[] = [];
 
   public readonly params = new Map();
 
@@ -84,7 +83,7 @@ export abstract class AbstractFmcPage {
   public init(): void {
     this.onInit();
 
-    this.addBinding(new Binding(this.screen.currentSubpageIndex, () => this.invalidate()));
+    this.addBinding(this.screen.currentSubpageIndex.sub(() => this.invalidate()));
   }
 
   /**
@@ -175,8 +174,6 @@ export abstract class AbstractFmcPage {
       return;
     }
 
-    // TODO initialize all controls
-
     const templates = this.render();
 
     this.screen.currentSubpageCount.set(templates.length);
@@ -235,11 +232,13 @@ export abstract class AbstractFmcPage {
   private currentOutput: FmcOutputTemplate = [];
 
   /**
-   * Registers a binding on the page
+   * Registers a subscription or a ConsumerSubject on the page. This enables the page to manage the lifecycle of all
+   * subscriptions that are used within it, for example by pausing them whenever the page is out of view, or destroying
+   * them when the page is destroyed.
    *
-   * @param binding a {@link Binding}
+   * @param binding a subscription
    */
-  public addBinding(binding: Subscription | Binding<any>): void {
+  public addBinding(binding: Subscription | ConsumerSubject<any>): void {
     this.bindings.push(binding);
   }
 

@@ -9,6 +9,7 @@ export * from './graphics';
 export * from './instruments';
 export * from './minimums';
 export * from './navigation';
+export * from './navreference';
 export * from './radio';
 export * from './settings';
 export * from './softkey';

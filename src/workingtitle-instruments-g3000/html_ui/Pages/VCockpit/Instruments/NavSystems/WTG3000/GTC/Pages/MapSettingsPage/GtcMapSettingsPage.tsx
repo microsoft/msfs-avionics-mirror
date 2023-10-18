@@ -910,9 +910,11 @@ export class GtcMapSettingsPage extends GtcView<GtcMapSettingsPageProps> {
         </GtcListItem>
         <GtcListItem class='map-settings-page-row'>
           <GtcToggleTouchButton
-            state={Subject.create(false)}
+            state={this.mapReadSettingManager.getSetting('mapWindVectorShow')}
             label={'Wind Vector'}
-            isEnabled={false}
+            onPressed={(button, state): void => {
+              this.writeToSetting('mapWindVectorShow', !state.value);
+            }}
             isInList
             gtcOrientation={this.props.gtcService.orientation}
             class='map-settings-page-row-left'

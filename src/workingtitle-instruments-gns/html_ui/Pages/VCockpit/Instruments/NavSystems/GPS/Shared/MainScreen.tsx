@@ -4,7 +4,7 @@ import {
   FSComponent, VNavControlEvents, GNSSPublisher, GPSSatComputer, GpsSynchronizer, HEvent, InstrumentBackplane, LNavEvents,
   LNavSimVarPublisher, MappedSubject, NavEvents, NavRadioIndex, NearestContext, RadioType, SBASGroupName, SetSubject,
   TrafficInstrument, VNavDataEventPublisher, VNavSimVarPublisher, VNode, Wait, SimVarValueType, Subject, ControlEvents, NavSourceType,
-  FlightPathAirplaneSpeedMode, BitFlags, IntersectionType
+  FlightPathAirplaneSpeedMode, BitFlags, IntersectionType, GameStateProvider, ClockEvents
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -447,6 +447,12 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
         new GNSAPStateManager(this.props.bus, apConfig, this.props.options.apSupportsFlightDirector),
       );
 
+      Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.briefing || state === GameState.ingame).then(() => {
+        this.props.bus.getSubscriber<ClockEvents>().on('simTimeHiFreq').handle(() => {
+          this.autopilot.update();
+        });
+      });
+
       setTimeout(() => {
         this.autopilot.stateManager.initialize();
       }, 500);
@@ -512,9 +518,6 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     this.props.backplane.onUpdate();
 
     if (isPrimaryInstrument) {
-
-      this.autopilot?.update();
-
       // Planner update
       const now = Date.now();
 

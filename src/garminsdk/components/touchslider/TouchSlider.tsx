@@ -64,6 +64,12 @@ export interface TouchSliderProps<S extends Subscribable<number> | MutableSubscr
   foreground?: VNode;
 
   /**
+   * The inset for the slider, as a VNode. The inset is placed above the background and foreground and below the
+   * thumb and is always visible.
+   */
+  inset?: VNode;
+
+  /**
    * The thumb for the slider, as a VNode. The thumb is placed at the location along the slider corresponding to the
    * slider's current value.
    */
@@ -415,6 +421,7 @@ export class TouchSlider<S extends Subscribable<number> | MutableSubscribable<nu
         <div ref={this.sliderContainerRef} class='touch-slider-slider-container'>
           <div class='touch-slider-slider-background'>{this.props.background}</div>
           <div class='touch-slider-slider-foreground' style={this.sliderForegroundStyle}>{this.props.foreground}</div>
+          <div class='touch-slider-slider-inset'>{this.props.inset}</div>
           <div class='touch-slider-slider-thumb-translate' style={this.sliderThumbStyle}>
             <div ref={this.sliderThumbRef} class='touch-slider-slider-thumb'>
               {this.props.thumb}

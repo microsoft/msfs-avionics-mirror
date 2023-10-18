@@ -11,6 +11,7 @@ import { DefaultsUserSettings } from './DefaultsUserSettings';
 import { FgpUserSettings } from './FgpUserSettings';
 import { RefsUserSettings } from './RefsUserSettings';
 import { VSpeedUserSettings } from './VSpeedUserSettings';
+import { CJ4UserSettings } from './CJ4UserSettings';
 
 /** A manager for WT21 settings which are saved to pilot profiles. */
 export class WT21SettingSaveManager extends UserSettingSaveManager {
@@ -32,6 +33,7 @@ export class WT21SettingSaveManager extends UserSettingSaveManager {
     const refsSettingManager = RefsUserSettings.getManager(bus);
     const vspeedSettingManager = new VSpeedUserSettings(bus);
     const trafficSettingManager = TrafficUserSettings.getManager(bus);
+    const cj4UserSettingsManager = CJ4UserSettings.getManager(bus);
 
     const vspeedValueSettings = [
       vspeedSettingManager.getSettings(VSpeedType.V1).get('value')!,
@@ -46,12 +48,13 @@ export class WT21SettingSaveManager extends UserSettingSaveManager {
       ...PFDSettingManager.getAllSettings(),
       ...MFDSettingManager.getAllSettings().filter(setting => !WT21SettingSaveManager.ignoredMfdSettings.includes(setting.definition.name)),
       ...mapSettingManager.getAllSettings().filter(setting => setting.definition.name !== 'mapExtended'),
-      ...fmcSettingManager.getAllSettings(),
+      ...fmcSettingManager.getAllSettings().filter(setting => setting.definition.name !== 'flightNumber'),
       ...defaultsSettingManager.getAllSettings(),
       ...fgpSettingManager.getAllSettings().filter(setting => !setting.definition.name.includes('VorTuningMode')),
       ...refsSettingManager.getAllSettings().filter(setting => setting.definition.name !== 'minsmode'),
       ...vspeedValueSettings,
-      ...trafficSettingManager.getAllSettings().filter(setting => setting.definition.name !== 'trafficOperatingMode')
+      ...trafficSettingManager.getAllSettings().filter(setting => setting.definition.name !== 'trafficOperatingMode'),
+      ...cj4UserSettingsManager.getAllSettings()
     ];
 
     super(settings, bus);

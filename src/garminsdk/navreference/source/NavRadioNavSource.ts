@@ -1,10 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { ConsumerSubject, EventBus, GeoPoint, MappedSubject, NavComEvents, NavRadioIndex, NavSourceType, RadioUtils, Subject, Subscription } from '@microsoft/msfs-sdk';
-import { AbstractNavBase } from '../NavBase';
-import { NavSource } from './NavSource';
 
-/** Represents a NAV radio, subscribes to the NAV SimVars. */
-export class NavRadioNavSource<NameType extends string> extends AbstractNavBase implements NavSource<NameType> {
+import { ConsumerSubject, EventBus, GeoPoint, MappedSubject, NavComEvents, NavRadioIndex, NavSourceType, RadioUtils, Subject, Subscription } from '@microsoft/msfs-sdk';
+
+import { AbstractNavReferenceBase } from '../NavReferenceBase';
+import { NavReferenceSource } from './NavReferenceSource';
+
+/**
+ * A {@link NavReferenceSource} which derives its data from a NAV radio signal.
+ */
+export class NavRadioNavSource<NameType extends string> extends AbstractNavReferenceBase implements NavReferenceSource<NameType> {
   private readonly hasSignal = this.signalStrength.map(signalStrength => signalStrength !== null && signalStrength > 0);
 
   private readonly glideSlopeErrorDegrees = Subject.create(0);
@@ -19,7 +23,7 @@ export class NavRadioNavSource<NameType extends string> extends AbstractNavBase 
   private readonly dmeLla: ConsumerSubject<LatLongAlt>;
 
   /**
-   * Constructor.
+   * Creates a new instance of NavRadioNavSource.
    * @param bus The event bus.
    * @param name The name of this source.
    * @param index The index of this source.

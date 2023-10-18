@@ -16,7 +16,7 @@ export class IndexPage extends FmcPage {
   // right side
   private readonly gnss1PosLink = PageLinkField.createLink(this, 'GNSS1 POS>', '/gnss1-pos', true);
   private readonly frequencyLink = PageLinkField.createLink(this, 'FREQUENCY>', '/freq');
-  private readonly fixLink = PageLinkField.createLink(this, 'FIX>', '/fix', true);
+  private readonly fixLink = PageLinkField.createLink(this, 'FIX>', '/fix');
   private readonly holdLink = PageLinkField.createLink(this, 'HOLD>', '/hold-list');
   private readonly progLink = PageLinkField.createLink(this, 'PROG>', '/prog');
   private readonly secFplnLink = PageLinkField.createLink(this, 'SEC FPLN>', '/sec-fpln', true);
@@ -25,20 +25,19 @@ export class IndexPage extends FmcPage {
   private readonly fmsCtlLink = PageLinkField.createLink(this, '<FMS CTL', '/fms-ctl', true);
 
   // page 2 right side
-  private readonly routeMenuLink = PageLinkField.createLink(this, 'ROUTE MENU>', '/route-menu', true);
+  private readonly routeMenuLink = PageLinkField.createLink(this, 'ROUTE MENU>', '/route-menu');
   private readonly databaseLink = PageLinkField.createLink(this, 'DATA BASE>', '/database');
   private readonly diskOpsLink = PageLinkField.createLink(this, 'DB DISK OPS>', '/db-disk-ops', true);
   private readonly defaultsLink = PageLinkField.createLink(this, 'DEFAULTS>', '/defaults');
   private readonly arrDataLink = PageLinkField.createLink(this, 'ARR DATA>', '/arr-data', true);
-  private readonly tempCompLink = PageLinkField.createLink(this, 'TEMP COMP>', '/temp-comp', true);
+  // private readonly tempCompLink = PageLinkField.createLink(this, 'TEMP COMP>', '/temp-comp', true);
+  private readonly userSetLink = PageLinkField.createLink(this, 'SETTINGS>', '/user-set');
 
   /** @inheritDoc */
   public render(): FmcRenderTemplate[] {
     return [
       [
         ['', '1/2 [blue]', 'INDEX[blue]'],
-        ['', ''],
-        [this.mcduMenuLink, this.gnss1PosLink],
         ['', ''],
         [this.dataLinkLink, this.frequencyLink],
         ['', ''],
@@ -50,11 +49,11 @@ export class IndexPage extends FmcPage {
         [' FMS1', ''],
         [this.gnssCtlLink, this.secFplnLink],
         ['', ''],
+        [this.fmsCtlLink, this.routeMenuLink],
+        ['', ''],
       ],
       [
         ['', '2/2 [blue]', 'INDEX[blue]'],
-        ['', ''],
-        [this.fmsCtlLink, this.routeMenuLink],
         ['', ''],
         ['', this.databaseLink],
         ['', ''],
@@ -64,7 +63,9 @@ export class IndexPage extends FmcPage {
         ['', ''],
         ['', this.arrDataLink],
         ['', ''],
-        ['', this.tempCompLink],
+        ['', ''],
+        ['', ''],
+        ['', this.userSetLink],
         ['', ''],
       ]
     ];

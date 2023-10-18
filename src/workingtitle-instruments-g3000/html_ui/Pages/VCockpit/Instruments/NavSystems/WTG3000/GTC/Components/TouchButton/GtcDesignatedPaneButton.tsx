@@ -93,6 +93,15 @@ export class GtcDesignatedPaneButton extends DisplayComponent<GtcDesignatedPaneB
     }, true);
   }
 
+  /**
+   * Simulates this button being pressed. This will execute the `onPressed()` callback if one is defined.
+   * @param ignoreDisabled Whether to simulate the button being pressed regardless of whether the button is disabled.
+   * Defaults to `false`.
+   */
+  public simulatePressed(ignoreDisabled = false): void {
+    this.buttonRef.getOrDefault()?.simulatePressed(ignoreDisabled);
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     if (this.props.class !== undefined) {
@@ -109,6 +118,7 @@ export class GtcDesignatedPaneButton extends DisplayComponent<GtcDesignatedPaneB
       <GtcTouchButton
         ref={this.buttonRef}
         label={this.label}
+        onTouched={this.props.onTouched}
         onPressed={() => {
           if (this.props.onPressed !== undefined) {
             this.props.onPressed(this.isSelected.get(), this);
@@ -122,6 +132,9 @@ export class GtcDesignatedPaneButton extends DisplayComponent<GtcDesignatedPaneB
             }
           }
         }}
+        onHoldStarted={this.props.onHoldStarted}
+        onHoldTick={this.props.onHoldTick}
+        onHoldEnded={this.props.onHoldEnded}
         isEnabled={this.props.isEnabled}
         isHighlighted={this.props.isHighlighted}
         isVisible={this.props.isVisible}

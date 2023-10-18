@@ -31,6 +31,24 @@ export class ImgTouchButton extends DisplayComponent<ImgTouchButtonProps> {
 
   protected cssClassSub?: Subscription;
 
+  /**
+   * Gets this button's root HTML element.
+   * @returns This button's root HTML element.
+   * @throws Error if this button has not yet been rendered.
+   */
+  public getRootElement(): HTMLElement {
+    return this.buttonRef.instance.getRootElement();
+  }
+
+  /**
+   * Simulates this button being pressed. This will execute the `onPressed()` callback if one is defined.
+   * @param ignoreDisabled Whether to simulate the button being pressed regardless of whether the button is disabled.
+   * Defaults to `false`.
+   */
+  public simulatePressed(ignoreDisabled = false): void {
+    this.buttonRef.getOrDefault()?.simulatePressed(ignoreDisabled);
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     const reservedClasses = this.getReservedCssClasses();
@@ -49,7 +67,11 @@ export class ImgTouchButton extends DisplayComponent<ImgTouchButtonProps> {
         isEnabled={this.props.isEnabled}
         isHighlighted={this.props.isHighlighted}
         label={this.props.label}
+        onTouched={this.props.onTouched}
         onPressed={this.props.onPressed}
+        onHoldStarted={this.props.onHoldStarted}
+        onHoldTick={this.props.onHoldTick}
+        onHoldEnded={this.props.onHoldEnded}
         focusOnDrag={this.props.focusOnDrag}
         inhibitOnDrag={this.props.inhibitOnDrag}
         dragThresholdPx={this.props.dragThresholdPx}

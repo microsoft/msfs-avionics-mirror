@@ -165,7 +165,6 @@ export class GtcWeightFuelPage extends GtcView<GtcWeightFuelPageProps> {
   private readonly fuelOnBoardRowClasses: SetSubject<string> =
     SetSubject.create(['wf-row', 'wf-derived-weight-row', 'wf-wide-right']);
   private readonly aircraftWeightClasses = SetSubject.create<string>();
-  private readonly fobInstructionClasses = SetSubject.create<string>(['wf-fob-instructions']);
   private readonly overweightCautionClasses = SetSubject.create<string>(['wf-overweight-caution', 'hidden']);
   private readonly estLandingWeightClasses = SetSubject.create<string>(['wf-top-row']);
   private readonly estLandingFuelWeightClasses = SetSubject.create<string>(['wf-top-row']);
@@ -209,8 +208,6 @@ export class GtcWeightFuelPage extends GtcView<GtcWeightFuelPageProps> {
       this.fuelReservesRowClasses.toggle('wf-fuel-by-vol', fuelUnitIsVolumetric);
       this.fuelReservesRowClasses.toggle('wf-fuel-by-weight', !fuelUnitIsVolumetric);
     }, true);
-
-    this.fobHasBeenInitialized.sub(val => this.fobInstructionClasses.toggle('hidden', val));
 
     this.zeroFuelWeightSetting.sub(zfw => {
       const maxZfw: number | undefined = this.props.weightLimits.maxZeroFuel.asUnit(INTERNAL_WEIGHT_UNIT);
@@ -580,7 +577,7 @@ export class GtcWeightFuelPage extends GtcView<GtcWeightFuelPageProps> {
                 )}
                 {GtcWeightFuelPage.renderUnderline()}
                 {this.renderLabelValueRow('Aircraft Weight', this.aircraftWeightNUS, this.aircraftWeightClasses)}
-                <div class={this.fobInstructionClasses}>Press FOB SYNC or enter Fuel On<br />Board to confirm fuel.</div>
+                <div class={{ 'wf-fob-instructions': true, 'hidden': this.fobHasBeenInitialized }}>Press FOB SYNC or enter Fuel On<br />Board to confirm fuel.</div>
                 <div class={this.overweightCautionClasses}>Max Takeoff Weight Exceeded</div>
                 <GtcTouchButton
                   class='wf-row wf-bottom-center-button'

@@ -34,6 +34,7 @@ export enum FmcPageEvent {
     PAGE_MSG = 'PAGE_MSG',
     PAGE_TUNE = 'PAGE_TUNE',
     PAGE_DEFAULTS = 'PAGE_DEFAULTS',
+    PAGE_USERSETTINGS = 'PAGE_USERSETTINGS',
 }
 
 export enum FmcSelectKeysEvent {

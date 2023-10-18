@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, EventBus, FSComponent, GNSSEvents, NodeReference, VNode } from '@microsoft/msfs-sdk';
+import { AdcEvents, ComponentProps, ConsumerValue, DisplayComponent, EventBus, FSComponent, GNSSEvents, NodeReference, VNode } from '@microsoft/msfs-sdk';
 
 import { LNavDataEvents } from '@microsoft/msfs-garminsdk';
 
@@ -30,6 +30,8 @@ export class WaypointAlerter extends DisplayComponent<WaypointAlerterProps> {
 
   private flashing = false;
 
+  private readonly isOnGround = ConsumerValue.create(this.props.bus.getSubscriber<AdcEvents>().on('on_ground'), true);
+
   /**
    * A callback called after the component is rendered.
    */
@@ -46,7 +48,7 @@ export class WaypointAlerter extends DisplayComponent<WaypointAlerterProps> {
    * @param distance The distance remaining to the next egress transition, in nautical miles.
    */
   private onDistanceUpdated(distance: number): void {
-    if (distance !== 0) {
+    if (distance > 0 && this.isOnGround.get() === false) {
       const secondsRemaining = (distance / this.currentSpeed) * 60 * 60;
       if (secondsRemaining <= 5.25 && !this.flashing) {
         this.el.instance && this.el.instance.classList.add('flashing');

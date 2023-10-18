@@ -14,9 +14,11 @@ import { MapDeclutterSettingMode } from '../../settings/MapUserSettings';
 import { TrafficUserSettingTypes } from '../../settings/TrafficUserSettings';
 import { UnitsUserSettingManager } from '../../settings/UnitsUserSettings';
 import { TrafficSystem } from '../../traffic/TrafficSystem';
+import { WindDataProvider } from '../../wind/WindDataProvider';
 import {
   MapAirspaceVisController, MapAirspaceVisControllerModules, MapAirspaceVisUserSettings, MapDataIntegrityRTRController, MapDataIntegrityRTRControllerContext,
   MapDataIntegrityRTRControllerModules, MapFlightPlanFocusRTRController, MapFlightPlanFocusRTRControllerContext, MapFlightPlanFocusRTRControllerModules,
+  MapGarminAutopilotPropsBinding, MapGarminAutopilotPropsController, MapGarminAutopilotPropsControllerModules, MapGarminAutopilotPropsKey,
   MapGarminTrafficController, MapGarminTrafficControllerModules, MapNexradController, MapNexradControllerModules, MapNexradUserSettings,
   MapOrientationController, MapOrientationControllerContext, MapOrientationControllerModules, MapOrientationControllerSettings, MapOrientationRTRController,
   MapOrientationRTRControllerContext, MapOrientationRTRControllerModules, MapPointerController, MapPointerControllerModules, MapPointerRTRController,
@@ -24,19 +26,20 @@ import {
   MapRangeControllerModules, MapRangeControllerSettings, MapRangeRTRController, MapRangeRTRControllerModules, MapTerrainColorsController,
   MapTerrainColorsControllerModules, MapTerrainColorsDefinition, MapTerrainController, MapTerrainControllerModules, MapTerrainUserSettings,
   MapTrafficController, MapTrafficControllerModules, MapTrafficUserSettings, MapWaypointsVisController, MapWaypointsVisControllerModules,
-  MapWaypointVisUserSettings, MapWxrController, MapWxrControllerModules, TrafficMapRangeController, TrafficMapRangeControllerModules,
-  TrafficMapRangeControllerSettings, WeatherMapOrientationController, WeatherMapOrientationControllerContext, WeatherMapOrientationControllerModules,
-  WeatherMapOrientationControllerSettings
+  MapWaypointVisUserSettings, MapWindVectorController, MapWindVectorControllerModules, MapWindVectorUserSettings, MapWxrController, MapWxrControllerModules,
+  TrafficMapRangeController, TrafficMapRangeControllerModules, TrafficMapRangeControllerSettings, WeatherMapOrientationController,
+  WeatherMapOrientationControllerContext, WeatherMapOrientationControllerModules, WeatherMapOrientationControllerSettings
 } from './controllers';
 import { MapActiveFlightPlanDataProvider, MapFlightPathPlanRenderer, MapFlightPathProcRenderer, MapFlightPlannerPlanDataProvider } from './flightplan';
 import { MapFlightPlanDataProvider } from './flightplan/MapFlightPlanDataProvider';
 import { GarminMapKeys } from './GarminMapKeys';
 import {
-  MapCrosshairLayer, MapCrosshairLayerModules, MapFlightPlanLayer,
-  MapMiniCompassLayer, MapPointerInfoLayer, MapPointerInfoLayerModules, MapPointerInfoLayerSize, MapPointerLayer, MapPointerLayerModules,
-  MapProcedurePreviewLayer, MapProcedurePreviewLayerModules, MapRangeCompassLayer, MapRangeCompassLayerModules, MapRangeCompassLayerProps, MapRangeRingLayer,
-  MapRangeRingLayerModules, MapRangeRingLayerProps, MapTrackVectorLayer, MapTrackVectorLayerModules, MapTrackVectorLayerProps, MapWaypointHighlightLayer,
-  MapWaypointHighlightLayerModules, MapWaypointsLayer, MapWaypointsLayerModules, TrafficMapRangeLayer, TrafficMapRangeLayerModules, TrafficMapRangeLayerProps
+  MapCrosshairLayer, MapCrosshairLayerModules, MapFlightPlanLayer, MapMiniCompassLayer, MapPointerInfoLayer, MapPointerInfoLayerModules,
+  MapPointerInfoLayerSize, MapPointerLayer, MapPointerLayerModules, MapProcedurePreviewLayer, MapProcedurePreviewLayerModules,
+  MapRangeCompassLayer, MapRangeCompassLayerModules, MapRangeCompassLayerProps, MapRangeRingLayer, MapRangeRingLayerModules,
+  MapRangeRingLayerProps, MapTrackVectorLayer, MapTrackVectorLayerModules, MapTrackVectorLayerProps, MapWaypointHighlightLayer,
+  MapWaypointHighlightLayerModules, MapWaypointsLayer, MapWaypointsLayerModules, MapWindVectorLayer, MapWindVectorLayerModules,
+  TrafficMapRangeLayer, TrafficMapRangeLayerModules, TrafficMapRangeLayerProps
 } from './layers';
 import { MapAirspaceRendering } from './MapAirspaceRendering';
 import { MapTrafficIntruderIcon, MapTrafficIntruderIconOptions } from './MapTrafficIntruderIcon';
@@ -44,9 +47,10 @@ import { MapTrafficOffScaleStatus } from './MapTrafficOffScaleStatus';
 import { MapWaypointDisplayBuilder, MapWaypointDisplayBuilderClass } from './MapWaypointDisplayBuilder';
 import { MapWaypointRenderer, MapWaypointRenderRole } from './MapWaypointRenderer';
 import {
-  GarminAirspaceShowTypeMap, MapCrosshairModule, MapDeclutterMode, MapDeclutterModule, MapFlightPlanFocusModule, MapGarminDataIntegrityModule, MapGarminTrafficModule,
-  MapNexradModule, MapOrientation, MapOrientationModule, MapPointerModule, MapProcedurePreviewModule, MapRangeCompassModule, MapRangeRingModule, MapTerrainMode,
-  MapTerrainModule, MapTrackVectorModule, MapUnitsModule, MapWaypointHighlightModule, MapWaypointsModule
+  GarminAirspaceShowTypeMap, MapCrosshairModule, MapDeclutterMode, MapDeclutterModule, MapFlightPlanFocusModule, MapGarminAutopilotPropsModule,
+  MapGarminDataIntegrityModule, MapGarminTrafficModule, MapNexradModule, MapOrientation, MapOrientationModule, MapPointerModule, MapProcedurePreviewModule,
+  MapRangeCompassModule, MapRangeRingModule, MapTerrainMode, MapTerrainModule, MapTrackVectorModule, MapUnitsModule, MapWaypointHighlightModule,
+  MapWaypointsModule, MapWindVectorModule
 } from './modules';
 
 /**
@@ -125,6 +129,44 @@ export type IndicatorGroupCallbacks = Omit<MapGenericLayerProps<any>, keyof MapL
  *
  */
 export class GarminMapBuilder {
+
+  /**
+   * Configures a map builder to add a module describing the player airplane's autopilot properties, and optionally
+   * binds the module's properties to data received over the event bus.
+   *
+   * Adds the following...
+   *
+   * Modules:
+   * * `[MapSystemKeys.AutopilotProps]: MapGarminAutopilotPropsModule`
+   *
+   * Controllers:
+   * * `[MapSystemKeys.AutopilotProps]: MapGarminAutopilotPropsController` (optional)
+   * @param mapBuilder The map builder to configure.
+   * @param propertiesToBind Properties on the autopilot module to bind to data received over the event bus.
+   * @param updateFreq The update frequency, in hertz, of the data bindings, or a subscribable which provides it. If
+   * not defined, the data bindings will update every frame. Ignored if `propertiesToBind` is undefined.
+   * @returns This builder, after it has been configured.
+   */
+  public static autopilotProps<MapBuilder extends MapSystemBuilder>(
+    mapBuilder: MapBuilder,
+    propertiesToBind?: Iterable<MapGarminAutopilotPropsKey | MapGarminAutopilotPropsBinding>,
+    updateFreq?: number | Subscribable<number>
+  ): MapBuilder {
+    mapBuilder.withModule(MapSystemKeys.AutopilotProps, () => new MapGarminAutopilotPropsModule());
+
+    if (propertiesToBind !== undefined) {
+      mapBuilder.withController<MapGarminAutopilotPropsController, MapGarminAutopilotPropsControllerModules>(
+        MapSystemKeys.AutopilotProps,
+        context => new MapGarminAutopilotPropsController(
+          context,
+          propertiesToBind,
+          updateFreq
+        )
+      );
+    }
+
+    return mapBuilder;
+  }
 
   /**
    * Configures a map builder to generate a map with measurement unit support.
@@ -1729,6 +1771,55 @@ export class GarminMapBuilder {
 
         return bindings;
       });
+    }
+
+    return mapBuilder;
+  }
+
+  /**
+   * Configures a map builder to generate a map with a wind vector, and optionally binds the display options of the
+   * vector to user settings.
+   *
+   * Adds the following...
+   *
+   * Modules:
+   * * `[GarminMapKeys.WindVector]: MapWindVectorModule`
+   *
+   * Layers:
+   * * `[GarminMapKeys.WindVector]: MapWindVectorLayer`
+   *
+   * Controllers:
+   * * `[GarminMapKeys.WindVector]: MapWindVectorController` (only if user settings are supported)
+   * @param mapBuilder The map builder to configure.
+   * @param dataProvider A provider of wind data.
+   * @param settingManager A setting manager containing user settings used to control the wind vector. If not defined,
+   * the wind vector will not be bound to user settings.
+   * @param order The order to assign to the wind vector layer. Layers with lower assigned order will be attached to
+   * the map before and appear below layers with greater assigned order values. Defaults to the number of layers
+   * already added to the map builder.
+   * @returns The map builder, after it has been configured.
+   */
+  public static windVector<MapBuilder extends MapSystemBuilder<Omit<MapTrackVectorLayerModules, typeof GarminMapKeys.TrackVector>>>(
+    mapBuilder: MapBuilder,
+    dataProvider: WindDataProvider,
+    settingManager?: UserSettingManager<Partial<MapWindVectorUserSettings>>,
+    order?: number
+  ): MapBuilder {
+    mapBuilder
+      .withModule(GarminMapKeys.WindVector, () => new MapWindVectorModule(dataProvider))
+      .withLayer<MapTrackVectorLayer, MapWindVectorLayerModules>(GarminMapKeys.WindVector, context => {
+        return (
+          <MapWindVectorLayer
+            model={context.model}
+            mapProjection={context.projection}
+          />
+        );
+      }, order);
+
+    if (settingManager) {
+      mapBuilder.withController<
+        MapWindVectorController, MapWindVectorControllerModules
+      >(GarminMapKeys.WindVector, context => new MapWindVectorController(context, settingManager));
     }
 
     return mapBuilder;

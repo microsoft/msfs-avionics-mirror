@@ -10,7 +10,8 @@ import { MapUserSettingTypes } from '../../../settings/MapUserSettings';
 import { TrafficUserSettingTypes } from '../../../settings/TrafficUserSettings';
 import { UnitsDistanceSettingMode, UnitsUserSettingManager } from '../../../settings/UnitsUserSettings';
 import { TrafficSystem } from '../../../traffic/TrafficSystem';
-import { NearestMapRTRController, NearestMapRTRControllerModules } from '../controllers';
+import { WindDataProvider } from '../../../wind/WindDataProvider';
+import { MapGarminAutopilotPropsKey, NearestMapRTRController, NearestMapRTRControllerModules } from '../controllers';
 import { DefaultFlightPathPlanRenderer } from '../flightplan';
 import { GarminMapBuilder, RangeCompassOptions, RangeRingOptions, TrafficIconOptions, WaypointHighlightLineOptions } from '../GarminMapBuilder';
 import { GarminMapKeys } from '../GarminMapKeys';
@@ -166,6 +167,12 @@ export type NextGenNearestMapOptions = {
   /** Whether to include the altitude intercept arc display. Defaults to `true`. */
   includeAltitudeArc?: boolean;
 
+  /** Whether to include the wind vector display. Defaults to `true`. Ignored if `windDataProvider` is not defined. */
+  includeWindVector?: boolean;
+
+  /** A provider of wind data for the wind vector. Required to display the wind vector. */
+  windDataProvider?: WindDataProvider;
+
   /**
    * The offset of the boundary surrounding the area in which the pointer can freely move, from the edge of the
    * projected map, excluding the dead zone, or a subscribable which provides it. Expressed as
@@ -295,6 +302,12 @@ export type NextGenNearestMapOptions = {
    * is not defined.
    */
   useAltitudeArcUserSettings?: boolean;
+
+  /**
+   * Whether to bind wind vector options to user settings. Defaults to `true`. Ignored if `settingManager` is not
+   * defined.
+   */
+  useWindVectorUserSettings?: boolean;
 }
 
 export class NextGenNearestMapBuilder {
@@ -365,6 +378,9 @@ export class NextGenNearestMapBuilder {
 
     options.includeAltitudeArc ??= true;
     options.useAltitudeArcUserSettings ??= true;
+
+    options.includeWindVector ??= true;
+    options.useWindVectorUserSettings ??= true;
 
     options.includeOrientationIndicator ??= true;
     options.includeRangeIndicator ??= false;
@@ -490,10 +506,6 @@ export class NextGenNearestMapBuilder {
 
     if (options.includeAltitudeArc) {
       mapBuilder
-        .withAutopilotProps(
-          ['selectedAltitude'],
-          options.dataUpdateFreq
-        )
         .with(GarminMapBuilder.altitudeArc,
           {
             renderMethod: 'svg',
@@ -565,6 +577,17 @@ export class NextGenNearestMapBuilder {
       .withOwnAirplanePropBindings(airplanePropBindings, options.dataUpdateFreq)
       .withFollowAirplane();
 
+    const autopilotPropBindings: MapGarminAutopilotPropsKey[] = [
+      'selectedHeading', 'manualHeadingSelect',
+      ...(
+        options.includeAltitudeArc
+          ? ['selectedAltitude']
+          : []
+      ) as MapGarminAutopilotPropsKey[]
+    ];
+
+    mapBuilder.with(GarminMapBuilder.autopilotProps, autopilotPropBindings, options.dataUpdateFreq);
+
     if (options.supportDataIntegrity) {
       mapBuilder.withLayer(GarminMapKeys.DeadReckoning, context => {
         return (
@@ -580,6 +603,13 @@ export class NextGenNearestMapBuilder {
 
     if (options.miniCompassImgSrc !== undefined) {
       mapBuilder.with(GarminMapBuilder.miniCompass, options.miniCompassImgSrc);
+    }
+
+    if (options.includeWindVector && options.windDataProvider) {
+      mapBuilder.with(GarminMapBuilder.windVector,
+        options.windDataProvider,
+        options.useWindVectorUserSettings ? options.settingManager : undefined
+      );
     }
 
     // Top-left indicators

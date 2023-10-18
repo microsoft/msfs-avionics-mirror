@@ -1,11 +1,15 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { ConsumerSubject, EventBus, LNavEvents, MappedSubject, NavSourceType, VNavDataEvents, VNavEvents } from '@microsoft/msfs-sdk';
-import { LNavDataEvents } from '@microsoft/msfs-garminsdk';
-import { NavSource } from './NavSource';
-import { AbstractNavBase } from '../NavBase';
 
-/** Represents a GPS/FMS source, subscribes to the custom FMS LVars. */
-export class GpsSource<NameType extends string> extends AbstractNavBase implements NavSource<NameType> {
+import { ConsumerSubject, EventBus, LNavEvents, MappedSubject, NavSourceType, VNavDataEvents, VNavEvents } from '@microsoft/msfs-sdk';
+
+import { LNavDataEvents } from '../../navigation/LNavDataEvents';
+import { AbstractNavReferenceBase } from '../NavReferenceBase';
+import { NavReferenceSource } from './NavReferenceSource';
+
+/**
+ * A {@link NavReferenceSource} which derives its data from LNAV.
+ */
+export class GpsNavSource<NameType extends string> extends AbstractNavReferenceBase implements NavReferenceSource<NameType> {
   private readonly lnavIsTracking: ConsumerSubject<boolean>;
   private readonly lnavIdent: ConsumerSubject<string>;
   private readonly lnavBrgMag: ConsumerSubject<number>;
@@ -19,7 +23,7 @@ export class GpsSource<NameType extends string> extends AbstractNavBase implemen
   private readonly gpScale: ConsumerSubject<number>;
 
   /**
-   * Constructor.
+   * Creates a new instance of GpsNavSource.
    * @param bus The event bus.
    * @param name The name of this source.
    * @param index The index of this source.

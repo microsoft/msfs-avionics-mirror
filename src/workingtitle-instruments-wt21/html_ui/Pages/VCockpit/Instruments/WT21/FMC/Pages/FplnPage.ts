@@ -1,4 +1,4 @@
-import { ICAO, MappedSubject, Subject } from '@microsoft/msfs-sdk';
+import { ICAO, MappedSubject } from '@microsoft/msfs-sdk';
 
 import { FmcPrevNextEvent, FmcSelectKeysEvent } from '../FmcEvent';
 import { DisplayField } from '../Framework/Components/DisplayField';
@@ -18,7 +18,7 @@ export class FplnPage extends FmcPage {
 
   public readonly perfInitLink = PageLinkField.createLink(this, 'PERF INIT>', '/perf-init');
 
-  private store = new FplnPageStore();
+  private store = new FplnPageStore(this.eventBus);
   private controller = new FplnPageController(this.eventBus, this.fms, this.store, this, this.pageManager);
 
   // private readonly renderList = new FmcListUtility(this, this.store.legs, this.renderListRow, 5);
@@ -53,11 +53,10 @@ export class FplnPage extends FmcPage {
     clearScratchpadOnSelectedHandled: false,
   });
 
-  private readonly fltNoSubject = Subject.create<string | null>(null);
   private readonly fltNoField = new TextInputField(this, {
     formatter: new StringInputFormat({ nullValueString: '--------', maxLength: 8 }),
     deleteAllowed: true,
-  }).bind(this.fltNoSubject);
+  }).bind(this.store.flightNoSetting);
 
 
   private distanceField = new DisplayField(this, {

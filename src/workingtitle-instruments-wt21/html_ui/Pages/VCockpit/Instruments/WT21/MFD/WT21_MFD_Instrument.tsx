@@ -55,6 +55,8 @@ import { WT21ElectricalSetup } from '../Shared/Systems/WT21ElectricalSetup';
 import '../Shared/WT21_Common.css';
 import './WT21_MFD.css';
 import { WT21XmlAuralsConfig } from '../Shared/WT21XmlAuralsConfig';
+import { WT21FixInfoManager } from '../FMC/Systems/WT21FixInfoManager';
+import { WT21FixInfoConfig } from '../FMC/Systems/WT21FixInfoConfig';
 
 /**
  * The WT21 MFD Instrument
@@ -91,6 +93,7 @@ export class WT21_MFD_Instrument implements FsInstrument {
   private readonly fmcSimVarPublisher: FmcSimVarPublisher;
   private readonly minimumsPublisher: MinimumsSimVarPublisher;
   private readonly stallWarningPublisher: StallWarningPublisher;
+  private readonly fixInfoManager: WT21FixInfoManager;
 
   private readonly primaryPlanNominalLegIndexSub = ConsumerSubject.create(null, -1,);
 
@@ -244,6 +247,9 @@ export class WT21_MFD_Instrument implements FsInstrument {
     this.tcas = new WT21TCAS(this.bus, this.trafficInstrument);
     this.perfPlanRepository = new PerformancePlanRepository(this.planner, this.bus);
 
+    // FIXME Add route predictor when FlightPlanPredictor refactored to implement FlightPlanPredictionsProvider
+    this.fixInfoManager = new WT21FixInfoManager(this.bus, this.facLoader, WT21Fms.PRIMARY_ACT_PLAN_INDEX, this.planner, WT21FixInfoConfig /*, this.activeRoutePredictor*/);
+
     this.uprMenuViewService = new MfdUprMenuViewService();
     this.lwrMenuViewService = new MfdLwrMenuViewService();
     this.uprMenuViewService.otherMenuServices.push(this.lwrMenuViewService);
@@ -281,7 +287,10 @@ export class WT21_MFD_Instrument implements FsInstrument {
     FSComponent.render(<SystemsOverlayContainer bus={this.bus} eis={this.eisInstrument} />, document.getElementById('Electricity'));
     FSComponent.render(
       <NavIndicatorContext.Provider value={this.navIndicators}>
-        <MfdHsi ref={this.hsiRef} bus={this.bus} flightPlanner={this.planner} tcas={this.tcas} mfdIndex={this.instrument.instrumentIndex} />
+        <MfdHsi
+          ref={this.hsiRef} bus={this.bus} flightPlanner={this.planner} tcas={this.tcas} mfdIndex={this.instrument.instrumentIndex}
+          fixInfo={this.fixInfoManager} performancePlan={this.perfPlanRepository.getActivePlan()}
+        />
       </NavIndicatorContext.Provider>
       , document.getElementById('HSIMap')
     );

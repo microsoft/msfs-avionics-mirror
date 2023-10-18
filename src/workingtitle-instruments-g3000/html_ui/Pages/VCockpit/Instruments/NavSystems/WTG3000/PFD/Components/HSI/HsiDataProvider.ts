@@ -1,9 +1,13 @@
 import {
-  AdcEvents, AhrsEvents, APEvents, ConsumerSubject, EventBus, GeoPoint, GeoPointInterface, GeoPointSubject, GNSSEvents, LNavEvents, MappedSubject, Subject,
-  Subscribable, SubscribableMapFunctions, SubscribableUtils, Subscription
+  AdcEvents, AhrsEvents, APEvents, ConsumerSubject, EventBus, GeoPoint, GeoPointInterface, GeoPointSubject, GNSSEvents,
+  LNavEvents, MappedSubject, Subject, Subscribable, SubscribableMapFunctions, SubscribableUtils, Subscription
 } from '@microsoft/msfs-sdk';
 
-import { AhrsSystemEvents, DefaultObsSuspDataProvider, FmsPositionMode, FmsPositionSystemEvents, LNavDataEvents, ObsSuspModes } from '@microsoft/msfs-garminsdk';
+import {
+  AhrsSystemEvents, DefaultObsSuspDataProvider, FmsPositionMode, FmsPositionSystemEvents, HeadingSyncEvents,
+  LNavDataEvents, ObsSuspModes
+} from '@microsoft/msfs-garminsdk';
+
 import { G3000NavIndicator } from '@microsoft/msfs-wtg3000-common';
 
 /**
@@ -39,6 +43,9 @@ export interface HsiDataProvider {
 
   /** The current selected magnetic heading, in degrees. */
   readonly selectedHeadingMag: Subscribable<number>;
+
+  /** Whether HDG sync mode is active. */
+  readonly isHdgSyncModeActive: Subscribable<boolean>;
 
   /** The current LNAV cross-track error, in nautical miles, or `null` if LNAV is not tracking a path. */
   readonly lnavXtk: Subscribable<number | null>;
@@ -84,6 +91,10 @@ export class DefaultHsiDataProvider implements HsiDataProvider {
   private readonly _selectedHeadingMag = ConsumerSubject.create(null, 0);
   /** @inheritdoc */
   public readonly selectedHeadingMag = this._selectedHeadingMag as Subscribable<number>;
+
+  private readonly _isHdgSyncModeActive = ConsumerSubject.create(null, false);
+  /** @inheritdoc */
+  public readonly isHdgSyncModeActive = this._isHdgSyncModeActive as Subscribable<boolean>;
 
   private readonly isLNavTracking = ConsumerSubject.create(null, false);
   private readonly lnavXtkSource = ConsumerSubject.create(null, 0);
@@ -164,7 +175,10 @@ export class DefaultHsiDataProvider implements HsiDataProvider {
     this.isInit = true;
     this.isPaused = paused;
 
-    const sub = this.bus.getSubscriber<AhrsEvents & AhrsSystemEvents & FmsPositionSystemEvents & AdcEvents & GNSSEvents & APEvents & LNavEvents & LNavDataEvents>();
+    const sub = this.bus.getSubscriber<
+      AhrsEvents & AhrsSystemEvents & FmsPositionSystemEvents & AdcEvents & GNSSEvents & APEvents & LNavEvents
+      & LNavDataEvents & HeadingSyncEvents
+    >();
 
     this.ahrsIndexSub = this.ahrsIndex.sub(index => {
       this._headingMag.setConsumer(sub.on(`ahrs_hdg_deg_${index}`));
@@ -201,6 +215,8 @@ export class DefaultHsiDataProvider implements HsiDataProvider {
     this._magVar.setConsumer(sub.on('magvar'));
 
     this._selectedHeadingMag.setConsumer(sub.on('ap_heading_selected'));
+
+    this._isHdgSyncModeActive.setConsumer(sub.on('hdg_sync_mode_active'));
 
     this.isLNavTracking.setConsumer(sub.on('lnav_is_tracking'));
     this.lnavXtkSource.setConsumer(sub.on('lnavdata_xtk'));
@@ -241,6 +257,7 @@ export class DefaultHsiDataProvider implements HsiDataProvider {
     this._magVar.resume();
 
     this._selectedHeadingMag.resume();
+    this._isHdgSyncModeActive.resume();
 
     this.isLNavTracking.resume();
     this.lnavXtkSource.resume();
@@ -274,6 +291,7 @@ export class DefaultHsiDataProvider implements HsiDataProvider {
     this._magVar.pause();
 
     this._selectedHeadingMag.pause();
+    this._isHdgSyncModeActive.pause();
 
     this.isLNavTracking.pause();
     this.lnavXtkSource.pause();
@@ -303,6 +321,7 @@ export class DefaultHsiDataProvider implements HsiDataProvider {
     this._magVar.destroy();
 
     this._selectedHeadingMag.destroy();
+    this._isHdgSyncModeActive.destroy();
 
     this.isLNavTracking.destroy();
     this.lnavXtkSource.destroy();

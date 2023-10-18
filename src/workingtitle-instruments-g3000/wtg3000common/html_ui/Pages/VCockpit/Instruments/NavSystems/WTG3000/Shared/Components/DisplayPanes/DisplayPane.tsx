@@ -54,7 +54,7 @@ export interface DisplayPaneProps extends ComponentProps {
   /** The size of the pane's content area in half mode, as `[width, height]` in pixels. */
   halfSize: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 
-  /** CSS class(es) to apply to the root element of the container. */
+  /** CSS class(es) to apply to the root element of the pane. */
   class?: string | SubscribableSet<string>;
 }
 
@@ -382,7 +382,7 @@ export class DisplayPane extends DisplayComponent<DisplayPaneProps> {
   /** @inheritdoc */
   public render(): VNode {
     if (typeof this.props.class === 'object') {
-      this.cssClassSub = FSComponent.bindCssClassSet(this.rootCssClass, this.props.class, ['display-pane']);
+      this.cssClassSub = FSComponent.bindCssClassSet(this.rootCssClass, this.props.class, DisplayPane.RESERVED_CLASSES);
     } else {
       const classesToAdd = FSComponent.parseCssClassesFromString(this.props.class ?? '').filter(val => !DisplayPane.RESERVED_CLASSES.includes(val));
 

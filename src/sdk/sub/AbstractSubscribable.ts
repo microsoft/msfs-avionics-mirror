@@ -78,6 +78,7 @@ export abstract class AbstractSubscribable<T> implements Subscribable<T> {
    * Notifies subscriptions that this subscribable's value has changed.
    */
   protected notify(): void {
+    const canCleanUpSubs = this.notifyDepth === 0;
     let needCleanUpSubs = false;
     this.notifyDepth++;
 
@@ -86,12 +87,25 @@ export abstract class AbstractSubscribable<T> implements Subscribable<T> {
         if (this.singletonSub.isAlive && !this.singletonSub.isPaused) {
           this.notifySubscription(this.singletonSub);
         }
-
-        needCleanUpSubs ||= !this.singletonSub.isAlive;
       } catch (error) {
         console.error(`AbstractSubscribable: error in handler: ${error}`);
         if (error instanceof Error) {
           console.error(error.stack);
+        }
+      }
+
+      if (canCleanUpSubs) {
+        // If subscriptions were added during the notification, then singletonSub would be deleted and replaced with
+        // the subs array.
+        if (this.singletonSub) {
+          needCleanUpSubs = !this.singletonSub.isAlive;
+        } else if (this.subs) {
+          for (let i = 0; i < this.subs.length; i++) {
+            if (!this.subs[i].isAlive) {
+              needCleanUpSubs = true;
+              break;
+            }
+          }
         }
       }
     } else if (this.subs) {
@@ -111,12 +125,23 @@ export abstract class AbstractSubscribable<T> implements Subscribable<T> {
           }
         }
       }
+
+      // If subscriptions were added during the notification and a cleanup operation is not already pending, then we
+      // need to check if any of the new subscriptions are already dead and if so, pend a cleanup operation.
+      if (canCleanUpSubs && !needCleanUpSubs) {
+        for (let i = subLen; i < this.subs.length; i++) {
+          if (!this.subs[i].isAlive) {
+            needCleanUpSubs = true;
+            break;
+          }
+        }
+      }
     }
 
     this.notifyDepth--;
 
-    if (needCleanUpSubs && this.notifyDepth === 0) {
-      if (this.singletonSub && !this.singletonSub.isAlive) {
+    if (needCleanUpSubs) {
+      if (this.singletonSub) {
         delete this.singletonSub;
       } else if (this.subs) {
         this.subs = this.subs.filter(sub => sub.isAlive);

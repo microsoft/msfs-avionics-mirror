@@ -17,7 +17,7 @@ export interface DisplayPaneContainerProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
 
-  /** The DisplayPaneViewFactory instance to use. */
+  /** The factory to use to create display pane views. */
   displayPaneViewFactory: DisplayPaneViewFactory;
 
   /** The index of the left pane. */

@@ -68,7 +68,7 @@ export class FrequencyInput extends DisplayComponent<FrequencyInputProps> implem
       minDigitFactor: 1e6
     },
     [RadioType.Adf]: {
-      min: 200e3,
+      min: 190e3,
       max: 1800e3,
       increment: 1e3,
       maxDigitFactor: 1e6,

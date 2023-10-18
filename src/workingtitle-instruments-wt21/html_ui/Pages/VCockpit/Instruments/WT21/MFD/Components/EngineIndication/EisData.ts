@@ -139,8 +139,8 @@ export interface EisElectricsData {
   /** A current value for the generator/alternator 2 bus */
   elec_bus_genalt_2_a: number,
 
-  /** The voltage value for the battery */
-  elec_bat_v_1: number;
+  /** The voltage value for the battery bus */
+  elec_bus_main_v_3: number;
 
   /** The current value for the battery */
   elec_bat_a_1: number;
@@ -219,7 +219,7 @@ export class EisInstrument {
     elec_bus_genalt_2_v: 0,
     elec_bus_genalt_1_a: 0,
     elec_bus_genalt_2_a: 0,
-    elec_bat_v_1: 0,
+    elec_bus_main_v_3: 0,
     elec_bat_a_1: 0,
   });
 
@@ -274,7 +274,7 @@ export class EisInstrument {
     }
 
     for (const event in this.elecData.get()) {
-      this.elecSub.on(event as keyof ElectricalEvents).withPrecision(0).handle((value: number | boolean): void => {
+      this.elecSub.on(event as keyof ElectricalEvents).withPrecision(1).handle((value: number | boolean): void => {
         // right now we only publish the numerical values here
         this.elecData.set(event as keyof EisElectricsData, value as number);
       });

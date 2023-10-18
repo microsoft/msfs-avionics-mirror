@@ -1,4 +1,5 @@
 import { DefaultConfigFactory, DisplayPaneControlGtcIndex, GtcControlSetup, GtcOrientation, PfdIndex } from '@microsoft/msfs-wtg3000-common';
+import { GtcControlMode } from '../GtcService/GtcService';
 
 /**
  * A configuration object which defines options for the G3000 GTC.
@@ -11,6 +12,9 @@ export class GtcConfig {
 
   /** The control setup defining which control modes the GTC supports. */
   public readonly controlSetup: GtcControlSetup;
+
+  /** The default control mode of the GTC. */
+  public readonly defaultControlMode: GtcControlMode;
 
   /** The index of the PFD controlled by the GTC. */
   public readonly pfdControlIndex: PfdIndex;
@@ -28,7 +32,7 @@ export class GtcConfig {
    * instrument.
    */
   public constructor(xmlConfig: Document, instrumentConfig: Element | undefined) {
-    [this.orientation, this.controlSetup, this.pfdControlIndex, this.paneControlIndex] = this.parseGeneralOptions(instrumentConfig);
+    [this.orientation, this.controlSetup, this.defaultControlMode, this.pfdControlIndex, this.paneControlIndex] = this.parseGeneralOptions(instrumentConfig);
     this.iauIndex = this.parseIauIndex(instrumentConfig);
   }
 
@@ -36,10 +40,11 @@ export class GtcConfig {
    * Parses general configuration options from a configuration document.
    * @param instrumentConfig The root element of the configuration document's section pertaining to this config's
    * instrument.
-   * @returns General configuration options, as defined by the configuration document for this config's instrument.
+   * @returns General configuration options, as defined by the configuration document for this config's instrument, as
+   * `[orientation, control_setup, default_control_mode, pfd_control_index, display_pane_control_index]`.
    * @throws Error if `instrumentConfig` is undefined or if any configuration options are missing or malformed.
    */
-  private parseGeneralOptions(instrumentConfig: Element | undefined): [GtcOrientation, GtcControlSetup, PfdIndex, DisplayPaneControlGtcIndex] {
+  private parseGeneralOptions(instrumentConfig: Element | undefined): [GtcOrientation, GtcControlSetup, GtcControlMode, PfdIndex, DisplayPaneControlGtcIndex] {
     const options = instrumentConfig?.querySelector(':scope>GtcConfig');
 
     if (options === null || options === undefined) {
@@ -57,6 +62,8 @@ export class GtcConfig {
 
     let controlAllowed: boolean;
     let canControlPfd = false;
+    let canControlMfd = false;
+    let canControlNavCom = false;
     let canControlPanes = false;
 
     const controlSetup = options.getAttribute('control-setup')?.toLowerCase();
@@ -64,11 +71,14 @@ export class GtcConfig {
       case 'all':
         controlAllowed = orientation === 'horizontal';
         canControlPfd = true;
+        canControlMfd = true;
+        canControlNavCom = true;
         canControlPanes = true;
         break;
       case 'pfd-navcom':
         controlAllowed = orientation === 'horizontal';
         canControlPfd = true;
+        canControlNavCom = true;
         break;
       case 'pfd':
         controlAllowed = orientation === 'vertical';
@@ -76,6 +86,7 @@ export class GtcConfig {
         break;
       case 'mfd':
         controlAllowed = orientation === 'vertical';
+        canControlMfd = true;
         canControlPanes = true;
         break;
       default:
@@ -89,6 +100,52 @@ export class GtcConfig {
     } else {
       if (!controlAllowed) {
         throw new Error(`Vertical GTCs do not support control setup of '${controlSetup}'. Expected 'pfd' or 'mfd'.`);
+      }
+    }
+
+    let defaultControlMode: GtcControlMode | undefined;
+    let isDefaultControlModeIncompatible = false;
+
+    const defaultControlModeOpt = options.getAttribute('default-control-mode')?.toLowerCase();
+    switch (defaultControlModeOpt) {
+      case 'pfd':
+        if (canControlPfd) {
+          defaultControlMode = 'PFD';
+        } else {
+          isDefaultControlModeIncompatible = true;
+        }
+        break;
+      case 'mfd':
+        if (canControlMfd) {
+          defaultControlMode = 'MFD';
+        } else {
+          isDefaultControlModeIncompatible = true;
+        }
+        break;
+      case 'navcom':
+        if (canControlNavCom) {
+          defaultControlMode = 'NAV_COM';
+        } else {
+          isDefaultControlModeIncompatible = true;
+        }
+        break;
+      case undefined:
+        break;
+      default:
+        console.warn('Invalid GtcConfig definition: unrecognized default control mode (must be \'pfd\', \'mfd\', or \'navcom\').');
+    }
+
+    if (defaultControlMode === undefined) {
+      switch (controlSetup) {
+        case 'mfd':
+          defaultControlMode = 'MFD';
+          break;
+        default:
+          defaultControlMode = 'PFD';
+      }
+
+      if (isDefaultControlModeIncompatible) {
+        console.warn(`Invalid GtcConfig definition: default control mode '${defaultControlModeOpt}' is incompatible with '${controlSetup}' control setup. Defaulting to '${defaultControlMode}'.`);
       }
     }
 
@@ -126,7 +183,7 @@ export class GtcConfig {
       paneControlIndex = DisplayPaneControlGtcIndex.LeftGtc;
     }
 
-    return [orientation, controlSetup, pfdControlIndex, paneControlIndex];
+    return [orientation, controlSetup, defaultControlMode, pfdControlIndex, paneControlIndex];
   }
 
   /**
@@ -141,7 +198,7 @@ export class GtcConfig {
       if (iauElement !== null) {
         const iauIndex = Number(iauElement.textContent ?? undefined);
         if (isNaN(iauIndex) || iauIndex < 1 || Math.trunc(iauIndex) !== iauIndex) {
-          console.warn('Invalid MfdConfig definition: invalid IAU index (must be a positive integer). Defaulting to 1.');
+          console.warn('Invalid GtcConfig definition: unrecognized IAU index (must be a positive integer). Defaulting to 1.');
         } else {
           return iauIndex;
         }

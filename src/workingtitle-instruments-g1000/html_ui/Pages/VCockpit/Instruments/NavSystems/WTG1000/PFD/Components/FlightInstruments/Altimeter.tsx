@@ -1,8 +1,11 @@
 import {
-  AdcEvents, AltitudeSelectEvents, APEvents, ComponentProps, ComputedSubject, ConsumerSubject, ControlEvents, DisplayComponent, EventBus, FSComponent, HEvent,
-  MappedSubject, MappedSubscribable, MathUtils, MinimumsEvents, MinimumsMode, NodeReference, NumberFormatter, NumberUnitSubject, ObjectSubject, SubEvent,
-  Subject, Subscribable, Subscription, UnitType, VNavEvents, VNavState, VNode
+  AdcEvents, AltitudeConstraintDetails, AltitudeRestrictionType, AltitudeSelectEvents, APEvents, ApproachGuidanceMode, ComponentProps, ComputedSubject,
+  ConsumerSubject, ConsumerValue, ControlEvents, DisplayComponent, EventBus, FSComponent, GNSSEvents, HEvent, MappedSubject, MappedSubscribable, MathUtils,
+  MinimumsEvents, MinimumsMode, NavEvents, NavSourceType, NodeReference, NumberFormatter, NumberUnitSubject, ObjectSubject, SubEvent, Subject, Subscribable,
+  Subscription, UnitType, VNavEvents, VNavPathMode, VNavState, VNode
 } from '@microsoft/msfs-sdk';
+
+import { GarminVNavTrackingPhase, VNavDataEvents } from '@microsoft/msfs-garminsdk';
 
 import { G1000ControlEvents, G1000ControlPublisher } from '../../../Shared/G1000Events';
 import { ADCSystemEvents } from '../../../Shared/Systems/ADCAvionicsSystem';
@@ -85,8 +88,16 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     settingIn: 0
   };
 
+  private readonly vnavPathMode = ConsumerValue.create(this.props.bus.getSubscriber<VNavEvents>().on('vnav_path_mode'), VNavPathMode.None);
+  private readonly approachGuidanceMode = ConsumerValue.create(this.props.bus.getSubscriber<VNavEvents>().on('gp_approach_mode'), ApproachGuidanceMode.None);
+  private readonly activeNavSource = ConsumerValue.create(this.props.bus.getSubscriber<NavEvents>().on('cdi_select'), { index: 1, type: NavSourceType.Gps });
+  private readonly vnavTrackingPhase = ConsumerValue.create(this.props.bus.getSubscriber<VNavDataEvents>().on('vnav_tracking_phase'), GarminVNavTrackingPhase.None);
+  private readonly vnavTodIndex = ConsumerValue.create(this.props.bus.getSubscriber<VNavEvents>().on('vnav_tod_global_leg_index'), -1);
+  private readonly vnavTodDistance = ConsumerValue.create(this.props.bus.getSubscriber<VNavEvents>().on('vnav_tod_distance'), -1);
+  private readonly vnavBodDistance = ConsumerValue.create(this.props.bus.getSubscriber<VNavEvents>().on('vnav_bod_distance'), -1);
+  private readonly groundSpeed = ConsumerValue.create(this.props.bus.getSubscriber<GNSSEvents>().on('ground_speed').atFrequency(1), 0);
   private vnavState = VNavState.Enabled_Inactive;
-  private constraintAltitude = 0;
+  private vnavConstraintDetails: AltitudeConstraintDetails = { type: AltitudeRestrictionType.Unused, altitude: 0 };
 
   private storedBaroIn: number | undefined = undefined;
   private currentDrawnAlt = 0;
@@ -175,8 +186,8 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     sub.on('baro_set')
       .handle(() => this.handleBaroSetEvent());
 
-    sub.on('vnav_constraint_altitude').whenChanged().handle(alt => {
-      this.constraintAltitude = alt;
+    sub.on('vnav_altitude_constraint_details').whenChanged().handle(alt => {
+      this.vnavConstraintDetails = alt;
       this.manageVnavConstraintAltitudeDisplay();
     });
     sub.on('vnav_state').whenChanged().handle(state => {
@@ -261,12 +272,38 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
    * Handle when the vnav constraint changes or the vnav state changes.
    */
   private manageVnavConstraintAltitudeDisplay(): void {
-    if (this.constraintAltitude > 0 && this.vnavState !== VNavState.Disabled) {
-      this.vnavTargetAltSubject.set(Math.round(this.constraintAltitude));
-      this.vnavTargetAltRef.instance.classList.remove('hidden');
-    } else {
-      this.vnavTargetAltRef.instance.classList.add('hidden');
+    let showTargetAltitude = false;
+    if (this.vnavState !== VNavState.Disabled) {
+      if (this.vnavPathMode.get() === VNavPathMode.PathActive) {
+        showTargetAltitude = true;
+      } else if (
+        this.approachGuidanceMode.get() !== ApproachGuidanceMode.GPActive
+        && this.activeNavSource.get().type === NavSourceType.Gps
+      ) {
+        if (this.vnavTrackingPhase.get() === GarminVNavTrackingPhase.Climb) {
+          showTargetAltitude = this.vnavConstraintDetails.type !== AltitudeRestrictionType.Unused;
+        } else {
+          const todDistanceNm = UnitType.METER.convertTo(this.vnavTodDistance.get(), UnitType.NMILE);
+          const PATH_TRACKING_LOOKAHEAD = 1 / 60;
+          if (
+            // VNAV target altitude is valid
+            this.vnavConstraintDetails.type !== AltitudeRestrictionType.Unused
+            // Not yet passed BOD
+            && this.vnavBodDistance.get() > 0
+            // TOD exists
+            && this.vnavTodIndex.get() >= 0
+            // Within one minute of TOD
+            && todDistanceNm / this.groundSpeed.get() < PATH_TRACKING_LOOKAHEAD
+            // Above 250 feet below the VNAV target altitude
+            && this.indicatedAltitudeSub.get().asUnit(UnitType.FOOT) >= this.vnavConstraintDetails.altitude - 250
+          ) {
+            showTargetAltitude = true;
+          }
+        }
+      }
+      this.vnavTargetAltSubject.set(Math.round(this.vnavConstraintDetails.altitude));
     }
+    this.vnavTargetAltRef.instance.classList.toggle('hidden', showTargetAltitude === false);
   }
 
   /**

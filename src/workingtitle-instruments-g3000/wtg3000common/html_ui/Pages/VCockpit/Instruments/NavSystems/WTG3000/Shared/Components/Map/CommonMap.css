@@ -15,6 +15,12 @@
   top: 24px;
 }
 
+.common-map .map-windvector {
+  position: absolute;
+  right: 98px;
+  top: 0px;
+}
+
 .common-map .map-pointerinfolayer-box {
   position: absolute;
   left: 90px;

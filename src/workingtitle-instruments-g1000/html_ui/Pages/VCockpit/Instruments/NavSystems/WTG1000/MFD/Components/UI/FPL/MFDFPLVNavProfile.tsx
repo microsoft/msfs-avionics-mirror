@@ -32,7 +32,7 @@ interface MFDFPLVNavProfileProps extends G1000UiControlProps {
  */
 export class MFDFPLVNavProfile extends G1000UiControl<MFDFPLVNavProfileProps> {
   private readonly waypointSubject = ComputedSubject.create<string | undefined, string>(undefined, name => {
-    if (name === undefined || this.vnavState.get() === VNavState.Disabled) {
+    if (name === undefined) {
       return '_ _ _ _ _ _ _ _ _ _ _ _';
     } else {
       return name;
@@ -109,7 +109,7 @@ export class MFDFPLVNavProfile extends G1000UiControl<MFDFPLVNavProfileProps> {
 
     this.vnavDataProvider.fpa.pipe(this.fpa);
     this.vnavDataProvider.verticalSpeedTarget.pipe(this.targetVs, val => val ?? NaN);
-    this.vnavDataProvider.vsRequired.pipe(this.requiredVs, val => this.detailsSubject.get() ? val ?? NaN : NaN);
+    this.vnavDataProvider.vsRequired.pipe(this.requiredVs, val => val ?? NaN);
     this.vnavDataProvider.timeToTod.pipe(this.timeToTod, (val: number | null): number => val ?? NaN);
     this.vnavDataProvider.timeToBod.pipe(this.timeToBod, (val: number | null): number => val ?? NaN);
     this.vnavDataProvider.distanceToTod.pipe(this.distanceToTod, val => UnitType.NMILE.convertTo(val ?? NaN, UnitType.METER));
@@ -123,13 +123,10 @@ export class MFDFPLVNavProfile extends G1000UiControl<MFDFPLVNavProfileProps> {
         }
       });
 
-    // TODO Move this map into the pipe.
-    this.vnavDataProvider.activeConstraintLeg.map((def: LegDefinition | null): string | undefined => {
-      return this.vnavState.get() !== VNavState.Disabled ? def?.name ?? undefined : undefined;
-    }).pipe(this.waypointSubject);
+    this.vnavDataProvider.activeConstraintLeg.pipe(this.waypointSubject, leg => leg?.name);
 
     this.vnavDataProvider.verticalDeviation.pipe(this.verticalDev, (feet: number | null): number => {
-      if (!this.detailsSubject.get() || feet === null || Math.abs(feet) > 10000) {
+      if (feet === null || Math.abs(feet) > 10000) {
         return NaN;
       } else {
         return feet;

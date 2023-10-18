@@ -42,21 +42,6 @@ export class WT21APConfig implements APConfig {
   }
 
   /** @inheritdoc */
-  public createHeadingHoldDirector(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
-  createTrackDirector(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
-  createTrackHoldDirector(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
   public createRollDirector(apValues: APValues): APRollDirector {
     return new APRollDirector(apValues);
   }
@@ -87,12 +72,9 @@ export class WT21APConfig implements APConfig {
 
   /** @inheritdoc */
   public createBcDirector(apValues: APValues): APBackCourseDirector {
-    return new APBackCourseDirector(this.bus, apValues, { lateralInterceptCurve: this.navInterceptCurve.bind(this) });
-  }
-
-  /** @inheritDoc */
-  public createRolloutDirector(): undefined {
-    return undefined;
+    return new APBackCourseDirector(this.bus, apValues, {
+      lateralInterceptCurve: (distanceToSource: number, deflection: number, xtk: number, tas: number) => this.localizerInterceptCurve(deflection, xtk, tas)
+    });
   }
 
   /** @inheritdoc */
@@ -103,11 +85,6 @@ export class WT21APConfig implements APConfig {
   /** @inheritdoc */
   public createVsDirector(apValues: APValues): APVSDirector {
     return new APVSDirector(apValues);
-  }
-
-  /** @inheritdoc */
-  public createFpaDirector(): undefined {
-    return undefined;
   }
 
   /** @inheritdoc */
@@ -159,11 +136,6 @@ export class WT21APConfig implements APConfig {
   }
 
   /** @inheritdoc */
-  public createFlareDirector(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public createNavToNavManager(apValues: APValues): WT21NavToNavManager {
     return new WT21NavToNavManager(this.bus, apValues, this.messageService);
@@ -194,11 +166,6 @@ export class WT21APConfig implements APConfig {
   /** @inheritdoc */
   public createGaLateralDirector(apValues: APValues): PlaneDirector | undefined {
     return new APHdgDirector(this.bus, apValues, { isToGaMode: true });
-  }
-
-  /** @inheritdoc */
-  public createFmsLocLateralDirector(): undefined {
-    return undefined;
   }
 
 
@@ -294,7 +261,12 @@ export class WT21APConfig implements APConfig {
    * @returns The calculated intercept angle, in degrees.
    */
   private calculateTurnBasedInterceptAngle(turnRadius: number, xtk: number): number {
-    return UnitType.RADIAN.convertTo(Math.acos(NavMath.clamp((turnRadius - Math.abs(xtk)) / turnRadius, -1, 1)), UnitType.DEGREE) / 2;
+    // The following formula is derived by solving for the intercept angle in Euclidean rather than spherical space.
+    // The error from this simplification is negligible when turn radius and cross-track are small (less than 1% of
+    // earth radius, or ~63km).
+    // The Euclidean solution is chosen over the spherical one: asin(sin(xtk) / sqrt(1 - (1 - sin(xtk) * tan(radius))^2))
+    // for performance reasons.
+    return Math.asin(Math.min(Math.sqrt(Math.abs(xtk) / (2 * turnRadius)), 1)) * Avionics.Utils.RAD2DEG;
   }
 
   /**

@@ -18,6 +18,7 @@ export class ObjectSubject<T extends Record<string, any>> implements MutableSubs
   public readonly isSubscribable = true;
   public readonly isMutableSubscribable = true;
 
+  private singletonSub?: HandlerSubscription<ObjectSubjectHandler<T>>;
   private subs: HandlerSubscription<ObjectSubjectHandler<T>>[] = [];
   private notifyDepth = 0;
 
@@ -53,7 +54,8 @@ export class ObjectSubject<T extends Record<string, any>> implements MutableSubs
   /** @inheritdoc */
   public sub(handler: ObjectSubjectHandler<T>, initialNotify = false, paused = false): Subscription {
     const sub = new HandlerSubscription<ObjectSubjectHandler<T>>(handler, this.initialNotifyFunc, this.onSubDestroyedFunc);
-    this.subs.push(sub);
+
+    this.addSubscription(sub);
 
     if (paused) {
       sub.pause();
@@ -64,9 +66,31 @@ export class ObjectSubject<T extends Record<string, any>> implements MutableSubs
     return sub;
   }
 
+  /**
+   * Adds a subscription to this subscribable.
+   * @param sub The subscription to add.
+   */
+  private addSubscription(sub: HandlerSubscription<ObjectSubjectHandler<T>>): void {
+    if (this.subs) {
+      this.subs.push(sub);
+    } else if (this.singletonSub) {
+      this.subs = [this.singletonSub, sub];
+      delete this.singletonSub;
+    } else {
+      this.singletonSub = sub;
+    }
+  }
+
   /** @inheritdoc */
   public unsub(handler: ObjectSubjectHandler<T>): void {
-    const toDestroy = this.subs.find(sub => sub.handler === handler);
+    let toDestroy: HandlerSubscription<ObjectSubjectHandler<T>> | undefined = undefined;
+
+    if (this.singletonSub && this.singletonSub.handler === handler) {
+      toDestroy = this.singletonSub;
+    } else if (this.subs) {
+      toDestroy = this.subs.find(sub => sub.handler === handler);
+    }
+
     toDestroy?.destroy();
   }
 
@@ -105,30 +129,74 @@ export class ObjectSubject<T extends Record<string, any>> implements MutableSubs
    * @param oldValue The old value of the property that changed.
    */
   private notify(key: keyof T, oldValue: T[keyof T]): void {
+    const canCleanUpSubs = this.notifyDepth === 0;
     let needCleanUpSubs = false;
     this.notifyDepth++;
 
-    const subLen = this.subs.length;
-    for (let i = 0; i < subLen; i++) {
+    if (this.singletonSub) {
       try {
-        const sub = this.subs[i];
-        if (sub.isAlive && !sub.isPaused) {
-          sub.handler(this.obj, key, this.obj[key], oldValue);
+        if (this.singletonSub.isAlive && !this.singletonSub.isPaused) {
+          this.singletonSub.handler(this.obj, key, this.obj[key], oldValue);
         }
-
-        needCleanUpSubs ||= !sub.isAlive;
       } catch (error) {
         console.error(`ObjectSubject: error in handler: ${error}`);
         if (error instanceof Error) {
           console.error(error.stack);
         }
       }
+
+      if (canCleanUpSubs) {
+        // If subscriptions were added during the notification, then singletonSub would be deleted and replaced with
+        // the subs array.
+        if (this.singletonSub) {
+          needCleanUpSubs = !this.singletonSub.isAlive;
+        } else if (this.subs) {
+          for (let i = 0; i < this.subs.length; i++) {
+            if (!this.subs[i].isAlive) {
+              needCleanUpSubs = true;
+              break;
+            }
+          }
+        }
+      }
+    } else if (this.subs) {
+      const subLen = this.subs.length;
+      for (let i = 0; i < subLen; i++) {
+        try {
+          const sub = this.subs[i];
+          if (sub.isAlive && !sub.isPaused) {
+            sub.handler(this.obj, key, this.obj[key], oldValue);
+          }
+
+          needCleanUpSubs ||= canCleanUpSubs && !sub.isAlive;
+        } catch (error) {
+          console.error(`ObjectSubject: error in handler: ${error}`);
+          if (error instanceof Error) {
+            console.error(error.stack);
+          }
+        }
+      }
+
+      // If subscriptions were added during the notification and a cleanup operation is not already pending, then we
+      // need to check if any of the new subscriptions are already dead and if so, pend a cleanup operation.
+      if (canCleanUpSubs && !needCleanUpSubs) {
+        for (let i = subLen; i < this.subs.length; i++) {
+          if (!this.subs[i].isAlive) {
+            needCleanUpSubs = true;
+            break;
+          }
+        }
+      }
     }
 
     this.notifyDepth--;
 
-    if (needCleanUpSubs && this.notifyDepth === 0) {
-      this.subs = this.subs.filter(sub => sub.isAlive);
+    if (needCleanUpSubs) {
+      if (this.singletonSub) {
+        delete this.singletonSub;
+      } else if (this.subs) {
+        this.subs = this.subs.filter(sub => sub.isAlive);
+      }
     }
   }
 
@@ -151,7 +219,14 @@ export class ObjectSubject<T extends Record<string, any>> implements MutableSubs
     // If we are not in the middle of a notify operation, remove the subscription.
     // Otherwise, do nothing and let the post-notify clean-up code handle it.
     if (this.notifyDepth === 0) {
-      this.subs.splice(this.subs.indexOf(sub), 1);
+      if (this.singletonSub === sub) {
+        delete this.singletonSub;
+      } else if (this.subs) {
+        const index = this.subs.indexOf(sub);
+        if (index >= 0) {
+          this.subs.splice(index, 1);
+        }
+      }
     }
   }
 

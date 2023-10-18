@@ -1,12 +1,13 @@
 import {
-  APEvents, ArrayUtils, BasicNavAngleUnit, BitFlags, ComponentProps, Consumer, DisplayComponent, EventBus, FSComponent, MapCanvasLayer,
+  ArrayUtils, BasicNavAngleUnit, BitFlags, ComponentProps, DisplayComponent, EventBus, FSComponent, MapCanvasLayer,
   MapFollowAirplaneModule, MapIndexedRangeModule, MapLayer, MapLayerProps, MapOwnAirplanePropsModule, MappedSubject, MapProjection,
-  MapProjectionChangeType, MapSyncedCanvasLayer, MapSystemKeys, MathUtils, NavMath, NumberUnitInterface, ReadonlyFloat64Array, Subject,
-  Subscribable, Unit, UnitFamily, UnitType, Vec2Math, Vec2Subject, VNode
+  MapProjectionChangeType, MapSyncedCanvasLayer, MapSystemKeys, MathUtils, NavMath, NumberUnitInterface, ReadonlyFloat64Array, ReadonlySubEvent, Subject,
+  Subscribable, Subscription, Unit, UnitFamily, UnitType, Vec2Math, Vec2Subject, VNode
 } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapRangeDisplay } from '../MapRangeDisplay';
+import { MapGarminAutopilotPropsModule } from '../modules/MapGarminAutopilotPropsModule';
 import { MapOrientation, MapOrientationModule } from '../modules/MapOrientationModule';
 import { MapRangeCompassModule } from '../modules/MapRangeCompassModule';
 import { MapUnitsModule } from '../modules/MapUnitsModule';
@@ -20,6 +21,9 @@ export interface MapRangeCompassLayerModules {
 
   /** Own airplane properties module. */
   [MapSystemKeys.OwnAirplaneProps]: MapOwnAirplanePropsModule;
+
+  /** Autopilot properties module. */
+  [MapSystemKeys.AutopilotProps]?: MapGarminAutopilotPropsModule;
 
   /** Follow airplane module. */
   [MapSystemKeys.FollowAirplane]: MapFollowAirplaneModule;
@@ -55,8 +59,19 @@ export interface MapRangeCompassLayerProps extends MapLayerProps<MapRangeCompass
    */
   renderLabel?: MapRangeCompassLabelRenderer;
 
-  /** Whether to show the selected heading bug. */
+  /**
+   * Whether to show the selected heading bug. Showing the selected heading bug requires a
+   * {@link MapGarminAutopilotPropsModule} to be added to the map under the key {@link MapSystemKeys.AutopilotProps}.
+   */
   showHeadingBug: boolean;
+
+  /**
+   * Whether to support autopilot selected heading sync behavior. If `true`, then
+   * {@link MapGarminAutopilotPropsModule.manualHeadingSelect} will be used to determine when manual adjustments to
+   * selected heading are made. If `false`, then any change to selected heading is considered a manual adjustment.
+   * Ignored if `showHeadingBug` is `false`. Defaults to `false`.
+   */
+  supportHeadingSync?: boolean;
 
   /** The width, in pixels, of the compass arc stroke. Defaults to 2 pixels. */
   arcStrokeWidth?: number;
@@ -200,7 +215,7 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
   private readonly unitsModule = this.props.model.getModule(GarminMapKeys.Units);
   private readonly rangeModule = this.props.model.getModule(GarminMapKeys.Range);
   private readonly orientationModule = this.props.model.getModule(GarminMapKeys.Orientation);
-  private readonly rangeRingModule = this.props.model.getModule(GarminMapKeys.RangeCompass);
+  private readonly rangeCompassModule = this.props.model.getModule(GarminMapKeys.RangeCompass);
 
   private readonly isFollowingAirplane = this.props.model.getModule(MapSystemKeys.FollowAirplane).isFollowing;
 
@@ -231,6 +246,18 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
     if (isVisible) {
       this.needRechooseReferenceMarker = true;
       this.updateParameters();
+    }
+
+    // We need to set the heading indicator's visibility to false when we hide the entire compass so that when we
+    // show the compass again, the heading indicator runs the correct update code for changing from a hidden to a
+    // visible state.
+    const headingIndicator = this.headingIndicatorRef.getOrDefault();
+    if (headingIndicator) {
+      if (isVisible) {
+        this.needUpdateHeadingIndicatorVisibility = true;
+      } else {
+        headingIndicator.setVisible(false);
+      }
     }
   }
 
@@ -277,7 +304,7 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
   private initModuleListeners(): void {
     this.rangeModule.nominalRange.sub(this.onRangeChanged.bind(this));
     this.orientationModule.orientation.sub(this.onOrientationChanged.bind(this));
-    this.rangeRingModule.show.sub(this.onRangeCompassShowChanged.bind(this));
+    this.rangeCompassModule.show.sub(this.onRangeCompassShowChanged.bind(this));
   }
 
   /** @inheritdoc */
@@ -488,12 +515,19 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
    * Updates the selected heading indicator.
    */
   private updateHeadingIndicator(): void {
-    if (!this.needUpdateHeadingIndicatorVisibility) {
+    const headingIndicator = this.headingIndicatorRef.getOrDefault();
+
+    if (!headingIndicator || !this.needUpdateHeadingIndicatorVisibility) {
       return;
     }
 
     const orientation = this.orientationModule.orientation.get();
-    this.headingIndicatorRef.getOrDefault()?.setVisible(this.isFollowingAirplane.get() && orientation === MapOrientation.HeadingUp);
+    headingIndicator.setVisible(
+      this.isFollowingAirplane.get() && (
+        orientation === MapOrientation.HeadingUp
+        || orientation === MapOrientation.TrackUp
+      )
+    );
 
     this.needUpdateHeadingIndicatorVisibility = false;
   }
@@ -539,7 +573,7 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
    * Updates this layer's visibility.
    */
   private updateVisibility(): void {
-    this.setVisible(this.props.model.getModule('rangeCompass').show.get());
+    this.setVisible(this.rangeCompassModule.show.get());
   }
 
   /**
@@ -660,11 +694,14 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
    * @returns a VNode representing the range display label.
    */
   private renderSelectedHeadingIndicator(): VNode {
-    return this.props.showHeadingBug
+    const autopilotPropsModule = this.props.model.getModule(MapSystemKeys.AutopilotProps);
+
+    return this.props.showHeadingBug && autopilotPropsModule
       ? (
         <MapRangeCompassSelectedHeading
           ref={this.headingIndicatorRef} model={this.props.model} mapProjection={this.props.mapProjection}
-          bus={this.props.bus} // TODO: Refactor this to use a map autopilot module instead of consuming directly from the bus
+          selectedHeading={autopilotPropsModule.selectedHeading}
+          manualHeadingSelect={this.props.supportHeadingSync ? autopilotPropsModule.manualHeadingSelect : undefined}
           compassCenterSubject={this.centerSubject} compassRadiusSubject={this.radiusSubject} compassRotationSubject={this.rotationSubject}
           bugWidth={this.headingBugWidth} bugHeight={this.headingBugHeight}
           bugNotchHeight={this.referenceArrowHeight / 3} bugNotchWidth={this.referenceArrowWidth / 3}
@@ -1172,11 +1209,14 @@ class MapRangeCompassReferenceMarkerContainer extends MapLayer<MapRangeCompassRe
 }
 
 /**
- * Component props for MapRangeCompassHeadingBug.
+ * Component props for MapRangeCompassSelectedHeading.
  */
 interface MapRangeCompassSelectedHeadingProps extends MapRangeCompassSubLayerProps {
-  /** The event bus. */
-  bus: EventBus;
+  /** The autopilot selected heading, in degrees. */
+  selectedHeading: Subscribable<number>;
+
+  /** An event that is triggered when the autopilot selected heading is changed manually. */
+  manualHeadingSelect?: ReadonlySubEvent<void, void>;
 
   /** The width of the bug, in pixels. */
   bugWidth: number;
@@ -1219,30 +1259,42 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
   private static readonly NO_LINE_DASH = [];
 
   private readonly canvasLayerRef = FSComponent.createRef<MapCanvasLayer<any>>();
-  private selectedHeadingConsumer: Consumer<number>;
+
+  private readonly selectedHeadingSub: Subscription;
+  private readonly manualHeadingSelectSub: Subscription;
   private selectedHeading = 0;
+
   private isInit = false;
+
   private readonly isSuppressedSubject = Subject.create(true);
   private suppressTimer: NodeJS.Timeout | null = null;
 
-  private readonly centerSubject = Vec2Subject.createFromVector(new Float64Array(2));
+  private readonly centerSubject = Vec2Subject.create(new Float64Array(2));
   private readonly radiusSubject = Subject.create(0);
   private readonly rotationSubject = Subject.create(0);
-  private readonly isOOBSubject = Subject.create(true);
 
+  private isCanvasVisible = false;
+  private isHeadingOob = true;
+
+  private needUpdateCanvasVisibility = true;
   private needRedraw = true;
   private needReposition = true;
   private needRotate = true;
 
+  private readonly paramSubs: Subscription[] = [];
+
   /** @inheritdoc */
-  constructor(props: MapRangeCompassSelectedHeadingProps) {
+  public constructor(props: MapRangeCompassSelectedHeadingProps) {
     super(props);
 
-    this.selectedHeadingConsumer = this.props.bus.getSubscriber<APEvents>().on('ap_heading_selected').whenChanged();
+    this.selectedHeadingSub = this.props.selectedHeading.sub(this.onSelectedHeadingChanged.bind(this), false, true);
+    this.manualHeadingSelectSub = this.props.manualHeadingSelect
+      ? this.props.manualHeadingSelect.on(this.onManualHeadingSelected.bind(this), true)
+      : this.props.selectedHeading.sub(this.onManualHeadingSelected.bind(this), false, true);
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc, @typescript-eslint/no-unused-vars
-  public onVisibilityChanged(isVisible: boolean): void {
+  /** @inheritdoc */
+  public onVisibilityChanged(): void {
     if (this.isInit) {
       this.updateFromVisibility();
     }
@@ -1254,9 +1306,13 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
   private updateFromVisibility(): void {
     const isVisible = this.isVisible();
     if (isVisible) {
-      this.selectedHeadingConsumer.handle(this.onSelectedHeadingChanged);
+      this.selectedHeadingSub.resume(true);
+      this.manualHeadingSelectSub.resume();
+
+      this.needRedraw = true;
     } else {
-      this.selectedHeadingConsumer.off(this.onSelectedHeadingChanged);
+      this.selectedHeadingSub.pause();
+      this.manualHeadingSelectSub.pause();
       this.suppress();
     }
   }
@@ -1290,16 +1346,17 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
    * Initializes subject listeners.
    */
   private initSubjectListeners(): void {
-    this.props.compassCenterSubject.sub(this.updateParameters.bind(this));
-    this.props.compassRadiusSubject.sub(this.updateParameters.bind(this));
-    this.props.compassRotationSubject.sub(this.updateParameters.bind(this));
+    this.paramSubs.push(
+      this.props.compassCenterSubject.sub(this.updateParameters.bind(this)),
+      this.props.compassRadiusSubject.sub(this.updateParameters.bind(this)),
+      this.props.compassRotationSubject.sub(this.updateParameters.bind(this))
+    );
 
     this.centerSubject.sub(this.onCenterChanged.bind(this));
     this.radiusSubject.sub(this.onRadiusChanged.bind(this));
     this.rotationSubject.sub(this.onRotationChanged.bind(this));
 
     this.isSuppressedSubject.sub(this.onIsSuppressedChanged.bind(this));
-    this.isOOBSubject.sub(this.onIsOOBChanged.bind(this));
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc
@@ -1312,7 +1369,16 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
 
   // eslint-disable-next-line jsdoc/require-jsdoc
   public onUpdated(time: number, elapsed: number): void {
+    if (this.needUpdateCanvasVisibility) {
+      this.canvasLayerRef.instance.setVisible(this.isCanvasVisible);
+      this.needUpdateCanvasVisibility = false;
+    }
+
     this.canvasLayerRef.instance.onUpdated(time, elapsed);
+
+    if (!this.isCanvasVisible) {
+      return;
+    }
 
     if (this.needReposition) {
       this.reposition();
@@ -1363,7 +1429,10 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
     canvasLayerDisplay.clear();
 
     this.redrawLine(canvasWidth, canvasHeight);
-    this.redrawBug(canvasWidth, canvasHeight, radius);
+
+    if (!this.isHeadingOob) {
+      this.redrawBug(canvasWidth, canvasHeight, radius);
+    }
 
     this.needRedraw = false;
   }
@@ -1473,24 +1542,18 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
    * @param isSuppressed Whether this indicator should be suppressed.
    */
   private updateFromIsSuppressed(isSuppressed: boolean): void {
-    this.updateCanvasVisibility(isSuppressed, this.isOOBSubject.get());
-  }
-
-  /**
-   * Updates this indicator based on whether it is out of the current compass bounds.
-   * @param isOOB Whether this indicator is out of the current compass bounds.
-   */
-  private updateFromIsOOB(isOOB: boolean): void {
-    this.updateCanvasVisibility(this.isSuppressedSubject.get(), isOOB);
+    this.updateCanvasVisibility(!isSuppressed);
   }
 
   /**
    * Updates the visibility of the canvas.
-   * @param isSuppressed Whether this indicator is suppressed.
-   * @param isOOB Whether this indicator is out of the current compass bounds.
+   * @param isVisible Whether the canvas should be visible.
    */
-  private updateCanvasVisibility(isSuppressed: boolean, isOOB: boolean): void {
-    this.canvasLayerRef.instance.setVisible(!isOOB && !isSuppressed);
+  private updateCanvasVisibility(isVisible: boolean): void {
+    if (isVisible !== this.isCanvasVisible) {
+      this.isCanvasVisible = isVisible;
+      this.needUpdateCanvasVisibility = true;
+    }
   }
 
   /**
@@ -1499,12 +1562,11 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
   private updateParameters(): void {
     const compassRotation = this.props.compassRotationSubject.get();
     const compassCenter = -compassRotation * Avionics.Utils.RAD2DEG;
-    const isOOB = Math.abs(NavMath.diffAngle(this.selectedHeading, compassCenter)) > MapRangeCompassLayer.ARC_ANGULAR_WIDTH / 2;
 
-    this.isOOBSubject.set(isOOB);
-
-    if (!this.canvasLayerRef.instance.isVisible()) {
-      return;
+    const isHeadingOob = Math.abs(NavMath.diffAngle(this.selectedHeading, compassCenter)) > MapRangeCompassLayer.ARC_ANGULAR_WIDTH / 2;
+    if (isHeadingOob !== this.isHeadingOob) {
+      this.isHeadingOob = isHeadingOob;
+      this.needRedraw = true;
     }
 
     const center = this.props.compassCenterSubject.get();
@@ -1538,15 +1600,21 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
   }
 
   /**
+   * A callback which is called when the selected heading is changed manually.
+   */
+  private onManualHeadingSelected(): void {
+    this.unsuppress(MapRangeCompassSelectedHeading.UNSUPPRESS_DURATION);
+  }
+
+  /**
    * A callback which is called when the selected heading changes.
    * @param heading The new selected heading, in degrees.
    */
-  private onSelectedHeadingChanged = (heading: number): void => {
+  private onSelectedHeadingChanged(heading: number): void {
     this.selectedHeading = heading;
 
-    this.unsuppress(MapRangeCompassSelectedHeading.UNSUPPRESS_DURATION);
     this.updateParameters();
-  };
+  }
 
   /**
    * A callback which is called when whether this indicator is suppressed has changed.
@@ -1556,18 +1624,22 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
     this.updateFromIsSuppressed(isSuppressed);
   }
 
-  /**
-   * A callback which is called when whether this indicator is out of the current compass bounds has changed.
-   * @param isOOB Whether this indicator is out of the current compass bounds.
-   */
-  private onIsOOBChanged(isOOB: boolean): void {
-    this.updateFromIsOOB(isOOB);
-  }
-
   /** @inheritdoc */
   public render(): VNode {
     return (
       <MapCanvasLayer ref={this.canvasLayerRef} model={this.props.model} mapProjection={this.props.mapProjection} />
     );
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    for (const sub of this.paramSubs) {
+      sub.destroy();
+    }
+
+    this.selectedHeadingSub.destroy();
+    this.manualHeadingSelectSub.destroy();
+
+    super.destroy();
   }
 }

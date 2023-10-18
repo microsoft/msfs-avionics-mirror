@@ -1,14 +1,15 @@
 import {
-  APRadioNavInstrument, ArrayUtils, AuralAlertSystem, AuralAlertSystemWarningAdapter, AuralAlertSystemXmlAdapter, CasSystem, CasSystemLegacyAdapter, CompositeLogicXMLHost,
-  ControlEvents, DefaultXmlAuralAlertParser, FlightPlanCalculatedEvent, FlightPlannerEvents, FlightTimerInstrument, FlightTimerMode,
+  APRadioNavInstrument, ArrayUtils, AuralAlertSystem, AuralAlertSystemWarningAdapter, AuralAlertSystemXmlAdapter, CasSystem, CasSystemLegacyAdapter, ClockEvents,
+  CompositeLogicXMLHost, ControlEvents, DefaultXmlAuralAlertParser, FlightPlanCalculatedEvent, FlightPlannerEvents, FlightTimerInstrument, FlightTimerMode,
   FSComponent, GameStateProvider, GpsSynchronizer, GPSSystemState, MinimumsManager, NavComInstrument, NavSourceType, PluginSystem,
   SetSubject, SimVarValueType, SoundServer, Subject, TrafficInstrument, UserSetting, Vec2Math, VNode, Wait, XMLWarningFactory, XPDRInstrument
 } from '@microsoft/msfs-sdk';
 import {
-  ComRadioSpacingManager, DateTimeUserSettings, DefaultGpsIntegrityDataProvider, DefaultRadarAltimeterDataProvider, DefaultVNavDataProvider, DmeUserSettings,
-  FlightPathCalculatorManager, FlightPlanSimSyncManager, Fms, FmsPositionSystemSelector, GarminAPConfig, GarminAPStateManager, GarminGoAroundManager,
-  GarminTimerControlEvents, GarminTimerManager, GarminXpdrTcasManager, MapTerrainWxSettingCompatManager, MinimumsUnitsManager,
-  NavdataComputer, TrafficOperatingModeManager, TrafficOperatingModeSetting, TrafficSystemType, TrafficUserSettings, UnitsUserSettings
+  ComRadioSpacingManager, DateTimeUserSettings, DefaultGpsIntegrityDataProvider, DefaultRadarAltimeterDataProvider, DefaultVNavDataProvider,
+  DefaultWindDataProvider, DmeUserSettings, FlightPathCalculatorManager, FlightPlanSimSyncManager, Fms, FmsPositionSystemSelector, GarminAPConfig,
+  GarminAPStateManager, GarminGoAroundManager, GarminHeadingSyncManager, GarminTimerControlEvents, GarminTimerManager, GarminXpdrTcasManager, MapTerrainWxSettingCompatManager,
+  MinimumsUnitsManager, NavdataComputer, TrafficOperatingModeManager, TrafficOperatingModeSetting, TrafficSystemType, TrafficUserSettings,
+  UnitsUserSettings
 } from '@microsoft/msfs-garminsdk';
 import {
   AuralAlertUserSettings, AuralAlertVoiceSetting, AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, AvionicsStatusEvents, AvionicsStatusGlobalPowerEvent,
@@ -149,10 +150,21 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     this.minimumsDataProvider
   );
   private readonly goAroundManager = new GarminGoAroundManager(this.bus, this.fms);
+  private readonly headingSyncManager = new GarminHeadingSyncManager(this.bus, 1, {
+    supportTurnHeadingAdjust: true,
+    supportHeadingSyncMode: this.config.autopilot.isHdgSyncModeSupported
+  });
 
   private readonly fmsSpeedManager = this.config.vnav.fmsSpeeds !== undefined && this.fmsSpeedsSettingManager !== undefined
     ? new FmsSpeedManager(this.bus, this.facLoader, this.flightPlanner, this.speedConstraintStore, this.config.vnav.fmsSpeeds, this.fmsSpeedsSettingManager, 1, 1)
     : undefined;
+
+  private readonly windDataProvider = new DefaultWindDataProvider(
+    this.bus,
+    this.iauAliasedSettingManager.getSetting('iauAdcIndex'),
+    this.iauAliasedSettingManager.getSetting('iauAhrsIndex'),
+    this.instrument.instrumentIndex
+  );
 
   private readonly vnavDataProvider = new DefaultVNavDataProvider(
     this.bus,
@@ -264,7 +276,11 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     }
 
     if (this.config.sensors.weatherRadarDefinition !== undefined) {
-      this.weatherRadarManager = new WeatherRadarManager(this.bus);
+      this.weatherRadarManager = new WeatherRadarManager(
+        this.bus,
+        this.config.sensors.weatherRadarDefinition.scanActiveCircuitIndex,
+        this.config.sensors.weatherRadarDefinition.scanActiveCircuitProcedureIndex
+      );
     }
 
     this.initAuralAlertUserSettings();
@@ -365,6 +381,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     this.comRadioTxRxManager.init();
     this.timerManager.init();
     this.goAroundManager.init();
+    this.headingSyncManager.init();
     this.fmsSpeedManager?.init();
     this.minimumsUnitsManager.init();
     this.xpdrTcasManager?.init(true);
@@ -373,6 +390,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     this.weatherRadarManager?.init();
     this.gpsIntegrityDataProvider.init();
     this.vSpeedBugManager.init(true);
+    this.windDataProvider.init();
     this.vnavDataProvider.init();
     this.weightFuelComputer.init();
 
@@ -402,6 +420,12 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     (this.instrument as WTG3000BaseInstrument<this>).setHighlightElement(this.highlightRef.instance);
 
     this.initAvionicsStatusListener();
+
+    Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.briefing || state === GameState.ingame).then(() => {
+      this.bus.getSubscriber<ClockEvents>().on('simTimeHiFreq').handle(() => {
+        this.autopilot.update();
+      });
+    });
 
     this.doDelayedInit();
   }
@@ -485,6 +509,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
           flightPlanner={this.flightPlanner}
           trafficSystem={this.trafficSystem}
           flightPlanStore={this.flightPlanStore}
+          windDataProvider={this.windDataProvider}
           vnavDataProvider={this.vnavDataProvider}
           fms={this.fms}
           flightPlanListManager={this.flightPlanListManagers[index]}
@@ -511,6 +536,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
           index={index}
           bus={this.bus}
           flightPlanner={this.flightPlanner}
+          windDataProvider={this.windDataProvider}
           iauSettingManager={this.iauSettingManager}
           config={this.config.map}
         />
@@ -539,6 +565,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
           facLoader={this.facLoader}
           flightPlanner={this.flightPlanner}
           trafficSystem={this.trafficSystem}
+          windDataProvider={this.windDataProvider}
           iauSettingManager={this.iauSettingManager}
           config={this.config.map}
         />
@@ -649,7 +676,6 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
   public Update(): void {
     super.Update();
 
-    this.autopilot.update();
     this.gpsSynchronizer.update();
     this.logicHost.update(this.instrument.deltaTime);
 
@@ -705,6 +731,9 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     if (event.previous === true && event.current === false) {
       // Avionics global power off.
 
+      this.headingSyncManager.pause();
+      this.headingSyncManager.reset();
+
       if (this.isPrimaryFlightPlanInit) {
         this.fms.resetAllFlightPlans();
       }
@@ -736,6 +765,8 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
         // when loading cold-and-dark.
         this.bus.getPublisher<ControlEvents>().pub('cdi_src_set', { type: NavSourceType.Gps, index: 1 }, true, true);
       }
+
+      this.headingSyncManager.resume();
 
       this.auralAlertSystem.wake();
 

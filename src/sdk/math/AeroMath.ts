@@ -14,6 +14,9 @@ export class AeroMath {
   /** The speed of sound in air at sea level under ISA conditions, in meters per second. */
   public static readonly SOUND_SPEED_SEA_LEVEL_ISA = 340.2964;
 
+  /** The density of air at sea level under ISA conditions, in kilograms per cubic meter. */
+  public static readonly DENSITY_SEA_LEVEL_ISA = AeroMath.isaDensity(0);
+
   // ---- Ideal gas law relationships for air ----
 
   /**
@@ -266,13 +269,14 @@ export class AeroMath {
 
   // ---- Speed conversions ----
 
-  // The following section contains methods for converting between different speeds: CAS, TAS, and mach.
+  // The following section contains methods for converting between different speeds: CAS, TAS, EAS, and mach.
   // All conversions are based on the following:
 
   // Constants:
   // gamma (adiabatic index of air) = 1.4
   // pressure_sea_level_isa = 1013.25 hPa
   // sound_speed_sea_level_isa = 340.2964 m/s
+  // density_sea_level_isa = 1.22498 kg/m^3
 
   // Relationship between mach and impact pressure (only valid for subsonic flow):
   // mach = sqrt(5 * ((impact_pressure / static_pressure + 1) ^ ((gamma - 1) / gamma)) - 1)
@@ -281,6 +285,9 @@ export class AeroMath {
   // Relationship between mach and airspeed:
   // mach = airspeed / sound_speed
   // airspeed = mach * sound_speed
+
+  // Relationship between EAS and TAS:
+  // eas = tas * sqrt(density / density_sea_level_isa)
 
   /**
    * Converts true airspeed (TAS) to mach number.
@@ -430,6 +437,146 @@ export class AeroMath {
    */
   public static tasToCasIsa(tas: number, altitude: number, deltaIsa = 0): number {
     return AeroMath.machToCasIsa(tas / AeroMath.soundSpeedIsa(altitude, deltaIsa), altitude);
+  }
+
+  /**
+   * Converts true airspeed (TAS) to equivalent airspeed (EAS).
+   * @param tas The true airspeed to convert.
+   * @param density The ambient density, in kilograms per cubic meter.
+   * @returns The equivalent airspeed corresponding to the specified true airspeed at the specified ambient density.
+   * The equivalent airspeed is expressed in the same units as the true airspeed.
+   */
+  public static tasToEas(tas: number, density: number): number {
+    return tas * Math.sqrt(density / AeroMath.DENSITY_SEA_LEVEL_ISA);
+  }
+
+  /**
+   * Converts true airspeed (TAS) to equivalent airspeed (EAS) under ISA conditions.
+   * @param tas The true airspeed to convert.
+   * @param altitude The pressure altitude, in meters above MSL.
+   * @param deltaIsa The deviation from ISA temperature, in degrees Celsius. Defaults to `0`.
+   * @returns The equivalent airspeed corresponding to the specified true airspeed at the specified pressure altitude
+   * under ISA conditions. The equivalent airspeed is expressed in the same units as the true airspeed.
+   */
+  public static tasToEasIsa(tas: number, altitude: number, deltaIsa = 0): number {
+    return AeroMath.tasToEas(tas, AeroMath.isaDensity(altitude, deltaIsa));
+  }
+
+  /**
+   * Converts equivalent airspeed (EAS) to true airspeed (TAS).
+   * @param eas The equivalent airspeed to convert.
+   * @param density The ambient density, in kilograms per cubic meter.
+   * @returns The true airspeed corresponding to the specified equivalent airspeed at the specified ambient density.
+   * The true airspeed is expressed in the same units as the equivalent airspeed.
+   */
+  public static easToTas(eas: number, density: number): number {
+    return eas * Math.sqrt(AeroMath.DENSITY_SEA_LEVEL_ISA / density);
+  }
+
+  /**
+   * Converts equivalent airspeed (EAS) to true airspeed (TAS) under ISA conditions.
+   * @param eas The equivalent airspeed to convert.
+   * @param altitude The pressure altitude, in meters above MSL.
+   * @param deltaIsa The deviation from ISA temperature, in degrees Celsius. Defaults to `0`.
+   * @returns The true airspeed corresponding to the specified equivalent airspeed at the specified pressure altitude
+   * under ISA conditions. The true airspeed is expressed in the same units as the equivalent airspeed.
+   */
+  public static easToTasIsa(eas: number, altitude: number, deltaIsa = 0): number {
+    return AeroMath.easToTas(eas, AeroMath.isaDensity(altitude, deltaIsa));
+  }
+
+  /**
+   * Converts mach number to equivalent airspeed (EAS).
+   * @param mach The mach number to convert.
+   * @param pressure The ambient static pressure, in hectopascals.
+   * @returns The equivalent airspeed, in meters per second, corresponding to the specified mach number at the
+   * specified ambient static pressure.
+   */
+  public static machToEas(mach: number, pressure: number): number {
+    return AeroMath.SOUND_SPEED_SEA_LEVEL_ISA * mach * Math.sqrt(pressure / 1013.25);
+  }
+
+  /**
+   * Converts mach number to equivalent airspeed (EAS) under ISA conditions.
+   * @param mach The mach number to convert.
+   * @param altitude The pressure altitude, in meters above MSL.
+   * @returns The equivalent airspeed, in meters per second, corresponding to the specified mach number at the
+   * specified pressure altitude under ISA conditions.
+   */
+  public static machToEasIsa(mach: number, altitude: number): number {
+    return AeroMath.machToEas(mach, AeroMath.isaPressure(altitude));
+  }
+
+  /**
+   * Converts equivalent airspeed (EAS) to mach number.
+   * @param eas The equivalent airspeed to convert, in meters per second.
+   * @param pressure The ambient static pressure, in hectopascals.
+   * @returns The mach number corresponding to the specified equivalent airspeed at the specified ambient static
+   * pressure.
+   */
+  public static easToMach(eas: number, pressure: number): number {
+    return eas * Math.sqrt(1013.25 / pressure) / AeroMath.SOUND_SPEED_SEA_LEVEL_ISA;
+  }
+
+  /**
+   * Converts equivalent airspeed (EAS) to mach number under ISA conditions.
+   * @param eas The equivalent airspeed to convert, in meters per second.
+   * @param altitude The pressure altitude, in meters above MSL.
+   * @returns The mach number corresponding to the specified equivalent airspeed at the specified pressure altitude
+   * under ISA conditions.
+   */
+  public static easToMachIsa(eas: number, altitude: number): number {
+    return AeroMath.easToMach(eas, AeroMath.isaPressure(altitude));
+  }
+
+  /**
+   * Converts calibrated airspeed (CAS) to equivalent airspeed (EAS). The conversion is only valid for subsonic speeds.
+   * @param cas The calibrated airspeed to convert, in meters per second.
+   * @param pressure The ambient static pressure, in hectopascals.
+   * @returns The equivalent airspeed, in meters per second, corresponding to the specified calibrated airspeed at the
+   * specified ambient static pressure.
+   */
+  public static casToEas(cas: number, pressure: number): number {
+    // The below is a slightly optimized concatenation of the CAS-to-mach and mach-to-EAS conversions.
+
+    const mach0 = cas / AeroMath.SOUND_SPEED_SEA_LEVEL_ISA;
+    const impactPressure = 1013.25 * (Math.pow(1 + (0.2 * mach0 * mach0), 3.5) - 1);
+    return AeroMath.SOUND_SPEED_SEA_LEVEL_ISA * Math.sqrt(5 * pressure / 1013.25 * (Math.pow(impactPressure / pressure + 1, 2 / 7) - 1));
+  }
+
+  /**
+   * Converts calibrated airspeed (CAS) to equivalent airspeed (EAS) under ISA conditions. The conversion is only valid
+   * for subsonic speeds.
+   * @param cas The calibrated airspeed to convert, in meters per second.
+   * @param altitude The pressure altitude, in meters above MSL.
+   * @returns The equivalent airspeed, in meters per second, corresponding to the specified calibrated airspeed at the
+   * specified pressure altitude under ISA conditions.
+   */
+  public static casToEasIsa(cas: number, altitude: number): number {
+    return AeroMath.casToEas(cas, AeroMath.isaPressure(altitude));
+  }
+
+  /**
+   * Converts equivalent airspeed (EAS) to calibrated airspeed (CAS). The conversion is only valid for subsonic speeds.
+   * @param eas The equivalent airspeed to convert, in meters per second.
+   * @param pressure The ambient static pressure, in hectopascals.
+   * @returns The calibrated airspeed, in meters per second, corresponding to the specified equivalent airspeed at the
+   * specified ambient static pressure.
+   */
+  public static easToCas(eas: number, pressure: number): number {
+    return AeroMath.machToCas(AeroMath.easToMach(eas, pressure), pressure);
+  }
+
+  /**
+   * Converts equivalent airspeed (EAS) to calibrated airspeed (CAS) under ISA conditions. The conversion is only valid
+   * for subsonic speeds.
+   * @param eas The equivalent airspeed to convert, in meters per second.
+   * @param altitude The pressure altitude, in meters above MSL.
+   * @returns The calibrated airspeed, in meters per second, corresponding to the specified equivalent airspeed at the
+   * specified pressure altitude under ISA conditions.
+   */
+  public static easToCasIsa(eas: number, altitude: number): number {
+    return AeroMath.easToCas(eas, AeroMath.isaPressure(altitude));
   }
 
   // ---- Lift and drag equations ----

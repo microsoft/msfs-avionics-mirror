@@ -12,15 +12,17 @@ type StateEventsOnly<T> = {
   [K in keyof T as T[K] extends AvionicsSystemStateEvent ? K : never]: T[K]
 }
 
-/** The subset of electrical events that have boolean values.  */
-type ElectricalBools = {
+/**
+ * The subset of {@link ElectricalEvents} to which avionics system power can be connected.
+ */
+export type AvionicsSystemPowerEvents = {
   [K in keyof ElectricalEvents]: ElectricalEvents[K] extends boolean ? ElectricalEvents[K] : never
 };
 
 /**
- * An electrical system key to which system power can be connected.
+ * An {@link ElectricalEvents} topic to which avionics system power can be connected.
  */
-export type SystemPowerKey = keyof ElectricalBools;
+export type SystemPowerKey = keyof AvionicsSystemPowerEvents;
 
 /**
  * A basic avionics system with a fixed initialization time and logic.
@@ -71,11 +73,18 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
         gameStateSub.destroy();
 
         this.isPowerValid = true;
-        this.electricalPowerSub?.resume(true);
+        this.onPowerValid();
       }
     }, false, true);
 
     gameStateSub.resume(true);
+  }
+
+  /**
+   * Responds to when power data becomes valid.
+   */
+  protected onPowerValid(): void {
+    this.electricalPowerSub?.resume(true);
   }
 
   /**
@@ -89,7 +98,7 @@ export abstract class BasicAvionicsSystem<T extends Record<string, any>> impleme
     this.electricalPowerLogic = undefined;
 
     if (typeof source === 'string') {
-      this.electricalPowerSub = this.bus.getSubscriber<ElectricalBools>()
+      this.electricalPowerSub = this.bus.getSubscriber<AvionicsSystemPowerEvents>()
         .on(source)
         .whenChanged()
         .handle(this.onPowerChanged.bind(this), !this.isPowerValid);

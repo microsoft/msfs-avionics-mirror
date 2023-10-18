@@ -13,7 +13,7 @@ import { MapNexradModule } from '../modules/MapNexradModule';
 export type MapNexradUserSettings = Pick<MapUserSettingTypes, 'mapNexradShow' | 'mapNexradRangeIndex'>;
 
 /**
- * Modules required by MapNexradController.
+ * Modules required by {@link MapNexradController}.
  */
 export interface MapNexradControllerModules {
   /** Range module. */
@@ -41,10 +41,10 @@ export class MapNexradController extends MapSystemController<MapNexradController
   private show?: MappedSubscribable<boolean>;
 
   /**
-   * Constructor.
+   * Creates a new instance of MapNexradController.
    * @param context This controller's map context.
    * @param minRangeIndex The minimum range range index, inclusive, at which NEXRAD is visible.
-   * @param settingManager A setting manager containing the user settings controlling the display of terrain. If not
+   * @param settingManager A setting manager containing the user settings controlling the display of NEXRAD. If not
    * defined, the display of NEXRAD will not be bound to user settings.
    * @param maxDeclutterMode The highest global declutter mode, inclusive, at which NEXRAD is visible. Defaults to
    * `MapDeclutterMode.Level2`. Ignored if `settingManager` is not defined.

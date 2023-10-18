@@ -267,6 +267,10 @@ export class MapUserSettings {
       {
         name: 'mapAltitudeArcShow',
         defaultValue: false
+      },
+      {
+        name: 'mapWindVectorShow',
+        defaultValue: false
       }
     ]);
   }

@@ -15,12 +15,12 @@
   align-self: end;
 }
 
-.highlight-white {
+.xpdr-container .highlight-white {
   background-color: white;
   color: rgb(44, 44, 44);
 }
 
-.highlight-green {
+.xpdr-container .highlight-green {
   background-color: rgb(0, 255, 0);
   color: rgb(44, 44, 44);
 }

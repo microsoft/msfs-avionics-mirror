@@ -5,7 +5,8 @@ import {
 
 import {
   GarminFacilityWaypointCache, GarminMapKeys, MapPointerController, MapPointerInfoLayerSize, MapPointerModule,
-  MapRangeController, MapWaypointHighlightModule, NearestMapRTRController, TrafficSystem, TrafficUserSettings, UnitsUserSettings
+  MapRangeController, MapWaypointHighlightModule, NearestMapRTRController, TrafficSystem, TrafficUserSettings, UnitsUserSettings,
+  WindDataProvider
 } from '@microsoft/msfs-garminsdk';
 
 import { DisplayPanesUserSettings } from '../../Settings/DisplayPanesUserSettings';
@@ -36,6 +37,9 @@ export interface NearestPaneViewProps extends DisplayPaneViewProps {
 
   /** The traffic system used by the map to display traffic. */
   trafficSystem: TrafficSystem;
+
+  /** A provider of wind data. Required to display the map wind vector. */
+  windDataProvider?: WindDataProvider;
 
   /** A manager for all IAU user settings. */
   iauSettingManager: IauUserSettingManager;
@@ -82,6 +86,7 @@ export class NearestPaneView extends DisplayPaneView<NearestPaneViewProps, Displ
       rangeCompassOptions: {
         showLabel: true,
         showHeadingBug: true,
+        supportHeadingSync: true,
         bearingTickMajorLength: 10,
         bearingTickMinorLength: 5,
         bearingLabelFont: 'DejaVuSans-SemiBold',
@@ -98,6 +103,8 @@ export class NearestPaneView extends DisplayPaneView<NearestPaneViewProps, Displ
         font: 'DejaVuSans-SemiBold',
         fontSize: 14
       },
+
+      windDataProvider: this.props.windDataProvider,
 
       pointerBoundsOffset: VecNMath.create(4, 0.1, 0.1, 0.1, 0.1),
       pointerInfoSize: MapPointerInfoLayerSize.Full,

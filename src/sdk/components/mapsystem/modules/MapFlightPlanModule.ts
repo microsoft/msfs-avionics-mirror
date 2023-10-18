@@ -6,7 +6,6 @@ import { Subject } from '../../../sub/Subject';
  * A map data module that handles the display of flight plan data.
  */
 export class MapFlightPlanModule {
-
   private readonly plans: PlanSubjects[] = [];
 
   /**

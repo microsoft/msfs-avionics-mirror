@@ -1,22 +1,15 @@
-/* eslint-disable @typescript-eslint/ban-types */
 import { Subject, Subscribable, Subscription } from '@microsoft/msfs-sdk';
 
-import { AbstractNavBase, NavBase } from '../NavBase';
-import { NavSource, NavSources } from '../NavSources/NavSource';
-
-/** Just the fields that can have control events generated for them. */
-export interface NavIndicatorControlFields<NavSourceName extends string> {
-  /** The name of the source to set, or null to remove the source. */
-  readonly source: NavSourceName | null;
-}
+import { AbstractNavReferenceBase, NavReferenceBase } from '../NavReferenceBase';
+import { NavReferenceSource, NavReferenceSources } from '../source/NavReferenceSource';
 
 /**
- * A nav indicator which presents data derived from a nav source. An indicator may only have up to one source at a
- * time, but its source can be changed.
+ * An indicator which presents data derived from a navigation reference source. An indicator may only have up to one
+ * source at a time, but its source can be changed.
  */
-export interface NavIndicator<SourceName extends string> extends NavBase {
+export interface NavReferenceIndicator<SourceName extends string> extends NavReferenceBase {
   /** This indicator's source. */
-  readonly source: Subscribable<NavSource<SourceName> | null>;
+  readonly source: Subscribable<NavReferenceSource<SourceName> | null>;
 
   /**
    * Sets this indicator's source. Once the source is set, this indicator's data will be derived from the new source.
@@ -27,22 +20,22 @@ export interface NavIndicator<SourceName extends string> extends NavBase {
 }
 
 /**
- * A basic implementation of {@link NavIndicator} whose data is derived directly from its source.
+ * A basic implementation of {@link NavReferenceIndicator} whose data is derived directly from its source.
  */
-export class BasicNavIndicator<SourceName extends string> extends AbstractNavBase implements NavIndicator<SourceName> {
+export class BasicNavReferenceIndicator<SourceName extends string> extends AbstractNavReferenceBase implements NavReferenceIndicator<SourceName> {
 
-  private readonly _source = Subject.create<NavSource<SourceName> | null>(null);
+  private readonly _source = Subject.create<NavReferenceSource<SourceName> | null>(null);
   /** @inheritdoc */
-  public readonly source = this._source as Subscribable<NavSource<SourceName> | null>;
+  public readonly source = this._source as Subscribable<NavReferenceSource<SourceName> | null>;
 
   protected readonly sourceSubs: Subscription[] = [];
 
   /**
-   * Creates a new instance of BasicNavIndicator.
+   * Creates a new instance of BasicNavReferenceIndicator.
    * @param navSources The possible nav sources from which this indicator can derive data.
    * @param sourceName The initial source to use, if any.
    */
-  public constructor(protected readonly navSources: NavSources<SourceName>, sourceName: SourceName | null = null) {
+  public constructor(protected readonly navSources: NavReferenceSources<SourceName>, sourceName: SourceName | null = null) {
     super();
     this.setSource(sourceName);
   }
@@ -67,7 +60,7 @@ export class BasicNavIndicator<SourceName extends string> extends AbstractNavBas
    * @param oldSource The old nav source.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected updateFromSource(newSource: NavSource<SourceName> | null, oldSource: NavSource<SourceName> | null): void {
+  protected updateFromSource(newSource: NavReferenceSource<SourceName> | null, oldSource: NavReferenceSource<SourceName> | null): void {
     this.sourceSubs.forEach(sub => { sub.destroy(); });
     this.sourceSubs.length = 0;
 
@@ -82,39 +75,39 @@ export class BasicNavIndicator<SourceName extends string> extends AbstractNavBas
 }
 
 /**
- * A collection of nav indicators.
+ * A collection of {@link NavReferenceIndicator|NavReferenceIndicators}.
  * @template SourceName The names of the nav sources supported by the nav indicators contained in the collection.
  * @template IndicatorName The names of the nav indicators contained in the collection.
  */
-export interface NavIndicators<SourceName extends string, IndicatorName extends string> {
+export interface NavReferenceIndicators<SourceName extends string, IndicatorName extends string> {
   /**
    * Gets a nav indicator with a given name.
    * @param name The name of the indicator to get.
    * @returns The specified nav indicator.
    * @throws Error if an indicator with the specified name could not be found.
    */
-  get(name: IndicatorName): NavIndicator<SourceName>;
+  get(name: IndicatorName): NavReferenceIndicator<SourceName>;
 }
 
 /**
- * A basic implementation of {@link NavIndicators} which stores the indicators in a Map.
+ * A basic implementation of {@link NavReferenceIndicators} which stores the indicators in a Map.
  * @template SourceName The names of the nav sources supported by the nav indicators contained in the collection.
  * @template IndicatorName The names of the nav indicators contained in the collection.
  */
-export class NavIndicatorsCollection<SourceName extends string, IndicatorName extends string> implements NavIndicators<SourceName, IndicatorName> {
+export class NavReferenceIndicatorsCollection<SourceName extends string, IndicatorName extends string> implements NavReferenceIndicators<SourceName, IndicatorName> {
   /**
-   * Creates a new instance of NavIndicatorsCollection.
+   * Creates a new instance of NavReferenceIndicatorsCollection.
    * @param indicators A map of this collection's nav indicators, keyed by name.
    */
   public constructor(
-    private readonly indicators = new Map<IndicatorName, NavIndicator<SourceName>>(),
+    private readonly indicators = new Map<IndicatorName, NavReferenceIndicator<SourceName>>(),
   ) { }
 
   /** @inheritdoc */
-  public get(name: IndicatorName): NavIndicator<SourceName> {
+  public get(name: IndicatorName): NavReferenceIndicator<SourceName> {
     const indicator = this.indicators.get(name);
     if (!indicator) {
-      throw new Error('NavIndicatorsCollection: no nav indicator exists with the name: ' + name);
+      throw new Error('NavReferenceIndicatorsCollection: no nav indicator exists with the name: ' + name);
     } else {
       return indicator;
     }

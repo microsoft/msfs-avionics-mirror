@@ -7,7 +7,7 @@ import {
 
 import {
   FlightPlanFocus, Fms, FmsUtils, GarminMapKeys, MapFlightPlanFocusModule, MapPointerController, MapPointerInfoLayerSize,
-  MapPointerModule, MapRangeController, TrafficSystem, TrafficUserSettings, UnitsUserSettings, VNavDataProvider
+  MapPointerModule, MapRangeController, TrafficSystem, TrafficUserSettings, UnitsUserSettings, VNavDataProvider, WindDataProvider
 } from '@microsoft/msfs-garminsdk';
 
 import { G3000FPLUtils } from '../../FlightPlan/G3000FPLUtils';
@@ -47,6 +47,9 @@ export interface NavigationMapPaneViewProps extends DisplayPaneViewProps {
 
   /** The flight plan store. */
   flightPlanStore: FlightPlanStore;
+
+  /** A provider of wind data. Required to display the map wind vector. */
+  windDataProvider?: WindDataProvider;
 
   /** A provider of VNAV data. */
   vnavDataProvider: VNavDataProvider;
@@ -115,6 +118,7 @@ export class NavigationMapPaneView extends DisplayPaneView<NavigationMapPaneView
       rangeCompassOptions: {
         showLabel: true,
         showHeadingBug: true,
+        supportHeadingSync: true,
         bearingTickMajorLength: 10,
         bearingTickMinorLength: 5,
         bearingLabelFont: 'DejaVuSans-SemiBold',
@@ -134,6 +138,8 @@ export class NavigationMapPaneView extends DisplayPaneView<NavigationMapPaneView
         font: 'DejaVuSans-SemiBold',
         fontSize: 14
       },
+
+      windDataProvider: this.props.windDataProvider,
 
       pointerBoundsOffset: VecNMath.create(4, 0.1, 0.1, 0.1, 0.1),
       pointerInfoSize: MapPointerInfoLayerSize.Full,

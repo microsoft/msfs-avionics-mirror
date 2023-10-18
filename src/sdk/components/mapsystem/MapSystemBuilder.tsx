@@ -717,7 +717,7 @@ export class MapSystemBuilder<
         context => new MapAutopilotPropsController(
           context,
           propertiesToBind,
-          typeof updateFreq === 'number' ? Subject.create(updateFreq) : updateFreq
+          updateFreq
         )
       );
     }

@@ -73,6 +73,10 @@ export class Subject<T> extends AbstractSubscribable<T> implements MutableSubscr
    * @param value The properties to apply.
    */
   public apply(value: Partial<T>): void {
+    if (typeof this.value !== 'object' || this.value === null) {
+      return;
+    }
+
     let changed = false;
     for (const prop in value) {
       changed = value[prop] !== this.value[prop];

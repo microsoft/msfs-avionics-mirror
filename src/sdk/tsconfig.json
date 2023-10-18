@@ -32,14 +32,6 @@
     "build",
     "dist"
   ],
-  "typedocOptions": {
-    "entryPoints": [
-      "index.ts",
-      "data/index.ts",
-      "instruments/index.ts"
-    ],
-    "out": "docs"
-  },
   "ts-node": {
     "transpiler": "@sucrase/ts-node-plugin",
     "transpileOnly": true,

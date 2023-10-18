@@ -1,15 +1,18 @@
 import { AdfRadioIndex, AhrsEvents, ConsumerSubject, EventBus, GeoPoint, MappedSubject, NavComEvents, NavComSimVars, NavMath, NavSourceType } from '@microsoft/msfs-sdk';
-import { AbstractNavBase } from '../NavBase';
-import { NavSource } from './NavSource';
 
-/** Represents an ADF radio, subscribes to the ADF SimVars. */
-export class AdfRadioSource<NameType extends string> extends AbstractNavBase implements NavSource<NameType> {
+import { AbstractNavReferenceBase } from '../NavReferenceBase';
+import { NavReferenceSource } from './NavReferenceSource';
+
+/**
+ * A {@link NavReferenceSource} which derives its data from an ADF radio signal.
+ */
+export class AdfRadioNavSource<NameType extends string> extends AbstractNavReferenceBase implements NavReferenceSource<NameType> {
   private readonly signal: ConsumerSubject<number>;
   private readonly relativeBearing: ConsumerSubject<number>;
   private readonly heading: ConsumerSubject<number>;
 
   /**
-   * Constructor.
+   * Creates a new instance of AdfRadioNavSource.
    * @param bus The event bus.
    * @param name The name of this source.
    * @param index The index of this source.

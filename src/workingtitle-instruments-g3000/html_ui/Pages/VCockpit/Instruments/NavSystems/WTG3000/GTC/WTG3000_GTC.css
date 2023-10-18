@@ -152,7 +152,7 @@ body {
   opacity: 0;
   animation-name: popup-close-normal;
   animation-duration: 250ms;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 
 .gtc-page-open-forward-animation {
@@ -228,7 +228,7 @@ body {
  */
 
 .gtc-popup-no-background-occlusion {
-  pointer-events: none;
+  pointer-events: none !important;
 }
 
 .gtc-popup-no-background-occlusion>* {
@@ -244,7 +244,7 @@ body {
   opacity: 0;
   animation-name: popup-close-normal;
   animation-duration: 250ms;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 
 @keyframes popup-open-normal {
@@ -354,7 +354,7 @@ body {
   transform: translate3d(460px, 0px, 0px);
   animation-name: popup-close-slideout-right-horizontal;
   animation-duration: 250ms;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 
 @keyframes popup-open-slideout-right-horizontal {
@@ -386,7 +386,7 @@ body {
   transform: translate3d(220px, 0px, 0px);
   animation-name: popup-close-slideout-right-vertical;
   animation-duration: 250ms;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 
 @keyframes popup-open-slideout-right-vertical {
@@ -418,7 +418,7 @@ body {
   transform: translate3d(100%, 0px, 0px);
   animation-name: popup-close-slideout-right-full;
   animation-duration: 250ms;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 
 @keyframes popup-open-slideout-right-full {
@@ -450,7 +450,7 @@ body {
   transform: translate3d(0px, 100%, 0px);
   animation-name: popup-close-slideout-bottom;
   animation-duration: 250ms;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 
 @keyframes popup-open-slideout-bottom {
@@ -482,7 +482,7 @@ body {
   transform: translate3d(0px, 100%, 0px);
   animation-name: popup-close-slideout-top;
   animation-duration: 250ms;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 
 @keyframes popup-open-slideout-top {

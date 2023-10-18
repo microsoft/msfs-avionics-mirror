@@ -85,6 +85,8 @@ export class NavInsetMap extends DisplayComponent<NavInsetMapProps> {
         fontSize: 14
       },
 
+      includeWindVector: false,
+
       pointerBoundsOffset: VecNMath.create(4, 0.2, 0.2, 0.4, 0.2),
       pointerInfoSize: MapPointerInfoLayerSize.Small,
 

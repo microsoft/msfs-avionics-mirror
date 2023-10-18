@@ -1,14 +1,16 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
   FlightPlanner, FSComponent, MapDataIntegrityModule, MapIndexedRangeModule, MapOwnAirplanePropsKey, MappedSubject, MapSystemBuilder, MapSystemContext,
-  MapSystemKeys, MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, Subject, Subscribable, UnitFamily, UnitType, UserSettingManager, Vec2Math,
-  Vec2Subject, VecNMath, VNode
+  MapSystemKeys, MapTerrainColorsModule, MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, Subject, Subscribable, UnitFamily, UnitType,
+  UserSettingManager, Vec2Math, Vec2Subject, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
 import { WaypointIconImageCache } from '../../../graphics/img/WaypointIconImageCache';
 import { MapUserSettingTypes } from '../../../settings/MapUserSettings';
 import { UnitsDistanceSettingMode, UnitsUserSettingManager } from '../../../settings/UnitsUserSettings';
 import { WeatherMapUserSettingTypes } from '../../../settings/WeatherMapUserSettings';
+import { WindDataProvider } from '../../../wind/WindDataProvider';
+import { MapGarminAutopilotPropsKey } from '../controllers';
 import { DefaultFlightPathPlanRenderer } from '../flightplan';
 import { GarminMapBuilder, RangeCompassOptions, RangeRingOptions } from '../GarminMapBuilder';
 import { GarminMapKeys } from '../GarminMapKeys';
@@ -137,6 +139,12 @@ export type NextGenConnextMapOptions = {
   /** Whether to include the altitude intercept arc display. Defaults to `true`. */
   includeAltitudeArc?: boolean;
 
+  /** Whether to include the wind vector display. Defaults to `true`. Ignored if `windDataProvider` is not defined. */
+  includeWindVector?: boolean;
+
+  /** A provider of wind data for the wind vector. Required to display the wind vector. */
+  windDataProvider?: WindDataProvider;
+
   /**
    * The offset of the boundary surrounding the area in which the pointer can freely move, from the edge of the
    * projected map, excluding the dead zone, or a subscribable which provides it. Expressed as
@@ -209,6 +217,12 @@ export type NextGenConnextMapOptions = {
    * is not defined.
    */
   useAltitudeArcUserSettings?: boolean;
+
+  /**
+   * Whether to bind wind vector options to user settings. Defaults to `true`. Ignored if `settingManager` is not
+   * defined.
+   */
+  useWindVectorUserSettings?: boolean;
 }
 
 /**
@@ -270,6 +284,9 @@ export class NextGenConnextMapBuilder {
     options.includeAltitudeArc ??= true;
     options.useAltitudeArcUserSettings ??= true;
 
+    options.includeWindVector ??= true;
+    options.useWindVectorUserSettings ??= true;
+
     options.includeOrientationIndicator ??= true;
     options.includeRangeIndicator ??= false;
 
@@ -287,6 +304,14 @@ export class NextGenConnextMapBuilder {
         options.useOrientationUserSettings ? options.settingManager : undefined
       )
       .withBing(options.bingId, options.bingDelay)
+      .withInit<{
+        [MapSystemKeys.TerrainColors]: MapTerrainColorsModule,
+      }>(GarminMapKeys.Terrain, context => {
+        const def = MapUtils.noTerrainEarthColors();
+        const terrainColorsModule = context.model.getModule(MapSystemKeys.TerrainColors);
+        terrainColorsModule.colorsElevationRange.set(def.elevationRange);
+        terrainColorsModule.colors.set(def.colors);
+      })
       .with(GarminMapBuilder.nexrad,
         options.radarOverlayMinRangeIndex,
         options.useRadarOverlayUserSettings ? options.settingManager : undefined,
@@ -366,10 +391,6 @@ export class NextGenConnextMapBuilder {
 
     if (options.includeAltitudeArc) {
       mapBuilder
-        .withAutopilotProps(
-          ['selectedAltitude'],
-          options.dataUpdateFreq
-        )
         .with(GarminMapBuilder.altitudeArc,
           {
             renderMethod: 'svg',
@@ -414,6 +435,17 @@ export class NextGenConnextMapBuilder {
       .withOwnAirplanePropBindings(airplanePropBindings, options.dataUpdateFreq)
       .withFollowAirplane();
 
+    const autopilotPropBindings: MapGarminAutopilotPropsKey[] = [
+      'selectedHeading', 'manualHeadingSelect',
+      ...(
+        options.includeAltitudeArc
+          ? ['selectedAltitude']
+          : []
+      ) as MapGarminAutopilotPropsKey[]
+    ];
+
+    mapBuilder.with(GarminMapBuilder.autopilotProps, autopilotPropBindings, options.dataUpdateFreq);
+
     if (options.supportDataIntegrity) {
       mapBuilder.withLayer(GarminMapKeys.DeadReckoning, context => {
         return (
@@ -429,6 +461,13 @@ export class NextGenConnextMapBuilder {
 
     if (options.miniCompassImgSrc !== undefined) {
       mapBuilder.with(GarminMapBuilder.miniCompass, options.miniCompassImgSrc);
+    }
+
+    if (options.includeWindVector && options.windDataProvider) {
+      mapBuilder.with(GarminMapBuilder.windVector,
+        options.windDataProvider,
+        options.useWindVectorUserSettings ? options.settingManager : undefined
+      );
     }
 
     // Top-left indicators

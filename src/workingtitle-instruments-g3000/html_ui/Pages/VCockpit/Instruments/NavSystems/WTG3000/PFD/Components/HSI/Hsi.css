@@ -29,14 +29,9 @@
   position: absolute;
   top: 26px;
   width: 86px;
-  height: 26px;
   padding: 2px;
   background: var(--g3000-color-pfd-box-background);
   border-radius: 5px;
-  display: flex;
-  flex-flow: row nowrap;
-  justify-content: space-between;
-  align-items: baseline;
   transform: rotateX(0deg);
 }
 
@@ -46,14 +41,36 @@
 
 .hsi-hdg-box {
   left: 4px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.hsi-hdg-box-upper {
+  height: 20px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
 }
 
 .hsi-hdg-box-value {
   color: var(--g3000-color-cyan);
 }
 
+.hsi-hdg-box-sync-mode {
+  height: 14px;
+  font-size: 0.7em;
+  text-align: center;
+}
+
 .hsi-crs-box {
   left: 276px;
+  height: 24px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
 }
 
 .hsi-crs-box-value {

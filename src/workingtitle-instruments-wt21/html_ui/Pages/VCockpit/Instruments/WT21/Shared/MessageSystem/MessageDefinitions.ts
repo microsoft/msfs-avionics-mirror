@@ -34,6 +34,8 @@ export enum FMS_MESSAGE_ID {
   DECELERATE,
   UNABLE_NEXT_ALT,
   KBINPUTACTIVE,
+  DLFPLNLOADED,
+  DLFPLNFAIL,
 }
 
 /** A class that contains the CJ4 message definitions */
@@ -103,6 +105,10 @@ export class MessageDefinitions {
       [new MessageDefinition('UNABLE NEXT ALT', MESSAGE_TARGET.FMC)], MESSAGE_LEVEL.Yellow, 70)],
     [FMS_MESSAGE_ID.KBINPUTACTIVE, new OperatingMessage(
       [new MessageDefinition('KB INPUT ACTIVE', MESSAGE_TARGET.FMC)], MESSAGE_LEVEL.White, 999)],
+    [FMS_MESSAGE_ID.DLFPLNLOADED, new OperatingMessage(
+      [new MessageDefinition('DL FPLN LOADED', MESSAGE_TARGET.FMC)], MESSAGE_LEVEL.White, 999)],
+    [FMS_MESSAGE_ID.DLFPLNFAIL, new OperatingMessage(
+      [new MessageDefinition('DL FPLN FAILED', MESSAGE_TARGET.FMC)], MESSAGE_LEVEL.Yellow, 999)],
   ]);
 
   /** @returns Gets the message definitions */

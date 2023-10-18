@@ -1,6 +1,8 @@
 import { AvionicsPlugin } from '@microsoft/msfs-sdk';
 
-import { FlightPlanStore, G3000NavSourceName, G3000Plugin, G3000PluginBinder, NavIndicators } from '@microsoft/msfs-wtg3000-common';
+import { NavReferenceIndicators } from '@microsoft/msfs-garminsdk';
+
+import { FlightPlanStore, G3000NavSourceName, G3000Plugin, G3000PluginBinder } from '@microsoft/msfs-wtg3000-common';
 
 import { LabelBarPluginHandlers } from './Components/LabelBar/LabelBar';
 import { GtcConfig } from './Config/GtcConfig';
@@ -17,7 +19,7 @@ export interface G3000GtcPluginBinder extends G3000PluginBinder {
   instrumentConfig: GtcConfig;
 
   /** The collection of navigation indicators available on the instrument. */
-  navIndicators: NavIndicators<G3000NavSourceName, 'activeSource'>;
+  navIndicators: NavReferenceIndicators<G3000NavSourceName, 'activeSource'>;
 
   /** The GTC service. */
   gtcService: GtcService;

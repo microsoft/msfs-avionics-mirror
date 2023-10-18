@@ -6,15 +6,15 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import {
-  AdcPublisher, APRadioNavInstrument, AutopilotInstrument, BaseInstrumentPublisher, Clock, CompositeLogicXMLHost, ControlPublisher, EISPublisher,
+  AdcPublisher, APRadioNavInstrument, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, Clock, ClockEvents, CompositeLogicXMLHost, ControlPublisher, EISPublisher,
   ElectricalPublisher, EventBus, EventSubscriber, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner,
-  FSComponent, GNSSPublisher, GpsSynchronizer, HEvent, HEventPublisher, InstrumentBackplane, InstrumentEvents, LNavSimVarPublisher, MinimumsManager,
+  FSComponent, GameStateProvider, GNSSPublisher, GpsSynchronizer, HEvent, HEventPublisher, InstrumentBackplane, InstrumentEvents, LNavSimVarPublisher, MinimumsManager,
   MinimumsSimVarPublisher, NavComSimVarPublisher, PluginSystem, SimVarValueType, SmoothingPathCalculator, TrafficInstrument, UserSettingSaveManager,
   VNavSimVarPublisher, Wait, XMLGaugeConfigFactory
 } from '@microsoft/msfs-sdk';
 
 import {
-  DateTimeUserSettings, Fms, GarminAdsb, GarminAPConfig, GarminAPStateManager, GarminVNavUtils, LNavDataSimVarPublisher, NavdataComputer, TrafficAdvisorySystem,
+  AdcSystem, DateTimeUserSettings, Fms, GarminAdsb, GarminAPConfig, GarminAPStateManager, GarminVNavUtils, LNavDataSimVarPublisher, NavdataComputer, TrafficAdvisorySystem,
   TrafficOperatingModeManager, UnitsUserSettings
 } from '@microsoft/msfs-garminsdk';
 
@@ -155,7 +155,8 @@ class WTG1000_MFD extends BaseInstrument {
   private readonly settingSaveManager: UserSettingSaveManager;
   private readonly fuelComputer: FuelComputer;
 
-  private readonly systems: G1000AvionicsSystem[] = [];
+  private readonly g1000Systems: G1000AvionicsSystem[] = [];
+  private readonly systems: AvionicsSystem[] = [];
 
   private readonly pluginSystem = new PluginSystem<G1000AvionicsPlugin, G1000PluginBinder>();
 
@@ -309,6 +310,12 @@ class WTG1000_MFD extends BaseInstrument {
       PFDUserSettings.getManager(this.bus)
     );
 
+    Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.briefing || state === GameState.ingame).then(() => {
+      this.bus.getSubscriber<ClockEvents>().on('simTimeHiFreq').handle(() => {
+        this.autopilot.update();
+      });
+    });
+
     this.fms = new Fms(true, this.bus, this.planner, this.verticalPathCalculator);
 
     const softKeyMenuSystem = new SoftKeyMenuSystem(this.bus, 'AS1000_MFD_SOFTKEYS_');
@@ -434,13 +441,15 @@ class WTG1000_MFD extends BaseInstrument {
 
     this.initializeAvElectrical();
 
-    this.systems.push(new MagnetometerSystem(1, this.bus));
-    this.systems.push(new ADCAvionicsSystem(1, this.bus));
-    this.systems.push(new AHRSSystem(1, this.bus));
-    this.systems.push(new TransponderSystem(1, this.bus));
-    this.systems.push(new AvionicsComputerSystem(1, this.bus));
-    this.systems.push(new AvionicsComputerSystem(2, this.bus));
-    this.systems.push(new EngineAirframeSystem(1, this.bus));
+    this.g1000Systems.push(new MagnetometerSystem(1, this.bus));
+    this.g1000Systems.push(new ADCAvionicsSystem(1, this.bus));
+    this.g1000Systems.push(new AHRSSystem(1, this.bus));
+    this.g1000Systems.push(new TransponderSystem(1, this.bus));
+    this.g1000Systems.push(new AvionicsComputerSystem(1, this.bus));
+    this.g1000Systems.push(new AvionicsComputerSystem(2, this.bus));
+    this.g1000Systems.push(new EngineAirframeSystem(1, this.bus));
+
+    this.systems.push(new AdcSystem(1, this.bus, 1, 1, 'elec_av1_bus'));
 
     const sub = this.bus.getSubscriber<InstrumentEvents>();
 
@@ -532,9 +541,19 @@ class WTG1000_MFD extends BaseInstrument {
 
     this.clock.onUpdate();
     this.backplane.onUpdate();
-    this.autopilot?.update();
     this.xmlLogicHost.update(this.deltaTime);
     this.gpsSynchronizer.update();
+
+    this.updateSystems();
+  }
+
+  /**
+   * Updates this instrument's systems.
+   */
+  private updateSystems(): void {
+    for (let i = 0; i < this.systems.length; i++) {
+      this.systems[i].onUpdate();
+    }
   }
 
   /**

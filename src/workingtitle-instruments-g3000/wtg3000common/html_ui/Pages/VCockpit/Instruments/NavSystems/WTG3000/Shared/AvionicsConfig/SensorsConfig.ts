@@ -59,8 +59,20 @@ export type WeatherRadarDefinition = {
   /** Whether the extended 16-color scale is supported for this definition's weather radar.  */
   supportExtendedColors: boolean;
 
+  /** The minimum gain setting, in dBZ. */
+  minGain: number;
+
+  /** The maximum gain setting, in dBZ. */
+  maxGain: number;
+
   /** The electrical logic for this definition's weather radar. */
   electricity?: CompositeLogicXMLElement;
+
+  /** The index of the circuit to switch on when the weather radar is actively scanning. */
+  scanActiveCircuitIndex?: number;
+
+  /** The index of the `system.cfg` electrical procedure to use the change the active radar scan circuit switch state. */
+  scanActiveCircuitProcedureIndex?: number;
 };
 
 /**
@@ -342,12 +354,55 @@ export class SensorsConfig implements Config {
         supportExtendedColors = false;
     }
 
+    let minGain = -64;
+    const minGainAttr = weatherRadarElement.getAttribute('min-gain');
+    if (minGainAttr) {
+      minGain = Number(minGainAttr);
+      if (!Number.isInteger(minGain) || minGain >= 0) {
+        console.warn('Invalid SensorsConfig definition: unrecognized weather radar minimum gain (must be a negative integer). Defaulting to -64.');
+        minGain = -64;
+      }
+    }
+
+    let maxGain = 12;
+    const maxGainAttr = weatherRadarElement.getAttribute('max-gain');
+    if (maxGainAttr) {
+      maxGain = Number(maxGainAttr);
+      if (!Number.isInteger(maxGain) || maxGain <= 0) {
+        console.warn('Invalid SensorsConfig definition: unrecognized weather radar minimum gain (must be a positive integer). Defaulting to 12.');
+        maxGain = 12;
+      }
+    }
+
     const electricLogicElement = weatherRadarElement.querySelector(':scope>Electric');
+
+    const scanActiveCircuitElement = weatherRadarElement.querySelector(':scope>ScanActiveCircuit');
+
+    let scanActiveCircuitIndex: number | undefined;
+    let scanActiveCircuitProcedureIndex: number | undefined;
+
+    if (scanActiveCircuitElement) {
+      scanActiveCircuitIndex = Number(scanActiveCircuitElement.getAttribute('circuit'));
+      if (!Number.isInteger(scanActiveCircuitIndex) || scanActiveCircuitIndex < 1) {
+        console.warn('Invalid SensorsConfig definition: unrecognized weather radar scan active circuit index (must be a positive integer).');
+        scanActiveCircuitIndex = undefined;
+      }
+
+      scanActiveCircuitProcedureIndex = Number(scanActiveCircuitElement.getAttribute('procedure'));
+      if (!Number.isInteger(scanActiveCircuitProcedureIndex) || scanActiveCircuitProcedureIndex < 1) {
+        console.warn('Invalid SensorsConfig definition: unrecognized weather radar scan active circuit procedure index (must be a positive integer).');
+        scanActiveCircuitProcedureIndex = undefined;
+      }
+    }
 
     return {
       horizontalScanWidth,
       supportExtendedColors,
-      electricity: electricLogicElement === null ? undefined : new CompositeLogicXMLElement(baseInstrument, electricLogicElement)
+      minGain,
+      maxGain,
+      electricity: electricLogicElement === null ? undefined : new CompositeLogicXMLElement(baseInstrument, electricLogicElement),
+      scanActiveCircuitIndex,
+      scanActiveCircuitProcedureIndex
     };
   }
 }

@@ -3,7 +3,7 @@ import {
   Vec2Math, Vec2Subject, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
-import { GarminMapKeys, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapRangeController, UnitsUserSettings } from '@microsoft/msfs-garminsdk';
+import { GarminMapKeys, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapRangeController, UnitsUserSettings, WindDataProvider } from '@microsoft/msfs-garminsdk';
 
 import { DisplayPanesUserSettings } from '../../Settings/DisplayPanesUserSettings';
 import { IauUserSettingManager } from '../../Settings/IauUserSettings';
@@ -26,6 +26,9 @@ export interface ConnextWeatherPaneViewProps extends DisplayPaneViewProps {
 
   /** The flight planner. */
   flightPlanner: FlightPlanner;
+
+  /** A provider of wind data. Required to display the map wind vector. */
+  windDataProvider?: WindDataProvider;
 
   /** A manager for all IAU user settings. */
   iauSettingManager: IauUserSettingManager;
@@ -61,6 +64,7 @@ export class ConnextWeatherPaneView extends DisplayPaneView<ConnextWeatherPaneVi
       rangeCompassOptions: {
         showLabel: true,
         showHeadingBug: true,
+        supportHeadingSync: true,
         bearingTickMajorLength: 10,
         bearingTickMinorLength: 5,
         bearingLabelFont: 'DejaVuSans-SemiBold',
@@ -70,6 +74,8 @@ export class ConnextWeatherPaneView extends DisplayPaneView<ConnextWeatherPaneVi
       flightPlanner: this.props.flightPlanner,
 
       ...MapBuilder.ownAirplaneIconOptions(this.props.config),
+
+      windDataProvider: this.props.windDataProvider,
 
       pointerBoundsOffset: VecNMath.create(4, 0.1, 0.1, 0.1, 0.1),
       pointerInfoSize: MapPointerInfoLayerSize.Full,

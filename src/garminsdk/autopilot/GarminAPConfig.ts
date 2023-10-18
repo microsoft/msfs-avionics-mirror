@@ -140,31 +140,11 @@ export class GarminAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
-  public createVariableBankManager(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
   public createHeadingDirector(apValues: APValues): APHdgDirector {
     return new APHdgDirector(this.bus, apValues, {
       maxBankAngle: () => apValues.maxBankId.get() === 1 ? Math.min(this.hdgMaxBankAngle, this.lowBankAngle) : this.hdgMaxBankAngle,
       turnReversalThreshold: this.hdgTurnReversalThreshold
     });
-  }
-
-  /** @inheritdoc */
-  createHeadingHoldDirector(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
-  createTrackDirector(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
-  createTrackHoldDirector(): undefined {
-    return undefined;
   }
 
   /** @inheritdoc */
@@ -218,13 +198,8 @@ export class GarminAPConfig implements APConfig {
   public createBcDirector(apValues: APValues): APBackCourseDirector {
     return new APBackCourseDirector(this.bus, apValues, {
       maxBankAngle: () => apValues.maxBankId.get() === 1 ? Math.min(this.locMaxBankAngle, this.lowBankAngle) : this.locMaxBankAngle,
-      lateralInterceptCurve: GarminAPConfig.navInterceptCurve
+      lateralInterceptCurve: (distanceToSource: number, deflection: number, xtk: number, tas: number) => GarminAPConfig.localizerInterceptCurve(xtk, tas)
     });
-  }
-
-  /** @inheritDoc */
-  public createRolloutDirector(): undefined {
-    return undefined;
   }
 
   /** @inheritdoc */
@@ -235,11 +210,6 @@ export class GarminAPConfig implements APConfig {
   /** @inheritdoc */
   public createVsDirector(apValues: APValues): APVSDirector {
     return new APVSDirector(apValues);
-  }
-
-  /** @inheritdoc */
-  public createFpaDirector(): undefined {
-    return undefined;
   }
 
   /** @inheritdoc */
@@ -279,11 +249,6 @@ export class GarminAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
-  public createFlareDirector(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
   public createToVerticalDirector(): PlaneDirector | undefined {
     //TODO: This value should be read in from the systems.cfg 'pitch_takeoff_ga' value
 
@@ -306,11 +271,6 @@ export class GarminAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
-  public createFmsLocLateralDirector(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
   public createNavToNavManager(apValues: APValues): GarminNavToNavManager {
     return new GarminNavToNavManager(this.bus, this.flightPlanner, apValues);
   }
@@ -326,7 +286,7 @@ export class GarminAPConfig implements APConfig {
    * @param isLoc Whether the source of the navigation signal is a localizer. Defaults to `false`.
    * @returns The intercept angle, in degrees, to capture the desired track from the navigation signal.
    */
-  private static navInterceptCurve(distanceToSource: number, deflection: number, xtk: number, tas: number, isLoc?: boolean): number {
+  private static navInterceptCurve(distanceToSource: number, deflection: number, xtk: number, tas: number, isLoc: boolean): number {
     if (isLoc) {
       return GarminAPConfig.localizerInterceptCurve(xtk, tas);
     } else {
@@ -405,6 +365,11 @@ export class GarminAPConfig implements APConfig {
    * @returns The calculated intercept angle, in degrees.
    */
   private static calculateTurnBasedInterceptAngle(turnRadius: number, xtk: number): number {
-    return UnitType.RADIAN.convertTo(Math.acos(NavMath.clamp((turnRadius - Math.abs(xtk)) / turnRadius, -1, 1)), UnitType.DEGREE) / 2;
+    // The following formula is derived by solving for the intercept angle in Euclidean rather than spherical space.
+    // The error from this simplification is negligible when turn radius and cross-track are small (less than 1% of
+    // earth radius, or ~63km).
+    // The Euclidean solution is chosen over the spherical one: asin(sin(xtk) / sqrt(1 - (1 - sin(xtk) * tan(radius))^2))
+    // for performance reasons.
+    return Math.asin(Math.min(Math.sqrt(Math.abs(xtk) / (2 * turnRadius)), 1)) * Avionics.Utils.RAD2DEG;
   }
 }

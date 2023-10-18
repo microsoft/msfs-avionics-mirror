@@ -159,7 +159,7 @@ export class FmsPos {
 /**
  * The FMS POS state events.
  */
-interface FmsPosEvents {
+export interface FmsPosEvents {
   /** Indicating if FMS pos has been initialized */
   fms_pos_initialized: boolean,
   /** Indicating if the FMS pos is valid */

@@ -196,12 +196,14 @@ export interface FlightPlanPredictionsProvider {
    *
    * **Note:** The object reference returned by this method is not safe to keep around or mutate.
    *
-   * @param time the time used to predict the distance, in UNIX timestamp seconds
+   * @param time the time used to predict the distance, in UNIX timestamp seconds.
+   * @param predictActiveLeg Whether to use the current aircraft state to predict the active leg.
+   * Defaults to false.
    *
    * @returns a {@link Predictions} object, or `undefined` if no prediction is
    * available (for example, if the time will never be reached)
    */
-  getPredictionsForTime(time: number): Readonly<Predictions> | undefined;
+  getPredictionsForTime(time: number, predictActiveLeg?: boolean): Readonly<Predictions> | undefined;
 
   /**
    * Returns a prediction at the point at which the given altitude will be reached
@@ -209,11 +211,13 @@ export interface FlightPlanPredictionsProvider {
    * **Note:** The object reference returned by this method is not safe to keep around or mutate.
    *
    * @param altitude the altitude used to predict the time, in metres
+   * @param predictActiveLeg Whether to use the current aircraft state to predict the active leg.
+   * Defaults to false.
    *
    * @returns a {@link Predictions} object, or `undefined` if no prediction is
    * available (for example, if the altitude will never be reached)
    **/
-  getPredictionsForAltitude(altitude: number): Readonly<Predictions> | undefined;
+  getPredictionsForAltitude(altitude: number, predictActiveLeg?: boolean): Readonly<Predictions> | undefined;
 
   /**
    * Returns a prediction at the point at which the given distance (along track from aircraft present position) will be reached
@@ -221,11 +225,13 @@ export interface FlightPlanPredictionsProvider {
    * **Note:** The object reference returned by this method is not safe to keep around or mutate.
    *
    * @param distance the distance used to predict the time, in metres
+   * @param predictActiveLeg Whether to use the current aircraft state to predict the active leg.
+   * Defaults to false.
    *
    * @returns a {@link Predictions} object, or `undefined` if no prediction is
    * available (for example, if the distance will never be reached)
    **/
-  getPredictionsForDistance(distance: number): Readonly<Predictions> | undefined;
+  getPredictionsForDistance(distance: number, predictActiveLeg?: boolean): Readonly<Predictions> | undefined;
 
   /**
    * Fires when any predictions have been updated.

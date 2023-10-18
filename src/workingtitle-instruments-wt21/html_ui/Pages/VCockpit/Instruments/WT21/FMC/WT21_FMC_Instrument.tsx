@@ -8,6 +8,7 @@
 import {
   AdcPublisher, AhrsPublisher, APEvents, APRadioNavInstrument, AutopilotInstrument, BaseInstrumentPublisher, Clock, ClockEvents,
   ControlPublisher, EISPublisher, ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner, FsInstrument,
+  GameStateProvider,
   GNSSPublisher, GpsSynchronizer, InstrumentBackplane, LNavSimVarPublisher, NavComEvents, NavComSimVarPublisher, NavSourceType,
   SimVarValueType, SmoothingPathCalculator, Subject, UserSettingSaveManager, VNavSimVarPublisher, Wait, XPDRInstrument
 } from '@microsoft/msfs-sdk';
@@ -53,7 +54,7 @@ import { DepArrPage } from './Pages/DepArrPage';
 import { DirectToHistoryPage } from './Pages/DirectToHistoryPage';
 import { DirectToPage } from './Pages/DirectToPage';
 import { DisplayMenu } from './Pages/DisplayMenuPage';
-import { FixInfoPage } from './Pages/FixInfoPage';
+import { FixInfoPage } from './Pages/FixInfo/FixInfoPage';
 import { FlightLogPage } from './Pages/FlightLogPage';
 import { FplnHoldPage } from './Pages/FplnHoldPage';
 import { FplnPage } from './Pages/FplnPage';
@@ -76,6 +77,7 @@ import { StatusPage } from './Pages/StatusPage';
 import { TakeoffRefPage } from './Pages/TakeoffRefPage';
 import { TCASPage } from './Pages/TCASPage';
 import { TunePage } from './Pages/TunePage';
+import { UserSettingsPage } from './Pages/UserSettingsPage';
 import { VNAVSetupPage } from './Pages/VNAVSetupPage';
 import { VORDMECTLPage } from './Pages/VORDMECTLPage';
 import { CommunicationTypePage } from './Pages/CommunicationTypePage';
@@ -95,6 +97,9 @@ import { PFDUserSettings } from '../PFD/PFDUserSettings';
 import { WT21VorManager } from './Systems/WT21VorManager';
 import { WT21FlightLogger } from './Systems/WT21FlightLogger';
 import { DefaultsUserSettings } from '../Shared/Profiles/DefaultsUserSettings';
+import { RouteMenuPage } from './Pages/RouteMenuPage';
+import { WT21FixInfoManager } from './Systems/WT21FixInfoManager';
+import { WT21FixInfoConfig } from './Systems/WT21FixInfoConfig';
 
 /**
  * The WT21 FMC Instrument
@@ -150,6 +155,7 @@ export class WT21_FMC_Instrument implements FsInstrument {
   private messageManager!: MessageManager;
   private vorManager!: WT21VorManager;
   public readonly flightLogger: WT21FlightLogger;
+  private readonly fixInfoManager: WT21FixInfoManager;
 
   // private readonly wt21Watson = new WT21Watson();
 
@@ -245,8 +251,10 @@ export class WT21_FMC_Instrument implements FsInstrument {
 
     this.clock.init();
 
+    // FIXME Add route predictor when FlightPlanPredictor refactored to implement FlightPlanPredictionsProvider
+    this.fixInfoManager = new WT21FixInfoManager(this.bus, this.facLoader, WT21Fms.PRIMARY_ACT_PLAN_INDEX, this.planner, WT21FixInfoConfig /*, this.activeRoutePredictor*/);
     this.fmsPos = new FmsPos(this.bus, this.messageService);
-    this.fms = new WT21Fms(this.bus, this.planner, this.fmsPos, this.verticalPathCalculator, this.messageService);
+    this.fms = new WT21Fms(this.bus, this.planner, this.fmsPos, this.verticalPathCalculator, this.messageService, this.fixInfoManager);
     this.speedConstraintStore = new WT21SpeedConstraintStore(this.bus, this.planner);
     this.fmcMsgLine = new FmcMsgLine(this.fms.planInMod, this.fmcRenderer);
     this.fmsMsgInfo = new FmcMsgInfo(this.bus, this.fmcMsgLine);
@@ -339,6 +347,7 @@ export class WT21_FMC_Instrument implements FsInstrument {
       .add('/status', StatusPage, FmcPageEvent.PAGE_STATUS)
       .add('/pos-init', PosInitPage, FmcPageEvent.PAGE_POSINIT)
       .add('/datalink-menu', DataLinkMenuPage, FmcPageEvent.PAGE_DATALINKMENU)
+      .add('/route-menu', RouteMenuPage, FmcPageEvent.PAGE_DATALINKMENU)
       .add('/dl-weather', WeatherPage, FmcPageEvent.PAGE_WEATHER)
       .add('/dl-terminalwx-req', WeatherRequestTermWxPage, FmcPageEvent.PAGE_TERMWX_REQ)
       .add('/dl-terminalwx-view', WeatherViewTermWxPage, FmcPageEvent.PAGE_TERMWX_VIEW)
@@ -350,6 +359,7 @@ export class WT21_FMC_Instrument implements FsInstrument {
       .add('/comm-type', CommunicationTypePage)
       .add('/fix', FixInfoPage, FmcPageEvent.PAGE_FIX)
       .add('/prog', ProgPage, FmcPageEvent.PAGE_PROG)
+      .add('/user-set', UserSettingsPage, FmcPageEvent.PAGE_USERSETTINGS)
 
       .add('/perf-menu', PerfMenuPage, FmcPageEvent.PAGE_PERF)
       .add('/perf-init', PerfInitPage, FmcPageEvent.PAGE_PERFINIT)
@@ -372,6 +382,7 @@ export class WT21_FMC_Instrument implements FsInstrument {
       .add('/msg', MessagesPage, FmcPageEvent.PAGE_MSG)
 
       .add('/select-wpt', FmcSelectWptPopup);
+
 
     this.router.hookup();
 
@@ -416,9 +427,11 @@ export class WT21_FMC_Instrument implements FsInstrument {
     this.vNavPublisher = new VNavSimVarPublisher(this.bus);
     this.backplane.addPublisher('vnav', this.vNavPublisher);
 
-    const apUpdateFnc = (): void => { this.ap.update(); };
-    this.bus.getSubscriber<ClockEvents>().on('simTimeHiFreq').handle(apUpdateFnc);
-
+    Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.briefing || state === GameState.ingame).then(() => {
+      this.bus.getSubscriber<ClockEvents>().on('simTimeHiFreq').handle(() => {
+        this.ap.update();
+      });
+    });
   }
 
   private lastCalculate = 0;

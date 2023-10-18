@@ -13,6 +13,7 @@ import { ActiveWaypointIcon } from './ActiveWaypoint';
 import { FlightPathWaypointLabel } from './FlightPathWaypointLabel';
 import { MapTrafficIntruderIcon } from './MapTrafficIntruderIcon';
 import { MapUserSettings, MapWaypointsDisplay, PfdOrMfd } from './MapUserSettings';
+import { WT21MapWaypointIconPriority } from './MapSystemCommon';
 
 ImageCache.addToCache('AIRPORT', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/airport_c.png');
 ImageCache.addToCache('INTERSECTION', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/intersection.png');
@@ -181,7 +182,7 @@ export class MapSystemConfig {
     return (w: FacilityWaypoint): MapCullableLocationTextLabel => {
       return new MapCullableLocationTextLabel(
         ICAO.getIdent(w.facility.get().icao),
-        0,
+        WT21MapWaypointIconPriority.Bottom,
         w.location,
         false,
         { fontSize: 24, fontColor: color, font: 'WT21', anchor: new Float64Array([-0.35, 0.4]) }
@@ -205,7 +206,7 @@ export class MapSystemConfig {
    * @param priority he render priority of this icon.
    * @returns A factory that builds the image icon.
    */
-  private static buildIcon(id: string, priority = 0): (w: Waypoint) => MapWaypointImageIcon<any> {
+  private static buildIcon(id: string, priority = WT21MapWaypointIconPriority.Bottom): (w: Waypoint) => MapWaypointImageIcon<any> {
     return (w: Waypoint): MapWaypointImageIcon<any> => new MapWaypointImageIcon(w, priority, ImageCache.get(id), MapSystemConfig.ICON_SIZE);
   }
 
@@ -282,12 +283,12 @@ export class MapSystemConfig {
       builder.registerRole(PlanWaypointRoles.Active)
         .registerRole(PlanWaypointRoles.Ahead)
         .registerRole(PlanWaypointRoles.From)
-        .addDefaultIcon(PlanWaypointRoles.Ahead, MapSystemConfig.buildIcon('FLIGHTPLAN', 999))
+        .addDefaultIcon(PlanWaypointRoles.Ahead, MapSystemConfig.buildIcon('FLIGHTPLAN', WT21MapWaypointIconPriority.FlightPlan))
         .addDefaultIcon(PlanWaypointRoles.Active, w => {
           currentActiveWaypointIcon = new ActiveWaypointIcon(w, 999, ImageCache.get('FLIGHTPLAN_M'), MapSystemConfig.ICON_SIZE);
           return currentActiveWaypointIcon;
         })
-        .addDefaultIcon(PlanWaypointRoles.From, MapSystemConfig.buildIcon('FLIGHTPLAN_C', 999))
+        .addDefaultIcon(PlanWaypointRoles.From, MapSystemConfig.buildIcon('FLIGHTPLAN_C', WT21MapWaypointIconPriority.FlightPlan))
         .addDefaultLabel(PlanWaypointRoles.Ahead, MapSystemConfig.buildFlightPlanLabel(WT21_PFD_MFD_Colors.white, settings.getSetting('mapWaypointsDisplay')))
         .addDefaultLabel(PlanWaypointRoles.Active, (w: FlightPathWaypoint) => {
           currentActiveWaypointLabel = new FlightPathWaypointLabel(w, settings.getSetting('mapWaypointsDisplay'), { fontSize: 24, fontColor: WT21_PFD_MFD_Colors.magenta, font: 'WT21' });

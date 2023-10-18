@@ -515,8 +515,6 @@ export class GarminVNavManager2 implements VNavManager {
     }
     this.disarmClimb();
     this.resetGpVars();
-    this.resetVNavConstraintVars();
-    this.resetVNavPhase();
     this.resetVNavTrackingVars();
     this.resetTodBodVars();
     this.resetTocBocVars();
@@ -624,6 +622,8 @@ export class GarminVNavManager2 implements VNavManager {
 
     if (!this.flightPlanner.hasFlightPlan(this.primaryPlanIndex)) {
       this.failed();
+      this.resetVNavPhase();
+      this.resetVNavConstraintVars();
       return;
     }
 
@@ -638,97 +638,352 @@ export class GarminVNavManager2 implements VNavManager {
       lateralPlan.length > 0
       && lateralLegIndex < lateralPlan.length
       && VNavUtils.verticalPlanHasLeg(verticalPlan, lateralLegIndex)
-      && this.currentGroundSpeed >= 30
     ) {
-      this.updateTrackErrorState();
 
       const currentConstraintIndex = VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, lateralLegIndex);
       const currentConstraint = verticalPlan.constraints[currentConstraintIndex] as VNavConstraint | undefined;
 
-      const trackError = this.noVNavTae.get() || this.noVNavXtk.get();
+      const firstDescentConstraintIndex = this.firstDescentConstraintLegIndex < 0
+        ? -1
+        : VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, this.firstDescentConstraintLegIndex);
 
-      // If there is no active constraint (meaning we've passed the last constraint in the flight plan or there are no
-      // constraints in the flight plan), then switch to FLC mode if it is armed.
-      if (
-        !currentConstraint
-        && this.isClimbArmed
-        && this.apValues.selectedAltitude.get() > this.capturedAltitude
-      ) {
-        this.capturedAltitude = Number.POSITIVE_INFINITY;
-        this.isAltCaptured = false;
-        this.isClimbArmed = false;
-        this.activateMode && this.activateMode(APVerticalModes.FLC);
-      }
+      const isInDeparture = lateralPlan.getSegment(lateralPlan.getSegmentIndex(lateralLegIndex)).segmentType === FlightPlanSegmentType.Departure;
+      const isInMapr = this.activateMaprState.get() || BitFlags.isAll(lateralPlan.getLeg(lateralLegIndex).flags, LegDefinitionFlags.MissedApproach);
 
-      if (this.state === VNavState.Disabled || !currentConstraint) {
-        this._isActive = false;
-        this.disarmClimb();
-        this.disarmPath();
-        this.resetVNavConstraintVars();
-        this.resetVNavTrackingVars();
-        this.resetTodBodVars();
-        this.resetTocBocVars();
-        this.activePathConstraintIndex = -1;
-        this.awaitingPathRearm = false;
-        this.pathRearmIndex = -1;
+      if (this.currentGroundSpeed >= 30) {
+        this.updateTrackErrorState();
 
-        // Need to handle phase logic if VNAV is not disabled
-        if (this.state !== VNavState.Disabled) {
-          const hasClimbConstraint = this.lastClimbConstraintLegIndex >= 0;
-          const hasDescentConstraint = this.firstDescentConstraintLegIndex >= 0;
+        const trackError = this.noVNavTae.get() || this.noVNavXtk.get();
 
-          if (!hasClimbConstraint && !hasDescentConstraint) {
-            // There are no constraints in the flight plan.
-            this.resetVNavPhase();
-          } else {
-            const isInMapr = BitFlags.isAll(lateralPlan.getLeg(lateralLegIndex).flags, LegDefinitionFlags.MissedApproach);
+        // If there is no active constraint (meaning we've passed the last constraint in the flight plan or there are no
+        // constraints in the flight plan), then switch to FLC mode if it is armed.
+        if (
+          !currentConstraint
+          && this.isClimbArmed
+          && this.apValues.selectedAltitude.get() > this.capturedAltitude
+        ) {
+          this.capturedAltitude = Number.POSITIVE_INFINITY;
+          this.isAltCaptured = false;
+          this.isClimbArmed = false;
+          this.activateMode && this.activateMode(APVerticalModes.FLC);
+        }
 
-            if (lateralPlan.getSegment(lateralPlan.getSegmentIndex(lateralLegIndex)).segmentType === FlightPlanSegmentType.Departure) {
-              // We are in the departure (SID).
-              this.vnavFlightPhase.set(GarminVNavFlightPhase.Climb);
-              this.vnavTrackingPhase.set(hasDescentConstraint ? GarminVNavTrackingPhase.Descent : GarminVNavTrackingPhase.Climb);
-            } else if (hasDescentConstraint) {
-              // There is at least one descent constraint in the flight plan and we must be past it.
-              this.vnavFlightPhase.set(GarminVNavFlightPhase.Descent);
-              this.vnavTrackingPhase.set(isInMapr ? GarminVNavTrackingPhase.MissedApproach : GarminVNavTrackingPhase.Descent);
+        if (this.state === VNavState.Disabled || !currentConstraint) {
+          this._isActive = false;
+          this.disarmClimb();
+          this.disarmPath();
+          this.resetVNavConstraintVars();
+          this.resetVNavTrackingVars();
+          this.resetTodBodVars();
+          this.resetTocBocVars();
+          this.activePathConstraintIndex = -1;
+          this.awaitingPathRearm = false;
+          this.pathRearmIndex = -1;
+
+          // Need to handle phase logic if VNAV is not disabled
+          if (this.state !== VNavState.Disabled) {
+            const hasClimbConstraint = this.lastClimbConstraintLegIndex >= 0;
+            const hasDescentConstraint = this.firstDescentConstraintLegIndex >= 0;
+
+            if (!hasClimbConstraint && !hasDescentConstraint) {
+              // There are no constraints in the flight plan.
+              this.resetVNavPhase();
             } else {
-              // There are no descent constraints in the flight plan but at least one climb constraint and we must be past it.
-              if (this.currentAltitude >= this.cruiseAltitude.get() - GarminVNavManager2.CRUISE_PHASE_ALTITUDE_THRESHOLD) {
-                this.vnavFlightPhase.set(GarminVNavFlightPhase.Cruise);
-                this.vnavTrackingPhase.set(isInMapr ? GarminVNavTrackingPhase.MissedApproach : GarminVNavTrackingPhase.Cruise);
-              } else {
+              if (isInDeparture) {
+                // We are in the departure (SID).
                 this.vnavFlightPhase.set(GarminVNavFlightPhase.Climb);
-                this.vnavTrackingPhase.set(isInMapr ? GarminVNavTrackingPhase.MissedApproach : GarminVNavTrackingPhase.Climb);
+                this.vnavTrackingPhase.set(hasDescentConstraint ? GarminVNavTrackingPhase.Descent : GarminVNavTrackingPhase.Climb);
+              } else if (hasDescentConstraint) {
+                // There is at least one descent constraint in the flight plan and we must be past it.
+                this.vnavFlightPhase.set(GarminVNavFlightPhase.Descent);
+                this.vnavTrackingPhase.set(isInMapr ? GarminVNavTrackingPhase.MissedApproach : GarminVNavTrackingPhase.Descent);
+              } else {
+                // There are no descent constraints in the flight plan but at least one climb constraint and we must be past it.
+                if (this.currentAltitude >= this.cruiseAltitude.get() - GarminVNavManager2.CRUISE_PHASE_ALTITUDE_THRESHOLD) {
+                  this.vnavFlightPhase.set(GarminVNavFlightPhase.Cruise);
+                  this.vnavTrackingPhase.set(isInMapr ? GarminVNavTrackingPhase.MissedApproach : GarminVNavTrackingPhase.Cruise);
+                } else {
+                  this.vnavFlightPhase.set(GarminVNavFlightPhase.Climb);
+                  this.vnavTrackingPhase.set(isInMapr ? GarminVNavTrackingPhase.MissedApproach : GarminVNavTrackingPhase.Climb);
+                }
               }
             }
+          } else {
+            this.resetVNavPhase();
           }
         } else {
-          this.resetVNavPhase();
+          const currentAltitudeMetric = UnitType.FOOT.convertTo(this.currentAltitude, UnitType.METER);
+          const currentVSMetric = UnitType.FPM.convertTo(this.currentVS, UnitType.MPM);
+
+          // Compute TOD/BOD and (if supported) TOC/BOC details.
+
+          const todBodDetails = GarminVNavUtils.getTodBodDetails(
+            verticalPlan, currentConstraintIndex, lateralLegIndex, alongLegDistance, currentAltitudeMetric, currentVSMetric, this.todBodDetails
+          );
+
+          // Update VNAV flight and tracking phases.
+
+          const isPastTod = this.firstDescentConstraintLegIndex >= 0 && firstDescentConstraintIndex >= 0 // There is at least one descent constraint and...
+            && (
+              // ... we are past the first descent constraint...
+              lateralLegIndex > this.firstDescentConstraintLegIndex
+              // ... or we are within threshold distance of TOD
+              || (todBodDetails.todLegIndex >= 0 && todBodDetails.distanceFromTod <= GarminVNavManager2.DESCENT_PHASE_TOD_DISTANCE)
+              // ... or we are within threshold distance of the first descent constraint
+              || (
+                GarminVNavUtils.getDistanceToConstraint(
+                  verticalPlan,
+                  firstDescentConstraintIndex,
+                  lateralLegIndex,
+                  alongLegDistance
+                ) <= GarminVNavManager2.DESCENT_PHASE_TOD_DISTANCE
+              )
+            );
+          const isInCruise = lateralLegIndex > this.lastClimbConstraintLegIndex // We have sequenced all climb constraints and...
+            // ... we are within threshold vertical distance of the cruise altitude
+            && this.currentAltitude >= this.cruiseAltitude.get() - GarminVNavManager2.CRUISE_PHASE_ALTITUDE_THRESHOLD;
+
+          // VNAV flight phase:
+          // Climb: in departure segment or airplane has not yet sequenced all climb constraints (excluding the ones in
+          //        the missed approach) or airplane is more than 500 feet below the cruise altitude.
+          // Cruise: airplane is not in the departure segment and has sequenced all climb constraints (excluding the ones
+          //         in the missed approach) and the airplane is higher than 500 feet below the cruise altitude.
+          // Descent: airplane is at or past 10 NM to go to the first TOD in the flight plan.
+
+          if (isInDeparture) {
+            this.vnavFlightPhase.set(GarminVNavFlightPhase.Climb);
+          } else if (isPastTod) {
+            this.vnavFlightPhase.set(GarminVNavFlightPhase.Descent);
+          } else if (isInCruise) {
+            this.vnavFlightPhase.set(GarminVNavFlightPhase.Cruise);
+          } else {
+            this.vnavFlightPhase.set(GarminVNavFlightPhase.Climb);
+          }
+
+          // VNAV tracking phase (determines whether VNAV will track climb or descent):
+
+          if (this.options.enableAdvancedVNav) {
+            // Climb: airplane is not past 10 NM to go to the first TOD in the flight plan and has not sequenced all
+            //        climb constraints or is lower than 500 feet below the cruise altitude.
+            // Cruise: airplane has sequenced all climb constraints (excluding the ones in the missed approach) and the
+            //         airplane is higher than 500 feet below the cruise altitude.
+            // Descent: airplane is at or past 10 NM to go to the first TOD in the flight plan and is not in the missed
+            //          approach.
+            // Missed approach: airplane is in the missed approach.
+
+            if (isInMapr) {
+              this.vnavTrackingPhase.set(GarminVNavTrackingPhase.MissedApproach);
+            } else if (isPastTod) {
+              this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Descent);
+            } else if (isInCruise) {
+              this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Cruise);
+            } else {
+              this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Climb);
+            }
+          } else {
+            // Cruise: default phase.
+            // Descent: airplane is at or past 10 NM to go to the first TOD in the flight plan.
+
+            if (isPastTod) {
+              this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Descent);
+            } else {
+              this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Cruise);
+            }
+          }
+
+          const vnavTrackingPhase = this.vnavTrackingPhase.get();
+          const inClimb = vnavTrackingPhase === GarminVNavTrackingPhase.Climb || vnavTrackingPhase === GarminVNavTrackingPhase.MissedApproach;
+
+          this.currentConstraintLegIndex.set(currentConstraint.index);
+
+          // Find the constraint matching the current tracking phase that applies to the active flight plan leg.
+          let currentPhaseConstraintIndex: number;
+          if (isInMapr) {
+            currentPhaseConstraintIndex = currentConstraint.type === 'missed'
+              ? currentConstraintIndex
+              : VNavUtils.getNextMaprConstraintIndex(verticalPlan, lateralLegIndex);
+          } else if (inClimb) {
+            currentPhaseConstraintIndex = currentConstraint.type === 'climb'
+              ? currentConstraintIndex
+              : VNavUtils.getNextClimbConstraintIndex(verticalPlan, lateralLegIndex);
+          } else {
+            currentPhaseConstraintIndex = currentConstraint.type !== 'climb' && currentConstraint.type !== 'missed'
+              ? currentConstraintIndex
+              : VNavUtils.getNextDescentConstraintIndex(verticalPlan, lateralLegIndex);
+          }
+          const currentPhaseConstraint = verticalPlan.constraints[currentPhaseConstraintIndex] as VNavConstraint | undefined;
+
+          if (trackError) {
+            // If one or more LNAV track error limits have been exceeded, reset all vertical tracking data but still
+            // publish constraint data (current + active constraint and FPA).
+
+            this._isActive = false;
+            this.disarmClimb();
+            this.disarmPath();
+            this.resetVNavTrackingVars();
+            this.resetTodBodVars();
+            this.resetTocBocVars();
+
+            if (inClimb) {
+              // The active constraint is the current phase constraint.
+
+              this.vnavActiveConstraintLegIndex.set(currentPhaseConstraint === undefined ? -1 : currentPhaseConstraint.index);
+              this.fpa.set(null);
+            } else {
+              // The active constraint and FPA are based on the last known active path constraint, if one exists and does
+              // not precede (in flight plan order) the current constraint (the constraint containing the active flight
+              // plan leg). Otherwise, they are based on the current phase constraint.
+
+              const activeConstraintIndex = this.activePathConstraintIndex < 0 || this.activePathConstraintIndex > currentConstraintIndex
+                ? currentPhaseConstraintIndex
+                : this.activePathConstraintIndex;
+
+              const activeConstraint = verticalPlan.constraints[activeConstraintIndex] as VNavConstraint | undefined;
+              if (activeConstraint) {
+                this.vnavActiveConstraintLegIndex.set(activeConstraint.index);
+                this.fpa.set(activeConstraint.fpa);
+              } else {
+                this.vnavActiveConstraintLegIndex.set(-1);
+                this.fpa.set(null);
+              }
+            }
+          } else {
+
+            // If we are in the climb or missed approach tracking phases and advanced VNAV is supported, calculate
+            // TOC/BOC details. Otherwise blank the TOC/BOC details.
+
+            const tocBocDetails = this.tocBocDetails;
+            if (inClimb && this.options.enableAdvancedVNav) {
+              GarminVNavUtils.getTocBocDetails(
+                verticalPlan,
+                currentConstraintIndex,
+                lateralLegIndex, alongLegDistance,
+                this.currentGroundSpeed, currentAltitudeMetric, currentVSMetric,
+                isInMapr,
+                this.tocBocDetails
+              );
+
+              // If TOC and BOC are defined, check if the airplane's current altitude is above the BOC suppression threshold
+              // and suppress the BOC as appropriate.
+              if (
+                tocBocDetails.tocLegIndex >= 0
+                && tocBocDetails.bocLegIndex >= 0
+                && currentAltitudeMetric > tocBocDetails.tocAltitude + GarminVNavManager2.BOC_SUPPRESS_ALTITUDE_THRESHOLD
+              ) {
+                tocBocDetails.bocLegIndex = -1;
+                tocBocDetails.distanceFromBoc = 0;
+              }
+
+              // If TOC is defined, check if the airplane's current altitude is above the TOC suppression threshold and
+              // suppress the TOC as appropriate.
+              if (
+                tocBocDetails.tocLegIndex >= 0
+                && currentAltitudeMetric >= tocBocDetails.tocAltitude - GarminVNavManager2.TOC_SUPPRESS_ALTITUDE_THRESHOLD
+              ) {
+                tocBocDetails.tocLegIndex = -1;
+                tocBocDetails.distanceFromToc = 0;
+                tocBocDetails.tocLegDistance = 0;
+                tocBocDetails.tocConstraintIndex = -1;
+                tocBocDetails.tocAltitude = -1;
+              }
+            } else {
+              GarminVNavUtils.getTocBocDetails(
+                verticalPlan,
+                -1,
+                lateralLegIndex, alongLegDistance,
+                this.currentGroundSpeed, currentAltitudeMetric, currentVSMetric,
+                isInMapr,
+                this.tocBocDetails
+              );
+            }
+
+            // Publish TOD/BOD and TOC/BOC data.
+            this.manageTodBodTocBocDetails(lateralLegIndex, todBodDetails, tocBocDetails);
+
+            let activeConstraintIndex = -1;
+            let activePathConstraintIndex = -1;
+            let timeToTodSeconds: number | undefined;
+
+            // If we are in a descent and have a valid TOD (i.e. there exists a valid descent path that is capturable by
+            // V PATH), then we need to designate the active path constraint. If we are within 1 min of the TOD or past
+            // the TOD, then the active path constraint is the constraint defining the descent path that the TOD lies on.
+            // Otherwise, the active path constraint is the current constraint (the constraint containing the active
+            // flight plan leg).
+            if (!inClimb && todBodDetails.todConstraintIndex >= 0) {
+              timeToTodSeconds = UnitType.METER.convertTo(todBodDetails.distanceFromTod, UnitType.NMILE) / this.currentGroundSpeed * 3600;
+
+              if (currentConstraintIndex <= todBodDetails.todConstraintIndex) {
+                activePathConstraintIndex = currentConstraintIndex;
+              } else {
+                const activePathTodTimeThreshold = GarminVNavManager2.ACTIVE_PATH_TOD_TIME_THRESHOLD
+                  + (this.activePathConstraintIndex === todBodDetails.todConstraintIndex ? GarminVNavManager2.ACTIVE_PATH_TOD_TIME_HYSTERESIS : 0);
+
+                if (timeToTodSeconds <= activePathTodTimeThreshold) {
+                  activePathConstraintIndex = todBodDetails.todConstraintIndex;
+                }
+              }
+            }
+
+            this.activePathConstraintIndex = activePathConstraintIndex;
+
+            // If we are tracking a climb or there is no active path constraint, the current phase constraint is the active
+            // constraint; otherwise the active path constraint is the active constraint.
+            if (inClimb || activePathConstraintIndex < 0) {
+              if (currentPhaseConstraint) {
+                activeConstraintIndex = currentPhaseConstraintIndex;
+                this.vnavActiveConstraintLegIndex.set(currentPhaseConstraint.index);
+              } else {
+                activeConstraintIndex = -1;
+                this.vnavActiveConstraintLegIndex.set(-1);
+              }
+            } else {
+              activeConstraintIndex = activePathConstraintIndex;
+              this.vnavActiveConstraintLegIndex.set(verticalPlan.constraints[activePathConstraintIndex].index);
+            }
+
+            if (activePathConstraintIndex >= 0) {
+              this.disarmClimb();
+            }
+
+            this._isActive = this.state === VNavState.Enabled_Active;
+
+            if (!inClimb && !this.isClimbArmed) {
+              const activeConstraint = verticalPlan.constraints[activeConstraintIndex];
+              this.fpa.set(activeConstraint === undefined ? null : activeConstraint.fpa);
+              this.setCurrentConstraintDetails(verticalPlan, activeConstraintIndex, lateralLegIndex);
+              this.pathAvailable.set(true);
+              this.trackDescent(verticalPlan, lateralPlan, todBodDetails, activeConstraintIndex, activePathConstraintIndex);
+            } else if (this.options.enableAdvancedVNav && (inClimb || this.isClimbArmed)) {
+              if (this._isActive) {
+                this.disarmPath();
+              }
+
+              this.fpa.set(null);
+              this.setCurrentConstraintDetails(verticalPlan, activeConstraintIndex, lateralLegIndex);
+              this.pathAvailable.set(false);
+              this.trackClimb(verticalPlan, lateralPlan, tocBocDetails, activeConstraintIndex);
+            } else {
+              if (this._isActive) {
+                this.disarmPath();
+              }
+
+              this.fpa.set(null);
+              this.resetVNavTrackingVars();
+            }
+          }
         }
+
+        this.apValues.approachHasGP.set(this.manageGP(lateralPlan, alongLegDistance));
       } else {
-        const currentAltitudeMetric = UnitType.FOOT.convertTo(this.currentAltitude, UnitType.METER);
-        const currentVSMetric = UnitType.FPM.convertTo(this.currentVS, UnitType.MPM);
+        // Ground speed is less than 30 knots. In this case we will fail VNAV, but still publish phase data and
+        // current/active constraint data.
 
-        // Compute TOD/BOD and (if supported) TOC/BOC details.
+        this.failed();
 
-        const todBodDetails = GarminVNavUtils.getTodBodDetails(
-          verticalPlan, currentConstraintIndex, lateralLegIndex, alongLegDistance, currentAltitudeMetric, currentVSMetric, this.todBodDetails
-        );
-
-        // Update VNAV flight and tracking phases.
-
-        const firstDescentConstraintIndex = this.firstDescentConstraintLegIndex < 0
-          ? -1
-          : VNavUtils.getConstraintIndexFromLegIndex(verticalPlan, this.firstDescentConstraintLegIndex);
-
-        const isInDeparture = lateralPlan.getSegment(lateralPlan.getSegmentIndex(lateralLegIndex)).segmentType === FlightPlanSegmentType.Departure;
-        const isInMapr = this.activateMaprState.get() || BitFlags.isAll(lateralPlan.getLeg(lateralLegIndex).flags, LegDefinitionFlags.MissedApproach);
         const isPastTod = this.firstDescentConstraintLegIndex >= 0 && firstDescentConstraintIndex >= 0 // There is at least one descent constraint and...
           && (
             // ... we are past the first descent constraint...
             lateralLegIndex > this.firstDescentConstraintLegIndex
-            // ... or we are within threshold distance of TOD
-            || (todBodDetails.todLegIndex >= 0 && todBodDetails.distanceFromTod <= GarminVNavManager2.DESCENT_PHASE_TOD_DISTANCE)
             // ... or we are within threshold distance of the first descent constraint
             || (
               GarminVNavUtils.getDistanceToConstraint(
@@ -739,232 +994,70 @@ export class GarminVNavManager2 implements VNavManager {
               ) <= GarminVNavManager2.DESCENT_PHASE_TOD_DISTANCE
             )
           );
-        const isInCruise = lateralLegIndex > this.lastClimbConstraintLegIndex // We have sequenced all climb constraints and...
-          // ... we are within threshold vertical distance of the cruise altitude
-          && this.currentAltitude >= this.cruiseAltitude.get() - GarminVNavManager2.CRUISE_PHASE_ALTITUDE_THRESHOLD;
+
+        const isCurrentConstraintClimb = currentConstraint && (currentConstraint.type === 'climb' || currentConstraint.type === 'missed');
 
         // VNAV flight phase:
-        // Climb: in departure segment or airplane has not yet sequenced all climb constraints (excluding the ones in
-        //        the missed approach) or airplane is more than 500 feet below the cruise altitude.
-        // Cruise: airplane is not in the departure segment and has sequenced all climb constraints (excluding the ones
-        //         in the missed approach) and the airplane is higher than 500 feet below the cruise altitude.
-        // Descent: airplane is at or past 10 NM to go to the first TOD in the flight plan.
+        // Climb: in departure segment or the current constraint is a climb constraint.
+        // Cruise: airplane is not in the departure segment and the current constraint is not a climb constraint.
+        // Descent: airplane is at or past 10 NM to go to the first descent constraint in the flight plan or is in the
+        //          missed approach.
 
         if (isInDeparture) {
           this.vnavFlightPhase.set(GarminVNavFlightPhase.Climb);
-        } else if (isPastTod) {
+        } else if (isPastTod || isInMapr) {
           this.vnavFlightPhase.set(GarminVNavFlightPhase.Descent);
-        } else if (isInCruise) {
-          this.vnavFlightPhase.set(GarminVNavFlightPhase.Cruise);
-        } else {
+        } else if (isCurrentConstraintClimb) {
           this.vnavFlightPhase.set(GarminVNavFlightPhase.Climb);
+        } else {
+          this.vnavFlightPhase.set(GarminVNavFlightPhase.Cruise);
         }
 
-        // VNAV tracking phase (determines whether VNAV will track climb or descent):
-        // Climb: airplane is not past 10 NM to go to the first TOD in the flight plan and is in the departure segment,
-        //        or has not sequenced all climb constraints or is lower than 500 feet below the cruise altitude.
-        // Cruise: airplane is not in the departure segment and has sequenced all climb constraints (excluding the ones
-        //         in the missed approach) and the airplane is higher than 500 feet below the cruise altitude.
-        // Descent: airplane is at or past 10 NM to go to the first TOD in the flight plan and is not in the missed
-        //          approach.
-        // Missed approach: airplane is in the missed approach.
+        // VNAV tracking phase:
 
-        if (isInMapr) {
-          this.vnavTrackingPhase.set(GarminVNavTrackingPhase.MissedApproach);
-        } else if (isPastTod) {
-          this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Descent);
-        } else if (isInCruise) {
-          this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Cruise);
+        if (this.options.enableAdvancedVNav) {
+          // Climb: airplane is not past 10 NM to go to the first descent constraint and the current constraint
+          //        constraint is a climb constraint.
+          // Cruise: airplane is not past 10 NM to go to the first descent constraint and the current constraint is a
+          //         climb constraint.
+          // Descent: airplane is at or past 10 NM to go to the first descent constraint in the flight plan and is not
+          //          in the missed approach.
+          // Missed approach: airplane is in the missed approach.
+
+          if (isInMapr) {
+            this.vnavTrackingPhase.set(GarminVNavTrackingPhase.MissedApproach);
+          } else if (isPastTod) {
+            this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Descent);
+          } else if (isCurrentConstraintClimb) {
+            this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Climb);
+          } else {
+            this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Cruise);
+          }
         } else {
-          this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Climb);
+          // Cruise: default phase.
+          // Descent: airplane is at or past 10 NM to go to the first descent constraint in the flight plan.
+
+          if (isPastTod) {
+            this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Descent);
+          } else {
+            this.vnavTrackingPhase.set(GarminVNavTrackingPhase.Cruise);
+          }
         }
 
-        const vnavTrackingPhase = this.vnavTrackingPhase.get();
-        const inClimb = vnavTrackingPhase === GarminVNavTrackingPhase.Climb || vnavTrackingPhase === GarminVNavTrackingPhase.MissedApproach;
-
-        this.currentConstraintLegIndex.set(currentConstraint.index);
-
-        // Find the constraint matching the current tracking phase that applies to the active flight plan leg.
-        let currentPhaseConstraintIndex: number;
-        if (isInMapr) {
-          currentPhaseConstraintIndex = currentConstraint.type === 'missed'
-            ? currentConstraintIndex
-            : VNavUtils.getNextMaprConstraintIndex(verticalPlan, lateralLegIndex);
-        } else if (inClimb) {
-          currentPhaseConstraintIndex = currentConstraint.type === 'climb'
-            ? currentConstraintIndex
-            : VNavUtils.getNextClimbConstraintIndex(verticalPlan, lateralLegIndex);
+        if (currentConstraint) {
+          this.currentConstraintLegIndex.set(currentConstraint.index);
+          // The active constraint is the current constraint unless we are not in the missed approach and the current
+          // constraint is a missed approach constraint.
+          this.vnavActiveConstraintLegIndex.set((!isInMapr && currentConstraint.type === 'missed') ? -1 : currentConstraint.index);
+          this.fpa.set(isCurrentConstraintClimb ? null : currentConstraint.fpa);
         } else {
-          currentPhaseConstraintIndex = currentConstraint.type !== 'climb' && currentConstraint.type !== 'missed'
-            ? currentConstraintIndex
-            : VNavUtils.getNextDescentConstraintIndex(verticalPlan, lateralLegIndex);
-        }
-        const currentPhaseConstraint = verticalPlan.constraints[currentPhaseConstraintIndex] as VNavConstraint | undefined;
-
-        if (trackError) {
-          // If one or more LNAV track error limits have been exceeded, reset all vertical tracking data but still
-          // publish constraint data (current + active constraint and FPA).
-
-          this._isActive = false;
-          this.disarmClimb();
-          this.disarmPath();
-          this.resetVNavTrackingVars();
-          this.resetTodBodVars();
-          this.resetTocBocVars();
-
-          if (inClimb) {
-            // The active constraint is the current phase constraint.
-
-            this.vnavActiveConstraintLegIndex.set(currentPhaseConstraint === undefined ? -1 : currentPhaseConstraint.index);
-            this.fpa.set(null);
-          } else {
-            // The active constraint and FPA are based on the last known active path constraint, if one exists and does
-            // not precede (in flight plan order) the current constraint (the constraint containing the active flight
-            // plan leg). Otherwise, they are based on the current phase constraint.
-
-            const activeConstraintIndex = this.activePathConstraintIndex < 0 || this.activePathConstraintIndex > currentConstraintIndex
-              ? currentPhaseConstraintIndex
-              : this.activePathConstraintIndex;
-
-            const activeConstraint = verticalPlan.constraints[activeConstraintIndex] as VNavConstraint | undefined;
-            if (activeConstraint) {
-              this.vnavActiveConstraintLegIndex.set(activeConstraint.index);
-              this.fpa.set(activeConstraint.fpa);
-            } else {
-              this.vnavActiveConstraintLegIndex.set(-1);
-              this.fpa.set(null);
-            }
-          }
-        } else {
-
-          // If we are in the climb or missed approach tracking phases and advanced VNAV is supported, calculate
-          // TOC/BOC details. Otherwise blank the TOC/BOC details.
-
-          const tocBocDetails = this.tocBocDetails;
-          if (inClimb && this.options.enableAdvancedVNav) {
-            GarminVNavUtils.getTocBocDetails(
-              verticalPlan,
-              currentConstraintIndex,
-              lateralLegIndex, alongLegDistance,
-              this.currentGroundSpeed, currentAltitudeMetric, currentVSMetric,
-              isInMapr,
-              this.tocBocDetails
-            );
-
-            // If TOC and BOC are defined, check if the airplane's current altitude is above the BOC suppression threshold
-            // and suppress the BOC as appropriate.
-            if (
-              tocBocDetails.tocLegIndex >= 0
-              && tocBocDetails.bocLegIndex >= 0
-              && currentAltitudeMetric > tocBocDetails.tocAltitude + GarminVNavManager2.BOC_SUPPRESS_ALTITUDE_THRESHOLD
-            ) {
-              tocBocDetails.bocLegIndex = -1;
-              tocBocDetails.distanceFromBoc = 0;
-            }
-
-            // If TOC is defined, check if the airplane's current altitude is above the TOC suppression threshold and
-            // suppress the TOC as appropriate.
-            if (
-              tocBocDetails.tocLegIndex >= 0
-              && currentAltitudeMetric >= tocBocDetails.tocAltitude - GarminVNavManager2.TOC_SUPPRESS_ALTITUDE_THRESHOLD
-            ) {
-              tocBocDetails.tocLegIndex = -1;
-              tocBocDetails.distanceFromToc = 0;
-              tocBocDetails.tocLegDistance = 0;
-              tocBocDetails.tocConstraintIndex = -1;
-              tocBocDetails.tocAltitude = -1;
-            }
-          } else {
-            GarminVNavUtils.getTocBocDetails(
-              verticalPlan,
-              -1,
-              lateralLegIndex, alongLegDistance,
-              this.currentGroundSpeed, currentAltitudeMetric, currentVSMetric,
-              isInMapr,
-              this.tocBocDetails
-            );
-          }
-
-          // Publish TOD/BOD and TOC/BOC data.
-          this.manageTodBodTocBocDetails(lateralLegIndex, todBodDetails, tocBocDetails);
-
-          let activeConstraintIndex = -1;
-          let activePathConstraintIndex = -1;
-          let timeToTodSeconds: number | undefined;
-
-          // If we are in a descent and have a valid TOD (i.e. there exists a valid descent path that is capturable by
-          // V PATH), then we need to designate the active path constraint. If we are within 1 min of the TOD or past
-          // the TOD, then the active path constraint is the constraint defining the descent path that the TOD lies on.
-          // Otherwise, the active path constraint is the current constraint (the constraint containing the active
-          // flight plan leg).
-          if (!inClimb && todBodDetails.todConstraintIndex >= 0) {
-            timeToTodSeconds = UnitType.METER.convertTo(todBodDetails.distanceFromTod, UnitType.NMILE) / this.currentGroundSpeed * 3600;
-
-            if (currentConstraintIndex <= todBodDetails.todConstraintIndex) {
-              activePathConstraintIndex = currentConstraintIndex;
-            } else {
-              const activePathTodTimeThreshold = GarminVNavManager2.ACTIVE_PATH_TOD_TIME_THRESHOLD
-                + (this.activePathConstraintIndex === todBodDetails.todConstraintIndex ? GarminVNavManager2.ACTIVE_PATH_TOD_TIME_HYSTERESIS : 0);
-
-              if (timeToTodSeconds <= activePathTodTimeThreshold) {
-                activePathConstraintIndex = todBodDetails.todConstraintIndex;
-              }
-            }
-          }
-
-          this.activePathConstraintIndex = activePathConstraintIndex;
-
-          // If we are tracking a climb or there is no active path constraint, the current phase constraint is the active
-          // constraint; otherwise the active path constraint is the active constraint.
-          if (inClimb || activePathConstraintIndex < 0) {
-            if (currentPhaseConstraint) {
-              activeConstraintIndex = currentPhaseConstraintIndex;
-              this.vnavActiveConstraintLegIndex.set(currentPhaseConstraint.index);
-            } else {
-              activeConstraintIndex = -1;
-              this.vnavActiveConstraintLegIndex.set(-1);
-            }
-          } else {
-            activeConstraintIndex = activePathConstraintIndex;
-            this.vnavActiveConstraintLegIndex.set(verticalPlan.constraints[activePathConstraintIndex].index);
-          }
-
-          if (activePathConstraintIndex >= 0) {
-            this.disarmClimb();
-          }
-
-          this._isActive = this.state === VNavState.Enabled_Active;
-
-          if (!inClimb && !this.isClimbArmed) {
-            const activeConstraint = verticalPlan.constraints[activeConstraintIndex];
-            this.fpa.set(activeConstraint === undefined ? null : activeConstraint.fpa);
-            this.setCurrentConstraintDetails(verticalPlan, activeConstraintIndex, lateralLegIndex);
-            this.pathAvailable.set(true);
-            this.trackDescent(verticalPlan, lateralPlan, todBodDetails, activeConstraintIndex, activePathConstraintIndex);
-          } else if (this.options.enableAdvancedVNav && (inClimb || this.isClimbArmed)) {
-            if (this._isActive) {
-              this.disarmPath();
-            }
-
-            this.fpa.set(null);
-            this.setCurrentConstraintDetails(verticalPlan, activeConstraintIndex, lateralLegIndex);
-            this.pathAvailable.set(false);
-            this.trackClimb(verticalPlan, lateralPlan, tocBocDetails, activeConstraintIndex);
-          } else {
-            if (this._isActive) {
-              this.disarmPath();
-            }
-
-            this.fpa.set(null);
-            this.resetVNavTrackingVars();
-          }
+          this.resetVNavConstraintVars();
         }
       }
-
-      this.apValues.approachHasGP.set(this.manageGP(lateralPlan, alongLegDistance));
-
     } else {
       this.failed();
+      this.resetVNavPhase();
+      this.resetVNavConstraintVars();
     }
 
     if (this.apValues.approachHasGP.get() === false) {

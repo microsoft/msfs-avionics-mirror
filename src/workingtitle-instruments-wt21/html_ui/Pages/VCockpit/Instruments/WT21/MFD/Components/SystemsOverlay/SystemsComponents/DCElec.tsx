@@ -30,7 +30,7 @@ export class DCElec extends DisplayComponent<ComponentProps> {
    * @param volts The new value of bus voltage.
    */
   public updateVoltageBus1(volts: number): void {
-    this.voltLeft.set(volts);
+    this.voltLeft.set(Math.floor(volts));
   }
 
   /**
@@ -38,7 +38,7 @@ export class DCElec extends DisplayComponent<ComponentProps> {
    * @param volts The new value of bus voltage.
    */
   public updateVoltageBus2(volts: number): void {
-    this.voltRight.set(volts);
+    this.voltRight.set(Math.floor(volts));
   }
 
   /**

@@ -16,6 +16,8 @@ import { WaypointAlerter } from '../WaypointAlerter';
 import { HSIContainer } from './HSIContainer';
 
 import './MfdHsi.css';
+import { WT21FixInfoManager } from '../../../FMC/Systems/WT21FixInfoManager';
+import { PerformancePlan } from '../../Performance/PerformancePlan';
 
 /**
  * The properties for the MfdHsi component.
@@ -32,6 +34,12 @@ interface MfdHsiProps extends ComponentProps {
 
   /** The index of the MFD screen. */
   mfdIndex: number;
+
+  /** The fix info manager. */
+  fixInfo?: WT21FixInfoManager;
+
+  /** The active performance plan */
+  performancePlan: PerformancePlan;
 }
 
 /**
@@ -103,6 +111,8 @@ export class MfdHsi extends DisplayComponent<MfdHsiProps> {
               tcas={this.props.tcas}
               mfdIndex={this.props.mfdIndex}
               waypointAlerter={this.waypointAlerter}
+              fixInfo={this.props.fixInfo}
+              performancePlan={this.props.performancePlan}
             />
           </div>
           <div class="right-panel">

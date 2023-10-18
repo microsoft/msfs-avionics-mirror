@@ -5,6 +5,7 @@ export * from './AbstractSubscribableSet';
 export * from './ArraySubject';
 export * from './CombinedSubject';
 export * from './ComputedSubject';
+export * from './FilteredMapSubject';
 export * from './HandlerSubscription';
 export * from './MappedSubject';
 export * from './MapSubject';

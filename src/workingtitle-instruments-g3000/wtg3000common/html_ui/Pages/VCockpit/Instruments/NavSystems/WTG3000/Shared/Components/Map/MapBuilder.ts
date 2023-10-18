@@ -20,6 +20,7 @@ import './Layers/MapCrosshairLayer.css';
 import './Layers/MapDeadReckoningLayer.css';
 import './Layers/MapPointerInfoLayer.css';
 import './Layers/MapPointerLayer.css';
+import './Layers/MapWindVectorLayer.css';
 import './Indicators/MapBannerIndicator.css';
 import './Indicators/MapDetailIndicator.css';
 import './Indicators/MapNoGpsIndicator.css';

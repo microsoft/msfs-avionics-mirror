@@ -16,10 +16,7 @@ export class MapTerrainColorsModule {
 
   /** The terrain colors array. */
   public readonly colors = ArraySubject.create(BingComponent.createEarthColorsArray('#0000FF', [
-    {
-      elev: 0,
-      color: '#000000'
-    }
+    { elev: 0, color: '#000000' }
   ], 0, 30000, 1));
 
   /** The elevation range over which to assign the terrain colors, as `[minimum, maximum]` in feet. */

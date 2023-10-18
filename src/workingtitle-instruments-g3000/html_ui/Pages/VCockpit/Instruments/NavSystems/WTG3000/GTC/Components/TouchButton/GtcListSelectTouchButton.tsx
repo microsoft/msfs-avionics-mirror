@@ -65,9 +65,13 @@ export class GtcListSelectTouchButton<S extends MutableSubscribable<any>> extend
     ? this.props.listParams
     : (): GtcListDialogParams<MutableSubscribableInputType<S>> => this.props.listParams as GtcListDialogParams<MutableSubscribableInputType<S>>;
 
-  /** Triggers the list to be shown to the user as if they had pressed the button. */
-  public simulatePressed(): void {
-    this.onPressed(this.buttonRef.instance, this.props.state);
+  /**
+   * Simulates this button being pressed. This will execute the `onPressed()` callback if one is defined.
+   * @param ignoreDisabled Whether to simulate the button being pressed regardless of whether the button is disabled.
+   * Defaults to `false`.
+   */
+  public simulatePressed(ignoreDisabled = false): void {
+    this.buttonRef.getOrDefault()?.simulatePressed(ignoreDisabled);
   }
 
   /**
@@ -104,7 +108,11 @@ export class GtcListSelectTouchButton<S extends MutableSubscribable<any>> extend
         isVisible={this.props.isVisible}
         label={this.props.label}
         renderValue={this.props.renderValue}
+        onTouched={this.props.onTouched}
         onPressed={this.onPressed}
+        onHoldStarted={this.props.onHoldStarted}
+        onHoldTick={this.props.onHoldTick}
+        onHoldEnded={this.props.onHoldEnded}
         focusOnDrag={this.props.focusOnDrag}
         inhibitOnDrag={this.props.inhibitOnDrag}
         inhibitOnDragAxis={this.props.inhibitOnDragAxis}

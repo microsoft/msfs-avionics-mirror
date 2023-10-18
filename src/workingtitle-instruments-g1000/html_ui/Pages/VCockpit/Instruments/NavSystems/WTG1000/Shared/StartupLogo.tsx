@@ -94,7 +94,7 @@ export class StartupLogo extends DisplayComponent<StartupLogoProps> {
               <svg width='24' height='24' viewBox='0 0 16 16'>
                 <path d='M 2 3 L 2 8 L 13 8' stroke='gray' stroke-width='1px' />
               </svg>
-              System WT1.2.2
+              System WT1.2.7
             </div>
             <h3>
               <svg width='24' height='24' viewBox='0 0 32 32'>

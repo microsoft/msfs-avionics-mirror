@@ -1008,7 +1008,7 @@ export class FmsSpeedManager {
     out: FmsComputedSpeedInfo
   ): FmsComputedSpeedInfo {
     scheduledIas = Math.round(scheduledIas);
-    scheduledMach = MathUtils.round(scheduledMach, 0.01);
+    scheduledMach = MathUtils.round(scheduledMach, 0.001);
     altitudeIasLimit = altitudeIasLimit === undefined ? undefined : Math.round(altitudeIasLimit);
 
     const indicatedAltitude = this.indicatedAltitude.get();
@@ -1030,7 +1030,7 @@ export class FmsSpeedManager {
           minIasTarget = Math.round(speedConstraint.speed);
           minIasTargetSource = FmsSpeedTargetSource.Constraint;
         } else {
-          minMachTarget = MathUtils.round(speedConstraint.speed, 0.01);
+          minMachTarget = MathUtils.round(speedConstraint.speed, 0.001);
           minMachTargetSource = FmsSpeedTargetSource.Constraint;
         }
         break;
@@ -1039,7 +1039,7 @@ export class FmsSpeedManager {
           maxIasTarget = Math.round(speedConstraint.speed);
           maxIasTargetSource = FmsSpeedTargetSource.Constraint;
         } else {
-          maxMachTarget = MathUtils.round(speedConstraint.speed, 0.01);
+          maxMachTarget = MathUtils.round(speedConstraint.speed, 0.001);
           maxMachTargetSource = FmsSpeedTargetSource.Constraint;
         }
         break;
@@ -1049,7 +1049,7 @@ export class FmsSpeedManager {
           minIasTarget = maxIasTarget = Math.round(speedConstraint.speed);
           minIasTargetSource = maxIasTargetSource = FmsSpeedTargetSource.Constraint;
         } else {
-          minMachTarget = maxMachTarget = MathUtils.round(speedConstraint.speed, 0.01);
+          minMachTarget = maxMachTarget = MathUtils.round(speedConstraint.speed, 0.001);
           minMachTargetSource = maxMachTargetSource = FmsSpeedTargetSource.Constraint;
         }
         break;
@@ -1350,7 +1350,7 @@ export class FmsSpeedManager {
     }
 
     const userTargetIas = Math.round(this.userTargetIas.get());
-    const userTargetMach = MathUtils.round(this.userTargetMach.get(), 0.01);
+    const userTargetMach = MathUtils.round(this.userTargetMach.get(), 0.001);
     const userTargetIsMach = this.userTargetIsMach.get();
 
     const userTargetIsSet = (userTargetIsMach ? userTargetMach : userTargetIas) >= 0;
@@ -1498,11 +1498,13 @@ export class FmsSpeedManager {
 
     if (this.activeIsMach) {
       if (this.apSelectedMach.get() !== this.activeMach) {
-        keyEventManager.triggerKey('AP_MACH_VAR_SET', true, Math.max(0, this.activeMach * 100));
+        // Round mach to nearest 0.001.
+        keyEventManager.triggerKey('AP_MACH_VAR_SET_EX1', true, (Math.max(0, Math.round(this.activeMach * 1e3) * 1e3)));
       }
     } else {
       if (this.apSelectedIas.get() !== this.activeIas) {
-        keyEventManager.triggerKey('AP_SPD_VAR_SET', true, Math.max(0, this.activeIas));
+        // Round IAS to nearest knot.
+        keyEventManager.triggerKey('AP_SPD_VAR_SET', true, Math.max(0, Math.round(this.activeIas)));
       }
     }
   }

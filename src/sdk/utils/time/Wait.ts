@@ -15,6 +15,38 @@ export class Wait {
   }
 
   /**
+   * Waits for a certain number of frames to elapse.
+   * @param count The number of frames to wait.
+   * @param glassCockpitRefresh Whether to wait for glass cockpit refresh frames instead of CoherentGT frames. Defaults
+   * to `false`.
+   */
+  public static awaitFrames(count: number, glassCockpitRefresh = false): Promise<void> {
+    let elapsedFrameCount = 0;
+
+    if (glassCockpitRefresh) {
+      return new Promise(resolve => {
+        const callback = (): void => {
+          if (++elapsedFrameCount > count) {
+            resolve();
+          } else {
+            requestAnimationFrame(callback);
+          }
+        };
+        requestAnimationFrame(callback);
+      });
+    } else {
+      return new Promise(resolve => {
+        const id = setInterval(() => {
+          if (++elapsedFrameCount > count) {
+            clearInterval(id);
+            resolve();
+          }
+        }, 0);
+      });
+    }
+  }
+
+  /**
    * Waits for a condition to be satisfied.
    * @param predicate A function which evaluates whether the condition is satisfied.
    * @param interval The interval, in milliseconds, at which to evaluate the condition. A zero or negative value

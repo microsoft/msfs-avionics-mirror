@@ -1,15 +1,18 @@
 {
   "name": "@microsoft/msfs-wtg3000-pfd",
-  "version": "1.1.6",
+  "version": "1.1.10",
   "description": "Working Title MSFS G3000 PFD Definitions",
   "typings": "index.d.ts",
   "scripts": {
-    "build:defs": "tsc && cp package-defs-only.json build/package.json"
+    "build:defs": "tsc & robocopy . *.css build /s & rollup -c rollup-defs.config.js & cp package-defs-only.json dist/package.json & rm dist/ignoreme.css"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/microsoft/msfs-avionics-mirror/"
   },
   "author": "Working Title Simulations, LLC",
-  "license": "Modified MIT"
+  "license": "Modified MIT",
+  "dependencies": {
+    "rollup": "^2.79.1"
+  }
 }

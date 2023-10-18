@@ -1,9 +1,13 @@
-import { EventBus, FSComponent, MappedSubject, MathUtils, ReadonlyFloat64Array, SetSubject, Subject, UnitType, Vec2Math, Vec2Subject, VecNMath, VNode } from '@microsoft/msfs-sdk';
+import {
+  AvionicsSystemState, AvionicsSystemStateEvent, ConsumerSubject, EventBus, FSComponent, MappedSubject, MathUtils, ReadonlyFloat64Array,
+  Subject, Subscription, UnitType, Vec2Math, Vec2Subject, VecNMath, VNode
+} from '@microsoft/msfs-sdk';
 
-import { WeatherRadar, WeatherRadarOperatingMode, WeatherRadarUtils } from '@microsoft/msfs-garminsdk';
+import { WeatherRadar, WeatherRadarAvionicsSystemEvents, WeatherRadarOperatingMode, WeatherRadarUtils } from '@microsoft/msfs-garminsdk';
 
 import { WeatherRadarDefinition } from '../../AvionicsConfig/SensorsConfig';
 import { WeatherRadarUserSettings } from '../../Settings/WeatherRadarUserSettings';
+import { WeatherRadarEvents } from '../../WeatherRadar/WeatherRadarEvents';
 import { WeatherRadarRange } from '../../WeatherRadar/WeatherRadarRange';
 import { ControllableDisplayPaneIndex, DisplayPaneSizeMode } from '../DisplayPanes/DisplayPaneTypes';
 import { DisplayPaneView, DisplayPaneViewProps } from '../DisplayPanes/DisplayPaneView';
@@ -42,28 +46,53 @@ export class WeatherRadarPaneView extends DisplayPaneView<WeatherRadarPaneViewPr
 
   private readonly radarRef = FSComponent.createRef<WeatherRadar>();
 
-  private readonly modeIndicatorCssClass = SetSubject.create(['weather-radar-indicator', 'weather-radar-indicator-mode']);
-  private readonly scaleIndicatorCssClass = SetSubject.create(['weather-radar-indicator', 'weather-radar-indicator-scale']);
-  private readonly bannerCssClass = SetSubject.create(['weather-radar-standby']);
-
   private readonly size = Vec2Subject.create(Vec2Math.create(100, 100));
   private readonly horizontalScanPadding = Subject.create(WeatherRadarPaneView.HORIZ_SCAN_PADDING[DisplayPaneSizeMode.Full]);
   private readonly verticalScanPadding = Subject.create(WeatherRadarPaneView.VERT_SCAN_PADDING[DisplayPaneSizeMode.Full]);
 
+  private readonly operatingMode = Subject.create(WeatherRadarOperatingMode.Standby);
+  private readonly isDataFailed = Subject.create(false);
+
   private readonly weatherRadarSettingManager = WeatherRadarUserSettings.getDisplayPaneManager(this.props.bus, this.props.index as ControllableDisplayPaneIndex);
   private readonly rangeSetting = this.weatherRadarSettingManager.getSetting('wxrRangeIndex');
+  private readonly gainSetting = this.weatherRadarSettingManager.getSetting('wxrGain');
 
   private readonly range = this.rangeSetting.map(index => {
     return WeatherRadarRange.RANGE_ARRAY[index] ?? WeatherRadarRange.RANGE_ARRAY[0];
   });
 
+  private readonly gain = Subject.create(0);
+
   private readonly modeIndicatorText = Subject.create('');
+
+  private readonly scaleHidden = Subject.create(false);
+
+  private readonly gainText = MappedSubject.create(
+    ([calibrated, gain]) => {
+      if (calibrated) {
+        return 'Calibrated';
+      } else {
+        return gain.toFixed(1);
+      }
+    },
+    this.weatherRadarSettingManager.getSetting('wxrCalibratedGain'),
+    this.gain
+  ).pause();
+
+  private readonly bannerHidden = Subject.create(false);
   private readonly bannerText = Subject.create('');
 
+  private readonly systemState = ConsumerSubject.create<AvionicsSystemStateEvent | undefined>(null, undefined);
+  private readonly isScanActive = ConsumerSubject.create(null, false);
+
   private readonly modeState = MappedSubject.create(
+    this.systemState,
+    this.isScanActive,
     this.weatherRadarSettingManager.getSetting('wxrActive'),
     this.weatherRadarSettingManager.getSetting('wxrOperatingMode')
-  );
+  ).pause();
+
+  private gainPipe?: Subscription;
 
   /** @inheritdoc */
   public override onAfterRender(): void {
@@ -71,15 +100,40 @@ export class WeatherRadarPaneView extends DisplayPaneView<WeatherRadarPaneViewPr
 
     this.radarRef.instance.sleep();
 
-    this.modeState.pause();
-    this.modeState.sub(([isActive, operatingMode]) => {
+    const sub = this.props.bus.getSubscriber<WeatherRadarAvionicsSystemEvents & WeatherRadarEvents>();
+
+    this.systemState.setConsumer(sub.on('wx_radar_state'));
+    this.isScanActive.setConsumer(sub.on('wx_radar_is_scan_active'));
+
+    this.modeState.sub(([systemState, isScanActive, activeSetting, operatingModeSetting]) => {
       let bannerText: string | undefined;
       let showScale = false;
 
-      if (isActive) {
-        this.modeIndicatorText.set(WeatherRadarPaneView.OPERATING_MODE_TEXT[operatingMode]);
+      if (systemState === undefined || !activeSetting) {
+        this.operatingMode.set(WeatherRadarOperatingMode.Standby);
+        this.isDataFailed.set(false);
 
-        switch (operatingMode) {
+        this.modeIndicatorText.set('Off');
+        bannerText = 'OFF';
+      } else if (systemState.current === AvionicsSystemState.Failed || systemState.current === AvionicsSystemState.Off) {
+        this.operatingMode.set(operatingModeSetting);
+        this.isDataFailed.set(true);
+
+        this.modeIndicatorText.set('Fail');
+        bannerText = 'RADAR FAIL';
+      } else if (systemState.current === AvionicsSystemState.Initializing || !isScanActive) {
+        this.operatingMode.set(WeatherRadarOperatingMode.Standby);
+        this.isDataFailed.set(false);
+
+        this.modeIndicatorText.set(WeatherRadarPaneView.OPERATING_MODE_TEXT[WeatherRadarOperatingMode.Standby]);
+        bannerText = 'STANDBY';
+      } else {
+        this.operatingMode.set(operatingModeSetting);
+        this.isDataFailed.set(false);
+
+        this.modeIndicatorText.set(WeatherRadarPaneView.OPERATING_MODE_TEXT[operatingModeSetting]);
+
+        switch (operatingModeSetting) {
           case WeatherRadarOperatingMode.Standby:
             bannerText = 'STANDBY';
             break;
@@ -87,20 +141,19 @@ export class WeatherRadarPaneView extends DisplayPaneView<WeatherRadarPaneViewPr
             showScale = true;
             break;
         }
-      } else {
-        this.modeIndicatorText.set('Off');
-        bannerText = 'OFF';
       }
 
-      this.scaleIndicatorCssClass.toggle('hidden', !showScale);
+      this.scaleHidden.set(!showScale);
 
       if (bannerText === undefined) {
-        this.bannerCssClass.add('hidden');
+        this.bannerHidden.set(true);
       } else {
-        this.bannerCssClass.delete('hidden');
+        this.bannerHidden.set(false);
         this.bannerText.set(bannerText);
       }
     }, true);
+
+    this.gainPipe = this.gainSetting.pipe(this.gain, gain => MathUtils.clamp(Math.round(gain), this.props.config.minGain, this.props.config.maxGain));
   }
 
   /** @inheritdoc */
@@ -108,12 +161,14 @@ export class WeatherRadarPaneView extends DisplayPaneView<WeatherRadarPaneViewPr
     this.updateSize(size, width, height);
     this.radarRef.instance.wake();
     this.modeState.resume();
+    this.gainText.resume();
   }
 
   /** @inheritdoc */
   public override onPause(): void {
     this.radarRef.instance.sleep();
     this.modeState.pause();
+    this.gainText.pause();
   }
 
   /** @inheritdoc */
@@ -166,7 +221,7 @@ export class WeatherRadarPaneView extends DisplayPaneView<WeatherRadarPaneViewPr
   /** @inheritdoc */
   public override render(): VNode | null {
     return (
-      <div class='weather-radar-pane'>
+      <div class={{ 'weather-radar-pane': true, 'weather-radar-pane-failed': this.isDataFailed }}>
         <svg>
           <defs>
             <linearGradient id='weather-radar-reference-line-gradient' x1='0%' y1='0%' x2='0%' y2='100%'>
@@ -182,7 +237,7 @@ export class WeatherRadarPaneView extends DisplayPaneView<WeatherRadarPaneViewPr
           ref={this.radarRef}
           bingId={`pane_map_${this.props.index}`}
           bus={this.props.bus}
-          operatingMode={this.weatherRadarSettingManager.getSetting('wxrOperatingMode')}
+          operatingMode={this.operatingMode}
           scanMode={this.weatherRadarSettingManager.getSetting('wxrScanMode')}
           horizontalScanAngularWidth={this.props.config.horizontalScanWidth}
           verticalScanAngularWidth={60}
@@ -192,15 +247,16 @@ export class WeatherRadarPaneView extends DisplayPaneView<WeatherRadarPaneViewPr
           showBearingLine={this.weatherRadarSettingManager.getSetting('wxrShowBearingLine')}
           showTiltLine={this.weatherRadarSettingManager.getSetting('wxrShowTiltLine')}
           colors={this.props.config.supportExtendedColors ? WeatherRadarUtils.extendedColors() : WeatherRadarUtils.standardColors()}
-          gain={Subject.create(0)}
-          isDataFailed={Subject.create(false)}
+          gain={this.gain}
+          isDataFailed={this.isDataFailed}
           horizontalScanPadding={this.horizontalScanPadding}
           verticalScanPadding={this.verticalScanPadding}
           verticalRangeLineExtend={30}
         >
-          <div class={this.modeIndicatorCssClass}>{this.modeIndicatorText}</div>
+          <div class='weather-radar-indicator weather-radar-indicator-mode'>{this.modeIndicatorText}</div>
           {this.renderColorScale()}
-          <div class={this.bannerCssClass}>{this.bannerText}</div>
+          {this.renderInfoBox()}
+          <div class={{ 'weather-radar-banner': true, 'hidden': this.bannerHidden }}>{this.bannerText}</div>
         </WeatherRadar>
       </div>
     );
@@ -212,9 +268,32 @@ export class WeatherRadarPaneView extends DisplayPaneView<WeatherRadarPaneViewPr
    */
   private renderColorScale(): VNode {
     return (
-      <div class={this.scaleIndicatorCssClass}>
+      <div class={{ 'weather-radar-indicator': true, 'weather-radar-indicator-scale': true, 'hidden': this.scaleHidden }}>
         <div class='weather-radar-indicator-scale-title'>Scale</div>
         {this.props.config.supportExtendedColors ? this.renderExtendedColors() : this.renderStandardColors()}
+      </div>
+    );
+  }
+
+  /**
+   * Renders this pane's information box.
+   * @returns This pane's information box, as a VNode.
+   */
+  private renderInfoBox(): VNode {
+    return (
+      <div class='weather-radar-indicator weather-radar-indicator-info'>
+        <div class='weather-radar-indicator-info-row'>
+          <div class='weather-radar-indicator-info-title'>Tilt</div>
+          <div class='weather-radar-indicator-info-value'>UP 0.00°</div>
+        </div>
+        <div class='weather-radar-indicator-info-row'>
+          <div class='weather-radar-indicator-info-title'>BRG</div>
+          <div class='weather-radar-indicator-info-value'>L 0°</div>
+        </div>
+        <div class='weather-radar-indicator-info-row'>
+          <div class='weather-radar-indicator-info-title'>Gain</div>
+          <div class='weather-radar-indicator-info-value'>{this.gainText}</div>
+        </div>
       </div>
     );
   }
@@ -281,6 +360,14 @@ export class WeatherRadarPaneView extends DisplayPaneView<WeatherRadarPaneViewPr
   /** @inheritdoc */
   public override destroy(): void {
     this.radarRef.getOrDefault()?.destroy();
+
+    this.systemState.destroy();
+    this.isScanActive.destroy();
+
+    this.modeState.destroy();
+    this.gainText.destroy();
+
+    this.gainPipe?.destroy();
 
     super.destroy();
   }

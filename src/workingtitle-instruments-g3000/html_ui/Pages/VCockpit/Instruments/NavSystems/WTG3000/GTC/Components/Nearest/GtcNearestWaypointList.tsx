@@ -44,7 +44,7 @@ export class GtcNearestWaypointList<
 
   /**
    * Scrolls until the item at a specified index is in view.
-   * @param index The index of the item to which to scroll.
+   * @param index The index of the item to which to scroll, after sorting has been applied.
    * @param position The position to place the target item at the end of the scroll. Position `0` is the top-most
    * visible slot, position `1` is the next slot, and so on. Values greater than or equal to the number of visible
    * items per page will be clamped. If this value is negative, the target item will be placed at the visible position

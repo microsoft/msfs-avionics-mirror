@@ -19,9 +19,21 @@ const COMPONENT_CLASS = 'round-touch-button';
 /** A round numpad button that uses up- and down-state background images. */
 export class RoundTouchButton extends DisplayComponent<RoundButtonProps>{
   protected static readonly RESERVED_CSS_CLASSES: Set<string> = new Set([COMPONENT_CLASS]);
-  protected readonly cssClassSet = SetSubject.create([COMPONENT_CLASS]);
-  protected cssClassSub?: Subscription;
+
   protected readonly buttonRef = FSComponent.createRef<TouchButton>();
+
+  protected readonly cssClassSet = SetSubject.create([COMPONENT_CLASS]);
+
+  protected cssClassSub?: Subscription;
+
+  /**
+   * Simulates this button being pressed. This will execute the `onPressed()` callback if one is defined.
+   * @param ignoreDisabled Whether to simulate the button being pressed regardless of whether the button is disabled.
+   * Defaults to `false`.
+   */
+  public simulatePressed(ignoreDisabled = false): void {
+    this.buttonRef.getOrDefault()?.simulatePressed(ignoreDisabled);
+  }
 
   /** @inheritdoc */
   public render(): VNode {
@@ -42,7 +54,11 @@ export class RoundTouchButton extends DisplayComponent<RoundButtonProps>{
         isHighlighted={this.props.isHighlighted}
         isVisible={this.props.isVisible}
         label={this.props.label}
+        onTouched={this.props.onTouched}
         onPressed={this.props.onPressed}
+        onHoldStarted={this.props.onHoldStarted}
+        onHoldTick={this.props.onHoldTick}
+        onHoldEnded={this.props.onHoldEnded}
         inhibitOnDrag={this.props.inhibitOnDrag}
         dragThresholdPx={this.props.dragThresholdPx}
         inhibitOnDragAxis={this.props.inhibitOnDragAxis}

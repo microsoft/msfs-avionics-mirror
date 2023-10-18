@@ -1,5 +1,4 @@
-import { Binding } from '../FmcDataBinding';
-import { Formatter } from '../FmcFormat';
+import { FieldFormatter } from '../FmcFormat';
 import { AbstractFmcPage } from '../AbstractFmcPage';
 import { FmcComponent, FmcComponentOptions } from './FmcComponent';
 import { Subscribable } from '../../sub';
@@ -12,7 +11,7 @@ export interface DisplayFieldOptions<T> extends FmcComponentOptions {
   /**
    * Formatter object
    */
-  formatter: Formatter<T>,
+  formatter: FieldFormatter<T>,
 
   /** @inheritDoc */
   style?: string | ((value: T | null) => string),
@@ -27,7 +26,7 @@ export interface DisplayFieldOptions<T> extends FmcComponentOptions {
 /**
  * An {@link FmcComponent} for displaying values according to formats
  */
-export class DisplayField<T, S extends Subscribable<T> = Subscribable<T>> extends FmcComponent<DisplayFieldOptions<T>> {
+export class DisplayField<T> extends FmcComponent<DisplayFieldOptions<T>> {
   protected value: T | null = null;
 
   /**
@@ -43,26 +42,13 @@ export class DisplayField<T, S extends Subscribable<T> = Subscribable<T>> extend
     super(page, options);
   }
 
-  // /**
-  //  * Creates an {@link DisplayField}
-  //  *
-  //  * @param page    the parent {@link FmcPage}
-  //  * @param options parameters for the display field
-  //  *
-  //  * @returns the {@link DisplayField}
-  //  */
-  // public static create<T>(page: FmcPage, options: DisplayFieldOptions<T>): DisplayField<T> {
-  //   return new DisplayField<T>(page, options);
-  // }
-
   /**
    * Creates and registers a binding on the page, linking this field with a subscribable
    * @param subscribable the subscribable to bind to
    * @returns the created binding (usually not needed)
    */
-  public bind(subscribable: S): DisplayField<T> {
-    const binding = new Binding<T>(subscribable, (value) => this.takeValue(value, true));
-    this.page.addBinding(binding);
+  public bind(subscribable: Subscribable<T>): DisplayField<T> {
+    this.page.addBinding(subscribable.sub((value) => this.takeValue(value, true), true));
     return this;
   }
 
@@ -86,7 +72,13 @@ export class DisplayField<T, S extends Subscribable<T> = Subscribable<T>> extend
 
   /** @inheritDoc */
   public render(): string {
-    const renderStr = (this.value !== null) ? this.options.formatter.format(this.value) : this.options.formatter.nullValueString;
+    let renderStr: string;
+    if (typeof this.options.formatter === 'object') {
+      renderStr = (this.value !== null) ? this.options.formatter.format(this.value as NonNullable<T>) : (this.options.formatter.nullValueString ?? '');
+    } else {
+      renderStr = this.options.formatter(this.value as T);
+    }
+
     const styleStr = (typeof this.options.style === 'function') ? this.options.style(this.value) : this.options.style;
 
     return `${this.options.prefix ?? ''}${renderStr}${this.options.suffix ?? ''}${styleStr ?? ''}`;

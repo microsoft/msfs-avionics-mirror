@@ -9,6 +9,8 @@ import { RightInfoPanel } from './RightInfoPanel/RightInfoPanel';
 import { WaypointAlerter } from './WaypointAlerter';
 
 import './LowerSectionContainer.css';
+import { WT21FixInfoManager } from '../../FMC/Systems/WT21FixInfoManager';
+import { PerformancePlan } from '../Performance/PerformancePlan';
 
 /**
  * Component props for LowerSectionContainer.
@@ -31,6 +33,12 @@ interface LowerSectionContainerProps extends ComponentProps {
 
   /** The index of the MFD screen. */
   mfdIndex: number;
+
+  /** The fix info manager. */
+  fixInfo?: WT21FixInfoManager;
+
+  /** The active performance plan */
+  performancePlan: PerformancePlan;
 }
 
 /** The LowerSectionContainer component. */
@@ -59,6 +67,8 @@ export class LowerSectionContainer extends DisplayComponent<LowerSectionContaine
             tcas={this.props.tcas}
             mfdIndex={this.props.mfdIndex}
             waypointAlerter={this.waypointAlerter}
+            fixInfo={this.props.fixInfo}
+            performancePlan={this.props.performancePlan}
           />
         </div>
         <div class="right-panel">

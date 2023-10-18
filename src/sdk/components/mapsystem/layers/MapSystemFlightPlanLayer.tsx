@@ -168,7 +168,6 @@ export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerP
   /** @inheritdoc */
   public setVisible(val: boolean): void {
     super.setVisible(val);
-
     this.waypointLayerRef.instance.setVisible(val);
     this.flightPathLayerRef.instance.setVisible(val);
   }

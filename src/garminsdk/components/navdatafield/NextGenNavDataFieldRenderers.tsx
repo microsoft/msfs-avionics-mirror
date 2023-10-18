@@ -22,6 +22,7 @@ export abstract class NextGenDisplayUnitNavDataFieldTypeRenderer<T extends NavDa
   protected static readonly FUEL_FORMATTER = NumberFormatter.create({ precision: 1, nanString: '___' });
   protected static readonly ANGLE_FORMATTER = NumberFormatter.create({ precision: 1, nanString: '___' });
   protected static readonly TEMPERATURE_FORMATTER = NumberFormatter.create({ precision: 1, nanString: '___' });
+  protected static readonly ISA_FORMATTER = NumberFormatter.create({ precision: 1, forceSign: true, nanString: '___' });
   protected static readonly DURATION_OPTIONS = {
     pad: 0,
     format: DurationDisplayFormat.hh_mm_or_mm_ss,
@@ -290,13 +291,13 @@ export class NextGenNavDataFieldGsRenderer extends NextGenDisplayUnitNavDataFiel
  */
 export class NextGenNavDataFieldIsaRenderer extends NextGenDisplayUnitNavDataFieldTypeRenderer<NavDataFieldType.ISA> {
   /** @inheritdoc */
-  public render(model: NavDataFieldModel<NumberUnitInterface<UnitFamily.Temperature>>): VNode {
+  public render(model: NavDataFieldModel<NumberUnitInterface<UnitFamily.TemperatureDelta>>): VNode {
     return (
       <NavDataNumberUnitField
         title='ISA'
         model={model}
-        displayUnit={this.unitsSettingManager.temperatureUnits}
-        formatter={NextGenDisplayUnitNavDataFieldTypeRenderer.TEMPERATURE_FORMATTER}
+        displayUnit={this.unitsSettingManager.temperatureDeltaUnits}
+        formatter={NextGenDisplayUnitNavDataFieldTypeRenderer.ISA_FORMATTER}
         class='nav-data-field-white'
       />
     );

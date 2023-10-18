@@ -157,6 +157,15 @@ export class ThrottleLeverManager {
   }
 
   /**
+   * Gets the position of a throttle lever.
+   * @param index The index of the throttle lever to get, from 1 to 4, inclusive.
+   * @returns The throttle lever position, in the range -1 to +1.
+   */
+  public getThrottleLeverPos(index: number): number {
+    return this.getThrottleLeverPosRaw(index) / ThrottleLeverManager.RAW_MAX;
+  }
+
+  /**
    * Changes the position of a throttle lever.
    * @param index The index of the throttle lever to change, from 1 to 4, inclusive.
    * @param delta The amount by which to change the lever position. The full lever range is expressed as -1 to +1.
@@ -180,6 +189,20 @@ export class ThrottleLeverManager {
     }
 
     this.setRawThrottleLeverPosition(pos, index);
+    return this.throttleLevers[index - 1].rawPosition;
+  }
+
+  /**
+   * Gets the raw position of a throttle lever.
+   * @param index The index of the throttle lever to get, from 1 to 4, inclusive.
+   * @returns The raw throttle lever position, in the range -16384 to +16384.
+   * @throws Error if `index` is out of bounds.
+   */
+  public getThrottleLeverPosRaw(index: number): number {
+    if (index < 1 || index > ThrottleLeverManager.THROTTLE_COUNT) {
+      throw new Error(`ThrottleLeverManager: throttle index (${index}) out of bounds`);
+    }
+
     return this.throttleLevers[index - 1].rawPosition;
   }
 

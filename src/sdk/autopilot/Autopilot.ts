@@ -188,9 +188,9 @@ export class Autopilot {
   ) {
     this.apValues.maxBankAngle.set(config.defaultMaxBankAngle);
     this.directors = this.createDirectors(config);
-    this.vnavManager = config.createVNavManager(this.apValues);
-    this.navToNavManager = config.createNavToNavManager(this.apValues);
-    this.variableBankManager = config.createVariableBankManager(this.apValues);
+    this.vnavManager = config.createVNavManager?.(this.apValues);
+    this.navToNavManager = config.createNavToNavManager?.(this.apValues);
+    this.variableBankManager = config.createVariableBankManager?.(this.apValues);
     this.apValues.navToNavLocArm = this.navToNavManager?.canLocArm.bind(this.navToNavManager);
 
     this.stateManager.stateManagerInitialized.sub((v) => {
@@ -233,32 +233,32 @@ export class Autopilot {
    */
   private createDirectors(config: APConfig): APDirectors {
     return {
-      headingDirector: config.createHeadingDirector(this.apValues),
-      headingHoldDirector: config.createHeadingHoldDirector(this.apValues),
-      trackDirector: config.createTrackDirector(this.apValues),
-      trackHoldDirector: config.createTrackHoldDirector(this.apValues),
-      rollDirector: config.createRollDirector(this.apValues),
-      wingLevelerDirector: config.createWingLevelerDirector(this.apValues),
-      gpssDirector: config.createGpssDirector(this.apValues),
-      vorDirector: config.createVorDirector(this.apValues),
-      locDirector: config.createLocDirector(this.apValues),
-      bcDirector: config.createBcDirector(this.apValues),
-      rolloutDirector: config.createRolloutDirector(),
-      pitchDirector: config.createPitchDirector(this.apValues),
-      vsDirector: config.createVsDirector(this.apValues),
-      fpaDirector: config.createFpaDirector(this.apValues),
-      flcDirector: config.createFlcDirector(this.apValues),
-      altHoldDirector: config.createAltHoldDirector(this.apValues),
-      altCapDirector: config.createAltCapDirector(this.apValues),
-      vnavPathDirector: config.createVNavPathDirector(this.apValues),
-      gpDirector: config.createGpDirector(this.apValues),
-      gsDirector: config.createGsDirector(this.apValues),
-      toVerticalDirector: config.createToVerticalDirector(this.apValues),
-      gaVerticalDirector: config.createGaVerticalDirector(this.apValues),
-      toLateralDirector: config.createToLateralDirector(this.apValues),
-      gaLateralDirector: config.createGaLateralDirector(this.apValues),
-      flareDirector: config.createFlareDirector(),
-      fmsLocLateralDirector: config.createFmsLocLateralDirector(this.apValues),
+      headingDirector: config.createHeadingDirector?.(this.apValues),
+      headingHoldDirector: config.createHeadingHoldDirector?.(this.apValues),
+      trackDirector: config.createTrackDirector?.(this.apValues),
+      trackHoldDirector: config.createTrackHoldDirector?.(this.apValues),
+      rollDirector: config.createRollDirector?.(this.apValues),
+      wingLevelerDirector: config.createWingLevelerDirector?.(this.apValues),
+      gpssDirector: config.createGpssDirector?.(this.apValues),
+      vorDirector: config.createVorDirector?.(this.apValues),
+      locDirector: config.createLocDirector?.(this.apValues),
+      bcDirector: config.createBcDirector?.(this.apValues),
+      rolloutDirector: config.createRolloutDirector?.(),
+      pitchDirector: config.createPitchDirector?.(this.apValues),
+      vsDirector: config.createVsDirector?.(this.apValues),
+      fpaDirector: config.createFpaDirector?.(this.apValues),
+      flcDirector: config.createFlcDirector?.(this.apValues),
+      altHoldDirector: config.createAltHoldDirector?.(this.apValues),
+      altCapDirector: config.createAltCapDirector?.(this.apValues),
+      vnavPathDirector: config.createVNavPathDirector?.(this.apValues),
+      gpDirector: config.createGpDirector?.(this.apValues),
+      gsDirector: config.createGsDirector?.(this.apValues),
+      toVerticalDirector: config.createToVerticalDirector?.(this.apValues),
+      gaVerticalDirector: config.createGaVerticalDirector?.(this.apValues),
+      toLateralDirector: config.createToLateralDirector?.(this.apValues),
+      gaLateralDirector: config.createGaLateralDirector?.(this.apValues),
+      flareDirector: config.createFlareDirector?.(),
+      fmsLocLateralDirector: config.createFmsLocLateralDirector?.(this.apValues),
       takeoffLocLateralDirector: config.createTakeoffLocLateralDirector?.(this.apValues),
     };
   }

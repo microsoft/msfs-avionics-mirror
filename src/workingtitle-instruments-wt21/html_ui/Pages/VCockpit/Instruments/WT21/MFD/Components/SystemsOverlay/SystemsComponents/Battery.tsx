@@ -1,13 +1,10 @@
-import { ComponentProps, ComputedSubject, DisplayComponent, FSComponent, Subject, VNode } from '@microsoft/msfs-sdk';
+import { ComponentProps, DisplayComponent, FSComponent, SimVarValueType, Subject, VNode } from '@microsoft/msfs-sdk';
 
 /**
  * The Battery component.
  */
 export class Battery extends DisplayComponent<ComponentProps> {
-  private readonly current = ComputedSubject.create(0, v => {
-    v = (v * -1);
-    return ((v > 0 ? Math.floor : Math.ceil)(v / 5) * 5);
-  });
+  private readonly current = Subject.create(0);
   private readonly voltage = Subject.create(0);
   private readonly temperature = Subject.create(26);
 
@@ -16,7 +13,33 @@ export class Battery extends DisplayComponent<ComponentProps> {
    * @param current The new value of battery current.
    */
   public updateCurrent(current: number): void {
-    this.current.set(current);
+    let calcCurrent = this.calculateCurrent(current, this.voltage.get());
+    calcCurrent = Math.floor((calcCurrent) / 5) * 5;
+    this.current.set(calcCurrent);
+  }
+
+  /**
+   * Calculates the current seen on the battery.
+   * @param amps The current being drawn from the battery (sim value).
+   * @param volts The voltage of the battery (sim value).
+   * @returns The current seen on the battery.
+   */
+  private calculateCurrent(amps: number, volts: number): number {
+    const soc = SimVar.GetSimVarValue('ELECTRICAL BATTERY ESTIMATED CAPACITY PCT:1', SimVarValueType.Percent);
+    let battCurrent = 0;
+    if (amps < 0) {
+      const chargingVolts = Math.max(volts, 25.4);
+
+      const ocv = soc / 100 * (chargingVolts - 21) + 21;
+
+      const chargingPotential = chargingVolts - ocv;
+      const chargingCurrent = chargingPotential / 0.05;
+      battCurrent = Math.ceil(chargingCurrent);
+    } else {
+      battCurrent = Math.floor(-amps);
+    }
+
+    return battCurrent;
   }
 
   /**
@@ -24,7 +47,7 @@ export class Battery extends DisplayComponent<ComponentProps> {
    * @param volts The new value of battery voltage.
    */
   public updateVoltage(volts: number): void {
-    this.voltage.set(volts);
+    this.voltage.set(Math.floor(volts));
   }
 
   /**

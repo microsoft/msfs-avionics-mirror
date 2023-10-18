@@ -3,12 +3,78 @@ import {
 } from '@microsoft/msfs-sdk';
 
 /**
+ * Actions that {@link TouchButton} can take in response to being touched.
+ */
+export enum TouchButtonOnTouchedAction {
+  /**
+   * The button becomes primed. A primed button will be pressed if and when the mouse button is released. If the mouse
+   * leaves the button before the mouse button is released, the button becomes un-primed and is not pressed.
+   */
+  Prime = 'Prime',
+
+  /**
+   * The button is immediately pressed once. The button does not enter the primed state. Holding down the mouse button
+   * will not trigger additional presses.
+   */
+  Press = 'Press',
+
+  /**
+   * The button becomes held. The button will remain held until the mouse button is released, the mouse leaves the
+   * button, mouse events are inhibited by dragging, or the button becomes disabled.
+   */
+  Hold = 'Hold',
+
+  /** The button takes no action as if it were disabled. */
+  Ignore = 'Ignore'
+}
+
+/**
+ * Actions that {@link TouchButton} can take while it is in the held state.
+ */
+export enum TouchButtonHoldAction {
+  /** The button is immediately pressed once. */
+  Press = 'Press',
+
+  /** The button ends its held state. */
+  EndHold = 'EndHold',
+
+  /** The button takes no specific action. */
+  None = 'None'
+}
+
+/**
+ * Reasons for ending a {@link TouchButton}'s held state.
+ */
+export enum TouchButtonHoldEndReason {
+  /** The held state ended for an unknown reason. */
+  Unknown = 'Unknown',
+
+  /** The held state ended because the mouse button was released. */
+  MouseUp = 'MouseUp',
+
+  /** The held state ended because the mouse left the button.  */
+  MouseLeave = 'MouseLeave',
+
+  /** The held state ended as a result of a hold tick action. */
+  TickAction = 'TickAction',
+
+  /** The held state ended because mouse events were inhibited by dragging. */
+  DragInhibit = 'DragInhibit',
+
+  /** The held state ended because the button entered the primed state. */
+  Primed = 'Primed',
+
+  /** The held state ended because the button was disabled. */
+  Disabled = 'Disabled'
+}
+
+/**
  * Component props for TouchButton.
  */
 export interface TouchButtonProps extends ComponentProps {
   /**
-   * Whether the button is enabled, or a subscribable which provides it. Disabled buttons cannot be pressed. Defaults
-   * to `true`.
+   * Whether the button is enabled, or a subscribable which provides it. Disabled buttons cannot be touched, primed,
+   * pressed, or held. Defaults to `true`.
    */
   isEnabled?: boolean | Subscribable<boolean>;
 
@@ -28,30 +94,71 @@ export interface TouchButtonProps extends ComponentProps {
   label?: string | Subscribable<string> | VNode;
 
   /**
-   * A callback function which will be called every time the button is pressed.
-   * @param button The button that was pressed.
+   * A callback function which will be called every time the button is touched (i.e. a mouse down event on the button
+   * is detected). If not defined, then the button will default to entering the primed state when touched.
+   * @param button The button that was touched.
+   * @returns The action to take as a result of the button being touched.
    */
-  onPressed?: <B extends TouchButton = TouchButton>(button: B) => void;
+  onTouched?: <B extends TouchButton = TouchButton>(button: B) => TouchButtonOnTouchedAction;
 
   /**
-   * Whether the pad should focus all mouse events when dragging, preventing them from bubbling up to any ancestors
-   * in the DOM tree. Defaults to `false`.
+   * A callback function which will be called every time the button is pressed.
+   * @param button The button that was pressed.
+   * @param isHeld Whether the button was held when it was pressed.
+   */
+  onPressed?: <B extends TouchButton = TouchButton>(button: B, isHeld: boolean) => void;
+
+  /**
+   * A function which is called when the button enters the held state. If not defined, then the button will default to
+   * taking no specific action when it enters the held state.
+   * @param button The button that is held.
+   * @returns The action to take. Ignored if the value is equal to {@link TouchButtonHoldAction.EndHold}.
+   */
+  onHoldStarted?: <B extends TouchButton = TouchButton>(button: B) => TouchButtonHoldAction;
+
+  /**
+   * A function which is called every frame when the button is held. If not defined, then the button will default to
+   * taking no specific action with each frame tick.
+   * @param button The button that is held.
+   * @param dt The elapsed time, in milliseconds, since the previous frame.
+   * @param totalTime The total amount of time, in milliseconds, that the button has been held.
+   * @param timeSinceLastPress The amount of time, in milliseconds, that the button has been held since the last time
+   * the button was pressed as a tick action.
+   * @returns The action to take.
+   */
+  onHoldTick?: <B extends TouchButton = TouchButton>(button: B, dt: number, totalTime: number, timeSinceLastPress: number) => TouchButtonHoldAction;
+
+  /**
+   * A function which is called when the button exits the held state.
+   * @param button The button that was held.
+   * @param totalHoldDuration The total amount of time, in milliseconds, that the button was held.
+   * @param endReason The reason that the button exited the held state.
+   */
+  onHoldEnded?: <B extends TouchButton = TouchButton>(button: B, totalHoldDuration: number, endReason: TouchButtonHoldEndReason) => void;
+
+  /**
+   * Whether the button should focus all mouse events when dragging and the button is primed or held, preventing the
+   * events from bubbling up to any ancestors in the DOM tree. Defaults to `false`.
    */
   focusOnDrag?: boolean;
 
-  /** Whether this button should refire a mousedown event on its parent and unprime
-   * when mouse is clicked and dragged past the dragThresholdPx or on mouseleave.
-   * Defaults to false. */
+  /**
+   * Whether the button should stop responding to mouse events and instead forward them to its parent after clicking
+   * and dragging for a certain distance defined by `dragThresholdPx` along the axis defined by `inhibitOnDragAxis`.
+   * When mouse events are inhibited, the button cannot be primed or held. Defaults to `false`.
+   */
   inhibitOnDrag?: boolean;
 
-  /** How far the mouse can be clicked and moved from the click position before propogating the mousedown event and unpriming.
-   * Only applies when inhibitOnDrag is true.
-   * Defaults to 40px. */
+  /**
+   * The distance, in pixels, the mouse can click and drag before the pad begins to ignore mouse events. Ignored if
+   * `inhibitOnDrag` is `false`. Defaults to 40 pixels.
+   */
   dragThresholdPx?: number;
 
-  /** Which axis to apply the drag threshold to.
-   * Only applies when inhibitOnDrag is true.
-   * Defaults to both. */
+  /**
+   * The axis along which dragging will trigger the inhibit function. Ignored if `inhibitOnDrag` is `false`.
+   * Defaults to `'both'`.
+   */
   inhibitOnDragAxis?: 'x' | 'y' | 'both';
 
   /** A callback function which will be called when the button is destroyed. */
@@ -65,8 +172,8 @@ export interface TouchButtonProps extends ComponentProps {
  * A touchscreen button.
  *
  * The root element of the button contains the `touch-button` CSS class by default. The root element also
- * conditionally contains the `touch-button-disabled` and `touch-button-primed` classes when the button is disabled
- * and primed, respectively.
+ * conditionally contains the `touch-button-disabled`, `touch-button-primed`, and `touch-button-held` classes when the
+ * button is disabled, primed, and held, respectively.
  *
  * The root element optionally contains a child label element with the CSS class `touch-button-label`.
  */
@@ -75,6 +182,7 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
     'touch-button',
     'touch-button-disabled',
     'touch-button-primed',
+    'touch-button-held',
     'touch-button-highlight',
     'touch-button-hidden'
   ]);
@@ -97,6 +205,35 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
     : this.props.label;
 
   protected isPrimed = false;
+  protected isHeld = false;
+
+  protected holdTickInterval: NodeJS.Timer | null = null;
+  protected lastHoldTickTime: number | undefined = undefined;
+  protected totalHoldTime = 0;
+  protected holdTimeSinceLastPress = 0;
+
+  protected readonly holdTickFunc = (): void => {
+    const time = Date.now();
+    const dt = time - (this.lastHoldTickTime ?? time);
+    this.totalHoldTime += dt;
+    this.holdTimeSinceLastPress += dt;
+
+    const action = this.props.onHoldTick
+      ? this.props.onHoldTick(this, dt, this.totalHoldTime, this.holdTimeSinceLastPress)
+      : TouchButtonHoldAction.None;
+
+    this.lastHoldTickTime = time;
+
+    switch (action) {
+      case TouchButtonHoldAction.Press:
+        this.onPressed();
+        this.holdTimeSinceLastPress = 0;
+        break;
+      case TouchButtonHoldAction.EndHold:
+        this.setHeld(false, TouchButtonHoldEndReason.TickAction);
+        break;
+    }
+  };
 
   protected isEnabledSub?: Subscription;
   protected isHighlightedSub?: Subscription;
@@ -123,6 +260,7 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
 
       if (!isEnabled) {
         this.setPrimed(false);
+        this.setHeld(false, TouchButtonHoldEndReason.Disabled);
       }
     }, true);
 
@@ -148,12 +286,37 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
   }
 
   /**
+   * Gets this button's root HTML element.
+   * @returns This button's root HTML element.
+   * @throws Error if this button has not yet been rendered.
+   */
+  public getRootElement(): HTMLElement {
+    return this.rootRef.instance;
+  }
+
+  /**
+   * Simulates this button being pressed. This will execute the `onPressed()` callback if one is defined.
+   * @param ignoreDisabled Whether to simulate the button being pressed regardless of whether the button is disabled.
+   * Defaults to `false`.
+   */
+  public simulatePressed(ignoreDisabled = false): void {
+    if (ignoreDisabled || this.isEnabled.get()) {
+      this.onPressed();
+    }
+  }
+
+  /**
    * Sets the primed state of this button.
    * @param isPrimed The new primed state.
    */
   protected setPrimed(isPrimed: boolean): void {
     if (this.isPrimed === isPrimed) {
       return;
+    }
+
+    if (isPrimed) {
+      // A button can't be primed and held at the same time.
+      this.setHeld(false, TouchButtonHoldEndReason.Primed);
     }
 
     this.isPrimed = isPrimed;
@@ -168,7 +331,56 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
         this.rootRef.instance.removeEventListener('mousemove', this.mouseMoveListener);
       }
     }
+  }
 
+  /**
+   * Sets the held state of this button.
+   * @param isHeld The new held state.
+   * @param endReason The reason that the held state is set to `false`. Ignored if {@linkcode isHeld} is `true`.
+   * Defaults to {@link TouchButtonHoldEndReason.Unknown}.
+   */
+  protected setHeld(isHeld: boolean, endReason = TouchButtonHoldEndReason.Unknown): void {
+    if (this.isHeld === isHeld) {
+      return;
+    }
+
+    if (isHeld) {
+      // A button can't be primed and held at the same time.
+      this.setPrimed(false);
+    }
+
+    this.isHeld = isHeld;
+
+    if (this.holdTickInterval !== null) {
+      clearInterval(this.holdTickInterval);
+    }
+
+    if (isHeld) {
+      this.cssClassSet.add('touch-button-held');
+      if (this.inhibitOnDrag) {
+        this.rootRef.instance.addEventListener('mousemove', this.mouseMoveListener);
+      }
+
+      const action = this.props.onHoldStarted
+        ? this.props.onHoldStarted(this)
+        : TouchButtonHoldAction.None;
+
+      this.lastHoldTickTime = undefined;
+      this.totalHoldTime = 0;
+      this.holdTimeSinceLastPress = 0;
+      this.holdTickInterval = setInterval(this.holdTickFunc, 0);
+
+      if (action === TouchButtonHoldAction.Press) {
+        this.onPressed();
+      }
+    } else {
+      this.cssClassSet.delete('touch-button-held');
+      if (this.inhibitOnDrag) {
+        this.rootRef.instance.removeEventListener('mousemove', this.mouseMoveListener);
+      }
+
+      this.props.onHoldEnded && this.props.onHoldEnded(this, this.totalHoldTime, endReason);
+    }
   }
 
   /**
@@ -176,13 +388,32 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
    * @param e The mouse event.
    */
   protected onMouseDown(e: MouseEvent): void {
-    if (this.isEnabled.get()) {
-      if (this.focusOnDrag) {
+    if (!this.isEnabled.get()) {
+      return;
+    }
+
+    const action = this.props.onTouched ? this.props.onTouched(this) : TouchButtonOnTouchedAction.Prime;
+
+    switch (action) {
+      case TouchButtonOnTouchedAction.Prime:
         this.mouseClickPosition.x = e.clientX;
         this.mouseClickPosition.y = e.clientY;
-        e.stopPropagation();
-      }
-      this.setPrimed(true);
+        if (this.focusOnDrag) {
+          e.stopPropagation();
+        }
+        this.setPrimed(true);
+        break;
+      case TouchButtonOnTouchedAction.Press:
+        this.onPressed();
+        break;
+      case TouchButtonOnTouchedAction.Hold:
+        this.mouseClickPosition.x = e.clientX;
+        this.mouseClickPosition.y = e.clientY;
+        if (this.focusOnDrag) {
+          e.stopPropagation();
+        }
+        this.setHeld(true);
+        break;
     }
   }
 
@@ -192,6 +423,7 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
   protected onMouseUp(): void {
     const wasPrimed = this.isPrimed;
     this.setPrimed(false);
+    this.setHeld(false, TouchButtonHoldEndReason.MouseUp);
     if (wasPrimed && this.isEnabled.get()) {
       this.onPressed();
     }
@@ -202,17 +434,19 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
    * @param e The mouse event.
    */
   protected onMouseLeave(e: MouseEvent): void {
-    if (!this.isPrimed) {
+    if (!this.isPrimed && !this.isHeld) {
       return;
     }
+
     this.setPrimed(false);
-    if (this.focusOnDrag) {
+    this.setHeld(false, TouchButtonHoldEndReason.MouseLeave);
+    if (this.focusOnDrag && this.rootRef.instance.parentElement) {
       const newE = new MouseEvent('mousedown', {
         clientX: e.clientX,
         clientY: e.clientY,
         bubbles: true,
       });
-      this.rootRef.instance.parentElement?.dispatchEvent(newE);
+      this.rootRef.instance.parentElement.dispatchEvent(newE);
     }
   }
 
@@ -221,7 +455,7 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
    * @param e The mouse event.
    */
   protected onMouseMove(e: MouseEvent): void {
-    if (!this.isPrimed) {
+    if (!this.isPrimed && !this.isHeld) {
       return;
     }
 
@@ -230,14 +464,16 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
 
     if (this.getDragDistance() > this.dragThresholdPxActual) {
       this.setPrimed(false);
+      this.setHeld(false, TouchButtonHoldEndReason.DragInhibit);
 
-      const newE = new MouseEvent('mousedown', {
-        clientX: e.clientX,
-        clientY: e.clientY,
-        bubbles: true,
-      });
-      this.rootRef.instance.parentElement?.dispatchEvent(newE);
-
+      if (this.focusOnDrag && this.rootRef.instance.parentElement) {
+        const newE = new MouseEvent('mousedown', {
+          clientX: e.clientX,
+          clientY: e.clientY,
+          bubbles: true,
+        });
+        this.rootRef.instance.parentElement.dispatchEvent(newE);
+      }
     }
   }
 
@@ -257,7 +493,7 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
    * Responds to when this button is pressed.
    */
   protected onPressed(): void {
-    this.props.onPressed && this.props.onPressed(this);
+    this.props.onPressed && this.props.onPressed(this, this.isHeld);
   }
 
   /** @inheritdoc */
@@ -305,6 +541,10 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
   /** @inheritdoc */
   public destroy(): void {
     this.props.onDestroy && this.props.onDestroy();
+
+    if (this.holdTickInterval !== null) {
+      clearInterval(this.holdTickInterval);
+    }
 
     if (this.labelContent !== undefined) {
       if (SubscribableUtils.isSubscribable(this.labelContent)) {

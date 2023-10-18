@@ -1,21 +1,38 @@
 import {
+  BasicFacilityWaypoint,
+  BitFlags,
+  ClippedPathStream,
   ConsumerSubject,
   EventBus,
+  FacilityLoader,
+  FacilityRepository,
   FlightPlanner,
   FlightPlannerEvents,
+  ICAO,
+  MapCullableTextLabelManager,
   MapLayerProps,
+  MapProjection,
+  MapProjectionChangeType,
   MapSyncedCanvasLayer,
+  MapSystemWaypointRoles,
   MapSystemWaypointsRenderer,
+  NullPathStream,
   NumberUnit,
+  SubscribableArrayEventType,
   UnitType,
   VNavEvents,
   VNavPathMode,
-  VNavWaypoint
+  VNavWaypoint,
+  VecNSubject
 } from '@microsoft/msfs-sdk';
 
 import { WT21Fms } from '../FlightPlan/WT21Fms';
-import { MapDesAdvisoryLabelFactory, MapTodIconFactory, MapTodLabelFactory } from './MapTod';
+import { FixInfoFacilityWaypoint, MapDesAdvisoryLabelFactory, MapFixInfoIconFactory, MapTodIconFactory, MapTodLabelFactory } from './MapTod';
 import { WT21VNavDataEvents } from '../Navigation/WT21VnavEvents';
+import { WT21FixInfoManager } from '../../FMC/Systems/WT21FixInfoManager';
+import { PerformancePlan } from '../Performance/PerformancePlan';
+import { WT21FixInfoWaypoint } from '../../FMC/Systems/WT21FixInfoData';
+import { WT21MapKeys } from './WT21MapKeys';
 
 /** The props for the MapTodLayer component. */
 export interface MapTodLayerProps extends MapLayerProps<any> {
@@ -25,6 +42,22 @@ export interface MapTodLayerProps extends MapLayerProps<any> {
   planner: FlightPlanner;
   /** The waypoint renderer to use. */
   waypointRenderer: MapSystemWaypointsRenderer;
+  /** The text label manager. */
+  textManager: MapCullableTextLabelManager;
+  /** The fix info manager. If not passed in, then fix info will not be rendered on this layer. */
+  fixInfo?: WT21FixInfoManager;
+  /** The active route perf plan. Only needed if fix info should be displayed. */
+  activePerformancePlan?: PerformancePlan;
+}
+
+/**
+ * Info about fix info waypoints.
+ */
+interface FixInfoWaypointEntry {
+  /** The waypoint. */
+  fixInfoWaypoint: FixInfoFacilityWaypoint<any>;
+  /** The basic facility waypoint. */
+  basicFacWaypoint: BasicFacilityWaypoint<any>;
 }
 
 /** The map layer for displaying the Tod. */
@@ -35,6 +68,8 @@ export class MapTodLayer extends MapSyncedCanvasLayer<MapTodLayerProps>{
   protected desAdvisoryWaypoint: VNavWaypoint | undefined;
   protected readonly TodWaypointRole = 'TodRole';
   protected readonly DesAdvisoryWaypointRole = 'DesAdvisoryRole';
+  protected readonly FixInfoWaypointRole = 'FixInfoWaypointRole';
+  protected readonly FixInfoMarkerRole = 'FixInfoMarkerRole';
 
   protected readonly vnavPathMode = ConsumerSubject.create(this.props.bus.getSubscriber<VNavEvents>().on('vnav_path_mode').whenChanged(), VNavPathMode.None);
   protected readonly vnavTodLegIndex = ConsumerSubject.create(this.props.bus.getSubscriber<VNavEvents>().on('vnav_tod_global_leg_index').whenChanged(), -1);
@@ -47,11 +82,19 @@ export class MapTodLayer extends MapSyncedCanvasLayer<MapTodLayerProps>{
 
   protected todLegEndDistance = new NumberUnit(0, UnitType.METER);
 
+  protected readonly mapStyles = this.props.model.getModule(WT21MapKeys.MapStyles).styles;
+
+  protected readonly facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
+  protected readonly boundsSub = VecNSubject.create(new Float64Array(4));
+  protected readonly clipPathStream = new ClippedPathStream(NullPathStream.INSTANCE, this.boundsSub);
+  protected readonly fixInfoWpEntries = new Map<WT21FixInfoWaypoint, FixInfoWaypointEntry>();
+
   /** @inheritdoc */
   onAttached(): void {
     super.onAttached();
     this.props.waypointRenderer.addRenderRole(this.TodWaypointRole);
     this.props.waypointRenderer.addRenderRole(this.DesAdvisoryWaypointRole);
+    this.props.waypointRenderer.addRenderRole(this.FixInfoWaypointRole);
 
     // ToD
     this.props.waypointRenderer.setCanvasContext(this.props.waypointRenderer.getRoleFromName(this.TodWaypointRole) ?? 0, this.display.context);
@@ -62,6 +105,12 @@ export class MapTodLayer extends MapSyncedCanvasLayer<MapTodLayerProps>{
     this.props.waypointRenderer.setCanvasContext(this.props.waypointRenderer.getRoleFromName(this.DesAdvisoryWaypointRole) ?? 0, this.display.context);
     this.props.waypointRenderer.setIconFactory(this.props.waypointRenderer.getRoleFromName(this.DesAdvisoryWaypointRole) ?? 0, new MapTodIconFactory());
     this.props.waypointRenderer.setLabelFactory(this.props.waypointRenderer.getRoleFromName(this.DesAdvisoryWaypointRole) ?? 0, new MapDesAdvisoryLabelFactory());
+
+    // FixInfoWaypointRole
+    this.props.waypointRenderer.setCanvasContext(
+      this.props.waypointRenderer.getRoleFromName(this.FixInfoWaypointRole) ?? 0, this.display.context);
+    this.props.waypointRenderer.setIconFactory(
+      this.props.waypointRenderer.getRoleFromName(this.FixInfoWaypointRole) ?? 0, new MapFixInfoIconFactory(this.mapStyles, this.clipPathStream));
 
     this.vnavPathMode.sub(() => { this.updateTodWaypoint(); });
 
@@ -78,6 +127,103 @@ export class MapTodLayer extends MapSyncedCanvasLayer<MapTodLayerProps>{
       this.updateTodWaypoint();
       this.updateDesAdvisoryWaypoint();
     });
+
+    if (this.props.fixInfo) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      this.props.fixInfo.ndWaypoints.sub(async (index, type, item, array) => {
+        switch (type) {
+          case SubscribableArrayEventType.Added: {
+            if (!item) { return; }
+
+            if ('fixIdent' in item) {
+              this.handleFixInfoWpAdded(item);
+            } else {
+              item.forEach(x => this.handleFixInfoWpAdded(x));
+            }
+            break;
+          }
+          case SubscribableArrayEventType.Removed: {
+            if (!item) { return; }
+
+            if ('fixIdent' in item) {
+              this.handleFixInfoWpRemoved(item);
+            } else {
+              item.forEach(x => this.handleFixInfoWpRemoved(x));
+            }
+            break;
+          }
+          case SubscribableArrayEventType.Cleared: {
+            this.fixInfoWpEntries.forEach(x => this.deregisterFixInfoWpEntry(x));
+            this.fixInfoWpEntries.clear();
+            break;
+          }
+        }
+      }, true);
+    }
+
+    const width = this.getWidth();
+    const height = this.getHeight();
+    this.boundsSub.set(-10, -10, width + 10, height + 10);
+
+    this.clipPathStream.setConsumer(this.display.context);
+  }
+
+  /** @inheritdoc */
+  public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
+    super.onMapProjectionChanged(mapProjection, changeFlags);
+
+    if (BitFlags.isAll(changeFlags, MapProjectionChangeType.ProjectedSize)) {
+      const width = this.getWidth();
+      const height = this.getHeight();
+
+      this.boundsSub.set(-10, -10, width + 10, height + 10);
+    }
+  }
+
+  /**
+   * Handles a new fix info waypoint being added.
+   * @param wp The new waypoint.
+   */
+  private async handleFixInfoWpAdded(wp: WT21FixInfoWaypoint): Promise<void> {
+    const facility = await this.facLoader.getFacility(ICAO.getFacilityType(wp.fixIcao), wp.fixIcao);
+
+    if (this.props.fixInfo?.ndWaypoints.getArray().includes(wp) === false) {
+      // If wp was removed while getting the fac, don't register it
+      return;
+    }
+
+    const fixInfoWaypoint = new FixInfoFacilityWaypoint(facility, this.props.bus, wp);
+    const basicFacWaypoint = new BasicFacilityWaypoint(facility, this.props.bus);
+    const entry: FixInfoWaypointEntry = {
+      fixInfoWaypoint,
+      basicFacWaypoint,
+    };
+
+    this.props.waypointRenderer.register(fixInfoWaypoint, this.props.waypointRenderer.getRoleFromName(this.FixInfoWaypointRole) ?? 0, 'fix-info-layer');
+    this.props.waypointRenderer.register(basicFacWaypoint, this.props.waypointRenderer.getRoleFromName(MapSystemWaypointRoles.Normal) ?? 0, 'fix-info-layer');
+
+    this.fixInfoWpEntries.set(wp, entry);
+  }
+
+  /**
+   * Handles when fix info waypoints are removed.
+   * @param wp The waypoint that was removed.
+   */
+  private handleFixInfoWpRemoved(wp: WT21FixInfoWaypoint): void {
+    const entry = this.fixInfoWpEntries.get(wp);
+    if (entry !== undefined) {
+      this.deregisterFixInfoWpEntry(entry);
+      this.fixInfoWpEntries.delete(wp);
+    }
+  }
+
+  /**
+   * Deregisters a fix info entry from the renderers.
+   * @param entry The wp entry to deregister.
+   */
+  private deregisterFixInfoWpEntry(entry: FixInfoWaypointEntry): void {
+    this.props.waypointRenderer.deregister(entry.fixInfoWaypoint, this.props.waypointRenderer.getRoleFromName(this.FixInfoWaypointRole) ?? 0, 'fix-info-layer');
+    this.props.waypointRenderer.deregister(entry.basicFacWaypoint, this.props.waypointRenderer.getRoleFromName(MapSystemWaypointRoles.Normal) ?? 0, 'fix-info-layer');
   }
 
   /**

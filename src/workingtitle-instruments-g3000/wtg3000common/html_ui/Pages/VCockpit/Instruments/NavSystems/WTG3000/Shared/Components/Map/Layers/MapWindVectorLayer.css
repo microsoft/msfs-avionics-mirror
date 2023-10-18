@@ -1,0 +1,48 @@
+.map-windvector {
+  position: relative;
+  width: 75px;
+  height: 24px;
+  padding: 0 2px;
+  background-color: rgba(0, 0, 0, 0.75);
+  border: solid 1px var(--map-indicator-border-color);
+  border-radius: var(--map-indicator-border-radius);
+  color: var(--g3000-color-white);
+  transform: rotateX(0deg);
+}
+
+.map-windvector-arrow-container {
+  position: absolute;
+  left: 1px;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-50%);
+  stroke-linejoin: round;
+}
+
+.map-windvector-arrow {
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 14px;
+  height: 20px;
+}
+
+.map-windvector-arrow-outline {
+  fill: none;
+  stroke: var(--g3000-color-white);
+  stroke-width: 1.7;
+}
+
+.map-windvector-arrow-stroke {
+  fill: var(--g3000-color-white);
+  stroke: var(--g3000-color-black);
+  stroke-width: 1.5;
+}
+
+.map-windvector-speed {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}

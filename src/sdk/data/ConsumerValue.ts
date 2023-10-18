@@ -2,6 +2,11 @@ import { Subscription } from '../sub/Subscription';
 import { Consumer } from './Consumer';
 
 /**
+ * A read-only {@link ConsumerValue}.
+ */
+export type ReadonlyConsumerValue<T> = Pick<ConsumerValue<T>, 'get' | 'isPaused'>;
+
+/**
  * Captures the state of a value from a consumer.
  */
 export class ConsumerValue<T> {

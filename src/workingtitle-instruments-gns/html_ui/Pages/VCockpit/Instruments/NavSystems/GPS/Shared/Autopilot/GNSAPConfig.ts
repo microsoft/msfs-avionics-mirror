@@ -1,7 +1,7 @@
 import {
   APAltCapDirector, APAltDirector, APBackCourseDirector, APConfig, APFLCDirector, APGPDirector, APGSDirector, APHdgDirector, APLateralModes, APLvlDirector, APNavDirector,
   APPitchDirector, APRollDirector, APValues, APVerticalModes, APVSDirector, ConsumerSubject, EventBus,
-  FlightPlanner, GPSSatComputerEvents, GPSSystemState, LNavDirector, NavMath, PlaneDirector, SimVarValueType, UnitType, VNavManager
+  FlightPlanner, GPSSatComputerEvents, GPSSystemState, LNavDirector, NavMath, SimVarValueType, UnitType, VNavManager
 } from '@microsoft/msfs-sdk';
 
 import { GarminNavToNavManager, GarminObsDirector } from '@microsoft/msfs-garminsdk';
@@ -69,29 +69,8 @@ export class GNSAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
-  createVariableBankManager(): Record<any, any> | undefined {
-    return undefined;
-  }
-
-
-  /** @inheritdoc */
   public createHeadingDirector(apValues: APValues): APHdgDirector {
     return new APHdgDirector(this.bus, apValues);
-  }
-
-  /** @inheritdoc */
-  public createHeadingHoldDirector(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
-  createTrackDirector(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
-  createTrackHoldDirector(): undefined {
-    return undefined;
   }
 
   /** @inheritdoc */
@@ -133,13 +112,10 @@ export class GNSAPConfig implements APConfig {
     if (this.disableBackcourse) {
       return undefined;
     } else {
-      return new APBackCourseDirector(this.bus, apValues, { lateralInterceptCurve: this.navInterceptCurve.bind(this) });
+      return new APBackCourseDirector(this.bus, apValues, {
+        lateralInterceptCurve: (distanceToSource: number, deflection: number, xtk: number, tas: number) => this.localizerInterceptCurve(xtk, tas)
+      });
     }
-  }
-
-  /** @inheritDoc */
-  public createRolloutDirector(): undefined {
-    return undefined;
   }
 
   /** @inheritdoc */
@@ -150,11 +126,6 @@ export class GNSAPConfig implements APConfig {
   /** @inheritdoc */
   public createVsDirector(apValues: APValues): APVSDirector {
     return new APVSDirector(apValues);
-  }
-
-  /** @inheritdoc */
-  public createFpaDirector(): undefined {
-    return undefined;
   }
 
   /** @inheritdoc */
@@ -185,11 +156,6 @@ export class GNSAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
-  public createVNavPathDirector(): PlaneDirector | undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
   public createGpDirector(apValues: APValues): APGPDirector {
     return new APGPDirector(this.bus, apValues);
   }
@@ -197,36 +163,6 @@ export class GNSAPConfig implements APConfig {
   /** @inheritdoc */
   public createGsDirector(apValues: APValues): APGSDirector {
     return new APGSDirector(this.bus, apValues);
-  }
-
-  /** @inheritdoc */
-  public createFlareDirector(): undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
-  public createToVerticalDirector(): PlaneDirector | undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
-  public createGaVerticalDirector(): PlaneDirector | undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
-  public createToLateralDirector(): PlaneDirector | undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
-  public createGaLateralDirector(): PlaneDirector | undefined {
-    return undefined;
-  }
-
-  /** @inheritdoc */
-  public createFmsLocLateralDirector(): undefined {
-    return undefined;
   }
 
   /** @inheritdoc */
@@ -324,6 +260,11 @@ export class GNSAPConfig implements APConfig {
    * @returns The calculated intercept angle, in degrees.
    */
   private calculateTurnBasedInterceptAngle(turnRadius: number, xtk: number): number {
-    return UnitType.RADIAN.convertTo(Math.acos(NavMath.clamp((turnRadius - Math.abs(xtk)) / turnRadius, -1, 1)), UnitType.DEGREE) / 2;
+    // The following formula is derived by solving for the intercept angle in Euclidean rather than spherical space.
+    // The error from this simplification is negligible when turn radius and cross-track are small (less than 1% of
+    // earth radius, or ~63km).
+    // The Euclidean solution is chosen over the spherical one: asin(sin(xtk) / sqrt(1 - (1 - sin(xtk) * tan(radius))^2))
+    // for performance reasons.
+    return Math.asin(Math.min(Math.sqrt(Math.abs(xtk) / (2 * turnRadius)), 1)) * Avionics.Utils.RAD2DEG;
   }
 }

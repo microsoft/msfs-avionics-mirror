@@ -2,17 +2,24 @@ import {
   ComponentProps, DebounceTimer, DisplayComponent, EventBus, FSComponent, MappedSubject, SetSubject, Subject, Subscribable,
   SubscribableArray, SubscribableSet, SubscribableUtils, Subscription, VNode,
 } from '@microsoft/msfs-sdk';
+
 import { DynamicList, DynamicListData } from '@microsoft/msfs-wtg3000-common';
+
 import { GtcInteractionEvent, GtcInteractionHandler } from '../../GtcService/GtcInteractionEvent';
 import { SidebarState } from '../../GtcService/Sidebar';
-import { TouchList, TouchListProps } from './TouchList';
+import { GarminTouchList } from './GarminTouchList';
+import { TouchListProps } from './TouchList';
 
 import './GtcList.css';
 
-/** Props that affect the formatting of the GtcList */
+/**
+ * Formatting props for GtcList.
+ */
 export type GtcListFormattingProps = Omit<TouchListProps, 'itemCount' | 'maxRenderedItemCount'>;
 
-/** The properties for the GtcList component. */
+/**
+ * Component props for GtcList.
+ */
 export interface GtcListProps<DataType> extends ComponentProps, GtcListFormattingProps {
   /** The event bus. */
   bus: EventBus,
@@ -36,7 +43,10 @@ export interface GtcListProps<DataType> extends ComponentProps, GtcListFormattin
    */
   maxRenderedItemCount?: number | Subscribable<number>;
 
-  /** A VNode that will be passed as a child to TouchList. */
+  /**
+   * A VNode which will be rendered into the list's translating container and positioned after the container that
+   * holds the list's rendered items.
+   */
   staticTouchListChildren?: VNode;
 
   /**
@@ -60,11 +70,15 @@ export interface GtcListProps<DataType> extends ComponentProps, GtcListFormattin
   class?: string | SubscribableSet<string>;
 }
 
-/** The GtcList component. */
+/**
+ * A touchscreen vertically scrollable list which includes an animated scroll bar and supports rendering either a static
+ * or dynamic sequence of list items. The list also supports scrolling in response to GTC interaction events and
+ * editing of GTC sidebar state to show/hide the arrow buttons as appropriate.
+ */
 export class GtcList<DataType extends DynamicListData> extends DisplayComponent<GtcListProps<DataType>> implements GtcInteractionHandler {
   private readonly gtcListRef = FSComponent.createRef<HTMLDivElement>();
   private readonly scrollBarRef = FSComponent.createRef<HTMLDivElement>();
-  private readonly touchListRef = FSComponent.createRef<TouchList>();
+  private readonly touchListRef = FSComponent.createRef<GarminTouchList>();
 
   private readonly visibleItemCount = Subject.create(0);
 
@@ -140,8 +154,8 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
 
     const canScroll = MappedSubject.create(
       ([totalHeightPx, heightPx]) => totalHeightPx > heightPx,
-      this.touchListRef.instance.totalHeightPx,
-      this.touchListRef.instance.heightPx
+      this.touchListRef.instance.totalLengthPx,
+      this.touchListRef.instance.lengthPx
     );
 
     canScroll.sub(val => {
@@ -150,18 +164,19 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
 
     const arrowButtonsState = MappedSubject.create(
       canScroll,
-      this.touchListRef.instance.scrollPercentage
+      this.touchListRef.instance.scrollPosFraction
     );
 
     const arrowButtonsStateSub = arrowButtonsState.sub(this.updateArrowButtons.bind(this), false, true);
 
-    this.touchListRef.instance.scrollBarHeightPercentage.sub(scrollBarHeightPercentage => {
-      this.scrollBarRef.instance.style.height = (scrollBarHeightPercentage * 100) + '%';
+    this.touchListRef.instance.scrollBarLengthFraction.sub(scrollBarLengthFraction => {
+      this.scrollBarRef.instance.style.height = (scrollBarLengthFraction * 100) + '%';
     }, true);
 
-    this.touchListRef.instance.heightPx.sub(this.updateScrollBarTranslation, true);
-    this.touchListRef.instance.scrollPercentage.sub(this.updateScrollBarTranslation, true);
-    this.touchListRef.instance.scrollBarHeightPercentage.sub(this.updateScrollBarTranslation, true);
+    const updateScrollBarTranslation = this.updateScrollBarTranslation.bind(this);
+    this.touchListRef.instance.lengthPx.sub(updateScrollBarTranslation, true);
+    this.touchListRef.instance.scrollPosFraction.sub(updateScrollBarTranslation, true);
+    this.touchListRef.instance.scrollBarLengthFraction.sub(updateScrollBarTranslation, true);
 
     this.sidebarStateSub = this.sidebarState.sub(sidebarState => {
       if (sidebarState === null) {
@@ -173,13 +188,14 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
 
     const { onTopVisibleIndexChanged } = this.props;
     if (onTopVisibleIndexChanged) {
-      this.touchListRef.getOrDefault()?.topVisibleIndex.sub(x => onTopVisibleIndexChanged(x), true);
+      this.touchListRef.getOrDefault()?.firstVisibleIndex.sub(x => onTopVisibleIndexChanged(x), true);
     }
   }
 
   /**
    * Scrolls until the item at a specified index is in view.
-   * @param index The index of the item to which to scroll.
+   * @param index The index of the item to which to scroll, after sorting has been applied and hidden items have been
+   * excluded.
    * @param position The position to place the target item at the end of the scroll. Position `0` is the top-most
    * visible slot, position `1` is the next slot, and so on. Values greater than or equal to the number of visible
    * items per page will be clamped. If this value is negative, the target item will be placed at the visible position
@@ -187,7 +203,17 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
    * @param animate Whether to animate the scroll.
    */
   public scrollToIndex(index: number, position: number, animate: boolean): void {
-    this.touchListRef.getOrDefault()?.scrollToIndex(index, position, animate);
+    const list = this.touchListRef.getOrDefault();
+
+    if (!list) {
+      return;
+    }
+
+    if (position < 0) {
+      list.scrollToIndexWithMargin(index, 0, animate);
+    } else {
+      list.scrollToIndex(index, position, animate);
+    }
   }
 
   /**
@@ -201,33 +227,21 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
    * @param ignoreIfItemInView When true, if item is already in view, it will not scroll to it. Defaults to false.
    */
   public scrollToItem(item: DataType, position: number, animate: boolean, ignoreIfItemInView = false): void {
-    if (this.props.data === undefined || this.dynamicList === undefined) {
+    if (this.props.data === undefined || this.dynamicList === undefined || item.isVisible?.get() === false) {
       return;
     }
 
-    const index = this.dynamicList.sortedIndexOfData(item);
-    if (index === -1) {
+    const visibleIndex = this.dynamicList.sortedVisibleIndexOfData(item);
+    if (visibleIndex === -1) {
       return;
     }
 
-    let hiddenItemsBeforeIndex = 0;
-
-    for (const element of this.props.data.getArray()) {
-      if (element === item) {
-        break;
-      }
-      if (element.isVisible?.get() === false) {
-        hiddenItemsBeforeIndex++;
-      }
-    }
-
-    const visibleIndex = index - hiddenItemsBeforeIndex;
     const touchList = this.touchListRef.instance;
     const itemsPerPage = touchList.itemsPerPage?.get();
 
     if (ignoreIfItemInView && itemsPerPage !== undefined) {
-      const scrollY = touchList.scrollY.get();
-      const listItemHeightWithMarginPx = touchList.listItemHeightWithMarginPx.get();
+      const scrollY = touchList.scrollPos.get();
+      const listItemHeightWithMarginPx = touchList.listItemLengthWithMarginPx.get();
       const topVisibleIndex = scrollY / listItemHeightWithMarginPx;
       const bottomVisibleIndex = topVisibleIndex + itemsPerPage - 1;
       if (visibleIndex >= topVisibleIndex && visibleIndex <= bottomVisibleIndex) {
@@ -253,20 +267,22 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
     // TODO Handle holding down an arrow button
     // TODO Event should fire on mouse down, not on mouse up
     switch (event) {
-      case GtcInteractionEvent.ButtonBarUpPressed: this.touchListRef.instance.pageUp(); return true;
-      case GtcInteractionEvent.ButtonBarDownPressed: this.touchListRef.instance.pageDown(); return true;
+      case GtcInteractionEvent.ButtonBarUpPressed: this.touchListRef.instance.pageBack(); return true;
+      case GtcInteractionEvent.ButtonBarDownPressed: this.touchListRef.instance.pageForward(); return true;
       default: return false;
     }
   }
 
-  /** Updates the element transforms. */
-  private readonly updateScrollBarTranslation = (): void => {
-    const heightPx = this.touchListRef.instance.heightPx.get();
-    const scrollBarHeightPx = this.touchListRef.instance.scrollBarHeightPercentage.get() * heightPx;
+  /**
+   * Updates the translation of this list's scroll bar.
+   */
+  private updateScrollBarTranslation(): void {
+    const heightPx = this.touchListRef.instance.lengthPx.get();
+    const scrollBarHeightPx = this.touchListRef.instance.scrollBarLengthFraction.get() * heightPx;
     const maxScrollBarY = heightPx - scrollBarHeightPx;
-    const scrollBarY = maxScrollBarY * this.touchListRef.instance.scrollPercentage.get();
+    const scrollBarY = maxScrollBarY * this.touchListRef.instance.scrollPosFraction.get();
     this.scrollBarRef.instance.style.transform = `translate3d(0px, ${scrollBarY}px, 0)`;
-  };
+  }
 
   /**
    * Update the arrow buttons in the sidebar state.
@@ -347,18 +363,18 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
 
     return (
       <div ref={this.gtcListRef} class={cssClass}>
-        <TouchList
+        <GarminTouchList
           ref={this.touchListRef}
-          heightPx={this.props.heightPx}
+          lengthPx={this.props.heightPx}
           itemsPerPage={this.props.itemsPerPage}
           maxRenderedItemCount={this.props.data === undefined || this.props.renderItem === undefined ? undefined : this.props.maxRenderedItemCount}
-          listItemHeightPx={this.props.listItemHeightPx}
+          listItemLengthPx={this.props.listItemHeightPx}
           listItemSpacingPx={this.props.listItemSpacingPx}
           itemCount={this.visibleItemCount}
           bus={this.props.bus}
         >
           {this.props.staticTouchListChildren}
-        </TouchList>
+        </GarminTouchList>
         <div class="gtc-list-scroll-bar-container">
           <div ref={this.scrollBarRef} class="gtc-list-scroll-bar" />
         </div>

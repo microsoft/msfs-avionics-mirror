@@ -60,7 +60,7 @@ export type NavDataFieldTypeModelMap = {
   /** Ground speed. */
   [NavDataFieldType.GroundSpeed]: NavDataFieldModel<NumberUnitInterface<UnitFamily.Speed>>,
   /** International standard atmosphere. */
-  [NavDataFieldType.ISA]: NavDataFieldModel<NumberUnitInterface<UnitFamily.Temperature>>,
+  [NavDataFieldType.ISA]: NavDataFieldModel<NumberUnitInterface<UnitFamily.TemperatureDelta>>,
   /** Estimated time of arrival at destination. */
   [NavDataFieldType.TimeOfDestinationArrival]: NavDataFieldModel<number>,
   /** True airspeed. */

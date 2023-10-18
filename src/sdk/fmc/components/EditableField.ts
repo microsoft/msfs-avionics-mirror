@@ -1,10 +1,11 @@
 import { Consumer } from '../../data/Consumer';
 import { SubEvent } from '../../sub/SubEvent';
-import { MappedSubscribable, MutableSubscribable } from '../../sub/Subscribable';
+import { MutableSubscribable, Subscribable } from '../../sub/Subscribable';
 import { AbstractFmcPage } from '../AbstractFmcPage';
-import { DataInterface, TwoWayBinding } from '../FmcDataBinding';
+import { DataInterface } from '../FmcDataBinding';
 import { LineSelectKeyEvent } from '../FmcInteractionEvents';
 import { DisplayField, DisplayFieldOptions } from './DisplayField';
+import { SubscribableUtils } from '../../sub';
 
 /**
  * Input field options
@@ -28,7 +29,7 @@ export interface EditableFieldOptions<T> extends DisplayFieldOptions<T> {
  * described for {@link FmcComponent}.
  */
 export abstract class EditableField<T, V = T> extends DisplayField<T> {
-  protected readonly valueChanged = new SubEvent<typeof this, V>();
+  protected readonly valueChanged = new SubEvent<EditableField<T, V>, V>();
 
   /** @inheritDoc */
   public constructor(
@@ -43,8 +44,14 @@ export abstract class EditableField<T, V = T> extends DisplayField<T> {
    * @param subscribable the mutable subscribable
    * @returns the instance of this {@link EditableField}
    */
-  public bind(subscribable: MutableSubscribable<any, T> | MappedSubscribable<T>): EditableField<T, V> {
-    return this.bindSource(DataInterface.fromMutSubscribable(subscribable as MutableSubscribable<any, T>));
+  public bind(subscribable: MutableSubscribable<T, V> | Subscribable<T>): this {
+    if (SubscribableUtils.isMutableSubscribable(subscribable)) {
+      this.bindSource(DataInterface.fromMutSubscribable(subscribable));
+    } else {
+      super.bind(subscribable);
+    }
+
+    return this;
   }
 
   /**
@@ -53,7 +60,7 @@ export abstract class EditableField<T, V = T> extends DisplayField<T> {
    * @param modifier the modifier to use when the value is modified (set)
    * @returns the instance of this {@link EditableField}
    */
-  public bindConsumer(consumer: Consumer<T>, modifier: (value: T) => void): EditableField<T, V> {
+  public bindConsumer(consumer: Consumer<T>, modifier: (value: V) => void): this {
     return this.bindSource(DataInterface.fromConsumer(consumer, modifier));
   }
 
@@ -62,10 +69,15 @@ export abstract class EditableField<T, V = T> extends DisplayField<T> {
    * @param source the data interface
    * @returns the instance of this {@link EditableField}
    */
-  public bindSource(source: DataInterface<T, any>): EditableField<T, V> {
-    const binding = new TwoWayBinding(source, (value) => this.takeValue(value, true), this.valueChanged);
+  public bindSource(source: DataInterface<T, V>): this {
+    if (SubscribableUtils.isSubscribable(source.input)) {
+      this.page.addBinding(source.input.sub((value) => this.takeValue(value, true), true));
+    } else {
+      this.page.addBinding(source.input.handle((value) => this.takeValue(value, true)));
+    }
 
-    this.page.addBinding(binding);
+    this.page.addBinding(this.valueChanged.on((sender, data) => source.modify(data)));
+
     return this;
   }
 

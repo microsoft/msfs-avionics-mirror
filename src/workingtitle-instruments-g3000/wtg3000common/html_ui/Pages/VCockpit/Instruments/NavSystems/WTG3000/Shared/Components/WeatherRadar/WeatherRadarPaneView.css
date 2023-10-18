@@ -88,6 +88,10 @@
   text-align: center;
 }
 
+.weather-radar-pane-failed .weather-radar-indicator-mode {
+  color: var(--g3000-color-amber);
+}
+
 .weather-radar-indicator-scale {
   position: absolute;
   left: 10px;
@@ -186,7 +190,32 @@
   top: 75%;
 }
 
-.weather-radar-standby {
+.weather-radar-indicator-info {
+  position: absolute;
+  right: 2px;
+  bottom: 20px;
+  width: 178px;
+  height: 130px;
+  padding: 12px 8px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.weather-radar-indicator-info-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.weather-radar-indicator-info-value {
+  color: var(--g3000-color-cyan);
+  font-size: 22px;
+}
+
+.weather-radar-banner {
   position: absolute;
   left: calc((var(--weather-radar-arc-left) + var(--weather-radar-arc-right)) / 2 + var(--weather-radar-banner-offset-x));
   top: calc((var(--weather-radar-arc-top) + var(--weather-radar-arc-bottom)) / 2 + var(--weather-radar-banner-offset-y));
@@ -196,4 +225,8 @@
   color: var(--g3000-color-cyan);
   background: rgba(0, 0, 0, 0.75);
   border-radius: 16px;
+}
+
+.weather-radar-pane-failed .weather-radar-banner {
+  color: var(--g3000-color-amber);
 }

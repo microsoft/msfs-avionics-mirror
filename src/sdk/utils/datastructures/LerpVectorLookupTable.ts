@@ -69,8 +69,8 @@ export class LerpVectorLookupTable {
   // eslint-disable-next-line jsdoc/require-jsdoc
   constructor(arg1: readonly Readonly<LerpVectorLookupTableBreakpoint>[] | number, arg2?: number) {
     if (typeof arg1 === 'number') {
-      this._dimensionCount = isFinite(arg1) ? 0 : Math.max(0, arg1);
-      this._vectorLength = isFinite(arg2 as number) ? 0 : Math.max(0, arg2 as number);
+      this._dimensionCount = isFinite(arg1) ? Math.max(0, arg1) : 0;
+      this._vectorLength = isFinite(arg2 as number) ? Math.max(0, arg2 as number) : 0;
     } else {
       let leastBreakpointDimension = Infinity;
       let leastVectorLength = Infinity;

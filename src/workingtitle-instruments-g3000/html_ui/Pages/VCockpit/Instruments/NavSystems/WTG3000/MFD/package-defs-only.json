@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-wtg3000-mfd",
-  "version": "1.1.6",
+  "version": "1.1.10",
   "description": "Working Title MSFS G3000 MFD Definitions",
   "typings": "index.d.ts",
   "repository": {

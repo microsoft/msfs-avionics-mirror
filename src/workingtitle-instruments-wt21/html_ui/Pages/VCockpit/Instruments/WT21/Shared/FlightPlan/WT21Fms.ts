@@ -30,6 +30,7 @@ import { WT21FmsUtils, WT21LegDefinitionFlags } from './WT21FmsUtils';
 import { WT21VNavDataEvents } from '../Navigation/WT21VnavEvents';
 import { WT21FlightPlanPredictorConfiguration } from '../WT21FlightPlanPredictorConfiguration';
 import { MessageService } from '../MessageSystem/MessageService';
+import { WT21FixInfoManager } from '../../FMC/Systems/WT21FixInfoManager';
 
 export enum DirectToState {
   NONE,
@@ -105,11 +106,13 @@ export type FacilityInfo = {
  * A WT 21 FMS
  */
 export class WT21Fms {
+  // TODO factor out to avoid circular dep
   public static readonly PRIMARY_ACT_PLAN_INDEX = 0;
   public static readonly PRIMARY_MOD_PLAN_INDEX = 1;
   public static readonly PROC_PREVIEW_PLAN_INDEX = 2;
 
   public static readonly USER_DATA_KEY_ALTN = 'wt21.altn';
+  public static readonly USER_DATA_KEY_FIX_INFO = 'wt21.fix-info';
 
   /** Set to true by FMC pages when the plan on this FMS instance is in modification and awaiting a cancel or exec. */
   public readonly planInMod = Subject.create<boolean>(false);
@@ -263,6 +266,7 @@ export class WT21Fms {
    * @param fmsPos is the FMS position system
    * @param verticalPathCalculator is the VNAV Path Calculator.
    * @param messageService is the message service.
+   * @param fixInfo The fix info manager.
    */
   constructor(
     public readonly bus: EventBus,
@@ -270,6 +274,7 @@ export class WT21Fms {
     public readonly fmsPos: FmsPos,
     public readonly verticalPathCalculator: SmoothingPathCalculator,
     public readonly messageService: MessageService,
+    public readonly fixInfo: WT21FixInfoManager,
   ) {
 
     this.cdiScaleLabel = ConsumerSubject.create(this.bus.getSubscriber<WT21LNavDataEvents>().on('lnavdata_cdi_scale_label'), 4);

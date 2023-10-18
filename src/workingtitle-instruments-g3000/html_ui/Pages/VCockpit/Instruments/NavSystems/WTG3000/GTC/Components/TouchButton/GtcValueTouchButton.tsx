@@ -41,16 +41,30 @@ export interface GtcValueTouchButtonProps<S extends Subscribable<any> | MutableS
 export class GtcValueTouchButton<S extends Subscribable<any> | MutableSubscribable<any>> extends DisplayComponent<GtcValueTouchButtonProps<S>> {
   private readonly ref = FSComponent.createRef<ValueTouchButton<S>>();
 
+  /**
+   * Simulates this button being pressed. This will execute the `onPressed()` callback if one is defined.
+   * @param ignoreDisabled Whether to simulate the button being pressed regardless of whether the button is disabled.
+   * Defaults to `false`.
+   */
+  public simulatePressed(ignoreDisabled = false): void {
+    this.ref.getOrDefault()?.simulatePressed(ignoreDisabled);
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     const isInList = this.props.isInList ?? false;
 
     return (
       <ValueTouchButton
+        ref={this.ref}
         state={this.props.state}
         label={this.props.label}
         renderValue={this.props.renderValue}
+        onTouched={this.props.onTouched}
         onPressed={this.props.onPressed}
+        onHoldStarted={this.props.onHoldStarted}
+        onHoldTick={this.props.onHoldTick}
+        onHoldEnded={this.props.onHoldEnded}
         isEnabled={this.props.isEnabled}
         isHighlighted={this.props.isHighlighted}
         isVisible={this.props.isVisible}

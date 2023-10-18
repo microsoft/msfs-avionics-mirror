@@ -7,3 +7,4 @@ export * from './MagnetometerSystem';
 export * from './MarkerBeaconSystem';
 export * from './RadarAltimeterSystem';
 export * from './TrafficAvionicsSystem';
+export * from './WeatherRadarAvionicsSystem';

@@ -50,7 +50,7 @@ export class LerpLookupTable {
   // eslint-disable-next-line jsdoc/require-jsdoc
   constructor(arg: readonly (readonly number[])[] | number) {
     if (typeof arg === 'number') {
-      this._dimensionCount = isNaN(arg) ? 0 : Math.max(0, arg);
+      this._dimensionCount = isFinite(arg) ? Math.max(0, arg) : 0;
       return;
     }
 

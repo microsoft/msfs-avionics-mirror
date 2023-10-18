@@ -110,6 +110,15 @@ export class GtcWaypointSelectButton<T extends WaypointSelectType, S extends Sub
     ? this.props.waypoint
     : undefined;
 
+  /**
+   * Simulates this button being pressed. This will execute the `onPressed()` callback if one is defined.
+   * @param ignoreDisabled Whether to simulate the button being pressed regardless of whether the button is disabled.
+   * Defaults to `false`.
+   */
+  public simulatePressed(ignoreDisabled = false): void {
+    this.buttonRef.getOrDefault()?.simulatePressed(ignoreDisabled);
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     return (
@@ -119,6 +128,7 @@ export class GtcWaypointSelectButton<T extends WaypointSelectType, S extends Sub
         isEnabled={this.props.isEnabled}
         isHighlighted={this.props.isHighlighted}
         isVisible={this.props.isVisible}
+        onTouched={this.props.onTouched}
         onPressed={async (): Promise<void> => {
           const initialWaypoint = this.props.waypoint.get();
           const initialInputText = initialWaypoint === null ? undefined : ICAO.getIdent(initialWaypoint.facility.get().icao);
@@ -142,6 +152,9 @@ export class GtcWaypointSelectButton<T extends WaypointSelectType, S extends Sub
             }
           }
         }}
+        onHoldStarted={this.props.onHoldStarted}
+        onHoldTick={this.props.onHoldTick}
+        onHoldEnded={this.props.onHoldEnded}
         nullIdent={this.props.nullIdent}
         nullName={this.props.nullName}
         isInList={this.props.isInList}

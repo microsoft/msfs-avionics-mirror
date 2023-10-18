@@ -1,9 +1,9 @@
 import { EventBus, Publisher } from '../data';
-import { UnitType } from '../math';
+import { UnitType } from '../math/NumberUnit';
 import { FlightPlanLeg, ICAO, LegType } from '../navigation/Facilities';
 import { SubEvent } from '../sub/SubEvent';
 import { FlightPathCalculator } from './FlightPathCalculator';
-import { ActiveLegType, DirectToData, FlightPlan, LegEventType, OriginDestChangeType, PlanEvents, SegmentEventType } from './FlightPlan';
+import { ActiveLegType, DirectToData, FlightPlan, FlightPlanModBatch, LegEventType, OriginDestChangeType, PlanEvents, SegmentEventType } from './FlightPlan';
 import { FlightPlanSegment, LegDefinition, ProcedureDetails } from './FlightPlanning';
 
 /**
@@ -18,9 +18,6 @@ export interface FlightPlannerEvents {
 
   /** A flight plan has changed an active leg. */
   fplActiveLegChange: FlightPlanActiveLegEvent;
-
-  /** A flight plan has calculated flight path vectors. */
-  fplCalculated: FlightPlanCalculatedEvent;
 
   /** A flight plan has update origin/dest information. */
   fplOriginDestChanged: FlightPlanOriginDestEvent;
@@ -40,32 +37,45 @@ export interface FlightPlannerEvents {
   /** The active flight plan index has changed in the Flight Planner. */
   fplIndexChanged: FlightPlanIndicationEvent;
 
-  /** The flight plan has been copied. */
-  fplCopied: FlightPlanCopiedEvent;
-
-  /** User data has been set in the flight plan. */
+  /** A global flight plan user data key-value pair has been set. */
   fplUserDataSet: FlightPlanUserDataEvent;
 
-  /** User data has been deleted in the flight plan. */
+  /** A global flight plan user data key-value pair has been deleted. */
   fplUserDataDelete: FlightPlanUserDataEvent;
+
+  /** A flight plan leg user data key-value pair has been set. */
+  fplLegUserDataSet: FlightPlanLegUserDataEvent;
+
+  /** A flight plan leg user data key-value pair has been deleted. */
+  fplLegUserDataDelete: FlightPlanLegUserDataEvent;
 
   /** Direct to data has been changed in the flight plan. */
   fplDirectToDataChanged: FlightPlanDirectToDataEvent;
+
+  /** A flight plan has begun calculating lateral flight path vectors. */
+  fplCalculatePended: FlightPlanCalculatedEvent;
+
+  /** A flight plan has finished calculated lateral flight path vectors. */
+  fplCalculated: FlightPlanCalculatedEvent;
+
+  /** The flight plan has been copied. */
+  fplCopied: FlightPlanCopiedEvent;
+
+  /** A flight plan modification batch was opened. */
+  fplBatchOpened: FlightPlanModBatchEvent;
+
+  /** A flight plan modification batch was closed. */
+  fplBatchClosed: FlightPlanModBatchEvent;
+
+  /**
+   * A flight plan modification batch was closed and all pending asynchronous operations assigned to the batch have
+   * finished.
+   */
+  fplBatchAsyncClosed: FlightPlanModBatchEvent;
 }
 
 /**
- * An event fired when the flight plan is recalculated.
- */
-export interface FlightPlanCalculatedEvent {
-  /** The index of the flight plan. */
-  readonly planIndex: number;
-
-  /** The index from which the calculations were generated. */
-  readonly index?: number;
-}
-
-/**
- * An event fired when there are leg related changes.
+ * An event fired when a flight plan leg is added, removed, or its vertical data is changed.
  */
 export interface FlightPlanLegEvent {
   /** The type of the leg event. */
@@ -74,14 +84,20 @@ export interface FlightPlanLegEvent {
   /** The index of the flight plan. */
   readonly planIndex: number;
 
-  /** The index of the */
+  /** The index of the segment containing the changed flight plan leg. */
   readonly segmentIndex: number;
 
-  /** The index of the changed leg in the segment. */
+  /** The index of the changed flight plan leg in its containing segment. */
   readonly legIndex: number;
 
   /** The leg that was added, removed, or changed. */
   readonly leg: LegDefinition;
+
+  /**
+   * The modification batch stack to which the change was assigned, in order of increasing nestedness. Not defined if
+   * the change was not assigned to any batches.
+   */
+  readonly batch?: readonly Readonly<FlightPlanModBatch>[];
 }
 
 /**
@@ -108,6 +124,12 @@ export interface FlightPlanActiveLegEvent {
 
   /** The type of active leg that changed. */
   readonly type: ActiveLegType;
+
+  /**
+   * The modification batch stack to which the change was assigned, in order of increasing nestedness. Not defined if
+   * the change was not assigned to any batches.
+   */
+  readonly batch?: readonly Readonly<FlightPlanModBatch>[];
 }
 
 /**
@@ -125,6 +147,12 @@ export interface FlightPlanSegmentEvent {
 
   /** The segment that was added, removed, or changed. */
   readonly segment?: FlightPlanSegment;
+
+  /**
+   * The modification batch stack to which the change was assigned, in order of increasing nestedness. Not defined if
+   * the change was not assigned to any batches.
+   */
+  readonly batch?: readonly Readonly<FlightPlanModBatch>[];
 }
 
 /**
@@ -140,6 +168,12 @@ export interface FlightPlanOriginDestEvent {
 
   /** The airport that was changed. */
   readonly airport?: string;
+
+  /**
+   * The modification batch stack to which the change was assigned, in order of increasing nestedness. Not defined if
+   * the change was not assigned to any batches.
+   */
+  readonly batch?: readonly Readonly<FlightPlanModBatch>[];
 }
 
 /**
@@ -151,6 +185,12 @@ export interface FlightPlanProcedureDetailsEvent {
 
   /** The procedure details that changed. */
   readonly details: ProcedureDetails;
+
+  /**
+   * The modification batch stack to which the change was assigned, in order of increasing nestedness. Not defined if
+   * the change was not assigned to any batches.
+   */
+  readonly batch?: readonly Readonly<FlightPlanModBatch>[];
 }
 
 /**
@@ -187,21 +227,7 @@ export interface FlightPlanIndicationEvent {
 }
 
 /**
- * An event generated when the flight plan procedure details changs.
- */
-export interface FlightPlanCopiedEvent {
-  /** The index of the flight plan. */
-  readonly planIndex: number;
-
-  /** The index that the flight plan was copied to. */
-  readonly targetPlanIndex: number;
-
-  /** Whether this copy should include flight plan calculations. */
-  readonly copyCalcs: boolean;
-}
-
-/**
- * An event generated when user data is set in the flight plan.
+ * An event generated when a global flight plan user data key-value pair is changed.
  */
 export interface FlightPlanUserDataEvent {
   /** The index of the flight plan. */
@@ -210,8 +236,43 @@ export interface FlightPlanUserDataEvent {
   /** The key of the user data. */
   readonly key: string;
 
-  /** The user data. */
-  readonly data: any;
+  /** The user data. Not defined if the user data was deleted. */
+  readonly data?: any;
+
+  /**
+   * The modification batch stack to which the change was assigned, in order of increasing nestedness. Not defined if
+   * the change was not assigned to any batches.
+   */
+  readonly batch?: readonly Readonly<FlightPlanModBatch>[];
+}
+
+/**
+ * An event generated when a flight plan leg user data key-value pair is changed.
+ */
+export interface FlightPlanLegUserDataEvent {
+  /** The index of the flight plan. */
+  readonly planIndex: number;
+
+  /** The index of the segment containing the user data's flight plan leg. */
+  readonly segmentIndex: number;
+
+  /** The index of the user data's flight plan leg in its containing segment. */
+  readonly legIndex: number;
+
+  /** The user data's flight plan leg. */
+  readonly leg: LegDefinition;
+
+  /** The key of the user data. */
+  readonly key: string;
+
+  /** The user data. Not defined if the user data was deleted. */
+  readonly data?: any;
+
+  /**
+   * The modification batch stack to which the change was assigned, in order of increasing nestedness. Not defined if
+   * the change was not assigned to any batches.
+   */
+  readonly batch?: readonly Readonly<FlightPlanModBatch>[];
 }
 
 /**
@@ -223,6 +284,63 @@ export interface FlightPlanDirectToDataEvent {
 
   /** The direct to data. */
   readonly directToData: DirectToData;
+
+  /**
+   * The modification batch stack to which the change was assigned, in order of increasing nestedness. Not defined if
+   * the change was not assigned to any batches.
+   */
+  readonly batch?: readonly Readonly<FlightPlanModBatch>[];
+}
+
+/**
+ * An event generated when a flight plan lateral vectorization is started or completed.
+ */
+export interface FlightPlanCalculatedEvent {
+  /** The index of the flight plan. */
+  readonly planIndex: number;
+
+  /** The global index of the flight plan leg that the path was generated from. */
+  readonly index?: number;
+
+  /**
+   * The modification batch stack to which the calculation was assigned, in order of increasing nestedness. Not
+   * defined if the calculation was not assigned to any batches.
+   */
+  readonly batch?: readonly Readonly<FlightPlanModBatch>[];
+}
+
+/**
+ * An event generated when a flight plan is copied to another flight plan.
+ */
+export interface FlightPlanCopiedEvent {
+  /** The index of the flight plan that was copied. */
+  readonly planIndex: number;
+
+  /** The index that the flight plan was copied to. */
+  readonly targetPlanIndex: number;
+
+  /** Whether this copy should include flight plan calculations. */
+  readonly copyCalcs: boolean;
+
+  /**
+   * The modification batch stack in the target plan to which the copy operation was assigned, in order of increasing
+   * nestedness. Not defined if the change was not assigned to any batches.
+   */
+  readonly batch?: readonly Readonly<FlightPlanModBatch>[];
+}
+
+/**
+ * An event generated when a flight plan modification batch is manipulated.
+ */
+export interface FlightPlanModBatchEvent {
+  /** The index of the flight plan. */
+  readonly planIndex: number;
+
+  /** Whether the batch was synced from another instrument. */
+  readonly isSynced: boolean;
+
+  /** The batch that was manipulated. */
+  readonly batch: Readonly<FlightPlanModBatch>;
 }
 
 /**
@@ -237,6 +355,23 @@ type FlightPlannerSyncEvents = {
   /** A full set of flight plans has been responded to. */
   fplsync_fplResponse: FlightPlanResponseEvent;
 }
+
+/**
+ * An entry describing a synced flight plan modification batch.
+ */
+type SyncedFlightPlanModBatchEntry = {
+  /** This entry's synced flight plan modification batch. */
+  batch: FlightPlanModBatch;
+
+  /** Whether the batch is closed. */
+  isClosed: boolean;
+
+  /** The number of lateral vectorization calculations assigned to this batch that are still pending. */
+  pendingCalculateCount: number;
+
+  /** Event data for the batch. */
+  eventData: FlightPlanModBatchEvent;
+};
 
 /**
  * Manages the active flightplans of the navigational systems.
@@ -257,6 +392,8 @@ export class FlightPlanner {
   private _activePlanIndex = 0;
 
   private lastRequestUid?: number;
+
+  private readonly syncedBatchEntries: (Map<string, SyncedFlightPlanModBatchEntry> | undefined)[] = [];
 
   /** Invoked when we receive a flight plan response event. */
   public flightPlanSynced = new SubEvent<this, boolean>();
@@ -297,14 +434,18 @@ export class FlightPlanner {
     subscriber.on('fplsync_fplActiveLegChange').handle(data => !this.ignoreSync && this.onActiveLegChanged(data));
     subscriber.on('fplsync_fplLegChange').handle(data => !this.ignoreSync && this.onLegChanged(data));
     subscriber.on('fplsync_fplSegmentChange').handle(data => !this.ignoreSync && this.onSegmentChanged(data));
-    subscriber.on('fplsync_fplCalculated').handle(data => !this.ignoreSync && this.onCalculated(data));
     subscriber.on('fplsync_fplOriginDestChanged').handle(data => !this.ignoreSync && this.onOriginDestChanged(data));
     subscriber.on('fplsync_fplProcDetailsChanged').handle(data => !this.ignoreSync && this.onProcedureDetailsChanged(data));
     subscriber.on('fplsync_fplIndexChanged').handle(data => !this.ignoreSync && this.onPlanIndexChanged(data));
-    subscriber.on('fplsync_fplCopied').handle(data => !this.ignoreSync && this.onPlanCopied(data));
     subscriber.on('fplsync_fplUserDataSet').handle(data => !this.ignoreSync && this.onUserDataSet(data));
     subscriber.on('fplsync_fplUserDataDelete').handle(data => !this.ignoreSync && this.onUserDataDelete(data));
+    subscriber.on('fplsync_fplLegUserDataSet').handle(data => !this.ignoreSync && this.onLegUserDataSet(data));
+    subscriber.on('fplsync_fplLegUserDataDelete').handle(data => !this.ignoreSync && this.onLegUserDataDelete(data));
     subscriber.on('fplsync_fplDirectToDataChanged').handle(data => !this.ignoreSync && this.onDirectToDataChanged(data));
+    subscriber.on('fplsync_fplCalculatePended').handle(data => !this.ignoreSync && this.onCalculatePended(data));
+    subscriber.on('fplsync_fplCopied').handle(data => !this.ignoreSync && this.onPlanCopied(data));
+    subscriber.on('fplsync_fplBatchOpened').handle(data => !this.ignoreSync && this.onBatchOpened(data));
+    subscriber.on('fplsync_fplBatchClosed').handle(data => !this.ignoreSync && this.onBatchClosed(data));
   }
 
   /**
@@ -451,6 +592,7 @@ export class FlightPlanner {
     if (flightPlan) {
       flightPlan.events = {};
       this.flightPlans[planIndex] = undefined;
+      this.syncedBatchEntries[planIndex] = undefined;
 
       notify && this.sendPlanDeleted(planIndex);
     }
@@ -485,16 +627,21 @@ export class FlightPlanner {
    */
   private buildPlanEventHandlers(planIndex: number): PlanEvents {
     return {
-      onLegChanged: (segmentIndex, index, type, leg): void => this.sendLegChanged(planIndex, segmentIndex, index, type, leg),
-      onSegmentChanged: (segmentIndex, type, segment): void => this.sendSegmentChanged(planIndex, segmentIndex, type, segment),
-      onActiveLegChanged: (index, segmentIndex, legIndex, previousSegmentIndex, previousLegIndex, type): void =>
-        this.sendActiveLegChange(planIndex, index, segmentIndex, legIndex, previousSegmentIndex, previousLegIndex, type),
-      onCalculated: (index): void => this.sendCalculated(planIndex, index),
-      onOriginDestChanged: (type, airport): void => this.sendOriginDestChanged(planIndex, type, airport),
-      onProcedureDetailsChanged: (details): void => this.sendProcedureDetailsChanged(planIndex, details),
-      onUserDataSet: (key, data): void => this.sendUserDataSet(planIndex, key, data),
-      onUserDataDelete: (key): void => this.sendUserDataDelete(planIndex, key),
-      onDirectDataChanged: (directToData): void => this.sendDirectToData(planIndex, directToData)
+      onLegChanged: this.sendLegChanged.bind(this, planIndex),
+      onSegmentChanged: this.sendSegmentChanged.bind(this, planIndex),
+      onActiveLegChanged: this.sendActiveLegChange.bind(this, planIndex),
+      onOriginDestChanged: this.sendOriginDestChanged.bind(this, planIndex),
+      onProcedureDetailsChanged: this.sendProcedureDetailsChanged.bind(this, planIndex),
+      onUserDataSet: this.sendUserDataSet.bind(this, planIndex),
+      onUserDataDelete: this.sendUserDataDelete.bind(this, planIndex),
+      onLegUserDataSet: this.sendLegUserDataSet.bind(this, planIndex),
+      onLegUserDataDelete: this.sendLegUserDataDelete.bind(this, planIndex),
+      onDirectDataChanged: this.sendDirectToData.bind(this, planIndex),
+      onCalculatePended: this.sendCalculatePended.bind(this, planIndex),
+      onCalculated: this.sendCalculated.bind(this, planIndex),
+      onBatchOpened: this.sendBatchOpened.bind(this, planIndex),
+      onBatchClosed: this.sendBatchClosed.bind(this, planIndex),
+      onBatchAsyncClosed: this.sendBatchAsyncClosed.bind(this, planIndex),
     };
   }
 
@@ -528,9 +675,14 @@ export class FlightPlanner {
       return;
     }
 
-    const newPlan = sourcePlan.copy(targetPlanIndex, copyCalcs);
-    newPlan.events = this.buildPlanEventHandlers(targetPlanIndex);
-    this.flightPlans[targetPlanIndex] = newPlan;
+    if (this.flightPlans[targetPlanIndex]) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.flightPlans[targetPlanIndex]!.copyFrom(sourcePlan, copyCalcs);
+    } else {
+      const newPlan = sourcePlan.copy(targetPlanIndex, copyCalcs);
+      newPlan.events = this.buildPlanEventHandlers(targetPlanIndex);
+      this.flightPlans[targetPlanIndex] = newPlan;
+    }
 
     if (notify) {
       this.sendPlanCopied(sourcePlanIndex, targetPlanIndex, copyCalcs);
@@ -554,7 +706,7 @@ export class FlightPlanner {
    * @param copyCalcs Whether to leg calculations were copied.
    */
   private sendPlanCopied(planIndex: number, targetPlanIndex: number, copyCalcs: boolean): void {
-    const data = { planIndex, targetPlanIndex, copyCalcs };
+    const data = { planIndex, targetPlanIndex, copyCalcs, batch: this.flightPlans[targetPlanIndex]?.getBatchStack() };
     this.sendEvent('fplCopied', data, true);
   }
 
@@ -598,7 +750,8 @@ export class FlightPlanner {
       type: data.type,
       segmentIndex: data.segmentIndex,
       legIndex: data.legIndex,
-      leg: localLeg
+      leg: localLeg,
+      batch: data.batch
     };
 
     this.sendEvent('fplLegChange', localData, false);
@@ -611,10 +764,11 @@ export class FlightPlanner {
    * @param index The index of the leg.
    * @param type The type of change.
    * @param leg The leg that was changed.
+   * @param batch The modification batch to which the change was assigned.
    */
-  private sendLegChanged(planIndex: number, segmentIndex: number, index: number, type: LegEventType, leg: LegDefinition): void {
+  private sendLegChanged(planIndex: number, segmentIndex: number, index: number, type: LegEventType, leg: LegDefinition, batch?: readonly Readonly<FlightPlanModBatch>[]): void {
     const data = {
-      planIndex, segmentIndex, legIndex: index, type, leg
+      planIndex, segmentIndex, legIndex: index, type, leg, batch
     };
     this.sendEvent('fplLegChange', data, true);
   }
@@ -658,7 +812,8 @@ export class FlightPlanner {
       planIndex: data.planIndex,
       type: data.type,
       segmentIndex: data.segmentIndex,
-      segment: localSegment
+      segment: localSegment,
+      batch: data.batch
     };
 
     this.sendEvent('fplSegmentChange', localData, false);
@@ -670,10 +825,11 @@ export class FlightPlanner {
    * @param index The index of the segment.
    * @param type The type of change.
    * @param segment The segment that was changed.
+   * @param batch The modification batch to which the change was assigned.
    */
-  private sendSegmentChanged(planIndex: number, index: number, type: SegmentEventType, segment?: FlightPlanSegment): void {
+  private sendSegmentChanged(planIndex: number, index: number, type: SegmentEventType, segment?: FlightPlanSegment, batch?: readonly Readonly<FlightPlanModBatch>[]): void {
     const data = {
-      planIndex, segmentIndex: index, type, segment
+      planIndex, segmentIndex: index, type, segment, batch
     };
     this.sendEvent('fplSegmentChange', data, true);
   }
@@ -712,45 +868,27 @@ export class FlightPlanner {
    * @param previousSegmentIndex The index of the segment in which the previously active leg is.
    * @param previousLegIndex The index of the previously active leg within the previously active segment.
    * @param type The type of leg that was changed.
+   * @param batch The modification batch to which the change was assigned.
    */
   private sendActiveLegChange(
-    planIndex: number, index: number, segmentIndex: number, legIndex: number,
-    previousSegmentIndex: number, previousLegIndex: number, type: ActiveLegType
+    planIndex: number,
+    index: number,
+    segmentIndex: number,
+    legIndex: number,
+    previousSegmentIndex: number,
+    previousLegIndex: number,
+    type: ActiveLegType,
+    batch?: readonly Readonly<FlightPlanModBatch>[]
   ): void {
     const data = {
-      segmentIndex, legIndex, planIndex,
-      index, previousSegmentIndex, previousLegIndex, type
+      planIndex,
+      index,
+      segmentIndex, legIndex,
+      previousSegmentIndex, previousLegIndex,
+      type,
+      batch
     };
     this.sendEvent('fplActiveLegChange', data, true);
-  }
-
-  /**
-   * A callback which is called in response to calculation sync events.
-   * @param data The event data.
-   */
-  private async onCalculated(data: FlightPlanCalculatedEvent): Promise<void> {
-    const plan = this.flightPlans[data.planIndex];
-    if (!plan) {
-      return;
-    }
-
-    await plan.calculate(data.index, false);
-
-    if (this.flightPlans[data.planIndex] !== plan) {
-      return;
-    }
-
-    this.sendEvent('fplCalculated', data, false);
-  }
-
-  /**
-   * Sends a calculated event.
-   * @param planIndex The index of the flight plan.
-   * @param index The index that the path was generated from.
-   */
-  private sendCalculated(planIndex: number, index?: number): void {
-    const data = { planIndex, index };
-    this.sendEvent('fplCalculated', data, true);
   }
 
   /**
@@ -786,9 +924,10 @@ export class FlightPlanner {
    * @param planIndex The index of the flight plan.
    * @param type The origin/destination change type.
    * @param airport The airport that was changed.
+   * @param batch The modification batch to which the change was assigned.
    */
-  private sendOriginDestChanged(planIndex: number, type: OriginDestChangeType, airport?: string): void {
-    const data = { planIndex, type, airport };
+  private sendOriginDestChanged(planIndex: number, type: OriginDestChangeType, airport?: string, batch?: readonly Readonly<FlightPlanModBatch>[]): void {
+    const data = { planIndex, type, airport, batch };
     this.sendEvent('fplOriginDestChanged', data, true);
   }
 
@@ -813,9 +952,10 @@ export class FlightPlanner {
    * Sends a procedure details change event.
    * @param planIndex The index of the flight plan.
    * @param details The details that were changed.
+   * @param batch The modification batch to which the change was assigned.
    */
-  private sendProcedureDetailsChanged(planIndex: number, details: ProcedureDetails): void {
-    const data = { planIndex, details };
+  private sendProcedureDetailsChanged(planIndex: number, details: ProcedureDetails, batch?: readonly Readonly<FlightPlanModBatch>[]): void {
+    const data = { planIndex, details, batch };
     this.sendEvent('fplProcDetailsChanged', data, true);
   }
 
@@ -839,7 +979,7 @@ export class FlightPlanner {
   }
 
   /**
-   * A callback which is called in response to user data set sync events.
+   * A callback which is called in response to global user data set sync events.
    * @param data The event data.
    */
   private onUserDataSet(data: FlightPlanUserDataEvent): void {
@@ -854,7 +994,7 @@ export class FlightPlanner {
   }
 
   /**
-   * A callback which is called in response to user data delete sync events.
+   * A callback which is called in response to global user data delete sync events.
    * @param data The event data.
    */
   private onUserDataDelete(data: FlightPlanUserDataEvent): void {
@@ -869,24 +1009,135 @@ export class FlightPlanner {
   }
 
   /**
-   * Sends a user data set event.
+   * Sends a global user data set event.
    * @param planIndex The index of the flight plan.
    * @param key The key of the user data.
    * @param userData The data that was set.
+   * @param batch The modification batch to which the change was assigned.
    */
-  private sendUserDataSet(planIndex: number, key: string, userData: any): void {
-    const data = { planIndex, key, data: userData };
+  private sendUserDataSet(planIndex: number, key: string, userData: any, batch?: readonly Readonly<FlightPlanModBatch>[]): void {
+    const data = { planIndex, key, data: userData, batch };
     this.sendEvent('fplUserDataSet', data, true);
   }
 
   /**
-   * Sends a user data delete event.
+   * Sends a global user data delete event.
    * @param planIndex The index of the flight plan.
    * @param key The key of the user data.
+   * @param batch The modification batch to which the change was assigned.
    */
-  private sendUserDataDelete(planIndex: number, key: string): void {
-    const data = { planIndex, key, data: undefined };
+  private sendUserDataDelete(planIndex: number, key: string, batch?: readonly Readonly<FlightPlanModBatch>[]): void {
+    const data = { planIndex, key, batch };
     this.sendEvent('fplUserDataDelete', data, true);
+  }
+
+  /**
+   * A callback which is called in response to flight plan leg user data set sync events.
+   * @param data The event data.
+   */
+  private onLegUserDataSet(data: FlightPlanLegUserDataEvent): void {
+    const plan = this.flightPlans[data.planIndex];
+    if (!plan) {
+      return;
+    }
+
+    const localLeg = plan.tryGetLeg(data.segmentIndex, data.segmentIndex);
+
+    if (!localLeg) {
+      return;
+    }
+
+    plan.setLegUserData(data.segmentIndex, data.legIndex, data.key, data.data, false);
+
+    // We need to send a reference to the local flight plan's copy of the leg with the local event so that
+    // event consumers that save the reference don't become desynced with the local flight plan.
+    const localData: FlightPlanLegUserDataEvent = {
+      planIndex: data.planIndex,
+      segmentIndex: data.segmentIndex,
+      legIndex: data.legIndex,
+      leg: localLeg,
+      key: data.key,
+      data: data.data,
+      batch: data.batch
+    };
+
+    this.sendEvent('fplLegUserDataSet', localData, false);
+  }
+
+  /**
+   * A callback which is called in response to flight plan leg user data delete sync events.
+   * @param data The event data.
+   */
+  private onLegUserDataDelete(data: FlightPlanLegUserDataEvent): void {
+    const plan = this.flightPlans[data.planIndex];
+    if (!plan) {
+      return;
+    }
+
+    const localLeg = plan.tryGetLeg(data.segmentIndex, data.segmentIndex);
+
+    if (!localLeg) {
+      return;
+    }
+
+    plan.deleteLegUserData(data.segmentIndex, data.legIndex, data.key, false);
+
+    // We need to send a reference to the local flight plan's copy of the leg with the local event so that
+    // event consumers that save the reference don't become desynced with the local flight plan.
+    const localData: FlightPlanLegUserDataEvent = {
+      planIndex: data.planIndex,
+      segmentIndex: data.segmentIndex,
+      legIndex: data.legIndex,
+      leg: localLeg,
+      key: data.key,
+      batch: data.batch
+    };
+
+    this.sendEvent('fplLegUserDataDelete', localData, false);
+  }
+
+  /**
+   * Sends a flight plan leg user data set event.
+   * @param planIndex The index of the flight plan.
+   * @param segmentIndex The index of the segment containing the user data's flight plan leg.
+   * @param segmentLegIndex The index of the user data's flight plan leg in its containing segment.
+   * @param leg The user data's flight plan leg.
+   * @param key The key of the user data.
+   * @param userData The data that was set.
+   * @param batch The modification batch to which the change was assigned.
+   */
+  private sendLegUserDataSet(
+    planIndex: number,
+    segmentIndex: number,
+    segmentLegIndex: number,
+    leg: LegDefinition,
+    key: string,
+    userData: any,
+    batch?: readonly Readonly<FlightPlanModBatch>[]
+  ): void {
+    const data = { planIndex, segmentIndex, legIndex: segmentLegIndex, leg, key, data: userData, batch };
+    this.sendEvent('fplLegUserDataSet', data, true);
+  }
+
+  /**
+   * Sends a flight plan leg user data delete event.
+   * @param planIndex The index of the flight plan.
+   * @param segmentIndex The index of the segment containing the user data's flight plan leg.
+   * @param segmentLegIndex The index of the user data's flight plan leg in its containing segment.
+   * @param leg The user data's flight plan leg.
+   * @param key The key of the user data that was deleted.
+   * @param batch The modification batch to which the change was assigned.
+   */
+  private sendLegUserDataDelete(
+    planIndex: number,
+    segmentIndex: number,
+    segmentLegIndex: number,
+    leg: LegDefinition,
+    key: string,
+    batch?: readonly Readonly<FlightPlanModBatch>[]
+  ): void {
+    const data = { planIndex, segmentIndex, legIndex: segmentLegIndex, leg, key, batch };
+    this.sendEvent('fplLegUserDataDelete', data, true);
   }
 
   /**
@@ -908,10 +1159,155 @@ export class FlightPlanner {
    * Sends a direct to data changed event.
    * @param planIndex The index of the flight plan.
    * @param directToData The direct to data.
+   * @param batch The modification batch to which the change was assigned.
    */
-  private sendDirectToData(planIndex: number, directToData: DirectToData): void {
-    const data = { planIndex, directToData: directToData };
+  private sendDirectToData(planIndex: number, directToData: DirectToData, batch?: readonly Readonly<FlightPlanModBatch>[]): void {
+    const data = { planIndex, directToData: directToData, batch };
     this.sendEvent('fplDirectToDataChanged', data, true);
+  }
+
+  /**
+   * A callback which is called in response to calculation pended sync events.
+   * @param data The event data.
+   */
+  private async onCalculatePended(data: FlightPlanCalculatedEvent): Promise<void> {
+    const plan = this.flightPlans[data.planIndex];
+    if (!plan) {
+      return;
+    }
+
+    const syncedBatchEntries = this.syncedBatchEntries[data.planIndex];
+
+    if (syncedBatchEntries && data.batch) {
+      for (let i = data.batch.length - 1; i >= 0; i--) {
+        const batch = data.batch[i];
+
+        const entry = syncedBatchEntries.get(batch.uuid);
+        if (entry) {
+          entry.pendingCalculateCount++;
+        }
+      }
+    }
+
+    this.sendEvent('fplCalculatePended', data, false);
+
+    await plan.calculate(data.index, false);
+
+    if (this.flightPlans[data.planIndex] !== plan) {
+      return;
+    }
+
+    this.sendEvent('fplCalculated', data, false);
+
+    if (syncedBatchEntries && data.batch) {
+      for (let i = data.batch.length - 1; i >= 0; i--) {
+        const batch = data.batch[i];
+
+        const entry = syncedBatchEntries.get(batch.uuid);
+        if (entry) {
+          entry.pendingCalculateCount--;
+          if (entry.isClosed && entry.pendingCalculateCount === 0) {
+            this.sendEvent('fplBatchAsyncClosed', entry.eventData, false);
+            syncedBatchEntries.delete(batch.uuid);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Sends a calculate pended event.
+   * @param planIndex The index of the flight plan.
+   * @param index The global index of the flight plan leg that the path is to be generated from.
+   * @param batch The modification batch to which the calculation was assigned.
+   */
+  private sendCalculatePended(planIndex: number, index?: number, batch?: readonly Readonly<FlightPlanModBatch>[]): void {
+    const data = { planIndex, index, batch };
+    this.sendEvent('fplCalculatePended', data, true);
+  }
+
+  /**
+   * Sends a calculated event.
+   * @param planIndex The index of the flight plan.
+   * @param index The global index of the flight plan leg that the path was generated from.
+   * @param batch The modification batch to which the calculation was assigned.
+   */
+  private sendCalculated(planIndex: number, index?: number, batch?: readonly Readonly<FlightPlanModBatch>[]): void {
+    const data = { planIndex, index, batch };
+    this.sendEvent('fplCalculated', data, true);
+  }
+
+  /**
+   * A callback which is called in response to modification batch opened sync events.
+   * @param data The event data.
+   */
+  private onBatchOpened(data: FlightPlanModBatchEvent): void {
+    const plan = this.flightPlans[data.planIndex];
+    if (!plan) {
+      return;
+    }
+
+    const localData = { planIndex: data.planIndex, isSynced: true, batch: data.batch };
+
+    const entries = this.syncedBatchEntries[data.planIndex] ??= new Map<string, SyncedFlightPlanModBatchEntry>();
+    entries.set(data.batch.uuid, { batch: data.batch, isClosed: false, pendingCalculateCount: 0, eventData: localData });
+
+    this.sendEvent('fplBatchOpened', localData, false);
+  }
+
+  /**
+   * Sends a modification batch opened event.
+   * @param planIndex The index of the flight plan.
+   * @param batch The modification batch that was opened.
+   */
+  private sendBatchOpened(planIndex: number, batch: Readonly<FlightPlanModBatch>): void {
+    const data = { planIndex, isSynced: false, batch };
+    this.sendEvent('fplBatchOpened', data, true);
+  }
+
+  /**
+   * A callback which is called in response to modification batch closed sync events.
+   * @param data The event data.
+   */
+  private onBatchClosed(data: FlightPlanModBatchEvent): void {
+    const plan = this.flightPlans[data.planIndex];
+    if (!plan) {
+      return;
+    }
+
+    const entries = this.syncedBatchEntries[data.planIndex];
+    const entry = entries?.get(data.batch.uuid);
+
+    if (entry) {
+      entry.isClosed = true;
+      this.sendEvent('fplBatchClosed', entry.eventData, false);
+
+      if (entry.pendingCalculateCount === 0) {
+        this.sendEvent('fplBatchAsyncClosed', entry.eventData, false);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        entries!.delete(data.batch.uuid);
+      }
+    }
+  }
+
+  /**
+   * Sends a modification batch closed event.
+   * @param planIndex The index of the flight plan.
+   * @param batch The modification batch that was closed.
+   */
+  private sendBatchClosed(planIndex: number, batch: Readonly<FlightPlanModBatch>): void {
+    const data = { planIndex, isSynced: false, batch };
+    this.sendEvent('fplBatchClosed', data, true);
+  }
+
+  /**
+   * Sends a modification batch async closed event.
+   * @param planIndex The index of the flight plan.
+   * @param batch The modification batch that was closed.
+   */
+  private sendBatchAsyncClosed(planIndex: number, batch: Readonly<FlightPlanModBatch>): void {
+    const data = { planIndex, isSynced: false, batch };
+    this.sendEvent('fplBatchAsyncClosed', data, false);
   }
 
   /**

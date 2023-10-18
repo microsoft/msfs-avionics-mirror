@@ -36,6 +36,7 @@
   --weather-radar-settings-gain-slider-padding: 15px 12px;
   --weather-radar-settings-gain-slider-container-border-width: 2px;
   --weather-radar-settings-gain-slider-thumb-width: 110px;
+  --weather-radar-settings-gain-slider-calibrated-line-height: 9px;
 
   --weather-radar-settings-gain-button-icon-scale: 1.8;
 }
@@ -70,6 +71,7 @@
   --weather-radar-settings-gain-slider-padding: 7px 6px;
   --weather-radar-settings-gain-slider-container-border-width: 1px;
   --weather-radar-settings-gain-slider-thumb-width: 60px;
+  --weather-radar-settings-gain-slider-calibrated-line-height: 5px;
 
   --weather-radar-settings-gain-button-icon-scale: 1;
 }
@@ -164,6 +166,26 @@
   width: 100%;
   height: 100%;
   fill: var(--g3000-color-black);
+}
+
+.weather-radar-settings-gain-slider .touch-slider-slider-inset {
+  position: absolute;
+  left: 50%;
+  top: 0px;
+  width: var(--weather-radar-settings-gain-slider-width);
+  height: calc(100% - var(--touch-slider-thumb-length));
+  transform: translateX(-50%);
+}
+
+.weather-radar-settings-gain-slider-calibrated-line {
+  position: absolute;
+  left: 0px;
+  bottom: calc(var(--weather-radar-settings-gain-slider-calibrated-line-y));
+  width: 100%;
+  height: var(--weather-radar-settings-gain-slider-calibrated-line-height);
+  background: linear-gradient(to top, #251f1f 50%, #645e5e 70%, #645e5e 80%, #231f1f 100%);
+  border: solid 1px #0e0707;
+  opacity: 0.75;
 }
 
 .weather-radar-settings-gain-slider .touch-slider-slider-thumb {

@@ -9,6 +9,8 @@ import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
  * An interface that describes the base Weight and Balance events.
  */
 export interface BaseWeightBalanceEvents {
+  /** Longitudinal CG position as a percent of reference Chord. Note: only valid for airplanes. */
+  cg_percent: number;
   /** A total weight value for the aircraft, in pounds. */
   total_weight: number;
   /** The weight value of a payload station with the given index */
@@ -44,6 +46,7 @@ export class WeightBalanceSimvarPublisher extends SimVarPublisher<WeightBalanceE
   public constructor(bus: EventBus, pacer?: PublishPacer<WeightBalanceEvents>) {
 
     const simvars = new Map<keyof WeightBalanceEvents, SimVarPublisherEntry<any>>([
+      ['cg_percent', {name: 'CG PERCENT', type: SimVarValueType.Percent }],
       ['total_weight', { name: 'TOTAL WEIGHT', type: SimVarValueType.Pounds }],
       ['payload_station_weight', { name: 'PAYLOAD STATION WEIGHT:#index#', type: SimVarValueType.Pounds, indexed: true }],
     ]);

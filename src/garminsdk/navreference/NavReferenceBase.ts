@@ -5,7 +5,7 @@ import { ComputedSubject, GeoPoint, GeoPointInterface, MutableSubscribable, Subj
  * optionally a lateral course defining a great-circle path passing through the reference position, and a vertical
  * path profile.
  */
-export interface NavBase {
+export interface NavReferenceBase {
   /** The ident of the reference. */
   readonly ident: Subscribable<string | null>;
 
@@ -73,9 +73,9 @@ export interface NavBase {
 }
 
 /**
- * An abstract implementation of {@link NavBase}.
+ * An abstract implementation of {@link NavReferenceBase}.
  */
-export abstract class AbstractNavBase implements NavBase {
+export abstract class AbstractNavReferenceBase implements NavReferenceBase {
   /** @inheritdoc */
   public readonly ident = Subject.create<string | null>(null);
 
@@ -155,7 +155,7 @@ export abstract class AbstractNavBase implements NavBase {
   /** @inheritdoc */
   public readonly verticalDeviationScale = Subject.create<number | null>(null);
 
-  protected readonly fields = new Map<keyof NavBase, MutableSubscribable<any>>([
+  protected readonly fields = new Map<keyof NavReferenceBase, MutableSubscribable<any>>([
     ['ident', this.ident],
     ['signalStrength', this.signalStrength],
     ['bearing', this.bearing],

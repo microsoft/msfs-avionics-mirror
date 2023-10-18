@@ -348,4 +348,7 @@ export interface LegDefinition {
 
   /** Vertical Leg Data. All the fields should be readonly except for calculated fields like `fpa`. */
   readonly verticalData: Readonly<VerticalData> & Pick<VerticalData, 'fpa'>;
+
+  /** This leg's user data. */
+  readonly userData: Record<string, any>;
 }

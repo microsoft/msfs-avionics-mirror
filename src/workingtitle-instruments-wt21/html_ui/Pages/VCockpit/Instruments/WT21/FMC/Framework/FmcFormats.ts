@@ -528,7 +528,7 @@ export class StringInputFormat implements Validator<string>, Formatter<string> {
   /** @inheritDoc */
   format(value: string): string {
     // FIXME really need to put the space elsewhere...
-    return value;
+    return value.length === 0 ? this.nullValueString : value;
   }
 
   /** @inheritDoc */

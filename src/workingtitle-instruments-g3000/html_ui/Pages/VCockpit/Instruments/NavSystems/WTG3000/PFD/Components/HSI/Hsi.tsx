@@ -1,10 +1,15 @@
-/* eslint-disable max-len */
 import {
-  BasicNavAngleSubject, BasicNavAngleUnit, CombinedSubject, ComponentProps, DisplayComponent, EventBus, FlightPlanner, FSComponent, NavSourceType,
-  NumberFormatter, ObjectSubject, SetSubject, Subject, Subscribable, SubscribableMapFunctions, Subscription, UserSettingManager, VNode
+  BasicNavAngleSubject, BasicNavAngleUnit, ComponentProps, DisplayComponent, EventBus, FlightPlanner, FSComponent,
+  MappedSubject, NavSourceType, NumberFormatter, SetSubject, Subject, Subscribable, SubscribableMapFunctions,
+  Subscription, UserSettingManager, VNode
 } from '@microsoft/msfs-sdk';
+
 import { ObsSuspModes, TrafficSystem, UnitsUserSettingManager } from '@microsoft/msfs-garminsdk';
-import { BearingDisplay, DisplayPaneViewEvent, IauUserSettingManager, MapConfig, PfdIndex, PfdMapLayoutSettingMode, PfdMapLayoutUserSettingTypes } from '@microsoft/msfs-wtg3000-common';
+
+import {
+  BearingDisplay, DisplayPaneViewEvent, IauUserSettingManager, MapConfig, PfdIndex, PfdMapLayoutSettingMode,
+  PfdMapLayoutUserSettingTypes
+} from '@microsoft/msfs-wtg3000-common';
 
 import { HsiDataProvider } from './HsiDataProvider';
 import { HsiMap } from './HsiMap';
@@ -53,28 +58,27 @@ export class Hsi extends DisplayComponent<HSIProps> {
   private readonly mapRef = FSComponent.createRef<HsiMap>();
   private readonly gpsMessage = FSComponent.createRef<HTMLDivElement>();
 
-  private readonly hdgCrsStyle = ObjectSubject.create({
-    display: ''
-  });
-
   private readonly rootCssClass = SetSubject.create(['hsi']);
+
+  private readonly hdgCrsHidden = Subject.create(false);
+  private readonly hdgSyncModeHidden = this.props.dataProvider.isHdgSyncModeActive.map(SubscribableMapFunctions.not());
 
   private readonly showMap = this.props.pfdMapLayoutSettingManager.getSetting('pfdMapLayout').map(layout => layout === PfdMapLayoutSettingMode.Hsi);
 
-  private readonly selectedHeadingState = CombinedSubject.create(
+  private readonly selectedHeadingState = MappedSubject.create(
     this.props.dataProvider.selectedHeadingMag,
     this.props.dataProvider.magVar
   ).pause();
   private readonly selectedHeadingValue = BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(0));
 
   private readonly dtkCrsMag = Subject.create(0);
-  private readonly dtkCrsState = CombinedSubject.create(
+  private readonly dtkCrsState = MappedSubject.create(
     this.dtkCrsMag,
     this.props.dataProvider.magVar
   ).pause();
   private readonly dtkCrsValue = BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(0));
 
-  private readonly dtkCrsSourceState = CombinedSubject.create(
+  private readonly dtkCrsSourceState = MappedSubject.create(
     this.props.dataProvider.activeNavIndicator.source,
     this.props.dataProvider.obsSuspMode
   ).pause();
@@ -92,8 +96,6 @@ export class Hsi extends DisplayComponent<HSIProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-
-    // SimVar.SetSimVarValue('K:NAV1_RADIO_SET_HZ', 'number', 114.7 * 1_000_000);
 
     this.cdiSourceSub = this.props.dataProvider.activeNavIndicator.source.sub(source => {
       if (source?.getType() === NavSourceType.Gps) {
@@ -146,7 +148,9 @@ export class Hsi extends DisplayComponent<HSIProps> {
         navCoursePipe.pause();
         obsCoursePipe.pause();
 
-        this.hdgCrsStyle.set('display', 'none');
+        this.hdgSyncModeHidden.pause();
+
+        this.hdgCrsHidden.set(true);
       } else {
         this.selectedHeadingState.resume();
 
@@ -155,7 +159,9 @@ export class Hsi extends DisplayComponent<HSIProps> {
 
         this.dtkCrsState.resume();
 
-        this.hdgCrsStyle.set('display', '');
+        this.hdgSyncModeHidden.resume();
+
+        this.hdgCrsHidden.set(false);
       }
     }, true);
   }
@@ -184,17 +190,20 @@ export class Hsi extends DisplayComponent<HSIProps> {
   public render(): VNode {
     return (
       <div class={this.rootCssClass}>
-        <div class="hsi-hdgcrs-box hsi-hdg-box" style={this.hdgCrsStyle}>
-          <div class="hsi-hdgcrs-box-title">HDG</div>
-          <BearingDisplay
-            ref={this.hdgRef}
-            value={this.selectedHeadingValue}
-            displayUnit={this.props.unitsSettingManager.navAngleUnits}
-            formatter={NumberFormatter.create({ precision: 1, pad: 3 })}
-            class="hsi-hdgcrs-box-value hsi-hdg-box-value"
-          />
+        <div class={{ 'hsi-hdgcrs-box': true, 'hsi-hdg-box': true, 'hidden': this.hdgCrsHidden }}>
+          <div class="hsi-hdg-box-upper">
+            <div class="hsi-hdgcrs-box-title">HDG</div>
+            <BearingDisplay
+              ref={this.hdgRef}
+              value={this.selectedHeadingValue}
+              displayUnit={this.props.unitsSettingManager.navAngleUnits}
+              formatter={NumberFormatter.create({ precision: 1, pad: 3 })}
+              class="hsi-hdgcrs-box-value hsi-hdg-box-value"
+            />
+          </div>
+          <div class={{ 'hsi-hdg-box-sync-mode': true, 'hidden': this.hdgSyncModeHidden }}>SYNC MODE</div>
         </div>
-        <div class="hsi-hdgcrs-box hsi-crs-box" style={this.hdgCrsStyle}>
+        <div class={{ 'hsi-hdgcrs-box': true, 'hsi-crs-box': true, 'hidden': this.hdgCrsHidden }}>
           <div class="hsi-hdgcrs-box-title">{this.dtkCrsTitleText}</div>
           <BearingDisplay
             ref={this.crsRef}
@@ -234,6 +243,8 @@ export class Hsi extends DisplayComponent<HSIProps> {
     this.roseRef.getOrDefault()?.destroy();
     this.mapRef.getOrDefault()?.destroy();
 
+    this.hdgSyncModeHidden.destroy();
+
     this.showMap.destroy();
 
     this.selectedHeadingState.destroy();
@@ -244,6 +255,7 @@ export class Hsi extends DisplayComponent<HSIProps> {
     this.navCoursePipe?.destroy();
     this.obsCoursePipe?.destroy();
     this.headingDataFailedSub?.destroy();
+    this.gpsDataFailedSub?.destroy();
     this.declutterSub?.destroy();
 
     super.destroy();

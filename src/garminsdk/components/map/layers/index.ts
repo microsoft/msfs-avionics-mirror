@@ -10,4 +10,5 @@ export * from './MapRangeRingLayer';
 export * from './MapTrackVectorLayer';
 export * from './MapWaypointHighlightLayer';
 export * from './MapWaypointsLayer';
+export * from './MapWindVectorLayer';
 export * from './TrafficMapRangeLayer';

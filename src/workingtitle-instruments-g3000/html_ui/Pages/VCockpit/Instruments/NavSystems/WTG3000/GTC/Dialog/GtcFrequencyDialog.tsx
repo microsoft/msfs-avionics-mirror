@@ -146,7 +146,7 @@ export class GtcFrequencyDialog extends GtcView implements GtcDialogView<GtcFreq
         return `Active Freq: ${(freq / 1e3).toFixed(1)}`;
       },
       validator: (freq: number) => {
-        return freq >= 200e3 && freq < 1800e3;
+        return freq >= 190e3 && freq < 1800e3;
       }
     },
   };

@@ -1,4 +1,4 @@
-import { AdcEvents, ClockEvents, ConsumerSubject, ConsumerValue, EngineEvents, EventBus, GNSSEvents, MappedSubject, SimpleMovingAverage, Subject, UnitType } from '@microsoft/msfs-sdk';
+import { AdcEvents, ClockEvents, ConsumerSubject, ConsumerValue, EngineEvents, EventBus, GNSSEvents, MappedSubject, Subject, UnitType } from '@microsoft/msfs-sdk';
 import { WT21ControlEvents } from '../../Shared/WT21ControlEvents';
 
 /**
@@ -14,8 +14,7 @@ export class WT21FlightLogger {
   private readonly fuelQtyLeft = ConsumerSubject.create(this.bus.getSubscriber<EngineEvents>().on('fuel_left').withPrecision(1), 0);
   private readonly fuelQtyRight = ConsumerSubject.create(this.bus.getSubscriber<EngineEvents>().on('fuel_right').withPrecision(1), 0);
 
-  private readonly avgTrueAirspeedData = new SimpleMovingAverage(30);
-  private readonly avgGroundSpeedData = new SimpleMovingAverage(30);
+  private avgSpeedSamples = 0;
 
   private initFuelQtyLeft = 0;
   private lastFuelQtyLeft = 0;
@@ -44,14 +43,16 @@ export class WT21FlightLogger {
 
     // this only runs while we are in the air
     this.simTimeSlow.sub((v) => {
-      this.avgTrueAirspeed.set(Math.round(this.avgTrueAirspeedData.getAverage(this.trueAirSpeed.get())));
-      this.avgGroundSpeed.set(Math.round(this.avgGroundSpeedData.getAverage(this.groundSpeed.get())));
+      this.avgSpeedSamples++;
+      this.avgTrueAirspeed.set(this.avgTrueAirspeed.get() + ((this.trueAirSpeed.get() - this.avgTrueAirspeed.get()) / this.avgSpeedSamples));
+      this.avgGroundSpeed.set(this.avgGroundSpeed.get() + ((this.groundSpeed.get() - this.avgGroundSpeed.get()) / this.avgSpeedSamples));
       if (this.takeoffTime.get() > 0) {
         this.enrouteTime.set(this.simTime.get() - this.takeoffTime.get());
       }
 
       if (this.lastSimTimeUpdate > 0) {
-        const timeDiff = UnitType.MILLISECOND.convertTo((v - this.lastSimTimeUpdate), UnitType.HOUR);
+        const msTimeDiff = Math.min(v - this.lastSimTimeUpdate, 11000);
+        const timeDiff = UnitType.MILLISECOND.convertTo(msTimeDiff, UnitType.HOUR);
 
         // calculate air distance from TAS and time
         const airDist = this.trueAirSpeed.get() * timeDiff;
@@ -126,8 +127,7 @@ export class WT21FlightLogger {
     this.landingTime.set(0);
     this.avgTrueAirspeed.set(-1);
     this.avgGroundSpeed.set(-1);
-    this.avgTrueAirspeedData.reset();
-    this.avgGroundSpeedData.reset();
+    this.avgSpeedSamples = 0;
     this.initFuelQtyLeft = 0;
     this.initFuelQtyRight = 0;
     this.fuelUsedLeft.set(0);
@@ -151,6 +151,7 @@ export class WT21FlightLogger {
   private resume(): void {
     this.trueAirSpeed.resume();
     this.groundSpeed.resume();
+    this.lastSimTimeUpdate = 0;
     this.simTimeSlow.resume();
   }
 }

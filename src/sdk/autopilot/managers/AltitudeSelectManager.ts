@@ -180,14 +180,15 @@ export class AltitudeSelectManager {
   /**
    * Constructor.
    * @param bus The event bus.
-   * @param settingsManager The user settings manager controlling metric altitude preselector setting.
+   * @param settingsManager The user settings manager controlling metric altitude preselector setting. Required to
+   * support metric mode.
    * @param options Configuration options for this manager.
    * @param stops Additional altitude stops, in feet, to respect when the selected altitude is incremented or
    * decremented.
    */
   constructor(
     private readonly bus: EventBus,
-    settingsManager: MetricAltitudeSettingsManager,
+    settingsManager: MetricAltitudeSettingsManager | undefined,
     options: AltitudeSelectManagerOptions,
     stops?: Iterable<number> | SubscribableSet<number>
   ) {
@@ -215,7 +216,7 @@ export class AltitudeSelectManager {
 
     this.transformSetToIncDec = options.transformSetToIncDec ?? true;
 
-    this.altimeterMetricSetting = options.supportMetric ? settingsManager.getSetting('altMetric') : undefined;
+    this.altimeterMetricSetting = options.supportMetric && settingsManager ? settingsManager.getSetting('altMetric') : undefined;
 
     if (stops !== undefined) {
       if ('isSubscribableSet' in stops) {

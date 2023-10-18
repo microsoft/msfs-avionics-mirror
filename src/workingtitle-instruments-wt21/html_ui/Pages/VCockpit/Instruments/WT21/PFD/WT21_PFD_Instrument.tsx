@@ -47,9 +47,14 @@ import { PfdMenuViewService } from './Menus/PfdMenuViewService';
 import { PfdOverlaysMenu } from './Menus/PfdOverlaysMenu';
 import { PfdRefsMenu } from './Menus/PfdRefsMenu';
 import { AOASystemEvents, WT21ElectricalSetup } from '../Shared/Systems';
+import { Gpws } from '../Shared/Systems/gpws/Gpws';
+import { CJ4CabinLightsSystem } from '../Shared/Systems/CJ4CabinLightsSystem';
 
 import '../Shared/WT21_Common.css';
 import './WT21_PFD.css';
+import { WT21FixInfoManager } from '../FMC/Systems/WT21FixInfoManager';
+import { WT21Fms } from '../Shared/FlightPlan/WT21Fms';
+import { WT21FixInfoConfig } from '../FMC/Systems/WT21FixInfoConfig';
 
 /**
  * The WT21 PFD Instrument
@@ -87,14 +92,17 @@ export class WT21_PFD_Instrument implements FsInstrument {
   private readonly pfdMenuViewService: PfdMenuViewService;
   private readonly fmcSimVarPublisher: FmcSimVarPublisher;
   private readonly minimumsPublisher: MinimumsSimVarPublisher;
+  private readonly cabinLightsSystemInstrument: CJ4CabinLightsSystem;
   private readonly minimumsManager: MinimumsManager;
   private readonly minimumsAlertController: MinimumsAlertController;
   private readonly tcas: WT21TCAS;
+  private readonly gpws: Gpws;
   private readonly tcasTransponderManager: WT21TCASTransponderManager;
   private readonly perfPlanRepository: PerformancePlanRepository;
   // private readonly wt21Watson = new WT21Watson();
   private readonly avionicsSystems: BasicAvionicsSystem<any>[] = [];
   private fadec!: CJ4Fadec;
+  private readonly fixInfoManager: WT21FixInfoManager;
 
   /**
    * Creates an instance of the WT21_PFD.
@@ -190,7 +198,13 @@ export class WT21_PFD_Instrument implements FsInstrument {
     this.minimumsPublisher = new MinimumsSimVarPublisher(this.bus);
     this.backplane.addPublisher('minimums', this.minimumsPublisher);
 
+    this.cabinLightsSystemInstrument = new CJ4CabinLightsSystem(this.bus);
+    this.backplane.addInstrument('cj4_cabinlights', this.cabinLightsSystemInstrument);
+
     this.minimumsManager = new MinimumsManager(this.bus);
+
+    this.gpws = new Gpws(this.bus, this.facLoader);
+    this.gpws.init();
 
     this.navSources = new NavSources<WT21NavSourceNames>(
       new NavRadioNavSource<WT21NavSourceNames>(this.bus, 'NAV1', 1),
@@ -219,6 +233,9 @@ export class WT21_PFD_Instrument implements FsInstrument {
     this.minimumsAlertController = new MinimumsAlertController(this.bus);
 
     this.pfdMenuViewService = new PfdMenuViewService();
+
+    // FIXME Add route predictor when FlightPlanPredictor refactored to implement FlightPlanPredictionsProvider
+    this.fixInfoManager = new WT21FixInfoManager(this.bus, this.facLoader, WT21Fms.PRIMARY_ACT_PLAN_INDEX, this.planner, WT21FixInfoConfig /*, this.activeRoutePredictor*/);
 
     this.backplane.init();
 
@@ -257,6 +274,8 @@ export class WT21_PFD_Instrument implements FsInstrument {
           flightPlanner={this.planner}
           tcas={this.tcas}
           mfdIndex={0}
+          fixInfo={this.fixInfoManager}
+          performancePlan={this.perfPlanRepository.getActivePlan()}
         />
       </NavIndicatorContext.Provider>
       , document.getElementById('LowerSection')

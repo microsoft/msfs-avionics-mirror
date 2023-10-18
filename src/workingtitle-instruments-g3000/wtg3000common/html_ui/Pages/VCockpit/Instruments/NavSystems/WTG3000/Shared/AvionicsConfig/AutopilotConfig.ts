@@ -77,6 +77,9 @@ export class AutopilotConfig implements Config {
   /** Options for the autopilot Low Bank Mode. */
   public readonly lowBankOptions: AutopilotLowBankOptions;
 
+  /** Whether HDG sync mode is supported. */
+  public readonly isHdgSyncModeSupported: boolean;
+
   /**
    * Creates a new AutopilotConfig from a configuration document element.
    * @param baseInstrument The `BaseInstrument` element associated with the configuration.
@@ -90,6 +93,8 @@ export class AutopilotConfig implements Config {
       this.locOptions = { maxBankAngle: AutopilotConfig.DEFAULT_MAX_BANK_ANGLE };
       this.lnavOptions = { maxBankAngle: AutopilotConfig.DEFAULT_MAX_BANK_ANGLE };
       this.lowBankOptions = { maxBankAngle: AutopilotConfig.DEFAULT_LOW_BANK_ANGLE };
+
+      this.isHdgSyncModeSupported = false;
     } else {
       if (element.tagName !== 'Autopilot') {
         throw new Error(`Invalid AutopilotConfig definition: expected tag name 'Autopilot' but was '${element.tagName}'`);
@@ -101,6 +106,20 @@ export class AutopilotConfig implements Config {
       this.locOptions = this.parseLocOptions(element.querySelector(':scope>LOC'));
       this.lnavOptions = this.parseLNavOptions(element.querySelector(':scope>FMS'));
       this.lowBankOptions = this.parseLowBankOptions(element.querySelector(':scope>LowBank'));
+
+      const isHdgSyncModeSupported = element.getAttribute('hdg-sync-mode')?.toLowerCase();
+      switch (isHdgSyncModeSupported) {
+        case 'true':
+          this.isHdgSyncModeSupported = true;
+          break;
+        case 'false':
+        case undefined:
+          this.isHdgSyncModeSupported = false;
+          break;
+        default:
+          console.warn(`Invalid AutopilotConfig definition: unrecognized heading sync mode option "${isHdgSyncModeSupported}" (expected "true" or "false"). Defaulting to "false".`);
+          this.isHdgSyncModeSupported = false;
+      }
     }
   }
 

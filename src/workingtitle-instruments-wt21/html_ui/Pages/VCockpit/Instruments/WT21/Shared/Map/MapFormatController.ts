@@ -1,12 +1,13 @@
 import {
-  BingComponent, MapBingLayer, MapCullableTextLayer, MapOwnAirplaneIconModule, MapRotation, MapRotationModule, MapSystemContext, MapSystemController,
-  MapSystemFlightPlanLayer, MapSystemKeys, MapSystemWaypointsLayer, MapTerrainColorsModule, MapWxrModule, UnitType, UserSettingManager, Vec2Math, VecNMath
+  MapBingLayer, MapCullableTextLayer, MapOwnAirplaneIconModule, MapRotation, MapRotationModule, MapSystemContext, MapSystemController,
+  MapSystemFlightPlanLayer, MapSystemKeys, MapSystemWaypointsLayer, MapWxrModule, UnitType, UserSettingManager, Vec2Math, VecNMath
 } from '@microsoft/msfs-sdk';
 import { MapFormatSupportMatrix } from './MapFormatSupportMatrix';
 
 import { MapTodLayer } from './MapTodLayer';
 import { HSIFormat, MapSettingsMfdAliased, MapSettingsPfdAliased, MapUserSettings, PfdOrMfd, TerrWxState } from './MapUserSettings';
 import { WT21MapKeys } from './WT21MapKeys';
+import { MapTerrainStateModule } from './MapTerrainWeatherStateModule';
 
 /**
  * Modules required by MapFormatController.
@@ -19,7 +20,7 @@ export interface MapFormatControllerModules {
   [MapSystemKeys.Rotation]: MapRotationModule;
 
   /** Terrain colors module. */
-  [MapSystemKeys.TerrainColors]: MapTerrainColorsModule;
+  [WT21MapKeys.TerrainModeState]: MapTerrainStateModule;
 
   /** Weather module. */
   [MapSystemKeys.Weather]: MapWxrModule;
@@ -80,7 +81,7 @@ export class MapFormatController extends MapSystemController<MapFormatController
   };
 
   private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>;
-  private readonly terrain = this.context.model.getModule(MapSystemKeys.TerrainColors);
+  private readonly terrain = this.context.model.getModule(WT21MapKeys.TerrainModeState);
   private readonly wxr = this.context.model.getModule(MapSystemKeys.Weather);
   private readonly ownship = this.context.model.getModule(MapSystemKeys.OwnAirplaneIcon);
   private readonly rotation = this.context.model.getModule(MapSystemKeys.Rotation);
@@ -92,27 +93,9 @@ export class MapFormatController extends MapSystemController<MapFormatController
   private readonly waypointLayer = this.context.getLayer(MapSystemKeys.NearestWaypoints);
   private readonly textLayer = this.context.getLayer(MapSystemKeys.TextLayer);
 
-  private readonly blankTerrainColors = BingComponent.createEarthColorsArray('#000000', [
-    { elev: 0, color: '#000000' },
-    { elev: 60000, color: '#000000' }
-  ]);
-
-  private readonly defaultTerrainColors = BingComponent.createEarthColorsArray('#0000FF', [
-    { elev: 0, color: '#000000' },
-    { elev: 60000, color: '#000000' }
-  ]);
-
-  private readonly terrModeTerrainColors = BingComponent.createEarthColorsArray('#0000FF', [
-    { elev: 0, color: '#FF0000' },
-    { elev: 500, color: '#FFFF00' },
-    { elev: 1000, color: '#00FF00' },
-    { elev: 2000, color: '#000000' }
-  ]);
-
   private readonly supportMatrix = new MapFormatSupportMatrix();
   private currentTerrWxState: TerrWxState = 'OFF';
   private currentFormat: HSIFormat = 'PPOS';
-  private currentModeTerrainColors: number[] = this.defaultTerrainColors;
   private currentNexrad = false;
   private currentRangeEndPoints = MapFormatController.RANGE_ENDPOINTS;
   private isExtendedMap = false;
@@ -170,32 +153,29 @@ export class MapFormatController extends MapSystemController<MapFormatController
     this.currentFormat = format;
     this.currentNexrad = nexradEnabled;
 
-    this.terrain.reference.set((state === 'TERR' && format !== 'PLAN') ? EBingReference.PLANE : EBingReference.SEA);
+    this.terrain.displayTerrain.set(state === 'TERR' && this.supportMatrix.isSupported(format, 1));
+
     this.wxr.isEnabled.set((state === 'WX' && this.supportMatrix.isSupported(format, 2)) || (nexradEnabled === true && this.supportMatrix.isSupported(format, 3)));
     if (this.wxr.isEnabled.get() === true) {
       this.wxr.weatherRadarMode.set(format === 'PLAN' ? EWeatherRadar.TOPVIEW : EWeatherRadar.HORIZONTAL);
     }
 
-    this.currentModeTerrainColors = (state === 'TERR' && this.supportMatrix.isSupported(format, 1)) ? this.terrModeTerrainColors : this.defaultTerrainColors;
-
     if (state !== 'OFF' && UnitType.GA_RADIAN.convertTo(this.context.projection.getRange(), UnitType.NMILE) === 600) {
       this.settings.getSetting('mapRange').set(300);
     }
 
-    this.setOffset(format, this.isExtendedMap);
+    this.setOffset(this.isExtendedMap);
     this.setRangeEndpoints(format, this.isExtendedMap);
     this.setOwnshipVisible(format);
     this.setRotationType(format);
     this.setWaypointsVisible(format);
-    this.setMapColorsVisibility(format);
   }
 
   /**
    * Sets the map target offset for the specified format.
-   * @param format The current HSI format.
    * @param isExtendedMap Value indicating if the map is in extended format.
    */
-  private setOffset(format: HSIFormat, isExtendedMap: boolean): void {
+  private setOffset(isExtendedMap: boolean): void {
     const offset = MapFormatController.TARGET_OFFSETS[this.currentFormat].slice();
     if (isExtendedMap === true) {
       offset[1] += 130;
@@ -238,30 +218,15 @@ export class MapFormatController extends MapSystemController<MapFormatController
     }
   }
 
-  /**
-   * Sets the terrain colors of the current mode or a blank set based on map format.
-   * @param format The current HSI format.
-   */
-  private setMapColorsVisibility(format: HSIFormat): void {
-    const isNotRoseFormat = format !== 'ROSE';
-    // ARC should not show map but terr/wx
-    const isArcOnlyMap = (format === 'ARC' && this.currentTerrWxState === 'OFF');
-
-    if (isNotRoseFormat && !isArcOnlyMap) {
-      this.terrain.colors.set(this.currentModeTerrainColors);
-    } else {
-      this.terrain.colors.set(this.blankTerrainColors);
-    }
-  }
 
   /**
    * Sets the whether or not the flight plan is visible for the specified format.
    * @param format The current HSI format.
    */
   private setWaypointsVisible(format: HSIFormat): void {
-    this.bingLayer.setVisible(format !== 'ROSE' && format !== 'TCAS');
+    this.bingLayer.setVisible(this.supportMatrix.isSupported(format, 0) || (format === 'ARC' && this.currentTerrWxState !== 'OFF'));
 
-    if (format === 'PPOS' || format === 'PLAN') {
+    if (this.supportMatrix.isSupported(format, 0)) {
       this.flightplanLayer.setVisible(true);
       this.modFlightplanLayer.setVisible(true);
       this.waypointLayer.setVisible(true);

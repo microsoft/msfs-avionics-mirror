@@ -1,7 +1,9 @@
 import {
-  ArraySubject, BingComponent, BitFlags, FSComponent, HorizonLayer, HorizonLayerProps, HorizonProjection, HorizonProjectionChangeType,
+  ArraySubject, BingComponent, BitFlags, ColorUtils, FSComponent, HorizonLayer, HorizonLayerProps, HorizonProjection, HorizonProjectionChangeType,
   ObjectSubject, Subject, Subscribable, Subscription, SynVisComponent, Vec2Math, Vec2Subject, VNode
 } from '@microsoft/msfs-sdk';
+
+import { MapUtils } from '../../map/MapUtils';
 
 /**
  * Component props for SyntheticVision.
@@ -16,6 +18,20 @@ export interface SyntheticVisionProps extends HorizonLayerProps {
   /** Whether synthetic vision is enabled. */
   isEnabled: Subscribable<boolean>;
 }
+
+/**
+ * A synthetic vision technology (SVT) display terrain colors object.
+ */
+type TerrainColors = {
+  /**
+   * The earth colors array. Index 0 defines the water color, and indexes 1 to the end of the array define the terrain
+   * colors.
+   */
+  colors: number[];
+
+  /** The elevation range over which the terrain colors are applied, as `[minimum, maximum]` in feet. */
+  elevationRange: Float64Array;
+};
 
 /**
  * A synthetic vision technology (SVT) display.
@@ -108,6 +124,8 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
 
   /** @inheritdoc */
   public render(): VNode {
+    const colorsDef = SyntheticVision.createEarthColors();
+
     return (
       <div style={this.rootStyle}>
         <SynVisComponent
@@ -115,8 +133,8 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
           bingDelay={this.props.bingDelay}
           resolution={this.resolution}
           skyColor={Subject.create(BingComponent.hexaToRGBColor(SyntheticVision.SKY_COLOR))}
-          earthColors={ArraySubject.create(SyntheticVision.createEarthColors())}
-          earthColorsElevationRange={Vec2Subject.create(Vec2Math.create(-1400, 29000))}
+          earthColors={ArraySubject.create(colorsDef.colors)}
+          earthColorsElevationRange={Vec2Subject.create(colorsDef.elevationRange)}
         />
       </div>
     );
@@ -130,215 +148,25 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
   }
 
   /**
-   * Creates a full Bing component earth color array.
-   * @returns A full Bing component earth color array.
+   * Creates an object containing an earth color array and elevation range for an SVT display.
+   * @returns An object containing an earth color array and elevation range for an SVT display.
    */
-  private static createEarthColors(): number[] {
-    return BingComponent.createEarthColorsArray('#000066', [
-      {
-        elev: -1400,
-        color: '#2d5b61'
-      },
-      {
-        elev: -1300,
-        color: '#2d6161'
-      },
-      {
-        elev: -1200,
-        color: '#2e636a'
-      },
-      {
-        elev: -1100,
-        color: '#335f65'
-      },
-      {
-        elev: -1000,
-        color: '#336565'
-      },
-      {
-        elev: -900,
-        color: '#356e6e'
-      },
-      {
-        elev: -800,
-        color: '#3a6d6d'
-      },
-      {
-        elev: -700,
-        color: '#3a736c'
-      },
-      {
-        elev: -600,
-        color: '#3a7373'
-      },
-      {
-        elev: -500,
-        color: '#3b7b75'
-      },
-      {
-        elev: -400,
-        color: '#3a7366'
-      },
-      {
-        elev: -300,
-        color: '#3a6d54'
-      },
-      {
-        elev: -200,
-        color: '#3a6d4d'
-      },
-      {
-        elev: -100,
-        color: '#3a6846'
-      },
-      {
-        elev: 0,
-        color: '#34582b'
-      },
-      {
-        elev: 100,
-        color: '#356335'
-      },
-      {
-        elev: 200,
-        color: '#355c27'
-      },
-      {
-        elev: 300,
-        color: '#345920'
-      },
-      {
-        elev: 400,
-        color: '#345312'
-      },
-      {
-        elev: 500,
-        color: '#355506'
-      },
-      {
-        elev: 600,
-        color: '#3b530d'
-      },
-      {
-        elev: 700,
-        color: '#3f590c'
-      },
-      {
-        elev: 800,
-        color: '#495c13'
-      },
-      {
-        elev: 900,
-        color: '#4c5d12'
-      },
-      {
-        elev: 1000,
-        color: '#566a1a'
-      },
-      {
-        elev: 1100,
-        color: '#5c6a1a'
-      },
-      {
-        elev: 1200,
-        color: '#686d20'
-      },
-      {
-        elev: 1300,
-        color: '#6d6d20'
-      },
-      {
-        elev: 1400,
-        color: '#727226'
-      },
-      {
-        elev: 1500,
-        color: '#7c7c27'
-      },
-      {
-        elev: 1600,
-        color: '#7d7625'
-      },
-      {
-        elev: 1700,
-        color: '#89822d'
-      },
-      {
-        elev: 1800,
-        color: '#8f882d'
-      },
-      {
-        elev: 2000,
-        color: '#a9922c'
-      },
-      {
-        elev: 2500,
-        color: '#9f8431'
-      },
-      {
-        elev: 3000,
-        color: '#9d742d'
-      },
-      {
-        elev: 6000,
-        color: '#744d1a'
-      },
-      {
-        elev: 7000,
-        color: '#723f12'
-      },
-      {
-        elev: 8000,
-        color: '#6d380c'
-      },
-      {
-        elev: 9000,
-        color: '#6e3306'
-      },
-      {
-        elev: 10000,
-        color: '#6e2c06'
-      },
-      {
-        elev: 16000,
-        color: '#714827'
-      },
-      {
-        elev: 17000,
-        color: '#6c4c2c'
-      },
-      {
-        elev: 18000,
-        color: '#744d34'
-      },
-      {
-        elev: 20000,
-        color: '#745a47'
-      },
-      {
-        elev: 22000,
-        color: '#766255'
-      },
-      {
-        elev: 24000,
-        color: '#756760'
-      },
-      {
-        elev: 26000,
-        color: '#76766f'
-      },
-      {
-        elev: 27000,
-        color: '#757575'
-      },
-      {
-        elev: 28000,
-        color: '#898989'
-      },
-      {
-        elev: 29000,
-        color: '#8e8e8e'
-      }
-    ], -1400, 29000, 305);
+  private static createEarthColors(): TerrainColors {
+    // Get absolute map terrain colors and scale lightness by 0.8.
+
+    const def = MapUtils.absoluteTerrainEarthColors();
+
+    const cache = new Float64Array(3);
+
+    return {
+      colors: def.colors.map(color => {
+        const hsl = ColorUtils.hexToHsl(color, cache, true);
+        hsl[2] *= 0.8;
+
+        return ColorUtils.hslToHex(hsl, true);
+      }),
+
+      elevationRange: def.elevationRange.slice()
+    };
   }
 }

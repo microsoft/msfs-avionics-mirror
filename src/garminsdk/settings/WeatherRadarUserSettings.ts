@@ -21,4 +21,10 @@ export type WeatherRadarUserSettingTypes = {
 
   /** Whether to show the tilt line in vertical scan mode. */
   wxrShowTiltLine: boolean;
+
+  /** Whether the weather radar's gain should be locked to the calibrated setting (0 dBZ). */
+  wxrCalibratedGain: boolean;
+
+  /** The weather radar's gain, in dBZ. */
+  wxrGain: number;
 };

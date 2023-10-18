@@ -83,6 +83,8 @@ export class MapInset extends DisplayComponent<MapInsetProps> {
         fontSize: 16
       },
 
+      includeWindVector: false,
+
       pointerBoundsOffset: VecNMath.create(4, 0.2, 0.2, 0.4, 0.2),
       pointerInfoSize: MapPointerInfoLayerSize.Small,
 

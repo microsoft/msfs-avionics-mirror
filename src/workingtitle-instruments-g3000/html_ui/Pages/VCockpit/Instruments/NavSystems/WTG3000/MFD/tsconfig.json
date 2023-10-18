@@ -2,7 +2,7 @@
   "extends": "../../../../../../../../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "build",
-    "emitDeclarationOnly": true
+    "emitDeclarationOnly": false
   },
   "exclude": [
     "Gulpfile.ts",

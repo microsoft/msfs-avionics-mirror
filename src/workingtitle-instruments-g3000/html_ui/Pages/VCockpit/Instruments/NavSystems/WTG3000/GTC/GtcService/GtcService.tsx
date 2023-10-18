@@ -279,20 +279,40 @@ export class GtcService {
    * @param bus The event bus.
    * @param instrumentIndex The index of the GTC instrument to which this service belongs.
    * @param orientation The orientation (horizontal or vertical) of the GTC to which this service belongs.
-   * @param controlSetup Which control modes supported by this GTC.
+   * @param controlSetup The control mode setup supported by the GTC to which this service belongs.
+   * @param defaultControlMode The nominal default control mode of the GTC to which this service belongs.
    * @param pfdControlIndex The index of the PFD controlled by the GTC to which this service belongs.
    * @param displayPaneControlIndex The display pane controlling index of the GTC to which this service belongs.
    * @param isAdvancedVnav Whether advanced VNAV is enabled.
+   * @throws Error if {@linkcode defaultControlMode} is incompatible with {@linkcode controlSetup}.
    */
   constructor(
     public readonly bus: EventBus,
     public readonly instrumentIndex: number,
     public readonly orientation: GtcOrientation,
     public readonly controlSetup: GtcControlSetup,
+    private readonly defaultControlMode: GtcControlMode,
     public readonly pfdControlIndex: PfdIndex,
     public readonly displayPaneControlIndex: DisplayPaneControlGtcIndex,
     public readonly isAdvancedVnav: boolean
   ) {
+    switch (defaultControlMode) {
+      case 'PFD':
+        if (!this.hasPfdMode) {
+          throw new Error(`GtcService: default control mode 'PFD' is incompatible with '${controlSetup}' control setup`);
+        }
+        break;
+      case 'MFD':
+        if (!this.hasMfdMode) {
+          throw new Error(`GtcService: default control mode 'MFD' is incompatible with '${controlSetup}' control setup`);
+        }
+        break;
+      case 'NAV_COM':
+        if (!this.hasNavComMode) {
+          throw new Error(`GtcService: default control mode 'NAV_COM' is incompatible with '${controlSetup}' control setup`);
+        }
+        break;
+    }
 
     // These need to be instantiated after everything else is set up because they require a fully initialized GtcService.
     this.gtcKnobStates = new GtcKnobStatesManager(this);
@@ -324,16 +344,13 @@ export class GtcService {
   }
 
   /**
-   * Gets this service's default control mode.
-   * @returns This service's default control mode.
+   * Gets this service's current default control mode.
+   * @returns This service's current default control mode.
    */
-  private getDefaultControlMode(): GtcControlMode {
-    switch (this.controlSetup) {
-      case 'mfd':
-        return 'MFD';
-      default:
-        return 'PFD';
-    }
+  private getCurrentDefaultControlMode(): GtcControlMode {
+    // NOTE: this method exists because if we ever decide to implement reversionary modes or handling of disabled GDUs,
+    // the default control mode will change depending on which GDUs are available to be controlled.
+    return this.defaultControlMode;
   }
 
   /**
@@ -536,16 +553,15 @@ export class GtcService {
    * then this value is ignored and the {@link GtcViewLifecyclePolicy.Static} policy will automatically be applied.
    * @param key The key to register the view under.
    * @param controlMode The control mode with which to register the view.
-   * @param vNodeFactory A function that returns a GtcView VNode for the key.
+   * @param factory A function that renders the view.
    * @param displayPaneIndex The index of the display pane with which to register the view. Ignored if `controlMode` is
    * not `'MFD'`. If not defined, the view will be registered once for each display pane.
-   * @throws Errors if the parent element does not exist.
    */
   public registerView(
     lifecyclePolicy: GtcViewLifecyclePolicy,
     key: string,
     controlMode: GtcControlMode,
-    vNodeFactory: (gtcService: GtcService, controlMode: GtcControlMode, displayPaneIndex?: ControllableDisplayPaneIndex) => VNode,
+    factory: (gtcService: GtcService, controlMode: GtcControlMode, displayPaneIndex?: ControllableDisplayPaneIndex) => VNode,
     displayPaneIndex?: ControllableDisplayPaneIndex
   ): void {
     switch (controlMode) {
@@ -556,7 +572,7 @@ export class GtcService {
             lifecyclePolicy = GtcViewLifecyclePolicy.Static;
           }
 
-          this._registerView(lifecyclePolicy, key, 'PFD', () => vNodeFactory(this, 'PFD'));
+          this._registerView(lifecyclePolicy, key, 'PFD', () => factory(this, 'PFD'));
         }
         break;
       case 'MFD':
@@ -569,35 +585,34 @@ export class GtcService {
           if (displayPaneIndex === undefined) {
             // MFD views exist 4 times, once per display pane.
             forEachPaneIndex(i => {
-              this._registerView(lifecyclePolicy, key, getViewStackKey('MFD', i), () => vNodeFactory(this, 'MFD', i));
+              this._registerView(lifecyclePolicy, key, getViewStackKey('MFD', i), () => factory(this, 'MFD', i));
             });
           } else {
-            this._registerView(lifecyclePolicy, key, getViewStackKey('MFD', displayPaneIndex), () => vNodeFactory(this, 'MFD', displayPaneIndex));
+            this._registerView(lifecyclePolicy, key, getViewStackKey('MFD', displayPaneIndex), () => factory(this, 'MFD', displayPaneIndex));
           }
         }
         break;
       case 'NAV_COM':
         if (!this.isHorizontal) {
-          this._registerView(lifecyclePolicy, key, 'VERT_NAV_COM', () => vNodeFactory(this, 'NAV_COM'));
+          this._registerView(lifecyclePolicy, key, 'VERT_NAV_COM', () => factory(this, 'NAV_COM'));
         } else if (this.hasNavComMode) {
           // Force static lifecycle policy for home pages.
           if (key === this.controlModeHomePages['NAV_COM']) {
             lifecyclePolicy = GtcViewLifecyclePolicy.Static;
           }
 
-          this._registerView(lifecyclePolicy, key, 'NAV_COM', () => vNodeFactory(this, 'NAV_COM'));
+          this._registerView(lifecyclePolicy, key, 'NAV_COM', () => factory(this, 'NAV_COM'));
         }
         break;
     }
   }
 
   /**
-   * Registers and renders a view (page or popup) to be opened by the service.
+   * Registers a view (page or popup) with this service.
    * @param lifecyclePolicy The lifecycle policy to apply to the view.
    * @param key The view's key.
    * @param viewStackKey The key of the view stack to insert the view into.
-   * @param factory The VNode for the view.
-   * @throws Errors if the parent element does not exist
+   * @param factory A function which renders the view.
    */
   private _registerView(
     lifecyclePolicy: GtcViewLifecyclePolicy,
@@ -716,7 +731,7 @@ export class GtcService {
       this.initializeViewStack('VERT_NAV_COM', GtcService.VERT_NAV_COM_BASE_VIEW_KEY);
     }
 
-    const defaultControlMode = this.getDefaultControlMode();
+    const defaultControlMode = this.getCurrentDefaultControlMode();
 
     this._activeControlMode.set(defaultControlMode);
 
@@ -779,7 +794,7 @@ export class GtcService {
     // Switch to default control mode and go to its home page. This will also close any open views on "global" view
     // stacks (e.g. VERT_NAVCOM view stack)
 
-    const defaultControlMode = this.getDefaultControlMode();
+    const defaultControlMode = this.getCurrentDefaultControlMode();
     this.changeControlModeTo(defaultControlMode);
     this.goToHomePage();
 

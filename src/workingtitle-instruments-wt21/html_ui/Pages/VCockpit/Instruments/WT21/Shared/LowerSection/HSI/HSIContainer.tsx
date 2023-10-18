@@ -27,8 +27,15 @@ import { MFDUpperWindowState, MFDUserSettings } from '../../../MFD/MFDUserSettin
 import { MapAltitudeArcController } from '../../Map/MapAltitudeArcController';
 import { MapFacilitySelectModule } from '../../Map/MapFacilitySelectModule';
 import { MapSelectWaypointLayer } from '../../Map/MapSelectWaypointLayer';
-import './HSIContainer.css';
 import { TcasFlag } from './TcasFlag';
+import { MapTerrainColorsController } from '../../Map/MapTerrainColorsController';
+import { MapTerrainStateModule } from '../../Map/MapTerrainWeatherStateModule';
+
+import './HSIContainer.css';
+import { WT21FixInfoManager } from '../../../FMC/Systems/WT21FixInfoManager';
+import { PerformancePlan } from '../../Performance/PerformancePlan';
+import { WT21MapStylesModule } from '../../Map/WT21MapStylesModule';
+import { MapSystemCommon } from '../../Map/MapSystemCommon';
 
 /**
  * Component props for HSIContainer.
@@ -51,6 +58,12 @@ interface HSIContainerProps extends ComponentProps {
 
   /** A waypoint alerter instance that controls display of waypoint alert flashing. */
   waypointAlerter: WaypointAlerter;
+
+  /** The fix info manager. */
+  fixInfo?: WT21FixInfoManager;
+
+  /** The active performance plan */
+  performancePlan: PerformancePlan;
 }
 
 /** The container for the Horizontal Situation Indicator. */
@@ -83,13 +96,15 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
   });
 
   private mapSystem = MapSystemBuilder.create(this.props.bus)
+    .withModule(WT21MapKeys.MapStyles, () => new WT21MapStylesModule(MapSystemCommon.mapStyles))
     .withBing(`wt21-map-${this.props.pfdOrMfd}-${this.props.mfdIndex}`, this.props.pfdOrMfd === 'PFD' ? 1000 : 0)
     .withNearestWaypoints(MapSystemConfig.configureMapWaypoints(), false)
     .withFlightPlan(MapSystemConfig.configureModFlightPlan(this.props.bus, this.props.pfdOrMfd), this.props.flightPlanner, 1, false)
     .withFlightPlan(MapSystemConfig.configureFlightPlan(this.props.bus, this.props.waypointAlerter, this.props.pfdOrMfd), this.props.flightPlanner, 0, false)
     .withLayer(WT21MapKeys.Tod,
       (context): VNode => <MapTodLayer bus={context.bus} model={context.model} mapProjection={context.projection}
-        planner={this.props.flightPlanner} waypointRenderer={context[MapSystemKeys.WaypointRenderer]} />)
+        planner={this.props.flightPlanner} waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
+        textManager={context.textManager} activePerformancePlan={this.props.performancePlan} fixInfo={this.props.fixInfo} />)
 
     .withModule(WT21MapKeys.CtrWpt, () => new MapFacilitySelectModule(this.props.bus))
     .withLayer(WT21MapKeys.CtrWpt,
@@ -106,13 +121,15 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
       new Float64Array([0.5, 0.6]),
       'hsi-map-ownship-icon'
     )
+    .withModule(WT21MapKeys.TerrainModeState, () => new MapTerrainStateModule())
+    .withController(MapSystemKeys.TerrainColors, context => new MapTerrainColorsController(context))
     .withTraffic(this.props.tcas, MapSystemConfig.createTrafficIntruderIcon, MapSystemConfig.initTrafficLayerCanvasStyles)
     .withOwnAirplanePropBindings(MapSystemConfig.getOwnAirplanePropsToBind(), 30)
     .withFollowAirplane()
     .withRotation()
     .withController('format', context => new MapFormatController(context, this.props.pfdOrMfd))
     .withController('range', context => new MapRangeController(context, this.props.pfdOrMfd))
-    .withController('waypoints', context => new WaypointDisplayController(context, this.props.pfdOrMfd))
+    .withController('waypoints', context => new WaypointDisplayController(context, this.props.pfdOrMfd, this.props.fixInfo))
     .withController<PlanFormatController, any, any, any, PlanFormatControllerContext>(
       'planFormat',
       context => new PlanFormatController(context, this.props.pfdOrMfd, this.props.mfdIndex as 1 | 2, this.props.flightPlanner)

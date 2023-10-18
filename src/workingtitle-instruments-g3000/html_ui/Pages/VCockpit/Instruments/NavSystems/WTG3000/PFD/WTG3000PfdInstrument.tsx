@@ -1,16 +1,17 @@
 import { CasSystem, CompositeLogicXMLHost, FSComponent, PluginSystem, SetSubject, Subject, TrafficInstrument, Vec2Math, VNode, Wait } from '@microsoft/msfs-sdk';
 
 import {
-  DefaultAltimeterDataProvider, DefaultGpsIntegrityDataProvider, DefaultRadarAltimeterDataProvider, DefaultVNavDataProvider, DefaultWindDataProvider, Fms
+  AdfRadioNavSource, DefaultAltimeterDataProvider, DefaultGpsIntegrityDataProvider, DefaultRadarAltimeterDataProvider,
+  DefaultVNavDataProvider, DefaultWindDataProvider, Fms, GpsNavSource, NavReferenceIndicatorsCollection, NavRadioNavSource,
+  NavReferenceSource, NavReferenceSourceCollection
 } from '@microsoft/msfs-garminsdk';
 
 import {
-  AdfRadioSource, AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, ConnextWeatherPaneView, DisplayPaneContainer, DisplayPaneIndex, DisplayPaneViewFactory,
+  AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, ConnextWeatherPaneView, DisplayPaneContainer, DisplayPaneIndex, DisplayPaneViewFactory,
   DisplayPaneViewKeys, FlightPlanListManager, FlightPlanStore, G3000ActiveSourceNavIndicator, G3000ApproachPreviewDataProvider, G3000ApproachPreviewNavIndicator,
   G3000BearingPointerNavIndicator, G3000DmeInfoNavIndicator, G3000FilePaths, G3000NavIndicator, G3000NavIndicatorName, G3000NavIndicators, G3000NavInfoNavIndicator,
-  G3000NavSourceName, G3000NavSources, GpsSource, InstrumentBackplaneNames, NavigationMapPaneView, NavIndicatorsCollection, NavRadioNavSource, NavSource, NavSources,
-  NearestPaneView, ObsAutoSlew, PfdIndex, PfdUserSettings, ProcedurePreviewPaneView, TrafficMapPaneView, WaypointInfoPaneView, WeatherRadarPaneView,
-  WTG3000BaseInstrument, WTG3000FsInstrument
+  G3000NavSourceName, G3000NavSources, InstrumentBackplaneNames, NavigationMapPaneView, NearestPaneView, ObsAutoSlew, PfdIndex, PfdUserSettings,
+  ProcedurePreviewPaneView, TrafficMapPaneView, WaypointInfoPaneView, WeatherRadarPaneView, WTG3000BaseInstrument, WTG3000FsInstrument
 } from '@microsoft/msfs-wtg3000-common';
 
 import { PfdInstrumentContainer } from './Components/InstrumentContainer/PfdInstrumentContainer';
@@ -112,11 +113,11 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
 
     this.createSystems();
 
-    const navSources: NavSource<G3000NavSourceName>[] = [
+    const navSources: NavReferenceSource<G3000NavSourceName>[] = [
       new NavRadioNavSource<G3000NavSourceName>(this.bus, 'NAV1', 1),
       new NavRadioNavSource<G3000NavSourceName>(this.bus, 'NAV2', 2),
-      new GpsSource<G3000NavSourceName>(this.bus, 'FMS1', 1),
-      new GpsSource<G3000NavSourceName>(this.bus, 'FMS2', 2)
+      new GpsNavSource<G3000NavSourceName>(this.bus, 'FMS1', 1),
+      new GpsNavSource<G3000NavSourceName>(this.bus, 'FMS2', 2)
     ];
 
     for (let i = 1; i <= config.radios.dmeCount; i++) {
@@ -124,14 +125,14 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
     }
 
     for (let i = 1; i <= config.radios.adfCount; i++) {
-      navSources.push(new AdfRadioSource<G3000NavSourceName>(this.bus, `ADF${i as 1 | 2}`, i as 1 | 2));
+      navSources.push(new AdfRadioNavSource<G3000NavSourceName>(this.bus, `ADF${i as 1 | 2}`, i as 1 | 2));
     }
 
-    this.navSources = new NavSources<G3000NavSourceName>(...navSources);
+    this.navSources = new NavReferenceSourceCollection<G3000NavSourceName>(...navSources);
 
     this.approachPreviewDataProvider = new G3000ApproachPreviewDataProvider(this.navSources, this.bus);
 
-    this.navIndicators = new NavIndicatorsCollection(new Map<G3000NavIndicatorName, G3000NavIndicator>([
+    this.navIndicators = new NavReferenceIndicatorsCollection(new Map<G3000NavIndicatorName, G3000NavIndicator>([
       ['activeSource', new G3000ActiveSourceNavIndicator(this.navSources, this.bus, 1)],
       ['bearingPointer1', new G3000BearingPointerNavIndicator(this.navSources, this.bus, 1, this.pfdSettingManager)],
       ['bearingPointer2', new G3000BearingPointerNavIndicator(this.navSources, this.bus, 2, this.pfdSettingManager)],
@@ -285,6 +286,7 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
           flightPlanner={this.flightPlanner}
           trafficSystem={this.trafficSystem}
           flightPlanStore={this.flightPlanStore}
+          windDataProvider={this.windDataProvider}
           vnavDataProvider={this.vnavDataProvider}
           fms={this.fms}
           flightPlanListManager={this.flightPlanListManager}
@@ -311,6 +313,7 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
           index={index}
           bus={this.bus}
           flightPlanner={this.flightPlanner}
+          windDataProvider={this.windDataProvider}
           iauSettingManager={this.iauSettingManager}
           config={this.config.map}
         />
@@ -339,6 +342,7 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
           facLoader={this.facLoader}
           flightPlanner={this.flightPlanner}
           trafficSystem={this.trafficSystem}
+          windDataProvider={this.windDataProvider}
           iauSettingManager={this.iauSettingManager}
           config={this.config.map}
         />

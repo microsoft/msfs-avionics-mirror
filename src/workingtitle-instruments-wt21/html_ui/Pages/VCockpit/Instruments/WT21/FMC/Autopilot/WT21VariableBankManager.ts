@@ -48,16 +48,16 @@ export class WT21VariableBankManager {
     this.maxBankValue = ConsumerSubject.create(ap.on('ap_max_bank_value').whenChanged(), 30);
 
     // Sets the correct variable bank rate for the altitude.
-    this.altitude.sub(this.handleAltitudeUpdated);
+    this.altitude.sub(this.handleAltitudeUpdated, true);
 
     // Sets the correct variable bank rate for the altitude when LNAV is engaged.
-    this.apValues.lateralActive.sub(this.handleLateralActiveChanged);
+    this.apValues.lateralActive.sub(this.handleLateralActiveChanged, true);
 
     // Sets the max bank angle to be used by FlightPathCalculator to calculate the flight path.
-    this.maxBankIndex.sub(this.handleMaxBankIndexChanged);
+    this.maxBankIndex.sub(this.handleMaxBankIndexChanged, true);
 
     // Sets the max bank angle the AP may command.
-    this.maxBankValue.sub(v => this.apValues.maxBankAngle.set(v));
+    this.maxBankValue.sub(v => this.apValues.maxBankAngle.set(v), true);
   }
 
   /**

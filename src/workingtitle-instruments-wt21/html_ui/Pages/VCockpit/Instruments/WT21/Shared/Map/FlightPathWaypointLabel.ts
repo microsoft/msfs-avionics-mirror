@@ -2,6 +2,7 @@ import { AbstractMapTextLabel, AltitudeRestrictionType, BitFlags, FlightPathWayp
 import { WT21FmsUtils } from '../FlightPlan/WT21FmsUtils';
 import { WT21_PFD_MFD_Colors } from '../WT21_Colors';
 import { MapWaypointsDisplay } from './MapUserSettings';
+import { WT21MapWaypointIconPriority } from './MapSystemCommon';
 
 /**
  * An map flightplan waypoint label for the WT21.
@@ -21,7 +22,7 @@ export class FlightPathWaypointLabel extends MapCullableLocationTextLabel {
    * @param options The label options.
    */
   constructor(private readonly waypoint: FlightPathWaypoint, displaySetting?: UserSetting<number>, options?: MapLocationTextLabelOptions) {
-    super(waypoint.ident, 999, waypoint.location, true, options);
+    super(waypoint.ident, WT21MapWaypointIconPriority.FlightPlan, waypoint.location, true, options);
 
     if (displaySetting) {
       this.displaySettingSub = displaySetting.sub((v: number) => {

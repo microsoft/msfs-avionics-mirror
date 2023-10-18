@@ -168,6 +168,9 @@ export type MapUserSettingTypes = {
 
   /** Whether to show the altitude intercept arc. */
   mapAltitudeArcShow: boolean;
+
+  /** Whether to show the wind vector. */
+  mapWindVectorShow: boolean;
 }
 
 /**
@@ -219,6 +222,7 @@ export class MapUserSettingsUtils {
     'mapNexradRangeIndex',
     'mapTrackVectorShow',
     'mapTrackVectorLookahead',
-    'mapAltitudeArcShow'
+    'mapAltitudeArcShow',
+    'mapWindVectorShow'
   ] as readonly (keyof MapUserSettingTypes)[];
 }

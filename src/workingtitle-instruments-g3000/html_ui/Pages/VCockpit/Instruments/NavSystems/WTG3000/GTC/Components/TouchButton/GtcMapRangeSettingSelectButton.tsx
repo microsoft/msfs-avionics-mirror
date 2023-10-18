@@ -59,6 +59,15 @@ export class GtcMapRangeSettingSelectButton extends DisplayComponent<GtcMapRange
 
   private readonly mapRangeArray = this.props.unitsSettingManager.getSetting('unitsDistance').map(mode => MapUtils.nextGenMapRanges(mode));
 
+  /**
+   * Simulates this button being pressed. This will execute the `onPressed()` callback if one is defined.
+   * @param ignoreDisabled Whether to simulate the button being pressed regardless of whether the button is disabled.
+   * Defaults to `false`.
+   */
+  public simulatePressed(ignoreDisabled = false): void {
+    this.buttonRef.getOrDefault()?.simulatePressed(ignoreDisabled);
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     return (
@@ -102,6 +111,10 @@ export class GtcMapRangeSettingSelectButton extends DisplayComponent<GtcMapRange
         onSelected={(value): void => {
           this.writeToSetting(this.props.settingName, value);
         }}
+        onTouched={this.props.onTouched}
+        onHoldStarted={this.props.onHoldStarted}
+        onHoldTick={this.props.onHoldTick}
+        onHoldEnded={this.props.onHoldEnded}
         focusOnDrag={this.props.focusOnDrag}
         inhibitOnDrag={this.props.inhibitOnDrag}
         inhibitOnDragAxis={this.props.inhibitOnDragAxis}

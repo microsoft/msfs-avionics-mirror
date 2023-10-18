@@ -9,7 +9,7 @@ import { LNavDataEvents } from '../../navigation/LNavDataEvents';
 import { NavDataFieldGpsValidity } from '../navdatafield/NavDataFieldModel';
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
 import {
-  NavDataBarFieldConsumerModel, NavDataBarFieldConsumerNumberUnitModel, NavDataBarFieldGenericModel, NavDataBarFieldModel, NavDataBarFieldModelFactory,
+  NavDataBarFieldConsumerValueModel, NavDataBarFieldConsumerValueNumberUnitModel, NavDataBarFieldGenericModel, NavDataBarFieldModel, NavDataBarFieldModelFactory,
   NavDataBarFieldTypeModelMap
 } from './NavDataBarFieldModel';
 
@@ -98,7 +98,7 @@ export abstract class EventBusNavDataBarFieldTypeModelFactory<T extends NavDataF
 export class NavDataBarFieldBrgModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.BearingToWaypoint, GNSSEvents & LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<NavAngleUnitFamily>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(0)),
       gpsValidity,
       [
@@ -186,7 +186,7 @@ export class NavDataBarFieldDestModelFactory extends EventBusNavDataBarFieldType
 export class NavDataBarFieldDisModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.DistanceToWaypoint, LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN)),
       gpsValidity,
       [
@@ -208,7 +208,7 @@ export class NavDataBarFieldDisModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldDtgModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.DistanceToDestination, LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN)),
       gpsValidity,
       [
@@ -230,7 +230,7 @@ export class NavDataBarFieldDtgModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldDtkModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.DesiredTrack, GNSSEvents & LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<NavAngleUnitFamily>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(0)),
       gpsValidity,
       [
@@ -253,7 +253,7 @@ export class NavDataBarFieldDtkModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldEndModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.Endurance, EngineEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Duration>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.HOUR.createNumber(NaN)),
       gpsValidity,
       [
@@ -280,7 +280,7 @@ export class NavDataBarFieldEndModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldEnrModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TimeToDestination, GNSSEvents & LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Duration>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.HOUR.createNumber(NaN)),
       gpsValidity,
       [
@@ -314,7 +314,7 @@ export class NavDataBarFieldEtaModelFactory
 
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<number> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       Subject.create(NaN),
       gpsValidity,
       [
@@ -347,7 +347,7 @@ export class NavDataBarFieldEtaModelFactory
 export class NavDataBarFieldEteModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TimeToWaypoint, GNSSEvents & LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Duration>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.HOUR.createNumber(NaN)),
       gpsValidity,
       [
@@ -379,7 +379,7 @@ export class NavDataBarFieldEteModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldFobModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.FuelOnBoard, EngineEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Weight>> {
-    return new NavDataBarFieldConsumerNumberUnitModel(
+    return new NavDataBarFieldConsumerValueNumberUnitModel(
       gpsValidity,
       this.sub.on('fuel_usable_total'), 0, UnitType.GALLON_FUEL
     );
@@ -394,7 +394,7 @@ export class NavDataBarFieldFodModelFactory
 
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Weight>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.GALLON_FUEL.createNumber(NaN)),
       gpsValidity,
       [
@@ -430,7 +430,7 @@ export class NavDataBarFieldFodModelFactory
 export class NavDataBarFieldGsModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.GroundSpeed, GNSSEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Speed>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.KNOT.createNumber(NaN)),
       gpsValidity,
       [
@@ -450,10 +450,18 @@ export class NavDataBarFieldGsModelFactory extends EventBusNavDataBarFieldTypeMo
  */
 export class NavDataBarFieldIsaModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.ISA, AdcEvents> {
   /** @inheritdoc */
-  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Temperature>> {
-    return new NavDataBarFieldConsumerNumberUnitModel(
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.TemperatureDelta>> {
+    return new NavDataBarFieldConsumerValueModel(
+      NumberUnitSubject.create(UnitType.DELTA_CELSIUS.createNumber(NaN)),
       gpsValidity,
-      this.sub.on('isa_temp_c'), 0, UnitType.CELSIUS
+      [
+        this.sub.on('ambient_temp_c'),
+        this.sub.on('isa_temp_c')
+      ],
+      [0],
+      (sub, validity, [sat, isa]) => {
+        sub.set(sat.get() - isa.get());
+      }
     );
   }
 }
@@ -466,7 +474,7 @@ export class NavDataBarFieldLdgModelFactory
 
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<number> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       Subject.create(NaN),
       gpsValidity,
       [
@@ -499,7 +507,7 @@ export class NavDataBarFieldLdgModelFactory
 export class NavDataBarFieldTasModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TrueAirspeed, AdcEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Speed>> {
-    return new NavDataBarFieldConsumerNumberUnitModel(
+    return new NavDataBarFieldConsumerValueNumberUnitModel(
       gpsValidity,
       this.sub.on('tas'), 0, UnitType.KNOT
     );
@@ -512,7 +520,7 @@ export class NavDataBarFieldTasModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldTkeModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TrackAngleError, GNSSEvents & LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Angle>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.DEGREE.createNumber(NaN)),
       gpsValidity,
       [
@@ -535,7 +543,7 @@ export class NavDataBarFieldTkeModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldTrkModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.GroundTrack, GNSSEvents & AhrsEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<NavAngleUnitFamily>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(0)),
       gpsValidity,
       [
@@ -564,7 +572,7 @@ export class NavDataBarFieldTrkModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldVsrModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.VerticalSpeedRequired, VNavDataEvents & VNavEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Speed>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.FPM.createNumber(NaN)),
       gpsValidity,
       [this.sub.on('vnav_required_vs')],
@@ -584,7 +592,7 @@ export class NavDataBarFieldVsrModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldWptModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.Waypoint, LNavDataEvents> {
   /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<string> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       Subject.create('_____'),
       gpsValidity,
       [this.sub.on('lnavdata_waypoint_ident')],
@@ -603,7 +611,7 @@ export class NavDataBarFieldWptModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldXtkModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.CrossTrack, LNavEvents & LNavDataEvents> {
   /** @inheritdoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
-    return new NavDataBarFieldConsumerModel(
+    return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN)),
       gpsValidity,
       [

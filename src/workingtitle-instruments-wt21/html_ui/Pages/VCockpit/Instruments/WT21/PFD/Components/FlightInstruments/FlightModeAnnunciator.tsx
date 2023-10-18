@@ -124,23 +124,23 @@ export class FlightModeAnnunciator extends DisplayComponent<FlightModeAnnunciato
     //and flashes red when AP is disconnected then goes back to white. Use "fma-arrow-colors"
 
     const ap = this.props.bus.getSubscriber<APEvents>();
-    ap.on('ap_master_status').handle(status => {
-      if (status) {
-        this.apMaster.set(true);
-        this.onApFdYdChange();
-      } else {
-        this.apMaster.set(false);
-        this.onApFdYdChange();
-        this.apMode.instance.classList.add('hidden');
-        this.apMode2.instance.classList.remove('hidden');
-        this.apMode2.instance.classList.add('fma-ap-manual-cancel');
-        setTimeout(() => {
-          this.apMode.instance.classList.remove('hidden');
-          this.apMode2.instance.classList.remove('fma-ap-manual-cancel');
-          this.apMode2.instance.classList.add('hidden');
-        }, 1500);
-      }
+    ap.on('ap_master_on').handle(() => {
+      this.apMaster.set(true);
+      this.onApFdYdChange();
     });
+    ap.on('ap_master_off').handle(() => {
+      this.apMaster.set(false);
+      this.onApFdYdChange();
+      this.apMode.instance.classList.add('hidden');
+      this.apMode2.instance.classList.remove('hidden');
+      this.apMode2.instance.classList.add('fma-ap-manual-cancel');
+      setTimeout(() => {
+        this.apMode.instance.classList.remove('hidden');
+        this.apMode2.instance.classList.remove('fma-ap-manual-cancel');
+        this.apMode2.instance.classList.add('hidden');
+      }, 1500);
+    });
+
     ap.on('flight_director_is_active_1').whenChanged().handle((state) => {
       this.flightDirectorOn.set(state);
       this.onApFdYdChange();

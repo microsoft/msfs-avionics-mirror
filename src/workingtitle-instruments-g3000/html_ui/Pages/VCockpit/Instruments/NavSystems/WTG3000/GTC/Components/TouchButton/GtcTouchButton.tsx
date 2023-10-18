@@ -41,14 +41,28 @@ export interface GtcTouchButtonProps extends TouchButtonProps {
 export class GtcTouchButton extends DisplayComponent<GtcTouchButtonProps> {
   private readonly ref = FSComponent.createRef<TouchButton>();
 
+  /**
+   * Simulates this button being pressed. This will execute the `onPressed()` callback if one is defined.
+   * @param ignoreDisabled Whether to simulate the button being pressed regardless of whether the button is disabled.
+   * Defaults to `false`.
+   */
+  public simulatePressed(ignoreDisabled = false): void {
+    this.ref.getOrDefault()?.simulatePressed(ignoreDisabled);
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     const isInList = this.props.isInList ?? false;
 
     return (
       <TouchButton
+        ref={this.ref}
         label={this.props.label}
+        onTouched={this.props.onTouched}
         onPressed={this.props.onPressed}
+        onHoldStarted={this.props.onHoldStarted}
+        onHoldTick={this.props.onHoldTick}
+        onHoldEnded={this.props.onHoldEnded}
         isEnabled={this.props.isEnabled}
         isHighlighted={this.props.isHighlighted}
         isVisible={this.props.isVisible}

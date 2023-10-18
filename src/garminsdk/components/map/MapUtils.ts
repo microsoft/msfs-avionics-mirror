@@ -1,7 +1,7 @@
 import { BingComponent, NumberUnitReadOnly, UnitFamily, UnitType, Vec2Math } from '@microsoft/msfs-sdk';
 
 import { UnitsDistanceSettingMode } from '../../settings/UnitsUserSettings';
-import { MapTerrainColorsDefinition } from './controllers/MapTerrainColorsController';
+import type { MapTerrainColorsDefinition } from './controllers/MapTerrainColorsController';
 
 /**
  * Provides utility functions for working with Garmin maps.
@@ -277,80 +277,468 @@ export class MapUtils {
         color: '#b5ad39'
       },
       {
-        elev: 2000,
-        color: '#ceb542'
+        elev: 1900,
+        color: '#c5ad42'
       },
       {
-        elev: 2500,
-        color: '#c6a542'
+        elev: 2000,
+        color: '#c5b542'
+      },
+      {
+        elev: 2100,
+        color: '#c5ad42'
+      },
+      {
+        elev: 2299,
+        color: '#c5ad42'
+      },
+      {
+        elev: 2300,
+        color: '#c5a442'
+      },
+      {
+        elev: 2599,
+        color: '#c5a442'
+      },
+      {
+        elev: 2600,
+        color: '#c59c42'
+      },
+      {
+        elev: 2899,
+        color: '#c59c42'
+      },
+      {
+        elev: 2900,
+        color: '#c59442'
       },
       {
         elev: 3000,
-        color: '#c69439'
+        color: '#c59439'
       },
       {
-        elev: 6000,
+        elev: 3100,
+        color: '#c58c39'
+      },
+      {
+        elev: 3200,
+        color: '#bd8c3a'
+      },
+      {
+        elev: 3699,
+        color: '#bd8c3a'
+      },
+      {
+        elev: 3700,
+        color: '#bd8339'
+      },
+      {
+        elev: 3800,
+        color: '#b58339'
+      },
+      {
+        elev: 3900,
+        color: '#b58331'
+      },
+      {
+        elev: 4199,
+        color: '#b58331'
+      },
+      {
+        elev: 4200,
+        color: '#b57b31'
+      },
+      {
+        elev: 4300,
+        color: '#ad7b31'
+      },
+      {
+        elev: 4699,
+        color: '#ad7b31'
+      },
+      {
+        elev: 4700,
+        color: '#ad7329'
+      },
+      {
+        elev: 4800,
+        color: '#a47329'
+      },
+      {
+        elev: 5199,
+        color: '#a47329'
+      },
+      {
+        elev: 5200,
+        color: '#a46b29'
+      },
+      {
+        elev: 5399,
+        color: '#a46b29'
+      },
+      {
+        elev: 5400,
+        color: '#9c6b29'
+      },
+      {
+        elev: 5599,
+        color: '#9c6b29'
+      },
+      {
+        elev: 5600,
+        color: '#9c6b21'
+      },
+      {
+        elev: 5700,
+        color: '#9c6321'
+      },
+      {
+        elev: 5899,
+        color: '#9c6321'
+      },
+      {
+        elev: 5900,
         color: '#946321'
       },
       {
-        elev: 7000,
-        color: '#945218'
+        elev: 6299,
+        color: '#946321'
       },
       {
-        elev: 8000,
-        color: '#8c4810'
+        elev: 6300,
+        color: '#945a21'
+      },
+      {
+        elev: 6599,
+        color: '#945a21'
+      },
+      {
+        elev: 6600,
+        color: '#945a19'
+      },
+      {
+        elev: 6899,
+        color: '#945a19'
+      },
+      {
+        elev: 6900,
+        color: '#945219'
+      },
+      {
+        elev: 7299,
+        color: '#945219'
+      },
+      {
+        elev: 7300,
+        color: '#8c5218'
+      },
+      {
+        elev: 7599,
+        color: '#8c5218'
+      },
+      {
+        elev: 7600,
+        color: '#8c4a19'
+      },
+      {
+        elev: 7700,
+        color: '#8c4a10'
+      },
+      {
+        elev: 8499,
+        color: '#8c4a10'
+      },
+      {
+        elev: 8500,
+        color: '#8c4210'
+      },
+      {
+        elev: 8999,
+        color: '#8c4210'
       },
       {
         elev: 9000,
         color: '#8c4208'
       },
       {
-        elev: 10000,
-        color: '#8c3908'
+        elev: 9799,
+        color: '#8c4208'
       },
       {
-        elev: 16000,
+        elev: 9800,
+        color: '#8c3a08'
+      },
+      {
+        elev: 9999,
+        color: '#8c3a08'
+      },
+      {
+        elev: 10000,
+        color: '#8c3a00'
+      },
+      {
+        elev: 10899,
+        color: '#8c3a00'
+      },
+      {
+        elev: 10900,
+        color: '#8c3a08'
+      },
+      {
+        elev: 11199,
+        color: '#8c3a08'
+      },
+      {
+        elev: 11200,
+        color: '#8c4208'
+      },
+      {
+        elev: 11799,
+        color: '#8c4208'
+      },
+      {
+        elev: 11800,
+        color: '#8c4210'
+      },
+      {
+        elev: 12699,
+        color: '#8c4210'
+      },
+      {
+        elev: 12700,
+        color: '#8c4a19'
+      },
+      {
+        elev: 13599,
+        color: '#8c4a19'
+      },
+      {
+        elev: 13600,
+        color: '#8c4a21'
+      },
+      {
+        elev: 14099,
+        color: '#8c4a21'
+      },
+      {
+        elev: 14100,
+        color: '#8c5221'
+      },
+      {
+        elev: 14499,
+        color: '#8c5221'
+      },
+      {
+        elev: 14500,
+        color: '#8c5229'
+      },
+      {
+        elev: 15399,
+        color: '#8c5229'
+      },
+      {
+        elev: 15400,
+        color: '#8c5231'
+      },
+      {
+        elev: 15599,
+        color: '#8c5231'
+      },
+      {
+        elev: 15600,
         color: '#8c5a31'
+      },
+      {
+        elev: 16299,
+        color: '#8c5a31'
+      },
+      {
+        elev: 16300,
+        color: '#8c5a39'
+      },
+      {
+        elev: 16300,
+        color: '#8c5a39'
+      },
+      {
+        elev: 16999,
+        color: '#8b5a39'
       },
       {
         elev: 17000,
         color: '#8c6339'
       },
       {
-        elev: 18000,
+        elev: 17199,
+        color: '#8c6339'
+      },
+      {
+        elev: 17200,
+        color: '#8c6342'
+      },
+      {
+        elev: 17399,
+        color: '#8c6342'
+      },
+      {
+        elev: 17400,
         color: '#946342'
+      },
+      {
+        elev: 18099,
+        color: '#946342'
+      },
+      {
+        elev: 18100,
+        color: '#94634a'
+      },
+      {
+        elev: 18499,
+        color: '#94634a'
+      },
+      {
+        elev: 18500,
+        color: '#946b4a'
+      },
+      {
+        elev: 18999,
+        color: '#946b4a'
+      },
+      {
+        elev: 19000,
+        color: '#946b52'
+      },
+      {
+        elev: 19899,
+        color: '#946b52'
+      },
+      {
+        elev: 19900,
+        color: '#946b5b'
       },
       {
         elev: 20000,
         color: '#94735a'
       },
       {
-        elev: 22000,
+        elev: 20999,
+        color: '#94735a'
+      },
+      {
+        elev: 21000,
+        color: '#947363'
+      },
+      {
+        elev: 21499,
+        color: '#947363'
+      },
+      {
+        elev: 21500,
+        color: '#947b63'
+      },
+      {
+        elev: 21699,
+        color: '#947b63'
+      },
+      {
+        elev: 21700,
         color: '#947b6b'
       },
       {
-        elev: 24000,
+        elev: 22499,
+        color: '#947b6b'
+      },
+      {
+        elev: 22500,
+        color: '#947b73'
+      },
+      {
+        elev: 22699,
+        color: '#947b73'
+      },
+      {
+        elev: 22700,
+        color: '#948473'
+      },
+      {
+        elev: 23499,
+        color: '#948473'
+      },
+      {
+        elev: 23500,
         color: '#94847b'
       },
       {
-        elev: 26000,
+        elev: 24299,
+        color: '#94847b'
+      },
+      {
+        elev: 24300,
+        color: '#948c7b'
+      },
+      {
+        elev: 24400,
+        color: '#948c83'
+      },
+      {
+        elev: 25399,
+        color: '#948c83'
+      },
+      {
+        elev: 25400,
+        color: '#948c8c'
+      },
+      {
+        elev: 25699,
+        color: '#948c8c'
+      },
+      {
+        elev: 25700,
         color: '#94948c'
       },
       {
+        elev: 26299,
+        color: '#94948c'
+      },
+      {
+        elev: 26300,
+        color: '#949494'
+      },
+      {
+        elev: 26999,
+        color: '#949494'
+      },
+      {
         elev: 27000,
-        color: '#939393'
+        color: '#9c9c9c'
+      },
+      {
+        elev: 27499,
+        color: '#9c9c9c'
+      },
+      {
+        elev: 27500,
+        color: '#a4a4a4'
+      },
+      {
+        elev: 27999,
+        color: '#a4a4a4'
       },
       {
         elev: 28000,
         color: '#adadad'
       },
       {
-        elev: 29000,
+        elev: 28499,
+        color: '#adadad'
+      },
+      {
+        elev: 28500,
         color: '#b5b5b5'
       }
-    ], -1400, 29000, 305),
+    ], -1400, 28500, 300),
 
-    elevationRange: Vec2Math.create(-1400, 29000)
+    elevationRange: Vec2Math.create(-1400, 28500)
   };
 
   private static readonly RELATIVE_TERRAIN_EARTH_COLORS: MapTerrainColorsDefinition = {

@@ -133,198 +133,198 @@ export interface APConfig {
    * @param apValues The autopilot's state values.
    * @returns The autopilot's VNAV Manager.
    */
-  createVNavManager(apValues: APValues): VNavManager | undefined;
+  createVNavManager?(apValues: APValues): VNavManager | undefined;
 
   /**
    * Creates the autopilot's nav-to-nav manager.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's nav-to-nav manager.
    */
-  createNavToNavManager(apValues: APValues): NavToNavManager | undefined;
+  createNavToNavManager?(apValues: APValues): NavToNavManager | undefined;
 
   /**
    * Creates the autopilot's variable bank manager.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's variable bank manager.
    */
-  createVariableBankManager(apValues: APValues): Record<any, any> | undefined;
+  createVariableBankManager?(apValues: APValues): Record<any, any> | undefined;
 
   /**
    * Creates the autopilot's VNAV Path mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's VNAV Path mode director.
    */
-  createVNavPathDirector(apValues: APValues): PlaneDirector | undefined;
+  createVNavPathDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's heading mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's heading mode director.
    */
-  createHeadingDirector(apValues: APValues): PlaneDirector | undefined;
+  createHeadingDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's heading hold (level off and then capture heading)
    * @param apValues The autopilot's state values.
    * @returns The autopilot's heading hold director.
    */
-  createHeadingHoldDirector(apValues: APValues): PlaneDirector | undefined;
+  createHeadingHoldDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's track mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's heading mode director.
    */
-  createTrackDirector(apValues: APValues): PlaneDirector | undefined;
+  createTrackDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's track hold (level off and then capture track)
    * @param apValues The autopilot's state values.
    * @returns The autopilot's heading hold director.
    */
-  createTrackHoldDirector(apValues: APValues): PlaneDirector | undefined;
+  createTrackHoldDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's roll mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's heading mode director.
    */
-  createRollDirector(apValues: APValues): PlaneDirector | undefined;
+  createRollDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's wings level mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's wings level mode director.
    */
-  createWingLevelerDirector(apValues: APValues): PlaneDirector | undefined;
+  createWingLevelerDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's GPS LNAV mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's GPS LNAV mode director.
    */
-  createGpssDirector(apValues: APValues): PlaneDirector | undefined;
+  createGpssDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's VOR mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's VOR mode director.
    */
-  createVorDirector(apValues: APValues): PlaneDirector | undefined;
+  createVorDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's LOC mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's LOC mode director.
    */
-  createLocDirector(apValues: APValues): PlaneDirector | undefined;
+  createLocDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's back-course mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's back-course mode director.
    */
-  createBcDirector(apValues: APValues): PlaneDirector | undefined;
+  createBcDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's ROLLOUT mode director.
    * @returns The autopilot's ROLLOUT mode director.
    */
-  createRolloutDirector(): PlaneDirector | undefined;
+  createRolloutDirector?(): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's pitch mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's pitch mode director.
    */
-  createPitchDirector(apValues: APValues): PlaneDirector | undefined;
+  createPitchDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's vertical speed mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's vertical speed mode director.
    */
-  createVsDirector(apValues: APValues): PlaneDirector | undefined;
+  createVsDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's flight path angle mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's flight path angle mode director.
    */
-  createFpaDirector(apValues: APValues): PlaneDirector | undefined;
+  createFpaDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's flight level change mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's flight level change mode director.
    */
-  createFlcDirector(apValues: APValues): PlaneDirector | undefined;
+  createFlcDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's altitude hold mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's altitude hold mode director.
    */
-  createAltHoldDirector(apValues: APValues): PlaneDirector | undefined;
+  createAltHoldDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's altitude capture mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's altitude capture mode director.
    */
-  createAltCapDirector(apValues: APValues): PlaneDirector | undefined;
+  createAltCapDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's GPS glidepath mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's GPS glidepath mode director.
    */
-  createGpDirector(apValues: APValues): PlaneDirector | undefined;
+  createGpDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's ILS glideslope mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's ILS glideslope mode director.
    */
-  createGsDirector(apValues: APValues): PlaneDirector | undefined;
+  createGsDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the auto land FLARE mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's FLARE mode director.
    */
-  createFlareDirector(): PlaneDirector | undefined;
+  createFlareDirector?(): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's vertical takeoff mode director (or combined vertical takeoff/go-around mode director).
    * @returns The autopilot's vertical takeoff mode director.
    */
-  createToVerticalDirector(apValues: APValues): PlaneDirector | undefined;
+  createToVerticalDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's vertical go-around mode director.
    * @returns The autopilot's vertical go-around mode director.
    */
-  createGaVerticalDirector(apValues: APValues): PlaneDirector | undefined;
+  createGaVerticalDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's lateral takeoff mode director (or combined lateral takeoff/go-around mode director).
    * @returns The autopilot's lateral takeoff mode director.
    */
-  createToLateralDirector(apValues: APValues): PlaneDirector | undefined;
+  createToLateralDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's lateral go-around mode director.
    * @returns The autopilot's lateral go-around mode director.
    */
-  createGaLateralDirector(apValues: APValues): PlaneDirector | undefined;
+  createGaLateralDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's FMC LOC-style mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's FMS LOC mode director.
    */
-  createFmsLocLateralDirector(apValues: APValues): PlaneDirector | undefined;
+  createFmsLocLateralDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
    * Creates the autopilot's takeoff LOC mode director.

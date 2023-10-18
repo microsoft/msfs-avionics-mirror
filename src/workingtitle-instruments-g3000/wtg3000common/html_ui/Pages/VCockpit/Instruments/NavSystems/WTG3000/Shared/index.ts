@@ -13,6 +13,7 @@ export * from './Fuel';
 export * from './Graphics';
 export * from './Instruments';
 export * from './Navigation';
+export * from './NavReference';
 export * from './Nearest';
 export * from './Performance';
 export * from './Radio';

@@ -62,15 +62,19 @@ interface BaseEngineEvents {
  * Topics indexed by engine.
  */
 interface EngineIndexedTopics {
-  /** The engine rpm. */
+  /** Engine RPM. */
   rpm: number;
-  /** The propeller rpm. */
+  /** Propeller RPM. */
   prop_rpm: number;
-  /** The engine n1 in %. */
+  /** Engine corrected N1 speed, as a percentage of maximum rated speed. */
   n1: number;
-  /** The engine n2 in %. */
+  /** Engine uncorrected N1 speed, as a percentage of maximum rated speed. */
+  n1_uncorrected: number;
+  /** Engine corrected N2 speed, as a percentage of maximum rated speed. */
   n2: number;
-  /** The engine torque in %. */
+  /** Engine uncorrected N2 speed, as a percentage of maximum rated speed. */
+  n2_uncorrected: number;
+  /** Engine torque, as a percentage of maximum rated torque. */
   torque: number;
   /** The engine fuel flow, in gallons per hour. */
   fuel_flow: number;
@@ -116,7 +120,6 @@ type EngineIndexedEvents = {
 /** Events related to the planes engines. */
 export type EngineEvents<E extends number = number> = BaseEngineEvents & IndexedEvents<EngineIndexedTopics, NumberToRangeUnion<E>> & EngineIndexedEvents;
 
-
 /** A publisher for Engine information. */
 export class EISPublisher extends SimVarPublisher<EngineEvents> {
   private readonly engineCount: number;
@@ -161,7 +164,9 @@ export class EISPublisher extends SimVarPublisher<EngineEvents> {
       ['rpm', { name: 'GENERAL ENG RPM', type: SimVarValueType.RPM }],
       ['prop_rpm', { name: 'PROP RPM', type: SimVarValueType.RPM }],
       ['n1', { name: 'TURB ENG CORRECTED N1', type: SimVarValueType.Percent }],
+      ['n1_uncorrected', { name: 'TURB ENG N1', type: SimVarValueType.Percent }],
       ['n2', { name: 'TURB ENG CORRECTED N2', type: SimVarValueType.Percent }],
+      ['n2_uncorrected', { name: 'TURB ENG N2', type: SimVarValueType.Percent }],
       ['torque', { name: 'TURB ENG MAX TORQUE PERCENT', type: SimVarValueType.Percent }],
       ['fuel_flow', { name: 'ENG FUEL FLOW GPH', type: SimVarValueType.GPH }],
       ['recip_ff', { name: 'RECIP ENG FUEL FLOW', type: SimVarValueType.PPH }],

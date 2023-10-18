@@ -2,6 +2,7 @@
 import { ObjectSubject } from '../sub/ObjectSubject';
 import { Subject } from '../sub/Subject';
 import { Subscribable } from '../sub/Subscribable';
+import { MutableSubscribableMap, SubscribableMap, SubscribableMapEventType } from '../sub/SubscribableMap';
 import { MutableSubscribableSet, SubscribableSet, SubscribableSetEventType } from '../sub/SubscribableSet';
 import { Subscription } from '../sub/Subscription';
 
@@ -255,21 +256,28 @@ export namespace FSComponent {
       [elemName: string]: {
         [attrName: string]: any | Subscribable<any>;
 
-        /** The {@link NodeReference} passed to this prop will have its `instance` field updated
-         * with a reference to the rendered DOM element once rendered. */
+        /**
+         * The {@link NodeReference} passed to this prop will have its `instance` field updated
+         * with a reference to the rendered DOM element once rendered.
+         */
         ref?: NodeReference<any>;
 
         /**
-         * When an {@link ObjectSubject} is passed, it will be bound to the `style` attribute,
-         * so that if any prop in the subject changes,
-         * it will be updated on the element's style using `element.style.setProperty()`.
+         * When a {@link SubscribableMap} is used, then the `style` attribute will be bound to the map such that when
+         * a key-value pair is added to or removed from the map, it will also be added or removed from the element's
+         * style list (the key is used as the style name and the value is used as the style value).
          *
-         * When a {@link StyleRecord} is used,
-         * fields with a string will have the style set immediately to the value,
-         * and fields with a {@link Subscribable<string>} will be subscribed to,
-         * such that when the value changes, it will be be set as the new value for that style.
+         * When an {@link ObjectSubject} is used, then the `style` attribute will be bound to the subject such that
+         * each property in the subject's object value will be added to the element's style list (the property name is
+         * used as the style name and the property value is used as the style value) and any changes in the values of
+         * the property will be reflected in the style list as well.
+         *
+         * When a {@link StyleRecord} is used, each record property will be added to the element's style list (the
+         * property name is used as the style name and the property value is used as the style value). Additionally, if
+         * the property value is a {@link Subscribable}, then the value of the corresponding style will be bound to the
+         * subscribable's value.
          */
-        style?: string | Subscribable<string> | ObjectSubject<any> | StyleRecord;
+        style?: string | Subscribable<string> | SubscribableMap<string, string> | ObjectSubject<any> | StyleRecord;
 
         /**
          * When a {@link SubscribableSet<string>} (such as `SetSubject`) is used,
@@ -359,11 +367,24 @@ export namespace FSComponent {
             const prop = (props as any)[key];
             if (key === 'class' && typeof prop === 'object' && 'isSubscribableSet' in prop) {
               // Bind CSS classes to a subscribable set
-              prop.sub((set: any, eventType: SubscribableSetEventType, modifiedKey: any) => {
+              (prop as SubscribableSet<string>).sub((set, eventType, modifiedKey) => {
                 if (eventType === SubscribableSetEventType.Added) {
                   element.classList.add(modifiedKey);
                 } else {
                   element.classList.remove(modifiedKey);
+                }
+              }, true);
+            } else if (key === 'style' && typeof prop === 'object' && 'isSubscribableMap' in prop) {
+              // Bind CSS styles to a subscribable map.
+              (prop as SubscribableMap<string, string>).sub((map, eventType, modifiedKey, modifiedValue) => {
+                switch (eventType) {
+                  case SubscribableMapEventType.Added:
+                  case SubscribableMapEventType.Changed:
+                    element.style.setProperty(modifiedKey, modifiedValue);
+                    break;
+                  case SubscribableMapEventType.Deleted:
+                    element.style.setProperty(modifiedKey, null);
+                    break;
                 }
               }, true);
             } else if (typeof prop === 'object' && 'isSubscribable' in prop) {
@@ -432,18 +453,22 @@ export namespace FSComponent {
       }
 
       if (typeof type === 'function' && type.name === Fragment.name) {
-        let childNodes = (type as FragmentFactory)(props as any) as VNode[] | null;
+        let fragmentChildren = (type as FragmentFactory)(props as any);
 
         //Handle the case where the single fragment children is an array of nodes passsed down from above
-        while (childNodes !== null && childNodes.length === 1 && Array.isArray(childNodes[0])) {
-          childNodes = childNodes[0];
+        while (fragmentChildren && fragmentChildren.length === 1 && Array.isArray(fragmentChildren[0])) {
+          fragmentChildren = fragmentChildren[0];
         }
 
         vnode = {
           instance: null,
           props,
-          children: childNodes
+          children: null
         };
+
+        if (fragmentChildren) {
+          vnode.children = createChildNodes(vnode, fragmentChildren);
+        }
       } else {
         let instance: DisplayComponent<P>;
         const pluginSystem = ((window as any)._pluginSystem) as PluginSystem<any, any> | undefined;
@@ -818,6 +843,22 @@ export namespace FSComponent {
     classesToSubscribe: ToggleableClassNameRecord,
     reservedClasses: Iterable<string>
   ): Subscription[];
+  /**
+   * Binds a {@link MutableSubscribableSet} to a subscribable set or a record of CSS classes. CSS classes toggled in
+   * subscribed set or record will also be added to and removed from the bound set, with the exception of a set of
+   * reserved classes. The presence or absence of any of the reserved classes in the bound set is not affected by the
+   * subscribed set or record.
+   * @param setToBind The set to bind.
+   * @param classesToSubscribe A set or record of CSS classes to which to subscribe.
+   * @param reservedClasses An iterable of reserved classes.
+   * @returns The newly created subscription to the CSS class set, or an array of new subscriptions to the CSS class
+   * record.
+   */
+  export function bindCssClassSet(
+    setToBind: MutableSubscribableSet<string>,
+    classesToSubscribe: SubscribableSet<string> | ToggleableClassNameRecord,
+    reservedClasses: Iterable<string>
+  ): Subscription | Subscription[];
   // eslint-disable-next-line jsdoc/require-jsdoc
   export function bindCssClassSet(
     setToBind: MutableSubscribableSet<string>,
@@ -947,6 +988,183 @@ export namespace FSComponent {
     }
 
     return record;
+  }
+
+  /**
+   * Binds a {@link MutableSubscribableMap} to a subscribable map of CSS styles. Modifications to the CSS styles in the
+   * subscribed map will be reflected in the bound map, with the exception of a set of reserved styles. The values of
+   * any of the reserved styles in the bound map is not affected by the subscribed map.
+   * @param mapToBind The map to bind.
+   * @param stylesToSubscribe A key-value map of CSS styles to which to subscribe.
+   * @param reservedStyles An iterable of reserved styles.
+   * @returns The newly created subscription to the subscribed CSS style map.
+   */
+  export function bindStyleMap(
+    mapToBind: MutableSubscribableMap<string, string>,
+    stylesToSubscribe: SubscribableMap<string, string>,
+    reservedStyles: Iterable<string>
+  ): Subscription;
+  /**
+   * Binds a {@link MutableSubscribableMap} to an {@link ObjectSubject} of CSS styles. Modifications to the CSS styles
+   * in the subject will be reflected in the bound map, with the exception of a set of reserved styles. The values of
+   * any of the reserved styles in the bound map is not affected by the subscribed subject.
+   * @param mapToBind The map to bind.
+   * @param stylesToSubscribe An ObjectSubject of CSS styles to which to subscribe.
+   * @param reservedStyles An iterable of reserved styles.
+   * @returns The newly created subscription to the CSS style ObjectSubject.
+   */
+  export function bindStyleMap(
+    mapToBind: MutableSubscribableMap<string, string>,
+    stylesToSubscribe: ObjectSubject<Record<string, any>>,
+    reservedStyles: Iterable<string>
+  ): Subscription;
+  /**
+   * Binds a {@link MutableSubscribableMap} to a record of CSS styles. Modifications to the CSS styles in the record
+   * will be reflected in the bound map, with the exception of a set of reserved styles. The values of any of the
+   * reserved styles in the bound map is not affected by the subscribed record.
+   * @param mapToBind The map to bind.
+   * @param stylesToSubscribe A record of CSS styles to which to subscribe.
+   * @param reservedStyles An iterable of reserved styles.
+   * @returns The newly created subscriptions to the CSS style record.
+   */
+  export function bindStyleMap(
+    mapToBind: MutableSubscribableMap<string, string>,
+    stylesToSubscribe: StyleRecord,
+    reservedStyles: Iterable<string>
+  ): Subscription[];
+  /**
+   * Binds a {@link MutableSubscribableSet} to a subscribable set or a record of CSS classes. CSS classes toggled in
+   * subscribed set or record will also be added to and removed from the bound set, with the exception of a set of
+   * reserved classes. The presence or absence of any of the reserved classes in the bound set is not affected by the
+   * subscribed set or record.
+   * @param mapToBind The set to bind.
+   * @param stylesToSubscribe A set or record of CSS classes to which to subscribe.
+   * @param reservedStyles An iterable of reserved classes.
+   * @returns The newly created subscription to the CSS class set, or an array of new subscriptions to the CSS class
+   * record.
+   */
+  export function bindStyleMap(
+    mapToBind: MutableSubscribableMap<string, string>,
+    stylesToSubscribe: SubscribableMap<string, string> | ObjectSubject<Record<string, any>> | StyleRecord,
+    reservedStyles: Iterable<string>
+  ): Subscription | Subscription[];
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  export function bindStyleMap(
+    mapToBind: MutableSubscribableMap<string, string>,
+    stylesToSubscribe: SubscribableMap<string, string> | ObjectSubject<Record<string, any>> | StyleRecord,
+    reservedStyles: Iterable<string>
+  ): Subscription | Subscription[] {
+    const reservedStyleSet = new Set(reservedStyles);
+
+    if ((stylesToSubscribe as any).isSubscribableMap === true) {
+      return bindStyleMapToSubscribableMap(mapToBind, stylesToSubscribe as SubscribableMap<string, string>, reservedStyleSet);
+    } else if (stylesToSubscribe instanceof ObjectSubject) {
+      return bindStyleMapToObjectSubject(mapToBind, stylesToSubscribe, reservedStyleSet);
+    } else {
+      return bindStyleMapToRecord(mapToBind, stylesToSubscribe as StyleRecord, reservedStyleSet);
+    }
+  }
+
+  /**
+   * Binds a {@link MutableSubscribableMap} to a subscribable map of CSS styles. Modifications to the CSS styles in the
+   * subscribed map will be reflected in the bound map, with the exception of a set of reserved styles. The values of
+   * any of the reserved styles in the bound map is not affected by the subscribed map.
+   * @param mapToBind The map to bind.
+   * @param stylesToSubscribe A key-value map of CSS styles to which to subscribe.
+   * @param reservedStyleSet A set of reserved styles.
+   * @returns The newly created subscription to the subscribed CSS style map.
+   */
+  function bindStyleMapToSubscribableMap(
+    mapToBind: MutableSubscribableMap<string, string>,
+    stylesToSubscribe: SubscribableMap<string, string>,
+    reservedStyleSet: Set<string>
+  ): Subscription {
+    if (reservedStyleSet.size === 0) {
+      return stylesToSubscribe.pipe(mapToBind);
+    } else {
+      return stylesToSubscribe.sub((set, type, key, value) => {
+        if (reservedStyleSet.has(key)) {
+          return;
+        }
+
+        switch (type) {
+          case SubscribableMapEventType.Added:
+          case SubscribableMapEventType.Changed:
+            mapToBind.setValue(key, value);
+            break;
+          case SubscribableMapEventType.Deleted:
+            mapToBind.delete(key);
+            break;
+        }
+      }, true);
+    }
+  }
+
+  /**
+   * Binds a {@link MutableSubscribableMap} to an {@link ObjectSubject} of CSS styles. Modifications to the CSS styles
+   * in the subject will be reflected in the bound map, with the exception of a set of reserved styles. The values of
+   * any of the reserved styles in the bound map is not affected by the subscribed subject.
+   * @param mapToBind The map to bind.
+   * @param stylesToSubscribe An ObjectSubject of CSS styles to which to subscribe.
+   * @param reservedStyleSet A set of reserved styles.
+   * @returns The newly created subscription to the CSS style ObjectSubject.
+   */
+  function bindStyleMapToObjectSubject(
+    mapToBind: MutableSubscribableMap<string, string>,
+    stylesToSubscribe: ObjectSubject<Record<string, any>>,
+    reservedStyleSet: Set<string>
+  ): Subscription {
+    return stylesToSubscribe.sub((obj, style, value) => {
+      if (reservedStyleSet.has(style)) {
+        return;
+      }
+
+      if (value) {
+        mapToBind.setValue(style, value);
+      } else {
+        mapToBind.delete(style);
+      }
+    }, true);
+  }
+
+  /**
+   * Binds a {@link MutableSubscribableMap} to a record of CSS styles. Modifications to the CSS styles in the record
+   * will be reflected in the bound map, with the exception of a set of reserved styles. The values of any of the
+   * reserved styles in the bound map is not affected by the subscribed record.
+   * @param mapToBind The map to bind.
+   * @param stylesToSubscribe A record of CSS styles to which to subscribe.
+   * @param reservedStyleSet A set of reserved styles.
+   * @returns The newly created subscriptions to the CSS style record.
+   */
+  function bindStyleMapToRecord(
+    mapToBind: MutableSubscribableMap<string, string>,
+    stylesToSubscribe: StyleRecord,
+    reservedStyleSet: Set<string>
+  ): Subscription[] {
+    const subs: Subscription[] = [];
+
+    for (const style in stylesToSubscribe) {
+      if (reservedStyleSet.has(style)) {
+        continue;
+      }
+
+      const value = stylesToSubscribe[style];
+      if (typeof value === 'object') {
+        subs.push(value.sub(styleValue => {
+          if (styleValue) {
+            mapToBind.setValue(style, styleValue);
+          } else {
+            mapToBind.delete(style);
+          }
+        }, true));
+      } else if (value) {
+        mapToBind.setValue(style, value);
+      } else {
+        mapToBind.delete(style);
+      }
+    }
+
+    return subs;
   }
 
   /**

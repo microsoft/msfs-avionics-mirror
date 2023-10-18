@@ -9,7 +9,8 @@ import {
 export interface TouchPadProps extends ComponentProps {
   /**
    * The event bus. If defined, the touch pad will end drag motions when the mouse leaves the instrument window,
-   * including when focus is locked.
+   * including when focus is locked. Requires the `vc_mouse_leave` topic from {@link InstrumentEvents} to be published
+   * to the event bus.
    */
   bus?: EventBus;
 
@@ -98,8 +99,8 @@ export interface TouchPadProps extends ComponentProps {
 
   /**
    * Whether the pad should stop responding to mouse events and instead forward them to its parent after clicking
-   * and dragging for a certain distance defined by `dragThresholdPx` along the axis defined by `inhibitOnDragAxis`.
-   * The inhibit function is disabled when focus is locked. Defaults to `false`.
+   * and dragging for a certain distance defined by `dragInhibitThresholdPx` along the axis defined by
+   * `inhibitOnDragAxis`. The inhibit function is disabled when focus is locked. Defaults to `false`.
    */
   inhibitOnDrag?: boolean;
 

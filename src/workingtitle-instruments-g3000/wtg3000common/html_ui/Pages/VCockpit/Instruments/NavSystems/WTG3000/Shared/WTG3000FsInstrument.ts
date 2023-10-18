@@ -1,6 +1,6 @@
 /// <reference types="@microsoft/msfs-types/js/avionics" />
 import {
-  AdcPublisher, AhrsPublisher, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, Clock, ControlSurfacesPublisher,
+  AdcPublisher, AhrsPublisher, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, Clock, ConsumerSubject, ControlSurfacesPublisher,
   DebounceTimer, EISPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator,
   FlightPlanner, FlightTimerPublisher, FsInstrument, GameStateProvider, GNSSPublisher, GPSSatComputer, HEventPublisher,
   InstrumentBackplane, LNavSimVarPublisher, MinimumsSimVarPublisher, NavComSimVarPublisher, SBASGroupName, SimVarValueType, SmoothingPathCalculator,
@@ -10,6 +10,7 @@ import {
 import {
   AdcSystem, AhrsSystem, AoaSystem, DefaultMinimumsDataProvider, Fms, FmsPositionSystem, GarminNavSimVarPublisher, GarminSpeedConstraintStore, GarminVNavUtils,
   GpsReceiverSelector, GpsReceiverSystem, LNavDataSimVarPublisher, MagnetometerSystem, MarkerBeaconSystem, NavEventsPublisher, RadarAltimeterSystem,
+  WeatherRadarAvionicsSystem,
 } from '@microsoft/msfs-garminsdk';
 
 import { AvionicsConfig } from './AvionicsConfig/AvionicsConfig';
@@ -17,13 +18,14 @@ import { AvionicsStatusChangeEvent, AvionicsStatusEvents } from './AvionicsStatu
 import { AvionicsStatusClient, AvionicsStatusEventClient } from './AvionicsStatus/AvionicsStatusManager';
 import { AvionicsStatus } from './AvionicsStatus/AvionicsStatusTypes';
 import { CasPowerStateManager } from './CAS/CasPowerStateManager';
+import { InstrumentType } from './CommonTypes';
+import { FuelTotalizerSimVarPublisher } from './Fuel';
+import { InstrumentBackplaneNames } from './Instruments/InstrumentBackplaneNames';
+import { WeightFuelPublisher } from './Performance/WeightFuel/WeightFuelEvents';
 import { FmsSpeedUserSettingManager } from './Settings/FmsSpeedUserSettings';
 import { IauUserSettingManager } from './Settings/IauUserSettings';
 import { VSpeedUserSettingManager } from './Settings/VSpeedUserSettings';
-import { InstrumentType } from './CommonTypes';
-import { InstrumentBackplaneNames } from './Instruments/InstrumentBackplaneNames';
-import { FuelTotalizerSimVarPublisher } from './Fuel';
-import { WeightFuelPublisher } from './Performance/WeightFuel/WeightFuelEvents';
+import { WeatherRadarEvents } from './WeatherRadar/WeatherRadarEvents';
 
 import './WTG3000_Common.css';
 
@@ -254,6 +256,20 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
 
     if (this.config.sensors.radarAltimeterDefinition !== undefined) {
       this.systems.push(new RadarAltimeterSystem(1, this.bus, this.config.sensors.radarAltimeterDefinition.electricity));
+    }
+
+    if (this.config.sensors.weatherRadarDefinition !== undefined) {
+      const def = this.config.sensors.weatherRadarDefinition;
+      const activeScanCircuitTopic = def.scanActiveCircuitIndex !== undefined && def.scanActiveCircuitProcedureIndex !== undefined
+        ? `elec_circuit_on_${def.scanActiveCircuitIndex}` as const
+        : undefined;
+
+      this.systems.push(new WeatherRadarAvionicsSystem(
+        this.bus,
+        def.electricity,
+        activeScanCircuitTopic,
+        ConsumerSubject.create(this.bus.getSubscriber<WeatherRadarEvents>().on('wx_radar_is_scan_active'), false)
+      ));
     }
   }
 

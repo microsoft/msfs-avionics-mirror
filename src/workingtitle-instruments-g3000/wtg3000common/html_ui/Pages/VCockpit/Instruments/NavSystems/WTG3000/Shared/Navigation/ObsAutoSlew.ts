@@ -1,4 +1,4 @@
-import { NavSource } from './NavSources';
+import { NavReferenceSource } from '@microsoft/msfs-garminsdk';
 
 /**
  * Auto slews OBS when a NavSource is tuned to a localizer.
@@ -8,7 +8,7 @@ export class ObsAutoSlew {
    * given NavSource, and auto slew OBS to the localizer course.
    * @param navSource The NavSource to listen to.
    */
-  public constructor(private readonly navSource: NavSource<any>) {
+  public constructor(private readonly navSource: NavReferenceSource<any>) {
     navSource.localizerCourse.sub(this.trySlewObs);
     navSource.isLocalizer.sub(this.trySlewObs);
   }
