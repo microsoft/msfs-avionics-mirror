@@ -1,11 +1,11 @@
 {
   "name": "@microsoft/msfs-wtg3000-common",
-  "version": "1.1.10",
+  "version": "1.1.14",
   "description": "Working Title MSFS G3000 Common Library",
   "main": "index.ts",
   "scripts": {
     "build:gulp": "esbuild Gulpfile.ts --bundle --outfile=gulpfile.js --platform=node --target=node16 --packages=external",
-    "build:defs": "tsc & robocopy . *.css build /s & rollup -c rollup-defs.config.js & cp package-defs-only.json dist/package.json & rm dist/ignoreme.css",
+    "build:defs": "tsc -p tsconfig-defs-only.json && cp package-defs-only.json build/package.json",
     "build": "gulp build",
     "copy": "gulp dist",
     "clean": "gulp clean"
@@ -17,11 +17,8 @@
   "author": "Working Title Simulations, LLC",
   "license": "Modified MIT",
   "devDependencies": {
-    "@microsoft/msfs-garminsdk": "*",
     "@microsoft/msfs-sdk": "*",
-    "@microsoft/msfs-types": "*"
-  },
-  "dependencies": {
-    "rollup": "^2.79.1"
+    "@microsoft/msfs-types": "*",
+    "@microsoft/msfs-garminsdk": "*"
   }
 }

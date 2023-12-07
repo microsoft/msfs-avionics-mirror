@@ -158,6 +158,7 @@ export class MFDProc extends UiView<MFDProcProps> {
     switch (evt) {
       case FmsHEvent.PROC:
       case FmsHEvent.CLR:
+      case FmsHEvent.HOME:
         this.close();
         return true;
     }

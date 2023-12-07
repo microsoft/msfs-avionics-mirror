@@ -367,8 +367,8 @@ export abstract class HardwareUiControl<E extends Record<string, any> = Record<s
    * @returns True if the event was handled, false otherwise.
    */
   private propagateEvent(event: keyof E, source: HardwareUiControl<E>, args: any[]): boolean {
-    const handler = this[`on${event}` as keyof this] as unknown as UiControlEventHandler<HardwareUiControl<E>, any> | undefined;
-    const propHandler = this.props[`on${event}` as keyof P] as unknown as UiControlEventHandler<HardwareUiControl<E>, any> | undefined;
+    const handler = this[`on${String(event)}` as keyof this] as unknown as UiControlEventHandler<HardwareUiControl<E>, any> | undefined;
+    const propHandler = this.props[`on${String(event)}` as keyof P] as unknown as UiControlEventHandler<HardwareUiControl<E>, any> | undefined;
 
     // Class-defined handlers get priority over prop-defined handlers
     // Prop-defined handlers are not called if a class-defined handler exists -> this is to allow subclasses to

@@ -46,11 +46,11 @@ export interface DigitScrollerProps extends ComponentProps {
  * A scrolling digit display. The display supports number bases greater than or equal to 3. The display renders a
  * one digit for each of the following values:
  * ```
- * -(base + 2), -(base + 1), -(base), ... , -1, 0, 1, ... , base, base + 1, base + 2` 
+ * -(base + 2), -(base + 1), -(base), ... , -1, 0, 1, ... , base, base + 1, base + 2`
  * ```
  * The total number of rendered digits equals `(base + 2) * 2 + 1`. The display will scroll between the rendered
  * digits based on a bound value.
- * 
+ *
  * When styling the scroller with CSS, select the `digit-scroller-digit` class to style all rendered digits. Each
  * individual digit can also be selected with the `digit-scroller-digit-[index]` classes, where `[index]` is replaced
  * with `0, 1, 2, ...`, starting with the lowest-valued digit. Select the `digit-scroller-nan` class to style the text

@@ -17,7 +17,8 @@ export enum APVerticalModes {
   TO,
   GA,
   FPA,
-  FLARE
+  FLARE,
+  LEVEL
 }
 
 export enum APLateralModes {
@@ -199,6 +200,13 @@ export interface APConfig {
   createWingLevelerDirector?(apValues: APValues): PlaneDirector | undefined;
 
   /**
+   * Creates the autopilot's pitch level mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's pitch level mode director.
+   */
+  createPitchLevelerDirector?(apValues: APValues): PlaneDirector | undefined;
+
+  /**
    * Creates the autopilot's GPS LNAV mode director.
    * @param apValues The autopilot's state values.
    * @returns The autopilot's GPS LNAV mode director.
@@ -339,8 +347,11 @@ export interface APConfig {
   /** The autopilot's default vertical mode. */
   defaultVerticalMode: APVerticalModes | (() => APVerticalModes);
 
-  /** The default maximum bank angle the autopilot may command in degrees. */
-  defaultMaxBankAngle: number;
+  /**
+   * The default maximum bank angle the autopilot may command in degrees.
+   * If not defined, then the maximum bank angle will be sourced from the AUTOPILOT MAX BANK SimVar
+   **/
+  defaultMaxBankAngle?: number;
 
   /** The altitude hold slot index to use. Defaults to 1 */
   altitudeHoldSlotIndex?: 1 | 2 | 3;
@@ -361,6 +372,11 @@ export interface APConfig {
    * Lateral/Vertical press events will be ignored if this is false and neither AP nor FDs are engaged.
    */
   autoEngageFd?: boolean;
+
+  /**
+   * Whether to have independent flight directors that can be switched on/off separately. Defaults to false.
+   */
+  independentFds?: boolean;
 
   /**
    * When true, will initialize the state manager when the flight plan is next synced.

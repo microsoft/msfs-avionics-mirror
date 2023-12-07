@@ -16,7 +16,7 @@ export enum MapRotation {
   /** Map up position points towards the current airplane heading. */
   HeadingUp = 'HeadingUp',
 
-  /** Map up position points towards the current nav desired track. */
+  /** Map up position points towards the current desired track. */
   DtkUp = 'DtkUp'
 }
 
@@ -26,4 +26,7 @@ export enum MapRotation {
 export class MapRotationModule {
   /** The type of map rotation to use. */
   public readonly rotationType = Subject.create(MapRotation.HeadingUp);
+
+  /** The desired track, in degrees true. */
+  public readonly dtk = Subject.create<number>(0);
 }

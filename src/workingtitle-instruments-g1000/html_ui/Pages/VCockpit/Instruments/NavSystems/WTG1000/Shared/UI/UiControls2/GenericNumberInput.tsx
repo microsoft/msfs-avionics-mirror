@@ -53,6 +53,9 @@ export interface GenericNumberInputProps extends G1000UiControlProps {
 
   /** CSS class(es) to apply to the root of the component. */
   class?: string;
+
+  /** Whether keyboard entry should be disabled. */
+  keyboardEntryDisabled?: boolean;
 }
 
 /**
@@ -64,15 +67,15 @@ export class GenericNumberInput extends G1000UiControl<GenericNumberInputProps> 
   private static readonly DEFAULT_SOLID_HIGHLIGHT_DURATION = 1000; // milliseconds
 
   private readonly rootRef = FSComponent.createRef<HTMLDivElement>();
-  private readonly inputGroupRef = FSComponent.createRef<G1000UiControl>();
+  protected readonly inputGroupRef = FSComponent.createRef<G1000UiControl>();
   private readonly activeRef = FSComponent.createRef<HTMLDivElement>();
   private readonly inactiveRef = FSComponent.createRef<HTMLDivElement>();
 
-  private readonly signValues: Subject<1 | -1>[] = [];
-  private readonly digitValues: Subject<number>[] = [];
+  protected readonly signValues: Subject<1 | -1>[] = [];
+  protected readonly digitValues: Subject<number>[] = [];
 
-  private isEditing = false;
-  private inputValue = 0;
+  protected isEditing = false;
+  protected inputValue = 0;
   private renderedInactiveValue: string | VNode | null = null;
 
   private readonly solidHighlightTimer = new DebounceTimer();
@@ -269,10 +272,87 @@ export class GenericNumberInput extends G1000UiControl<GenericNumberInputProps> 
   }
 
   /**
+   * Consolidates a keyboard event into a digit input event.
+   * @param source The source of the event.
+   * @param evt The event.
+   * @returns Whether the event was handled.
+   */
+  public consolidateKeyboardHEvent(source: G1000UiControl, evt: FmsHEvent): boolean {
+    const digit = parseInt(evt);
+    if (isNaN(digit)) {
+      return false;
+    }
+
+    if (this.props.keyboardEntryDisabled) {
+      return true;
+    }
+
+    this.handleDigitInput(digit);
+    return true;
+  }
+
+  /**
+   * Responds to a digit input event.
+   * @param digit The digit that was input.
+   */
+  protected handleDigitInput(digit: number): void {
+    if (!this.isEditing) {
+      this.activateEditing(undefined, FocusPosition.Last);
+      this.inputValue = digit;
+      this.digitValues.forEach((value, index) => {
+        if (index === this.digitValues.length - 1) {
+          value.set(digit);
+        } else {
+          value.set(0);
+        }
+      });
+    } else {
+      const focusedIndex = this.inputGroupRef.instance.getFocusedIndex();
+      if (focusedIndex < this.digitValues.length - 1) {
+        // subtract the scaled value of the old digit from the total value and add the scaled value of the new digit
+        // to keep the input value up-to-date
+        this.inputValue = this.inputValue
+          - this.calculateScaledValue(this.digitValues[focusedIndex].get(), focusedIndex, this.digitValues.length)
+          + this.calculateScaledValue(digit, focusedIndex, this.digitValues.length);
+        this.digitValues[focusedIndex].set(this.calculateScaledValue(digit, focusedIndex, this.digitValues.length));
+        this.inputGroupRef.instance.scroll('forward');
+      } else {
+        // if the current value already uses all digits, only reset the last digit
+        if (this.inputValue > (10 ** (this.digitValues.length - 1))) {
+          this.digitValues[focusedIndex].set(this.calculateScaledValue(digit, focusedIndex, this.digitValues.length));
+        } else {
+          // otherwise, shift all digits to the left and add the digit to the value
+          this.inputValue = this.inputValue * 10 + digit;
+          this.digitValues.forEach((value, index) => {
+            // set the digit to the value of the input if it's the last digit, otherwise set it to the next digit's current value
+            if (index === this.digitValues.length - 1) {
+              value.set(digit);
+            } else {
+              value.set(this.digitValues[index + 1].get() * 10);
+            }
+          });
+        }
+      }
+    }
+  }
+
+  /**
+   * Calculates the scaled value of a digit.
+   * @param digit The digit.
+   * @param index The index of the digit.
+   * @param length The total number of digits.
+   * @returns The scaled value of the digit.
+   */
+  protected calculateScaledValue(digit: number, index: number, length: number): number {
+    return digit * (10 ** (length - index - 1));
+  }
+
+  /**
    * Activates editing for this component.
    * @param activatingEvent The event that triggered activation of editing, if any.
+   * @param focusPosition The position to focus when editing is activated. Defaults to First.
    */
-  private activateEditing(activatingEvent?: FmsHEvent.UPPER_INC | FmsHEvent.UPPER_DEC): void {
+  protected activateEditing(activatingEvent?: FmsHEvent.UPPER_INC | FmsHEvent.UPPER_DEC, focusPosition?: FocusPosition): void {
     if (this.isEditing) {
       return;
     }
@@ -285,7 +365,7 @@ export class GenericNumberInput extends G1000UiControl<GenericNumberInputProps> 
     this.activeRef.instance.style.display = '';
 
     this.inputGroupRef.instance.setDisabled(false);
-    this.inputGroupRef.instance.focus(FocusPosition.First);
+    this.inputGroupRef.instance.focus(focusPosition ?? FocusPosition.First);
 
     if (activatingEvent !== undefined && this.props.editOnActivate) {
       this.inputGroupRef.instance.onInteractionEvent(activatingEvent);
@@ -298,7 +378,7 @@ export class GenericNumberInput extends G1000UiControl<GenericNumberInputProps> 
    * Deactivates editing for this component.
    * @param saveValue Whether to save the current edited input value to this component's bound value.
    */
-  private deactivateEditing(saveValue: boolean): void {
+  protected deactivateEditing(saveValue: boolean): void {
     if (!this.isEditing) {
       return;
     }

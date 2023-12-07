@@ -32,7 +32,7 @@ export class G1000SettingSaveManager extends UserSettingSaveManager {
     const settings = [
       ...backlightSettingManager.getAllSettings(),
       ...pfdSettingManager.getAllSettings(),
-      ...mapSettingManager.getAllSettings(),
+      ...mapSettingManager.getAllSettings().filter(setting => setting.definition.name !== 'mapGroundNorthUpActive'),
       ...trafficSettingManager.getAllSettings().filter(setting => setting.definition.name !== 'trafficOperatingMode'),
       ...mfdNavDataBarSettingManager.getAllSettings(),
       ...unitsSettingManager.getAllSettings(),

@@ -3,7 +3,9 @@ import {
   SetSubject,
   Subject, Subscribable, SubscribableSet, Subscription, VNode
 } from '@microsoft/msfs-sdk';
+
 import { LatLonDisplay, LatLonDisplayFormat } from '@microsoft/msfs-garminsdk';
+
 import { CursorInput } from '../CursorInput/CursorInput';
 import { SignInputSlot } from '../NumberInput';
 import { DigitInputSlot } from '../NumberInput/DigitInputSlot';
@@ -11,11 +13,16 @@ import { DigitInputSlot } from '../NumberInput/DigitInputSlot';
 import './LatLonInput.css';
 
 /**
+ * Display formats for {@link LatLonInput} supported by the G3000.
+ */
+export type G3000LatLonDisplayFormat = LatLonDisplayFormat.HDDD_MMmm | LatLonDisplayFormat.HDDD_MM_SSs;
+
+/**
  * Component props for LatLonInput.
  */
 export interface LatLonInputProps extends ComponentProps {
   /** The format supported by the input. */
-  format: LatLonDisplayFormat;
+  format: G3000LatLonDisplayFormat;
 
   /**
    * A mutable subscribable to bind to the input's latitude/longitude value. The binding is one-way: changes in the
@@ -37,13 +44,19 @@ export class LatLonInput extends DisplayComponent<LatLonInputProps> {
       degreeFactor: 6000,
       latDigitFactors: [60000, 6000, 1000, 100, 10, 1],
       lonDigitFactors: [600000, 60000, 6000, 1000, 100, 10, 1],
-      lonStartIndex: 7
+      lonStartIndex: 7,
+    },
+    [LatLonDisplayFormat.HDDD_MMmmm]: {
+      degreeFactor: 60000,
+      latDigitFactors: [600000, 60000, 6000, 1000, 100, 10, 1],
+      lonDigitFactors: [6000000, 600000, 60000, 6000, 1000, 100, 10, 1],
+      lonStartIndex: 8
     },
     [LatLonDisplayFormat.HDDD_MM_SSs]: {
       degreeFactor: 36000,
       latDigitFactors: [360000, 36000, 6000, 600, 100, 10, 1],
       lonDigitFactors: [3600000, 360000, 36000, 6000, 600, 100, 10, 1],
-      lonStartIndex: 8
+      lonStartIndex: 8,
     }
   };
 

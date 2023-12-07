@@ -171,7 +171,7 @@ export class GtcDistanceDialog extends AbstractGtcNumberDialog<GtcDistanceDialog
 
     isVisible.sub(val => { cssClass.toggle('hidden', !val); }, true);
 
-    const maxValue = Math.pow(10, digitCount) - 1;
+    const maxValue = Math.pow(10, digitCount) * 10 - 1;
 
     const valueText = value.map(currentValue => MathUtils.clamp(currentValue / 10, 0, maxValue / 10).toFixed(1));
     const leadingZeroes = valueText.map(text => ('').padStart(digitCount - text.length + 2, '0'));

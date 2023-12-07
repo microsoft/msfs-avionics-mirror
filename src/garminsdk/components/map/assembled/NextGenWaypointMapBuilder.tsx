@@ -19,6 +19,7 @@ import { MapUtils } from '../MapUtils';
 import { MapWaypointDisplayBuilder } from '../MapWaypointDisplayBuilder';
 import { NextGenMapWaypointStyles } from '../MapWaypointStyles';
 import { MapDeclutterMode, MapDeclutterModule, MapOrientation, MapOrientationModule, MapPointerModule, MapTerrainMode, MapUnitsModule, WaypointMapSelectionModule } from '../modules';
+import { NextGenGarminMapBuilder } from '../NextGenGarminMapBuilder';
 
 /**
  * Options for creating a next-generation (NXi, G3000, etc) Garmin waypoint map.
@@ -41,8 +42,7 @@ export type NextGenWaypointMapOptions = {
 
   /**
    * Whether the map should automatically adjust its range when the selected waypoint is an airport to give an
-   * appropriate view of the selected runway, or all runways if there is no selected runway. If `false`, the map will
-   * attempt to apply the range index defined by `defaultTargetRangeIndex` instead. Defaults to `false`.
+   * appropriate view of the selected runway, or all runways if there is no selected runway. Defaults to `false`.
    */
   supportAirportAutoRange?: boolean;
 
@@ -346,7 +346,7 @@ export class NextGenWaypointMapBuilder {
       mapBuilder.with(GarminMapBuilder.airspaces, options.useAirspaceVisUserSettings ? options.settingManager : undefined);
     }
 
-    mapBuilder.with(GarminMapBuilder.waypoints,
+    mapBuilder.with(NextGenGarminMapBuilder.waypoints,
       (builder: MapWaypointDisplayBuilder): void => {
         builder.withNormalStyles(
           options.waypointIconImageCache,

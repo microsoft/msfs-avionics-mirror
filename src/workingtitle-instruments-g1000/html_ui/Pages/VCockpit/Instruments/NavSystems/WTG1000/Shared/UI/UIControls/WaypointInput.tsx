@@ -90,7 +90,7 @@ export class WaypointInput extends UiControlGroup<WaypointInputProps> {
   public render(): VNode {
     return (
       <div class="wpt-entry">
-        <InputComponent onRegister={this.register} ref={this.inputComponentRef} maxLength={6}
+        <InputComponent bus={this.props.bus} onRegister={this.register} ref={this.inputComponentRef} maxLength={6}
           onTextChanged={this.controller.onInputChanged.bind(this.controller)} onEnter={this.onInputEnterPressed.bind(this)} />
         <G1000WaypointIcon waypoint={this.store.selectedWaypoint} planeHeading={this.props.planeHeading} class='wpt-entry-icon' />
         <div class="wpt-entry-location">{this.store.displayWaypoint.city}</div>

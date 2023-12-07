@@ -29,7 +29,7 @@ export class PFDViewService extends ViewService {
     ['AS1000_PFD_FPL_Push', FmsHEvent.FPL],
     ['AS1000_PFD_PROC_Push', FmsHEvent.PROC],
     ['AS1000_PFD_RANGE_INC', FmsHEvent.RANGE_INC],
-    ['AS1000_PFD_RANGE_DEC', FmsHEvent.RANGE_DEC]
+    ['AS1000_PFD_RANGE_DEC', FmsHEvent.RANGE_DEC],
   ]);
 
   /**
@@ -38,6 +38,7 @@ export class PFDViewService extends ViewService {
    */
   constructor(readonly bus: EventBus) {
     super(bus);
+
     const g1000Pub = this.bus.getSubscriber<G1000ControlEvents>();
     g1000Pub.on('pfd_timerref_push').handle(() => {
       this.onInteractionEvent('pfd_timerref_push');
@@ -53,11 +54,8 @@ export class PFDViewService extends ViewService {
     });
   }
 
-  /**
-   * Routes the HEvents to the views.
-   * @param hEvent The event identifier.
-   */
-  protected onInteractionEvent(hEvent: string): void {
+  /** @inheritdoc */
+  protected onInteractionEvent(hEvent: string): boolean {
     // Handling a few special cases here to keep the other stuff nice ;)
 
     const activeView = this.activeView.get();
@@ -66,18 +64,16 @@ export class PFDViewService extends ViewService {
     if (hEvent === 'AS1000_PFD_MENU_Push') {
       if (!activeView) {
         this.open(PFDSetup.name);
-        return;
+        return true;
       } else if (activeView instanceof PFDSetup) {
         activeView.close();
-        return;
+        return true;
       }
     }
 
-    const evt = this.fmsEventMap.get(hEvent);
-    if (evt !== undefined && this.routeInteractionEventToViews(evt)) {
-      return;
+    if (super.onInteractionEvent(hEvent)) {
+      return true;
     }
-
 
     switch (hEvent) {
       // TODO move these events out in the next iteration, since we dont want type refs to the views in here
@@ -127,5 +123,6 @@ export class PFDViewService extends ViewService {
         this.open('DirectTo');
         break;
     }
+    return true;
   }
 }

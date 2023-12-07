@@ -327,7 +327,7 @@ class VerticalBar extends DisplayComponent<VerticalBarProps & XMLHostedLogicGaug
       for (let i = 0; i < this.props.colorZones.length; i++) {
         FSComponent.render(
           <VerticalColorZone logicHost={this.props.logicHost} width={6} origin={{ x: zoneX, y: this.props.origin.y }}
-            values={this.props.colorZones[i]} gaugeMin={this.props.minimum} gaugeMax={this.props.maximum} gaugeHeight={this.height} />,
+                             values={this.props.colorZones[i]} gaugeMin={this.props.minimum} gaugeMax={this.props.maximum} gaugeHeight={this.height} />,
           this.zoneGroupRef.instance);
       }
     }
@@ -336,13 +336,13 @@ class VerticalBar extends DisplayComponent<VerticalBarProps & XMLHostedLogicGaug
       for (let i = 0; i < this.props.colorLines.length; i++) {
         FSComponent.render(
           <ColorLine logicHost={this.props.logicHost}
-            geometry={this.geometry}
-            color={this.props.colorLines[i].color}
-            tickLeft={this.props.tickSide == 'left' || this.props.tickSide == 'both' ? 15 : -1}
-            tickRight={this.props.tickSide == 'right' || this.props.tickSide == 'both' ? 15 : -1}
-            height={3}
-            position={this.props.colorLines[i].position}
-            smoothFactor={this.props.colorLines[i].smoothFactor} />,
+                     geometry={this.geometry}
+                     color={this.props.colorLines[i].color}
+                     tickLeft={this.props.tickSide == 'left' || this.props.tickSide == 'both' ? 15 : -1}
+                     tickRight={this.props.tickSide == 'right' || this.props.tickSide == 'both' ? 15 : -1}
+                     height={3}
+                     position={this.props.colorLines[i].position}
+                     smoothFactor={this.props.colorLines[i].smoothFactor} />,
           this.lineGroupRef.instance);
       }
     }
@@ -357,12 +357,12 @@ class VerticalBar extends DisplayComponent<VerticalBarProps & XMLHostedLogicGaug
   public render(): VNode {
     return <g ref={this.groupRef}>
       <line x1={this.x} y1={this.y} x2={this.x} y2={this.y + this.height}
-        stroke-width="1px" stroke="white" ref={this.baseLineRef} class="baseline" />
+            stroke-width="1px" stroke="white" ref={this.baseLineRef} class="baseline" />
       <g ref={this.zoneGroupRef} />
       <line x1={this.x + this.majTickStart} y1={this.y} x2={this.x + this.majTickEnd} y2={this.y}
-        stroke-width="1px" stroke="white" class="topBar" />
+            stroke-width="1px" stroke="white" class="topBar" />
       <line x1={this.x + this.majTickStart} y1={this.y + this.height} x2={this.x + this.majTickEnd} y2={this.y + this.height}
-        stroke-width="1px" stroke="white" class="bottomBar" />
+            stroke-width="1px" stroke="white" class="bottomBar" />
       <g ref={this.tickGroupRef} />
       <g ref={this.lineGroupRef} />
     </g>;
@@ -439,9 +439,9 @@ class ColorLine extends DisplayComponent<ColorLineProps & XMLHostedLogicGauge> {
     return (
       <Fragment>
         <line ref={this.lineRef}
-          x1={this.props.geometry.startX - this.props.tickLeft} y1={this.props.geometry.startY}
-          x2={this.props.geometry.startX + this.props.tickRight} y2={this.props.geometry.startY}
-          stroke={this.props.color} stroke-width={this.props.height} shape-rendering="crispEdges" />
+              x1={this.props.geometry.startX - this.props.tickLeft} y1={this.props.geometry.startY}
+              x2={this.props.geometry.startX + this.props.tickRight} y2={this.props.geometry.startY}
+              stroke={this.props.color} stroke-width={this.props.height} shape-rendering="crispEdges" />
       </Fragment>
     );
   }

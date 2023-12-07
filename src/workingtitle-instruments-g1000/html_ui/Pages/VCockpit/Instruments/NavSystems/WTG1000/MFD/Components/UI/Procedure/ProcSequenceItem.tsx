@@ -61,7 +61,7 @@ export class ProcSequenceItem extends UiControl<ProcSequenceItemProps> {
       oldVal.set(newVal);
     },
     BasicNavAngleUnit.create(true).createNumber(NaN)
-  ) as MappedSubscribable<NumberUnitInterface<NavAngleUnitFamily>>;
+  ) as MappedSubscribable<NumberUnitInterface<NavAngleUnitFamily, NavAngleUnit>>;
 
   private readonly distanceSub = this.props.data.map(
     leg => {

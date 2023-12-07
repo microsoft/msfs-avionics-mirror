@@ -2,7 +2,9 @@ import { CasSystem, CompositeLogicXMLHost, FSComponent, PluginSystem, SetSubject
 
 import {
   AdfRadioNavSource, DefaultAltimeterDataProvider, DefaultGpsIntegrityDataProvider, DefaultRadarAltimeterDataProvider,
-  DefaultVNavDataProvider, DefaultWindDataProvider, Fms, GpsNavSource, NavReferenceIndicatorsCollection, NavRadioNavSource,
+  DefaultVNavDataProvider, DefaultWindDataProvider, Fms, GpsNavSource,
+  NavRadioNavSource,
+  NavReferenceIndicatorsCollection,
   NavReferenceSource, NavReferenceSourceCollection
 } from '@microsoft/msfs-garminsdk';
 
@@ -16,11 +18,11 @@ import {
 
 import { PfdInstrumentContainer } from './Components/InstrumentContainer/PfdInstrumentContainer';
 import { PfdConfig } from './Config/PfdConfig';
+import { G3000PfdPlugin, G3000PfdPluginBinder } from './G3000PFDPlugin';
 import { PfdBaroKnobInputHandler } from './Input/PfdBaroKnobInputHandler';
 import { PfdCourseKnobInputHandler } from './Input/PfdCourseKnobInputHandler';
 import { PfdMapJoystickInputHandler } from './Input/PfdMapJoystickInputHandler';
 import { TrafficAuralAlertManager } from './Traffic/TrafficAuralAlertManager';
-import { G3000PfdPlugin, G3000PfdPluginBinder } from './G3000PFDPlugin';
 
 import './WTG3000_PFD.css';
 
@@ -165,7 +167,9 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
 
     this.backplane.addInstrument(InstrumentBackplaneNames.Traffic, this.trafficInstrument);
 
-    this.doInit();
+    this.doInit().catch(e => {
+      console.error(e);
+    });
   }
 
   /** @inheritdoc */

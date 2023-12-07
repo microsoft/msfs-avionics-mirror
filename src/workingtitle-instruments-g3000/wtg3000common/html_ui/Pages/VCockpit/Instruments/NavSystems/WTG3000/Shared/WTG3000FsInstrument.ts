@@ -226,7 +226,13 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
           'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG3000/Assets/Data/gps_sbas.json',
           5000,
           Object.values(SBASGroupName),
-          this.instrumentType === 'MFD' ? 'primary' : 'replica'
+          this.instrumentType === 'MFD' ? 'primary' : 'replica',
+          {
+            channelCount: 15,
+            satInUseMaxCount: 15,
+            satInUsePdopTarget: 2,
+            satInUseOptimumCount: 5
+          }
         ),
         iau.gpsDefinition.electricity
       ));

@@ -3,6 +3,7 @@ import {
   ICAO, MappedSubject, SetSubject, StringUtils, Subject, Subscribable,
   SubscribableSet, SubscribableUtils, Subscription, VNode, ComponentProps,
 } from '@microsoft/msfs-sdk';
+
 import { GtcWaypointIcon } from '../GtcWaypointIcon/GtcWaypointIcon';
 
 import './GtcWaypointDisplay.css';
@@ -68,21 +69,26 @@ export class GtcWaypointDisplay extends DisplayComponent<GtcWaypointDisplayProps
     this.nullName
   );
 
-  private cssClassSub?: Subscription;
-  private waypointSub?: Subscription;
+  private readonly subscriptions: Subscription[] = [
+    this.identText,
+    this.nameText
+  ];
+
   private facilityPipe?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.waypointSub = this.waypoint.sub(waypoint => {
-      this.facilityPipe?.destroy();
+    this.subscriptions.push(
+      this.waypoint.sub(waypoint => {
+        this.facilityPipe?.destroy();
 
-      if (waypoint === null) {
-        this.facility.set(null);
-      } else {
-        this.facilityPipe = waypoint.facility.pipe(this.facility);
-      }
-    }, true);
+        if (waypoint === null) {
+          this.facility.set(null);
+        } else {
+          this.facilityPipe = waypoint.facility.pipe(this.facility);
+        }
+      }, true)
+    );
   }
 
   /** @inheritdoc */
@@ -90,8 +96,15 @@ export class GtcWaypointDisplay extends DisplayComponent<GtcWaypointDisplayProps
     let cssClass: string | SetSubject<string>;
 
     if (typeof this.props.class === 'object') {
-      cssClass = SetSubject.create(['gtc-wpt-display']);
-      this.cssClassSub = FSComponent.bindCssClassSet(cssClass, this.props.class, GtcWaypointDisplay.RESERVED_CSS_CLASSES);
+      cssClass = SetSubject.create();
+      cssClass.add('gtc-wpt-display');
+
+      const sub = FSComponent.bindCssClassSet(cssClass, this.props.class, GtcWaypointDisplay.RESERVED_CSS_CLASSES);
+      if (Array.isArray(sub)) {
+        this.subscriptions.push(...sub);
+      } else {
+        this.subscriptions.push(sub);
+      }
     } else {
       cssClass = 'gtc-wpt-display';
       if (this.props.class !== undefined && this.props.class.length > 0) {
@@ -115,8 +128,10 @@ export class GtcWaypointDisplay extends DisplayComponent<GtcWaypointDisplayProps
   public destroy(): void {
     this.iconRef.getOrDefault()?.destroy();
 
-    this.cssClassSub?.destroy();
-    this.waypointSub?.destroy();
+    for (const sub of this.subscriptions) {
+      sub.destroy();
+    }
+
     this.facilityPipe?.destroy();
 
     super.destroy();

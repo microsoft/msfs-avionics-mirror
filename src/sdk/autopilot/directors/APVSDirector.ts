@@ -30,7 +30,7 @@ export class APVSDirector implements PlaneDirector {
    * Upon activation, the actual vs will be rounded using this increment.
    * If undefined, the value will not be rounded before passed to the sim. Defaults to undefined.
    */
-  constructor(private readonly apValues: APValues, private readonly vsIncrement: number | undefined = undefined) {
+  constructor(protected readonly apValues: APValues, protected readonly vsIncrement: number | undefined = undefined) {
     this.state = DirectorState.Inactive;
   }
 
@@ -80,7 +80,7 @@ export class APVSDirector implements PlaneDirector {
    * Gets a desired pitch from the selected vs value.
    * @returns The desired pitch angle.
    */
-  private getDesiredPitch(): number {
+  protected getDesiredPitch(): number {
     const tas = SimVar.GetSimVarValue('AIRSPEED TRUE', SimVarValueType.Knots);
     const desiredPitch = this.getFpa(UnitType.NMILE.convertTo(tas / 60, UnitType.FOOT), this.apValues.selectedVerticalSpeed.get());
     return -MathUtils.clamp(isNaN(desiredPitch) ? 0 : desiredPitch, -15, 15);

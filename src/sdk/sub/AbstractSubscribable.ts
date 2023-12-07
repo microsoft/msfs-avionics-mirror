@@ -255,7 +255,7 @@ export abstract class AbstractSubscribable<T> implements Subscribable<T> {
  * An implementation of {@link MappedSubscribable}.
  */
 class MappedSubscribableClass<I, T> extends AbstractSubscribable<T> implements MappedSubscribable<T> {
-  public readonly isSubscribable = true;
+  public readonly canInitialNotify = true;
 
   private readonly inputSub: Subscription;
 

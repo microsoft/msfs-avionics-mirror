@@ -1,5 +1,34 @@
+.check-side-buttons-arrow-wrapper {
+  display: inline;
+
+  width: 0;
+  height: 0;
+}
+
+.check-side-buttons-arrow {
+  position: relative;
+
+  width: 10px;
+  height: 14px;
+
+  left: -10px;
+}
+
+.popup-menu-checkbox-right .check-side-buttons-arrow {
+  left: unset;
+  right: -12px;
+}
+
 .check-label {
   display: block;
+}
+
+.popup-menu-checkbox-side-button .check-label {
+  margin-left: 18px;
+}
+
+.popup-menu-checkbox-side-button.popup-menu-checkbox-right .check-label {
+  margin-right: 18px;
 }
 
 .check-design {
@@ -40,16 +69,41 @@
   stroke: var(--wt21-colors-magenta);
 }
 
-.popup-menu-checkbox label .check-text {
+.popup-menu-checkbox:not(.popup-menu-checkbox-side-button) label .check-text {
   width: calc(100% - 25px);
   display: inline-flex;
   justify-content: space-between
+}
+
+.popup-menu-checkbox.popup-menu-checkbox-side-button label .check-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.popup-menu-checkbox.popup-menu-checkbox-side-button.popup-menu-checkbox-right label .check-text {
+  align-items: flex-end;
 }
 
 .popup-menu-checkbox.disabled label .check-text {
   color: var(--wt21-colors-dark-gray);
 }
 
+.popup-menu-checkbox-side-button .check-text {
+  flex-flow: column nowrap;
+}
+
 .check-select-value {
   padding-right: 3px;
+}
+
+.popup-menu-checkbox-side-button .check-select-value {
+  padding-top: 10px;
+  font-size: 30px;
+
+  border: 2px solid transparent;
+}
+
+.popup-menu-checkbox-side-button .check-select-value.highlight {
+  border: 2px solid var(--wt21-colors-cyan);
 }

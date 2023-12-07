@@ -93,6 +93,10 @@ export class MapUserSettings {
         defaultValue: 27
       },
       {
+        name: 'mapGroundNorthUpActive',
+        defaultValue: false
+      },
+      {
         name: 'mapPfdDeclutter',
         defaultValue: MapDeclutterSettingMode.All
       },

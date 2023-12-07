@@ -233,7 +233,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
   private readonly positionRadiusInhibitTimer = new DebounceTimer();
   private readonly processPendingPositionRadius = (): void => {
     if (this.isPositionRadiusPending) {
-      Coherent.call('SET_MAP_PARAMS', this.uid, this.pos, this.radius, 1);
+      Coherent.call('SET_MAP_PARAMS', this.uid, this.pos, this.radius);
     }
 
     if (--this.positionRadiusInhibitFramesRemaining > 0) {
@@ -358,7 +358,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
       // Only when not SVT, send in initial map params (even if we are asleep), because a bing instance that doesn't
       // have params initialized causes GPU perf issues.
       if (this.modeFlags !== 4) {
-        Coherent.call('SET_MAP_PARAMS', this.uid, this.pos, this.radius, 1);
+        Coherent.call('SET_MAP_PARAMS', this.uid, this.pos, this.radius);
       }
 
       this.props.onBoundCallback && this.props.onBoundCallback(this);
@@ -452,7 +452,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
       if (this.positionRadiusInhibitFramesRemaining > 0) {
         this.isPositionRadiusPending = true;
       } else {
-        Coherent.call('SET_MAP_PARAMS', this.uid, this.pos, this.radius, 1);
+        Coherent.call('SET_MAP_PARAMS', this.uid, this.pos, this.radius);
       }
     }
   }

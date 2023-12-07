@@ -82,7 +82,7 @@ export class NavStatusBoxFieldBrgModelFactory implements NavStatusBoxFieldTypeMo
   }
 
   /** @inheritdoc */
-  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavStatusBoxFieldModel<NumberUnitInterface<NavAngleUnitFamily>> {
+  public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavStatusBoxFieldModel<NumberUnitInterface<NavAngleUnitFamily, NavAngleUnit>> {
     return new NavStatusBoxFieldBrgModel(this.bus, gpsValidity);
   }
 }

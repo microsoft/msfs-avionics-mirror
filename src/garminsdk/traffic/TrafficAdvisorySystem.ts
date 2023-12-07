@@ -102,13 +102,20 @@ export class TrafficAdvisorySystem extends Tcas<GarminTcasIntruder, TasSensitivi
 
   /** @inheritdoc */
   protected updateSensitivity(): void {
-    this.sensitivity.update(
-      this.adsb?.getOperatingMode() ?? AdsbOperatingMode.Standby,
-      this.ownAirplaneSubs.altitude.get(),
-      this.ownAirplaneSubs.groundSpeed.get(),
-      this.cdiScalingLabel,
-      this.supportsRadarAltitude ? this.ownAirplaneSubs.radarAltitude.get() : undefined
-    );
+    if (this.adsb) {
+      this.sensitivity.update(
+        this.adsb.getOperatingMode(),
+        this.ownAirplaneSubs.altitude.get(),
+        this.ownAirplaneSubs.groundSpeed.get(),
+        this.cdiScalingLabel,
+        this.supportsRadarAltitude ? this.ownAirplaneSubs.radarAltitude.get() : undefined
+      );
+    } else {
+      this.sensitivity.update(
+        this.ownAirplaneSubs.groundSpeed.get(),
+        this.supportsRadarAltitude ? this.ownAirplaneSubs.radarAltitude.get() : undefined
+      );
+    }
   }
 
   /** @inheritdoc */
@@ -224,7 +231,7 @@ export class TasSensitivityParameters {
 }
 
 /**
- * An implementation of {@link TCASSensitivity} which provides sensitivity parameters for the Garmin Traffic Advisory
+ * An implementation of {@link TcasSensitivity} which provides sensitivity parameters for the Garmin Traffic Advisory
  * System (TAS). When ADS-B is operating, Traffic Advisory sensitivity is selected based on the ADS-B Conflict
  * Situational Awareness (CSA) algorithm. When ADS-B is not operating, Traffic Advisory sensitivity is selected based
  * on the TAS algorithm.
@@ -272,7 +279,16 @@ export class TasSensitivity implements TcasSensitivity {
   }
 
   /**
-   * Updates the sensitivity.
+   * Updates the sensitivity without ADS-B support.
+   * @param groundSpeed The ground speed of the own airplane.
+   * @param radarAltitude The radar altitude of the own airplane.
+   */
+  public update(
+    groundSpeed: NumberUnitInterface<UnitFamily.Speed>,
+    radarAltitude?: NumberUnitInterface<UnitFamily.Distance>
+  ): void;
+  /**
+   * Updates the sensitivity with ADS-B support.
    * @param adsbMode The ADS-B operating mode.
    * @param altitude The indicated altitude of the own airplane.
    * @param groundSpeed The ground speed of the own airplane.
@@ -283,19 +299,44 @@ export class TasSensitivity implements TcasSensitivity {
     adsbMode: AdsbOperatingMode,
     altitude: NumberUnitInterface<UnitFamily.Distance>,
     groundSpeed: NumberUnitInterface<UnitFamily.Speed>,
-    cdiScalingLabel: CDIScaleLabel,
+    cdiScalingLabel?: CDIScaleLabel,
     radarAltitude?: NumberUnitInterface<UnitFamily.Distance>
+  ): void;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public update(
+    arg1: AdsbOperatingMode | NumberUnitInterface<UnitFamily.Speed>,
+    arg2: NumberUnitInterface<UnitFamily.Distance>,
+    arg3?: NumberUnitInterface<UnitFamily.Speed>,
+    arg4?: CDIScaleLabel,
+    arg5?: NumberUnitInterface<UnitFamily.Distance>
   ): void {
-    const tasLevel = this.tasSensitivity.selectLevel(groundSpeed, radarAltitude);
-    const adsbLevel = this.adsbTASensitivity.selectLevel(altitude, cdiScalingLabel, radarAltitude);
+    let groundSpeed: NumberUnitInterface<UnitFamily.Speed>;
+    let radarAltitude: NumberUnitInterface<UnitFamily.Distance> | undefined;
+    let supportAdsb: boolean;
 
-    this.tasParams.parametersPA = this.tasSensitivity.getPA(tasLevel);
-    this.tasParams.parametersTA = this.tasSensitivity.getTA(tasLevel);
+    if (typeof arg1 === 'object') {
+      groundSpeed = arg1;
+      radarAltitude = arg2;
+      supportAdsb = false;
+    } else {
+      groundSpeed = arg3 as NumberUnitInterface<UnitFamily.Speed>;
+      radarAltitude = arg5;
+      supportAdsb = true;
+    }
 
-    this.tasParams.parametersPA = this.tasSensitivity.getPA(tasLevel);
-    this.tasParams.parametersTA = this.adsbTASensitivity.getTA(adsbLevel);
+    const tisLevel = this.tasSensitivity.selectLevel(groundSpeed, radarAltitude);
+    this.tasParams.parametersPA = this.tasSensitivity.getPA(tisLevel);
+    this.tasParams.parametersTA = this.tasSensitivity.getTA(tisLevel);
 
-    // Right now we just assume every intruder is tracked by ADS-B if ADS-B is operating
-    this.activeParams = adsbMode === AdsbOperatingMode.Standby ? this.tasParams : this.adsbParams;
+    if (supportAdsb) {
+      const adsbLevel = this.adsbTASensitivity.selectLevel(arg2, arg4, radarAltitude);
+      this.adsbParams.parametersPA = this.tasSensitivity.getPA(tisLevel);
+      this.adsbParams.parametersTA = this.adsbTASensitivity.getTA(adsbLevel);
+
+      // Right now we just assume every intruder is tracked by ADS-B if ADS-B is operating
+      this.activeParams = arg1 === AdsbOperatingMode.Standby ? this.tasParams : this.adsbParams;
+    } else {
+      this.activeParams = this.tasParams;
+    }
   }
 }

@@ -3,9 +3,11 @@ import {
   FSComponent, GeoPointSubject, ICAO, LatLonInterface, MagVar, NearestSubscription, NumberFormatter, NumberUnitSubject, SetSubject, Subject,
   UnitFamily, UnitType, UserFacility, UserFacilityUtils, VNode, VorFacility,
 } from '@microsoft/msfs-sdk';
+
 import {
   BearingDisplay, LatLonDisplay, LatLonDisplayFormat, NumberUnitDisplay, UnitsDistanceSettingMode, UnitsUserSettings,
 } from '@microsoft/msfs-garminsdk';
+
 import { G3000NearestContext } from '@microsoft/msfs-wtg3000-common';
 import { GtcListSelectTouchButton } from '../Components/TouchButton/GtcListSelectTouchButton';
 import { GtcToggleTouchButton } from '../Components/TouchButton/GtcToggleTouchButton';
@@ -16,13 +18,14 @@ import { GtcView, GtcViewProps } from '../GtcService/GtcView';
 import { GtcViewKeys } from '../GtcService/GtcViewKeys';
 import { GtcPositionHeadingDataProvider } from '../Navigation/GtcPositionHeadingDataProvider';
 import { GtcUserWaypointEditController, UserWaypointFlightPlanStatus } from '../Navigation/GtcUserWaypointEditController';
-import { GtcKeyboardDialog } from './GtcKeyboardDialog';
 import { GtcCourseDialog } from './GtcCourseDialog';
 import { GtcDialogs } from './GtcDialogs';
 import { GtcDialogResult, GtcDialogView } from './GtcDialogView';
 import { GtcDistanceDialog } from './GtcDistanceDialog';
+import { GtcKeyboardDialog } from './GtcKeyboardDialog';
 import { GtcLatLonDialog } from './GtcLatLonDialog';
 import { GtcUserWaypointDialogStore, GtcUserWaypointType } from './GtcUserWaypointDialogStore';
+import { GtcWaypointDialog } from './GtcWaypointDialog';
 
 import './GtcUserWaypointDialog.css';
 
@@ -390,13 +393,11 @@ export class GtcUserWaypointDialog extends GtcView<GtcUserWaypointDialogProps> i
   private async selectReference(subject: Subject<Facility | null>): Promise<void> {
     const initialValue = subject.get();
 
-    const result = await this.props.gtcService.openPopup<GtcKeyboardDialog<Facility>>(GtcViewKeys.KeyboardDialog, 'normal', 'hide')
+    const result = await this.props.gtcService.openPopup<GtcWaypointDialog>(GtcViewKeys.WaypointDialog, 'normal', 'hide')
       .ref.request({
-        facilitySearchType: FacilitySearchType.AllExceptVisual,
-        initialInputText: initialValue === null ? undefined : ICAO.getIdent(initialValue.icao),
-        label: 'Waypoint Identifier Lookup',
-        maxLength: 6,
-        allowSpaces: false
+        searchType: FacilitySearchType.AllExceptVisual,
+        emptyLabelText: 'Waypoint Identifier Lookup',
+        initialValue: initialValue ?? undefined
       });
 
     if (!result.wasCancelled) {

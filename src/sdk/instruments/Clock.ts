@@ -22,13 +22,19 @@ export interface ClockEvents {
   /**
    * A Javascript timestamp corresponding to the simulation time, fired every sim frame instead of on each Coherent
    * animation frame. The timestamp uses the UNIX epoch (00:00 UTC January 1, 1970) and has units of milliseconds.
-   * 
+   *
    * USE THIS EVENT SPARINGLY, as it will impact performance and ignores the user set glass cockpit refresh setting.
    */
   simTimeHiFreq: number;
 
   /** The simulation rate factor. */
   simRate: number;
+
+  /** The seconds since midnight (zulu time) until sunrise at the aircraft's location. */
+  zulu_sunrise: number;
+
+  /** The seconds since midnight (zulu time) until sunset at the aircraft's location. */
+  zulu_sunset: number;
 }
 
 /**
@@ -51,7 +57,9 @@ export class ClockPublisher extends BasePublisher<ClockEvents> {
 
     this.simVarPublisher = new SimVarPublisher(new Map<keyof ClockEvents, SimVarPublisherEntry<any>>([
       ['simTime', { name: 'E:ABSOLUTE TIME', type: SimVarValueType.Seconds, map: ClockPublisher.absoluteTimeToUNIXTime }],
-      ['simRate', { name: 'E:SIMULATION RATE', type: SimVarValueType.Number }]
+      ['simRate', { name: 'E:SIMULATION RATE', type: SimVarValueType.Number }],
+      ['zulu_sunrise', { name: 'E:ZULU SUNRISE TIME', type: SimVarValueType.Seconds }],
+      ['zulu_sunset', { name: 'E:ZULU SUNSET TIME', type: SimVarValueType.Seconds }],
     ]), bus, pacer);
 
     if (this.bus.getTopicSubscriberCount('realTime') > 0) {

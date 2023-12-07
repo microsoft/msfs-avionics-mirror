@@ -321,7 +321,8 @@ export namespace FSComponent {
     'rect': true,
     'stop': true,
     'svg': true,
-    'text': true
+    'text': true,
+    'tspan': true,
   };
 
   /**

@@ -25,6 +25,16 @@
   color: rgb(44, 44, 44);
 }
 
+/* Override green color with white on ground */
+.xpdr-container .on-ground.green {
+  color: white;
+ }
+
+/* Override green highlight with white on ground */
+.xpdr-container .on-ground.highlight-green {
+  background-color: white;
+  color: rgb(44, 44, 44);
+}
 
 
 /* .highlight {

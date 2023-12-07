@@ -21,13 +21,25 @@ export type FuelRemaingAdjustment = {
 }
 
 /** Simvars for the fuel computer to monitor. */
-interface FuelSimVars {
+export interface FuelSimVars {
   /** The amount of fuel remaining. */
   fuelQty: number;
   /** The flow on engine 1. */
   fuelFlow1: number;
   /** The flow on engine 2. */
   fuelFlow2: number;
+}
+
+/** Simvars for the fuel totalizer to publish. */
+export interface FuelTotalizerSimVars {
+  /** The amount of fuel remaining in the fuel totalizer. */
+  remainingFuel: number;
+  /** The amount of fuel burned in the fuel totalizer. */
+  burnedFuel: number;
+  /** The fuel endurance calculated by the fuel totalizer. */
+  fuelEndurance: number;
+  /** The fuel range calculated by the fuel totalizer. */
+  fuelRange: number;
 }
 
 /** A publisher to poll fuel-related simvars. */
@@ -44,6 +56,24 @@ class FuelSimVarPublisher extends SimVarPublisher<FuelSimVars> {
    */
   public constructor(bus: EventBus) {
     super(FuelSimVarPublisher.simvars, bus);
+  }
+}
+
+/** A publisher to poll fuel-related simvars. */
+class FuelTotalizerSimVarPublisher extends SimVarPublisher<FuelTotalizerSimVars> {
+  private static simvars = new Map<keyof FuelTotalizerSimVars, SimVarDefinition>([
+    ['remainingFuel', { name: FuelComputerSimVars.Remaining, type: SimVarValueType.GAL }],
+    ['burnedFuel', { name: FuelComputerSimVars.Burned, type: SimVarValueType.GAL }],
+    ['fuelEndurance', { name: FuelComputerSimVars.Endurance, type: SimVarValueType.GPH }],
+    ['fuelRange', { name: FuelComputerSimVars.Range, type: SimVarValueType.NM }],
+  ]);
+
+  /**
+   * Create a FuelSimVarPublisher
+   * @param bus The EventBus to publish to
+   */
+  public constructor(bus: EventBus) {
+    super(FuelTotalizerSimVarPublisher.simvars, bus);
   }
 }
 
@@ -165,13 +195,17 @@ export class FuelComputer {
   private simVarSubscriber: EventSubscriber<FuelSimVars>;
   private controlSubscriber: EventSubscriber<G1000ControlEvents>;
   private totalizer: Totalizer;
+  private totalizerSimVarPublisher: FuelTotalizerSimVarPublisher;
+
+  private readonly controlPublisher = this.bus.getPublisher<G1000ControlEvents>();
 
   /**
    * Create a fuel computer.
    * @param bus An event bus
    */
-  constructor(bus: EventBus) {
+  constructor(private readonly bus: EventBus) {
     this.simVarPublisher = new FuelSimVarPublisher(bus);
+    this.totalizerSimVarPublisher = new FuelTotalizerSimVarPublisher(bus);
     this.simVarSubscriber = bus.getSubscriber<FuelSimVars>();
     this.controlSubscriber = bus.getSubscriber<G1000ControlEvents>();
     this.totalizer = new Totalizer();
@@ -180,10 +214,14 @@ export class FuelComputer {
   /** Intialize the instrument. */
   public init(): void {
     this.simVarPublisher.startPublish();
+    this.totalizerSimVarPublisher.startPublish();
     this.totalizer.setCapacity(SimVar.GetSimVarValue('FUEL TOTAL CAPACITY', 'gallons') - SimVar.GetSimVarValue('UNUSABLE FUEL TOTAL QUANTITY', 'gallons'));
     this.totalizer.fuelRemaining = SimVar.GetSimVarValue('FUEL TOTAL QUANTITY', 'gallons');
     this.simVarSubscriber.on('fuelQty').whenChangedBy(0.1).handle((qty) => { this.totalizer.rawQty = qty; });
-    this.controlSubscriber.on('fuel_adjustment').handle((adjustment) => { this.totalizer.adjust(adjustment); });
+    this.controlSubscriber.on('fuel_adjustment').handle((adjustment) => {
+      this.totalizer.adjust(adjustment);
+      this.controlPublisher.pub('fuel_adjusted_qty', this.totalizer.fuelRemaining);
+    });
     this.controlSubscriber.on('fuel_comp_reset').handle((flag) => { this.totalizer.reset(flag); });
   }
 
@@ -192,5 +230,6 @@ export class FuelComputer {
    */
   public onUpdate(): void {
     this.simVarPublisher.onUpdate();
+    this.totalizerSimVarPublisher.onUpdate();
   }
 }

@@ -99,3 +99,4 @@ export type ComSpacingChangeEvent = {
   /** The spacing of the COM radio. */
   spacing: ComSpacing
 }
+

@@ -2,51 +2,55 @@
  * Options for creating a number formatter.
  */
 export type NumberFormatterOptions = {
-  /** The precision to which to round the number. A value of 0 denotes no rounding. */
-  precision: number;
+  /** The precision to which to round the number. A value of 0 denotes no rounding. Defaults to `0`. */
+  precision?: number;
 
-  /** Rounding behavior. Always round down = `-1`. Always round up = `+1`. Normal rounding = `0`. */
-  round: -1 | 0 | 1;
+  /** Rounding behavior. Always round down = `-1`. Always round up = `+1`. Normal rounding = `0`. Defaults to `0`. */
+  round?: -1 | 0 | 1;
 
   /**
    * The maximum number of digits to enforce. Digits to the _right_ of the decimal point will be omitted (with proper
    * rounding behavior) as necessary until the total number of digits in the output is less than or equal to the value
    * of this option or until there are no more digits to omit. Digits to the _left_ of the decimal point are always
-   * preserved, even if it means the number of digits in the output will exceed the value of this option.
+   * preserved, even if it means the number of digits in the output will exceed the value of this option. Defaults to
+   * `Infinity`.
    */
-  maxDigits: number;
+  maxDigits?: number;
 
   /**
    * Whether to force trailing zeroes to the right of the decimal point. The number of trailing zeroes is determined
    * by the `precision` option. Specifically, trailing zeroes are added to the least significant decimal place required
    * to represent the value of `precision` (and therefore, any possible output rounded to `precision`) with no
-   * rounding.
+   * rounding. Defaults to `true`.
    */
-  forceDecimalZeroes: boolean;
+  forceDecimalZeroes?: boolean;
 
-  /** The number of digits to which to pad with zeroes to the left of the decimal point. */
-  pad: number;
+  /** The number of digits to which to pad with zeroes to the left of the decimal point. Defaults to `1`. */
+  pad?: number;
 
-  /** Whether to show commas. */
-  showCommas: boolean;
+  /** Whether to show commas. Defaults to `false`. */
+  showCommas?: boolean;
 
-  /** Whether to use a minus sign (`−`) in place of a dash (`-`) in front of negative numbers. */
-  useMinusSign: boolean;
+  /** Whether to use a minus sign (`−`) in place of a dash (`-`) in front of negative numbers. Defaults to `false`. */
+  useMinusSign?: boolean;
 
-  /** Whether to force the display of a positive sign. */
-  forceSign: boolean;
+  /** Whether to force the display of a positive sign. Ignored if `hideSign` is `true`. Defaults to `false`. */
+  forceSign?: boolean;
 
-  /** The string to output for an input of NaN. */
-  nanString: string;
+  /** Whether to hide the display of the positive/negative sign. Overrides `forceSign`. Defaults to `false`. */
+  hideSign?: boolean;
 
-  /** Whether to cache and reuse the previously generated string when possible. */
-  cache: boolean;
+  /** The string to output for an input of NaN. Defaults to `'NaN'`. */
+  nanString?: string;
+
+  /** Whether to cache and reuse the previously generated string when possible. Defaults to `false`. */
+  cache?: boolean;
 };
 
 /**
  * Options used for formatting numbers, for internal use.
  */
-type NumberFormatterOptionsInternal = NumberFormatterOptions & {
+type NumberFormatterOptionsInternal = Required<NumberFormatterOptions> & {
   /** The function to use to round the number before formatting. */
   roundFunc: (value: number) => number;
 
@@ -65,7 +69,7 @@ type NumberFormatterOptionsInternal = NumberFormatterOptions & {
  * documentation for more information on each individual option.
  */
 export class NumberFormatter {
-  public static readonly DEFAULT_OPTIONS: Readonly<NumberFormatterOptions> = {
+  public static readonly DEFAULT_OPTIONS: Readonly<Required<NumberFormatterOptions>> = {
     precision: 0,
     round: 0,
     maxDigits: Infinity,
@@ -74,6 +78,7 @@ export class NumberFormatter {
     showCommas: false,
     useMinusSign: false,
     forceSign: false,
+    hideSign: false,
     nanString: 'NaN',
     cache: false
   };
@@ -111,6 +116,7 @@ export class NumberFormatter {
       showCommas,
       useMinusSign,
       forceSign,
+      hideSign,
       cache
     } = opts;
 
@@ -179,7 +185,9 @@ export class NumberFormatter {
       formatted = parts.join('.');
     }
 
-    formatted = ((forceSign || signText !== '+') ? signText : '') + formatted;
+    if (!hideSign && (forceSign || signText !== '+')) {
+      formatted = signText + formatted;
+    }
 
     if (cache) {
       opts.cachedString = formatted;
@@ -189,26 +197,33 @@ export class NumberFormatter {
   }
 
   /**
+   * Resolves an internal options object from a partial options object. Any option not explicitly defined by the
+   * partial options object will revert to its default value.
+   * @param options A partial options object.
+   * @returns A new internal options object containing the full set of options resolved from the specified partial
+   * options object.
+   */
+  private static resolveOptions(options?: Readonly<NumberFormatterOptions>): NumberFormatterOptionsInternal {
+    const resolved = Object.assign({}, options) as NumberFormatterOptionsInternal;
+
+    for (const key in NumberFormatter.DEFAULT_OPTIONS) {
+      (resolved as any)[key] ??= NumberFormatter.DEFAULT_OPTIONS[key as keyof NumberFormatterOptions];
+    }
+
+    resolved.roundFunc = NumberFormatter.roundFuncs[resolved.round];
+
+    return resolved;
+  }
+
+  /**
    * Creates a function which formats numeric values to strings. The formatting behavior of the function can be
    * customized using a number of options. Please refer to the {@link NumberFormatterOptions} type documentation for
    * more information on each individual option.
-   * @param options Options to customize the formatter. Options not explicitly defined will be set to the following
-   * default values:
-   * * `precision = 0`
-   * * `round = 0`
-   * * `maxDigits = Infinity`
-   * * `forceDecimalZeroes = true`
-   * * `pad = 1`
-   * * `showCommas = false`
-   * * `useMinusSign = false`
-   * * `forceSign = false`
-   * * `nanString = 'NaN'`
-   * * `cache = false`
+   * @param options Options with which to customize the formatter.
    * @returns A function which formats numeric values to strings.
    */
-  public static create(options: Partial<NumberFormatterOptions>): (number: number) => string {
-    const optsToUse = Object.assign({}, NumberFormatter.DEFAULT_OPTIONS, options) as unknown as NumberFormatterOptionsInternal;
-    optsToUse.roundFunc = NumberFormatter.roundFuncs[optsToUse.round];
+  public static create(options?: NumberFormatterOptions): (number: number) => string {
+    const optsToUse = NumberFormatter.resolveOptions(options);
 
     return (number: number): string => {
       return NumberFormatter.formatNumber(number, optsToUse);

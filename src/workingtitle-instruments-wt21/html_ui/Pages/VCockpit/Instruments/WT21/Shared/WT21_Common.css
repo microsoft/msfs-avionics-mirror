@@ -32,6 +32,7 @@ html {
   --wt21-colors-green: #49e700;
   --wt21-colors-magenta: magenta;
   --wt21-colors-cyan: hsl(195, 100%, 50%);
+  --wt21-colors-teal: hsl(180, 100%, 35%);
 
   /* Font Styling */
   --wt21-fonts-family-general: "WT21";

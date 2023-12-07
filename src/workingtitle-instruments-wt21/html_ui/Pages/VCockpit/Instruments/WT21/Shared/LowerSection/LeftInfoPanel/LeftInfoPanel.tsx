@@ -1,8 +1,10 @@
-import { ComponentProps, DisplayComponent, EventBus, FSComponent, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { ComponentProps, DisplayComponent, EventBus, FSComponent, Subscribable, VNode } from '@microsoft/msfs-sdk';
 
 import { ElapsedTime } from '../../../PFD/DCP/ElapsedTime';
-import { PfdOrMfd } from '../../Map/MapUserSettings';
+import { DisplayUnitLayout } from '../../Config/DisplayUnitConfig';
 import { GuiDialog, GuiDialogProps } from '../../UI/GuiDialog';
+import { WT21DisplayUnitFsInstrument, WT21DisplayUnitType } from '../../WT21DisplayUnitFsInstrument';
+import { FormatSwitch } from '../RightInfoPanel/FormatSwitch';
 import { WaypointAlerter } from '../WaypointAlerter';
 import { BearingPointerDataFields } from './BearingPointerDataFields';
 import { ElapsedTimeDisplay } from './ElapsedTimeDisplay';
@@ -13,11 +15,14 @@ import { NavSourcePreset } from './NavSourcePreset';
 interface LeftInfoPanelProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
-  // eslint-disable-next-line jsdoc/require-jsdoc
+
+  /** The display unit */
+  displayUnit: WT21DisplayUnitFsInstrument;
+
+  /** The elapsed time state */
   elapsedTime?: ElapsedTime;
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  pfdOrMfd: PfdOrMfd;
-  // eslint-disable-next-line jsdoc/require-jsdoc
+
+  /** A subscribable to the active menu */
   activeMenu?: Subscribable<GuiDialog<GuiDialogProps> | null>;
 
   /** A waypoint alerter instance that controls display of waypoint alert flashing. */
@@ -28,7 +33,8 @@ interface LeftInfoPanelProps extends ComponentProps {
 export class LeftInfoPanel extends DisplayComponent<LeftInfoPanelProps> {
   private readonly navSourcePresetRef = FSComponent.createRef<NavSourcePreset>();
   private readonly bearingPointerDataFieldsRef = FSComponent.createRef<BearingPointerDataFields>();
-  private readonly versionSubject = Subject.create<number>(-1);
+
+  private readonly isUsingSoftkeys = this.props.displayUnit.displayUnitConfig.displayUnitLayout === DisplayUnitLayout.Softkeys;
 
   /** @inheritdoc */
   public onAfterRender(): void {
@@ -45,16 +51,25 @@ export class LeftInfoPanel extends DisplayComponent<LeftInfoPanelProps> {
       <>
         <NavSourceDataField bus={this.props.bus} waypointAlerter={this.props.waypointAlerter} />
 
-        {this.props.pfdOrMfd === 'PFD' ? <NavSourcePreset bus={this.props.bus} ref={this.navSourcePresetRef} /> : null}
+        {this.props.displayUnit.displayUnitType === WT21DisplayUnitType.Mfd && this.isUsingSoftkeys && (
+          <FormatSwitch bus={this.props.bus} displayUnit={this.props.displayUnit} format="upper" orientation="left" />
+        )}
+
+        {this.props.displayUnit.displayUnitType === WT21DisplayUnitType.Pfd && (
+          <NavSourcePreset
+            bus={this.props.bus}
+            ref={this.navSourcePresetRef}
+            displayUnitLayout={this.props.displayUnit.displayUnitConfig.displayUnitLayout}
+          />
+        )}
 
         <BearingPointerDataFields bus={this.props.bus} ref={this.bearingPointerDataFieldsRef} />
         {this.props.elapsedTime &&
           <ElapsedTimeDisplay
             elapsedTimeText={this.props.elapsedTime.elapsedTimeText}
             isVisible={this.props.elapsedTime.elapsedTimeIsVisibile}
+            displayUnitLayout={this.props.displayUnit.displayUnitConfig.displayUnitLayout}
           />
-
-
         }
       </>
     );

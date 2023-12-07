@@ -1,0 +1,32 @@
+.pfd-popup-nav-src-overlay {
+  width: 100px;
+
+  top: 646px;
+  left: 0;
+}
+
+.pfd-popup-nav-src-overlay .popup-menu-title {
+  color: var(--wt21-colors-white);
+  background-color: var(--wt21-colors-blue);
+}
+
+.pfd-popup-brg-src-overlay {
+  width: 100px;
+
+  top: 646px;
+  right: 0;
+}
+
+.pfd-popup-brg-src-overlay .popup-menu-title {
+  color: var(--wt21-colors-white);
+  background-color: var(--wt21-colors-blue);
+}
+
+.pfd-popup-brg-src-overlay-bottom {
+  margin-top: 48px;
+}
+
+.pfd-popup-brg-src-arrow {
+  position: absolute;
+  overflow: visible;
+}

@@ -1,5 +1,5 @@
 import {
-  ComponentProps, DisplayComponent, FSComponent, MappedSubject, MappedSubscribable, MathUtils, ReadonlyFloat64Array,
+  ComponentProps, DisplayComponent, FSComponent, MappedSubject, MappedSubscribable, MathUtils, MutableSubscribable, ReadonlyFloat64Array,
   SetSubject, Subject, Subscribable, SubscribableMapFunctions, SubscribableSet, SubscribableUtils, Subscription,
   ToggleableClassNameRecord, Vec2Math, Vec2Subject, VNode,
 } from '@microsoft/msfs-sdk';
@@ -59,18 +59,23 @@ export class ScrollList<P extends ScrollListProps = ScrollListProps> extends Dis
   protected readonly translatableRef = FSComponent.createRef<HTMLDivElement>();
   protected readonly itemsContainerRef = FSComponent.createRef<HTMLDivElement>();
 
-  protected readonly listItemLengthPx = SubscribableUtils.toSubscribable(this.props.listItemLengthPx, true);
-  protected readonly listItemSpacingPx = SubscribableUtils.toSubscribable(this.props.listItemSpacingPx ?? 0, true);
+  protected readonly listItemLengthPxProp = SubscribableUtils.toSubscribable(this.props.listItemLengthPx, true);
+  protected readonly listItemSpacingPxProp = SubscribableUtils.toSubscribable(this.props.listItemSpacingPx ?? 0, true);
+  protected readonly itemsPerPageProp = this.props.itemsPerPage === undefined ? undefined : SubscribableUtils.toSubscribable(this.props.itemsPerPage, true);
+
+  protected readonly listItemLengthPx = Subject.create(this.listItemLengthPxProp.get());
+  protected readonly listItemSpacingPx = Subject.create(this.listItemSpacingPxProp.get());
   protected readonly itemCount = SubscribableUtils.toSubscribable(this.props.itemCount, true);
 
   /** The axis along which this list scrolls. */
   public readonly scrollAxis = this.props.scrollAxis ?? 'y';
 
+  protected readonly _itemsPerPage = this.itemsPerPageProp === undefined ? undefined : Subject.create(this.itemsPerPageProp.get());
   /**
    * The number of visible list items per page displayed by this list, or `undefined` if the number of items per page
    * is not prescribed.
    */
-  public readonly itemsPerPage = this.props.itemsPerPage === undefined ? undefined : SubscribableUtils.toSubscribable(this.props.itemsPerPage, true);
+  public readonly itemsPerPage = this._itemsPerPage as Subscribable<number> | undefined;
 
   protected readonly snapToItem = this.itemsPerPage !== undefined;
 
@@ -245,10 +250,30 @@ export class ScrollList<P extends ScrollListProps = ScrollListProps> extends Dis
   protected goToAnimationTargetPos = false;
   protected interval?: number;
 
+  protected readonly listItemParamSubs: Subscription[] = [];
+
   protected cssClassSub?: Subscription | Subscription[];
 
   /** @inheritdoc */
   public onAfterRender(): void {
+    if (this._itemsPerPage && this.itemsPerPageProp) {
+      this.listItemLengthPx.set(this.listItemLengthPxProp.get());
+      this.listItemSpacingPx.set(this.listItemSpacingPxProp.get());
+
+      this._itemsPerPage.set(this.itemsPerPageProp.get());
+
+      this.listItemParamSubs.push(
+        this.listItemLengthPxProp.sub(this.onListItemParamChanged.bind(this, this.listItemLengthPx)),
+        this.listItemSpacingPxProp.sub(this.onListItemParamChanged.bind(this, this.listItemSpacingPx)),
+        this.itemsPerPageProp.sub(this.onListItemParamChanged.bind(this, this._itemsPerPage))
+      );
+    } else {
+      this.listItemParamSubs.push(
+        this.listItemLengthPxProp.pipe(this.listItemLengthPx),
+        this.listItemSpacingPxProp.pipe(this.listItemSpacingPx),
+      );
+    }
+
     this._lengthPx.sub(lengthPx => {
       this.rootRef.instance.style.setProperty('--scroll-list-length', lengthPx + 'px');
     }, true);
@@ -626,8 +651,14 @@ export class ScrollList<P extends ScrollListProps = ScrollListProps> extends Dis
       }
     }
 
+    const maxOverscrollPx = this.maxOverscrollPx.get();
+
     // Apply velocity to the scroll position
-    this._scrollPos.set(this._scrollPos.get() + (this.velocity * deltaTimeSeconds));
+    this._scrollPos.set(MathUtils.clamp(
+      this._scrollPos.get() + (this.velocity * deltaTimeSeconds),
+      -maxOverscrollPx,
+      this._maxScrollPos.get() + maxOverscrollPx
+    ));
 
     // If we have scrolled past our target, set scroll position to the target and stop
     if (direction > 0) {
@@ -651,6 +682,23 @@ export class ScrollList<P extends ScrollListProps = ScrollListProps> extends Dis
    */
   protected pickNearestSnapToPos(pos: number): number {
     return MathUtils.clamp(MathUtils.round(pos, this._listItemLengthWithMarginPx.get()), 0, this._maxScrollPos.get());
+  }
+
+  /**
+   * Responds to when one of this list's item parameters changes when the list supports snapping to items.
+   * @param pipeTo The mutable subscribable to which to pipe the new parameter value.
+   * @param value The new parameter value.
+   */
+  protected onListItemParamChanged(pipeTo: MutableSubscribable<number>, value: number): void {
+    // If a list item parameter changes, then after the change the list's scroll position may be misaligned with
+    // respect to item snapping. Therefore, we will store the first visible item in the list before the parameter
+    // change and force the list to snap to the stored item after the parameter change.
+
+    const firstVisibleIndex = this._firstVisibleIndex.get();
+
+    pipeTo.set(value);
+
+    this.scrollToIndex(firstVisibleIndex, 0, false);
   }
 
   /**
@@ -730,14 +778,31 @@ export class ScrollList<P extends ScrollListProps = ScrollListProps> extends Dis
    * @returns a number used to dampen the mouse movement when overscrolled.
    */
   protected getDampening(direction: number): number {
-    const overscrollDirection = this.scrollPosFraction.get() > 1 ? 1 : this.scrollPosFraction.get() < 0 ? -1 : 0;
-    const overscrollPercentage = Math.min(1, this.getOverscrollPx() / this.maxOverscrollPx.get());
-    const overscrollDampening = overscrollPercentage > 0 ? 0.5 : 1;
-    if (overscrollDirection !== direction) {
-      return overscrollDampening;
+    const maxScrollPos = this.maxScrollPos.get();
+    const maxOverscrollPx = this.maxOverscrollPx.get();
+
+    // If we can't scroll at all, always dampen velocity to zero.
+    if (maxScrollPos <= 0 && maxOverscrollPx <= 0) {
+      return 0;
     }
-    const dampening = overscrollPercentage === 1 ? 0 : overscrollDampening;
-    return dampening;
+
+    const scrollPosFraction = this.scrollPosFraction.get();
+    const overscrollDirection = scrollPosFraction >= 1 ? 1 : scrollPosFraction <= 0 ? -1 : 0;
+
+    // If we are not trying to increase overscroll, then do not dampen velocity.
+    if (overscrollDirection !== direction) {
+      return 1;
+    }
+
+    if (maxOverscrollPx > 0) {
+      // If we can overscroll, then dampen velocity to zero if we are at the overscroll limit or by half if we are not
+      // at the limit.
+      const overscrollPercentage = Math.min(1, this.getOverscrollPx() / maxOverscrollPx);
+      return overscrollPercentage === 1 ? 0 : 0.5;
+    } else {
+      // If we can't overscroll, then always dampen velocity to zero.
+      return 0;
+    }
   }
 
   /**
@@ -801,6 +866,10 @@ export class ScrollList<P extends ScrollListProps = ScrollListProps> extends Dis
 
   /** @inheritdoc */
   public destroy(): void {
+    for (const sub of this.listItemParamSubs) {
+      sub.destroy();
+    }
+
     this._listItemLengthWithMarginPx.destroy();
     'destroy' in this._lengthPx && this._lengthPx.destroy();
     this.pageLength.destroy();

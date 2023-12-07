@@ -4,19 +4,10 @@
 /// <reference types="@microsoft/msfs-types/js/netbingmap" />
 
 import {
-  AdcPublisher, AhrsPublisher, AutopilotInstrument, BaseInstrumentPublisher, BasicAvionicsSystem, Clock,
-  ClockEvents, CompositeLogicXMLHost, ConsumerSubject,
-  DebounceTimer,
-  ElectricalEvents, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner,
-  FlightPlanPredictor, FSComponent,
-  FsInstrument,
-  GNSSPublisher, HEventPublisher, InstrumentBackplane, InstrumentEvents, LNavSimVarPublisher, MinimumsSimVarPublisher, NavComSimVarPublisher,
-  PressurizationPublisher, SimVarValueType,
-  SoundServer,
-  StallWarningEvents,
-  StallWarningPublisher,
-  Subject, TrafficInstrument, UserSettingSaveManager,
-  VNavSimVarPublisher, Wait, XPDRSimVarPublisher,
+  AdcPublisher, AhrsPublisher, AutopilotInstrument, BaseInstrumentPublisher, BasicAvionicsSystem, Clock, ClockEvents, CompositeLogicXMLHost, ConsumerSubject,
+  DebounceTimer, ElectricalEvents, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner, FlightPlanPredictor, FSComponent,
+  GNSSPublisher, HEventPublisher, InstrumentBackplane, InstrumentEvents, LNavSimVarPublisher, MinimumsSimVarPublisher, NavComSimVarPublisher, PressurizationPublisher,
+  SimVarValueType, SoundServer, StallWarningEvents, StallWarningPublisher, Subject, TrafficInstrument, UserSettingSaveManager, VNavSimVarPublisher, Wait, XPDRSimVarPublisher,
 } from '@microsoft/msfs-sdk';
 
 import { WT21LNavDataEvents, WT21LNavDataSimVarPublisher } from '../FMC/Autopilot/WT21LNavDataEvents';
@@ -51,17 +42,18 @@ import { MfdLwrMapSymbolsMenu } from './Menus/MfdLwrMapSymbolsMenu';
 import { WT21FlightPlanPredictorConfiguration } from '../Shared/WT21FlightPlanPredictorConfiguration';
 import { WT21Fms } from '../Shared/FlightPlan/WT21Fms';
 import { WT21ElectricalSetup } from '../Shared/Systems/WT21ElectricalSetup';
-
-import '../Shared/WT21_Common.css';
-import './WT21_MFD.css';
 import { WT21XmlAuralsConfig } from '../Shared/WT21XmlAuralsConfig';
 import { WT21FixInfoManager } from '../FMC/Systems/WT21FixInfoManager';
 import { WT21FixInfoConfig } from '../FMC/Systems/WT21FixInfoConfig';
+import { WT21DisplayUnitFsInstrument, WT21DisplayUnitType } from '../Shared/WT21DisplayUnitFsInstrument';
+
+import '../Shared/WT21_Common.css';
+import './WT21_MFD.css';
 
 /**
  * The WT21 MFD Instrument
  */
-export class WT21_MFD_Instrument implements FsInstrument {
+export class WT21_MFD_Instrument extends WT21DisplayUnitFsInstrument {
   private readonly backplane: InstrumentBackplane;
   private readonly baseInstrumentPublisher: BaseInstrumentPublisher;
   private readonly hEventPublisher: HEventPublisher;
@@ -121,6 +113,8 @@ export class WT21_MFD_Instrument implements FsInstrument {
    * @param instrument The base instrument.
    */
   constructor(readonly instrument: BaseInstrument) {
+    super(instrument, WT21DisplayUnitType.Mfd, instrument.instrumentIndex === 1 ? 1 : 2);
+
     RegisterViewListener('JS_LISTENER_INSTRUMENTS');
 
     this.bus = new EventBus();
@@ -223,7 +217,7 @@ export class WT21_MFD_Instrument implements FsInstrument {
 
     // TODO Deduplicate this code against PFD code
     this.navIndicators = new NavIndicators(new Map<WT21NavIndicatorName, WT21NavIndicator>([
-      ['courseNeedle', new WT21CourseNeedleNavIndicator(this.navSources, this.bus, 'MFD')],
+      ['courseNeedle', new WT21CourseNeedleNavIndicator(this.navSources, this, this.bus)],
       ['bearingPointer1', new WT21BearingPointerNavIndicator(this.navSources, this.bus, 1, 'NAV1')],
       ['bearingPointer2', new WT21BearingPointerNavIndicator(this.navSources, this.bus, 2, 'NAV2')],
     ]));
@@ -251,7 +245,7 @@ export class WT21_MFD_Instrument implements FsInstrument {
     this.fixInfoManager = new WT21FixInfoManager(this.bus, this.facLoader, WT21Fms.PRIMARY_ACT_PLAN_INDEX, this.planner, WT21FixInfoConfig /*, this.activeRoutePredictor*/);
 
     this.uprMenuViewService = new MfdUprMenuViewService();
-    this.lwrMenuViewService = new MfdLwrMenuViewService();
+    this.lwrMenuViewService = new MfdLwrMenuViewService(this.bus, this.displayUnitConfig);
     this.uprMenuViewService.otherMenuServices.push(this.lwrMenuViewService);
     this.lwrMenuViewService.otherMenuServices.push(this.uprMenuViewService);
 
@@ -288,8 +282,14 @@ export class WT21_MFD_Instrument implements FsInstrument {
     FSComponent.render(
       <NavIndicatorContext.Provider value={this.navIndicators}>
         <MfdHsi
-          ref={this.hsiRef} bus={this.bus} flightPlanner={this.planner} tcas={this.tcas} mfdIndex={this.instrument.instrumentIndex}
-          fixInfo={this.fixInfoManager} performancePlan={this.perfPlanRepository.getActivePlan()}
+          ref={this.hsiRef}
+          bus={this.bus}
+          displayUnit={this}
+          flightPlanner={this.planner}
+          tcas={this.tcas}
+          mfdIndex={this.instrument.instrumentIndex}
+          fixInfo={this.fixInfoManager}
+          performancePlan={this.perfPlanRepository.getActivePlan()}
         />
       </NavIndicatorContext.Provider>
       , document.getElementById('HSIMap')

@@ -9,6 +9,11 @@ export interface NavDataFieldModel<T> {
 }
 
 /**
+ * Utility type to get the value type from a NavDataFieldModel type.
+ */
+export type TypeOfNavDataFieldModel<M extends NavDataFieldModel<any>> = M extends NavDataFieldModel<infer T> ? T : never;
+
+/**
  * An enum describing the validity of the GPS data being provided to nav data field models.
  */
 export enum NavDataFieldGpsValidity {

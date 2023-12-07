@@ -1,7 +1,6 @@
 import {
-  BasicNavAngleUnit,
-  DefaultUserSettingManager, EventBus, NavAngleUnit, Subject, Subscribable, Unit, UnitFamily, UnitType, UserSettingDefinition, UserSettingManagerEntry,
-  UserSettingManagerSyncData, UserSettingValue
+  BasicNavAngleUnit, Consumer, DefaultUserSettingManager, EventBus, NavAngleUnit, Subject, Subscribable, Unit,
+  UnitFamily, UnitType, UserSetting, UserSettingManager, UserSettingMap, UserSettingRecord, UserSettingValue
 } from '@microsoft/msfs-sdk';
 
 /**
@@ -58,7 +57,7 @@ export enum UnitsFuelSettingMode {
 }
 
 /**
- * Type descriptions for display units user settings.
+ * Garmin display units user settings.
  */
 export type UnitsUserSettingTypes = {
   /** The nav angle units setting. */
@@ -78,167 +77,197 @@ export type UnitsUserSettingTypes = {
 
   /** The fuel units setting. */
   unitsFuel: UnitsFuelSettingMode;
-
 }
 
 /**
- * A user setting manager for display units. In addition to syncing settings across instruments and managing event
- * bus events related to the settings, this manager also provides subscribables for the unit types controlled by its
- * settings.
+ * Instrument-local versions of Garmin display units user settings.
  */
-export class UnitsUserSettingManager extends DefaultUserSettingManager<UnitsUserSettingTypes> {
+export type LocalUnitsUserSettingTypes = {
+  [P in keyof UnitsUserSettingTypes as `${P}_local`]: UnitsUserSettingTypes[P];
+}
+
+/**
+ * A manager for Garmin display units user settings.
+ */
+export interface UnitsUserSettingManager extends UserSettingManager<UnitsUserSettingTypes> {
+  /** The nav angle units to use for the current nav angle units setting. */
+  readonly navAngleUnits: Subscribable<NavAngleUnit>;
+
+  /** The large distance units to use (nautical mile, kilometer, etc.) for the current distance units setting. */
+  readonly distanceUnitsLarge: Subscribable<Unit<UnitFamily.Distance>>;
+
+  /** The small distance units to use (foot, meter, etc.) for the current distance units setting. */
+  readonly distanceUnitsSmall: Subscribable<Unit<UnitFamily.Distance>>;
+
+  /** The speed units to use for the current distance units setting. */
+  readonly speedUnits: Subscribable<Unit<UnitFamily.Speed>>;
+
+  /** The altitude units to use for the current altitude units setting. */
+  readonly altitudeUnits: Subscribable<Unit<UnitFamily.Distance>>;
+
+  /** The vertical speed units to use for the current altitude units setting. */
+  readonly verticalSpeedUnits: Subscribable<Unit<UnitFamily.Speed>>;
+
+  /** The temperature units to use for the current temperature units setting. */
+  readonly temperatureUnits: Subscribable<Unit<UnitFamily.Temperature>>;
+
+  /** The temperature delta units to use for the current temperature units setting. */
+  readonly temperatureDeltaUnits: Subscribable<Unit<UnitFamily.TemperatureDelta>>;
+
+  /** The weight units to use for the current weight units setting. */
+  readonly weightUnits: Subscribable<Unit<UnitFamily.Weight>>;
+
+  /** The fuel units to use for the current fuel units setting. */
+  readonly fuelUnits: Subscribable<Unit<UnitFamily.Weight>>;
+
+  /** The fuel flow units to use for the current fuel units setting. */
+  readonly fuelFlowUnits: Subscribable<Unit<UnitFamily.WeightFlux>>;
+}
+
+/**
+ * A default implementation of {@link UnitsUserSettingManager} which sources setting values from another setting
+ * manager.
+ */
+export class DefaultUnitsUserSettingManager implements UnitsUserSettingManager {
   private static readonly TRUE_BEARING = BasicNavAngleUnit.create(false);
   private static readonly MAGNETIC_BEARING = BasicNavAngleUnit.create(true);
 
-  private readonly navAngleUnitsSub = Subject.create(UnitsUserSettingManager.MAGNETIC_BEARING);
-  public readonly navAngleUnits = this.navAngleUnitsSub as Subscribable<NavAngleUnit>;
+  private readonly _navAngleUnits = Subject.create(DefaultUnitsUserSettingManager.MAGNETIC_BEARING);
+  public readonly navAngleUnits = this._navAngleUnits as Subscribable<NavAngleUnit>;
 
-  private readonly distanceUnitsLargeSub = Subject.create(UnitType.NMILE);
-  public readonly distanceUnitsLarge = this.distanceUnitsLargeSub as Subscribable<Unit<UnitFamily.Distance>>;
+  private readonly _distanceUnitsLarge = Subject.create(UnitType.NMILE);
+  public readonly distanceUnitsLarge = this._distanceUnitsLarge as Subscribable<Unit<UnitFamily.Distance>>;
 
-  private readonly distanceUnitsSmallSub = Subject.create(UnitType.FOOT);
-  public readonly distanceUnitsSmall = this.distanceUnitsSmallSub as Subscribable<Unit<UnitFamily.Distance>>;
+  private readonly _distanceUnitsSmall = Subject.create(UnitType.FOOT);
+  public readonly distanceUnitsSmall = this._distanceUnitsSmall as Subscribable<Unit<UnitFamily.Distance>>;
 
-  private readonly speedUnitsSub = Subject.create(UnitType.KNOT);
-  public readonly speedUnits = this.speedUnitsSub as Subscribable<Unit<UnitFamily.Speed>>;
+  private readonly _speedUnits = Subject.create(UnitType.KNOT);
+  public readonly speedUnits = this._speedUnits as Subscribable<Unit<UnitFamily.Speed>>;
 
-  private readonly altitudeUnitsSub = Subject.create(UnitType.FOOT);
-  public readonly altitudeUnits = this.altitudeUnitsSub as Subscribable<Unit<UnitFamily.Distance>>;
+  private readonly _altitudeUnits = Subject.create(UnitType.FOOT);
+  public readonly altitudeUnits = this._altitudeUnits as Subscribable<Unit<UnitFamily.Distance>>;
 
-  private readonly verticalSpeedUnitsSub = Subject.create(UnitType.FPM);
-  public readonly verticalSpeedUnits = this.verticalSpeedUnitsSub as Subscribable<Unit<UnitFamily.Speed>>;
+  private readonly _verticalSpeedUnits = Subject.create(UnitType.FPM);
+  public readonly verticalSpeedUnits = this._verticalSpeedUnits as Subscribable<Unit<UnitFamily.Speed>>;
 
-  private readonly temperatureUnitsSub = Subject.create(UnitType.CELSIUS);
-  public readonly temperatureUnits = this.temperatureUnitsSub as Subscribable<Unit<UnitFamily.Temperature>>;
+  private readonly _temperatureUnits = Subject.create(UnitType.CELSIUS);
+  public readonly temperatureUnits = this._temperatureUnits as Subscribable<Unit<UnitFamily.Temperature>>;
 
-  private readonly temperatureDeltaUnitsSub = Subject.create(UnitType.DELTA_CELSIUS);
-  public readonly temperatureDeltaUnits = this.temperatureDeltaUnitsSub as Subscribable<Unit<UnitFamily.TemperatureDelta>>;
+  private readonly _temperatureDeltaUnits = Subject.create(UnitType.DELTA_CELSIUS);
+  public readonly temperatureDeltaUnits = this._temperatureDeltaUnits as Subscribable<Unit<UnitFamily.TemperatureDelta>>;
 
-  private readonly weightUnitsSub = Subject.create(UnitType.POUND);
-  public readonly weightUnits = this.weightUnitsSub as Subscribable<Unit<UnitFamily.Weight>>;
+  private readonly _weightUnits = Subject.create(UnitType.POUND);
+  public readonly weightUnits = this._weightUnits as Subscribable<Unit<UnitFamily.Weight>>;
 
-  private readonly fuelUnitsSub = Subject.create(UnitType.GALLON_FUEL);
-  public readonly fuelUnits = this.fuelUnitsSub as Subscribable<Unit<UnitFamily.Weight>>;
+  private readonly _fuelUnits = Subject.create(UnitType.GALLON_FUEL);
+  public readonly fuelUnits = this._fuelUnits as Subscribable<Unit<UnitFamily.Weight>>;
 
-  private readonly fuelFlowUnitsSub = Subject.create(UnitType.GPH_FUEL);
-  public readonly fuelFlowUnits = this.fuelFlowUnitsSub as Subscribable<Unit<UnitFamily.WeightFlux>>;
-
-  private areSubscribablesInit = false;
+  private readonly _fuelFlowUnits = Subject.create(UnitType.GPH_FUEL);
+  public readonly fuelFlowUnits = this._fuelFlowUnits as Subscribable<Unit<UnitFamily.WeightFlux>>;
 
   /** @inheritdoc */
-  constructor(bus: EventBus, settingDefs: UserSettingDefinition<UnitsUserSettingTypes[keyof UnitsUserSettingTypes]>[]) {
-    super(bus, settingDefs);
+  public constructor(private readonly sourceSettingManager: UserSettingManager<UnitsUserSettingTypes>) {
+    sourceSettingManager.getSetting('unitsNavAngle').pipe(this._navAngleUnits, value => {
+      return value === UnitsNavAngleSettingMode.True ? DefaultUnitsUserSettingManager.TRUE_BEARING : DefaultUnitsUserSettingManager.MAGNETIC_BEARING;
+    });
 
-    this.areSubscribablesInit = true;
+    sourceSettingManager.getSetting('unitsDistance').sub(value => {
+      switch (value) {
+        case UnitsDistanceSettingMode.Metric:
+          this._distanceUnitsLarge.set(UnitType.KILOMETER);
+          this._distanceUnitsSmall.set(UnitType.METER);
+          this._speedUnits.set(UnitType.KPH);
+          break;
+        case UnitsDistanceSettingMode.Statute:
+          this._distanceUnitsLarge.set(UnitType.MILE);
+          this._distanceUnitsSmall.set(UnitType.FOOT);
+          this._speedUnits.set(UnitType.MPH);
+          break;
+        default:
+          this._distanceUnitsLarge.set(UnitType.NMILE);
+          this._distanceUnitsSmall.set(UnitType.FOOT);
+          this._speedUnits.set(UnitType.KNOT);
+      }
+    }, true);
 
-    for (const entry of this.settings.values()) {
-      this.updateUnitsSubjects(entry.setting.definition.name, entry.setting.value);
-    }
+    sourceSettingManager.getSetting('unitsAltitude').sub(value => {
+      switch (value) {
+        case UnitsAltitudeSettingMode.Meters:
+          this._altitudeUnits.set(UnitType.METER);
+          this._verticalSpeedUnits.set(UnitType.MPM);
+          break;
+        case UnitsAltitudeSettingMode.MetersMps:
+          this._altitudeUnits.set(UnitType.METER);
+          this._verticalSpeedUnits.set(UnitType.MPS);
+          break;
+        default:
+          this._altitudeUnits.set(UnitType.FOOT);
+          this._verticalSpeedUnits.set(UnitType.FPM);
+      }
+    }, true);
+
+    sourceSettingManager.getSetting('unitsTemperature').sub(value => {
+      if (value === UnitsTemperatureSettingMode.Fahrenheit) {
+        this._temperatureUnits.set(UnitType.FAHRENHEIT);
+        this._temperatureDeltaUnits.set(UnitType.DELTA_FAHRENHEIT);
+      } else {
+        this._temperatureUnits.set(UnitType.CELSIUS);
+        this._temperatureDeltaUnits.set(UnitType.DELTA_CELSIUS);
+      }
+    }, true);
+
+    sourceSettingManager.getSetting('unitsWeight').pipe(this._weightUnits, value => {
+      return value === UnitsWeightSettingMode.Kilograms ? UnitType.KILOGRAM : UnitType.POUND;
+    });
+
+    sourceSettingManager.getSetting('unitsFuel').sub(value => {
+      switch (value) {
+        case UnitsFuelSettingMode.ImpGal:
+          this._fuelUnits.set(UnitType.IMP_GALLON_FUEL);
+          this._fuelFlowUnits.set(UnitType.IGPH_FUEL);
+          break;
+        case UnitsFuelSettingMode.Liters:
+          this._fuelUnits.set(UnitType.LITER_FUEL);
+          this._fuelFlowUnits.set(UnitType.LPH_FUEL);
+          break;
+        case UnitsFuelSettingMode.Kilograms:
+          this._fuelUnits.set(UnitType.KILOGRAM);
+          this._fuelFlowUnits.set(UnitType.KGH);
+          break;
+        case UnitsFuelSettingMode.Pounds:
+          this._fuelUnits.set(UnitType.POUND);
+          this._fuelFlowUnits.set(UnitType.PPH);
+          break;
+        default:
+          this._fuelUnits.set(UnitType.GALLON_FUEL);
+          this._fuelFlowUnits.set(UnitType.GPH_FUEL);
+      }
+    }, true);
   }
 
   /** @inheritdoc */
-  protected onSettingValueChanged<K extends keyof UnitsUserSettingTypes>(
-    entry: UserSettingManagerEntry<UnitsUserSettingTypes[K]>,
-    value: UnitsUserSettingTypes[K]
-  ): void {
-    if (this.areSubscribablesInit) {
-      this.updateUnitsSubjects(entry.setting.definition.name, value);
-    }
-
-    super.onSettingValueChanged(entry, value);
+  public tryGetSetting<K extends string>(name: K): K extends keyof UnitsUserSettingTypes ? UserSetting<NonNullable<UnitsUserSettingTypes[K]>> : undefined {
+    return this.sourceSettingManager.tryGetSetting(name) as any;
   }
 
   /** @inheritdoc */
-  protected syncSettingFromEvent<K extends keyof UnitsUserSettingTypes>(
-    entry: UserSettingManagerEntry<UnitsUserSettingTypes[K]>,
-    data: UserSettingManagerSyncData<UnitsUserSettingTypes[K]>
-  ): void {
-    if (this.areSubscribablesInit) {
-      this.updateUnitsSubjects(entry.setting.definition.name, data.value);
-    }
-
-    super.syncSettingFromEvent(entry, data);
+  public getSetting<K extends keyof UnitsUserSettingTypes>(name: K): UserSetting<NonNullable<UnitsUserSettingTypes[K]>> {
+    return this.sourceSettingManager.getSetting(name);
   }
 
-  /**
-   * Updates this manager's units subjects in response to a setting value change.
-   * @param settingName The name of the setting that was changed.
-   * @param value The new value of the changed setting.
-   */
-  protected updateUnitsSubjects(settingName: string, value: UserSettingValue): void {
-    switch (settingName) {
-      case 'unitsNavAngle':
-        this.navAngleUnitsSub.set(value === UnitsNavAngleSettingMode.True ? UnitsUserSettingManager.TRUE_BEARING : UnitsUserSettingManager.MAGNETIC_BEARING);
-        break;
-      case 'unitsDistance':
-        switch (value) {
-          case UnitsDistanceSettingMode.Metric:
-            this.distanceUnitsLargeSub.set(UnitType.KILOMETER);
-            this.distanceUnitsSmallSub.set(UnitType.METER);
-            this.speedUnitsSub.set(UnitType.KPH);
-            break;
-          case UnitsDistanceSettingMode.Statute:
-            this.distanceUnitsLargeSub.set(UnitType.MILE);
-            this.distanceUnitsSmallSub.set(UnitType.FOOT);
-            this.speedUnitsSub.set(UnitType.MPH);
-            break;
-          default:
-            this.distanceUnitsLargeSub.set(UnitType.NMILE);
-            this.distanceUnitsSmallSub.set(UnitType.FOOT);
-            this.speedUnitsSub.set(UnitType.KNOT);
-        }
-        break;
-      case 'unitsAltitude':
-        switch (value) {
-          case UnitsAltitudeSettingMode.Meters:
-            this.altitudeUnitsSub.set(UnitType.METER);
-            this.verticalSpeedUnitsSub.set(UnitType.MPM);
-            break;
-          case UnitsAltitudeSettingMode.MetersMps:
-            this.altitudeUnitsSub.set(UnitType.METER);
-            this.verticalSpeedUnitsSub.set(UnitType.MPS);
-            break;
-          default:
-            this.altitudeUnitsSub.set(UnitType.FOOT);
-            this.verticalSpeedUnitsSub.set(UnitType.FPM);
-        }
-        break;
-      case 'unitsTemperature':
-        if (value === UnitsTemperatureSettingMode.Fahrenheit) {
-          this.temperatureUnitsSub.set(UnitType.FAHRENHEIT);
-          this.temperatureDeltaUnitsSub.set(UnitType.DELTA_FAHRENHEIT);
-        } else {
-          this.temperatureUnitsSub.set(UnitType.CELSIUS);
-          this.temperatureDeltaUnitsSub.set(UnitType.DELTA_CELSIUS);
-        }
-        break;
-      case 'unitsWeight':
-        this.weightUnitsSub.set(value === UnitsWeightSettingMode.Kilograms ? UnitType.KILOGRAM : UnitType.POUND);
-        break;
-      case 'unitsFuel':
-        switch (value) {
-          case UnitsFuelSettingMode.ImpGal:
-            this.fuelUnitsSub.set(UnitType.IMP_GALLON_FUEL);
-            this.fuelFlowUnitsSub.set(UnitType.IGPH_FUEL);
-            break;
-          case UnitsFuelSettingMode.Liters:
-            this.fuelUnitsSub.set(UnitType.LITER_FUEL);
-            this.fuelFlowUnitsSub.set(UnitType.LPH_FUEL);
-            break;
-          case UnitsFuelSettingMode.Kilograms:
-            this.fuelUnitsSub.set(UnitType.KILOGRAM);
-            this.fuelFlowUnitsSub.set(UnitType.KGH);
-            break;
-          case UnitsFuelSettingMode.Pounds:
-            this.fuelUnitsSub.set(UnitType.POUND);
-            this.fuelFlowUnitsSub.set(UnitType.PPH);
-            break;
-          default:
-            this.fuelUnitsSub.set(UnitType.GALLON_FUEL);
-            this.fuelFlowUnitsSub.set(UnitType.GPH_FUEL);
-        }
-        break;
-    }
+  /** @inheritdoc */
+  public whenSettingChanged<K extends keyof UnitsUserSettingTypes>(name: K): Consumer<NonNullable<UnitsUserSettingTypes[K]>> {
+    return this.sourceSettingManager.whenSettingChanged(name);
+  }
+
+  /** @inheritdoc */
+  public getAllSettings(): UserSetting<UserSettingValue>[] {
+    return this.sourceSettingManager.getAllSettings();
+  }
+
+  /** @inheritdoc */
+  public mapTo<M extends UserSettingRecord>(map: UserSettingMap<M, UnitsUserSettingTypes>): UserSettingManager<M & UnitsUserSettingTypes> {
+    return this.sourceSettingManager.mapTo(map);
   }
 }
 
@@ -247,38 +276,65 @@ export class UnitsUserSettingManager extends DefaultUserSettingManager<UnitsUser
  */
 export class UnitsUserSettings {
   private static INSTANCE: UnitsUserSettingManager | undefined;
+  private static LOCAL_INSTANCE: UnitsUserSettingManager | undefined;
 
   /**
    * Retrieves a manager for display units user settings.
    * @param bus The event bus.
-   * @returns a manager for display units user settings.
+   * @returns A manager for display units user settings.
    */
   public static getManager(bus: EventBus): UnitsUserSettingManager {
-    return UnitsUserSettings.INSTANCE ??= new UnitsUserSettingManager(bus, [
-      {
-        name: 'unitsNavAngle',
-        defaultValue: UnitsNavAngleSettingMode.Magnetic
-      },
-      {
-        name: 'unitsDistance',
-        defaultValue: UnitsDistanceSettingMode.Nautical
-      },
-      {
-        name: 'unitsAltitude',
-        defaultValue: UnitsAltitudeSettingMode.Feet
-      },
-      {
-        name: 'unitsTemperature',
-        defaultValue: UnitsTemperatureSettingMode.Celsius
-      },
-      {
-        name: 'unitsWeight',
-        defaultValue: UnitsWeightSettingMode.Pounds
-      },
-      {
-        name: 'unitsFuel',
-        defaultValue: UnitsFuelSettingMode.Gallons
-      }
-    ]);
+    return UnitsUserSettings.INSTANCE ??= new DefaultUnitsUserSettingManager(
+      new DefaultUserSettingManager(bus, Object.entries(UnitsUserSettings.getDefaultValues()).map(([name, defaultValue]) => {
+        return {
+          name,
+          defaultValue
+        };
+      }))
+    );
+  }
+
+  /**
+   * Retrieves a manager for instrument-local display units user settings.
+   * @param bus The event bus.
+   * @returns A manager for instrument-local display units user settings.
+   */
+  public static getLocalManager(bus: EventBus): UnitsUserSettingManager {
+    if (UnitsUserSettings.LOCAL_INSTANCE) {
+      return UnitsUserSettings.LOCAL_INSTANCE;
+    }
+
+    const defaultValues = Object.entries(UnitsUserSettings.getDefaultValues()) as [keyof UnitsUserSettingTypes, UnitsUserSettingTypes[keyof UnitsUserSettingTypes]][];
+
+    const defs = defaultValues.map(([name, defaultValue]) => {
+      return {
+        name: `${name}_local`,
+        defaultValue
+      };
+    });
+
+    const map = {} as UserSettingMap<UnitsUserSettingTypes, LocalUnitsUserSettingTypes>;
+    for (const [name] of defaultValues) {
+      map[name] = `${name}_local`;
+    }
+
+    return UnitsUserSettings.LOCAL_INSTANCE = new DefaultUnitsUserSettingManager(
+      new DefaultUserSettingManager(bus, defs, true).mapTo(map)
+    );
+  }
+
+  /**
+   * Gets the default values for a full set of standard display units user settings.
+   * @returns The default values for a full set of standard display units user settings.
+   */
+  private static getDefaultValues(): UnitsUserSettingTypes {
+    return {
+      unitsNavAngle: UnitsNavAngleSettingMode.Magnetic,
+      unitsDistance: UnitsDistanceSettingMode.Nautical,
+      unitsAltitude: UnitsAltitudeSettingMode.Feet,
+      unitsTemperature: UnitsTemperatureSettingMode.Celsius,
+      unitsWeight: UnitsWeightSettingMode.Pounds,
+      unitsFuel: UnitsFuelSettingMode.Gallons
+    };
   }
 }

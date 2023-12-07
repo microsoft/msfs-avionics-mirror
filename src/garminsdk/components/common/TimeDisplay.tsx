@@ -1,5 +1,6 @@
 import {
-  ComponentProps, DisplayComponent, FSComponent, MappedSubscribable, Subject, Subscribable, SubscribableMapFunctions, SubscribableSet, Subscription, VNode
+  ComponentProps, DisplayComponent, FSComponent, MappedSubscribable, Subject, Subscribable, SubscribableMapFunctions,
+  SubscribableSet, SubscribableUtils, Subscription, ToggleableClassNameRecord, VNode
 } from '@microsoft/msfs-sdk';
 
 /**
@@ -27,8 +28,19 @@ export interface TimeDisplayProps extends ComponentProps {
   /** The local time offset, in milliseconds, or a subscribable which provides it. */
   localOffset: number | Subscribable<number>;
 
+  /**
+   * A function which formats suffixes to append to the displayed time. If not defined, then the suffix will be
+   * will be formatted as `'UTC'` if the display format is {@link TimeDisplayFormat.UTC}, `'LCL'` if the display format
+   * is {@link TimeDisplayFormat.Local24}, and either `'AM'` or `'PM'` if the display format is
+   * {@link TimeDisplayFormat.Local12}.
+   */
+  suffixFormatter?: (format: TimeDisplayFormat, isAm: boolean) => string;
+
+  /** Whether to hide the suffix when the displayed time is equal to `NaN`. Defaults to `false`. */
+  hideSuffixWhenNaN?: boolean;
+
   /** CSS class(es) to apply to the root of the component. */
-  class?: string | SubscribableSet<string>;
+  class?: string | SubscribableSet<string> | ToggleableClassNameRecord;
 }
 
 /**
@@ -37,17 +49,35 @@ export interface TimeDisplayProps extends ComponentProps {
 export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
   private static readonly SECOND_PRECISION_MAP = SubscribableMapFunctions.withPrecision(1000);
 
+  private static readonly HIDE_UNIT_TEXT_PIPE = (text: string): string => text === '' ? 'none' : '';
+
+  /**
+   * A function which formats suffixes for TimeDisplay.
+   * @param format The current format used to display the time.
+   * @param isAm Whether or not the current time is AM.
+   * @returns The suffix to append to the displayed time.
+   */
+  public static readonly DEFAULT_SUFFIX_FORMATTER = (format: TimeDisplayFormat, isAm: boolean): string => {
+    if (format === TimeDisplayFormat.UTC) {
+      return 'UTC';
+    } else if (format === TimeDisplayFormat.Local24) {
+      return 'LCL';
+    } else {
+      return isAm ? 'AM' : 'PM';
+    }
+  };
+
   private readonly timeSeconds = typeof this.props.time === 'object'
     ? (this.timeSub = this.props.time.map(TimeDisplay.SECOND_PRECISION_MAP))
     : Subject.create(TimeDisplay.SECOND_PRECISION_MAP(this.props.time));
 
-  private readonly format = typeof this.props.format === 'object'
-    ? this.props.format
-    : Subject.create(this.props.format);
+  private readonly format = SubscribableUtils.toSubscribable(this.props.format, true);
 
-  private readonly localOffset = typeof this.props.localOffset === 'object'
-    ? this.props.localOffset
-    : Subject.create(this.props.localOffset);
+  private readonly localOffset = SubscribableUtils.toSubscribable(this.props.localOffset, true);
+
+  private readonly suffixFormatter = this.props.suffixFormatter ?? TimeDisplay.DEFAULT_SUFFIX_FORMATTER;
+
+  private readonly suffixDisplay = Subject.create('');
 
   private readonly date = new Date();
 
@@ -67,6 +97,9 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
     this.formatSub = this.format.sub(this.updateHandler);
     this.localOffsetSub = this.localOffset.sub(this.updateHandler);
     this.timeSeconds.sub(this.updateHandler, true);
+
+    // We have to hide the suffix text when empty because an empty string will get rendered as a space.
+    this.suffixText.pipe(this.suffixDisplay, TimeDisplay.HIDE_UNIT_TEXT_PIPE);
   }
 
   /**
@@ -82,6 +115,8 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
       this.hourText.set('__');
       this.minText.set('__');
       this.secText.set('__');
+
+      this.suffixText.set(this.props.hideSuffixWhenNaN ? '' : this.getSuffix(format, isAm));
     } else {
       const offset = format === TimeDisplayFormat.UTC ? 0 : this.localOffset.get();
 
@@ -100,25 +135,19 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
       this.minText.set(this.date.getUTCMinutes().toString().padStart(2, '0'));
 
       this.secText.set(this.date.getUTCSeconds().toString().padStart(2, '0'));
-    }
 
-    this.suffixText.set(this.getSuffix(format, isAm));
+      this.suffixText.set(this.getSuffix(format, isAm));
+    }
   }
 
   /**
    * Gets the suffix to append to the time display.
    * @param format The format of the time display.
-   * @param isAm Whether or not the current time is AM or PM.
+   * @param isAm Whether or not the current time is AM.
    * @returns The time display suffix.
    */
   protected getSuffix(format: TimeDisplayFormat, isAm: boolean): string {
-    if (format === TimeDisplayFormat.UTC) {
-      return 'UTC';
-    } else if (format === TimeDisplayFormat.Local24) {
-      return 'LCL';
-    } else {
-      return isAm ? 'AM' : 'PM';
-    }
+    return this.suffixFormatter(format, isAm);
   }
 
   /** @inheritdoc */
@@ -128,7 +157,7 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
         <span class='time-hour'>{this.hourText}</span>
         <span class='time-min'>:{this.minText}</span>
         <span class='time-sec'>:{this.secText}</span>
-        <span class='time-suffix'>{this.suffixText}</span>
+        <span class='time-suffix' style={{ 'display': this.suffixDisplay }}>{this.suffixText}</span>
       </div>
     );
   }

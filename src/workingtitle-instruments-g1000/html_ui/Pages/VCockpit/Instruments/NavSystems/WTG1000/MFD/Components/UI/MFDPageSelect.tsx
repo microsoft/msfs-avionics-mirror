@@ -1,4 +1,4 @@
-import { ArraySubject, FSComponent, NodeReference, PluginSystem, VNode } from '@microsoft/msfs-sdk';
+import { ArraySubject, FSComponent, HEvent, NodeReference, PluginSystem, VNode } from '@microsoft/msfs-sdk';
 
 import { G1000AvionicsPlugin, G1000PluginBinder } from '../../../Shared';
 import { MenuItemDefinition, PopoutMenuItem } from '../../../Shared/UI/Dialogs/PopoutMenuItem';
@@ -210,7 +210,7 @@ export class MFDPageSelect extends UiView<MFDPageSelectProps> {
     this.compute();
 
     // Now plugins can modify things.
-    this.props.pluginSystem.callPlugins(p => p.onPageSelectMenuSystemInitialized());
+    this.props.pluginSystem.callPlugins(p => p.onPageSelectMenuSystemInitialized?.());
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc
@@ -228,6 +228,11 @@ export class MFDPageSelect extends UiView<MFDPageSelectProps> {
         this.setActiveGroup(groupIndex, itemIndex);
       }
     }, true);
+
+    // Scroll to Navigation Map (first list item) in pag elist when home button is pressed
+    this.props.pluginSystem.binder?.bus.getSubscriber<HEvent>().on('hEvent').handle(eventName => {
+      if (eventName === 'AS1000_CONTROL_PAD_Home') { this.listRef.instance.scrollToIndex(0); }
+    });
   }
 
   /**

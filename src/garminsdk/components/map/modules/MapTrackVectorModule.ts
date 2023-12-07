@@ -8,5 +8,5 @@ export class MapTrackVectorModule {
   public readonly show = Subject.create(false);
 
   /** The track vector's lookahead time. */
-  public readonly lookaheadTime = NumberUnitSubject.createFromNumberUnit(UnitType.SECOND.createNumber(60));
+  public readonly lookaheadTime = NumberUnitSubject.create(UnitType.SECOND.createNumber(60));
 }

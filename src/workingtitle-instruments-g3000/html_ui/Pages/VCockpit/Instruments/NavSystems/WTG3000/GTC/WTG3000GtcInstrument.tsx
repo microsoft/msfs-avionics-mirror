@@ -1,12 +1,16 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
+  DefaultObsSuspDataProvider, DefaultVNavDataProvider, Fms, GarminFacilityWaypointCache, GpsNavSource,
+  NavRadioNavSource,
+  NavReferenceIndicatorsCollection,
+  NavReferenceSource,
+  NavReferenceSourceCollection,
+  TrafficSystemType,
+} from '@microsoft/msfs-garminsdk';
+import {
   ClockEvents, FacilityWaypoint, FSComponent, IntersectionFacility, NdbFacility,
   PluginSystem, SetSubject, Subject, UserFacility, VNode, VorFacility, Wait, XPDRSimVarPublisher,
 } from '@microsoft/msfs-sdk';
-import {
-  DefaultObsSuspDataProvider, DefaultVNavDataProvider, Fms, GarminFacilityWaypointCache, GpsNavSource,
-  NavReferenceIndicatorsCollection, NavRadioNavSource, NavReferenceSource, TrafficSystemType, NavReferenceSourceCollection,
-} from '@microsoft/msfs-garminsdk';
 import {
   AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, DefaultFmsSpeedTargetDataProvider, ExistingUserWaypointsArray, FlightPlanListManager,
   FlightPlanStore, G3000ActiveSourceNavIndicator, G3000FilePaths, G3000NavIndicator, G3000NavIndicatorName, G3000NavIndicators, G3000NavSourceName,
@@ -16,10 +20,11 @@ import {
 import { LabelBarPluginHandlers } from './Components';
 import { GtcConfig } from './Config';
 import {
-  GtcAirwaySelectionDialog, GtcAltitudeDialog, GtcBaroPressureDialog, GtcCourseDialog, GtcDistanceDialog, GtcDurationDialog,
+  GtcAirwaySelectionDialog, GtcAltitudeDialog, GtcBaroPressureDialog, GtcCourseDialog, GtcDistanceDialog, GtcDuplicateWaypointDialog, GtcDurationDialog,
   GtcDurationDialogMSS, GtcFindWaypointDialog, GtcFmsSpeedDialog, GtcFrequencyDialog, GtcIntegerDialog, GtcKeyboardDialog, GtcLatLonDialog, GtcListDialog,
   GtcLoadFrequencyDialog, GtcLocalTimeOffsetDialog, GtcMessageDialog, GtcMinimumsSourceDialog, GtcMinuteDurationDialog, GtcRunwayLengthDialog,
-  GtcSpeedConstraintDialog, GtcSpeedDialog, GtcTemperatureDialog, GtcUserWaypointDialog, GtcVnavAltitudeDialog, GtcVnavFlightPathAngleDialog, GtcWeightDialog,
+  GtcSpeedConstraintDialog, GtcSpeedDialog, GtcTemperatureDialog, GtcUserWaypointDialog, GtcVnavAltitudeDialog, GtcVnavFlightPathAngleDialog,
+  GtcWaypointDialog, GtcWeightDialog
 } from './Dialog';
 import { G3000GtcPlugin, G3000GtcPluginBinder } from './G3000GTCPlugin';
 import { G3000GtcViewContext } from './G3000GtcViewContext';
@@ -140,7 +145,9 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
 
     this.backplane.addPublisher(InstrumentBackplaneNames.Xpdr, this.xpdrSimVarPublisher);
 
-    this.doInit();
+    this.doInit().catch(e => {
+      console.error(e);
+    });
   }
 
   /**
@@ -1016,6 +1023,22 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
         );
       }
     );
+
+    this.gtcService.registerView(
+      GtcViewLifecyclePolicy.Transient,
+      GtcViewKeys.WaypointDialog, 'MFD',
+      (gtcService, controlMode, displayPaneIndex) => {
+        return (
+          <GtcWaypointDialog
+            gtcService={gtcService}
+            controlMode={controlMode}
+            displayPaneIndex={displayPaneIndex}
+            fms={this.fms}
+          />
+        );
+      }
+    );
+
     this.gtcService.registerView(
       GtcViewLifecyclePolicy.Persistent,
       GtcViewKeys.FindWaypointDialog, 'MFD',
@@ -1027,6 +1050,21 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
           posHeadingDataProvider={context.posHeadingDataProvider1Hz}
         />
       )
+    );
+
+    this.gtcService.registerView(
+      GtcViewLifecyclePolicy.Transient,
+      GtcViewKeys.DuplicateWaypointDialog, 'MFD',
+      (gtcService, controlMode, displayPaneIndex) => {
+        return (
+          <GtcDuplicateWaypointDialog
+            gtcService={gtcService}
+            controlMode={controlMode}
+            displayPaneIndex={displayPaneIndex}
+            posHeadingDataProvider={context.posHeadingDataProvider1Hz}
+          />
+        );
+      }
     );
 
     this.gtcService.registerView(

@@ -295,19 +295,19 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
       const type = (vspeed as VSpeedType);
       const setting = this.vspeedSettings.getSettings(type);
 
-      setting.get('value')?.sub((v) => {
+      setting.value.sub((v) => {
         this.SpeedBugsMap.get(type)?.instance.setBugSpeed(v as number);
         this.SpeedValuesMap.get(type)?.instance.setVSpeed(v as number);
         this.updateAllBugsAndRanges(Simplane.getIndicatedSpeed());
       }, true);
 
-      setting.get('manual')?.sub((v) => {
+      setting.manual.sub((v) => {
         this.SpeedBugsMap.get(type)?.instance.setIsModified(v as boolean);
         this.SpeedValuesMap.get(type)?.instance.setIsModified(v as boolean);
         this.updateAllBugsAndRanges(Simplane.getIndicatedSpeed());
       }, true);
 
-      setting.get('show')?.sub((v) => {
+      setting.show.sub((v) => {
         this.SpeedBugsMap.get(type)?.instance.setIsVisible(v as boolean);
         this.SpeedValuesMap.get(type)?.instance.setIsVisible(v as boolean);
         this.updateAllBugsAndRanges(Simplane.getIndicatedSpeed());
@@ -335,8 +335,8 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
    */
   private setVSpeedState = (type: VSpeedType, enabled: boolean): void => {
     const setting = this.vspeedSettings.getSettings(type);
-    setting.get('show')?.set(enabled);
-    setting.get('manual')?.set(true);
+    setting.show.set(enabled);
+    setting.manual.set(true);
 
   };
 

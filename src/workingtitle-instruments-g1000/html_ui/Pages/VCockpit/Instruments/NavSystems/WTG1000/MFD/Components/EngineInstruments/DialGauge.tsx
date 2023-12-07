@@ -190,10 +190,10 @@ class ColorLine extends DisplayComponent<ColorLineProps & XMLHostedLogicGauge> {
    */
   public render(): VNode {
     return (<Fragment><line ref={this.lineRef}
-      x1={this.props.geometry.origin.x} y1={this.props.geometry.origin.y - this.props.geometry.radius}
-      x2={this.props.geometry.origin.x} y2={this.props.geometry.origin.y - this.props.geometry.radius + this.props.length}
-      stroke={this.props.color} stroke-width={this.props.width}
-      style={`transform-origin: ${this.props.geometry.origin.x}px ${this.props.geometry.origin.y}px`} /></Fragment>);
+                            x1={this.props.geometry.origin.x} y1={this.props.geometry.origin.y - this.props.geometry.radius}
+                            x2={this.props.geometry.origin.x} y2={this.props.geometry.origin.y - this.props.geometry.radius + this.props.length}
+                            stroke={this.props.color} stroke-width={this.props.width}
+                            style={`transform-origin: ${this.props.geometry.origin.x}px ${this.props.geometry.origin.y}px`} /></Fragment>);
   }
 }
 
@@ -215,11 +215,11 @@ class ColorLines extends DisplayComponent<ColorLineSetProps & XMLHostedLogicGaug
       for (let i = 0; i < this.props.colorLines.length; i++) {
         FSComponent.render(
           <ColorLine logicHost={this.props.logicHost}
-            geometry={this.props.geometry}
-            color={this.props.colorLines[i].color}
-            position={this.props.colorLines[i].position}
-            smoothFactor={this.props.colorLines[i].smoothFactor}
-            length={15} width={2} />, this.groupRef.instance);
+                     geometry={this.props.geometry}
+                     color={this.props.colorLines[i].color}
+                     position={this.props.colorLines[i].position}
+                     smoothFactor={this.props.colorLines[i].smoothFactor}
+                     length={15} width={2} />, this.groupRef.instance);
       }
     }
   }
@@ -251,7 +251,7 @@ class ReferenceBugs extends DisplayComponent<ReferenceBugSetProps & XMLHostedLog
       for (let i = 0; i < this.props.referenceBugs.length; i++) {
         FSComponent.render(
           <ReferenceBug logicHost={this.props.logicHost} geometry={this.props.geometry}
-            config={this.props.referenceBugs[i]} />, this.groupRef.instance);
+                        config={this.props.referenceBugs[i]} />, this.groupRef.instance);
       }
     }
   }
@@ -411,8 +411,8 @@ export class XMLCircleGauge extends BaseGauge<Partial<XMLCircularGaugeProps> & X
       const pointA = XMLCircleGauge.polarToCartesian(this.origin, this.arcRadius - 11, ticks[i]);
       const pointB = XMLCircleGauge.polarToCartesian(this.origin, this.arcRadius, ticks[i]);
       FSComponent.render(<Fragment>
-        <line x1={pointA.x} y1={pointA.y} x2={pointB.x} y2={pointB.y} stroke="white" stroke-width="1px" shape-rendering="crispEdges" />
-      </Fragment>
+          <line x1={pointA.x} y1={pointA.y} x2={pointB.x} y2={pointB.y} stroke="white" stroke-width="1px" shape-rendering="crispEdges" />
+        </Fragment>
         , this.ticksRef.instance);
     }
   }
@@ -576,7 +576,7 @@ export class XMLCircleGauge extends BaseGauge<Partial<XMLCircularGaugeProps> & X
 
   /**
    * Construct an SVG path string for a given arc based on its coordinates and radius.
-     @param center The cartesian center of the arc.
+   @param center The cartesian center of the arc.
    * @param radius The radius in pixels.
    * @param startAngle The starting azimuth of the arc in degrees.
    * @param endAngle The final azimuth of the arc in degrees.
@@ -596,7 +596,7 @@ export class XMLCircleGauge extends BaseGauge<Partial<XMLCircularGaugeProps> & X
 
   /**
    * Determine the height "below the line" of the arc in pixels.
-     @param center The cartesian center of the arc.
+   @param center The cartesian center of the arc.
    * @param radius The radius in pixels.
    * @param startAngle The starting azimuth of the arc in degrees.
    * @param endAngle The final azimuth of the arc in degrees

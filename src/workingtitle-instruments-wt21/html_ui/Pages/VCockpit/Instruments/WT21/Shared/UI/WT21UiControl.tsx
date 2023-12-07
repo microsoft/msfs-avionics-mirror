@@ -34,7 +34,6 @@ export abstract class WT21UiControl<P extends WT21UiControlProps = WT21UiControl
     }
   }
 
-
   /** @inheritdoc */
   public onInteractionEvent(evt: GuiHEvent): boolean {
     switch (evt) {
@@ -159,6 +158,55 @@ export abstract class WT21UiControl<P extends WT21UiControlProps = WT21UiControl
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public onMfdEsc(source: WT21UiControl): boolean {
+    return false;
+  }
+
+
+  /** @inheritDoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onSoftkey1L(source: WT21UiControl): boolean {
+    return false;
+  }
+
+  /** @inheritDoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onSoftkey2L(source: WT21UiControl): boolean {
+    return false;
+  }
+
+  /** @inheritDoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onSoftkey3L(source: WT21UiControl): boolean {
+    return false;
+  }
+
+  /** @inheritDoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onSoftkey4L(source: WT21UiControl): boolean {
+    return false;
+  }
+
+  /** @inheritDoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onSoftkey1R(source: WT21UiControl): boolean {
+    return false;
+  }
+
+  /** @inheritDoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onSoftkey2R(source: WT21UiControl): boolean {
+    return false;
+  }
+
+  /** @inheritDoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onSoftkey3R(source: WT21UiControl): boolean {
+    return false;
+  }
+
+  /** @inheritDoc */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onSoftkey4R(source: WT21UiControl): boolean {
     return false;
   }
 }

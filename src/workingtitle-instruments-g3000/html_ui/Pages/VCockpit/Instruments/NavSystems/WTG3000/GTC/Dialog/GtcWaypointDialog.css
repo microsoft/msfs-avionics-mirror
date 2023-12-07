@@ -1,0 +1,126 @@
+.wpt-dialog {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .wpt-dialog {
+  --cursor-input-slots-padding: 0px 12px;
+
+  --wpt-dialog-top-section-width: 893px;
+  --wpt-dialog-top-section-height: 78px;
+
+  --wpt-dialog-input-width: 297px;
+  --wpt-dialog-input-height: 62px;
+  --wpt-dialog-input-margin: 0px 0px 0px 16px;
+  --wpt-dialog-input-font-size: 48px;
+
+  --wpt-dialog-input-label-margin: 0px 10px 0px 22px;
+  --wpt-dialog-input-label-font-size: 33px;
+
+  --wpt-dialog-input-icon-margin: 0px 57px 0px 0px;
+  --wpt-dialog-input-icon-scale: 1.8;
+
+  --wpt-dialog-keyboard-left: 61px;
+  --wpt-dialog-keyboard-top: 81px;
+}
+
+.gtc-vertical .wpt-dialog {
+  --cursor-input-slots-padding: 0px 7px;
+
+  --wpt-dialog-top-section-width: 100%;
+  --wpt-dialog-top-section-height: 42px;
+
+  --wpt-dialog-input-width: 160px;
+  --wpt-dialog-input-height: 34px;
+  --wpt-dialog-input-margin: 0px 0px 0px 8px;
+  --wpt-dialog-input-font-size: 27px;
+
+  --wpt-dialog-input-label-margin: 0px 3px 0px 11px;
+  --wpt-dialog-input-label-font-size: 18px;
+
+  --wpt-dialog-input-icon-margin: 0px 13px 0px 0px;
+  --wpt-dialog-input-icon-scale: 1;
+
+  --wpt-dialog-keyboard-left: 7px;
+  --wpt-dialog-keyboard-top: 44px;
+}
+
+.wpt-dialog-top-section {
+  position: absolute;
+  left: 50%;
+  top: 0px;
+  width: var(--wpt-dialog-top-section-width);
+  height: var(--wpt-dialog-top-section-height);
+  transform: translateX(-50%);
+  background-color: var(--g3000-color-black);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.wpt-dialog-input {
+  flex-shrink: 0;
+  width: var(--wpt-dialog-input-width);
+  height: var(--wpt-dialog-input-height);
+  margin: var(--wpt-dialog-input-margin);
+  color: var(--g3000-color-cyan);
+  font-size: var(--wpt-dialog-input-font-size);
+}
+
+.wpt-dialog-input.cursor-input-edit-inactive {
+  color: #003333;
+}
+
+.wpt-dialog-input .cursor-input-inactive {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  height: auto;
+  padding: var(--cursor-input-slots-padding);
+  transform: translateY(-50%);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+}
+
+.wpt-dialog-input-inactive-value-text {
+  background: var(--g3000-color-cyan);
+}
+
+.wpt-dialog-input-inactive-value-text-empty {
+  color: var(--g3000-color-black);
+}
+
+.wpt-dialog-input-slot-autocomplete .cursor-input-slot-character.cursor-input-slot-character-empty {
+  color: #003333;
+  animation: none;
+}
+
+.wpt-dialog-input-label {
+  flex-grow: 1;
+  height: 1.2em;
+  margin: var(--wpt-dialog-input-label-margin);
+  font-size: var(--wpt-dialog-input-label-font-size);
+  line-height: 1.2em;
+  overflow: hidden;
+  /* This makes it so the text doesn't get clipped in the middle of a character. */
+  word-break: break-all;
+}
+
+.wpt-dialog-input-icon {
+  flex-shrink: 0;
+  margin: var(--wpt-dialog-input-icon-margin);
+  transform: scale(var(--wpt-dialog-input-icon-scale));
+  transform-origin: 0% 50%;
+}
+
+.wpt-dialog .wpt-dialog-keyboard {
+  position: absolute;
+  left: var(--wpt-dialog-keyboard-left);
+  top: var(--wpt-dialog-keyboard-top);
+}

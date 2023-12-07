@@ -1,5 +1,5 @@
-import { APConfig, APStateManager, EventBus, FlightPlanner, MetricAltitudeSettingsManager } from '@microsoft/msfs-sdk';
-import { GarminAutopilot, MinimumsDataProvider } from '@microsoft/msfs-garminsdk';
+import { APStateManager, EventBus, FlightPlanner, MetricAltitudeSettingsManager } from '@microsoft/msfs-sdk';
+import { GarminAPConfigInterface, GarminAutopilot, MinimumsDataProvider } from '@microsoft/msfs-garminsdk';
 
 /**
  * A G3000 autopilot.
@@ -18,7 +18,7 @@ export class G3000Autopilot extends GarminAutopilot {
   constructor(
     bus: EventBus,
     flightPlanner: FlightPlanner,
-    config: APConfig,
+    config: GarminAPConfigInterface,
     stateManager: APStateManager,
     metricAltSettingsManager: MetricAltitudeSettingsManager,
     minimumsDataProvider: MinimumsDataProvider

@@ -26,6 +26,7 @@ import { NextGenMapWaypointStyles } from '../MapWaypointStyles';
 import {
   MapFlightPlanFocusModule, MapOrientation, MapOrientationModule, MapPointerModule, MapUnitsModule
 } from '../modules';
+import { NextGenGarminMapBuilder } from '../NextGenGarminMapBuilder';
 
 /**
  * Options for creating a next-generation (NXi, G3000, etc) Garmin Connext weather map.
@@ -323,7 +324,7 @@ export class NextGenConnextMapBuilder {
       mapBuilder.with(GarminMapBuilder.airspaces, options.useAirspaceVisUserSettings ? options.settingManager : undefined);
     }
 
-    mapBuilder.with(GarminMapBuilder.waypoints,
+    mapBuilder.with(NextGenGarminMapBuilder.waypoints,
       (builder: MapWaypointDisplayBuilder): void => {
         builder.withNormalStyles(
           options.waypointIconImageCache,
@@ -390,16 +391,15 @@ export class NextGenConnextMapBuilder {
     }
 
     if (options.includeAltitudeArc) {
-      mapBuilder
-        .with(GarminMapBuilder.altitudeArc,
-          {
-            renderMethod: 'svg',
-            verticalSpeedPrecision: UnitType.FPM.createNumber(50),
-            verticalSpeedThreshold: UnitType.FPM.createNumber(150),
-            altitudeDeviationThreshold: UnitType.FOOT.createNumber(150)
-          },
-          options.useAltitudeArcUserSettings ? options.settingManager : undefined
-        );
+      mapBuilder.with(GarminMapBuilder.altitudeArc,
+        {
+          renderMethod: 'svg',
+          verticalSpeedPrecision: UnitType.FPM.createNumber(50),
+          verticalSpeedThreshold: UnitType.FPM.createNumber(150),
+          altitudeDeviationThreshold: UnitType.FOOT.createNumber(150)
+        },
+        options.useAltitudeArcUserSettings ? options.settingManager : undefined
+      );
     }
 
     mapBuilder.with(GarminMapBuilder.crosshair);

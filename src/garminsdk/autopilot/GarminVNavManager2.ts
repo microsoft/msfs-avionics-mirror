@@ -100,7 +100,8 @@ export class GarminVNavManager2 implements VNavManager {
     rnavTypeFlags: RnavTypeFlags.None,
     isCircling: false,
     isVtf: false,
-    referenceFacility: null
+    referenceFacility: null,
+    runway: null
   }, FmsUtils.approachDetailsEquals);
   private readonly isApproachLoc = this.approachDetails.map(details => {
     switch (details.type) {

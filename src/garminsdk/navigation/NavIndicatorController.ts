@@ -139,7 +139,8 @@ export class NavIndicatorController {
     rnavTypeFlags: RnavTypeFlags.None,
     isCircling: false,
     isVtf: false,
-    referenceFacility: null
+    referenceFacility: null,
+    runway: null
   };
 
   private flightPhase: Readonly<FmsFlightPhase> = {

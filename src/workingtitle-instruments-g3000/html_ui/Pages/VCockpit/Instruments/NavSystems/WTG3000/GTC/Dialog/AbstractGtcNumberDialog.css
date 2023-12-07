@@ -54,7 +54,7 @@
   --number-dialog-backspace-img-scale: 1;
 }
 
-.number-dialog-input {
+.cursor-input.number-dialog-input {
   position: absolute;
   left: calc(var(--number-dialog-input-center) - var(--number-dialog-input-width) / 2);
   top: var(--number-dialog-input-top);
@@ -65,7 +65,7 @@
   --cursor-input-slots-justify: center;
 }
 
-.number-dialog-input.cursor-input-edit-inactive {
+.cursor-input.number-dialog-input.cursor-input-edit-inactive {
   color: var(--g3000-color-black);
 }
 

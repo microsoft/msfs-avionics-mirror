@@ -178,6 +178,15 @@ export class GarminAPStateManager extends APStateManager {
       case 'AP_WING_LEVELER_OFF':
         this.sendApModeEvent(APModeType.LATERAL, APLateralModes.LEVEL, false);
         break;
+      case 'AP_PITCH_LEVELER':
+        this.sendApModeEvent(APModeType.VERTICAL, APVerticalModes.LEVEL);
+        break;
+      case 'AP_PITCH_LEVELER_ON':
+        this.sendApModeEvent(APModeType.VERTICAL, APVerticalModes.LEVEL, true);
+        break;
+      case 'AP_PITCH_LEVELER_OFF':
+        this.sendApModeEvent(APModeType.VERTICAL, APVerticalModes.LEVEL, false);
+        break;
       case 'AP_PANEL_VS_HOLD':
       case 'AP_VS_HOLD':
         this.sendApModeEvent(APModeType.VERTICAL, APVerticalModes.VS);

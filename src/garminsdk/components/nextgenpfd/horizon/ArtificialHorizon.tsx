@@ -1,26 +1,42 @@
 import {
-  BitFlags, ComponentProps, HorizonProjection, HorizonProjectionChangeType, HorizonSharedCanvasSubLayer,
-  Subscribable, Subscription, Transform2D, Vec2Math
+  ArrayUtils, BitFlags, ColorUtils, ComponentProps, HorizonProjection, HorizonProjectionChangeType,
+  HorizonSharedCanvasSubLayer, Subscribable, Subscription, Transform2D, Vec2Math
 } from '@microsoft/msfs-sdk';
+
+/**
+ * A color gradient stop for {@link ArtificialHorizon}. The first member (`distance`) defines the distance of the
+ * stop from the horizon line, in pixels. The second member (`color`) defines the color of the stop. The optional
+ * third member (`step`) defines the distance, in pixels, between adjacent interpolated colors used to draw the
+ * gradient. The value of `step` must be at least `2` and defaults to `4`.
+ */
+export type ArtificialHorizonColorStop = [distance: number, color: string, step?: number];
+
+/**
+ * A color gradient stop in the artificial horizon sky.
+ * @deprecated
+ */
+export type ArtificialHorizonSkyColor = ArtificialHorizonColorStop;
 
 /**
  * Options for {@link ArtificialHorizon}.
  */
 export interface ArtificialHorizonOptions {
-  /** The color of the ground. */
-  groundColor: string;
+  /** The color of the ground. Overridden by `groundColors`. */
+  groundColor?: string;
 
   /**
-   * The colors of the sky, represented by pixel distance from the horizon
-   * and a color string.
+   * The color stops of the ground gradient.
    */
-  skyColors: ArtificialHorizonSkyColor[];
-}
+  groundColors?: ArtificialHorizonColorStop[];
 
-/**
- * A color gradient stop in the artificial horizon sky.
- */
-export type ArtificialHorizonSkyColor = [distance: number, color: string];
+  /** The color of the sky. Overridden by `skyColors`. */
+  skyColor?: string;
+
+  /**
+   * The color stops of the sky gradient.
+   */
+  skyColors?: ArtificialHorizonColorStop[];
+}
 
 /**
  * Component props for ArtificialHorizon.
@@ -30,8 +46,19 @@ export interface ArtificalHorizonProps extends ComponentProps {
   show: Subscribable<boolean>;
 
   /** Options for the artificial horizon. */
-  options: ArtificialHorizonOptions;
+  options: Readonly<ArtificialHorizonOptions>;
 }
+
+/**
+ * An interpolated color gradient stop for ArtificialHorizon.
+ */
+type GradientStop = {
+  /** The distance of this stop from the horizon line, in pixels. */
+  distance: number;
+
+  /** The color of this stop. */
+  color: string;
+};
 
 /**
  * A PFD artificial horizon. Renders sky and ground boxes.
@@ -51,7 +78,13 @@ export class ArtificialHorizon extends HorizonSharedCanvasSubLayer<ArtificalHori
 
   private readonly windowTransform = new Transform2D();
 
-  private readonly maxSkyColorStopPx = Math.max(...this.props.options.skyColors.map(c => c[0]));
+  private readonly groundColors = this.props.options.groundColors
+    ? ArtificialHorizon.createColorGradient(this.props.options.groundColors)
+    : undefined;
+
+  private readonly skyColors = this.props.options.skyColors
+    ? ArtificialHorizon.createColorGradient(this.props.options.skyColors)
+    : undefined;
 
   private needUpdate = false;
 
@@ -130,56 +163,103 @@ export class ArtificialHorizon extends HorizonSharedCanvasSubLayer<ArtificalHori
     const maxY = Math.max(windowUl[1], windowUr[1], windowLl[1], windowLr[1]);
 
     const inverted = transform.invert();
+    const invertedParams = inverted.getParameters();
+
+    context.setTransform(
+      invertedParams[0], invertedParams[3],
+      invertedParams[1], invertedParams[4],
+      invertedParams[2], invertedParams[5]
+    );
 
     if (maxY > 0) {
-      context.beginPath();
-      let p = inverted.apply(Vec2Math.set(minX, 0, this.vec2Cache[0]), this.vec2Cache[0]);
-      context.moveTo(p[0], p[1]);
-
-      p = inverted.apply(Vec2Math.set(maxX, 0, this.vec2Cache[0]), this.vec2Cache[0]);
-      context.lineTo(p[0], p[1]);
-
-      p = inverted.apply(Vec2Math.set(maxX, maxY, this.vec2Cache[0]), this.vec2Cache[0]);
-      context.lineTo(p[0], p[1]);
-
-      p = inverted.apply(Vec2Math.set(minX, maxY, this.vec2Cache[0]), this.vec2Cache[0]);
-      context.lineTo(p[0], p[1]);
-      context.closePath();
-
-      context.fillStyle = this.props.options.groundColor;
-      context.fill();
+      if (this.groundColors) {
+        this.drawGradientRect(context, this.groundColors, minX, maxX, maxY);
+      } else if (this.props.options.groundColor) {
+        this.drawSolidRect(context, this.props.options.groundColor, minX, maxX, maxY);
+      }
     }
 
     if (minY < 0) {
-      context.beginPath();
-      let p = inverted.apply(Vec2Math.set(minX, 0, this.vec2Cache[0]), this.vec2Cache[0]);
-      context.moveTo(p[0], p[1]);
+      if (this.skyColors) {
+        this.drawGradientRect(context, this.skyColors, minX, maxX, minY);
+      } else if (this.props.options.skyColor) {
+        this.drawSolidRect(context, this.props.options.skyColor, minX, maxX, minY);
+      }
+    }
 
-      p = inverted.apply(Vec2Math.set(maxX, 0, this.vec2Cache[0]), this.vec2Cache[0]);
-      context.lineTo(p[0], p[1]);
+    context.resetTransform();
+  }
 
-      p = inverted.apply(Vec2Math.set(maxX, minY, this.vec2Cache[0]), this.vec2Cache[0]);
-      context.lineTo(p[0], p[1]);
+  /**
+   * Draws a solid rectangle.
+   * @param context The canvas rendering context to which to draw.
+   * @param color The color of the rectangle.
+   * @param x1 The minimum x-coordinate to which to extend the rectangle.
+   * @param x2 The maximum x-coordinate to which to extend the rectangle.
+   * @param y The y-coordinate to which to extend the rectangle.
+   */
+  private drawSolidRect(
+    context: CanvasRenderingContext2D,
+    color: string,
+    x1: number,
+    x2: number,
+    y: number
+  ): void {
+    const width = x2 - x1;
+    const height = y * Math.sign(y);
 
-      p = inverted.apply(Vec2Math.set(minX, minY, this.vec2Cache[0]), this.vec2Cache[0]);
-      context.lineTo(p[0], p[1]);
-      context.closePath();
+    context.fillStyle = color;
+    context.fillRect(x1, Math.min(y, 0), width, height);
+  }
 
-      // The gradient distance must be at least as long as the longest color stop distance
-      // or else the gradient becomes invalid (as addColorStop throws for values above 1)
-      const gradientDistance = Math.min(minY, -this.maxSkyColorStopPx);
-      const gradientStart = inverted.apply(Vec2Math.set(0, gradientDistance, this.vec2Cache[0]), this.vec2Cache[0]);
-      const gradientEnd = inverted.apply(Vec2Math.set(0, 0, this.vec2Cache[1]), this.vec2Cache[1]);
+  /**
+   * Draws a gradient rectangle.
+   * @param context The canvas rendering context to which to draw.
+   * @param stops The interpolated color stops of the rectangle gradient.
+   * @param x1 The minimum x-coordinate to which to extend the rectangle.
+   * @param x2 The maximum x-coordinate to which to extend the rectangle.
+   * @param y The y-coordinate to which to extend the rectangle.
+   */
+  private drawGradientRect(
+    context: CanvasRenderingContext2D,
+    stops: GradientStop[],
+    x1: number,
+    x2: number,
+    y: number
+  ): void {
+    // We avoid using actual CanvasGradient objects to render the gradient because they are bugged in Coherent.
 
-      const gradient = context.createLinearGradient(gradientStart[0], gradientStart[1], gradientEnd[0], gradientEnd[1]);
+    const sign = y < 0 ? -1 : 1;
 
-      for (let i = 0; i < this.props.options.skyColors.length; i++) {
-        const color = this.props.options.skyColors[i];
-        gradient.addColorStop(1 - (color[0] / -gradientDistance), color[1]);
+    const width = x2 - x1;
+    const maxDistance = y * sign;
+    let prevDistance = 0;
+
+    for (let i = 0; i < stops.length; i++) {
+      const stop = stops[i];
+
+      // Overlap each stripe with the next one to avoid sub-pixel rendering artifacts.
+      const currentDistance = Math.min(stop.distance, maxDistance) + 1;
+      const height = currentDistance - prevDistance;
+
+      if (height > 0) {
+        context.fillStyle = stop.color;
+        context.fillRect(x1, Math.min(prevDistance * sign, currentDistance * sign), width, height);
       }
 
-      context.fillStyle = gradient;
-      context.fill();
+      if (stop.distance >= maxDistance) {
+        break;
+      }
+
+      prevDistance = stop.distance;
+    }
+
+    const lastStop = stops[stops.length - 1];
+    if (lastStop && prevDistance < maxDistance) {
+      const currentDistance = maxDistance + 1;
+      const height = currentDistance - prevDistance;
+      context.fillStyle = lastStop.color;
+      context.fillRect(x1, Math.min(prevDistance * sign, currentDistance * sign), width, height);
     }
   }
 
@@ -188,5 +268,48 @@ export class ArtificialHorizon extends HorizonSharedCanvasSubLayer<ArtificalHori
     this.showSub?.destroy();
 
     super.destroy();
+  }
+
+  /**
+   * Creates an array of interpolated color gradient stops, ordered by increasing distance from the horizon line.
+   * @param colors The gradient's defined color stops.
+   * @returns An array of interpolated color gradient stops for the specified defined stops.
+   */
+  private static createColorGradient(colors: ArtificialHorizonColorStop[]): GradientStop[] {
+    return ArrayUtils.flatMap(colors.slice().sort((a, b) => a[0] - b[0]), (stop, index, array) => {
+      const next = array[index + 1];
+
+      // If this is the last stop, then we will return the stop with no further interpolation.
+      if (!next) {
+        return { distance: stop[0], color: stop[1] };
+      }
+
+      const step = Math.max(Math.round(next[2] ?? 4), 2);
+
+      // If this stop and the next one has the same color or the distance between them is less than the interpolation
+      // step, then we will return the current stop with no interpolation.
+      if (next[0] - stop[0] <= step || stop[1] === next[1]) {
+        return { distance: stop[0], color: stop[1] };
+      }
+
+      const distance = next[0] - stop[0];
+      const stepCount = Math.ceil(distance / step);
+
+      const steps = ColorUtils.interpolateHex(stop[1], next[1], ArrayUtils.range(stepCount, 0, step / distance))
+        .map((stepColor, stepIndex) => {
+          return {
+            distance: stop[0] + stepIndex * step,
+            color: stepColor
+          };
+        });
+
+      // If there are at least two steps and the last step is less than 2 pixels from the next stop, then remove the
+      // last step.
+      if (steps.length > 1 && distance - steps[steps.length - 1].distance < 2) {
+        steps.length--;
+      }
+
+      return steps;
+    });
   }
 }

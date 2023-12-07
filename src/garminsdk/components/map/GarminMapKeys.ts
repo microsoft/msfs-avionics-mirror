@@ -14,9 +14,15 @@ export class GarminMapKeys {
 
   public static readonly OrientationRTR = 'orientationRTR' as const;
 
+  public static readonly DesiredOrientation = 'desiredOrientation' as const;
+
+  public static readonly OrientationSettings = 'orientationSettings' as const;
+
   public static readonly RotationModeControl = 'rotationModeControlModerator' as const;
 
   public static readonly OrientationControl = 'orientationControlModerator' as const;
+
+  public static readonly DesiredOrientationControl = 'desiredOrientationControl' as const;
 
   public static readonly Declutter = 'declutter' as const;
 
@@ -34,6 +40,10 @@ export class GarminMapKeys {
 
   public static readonly WaypointsVisibility = 'waypointsVis' as const;
 
+  public static readonly RunwayVisibility = 'runwayVisibility' as const;
+
+  public static readonly RunwayLabelVisibility = 'runwayLabelVisibility' as const;
+
   public static readonly WaypointHighlight = 'waypointHighlight' as const;
 
   public static readonly WaypointHighlightLine = 'waypointHighlightLine' as const;
@@ -49,6 +59,10 @@ export class GarminMapKeys {
   public static readonly Traffic = 'garminTraffic' as const;
 
   public static readonly TrafficRange = 'trafficRange' as const;
+
+  public static readonly Panning = 'panning' as const;
+
+  public static readonly PanningRTR = 'panningRTR' as const;
 
   public static readonly Pointer = 'pointer' as const;
 

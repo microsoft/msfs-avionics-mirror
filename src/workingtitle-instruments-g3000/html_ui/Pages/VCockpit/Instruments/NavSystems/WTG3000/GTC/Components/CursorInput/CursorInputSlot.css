@@ -4,6 +4,7 @@
   justify-content: flex-start;
   align-items: baseline;
   color: var(--g3000-color-cyan);
+  white-space: pre;
 }
 
 @keyframes cursor-input-slot-blink {

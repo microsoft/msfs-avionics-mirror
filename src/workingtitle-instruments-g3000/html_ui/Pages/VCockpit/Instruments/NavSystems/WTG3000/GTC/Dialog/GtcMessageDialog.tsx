@@ -97,7 +97,7 @@ export class GtcMessageDialog extends GtcView implements GtcDialogView<GtcMessag
       this.isCancelButtonVisible.set(showRejectButton);
 
       if (cssClassesToAdd !== undefined) {
-        this.cssClassesToAdd = FSComponent.parseCssClassesFromString(cssClassesToAdd).filter(cssClass => cssClass !== 'gtc-message-dialog');
+        this.cssClassesToAdd = FSComponent.parseCssClassesFromString(cssClassesToAdd).filter(cssClass => cssClass !== 'message-dialog');
 
         for (const cssClass of this.cssClassesToAdd) {
           this.rootCssClass.add(cssClass);

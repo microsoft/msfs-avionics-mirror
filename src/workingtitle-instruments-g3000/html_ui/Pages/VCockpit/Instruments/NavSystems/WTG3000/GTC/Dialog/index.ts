@@ -30,4 +30,5 @@ export * from './GtcTemperatureDialog';
 export * from './GtcUserWaypointDialog';
 export * from './GtcVnavAltitudeDialog';
 export * from './GtcVnavFlightPathAngleDialog';
+export * from './GtcWaypointDialog';
 export * from './GtcWeightDialog';

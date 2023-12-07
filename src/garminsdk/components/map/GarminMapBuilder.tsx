@@ -17,18 +17,20 @@ import { TrafficSystem } from '../../traffic/TrafficSystem';
 import { WindDataProvider } from '../../wind/WindDataProvider';
 import {
   MapAirspaceVisController, MapAirspaceVisControllerModules, MapAirspaceVisUserSettings, MapDataIntegrityRTRController, MapDataIntegrityRTRControllerContext,
-  MapDataIntegrityRTRControllerModules, MapFlightPlanFocusRTRController, MapFlightPlanFocusRTRControllerContext, MapFlightPlanFocusRTRControllerModules,
+  MapDataIntegrityRTRControllerModules, MapDesiredOrientationController, MapDesiredOrientationControllerContext, MapDesiredOrientationControllerModules,
+  MapFlightPlanFocusRTRController, MapFlightPlanFocusRTRControllerContext, MapFlightPlanFocusRTRControllerModules,
   MapGarminAutopilotPropsBinding, MapGarminAutopilotPropsController, MapGarminAutopilotPropsControllerModules, MapGarminAutopilotPropsKey,
   MapGarminTrafficController, MapGarminTrafficControllerModules, MapNexradController, MapNexradControllerModules, MapNexradUserSettings,
-  MapOrientationController, MapOrientationControllerContext, MapOrientationControllerModules, MapOrientationControllerSettings, MapOrientationRTRController,
-  MapOrientationRTRControllerContext, MapOrientationRTRControllerModules, MapPointerController, MapPointerControllerModules, MapPointerRTRController,
-  MapPointerRTRControllerContext, MapPointerRTRControllerModules, MapRangeCompassController, MapRangeCompassControllerModules, MapRangeController,
-  MapRangeControllerModules, MapRangeControllerSettings, MapRangeRTRController, MapRangeRTRControllerModules, MapTerrainColorsController,
-  MapTerrainColorsControllerModules, MapTerrainColorsDefinition, MapTerrainController, MapTerrainControllerModules, MapTerrainUserSettings,
+  MapOrientationModeController, MapOrientationModeControllerContext, MapOrientationModeControllerModules, MapOrientationRTRController,
+  MapOrientationRTRControllerContext, MapOrientationRTRControllerModules, MapOrientationSettingsController, MapOrientationSettingsControllerModules,
+  MapOrientationSettingsControllerSettings, MapPanningRTRController, MapPanningRTRControllerContext, MapPanningRTRControllerModules, MapPointerController,
+  MapPointerControllerModules, MapPointerRTRController, MapPointerRTRControllerModules, MapRangeCompassController, MapRangeCompassControllerModules,
+  MapRangeController, MapRangeControllerModules, MapRangeControllerSettings, MapRangeRTRController, MapRangeRTRControllerModules, MapTerrainColorsController,
+  MapTerrainColorsControllerModules, MapTerrainColorsDefinition, MapTerrainController, MapTerrainControllerModules, MapTerrainControllerOptions, MapTerrainUserSettings,
   MapTrafficController, MapTrafficControllerModules, MapTrafficUserSettings, MapWaypointsVisController, MapWaypointsVisControllerModules,
-  MapWaypointVisUserSettings, MapWindVectorController, MapWindVectorControllerModules, MapWindVectorUserSettings, MapWxrController, MapWxrControllerModules,
-  TrafficMapRangeController, TrafficMapRangeControllerModules, TrafficMapRangeControllerSettings, WeatherMapOrientationController,
-  WeatherMapOrientationControllerContext, WeatherMapOrientationControllerModules, WeatherMapOrientationControllerSettings
+  MapWaypointsVisControllerOptions, MapWaypointVisUserSettings, MapWindVectorController, MapWindVectorControllerModules, MapWindVectorUserSettings,
+  MapWxrController, MapWxrControllerModules, TrafficMapRangeController, TrafficMapRangeControllerModules, TrafficMapRangeControllerSettings,
+  WeatherMapOrientationSettingsController, WeatherMapOrientationSettingsControllerModules, WeatherMapOrientationSettingsControllerSettings
 } from './controllers';
 import { MapActiveFlightPlanDataProvider, MapFlightPathPlanRenderer, MapFlightPathProcRenderer, MapFlightPlannerPlanDataProvider } from './flightplan';
 import { MapFlightPlanDataProvider } from './flightplan/MapFlightPlanDataProvider';
@@ -48,7 +50,7 @@ import { MapWaypointDisplayBuilder, MapWaypointDisplayBuilderClass } from './Map
 import { MapWaypointRenderer, MapWaypointRenderRole } from './MapWaypointRenderer';
 import {
   GarminAirspaceShowTypeMap, MapCrosshairModule, MapDeclutterMode, MapDeclutterModule, MapFlightPlanFocusModule, MapGarminAutopilotPropsModule,
-  MapGarminDataIntegrityModule, MapGarminTrafficModule, MapNexradModule, MapOrientation, MapOrientationModule, MapPointerModule, MapProcedurePreviewModule,
+  MapGarminDataIntegrityModule, MapGarminTrafficModule, MapNexradModule, MapOrientation, MapOrientationModule, MapPanningModule, MapPointerModule, MapProcedurePreviewModule,
   MapRangeCompassModule, MapRangeRingModule, MapTerrainMode, MapTerrainModule, MapTrackVectorModule, MapUnitsModule, MapWaypointHighlightModule,
   MapWaypointsModule, MapWindVectorModule
 } from './modules';
@@ -126,7 +128,7 @@ export type TrackVectorOptions = Omit<MapTrackVectorLayerProps, keyof MapLayerPr
 export type IndicatorGroupCallbacks = Omit<MapGenericLayerProps<any>, keyof MapLayerProps<any>>;
 
 /**
- *
+ * A builder for Garmin maps.
  */
 export class GarminMapBuilder {
 
@@ -282,19 +284,87 @@ export class GarminMapBuilder {
    * Adds the following...
    *
    * Context properties:
-   * * `'[MapSystemKeys.RotationControl]': ResourceModerator<void>`
+   * * `[MapSystemKeys.RotationControl]: ResourceModerator<void>`
    * * `[GarminMapKeys.OrientationControl]: ResourceModerator<void>`
+   * * `[GarminMapKeys.DesiredOrientationControl]: ResourceModerator<void>`
    *
    * Modules:
    * * `[MapSystemKeys.Rotation]: MapRotationModule`
    * * `[GarminMapKeys.Orientation]: MapOrientationModule`
-   * * `[GarminMapKeys.Range]: MapIndexedRangeModule` (only with user setting support)
+   * * `[GarminMapKeys.Range]: MapIndexedRangeModule`
+   * * `[MapSystemKeys.OwnAirplaneProps]: MapOwnAirplanePropsModule`
    *
    * Controllers:
    * * `[MapSystemKeys.Rotation]: MapRotationController`
    * * `[GarminMapKeys.OrientationRTR]: MapOrientationRTRController`
-   * * `[GarminMapKeys.Orientation]: MapOrientationController` (only with user setting support)
-   * {@link MapOrientationRTRController}.
+   * * `[GarminMapKeys.Orientation]: MapOrientationModeController`
+   * * `[GarminMapKeys.DesiredOrientation]: MapDesiredOrientationController`
+   * @param mapBuilder The map builder to configure.
+   * @param nominalTargetOffsets The nominal projected target offsets defined by each orientation. Each target offset
+   * is a 2-tuple `[x, y]`, where each component is expressed relative to the width or height of the map's projected
+   * window, *excluding* the dead zone. If an orientation does not have a defined offset, it will default to `[0, 0]`.
+   * @param nominalRangeEndpoints The nominal range endpoints defined by each orientation. Each set of range endpoints
+   * is a 4-tuple `[x1, y1, x2, y2]`, where each component is expressed relative to the width or height of the map's
+   * projected window, *excluding* the dead zone. If an orientation does not have defined range endpoints, it will
+   * default to `[0.5, 0.5, 0.5, 0]` (center to top-center).
+   * @returns The map builder, after it has been configured.
+   */
+  private static orientationBase<MapBuilder extends MapSystemBuilder>(
+    mapBuilder: MapBuilder,
+    nominalTargetOffsets?: Partial<Record<MapOrientation, ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>>>,
+    nominalRangeEndpoints?: Partial<Record<MapOrientation, ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>>>
+  ): MapBuilder {
+    mapBuilder
+      .withRotation()
+      .withContext(GarminMapKeys.RotationModeControl, () => new ResourceModerator(undefined))
+      .withContext(GarminMapKeys.OrientationControl, () => new ResourceModerator(undefined))
+      .withContext(GarminMapKeys.DesiredOrientationControl, () => new ResourceModerator(undefined))
+      .withModule(GarminMapKeys.Orientation, () => new MapOrientationModule())
+      .withController<MapOrientationRTRController, MapOrientationRTRControllerModules, any, any, MapOrientationRTRControllerContext>(
+        GarminMapKeys.OrientationRTR,
+        context => new MapOrientationRTRController(
+          context,
+          nominalTargetOffsets,
+          nominalRangeEndpoints
+        )
+      )
+      .withController<MapOrientationModeController, MapOrientationModeControllerModules, any, any, MapOrientationModeControllerContext>(
+        GarminMapKeys.Orientation,
+        context => new MapOrientationModeController(context)
+      )
+      .withModule(GarminMapKeys.Range, () => new MapIndexedRangeModule())
+      .withModule(MapSystemKeys.OwnAirplaneProps, () => new MapOwnAirplanePropsModule())
+      .withController<MapDesiredOrientationController, MapDesiredOrientationControllerModules, any, any, MapDesiredOrientationControllerContext>(
+        GarminMapKeys.DesiredOrientation,
+        context => new MapDesiredOrientationController(context)
+      );
+
+    return mapBuilder;
+  }
+
+  /**
+   * Configures a map builder to generate a map which supports different orientations, as enumerated by
+   * {@link MapOrientation}. Each orientation defines a different rotation behavior, target offset, and range
+   * endpoints.
+   *
+   * Adds the following...
+   *
+   * Context properties:
+   * * `[MapSystemKeys.RotationControl]: ResourceModerator<void>`
+   * * `[GarminMapKeys.OrientationControl]: ResourceModerator<void>`
+   * * `[GarminMapKeys.DesiredOrientationControl]: ResourceModerator<void>`
+   *
+   * Modules:
+   * * `[MapSystemKeys.Rotation]: MapRotationModule`
+   * * `[GarminMapKeys.Orientation]: MapOrientationModule`
+   * * `[GarminMapKeys.Range]: MapIndexedRangeModule`
+   *
+   * Controllers:
+   * * `[MapSystemKeys.Rotation]: MapRotationController`
+   * * `[GarminMapKeys.OrientationRTR]: MapOrientationRTRController`
+   * * `[GarminMapKeys.Orientation]: MapOrientationModeController`
+   * * `[GarminMapKeys.DesiredOrientation]: MapDesiredOrientationController`
+   * * `[GarminMapKeys.OrientationSettings]: MapOrientationSettingsController` (only with user setting support)
    * @param mapBuilder The map builder to configure.
    * @param nominalTargetOffsets The nominal projected target offsets defined by each orientation. Each target offset
    * is a 2-tuple `[x, y]`, where each component is expressed relative to the width or height of the map's projected
@@ -311,29 +381,15 @@ export class GarminMapBuilder {
     mapBuilder: MapBuilder,
     nominalTargetOffsets?: Partial<Record<MapOrientation, ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>>>,
     nominalRangeEndpoints?: Partial<Record<MapOrientation, ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>>>,
-    settingManager?: UserSettingManager<Partial<MapOrientationControllerSettings>>
+    settingManager?: UserSettingManager<Partial<MapOrientationSettingsControllerSettings>>
   ): MapBuilder {
-    mapBuilder
-      .withRotation()
-      .withContext(GarminMapKeys.RotationModeControl, () => new ResourceModerator(undefined))
-      .withContext(GarminMapKeys.OrientationControl, () => new ResourceModerator(undefined))
-      .withModule(GarminMapKeys.Orientation, () => new MapOrientationModule())
-      .withController<MapOrientationRTRController, MapOrientationRTRControllerModules, any, any, MapOrientationRTRControllerContext>(
-        GarminMapKeys.OrientationRTR,
-        context => new MapOrientationRTRController(
-          context,
-          nominalTargetOffsets,
-          nominalRangeEndpoints
-        )
-      );
+    mapBuilder.with(GarminMapBuilder.orientationBase, nominalTargetOffsets, nominalRangeEndpoints);
 
     if (settingManager !== undefined) {
-      mapBuilder
-        .withModule(GarminMapKeys.Range, () => new MapIndexedRangeModule())
-        .withController<MapOrientationController, MapOrientationControllerModules, any, any, MapOrientationControllerContext>(
-          GarminMapKeys.Orientation,
-          context => new MapOrientationController(context, settingManager)
-        );
+      mapBuilder.withController<MapOrientationSettingsController, MapOrientationSettingsControllerModules>(
+        GarminMapKeys.OrientationSettings,
+        context => new MapOrientationSettingsController(context, settingManager)
+      );
     }
 
     return mapBuilder;
@@ -347,19 +403,21 @@ export class GarminMapBuilder {
    * Adds the following...
    *
    * Context properties:
-   * * `'[MapSystemKeys.RotationControl]': ResourceModerator<void>`
+   * * `[MapSystemKeys.RotationControl]: ResourceModerator<void>`
    * * `[GarminMapKeys.OrientationControl]: ResourceModerator<void>`
+   * * `[GarminMapKeys.DesiredOrientationControl]: ResourceModerator<void>`
    *
    * Modules:
    * * `[MapSystemKeys.Rotation]: MapRotationModule`
    * * `[GarminMapKeys.Orientation]: MapOrientationModule`
-   * * `[GarminMapKeys.Range]: MapIndexedRangeModule` (only with user setting support)
+   * * `[GarminMapKeys.Range]: MapIndexedRangeModule`
    *
    * Controllers:
    * * `[MapSystemKeys.Rotation]: MapRotationController`
    * * `[GarminMapKeys.OrientationRTR]: MapOrientationRTRController`
-   * * `[GarminMapKeys.Orientation]: MapOrientationController` (only with user setting support)
-   * {@link MapOrientationRTRController}.
+   * * `[GarminMapKeys.Orientation]: MapOrientationModeController`
+   * * `[GarminMapKeys.DesiredOrientation]: MapDesiredOrientationController`
+   * * `[GarminMapKeys.OrientationSettings]: WeatherMapOrientationSettingsController` (only with user setting support)
    * @param mapBuilder The map builder to configure.
    * @param nominalTargetOffsets The nominal projected target offsets defined by each orientation. Each target offset
    * is a 2-tuple `[x, y]`, where each component is expressed relative to the width or height of the map's projected
@@ -376,29 +434,15 @@ export class GarminMapBuilder {
     mapBuilder: MapBuilder,
     nominalTargetOffsets?: Partial<Record<MapOrientation, ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>>>,
     nominalRangeEndpoints?: Partial<Record<MapOrientation, ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>>>,
-    settingManager?: UserSettingManager<Partial<WeatherMapOrientationControllerSettings>>
+    settingManager?: UserSettingManager<Partial<WeatherMapOrientationSettingsControllerSettings>>
   ): MapBuilder {
-    mapBuilder
-      .withRotation()
-      .withContext(GarminMapKeys.RotationModeControl, () => new ResourceModerator(undefined))
-      .withContext(GarminMapKeys.OrientationControl, () => new ResourceModerator(undefined))
-      .withModule(GarminMapKeys.Orientation, () => new MapOrientationModule())
-      .withController<MapOrientationRTRController, MapOrientationRTRControllerModules, any, any, MapOrientationRTRControllerContext>(
-        GarminMapKeys.OrientationRTR,
-        context => new MapOrientationRTRController(
-          context,
-          nominalTargetOffsets,
-          nominalRangeEndpoints
-        )
-      );
+    mapBuilder.with(GarminMapBuilder.orientationBase, nominalTargetOffsets, nominalRangeEndpoints);
 
     if (settingManager !== undefined) {
-      mapBuilder
-        .withModule(GarminMapKeys.Range, () => new MapIndexedRangeModule())
-        .withController<WeatherMapOrientationController, WeatherMapOrientationControllerModules, any, any, WeatherMapOrientationControllerContext>(
-          GarminMapKeys.Orientation,
-          context => new WeatherMapOrientationController(context, settingManager)
-        );
+      mapBuilder.withController<WeatherMapOrientationSettingsController, WeatherMapOrientationSettingsControllerModules>(
+        GarminMapKeys.OrientationSettings,
+        context => new WeatherMapOrientationSettingsController(context, settingManager)
+      );
     }
 
     return mapBuilder;
@@ -517,8 +561,9 @@ export class GarminMapBuilder {
    * @param colors The terrain colors to use for each terrain mode. Ignored if `includeTerrain` is `false`.
    * @param settingManager A user setting manager containing settings which control terrain colors. If not defined,
    * terrain color mode will not be controlled by user settings.
-   * @param allowRelativeMode Whether to allow relative terrain mode. Defaults to `true`. Ignored if terrain
-   * colors is not controlled by user settings.
+   * @param terrainModeOptions Options with which to configure the terrain mode controller. If a `boolean` value is
+   * provided in place of an options object, then it will be interpreted as the `allowRelative` option. Ignored if
+   * terrain colors is not controlled by user settings.
    * @param groundRelativeBlendDuration The amount of time, in milliseconds, over which to blend the on-ground and
    * relative terrain mode colors when transitioning between the two. A blend transition is only possible if colors
    * are defined for both the on-ground and relative terrain modes, and the colors for both modes have the same number
@@ -529,7 +574,7 @@ export class GarminMapBuilder {
     mapBuilder: MapBuilder,
     colors: Partial<Record<MapTerrainMode, MapTerrainColorsDefinition>>,
     settingManager?: UserSettingManager<Partial<MapTerrainUserSettings>>,
-    allowRelativeMode = true,
+    terrainModeOptions?: Readonly<MapTerrainControllerOptions> | boolean,
     groundRelativeBlendDuration = 0
   ): MapBuilder {
     mapBuilder
@@ -543,7 +588,7 @@ export class GarminMapBuilder {
       mapBuilder
         .withModule(GarminMapKeys.Range, () => new MapIndexedRangeModule())
         .withController<MapTerrainController, MapTerrainControllerModules>(GarminMapKeys.Terrain, context => {
-          return new MapTerrainController(context, settingManager, allowRelativeMode);
+          return new MapTerrainController(context, settingManager, terrainModeOptions as any);
         });
     }
 
@@ -651,7 +696,7 @@ export class GarminMapBuilder {
    * Controllers:
    * * `[GarminMapKeys.RangeCompass]: MapRangeCompassController`
    * @param mapBuilder The map builder to configure.
-   * @param options Styling options for the ring.
+   * @param options Styling options for the compass.
    * @param order The order to assign to the range compass layer. Layers with lower assigned order will be attached to
    * the map before and appear below layers with greater assigned order values. Defaults to the number of layers
    * already added to the map builder.
@@ -752,7 +797,7 @@ export class GarminMapBuilder {
    * Controllers:
    * * `[MapSystemKeys.WaypointRenderer]: MapSystemCustomController` (handles initialization and updating of the
    * waypoint renderer)
-   * * `'waypointsVis': MapWaypointsVisController` (only if user settings are supported)
+   * * `[GarminMapKeys.WaypointsVisibility]: MapWaypointsVisController` (only if user settings are supported)
    * @param mapBuilder The map builder to configure.
    * @param configure A function used to configure the display and styling of waypoint icons and labels.
    * @param supportRunwayOutlines Whether to support the rendering of airport runway outlines.
@@ -765,7 +810,7 @@ export class GarminMapBuilder {
    */
   public static waypoints<MapBuilder extends MapSystemBuilder>(
     mapBuilder: MapBuilder,
-    configure: (builder: MapWaypointDisplayBuilder) => void,
+    configure: (builder: MapWaypointDisplayBuilder, context: MapSystemContext<any, any, any, any>) => void,
     supportRunwayOutlines: boolean,
     settingManager?: UserSettingManager<Partial<MapWaypointVisUserSettings>>,
     order?: number
@@ -807,7 +852,7 @@ export class GarminMapBuilder {
         any, any, any,
         { [GarminMapKeys.WaypointDisplayBuilder]: MapWaypointDisplayBuilderClass }
       >('waypointsLayerDisplayConfigure', context => {
-        configure(context[GarminMapKeys.WaypointDisplayBuilder]);
+        configure(context[GarminMapKeys.WaypointDisplayBuilder], context);
       })
       .withController<
         MapSystemGenericController,
@@ -830,13 +875,15 @@ export class GarminMapBuilder {
    * Adds the controller `[GarminMapKeys.WaypointsVisibility]: MapWaypointsVisController`.
    * @param mapBuilder The map builder to configure.
    * @param settingManager A setting manager containing the user settings controlling waypoint visibility.
+   * @param options Options with which to configure waypoint visibility.
    * @returns The map builder, after it has been configured.
    */
   public static waypointVisSettings<MapBuilder extends MapSystemBuilder<MapWaypointsVisControllerModules>>(
     mapBuilder: MapBuilder,
-    settingManager: UserSettingManager<Partial<MapWaypointVisUserSettings>>
+    settingManager: UserSettingManager<Partial<MapWaypointVisUserSettings>>,
+    options?: Readonly<MapWaypointsVisControllerOptions>
   ): MapBuilder {
-    return mapBuilder.withController(GarminMapKeys.WaypointsVisibility, context => new MapWaypointsVisController(context, settingManager));
+    return mapBuilder.withController(GarminMapKeys.WaypointsVisibility, context => new MapWaypointsVisController(context, settingManager, options));
   }
 
   public static flightPlans<MapBuilder extends MapSystemBuilder>(
@@ -1513,19 +1560,21 @@ export class GarminMapBuilder {
    * Configures a map builder to generate a map with pointer support. Activating the pointer allows the pointer to
    * control map panning and stops the map from actively rotating.
    *
-   * If map target and rotation control resource moderators exist on the map context, the pointer RTR controller will
-   * attempt to claim those resources with a priority of `100`. Otherwise, the controller assumes nothing else controls
-   * the map target or rotation.
+   * If map target, orientation, or rotation control resource moderators exist on the map context, the panning RTR
+   * controller will attempt to claim those resources with a priority of `100`. Otherwise, the controller assumes
+   * nothing else controls the map target or rotation.
    *
    * Adds the following...
    *
    * Modules:
+   * * `[GarminMapKeys.Panning]: MapPanningModule`
    * * `[GarminMapKeys.Pointer]: MapPointerModule`
    *
    * Layers:
    * * `[GarminMapKeys.Pointer]: MapPointerLayer`
    *
    * Controllers:
+   * * `[GarminMapKeys.PanningRTR]: MapPanningRTRController`
    * * `[GarminMapKeys.Pointer]: MapPointerController` (can be used to control the behavior of the pointer)
    * * `[GarminMapKeys.PointerRTR]: MapPointerRTRController`
    * @param mapBuilder The map builder to configure.
@@ -1539,13 +1588,14 @@ export class GarminMapBuilder {
    * added to the map builder.
    * @returns The map builder, after it has been configured.
    */
-  public static pointer<MapBuilder extends MapSystemBuilder<any, any, any, MapPointerRTRControllerContext>>(
+  public static pointer<MapBuilder extends MapSystemBuilder<any, any, any, MapPanningRTRControllerContext>>(
     mapBuilder: MapBuilder,
     pointerBoundsOffset: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>,
     icon?: VNode,
     order?: number
   ): MapBuilder {
     return mapBuilder
+      .withModule(GarminMapKeys.Panning, () => new MapPanningModule())
       .withModule(GarminMapKeys.Pointer, () => new MapPointerModule())
       .withLayer<MapPointerLayer, MapPointerLayerModules>(GarminMapKeys.Pointer, (context): VNode => {
         return (
@@ -1554,14 +1604,15 @@ export class GarminMapBuilder {
           </MapPointerLayer>
         );
       }, order)
+      .withController<MapPanningRTRController, MapPanningRTRControllerModules, any, any, MapPanningRTRControllerContext>(
+        GarminMapKeys.PanningRTR,
+        context => new MapPanningRTRController(context)
+      )
       .withController<MapPointerController, MapPointerControllerModules>(GarminMapKeys.Pointer, context => new MapPointerController(context))
-      .withController<MapPointerRTRController, MapPointerRTRControllerModules, any, any, MapPointerRTRControllerContext>(
+      .withController<MapPointerRTRController, MapPointerRTRControllerModules>(
         GarminMapKeys.PointerRTR,
         context => {
-          return new MapPointerRTRController(
-            context,
-            'isSubscribable' in pointerBoundsOffset ? pointerBoundsOffset : Subject.create(pointerBoundsOffset)
-          );
+          return new MapPointerRTRController(context, pointerBoundsOffset);
         }
       );
   }

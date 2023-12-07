@@ -1,18 +1,25 @@
 import {
-  ArraySubject, ComputedSubject, EventBus, FSComponent, MinimumsControlEvents, MinimumsEvents, MinimumsMode, NumberUnitSubject, Subject, Unit, UnitFamily,
-  UnitType, VNode
+  ArraySubject, ArrayUtils, ComputedSubject, EventBus, FSComponent, MappedSubject, MappedSubscribable, MinimumsControlEvents, MinimumsEvents,
+  MinimumsMode, NumberUnitSubject, Subject, Unit, UnitFamily, UnitType, UserSetting, VNode
 } from '@microsoft/msfs-sdk';
 
-import { G1000ControlEvents } from '../../../../Shared/G1000Events';
+import { VSpeedUserSettingUtils } from '@microsoft/msfs-garminsdk';
+
 import { ContextMenuDialog, ContextMenuItemDefinition } from '../../../../Shared/UI/Dialogs/ContextMenuDialog';
+import { MenuItemDefinition } from '../../../../Shared/UI/Dialogs/PopoutMenuItem';
 import { FmsHEvent } from '../../../../Shared/UI/FmsHEvent';
+import { G1000ControlList, G1000UiControl } from '../../../../Shared/UI/G1000UiControl';
 import { ActionButton } from '../../../../Shared/UI/UIControls/ActionButton';
 import { ArrowToggle } from '../../../../Shared/UI/UIControls/ArrowToggle';
 import { NumberInput } from '../../../../Shared/UI/UIControls/NumberInput';
 import { SelectControl } from '../../../../Shared/UI/UIControls/SelectControl';
+import { ArrowControl } from '../../../../Shared/UI/UiControls2/ArrowControl';
+import { DigitInput } from '../../../../Shared/UI/UiControls2/DigitInput';
+import { G1000UiControlWrapper } from '../../../../Shared/UI/UiControls2/G1000UiControlWrapper';
 import { UiView, UiViewProps } from '../../../../Shared/UI/UiView';
 import { UnitsUserSettingManager } from '../../../../Shared/Units/UnitsUserSettings';
-import { VSpeed, VSpeedType } from '../../FlightInstruments/AirspeedIndicator';
+import { VSpeedDefinition, VSpeedGroup } from '../../../../Shared/VSpeed/VSpeed';
+import { VSpeedUserSettingManager } from '../../../../Shared/VSpeed/VSpeedUserSettings';
 import { PFDPageMenuDialog } from '../PFDPageMenuDialog';
 import { Timer, TimerMode } from './Timer';
 import { TimerInput } from './TimerInput';
@@ -25,37 +32,139 @@ import './TimerRef.css';
 interface TimerRefProps extends UiViewProps {
   /** An instance of the event bus. */
   bus: EventBus;
+
+  /** A manager for reference V-speed user settings. */
+  vSpeedSettingManager: VSpeedUserSettingManager;
+
   /** A user setting manager. */
   unitsSettingManager: UnitsUserSettingManager;
+
   /** Whether this instance of the G1000 has a Radio Altimeter. */
   hasRadioAltimeter: boolean;
 }
 
 /**
+ * An entry describing a reference V-speed that can be edited through the TimerRef menu.
+ */
+type VSpeedEntry = {
+  /** The V-speed definition. */
+  definition: VSpeedDefinition;
+
+  /** The user setting controlling whether the V-speed bug is shown on the airspeed indicator. */
+  showSetting: UserSetting<boolean>;
+
+  /** The user setting controlling the default value of the V-speed. */
+  defaultValueSetting: UserSetting<number>;
+
+  /** The user setting controlling the user-defined value of the V-speed. */
+  userValueSetting: UserSetting<number>;
+
+  /** The current active value of the V-speed. */
+  activeValue: MappedSubscribable<number>;
+
+  /** Whether the active value of the V-speed differs from the default value. */
+  isEdited: MappedSubscribable<boolean>;
+};
+
+/**
  * The PFD timer ref popout.
  */
 export class TimerRef extends UiView<TimerRefProps> {
+  private static readonly VSPEED_GROUP_COMPARATOR = (a: VSpeedGroup, b: VSpeedGroup): number => {
+    // Default group ('') goes before all other groups.
+    if (a.name === '') {
+      return -1;
+    } else if (b.name === '') {
+      return 1;
+    } else {
+      return 0;
+    }
+  };
+
   public popoutRef = FSComponent.createRef<UiView>();
   private readonly containerRef = FSComponent.createRef<HTMLElement>();
 
   private readonly minsToggleComponent = FSComponent.createRef<ArrowToggle>();
   private readonly minsInputComponent = FSComponent.createRef<NumberInput>();
 
-  private readonly glideRef = Subject.create(1);
-  private readonly glideRefChanged = ComputedSubject.create(false, (v) => { return v ? ' *' : ''; });
-  private readonly vrRef = Subject.create(1);
-  private readonly vrRefChanged = ComputedSubject.create(false, (v) => { return v ? ' *' : ''; });
-  private readonly vxRef = Subject.create(1);
-  private readonly vxRefChanged = ComputedSubject.create(false, (v) => { return v ? ' *' : ''; });
-  private readonly vyRef = Subject.create(1);
-  private readonly vyRefChanged = ComputedSubject.create(false, (v) => { return v ? ' *' : ''; });
+  private readonly vSpeedGroups = Array.from(this.props.vSpeedSettingManager.vSpeedGroups.values()).sort(TimerRef.VSPEED_GROUP_COMPARATOR);
+
+  private readonly vSpeedRowData = ArraySubject.create(
+    ArrayUtils.flatMap(this.vSpeedGroups, group => {
+      return group.name === '' ? group.vSpeedDefinitions : [group.name, ...group.vSpeedDefinitions];
+    }).map(row => {
+      if (typeof row === 'string') {
+        return row;
+      }
+
+      const definition = row;
+      const activeValue = VSpeedUserSettingUtils.activeValue(definition.name, this.props.vSpeedSettingManager, false, true);
+
+      return {
+        definition,
+        showSetting: this.props.vSpeedSettingManager.getSetting(`vSpeedShow_${definition.name}`),
+        defaultValueSetting: this.props.vSpeedSettingManager.getSetting(`vSpeedDefaultValue_${definition.name}`),
+        userValueSetting: this.props.vSpeedSettingManager.getSetting(`vSpeedUserValue_${definition.name}`),
+        activeValue,
+        isEdited: MappedSubject.create(
+          ([activeVal, defaultVal]) => activeVal !== defaultVal,
+          activeValue,
+          this.props.vSpeedSettingManager.getSetting(`vSpeedDefaultValue_${definition.name}`)
+        )
+      } as VSpeedEntry;
+    })
+  );
+
+  private readonly menuItems: MenuItemDefinition[] = [
+    {
+      id: 'enable-all',
+      renderContent: (): VNode => <span>All References On</span>,
+      isEnabled: true,
+      action: this.setShowVSpeedBugs.bind(this, true, undefined)
+    },
+    {
+      id: 'disable-all',
+      renderContent: (): VNode => <span>All References Off</span>,
+      isEnabled: true,
+      action: this.setShowVSpeedBugs.bind(this, false, undefined)
+    },
+    {
+      id: 'restore-defaults',
+      renderContent: (): VNode => <span>Restore Defaults</span>,
+      isEnabled: true,
+      action: this.resetVSpeeds.bind(this, undefined)
+    },
+    ...ArrayUtils.flatMap(this.vSpeedGroups.filter(group => group.name !== ''), group => {
+      return [
+        {
+          id: `enable-all-${group.name}`,
+          renderContent: (): VNode => <span>{group.name} References On</span>,
+          isEnabled: true,
+          action: this.setShowVSpeedBugs.bind(this, true, group.name)
+        },
+        {
+          id: `disable-all-${group.name}`,
+          renderContent: (): VNode => <span>{group.name} References Off</span>,
+          isEnabled: true,
+          action: this.setShowVSpeedBugs.bind(this, false, group.name)
+        },
+        {
+          id: `restore-defaults-${group.name}`,
+          renderContent: (): VNode => <span>Restore {group.name} Defaults</span>,
+          isEnabled: true,
+          action: this.resetVSpeeds.bind(this, group.name)
+        }
+      ];
+    })
+  ];
+
   private readonly minsRef = Subject.create(0);
   private readonly timerComponentRef = FSComponent.createRef<TimerInput>();
   private readonly upDownItems = ArraySubject.create<string>();
   private readonly buttonRef = FSComponent.createRef<ActionButton>();
   private readonly upDownControlRef = FSComponent.createRef<SelectControl<string>>();
   private timerButtonSubject = Subject.create('Start?');
-  private g1000Pub = this.props.bus.getPublisher<G1000ControlEvents>();
+
   private controlPub = this.props.bus.getPublisher<MinimumsControlEvents>();
 
   /**
@@ -78,22 +187,6 @@ export class TimerRef extends UiView<TimerRefProps> {
 
   public timer = new Timer(this.props.bus, this.onTimerModeChanged, this.onTimerValueChanged);
 
-  private vSpeeds: VSpeed[] = [
-    { type: VSpeedType.Vx, value: Math.round(Simplane.getDesignSpeeds().Vx), modified: Subject.create<boolean>(false), display: true },
-    { type: VSpeedType.Vy, value: Math.round(Simplane.getDesignSpeeds().Vy), modified: Subject.create<boolean>(false), display: true },
-    { type: VSpeedType.Vr, value: Math.round(Simplane.getDesignSpeeds().Vr), modified: Subject.create<boolean>(false), display: true },
-    { type: VSpeedType.Vglide, value: Math.round(Simplane.getDesignSpeeds().BestGlide), modified: Subject.create<boolean>(false), display: true },
-    { type: VSpeedType.Vapp, value: Math.round(Simplane.getDesignSpeeds().Vapp), modified: Subject.create<boolean>(false), display: false }
-  ];
-  private vSpeedSubjects = {
-    vx: Subject.create(this.vSpeeds[0].value),
-    vy: Subject.create(this.vSpeeds[1].value),
-    vr: Subject.create(this.vSpeeds[2].value),
-    vg: Subject.create(this.vSpeeds[3].value),
-    vapp: Subject.create(this.vSpeeds[4].value)
-  };
-
-
   // minimums
   private readonly minimumsSubscriber = this.props.bus.getSubscriber<MinimumsEvents>();
   private readonly decisionHeight = NumberUnitSubject.create(UnitType.FOOT.createNumber(0));
@@ -104,13 +197,7 @@ export class TimerRef extends UiView<TimerRefProps> {
   );
   private minsToggleOptions = ['Off', 'BARO', 'RA', 'TEMP COMP'];
 
-  private vSpeedToggleMap: Map<number, VSpeed> = new Map();
-  private vSpeedSubjectMap: Map<VSpeedType, Subject<number>> = new Map();
-  private vSpeedObjectMap: Map<VSpeedType, VSpeed> = new Map();
-
-  private onOffToggleOptions = ['Off', 'On'];
-
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onInteractionEvent(evt: FmsHEvent): boolean {
     switch (evt) {
       case FmsHEvent.CLR:
@@ -130,38 +217,12 @@ export class TimerRef extends UiView<TimerRefProps> {
   public onMenu(): boolean {
     // console.log('called menu');
     const dialog = this.props.viewService.open('PageMenuDialog', true) as PFDPageMenuDialog;
-    dialog.setMenuItems([
-      {
-        id: 'enable-all',
-        renderContent: (): VNode => <span>All References On</span>,
-        isEnabled: true,
-        action: (): void => {
-          this.enableAllRefSpeeds(true);
-        }
-      },
-      {
-        id: 'disable-all',
-        renderContent: (): VNode => <span>All References Off</span>,
-        isEnabled: true,
-        action: (): void => {
-          this.enableAllRefSpeeds(false);
-        }
-      },
-      {
-        id: 'restore-defaults',
-        renderContent: (): VNode => <span>Restore Defaults</span>,
-        isEnabled: true,
-        action: (): void => {
-          // console.log('Restore defaults');
-          this.resetVSpeeds();
-        }
-      },
-    ]);
+    dialog.setMenuItems(this.menuItems);
 
     return true;
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(node: VNode): void {
     super.onAfterRender(node);
 
@@ -173,23 +234,6 @@ export class TimerRef extends UiView<TimerRefProps> {
     this.minsToggleComponent.instance.props.options = this.minsToggleOptions;
 
     this.upDownItems.set(['Up', 'Dn']);
-    this.vSpeedToggleMap.set(3, this.vSpeeds[3]);
-    this.vSpeedToggleMap.set(5, this.vSpeeds[2]);
-    this.vSpeedToggleMap.set(7, this.vSpeeds[0]);
-    this.vSpeedToggleMap.set(9, this.vSpeeds[1]);
-    this.vSpeedSubjectMap.set(VSpeedType.Vglide, this.vSpeedSubjects.vg);
-    this.vSpeedSubjectMap.set(VSpeedType.Vr, this.vSpeedSubjects.vr);
-    this.vSpeedSubjectMap.set(VSpeedType.Vx, this.vSpeedSubjects.vx);
-    this.vSpeedSubjectMap.set(VSpeedType.Vy, this.vSpeedSubjects.vy);
-    this.vSpeedObjectMap.set(VSpeedType.Vglide, this.vSpeeds[3]);
-    this.vSpeedObjectMap.set(VSpeedType.Vr, this.vSpeeds[2]);
-    this.vSpeedObjectMap.set(VSpeedType.Vx, this.vSpeeds[0]);
-    this.vSpeedObjectMap.set(VSpeedType.Vy, this.vSpeeds[1]);
-
-    this.vSpeeds[0].modified.sub(v => this.vxRefChanged.set(v));
-    this.vSpeeds[1].modified.sub(v => this.vyRefChanged.set(v));
-    this.vSpeeds[2].modified.sub(v => this.vrRefChanged.set(v));
-    this.vSpeeds[3].modified.sub(v => this.glideRefChanged.set(v));
 
     this.minimumsUnit.set(this.props.unitsSettingManager.altitudeUnits.get());
 
@@ -235,51 +279,42 @@ export class TimerRef extends UiView<TimerRefProps> {
     }
   };
 
-  /** Method to reset all v speeds to defaults */
-  private resetVSpeeds(): void {
-    this.vSpeeds[0].value = Math.round(Simplane.getDesignSpeeds().Vx);
-    this.vSpeedSubjects.vx.set(this.vSpeeds[0].value);
-    this.vSpeeds[0].modified.set(false);
-    this.g1000Pub.pub('vspeed_set', this.vSpeeds[0], true);
-    this.vSpeeds[1].value = Math.round(Simplane.getDesignSpeeds().Vy);
-    this.vSpeedSubjects.vy.set(this.vSpeeds[1].value);
-    this.vSpeeds[1].modified.set(false);
-    this.g1000Pub.pub('vspeed_set', this.vSpeeds[1], true);
-    this.vSpeeds[2].value = Math.round(Simplane.getDesignSpeeds().Vr);
-    this.vSpeedSubjects.vr.set(this.vSpeeds[2].value);
-    this.vSpeeds[2].modified.set(false);
-    this.g1000Pub.pub('vspeed_set', this.vSpeeds[2], true);
-    this.vSpeeds[3].value = Math.round(Simplane.getDesignSpeeds().BestGlide);
-    this.vSpeedSubjects.vg.set(this.vSpeeds[3].value);
-    this.vSpeeds[3].modified.set(false);
-    this.g1000Pub.pub('vspeed_set', this.vSpeeds[3], true);
-    this.vSpeeds[4].value = Math.round(Simplane.getDesignSpeeds().Vapp);
-    this.vSpeeds[4].modified.set(false);
+  /**
+   * Resets V-speeds to their default values.
+   * @param groupName The name of the V-speed group containing the V-speeds to reset. If not defined, then the change
+   * will be applied to all V-speeds in every group.
+   */
+  private resetVSpeeds(groupName?: string): void {
+    let currentGroup = '';
+    for (const row of this.vSpeedRowData.getArray()) {
+      if (typeof row === 'string') {
+        currentGroup = row;
+        continue;
+      }
+
+      if (groupName === undefined || groupName === currentGroup) {
+        row.userValueSetting.value = -1;
+      }
+    }
   }
 
   /**
-   * Method enable or disable all ref speeds.
-   * @param enable Whether to enable or disable the ref speeds.
+   * Sets whether to show V-speed bugs.
+   * @param show Whether to show the bugs.
+   * @param groupName The name of the V-speed group containing the V-speeds to show or hide. If not defined, then the
+   * change will be applied to all V-speeds in every group.
    */
-  private enableAllRefSpeeds(enable: boolean): void {
-    const value = enable ? 1 : 0;
-    this.onVyRefOptionSelected(value);
-    this.onVxRefOptionSelected(value);
-    this.onVrRefOptionSelected(value);
-    this.onGlideRefOptionSelected(value);
-  }
+  private setShowVSpeedBugs(show: boolean, groupName?: string): void {
+    let currentGroup = '';
+    for (const row of this.vSpeedRowData.getArray()) {
+      if (typeof row === 'string') {
+        currentGroup = row;
+        continue;
+      }
 
-  /**
-   * Method to set vspeed asterisk visibility.
-   * @param vspeed is the VSpeedType to be updated
-   * @param value is the vspeed value
-   */
-  private updateVSpeed(vspeed: VSpeedType, value: number): void {
-    const object = this.vSpeedObjectMap.get(vspeed);
-    if (object !== undefined) {
-      object.value = value;
-      object.modified.set(true);
-      this.g1000Pub.pub('vspeed_set', object, true);
+      if (groupName === undefined || groupName === currentGroup) {
+        row.showSetting.value = show;
+      }
     }
   }
 
@@ -296,51 +331,6 @@ export class TimerRef extends UiView<TimerRefProps> {
     } else {
       this.timerComponentRef.instance.startTimer();
       this.timerButtonSubject.set('Stop?');
-    }
-  };
-
-  // ---- TOGGLE Vg CALLBACK
-  private onGlideRefOptionSelected = (index: number): void => {
-    // console.log('INDEX HERE -- ', index);
-    this.glideRef.set(index);
-    const vSpeed = this.vSpeedObjectMap.get(VSpeedType.Vglide);
-    if (vSpeed !== undefined) {
-      vSpeed.value = this.vSpeedSubjects.vg.get();
-      vSpeed.display = index === 1;
-      this.g1000Pub.pub('vspeed_display', vSpeed, true);
-    }
-  };
-
-  // ---- TOGGLE Vr CALLBACK
-  private onVrRefOptionSelected = (index: number): void => {
-    this.vrRef.set(index);
-    const vSpeed = this.vSpeedObjectMap.get(VSpeedType.Vr);
-    if (vSpeed !== undefined) {
-      vSpeed.value = this.vSpeedSubjects.vr.get();
-      vSpeed.display = index === 1;
-      this.g1000Pub.pub('vspeed_display', vSpeed, true);
-    }
-  };
-
-  // ---- TOGGLE Vx CALLBACK
-  private onVxRefOptionSelected = (index: number): void => {
-    this.vxRef.set(index);
-    const vSpeed = this.vSpeedObjectMap.get(VSpeedType.Vx);
-    if (vSpeed !== undefined) {
-      vSpeed.value = this.vSpeedSubjects.vx.get();
-      vSpeed.display = index === 1;
-      this.g1000Pub.pub('vspeed_display', vSpeed, true);
-    }
-  };
-
-  // ---- TOGGLE Vy CALLBACK
-  private onVyRefOptionSelected = (index: number): void => {
-    this.vyRef.set(index);
-    const vSpeed = this.vSpeedObjectMap.get(VSpeedType.Vy);
-    if (vSpeed !== undefined) {
-      vSpeed.value = this.vSpeedSubjects.vy.get();
-      vSpeed.display = index === 1;
-      this.g1000Pub.pub('vspeed_display', vSpeed, true);
     }
   };
 
@@ -378,30 +368,7 @@ export class TimerRef extends UiView<TimerRefProps> {
     return { id: index.toString(), renderContent: (): VNode => <span>{item}</span>, estimatedWidth: item.length * ContextMenuDialog.CHAR_WIDTH };
   };
 
-  // ---- updateVy Callback method
-  private updateVy = (value: number): void => {
-    this.updateVSpeed(VSpeedType.Vy, value);
-  };
-
-  // ---- updateVy Callback method
-  private updateVx = (value: number): void => {
-    this.updateVSpeed(VSpeedType.Vx, value);
-  };
-
-  // ---- updateVy Callback method
-  private updateVr = (value: number): void => {
-    this.updateVSpeed(VSpeedType.Vr, value);
-  };
-
-  // ---- updateVy Callback method
-  private updateVglide = (value: number): void => {
-    this.updateVSpeed(VSpeedType.Vglide, value);
-  };
-
-  /**
-   * Renders the component.
-   * @returns The component VNode.
-   */
+  /** @inheritDoc */
   public render(): VNode {
     return (
       <div class='popout-dialog' ref={this.viewContainerRef}>
@@ -410,32 +377,64 @@ export class TimerRef extends UiView<TimerRefProps> {
           <TimerInput ref={this.timerComponentRef} timer={this.timer} onRegister={this.register} />
           <SelectControl viewService={this.props.viewService} ref={this.upDownControlRef} onRegister={this.register} class="timerref-timer-updown" outerContainer={this.viewContainerRef} data={this.upDownItems} onItemSelected={this.onUpDownMenuSelected} buildMenuItem={this.buildUpDownMenuItems} />
           <ActionButton class="timerref-timer-button" onRegister={this.register} ref={this.buttonRef} text={this.timerButtonSubject} onExecute={this.onTimerButtonPressed} />
+
           <hr class="timerref-hr1" />
-          <div class="timerref-glide-title">GLIDE</div>
-          <div class="timerref-glide-value">
-            <NumberInput onRegister={this.register} onValueChanged={this.updateVglide} dataSubject={this.vSpeedSubjects.vg} minValue={0} maxValue={999} increment={1} wrap={false} class='timerref-ref-number' />
-            <span class="size14">KT<span class="timerref-asterisk">{this.glideRefChanged}</span></span>
+          <div class='timerref-ref-container'>
+            <G1000UiControlWrapper onRegister={this.register}>
+              <G1000ControlList
+                data={this.vSpeedRowData}
+                renderItem={row => {
+                  if (typeof row === 'string') {
+                    return (
+                      <G1000UiControl requireChildFocus>
+                        <div class='timerref-ref-row timerref-ref-header'>{row}</div>
+                      </G1000UiControl>
+                    );
+                  } else {
+                    const entry = row;
+                    const inputValue = Subject.create(0);
+
+                    entry.activeValue.pipe(inputValue);
+
+                    MappedSubject.create(
+                      ([inputVal, defaultVal]) => inputVal === defaultVal ? -1 : inputVal,
+                      inputValue,
+                      entry.defaultValueSetting
+                    ).pipe(entry.userValueSetting);
+
+                    return (
+                      <G1000UiControl>
+                        <div class='timerref-ref-row timerref-ref-entry'>
+                          <div class='timerref-ref-title'>{entry.definition.label}</div>
+                          <div class='timerref-ref-value'>
+                            <DigitInput
+                              value={inputValue}
+                              minValue={0}
+                              maxValue={999}
+                              increment={1}
+                              scale={1}
+                              wrap={false}
+                            />
+                            <span class='timerref-ref-unit'>KT<span class="timerref-ref-asterisk">{entry.isEdited.map(isEdited => isEdited ? '*' : '')}</span></span>
+                          </div>
+                          <ArrowControl
+                            value={entry.showSetting}
+                            options={[false, true]}
+                            renderValue={value => value ? 'On' : 'Off'}
+                            class='timerref-ref-toggle'
+                          />
+                        </div>
+                      </G1000UiControl>
+                    );
+                  }
+                }}
+                hideScrollbar={this.vSpeedRowData.length <= 4}
+                class='timerref-ref-list'
+              />
+            </G1000UiControlWrapper>
           </div>
-          <ArrowToggle class="timerref-glide-toggle" onRegister={this.register} onOptionSelected={this.onGlideRefOptionSelected} options={this.onOffToggleOptions} dataref={this.glideRef} />
-          <div class="timerref-vr-title">Vr</div>
-          <div class="timerref-vr-value">
-            <NumberInput onRegister={this.register} onValueChanged={this.updateVr} dataSubject={this.vSpeedSubjects.vr} minValue={0} maxValue={999} increment={1} wrap={false} class='timerref-ref-number' />
-            <span class="size14">KT<span class="timerref-asterisk">{this.vrRefChanged}</span></span>
-          </div>
-          <ArrowToggle class="timerref-vr-toggle" onRegister={this.register} onOptionSelected={this.onVrRefOptionSelected} options={this.onOffToggleOptions} dataref={this.vrRef} />
-          <div class="timerref-vx-title">Vx</div>
-          <div class="timerref-vx-value">
-            <NumberInput onRegister={this.register} onValueChanged={this.updateVx} dataSubject={this.vSpeedSubjects.vx} minValue={0} maxValue={999} increment={1} wrap={false} class='timerref-ref-number' />
-            <span class="size14">KT<span class="timerref-asterisk">{this.vxRefChanged}</span></span>
-          </div>
-          <ArrowToggle class="timerref-vx-toggle" onRegister={this.register} onOptionSelected={this.onVxRefOptionSelected} options={this.onOffToggleOptions} dataref={this.vxRef} />
-          <div class="timerref-vy-title">Vy</div>
-          <div class="timerref-vy-value">
-            <NumberInput onRegister={this.register} onValueChanged={this.updateVy} dataSubject={this.vSpeedSubjects.vy} minValue={0} maxValue={999} increment={1} wrap={false} class='timerref-ref-number' />
-            <span class="size14">KT<span class="timerref-asterisk">{this.vyRefChanged}</span></span>
-          </div>
-          <ArrowToggle class="timerref-vy-toggle" onRegister={this.register} onOptionSelected={this.onVyRefOptionSelected} options={this.onOffToggleOptions} dataref={this.vyRef} />
           <hr class="timerref-hr2" />
+
           <div class="timerref-mins-title">MINS</div>
           <ArrowToggle ref={this.minsToggleComponent} class="timerref-mins-toggle" onRegister={this.register} onOptionSelected={this.onMinimumsRefOptionSelected} options={this.minsToggleOptions} dataref={this.minsRef} />
           <div class="timerref-mins-value">

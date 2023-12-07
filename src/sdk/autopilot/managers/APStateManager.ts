@@ -1,7 +1,7 @@
 import { EventBus, KeyEventData, KeyEvents, KeyEventManager, SimVarValueType } from '../../data';
 import { APEvents, APLockType } from '../../instruments';
 import { MSFSAPStates } from '../../navigation';
-import { SubEventInterface, SubEvent, Subject, Subscribable } from '../../sub';
+import { SubEventInterface, SubEvent, Subject, Subscribable, MappedSubject } from '../../sub';
 import { APConfig, APLateralModes, APVerticalModes } from '../APConfig';
 
 /** AP Mode Types */
@@ -42,6 +42,15 @@ export abstract class APStateManager {
   public isFlightDirectorOn = this._isFlightDirectorOn as Subscribable<boolean>;
   protected _isFlightDirectorCoPilotOn = Subject.create(false);
   public isFlightDirectorCoPilotOn = this._isFlightDirectorCoPilotOn as Subscribable<boolean>;
+  /**
+   * Whether any of the flight directors are switched on.
+   * Only looks at FD1/pilot unless the {@link APConfig.independentFds} option is enabled.
+   */
+  public readonly isAnyFlightDirectorOn = MappedSubject.create(
+    ([isFlightDirectorOn, isFlightDirectorCoPilotOn]) => isFlightDirectorOn || (this.apConfig.independentFds && isFlightDirectorCoPilotOn),
+    this._isFlightDirectorOn,
+    this._isFlightDirectorCoPilotOn,
+  );
 
   /**
    * Creates an instance of the APStateManager.
@@ -84,12 +93,16 @@ export abstract class APStateManager {
 
     ap.on('flight_director_is_active_1').whenChanged().handle((fd) => {
       this._isFlightDirectorOn.set(fd);
-      this.setFlightDirector(fd);
+      if (!this.apConfig.independentFds) {
+        this.setFlightDirector(fd);
+      }
     });
 
     ap.on('flight_director_is_active_2').whenChanged().handle((fd) => {
       this._isFlightDirectorCoPilotOn.set(fd);
-      this.setFlightDirector(fd);
+      if (!this.apConfig.independentFds) {
+        this.setFlightDirector(fd);
+      }
     });
   }
 

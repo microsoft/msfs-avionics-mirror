@@ -78,6 +78,25 @@ export class SubscribableMapFunctions {
   }
 
   /**
+   * Generates a function which maps an input tuple to a count of the number of items in the tuple that satisfy a
+   * given condition.
+   * @param predicate A function which evaluates whether an item should be counted.
+   * @returns A function which maps an input tuple to a count of the number of items in the tuple that satisfy the
+   * condition specified by the predicate.
+   */
+  public static count<T>(predicate: (value: T) => boolean): (input: readonly T[], currentVal?: number) => number {
+    const reduceFunc = (sum: number, curr: T): number => {
+      if (predicate(curr)) {
+        return sum + 1;
+      } else {
+        return sum;
+      }
+    };
+
+    return (input: readonly T[]): number => input.reduce(reduceFunc, 0);
+  }
+
+  /**
    * Generates a function which maps an input number to a rounded version of itself at a certain precision.
    * @param precision The precision to which to round the input.
    * @returns A function which maps an input number to a rounded version of itself at the specified precision.

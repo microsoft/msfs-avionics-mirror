@@ -1,4 +1,4 @@
-import { FieldFormatter } from '../FmcFormat';
+import { FmcComponentFormatter, FmcFormatterOutput } from '../FmcFormat';
 import { AbstractFmcPage } from '../AbstractFmcPage';
 import { FmcComponent, FmcComponentOptions } from './FmcComponent';
 import { Subscribable } from '../../sub';
@@ -11,7 +11,7 @@ export interface DisplayFieldOptions<T> extends FmcComponentOptions {
   /**
    * Formatter object
    */
-  formatter: FieldFormatter<T>,
+  formatter: FmcComponentFormatter<T>,
 
   /** @inheritDoc */
   style?: string | ((value: T | null) => string),
@@ -71,16 +71,24 @@ export class DisplayField<T> extends FmcComponent<DisplayFieldOptions<T>> {
   }
 
   /** @inheritDoc */
-  public render(): string {
-    let renderStr: string;
+  public render(): FmcFormatterOutput {
+    let renderOutput: FmcFormatterOutput;
     if (typeof this.options.formatter === 'object') {
-      renderStr = (this.value !== null) ? this.options.formatter.format(this.value as NonNullable<T>) : (this.options.formatter.nullValueString ?? '');
+      if (this.value !== null) {
+        renderOutput = this.options.formatter.format(this.value as NonNullable<T>);
+      } else {
+        renderOutput = this.options.formatter.nullValueString ?? '';
+      }
     } else {
-      renderStr = this.options.formatter(this.value as T);
+      renderOutput = this.options.formatter(this.value as T);
+    }
+
+    if (typeof renderOutput !== 'string') {
+      return renderOutput;
     }
 
     const styleStr = (typeof this.options.style === 'function') ? this.options.style(this.value) : this.options.style;
 
-    return `${this.options.prefix ?? ''}${renderStr}${this.options.suffix ?? ''}${styleStr ?? ''}`;
+    return `${this.options.prefix ?? ''}${renderOutput}${this.options.suffix ?? ''}${styleStr ?? ''}`;
   }
 }

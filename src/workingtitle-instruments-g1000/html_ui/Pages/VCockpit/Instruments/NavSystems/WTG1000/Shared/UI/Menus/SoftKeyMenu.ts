@@ -1,4 +1,4 @@
-import { SubEvent, Subject } from '@microsoft/msfs-sdk';
+import { SetSubject, SubEvent, Subject } from '@microsoft/msfs-sdk';
 
 import { SoftKeyMenuSystem } from './SoftKeyMenuSystem';
 
@@ -24,6 +24,9 @@ export interface MenuItem {
 
   /** Whether or not the menu item is highlighted. */
   highlighted: Subject<boolean>;
+
+  /** Additional CSS classes to add to the menu item display. */
+  additionalClasses: SetSubject<string>;
 }
 
 /**
@@ -58,7 +61,8 @@ export class SoftKeyMenu {
       value: Subject.create(value),
       pressed: new SubEvent(),
       disabled: Subject.create(handler === undefined || disabled),
-      highlighted: Subject.create<boolean>(false)
+      highlighted: Subject.create<boolean>(false),
+      additionalClasses: SetSubject.create()
     };
   }
 
@@ -116,6 +120,7 @@ export class SoftKeyMenu {
     disabled: Subject.create<boolean>(true),
     pressed: new SubEvent(),
     value: Subject.create<boolean | string | undefined>(undefined),
-    highlighted: Subject.create<boolean>(false)
+    highlighted: Subject.create<boolean>(false),
+    additionalClasses: SetSubject.create()
   };
 }

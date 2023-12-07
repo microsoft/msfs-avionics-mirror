@@ -56,7 +56,7 @@ export interface XMLGaugeProps extends ComponentProps {
  */
 export interface XMLHostedLogicGauge {
   /** The logic host. */
-  logicHost: CompositeLogicXMLHost
+  logicHost: CompositeLogicXMLHost;
 }
 
 /** An XML gauge style definition. */

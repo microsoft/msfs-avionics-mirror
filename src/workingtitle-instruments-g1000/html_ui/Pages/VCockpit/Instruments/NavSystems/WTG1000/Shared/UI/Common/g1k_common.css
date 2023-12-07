@@ -15,8 +15,8 @@ html {
 }
 
 html body {
-  font-family: Roboto-Regular;
-  font-size: 12;
+  font-family: Roboto;
+  font-size: 12px;
   color: white;
   height: 100%;
   width: 100%;
@@ -83,6 +83,13 @@ html body {
   font-weight: normal;
   font-style: normal; } */
 
+@font-face {
+  font-family: "DejaVuSans-SemiBold";
+  src: url("/Pages/VCockpit/Instruments/NavSystems/WTG1000/Assets/Fonts/DejaVuSans-SemiBold.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 #Mainframe {
   --refWidth: 1024;
   --refHeight: 768;
@@ -124,6 +131,10 @@ html body {
   font-size: 20px;
 }
 
+.size24 {
+  font-size: 24px;
+}
+
 .roboto-font {
   font-family: Roboto;
 }
@@ -162,10 +173,6 @@ html body {
 
 .failed-box {
   display: none;
-}
-
-.failed-instr .failed-box {
-  display: block;
   position: absolute;
   top: 0;
   left: 0;
@@ -177,4 +184,8 @@ html body {
   --fail-fg-color: rgba(244, 0, 0, 1);
   background: linear-gradient(to top right, var(--fail-bg-color) calc(50% - 1.4px), var(--fail-fg-color), var(--fail-bg-color) calc(50% + 1.4px)),
     linear-gradient(to top left, var(--fail-bg-color) calc(50% - 1.4px), var(--fail-fg-color), var(--fail-bg-color) calc(50% + 1.4px)) !important;
+}
+
+.failed-instr .failed-box {
+  display: block;
 }

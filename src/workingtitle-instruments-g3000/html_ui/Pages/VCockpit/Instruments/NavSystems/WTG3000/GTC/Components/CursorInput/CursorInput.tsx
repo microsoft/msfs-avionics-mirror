@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
   ComponentProps, DebounceTimer, DisplayComponent, FSComponent, MappedSubject, MappedSubscribable, MathUtils, MutableSubscribable, ObjectSubject,
-  SetSubject, Subject, Subscribable, SubscribableSet, SubscribableType, SubscribableUtils, Subscription, VNode
+  SetSubject, Subject, Subscribable, SubscribableSet, SubscribableType, SubscribableUtils, Subscription, ToggleableClassNameRecord, VNode
 } from '@microsoft/msfs-sdk';
 import { CursorInputSlot } from './CursorInputSlot';
 
@@ -73,7 +73,7 @@ export interface CursorInputProps<M extends MutableSubscribable<any>> extends Co
   renderInactiveValue?: VNode | ((value: SubscribableType<M>) => string | VNode);
 
   /** CSS class(es) to apply to the component's root element. */
-  class?: string | SubscribableSet<string>;
+  class?: string | SubscribableSet<string> | ToggleableClassNameRecord;
 }
 
 /**
@@ -170,7 +170,7 @@ export class CursorInput<M extends MutableSubscribable<any>> extends DisplayComp
 
   private isInit = false;
 
-  private cssClassSub?: Subscription;
+  private cssClassSub?: Subscription | Subscription[];
   private valuePipeOut?: Subscription;
   private inactiveValueSub?: Subscription;
 
@@ -587,16 +587,17 @@ export class CursorInput<M extends MutableSubscribable<any>> extends DisplayComp
    * will be activated instead of changing any slot value. If cursor selection is in per-character mode, it will be
    * forced to per-slot mode. If the cursor is past the last slot, this method does nothing.
    * @param direction The direction in which to change the slot value (`1` = increment, `-1` = decrement).
+   * @returns Whether the value of the slot was changed.
    * @throws Error if this input is not initialized.
    */
-  public changeSlotValue(direction: 1 | -1): void {
+  public changeSlotValue(direction: 1 | -1): boolean {
     if (!this.isInitialized()) {
       throw new Error('CursorInput: attempted to manipulate input before it was initialized');
     }
 
     if (!this._isEditingActive.get()) {
       this.activateEditing(true);
-      return;
+      return false;
     }
 
     this._isSelectionPerSlot.set(true);
@@ -606,14 +607,14 @@ export class CursorInput<M extends MutableSubscribable<any>> extends DisplayComp
     const cursorPosition = this._cursorPosition.get();
 
     if (cursorPosition >= this.charPositions.length) {
-      return;
+      return false;
     }
 
     const slot = this.charPositions[cursorPosition].slot;
     if (direction === 1) {
-      slot.incrementValue();
+      return slot.incrementValue();
     } else {
-      slot.decrementValue();
+      return slot.decrementValue();
     }
   }
 
@@ -1006,7 +1007,16 @@ export class CursorInput<M extends MutableSubscribable<any>> extends DisplayComp
 
     this.cleanUpRenderedInactiveValue();
 
-    this.cssClassSub?.destroy();
+    if (this.cssClassSub) {
+      if (Array.isArray(this.cssClassSub)) {
+        for (const sub of this.cssClassSub) {
+          sub.destroy();
+        }
+      } else {
+        this.cssClassSub.destroy();
+      }
+    }
+
     this.valuePipeOut?.destroy();
     this.inactiveValueSub?.destroy();
 

@@ -1,4 +1,6 @@
-import { ComputedSubject, ControlPublisher, DisplayComponent, EventBus, FSComponent, VNode, XPDRMode, XPDRSimVarEvents } from '@microsoft/msfs-sdk';
+import {
+  AdcEvents, ComputedSubject, ConsumerSubject, ControlPublisher, DisplayComponent, EventBus, FSComponent, HEvent, VNode, XPDRMode, XPDRSimVarEvents,
+} from '@microsoft/msfs-sdk';
 
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 
@@ -30,7 +32,8 @@ export class Transponder extends DisplayComponent<TransponderProps> {
     tempCode: ''
   };
   private readonly xpdrCodeSubject = ComputedSubject.create(0, (v): string => {
-    return `${Math.round(v)}`.padStart(4, '0');
+    const roundedCode = Math.round(v);
+    return `${isNaN(roundedCode) ? 0 : roundedCode}`.padStart(4, '0');
   });
   private readonly xpdrModeSubject = ComputedSubject.create(XPDRMode.OFF, (v): string => {
     switch (v) {
@@ -48,6 +51,7 @@ export class Transponder extends DisplayComponent<TransponderProps> {
 
     return 'XXX';
   });
+  private readonly isOnGround = ConsumerSubject.create(this.props.bus.getSubscriber<AdcEvents>().on('on_ground').whenChanged(), true);
 
   /**
    * A callback called after the component renders.
@@ -68,6 +72,99 @@ export class Transponder extends DisplayComponent<TransponderProps> {
       .handle(this.updateCodeEdit.bind(this));
     g1000ControlEvents.on('xpdr_code_digit')
       .handle(this.editCode.bind(this));
+
+    this.isOnGround.sub(onGround => {
+      this.xpdrCodeElement.instance.classList.toggle('on-ground', onGround);
+      this.xpdrModeElement.instance.classList.toggle('on-ground', onGround);
+    }, true);
+
+    this.props.bus.getSubscriber<HEvent>().on('hEvent').handle(this.handleXpdrHEvent.bind(this));
+  }
+
+  /**
+   * A method to handle XPDR-related Control Pad HEvents.
+   * @param evt the name of the HEvent.
+   */
+  private handleXpdrHEvent(evt: string): void {
+    switch (evt) {
+      case 'AS1000_CONTROL_PAD_Ident':
+        this.props.controlPublisher.publishEvent('xpdr_send_ident_1', true);
+        break;
+      case 'AS1000_PFD_XPDR_Small_INC':
+        this.changeCodeByOne(true);
+        break;
+      case 'AS1000_PFD_XPDR_Small_DEC':
+        this.changeCodeByOne(false);
+        break;
+      case 'AS1000_PFD_XPDR_Large_INC':
+        this.changeCodeByHundreds(true);
+        break;
+      case 'AS1000_PFD_XPDR_Large_DEC':
+        this.changeCodeByHundreds(false);
+        break;
+    }
+  }
+
+  /**
+   * Changes the second two digits of the xpdr code by one (tens and ones).
+   * @param increment whether to increment or decrement the code.
+   */
+  private changeCodeByOne(increment: boolean): void {
+    // current code will be a rounded number in a padded string, so we parse it as base-8
+    const currentCode = parseInt(this.xpdrCodeSubject.get());
+    if (isNaN(currentCode)) {
+      return;
+    }
+    let ones = currentCode % 10;
+    let tens = Math.floor(currentCode / 10) % 10;
+    ones += (increment ? 1 : -1);
+    if (ones > 7) {
+      ones = 0;
+      tens += 1;
+      if (tens > 7) {
+        tens = 0;
+      }
+    }
+    if (ones < 0) {
+      ones = 7;
+      tens -= 1;
+      if (tens < 0) {
+        tens = 7;
+      }
+    }
+    const newCode = (Math.floor(currentCode / 100) * 100) + tens * 10 + ones;
+    this.props.controlPublisher.publishEvent('publish_xpdr_code_1', newCode);
+  }
+
+  /**
+   * Changes the first two digits of the xpdr code by one (thousands and hundreds).
+   * @param increment whether to increment or decrement the code.
+   */
+  private changeCodeByHundreds(increment: boolean): void {
+    // current code will be a rounded number in a padded string, so we parse it as base-8
+    const currentCode = parseInt(this.xpdrCodeSubject.get());
+    if (isNaN(currentCode)) {
+      return;
+    }
+    let hundreds = Math.floor(currentCode / 100) % 10;
+    let thousands = Math.floor(currentCode / 1000) % 10;
+    hundreds += (increment ? 1 : -1);
+    if (hundreds > 7) {
+      hundreds = 0;
+      thousands += 1;
+      if (thousands > 7) {
+        thousands = 0;
+      }
+    }
+    if (hundreds < 0) {
+      hundreds = 7;
+      thousands -= 1;
+      if (thousands < 0) {
+        thousands = 7;
+      }
+    }
+    const newCode = thousands * 1000 + hundreds * 100 + currentCode % 100;
+    this.props.controlPublisher.publishEvent('publish_xpdr_code_1', newCode);
   }
 
   /**
@@ -76,6 +173,7 @@ export class Transponder extends DisplayComponent<TransponderProps> {
    */
   private updateCodeEdit(edit: boolean): void {
     if (edit && this.xpdrCodeElement.instance !== null) {
+      this.codeEdit.charIndex = !this.codeEdit.editMode ? 0 : this.codeEdit.charIndex;
       this.codeEdit.editMode = true;
       this.codeEdit.tempCode = '   ';
       if (this.xpdrModeSubject.getRaw() === XPDRMode.STBY || this.xpdrModeSubject.getRaw() === XPDRMode.OFF) {
@@ -87,6 +185,7 @@ export class Transponder extends DisplayComponent<TransponderProps> {
     } else if (!edit && this.xpdrCodeElement.instance !== null) {
       this.codeEdit.editMode = false;
       this.codeEdit.tempCode = '';
+      this.codeEdit.charIndex = 0;
       this.xpdrCodeElement.instance.classList.remove('highlight-green');
       this.xpdrCodeElement.instance.classList.remove('highlight-white');
       this.onXpdrModeUpdate(this.xpdrModeSubject.getRaw());

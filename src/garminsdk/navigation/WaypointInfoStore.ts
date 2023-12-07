@@ -1,11 +1,7 @@
-/**
- * A store for commonly used waypoint info.
- */
 import {
   AirportUtils, BasicNavAngleSubject, BasicNavAngleUnit, Facility, FacilityType, FacilityUtils, FacilityWaypointUtils,
-  GeoPoint, GeoPointInterface, GeoPointSubject, ICAO, NavAngleUnit, NavAngleUnitFamily, NavMath,
-  NumberUnitInterface, NumberUnitSubject, Subject, Subscribable, SubscribableUtils, Subscription, UnitFamily, UnitType,
-  Waypoint,
+  GeoPoint, GeoPointInterface, GeoPointSubject, ICAO, NavAngleUnit, NavAngleUnitFamily, NumberUnitInterface,
+  NumberUnitSubject, Subject, Subscribable, SubscribableUtils, Subscription, UnitFamily, UnitType, Waypoint
 } from '@microsoft/msfs-sdk';
 
 import { Regions } from './Regions';
@@ -19,7 +15,9 @@ export class WaypointInfoStore {
   /** This store's current waypoint. */
   public readonly waypoint = Subject.create<Waypoint | null>(null);
 
-  private readonly facility = Subject.create<Facility | null>(null);
+  private readonly _facility = Subject.create<Facility | null>(null);
+  /** The facility associated with this store's current waypoint. */
+  public readonly facility = this._facility as Subscribable<Facility | null>;
 
   private readonly _location = GeoPointSubject.create(WaypointInfoStore.NULL_LOCATION.copy());
   // eslint-disable-next-line jsdoc/require-returns
@@ -28,7 +26,7 @@ export class WaypointInfoStore {
     return this._location;
   }
 
-  private readonly _name = this.facility.map(facility => {
+  private readonly _name = this._facility.map(facility => {
     if (facility?.name) {
       return Utils.Translate(facility.name);
     }
@@ -38,7 +36,7 @@ export class WaypointInfoStore {
   /** The name of this store's current waypoint, or `undefined` if there is no such value. */
   public readonly name = this._name as Subscribable<string | undefined>;
 
-  private readonly _region = this.facility.map(facility => {
+  private readonly _region = this._facility.map(facility => {
     if (facility === null) {
       return undefined;
     }
@@ -64,7 +62,7 @@ export class WaypointInfoStore {
   /** The region of this store's current waypoint, or `undefined` if there is no such value. */
   public readonly region = this._region as Subscribable<string | undefined>;
 
-  private readonly _city = this.facility.map(facility => {
+  private readonly _city = this._facility.map(facility => {
     if (facility?.city) {
       return facility.city.split(', ').map(name => Utils.Translate(name)).join(', ');
     }
@@ -83,9 +81,16 @@ export class WaypointInfoStore {
 
   private readonly _bearing = BasicNavAngleSubject.create(BasicNavAngleUnit.create(false).createNumber(NaN));
   // eslint-disable-next-line jsdoc/require-returns
-  /** The true bearing from the airplane to this store's current waypoint. */
+  /** The true bearing, in degrees, from the airplane to this store's current waypoint. */
   public get bearing(): Subscribable<NumberUnitInterface<NavAngleUnitFamily, NavAngleUnit>> {
     return this._bearing;
+  }
+
+  private readonly _radial = BasicNavAngleSubject.create(BasicNavAngleUnit.create(false).createNumber(NaN));
+  // eslint-disable-next-line jsdoc/require-returns
+  /** The radial relative to true north, in degrees, from this store's current waypoint along which the airplane lies. */
+  public get radial(): Subscribable<NumberUnitInterface<NavAngleUnitFamily, NavAngleUnit>> {
+    return this._radial;
   }
 
   private waypointPipe?: Subscription;
@@ -129,7 +134,7 @@ export class WaypointInfoStore {
     const planePos = this.planePos?.get() ?? WaypointInfoStore.NULL_LOCATION;
     this.updateLocation(waypoint);
     this.updateDistance(waypoint, planePos);
-    this.updateBearing(waypoint, planePos);
+    this.updateBearingRadial(waypoint, planePos);
 
     if (waypoint !== null) {
       this.locationSub = waypoint.location.sub(() => {
@@ -137,16 +142,16 @@ export class WaypointInfoStore {
 
         this.updateLocation(waypoint);
         this.updateDistance(waypoint, planePos2);
-        this.updateBearing(waypoint, planePos2);
+        this.updateBearingRadial(waypoint, planePos2);
       });
 
       if (FacilityWaypointUtils.isFacilityWaypoint(waypoint)) {
-        this.facilityPipe = waypoint.facility.pipe(this.facility);
+        this.facilityPipe = waypoint.facility.pipe(this._facility);
       } else {
-        this.facility.set(null);
+        this._facility.set(null);
       }
     } else {
-      this.facility.set(null);
+      this._facility.set(null);
     }
   }
 
@@ -158,7 +163,7 @@ export class WaypointInfoStore {
     const waypoint = this.waypoint.get();
     if (waypoint) {
       this.updateDistance(waypoint, planePos);
-      this.updateBearing(waypoint, planePos);
+      this.updateBearingRadial(waypoint, planePos);
     }
   }
 
@@ -189,14 +194,16 @@ export class WaypointInfoStore {
    * @param waypoint The store's current waypoint.
    * @param planePos The current position of the airplane.
    */
-  private updateBearing(waypoint: Waypoint | null, planePos: GeoPointInterface): void {
+  private updateBearingRadial(waypoint: Waypoint | null, planePos: GeoPointInterface): void {
     if (!waypoint || isNaN(planePos.lat) || isNaN(planePos.lon)) {
       this._bearing.set(NaN);
+      this._radial.set(NaN);
       return;
     }
 
-    const brg = NavMath.normalizeHeading(planePos.bearingTo(waypoint.location.get()));
-    this._bearing.set(brg, planePos.lat, planePos.lon);
+    const waypointPos = waypoint.location.get();
+    this._bearing.set(planePos.bearingTo(waypointPos), planePos.lat, planePos.lon);
+    this._radial.set(waypointPos.bearingTo(planePos), waypointPos.lat, waypointPos.lon);
   }
 
   /**

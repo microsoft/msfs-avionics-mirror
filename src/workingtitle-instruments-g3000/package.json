@@ -1,6 +1,6 @@
 {
   "name": "workingtitle-instruments-g3000",
-  "version": "1.1.10",
+  "version": "1.1.14",
   "description": "Working Title MSFS G3000",
   "main": "wtg3000.js",
   "scripts": {

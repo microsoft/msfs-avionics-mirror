@@ -5,6 +5,11 @@ import { RadioBox } from './Radiobox';
 
 import './RadioList.css';
 
+export enum RadioListStyle {
+  Inline,
+  SideButtonBound,
+}
+
 /**
  * The properties for the RadioList component.
  */
@@ -15,6 +20,12 @@ interface RadioListProps extends WT21UiControlProps {
   /** The text label of the radio list */
   label?: string;
 
+  /** The style of this RadioList */
+  style?: RadioListStyle;
+
+  /** Orientation of the RadioList - only relevant if {@link style} is set to `SideButtonBound`. */
+  orientation?: 'left' | 'right';
+
   /** The data ref subject for the selected index. */
   dataRef: Subject<number>;
 }
@@ -23,10 +34,20 @@ interface RadioListProps extends WT21UiControlProps {
  * The RadioList component.
  */
 export class RadioList extends WT21UiControl<RadioListProps> {
+  private static readonly ARROW_ORIENTATIONS: Record<'left' | 'right', string> = {
+    left: 'M 7, 2 l -4, 5 l 4, 5',
+    right: 'M 3, 2 l 4, 5 l -4, 5',
+  };
 
   private readonly radioButtonRefs: NodeReference<RadioBox>[] = [];
 
-  protected readonly radioListRef = FSComponent.createRef<HTMLDivElement>();
+  private readonly childrenContainerRef = FSComponent.createRef<HTMLElement>();
+
+  private readonly radioListRef = FSComponent.createRef<HTMLDivElement>();
+
+  private readonly style = this.props.style ?? RadioListStyle.Inline;
+
+  private readonly orientation = this.props.orientation ?? 'left';
 
   /** @inheritdoc */
   public onUpperKnobInc(): boolean {
@@ -49,10 +70,6 @@ export class RadioList extends WT21UiControl<RadioListProps> {
   /** @inheritdoc */
   public onAfterRender(thisNode: VNode): void {
     super.onAfterRender(thisNode);
-
-    if (this.props.inline === true) {
-      this.radioListRef.instance.classList.add('inline');
-    }
 
     this.props.children?.forEach(radiobox => {
       const radioButtonRef = FSComponent.createRef<RadioBox>();
@@ -91,22 +108,60 @@ export class RadioList extends WT21UiControl<RadioListProps> {
     }
   }
 
+  /**
+   * Returns the element instance to receive focus
+   *
+   * @returns the an `HTMLElement`
+   */
+  private get focusEl(): HTMLElement {
+    return (this.style === RadioListStyle.Inline ? this.radioListRef : this.childrenContainerRef).instance;
+  }
+
   /** @inheritdoc */
   protected onFocused(): void {
-    this.radioListRef.instance.classList.add(WT21UiControl.FOCUS_CLASS);
+    this.focusEl.classList.add(WT21UiControl.FOCUS_CLASS);
   }
 
   /** @inheritdoc */
   protected onBlurred(): void {
-    this.radioListRef.instance.classList.remove(WT21UiControl.FOCUS_CLASS);
+    this.focusEl.classList.remove(WT21UiControl.FOCUS_CLASS);
   }
 
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class="popup-menu-radio" ref={this.radioListRef}>
-        <div class="label">{this.props.label}</div>
-        {this.props.children}
+      <div
+        ref={this.radioListRef}
+        class={{
+          'popup-menu-radio': true,
+          'popup-menu-radio-side-buttons': this.style === RadioListStyle.SideButtonBound,
+          'popup-menu-radio-inline': this.props.inline ?? false,
+        }}
+        data-label={this.props.label}
+      >
+        <div class="popup-menu-radio-label">
+          {this.style === RadioListStyle.SideButtonBound && (this.props.orientation ?? 'left') === 'left' && (
+            <div class="check-side-buttons-arrow-wrapper">
+              <svg class="check-side-buttons-arrow" viewBox="0 0 10 14">
+                <path d={RadioList.ARROW_ORIENTATIONS[this.props.orientation ?? 'left']} stroke-width={1.5} stroke="cyan" />
+              </svg>
+            </div>
+          )}
+
+          {this.props.label}
+
+          {this.style === RadioListStyle.SideButtonBound && (this.props.orientation ?? 'left') === 'right' && (
+            <div class="check-side-buttons-arrow-wrapper">
+              <svg class="check-side-buttons-arrow" viewBox="0 0 10 14">
+                <path d={RadioList.ARROW_ORIENTATIONS[this.props.orientation ?? 'left']} stroke-width={1.5} stroke="cyan" />
+              </svg>
+            </div>
+          )}
+        </div>
+
+        <span ref={this.childrenContainerRef} class="popup-menu-radio-children">
+          {this.props.children}
+        </span>
       </div>
     );
   }

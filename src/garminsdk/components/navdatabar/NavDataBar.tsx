@@ -41,7 +41,7 @@ export class NavDataBar extends DisplayComponent<NavDataBarProps> {
   private static readonly RESERVED_CSS_CLASSES = ['nav-data-bar'];
 
   private readonly fieldCount = Math.max(0, this.props.fieldCount);
-  private readonly fieldSlots: VNode[] = Array.from({ length: this.fieldCount }, () => <div />);
+  private readonly fieldSlots: VNode[] = Array.from({ length: this.fieldCount }, () => <div class='nav-data-bar-field-slot' />);
   private readonly fields: NavDataField<any>[] = [];
   private readonly models: NavDataBarFieldModel<any>[] = [];
 

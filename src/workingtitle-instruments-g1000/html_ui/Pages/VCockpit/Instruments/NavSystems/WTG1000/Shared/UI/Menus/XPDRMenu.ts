@@ -3,6 +3,7 @@ import { ControlPublisher, EventBus, Subject, XPDRMode, XPDRSimVarEvents } from 
 import { G1000ControlPublisher } from '../../G1000Events';
 import { SoftKeyMenuSystem } from './SoftKeyMenuSystem';
 import { SoftKeyMenu } from './SoftKeyMenu';
+import { XPDRCodeMenu } from './XPDRCodeMenu';
 
 /**
  * The XPDR softkey menu.
@@ -40,6 +41,8 @@ export class XPDRMenu extends SoftKeyMenu {
       controlPublisher.publishEvent('publish_xpdr_code_1', this.getVfrCode());
     }, this.isVfr.get());
     this.addItem(7, 'Code', () => {
+      const xpdrCodeMenu = this.menuSystem.getMenu('xpdr-code') as XPDRCodeMenu;
+      xpdrCodeMenu.xpdrCodeMenuActive = true;
       menuSystem.pushMenu('xpdr-code');
       g1000Publisher.publishEvent('xpdr_code_push', true);
     }, false);

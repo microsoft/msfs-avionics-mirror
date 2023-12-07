@@ -551,7 +551,7 @@ export interface VorFacility extends Facility {
  * A NDB facility.
  */
 export interface NdbFacility extends Facility {
-  /** The frequency of the facility, in MHz. */
+  /** The frequency of the facility, in kilohertz. (Despite the name of the property, the value is not given in megahertz.) */
   readonly freqMHz: number;
 
   /** The type of NDB. */

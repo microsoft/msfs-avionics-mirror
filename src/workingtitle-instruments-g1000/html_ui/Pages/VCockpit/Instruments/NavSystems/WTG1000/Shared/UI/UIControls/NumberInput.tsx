@@ -1,4 +1,4 @@
-import { FSComponent, Subject, VNode } from '@microsoft/msfs-sdk';
+import { FSComponent, MutableSubscribable, Subject, VNode } from '@microsoft/msfs-sdk';
 
 import { UiControl, UiControlProps } from '../UiControl';
 
@@ -17,7 +17,7 @@ interface NumberInputProps extends UiControlProps {
   /** Whether to wrap values from maxValue to minValue and vice versa. */
   wrap: boolean;
   /** The value to increment or decrement with each inner knob input. */
-  dataSubject: Subject<number>;
+  dataSubject: MutableSubscribable<number>;
   /** The optional default text value for when the dataSubject = 0. */
   defaultDisplayValue?: string;
   /** An optional formatter for the display value */

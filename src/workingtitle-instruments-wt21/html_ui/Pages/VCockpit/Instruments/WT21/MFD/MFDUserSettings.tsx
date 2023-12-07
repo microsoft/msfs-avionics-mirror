@@ -101,6 +101,14 @@ const mfdSettings = [
     defaultValue: WT21MfdTextPage.TakeoffRef as WT21MfdTextPage,
   },
   {
+    name: 'mfdSoftkeyFormatChangeActive_1',
+    defaultValue: false as boolean,
+  },
+  {
+    name: 'mfdSoftkeyFormatChangeActive_2',
+    defaultValue: false as boolean,
+  },
+  {
     name: 'memButton1_1',
     defaultValue: JSON.stringify(mem1defaultValue),
   },
@@ -146,6 +154,10 @@ const mfdSettingsAliased = [
   {
     name: 'mfdSelectedTextPage',
     defaultValue: WT21MfdTextPage.TakeoffRef as WT21MfdTextPage,
+  },
+  {
+    name: 'mfdSoftkeyFormatChangeActive',
+    defaultValue: false as boolean,
   },
   {
     name: 'memButton1',
@@ -203,6 +215,7 @@ export class MFDUserSettings {
           mfdUpperFmsTextVNavShow: `mfdUpperFmsTextVNavShow_${index}`,
           mfdDisplayMode: `mfdDisplayMode_${index}`,
           mfdSelectedTextPage: `mfdSelectedTextPage_${index}`,
+          mfdSoftkeyFormatChangeActive: `mfdSoftkeyFormatChangeActive_${index}`,
           memButton1: `memButton1_${index}`,
           memButton2: `memButton2_${index}`,
           memButton3: `memButton3_${index}`,

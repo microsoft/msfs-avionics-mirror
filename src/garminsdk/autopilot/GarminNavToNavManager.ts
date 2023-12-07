@@ -22,7 +22,8 @@ export class GarminNavToNavManager implements NavToNavManager {
     rnavTypeFlags: RnavTypeFlags.None,
     isCircling: false,
     isVtf: false,
-    referenceFacility: null
+    referenceFacility: null,
+    runway: null
   };
 
   private nav1Frequency = 0;

@@ -1,16 +1,16 @@
 import {
-  APRadioNavInstrument, ArrayUtils, AuralAlertSystem, AuralAlertSystemWarningAdapter, AuralAlertSystemXmlAdapter, CasSystem, CasSystemLegacyAdapter, ClockEvents,
-  CompositeLogicXMLHost, ControlEvents, DefaultXmlAuralAlertParser, FlightPlanCalculatedEvent, FlightPlannerEvents, FlightTimerInstrument, FlightTimerMode,
-  FSComponent, GameStateProvider, GpsSynchronizer, GPSSystemState, MinimumsManager, NavComInstrument, NavSourceType, PluginSystem,
-  SetSubject, SimVarValueType, SoundServer, Subject, TrafficInstrument, UserSetting, Vec2Math, VNode, Wait, XMLWarningFactory, XPDRInstrument
-} from '@microsoft/msfs-sdk';
-import {
   ComRadioSpacingManager, DateTimeUserSettings, DefaultGpsIntegrityDataProvider, DefaultRadarAltimeterDataProvider, DefaultVNavDataProvider,
   DefaultWindDataProvider, DmeUserSettings, FlightPathCalculatorManager, FlightPlanSimSyncManager, Fms, FmsPositionSystemSelector, GarminAPConfig,
   GarminAPStateManager, GarminGoAroundManager, GarminHeadingSyncManager, GarminTimerControlEvents, GarminTimerManager, GarminXpdrTcasManager, MapTerrainWxSettingCompatManager,
   MinimumsUnitsManager, NavdataComputer, TrafficOperatingModeManager, TrafficOperatingModeSetting, TrafficSystemType, TrafficUserSettings,
   UnitsUserSettings
 } from '@microsoft/msfs-garminsdk';
+import {
+  APRadioNavInstrument, ArrayUtils, AuralAlertSystem, AuralAlertSystemWarningAdapter, AuralAlertSystemXmlAdapter, CasSystem, CasSystemLegacyAdapter, ClockEvents,
+  CompositeLogicXMLHost, ControlEvents, DefaultXmlAuralAlertParser, FlightPlanCalculatedEvent, FlightPlannerEvents, FlightTimerInstrument, FlightTimerMode,
+  FSComponent, GameStateProvider, GpsSynchronizer, GPSSystemState, MinimumsManager, NavComInstrument, NavSourceType, PluginSystem,
+  SetSubject, SimVarValueType, SoundServer, Subject, TrafficInstrument, UserSetting, Vec2Math, VNode, Wait, XMLWarningFactory, XPDRInstrument
+} from '@microsoft/msfs-sdk';
 import {
   AuralAlertUserSettings, AuralAlertVoiceSetting, AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, AvionicsStatusEvents, AvionicsStatusGlobalPowerEvent,
   AvionicsStatusManager, ConnextWeatherPaneView, DisplayPaneContainer, DisplayPaneIndex, DisplayPanesController, DisplayPaneViewFactory, DisplayPaneViewKeys,
@@ -26,6 +26,7 @@ import { StartupScreen } from './Components/Startup/StartupScreen';
 import { StartupScreenPrebuiltRow, StartupScreenRowFactory } from './Components/Startup/StartupScreenRow';
 import { MfdConfig } from './Config/MfdConfig';
 import { FmsSpeedManager } from './FmsSpeed/FmsSpeedManager';
+import { G3000MfdPlugin, G3000MfdPluginBinder } from './G3000MFDPlugin';
 import { AltimeterBaroKeyEventHandler } from './Input/AltimeterBaroKeyEventHandler';
 import { ActiveNavSourceManager } from './Navigation/ActiveNavSourceManager';
 import { FmsVSpeedManager } from './Performance/TOLD/FmsVSpeedManager';
@@ -38,7 +39,6 @@ import { Taws } from './TAWS/Taws';
 import { TouchdownCalloutModule } from './TAWS/TouchdownCalloutModule';
 import { VSpeedBugManager } from './VSpeed/VSpeedBugManager';
 import { WeatherRadarManager } from './WeatherRadar/WeatherRadarManager';
-import { G3000MfdPlugin, G3000MfdPluginBinder } from './G3000MFDPlugin';
 
 import './WTG3000_MFD.css';
 
@@ -126,6 +126,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
   private readonly gps2DataProvider = new GpsStatusDataProvider(this.bus, 2);
 
   private readonly apConfig = new GarminAPConfig(this.bus, this.flightPlanner, this.verticalPathCalculator, {
+    useIndicatedMach: true,
     vnavOptions: {
       allowApproachBaroVNav: true,
       allowPlusVWithoutSbas: true,
@@ -286,7 +287,9 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     this.initAuralAlertUserSettings();
     this.initTouchdownCalloutUserSettings();
 
-    this.doInit();
+    this.doInit().catch(e => {
+      console.error(e);
+    });
   }
 
   /** @inheritdoc */

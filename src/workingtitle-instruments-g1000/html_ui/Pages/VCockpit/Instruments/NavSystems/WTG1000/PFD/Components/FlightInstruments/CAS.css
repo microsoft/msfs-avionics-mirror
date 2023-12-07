@@ -5,38 +5,39 @@
   width: 148px;
   height: auto;
   background-color: black;
-  border: 1px solid rgb(100,100,100);
+  border: 1px solid rgb(100, 100, 100);
   font-size: 16px;
-  display: none;
 }
 
 #cas>div {
   margin: 2px 0px 0px 2px;
-  display: none;
 }
 
 .annunciations-divider {
   position: relative;
   width: 90%;
   height: 0px;
-  border-bottom: 1px solid rgb(100, 100, 100);
+  border-bottom: 1px solid rgb(235, 235, 235);
   left: 5%;
   display: none;
 }
 
-
 .annunciation.warning {
+  animation: none;
   color: red;
 }
 
 .annunciation.caution {
+  animation: none;
   color: yellow;
 }
 
 .annunciation.advisory {
+  animation: none;
   color: white;
 }
 
 .annunciation.safeop {
-  color: green;
+  animation: none;
+  color: limegreen;
 }

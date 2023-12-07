@@ -903,6 +903,15 @@ export class WT21FmsUtils {
   }
 
   /**
+   * Checks if leg type is a "vectors" leg type.
+   * @param legType The LegType.
+   * @returns Whether the leg type is a "vectors" leg type.
+   */
+  public static isVectorsLeg(legType: LegType): boolean {
+    return vectorsTypes.includes(legType);
+  }
+
+  /**
    * Checks if leg type is a course or heading leg,
    * which should have the leg course shown instead of the initial dtk.
    * @param legType The LegType.
@@ -1396,3 +1405,6 @@ const discontinuityLegTypes = [LegType.Discontinuity, LegType.ThruDiscontinuity]
 /** Leg types where the leg course should be shown instead of the initial dtk. */
 const showCourseLegTypes = [LegType.CA, LegType.CD, LegType.CF, LegType.CI, LegType.CR,
 LegType.FM, LegType.VA, LegType.VD, LegType.VI, LegType.VM, LegType.VR] as readonly LegType[];
+
+/** Array of "vectors" leg types */
+const vectorsTypes = [LegType.FM, LegType.VM];

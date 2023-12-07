@@ -6,6 +6,10 @@
   border: 1px solid var(--wt21-colors-gray);
 }
 
+.popup-menu.popup-menu-no-border {
+  border: none;
+}
+
 .pfd-popup-menu,
 .pfd-popup-menu-brgsrc,
 .pfd-popup-menu-config,
@@ -76,6 +80,10 @@
 .popup-menu-title, .popup-submenu-title {
   line-height: 18px;
   border-bottom: 1px solid var(--wt21-colors-gray);
+}
+
+*.popup-menu-no-border .popup-menu-title, *.popup-menu-no-border .popup-submenu-title {
+  border-bottom: none;
 }
 
 .popup-submenu-title svg {

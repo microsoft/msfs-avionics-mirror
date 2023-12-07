@@ -220,7 +220,7 @@ export class MapWaypointsLayer extends MapLayer<MapWaypointsLayerProps> {
           return this.isUserVisible;
       }
     } else if (waypoint instanceof MapRunwayLabelWaypoint) {
-      return this.waypointsModule.runwayShow.get()
+      return this.waypointsModule.runwayLabelShow.get()
         && UnitType.METER.convertTo(waypoint.runway.length, UnitType.GA_RADIAN) / this.props.mapProjection.getProjectedResolution()
         >= this.waypointsModule.runwayLabelMinLength.get();
     } else if (waypoint instanceof MapRunwayOutlineWaypoint) {

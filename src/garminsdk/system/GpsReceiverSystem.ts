@@ -26,6 +26,18 @@ export interface GpsReceiverSystemEvents extends GpsReceiverGPSSatComputerDataEv
 }
 
 /**
+ * Options for {@link GpsReceiverSystem}.
+ */
+export type GpsReceiverSystemOptions = {
+  /**
+   * Whether the system should execute a warm start instead of a cold start on initial power-up. During a warm start,
+   * the system uses almanac data to predict satellite geometry in order to choose a set of satellites to acquire
+   * that will minimize time to first fix. Defaults to `false`.
+   */
+  warmStartOnInit?: boolean;
+};
+
+/**
  * A Garmin GPS receiver system.
  */
 export class GpsReceiverSystem extends BasicAvionicsSystem<GpsReceiverSystemEvents> {
@@ -54,6 +66,8 @@ export class GpsReceiverSystem extends BasicAvionicsSystem<GpsReceiverSystemEven
   private readonly dopSources: ConsumerSubject<number>[] = [];
   private readonly sbasState = ConsumerSubject.create(null, GPSSystemSBASState.Disabled);
 
+  private readonly warmStartOnInit: boolean;
+
   /**
    * Creates an instance of a GPS receiver system.
    * @param index The index of the GPS receiver.
@@ -61,14 +75,18 @@ export class GpsReceiverSystem extends BasicAvionicsSystem<GpsReceiverSystemEven
    * @param gpsSatComputer This system's GPS computer system.
    * @param powerSource The {@link ElectricalEvents} topic or electricity logic element to which to connect the
    * system's power.
+   * @param options Options with which to configure the system.
    */
   constructor(
     index: number,
     bus: EventBus,
     private readonly gpsSatComputer: GPSSatComputer,
     powerSource?: SystemPowerKey | CompositeLogicXMLElement,
+    options?: Readonly<GpsReceiverSystemOptions>
   ) {
     super(index, bus, `gps_rec_state_${index}` as const);
+
+    this.warmStartOnInit = options?.warmStartOnInit ?? false;
 
     gpsSatComputer.init();
 
@@ -123,11 +141,19 @@ export class GpsReceiverSystem extends BasicAvionicsSystem<GpsReceiverSystemEven
 
   /** @inheritdoc */
   protected onStateChanged(previousState: AvionicsSystemState | undefined, currentState: AvionicsSystemState): void {
-    // If this is the first time we are setting our state and the state is on, then we assume that the system was on at
-    // flight load, in which case we will force the GPS to immediately acquire and use all the satellites it can so
-    // that we don't force people to wait for satellite acquisition when loading onto the runway/in the air.
-    if (previousState === undefined && currentState === AvionicsSystemState.On && this.gpsSatComputer.syncRole !== 'replica') {
-      this.gpsSatComputer.acquireAndUseSatellites();
+    if (previousState === undefined && this.gpsSatComputer.syncRole !== 'replica') {
+      if (currentState === AvionicsSystemState.On) {
+        // If this is the first time we are setting our state and the state is on, then we assume that the system was on at
+        // flight load, in which case we will force the GPS to immediately acquire and use all the satellites it can so
+        // that we don't force people to wait for satellite acquisition when loading onto the runway/in the air.
+        this.gpsSatComputer.acquireAndUseSatellites();
+      } else if (this.warmStartOnInit) {
+        // If this is the first time we are setting our state and the state is not on and this system is configured for
+        // warm starts on initial power-on, then sync the GPS's last known position with the plane's current position
+        // and force a download of the almanac.
+        this.gpsSatComputer.syncLastKnownPosition();
+        this.gpsSatComputer.downloadAlamanac();
+      }
     }
 
     // Reset the GPS sat computer if the system is not operating and its receiver is not a replica (a replica receiver

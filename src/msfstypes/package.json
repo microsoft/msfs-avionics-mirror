@@ -1,0 +1,21 @@
+{
+  "name": "@microsoft/msfs-types",
+  "version": "1.14.6",
+  "description": "Base MSFS TS Types",
+  "main": "index.js",
+  "scripts": {
+    "build:gulp": "esbuild Gulpfile.ts --bundle --outfile=gulpfile.js --platform=node --target=node16 --packages=external",
+    "build:lib": "gulp",
+    "clean": "gulp clean"
+  },
+  "typings": "index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://workingtitlesim@dev.azure.com/workingtitlesim/KittyHawk/_git/ProjectGolf"
+  },
+  "author": "Asobo Studio",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/glob": "^8.0.0"
+  }
+}

@@ -10,11 +10,59 @@ import { SetRunway } from '../../../../Shared/UI/SetRunway/SetRunway';
 import { WptInfo } from '../../../../Shared/UI/WptInfo/WptInfo';
 import { FixInfo } from '../../../../Shared/UI/FPL/FixInfo';
 import { FPLSection } from './FPLSection';
+import { ControlpadHEventHandler, ControlPadKeyOperations } from '../../../../Shared/Input/ControlpadHEventHandler';
+import { FmsHEvent } from '../../../../MFD';
 
 /**
  * Render the departure phase of the flight plan.
  */
 export class FPLDeparture extends FPLSection {
+  /** @inheritdoc */
+  public onAfterRender(node: VNode): void {
+    super.onAfterRender(node);
+  }
+
+  /** @inheritdoc */
+  public consolidateKeyboardHEvent(source: G1000UiControl, evt: FmsHEvent): boolean {
+    const keyboardInputEvaluation = ControlpadHEventHandler.evaluateKeyboardInput(evt);
+    if (keyboardInputEvaluation.KeyboardOperation === ControlPadKeyOperations.InsertCharacter) {
+      const plan = this.props.fms.getFlightPlan();
+      const origin = plan.originAirport;
+      if (!origin || origin === undefined) {
+        this.openDepartureSelectionView();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Open the WaypointInfo popup */
+  private openDepartureSelectionView(): void {
+    this.props.viewService.open<WptInfo>('WptInfo', true)
+      .onAccept.on((sender, fac) => {
+        if (fac === undefined) {
+          return;
+        }
+
+        // check if its airportfacility interface
+        if ('bestApproach' in fac) {
+          this.props.fms.setOrigin(fac as AirportFacility);
+          this.props.viewService.open<SetRunway>('SetRunway', true).setInput(fac as AirportFacility)
+            .onAccept.on((subSender, data) => {
+              this.props.fms.setOrigin(this.props.facilities.originFacility, data);
+            });
+        } else {
+          const firstEnrSegment = this.props.fms.getFlightPlan().segmentsOfType(FlightPlanSegmentType.Enroute).next().value;
+          if (firstEnrSegment) {
+            const success = this.props.fms.insertWaypoint(firstEnrSegment.segmentIndex, fac, 0);
+            if (!success) {
+              this.props.viewService.open('MessageDialog', true).setInput({ inputString: 'Invalid flight plan modification.' });
+            }
+          }
+        }
+      });
+  }
+
   /** @inheritdoc */
   protected getEmptyRowVisbility(): boolean {
     const plan = this.props.fms.getFlightPlan(0);
@@ -54,33 +102,9 @@ export class FPLDeparture extends FPLSection {
     const plan = this.props.fms.getFlightPlan();
     const origin = plan.originAirport;
     if (!origin || origin === undefined) {
-      this.props.viewService.open<WptInfo>('WptInfo', true)
-        .onAccept.on((sender, fac) => {
-          if (fac === undefined) {
-            return;
-          }
-
-          // check if its airportfacility interface
-          if ('bestApproach' in fac) {
-            this.props.fms.setOrigin(fac as AirportFacility);
-            this.props.viewService.open<SetRunway>('SetRunway', true).setInput(fac as AirportFacility)
-              .onAccept.on((subSender, data) => {
-                this.props.fms.setOrigin(this.props.facilities.originFacility, data);
-              });
-          } else {
-            const firstEnrSegment = this.props.fms.getFlightPlan().segmentsOfType(FlightPlanSegmentType.Enroute).next().value;
-            if (firstEnrSegment) {
-              const success = this.props.fms.insertWaypoint(firstEnrSegment.segmentIndex, fac, 0);
-              if (!success) {
-                this.props.viewService.open('MessageDialog', true).setInput({ inputString: 'Invalid flight plan modification.' });
-              }
-            }
-          }
-        });
-
+      this.openDepartureSelectionView();
       return true;
     }
-
     return false;
   };
 

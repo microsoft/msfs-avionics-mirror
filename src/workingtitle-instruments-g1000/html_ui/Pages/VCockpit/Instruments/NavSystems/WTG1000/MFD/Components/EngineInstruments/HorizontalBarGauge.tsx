@@ -275,7 +275,7 @@ class SinglePointer extends DisplayComponent<Partial<XMLHorizontalGaugeProps> & 
     if (alerting !== 0) {
       this.ptrPath.instance.setAttribute('fill', 'red');
     } else {
-      this.ptrPath.instance.setAttribute('fill', 'white');
+      this.ptrPath.instance.setAttribute('fill', `${this.props.style?.cursorColor ?? 'white'}`);
     }
   }
 
@@ -287,7 +287,7 @@ class SinglePointer extends DisplayComponent<Partial<XMLHorizontalGaugeProps> & 
     return (
       <div class="gauge_pointer" ref={this.ptrDiv}>
         <svg>
-          <path d="" fill="white" stroke="black" stroke-width=".5px" ref={this.ptrPath} />
+          <path d="" fill={this.props.style?.cursorColor ?? 'white'} stroke="black" stroke-width=".5px" ref={this.ptrPath} />
           <text x="12" y="30" class="gauge_pointer_text" ref={this.ptrLabel} />
         </svg>
       </div>);
@@ -454,9 +454,9 @@ class ColorLine extends DisplayComponent<ColorLineProps & XMLHostedLogicGauge> {
    */
   public render(): VNode {
     return <line ref={this.lineRef}
-      x1={this.props.geometry.startX} y1={this.props.geometry.startY + this.props.tickFall}
-      x2={this.props.geometry.startX} y2={this.props.geometry.startY - this.props.tickRise}
-      stroke={this.props.color} stroke-width={this.props.width} />;
+                 x1={this.props.geometry.startX} y1={this.props.geometry.startY + this.props.tickFall}
+                 x2={this.props.geometry.startX} y2={this.props.geometry.startY - this.props.tickRise}
+                 stroke={this.props.color} stroke-width={this.props.width} />;
   }
 }
 
@@ -697,11 +697,11 @@ class SingleValueText extends DisplayComponent<(Partial<XMLHorizontalGaugeProps>
    */
   public render(): VNode {
     return <ValueText alertSubject={this.props.alertSubject}
-      valueSubject={this.props.valueSubject}
-      valueColorSubject={this.valueColorSubject}
-      alignment={this.props.alignment}
-      textIncrement={this.props.style?.textIncrement}
-      valuePrecision={this.props.style?.valuePrecision} />;
+                      valueSubject={this.props.valueSubject}
+                      valueColorSubject={this.valueColorSubject}
+                      alignment={this.props.alignment}
+                      textIncrement={this.props.style?.textIncrement}
+                      valuePrecision={this.props.style?.valuePrecision} />;
   }
 }
 
@@ -756,15 +756,15 @@ class DoubleValueText extends DisplayComponent<(Partial<XMLHorizontalGaugeProps>
   public render(): VNode {
     return <Fragment>
       <ValueText alertSubject={this.props.alertSubject}
-        valueSubject={this.props.valueSubjects[0]}
-        valueColorSubject={this.valueColorSubjects[0]}
-        alignment={this.props.alignment}
-        doubleValue='upper' />
+                 valueSubject={this.props.valueSubjects[0]}
+                 valueColorSubject={this.valueColorSubjects[0]}
+                 alignment={this.props.alignment}
+                 doubleValue='upper' />
       <ValueText alertSubject={this.props.alertSubject}
-        valueSubject={this.props.valueSubjects[1]}
-        valueColorSubject={this.valueColorSubjects[1]}
-        alignment={this.props.alignment}
-        doubleValue='lower' />
+                 valueSubject={this.props.valueSubjects[1]}
+                 valueColorSubject={this.valueColorSubjects[1]}
+                 alignment={this.props.alignment}
+                 doubleValue='lower' />
     </Fragment>;
   }
 }
@@ -824,7 +824,7 @@ export class XMLHorizontalGauge extends BaseGauge<Partial<XMLHorizontalGaugeProp
       for (let i = 0; i < this.props.colorZones.length; i++) {
         FSComponent.render(
           <ColorZone logicHost={this.props.logicHost} height={6} yPos={27}
-            values={this.props.colorZones[i]} gaugeMin={this.props.minimum} gaugeMax={this.props.maximum} geometry={this.geometry} />,
+                     values={this.props.colorZones[i]} gaugeMin={this.props.minimum} gaugeMax={this.props.maximum} geometry={this.geometry} />,
           this.zoneGroupRef.instance);
       }
     }
@@ -833,11 +833,11 @@ export class XMLHorizontalGauge extends BaseGauge<Partial<XMLHorizontalGaugeProp
       for (let i = 0; i < this.props.colorLines.length; i++) {
         FSComponent.render(
           <ColorLine logicHost={this.props.logicHost}
-            geometry={this.geometry}
-            color={this.props.colorLines[i].color}
-            tickRise={15} tickFall={0} width={2}
-            position={this.props.colorLines[i].position}
-            smoothFactor={this.props.colorLines[i].smoothFactor} />,
+                     geometry={this.geometry}
+                     color={this.props.colorLines[i].color}
+                     tickRise={15} tickFall={0} width={2}
+                     position={this.props.colorLines[i].position}
+                     smoothFactor={this.props.colorLines[i].smoothFactor} />,
           this.lineGroupRef.instance);
       }
     }
@@ -948,7 +948,7 @@ export class XMLDoubleHorizontalGauge extends BaseGauge<Partial<XMLDoubleHorizon
       for (let i = 0; i < this.props.colorZones.length; i++) {
         FSComponent.render(
           <ColorZone logicHost={this.props.logicHost} height={6} yPos={32}
-            values={this.props.colorZones[i]} gaugeMin={this.props.minimum} gaugeMax={this.props.maximum} geometry={this.geometry} />,
+                     values={this.props.colorZones[i]} gaugeMin={this.props.minimum} gaugeMax={this.props.maximum} geometry={this.geometry} />,
           this.zoneGroupRef.instance);
       }
     }
@@ -957,11 +957,11 @@ export class XMLDoubleHorizontalGauge extends BaseGauge<Partial<XMLDoubleHorizon
       for (let i = 0; i < this.props.colorLines.length; i++) {
         FSComponent.render(
           <ColorLine logicHost={this.props.logicHost}
-            geometry={this.geometry}
-            color={this.props.colorLines[i].color}
-            tickRise={10} tickFall={10} width={2}
-            position={this.props.colorLines[i].position}
-            smoothFactor={this.props.colorLines[i].smoothFactor} />,
+                     geometry={this.geometry}
+                     color={this.props.colorLines[i].color}
+                     tickRise={10} tickFall={10} width={2}
+                     position={this.props.colorLines[i].position}
+                     smoothFactor={this.props.colorLines[i].smoothFactor} />,
           this.lineGroupRef.instance);
       }
     }
@@ -984,7 +984,7 @@ export class XMLDoubleHorizontalGauge extends BaseGauge<Partial<XMLDoubleHorizon
         <svg viewBox="0 0 142 55" ref={this.svgRef}>
           <TitleText {... this.props} width={this.geometry.width} alertSubject={this.alertSubject} display={display} />
           <DoubleValueText {... this.props} width={this.geometry.width} alertSubject={this.alertSubject}
-            valueSubjects={this.valueSubjects} alignment={this.props.style?.valuePos} />
+                           valueSubjects={this.valueSubjects} alignment={this.props.style?.valuePos} />
           <g class="gaugeAxis">
             <line x1={11} y1={35} x2={11 + this.geometry.width} y2={35} stroke="white" stroke-width="1.2px" />
             <line x1={11} y1={34} x2={11 + this.geometry.width} y2={34} stroke="darkgrey" stroke-width=".5px" />

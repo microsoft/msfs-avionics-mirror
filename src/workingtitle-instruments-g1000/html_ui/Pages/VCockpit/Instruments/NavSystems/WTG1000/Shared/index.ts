@@ -1,5 +1,6 @@
 export * from './Autopilot';
 export * from './Backlight';
+export * from './Config';
 export * from './DateTime';
 export * from './Input';
 export * from './Instruments';
@@ -11,9 +12,12 @@ export * from './Systems';
 export * from './Traffic';
 export * from './UI';
 export * from './Units';
+export * from './VSpeed';
+
 export * from './FlightPlanAsoboSync';
 export * from './FuelComputer';
 export * from './G1000Events';
+export * from './G1000PfdPlugin';
 export * from './G1000Plugin';
 export * from './NavComConfig';
 export * from './NavProcessorConfig';

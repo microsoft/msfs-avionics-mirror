@@ -183,6 +183,8 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
 
   private static readonly vec2Cache = Array.from({ length: 4 }, () => new Float64Array(2));
 
+  private thisNode?: VNode;
+
   private readonly rootRef = FSComponent.createRef<HTMLDivElement>();
   private readonly arcLayerRef = FSComponent.createRef<MapSyncedCanvasLayer<MapLayerProps<MapRangeCompassLayerModules>>>();
   private readonly roseLayerContainerRef = FSComponent.createRef<HTMLDivElement>();
@@ -240,6 +242,13 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
   private needUpdateHeadingIndicatorVisibility = true;
   private needRepositionLabel = true;
 
+  private readonly subscriptions: Subscription[] = [];
+
+  /** @inheritdoc */
+  public onAfterRender(thisNode: VNode): void {
+    this.thisNode = thisNode;
+  }
+
   /** @inheritdoc */
   public onVisibilityChanged(isVisible: boolean): void {
     this.needUpdateRootVisibility = true;
@@ -280,40 +289,30 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
    * Initializes listeners.
    */
   private initListeners(): void {
-    this.initParameterListeners();
-    this.initModuleListeners();
-    this.isFollowingAirplane.sub(() => {
-      this.needRechooseReferenceMarker = true;
-      this.needUpdateHeadingIndicatorVisibility = true;
-    });
-  }
-
-  /**
-   * Initializes parameter listeners.
-   */
-  private initParameterListeners(): void {
     this.centerSubject.sub(this.onCenterChanged.bind(this));
     this.radiusSubject.sub(this.onRadiusChanged.bind(this));
     this.rotationSubject.sub(this.onRotationChanged.bind(this));
     this.magVarCorrectionSubject.sub(this.onMagVarCorrectionChanged.bind(this));
-  }
 
-  /**
-   * Initializes modules listeners.
-   */
-  private initModuleListeners(): void {
-    this.rangeModule.nominalRange.sub(this.onRangeChanged.bind(this));
-    this.orientationModule.orientation.sub(this.onOrientationChanged.bind(this));
-    this.rangeCompassModule.show.sub(this.onRangeCompassShowChanged.bind(this));
+    this.subscriptions.push(
+      this.rangeModule.nominalRange.sub(this.onRangeChanged.bind(this)),
+
+      this.orientationModule.orientation.sub(this.onOrientationChanged.bind(this)),
+
+      this.rangeCompassModule.show.sub(this.onRangeCompassShowChanged.bind(this)),
+
+      this.isFollowingAirplane.sub(() => {
+        this.needRechooseReferenceMarker = true;
+        this.needUpdateHeadingIndicatorVisibility = true;
+      })
+    );
   }
 
   /** @inheritdoc */
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
     this.arcLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
     this.roseLabelsLayerRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
-    if (this.props.showHeadingBug) {
-      this.headingIndicatorRef.instance.onMapProjectionChanged(mapProjection, changeFlags);
-    }
+    this.headingIndicatorRef.getOrDefault()?.onMapProjectionChanged(mapProjection, changeFlags);
 
     if (BitFlags.isAll(changeFlags, MapProjectionChangeType.ProjectedSize)) {
       // resizing the map will cause synced canvas layers to clear themselves, so we need to force a redraw on these
@@ -564,9 +563,7 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
     this.roseLayerRef.instance.onUpdated(time, elapsed);
     this.roseLabelsLayerRef.instance.onUpdated(time, elapsed);
     this.referenceMarkerContainerRef.instance.onUpdated(time, elapsed);
-    if (this.props.showHeadingBug) {
-      this.headingIndicatorRef.instance.onUpdated(time, elapsed);
-    }
+    this.headingIndicatorRef.getOrDefault()?.onUpdated(time, elapsed);
   }
 
   /**
@@ -735,6 +732,17 @@ export class MapRangeCompassLayer extends MapLayer<MapRangeCompassLayerProps> {
         </div>
       )
       : null;
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this.thisNode && FSComponent.shallowDestroy(this.thisNode);
+
+    for (const sub of this.subscriptions) {
+      sub.destroy();
+    }
+
+    super.destroy();
   }
 }
 
@@ -1633,6 +1641,8 @@ class MapRangeCompassSelectedHeading extends MapLayer<MapRangeCompassSelectedHea
 
   /** @inheritdoc */
   public destroy(): void {
+    this.canvasLayerRef.getOrDefault()?.destroy();
+
     for (const sub of this.paramSubs) {
       sub.destroy();
     }

@@ -97,6 +97,7 @@ export abstract class WptInfo<T extends WptInfoProps = WptInfoProps> extends UiV
   protected onViewClosed(): void {
     this.planePosConsumer.off(this.planePosHandler);
     this.planeHeadingConsumer.off(this.planeHeadingHandler);
+    this.inputSelectedIcao.set('');       // Clean up the icao subject, otherwise the subject's subscriptions are notified when the view opens the next time.
   }
 
   /**

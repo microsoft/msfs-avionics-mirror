@@ -76,11 +76,8 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
   /** @inheritdoc */
   public render(): VNode {
     const articialHorizonOptions: ArtificialHorizonOptions = {
-      groundColor: '#3a2400',
-      skyColors: [
-        [0, '#284be4'],
-        [50, '#0033e6']
-      ]
+      groundColors: [[0, '#a15f02'], [156, '#54350a']],
+      skyColors: [[0, '#6182e8'], [156, '#0033ff']]
     };
 
     const horizonLineOptions: HorizonLineOptions = {

@@ -26,9 +26,9 @@ export class PfdMenu extends GuiDialog<PfdMenuProps> {
   private readonly rangeOption = Subject.create<number>(0);
   private readonly mapSettingsManager = MapUserSettings.getAliasedManager(this.props.bus, 'PFD');
 
-  public readonly navSourcesOrder = ['FMS1', 'NAV1', 'NAV2'] as const;
-  public readonly navSources = ArraySubject.create<string>(['FMS1', 'VOR1', 'VOR2']);
-  public readonly ranges = ArraySubject.create<string>(['5', '10', '25', '50', '100', '200', '300', '600']);
+  private readonly navSourcesOrder = ['FMS1', 'NAV1', 'NAV2'] as const;
+  private readonly navSources = ArraySubject.create<string>(['FMS1', 'VOR1', 'VOR2']);
+  private readonly ranges = ArraySubject.create<string>(['5', '10', '25', '50', '100', '200', '300', '600']);
 
   /** @inheritdoc */
   public onAfterRender(node: VNode): void {

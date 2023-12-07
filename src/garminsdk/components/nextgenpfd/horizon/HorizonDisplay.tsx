@@ -101,7 +101,7 @@ export interface HorizonDisplayProps extends ComponentProps {
   bingDelay?: number;
 
   /** Options for the artificial horizon. */
-  artificialHorizonOptions: ArtificialHorizonOptions;
+  artificialHorizonOptions: Readonly<ArtificialHorizonOptions>;
 
   /** Options for the horizon line. */
   horizonLineOptions: Readonly<HorizonLineOptions>;
@@ -273,12 +273,12 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
 
   private readonly showFpm = this.props.supportAdvancedSvt
     ? MappedSubject.create(
-      ([isHeadingDataValid, isAttitudeDataValid, svtEnabledSetting, svtDisabledFpmShowSetting]): boolean => {
-        return isHeadingDataValid && isAttitudeDataValid && (svtEnabledSetting || svtDisabledFpmShowSetting);
+      ([isHeadingDataValid, isAttitudeDataValid, isSvtEnabled, svtDisabledFpmShowSetting]): boolean => {
+        return isHeadingDataValid && isAttitudeDataValid && (isSvtEnabled || svtDisabledFpmShowSetting);
       },
       this.isHeadingDataValid,
       this.isAttitudeDataValid,
-      this.props.svtSettingManager.getSetting('svtEnabled'),
+      this.isSvtEnabled,
       this.props.svtSettingManager.getSetting('svtDisabledFpmShow')
     )
     : undefined;

@@ -8,6 +8,8 @@ import { WT21_PFD_MFD_Colors as WT21_PFD_MFD_Colors } from '../../WT21_Colors';
 import { TSSSystemEvents } from '../../Systems';
 import { WT21TCAS } from '../../Traffic/WT21TCAS';
 import { TrafficSettings, TrafficUserSettings } from '../../Traffic/TrafficUserSettings';
+import { WT21DisplayUnitFsInstrument } from '../../WT21DisplayUnitFsInstrument';
+import { DisplayUnitLayout } from '../../Config/DisplayUnitConfig';
 
 import './TfcInfo.css';
 
@@ -15,6 +17,9 @@ import './TfcInfo.css';
 interface TfcInfoProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
+
+  /** The display unit */
+  displayUnit: WT21DisplayUnitFsInstrument;
 
   /** The TCAS instance. */
   tcas: WT21TCAS;
@@ -33,6 +38,8 @@ export class TfcInfo extends DisplayComponent<TfcInfoProps> {
 
   private readonly mapSettings = MapUserSettings.getAliasedManager(this.props.bus, this.props.pfdOrMfd);
   private readonly trafficSettings = TrafficUserSettings.getManager(this.props.bus);
+
+  private readonly isUsingSoftkeys = this.props.displayUnit.displayUnitConfig.displayUnitLayout === DisplayUnitLayout.Softkeys;
 
   private readonly isVisible = MappedSubject.create(
     ([format, isTfcEnabled]): boolean => {
@@ -55,8 +62,34 @@ export class TfcInfo extends DisplayComponent<TfcInfoProps> {
     this.rootRef.instance.classList.toggle('format-supported', format !== 'PLAN');
   };
 
+  /** @inheritDoc */
+  public render(): VNode | null {
+    return this.isUsingSoftkeys ? this.renderSoftkeyLayout() : this.renderTraditionalLayout();
+  }
+
   /** @inheritdoc */
-  public render(): VNode {
+  private renderSoftkeyLayout(): VNode {
+    return (
+      <div ref={this.rootRef} class="tfc-info tfc-info-side-buttons">
+        <div class="right-info-tfc-switch-arrow-wrapper">
+          <svg class="right-info-tfc-switch-arrow" viewBox="0 0 10 14">
+            <path d="M 3, 2 l 4, 5 l -4, 5" stroke-width={1.5} stroke="white" />
+          </svg>
+        </div>
+
+        <div class="tfc-label">TFC</div>
+        <div class="tfc-info-hideable">
+          <TfcInfoDataField bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
+          <TfcInfoOtherTraffic bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
+          <TfcInfoAboveBelow bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
+          <TfcInfoAltitude bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
+        </div>
+      </div>
+    );
+  }
+
+  /** @inheritdoc */
+  private renderTraditionalLayout(): VNode {
     return (
       <div ref={this.rootRef} class='tfc-info'>
         <div class='tfc-label'>TFC</div>
@@ -85,7 +118,7 @@ export class TfcInfo extends DisplayComponent<TfcInfoProps> {
 /**
  * Component props for individual TfcInfo subfields.
  */
-interface TfcInfoFieldProps extends TfcInfoProps {
+interface TfcInfoFieldProps extends Omit<TfcInfoProps, 'displayUnit'> {
   /** The traffic user settings manager. */
   trafficSettings: UserSettingManager<TrafficSettings>;
 

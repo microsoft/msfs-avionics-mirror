@@ -44,8 +44,8 @@ export interface MapFlightPlanFocusRTRControllerContext {
   /** Resource moderator for control of the map's projection target. */
   [MapSystemKeys.TargetControl]?: ResourceModerator;
 
-  /** Resource moderator for control of the map's orientation mode. */
-  [GarminMapKeys.OrientationControl]?: ResourceModerator;
+  /** Resource moderator for control of the map's desired orientation mode. */
+  [GarminMapKeys.DesiredOrientationControl]?: ResourceModerator;
 
   /** Resource moderator for the use range setting subject. */
   [GarminMapKeys.UseRangeSetting]?: ResourceModerator<Subject<boolean>>;
@@ -96,13 +96,13 @@ export class MapFlightPlanFocusRTRController extends MapSystemController<
     }
   };
 
-  private readonly orientationControl = this.context[GarminMapKeys.OrientationControl];
+  private readonly desiredOrientationControl = this.context[GarminMapKeys.DesiredOrientationControl];
 
-  private readonly orientationControlConsumer: ResourceConsumer = {
+  private readonly desiredOrientationControlConsumer: ResourceConsumer = {
     priority: MapResourcePriority.FLIGHT_PLAN_FOCUS,
 
     onAcquired: () => {
-      this.orientationModule?.orientation.set(MapOrientation.NorthUp);
+      this.orientationModule?.desiredOrientation.set(MapOrientation.NorthUp);
     },
 
     onCeded: () => { }
@@ -232,16 +232,16 @@ export class MapFlightPlanFocusRTRController extends MapSystemController<
    */
   private onIsFocusActiveChanged(isActive: boolean): void {
     if (isActive) {
-      if (this.orientationControl === undefined) {
+      if (this.desiredOrientationControl === undefined) {
         // If there is no moderator, assume we have control
-        this.orientationModule?.orientation.set(MapOrientation.NorthUp);
+        this.orientationModule?.desiredOrientation.set(MapOrientation.NorthUp);
       } else {
-        this.orientationControl.claim(this.orientationControlConsumer);
+        this.desiredOrientationControl.claim(this.desiredOrientationControlConsumer);
       }
     } else {
       this.focusDebounceTimer.clear();
 
-      this.orientationControl?.forfeit(this.orientationControlConsumer);
+      this.desiredOrientationControl?.forfeit(this.desiredOrientationControlConsumer);
     }
 
     this.setFlightPlanFocusListenersActive(isActive);
@@ -359,7 +359,7 @@ export class MapFlightPlanFocusRTRController extends MapSystemController<
     super.destroy();
 
     this.targetControl?.forfeit(this.targetControlConsumer);
-    this.orientationControl?.forfeit(this.orientationControlConsumer);
+    this.desiredOrientationControl?.forfeit(this.desiredOrientationControlConsumer);
     this.useRangeSetting?.forfeit(this.useRangeSettingConsumer);
 
     this.isPlanFocusValid.destroy();

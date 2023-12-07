@@ -1,6 +1,6 @@
 import {
-  AirportFacility, DepartureProcedure, FacilitySearchType, FacilityType, FlightPathAirplaneSpeedMode, FlightPathCalculator, FSComponent,
-  GeoPoint, ICAO, IntersectionFacility, MapSystemKeys, RunwayUtils, Subject, UnitType, UserFacility, VNode, VorFacility
+  AirportFacility, DepartureProcedure, FacilitySearchType, FacilityType, FlightPathAirplaneSpeedMode, FlightPathCalculator, FSComponent, GeoPoint, ICAO,
+  IntersectionFacility, MapSystemKeys, OneWayRunway, RunwayUtils, Subject, UnitType, UserFacility, VNode, VorFacility
 } from '@microsoft/msfs-sdk';
 
 import { AirportWaypoint, MapFlightPlanFocusCalculator, ProcedureType } from '@microsoft/msfs-garminsdk';
@@ -462,7 +462,20 @@ export class ProcDeparturePage extends WaypointPage<ProcDeparturePageProps> {
     const airport = this.props.selectedAirport.get();
 
     if (airport !== undefined && this.selectedDeparture !== undefined) {
-      this.props.fms.insertDeparture(airport, this.selectedDeparture, this.selectedRunway ?? -1, this.selectedTransition ?? -1);
+      let oneWayRunway: OneWayRunway | undefined = undefined;
+      if (this.selectedRunway !== undefined) {
+        const departure = airport.departures[this.selectedDeparture];
+        if (departure !== undefined) {
+          const runwayTransition = departure.runwayTransitions[this.selectedRunway];
+
+          if (runwayTransition !== undefined) {
+            oneWayRunway = RunwayUtils.matchOneWayRunway(airport, runwayTransition.runwayNumber, runwayTransition.runwayDesignation);
+          }
+        }
+
+      }
+
+      this.props.fms.insertDeparture(airport, this.selectedDeparture, this.selectedRunway ?? -1, this.selectedTransition ?? -1, oneWayRunway);
 
       ViewService.back();
       ViewService.open('FPL', false, 0);

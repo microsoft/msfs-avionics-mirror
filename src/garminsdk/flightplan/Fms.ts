@@ -82,6 +82,9 @@ export type ApproachDetails = {
 
   /** The reference navaid facility for the approach. */
   referenceFacility: VorFacility | null;
+
+  /** The runway which belongs to the selected approach */
+  runway: OneWayRunway | null;
 }
 
 /**
@@ -170,9 +173,11 @@ export class Fms {
     rnavTypeFlags: RnavTypeFlags.None,
     isCircling: false,
     isVtf: false,
-    referenceFacility: null
+    referenceFacility: null,
+    runway: null
   });
   private needPublishApproachDetails = false;
+  private updateApproachDetailsOpId = 0;
 
   private readonly flightPhase = ObjectSubject.create<FmsFlightPhase>({
     isApproachActive: false,
@@ -375,6 +380,15 @@ export class Fms {
     return this.flightPlanner.getFlightPlan(Fms.DTO_RANDOM_PLAN_INDEX);
   }
 
+
+  /**
+   * Gets the approach runway:
+   * @returns Selected approach runway
+   */
+  public getApproachRunway(): OneWayRunway | null {
+    return this.approachDetails.get().runway;
+  }
+
   /**
    * Sets the name of the flight plan.
    * @param planIndex The index of the plan the change the name for.
@@ -478,11 +492,22 @@ export class Fms {
     let approachIsCircling = false;
     let approachIsVtf = false;
     let referenceFacility: VorFacility | null = null;
+    let approachRunway: OneWayRunway | null = null;
 
-    if (plan.destinationAirport && (plan.procedureDetails.approachIndex > -1 || plan.getUserData('visual_approach') !== undefined)) {
+    const visualRunwayDesignation = plan.getUserData('visual_approach') as string | undefined;
+
+    if (plan.destinationAirport && (plan.procedureDetails.approachIndex > -1 || visualRunwayDesignation !== undefined)) {
       approachLoaded = true;
+
+      const opId = ++this.updateApproachDetailsOpId;
+
+      const facility = await this.facLoader.getFacility(FacilityType.Airport, plan.destinationAirport);
+
+      if (opId !== this.updateApproachDetailsOpId) {
+        return;
+      }
+
       if (plan.procedureDetails.approachIndex > -1) {
-        const facility = await this.facLoader.getFacility(FacilityType.Airport, plan.destinationAirport);
         const approach = facility.approaches[plan.procedureDetails.approachIndex];
         if (approach) {
           approachType = approach.approachType;
@@ -493,14 +518,16 @@ export class Fms {
           if (FmsUtils.approachHasNavFrequency(approach)) {
             referenceFacility = (await ApproachUtils.getReferenceFacility(approach, this.facLoader) as VorFacility | undefined) ?? null;
           }
+          approachRunway = RunwayUtils.matchOneWayRunway(facility, approach.runwayNumber, approach.runwayDesignator) ?? null;
         }
       } else {
         approachType = AdditionalApproachType.APPROACH_TYPE_VISUAL;
         approachRnavType = RnavTypeFlags.None;
+        approachRunway = RunwayUtils.matchOneWayRunwayFromDesignation(facility, visualRunwayDesignation as string) ?? null;
       }
     }
 
-    this.setApproachDetails(false, approachLoaded, approachType, approachRnavType, approachRnavTypeFlags, approachIsCircling, approachIsVtf, referenceFacility);
+    this.setApproachDetails(false, approachLoaded, approachType, approachRnavType, approachRnavTypeFlags, approachIsCircling, approachIsVtf, referenceFacility, approachRunway);
   }
 
   /**
@@ -1244,7 +1271,8 @@ export class Fms {
       });
     }
 
-    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null);
+    ++this.updateApproachDetailsOpId;
+    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null, null);
     plan.deleteUserData(Fms.VTF_FAF_DATA_KEY);
 
     plan.calculate(0);
@@ -1825,7 +1853,8 @@ export class Fms {
       referenceFacility = (await ApproachUtils.getReferenceFacility(facility.approaches[approachIndex], this.facLoader) as VorFacility | undefined) ?? null;
     }
 
-    this.setApproachDetails(true, true, approachType, bestRnavType, rnavTypeFlags, approachIsCircling, isVtf, referenceFacility);
+    ++this.updateApproachDetailsOpId;
+    this.setApproachDetails(true, true, approachType, bestRnavType, rnavTypeFlags, approachIsCircling, isVtf, referenceFacility, approachRunway);
 
     this.autoDesignateProcedureConstraints(plan, approachSegment.segmentIndex);
 
@@ -2813,7 +2842,8 @@ export class Fms {
   public async removeApproach(): Promise<void> {
     const plan = this.getFlightPlan();
 
-    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null);
+    ++this.updateApproachDetailsOpId;
+    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null, null);
     plan.deleteUserData(Fms.VTF_FAF_DATA_KEY);
 
     const hasArrival = plan.procedureDetails.arrivalIndex >= 0;
@@ -3674,7 +3704,8 @@ export class Fms {
     plan.deleteUserData('visual_approach');
     plan.deleteUserData('skipCourseReversal');
 
-    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null);
+    ++this.updateApproachDetailsOpId;
+    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null, null);
     plan.deleteUserData(Fms.VTF_FAF_DATA_KEY);
 
     plan.setCalculatingLeg(0);
@@ -4914,23 +4945,23 @@ export class Fms {
           // We need to remove the entry leg, then move the first leg in the airway segment out of the airway segment
           // and into the previous enroute segment to serve as the new entry leg.
 
-          const segment = plan.getSegment(segmentIndex + 1);
-          const leg = segment.legs[0].leg;
+          const airwaySegment = plan.getSegment(segmentIndex + 1);
+          const legToMove = airwaySegment.legs[0].leg;
           plan.removeLeg(segmentIndex + 1, 0);
           this.checkAndRemoveEmptySegment(plan, segmentIndex + 1);
 
-          this.planAddLeg(segmentIndex, leg);
+          this.planAddLeg(segmentIndex, legToMove, segmentLegIndex + 1);
         } else if (plan.getSegment(segmentIndex).segmentType === FlightPlanSegmentType.Departure) {
           // We need to remove the entry leg, then move the first leg in the airway segment out of the airway segment
           // and into a newly created enroute segment placed before the airway segment to serve as the new entry leg.
 
           this.planInsertSegmentOfType(FlightPlanSegmentType.Enroute, segmentIndex + 1);
-          const segment = plan.getSegment(segmentIndex + 2);
-          const leg = segment.legs[0].leg;
+          const airwaySegment = plan.getSegment(segmentIndex + 2);
+          const legToMove = airwaySegment.legs[0].leg;
           plan.removeLeg(segmentIndex + 2, 0);
           this.checkAndRemoveEmptySegment(plan, segmentIndex + 2);
 
-          this.planAddLeg(segmentIndex + 1, leg);
+          this.planAddLeg(segmentIndex + 1, legToMove, 0);
         }
         removed = plan.removeLeg(segmentIndex, segmentLegIndex) !== null;
         break;
@@ -5503,6 +5534,7 @@ export class Fms {
    * @param isCircling Whether the approach is a circling approach.
    * @param isVtf Whether the approach is a vectors-to-final approach.
    * @param referenceFacility The approach's reference facility.
+   * @param runway The assigned runway for the approach
    */
   private setApproachDetails(
     sync: boolean,
@@ -5512,7 +5544,8 @@ export class Fms {
     rnavTypeFlags?: RnavTypeFlags,
     isCircling?: boolean,
     isVtf?: boolean,
-    referenceFacility?: VorFacility | null
+    referenceFacility?: VorFacility | null,
+    runway?: OneWayRunway | null
   ): void {
     isLoaded !== undefined && this.approachDetails.set('isLoaded', isLoaded);
     type !== undefined && this.approachDetails.set('type', type);
@@ -5521,6 +5554,7 @@ export class Fms {
     isCircling !== undefined && this.approachDetails.set('isCircling', isCircling);
     isVtf !== undefined && this.approachDetails.set('isVtf', isVtf);
     referenceFacility !== undefined && this.approachDetails.set('referenceFacility', referenceFacility);
+    runway !== undefined && this.approachDetails.set('runway', runway);
 
     const approachDetails = this.approachDetails.get();
 

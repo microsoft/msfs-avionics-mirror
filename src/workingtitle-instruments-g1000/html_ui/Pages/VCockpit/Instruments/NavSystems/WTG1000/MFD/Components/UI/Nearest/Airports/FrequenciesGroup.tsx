@@ -74,7 +74,7 @@ export class NearestAirportFrequenciesGroup extends G1000UiControl<NearestAirpor
 /**
  * Props on the FrequencyItem component.
  */
-interface FrequencyItemProps extends G1000UiControlProps {
+export interface FrequencyItemProps extends G1000UiControlProps {
   /** The frequency that this item will display. */
   frequency: FacilityFrequency;
 
@@ -86,7 +86,7 @@ interface FrequencyItemProps extends G1000UiControlProps {
  * A component that represent a single row in the nearest airport
  * frequency list.
  */
-class FrequencyItem extends G1000UiControl<FrequencyItemProps> {
+export class FrequencyItem extends G1000UiControl<FrequencyItemProps> {
   private readonly number = FSComponent.createRef<HTMLDivElement>();
 
   /** @inheritdoc */

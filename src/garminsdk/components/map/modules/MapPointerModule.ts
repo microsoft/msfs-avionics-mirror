@@ -8,8 +8,8 @@ export class MapPointerModule {
   public readonly isActive = Subject.create(false);
 
   /** The position of the pointer on the projected map, in pixel coordinates. */
-  public readonly position = Vec2Subject.createFromVector(new Float64Array(2));
+  public readonly position = Vec2Subject.create(new Float64Array(2));
 
   /** The desired map target. */
-  public readonly target = GeoPointSubject.createFromGeoPoint(new GeoPoint(0, 0));
+  public readonly target = GeoPointSubject.create(new GeoPoint(0, 0));
 }

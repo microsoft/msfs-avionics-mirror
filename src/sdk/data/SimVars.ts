@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /**
  * Valid type arguments for Set/GetSimVarValue
  */
@@ -6,6 +7,7 @@ export enum SimVarValueType {
   Bool = 'bool',
   Celsius = 'celsius',
   Degree = 'degrees',
+  DegreesPerSecond = 'degrees per second',
   Enum = 'enum',
   Farenheit = 'farenheit',
   Feet = 'feet',
@@ -34,12 +36,14 @@ export enum SimVarValueType {
   PPH = 'Pounds per hour',
   PSI = 'psi',
   Radians = 'radians',
+  RadiansPerSecond = 'radians per second',
   Rankine = 'rankine',
   RPM = 'Rpm',
   Seconds = 'seconds',
   SlugsPerCubicFoot = 'slug per cubic foot',
   String = 'string',
   Volts = 'Volts',
+  FtLb = 'Foot pounds',
 }
 
 /**
@@ -66,6 +70,7 @@ const boolRegex = new RegExp(/boolean|bool/i);
 const numberRegex = new RegExp(/number/i);
 const defaultSource = '';
 
+// @ts-ignore
 SimVar.GetSimVarValue = (name: string, unit: string, dataSource = defaultSource): any => {
   try {
     if (simvar) {
@@ -101,6 +106,7 @@ SimVar.GetSimVarValue = (name: string, unit: string, dataSource = defaultSource)
   return null;
 };
 
+// @ts-ignore
 SimVar.SetSimVarValue = (name: string, unit: string, value: any, dataSource = defaultSource): Promise<any> => {
   if (value == undefined) {
     console.warn(name + ' : Trying to set a null value');
@@ -138,3 +144,11 @@ SimVar.SetSimVarValue = (name: string, unit: string, value: any, dataSource = de
 
   return Promise.resolve();
 };
+
+// @ts-ignore
+const SimOvrd = {
+  GetSimVarValue: SimVar.GetSimVarValue,
+  SetSimVarValue: SimVar.SetSimVarValue,
+};
+
+export { SimOvrd };

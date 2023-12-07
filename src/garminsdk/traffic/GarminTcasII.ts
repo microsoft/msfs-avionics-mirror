@@ -120,12 +120,19 @@ export class GarminTcasII extends Tcas<GarminTcasIntruder, GarminTcasIISensitivi
 
   /** @inheritdoc */
   protected updateSensitivity(): void {
-    this.sensitivity.update(
-      this.adsb?.getOperatingMode() ?? AdsbOperatingMode.Standby,
-      this.ownAirplaneSubs.altitude.get(),
-      this.cdiScalingLabel,
-      this.ownAirplaneSubs.radarAltitude.get()
-    );
+    if (this.adsb) {
+      this.sensitivity.update(
+        this.adsb.getOperatingMode(),
+        this.ownAirplaneSubs.altitude.get(),
+        this.cdiScalingLabel,
+        this.ownAirplaneSubs.radarAltitude.get()
+      );
+    } else {
+      this.sensitivity.update(
+        this.ownAirplaneSubs.altitude.get(),
+        this.ownAirplaneSubs.radarAltitude.get()
+      );
+    }
   }
 
   /** @inheritdoc */
@@ -154,7 +161,7 @@ export class GarminTcasII extends Tcas<GarminTcasIntruder, GarminTcasIISensitivi
 }
 
 /**
- * An implementation of {@link TCASSensitivity} which provides sensitivity parameters for the Garmin TCAS-II. When
+ * An implementation of {@link TcasSensitivity} which provides sensitivity parameters for the Garmin TCAS-II. When
  * ADS-B is operating, Traffic Advisory sensitivity is selected based on the ADS-B Conflict Situational Awareness (CSA)
  * algorithm. When ADS-B is not operating, Traffic Advisory sensitivity is selected based on the TCAS-II algorithm.
  * Resolution Advisory sensitivity is always determined by the TCAS-II algorithm.
@@ -195,7 +202,16 @@ export class GarminTcasIISensitivity implements TcasSensitivity {
   }
 
   /**
-   * Updates the sensitivity.
+   * Updates the sensitivity without ADS-B support.
+   * @param altitude The indicated altitude of the own airplane.
+   * @param radarAltitude The radar altitude of the own airplane.
+   */
+  public update(
+    altitude: NumberUnitInterface<UnitFamily.Distance>,
+    radarAltitude: NumberUnitInterface<UnitFamily.Distance>
+  ): void;
+  /**
+   * Updates the sensitivity with ADS-B support.
    * @param adsbMode The ADS-B operating mode.
    * @param altitude The indicated altitude of the own airplane.
    * @param cdiScalingLabel The CDI scaling sensitivity of the own airplane.
@@ -204,21 +220,45 @@ export class GarminTcasIISensitivity implements TcasSensitivity {
   public update(
     adsbMode: AdsbOperatingMode,
     altitude: NumberUnitInterface<UnitFamily.Distance>,
-    cdiScalingLabel: CDIScaleLabel,
+    cdiScalingLabel: CDIScaleLabel | undefined,
     radarAltitude: NumberUnitInterface<UnitFamily.Distance>
+  ): void;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public update(
+    arg1: AdsbOperatingMode | NumberUnitInterface<UnitFamily.Distance>,
+    arg2: NumberUnitInterface<UnitFamily.Distance>,
+    arg3?: CDIScaleLabel,
+    arg4?: NumberUnitInterface<UnitFamily.Distance>
   ): void {
-    this.tcasIILevel = this.tcasIISensitivity.selectLevel(altitude, radarAltitude);
-    this.adsbLevel = this.adsbSensitivity.selectLevel(altitude, cdiScalingLabel, radarAltitude);
+    let altitude: NumberUnitInterface<UnitFamily.Distance>;
+    let radarAltitude: NumberUnitInterface<UnitFamily.Distance>;
+    let supportAdsb: boolean;
 
+    if (typeof arg1 === 'object') {
+      altitude = arg1;
+      radarAltitude = arg2;
+      supportAdsb = false;
+    } else {
+      altitude = arg2;
+      radarAltitude = arg4 as NumberUnitInterface<UnitFamily.Distance>;
+      supportAdsb = true;
+    }
+
+    this.tcasIILevel = this.tcasIISensitivity.selectLevel(altitude, radarAltitude);
     this.tcasIIParams.parametersPA = this.tcasIISensitivity.getPA(this.tcasIILevel);
     this.tcasIIParams.parametersTA = this.tcasIISensitivity.getTA(this.tcasIILevel);
     this.tcasIIParams.parametersRA = this.tcasIISensitivity.getRA(this.tcasIILevel);
 
-    this.adsbParams.parametersPA = this.tcasIISensitivity.getPA(this.tcasIILevel);
-    this.adsbParams.parametersTA = this.adsbSensitivity.getTA(this.adsbLevel);
-    this.adsbParams.parametersRA = this.tcasIISensitivity.getRA(this.tcasIILevel);
+    if (supportAdsb) {
+      this.adsbLevel = this.adsbSensitivity.selectLevel(altitude, arg3, radarAltitude);
+      this.adsbParams.parametersPA = this.tcasIISensitivity.getPA(this.tcasIILevel);
+      this.adsbParams.parametersTA = this.adsbSensitivity.getTA(this.adsbLevel);
+      this.adsbParams.parametersRA = this.tcasIISensitivity.getRA(this.tcasIILevel);
 
-    // Right now we just assume every intruder is tracked by ADS-B if ADS-B is operating
-    this.activeParams = adsbMode === AdsbOperatingMode.Standby ? this.tcasIIParams : this.adsbParams;
+      // Right now we just assume every intruder is tracked by ADS-B if ADS-B is operating
+      this.activeParams = arg1 === AdsbOperatingMode.Standby ? this.tcasIIParams : this.adsbParams;
+    } else {
+      this.activeParams = this.tcasIIParams;
+    }
   }
 }

@@ -19,7 +19,8 @@ export interface MapRangeDisplayProps extends ComponentProps {
 }
 
 /**
- * The map layer showing the range display.
+ * A display which renders a map range value with units. Automatically switches between nautical miles/feet and
+ * kilometers/meters at predefined thresholds.
  */
 export class MapRangeDisplay extends DisplayComponent<MapRangeDisplayProps> {
   private readonly displayUnitSub = Subject.create<Unit<UnitFamily.Distance> | null>(null);

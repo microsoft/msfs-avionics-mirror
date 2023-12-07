@@ -45,6 +45,12 @@ export type APFLCDirectorOptions = {
    * speed target should be in mach. Any undefined commands will leave the current settings unchanged.
    */
   setSpeedOnActivation: (currentIas: number, currentMach: number, isSelectedSpeedInMach: boolean, command: APFLCDirectorSetSpeedCommand) => void;
+
+  /**
+   * Whether the director should use mach number calculated from the impact pressure derived from indicated airspeed
+   * and ambient pressure instead of the true mach number. Defaults to `false`.
+   */
+  useIndicatedMach?: boolean;
 };
 
 /**
@@ -74,6 +80,8 @@ export class APFLCDirector implements PlaneDirector {
   private readonly maxPitchUpAngleFunc: () => number;
   private readonly maxPitchDownAngleFunc: () => number;
   private readonly setSpeedOnActivationFunc: (currentIas: number, currentMach: number, isSelectedSpeedInMach: boolean, command: APFLCDirectorSetSpeedCommand) => void;
+
+  private readonly useIndicatedMach: boolean;
 
   /**
    * Creates a new instance of APFLCDirector.
@@ -111,6 +119,8 @@ export class APFLCDirector implements PlaneDirector {
 
     this.setSpeedOnActivationFunc = options?.setSpeedOnActivation ?? APFLCDirector.defaultSetSpeedOnActivation;
 
+    this.useIndicatedMach = options?.useIndicatedMach ?? false;
+
     this.state = DirectorState.Inactive;
     this.flcComputer = new GenericFlcComputer({ kP: 2, kI: 0, kD: 0, maxOut: 90, minOut: -90 });
   }
@@ -128,9 +138,17 @@ export class APFLCDirector implements PlaneDirector {
     this.setSpeedCommand.mach = undefined;
     this.setSpeedCommand.isSelectedSpeedInMach = undefined;
 
+    const ias = SimVar.GetSimVarValue('AIRSPEED INDICATED:1', SimVarValueType.Knots);
+    let mach: number;
+    if (this.useIndicatedMach) {
+      mach = AeroMath.casToMach(UnitType.KNOT.convertTo(ias, UnitType.MPS), SimVar.GetSimVarValue('AMBIENT PRESSURE', SimVarValueType.HPA));
+    } else {
+      mach = SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Number);
+    }
+
     this.setSpeedOnActivationFunc(
-      SimVar.GetSimVarValue('AIRSPEED INDICATED:1', SimVarValueType.Knots),
-      SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Number),
+      ias,
+      mach,
       this.apValues.isSelectedSpeedInMach.get(),
       this.setSpeedCommand
     );
@@ -185,11 +203,18 @@ export class APFLCDirector implements PlaneDirector {
 
     if (this.apValues.isSelectedSpeedInMach.get()) {
       const mach = this.apValues.selectedMach.get();
-      let ias = Simplane.getMachToKias(mach);
-      if (!isFinite(ias)) {
-        // Sometimes getMachToKias returns a NaN value. If so, fall back to doing the conversion ourselves.
+
+      let ias: number;
+      if (this.useIndicatedMach) {
         ias = UnitType.KNOT.convertFrom(AeroMath.machToCas(mach, SimVar.GetSimVarValue('AMBIENT PRESSURE', SimVarValueType.HPA)), UnitType.MPS);
+      } else {
+        ias = Simplane.getMachToKias(mach);
+        if (!isFinite(ias)) {
+          // Sometimes getMachToKias returns a NaN value. If so, fall back to doing the conversion ourselves.
+          ias = UnitType.KNOT.convertFrom(AeroMath.machToCas(mach, SimVar.GetSimVarValue('AMBIENT PRESSURE', SimVarValueType.HPA)), UnitType.MPS);
+        }
       }
+
       this.flcComputer.setTargetSpeed(ias);
     } else {
       this.flcComputer.setTargetSpeed(this.apValues.selectedIas.get());

@@ -171,7 +171,8 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
     rnavTypeFlags: RnavTypeFlags.None,
     isCircling: false,
     isVtf: false,
-    referenceFacility: null
+    referenceFacility: null,
+    runway: null
   });
   private readonly flightPhase = ConsumerValue.create<Readonly<FmsFlightPhase>>(null, {
     isApproachActive: false,

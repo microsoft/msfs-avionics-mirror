@@ -6,13 +6,10 @@
 /// <reference types="@microsoft/msfs-types/js/common" />
 
 import {
-  AdcPublisher, AhrsPublisher, AutopilotInstrument, BaseInstrumentPublisher, BasicAvionicsSystem, Clock, ControlPublisher,
-  ControlSurfacesPublisher, DefaultUserSettingManager, ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository,
-  FlightPathAirplaneSpeedMode,
-  FlightPathCalculator, FlightPlanner, FSComponent, FsInstrument, GNSSPublisher, HEventPublisher, InstrumentBackplane, LNavSimVarPublisher,
-  MinimumsEvents, MinimumsManager, MinimumsSimVarPublisher, NavComSimVarPublisher,
-  SimVarValueType, TrafficInstrument, UserSettingSaveManager, VNavSimVarPublisher, Wait,
-  XPDRSimVarPublisher
+  AdcPublisher, AhrsPublisher, AutopilotInstrument, BaseInstrumentPublisher, BasicAvionicsSystem, Clock, ControlPublisher, ControlSurfacesPublisher, DefaultUserSettingManager,
+  ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner, FSComponent, GNSSPublisher, HEventPublisher,
+  InstrumentBackplane, LNavSimVarPublisher, MinimumsEvents, MinimumsManager, MinimumsSimVarPublisher, NavComSimVarPublisher, SimVarValueType, TrafficInstrument,
+  UserSettingSaveManager, VNavSimVarPublisher, Wait, XPDRSimVarPublisher,
 } from '@microsoft/msfs-sdk';
 
 import { WT21LNavDataSimVarPublisher } from '../FMC/Autopilot/WT21LNavDataEvents';
@@ -24,8 +21,8 @@ import { LowerSectionContainer } from '../Shared/LowerSection/LowerSectionContai
 import { MenuContainer } from '../Shared/Menus/MenuContainer';
 import { AdfRadioSource, GpsSource, initNavIndicatorContext, NavIndicatorContext, NavIndicators, NavRadioNavSource, NavSources } from '../Shared/Navigation';
 import {
-  WT21BearingPointerNavIndicator, WT21CourseNeedleNavIndicator, WT21GhostNeedleNavIndicator, WT21NavIndicator, WT21NavIndicatorName, WT21NavIndicators,
-  WT21NavSourceNames, WT21NavSources
+  WT21BearingPointerNavIndicator, WT21CourseNeedleNavIndicator, WT21GhostNeedleNavIndicator, WT21NavIndicator, WT21NavIndicatorName, WT21NavIndicators, WT21NavSourceNames,
+  WT21NavSources,
 } from '../Shared/Navigation/WT21NavIndicators';
 import { PerformancePlanRepository } from '../Shared/Performance/PerformancePlanRepository';
 import { WT21ControlPublisher } from '../Shared/WT21ControlEvents';
@@ -49,17 +46,21 @@ import { PfdRefsMenu } from './Menus/PfdRefsMenu';
 import { AOASystemEvents, WT21ElectricalSetup } from '../Shared/Systems';
 import { Gpws } from '../Shared/Systems/gpws/Gpws';
 import { CJ4CabinLightsSystem } from '../Shared/Systems/CJ4CabinLightsSystem';
-
-import '../Shared/WT21_Common.css';
-import './WT21_PFD.css';
 import { WT21FixInfoManager } from '../FMC/Systems/WT21FixInfoManager';
 import { WT21Fms } from '../Shared/FlightPlan/WT21Fms';
 import { WT21FixInfoConfig } from '../FMC/Systems/WT21FixInfoConfig';
+import { WT21DisplayUnitFsInstrument, WT21DisplayUnitType } from '../Shared/WT21DisplayUnitFsInstrument';
+import { PfdSideButtonsNavBrgSrcMenu } from './Menus/PfdSideButtonsNavBrgSrcMenu';
+import { PfdSideButtonsRefs1Menu } from './Menus/PfdSideButtonsRefs1Menu';
+import { PfdSideButtonsRefs2Menu } from './Menus/PfdSideButtonsRefs2Menu';
+
+import '../Shared/WT21_Common.css';
+import './WT21_PFD.css';
 
 /**
  * The WT21 PFD Instrument
  */
-export class WT21_PFD_Instrument implements FsInstrument {
+export class WT21_PFD_Instrument extends WT21DisplayUnitFsInstrument {
   private readonly bus: EventBus;
   private readonly baseInstrumentPublisher: BaseInstrumentPublisher;
   private readonly hEventPublisher: HEventPublisher;
@@ -109,6 +110,8 @@ export class WT21_PFD_Instrument implements FsInstrument {
    * @param instrument The base instrument.
    */
   constructor(readonly instrument: BaseInstrument) {
+    super(instrument, WT21DisplayUnitType.Pfd, 1); // TODO if we add support for multiple PFDs, adapt this
+
     SimVar.SetSimVarValue('L:WT21_BETA_VERSION', 'number', 15);
 
     RegisterViewListener('JS_LISTENER_INSTRUMENTS');
@@ -215,8 +218,10 @@ export class WT21_PFD_Instrument implements FsInstrument {
     );
     this.backplane.addInstrument('navSources', this.navSources);
 
+    const courseNeedleNavIndicator = new WT21CourseNeedleNavIndicator(this.navSources, this, this.bus);
+
     this.navIndicators = new NavIndicators(new Map<WT21NavIndicatorName, WT21NavIndicator>([
-      ['courseNeedle', new WT21CourseNeedleNavIndicator(this.navSources, this.bus, 'PFD')],
+      ['courseNeedle', courseNeedleNavIndicator],
       ['ghostNeedle', new WT21GhostNeedleNavIndicator(this.navSources, this.bus)],
       ['bearingPointer1', new WT21BearingPointerNavIndicator(this.navSources, this.bus, 1, 'NAV1')],
       ['bearingPointer2', new WT21BearingPointerNavIndicator(this.navSources, this.bus, 2, 'NAV2')],
@@ -232,7 +237,7 @@ export class WT21_PFD_Instrument implements FsInstrument {
 
     this.minimumsAlertController = new MinimumsAlertController(this.bus);
 
-    this.pfdMenuViewService = new PfdMenuViewService();
+    this.pfdMenuViewService = new PfdMenuViewService(this.bus, this.displayUnitConfig, courseNeedleNavIndicator);
 
     // FIXME Add route predictor when FlightPlanPredictor refactored to implement FlightPlanPredictionsProvider
     this.fixInfoManager = new WT21FixInfoManager(this.bus, this.facLoader, WT21Fms.PRIMARY_ACT_PLAN_INDEX, this.planner, WT21FixInfoConfig /*, this.activeRoutePredictor*/);
@@ -269,6 +274,7 @@ export class WT21_PFD_Instrument implements FsInstrument {
       <NavIndicatorContext.Provider value={this.navIndicators}>
         <LowerSectionContainer
           bus={this.bus}
+          displayUnit={this}
           elapsedTime={this.elapsedTime}
           activeMenu={this.pfdMenuViewService.activeView}
           flightPlanner={this.planner}
@@ -314,6 +320,38 @@ export class WT21_PFD_Instrument implements FsInstrument {
     this.pfdMenuViewService.registerView('PfdRefsMenu', () => <PfdRefsMenu viewService={this.pfdMenuViewService} bus={this.bus} planner={this.planner} />);
     this.pfdMenuViewService.registerView('PfdOverlaysMenu', () => <PfdOverlaysMenu viewService={this.pfdMenuViewService} bus={this.bus} />);
     this.pfdMenuViewService.registerView('PfdBaroSetMenu', () => <PfdBaroSetMenu viewService={this.pfdMenuViewService} bus={this.bus} />);
+    this.pfdMenuViewService.registerView(
+      'PfdSideButtonsNavBrgSrcMenu',
+      () =>
+        <PfdSideButtonsNavBrgSrcMenu
+          bus={this.bus}
+          viewService={this.pfdMenuViewService}
+          bearingPointerIndicator1={this.navIndicators.get('bearingPointer1')}
+          bearingPointerIndicator2={this.navIndicators.get('bearingPointer2')}
+          nav1Source={this.navSources.get('NAV1')}
+          nav2Source={this.navSources.get('NAV2')}
+          adfSource={this.navSources.get('ADF')}
+          courseNeedle={this.navIndicators.get('courseNeedle') as WT21CourseNeedleNavIndicator}
+        />
+    );
+    this.pfdMenuViewService.registerView(
+      'PfdSideButtonsRefs1Menu',
+      () =>
+        <PfdSideButtonsRefs1Menu
+          bus={this.bus}
+          viewService={this.pfdMenuViewService}
+          planner={this.planner}
+        />
+    );
+    this.pfdMenuViewService.registerView(
+      'PfdSideButtonsRefs2Menu',
+      () =>
+        <PfdSideButtonsRefs2Menu
+          bus={this.bus}
+          viewService={this.pfdMenuViewService}
+          planner={this.planner}
+        />
+    );
 
     SimVar.SetSimVarValue('L:AS3000_Brightness', 'number', 0.85);
     this.clock.init();

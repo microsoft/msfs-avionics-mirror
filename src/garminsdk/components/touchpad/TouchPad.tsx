@@ -364,6 +364,8 @@ export class TouchPad<P extends TouchPadProps = TouchPadProps>
       }
 
       this.props.onDragMoved && this.props.onDragMoved(this.currentMousePosition, this.prevMousePosition, this.mouseDownPosition, this);
+
+      Vec2Math.set(e.clientX, e.clientY, this.prevMousePosition);
     }
   }
 

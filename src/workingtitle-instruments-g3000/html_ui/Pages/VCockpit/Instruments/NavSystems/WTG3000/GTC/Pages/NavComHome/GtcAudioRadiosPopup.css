@@ -1,5 +1,6 @@
 .audio-radios-popup {
   --touch-button-border: 1px solid #d3d3d3;
+  --touch-slider-border: 1px solid #d3d3d3;
 }
 
 .gtc-horizontal .audio-radios-popup {

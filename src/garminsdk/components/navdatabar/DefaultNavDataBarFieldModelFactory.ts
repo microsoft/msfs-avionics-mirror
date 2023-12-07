@@ -3,20 +3,21 @@ import { EventBus, Subscribable } from '@microsoft/msfs-sdk';
 import { Fms } from '../../flightplan/Fms';
 import { NavDataFieldGpsValidity } from '../navdatafield/NavDataFieldModel';
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
-import {
-  GenericNavDataBarFieldModelFactory, NavDataBarFieldBrgModelFactory, NavDataBarFieldDestModelFactory, NavDataBarFieldDisModelFactory,
-  NavDataBarFieldDtgModelFactory, NavDataBarFieldDtkModelFactory, NavDataBarFieldEndModelFactory, NavDataBarFieldEnrModelFactory, NavDataBarFieldEtaModelFactory,
-  NavDataBarFieldEteModelFactory, NavDataBarFieldFobModelFactory, NavDataBarFieldFodModelFactory, NavDataBarFieldGsModelFactory, NavDataBarFieldIsaModelFactory,
-  NavDataBarFieldLdgModelFactory, NavDataBarFieldTasModelFactory, NavDataBarFieldTkeModelFactory, NavDataBarFieldTrkModelFactory,
-  NavDataBarFieldVsrModelFactory, NavDataBarFieldWptModelFactory, NavDataBarFieldXtkModelFactory
-} from './GenericNavDataBarFieldModelFactory';
+import { GenericNavDataBarFieldModelFactory } from './GenericNavDataBarFieldModelFactory';
 import { NavDataBarFieldModelFactory, NavDataBarFieldTypeModelMap } from './NavDataBarFieldModel';
+import {
+  NavDataBarFieldBrgModelFactory, NavDataBarFieldDestModelFactory, NavDataBarFieldDisModelFactory, NavDataBarFieldDtgModelFactory,
+  NavDataBarFieldDtkModelFactory, NavDataBarFieldEndModelFactory, NavDataBarFieldEnrModelFactory, NavDataBarFieldEtaModelFactory,
+  NavDataBarFieldEteModelFactory, NavDataBarFieldFobModelFactory, NavDataBarFieldFodModelFactory, NavDataBarFieldGsModelFactory,
+  NavDataBarFieldIsaModelFactory, NavDataBarFieldLdgModelFactory, NavDataBarFieldTasModelFactory, NavDataBarFieldTkeModelFactory,
+  NavDataBarFieldTrkModelFactory, NavDataBarFieldVsrModelFactory, NavDataBarFieldWptModelFactory, NavDataBarFieldXtkModelFactory
+} from './NavDataBarFieldTypeModelFactories';
 
 /**
  * A default implementation of NavDataBarFieldModelFactory.
  */
 export class DefaultNavDataBarFieldModelFactory implements NavDataBarFieldModelFactory {
-  private readonly factory: GenericNavDataBarFieldModelFactory;
+  protected readonly factory: GenericNavDataBarFieldModelFactory;
 
   /**
    * Constructor.

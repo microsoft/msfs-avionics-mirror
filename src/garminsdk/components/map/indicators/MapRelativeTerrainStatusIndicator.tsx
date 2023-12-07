@@ -41,9 +41,9 @@ export class MapRelativeTerrainStatusIndicator extends DisplayComponent<MapRelat
       <div style={this.rootStyle} class='map-rel-terrain-status'>
         <div class='map-rel-terrain-status-icon-container'>
           <img src={this.props.iconFilePath} class='map-rel-terrain-status-icon' />
-          <svg class='map-rel-terrain-status-failed' viewBox='0 0 110 100' style={this.failedStyle}>
-            <path class='map-rel-terrain-status-failed-cross map-rel-terrain-status-failed-cross-outline' d='M 5 0 L 105 100 M 5 100 L 105 0' />
-            <path class='map-rel-terrain-status-failed-cross map-rel-terrain-status-failed-cross-stroke' d='M 5 0 L 105 100 M 5 100 L 105 0' />
+          <svg class='map-rel-terrain-status-failed' viewBox='0 0 100 100' style={this.failedStyle}>
+            <path class='map-rel-terrain-status-failed-cross map-rel-terrain-status-failed-cross-outline' d='M 0 0 L 100 100 M 0 100 L 100 0' />
+            <path class='map-rel-terrain-status-failed-cross map-rel-terrain-status-failed-cross-stroke' d='M 0 0 L 100 100 M 0 100 L 100 0' />
           </svg>
         </div>
       </div>

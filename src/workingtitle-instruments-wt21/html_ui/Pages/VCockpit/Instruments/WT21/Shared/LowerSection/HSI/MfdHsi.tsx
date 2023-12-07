@@ -1,23 +1,16 @@
-import {
-  CombinedSubject,
-  ComponentProps,
-  DisplayComponent,
-  EventBus,
-  FlightPlanner,
-  FSComponent,
-  Subject,
-  VNode
-} from '@microsoft/msfs-sdk';
+import { ComponentProps, DisplayComponent, EventBus, FlightPlanner, FSComponent, MappedSubject, Subject, VNode } from '@microsoft/msfs-sdk';
+
 import { MfdDisplayMode, MFDUserSettings } from '../../../MFD/MFDUserSettings';
 import { WT21TCAS } from '../../Traffic/WT21TCAS';
 import { LeftInfoPanel } from '../LeftInfoPanel/LeftInfoPanel';
 import { RightInfoPanel } from '../RightInfoPanel/RightInfoPanel';
 import { WaypointAlerter } from '../WaypointAlerter';
 import { HSIContainer } from './HSIContainer';
-
-import './MfdHsi.css';
 import { WT21FixInfoManager } from '../../../FMC/Systems/WT21FixInfoManager';
 import { PerformancePlan } from '../../Performance/PerformancePlan';
+import { WT21DisplayUnitFsInstrument } from '../../WT21DisplayUnitFsInstrument';
+
+import './MfdHsi.css';
 
 /**
  * The properties for the MfdHsi component.
@@ -25,6 +18,9 @@ import { PerformancePlan } from '../../Performance/PerformancePlan';
 interface MfdHsiProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
+
+  /** The display unit */
+  displayUnit: WT21DisplayUnitFsInstrument;
 
   /** An instance of the flight planner. */
   flightPlanner: FlightPlanner;
@@ -88,7 +84,7 @@ export class MfdHsi extends DisplayComponent<MfdHsiProps> {
       }
     }, true);
 
-    CombinedSubject.create(this.visibleForElectricity, this.visibleForMode).sub(([visibleForElectricity, visibleForMode]) => {
+    MappedSubject.create(this.visibleForElectricity, this.visibleForMode).sub(([visibleForElectricity, visibleForMode]) => {
       const shown = visibleForElectricity && visibleForMode;
 
       this.containerRef.instance.classList.toggle('hidden', !shown);
@@ -101,7 +97,7 @@ export class MfdHsi extends DisplayComponent<MfdHsiProps> {
       <>
         <div ref={this.containerRef} class="mfd-hsi MFD">
           <div class="left-panel">
-            <LeftInfoPanel bus={this.props.bus} pfdOrMfd="MFD" waypointAlerter={this.waypointAlerter} />
+            <LeftInfoPanel bus={this.props.bus} displayUnit={this.props.displayUnit} waypointAlerter={this.waypointAlerter} />
           </div>
           <div class="hsi-center">
             <HSIContainer
@@ -116,7 +112,11 @@ export class MfdHsi extends DisplayComponent<MfdHsiProps> {
             />
           </div>
           <div class="right-panel">
-            <RightInfoPanel bus={this.props.bus} tcas={this.props.tcas} pfdOrMfd="MFD" />
+            <RightInfoPanel
+              bus={this.props.bus}
+              displayUnit={this.props.displayUnit}
+              tcas={this.props.tcas}
+            />
           </div>
         </div>
       </>

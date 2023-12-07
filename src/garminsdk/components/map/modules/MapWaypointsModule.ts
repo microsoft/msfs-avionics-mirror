@@ -25,8 +25,11 @@ export class MapWaypointsModule {
   /** Whether to show user waypoints. */
   public readonly userShow = Subject.create(true);
 
-  /** Whether to show runway outlines and labels. */
+  /** Whether to show runway outlines. */
   public readonly runwayShow = Subject.create(true);
+
+  /** Whether to show runway labels. */
+  public readonly runwayLabelShow = Subject.create(true);
 
   /** The minimum projected length of a runway, in pixels, required to show its label. */
   public readonly runwayLabelMinLength = Subject.create(50);

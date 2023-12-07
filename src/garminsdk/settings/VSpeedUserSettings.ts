@@ -39,7 +39,8 @@ export class VSpeedUserSettingUtils {
   public static activeValue(
     name: string,
     settingManager: UserSettingManager<Omit<VSpeedUserSettingTypes, `vSpeedShow_${string}`>>,
-    useFmsValue: true
+    useFmsValue: true,
+    allowZeroValue?: boolean
   ): MappedSubscribable<number>;
   /**
    * Creates a mapped subscribable which provides the active value of a reference V-speed, in knots. The active value
@@ -55,13 +56,15 @@ export class VSpeedUserSettingUtils {
   public static activeValue(
     name: string,
     settingManager: UserSettingManager<Omit<VSpeedUserSettingTypes, `vSpeedShow_${string}` | `vSpeedFmsValue_${string}`>>,
-    useFmsValue: false
+    useFmsValue: false,
+    allowZeroValue?: boolean
   ): MappedSubscribable<number>;
   // eslint-disable-next-line jsdoc/require-jsdoc
   public static activeValue(
     name: string,
     settingManager: UserSettingManager<Omit<VSpeedUserSettingTypes, `vSpeedShow_${string}`>>,
-    useFmsValue: boolean
+    useFmsValue: boolean,
+    allowZeroValue = false
   ): MappedSubscribable<number> {
     return useFmsValue
       ? MappedSubject.create(
@@ -69,12 +72,12 @@ export class VSpeedUserSettingUtils {
           let val = -1;
 
           if (userVal >= 0) {
-            if (userVal > 0) {
+            if (allowZeroValue || userVal > 0) {
               val = userVal;
             }
-          } else if (fmsVal > 0) {
+          } else if (allowZeroValue ? fmsVal >= 0 : fmsVal > 0) {
             val = fmsVal;
-          } else if (defaultVal > 0) {
+          } else if (allowZeroValue ? defaultVal >= 0 : defaultVal > 0) {
             val = defaultVal;
           }
 
@@ -89,10 +92,10 @@ export class VSpeedUserSettingUtils {
           let val = -1;
 
           if (userVal >= 0) {
-            if (userVal > 0) {
+            if (allowZeroValue || userVal > 0) {
               val = userVal;
             }
-          } else if (defaultVal > 0) {
+          } else if (allowZeroValue ? defaultVal >= 0 : defaultVal > 0) {
             val = defaultVal;
           }
 
@@ -181,7 +184,7 @@ export class VSpeedUserSettingUtils {
           return false;
         }
 
-        if (userVal > 0) {
+        if (userVal >= 0) {
           return userVal === fmsVal;
         } else {
           return true;

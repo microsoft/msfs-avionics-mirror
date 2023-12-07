@@ -1,7 +1,8 @@
-import { ComputedSubject, FocusPosition, FSComponent, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { ComputedSubject, FocusPosition, FSComponent, MathUtils, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
 
 import { G1000UiControl, G1000UiControlProps } from '../../../../Shared/UI/G1000UiControl';
 import { UiControl } from '../../../../Shared/UI/UiControl';
+import { FmsHEvent } from '../../../../Shared//UI/FmsHEvent';
 
 /** Props on the ConstraintSelector component. */
 interface ConstraintSelectorProps extends G1000UiControlProps {
@@ -60,6 +61,7 @@ export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> 
   ];
 
   private isEditing = false;
+  private focusedDigit = 0;
 
   /** @inheritdoc */
   public onAfterRender(node: VNode): void {
@@ -128,8 +130,9 @@ export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> 
    * Sets whether or not the control is presently in an edit state.
    * @param isEditing Whether or not the control is editing.
    * @param notify Whether or not to notify of the new value when changing state.
+   * @param focusFirst Whether or not to focus the first digit when entering edit mode. Focuses last digit when false
    */
-  private setEditing(isEditing: boolean, notify = true): void {
+  private setEditing(isEditing: boolean, notify = true, focusFirst = true): void {
     if (this.isEditing !== isEditing) {
       if (isEditing) {
         this.setIsolated(true);
@@ -137,7 +140,7 @@ export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> 
         this.failedBoxRef.instance.style.display = 'none';
 
         this.isEditing = isEditing;
-        this.getChild(0)?.focus(FocusPosition.First);
+        this.getChild(focusFirst ? 0 : 4)?.focus(FocusPosition.First);
       } else {
         this.setIsolated(false);
         this.setChildrenDisabled(true);
@@ -212,6 +215,7 @@ export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> 
   private onDigitFocused(digit: number): void {
     this.el.instance.classList.remove(UiControl.FOCUS_CLASS);
     this.digitRefs[digit].instance.classList.add(UiControl.FOCUS_CLASS);
+    this.focusedDigit = digit;
   }
 
   /**
@@ -271,6 +275,64 @@ export class ConstraintSelector extends G1000UiControl<ConstraintSelectorProps> 
     }
 
     this.el.instance.classList.remove(UiControl.FOCUS_CLASS);
+  }
+
+  /** @inheritDoc */
+  public consolidateKeyboardHEvent(source: G1000UiControl, evt: FmsHEvent): boolean {
+    switch (evt) {
+      case FmsHEvent.D0:
+        return this.handleDigitInput(0);
+      case FmsHEvent.D1:
+        return this.handleDigitInput(1);
+      case FmsHEvent.D2:
+        return this.handleDigitInput(2);
+      case FmsHEvent.D3:
+        return this.handleDigitInput(3);
+      case FmsHEvent.D4:
+        return this.handleDigitInput(4);
+      case FmsHEvent.D5:
+        return this.handleDigitInput(5);
+      case FmsHEvent.D6:
+        return this.handleDigitInput(6);
+      case FmsHEvent.D7:
+        return this.handleDigitInput(7);
+      case FmsHEvent.D8:
+        return this.handleDigitInput(8);
+      case FmsHEvent.D9:
+        return this.handleDigitInput(9);
+    }
+    return super.consolidateKeyboardHEvent(source, evt);
+  }
+
+  /**
+   * Handles a digit input from consolidated FMSHEvents.
+   * @param digit The digit that was input.
+   * @returns True as the event is always handled.
+   */
+  private handleDigitInput(digit: number): boolean {
+    if (!this.isEditing) {
+      this.setEditing(true, false, false);
+      this.value.set(digit);
+    } else {
+      if (this.focusedDigit === 0) {
+        // the last digit is focused
+        if (this.value.get() < 10000) {
+          // if not all digits are used, add the new digit to the end
+          this.value.set(this.value.get() * 10 + digit);
+        } else {
+          // if all digits are used, replace the last digit with the new one
+          this.value.set(MathUtils.floor(this.value.get(), 10) + digit);
+        }
+      } else {
+        // if any other digit is focused, replace the focused digit with the new one
+        const digitsBeforeFocused = MathUtils.floor(this.value.get(), Math.pow(10, this.focusedDigit + 1));
+        const digitsAfterFocused = this.value.get() % Math.pow(10, this.focusedDigit);
+        this.value.set(digitsBeforeFocused + digit * Math.pow(10, this.focusedDigit) + digitsAfterFocused);
+        // focus the next digit
+        this.scroll('forward');
+      }
+    }
+    return true;
   }
 
   /** @inheritdoc */

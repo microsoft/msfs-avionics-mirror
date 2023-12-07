@@ -5,5 +5,5 @@ import {
 
 export {
   UnitsAltitudeSettingMode, UnitsDistanceSettingMode, UnitsNavAngleSettingMode, UnitsTemperatureSettingMode,
-  UnitsUserSettings, UnitsUserSettingManager, type UnitsUserSettingTypes, UnitsWeightSettingMode
+  UnitsUserSettings, type UnitsUserSettingManager, type UnitsUserSettingTypes, UnitsWeightSettingMode
 };

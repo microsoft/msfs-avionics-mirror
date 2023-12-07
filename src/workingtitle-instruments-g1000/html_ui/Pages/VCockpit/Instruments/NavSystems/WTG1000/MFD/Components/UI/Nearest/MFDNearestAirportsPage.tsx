@@ -1,7 +1,7 @@
 import {
   AdaptiveNearestSubscription, AirportClassMask, AirportFacility,
   AirportUtils, ApproachProcedure, FocusPosition, FSComponent,
-  NearestAirportSubscription, NearestSubscription, VNode
+  NearestAirportSubscription, NearestSubscription, Subject, Subscription, VNode
 } from '@microsoft/msfs-sdk';
 
 import { ProcedureType } from '@microsoft/msfs-garminsdk';
@@ -15,6 +15,8 @@ import {
   NearestAirportInformationGroup, NearestAirportRunwaysGroup,
 } from './Airports';
 import { MFDNearestPage, MFDNearestPageProps } from './MFDNearestPage';
+import { MFDPageMenuDialog } from '../MFDPageMenuDialog';
+import { MenuItemDefinition } from '../../../../Shared';
 
 export enum NearestAirportSoftKey {
   APT,
@@ -30,16 +32,69 @@ export enum NearestAirportSoftKey {
  */
 export class MFDNearestAirportsPage extends MFDNearestPage<AirportFacility> {
 
+  private g1000ControlPublisher = this.props.bus.getPublisher<G1000ControlEvents>();
+
   private readonly informationGroup = FSComponent.createRef<NearestAirportInformationGroup>();
   private readonly runwaysGroup = FSComponent.createRef<NearestAirportRunwaysGroup>();
   private readonly frequenciesGroup = FSComponent.createRef<NearestAirportFrequenciesGroup>();
   private readonly approachesGroup = FSComponent.createRef<NearestAirportApproachesGroup>();
 
-  private facility: AirportFacility | undefined;
-  private approach: ApproachProcedure | undefined;
+  private pageMenu?: MFDPageMenuDialog;
+  private pageMenuSub?: Subscription;
+  private isPageMenuRunwayEnabledSub?: Subscription;
+  private readonly isPageMenuRunwayEnabled = Subject.create<boolean>(false);
+
+  private facility: AirportFacility | undefined = undefined;
+  private approach: ApproachProcedure | undefined = undefined;
 
   private searchSettings = NearestAirportSearchSettings.getManager(this.props.bus);
   private searchSubscription: NearestAirportSubscription | undefined;
+
+  private readonly pageMenuItems = (): MenuItemDefinition[] => [
+    {
+      id: 'select-airport-window',
+      renderContent: (): VNode => <span>Select Airport Window</span>,
+      action: (): void => {
+        this.g1000ControlPublisher.pub('nearest_airports_key', NearestAirportSoftKey.APT);
+      }
+    },
+    {
+      id: 'select-runway-window',
+      renderContent: (): VNode => <span>Select Runway Window</span>,
+      isEnabled: this.isPageMenuRunwayEnabled.get(),
+      action: (): void => {
+        this.g1000ControlPublisher.pub('nearest_airports_key', NearestAirportSoftKey.RNWY);
+      }
+    },
+    {
+      id: 'select-frequency-window',
+      renderContent: (): VNode => <span>Select Frequency Window</span>,
+      action: (): void => {
+        this.g1000ControlPublisher.pub('nearest_airports_key', NearestAirportSoftKey.FREQ);
+      }
+    },
+    {
+      id: 'select-approach-window',
+      renderContent: (): VNode => <span>Select Approach Window</span>,
+      action: (): void => {
+        this.g1000ControlPublisher.pub('nearest_airports_key', NearestAirportSoftKey.APR);
+      }
+    },
+    {
+      id: 'load-approach',
+      renderContent: (): VNode => <span>Load Approach</span>,
+      isEnabled: this.pageMenu?.inputData.get() !== undefined && this.approach !== undefined,
+      action: (): void => {
+        this.g1000ControlPublisher.pub('nearest_airports_key', NearestAirportSoftKey.LD_APR);
+      }
+    },
+    {
+      id: 'charts',
+      renderContent: (): VNode => <span>Charts</span>,
+      isEnabled: false,
+    },
+  ];
+
 
   /**
    * Creates an instance of a nearest airport box.
@@ -94,6 +149,36 @@ export class MFDNearestAirportsPage extends MFDNearestPage<AirportFacility> {
 
     this.props.menuSystem.clear();
     this.props.menuSystem.pushMenu('nearest-airports-menu');
+    this._title.set('NRST - Nearest Airports');
+  }
+
+  /**
+   * Opens the Page Menu popup when Menu button is pressed.
+   * @returns whether the event was handled.
+   */
+  protected override onMenuPressed(): boolean {
+    if (this.pageMenuSub) {
+      this.pageMenuSub.destroy();
+      this.pageMenuSub = undefined;
+    }
+
+    if (this.isPageMenuRunwayEnabledSub) {
+      this.isPageMenuRunwayEnabledSub.destroy();
+      this.isPageMenuRunwayEnabledSub = undefined;
+    }
+
+    this.pageMenu = this.props.viewService.open<MFDPageMenuDialog>('PageMenuDialog');
+    this.pageMenuSub = this.pageMenu
+      .setInput(this.facility)
+      .inputData.sub((input: AirportFacility | undefined) => {
+        this.isPageMenuRunwayEnabled.set(input !== undefined && input.runways.length > 1);
+      }, true);
+
+    this.isPageMenuRunwayEnabled.sub(() => {
+      this.pageMenu?.setMenuItems(this.pageMenuItems());
+    }, true);
+
+    return true;
   }
 
   /** @inheritdoc */
@@ -120,7 +205,6 @@ export class MFDNearestAirportsPage extends MFDNearestPage<AirportFacility> {
   /** @inheritdoc */
   protected onFacilitySelected(airport: AirportFacility | null): void {
     super.onFacilitySelected(airport);
-
     this.informationGroup.instance.set(airport);
     this.runwaysGroup.instance.set(airport);
     this.frequenciesGroup.instance.set(airport);
@@ -148,12 +232,11 @@ export class MFDNearestAirportsPage extends MFDNearestPage<AirportFacility> {
    */
   private onApproachSelected(approach: ApproachProcedure | undefined): void {
     this.approach = approach;
-    const publisher = this.props.bus.getPublisher<G1000ControlEvents>();
 
     if (this.approach !== undefined) {
-      publisher.pub('ld_apr_enabled', true, false, false);
+      this.g1000ControlPublisher.pub('ld_apr_enabled', true, false, false);
     } else {
-      publisher.pub('ld_apr_enabled', false, false, false);
+      this.g1000ControlPublisher.pub('ld_apr_enabled', false, false, false);
     }
   }
 
@@ -176,5 +259,23 @@ export class MFDNearestAirportsPage extends MFDNearestPage<AirportFacility> {
         <NearestAirportApproachesGroup ref={this.approachesGroup} onSelected={this.onApproachSelected.bind(this)} isolateScroll />
       </>
     );
+  }
+
+  /** @inheritdoc */
+  public pause(): void {
+    this.pageMenuSub?.pause();
+    this.isPageMenuRunwayEnabledSub?.pause();
+  }
+
+  /** @inheritdoc */
+  public resume(): void {
+    this.pageMenuSub?.resume();
+    this.isPageMenuRunwayEnabledSub?.resume();
+  }
+
+  /** @inheritdoc */
+  public destroy(): void {
+    this.pageMenuSub?.destroy();
+    this.isPageMenuRunwayEnabledSub?.destroy();
   }
 }

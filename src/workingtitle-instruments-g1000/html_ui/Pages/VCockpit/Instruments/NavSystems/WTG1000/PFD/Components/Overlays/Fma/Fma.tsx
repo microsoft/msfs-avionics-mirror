@@ -215,6 +215,12 @@ export class Fma extends DisplayComponent<FmaProps> {
         return 'GP';
       case APVerticalModes.PITCH:
         return 'PIT';
+      case APVerticalModes.LEVEL:
+        return 'LVL';
+      case APVerticalModes.GA:
+        return 'GA';
+      case APVerticalModes.TO:
+        return 'TO';
       case APVerticalModes.CAP: {
         const alt = this.autopilotModes.verticalAltitudeArmed;
         return alt === APAltitudeModes.ALTS ? 'ALTS' : alt === APAltitudeModes.ALTV ? 'ALTV' : 'ALT';
@@ -293,6 +299,10 @@ export class Fma extends DisplayComponent<FmaProps> {
         return 'ROL';
       case APLateralModes.LEVEL:
         return 'LVL';
+      case APLateralModes.GA:
+        return 'GA';
+      case APLateralModes.TO:
+        return 'TO';
       default:
         return '';
     }
@@ -319,6 +329,10 @@ export class Fma extends DisplayComponent<FmaProps> {
         return 'LVL';
       case APLateralModes.BC:
         return 'BC';
+      case APLateralModes.GA:
+        return 'GA';
+      case APLateralModes.TO:
+        return 'TO';
       default:
         return '';
     }

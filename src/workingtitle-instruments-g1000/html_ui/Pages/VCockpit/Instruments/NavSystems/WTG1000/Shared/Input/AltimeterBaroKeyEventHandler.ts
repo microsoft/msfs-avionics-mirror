@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { EventBus, KeyEventData, KeyEventManager, KeyEvents, Subscription } from '@microsoft/msfs-sdk';
+import { ControlEvents, EventBus, KeyEventData, KeyEventManager, KeyEvents, Subscription } from '@microsoft/msfs-sdk';
+
+import { G1000ControlEvents } from '../G1000Events';
 
 /**
  * A handler for altimeter barometric setting key events.
@@ -63,6 +65,7 @@ export class AltimeterBaroKeyEventHandler {
     this.isInit = true;
 
     this.keyEventManager!.interceptKey('BAROMETRIC', true);
+    this.keyEventManager!.interceptKey('BAROMETRIC_STD_PRESSURE', true);
 
     this.keyEventSub = this.bus.getSubscriber<KeyEvents>().on('key_intercept').handle(this.onKeyIntercepted.bind(this));
   }
@@ -74,7 +77,11 @@ export class AltimeterBaroKeyEventHandler {
   private onKeyIntercepted(data: KeyEventData): void {
     switch (data.key) {
       case 'BAROMETRIC': {
-        this.bus.pub('baro_set', true, true, false);
+        this.bus.getPublisher<ControlEvents>().pub('baro_set', true, true, false);
+        break;
+      }
+      case 'BAROMETRIC_STD_PRESSURE': {
+        this.bus.getPublisher<G1000ControlEvents>().pub('std_baro_switch', true, true, false);
         break;
       }
     }

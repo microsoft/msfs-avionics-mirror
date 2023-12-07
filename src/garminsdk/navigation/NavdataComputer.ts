@@ -35,7 +35,8 @@ export class NavdataComputer {
     rnavTypeFlags: RnavTypeFlags.None,
     isCircling: false,
     isVtf: false,
-    referenceFacility: null
+    referenceFacility: null,
+    runway: null
   };
 
   private readonly lnavIsTracking: ConsumerSubject<boolean>;

@@ -404,6 +404,9 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
         this.setPrimed(true);
         break;
       case TouchButtonOnTouchedAction.Press:
+        if (this.focusOnDrag) {
+          e.stopPropagation();
+        }
         this.onPressed();
         break;
       case TouchButtonOnTouchedAction.Hold:

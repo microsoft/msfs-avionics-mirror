@@ -1,6 +1,6 @@
 import {
   ComponentProps, DisplayComponent, FSComponent, MappedSubject, MutableSubscribable, SetSubject, Subject,
-  Subscribable, SubscribableSet, SubscribableUtils, Subscription, VNode
+  Subscribable, SubscribableSet, SubscribableUtils, Subscription, ToggleableClassNameRecord, VNode
 } from '@microsoft/msfs-sdk';
 
 import './CursorInputSlot.css';
@@ -244,7 +244,7 @@ export interface GenericCursorInputSlotProps<T> extends ComponentProps {
   canSetChar: (characters: readonly (string | null)[], index: number, charToSet: string | null, force: boolean) => boolean;
 
   /** CSS class(es) to apply to the component's root element. */
-  class?: string | SubscribableSet<string>;
+  class?: string | SubscribableSet<string> | ToggleableClassNameRecord;
 }
 
 /**
@@ -290,7 +290,7 @@ export class GenericCursorInputSlot<T, P extends GenericCursorInputSlotProps<T> 
 
   protected readonly setValueFunc = this.setValue.bind(this);
 
-  private cssClassSub?: Subscription;
+  private cssClassSub?: Subscription | Subscription[];
 
   /** @inheritdoc */
   public onAfterRender(): void {
@@ -482,6 +482,16 @@ export class GenericCursorInputSlot<T, P extends GenericCursorInputSlotProps<T> 
 
   /** @inheritdoc */
   public destroy(): void {
-    this.cssClassSub?.destroy();
+    if (this.cssClassSub) {
+      if (Array.isArray(this.cssClassSub)) {
+        for (const sub of this.cssClassSub) {
+          sub.destroy();
+        }
+      } else {
+        this.cssClassSub.destroy();
+      }
+    }
+
+    super.destroy();
   }
 }

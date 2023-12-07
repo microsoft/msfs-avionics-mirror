@@ -14,6 +14,7 @@ import { NumberUnitSubject } from '../math/NumberUnitSubject';
 import { ReadonlyFloat64Array, Vec2Math, Vec3Math } from '../math/VecMath';
 import { Subject } from '../sub/Subject';
 import { Subscribable } from '../sub/Subscribable';
+import { SubscribableUtils } from '../sub/SubscribableUtils';
 import { Subscription } from '../sub/Subscription';
 
 /**
@@ -448,6 +449,10 @@ export abstract class Tcas<I extends AbstractTcasIntruder = AbstractTcasIntruder
     subsequentAcceleration: UnitType.G_ACCEL.createNumber(0.35)
   };
 
+  protected readonly maxIntruderCount: Subscribable<number>;
+  protected readonly realTimeUpdateFreq: Subscribable<number>;
+  protected readonly simTimeUpdateFreq: Subscribable<number>;
+
   protected readonly operatingModeSub = Subject.create(TcasOperatingMode.Standby);
 
   protected readonly sensitivity: S;
@@ -498,11 +503,15 @@ export abstract class Tcas<I extends AbstractTcasIntruder = AbstractTcasIntruder
   constructor(
     protected readonly bus: EventBus,
     protected readonly tfcInstrument: TrafficInstrument,
-    protected readonly maxIntruderCount: number,
-    protected readonly realTimeUpdateFreq: number,
-    protected readonly simTimeUpdateFreq: number,
+    maxIntruderCount: number | Subscribable<number>,
+    realTimeUpdateFreq: number | Subscribable<number>,
+    simTimeUpdateFreq: number | Subscribable<number>,
     raOptions?: Partial<TcasResolutionAdvisoryOptions>
   ) {
+    this.maxIntruderCount = SubscribableUtils.toSubscribable(maxIntruderCount, true);
+    this.realTimeUpdateFreq = SubscribableUtils.toSubscribable(realTimeUpdateFreq, true);
+    this.simTimeUpdateFreq = SubscribableUtils.toSubscribable(simTimeUpdateFreq, true);
+
     this.sensitivity = this.createSensitivity();
     this.ownAirplane = new OwnAirplane(this.ownAirplaneSubs);
 
@@ -587,13 +596,27 @@ export abstract class Tcas<I extends AbstractTcasIntruder = AbstractTcasIntruder
     this.tfcInstrument.forEachContact(contact => { this.onContactAdded(contact.uid); });
 
     // init own airplane subjects
-    sub.on('gps-position').atFrequency(this.realTimeUpdateFreq).handle(lla => {
-      this.ownAirplaneSubs.position.set(lla.lat, lla.long);
-      this.ownAirplaneSubs.altitude.set(lla.alt, UnitType.METER);
-    });
-    sub.on('ground_speed').whenChanged().atFrequency(this.realTimeUpdateFreq).handle(gs => { this.ownAirplaneSubs.groundSpeed.set(gs); });
-    sub.on('vertical_speed').whenChanged().atFrequency(this.realTimeUpdateFreq).handle(vs => { this.ownAirplaneSubs.verticalSpeed.set(vs); });
-    sub.on('radio_alt').whenChanged().atFrequency(this.realTimeUpdateFreq).handle(alt => { this.ownAirplaneSubs.radarAltitude.set(alt); });
+
+    const atFreqSubs: Subscription[] = [];
+
+    this.realTimeUpdateFreq.sub(freq => {
+      for (const atFreqSub of atFreqSubs) {
+        atFreqSub.destroy();
+      }
+
+      atFreqSubs.length = 0;
+
+      atFreqSubs.push(
+        sub.on('gps-position').atFrequency(freq).handle(lla => {
+          this.ownAirplaneSubs.position.set(lla.lat, lla.long);
+          this.ownAirplaneSubs.altitude.set(lla.alt, UnitType.METER);
+        }),
+        sub.on('ground_speed').atFrequency(freq).handle(gs => { this.ownAirplaneSubs.groundSpeed.set(gs); }),
+        sub.on('vertical_speed').atFrequency(freq).handle(vs => { this.ownAirplaneSubs.verticalSpeed.set(vs); }),
+        sub.on('radio_alt').atFrequency(freq).handle(alt => { this.ownAirplaneSubs.radarAltitude.set(alt); })
+      );
+    }, true);
+
     this.ownAirplaneSubs.groundTrack.setConsumer(sub.on('track_deg_true'));
     this.ownAirplaneSubs.isOnGround.setConsumer(sub.on('on_ground'));
 
@@ -754,8 +777,8 @@ export abstract class Tcas<I extends AbstractTcasIntruder = AbstractTcasIntruder
 
     const realTime = Date.now();
     if (
-      Math.abs(simTime - this.lastUpdateSimTime) < 1000 / this.simTimeUpdateFreq
-      || Math.abs(realTime - this.lastUpdateRealTime) < 1000 / this.realTimeUpdateFreq) {
+      Math.abs(simTime - this.lastUpdateSimTime) < 1000 / this.simTimeUpdateFreq.get()
+      || Math.abs(realTime - this.lastUpdateRealTime) < 1000 / this.realTimeUpdateFreq.get()) {
       return;
     }
 
@@ -803,7 +826,7 @@ export abstract class Tcas<I extends AbstractTcasIntruder = AbstractTcasIntruder
 
     this.intrudersFiltered = [];
     const len = this.intrudersSorted.length;
-    for (let i = 0; i < len && this.intrudersFiltered.length < this.maxIntruderCount; i++) {
+    for (let i = 0; i < len && this.intrudersFiltered.length < this.maxIntruderCount.get(); i++) {
       const intruder = this.intrudersSorted[i];
       if (intruder.isPredictionValid && this.filterIntruder(intruder)) {
         this.intrudersFiltered.push(intruder);

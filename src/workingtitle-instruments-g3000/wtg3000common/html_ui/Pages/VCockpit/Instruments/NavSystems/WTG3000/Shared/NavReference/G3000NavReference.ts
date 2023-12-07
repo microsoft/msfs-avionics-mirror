@@ -109,7 +109,8 @@ export class G3000ApproachPreviewDataProvider {
     rnavTypeFlags: RnavTypeFlags.None,
     isCircling: false,
     isVtf: false,
-    referenceFacility: null
+    referenceFacility: null,
+    runway: null
   }, FmsUtils.approachDetailsEquals);
 
   private readonly flightPhase = ConsumerSubject.create<Readonly<FmsFlightPhase>>(null, {

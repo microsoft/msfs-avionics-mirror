@@ -7,10 +7,11 @@ import { HSIContainer } from './HSI/HSIContainer';
 import { LeftInfoPanel } from './LeftInfoPanel/LeftInfoPanel';
 import { RightInfoPanel } from './RightInfoPanel/RightInfoPanel';
 import { WaypointAlerter } from './WaypointAlerter';
-
-import './LowerSectionContainer.css';
 import { WT21FixInfoManager } from '../../FMC/Systems/WT21FixInfoManager';
 import { PerformancePlan } from '../Performance/PerformancePlan';
+import { WT21DisplayUnitFsInstrument } from '../WT21DisplayUnitFsInstrument';
+
+import './LowerSectionContainer.css';
 
 /**
  * Component props for LowerSectionContainer.
@@ -18,6 +19,9 @@ import { PerformancePlan } from '../Performance/PerformancePlan';
 interface LowerSectionContainerProps extends ComponentProps {
   /** The event bus. */
   bus: EventBus;
+
+  /** The display unit */
+  displayUnit: WT21DisplayUnitFsInstrument;
 
   /** The elapsed time state. */
   elapsedTime: ElapsedTime;
@@ -53,8 +57,8 @@ export class LowerSectionContainer extends DisplayComponent<LowerSectionContaine
         <div class="left-panel">
           <LeftInfoPanel
             bus={this.props.bus}
+            displayUnit={this.props.displayUnit}
             elapsedTime={this.props.elapsedTime}
-            pfdOrMfd="PFD"
             activeMenu={this.props.activeMenu}
             waypointAlerter={this.waypointAlerter}
           />
@@ -72,7 +76,11 @@ export class LowerSectionContainer extends DisplayComponent<LowerSectionContaine
           />
         </div>
         <div class="right-panel">
-          <RightInfoPanel bus={this.props.bus} tcas={this.props.tcas} pfdOrMfd="PFD" />
+          <RightInfoPanel
+            bus={this.props.bus}
+            displayUnit={this.props.displayUnit}
+            tcas={this.props.tcas}
+          />
         </div>
       </div>
     );

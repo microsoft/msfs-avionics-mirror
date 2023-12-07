@@ -1,0 +1,55 @@
+.info-format-switch {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+
+  text-align: right;
+}
+
+.info-format-switch.info-format-switch-right {
+  flex-flow: row-reverse nowrap;
+}
+
+.info-format-switch:not(.info-format-switch-right) {
+  position: relative;
+  top: 215px; /* TODO this should go elsewhere */
+}
+
+.info-format-switch-switch-arrow-wrapper {
+  height: 0;
+}
+
+.info-format-switch:not(.info-format-switch-right) .info-format-switch-switch-arrow {
+  min-width: 10px;
+  height: 14px;
+  margin-bottom: 6px;
+  margin-right: 10px;
+}
+
+.info-format-switch-right .info-format-switch-switch-arrow {
+  min-width: 10px;
+  height: 14px;
+  margin-bottom: 6px;
+  margin-left: 10px;
+}
+
+.info-format-switch-label {
+  white-space: pre;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+
+  line-height: 19px;
+  padding-top: 6px;
+  padding-left: 2px;
+
+  margin-bottom: 5px;
+  color: var(--wt21-colors-cyan);
+  background-color: var(--wt21-colors-black);
+}
+
+.info-format-switch:not(.info-format-switch-right) .info-format-switch-label {
+  right: unset;
+
+  justify-content: flex-start;
+}

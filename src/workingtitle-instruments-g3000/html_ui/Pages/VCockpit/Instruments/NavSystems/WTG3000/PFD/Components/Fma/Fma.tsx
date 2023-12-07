@@ -423,6 +423,8 @@ export class Fma extends DisplayComponent<FmaProps> {
         return 'GP';
       case APVerticalModes.PITCH:
         return 'PIT';
+      case APVerticalModes.LEVEL:
+        return 'LVL';
       case APVerticalModes.TO:
         return 'TO';
       case APVerticalModes.GA:

@@ -75,9 +75,11 @@ export class MapOrientationRTRController extends MapSystemController<MapOrientat
   /**
    * Constructor.
    * @param context This controller's map context.
-   * @param nominalTargetOffsets The nominal projected target offsets this controller applies for each orientation.
-   * If an orientation does not have a defined offset, it will default to `[0, 0]`.
-   * @param nominalRangeEndpoints The nominal range endpoints this controller applies for each orientation. If an
+   * @param nominalTargetOffsets The nominal projected target offsets this controller applies for each orientation, as
+   * `[x, y]` relative to the width and height of the map's projected window excluding the dead zone. If an orientation
+   * does not have a defined offset, it will default to `[0, 0]`.
+   * @param nominalRangeEndpoints The nominal range endpoints this controller applies for each orientation, as
+   * `[x1, y1, x2, y2]` relative to the width and height of the map's projected window excluding the dead zone. If an
    * orientation does not have defined range endpoints, it will default to `[0.5, 0.5, 0.5, 0]`.
    */
   constructor(
@@ -163,6 +165,9 @@ export class MapOrientationRTRController extends MapSystemController<MapOrientat
         break;
       case MapOrientation.TrackUp:
         rotationType = MapRotation.TrackUp;
+        break;
+      case MapOrientation.DtkUp:
+        rotationType = MapRotation.DtkUp;
         break;
       default:
         rotationType = MapRotation.NorthUp;

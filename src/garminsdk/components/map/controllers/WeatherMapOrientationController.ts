@@ -12,6 +12,7 @@ import { MapOrientation, MapOrientationModule } from '../modules/MapOrientationM
 
 /**
  * Modules required for WeatherMapOrientationController.
+ * @deprecated
  */
 export interface WeatherMapOrientationControllerModules {
   /** Range module. */
@@ -26,6 +27,7 @@ export interface WeatherMapOrientationControllerModules {
 
 /**
  * Context properties required by WeatherMapOrientationController.
+ * @deprecated
  */
 export interface WeatherMapOrientationControllerContext {
   /** Resource moderator for control of the map's orientation mode. */
@@ -34,6 +36,7 @@ export interface WeatherMapOrientationControllerContext {
 
 /**
  * User settings required by WeatherMapOrientationController.
+ * @deprecated
  */
 export type WeatherMapOrientationControllerSettings = Pick<
   MapUserSettingTypes & WeatherMapUserSettingTypes,
@@ -42,18 +45,21 @@ export type WeatherMapOrientationControllerSettings = Pick<
 
 /**
  * Controls the orientation of a weather map based on user settings.
+ * @deprecated New, preferred logic for controlling weather map orientation based on user settings is available using
+ * `WeatherMapOrientationSettingsController`.
  */
 export class WeatherMapOrientationController extends MapSystemController<WeatherMapOrientationControllerModules, any, any, WeatherMapOrientationControllerContext> {
-  private static readonly MODE_MAP = {
+  private static readonly MODE_MAP: Partial<Record<MapOrientationSettingMode, MapOrientation>> = {
     [MapOrientationSettingMode.NorthUp]: MapOrientation.NorthUp,
     [MapOrientationSettingMode.HeadingUp]: MapOrientation.HeadingUp,
-    [MapOrientationSettingMode.TrackUp]: MapOrientation.TrackUp
+    [MapOrientationSettingMode.TrackUp]: MapOrientation.TrackUp,
+    [MapOrientationSettingMode.DtkUp]: MapOrientation.DtkUp
   };
-  private static readonly WEATHER_MODE_MAP = {
+  private static readonly WEATHER_MODE_MAP: Partial<Record<WeatherMapOrientationSettingMode, MapOrientation>> = {
     [WeatherMapOrientationSettingMode.NorthUp]: MapOrientation.NorthUp,
     [WeatherMapOrientationSettingMode.HeadingUp]: MapOrientation.HeadingUp,
     [WeatherMapOrientationSettingMode.TrackUp]: MapOrientation.TrackUp,
-    [WeatherMapOrientationSettingMode.SyncToNavMap]: MapOrientation.HeadingUp
+    [WeatherMapOrientationSettingMode.DtkUp]: MapOrientation.DtkUp
   };
 
   private readonly rangeModule = this.context.model.getModule(GarminMapKeys.Range);

@@ -177,21 +177,27 @@ export class SimVarPublisher<Events extends Record<string, any>, IndexedEventRoo
       }
     }
 
-    const handleSubscribedTopic = (topic: string): void => {
-      if (this.resolvedSimVars.has(topic)) {
-        // If topic matches an already resolved topic -> start publishing.
-        this.onTopicSubscribed(topic);
-      } else {
-        // Check if topic matches indexed topic.
-        this.tryMatchIndexedSubscribedTopic(topic);
-      }
-    };
+    const handleSubscribedTopic = this.handleSubscribedTopic.bind(this);
 
     // Iterate over each subscribed topic on the bus to see if it matches any of our topics. If so, start publishing.
     this.bus.forEachSubscribedTopic(handleSubscribedTopic);
 
     // Listen to first-time topic subscriptions. If any of them match our topics, start publishing.
     this.bus.getSubscriber<EventBusMetaEvents>().on('event_bus_topic_first_sub').handle(handleSubscribedTopic);
+  }
+
+  /**
+   * Handles when an event bus topic is subscribed to for the first time.
+   * @param topic The subscribed topic.
+   */
+  protected handleSubscribedTopic(topic: string): void {
+    if (this.resolvedSimVars.has(topic)) {
+      // If topic matches an already resolved topic -> start publishing.
+      this.onTopicSubscribed(topic);
+    } else {
+      // Check if topic matches indexed topic.
+      this.tryMatchIndexedSubscribedTopic(topic);
+    }
   }
 
   /**

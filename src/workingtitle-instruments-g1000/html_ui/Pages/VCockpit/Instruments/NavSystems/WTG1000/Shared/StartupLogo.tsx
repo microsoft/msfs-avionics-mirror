@@ -66,7 +66,7 @@ export class StartupLogo extends DisplayComponent<StartupLogoProps> {
    * @param evt The event that arrived.
    */
   private handleHEvent = (evt: string): void => {
-    if (evt === `${this.props.eventPrefix}_ENT_Push` || evt === `${this.props.eventPrefix}_SOFTKEYS_12`) {
+    if (evt === `${this.props.eventPrefix}_ENT_Push` || evt === `${this.props.eventPrefix}_SOFTKEYS_12` || evt === 'AS1000_CONTROL_PAD_ENT_Push') {
       this.props.onConfirmation && this.props.onConfirmation();
       this.props.bus.off('hEvent', this.handleHEvent);
     }
@@ -94,7 +94,7 @@ export class StartupLogo extends DisplayComponent<StartupLogoProps> {
               <svg width='24' height='24' viewBox='0 0 16 16'>
                 <path d='M 2 3 L 2 8 L 13 8' stroke='gray' stroke-width='1px' />
               </svg>
-              System WT1.2.7
+              System WT1.3.3
             </div>
             <h3>
               <svg width='24' height='24' viewBox='0 0 32 32'>

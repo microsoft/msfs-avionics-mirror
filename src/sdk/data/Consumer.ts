@@ -56,7 +56,7 @@ export interface Consumer<T> {
   /**
    * Filters events by time such that events will not be consumed until a minimum duration
    * has passed since the previous event.
-   * @param deltaTime The minimum delta time between events.
+   * @param deltaTime The minimum delta time between events in milliseconds.
    * @returns A new consumer with the applied change threshold filter.
    */
   onlyAfter(deltaTime: number): Consumer<T>;

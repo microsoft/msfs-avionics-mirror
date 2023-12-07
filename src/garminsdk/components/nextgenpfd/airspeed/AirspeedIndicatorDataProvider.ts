@@ -34,6 +34,9 @@ export interface AirspeedIndicatorDataProvider {
   /** The current conversion factor from mach number to knots indicated airspeed. */
   readonly machToKias: Subscribable<number>;
 
+  /** The current conversion factor from true airspeed to indicated airspeed. */
+  readonly tasToIas: Subscribable<number>;
+
   /** The current pressure altitude, in feet. */
   readonly pressureAlt: Subscribable<number>;
 
@@ -109,7 +112,7 @@ export type AirspeedIndicatorDataProviderOptions = {
  * A default implementation of {@link AirspeedIndicatorDataProvider}.
  */
 export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDataProvider {
-  private static readonly MACH_TO_KIAS_SMOOTHING_TAU = 5000 / Math.LN2; // milliseconds
+  private static readonly SPEED_CONVERSION_SMOOTHING_TAU = 5000 / Math.LN2; // milliseconds
   private static readonly DEFAULT_IAS_TREND_INPUT_SMOOTHING_TAU = 2000 / Math.LN2; // milliseconds
   private static readonly DEFAULT_IAS_TREND_TREND_SMOOTHING_TAU = 1000 / Math.LN2; // milliseconds
 
@@ -128,6 +131,10 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
   private readonly _machToKias = Subject.create(0);
   /** @inheritdoc */
   public readonly machToKias = this._machToKias as Subscribable<number>;
+
+  private readonly _tasToIas = Subject.create(0);
+  /** @inheritdoc */
+  public readonly tasToIas = this._tasToIas as Subscribable<number>;
 
   private readonly _pressureAlt = ConsumerSubject.create(null, 0);
   /** @inheritdoc */
@@ -165,7 +172,7 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
   public readonly isUnderspeedProtectionActive = this._isUnderspeedProtectionActive as Subscribable<boolean>;
 
   /** @inheritdoc */
-  public readonly normAoaIasCoef = this.aoaDataProvider.normAoaIasCoef;
+  public readonly normAoaIasCoef = this.aoaDataProvider?.normAoaIasCoef ?? Subject.create(null);
 
   private readonly _isDataFailed = Subject.create(false);
   /** @inheritdoc */
@@ -174,12 +181,14 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
   private readonly adcIndex: Subscribable<number>;
   private readonly adcSystemState = ConsumerSubject.create<AvionicsSystemStateEvent>(null, { previous: undefined, current: undefined });
 
-  private readonly machToKiasSmoother = new ExpSmoother(DefaultAirspeedIndicatorDataProvider.MACH_TO_KIAS_SMOOTHING_TAU);
+  private readonly machToKiasSmoother = new ExpSmoother(DefaultAirspeedIndicatorDataProvider.SPEED_CONVERSION_SMOOTHING_TAU);
+  private lastMachToKiasTime = 0;
+
+  private readonly tasToIasSmoother = new ExpSmoother(DefaultAirspeedIndicatorDataProvider.SPEED_CONVERSION_SMOOTHING_TAU);
+  private lastTasToIasTime = 0;
 
   private readonly simTime = ConsumerSubject.create(null, 0);
   private readonly isOnGround = ConsumerSubject.create(null, false);
-
-  private lastMachToKiasTime = 0;
 
   private readonly referenceIasSource = ConsumerSubject.create(null, 0);
   private readonly referenceMachSource = ConsumerSubject.create(null, 0);
@@ -209,6 +218,7 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
 
   private adcIndexSub?: Subscription;
   private machToKiasSub?: Subscription;
+  private tasToIasSub?: Subscription;
   private trendLookaheadSub?: Subscription;
 
   /**
@@ -226,7 +236,7 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
     private readonly bus: EventBus,
     adcIndex: number | Subscribable<number>,
     options: Readonly<AirspeedIndicatorDataProviderOptions>,
-    private readonly aoaDataProvider: AirspeedAoaDataProvider,
+    private readonly aoaDataProvider?: AirspeedAoaDataProvider,
     trendInputSmoothingTau = DefaultAirspeedIndicatorDataProvider.DEFAULT_IAS_TREND_INPUT_SMOOTHING_TAU,
     trendTrendSmoothingTau = DefaultAirspeedIndicatorDataProvider.DEFAULT_IAS_TREND_TREND_SMOOTHING_TAU
   ) {
@@ -298,16 +308,25 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
       this.machToKiasSub?.destroy();
       this.machToKiasSmoother.reset();
 
+      this.tasToIasSub?.destroy();
+      this.tasToIasSmoother.reset();
+
       this._iasKnots.setConsumer(sub.on(`adc_ias_${index}`));
       this._tasKnots.setConsumer(sub.on(`adc_tas_${index}`));
       this._mach.setConsumer(sub.on(`adc_mach_number_${index}`));
       this._pressureAlt.setConsumer(sub.on(`adc_pressure_alt_${index}`));
       this.adcSystemState.setConsumer(sub.on(`adc_state_${index}`));
 
-      this.machToKiasSub = sub.on(`adc_mach_to_kias_factor_${index}`).handle(machToKias => {
+      this.machToKiasSub = sub.on(`adc_mach_to_kias_factor_${index}`).handle(machToKcas => {
         const time = Date.now();
-        this._machToKias.set(this.machToKiasSmoother.next(machToKias, time - this.lastMachToKiasTime));
+        this._machToKias.set(this.machToKiasSmoother.next(machToKcas, time - this.lastMachToKiasTime));
         this.lastMachToKiasTime = time;
+      });
+
+      this.tasToIasSub = sub.on(`adc_tas_to_ias_factor_${index}`).handle(tasToCas => {
+        const time = Date.now();
+        this._tasToIas.set(this.tasToIasSmoother.next(tasToCas, time - this.lastTasToIasTime));
+        this.lastTasToIasTime = time;
       });
     }, true);
 
@@ -377,7 +396,7 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
 
   /** @inheritdoc */
   public estimateIasFromNormAoa(normAoa: number): number {
-    return this.aoaDataProvider.estimateIasFromNormAoa(normAoa);
+    return this.aoaDataProvider?.estimateIasFromNormAoa(normAoa) ?? NaN;
   }
 
   /**
@@ -403,6 +422,7 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
     this._tasKnots.resume();
     this._mach.resume();
     this.machToKiasSub?.resume(true);
+    this.tasToIasSub?.resume(true);
     this._pressureAlt.resume();
 
     this.referenceIasSource.resume();
@@ -440,6 +460,7 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
     this._tasKnots.pause();
     this._mach.pause();
     this.machToKiasSub?.pause();
+    this.tasToIasSub?.pause();
     this._pressureAlt.pause();
 
     this.machToKiasSmoother.reset();
@@ -495,6 +516,7 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
 
     this.adcIndexSub?.destroy();
     this.machToKiasSub?.destroy();
+    this.tasToIasSub?.destroy();
     this.trendLookaheadSub?.destroy();
   }
 }

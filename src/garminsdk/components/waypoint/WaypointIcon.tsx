@@ -1,4 +1,8 @@
-import { ComputedSubject, FacilityWaypointUtils, FSComponent, NavMath, Subscribable, Subscription, VNode, Waypoint } from '@microsoft/msfs-sdk';
+import {
+  ComputedSubject, FacilityWaypointUtils, FSComponent, NavMath, SetSubject, Subscribable, SubscribableSet, Subscription,
+  ToggleableClassNameRecord, VNode, Waypoint
+} from '@microsoft/msfs-sdk';
+
 import { WaypointIconImageCache } from '../../graphics';
 import { AirportWaypoint } from '../../navigation';
 import { WaypointComponent, WaypointComponentProps } from './WaypointComponent';
@@ -12,20 +16,21 @@ export interface WaypointIconProps extends WaypointComponentProps {
    * If not provided, airport icons will show the heading of the longest runway. */
   planeHeading?: Subscribable<number>;
 
-  /** CSS class(es) to add to the root of the icon component. */
-  class?: string;
-
   /** The size of each square icon in the texture atlas. */
   atlasIconSize: number;
 
   /** The image waypoint icon image cache to use. */
   imageCache: WaypointIconImageCache;
+
+  /** CSS class(es) to add to the root of the icon component. */
+  class?: string | SubscribableSet<string> | ToggleableClassNameRecord;
 }
 
 /** A waypoint icon. */
 export class WaypointIcon extends WaypointComponent<WaypointIconProps> {
+  private static readonly RESERVED_CLASSES = [];
+
   private readonly imgRef = FSComponent.createRef<HTMLImageElement>();
-  private subs = [] as Subscription[];
 
   private readonly srcSub = ComputedSubject.create<Waypoint | null, string>(null, (waypoint): string => {
     if (waypoint !== null && FacilityWaypointUtils.isFacilityWaypoint(waypoint)) {
@@ -38,6 +43,8 @@ export class WaypointIcon extends WaypointComponent<WaypointIconProps> {
   private imgFrameColCount = 1;
   private imgOffset?: string = undefined;
 
+  private readonly subscriptions: Subscription[] = [];
+
   /** @inheritdoc */
   public onAfterRender(): void {
     this.initImageLoadListener();
@@ -45,7 +52,7 @@ export class WaypointIcon extends WaypointComponent<WaypointIconProps> {
     super.onAfterRender();
 
     if (this.props.planeHeading) {
-      this.subs.push(this.props.planeHeading.sub(this.updateOffset.bind(this), true));
+      this.subscriptions.push(this.props.planeHeading.sub(this.updateOffset.bind(this), true));
     }
   }
 
@@ -79,8 +86,11 @@ export class WaypointIcon extends WaypointComponent<WaypointIconProps> {
     const waypoint = this.props.waypoint.get();
 
     if (this.imgFrameRowCount > 1 && this.imgFrameColCount > 1 && waypoint instanceof AirportWaypoint && waypoint.longestRunway !== null) {
-      const headingOffset = this.props.planeHeading?.get() ?? 0;
-      this.updateAirpotIconOffset(headingOffset, waypoint.longestRunway.direction);
+      let headingOffset = this.props.planeHeading ? this.props.planeHeading.get() : NaN;
+      if (isNaN(headingOffset)) {
+        headingOffset = 0;
+      }
+      this.updateAirportIconOffset(headingOffset, waypoint.longestRunway.direction);
     } else {
       this.setImgOffset('unset');
     }
@@ -91,7 +101,7 @@ export class WaypointIcon extends WaypointComponent<WaypointIconProps> {
    * @param headingOffset How mush to offset the runway heading by.
    * @param runwayHeading The heading of the runway.
    */
-  private updateAirpotIconOffset(headingOffset: number, runwayHeading: number): void {
+  private updateAirportIconOffset(headingOffset: number, runwayHeading: number): void {
     const headingDelta = runwayHeading - headingOffset;
     const frame = Math.round(NavMath.normalizeHeading(headingDelta) / 22.5) % 8;
     const row = Math.min(Math.floor(frame / 4), this.imgFrameRowCount - 1);
@@ -126,10 +136,24 @@ export class WaypointIcon extends WaypointComponent<WaypointIconProps> {
   public render(): VNode {
     const { atlasIconSize } = this.props;
 
+    let cssClass: string | SetSubject<string> | undefined;
+
+    if (typeof this.props.class === 'object') {
+      cssClass = SetSubject.create();
+      const sub = FSComponent.bindCssClassSet(cssClass, this.props.class, WaypointIcon.RESERVED_CLASSES);
+      if (Array.isArray(sub)) {
+        this.subscriptions.push(...sub);
+      } else {
+        this.subscriptions.push(sub);
+      }
+    } else {
+      cssClass = this.props.class;
+    }
+
     return (
       <img
         ref={this.imgRef}
-        class={this.props.class ?? ''}
+        class={cssClass}
         src={this.srcSub}
         style={`width: ${atlasIconSize}px; height: ${atlasIconSize}px; object-fit: none; object-position: ${this.imgOffset};`}
       />
@@ -138,12 +162,15 @@ export class WaypointIcon extends WaypointComponent<WaypointIconProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
+    for (const sub of this.subscriptions) {
+      sub.destroy();
+    }
 
-    this.subs.forEach(sub => sub.destroy());
     const img = this.imgRef.getOrDefault();
     if (img) {
       img.onload = null;
     }
+
+    super.destroy();
   }
 }

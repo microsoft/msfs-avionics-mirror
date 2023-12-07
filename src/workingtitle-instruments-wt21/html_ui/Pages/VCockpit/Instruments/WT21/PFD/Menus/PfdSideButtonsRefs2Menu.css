@@ -1,0 +1,11 @@
+.pfd-popup-refs-2 {
+  height: 350px;
+}
+
+.pfd-popup-refs-1 .popup-menu-radio[data-label="PRESSURE"] {
+  margin-top: 6px;
+}
+
+.pfd-popup-refs-1 .popup-menu-radio:not([data-label="PRESSURE"]) {
+  margin-top: 36px;
+}

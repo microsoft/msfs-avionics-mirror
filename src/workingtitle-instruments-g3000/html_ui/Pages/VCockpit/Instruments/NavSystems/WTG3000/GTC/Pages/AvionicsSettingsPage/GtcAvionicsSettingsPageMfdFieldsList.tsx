@@ -35,7 +35,7 @@ export interface GtcAvionicsSettingsPageMfdFieldsListProps extends ComponentProp
  * A GTC avionics setting page MFD fields settings list.
  */
 export class GtcAvionicsSettingsPageMfdFieldsList extends DisplayComponent<GtcAvionicsSettingsPageMfdFieldsListProps> implements GtcAvionicsSettingsPageTabContent {
-  private static readonly LONG_NAMES: Record<NavDataFieldType, string> = {
+  private static readonly LONG_NAMES: Partial<Record<NavDataFieldType, string>> = {
     [NavDataFieldType.BearingToWaypoint]: 'Bearing',
     [NavDataFieldType.Destination]: 'Destination Airport',
     [NavDataFieldType.DistanceToWaypoint]: 'Distance',
@@ -54,12 +54,10 @@ export class GtcAvionicsSettingsPageMfdFieldsList extends DisplayComponent<GtcAv
     [NavDataFieldType.TrackAngleError]: 'Track Angle Error',
     [NavDataFieldType.GroundTrack]: 'Track',
     [NavDataFieldType.VerticalSpeedRequired]: 'Vertical Speed Required',
-    [NavDataFieldType.CrossTrack]: 'Cross-Track Error',
-    [NavDataFieldType.Waypoint]: 'Active Waypoint'
+    [NavDataFieldType.CrossTrack]: 'Cross-Track Error'
   };
 
   private static readonly SELECTION_DEFS = Object.keys(GtcAvionicsSettingsPageMfdFieldsList.LONG_NAMES)
-    .filter(fieldType => fieldType !== NavDataFieldType.Waypoint)
     .map(fieldType => {
       return {
         value: fieldType as NavDataFieldType,

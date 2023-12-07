@@ -23,7 +23,8 @@ export class MappedSubject<I extends any[], T> extends AbstractSubscribable<T> i
   private static readonly IDENTITY_MAP = SubscribableMapFunctions.identity();
   private static readonly NEVER_EQUALS = (): boolean => false;
 
-  public readonly isSubscribable = true;
+  /** @inheritdoc */
+  public readonly canInitialNotify = true;
 
   private readonly inputs: MappedSubscribableInputs<I>;
   private readonly inputValues: I;

@@ -100,7 +100,7 @@ export interface CasEvents {
   'cas_set_initial_acknowledge': boolean;
 
   /** Broadcast a master acknowledge event. */
-  'cas_master_acknowledge': AnnunciationType.Caution | AnnunciationType.Warning;
+  'cas_master_acknowledge': AnnunciationType;
 
   /** Enable a CAS inhibit state. */
   'cas_activate_inhibit_state': string;
@@ -260,10 +260,10 @@ export class CasSystem {
         (keyData: KeyEventData) => {
           switch (keyData.key) {
             case 'MASTER_CAUTION_ACKNOWLEDGE':
-              this.handleAcknowledgement(AnnunciationType.Caution);
+              this.casPublisher.pub('cas_master_acknowledge', AnnunciationType.Caution, true, false);
               break;
             case 'MASTER_WARNING_ACKNOWLEDGE':
-              this.handleAcknowledgement(AnnunciationType.Warning);
+              this.casPublisher.pub('cas_master_acknowledge', AnnunciationType.Warning, true, false);
               break;
           }
         }
@@ -297,12 +297,9 @@ export class CasSystem {
       this.initialAcknowledge = v;
     });
 
-    // If we're not primary we need to handle master ack events published by the primary.
-    if (!this.isPrimary) {
-      this.casSubscriber.on('cas_master_acknowledge').handle(ackType => {
-        this.handleAcknowledgement(ackType);
-      });
-    }
+    this.casSubscriber.on('cas_master_acknowledge').handle(ackType => {
+      this.handleAcknowledgement(ackType);
+    });
 
     // Requests the CAS system to suppress all annunciations with the provided priority.
     this.casSubscriber.on('cas_suppress_priority').handle(priority => {
@@ -568,10 +565,6 @@ export class CasSystem {
    * @param type The type of alert to acknowledge.
    */
   protected handleAcknowledgement(type: AnnunciationType): void {
-    if (this.isPrimary && [AnnunciationType.Caution, AnnunciationType.Warning].includes(type)) {
-      this.casPublisher.pub('cas_master_acknowledge', type as AnnunciationType.Caution | AnnunciationType.Warning, true);
-    }
-
     this.setMasterStatus(type, false);
 
     const messagesAtPriority = this.allMessages.get(type);

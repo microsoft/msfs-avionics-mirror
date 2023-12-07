@@ -1,4 +1,7 @@
-import { ArraySubject, ComponentProps, ComputedSubject, DisplayComponent, EventBus, FSComponent, Subject, SubscribableArrayEventType, VNode } from '@microsoft/msfs-sdk';
+import {
+  ArraySubject, ComponentProps, ComputedSubject, DisplayComponent, EventBus, FSComponent, MutableSubscribable, Subject,
+  SubscribableArrayEventType, VNode
+} from '@microsoft/msfs-sdk';
 
 import { UiControl, UiControlProps } from '../UiControl';
 
@@ -15,7 +18,7 @@ interface ArrowToggleComponentProps extends UiControlProps {
   onOptionSelected?(optionIndex: number): void;
 
   /** Data binding for the selected option */
-  dataref?: Subject<number>;
+  dataref?: MutableSubscribable<number>;
 }
 
 /**

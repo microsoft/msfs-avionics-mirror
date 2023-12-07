@@ -1,7 +1,7 @@
 import { FocusPosition, FSComponent, VNode } from '@microsoft/msfs-sdk';
 
 import { FmsHEvent } from '../FmsHEvent';
-import { G1000UiControl } from '../G1000UiControl';
+import { G1000ControlList, G1000UiControl } from '../G1000UiControl';
 import { EntryDirection, UiControlGroup } from '../UiControlGroup';
 
 /**
@@ -14,7 +14,7 @@ export class G1000UiControlWrapper extends UiControlGroup {
   /** @inheritdoc */
   public onAfterRender(thisNode: VNode): void {
     FSComponent.visitNodes(thisNode, (node) => {
-      if (node.instance instanceof G1000UiControl) {
+      if (node.instance instanceof G1000UiControl || node.instance instanceof G1000ControlList) {
         this.control = node.instance;
         return true;
       }

@@ -8,6 +8,8 @@ import { PFDUserSettings } from '../../PFD/PFDUserSettings';
 import { NavBaseEvents, NavBaseFields } from './NavBase';
 import { NavIndicator, NavIndicatorControlEvents, NavIndicatorEvents, NavIndicators } from './NavIndicators/NavIndicators';
 import { NavSourceBase, NavSources } from './NavSources/NavSourceBase';
+import { WT21DisplayUnitFsInstrument, WT21DisplayUnitType } from '../WT21DisplayUnitFsInstrument';
+import { DisplayUnitLayout } from '../Config/DisplayUnitConfig';
 
 /** The names of the available nav sources in the WT21. */
 const navSourceNames = [
@@ -81,10 +83,10 @@ export class WT21CourseNeedleNavIndicator extends NavIndicator<WT21NavSourceName
 
   /** NavIndicator constructor.
    * @param navSources The possible nav sources that could be pointed to.
+   * @param displayUnit The parent display unit.
    * @param bus The bus.
-   * @param pfdOrMfd pfdOrMfd.
    */
-  public constructor(navSources: WT21NavSources, private readonly bus: EventBus, private readonly pfdOrMfd: 'PFD' | 'MFD') {
+  public constructor(navSources: WT21NavSources, private readonly displayUnit: WT21DisplayUnitFsInstrument, readonly bus: EventBus) {
     super(navSources, 'FMS1');
 
     this.navEventsPublisher = this.bus.getPublisher<NavEvents>();
@@ -100,8 +102,9 @@ export class WT21CourseNeedleNavIndicator extends NavIndicator<WT21NavSourceName
 
     this.updateStandbySource();
 
-    if (pfdOrMfd === 'PFD') {
+    if (this.displayUnit.displayUnitType === WT21DisplayUnitType.Pfd) {
       this.source.sub(x => this.handleSourceChange(x!), true);
+
       this.bus.getSubscriber<ControlEvents>().on('cdi_src_set').handle((src) => {
         if (src.type === NavSourceType.Gps) {
           this.setNewSource('FMS1');
@@ -136,12 +139,24 @@ export class WT21CourseNeedleNavIndicator extends NavIndicator<WT21NavSourceName
   };
 
   private readonly handlePfdDcpEvent = (event: DcpEvent): void => {
-    if (event === DcpEvent.DCP_NAV) { this.navSwap(); }
-    if (event === DcpEvent.DCP_DATA_INC) { this.presetIncrease(); }
-    if (event === DcpEvent.DCP_DATA_DEC) { this.presetDecrease(); }
+    switch (event) {
+      case DcpEvent.DCP_NAV:
+        if (this.displayUnit.displayUnitConfig.displayUnitLayout === DisplayUnitLayout.Softkeys) {
+          return;
+        }
+
+        this.navSwap();
+        break;
+      case DcpEvent.DCP_DATA_INC:
+        this.presetIncrease();
+        break;
+      case DcpEvent.DCP_DATA_DEC:
+        this.presetDecrease();
+        break;
+    }
   };
 
-  private readonly navSwap = (): void => {
+  public readonly navSwap = (): void => {
     const activeSource = this.source.get()!;
     const newActiveSource = this.getStandbySource();
     this.setSource(newActiveSource.name);

@@ -58,7 +58,8 @@ export class GNSVNavManager implements VNavManager {
     rnavTypeFlags: RnavTypeFlags.None,
     isCircling: false,
     isVtf: false,
-    referenceFacility: null
+    referenceFacility: null,
+    runway: null
   }, FmsUtils.approachDetailsEquals);
 
   public options: GarminVNavGuidanceOptions = {

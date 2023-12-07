@@ -9,11 +9,24 @@ export type ReadonlyConsumerValue<T> = Pick<ConsumerValue<T>, 'get' | 'isPaused'
 /**
  * Captures the state of a value from a consumer.
  */
-export class ConsumerValue<T> {
+export class ConsumerValue<T> implements Subscription {
+  /** @inheritdoc */
+  public readonly canInitialNotify = true;
+
   private readonly consumerHandler = (v: T): void => { this.value = v; };
 
   private value: T;
   private sub?: Subscription;
+
+  private _isAlive = true;
+  // eslint-disable-next-line jsdoc/require-returns
+  /**
+   * Whether this object is alive. While alive, this object will update its value from its event consumer unless it
+   * is paused. Once dead, this object will no longer update its value and cannot be resumed again.
+   */
+  public get isAlive(): boolean {
+    return this._isAlive;
+  }
 
   private _isPaused = false;
   // eslint-disable-next-line jsdoc/require-returns
@@ -23,8 +36,6 @@ export class ConsumerValue<T> {
   public get isPaused(): boolean {
     return this._isPaused;
   }
-
-  private isDestroyed = false;
 
   /**
    * Creates an instance of a ConsumerValue.
@@ -51,7 +62,7 @@ export class ConsumerValue<T> {
    * @returns This object, after its consumer has been set.
    */
   public setConsumer(consumer: Consumer<T> | null): this {
-    if (this.isDestroyed) {
+    if (!this._isAlive) {
       return this;
     }
 
@@ -79,6 +90,9 @@ export class ConsumerValue<T> {
   /**
    * Resumes consuming events for this object. Once resumed, this object's value will be updated from consumed
    * events.
+   *
+   * Any `initialNotify` argument passed to this method is ignored. This object is always immediately notified of its
+   * event consumer's value when resumed.
    * @returns This object, after it has been resumed.
    */
   public resume(): this {
@@ -96,7 +110,7 @@ export class ConsumerValue<T> {
    * Destroys this object. Once destroyed, it will no longer consume events to update its value.
    */
   public destroy(): void {
-    this.isDestroyed = true;
+    this._isAlive = false;
     this.sub?.destroy();
   }
 

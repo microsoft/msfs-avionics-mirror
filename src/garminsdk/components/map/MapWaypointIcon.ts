@@ -45,22 +45,22 @@ export class MapAirportIcon<T extends AirportWaypoint> extends MapWaypointSprite
  * Initialization options for a MapWaypointHighlightIcon.
  */
 export type MapWaypointHighlightIconOptions = {
-  /** The buffer of the ring around the base icon, in pixels. */
+  /** The buffer of the ring around the base icon, in pixels. Defaults to `0`. */
   ringRadiusBuffer?: number | Subscribable<number>;
 
-  /** The width of the stroke for the ring, in pixels. */
+  /** The width of the stroke for the ring, in pixels. Defaults to `2`. */
   strokeWidth?: number | Subscribable<number>;
 
-  /** The color of the stroke for the ring. */
+  /** The color of the stroke for the ring. Defaults to `'white'`. */
   strokeColor?: string | Subscribable<string>;
 
-  /** The width of the outline for the ring, in pixels. */
+  /** The width of the outline for the ring, in pixels. Defaults to `0`. */
   outlineWidth?: number | Subscribable<number>;
 
-  /** The color of the outline for the ring. */
+  /** The color of the outline for the ring. Defaults to `'black'`. */
   outlineColor?: string | Subscribable<string>;
 
-  /** The color of the ring background. */
+  /** The color of the ring background. Defaults to `'#3c3c3c'`. */
   bgColor?: string | Subscribable<string>;
 }
 
@@ -144,7 +144,9 @@ export class MapWaypointHighlightIcon<T extends Waypoint> extends AbstractMapWay
     if (outlineWidth > 0) {
       this.applyStroke(context, (strokeWidth + 2 * outlineWidth), this.outlineColor.get());
     }
-    this.applyStroke(context, strokeWidth, this.strokeColor.get());
+    if (strokeWidth > 0) {
+      this.applyStroke(context, strokeWidth, this.strokeColor.get());
+    }
   }
 
   /**

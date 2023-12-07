@@ -1,5 +1,5 @@
 import {
-  ConsumerSubject, DurationDisplay, DurationDisplayDelim, DurationDisplayFormat, FSComponent, NavAngleUnitFamily, NumberFormatter, NumberUnitInterface,
+  ConsumerSubject, DurationDisplay, DurationDisplayDelim, DurationDisplayFormat, FSComponent, NavAngleUnit, NavAngleUnitFamily, NumberFormatter, NumberUnitInterface,
   UnitFamily, UserSettingManager, VNode
 } from '@microsoft/msfs-sdk';
 
@@ -174,7 +174,7 @@ export class GNSFieldVerticalSpeedRenderer extends GNSDataFieldTypeRenderer<NavD
 export class GNSFieldBearingRenderer extends GNSDataFieldTypeRenderer<
   NavDataFieldType.BearingToWaypoint | NavDataFieldType.DesiredTrack | NavDataFieldType.GroundTrack> {
   /** @inheritdoc */
-  public render(model: NavDataBarFieldModel<NumberUnitInterface<NavAngleUnitFamily>>): VNode {
+  public render(model: NavDataBarFieldModel<NumberUnitInterface<NavAngleUnitFamily, NavAngleUnit>>): VNode {
     return (
       <GNSNumberUnitDisplay
         formatter={GNSDataFieldTypeRenderer.BEARING_FORMATTER}

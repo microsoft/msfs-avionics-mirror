@@ -5,10 +5,8 @@ import { ProcedureType } from '@microsoft/msfs-garminsdk';
 import { EISPageTypes } from '../MFD/Components/EIS';
 import { NearestAirportSoftKey } from '../MFD/Components/UI/Nearest/MFDNearestAirportsPage';
 import { NearestVorSoftKey } from '../MFD/Components/UI/Nearest/MFDNearestVORsPage';
-import { VSpeed } from '../PFD/Components/FlightInstruments/AirspeedIndicator';
 import { FmaData } from './Autopilot/FmaData';
 import { FuelRemaingAdjustment } from './FuelComputer';
-
 
 /** Extension of generic ControlEvents to handle G1000-specific events. */
 export interface G1000ControlEvents {
@@ -33,14 +31,11 @@ export interface G1000ControlEvents {
   /** Event representing xpdr code menu button push. */
   xpdr_code_digit: number
 
-  /** Event for updating the v speeds from the soft menu to the airspeed indicator. */
-  vspeed_set: VSpeed
-
-  /** Event for updating the display of v speeds from the soft menu to the airspeed indicator. */
-  vspeed_display: VSpeed
-
   /** Event for updating the timer display. */
   timer_value: number;
+
+  /** Sending reversionary EIS tab selections. */
+  eis_reversionary_tab_select: EISPageTypes;
 
   /** Sending EIS page selections. */
   eis_page_select: EISPageTypes;
@@ -53,6 +48,9 @@ export interface G1000ControlEvents {
 
   /** Adjust the remaining fuel total in the fuel computer. */
   fuel_adjustment: FuelRemaingAdjustment;
+
+  /** Fuel in the totalizer after adjustment, gallons. */
+  fuel_adjusted_qty: number;
 
   /** Reset the fuel burn total. */
   fuel_comp_reset: boolean;

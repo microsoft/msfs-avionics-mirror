@@ -1,12 +1,12 @@
 import {
-  BitFlags, GeoPoint, GeoPointInterface, MapProjection, MapProjectionChangeType, MapRotation, MapRotationModule, MapSystemContext, MapSystemController,
-  MapSystemKeys, MathUtils, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, Subscription, Vec2Math,
+  BitFlags, GeoPoint, MapProjection, MapProjectionChangeType, MapSystemContext, MapSystemController,
+  MathUtils, ReadonlyFloat64Array, Subscribable, SubscribableUtils, Subscription, Vec2Math,
   VecNMath, VecNSubject
 } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
-import { MapResourcePriority } from '../MapResourcePriority';
 import { MapOrientationModule } from '../modules/MapOrientationModule';
+import { MapPanningModule } from '../modules/MapPanningModule';
 import { MapPointerModule } from '../modules/MapPointerModule';
 
 /**
@@ -16,8 +16,8 @@ export interface MapPointerRTRControllerModules {
   /** Pointer module. */
   [GarminMapKeys.Pointer]: MapPointerModule;
 
-  /** Rotation module. */
-  [MapSystemKeys.Rotation]?: MapRotationModule;
+  /** Panning module. */
+  [GarminMapKeys.Panning]: MapPanningModule;
 
   /** Orientation module. */
   [GarminMapKeys.Orientation]?: MapOrientationModule;
@@ -26,119 +26,60 @@ export interface MapPointerRTRControllerModules {
 /**
  * Context properties required for MapPointerRTRController.
  */
-export interface MapPointerRTRControllerContext {
-  /** Resource moderator for control of the map's projection target. */
-  [MapSystemKeys.TargetControl]?: ResourceModerator;
-
-  /** Resource moderator for control of the map's rotation mode. */
-  [GarminMapKeys.RotationModeControl]?: ResourceModerator;
-
-  /** Resource moderator for control of the map's range. */
-  [MapSystemKeys.RangeControl]?: ResourceModerator;
-
-  /** Resource moderator for the use range setting subject. */
-  [GarminMapKeys.UseRangeSetting]?: ResourceModerator<Subject<boolean>>;
-}
+export type MapPointerRTRControllerContext = Record<string, never>;
 
 /**
- * Controls the pointer of a map.
+ * Controls the target, orientation, and range of a map while the map pointer is active.
  */
-export class MapPointerRTRController extends MapSystemController<MapPointerRTRControllerModules, any, any, MapPointerRTRControllerContext> {
+export class MapPointerRTRController extends MapSystemController<MapPointerRTRControllerModules> {
   private readonly pointerModule = this.context.model.getModule(GarminMapKeys.Pointer);
-  private readonly rotationModule = this.context.model.getModule(MapSystemKeys.Rotation);
+  private readonly panningModule = this.context.model.getModule(GarminMapKeys.Panning);
   private readonly orientationModule = this.context.model.getModule(GarminMapKeys.Orientation);
 
-  private readonly mapProjectionParams = {
-    target: new GeoPoint(0, 0)
-  };
+  protected readonly pointerBoundsOffset: Subscribable<ReadonlyFloat64Array>;
 
-  private readonly targetControl = this.context[MapSystemKeys.TargetControl];
-
-  private hasTargetControl = this.context.targetControlModerator === undefined;
-
-  private readonly targetControlConsumer: ResourceConsumer = {
-    priority: MapResourcePriority.POINTER,
-
-    onAcquired: () => {
-      this.hasTargetControl = true;
-    },
-
-    onCeded: () => {
-      this.hasTargetControl = false;
-    }
-  };
-
-  private readonly rotationModeControl = this.context[GarminMapKeys.RotationModeControl];
-
-  private readonly rotationModeControlConsumer: ResourceConsumer = {
-    priority: MapResourcePriority.POINTER,
-
-    onAcquired: () => {
-      // While pointer is active, the map keeps its rotation from when the pointer was activated.
-      this.rotationModule?.rotationType.set(MapRotation.Undefined);
-    },
-
-    onCeded: () => { }
-  };
-
-  private readonly rangeControl = this.context[MapSystemKeys.RangeControl];
-
-  private readonly rangeControlConsumer: ResourceConsumer = {
-    priority: MapResourcePriority.POINTER,
-
-    onAcquired: () => { }, // We are just holding this to keep other things of lower priority from changing the range.
-
-    onCeded: () => { }
-  };
-
-  private readonly useRangeSetting = this.context[GarminMapKeys.UseRangeSetting];
-
-  private readonly useRangeSettingConsumer: ResourceConsumer<Subject<boolean>> = {
-    priority: MapResourcePriority.POINTER,
-
-    onAcquired: () => { }, // Pointer mode uses the use range setting state that was active when the pointer was activated, so we do nothing while we have control.
-
-    onCeded: () => { }
-  };
-
-  private readonly pointerBounds = VecNSubject.createFromVector(VecNMath.create(4));
+  private readonly pointerBounds = VecNSubject.create(VecNMath.create(4));
 
   private needUpdatePointerScroll = false;
+
+  private targetPipe?: Subscription;
 
   private pointerBoundsOffsetSub?: Subscription;
   private pointerActiveSub?: Subscription;
 
   private pointerBoundsSub?: Subscription;
   private pointerPositionSub?: Subscription;
-  private pointerTargetSub?: Subscription;
 
-  private orientationSub?: Subscription;
+  private commandedOrientationSub?: Subscription;
 
   /**
-   * Constructor.
+   * Creates a new instance of MapPointerRTRController.
    * @param context This controller's map context.
-   * @param pointerBoundsOffset A subscribable which provides the offset of the boundary surrounding the area in which
-   * the pointer can freely move, from the edge of the projected map, excluding the dead zone. Expressed as
-   * `[left, top, right, bottom]`, relative to the width and height, as appropriate, of the projected map. A positive
-   * offset is directed toward the center of the map.
+   * @param pointerBoundsOffset The offset of the boundary surrounding the area in which the pointer can freely move,
+   * from the edge of the projected map, excluding the dead zone. Expressed as `[left, top, right, bottom]`, relative
+   * to the width and height, as appropriate, of the projected map. A positive offset is directed toward the center of
+   * the map.
    */
   constructor(
-    context: MapSystemContext<MapPointerRTRControllerModules, any, any, MapPointerRTRControllerContext>,
-    protected readonly pointerBoundsOffset: Subscribable<ReadonlyFloat64Array>
+    context: MapSystemContext<MapPointerRTRControllerModules>,
+    pointerBoundsOffset: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>
   ) {
     super(context);
+
+    this.pointerBoundsOffset = SubscribableUtils.toSubscribable(pointerBoundsOffset, true);
   }
 
   /** @inheritdoc */
   public onAfterMapRender(): void {
+    this.targetPipe = this.pointerModule.target.pipe(this.panningModule.target, true);
+
     this.pointerBoundsSub = this.pointerBounds.sub(this.onPointerBoundsChanged.bind(this), false, true);
     this.pointerPositionSub = this.pointerModule.position.sub(this.onPointerPositionChanged.bind(this), false, true);
-    this.pointerTargetSub = this.pointerModule.target.sub(this.onPointerTargetChanged.bind(this), false, true);
 
     this.pointerBoundsOffsetSub = this.pointerBoundsOffset.sub(this.updatePointerBounds.bind(this), true);
     this.pointerActiveSub = this.pointerModule.isActive.sub(this.onPointerActiveChanged.bind(this), true);
 
-    this.orientationSub = this.orientationModule?.orientation.sub(() => { this.pointerModule.isActive.set(false); }, false, true);
+    this.commandedOrientationSub = this.orientationModule?.commandedOrientation.sub(() => { this.pointerModule.isActive.set(false); }, false, true);
   }
 
   /**
@@ -171,8 +112,6 @@ export class MapPointerRTRController extends MapSystemController<MapPointerRTRCo
    * @param isActive Whether the map pointer is active.
    */
   protected onPointerActiveChanged(isActive: boolean): void {
-    this.updatePointerListeners();
-
     if (isActive) {
       this.onPointerActivated();
     } else {
@@ -184,29 +123,28 @@ export class MapPointerRTRController extends MapSystemController<MapPointerRTRCo
    * Responds to map pointer activation.
    */
   protected onPointerActivated(): void {
-    this.targetControl?.claim(this.targetControlConsumer);
-    if (this.rotationModeControl) {
-      this.rotationModeControl.claim(this.rotationModeControlConsumer);
-    } else if (this.rotationModule) {
-      // While pointer is active, the map keeps its rotation from when the pointer was activated.
-      this.rotationModule.rotationType.set(MapRotation.Undefined);
-    }
-    this.rangeControl?.claim(this.rangeControlConsumer);
-    this.useRangeSetting?.claim(this.useRangeSettingConsumer);
+    this.targetPipe?.resume(true);
 
-    this.orientationSub?.resume();
+    this.panningModule.isActive.set(true);
+
+    this.pointerBoundsSub?.resume();
+    this.pointerPositionSub?.resume();
+
+    this.commandedOrientationSub?.resume();
   }
 
   /**
    * Responds to map pointer deactivation.
    */
   protected onPointerDeactivated(): void {
-    this.targetControl?.forfeit(this.targetControlConsumer);
-    this.rotationModeControl?.forfeit(this.rotationModeControlConsumer);
-    this.rangeControl?.forfeit(this.rangeControlConsumer);
-    this.useRangeSetting?.forfeit(this.useRangeSettingConsumer);
+    this.commandedOrientationSub?.pause();
 
-    this.orientationSub?.pause();
+    this.pointerBoundsSub?.pause();
+    this.pointerPositionSub?.pause();
+
+    this.targetPipe?.pause();
+
+    this.panningModule.isActive.set(false);
   }
 
   /**
@@ -214,17 +152,6 @@ export class MapPointerRTRController extends MapSystemController<MapPointerRTRCo
    */
   private onPointerPositionChanged(): void {
     this.schedulePointerScrollUpdate();
-  }
-
-  /**
-   * Responds to map pointer desired target changes.
-   * @param target The desired target.
-   */
-  private onPointerTargetChanged(target: GeoPointInterface): void {
-    if (this.hasTargetControl) {
-      this.mapProjectionParams.target.set(target);
-      this.context.projection.setQueued(this.mapProjectionParams);
-    }
   }
 
   /**
@@ -241,21 +168,6 @@ export class MapPointerRTRController extends MapSystemController<MapPointerRTRCo
   }
 
   /**
-   * Updates the pointer position listener.
-   */
-  private updatePointerListeners(): void {
-    if (this.pointerModule.isActive.get()) {
-      this.pointerBoundsSub?.resume();
-      this.pointerPositionSub?.resume();
-      this.pointerTargetSub?.resume(true);
-    } else {
-      this.pointerBoundsSub?.pause();
-      this.pointerPositionSub?.pause();
-      this.pointerTargetSub?.pause();
-    }
-  }
-
-  /**
    * Schedules an update to scrolling due to the pointer.
    */
   protected schedulePointerScrollUpdate(): void {
@@ -263,6 +175,7 @@ export class MapPointerRTRController extends MapSystemController<MapPointerRTRCo
   }
 
   private readonly pointerVec2Cache = [new Float64Array(2)];
+  private readonly targetCache = new GeoPoint(0, 0);
 
   /**
    * Updates scrolling due to the pointer.
@@ -287,16 +200,14 @@ export class MapPointerRTRController extends MapSystemController<MapPointerRTRCo
 
     this.pointerModule.position.set(clampedPositionX, clampedPositionY);
 
-    if (this.hasTargetControl) {
-      const newTargetProjected = Vec2Math.add(
-        this.context.projection.getTargetProjected(),
-        Vec2Math.set(scrollDeltaX, scrollDeltaY, this.pointerVec2Cache[0]),
-        this.pointerVec2Cache[0]
-      );
+    const newTargetProjected = Vec2Math.add(
+      this.context.projection.getTargetProjected(),
+      Vec2Math.set(scrollDeltaX, scrollDeltaY, this.pointerVec2Cache[0]),
+      this.pointerVec2Cache[0]
+    );
 
-      this.context.projection.invert(newTargetProjected, this.mapProjectionParams.target);
-      this.context.projection.setQueued(this.mapProjectionParams);
-    }
+    this.context.projection.invert(newTargetProjected, this.targetCache);
+    this.pointerModule.target.set(this.targetCache);
 
     this.needUpdatePointerScroll = false;
   }
@@ -325,20 +236,20 @@ export class MapPointerRTRController extends MapSystemController<MapPointerRTRCo
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
+    if (this.pointerModule.isActive.get()) {
+      this.panningModule.isActive.set(false);
+    }
 
-    this.targetControl?.forfeit(this.targetControlConsumer);
-    this.rotationModeControl?.forfeit(this.rotationModeControlConsumer);
-    this.rangeControl?.forfeit(this.rangeControlConsumer);
-    this.useRangeSetting?.forfeit(this.useRangeSettingConsumer);
+    this.targetPipe?.destroy();
 
     this.pointerBoundsOffsetSub?.destroy();
     this.pointerActiveSub?.destroy();
 
     this.pointerBoundsSub?.destroy();
     this.pointerPositionSub?.destroy();
-    this.pointerTargetSub?.destroy();
 
-    this.orientationSub?.destroy();
+    this.commandedOrientationSub?.destroy();
+
+    super.destroy();
   }
 }

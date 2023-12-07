@@ -43,6 +43,9 @@ export type APDirectors = {
   /** The autopilot's wings level mode director. */
   readonly wingLevelerDirector?: PlaneDirector;
 
+  /** The autopilot's pitch level mode director. */
+  readonly pitchLevelerDirector?: PlaneDirector;
+
   /** The autopilot's GPS LNAV mode director. */
   readonly gpssDirector?: PlaneDirector;
 
@@ -110,7 +113,7 @@ export type APDirectors = {
 /**
  * An Autopilot.
  */
-export class Autopilot {
+export class Autopilot<Config extends APConfig = APConfig> {
   /** This autopilot's plane directors. */
   public readonly directors: APDirectors;
 
@@ -183,10 +186,14 @@ export class Autopilot {
   constructor(
     protected readonly bus: EventBus,
     protected readonly flightPlanner: FlightPlanner,
-    protected readonly config: APConfig,
+    protected readonly config: Config,
     public readonly stateManager: APStateManager
   ) {
-    this.apValues.maxBankAngle.set(config.defaultMaxBankAngle);
+
+    if (config.defaultMaxBankAngle !== undefined) {
+      this.apValues.maxBankAngle.set(config.defaultMaxBankAngle);
+    }
+
     this.directors = this.createDirectors(config);
     this.vnavManager = config.createVNavManager?.(this.apValues);
     this.navToNavManager = config.createNavToNavManager?.(this.apValues);
@@ -239,6 +246,7 @@ export class Autopilot {
       trackHoldDirector: config.createTrackHoldDirector?.(this.apValues),
       rollDirector: config.createRollDirector?.(this.apValues),
       wingLevelerDirector: config.createWingLevelerDirector?.(this.apValues),
+      pitchLevelerDirector: config.createPitchLevelerDirector?.(this.apValues),
       gpssDirector: config.createGpssDirector?.(this.apValues),
       vorDirector: config.createVorDirector?.(this.apValues),
       locDirector: config.createLocDirector?.(this.apValues),
@@ -314,9 +322,9 @@ export class Autopilot {
       }
     }
     if (set === undefined || set === true) {
-      if (this.config.autoEngageFd !== false && !this.stateManager.isFlightDirectorOn.get()) {
+      if (this.config.autoEngageFd !== false && !this.stateManager.isAnyFlightDirectorOn.get()) {
         this.stateManager.setFlightDirector(true);
-      } else if (this.config.autoEngageFd === false && !this.stateManager.isFlightDirectorOn.get() && !this.stateManager.apMasterOn.get()) {
+      } else if (this.config.autoEngageFd === false && !this.stateManager.isAnyFlightDirectorOn.get() && !this.stateManager.apMasterOn.get()) {
         return;
       }
       switch (mode) {
@@ -361,9 +369,9 @@ export class Autopilot {
       }
     }
     if (set === undefined || set === true) {
-      if (this.config.autoEngageFd !== false && !this.stateManager.isFlightDirectorOn.get()) {
+      if (this.config.autoEngageFd !== false && !this.stateManager.isAnyFlightDirectorOn.get()) {
         this.stateManager.setFlightDirector(true);
-      } else if (this.config.autoEngageFd === false && !this.stateManager.isFlightDirectorOn.get() && !this.stateManager.apMasterOn.get()) {
+      } else if (this.config.autoEngageFd === false && !this.stateManager.isAnyFlightDirectorOn.get() && !this.stateManager.apMasterOn.get()) {
         return;
       }
       switch (mode) {
@@ -380,6 +388,7 @@ export class Autopilot {
         case APVerticalModes.VS:
         case APVerticalModes.FPA:
         case APVerticalModes.FLC:
+        case APVerticalModes.LEVEL:
           if (this.vnavManager?.state === VNavState.Enabled_Active && !this.vnavManager.canVerticalModeActivate(mode)) {
             // If the VNav Manager is active, don't activate the mode until VNav Approves.
             this.verticalModes.get(mode)?.arm();
@@ -629,7 +638,7 @@ export class Autopilot {
    * Callback to set the vertical armed mode.
    * @param mode is the mode being set.
    */
-  private setVerticalArmed(mode: APVerticalModes): void {
+  protected setVerticalArmed(mode: APVerticalModes): void {
     const { verticalArmed } = this.apValues;
     if (mode !== verticalArmed.get()) {
       const currentMode = this.verticalModes.get(verticalArmed.get());
@@ -644,7 +653,7 @@ export class Autopilot {
    * Callback to set the vertical approach armed mode.
    * @param mode is the mode being set.
    */
-  private setVerticalApproachArmed(mode: APVerticalModes): void {
+  protected setVerticalApproachArmed(mode: APVerticalModes): void {
     const currentMode = this.verticalModes.get(this.verticalApproachArmed);
     currentMode?.deactivate();
     this.verticalApproachArmed = mode;
@@ -664,7 +673,7 @@ export class Autopilot {
   /**
    * Initializes the Autopilot with the available lateral modes from the config.
    */
-  private initLateralModes(): void {
+  protected initLateralModes(): void {
 
     if (this.directors.rollDirector) {
       this.lateralModes.set(APLateralModes.ROLL, this.directors.rollDirector);
@@ -827,7 +836,7 @@ export class Autopilot {
   /**
    * Initializes the Autopilot with the available vertical modes from the config.
    */
-  private initVerticalModes(): void {
+  protected initVerticalModes(): void {
 
     if (this.directors.pitchDirector) {
       this.verticalModes.set(APVerticalModes.PITCH, this.directors.pitchDirector);
@@ -929,6 +938,14 @@ export class Autopilot {
         this.setVerticalApproachArmed(APVerticalModes.NONE);
       };
     }
+    if (this.directors.pitchLevelerDirector) {
+      this.verticalModes.set(APVerticalModes.LEVEL, this.directors.pitchLevelerDirector);
+      this.directors.pitchLevelerDirector.onActivate = () => {
+        this.setVerticalActive(APVerticalModes.LEVEL);
+        this.setVerticalArmed(APVerticalModes.NONE);
+        this.setVerticalApproachArmed(APVerticalModes.NONE);
+      };
+    }
     if (this.directors.toVerticalDirector) {
       this.verticalModes.set(APVerticalModes.TO, this.directors.toVerticalDirector);
       this.directors.toVerticalDirector.onActivate = (): void => {
@@ -956,12 +973,12 @@ export class Autopilot {
    * Checks if all the active and armed modes are still in their proper state
    * and takes corrective action if not.
    */
-  private checkModes(): void {
+  protected checkModes(): void {
     if (this.lateralModeFailed) {
       this.lateralModeFailed = false;
     }
 
-    if (!this.stateManager.apMasterOn.get() && !this.stateManager.isFlightDirectorOn.get()) {
+    if (!this.stateManager.apMasterOn.get() && !this.stateManager.isAnyFlightDirectorOn.get()) {
       return;
     }
 
@@ -993,7 +1010,7 @@ export class Autopilot {
   /**
    * Runs update on each of the active and armed modes.
    */
-  private updateModes(): void {
+  protected updateModes(): void {
     const { lateralActive, lateralArmed, verticalActive, verticalArmed } = this.apValues;
 
     if (lateralActive.get() !== APLateralModes.NONE && lateralActive.get() !== APLateralModes.GPSS && this.lateralModes.has(lateralActive.get())) {
@@ -1160,7 +1177,7 @@ export class Autopilot {
         this.handleApFdStateChange();
       }
     });
-    this.stateManager.isFlightDirectorOn.sub(() => {
+    this.stateManager.isAnyFlightDirectorOn.sub(() => {
       if (this.autopilotInitialized) {
         this.handleApFdStateChange();
       }
@@ -1169,6 +1186,12 @@ export class Autopilot {
     this.bus.getSubscriber<ControlEvents>().on('approach_available').handle(available => {
       this.apValues.approachIsActive.set(available);
     });
+
+    if (this.config.defaultMaxBankAngle === undefined) {
+      ap.on('ap_max_bank_value').handle(value => {
+        this.apValues.maxBankAngle.set(value);
+      });
+    }
   }
 
   /**
@@ -1199,7 +1222,7 @@ export class Autopilot {
    */
   protected handleApFdStateChange(): void {
     const ap = this.stateManager.apMasterOn.get();
-    const fd = this.stateManager.isFlightDirectorOn.get();
+    const fd = this.stateManager.isAnyFlightDirectorOn.get();
     if (ap && !fd && this.config.autoEngageFd !== false) {
       this.stateManager.setFlightDirector(true);
     } else if (!ap && !fd) {

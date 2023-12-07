@@ -10,14 +10,14 @@ import {
   NextGenNavDataFieldDtkRenderer, NextGenNavDataFieldEndRenderer, NextGenNavDataFieldEtaRenderer, NextGenNavDataFieldEteRenderer, NextGenNavDataFieldFobRenderer,
   NextGenNavDataFieldFodRenderer, NextGenNavDataFieldGsRenderer, NextGenNavDataFieldIsaRenderer, NavDataFieldLdgRenderer, NextGenNavDataFieldTasRenderer,
   NextGenNavDataFieldTkeRenderer, NextGenNavDataFieldTrkRenderer, NextGenNavDataFieldVsrRenderer, NextGenNavDataFieldXtkRenderer, NextGenNavDataFieldEnrRenderer
-} from '../navdatafield/NextGenNavDataFieldRenderers';
+} from '../navdatafield/NextGenNavDataFieldTypeRenderers';
 
 /**
  * A next-generation (NXi, G3000, etc) implementation of {@link NavDataFieldRenderer} which supports all navigation
  * data bar field types.
  */
 export class NextGenNavDataBarFieldRenderer implements NavDataFieldRenderer {
-  private readonly renderer: GenericNavDataFieldRenderer;
+  protected readonly renderer: GenericNavDataFieldRenderer;
 
   /**
    * Constructor.

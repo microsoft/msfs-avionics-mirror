@@ -78,7 +78,7 @@ export interface Subscribable<T> {
 /**
  * A subscribable which is mapped from another subscribable.
  */
-export interface MappedSubscribable<T> extends Subscribable<T> {
+export interface MappedSubscribable<T> extends Subscribable<T>, Subscription {
   /**
    * Whether the subscription to the parent subscribable is alive. While alive, this subscribable will update its state
    * based on its parent's state, unless it is paused. Once dead, this subscribable will no longer update its state,
@@ -103,6 +103,9 @@ export interface MappedSubscribable<T> extends Subscribable<T> {
   /**
    * Resumes the subscription to the parent subscribable. Once resumed, this subscribable will immediately begin to
    * update its state based its parent's state.
+   *
+   * Any `initialNotify` argument passed to this method is ignored. This subscribable is always immediately notified of
+   * its parent's state when resumed.
    * @returns This subscribable, after it has been resumed.
    * @throws Error if the subscription to the parent subscribable is not alive.
    */

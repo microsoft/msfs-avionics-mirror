@@ -12,13 +12,91 @@
   --value-color: cyan;
 }
 
-.softkey-tab.text-disabled{
+.softkey-tab.text-disabled {
   --value-color: rgb(18, 95, 95);
 }
 
 .softkey-tab.highlighted {
   background: rgb(160, 160, 160);
   color: black;
+}
+
+@keyframes warning-softkey-animation {
+  0% {
+    background: linear-gradient(to bottom, #ef3524 40%, #911);
+    color: white;
+  }
+
+  66% {
+    background: linear-gradient(to bottom, #ef3524 40%, #911);
+    color: white;
+  }
+
+  66.1% {
+    background: unset;
+    color: white;
+  }
+
+  99.9% {
+    background: unset;
+    color: white;
+  }
+}
+
+@keyframes caution-softkey-animation {
+  0% {
+    background: linear-gradient(to bottom, #df0 40%, #890);
+    color: black;
+  }
+
+  66% {
+    background: linear-gradient(to bottom, #df0 40%, #890);
+    color: black;
+  }
+
+  66.1% {
+    background: unset;
+    color: white;
+  }
+
+  99.9% {
+    background: unset;
+    color: white;
+  }
+}
+
+@keyframes advisory-softkey-animation {
+  0% {
+    background: rgb(160, 160, 160);
+    color: black;
+  }
+
+  66% {
+    background: rgb(160, 160, 160);
+    color: black;
+  }
+
+  66.1% {
+    background: unset;
+    color: white;
+  }
+
+  99.9% {
+    background: unset;
+    color: white;
+  }
+}
+
+.softkey-tab.warning {
+  animation: warning-softkey-animation 1s linear 0s infinite normal;
+}
+
+.softkey-tab.caution {
+  animation: caution-softkey-animation 1s linear 0s infinite normal;
+}
+
+.softkey-tab.advisory {
+  animation: advisory-softkey-animation 1s linear 0s infinite normal;
 }
 
 .softkey-tab.pressed {
@@ -42,7 +120,7 @@
 
 .softkey-tab-borders {
   border-width: 1px;
-  border-image: linear-gradient( to bottom, #3f3f3f 0%, #080808 50%) 1 100%;
+  border-image: linear-gradient(to bottom, #3f3f3f 0%, #080808 50%) 1 100%;
   position: absolute;
   left: -1px;
   width: calc(100% + 2px);

@@ -1,4 +1,6 @@
-import { ArraySubject, EventBus, Publisher, SubscribableArray, SubscribableArrayHandler, Subscription } from '@microsoft/msfs-sdk';
+import {
+  AnnunciationType, ArraySubject, EventBus, Publisher, SortedMappedSubscribableArray, SubscribableArray, SubscribableArrayHandler, Subscription
+} from '@microsoft/msfs-sdk';
 
 /**
  * A message to be displayed in the Alerts pane.
@@ -12,6 +14,9 @@ export interface AlertMessage {
 
   /** The body of the message. */
   message: string;
+
+  /** The optional priority of the message. */
+  priority?: AnnunciationType;
 }
 
 /**
@@ -34,6 +39,9 @@ export interface AlertMessageEvents {
 export class AlertsSubject implements SubscribableArray<AlertMessage> {
 
   private readonly data = ArraySubject.create<AlertMessage>([]);
+  private readonly timestamps = new Map<string, number>();
+
+  private readonly sortedData = SortedMappedSubscribableArray.create(this.data, this.orderAlerts.bind(this), (a, b) => a.key === b.key);
   private readonly publisher: Publisher<AlertMessageEvents>;
 
   /**
@@ -49,12 +57,37 @@ export class AlertsSubject implements SubscribableArray<AlertMessage> {
   }
 
   /**
+   * Orders the alert messages.
+   * @param a The first message to order.
+   * @param b The second message to order.
+   * @returns Negative if b comes before a, zero if equal, positive if b comes after a.
+   */
+  private orderAlerts(a: AlertMessage, b: AlertMessage): number {
+    if (a.key === b.key) {
+      return 0;
+    }
+
+    const aPriority = a.priority ?? AnnunciationType.SafeOp;
+    const bPriority = b.priority ?? AnnunciationType.SafeOp;
+
+    if (aPriority === bPriority) {
+      const aTimestamp = this.timestamps.get(a.key) ?? 0;
+      const bTimestamp = this.timestamps.get(b.key) ?? 0;
+
+      return bTimestamp - aTimestamp;
+    } else {
+      return aPriority - bPriority;
+    }
+  }
+
+  /**
    * A callback called when an alert is pushed on the bus.
    * @param message The alert message that was pushed.
    */
   private onAlertPushed(message: AlertMessage): void {
     const index = this.data.getArray().findIndex(x => x.key === message.key);
     if (index < 0) {
+      this.timestamps.set(message.key, Date.now());
       this.data.insert(message, 0);
       this.publisher.pub('alerts_available', true, false, true);
     }
@@ -68,6 +101,7 @@ export class AlertsSubject implements SubscribableArray<AlertMessage> {
     const index = this.data.getArray().findIndex(x => x.key === key);
     if (index >= 0) {
       this.data.removeAt(index);
+      this.timestamps.delete(key);
 
       if (this.data.length === 0) {
         this.publisher.pub('alerts_available', false, false, true);
@@ -77,31 +111,31 @@ export class AlertsSubject implements SubscribableArray<AlertMessage> {
 
   /** @inheritdoc */
   public get length(): number {
-    return this.data.length;
+    return this.sortedData.length;
   }
 
   /** @inheritdoc */
   public get(index: number): AlertMessage {
-    return this.data.get(index);
+    return this.sortedData.get(index);
   }
 
   /** @inheritdoc */
   public tryGet(index: number): AlertMessage | undefined {
-    return this.data.tryGet(index);
+    return this.sortedData.tryGet(index);
   }
 
   /** @inheritdoc */
   public getArray(): readonly AlertMessage[] {
-    return this.data.getArray();
+    return this.sortedData.getArray();
   }
 
   /** @inheritdoc */
   public sub(handler: SubscribableArrayHandler<AlertMessage>, initialNotify = false, paused = false): Subscription {
-    return this.data.sub(handler, initialNotify, paused);
+    return this.sortedData.sub(handler, initialNotify, paused);
   }
 
   /** @inheritdoc */
   public unsub(handler: SubscribableArrayHandler<AlertMessage>): void {
-    this.data.unsub(handler);
+    this.sortedData.unsub(handler);
   }
 }

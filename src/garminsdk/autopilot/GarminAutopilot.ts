@@ -1,11 +1,13 @@
 import {
-  AdcEvents, AltitudeSelectManager, AltitudeSelectManagerOptions, APAltitudeModes, APConfig, APEvents, APLateralModes, APStateManager,
-  APVerticalModes, Autopilot, ConsumerSubject, ConsumerValue, DirectorState, EventBus, FlightPlanner, MappedSubject, MetricAltitudeSettingsManager,
-  MinimumsMode, ObjectSubject, SetSubject, SimVarValueType, UnitType, VNavAltCaptureType, VNavState
+  AdcEvents, AltitudeSelectManager, AltitudeSelectManagerOptions, APAltitudeModes, APEvents, APLateralModes, APStateManager,
+  APVerticalModes, Autopilot, ConsumerSubject, ConsumerValue, DirectorState, EventBus, FlightPlanner, MappedSubject,
+  MetricAltitudeSettingsManager, MinimumsMode, ObjectSubject, SetSubject, SimVarValueType, UnitType, VNavAltCaptureType,
+  VNavState
 } from '@microsoft/msfs-sdk';
 
-import { FmaData, FmaDataEvents, FmaVNavState } from './FmaData';
 import { MinimumsDataProvider } from '../minimums/MinimumsDataProvider';
+import { FmaData, FmaDataEvents, FmaVNavState } from './FmaData';
+import { GarminAPConfigInterface } from './GarminAPConfigInterface';
 import { GarminVNavManager2 } from './GarminVNavManager2';
 
 /**
@@ -50,7 +52,7 @@ export type GarminAutopilotOptions = {
 /**
  * A Garmin autopilot.
  */
-export class GarminAutopilot extends Autopilot {
+export class GarminAutopilot extends Autopilot<GarminAPConfigInterface> {
   protected static readonly ALT_SELECT_OPTIONS_DEFAULT: AltitudeSelectManagerOptions = {
     supportMetric: true,
     minValue: UnitType.FOOT.createNumber(-1000),
@@ -101,7 +103,7 @@ export class GarminAutopilot extends Autopilot {
   constructor(
     bus: EventBus,
     flightPlanner: FlightPlanner,
-    config: APConfig,
+    config: GarminAPConfigInterface,
     stateManager: APStateManager,
     options?: Readonly<GarminAutopilotOptions>
   ) {
@@ -169,7 +171,7 @@ export class GarminAutopilot extends Autopilot {
       // Whenever we switch between mach and IAS hold and we are in manual speed mode, we need to set the value to which
       // we are switching to be equal to the value we are switching from.
 
-      this.machToKias.setConsumer(sub.on('mach_to_kias_factor_1'));
+      this.machToKias.setConsumer(sub.on(this.config.useIndicatedMach ? 'indicated_mach_to_kias_factor_1' : 'mach_to_kias_factor_1'));
       this.selSpeedIsMach.setConsumer(sub.on('ap_selected_speed_is_mach'));
 
       const speedIsMachSub = this.selSpeedIsMach.sub(isMach => {

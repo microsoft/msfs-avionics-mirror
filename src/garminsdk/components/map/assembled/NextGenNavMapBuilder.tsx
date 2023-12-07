@@ -30,6 +30,7 @@ import {
   MapDeclutterMode, MapDeclutterModule, MapFlightPlanFocusModule, MapGarminTrafficModule, MapOrientation, MapOrientationModule, MapPointerModule,
   MapTerrainMode, MapTerrainModule, MapUnitsModule
 } from '../modules';
+import { NextGenGarminMapBuilder } from '../NextGenGarminMapBuilder';
 
 /**
  * Configurations for traffic intruder icons for next-generation (NXi, G3000, etc) navigation maps.
@@ -449,7 +450,7 @@ export class NextGenNavMapBuilder {
       mapBuilder.with(GarminMapBuilder.airspaces, options.useAirspaceVisUserSettings ? options.settingManager : undefined);
     }
 
-    mapBuilder.with(GarminMapBuilder.waypoints,
+    mapBuilder.with(NextGenGarminMapBuilder.waypoints,
       (builder: MapWaypointDisplayBuilder): void => {
         builder.withNormalStyles(
           options.waypointIconImageCache,
@@ -521,20 +522,15 @@ export class NextGenNavMapBuilder {
     }
 
     if (options.includeAltitudeArc) {
-      mapBuilder
-        .withAutopilotProps(
-          ['selectedAltitude'],
-          options.dataUpdateFreq
-        )
-        .with(GarminMapBuilder.altitudeArc,
-          {
-            renderMethod: 'svg',
-            verticalSpeedPrecision: UnitType.FPM.createNumber(50),
-            verticalSpeedThreshold: UnitType.FPM.createNumber(150),
-            altitudeDeviationThreshold: UnitType.FOOT.createNumber(150)
-          },
-          options.useAltitudeArcUserSettings ? options.settingManager : undefined
-        );
+      mapBuilder.with(GarminMapBuilder.altitudeArc,
+        {
+          renderMethod: 'svg',
+          verticalSpeedPrecision: UnitType.FPM.createNumber(50),
+          verticalSpeedThreshold: UnitType.FPM.createNumber(150),
+          altitudeDeviationThreshold: UnitType.FOOT.createNumber(150)
+        },
+        options.useAltitudeArcUserSettings ? options.settingManager : undefined
+      );
     }
 
     mapBuilder.with(GarminMapBuilder.crosshair);

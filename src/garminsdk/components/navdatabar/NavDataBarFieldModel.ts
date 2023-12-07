@@ -36,6 +36,18 @@ export interface NavDataBarFieldModelFactory {
 }
 
 /**
+ * A factory which creates data models for a single type of navigation data bar field.
+ */
+export interface NavDataBarFieldTypeModelFactory<T extends NavDataFieldType> {
+  /**
+   * Creates a navigation data bar field data model for this factory's data field type.
+   * @param gpsValidity The subscribable that provides the validity of the GPS data for the models.
+   * @returns A navigation data bar field data model for this factory's data field type.
+   */
+  create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldTypeModelMap[T];
+}
+
+/**
  * A navigation data bar field data model which uses an arbitrary subscribable to provide its value and function to
  * update the value.
  */

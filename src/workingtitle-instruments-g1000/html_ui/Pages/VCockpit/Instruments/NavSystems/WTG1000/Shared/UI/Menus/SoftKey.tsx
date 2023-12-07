@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, FSComponent, NodeReference, VNode } from '@microsoft/msfs-sdk';
+import { ComponentProps, DisplayComponent, FSComponent, NodeReference, SetSubject, SubscribableSetEventType, VNode } from '@microsoft/msfs-sdk';
 
 import { MenuItem, SoftKeyMenu } from './SoftKeyMenu';
 
@@ -22,6 +22,7 @@ export class SoftKey extends DisplayComponent<SoftKeyProps> {
   private readonly labelEl = new NodeReference<HTMLLabelElement>();
   private readonly indicatorEl = new NodeReference<HTMLDivElement>();
   private readonly valueEl = new NodeReference<HTMLSpanElement>();
+  private readonly classList = SetSubject.create(['softkey-tab']);
 
   /** @inheritdoc */
   onAfterRender(node: VNode): void {
@@ -54,6 +55,9 @@ export class SoftKey extends DisplayComponent<SoftKeyProps> {
 
     this.setHighlighted(item.highlighted.get());
     item.highlighted.sub(this.setHighlighted);
+
+    item.additionalClasses.get().forEach(v => this.classList.add(v));
+    item.additionalClasses.sub(this.setAdditionalClasses);
   }
 
   /**
@@ -66,6 +70,8 @@ export class SoftKey extends DisplayComponent<SoftKeyProps> {
     item.pressed.off(this.setPressed);
     item.label.unsub(this.setLabel);
     item.highlighted.unsub(this.setHighlighted);
+
+    item.additionalClasses.get().forEach(v => this.classList.delete(v));
   }
 
   /**
@@ -164,9 +170,23 @@ export class SoftKey extends DisplayComponent<SoftKeyProps> {
    */
   private setHighlighted = (isHighlighted: boolean): void => {
     if (isHighlighted) {
-      this.rootEl.instance.classList.add('highlighted');
+      this.classList.add('highlighted');
     } else {
-      this.rootEl.instance.classList.remove('highlighted');
+      this.classList.delete('highlighted');
+    }
+  };
+
+  /**
+   * Sets additional classes on the soft key item.
+   * @param set The full current set of additional classes.
+   * @param type The type of event.
+   * @param key The key that was changed.
+   */
+  private setAdditionalClasses = (set: ReadonlySet<string>, type: SubscribableSetEventType, key: string): void => {
+    if (type === SubscribableSetEventType.Added) {
+      this.classList.add(key);
+    } else {
+      this.classList.delete(key);
     }
   };
 
@@ -176,7 +196,7 @@ export class SoftKey extends DisplayComponent<SoftKeyProps> {
    */
   public render(): VNode {
     return (
-      <div class='softkey-tab' ref={this.rootEl}>
+      <div class={this.classList} ref={this.rootEl}>
         <div class='softkey-tab-borders' />
         <label class='softkey-tab-label' ref={this.labelEl}></label>
         <span class='softkey-tab-value' ref={this.valueEl} style='display: none'></span>

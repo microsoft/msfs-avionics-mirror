@@ -240,8 +240,8 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
    * @param event The event to subscribe to.
    * @returns A consumer for an event prefixed for this particular screen.
    * */
-  public onPrefixedEvent(event: keyof E & string): Consumer<unknown> {
-    return this.bus.getSubscriber<E>().on(`${this.options.eventPrefix}${event}` as keyof E & string);
+  public onPrefixedEvent<k extends keyof E & string>(event: k): Consumer<E[k]> {
+    return this.bus.getSubscriber<E>().on(`${this.options.eventPrefix}${event}` as k);
   }
 
   /**
@@ -252,10 +252,17 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
    * @returns the created page
    */
   private instantiatePage<U extends { new(...args: any[]): P }>(page: U): P {
-    return this.pageFactory.createPage(page, this.bus, this as FmcScreen<P>, this.acceptPageOutput.bind(this));
+    return this.pageFactory.createPage(page, this.bus, this, this.acceptPageOutput.bind(this));
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+
+  /**
+   * Method called when a page is rendered to the screen. This can be overridden to intercept the page data and act upon it.
+   *
+   * @param output the output template, displayed on the screen
+   * @param template the render template, rendered by the page
+   * @param atRowIndex the row index at which the render occurred
+   */
   protected acceptPageOutput(output: FmcOutputTemplate, template: FmcRenderTemplate, atRowIndex: number): void {
     const rows = [...output];
 

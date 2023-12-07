@@ -1,36 +1,18 @@
-import {
-  AltitudeSelectManager, AltitudeSelectManagerOptions, APAltitudeModes, APConfig, APLateralModes, APStateManager, APVerticalModes, Autopilot,
-  EventBus, FlightPlanner, MetricAltitudeSettingsManager, ObjectSubject, Subject, UnitType
-} from '@microsoft/msfs-sdk';
+import { APAltitudeModes, APLateralModes, APStateManager, APVerticalModes, EventBus, FlightPlanner, Subject } from '@microsoft/msfs-sdk';
+
+import { FmaDataEvents, GarminAPConfigInterface, GarminAutopilot, GarminAutopilotOptions } from '@microsoft/msfs-garminsdk';
 
 import { G1000ControlEvents } from '../G1000Events';
 import { G1000APSimVarEvents } from '../Instruments/G1000APPublisher';
-import { FmaData } from './FmaData';
 
 /**
  * A Garmin GFC700 autopilot.
  */
-export class G1000Autopilot extends Autopilot {
-  private static readonly ALT_SELECT_OPTIONS: AltitudeSelectManagerOptions = {
-    supportMetric: true,
-    minValue: UnitType.FOOT.createNumber(-1000),
-    maxValue: UnitType.FOOT.createNumber(50000),
-    inputIncrLargeThreshold: 999,
-    incrSmall: UnitType.FOOT.createNumber(100),
-    incrLarge: UnitType.FOOT.createNumber(1000),
-    incrSmallMetric: UnitType.METER.createNumber(50),
-    incrLargeMetric: UnitType.METER.createNumber(500),
-    initOnInput: true,
-    initToIndicatedAlt: true
-  };
-
+export class G1000Autopilot extends GarminAutopilot {
   public readonly externalAutopilotInstalled = Subject.create<boolean>(false);
   protected readonly lateralArmedModeSubject = Subject.create<APLateralModes>(APLateralModes.NONE);
   protected readonly altArmedSubject = Subject.create<boolean>(false);
 
-  protected readonly altSelectManager = new AltitudeSelectManager(this.bus, this.settingsManager, G1000Autopilot.ALT_SELECT_OPTIONS);
-
-  protected readonly fmaData: ObjectSubject<FmaData>;
   private fmaUpdateDebounce: NodeJS.Timeout | undefined;
 
   /**
@@ -39,25 +21,18 @@ export class G1000Autopilot extends Autopilot {
    * @param flightPlanner This autopilot's associated flight planner.
    * @param config This autopilot's configuration.
    * @param stateManager This autopilot's state manager.
-   * @param settingsManager The settings manager to pass to altitude preselect system.
+   * @param options Options with which to configure the new autopilot.
    */
-  constructor(bus: EventBus, flightPlanner: FlightPlanner, config: APConfig, stateManager: APStateManager,
-    private readonly settingsManager: MetricAltitudeSettingsManager) {
-    super(bus, flightPlanner, config, stateManager);
+  constructor(
+    bus: EventBus,
+    flightPlanner: FlightPlanner,
+    config: GarminAPConfigInterface,
+    stateManager: APStateManager,
+    options?: Readonly<GarminAutopilotOptions>
+  ) {
+    super(bus, flightPlanner, config, stateManager, options);
 
-    this.fmaData = ObjectSubject.create<FmaData>({
-      verticalActive: APVerticalModes.NONE,
-      verticalArmed: APVerticalModes.NONE,
-      verticalApproachArmed: APVerticalModes.NONE,
-      verticalAltitudeArmed: APAltitudeModes.NONE,
-      altitideCaptureArmed: false,
-      altitideCaptureValue: -1,
-      lateralActive: APLateralModes.NONE,
-      lateralArmed: APLateralModes.NONE,
-      lateralModeFailed: false
-    });
-
-    const publisher = this.bus.getPublisher<G1000ControlEvents>();
+    const publisher = this.bus.getPublisher<G1000ControlEvents & FmaDataEvents>();
     this.fmaData.sub(() => {
       // dirty debounce, need better ObjectSubject
       if (this.fmaUpdateDebounce) {
@@ -67,6 +42,7 @@ export class G1000Autopilot extends Autopilot {
       this.fmaUpdateDebounce = setTimeout(() => {
         this.fmaUpdateDebounce = undefined;
         publisher.pub('fma_modes', this.fmaData.get(), true);
+        publisher.pub('fma_data', Object.assign({}, this.fmaData.get()), true, true); //For GoAroundManager
       }, 0);
     }, true);
   }
@@ -74,7 +50,7 @@ export class G1000Autopilot extends Autopilot {
   /** @inheritdoc */
   protected onAfterUpdate(): void {
     if (!this.externalAutopilotInstalled.get()) {
-      this.updateFma();
+      this.updateG1000Fma();
     } else {
       this.lateralArmedModeSubject.set(this.apValues.lateralArmed.get());
       this.altArmedSubject.set(this.altCapArmed);
@@ -82,14 +58,9 @@ export class G1000Autopilot extends Autopilot {
   }
 
   /** @inheritdoc */
-  protected onInitialized(): void {
-    this.bus.pub('vnav_set_state', true);
-
-    this.monitorAdditionalEvents();
-  }
-
-  /** @inheritdoc */
   protected monitorAdditionalEvents(): void {
+    super.monitorAdditionalEvents();
+
     //check for KAP140 installed
     const g1000APSimvars = this.bus.getSubscriber<G1000APSimVarEvents>();
     g1000APSimvars.on('kap_140_installed').whenChanged().handle(this.setExternalAutopilotInstalled.bind(this));
@@ -108,7 +79,7 @@ export class G1000Autopilot extends Autopilot {
       this.config.defaultLateralMode = APLateralModes.LEVEL;
       this.altSelectManager.setEnabled(false);
       this.handleApFdStateChange();
-      this.updateFma(true);
+      this.updateG1000Fma(true);
       this.bus.getPublisher<G1000ControlEvents>().pub('fd_not_installed', true, true);
     }
 
@@ -118,7 +89,7 @@ export class G1000Autopilot extends Autopilot {
    * Publishes data for the FMA.
    * @param clear Is to clear the FMA
    */
-  private updateFma(clear = false): void {
+  private updateG1000Fma(clear = false): void {
     const fmaTemp = this.fmaData;
     fmaTemp.set('verticalApproachArmed', (clear ? APVerticalModes.NONE : this.verticalApproachArmed));
     fmaTemp.set('verticalArmed', (clear ? APVerticalModes.NONE : this.apValues.verticalArmed.get()));

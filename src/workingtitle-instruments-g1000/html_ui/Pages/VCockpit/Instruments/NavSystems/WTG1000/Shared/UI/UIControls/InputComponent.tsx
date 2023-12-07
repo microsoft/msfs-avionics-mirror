@@ -1,13 +1,18 @@
-import { FSComponent, Subject, VNode } from '@microsoft/msfs-sdk';
+import { EventBus, FSComponent, Subject, VNode } from '@microsoft/msfs-sdk';
 
 import { UiControl, UiControlProps } from '../UiControl';
 
 import './InputComponent.css';
+import { ControlPadKeyOperations, ControlpadHEventHandler } from '../../Input/ControlpadHEventHandler';
+import { FmsHEvent } from '../FmsHEvent';
 
 /**
  * @interface InputComponentProps
  */
 interface InputComponentProps extends UiControlProps {
+  /** The event bus */
+  bus: EventBus;
+
   /** The max char length of this input field. */
   maxLength: number;
 
@@ -24,7 +29,7 @@ export class InputComponent extends UiControl<InputComponentProps> {
   private readonly inputValueContainerRef = FSComponent.createRef<HTMLDivElement>();
   private readonly selectedSpanRef = FSComponent.createRef<HTMLSpanElement>();
 
-  private keyboardInputHandler = this.handleTextboxInput.bind(this);
+  private readonly keyboardInputHandler = this.handleTextboxInput.bind(this);
 
   private readonly dataEntry = {
     text: '',
@@ -39,8 +44,38 @@ export class InputComponent extends UiControl<InputComponentProps> {
   private isKeyboardActive = false;
   private inputCharacterIndex = 0;
   private previousValue = '';
-
   private readonly inputId = this.genGuid();
+
+  /** @inheritdoc */
+  public onInteractionEvent(evt: FmsHEvent): boolean {
+    let isHandled = false;
+    const keyInputEvaluationResult = ControlpadHEventHandler.evaluateKeyboardInput(evt);
+    switch (keyInputEvaluationResult.KeyboardOperation) {
+      case ControlPadKeyOperations.InsertCharacter:
+        // Insert a character received from the controlPad keyboard.
+        if (!this.getIsActivated()) {
+          this.activate();
+        }
+        if (keyInputEvaluationResult.ReceivedKey !== null) {
+          this.updateDataEntryElement(keyInputEvaluationResult.ReceivedKey);
+          this.dataEntry.highlightIndex++;
+          isHandled = true;
+        }
+        break;
+
+      case ControlPadKeyOperations.ApplyBackSpace:
+        // Handle backspace keys received from the controlPad keyboard.
+        this.leftDeleteCharacter();
+        isHandled = true;
+        break;
+
+      default:
+        // For all other events we pass the event on:
+        isHandled = super.onInteractionEvent(evt);
+        break;
+    }
+    return isHandled;
+  }
 
   /**
    * Method to set the initial text value when the component is made active.
@@ -140,6 +175,39 @@ export class InputComponent extends UiControl<InputComponentProps> {
   }
 
   /**
+   * Method to delete the character to the left of the selected index in the entry field (bkspc function).
+   * @param [emitEvent] A boolean indicating if a text changed event should be emitted.
+   */
+  private leftDeleteCharacter(emitEvent = true): void {
+    if (this.dataEntry.highlightIndex !== undefined) {
+      const newSelectedIndex = Math.max(0, this.dataEntry.highlightIndex - 1);
+
+      const text = this.dataEntry.text;
+      const blankFill = this.props.maxLength - this.dataEntry.highlightIndex;
+
+      const beforeText = text.substr(0, newSelectedIndex);
+      const newSelectedChar = '_';
+      const afterText = ''.padStart(blankFill, '_');
+
+      this.dataEntry.text = beforeText + newSelectedChar + afterText;
+
+      if (emitEvent) {
+        this.props.onTextChanged(this.dataEntry.text.replace(/_/g, ' ').trim());
+      }
+
+      // We move the index one to the left and fetch the new selected char:
+      if (this.dataEntry.highlightIndex > 0) {
+        this.dataEntry.highlightIndex--;
+      }
+
+      this.dataEntry.beforeSelected.set(beforeText);
+      this.dataEntry.selected.set(newSelectedChar);
+      this.dataEntry.afterSelected.set(afterText);
+    }
+  }
+
+
+  /**
    * Handles the input from the hidden textbox
    */
   private handleTextboxInput(): void {
@@ -219,6 +287,7 @@ export class InputComponent extends UiControl<InputComponentProps> {
    * Method to handle on input blur
    */
   private onInputBlur = (): void => {
+    ControlpadHEventHandler.clearPrefetchedCharacter();
     this.textBoxRef.instance.disabled = true;
     this.textBoxRef.instance.value = '';
     Coherent.off('SetInputTextFromOS', this.setValueFromOS);
@@ -284,6 +353,7 @@ export class InputComponent extends UiControl<InputComponentProps> {
 
   /** @inheritdoc */
   public onEnter(): boolean {
+    ControlpadHEventHandler.clearPrefetchedCharacter();
     if (this.getIsActivated()) {
       this.deactivate();
       if (this.props.onEnter) {
@@ -300,6 +370,7 @@ export class InputComponent extends UiControl<InputComponentProps> {
 
   /** @inheritdoc */
   public onClr(): boolean {
+    ControlpadHEventHandler.clearPrefetchedCharacter();
     if (this.getIsActivated()) {
       this.setText(this.previousValue);
       this.deactivate();
@@ -324,8 +395,24 @@ export class InputComponent extends UiControl<InputComponentProps> {
     this.textBoxRef.instance.onblur = this.onInputBlur;
     this.textBoxRef.instance.blur();
 
-    // Make sure we deactivate ourselves if we lose focus.
-    this.focusSubject.sub((v, rv) => { !rv && this.isActivated && this.deactivate(); });
+    this.focusSubject.sub((v, rv) => {
+      // Make sure we deactivate ourselves if we lose focus.
+      if (!rv && this.isActivated) {
+        this.deactivate();
+        ControlpadHEventHandler.clearPrefetchedCharacter();
+      } else if (rv === true) {
+        // In case the component has focus, check for the existences of a prefetched character:
+        const prefetchedCharacter = ControlpadHEventHandler.getPrefetchedCharacter();
+        if (prefetchedCharacter !== undefined) {
+          this.dataEntry.highlightIndex = 0;
+          if (!this.getIsActivated()) {
+            this.activate();
+          }
+          this.updateDataEntryElement(prefetchedCharacter, true);
+          this.dataEntry.highlightIndex++;
+        }
+      }
+    });
   }
 
   /** @inheritdoc */

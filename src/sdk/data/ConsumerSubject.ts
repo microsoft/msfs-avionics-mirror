@@ -5,11 +5,24 @@ import { Consumer } from './Consumer';
 /**
  * A subscribable subject which derives its value from an event consumer.
  */
-export class ConsumerSubject<T> extends AbstractSubscribable<T> {
+export class ConsumerSubject<T> extends AbstractSubscribable<T> implements Subscription {
+  /** @inheritdoc */
+  public readonly canInitialNotify = true;
+
   private readonly consumerHandler = this.onEventConsumed.bind(this);
 
   private value: T;
   private consumerSub?: Subscription;
+
+  private _isAlive = true;
+  // eslint-disable-next-line jsdoc/require-returns
+  /**
+   * Whether this subject is alive. While alive, this subject will update its value from its event consumer unless it
+   * is paused. Once dead, this subject will no longer update its value and cannot be resumed again.
+   */
+  public get isAlive(): boolean {
+    return this._isAlive;
+  }
 
   private _isPaused = false;
   // eslint-disable-next-line jsdoc/require-returns
@@ -20,8 +33,6 @@ export class ConsumerSubject<T> extends AbstractSubscribable<T> {
   public get isPaused(): boolean {
     return this._isPaused;
   }
-
-  private isDestroyed = false;
 
   /**
    * Constructor.
@@ -103,7 +114,7 @@ export class ConsumerSubject<T> extends AbstractSubscribable<T> {
    * @returns This subject, after its consumer has been set.
    */
   public setConsumer(consumer: Consumer<T> | null): this {
-    if (this.isDestroyed) {
+    if (!this._isAlive) {
       return this;
     }
 
@@ -130,7 +141,10 @@ export class ConsumerSubject<T> extends AbstractSubscribable<T> {
 
   /**
    * Resumes consuming events for this subject. Once resumed, this subject's value will be updated from consumed
-   * events.
+   * events. When this subject is resumed, it immediately updates its value from its event consumer, if one exists.
+   *
+   * Any `initialNotify` argument passed to this method is ignored. This subject is always immediately notified of its
+   * event consumer's value when resumed.
    * @returns This subject, after it has been resumed.
    */
   public resume(): this {
@@ -153,7 +167,7 @@ export class ConsumerSubject<T> extends AbstractSubscribable<T> {
    * Destroys this subject. Once destroyed, it will no longer consume events to update its value.
    */
   public destroy(): void {
+    this._isAlive = false;
     this.consumerSub?.destroy();
-    this.isDestroyed = true;
   }
 }

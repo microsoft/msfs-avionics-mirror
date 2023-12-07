@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   FSComponent, HardwareControlListProps, HardwareUiControl, HardwareUiControlList, HardwareUiControlProps, UiControlEventHandler, UiControlEventHandlers,
   UiControlPropEventHandlers, VNode
@@ -216,6 +217,422 @@ export class G1000UiControl<P extends G1000UiControlProps = G1000UiControlProps>
   public onJoystickDown(source: G1000UiControl): boolean {
     return this.props.onJoystickDown ? this.props.onJoystickDown(source) : false;
   }
+
+  /**
+   * Handles the A key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onA(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.A);
+  }
+
+  /**
+   * Handles the B key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onB(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.B);
+  }
+
+  /**
+   * Handles the C key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onC(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.C);
+  }
+
+  /**
+   * Handles the D key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onD(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D);
+  }
+
+  /**
+   * Handles the E key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onE(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.E);
+  }
+
+  /**
+   * Handles the F key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onF(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.F);
+  }
+
+  /**
+   * Handles the G key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onG(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.G);
+  }
+
+  /**
+   * Handles the H key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onH(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.H);
+  }
+
+  /**
+   * Handles the I key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onI(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.I);
+  }
+
+  /**
+   * Handles the J key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onJ(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.J);
+  }
+
+  /**
+   * Handles the K key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onK(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.K);
+  }
+
+  /**
+   * Handles the L key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onL(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.L);
+  }
+
+  /**
+   * Handles the M key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onM(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.M);
+  }
+
+  /**
+   * Handles the N key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onN(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.N);
+  }
+
+  /**
+   * Handles the O key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onO(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.O);
+  }
+
+  /**
+   * Handles the P key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onP(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.P);
+  }
+
+  /**
+   * Handles the Q key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onQ(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.Q);
+  }
+
+  /**
+   * Handles the R key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onR(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.R);
+  }
+
+  /**
+   * Handles the S key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onS(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.S);
+  }
+
+  /**
+   * Handles the T key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onT(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.T);
+  }
+
+  /**
+   * Handles the U key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onU(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.U);
+  }
+
+  /**
+   * Handles the V key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onV(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.V);
+  }
+
+  /**
+   * Handles the W key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onW(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.W);
+  }
+
+  /**
+   * Handles the X key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onX(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.X);
+  }
+
+  /**
+   * Handles the Y key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onY(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.Y);
+  }
+
+  /**
+   * Handles the Z key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onZ(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.Z);
+  }
+
+  /**
+   * Handles the  key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onSPC(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.SPC);
+  }
+
+  /**
+   * Handles the 0 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on0(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D0);
+  }
+
+  /**
+   * Handles the 1 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on1(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D1);
+  }
+
+  /**
+   * Handles the 2 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on2(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D2);
+  }
+
+  /**
+   * Handles the 3 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on3(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D3);
+  }
+
+  /**
+   * Handles the 4 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on4(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D4);
+  }
+
+  /**
+   * Handles the 5 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on5(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D5);
+  }
+
+  /**
+   * Handles the 6 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on6(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D6);
+  }
+
+  /**
+   * Handles the 7 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on7(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D7);
+  }
+
+  /**
+   * Handles the 8 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on8(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D8);
+  }
+
+  /**
+   * Handles the 9 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on9(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D9);
+  }
+
+  /**
+   * Handles the Dot key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onDot(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.Dot);
+  }
+
+  /**
+   * Handles the BKSP key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onBKSP(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.BKSP);
+  }
+
+  /**
+   * Handles the +/- key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onPlusMinus(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.PlusMinus);
+  }
+
+  /**
+   * Handles the Home key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onHome(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.HOME);
+  }
+
+  /**
+   * Handles the COM key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onCom(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.COM);
+  }
+
+  /**
+   * Handles the NAV key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onNav(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.NAV);
+  }
+
+  /**
+   * Handles the XPDR key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onXpdr(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.XPDR);
+  }
+
+  /**
+   * Handles the CRS key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onCrs(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.CRS);
+  }
+
+  /**
+   * Consolidates all key events and allows sub classes to override and implement specific keyboard input behaviors.
+   * @param source The source of the event.
+   * @param evt FmsHEvent of the keyboard event.
+   * @returns always false for the top level version of the method.
+   */
+  public consolidateKeyboardHEvent(source: G1000UiControl, evt: FmsHEvent): boolean {
+    return false;
+  }
+
 }
 
 /** Properties on the GarminControlList component. */
@@ -421,6 +838,424 @@ export class G1000ControlList<T>
   public onJoystickDown(source: G1000UiControl): boolean {
     return this.props.onJoystickDown ? this.props.onJoystickDown(source) : false;
   }
+
+  /**
+   * Handles the A key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onA(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.A);
+  }
+
+  /**
+   * Handles the B key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onB(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.B);
+  }
+
+  /**
+   * Handles the C key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onC(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.C);
+  }
+
+  /**
+   * Handles the D key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onD(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D);
+  }
+
+  /**
+   * Handles the E key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onE(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.E);
+  }
+
+  /**
+   * Handles the F key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onF(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.F);
+  }
+
+  /**
+   * Handles the G key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onG(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.G);
+  }
+
+  /**
+   * Handles the H key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onH(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.H);
+  }
+
+  /**
+   * Handles the I key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onI(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.I);
+  }
+
+  /**
+   * Handles the J key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onJ(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.J);
+  }
+
+  /**
+   * Handles the K key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onK(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.K);
+  }
+
+  /**
+   * Handles the L key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onL(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.L);
+  }
+
+  /**
+   * Handles the M key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onM(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.M);
+  }
+
+  /**
+   * Handles the N key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onN(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.N);
+  }
+
+  /**
+   * Handles the O key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onO(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.O);
+  }
+
+  /**
+   * Handles the P key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onP(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.P);
+  }
+
+  /**
+   * Handles the Q key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onQ(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.Q);
+  }
+
+  /**
+   * Handles the R key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onR(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.R);
+  }
+
+  /**
+   * Handles the S key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onS(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.S);
+  }
+
+  /**
+   * Handles the T key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onT(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.T);
+  }
+
+  /**
+   * Handles the U key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onU(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.U);
+  }
+
+  /**
+   * Handles the V key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onV(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.V);
+  }
+
+  /**
+   * Handles the W key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onW(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.W);
+  }
+
+  /**
+   * Handles the X key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onX(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.X);
+  }
+
+  /**
+   * Handles the Y key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onY(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.Y);
+  }
+
+  /**
+   * Handles the Z key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onZ(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.Z);
+  }
+
+  /**
+   * Handles the  key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onSPC(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.SPC);
+  }
+
+  /**
+   * Handles the 0 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on0(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D0);
+  }
+
+  /**
+   * Handles the 1 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on1(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D1);
+  }
+
+  /**
+   * Handles the 2 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on2(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D2);
+  }
+
+  /**
+   * Handles the 3 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on3(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D3);
+  }
+
+  /**
+   * Handles the 4 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on4(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D4);
+  }
+
+  /**
+   * Handles the 5 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on5(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D5);
+  }
+
+  /**
+   * Handles the 6 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on6(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D6);
+  }
+
+  /**
+   * Handles the 7 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on7(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D7);
+  }
+
+  /**
+   * Handles the 8 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on8(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D8);
+  }
+
+  /**
+   * Handles the 9 key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public on9(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.D9);
+  }
+
+  /**
+   * Handles the Dot key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onDot(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.Dot);
+  }
+
+  /**
+   * Handles the BKSP key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onBKSP(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.BKSP);
+  }
+
+  /**
+   * Handles the +/- key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onPlusMinus(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.PlusMinus);
+  }
+
+  /**
+   * Handles the Home key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onHome(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.HOME);
+  }
+
+  /**
+   * Handles the COM key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onCom(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.COM);
+  }
+
+  /**
+   * Handles the NAV key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onNav(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.NAV);
+  }
+
+  /**
+   * Handles the XPDR key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onXpdr(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.XPDR);
+  }
+
+  /**
+   * Handles the CRS key.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onCrs(source: G1000UiControl): boolean {
+    return this.consolidateKeyboardHEvent(source, FmsHEvent.CRS);
+  }
+
+  /**
+   * Consolidates all key events and allows sub classes to override and implement specific keyboard input behaviors.
+   * @param source The source of the event.
+   * @param evt FmsHEvent of the keyboard event.
+   * @returns always false for the top level version of the method.
+   */
+  public consolidateKeyboardHEvent(source: G1000UiControl, evt: FmsHEvent): boolean {
+    return false;
+  }
+
+
+
 
   /** @inheritdoc */
   protected renderScrollbar(): VNode {

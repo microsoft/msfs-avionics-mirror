@@ -341,8 +341,8 @@ export class TakeoffRefPage extends FmcPage {
    */
   private bindVSpeedManualSetting(type: VSpeedType, field: DisplayField<number | null>): void {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    this.addBinding(new Binding(this.vspeedSettings.getSettings(type).get('manual')!, (v) => {
-      if (v === true) {
+    this.addBinding(new Binding(this.vspeedSettings.getSettings(type).manual, (v) => {
+      if (v) {
         field.getOptions().style = '[white]';
         this.invalidate();
       }
@@ -389,9 +389,9 @@ export class TakeoffRefPage extends FmcPage {
    */
   private setVSpeedSetting(type: VSpeedType, value: number): void {
     const setting = this.vspeedSettings.getSettings(type);
-    setting.get('value')?.set(Math.trunc(value));
-    setting.get('manual')?.set(false);
-    setting.get('show')?.set(true);
+    setting.value.set(Math.trunc(value));
+    setting.manual.set(false);
+    setting.show.set(true);
   }
 
   /** @inheritDoc */

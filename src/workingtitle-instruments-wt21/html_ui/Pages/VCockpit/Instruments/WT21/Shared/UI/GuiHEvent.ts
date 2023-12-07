@@ -10,4 +10,12 @@ export enum GuiHEvent {
   UPR_MENU_PUSH = 'UpperMenuPush',
   LWR_MENU_PUSH = 'LowerMenuPush',
   MFD_ESC = 'MfdEsc',
+  SOFTKEY_1L = 'Softkey1L',
+  SOFTKEY_2L = 'Softkey2L',
+  SOFTKEY_3L = 'Softkey3L',
+  SOFTKEY_4L = 'Softkey4L',
+  SOFTKEY_1R = 'Softkey1R',
+  SOFTKEY_2R = 'Softkey2R',
+  SOFTKEY_3R = 'Softkey3R',
+  SOFTKEY_4R = 'Softkey4R',
 }

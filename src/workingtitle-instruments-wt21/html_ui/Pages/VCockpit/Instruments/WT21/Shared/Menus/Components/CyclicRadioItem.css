@@ -1,0 +1,21 @@
+.popup-menu-floating-radio-item {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+
+  margin-top: 4px;
+  padding-left: 7px;
+}
+
+.popup-menu-floating-radio-right .popup-menu-floating-radio {
+  padding-left: 0;
+  padding-right: 7px;
+}
+
+.popup-menu-floating-radio-item-label {
+  color: var(--wt21-colors-white);
+}
+
+.popup-menu-floating-radio-item-label-selected {
+  transform: scale(1.1);
+}

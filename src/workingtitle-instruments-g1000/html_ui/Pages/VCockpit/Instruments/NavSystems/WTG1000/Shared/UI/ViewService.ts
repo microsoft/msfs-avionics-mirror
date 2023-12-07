@@ -1,5 +1,6 @@
 import { EventBus, FSComponent, HEvent, NodeReference, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
 
+import { ControlpadInputController } from './Controllers/ControlpadInputController';
 import { FmsHEvent } from './FmsHEvent';
 import { UiPage } from './UiPage';
 import { UiView } from './UiView';
@@ -17,7 +18,6 @@ type ViewEntry<T extends UiView = UiView> = {
  * A service to manage views.
  */
 export abstract class ViewService {
-
   private readonly registeredViews: Map<string, () => VNode> = new Map();
   private readonly refsMap: Map<string, ViewEntry> = new Map();
 
@@ -59,14 +59,17 @@ export abstract class ViewService {
   /**
    * Routes the HEvents to the views.
    * @param hEvent The event identifier.
+   * @returns whether the event was handled
    */
-  protected onInteractionEvent(hEvent: string): void {
-    // console.log(hEvent);
-
-    const evt = this.fmsEventMap.get(hEvent);
-    if (evt !== undefined) {
-      this.routeInteractionEventToViews(evt);
+  protected onInteractionEvent(hEvent: string): boolean {
+    let evt = ControlpadInputController.controlPadEventMap.get(hEvent);
+    if (evt === undefined) {
+      evt = this.fmsEventMap.get(hEvent);
     }
+    if (evt !== undefined) {
+      return this.routeInteractionEventToViews(evt);
+    }
+    return false;
   }
 
   /**
@@ -80,7 +83,6 @@ export abstract class ViewService {
     if (activeView) {
       return activeView.processHEvent(evt);
     }
-
     return false;
   }
 

@@ -165,9 +165,11 @@ export class CASDisplay<T extends CASProps> extends DisplayComponent<T> {
   private handleMessageChanged(idx: number, type: SubscribableArrayEventType.Added | SubscribableArrayEventType.Removed, item: CasActiveMessage): void {
     switch (type) {
       case SubscribableArrayEventType.Added:
-        this.addAnnunciation(idx, item); break;
+        this.addAnnunciation(idx, item);
+        break;
       case SubscribableArrayEventType.Removed:
-        this.removeAnnunciation(idx, item); break;
+        this.removeAnnunciation(idx, item);
+        break;
     }
   }
 
@@ -183,13 +185,17 @@ export class CASDisplay<T extends CASProps> extends DisplayComponent<T> {
     if (this.props.alertCounts !== undefined) {
       switch (item.priority) {
         case AnnunciationType.Warning:
-          this.props.alertCounts.set('numWarning', this.props.alertCounts.get().numWarning + 1); break;
+          this.props.alertCounts.set('numWarning', this.props.alertCounts.get().numWarning + 1);
+          break;
         case AnnunciationType.Caution:
-          this.props.alertCounts.set('numCaution', this.props.alertCounts.get().numCaution + 1); break;
+          this.props.alertCounts.set('numCaution', this.props.alertCounts.get().numCaution + 1);
+          break;
         case AnnunciationType.Advisory:
-          this.props.alertCounts.set('numAdvisory', this.props.alertCounts.get().numAdvisory + 1); break;
+          this.props.alertCounts.set('numAdvisory', this.props.alertCounts.get().numAdvisory + 1);
+          break;
         case AnnunciationType.SafeOp:
-          this.props.alertCounts.set('numSafeOp', this.props.alertCounts.get().numSafeOp + 1); break;
+          this.props.alertCounts.set('numSafeOp', this.props.alertCounts.get().numSafeOp + 1);
+          break;
       }
       this.updateAlertCounts();
     }
@@ -217,13 +223,17 @@ export class CASDisplay<T extends CASProps> extends DisplayComponent<T> {
     if (this.props.alertCounts !== undefined) {
       switch (item.priority) {
         case AnnunciationType.Warning:
-          this.props.alertCounts.set('numWarning', this.props.alertCounts.get().numWarning - 1); break;
+          this.props.alertCounts.set('numWarning', this.props.alertCounts.get().numWarning - 1);
+          break;
         case AnnunciationType.Caution:
-          this.props.alertCounts.set('numCaution', this.props.alertCounts.get().numCaution - 1); break;
+          this.props.alertCounts.set('numCaution', this.props.alertCounts.get().numCaution - 1);
+          break;
         case AnnunciationType.Advisory:
-          this.props.alertCounts.set('numAdvisory', this.props.alertCounts.get().numAdvisory - 1); break;
+          this.props.alertCounts.set('numAdvisory', this.props.alertCounts.get().numAdvisory - 1);
+          break;
         case AnnunciationType.SafeOp:
-          this.props.alertCounts.set('numSafeOp', this.props.alertCounts.get().numSafeOp - 1); break;
+          this.props.alertCounts.set('numSafeOp', this.props.alertCounts.get().numSafeOp - 1);
+          break;
       }
       this.updateAlertCounts();
     }

@@ -48,6 +48,35 @@ export class ArrayUtils {
   }
 
   /**
+   * Creates a new array containing a sequence of evenly-spaced numbers.
+   * @param length The length of the new array.
+   * @param start The number contained at index 0 of the new array. Defaults to `0`.
+   * @param increment The increment between each successive number in the new array. Defaults to `1`.
+   * @returns A new array containing the specified sequence of evenly-spaced numbers.
+   */
+  public static range(length: number, start = 0, increment = 1): number[] {
+    return ArrayUtils.fillRange([], length, 0, start, increment);
+  }
+
+  /**
+   * Fills an existing array with a sequence of evenly-spaced numbers. The sequence is written to the array in a single
+   * contiguous block of consecutive indexes.
+   * @param array The array to fill.
+   * @param length The length of the number sequence.
+   * @param startIndex The index at which to start filling the array. Defaults to `0`.
+   * @param start The first number in the sequence. Defaults to {@linkcode startIndex}.
+   * @param increment The increment between each successive number in the new array. Defaults to `1`.
+   * @returns The array, after it has been filled with the specified number sequence.
+   */
+  public static fillRange(array: number[], length: number, startIndex = 0, start = startIndex, increment = 1): number[] {
+    const endIndex = startIndex + length;
+    for (let i = startIndex; i < endIndex; i++) {
+      array[i] = start + i * increment;
+    }
+    return array;
+  }
+
+  /**
    * Gets the element at a specific index in an array.
    * @param array An array.
    * @param index The index to access. Negative indexes are supported and access elements starting from the end of the
@@ -164,7 +193,7 @@ export class ArrayUtils {
 
   /**
    * Creates a new array by mapping each element of an existing array using a mapping function, then flattening the
-   * mapped elements to a maximum depth of one, leaving the original array intact. 
+   * mapped elements to a maximum depth of one, leaving the original array intact.
    * @param array An array.
    * @param map A function which is called once on each element of the original array to map it to an arbitrary value.
    * @returns A new array which was created by mapping each element of the specified array, then flattening the mapped
@@ -310,7 +339,7 @@ export class ArrayUtils {
   /**
    * Gets the length of the longest string in the array.
    * @param array The array to search in.
-   * @returns length of the longest string 
+   * @returns length of the longest string
    */
   public static getMaxStringLength(array: string[]): number {
     return array.reduce((accum, curr) => curr.length > accum ? curr.length : accum, 0);

@@ -6,6 +6,8 @@ import { G1000UiControl } from '../../../../Shared/UI/G1000UiControl';
 import { SetRunway } from '../../../../Shared/UI/SetRunway/SetRunway';
 import { FixInfo } from '../../../../Shared/UI/FPL/FixInfo';
 import { FPLSection } from './FPLSection';
+import { FmsHEvent } from '../../../../MFD';
+import { ControlpadHEventHandler, ControlPadKeyOperations } from '../../../../Shared/Input/ControlpadHEventHandler';
 
 /**
  * Render the destination info for a flight plan.
@@ -18,6 +20,20 @@ export class FPLDestination extends FPLSection {
     const hasRunway = plan.procedureDetails.destinationRunway != undefined;
     const noAppArr = plan.procedureDetails.arrivalIndex < 0 && plan.procedureDetails.approachIndex < 0;
     return noAppArr && !hasRunway && (!destination || destination == '');
+  }
+
+  /** @inheritdoc */
+  public consolidateKeyboardHEvent(source: G1000UiControl, evt: FmsHEvent): boolean {
+    const keyboardInputEvaluation = ControlpadHEventHandler.evaluateKeyboardInput(evt);
+    if (keyboardInputEvaluation.KeyboardOperation === ControlPadKeyOperations.InsertCharacter) {
+      const plan = this.props.fms.getFlightPlan();
+      const destination = plan.destinationAirport;
+      if (!destination || destination === undefined) {
+        this.openDestinationSelectionView();
+        return true;
+      }
+    }
+    return false;
   }
 
   /** @inheritdoc */
@@ -43,16 +59,8 @@ export class FPLDestination extends FPLSection {
     const plan = this.props.fms.getFlightPlan();
     const destination = plan.destinationAirport;
     if (!destination || destination === undefined) {
-      // EMPTY ROW
-      this.props.viewService.open('WptInfo', true)
-        .onAccept.on((sender, fac: AirportFacility) => {
-          this.props.fms.setDestination(fac as AirportFacility);
-          this.props.viewService.open<SetRunway>('SetRunway', true).setInput(fac as AirportFacility).onAccept.on((subSender, data) => {
-            this.props.fms.setDestination(this.props.facilities.destinationFacility, data);
-          });
-        });
+      this.openDestinationSelectionView();
     }
-
     return true;
   };
 
@@ -73,6 +81,19 @@ export class FPLDestination extends FPLSection {
     }
     return false;
   };
+
+  /** Open the WaypointInfo popup */
+  private openDestinationSelectionView(): void {
+    // EMPTY ROW
+    this.props.viewService.open('WptInfo', true)
+      .onAccept.on((sender, fac: AirportFacility) => {
+        this.props.fms.setDestination(fac as AirportFacility);
+        this.props.viewService.open<SetRunway>('SetRunway', true).setInput(fac as AirportFacility).onAccept.on((subSender, data) => {
+          this.props.fms.setDestination(this.props.facilities.destinationFacility, data);
+        });
+      });
+
+  }
 
   /** @inheritdoc */
   protected onHeaderFocused(): void {

@@ -1,7 +1,7 @@
 html {
   --touch-slider-background: linear-gradient(#506b85 3px, #2a3947 8px, #141b23 12px, #030405 20px, black 30px);
   /* The last time I tried ridge borders, it caused some graphical artifacts...  */
-  --touch-slider-border: 3px ridge #d3d3d3;
+  --touch-slider-border: 2px solid #ffffff;
   --touch-slider-border-radius: 4px;
   --touch-slider-text-color: var(--g3000-color-white);
 
@@ -15,12 +15,16 @@ html {
   --touch-slider-thumb-justify: 0.5;
 }
 
+.gtc-vertical {
+  --touch-slider-border-radius: 3px;
+}
+
 .touch-slider {
   position: relative;
-  background: var(--touch-button-background);
-  border: var(--touch-button-border);
-  border-radius: var(--touch-button-border-radius);
-  color: var(--touch-button-text-color);
+  background: var(--touch-slider-background);
+  border: var(--touch-slider-border);
+  border-radius: var(--touch-slider-border-radius);
+  color: var(--touch-slider-text-color);
   overflow: hidden;
   display: flex;
 }

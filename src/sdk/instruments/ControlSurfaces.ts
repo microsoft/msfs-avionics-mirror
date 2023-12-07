@@ -74,6 +74,9 @@ export interface BaseControlSurfacesEvents {
   /** The percent of elevator deflection */
   elevator_percent: number;
 
+  /** The percent of elevator position within the maximum deflection limits */
+  elevator_position: number;
+
   /** The percent of rudder deflection */
   rudder_percent: number;
 
@@ -142,6 +145,7 @@ export class ControlSurfacesPublisher extends SimVarPublisher<ControlSurfacesEve
       ['aileron_left_percent', { name: 'AILERON LEFT DEFLECTION PCT', type: SimVarValueType.Percent }],
       ['aileron_right_percent', { name: 'AILERON RIGHT DEFLECTION PCT', type: SimVarValueType.Percent }],
       ['elevator_percent', { name: 'ELEVATOR DEFLECTION PCT', type: SimVarValueType.Percent }],
+      ['elevator_position', { name: 'ELEVATOR POSITION', type: SimVarValueType.Percent }],
       ['rudder_percent', { name: 'RUDDER DEFLECTION PCT', type: SimVarValueType.Percent }]
     ];
 

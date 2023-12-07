@@ -41,7 +41,7 @@ export abstract class AbstractFmcPage {
    */
   abstract readonly renderCallback: FmcRenderCallback;
 
-  protected readonly memorizedComponents: [FmcComponent | null, FmcComponent | null, FmcComponent | null][] = [];
+  public readonly memorizedComponents: [FmcComponent | null, FmcComponent | null, FmcComponent | null][] = [];
 
   private readonly bindings: (Subscription | ConsumerSubject<any>)[] = [];
 
@@ -210,13 +210,13 @@ export abstract class AbstractFmcPage {
                   render[i + k] = [];
                 }
 
-                render[i + k][l] = componentRenderRow[l] as string;
+                (componentRenderRow[l] !== '') && (render[i + k][l] = componentRenderRow[l] as string);
               }
             }
-          } else {
-            renderRow[row.indexOf(col)] = componentRender as string;
+          } else if (componentRender !== '' || renderRow[j] === undefined) {
+            renderRow[j] = componentRender as string;
           }
-        } else {
+        } else if (col !== '' && renderRow[j] === undefined) {
           renderRow[j] = col;
         }
       }

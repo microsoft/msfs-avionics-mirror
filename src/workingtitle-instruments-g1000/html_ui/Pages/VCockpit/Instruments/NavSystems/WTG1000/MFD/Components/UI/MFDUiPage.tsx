@@ -59,6 +59,8 @@ export abstract class MFDUiPage<T extends MFDUiPageProps = MFDUiPageProps> exten
         return this.onDirectToPressed();
       case FmsHEvent.MENU:
         return this.onMenuPressed();
+      case FmsHEvent.HOME:
+        return this.onHomePressed();
     }
 
     return false;
@@ -70,6 +72,15 @@ export abstract class MFDUiPage<T extends MFDUiPageProps = MFDUiPageProps> exten
    */
   protected onMenuPressed(): boolean {
     return false;
+  }
+
+  /**
+   * This method is called when a HOME button event occurs.
+   * @returns whether the event was handled.
+   */
+  protected onHomePressed(): boolean {
+    this.props.viewService.open('NavMapPage');
+    return true;
   }
 
   /**

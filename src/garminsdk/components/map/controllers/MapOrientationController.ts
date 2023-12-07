@@ -11,6 +11,7 @@ import { MapOrientation, MapOrientationModule } from '../modules/MapOrientationM
 
 /**
  * Modules required for MapOrientationController.
+ * @deprecated
  */
 export interface MapOrientationControllerModules {
   /** Range module. */
@@ -25,6 +26,7 @@ export interface MapOrientationControllerModules {
 
 /**
  * Context properties required by MapOrientationController.
+ * @deprecated
  */
 export interface MapOrientationControllerContext {
   /** Resource moderator for control of the map's orientation mode. */
@@ -33,17 +35,21 @@ export interface MapOrientationControllerContext {
 
 /**
  * User settings required by MapOrientationController.
+ * @deprecated
  */
 export type MapOrientationControllerSettings = Pick<MapUserSettingTypes, 'mapOrientation' | 'mapAutoNorthUpActive' | 'mapAutoNorthUpRangeIndex'>;
 
 /**
  * Controls the orientation of a map based on user settings.
+ * @deprecated New, preferred logic for controlling map orientation based on user settings is available using
+ * `MapOrientationSettingsController`.
  */
 export class MapOrientationController extends MapSystemController<MapOrientationControllerModules, any, any, MapOrientationControllerContext> {
-  private static readonly MODE_MAP = {
+  private static readonly MODE_MAP: Partial<Record<MapOrientationSettingMode, MapOrientation>> = {
     [MapOrientationSettingMode.NorthUp]: MapOrientation.NorthUp,
     [MapOrientationSettingMode.HeadingUp]: MapOrientation.HeadingUp,
-    [MapOrientationSettingMode.TrackUp]: MapOrientation.TrackUp
+    [MapOrientationSettingMode.TrackUp]: MapOrientation.TrackUp,
+    [MapOrientationSettingMode.DtkUp]: MapOrientation.DtkUp
   };
 
   private readonly rangeModule = this.context.model.getModule(GarminMapKeys.Range);

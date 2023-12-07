@@ -1,11 +1,14 @@
-import { ComputedSubject, ConsumerSubject, ControlPublisher, EventBus, InstrumentEvents, LNavEvents, MappedSubject, NavEvents } from '@microsoft/msfs-sdk';
+import {
+  ComputedSubject, ConsumerSubject, ControlPublisher, DebounceTimer, EventBus, InstrumentEvents, LNavEvents, MappedSubject, NavEvents
+} from '@microsoft/msfs-sdk';
 
 import { GarminControlEvents, ObsSuspModes } from '@microsoft/msfs-garminsdk';
 
+import { G1000AlertsLevel, G1000CasEvents } from '../../../PFD/Components/FlightInstruments';
 import { AlertMessageEvents } from '../../../PFD/Components/UI/Alerts/AlertsSubject';
 import { G1000ControlPublisher } from '../../G1000Events';
-import { SoftKeyMenuSystem } from './SoftKeyMenuSystem';
 import { SoftKeyMenu } from './SoftKeyMenu';
+import { SoftKeyMenuSystem } from './SoftKeyMenuSystem';
 
 /**
  * The root PFD softkey menu.
@@ -27,6 +30,8 @@ export class RootMenu extends SoftKeyMenu {
   });
 
   private mfdPoweredOn = false;
+  private currentAlertsLevel = G1000AlertsLevel.None;
+  private readonly alertStylingDebounceTimer = new DebounceTimer();
 
   /**
    * Creates an instance of the root PFD softkey menu.
@@ -76,7 +81,7 @@ export class RootMenu extends SoftKeyMenu {
       g1000Publisher.publishEvent('pfd_alert_push', true);
     }, undefined, false);
 
-    const sub = bus.getSubscriber<NavEvents & LNavEvents & GarminControlEvents & InstrumentEvents & AlertMessageEvents>();
+    const sub = bus.getSubscriber<NavEvents & LNavEvents & GarminControlEvents & InstrumentEvents & AlertMessageEvents & G1000CasEvents>();
 
     this.isLNavSuspended = ConsumerSubject.create(sub.on('lnav_is_suspended'), false);
     this.isObsActive = ConsumerSubject.create(sub.on('gps_obs_active'), false);
@@ -134,6 +139,18 @@ export class RootMenu extends SoftKeyMenu {
 
     sub.on('alerts_available')
       .handle(available => this.getItem(11).highlighted.set(available));
+
+    sub.on('cas_unacknowledged_alerts_level').handle(v => {
+      this.currentAlertsLevel = v;
+      this.getItem(11).additionalClasses.clear();
+
+      //We have a debounce here so we can reset and re-add the CSS animations to restart
+      //their timing. This ensures that the Alerts button flashes in sync with any CAS
+      //alerts
+      if (!this.alertStylingDebounceTimer.isPending()) {
+        this.alertStylingDebounceTimer.schedule(this.updateAlertsStyle, 0);
+      }
+    });
   }
 
   /**
@@ -148,6 +165,32 @@ export class RootMenu extends SoftKeyMenu {
 
         this.menuSystem.bus.off('mfd_power_on', this.onMfdPowerOn);
       }, 1000);
+    }
+  };
+
+  /**
+   * Updates the Alerts button style.
+   */
+  private updateAlertsStyle = (): void => {
+    const item = this.getItem(11);
+
+    switch (this.currentAlertsLevel) {
+      case G1000AlertsLevel.None:
+        item.label.set('Alerts');
+        item.additionalClasses.clear();
+        break;
+      case G1000AlertsLevel.Advisory:
+        item.label.set('Advisory');
+        item.additionalClasses.set(['advisory']);
+        break;
+      case G1000AlertsLevel.Caution:
+        item.label.set('Caution');
+        item.additionalClasses.set(['caution']);
+        break;
+      case G1000AlertsLevel.Warning:
+        item.label.set('Warning');
+        item.additionalClasses.set(['warning']);
+        break;
     }
   };
 }

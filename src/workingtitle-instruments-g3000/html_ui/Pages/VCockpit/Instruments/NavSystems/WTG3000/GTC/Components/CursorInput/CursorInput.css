@@ -18,6 +18,7 @@ html {
 }
 
 .cursor-input {
+  position: relative;
   background: var(--cursor-input-background);
   border-radius: var(--cursor-input-border-radius);
   line-height: var(--cursor-input-slots-line-height);

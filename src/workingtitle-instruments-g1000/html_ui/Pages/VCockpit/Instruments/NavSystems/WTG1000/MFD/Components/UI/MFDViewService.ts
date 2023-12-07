@@ -1,3 +1,6 @@
+import { EventBus, Publisher } from '@microsoft/msfs-sdk';
+
+import { MFDViewServiceEvents } from '../../../Shared/UI/Controllers/ControlpadInputController';
 import { FmsHEvent } from '../../../Shared/UI/FmsHEvent';
 import { ViewService } from '../../../Shared/UI/ViewService';
 
@@ -5,6 +8,9 @@ import { ViewService } from '../../../Shared/UI/ViewService';
  * A service to manage views.
  */
 export class MFDViewService extends ViewService {
+
+  /** A publisher for publishing flight planner update events. */
+  private readonly publisher: Publisher<MFDViewServiceEvents>;
 
   protected readonly fmsEventMap: Map<string, FmsHEvent> = new Map([
     ['AS1000_MFD_FMS_Upper_INC', FmsHEvent.UPPER_INC],
@@ -24,6 +30,22 @@ export class MFDViewService extends ViewService {
     ['AS1000_MFD_JOYSTICK_LEFT', FmsHEvent.JOYSTICK_LEFT],
     ['AS1000_MFD_JOYSTICK_UP', FmsHEvent.JOYSTICK_UP],
     ['AS1000_MFD_JOYSTICK_RIGHT', FmsHEvent.JOYSTICK_RIGHT],
-    ['AS1000_MFD_JOYSTICK_DOWN', FmsHEvent.JOYSTICK_DOWN]
+    ['AS1000_MFD_JOYSTICK_DOWN', FmsHEvent.JOYSTICK_DOWN],
   ]);
+
+  /**
+   * Constructs the view service.
+   * @param bus The event bus.
+   */
+  constructor(readonly bus: EventBus) {
+    super(bus);
+
+    this.publisher = bus.getPublisher<MFDViewServiceEvents>();
+
+    // For the controlpad input routing, we need to share among the instruments, whether the MFD has opened the home view (nav map) or not:
+    this.activeViewKey.sub(newViewKey => {
+      const isNotNavMapPage = newViewKey !== 'NavMapPage';  // Prevent generic controlpad use (COM, NAV, XPDR) if any otehr page than NavMap is opened.
+      this.bus.getPublisher<MFDViewServiceEvents>().pub('inhibitGenericControlpadUse', isNotNavMapPage, true, true);
+    }, true);
+  }
 }

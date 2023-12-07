@@ -29,6 +29,9 @@ export interface HardwareControlListProps<T> extends HardwareUiControlProps {
   /** Whether or not to hide the list scrollbar. */
   hideScrollbar?: boolean;
 
+  /** Scroll to the index of the most recently added item. */
+  scrollToMostRecentlyAdded?: boolean;
+
   /** The CSS class to apply to this list container. */
   class?: string;
 
@@ -152,6 +155,8 @@ export abstract class HardwareUiControlList<T,
     if (element !== null && controlNode.instance !== null) {
       this.addToOrderTracking(controlNode.instance as HardwareUiControl<E, P>, dataItem, element);
     }
+
+    this.props.scrollToMostRecentlyAdded && this.scrollToIndex(indexToAdd);
   }
 
   /**

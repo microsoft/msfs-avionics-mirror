@@ -145,7 +145,7 @@ export class SimpleFmcRenderer implements FmcRenderer {
   private buildRowInfo(template: FmcOutputRow, rowIndex: number): void {
     // only content
     if (rowIndex < this.options.screenCellHeight && template) {
-      if (template[0] !== '') {
+      if (template[0] && template[0] !== '') {
         // LEFT
         this.buildColumnInformation(template[0], rowIndex, 'left');
       }

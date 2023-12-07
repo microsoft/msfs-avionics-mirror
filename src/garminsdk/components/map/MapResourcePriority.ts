@@ -8,8 +8,14 @@ export class MapResourcePriority {
   /** Orientation mode. */
   public static readonly ORIENTATION = 0;
 
+  /** Desired orientation mode. */
+  public static readonly DESIRED_ORIENTATION = 0;
+
   /** Rotation behavior from orientation mode. */
   public static readonly ORIENTATION_ROTATION = 0;
+
+  /** Panning. */
+  public static readonly PANNING = 100;
 
   /** Pointer. */
   public static readonly POINTER = 100;

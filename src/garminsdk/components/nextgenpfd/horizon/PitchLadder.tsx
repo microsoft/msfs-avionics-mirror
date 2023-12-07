@@ -85,8 +85,9 @@ export interface PitchLadderProps extends HorizonLayerProps {
 }
 
 /**
- * A PFD attitude indicator. Displays a roll scale arc with pointer indicating the current roll angle, a pitch ladder
- * indicating the current pitch angle, and a slip/skid indicator.
+ * A PFD pitch ladder. Displays major, medium, and minor pitch lines, each with optional pitch angle labels. Also
+ * displays unusual attitude chevrons between major pitch lines above threshold positive and negative pitch angles.
+ * Does not display a zero-pitch line.
  */
 export class PitchLadder extends HorizonLayer<PitchLadderProps> {
   private readonly svgRef = FSComponent.createRef<SVGElement>();

@@ -3,6 +3,7 @@ export * from './AttitudeAircraftSymbol';
 export * from './FlightDirectorDualCue';
 export * from './FlightDirectorFormat';
 export * from './FlightDirectorSingleCue';
+export * from './FlightDirectorDataProvider';
 export * from './FlightPathMarker';
 export * from './HorizonDisplay';
 export * from './HorizonLine';

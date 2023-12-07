@@ -43,6 +43,53 @@ export interface MapWaypointsVisControllerModules {
 }
 
 /**
+ * Configuration options for {@link MapWaypointsVisController}.
+ */
+export type MapWaypointsVisControllerOptions = {
+  /**
+   * The highest global declutter mode, inclusive, at which large airports should remain visible. Defaults to
+   * {@link MapDeclutterMode.Level2}.
+   */
+  airportLargeMaxDeclutterMode?: MapDeclutterMode;
+
+  /**
+   * The highest global declutter mode, inclusive, at which medium airports should remain visible. Defaults to
+   * {@link MapDeclutterMode.Level2}.
+   */
+  airportMediumMaxDeclutterMode?: MapDeclutterMode;
+
+  /**
+   * The highest global declutter mode, inclusive, at which small airports should remain visible. Defaults to
+   * {@link MapDeclutterMode.Level2}.
+   */
+  airportSmallMaxDeclutterMode?: MapDeclutterMode;
+
+  /**
+   * The highest global declutter mode, inclusive, at which VORs should remain visible. Defaults to
+   * {@link MapDeclutterMode.Level3}.
+   */
+  vorMaxDeclutterMode?: MapDeclutterMode;
+
+  /**
+   * The highest global declutter mode, inclusive, at which NDBs should remain visible. Defaults to
+   * {@link MapDeclutterMode.Level3}.
+   */
+  ndbMaxDeclutterMode?: MapDeclutterMode;
+
+  /**
+   * The highest global declutter mode, inclusive, at which intersections should remain visible. Defaults to
+   * {@link MapDeclutterMode.Level3}.
+   */
+  intMaxDeclutterMode?: MapDeclutterMode;
+
+  /**
+   * The highest global declutter mode, inclusive, at which user waypoints should remain visible. Defaults to
+   * {@link MapDeclutterMode.Level3}.
+   */
+  userMaxDeclutterMode?: MapDeclutterMode;
+};
+
+/**
  * Controls the visibility of map waypoint symbols.
  */
 export class MapWaypointsVisController extends MapSystemController<MapWaypointsVisControllerModules> {
@@ -54,10 +101,12 @@ export class MapWaypointsVisController extends MapSystemController<MapWaypointsV
    * Constructor.
    * @param context This controller's map context.
    * @param settingManager A setting manager containing the user settings controlling waypoint visibility.
+   * @param options Options with which to configure the controller.
    */
   constructor(
     context: MapSystemContext<MapWaypointsVisControllerModules, any, any, any>,
-    settingManager: UserSettingManager<Partial<MapWaypointVisUserSettings>>
+    settingManager: UserSettingManager<Partial<MapWaypointVisUserSettings>>,
+    options?: Readonly<MapWaypointsVisControllerOptions>
   ) {
     super(context);
 
@@ -68,7 +117,7 @@ export class MapWaypointsVisController extends MapSystemController<MapWaypointsV
         context,
         airportLargeShow,
         airportLargeRangeIndex,
-        MapDeclutterMode.Level2,
+        options?.airportLargeMaxDeclutterMode ?? MapDeclutterMode.Level2,
         this.waypointsModule.airportShow[AirportSize.Large]
       ));
     }
@@ -80,7 +129,7 @@ export class MapWaypointsVisController extends MapSystemController<MapWaypointsV
         context,
         airportMediumShow,
         airportMediumRangeIndex,
-        MapDeclutterMode.Level2,
+        options?.airportMediumMaxDeclutterMode ?? MapDeclutterMode.Level2,
         this.waypointsModule.airportShow[AirportSize.Medium]
       ));
     }
@@ -92,7 +141,7 @@ export class MapWaypointsVisController extends MapSystemController<MapWaypointsV
         context,
         airportSmallShow,
         airportSmallRangeIndex,
-        MapDeclutterMode.Level2,
+        options?.airportSmallMaxDeclutterMode ?? MapDeclutterMode.Level2,
         this.waypointsModule.airportShow[AirportSize.Small]
       ));
     }
@@ -104,7 +153,7 @@ export class MapWaypointsVisController extends MapSystemController<MapWaypointsV
         context,
         vorShow,
         vorRangeIndex,
-        MapDeclutterMode.Level3,
+        options?.vorMaxDeclutterMode ?? MapDeclutterMode.Level3,
         this.waypointsModule.vorShow
       ));
     }
@@ -116,7 +165,7 @@ export class MapWaypointsVisController extends MapSystemController<MapWaypointsV
         context,
         ndbShow,
         ndbRangeIndex,
-        MapDeclutterMode.Level3,
+        options?.ndbMaxDeclutterMode ?? MapDeclutterMode.Level3,
         this.waypointsModule.ndbShow
       ));
     }
@@ -128,7 +177,7 @@ export class MapWaypointsVisController extends MapSystemController<MapWaypointsV
         context,
         intersectionShow,
         intersectionRangeIndex,
-        MapDeclutterMode.Level3,
+        options?.intMaxDeclutterMode ?? MapDeclutterMode.Level3,
         this.waypointsModule.intShow
       ));
     }
@@ -140,18 +189,10 @@ export class MapWaypointsVisController extends MapSystemController<MapWaypointsV
         context,
         userShow,
         userRangeIndex,
-        MapDeclutterMode.Level3,
+        options?.userMaxDeclutterMode ?? MapDeclutterMode.Level3,
         this.waypointsModule.userShow
       ));
     }
-
-    this.controllers.push(new MapSymbolVisController(
-      context,
-      Subject.create(true),
-      Subject.create(Number.MAX_SAFE_INTEGER),
-      MapDeclutterMode.Level2,
-      this.waypointsModule.runwayShow
-    ));
   }
 
   /** @inheritdoc */

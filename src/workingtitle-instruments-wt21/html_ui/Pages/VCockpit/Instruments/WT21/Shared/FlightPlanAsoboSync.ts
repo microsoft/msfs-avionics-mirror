@@ -105,13 +105,6 @@ export class FlightPlanAsoboSync {
           FlightPlanAsoboSync.buildNonAirportDestLeg(data, plan, fms, lastEnrouteSegment);
         }
 
-
-        // if (destinationSet && !originSet) {
-        //   if (plan.length >= 1) {
-        //     plan.getSegmentIndex(0)
-        //     fms.createDirectToExisting()
-        //   }
-        // }
         plan.calculate(0).then(() => {
           plan.setLateralLeg(0);
         });
@@ -197,6 +190,16 @@ export class FlightPlanAsoboSync {
       const activeSegment = WT21FmsUtils.getActiveSegment(plan);
       if (activeSegment?.segmentType === FlightPlanSegmentType.Approach) {
         await Coherent.call('TRY_AUTOACTIVATE_APPROACH').catch((err: any) => console.log(JSON.stringify(err)));
+      }
+
+      try {
+        const currCrzAlt: number = await Coherent.call('GET_CRUISE_ALTITUDE').catch((err: any) => console.log(JSON.stringify(err)));
+        const desiredCrzAlt: number = fms.activePerformancePlan.cruiseAltitude.get() ?? -1;
+        if (desiredCrzAlt > -1 && (currCrzAlt === -1 || currCrzAlt < desiredCrzAlt)) {
+          await Coherent.call('SET_CRUISE_ALTITUDE', desiredCrzAlt).catch((err: any) => console.log(JSON.stringify(err)));
+        }
+      } catch (error) {
+        console.warn('Error setting cruise altitude: ' + error);
       }
 
       Coherent.call('RECOMPUTE_ACTIVE_WAYPOINT_INDEX').catch((err: any) => console.log(JSON.stringify(err)));

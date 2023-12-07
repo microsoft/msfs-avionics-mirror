@@ -1,12 +1,14 @@
 import {
-  DisplayComponent, Facility, FacilitySearchType, FacilityWaypoint, FSComponent, ICAO, IntersectionFacility, NdbFacility, Subscribable,
-  SubscribableSet, SubscribableUtils, UserFacility, VNode, VorFacility,
+  DisplayComponent, Facility, FacilitySearchType, FacilityWaypoint, FSComponent, IntersectionFacility, NdbFacility, SearchTypeMap, Subscribable,
+  SubscribableSet, SubscribableUtils, UserFacility, VNode, VorFacility
 } from '@microsoft/msfs-sdk';
+
 import { AirportWaypoint, GarminFacilityWaypointCache } from '@microsoft/msfs-garminsdk';
+
 import { GtcService } from '../../GtcService/GtcService';
 import { GtcViewKeys } from '../../GtcService/GtcViewKeys';
 import { GtcWaypointButton, GtcWaypointButtonProps } from './GtcWaypointButton';
-import { GtcKeyboardDialog } from '../../Dialog/GtcKeyboardDialog';
+import { GtcWaypointDialog } from '../../Dialog/GtcWaypointDialog';
 
 /**
  * Waypoint search types supported by {@link GtcWaypointSelectButton}.
@@ -131,14 +133,11 @@ export class GtcWaypointSelectButton<T extends WaypointSelectType, S extends Sub
         onTouched={this.props.onTouched}
         onPressed={async (): Promise<void> => {
           const initialWaypoint = this.props.waypoint.get();
-          const initialInputText = initialWaypoint === null ? undefined : ICAO.getIdent(initialWaypoint.facility.get().icao);
-          const result = await this.props.gtcService.openPopup<GtcKeyboardDialog<Facility>>(GtcViewKeys.KeyboardDialog, 'normal', 'hide')
+          const result = await this.props.gtcService.openPopup<GtcWaypointDialog>(GtcViewKeys.WaypointDialog, 'normal', 'hide')
             .ref.request({
-              facilitySearchType: this.props.type,
-              label: GtcWaypointSelectButton.DIALOG_LABEL_TEXT[this.props.type],
-              allowSpaces: false,
-              maxLength: 6,
-              initialInputText
+              searchType: this.props.type,
+              emptyLabelText: GtcWaypointSelectButton.DIALOG_LABEL_TEXT[this.props.type],
+              initialValue: initialWaypoint?.facility.get() as SearchTypeMap[T]
             });
 
           if (result.wasCancelled) {

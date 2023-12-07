@@ -1254,7 +1254,8 @@ export class FmsUtils {
       && a.rnavTypeFlags === b.rnavTypeFlags
       && a.isCircling === b.isCircling
       && a.isVtf === b.isVtf
-      && a.referenceFacility?.icao === b.referenceFacility?.icao;
+      && a.referenceFacility?.icao === b.referenceFacility?.icao
+      && a.runway?.designation === b.runway?.designation;
   }
 }
 

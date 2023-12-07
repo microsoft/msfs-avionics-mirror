@@ -1,8 +1,8 @@
 import {
   AirportFacility, AltitudeRestrictionType, ApproachProcedure, BasicNavAngleSubject, BasicNavAngleUnit, ComponentProps,
-  DefaultUserSettingManager, DisplayComponent, DurationDisplay, DurationDisplayDelim, DurationDisplayFormat, EventBus,
+  DisplayComponent, DurationDisplay, DurationDisplayDelim, DurationDisplayFormat, EventBus,
   FSComponent, FlightPlanSegmentType, LegType, MappedSubject, NumberFormatter, NumberUnitSubject, SetSubject,
-  Subject, Subscribable, Subscription, UnitType, VNode,
+  Subject, Subscribable, Subscription, UnitType, UserSettingManager, VNode,
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -30,7 +30,7 @@ export interface FlightPlanTextRowProps extends ComponentProps {
   /** The units settings manager. */
   unitsSettingManager: UnitsUserSettingManager;
   /** The date time user settings. */
-  dateTimeSettingManager: DefaultUserSettingManager<DateTimeUserSettingTypes>;
+  dateTimeSettingManager: UserSettingManager<DateTimeUserSettingTypes>;
   /** The flight plan text data. */
   data: Subscribable<FlightPlanTextData | undefined>;
   /** The selected row. */

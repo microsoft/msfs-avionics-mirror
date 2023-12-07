@@ -71,7 +71,7 @@ export class MapRotationController extends MapSystemController<MapRotationContro
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         : -this.ownAirplanePropsModule!.trackTrue.get() * Avionics.Utils.DEG2RAD,
 
-    [MapRotation.DtkUp]: (): number => 0 // TODO
+    [MapRotation.DtkUp]: (): number => -this.rotationModule.dtk.get() * Avionics.Utils.DEG2RAD
   };
 
   private rotationFunc?: () => number;

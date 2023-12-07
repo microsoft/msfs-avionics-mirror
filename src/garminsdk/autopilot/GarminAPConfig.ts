@@ -1,13 +1,13 @@
 import {
-  APAltCapDirector, APAltDirector, APBackCourseDirector, APConfig, APFLCDirector, APGPDirector, APGSDirector, APHdgDirector, APLateralModes, APLvlDirector,
-  APNavDirector, APPitchDirector, APRollDirector, APTogaPitchDirector, APValues, APVerticalModes, APVNavPathDirector, APVSDirector, EventBus,
-  FlightPlanner, LNavDirector, LNavDirectorOptions, NavMath, PlaneDirector, UnitType, VNavManager, VNavPathCalculator
+  APAltCapDirector, APAltDirector, APBackCourseDirector, APFLCDirector, APGPDirector, APGSDirector, APHdgDirector, APLateralModes, APLvlDirector, APNavDirector,
+  APPitchDirector, APPitchLvlDirector, APRollDirector, APTogaPitchDirector, APValues, APVerticalModes, APVNavPathDirector, APVSDirector, AutopilotDriverOptions,
+  EventBus, FlightPlanner, LNavDirector, LNavDirectorOptions, NavMath, PlaneDirector, UnitType, VNavManager, VNavPathCalculator
 } from '@microsoft/msfs-sdk';
 
 import { GarminObsDirector } from './directors';
+import { GarminAPConfigInterface } from './GarminAPConfigInterface';
 import { GarminNavToNavManager } from './GarminNavToNavManager';
 import { GarminVNavGuidanceOptions, GarminVNavManager2 } from './GarminVNavManager2';
-import { AutopilotDriverOptions } from '@microsoft/msfs-sdk/autopilot/AutopilotDriver';
 
 /**
  * Options for configuring a Garmin LNAV director.
@@ -66,9 +66,20 @@ export type GarminAPConfigDirectorOptions = {
 };
 
 /**
+ * Options for configuring Garmin autopilots.
+ */
+export type GarminAPConfigOptions = GarminAPConfigDirectorOptions & {
+  /**
+   * Whether the autopilot should use mach number calculated from the impact pressure derived from indicated airspeed
+   * and ambient pressure instead of the true mach number. Defaults to `false`.
+   */
+  useIndicatedMach?: boolean;
+}
+
+/**
  * A Garmin Autopilot Configuration.
  */
-export class GarminAPConfig implements APConfig {
+export class GarminAPConfig implements GarminAPConfigInterface {
   /** The default commanded pitch angle rate, in degrees per second. */
   public static readonly DEFAULT_PITCH_RATE = 5;
 
@@ -92,6 +103,12 @@ export class GarminAPConfig implements APConfig {
   public defaultMaxBankAngle = GarminAPConfig.DEFAULT_MAX_BANK_ANGLE;
 
   public autopilotDriverOptions: AutopilotDriverOptions;
+
+  /**
+   * Whether the autopilot should use mach number calculated from the impact pressure derived from indicated airspeed
+   * and ambient pressure instead of the true mach number.
+   */
+  public readonly useIndicatedMach: boolean;
 
   /** Options for the LNAV director. */
   private readonly lnavOptions: Partial<Readonly<GarminLNavDirectorOptions>>;
@@ -120,12 +137,14 @@ export class GarminAPConfig implements APConfig {
     private readonly bus: EventBus,
     private readonly flightPlanner: FlightPlanner,
     private readonly verticalPathCalculator: VNavPathCalculator,
-    options?: Readonly<GarminAPConfigDirectorOptions>
+    options?: Readonly<GarminAPConfigOptions>
   ) {
     this.autopilotDriverOptions = {
       pitchServoRate: options?.defaultPitchRate ?? GarminAPConfig.DEFAULT_PITCH_RATE,
       bankServoRate: options?.defaultBankRate ?? GarminAPConfig.DEFAULT_BANK_RATE
     };
+
+    this.useIndicatedMach = options?.useIndicatedMach ?? false;
 
     this.lnavOptions = { ...options?.lnavOptions };
     this.vnavOptions = { ...options?.vnavOptions };
@@ -155,6 +174,11 @@ export class GarminAPConfig implements APConfig {
   /** @inheritdoc */
   public createWingLevelerDirector(apValues: APValues): APLvlDirector {
     return new APLvlDirector(this.bus, apValues);
+  }
+
+  /** @inheritdoc */
+  public createPitchLevelerDirector(apValues: APValues): APPitchLvlDirector {
+    return new APPitchLvlDirector(apValues);
   }
 
   /** @inheritdoc */
@@ -214,7 +238,7 @@ export class GarminAPConfig implements APConfig {
 
   /** @inheritdoc */
   public createFlcDirector(apValues: APValues): APFLCDirector {
-    return new APFLCDirector(apValues);
+    return new APFLCDirector(apValues, { useIndicatedMach: this.useIndicatedMach });
   }
 
   /** @inheritdoc */

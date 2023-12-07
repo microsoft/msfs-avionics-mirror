@@ -1,6 +1,6 @@
 import {
   AdcEvents, ComputedSubject, ConsumerSubject, DurationDisplay, DurationDisplayDelim, DurationDisplayFormat, EventBus, FlightPlanner, FocusPosition,
-  FSComponent, GNSSEvents, LegDefinition, MappedSubject, MathUtils, NumberFormatter, NumberUnitSubject, Subject, Subscribable, UnitType, VNavControlEvents,
+  FSComponent, GNSSEvents, LegDefinition, MappedSubject, MathUtils, NumberFormatter, NumberUnitSubject, Subject, Subscribable, UnitType,
   VNavEvents, VNavState, VNode
 } from '@microsoft/msfs-sdk';
 
@@ -170,9 +170,23 @@ export class MFDFPLVNavProfile extends G1000UiControl<MFDFPLVNavProfileProps> {
    * @param fpa The FPA Value to set.
    */
   private setFpa = (fpa: number): void => {
-    const publisher = this.props.bus.getPublisher<VNavControlEvents>();
-    fpa = Math.round(fpa * 10) / 10;
-    publisher.pub('vnav_set_current_fpa', fpa);
+    const plan = this.props.fms.getPrimaryFlightPlan();
+    const leg = this.vnavDataProvider?.activeConstraintLeg.get();
+
+    if (leg === null || leg === undefined) {
+      return;
+    }
+
+    const globalLegIndex = plan.getLegIndexFromLeg(leg);
+
+    if (globalLegIndex < 0) {
+      return;
+    }
+
+    const segmentIndex = plan.getSegmentIndex(globalLegIndex);
+    const segmentLegIndex = plan.getSegmentLegIndex(globalLegIndex);
+
+    this.props.fms.setUserFpa(Fms.PRIMARY_PLAN_INDEX, segmentIndex, segmentLegIndex, fpa);
   };
 
   /** @inheritdoc */

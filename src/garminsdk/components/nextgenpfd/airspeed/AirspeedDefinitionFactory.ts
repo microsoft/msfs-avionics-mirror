@@ -10,6 +10,9 @@ export type AirspeedDefinitionContext = {
   /** The current conversion factor from mach number to knots indicated airspeed. */
   readonly machToKias: Subscribable<number>;
 
+  /** The current conversion factor from true airspeed to indicated airspeed. */
+  readonly tasToIas: Subscribable<number>;
+
   /**
    * The correlation coefficient between a given normalized angle of attack and the estimated indicated airspeed in
    * knots required to maintain level flight at that angle of attack for the current aircraft configuration and

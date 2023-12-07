@@ -1,6 +1,6 @@
 {
   "name": "workingtitle-instruments-gns",
-  "version": "1.1.9",
+  "version": "1.1.10",
   "description": "Working Title MSFS GNS430/530",
   "main": "index.ts",
   "scripts": {

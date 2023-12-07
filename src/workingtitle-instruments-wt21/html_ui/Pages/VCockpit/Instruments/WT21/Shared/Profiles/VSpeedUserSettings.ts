@@ -1,4 +1,5 @@
 import { DefaultUserSettingManager, EventBus, UserSetting, UserSettingDefinition } from '@microsoft/msfs-sdk';
+
 import { VSpeedType } from '../ReferenceSpeeds';
 
 /** */
@@ -65,13 +66,18 @@ export class VSpeedUserSettings {
 
   }
 
-  /** @inheritdoc */
-  // eslint-disable-next-line max-len
-  public getSettings<K extends keyof VSpeedData>(type: VSpeedType): Map<keyof VSpeedData, UserSetting<VSpeedData[K]>> {
-    const settingMap: Map<keyof VSpeedData, UserSetting<any>> = new Map();
-    settingMap.set('value', this.manager.getSetting(`vspeed_value_${type}`));
-    settingMap.set('manual', this.manager.getSetting(`vspeed_manual_${type}`));
-    settingMap.set('show', this.manager.getSetting(`vspeed_show_${type}`));
-    return settingMap;
+  /**
+   * Returns an object containing relevant {@link UserSetting}s for a given {@link VSpeedType}
+   *
+   * @param type the `VSpeedType` to return settings for
+   *
+   * @returns a record
+   */
+  public getSettings(type: VSpeedType): ({ [k in keyof VSpeedData]: UserSetting<VSpeedData[k]> }) {
+    return {
+      'value': this.manager.getSetting(`vspeed_value_${type}`),
+      'manual': this.manager.getSetting(`vspeed_manual_${type}`),
+      'show': this.manager.getSetting(`vspeed_show_${type}`),
+    };
   }
 }

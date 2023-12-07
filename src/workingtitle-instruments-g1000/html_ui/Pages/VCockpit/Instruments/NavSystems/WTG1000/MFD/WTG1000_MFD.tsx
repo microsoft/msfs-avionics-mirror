@@ -6,16 +6,16 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import {
-  AdcPublisher, APRadioNavInstrument, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, Clock, ClockEvents, CompositeLogicXMLHost, ControlPublisher, EISPublisher,
-  ElectricalPublisher, EventBus, EventSubscriber, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner,
-  FSComponent, GameStateProvider, GNSSPublisher, GpsSynchronizer, HEvent, HEventPublisher, InstrumentBackplane, InstrumentEvents, LNavSimVarPublisher, MinimumsManager,
-  MinimumsSimVarPublisher, NavComSimVarPublisher, PluginSystem, SimVarValueType, SmoothingPathCalculator, TrafficInstrument, UserSettingSaveManager,
-  VNavSimVarPublisher, Wait, XMLGaugeConfigFactory
+  AdcPublisher, AltitudeSelectManagerAccelFilter, APRadioNavInstrument, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, Clock, ClockEvents,
+  CompositeLogicXMLHost, ControlPublisher, EISPublisher, ElectricalPublisher, EventBus, EventSubscriber, FacilityLoader, FacilityRepository,
+  FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner, FSComponent, GameStateProvider, GNSSPublisher, GpsSynchronizer, HEvent, HEventPublisher,
+  InstrumentBackplane, InstrumentEvents, LNavSimVarPublisher, MinimumsManager, MinimumsSimVarPublisher, NavComSimVarPublisher, NavEvents, NavSourceType,
+  PluginSystem, SimVarValueType, SmoothingPathCalculator, TrafficInstrument, UserSettingSaveManager, VNavSimVarPublisher, VNode, Wait, XMLGaugeConfigFactory
 } from '@microsoft/msfs-sdk';
 
 import {
-  AdcSystem, DateTimeUserSettings, Fms, GarminAdsb, GarminAPConfig, GarminAPStateManager, GarminVNavUtils, LNavDataSimVarPublisher, NavdataComputer, TrafficAdvisorySystem,
-  TrafficOperatingModeManager, UnitsUserSettings
+  ActiveNavSource, AdcSystem, DateTimeUserSettings, Fms, GarminAdsb, GarminAPConfig, GarminAPStateManager, GarminGoAroundManager, GarminNavEvents,
+  GarminVNavUtils, LNavDataSimVarPublisher, NavdataComputer, TrafficAdvisorySystem, TrafficOperatingModeManager, UnitsUserSettings
 } from '@microsoft/msfs-garminsdk';
 
 import { PFDUserSettings } from '../PFD/PFDUserSettings';
@@ -35,6 +35,7 @@ import { StartupLogo } from '../Shared/StartupLogo';
 import {
   ADCAvionicsSystem, AHRSSystem, AvionicsComputerSystem, EngineAirframeSystem, G1000AvionicsSystem, MagnetometerSystem, TransponderSystem
 } from '../Shared/Systems';
+import { ControlpadInputController, ControlpadTargetInstrument } from '../Shared/UI/Controllers/ControlpadInputController';
 import { ContextMenuDialog } from '../Shared/UI/Dialogs/ContextMenuDialog';
 import { MessageDialog } from '../Shared/UI/Dialogs/MessageDialog';
 import { EngineMenu } from '../Shared/UI/Menus/MFD/EngineMenu';
@@ -160,6 +161,12 @@ class WTG1000_MFD extends BaseInstrument {
 
   private readonly pluginSystem = new PluginSystem<G1000AvionicsPlugin, G1000PluginBinder>();
 
+  private readonly comRadio = FSComponent.createRef<NavComRadio>();
+  private readonly navRadio = FSComponent.createRef<NavComRadio>();
+  private controlPadHandler: ControlpadInputController;
+
+  private goAroundManager?: GarminGoAroundManager;
+
   /**
    * Creates an instance of the WTG1000_MFD.
    */
@@ -213,7 +220,7 @@ class WTG1000_MFD extends BaseInstrument {
     this.backplane.addPublisher('gnss', this.gnss);
     this.backplane.addPublisher('eis', this.eis);
     this.backplane.addPublisher('control', this.controlPublisher);
-    this.backplane.addPublisher('g1000', this.g1000ControlPublisher);
+    this.backplane.addPublisher('g1000Control', this.g1000ControlPublisher);
     this.backplane.addPublisher('lnav', this.lNavPublisher);
     this.backplane.addPublisher('lnavdata', this.lNavDataPublisher);
     this.backplane.addPublisher('vnav', this.vNavPublisher);
@@ -268,6 +275,8 @@ class WTG1000_MFD extends BaseInstrument {
 
     this.initDuration = 3000;
     this.needValidationAfterInit = true;
+
+    this.controlPadHandler = new ControlpadInputController(this.bus, ControlpadTargetInstrument.MFD);
   }
 
   /**
@@ -293,6 +302,9 @@ class WTG1000_MFD extends BaseInstrument {
     super.connectedCallback();
     this.airframeOptions.parseConfig();
 
+    // The NXi does not support FMS-managed speed.
+    SimVar.SetSimVarValue('L:XMLVAR_SpeedIsManuallySet', SimVarValueType.Bool, 1);
+
     this.verticalPathCalculator = new SmoothingPathCalculator(this.bus, this.planner, 0, {
       defaultFpa: 3,
       maxFpa: 6,
@@ -302,12 +314,28 @@ class WTG1000_MFD extends BaseInstrument {
       invalidateDescentConstraint: GarminVNavUtils.invalidateDescentConstraint
     });
 
-    const apConfig = new GarminAPConfig(this.bus, this.planner, this.verticalPathCalculator);
+    const apConfig = new GarminAPConfig(this.bus, this.planner, this.verticalPathCalculator, {
+      rollMinBankAngle: this.airframeOptions.autopilotConfig.rollOptions.minBankAngle,
+      rollMaxBankAngle: this.airframeOptions.autopilotConfig.rollOptions.maxBankAngle,
+      hdgMaxBankAngle: this.airframeOptions.autopilotConfig.hdgOptions.maxBankAngle,
+      vorMaxBankAngle: this.airframeOptions.autopilotConfig.vorOptions.maxBankAngle,
+      locMaxBankAngle: this.airframeOptions.autopilotConfig.locOptions.maxBankAngle,
+      lnavMaxBankAngle: this.airframeOptions.autopilotConfig.lnavOptions.maxBankAngle,
+      lowBankAngle: this.airframeOptions.autopilotConfig.lowBankOptions.maxBankAngle,
+    });
     this.autopilot = new G1000Autopilot(
       this.bus, this.planner,
       apConfig,
       new GarminAPStateManager(this.bus, apConfig),
-      PFDUserSettings.getManager(this.bus)
+      {
+        metricAltSettingsManager: PFDUserSettings.getManager(this.bus),
+        altSelectOptions: {
+          accelInputCountThreshold: 11,
+          accelResetOnDirectionChange: true,
+          accelFilter: AltitudeSelectManagerAccelFilter.ZeroIncDec,
+          transformSetToIncDec: this.airframeOptions.autopilotConfig.supportAltSelCompatibility
+        }
+      }
     );
 
     Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.briefing || state === GameState.ingame).then(() => {
@@ -317,6 +345,7 @@ class WTG1000_MFD extends BaseInstrument {
     });
 
     this.fms = new Fms(true, this.bus, this.planner, this.verticalPathCalculator);
+    this.goAroundManager = new GarminGoAroundManager(this.bus, this.fms);
 
     const softKeyMenuSystem = new SoftKeyMenuSystem(this.bus, 'AS1000_MFD_SOFTKEYS_');
     const rotaryMenuSystem = new PageSelectMenuSystem();
@@ -327,7 +356,10 @@ class WTG1000_MFD extends BaseInstrument {
     this.pluginSystem.addScripts(this.xmlConfig, this.templateID, (target) => {
       return target === this.templateID;
     }).then(() => {
-      this.pluginSystem.startSystem({ bus: this.bus, viewService: this.viewService, menuSystem: softKeyMenuSystem, pageSelectMenuSystem: rotaryMenuSystem }).then(() => {
+      this.pluginSystem.startSystem({
+        bus: this.bus, backplane: this.backplane, fms: this.fms, viewService: this.viewService,
+        menuSystem: softKeyMenuSystem, pageSelectMenuSystem: rotaryMenuSystem
+      }).then(() => {
         softKeyMenuSystem.addMenu('empty', new SoftKeyMenu(softKeyMenuSystem));
         softKeyMenuSystem.addMenu('navmap-root', new MFDNavMapRootMenu(softKeyMenuSystem));
 
@@ -353,9 +385,14 @@ class WTG1000_MFD extends BaseInstrument {
 
         softKeyMenuSystem.pushMenu('navmap-root');
 
-        this.pluginSystem.callPlugins(p => p.onMenuSystemInitialized());
+        this.pluginSystem.callPlugins(p => p.onMenuSystemInitialized?.());
 
-        FSComponent.render(<EIS bus={this.bus} logicHandler={this.xmlLogicHost} gaugeConfig={gaugeConfig} />, document.getElementsByClassName('eis')[0] as HTMLDivElement);
+        let eisNode: VNode | null = null;
+        this.pluginSystem.callPlugins(p => {
+          eisNode ??= p.renderEIS?.() || null;
+        });
+
+        FSComponent.render(eisNode ?? <EIS bus={this.bus} logicHandler={this.xmlLogicHost} gaugeConfig={gaugeConfig} />, document.getElementsByClassName('eis')[0] as HTMLDivElement);
         FSComponent.render(
           <MFDNavDataBar
             bus={this.bus}
@@ -368,8 +405,8 @@ class WTG1000_MFD extends BaseInstrument {
           />,
           document.getElementById('NavComBox')
         );
-        FSComponent.render(<NavComRadio bus={this.bus} title='NAV' position='left' templateId={this.templateID} />, document.querySelector('#NavComBox #Left'));
-        FSComponent.render(<NavComRadio bus={this.bus} title='COM' position='right' templateId={this.templateID} />, document.querySelector('#NavComBox #Right'));
+        FSComponent.render(<NavComRadio ref={this.navRadio} bus={this.bus} title='NAV' position='left' templateId={this.templateID} />, document.querySelector('#NavComBox #Left'));
+        FSComponent.render(<NavComRadio ref={this.comRadio} bus={this.bus} title='COM' position='right' templateId={this.templateID} />, document.querySelector('#NavComBox #Right'));
         FSComponent.render(<SoftKeyBar menuSystem={softKeyMenuSystem} />, document.getElementById('Electricity'));
 
         FSComponent.render(<StartupLogo bus={this.bus} eventPrefix='AS1000_MFD' onConfirmation={(): any => this.initAcknowledged = true} />, this);
@@ -413,9 +450,11 @@ class WTG1000_MFD extends BaseInstrument {
 
         // this.viewService.registerView('Turb', () => <TurbulenceGraph viewService={this.viewService} bus={this.bus} menuSystem={menuSystem} />);
 
+        this.controlPadHandler.setFrequencyElementRefs(this.comRadio.instance, this.navRadio.instance);
+
         this.viewService.open('NavMapPage');
 
-        this.pluginSystem.callPlugins(p => p.onViewServiceInitialized());
+        this.pluginSystem.callPlugins(p => p.onViewServiceInitialized?.());
         this.controlPublisher.publishEvent('init_cdi', true);
       });
 
@@ -459,6 +498,21 @@ class WTG1000_MFD extends BaseInstrument {
         this.onScreenStateChanged(event.current);
       }
     });
+
+    //Bridge G1000 CDI to newer nav source events for GoAoundManager
+    this.bus.getSubscriber<NavEvents>().on('cdi_select').handle(v => {
+      const publisher = this.bus.getPublisher<GarminNavEvents>();
+
+      if (v.type === NavSourceType.Gps) {
+        publisher.pub('active_nav_source_1', ActiveNavSource.Gps1, false, true);
+      } else if (v.type === NavSourceType.Nav) {
+        publisher.pub('active_nav_source_1', v.index === 0 ? ActiveNavSource.Nav1 : ActiveNavSource.Nav2);
+      } else {
+        publisher.pub('active_nav_source_1', ActiveNavSource.Nav1);
+      }
+
+    });
+    this.goAroundManager?.init();
 
     this.doDelayedInit();
   }
@@ -583,8 +637,14 @@ class WTG1000_MFD extends BaseInstrument {
    * @param args The H event and associated arguments, if any.
    */
   public onInteractionEvent(args: string[]): void {
-    this.hEventPublisher.dispatchHEvent(args[0]);
+    const isHandled = this.controlPadHandler.handleControlPadEventInput(args[0]);
+    if (isHandled === false) {
+      // If the controlpad handler did not handle the event, continue and publish:
+      this.hEventPublisher.dispatchHEvent(args[0]);
+    }
   }
+
+
 }
 
 registerInstrument('wtg1000-mfd', WTG1000_MFD);

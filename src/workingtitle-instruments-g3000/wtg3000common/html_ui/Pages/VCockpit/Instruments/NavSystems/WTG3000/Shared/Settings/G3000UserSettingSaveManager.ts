@@ -87,7 +87,9 @@ export class G3000UserSettingSaveManager extends UserSettingSaveManager {
         ...PfdUserSettings.getMasterManager(bus).getAllSettings().filter(setting => {
           return G3000UserSettingSaveManager.PFD_SETTINGS.some(value => setting.definition.name.startsWith(value));
         }),
-        ...MapUserSettings.getMasterManager(bus).getAllSettings(),
+        ...MapUserSettings.getMasterManager(bus).getAllSettings().filter(setting => {
+          return !setting.definition.name.startsWith('mapGroundNorthUpActive');
+        }),
         ...MapSettingSyncUserSettings.getManager(bus).getAllSettings(),
         ...WeatherMapUserSettings.getMasterManager(bus).getAllSettings(),
         ...ConnextMapUserSettings.getMasterManager(bus).getAllSettings(),

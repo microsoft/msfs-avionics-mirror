@@ -1,7 +1,7 @@
 import {
-  DisplayComponent, FSComponent, MutableSubscribable,
-  MutableSubscribableInputType, Subject, SubscribableType, VNode,
+  DisplayComponent, FSComponent, MutableSubscribable, MutableSubscribableInputType, Subject, VNode,
 } from '@microsoft/msfs-sdk';
+
 import { GtcService, GtcViewOcclusionType } from '../../GtcService/GtcService';
 import { GtcListDialog, GtcListDialogParams } from '../../Dialog/GtcListDialog';
 import { ValueTouchButton } from './ValueTouchButton';
@@ -35,7 +35,7 @@ export interface GtcListSelectTouchButtonProps<S extends MutableSubscribable<any
    * Parameters to pass to the selection list dialog, or a function which will return the parameters when called each
    * time the list is opened.
    */
-  listParams: GtcListDialogParams<SubscribableType<S>> | ((state: S) => GtcListDialogParams<MutableSubscribableInputType<S>>);
+  listParams: GtcListDialogParams<MutableSubscribableInputType<S>> | ((state: S) => GtcListDialogParams<MutableSubscribableInputType<S>>);
 
   /**
    * A callback function which will be called every time a value is selected from the list. If not defined, selecting

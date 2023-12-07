@@ -11,11 +11,33 @@ import { MFDSystemSetupSelectRow } from './MFDSystemSetupRow';
  * The MFD System Setup page MFD Data Bar Fields group.
  */
 export class MFDSystemSetupDataBarGroup extends DisplayComponent<MFDSystemSetupGroupProps> {
+  private static readonly SUPPORTED_FIELD_TYPES = [
+    NavDataFieldType.BearingToWaypoint,
+    NavDataFieldType.Destination,
+    NavDataFieldType.DistanceToWaypoint,
+    NavDataFieldType.DistanceToDestination,
+    NavDataFieldType.DesiredTrack,
+    NavDataFieldType.Endurance,
+    NavDataFieldType.TimeToDestination,
+    NavDataFieldType.TimeOfWaypointArrival,
+    NavDataFieldType.TimeToWaypoint,
+    NavDataFieldType.FuelOnBoard,
+    NavDataFieldType.FuelOverDestination,
+    NavDataFieldType.GroundSpeed,
+    NavDataFieldType.ISA,
+    NavDataFieldType.TimeOfDestinationArrival,
+    NavDataFieldType.TrueAirspeed,
+    NavDataFieldType.TrackAngleError,
+    NavDataFieldType.GroundTrack,
+    NavDataFieldType.VerticalSpeedRequired,
+    NavDataFieldType.CrossTrack
+  ];
+
   private readonly settingManager = MFDNavDataBarUserSettings.getManager(this.props.bus);
 
   /** @inheritdoc */
   public render(): VNode {
-    const valueArray = ArraySubject.create(Object.values(NavDataFieldType).filter(type => type !== NavDataFieldType.TimeToDestination));
+    const valueArray = ArraySubject.create(Array.from(MFDSystemSetupDataBarGroup.SUPPORTED_FIELD_TYPES));
     return (
       <GroupBox title='MFD Data Bar Fields' class='mfd-system-setup-group'>
         <MFDSystemSetupSelectRow<NavDataBarSettingTypes, 'navDataBarField0'>

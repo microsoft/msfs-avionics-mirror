@@ -4,19 +4,36 @@
   border: 2px solid transparent;
 }
 
+.popup-menu-radio.popup-menu-radio-side-buttons {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: flex-start;
+}
+
 .radio-label {
   display: block;
   line-height: 1.1;
 }
 
-.popup-menu-radio .label {
+.popup-menu-radio:not(.popup-menu-radio-side-buttons) .popup-menu-radio-label {
   display: none;
 }
 
-.popup-menu-radio.inline .radio-label, .popup-menu-radio.inline .label {
+.popup-menu-radio.popup-menu-radio-side-buttons .popup-menu-radio-label {
+  padding-left: 18px;
+  vertical-align: -4px;
+}
+
+.popup-menu-radio.popup-menu-radio-inline .radio-label,
+.popup-menu-radio.popup-menu-radio-inline .popup-menu-radio-label {
   display: inline-block;
   line-height: 17px;
   vertical-align: -7px;
+}
+
+.popup-menu-radio.popup-menu-radio-side-buttons .radio-label {
+  padding-left: 4px;
+  vertical-align: -4px;
 }
 
 .radio-label.radio-select {
@@ -24,11 +41,11 @@
   padding-top: 3px
 }
 
-.popup-menu-radio.inline .label {
+.popup-menu-radio.popup-menu-radio-inline:not(.popup-menu-radio-side-buttons) .popup-menu-radio-label {
   width: 145px;
 }
 
-.popup-menu-radio.inline .radio-label {
+.popup-menu-radio.popup-menu-radio-inline:not(.popup-menu-radio-side-buttons) .radio-label {
   width: 100px;
 }
 
@@ -65,7 +82,6 @@
   transform: scale(1);
 }
 
-
 .radio-label .radio-input:checked+.radio-design::before {
   transform: scale(0);
 }
@@ -87,8 +103,15 @@
 
 .radio-label .radio-text {
   width: calc(100% - 25px);
+
   display: inline-flex;
   justify-content: space-between
+}
+
+.popup-menu-radio.popup-menu-radio-side-buttons .radio-label .radio-text {
+  width: unset;
+
+  margin-right: 4px;
 }
 
 .radio-label.disabled {
@@ -97,4 +120,18 @@
 
 .radio-label .radio-select-value {
   padding-right: 3px;
+}
+
+.popup-menu-radio:not(.popup-menu-radio-side-buttons):not(.popup-menu-radio-inline) .popup-menu-radio-children {
+  display: block;
+}
+
+.popup-menu-radio.popup-menu-radio-side-buttons .popup-menu-radio-children {
+  margin-left: 18px;
+
+  border: 2px solid transparent;
+}
+
+.popup-menu-radio .popup-menu-radio-children.highlight {
+  border-color: var(--wt21-colors-cyan);
 }

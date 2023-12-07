@@ -11,7 +11,7 @@ export enum SubscribableArrayEventType {
   Removed = 'Removed',
 
   /** The array was cleared. */
-  Cleared = 'Cleared'
+  Cleared = 'Cleared',
 }
 
 /**

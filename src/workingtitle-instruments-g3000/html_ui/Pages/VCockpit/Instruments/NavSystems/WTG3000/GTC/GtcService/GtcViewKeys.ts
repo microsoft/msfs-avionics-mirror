@@ -77,5 +77,7 @@ export enum GtcViewKeys {
   FmsSpeedDialog = 'FmsSpeedDialog',
   MinuteDurationDialog = 'MinuteDurationDialog',
   ToldFactorDialog = 'ToldFactorDialog',
-  FindWaypointDialog = 'FindWaypointDialog'
+  WaypointDialog = 'WaypointDialog',
+  FindWaypointDialog = 'FindWaypointDialog',
+  DuplicateWaypointDialog = 'DuplicateWaypointDialog'
 }

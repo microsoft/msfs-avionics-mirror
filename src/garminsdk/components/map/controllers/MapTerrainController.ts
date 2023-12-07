@@ -1,6 +1,6 @@
 import {
-  MapDataIntegrityModule, MapIndexedRangeModule, MapOwnAirplanePropsModule, MappedSubject, MappedSubscribable, MapSystemContext, MapSystemController, MapSystemKeys,
-  Subject, Subscribable, Subscription, UserSettingManager
+  MapDataIntegrityModule, MapIndexedRangeModule, MapOwnAirplanePropsModule, MappedSubject, MappedSubscribable, MapSystemContext,
+  MapSystemController, MapSystemKeys, Subject, Subscribable, SubscribableUtils, Subscription, UserSettingManager
 } from '@microsoft/msfs-sdk';
 
 import { MapTerrainSettingMode, MapUserSettingTypes } from '../../../settings/MapUserSettings';
@@ -35,6 +35,20 @@ export interface MapTerrainControllerModules {
 }
 
 /**
+ * Configuration options for {@link MapTerrainController}.
+ */
+export type MapTerrainControllerOptions = {
+  /** Whether to allow relative terrain mode. Ignored if a user setting manager is not provided. Defaults to `true`. */
+  allowRelative?: boolean;
+
+  /**
+   * The default terrain mode to which to revert if the desired terrain mode defined by user settings cannot be engaged.
+   * Ignored if a user setting manager is not provided. Defaults to `MapTerrainMode.None`.
+   */
+  defaultMode?: MapTerrainMode | Subscribable<MapTerrainMode>;
+};
+
+/**
  * Controls the display of terrain based on user settings.
  */
 export class MapTerrainController extends MapSystemController<MapTerrainControllerModules> {
@@ -48,11 +62,14 @@ export class MapTerrainController extends MapSystemController<MapTerrainControll
   private readonly rangeIndexSetting: Subscribable<number>;
   private readonly showScaleSetting?: Subscribable<boolean>;
 
-  private terrainModeState?: MappedSubscribable<readonly [MapTerrainSettingMode, number, number, boolean, boolean]>;
+  private readonly allowRelative: boolean;
+  private readonly defaultTerrainMode: Subscribable<MapTerrainMode>;
+
+  private terrainModeState?: MappedSubscribable<readonly [MapTerrainMode, MapTerrainSettingMode, number, number, boolean, boolean]>;
   private showScalePipe?: Subscription;
 
   /**
-   * Constructor.
+   * Creates a new instance of MapTerrainController.
    * @param context This controller's map context.
    * @param settingManager A setting manager containing the user settings controlling the display of terrain. If not
    * defined, the display of terrain will not be bound to user settings.
@@ -62,9 +79,32 @@ export class MapTerrainController extends MapSystemController<MapTerrainControll
   constructor(
     context: MapSystemContext<MapTerrainControllerModules, any, any, any>,
     settingManager?: UserSettingManager<Partial<MapTerrainUserSettings>>,
-    private readonly allowRelative = true
+    allowRelative?: boolean
+  );
+  /**
+   * Creates a new instance of MapTerrainController.
+   * @param context This controller's map context.
+   * @param settingManager A setting manager containing the user settings controlling the display of terrain. If not
+   * defined, the display of terrain will not be bound to user settings.
+   * @param options Options with which to configure the controller.
+   */
+  constructor(
+    context: MapSystemContext<MapTerrainControllerModules, any, any, any>,
+    settingManager?: UserSettingManager<Partial<MapTerrainUserSettings>>,
+    options?: Readonly<MapTerrainControllerOptions>
+  );
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  constructor(
+    context: MapSystemContext<MapTerrainControllerModules, any, any, any>,
+    settingManager?: UserSettingManager<Partial<MapTerrainUserSettings>>,
+    arg3?: boolean | Readonly<MapTerrainControllerOptions>
   ) {
     super(context);
+
+    const options = arg3 === undefined ? undefined : typeof arg3 === 'object' ? arg3 : { allowRelative: arg3 };
+
+    this.allowRelative = options?.allowRelative ?? true;
+    this.defaultTerrainMode = SubscribableUtils.toSubscribable(options?.defaultMode ?? MapTerrainMode.None, true);
 
     this.modeSetting = settingManager?.tryGetSetting('mapTerrainMode');
     this.rangeIndexSetting = settingManager?.tryGetSetting('mapTerrainRangeIndex') ?? Subject.create(Number.MAX_SAFE_INTEGER);
@@ -75,6 +115,7 @@ export class MapTerrainController extends MapSystemController<MapTerrainControll
   public onAfterMapRender(): void {
     if (this.modeSetting !== undefined) {
       this.terrainModeState = MappedSubject.create(
+        this.defaultTerrainMode,
         this.modeSetting,
         this.rangeIndexSetting,
         this.rangeIndex,
@@ -82,7 +123,7 @@ export class MapTerrainController extends MapSystemController<MapTerrainControll
         this.isGpsDataValid
       );
 
-      this.terrainModeState.sub(([modeSetting, rangeIndexSetting, rangeIndex, isOnGround, isGpsDataValid]): void => {
+      this.terrainModeState.sub(([defaultMode, modeSetting, rangeIndexSetting, rangeIndex, isOnGround, isGpsDataValid]): void => {
         let mode = MapTerrainMode.None;
         let isRelativeFailed = false;
 
@@ -96,6 +137,7 @@ export class MapTerrainController extends MapSystemController<MapTerrainControll
                 if (isGpsDataValid) {
                   mode = isOnGround ? MapTerrainMode.Ground : MapTerrainMode.Relative;
                 } else {
+                  mode = defaultMode;
                   isRelativeFailed = true;
                 }
               }

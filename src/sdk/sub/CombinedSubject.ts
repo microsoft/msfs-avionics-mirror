@@ -20,6 +20,9 @@ export type CombinedSubscribableInputs<Types extends readonly any[]> = {
  * @deprecated This class has been deprecated in favor of using `MappedSubject` without an explicit mapping function.
  */
 export class CombinedSubject<I extends any[]> extends AbstractSubscribable<Readonly<I>> implements MappedSubscribable<Readonly<I>> {
+  /** @inheritdoc */
+  public readonly canInitialNotify = true;
+
   private readonly inputs: CombinedSubscribableInputs<I>;
   private readonly inputValues: I;
   private readonly inputSubs: Subscription[];

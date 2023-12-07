@@ -93,9 +93,9 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
   private readonly activeNavSource = ConsumerValue.create(this.props.bus.getSubscriber<NavEvents>().on('cdi_select'), { index: 1, type: NavSourceType.Gps });
   private readonly vnavTrackingPhase = ConsumerValue.create(this.props.bus.getSubscriber<VNavDataEvents>().on('vnav_tracking_phase'), GarminVNavTrackingPhase.None);
   private readonly vnavTodIndex = ConsumerValue.create(this.props.bus.getSubscriber<VNavEvents>().on('vnav_tod_global_leg_index'), -1);
-  private readonly vnavTodDistance = ConsumerValue.create(this.props.bus.getSubscriber<VNavEvents>().on('vnav_tod_distance'), -1);
+  private readonly vnavTodDistance = ConsumerSubject.create(this.props.bus.getSubscriber<VNavEvents>().on('vnav_tod_distance'), -1);
   private readonly vnavBodDistance = ConsumerValue.create(this.props.bus.getSubscriber<VNavEvents>().on('vnav_bod_distance'), -1);
-  private readonly groundSpeed = ConsumerValue.create(this.props.bus.getSubscriber<GNSSEvents>().on('ground_speed').atFrequency(1), 0);
+  private readonly groundSpeed = ConsumerSubject.create(this.props.bus.getSubscriber<GNSSEvents>().on('ground_speed').atFrequency(1), 0);
   private vnavState = VNavState.Enabled_Inactive;
   private vnavConstraintDetails: AltitudeConstraintDetails = { type: AltitudeRestrictionType.Unused, altitude: 0 };
 
@@ -107,6 +107,15 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
 
   private readonly updateTapeEvent = new SubEvent<this, void>();
   private readonly isGroundLineVisible = Subject.create<boolean>(false);
+
+  private readonly timeToTod = MappedSubject.create(  // minutes
+    ([todDistance, groundSpeed]): number => {
+      const todDistanceNm = UnitType.METER.convertTo(todDistance, UnitType.NMILE);
+      return (todDistanceNm / groundSpeed) * 60;
+    },
+    this.vnavTodDistance, this.groundSpeed,
+  );
+  private readonly closeToTod = Subject.create(false);
 
 
   /**
@@ -134,9 +143,9 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
       .withPrecision(-1)
       .handle(this.updateVerticalSpeed.bind(this));
     sub.on('hEvent').handle(hEvent => {
-      if (hEvent == 'AS1000_PFD_BARO_INC') {
+      if ((hEvent == 'AS1000_PFD_BARO_INC') || hEvent == ('AS1000_MFD_BARO_INC')) {
         this.onbaroKnobTurn(true);
-      } else if (hEvent == 'AS1000_PFD_BARO_DEC') {
+      } else if ((hEvent == 'AS1000_PFD_BARO_DEC') || (hEvent == 'AS1000_MFD_BARO_DEC')) {
         this.onbaroKnobTurn(false);
       }
     });
@@ -194,6 +203,9 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
       this.vnavState = state;
       this.manageVnavConstraintAltitudeDisplay();
     });
+    this.closeToTod.sub((close) => {
+      if (close) { this.manageVnavConstraintAltitudeDisplay(); }
+    }, true);
 
     this.controller.alerterState.sub(this.onAlerterStateChanged.bind(this));
 
@@ -202,6 +214,15 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     this.altitudeBugRef.instance.style.display = 'none';
 
     sub.on('adc_state').handle(this.onAdcStateChanged.bind(this));
+
+    this.timeToTod.sub((t) => {
+      // true if less than 1 minute from TOD, else false
+      if (t < 1) {
+        this.closeToTod.set(true);
+      } else {
+        this.closeToTod.set(false);
+      }
+    }, true);
   }
 
   /**
@@ -283,8 +304,6 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
         if (this.vnavTrackingPhase.get() === GarminVNavTrackingPhase.Climb) {
           showTargetAltitude = this.vnavConstraintDetails.type !== AltitudeRestrictionType.Unused;
         } else {
-          const todDistanceNm = UnitType.METER.convertTo(this.vnavTodDistance.get(), UnitType.NMILE);
-          const PATH_TRACKING_LOOKAHEAD = 1 / 60;
           if (
             // VNAV target altitude is valid
             this.vnavConstraintDetails.type !== AltitudeRestrictionType.Unused
@@ -293,7 +312,7 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
             // TOD exists
             && this.vnavTodIndex.get() >= 0
             // Within one minute of TOD
-            && todDistanceNm / this.groundSpeed.get() < PATH_TRACKING_LOOKAHEAD
+            && this.closeToTod.get()
             // Above 250 feet below the VNAV target altitude
             && this.indicatedAltitudeSub.get().asUnit(UnitType.FOOT) >= this.vnavConstraintDetails.altitude - 250
           ) {

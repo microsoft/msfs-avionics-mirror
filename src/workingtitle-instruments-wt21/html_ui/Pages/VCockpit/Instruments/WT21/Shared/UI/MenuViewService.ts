@@ -15,15 +15,15 @@ type ViewEntry<T extends GuiDialog = GuiDialog> = {
 /**
  * A service to manage menu views.
  */
-export abstract class MenuViewService {
-  private readonly registeredViews: Map<string, () => VNode> = new Map();
+export abstract class MenuViewService<K = Record<string, unknown>> {
+  private readonly registeredViews: Map<string & keyof K, () => VNode> = new Map();
   private readonly refsMap: Map<string, ViewEntry> = new Map();
 
   private openViews: ViewEntry[] = [];
 
   private readonly activeViewEntrySub = Subject.create<ViewEntry | null>(null);
   /** The key of the currently active view. */
-  public readonly activeViewKey = this.activeViewEntrySub.map(entry => entry?.key ?? '') as Subscribable<string>;
+  public readonly activeViewKey = this.activeViewEntrySub.map(entry => entry?.key ?? '') as Subscribable<string & keyof K | ''>;
   /** The currently active view. */
   public readonly activeView = this.activeViewEntrySub.map(entry => entry?.ref.instance) as Subscribable<GuiDialog | null>;
 
@@ -79,7 +79,7 @@ export abstract class MenuViewService {
    * @returns The view that was opened.
    * @throws Error if the view type is not registered with this service.
    */
-  public open<T extends GuiDialog>(type: string): T {
+  public open<T extends GuiDialog>(type: string & keyof K): T {
     let viewEntry = this.refsMap.get(type);
     if (viewEntry === undefined) {
       // when we hve no ref, create the view
@@ -128,7 +128,7 @@ export abstract class MenuViewService {
    * @returns A NodeReference to the created view.
    * @throws When type of view is not registered.
    */
-  private createView(type: string): NodeReference<GuiDialog> {
+  private createView(type: string & keyof K): NodeReference<GuiDialog> {
     const vnodeFn = this.registeredViews.get(type);
     if (vnodeFn === undefined) {
       console.error(`Could not find a registered view of type ${type.toString()}!`);
@@ -169,8 +169,7 @@ export abstract class MenuViewService {
    * @param [type] The type of the view.
    * @param vnodeFn A function creating the VNode.
    */
-  public registerView(type: string, vnodeFn: () => VNode): void {
-    // console.log('registering ' + type);
+  public registerView(type: string & keyof K, vnodeFn: () => VNode): void {
     this.registeredViews.set(type, vnodeFn);
   }
 

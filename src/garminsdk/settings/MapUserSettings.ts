@@ -4,7 +4,8 @@
 export enum MapOrientationSettingMode {
   NorthUp = 'NorthUp',
   TrackUp = 'TrackUp',
-  HeadingUp = 'HeadingUp'
+  HeadingUp = 'HeadingUp',
+  DtkUp = 'DtkUp'
 }
 
 /**
@@ -43,11 +44,14 @@ export type MapUserSettingTypes = {
   /** The orientation setting. */
   mapOrientation: MapOrientationSettingMode;
 
-  /** The auto-north-up active setting. */
+  /** Whether north-up above is active. */
   mapAutoNorthUpActive: boolean;
 
-  /** The auto-north-up range setting. */
+  /** The range index above which north-up above applies. */
   mapAutoNorthUpRangeIndex: number;
+
+  /** Whether north-up on ground is active. */
+  mapGroundNorthUpActive: boolean;
 
   /** Declutter setting. */
   mapDeclutter: MapDeclutterSettingMode;
@@ -183,6 +187,7 @@ export class MapUserSettingsUtils {
     'mapOrientation',
     'mapAutoNorthUpActive',
     'mapAutoNorthUpRangeIndex',
+    'mapGroundNorthUpActive',
     'mapDeclutter',
     'mapTerrainMode',
     'mapTerrainRangeIndex',

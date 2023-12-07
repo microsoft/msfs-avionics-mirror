@@ -9,6 +9,7 @@
   position: relative;
   width: var(--map-rel-terrain-status-icon-width, 1.3em);
   height: var(--map-rel-terrain-status-icon-height, 1.2em);
+  overflow: hidden;
 }
 
 .map-rel-terrain-status-icon {
@@ -25,6 +26,7 @@
   top: 0px;
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 
 .map-rel-terrain-status-failed-cross {

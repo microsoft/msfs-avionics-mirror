@@ -1,11 +1,13 @@
 .terr-wx-info {
-  position: absolute;
-  top: 73.65%;
   right: 0;
   color: var(--wt21-colors-white);
   text-align: right;
   font-size: 24px;
   letter-spacing: -1.75px;
+}
+
+.terr-wx-info-side-buttons {
+  margin-top: 65px;
 }
 
 .terr-wx-info > * + * {
@@ -49,4 +51,44 @@
 
 .terr-wx-info .line-3 {
   margin-top: -10px;
+}
+
+.right-info-terr-wxr-switch {
+  letter-spacing: 1.1px;
+}
+
+.right-info-terr-wxr-switch-arrow-wrapper {
+  height: 0;
+}
+
+.right-info-terr-wxr-switch-arrow {
+  position: relative;
+  width: 10px;
+  height: 14px;
+
+  top: 5px;
+}
+
+.right-info-terr-wxr-switch-info {
+  display: flex;
+  flex-flow: column nowrap;
+
+  padding-right: 18px;
+}
+
+.right-info-terr-wxr-switch-line {
+  color: var(--wt21-colors-white);
+
+  font-size: 20px;
+  line-height: 21px;
+}
+
+.right-info-terr-wxr-switch-line-selected {
+  color: var(--wt21-colors-cyan);
+
+  font-size: 21px;
+}
+
+.right-info-terr-wxr-switch-wx {
+  font-size: 16px;
 }

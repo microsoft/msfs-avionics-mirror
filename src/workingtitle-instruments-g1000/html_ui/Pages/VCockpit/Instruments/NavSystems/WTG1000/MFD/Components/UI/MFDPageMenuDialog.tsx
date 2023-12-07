@@ -8,7 +8,7 @@ import { GroupBox } from './GroupBox';
 import './MFDPageMenuDialog.css';
 
 /**
- * Dialog used for displaying MFD FPL page menus.
+ * Dialog used for displaying MFD page menus.
  */
 export class MFDPageMenuDialog extends ListMenuDialog {
 

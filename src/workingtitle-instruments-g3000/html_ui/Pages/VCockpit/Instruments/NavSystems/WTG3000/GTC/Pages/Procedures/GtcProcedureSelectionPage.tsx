@@ -176,8 +176,7 @@ export abstract class GtcProcedureSelectionPage<P extends GtcProcedureSelectionP
         class="airport proc-page-big-button"
         onPressed={async (): Promise<void> => {
           const airport = this.selectedAirport.get();
-          const initialText = airport ? ICAO.getIdent(airport.icao) : undefined;
-          const result = await GtcFlightPlanDialogs.openAirportDialog(this.gtcService, initialText);
+          const result = await GtcFlightPlanDialogs.openAirportDialog(this.gtcService, airport);
           if (!result.wasCancelled) {
             this.selectedAirport.set(result.payload);
             onAirportSelected();

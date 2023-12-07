@@ -3,6 +3,7 @@
 import { EventBus, IndexedEvents, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { SimVarValueType } from '../data/SimVars';
+import { UnitType } from '../math/NumberUnit';
 import { NumberToRangeUnion } from '../utils';
 import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
 
@@ -56,6 +57,8 @@ interface BaseEngineEvents {
   apu_switch: boolean;
   /** Whether the engine starter is active. */
   eng_starter_active: boolean;
+  /** The minimum throttle value, from 0 to -1. */
+  throttle_lower_limit: number;
 }
 
 /**
@@ -106,6 +109,16 @@ interface EngineIndexedTopics {
   eng_fuel_pump_switch_state: 0 | 1 | 2;
   /** The Engine Vibration */
   eng_vibration: number;
+  /** The engine torque in foot*pounds. */
+  torque_moment: number;
+  /** The engine manifold pressure, in pounds per square inch. */
+  eng_manifold_pressure: number;
+  /** Whether reverse thrust is engaged via reverse thrust hold or toggle key events. */
+  reverse_thrust_engaged: boolean;
+  /** The average engine cylinder head temp (for all cylinders). */
+  cylinder_head_temp_avg: number;
+  /** The average engine turbine inlet temp (for all turbines). */
+  recip_turbine_inlet_temp_avg: number;
 }
 
 /** Indexed topics. */
@@ -133,7 +146,7 @@ export class EISPublisher extends SimVarPublisher<EngineEvents> {
 
     const isUsingAdvancedFuelSystem = SimVar.GetSimVarValue('NEW FUEL SYSTEM', SimVarValueType.Bool) !== 0;
     const totalUnusableFuelGal = SimVar.GetSimVarValue('UNUSABLE FUEL TOTAL QUANTITY', SimVarValueType.GAL);
-    const totalUnusableFuelLb = SimVar.GetSimVarValue('UNUSABLE FUEL TOTAL QUANTITY', SimVarValueType.LBS);
+    const totalUnusableFuelLb = UnitType.GALLON_FUEL.convertTo(totalUnusableFuelGal, UnitType.POUND);
 
     const nonIndexedSimVars: [keyof BaseEngineEvents, SimVarPublisherEntry<any>][] = [
       ['vac', { name: 'SUCTION PRESSURE', type: SimVarValueType.InHG }],
@@ -158,6 +171,7 @@ export class EISPublisher extends SimVarPublisher<EngineEvents> {
       ['apu_pct_starter', { name: 'APU PCT STARTER', type: SimVarValueType.Percent }],
       ['apu_switch', { name: 'APU SWITCH', type: SimVarValueType.Bool }],
       ['eng_starter_active', { name: 'GENERAL ENG STARTER ACTIVE:#index#', type: SimVarValueType.Bool, indexed: true }],
+      ['throttle_lower_limit', { name: 'THROTTLE LOWER LIMIT', type: SimVarValueType.Number }],
     ];
 
     const engineIndexedSimVars: [keyof EngineIndexedTopics, SimVarPublisherEntry<any>][] = [
@@ -183,6 +197,11 @@ export class EISPublisher extends SimVarPublisher<EngineEvents> {
       ['eng_fuel_pump_switch_state', { name: 'GENERAL ENG FUEL PUMP SWITCH EX1', type: SimVarValueType.Number }],
       ['eng_vibration', { name: 'ENG VIBRATION', type: SimVarValueType.Number }],
       ['fuel_flow_pph', { name: 'ENG FUEL FLOW PPH', type: SimVarValueType.PPH }],
+      ['torque_moment', { name: 'ENG TORQUE', type: SimVarValueType.FtLb }],
+      ['eng_manifold_pressure', { name: 'ENG MANIFOLD PRESSURE', type: SimVarValueType.PSI }],
+      ['reverse_thrust_engaged', { name: 'GENERAL ENG REVERSE THRUST ENGAGED', type: SimVarValueType.Bool }],
+      ['cylinder_head_temp_avg', { name: 'ENG CYLINDER HEAD TEMPERATURE', type: SimVarValueType.Farenheit }],
+      ['recip_turbine_inlet_temp_avg', { name: 'RECIP ENG TURBINE INLET TEMPERATURE', type: SimVarValueType.Farenheit }],
     ];
 
     const simvars = new Map<keyof EngineEvents, SimVarPublisherEntry<any>>(nonIndexedSimVars);

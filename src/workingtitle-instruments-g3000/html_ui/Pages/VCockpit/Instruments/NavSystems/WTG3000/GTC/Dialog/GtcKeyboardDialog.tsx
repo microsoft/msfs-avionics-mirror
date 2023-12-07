@@ -2,10 +2,9 @@
 import { DebounceTimer, Facility, FacilityType, FSComponent, ICAO, IntersectionFacilityUtils, StringUtils, Subject, VNode } from '@microsoft/msfs-sdk';
 
 import { Fms, GarminFacilityWaypointCache, Regions, TouchButton } from '@microsoft/msfs-garminsdk';
-import { ControllableDisplayPaneIndex, G3000WaypointSearchType } from '@microsoft/msfs-wtg3000-common';
+import { G3000WaypointSearchType } from '@microsoft/msfs-wtg3000-common';
 
 import { GtcWaypointIcon } from '../Components/GtcWaypointIcon/GtcWaypointIcon';
-import { GtcControlMode, GtcService, GtcViewLifecyclePolicy } from '../GtcService/GtcService';
 import { GtcHardwareControlEvent, GtcInteractionEvent } from '../GtcService/GtcInteractionEvent';
 import { GtcView, GtcViewProps } from '../GtcService/GtcView';
 import { GtcViewKeys } from '../GtcService/GtcViewKeys';
@@ -59,14 +58,6 @@ export interface GtcKeyboardDialogProps extends GtcViewProps {
 
   /** A provider of airplane position and heading data. */
   posHeadingDataProvider: GtcPositionHeadingDataProvider;
-}
-
-/**
- * GTC view keys for popups owned by the keyboard dialog.
- */
-enum GtcKeyboardDialogPopupKeys {
-  FindWaypoint = 'FindWaypoint',
-  DuplicateWaypoint = 'DuplicateWaypoint'
 }
 
 /** Allows user to input text using an alphanumeric keyboard. */
@@ -126,14 +117,6 @@ export class GtcKeyboardDialog<T extends Facility | string> extends GtcView<GtcK
   /** @inheritDoc */
   public onAfterRender(thisNode: VNode): void {
     this.thisNode = thisNode;
-
-    this.props.gtcService.registerView(
-      GtcViewLifecyclePolicy.Transient,
-      GtcKeyboardDialogPopupKeys.DuplicateWaypoint,
-      this.props.controlMode,
-      this.renderDuplicateWaypointDialog.bind(this),
-      this.props.displayPaneIndex
-    );
 
     this._sidebarState.slot5.set('enterEnabled');
     this._sidebarState.dualConcentricKnobLabel.set('dataEntryPushEnter');
@@ -283,7 +266,7 @@ export class GtcKeyboardDialog<T extends Facility | string> extends GtcView<GtcK
    */
   private async resolveDuplicates(matches: readonly SearchResultWithFacility[]): Promise<void> {
     const result = await this.props.gtcService
-      .openPopup<GtcDuplicateWaypointDialog>(GtcKeyboardDialogPopupKeys.DuplicateWaypoint, 'normal', 'hide')
+      .openPopup<GtcDuplicateWaypointDialog>(GtcViewKeys.DuplicateWaypointDialog, 'normal', 'hide')
       .ref.request({ ident: matches[0].ident, duplicates: matches.map(match => match.facility) });
 
     if (!result.wasCancelled) {
@@ -758,24 +741,6 @@ export class GtcKeyboardDialog<T extends Facility | string> extends GtcView<GtcK
           />
         </div>
       </div>
-    );
-  }
-
-  /**
-   * Renders this dialog's child duplicate waypoint dialog.
-   * @param gtcService The GTC service.
-   * @param controlMode The control mode to which the dialog belongs.
-   * @param displayPaneIndex The index of the display pane associated with the dialog.
-   * @returns This dialog's child duplicate waypoint dialog, as a VNode.
-   */
-  private renderDuplicateWaypointDialog(gtcService: GtcService, controlMode: GtcControlMode, displayPaneIndex?: ControllableDisplayPaneIndex): VNode {
-    return (
-      <GtcDuplicateWaypointDialog
-        gtcService={gtcService}
-        controlMode={controlMode}
-        displayPaneIndex={displayPaneIndex}
-        posHeadingDataProvider={this.props.posHeadingDataProvider}
-      />
     );
   }
 

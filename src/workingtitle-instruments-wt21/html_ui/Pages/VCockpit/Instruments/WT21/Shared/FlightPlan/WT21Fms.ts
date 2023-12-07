@@ -1461,38 +1461,116 @@ export class WT21Fms {
     this.setApproachDetails(false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, false, false, null);
     plan.calculate(0);
   }
-
   /**
-   * Checks whether the procedure being modified contains the currently active from and to legs and, if so,
-   * returns those two legs. If the active leg is a direct to, this returns the entire direct to sequence (3 legs)
-   * @param plan The flight plan.
-   * @param segmentIndex The Segment Index.
-   * @returns The array of active legs.
+   * Gets an array of legs in a flight plan segment ending with the active leg that are to be displaced if the segment
+   * is deleted.
+   * @param plan The flight plan containing the segment for which to get the array.
+   * @param segmentIndex The index of the segment for which to get the array.
+   * @returns An array of legs in the specified flight plan segment ending with the active leg that are to be
+   * displaced if the segment is deleted, or `undefined` if the segment does not contain the active leg.
    */
-  private getActiveLegsInCurrentProcedure(plan: FlightPlan, segmentIndex: number): FlightPlanLeg[] | undefined {
+  private getSegmentActiveLegsToDisplace(plan: FlightPlan, segmentIndex: number): LegDefinition[] | undefined {
+    const segment = plan.getSegment(segmentIndex);
+    const activeLeg = segment.legs[plan.activeLateralLeg - segment.offset] as LegDefinition | undefined;
 
-    if (plan.getSegmentIndex(plan.activeLateralLeg) === segmentIndex) {
+    // If active leg is not in the segment to be deleted, then nothing needs to be displaced
+    if (!activeLeg) {
+      return undefined;
+    }
 
-      const currentToLeg = plan.tryGetLeg(plan.activeLateralLeg);
-      const currentFromLeg = plan.tryGetLeg(plan.activeLateralLeg - 1);
+    if (BitFlags.isAll(activeLeg.flags, LegDefinitionFlags.DirectTo)) {
+      // Active leg is part of a direct-to.
 
-      if (!currentToLeg || !currentFromLeg) {
+      if (plan.directToData.segmentIndex !== segmentIndex || plan.directToData.segmentLegIndex + WT21FmsUtils.DTO_LEG_OFFSET >= segment.legs.length) {
+        // If the plan's direct to data does not match what we would expect given the active leg, then something has
+        // gone wrong with the flight plan's state and we will just bail.
         return undefined;
       }
 
-      const newToLeg = Object.assign({}, currentToLeg.leg);
-      const newFromLeg = Object.assign({}, currentFromLeg.leg);
+      return segment.legs.slice(0, plan.directToData.segmentLegIndex + WT21FmsUtils.DTO_LEG_OFFSET + 1);
+    } else {
+      // Active leg is not part of a direct-to. In this case we return every leg in the active segment prior to and
+      // including the active leg.
 
-      if (BitFlags.isAll(currentToLeg.flags, WT21LegDefinitionFlags.DirectTo)) {
-        const discoLeg = Object.assign({}, plan.getLeg(plan.activeLateralLeg - 2).leg);
-        return [discoLeg, newFromLeg, newToLeg];
-      } else {
-        return [newFromLeg, newToLeg];
+      return segment.legs.slice(0, plan.activeLateralLeg - segment.offset + 1);
+    }
+  }
+
+  /**
+   * Displaces a sequence of flight plan legs contained in a now-removed segment ending with the active leg into a new
+   * flight plan segment. If the displaced active leg was a direct-to leg, then a new direct-to will be created to the
+   * displaced target leg. Otherwise, the active leg is set to the displaced active leg.
+   * @param plan The flight plan into which to displace the legs.
+   * @param segmentIndex The index of the flight plan segment into which to displace the legs.
+   * @param activeLegArray The sequence of flight plan legs to displace. The sequence should contain all of the legs
+   * contained in the former active segment up to and including the active leg.
+   * @param insertAtEnd Whether to insert the displaced legs at the end of the segment instead of the beginning.
+   */
+  private displaceActiveLegsIntoSegment(plan: FlightPlan, segmentIndex: number, activeLegArray: LegDefinition[], insertAtEnd: boolean): void {
+    WT21FmsUtils.removeDisplacedActiveLegs(plan);
+
+    const segment = plan.getSegment(segmentIndex);
+
+    const insertAtIndex = insertAtEnd ? segment.legs.length : 0;
+
+    if (insertAtEnd) {
+      plan.addLeg(segmentIndex, FlightPlan.createLeg({ type: LegType.Discontinuity }), insertAtIndex, WT21LegDefinitionFlags.DisplacedActiveLeg);
+    } else {
+      const segmentFirstLeg = segment.legs[0];
+
+      // We don't want to insert duplicate discontinuities if there is already one at the start of the segment
+      const discontinuityAlreadyPresent = segmentFirstLeg && WT21FmsUtils.isDiscontinuityLeg(segmentFirstLeg.leg.type);
+
+      if (!discontinuityAlreadyPresent) {
+        plan.addLeg(segmentIndex, FlightPlan.createLeg({ type: LegType.Discontinuity }), insertAtIndex, WT21LegDefinitionFlags.DisplacedActiveLeg);
+      }
+    }
+
+    // The active leg is guaranteed to be the last leg in the array.
+    const activeLeg = activeLegArray[activeLegArray.length - 1];
+    const isActiveLegDto = BitFlags.isAll(activeLeg.flags, LegDefinitionFlags.DirectTo);
+    const dtoTargetLegIndex = isActiveLegDto ? activeLegArray.length - 1 - WT21FmsUtils.DTO_LEG_OFFSET : undefined;
+    const dtoTargetLeg = dtoTargetLegIndex !== undefined ? activeLegArray[dtoTargetLegIndex] : undefined;
+
+    let displacedDtoTargetLegIndex = undefined;
+
+    // Add all displaced legs to the segment, skipping any active direct-to legs.
+    for (let i = dtoTargetLegIndex ?? activeLegArray.length - 1; i >= 0; i--) {
+      const leg = activeLegArray[i];
+
+      const newLeg = FlightPlan.createLeg(leg.leg);
+
+      // Displaced legs aren't a part of a procedure anymore, so we clear the fix type flags
+      newLeg.fixTypeFlags = 0;
+
+      plan.addLeg(segmentIndex, newLeg, insertAtIndex, WT21LegDefinitionFlags.DisplacedActiveLeg);
+
+      // Preserve altitude and speed restrictions on the active leg or direct-to target leg only.
+      if (leg === activeLeg || leg === dtoTargetLeg) {
+        plan.setLegVerticalData(segmentIndex, insertAtIndex, leg.verticalData);
       }
 
-
+      // Check if we are displacing an inactive direct-to leg. If so, mark the index of the corresponding displaced
+      // direct-to target leg so we can deal with it below.
+      if (displacedDtoTargetLegIndex === undefined && BitFlags.isAll(leg.flags, LegDefinitionFlags.DirectTo)) {
+        displacedDtoTargetLegIndex = i - WT21FmsUtils.DTO_LEG_OFFSET + insertAtIndex;
+      }
     }
-    return undefined;
+
+    // If we displaced an inactive direct-to sequence, then we need to update the plan's direct-to data to match the
+    // indexes of the now displaced direct-to target leg.
+    if (displacedDtoTargetLegIndex !== undefined) {
+      plan.setDirectToData(segmentIndex, displacedDtoTargetLegIndex);
+    }
+
+    if (dtoTargetLegIndex !== undefined) {
+      const course = activeLeg.leg.type === LegType.CF ? activeLeg.leg.course : undefined;
+      this.createDirectTo(segmentIndex, dtoTargetLegIndex + insertAtIndex, undefined, course, undefined);
+    } else {
+      const newActiveLegIndex = segment.offset + insertAtIndex + activeLegArray.length - 1;
+      plan.setCalculatingLeg(newActiveLegIndex);
+      plan.setLateralLeg(newActiveLegIndex);
+    }
   }
 
   /**
@@ -1516,7 +1594,7 @@ export class WT21Fms {
 
     // Grabbing the active legs (if there are any) in the existing departure semgent,
     // so that we can put them somewhere after clearing the segment.
-    const activeLegArray = !Simplane.getIsGrounded() && plan.activeLateralLeg > 0 ? this.getActiveLegsInCurrentProcedure(plan, segmentIndex) : undefined;
+    const activeLegArray = !Simplane.getIsGrounded() && plan.activeLateralLeg > 0 ? this.getSegmentActiveLegsToDisplace(plan, segmentIndex) : undefined;
 
     this.planClearSegment(segmentIndex, FlightPlanSegmentType.Departure);
 
@@ -1536,42 +1614,11 @@ export class WT21Fms {
       this.planRemoveDuplicateLeg(lastDepLeg, nextLeg);
     }
 
+    this.generateSegmentVerticalData(plan, segmentIndex);
+
     if (activeLegArray) {
-      WT21FmsUtils.removeDisplacedActiveLegs(plan);
-
-      const segmentFirstLeg = plan.getSegment(segmentIndex).legs[0];
-
-      // We don't want to insert duplicate discontinuities if there is already one at the start of the approach
-      const discontinuityAlreadyPresent = segmentFirstLeg && WT21FmsUtils.isDiscontinuityLeg(segmentFirstLeg.leg.type);
-
-      if (activeLegArray.length === 2) {
-        if (!discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, FlightPlan.createLeg({ type: LegType.Discontinuity }), 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        if (!WT21FmsUtils.isDiscontinuityLeg(activeLegArray[1].type) || !discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, activeLegArray[1], 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        if (!WT21FmsUtils.isDiscontinuityLeg(activeLegArray[0].type) || !discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, activeLegArray[0], 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        plan.setLateralLeg(depSegment.offset + 1);
-      } else if (activeLegArray.length === 3) {
-        if (!discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, FlightPlan.createLeg({ type: LegType.Discontinuity }), 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        if (!WT21FmsUtils.isDiscontinuityLeg(activeLegArray[2].type) || !discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, activeLegArray[2], 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        this.createDirectTo(segmentIndex, 0);
-      }
+      this.displaceActiveLegsIntoSegment(plan, segmentIndex, activeLegArray, false);
     }
-
-    this.setVerticalData(plan, segmentIndex);
 
     plan.calculate(0);
   }
@@ -1679,7 +1726,7 @@ export class WT21Fms {
 
     const segmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Arrival);
 
-    const activeLegArray = this.getActiveLegsInCurrentProcedure(plan, segmentIndex);
+    const activeLegArray = this.getSegmentActiveLegsToDisplace(plan, segmentIndex);
 
     let arrivalActiveLegIcao: undefined | string;
 
@@ -1716,8 +1763,11 @@ export class WT21Fms {
     const arrSegment = plan.getSegment(segmentIndex);
     const prevLeg = plan.getPrevLeg(segmentIndex, 0);
     const firstArrLeg = arrSegment.legs[0];
+
+    let deduplicatedEnrouteLeg: LegDefinition | null = null;
+
     if (prevLeg && firstArrLeg && this.isDuplicateLeg(prevLeg.leg, firstArrLeg.leg)) {
-      this.planRemoveDuplicateLeg(prevLeg, firstArrLeg);
+      deduplicatedEnrouteLeg = this.planRemoveDuplicateLeg(prevLeg, firstArrLeg);
     }
 
     const nextLeg = plan.getNextLeg(segmentIndex, Infinity);
@@ -1731,40 +1781,20 @@ export class WT21Fms {
       this.activateLeg(segmentIndex, arrSegment.legs.length - 1);
     }
 
-    this.tryInsertDiscontinuity(plan, segmentIndex);
+    // If we didn't remove a duplicate, insert a discontinuity at the start of the arrival
+    if (!deduplicatedEnrouteLeg && (!prevLeg || !WT21FmsUtils.isVectorsLeg(prevLeg.leg.type))) {
+      this.tryInsertDiscontinuity(plan, segmentIndex);
+    }
+
+    this.generateSegmentVerticalData(plan, segmentIndex);
 
     const matchingActiveProcedureLegIndex = WT21FmsUtils.findIcaoInSegment(arrSegment, arrivalActiveLegIcao);
 
     if (activeLegArray && matchingActiveProcedureLegIndex === undefined) {
-      WT21FmsUtils.removeDisplacedActiveLegs(plan);
-
-      const segmentFirstLeg = plan.getSegment(segmentIndex).legs[0];
-
-      // We don't want to insert duplicate discontinuities if there is already one at the start of the approach
-      const discontinuityAlreadyPresent = segmentFirstLeg && WT21FmsUtils.isDiscontinuityLeg(segmentFirstLeg.leg.type);
-
-      if (activeLegArray.length === 2) {
-        if (!WT21FmsUtils.isDiscontinuityLeg(activeLegArray[1].type) || !discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, activeLegArray[1], 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        if (!WT21FmsUtils.isDiscontinuityLeg(activeLegArray[0].type) || !discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, activeLegArray[0], 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        plan.setLateralLeg(arrSegment.offset + 1);
-      } else if (activeLegArray.length === 3) {
-        if (!WT21FmsUtils.isDiscontinuityLeg(activeLegArray[2].type) || !discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, activeLegArray[2], 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        this.createDirectTo(segmentIndex, 0);
-      }
+      this.displaceActiveLegsIntoSegment(plan, segmentIndex, activeLegArray, false);
     } else if (matchingActiveProcedureLegIndex !== undefined) {
       plan.setLateralLeg(arrSegment.offset + matchingActiveProcedureLegIndex);
     }
-
-    this.setVerticalData(plan, segmentIndex);
 
     this.cleanupLegsAfterApproach(plan);
 
@@ -2073,7 +2103,7 @@ export class WT21Fms {
 
     const segmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Approach);
 
-    const activeLegArray = this.getActiveLegsInCurrentProcedure(plan, segmentIndex);
+    const activeLegArray = this.getSegmentActiveLegsToDisplace(plan, segmentIndex);
 
     const apprSegment = plan.getSegment(segmentIndex);
 
@@ -2087,6 +2117,8 @@ export class WT21Fms {
 
     if (insertProcedureObject.runway) {
       plan.setDestinationRunway(insertProcedureObject.runway);
+    } else {
+      plan.setDestinationRunway(undefined);
     }
 
     let haveAddedMap = false;
@@ -2113,8 +2145,11 @@ export class WT21Fms {
 
     const prevLeg = plan.getPrevLeg(segmentIndex, 0);
     const firstAppLeg = apprSegment.legs[0];
+
+    let deduplicatedArrivalLeg: LegDefinition | null = null;
+
     if (prevLeg && firstAppLeg && this.isDuplicateLeg(prevLeg.leg, firstAppLeg.leg)) {
-      this.planRemoveDuplicateLeg(prevLeg, firstAppLeg);
+      deduplicatedArrivalLeg = this.planRemoveDuplicateLeg(prevLeg, firstAppLeg);
     }
 
     // Adds missed approach legs
@@ -2166,42 +2201,20 @@ export class WT21Fms {
 
     if (activeLegArray) {
       WT21FmsUtils.removeDisplacedActiveLegs(plan);
-      WT21FmsUtils.removeFixTypeFlags(activeLegArray);
+      // We don't need to do this anymore because the activeLegArray is an array of LegDefinition instead of FlightPlanLeg
+      // WT21FmsUtils.removeFixTypeFlags(activeLegArray);
 
-      const segmentFirstLeg = plan.getSegment(segmentIndex).legs[0];
+      // If we didn't remove a duplicate, insert a discontinuity at the start of the approach
+      if (!deduplicatedArrivalLeg && (!prevLeg || !WT21FmsUtils.isVectorsLeg(prevLeg.leg.type))) {
+        this.tryInsertDiscontinuity(plan, segmentIndex);
+      }
 
-      // We don't want to insert duplicate discontinuities if there is already one at the start of the approach
-      const discontinuityAlreadyPresent = segmentFirstLeg && WT21FmsUtils.isDiscontinuityLeg(segmentFirstLeg.leg.type);
+      this.generateSegmentVerticalData(plan, segmentIndex);
 
-      if (activeLegArray.length === 2) {
-        if (!discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, FlightPlan.createLeg({ type: LegType.Discontinuity }), 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        if (!WT21FmsUtils.isDiscontinuityLeg(activeLegArray[1].type) || !discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, activeLegArray[1], 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        if (!WT21FmsUtils.isDiscontinuityLeg(activeLegArray[0].type) || !discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, activeLegArray[0], 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        plan.setLateralLeg(apprSegment.offset + 1);
-      } else if (activeLegArray.length === 3) {
-        if (!discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, FlightPlan.createLeg({ type: LegType.Discontinuity }), 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        // We should really never get into the scenario where this leg is a discontinuity, but let's be safe
-        if (!WT21FmsUtils.isDiscontinuityLeg(activeLegArray[2].type) || !discontinuityAlreadyPresent) {
-          plan.addLeg(segmentIndex, activeLegArray[2], 0, WT21LegDefinitionFlags.DisplacedActiveLeg);
-        }
-
-        this.createDirectTo(segmentIndex, 0);
+      if (activeLegArray) {
+        this.displaceActiveLegsIntoSegment(plan, segmentIndex, activeLegArray, false);
       }
     }
-
-    this.setVerticalData(plan, segmentIndex);
 
     this.cleanupLegsAfterApproach(plan);
 
@@ -2303,6 +2316,19 @@ export class WT21Fms {
   }
 
   /**
+   * Manages the altitude constraints in a segment when adding a procedure by creating a VerticalData object for each leg.
+   * @param plan The Flight Plan.
+   * @param segmentIndex The segment index for the inserted procedure.
+   */
+  private generateSegmentVerticalData(plan: FlightPlan, segmentIndex: number): void {
+    const segment = plan.getSegment(segmentIndex);
+
+    for (let l = 0; l < segment.legs.length; l++) {
+      this.generateLegVerticalData(plan, segmentIndex, l);
+    }
+  }
+
+  /**
    * Inserts vectors-to-final legs into an insert procedure object. Vectors to final legs consist of a discontinuity
    * leg followed by a CF leg to the final approach fix. The course of the CF leg (the vectors-to-final course) is
    * defined as follows:
@@ -2395,31 +2421,34 @@ export class WT21Fms {
   }
 
   /**
-   * Manages the altitude constraints when adding a procedure by creating a VerticalData object for each leg.
+   * Manages the altitude constraints for a leg when adding a procedure by creating a VerticalData object for the leg.
    * @param plan The Flight Plan.
-   * @param segmentIndex The segment index for the inserted procedure.
+   * @param segmentIndex The segment index.
+   * @param localLegIndex The local leg index.
+   * @param forceVerticalFlightPhase The vertical flight phase to force on the vertical data. Otherwise, determined by the leg segment type.
    */
-  private setVerticalData(plan: FlightPlan, segmentIndex: number): void {
+  private generateLegVerticalData(plan: FlightPlan, segmentIndex: number, localLegIndex: number, forceVerticalFlightPhase?: VerticalFlightPhase): void {
     const segment = plan.getSegment(segmentIndex);
-    for (let l = 0; l < segment.legs.length; l++) {
-      const leg = segment.legs[l];
-      const altitude1 = leg.leg.altitude1;
-      const altitude2 = leg.leg.altitude2;
-      const altDesc = (BitFlags.isAll(leg.leg.fixTypeFlags, FixTypeFlags.MAP) && altitude1 !== 0) ? AltitudeRestrictionType.At : leg.leg.altDesc;
-      const speedRestriction = leg.leg.speedRestriction;
-      const verticalData: Partial<VerticalData> = {
-        phase: segment.segmentType === FlightPlanSegmentType.Departure || BitFlags.isAll(leg.flags, LegDefinitionFlags.MissedApproach)
-          ? VerticalFlightPhase.Climb
-          : VerticalFlightPhase.Descent,
-        altDesc: altDesc,
-        altitude1: altitude1,
-        altitude2: altitude2,
-        speed: speedRestriction <= 0 ? 0 : speedRestriction,
-        speedDesc: speedRestriction <= 0 ? SpeedRestrictionType.Unused : SpeedRestrictionType.AtOrBelow,
-        speedUnit: SpeedUnit.IAS
-      };
-      plan.setLegVerticalData(segmentIndex, l, verticalData);
-    }
+    const leg = segment.legs[localLegIndex];
+
+    const altitude1 = leg.leg.altitude1;
+    const altitude2 = leg.leg.altitude2;
+    const altDesc = (BitFlags.isAll(leg.leg.fixTypeFlags, FixTypeFlags.MAP) && altitude1 !== 0) ? AltitudeRestrictionType.At : leg.leg.altDesc;
+    const speedRestriction = leg.leg.speedRestriction;
+
+    const verticalData: Partial<VerticalData> = {
+      phase: forceVerticalFlightPhase ?? (segment.segmentType === FlightPlanSegmentType.Departure || BitFlags.isAll(leg.flags, LegDefinitionFlags.MissedApproach)
+        ? VerticalFlightPhase.Climb
+        : VerticalFlightPhase.Descent),
+      altDesc: altDesc,
+      altitude1: altitude1,
+      altitude2: altitude2,
+      speed: speedRestriction <= 0 ? 0 : speedRestriction,
+      speedDesc: speedRestriction <= 0 ? SpeedRestrictionType.Unused : SpeedRestrictionType.AtOrBelow,
+      speedUnit: SpeedUnit.IAS
+    };
+
+    plan.setLegVerticalData(segmentIndex, localLegIndex, verticalData);
   }
 
   /**
@@ -2599,6 +2628,10 @@ export class WT21Fms {
     plan.setDeparture();
 
     this.planClearSegment(segmentIndex, FlightPlanSegmentType.Departure);
+
+    // Remove constraints from first enroute leg
+    this.clearFirstEnrouteLegVerticalData(plan);
+
     if (plan.originAirport) {
       const airport = await this.facLoader.getFacility(FacilityType.Airport, plan.originAirport);
       const updatedSegmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Departure);
@@ -2623,11 +2656,14 @@ export class WT21Fms {
 
     plan.setArrival();
 
-    const activeLegArray = this.getActiveLegsInCurrentProcedure(plan, segmentIndex);
+    const activeLegArray = this.getSegmentActiveLegsToDisplace(plan, segmentIndex);
 
     this.cleanupLegsAfterApproach(plan);
 
     this.planRemoveSegment(segmentIndex);
+
+    // Remove constraints from last enroute leg
+    this.clearLastEnrouteLegVerticalData(plan);
 
     const prevLeg = plan.getPrevLeg(segmentIndex, 0);
     const nextLeg = plan.getNextLeg(segmentIndex, -1);
@@ -2635,8 +2671,8 @@ export class WT21Fms {
       this.planRemoveDuplicateLeg(prevLeg, nextLeg);
     }
 
-    if (activeLegArray && activeLegArray.length === 2) {
-      this.addActiveLegsToEnroute(plan, activeLegArray);
+    if (activeLegArray) {
+      this.displaceActiveLegsToEnroute(plan, activeLegArray);
     }
 
     plan.calculate(0);
@@ -2655,7 +2691,7 @@ export class WT21Fms {
 
     const segmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Approach);
 
-    const activeLegArray = this.getActiveLegsInCurrentProcedure(plan, segmentIndex);
+    const activeLegArray = this.getSegmentActiveLegsToDisplace(plan, segmentIndex);
 
     plan.procedureDetails.arrivalRunwayTransitionIndex = -1;
     plan.setDestinationRunway(undefined, false);
@@ -2665,6 +2701,11 @@ export class WT21Fms {
 
     this.planRemoveSegment(segmentIndex);
 
+    // Remove constraints from last enroute leg if there wasn't an arrival
+    if (plan.procedureDetails.arrivalIndex === -1) {
+      this.clearLastEnrouteLegVerticalData(plan);
+    }
+
     const prevLeg = plan.getPrevLeg(segmentIndex, 0);
     const nextLeg = plan.getNextLeg(segmentIndex, -1);
     if (prevLeg && nextLeg && this.isDuplicateLeg(prevLeg.leg, nextLeg.leg)) {
@@ -2672,20 +2713,66 @@ export class WT21Fms {
     }
 
     if (activeLegArray) {
-      WT21FmsUtils.removeDisplacedActiveLegs(plan);
-      this.addActiveLegsToEnroute(plan, activeLegArray, true);
+      this.displaceActiveLegsToEnroute(plan, activeLegArray, true);
     }
 
     plan.calculate(0);
   }
 
   /**
-   * Adds active leg pair to the last enroute segment when a procedure is deleted and the current activeLateralLeg is in that procedure.
-   * @param plan The FlightPlan.
-   * @param activeLegArray The Active Leg Pair.
+   * Clears the vertical data of the last enroute leg, if applicable
+   *
+   * @param plan the lateral flight plan
+   */
+  private clearFirstEnrouteLegVerticalData(plan: FlightPlan): void {
+    let firstEnrouteSegment: FlightPlanSegment | undefined;
+    for (let i = 0; i < plan.segmentCount; i++) {
+      const segment = plan.getSegment(i);
+
+      if (segment.segmentType === FlightPlanSegmentType.Enroute && segment.legs.length > 0) {
+        firstEnrouteSegment = segment;
+        break;
+      }
+    }
+
+    if (firstEnrouteSegment) {
+      plan.setLegVerticalData(firstEnrouteSegment.offset, { altDesc: AltitudeRestrictionType.Unused, speedDesc: SpeedRestrictionType.Unused });
+    }
+  }
+
+  /**
+   * Clears the vertical data of the last enroute leg, if applicable
+   * @param plan the lateral flight plan
+   */
+  private clearLastEnrouteLegVerticalData(plan: FlightPlan): void {
+    let lastEnrouteSegment: FlightPlanSegment | undefined;
+    for (let i = plan.segmentCount - 1; i >= 0; i--) {
+      const segment = plan.getSegment(i);
+
+      if (segment.segmentType === FlightPlanSegmentType.Enroute && segment.legs.length > 0) {
+        lastEnrouteSegment = segment;
+        break;
+      }
+    }
+
+    if (lastEnrouteSegment) {
+      plan.setLegVerticalData(
+        lastEnrouteSegment.offset + (lastEnrouteSegment.legs.length - 1),
+        { altDesc: AltitudeRestrictionType.Unused, speedDesc: SpeedRestrictionType.Unused },
+      );
+    }
+  }
+
+  /**
+   * Displaces a sequence of flight plan legs contained in a now-removed segment ending with the active leg into the
+   * end of the last enroute flight plan segment. If the displaced active leg was a direct-to leg, then a new direct-to
+   * will be created to the displaced target leg. Otherwise, the active leg is set to the displaced active leg.
+   * @param plan The flight plan into which to displace the legs.
+   * @param activeLegArray The sequence of flight plan legs to displace. The sequence should contain all of the legs
+   * contained in the former active segment up to and including the active leg.
    * @param checkForArrivalSegment Whether to check first for an arrival segment to add the legs to.
    */
-  private addActiveLegsToEnroute(plan: FlightPlan, activeLegArray: FlightPlanLeg[], checkForArrivalSegment = false): void {
+  private displaceActiveLegsToEnroute(plan: FlightPlan, activeLegArray: LegDefinition[], checkForArrivalSegment = false): void {
     let segmentIndex = this.findLastEnrouteSegmentIndex(plan);
     if (checkForArrivalSegment && plan.procedureDetails.arrivalIndex > -1) {
       const arrivalSegmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Arrival, false);
@@ -2694,26 +2781,7 @@ export class WT21Fms {
       }
     }
 
-    const segment = plan.getSegment(segmentIndex);
-
-    if (activeLegArray.length === 2) {
-      plan.addLeg(segmentIndex, activeLegArray[0], undefined, WT21LegDefinitionFlags.DisplacedActiveLeg);
-      plan.addLeg(segmentIndex, activeLegArray[1], undefined, WT21LegDefinitionFlags.DisplacedActiveLeg);
-      this.planAddLeg(segmentIndex, FlightPlan.createLeg({
-        type: LegType.Discontinuity
-      }), undefined, WT21LegDefinitionFlags.DisplacedActiveLeg);
-
-      plan.setLateralLeg(segment.offset + segment.legs.length - 2);
-
-    } else if (activeLegArray.length === 3) {
-      plan.addLeg(segmentIndex, activeLegArray[1]);
-      plan.addLeg(segmentIndex, activeLegArray[2], WT21LegDefinitionFlags.DisplacedActiveLeg);
-      this.planAddLeg(segmentIndex, FlightPlan.createLeg({
-        type: LegType.Discontinuity
-      }));
-      this.createDirectTo(segmentIndex, segment.legs.length - 2);
-    }
-
+    this.displaceActiveLegsIntoSegment(plan, segmentIndex, activeLegArray, true);
   }
 
   /**
@@ -3138,6 +3206,7 @@ export class WT21Fms {
       directLeg.type = legType;
       directLeg.course = course as number;
       directLeg.trueDegrees = false;
+      directLeg.turnDirection = LegTurnDirection.None;
       return directLeg;
     } else {
       return FlightPlan.createLeg({
@@ -3147,21 +3216,6 @@ export class WT21Fms {
         trueDegrees: false
       });
     }
-
-
-    // const planeHeading = SimVar.GetSimVarValue('PLANE HEADING DEGREES TRUE', 'degrees');
-    // if (leg) {
-    //   const directLeg = Object.assign({}, leg);
-    //   directLeg.type = LegType.DF;
-    //   directLeg.course = planeHeading === 0 ? 360 : planeHeading;
-    //   return directLeg;
-    // } else {
-    //   return FlightPlan.createLeg({
-    //     type: LegType.DF,
-    //     fixIcao: icao,
-    //     course: planeHeading === 0 ? 360 : planeHeading
-    //   });
-    // }
   }
 
   /**
@@ -3179,6 +3233,7 @@ export class WT21Fms {
       return;
     }
     // We need to recreate the DTO so that the proper events get sent and legs get recreated and what not
+    // We do not mark it as pending, because that is the decision of whatever created the original DTO
     this.createDirectTo(plan.directToData.segmentIndex, plan.directToData.segmentLegIndex, false);
   }
 
@@ -3321,7 +3376,6 @@ export class WT21Fms {
 
     plan.addSegment(0, FlightPlanSegmentType.Departure);
     plan.addSegment(1, FlightPlanSegmentType.Enroute);
-    // plan.addSegment(2, FlightPlanSegmentType.Destination);
 
     plan.removeOriginAirport();
     plan.removeDestinationAirport();
@@ -3886,18 +3940,6 @@ export class WT21Fms {
 
     const dtoLegIndex = plan.directToData.segmentLegIndex;
     const dtoSegmentIndex = plan.directToData.segmentIndex;
-
-    // TODO Removed the segmentIndex < dtoSegmentIndex from Garmin as it does not apply to WT21 (I think, but want to verify)
-
-    // if (
-    //   dtoSegmentIndex >= 0
-    //   && (
-    //     segmentIndex < dtoSegmentIndex
-    //     || (segmentIndex === dtoSegmentIndex && index !== undefined && index <= dtoLegIndex)
-    //   )
-    // ) {
-    //   this.removeDirectToExisting(plan.planIndex);
-    // }
 
     if (
       dtoSegmentIndex >= 0
@@ -4468,7 +4510,9 @@ export class WT21Fms {
       || leg1.type === LegType.TF
       || leg1.type === LegType.DF
       || leg1.type === LegType.CF)
-      && leg1.fixIcao === leg2.fixIcao;
+      && ICAO.getRegionCode(leg1.fixIcao) === ICAO.getRegionCode(leg2.fixIcao)
+      && ICAO.getIdent(leg1.fixIcao) === ICAO.getIdent(leg2.fixIcao)
+      && ICAO.getFacilityType(leg1.fixIcao) === ICAO.getFacilityType(leg2.fixIcao);
   }
 
   /**
@@ -4493,7 +4537,9 @@ export class WT21Fms {
       return false;
     }
 
-    return leg1.fixIcao === leg2.fixIcao;
+    return ICAO.getRegionCode(leg1.fixIcao) === ICAO.getRegionCode(leg2.fixIcao)
+      && ICAO.getIdent(leg1.fixIcao) === ICAO.getIdent(leg2.fixIcao)
+      && ICAO.getFacilityType(leg1.fixIcao) === ICAO.getFacilityType(leg2.fixIcao);
   }
 
   /**

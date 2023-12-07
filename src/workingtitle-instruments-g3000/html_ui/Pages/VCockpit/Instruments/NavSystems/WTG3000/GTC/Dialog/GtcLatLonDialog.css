@@ -77,7 +77,7 @@
   --latlon-dialog-prefix-button-font-size: 42px;
 }
 
-.latlon-dialog-input {
+.cursor-input.latlon-dialog-input {
   position: absolute;
   left: calc(var(--latlon-dialog-input-center-x) - var(--latlon-dialog-input-width) / 2);
   top: var(--latlon-dialog-input-top);
@@ -88,7 +88,7 @@
   --cursor-input-slots-justify: center;
 }
 
-.latlon-dialog-input.cursor-input-edit-inactive {
+.cursor-input.latlon-dialog-input.cursor-input-edit-inactive {
   color: var(--g3000-color-black);
 }
 

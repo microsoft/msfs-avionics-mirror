@@ -927,7 +927,9 @@ export enum UnitFamily {
   MassFlux = 'weight_flux',
   VolumeFlux = 'volume_flux',
   Density = 'density',
-  Force = 'force'
+  Force = 'force',
+  DistancePerWeight = 'distance_per_weight',
+  DistanceRatio = 'distance_ratio'
 }
 
 /**
@@ -975,6 +977,8 @@ export class UnitType {
 
   /** Hectopascal. */
   public static readonly HPA = new SimpleUnit(UnitFamily.Pressure, 'hectopascal', 1);
+  /** Millibar. */
+  public static readonly MB = new SimpleUnit(UnitFamily.Pressure, 'millibar', 1);
   /** Atmosphere. */
   public static readonly ATM = new SimpleUnit(UnitFamily.Pressure, 'atmosphere', 1013.25);
   /** Inch of mercury. */
@@ -1041,4 +1045,12 @@ export class UnitType {
   public static readonly NEWTON = new CompoundUnit(UnitFamily.Force, [UnitType.KILOGRAM, UnitType.METER], [UnitType.SECOND, UnitType.SECOND]);
   /** Pound (force). */
   public static readonly POUND_FORCE = new CompoundUnit(UnitFamily.Force, [UnitType.POUND, UnitType.G_METER], [UnitType.SECOND, UnitType.SECOND]);
+
+  /** One statute mile per weight equivalent of one gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
+  public static readonly MILE_PER_GALLON_FUEL = new CompoundUnit(UnitFamily.DistancePerWeight, [UnitType.MILE], [UnitType.GALLON_FUEL]);
+  /** One nautical mile per weight equivalent of one gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
+  public static readonly NMILE_PER_GALLON_FUEL = new CompoundUnit(UnitFamily.DistancePerWeight, [UnitType.NMILE], [UnitType.GALLON_FUEL]);
+
+  /** One foot per nautical mile. */
+  public static readonly FOOT_PER_NMILE = new CompoundUnit(UnitFamily.DistanceRatio, [UnitType.FOOT], [UnitType.NMILE]);
 }

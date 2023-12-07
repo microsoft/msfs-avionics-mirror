@@ -1,3 +1,5 @@
+import { FmcRenderTemplate } from './FmcRenderer';
+
 /**
  * Validates an input string into a value of a type
  */
@@ -18,26 +20,36 @@ export const RawValidator: Validator<string | null> = {
 };
 
 /**
- * Formats a value of a type
+ * Represents the possible output of a formatting function
  */
-export interface Formatter<T> {
+export type FmcFormatterOutput = string | FmcRenderTemplate;
+
+/**
+ * Formats a non-nullable value of a type `T` into a value of a type `U`, with the ability to specify a null value
+ */
+export interface Formatter<T, U = string> {
   /**
    * The string to show when a value is `null`
    */
-  nullValueString?: string,
+  nullValueString?: U,
 
   /**
    * Formats a value of a type into a string
    *
    * @param value the value to format
    */
-  format: (value: NonNullable<T>) => string,
+  format: (value: NonNullable<T>) => U,
 }
+
+/**
+ * A formatter for use in the FMC Framework
+ */
+export type FmcFormatter<T> = Formatter<T, FmcFormatterOutput>
 
 /**
  * Formats a value of a type
  */
-export type FieldFormatter<T> = Formatter<T> | ((type: T) => string)
+export type FmcComponentFormatter<T> = FmcFormatter<T> | ((type: T) => FmcFormatterOutput)
 
 /**
  * {@link Formatter} for displaying raw string values

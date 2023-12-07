@@ -11,7 +11,6 @@ import { SoftKeyMenu } from '../SoftKeyMenu';
 export class LeanMenu extends SoftKeyMenu {
   private publisher: G1000ControlPublisher;
   private leanAssistActive = false;
-  private cylSlctActive = false;
 
   /**
    * Creates an instance of the MFD engine lean menu.

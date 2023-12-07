@@ -6,7 +6,7 @@ import { Unit, UnitFamily, UnitType } from '@microsoft/msfs-sdk';
  * Each unit formatter is a function which generates output strings from input measurement units.
  */
 export class UnitFormatter {
-  private static readonly UNIT_TEXT: Record<string, Record<string, string>> = {
+  private static readonly UNIT_TEXT: Partial<Record<string, Partial<Record<string, string>>>> = {
     [UnitFamily.Distance]: {
       [UnitType.METER.name]: 'M',
       [UnitType.FOOT.name]: 'FT',
@@ -61,8 +61,8 @@ export class UnitFormatter {
     }
   };
 
-  private static UNIT_TEXT_LOWER?: Record<string, Record<string, string>>;
-  private static UNIT_TEXT_UPPER?: Record<string, Record<string, string>>;
+  private static UNIT_TEXT_LOWER?: Partial<Record<string, Partial<Record<string, string>>>>;
+  private static UNIT_TEXT_UPPER?: Partial<Record<string, Partial<Record<string, string>>>>;
 
   /**
    * Creates a function which formats measurement units to strings representing their abbreviated names.
@@ -89,14 +89,15 @@ export class UnitFormatter {
    * Creates a record of lowercase unit abbreviated names.
    * @returns A record of lowercase unit abbreviated names.
    */
-  private static createLowerCase(): Record<string, Record<string, string>> {
+  private static createLowerCase(): Partial<Record<string, Partial<Record<string, string>>>> {
     const lower: Record<string, Record<string, string>> = {};
 
     for (const family in UnitFormatter.UNIT_TEXT) {
       const familyText = UnitFormatter.UNIT_TEXT[family];
       lower[family] = {};
       for (const unit in familyText) {
-        lower[family][unit] = familyText[unit].toLowerCase();
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        lower[family][unit] = familyText[unit]!.toLowerCase();
       }
     }
 
@@ -114,10 +115,20 @@ export class UnitFormatter {
       const familyText = UnitFormatter.UNIT_TEXT[family];
       upper[family] = {};
       for (const unit in familyText) {
-        upper[family][unit] = familyText[unit].toUpperCase();
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        upper[family][unit] = familyText[unit]!.toUpperCase();
       }
     }
 
     return upper;
+  }
+
+  /**
+   * Gets a mapping of unit family and name to text used by UnitFormatter to format units. The returned object maps
+   * unit families to objects that map unit names within each family to formatted text.
+   * @returns A mapping of unit family and name to text used by UnitFormatter to format units.
+   */
+  public static getUnitTextMap(): Readonly<Partial<Record<string, Readonly<Partial<Record<string, string>>>>>> {
+    return UnitFormatter.UNIT_TEXT;
   }
 }

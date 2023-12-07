@@ -156,6 +156,7 @@ export class MapUserSettings {
       ['mapOrientation']: MapOrientationSettingMode.HeadingUp,
       ['mapAutoNorthUpActive']: true,
       ['mapAutoNorthUpRangeIndex']: 27, // 1000 NM/2000 km
+      ['mapGroundNorthUpActive']: false,
       ['mapDeclutter']: MapDeclutterSettingMode.All,
       ['mapTerrainMode']: MapTerrainSettingMode.Absolute,
       ['mapTerrainRangeIndex']: 27, // 1000 NM/2000 km
@@ -316,6 +317,7 @@ export class G3000MapUserSettingUtils {
     'mapOrientation',
     'mapAutoNorthUpActive',
     'mapAutoNorthUpRangeIndex',
+    'mapGroundNorthUpActive',
     'mapDeclutter',
     'mapTerrainMode',
     'mapTerrainRangeIndex',

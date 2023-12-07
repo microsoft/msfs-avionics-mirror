@@ -132,7 +132,7 @@
   font-size: var(--frequency-dialog-active-freq-font-size);
 }
 
-.frequency-dialog-input {
+.cursor-input.frequency-dialog-input {
   position: absolute;
   left: calc(50% - var(--frequency-dialog-input-width) / 2);
   top: var(--frequency-dialog-input-top);
@@ -143,7 +143,7 @@
   --cursor-input-slots-justify: center;
 }
 
-.frequency-dialog-input.cursor-input-edit-inactive {
+.cursor-input.frequency-dialog-input.cursor-input-edit-inactive {
   color: var(--g3000-color-black);
 }
 

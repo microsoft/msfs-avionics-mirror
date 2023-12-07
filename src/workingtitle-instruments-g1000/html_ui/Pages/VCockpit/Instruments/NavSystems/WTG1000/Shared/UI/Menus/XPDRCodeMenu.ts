@@ -8,7 +8,7 @@ import { SoftKeyMenu } from './SoftKeyMenu';
  * The XPDR softkey menu.
  */
 export class XPDRCodeMenu extends SoftKeyMenu {
-
+  public xpdrCodeMenuActive = false;
 
   /**
    * Creates an instance of the transponder code menu.
@@ -16,7 +16,7 @@ export class XPDRCodeMenu extends SoftKeyMenu {
    * @param bus is the event bus
    * @param g1000Publisher the G1000 control events publisher
    */
-  constructor(menuSystem: SoftKeyMenuSystem, bus: EventBus, g1000Publisher: G1000ControlPublisher) {
+  constructor(menuSystem: SoftKeyMenuSystem, bus: EventBus, private readonly g1000Publisher: G1000ControlPublisher) {
     super(menuSystem);
 
     this.addItem(0, '0', () => {
@@ -64,7 +64,11 @@ export class XPDRCodeMenu extends SoftKeyMenu {
   private onNewCodeFromSim(bus: EventBus, menuSystem: SoftKeyMenuSystem): void {
     const controlPublisher = bus.getSubscriber<ControlEvents>();
     controlPublisher.on('publish_xpdr_code_1').handle(() => {
-      menuSystem.back();
+      if (this.xpdrCodeMenuActive) {
+        this.xpdrCodeMenuActive = false;
+        this.g1000Publisher.publishEvent('xpdr_code_push', false);
+        menuSystem.back();
+      }
     });
   }
 }

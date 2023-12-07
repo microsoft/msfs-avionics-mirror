@@ -10,7 +10,7 @@ import { NumberInput } from '../UIControls/NumberInput';
 import { WaypointInput } from '../UIControls/WaypointInput';
 import { DigitInput } from '../UiControls2/DigitInput';
 import { G1000UiControlWrapper } from '../UiControls2/G1000UiControlWrapper';
-import { GenericNumberInput } from '../UiControls2/GenericNumberInput';
+import { CourseNumberInput } from '../UiControls2/CourseNumberInput';
 import { UiView, UiViewProps } from '../UiView';
 import { DirectToController } from './DirectToController';
 import { DirectToStore } from './DirectToStore';
@@ -201,7 +201,7 @@ export abstract class DirectTo extends UiView<DirectToProps, undefined, DirectTo
 
     return (
       <G1000UiControlWrapper onRegister={this.register}>
-        <GenericNumberInput
+        <CourseNumberInput
           value={this.store.courseInputValue}
           digitizer={(value, signValues, digitValues): void => {
             digitValues[0].set(Math.floor(value / 10) * 10);
@@ -216,7 +216,7 @@ export abstract class DirectTo extends UiView<DirectToProps, undefined, DirectTo
           <DigitInput value={tensValueSub} minValue={0} maxValue={onesValueSub.map(ones => ones === 0 ? 37 : 36)} increment={1} scale={10} formatter={(value): string => value.toFixed().padStart(2, '0')} wrap />
           <DigitInput value={onesValueSub} minValue={0} maxValue={tensValueSub.map(tens => tens === 360 ? 1 : 10)} increment={1} scale={1} wrap />
           <span>°</span>
-        </GenericNumberInput>
+        </CourseNumberInput>
       </G1000UiControlWrapper>
     );
   }

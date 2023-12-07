@@ -67,7 +67,7 @@ export class ColorUtils {
       hex = ColorUtils.reverseHexNumber(hex);
     }
 
-    return (hex & ColorUtils.MASK_24).toString(16);
+    return (hex & ColorUtils.MASK_24).toString(16).padStart(6, '0');
   }
 
   /**
@@ -356,5 +356,152 @@ export class ColorUtils {
     } else {
       return ColorUtils.rgbToHex(ColorUtils.hslToRgb(arg1, ColorUtils.rgbCache), arg2 as boolean | undefined);
     }
+  }
+
+  /**
+   * Linearly interpolates between two hex colors in the RGB colorspace.
+   * @param color1 The first color to interpolate between.
+   * @param color2 The second color to interpolate between.
+   * @param fraction The position between the two colors at which to generate the interpolated color, as a number in
+   * the range `[0, 1]`. A value of `0` is equivalent to the first color, and a value of `1` is equivalent to the
+   * second color.
+   * @returns The color that is the result of interpolating between the two specified colors at the specified position.
+   */
+  public static interpolateHex<T = number | string>(color1: T, color2: T, fraction: number): T;
+  /**
+   * Linearly interpolates between two hex colors in the RGB colorspace.
+   * @param color1 The first color to interpolate between.
+   * @param color2 The second color to interpolate between.
+   * @param fraction An array of positions between the two colors at which to generate interpolated colors. Each
+   * position is a number in the range `[0, 1]`. A value of `0` is equivalent to the first color, and a value of `1` is
+   * equivalent to the second color.
+   * @param out The array to which to write the interpolated colors.
+   * @returns An array of colors that are the result of interpolating between the two specified colors at the positions
+   * specified by `fraction`. The index of each color in the array matches the index of the position used to generate
+   * it in `fraction`.
+   */
+  public static interpolateHex<T = number | string>(color1: T, color2: T, fraction: readonly number[], out?: T[]): T[];
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static interpolateHex<T = number | string>(color1: T, color2: T, fraction: number | readonly number[], out?: T[]): T | T[] {
+    const useString = typeof color1 === 'string';
+
+    const color1Number = useString ? ColorUtils.hexStringToNumber(color1 as unknown as string) : color1 as unknown as number;
+    const color2Number = useString ? ColorUtils.hexStringToNumber(color2 as unknown as string) : color2 as unknown as number;
+
+    const interp = typeof fraction === 'object'
+      ? ColorUtils.interpolateRgbSpace(color1Number, color2Number, fraction, out as number[] | undefined)
+      : ColorUtils.interpolateRgbSpace(color1Number, color2Number, fraction);
+
+    if (useString) {
+      if (Array.isArray(interp)) {
+        for (let i = 0; i < interp.length; i++) {
+          (interp as unknown as string[])[i] = ColorUtils.hexNumberToString(interp[i]);
+        }
+        return interp as unknown as T;
+      } else {
+        return ColorUtils.hexNumberToString(interp as number) as unknown as T;
+      }
+    } else {
+      return interp as unknown as T;
+    }
+  }
+
+  /**
+   * Linearly interpolates between two numeric hex colors in the RGB colorspace.
+   * @param color1 The first color to interpolate between.
+   * @param color2 The second color to interpolate between.
+   * @param fraction The position between the two colors at which to generate the interpolated color, as a number in
+   * the range `[0, 1]`. A value of `0` is equivalent to the first color, and a value of `1` is equivalent to the
+   * second color.
+   * @returns The color that is the result of interpolating between the two specified colors at the specified position.
+   */
+  private static interpolateRgbSpace(color1: number, color2: number, fraction: number): number;
+  /**
+   * Linearly interpolates between two numeric hex colors in the RGB colorspace.
+   * @param color1 The first color to interpolate between.
+   * @param color2 The second color to interpolate between.
+   * @param fraction An array of positions between the two colors at which to generate interpolated colors. Each
+   * position is a number in the range `[0, 1]`. A value of `0` is equivalent to the first color, and a value of `1` is
+   * equivalent to the second color.
+   * @param out The array to which to write the interpolated colors.
+   * @returns An array of colors that are the result of interpolating between the two specified colors at the positions
+   * specified by `fraction`. The index of each color in the array matches the index of the position used to generate
+   * it in `fraction`.
+   */
+  private static interpolateRgbSpace(color1: number, color2: number, fraction: readonly number[], out?: number[]): number[]
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  private static interpolateRgbSpace(color1: number, color2: number, fraction: number | readonly number[], out?: number[]): number | number[] {
+    const r1 = (color1 & ColorUtils.BYTE_2_MASK) >> 16;
+    const g1 = (color1 & ColorUtils.BYTE_1_MASK) >> 8;
+    const b1 = (color1 & ColorUtils.BYTE_0_MASK);
+
+    const r2 = (color2 & ColorUtils.BYTE_2_MASK) >> 16;
+    const g2 = (color2 & ColorUtils.BYTE_1_MASK) >> 8;
+    const b2 = (color2 & ColorUtils.BYTE_0_MASK);
+
+    if (typeof fraction === 'number') {
+      const r = Math.round(MathUtils.lerp(fraction, 0, 1, r1, r2, true, true));
+      const g = Math.round(MathUtils.lerp(fraction, 0, 1, g1, g2, true, true));
+      const b = Math.round(MathUtils.lerp(fraction, 0, 1, b1, b2, true, true));
+      return (r << 16) | (g << 8) | b;
+    } else {
+      out ??= [];
+
+      for (let i = 0; i < fraction.length; i++) {
+        const r = Math.round(MathUtils.lerp(fraction[i], 0, 1, r1, r2, true, true));
+        const g = Math.round(MathUtils.lerp(fraction[i], 0, 1, g1, g2, true, true));
+        const b = Math.round(MathUtils.lerp(fraction[i], 0, 1, b1, b2, true, true));
+        out[i] = (r << 16) | (g << 8) | b;
+      }
+
+      out.length = fraction.length;
+
+      return out;
+    }
+  }
+
+  /**
+   * Creates a function that linearly interpolates between two colors in the RGB colorspace.
+   * @param color1 The first color to interpolate between.
+   * @param color2 The second color to interpolate between.
+   * @returns A function that linearly interpolates between the two specified colors in the RGB colorspace.
+   */
+  public static gradientHex<T = number | string>(color1: T, color2: T): (fraction: number) => T {
+    const useString = typeof color1 === 'string';
+
+    const color1Number = useString ? ColorUtils.hexStringToNumber(color1 as unknown as string) : color1 as unknown as number;
+    const color2Number = useString ? ColorUtils.hexStringToNumber(color2 as unknown as string) : color2 as unknown as number;
+
+    if (useString) {
+      const interpFunc = ColorUtils.gradientRgbSpace(color1Number, color2Number);
+      return ((fraction: number): string => {
+        return ColorUtils.hexNumberToString(interpFunc(fraction));
+      }) as unknown as (fraction: number) => T;
+    } else {
+      return ColorUtils.gradientRgbSpace(color1Number, color2Number) as unknown as (fraction: number) => T;
+    }
+  }
+
+  /**
+   * Creates a function that linearly interpolates between two numeric hex colors in the RGB colorspace.
+   * @param color1 The first color to interpolate between.
+   * @param color2 The second color to interpolate between.
+   * @returns A function that linearly interpolates between the two specified colors in the RGB colorspace.
+   */
+  private static gradientRgbSpace(color1: number, color2: number): (fraction: number) => number {
+    const r1 = (color1 & ColorUtils.BYTE_2_MASK) >> 16;
+    const g1 = (color1 & ColorUtils.BYTE_1_MASK) >> 8;
+    const b1 = (color1 & ColorUtils.BYTE_0_MASK);
+
+    const r2 = (color2 & ColorUtils.BYTE_2_MASK) >> 16;
+    const g2 = (color2 & ColorUtils.BYTE_1_MASK) >> 8;
+    const b2 = (color2 & ColorUtils.BYTE_0_MASK);
+
+    return (fraction: number): number => {
+      const r = Math.round(MathUtils.lerp(fraction, 0, 1, r1, r2, true, true));
+      const g = Math.round(MathUtils.lerp(fraction, 0, 1, g1, g2, true, true));
+      const b = Math.round(MathUtils.lerp(fraction, 0, 1, b1, b2, true, true));
+      return (r << 16) | (g << 8) | b;
+    };
   }
 }

@@ -5,9 +5,17 @@ import { MfdUprMenu } from './MfdUprMenu';
 const WT21_H_EVENT_MFD_REGEX = /Generic_Lwr_([12])_(.*)/;
 
 /**
+ * MFD upper view keys
+ */
+export interface MfdUprMenuViewKeys {
+  /** MFD upper menu */
+  'MfdUprMenu': void,
+}
+
+/**
  * A service to manage mfd upper menu views.
  */
-export class MfdUprMenuViewService extends MenuViewService {
+export class MfdUprMenuViewService extends MenuViewService<MfdUprMenuViewKeys> {
   protected readonly guiEventMap: Map<string, GuiHEvent> = new Map([
     ['MENU_ADV_INC', GuiHEvent.LOWER_INC],
     ['MENU_ADV_DEC', GuiHEvent.LOWER_DEC],

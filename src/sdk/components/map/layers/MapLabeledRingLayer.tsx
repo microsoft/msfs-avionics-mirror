@@ -1,63 +1,15 @@
 import { BitFlags } from '../../../math/BitFlags';
 import { ReadonlyFloat64Array, Vec2Math } from '../../../math/VecMath';
 import { DisplayComponent, FSComponent, VNode } from '../../FSComponent';
+import { DefaultMapLabeledRingLabel } from '../DefaultMapLabeledRingLabel';
+import { MapLabeledRingLabel } from '../MapLabeledRingLabel';
 import { MapLayer, MapLayerProps } from '../MapLayer';
 import { MapProjection, MapProjectionChangeType } from '../MapProjection';
 import { MapCanvasLayerCanvasInstance } from './MapCanvasLayer';
 import { MapSyncedCanvasLayer } from './MapSyncedCanvasLayer';
 
 /**
- * A ring label.
- */
-export interface MapLabeledRingLabel<T> {
-  /** The content of this label. */
-  readonly content: T;
-
-  /**
-   * Gets this label's anchor point. The anchor point is expressed relative to the label's width and height, such that
-   * (0, 0) is located at the top-left corner and (1, 1) is located at the bottom-right corner.
-   * @returns this label's anchor point.
-   */
-  getAnchor(): ReadonlyFloat64Array;
-
-  /**
-   * Gets the angle of the radial on which this label is positioned, in radians. Radial 0 is in the positive x
-   * direction.
-   * @returns the angle of the radial on which this label is positioned.
-   */
-  getRadialAngle(): number;
-
-  /**
-   * Gets the radial offset of this label from its parent ring, in pixels. Positive values denote displacement away
-   * from the center of the ring.
-   * @returns the radial offset of this label from its parent ring, in pixels.
-   */
-  getRadialOffset(): number;
-
-  /**
-   * Sets this label's anchor point. The anchor point is expressed relative to the label's width and height, such that
-   * (0, 0) is located at the top-left corner and (1, 1) is located at the bottom-right corner.
-   * @param anchor The new anchor point.
-   */
-  setAnchor(anchor: ReadonlyFloat64Array): void;
-
-  /**
-   * Sets the angle of the radial on which this label is positioned, in radians. Radial 0 is in the positive x
-   * direction.
-   * @param angle The new radial angle.
-   */
-  setRadialAngle(angle: number): void;
-
-  /**
-   * Sets the radial offset of this label from its parent ring, in pixels. Positive values denote displacement away
-   * from the center of the ring.
-   * @param offset The new radial offset.
-   */
-  setRadialOffset(offset: number): void;
-}
-
-/**
- * A map layer which displays a ring (circle) with one or more labels.
+ * A map layer that displays a ring (circle) with one or more labels.
  */
 export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<T> {
   protected readonly labelContainerRef = FSComponent.createRef<HTMLDivElement>();
@@ -74,7 +26,7 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
   private needUpdateRingPosition = false;
   protected isInit = false;
 
-  private readonly labels: MapLabeledRingLabelClass<any>[] = [];
+  private readonly labels: DefaultMapLabeledRingLabel<any>[] = [];
 
   /**
    * Gets the center position of this layer's ring, in pixels.
@@ -148,9 +100,14 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
       return null;
     }
 
-    const wrapperRef = FSComponent.createRef<HTMLDivElement>();
-    FSComponent.render(<div ref={wrapperRef} style='position: absolute;'>{content}</div>, this.labelContainerRef.instance);
-    const label = new MapLabeledRingLabelClass<L>(content.instance as L, wrapperRef.instance);
+    const node = (
+      <DefaultMapLabeledRingLabel>
+        {content}
+      </DefaultMapLabeledRingLabel>
+    );
+
+    FSComponent.render(node, this.labelContainerRef.instance);
+    const label = node.instance as DefaultMapLabeledRingLabel<L>;
     label.setRingPosition(this.center, this.radius);
     this.labels.push(label);
     return label;
@@ -303,97 +260,15 @@ export class MapLabeledRingLayer<T extends MapLayerProps<any>> extends MapLayer<
       </>
     );
   }
-}
-
-/**
- * An implementation of {@link MapLabeledRingLabel}.
- */
-class MapLabeledRingLabelClass<T> implements MapLabeledRingLabel<T> {
-  private static readonly tempVec2_1 = new Float64Array(2);
-
-  private readonly center = new Float64Array(2);
-  private radius = 0;
-  private readonly anchor = new Float64Array(2);
-  private radialAngle = 0;
-  private radialOffset = 0;
-
-  /**
-   * Constructor.
-   * @param content The content of this label.
-   * @param wrapper The wrapper for this label.
-   */
-  constructor(public readonly content: T, private readonly wrapper: HTMLDivElement) {
-  }
 
   /** @inheritdoc */
-  public getAnchor(): ReadonlyFloat64Array {
-    return this.anchor;
-  }
+  public destroy(): void {
+    this.canvasLayerRef.getOrDefault()?.destroy();
 
-  /** @inheritdoc */
-  public getRadialAngle(): number {
-    return this.radialAngle;
-  }
-
-  /** @inheritdoc */
-  public getRadialOffset(): number {
-    return this.radialOffset;
-  }
-
-  /** @inheritdoc */
-  public setAnchor(anchor: ReadonlyFloat64Array): void {
-    this.anchor.set(anchor);
-
-    this.wrapper.style.transform = `translate(${-anchor[0] * 100}%, ${-anchor[1] * 100}%)`;
-  }
-
-  /** @inheritdoc */
-  public setRadialAngle(angle: number): void {
-    if (this.radialAngle === angle) {
-      return;
+    for (const label of this.labels) {
+      label.destroy();
     }
 
-    this.radialAngle = angle;
-
-    this.updatePosition();
-  }
-
-  /** @inheritdoc */
-  public setRadialOffset(offset: number): void {
-    if (this.radialOffset === offset) {
-      return;
-    }
-
-    this.radialOffset = offset;
-
-    this.updatePosition();
-  }
-
-  /**
-   * Updates this label with the center and radius of its parent ring.
-   * @param center The center of the ring, in pixels.
-   * @param radius The radius of the ring, in pixels.
-   */
-  public setRingPosition(center: ReadonlyFloat64Array, radius: number): void {
-    if (Vec2Math.equals(this.center, center) && radius === this.radius) {
-      return;
-    }
-
-    this.center.set(center);
-    this.radius = radius;
-
-    this.updatePosition();
-  }
-
-  /**
-   * Updates this label's position.
-   */
-  private updatePosition(): void {
-    const pos = MapLabeledRingLabelClass.tempVec2_1;
-    Vec2Math.setFromPolar(this.radius + this.radialOffset, this.radialAngle, pos);
-    Vec2Math.add(this.center, pos, pos);
-
-    this.wrapper.style.left = `${pos[0]}px`;
-    this.wrapper.style.top = `${pos[1]}px`;
+    super.destroy();
   }
 }

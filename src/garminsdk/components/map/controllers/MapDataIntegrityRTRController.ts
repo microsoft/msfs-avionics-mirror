@@ -1,6 +1,6 @@
 import {
-  MapDataIntegrityModule, MapOwnAirplaneIconModule, MapSystemContext, MapSystemController, MapSystemKeys, MutableSubscribable, ReadonlyFloat64Array,
-  ResourceConsumer, ResourceModerator, Subscribable, Subscription
+  MapDataIntegrityModule, MapOwnAirplaneIconModule, MapSystemContext, MapSystemController, MapSystemKeys, MappedSubject,
+  MappedSubscribable, MutableSubscribable, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subscribable, Subscription
 } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys } from '../GarminMapKeys';
@@ -56,10 +56,14 @@ export class MapDataIntegrityRTRController extends MapSystemController<MapDataIn
     priority: MapResourcePriority.DATA_INTEGRITY,
 
     onAcquired: () => {
-      this.orientationModule?.orientation.set(MapOrientation.NorthUp);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.orientationOverridePipe!.resume(true);
     },
 
-    onCeded: () => { }
+    onCeded: () => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.orientationOverridePipe!.pause();
+    }
   };
 
   private readonly canChangeAirplaneIcon
@@ -69,6 +73,9 @@ export class MapDataIntegrityRTRController extends MapSystemController<MapDataIn
     && this.normalIconAnchor !== undefined
     && this.noHeadingIconSrc !== undefined
     && this.noHeadingIconAnchor !== undefined;
+
+  private orientationOverride?: MappedSubscribable<MapOrientation | null>;
+  private orientationOverridePipe?: Subscription;
 
   private headingSignalSub?: Subscription;
   private gpsSignalSub?: Subscription;
@@ -122,17 +129,55 @@ export class MapDataIntegrityRTRController extends MapSystemController<MapDataIn
       this.noHeadingIconAnchorPipe = this.noHeadingIconAnchor!.pipe(this.airplaneIconAnchor!, true);
     }
 
+    if (this.orientationModule) {
+      this.orientationOverride = MappedSubject.create(
+        ([desiredOrientation, isHeadingValid, isGpsValid]) => {
+          if (isHeadingValid && isGpsValid) {
+            return null;
+          }
+
+          switch (desiredOrientation) {
+            case MapOrientation.HeadingUp:
+              return isHeadingValid ? desiredOrientation : MapOrientation.NorthUp;
+            case MapOrientation.TrackUp:
+            case MapOrientation.DtkUp:
+              return isGpsValid ? desiredOrientation : MapOrientation.NorthUp;
+            default:
+              return desiredOrientation;
+          }
+        },
+        this.orientationModule.desiredOrientation,
+        this.dataIntegrityModule.headingSignalValid,
+        this.dataIntegrityModule.gpsSignalValid
+      );
+
+      this.orientationOverridePipe = this.orientationOverride.pipe(this.orientationModule.orientation, true);
+
+      this.orientationOverride.sub(override => {
+        if (override === null) {
+          if (this.orientationControl === undefined) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.orientationOverridePipe!.pause();
+          } else {
+            this.orientationControl.forfeit(this.orientationControlConsumer);
+          }
+        } else {
+          if (this.orientationControl === undefined) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.orientationOverridePipe!.resume(true);
+          } else {
+            this.orientationControl.claim(this.orientationControlConsumer);
+          }
+        }
+      }, true);
+    }
+
     this.headingSignalSub = this.dataIntegrityModule.headingSignalValid.sub(isValid => {
       if (isValid) {
         this.orientationControl?.forfeit(this.orientationControlConsumer);
         this.setNormalAirplaneIcon();
       } else {
         this.setNoHeadingAirplaneIcon();
-        if (this.orientationControl === undefined) {
-          this.orientationModule?.orientation.set(MapOrientation.NorthUp);
-        } else {
-          this.orientationControl.claim(this.orientationControlConsumer);
-        }
       }
     }, true);
 
@@ -176,10 +221,11 @@ export class MapDataIntegrityRTRController extends MapSystemController<MapDataIn
 
   /** @inheritdoc */
   public destroy(): void {
-    super.destroy();
-
     this.targetControl?.forfeit(this.targetControlConsumer);
     this.orientationControl?.forfeit(this.orientationControlConsumer);
+
+    this.orientationOverride?.destroy();
+    this.orientationOverridePipe?.destroy();
 
     this.headingSignalSub?.destroy();
     this.gpsSignalSub?.destroy();
@@ -188,5 +234,7 @@ export class MapDataIntegrityRTRController extends MapSystemController<MapDataIn
     this.normalIconAnchorPipe?.destroy();
     this.noHeadingIconSrcPipe?.destroy();
     this.noHeadingIconAnchorPipe?.destroy();
+
+    super.destroy();
   }
 }

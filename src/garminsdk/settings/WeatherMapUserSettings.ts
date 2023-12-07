@@ -5,6 +5,7 @@ export enum WeatherMapOrientationSettingMode {
   NorthUp = 'NorthUp',
   TrackUp = 'TrackUp',
   HeadingUp = 'HeadingUp',
+  DtkUp = 'DtkUp',
   SyncToNavMap = 'SyncToNavMap'
 }
 

@@ -1,0 +1,191 @@
+.keyboard-container {
+  position: relative;
+}
+
+.gtc-horizontal .keyboard-container {
+  width: 867px;
+  height: 675px;
+  font-size: 55px;
+
+  --keyboard-numpad-top: 138px;
+
+  --keyboard-row-gap: 15px;
+  --keyboard-column-gap: 24px;
+
+  --keyboard-numpad-group-left: 222px;
+
+  --keyboard-numpad-space-key-right: 3px;
+
+  --keyboard-button-width: 124px;
+  --keyboard-button-wide-width: 198px;
+  --keyboard-button-height: 123px;
+
+  --keyboard-space-key-font-size: 45px;
+
+  --keyboard-backspace-font-size: 32px;
+  --keyboard-backspace-icon-left: 45px;
+  --keyboard-backspace-icon-top: 68px;
+  --keyboard-backspace-icon-width: 95px;
+  --keyboard-backspace-label-top: 25px;
+
+  --keyboard-find-font-size: 34px;
+  --keyboard-find-icon-left: 8px;
+  --keyboard-find-icon-top: 10px;
+  --keyboard-find-icon-width: 90px;
+  --keyboard-find-label-top: 75px;
+}
+
+.gtc-vertical .keyboard-container {
+  width: 467px;
+  height: 362px;
+  font-size: 28px;
+
+  --keyboard-numpad-top: 74px;
+
+  --keyboard-row-gap: 8px;
+  --keyboard-column-gap: 13px;
+
+  --keyboard-numpad-group-left: 120px;
+
+  --keyboard-numpad-space-key-right: 0px;
+
+  --keyboard-button-width: 67px;
+  --keyboard-button-wide-width: 107px;
+  --keyboard-button-height: 66px;
+
+  --keyboard-space-key-font-size: 25px;
+
+  --keyboard-backspace-font-size: 17px;
+  --keyboard-backspace-icon-left: 23px;
+  --keyboard-backspace-icon-top: 36px;
+  --keyboard-backspace-icon-width: 50px;
+  --keyboard-backspace-label-top: 13px;
+
+  --keyboard-find-font-size: 18px;
+  --keyboard-find-icon-left: 3px;
+  --keyboard-find-icon-top: 4px;
+  --keyboard-find-icon-width: 50px;
+  --keyboard-find-label-top: 41px;
+}
+
+.keyboard-container-mode {
+  position: absolute;
+  left: 0px;
+  width: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  pointer-events: none;
+}
+
+.keyboard-alpha {
+  top: 0px;
+}
+
+.keyboard-numpad {
+  top: var(--keyboard-numpad-top);
+}
+
+.keyboard-container-mode .touch-button {
+  pointer-events: auto;
+}
+
+.keyboard-alpha-key,
+.keyboard-numpad-key {
+  opacity: 1;
+  transition: opacity 250ms;
+}
+
+.keyboard-container-alpha .keyboard-container-mode .keyboard-numpad-key,
+.keyboard-container-numpad .keyboard-container-mode .keyboard-alpha-key {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.keyboard-numpad .keyboard-space-key {
+  position: absolute;
+  right: var(--keyboard-numpad-space-key-right);
+  bottom: 0px;
+}
+
+.keyboard-row {
+  display: flex;
+  flex-flow: row nowrap;
+  margin-bottom: var(--keyboard-row-gap);
+}
+
+.keyboard-row>.touch-button+.touch-button {
+  margin-left: var(--keyboard-column-gap);
+}
+
+.keyboard-numpad-column {
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+.keyboard-numpad-column>.touch-button+.touch-button {
+  margin-top: var(--keyboard-row-gap);
+}
+
+.keyboard-numpad-group {
+  position: absolute;
+  left: var(--keyboard-numpad-group-left);
+  top: 0px;
+}
+
+.keyboard-numpad-group .keyboard-row {
+  width: 100%;
+  justify-content: space-around;
+}
+
+.keyboard-container .touch-button {
+  width: var(--keyboard-button-width);
+  height: var(--keyboard-button-height);
+}
+
+.keyboard-container .touch-button.keyboard-button-wide {
+  width: var(--keyboard-button-wide-width);
+}
+
+.keyboard-space-key {
+  font-size: var(--keyboard-space-key-font-size);
+}
+
+.keyboard-backspace,
+.keyboard-find {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.keyboard-backspace {
+  font-size: var(--keyboard-backspace-font-size);
+}
+
+.keyboard-backspace-icon {
+  position: absolute;
+  left: var(--keyboard-backspace-icon-left);
+  top: var(--keyboard-backspace-icon-top);
+  width: var(--keyboard-backspace-icon-width);
+}
+
+.keyboard-backspace-label {
+  position: absolute;
+  top: var(--keyboard-backspace-label-top);
+}
+
+.keyboard-find {
+  font-size: var(--keyboard-find-font-size);
+}
+
+.keyboard-find-icon {
+  position: absolute;
+  left: var(--keyboard-find-icon-left);
+  top: var(--keyboard-find-icon-top);
+  width: var(--keyboard-find-icon-width);
+}
+
+.keyboard-find-label {
+  position: absolute;
+  top: var(--keyboard-find-label-top);
+}

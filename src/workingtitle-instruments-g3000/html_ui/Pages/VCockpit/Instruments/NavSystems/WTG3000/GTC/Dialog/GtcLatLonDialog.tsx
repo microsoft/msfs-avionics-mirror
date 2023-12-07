@@ -5,7 +5,7 @@ import { GtcImgTouchButton } from '../Components/TouchButton/GtcImgTouchButton';
 import { GtcInteractionEvent } from '../GtcService/GtcInteractionEvent';
 import { GtcView } from '../GtcService/GtcView';
 import { GtcDialogResult, GtcDialogView } from './GtcDialogView';
-import { LatLonInput } from '../Components/LatLonInput/LatLonInput';
+import { G3000LatLonDisplayFormat, LatLonInput } from '../Components/LatLonInput/LatLonInput';
 import { GtcDialogs } from './GtcDialogs';
 import { GtcTouchButton } from '../Components';
 
@@ -16,7 +16,7 @@ import './GtcLatLonDialog.css';
  */
 export type GtcLatLonDialogInput = {
   /** The input format type to use. */
-  format: LatLonDisplayFormat;
+  format: G3000LatLonDisplayFormat;
 
   /** The latitude/longitude coordinates initially loaded into the dialog at the start of the request. */
   initialValue: LatLonInterface;
@@ -61,7 +61,7 @@ export class GtcLatLonDialog extends GtcView implements GtcDialogView<GtcLatLonD
     oldVal.lon = newVal.lon;
   };
 
-  private readonly contexts: Record<LatLonDisplayFormat, GtcLatLonDialogContext> = {
+  private readonly contexts: Record<G3000LatLonDisplayFormat, GtcLatLonDialogContext> = {
     [LatLonDisplayFormat.HDDD_MMmm]: {
       inputRef: FSComponent.createRef<LatLonInput>(),
       cssClass: SetSubject.create(['latlon-dialog-input', 'latlon-dialog-input-dddmm', 'hidden']),
@@ -102,7 +102,7 @@ export class GtcLatLonDialog extends GtcView implements GtcDialogView<GtcLatLonD
     this._sidebarState.slot5.set('enterEnabled');
 
     for (const key in this.contexts) {
-      const context = this.contexts[key as LatLonDisplayFormat];
+      const context = this.contexts[key as G3000LatLonDisplayFormat];
       context.editingSub = context.inputRef.instance.isEditingActive.sub(isActive => {
         this.onEditingActiveChanged(isActive);
       });

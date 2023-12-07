@@ -213,6 +213,7 @@ export class MapSystemBuilder<
   protected readonly controllerFactories = new Map<string, ControllerFactory>();
   protected readonly contextFactories = new Map<string, ContextFactory>();
   protected readonly initCallbacks = new Map<string, (context: MapSystemContext<any, any, any, any>) => void>();
+  protected readonly destroyCallbacks = new Map<string, (context: MapSystemContext<any, any, any, any>) => void>();
 
   protected projectedSize: Subscribable<ReadonlyFloat64Array> = Subject.create(Vec2Math.create(100, 100));
   protected deadZone?: Subscribable<ReadonlyFloat64Array>;
@@ -432,6 +433,33 @@ export class MapSystemBuilder<
     ) => void
   ): this {
     this.initCallbacks.set(key, callback);
+    return this;
+  }
+
+  /**
+   * Configures this builder to execute a callback function after a built map is destroyed. If an existing callback has
+   * been added to this builder with the same key, it will be replaced.
+   * @param key The key of the callback.
+   * @param callback The callback function to add.
+   * @returns This builder, after the callback has been added.
+   */
+  public withDestroy<
+    UseModules extends ModuleRecord = any,
+    UseLayers extends LayerRecord = any,
+    UseControllers extends ControllerRecord = any,
+    UseContext extends ContextRecord = any
+  >(
+    key: string,
+    callback: (
+      context: MapSystemContext<
+        DefaultIfAny<UseModules, Modules>,
+        DefaultIfAny<UseLayers, Layers>,
+        DefaultIfAny<UseControllers, Controllers>,
+        DefaultIfAny<UseContext, Context>
+      >
+    ) => void
+  ): this {
+    this.destroyCallbacks.set(key, callback);
     return this;
   }
 
@@ -1397,6 +1425,17 @@ export class MapSystemBuilder<
           }
         }
       }
+
+      for (const callback of this.destroyCallbacks.values()) {
+        try {
+          callback(context);
+        } catch (e) {
+          console.error(`MapSystem: error in destroy callback: ${e}`);
+          if (e instanceof Error) {
+            console.error(e.stack);
+          }
+        }
+      }
     };
 
     const map = (
@@ -1434,7 +1473,14 @@ export class MapSystemBuilder<
     controllers.push(...controllerEntries.map(([, controller]) => controller));
 
     for (const callback of this.initCallbacks.values()) {
-      callback(context);
+      try {
+        callback(context);
+      } catch (e) {
+        console.error(`MapSystem: error in init callback: ${e}`);
+        if (e instanceof Error) {
+          console.error(e.stack);
+        }
+      }
     }
 
     return { context, map, ref };

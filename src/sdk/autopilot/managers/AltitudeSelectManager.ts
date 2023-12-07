@@ -1,6 +1,6 @@
 import { EventBus, KeyEventData, KeyEvents, KeyEventManager, SimVarValueType } from '../../data';
 import { APEvents } from '../../instruments';
-import { MathUtils, NumberUnitInterface, Unit, UnitFamily, UnitType } from '../../math';
+import { BitFlags, MathUtils, NumberUnitInterface, Unit, UnitFamily, UnitType } from '../../math';
 import { UserSetting, UserSettingManager } from '../../settings';
 import { SubscribableSet, SubscribableSetEventType } from '../../sub/SubscribableSet';
 import { SortedArray } from '../../utils/datastructures/SortedArray';
@@ -28,7 +28,27 @@ export type MetricAltitudeSelectSetting = {
 export type MetricAltitudeSettingsManager = UserSettingManager<MetricAltitudeSelectSetting>;
 
 /**
- * Configuration options for AltitudeSelectManager.
+ * Bitflags used to filter input events eligible to trigger input acceleration for {@link AltitudeSelectManager}.
+ */
+export enum AltitudeSelectManagerAccelFilter {
+  /** No events. */
+  None = 0,
+
+  /** INC/DEC events with a value of zero. */
+  ZeroIncDec = 1 << 0,
+
+  /** INC/DEC events with a non-zero value. */
+  NonZeroIncDec = 1 << 1,
+
+  /** SET events that are transformed to an INC/DEC event. */
+  TransformedSet = 1 << 2,
+
+  /** All events. */
+  All = ~0
+}
+
+/**
+ * Configuration options for {@link AltitudeSelectManager}.
  */
 export type AltitudeSelectManagerOptions = {
   /** The altitude hold slot index to use. Defaults to 1. */
@@ -92,6 +112,18 @@ export type AltitudeSelectManagerOptions = {
   lockAltToStepOnIncrMetric?: boolean;
 
   /**
+   * Whether to lock the selected altitude setting to multiples of the small increment on a SET event. Defaults to
+   * `false`.
+   */
+  lockAltToStepOnSet?: boolean;
+
+  /**
+   * Whether to lock the selected altitude setting to multiples of the small increment in metric mode on a SET event.
+   * If undefined, it will be set equal to the lock flag in non-metric mode.
+   */
+  lockAltToStepOnSetMetric?: boolean;
+
+  /**
    * The required number of consecutive small-increment inputs received to trigger input acceleration. While
    * acceleration is active, small-increment inputs will be converted to large increments. A threshold less than or
    * equal to zero effectively disables input acceleration. Defaults to 0.
@@ -100,6 +132,12 @@ export type AltitudeSelectManagerOptions = {
 
   /** Whether to reset input acceleration if the direction of increment changes. Defaults to `false`. */
   accelResetOnDirectionChange?: boolean;
+
+  /**
+   * Bitflags to use to filter input events for input acceleration. Only events that pass the filter are eligible to
+   * trigger input acceleration. Defaults to `AltitudeSelectManagerAccelFilter.All`.
+   */
+  accelFilter?: number;
 
   /**
    * Whether to initialize the selected altitude setting only on the first detected input. If `false`, the selected
@@ -145,9 +183,12 @@ export class AltitudeSelectManager {
 
   private readonly lockAltToStepOnIncr: boolean;
   private readonly lockAltToStepOnIncrMetric: boolean;
+  private readonly lockAltToStepOnSet: boolean;
+  private readonly lockAltToStepOnSetMetric: boolean;
 
   private readonly accelInputCountThreshold: number;
   private readonly accelResetOnDirectionChange: boolean;
+  private readonly accelFilter: number;
 
   private readonly initToIndicatedAlt: boolean;
 
@@ -178,7 +219,7 @@ export class AltitudeSelectManager {
   };
 
   /**
-   * Constructor.
+   * Creates a new instance of AltitudeSelectManager.
    * @param bus The event bus.
    * @param settingsManager The user settings manager controlling metric altitude preselector setting. Required to
    * support metric mode.
@@ -186,10 +227,10 @@ export class AltitudeSelectManager {
    * @param stops Additional altitude stops, in feet, to respect when the selected altitude is incremented or
    * decremented.
    */
-  constructor(
+  public constructor(
     private readonly bus: EventBus,
     settingsManager: MetricAltitudeSettingsManager | undefined,
-    options: AltitudeSelectManagerOptions,
+    options: Readonly<AltitudeSelectManagerOptions>,
     stops?: Iterable<number> | SubscribableSet<number>
   ) {
     this.altitudeHoldSlotIndex = options.altitudeHoldSlotIndex ?? 1;
@@ -209,8 +250,12 @@ export class AltitudeSelectManager {
     this.lockAltToStepOnIncr = options.lockAltToStepOnIncr ?? true;
     this.lockAltToStepOnIncrMetric = options.lockAltToStepOnIncrMetric ?? this.lockAltToStepOnIncr;
 
+    this.lockAltToStepOnSet = options.lockAltToStepOnSet ?? false;
+    this.lockAltToStepOnSetMetric = options.lockAltToStepOnSetMetric ?? this.lockAltToStepOnSet;
+
     this.accelInputCountThreshold = options.accelInputCountThreshold ?? 0;
     this.accelResetOnDirectionChange = options.accelResetOnDirectionChange ?? false;
+    this.accelFilter = options.accelFilter ?? AltitudeSelectManagerAccelFilter.All;
 
     this.initToIndicatedAlt = options.initToIndicatedAlt ?? false;
 
@@ -351,15 +396,26 @@ export class AltitudeSelectManager {
     let direction: 0 | 1 | -1 = 0;
     let useLargeIncrement = false;
     let setAltitude: number | undefined = undefined;
+    let accelFilterChallenge = 0;
 
     switch (key) {
       case 'AP_ALT_VAR_INC':
         direction = 1;
         useLargeIncrement = value !== undefined && value > this.inputIncrLargeThreshold;
+        if (value === undefined || value === 0) {
+          accelFilterChallenge = AltitudeSelectManagerAccelFilter.ZeroIncDec;
+        } else {
+          accelFilterChallenge = AltitudeSelectManagerAccelFilter.NonZeroIncDec;
+        }
         break;
       case 'AP_ALT_VAR_DEC':
         direction = -1;
         useLargeIncrement = value !== undefined && value > this.inputIncrLargeThreshold;
+        if (value === undefined || value === 0) {
+          accelFilterChallenge = AltitudeSelectManagerAccelFilter.ZeroIncDec;
+        } else {
+          accelFilterChallenge = AltitudeSelectManagerAccelFilter.NonZeroIncDec;
+        }
         break;
       case 'AP_ALT_VAR_SET_ENGLISH':
       case 'AP_ALT_VAR_SET_METRIC': {
@@ -368,6 +424,7 @@ export class AltitudeSelectManager {
             const delta = value - currentValue;
             direction = delta < 0 ? -1 : 1;
             useLargeIncrement = Math.abs(delta) > this.inputIncrLargeThreshold;
+            accelFilterChallenge = AltitudeSelectManagerAccelFilter.TransformedSet;
           } else {
             setAltitude = value;
           }
@@ -387,8 +444,11 @@ export class AltitudeSelectManager {
 
       let isAccelActive = this.consecIncrSmallCount >= this.accelInputCountThreshold;
 
+      const didPassFilter = BitFlags.isAny(accelFilterChallenge, this.accelFilter);
+
       if (
         useLargeIncrement
+        || !didPassFilter
         || direction === 0
         || (this.consecIncrSmallCount > 0 && time - this.lastIncrSmallInputTime > AltitudeSelectManager.CONSECUTIVE_INPUT_PERIOD)
         || ((isAccelActive ? this.accelResetOnDirectionChange : this.consecIncrSmallCount > 0) && this.lastIncrSmallDirection !== direction)
@@ -396,7 +456,7 @@ export class AltitudeSelectManager {
         this.consecIncrSmallCount = 0;
       }
 
-      if (!useLargeIncrement) {
+      if (!useLargeIncrement && didPassFilter) {
         this.consecIncrSmallCount++;
         this.lastIncrSmallDirection = direction;
         this.lastIncrSmallInputTime = time;
@@ -420,22 +480,34 @@ export class AltitudeSelectManager {
    */
   private setSelectedAltitude(altitudeFeet: number): void {
     const isMetric = this.altimeterMetricSetting?.value ?? false;
+    let lockIncr: number;
 
     let min: number, max: number, unit: Unit<UnitFamily.Distance>;
     if (isMetric) {
       min = this.minValueMetric;
       max = this.maxValueMetric;
       unit = UnitType.METER;
+      lockIncr = this.lockAltToStepOnSetMetric ? this.incrSmallMetric : 0;
     } else {
       min = this.minValue;
       max = this.maxValue;
       unit = UnitType.FOOT;
+      lockIncr = this.lockAltToStepOnSet ? this.incrSmall : 0;
     }
 
-    const valueToSet = UnitType.FOOT.convertFrom(
-      MathUtils.clamp(UnitType.FOOT.convertTo(altitudeFeet, unit), min, max),
-      unit
-    );
+    let altitudeInUnits = UnitType.FOOT.convertTo(altitudeFeet, unit);
+
+    if (lockIncr > 0) {
+      altitudeInUnits = MathUtils.clamp(
+        MathUtils.round(altitudeInUnits, lockIncr),
+        MathUtils.ceil(min, lockIncr),
+        MathUtils.floor(max, lockIncr)
+      );
+    } else {
+      altitudeInUnits = MathUtils.clamp(altitudeInUnits, min, max);
+    }
+
+    const valueToSet = UnitType.FOOT.convertFrom(altitudeInUnits, unit);
 
     if (valueToSet !== SimVar.GetSimVarValue(this.altitudeHoldSlotSimVar, SimVarValueType.Feet)) {
       SimVar.SetSimVarValue(this.altitudeHoldSlotSimVar, SimVarValueType.Feet, valueToSet);
@@ -475,7 +547,7 @@ export class AltitudeSelectManager {
     const startValueConverted = Math.round(UnitType.FOOT.convertTo(startValue, units));
     useLargeIncrement &&= !lockAlt || (startValueConverted % incrSmall === 0);
     let valueToSet = UnitType.FOOT.convertFrom(
-      Utils.Clamp((lockAlt ? roundFunc(startValueConverted / incrSmall) * incrSmall : startValueConverted) + direction * (useLargeIncrement ? incrLarge : incrSmall), min, max),
+      MathUtils.clamp((lockAlt ? roundFunc(startValueConverted / incrSmall) * incrSmall : startValueConverted) + direction * (useLargeIncrement ? incrLarge : incrSmall), min, max),
       units
     );
 

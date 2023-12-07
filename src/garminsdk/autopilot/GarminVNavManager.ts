@@ -32,7 +32,8 @@ export class GarminVNavManager implements VNavManager {
     rnavTypeFlags: RnavTypeFlags.None,
     isCircling: false,
     isVtf: false,
-    referenceFacility: null
+    referenceFacility: null,
+    runway: null
   }, FmsUtils.approachDetailsEquals);
   private readonly gpAvailable = ConsumerSubject.create(null, false);
 

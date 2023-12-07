@@ -85,7 +85,7 @@ export class ColorRangeConfig implements ResolvableConfig<AirspeedIndicatorColor
       return undefined;
     }
 
-    return config;
+    return config as NumericConfig;
   }
 
   /** @inheritdoc */

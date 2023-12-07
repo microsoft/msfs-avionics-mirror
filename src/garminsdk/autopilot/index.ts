@@ -1,5 +1,6 @@
 export * from './FmaData';
 export * from './GarminAPConfig';
+export * from './GarminAPConfigInterface';
 export * from './GarminAPStateManager';
 export * from './GarminAutopilot';
 export * from './GarminGoAroundManager';

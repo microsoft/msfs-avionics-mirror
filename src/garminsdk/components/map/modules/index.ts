@@ -7,6 +7,7 @@ export * from './MapGarminDataIntegrityModule';
 export * from './MapGarminTrafficModule';
 export * from './MapNexradModule';
 export * from './MapOrientationModule';
+export * from './MapPanningModule';
 export * from './MapPointerModule';
 export * from './MapProcedurePreviewModule';
 export * from './MapRangeCompassModule';

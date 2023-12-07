@@ -143,7 +143,6 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
     return (
       <BaseAirspeedIndicator
         ref={this.ref}
-        bus={this.props.bus}
         dataProvider={this.dataProvider}
         vSpeedAnnunciationDataProvider={this.vSpeedAnnunciationDataProvider}
         declutter={this.props.declutter}

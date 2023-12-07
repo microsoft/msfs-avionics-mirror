@@ -6,9 +6,11 @@ import { KeyEventManager } from '../data/KeyEventManager';
 import { SimVarValueType } from '../data/SimVars';
 import { ThrottleLeverManager, VirtualThrottleLeverEvents } from '../fadec/ThrottleLeverManager';
 import { ClockEvents } from '../instruments/Clock';
+import { AeroMath } from '../math/AeroMath';
 import { ExpSmoother } from '../math/ExpSmoother';
 import { MathUtils } from '../math/MathUtils';
 import { MultiExpSmoother } from '../math/MultiExpSmoother';
+import { UnitType } from '../math/NumberUnit';
 import { Subject } from '../sub/Subject';
 import { Subscribable } from '../sub/Subscribable';
 import { SubscribableUtils } from '../sub/SubscribableUtils';
@@ -62,6 +64,12 @@ export type AutothrottlePidParams = {
  * Options used to initialize an autothrottle.
  */
 export type AutothrottleOptions = {
+  /**
+   * Whether the autothrottle should use mach number calculated from the impact pressure derived from indicated
+   * airspeed and ambient pressure instead of the true mach number. Defaults to `false`.
+   */
+  useIndicatedMach?: boolean;
+
   /**
    * The rate at which the autothrottle's servos moves throttle levers, in units of normalized position per second.
    * One normalized throttle position is equal to the distance traversed by the throttle from the idle position to
@@ -315,6 +323,8 @@ export abstract class AbstractAutothrottle {
 
   protected readonly publisher = this.bus.getPublisher<AutothrottleEvents>();
 
+  protected readonly useIndicatedMach: boolean;
+
   protected readonly airspeedIndex: Subscribable<number>;
   protected airspeedSimVar!: string;
 
@@ -425,6 +435,8 @@ export abstract class AbstractAutothrottle {
     options: AutothrottleOptions,
     throttleLeverManager?: ThrottleLeverManager
   ) {
+    this.useIndicatedMach = options.useIndicatedMach ?? false;
+
     this.airspeedIndex = SubscribableUtils.toSubscribable(airspeedIndex, true);
     this.airspeedIndex.sub(index => { this.airspeedSimVar = `AIRSPEED INDICATED:${index}`; }, true);
 
@@ -877,9 +889,22 @@ export abstract class AbstractAutothrottle {
     out.isOverspeed = false;
     out.isUnderspeed = false;
 
+    const pressure = SimVar.GetSimVarValue('AMBIENT PRESSURE', SimVarValueType.HPA);
     const ias = SimVar.GetSimVarValue(this.airspeedSimVar, SimVarValueType.Knots);
-    const mach = SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Number);
-    const currentMachToKias = ias > 1 && mach > 0 ? ias / mach : Simplane.getMachToKias(1);
+
+    let currentMachToKias: number;
+    if (this.useIndicatedMach) {
+      if (ias > 1) {
+        const iasMps = UnitType.KNOT.convertTo(ias, UnitType.MPS);
+        currentMachToKias = ias / AeroMath.casToMach(iasMps, pressure);
+      } else {
+        currentMachToKias = 1 / AeroMath.casToMach(1, pressure);
+      }
+    } else {
+      const mach = SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Number);
+      currentMachToKias = ias > 1 && mach > 0 ? ias / mach : 1 / AeroMath.casToMach(1, pressure);
+    }
+
     const machToKias = this.machToKiasSmoother.next(isFinite(currentMachToKias) ? currentMachToKias : 1, dt);
 
     const lookahead = Math.max(0, this.iasLookahead.get());

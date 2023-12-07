@@ -22,6 +22,8 @@ import { PFDPageMenuDialog } from '../PFDPageMenuDialog';
 import { FixInfo } from '../../../../Shared/UI/FPL/FixInfo';
 
 import type { MenuItemDefinition } from '../../../../Shared/UI/Dialogs/PopoutMenuItem';
+import { FmsHEvent } from '../../../../MFD';
+import { ControlpadHEventHandler, ControlPadKeyOperations } from '../../../../Shared/Input/ControlpadHEventHandler';
 /** The properties of an FPL detail section item. */
 export interface FPLSectionProps extends G1000UiControlProps {
   /** The view service. */
@@ -728,33 +730,23 @@ export abstract class FPLSection extends G1000UiControl<FPLSectionProps> impleme
     return this.emptyRowRef.getOrDefault()?.isFocused ?? false;
   }
 
+  /** @inheritdoc */
+  public consolidateKeyboardHEvent(source: G1000UiControl, evt: FmsHEvent): boolean {
+    const keyboardInputEvaluation = ControlpadHEventHandler.evaluateKeyboardInput(evt);
+    if (keyboardInputEvaluation.KeyboardOperation === ControlPadKeyOperations.InsertCharacter) {
+      this.openWaypointSelectionView(source);
+      return true;
+    }
+    return false;
+  }
+
   /**
    * Callback for when UpperKnob event happens on a leg.
    * @param source The FixInfo element.
    * @returns True if the control handled the event.
    */
   protected readonly onUpperKnobLegBase = (source: G1000UiControl): boolean => {
-    let idx = (source instanceof FixInfo) ? this.listRef.instance.indexOf(source) : undefined;
-    this.props.viewService.open('WptInfo', true)
-      .onAccept.on((sender, fac: Facility) => {
-
-        if (idx !== undefined) {
-          if (
-            BitFlags.isAll(this.segment.legs[idx]?.flags ?? 0, LegDefinitionFlags.VectorsToFinalFaf)
-            && BitFlags.isAll(this.segment.legs[idx - 1]?.flags ?? 0, LegDefinitionFlags.VectorsToFinal)
-          ) {
-            // If we are inserting before a VTF faf leg with a preceding discontinuity leg, we need to shift the index
-            // by -1 to ensure we insert the new leg before the discontinuity leg.
-            idx -= 1;
-          }
-        }
-
-        const success = this.props.fms.insertWaypoint(this.segment.segmentIndex, fac, idx);
-        if (!success) {
-          this.props.viewService.open('MessageDialog', true).setInput({ inputString: 'Invalid flight plan modification.' });
-        }
-      });
-
+    this.openWaypointSelectionView(source);
     return true;
   };
 
@@ -814,6 +806,31 @@ export abstract class FPLSection extends G1000UiControl<FPLSectionProps> impleme
   protected onClrLeg = (sender: G1000UiControl): boolean => {
     return this.onClrLegBase(sender as FixInfo);
   };
+
+  /**
+   * Open the WaypointInfo popup
+   * @param source Source element
+   */
+  private openWaypointSelectionView(source: G1000UiControl<G1000UiControlProps>): void {
+    let idx = (source instanceof FixInfo) ? this.listRef.instance.indexOf(source) : undefined;
+    this.props.viewService.open('WptInfo', true)
+      .onAccept.on((sender, fac: Facility) => {
+
+        if (idx !== undefined) {
+          if (BitFlags.isAll(this.segment.legs[idx]?.flags ?? 0, LegDefinitionFlags.VectorsToFinalFaf)
+            && BitFlags.isAll(this.segment.legs[idx - 1]?.flags ?? 0, LegDefinitionFlags.VectorsToFinal)) {
+            // If we are inserting before a VTF faf leg with a preceding discontinuity leg, we need to shift the index
+            // by -1 to ensure we insert the new leg before the discontinuity leg.
+            idx -= 1;
+          }
+        }
+
+        const success = this.props.fms.insertWaypoint(this.segment.segmentIndex, fac, idx);
+        if (!success) {
+          this.props.viewService.open('MessageDialog', true).setInput({ inputString: 'Invalid flight plan modification.' });
+        }
+      });
+  }
 
   /**
    * A callback which is called when a leg selection changes.
@@ -986,7 +1003,9 @@ export abstract class FPLSection extends G1000UiControl<FPLSectionProps> impleme
         ref={this.listRef} data={this.legs}
         renderItem={this.renderItem}
         onItemSelected={this.onLegItemSelected.bind(this)}
-        hideScrollbar scrollContainer={this.props.scrollContainer}
+        hideScrollbar
+        scrollToMostRecentlyAdded
+        scrollContainer={this.props.scrollContainer}
         reconcileChildBlur={(): BlurReconciliation => BlurReconciliation.Next}
         requireChildFocus
       />

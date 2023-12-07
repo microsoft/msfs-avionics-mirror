@@ -22,6 +22,7 @@ import { MapUtils } from '../MapUtils';
 import { MapWaypointDisplayBuilder } from '../MapWaypointDisplayBuilder';
 import { NextGenMapWaypointStyles } from '../MapWaypointStyles';
 import { MapDeclutterMode, MapDeclutterModule, MapGarminTrafficModule, MapOrientation, MapOrientationModule, MapTerrainMode, MapUnitsModule } from '../modules';
+import { NextGenGarminMapBuilder } from '../NextGenGarminMapBuilder';
 
 /**
  * Configurations for traffic intruder icons for next-generation (NXi, G3000, etc) HSI maps.
@@ -334,7 +335,7 @@ export class NextGenHsiMapBuilder {
       mapBuilder.with(GarminMapBuilder.airspaces, options.useAirspaceVisUserSettings ? options.settingManager : undefined);
     }
 
-    mapBuilder.with(GarminMapBuilder.waypoints,
+    mapBuilder.with(NextGenGarminMapBuilder.waypoints,
       (builder: MapWaypointDisplayBuilder): void => {
         builder.withNormalStyles(
           options.waypointIconImageCache,

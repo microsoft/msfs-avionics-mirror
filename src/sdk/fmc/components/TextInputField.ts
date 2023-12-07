@@ -1,5 +1,5 @@
 import { AbstractFmcPage } from '../AbstractFmcPage';
-import { Formatter, RawFormatter, RawValidator, Validator } from '../FmcFormat';
+import { FmcFormatter, Validator } from '../FmcFormat';
 import { LineSelectKeyEvent } from '../FmcInteractionEvents';
 import { EditableField, EditableFieldOptions } from './EditableField';
 
@@ -10,7 +10,7 @@ export interface TextInputFieldOptions<T, V> extends EditableFieldOptions<T> {
   /**
    * Validator object
    */
-  formatter: Formatter<T> & Validator<V>,
+  formatter: FmcFormatter<T> & Validator<V>,
 
   /**
    * Whether CLR DEL lsk events push a null value
@@ -83,20 +83,17 @@ export class TextInputField<T = string, V = T> extends EditableField<T, V> {
   }
 
   /**
-   * Creates an {@link TextInputField} that uses a {@link RawValidator} and {@link RawFormatter}
-   * @param page the parent {@link FmcPage}
-   * @returns the {@link TextInputField}
-   * @deprecated (0.5.X) use constructor instead
+   * Allows text input to be programmatically sent to the field.
+   *
+   * @param input the text input
    */
-  public static createRawTextInput(page: AbstractFmcPage): TextInputField<string | null> {
-    return new TextInputField<string | null, string | null>(page, {
-      formatter: { ...RawFormatter, ...RawValidator },
-    });
+  public async takeTextInput(input: string): Promise<boolean | string> {
+    return this.handleTextInputInternal(input);
   }
 
   /** @inheritDoc */
   protected async onHandleSelectKey(event: LineSelectKeyEvent): Promise<boolean | string> {
-    if (event.isDelete === true) {
+    if (event.isDelete) {
       if (this.options.deleteAllowed ?? true) {
         this.valueChanged.notify(this, null as unknown as V); // We cannot check at runtime if the field can take null, so we kinda have to do that
 
@@ -109,7 +106,16 @@ export class TextInputField<T = string, V = T> extends EditableField<T, V> {
       }
     }
 
-    const parsedValue = await this.options.formatter.parse(event.scratchpadContents);
+    return this.handleTextInputInternal(event.scratchpadContents);
+  }
+
+  /**
+   * Internal handling of text input
+   *
+   * @param text the input text
+   */
+  private async handleTextInputInternal(text: string): Promise<boolean | string> {
+    const parsedValue = await this.options.formatter.parse(text);
 
     if (parsedValue !== null) {
       // Process an `onModified` hook if we have one
@@ -151,5 +157,4 @@ export class TextInputField<T = string, V = T> extends EditableField<T, V> {
       return Promise.reject(this.page.screen.options.textInputFieldParseFailThrowValue);
     }
   }
-
 }

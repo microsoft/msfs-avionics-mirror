@@ -53,7 +53,7 @@ export class AdsbSensitivityParameters {
    */
   public selectLevel(
     altitude: NumberUnitInterface<UnitFamily.Distance>,
-    cdiScalingLabel: CDIScaleLabel,
+    cdiScalingLabel?: CDIScaleLabel,
     radarAltitude?: NumberUnitInterface<UnitFamily.Distance>
   ): number {
     const altFeet = altitude.asUnit(UnitType.FOOT);

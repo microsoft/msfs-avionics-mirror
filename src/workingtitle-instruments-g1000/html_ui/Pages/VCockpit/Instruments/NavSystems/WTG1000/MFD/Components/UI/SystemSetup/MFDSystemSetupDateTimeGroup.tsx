@@ -8,7 +8,7 @@ import { TimeDisplay, TimeDisplayFormat } from '../../../../Shared/UI/Common/Tim
 import { UiControl } from '../../../../Shared/UI/UiControl';
 import { DigitInput } from '../../../../Shared/UI/UiControls2/DigitInput';
 import { G1000UiControlWrapper } from '../../../../Shared/UI/UiControls2/G1000UiControlWrapper';
-import { GenericNumberInput } from '../../../../Shared/UI/UiControls2/GenericNumberInput';
+import { TimeNumberInput } from '../../../../Shared/UI/UiControls2/TimeNumberInput';
 import { SignInput } from '../../../../Shared/UI/UiControls2/SignInput';
 import { UserSettingNumberController } from '../../../../Shared/UI/UserSettings/UserSettingNumberController';
 import { GroupBox } from '../GroupBox';
@@ -169,7 +169,7 @@ class LocalOffsetInput extends DisplayComponent<LocalOffsetInputProps> {
   private static readonly MIN_TO_MS = UnitType.MINUTE.convertTo(1, UnitType.MILLISECOND);
 
   private readonly rootRef = FSComponent.createRef<HTMLDivElement>();
-  private readonly inputRef = FSComponent.createRef<GenericNumberInput>();
+  private readonly inputRef = FSComponent.createRef<TimeNumberInput>();
 
   private readonly controller = new UserSettingNumberController<DateTimeUserSettingTypes, 'dateTimeLocalOffset'>(
     this.props.settingManager,
@@ -204,7 +204,7 @@ class LocalOffsetInput extends DisplayComponent<LocalOffsetInputProps> {
     return (
       <div ref={this.rootRef}>
         <G1000UiControlWrapper onRegister={this.props.registerFunc}>
-          <GenericNumberInput
+          <TimeNumberInput
             ref={this.inputRef}
             value={this.controller.dataSub}
             digitizer={(value, signValues, digitValues): void => {
@@ -231,7 +231,7 @@ class LocalOffsetInput extends DisplayComponent<LocalOffsetInputProps> {
             <span>:</span>
             <DigitInput value={Subject.create(0)} minValue={0} maxValue={6} increment={1} scale={10 * LocalOffsetInput.MIN_TO_MS} wrap={true} />
             <DigitInput value={Subject.create(0)} minValue={0} maxValue={10} increment={1} scale={1 * LocalOffsetInput.MIN_TO_MS} wrap={true} />
-          </GenericNumberInput>
+          </TimeNumberInput>
         </G1000UiControlWrapper>
         <div class='local-offset-input-disabled'>––:––</div>
       </div>

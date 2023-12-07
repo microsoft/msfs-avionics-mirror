@@ -4,22 +4,23 @@
 /// <reference types="@microsoft/msfs-types/js/netbingmap" />
 
 import {
-  AdcPublisher, AutopilotInstrument, BaseInstrumentPublisher, Clock, CompositeLogicXMLHost, ControlPublisher, ElectricalPublisher, EventBus, FacilityLoader,
-  FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner, FlightPlannerEvents, FSComponent, GNSSPublisher, HEventPublisher, InstrumentBackplane,
-  InstrumentEvents, LNavSimVarPublisher, MinimumsControlEvents, MinimumsSimVarPublisher, NavComInstrument, NavComSimVarPublisher, NavProcessor, PluginSystem, SimVarValueType,
-  SoundServer,
-  TrafficInstrument, UnitType, UserSettingSaveManager, VNavSimVarPublisher, Wait, XMLGaugeConfigFactory, XMLWarningFactory,
-  XPDRInstrument
+  AdcPublisher, AnnunciationType, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, CasEvents, Clock, CompositeLogicXMLHost, ControlPublisher, ControlSurfacesPublisher,
+  DebounceTimer,
+  ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner, FlightPlannerEvents,
+  FSComponent, GNSSPublisher, HEventPublisher, InstrumentBackplane, InstrumentEvents, LNavSimVarPublisher, MinimumsControlEvents, MinimumsSimVarPublisher,
+  NavComInstrument, NavComSimVarPublisher, NavProcessor, PluginSystem, SimVarValueType, SoundServer, Subject, TrafficInstrument, UnitType,
+  UserSettingSaveManager, VNavSimVarPublisher, Wait, XMLGaugeConfigFactory, XMLWarningFactory, XPDRInstrument
 } from '@microsoft/msfs-sdk';
 
-import { Fms, GarminAdsb, LNavDataSimVarPublisher, NavIndicatorController, TrafficAdvisorySystem } from '@microsoft/msfs-garminsdk';
+import { AdcSystem, Fms, GarminAdsb, LNavDataSimVarPublisher, NavIndicatorController, TrafficAdvisorySystem } from '@microsoft/msfs-garminsdk';
 
 import { EIS } from '../MFD/Components/EIS';
 import { MapInset } from '../PFD/Components/Overlays/MapInset';
 import { BacklightManager } from '../Shared/Backlight/BacklightManager';
 import { FlightPlanAsoboSync } from '../Shared/FlightPlanAsoboSync';
 import { G1000ControlPublisher } from '../Shared/G1000Events';
-import { G1000AvionicsPlugin, G1000PluginBinder } from '../Shared/G1000Plugin';
+import { G1000PfdAvionicsPlugin } from '../Shared/G1000PfdPlugin';
+import { G1000PfdPluginBinder } from '../Shared/G1000Plugin';
 import { AhrsPublisher } from '../Shared/Instruments/AhrsPublisher';
 import { NavComRadio } from '../Shared/NavCom/NavComRadio';
 import { G1000Config } from '../Shared/NavComConfig';
@@ -30,26 +31,29 @@ import { StartupLogo } from '../Shared/StartupLogo';
 import {
   ADCAvionicsSystem, AHRSSystem, AvionicsComputerSystem, EngineAirframeSystem, G1000AvionicsSystem, MagnetometerSystem, SoundSystem, TransponderSystem
 } from '../Shared/Systems';
+import { ControlpadInputController, ControlpadTargetInstrument } from '../Shared/UI/Controllers/ControlpadInputController';
 import { ContextMenuDialog } from '../Shared/UI/Dialogs/ContextMenuDialog';
 import { MessageDialog } from '../Shared/UI/Dialogs/MessageDialog';
 import { ALTUnitsMenu } from '../Shared/UI/Menus/ALTUnitsMenu';
 import { MapHSILayoutMenu } from '../Shared/UI/Menus/MapHSILayoutMenu';
 import { MapHSIMenu } from '../Shared/UI/Menus/MapHSIMenu';
-import { SoftKeyMenuSystem } from '../Shared/UI/Menus/SoftKeyMenuSystem';
 import { EngineMenu } from '../Shared/UI/Menus/MFD/EngineMenu';
 import { FuelRemMenu } from '../Shared/UI/Menus/MFD/FuelRemMenu';
 import { LeanMenu } from '../Shared/UI/Menus/MFD/LeanMenu';
 import { SystemMenu } from '../Shared/UI/Menus/MFD/SystemMenu';
 import { PFDOptMenu } from '../Shared/UI/Menus/PFDOptMenu';
 import { RootMenu } from '../Shared/UI/Menus/RootMenu';
+import { SoftKeyMenuSystem } from '../Shared/UI/Menus/SoftKeyMenuSystem';
 import { SVTMenu } from '../Shared/UI/Menus/SVTMenu';
 import { WindMenu } from '../Shared/UI/Menus/WindMenu';
 import { XPDRCodeMenu } from '../Shared/UI/Menus/XPDRCodeMenu';
 import { XPDRMenu } from '../Shared/UI/Menus/XPDRMenu';
 import { SoftKeyBar } from '../Shared/UI/SoftKeyBar';
 import { UnitsUserSettings } from '../Shared/Units/UnitsUserSettings';
+import { VSpeedUserSettingManager } from '../Shared/VSpeed/VSpeedUserSettings';
 import { WaypointIconImageCache } from '../Shared/WaypointIconImageCache';
-import { AirspeedIndicator } from './Components/FlightInstruments/AirspeedIndicator';
+import { G1000AirspeedIndicator } from './Components/FlightInstruments/AirspeedIndicator/G1000AirspeedIndicator';
+import { G1000AirspeedIndicatorDataProvider } from './Components/FlightInstruments/AirspeedIndicator/G1000AirspeedIndicatorDataProvider';
 import { Altimeter } from './Components/FlightInstruments/Altimeter';
 import { CAS } from './Components/FlightInstruments/CAS';
 import { FlightDirector } from './Components/FlightInstruments/FlightDirector';
@@ -66,6 +70,7 @@ import { ADFDME } from './Components/UI/ADF-DME/ADFDME';
 import { PFDSelectAirway } from './Components/UI/Airway/PFDSelectAirway';
 import { Alerts } from './Components/UI/Alerts/Alerts';
 import { AlertsSubject } from './Components/UI/Alerts/AlertsSubject';
+import { CasAlertsBridge } from './Components/UI/Alerts/CasAlertsBridge';
 import { PFDDirectTo } from './Components/UI/DirectTo/PFDDirectTo';
 import { FPL } from './Components/UI/FPL/FPL';
 import { PFDHold } from './Components/UI/Hold/PFDHold';
@@ -85,14 +90,14 @@ import { VNavAlertForwarder } from './Components/VNavAlertForwarder';
 import { WarningDisplay } from './Components/Warnings';
 
 import '../Shared/UI/Common/g1k_common.css';
-import './WTG1000_PFD.css';
 import '../Shared/UI/Common/LatLonDisplay.css';
+import './WTG1000_PFD.css';
 
 /**
  * The base G1000 PFD instrument class.
  */
 class WTG1000_PFD extends BaseInstrument {
-  private readonly bus: EventBus;
+  private readonly bus = new EventBus();
 
   private readonly baseInstrumentPublisher: BaseInstrumentPublisher;
   private readonly adcPublisher: AdcPublisher;
@@ -120,6 +125,7 @@ class WTG1000_PFD extends BaseInstrument {
   private readonly calculator: FlightPathCalculator;
   private readonly soundServer: SoundServer;
   private readonly minimumsPublisher: MinimumsSimVarPublisher;
+  private readonly controlSurfacesPublisher: ControlSurfacesPublisher;
 
   private lastCalculate = 0;
 
@@ -139,14 +145,26 @@ class WTG1000_PFD extends BaseInstrument {
 
   private readonly airframeOptions: G1000AirframeOptionsManager;
 
-  private readonly systems: G1000AvionicsSystem[] = [];
+  private readonly g1000Systems: G1000AvionicsSystem[] = [];
+  private readonly systems: AvionicsSystem[] = [];
+
   private readonly alerts: AlertsSubject;
+  private readonly casAlertsBridge: CasAlertsBridge;
 
   private isMfdPoweredOn = false;
   private gamePlanSynced = false;
   private vnavAlertForwarder: any;
 
-  private readonly pluginSystem = new PluginSystem<G1000AvionicsPlugin, G1000PluginBinder>();
+  private readonly pluginSystem = new PluginSystem<G1000PfdAvionicsPlugin, G1000PfdPluginBinder>();
+
+  private airspeedIndicatorDataProvider!: G1000AirspeedIndicatorDataProvider;
+
+  private vSpeedSettingManager!: VSpeedUserSettingManager;
+
+  private readonly comRadio = FSComponent.createRef<NavComRadio>();
+  private readonly navRadio = FSComponent.createRef<NavComRadio>();
+  private controlPadHandler = new ControlpadInputController(this.bus, ControlpadTargetInstrument.PFD);
+  private casPowerDebounce = new DebounceTimer();
 
   /**
    * Creates an instance of the WTG1000_PFD.
@@ -157,8 +175,6 @@ class WTG1000_PFD extends BaseInstrument {
     SimVar.SetSimVarValue('L:XMLVAR_NEXTGEN_FLIGHTPLAN_ENABLED', SimVarValueType.Bool, true);
 
     WaypointIconImageCache.init();
-
-    this.bus = new EventBus();
 
     this.baseInstrumentPublisher = new BaseInstrumentPublisher(this, this.bus);
 
@@ -182,6 +198,8 @@ class WTG1000_PFD extends BaseInstrument {
     this.xpdrInstrument = new XPDRInstrument(this.bus);
     this.trafficInstrument = new TrafficInstrument(this.bus, { realTimeUpdateFreq: 2, simTimeUpdateFreq: 1, contactDeprecateTime: 10 });
     this.minimumsPublisher = new MinimumsSimVarPublisher(this.bus);
+
+    this.controlSurfacesPublisher = new ControlSurfacesPublisher(this.bus, 3);
 
     this.clock = new Clock(this.bus);
 
@@ -210,7 +228,7 @@ class WTG1000_PFD extends BaseInstrument {
     this.backplane.addPublisher('vnav', this.vNavPublisher);
     this.backplane.addPublisher('hEvents', this.hEventPublisher);
     this.backplane.addPublisher('control', this.controlPublisher);
-    this.backplane.addPublisher('g1000', this.g1000ControlPublisher);
+    this.backplane.addPublisher('g1000Control', this.g1000ControlPublisher);
     this.backplane.addPublisher('gnss', this.gnssPublisher);
     this.backplane.addPublisher('electrical', this.electricalPublisher);
     this.backplane.addPublisher('minimums', this.minimumsPublisher);
@@ -221,6 +239,8 @@ class WTG1000_PFD extends BaseInstrument {
     this.backplane.addInstrument('nav', this.navProcessor);
     this.backplane.addInstrument('xpdr', this.xpdrInstrument);
     this.backplane.addInstrument('traffic', this.trafficInstrument);
+
+    this.backplane.addPublisher('ControlSurfaces', this.controlSurfacesPublisher);
 
     this.gaugeFactory = new XMLGaugeConfigFactory(this, this.bus);
     this.airframeOptions = new G1000AirframeOptionsManager(this, this.bus);
@@ -246,6 +266,7 @@ class WTG1000_PFD extends BaseInstrument {
     this.settingSaveManager.load(saveKey);
 
     this.alerts = new AlertsSubject(this.bus);
+    this.casAlertsBridge = new CasAlertsBridge(this.bus);
     this.initDuration = 5000;
   }
 
@@ -274,7 +295,9 @@ class WTG1000_PFD extends BaseInstrument {
 
     this.classList.add('hidden-element');
 
-    this.backplane.init();
+    this.airspeedIndicatorDataProvider = new G1000AirspeedIndicatorDataProvider(this.bus, this.airframeOptions.airspeedIndicatorConfig);
+
+    this.vSpeedSettingManager = new VSpeedUserSettingManager(this.bus, this.airframeOptions.vSpeedGroups);
 
     const gaugeConfig = this.airframeOptions.gaugeConfig;
     const menuSystem = new SoftKeyMenuSystem(this.bus, 'AS1000_PFD_SOFTKEYS_');
@@ -282,7 +305,10 @@ class WTG1000_PFD extends BaseInstrument {
     this.pluginSystem.addScripts(this.xmlConfig, this.templateID, (target) => {
       return target === this.templateID;
     }).then(() => {
-      this.pluginSystem.startSystem({ bus: this.bus, viewService: this.viewService, menuSystem: menuSystem }).then(() => {
+      this.pluginSystem.startSystem({
+        bus: this.bus, backplane: this.backplane, viewService: this.viewService, menuSystem: menuSystem,
+        fms: this.fms, navIndicatorController: this.navIndicatorController
+      }).then(() => {
 
         // if (alertsPopoutRef.instance !== null) {
         menuSystem.addMenu('root', new RootMenu(menuSystem, this.controlPublisher, this.g1000ControlPublisher, this.bus));
@@ -303,28 +329,45 @@ class WTG1000_PFD extends BaseInstrument {
 
         menuSystem.pushMenu('root');
 
-        this.pluginSystem.callPlugins(p => p.onMenuSystemInitialized());
+        this.pluginSystem.callPlugins(p => p.onMenuSystemInitialized?.());
 
         FSComponent.render(<PrimaryHorizonDisplay bus={this.bus} hasRadioAltimeter={this.airframeOptions.hasRadioAltimeter} />, document.getElementById('HorizonContainer'));
 
         FSComponent.render(<HSI bus={this.bus} flightPlanner={this.planner} navIndicatorController={this.navIndicatorController} tas={this.tas} unitsSettingManager={UnitsUserSettings.getManager(this.bus)} />, document.getElementById('InstrumentsContainer'));
         FSComponent.render(<FlightDirector bus={this.bus} />, document.getElementById('InstrumentsContainer'));
-        FSComponent.render(<AirspeedIndicator bus={this.bus} />, document.getElementById('InstrumentsContainer'));
+        FSComponent.render(
+          <G1000AirspeedIndicator
+            dataProvider={this.airspeedIndicatorDataProvider}
+            config={this.airframeOptions.airspeedIndicatorConfig}
+            vSpeedSettingManager={this.vSpeedSettingManager}
+            declutter={Subject.create(false)}
+          />,
+          document.getElementById('InstrumentsContainer')
+        );
         FSComponent.render(<VerticalSpeedIndicator bus={this.bus} navIndicatorController={this.navIndicatorController} />, document.getElementById('InstrumentsContainer'));
         FSComponent.render(<Altimeter bus={this.bus} g1000Publisher={this.g1000ControlPublisher} hasRadioAltimeter={this.airframeOptions.hasRadioAltimeter} />, document.getElementById('InstrumentsContainer'));
         FSComponent.render(<MarkerBeacon bus={this.bus} />, document.getElementById('InstrumentsContainer'));
         FSComponent.render(<DMEWindow bus={this.bus} navIndicatorController={this.navIndicatorController} />, document.getElementById('InstrumentsContainer'));
         FSComponent.render(<VerticalDeviation bus={this.bus} navIndicatorController={this.navIndicatorController} />, document.getElementById('InstrumentsContainer'));
-        FSComponent.render(<NavComRadio bus={this.bus} title='NAV' position='left' templateId={this.templateID} />, document.querySelector('#NavComBox #Left'));
-        FSComponent.render(<NavComRadio bus={this.bus} title='COM' position='right' templateId={this.templateID} />, document.querySelector('#NavComBox #Right'));
+        FSComponent.render(<NavComRadio ref={this.navRadio} bus={this.bus} title='NAV' position='left' templateId={this.templateID} />, document.querySelector('#NavComBox #Left'));
+        FSComponent.render(<NavComRadio ref={this.comRadio} bus={this.bus} title='COM' position='right' templateId={this.templateID} />, document.querySelector('#NavComBox #Right'));
         FSComponent.render(<Fma bus={this.bus} planner={this.planner} navController={this.navIndicatorController} />, document.getElementById('NavComBox'));
         FSComponent.render(<BottomInfoPanel bus={this.bus} controlPublisher={this.controlPublisher} unitsSettingManager={UnitsUserSettings.getManager(this.bus)} />, document.getElementById('InstrumentsContainer'));
         FSComponent.render(<SoftKeyBar menuSystem={menuSystem} />, document.getElementById('Electricity'));
         FSComponent.render(<WindOverlay bus={this.bus} />, document.getElementById('InstrumentsContainer'));
-        FSComponent.render(<MapInset bus={this.bus} flightPlanner={this.planner} tas={this.tas} />,
-          document.getElementById('InstrumentsContainer'));
+        FSComponent.render(<MapInset bus={this.bus} flightPlanner={this.planner} tas={this.tas} />, document.getElementById('InstrumentsContainer'));
         FSComponent.render(<CAS bus={this.bus} logicHandler={this.casXmlLogicHost} annunciations={this.airframeOptions.annunciationConfig} cautionSoundId='tone_caution' warningSoundId='tone_warning' />, document.getElementById('cas'));
         FSComponent.render(<WarningDisplay bus={this.bus} logicHandler={this.casXmlLogicHost} warnings={this.airframeOptions.warningConfig} />, document.getElementById('warnings'));
+
+
+        this.pluginSystem.callPlugins(plugin => {
+
+          // At last, let the plugins directly render on the instruments container:
+          const node = plugin.renderToPfdInstruments?.();
+          if (node) {
+            FSComponent.render(node, document.getElementById('InstrumentsContainer'));
+          }
+        });
 
         FSComponent.render(<StartupLogo bus={this.bus} eventPrefix='AS1000_PFD' />, this);
         FSComponent.render(<EIS bus={this.bus} logicHandler={this.eisXmlLogicHost} gaugeConfig={gaugeConfig} />, document.getElementsByClassName('eis')[0] as HTMLDivElement);
@@ -340,7 +383,19 @@ class WTG1000_PFD extends BaseInstrument {
         this.viewService.registerView('SelectArrival', () => <PFDSelectArrivalView viewService={this.viewService} bus={this.bus} fms={this.fms} calculator={this.calculator} title="Select Arrival" showTitle={true} />);
         this.viewService.registerView(ContextMenuDialog.name, () => <ContextMenuDialog viewService={this.viewService} title="" showTitle={false} upperKnobCanScroll={true} />);
         this.viewService.registerView('PageMenuDialog', () => <PFDPageMenuDialog viewService={this.viewService} title="Page Menu" showTitle={true} />);
-        this.viewService.registerView(TimerRef.name, () => <TimerRef viewService={this.viewService} hasRadioAltimeter={this.airframeOptions.hasRadioAltimeter} bus={this.bus} unitsSettingManager={UnitsUserSettings.getManager(this.bus)} title="TimerRef" showTitle={false} />);
+        this.viewService.registerView(TimerRef.name, () => {
+          return (
+            <TimerRef
+              viewService={this.viewService}
+              title="TimerRef"
+              showTitle={false}
+              bus={this.bus}
+              vSpeedSettingManager={this.vSpeedSettingManager}
+              unitsSettingManager={UnitsUserSettings.getManager(this.bus)}
+              hasRadioAltimeter={this.airframeOptions.hasRadioAltimeter}
+            />
+          );
+        });
         this.viewService.registerView(ADFDME.name, () => <ADFDME viewService={this.viewService} bus={this.bus} title="ADF/DME TUNING" showTitle={true} navIndicatorController={this.navIndicatorController} />);
         this.viewService.registerView('WptDup', () => <PFDWptDupDialog viewService={this.viewService} title="Duplicate Waypoints" showTitle={true} />);
         this.viewService.registerView(Nearest.name, () => <Nearest viewService={this.viewService} bus={this.bus} loader={this.facLoader} publisher={this.controlPublisher} title="Nearest Airports" showTitle={true} />);
@@ -349,11 +404,12 @@ class WTG1000_PFD extends BaseInstrument {
         this.viewService.registerView('SelectAirway', () => <PFDSelectAirway viewService={this.viewService} title="Select Airway" showTitle={true} fms={this.fms} />);
         this.viewService.registerView('HoldAt', () => <PFDHold viewService={this.viewService} title="Hold at" showTitle={true} fms={this.fms} bus={this.bus} />);
 
-        this.pluginSystem.callPlugins(p => p.onViewServiceInitialized());
+        this.pluginSystem.callPlugins(p => p.onViewServiceInitialized?.());
 
+        this.backplane.init();
         this.controlPublisher.publishEvent('init_cdi', true);
         this.bus.on('mfd_power_on', this.onMfdPowerOn);
-
+        this.controlPadHandler.setFrequencyElementRefs(this.comRadio.instance, this.navRadio.instance);
       });
 
       // force enable animations
@@ -374,14 +430,18 @@ class WTG1000_PFD extends BaseInstrument {
 
     this.initializeAvElectrical();
 
-    this.systems.push(new MagnetometerSystem(1, this.bus));
-    this.systems.push(new ADCAvionicsSystem(1, this.bus));
-    this.systems.push(new AHRSSystem(1, this.bus));
-    this.systems.push(new TransponderSystem(1, this.bus));
-    this.systems.push(new AvionicsComputerSystem(1, this.bus));
-    this.systems.push(new AvionicsComputerSystem(2, this.bus));
-    this.systems.push(new EngineAirframeSystem(1, this.bus));
-    this.systems.push(new SoundSystem(1, this.bus, this.soundServer));
+    this.g1000Systems.push(new MagnetometerSystem(1, this.bus));
+    this.g1000Systems.push(new ADCAvionicsSystem(1, this.bus));
+    this.g1000Systems.push(new AHRSSystem(1, this.bus));
+    this.g1000Systems.push(new TransponderSystem(1, this.bus));
+    this.g1000Systems.push(new AvionicsComputerSystem(1, this.bus));
+    this.g1000Systems.push(new AvionicsComputerSystem(2, this.bus));
+    this.g1000Systems.push(new EngineAirframeSystem(1, this.bus));
+    this.g1000Systems.push(new SoundSystem(1, this.bus, this.soundServer));
+
+    this.systems.push(new AdcSystem(1, this.bus, 1, 1, 'elec_av1_bus'));
+
+    this.airspeedIndicatorDataProvider.init();
 
     const sub = this.bus.getSubscriber<InstrumentEvents>();
 
@@ -499,6 +559,10 @@ class WTG1000_PFD extends BaseInstrument {
     super.onPowerOn();
 
     this.classList.remove('hidden-element');
+    this.casPowerDebounce.clear();
+    this.casPowerDebounce.schedule(() => {
+      this.bus.getPublisher<CasEvents>().pub('cas_set_initial_acknowledge', false, true, true);
+    }, 2000);
   }
 
   /** @inheritdoc */
@@ -506,6 +570,12 @@ class WTG1000_PFD extends BaseInstrument {
     super.onShutDown();
 
     this.classList.add('hidden-element');
+
+    this.bus.getPublisher<CasEvents>().pub('cas_set_initial_acknowledge', true, true, true);
+    SimVar.SetSimVarValue('K:MASTER_CAUTION_ACKNOWLEDGE', SimVarValueType.Number, 0);
+    SimVar.SetSimVarValue('K:MASTER_WARNING_ACKNOWLEDGE', SimVarValueType.Number, 0);
+    this.bus.getPublisher<CasEvents>().pub('cas_master_acknowledge', AnnunciationType.SafeOp, true, false);
+    this.bus.getPublisher<CasEvents>().pub('cas_master_acknowledge', AnnunciationType.Advisory, true, false);
   }
 
   /**
@@ -519,6 +589,8 @@ class WTG1000_PFD extends BaseInstrument {
     this.clock.onUpdate();
     this.backplane.onUpdate();
 
+    this.updateSystems();
+
     const now = Date.now();
     if (now - this.lastCalculate > 3000) {
       if (this.planner.hasFlightPlan(this.planner.activePlanIndex)) {
@@ -529,6 +601,15 @@ class WTG1000_PFD extends BaseInstrument {
     }
     this.casXmlLogicHost.update(this.deltaTime);
     this.eisXmlLogicHost.update(this.deltaTime);
+  }
+
+  /**
+   * Updates this instrument's systems.
+   */
+  private updateSystems(): void {
+    for (let i = 0; i < this.systems.length; i++) {
+      this.systems[i].onUpdate();
+    }
   }
 
   /**
@@ -603,7 +684,11 @@ class WTG1000_PFD extends BaseInstrument {
    * @param args The H event and associated arguments, if any.
    */
   public onInteractionEvent(args: string[]): void {
-    this.hEventPublisher.dispatchHEvent(args[0]);
+    const isHandled = this.controlPadHandler.handleControlPadEventInput(args[0]);
+    if (isHandled === false) {
+      // If the controlpad handler did not handle the event, continue and publish:
+      this.hEventPublisher.dispatchHEvent(args[0]);
+    }
   }
 }
 

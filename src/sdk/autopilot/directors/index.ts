@@ -9,6 +9,7 @@ export * from './APHdgHoldDirector';
 export * from './APNavDirector';
 export * from './APNoneDirectors';
 export * from './APPitchDirector';
+export * from './APPitchLvlDirector';
 export * from './APRollDirector';
 export * from './APTrkDirector';
 export * from './APTrkHoldDirector';

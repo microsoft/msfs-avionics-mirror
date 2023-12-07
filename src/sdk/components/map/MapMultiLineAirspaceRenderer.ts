@@ -695,7 +695,7 @@ class Shape implements MapMultiLineAirspaceShape {
       } else {
         const lastIndex = this.length - 1;
         const result = this.calculateOffsetVertex(lastIndex, offset, startPoint);
-        if (!result || Shape.isPointInSegmentBounds(this.segments[lastIndex], this.segments[lastIndex - 1].end, result)) {
+        if (!result || !Shape.isPointInSegmentBounds(this.segments[lastIndex], this.segments[lastIndex - 1].end, result)) {
           this.calculateOffsetEndPoint(lastIndex, offset, startPoint);
         }
       }

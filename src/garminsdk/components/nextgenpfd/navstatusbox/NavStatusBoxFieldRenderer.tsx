@@ -1,8 +1,9 @@
 import { VNode } from '@microsoft/msfs-sdk';
+
 import { UnitsUserSettingManager } from '../../../settings/UnitsUserSettings';
 import { GenericNavDataFieldRenderer } from '../../navdatafield/GenericNavDataFieldRenderer';
 import { NavDataFieldType, NavDataFieldTypeModelMap } from '../../navdatafield/NavDataFieldType';
-import { NextGenNavDataFieldBrgRenderer, NextGenNavDataFieldDisRenderer, NextGenNavDataFieldEteRenderer } from '../../navdatafield/NextGenNavDataFieldRenderers';
+import { NextGenNavDataFieldBrgRenderer, NextGenNavDataFieldDisRenderer, NextGenNavDataFieldEteRenderer } from '../../navdatafield/NextGenNavDataFieldTypeRenderers';
 import { NavStatusBoxFieldType } from './NavStatusBoxFieldType';
 
 /**

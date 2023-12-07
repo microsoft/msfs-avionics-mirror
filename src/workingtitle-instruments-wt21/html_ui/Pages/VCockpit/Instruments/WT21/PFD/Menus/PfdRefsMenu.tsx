@@ -42,21 +42,21 @@ export class PfdRefsMenu extends GuiDialog<PfdRefsMenuProps> {
   ]);
 
   private readonly VSpeedValues = new Map<VSpeedType, MutableSubscribable<number>>([
-    [VSpeedType.V1, this.vSpeedSettings.getSettings(VSpeedType.V1).get('value')! as MutableSubscribable<number>],
-    [VSpeedType.V2, this.vSpeedSettings.getSettings(VSpeedType.V2).get('value')! as MutableSubscribable<number>],
-    [VSpeedType.Vr, this.vSpeedSettings.getSettings(VSpeedType.Vr).get('value')! as MutableSubscribable<number>],
-    [VSpeedType.Venr, this.vSpeedSettings.getSettings(VSpeedType.Venr).get('value')! as MutableSubscribable<number>],
-    [VSpeedType.Vapp, this.vSpeedSettings.getSettings(VSpeedType.Vapp).get('value')! as MutableSubscribable<number>],
-    [VSpeedType.Vref, this.vSpeedSettings.getSettings(VSpeedType.Vref).get('value')! as MutableSubscribable<number>],
+    [VSpeedType.V1, this.vSpeedSettings.getSettings(VSpeedType.V1).value as MutableSubscribable<number>],
+    [VSpeedType.V2, this.vSpeedSettings.getSettings(VSpeedType.V2).value as MutableSubscribable<number>],
+    [VSpeedType.Vr, this.vSpeedSettings.getSettings(VSpeedType.Vr).value as MutableSubscribable<number>],
+    [VSpeedType.Venr, this.vSpeedSettings.getSettings(VSpeedType.Venr).value as MutableSubscribable<number>],
+    [VSpeedType.Vapp, this.vSpeedSettings.getSettings(VSpeedType.Vapp).value as MutableSubscribable<number>],
+    [VSpeedType.Vref, this.vSpeedSettings.getSettings(VSpeedType.Vref).value as MutableSubscribable<number>],
   ]);
 
   private readonly VSpeedStates = new Map<VSpeedType, MutableSubscribable<boolean>>([
-    [VSpeedType.V1, this.vSpeedSettings.getSettings(VSpeedType.V1).get('show')! as MutableSubscribable<boolean>],
-    [VSpeedType.V2, this.vSpeedSettings.getSettings(VSpeedType.V2).get('show')! as MutableSubscribable<boolean>],
-    [VSpeedType.Vr, this.vSpeedSettings.getSettings(VSpeedType.Vr).get('show')! as MutableSubscribable<boolean>],
-    [VSpeedType.Venr, this.vSpeedSettings.getSettings(VSpeedType.Venr).get('show')! as MutableSubscribable<boolean>],
-    [VSpeedType.Vapp, this.vSpeedSettings.getSettings(VSpeedType.Vapp).get('show')! as MutableSubscribable<boolean>],
-    [VSpeedType.Vref, this.vSpeedSettings.getSettings(VSpeedType.Vref).get('show')! as MutableSubscribable<boolean>],
+    [VSpeedType.V1, this.vSpeedSettings.getSettings(VSpeedType.V1).show as MutableSubscribable<boolean>],
+    [VSpeedType.V2, this.vSpeedSettings.getSettings(VSpeedType.V2).show as MutableSubscribable<boolean>],
+    [VSpeedType.Vr, this.vSpeedSettings.getSettings(VSpeedType.Vr).show as MutableSubscribable<boolean>],
+    [VSpeedType.Venr, this.vSpeedSettings.getSettings(VSpeedType.Venr).show as MutableSubscribable<boolean>],
+    [VSpeedType.Vapp, this.vSpeedSettings.getSettings(VSpeedType.Vapp).show as MutableSubscribable<boolean>],
+    [VSpeedType.Vref, this.vSpeedSettings.getSettings(VSpeedType.Vref).show as MutableSubscribable<boolean>],
   ]);
 
   private readonly VSpeedCssClasses = new Map<VSpeedType, Subject<string>>([
@@ -89,10 +89,10 @@ export class PfdRefsMenu extends GuiDialog<PfdRefsMenuProps> {
     for (const [type, uiRef] of this.VSpeedUiRefs.entries()) {
       const settings = this.vSpeedSettings.getSettings(type);
       uiRef.instance.props.onValueChanged = () => {
-        settings.get('manual')?.set(true);
+        settings.manual.set(true);
       };
-      settings.get('manual')?.sub((v) => {
-        this.VSpeedCssClasses.get(type)?.set((v as boolean) === true ? '' : 'magenta');
+      settings.manual.sub((v) => {
+        this.VSpeedCssClasses.get(type)?.set((v as boolean) ? '' : 'magenta');
       }, true);
     }
 
@@ -177,22 +177,6 @@ export class PfdRefsMenu extends GuiDialog<PfdRefsMenuProps> {
       this.destElevRef.instance?.classList.remove('magenta-text');
     }
   }
-
-
-  /**
-   * A callback called when a VSpeed value needs to be published
-   * @param type The VSpeed type.
-   * @param value The VSpeed value.
-   * @param enabled The VSpeed state.
-   */
-  private publishVSpeed = (type: VSpeedType, value: number, enabled: boolean): void => {
-    // const publisher = this.props.bus.getPublisher<ReferenceSpeedEvents>();
-    // publisher.pub('vspeed', { type: type, value: value, enabled: enabled, modified: true }, true, true);
-    const setting = this.vSpeedSettings.getSettings(type);
-    setting.get('value')?.set(value);
-    setting.get('manual')?.set(value);
-    setting.get('show')?.set(enabled);
-  };
 
   /** @inheritdoc */
   public render(): VNode {

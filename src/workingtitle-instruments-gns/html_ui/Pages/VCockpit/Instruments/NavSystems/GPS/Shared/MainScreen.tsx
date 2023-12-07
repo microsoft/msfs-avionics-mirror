@@ -185,7 +185,14 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
       'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/GPS/Shared/Assets/gps_ephemeris.json',
       'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/GPS/Shared/Assets/gps_sbas.json',
       5000,
-      this.enabledSbasGroups
+      this.enabledSbasGroups,
+      'none',
+      {
+        channelCount: 15,
+        satInUseMaxCount: 15,
+        satInUsePdopTarget: 2,
+        satInUseOptimumCount: 5
+      }
     );
     this.adcPublisher = new AdcPublisher(this.props.bus);
     this.ahrsPublisher = new GnsAhrsPublisher(this.props.bus);
@@ -347,6 +354,7 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
   private onPowerStateChanged(state: PowerState): void {
     this.currentPowerState = state;
     if (state === PowerState.OnSkipInit) {
+      this.gpsSatComputer.acquireAndUseSatellites();
       this.pageContainer.instance.openPageGroup('NAV', true, 1);
     }
 

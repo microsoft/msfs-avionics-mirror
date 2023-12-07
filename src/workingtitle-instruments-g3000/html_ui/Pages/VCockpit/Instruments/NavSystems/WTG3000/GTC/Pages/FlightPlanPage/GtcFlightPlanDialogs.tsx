@@ -6,32 +6,40 @@ import {
 import { ApproachNameDisplay, Fms, FmsUtils } from '@microsoft/msfs-garminsdk';
 
 import { FlightPlanListManager, FlightPlanStore } from '@microsoft/msfs-wtg3000-common';
+
 import { GtcAirwaySelectionDialog } from '../../Dialog/GtcAirwaySelectionDialog';
 import { GtcDialogs } from '../../Dialog/GtcDialogs';
 import { GtcDialogResult } from '../../Dialog/GtcDialogView';
-import { GtcKeyboardDialog } from '../../Dialog/GtcKeyboardDialog';
 import { GtcListDialog, ListDialogItemDefinition } from '../../Dialog/GtcListDialog';
+import { GtcWaypointDialog } from '../../Dialog/GtcWaypointDialog';
 import { GtcService } from '../../GtcService/GtcService';
 import { GtcViewKeys } from '../../GtcService/GtcViewKeys';
-
 
 /** Collection of utility functions to open different flight plan related dialogs. */
 export class GtcFlightPlanDialogs {
   /**
-   * Opens an Airport Identifier Lookup keyboard dialog.
+   * Opens an Airport Identifier Lookup waypoint dialog.
    * @param gtcService The GtcService.
-   * @param initialInputText Initial input text, if it should show an airport as already beign typed out.
+   * @param initialValue The airport value initially loaded into the dialog at the start of the request.
    * @returns The selected airport, if one was selected.
    */
-  public static openAirportDialog(gtcService: GtcService, initialInputText?: string): Promise<GtcDialogResult<AirportFacility>> {
+  public static openAirportDialog(gtcService: GtcService, initialValue?: AirportFacility): Promise<GtcDialogResult<AirportFacility>>;
+  /**
+   * Opens an Airport Identifier Lookup waypoint dialog.
+   * @param gtcService The GtcService.
+   * @param initialValue This parameter is ignored.
+   * @returns The selected airport, if one was selected.
+   * @deprecated
+   */
+  public static openAirportDialog(gtcService: GtcService, initialValue?: string): Promise<GtcDialogResult<AirportFacility>>;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static openAirportDialog(gtcService: GtcService, initialValue?: AirportFacility | string): Promise<GtcDialogResult<AirportFacility>> {
     return gtcService
-      .openPopup<GtcKeyboardDialog<AirportFacility>>(GtcViewKeys.KeyboardDialog, 'normal', 'hide')
+      .openPopup<GtcWaypointDialog>(GtcViewKeys.WaypointDialog, 'normal', 'hide')
       .ref.request({
-        facilitySearchType: FacilitySearchType.Airport,
-        label: 'Airport Identifier Lookup',
-        allowSpaces: false,
-        maxLength: 6,
-        initialInputText,
+        searchType: FacilitySearchType.Airport,
+        emptyLabelText: 'Airport Identifier Lookup',
+        initialValue: typeof initialValue === 'object' ? initialValue : undefined,
       });
   }
 
@@ -267,12 +275,11 @@ export class GtcFlightPlanDialogs {
    * @returns The result of the keyboard dialog request.
    */
   public static async openWaypointIdentifierLookup(gtcService: GtcService): Promise<GtcDialogResult<Facility>> {
-    return gtcService.openPopup<GtcKeyboardDialog<Facility>>(
-      GtcViewKeys.KeyboardDialog, 'normal', 'hide').ref.request({
-        facilitySearchType: FacilitySearchType.AllExceptVisual,
-        label: 'Waypoint Identifier Lookup',
-        allowSpaces: false,
-        maxLength: 6,
+    return gtcService
+      .openPopup<GtcWaypointDialog>(GtcViewKeys.WaypointDialog, 'normal', 'hide')
+      .ref.request({
+        searchType: FacilitySearchType.AllExceptVisual,
+        emptyLabelText: 'Waypoint Identifier Lookup'
       });
   }
 

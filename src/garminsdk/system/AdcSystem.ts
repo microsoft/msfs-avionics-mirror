@@ -3,7 +3,7 @@ import { AdcEvents, AvionicsSystemState, AvionicsSystemStateEvent, BaseAdcEvents
 /**
  * Topics for bus events from which ADC data is sourced.
  */
-type AdcDataSourceTopics = 'ias' | 'tas' | 'mach_number' | 'mach_to_kias_factor'
+type AdcDataSourceTopics = 'ias'
   | 'indicated_alt' | 'pressure_alt' | 'vertical_speed'
   | 'altimeter_baro_setting_inhg' | 'altimeter_baro_preselect_inhg' | 'altimeter_baro_preselect_mb' | 'altimeter_baro_preselect_raw' | 'altimeter_baro_is_std'
   | 'ambient_temp_c' | 'ambient_pressure_inhg' | 'isa_temp_c' | 'ram_air_temp_c';
@@ -21,6 +21,18 @@ type AdcDataEvents = {
 export interface AdcSystemEvents extends AdcDataEvents {
   /** An event fired when the ADC system state changes. */
   [adc_state: `adc_state_${number}`]: AvionicsSystemStateEvent;
+
+  /** The airplane's measured true airspeed, in knots. */
+  [adc_tas: `adc_tas_${number}`]: number;
+
+  /** The airplane's measured mach number. */
+  [adc_mach_number: `adc_mach_number_${number}`]: number;
+
+  /** The conversion factor from measured mach number to knots indicated airspeed in the airplane's current environment. */
+  [adc_mach_to_kias_factor: `adc_mach_to_kias_factor_${number}`]: number;
+
+  /** The conversion factor from measured true airspeed to knots indicated airspeed in the airplane's current environment. */
+  [adc_tas_to_ias_factor: `adc_tas_to_ias_factor_${number}`]: number;
 }
 
 /**
@@ -31,15 +43,16 @@ export class AdcSystem extends BasicAvionicsSystem<AdcSystemEvents> {
 
   private readonly dataSourceTopicMap = {
     [`adc_ias_${this.index}`]: `ias_${this.airspeedIndicatorIndex}`,
-    [`adc_tas_${this.index}`]: `tas_${this.airspeedIndicatorIndex}`,
-    [`adc_mach_to_kias_factor_${this.index}`]: `mach_to_kias_factor_${this.airspeedIndicatorIndex}`,
+    [`adc_tas_${this.index}`]: `indicated_tas_${this.airspeedIndicatorIndex}`,
+    [`adc_mach_number_${this.index}`]: `indicated_mach_number_${this.airspeedIndicatorIndex}`,
+    [`adc_mach_to_kias_factor_${this.index}`]: `indicated_mach_to_kias_factor_${this.airspeedIndicatorIndex}`,
+    [`adc_tas_to_ias_factor_${this.index}`]: `indicated_tas_to_ias_factor_${this.airspeedIndicatorIndex}`,
     [`adc_indicated_alt_${this.index}`]: `indicated_alt_${this.altimeterIndex}`,
     [`adc_altimeter_baro_setting_inhg_${this.index}`]: `altimeter_baro_setting_inhg_${this.altimeterIndex}`,
     [`adc_altimeter_baro_preselect_inhg_${this.index}`]: `altimeter_baro_preselect_inhg_${this.altimeterIndex}`,
     [`adc_altimeter_baro_preselect_mb_${this.index}`]: `altimeter_baro_preselect_mb_${this.altimeterIndex}`,
     [`adc_altimeter_baro_preselect_raw_${this.index}`]: `altimeter_baro_preselect_raw_${this.altimeterIndex}`,
     [`adc_altimeter_baro_is_std_${this.index}`]: `altimeter_baro_is_std_${this.altimeterIndex}`,
-    [`adc_mach_number_${this.index}`]: 'mach_number',
     [`adc_pressure_alt_${this.index}`]: 'pressure_alt',
     [`adc_vertical_speed_${this.index}`]: 'vertical_speed',
     [`adc_ambient_temp_c_${this.index}`]: 'ambient_temp_c',

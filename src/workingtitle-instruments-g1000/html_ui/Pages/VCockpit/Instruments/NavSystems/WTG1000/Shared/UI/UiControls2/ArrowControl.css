@@ -1,0 +1,27 @@
+.arrow-control {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  flex-direction: row;
+}
+
+.arrow-control-arrow {
+  height: var(--arrow-control-arrow-height, 0.75em);
+  transform-origin: 50% 50%;
+  transform: scale(var(--arrow-control-arrow-scale, 0.85));
+  fill: rgb(50, 50, 50);
+}
+
+.arrow-control-arrow.arrow-control-arrow-enabled {
+  fill: rgb(0, 255, 0);
+}
+
+.arrow-control-value {
+  color: var(--arrow-control-value-color, cyan);
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+.arrow-control-value.highlight-active {
+  color: black;
+}

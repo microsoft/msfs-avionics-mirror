@@ -18,6 +18,8 @@ export class WT21SettingSaveManager extends UserSettingSaveManager {
   private static readonly ignoredMfdSettings = [
     'mfdSelectedTextPage_1',
     'mfdSelectedTextPage_2',
+    'mfdSoftkeyFormatChangeActive_1',
+    'mfdSoftkeyFormatChangeActive_2',
     'mfdDisplayMode_1',
     'mfdDisplayMode_2',
   ];
@@ -36,12 +38,12 @@ export class WT21SettingSaveManager extends UserSettingSaveManager {
     const cj4UserSettingsManager = CJ4UserSettings.getManager(bus);
 
     const vspeedValueSettings = [
-      vspeedSettingManager.getSettings(VSpeedType.V1).get('value')!,
-      vspeedSettingManager.getSettings(VSpeedType.V2).get('value')!,
-      vspeedSettingManager.getSettings(VSpeedType.Vapp).get('value')!,
-      vspeedSettingManager.getSettings(VSpeedType.Venr).get('value')!,
-      vspeedSettingManager.getSettings(VSpeedType.Vr).get('value')!,
-      vspeedSettingManager.getSettings(VSpeedType.Vref).get('value')!,
+      vspeedSettingManager.getSettings(VSpeedType.V1).value,
+      vspeedSettingManager.getSettings(VSpeedType.V2).value,
+      vspeedSettingManager.getSettings(VSpeedType.Vapp).value,
+      vspeedSettingManager.getSettings(VSpeedType.Venr).value,
+      vspeedSettingManager.getSettings(VSpeedType.Vr).value,
+      vspeedSettingManager.getSettings(VSpeedType.Vref).value,
     ];
 
     const settings = [
