@@ -34,6 +34,8 @@ export class VSpeedUserSettingUtils {
    * @param name The name of the reference V-speed.
    * @param settingManager A manager for reference V-speed user settings.
    * @param useFmsValue Whether to support the V-speed's FMS-defined value.
+   * @param allowZeroValue Whether to allow the active value to be equal to zero. If `false`, a value of zero is
+   * treated as an undefined value (similar to negative values). Defaults to `false`.
    * @returns A mapped subscribable which provides the active value of the specified reference V-speed, in knots.
    */
   public static activeValue(
@@ -51,6 +53,8 @@ export class VSpeedUserSettingUtils {
    * @param name The name of the reference V-speed.
    * @param settingManager A manager for reference V-speed user settings.
    * @param useFmsValue Whether to support the V-speed's FMS-defined value.
+   * @param allowZeroValue Whether to allow the active value to be equal to zero. If `false`, a value of zero is
+   * treated as an undefined value (similar to negative values). Defaults to `false`.
    * @returns A mapped subscribable which provides the active value of the specified reference V-speed, in knots.
    */
   public static activeValue(

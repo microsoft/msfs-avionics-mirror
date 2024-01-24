@@ -1,0 +1,27 @@
+.sr22t-engine-page .dual-dial-gauge-label {
+  font: bold 8px Roboto;
+  fill: #ffffff;
+}
+
+.sr22t-engine-page .dual-dial-gauge-label-small {
+  font: bold 6px Roboto;
+  fill: #ffffff;
+}
+
+.sr22t-engine-page .dual-dial-gauge-value {
+  font: bold 12px Roboto;
+  fill: #ffffff;
+}
+
+.sr22t-engine-page .dual-dial-gauge-parent {
+  position: relative;
+}
+
+.sr22t-engine-page .dual-dial-gauge-background {
+  display: block;
+}
+
+.sr22t-engine-page .dual-dial-gauge-overlay {
+  position: absolute;
+  top: 0;
+}

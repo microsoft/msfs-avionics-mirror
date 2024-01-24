@@ -2197,30 +2197,22 @@ export class WT21Fms {
     }
     this.setApproachDetails(true, approachType, approachRnavTypeFlags, false, approachIsCircling, approachReferenceFacility);
 
-    this.tryInsertDiscontinuity(plan, segmentIndex);
+    // If we didn't remove a duplicate, insert a discontinuity at the start of the approach
+    if (!deduplicatedArrivalLeg && (!prevLeg || !WT21FmsUtils.isVectorsLeg(prevLeg.leg.type))) {
+      this.tryInsertDiscontinuity(plan, segmentIndex);
+    }
+
+    this.generateSegmentVerticalData(plan, segmentIndex);
 
     if (activeLegArray) {
-      WT21FmsUtils.removeDisplacedActiveLegs(plan);
-      // We don't need to do this anymore because the activeLegArray is an array of LegDefinition instead of FlightPlanLeg
-      // WT21FmsUtils.removeFixTypeFlags(activeLegArray);
-
-      // If we didn't remove a duplicate, insert a discontinuity at the start of the approach
-      if (!deduplicatedArrivalLeg && (!prevLeg || !WT21FmsUtils.isVectorsLeg(prevLeg.leg.type))) {
-        this.tryInsertDiscontinuity(plan, segmentIndex);
-      }
-
-      this.generateSegmentVerticalData(plan, segmentIndex);
-
-      if (activeLegArray) {
-        this.displaceActiveLegsIntoSegment(plan, segmentIndex, activeLegArray, false);
-      }
+      this.displaceActiveLegsIntoSegment(plan, segmentIndex, activeLegArray, false);
     }
 
     this.cleanupLegsAfterApproach(plan);
 
     this.tryConnectProcedures(plan);
 
-    plan.calculate();
+    plan.calculate(0);
 
     return true;
   }

@@ -1,0 +1,182 @@
+.mfd-page.open.sr22t-trip-planning-page {
+  width: 100%;
+  height: 100%;
+  padding-top: 56px;
+  font-size: 60px;
+  background: rgb(32, 32, 32);
+}
+
+.sr22t-trip-planning-page-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.sr22t-trip-planning-page .sr22t-system-page-section-title {
+  background: rgb(32, 32, 32);
+}
+
+.sr22t-trip-planning-page .sr22t-system-page-section-content {
+  display: flex;
+  color: rgb(6, 7, 8);
+  padding: 0px 0px 0 8px;
+  position: relative;
+  top: -11px;
+}
+
+.sr22t-system-page-section-content .tp-page-section-column-full {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.sr22t-system-page-section-content .tp-page-section-column-1 {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 50%;
+  margin-right: 7px;
+}
+
+.tp-section-two-column-container .vertical-separator-line {
+  width: 1px;
+  background-color: #c0c0c0;
+  height: 264px;
+}
+
+.tp-section-two-column-container .horizontal-separator-line {
+  height: 1px;
+  background-color: #c0c0c0;
+  width: 264px;
+}
+
+.sr22t-system-page-section-content .tp-page-section-column-2 {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 50%;
+  margin-left: 10px;
+  margin-right: 7px;
+
+}
+
+.sr22t-system-page-section-content .tp-page-section-column-2-and-3 {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  margin-left: 3px;
+}
+
+.tp-section-two-column-title {
+  color: white;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  margin: 7px 7px 0px 8px;
+  font-size: 21px;
+  padding-left: 177px;
+}
+
+.tp-title-static-part {
+  font-size: 16px;
+  color: #bbb;
+}
+
+.tp-section-two-column-container {
+  margin-top: 15px;
+  display: flex;
+  color: rgb(6, 7, 8);
+  padding: 0px 0px 0 8px;
+  position: relative;
+  top: -11px;
+}
+
+.tp-section-column-container {
+  display: flex;
+  color: #c0c0c0;
+  padding: 0px 0px 0 8px;
+  position: relative;
+  font-size: 17px;
+}
+
+.sr22t-system-page-section.sr22t-tp-page-input-data {
+  position: absolute;
+  top: 24px;
+  left: 17px;
+  width: 842px;
+  height: 316px;
+}
+
+.sr22t-tp-page-input-data .sr22t-system-page-section-title {
+  width: 74px;
+}
+
+.sr22t-system-page-section.sr22t-tp-page-trip-stats {
+  position: absolute;
+  top: 363px;
+  left: 17px;
+  width: 269px;
+  height: 286px;
+}
+
+.sr22t-tp-page-trip-stats .sr22t-system-page-section-title {
+  width: 70px;
+}
+
+.sr22t-system-page-section.sr22t-tp-page-fuel-stats {
+  position: absolute;
+  top: 363px;
+  left: 303px;
+  width: 269px;
+  height: 286px;
+}
+
+.sr22t-tp-page-fuel-stats .sr22t-system-page-section-title {
+  width: 73px;
+}
+
+.sr22t-system-page-section.sr22t-tp-page-other-stats {
+  position: absolute;
+  top: 363px;
+  left: 589px;
+  width: 269px;
+  height: 286px;
+}
+
+.sr22t-tp-page-other-stats .sr22t-system-page-section-title {
+  width: 80px;
+}
+
+#tp-selection-input-field {
+  height: 76px;
+}
+
+#tp-fpl-selection-field {
+  position: absolute;
+  width: 123px;
+}
+
+#tp-leg-selection-field {
+  margin-left: 127px;
+  width: 85px;
+}
+
+#tp-inipos-field {
+  position: absolute;
+  top: 37px;
+  color: white;
+  font-size: 19px;
+}
+
+#tp-right-arrow {
+  position: absolute;
+  top: -3px;
+  left: 119px;
+}
+
+#tp-end-selection-name {
+  position: absolute;
+  top: 31px;
+  left: 170px;
+}

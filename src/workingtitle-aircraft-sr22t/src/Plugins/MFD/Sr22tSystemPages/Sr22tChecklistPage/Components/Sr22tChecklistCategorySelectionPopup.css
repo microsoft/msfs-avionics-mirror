@@ -1,0 +1,18 @@
+.popout-dialog.checklist-category-popup {
+  top: 94px;
+  left: -525px; /* Initially moved out of view */
+  right: inherit;
+  height: fit-content;
+  width: 325px;
+  border-color: rgb(192, 192, 192);
+  border-width: 3px;
+  background: black;
+}
+
+.popout-dialog.checklist-category-popup.open {
+  transform: translate3d(690px, 0, 0);
+}
+
+.popout-dialog.checklist-category-popup .sr22t-checklist-category-selection-list {
+  margin-top: 5px;
+}

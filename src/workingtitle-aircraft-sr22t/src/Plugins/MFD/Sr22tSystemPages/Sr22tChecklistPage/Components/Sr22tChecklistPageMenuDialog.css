@@ -1,0 +1,18 @@
+.popout-dialog.checklist-dialog .popout-menu-item.text-disabled .no-incomplete-checklists {
+  color: white;
+}
+
+.popout-dialog.checklist-dialog.checklist-incomplete-dialog .mfd-pagemenu-options {
+  height: 535px;
+  max-height: 535px;
+}
+
+.popout-dialog.checklist-dialog.checklist-incomplete-dialog .groupbox-container {
+  height: 480px;
+}
+
+.popout-dialog.checklist-dialog.checklist-incomplete-dialog .popout-menu-item {
+  height: 48px;
+  white-space: nowrap;
+  overflow: hidden;
+}

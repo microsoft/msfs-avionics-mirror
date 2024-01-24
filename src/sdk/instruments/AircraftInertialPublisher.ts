@@ -9,18 +9,41 @@ import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
  * An interface that describes the possible aircraft inertial motion events.
  */
 export interface AircraftInertialEvents {
-  /** Lateral acceleration relative to aircraft X axis, in east/west direction in metres/sec^2, +ve to the right. */
-  acceleration_body_x: number,
-  /** Vertical acceleration relative to aircraft Y axis, in vertical direction in metres/sec^2, +ve upwards. */
-  acceleration_body_y: number,
-  /** Longitudinal acceleration relative to aircraft Z axis, in fore/aft direction in metres/sec^2, +ve forwards. */
-  acceleration_body_z: number,
-  /** Pitch rotation velocity relative to aircraft X axis in °/sec, +ve downwards. */
-  rotation_velocity_body_x: number,
-  /** Yaw rotation velocity relative to aircraft Y axis in °/sec, +ve right. */
-  rotation_velocity_body_y: number,
-  /** Roll rotation velocity relative to aircraft Z axis in °/sec +ve to the left. */
-  rotation_velocity_body_z: number,
+  /**
+   * The airplane's linear acceleration, in meters per second per second, along the airplane's lateral (left-right)
+   * axis. Positive values indicate acceleration toward the right of the airplane.
+   */
+  acceleration_body_x: number;
+
+  /**
+   * The airplane's linear acceleration, in meters per second per second, along the airplane's vertical (bottom-top)
+   * axis. Positive values indicate acceleration toward the top of the airplane.
+   */
+  acceleration_body_y: number;
+
+  /**
+   * The airplane's linear acceleration, in meters per second per second, along the airplane's longitudinal
+   * (rear-front) axis. Positive values indicate acceleration toward the front of the airplane.
+   */
+  acceleration_body_z: number;
+
+  /**
+   * The airplane's rotational velocity, in degrees per second, about its lateral (left-right) axis (i.e. the rate of
+   * change of its pitch angle). Positive values indicate the airplane is pitching down.
+   */
+  rotation_velocity_body_x: number;
+
+  /**
+   * The airplane's rotational velocity, in degrees per second, about its vertical (bottom-top) axis (i.e. the rate of
+   * change of its yaw angle). Positive values indicate the airplane is yawing to the right.
+   */
+  rotation_velocity_body_y: number;
+
+  /**
+   * The airplane's rotational velocity, in degrees per second, about its longitudinal (rear-front) axis (i.e. the rate
+   * of change of its roll/bank angle). Positive values indicate the airplane is rolling to the left.
+   */
+  rotation_velocity_body_z: number;
 }
 
 /**

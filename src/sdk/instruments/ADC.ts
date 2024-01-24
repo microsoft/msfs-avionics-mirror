@@ -63,7 +63,7 @@ export interface BaseAdcEvents {
   /** The ambient air density, in slugs per cubic foot */
   ambient_density: number;
 
-  /** The ambient temperature, in degrees Celsius. Same as OAT (Outside Air Temperature). */
+  /** The ambient static air temperature, in degrees Celsius. */
   ambient_temp_c: number;
 
   /** The ambient pressure, in inches of mercury. */
@@ -72,7 +72,7 @@ export interface BaseAdcEvents {
   /** The current ISA temperature, in degrees Celsius. */
   isa_temp_c: number;
 
-  /** The current ram air temperature, in degrees Celsius. Same as TAT (Total Air Temperature). */
+  /** The current ram air temperature (total air temperature), in degrees Celsius. */
   ram_air_temp_c: number;
 
   /** The ambient wind velocity, in knots. */

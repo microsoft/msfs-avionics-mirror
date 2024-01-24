@@ -1,0 +1,19 @@
+.percent-power-gauge {
+  height: 84px;
+  overflow: hidden;
+}
+
+.dial-gauge-label {
+  font: Roboto;
+  fill: #ffffff;
+}
+
+.dial-gauge-label-small {
+  font: bold 6px Roboto;
+  fill: #ffffff;
+}
+
+.dial-gauge-value {
+  font: Roboto;
+  fill: #ffffff;
+}

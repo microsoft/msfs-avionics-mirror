@@ -1,0 +1,157 @@
+.sr22t-engine-page .eng-temp-panel {
+  position: absolute;
+  top: -8px;
+  left: 0px;
+}
+
+.sr22t-engine-page .eng-temp-panel svg {
+  position: absolute;
+}
+
+.sr22t-engine-page .eng-temp-panel .bar-label {
+  font: bold 16px Roboto;
+  fill: white;
+}
+
+.sr22t-engine-page .eng-temp-panel .bar-label-large {
+  font: bold 18px Roboto;
+  fill: white;
+}
+
+.egt-bar-label-container {
+  display: flex;
+  position: absolute;
+  width: 145px;
+  height: 17px;
+  top: 470px;
+  left: 446px;
+  font-size: 13.5px;
+}
+
+.egt-bar-value-container {
+  display: flex;
+  position: absolute;
+  width: 145px;
+  top: 273px;
+  left: 432px;
+}
+
+
+.egt-bar-label-container .number-label {
+  height: 100%;
+  min-width: 9px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 1px;
+}
+
+.egt-bar-label-container .number-label.focus {
+  background: cyan;
+  color: black;
+}
+
+.egt-bar-label-container .number-label.first {
+  margin-left: -8px;
+  padding-left: 1px;
+  padding-right: 1px;
+}
+
+.egt-bar-label-container .number-label.transit {
+  display: none;
+}
+
+.egt-bar-label-container .number-label.last {
+  margin-left: -10px;
+  padding-left: 1px;
+  padding-right: 1px;
+}
+
+.number-label.number-label-2 {
+  position: absolute;
+  left: 25px;
+}
+
+.number-label.number-label-3 {
+  position: absolute;
+  left: 52px;
+}
+
+.number-label.number-label-4 {
+  position: absolute;
+  left: 78px;
+}
+
+.number-label.number-label-5 {
+  position: absolute;
+  left: 103px;
+}
+
+.number-label.number-label-6 {
+  position: absolute;
+  left: 130px;
+}
+
+.egt-bar-value-container .bar-value {
+  display: flex;
+  justify-content: center;
+  font-size: 16px;
+  border: 2px solid transparent;
+  width: 40px;
+  height: 21px;
+}
+
+.egt-bar-value-container .bar-value.focus {
+  border: 2px solid cyan;
+}
+
+.bar-value.bar-value-2 {
+  position: absolute;
+  left: 25px;
+  top: -27px;
+}
+
+.bar-value.bar-value-3 {
+  position: absolute;
+  left: 50px;
+  top: -1px;
+}
+
+.bar-value.bar-value-4 {
+  position: absolute;
+  left: 77px;
+  top: -27px;
+}
+
+.bar-value.bar-value-5 {
+  position: absolute;
+  left: 103px;
+  top: -1px;
+}
+
+.bar-value.bar-value-6 {
+  position: absolute;
+  left: 130px;
+  top: -27px;
+}
+
+.egt-delta-peak-container {
+  position: absolute;
+  top: 365px;
+  left: 600px;
+  width: 56px;
+}
+
+.egt-delta-peak-container .delta-peak-label {
+  font-size: 16px;
+  display: flex;
+  width: 100%;
+}
+
+.egt-delta-peak-container .delta-peak-value {
+  display: flex;
+  width: 40px;
+  justify-content: flex-end;
+  font-size: 20px;
+  padding-top: 6px;
+}

@@ -1,0 +1,147 @@
+.eis-gauge.oil-gauge {
+  top: 326px;
+}
+
+.oil-gauge .oil-temp {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.oil-gauge .oil-press {
+  position: absolute;
+  top: 47px;
+  left: 0;
+}
+
+.oil-gauge .oil-gauge-row {
+  width: 100%;
+  height: 27px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  padding-right: 7px;
+  padding-top: 5px;
+}
+
+.oil-gauge>div {
+  height: 21px;
+}
+
+.oil-gauge-row .oil-label {
+  padding-top: 3px;
+  padding-left: 5px;
+}
+
+.oil-gauge-row .oil-value {
+  text-align: right;
+  font-size: 18px;
+}
+
+.oil-gauge .oil-horizontal-gauge {
+  position: absolute;
+  left: 6px;
+  width: 136px;
+  height: 16px;
+  border: 1px solid white;
+  border-top: none;
+}
+
+.oil-horizontal-gauge.oil-temp {
+  top: 30px;
+}
+
+.oil-horizontal-gauge .green-section {
+  background: linear-gradient(180deg, rgba(0,120,0,1) 0, rgba(0,192,0,1) 3px, rgba(0,192,0,1) 6px, rgba(0,134,0,1) 100%);
+}
+
+.oil-horizontal-gauge .red-section {
+  background: linear-gradient(180deg, rgba(159,0,0,1) 0, rgba(255,0,0,1) 3px, rgba(255,0,0,1) 6px, rgba(159,0,0,1) 100%);
+}
+
+.oil-horizontal-gauge .yellow-section {
+  background: linear-gradient(180deg, rgba(159,159,0,1) 0, rgba(255,255,0,1) 3px, rgba(255,255,0,1) 6px, rgba(159,159,0,1) 100%);
+}
+
+.oil-temp .green-section {
+  position: absolute;
+  bottom: 0;
+  right: 7px;
+  height: 8px;
+  width: 108px;
+}
+
+.oil-temp .red-section {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  height: 8px;
+  width: 7px;
+}
+
+.oil-temp .green-section {
+  position: absolute;
+  bottom: 0;
+  right: 7px;
+  height: 8px;
+  width: 108px;
+}
+
+.oil-temp .red-section {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  height: 8px;
+  width: 7px;
+}
+
+.oil-horizontal-gauge.oil-press {
+  top: 77px;
+}
+
+.oil-press .green-section {
+  position: absolute;
+  bottom: 0;
+  left: 40px;
+  height: 8px;
+  width: 42px;
+}
+
+.oil-press .red-section {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 8px;
+  width: 13px;
+}
+
+.oil-press .yellow-section.left {
+  position: absolute;
+  bottom: 0;
+  left: 13px;
+  height: 8px;
+  width: 27px;
+}
+
+.oil-press .yellow-section.right {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  height: 8px;
+  width: 52px;
+}
+
+.oil-horizontal-gauge .oil-horizontal-gauge-pointer {
+  position: absolute;
+  bottom: 1px;
+  left: -8px;
+}
+
+.oil-horizontal-gauge .oil-horizontal-gauge-pointer.caution path {
+  fill: yellow !important;
+}
+
+.oil-horizontal-gauge .oil-horizontal-gauge-pointer.warning path {
+  fill: red !important;
+}

@@ -1,0 +1,20 @@
+div.stab-appr-annunciation {
+  position: absolute;
+  font-size: 20px;
+  font-weight: bold;
+  padding: 3px 10px 3px 10px;
+  left: 34%;
+  transform: translateX(-50%);
+  top: 42.5%;
+  border-radius: 8px;
+}
+
+div.stab-appr-alert {
+  background-color: #FFDE2B;
+  color: black;
+}
+
+div.stab-appr-warning {
+  background-color: #FE0000;
+  color: white;
+}

@@ -1,0 +1,14 @@
+.sr22t-engine-page .fuel-panel {
+  position: absolute;
+  top: -8px;
+  left: 0px;
+}
+
+.sr22t-engine-page .fuel-panel svg {
+  position: absolute;
+}
+
+.sr22t-engine-page .fuel-panel .label {
+  font: bold 18px Roboto;
+  fill: white;
+}

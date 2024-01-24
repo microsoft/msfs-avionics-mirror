@@ -1,11 +1,9 @@
 /* eslint-disable max-len */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import {
-  ComponentProps, ControlPublisher, EventBus, FrequencyBank, FrequencyChangeEvent, FSComponent, IdentChangeEvent, NavComEvents, NavEvents, NavSourceId, NavSourceType, Radio,
-  RadioEvents, RadioType, VNode,
+  ComponentProps, ComRadioTuneEvents, ComSpacing, ConsumerSubject, ControlPublisher, EventBus, FrequencyBank, FrequencyChangeEvent, FSComponent,
+  IdentChangeEvent, NavComEvents, NavEvents, NavSourceId, NavSourceType, Radio, RadioEvents, RadioType, VNode
 } from '@microsoft/msfs-sdk';
-
-import { ComRadioSpacingSettingMode, ComRadioUserSettings } from '@microsoft/msfs-garminsdk';
 
 import { AvionicsComputerSystemEvents } from '../Systems/AvionicsComputerSystem';
 import { AvionicsSystemState, AvionicsSystemStateEvent } from '../Systems/G1000AvionicsSystem';
@@ -22,7 +20,7 @@ interface NavComFrequencyElementProps extends ComponentProps {
   /** The type of radio that we represent */
   type: RadioType;
   /** The index number of the radio with this element */
-  index: number;
+  index: 1 | 2;
   /** The template ID of the instrument with this element. */
   templateId: string
 }
@@ -78,8 +76,10 @@ export class NavComFrequencyElement extends G1000UiControl<NavComFrequencyElemen
   private newFrequencyAsString = '';
   private validNextDigitSpace = [1];
 
-  private readonly comRadioSettingManager = ComRadioUserSettings.getManager(this.props.bus);
   private readonly controlPublisher = new ControlPublisher(this.props.bus);
+
+  private readonly sub = this.props.bus.getSubscriber<ComRadioTuneEvents>();
+  private readonly spacingMode = ConsumerSubject.create(this.sub.on(`com_spacing_mode_${this.props.index}`), null);
 
   /**
    * Set this frequency as the active selection visually.
@@ -411,7 +411,7 @@ export class NavComFrequencyElement extends G1000UiControl<NavComFrequencyElemen
         return [- 1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
       case 4:
-        if (this.comRadioSettingManager.getSetting('comRadioSpacing').get() === ComRadioSpacingSettingMode.Spacing25Khz) {
+        if (this.spacingMode.get() === ComSpacing.Spacing25Khz) {
           // If the spacing is 0.025, the sixth digit can be:
           return [0, 2, 5, 7];
         } else {
@@ -420,7 +420,7 @@ export class NavComFrequencyElement extends G1000UiControl<NavComFrequencyElemen
         }
 
       case 5:
-        if (this.comRadioSettingManager.getSetting('comRadioSpacing').get() === ComRadioSpacingSettingMode.Spacing25Khz) {
+        if (this.spacingMode.get() === ComSpacing.Spacing25Khz) {
           // If the spacing is 0.025, the seventh digit can be:
           switch (digit) {
             case 0:

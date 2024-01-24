@@ -1,0 +1,200 @@
+.eis-gauge.fuel-gauge {
+  top: 151px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 18px;
+  padding-right: 3px;
+}
+
+.fuel-gauge .fuel-gauge-container {
+  height: 145px;
+  width: 141px;
+  border-top: 1px solid white;
+  border-bottom: 1px solid white;
+}
+
+.fuel-gauge .fuel-used {
+  height: 30px;
+  width: 141px;
+  border-bottom: 1px solid white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-left: 3px;
+  padding-right: 1px;
+}
+
+.fuel-gauge .fuel-qty-gauge {
+  position: absolute;
+  width: 58px;
+  height: 122px;
+  left: 11px;
+  top: 0;
+}
+
+.fuel-qty-gauge .fuel-qty-label {
+  position: absolute;
+  left: 16px;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 6px;
+}
+
+.fuel-qty-label>div {
+  height: 18px;
+  width: 25px;
+  font-size: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.fuel-qty-label>div:first-child {
+  height: 12px;
+}
+
+.fuel-qty-label .fuel-qty-unit-label {
+  position: absolute;
+  left: 0;
+  top: 125px;
+  font-size: 16px;
+}
+
+.fuel-qty-gauge .fuel-qty-diagram {
+  position: absolute;
+  top: 13px;
+  width: 17px;
+  height: 87px;
+  border: 1px solid white;
+  border-left: none;
+  border-bottom: 2px solid red;
+  display: flex;
+  flex-direction: column;
+}
+
+.fuel-qty-gauge .fuel-qty-diagram.left {
+  left: 0;
+}
+
+.fuel-qty-gauge .fuel-qty-diagram.right {
+  right: 0;
+  transform: rotateY(180deg);
+}
+
+.fuel-qty-diagram .fuel-diagram-section {
+  border-bottom: 1px solid white;
+  height: 18px;
+  width: 100%;
+  z-index: 1;
+}
+
+.fuel-qty-diagram .fuel-diagram-section.small {
+  height: 12px;
+}
+
+.fuel-qty-diagram .fuel-diagram-label {
+  position: absolute;
+  left: 0;
+  bottom: -25px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 16px;
+}
+
+.fuel-qty-diagram.right .fuel-diagram-label {
+  transform: rotateY(180deg);
+}
+
+.fuel-qty-diagram .fuel-diagram-green-column {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 8px;
+  height: 59px;
+  background: linear-gradient(90deg, rgba(0,160,0,1) 0, rgba(0,255,0,1) 3px, rgba(0,255,0,1) 6px, rgba(0,160,0,1) 100%);
+}
+
+.fuel-qty-diagram .fuel-diagram-yellow-column {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  height: 25px;
+  background: linear-gradient(90deg, rgba(159,159,0,1) 0, rgba(255,255,0,1) 3px, rgba(255,255,0,1) 6px, rgba(159,159,0,1) 100%);
+}
+
+.fuel-qty-diagram .fuel-qty-pointer {
+  position: absolute;
+  bottom: -8px;
+  right: -1px;
+  z-index: 2;
+}
+
+.fuel-qty-diagram .fuel-qty-pointer.caution path {
+  fill: yellow !important;
+}
+
+.fuel-gauge .fuel-flow-diagram {
+  position: absolute;
+  right: 33px;
+  top: 9px;
+  width: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.fuel-flow-diagram .diagram-container {
+  position: relative;
+  width: 22px;
+  height: 86px;
+}
+
+.fuel-flow-diagram .diagram-container .diagram-border {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 86px;
+  border: 1px solid white;
+  border-left: none;
+}
+
+.fuel-flow-diagram .fuel-flow-value {
+  width: 38px;
+  text-align: right;
+  font-size: 20px;
+  padding-top: 3px;
+}
+
+.fuel-flow-diagram .fuel-flow-label {
+  width: 81px;
+  text-align: center;
+  font-size: 15px;
+}
+
+.fuel-flow-diagram .diagram-container .fuel-flow-pointer {
+  position: absolute;
+  bottom: -7px;
+  right: 7px;
+}
+
+.fuel-flow-diagram .diagram-green-band {
+  position: absolute;
+  right: 1px;
+  width: 8px;
+  background: linear-gradient(90deg, rgba(0,160,0,1) 0, rgba(0,255,0,1) 3px, rgba(0,255,0,1) 6px, rgba(0,160,0,1) 100%);
+}
+
+.fuel-flow-diagram .diagram-cyan-line {
+  position: absolute;
+  right: -8px;
+  width: 8px;
+  height: 3px;
+  background: cyan;
+}
