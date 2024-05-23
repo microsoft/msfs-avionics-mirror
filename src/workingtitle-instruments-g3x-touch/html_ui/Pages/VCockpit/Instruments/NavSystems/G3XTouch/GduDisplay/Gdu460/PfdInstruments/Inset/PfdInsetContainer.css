@@ -1,0 +1,17 @@
+.pfd-inset-container {
+  position: relative;
+  height: 270px;
+  overflow: hidden;
+}
+
+.pfd-inset-container-full {
+  width: 350px;
+}
+
+.pfd-inset-container-narrow-eis {
+  width: 294px;
+}
+
+.pfd-inset-container-wide-eis {
+  width: 274px;
+}

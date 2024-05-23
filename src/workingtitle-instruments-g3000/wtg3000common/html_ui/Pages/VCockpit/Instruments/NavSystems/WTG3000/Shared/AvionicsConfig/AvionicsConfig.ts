@@ -4,6 +4,7 @@ import { AvionicsType } from '../CommonTypes';
 import { MapConfig } from '../Components/Map/MapConfig';
 import { DefaultConfigFactory } from '../Config/DefaultConfigFactory';
 import { PerformanceConfig } from '../Performance/PerformanceConfig';
+import { TerrainSystemConfig } from '../Terrain/TerrainSystemConfig';
 import { TrafficConfig } from '../Traffic/TrafficConfig';
 import { VSpeedGroup, VSpeedGroupType } from '../VSpeed/VSpeed';
 import { VSpeedGroupConfig } from '../VSpeed/VSpeedGroupConfig';
@@ -56,7 +57,14 @@ export class AvionicsConfig {
   /** A config which defines options for the avionics' traffic system. */
   public readonly traffic: TrafficConfig;
 
-  /** A config which defines options for the avionics' TAWS system. */
+  /** A config which defines options for the avionics' terrain alerting system. */
+  public readonly terrain: TerrainSystemConfig;
+
+  /**
+   * A config which defines options for the avionics' TAWS system.
+   * @deprecated The TAWS configuration object has been superceded by the terrain alerting system configuration object
+   * (`this.terrain`).
+   */
   public readonly taws: TawsConfig;
 
   /** A config which defines options for maps. */
@@ -90,6 +98,7 @@ export class AvionicsConfig {
     this.autopilot = this.parseAutopilotConfig(baseInstrument, root.querySelector(':scope>Autopilot'));
     this.vSpeedGroups = this.parseVSpeeds(root.querySelector(':scope>VSpeeds'));
     this.traffic = this.parseTrafficConfig(baseInstrument, root.querySelector(':scope>Traffic'));
+    this.terrain = this.parseTerrainConfig(baseInstrument, root.querySelector(':scope>Terrain'), root.querySelector(':scope>Taws'));
     this.taws = this.parseTawsConfig(baseInstrument, root.querySelector(':scope>Taws'));
     this.map = this.parseMapConfig(root.querySelector(':scope>Map'));
     this.performance = this.parsePerformanceConfig(root.querySelector(':scope>Performance'));
@@ -315,6 +324,25 @@ export class AvionicsConfig {
     }
 
     return new TrafficConfig(baseInstrument, undefined);
+  }
+
+  /**
+   * Parses a terrain system configuration object from a configuration document element.
+   * @param baseInstrument The `BaseInstrument` element associated with the configuration.
+   * @param element A configuration document element that defines the terrain system configuration object.
+   * @param tawsElement A configuration document element that defines a TAWS configuration object.
+   * @returns The TAWS configuration defined by the configuration document element.
+   */
+  private parseTerrainConfig(baseInstrument: BaseInstrument, element: Element | null, tawsElement: Element | null): TerrainSystemConfig {
+    if (element !== null) {
+      try {
+        return new TerrainSystemConfig(baseInstrument, element, null);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    return new TerrainSystemConfig(baseInstrument, undefined, tawsElement);
   }
 
   /**

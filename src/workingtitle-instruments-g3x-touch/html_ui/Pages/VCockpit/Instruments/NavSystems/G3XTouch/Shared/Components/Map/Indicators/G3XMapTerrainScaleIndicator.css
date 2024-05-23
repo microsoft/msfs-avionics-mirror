@@ -1,0 +1,49 @@
+.map-terrainscale {
+  position: relative;
+  background: var(--g3x-color-black);
+  border: solid 1px #d7d7d7;
+  color: var(--g3x-color-white);
+  overflow: hidden;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.map-terrainscale-rel .terrainscale-rel {
+  display: flex;
+}
+
+.map-terrainscale-ground .terrainscale-ground {
+  display: flex;
+}
+
+.map-terrainscale-title {
+  text-align: center;
+  border-bottom: solid 1px var(--g3x-color-white);
+}
+
+.map-terrainscale-scale {
+  display: none;
+  position: relative;
+  flex-flow: column nowrap;
+  align-items: flex-end;
+}
+
+.map-terrainscale-color {
+  position: relative;
+  width: var(--map-terrainscale-box-width, 1.3em);
+  height: var(--map-terrainscale-box-height, 1.3em);
+  border: solid 1px var(--g3x-color-white);
+  border-top: none;
+}
+
+.map-terrainscale-color.map-terrainscale-color-last {
+  border-bottom: none;
+}
+
+.map-terrainscale-label {
+  position: absolute;
+  right: calc(100% + var(--map-terrainscale-label-margin-right, 0.7em));
+  top: -0.1em;
+  transform: translateY(-50%);
+}

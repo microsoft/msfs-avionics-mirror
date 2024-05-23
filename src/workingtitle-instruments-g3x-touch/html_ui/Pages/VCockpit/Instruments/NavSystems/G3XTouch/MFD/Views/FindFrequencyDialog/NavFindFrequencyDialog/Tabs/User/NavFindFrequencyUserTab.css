@@ -1,0 +1,13 @@
+.gdu-460-display .nav-find-frequency-tab-user .nav-find-dialog-action-button {
+  width: 230px;
+}
+
+.gdu-460-display .nav-find-frequency-tab-user .nav-find-user-list-empty {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 410px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

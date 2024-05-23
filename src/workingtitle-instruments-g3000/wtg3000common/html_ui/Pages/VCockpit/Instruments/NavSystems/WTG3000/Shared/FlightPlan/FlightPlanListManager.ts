@@ -1,13 +1,16 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
-  ArraySubject, DebounceTimer, EventBus, FlightPlanSegment, FlightPlanSegmentType, LegDefinition,
-  SetSubject, Subject, Subscribable, SubscribableArray, Subscription,
+  ArraySubject, DebounceTimer, EventBus, FlightPlanSegment, FlightPlanSegmentType, LegDefinition, SetSubject, Subject, Subscribable, SubscribableArray,
+  Subscription
 } from '@microsoft/msfs-sdk';
+
 import { Fms, UnitsUserSettings } from '@microsoft/msfs-garminsdk';
-import { FlightPlanLegData, FlightPlanLegListData } from './FlightPlanLegListData';
+
+import { G3000FlightPlannerId } from '../CommonTypes';
 import { AddEnrouteWaypointButtonListData, FlightPlanListData } from './FlightPlanDataTypes';
-import { FlightPlanStore } from './FlightPlanStore';
+import { FlightPlanLegData, FlightPlanLegListData } from './FlightPlanLegListData';
 import { FlightPlanSegmentData, FlightPlanSegmentListData } from './FlightPlanSegmentListData';
+import { FlightPlanStore } from './FlightPlanStore';
 
 /** Tracks flight plan segments and legs and manages them together in a single list. */
 export class FlightPlanListManager {
@@ -50,7 +53,7 @@ export class FlightPlanListManager {
   public constructor(
     private readonly bus: EventBus,
     private readonly store: FlightPlanStore,
-    private readonly fms: Fms,
+    private readonly fms: Fms<G3000FlightPlannerId>,
     private readonly planIndex: number,
     private readonly loadNewAirwaysCollapsed: Subscribable<boolean>,
   ) {

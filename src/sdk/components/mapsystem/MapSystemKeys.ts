@@ -55,4 +55,8 @@ export class MapSystemKeys {
   public static readonly Traffic = 'traffic' as const;
 
   public static readonly DataIntegrity = 'dataIntegrity' as const;
+
+  public static readonly PlanAirportsLayer = 'plan-airports' as const;
+
+  public static readonly WaypointDisplayController = 'WaypointDisplayController' as const;
 }

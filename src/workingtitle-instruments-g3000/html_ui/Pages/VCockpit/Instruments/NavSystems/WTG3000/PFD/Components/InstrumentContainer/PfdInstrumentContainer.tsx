@@ -1,24 +1,25 @@
 import {
-  AuralAlertControlEvents, AuralAlertActivation, AuralAlertRegistrationManager, CasSystem, DefaultTcasAdvisoryDataProvider,
+  AuralAlertActivation, AuralAlertControlEvents, AuralAlertRegistrationManager, CasSystem, DefaultTcasAdvisoryDataProvider,
   EventBus, FSComponent, MappedSubject, PluginSystem, SetSubject, Subject, UserSettingManager, Vec2Math, Vec2Subject, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
   AltimeterDataProvider, DateTimeUserSettings, DefaultAoaDataProvider, DefaultMarkerBeaconDataProvider, DefaultNavStatusBoxDataProvider,
   DefaultObsSuspDataProvider, DefaultTcasRaCommandDataProvider, DmeUserSettings, Fms, FmsPositionMode, GpsIntegrityDataProvider,
-  HsiGpsIntegrityAnnunciationMode, MinimumsAlerter, MinimumsAlertState, MinimumsDataProvider, PfdDeclutterManager,
-  RadarAltimeterDataProvider, SoftKeyBar, SoftKeyMenuSystem, TrafficSystem, TrafficSystemType, UnitsUserSettings, VNavDataProvider,
-  WaypointAlertComputer, WindDataProvider
+  HsiGpsIntegrityAnnunciationMode, MinimumsAlerter, MinimumsAlertState, MinimumsDataProvider, NextGenTawsAnnunciationDefs, PfdDeclutterManager,
+  RadarAltimeterDataProvider, SoftKeyBar, SoftKeyMenuSystem, TerrainSystemStateDataProvider, TrafficSystem, TrafficSystemType, UnitsUserSettings,
+  VNavDataProvider, WaypointAlertComputer, WindDataProvider
 } from '@microsoft/msfs-garminsdk';
 
 import {
   AuralAlertUserSettings, AuralAlertVoiceSetting, AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, AvionicsStatusEvents,
-  AvionicsStatusUtils, G3000FullCASDisplay, DisplayPaneIndex, DisplayPaneSizeMode, DisplayPaneView, DisplayPaneViewEvent, DisplayPaneViewProps,
-  G3000AuralAlertIds, G3000AuralAlertUtils, G3000DmeInfoNavIndicator, G3000NavIndicators, G3000NavInfoNavIndicator,
+  AvionicsStatusUtils, DisplayPaneIndex, DisplayPaneSizeMode, DisplayPaneView, DisplayPaneViewEvent, DisplayPaneViewProps,
+  G3000AuralAlertIds, G3000AuralAlertUtils, G3000DmeInfoNavIndicator, G3000FullCASDisplay, G3000NavIndicators, G3000NavInfoNavIndicator,
   IauUserSettingManager, MapUserSettings, PfdAliasedUserSettingTypes, PfdMapLayoutSettingMode, SoftKeyHEventMap, VSpeedUserSettingManager
 } from '@microsoft/msfs-wtg3000-common';
 
 import { PfdConfig } from '../../Config/PfdConfig';
+import { G3000PfdPlugin, G3000PfdPluginBinder } from '../../G3000PFDPlugin';
 import { AdcSettingsSoftKeyMenu } from '../../SoftKey/AdcSettingsSoftKeyMenu';
 import { AhrsSettingsSoftKeyMenu } from '../../SoftKey/AhrsSettingsSoftKeyMenu';
 import { AltitudeUnitsSoftKeyMenu } from '../../SoftKey/AltitudeUnitsSoftKeyMenu';
@@ -33,7 +34,6 @@ import { PfdSettingsSoftKeyMenu } from '../../SoftKey/PfdSettingsSoftKeyMenu';
 import { SensorsSoftKeyMenu } from '../../SoftKey/SensorsSoftKeyMenu';
 import { SvtSettingsSoftKeyMenu } from '../../SoftKey/SvtSettingsSoftKeyMenu';
 import { WindSoftKeyMenu } from '../../SoftKey/WindSoftKeyMenu';
-import { G3000PfdPlugin, G3000PfdPluginBinder } from '../../G3000PFDPlugin';
 import { AirspeedIndicator } from '../Airspeed/AirspeedIndicator';
 import { Altimeter } from '../Altimeter/Altimeter';
 import { RadarAltimeter } from '../Altimeter/RadarAltimeter';
@@ -51,9 +51,10 @@ import { MarkerBeaconDisplay } from '../Marker/MarkerBeaconDisplay';
 import { MinimumsDisplay } from '../Minimums/MinimumsDisplay';
 import { NavDmeInfoBanner } from '../NavDmeInfo/NavDmeInfoBanner';
 import { NavStatusBoxBanner } from '../NavStatusBox/NavStatusBoxBanner';
+import { PfdTerrainSystemAnnunciation } from '../Terrain/PfdTerrainSystemAnnunciation';
 import { PfdTrafficAlertMapManager } from '../Traffic/PfdTrafficAlertMapManager';
 import { PfdTrafficAnnunciation } from '../Traffic/PfdTrafficAnnunciation';
-import { DefaultVdiDataProvider } from '../VDI/VdiDataProvider';
+import { DefaultVdiDataProvider } from '../VDI/DefaultVdiDataProvider';
 import { VerticalDeviationIndicator } from '../VDI/VerticalDeviationIndicator';
 import { VerticalSpeedIndicator } from '../VSI/VerticalSpeedIndicator';
 import { WindDisplay } from '../Wind/WindDisplay';
@@ -99,6 +100,12 @@ export interface PfdInstrumentContainerProps extends DisplayPaneViewProps {
 
   /** A provider of VNAV data. */
   vnavDataProvider: VNavDataProvider;
+
+  /**
+   * A provider of terrain alerting system state data. If not defined, then the terrain system annunciations display
+   * will not be rendered.
+   */
+  terrainSystemStateDataProvider?: TerrainSystemStateDataProvider;
 
   /** A reference to this instrument's CAS system. */
   casSystem: CasSystem;
@@ -621,6 +628,20 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
           advisoryDataProvider={this.tcasAdvisoryDataProvider}
           declutter={this.declutterManager.declutter}
         />
+        {this.props.terrainSystemStateDataProvider !== undefined && (
+          <PfdTerrainSystemAnnunciation
+            show={true}
+            operatingMode={this.props.terrainSystemStateDataProvider.operatingMode}
+            statusFlags={this.props.terrainSystemStateDataProvider.statusFlags}
+            inhibitFlags={this.props.terrainSystemStateDataProvider.inhibitFlags}
+            prioritizedAlert={this.props.terrainSystemStateDataProvider.prioritizedAlert}
+            testModeDef={NextGenTawsAnnunciationDefs.testMode()}
+            statusDefs={NextGenTawsAnnunciationDefs.status()}
+            inhibitDefs={NextGenTawsAnnunciationDefs.inhibit()}
+            alertDefs={NextGenTawsAnnunciationDefs.alert()}
+            class='pfd-terrain-annunc'
+          />
+        )}
         <HsiGpsIntegrityAnnunciation
           mode={this.hsiGpsIntegrityAnnuncMode}
         />

@@ -1,0 +1,104 @@
+.number-dialog {
+  position: relative;
+  color: var(--g3x-color-white);
+
+  --number-dialog-input-center: 50%;
+}
+
+.gdu-460-display .number-dialog {
+  width: 450px;
+  height: 630px;
+
+  --number-dialog-title-top: 1px;
+  --number-dialog-title-font-size: 22px;
+
+  --number-dialog-input-top: 68px;
+  --number-dialog-input-width: 160px;
+  --number-dialog-input-height: 42px;
+  --number-dialog-input-font-size: 26px;
+
+  --number-dialog-numpad-top: 148px;
+  --number-dialog-numpad-width: 264px;
+  --number-dialog-numpad-height: 352px;
+
+  --number-dialog-backspace-right: 21px;
+  --number-dialog-backspace-top: 48px;
+  --number-dialog-backspace-width: 100px;
+  --number-dialog-backspace-height: 80px;
+
+  --number-dialog-nav-button-outer-margin: 66px;
+  --number-dialog-nav-button-bottom: 16px;
+}
+
+.number-dialog-title {
+  position: absolute;
+  left: 0px;
+  top: var(--number-dialog-title-top);
+  width: 100%;
+  font-size: var(--number-dialog-title-font-size);
+  text-align: center;
+}
+
+.number-dialog-input-container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.cursor-input.number-dialog-input {
+  position: absolute;
+  left: calc(var(--number-dialog-input-center) - var(--number-dialog-input-width) / 2);
+  top: var(--number-dialog-input-top);
+  width: var(--number-dialog-input-width);
+  height: var(--number-dialog-input-height);
+  font-size: var(--number-dialog-input-font-size);
+  color: var(--g3x-color-cyan);
+  --cursor-input-slots-justify: center;
+}
+
+.cursor-input.number-dialog-input.cursor-input-edit-inactive {
+  color: var(--g3x-color-black);
+}
+
+.number-dialog-numpad-container {
+  position: absolute;
+  left: calc(var(--number-dialog-input-center) - var(--number-dialog-numpad-width) / 2);
+  top: var(--number-dialog-numpad-top);
+  width: var(--number-dialog-numpad-width);
+  height: var(--number-dialog-numpad-height);
+}
+
+.number-dialog-numpad {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  justify-items: center;
+  align-items: center;
+}
+
+.touch-button.number-dialog-backspace {
+  position: absolute;
+  right: var(--number-dialog-backspace-right);
+  top: var(--number-dialog-backspace-top);
+
+  --ui-nav-button-width: var(--number-dialog-backspace-width);
+  --ui-nav-button-height: var(--number-dialog-backspace-height);
+}
+
+.number-dialog-nav-button {
+  position: absolute;
+  bottom: var(--number-dialog-nav-button-bottom);
+}
+
+.number-dialog-back {
+  left: var(--number-dialog-nav-button-outer-margin);
+}
+
+.number-dialog-enter {
+  right: var(--number-dialog-nav-button-outer-margin);
+}

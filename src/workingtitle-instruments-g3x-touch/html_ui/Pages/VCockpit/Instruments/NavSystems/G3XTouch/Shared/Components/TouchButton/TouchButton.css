@@ -1,0 +1,71 @@
+html {
+  --touch-button-background: linear-gradient(#494949 5%, #252525 19%, #1e1e1e 22%, #171717 28%, #101010 36%, black 50%);
+  --touch-button-border-width: 2px;
+  --touch-button-border-style: solid;
+  --touch-button-border-color: #878e9e;
+  --touch-button-border-radius: 4px;
+  --touch-button-box-shadow: 0px 0px 2px 2px black inset;
+  --touch-button-text-color: var(--g3x-color-white);
+
+  /* TODO: Need to implement actual primed background. */
+  --touch-button-primed-background: linear-gradient(#73ccf2 3px, #3e9cce 8px, #167ab4 12px, #0061a0 20px, #005594 30px, #005594 87%, #004482 100%);
+  --touch-button-primed-box-shadow: 0px 0px 2px 2px #1b649c inset;
+
+  --touch-button-highlight-background: linear-gradient(#00dcf5 3px, #00badc 8px, #00a7cf 12px, #0090bc 20px, #0088b4 30px, #0088b4 87%, #007ca7 100%);
+  --touch-button-highlight-border-style: solid;
+  --touch-button-highlight-border-color: #00e8e8;
+  --touch-button-highlight-box-shadow: 0px 0px 2px 2px #0088a6 inset;
+  --touch-button-highlight-text-color: var(--g3x-color-black);
+
+  --touch-button-disabled-background: var(--g3x-color-disabled-gray);
+  --touch-button-disabled-box-shadow: 0px 0px 1px 1px black inset;
+  --touch-button-disabled-filter: brightness(50%) grayscale(100%);
+
+  --touch-button-label-center-y: 50%;
+}
+
+.touch-button {
+  display: block;
+  background: var(--touch-button-background);
+  border: var(--touch-button-border, var(--touch-button-border-width) var(--touch-button-border-style) var(--touch-button-border-color));
+  border-radius: var(--touch-button-border-radius);
+  box-shadow: var(--touch-button-box-shadow);
+  position: relative;
+  color: var(--touch-button-text-color);
+  overflow: hidden;
+}
+
+.touch-button-label {
+  position: absolute;
+  left: 0;
+  top: var(--touch-button-label-center-y);
+  width: 100%;
+  transform: translateY(-50%);
+  text-align: center;
+  white-space: pre;
+}
+
+.touch-button.touch-button-primed:not(.touch-button-highlight) {
+  background: var(--touch-button-primed-background);
+  box-shadow: var(--touch-button-primed-box-shadow);
+}
+
+.touch-button.touch-button-highlight {
+  background: var(--touch-button-highlight-background);
+  border: var(--touch-button-highlight-border, var(--touch-button-border-width) var(--touch-button-highlight-border-style) var(--touch-button-highlight-border-color));
+  box-shadow: var(--touch-button-highlight-box-shadow);
+  color: var(--touch-button-highlight-text-color);
+}
+
+.touch-button.touch-button-disabled {
+  background: var(--touch-button-disabled-background);
+  box-shadow: var(--touch-button-disabled-box-shadow);
+}
+
+.touch-button-disabled>* {
+  filter: var(--touch-button-disabled-filter);
+}
+
+.touch-button.touch-button-hidden {
+  display: none !important;
+}

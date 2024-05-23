@@ -1,8 +1,8 @@
 import {
   BitFlags, EventBus, FlightPlanCalculatedEvent, FlightPlanIndicationEvent, FlightPlanLegIterator, FlightPlanner,
-  FlightPlannerEvents, FlightPlanSegmentType, IteratorCursor, LegDefinitionFlags, SpeedConstraint,
-  SpeedRestrictionType, VerticalFlightPhase
+  FlightPlanSegmentType, IteratorCursor, LegDefinitionFlags, SpeedConstraint, SpeedRestrictionType, VerticalFlightPhase
 } from '@microsoft/msfs-sdk';
+
 import { FmsUtils } from '../flightplan/FmsUtils';
 
 /**
@@ -39,14 +39,12 @@ export class GarminSpeedConstraintStore {
    * @param flightPlanner The Flight Planner.
    */
   constructor(private bus: EventBus, private flightPlanner: FlightPlanner) {
-    const fpl = this.bus.getSubscriber<FlightPlannerEvents>();
-
-    fpl.on('fplCopied').handle(e => this.onPlanChanged(e.targetPlanIndex));
-    fpl.on('fplLoaded').handle(e => this.onPlanChanged(e.planIndex));
-    fpl.on('fplLegChange').handle(e => this.onPlanChanged(e.planIndex));
-    fpl.on('fplSegmentChange').handle(e => this.onPlanChanged(e.planIndex));
-    fpl.on('fplIndexChanged').handle(this.onPlanIndexChanged);
-    fpl.on('fplCalculated').handle(this.onPlanCalculated);
+    this.flightPlanner.onEvent('fplCopied').handle(e => this.onPlanChanged(e.targetPlanIndex));
+    this.flightPlanner.onEvent('fplLoaded').handle(e => this.onPlanChanged(e.planIndex));
+    this.flightPlanner.onEvent('fplLegChange').handle(e => this.onPlanChanged(e.planIndex));
+    this.flightPlanner.onEvent('fplSegmentChange').handle(e => this.onPlanChanged(e.planIndex));
+    this.flightPlanner.onEvent('fplIndexChanged').handle(this.onPlanIndexChanged);
+    this.flightPlanner.onEvent('fplCalculated').handle(this.onPlanCalculated);
   }
 
   /**

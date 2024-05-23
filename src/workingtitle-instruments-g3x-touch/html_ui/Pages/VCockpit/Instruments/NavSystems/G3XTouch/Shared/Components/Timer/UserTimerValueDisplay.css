@@ -1,0 +1,7 @@
+.user-timer-value {
+  color: var(--g3x-color-white);
+}
+
+.user-timer-value.user-timer-value-running {
+  color: var(--g3x-color-cyan);
+}

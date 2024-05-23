@@ -151,19 +151,19 @@ export class SimVarPublisher<Events extends Record<string, any>, IndexedEventRoo
   protected readonly subscribed = new Set<keyof Events & string>();
 
   /**
-   * Create a SimVarPublisher
-   * @param simVarMap A map of simvar event type keys to a SimVarDefinition.
-   * @param bus The EventBus to use for publishing.
+   * Creates a new instance of SimVarPublisher.
+   * @param entries Entries describing the SimVars to publish.
+   * @param bus The event bus to which to publish.
    * @param pacer An optional pacer to control the rate of publishing.
    */
   public constructor(
-    simVarMap: Map<keyof (Events & IndexedEventRoots) & string, SimVarPublisherEntry<any>>,
+    entries: Iterable<readonly [keyof (Events & IndexedEventRoots) & string, SimVarPublisherEntry<any>]>,
     bus: EventBus,
     pacer?: PublishPacer<Events>
   ) {
     super(bus, pacer);
 
-    for (const [topic, entry] of simVarMap) {
+    for (const [topic, entry] of entries) {
       if (entry.indexed) {
         this.indexedSimVars.set(topic, {
           name: entry.name,

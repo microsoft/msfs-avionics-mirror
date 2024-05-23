@@ -1,16 +1,20 @@
 import {
-  ComRadioSpacingManager, DateTimeUserSettings, DefaultGpsIntegrityDataProvider, DefaultRadarAltimeterDataProvider, DefaultVNavDataProvider,
-  DefaultWindDataProvider, DmeUserSettings, FlightPathCalculatorManager, FlightPlanSimSyncManager, Fms, FmsPositionSystemSelector, GarminAPConfig,
-  GarminAPStateManager, GarminGoAroundManager, GarminHeadingSyncManager, GarminTimerControlEvents, GarminTimerManager, GarminXpdrTcasManager, MapTerrainWxSettingCompatManager,
-  MinimumsUnitsManager, NavdataComputer, TrafficOperatingModeManager, TrafficOperatingModeSetting, TrafficSystemType, TrafficUserSettings,
-  UnitsUserSettings
-} from '@microsoft/msfs-garminsdk';
-import {
-  APRadioNavInstrument, ArrayUtils, AuralAlertSystem, AuralAlertSystemWarningAdapter, AuralAlertSystemXmlAdapter, CasSystem, CasSystemLegacyAdapter, ClockEvents,
-  CompositeLogicXMLHost, ControlEvents, DefaultXmlAuralAlertParser, FlightPlanCalculatedEvent, FlightPlannerEvents, FlightTimerInstrument, FlightTimerMode,
-  FSComponent, GameStateProvider, GpsSynchronizer, GPSSystemState, MinimumsManager, NavComInstrument, NavSourceType, PluginSystem,
-  SetSubject, SimVarValueType, SoundServer, Subject, TrafficInstrument, UserSetting, Vec2Math, VNode, Wait, XMLWarningFactory, XPDRInstrument
+  APRadioNavInstrument, ArrayUtils, AuralAlertSystem, AuralAlertSystemWarningAdapter, AuralAlertSystemXmlAdapter,
+  CasSystem, CasSystemLegacyAdapter, ClockEvents, CompositeLogicXMLHost, ControlEvents, DefaultXmlAuralAlertParser,
+  FlightPlanCalculatedEvent, FlightTimerInstrument, FlightTimerMode, FSComponent, GameStateProvider, GpsSynchronizer,
+  GPSSystemState, LNavComputer, LNavObsManager, MinimumsManager, NavComInstrument, NavSourceType, PluginSystem,
+  SetSubject, SimVarValueType, SoundServer, Subject, TrafficInstrument, UserSetting, Value, Vec2Math, VNavControlEvents,
+  VNode, Wait, XMLWarningFactory, XPDRInstrument
 } from '@microsoft/msfs-sdk';
+
+import {
+  AdcSystemSelector, ComRadioSpacingManager, DateTimeUserSettings, DefaultGpsIntegrityDataProvider, DefaultRadarAltimeterDataProvider,
+  DefaultTerrainSystemDataProvider, DefaultVNavDataProvider, DefaultWindDataProvider, DmeUserSettings, FlightPathCalculatorManager, FlightPlanSimSyncManager,
+  Fms, FmsPositionMode, FmsPositionSystemSelector, GarminAPConfig, GarminAPStateManager, GarminAPUtils, GarminGoAroundManager, GarminHeadingSyncManager,
+  GarminNavToNavComputer, GarminObsLNavModule, GarminTimerControlEvents, GarminTimerManager, GarminXpdrTcasManager, MapTerrainWxSettingCompatManager, MinimumsUnitsManager,
+  NavdataComputer, TrafficOperatingModeManager, TrafficOperatingModeSetting, TrafficSystemType, TrafficUserSettings, UnitsUserSettings
+} from '@microsoft/msfs-garminsdk';
+
 import {
   AuralAlertUserSettings, AuralAlertVoiceSetting, AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, AvionicsStatusEvents, AvionicsStatusGlobalPowerEvent,
   AvionicsStatusManager, ConnextWeatherPaneView, DisplayPaneContainer, DisplayPaneIndex, DisplayPanesController, DisplayPaneViewFactory, DisplayPaneViewKeys,
@@ -35,8 +39,8 @@ import { WeightFuelComputer } from './Performance/WeightFuel/WeightFuelComputer'
 import { ComRadioTxRxManager } from './Radio/ComRadioTxRxManager';
 import { DmeTuneManager } from './Radio/DmeTuneManager';
 import { NavRadioMonitorManager } from './Radio/NavRadioMonitorManager';
-import { Taws } from './TAWS/Taws';
-import { TouchdownCalloutModule } from './TAWS/TouchdownCalloutModule';
+import { TerrainSystemAuralManager } from './Terrain/TerrainSystemAuralManager';
+import { TouchdownCalloutAuralManager } from './Terrain/TouchdownCalloutAuralManager';
 import { VSpeedBugManager } from './VSpeed/VSpeedBugManager';
 import { WeatherRadarManager } from './WeatherRadar/WeatherRadarManager';
 
@@ -66,6 +70,8 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
   private readonly bootSplashCssClass = SetSubject.create(['mfd-boot-splash']);
 
   private readonly avionicsStatusManager = new AvionicsStatusManager(this.bus);
+
+  private readonly obsManager = new LNavObsManager(this.bus, 0, true);
 
   private readonly navComInstrument = new NavComInstrument(this.bus, undefined, 2, 2);
   private readonly apRadioNavInstrument = new APRadioNavInstrument(this.bus);
@@ -101,10 +107,12 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
 
   private readonly flightPathCalcManager = new FlightPathCalculatorManager(
     this.bus,
-    Subject.create(true),
-    Subject.create(true),
-    this.config.fms.flightPathOptions.maxBankAngle,
-    this.config.fms.flightPathOptions.lowBankAngle
+    {
+      isAdcDataValid: Subject.create(true),
+      isGpsDataValid: Subject.create(true),
+      maxBankAngle: this.config.fms.flightPathOptions.maxBankAngle,
+      lowBankAngle: this.config.fms.flightPathOptions.lowBankAngle
+    }
   );
 
   private readonly comRadioSpacingManager = new ComRadioSpacingManager(this.bus, G3000ComRadioUserSettings.getManager(this.bus));
@@ -118,21 +126,56 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
   private readonly timerManager = new GarminTimerManager(this.bus, 1);
 
   private readonly gpsSynchronizer = new GpsSynchronizer(this.bus, this.flightPlanner, this.facLoader);
-  private readonly navdataComputer = new NavdataComputer(this.bus, this.flightPlanner, this.facLoader);
+  private readonly lnavMaxBankAngle = (): number => {
+    return this.autopilot.apValues.maxBankId.get() === 1
+      ? Math.min(this.config.autopilot.lnavOptions.maxBankAngle, this.config.autopilot.lowBankOptions.maxBankAngle)
+      : this.config.autopilot.lnavOptions.maxBankAngle;
+  };
+  private readonly lnavComputer = new LNavComputer(
+    0,
+    this.bus,
+    this.flightPlanner,
+    new GarminObsLNavModule(0, this.bus, this.flightPlanner, {
+      maxBankAngle: this.lnavMaxBankAngle,
+      intercept: GarminAPUtils.lnavIntercept,
+    }),
+    {
+      maxBankAngle: this.lnavMaxBankAngle,
+      intercept: GarminAPUtils.lnavIntercept,
+      isPositionDataValid: () => this.fmsPositionSelector.selectedFmsPosMode.get() !== FmsPositionMode.None,
+      hasVectorAnticipation: true
+    }
+  );
+  private readonly navdataComputer = new NavdataComputer(this.bus, this.flightPlanner, this.facLoader, { lnavIndex: 0 });
 
   private readonly radarAltimeterDataProvider = new DefaultRadarAltimeterDataProvider(this.bus);
 
   private readonly gps1DataProvider = new GpsStatusDataProvider(this.bus, 1);
   private readonly gps2DataProvider = new GpsStatusDataProvider(this.bus, 2);
 
-  private readonly apConfig = new GarminAPConfig(this.bus, this.flightPlanner, this.verticalPathCalculator, {
+  private readonly navToNavComputer = new GarminNavToNavComputer(this.bus, this.fms, {
+    navRadioIndexes: [1, 2]
+  });
+
+  private readonly apConfig = new GarminAPConfig(this.bus, this.fms, this.verticalPathCalculator, {
     useIndicatedMach: true,
+    lnavOptions: {
+      steerCommand: this.lnavComputer.steerCommand
+    },
     vnavOptions: {
       allowApproachBaroVNav: true,
       allowPlusVWithoutSbas: true,
       allowRnpAr: this.config.fms.approach.supportRnpAr,
       enableAdvancedVNav: this.config.vnav.advanced,
       gpsSystemState: Subject.create(GPSSystemState.DiffSolutionAcquired)
+    },
+    navToNavGuidance: {
+      cdiId: Value.create(''),
+      armableNavRadioIndex: this.navToNavComputer.armableNavRadioIndex,
+      armableLateralMode: this.navToNavComputer.armableLateralMode,
+      armableVerticalMode: this.navToNavComputer.armableVerticalMode,
+      canSwitchCdi: this.navToNavComputer.canSwitchCdi,
+      isExternalCdiSwitchInProgress: Value.create(false)
     },
     rollMinBankAngle: this.config.autopilot.rollOptions.minBankAngle,
     rollMaxBankAngle: this.config.autopilot.rollOptions.maxBankAngle,
@@ -184,8 +227,42 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     ? new TrafficOperatingModeManager(this.bus)
     : undefined;
 
-  private readonly taws = new Taws(this.bus, this.fmsPositionSelector.selectedIndex)
-    .addModule(new TouchdownCalloutModule(this.bus, this.facLoader));
+  private readonly terrainSystemAdcSelector = new AdcSystemSelector(
+    this.bus,
+    ArrayUtils.range(this.config.sensors.adcCount, 1),
+    {
+      systemPriorities: ArrayUtils.range(this.config.sensors.adcCount, 1),
+      desirabilityComparator: (a, b) => {
+        const [aAltitudeDataValid, aAirspeedDataValid, aTemperatureDataValid] = a;
+        const [bAltitudeDataValid, bAirspeedDataValid, bTemperatureDataValid] = b;
+
+        if (aAltitudeDataValid && !bAltitudeDataValid) {
+          return -1;
+        } else if (!aAltitudeDataValid && bAltitudeDataValid) {
+          return 1;
+        } else {
+          return (bAirspeedDataValid && bTemperatureDataValid ? 1 : 0)
+            - (aAirspeedDataValid && aTemperatureDataValid ? 1 : 0);
+        }
+      }
+    }
+  );
+  private readonly terrainSystemAhrsSelector = new AdcSystemSelector(
+    this.bus,
+    ArrayUtils.range(this.config.sensors.ahrsCount, 1),
+    {
+      systemPriorities: ArrayUtils.range(this.config.sensors.ahrsCount, 1)
+    }
+  );
+  private readonly terrainSystemDataProvider = new DefaultTerrainSystemDataProvider(this.bus, this.fms, {
+    fmsPosIndex: this.fmsPositionSelector.selectedIndex,
+    radarAltIndex: this.config.sensors.hasRadarAltimeter ? 1 : -1,
+    adcIndex: this.terrainSystemAdcSelector.selectedIndex,
+    ahrsIndex: this.terrainSystemAhrsSelector.selectedIndex
+  });
+  private readonly terrainSystem = this.config.terrain.resolve()(this.bus, this.fms, this.terrainSystemDataProvider);
+  private readonly terrainSystemAuralManager = new TerrainSystemAuralManager(this.bus, this.terrainSystemStateDataProvider);
+  private readonly touchdownCalloutAuralManager = new TouchdownCalloutAuralManager(this.bus);
 
   private readonly xpdrTcasManager?: GarminXpdrTcasManager;
 
@@ -272,6 +349,8 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     this.backplane.addInstrument(InstrumentBackplaneNames.Timer, this.timerInstrument);
     this.backplane.addInstrument(InstrumentBackplaneNames.FuelTotalizer, this.fuelTotalizerInstrument);
 
+    this.obsManager.init();
+
     if (this.trafficSystem.type === TrafficSystemType.TcasII) {
       this.xpdrTcasManager = new GarminXpdrTcasManager(this.bus, 1);
     }
@@ -314,8 +393,12 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
    * Initializes touchdown callout user settings.
    */
   private initTouchdownCalloutUserSettings(): void {
+    if (!this.config.terrain.touchdownCallouts) {
+      return;
+    }
+
     const settingManager = TouchdownCalloutUserSettings.getManager(this.bus);
-    for (const options of Object.values(this.config.taws.touchdownCallouts.options)) {
+    for (const options of Object.values(this.config.terrain.touchdownCallouts.options)) {
       settingManager.getEnabledSetting(options.altitude).value = options.enabled;
     }
   }
@@ -379,6 +462,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     this.gps1DataProvider.init();
     this.gps2DataProvider.init();
     this.minimumsDataProvider.init();
+    this.terrainSystemStateDataProvider.init();
     this.activeNavSourceManager.init();
     this.dmeTuneManager.init();
     this.comRadioTxRxManager.init();
@@ -389,7 +473,17 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     this.minimumsUnitsManager.init();
     this.xpdrTcasManager?.init(true);
     this.trafficSystem.init();
-    this.taws.init();
+
+    if (this.terrainSystem) {
+      this.terrainSystemAdcSelector.init();
+      this.terrainSystemAhrsSelector.init();
+      this.terrainSystemDataProvider.init();
+      this.terrainSystem.init();
+
+      this.terrainSystemAuralManager.init();
+      this.touchdownCalloutAuralManager.init();
+    }
+
     this.weatherRadarManager?.init();
     this.gpsIntegrityDataProvider.init();
     this.vSpeedBugManager.init(true);
@@ -424,8 +518,9 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
 
     this.initAvionicsStatusListener();
 
-    Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.briefing || state === GameState.ingame).then(() => {
+    Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.briefing || state === GameState.ingame, true).then(() => {
       this.bus.getSubscriber<ClockEvents>().on('simTimeHiFreq').handle(() => {
+        this.lnavComputer.update();
         this.autopilot.update();
       });
     });
@@ -592,7 +687,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
    * Initializes a listener which records the most recent time the active flight plan was calculated.
    */
   private initActiveFplCalcListener(): void {
-    this.bus.getSubscriber<FlightPlannerEvents>().on('fplCalculated').handle((e: FlightPlanCalculatedEvent) => {
+    this.flightPlanner.onEvent('fplCalculated').handle((e: FlightPlanCalculatedEvent) => {
       if (e.planIndex === this.flightPlanner.activePlanIndex) {
         this.lastActiveFplCalcTime = Date.now();
       }
@@ -679,11 +774,18 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
   public Update(): void {
     super.Update();
 
+    const realTime = Date.now();
+
     this.gpsSynchronizer.update();
     this.logicHost.update(this.instrument.deltaTime);
 
-    if (this.flightPlanner.hasActiveFlightPlan() && Date.now() - this.lastActiveFplCalcTime >= WTG3000MfdInstrument.ACTIVE_FLIGHT_PLAN_CALC_PERIOD) {
+    if (this.flightPlanner.hasActiveFlightPlan() && realTime - this.lastActiveFplCalcTime >= WTG3000MfdInstrument.ACTIVE_FLIGHT_PLAN_CALC_PERIOD) {
       this.flightPlanner.getActiveFlightPlan().calculate();
+    }
+
+    if (this.terrainSystem) {
+      this.terrainSystemDataProvider.update(realTime);
+      this.terrainSystem.update();
     }
   }
 
@@ -746,7 +848,8 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
       this.vSpeedBugManager.pause();
       this.trafficOperatingModeManager?.pause();
       this.xpdrTcasManager?.pause();
-      this.taws.setPowered(false);
+      this.terrainSystem?.turnOff();
+      this.terrainSystem?.removeAllInhibits();
       this.toldComputer?.pause();
 
       // Stop and reset generic timer.
@@ -756,6 +859,10 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
 
     } else if (event.current === true) {
       // Avionics global power on.
+
+      this.auralAlertSystem.wake();
+
+      this.terrainSystem?.turnOn();
 
       if (event.previous === false) {
         // Only reset the autopilot if this was a true power cycle. Otherwise we will end up turning the AP off
@@ -767,11 +874,14 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
         // .FLT file on a cold-and-dark start, but there shouldn't ever be a case where a non-default state is desired
         // when loading cold-and-dark.
         this.bus.getPublisher<ControlEvents>().pub('cdi_src_set', { type: NavSourceType.Gps, index: 1 }, true, true);
+
+        this.terrainSystem?.startTest();
       }
 
-      this.headingSyncManager.resume();
+      // Reset VNAV to enabled.
+      this.bus.getPublisher<VNavControlEvents>().pub('vnav_set_state', true, true, false);
 
-      this.auralAlertSystem.wake();
+      this.headingSyncManager.resume();
 
       const pfdSettingManager = PfdUserSettings.getMasterManager(this.bus);
       pfdSettingManager.getSetting('pfdBearingPointer1Source_1').resetToDefault();
@@ -788,7 +898,6 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
       this.trafficOperatingModeManager?.resume();
       this.xpdrTcasManager?.reset();
       this.xpdrTcasManager?.resume();
-      this.taws.setPowered(true);
       this.weightFuelComputer.reset();
       this.toldComputer?.reset();
       this.toldComputer?.resume();

@@ -1,0 +1,121 @@
+.gdu-460-display .afcs-box {
+  font-size: 21px;
+
+  --afcs-box-inner-padding: 3px 0px;
+
+  --pfd-touch-button-border-radius: 0px 0px 10px 10px;
+
+  --afcs-box-separator-width: 2px;
+
+  --afcs-box-master-min-width: 32px;
+  --afcs-box-master-double-min-width: 60px;
+
+  --afcs-box-lateral-min-width: 82px;
+
+  --afcs-box-vertical-width-margin: 8px;
+
+  --afcs-box-vertical-active-container-width: 50px;
+
+  --afcs-box-vertical-right-slot-width: 50px;
+  --afcs-box-vertical-right-slot-large-width: 75px;
+}
+
+.afcs-box-inner {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--afcs-box-inner-padding);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: baseline;
+}
+
+.afcs-box-armed {
+  color: var(--g3x-color-white);
+}
+
+.afcs-box-separator {
+  align-self: stretch;
+  flex-shrink: 0;
+  width: var(--afcs-box-separator-width);
+  background: #d4d4d4;
+}
+
+.afcs-box-master {
+  flex-shrink: 1;
+  position: relative;
+  width: 15%;
+  min-width: var(--afcs-box-master-min-width);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-evenly;
+  align-items: baseline;
+}
+
+.afcs-box-master.afcs-box-master-double {
+  width: 19%;
+  min-width: var(--afcs-box-master-double-min-width);
+}
+
+.afcs-box-lateral {
+  flex-shrink: 0;
+  flex-grow: 1;
+  position: relative;
+  width: var(--afcs-box-lateral-min-width);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-evenly;
+  align-items: baseline;
+}
+
+.afcs-box-vertical {
+  flex-shrink: 0;
+  flex-grow: calc(1 + var(--afcs-box-inner-max-vertical-right-slots));
+  position: relative;
+  display: flex;
+  width: calc(var(--afcs-box-vertical-active-container-width) + var(--afcs-box-inner-max-vertical-right-slots) * var(--afcs-box-vertical-right-slot-width) + var(--afcs-box-vertical-width-margin));
+  flex-flow: row nowrap;
+  justify-content: space-evenly;
+  align-items: baseline;
+}
+
+.afcs-box-vertical-active-container {
+  flex-shrink: 0;
+  position: relative;
+  width: var(--afcs-box-vertical-active-container-width);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: baseline;
+}
+
+.afcs-box-vertical-right-slot {
+  flex-shrink: 0;
+  position: relative;
+  width: var(--afcs-box-vertical-right-slot-width);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.afcs-box-vertical-right-slot.afcs-box-vertical-right-slot-large {
+  width: var(--afcs-box-vertical-right-slot-large-width);
+}
+
+.afcs-box-vertical-target {
+  font-size: 0.9em;
+  color: var(--g3x-color-green);
+  white-space: nowrap;
+}
+
+.afcs-box-vertical-target-unit {
+  font-size: 0.5em;
+}
+
+.afcs-box-vertical-armed {
+  width: 100%;
+  text-align: center;
+}

@@ -19,14 +19,17 @@ export enum TimeDisplayFormat {
  * Component props for TimeDisplay.
  */
 export interface TimeDisplayProps extends ComponentProps {
-  /** The time to display, as a UNIX timestamp in milliseconds, or a subscribable which provides it. */
+  /** The time to display, as a UNIX timestamp in milliseconds. */
   time: number | Subscribable<number>;
 
-  /** The display format, or a subscribable which provides it. */
+  /** The display format. */
   format: TimeDisplayFormat | Subscribable<TimeDisplayFormat>;
 
-  /** The local time offset, in milliseconds, or a subscribable which provides it. */
+  /** The local time offset, in milliseconds. */
   localOffset: number | Subscribable<number>;
+
+  /** Whether to the pad the hour text with leading zeroes (up to two digits). Defaults to `true`. */
+  padHour?: boolean | Subscribable<boolean>;
 
   /**
    * A function which formats suffixes to append to the displayed time. If not defined, then the suffix will be
@@ -75,6 +78,8 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
 
   private readonly localOffset = SubscribableUtils.toSubscribable(this.props.localOffset, true);
 
+  private readonly padHour = SubscribableUtils.toSubscribable(this.props.padHour ?? true, true);
+
   private readonly suffixFormatter = this.props.suffixFormatter ?? TimeDisplay.DEFAULT_SUFFIX_FORMATTER;
 
   private readonly suffixDisplay = Subject.create('');
@@ -91,11 +96,13 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
   private timeSub?: MappedSubscribable<number>;
   private formatSub?: Subscription;
   private localOffsetSub?: Subscription;
+  private padHourSub?: Subscription;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
     this.formatSub = this.format.sub(this.updateHandler);
     this.localOffsetSub = this.localOffset.sub(this.updateHandler);
+    this.padHourSub = this.padHour.sub(this.updateHandler);
     this.timeSeconds.sub(this.updateHandler, true);
 
     // We have to hide the suffix text when empty because an empty string will get rendered as a space.
@@ -130,7 +137,8 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
         ? 12 - (12 - (hour % 12)) % 12 // Need to display hours 0 and 12 as '12'
         : hour % 24;
 
-      this.hourText.set(displayHour.toString().padStart(2, '0'));
+      const hourText = displayHour.toString();
+      this.hourText.set(this.padHour.get() ? hourText.padStart(2, '0') : hourText);
 
       this.minText.set(this.date.getUTCMinutes().toString().padStart(2, '0'));
 
@@ -150,7 +158,7 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
     return this.suffixFormatter(format, isAm);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     return (
       <div class={this.props.class ?? ''} style='white-space: nowrap;'>
@@ -162,10 +170,13 @@ export class TimeDisplay extends DisplayComponent<TimeDisplayProps> {
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
     this.timeSub?.destroy();
     this.formatSub?.destroy();
     this.localOffsetSub?.destroy();
+    this.padHourSub?.destroy();
+
+    super.destroy();
   }
 }

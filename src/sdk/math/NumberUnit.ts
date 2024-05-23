@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-duplicate-enum-values */
 /**
  * Utility type to get the family of a unit type.
  */
@@ -283,7 +284,6 @@ export class NumberUnit<F extends string, U extends Unit<F> = Unit<F>> implement
   /**
    * Subtracts a value from this NumberUnit in place and returns the result.
    * @param value The other value.
-   * @param out The NumberUnit to which to write the result. Defaults to this NumberUnit.
    * @returns The difference.
    * @throws Error if the supplied value cannot be converted to this NumberUnit's unit type.
    */
@@ -333,7 +333,6 @@ export class NumberUnit<F extends string, U extends Unit<F> = Unit<F>> implement
   /**
    * Scales this NumberUnit by a unit-less factor in place and returns the result.
    * @param factor The factor by which to scale.
-   * @param out The NumberUnit to which to write the result.
    * @returns The scaled value.
    */
   public scale(factor: number): this;
@@ -929,7 +928,8 @@ export enum UnitFamily {
   Density = 'density',
   Force = 'force',
   DistancePerWeight = 'distance_per_weight',
-  DistanceRatio = 'distance_ratio'
+  DistanceRatio = 'distance_ratio',
+  WeightPerDistance = 'weight_per_distance',
 }
 
 /**
@@ -937,8 +937,9 @@ export enum UnitFamily {
  */
 export class UnitType {
   public static readonly METER = new SimpleUnit(UnitFamily.Distance, 'meter', 1);
-  public static readonly FOOT = new SimpleUnit(UnitFamily.Distance, 'foot', 0.3048);
   public static readonly KILOMETER = new SimpleUnit(UnitFamily.Distance, 'kilometer', 1000);
+  public static readonly INCH = new SimpleUnit(UnitFamily.Distance, 'inch', 0.0254);
+  public static readonly FOOT = new SimpleUnit(UnitFamily.Distance, 'foot', 0.3048);
   /** Statute mile. */
   public static readonly MILE = new SimpleUnit(UnitFamily.Distance, 'mile', 1609.34);
   /** Nautical mile. */

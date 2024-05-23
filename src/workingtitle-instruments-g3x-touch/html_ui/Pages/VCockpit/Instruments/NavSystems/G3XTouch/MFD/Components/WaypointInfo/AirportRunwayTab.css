@@ -1,0 +1,143 @@
+.airport-runway-tab {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3x-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.gdu-460-display .airport-runway-tab {
+  padding: 7px;
+  font-size: 18px;
+
+  --airport-runway-tab-button-row-height: 70px;
+  --airport-runway-tab-button-row-margin: 7px 0px 15px;
+
+  --airport-runway-tab-runway-button-width: 220px;
+  --ui-list-select-button-label-height: 0px;
+  --ui-list-select-button-dropdown-width: 45px;
+
+  --airport-runway-tab-info-row-left-width: 190px;
+
+  --airport-runway-tab-map-scale-bar-detail-container-margin: 0px 8px 1px 0px;
+
+  --airport-runway-tab-map-scale-bar-margin: 0px 0px 9px 0px;
+  --airport-runway-tab-map-scale-bar-font-size: 16px;
+
+  --airport-runway-tab-map-detail-margin: -9px 0px 0px 0px;
+  --airport-runway-tab-map-detail-font-size: 13px;
+
+  --airport-runway-tab-map-range-target-control-outline-width: 4px;
+
+  --airport-runway-tab-map-status-indicator-container-max-width: 60px;
+  --airport-runway-tab-map-status-indicator-container-margin: 3px 0px 0px 0px;
+}
+
+/* Info */
+
+.airport-runway-tab-button-row {
+  height: var(--airport-runway-tab-button-row-height);
+  margin: var(--airport-runway-tab-button-row-margin);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+.airport-runway-tab-runway-button {
+  width: var(--airport-runway-tab-runway-button-width);
+}
+
+.airport-runway-tab-runway-label {
+  width: var(--airport-runway-tab-runway-button-width);
+  padding-left: var(--touch-button-border-width);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.airport-runway-tab-info-row {
+  display: flex;
+  flex-flow: row nowrap;
+  white-space: pre;
+}
+
+.airport-runway-tab-info-row-left {
+  width: var(--airport-runway-tab-info-row-left-width);
+  padding-left: var(--touch-button-border-width);
+}
+
+.airport-runway-tab-surface {
+  margin-bottom: 0.2em;
+}
+
+.airport-runway-tab-wind-value-preferred {
+  color: var(--g3x-color-green);
+}
+
+.gdu-460-display .airport-runway-tab-select-dialog {
+  --ui-list-dialog-width: 220px;
+  --ui-list-dialog-padding: 3px;
+  --ui-list-dialog-font-size: 18px;
+}
+
+/* Map */
+
+.airport-runway-tab-map-container {
+  position: relative;
+  border: solid 2px var(--tabbed-container-content-box-border-color);
+  overflow: hidden;
+}
+
+.airport-runway-tab-map-touch-pad {
+  position: relative;
+}
+
+.airport-runway-tab-map {
+  transform: rotateX(0deg);
+  overflow: hidden;
+}
+
+.airport-runway-tab-map .map-indicator-group-top-right {
+  position: absolute;
+  right: 0px;
+  top: 4px;
+}
+
+.airport-runway-tab-map .map-status-indicator-container {
+  max-width: var(--airport-runway-tab-map-status-indicator-container-max-width);
+  margin: var(--airport-runway-tab-map-status-indicator-container-margin);
+  flex-flow: row wrap;
+  justify-content: flex-end;
+  align-content: flex-start;
+}
+
+.airport-runway-tab-map .map-indicator-group-bottom-left {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+}
+
+.airport-runway-tab-map .map-indicator-group-bottom-right {
+  position: absolute;
+  right: 0px;
+  bottom: 1px;
+}
+
+.airport-runway-tab-map .map-scale-bar-detail-container {
+  margin: var(--airport-runway-tab-map-scale-bar-detail-container-margin);
+}
+
+.airport-runway-tab-map .map-scale-bar {
+  margin: var(--airport-runway-tab-map-scale-bar-margin);
+  font-size: var(--airport-runway-tab-map-scale-bar-font-size);
+}
+
+.airport-runway-tab-map .map-detail {
+  margin: var(--airport-runway-tab-map-detail-margin);
+  font-size: var(--airport-runway-tab-map-detail-font-size);
+}

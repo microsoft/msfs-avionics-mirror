@@ -20,10 +20,22 @@ export enum G3000AuralAlertIds {
   AutothrottleDisengage = 'g3000-autothrottle-disengage',
   PfdAlert = 'g3000-pfd-alert',
   MasterCaution = 'g3000-master-caution',
+  TawsPdaCaution = 'g3000-taws-pda-caution',
+  TawsEdrCaution = 'g3000-taws-edr-caution',
+  TawsEcrCaution = 'g3000-taws-ecr-caution',
+  TawsNcrCaution = 'g3000-taws-ncr-caution',
   TouchdownCallout = 'g3000-touchdown-callout',
   TcasTA = 'g3000-tcas-ta',
   AltitudeAlert = 'g3000-altitude-alert',
-  VerticalTrack = 'g3000-vertical-track'
+  VerticalTrack = 'g3000-vertical-track',
+  TawsAvailable = 'g3000-taws-available',
+  GpwsAvailable = 'g3000-gpws-available',
+  TawsNotAvailable = 'g3000-taws-not-available',
+  GpwsNotAvailable = 'g3000-gpws-not-available',
+  TawsFailed = 'g3000-taws-failed',
+  GpwsFailed = 'g3000-gpws-failed',
+  TawsTestPass = 'g3000-taws-test-pass',
+  TawsTestFail = 'g3000-taws-test-fail'
 }
 
 /**
@@ -53,9 +65,21 @@ export class G3000AuralAlertUtils {
     [G3000AuralAlertIds.AutothrottleDisengage]: -90,
     [G3000AuralAlertIds.PfdAlert]: -100,
     [G3000AuralAlertIds.MasterCaution]: -110,
+    [G3000AuralAlertIds.TawsPdaCaution]: -120,
+    [G3000AuralAlertIds.TawsEdrCaution]: -120,
+    [G3000AuralAlertIds.TawsEcrCaution]: -120,
+    [G3000AuralAlertIds.TawsNcrCaution]: -120,
     [G3000AuralAlertIds.TouchdownCallout]: -120,
     [G3000AuralAlertIds.TcasTA]: -130,
     [G3000AuralAlertIds.AltitudeAlert]: -140,
-    [G3000AuralAlertIds.VerticalTrack]: -150
+    [G3000AuralAlertIds.VerticalTrack]: -150,
+    [G3000AuralAlertIds.TawsAvailable]: -160,
+    [G3000AuralAlertIds.GpwsAvailable]: -160,
+    [G3000AuralAlertIds.TawsNotAvailable]: -170,
+    [G3000AuralAlertIds.GpwsNotAvailable]: -170,
+    [G3000AuralAlertIds.TawsFailed]: -180,
+    [G3000AuralAlertIds.GpwsFailed]: -180,
+    [G3000AuralAlertIds.TawsTestPass]: -190,
+    [G3000AuralAlertIds.TawsTestFail]: -200
   };
 }

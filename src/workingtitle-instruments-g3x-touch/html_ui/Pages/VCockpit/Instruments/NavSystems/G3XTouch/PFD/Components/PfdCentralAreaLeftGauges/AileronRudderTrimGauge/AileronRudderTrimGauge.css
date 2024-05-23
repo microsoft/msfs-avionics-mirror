@@ -1,0 +1,79 @@
+.aileron-rudder-trim-gauge-green {
+  stroke: var(--g3x-color-green);
+}
+
+.aileron-rudder-trim-gauge-white {
+  stroke: var(--g3x-color-white);
+}
+
+.aileron-rudder-trim-gauge-left-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 0;
+  padding-right: 4px;
+}
+
+.aileron-rudder-trim-gauge-right-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 0;
+  padding-left: 4px;
+}
+
+.aileron-rudder-trim-gauge-ruler {
+  height: 100%;
+  position: relative;
+  overflow: visible;
+  flex-grow: 1;
+}
+
+.aileron-rudder-trim-gauge-ruler-frame {
+  top: 0;
+  left: 0;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.aileron-rudder-trim-gauge-rudder-and-aileron {
+  display: flex;
+  flex-direction: row;
+  font-size: 15px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background-color: #120D0FFC;
+}
+
+.aileron-rudder-trim-gauge-rudder-and-aileron-top-value-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  height: 20px;
+}
+
+.aileron-rudder-trim-gauge-rudder-and-aileron-bottom-value-marker {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  overflow: visible;
+  height: 20px;
+}
+
+.aileron-rudder-trim-gauge-rudder-or-aileron {
+  display: flex;
+  flex-direction: row;
+  font-size: 15px;
+  padding: 10px 9px;
+  border-radius: 6px;
+  background-color: #120D0FFC;
+}
+
+.aileron-rudder-trim-gauge-rudder-or-aileron-value-marker {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  overflow: visible;
+}

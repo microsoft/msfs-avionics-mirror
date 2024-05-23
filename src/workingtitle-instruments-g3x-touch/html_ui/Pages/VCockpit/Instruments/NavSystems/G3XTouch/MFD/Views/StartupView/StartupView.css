@@ -1,0 +1,121 @@
+.startup-view {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3x-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gdu-460-display .startup-view {
+  padding: 5px 0px 10px;
+  font-size: 17px;
+
+  --startup-view-main-margin: 0px 5px;
+  --startup-view-main-padding: 2px 10px 7px;
+
+  --startup-view-main-divider-margin: 7px 0px;
+
+  --startup-view-databases-title-font-size: 23px;
+
+  --startup-view-databases-row-container-margin: 8px 0px;
+
+  --startup-view-databases-row-icon-size: 35px;
+  --startup-view-databases-row-icon-margin-right: 8px;
+
+  --startup-view-continue-width: 290px;
+  --startup-view-continue-height: 65px;
+}
+
+.startup-view-main {
+  position: relative;
+  margin: var(--startup-view-main-margin);
+  padding: var(--startup-view-main-padding);
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+.gdu-460-display .ui-pane-full .startup-view-main {
+  width: 920px;
+}
+
+.gdu-460-display.gdu-display-pfd-left .ui-pane-half .startup-view-main {
+  align-self: stretch;
+  margin-right: 0px;
+}
+
+.gdu-460-display.gdu-display-pfd-right .ui-pane-half .startup-view-main {
+  align-self: stretch;
+  margin-left: 0px;
+}
+
+.startup-view-main-divider {
+  height: 2px;
+  margin: var(--startup-view-main-divider-margin);
+  background: #b0b0b0;
+}
+
+.startup-view-databases {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.startup-view-databases-title {
+  text-align: center;
+  font-size: var(--startup-view-databases-title-font-size);
+}
+
+.startup-view-databases-row-container {
+  position: relative;
+  margin: var(--startup-view-databases-row-container-margin);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.startup-view-databases-row {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.startup-view-databases-row-caution {
+  color: var(--g3x-color-yellow);
+}
+
+.startup-view-databases-row-icon {
+  width: var(--startup-view-databases-row-icon-size);
+  height: var(--startup-view-databases-row-icon-size);
+  margin-right: var(--startup-view-databases-row-icon-margin-right);
+  object-fit: contain;
+}
+
+.startup-view-databases-row-text {
+  flex-grow: 1;
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.startup-view-weather-notice {
+  text-align: center;
+}
+
+.startup-view-map-notice {
+  text-align: center;
+  color: var(--g3x-color-yellow);
+}
+
+.startup-view-continue {
+  width: var(--startup-view-continue-width);
+  height: var(--startup-view-continue-height);
+}

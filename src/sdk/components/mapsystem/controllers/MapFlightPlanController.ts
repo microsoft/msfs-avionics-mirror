@@ -1,6 +1,6 @@
 import { ActiveLegType } from '../../../flightplan';
 import {
-  FlightPlanActiveLegEvent, FlightPlanCalculatedEvent, FlightPlanCopiedEvent, FlightPlanIndicationEvent, FlightPlanner, FlightPlannerEvents
+  FlightPlanActiveLegEvent, FlightPlanCalculatedEvent, FlightPlanCopiedEvent, FlightPlanIndicationEvent, FlightPlanner
 } from '../../../flightplan/FlightPlanner';
 import { Subscription } from '../../../sub';
 import { MapSystemController } from '../MapSystemController';
@@ -77,20 +77,20 @@ export class MapFlightPlanController extends MapSystemController<MapFlightPlanCo
 
   /** @inheritdoc */
   public onAfterMapRender(): void {
-    const sub = this.context.bus.getSubscriber<FlightPlannerEvents>();
+    const flightPlanner = this.context[MapSystemKeys.FlightPlanner];
 
-    this.fplCopiedSub = sub.on('fplCopied').handle(this.planCopiedHandler);
-    this.fplCreatedSub = sub.on('fplCreated').handle(this.planCreatedHandler);
-    this.fplDeletedSub = sub.on('fplDeleted').handle(this.planDeletedHandler);
-    this.fplDirectToDataChangedSub = sub.on('fplDirectToDataChanged').handle(this.planChangeHandler);
-    this.fplLoadedSub = sub.on('fplLoaded').handle(this.planCreatedHandler);
-    this.fplOriginDestChangedSub = sub.on('fplOriginDestChanged').handle(this.planChangeHandler);
-    this.fplProcDetailsChangedSub = sub.on('fplProcDetailsChanged').handle(this.planChangeHandler);
-    this.fplSegmentChangeSub = sub.on('fplSegmentChange').handle(this.planChangeHandler);
-    this.fplUserDataDeleteSub = sub.on('fplUserDataDelete').handle(this.planChangeHandler);
-    this.fplUserDataSetSub = sub.on('fplUserDataSet').handle(this.planChangeHandler);
-    this.fplActiveLegChangeSub = sub.on('fplActiveLegChange').handle(this.activeLegChangedHandler);
-    this.fplCalculatedSub = sub.on('fplCalculated').handle(this.planCalculatedHandler);
+    this.fplCopiedSub = flightPlanner.onEvent('fplCopied').handle(this.planCopiedHandler);
+    this.fplCreatedSub = flightPlanner.onEvent('fplCreated').handle(this.planCreatedHandler);
+    this.fplDeletedSub = flightPlanner.onEvent('fplDeleted').handle(this.planDeletedHandler);
+    this.fplDirectToDataChangedSub = flightPlanner.onEvent('fplDirectToDataChanged').handle(this.planChangeHandler);
+    this.fplLoadedSub = flightPlanner.onEvent('fplLoaded').handle(this.planCreatedHandler);
+    this.fplOriginDestChangedSub = flightPlanner.onEvent('fplOriginDestChanged').handle(this.planChangeHandler);
+    this.fplProcDetailsChangedSub = flightPlanner.onEvent('fplProcDetailsChanged').handle(this.planChangeHandler);
+    this.fplSegmentChangeSub = flightPlanner.onEvent('fplSegmentChange').handle(this.planChangeHandler);
+    this.fplUserDataDeleteSub = flightPlanner.onEvent('fplUserDataDelete').handle(this.planChangeHandler);
+    this.fplUserDataSetSub = flightPlanner.onEvent('fplUserDataSet').handle(this.planChangeHandler);
+    this.fplActiveLegChangeSub = flightPlanner.onEvent('fplActiveLegChange').handle(this.activeLegChangedHandler);
+    this.fplCalculatedSub = flightPlanner.onEvent('fplCalculated').handle(this.planCalculatedHandler);
   }
 
   /** @inheritdoc */

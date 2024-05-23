@@ -1,0 +1,102 @@
+.nav-freq-dialog {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .nav-freq-dialog {
+  width: 484px;
+  height: 630px;
+  padding: 1px 17px 14px;
+  font-size: 19px;
+
+  --nav-freq-dialog-title-font-size: 21px;
+
+  --nav-freq-dialog-freq-title-margin-bottom: 2px;
+
+  --nav-freq-dialog-input-width: 158px;
+  --nav-freq-dialog-input-height: 40px;
+  --nav-freq-dialog-input-font-size: 26px;
+
+  --nav-freq-dialog-numpad-width: 264px;
+  --nav-freq-dialog-numpad-height: 352px;
+
+  --nav-freq-dialog-middle-row-bottom-margin: 18px;
+
+  --nav-freq-dialog-volume-label-font-size: 18px;
+}
+
+.nav-freq-dialog-title {
+  font-size: var(--nav-freq-dialog-title-font-size);
+  text-align: center;
+}
+
+.nav-freq-dialog-input-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.nav-freq-dialog-input-row-center {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.nav-freq-dialog-freq-title {
+  margin-bottom: var(--nav-freq-dialog-freq-title-margin-bottom);
+}
+
+.nav-freq-dialog-input {
+  width: var(--nav-freq-dialog-input-width);
+  height: var(--nav-freq-dialog-input-height);
+  font-size: var(--nav-freq-dialog-input-font-size);
+  color: var(--g3x-color-cyan);
+
+  --cursor-input-slots-justify: center;
+}
+
+.nav-freq-dialog-input.cursor-input-edit-inactive {
+  color: var(--g3x-color-black);
+}
+
+.nav-freq-dialog-numpad {
+  align-self: center;
+  width: var(--nav-freq-dialog-numpad-width);
+  height: var(--nav-freq-dialog-numpad-height);
+  justify-items: center;
+  align-items: center;
+}
+
+.nav-freq-dialog-middle-row {
+  position: relative;
+  bottom: var(--nav-freq-dialog-middle-row-margin-bottom);
+  height: 0px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+.nav-freq-dialog-volume {
+  width: var(--ui-nav-button-width);
+  height: var(--ui-nav-button-height);
+
+  --touch-button-value-label-center-y: 20%;
+  --touch-button-value-value-center-y: 65%;
+  --touch-button-value-value-text-color: var(--g3x-color-cyan);
+}
+
+.nav-freq-dialog-volume .touch-button-label {
+  font-size: var(--nav-freq-dialog-volume-label-font-size);
+}
+
+.nav-freq-dialog-bottom-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-evenly;
+  align-items: center;
+}

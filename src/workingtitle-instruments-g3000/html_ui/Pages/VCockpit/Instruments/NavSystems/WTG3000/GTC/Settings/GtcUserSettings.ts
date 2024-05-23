@@ -70,7 +70,7 @@ export type GtcAliasedUserSettingTypes = GtcInstrumentAliasedUserSettingTypes & 
 /**
  * All true GTC user settings.
  */
-export type GtcAllUserSettingTypes = GtcInstrumentIndexedUserSettingTypes<1> & GtcInstrumentIndexedUserSettingTypes<2> & GtcNonInstrumentIndexedUserSettingTypes;
+export type GtcAllUserSettingTypes = GtcInstrumentIndexedUserSettingTypes<GtcIndex> & GtcNonInstrumentIndexedUserSettingTypes;
 
 /**
  * Utility class for retrieving GTC user setting managers.
@@ -108,7 +108,7 @@ export class GtcUserSettings {
    * @returns A manager for aliased GTC settings for the specified GTC.
    */
   public static getAliasedManager<Index extends GtcIndex>(bus: EventBus, index: Index): UserSettingManager<GtcAliasedUserSettingTypes> {
-    return GtcUserSettings.aliasedInstances[index] ??= GtcUserSettings.getMasterManager(bus).mapTo(
+    return GtcUserSettings.aliasedInstances[index] ??= GtcUserSettings.getMasterManager(bus).mapTo<GtcAliasedUserSettingTypes>(
       GtcUserSettings.getAliasMap(index)
     );
   }

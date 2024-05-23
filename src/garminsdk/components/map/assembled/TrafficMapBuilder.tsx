@@ -102,7 +102,13 @@ export type TrafficMapOptions = {
   airplaneIconAnchor: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
 
   /** The flight planner containing the active flight plan. Required to display the active flight plan. */
-  flightPlanner?: FlightPlanner;
+  flightPlanner?: FlightPlanner | Subscribable<FlightPlanner>;
+
+  /** The index of the LNAV from which to source data. Defaults to `0`. */
+  lnavIndex?: number | Subscribable<number>;
+
+  /** The index of the VNAV from which to source data. Defaults to `0`. */
+  vnavIndex?: number | Subscribable<number>;
 
   /** The flight path renderer to use to render the active plan. Required to display the active flight plan. */
   flightPathRenderer?: MapFlightPathPlanRenderer;
@@ -298,7 +304,18 @@ export class TrafficMapBuilder {
       });
 
     if (options.flightPlanner !== undefined && options.flightPathRenderer !== undefined && options.configureFlightPlan !== undefined) {
-      mapBuilder.with(GarminMapBuilder.activeFlightPlan, options.flightPlanner, options.flightPathRenderer, false, options.configureFlightPlan);
+      mapBuilder.with(
+        GarminMapBuilder.activeFlightPlan,
+        options.flightPlanner,
+        options.flightPathRenderer,
+        false,
+        options.configureFlightPlan,
+        {
+          lnavIndex: options.lnavIndex,
+          vnavIndex: options.vnavIndex,
+          supportFocus: false
+        }
+      );
     }
 
     mapBuilder.with(GarminMapBuilder.trafficRange,

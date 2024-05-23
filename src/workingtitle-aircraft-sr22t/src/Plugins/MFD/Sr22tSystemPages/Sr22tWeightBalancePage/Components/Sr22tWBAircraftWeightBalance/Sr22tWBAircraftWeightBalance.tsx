@@ -1,5 +1,5 @@
 import {
-  ComponentProps, DisplayComponent, EventBus, FSComponent, MathUtils, ObjectSubject, Subject, Subscribable, Subscription, VNode
+  ComponentProps, DisplayComponent, EventBus, FSComponent, MathUtils, ObjectSubject, Subject, Subscribable, Subscription, UnitType, VNode,
 } from '@microsoft/msfs-sdk';
 
 import { ScrollableControl, UnitsUserSettings, UnitsWeightSettingMode } from '@microsoft/msfs-wtg1000';
@@ -141,7 +141,11 @@ export class Sr22tWBAircraftWeightBalance extends DisplayComponent<AircraftWeigh
             <Sr22tWBDisplayField data={this.currentWeight} isWarning={this.isCurrentWeightInvalid} />
             <Sr22tWBDisplayField
               data={this.station}
-              unitLabel={this.station.get().weightUnit.get() === UnitsWeightSettingMode.Pounds ? 'IN' : 'M'}
+              valueCallback={(value: number) => {
+                const convertedValue = this.station.get().weightUnit.get() === UnitsWeightSettingMode.Kilograms ? UnitType.METER.convertFrom(value, UnitType.INCH) : value;
+                return convertedValue.toFixed(this.station.get().weightUnit.get() === UnitsWeightSettingMode.Pounds ? 1 : 2);
+              }}
+              unitLabel={this.station.get().weightUnit.map(v => v === UnitsWeightSettingMode.Pounds ? 'IN' : 'M')}
               isWarning={this.isCgInvalid}
             />
             <Sr22tWBDisplayField
@@ -163,7 +167,7 @@ export class Sr22tWBAircraftWeightBalance extends DisplayComponent<AircraftWeigh
 
   /** @inheritdoc */
   public resume(): void {
-    this.subscriptions.forEach(sub => sub.resume());
+    this.subscriptions.forEach(sub => sub.resume(true));
   }
 
   /** @inheritdoc */

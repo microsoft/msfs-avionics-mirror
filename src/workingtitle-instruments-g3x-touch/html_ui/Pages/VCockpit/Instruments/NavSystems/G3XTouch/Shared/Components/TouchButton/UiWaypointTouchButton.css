@@ -1,0 +1,53 @@
+.gdu-460-display {
+  --ui-wpt-button-display-padding: 0px 17px 0px 8px;
+
+  --ui-wpt-button-font-size: 18px;
+
+  --ui-wpt-button-left-offset-y: 0px;
+  --ui-wpt-button-left-row-gap: -1px;
+
+  --ui-wpt-button-right-offset-y: 2px;
+  --ui-wpt-button-right-row-gap: 2px;
+}
+
+.ui-wpt-button {
+  font-size: var(--ui-wpt-button-font-size);
+
+  --ui-wpt-display-left-offset-y: var(--ui-wpt-button-left-offset-y);
+  --ui-wpt-display-left-row-gap: var(--ui-wpt-button-left-row-gap);
+  --ui-wpt-display-right-offset-y: var(--ui-wpt-button-right-offset-y);
+  --ui-wpt-display-right-row-gap: var(--ui-wpt-button-right-row-gap);
+}
+
+.ui-wpt-button.touch-button-highlight {
+  --ui-wpt-display-ident-color: var(--touch-button-highlight-text-color);
+}
+
+.ui-wpt-button .ui-wpt-display {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--ui-wpt-button-display-padding);
+}
+
+.ui-wpt-button-null-label {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  font-size: var(--ui-wpt-button-null-label-font-size, 1em);
+}
+
+.ui-wpt-button-null .ui-wpt-button-null-label {
+  display: block;
+}
+
+.ui-wpt-button-null .ui-wpt-display {
+  display: none;
+}

@@ -307,7 +307,7 @@ export class FlightPlan {
    * Gets this flight plan's legs.
    * @param reverse Whether to get the legs in reverse order. False by default.
    * @param startIndex The global leg index of the leg at which to start, inclusive. Defaults to `0` if `reverse` is
-   * `false` or `this.length` if `reverse` is `true`.
+   * `false` or `this.length - 1` if `reverse` is `true`.
    * @param endIndex The global leg index of the leg at which to end, exclusive. Defaults to `this.length` if `reverse`
    * is `false` or `-1` if `reverse` is `true`.
    * @returns A generator which yields this flight plan's legs.
@@ -622,6 +622,108 @@ export class FlightPlan {
   }
 
   /**
+   * Finds a leg in this flight plan that satisfies a given condition.
+   * @param predicate A function that evaluates whether each leg satisfies the condition to be returned by this method.
+   * The function is called once for each evaluated leg and should return `true` if the leg satisfies the condition and
+   * `false` otherwise.
+   * @param reverse Whether to evaluate the legs in reverse order. Defaults to `false`.
+   * @param startIndex The global leg index of the first leg to evaluate, inclusive. Defaults to `0` if `reverse` is
+   * `false` or `this.length - 1` if `reverse` is `true`.
+   * @param endIndex The global leg index of the last leg to evaluate, exclusive. Defaults to `this.length` if `reverse`
+   * is `false` or `-1` if `reverse` is `true`.
+   * @returns The first evaluated leg in this flight plan that satisfies the condition defined by the specified
+   * predicate function, or `null` if no leg satisfies the condition.
+   */
+  public findLeg(
+    predicate: (leg: LegDefinition, segment: FlightPlanSegment, segmentIndex: number, segmentLegIndex: number, plan: FlightPlan) => boolean,
+    reverse = false,
+    startIndex?: number,
+    endIndex?: number
+  ): LegDefinition | null {
+    return reverse
+      ? this.findLegReverse(predicate, startIndex, endIndex)
+      : this.findLegForward(predicate, startIndex, endIndex);
+  }
+
+  /**
+   * Evaluates legs in this flight plan in forward order and returns the first evaluated leg that satisfies a given
+   * condition.
+   * @param predicate A function that evaluates whether each leg satisfies the condition to be returned by this method.
+   * The function is called once for each evaluated leg and should return `true` if the leg satisfies the condition and
+   * `false` otherwise.
+   * @param startIndex The global leg index of the first leg to evaluate, inclusive. Defaults to `0`.
+   * @param endIndex The global leg index of the last leg to evaluate, exclusive. Defaults to `this.length`.
+   * @returns The first evaluated leg in this flight plan that satisfies the condition defined by the specified
+   * predicate function, or `null` if no leg satisfies the condition.
+   */
+  private findLegForward(
+    predicate: (leg: LegDefinition, segment: FlightPlanSegment, segmentIndex: number, segmentLegIndex: number, plan: FlightPlan) => boolean,
+    startIndex = 0,
+    endIndex = this.length
+  ): LegDefinition | null {
+    endIndex = Math.min(this.length, endIndex);
+
+    for (let segmentIndex = 0; segmentIndex < this.planSegments.length; segmentIndex++) {
+      const segment = this.planSegments[segmentIndex];
+
+      if (segment !== undefined && segment.legs.length > 0) {
+        const end = Math.min(segment.legs.length, endIndex - segment.offset);
+
+        if (end <= 0) {
+          return null;
+        }
+
+        for (let segmentLegIndex = Math.max(0, startIndex - segment.offset); segmentLegIndex < end; segmentLegIndex++) {
+          if (predicate(segment.legs[segmentLegIndex], segment, segment.segmentIndex, segmentLegIndex, this)) {
+            return segment.legs[segmentLegIndex];
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Evaluates legs in this flight plan in reverse order and returns the first evaluated leg that satisfies a given
+   * condition.
+   * @param predicate A function that evaluates whether each leg satisfies the condition to be returned by this method.
+   * The function is called once for each evaluated leg and should return `true` if the leg satisfies the condition and
+   * `false` otherwise.
+   * @param startIndex The global leg index of the first leg to evaluate, inclusive. Defaults to `this.length - 1`.
+   * @param endIndex The global leg index of the last leg to evaluate, exclusive. Defaults to `-1`.
+   * @returns The first evaluated leg in this flight plan that satisfies the condition defined by the specified
+   * predicate function, or `null` if no leg satisfies the condition.
+   */
+  private findLegReverse(
+    predicate: (leg: LegDefinition, segment: FlightPlanSegment, segmentIndex: number, segmentLegIndex: number, plan: FlightPlan) => boolean,
+    startIndex = this.length - 1,
+    endIndex = -1
+  ): LegDefinition | null {
+    endIndex = Math.max(-1, endIndex);
+
+    for (let segmentIndex = this.planSegments.length - 1; segmentIndex > -1; segmentIndex--) {
+      const segment = this.planSegments[segmentIndex];
+
+      if (segment !== undefined && segment.legs.length > 0) {
+        const end = Math.max(-1, endIndex - segment.offset);
+
+        if (end >= segment.legs.length) {
+          return null;
+        }
+
+        for (let segmentLegIndex = Math.min(segment.legs.length - 1, startIndex - segment.offset); segmentLegIndex > end; segmentLegIndex--) {
+          if (predicate(segment.legs[segmentLegIndex], segment, segment.segmentIndex, segmentLegIndex, this)) {
+            return segment.legs[segmentLegIndex];
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Gets user data from the flight plan.
    * @param key The key of the user data.
    * @returns The user data, if found.
@@ -851,6 +953,8 @@ export class FlightPlan {
         altitude2: 0,
         displayAltitude1AsFlightLevel: false,
         displayAltitude2AsFlightLevel: false,
+        isAltitude1TempCompensated: false,
+        isAltitude2TempCompensated: false,
         speedDesc: SpeedRestrictionType.Unused,
         speed: 0,
         speedUnit: SpeedUnit.IAS,

@@ -239,6 +239,16 @@
   transform: rotateX(0deg);
 }
 
+/* ---- Terrain annunciation ---- */
+
+.pfd-instrument-container .pfd-terrain-annunc {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) + 65px);
+  top: 58px;
+  font-size: 18px;
+  transform: rotateX(0deg);
+}
+
 /* ---- HSI GPS integrity annunciation ---- */
 
 .pfd-instrument-container .hsi-gps-annunc {

@@ -113,6 +113,14 @@ export class NearestContext {
   }
 
   /**
+   * Whether the NearestContext is initialized.
+   * @returns true if initialized.
+   */
+  public static get isInitialized(): boolean {
+    return NearestContext.instance !== undefined;
+  }
+
+  /**
    * Creates an instance of a NearestContext.
    * @param facilityLoader The facility loader to use for this instance.
    * @param bus An instance of the EventBus.
@@ -131,7 +139,7 @@ export class NearestContext {
     this.usrs = new NearestUsrSubscription(facilityLoader);
 
     if (planePos) {
-      planePos.sub(pos => this.position.set(pos));
+      planePos.sub(pos => this.position.set(pos), true);
     } else {
       this.bus.getSubscriber<GNSSEvents>().on('gps-position')
         .handle(pos => this.position.set(pos.lat, pos.long));
@@ -444,7 +452,7 @@ export class AdaptiveNearestContext {
     this.usrs = new AdaptiveNearestSubscription(new NearestUsrSubscription(facilityLoader), this._maxUsrsAbsolute);
 
     if (planePos) {
-      planePos.sub(pos => this.position.set(pos));
+      planePos.sub(pos => this.position.set(pos), true);
     } else {
       this.bus.getSubscriber<GNSSEvents>().on('gps-position')
         .handle(pos => this.position.set(pos.lat, pos.long));

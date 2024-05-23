@@ -39,6 +39,8 @@ type TerrainColors = {
 export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
   private static readonly SKY_COLOR = '#0033E6';
 
+  private readonly synVisRef = FSComponent.createRef<SynVisComponent>();
+
   private readonly rootStyle = ObjectSubject.create({
     position: 'absolute',
     display: '',
@@ -48,19 +50,19 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
     height: '100%'
   });
 
-  private readonly resolution = Vec2Subject.createFromVector(Vec2Math.create(100, 100));
+  private readonly resolution = Vec2Subject.create(Vec2Math.create(100, 100));
 
   private needUpdateVisibility = false;
   private needUpdate = false;
 
   private isEnabledSub?: Subscription;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   protected onVisibilityChanged(): void {
     this.needUpdateVisibility = true;
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAttached(): void {
     super.onAttached();
 
@@ -70,7 +72,7 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
     this.needUpdate = true;
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onProjectionChanged(projection: HorizonProjection, changeFlags: number): void {
     if (BitFlags.isAny(
       changeFlags,
@@ -80,7 +82,17 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
     }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
+  public onWake(): void {
+    this.synVisRef.instance.wake();
+  }
+
+  /** @inheritDoc */
+  public onSleep(): void {
+    this.synVisRef.instance.sleep();
+  }
+
+  /** @inheritDoc */
   public onUpdated(): void {
     const isVisible = this.isVisible();
 
@@ -115,20 +127,21 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
     this.needUpdate = false;
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onDetached(): void {
     super.onDetached();
 
     this.destroy();
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     const colorsDef = SyntheticVision.createEarthColors();
 
     return (
       <div style={this.rootStyle}>
         <SynVisComponent
+          ref={this.synVisRef}
           bingId={this.props.bingId}
           bingDelay={this.props.bingDelay}
           resolution={this.resolution}
@@ -140,11 +153,13 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
-    super.destroy();
+    this.synVisRef.getOrDefault()?.destroy();
 
     this.isEnabledSub?.destroy();
+
+    super.destroy();
   }
 
   /**

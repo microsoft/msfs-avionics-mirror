@@ -69,8 +69,10 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.rootCssClass.add('altimeter-top-visible');
-    this.rootCssClass.add('altimeter-bottom-visible');
+    this.showTopBottomDisplays.sub(show => {
+      this.rootCssClass.toggle('altimeter-top-visible', show);
+      this.rootCssClass.toggle('altimeter-bottom-visible', show);
+    }, true);
 
     this.minimumsAlertSub = this.props.minimumsAlertState.sub(state => {
       this.rootCssClass.delete('minimums-alert-within100');

@@ -1,9 +1,11 @@
 import {
-  CompiledMapSystem, EventBus, FlightPlanner, FSComponent, MapIndexedRangeModule, MapSystemBuilder, Vec2Math, Vec2Subject, VecNMath, VecNSubject, VNode
+  CompiledMapSystem, EventBus, FlightPlanner, MapIndexedRangeModule, MapSystemBuilder, Vec2Math, Vec2Subject, VecNMath,
+  VecNSubject, VNode
 } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys, TrafficMapRangeController, TrafficSystem, TrafficUserSettings, UnitsUserSettings } from '@microsoft/msfs-garminsdk';
 
+import { G3000FlightPlannerId } from '../../CommonTypes';
 import { IauUserSettingManager } from '../../Settings/IauUserSettings';
 import { MapUserSettings } from '../../Settings/MapUserSettings';
 import { ControllableDisplayPaneIndex, DisplayPaneSizeMode } from '../DisplayPanes/DisplayPaneTypes';
@@ -22,7 +24,7 @@ export interface TrafficMapPaneViewProps extends DisplayPaneViewProps {
   bus: EventBus;
 
   /** The flight planner. */
-  flightPlanner: FlightPlanner;
+  flightPlanner: FlightPlanner<G3000FlightPlannerId>;
 
   /** The traffic system used by the map. */
   trafficSystem: TrafficSystem;

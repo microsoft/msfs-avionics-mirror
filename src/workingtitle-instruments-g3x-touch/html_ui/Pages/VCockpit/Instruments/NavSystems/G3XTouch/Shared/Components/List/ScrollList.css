@@ -1,0 +1,58 @@
+.scroll-list {
+  position: relative;
+
+  /* These vars get overriden by ScrollList code. */
+  --scroll-list-length: 100px;
+  --scroll-list-item-margin: 2px;
+  --scroll-list-item-length: 134px;
+}
+
+.scroll-list-x {
+  width: var(--scroll-list-length);
+}
+
+.scroll-list-y {
+  height: var(--scroll-list-length);
+}
+
+.scroll-list .scroll-list-translatable {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.scroll-list-x .scroll-list-translatable {
+  width: auto;
+  height: 100%;
+}
+
+.scroll-list-y .scroll-list-translatable {
+  width: 100%;
+  height: auto;
+}
+
+.scroll-list .items-container {
+  position: relative;
+}
+
+.scroll-list-x .items-container {
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  width: auto;
+}
+
+.scroll-list-y .items-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+}
+
+.scroll-list-x .items-container>* {
+  margin-right: var(--scroll-list-item-margin);
+}
+
+.scroll-list-y .items-container>* {
+  margin-bottom: var(--scroll-list-item-margin);
+}

@@ -52,13 +52,13 @@ export type NextGenNearestMapOptions = {
   dataUpdateFreq: number | Subscribable<number>;
 
   /** Styling options for the waypoint highlight line. */
-  lineOptions?: WaypointHighlightLineOptions;
+  lineOptions?: Readonly<WaypointHighlightLineOptions>;
 
   /**
    * The default map range index to apply when there is no highlighted waypoint, or `null` if no range index should be
    * applied. Defaults to `null`.
    */
-  defaultNoTargetRangeIndex?: number | Subscribable<number> | null
+  defaultNoTargetRangeIndex?: number | Subscribable<number> | null;
 
   /** The image cache from which to retrieve waypoint icon images. */
   waypointIconImageCache: WaypointIconImageCache;
@@ -155,6 +155,12 @@ export type NextGenNearestMapOptions = {
 
   /** The flight planner containing the active flight plan. Required to display the active flight plan. */
   flightPlanner?: FlightPlanner;
+
+  /** The index of the LNAV from which to source data. Defaults to `0`. */
+  lnavIndex?: number | Subscribable<number>;
+
+  /** The index of the VNAV from which to source data. Defaults to `0`. */
+  vnavIndex?: number | Subscribable<number>;
 
   /** The traffic system from which to retrieve traffic intruder data. Required to display traffic. */
   trafficSystem?: TrafficSystem;
@@ -467,7 +473,11 @@ export class NextGenNearestMapBuilder {
               NextGenMapWaypointStyles.vnavLabelStyles(4, options.waypointStyleFontType, options.waypointStyleScale)
             );
         },
-        false
+        {
+          lnavIndex: options.lnavIndex,
+          vnavIndex: options.vnavIndex,
+          supportFocus: false
+        }
       );
     }
 

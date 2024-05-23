@@ -1,11 +1,12 @@
 import {
-  BitFlags, CircleVector, ConsumerSubject, EventBus, FacilityWaypoint, FacilityWaypointUtils, FlightPathLegRenderPart, FlightPathRenderStyle, FlightPathVectorStyle,
-  FlightPathWaypoint, FlightPlanDisplayBuilder, FlightPlannerEvents, ICAO, ImageCache, LegDefinitionFlags, LegType, LNavEvents, LNavTransitionMode, MapCullableLocationTextLabel,
-  MapProjection, MapSystemWaypointRoles, MapWaypointImageIcon, MapWaypointSpriteIcon, NavMath, NdbFacility, NdbType, Subject, Subscribable, UserSetting,
-  Vec2Math, VecNMath, VorFacility, VorType, Waypoint, WaypointDisplayBuilder, WaypointTypes
+  BitFlags, CircleVector, ConsumerSubject, EventBus, FacilityWaypoint, FacilityWaypointUtils, FlightPathLegRenderPart,
+  FlightPathRenderStyle, FlightPathVectorStyle, FlightPathWaypoint, FlightPlanDisplayBuilder, ICAO, ImageCache,
+  LegDefinitionFlags, LegType, LNavEvents, LNavTransitionMode, LNavUtils, MapCullableLocationTextLabel, MapProjection,
+  MapSystemWaypointRoles, MapWaypointImageIcon, MapWaypointSpriteIcon, NavMath, NdbFacility, NdbType, Subject,
+  Subscribable, UserSetting, Vec2Math, VecNMath, VorFacility, VorType, Waypoint, WaypointDisplayBuilder, WaypointTypes
 } from '@microsoft/msfs-sdk';
 
-import { AirportSize, AirportWaypoint, GarminFacilityWaypointCache } from '@microsoft/msfs-garminsdk';
+import { AirportSize, AirportWaypoint, Fms, GarminFacilityWaypointCache } from '@microsoft/msfs-garminsdk';
 
 import { GNSSettingsProvider } from '../../../Settings/GNSSettingsProvider';
 import { MapSettingsWaypointSizes } from '../../../Settings/MapSettingsProvider';
@@ -245,9 +246,15 @@ export class MapSystemConfig {
    * @param settingsProvider The GNS settings provider containing map settings.
    * @param gnsType The type of GNS unit to configure.
    * @param bus An instance of the event bus.
+   * @param fms The FMS instance.
    * @returns A function that configures the flight plan map display.
    */
-  public static configureFlightPlan(settingsProvider: GNSSettingsProvider, gnsType: GNSType, bus: EventBus): (builder: FlightPlanDisplayBuilder) => void {
+  public static configureFlightPlan(
+    settingsProvider: GNSSettingsProvider,
+    gnsType: GNSType,
+    bus: EventBus,
+    fms: Fms
+  ): (builder: FlightPlanDisplayBuilder) => void {
     return (builder): void => {
       const fplWaypointSize = MapSystemConfig.getWaypointSize(settingsProvider.map.getSetting('wpt_fpl_size'), gnsType);
 
@@ -269,9 +276,11 @@ export class MapSystemConfig {
         }
       });
 
+      const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(fms.lnavIndex);
+
       let activeFlightPlanIndex = 0;
-      const lnavTransitionType = ConsumerSubject.create(bus.getSubscriber<LNavEvents>().on('lnav_transition_mode').whenChanged(), LNavTransitionMode.None);
-      bus.getSubscriber<FlightPlannerEvents>().on('fplIndexChanged').handle(ev => activeFlightPlanIndex = ev.planIndex);
+      const lnavTransitionType = ConsumerSubject.create(bus.getSubscriber<LNavEvents>().on(`lnav_transition_mode${lnavTopicSuffix}`).whenChanged(), LNavTransitionMode.None);
+      fms.flightPlanner.onEvent('fplIndexChanged').handle(ev => activeFlightPlanIndex = ev.planIndex);
 
       builder.withLegPathStyles((plan, leg, activeLeg, legIndex, activeLegIndex): FlightPathRenderStyle | FlightPathVectorStyle => {
         const missedApproachActive = activeLeg !== undefined && BitFlags.isAny(activeLeg.flags, LegDefinitionFlags.MissedApproach);

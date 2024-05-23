@@ -1,0 +1,15 @@
+.gdu-460-display .mfd-nrst-vor-page {
+  --nearest-vor-list-item-freq-width: 160px;
+
+  --nearest-wpt-list-item-button-width: 260px;
+
+  --nearest-wpt-list-item-brg-compact-font-size: 18px;
+  --nearest-wpt-list-item-dis-compact-font-size: 22px;
+}
+
+.nearest-vor-list-item-freq {
+  width: var(--nearest-vor-list-item-freq-width);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+}

@@ -21,7 +21,9 @@ export class RadioUtils {
    * @returns True if frequency is between 108.1 and 111.95 MHz (inclusive) and the tenths place is odd.
    */
   public static isLocalizerFrequency(freq: number): boolean {
-    return freq >= 108.1 && freq <= 111.95 && (Math.trunc(freq * 10) % 2 === 1);
+    // Round the frequency to the nearest 10 khz to avoid floating point precision issues.
+    const roundedFreq = Math.round(freq * 100);
+    return roundedFreq >= 10810 && roundedFreq <= 11195 && (roundedFreq % 20 >= 10);
   }
 
   private static readonly COM_833_ENDINGS = [5, 10, 15, 30, 35, 40];

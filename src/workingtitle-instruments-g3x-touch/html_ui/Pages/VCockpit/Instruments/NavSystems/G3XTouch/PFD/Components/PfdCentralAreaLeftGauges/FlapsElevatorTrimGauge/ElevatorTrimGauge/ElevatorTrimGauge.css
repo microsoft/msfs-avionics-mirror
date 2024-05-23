@@ -1,0 +1,58 @@
+.elevator-trim-gauge-green {
+  stroke: var(--g3x-color-green);
+}
+
+.elevator-trim-gauge-white {
+  stroke: var(--g3x-color-white);
+}
+
+.elevator-trim-gauge-top-label {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 0;
+  padding-bottom: 4px;
+}
+
+.elevator-trim-gauge-bottom-label {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 0;
+  padding-top: 4px;
+}
+
+.elevator-trim-gauge {
+  width: 15px;
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+}
+
+.elevator-trim-gauge-ruler {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  flex-grow: 1;
+}
+
+.elevator-trim-gauge-ruler-frame {
+  top: 0;
+  left: 0;
+  position: absolute;
+  overflow: visible;
+  width: 100%;
+  height: 100%;
+}
+
+.elevator-trim-gauge-value-marker {
+  position: absolute;
+  width: 20px;
+  left: 2px;
+}
+
+.elevator-trim-gauge-lines-container {
+  position: absolute;
+}

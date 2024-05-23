@@ -1,0 +1,97 @@
+.gdu-460-display .common-map {
+  --common-map-minicompass-left: 2px;
+  --common-map-minicompass-top: 2px;
+  --common-map-minicompass-size: 72px;
+  --common-map-minicompass-font-size: 14px;
+  --common-map-minicompass-arrow-size: 60px;
+
+  --common-map-compass-arc-readout-width: 72px;
+  --common-map-compass-arc-readout-height: 40px;
+  --common-map-compass-arc-readout-font-size: 24px;
+
+  --common-map-range-target-control-margin: 4px 0px 0px 0px;
+
+  --common-map-scale-bar-detail-container-margin: 0px 8px 1px 0px;
+
+  --common-map-scale-bar-margin: 0px 0px 9px 0px;
+  --common-map-scale-bar-font-size: 16px;
+
+  --common-map-detail-margin: -9px 0px 0px 0px;
+  --common-map-detail-font-size: 13px;
+
+  --common-map-terrainscale-width: 69px;
+  --common-map-terrainscale-font-size: 12px;
+
+  --common-map-status-indicator-container-max-width: 60px;
+  --common-map-status-indicator-container-margin: 3px 0px 0px 0px;
+}
+
+.common-map .map-minicompass {
+  position: absolute;
+  left: var(--common-map-minicompass-left);
+  top: var(--common-map-minicompass-top);
+  width: var(--common-map-minicompass-size);
+  height: var(--common-map-minicompass-size);
+  font-size: var(--common-map-minicompass-font-size);
+}
+
+.common-map .map-minicompass-arrow {
+  width: var(--common-map-minicompass-arrow-size);
+  height: var(--common-map-minicompass-arrow-size);
+  object-fit: contain;
+}
+
+.common-map .map-compass-arc-readout {
+  width: var(--common-map-compass-arc-readout-width);
+  height: var(--common-map-compass-arc-readout-height);
+  font-size: var(--common-map-compass-arc-readout-font-size);
+}
+
+.common-map .map-indicator-group-top-right {
+  position: absolute;
+  right: 0px;
+  top: 0px;
+}
+
+.common-map .map-indicator-group-bottom-left {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+}
+
+.common-map .map-indicator-group-bottom-right {
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+}
+
+.common-map .map-range-target-control {
+  margin: var(--common-map-range-target-control-margin);
+}
+
+.common-map .map-scale-bar-detail-container {
+  margin: var(--common-map-scale-bar-detail-container-margin);
+}
+
+.common-map .map-scale-bar {
+  margin: var(--common-map-scale-bar-margin);
+  font-size: var(--common-map-scale-bar-font-size);
+}
+
+.common-map .map-detail {
+  margin: var(--common-map-detail-margin);
+  font-size: var(--common-map-detail-font-size);
+}
+
+.common-map .map-terrainscale {
+  width: var(--common-map-terrainscale-width);
+  font-size: var(--common-map-terrainscale-font-size);
+}
+
+.common-map .map-status-indicator-container {
+  max-width: var(--common-map-status-indicator-container-max-width);
+  margin: var(--common-map-status-indicator-container-margin);
+  flex-flow: row wrap;
+  justify-content: flex-end;
+  align-content: flex-start;
+}

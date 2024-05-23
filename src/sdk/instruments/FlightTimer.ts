@@ -1,6 +1,8 @@
+import { Consumer } from '../data/Consumer';
 import { ConsumerSubject } from '../data/ConsumerSubject';
-import { EventBus, IndexedEventType } from '../data/EventBus';
+import { EventBus } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
+import { EventSubscriber } from '../data/EventSubscriber';
 import { SimVarValueType } from '../data/SimVars';
 import { Instrument } from './Backplane';
 import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
@@ -15,81 +17,275 @@ export enum FlightTimerMode {
 }
 
 /**
+ * The event topic suffix for a flight timer with a specific ID.
+ */
+export type FlightTimerEventSuffix<ID extends string> = ID extends '' ? '' : `_${ID}`;
+
+/**
  * Events related to flight timers.
  */
-export type FlightTimerEvents = {
+export type BaseFlightTimerEvents = {
   /** Active timer mode. */
-  [timer_mode: IndexedEventType<'timer_mode'>]: FlightTimerMode;
+  timer_mode: FlightTimerMode;
 
   /** Whether a timer is running. */
-  [timer_is_running: IndexedEventType<'timer_is_running'>]: boolean;
+  timer_is_running: boolean;
 
   /** Initial timer value, in milliseconds. */
-  [timer_initial_value_ms: IndexedEventType<'timer_initial_value_ms'>]: number;
+  timer_initial_value_ms: number;
 
   /** Current timer value, in milliseconds. */
-  [timer_value_ms: IndexedEventType<'timer_value_ms'>]: number;
+  timer_value_ms: number;
 };
+
+/**
+ * Events related to flight timers with a specific ID, keyed by base topic names.
+ */
+export type BaseFlightTimerEventsForId<ID extends string> = {
+  [P in keyof BaseFlightTimerEvents as `${P}${FlightTimerEventSuffix<ID>}`]: BaseFlightTimerEvents[P];
+};
+
+/**
+ * Events related to flight timers with a specific ID, keyed by indexed topic names.
+ */
+export type FlightTimerEventsForId<ID extends string> = {
+  [P in keyof BaseFlightTimerEvents as `${P}${FlightTimerEventSuffix<ID>}_${number}`]: BaseFlightTimerEvents[P];
+};
+
+/**
+ * All possible events related to flight timers.
+ */
+export type FlightTimerEvents = FlightTimerEventsForId<''> & FlightTimerEventsForId<string>;
 
 /**
  * Events used to control flight timers.
  */
-export type FlightTimerControlEvents = {
+export type BaseFlightTimerControlEvents = {
   /** Sets the active timer mode. */
-  [timer_set_mode: IndexedEventType<'timer_set_mode'>]: FlightTimerMode;
+  timer_set_mode: FlightTimerMode;
 
   /** Sets the initial timer value, in milliseconds. */
-  [timer_set_initial_value: IndexedEventType<'timer_set_initial_value'>]: number;
+  timer_set_initial_value: number;
 
   /** Sets the current timer value, in milliseconds. */
-  [timer_set_value: IndexedEventType<'timer_set_value'>]: number;
+  timer_set_value: number;
 
   /** Starts the timer. */
-  [timer_start: IndexedEventType<'timer_start'>]: void;
+  timer_start: void;
 
   /** Stops the timer. */
-  [timer_stop: IndexedEventType<'timer_stop'>]: void;
+  timer_stop: void;
 
   /** Resets the current timer value to the initial value. */
-  [timer_reset: IndexedEventType<'timer_reset'>]: void;
+  timer_reset: void;
+};
+
+/**
+ * Events used to control flight timers with a specific ID, keyed by base topic names.
+ */
+export type BaseFlightTimerControlEventsForId<ID extends string> = {
+  [P in keyof BaseFlightTimerControlEvents as `${P}${FlightTimerEventSuffix<ID>}`]: BaseFlightTimerControlEvents[P];
+};
+
+/**
+ * Events used to control flight timers with a specific ID, keyed by indexed topic names.
+ */
+export type FlightTimerControlEventsForId<ID extends string> = {
+  [P in keyof BaseFlightTimerControlEvents as `${P}${FlightTimerEventSuffix<ID>}_${number}`]: BaseFlightTimerControlEvents[P];
+};
+
+/**
+ * All possible events used to control flight timers.
+ */
+export type FlightTimerControlEvents = FlightTimerControlEventsForId<''> & FlightTimerControlEventsForId<string>;
+
+/**
+ * A utility class for working with flight timers.
+ */
+export class FlightTimerUtils {
+  /**
+   * Gets the event bus topic suffix for a flight timer ID.
+   * @param id The ID for which to get the suffix.
+   * @returns The event bus topic suffix for the specified flight timer ID.
+   */
+  public static getIdSuffix<ID extends string>(id: ID): FlightTimerEventSuffix<ID> {
+    return (id === '' ? '' : `_${id}`) as FlightTimerEventSuffix<ID>;
+  }
+
+  /**
+   * Subscribes to one of the event bus topics related to a flight timer with a given ID.
+   * @param id The ID of the timer.
+   * @param index The index of the timer.
+   * @param bus The event bus to which to subscribe.
+   * @param baseTopic The base name of the topic to which to subscribe.
+   * @returns A consumer for the specified event bus topic.
+   */
+  public static onEvent<ID extends string, K extends keyof BaseFlightTimerEvents>(
+    id: ID,
+    index: number,
+    bus: EventBus,
+    baseTopic: K
+  ): Consumer<BaseFlightTimerEvents[K]>;
+  /**
+   * Subscribes to one of the event bus topics related to a flight timer with a given ID.
+   * @param id The ID of the timer.
+   * @param index The index of the timer.
+   * @param subscriber The event subscriber to use to subscribe.
+   * @param baseTopic The base name of the topic to which to subscribe.
+   * @returns A consumer for the specified event bus topic.
+   */
+  public static onEvent<ID extends string, K extends keyof BaseFlightTimerEvents>(
+    id: ID,
+    index: number,
+    subscriber: EventSubscriber<FlightTimerEventsForId<ID>>,
+    baseTopic: K
+  ): Consumer<BaseFlightTimerEvents[K]>;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static onEvent<ID extends string, K extends keyof BaseFlightTimerEvents>(
+    id: ID,
+    index: number,
+    arg2: EventBus | EventSubscriber<FlightTimerEventsForId<ID>>,
+    baseTopic: K
+  ): Consumer<BaseFlightTimerEvents[K]> {
+    return (arg2 instanceof EventBus ? arg2.getSubscriber<FlightTimerEventsForId<ID>>() : arg2).on(
+      `${baseTopic}${FlightTimerUtils.getIdSuffix(id)}_${index}` as keyof FlightTimerEventsForId<ID> & string
+    ) as unknown as Consumer<BaseFlightTimerEvents[K]>;
+  }
+}
+
+/**
+ * A controller for a set of flight timers.
+ */
+export class FlightTimerController<ID extends string> {
+  private readonly publisher = this.bus.getPublisher<FlightTimerControlEvents>();
+
+  private readonly topicMap: {
+    [P in keyof BaseFlightTimerControlEvents]: `${P}${FlightTimerEventSuffix<ID>}`;
+  };
+
+  /**
+   * Creates a new instance of FlightTimerController.
+   * @param bus The event bus.
+   * @param id The ID of the timers controlled by this controller.
+   */
+  public constructor(private readonly bus: EventBus, public readonly id: ID) {
+    const suffix = FlightTimerUtils.getIdSuffix(id);
+    this.topicMap = {
+      'timer_set_mode': `timer_set_mode${suffix}`,
+      'timer_set_initial_value': `timer_set_initial_value${suffix}`,
+      'timer_set_value': `timer_set_value${suffix}`,
+      'timer_start': `timer_start${suffix}`,
+      'timer_stop': `timer_stop${suffix}`,
+      'timer_reset': `timer_reset${suffix}`
+    };
+  }
+
+  /**
+   * Sets the active counting mode for a timer.
+   * @param index The index of the timer.
+   * @param mode The mode to set.
+   */
+  public setMode(index: number, mode: FlightTimerMode): void {
+    this.publisher.pub(`${this.topicMap['timer_set_mode']}_${index}`, mode, true, false);
+  }
+
+  /**
+   * Sets the initial value for a timer.
+   * @param index The index of the timer.
+   * @param initialValue The initial value to set, in milliseconds.
+   */
+  public setInitialValue(index: number, initialValue: number): void {
+    this.publisher.pub(`${this.topicMap['timer_set_initial_value']}_${index}`, initialValue, true, false);
+  }
+
+  /**
+   * Sets the current value for a timer.
+   * @param index The index of the timer.
+   * @param value The value to set, in milliseconds.
+   */
+  public setValue(index: number, value: number): void {
+    this.publisher.pub(`${this.topicMap['timer_set_value']}_${index}`, value, true, false);
+  }
+
+  /**
+   * Starts a timer.
+   * @param index The index of the timer.
+   */
+  public start(index: number): void {
+    this.publisher.pub(`${this.topicMap['timer_start']}_${index}`, undefined, true, false);
+  }
+
+  /**
+   * Stops a timer.
+   * @param index The index of the timer.
+   */
+  public stop(index: number): void {
+    this.publisher.pub(`${this.topicMap['timer_stop']}_${index}`, undefined, true, false);
+  }
+
+  /**
+   * Resets a timer to its initial value.
+   * @param index The index of the timer.
+   */
+  public reset(index: number): void {
+    this.publisher.pub(`${this.topicMap['timer_reset']}_${index}`, undefined, true, false);
+  }
+}
+
+/**
+ * Configuration options for {@link FlightTimerPublisher}.
+ */
+export type FlightTimerPublisherOptions = {
+  /** The ID of the timers for which to publish data. Defaults to the empty ID (`''`). */
+  id?: string;
 };
 
 /**
  * A publisher for flight timer information.
  */
-export class FlightTimerPublisher extends SimVarPublisher<FlightTimerEvents> {
+export class FlightTimerPublisher<ID extends string = any> extends SimVarPublisher<FlightTimerEventsForId<ID>, BaseFlightTimerEventsForId<ID>> {
   /**
-   * Constructor.
+   * Creates a new instance of FlightTimerPublisher.
    * @param bus The event bus.
-   * @param timerCount The number of supported timers.
+   * @param options Options with which to configure the publisher.
    * @param pacer An optional pacer to use to control the rate of publishing.
    */
-  public constructor(bus: EventBus, timerCount: number, pacer?: PublishPacer<FlightTimerEvents>) {
-    const simVars = new Map<keyof FlightTimerEvents, SimVarPublisherEntry<any>>();
+  public constructor(bus: EventBus, options?: Readonly<FlightTimerPublisherOptions>, pacer?: PublishPacer<FlightTimerEventsForId<ID>>);
+  /**
+   * Creates a new instance of FlightTimerPublisher that publishes data for timers with the empty ID (`''`).
+   * @param bus The event bus.
+   * @param timerCount This argument is ignored.
+   * @param pacer An optional pacer to use to control the rate of publishing.
+   * @deprecated Please use the overload of the constructor that accepts an options object.
+   */
+  public constructor(bus: EventBus, timerCount: number, pacer?: PublishPacer<FlightTimerEventsForId<ID>>);
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public constructor(bus: EventBus, arg2?: Readonly<FlightTimerPublisherOptions> | number, pacer?: PublishPacer<FlightTimerEventsForId<ID>>) {
+    const id = (typeof arg2 === 'number' ? '' : (arg2?.id ?? '')) as ID;
 
-    const baseSimVars = [
-      ['timer_mode', { name: 'L:WTFltTimer_Mode', type: SimVarValueType.Number }],
-      ['timer_is_running', { name: 'L:WTFltTimer_Running', type: SimVarValueType.Bool }],
-      ['timer_initial_value_ms', { name: 'L:WTFltTimer_Initial_Value', type: SimVarValueType.Number }],
-      ['timer_value_ms', { name: 'L:WTFltTimer_Value', type: SimVarValueType.Number }]
-    ] as const;
+    const suffix = FlightTimerUtils.getIdSuffix(id);
 
-    timerCount = Math.max(timerCount, 0);
-    for (let i = 1; i <= timerCount; i++) {
-      for (const [topic, simvar] of baseSimVars) {
-        simVars.set(
-          `${topic}_${i}`,
-          {
-            name: `${simvar.name}:${i}`,
-            type: simvar.type
-          }
-        );
-      }
-    }
+    const entries: [keyof BaseFlightTimerEventsForId<ID>, SimVarPublisherEntry<any>][] = [
+      [`timer_mode${suffix}`, { name: `L:WTFltTimer_Mode${suffix}:#index#`, type: SimVarValueType.Number, indexed: true, defaultIndex: null }],
+      [`timer_is_running${suffix}`, { name: `L:WTFltTimer_Running${suffix}:#index#`, type: SimVarValueType.Bool, indexed: true, defaultIndex: null }],
+      [`timer_initial_value_ms${suffix}`, { name: `L:WTFltTimer_Initial_Value${suffix}:#index#`, type: SimVarValueType.Number, indexed: true, defaultIndex: null }],
+      [`timer_value_ms${suffix}`, { name: `L:WTFltTimer_Value${suffix}:#index#`, type: SimVarValueType.Number, indexed: true, defaultIndex: null }]
+    ];
 
-    super(simVars, bus, pacer);
+    super(entries, bus, pacer);
   }
 }
+
+/**
+ * Configuration options for {@link FlightTimerInstrument}.
+ */
+export type FlightTimerInstrumentOptions = {
+  /** The ID to assign to the timers. Defaults to the empty ID (`''`). */
+  id?: string;
+
+  /** The number of supported timers. */
+  count: number;
+};
 
 /**
  * An instrument which manages zero or more flight timers. Requires the topics defined in {@link ClockEvents} to be
@@ -97,26 +293,42 @@ export class FlightTimerPublisher extends SimVarPublisher<FlightTimerEvents> {
  * updated every instrument update cycle with up to millisecond precision.
  */
 export class FlightTimerInstrument implements Instrument {
+  private readonly id: string;
+
   private readonly timerCount: number;
-  private readonly timers: Record<number, FlightTimer> = {};
+  private readonly timers: Record<number, FlightTimer<string>> = {};
 
   private readonly simTime = ConsumerSubject.create(this.bus.getSubscriber<ClockEvents>().on('simTime'), 0).pause();
   private lastUpdateSimTime = this.simTime.get();
 
   /**
-   * Constructor.
+   * Creates a new instance of FlightTimerInstrument.
+   * @param bus The event bus.
+   * @param options Options with which to configure the instrument.
+   */
+  public constructor(bus: EventBus, options: Readonly<FlightTimerInstrumentOptions>);
+  /**
+   * Creates a new instance of FlightTimerInstrument that manages timers with the empty ID (`''`).
    * @param bus The event bus.
    * @param timerCount The number of supported timers.
    */
-  public constructor(private readonly bus: EventBus, timerCount: number) {
-    this.timerCount = Math.max(timerCount, 0);
+  public constructor(bus: EventBus, timerCount: number);
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public constructor(private readonly bus: EventBus, arg2: Readonly<FlightTimerInstrumentOptions> | number) {
+    if (typeof arg2 === 'number') {
+      this.id = '';
+      this.timerCount = Math.max(arg2, 0);
+    } else {
+      this.id = arg2.id ?? '';
+      this.timerCount = Math.max(arg2.count, 0);
+    }
 
     for (let i = 1; i <= this.timerCount; i++) {
-      this.timers[i] = new FlightTimer(bus, i);
+      this.timers[i] = new FlightTimer(bus, this.id, i);
     }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public init(): void {
     this.simTime.resume();
     this.lastUpdateSimTime = this.simTime.get();
@@ -126,7 +338,7 @@ export class FlightTimerInstrument implements Instrument {
     }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onUpdate(): void {
     const currentSimTime = this.simTime.get();
 
@@ -141,14 +353,16 @@ export class FlightTimerInstrument implements Instrument {
 /**
  * A flight timer.
  */
-class FlightTimer {
+class FlightTimer<ID extends string> {
+  private readonly idSuffix = FlightTimerUtils.getIdSuffix(this.id);
+
   private readonly simVars = {
-    mode: `L:WTFltTimer_Mode:${this.index}`,
-    isRunning: `L:WTFltTimer_Running:${this.index}`,
-    referenceTime: `L:WTFltTimer_Reference_Time:${this.index}`,
-    referenceValue: `L:WTFltTimer_Reference_Value:${this.index}`,
-    initialValue: `L:WTFltTimer_Initial_Value:${this.index}`,
-    currentValue: `L:WTFltTimer_Value:${this.index}`
+    mode: `L:WTFltTimer_Mode${this.idSuffix}:${this.index}`,
+    isRunning: `L:WTFltTimer_Running${this.idSuffix}:${this.index}`,
+    referenceTime: `L:WTFltTimer_Reference_Time${this.idSuffix}:${this.index}`,
+    referenceValue: `L:WTFltTimer_Reference_Value${this.idSuffix}:${this.index}`,
+    initialValue: `L:WTFltTimer_Initial_Value${this.idSuffix}:${this.index}`,
+    currentValue: `L:WTFltTimer_Value${this.idSuffix}:${this.index}`
   } as const;
 
   private simTime = 0;
@@ -161,11 +375,16 @@ class FlightTimer {
   private currentValue = 0;
 
   /**
-   * Constructor.
+   * Creates a new instance of FlightTimer.
    * @param bus The event bus.
+   * @param id The ID of this timer.
    * @param index The index of this timer.
    */
-  public constructor(private readonly bus: EventBus, private readonly index: number) {
+  public constructor(
+    private readonly bus: EventBus,
+    private readonly id: ID,
+    private readonly index: number
+  ) {
   }
 
   /**
@@ -175,7 +394,7 @@ class FlightTimer {
   public init(time: number): void {
     this.simTime = time;
 
-    // Initialize state from simvars
+    // Initialize state from SimVars
     this.mode = SimVar.GetSimVarValue(this.simVars.mode, SimVarValueType.Number);
     this.isRunning = !!SimVar.GetSimVarValue(this.simVars.isRunning, SimVarValueType.Bool);
     this.referenceTime = SimVar.GetSimVarValue(this.simVars.referenceTime, SimVarValueType.Number);
@@ -187,7 +406,7 @@ class FlightTimer {
 
     const sub = this.bus.getSubscriber<FlightTimerControlEvents>();
 
-    sub.on(`timer_set_mode_${this.index}`).handle(mode => {
+    sub.on(`timer_set_mode${this.idSuffix}_${this.index}`).handle(mode => {
       this.mode = mode;
       this.referenceTime = this.simTime;
       this.referenceValue = this.currentValue;
@@ -197,13 +416,13 @@ class FlightTimer {
       SimVar.SetSimVarValue(this.simVars.referenceValue, SimVarValueType.Number, this.referenceValue);
     });
 
-    sub.on(`timer_set_initial_value_${this.index}`).handle(value => {
+    sub.on(`timer_set_initial_value${this.idSuffix}_${this.index}`).handle(value => {
       this.initialValue = value;
 
       SimVar.SetSimVarValue(this.simVars.initialValue, SimVarValueType.Number, this.initialValue);
     });
 
-    sub.on(`timer_set_value_${this.index}`).handle(value => {
+    sub.on(`timer_set_value${this.idSuffix}_${this.index}`).handle(value => {
       this.referenceTime = this.simTime;
       this.referenceValue = value;
       this.currentValue = value;
@@ -212,7 +431,7 @@ class FlightTimer {
       SimVar.SetSimVarValue(this.simVars.referenceValue, SimVarValueType.Number, this.referenceValue);
     });
 
-    sub.on(`timer_start_${this.index}`).handle(() => {
+    sub.on(`timer_start${this.idSuffix}_${this.index}`).handle(() => {
       if (this.isRunning) {
         return;
       }
@@ -226,7 +445,7 @@ class FlightTimer {
       SimVar.SetSimVarValue(this.simVars.isRunning, SimVarValueType.Bool, 1);
     });
 
-    sub.on(`timer_stop_${this.index}`).handle(() => {
+    sub.on(`timer_stop${this.idSuffix}_${this.index}`).handle(() => {
       if (!this.isRunning) {
         return;
       }
@@ -236,7 +455,7 @@ class FlightTimer {
       SimVar.SetSimVarValue(this.simVars.isRunning, SimVarValueType.Bool, 0);
     });
 
-    sub.on(`timer_reset_${this.index}`).handle(() => {
+    sub.on(`timer_reset${this.idSuffix}_${this.index}`).handle(() => {
       this.referenceTime = this.simTime;
       this.referenceValue = this.initialValue;
       this.currentValue = this.initialValue;

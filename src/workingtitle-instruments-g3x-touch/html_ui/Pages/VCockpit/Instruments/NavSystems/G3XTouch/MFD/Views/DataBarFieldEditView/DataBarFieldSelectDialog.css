@@ -1,0 +1,70 @@
+.data-bar-field-select-dialog {
+  flex-grow: 1;
+  align-self: flex-start;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .data-bar-field-select-dialog {
+  max-width: 638px;
+  margin-top: 5px;
+
+  --data-bar-field-select-dialog-title-font-size: 21px;
+  --data-bar-field-select-dialog-title-margin: 3px 0px;
+
+  --data-bar-field-select-dialog-button-width: 150px;
+  --data-bar-field-select-dialog-button-height: 124px;
+
+  --data-bar-field-select-dialog-button-title-font-size: 17px;
+  --data-bar-field-select-dialog-button-title-margin-top: 5px;
+
+  --data-bar-field-select-dialog-button-field-margin-bottom: 10px;
+  --data-bar-field-select-dialog-button-field-font-size: 30px;
+}
+
+.data-bar-field-select-dialog-title {
+  margin: var(--data-bar-field-select-dialog-title-margin);
+  text-align: center;
+  font-size: var(--data-bar-field-select-dialog-title-font-size);
+}
+
+.data-bar-field-select-dialog-row {
+  height: var(--scroll-list-item-length);
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr 1fr;
+  justify-items: center;
+  align-items: center;
+}
+
+.data-bar-field-select-dialog-button {
+  width: var(--data-bar-field-select-dialog-button-width);
+  height: var(--data-bar-field-select-dialog-button-height);
+}
+
+.data-bar-field-select-dialog-button-title {
+  position: absolute;
+  left: 0px;
+  top: var(--data-bar-field-select-dialog-button-title-margin-top);
+  width: 100%;
+  text-align: center;
+  font-size: var(--data-bar-field-select-dialog-button-title-font-size);
+  white-space: pre;
+}
+
+.data-bar-field-select-dialog-button .nav-data-field {
+  position: absolute;
+  left: 0px;
+  bottom: var(--data-bar-field-select-dialog-button-field-margin-bottom);
+  width: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  font-size: var(--data-bar-field-select-dialog-button-field-font-size);
+}
+
+.data-bar-field-select-dialog-button .nav-data-field-title {
+  display: none;
+}

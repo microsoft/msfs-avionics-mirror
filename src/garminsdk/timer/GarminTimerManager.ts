@@ -1,26 +1,19 @@
-import { CombinedSubject, ConsumerSubject, EventBus, FlightTimerControlEvents, FlightTimerEvents, FlightTimerMode, MathUtils, Subscription, UnitType } from '@microsoft/msfs-sdk';
+import {
+  ConsumerSubject, EventBus, FlightTimerControlEvents, FlightTimerEventsForId, FlightTimerMode, FlightTimerUtils,
+  MappedSubject, MathUtils, Subscription, UnitType
+} from '@microsoft/msfs-sdk';
+
+import { GarminTimerControlEvents } from './GarminTimerControlEvents';
 
 /**
- * Events used to control Garmin timers.
+ * Configuration options for {@link GarminTimerManager}.
  */
-export type GarminTimerControlEvents = {
-  /** Resets the flight timer. */
-  garmin_flt_timer_reset: void;
+export type GarminTimerManagerOptions = {
+  /** The ID of the managed timers. Defaults to the empty ID (`''`). */
+  id?: string;
 
-  /** Sets the active mode for a generic timer. */
-  [garmin_gen_timer_set_mode: `garmin_gen_timer_set_mode_${number}`]: FlightTimerMode;
-
-  /** Sets the initial and current values, in milliseconds, for a generic timer. Stops the timer if it is running. */
-  [garmin_gen_timer_set_value: `garmin_gen_timer_set_value_${number}`]: number;
-
-  /** Starts a generic timer. */
-  [garmin_gen_timer_start: `garmin_gen_timer_start_${number}`]: void;
-
-  /** Stops a generic timer. */
-  [garmin_gen_timer_stop: `garmin_gen_timer_stop_${number}`]: void;
-
-  /** Resets a generic timer value to its initial value. Stops the timer if it is running. */
-  [garmin_gen_timer_reset: `garmin_gen_timer_reset_${number}`]: void;
+  /** The number of supported generic timers. */
+  genericTimerCount: number;
 };
 
 /**
@@ -35,8 +28,10 @@ export class GarminTimerManager {
   /** The maximum value of a generic timer, in milliseconds, exclusive. */
   public static readonly MAX_GENERIC_TIMER_VALUE = UnitType.HOUR.convertTo(24, UnitType.MILLISECOND);
 
+  private readonly id: string;
+
   private readonly genericTimerCount: number;
-  private readonly genericTimers: Record<number, GenericTimer> = {};
+  private readonly genericTimers: Record<number, GenericTimer<string>> = {};
 
   private isAlive = true;
   private isInit = false;
@@ -44,15 +39,29 @@ export class GarminTimerManager {
   private readonly controlSubs: Subscription[] = [];
 
   /**
-   * Constructor.
+   * Creates a new instance of GarminTimerManager.
    * @param bus The event bus.
-   * @param genericTimerCount The number of generic timers supported.
+   * @param options The number of supported generic timers.
    */
-  public constructor(private readonly bus: EventBus, genericTimerCount: number) {
-    this.genericTimerCount = Math.max(genericTimerCount, 0);
+  public constructor(bus: EventBus, options: Readonly<GarminTimerManagerOptions>);
+  /**
+   * Creates a new instance of GarminTimerManager.
+   * @param bus The event bus.
+   * @param genericTimerCount The number of supported generic timers.
+   */
+  public constructor(bus: EventBus, genericTimerCount: number);
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public constructor(private readonly bus: EventBus, arg2: Readonly<GarminTimerManagerOptions> | number) {
+    if (typeof arg2 === 'number') {
+      this.id = '';
+      this.genericTimerCount = Math.max(arg2, 0);
+    } else {
+      this.id = arg2.id ?? '';
+      this.genericTimerCount = Math.max(arg2.genericTimerCount, 0);
+    }
 
     for (let i = 1; i <= this.genericTimerCount; i++) {
-      this.genericTimers[i] = new GenericTimer(bus, i);
+      this.genericTimers[i] = new GenericTimer(bus, this.id, i);
     }
   }
 
@@ -98,35 +107,41 @@ export class GarminTimerManager {
  * that value. If a timer reaches 23:59:59 when counting up, its initial value is set to 00:00:00 and
  * it will begin counting up from that value.
  */
-class GenericTimer {
+class GenericTimer<ID extends string> {
   private static readonly MAX_VALUE = UnitType.HOUR.convertTo(24, UnitType.MILLISECOND);
 
+  private readonly idSuffix = FlightTimerUtils.getIdSuffix(this.id);
   private readonly timerIndex = this.index + GarminTimerManager.GENERIC_TIMER_INDEX - 1;
 
   private readonly publisher = this.bus.getPublisher<FlightTimerControlEvents>();
 
   private readonly controlEventTopics = {
-    setMode: `timer_set_mode_${this.timerIndex}`,
-    setInitialValue: `timer_set_initial_value_${this.timerIndex}`,
-    setValue: `timer_set_value_${this.timerIndex}`,
-    start: `timer_start_${this.timerIndex}`,
-    stop: `timer_stop_${this.timerIndex}`,
-    reset: `timer_reset_${this.timerIndex}`
+    setMode: `timer_set_mode${this.idSuffix}_${this.timerIndex}`,
+    setInitialValue: `timer_set_initial_value${this.idSuffix}_${this.timerIndex}`,
+    setValue: `timer_set_value${this.idSuffix}_${this.timerIndex}`,
+    start: `timer_start${this.idSuffix}_${this.timerIndex}`,
+    stop: `timer_stop${this.idSuffix}_${this.timerIndex}`,
+    reset: `timer_reset${this.idSuffix}_${this.timerIndex}`
   } as const;
 
   private readonly isRunning = ConsumerSubject.create(null, false);
   private readonly mode = ConsumerSubject.create(null, FlightTimerMode.CountingDown);
   private readonly value = ConsumerSubject.create(null, 0);
-  private readonly modeValueState = CombinedSubject.create(this.mode, this.value);
+  private readonly modeValueState = MappedSubject.create(this.mode, this.value);
 
   private readonly controlSubs: Subscription[] = [];
 
   /**
-   * Constructor.
+   * Creates a new instance of GenericTimer.
    * @param bus The event bus.
+   * @param id The ID of this timer.
    * @param index The index of this timer.
    */
-  public constructor(private readonly bus: EventBus, public readonly index: number) {
+  public constructor(
+    private readonly bus: EventBus,
+    public readonly id: ID,
+    public readonly index: number
+  ) {
   }
 
   /**
@@ -134,11 +149,11 @@ class GenericTimer {
    * automatically handle when its current value counts down to below zero or counts up to above the maximum value.
    */
   public init(): void {
-    const sub = this.bus.getSubscriber<FlightTimerEvents & GarminTimerControlEvents>();
+    const sub = this.bus.getSubscriber<FlightTimerEventsForId<ID>>();
 
-    this.isRunning.setConsumer(sub.on(`timer_is_running_${this.timerIndex}`));
-    this.mode.setConsumer(sub.on(`timer_mode_${this.timerIndex}`));
-    this.value.setConsumer(sub.on(`timer_value_ms_${this.timerIndex}`));
+    this.isRunning.setConsumer(FlightTimerUtils.onEvent(this.id, this.timerIndex, sub, 'timer_is_running'));
+    this.mode.setConsumer(FlightTimerUtils.onEvent(this.id, this.timerIndex, sub, 'timer_mode'));
+    this.value.setConsumer(FlightTimerUtils.onEvent(this.id, this.timerIndex, sub, 'timer_value_ms'));
 
     const modeValueStateSub = this.modeValueState.sub(([mode, value]) => {
 
@@ -174,11 +189,13 @@ class GenericTimer {
       }
     }, true);
 
-    this.controlSubs.push(sub.on(`garmin_gen_timer_set_mode_${this.index}`).handle(mode => {
+    const controlSub = this.bus.getSubscriber<GarminTimerControlEvents>();
+
+    this.controlSubs.push(controlSub.on(`garmin_gen_timer_set_mode${this.idSuffix}_${this.index}`).handle(mode => {
       this.publisher.pub(this.controlEventTopics.setMode, mode, true, false);
     }));
 
-    this.controlSubs.push(sub.on(`garmin_gen_timer_set_value_${this.index}`).handle(value => {
+    this.controlSubs.push(controlSub.on(`garmin_gen_timer_set_value${this.idSuffix}_${this.index}`).handle(value => {
       value = MathUtils.clamp(value, 0, GenericTimer.MAX_VALUE - 1000);
 
       this.publisher.pub(this.controlEventTopics.stop, undefined, true, false);
@@ -186,15 +203,15 @@ class GenericTimer {
       this.publisher.pub(this.controlEventTopics.reset, undefined, true, false);
     }));
 
-    this.controlSubs.push(sub.on(`garmin_gen_timer_start_${this.index}`).handle(() => {
+    this.controlSubs.push(controlSub.on(`garmin_gen_timer_start${this.idSuffix}_${this.index}`).handle(() => {
       this.publisher.pub(this.controlEventTopics.start, undefined, true, false);
     }));
 
-    this.controlSubs.push(sub.on(`garmin_gen_timer_stop_${this.index}`).handle(() => {
+    this.controlSubs.push(controlSub.on(`garmin_gen_timer_stop${this.idSuffix}_${this.index}`).handle(() => {
       this.publisher.pub(this.controlEventTopics.stop, undefined, true, false);
     }));
 
-    this.controlSubs.push(sub.on(`garmin_gen_timer_reset_${this.index}`).handle(() => {
+    this.controlSubs.push(controlSub.on(`garmin_gen_timer_reset${this.idSuffix}_${this.index}`).handle(() => {
       this.publisher.pub(this.controlEventTopics.stop, undefined, true, false);
       this.publisher.pub(this.controlEventTopics.reset, undefined, true, false);
     }));

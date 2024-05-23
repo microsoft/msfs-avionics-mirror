@@ -1,5 +1,5 @@
 import {
-  ActiveLegType, ClockEvents, FlightPlanActiveLegEvent, FlightPlannerEvents, FocusPosition, FSComponent, GPSSatComputerEvents, GPSSystemState, LegType, Subject,
+  ActiveLegType, ClockEvents, FlightPlanActiveLegEvent, FocusPosition, FSComponent, GPSSatComputerEvents, GPSSystemState, LegType, Subject,
   UserSetting, VNode
 } from '@microsoft/msfs-sdk';
 
@@ -42,7 +42,10 @@ export class NavInfo extends Page<NavInfoProps> {
   private readonly settingsProvider = new GNSSettingsProvider(this.props.bus);
 
   private readonly fieldContext: DataFieldContext = {
-    modelFactory: new DefaultNavDataBarFieldModelFactory(this.props.bus, this.props.fms, this.gpsValidity),
+    modelFactory: new DefaultNavDataBarFieldModelFactory(this.props.bus, this.gpsValidity, {
+      lnavIndex: this.props.fms.lnavIndex,
+      vnavIndex: this.props.fms.vnavIndex
+    }),
     renderer: new GNSDataFieldRenderer(this.settingsProvider.units, this.settingsProvider.time),
     fieldTypeMenuEntries: [
       { label: 'BRG - Bearing', disabled: false, type: NavDataFieldType.BearingToWaypoint },
@@ -119,7 +122,7 @@ export class NavInfo extends Page<NavInfoProps> {
   onAfterRender(node: VNode): void {
     super.onAfterRender(node);
 
-    this.props.bus.getSubscriber<FlightPlannerEvents>().on('fplActiveLegChange').handle(this.onActiveLegChanged.bind(this));
+    this.props.fms.flightPlanner.onEvent('fplActiveLegChange').handle(this.onActiveLegChanged.bind(this));
     this.legIcon.instance.updateLegIcon(true, false, LegType.TF);
 
     this.toWaypoint.instance.setDisabled(true);

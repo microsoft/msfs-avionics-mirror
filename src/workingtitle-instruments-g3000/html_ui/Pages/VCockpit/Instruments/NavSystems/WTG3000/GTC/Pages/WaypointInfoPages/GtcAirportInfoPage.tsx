@@ -1,15 +1,16 @@
 import {
-  AirportFacility, AirportPrivateType, AirportRunway, AirportUtils, ApproachUtils, ArraySubject, ArrivalProcedure, BasicNavAngleSubject, BasicNavAngleUnit, ComponentProps,
-  ComSpacing, DateTimeFormatter, DepartureProcedure, DisplayComponent, ExtendedApproachType, Facility, FacilityFrequencyType, FacilityLoader, FacilitySearchType, FacilityType,
-  FacilityWaypoint, FSComponent, ICAO, MagVar, MappedSubject, MathUtils, Metar, MetarCloudLayer, MetarCloudLayerCoverage, MetarCloudLayerType,
-  MetarVisibilityUnits, MetarWindSpeedUnits, MutableSubscribable, NodeReference, NumberFormatter, NumberUnitSubject, Procedure, RadioFrequencyFormatter,
-  RadioUtils, RunwayLightingType, RunwaySurfaceCategory, RunwayUtils, Subject, Subscribable, Subscription, UnitType, VNode
+  AirportFacility, AirportPrivateType, AirportRunway, AirportUtils, ApproachUtils, ArraySubject, ArrivalProcedure, BasicNavAngleSubject, BasicNavAngleUnit,
+  ComponentProps, ComSpacing, DateTimeFormatter, DepartureProcedure, DisplayComponent, ExtendedApproachType, Facility, FacilityFrequencyType, FacilityLoader,
+  FacilitySearchType, FacilityType, FacilityWaypoint, FSComponent, ICAO, MagVar, MappedSubject, MathUtils, Metar, MetarCloudLayer, MetarCloudLayerCoverage,
+  MetarCloudLayerType, MetarVisibilityUnits, MetarWindSpeedUnits, MutableSubscribable, NodeReference, NumberFormatter, NumberUnitSubject, Procedure,
+  RadioFrequencyFormatter, RadioUtils, RunwayLightingType, RunwaySurfaceCategory, RunwayUtils, Subject, Subscribable, Subscription, UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
   AirportWaypoint, ApproachListItem, ComRadioSpacingSettingMode, ComRadioUserSettings, DirectToState, Fms, FmsUtils, LatLonDisplayFormat, ProcedureType,
   UnitsUserSettingManager, WaypointInfoStore
 } from '@microsoft/msfs-garminsdk';
+
 import {
   ApproachNameDisplay, BearingDisplay, DynamicList, DynamicListData, FlightPlanStore, G3000FmsUtils, G3000NearestContext, GarminLatLonDisplay, NumberUnitDisplay
 } from '@microsoft/msfs-wtg3000-common';
@@ -1033,6 +1034,10 @@ class GtcAirportInfoPageWeatherTab extends DisplayComponent<GtcAirportInfoPageWe
     this.metar.sub(metar => {
       if (metar !== null) {
         this.time.setTime(Date.now());
+        if (metar.day > this.time.getUTCDate()) {
+          // If the METAR day is greater than the current day, then we assume that the METAR was issued the previous month.
+          this.time.setUTCMonth(this.time.getUTCMonth() - 1);
+        }
         this.time.setUTCDate(metar.day);
         this.time.setUTCHours(metar.hour, metar.min, 0, 0);
 
@@ -1040,7 +1045,7 @@ class GtcAirportInfoPageWeatherTab extends DisplayComponent<GtcAirportInfoPageWe
 
         const windSpeedUnit = GtcAirportInfoPageWeatherTab.WIND_SPEED_UNITS[metar.windSpeedUnits];
 
-        this.windDirection.set(metar.windDir);
+        this.windDirection.set(metar.windDir ?? 0);
         this.windSpeed.set(metar.windSpeed, windSpeedUnit);
 
         if (metar.gust === undefined) {

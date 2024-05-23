@@ -1,5 +1,5 @@
 import {
-  ActiveLegType, ClockEvents, FlightPlanActiveLegEvent, FlightPlannerEvents, FocusPosition, FSComponent, GPSSatComputerEvents, GPSSystemState, LegType, Subject,
+  ActiveLegType, ClockEvents, FlightPlanActiveLegEvent, FocusPosition, FSComponent, GPSSatComputerEvents, GPSSystemState, LegType, Subject,
   TcasAdvisoryDataProvider, UserSetting, UserSettingValue, VNode
 } from '@microsoft/msfs-sdk';
 
@@ -60,17 +60,20 @@ export class ArcNavMap extends Page<ArcNavMapProps> {
   private readonly ArcMap = GNSMapBuilder
     .withArcMap(
       this.props.bus,
-      this.props.fms.flightPlanner,
+      this.props.fms,
       this.props.settingsProvider,
       this.props.gnsType,
       this.props.instrumentIndex,
       this.props.trafficSystem,
       this.props.tcasDataProvider)
-    .withController(GNSMapKeys.Controller, c => new GNSMapController(c, this.props.settingsProvider, this.props.fms.flightPlanner, true))
+    .withController(GNSMapKeys.Controller, c => new GNSMapController(c, this.props.settingsProvider, this.props.fms, true))
     .build<GNSMapModules, GNSMapLayers, GNSArcMapControllers, GNSMapContextProps>('arc-map-container');
 
   private readonly fieldContext: DataFieldContext = {
-    modelFactory: new DefaultNavDataBarFieldModelFactory(this.props.bus, this.props.fms, this.gpsValidity),
+    modelFactory: new DefaultNavDataBarFieldModelFactory(this.props.bus, this.gpsValidity, {
+      lnavIndex: this.props.fms.lnavIndex,
+      vnavIndex: this.props.fms.vnavIndex
+    }),
     renderer: new GNSDataFieldRenderer(this.props.settingsProvider.units, this.props.settingsProvider.time),
     fieldTypeMenuEntries: [
       { label: 'BRG - Bearing', disabled: false, type: NavDataFieldType.BearingToWaypoint },
@@ -111,7 +114,7 @@ export class ArcNavMap extends Page<ArcNavMapProps> {
     super.onAfterRender(node);
     this.ArcMap.ref.instance.sleep();
 
-    this.props.bus.getSubscriber<FlightPlannerEvents>().on('fplActiveLegChange').handle(this.onActiveLegChanged.bind(this));
+    this.props.fms.flightPlanner.onEvent('fplActiveLegChange').handle(this.onActiveLegChanged.bind(this));
     this.legIcon.instance.updateLegIcon(true, false, LegType.TF);
 
     this.trkField.instance.setDisabled(true);

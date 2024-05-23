@@ -1,0 +1,20 @@
+.gdu-460-display {
+  --ui-list-dialog-width: 320px;
+  --ui-list-dialog-padding: 3px;
+  --ui-list-dialog-font-size: 20px;
+}
+
+.gdu-470-display {
+  --ui-list-dialog-width: 295px;
+  --ui-list-dialog-padding: 10px 5px;
+  --ui-list-dialog-font-size: 12px;
+}
+
+.ui-list-dialog {
+  width: var(--ui-list-dialog-width);
+  font-size: var(--ui-list-dialog-font-size);
+  background: var(--g3x-color-black);
+  border: 3px solid var(--g3x-color-border-gray);
+  border-radius: 5px;
+  padding: var(--ui-list-dialog-padding);
+}

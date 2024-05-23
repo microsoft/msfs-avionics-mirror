@@ -63,4 +63,9 @@ export enum FmsHEvent {
   NAV = 'Nav',
   XPDR = 'Xpdr',
   CRS = 'Crs',
+  CONTROL_OUTER_DEC = 'OuterControlKnobDec',
+  CONTROL_OUTER_INC = 'OuterControlKnobInc',
+  CONTROL_INNER_DEC = 'InnerControlKnobDec',
+  CONTROL_INNER_INC = 'InnerControlKnobInc',
+  CONTROL_INNER_PUSH = 'InnerControlKnobPush',
 }

@@ -1,0 +1,78 @@
+html {
+  /* The margin between each divider and the combined button's border. */
+  --combined-touch-button-divider-margin: 4px;
+}
+
+.combined-touch-button {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border: var(--touch-button-border, var(--touch-button-border-width) var(--touch-button-border-style) var(--touch-button-border-color));
+  border-radius: var(--touch-button-border-radius);
+}
+
+.combined-touch-button.combined-touch-button-focused {
+  border: var(--ui-button-focused-border, var(--touch-button-border-width) var(--touch-button-border-style) var(--ui-button-focused-border-color));
+}
+
+/* We need to apply the box shadow to ::after so that it is rendered above the combined button's children. */
+.combined-touch-button.combined-touch-button-focused::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 1px 1px var(--ui-button-focused-border-color);
+  pointer-events: none;
+}
+
+.combined-touch-button-row {
+  flex-flow: row nowrap;
+}
+
+.combined-touch-button-col {
+  flex-flow: column nowrap;
+}
+
+.combined-touch-button .touch-button {
+  --touch-button-border: none;
+  --touch-button-highlight-border: none;
+  --touch-button-border-radius: 0px;
+  --ui-button-focused-border: none;
+}
+
+.combined-touch-button-divider {
+  background: var(--combined-touch-button-divider-color, var(--touch-button-border-color));
+}
+
+.combined-touch-button-row .combined-touch-button-divider {
+  width: var(--touch-button-border-width);
+  margin: var(--combined-touch-button-divider-margin) 0px;
+}
+
+.combined-touch-button-col .combined-touch-button-divider {
+  height: var(--touch-button-border-width);
+  margin: 0px var(--combined-touch-button-divider-margin);
+}
+
+.combined-touch-button .touch-button.ui-button-focused {
+  box-shadow:
+    0 0 1px var(--touch-button-border-width) var(--ui-button-focused-border-color),
+    inset 0 0 1px 1px var(--ui-button-focused-border-color),
+    var(--touch-button-box-shadow);
+}
+
+.combined-touch-button .touch-button.touch-button-primed.ui-button-focused:not(.touch-button-highlight) {
+  box-shadow:
+    0 0 1px var(--touch-button-border-width) var(--ui-button-focused-border-color),
+    inset 0 0 1px 1px var(--ui-button-focused-border-color),
+    var(--touch-button-primed-box-shadow);
+}
+
+.combined-touch-button .touch-button.touch-button-highlight.ui-button-focused {
+  box-shadow:
+    0 0 1px var(--touch-button-border-width) var(--ui-button-focused-border-color),
+    inset 0 0 1px 1px var(--ui-button-focused-border-color),
+    var(--touch-button-highlight-box-shadow);
+}

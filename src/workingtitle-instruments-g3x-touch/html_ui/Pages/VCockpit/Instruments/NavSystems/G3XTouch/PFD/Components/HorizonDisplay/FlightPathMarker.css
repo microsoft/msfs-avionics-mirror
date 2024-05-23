@@ -1,0 +1,8 @@
+.flight-path-marker {
+  width: 45px;
+  height: 45px;
+  --flight-path-marker-stroke: var(--g3x-color-green);
+  --flight-path-marker-stroke-width: 2;
+  --flight-path-marker-outline-stroke: var(--g3x-color-black);
+  --flight-path-marker-outline-stroke-width: 3;
+}

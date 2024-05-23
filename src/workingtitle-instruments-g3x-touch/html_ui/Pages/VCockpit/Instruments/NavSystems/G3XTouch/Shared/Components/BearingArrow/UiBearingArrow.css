@@ -1,0 +1,9 @@
+.gdu-460-display {
+  --ui-bearing-arrow-size: 25px;
+}
+
+.ui-bearing-arrow {
+  width: var(--ui-bearing-arrow-size);
+  height: var(--ui-bearing-arrow-size);
+  fill: #00c4f4
+}

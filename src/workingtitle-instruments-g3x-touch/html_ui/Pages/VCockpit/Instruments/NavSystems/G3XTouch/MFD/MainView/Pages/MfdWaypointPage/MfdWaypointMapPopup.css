@@ -1,0 +1,58 @@
+.mfd-waypoint-map-popup {
+  flex-grow: 1;
+  align-self: stretch;
+  position: relative;
+  background: var(--g3x-color-black);
+  border: solid var(--g3x-color-border-light-gray);
+}
+
+.gdu-460-display .mfd-waypoint-map-popup {
+  margin: 7px;
+  border-width: 3px;
+  border-radius: 5px;
+
+  --mfd-waypoint-map-range-target-control-outline-width: 4px;
+}
+
+.gdu-display-pfd-left .ui-pane-half .mfd-waypoint-map-popup {
+  margin-right: 0px;
+}
+
+.gdu-display-pfd-right .ui-pane-half .mfd-waypoint-map-popup {
+  margin-left: 0px;
+}
+
+.mfd-waypoint-map-container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.mfd-waypoint-map-popup-touch-pad {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.mfd-waypoint-map {
+  transform: rotateX(0deg);
+  overflow: hidden;
+}
+
+.mfd-waypoint-map .map-range-target-control::after {
+  content: "";
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border: solid var(--mfd-waypoint-map-range-target-control-outline-width) var(--g3x-color-focus-blue);
+  box-shadow: inset 0 0 1px 1px var(--g3x-color-focus-blue);
+  border-radius: 2px;
+  pointer-events: none;
+}

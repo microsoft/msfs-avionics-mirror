@@ -1,7 +1,7 @@
 import {
-  ArraySubject, BitFlags, BlurReconciliation, ConsumerSubject, Facility, FlightPlan, FlightPlanSegment, FlightPlanSegmentType,
-  FocusPosition, FSComponent, LegDefinition, LegDefinitionFlags, LegType, NodeReference, NumberUnitSubject, StringUtils, Subject, UnitType,
-  VNavConstraint, VNavLeg, VNavUtils, VNode
+  ArraySubject, BitFlags, BlurReconciliation, ConsumerSubject, Facility, FlightPlan, FlightPlanSegment,
+  FlightPlanSegmentType, FocusPosition, FSComponent, LegDefinition, LegDefinitionFlags, LegType, NodeReference,
+  NumberUnitSubject, StringUtils, Subject, UnitType, VNavConstraint, VNavLeg, VNavUtils, VNode
 } from '@microsoft/msfs-sdk';
 
 import { Fms, FmsUtils, LNavDataEvents } from '@microsoft/msfs-garminsdk';
@@ -703,10 +703,12 @@ export abstract class FPLSection extends G1000UiControl<FPLSectionProps> impleme
    * @returns The approach name as a string.
    */
   protected renderApproachName(plan: FlightPlan): VNode {
-    const approach = this.props.facilities.destinationFacility ? FmsUtils.getApproachFromPlan(plan, this.props.facilities.destinationFacility) : undefined;
+    const approach = this.props.facilities.destinationFacility
+      ? FmsUtils.getApproachFromPlan(plan, this.props.facilities.destinationFacility)
+      : undefined;
 
     return (
-      <ApproachNameDisplay approach={Subject.create(approach ?? null)} />
+      <ApproachNameDisplay approach={approach} />
     );
   }
 

@@ -280,7 +280,7 @@ export class Sr22tWBStationVsWeight extends DisplayComponent<Sr22tWBStationVsWei
 
   /** @inheritdoc */
   public resume(): void {
-    this.subs.forEach(sub => sub.resume());
+    this.subs.forEach(sub => sub.resume(true));
   }
 
   /** @inheritdoc */

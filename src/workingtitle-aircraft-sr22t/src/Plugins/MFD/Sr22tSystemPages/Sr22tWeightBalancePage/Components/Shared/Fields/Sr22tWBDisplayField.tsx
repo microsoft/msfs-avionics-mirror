@@ -1,4 +1,6 @@
-import { ComponentProps, DisplayComponent, FSComponent, MappedSubscribable, ObjectSubject, Subscribable, SubscribableUtils, Subscription, UnitType, UserSetting, VNode } from '@microsoft/msfs-sdk';
+import {
+  ComponentProps, DisplayComponent, FSComponent, MappedSubject, MappedSubscribable, ObjectSubject, Subscribable, SubscribableUtils, Subscription, UnitType, UserSetting, VNode,
+} from '@microsoft/msfs-sdk';
 import { UnitsWeightSettingMode } from '@microsoft/msfs-wtg1000';
 
 import './Sr22tWBFields.css';
@@ -20,7 +22,7 @@ export interface DisplayFieldProps extends ComponentProps {
   /** The callback function defining how the final display value string is generated. */
   valueCallback?: (value: number) => string;
   /** If not specified, the weight unit default label will be displayed. */
-  unitLabel?: string;
+  unitLabel?: Subscribable<string> | string;
   /** Whether the display field is in warning state. */
   isWarning?: Subscribable<boolean> | boolean;
 }
@@ -33,7 +35,11 @@ export class Sr22tWBDisplayField extends DisplayComponent<DisplayFieldProps> {
 
   private warningSubscription?: Subscription;
 
-  private readonly valueAsString: MappedSubscribable<string> = this.props.data.get().value.map(value => {
+  private readonly unitAsString = this.props.unitLabel
+    ? SubscribableUtils.toSubscribable(this.props.unitLabel, true)
+    : this.props.data.get().weightUnit.map(v => v === UnitsWeightSettingMode.Pounds ? 'LB' : 'KG');
+
+  private readonly valueAsString: MappedSubscribable<string> = MappedSubject.create(([value, weightUnit]) => {
     if (value < 0) {
       return '_ _ _ _';
     } else {
@@ -41,18 +47,10 @@ export class Sr22tWBDisplayField extends DisplayComponent<DisplayFieldProps> {
         return this.props.valueCallback(value);
       }
 
-      return this.props.data.get().weightUnit.get() === UnitsWeightSettingMode.Pounds
-        ? this.props.unitLabel === 'IN' ? value.toFixed(1) : value.toString()
-        : this.props.unitLabel
-          ? UnitType.FOOT.convertTo(value / 12, UnitType.METER).toFixed(0)
-          : UnitType.POUND.convertTo(value, UnitType.KILOGRAM).toFixed(0);
+      return weightUnit === UnitsWeightSettingMode.Pounds ? value.toString()
+        : UnitType.POUND.convertTo(value, UnitType.KILOGRAM).toFixed(0);
     }
-  });
-
-  private readonly unitAsString = this.props.unitLabel
-    ? this.props.unitLabel
-    : this.props.data.get().weightUnit.get() === UnitsWeightSettingMode.Pounds
-      ? 'LB' : 'KG';
+  }, this.props.data.get().value, this.props.data.get().weightUnit);
 
   /** @inheritdoc */
   public onAfterRender(): void {

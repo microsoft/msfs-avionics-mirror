@@ -1,5 +1,5 @@
 import {
-  ClockEvents, ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FlightPlanner, FSComponent, GNSSEvents, MagVar, Subject, VNode
+  ClockEvents, ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FlightPlanner, FSComponent, GNSSEvents, MagVar, Subject, Subscribable, VNode
 } from '@microsoft/msfs-sdk';
 
 import { ObsSuspModes, WaypointAlertComputer, WaypointAlertCourseType, WaypointAlertingState } from '@microsoft/msfs-garminsdk';
@@ -26,14 +26,8 @@ interface FooterBarProps extends ComponentProps {
   /** Whether the owning instrument is the primary GPS */
   isPrimaryInstrument: boolean;
 
-  /** Whether thw owning instrument is configured to use split CDIs */
-  isUsingSplitCDIs: boolean;
-
   /** Subject containing the current instrument-local CDI source */
-  gnsCdiMode: Subject<GnsCdiMode>;
-
-  /** The instrument tag index in panel.xml. */
-  instrumentIndex: number;
+  gnsCdiMode: Subscribable<GnsCdiMode>;
 
   /** An instance of the flight planner. */
   flightPlanner: FlightPlanner;
@@ -125,9 +119,7 @@ export class FooterBar extends DisplayComponent<FooterBarProps> {
         <SelectedCDIDisplaySource
           ref={this.cdiEl}
           bus={this.props.bus}
-          gnsType={this.props.gnsType}
           gnsCdiMode={this.props.gnsCdiMode}
-          instrumentIndex={this.props.instrumentIndex}
         />
         <div class='obs-label hidden-element' ref={this.obsLabel}>{this.obsLabelText}</div>
         <div class='msg-label'>
@@ -169,8 +161,8 @@ export class WaypointAlerter extends DisplayComponent<WaypointAlerterProps> {
   private readonly timeRemaining = Subject.create(NaN);
 
   private alertingState = WaypointAlertingState.None;
-  private course?= NaN;
-  private courseType?= WaypointAlertCourseType.DesiredTrack;
+  private course? = NaN;
+  private courseType? = WaypointAlertCourseType.DesiredTrack;
 
   private dtkFormatter = (dtk: number | undefined): string => {
     if (dtk === undefined) {

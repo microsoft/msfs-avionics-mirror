@@ -11,4 +11,5 @@ export * from './FmcRouter';
 export * from './FmcScratchpad';
 export * from './FmcScreen';
 export * from './FmcScreenOptions';
+export * from './FmcScreenPluginContext';
 export * from './SimpleFmcRenderer';

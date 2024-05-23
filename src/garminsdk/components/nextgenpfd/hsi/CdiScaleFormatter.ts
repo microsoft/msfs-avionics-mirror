@@ -20,7 +20,10 @@ export class CdiScaleFormatter {
     [CDIScaleLabel.Terminal]: 'TERM',
     [CDIScaleLabel.TerminalArrival]: 'TERM',
     [CDIScaleLabel.TerminalDeparture]: 'TERM',
-    [CDIScaleLabel.Visual]: 'VISUAL'
+    [CDIScaleLabel.Visual]: 'VISUAL',
+    [CDIScaleLabel.VfrEnroute]: 'VFR',
+    [CDIScaleLabel.VfrTerminal]: 'VFR',
+    [CDIScaleLabel.VfrApproach]: 'VFR'
   };
 
   private static readonly RNP_TEXT_MAP: Record<CDIScaleLabel, string> = {
@@ -39,7 +42,10 @@ export class CdiScaleFormatter {
     [CDIScaleLabel.Terminal]: 'RNP1.00',
     [CDIScaleLabel.TerminalArrival]: 'RNP1.00',
     [CDIScaleLabel.TerminalDeparture]: 'RNP1.00',
-    [CDIScaleLabel.Visual]: 'VISUAL'
+    [CDIScaleLabel.Visual]: 'VISUAL',
+    [CDIScaleLabel.VfrEnroute]: 'VFR',
+    [CDIScaleLabel.VfrTerminal]: 'VFR',
+    [CDIScaleLabel.VfrApproach]: 'VFR'
   };
 
   /**

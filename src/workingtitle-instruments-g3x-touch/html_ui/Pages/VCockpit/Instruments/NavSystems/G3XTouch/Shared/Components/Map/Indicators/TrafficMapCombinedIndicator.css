@@ -1,0 +1,48 @@
+.gdu-460-display {
+  --traffic-map-combined-indicator-padding: 2px;
+  --traffic-map-combined-indicator-border-radius: 4px;
+
+  --traffic-map-combined-indicator-divider-margin: 1px 2px;
+}
+
+.traffic-map-combined-indicator {
+  padding: var(--traffic-map-combined-indicator-padding);
+  background: var(--g3x-color-black);
+  border: solid 1px #acacac;
+  border-radius: var(--traffic-map-combined-indicator-border-radius);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.traffic-map-combined-indicator-main {
+  text-align: center;
+}
+
+.traffic-map-combined-indicator-bottom {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.traffic-map-combined-indicator-divider {
+  height: 2px;
+  margin: var(--traffic-map-combined-indicator-divider-margin);
+  background: var(--g3x-color-disabled-gray);
+}
+
+.traffic-map-combined-indicator-bottom-grid {
+  display: grid;
+  grid-auto-rows: min-content;
+  grid-template-columns: min-content 1fr;
+  justify-items: stretch;
+  align-items: center;
+}
+
+.traffic-map-combined-indicator-title {
+  text-align: right;
+}
+
+.traffic-map-combined-indicator-value {
+  text-align: right;
+}

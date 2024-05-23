@@ -1,0 +1,35 @@
+html {
+  --touch-button-toggle-label-center-y: 45%;
+  --touch-button-toggle-bar-center-y: 90%;
+  --touch-button-toggle-bar-width: 50%;
+
+  --touch-button-toggle-bar-disable-filter: brightness(50%);
+}
+
+.gdu-460-display {
+  --touch-button-toggle-bar-height: 8px;
+}
+
+.gdu-470-display {
+  --touch-button-toggle-bar-height: 8px;
+}
+
+.touch-button-toggle {
+  --toggle-status-bar-border-radius: calc(var(--touch-button-toggle-bar-height) / 2);
+}
+
+.touch-button-toggle>.touch-button-label {
+  top: var(--touch-button-toggle-label-center-y);
+}
+
+.touch-button-toggle-status-bar {
+  position: absolute;
+  left: calc(50% - var(--touch-button-toggle-bar-width) / 2);
+  top: calc(var(--touch-button-toggle-bar-center-y) - var(--touch-button-toggle-bar-height) / 2);
+  width: var(--touch-button-toggle-bar-width);
+  height: var(--touch-button-toggle-bar-height);
+}
+
+.touch-button-toggle.touch-button-disabled>.touch-button-toggle-status-bar {
+  filter: var(--touch-button-toggle-bar-disable-filter);
+}

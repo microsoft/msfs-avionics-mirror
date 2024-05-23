@@ -1,0 +1,134 @@
+.transponder-view {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.gdu-460-display .transponder-view {
+  min-width: 440px;
+  padding: 2px 2px 16px;
+  font-size: 21px;
+
+  --transponder-view-title-font-size: 23px;
+
+  --transponder-view-input-row-margin-top: 22px;
+
+  --transponder-view-input-width: 114px;
+  --transponder-view-input-height: 42px;
+  --transponder-view-input-font-size: 26px;
+
+  --transponder-view-numpad-margin: 35px 0px;
+  --transponder-view-numpad-row-gap: 10px;
+  --transponder-view-numpad-column-gap: 10px;
+
+  --transponder-view-mode-buttons-container-margin: 10px 0px 18px;
+
+  --transponder-view-mode-buttons-spacer-width: 14px;
+
+  --transponder-view-mode-buttons-box-padding: 28px 16px 18px;
+  --transponder-view-mode-buttons-box-title-font-size: 19px;
+
+  --transponder-view-mode-button-width: 114px;
+  --transponder-view-mode-button-height: 80px;
+  --transponder-view-mode-button-toggle-bar-width: 62px;
+}
+
+.gdu-460-display.gdu-display-pfd-left .transponder-view {
+  margin-left: 7px;
+}
+
+.gdu-460-display.gdu-display-pfd-right .transponder-view {
+  margin-right: 7px;
+}
+
+.transponder-view-title {
+  font-size: var(--transponder-view-title-font-size);
+  text-align: center;
+}
+
+/* Input row */
+
+.transponder-view-input-row {
+  position: relative;
+  margin-top: var(--transponder-view-input-row-margin-top);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.transponder-view-vfr-button {
+  width: var(--ui-nav-button-width);
+  height: var(--ui-nav-button-height);
+}
+
+.transponder-view-input {
+  position: relative;
+  width: var(--transponder-view-input-width);
+  height: var(--transponder-view-input-height);
+  font-size: var(--transponder-view-input-font-size);
+  color: var(--g3x-color-cyan);
+  --cursor-input-slots-justify: center;
+}
+
+.transponder-view-input.cursor-input-edit-inactive {
+  color: var(--g3x-color-black);
+}
+
+/* Numpad */
+
+.transponder-view-numpad {
+  align-self: center;
+  position: relative;
+  margin: var(--transponder-view-numpad-margin);
+  display: grid;
+  grid-template-rows: repeat(2, min-content);
+  grid-template-columns: repeat(4, min-content);
+  grid-row-gap: var(--transponder-view-numpad-row-gap);
+  grid-column-gap: var(--transponder-view-numpad-column-gap);
+}
+
+/* Mode buttons */
+
+.transponder-view-mode-buttons-container {
+  align-self: center;
+  position: relative;
+  margin: var(--transponder-view-mode-buttons-container-margin);
+  display: flex;
+  flex-flow: row nowrap;
+
+  --touch-button-toggle-bar-width: var(--transponder-view-mode-button-toggle-bar-width);
+}
+
+.transponder-view-mode-buttons-spacer {
+  flex-shrink: 1;
+  width: var(--transponder-view-mode-buttons-spacer-width);
+}
+
+.transponder-view-mode-buttons-box {
+  padding: var(--transponder-view-mode-buttons-box-padding);
+
+  --ui-view-box-title-font-size: var(--transponder-view-mode-buttons-box-title-font-size);
+}
+
+.transponder-view-mode-buttons .combined-touch-button-divider {
+  flex-shrink: 0;
+}
+
+.transponder-view-mode-button {
+  width: var(--transponder-view-mode-button-width);
+  height: var(--transponder-view-mode-button-height);
+}
+
+.transponder-view-bottom-row {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-evenly;
+}
+
+.transponder-view-ident-button {
+  width: var(--ui-nav-button-width);
+  height: var(--ui-nav-button-height);
+}

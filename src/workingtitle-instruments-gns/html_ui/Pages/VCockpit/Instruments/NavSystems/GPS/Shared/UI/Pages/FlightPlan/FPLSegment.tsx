@@ -1,6 +1,6 @@
 import {
   ActiveLegType, ArraySubject, BitFlags, EventBus, FlightPlanActiveLegEvent, FlightPlanCalculatedEvent, FlightPlanLegEvent,
-  FlightPlannerEvents, FlightPlanSegment, FlightPlanSegmentType, FocusPosition, FSComponent, HardwareUiControl, LegDefinition,
+  FlightPlanSegment, FlightPlanSegmentType, FocusPosition, FSComponent, HardwareUiControl, LegDefinition,
   LegDefinitionFlags, LegEventType, LegType, NodeReference, Subscription, VNode
 } from '@microsoft/msfs-sdk';
 
@@ -59,14 +59,14 @@ export class FPLSegment extends GNSUiControl<FPLSegmentProps> {
     super.onAfterRender(thisNode);
     this.props.segment.legs.forEach((leg, i) => this.insertLeg(i, leg));
 
-    this.legSubscription = this.props.bus.getSubscriber<FlightPlannerEvents>()
-      .on('fplLegChange')
+    this.legSubscription = this.props.fms.flightPlanner
+      .onEvent('fplLegChange')
       .handle(this.onLegChanged.bind(this));
-    this.calcSubscription = this.props.bus.getSubscriber<FlightPlannerEvents>()
-      .on('fplCalculated')
+    this.calcSubscription = this.props.fms.flightPlanner
+      .onEvent('fplCalculated')
       .handle(this.onCalculated.bind(this));
-    this.activeLegSubscription = this.props.bus.getSubscriber<FlightPlannerEvents>()
-      .on('fplActiveLegChange')
+    this.activeLegSubscription = this.props.fms.flightPlanner
+      .onEvent('fplActiveLegChange')
       .handle(this.onActiveLegChanged.bind(this));
 
     this.setHeader();

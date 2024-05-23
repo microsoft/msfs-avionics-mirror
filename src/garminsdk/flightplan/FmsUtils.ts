@@ -1,23 +1,65 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import {
-  AdditionalApproachType, AirportFacility, AltitudeRestrictionType, ApproachProcedure,
-  ArrivalProcedure, BitFlags, DepartureProcedure, ExtendedApproachType,
-  FixTypeFlags, FlightPlan, FlightPlanLeg, FlightPlanSegmentType, GeoCircle, GeoPoint,
-  ICAO, LegDefinition, LegDefinitionFlags, LegType, MagVar, NavMath, OneWayRunway,
-  FacilityType, RnavTypeFlags, RunwayUtils, UnitType, SpeedRestrictionType, FlightPlanSegment, FlightPlanUtils, VNavUtils, ApproachUtils
+  AdditionalApproachType, AirportFacility, AltitudeRestrictionType, ApproachProcedure, ApproachUtils, ArrivalProcedure,
+  BitFlags, Consumer, DepartureProcedure, EventBus, EventSubscriber, ExtendedApproachType, FacilityType, FixTypeFlags,
+  FlightPathUtils, FlightPathVectorFlags, FlightPlan, FlightPlanLeg, FlightPlanSegment, FlightPlanSegmentType,
+  FlightPlanUtils, GeoCircle, GeoPoint, ICAO, LegCalculations, LegDefinition, LegDefinitionFlags, LegType, MagVar,
+  NavMath, OneWayRunway, RnavTypeFlags, RunwayUtils, SpeedRestrictionType, UnitType, VNavUtils
 } from '@microsoft/msfs-sdk';
-import { ApproachDetails, FmsFlightPhase } from './Fms';
+
+import { BaseFmsEvents, FmsEventsForId } from './FmsEvents';
+import {
+  ApproachDetails, FmsFlightPhase, GarminAdditionalApproachType, GarminApproachProcedure, GarminVfrApproachProcedure
+} from './FmsTypes';
+import { FmsFplUserDataKey, FmsFplVfrApproachData, FmsFplVisualApproachData } from './FmsFplUserDataTypes';
 
 /**
  * Utility Methods for the FMS.
  */
 export class FmsUtils {
+  /** The index of the primary flight plan. */
+  public static readonly PRIMARY_PLAN_INDEX = 0;
+
+  /** The index of the off-route direct-to flight plan. */
+  public static readonly DTO_RANDOM_PLAN_INDEX = 1;
+
+  /** The index of the procedure preview flight plan. */
+  public static readonly PROC_PREVIEW_PLAN_INDEX = 2;
+
   /** The number of flight plan legs between a direct-to target leg and its associated direct-to leg. */
   public static readonly DTO_LEG_OFFSET = 3;
 
   private static readonly vec3Cache = [new Float64Array(3)];
   private static readonly geoPointCache = [new GeoPoint(0, 0)];
   private static readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
+
+  /**
+   * Subscribes to one of the event bus topics published by an FMS with a given ID.
+   * @param id The ID of the FMS.
+   * @param bus The event bus to which to subscribe.
+   * @param baseTopic The base name of the topic to which to subscribe.
+   * @returns A consumer for the specified event bus topic.
+   */
+  public static onFmsEvent<ID extends string, K extends keyof BaseFmsEvents>(id: ID, bus: EventBus, baseTopic: K): Consumer<BaseFmsEvents[K]>;
+  /**
+   * Subscribes to one of the event bus topics published by an FMS with a given ID.
+   * @param id The ID of the FMS.
+   * @param subscriber The event subscriber to use to subscribe.
+   * @param baseTopic The base name of the topic to which to subscribe.
+   * @returns A consumer for the specified event bus topic.
+   */
+  public static onFmsEvent<ID extends string, K extends keyof BaseFmsEvents>(id: ID, subscriber: EventSubscriber<FmsEventsForId<ID>>, baseTopic: K): Consumer<BaseFmsEvents[K]>;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static onFmsEvent<ID extends string, K extends keyof BaseFmsEvents>(
+    id: ID,
+    arg2: EventBus | EventSubscriber<FmsEventsForId<ID>>,
+    baseTopic: K
+  ): Consumer<BaseFmsEvents[K]> {
+    return (arg2 instanceof EventBus ? arg2.getSubscriber<FmsEventsForId<ID>>() : arg2).on(
+      `${baseTopic}${id === '' ? '' : `_${id}`}` as keyof FmsEventsForId<ID>
+    ) as unknown as Consumer<BaseFmsEvents[K]>;
+  }
 
   /**
    * Gets the departure segment from a flight plan.
@@ -28,6 +70,40 @@ export class FmsUtils {
     // There should only be one departure segment
     for (const segment of plan.segmentsOfType(FlightPlanSegmentType.Departure)) {
       return segment;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Gets the first enroute segment from a flight plan.
+   * @param plan A flight plan.
+   * @returns The first enroute segment in the specified flight plan, or `undefined` if one does not exist.
+   */
+  public static getFirstEnrouteSegment(plan: FlightPlan): FlightPlanSegment | undefined {
+    const segmentCount = plan.segmentCount;
+    for (let i = 0; i < segmentCount; i++) {
+      const segment = plan.tryGetSegment(i);
+      if (segment && segment.segmentType === FlightPlanSegmentType.Enroute) {
+        return segment;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Gets the last enroute segment from a flight plan.
+   * @param plan A flight plan.
+   * @returns The last enroute segment in the specified flight plan, or `undefined` if one does not exist.
+   */
+  public static getLastEnrouteSegment(plan: FlightPlan): FlightPlanSegment | undefined {
+    const segmentCount = plan.segmentCount;
+    for (let i = segmentCount - 1; i >= 0; i--) {
+      const segment = plan.tryGetSegment(i);
+      if (segment && segment.segmentType === FlightPlanSegmentType.Enroute) {
+        return segment;
+      }
     }
 
     return undefined;
@@ -62,19 +138,34 @@ export class FmsUtils {
   }
 
   /**
-   * Utility method to return a one-way runway leg
-   * @param airport The runway's parent airport.
-   * @param oneWayRunway is the one wway runway object
-   * @param isOriginRunway is a bool whether this is the origin or destination (origin = true, dest = false)
-   * @returns a leg object for the runway
+   * Gets the destination segment from a flight plan.
+   * @param plan A flight plan.
+   * @returns The destination segment in the specified flight plan, or `undefined` if one does not exist.
    */
-  public static buildRunwayLeg(airport: AirportFacility, oneWayRunway: OneWayRunway, isOriginRunway: boolean): FlightPlanLeg {
+  public static getDestinationSegment(plan: FlightPlan): FlightPlanSegment | undefined {
+    // There should only be one destination segment
+    for (const segment of plan.segmentsOfType(FlightPlanSegmentType.Destination)) {
+      return segment;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Builds a flight plan leg to a runway fix.
+   * @param airport The runway's parent airport or its ICAO.
+   * @param runway The runway associated with the runway fix.
+   * @param isInitialFix Whether to create the flight plan leg as an initial fix (IF) leg instead of a track-to-fix
+   * (TF) leg.
+   * @returns A flight plan leg to the specified runway fix.
+   */
+  public static buildRunwayLeg(airport: AirportFacility | string, runway: OneWayRunway, isInitialFix: boolean): FlightPlanLeg {
     const leg = FlightPlan.createLeg({
-      lat: oneWayRunway.latitude,
-      lon: oneWayRunway.longitude,
-      type: isOriginRunway ? LegType.IF : LegType.TF,
-      fixIcao: RunwayUtils.getRunwayFacilityIcao(airport, oneWayRunway),
-      altitude1: oneWayRunway.elevation
+      lat: runway.latitude,
+      lon: runway.longitude,
+      type: isInitialFix ? LegType.IF : LegType.TF,
+      fixIcao: RunwayUtils.getRunwayFacilityIcao(airport, runway),
+      altitude1: runway.elevation
     });
     return leg;
   }
@@ -229,6 +320,97 @@ export class FmsUtils {
   }
 
   /**
+   * Creates a VFR approach object based on a published approach.
+   * @param airport The airport facility containing the published approach on which the VFR approach is based.
+   * @param approachIndex The index of the published approach on which the VFR approach is based.
+   * @returns A new VFR approach object based on the specified published approach, or `undefined` if a VFR approach
+   * could not be generated.
+   */
+  public static buildVfrApproach(
+    airport: AirportFacility,
+    approachIndex: number
+  ): GarminVfrApproachProcedure | undefined {
+    const approach = airport.approaches[approachIndex] as ApproachProcedure | undefined;
+
+    if (!approach) {
+      return undefined;
+    }
+
+    let didFindFaf = false;
+    const publishedFinalLegs = approach.finalLegs;
+    const finalLegs: FlightPlanLeg[] = [];
+    for (let i = 0; i < publishedFinalLegs.length; i++) {
+      // VFR approaches begin at the faf, so skip all legs until we find the faf.
+
+      if (!didFindFaf && BitFlags.isAll(publishedFinalLegs[i].fixTypeFlags, FixTypeFlags.FAF)) {
+        didFindFaf = true;
+      }
+
+      if (!didFindFaf) {
+        continue;
+      }
+
+      const publishedLeg = publishedFinalLegs[i];
+
+      if (BitFlags.isAll(publishedLeg.fixTypeFlags, FixTypeFlags.FAF)) {
+        switch (publishedLeg.type) {
+          case LegType.IF:
+          case LegType.TF:
+          case LegType.CF:
+          case LegType.DF:
+          case LegType.AF:
+          case LegType.RF: {
+            const insertLeg = FlightPlan.createLeg(publishedLeg);
+            insertLeg.type = LegType.IF;
+            finalLegs.push(insertLeg);
+            break;
+          }
+          default:
+            // If we can't convert the faf to an IF leg, then bail immediately since a non-VTF VFR approach must
+            // begin with an IF leg at the faf.
+            return undefined;
+        }
+      } else {
+        finalLegs.push(FlightPlan.createLeg(publishedLeg));
+      }
+
+      // VFR approaches end at the map, so skip all legs after the map.
+      if (BitFlags.isAll(publishedLeg.fixTypeFlags, FixTypeFlags.MAP)) {
+        break;
+      }
+    }
+
+    // VFR approaches must contain at least two legs: the faf and the map.
+    if (finalLegs.length < 2) {
+      return undefined;
+    }
+
+    // Ensure the last leg has the map flag.
+    const lastLeg = finalLegs[finalLegs.length - 1];
+    lastLeg.fixTypeFlags |= FixTypeFlags.MAP;
+
+    const proc: GarminApproachProcedure = {
+      name: approach.name,
+      runway: approach.runway,
+      icaos: [],
+      transitions: [],
+      finalLegs,
+      missedLegs: [],
+      approachType: GarminAdditionalApproachType.APPROACH_TYPE_VFR,
+      approachSuffix: approach.approachSuffix,
+      runwayDesignator: approach.runwayDesignator,
+      runwayNumber: approach.runwayNumber,
+      rnavTypeFlags: RnavTypeFlags.None,
+      parentApproachInfo: {
+        approachType: approach.approachType,
+        rnavTypeFlags: approach.rnavTypeFlags
+      }
+    };
+
+    return proc;
+  }
+
+  /**
    * Gets the best RNAV minimum type available for a given approach.
    * @param query The approach to check, or its RNAV type flags.
    * @returns The best RNAV minimum type available for the specified approach.
@@ -308,23 +490,28 @@ export class FmsUtils {
    * procedure object, containing descriptive data for the approach but lacking flight plan leg information, will be
    * returned.
    * @param plan A flight plan.
-   * @param destination The detsination airport of the flight plan.
+   * @param destination The destination airport of the flight plan.
    * @returns The approach procedure from the flight plan, or undefined if the plan has no approach.
    */
-  public static getApproachFromPlan(plan: FlightPlan, destination: AirportFacility): ApproachProcedure | undefined {
-    let approach = destination.approaches[plan.procedureDetails.approachIndex];
+  public static getApproachFromPlan(plan: FlightPlan, destination: AirportFacility): GarminApproachProcedure | undefined {
+    if (destination.approaches[plan.procedureDetails.approachIndex]) {
+      return destination.approaches[plan.procedureDetails.approachIndex];
+    }
 
-    if (!approach) {
-      const visualRwyDesignation = plan.getUserData<string>('visual_approach');
-      if (visualRwyDesignation && plan.destinationAirport) {
-        const runway = RunwayUtils.matchOneWayRunwayFromDesignation(destination, visualRwyDesignation);
-        if (runway) {
-          approach = FmsUtils.buildEmptyVisualApproach(runway);
-        }
+    const visualApproachData = plan.getUserData<Readonly<FmsFplVisualApproachData>>(FmsFplUserDataKey.VisualApproach);
+    if (visualApproachData && plan.destinationAirport) {
+      const runway = RunwayUtils.matchOneWayRunwayFromDesignation(destination, visualApproachData.runwayDesignation);
+      if (runway) {
+        return FmsUtils.buildEmptyVisualApproach(runway);
       }
     }
 
-    return approach;
+    const vfrApproachData = plan.getUserData<Readonly<FmsFplVfrApproachData>>(FmsFplUserDataKey.VfrApproach);
+    if (vfrApproachData && plan.destinationAirport) {
+      return FmsUtils.buildVfrApproach(destination, vfrApproachData.approachIndex);
+    }
+
+    return undefined;
   }
 
   /**
@@ -333,7 +520,38 @@ export class FmsUtils {
    * @returns Whether the flight plan has an approach loaded.
    */
   public static isApproachLoaded(plan: FlightPlan): boolean {
-    return plan.procedureDetails.approachIndex >= 0 || (plan.getUserData('visual_approach') !== undefined && plan.destinationAirport !== undefined);
+    return FmsUtils.isPublishedApproachLoaded(plan)
+      || FmsUtils.isVisualApproachLoaded(plan)
+      || FmsUtils.isVfrApproachLoaded(plan);
+  }
+
+  /**
+   * Checks whether a flight plan has an approach loaded.
+   * @param plan A flight plan.
+   * @returns Whether the flight plan has an approach loaded.
+   */
+  public static isPublishedApproachLoaded(plan: FlightPlan): boolean {
+    return plan.procedureDetails.approachIndex >= 0;
+  }
+
+  /**
+   * Checks whether a flight plan has an approach loaded.
+   * @param plan A flight plan.
+   * @returns Whether the flight plan has an approach loaded.
+   */
+  public static isVisualApproachLoaded(plan: FlightPlan): boolean {
+    return plan.destinationAirport !== undefined
+      && plan.getUserData<Readonly<FmsFplVisualApproachData>>(FmsFplUserDataKey.VisualApproach) !== undefined;
+  }
+
+  /**
+   * Checks whether a flight plan has an approach loaded.
+   * @param plan A flight plan.
+   * @returns Whether the flight plan has an approach loaded.
+   */
+  public static isVfrApproachLoaded(plan: FlightPlan): boolean {
+    return plan.destinationAirport !== undefined
+      && plan.getUserData<Readonly<FmsFplVfrApproachData>>(FmsFplUserDataKey.VfrApproach) !== undefined;
   }
 
   /**
@@ -356,7 +574,9 @@ export class FmsUtils {
    * @returns Whether the flight plan has a vectors-to-final approach loaded.
    */
   public static isVtfApproachLoaded(plan: FlightPlan): boolean {
-    return plan.procedureDetails.approachIndex >= 0 && plan.procedureDetails.approachTransitionIndex === -1;
+    return (plan.procedureDetails.approachIndex >= 0 && plan.procedureDetails.approachTransitionIndex === -1)
+      || (plan.getUserData<Readonly<FmsFplVisualApproachData>>(FmsFplUserDataKey.VisualApproach)?.isVtf ?? false)
+      || (plan.getUserData<Readonly<FmsFplVfrApproachData>>(FmsFplUserDataKey.VfrApproach)?.isVtf ?? false);
   }
 
   /**
@@ -365,7 +585,7 @@ export class FmsUtils {
    * @returns The vectors-to-final faf leg of the flight plan, or `undefined` if one could not be found.
    */
   public static getApproachVtfLeg(plan: FlightPlan): LegDefinition | undefined {
-    if (!FmsUtils.isApproachLoaded(plan) || plan.procedureDetails.approachTransitionIndex >= 0) {
+    if (!FmsUtils.isVtfApproachLoaded(plan)) {
       return undefined;
     }
 
@@ -503,12 +723,22 @@ export class FmsUtils {
    * @param proc The approach procedure.
    * @returns The name as an ApproachNameParts
    */
-  public static getApproachNameAsParts(proc: ApproachProcedure): ApproachNameParts {
+  public static getApproachNameAsParts(proc: GarminApproachProcedure): ApproachNameParts {
     let type: string;
     let subtype: string | undefined;
     let rnavType: string | undefined;
 
-    switch (proc.approachType) {
+    let approachType: ExtendedApproachType;
+    let rnavTypeFlags: number;
+    if (proc.approachType === GarminAdditionalApproachType.APPROACH_TYPE_VFR) {
+      approachType = proc.parentApproachInfo.approachType;
+      rnavTypeFlags = proc.parentApproachInfo.rnavTypeFlags;
+    } else {
+      approachType = proc.approachType;
+      rnavTypeFlags = proc.rnavTypeFlags;
+    }
+
+    switch (approachType) {
       case ApproachType.APPROACH_TYPE_GPS:
         type = 'GPS'; break;
       case ApproachType.APPROACH_TYPE_VOR:
@@ -528,8 +758,7 @@ export class FmsUtils {
       case ApproachType.APPROACH_TYPE_NDBDME:
         type = 'NDB/DME'; break;
       case ApproachType.APPROACH_TYPE_RNAV:
-        type = 'RNAV';
-        break;
+        type = 'RNAV'; break;
       case ApproachType.APPROACH_TYPE_LOCALIZER_BACK_COURSE:
         type = 'LOC BC'; break;
       case AdditionalApproachType.APPROACH_TYPE_VISUAL:
@@ -540,10 +769,10 @@ export class FmsUtils {
 
     const approachIsCircling = !proc.runway ? true : false;
 
-    if (proc.approachType === ApproachType.APPROACH_TYPE_RNAV) {
+    if (approachType === ApproachType.APPROACH_TYPE_RNAV) {
       subtype = 'GPS';
 
-      switch (FmsUtils.getBestRnavType(proc.rnavTypeFlags)) {
+      switch (FmsUtils.getBestRnavType(rnavTypeFlags)) {
         case RnavTypeFlags.LNAV:
           rnavType = approachIsCircling ? 'LNAV' : 'LNAV+V'; break;
         case RnavTypeFlags.LP:
@@ -575,7 +804,7 @@ export class FmsUtils {
    * @param approach The approach as an ApproaceProcedure
    * @returns The formatted name as a string.
    */
-  public static getApproachNameAsString(approach: ApproachProcedure): string {
+  public static getApproachNameAsString(approach: GarminApproachProcedure): string {
     const parts = FmsUtils.getApproachNameAsParts(approach);
     let name = parts.type;
     parts.subtype && (name += `${parts.subtype}`);
@@ -607,44 +836,70 @@ export class FmsUtils {
   }
 
   /**
-   * Gets an array of approaches from an airport.
+   * Gets an array of approach list items from an airport.
    * @param airport An airport.
    * @param includeVisual Whether to include visual approaches. Defaults to `true`.
-   * @returns An array of approaches.
+   * @returns An array of approach list items for the specified airport.
    */
   public static getApproaches(airport?: AirportFacility, includeVisual = true): ApproachListItem[] {
-    if (airport !== undefined) {
-      const ilsFound = new Set();
-      for (const approach of airport.approaches) {
-        if (approach.approachType == ApproachType.APPROACH_TYPE_ILS) {
-          ilsFound.add(approach.runway);
-        }
+    if (airport === undefined) {
+      return [];
+    }
+
+    const ilsFound = new Set();
+    for (const approach of airport.approaches) {
+      if (approach.approachType == ApproachType.APPROACH_TYPE_ILS) {
+        ilsFound.add(approach.runway);
       }
+    }
 
-      const approaches: ApproachListItem[] = [];
-      airport.approaches.forEach((approach, index) => {
-        if (approach.approachType !== ApproachType.APPROACH_TYPE_LOCALIZER || !ilsFound.has(approach.runway)) {
-          approaches.push({
-            approach,
-            index,
-            isVisualApproach: false
-          });
-        }
-      });
-
-      if (includeVisual) {
-        this.getVisualApproaches(airport).forEach(va => {
-          approaches.push({
-            approach: va,
-            index: -1,
-            isVisualApproach: true
-          });
+    const approaches: ApproachListItem[] = [];
+    airport.approaches.forEach((approach, index) => {
+      if (approach.approachType !== ApproachType.APPROACH_TYPE_LOCALIZER || !ilsFound.has(approach.runway)) {
+        approaches.push({
+          approach,
+          index,
+          isVisualApproach: false
         });
       }
+    });
 
-      return approaches;
+    if (includeVisual) {
+      FmsUtils.getVisualApproaches(airport).forEach(va => {
+        approaches.push({
+          approach: va,
+          index: -1,
+          isVisualApproach: true
+        });
+      });
     }
-    return [];
+
+    return approaches;
+  }
+
+  /**
+   * Gets an array of approach list items from an airport.
+   * @param airport An airport.
+   * @returns An array of approach list items for the specified airport.
+   */
+  public static getVfrApproaches(airport?: AirportFacility): VfrApproachListItem[] {
+    if (airport === undefined) {
+      return [];
+    }
+
+    const approaches: VfrApproachListItem[] = [];
+
+    for (let index = 0; index < airport.approaches.length; index++) {
+      const approach = FmsUtils.buildVfrApproach(airport, index);
+      if (approach) {
+        approaches.push({
+          approach,
+          index
+        });
+      }
+    }
+
+    return approaches;
   }
 
   /**
@@ -912,6 +1167,102 @@ export class FmsUtils {
     }
 
     return undefined;
+  }
+
+  /**
+   * Gets the nominal desired track for a flight plan leg, as `[dtk, magVar]` where `dtk` is the true desired track and
+   * `magVar` is the magnetic variation used to convert between true and magnetic desired tracks, both in degrees. If a
+   * nominal desired track could not be obtained, then the value of `dtk` will be equal to `NaN`.
+   * @param leg The leg for which to get the nominal desired track.
+   * @param out The array to which to write the results.
+   * @returns The nominal desired track for the specified flight plan leg, as `[dtk, magVar]` where `dtk` is the true
+   * desired track and `magVar` is the magnetic variation used to convert between true and magnetic desired tracks,
+   * both in degrees.
+   */
+  public static getNominalLegDtk(leg: LegDefinition, out: Float64Array): Float64Array {
+    out[0] = NaN;
+    out[1] = 0;
+
+    const legCalc = leg.calculated;
+
+    if (!legCalc) {
+      return out;
+    }
+
+    // Fallback resolution paths are equivalent to DF legs.
+    if (
+      !legCalc.endsInFallback
+      && BitFlags.isAll(legCalc.flightPath[0]?.flags ?? 0, FlightPathVectorFlags.Fallback | FlightPathVectorFlags.Direct)
+    ) {
+      return FmsUtils.getNominalLegDtkForEndCourse(legCalc, out);
+    }
+
+    switch (leg.leg.type) {
+      case LegType.FA:
+      case LegType.CA:
+      case LegType.VA:
+      case LegType.FM:
+      case LegType.VM:
+      case LegType.DF:
+      case LegType.CD:
+      case LegType.VD:
+      case LegType.CR:
+      case LegType.VR:
+      case LegType.CI:
+      case LegType.VI:
+        return FmsUtils.getNominalLegDtkForEndCourse(legCalc, out);
+      case LegType.HM:
+      case LegType.HF:
+      case LegType.HA:
+        // The nominal DTK for hold legs is the inbound course.
+        if (legCalc.flightPath.length > 0) {
+          // The last base flight path vector for hold legs should always be the inbound leg.
+          const vector = legCalc.flightPath[legCalc.flightPath.length - 1];
+          out[0] = FlightPathUtils.getVectorFinalCourse(vector);
+          out[1] = legCalc.courseMagVar;
+        }
+        break;
+      default: {
+        // For all other leg types, the nominal DTK is the DTK at the beginning of the leg.
+        const vector = legCalc.flightPath[0];
+        if (vector) {
+          out[0] = FlightPathUtils.getVectorInitialCourse(vector);
+          out[1] = legCalc.courseMagVar;
+        }
+      }
+    }
+
+    return out;
+  }
+
+  /**
+   * Gets the nominal desired track from a flight plan leg's last flight path vector, as `[dtk, magVar]` where `dtk` is
+   * the true desired track and `magVar` is the magnetic variation used to convert between true and magnetic desired
+   * tracks, both in degrees. If the last flight path vector is a great-circle vector, then the nominal desired track
+   * is equal to the vector's initial course. Otherwise, the nominal desired track is equal to the vector's final
+   * course. If no flight path vectors exist, then the output array is returned unchanged.
+   * @param legCalc The calculations for the flight plan leg for which to get the desired track.
+   * @param out The array to which to write the results.
+   * @returns The nominal desired track from the specified flight plan leg's last flight path vector, as
+   * `[dtk, magVar]` where `dtk` is the true desired track and `magVar` is the magnetic variation used to convert
+   * between true and magnetic desired tracks, both in degrees.
+   */
+  private static getNominalLegDtkForEndCourse(legCalc: LegCalculations, out: Float64Array): Float64Array {
+    const vector = legCalc.flightPath[legCalc.flightPath.length - 1];
+
+    if (!vector) {
+      return out;
+    }
+
+    if (FlightPathUtils.isVectorGreatCircle(vector)) {
+      out[0] = FlightPathUtils.getVectorInitialCourse(vector);
+    } else {
+      out[0] = FlightPathUtils.getVectorFinalCourse(vector);
+    }
+
+    out[1] = legCalc.courseMagVar;
+
+    return out;
   }
 
   /**
@@ -1237,7 +1588,10 @@ export class FmsUtils {
    * @returns Whether the two FMS flight phase objects are equal.
    */
   public static flightPhaseEquals(a: Readonly<FmsFlightPhase>, b: Readonly<FmsFlightPhase>): boolean {
-    return a.isApproachActive === b.isApproachActive && a.isPastFaf === b.isPastFaf && a.isInMissedApproach === b.isInMissedApproach;
+    return a.isApproachActive === b.isApproachActive
+      && a.isToFaf === b.isToFaf
+      && a.isPastFaf === b.isPastFaf
+      && a.isInMissedApproach === b.isInMissedApproach;
   }
 
   /**
@@ -1286,19 +1640,29 @@ export type ApproachNameParts = {
   runway?: string;
   /** Additonal flags (eg, RNAV type) */
   flags?: string;
-}
+};
 
 /**
- * An approach paired with its index in the facility info.
+ * An approach procedure paired with its index in its parent airport facility.
  */
 export type ApproachListItem = {
   /** The approach procedure. */
   approach: ApproachProcedure;
-  /** The index in the facility info the approach. */
+  /** The index of the approach in its parent airport facility. */
   index: number;
   /** Whether the approach is a visual approach. */
   isVisualApproach: boolean;
-}
+};
+
+/**
+ * A VFR approach procedure paired with the index of the published approach on which it is based.
+ */
+export type VfrApproachListItem = {
+  /** The VFR approach procedure. */
+  approach: GarminVfrApproachProcedure;
+  /** The index of the published approach on which the VFR approach is based. */
+  index: number;
+};
 
 /** Structure containing useful leg related indices. */
 export interface LegIndexes {

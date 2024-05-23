@@ -1,0 +1,28 @@
+html {
+  --touch-button-value-label-center-y: 33%;
+  --touch-button-value-value-center-y: 75%;
+  --touch-button-value-value-text-color: var(--g3x-color-white);
+
+  --touch-button-value-value-disable-filter: brightness(50%);
+}
+
+.touch-button-value>.touch-button-label {
+  top: var(--touch-button-value-label-center-y);
+}
+
+.touch-button-value-value {
+  position: absolute;
+  top: var(--touch-button-value-value-center-y);
+  width: 100%;
+  transform: translateY(-50%);
+  color: var(--touch-button-value-value-text-color);
+  text-align: center;
+}
+
+.touch-button-highlight>.touch-button-value-value {
+  color: var(--touch-button-highlight-text-color);
+}
+
+.touch-button-value.touch-button-disabled>.touch-button-value-value {
+  filter: var(--touch-button-value-value-disable-filter);
+}

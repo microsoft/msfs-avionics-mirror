@@ -1,18 +1,96 @@
 import {
-  AccelerometerEvents, AdcEvents, AhrsEvents, BasicNavAngleSubject, BasicNavAngleUnit, ClockEvents, EngineEvents, EventBus,
-  FlightPlanCopiedEvent, FlightPlanIndicationEvent, FlightPlannerEvents, FlightPlanOriginDestEvent, GNSSEvents, ICAO,
-  LNavEvents, NavAngleUnit, NavAngleUnitFamily, NavMath, NumberUnitInterface, NumberUnitSubject, OriginDestChangeType,
-  PressurizationEvents, Subject, Subscribable, UnitFamily, UnitType, VNavDataEvents, VNavEvents
+  AccelerometerEvents, Accessible, AdcEvents, AhrsEvents, BaseLNavEvents, BasicNavAngleSubject, BasicNavAngleUnit,
+  ClockEvents, Consumer, EngineEvents, EventBus, EventSubscriber, GNSSEvents, LNavEvents, LNavUtils,
+  MappedSubscribable, NavAngleUnit, NavAngleUnitFamily, NavMath, NumberUnitInterface, NumberUnitSubject,
+  PressurizationEvents, Subject, Subscribable, SubscribableUtils, UnitFamily, UnitType, VNavUtils
 } from '@microsoft/msfs-sdk';
 
-import { Fms } from '../../flightplan/Fms';
-import { LNavDataEvents } from '../../navigation/LNavDataEvents';
+import { BaseGarminVNavDataEvents, GarminVNavDataEvents } from '../../autopilot/vnav/GarminVNavDataEvents';
+import { BaseGarminVNavEvents, GarminVNavEvents } from '../../autopilot/vnav/GarminVNavEvents';
+import { BaseLNavDataEvents, LNavDataEvents } from '../../navigation/LNavDataEvents';
 import { NavDataFieldGpsValidity } from '../navdatafield/NavDataFieldModel';
 import { NavDataFieldType } from '../navdatafield/NavDataFieldType';
 import { EventBusNavDataBarFieldTypeModelFactory } from './EventBusNavDataBarFieldTypeModelFactory';
 import {
-  NavDataBarFieldConsumerValueModel, NavDataBarFieldConsumerValueNumberUnitModel, NavDataBarFieldGenericModel, NavDataBarFieldModel
+  NavDataBarFieldConsumerValueModel, NavDataBarFieldConsumerValueNumberUnitModel,
+  NavDataBarFieldModel
 } from './NavDataBarFieldModel';
+
+/**
+ * Checks whether an LNAV index is valid.
+ * @param lnavIndex The LNAV index to check.
+ * @returns Whether the specified LNAV index is valid.
+ */
+function isLNavIndexValid(lnavIndex: number | Accessible<number>): boolean {
+  if (typeof lnavIndex === 'object') {
+    lnavIndex = lnavIndex.get();
+  }
+
+  return LNavUtils.isValidLNavIndex(lnavIndex);
+}
+
+/**
+ * Resolves a base LNAV event bus topic for an LNAV index value. If the LNAV index is a static number, then the base
+ * topic will be resolved to a consumer of the resolved topic corresponding to the value of the index. If the the LNAV
+ * index is a subscribable, then the base topic will be resolved to a mapped subscribable of consumers of the resolved
+ * topic corresopnding to the value of the index subscribable.
+ * @param lnavIndex The LNAV index for which to resolve the topic.
+ * @param subscriber The subscriber to use to subscribe to event bus topics.
+ * @param topic The base LNAV event bus topic to resolve.
+ * @returns A consumer for the resolved LNAV event bus topic if `lnavIndex` is a static number, or a mapped
+ * subscribable of consumers of the resolved event bus topic if `lnavIndex` is a subscribable.
+ */
+function resolveLNavConsumer<T extends keyof (BaseLNavEvents & BaseLNavDataEvents)>(
+  lnavIndex: number | Subscribable<number>,
+  subscriber: EventSubscriber<LNavEvents & LNavDataEvents>,
+  topic: T
+): Consumer<(BaseLNavEvents & BaseLNavDataEvents)[T]> | MappedSubscribable<Consumer<(BaseLNavEvents & BaseLNavDataEvents)[T]> | null> {
+  return SubscribableUtils.isSubscribable(lnavIndex)
+    ? lnavIndex.map(index => {
+      return LNavUtils.isValidLNavIndex(index)
+        ? subscriber.on(`${topic}${LNavUtils.getEventBusTopicSuffix(index)}`)
+        : null;
+    }) as unknown as MappedSubscribable<Consumer<(BaseLNavEvents & BaseLNavDataEvents)[T]> | null>
+    : subscriber.on(`${topic}${LNavUtils.getEventBusTopicSuffix(lnavIndex)}`) as unknown as Consumer<(BaseLNavEvents & BaseLNavDataEvents)[T]>;
+}
+
+/**
+ * Checks whether a VNAV index is valid.
+ * @param vnavIndex The VNAV index to check.
+ * @returns Whether the specified VNAV index is valid.
+ */
+function isVNavIndexValid(vnavIndex: number | Accessible<number>): boolean {
+  if (typeof vnavIndex === 'object') {
+    vnavIndex = vnavIndex.get();
+  }
+
+  return VNavUtils.isValidVNavIndex(vnavIndex);
+}
+
+/**
+ * Resolves a base VNAV event bus topic for a VNAV index value. If the VNAV index is a static number, then the base
+ * topic will be resolved to a consumer of the resolved topic corresponding to the value of the index. If the the VNAV
+ * index is a subscribable, then the base topic will be resolved to a mapped subscribable of consumers of the resolved
+ * topic corresopnding to the value of the index subscribable.
+ * @param vnavIndex The VNAV index for which to resolve the topic.
+ * @param subscriber The subscriber to use to subscribe to event bus topics.
+ * @param topic The base VNAV event bus topic to resolve.
+ * @returns A consumer for the resolved VNAV event bus topic if `vnavIndex` is a static number, or a mapped
+ * subscribable of consumers of the resolved event bus topic if `vnavIndex` is a subscribable.
+ */
+function resolveVNavConsumer<T extends keyof (BaseGarminVNavEvents & BaseGarminVNavDataEvents)>(
+  vnavIndex: number | Subscribable<number>,
+  subscriber: EventSubscriber<GarminVNavEvents & GarminVNavDataEvents>,
+  topic: T
+): Consumer<(BaseGarminVNavEvents & BaseGarminVNavDataEvents)[T]> | MappedSubscribable<Consumer<(BaseGarminVNavEvents & BaseGarminVNavDataEvents)[T]> | null> {
+  return SubscribableUtils.isSubscribable(vnavIndex)
+    ? vnavIndex.map(index => {
+      return VNavUtils.isValidVNavIndex(index)
+        ? subscriber.on(`${topic}${VNavUtils.getEventBusTopicSuffix(index)}`)
+        : null;
+    }) as unknown as MappedSubscribable<Consumer<(BaseGarminVNavEvents & BaseGarminVNavDataEvents)[T]> | null>
+    : subscriber.on(`${topic}${VNavUtils.getEventBusTopicSuffix(vnavIndex)}`) as unknown as Consumer<(BaseGarminVNavEvents & BaseGarminVNavDataEvents)[T]>;
+}
 
 /**
  * Creates data models for Above Ground Level navigation data bar fields.
@@ -39,20 +117,38 @@ export class NavDataBarFieldAglModelFactory extends EventBusNavDataBarFieldTypeM
  * Creates data models for Bearing to Waypoint navigation data bar fields.
  */
 export class NavDataBarFieldBrgModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.BearingToWaypoint, GNSSEvents & LNavEvents & LNavDataEvents> {
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of NavDataBarFieldBrgModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<NavAngleUnitFamily, NavAngleUnit>> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnav_is_tracking'),
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_waypoint_bearing_mag'),
+      this.sub.on('magvar')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(0)),
       gpsValidity,
-      [
-        this.sub.on('lnav_is_tracking'),
-        this.sub.on('lnavdata_waypoint_bearing_mag'),
-        this.sub.on('magvar')
-      ],
+      consumers,
       [false, 0, 0] as [boolean, number, number],
       (sub, validity, [isTracking, bearing, magVar]) => {
         const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
-        sub.set((isTracking.get() && gpsValid) ? bearing.get() : NaN, magVar.get());
+        sub.set((isLNavIndexValid(this.lnavIndex) && isTracking.get() && gpsValid) ? bearing.get() : NaN, magVar.get());
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -155,63 +251,36 @@ export class NavDataBarFieldDensityAltitudeModelFactory extends EventBusNavDataB
 /**
  * Creates data models for Destination navigation data bar fields.
  */
-export class NavDataBarFieldDestModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.Destination, FlightPlannerEvents> {
+export class NavDataBarFieldDestModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.Destination, LNavEvents & LNavDataEvents> {
   /**
-   * Constructor.
+   * Creates a new instance of NavDataBarFieldDestModelFactory.
    * @param bus The event bus.
-   * @param fms The flight management system.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
    */
-  constructor(bus: EventBus, private readonly fms: Fms) {
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
     super(bus);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<string> {
-    let destinationIdent = '____';
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_destination_ident')
+    ] as const;
 
-    const originDestHandler = (event: FlightPlanOriginDestEvent): void => {
-      if (event.planIndex === Fms.PRIMARY_PLAN_INDEX && event.type === OriginDestChangeType.DestinationAdded) {
-        destinationIdent = event.airport === undefined ? '____' : ICAO.getIdent(event.airport);
-      } else if (event.type === OriginDestChangeType.DestinationRemoved) {
-        destinationIdent = '____';
-      }
-    };
-    const loadHandler = (event: FlightPlanIndicationEvent): void => {
-      if (event.planIndex !== Fms.PRIMARY_PLAN_INDEX) {
-        return;
-      }
-
-      const primaryPlan = this.fms.getPrimaryFlightPlan();
-      destinationIdent = primaryPlan.destinationAirport === undefined ? '____' : ICAO.getIdent(primaryPlan.destinationAirport);
-    };
-    const copyHandler = (event: FlightPlanCopiedEvent): void => {
-      if (event.targetPlanIndex !== Fms.PRIMARY_PLAN_INDEX) {
-        return;
-      }
-
-      const primaryPlan = this.fms.getPrimaryFlightPlan();
-      destinationIdent = primaryPlan.destinationAirport === undefined ? '____' : ICAO.getIdent(primaryPlan.destinationAirport);
-    };
-
-    const originDestConsumer = this.sub.on('fplOriginDestChanged');
-    originDestConsumer.handle(originDestHandler);
-
-    const loadConsumer = this.sub.on('fplLoaded');
-    loadConsumer.handle(loadHandler);
-
-    const copyConsumer = this.sub.on('fplCopied');
-    copyConsumer.handle(copyHandler);
-
-    return new NavDataBarFieldGenericModel(
+    return new NavDataBarFieldConsumerValueModel(
       Subject.create('____'),
       gpsValidity,
-      (sub) => {
-        sub.set(destinationIdent);
+      consumers,
+      [''] as [string],
+      (sub, validity, [ident]) => {
+        sub.set(ident.get() === '' ? '____' : ident.get());
       },
       () => {
-        originDestConsumer.off(originDestHandler);
-        loadConsumer.off(loadHandler);
-        copyConsumer.off(copyHandler);
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -221,19 +290,37 @@ export class NavDataBarFieldDestModelFactory extends EventBusNavDataBarFieldType
  * Creates data models for Distance to Waypoint navigation data bar fields.
  */
 export class NavDataBarFieldDisModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.DistanceToWaypoint, LNavEvents & LNavDataEvents> {
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of NavDataBarFieldDisModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnav_is_tracking'),
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_waypoint_distance')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN)),
       gpsValidity,
-      [
-        this.sub.on('lnav_is_tracking'),
-        this.sub.on('lnavdata_waypoint_distance')
-      ],
+      consumers,
       [false, 0] as [boolean, number],
       (sub, validity, [isTracking, distance]) => {
         const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
-        sub.set((isTracking.get() && gpsValid) ? distance.get() : NaN);
+        sub.set((isLNavIndexValid(this.lnavIndex) && isTracking.get() && gpsValid) ? distance.get() : NaN);
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -243,19 +330,39 @@ export class NavDataBarFieldDisModelFactory extends EventBusNavDataBarFieldTypeM
  * Creates data models for Distance to Destination navigation data bar fields.
  */
 export class NavDataBarFieldDtgModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.DistanceToDestination, LNavEvents & LNavDataEvents> {
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of NavDataBarFieldDtgModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnav_is_tracking'),
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_destination_distance')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN)),
       gpsValidity,
-      [
-        this.sub.on('lnav_is_tracking'),
-        this.sub.on('lnavdata_destination_distance')
-      ],
+      consumers,
       [false, 0] as [boolean, number],
       (sub, validity, [isTracking, distance]) => {
-        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
-        sub.set((isTracking.get() && gpsValid) ? distance.get() : NaN);
+        const gpsValidityValue = validity.get();
+        const isGpsValid = gpsValidityValue === NavDataFieldGpsValidity.DeadReckoning || gpsValidityValue === NavDataFieldGpsValidity.Valid;
+        const distanceValue = distance.get();
+        sub.set((isGpsValid && isLNavIndexValid(this.lnavIndex) && isTracking.get() && distanceValue >= 0) ? distanceValue : NaN);
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -265,20 +372,38 @@ export class NavDataBarFieldDtgModelFactory extends EventBusNavDataBarFieldTypeM
  * Creates data models for Desired Track navigation data bar fields.
  */
 export class NavDataBarFieldDtkModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.DesiredTrack, GNSSEvents & LNavEvents & LNavDataEvents> {
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of NavDataBarFieldDtkModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<NavAngleUnitFamily, NavAngleUnit>> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnav_is_tracking'),
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_dtk_mag'),
+      this.sub.on('magvar')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(0)),
       gpsValidity,
-      [
-        this.sub.on('lnav_is_tracking'),
-        this.sub.on('lnavdata_dtk_mag'),
-        this.sub.on('magvar')
-      ],
+      consumers,
       [false, 0, 0] as [boolean, number, number],
       (sub, validity, [isTracking, track, magVar]) => {
         const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
-        sub.set((isTracking.get() && gpsValid) ? track.get() : NaN, magVar.get());
+        sub.set((isLNavIndexValid(this.lnavIndex) && isTracking.get() && gpsValid) ? track.get() : NaN, magVar.get());
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -339,29 +464,49 @@ export class NavDataBarFieldEndModelFactory extends EventBusNavDataBarFieldTypeM
  * Creates data models for Time To Destination navigation data bar fields.
  */
 export class NavDataBarFieldEnrModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TimeToDestination, GNSSEvents & LNavEvents & LNavDataEvents> {
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of NavDataBarFieldEnrModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Duration>> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnav_is_tracking'),
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_destination_distance'),
+      this.sub.on('ground_speed')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.HOUR.createNumber(NaN)),
       gpsValidity,
-      [
-        this.sub.on('lnav_is_tracking'),
-        this.sub.on('lnavdata_destination_distance'),
-        this.sub.on('ground_speed')
-      ],
+      consumers,
       [false, 0, 0] as [boolean, number, number],
       (sub, validity, [isTracking, distance, gs]) => {
         let time = NaN;
-        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+        const gpsValidityValue = validity.get();
+        const gpsValid = gpsValidityValue === NavDataFieldGpsValidity.DeadReckoning || gpsValidityValue === NavDataFieldGpsValidity.Valid;
 
-        if (isTracking.get() && gpsValid) {
+
+        if (gpsValid && isLNavIndexValid(this.lnavIndex) && isTracking.get()) {
+          const distanceNM = distance.get();
           const gsKnots = gs.get();
-          if (gsKnots > 30) {
-            const distanceNM = distance.get();
+          if (distanceNM >= 0 && gsKnots > 30) {
             time = distanceNM / gsKnots;
           }
         }
         sub.set(time);
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -373,23 +518,34 @@ export class NavDataBarFieldEnrModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldEtaModelFactory
   extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TimeOfWaypointArrival, GNSSEvents & LNavEvents & LNavDataEvents & ClockEvents> {
 
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of NavDataBarFieldEtaModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<number> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnav_is_tracking'),
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_waypoint_distance'),
+      this.sub.on('ground_speed'),
+      this.sub.on('simTime')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       Subject.create(NaN),
       gpsValidity,
-      [
-        this.sub.on('lnav_is_tracking'),
-        this.sub.on('lnavdata_waypoint_distance'),
-        this.sub.on('ground_speed'),
-        this.sub.on('simTime')
-      ],
+      consumers,
       [false, 0, 0, NaN] as [boolean, number, number, number],
       (sub, validity, [isTracking, distance, gs, time]) => {
         let eta = NaN;
         const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
 
-        if (isTracking.get() && gpsValid) {
+        if (isLNavIndexValid(this.lnavIndex) && isTracking.get() && gpsValid) {
           const gsKnots = gs.get();
           if (gsKnots > 30) {
             const distanceNM = distance.get();
@@ -397,6 +553,13 @@ export class NavDataBarFieldEtaModelFactory
           }
         }
         sub.set(eta);
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -406,22 +569,33 @@ export class NavDataBarFieldEtaModelFactory
  * Creates data models for Time To Waypoint navigation data bar fields.
  */
 export class NavDataBarFieldEteModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TimeToWaypoint, GNSSEvents & LNavEvents & LNavDataEvents> {
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of NavDataBarFieldEteModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Duration>> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnav_is_tracking'),
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_waypoint_distance'),
+      this.sub.on('ground_speed')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.HOUR.createNumber(NaN)),
       gpsValidity,
-      [
-        this.sub.on('lnav_is_tracking'),
-        this.sub.on('lnavdata_waypoint_distance'),
-        this.sub.on('ground_speed')
-      ],
+      consumers,
       [false, 0, 0] as [boolean, number, number],
       (sub, validity, [isTracking, distance, gs]) => {
         let time = NaN;
         const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
 
-        if (isTracking.get() && gpsValid) {
+        if (isLNavIndexValid(this.lnavIndex) && isTracking.get() && gpsValid) {
           const gsKnots = gs.get();
           if (gsKnots > 30) {
             const distanceNM = distance.get();
@@ -429,6 +603,13 @@ export class NavDataBarFieldEteModelFactory extends EventBusNavDataBarFieldTypeM
           }
         }
         sub.set(time);
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -494,33 +675,52 @@ export class NavDataBarFieldFobModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldFodModelFactory
   extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.FuelOverDestination, GNSSEvents & LNavEvents & LNavDataEvents & EngineEvents> {
 
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of NavDataBarFieldFodModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Weight>> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnav_is_tracking'),
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_destination_distance'),
+      this.sub.on('ground_speed'),
+      this.sub.on('fuel_usable_total'),
+      this.sub.on('fuel_flow_total')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.GALLON_FUEL.createNumber(NaN)),
       gpsValidity,
-      [
-        this.sub.on('lnav_is_tracking'),
-        this.sub.on('lnavdata_destination_distance'),
-        this.sub.on('ground_speed'),
-        this.sub.on('fuel_usable_total'),
-        this.sub.on('fuel_flow_total')
-      ],
+      consumers,
       [false, 0, 0, 0, 0] as [boolean, number, number, number, number],
       (sub, validity, [isTracking, distance, gs, fuelRemaining, fuelFlow]) => {
         let fod = NaN;
-        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+        const gpsValidityValue = validity.get();
+        const gpsValid = gpsValidityValue === NavDataFieldGpsValidity.DeadReckoning || gpsValidityValue === NavDataFieldGpsValidity.Valid;
 
-        if (isTracking.get() && gpsValid) {
+        if (gpsValid && isLNavIndexValid(this.lnavIndex) && isTracking.get()) {
+          const distanceNM = distance.get();
           const gsKnots = gs.get();
           const fuelFlowGph = fuelFlow.get();
-          if (gsKnots > 30 && fuelFlowGph > 0) {
-            const distanceNM = distance.get();
+          if (distanceNM >= 0 && gsKnots > 30 && fuelFlowGph > 0) {
             const fuelGal = fuelRemaining.get();
             fod = fuelGal - distanceNM / gsKnots * fuelFlowGph;
           }
         }
         sub.set(fod);
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -615,30 +815,49 @@ export class NavDataBarFieldIsaModelFactory extends EventBusNavDataBarFieldTypeM
 export class NavDataBarFieldLdgModelFactory
   extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TimeOfDestinationArrival, GNSSEvents & LNavEvents & LNavDataEvents & ClockEvents> {
 
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of NavDataBarFieldLdgModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<number> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnav_is_tracking'),
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_destination_distance'),
+      this.sub.on('ground_speed'),
+      this.sub.on('simTime')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       Subject.create(NaN),
       gpsValidity,
-      [
-        this.sub.on('lnav_is_tracking'),
-        this.sub.on('lnavdata_destination_distance'),
-        this.sub.on('ground_speed'),
-        this.sub.on('simTime')
-      ],
+      consumers,
       [false, 0, 0, NaN] as [boolean, number, number, number],
       (sub, validity, [isTracking, distance, gs, time]) => {
         let eta = NaN;
-        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+        const gpsValidityValue = validity.get();
+        const gpsValid = gpsValidityValue === NavDataFieldGpsValidity.DeadReckoning || gpsValidityValue === NavDataFieldGpsValidity.Valid;
 
-        if (isTracking.get() && gpsValid) {
+        if (gpsValid && isLNavIndexValid(this.lnavIndex) && isTracking.get()) {
+          const distanceNM = distance.get();
           const gsKnots = gs.get();
-          if (gsKnots > 30) {
-            const distanceNM = distance.get();
+          if (distanceNM >= 0 && gsKnots > 30) {
             eta = UnitType.HOUR.convertTo(distanceNM / gsKnots, UnitType.MILLISECOND) + time.get();
           }
         }
         sub.set(eta);
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -721,20 +940,38 @@ export class NavDataBarFieldTasModelFactory extends EventBusNavDataBarFieldTypeM
  * Creates data models for Track Angle Error navigation data bar fields.
  */
 export class NavDataBarFieldTkeModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.TrackAngleError, GNSSEvents & LNavEvents & LNavDataEvents> {
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of NavDataBarFieldTkeModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Angle>> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnav_is_tracking'),
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_dtk_true'),
+      this.sub.on('track_deg_true')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.DEGREE.createNumber(NaN)),
       gpsValidity,
-      [
-        this.sub.on('lnav_is_tracking'),
-        this.sub.on('lnavdata_dtk_true'),
-        this.sub.on('track_deg_true')
-      ],
+      consumers,
       [false, 0, 0] as [boolean, number, number],
       (sub, validity, [isTracking, dtk, track]) => {
         const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
-        sub.set((isTracking.get() && gpsValid) ? NavMath.diffAngle(dtk.get(), track.get()) : NaN);
+        sub.set((isLNavIndexValid(this.lnavIndex) && isTracking.get() && gpsValid) ? NavMath.diffAngle(dtk.get(), track.get()) : NaN);
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -792,18 +1029,42 @@ export class NavDataBarFieldUtcModelFactory extends EventBusNavDataBarFieldTypeM
 /**
  * Creates data models for Vertical Speed Required navigation data bar fields.
  */
-export class NavDataBarFieldVsrModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.VerticalSpeedRequired, VNavDataEvents & VNavEvents> {
-  /** @inheritdoc */
+export class NavDataBarFieldVsrModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.VerticalSpeedRequired, GarminVNavEvents & GarminVNavDataEvents> {
+  /**
+   * Creates a new instance of NavDataBarFieldVsrModelFactory.
+   * @param bus The event bus.
+   * @param vnavIndex The index of the VNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly vnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Speed>> {
+    const consumers = [
+      resolveVNavConsumer(this.vnavIndex, this.sub, 'vnav_required_vs'),
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.FPM.createNumber(NaN)),
       gpsValidity,
-      [this.sub.on('vnav_required_vs')],
+      consumers,
       [0],
-      (sub, validity, [vsrSub]) => {
-        const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
-        const vsr = vsrSub.get();
-        sub.set((gpsValid && vsr !== 0) ? vsr : NaN);
+      (sub, validity, [vsr]) => {
+        if (isVNavIndexValid(this.vnavIndex)) {
+          const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
+          const vsrValue = vsr.get();
+          sub.set((gpsValid && vsrValue !== 0) ? vsrValue : NaN);
+        } else {
+          sub.set(NaN);
+        }
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -812,17 +1073,37 @@ export class NavDataBarFieldVsrModelFactory extends EventBusNavDataBarFieldTypeM
 /**
  * Creates data models for Active Waypoint navigation data bar fields.
  */
-export class NavDataBarFieldWptModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.Waypoint, LNavDataEvents> {
+export class NavDataBarFieldWptModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.Waypoint, LNavEvents & LNavDataEvents> {
+  /**
+   * Creates a new instance of NavDataBarFieldWptModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
   /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<string> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_waypoint_ident')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       Subject.create('_____'),
       gpsValidity,
-      [this.sub.on('lnavdata_waypoint_ident')],
+      consumers,
       [''],
-      (sub, validity, [identSubject]) => {
-        const ident = identSubject.get();
-        sub.set(ident === '' ? '_____' : ident);
+      (sub, validity, [identVal]) => {
+        const ident = identVal.get();
+        sub.set(!isLNavIndexValid(this.lnavIndex) || ident === '' ? '_____' : ident);
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }
@@ -832,19 +1113,37 @@ export class NavDataBarFieldWptModelFactory extends EventBusNavDataBarFieldTypeM
  * Creates data models for Cross Track navigation data bar fields.
  */
 export class NavDataBarFieldXtkModelFactory extends EventBusNavDataBarFieldTypeModelFactory<NavDataFieldType.CrossTrack, LNavEvents & LNavDataEvents> {
-  /** @inheritdoc */
+  /**
+   * Creates a new instance of NavDataBarFieldXtkModelFactory.
+   * @param bus The event bus.
+   * @param lnavIndex The index of the LNAV from which to source data. Defaults to `0`.
+   */
+  public constructor(bus: EventBus, protected readonly lnavIndex: number | Subscribable<number> = 0) {
+    super(bus);
+  }
+
+  /** @inheritDoc */
   public create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldModel<NumberUnitInterface<UnitFamily.Distance>> {
+    const consumers = [
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnav_is_tracking'),
+      resolveLNavConsumer(this.lnavIndex, this.sub, 'lnavdata_xtk')
+    ] as const;
+
     return new NavDataBarFieldConsumerValueModel(
       NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN)),
       gpsValidity,
-      [
-        this.sub.on('lnav_is_tracking'),
-        this.sub.on('lnavdata_xtk')
-      ],
+      consumers,
       [false, 0] as [boolean, number],
       (sub, validity, [isTracking, xtk]) => {
         const gpsValid = validity.get() === NavDataFieldGpsValidity.DeadReckoning || validity.get() === NavDataFieldGpsValidity.Valid;
-        sub.set((isTracking.get() && gpsValid) ? xtk.get() : NaN);
+        sub.set((isLNavIndexValid(this.lnavIndex) && isTracking.get() && gpsValid) ? xtk.get() : NaN);
+      },
+      () => {
+        for (const consumer of consumers) {
+          if (SubscribableUtils.isSubscribable(consumer)) {
+            consumer.destroy();
+          }
+        }
       }
     );
   }

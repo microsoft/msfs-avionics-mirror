@@ -1,0 +1,67 @@
+.single-horiz-container {
+  --horizontal-bar-gauge-color-line-height: 12px;
+  --horizontal-bar-gauge-color-zone-height: 10px;
+  --double-horizontal-bar-gauge-color-line-height: 20px;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.single-horiz-container .inner-frame {
+  width: 100%;
+  height: 14px;
+}
+
+.single-horiz-container .text-frame {
+  width: 100%;
+  height: 20px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  font-size: 17px;
+  flex-shrink: 0;
+  padding-left: 3px;
+  padding-right: 3px;
+}
+
+.single-horiz-container .inner-lines-frame {
+  position: absolute;
+  left: 0;
+  top: calc(100% - var(--horizontal-bar-gauge-color-line-height));
+  height: var(--horizontal-bar-gauge-color-line-height);
+  width: 100%;
+}
+
+.single-horiz-container .f {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.single-horiz-container .color-zone-fragment {
+  y: calc(100% - var(--horizontal-bar-gauge-color-zone-height));
+  height: var(--horizontal-bar-gauge-color-zone-height);
+}
+
+.single-horiz-container .color-zone-fragment-cover {
+  y: calc(100% - var(--horizontal-bar-gauge-color-zone-height));
+  height: var(--horizontal-bar-gauge-color-zone-height);
+}
+
+.single-horiz-container .gauge_pointer {
+  position: absolute;
+  width: 100%;
+  bottom: -1px;
+  left: 0px;
+}
+
+.single-horiz-container .gauge_pointer_text {
+  position: absolute;
+  font-size: 11px;
+  fill: var(--g3x-color-black);
+  text-align: center;
+}

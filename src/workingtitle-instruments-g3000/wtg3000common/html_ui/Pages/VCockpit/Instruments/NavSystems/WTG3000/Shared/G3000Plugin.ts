@@ -1,6 +1,9 @@
 import { AvionicsPlugin, EventBus, FacilityLoader, FlightPathCalculator, InstrumentBackplane } from '@microsoft/msfs-sdk';
+
 import { Fms } from '@microsoft/msfs-garminsdk';
+
 import { AvionicsConfig } from './AvionicsConfig/AvionicsConfig';
+import { G3000FlightPlannerId } from './CommonTypes';
 import { FmsSpeedUserSettingManager } from './Settings/FmsSpeedUserSettings';
 import { IauUserSettingManager } from './Settings/IauUserSettings';
 import { VSpeedUserSettingManager } from './Settings/VSpeedUserSettings';
@@ -25,7 +28,7 @@ export interface G3000PluginBinder {
   flightPathCalculator: FlightPathCalculator;
 
   /** The FMS instance. */
-  fms: Fms;
+  fms: Fms<G3000FlightPlannerId>;
 
   /** A manager for IAU user settings. */
   iauSettingManager: IauUserSettingManager;

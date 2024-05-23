@@ -5,6 +5,7 @@ import {
 
 import { Fms, NumberUnitDisplay, UnitsUserSettings, VNavDataProvider } from '@microsoft/msfs-garminsdk';
 
+import { G3000FlightPlannerId } from '../../../CommonTypes';
 import { FlightPlanStore } from '../../../FlightPlan/FlightPlanStore';
 import { VnavProfileStore } from '../../../Vnav/VnavProfileStore';
 import { AltitudeConstraintDisplay } from '../../Constraints/AltitudeConstraintDisplay';
@@ -20,7 +21,7 @@ export interface CurrentVnavProfilePanelProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
   /** The Fms. */
-  fms: Fms;
+  fms: Fms<G3000FlightPlannerId>;
   /** Which flight plan index to handle events for. */
   planIndex: number;
   /** The flight plan store to use. */

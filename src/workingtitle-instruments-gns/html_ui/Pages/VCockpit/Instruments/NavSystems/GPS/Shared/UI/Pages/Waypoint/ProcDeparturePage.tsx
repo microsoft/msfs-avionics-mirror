@@ -46,7 +46,7 @@ type GNSStandardMapControllers = GNSMapControllers & {
 export class ProcDeparturePage extends WaypointPage<ProcDeparturePageProps> {
   private readonly previewMap = GNSMapBuilder
     .withProcedurePreviewMap(this.props.bus, this.props.settingsProvider, this.props.gnsType, this.props.instrumentIndex)
-    .withController(GNSMapKeys.Controller, c => new GNSMapController(c, this.props.settingsProvider, this.props.fms.flightPlanner))
+    .withController(GNSMapKeys.Controller, c => new GNSMapController(c, this.props.settingsProvider, this.props.fms))
     .build<GNSMapModules, GNSMapLayers, GNSStandardMapControllers, GNSMapContextProps>('waypoint-page-map');
 
   private readonly planModule = this.previewMap.context.model.getModule(MapSystemKeys.FlightPlan);
@@ -566,8 +566,8 @@ export class ProcDeparturePage extends WaypointPage<ProcDeparturePageProps> {
                 ref={this.loadActivate}
                 showActivate={this.props.gnsType === 'wt530'}
                 gnsType={this.props.gnsType}
-                onLoad={this.insertDeparture.bind(this, false)}
-                onActivate={this.insertDeparture.bind(this, true)} />
+                onLoad={this.insertDeparture.bind(this)}
+                onActivate={this.insertDeparture.bind(this)} />
             </div>
           </div>
         </GNSUiControl>

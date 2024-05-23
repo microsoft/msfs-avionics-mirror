@@ -26,3 +26,8 @@ export type GtcOrientation = 'horizontal' | 'vertical';
  * An option defining the control modes supported by a GTC.
  */
 export type GtcControlSetup = 'all' | 'pfd' | 'mfd' | 'pfd-navcom';
+
+/**
+ * The ID of the G3000's flight planner.
+ */
+export type G3000FlightPlannerId = '';

@@ -1,0 +1,72 @@
+.cns-xpdr {
+  position: relative;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .cns-xpdr {
+  --cns-xpdr-code-button-width: 134px;
+}
+
+.cns-xpdr-combined-button {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cns-xpdr-code-button {
+  width: var(--cns-xpdr-code-button-width);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding-top: 5px;
+}
+
+.cns-xpdr-code-title {
+  font-size: 16px;
+}
+
+.cns-xpdr-bottom-container {
+  width: 110px;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-top: 2px;
+}
+
+.cns-xpdr-code-button .cns-xpdr-code {
+  font-size: 24px;
+}
+
+.cns-xpdr-code-button .cns-xpdr-mode {
+  font-size: 16px;
+}
+
+.cns-xdpr-code-button-transmit-mode .cns-xpdr-mode,
+.cns-xdpr-code-button-transmit-mode .cns-xpdr-code {
+  color: var(--g3x-color-green);
+}
+
+.cns-xpdr-code-button .cns-xpdr-code-interrogation {
+  font-size: 14px;
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  color: var(--g3x-color-green);
+}
+
+.cns-xpdr-ident-button {
+  flex-grow: 1;
+  font-size: 16px;
+
+  --touch-button-toggle-label-center-y: 40%;
+
+  --touch-button-toggle-bar-center-y: 85%;
+  --touch-button-toggle-bar-width: 75%;
+}

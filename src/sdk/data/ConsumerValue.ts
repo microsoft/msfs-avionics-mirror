@@ -1,16 +1,17 @@
+import { Accessible } from '../sub/Accessible';
 import { Subscription } from '../sub/Subscription';
 import { Consumer } from './Consumer';
 
 /**
  * A read-only {@link ConsumerValue}.
  */
-export type ReadonlyConsumerValue<T> = Pick<ConsumerValue<T>, 'get' | 'isPaused'>;
+export type ReadonlyConsumerValue<T> = Pick<ConsumerValue<T>, 'get' | 'isAlive' | 'isPaused'>;
 
 /**
  * Captures the state of a value from a consumer.
  */
-export class ConsumerValue<T> implements Subscription {
-  /** @inheritdoc */
+export class ConsumerValue<T> implements Accessible<T>, Subscription {
+  /** @inheritDoc */
   public readonly canInitialNotify = true;
 
   private readonly consumerHandler = (v: T): void => { this.value = v; };
@@ -47,10 +48,7 @@ export class ConsumerValue<T> implements Subscription {
     this.sub = consumer?.handle(this.consumerHandler);
   }
 
-  /**
-   * Gets the current value.
-   * @returns The current value.
-   */
+  /** @inheritDoc */
   public get(): T {
     return this.value;
   }

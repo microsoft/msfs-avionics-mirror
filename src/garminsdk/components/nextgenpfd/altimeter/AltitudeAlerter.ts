@@ -1,6 +1,6 @@
 import {
   AdcEvents, AltitudeSelectEvents, APEvents, ApproachGuidanceMode, ConsumerSubject, DebounceTimer, EventBus, MappedSubject, Subject, Subscribable,
-  SubscribableUtils, Subscription, VNavEvents, VNavPathMode
+  SubscribableUtils, Subscription, VNavEvents
 } from '@microsoft/msfs-sdk';
 
 import { AdcSystemEvents } from '../../../system/AdcSystem';
@@ -61,7 +61,6 @@ export class AltitudeAlerter {
 
   private readonly isOnGround = ConsumerSubject.create(null, false);
   private readonly gpApproachMode = ConsumerSubject.create(null, ApproachGuidanceMode.None);
-  private readonly vnavPathMode = ConsumerSubject.create(null, VNavPathMode.None);
 
   private readonly isGsGpActive = Subject.create(false);
 
@@ -121,7 +120,6 @@ export class AltitudeAlerter {
 
     this.isOnGround.setConsumer(sub.on('on_ground'));
     this.gpApproachMode.setConsumer(sub.on('gp_approach_mode'));
-    this.vnavPathMode.setConsumer(sub.on('vnav_path_mode'));
 
     this.gpApproachMode.sub(mode => {
       switch (mode) {
@@ -304,7 +302,6 @@ export class AltitudeAlerter {
 
     this.isOnGround.destroy();
     this.gpApproachMode.destroy();
-    this.vnavPathMode.destroy();
 
     this.adcIndexSub?.destroy();
     this.apLockSub?.destroy();

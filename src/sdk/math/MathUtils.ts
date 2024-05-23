@@ -130,4 +130,15 @@ export class MathUtils {
 
     return out;
   }
+
+  /**
+   * Gets the sign of a number, including 0.
+   * @param n The number to get the sign of.
+   * @returns 1.0 if the number is positive, +0 or Infinity;
+    -1.0 if the number is negative, -0 or -Infinity;
+    NaN if the number is NaN
+   */
+  public static hardSign(n: number): 1 | -1 | typeof NaN {
+    return isNaN(n) ? NaN : (n < 0 || Object.is(n, -0) ? -1 : 1);
+  }
 }

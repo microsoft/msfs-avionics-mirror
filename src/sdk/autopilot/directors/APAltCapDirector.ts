@@ -1,11 +1,11 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { DirectorState, PlaneDirector } from './PlaneDirector';
 import { SimVarValueType } from '../../data/SimVars';
 import { MathUtils } from '../../math/MathUtils';
 import { UnitType } from '../../math/NumberUnit';
 import { APValues } from '../APConfig';
-import { VNavUtils } from '../VNavUtils';
+import { VNavUtils } from '../vnav/VNavUtils';
+import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
  * Options for {@link APAltCapDirector}.

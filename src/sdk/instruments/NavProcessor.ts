@@ -1500,9 +1500,21 @@ export class NavProcessor {
     }
   }
 
-  /** Initialize the CDI. */
-  private initCdi(): void {
+  /**
+   * Initialize the CDI.
+   * @param retryIfFailed Whether to retry if initialization fails.
+   */
+  private initCdi(retryIfFailed: boolean): void {
     const src = this.navSources[this.cdiSourceIdx];
+    if (src === undefined) {
+      if (retryIfFailed) {
+        setTimeout(() => this.initCdi(false), 1000);
+        console.warn('initCdi: Unable to initialize CDI (NAV source not found). Retrying...');
+      } else {
+        console.error('initCdi: Unable to initialize CDI (NAV source not found)');
+      }
+      return;
+    }
     src.activeCdi = true;
     this.publisher.publishCdiSelect(src.srcId);
     if (src.obs) {

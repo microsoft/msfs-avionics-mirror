@@ -1,0 +1,164 @@
+.user-freq-name-input-dialog {
+  align-self: flex-end;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .user-freq-name-input-dialog {
+  flex-shrink: 1;
+  width: 650px;
+  margin: auto 0 25px;
+  padding: 0 6px 6px;
+
+  --user-freq-name-input-dialog-title-margin: 2px 0px 4px;
+  --user-freq-name-input-dialog-title-font-size: 21px;
+
+  --user-freq-name-input-dialog-top-row-height: 80px;
+
+  --user-freq-name-input-dialog-find-width: 82px;
+  --user-freq-name-input-dialog-backspace-width: 96px;
+
+  --user-freq-name-input-dialog-input-container-margin: 0px 17px;
+  --user-freq-name-input-dialog-input-container-row-gap: 8px;
+
+  --user-freq-name-input-dialog-input-box-height: 40px;
+  --user-freq-name-input-dialog-input-box-padding: 0px 6px 0px 2px;
+
+  --user-freq-name-input-dialog-input-font-size: 27px;
+
+  --user-freq-name-input-dialog-input-icon-scale: 1;
+
+  --user-freq-name-input-dialog-key-grid-margin: 6px 0px;
+  --user-freq-name-input-dialog-key-grid-row-height: 80px;
+  --user-freq-name-input-dialog-key-grid-row-gap: 4px;
+  --user-freq-name-input-dialog-key-grid-column-gap: 4px;
+
+  --user-freq-name-input-dialog-key-font-size: 38px;
+
+  --user-freq-name-input-dialog-bottom-row-button-width: 120px;
+  --user-freq-name-input-dialog-bottom-row-button-height: 80px;
+}
+
+.user-freq-name-input-dialog-title {
+  margin: var(--user-freq-name-input-dialog-title-margin);
+  font-size: var(--user-freq-name-input-dialog-title-font-size);
+  text-align: center;
+}
+
+.user-freq-name-input-dialog-top-row {
+  height: var(--user-freq-name-input-dialog-top-row-height);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.user-freq-name-input-dialog-find {
+  flex-shrink: 0;
+  --ui-nav-button-width: var(--user-freq-name-input-dialog-find-width);
+}
+
+.user-freq-name-input-dialog-backspace {
+  flex-shrink: 0;
+  --ui-nav-button-width: var(--user-freq-name-input-dialog-backspace-width);
+}
+
+.user-freq-name-input-dialog-input-container {
+  flex-grow: 1;
+  position: relative;
+  margin: var(--user-freq-name-input-dialog-input-container-margin);
+  font-size: var(--user-freq-name-input-dialog-input-font-size);
+  display: grid;
+  grid-template-rows: var(--user-freq-name-input-dialog-input-box-height) 1fr;
+  grid-template-columns: 100%;
+  grid-row-gap: var(--user-freq-name-input-dialog-input-container-row-gap);
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.user-freq-name-input-dialog-input-box {
+  padding: var(--user-freq-name-input-dialog-input-box-padding);
+  background: var(--cursor-input-background);
+  border-radius: var(--cursor-input-border-radius);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+.cursor-input.user-freq-name-input-dialog-input {
+  flex-grow: 1;
+  background: none;
+  border-radius: 0;
+  color: var(--g3x-color-cyan);
+}
+
+.user-freq-name-input-dialog-input.cursor-input-edit-inactive {
+  color: var(--g3x-color-black);
+}
+
+.user-freq-name-input-dialog-input .cursor-input-inactive {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: auto;
+  transform: translateY(-50%);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+}
+
+.user-freq-name-input-dialog-input-inactive-value-text-highlight {
+  background: var(--g3x-color-cyan);
+}
+
+.user-freq-name-input-dialog-input-slot-autocomplete .cursor-input-slot-character.cursor-input-slot-character-empty {
+  color: var(--g3x-color-black);
+  animation: none;
+}
+
+.user-freq-name-input-dialog-input-icon {
+  align-self: center;
+  transform: scale(var(--user-freq-name-input-dialog-input-icon-scale));
+  transform-origin: 100% 50%;
+}
+
+.user-freq-name-input-dialog-input-label {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.user-freq-name-input-dialog-key-grid {
+  position: relative;
+  margin: var(--user-freq-name-input-dialog-key-grid-margin);
+  padding: 0 var(--user-freq-name-input-dialog-key-grid-column-gap);
+  font-size: var(--user-freq-name-input-dialog-key-font-size);
+  display: grid;
+  grid-template-rows: repeat(5, var(--user-freq-name-input-dialog-key-grid-row-height));
+  grid-template-columns: repeat(8, 1fr);
+  grid-row-gap: var(--user-freq-name-input-dialog-key-grid-row-gap);
+  grid-column-gap: var(--user-freq-name-input-dialog-key-grid-column-gap);
+}
+
+.user-freq-name-input-dialog-key-wide {
+  grid-column: span 2;
+}
+
+.user-freq-name-input-dialog-key.numpad-touch-button {
+  align-self: center;
+  /*
+   * CSS hack to force square dimensions on the button. Fortunately for us the grid cells always have greater height
+   * than width, so setting width to 100% won't make the button overflow its cell.
+   */
+  width: 100%;
+  height: 0;
+  padding-bottom: 100%;
+}
+
+.user-freq-name-input-dialog-bottom-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+}

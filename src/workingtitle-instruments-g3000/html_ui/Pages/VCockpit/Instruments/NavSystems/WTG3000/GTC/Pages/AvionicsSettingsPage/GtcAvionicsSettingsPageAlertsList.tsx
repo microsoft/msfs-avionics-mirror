@@ -4,17 +4,20 @@ import {
 
 import { UnitsUserSettings } from '@microsoft/msfs-garminsdk';
 
-import { ControllableDisplayPaneIndex, NumberUnitDisplay, TouchdownCalloutsConfig, TouchdownCalloutUserSettings } from '@microsoft/msfs-wtg3000-common';
+import {
+  ControllableDisplayPaneIndex, NumberUnitDisplay, TouchdownCalloutOptions, TouchdownCalloutsConfig,
+  TouchdownCalloutUserSettings
+} from '@microsoft/msfs-wtg3000-common';
 
 import { GtcList } from '../../Components/List/GtcList';
 import { GtcListItem } from '../../Components/List/GtcListItem';
 import { GtcToggleTouchButton } from '../../Components/TouchButton/GtcToggleTouchButton';
 import { GtcTouchButton } from '../../Components/TouchButton/GtcTouchButton';
+import { GtcGenericView } from '../../GtcService/GtcGenericView';
 import { GtcInteractionEvent } from '../../GtcService/GtcInteractionEvent';
 import { GtcControlMode, GtcService, GtcViewLifecyclePolicy } from '../../GtcService/GtcService';
 import { SidebarState } from '../../GtcService/Sidebar';
 import { GtcAvionicsSettingsPageTabContent } from './GtcAvionicsSettingsPageTabContent';
-import { GtcGenericView } from '../../GtcService/GtcGenericView';
 
 import './GtcAvionicsSettingsPageAlertsList.css';
 
@@ -40,8 +43,11 @@ export interface GtcAvionicsSettingsPageAlertsListProps extends ComponentProps {
   /** The SidebarState to use. */
   sidebarState?: SidebarState | Subscribable<SidebarState | null>;
 
-  /** A touchdown callouts configuration object. */
-  touchdownCalloutsConfig: TouchdownCalloutsConfig;
+  /**
+   * A touchdown callouts configuration object. If not defined, then the list will not support user configuration of
+   * touchdown callout alerts.
+   */
+  touchdownCalloutsConfig?: TouchdownCalloutsConfig;
 }
 
 /**
@@ -65,12 +71,12 @@ export class GtcAvionicsSettingsPageAlertsList extends DisplayComponent<GtcAvion
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    if (this.props.touchdownCalloutsConfig.isUserConfigurable) {
+    if (this.props.touchdownCalloutsConfig?.isUserConfigurable === true) {
       this.props.gtcService.registerView(
         GtcViewLifecyclePolicy.Transient,
         GtcAvionicsSettingsPageAlertsPopupKeys.TouchdownCallouts,
         this.props.controlMode,
-        this.renderTouchdownCalloutsPopup.bind(this),
+        this.renderTouchdownCalloutsPopup.bind(this, Object.values(this.props.touchdownCalloutsConfig.options)),
         this.props.displayPaneIndex
       );
     }
@@ -166,7 +172,7 @@ export class GtcAvionicsSettingsPageAlertsList extends DisplayComponent<GtcAvion
             class='avionics-settings-page-row-right'
           />
         </GtcListItem>
-        {this.props.touchdownCalloutsConfig.isUserConfigurable && (
+        {this.props.touchdownCalloutsConfig?.isUserConfigurable === true && (
           <GtcListItem class='avionics-settings-page-row'>
             <GtcToggleTouchButton
               state={this.touchdownCalloutsManager.getSetting('touchdownCalloutMasterEnabled')}
@@ -191,15 +197,21 @@ export class GtcAvionicsSettingsPageAlertsList extends DisplayComponent<GtcAvion
 
   /**
    * Renders the touchdown callouts popup.
+   * @param calloutOptions Options for each callout altitude.
    * @param gtcService The GTC service.
    * @param controlMode The control mode to which the popup belongs.
    * @param displayPaneIndex The index of the display pane associated with the popup.
    * @returns The touchdown callouts popup, as a VNode.
    */
-  private renderTouchdownCalloutsPopup(gtcService: GtcService, controlMode: GtcControlMode, displayPaneIndex?: ControllableDisplayPaneIndex): VNode {
-    const calloutOptions = Object.values(this.props.touchdownCalloutsConfig.options).sort((a, b) => b.altitude - a.altitude);
+  private renderTouchdownCalloutsPopup(
+    calloutOptions: Iterable<Readonly<TouchdownCalloutOptions>>,
+    gtcService: GtcService,
+    controlMode: GtcControlMode,
+    displayPaneIndex?: ControllableDisplayPaneIndex
+  ): VNode {
+    const sortedCalloutOptions = Array.from(calloutOptions).sort((a, b) => b.altitude - a.altitude);
 
-    const buttonRefs = calloutOptions.map(() => FSComponent.createRef<DisplayComponent<any>>());
+    const buttonRefs = sortedCalloutOptions.map(() => FSComponent.createRef<DisplayComponent<any>>());
 
     return (
       <GtcGenericView
@@ -212,7 +224,7 @@ export class GtcAvionicsSettingsPageAlertsList extends DisplayComponent<GtcAvion
         }}
       >
         <div class='touchdown-callouts-popup gtc-popup-panel'>
-          {calloutOptions.map((options, index) => {
+          {sortedCalloutOptions.map((options, index) => {
             return (
               <GtcToggleTouchButton
                 ref={buttonRefs[index]}

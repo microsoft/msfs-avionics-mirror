@@ -55,6 +55,7 @@ export abstract class CourseNeedle extends DisplayComponent<CourseNeedleProps> {
   });
 
   private readonly toFromStyle = ObjectSubject.create({
+    display: 'none',
     transform: 'rotate3d(0, 0, 1, 0deg)'
   });
 
@@ -113,7 +114,12 @@ export abstract class CourseNeedle extends DisplayComponent<CourseNeedleProps> {
     }, true);
 
     this.toFromSub = this.props.navIndicator.toFrom.sub(toFrom => {
-      this.toFromStyle.set('transform', `rotate3d(0, 0, 1, ${toFrom === VorToFrom.FROM ? 180 : 0}deg`);
+      if (toFrom === null || toFrom === VorToFrom.OFF) {
+        this.toFromStyle.set('display', 'none');
+      } else {
+        this.toFromStyle.set('display', '');
+        this.toFromStyle.set('transform', `rotate3d(0, 0, 1, ${toFrom === VorToFrom.FROM ? 180 : 0}deg`);
+      }
     }, true);
 
     if (!this.props.hsiMap) {

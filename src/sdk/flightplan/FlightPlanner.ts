@@ -1,15 +1,20 @@
-import { EventBus, Publisher } from '../data';
+import { Consumer } from '../data/Consumer';
+import { EventBus, Publisher } from '../data/EventBus';
+import { EventSubscriber } from '../data/EventSubscriber';
 import { UnitType } from '../math/NumberUnit';
 import { FlightPlanLeg, ICAO, LegType } from '../navigation/Facilities';
 import { SubEvent } from '../sub/SubEvent';
 import { FlightPathCalculator } from './FlightPathCalculator';
-import { ActiveLegType, DirectToData, FlightPlan, FlightPlanModBatch, LegEventType, OriginDestChangeType, PlanEvents, SegmentEventType } from './FlightPlan';
+import {
+  ActiveLegType, DirectToData, FlightPlan, FlightPlanModBatch, LegEventType, OriginDestChangeType, PlanEvents,
+  SegmentEventType
+} from './FlightPlan';
 import { FlightPlanSegment, LegDefinition, ProcedureDetails } from './FlightPlanning';
 
 /**
- * Events published by the FlightPlanner class.
+ * Events published by {@link FlightPlanner} indexed by base topic names.
  */
-export interface FlightPlannerEvents {
+export type BaseFlightPlannerEvents = {
   /** A flight plan has been modified from a secondary source */
   fplLegChange: FlightPlanLegEvent;
 
@@ -72,7 +77,24 @@ export interface FlightPlannerEvents {
    * finished.
    */
   fplBatchAsyncClosed: FlightPlanModBatchEvent;
-}
+};
+
+/**
+ * The event topic suffix for a {@link FlightPlanner} with a specific ID.
+ */
+type FlightPlannerEventSuffix<ID extends string> = ID extends '' ? '' : `_${ID}`;
+
+/**
+ * Events published by a {@link FlightPlanner} with a specific ID.
+ */
+export type FlightPlannerEventsForId<ID extends string> = {
+  [P in keyof BaseFlightPlannerEvents as `${P}${FlightPlannerEventSuffix<ID>}`]: BaseFlightPlannerEvents[P];
+};
+
+/**
+ * All possible events published by {@link FlightPlanner}.
+ */
+export type FlightPlannerEvents = BaseFlightPlannerEvents & FlightPlannerEventsForId<string>;
 
 /**
  * An event fired when a flight plan leg is added, removed, or its vertical data is changed.
@@ -344,10 +366,10 @@ export interface FlightPlanModBatchEvent {
 }
 
 /**
- * Flight planner cross-instrument sync events.
+ * Base flight planner cross-instrument sync events.
  */
-type FlightPlannerSyncEvents = {
-  [P in keyof FlightPlannerEvents as `fplsync_${P}`]: FlightPlannerEvents[P]
+type BaseFlightPlannerSyncEvents = {
+  [P in keyof BaseFlightPlannerEvents as `fplsync_${P}`]: BaseFlightPlannerEvents[P]
 } & {
   /** A full set of flight plans has been requested. */
   fplsync_fplRequest: FlightPlanRequestEvent;
@@ -355,6 +377,18 @@ type FlightPlannerSyncEvents = {
   /** A full set of flight plans has been responded to. */
   fplsync_fplResponse: FlightPlanResponseEvent;
 }
+
+/**
+ * Cross-instrument sync events for a flight planner with a specific ID.
+ */
+type FlightPlannerSyncEventsForId<ID extends string> = {
+  [P in keyof BaseFlightPlannerSyncEvents as `${P}${FlightPlannerEventSuffix<ID>}`]: BaseFlightPlannerSyncEvents[P];
+};
+
+/**
+ * All possible flight planner cross-instrument sync events.
+ */
+type FlightPlannerSyncEvents = BaseFlightPlannerSyncEvents & FlightPlannerSyncEventsForId<string>;
 
 /**
  * An entry describing a synced flight plan modification batch.
@@ -374,11 +408,27 @@ type SyncedFlightPlanModBatchEntry = {
 };
 
 /**
+ * Configuration options for {@link FlightPlanner}.
+ */
+export type FlightPlannerOptions = {
+  /** The flight path calculator to use to compute flight paths for the planner's flight plans. */
+  calculator: FlightPathCalculator;
+
+  /** A function which generates flight plan leg names for the planner's flight plans. */
+  getLegName?: (leg: FlightPlanLeg) => string | undefined
+};
+
+/**
  * Manages the active flightplans of the navigational systems.
  */
-export class FlightPlanner {
+export class FlightPlanner<ID extends string = any> {
 
-  private static INSTANCE?: FlightPlanner;
+  private static readonly instances = new Map<string, FlightPlanner<any>>();
+
+  private readonly eventSuffix = (this.id === '' ? '' : `_${this.id}`) as FlightPlannerEventSuffix<ID>;
+  private readonly eventSubscriber = this.bus.getSubscriber<FlightPlannerEventsForId<ID>>();
+
+  private readonly calculator: FlightPathCalculator;
 
   /** The flight plans managed by this flight planner. */
   private readonly flightPlans: (FlightPlan | undefined)[] = [];
@@ -414,38 +464,64 @@ export class FlightPlanner {
     return this._activePlanIndex;
   }
 
+  private readonly getLegNameFunc: (leg: FlightPlanLeg) => string | undefined;
+
   /**
    * Creates an instance of the FlightPlanner.
-   * @param bus The event bus instance to notify changes on.
-   * @param calculator The flight path calculator to use with this planner.
-   * @param onLegNameRequested A callback fired when a flight plan leg is to be named.
+   * @param id This planner's ID.
+   * @param bus The event bus.
+   * @param options Options with which to configure the flight planner.
    */
-  private constructor(private readonly bus: EventBus,
-    private readonly calculator: FlightPathCalculator,
-    private onLegNameRequested: ((leg: FlightPlanLeg) => string | undefined) = FlightPlanner.buildDefaultLegName) {
+  private constructor(
+    public readonly id: ID,
+    private readonly bus: EventBus,
+    options: Readonly<FlightPlannerOptions>
+  ) {
 
-    this.publisher = bus.getPublisher<FlightPlannerEvents>();
+    this.calculator = options.calculator;
+    this.getLegNameFunc = options?.getLegName ?? FlightPlanner.buildDefaultLegName;
+
+    this.publisher = bus.getPublisher<FlightPlannerEvents & FlightPlannerSyncEvents>();
     const subscriber = bus.getSubscriber<FlightPlannerSyncEvents>();
 
-    subscriber.on('fplsync_fplRequest').handle(data => !this.ignoreSync && this.onFlightPlanRequest(data));
-    subscriber.on('fplsync_fplResponse').handle(data => !this.ignoreSync && this.onFlightPlanResponse(data));
-    subscriber.on('fplsync_fplCreated').handle(data => !this.ignoreSync && this.onPlanCreated(data));
-    subscriber.on('fplsync_fplDeleted').handle(data => !this.ignoreSync && this.onPlanDeleted(data));
-    subscriber.on('fplsync_fplActiveLegChange').handle(data => !this.ignoreSync && this.onActiveLegChanged(data));
-    subscriber.on('fplsync_fplLegChange').handle(data => !this.ignoreSync && this.onLegChanged(data));
-    subscriber.on('fplsync_fplSegmentChange').handle(data => !this.ignoreSync && this.onSegmentChanged(data));
-    subscriber.on('fplsync_fplOriginDestChanged').handle(data => !this.ignoreSync && this.onOriginDestChanged(data));
-    subscriber.on('fplsync_fplProcDetailsChanged').handle(data => !this.ignoreSync && this.onProcedureDetailsChanged(data));
-    subscriber.on('fplsync_fplIndexChanged').handle(data => !this.ignoreSync && this.onPlanIndexChanged(data));
-    subscriber.on('fplsync_fplUserDataSet').handle(data => !this.ignoreSync && this.onUserDataSet(data));
-    subscriber.on('fplsync_fplUserDataDelete').handle(data => !this.ignoreSync && this.onUserDataDelete(data));
-    subscriber.on('fplsync_fplLegUserDataSet').handle(data => !this.ignoreSync && this.onLegUserDataSet(data));
-    subscriber.on('fplsync_fplLegUserDataDelete').handle(data => !this.ignoreSync && this.onLegUserDataDelete(data));
-    subscriber.on('fplsync_fplDirectToDataChanged').handle(data => !this.ignoreSync && this.onDirectToDataChanged(data));
-    subscriber.on('fplsync_fplCalculatePended').handle(data => !this.ignoreSync && this.onCalculatePended(data));
-    subscriber.on('fplsync_fplCopied').handle(data => !this.ignoreSync && this.onPlanCopied(data));
-    subscriber.on('fplsync_fplBatchOpened').handle(data => !this.ignoreSync && this.onBatchOpened(data));
-    subscriber.on('fplsync_fplBatchClosed').handle(data => !this.ignoreSync && this.onBatchClosed(data));
+    subscriber.on(`fplsync_fplRequest${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onFlightPlanRequest(data));
+    subscriber.on(`fplsync_fplResponse${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onFlightPlanResponse(data));
+    subscriber.on(`fplsync_fplCreated${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onPlanCreated(data));
+    subscriber.on(`fplsync_fplDeleted${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onPlanDeleted(data));
+    subscriber.on(`fplsync_fplActiveLegChange${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onActiveLegChanged(data));
+    subscriber.on(`fplsync_fplLegChange${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onLegChanged(data));
+    subscriber.on(`fplsync_fplSegmentChange${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onSegmentChanged(data));
+    subscriber.on(`fplsync_fplOriginDestChanged${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onOriginDestChanged(data));
+    subscriber.on(`fplsync_fplProcDetailsChanged${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onProcedureDetailsChanged(data));
+    subscriber.on(`fplsync_fplIndexChanged${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onPlanIndexChanged(data));
+    subscriber.on(`fplsync_fplUserDataSet${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onUserDataSet(data));
+    subscriber.on(`fplsync_fplUserDataDelete${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onUserDataDelete(data));
+    subscriber.on(`fplsync_fplLegUserDataSet${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onLegUserDataSet(data));
+    subscriber.on(`fplsync_fplLegUserDataDelete${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onLegUserDataDelete(data));
+    subscriber.on(`fplsync_fplDirectToDataChanged${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onDirectToDataChanged(data));
+    subscriber.on(`fplsync_fplCalculatePended${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onCalculatePended(data));
+    subscriber.on(`fplsync_fplCopied${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onPlanCopied(data));
+    subscriber.on(`fplsync_fplBatchOpened${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onBatchOpened(data));
+    subscriber.on(`fplsync_fplBatchClosed${this.eventSuffix}`).handle(data => !this.ignoreSync && this.onBatchClosed(data));
+  }
+
+  /**
+   * Gets an event bus subscriber for topics published by this flight planner.
+   * @returns An event bus subscriber for topics published by this flight planner.
+   */
+  public getEventSubscriber(): EventSubscriber<FlightPlannerEventsForId<ID>> {
+    return this.eventSubscriber;
+  }
+
+  /**
+   * Subscribes to one of the event bus topics published by this flight planner.
+   * @param baseTopic The base name of the topic to which to subscribe.
+   * @returns A consumer for the specified event bus topic.
+   */
+  public onEvent<K extends keyof BaseFlightPlannerEvents>(baseTopic: K): Consumer<BaseFlightPlannerEvents[K]> {
+    return this.eventSubscriber.on(
+      `${baseTopic}${this.eventSuffix}` as keyof FlightPlannerEventsForId<ID>
+    ) as unknown as Consumer<BaseFlightPlannerEvents[K]>;
   }
 
   /**
@@ -461,7 +537,7 @@ export class FlightPlanner {
    */
   private onFlightPlanRequest(data: FlightPlanRequestEvent): void {
     this.ignoreSync = true;
-    this.publisher.pub('fplsync_fplResponse', {
+    this.publisher.pub(`fplsync_fplResponse${this.eventSuffix}`, {
       uid: data.uid,
       flightPlans: this.flightPlans.map(plan => {
         const newPlan = Object.assign({}, plan) as any;
@@ -478,7 +554,7 @@ export class FlightPlanner {
    */
   private sendFlightPlanRequest(): void {
     this.ignoreSync = true;
-    this.publisher.pub('fplsync_fplRequest', { uid: this.lastRequestUid = Math.trunc(Math.random() * Number.MAX_SAFE_INTEGER) }, true, false);
+    this.publisher.pub(`fplsync_fplRequest${this.eventSuffix}`, { uid: this.lastRequestUid = Math.trunc(Math.random() * Number.MAX_SAFE_INTEGER) }, true, false);
     this.ignoreSync = false;
   }
 
@@ -499,7 +575,7 @@ export class FlightPlanner {
         continue;
       }
 
-      const newPlan = new FlightPlan(i, this.calculator, this.onLegNameRequested);
+      const newPlan = new FlightPlan(i, this.calculator, this.getLegNameFunc);
       newPlan.copyFrom(data.flightPlans[i], true);
       newPlan.events = this.buildPlanEventHandlers(i);
 
@@ -554,7 +630,7 @@ export class FlightPlanner {
       return this.flightPlans[planIndex]!;
     }
 
-    const flightPlan = new FlightPlan(planIndex, this.calculator, this.onLegNameRequested);
+    const flightPlan = new FlightPlan(planIndex, this.calculator, this.getLegNameFunc);
     flightPlan.events = this.buildPlanEventHandlers(planIndex);
 
     this.flightPlans[planIndex] = flightPlan;
@@ -1327,25 +1403,73 @@ export class FlightPlanner {
    * @param data The event data.
    * @param sync Whether to send the sync event.
    */
-  private sendEvent<T extends keyof FlightPlannerEvents>(topic: T, data: (FlightPlannerEvents & FlightPlannerSyncEvents)[T], sync: boolean): void {
+  private sendEvent<T extends keyof BaseFlightPlannerEvents>(topic: T, data: (BaseFlightPlannerEvents & BaseFlightPlannerSyncEvents)[T], sync: boolean): void {
     if (sync) {
       this.ignoreSync = true;
-      this.publisher.pub(`fplsync_${topic}`, data as any, true, false);
+      this.publisher.pub(`fplsync_${topic}${this.eventSuffix}`, data as any, true, false);
       this.ignoreSync = false;
     }
 
-    this.publisher.pub(topic, data, false, false);
+    this.publisher.pub(`${topic}${this.eventSuffix}`, data as any, false, false);
   }
 
   /**
-   * Gets an instance of FlightPlanner.
+   * Gets an instance of FlightPlanner. If the requested instance does not exist, then a new instance will be created
+   * and returned.
+   * @param id The ID of the flight planner to get.
    * @param bus The event bus.
-   * @param calculator A flight path calculator.
-   * @param onLegNameRequested A callback fired when a flight plan leg is to be named.
-   * @returns An instance of FlightPlanner.
+   * @param options Options with which to configure the flight planner if a new one must be created.
+   * @returns The instance of FlightPlanner with the specified ID.
    */
-  public static getPlanner(bus: EventBus, calculator: FlightPathCalculator, onLegNameRequested?: ((leg: FlightPlanLeg) => string | undefined)): FlightPlanner {
-    return FlightPlanner.INSTANCE ??= new FlightPlanner(bus, calculator, onLegNameRequested);
+  public static getPlanner<ID extends string>(
+    id: ID,
+    bus: EventBus,
+    options: Readonly<FlightPlannerOptions>
+  ): FlightPlanner<ID>;
+  /**
+   * Gets an instance of FlightPlanner with the empty ID (`''`). If the instance does not exist, then a new instance
+   * will be created and returned.
+   * @param bus The event bus.
+   * @param calculator The flight path calculator to use to compute flight paths for the planner's flight plans if a
+   * new one must be created.
+   * @param getLegName A function which generates flight plan leg names for the planner's flight plans if a new one
+   * must be created.
+   * @returns The instance of FlightPlanner with the empty ID.
+   */
+  public static getPlanner(
+    bus: EventBus,
+    calculator: FlightPathCalculator,
+    getLegName?: ((leg: FlightPlanLeg) => string | undefined)
+  ): FlightPlanner<''>;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static getPlanner(
+    arg1: string | EventBus,
+    arg2: EventBus | FlightPathCalculator,
+    arg3?: Readonly<FlightPlannerOptions> | ((leg: FlightPlanLeg) => string | undefined)
+  ): FlightPlanner<any> {
+    let id: string;
+    let bus: EventBus;
+    let options: Readonly<FlightPlannerOptions>;
+
+    if (typeof arg1 === 'string') {
+      id = arg1;
+      bus = arg2 as EventBus;
+      options = arg3 as Readonly<FlightPlannerOptions>;
+    } else {
+      id = '';
+      bus = arg1;
+      options = {
+        calculator: arg2 as FlightPathCalculator,
+        getLegName: arg3 as ((leg: FlightPlanLeg) => string | undefined) | undefined
+      };
+    }
+
+    let instance = FlightPlanner.instances.get(id);
+    if (!instance) {
+      instance = new FlightPlanner(id, bus, options);
+      FlightPlanner.instances.set(id, instance);
+    }
+    return instance;
   }
 
   /**

@@ -2,10 +2,32 @@ import { FmcComponent } from './components';
 import { FmcRendererOptions } from './FmcScreenOptions';
 
 /** Type for FMC column rendering data */
-export type FmcRenderTemplateColumn = string | FmcComponent
+export type FmcRenderTemplateColumn = string | FmcComponent | PositionedFmcColumn;
+
+/** A positionable FMC column. */
+export type PositionedFmcColumn = [
+  /** The content, either a string or an FmcComponent. */
+  content: string | FmcComponent,
+  /** The (zero-indexed) index on which the first character is placed (or the last, if right-aligned). */
+  columnIndex: number,
+  /** If 'left', the text will continue to the right of the `columnIndex`.
+   * If 'right', the text will continue to the left of the `columnIndex`. */
+  alignment?: 'left' | 'right',
+];
+
+/** A rendered, positionable FMC column. */
+export interface RenderedPositionedFmcColumn {
+  /** The rendered content string. */
+  text: string,
+  /** The (zero-indexed) index on which the first character is placed (or the last, if right-aligned). */
+  columnIndex: number,
+  /** If 'left', the text will continue to the right of the `columnIndex`.
+   * If 'right', the text will continue to the left of the `columnIndex`. */
+  alignment?: 'left' | 'right',
+}
 
 /** Type for FMC row output data */
-export type FmcOutputRow = string[]
+export type FmcOutputRow = (string | RenderedPositionedFmcColumn)[]
 
 /** Type for FMC output data */
 export type FmcOutputTemplate = FmcOutputRow[]
@@ -41,8 +63,9 @@ export interface FmcRenderer {
    *
    * @param output the output to insert
    * @param rowIndex the row index to insert at
+   * @param template the template of the output
    *
    * @throws if `rowIndex` is too high
    */
-  editOutputTemplate(output: FmcOutputTemplate, rowIndex: number): void;
+  editOutputTemplate(output: FmcOutputTemplate, rowIndex: number, template: FmcRenderTemplate): void;
 }

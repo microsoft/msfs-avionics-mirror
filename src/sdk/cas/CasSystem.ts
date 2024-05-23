@@ -102,6 +102,14 @@ export interface CasEvents {
   /** Broadcast a master acknowledge event. */
   'cas_master_acknowledge': AnnunciationType;
 
+  /** Acknowledges a single alert. */
+  'cas_single_acknowledge': {
+    /** The alert key that's going active. */
+    key: CasAlertKey,
+    /** The priority the new alert will have. */
+    priority: AnnunciationType
+  };
+
   /** Enable a CAS inhibit state. */
   'cas_activate_inhibit_state': string;
 
@@ -299,6 +307,10 @@ export class CasSystem {
 
     this.casSubscriber.on('cas_master_acknowledge').handle(ackType => {
       this.handleAcknowledgement(ackType);
+    });
+
+    this.casSubscriber.on('cas_single_acknowledge').handle(({ key, priority }) => {
+      this.handleSingleAcknowledgement(key, priority);
     });
 
     // Requests the CAS system to suppress all annunciations with the provided priority.
@@ -572,36 +584,60 @@ export class CasSystem {
       for (const uuid of messagesAtPriority.keys()) {
         const message = messagesAtPriority.get(uuid);
         if (message !== undefined && !message.inhibited) {
-          message.acknowledged = true;
-
-          if (message.suffixes && message.acknowledgedSuffixes) {
-            // Copy the suffixes array into the acknowledged suffixes array since every suffix is now acknowledged
-            message.acknowledgedSuffixes.length = message.suffixes.length;
-            for (let i = 0; i < message.suffixes.length; i++) {
-              const suffix = message.suffixes[i];
-              if (message.acknowledgedSuffixes[i] !== suffix) {
-                message.acknowledgedSuffixes.splice(i, 0, suffix);
-
-                this.casStatePublisher.pub('cas_alert_acknowledged', {
-                  uuid: message.uuid,
-                  suffix: message.suffixes[i],
-                  priority: message.priority,
-                  acknowledged: true
-                }, false, false);
-              }
-            }
-          } else {
-            this.casStatePublisher.pub('cas_alert_acknowledged', {
-              uuid: message.uuid,
-              priority: message.priority,
-              acknowledged: true
-            }, false, false);
-          }
+          this.acknowledgeMessage(message);
         }
       }
     }
 
     this.refreshDisplayedAlerts();
+  }
+
+  /**
+   * Handle acknowledgement of a single message
+   * @param key The UUID and optional suffix of the alert to handle.
+   * @param priority The priority of the alert to handle.
+   */
+  protected handleSingleAcknowledgement(key: CasAlertKey, priority: AnnunciationType): void {
+    const messagesAtPriority = this.allMessages.get(priority);
+    if (messagesAtPriority) {
+      const messageToBeAck = messagesAtPriority.get(key.uuid);
+      if (messageToBeAck !== undefined && !messageToBeAck.inhibited) {
+        this.acknowledgeMessage(messageToBeAck);
+        this.refreshDisplayedAlerts();
+      }
+    }
+  }
+
+  /**
+   * Acknowledge a single message by mutating it.
+   * @param message The message to be acknowledged from CasSystem's `allMessages`
+   */
+  protected acknowledgeMessage(message: CasActiveMessage): void {
+    message.acknowledged = true;
+
+    if (message.suffixes && message.acknowledgedSuffixes) {
+      // Copy the suffixes array into the acknowledged suffixes array since every suffix is now acknowledged
+      message.acknowledgedSuffixes.length = message.suffixes.length;
+      for (let i = 0; i < message.suffixes.length; i++) {
+        const suffix = message.suffixes[i];
+        if (message.acknowledgedSuffixes[i] !== suffix) {
+          message.acknowledgedSuffixes.splice(i, 0, suffix);
+
+          this.casStatePublisher.pub('cas_alert_acknowledged', {
+            uuid: message.uuid,
+            suffix: message.suffixes[i],
+            priority: message.priority,
+            acknowledged: true
+          }, false, false);
+        }
+      }
+    } else {
+      this.casStatePublisher.pub('cas_alert_acknowledged', {
+        uuid: message.uuid,
+        priority: message.priority,
+        acknowledged: true
+      }, false, false);
+    }
   }
 
   /**

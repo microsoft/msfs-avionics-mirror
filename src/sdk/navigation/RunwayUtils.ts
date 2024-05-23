@@ -199,8 +199,8 @@ export class RunwayUtils {
     const pad = padded ? 2 : 0;
     const dashIndex = runway.designation.search('-');
 
-    const primary = `${(dashIndex < 0 ? runway.designation : runway.designation.substring(0, dashIndex)).padStart(pad)}${RunwayUtils.getDesignatorLetter(runway.designatorCharPrimary)}`;
-    const secondary = dashIndex < 0 ? '' : `-${runway.designation.substring(dashIndex + 1).padStart(pad)}${RunwayUtils.getDesignatorLetter(runway.designatorCharSecondary)}`;
+    const primary = `${(dashIndex < 0 ? runway.designation : runway.designation.substring(0, dashIndex)).padStart(pad, '0')}${RunwayUtils.getDesignatorLetter(runway.designatorCharPrimary)}`;
+    const secondary = dashIndex < 0 ? '' : `-${runway.designation.substring(dashIndex + 1).padStart(pad, '0')}${RunwayUtils.getDesignatorLetter(runway.designatorCharSecondary)}`;
 
     return primary + secondary;
   }

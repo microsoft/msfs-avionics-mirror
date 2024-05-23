@@ -8,6 +8,7 @@ import {
   MapPointerModule, MapProcedurePreviewModule, MapRangeController, ProcedureType, UnitsUserSettings
 } from '@microsoft/msfs-garminsdk';
 
+import { G3000FlightPlannerId } from '../../CommonTypes';
 import { DisplayPanesUserSettings } from '../../Settings/DisplayPanesUserSettings';
 import { IauUserSettingManager } from '../../Settings/IauUserSettings';
 import { MapUserSettings } from '../../Settings/MapUserSettings';
@@ -30,7 +31,7 @@ export interface ProcedurePreviewPaneViewProps extends DisplayPaneViewProps {
   bus: EventBus;
 
   /** The FMS. */
-  fms: Fms;
+  fms: Fms<G3000FlightPlannerId>;
 
   /** The flight path calculator to use to calculate the procedure previews. */
   flightPathCalculator: FlightPathCalculator;

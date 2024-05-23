@@ -1,16 +1,18 @@
 /// <reference types="@microsoft/msfs-types/js/avionics" />
 import {
-  AdcPublisher, AhrsPublisher, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, Clock, ConsumerSubject, ControlSurfacesPublisher,
-  DebounceTimer, EISPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator,
-  FlightPlanner, FlightTimerPublisher, FsInstrument, GameStateProvider, GNSSPublisher, GPSSatComputer, HEventPublisher,
-  InstrumentBackplane, LNavSimVarPublisher, MinimumsSimVarPublisher, NavComSimVarPublisher, SBASGroupName, SimVarValueType, SmoothingPathCalculator,
-  VNavSimVarPublisher, Wait
+  AdcPublisher, AhrsPublisher, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, Clock, ConsumerSubject,
+  ControlSurfacesPublisher, DebounceTimer, EISPublisher, EventBus, FacilityLoader, FacilityRepository,
+  FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner, FlightTimerPublisher, FsInstrument,
+  GameStateProvider, GNSSPublisher, GPSSatComputer, HEventPublisher, InstrumentBackplane, LNavObsSimVarPublisher,
+  LNavSimVarPublisher, MinimumsSimVarPublisher, NavComSimVarPublisher, SBASGroupName, SimVarValueType,
+  SmoothingPathCalculator, VNavSimVarPublisher, Wait
 } from '@microsoft/msfs-sdk';
 
 import {
-  AdcSystem, AhrsSystem, AoaSystem, DefaultMinimumsDataProvider, Fms, FmsPositionSystem, GarminNavSimVarPublisher, GarminSpeedConstraintStore, GarminVNavUtils,
-  GpsReceiverSelector, GpsReceiverSystem, LNavDataSimVarPublisher, MagnetometerSystem, MarkerBeaconSystem, NavEventsPublisher, RadarAltimeterSystem,
-  WeatherRadarAvionicsSystem,
+  AdcSystem, AhrsSystem, AoaSystem, DefaultMinimumsDataProvider, DefaultTerrainSystemStateDataProvider, Fms,
+  FmsPositionSystem, GarminNavSimVarPublisher, GarminSpeedConstraintStore, GarminVNavUtils, GpsReceiverSelector,
+  GpsReceiverSystem, LNavDataSimVarPublisher, MagnetometerSystem, MarkerBeaconSystem, NavEventsPublisher,
+  RadarAltimeterSystem, WeatherRadarAvionicsSystem,
 } from '@microsoft/msfs-garminsdk';
 
 import { AvionicsConfig } from './AvionicsConfig/AvionicsConfig';
@@ -52,6 +54,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
   protected readonly flightPathCalculator = new FlightPathCalculator(
     this.facLoader,
     {
+      initSyncRole: this.instrumentType === 'MFD' ? 'primary' : 'replica',
       defaultClimbRate: 300,
       defaultSpeed: 50,
       bankAngle: [[10, 60], [40, 300]],
@@ -63,7 +66,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
     },
     this.bus
   );
-  protected readonly flightPlanner = FlightPlanner.getPlanner(this.bus, this.flightPathCalculator);
+  protected readonly flightPlanner = FlightPlanner.getPlanner('', this.bus, { calculator: this.flightPathCalculator });
 
   protected readonly verticalPathCalculator = new SmoothingPathCalculator(this.bus, this.flightPlanner, Fms.PRIMARY_PLAN_INDEX, {
     defaultFpa: 3,
@@ -81,9 +84,11 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
     this.bus,
     this.flightPlanner,
     this.verticalPathCalculator,
-    this.config.vnav.advanced,
-    undefined,
-    this.config.fms.approach.visualApproachOptions
+    {
+      lnavIndex: 0,
+      isAdvancedVnav: this.config.vnav.advanced,
+      visualApproachOptions: this.config.fms.approach.visualApproachOptions
+    }
   );
 
   protected readonly avionicsStatusClient = new AvionicsStatusClient(this.instrumentType, this.instrument.instrumentIndex, this.bus);
@@ -100,6 +105,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
   protected readonly gnssPublisher = new GNSSPublisher(this.bus);
   protected readonly garminNavPublisher = new GarminNavSimVarPublisher(this.bus);
   protected readonly lNavPublisher = new LNavSimVarPublisher(this.bus);
+  protected readonly lnavObsPublisher = new LNavObsSimVarPublisher(this.bus);
   protected readonly lNavDataPublisher = new LNavDataSimVarPublisher(this.bus);
   protected readonly vNavPublisher = new VNavSimVarPublisher(this.bus);
   protected readonly navComSimVarPublisher = new NavComSimVarPublisher(this.bus);
@@ -116,6 +122,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
   protected readonly systems: AvionicsSystem[] = [];
 
   protected readonly minimumsDataProvider = new DefaultMinimumsDataProvider(this.bus, this.config.sensors.hasRadarAltimeter);
+  protected readonly terrainSystemStateDataProvider = new DefaultTerrainSystemStateDataProvider(this.bus, '');
 
   protected readonly iauSettingManager: IauUserSettingManager;
   protected readonly vSpeedSettingManager: VSpeedUserSettingManager;
@@ -149,6 +156,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
     this.backplane.addPublisher(InstrumentBackplaneNames.Gnss, this.gnssPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.GarminNav, this.garminNavPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.LNav, this.lNavPublisher);
+    this.backplane.addPublisher(InstrumentBackplaneNames.LNavObs, this.lnavObsPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.LNavData, this.lNavDataPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.VNav, this.vNavPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.NavCom, this.navComSimVarPublisher);

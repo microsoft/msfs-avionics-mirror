@@ -1,0 +1,27 @@
+.hsi-turn-rate-indicator {
+  position: relative;
+
+  --hsi-turn-rate-indicator-background-fill: rgba(0, 0, 0, 0.4);
+  --hsi-turn-rate-indicator-ticks-stroke: var(--g3x-color-white);
+  --hsi-turn-rate-indicator-ticks-stroke-width: 2px;
+
+  --hsi-turn-rate-indicator-vector-fill: var(--g3x-color-magenta);
+  --hsi-turn-rate-indicator-vector-stroke: var(--g3x-color-black);
+  --hsi-turn-rate-indicator-vector-stroke-width: 0.5px;
+}
+
+.hsi-turn-rate-indicator-border {
+  fill: var(--hsi-turn-rate-indicator-background-fill);
+}
+
+.hsi-turn-rate-indicator-ticks {
+  fill: none;
+  stroke: var(--hsi-turn-rate-indicator-ticks-stroke);
+  stroke-width: var(--hsi-turn-rate-indicator-ticks-stroke-width);
+}
+
+.hsi-turn-rate-indicator-vector {
+  fill: var(--hsi-turn-rate-indicator-vector-fill);
+  stroke: var(--hsi-turn-rate-indicator-vector-stroke);
+  stroke-width: var(--hsi-turn-rate-indicator-vector-stroke-width);
+}

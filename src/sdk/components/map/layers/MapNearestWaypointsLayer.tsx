@@ -2,9 +2,8 @@ import { EventBus } from '../../../data';
 import { GeoPoint, GeoPointReadOnly, LatLonInterface } from '../../../geo';
 import { BitFlags, UnitType, Vec2Math } from '../../../math';
 import {
-  Facility, FacilityLoader, FacilityRepository, FacilityRepositoryEvents, FacilitySearchType, FacilityType, ICAO,
-  NearestAirportSearchSession, NearestIntersectionSearchSession, NearestSearchResults,
-  NearestSearchSession, NearestRepoFacilitySearchSession, NearestVorSearchSession, UserFacility
+  Facility, FacilityLoader, FacilityRepository, FacilityRepositoryEvents, FacilitySearchType, FacilityType, ICAO, NearestAirportSearchSession,
+  NearestIntersectionSearchSession, NearestRepoFacilitySearchSession, NearestSearchResults, NearestSearchSession, NearestVorSearchSession, UserFacility
 } from '../../../navigation';
 import { Subscription } from '../../../sub/Subscription';
 import { FSComponent, VNode } from '../../FSComponent';

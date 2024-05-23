@@ -89,7 +89,7 @@ export type LocalUnitsUserSettingTypes = {
 /**
  * A manager for Garmin display units user settings.
  */
-export interface UnitsUserSettingManager extends UserSettingManager<UnitsUserSettingTypes> {
+export interface UnitsUserSettingManager<T extends UnitsUserSettingTypes & UserSettingRecord = UnitsUserSettingTypes> extends UserSettingManager<T> {
   /** The nav angle units to use for the current nav angle units setting. */
   readonly navAngleUnits: Subscribable<NavAngleUnit>;
 
@@ -128,45 +128,59 @@ export interface UnitsUserSettingManager extends UserSettingManager<UnitsUserSet
  * A default implementation of {@link UnitsUserSettingManager} which sources setting values from another setting
  * manager.
  */
-export class DefaultUnitsUserSettingManager implements UnitsUserSettingManager {
+export class DefaultUnitsUserSettingManager<T extends UnitsUserSettingTypes & UserSettingRecord = UnitsUserSettingTypes> implements UnitsUserSettingManager<T> {
   private static readonly TRUE_BEARING = BasicNavAngleUnit.create(false);
   private static readonly MAGNETIC_BEARING = BasicNavAngleUnit.create(true);
 
   private readonly _navAngleUnits = Subject.create(DefaultUnitsUserSettingManager.MAGNETIC_BEARING);
+  /** @inheritDoc */
   public readonly navAngleUnits = this._navAngleUnits as Subscribable<NavAngleUnit>;
 
   private readonly _distanceUnitsLarge = Subject.create(UnitType.NMILE);
+  /** @inheritDoc */
   public readonly distanceUnitsLarge = this._distanceUnitsLarge as Subscribable<Unit<UnitFamily.Distance>>;
 
   private readonly _distanceUnitsSmall = Subject.create(UnitType.FOOT);
+  /** @inheritDoc */
   public readonly distanceUnitsSmall = this._distanceUnitsSmall as Subscribable<Unit<UnitFamily.Distance>>;
 
   private readonly _speedUnits = Subject.create(UnitType.KNOT);
+  /** @inheritDoc */
   public readonly speedUnits = this._speedUnits as Subscribable<Unit<UnitFamily.Speed>>;
 
   private readonly _altitudeUnits = Subject.create(UnitType.FOOT);
+  /** @inheritDoc */
   public readonly altitudeUnits = this._altitudeUnits as Subscribable<Unit<UnitFamily.Distance>>;
 
   private readonly _verticalSpeedUnits = Subject.create(UnitType.FPM);
+  /** @inheritDoc */
   public readonly verticalSpeedUnits = this._verticalSpeedUnits as Subscribable<Unit<UnitFamily.Speed>>;
 
   private readonly _temperatureUnits = Subject.create(UnitType.CELSIUS);
+  /** @inheritDoc */
   public readonly temperatureUnits = this._temperatureUnits as Subscribable<Unit<UnitFamily.Temperature>>;
 
   private readonly _temperatureDeltaUnits = Subject.create(UnitType.DELTA_CELSIUS);
+  /** @inheritDoc */
   public readonly temperatureDeltaUnits = this._temperatureDeltaUnits as Subscribable<Unit<UnitFamily.TemperatureDelta>>;
 
   private readonly _weightUnits = Subject.create(UnitType.POUND);
+  /** @inheritDoc */
   public readonly weightUnits = this._weightUnits as Subscribable<Unit<UnitFamily.Weight>>;
 
   private readonly _fuelUnits = Subject.create(UnitType.GALLON_FUEL);
+  /** @inheritDoc */
   public readonly fuelUnits = this._fuelUnits as Subscribable<Unit<UnitFamily.Weight>>;
 
   private readonly _fuelFlowUnits = Subject.create(UnitType.GPH_FUEL);
+  /** @inheritDoc */
   public readonly fuelFlowUnits = this._fuelFlowUnits as Subscribable<Unit<UnitFamily.WeightFlux>>;
 
-  /** @inheritdoc */
-  public constructor(private readonly sourceSettingManager: UserSettingManager<UnitsUserSettingTypes>) {
+  /**
+   * Creates a new instance of DefaultUnitsUserSettingManager.
+   * @param sourceSettingManager The manager from which to source setting values.
+   */
+  public constructor(private readonly sourceSettingManager: UserSettingManager<T>) {
     sourceSettingManager.getSetting('unitsNavAngle').pipe(this._navAngleUnits, value => {
       return value === UnitsNavAngleSettingMode.True ? DefaultUnitsUserSettingManager.TRUE_BEARING : DefaultUnitsUserSettingManager.MAGNETIC_BEARING;
     });
@@ -245,28 +259,28 @@ export class DefaultUnitsUserSettingManager implements UnitsUserSettingManager {
     }, true);
   }
 
-  /** @inheritdoc */
-  public tryGetSetting<K extends string>(name: K): K extends keyof UnitsUserSettingTypes ? UserSetting<NonNullable<UnitsUserSettingTypes[K]>> : undefined {
+  /** @inheritDoc */
+  public tryGetSetting<K extends string>(name: K): K extends keyof T ? UserSetting<NonNullable<T[K]>> : undefined {
     return this.sourceSettingManager.tryGetSetting(name) as any;
   }
 
-  /** @inheritdoc */
-  public getSetting<K extends keyof UnitsUserSettingTypes>(name: K): UserSetting<NonNullable<UnitsUserSettingTypes[K]>> {
+  /** @inheritDoc */
+  public getSetting<K extends keyof T & string>(name: K): UserSetting<NonNullable<T[K]>> {
     return this.sourceSettingManager.getSetting(name);
   }
 
-  /** @inheritdoc */
-  public whenSettingChanged<K extends keyof UnitsUserSettingTypes>(name: K): Consumer<NonNullable<UnitsUserSettingTypes[K]>> {
+  /** @inheritDoc */
+  public whenSettingChanged<K extends keyof T & string>(name: K): Consumer<NonNullable<T[K]>> {
     return this.sourceSettingManager.whenSettingChanged(name);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public getAllSettings(): UserSetting<UserSettingValue>[] {
     return this.sourceSettingManager.getAllSettings();
   }
 
-  /** @inheritdoc */
-  public mapTo<M extends UserSettingRecord>(map: UserSettingMap<M, UnitsUserSettingTypes>): UserSettingManager<M & UnitsUserSettingTypes> {
+  /** @inheritDoc */
+  public mapTo<M extends UserSettingRecord>(map: UserSettingMap<M, T>): UserSettingManager<M & T> {
     return this.sourceSettingManager.mapTo(map);
   }
 }
@@ -319,7 +333,7 @@ export class UnitsUserSettings {
     }
 
     return UnitsUserSettings.LOCAL_INSTANCE = new DefaultUnitsUserSettingManager(
-      new DefaultUserSettingManager(bus, defs, true).mapTo(map)
+      new DefaultUserSettingManager(bus, defs, true).mapTo(map) as UserSettingManager<UnitsUserSettingTypes>
     );
   }
 
@@ -334,7 +348,7 @@ export class UnitsUserSettings {
       unitsAltitude: UnitsAltitudeSettingMode.Feet,
       unitsTemperature: UnitsTemperatureSettingMode.Celsius,
       unitsWeight: UnitsWeightSettingMode.Pounds,
-      unitsFuel: UnitsFuelSettingMode.Gallons
+      unitsFuel: UnitsFuelSettingMode.Gallons,
     };
   }
 }

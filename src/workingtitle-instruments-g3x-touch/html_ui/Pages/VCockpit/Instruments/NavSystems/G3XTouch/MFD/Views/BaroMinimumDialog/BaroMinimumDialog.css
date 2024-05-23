@@ -1,0 +1,28 @@
+.gdu-460-display .baro-minimum-dialog {
+  --baro-minimum-dialog-clear-font-size: 20px;
+}
+
+.baro-minimum-dialog-input .cursor-input-inactive {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  height: auto;
+  transform: translateY(-50%);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+}
+
+.baro-minimum-dialog-input-inactive-value-text {
+  background: var(--g3x-color-cyan);
+}
+
+.touch-button.baro-minimum-dialog-clear {
+  position: absolute;
+  left: var(--number-dialog-backspace-right);
+  top: var(--number-dialog-backspace-top);
+  width: var(--number-dialog-backspace-width);
+  height: var(--number-dialog-backspace-height);
+  font-size: var(--baro-minimum-dialog-clear-font-size);
+}

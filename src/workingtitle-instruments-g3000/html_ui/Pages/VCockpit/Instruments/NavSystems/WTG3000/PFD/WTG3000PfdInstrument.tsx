@@ -216,6 +216,7 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
     this.trafficAuralAlertManager?.init();
 
     this.minimumsDataProvider.init();
+    this.terrainSystemStateDataProvider.init();
     this.gpsIntegrityDataProvider.init();
     this.radarAltimeterDataProvider?.init();
     this.altimeterDataProvider.init();
@@ -274,6 +275,7 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
           minimumsDataProvider={this.minimumsDataProvider}
           windDataProvider={this.windDataProvider}
           vnavDataProvider={this.vnavDataProvider}
+          terrainSystemStateDataProvider={this.terrainSystemStateDataProvider}
           casSystem={this.casSystem}
           iauSettingManager={this.iauSettingManager}
           pfdSettingManager={this.pfdSettingManager}

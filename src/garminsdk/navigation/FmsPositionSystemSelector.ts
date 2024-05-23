@@ -20,7 +20,12 @@ export class FmsPositionSystemSelector {
   private readonly preferredSystemIndex: Subscribable<number>;
 
   private readonly _selectedIndex = Subject.create(-1);
+  /** The index of the selected FMS geo-positioning system, or `-1` if no system could be selected. */
   public readonly selectedIndex = this._selectedIndex as Subscribable<number>;
+
+  private readonly _selectedFmsPosMode = Subject.create(FmsPositionMode.None);
+  /** The positioning mode of the selected FMS geo-positioning system. */
+  public readonly selectedFmsPosMode = this._selectedFmsPosMode as Subscribable<FmsPositionMode>;
 
   private readonly fmsPosModes = new Map<number, ConsumerSubject<FmsPositionMode>>();
 
@@ -29,6 +34,7 @@ export class FmsPositionSystemSelector {
 
   private enabledSystemIndexesSub?: Subscription;
   private preferredSystemIndexSub?: Subscription;
+  private fmsPosModePipe?: Subscription;
 
   /**
    * Constructor.
@@ -45,6 +51,16 @@ export class FmsPositionSystemSelector {
   ) {
     this.enabledSystemIndexes = 'isSubscribableSet' in enabledSystemIndexes ? enabledSystemIndexes : SetSubject.create(enabledSystemIndexes);
     this.preferredSystemIndex = SubscribableUtils.toSubscribable(preferredSystemIndex ?? -1, true);
+
+    this._selectedIndex.sub(index => {
+      this.fmsPosModePipe?.destroy();
+
+      if (index < 1) {
+        this.fmsPosModePipe = undefined;
+      } else {
+        this.fmsPosModePipe = this.fmsPosModes.get(index)?.pipe(this._selectedFmsPosMode);
+      }
+    });
   }
 
   /**
@@ -54,7 +70,7 @@ export class FmsPositionSystemSelector {
    */
   public init(): void {
     if (!this.isAlive) {
-      throw new Error('GpsReceiverSelector: cannot initialize a dead selector');
+      throw new Error('FmsPositionSystemSelector: cannot initialize a dead selector');
     }
 
     if (this.isInit) {

@@ -43,6 +43,39 @@ export interface TouchSliderProps<S extends Subscribable<number> | MutableSubscr
   onValueChanged?: <T extends TouchSlider<S> = TouchSlider<S>>(value: number, state: S, slider: T) => void;
 
   /**
+   * A function which is called when a drag motion starts.
+   * @param position The current position of the mouse.
+   * @param slider The slider.
+   */
+  onDragStarted?: <T extends TouchSlider<S> = TouchSlider<S>>(position: ReadonlyFloat64Array, slider: T) => void;
+
+  /**
+   * A function which is called when the mouse is moved during a drag motion.
+   * @param position The current position of the mouse.
+   * @param prevPosition The position of the mouse at the previous update.
+   * @param initialPosition The position of the mouse at the start of the current drag motion.
+   * @param slider The slider.
+   */
+  onDragMoved?: <T extends TouchSlider<S> = TouchSlider<S>>(
+    position: ReadonlyFloat64Array,
+    prevPosition: ReadonlyFloat64Array,
+    initialPosition: ReadonlyFloat64Array,
+    slider: T
+  ) => void;
+
+  /**
+   * A function which is called when a drag motion ends.
+   * @param position The current position of the mouse.
+   * @param initialPosition The position of the mouse at the start of the drag motion.
+   * @param slider The slider.
+   */
+  onDragEnded?: <T extends TouchSlider<S> = TouchSlider<S>>(
+    position: ReadonlyFloat64Array,
+    initialPosition: ReadonlyFloat64Array,
+    slider: T
+  ) => void;
+
+  /**
    * Whether the slider is enabled, or a subscribable which provides it. Disabled sliders cannot be interacted with.
    * Defaults to `true`.
    */
@@ -289,13 +322,17 @@ export class TouchSlider<S extends Subscribable<number> | MutableSubscribable<nu
 
     Vec2Math.copy(position, this.referenceMousePosition);
     Vec2Math.copy(position, this.currentMousePosition);
+
+    this.props.onDragStarted && this.props.onDragStarted(position, this);
   }
 
   /**
    * Responds to when this slider is dragged.
    * @param position The current mouse position.
+   * @param prevPosition The position of the mouse at the previous update.
+   * @param initialPosition The position of the mouse at the start of the current drag motion.
    */
-  protected onDragMoved(position: ReadonlyFloat64Array): void {
+  protected onDragMoved(position: ReadonlyFloat64Array, prevPosition: ReadonlyFloat64Array, initialPosition: ReadonlyFloat64Array): void {
     Vec2Math.copy(position, this.currentMousePosition);
 
     const deltaPos = position[this.mainAxisIndex] - this.referenceMousePosition[this.mainAxisIndex];
@@ -308,12 +345,16 @@ export class TouchSlider<S extends Subscribable<number> | MutableSubscribable<nu
     } else {
       this.setDisplayedValue(this.draggedValue, false);
     }
+
+    this.props.onDragMoved && this.props.onDragMoved(position, prevPosition, initialPosition, this);
   }
 
   /**
    * Responds to when a mouse drag is released on this slider.
+   * @param position The current position of the mouse.
+   * @param initialPosition The position of the mouse at the start of the drag motion.
    */
-  protected onDragEnded(): void {
+  protected onDragEnded(position: ReadonlyFloat64Array, initialPosition: ReadonlyFloat64Array): void {
     const wasPrimed = this.isPrimed;
 
     this.setPrimed(false);
@@ -342,6 +383,8 @@ export class TouchSlider<S extends Subscribable<number> | MutableSubscribable<nu
     }
 
     this.setDisplayedValue(valueToSet, !valueToSetChanged);
+
+    this.props.onDragEnded && this.props.onDragEnded(position, initialPosition, this);
   }
 
   /**

@@ -1,10 +1,50 @@
-/// <reference types="@microsoft/msfs-types/js/simvar" />
-
-import { ConsumerValue, EventBus, SimVarValueType } from '../../data';
-import { MathUtils, SimpleMovingAverage } from '../../math';
-import { VNavEvents } from '../data/VNavEvents';
-import { VNavUtils } from '../VNavUtils';
+import { EventBus } from '../../data/EventBus';
+import { SimVarValueType } from '../../data/SimVars';
+import { MathUtils } from '../../math/MathUtils';
+import { SimpleMovingAverage } from '../../math/SimpleMovingAverage';
+import { Accessible } from '../../sub/Accessible';
+import { Subscribable } from '../../sub/Subscribable';
+import { SubscribableUtils } from '../../sub/SubscribableUtils';
+import { VNavVars } from '../vnav/VNavEvents';
+import { VNavUtils } from '../vnav/VNavUtils';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
+
+/**
+ * Vertical navigation guidance for {@link APVNavPathDirector}.
+ */
+export type APVNavPathDirectorGuidance = {
+  /** Whether this guidance is valid. */
+  isValid: boolean;
+
+  /**
+   * The flight path angle of the vertical track, in degrees. Positive angles indicate a downward-sloping
+   * track.
+   */
+  fpa: number;
+
+  /**
+   * The deviation of the vertical track from the airplane, in feet. Positive values indicate the track lies above
+   * the airplane.
+   */
+  deviation: number;
+};
+
+/**
+ * Options for {@link APVNavPathDirector}.
+ */
+export type APVNavPathDirectorOptions = {
+  /**
+   * The guidance for the director to use. If not defined, then the director will source guidance data from VNAV
+   * SimVars at the index defined by `vnavIndex`.
+   */
+  guidance?: Accessible<Readonly<APVNavPathDirectorGuidance>>;
+
+  /**
+   * The index of the VNAV from which the director should source guidance data from SimVars. Ignored if `guidance` is
+   * defined. Defaults to `0`.
+   */
+  vnavIndex?: number | Subscribable<number>;
+};
 
 /**
  * A VNAV Path autopilot director.
@@ -13,55 +53,66 @@ export class APVNavPathDirector implements PlaneDirector {
 
   public state: DirectorState;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onActivate?: () => void;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onArm?: () => void;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onDeactivate?: () => void;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean) => void;
-
-  protected readonly deviation = ConsumerValue.create(null, Number.MAX_SAFE_INTEGER);
-  protected readonly fpa = ConsumerValue.create(null, 0);
 
   protected verticalWindAverage = new SimpleMovingAverage(10);
 
+  protected readonly guidance?: Accessible<Readonly<APVNavPathDirectorGuidance>>;
+
+  protected readonly vnavIndex?: Subscribable<number>;
+
+  protected deviationSimVar: string = VNavVars.VerticalDeviation;
+  protected fpaSimVar: string = VNavVars.FPA;
+
+  protected readonly isGuidanceValidFunc: () => boolean;
+  protected readonly getFpaFunc: () => number;
+  protected readonly getDeviationFunc: () => number;
+
   /**
-   * Creates an instance of the APVNavPathDirector.
-   * @param bus The event bus to use with this instance.
+   * Creates a new instance of APVNavPathDirector.
+   * @param bus The event bus.
+   * @param options Options with which to configure the director.
    */
-  constructor(bus: EventBus) {
+  public constructor(bus: EventBus, options?: Readonly<APVNavPathDirectorOptions>) {
+    if (options?.guidance) {
+      this.guidance = options.guidance;
+
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.isGuidanceValidFunc = () => this.guidance!.get().isValid;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.getFpaFunc = () => this.guidance!.get().fpa;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.getDeviationFunc = () => this.guidance!.get().deviation;
+    } else {
+      this.vnavIndex = SubscribableUtils.toSubscribable(options?.vnavIndex ?? 0, true);
+      this.vnavIndex.sub(index => {
+        if (VNavUtils.isValidVNavIndex(index)) {
+          const suffix = index === 0 ? '' : `:${index}`;
+          this.deviationSimVar = `${VNavVars.VerticalDeviation}${suffix}`;
+          this.fpaSimVar = `${VNavVars.FPA}${suffix}`;
+        }
+      });
+
+      this.isGuidanceValidFunc = () => true;
+      this.getFpaFunc = SimVar.GetSimVarValue.bind(undefined, this.fpaSimVar, SimVarValueType.Degree);
+      this.getDeviationFunc = SimVar.GetSimVarValue.bind(undefined, this.deviationSimVar, SimVarValueType.Feet);
+    }
+
     this.state = DirectorState.Inactive;
-
-    const sub = bus.getSubscriber<VNavEvents>();
-
-    this.deviation.setConsumer(sub.on('vnav_vertical_deviation').whenChanged());
-    this.fpa.setConsumer(sub.on('vnav_fpa').whenChanged());
-
-    this.pauseSubs();
   }
 
-  /** Resumes Subscriptions. */
-  private resumeSubs(): void {
-    this.deviation.resume();
-    this.fpa.resume();
-  }
-
-  /** Pauses Subscriptions. */
-  private pauseSubs(): void {
-    this.deviation.pause();
-    this.fpa.pause();
-  }
-
-  /**
-   * Activates this director.
-   */
+  /** @inheritDoc */
   public activate(): void {
-    this.resumeSubs();
     this.state = DirectorState.Active;
     SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD', 'Bool', 0);
     if (this.onActivate !== undefined) {
@@ -69,11 +120,8 @@ export class APVNavPathDirector implements PlaneDirector {
     }
   }
 
-  /**
-   * Arms this director.
-   */
+  /** @inheritDoc */
   public arm(): void {
-    this.resumeSubs();
     if (this.state === DirectorState.Inactive) {
       this.state = DirectorState.Armed;
       if (this.onArm !== undefined) {
@@ -82,20 +130,20 @@ export class APVNavPathDirector implements PlaneDirector {
     }
   }
 
-  /**
-   * Deactivates this director.
-   */
+  /** @inheritDoc */
   public deactivate(): void {
     this.state = DirectorState.Inactive;
     this.onDeactivate && this.onDeactivate();
-    this.pauseSubs();
   }
 
-  /**
-   * Updates this director.
-   */
+  /** @inheritDoc */
   public update(): void {
     if (this.state === DirectorState.Active) {
+      if (!this.isGuidanceValidFunc()) {
+        this.deactivate();
+        return;
+      }
+
       this.drivePitch && this.drivePitch(this.getDesiredPitch(), true, true);
     }
   }
@@ -105,11 +153,14 @@ export class APVNavPathDirector implements PlaneDirector {
    * @returns The desired pitch angle.
    */
   protected getDesiredPitch(): number {
-    // fpa value is positive for down
-    const fpa = this.fpa.get();
+    // FPA uses positive-down convention.
+    const fpa = this.getFpaFunc();
+    // Deviation is positive if the path lies above the airplane.
+    const deviation = this.getDeviationFunc();
+
     const groundSpeed = SimVar.GetSimVarValue('GROUND VELOCITY', SimVarValueType.Knots);
 
-    const fpaPercentage = Math.max(this.deviation.get() / (VNavUtils.getPathErrorDistance(groundSpeed) * -1), -1) + 1;
+    const fpaPercentage = Math.max(deviation / (VNavUtils.getPathErrorDistance(groundSpeed) * -1), -1) + 1;
 
     // We limit desired pitch to avoid divebombing if something like a flight plan change suddenly puts you way above the path
     return Math.min(MathUtils.clamp(fpa * fpaPercentage, -1, fpa + 3), 10);

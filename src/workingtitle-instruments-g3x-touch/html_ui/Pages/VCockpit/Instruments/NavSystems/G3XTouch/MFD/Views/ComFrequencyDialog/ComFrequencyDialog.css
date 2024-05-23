@@ -1,0 +1,124 @@
+.com-freq-dialog {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .com-freq-dialog {
+  width: 570px;
+  height: 630px;
+  margin: 0 1px;
+  padding: 1px 14px 14px;
+  font-size: 19px;
+
+  --com-freq-dialog-title-font-size: 21px;
+
+  --com-freq-dialog-input-row-max-width: 480px;
+
+  --com-freq-dialog-freq-title-margin-bottom: 2px;
+
+  --com-freq-dialog-input-width: 158px;
+  --com-freq-dialog-input-height: 40px;
+  --com-freq-dialog-input-font-size: 26px;
+
+  --com-freq-dialog-numpad-width: 264px;
+  --com-freq-dialog-numpad-height: 352px;
+
+  --com-freq-dialog-middle-row-bottom-margin: 18px;
+
+  --com-freq-dialog-volume-label-font-size: 18px;
+}
+
+.com-freq-dialog-title {
+  font-size: var(--com-freq-dialog-title-font-size);
+  text-align: center;
+}
+
+.com-freq-dialog-input-row-wrapper {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+}
+
+.com-freq-dialog-input-row {
+  flex-grow: 1;
+  max-width: var(--com-freq-dialog-input-row-max-width);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.com-freq-dialog-input-row-center {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.com-freq-dialog-freq-title {
+  margin-bottom: var(--com-freq-dialog-freq-title-margin-bottom);
+}
+
+.com-freq-dialog-input {
+  width: var(--com-freq-dialog-input-width);
+  height: var(--com-freq-dialog-input-height);
+  font-size: var(--com-freq-dialog-input-font-size);
+  color: var(--g3x-color-cyan);
+
+  --cursor-input-slots-justify: center;
+}
+
+.com-freq-dialog-input.cursor-input-edit-inactive {
+  color: var(--g3x-color-black);
+}
+
+.com-freq-dialog-numpad {
+  align-self: center;
+  width: var(--com-freq-dialog-numpad-width);
+  height: var(--com-freq-dialog-numpad-height);
+  justify-items: center;
+  align-items: center;
+}
+
+.com-freq-dialog-middle-row {
+  position: relative;
+  bottom: var(--com-freq-dialog-middle-row-bottom-margin);
+  height: 0;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.com-freq-dialog-squelch {
+  width: var(--ui-nav-button-width);
+  height: var(--ui-nav-button-height);
+}
+
+.com-freq-dialog-volume {
+  width: var(--ui-nav-button-width);
+  height: var(--ui-nav-button-height);
+
+  --touch-button-value-label-center-y: 20%;
+  --touch-button-value-value-center-y: 65%;
+  --touch-button-value-value-text-color: var(--g3x-color-cyan);
+}
+
+.com-freq-dialog-volume .touch-button-label {
+  font-size: var(--com-freq-dialog-volume-label-font-size);
+}
+
+.com-freq-dialog-bottom-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.com-freq-dialog-monitor {
+  width: var(--ui-nav-button-width);
+  height: var(--ui-nav-button-height);
+}

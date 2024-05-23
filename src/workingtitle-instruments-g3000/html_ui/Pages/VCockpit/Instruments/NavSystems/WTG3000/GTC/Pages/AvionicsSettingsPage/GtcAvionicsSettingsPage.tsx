@@ -30,8 +30,11 @@ export interface GtcAvionicsSettingsPageProps extends GtcViewProps {
   /** An aural alerts configuration object. */
   auralAlertsConfig: AuralAlertsConfig;
 
-  /** A touchdown callouts configuration object. */
-  touchdownCalloutsConfig: TouchdownCalloutsConfig;
+  /**
+   * A touchdown callouts configuration object. If not defined, then the page will not support user configuration of
+   * touchdown callout alerts.
+   */
+  touchdownCalloutsConfig?: TouchdownCalloutsConfig;
 }
 
 /**

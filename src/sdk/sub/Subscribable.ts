@@ -1,17 +1,12 @@
+import { Accessible, MutableAccessible } from './Accessible';
 import { Subscription } from './Subscription';
 
 /**
  * An item which allows others to subscribe to be notified of changes in its state.
  */
-export interface Subscribable<T> {
+export interface Subscribable<T> extends Accessible<T> {
   /** Flags this object as a Subscribable. */
   readonly isSubscribable: true;
-
-  /**
-   * Gets the state of this subscribable.
-   * @returns the state of this subscribable.
-   */
-  get(): T;
 
   /**
    * Subscribes to changes in this subscribable's state.
@@ -118,18 +113,12 @@ export interface MappedSubscribable<T> extends Subscribable<T>, Subscription {
 }
 
 /**
- * A subscribable which can accept inputs to change its state. The state of the subscribable may be derived from the
+ * A subscribable that can accept inputs to change its state. The state of the subscribable may be derived from the
  * inputs directly or from transformed versions of the inputs.
  */
-export interface MutableSubscribable<T, I = T> extends Subscribable<T> {
+export interface MutableSubscribable<T, I = T> extends Subscribable<T>, MutableAccessible<T, I> {
   /** Flags this object as a MutableSubscribable. */
   readonly isMutableSubscribable: true;
-
-  /**
-   * Sets the state of this subscribable.
-   * @param value The input used to change the state.
-   */
-  set(value: I): void;
 }
 
 /**

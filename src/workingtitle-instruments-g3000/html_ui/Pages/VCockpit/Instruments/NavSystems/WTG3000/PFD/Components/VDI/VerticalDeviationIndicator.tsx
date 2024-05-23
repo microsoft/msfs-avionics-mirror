@@ -1,9 +1,9 @@
-import { GlidepathServiceLevel } from '@microsoft/msfs-garminsdk';
 import {
   ComponentProps, DisplayComponent, EventBus, FSComponent, MappedSubject, MathUtils, ObjectSubject, SetSubject,
   Subject, Subscribable, SubscribableMapFunctions, SubscribableSet, Subscription, VNode
 } from '@microsoft/msfs-sdk';
-import { VdiDataProvider } from './VdiDataProvider';
+
+import { GlidepathServiceLevel, VdiDataProvider } from '@microsoft/msfs-garminsdk';
 
 import './VerticalDeviationIndicator.css';
 
@@ -455,7 +455,7 @@ export class VerticalDeviationIndicator extends DisplayComponent<VerticalDeviati
 
           <div class='vdi-bug-container' style='position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden;'>
             <VerticalDeviationBug
-              ref={this.gpBugRef}
+              ref={this.gsBugRef}
               show={this.showGsBug}
               deviation={this.gsBugDeviation}
               getPosition={this.calculateScalePosition.bind(this)}
@@ -479,7 +479,7 @@ export class VerticalDeviationIndicator extends DisplayComponent<VerticalDeviati
             </VerticalDeviationBug>
 
             <VerticalDeviationBug
-              ref={this.gpBugRef}
+              ref={this.vnavBugRef}
               show={this.showVNavBug}
               deviation={this.vnavBugDeviation}
               getPosition={this.calculateScalePosition.bind(this)}

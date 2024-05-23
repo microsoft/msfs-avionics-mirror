@@ -1,0 +1,48 @@
+.ui-list {
+  position: relative;
+  overflow: hidden;
+}
+
+.gdu-460-display .ui-list {
+  --ui-list-scroll-bar-width: 4px;
+  --ui-list-scroll-bar-margin: 2px;
+}
+
+.gdu-470-display .ui-list {
+  --ui-list-scroll-bar-width: 4px;
+  --ui-list-scroll-bar-margin: 2px;
+}
+
+.ui-list .touch-list {
+  position: relative;
+  width: 100%;
+}
+
+.ui-list.ui-list-show-scroll-bar .touch-list {
+  width: calc(100% - var(--ui-list-scroll-bar-width) - var(--ui-list-scroll-bar-margin));
+}
+
+.ui-list .ui-list-scroll-bar-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--ui-list-scroll-bar-width);
+  height: calc(100% - 2px);
+  overflow: hidden;
+  display: none;
+}
+
+.ui-list.ui-list-show-scroll-bar .ui-list-scroll-bar-container {
+  display: block;
+}
+
+.ui-list .ui-list-scroll-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 20%;
+  background-color: #a6a6a6;
+  opacity: 0;
+  transition: opacity 1s;
+}

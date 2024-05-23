@@ -1,4 +1,4 @@
-import { DefaultUserSettingManager, EventBus } from '@microsoft/msfs-sdk';
+import { DefaultUserSettingManager, EventBus, UserSettingManager } from '@microsoft/msfs-sdk';
 
 export enum TrafficOperatingModeSetting {
   Standby = 'Standby',
@@ -47,15 +47,15 @@ export type TrafficUserSettingTypes = {
 /**
  * Utility class for retrieving traffic user setting managers.
  */
-export class TrafficUserSettings extends DefaultUserSettingManager<TrafficUserSettingTypes> {
-  private static INSTANCE: DefaultUserSettingManager<TrafficUserSettingTypes> | undefined;
+export class TrafficUserSettings {
+  private static INSTANCE: UserSettingManager<TrafficUserSettingTypes> | undefined;
 
   /**
    * Gets an instance of the traffic user settings manager.
    * @param bus The event bus.
    * @returns An instance of the traffic user settings manager.
    */
-  public static getManager(bus: EventBus): DefaultUserSettingManager<TrafficUserSettingTypes> {
+  public static getManager(bus: EventBus): UserSettingManager<TrafficUserSettingTypes> {
     return TrafficUserSettings.INSTANCE ??= new DefaultUserSettingManager(bus, [
       {
         name: 'trafficOperatingMode',

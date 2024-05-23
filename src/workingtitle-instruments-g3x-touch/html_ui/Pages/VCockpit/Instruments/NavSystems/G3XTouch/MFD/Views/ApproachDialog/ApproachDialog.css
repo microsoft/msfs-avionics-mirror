@@ -1,0 +1,215 @@
+.approach-dialog {
+  position: relative;
+  color: var(--g3x-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.gdu-460-display .approach-dialog {
+  width: 522px;
+  padding: 2px 9px 12px;
+  font-size: 19px;
+
+  --approach-dialog-title-margin-bottom: 5px;
+  --approach-dialog-title-font-size: 23px;
+
+  --approach-dialog-main-top-row-height: 65px;
+
+  --approach-dialog-airport-button-width: 160px;
+  --approach-dialog-airport-button-font-size: 23px;
+
+  --approach-dialog-main-divider-margin: 6px 0px;
+
+  --approach-dialog-approach-button-height: 80px;
+  --approach-dialog-approach-button-dropdown-width: 50px;
+
+  --approach-dialog-main-preview-container-height: 204px;
+  --approach-dialog-main-preview-container-margin: 17px 0px 12px;
+
+  --approach-dialog-preview-left-width: 245px;
+
+  --approach-dialog-preview-left-title-font-size: 18px;
+
+  --approach-dialog-preview-waypoints-box-padding: 19px 0px 0px 40px;
+
+  --approach-dialog-preview-navaid-box-height: 88px;
+  --approach-dialog-preview-navaid-box-margin-top: 20px;
+
+  --approach-dialog-preview-navaid-box-text-offset-y: 4px;
+
+  --approach-dialog-main-bottom-row-height: 90px;
+
+  --approach-dialog-load-button-width: 146px;
+
+  --approach-dialog-activate-button-width: 146px;
+
+  --approach-dialog-vtf-button-width: 188px;
+
+  --approach-dialog-empty-airport-height: 484px;
+
+  --approach-dialog-empty-airport-button-width: 260px;
+  --approach-dialog-empty-airport-button-height: 80px;
+  --approach-dialog-empty-airport-button-margin-top: 165px;
+}
+
+.approach-dialog-title {
+  margin-bottom: var(--approach-dialog-title-margin-bottom);
+  font-size: var(--approach-dialog-title-font-size);
+  text-align: center;
+}
+
+.approach-dialog-main-top-row {
+  position: relative;
+  height: var(--approach-dialog-main-top-row-height);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.approach-dialog-airport-button {
+  align-self: stretch;
+  width: var(--approach-dialog-airport-button-width);
+
+  --ui-wpt-display-ident-font-size: var(--approach-dialog-airport-button-font-size);
+  --ui-wpt-display-ident-color: var(--g3x-color-white);
+}
+
+.approach-dialog-airport-button .ui-wpt-display-name {
+  display: none;
+}
+
+.approach-dialog-main-divider {
+  height: 1px;
+  margin: var(--approach-dialog-main-divider-margin);
+  color: var(--g3x-color-border-light-gray);
+}
+
+.approach-dialog-approach-button {
+  height: var(--approach-dialog-approach-button-height);
+
+  --ui-list-select-button-label-height: 0px;
+  --ui-list-select-button-dropdown-width: var(--approach-dialog-approach-button-dropdown-width);
+}
+
+.approach-dialog-main-preview-container {
+  position: relative;
+  height: var(--approach-dialog-main-preview-container-height);
+  margin: var(--approach-dialog-main-preview-container-margin);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+}
+
+.approach-dialog-preview-left {
+  position: relative;
+  width: var(--approach-dialog-preview-left-width);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+
+  --ui-view-box-title-font-size: var(--approach-dialog-preview-left-title-font-size);
+}
+
+.approach-dialog-preview-waypoints-box {
+  flex-grow: 1;
+  position: relative;
+  padding: var(--approach-dialog-preview-waypoints-box-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+
+  --ui-wpt-display-ident-color: var(--g3x-color-white);
+  --ui-wpt-display-ident-font-size: 1em;
+}
+
+.approach-dialog-preview-waypoints-list-item {
+  position: relative;
+  width: 100%;
+  height: var(--touch-list-item-length, 100px);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.approach-dialog-preview-waypoints-list-item .ui-wpt-display-name {
+  display: none;
+}
+
+.approach-dialog-preview-navaid-box {
+  height: var(--approach-dialog-preview-navaid-box-height);
+  margin-top: var(--approach-dialog-preview-navaid-box-margin-top);
+  white-space: pre;
+}
+
+.approach-dialog-preview-navaid-ident {
+  position: absolute;
+  left: 25%;
+  top: calc(50% + var(--approach-dialog-preview-navaid-box-text-offset-y));
+  transform: translate(-50%, -50%);
+}
+
+.approach-dialog-preview-navaid-freq {
+  position: absolute;
+  left: 75%;
+  top: calc(50% + var(--approach-dialog-preview-navaid-box-text-offset-y));
+  transform: translate(-50%, -50%);
+}
+
+.approach-dialog-map-box {
+  position: relative;
+  border: solid 1px var(--g3x-color-border-gray);
+  background: var(--g3x-color-black);
+  overflow: hidden;
+}
+
+.approach-dialog-map-container {
+  position: relative;
+}
+
+.approach-dialog-map {
+  overflow: hidden;
+  transform: rotateX(0deg);
+}
+
+.approach-dialog-main-bottom-row {
+  position: relative;
+  height: var(--approach-dialog-main-bottom-row-height);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.approach-dialog-load-button {
+  width: var(--approach-dialog-load-button-width);
+}
+
+.approach-dialog-activate-button {
+  width: var(--approach-dialog-activate-button-width);
+}
+
+.approach-dialog-vtf-button {
+  width: var(--approach-dialog-vtf-button-width);
+}
+
+.approach-dialog-empty-airport {
+  position: relative;
+  height: var(--approach-dialog-empty-airport-height);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.approach-dialog-empty-airport-button {
+  position: relative;
+  width: var(--approach-dialog-empty-airport-button-width);
+  height: var(--approach-dialog-empty-airport-button-height);
+  margin-top: var(--approach-dialog-empty-airport-button-margin-top);
+}
+
+.gdu-460-display .approach-dialog-approach-select-dialog {
+  --ui-list-dialog-width: 504px;
+  --ui-list-dialog-font-size: 19px;
+}

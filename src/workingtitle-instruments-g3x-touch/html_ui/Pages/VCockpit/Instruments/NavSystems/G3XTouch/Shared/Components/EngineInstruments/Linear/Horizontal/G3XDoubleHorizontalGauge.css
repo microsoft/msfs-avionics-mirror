@@ -1,0 +1,95 @@
+.double-horiz-container {
+  --horizontal-bar-gauge-color-zone-height: 10px;
+  --double-horizontal-bar-gauge-color-line-height: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.double-horiz-container .inner-frame {
+  width: 100%;
+  height: 24px;
+}
+
+.double-horiz-container .text-frame {
+  width: 100%;
+  height: 20px;
+  margin-bottom: 6px;
+  font-size: 17px;
+}
+
+.double-horiz-container .inner-lines-frame {
+  position: absolute;
+  left: 0;
+  top: calc((100% - var(--double-horizontal-bar-gauge-color-line-height)) / 2);
+  height: var(--double-horizontal-bar-gauge-color-line-height);
+  width: 100%;
+}
+
+.double-horiz-container .color-zone-fragment {
+  y: calc((100% - var(--horizontal-bar-gauge-color-zone-height)) / 2);
+  height: var(--horizontal-bar-gauge-color-zone-height);
+}
+
+.double-horiz-container .color-zone-fragment-cover {
+  y: calc((100% - var(--horizontal-bar-gauge-color-zone-height)) / 2);
+  height: var(--horizontal-bar-gauge-color-zone-height);
+}
+
+.double-horiz-container .value_1, .value_2 {
+  top: 0px;
+  left: 0px;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.double-horiz-container .value_1 .gauge_pointer {
+  position: absolute;
+  width: 100%;
+  bottom: 9px;
+  left: 0px;
+}
+
+.double-horiz-container .value_2 .gauge_pointer {
+  position: absolute;
+  width: 100%;
+  bottom: -10px;
+  left: 0px;
+}
+
+.double-horiz-container .gauge_pointer_text {
+  position: absolute;
+  font-size: 11px;
+  fill: var(--g3x-color-black);
+  text-align: center;
+}
+
+.double_horiz_container {
+  position: relative;
+  width: 100%;
+  padding-top: 1px;
+}
+
+.double_horiz_container .gauge_pointer_top {
+  position: absolute;
+  top: 0px;
+  left: -4px;
+  width: 30px;
+  height: 30px;
+}
+
+.double_horiz_container .gauge_pointer_bottom {
+  position: absolute;
+  top: 2px;
+  width: 30px;
+  left: -4px;
+  height: 30px;
+}
+
+.double_horiz_container .gauge_pointer_text {
+  position: absolute;
+  font-size: 11px;
+  fill: var(--g3x-color-black);
+  text-align: center;
+}

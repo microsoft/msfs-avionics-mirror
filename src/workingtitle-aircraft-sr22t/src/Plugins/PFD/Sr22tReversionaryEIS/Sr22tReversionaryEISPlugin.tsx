@@ -31,7 +31,7 @@ export class Sr22tReversionaryEISPlugin extends G1000AvionicsPlugin<G1000PfdPlug
   public renderToPfdInstruments(): VNode {
     return (
       <div class="sr22t-pfd-reversionary-eis" ref={this.eisContainerRef}>
-        <div class={{ 'eis-eingine-tab': true, 'hidden': this.focusFirstTab.map((v) => !v) }} ref={this.eisEngineTabRef}>
+        <div class={{ 'eis-engine-tab': true, 'hidden': this.focusFirstTab.map((v) => !v) }} ref={this.eisEngineTabRef}>
           <EnginePowerDisplay bus={this.binder.bus} />
           <FuelGauge bus={this.binder.bus} />
           <OilGauge bus={this.binder.bus} />
@@ -72,15 +72,12 @@ export class Sr22tReversionaryEISPlugin extends G1000AvionicsPlugin<G1000PfdPlug
       this.focusFirstTab.set(page === 0);
     });
 
-    this.subscriber.on('vc_screen_state').handle((event) => { this.screenState.set(event.current); });
+    this.subscriber.on('vc_screen_state').handle((event) => this.screenState.set(event.current));
 
     this.binder.bus.on('mfd_power_on', (isMfdPoweredOn) => this.isMfdPoweredOn.set(isMfdPoweredOn));
 
-    MappedSubject.create(
-      ([screenState, isMfdPoweredOn]) => this.checkIsReversionary(screenState, isMfdPoweredOn),
-      this.screenState,
-      this.isMfdPoweredOn,
-    );
+    MappedSubject.create(this.screenState, this.isMfdPoweredOn)
+      .sub(([screenState, isMfdPoweredOn]) => this.checkIsReversionary(screenState, isMfdPoweredOn), true);
   }
 
   /**
@@ -94,7 +91,7 @@ export class Sr22tReversionaryEISPlugin extends G1000AvionicsPlugin<G1000PfdPlug
       if (attr == 'true') {
         this.reversionaryMode.set(true);
       }
-    } else if (screenState === ScreenState.ON && !isMfdPoweredOn) {
+    } else if (screenState === ScreenState.REVERSIONARY || (screenState === ScreenState.ON && !isMfdPoweredOn)) {
       this.reversionaryMode.set(true);
     } else {
       this.reversionaryMode.set(false);

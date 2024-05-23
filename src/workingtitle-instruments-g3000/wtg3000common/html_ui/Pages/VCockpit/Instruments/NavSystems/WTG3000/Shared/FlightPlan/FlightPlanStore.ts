@@ -2,19 +2,21 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
-  ActiveLegType, AdcEvents, AirportFacility, AltitudeRestrictionType, APEvents, FlightPlanSegment,
-  ApproachProcedure, ApproachTransition, BasicNavAngleSubject, BasicNavAngleUnit,
-  DirectToData, EnrouteTransition, EventBus, FacilityType, FlightPlan, FlightPlanActiveLegEvent, FlightPlanCalculatedEvent,
-  FlightPlanDirectToDataEvent, FlightPlanIndicationEvent, FlightPlanLegEvent, FlightPlannerEvents, FlightPlanOriginDestEvent, FlightPlanProcedureDetailsEvent,
-  FlightPlanSegmentEvent, FlightPlanSegmentType, FlightPlanUserDataEvent, ICAO, LegDefinition, LegEventType, LNavDataEvents, MagVar,
-  MappedSubject, NavAngleUnit, NavAngleUnitFamily, NumberUnitInterface, NumberUnitSubject, OneWayRunway, OriginDestChangeType, Procedure, ReadonlySubEvent,
-  RunwayTransition, SegmentEventType, SimpleUnit, SpeedRestrictionType, StringUtils, SubEvent, Subject, Subscribable, UnitFamily,
-  UnitType, VerticalFlightPhase, VNavEvents, VNavLeg, VNavPathCalculator, VNavUtils, SimVarValueType,
-  ConsumerSubject, EngineEvents, FlightPlanPredictorUtils, GNSSEvents, ClockEvents, FlightPlanUtils,
+  APEvents, ActiveLegType, AdcEvents, AirportFacility, AltitudeRestrictionType, ApproachProcedure, ApproachTransition,
+  BasicNavAngleSubject, BasicNavAngleUnit, ClockEvents, ConsumerSubject, DirectToData, EngineEvents, EnrouteTransition,
+  EventBus, FacilityType, FlightPlan, FlightPlanActiveLegEvent, FlightPlanCalculatedEvent, FlightPlanDirectToDataEvent,
+  FlightPlanIndicationEvent, FlightPlanLegEvent, FlightPlanOriginDestEvent, FlightPlanPredictorUtils,
+  FlightPlanProcedureDetailsEvent, FlightPlanSegment, FlightPlanSegmentEvent, FlightPlanSegmentType,
+  FlightPlanUserDataEvent, FlightPlanUtils, GNSSEvents, ICAO, LNavDataEvents, LegDefinition, LegEventType, MagVar,
+  MappedSubject, NavAngleUnit, NavAngleUnitFamily, NumberUnitInterface, NumberUnitSubject, OneWayRunway,
+  OriginDestChangeType, Procedure, ReadonlySubEvent, RunwayTransition, RunwayUtils, SegmentEventType, SimVarValueType,
+  SimpleUnit, SpeedRestrictionType, StringUtils, SubEvent, Subject, Subscribable, UnitFamily, UnitType, VNavLeg,
+  VNavPathCalculator, VNavUtils, VerticalFlightPhase,
 } from '@microsoft/msfs-sdk';
 
 import { DirectToState, Fms, FmsUtils, UnitsUserSettings } from '@microsoft/msfs-garminsdk';
 
+import { G3000FlightPlannerId } from '../CommonTypes';
 import { FlightPlanLegData, FlightPlanLegListData } from './FlightPlanLegListData';
 import { FlightPlanSegmentData } from './FlightPlanSegmentListData';
 
@@ -159,10 +161,16 @@ export class FlightPlanStore {
   private readonly _approachProcedure = Subject.create<ApproachProcedure | undefined>(undefined);
   public readonly approachProcedure = this._approachProcedure as Subscribable<ApproachProcedure | undefined>;
   private readonly _approachForDisplay = MappedSubject.create(([destination, visual, approach]) => {
-    if (approach) { return approach; }
-    if (destination && visual) {
-      return FmsUtils.getApproachFromPlan(this.fms.getFlightPlan(this.planIndex), destination);
+    if (approach) {
+      return approach;
     }
+
+    if (destination && visual) {
+      const runway = RunwayUtils.matchOneWayRunwayFromDesignation(destination, visual);
+      return runway ? FmsUtils.buildEmptyVisualApproach(runway) : undefined;
+    }
+
+    return undefined;
   }, this.destinationFacility, this.visualApproachOneWayRunwayDesignation, this.approachProcedure);
   public readonly approachForDisplay = this._approachForDisplay as Subscribable<ApproachProcedure | undefined>;
   private readonly _approachIndex = Subject.create(-1);
@@ -297,7 +305,7 @@ export class FlightPlanStore {
    */
   public constructor(
     public readonly bus: EventBus,
-    public readonly fms: Fms,
+    public readonly fms: Fms<G3000FlightPlannerId>,
     public readonly planIndex: number,
     public readonly isAdvancedVnav: boolean,
   ) { }
@@ -313,29 +321,26 @@ export class FlightPlanStore {
       this.isInitialized = true;
     }
 
-
-    const fpl = this.bus.getSubscriber<FlightPlannerEvents & VNavEvents>();
-
-    fpl.on('fplSegmentChange').handle(this.handleSegmentChange);
-    fpl.on('fplLegChange').handle(this.handleLegChange);
-    fpl.on('fplActiveLegChange').handle(this.handleActiveLegChange);
-    fpl.on('fplOriginDestChanged').handle(this.handleOriginDestChanged);
-    fpl.on('fplProcDetailsChanged').handle(this.handleProcDetailsChanged);
-    fpl.on('fplLoaded').handle(e => {
+    this.fms.flightPlanner.onEvent('fplSegmentChange').handle(this.handleSegmentChange);
+    this.fms.flightPlanner.onEvent('fplLegChange').handle(this.handleLegChange);
+    this.fms.flightPlanner.onEvent('fplActiveLegChange').handle(this.handleActiveLegChange);
+    this.fms.flightPlanner.onEvent('fplOriginDestChanged').handle(this.handleOriginDestChanged);
+    this.fms.flightPlanner.onEvent('fplProcDetailsChanged').handle(this.handleProcDetailsChanged);
+    this.fms.flightPlanner.onEvent('fplLoaded').handle(e => {
       if (e.planIndex === this.planIndex) {
         this.handleFlightPlanLoaded();
       }
     });
-    fpl.on('fplCopied').handle(e => {
+    this.fms.flightPlanner.onEvent('fplCopied').handle(e => {
       if (e.targetPlanIndex === this.planIndex) {
         this.handleFlightPlanLoaded();
       }
     });
-    fpl.on('fplUserDataSet').handle(this.handleUserDataSet);
-    fpl.on('fplUserDataDelete').handle(this.handleUserDataDelete);
-    fpl.on('fplCalculated').handle(this.handleFlightPlanCalculated);
-    fpl.on('fplIndexChanged').handle(this.handleFlightPlannerActiveIndexChanged);
-    fpl.on('fplDirectToDataChanged').handle(this.handleDirectToDataChanged);
+    this.fms.flightPlanner.onEvent('fplUserDataSet').handle(this.handleUserDataSet);
+    this.fms.flightPlanner.onEvent('fplUserDataDelete').handle(this.handleUserDataDelete);
+    this.fms.flightPlanner.onEvent('fplCalculated').handle(this.handleFlightPlanCalculated);
+    this.fms.flightPlanner.onEvent('fplIndexChanged').handle(this.handleFlightPlannerActiveIndexChanged);
+    this.fms.flightPlanner.onEvent('fplDirectToDataChanged').handle(this.handleDirectToDataChanged);
     this.fms.verticalPathCalculator!.vnavCalculated.on(this.handleVnavPathCalculated);
 
     // We do this in case fplProcDetailsChanged is received before the facloader has returned our origin/dest facilities

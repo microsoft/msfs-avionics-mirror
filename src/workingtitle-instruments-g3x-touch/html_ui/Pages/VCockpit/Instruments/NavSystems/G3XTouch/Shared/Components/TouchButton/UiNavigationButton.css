@@ -1,0 +1,34 @@
+.gdu-460-display {
+  --ui-nav-button-width: 120px;
+  --ui-nav-button-height: 80px;
+  --ui-nav-button-padding: 4px 0px;
+  --ui-nav-button-font-size: 16px;
+  --ui-nav-button-img-scale: 1;
+}
+
+.ui-nav-button.touch-button-img {
+  width: var(--ui-nav-button-width);
+  height: var(--ui-nav-button-height);
+  padding: var(--ui-nav-button-padding);
+  font-size: var(--ui-nav-button-font-size);
+  display: flex;
+  flex-flow: column-reverse nowrap;
+  justify-content: flex-start;
+}
+
+.touch-button-img.ui-nav-button>.touch-button-label {
+  position: relative;
+  left: 0px;
+  top: 0px;
+  transform: unset;
+  line-height: 1.1em;
+}
+
+.ui-nav-button>.touch-button-img-img {
+  flex-grow: 1;
+  position: relative;
+  left: 0px;
+  top: 0px;
+  object-fit: none;
+  transform: scale(var(--ui-nav-button-img-scale));
+}

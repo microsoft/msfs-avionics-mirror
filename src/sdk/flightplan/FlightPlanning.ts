@@ -293,6 +293,12 @@ export interface VerticalData {
   /** Whether altitude 2 should be displayed as a flight level. */
   displayAltitude2AsFlightLevel: boolean;
 
+  /** Whether altitude 1 is temperature compensated  */
+  isAltitude1TempCompensated: boolean;
+
+  /** Whether altitude 2 is temperature compensated  */
+  isAltitude2TempCompensated: boolean;
+
   /** The optional speed restriction for this leg, in knots IAS or Mach, depends on speedUnit. */
   speed: number;
 

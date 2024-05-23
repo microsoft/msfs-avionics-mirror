@@ -1,19 +1,21 @@
 import {
   AdcEvents, AltitudeRestrictionType, APEvents, ClockEvents, ConsumerSubject, ConsumerValue, EventBus, GNSSEvents, LegDefinition,
   MappedSubject, NumberUnitInterface, NumberUnitSubject, Subject, Subscribable, SubscribableUtils, Subscription, ToSubscribable,
-  UnitFamily, UnitType, VerticalFlightPhase, VNavEvents, VNavState
+  UnitFamily, UnitType, VerticalFlightPhase
 } from '@microsoft/msfs-sdk';
-import { GarminVNavTrackingPhase, VNavDataProvider } from '@microsoft/msfs-garminsdk';
+
+import { GarminVNavEvents, GarminVNavTrackingPhase, VNavDataProvider } from '@microsoft/msfs-garminsdk';
+
 import { FlightPlanLegData, FlightPlanStore } from '../FlightPlan';
 
 /** A store for vnav profile data. */
 export class VnavProfileStore {
-  private readonly vnavState = ConsumerSubject.create(null, VNavState.Disabled).pause();
   private readonly selectedAlt = ConsumerValue.create(null, 0).pause();
 
   private readonly _activeVnavWaypoint = Subject.create<LegDefinition | undefined>(undefined);
   private readonly _showCruiseAltitude = Subject.create(false);
 
+  private readonly _vnavEnabled = ConsumerSubject.create(null, false).pause();
   private readonly _cruiseAltitude = NumberUnitSubject.create(UnitType.FOOT.createNumber(NaN));
   private readonly _verticalSpeedTarget = NumberUnitSubject.create(UnitType.FPM.createNumber(NaN));
   private readonly _fpa = Subject.create(NaN, SubscribableUtils.NUMERIC_NAN_EQUALITY);
@@ -23,7 +25,6 @@ export class VnavProfileStore {
   private readonly _verticalSpeedRequired = NumberUnitSubject.create(UnitType.FPM.createNumber(NaN));
   private readonly _timeToValue = NumberUnitSubject.create(UnitType.SECOND.createNumber(NaN));
   private readonly _verticalDeviation = NumberUnitSubject.create(UnitType.FOOT.createNumber(NaN));
-  private readonly _vnavEnabled = this.vnavState.map(x => x !== VNavState.Disabled);
 
   private readonly isPathEditable = Subject.create(false);
   private readonly _isPathEditButtonEnabled = MappedSubject.create(
@@ -104,8 +105,8 @@ export class VnavProfileStore {
   private isPaused = true;
 
   private readonly pauseable = [
-    this.vnavState,
     this.selectedAlt,
+    this._vnavEnabled,
     this._fpaShowClimb,
     this._isPathEditButtonEnabled
   ];
@@ -126,10 +127,10 @@ export class VnavProfileStore {
     private readonly isAdvancedVnav: boolean,
     private readonly vnavDataProvider: VNavDataProvider,
   ) {
-    const sub = this.bus.getSubscriber<GNSSEvents & AdcEvents & VNavEvents & APEvents>();
+    const sub = this.bus.getSubscriber<GNSSEvents & AdcEvents & GarminVNavEvents & APEvents>();
 
-    this.vnavState.setConsumer(sub.on('vnav_state'));
     this.selectedAlt.setConsumer(sub.on('ap_altitude_selected'));
+    this._vnavEnabled.setConsumer(sub.on('vnav_is_enabled'));
 
     this.activeConstraintLegSub = this.vnavDataProvider.activeConstraintLeg.sub(this.updateActiveWaypoint.bind(this), false, true);
 
@@ -403,8 +404,9 @@ export class VnavProfileStore {
     this.verticalDataPipes.forEach(pipe => pipe.destroy());
 
     this.updateSub.destroy();
-    this.vnavState.destroy();
+
     this.selectedAlt.destroy();
+    this._vnavEnabled.destroy();
 
     this._fpaShowClimb.destroy();
     this._isPathEditButtonEnabled.destroy();

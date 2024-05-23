@@ -1,0 +1,147 @@
+html {
+  /* UI view panels */
+
+  --ui-view-panel-background: linear-gradient(to bottom, #3b3b3b 3px, #101010 24px, #000000 27px);
+  --ui-view-panel-border: 3px solid var(--g3x-color-border-gray);
+  --ui-view-panel-border-radius: 5px;
+}
+
+.gdu-460-display {
+  /* Titled UI views */
+
+  --ui-view-title-height: 40px;
+  --ui-view-title-font-size: 24px;
+  --ui-view-title-icon-height: 34px;
+  --ui-view-title-icon-height-margin-right: 4px;
+
+  --ui-view-panel-title-font-size: 20px;
+  --ui-view-panel-title-margin-bottom: 7px;
+
+  /* UI view boxes */
+
+  --ui-view-box-border-radius: 5px;
+  --ui-view-box-title-padding: 0px 6px;
+}
+
+.ui-view-generic-bg {
+  background: url("/Pages/VCockpit/Instruments/NavSystems/G3XTouch/Assets/Images/generic_background_tile.png");
+}
+
+/* ---- UI view panels (boxes with borders, rounded corners, and a gradient background) ---- */
+
+.ui-view-panel {
+  background: var(--ui-view-panel-background);
+  border: var(--ui-view-panel-border);
+  border-radius: var(--ui-view-panel-border-radius);
+}
+
+.ui-view-panel-title {
+  font-size: var(--ui-view-panel-title-font-size);
+  margin-bottom: var(--ui-view-panel-title-margin-bottom);
+}
+
+/* ---- Titled UI views (views with a box at the top displaying an icon and a title) ---- */
+
+.ui-titled-view {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.ui-view-title {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: var(--ui-view-title-height);
+  background: var(--g3x-color-black);
+  border-bottom: solid 1px #aaaaaa;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+  font-size: var(--ui-view-title-font-size);
+  color: var(--g3x-color-white);
+}
+
+.ui-view-title-icon {
+  height: var(--ui-view-title-icon-height);
+  margin-right: var(--ui-view-title-icon-height-margin-right);
+}
+
+.ui-titled-view .ui-view-title {
+  position: relative;
+}
+
+.ui-titled-view-content {
+  position: relative;
+  flex-grow: 1;
+}
+
+/* ---- UI view boxes ---- */
+
+.ui-view-box {
+  position: relative;
+  border: solid 1px var(--g3x-color-border-gray);
+  border-radius: var(--ui-view-box-border-radius);
+}
+
+.ui-view-box-title {
+  position: absolute;
+  left: 50%;
+  top: 0px;
+  transform: translate(-50%, -50%);
+  padding: var(--ui-view-box-title-padding);
+  background: var(--g3x-color-black);
+  font-size: var(--ui-view-box-title-font-size, 1em);
+  white-space: nowrap;
+}
+
+/* ---- Darken filter effect in UI views ---- */
+
+/*
+ * Sometimes the darken filter applied by view occlusion breaks on certain elements. This set of styles explicitly
+ * re-applies the filter on an element.
+ */
+
+.ui-darken-filter {
+  filter: none;
+  transition: filter 0.3s;
+}
+
+.ui-view-occlude-darken .ui-darken-filter {
+  filter: brightness(50%);
+}
+
+/* ---- Darken effect using semi-transparent element for layered elements in UI views ---- */
+
+/*
+ * Promoting the contents of UI views to layers will break the darken filter applied by view occlusion. This set of
+ * styles allows us to replace that effect by showing/hiding an element that overlays the view with a semi-transparent
+ * background color. The darken element should be rendered above the layered element in a container that has the same
+ * size and positioning as the layered element.
+ */
+
+.ui-layered-darken {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+
+  /* Allow pointer events to pass through. */
+  pointer-events: none;
+
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.ui-view-occlude-darken .ui-layered-darken {
+  opacity: 1;
+}

@@ -1,5 +1,7 @@
+import { ConsumerSubject, EventBus, LNavEvents, LNavUtils, NavComEvents, NavMath, Publisher, Wait } from '@microsoft/msfs-sdk';
+
 import { LNavDataEvents } from '@microsoft/msfs-garminsdk';
-import { ConsumerSubject, EventBus, LNavEvents, NavComEvents, NavMath, Publisher, Wait } from '@microsoft/msfs-sdk';
+
 import { AlertMessage, AlertMessageEvents } from '../UI/Pages/Dialogs/AlertsSubject';
 
 /**
@@ -16,11 +18,14 @@ export class GnsCourseController {
   /**
    * Creates an instance of a GnsCourseController.
    * @param bus An instance of the event bus.
+   * @param lnavIndex The index of the LNAV from which this controller sources data.
    * @param navIndex index to the nav system
    */
-  constructor(bus: EventBus, navIndex: number) {
-    this.dtk = ConsumerSubject.create(bus.getSubscriber<LNavDataEvents>().on('lnavdata_dtk_mag'), 0);
-    bus.getSubscriber<LNavEvents>().on('lnav_tracked_leg_index').whenChanged().handle(this.onTrackedLegChanged.bind(this));
+  constructor(bus: EventBus, lnavIndex: number, navIndex: number) {
+    const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(lnavIndex);
+
+    this.dtk = ConsumerSubject.create(bus.getSubscriber<LNavDataEvents>().on(`lnavdata_dtk_mag${lnavTopicSuffix}`), 0);
+    bus.getSubscriber<LNavEvents>().on(`lnav_tracked_leg_index${lnavTopicSuffix}`).whenChanged().handle(this.onTrackedLegChanged.bind(this));
 
     this.publisher = bus.getPublisher<AlertMessageEvents>();
 

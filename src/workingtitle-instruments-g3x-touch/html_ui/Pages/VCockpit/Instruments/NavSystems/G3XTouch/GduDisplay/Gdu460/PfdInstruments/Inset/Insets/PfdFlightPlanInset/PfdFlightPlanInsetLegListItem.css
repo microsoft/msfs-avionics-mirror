@@ -1,0 +1,44 @@
+.pfd-fpl-inset-leg-list-item {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3x-color-white);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.pfd-fpl-inset-leg-list-item.pfd-fpl-inset-leg-list-item-active {
+  color: var(--g3x-color-magenta);
+
+  --ui-fpl-leg-display-ident-color: var(--g3x-color-magenta);
+  --ui-fpl-leg-display-ident-special-color: var(--g3x-color-magenta);
+}
+
+.pfd-fpl-inset-leg-list-item-leg-display {
+  flex-basis: 0px;
+  flex-grow: 1;
+  position: relative;
+  font-size: 14px;
+
+  --ui-fpl-leg-display-top-width: 132px;
+  --ui-fpl-leg-display-ident-font-size: 24px;
+  --ui-fpl-leg-display-flag-font-size: 16px;
+}
+
+.gdu-display-eis-left.gdu-display-eis-wide .pfd-fpl-inset-leg-list-item-leg-display,
+.gdu-display-eis-right.gdu-display-eis-wide .pfd-fpl-inset-leg-list-item-leg-display {
+  --ui-fpl-leg-display-icon-margin-right: 2px;
+}
+
+.pfd-fpl-inset-leg-list-item-data-field-container {
+  position: relative;
+  min-width: 70px;
+  margin-left: 5px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  font-size: 21px;
+}

@@ -1,0 +1,211 @@
+.gdu-460-display {
+  /* In case the instrument size is not 1280x768, we will center the display horizontally and vertically. */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1280px;
+  height: 768px;
+  transform: translate(-50%, -50%);
+}
+
+.gdu-460-display .cns-data-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1280px;
+  height: 62px;
+}
+
+.gdu-460-display .status-bar-bottom {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1280px;
+  height: 24px;
+}
+
+.gdu-display-main-container {
+  order: 0;
+  position: absolute;
+  left: 0;
+  top: 62px;
+  width: 1280px;
+  height: 682px;
+  border-top: solid 1px black;
+  border-bottom: solid 1px black;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+.gdu-460-display .eis {
+  height: 100%;
+}
+
+.gdu-460-display.gdu-display-eis-narrow .eis {
+  width: 164px;
+}
+
+.gdu-460-display.gdu-display-eis-wide .eis {
+  width: 212px;
+}
+
+.gdu-460-display.gdu-display-eis-left .eis {
+  order: -2;
+}
+
+.gdu-460-display.gdu-display-eis-none .eis {
+  display: none;
+}
+
+.gdu-460-display.gdu-display-eis-right .eis {
+  order: 2;
+}
+
+.gdu-460-display .gdu-display-eis-divider {
+  /*
+   * We need the divider to overflow its container at the top and bottom by 1px each so that it "connects" to the
+   * border of the CNS data bar at the top and the status bar at the bottom.
+   */
+  display: none;
+  position: relative;
+  top: -1px;
+  width: 2px;
+  height: calc(100% + 2px);
+  background: var(--g3x-color-pane-border);
+}
+
+.gdu-460-display.gdu-display-eis-left .gdu-display-eis-divider {
+  order: -1;
+  display: block;
+  border-right: solid 1px black;
+}
+
+.gdu-460-display.gdu-display-eis-right .gdu-display-eis-divider {
+  order: 1;
+  display: block;
+  border-left: solid 1px black;
+}
+
+.gdu-460-display .ui-pane-container {
+  flex-grow: 1;
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+}
+
+.gdu-460-display.gdu-display-pfd-left .ui-pane-container {
+  flex-flow: row nowrap;
+}
+
+.gdu-460-display.gdu-display-pfd-right .ui-pane-container {
+  flex-flow: row-reverse nowrap;
+}
+
+.gdu-460-display .ui-pane-container-divider {
+  /*
+   * We need the divider to overflow its container at the top and bottom by 1px each so that it "connects" to the
+   * border of the CNS data bar at the top and the status bar at the bottom.
+   */
+  position: relative;
+  top: -1px;
+  /*
+   * In reality, the divider is 3px, but that would cause the two panes to have slightly different widths and therefore
+   * introduce unnecessary complexity. To avoid that, we fudge the divider width a little to be an even number of pixels.
+   */
+  width: 4px;
+  height: calc(100% + 2px);
+  background: var(--g3x-color-pane-border);
+  border-left: solid 1px black;
+  border-right: solid 1px black;
+}
+
+.gdu-460-display .ui-pane {
+  position: relative;
+  overflow: hidden;
+}
+
+.gdu-460-display .ui-pane-full {
+  width: 100%;
+}
+
+.gdu-460-display .ui-pane-half {
+  width: calc(50% - 1px);
+}
+
+.gdu-460-display .ui-pane-view-stack-container {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.gdu-460-display-highlight {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotateX(0deg);
+  pointer-events: none;
+  z-index: 2000;
+}
+
+.gdu-460-display-boot {
+  /* In case the instrument size is not 1280x768, we will center the boot display horizontally and vertically. */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1280px;
+  height: 768px;
+  transform: translate(-50%, -50%);
+  background: var(--g3x-color-black);
+  z-index: 3000;
+}
+
+.gdu-460-display-boot-logo {
+  position: absolute;
+  top: 342px;
+  left: 50%;
+  width: 258px;
+  transform: translateX(-50%);
+}
+
+.gdu-460-display-boot-please-wait-text {
+  position: absolute;
+  top: 500px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display-boot-loading-icon {
+  position: absolute;
+  top: 540px;
+  left: calc(50% - 33px);
+  animation: gdu-460-display-boot-loading-icon-rotation 1.5s linear infinite;
+}
+
+.gdu-460-display-boot-system-info-text {
+  position: absolute;
+  top: 654px;
+  line-height: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  color: var(--g3x-color-white);
+  text-align: center;
+}
+
+@keyframes gdu-460-display-boot-loading-icon-rotation {
+  0% {
+    transform: rotate3d(0, 0, 1, 0deg);
+  }
+
+  100% {
+    transform: rotate3d(0, 0, 1, 360deg);
+  }
+}

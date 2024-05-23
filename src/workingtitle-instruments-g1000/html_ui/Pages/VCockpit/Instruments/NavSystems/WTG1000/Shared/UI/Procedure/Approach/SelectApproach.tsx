@@ -1,6 +1,6 @@
 import {
-  AdditionalApproachType, AirportFacility, ApproachProcedure, ControlEvents, EventBus, ExtendedApproachType, FacilitySearchType, FlightPathCalculator,
-  FocusPosition, FSComponent, MinimumsEvents, NodeReference, SortedMappedSubscribableArray, Subject, UnitType, VNode
+  AdditionalApproachType, AirportFacility, ApproachProcedure, ControlEvents, EventBus, ExtendedApproachType, FacilitySearchType, FlightPathCalculator, FocusPosition, FSComponent,
+  MathUtils, MinimumsEvents, NodeReference, SortedMappedSubscribableArray, Subject, UnitType, VNode,
 } from '@microsoft/msfs-sdk';
 
 import { ApproachListItem, Fms, TransitionListItem } from '@microsoft/msfs-garminsdk';
@@ -99,7 +99,7 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
    */
   protected abstract createController(store: SelectApproachStore): SelectApproachController;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onInteractionEvent(evt: FmsHEvent): boolean {
     switch (evt) {
       case FmsHEvent.CLR:
@@ -125,7 +125,7 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
     }, 50);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(node: VNode): void {
     super.onAfterRender(node);
     const minimumsSub = this.props.bus.getSubscriber<MinimumsEvents>();
@@ -331,11 +331,103 @@ export abstract class SelectApproach<P extends SelectApproachProps = SelectAppro
    */
   protected renderMinimumsNumberInput(cssClass?: string): VNode {
     return (
-      <NumberInput
+      <MinimumsNumberInput
         onRegister={this.register} quantize={true} onValueChanged={this.controller.updateMinimumsValue} dataSubject={this.store.minimumsSubject}
         minValue={0} maxValue={16000} increment={10} wrap={false} defaultDisplayValue={'_ _ _ _ _'} onEnter={this.onEnterPressedAdvance.bind(this)}
         class={cssClass}
       />
     );
+  }
+}
+
+/**
+ * A number input component for minimums.
+ */
+class MinimumsNumberInput extends NumberInput {
+  protected readonly digitInputEvents = [
+    FmsHEvent.D0,
+    FmsHEvent.D1,
+    FmsHEvent.D2,
+    FmsHEvent.D3,
+    FmsHEvent.D4,
+    FmsHEvent.D5,
+    FmsHEvent.D6,
+    FmsHEvent.D7,
+    FmsHEvent.D8,
+    FmsHEvent.D9,
+  ];
+
+  private keyboardEditing = false;
+
+  /** @inheritDoc */
+  public onInteractionEvent(evt: FmsHEvent): boolean {
+    switch (evt) {
+      case FmsHEvent.BKSP:
+        return this.handleBackspaceInput();
+      case FmsHEvent.CLR:
+        this.props.dataSubject.set(0);
+        this.keyboardEditing = false;
+        return true;
+    }
+
+    if (this.digitInputEvents.includes(evt)) {
+      return this.handleMinimumsDigitInput(evt);
+    }
+
+    return super.onInteractionEvent(evt);
+  }
+
+  /** @inheritDoc */
+  public onDeactivated(): void {
+    super.onDeactivated();
+
+    this.props.dataSubject.set(MathUtils.round(this.props.dataSubject.get(), 10));
+    this.keyboardEditing = false;
+  }
+
+  /** @inheritDoc */
+  public onEnter(): boolean {
+    this.props.dataSubject.set(MathUtils.round(this.props.dataSubject.get(), 10));
+    this.keyboardEditing = false;
+    return super.onEnter();
+  }
+
+  /**
+   * Handles digit input for the minimums number input component.
+   * @param evt The digit input event.
+   * @returns Whether or not the event was handled.
+   */
+  protected handleMinimumsDigitInput(evt: FmsHEvent): boolean {
+    const digit = Number(evt);
+    if (isNaN(digit)) {
+      return false;
+    }
+
+    if (!this.keyboardEditing) {
+      this.props.dataSubject.set(digit);
+      this.keyboardEditing = true;
+      return true;
+    }
+
+    const minimums = this.props.dataSubject.get();
+    const newValue = minimums < 10000 ? minimums * 10 + digit : Math.floor(minimums / 10) * 10 + digit;
+    this.props.dataSubject.set(MathUtils.clamp(newValue, 0, 16000));
+    return true;
+  }
+
+  /**
+   * Handles backspace input for the minimums number input component.
+   * @returns Whether or not the event was handled.
+   */
+  protected handleBackspaceInput(): boolean {
+    if (this.keyboardEditing) {
+      const minimums = this.props.dataSubject.get();
+      this.props.dataSubject.set(Math.floor(minimums / 10));
+    } else {
+      this.props.dataSubject.set(0);
+      this.keyboardEditing = true;
+    }
+
+    return true;
   }
 }

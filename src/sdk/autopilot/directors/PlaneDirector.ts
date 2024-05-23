@@ -100,6 +100,7 @@ export interface PlaneDirector {
 
 /**
  * A director that handles OBS Lateral Navigation.
+ * @deprecated
  */
 export interface ObsDirector extends PlaneDirector {
   /** Whether or not OBS mode is active. */

@@ -1,0 +1,114 @@
+
+.user-freq-number-input-dialog {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .user-freq-number-input-dialog {
+  width: 450px;
+  height: 620px;
+  margin: 0 1px;
+  padding: 1px 14px 14px;
+  font-size: 19px;
+
+  --user-freq-number-input-dialog-title-font-size: 21px;
+
+  --user-freq-number-input-dialog-input-row-max-width: 450px;
+
+  --user-freq-number-input-dialog-freq-title-margin-bottom: 2px;
+
+  --user-freq-number-input-dialog-input-width: 158px;
+  --user-freq-number-input-dialog-input-height: 40px;
+  --user-freq-number-input-dialog-input-font-size: 26px;
+
+  --user-freq-number-input-dialog-numpad-width: 264px;
+  --user-freq-number-input-dialog-numpad-height: 352px;
+
+  --user-freq-number-input-dialog-middle-row-bottom-margin: 18px;
+
+  --user-freq-number-input-dialog-volume-label-font-size: 18px;
+}
+
+.user-freq-number-input-dialog-title {
+  font-size: var(--user-freq-number-input-dialog-title-font-size);
+  text-align: center;
+}
+
+.user-freq-number-input-dialog-input-row-wrapper {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+}
+
+.user-freq-number-input-dialog-input-row {
+  flex-grow: 1;
+  max-width: var(--user-freq-number-input-dialog-input-row-max-width);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.user-freq-number-input-dialog-input-row-center {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.user-freq-number-input-dialog-left-spacer {
+  width: var(--ui-nav-button-width);
+}
+
+.user-freq-number-input-dialog-input-row-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--ui-nav-button-height);
+}
+
+.user-freq-number-input-dialog-input {
+  width: var(--user-freq-number-input-dialog-input-width);
+  height: var(--user-freq-number-input-dialog-input-height);
+  font-size: var(--user-freq-number-input-dialog-input-font-size);
+  color: var(--g3x-color-cyan);
+
+  --cursor-input-slots-justify: center;
+}
+
+.user-freq-number-input-dialog-input.cursor-input-edit-inactive {
+  color: var(--g3x-color-black);
+}
+
+.user-freq-number-input-dialog-numpad {
+  align-self: center;
+  width: var(--user-freq-number-input-dialog-numpad-width);
+  height: var(--user-freq-number-input-dialog-numpad-height);
+  justify-items: center;
+  align-items: center;
+}
+
+.user-freq-number-input-dialog-middle-row {
+  position: relative;
+  bottom: var(--user-freq-number-input-dialog-middle-row-bottom-margin);
+  height: 0;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.user-freq-number-input-dialog-bottom-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.user-freq-number-input-dialog-bottom-row .ui-nav-button {
+  margin-left: 10px;
+  margin-right: 10px;
+}

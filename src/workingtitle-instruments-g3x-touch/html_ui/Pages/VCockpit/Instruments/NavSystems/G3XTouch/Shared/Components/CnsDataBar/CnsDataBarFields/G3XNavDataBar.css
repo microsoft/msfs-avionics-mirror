@@ -1,0 +1,44 @@
+.gdu-460-display {
+  --g3x-nav-data-bar-field-font-size: 25px;
+  --g3x-nav-data-bar-field-title-font-size: 16px;
+}
+
+.g3x-nav-data-bar {
+  position: relative;
+
+  --touch-button-disabled-background: none;
+  --touch-button-disabled-box-shadow: none;
+  --touch-button-disabled-filter: none;
+}
+
+.g3x-nav-data-bar.g3x-nav-data-bar-noedit {
+  --touch-button-border-color: transparent;
+  --touch-button-background: none;
+  --touch-button-box-shadow: none;
+}
+
+.g3x-nav-data-bar-field-button {
+  flex-grow: 1;
+}
+
+.g3x-nav-data-bar .nav-data-field {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  font-size: var(--g3x-nav-data-bar-field-font-size);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.cns-data-bar .nav-data-field-title {
+  font-size: var(--g3x-nav-data-bar-field-title-font-size);
+}
+
+.g3x-nav-data-bar .touch-button-hidden+.combined-touch-button-divider,
+.g3x-nav-data-bar-field-button-last-visible+.combined-touch-button-divider {
+  display: none;
+}

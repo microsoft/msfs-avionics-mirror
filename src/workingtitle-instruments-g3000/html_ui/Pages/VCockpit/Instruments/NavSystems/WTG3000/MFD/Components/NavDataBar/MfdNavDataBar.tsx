@@ -5,7 +5,10 @@ import {
   NavDataFieldGpsValidity, NextGenNavDataBarFieldRenderer, UnitsUserSettingManager
 } from '@microsoft/msfs-garminsdk';
 
+import { G3000FlightPlannerId } from '@microsoft/msfs-wtg3000-common';
+
 import './MfdNavDataBar.css';
+
 
 /**
  * Component props for NavDataBar.
@@ -15,7 +18,7 @@ export interface MfdNavDataBarProps extends ComponentProps {
   bus: EventBus;
 
   /** The FMS. */
-  fms: Fms;
+  fms: Fms<G3000FlightPlannerId>;
 
   /** A provider of GPS position integrity data. */
   gpsIntegrityDataProvider: GpsIntegrityDataProvider;

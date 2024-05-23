@@ -1,5 +1,5 @@
 import {
-  ComponentProps, DisplayComponent, EventBus, FlightPlannerEvents, FSComponent, GPSSatComputerEvents, GPSSystemState, LNavDataEvents, NavMath, NodeReference,
+  ComponentProps, DisplayComponent, EventBus, FSComponent, GPSSatComputerEvents, GPSSystemState, LNavDataEvents, LNavUtils, NavMath, NodeReference,
   NumberFormatter, Subject, VNode
 } from '@microsoft/msfs-sdk';
 
@@ -48,13 +48,15 @@ export abstract class ArcCdi extends DisplayComponent<ArcCdiProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    const sub = this.props.bus.getSubscriber<LNavDataEvents & FlightPlannerEvents & GPSSatComputerEvents>();
-    sub.on('lnavdata_cdi_scale').whenChanged().handle(this.onCdiScaleChanged.bind(this));
-    sub.on('lnavdata_dtk_true').withPrecision(0).handle(this.onDtkChanged.bind(this));
-    sub.on('lnavdata_waypoint_bearing_true').withPrecision(0).handle(this.onWaypointBearingChanged.bind(this));
-    sub.on('lnavdata_xtk').withPrecision(3).atFrequency(6).handle(this.onXtkChanged.bind(this));
-    sub.on('lnavdata_xtk').withPrecision(1).atFrequency(6).handle(xtk => this.xtkLabel.set(this.xtkLabelFormatter(Math.abs(xtk))));
-    sub.on('fplActiveLegChange').handle(this.onActiveLegChanged.bind(this));
+    const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(this.props.fms.lnavIndex);
+
+    const sub = this.props.bus.getSubscriber<LNavDataEvents & GPSSatComputerEvents>();
+    sub.on(`lnavdata_cdi_scale${lnavTopicSuffix}`).whenChanged().handle(this.onCdiScaleChanged.bind(this));
+    sub.on(`lnavdata_dtk_true${lnavTopicSuffix}`).withPrecision(0).handle(this.onDtkChanged.bind(this));
+    sub.on(`lnavdata_waypoint_bearing_true${lnavTopicSuffix}`).withPrecision(0).handle(this.onWaypointBearingChanged.bind(this));
+    sub.on(`lnavdata_xtk${lnavTopicSuffix}`).withPrecision(3).atFrequency(6).handle(this.onXtkChanged.bind(this));
+    sub.on(`lnavdata_xtk${lnavTopicSuffix}`).withPrecision(1).atFrequency(6).handle(xtk => this.xtkLabel.set(this.xtkLabelFormatter(Math.abs(xtk))));
+    this.props.fms.flightPlanner.onEvent('fplActiveLegChange').handle(this.onActiveLegChanged.bind(this));
 
     this.toFlagVisible.sub(this.setElementVisibility(this.toFlag), true);
     this.fromFlagVisible.sub(this.setElementVisibility(this.fromFlag), true);

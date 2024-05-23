@@ -44,7 +44,7 @@ export class NavDataFieldNumberUnitRenderer<T extends NumberUnitNavDataFieldType
   ) {
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(model: NavDataFieldTypeModelMap[T]): VNode {
     return (
       <NavDataNumberUnitField
@@ -89,7 +89,7 @@ export class NavDataFieldBearingRenderer<T extends BearingNavDataFieldTypes> imp
   ) {
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(model: NavDataFieldTypeModelMap[T]): VNode {
     return (
       <NavDataBearingField
@@ -134,7 +134,7 @@ export class NavDataFieldDurationRenderer<T extends DurationNavDataFieldTypes> i
   ) {
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(model: NavDataFieldTypeModelMap[T]): VNode {
     return (
       <NavDataDurationField
@@ -159,7 +159,7 @@ export type TimeNavDataFieldTypes = keyof {
  */
 export type NavDataFieldTimeRendererOptions = Pick<
   NavDataTimeFieldProps,
-  'format' | 'localOffset' | 'suffixFormatter' | 'hideSuffixWhenNaN'
+  'format' | 'localOffset' | 'padHour' | 'suffixFormatter' | 'hideSuffixWhenNaN'
 > & BaseNavDataFieldTypeRendererOptions;
 
 /**
@@ -175,7 +175,7 @@ export class NavDataFieldTimeRenderer<T extends TimeNavDataFieldTypes> implement
   ) {
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(model: NavDataFieldTypeModelMap[T]): VNode {
     return (
       <NavDataTimeField
@@ -183,6 +183,7 @@ export class NavDataFieldTimeRenderer<T extends TimeNavDataFieldTypes> implement
         model={model}
         format={this.options.format}
         localOffset={this.options.localOffset}
+        padHour={this.options.padHour}
         suffixFormatter={this.options.suffixFormatter}
         hideSuffixWhenNaN={this.options.hideSuffixWhenNaN}
         class={this.options.class}
@@ -218,7 +219,7 @@ export class NavDataFieldTextRenderer<T extends NavDataFieldType> implements Nav
   ) {
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(model: NavDataFieldTypeModelMap[T]): VNode {
     // This seems silly but we need to create our own subscribable in order to be able unsubscribe from it when the
     // component is destroyed.

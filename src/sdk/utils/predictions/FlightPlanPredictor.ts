@@ -234,6 +234,21 @@ export class FlightPlanPredictor {
   }
 
   /**
+   * Iterator for existing predictions in reverse
+   *
+   * @param startAtIndex the index to start at
+   *
+   * @returns a generator
+   *
+   * @yields predictions
+   */
+  public *iteratePredictionsReverse(startAtIndex = 0): Generator<LegPredictions> {
+    for (let i = startAtIndex; i >= 0; i--) {
+      yield this.predictions[i];
+    }
+  }
+
+  /**
    * Returns predictions for the destination airport.
    *
    * If the dest leg (defined as the last leg that is not part of the missed approach) is not a runway,

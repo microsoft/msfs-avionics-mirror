@@ -68,7 +68,9 @@ export abstract class G1000AvionicsPlugin<B extends G1000PluginBinder = G1000Plu
   }
 
 
-  /** @returns null. Callback for rendering the EIS from a plugin.
+  /**
+   * Function to be overridden by plugins to render the EIS.
+   * @returns null. Callback for rendering the EIS from a plugin.
    */
   public renderEIS?(): VNode | null {
     return null;

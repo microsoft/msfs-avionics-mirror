@@ -46,9 +46,15 @@ export interface ControlEvents {
   standby_nav_freq: string,
   /** Event when user presses 'B' to auto set pressure. */
   baro_set: boolean,
-  /** Event when a user suspends LNAV leg sequencing. */
+  /**
+   * Event when a user suspends LNAV leg sequencing.
+   * @deprecated Use the equivalent topic defined in `LNavControlEvents` instead.
+   */
   suspend_sequencing: boolean
-  /** Whether LNAV should automatically inhibit the next attempt to sequence to the next flight plan leg. */
+  /**
+   * Whether LNAV should automatically inhibit the next attempt to sequence to the next flight plan leg.
+   * @deprecated Use the equivalent topic defined in `LNavControlEvents` instead.
+   */
   lnav_inhibit_next_sequence: boolean;
   /** Event for setting missed approach state. */
   activate_missed_approach: boolean;

@@ -308,6 +308,7 @@ export class FlightPlanVnavConstraintSlideoutMenu extends GtcView<FlightPlanVnav
    * @param maxAltitudeFeet Max altitude in feet. If undefined, no max will be used.
    * @param isMaxAltitudeFlightLevel Whether max altitude is a flight level.
    * @param title The title bar title to use.
+   * @returns A promise that resolves to the result of the dialog.
    */
   private async openAltitudeDialog(initialValueFeet: number, isFlightLevel: boolean, maxAltitudeFeet?: number, isMaxAltitudeFlightLevel = false, title = 'Enter Altitude'): Promise<GtcVnavAltitudeDialogResultSet | undefined> {
     const result = await this.gtcService.openPopup<GtcVnavAltitudeDialog>(GtcViewKeys.VnavAltitudeDialog).ref.request({

@@ -1,0 +1,9 @@
+.flight-director-single-cue {
+  width: 208px;
+  height: 60px;
+
+  --flight-director-fill: var(--g3x-color-magenta);
+  --flight-director-stroke: var(--g3x-color-black);
+  --flight-director-stroke-width: 1px;
+  --flight-director-ap-passive-fill: var(--g3x-color-black-transparent);
+}

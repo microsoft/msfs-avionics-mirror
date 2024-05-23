@@ -42,7 +42,7 @@ export enum FlightPathAirplaneSpeedMode {
 }
 
 /**
- * Options for the flight path calculator.
+ * Options for a {@link FlightPathCalculator}.
  */
 export interface FlightPathCalculatorOptions {
   /** The default climb rate, in feet per minute, if the plane is not yet at flying speed. */
@@ -89,9 +89,79 @@ export interface FlightPathCalculatorOptions {
 }
 
 /**
+ * Options with which to initialize a {@link FlightPathCalculator}.
+ */
+export type FlightPathCalculatorInitOptions = FlightPathCalculatorOptions & {
+  /** The ID of the flight path calculator. Defaults to the empty string (`''`). */
+  id?: string;
+
+  /**
+   * The calculator's initialization sync role. Upon instantiation, a `primary` calculator will broadcast an
+   * initialization sync event through the event bus which allows existing `replica` calculators with the same ID to
+   * sync their state with the primary. Upon instantiation, replica calculators will attempt to sync their state with
+   * any existing primary calculators with the same ID. A calculators with a sync role of `none` will neither try to
+   * broadcast its state to replica calculators nor try to sync its state with primary calculators. Defaults to `none`.
+   */
+  initSyncRole?: 'none' | 'primary' | 'replica';
+};
+
+/**
+ * Initialization data for a primary {@link FlightPathCalculator} instance.
+ */
+type FlightPathCalculatorInitData = {
+  /** The options with which the instance was initialized. */
+  options: Readonly<FlightPathCalculatorOptions>;
+};
+
+/**
+ * Response data for an options sync request.
+ */
+type FlightPathCalculatorOptionsResponse = {
+  /** The UID of the request for which this response was generated. */
+  uid: number;
+
+  /** The options of the flight path calculator instance that responded to the request. */
+  options: Readonly<FlightPathCalculatorOptions>;
+};
+
+/**
+ * Events used to sync data between flight path calculators, keyed by base topic names.
+ */
+interface BaseFlightPathCalculatorSyncEvents {
+  /** A primary flight path calculator instance has finished initializing. */
+  flightpath_sync_init: Readonly<FlightPathCalculatorInitData>;
+
+  /** A flight path calculator is requesting options sync. */
+  flightpath_sync_options_request: number;
+
+  /** A flight path calculator is responding to an options sync request. */
+  flightpath_sync_options_response: Readonly<FlightPathCalculatorOptionsResponse>;
+}
+
+/**
+ * The event topic suffix used to sync data between flight path calculators with a specific ID.
+ */
+type FlightPathCalculatorSyncEventSuffix<ID extends string> = ID extends '' ? '' : `_${ID}`;
+
+/**
+ * Events used to sync data between flight path calculators with a specific ID.
+ */
+type FlightPathCalculatorSyncEventsForId<ID extends string> = {
+  [P in keyof BaseFlightPathCalculatorSyncEvents as `${P}${FlightPathCalculatorSyncEventSuffix<ID>}`]: BaseFlightPathCalculatorSyncEvents[P];
+};
+
+/**
+ * All events used to sync data between flight path calculators.
+ */
+interface FlightPathCalculatorSyncEvents
+  extends BaseFlightPathCalculatorSyncEvents, FlightPathCalculatorSyncEventsForId<string> { }
+
+/**
  * Calculates the flight path vectors for a given set of legs.
  */
 export class FlightPathCalculator {
+
+  private readonly id: string;
 
   private readonly facilityCache = new Map<string, Facility>();
   private readonly legCalculatorMap = this.createLegCalculatorMap();
@@ -114,19 +184,48 @@ export class FlightPathCalculator {
    * @param options The options to use with this flight path calculator.
    * @param bus An instance of the EventBus.
    */
-  constructor(
+  public constructor(
     private readonly facilityLoader: FacilityLoader,
-    options: FlightPathCalculatorOptions,
+    options: Readonly<FlightPathCalculatorInitOptions>,
     private readonly bus: EventBus
   ) {
-    this.options = { ...options };
+    this.id = options?.id ?? '';
+
+    const optionsCopy = { ...options };
+    delete optionsCopy.id;
+    this.options = optionsCopy;
 
     this.bankAngleTable = this.buildBankAngleTable(this.options.bankAngle);
     this.holdBankAngleTable = this.options.holdBankAngle === null ? undefined : this.buildBankAngleTable(this.options.holdBankAngle);
     this.courseReversalBankAngleTable = this.options.courseReversalBankAngle === null ? undefined : this.buildBankAngleTable(this.options.courseReversalBankAngle);
     this.turnAnticipationBankAngleTable = this.options.turnAnticipationBankAngle === null ? undefined : this.buildBankAngleTable(this.options.turnAnticipationBankAngle);
 
-    this.bus.getSubscriber<FlightPathCalculatorControlEvents>().on('flightpath_set_options').handle(newOptions => this.setOptions(newOptions));
+    const eventBusTopicSuffix = this.id === '' ? '' : `_${this.id}` as const;
+
+    const publisher = this.bus.getPublisher<FlightPathCalculatorSyncEvents>();
+    const sub = this.bus.getSubscriber<FlightPathCalculatorSyncEvents & FlightPathCalculatorControlEvents>();
+
+    const initialSyncRole = options.initSyncRole ?? 'none';
+
+    if (initialSyncRole === 'primary') {
+      publisher.pub(`flightpath_sync_init${eventBusTopicSuffix}`, { options: this.options }, true, false);
+
+      sub.on(`flightpath_sync_options_request${eventBusTopicSuffix}`).handle(uid => {
+        publisher.pub(`flightpath_sync_options_response${eventBusTopicSuffix}`, { uid, options: this.options }, true, false);
+      });
+    } else if (initialSyncRole === 'replica') {
+      const requestUid = Math.trunc(Math.random() * Number.MAX_SAFE_INTEGER);
+      sub.on(`flightpath_sync_options_response${eventBusTopicSuffix}`).handle(data => {
+        if (data.uid === requestUid) {
+          this.setOptions(data.options);
+        }
+      });
+      publisher.pub(`flightpath_sync_options_request${eventBusTopicSuffix}`, requestUid, true, false);
+
+      sub.on(`flightpath_sync_init${eventBusTopicSuffix}`).handle(data => { this.setOptions(data.options); });
+    }
+
+    sub.on(`flightpath_set_options${eventBusTopicSuffix}`).handle(this.setOptions.bind(this));
   }
 
   /**

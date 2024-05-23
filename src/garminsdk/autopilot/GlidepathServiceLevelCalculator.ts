@@ -1,7 +1,7 @@
 import { AdditionalApproachType, BitFlags, GPSSystemState, RnavTypeFlags, Subscribable } from '@microsoft/msfs-sdk';
 
-import { ApproachDetails } from '../flightplan/Fms';
-import { GlidepathServiceLevel } from './GarminVerticalNavigation';
+import { ApproachDetails } from '../flightplan/FmsTypes';
+import { GlidepathServiceLevel } from './vnav/GarminVNavTypes';
 
 /**
  * A calculator for providing the glidepath service level.

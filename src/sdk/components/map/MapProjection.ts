@@ -377,6 +377,11 @@ export class MapProjection {
         || ratio > 1 && ratioDelta >= 0
       ) {
         this.geoProjection.setScaleFactor(lastScaleFactor);
+        this.geoProjection.project(this.target, currentTargetProjected);
+        currentCenterProjected.set(currentTargetProjected);
+        currentCenterProjected[0] -= this.targetProjectedOffset[0];
+        currentCenterProjected[1] -= this.targetProjectedOffset[1];
+        break;
       }
 
       lastScaleFactor = this.geoProjection.getScaleFactor();

@@ -1,5 +1,6 @@
 import { DefaultUserSettingManager, EventBus, UserSetting } from '@microsoft/msfs-sdk';
-import { TouchdownCalloutAltitude } from '../TAWS/TouchdownCallout';
+
+import { GarminTawsVoiceCalloutAltitude } from '@microsoft/msfs-garminsdk';
 
 /**
  * Touchdown callout user settings.
@@ -55,7 +56,7 @@ export type TouchdownCalloutUserSettingTypes = {
  * A manager of touchdown callout user settings.
  */
 export class TouchdownCalloutUserSettings extends DefaultUserSettingManager<TouchdownCalloutUserSettingTypes> {
-  private static readonly ENABLED_SETTING_NAMES: Record<TouchdownCalloutAltitude, keyof TouchdownCalloutUserSettingTypes> = {
+  private static readonly ENABLED_SETTING_NAMES: Record<GarminTawsVoiceCalloutAltitude, keyof TouchdownCalloutUserSettingTypes> = {
     [500]: 'touchdownCallout500Enabled',
     [450]: 'touchdownCallout450Enabled',
     [400]: 'touchdownCallout400Enabled',
@@ -148,7 +149,7 @@ export class TouchdownCalloutUserSettings extends DefaultUserSettingManager<Touc
    * @param altitude The altitude for which to get the setting.
    * @returns The setting for whether the callout for the specified altitude is enabled.
    */
-  public getEnabledSetting(altitude: TouchdownCalloutAltitude): UserSetting<boolean> {
+  public getEnabledSetting(altitude: GarminTawsVoiceCalloutAltitude): UserSetting<boolean> {
     return this.getSetting(TouchdownCalloutUserSettings.ENABLED_SETTING_NAMES[altitude]);
   }
 

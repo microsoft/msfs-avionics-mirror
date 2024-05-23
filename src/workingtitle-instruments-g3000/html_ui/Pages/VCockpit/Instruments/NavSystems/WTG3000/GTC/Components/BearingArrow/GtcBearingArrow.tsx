@@ -1,4 +1,7 @@
-import { ComponentProps, DisplayComponent, FSComponent, MathUtils, ObjectSubject, SetSubject, Subject, Subscribable, Subscription, VNode } from '@microsoft/msfs-sdk';
+import {
+  ComponentProps, CssTransformBuilder, CssTransformSubject, DisplayComponent, FSComponent, SetSubject, Subscribable,
+  Subscription, VNode
+} from '@microsoft/msfs-sdk';
 
 import './GtcBearingArrow.css';
 
@@ -14,40 +17,37 @@ export interface GtcBearingArrowProps extends ComponentProps {
  * A cyan arrow which rotates to point to a relative bearing.
  */
 export class GtcBearingArrow extends DisplayComponent<GtcBearingArrowProps> {
-  private readonly style = ObjectSubject.create({
-    transform: 'rotate3d(0, 0, 1, 0deg)'
-  });
-
   private readonly cssClass = SetSubject.create(['bearing-arrow']);
 
-  private readonly bearing = Subject.create(0);
+  private readonly cssTransform = CssTransformSubject.create(CssTransformBuilder.rotate3d('deg'));
 
   private bearingSub?: Subscription;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
-    this.bearing.sub(bearing => {
-      this.style.set('transform', `rotate3d(0, 0, 1, ${bearing}deg)`);
-    }, true);
-
     this.bearingSub = this.props.relativeBearing.sub(bearing => {
       if (isNaN(bearing)) {
         this.cssClass.add('hidden');
       } else {
         this.cssClass.delete('hidden');
-        this.bearing.set(MathUtils.round(bearing, 0.1));
+        this.cssTransform.transform.set(0, 0, 1, bearing, 0.1);
+        this.cssTransform.resolve();
       }
     }, true);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     return (
-      <img src='coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG3000/Assets/Images/GTC/icon_bearing_arrow_blue.png' class={this.cssClass} style={this.style} />
+      <img
+        src='coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG3000/Assets/Images/GTC/icon_bearing_arrow_blue.png'
+        class={this.cssClass}
+        style={{ 'transform': this.cssTransform }}
+      />
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
     this.bearingSub?.destroy();
 

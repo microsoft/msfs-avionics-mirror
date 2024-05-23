@@ -1,0 +1,24 @@
+.slip-indicator {
+  position: absolute;
+  left: var(--pfd-instruments-horizon-center-x);
+  top: 295px;
+  transform: translateX(-50%);
+  width: 160px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+}
+
+.slip-indicator-ball {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  stroke-width: 1px;
+}
+
+.slip-indicator-lines {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  stroke-width: 2px;
+}

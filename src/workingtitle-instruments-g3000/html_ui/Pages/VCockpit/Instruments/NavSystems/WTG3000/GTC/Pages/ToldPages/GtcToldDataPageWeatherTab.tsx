@@ -1,10 +1,12 @@
 import {
-  BasicNavAngleSubject, BasicNavAngleUnit, ComponentProps, DisplayComponent, FacilityLoader, FSComponent, MagVar,
-  Metar, MetarWindSpeedUnits, NavMath, NumberFormatter, NumberUnitSubject, OneWayRunway,
-  SetSubject, Subject, Subscribable, Subscription, Unit, UnitFamily, UnitType, UserSettingManager, VNode
+  BasicNavAngleSubject, BasicNavAngleUnit, ComponentProps, DisplayComponent, FacilityLoader, FSComponent, MagVar, Metar, MetarWindSpeedUnits, NavMath,
+  NumberFormatter, NumberUnitSubject, OneWayRunway, SetSubject, Subject, Subscribable, Subscription, Unit, UnitFamily, UnitType, UserSettingManager, VNode
 } from '@microsoft/msfs-sdk';
+
 import { AirportWaypoint, BearingDisplay, NumberUnitDisplay, UnitsUserSettingManager } from '@microsoft/msfs-garminsdk';
+
 import { ControllableDisplayPaneIndex, ToldRunwaySurfaceCondition, ToldUserSettingTypes } from '@microsoft/msfs-wtg3000-common';
+
 import { GtcListSelectTouchButton } from '../../Components/TouchButton/GtcListSelectTouchButton';
 import { GtcToggleTouchButton } from '../../Components/TouchButton/GtcToggleTouchButton';
 import { GtcTouchButton } from '../../Components/TouchButton/GtcTouchButton';
@@ -271,7 +273,7 @@ export class GtcToldDataPageWeatherTab extends DisplayComponent<GtcToldDataPageW
         windSpeedUnit = UnitType.KNOT;
     }
 
-    this.windDirectionSetting.value = NavMath.normalizeHeading(metar.windDir);
+    this.windDirectionSetting.value = NavMath.normalizeHeading(metar.windDir ?? 0);
     this.windSpeedSetting.value = windSpeedUnit.convertTo(windSpeed, UnitType.KNOT);
 
     if (!this.props.isTakeoff) {

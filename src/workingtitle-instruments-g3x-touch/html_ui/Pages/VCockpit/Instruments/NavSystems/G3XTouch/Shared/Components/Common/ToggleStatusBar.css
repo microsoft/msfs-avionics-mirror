@@ -1,0 +1,18 @@
+html {
+  --toggle-status-bar-border-radius: 3px;
+  --toggle-status-bar-off-border: 2px solid #393939;
+  --toggle-status-bar-off-gradient: linear-gradient(#0e0e0e 0%, #2e2e2e 25%, #4e4e4e 40%, #3b3b3b 60%, #333333 100%);
+  --toggle-status-bar-on-border: 2px solid #1f992a;
+  --toggle-status-bar-on-gradient: linear-gradient(#14a830 0%, #38cc21 25%, #6bf208 40%, #59e511 60%, #34bc21 100%);
+}
+
+.toggle-status-bar {
+  border: var(--toggle-status-bar-off-border);
+  border-radius: var(--toggle-status-bar-border-radius);
+  background: var(--toggle-status-bar-off-gradient);
+}
+
+.toggle-status-bar.toggle-status-bar-on {
+  border: var(--toggle-status-bar-on-border);
+  background: var(--toggle-status-bar-on-gradient);
+}

@@ -7,7 +7,10 @@ import {
   BearingDisplay, CdiScaleFormatter, CDIScaleLabel, GarminMapKeys, MapRangeController, NumberUnitDisplay, ObsSuspModes, TrafficSystem, TrafficUserSettings,
   UnitsNavAngleSettingMode, UnitsUserSettingManager, UnitsUserSettings
 } from '@microsoft/msfs-garminsdk';
-import { BingUtils, DisplayPaneIndex, DisplayPaneViewEvent, IauUserSettingManager, MapBuilder, MapConfig, MapUserSettings, NavSourceFormatter, PfdIndex } from '@microsoft/msfs-wtg3000-common';
+
+import {
+  BingUtils, DisplayPaneIndex, DisplayPaneViewEvent, G3000FlightPlannerId, IauUserSettingManager, MapBuilder, MapConfig, MapUserSettings, NavSourceFormatter, PfdIndex
+} from '@microsoft/msfs-wtg3000-common';
 
 import { ActiveNavNeedle } from './ActiveNavNeedle';
 import { ApproachPreviewNeedle } from './ApproachPreviewNeedle';
@@ -26,7 +29,7 @@ export interface HsiMapProps extends ComponentProps {
   bus: EventBus;
 
   /** An instance of the flight planner. */
-  flightPlanner: FlightPlanner;
+  flightPlanner: FlightPlanner<G3000FlightPlannerId>;
 
   /** The traffic system. */
   trafficSystem: TrafficSystem;

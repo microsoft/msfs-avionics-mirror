@@ -1,0 +1,94 @@
+.airport-weather-tab {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3x-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.gdu-460-display .airport-weather-tab {
+  font-size: 15px;
+
+  --airport-weather-tab-list-margin: 7px 5px;
+
+  --airport-weather-no-data-font-size: 18px;
+
+  --airport-weather-tab-airport-name-font-size: 18px;
+
+  --airport-weather-tab-airport-city-margin-right: 10px;
+
+  --airport-weather-tab-section-margin: 18px 0px;
+  --airport-weather-tab-section-title-margin-bottom: 18px;
+}
+
+.airport-weather-tab-list {
+  flex-grow: 1;
+  margin: var(--airport-weather-tab-list-margin);
+}
+
+.airport-weather-tab-no-data {
+  flex-grow: 1;
+  font-size: var(--airport-weather-no-data-font-size);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.airport-weather-tab-list-content {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.airport-weather-tab-airport-name {
+  font-size: var(--airport-weather-tab-airport-name-font-size);
+}
+
+.airport-weather-tab-airport-city {
+  margin-right: var(--airport-weather-tab-airport-city-margin-right);
+}
+
+.airport-weather-tab-airport-freq {
+  color: var(--g3x-color-cyan);
+  white-space: pre;
+}
+
+.airport-weather-tab-section {
+  position: relative;
+  margin: var(--airport-weather-tab-section-margin);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.airport-weather-tab-section-title {
+  margin-bottom: var(--airport-weather-tab-section-title-margin-bottom);
+}
+
+.airport-weather-tab-metar-time {
+  display: inline-block;
+}
+
+.airport-weather-tab-metar-time .time-sec {
+  display: none;
+}
+
+.airport-weather-tab-metar-line-title {
+  color: var(--g3x-color-cyan);
+}
+
+.airport-weather-tab-metar-clouds {
+  white-space: nowrap;
+}
+
+.airport-weather-tab-metar-cloud-layer-sep {
+  white-space: normal;
+}

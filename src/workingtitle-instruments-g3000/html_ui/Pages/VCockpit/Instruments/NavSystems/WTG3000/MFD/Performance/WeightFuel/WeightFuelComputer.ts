@@ -1,9 +1,11 @@
 import {
-  AdcEvents, ClockEvents, ConsumerSubject, EngineEvents, EventBus, ExpSmoother, LNavEvents, MappedSubject,
+  AdcEvents, ClockEvents, ConsumerSubject, ConsumerValue, EngineEvents, EventBus, ExpSmoother, LNavEvents, MappedSubject,
   SimVarValueType, Subject, Subscribable, SubscribableUtils, Subscription, UnitType
 } from '@microsoft/msfs-sdk';
+
 import { Fms, FmsPositionMode, FmsPositionSystemEvents, LNavDataEvents } from '@microsoft/msfs-garminsdk';
-import { FuelTotalizerControlEvents, FuelTotalizerEvents, WeightFuelSimVars, WeightFuelUserSettings } from '@microsoft/msfs-wtg3000-common';
+
+import { FuelTotalizerControlEvents, FuelTotalizerEvents, G3000FlightPlannerId, WeightFuelSimVars, WeightFuelUserSettings } from '@microsoft/msfs-wtg3000-common';
 
 /**
  * A computer for weight and fuel calculations.
@@ -26,14 +28,14 @@ export class WeightFuelComputer {
   private readonly fobHasBeenInitialized = this.fuelOnBoardWeightSetting.map(val => val >= 0);
 
   private readonly fuelTotalizerRemaining = ConsumerSubject.create(null, 0);
-  private readonly fuelFlow = ConsumerSubject.create(null, 0);
+  private readonly fuelFlow = ConsumerValue.create(null, 0);
 
-  private readonly isOnGround = ConsumerSubject.create(null, false);
-  private readonly lnavIsTracking = ConsumerSubject.create(null, false);
-  private readonly distanceToDestination = ConsumerSubject.create(null, 0);
+  private readonly isOnGround = ConsumerValue.create(null, false);
+  private readonly lnavIsTracking = ConsumerValue.create(null, false);
+  private readonly distanceToDestination = ConsumerValue.create(null, 0);
 
-  private readonly fmsPosMode = ConsumerSubject.create(null, FmsPositionMode.None);
-  private readonly groundSpeed = ConsumerSubject.create(null, 0);
+  private readonly fmsPosMode = ConsumerValue.create(null, FmsPositionMode.None);
+  private readonly groundSpeed = ConsumerValue.create(null, 0);
 
   private readonly fuelBurnSmoother = new ExpSmoother(WeightFuelComputer.FUEL_BURN_SMOOTHING_TAU);
   private lastFuelBurnTime?: number;
@@ -108,7 +110,7 @@ export class WeightFuelComputer {
    */
   public constructor(
     private readonly bus: EventBus,
-    private readonly fms: Fms,
+    private readonly fms: Fms<G3000FlightPlannerId>,
     fmsPosIndex: number | Subscribable<number>
   ) {
     this.fmsPosIndex = SubscribableUtils.toSubscribable(fmsPosIndex, true);
@@ -253,10 +255,12 @@ export class WeightFuelComputer {
   private update(simTime: number): void {
     const fuelFlow = this.fuelFlow.get();
     const groundSpeed = this.groundSpeed.get();
+    const distance = this.distanceToDestination.get();
 
     if (
       fuelFlow === 0
       || groundSpeed < 30
+      || distance < 0
       || this.isOnGround.get()
       || !this.lnavIsTracking.get()
       || this.fmsPosMode.get() === FmsPositionMode.None
@@ -267,8 +271,6 @@ export class WeightFuelComputer {
       this.holdingFuel.set(NaN);
       return;
     }
-
-    const distance = this.distanceToDestination.get();
 
     const eteHours = distance / groundSpeed;
     const dt = this.lastFuelBurnTime === undefined ? 0 : simTime - this.lastFuelBurnTime;

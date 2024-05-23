@@ -1,0 +1,23 @@
+html {
+  --nav-data-field-gps-color: var(--g3x-color-magenta);
+}
+
+.nav-data-field-title {
+  color: var(--g3x-color-white);
+}
+
+.nav-data-field .time-sec {
+  display: none;
+}
+
+.nav-data-field-white {
+  color: var(--g3x-color-white);
+}
+
+.nav-data-field-magenta {
+  color: var(--g3x-color-magenta);
+}
+
+.nav-data-field-gps {
+  color: var(--nav-data-field-gps-color);
+}

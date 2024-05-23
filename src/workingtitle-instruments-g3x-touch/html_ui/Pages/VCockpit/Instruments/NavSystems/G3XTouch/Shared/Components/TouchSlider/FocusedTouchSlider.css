@@ -1,0 +1,7 @@
+html {
+  --ui-slider-focused-border-color: var(--g3x-color-focus-blue);
+}
+
+.touch-slider.ui-slider-focused .touch-slider-slider-container {
+  border: var(--ui-slider-focused-slider-container-border, var(--touch-slider-slider-container-border-width) var(--touch-slider-slider-container-border-style) var(--ui-button-focused-border-color));
+}

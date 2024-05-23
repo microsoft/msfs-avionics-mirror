@@ -1,0 +1,265 @@
+.ui-view-wrapper {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.3s, filter 0.3s;
+}
+
+.ui-view-occlude-darken {
+  filter: brightness(50%);
+}
+
+/* Need to reapply filter on the following elements because z-index and Coherent layers break the filter. */
+.ui-view-occlude-darken .touch-button-img:not(.touch-button-disabled) .touch-button-label,
+.ui-view-occlude-darken .touch-button-img:not(.touch-button-disabled) .touch-button-img-img,
+.ui-view-occlude-darken .scroll-list-translatable,
+.ui-view-occlude-darken .ui-list-scroll-bar,
+.ui-view-occlude-darken .touch-slider:not(.touch-slider-disabled) .touch-slider-slider-thumb-translate,
+.ui-view-occlude-darken .tabbed-container-selected-tab-container,
+.ui-view-occlude-darken .tabbed-container-tab-arrow-box {
+  filter: brightness(50%);
+}
+
+/* Need to apply filter transitions on the following elements so that they match the view wrappers. */
+.ui-view-occlude-darken .touch-button-img:not(.touch-button-disabled) .touch-button-label,
+.ui-view-occlude-darken .touch-button-img:not(.touch-button-disabled) .touch-button-img-img,
+.ui-view-wrapper .scroll-list-translatable,
+.ui-view-wrapper .touch-slider-slider-thumb-translate,
+.ui-view-wrapper .tabbed-container-selected-tab-container {
+  transition: filter 0.3s;
+}
+
+.ui-view-wrapper .ui-list .ui-list-scroll-bar {
+  transition: opacity 1s, filter 0.3s;
+}
+
+.ui-view-wrapper .tabbed-container-tab-arrow-box {
+  transition: fill 0.4s, transform 0.4s, filter 0.3s;
+}
+
+.ui-view-occlude-hidden {
+  opacity: 0;
+}
+
+.ui-popup-no-background-occlusion {
+  pointer-events: none !important;
+}
+
+.ui-popup-no-background-occlusion>* {
+  pointer-events: auto;
+}
+
+/* ---- Popups ---- */
+
+.ui-popup-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ui-popup-wrapper.ui-popup-positioned-wrapper {
+  display: grid;
+}
+
+.ui-popup-wrapper.ui-popup-positioned-wrapper.ui-popup-positioned-wrapper-left {
+  grid-template-columns: minmax(0px, var(--ui-popup-positioned-x, 0px)) minmax(max-content, 1fr);
+  justify-items: start;
+  --ui-popup-positioned-root-grid-column: 2;
+}
+
+.ui-popup-wrapper.ui-popup-positioned-wrapper.ui-popup-positioned-wrapper-right {
+  grid-template-columns: minmax(max-content, 1fr) minmax(0px, var(--ui-popup-positioned-x, 0px));
+  justify-items: end;
+  --ui-popup-positioned-root-grid-column: 1;
+}
+
+.ui-popup-wrapper.ui-popup-positioned-wrapper.ui-popup-positioned-wrapper-top {
+  grid-template-rows: minmax(0px, var(--ui-popup-positioned-y, 0px)) minmax(max-content, 1fr);
+  align-items: start;
+  --ui-popup-positioned-root-grid-row: 2;
+}
+
+.ui-popup-wrapper.ui-popup-positioned-wrapper.ui-popup-positioned-wrapper-bottom {
+  grid-template-rows: minmax(max-content, 1fr) minmax(0px, var(--ui-popup-positioned-y, 0px));
+  align-items: end;
+  --ui-popup-positioned-root-grid-row: 1;
+}
+
+.ui-popup-positioned-wrapper>:first-child {
+  grid-row: var(--ui-popup-positioned-root-grid-row, 1);
+  grid-column: var(--ui-popup-positioned-root-grid-column, 1);
+}
+
+/* ---- View open/close animations ---- */
+
+.ui-page-close-animation {
+  display: none !important;
+}
+
+.ui-popup-skip-close-animation {
+  display: none !important;
+}
+
+.ui-popup-normal-open-animation {
+  animation-name: popup-open-normal;
+  animation-duration: 250ms;
+}
+
+.ui-popup-normal-close-animation {
+  opacity: 0;
+  animation-name: popup-close-normal;
+  animation-duration: 250ms;
+  pointer-events: none !important;
+}
+
+.ui-popup-fade-open-animation {
+  animation-name: popup-open-fade;
+  animation-duration: 250ms;
+}
+
+.ui-popup-fade-close-animation {
+  opacity: 0;
+  animation-name: popup-close-normal;
+  animation-duration: 250ms;
+  pointer-events: none !important;
+}
+
+.ui-popup-positioned-open-animation>:first-child {
+  animation-name: popup-open-normal;
+  animation-duration: 250ms;
+}
+
+.ui-popup-positioned-close-animation {
+  opacity: 0;
+  animation-name: popup-close-normal;
+  animation-duration: 250ms;
+  pointer-events: none !important;
+}
+
+@keyframes popup-open-normal {
+  from {
+    transform: scale3d(0, 0, 1);
+  }
+
+  to {
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes popup-open-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popup-close-normal {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.ui-popup-slideout-top-full-open-animation {
+  animation-name: popup-open-slideout-top-full;
+  animation-duration: 250ms;
+}
+
+.ui-popup-slideout-top-full-close-animation {
+  transform: translate3d(0px, -100%, 0px);
+  animation-name: popup-close-slideout-top-full;
+  animation-duration: 250ms;
+  pointer-events: none !important;
+}
+
+@keyframes popup-open-slideout-top-full {
+  from {
+    transform: translate3d(0px, -100%, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, 0px, 0px);
+  }
+}
+
+@keyframes popup-close-slideout-top-full {
+  from {
+    transform: translate3d(0px, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, -100%, 0px);
+  }
+}
+
+.ui-popup-slideout-bottom-full-open-animation {
+  animation-name: popup-open-slideout-bottom-full;
+  animation-duration: 250ms;
+}
+
+.ui-popup-slideout-bottom-full-close-animation {
+  transform: translate3d(0px, 100%, 0px);
+  animation-name: popup-close-slideout-bottom-full;
+  animation-duration: 250ms;
+  pointer-events: none !important;
+}
+
+@keyframes popup-open-slideout-bottom-full {
+  from {
+    transform: translate3d(0px, 100%, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, 0px, 0px);
+  }
+}
+
+@keyframes popup-close-slideout-bottom-full {
+  from {
+    transform: translate3d(0px, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, 100%, 0px);
+  }
+}
+
+.ui-popup-slideout-right-full-open-animation {
+  animation-name: popup-open-slideout-right-full;
+  animation-duration: 250ms;
+}
+
+.ui-popup-slideout-right-full-close-animation {
+  transform: translate3d(100%, 0px, 0px);
+  animation-name: popup-close-slideout-right-full;
+  animation-duration: 250ms;
+  pointer-events: none !important;
+}
+
+@keyframes popup-open-slideout-right-full {
+  from {
+    transform: translate3d(100%, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(0px, 0px, 0px);
+  }
+}
+
+@keyframes popup-close-slideout-right-full {
+  from {
+    transform: translate3d(0px, 0px, 0px);
+  }
+
+  to {
+    transform: translate3d(100%, 0px, 0px);
+  }
+}

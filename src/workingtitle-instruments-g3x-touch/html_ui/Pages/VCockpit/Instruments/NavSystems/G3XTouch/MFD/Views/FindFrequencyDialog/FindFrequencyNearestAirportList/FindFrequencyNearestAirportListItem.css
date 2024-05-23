@@ -1,0 +1,34 @@
+.find-freq-nearest-list-item .nearest-wpt-list-item-button {
+  height: 74px;
+  flex-shrink: 0;
+}
+
+.find-freq-nearest-list-item .nearest-wpt-list-item-brg-dis-container {
+  max-width: 100px;
+  min-width: 100px;
+}
+
+.find-freq-nearest-list-item-action-button {
+  flex-grow: 1;
+  height: 74px;
+  white-space: pre-line;
+  font-size: 18px;
+}
+
+.find-freq-nearest-list-item-action-button-label {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.find-freq-nearest-list-item-action-button-frequency {
+  font-size: 22px;
+}
+
+.find-freq-nearest-list-item-action-button-type {
+  font-size: 18px;
+  text-align: center;
+}

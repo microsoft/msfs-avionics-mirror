@@ -4,12 +4,15 @@ import {
   Subject, TodBodDetails, UnitType, VerticalFlightPhase, VerticalFlightPlan, VNavAltCaptureType, VNavAvailability, VNavControlEvents, VNavDataEvents, VNavEvents,
   VNavManager, VNavPathCalculator, VNavPathMode, VNavState, VNavUtils, VNavVars
 } from '@microsoft/msfs-sdk';
-import { ApproachDetails, FmsEvents } from '../flightplan/Fms';
+
+import { FmsEvents } from '../flightplan/FmsEvents';
+import { ApproachDetails } from '../flightplan/FmsTypes';
 import { FmsUtils } from '../flightplan/FmsUtils';
-import { GlidepathServiceLevel } from './GarminVerticalNavigation';
+import { GlidepathServiceLevel } from './vnav/GarminVNavTypes';
 
 /**
  * A Garmin VNAV Manager.
+ * @deprecated
  */
 export class GarminVNavManager implements VNavManager {
 

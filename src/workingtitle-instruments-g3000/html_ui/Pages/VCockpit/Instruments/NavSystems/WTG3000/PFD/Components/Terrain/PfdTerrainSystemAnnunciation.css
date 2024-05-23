@@ -1,0 +1,66 @@
+.pfd-terrain-annunc {
+  padding: 0px 2px;
+}
+
+.pfd-terrain-annunc.terrain-annunc-advisory.terrain-annunc-flash {
+  animation: pfd-terrain-annunc-advisory-flash 1s infinite step-end;
+}
+
+.pfd-terrain-annunc.terrain-annunc-caution.terrain-annunc-flash {
+  animation: pfd-terrain-annunc-caution-flash 1s infinite step-end;
+}
+
+.pfd-terrain-annunc.terrain-annunc-warning.terrain-annunc-flash {
+  animation: pfd-terrain-annunc-warning-flash 1s infinite step-end;
+}
+
+@keyframes pfd-terrain-annunc-advisory-flash {
+  0% {
+    background: var(--g3000-color-white);
+    color: var(--g3000-color-black);
+  }
+
+  75% {
+    background: var(--g3000-color-black);
+    color: var(--g3000-color-white);
+  }
+
+  100% {
+    background: var(--g3000-color-black);
+    color: var(--g3000-color-white);
+  }
+}
+
+@keyframes pfd-terrain-annunc-caution-flash {
+  0% {
+    background: var(--g3000-color-yellow);
+    color: var(--g3000-color-black);
+  }
+
+  75% {
+    background: var(--g3000-color-black);
+    color: var(--g3000-color-yellow);
+  }
+
+  100% {
+    background: var(--g3000-color-black);
+    color: var(--g3000-color-yellow);
+  }
+}
+
+@keyframes pfd-terrain-annunc-warning-flash {
+  0% {
+    background: var(--g3000-color-red);
+    color: var(--g3000-color-white);
+  }
+
+  75% {
+    background: var(--g3000-color-white);
+    color: var(--g3000-color-red);
+  }
+
+  100% {
+    background: var(--g3000-color-white);
+    color: var(--g3000-color-red);
+  }
+}

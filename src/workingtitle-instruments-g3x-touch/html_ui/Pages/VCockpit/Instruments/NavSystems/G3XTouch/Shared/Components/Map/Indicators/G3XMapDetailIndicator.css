@@ -1,0 +1,4 @@
+.map-detail {
+  -webkit-text-stroke: 4px var(--g3x-color-black);
+  paint-order: stroke;
+}

@@ -88,7 +88,8 @@ export interface BingComponentProps extends ComponentProps {
   isoLines?: Subscribable<boolean>;
 
   /**
-   * How long to delay binding the map in ms. Defaults to 3000.
+   * The amount of time, in milliseconds, to delay binding the Bing instance after the component has been rendered.
+   * Defaults to 0.
    */
   delay?: number;
 
@@ -386,8 +387,8 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
   };
 
   /**
-   * Wakes this Bing component. Upon awakening, this component will synchronize its state from when it was put to sleep
-   * to the Bing instance to which it is bound.
+   * Wakes this Bing component. Upon awakening, this component will synchronize its state to the Bing instance to which
+   * it is bound.
    */
   public wake(): void {
     this._isAwake = true;

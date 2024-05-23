@@ -1,0 +1,272 @@
+.direct-to-waypoint-tab {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.gdu-460-display .direct-to-waypoint-tab {
+  padding: 7px;
+  font-size: 19px;
+
+  --direct-to-waypoint-tab-row-gap: 10px;
+
+  --direct-to-waypoint-tab-waypoint-select-button-height: 70px;
+
+  --direct-to-waypoint-tab-waypoint-select-button-font-size: 17px;
+  --direct-to-waypoint-tab-waypoint-select-button-ident-font-size: 23px;
+  --direct-to-waypoint-tab-waypoint-select-button-null-label-margin-left: 18px;
+  --direct-to-waypoint-tab-waypoint-select-button-null-label-font-size: 20px;
+
+  --direct-to-waypoint-tab-middle-row-height: 306px;
+
+  --direct-to-waypoint-tab-box-border-width: 3px;
+  --direct-to-waypoint-tab-box-border-radius: 4px;
+  --direct-to-waypoint-tab-box-gap: 10px;
+
+  --direct-to-waypoint-tab-info-block-width: 165px;
+  --direct-to-waypoint-tab-info-block-font-size: 17px;
+
+  --direct-to-waypoint-tab-info-block-brg-dist-container-width: 137px;
+  --direct-to-waypoint-tab-info-block-brg-dist-container-height: 60px;
+  --direct-to-waypoint-tab-info-block-brg-dist-container-margin-top: 7px;
+
+  --direct-to-waypoint-tab-info-block-brg-dist-title-width: 45px;
+
+  --direct-to-waypoint-tab-info-block-brg-arrow-column-width: 36px;
+
+  --direct-to-waypoint-tab-info-block-region-margin-top: 26px;
+
+  --direct-to-waypoint-tab-info-block-latlon-margin-top: 26px;
+
+  --direct-to-waypoint-tab-info-block-course-to-width: 120px;
+  --direct-to-waypoint-tab-info-block-course-to-height: 80px;
+  --direct-to-waypoint-tab-info-block-course-to-margin-top: 33px;
+  --direct-to-waypoint-tab-info-block-course-to-value-font-size: 23px;
+
+  --direct-to-waypoint-tab-bottom-row-height: 90px;
+
+  --direct-to-waypoint-tab-bottom-row-button-width: 120px;
+
+  --direct-to-waypoint-tab-info-button-width: 106px;
+
+  --direct-to-waypoint-tab-fpl-source-button-label-font-size: 18px;
+}
+
+/* Waypoint select button */
+
+.direct-to-waypoint-tab-waypoint-select-button {
+  height: var(--direct-to-waypoint-tab-waypoint-select-button-height);
+  font-size: var(--direct-to-waypoint-tab-waypoint-select-button-font-size);
+
+  --ui-wpt-display-ident-font-size: var(--direct-to-waypoint-tab-waypoint-select-button-ident-font-size);
+}
+
+.direct-to-waypoint-tab-waypoint-select-button-null-label {
+  position: absolute;
+  left: var(--direct-to-waypoint-tab-waypoint-select-button-null-label-margin-left);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--direct-to-waypoint-tab-waypoint-select-button-null-label-font-size);
+}
+
+.direct-to-waypoint-tab-has-target .direct-to-waypoint-tab-waypoint-select-button-null-label {
+  display: none;
+}
+
+/* Middle row */
+
+.direct-to-waypoint-tab-middle-row {
+  height: var(--direct-to-waypoint-tab-middle-row-height);
+  margin: var(--direct-to-waypoint-tab-row-gap) 0px;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+/* Info block */
+
+.direct-to-waypoint-tab-info-block {
+  position: relative;
+  width: var(--direct-to-waypoint-tab-info-block-width);
+  border: solid var(--direct-to-waypoint-tab-box-border-width) var(--g3x-color-border-light-gray);
+  border-radius: var(--direct-to-waypoint-tab-box-border-radius);
+  background: var(--g3x-color-black);
+  font-size: var(--direct-to-waypoint-tab-info-block-font-size);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.direct-to-waypoint-tab-info-block-brg-dist-container {
+  position: relative;
+  width: var(--direct-to-waypoint-tab-info-block-brg-dist-container-width);
+  height: var(--direct-to-waypoint-tab-info-block-brg-dist-container-height);
+  margin-top: var(--direct-to-waypoint-tab-info-block-brg-dist-container-margin-top);
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr var(--direct-to-waypoint-tab-info-block-brg-arrow-column-width);
+}
+
+.direct-to-waypoint-tab-info-block-brg-dist {
+  justify-self: stretch;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.direct-to-waypoint-tab-info-block-brg-dist-title {
+  width: var(--direct-to-waypoint-tab-info-block-brg-dist-title-width);
+  color: #acacac;
+}
+
+.direct-to-waypoint-tab-info-block-brg {
+  align-self: start;
+  grid-area: 1 / 1;
+}
+
+.direct-to-waypoint-tab-info-block-dist {
+  align-self: end;
+  grid-area: 2 / 1;
+}
+
+.direct-to-waypoint-tab-info-block-brg-dist-container .ui-bearing-arrow {
+  justify-self: center;
+  align-self: center;
+  grid-area: 1 / 2 / 3 / 3;
+}
+
+.direct-to-waypoint-tab-info-block-region {
+  margin-top: var(--direct-to-waypoint-tab-info-block-region-margin-top);
+  white-space: pre;
+}
+
+.direct-to-waypoint-tab-info-block-latlon {
+  margin-top: var(--direct-to-waypoint-tab-info-block-latlon-margin-top);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  line-height: 0.9em;
+}
+
+.direct-to-waypoint-tab-info-block-latlon .g-latlon-coord {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+}
+
+.direct-to-waypoint-tab-info-block-course-to {
+  position: relative;
+  width: var(--direct-to-waypoint-tab-info-block-course-to-width);
+  height: var(--direct-to-waypoint-tab-info-block-course-to-height);
+  margin-top: var(--direct-to-waypoint-tab-info-block-course-to-margin-top);
+
+  --touch-button-value-label-center-y: 20%;
+  --touch-button-value-value-center-y: 67%;
+}
+
+.direct-to-waypoint-tab-info-block-course-to-value {
+  font-size: var(--direct-to-waypoint-tab-info-block-course-to-value-font-size);
+}
+
+/* Map */
+
+.direct-to-waypoint-tab-map-box {
+  position: relative;
+  margin-left: var(--direct-to-waypoint-tab-box-gap);
+  border: solid var(--direct-to-waypoint-tab-box-border-width) var(--g3x-color-border-light-gray);
+  border-radius: var(--direct-to-waypoint-tab-box-border-radius);
+  background: var(--g3x-color-black);
+  overflow: hidden;
+  display: none;
+}
+
+.direct-to-waypoint-tab-has-target .direct-to-waypoint-tab-map-box {
+  display: block;
+}
+
+.direct-to-waypoint-tab-map {
+  transform: rotateX(0deg);
+  overflow: hidden;
+}
+
+.gdu-460-display .common-map.direct-to-waypoint-tab-map {
+  --common-map-scale-bar-detail-container-margin: 0px 5px 0px 0px;
+
+  --common-map-status-indicator-container-margin: 0px 3px 0px 0px;
+}
+
+.direct-to-waypoint-tab-map .map-indicator-group-top-right {
+  flex-flow: row-reverse nowrap;
+  align-items: flex-start;
+}
+
+.common-map.direct-to-waypoint-tab-map .map-status-indicator-container {
+  max-height: var(--common-map-status-indicator-container-max-width);
+  flex-flow: column wrap-reverse;
+  justify-content: flex-start;
+  align-content: flex-start;
+}
+
+/* Bottom row */
+
+.direct-to-waypoint-tab-bottom-row {
+  position: relative;
+  height: var(--direct-to-waypoint-tab-bottom-row-height);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.direct-to-waypoint-tab-bottom-row .touch-button {
+  width: var(--direct-to-waypoint-tab-bottom-row-button-width);
+}
+
+.direct-to-waypoint-tab-bottom-row .touch-button.touch-button-hidden {
+  display: unset !important;
+  visibility: hidden;
+}
+
+.direct-to-waypoint-tab-bottom-row .touch-button.direct-to-waypoint-tab-info-button {
+  width: var(--direct-to-waypoint-tab-info-button-width);
+
+  --touch-button-img-label-center-y: 68px;
+  --touch-button-img-img-center-y: 34px;
+}
+
+.direct-to-waypoint-tab-info-button .touch-button-img-img {
+  height: 24px;
+}
+
+.direct-to-waypoint-tab-info-button .touch-button-label {
+  margin-top: 3px;
+}
+
+.direct-to-waypoint-tab-fpl-source-button {
+  --touch-button-value-value-text-color: var(--g3x-color-cyan);
+}
+
+.direct-to-waypoint-tab-fpl-source-button .touch-button-label {
+  font-size: var(--direct-to-waypoint-tab-fpl-source-button-label-font-size);
+}
+
+.direct-to-waypoint-tab-stop-navigation-button {
+  --touch-button-img-img-center-y: 23px;
+  --touch-button-img-label-center-y: 57px;
+}
+
+.direct-to-waypoint-tab-activate-button {
+  --touch-button-img-img-center-y: 33px;
+  --touch-button-img-label-center-y: 70px;
+}
+
+.direct-to-waypoint-tab-stop-navigation-button .touch-button-label {
+  padding-top: 6px;
+}
+
+/* Dialogs */
+
+.gdu-460-display .direct-to-waypoint-tab-fpl-source-select-dialog {
+  --ui-list-dialog-width: 158px;
+  --ui-list-dialog-font-size: 19px;
+}

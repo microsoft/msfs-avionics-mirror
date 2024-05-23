@@ -1,6 +1,6 @@
 import {
   ActiveLegType, ArraySubject, BitFlags, FlightPlan, FlightPlanActiveLegEvent, FlightPlanCalculatedEvent, FlightPlanIndicationEvent,
-  FlightPlanLegEvent, FlightPlannerEvents, FlightPlanSegment, FlightPlanSegmentEvent, FlightPlanSegmentType, FocusPosition, FSComponent,
+  FlightPlanLegEvent, FlightPlanSegment, FlightPlanSegmentEvent, FlightPlanSegmentType, FocusPosition, FSComponent,
   GeoPoint, GNSSEvents, GPSSatComputerEvents, GPSSystemState, HardwareUiControl, ICAO, ImageCache, LegDefinitionFlags, LegEventType,
   MagVar, SegmentEventType, Subject, UnitType, VNode
 } from '@microsoft/msfs-sdk';
@@ -57,18 +57,16 @@ export class FPLPage extends Page<FPLPageProps> {
 
   /** @inheritDoc */
   public onAfterRender(): void {
-    const fpl = this.props.bus.getSubscriber<FlightPlannerEvents>();
+    this.props.fms.flightPlanner.onEvent('fplIndexChanged').handle(this.onPlanIndexChanged.bind(this));
+    this.props.fms.flightPlanner.onEvent('fplSegmentChange').handle(this.onSegmentChanged.bind(this));
+    this.props.fms.flightPlanner.onEvent('fplLegChange').handle(e => this.onPlanChanged(e.planIndex, e));
+    this.props.fms.flightPlanner.onEvent('fplActiveLegChange').handle(this.onActiveLegChanged.bind(this));
+    this.props.fms.flightPlanner.onEvent('fplDeleted').handle(e => this.onPlanChanged(e.planIndex));
+    this.props.fms.flightPlanner.onEvent('fplOriginDestChanged').handle(e => this.onPlanChanged(e.planIndex));
 
-    fpl.on('fplIndexChanged').handle(this.onPlanIndexChanged.bind(this));
-    fpl.on('fplSegmentChange').handle(this.onSegmentChanged.bind(this));
-    fpl.on('fplLegChange').handle(e => this.onPlanChanged(e.planIndex, e));
-    fpl.on('fplActiveLegChange').handle(this.onActiveLegChanged.bind(this));
-    fpl.on('fplDeleted').handle(e => this.onPlanChanged(e.planIndex));
-    fpl.on('fplOriginDestChanged').handle(e => this.onPlanChanged(e.planIndex));
-
-    fpl.on('fplCopied').handle(this.onPlanLoadedOrCopied.bind(this));
-    fpl.on('fplLoaded').handle(this.onPlanLoadedOrCopied.bind(this));
-    fpl.on('fplCalculated').handle(this.onCalculated.bind(this));
+    this.props.fms.flightPlanner.onEvent('fplCopied').handle(this.onPlanLoadedOrCopied.bind(this));
+    this.props.fms.flightPlanner.onEvent('fplLoaded').handle(this.onPlanLoadedOrCopied.bind(this));
+    this.props.fms.flightPlanner.onEvent('fplCalculated').handle(this.onCalculated.bind(this));
 
     this.props.bus.getSubscriber<GNSSEvents>().on('gps-position').atFrequency(1).handle(pos => {
       this.ppos.set(pos.lat, pos.long);

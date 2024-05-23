@@ -101,9 +101,16 @@ export class ControlpadInputController {
     ['AS1000_CONTROL_PAD_XPDR', FmsHEvent.XPDR],
     ['AS1000_CONTROL_PAD_CRS', FmsHEvent.CRS],
     ['AS1000_CONTROL_PAD_Home', FmsHEvent.HOME],
+    ['AS1000_CONTROL_KNOB_Outer_INC', FmsHEvent.CONTROL_OUTER_INC],
+    ['AS1000_CONTROL_KNOB_Outer_DEC', FmsHEvent.CONTROL_OUTER_DEC],
+    ['AS1000_CONTROL_KNOB_Inner_INC', FmsHEvent.CONTROL_INNER_INC],
+    ['AS1000_CONTROL_KNOB_Inner_DEC', FmsHEvent.CONTROL_INNER_DEC],
+    ['AS1000_CONTROL_KNOB_Push', FmsHEvent.CONTROL_INNER_PUSH],
   ]);
 
   protected readonly controlPadAcceptingEvents: string[] = ['AS1000_CONTROL_PAD_ENT_Push', 'AS1000_PFD_ENT_Push', 'AS1000_MFD_ENT_Push'];
+  protected readonly controlKnobEvents: string[] = ['AS1000_CONTROL_KNOB_Outer_INC', 'AS1000_CONTROL_KNOB_Outer_DEC', 'AS1000_CONTROL_KNOB_Inner_INC',
+    'AS1000_CONTROL_KNOB_Inner_DEC', 'AS1000_CONTROL_KNOB_Push'];
 
   private readonly sub = this.bus.getSubscriber<RadioEvents & MFDViewServiceEvents>();
   private readonly inhibitGenericControlpadUseConsumer = ConsumerSubject.create(this.sub.on('inhibitGenericControlpadUse'), false);
@@ -213,6 +220,11 @@ export class ControlpadInputController {
   public handleControlPadEventInput(hEvent: string): boolean {
     let isHandled = false;
 
+    if (this.controlKnobEvents.includes(hEvent) && this.controlpadState.get() !== GenericControlpadHandlingStates.comInputArmed) {
+      this.scheduleDefaultStateFallback();
+      return true;
+    }
+
     // We only continue, if the event is coming from controlpad:
     if (ControlpadInputController.controlPadEventMap.has(hEvent)) {
       // For the frequency and transponder input, we need a state event machine here:
@@ -251,9 +263,6 @@ export class ControlpadInputController {
           break;
 
         case GenericControlpadHandlingStates.crsInputArmed:
-          if (['AS1000_PFD_CRS_INC', 'AS1000_PFD_CRS_DEC'].includes(hEvent)) {
-            this.scheduleDefaultStateFallback();
-          }
           break;
       }
 

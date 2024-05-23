@@ -14,6 +14,7 @@ export * from './radio';
 export * from './settings';
 export * from './softkey';
 export * from './system';
+export * from './terrain';
 export * from './timer';
 export * from './traffic';
 export * from './wind';

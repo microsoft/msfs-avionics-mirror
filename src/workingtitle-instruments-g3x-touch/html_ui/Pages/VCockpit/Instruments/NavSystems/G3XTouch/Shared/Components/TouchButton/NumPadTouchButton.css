@@ -1,0 +1,24 @@
+html {
+  --numpad-touch-button-background: linear-gradient(143deg, #494949 15%, black 35%);
+  --numpad-touch-button-border-radius: 50%;
+}
+
+.gdu-460-display {
+  --numpad-touch-button-width: 80px;
+  --numpad-touch-button-height: 80px;
+  --numpad-touch-button-font-size: 38px;
+}
+
+.numpad-touch-button {
+  width: var(--numpad-touch-button-width);
+  height: var(--numpad-touch-button-height);
+  font-size: var(--numpad-touch-button-font-size);
+
+  --touch-button-background: var(--numpad-touch-button-background);
+  --touch-button-border-radius: var(--numpad-touch-button-border-radius);
+}
+
+.numpad-spacer {
+  width: var(--numpad-touch-button-width);
+  height: var(--numpad-touch-button-height);
+}

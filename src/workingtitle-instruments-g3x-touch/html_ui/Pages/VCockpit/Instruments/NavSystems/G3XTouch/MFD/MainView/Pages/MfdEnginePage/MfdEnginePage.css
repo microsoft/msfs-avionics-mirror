@@ -1,0 +1,140 @@
+.mfd-engine-page {
+  --chtegt-dash-width: 14px;
+  --chtegt-cylinder-set-horizontal-padding: 13px;
+  --chtegt-column-width: 38px;
+  --chtegt-cht-indicator-width: 52px;
+  --cylinder-gauge-height: 138px;
+  --cylinder-gauge-horizontal-margin: 10px;
+  --cylinder-gauge-vertical-margin: 12px;
+  --vertical-bar-gauge-value-row-height: 20px;
+  --vertical-bar-gauge-color-line-width: 14px;
+
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  height: 100%;
+  width: 100%;
+
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.gdu-460-display .mfd-engine-page {
+  padding: 7px;
+
+  --tabbed-container-tab-width: 45px;
+  --tabbed-container-content-area-margin: 10px;
+}
+
+.gdu-460-display.gdu-display-pfd-left .mfd-engine-page {
+  padding-right: 0px;
+}
+
+.gdu-460-display.gdu-display-pfd-right .mfd-engine-page {
+  padding-left: 0px;
+}
+
+.mfd-engine-page-container {
+  position: relative;
+  flex-grow: 1;
+  border-radius: var(--tabbed-container-content-box-border-radius);
+  border: solid var(--tabbed-container-content-box-border-width) var(--tabbed-container-content-box-border-color);
+}
+
+.mfd-engine-page-container-content {
+  position: absolute;
+  left: var(--tabbed-container-content-area-margin);
+  top: var(--tabbed-container-content-area-margin);
+  width: calc(100% - 2 * var(--tabbed-container-content-area-margin));
+  height: calc(100% - 2 * var(--tabbed-container-content-area-margin));
+}
+
+.mfd-engine-page-tabbed-container {
+  flex-grow: 1;
+}
+
+.mfd-engine-page .tabbed-content-tab-button {
+  font-size: 18px;
+}
+
+.mfd-engine-page-simple-tab {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.mfd-engine-page-gauge-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.mfd-engine-page .gauge_row {
+  position: relative;
+  width: 100%;
+}
+
+.mfd-engine-page .gauge_row_outline {
+  border: var(--g3x-color-white) 1px solid;
+  border-radius: 4px;
+  font-size: 20px;
+}
+
+.mfd-engine-page .gauge_row_labeled {
+  margin-top: 22px;
+}
+
+.mfd-engine-page .gauge_row .gauge_row_label {
+  position: absolute;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  background: var(--g3x-color-black);
+  left: 50%;
+  padding: 8px;
+  top: 0;
+}
+
+.mfd-engine-page .gauge_column_row {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+.mfd-engine-page .gauge_column {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.mfd-engine-page .gauge_column_outline {
+  border: var(--g3x-color-white) 1px solid;
+  border-radius: 4px;
+}
+
+.mfd-engine-page .gauge_column_labeled {
+  margin-top: 22px;
+}
+
+.mfd-engine-page .gauge_column .gauge_column_label {
+  position: absolute;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  background: var(--g3x-color-black);
+  left: 50%;
+  padding: 8px;
+  font-size: 20px;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mfd-engine-page .gauge_text_block {
+  display: inline-block;
+  width: fit-content;
+}

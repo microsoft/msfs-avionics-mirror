@@ -1,0 +1,199 @@
+.cns-audio {
+  position: relative;
+}
+
+.gdu-460-display .cns-audio {
+  font-size: 16px;
+}
+
+.cns-audio.cns-audio-normal .is-using-1 .cns-audio-button-indicator-left {
+  display: block;
+}
+
+.cns-audio.cns-audio-normal .is-using-1 .cns-audio-button-indicator-left-label {
+  display: block;
+}
+
+.cns-audio.cns-audio-normal .is-using-2 .cns-audio-button-indicator-right {
+  display: block;
+}
+
+.cns-audio.cns-audio-normal .is-using-2 .cns-audio-button-indicator-right-label {
+  display: block;
+}
+
+.cns-audio.cns-audio-minimized .is-using-1 .cns-audio-button-indicator-left {
+  display: block;
+}
+
+.cns-audio.cns-audio-minimized .is-using-1 .cns-audio-button-indicator-left-label {
+  display: block;
+}
+
+.cns-audio.cns-audio-minimized .is-using-2 .cns-audio-button-indicator-right {
+  display: block;
+}
+
+.cns-audio.cns-audio-minimized .is-using-2 .cns-audio-button-indicator-right-label {
+  display: block;
+}
+
+/* NORMAL---------- */
+
+.cns-audio-normal .touch-button {
+  flex-basis: 0;
+  flex-grow: 1;
+}
+
+.cns-audio.cns-audio-normal .cns-mic-title {
+  width: 100%;
+  text-align: center;
+  margin-top: 1px
+}
+
+.cns-audio.cns-audio-normal .cns-com-title {
+  width: 100%;
+  text-align: center;
+  margin-top: 1px
+}
+
+.cns-audio.cns-audio-normal .cns-audio-button-indicator-left {
+  display: none;
+  position: absolute;
+  left: 8px;
+  top: 22px;
+  fill: var(--g3x-color-green);
+}
+
+.cns-audio.cns-audio-normal .cns-audio-button-indicator-left-label {
+  display: none;
+  position: absolute;
+  text-align: center;
+  color: var(--g3x-color-black);
+  font-size: 17px;
+  top: 27px;
+}
+
+.cns-audio.cns-audio-normal .cns-audio-button-indicator-left-label.cns-audio-button-triangle {
+  left: 24px;
+}
+
+.cns-audio.cns-audio-normal .cns-audio-button-indicator-left-label.cns-audio-button-square {
+  left: 16px;
+}
+
+.cns-audio.cns-audio-normal .cns-audio-button-indicator-right {
+  display: none;
+  position: absolute;
+  left: 44px;
+  top: 22px;
+  fill: var(--g3x-color-green);
+}
+
+.cns-audio.cns-audio-normal .cns-audio-button-indicator-right-label {
+  display: none;
+  position: absolute;
+  text-align: center;
+  font-size: 17px;
+  color: var(--g3x-color-black);
+  top: 27px;
+}
+
+.cns-audio.cns-audio-normal .cns-audio-button-indicator-right-label.cns-audio-button-triangle {
+  left: 45px;
+}
+
+.cns-audio.cns-audio-normal .cns-audio-button-indicator-right-label.cns-audio-button-square {
+  left: 52px;
+}
+
+/* MINIMIZED---------- */
+
+.cns-audio.cns-audio-minimized {
+  display: flex;
+  flex-direction: row;
+  position: relative;
+}
+
+.cns-audio.cns-audio-minimized .cns-mic-button {
+  position: relative;
+  width: 50%;
+}
+
+.cns-audio.cns-audio-minimized .cns-com-button {
+  position: relative;
+  width: 50%;
+}
+
+.cns-audio.cns-audio-minimized .cns-mic-title {
+  width: 100%;
+  text-align: center;
+  margin-top: 3px;
+  font-size: 14px;
+}
+
+.cns-audio.cns-audio-minimized .cns-com-title {
+  width: 100%;
+  text-align: center;
+  margin-top: 3px;
+  font-size: 14px;
+}
+
+.cns-audio.cns-audio-minimized .cns-audio-button-indicator-left {
+  display: none;
+  position: absolute;
+  fill: var(--g3x-color-green);
+  top: 22px;
+  left: 4px;
+}
+
+.cns-audio.cns-audio-minimized .cns-audio-button-indicator-left-label {
+  display: none;
+  position: absolute;
+  text-align: center;
+  color: var(--g3x-color-black);
+  font-size: 15px;
+  top: 26px;
+}
+
+.cns-audio.cns-audio-minimized .cns-audio-button-indicator-left-label.cns-audio-button-triangle {
+  left: 12px;
+}
+
+.cns-audio.cns-audio-minimized .cns-audio-button-indicator-left-label.cns-audio-button-square {
+  left: 9px;
+}
+
+.cns-audio.cns-audio-minimized .cns-audio-button-indicator-right {
+  display: none;
+  position: absolute;
+  fill: var(--g3x-color-green);
+  top: 22px;
+  right: 4px;
+}
+
+.cns-audio.cns-audio-minimized .cns-audio-button-indicator-right-label {
+  display: none;
+  position: absolute;
+  text-align: center;
+  color: var(--g3x-color-black);
+  font-size: 15px;
+  top: 26px;
+}
+
+.cns-audio.cns-audio-minimized .cns-audio-button-indicator-right-label.cns-audio-button-triangle {
+  left: 25px;
+}
+
+.cns-audio.cns-audio-minimized .cns-audio-button-indicator-right-label.cns-audio-button-square {
+  left: 29px;
+}
+
+.cns-audio.cns-audio-minimized .cns-audio-vertical-divider {
+  position: absolute;
+  width: 2px;
+  height: 45px;
+  top: 6px;
+  left: calc(50% - 1px);
+  background: var(--g3x-color-gray);
+}

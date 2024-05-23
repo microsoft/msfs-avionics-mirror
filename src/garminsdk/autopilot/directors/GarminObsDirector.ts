@@ -1,5 +1,5 @@
 import {
-  AdcEvents, APValues, DirectorState, EventBus, FlightPathUtils, GeoCircle, GeoPoint, GeoPointSubject, GNSSEvents, HEvent, LegDefinition,
+  AdcEvents, APValues, CdiEvents, CdiUtils, DirectorState, EventBus, FlightPathUtils, GeoCircle, GeoPoint, GeoPointSubject, GNSSEvents, HEvent, LegDefinition,
   LNavDirectorInterceptFunc, LNavEvents, LNavTrackingState, LNavTransitionMode, LNavVars, MagVar, MathUtils, NavEvents, NavMath, NavSourceType,
   ObjectSubject, ObsDirector, SimVarValueType, SubscribableType, UnitType
 } from '@microsoft/msfs-sdk';
@@ -29,6 +29,7 @@ export type GarminObsDirectorOptions = {
 
 /**
  * A director that handles OBS Lateral Navigation.
+ * @deprecated
  */
 export class GarminObsDirector implements ObsDirector {
   private readonly geoPointCache = [new GeoPoint(0, 0)];
@@ -166,7 +167,7 @@ export class GarminObsDirector implements ObsDirector {
 
     this.lateralInterceptCurve = options?.lateralInterceptCurve;
 
-    const sub = bus.getSubscriber<HEvent & NavEvents & LNavEvents & GNSSEvents & AdcEvents>();
+    const sub = bus.getSubscriber<HEvent & NavEvents & CdiEvents & LNavEvents & GNSSEvents & AdcEvents>();
 
     const adjustCourseSub = sub.on('hEvent').handle((e: string) => {
       if (e === 'AS1000_PFD_CRS_INC' || e === 'AS1000_MFD_CRS_INC') {
@@ -176,7 +177,7 @@ export class GarminObsDirector implements ObsDirector {
       }
     }, true);
 
-    sub.on('cdi_select').handle(source => {
+    sub.on(`cdi_select${CdiUtils.getEventBusTopicSuffix(this.apValues.cdiId)}`).handle(source => {
       if (source.type === NavSourceType.Gps) {
         adjustCourseSub.resume();
       } else {

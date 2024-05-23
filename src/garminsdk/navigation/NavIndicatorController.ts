@@ -145,6 +145,7 @@ export class NavIndicatorController {
 
   private flightPhase: Readonly<FmsFlightPhase> = {
     isApproachActive: false,
+    isToFaf: false,
     isPastFaf: false,
     isInMissedApproach: false
   };

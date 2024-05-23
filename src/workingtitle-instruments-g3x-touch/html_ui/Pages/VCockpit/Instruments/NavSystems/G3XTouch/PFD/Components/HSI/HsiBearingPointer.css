@@ -1,0 +1,24 @@
+.hsi-bearing-pointer {
+  position: relative;
+}
+
+.gdu-460-display .hsi-bearing-pointer {
+  --hsi-bearing-pointer-outline-width: 4px;
+  --hsi-bearing-pointer-stroke-width: 2px;
+}
+
+.hsi-bearing-pointer-svg {
+  overflow: visible;
+}
+
+.hsi-bearing-pointer-outline {
+  fill: none;
+  stroke: var(--g3x-color-black);
+  stroke-width: var(--hsi-bearing-pointer-outline-width);
+}
+
+.hsi-bearing-pointer-stroke {
+  fill: none;
+  stroke: var(--g3x-color-cyan);
+  stroke-width: var(--hsi-bearing-pointer-stroke-width);
+}

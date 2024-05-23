@@ -294,9 +294,9 @@ export class NavComFrequencyElement extends G1000UiControl<NavComFrequencyElemen
     this.isInInputMode = true;
     this.validNextDigitSpace = [1];
     this.digitPosition = 0;
-    this.newFrequencyAsString = this.radioState?.standbyFrequency.toFixed((this.radioState.radioType === RadioType.Com) ? 3 : 2) ?? '000.00';
+    // Maintain the first three digits of the previous frequency but reset the rest:
+    this.newFrequencyAsString = Math.floor(this.radioState?.standbyFrequency ?? 100).toFixed(0) + ((this.radioState?.radioType === RadioType.Nav) ? '.00' : '.000');
     this.previousFrequency = this.radioState?.standbyFrequency ?? 0;
-
     // ...and set up the UI as needed (swap the input digits for the static frequency element):
     this.standbyFreq.instance.style.display = 'none';
     this.comInputDigits.every((digit, index) => {
@@ -364,6 +364,15 @@ export class NavComFrequencyElement extends G1000UiControl<NavComFrequencyElemen
         if (this.digitPosition < 6) {
           this.validNextDigitSpace = this.getNextValidFrequencyDigits(digit);
           this.digitPosition++;
+          // Modify the next digit, which was preserved from the previous freq, if it is no longer valid based on the just entered digit,
+          // e.g. COM was 122.000 and after entering '1' at the second position, the '2' at the third position should become a '8'.
+          // Validate against the received validNextDigitSpace:
+          const nextDigitFromPrevious = +this.newFrequencyAsString[this.digitPosition];
+          if (this.validNextDigitSpace.includes(nextDigitFromPrevious) === false) {
+            const validReplacement = this.validNextDigitSpace[0].toFixed(0);
+            this.newFrequencyAsString = this.newFrequencyAsString.substring(0, this.digitPosition) + validReplacement + this.newFrequencyAsString.substring(this.digitPosition + 1);
+          }
+
         } else {
           // After position 6, we don't consider any further digit as valid:
           this.validNextDigitSpace = [];
@@ -437,6 +446,15 @@ export class NavComFrequencyElement extends G1000UiControl<NavComFrequencyElemen
               return [5];
           }
           break;
+        } else {
+          // If the spacing is 0.00833, these are valid seventh digits:
+          if ([0, 1, 3, 5, 6, 8].includes(digit)) {
+            // If the sixth digit is one of these, the seventh digit can be 0 or 5:
+            return [0, 5];
+          } else {
+            // In all other casem the seventh digit can only be 0:
+            return [0];
+          }
         }
     }
     return [];

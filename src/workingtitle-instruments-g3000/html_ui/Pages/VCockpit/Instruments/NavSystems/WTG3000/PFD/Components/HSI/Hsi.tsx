@@ -7,8 +7,8 @@ import {
 import { ObsSuspModes, TrafficSystem, UnitsUserSettingManager } from '@microsoft/msfs-garminsdk';
 
 import {
-  BearingDisplay, DisplayPaneViewEvent, IauUserSettingManager, MapConfig, PfdIndex, PfdMapLayoutSettingMode,
-  PfdMapLayoutUserSettingTypes
+  BearingDisplay, DisplayPaneViewEvent, G3000FlightPlannerId, IauUserSettingManager, MapConfig, PfdIndex,
+  PfdMapLayoutSettingMode, PfdMapLayoutUserSettingTypes
 } from '@microsoft/msfs-wtg3000-common';
 
 import { HsiDataProvider } from './HsiDataProvider';
@@ -23,7 +23,7 @@ export interface HSIProps extends ComponentProps {
   bus: EventBus;
 
   /** An instance of the flight planner. */
-  flightPlanner: FlightPlanner;
+  flightPlanner: FlightPlanner<G3000FlightPlannerId>;
 
   /** The traffic system. */
   trafficSystem: TrafficSystem;

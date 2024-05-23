@@ -1,5 +1,5 @@
 import {
-  AirportUtils, EventBus, FacilityType, FlightPlan, FlightPlannerEvents, FlightPlanPredictorUtils, ICAO, MappedSubject,
+  AirportUtils, EventBus, FacilityType, FlightPlan, FlightPlanPredictorUtils, ICAO, MappedSubject,
   UnitType, VNavDataEvents, VNavEvents, VNavUtils,
 } from '@microsoft/msfs-sdk';
 
@@ -25,7 +25,7 @@ export class GnsVnavController {
 
   private readonly gnsVnavSettings = GnsVnavSettingsManager.getManager(this.bus);
 
-  private readonly store = new GnsVnavStore(this.bus);
+  private readonly store = new GnsVnavStore(this.bus, this.fms.lnavIndex);
 
   private readonly publisher = this.bus.getPublisher<GnsVnavEvents & VNavEvents & VNavDataEvents>();
 
@@ -46,39 +46,37 @@ export class GnsVnavController {
     private readonly bus: EventBus,
     private readonly fms: Fms,
   ) {
-    const sub = this.bus.getSubscriber<FlightPlannerEvents>();
-
-    sub.on('fplCopied').handle((evt) => {
+    fms.flightPlanner.onEvent('fplCopied').handle((evt) => {
       if (evt.targetPlanIndex === Fms.PRIMARY_PLAN_INDEX) {
         this.publishAvailableRefLegs();
       }
     });
 
-    sub.on('fplLegChange').handle((evt) => {
+    fms.flightPlanner.onEvent('fplLegChange').handle((evt) => {
       if (evt.planIndex === Fms.PRIMARY_PLAN_INDEX) {
         this.publishAvailableRefLegs();
       }
     });
 
-    sub.on('fplActiveLegChange').handle((evt) => {
+    fms.flightPlanner.onEvent('fplActiveLegChange').handle((evt) => {
       if (evt.planIndex === Fms.PRIMARY_PLAN_INDEX) {
         this.publishAvailableRefLegs();
       }
     });
 
-    sub.on('fplLoaded').handle((evt) => {
+    fms.flightPlanner.onEvent('fplLoaded').handle((evt) => {
       if (evt.planIndex === Fms.PRIMARY_PLAN_INDEX) {
         this.publishAvailableRefLegs();
       }
     });
 
-    sub.on('fplCreated').handle((evt) => {
+    fms.flightPlanner.onEvent('fplCreated').handle((evt) => {
       if (evt.planIndex === Fms.PRIMARY_PLAN_INDEX) {
         this.publishAvailableRefLegs();
       }
     });
 
-    sub.on('fplDeleted').handle((evt) => {
+    fms.flightPlanner.onEvent('fplDeleted').handle((evt) => {
       if (evt.planIndex === Fms.PRIMARY_PLAN_INDEX) {
         this.publishAvailableRefLegs();
       }
@@ -443,7 +441,7 @@ export class GnsVnavController {
    * @param targetAltitude     the target altitude
    * @param targetAltitudeMode the target altitude mode
    * @param refLegIndex        the leg index the reference waypoint is at
-   * @private
+   * @returns the final target altitude, in feet
    */
   private async getFinalTargetAltitude(
     targetAltitude: number,

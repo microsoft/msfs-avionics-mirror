@@ -31,7 +31,7 @@ export class TouchList extends ScrollList<TouchListProps> {
   protected readonly onMouseUpFunc = this.onMouseUp.bind(this);
   protected readonly onMouseMoveFunc = this.onMouseMove.bind(this);
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
     this.rootRef.instance.classList.add('touch-list', `touch-list-${this.scrollAxis}`);
     this.translatableRef.instance.classList.add('touch-list-translatable');
@@ -184,12 +184,12 @@ export class TouchList extends ScrollList<TouchListProps> {
     this.deltaTimeSeconds = deltaTimeSeconds;
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   protected getReservedCssClasses(): readonly string[] {
     return TouchList.RESERVED_CLASSES;
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
     this.rootRef.getOrDefault()?.removeEventListener('mousedown', this.onMouseDownCaptureFunc);
     this.rootRef.getOrDefault()?.removeEventListener('mousedown', this.onMouseDownFunc);

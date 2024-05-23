@@ -1,0 +1,92 @@
+.afcs-controls {
+  min-width: 460px;
+  height: 92%;
+  margin-top: 7px;
+  padding-top: 4px;
+  border-radius: 5px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.afcs-controls-title {
+  font-size: 21px;
+}
+
+.afcs-controls .afcs-controls-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+
+  --touch-button-toggle-bar-width: 80%;
+}
+
+.afcs-controls .afcs-controls-row .touch-button,
+.afcs-controls .afcs-controls-row .afcs-controls-spacer {
+  width: 80px;
+  height: 80px;
+}
+
+.afcs-controls .afcs-controls-row.afcs-controls-row-1 {
+  margin-top: 50px;
+}
+
+.afcs-controls .afcs-controls-row.afcs-controls-row-1 .touch-button:not(:last-child) {
+  margin-right: 30px;
+}
+
+.afcs-controls .afcs-controls-row.afcs-controls-row-1.with-yd .touch-button:not(:last-child) {
+  margin-right: 17px;
+}
+
+.afcs-controls .afcs-controls-row.afcs-controls-row-2,
+.afcs-controls .afcs-controls-row.afcs-controls-row-3 {
+  margin-top: 35px;
+  padding-top: 35px;
+
+  border-top: 1px var(--g3x-color-white) solid;
+}
+
+.afcs-controls .afcs-controls-row.afcs-controls-row-4 {
+  margin-top: 35px;
+}
+
+.afcs-controls .afcs-controls-row.afcs-controls-row-2 .touch-button:not(:last-child),
+.afcs-controls .afcs-controls-row.afcs-controls-row-3 .touch-button:not(:last-child),
+.afcs-controls .afcs-controls-row.afcs-controls-row-4 .touch-button:not(:last-child),
+.afcs-controls .afcs-controls-row.afcs-controls-row-2 .afcs-controls-spacer:not(:last-child),
+.afcs-controls .afcs-controls-row.afcs-controls-row-3 .afcs-controls-spacer:not(:last-child),
+.afcs-controls .afcs-controls-row.afcs-controls-row-4 .afcs-controls-spacer:not(:last-child) {
+  margin-right: 30px;
+}
+
+.afcs-controls .afcs-controls-row .touch-button-label {
+  font-size: 20px;
+}
+
+.afcs-controls .afcs-up-down-state {
+  width: 190px;
+  height: 80px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  border: 2px solid hsl(0, 0%, 33%);
+  border-radius: 4px;
+  padding: 18px 14px 14px 14px;
+}
+
+.afcs-controls .afcs-up-down-label {
+  width: 140px;
+  text-align: center;
+  font-size: 17px;
+  margin: -28px auto 10px;
+  background: black;
+}
+
+.afcs-controls .afcs-up-down-value {
+  color: var(--g3x-color-cyan);
+  font-size: 21px;
+  margin-top: 8px;
+}

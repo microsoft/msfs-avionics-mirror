@@ -1,14 +1,18 @@
 import {
   AdcEvents, AirportFacility, AirportUtils, APEvents, APVerticalModes, BitFlags, ClockEvents, ConsumerSubject, ControlSurfacesEvents, EventBus, ExpSmoother,
-  FacilityLoader, FacilityType, FlightPlan, FlightPlanner, FlightPlannerEvents, FlightPlanSegment, FlightPlanSegmentType, GeoPoint, ICAO, KeyEventManager,
+  FacilityLoader, FacilityType, FlightPlan, FlightPlanner, FlightPlanSegment, FlightPlanSegmentType, GeoPoint, ICAO, KeyEventManager,
   KeyEvents, LegDefinitionFlags, LNavEvents, MathUtils, OriginDestChangeType, SpeedConstraint, SpeedRestrictionType, SpeedUnit, Subscribable,
   SubscribableMapFunctions, SubscribableUtils, Subscription, UnitType, UserSetting, VerticalFlightPhase, VNavEvents, VNavState
 } from '@microsoft/msfs-sdk';
+
 import {
   AdcSystemEvents, FmaData, FmaDataEvents, Fms, FmsPositionSystemEvents, GarminSpeedConstraintStore, GarminVNavFlightPhase,
   SpeedConstraintListItem, VNavDataEvents
 } from '@microsoft/msfs-garminsdk';
-import { FmsAirframeSpeedLimitContext, FmsSpeedEvents, FmsSpeedsConfig, FmsSpeedTargetSource, FmsSpeedUserSettingManager } from '@microsoft/msfs-wtg3000-common';
+
+import {
+  FmsAirframeSpeedLimitContext, FmsSpeedEvents, FmsSpeedsConfig, FmsSpeedTargetSource, FmsSpeedUserSettingManager, G3000FlightPlannerId
+} from '@microsoft/msfs-wtg3000-common';
 
 /**
  * Information on a set of computed FMS speeds.
@@ -296,7 +300,7 @@ export class FmsSpeedManager {
   public constructor(
     private readonly bus: EventBus,
     private readonly facLoader: FacilityLoader,
-    private readonly flightPlanner: FlightPlanner,
+    private readonly flightPlanner: FlightPlanner<G3000FlightPlannerId>,
     private readonly speedConstraintStore: GarminSpeedConstraintStore,
     private readonly config: FmsSpeedsConfig,
     private readonly settingManager: FmsSpeedUserSettingManager,
@@ -356,7 +360,7 @@ export class FmsSpeedManager {
 
     const sub = this.bus.getSubscriber<
       ClockEvents & APEvents & FmaDataEvents & AdcEvents & LNavEvents & VNavEvents & VNavDataEvents & ControlSurfacesEvents
-      & AdcSystemEvents & FmsPositionSystemEvents & FlightPlannerEvents & KeyEvents
+      & AdcSystemEvents & FmsPositionSystemEvents & KeyEvents
     >();
 
     // Pass through key events when not in FMS speed mode
@@ -370,7 +374,7 @@ export class FmsSpeedManager {
       }
     });
 
-    this.fplSubs.push(sub.on('fplOriginDestChanged').handle(e => {
+    this.fplSubs.push(this.flightPlanner.onEvent('fplOriginDestChanged').handle(e => {
       if (e.planIndex !== Fms.PRIMARY_PLAN_INDEX) {
         return;
       }
@@ -398,13 +402,13 @@ export class FmsSpeedManager {
       this.fetchArrivalFacility(plan.destinationAirport ?? '');
     };
 
-    this.fplSubs.push(sub.on('fplCopied').handle(e => {
+    this.fplSubs.push(this.flightPlanner.onEvent('fplCopied').handle(e => {
       if (e.targetPlanIndex === Fms.PRIMARY_PLAN_INDEX) {
         updateFacilitiesFromPlan();
       }
     }));
 
-    this.fplSubs.push(sub.on('fplLoaded').handle(e => {
+    this.fplSubs.push(this.flightPlanner.onEvent('fplLoaded').handle(e => {
       if (e.planIndex === Fms.PRIMARY_PLAN_INDEX) {
         updateFacilitiesFromPlan();
       }

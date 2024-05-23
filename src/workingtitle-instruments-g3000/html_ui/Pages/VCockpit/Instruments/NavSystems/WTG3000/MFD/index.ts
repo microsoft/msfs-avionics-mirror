@@ -6,6 +6,7 @@ export * from './Input';
 export * from './Navigation';
 export * from './Performance';
 export * from './Radio';
+export * from './Terrain';
 export * from './VSpeed';
 export * from './WeatherRadar';
 

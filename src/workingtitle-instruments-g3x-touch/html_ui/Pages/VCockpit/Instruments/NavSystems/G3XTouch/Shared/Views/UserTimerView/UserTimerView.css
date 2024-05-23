@@ -1,0 +1,57 @@
+.user-timer-view {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.ui-popup-slideout-bottom-full-wrapper .user-timer-view {
+  align-self: flex-end;
+  margin-bottom: 3px;
+}
+
+.gdu-460-display .user-timer-view {
+  padding: 1px 15px 6px;
+  font-size: 17px;
+
+  --user-timer-view-title-margin-bottom: 4px;
+  --user-timer-view-title-font-size: 24px;
+
+  --user-timer-view-stop-start-width: 152px;
+  --user-timer-view-stop-start-height: 74px;
+  --user-timer-view-stop-start-margin-right: 10px;
+  --user-timer-view-stop-start-value-font-size: 24px;
+
+  --user-timer-view-reset-width: 70px;
+  --user-timer-view-reset-height: 74px;
+}
+
+.user-timer-view-title {
+  margin-bottom: var(--user-timer-view-title-margin-bottom);
+  text-align: center;
+  font-size: var(--user-timer-view-title-font-size);
+}
+
+.user-timer-view-buttons {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.user-timer-view-stop-start {
+  width: var(--user-timer-view-stop-start-width);
+  height: var(--user-timer-view-stop-start-height);
+  margin-right: var(--user-timer-view-stop-start-margin-right);
+
+  --touch-button-value-label-center-y: 20%;
+  --touch-button-value-value-center-y: 67%;
+}
+
+.user-timer-view-stop-start .touch-button-value-value {
+  font-size: var(--user-timer-view-stop-start-value-font-size);
+}
+
+.user-timer-view-reset {
+  width: var(--user-timer-view-reset-width);
+  height: var(--user-timer-view-reset-height);
+}

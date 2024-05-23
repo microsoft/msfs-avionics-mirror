@@ -4,7 +4,8 @@ import {
 } from '@microsoft/msfs-sdk';
 
 import { FmaData, FmaDataEvents, FmaMasterSlot, FmaMasterSlotState, FmaModeSlot, FmaModeSlotActiveData, FmaVNavState } from '@microsoft/msfs-garminsdk';
-import { G3000AutothrottleEvents, G3000AutothrottleFmaData, G3000AutothrottleStatus } from '@microsoft/msfs-wtg3000-common';
+
+import { G3000AutothrottleEvents, G3000AutothrottleFmaData, G3000AutothrottleStatus, G3000FlightPlannerId } from '@microsoft/msfs-wtg3000-common';
 
 import './FmaMasterSlot.css';
 import './FmaModeSlot.css';
@@ -18,7 +19,7 @@ export interface FmaProps {
   bus: EventBus;
 
   /** The flight planner. */
-  flightPlanner: FlightPlanner;
+  flightPlanner: FlightPlanner<G3000FlightPlannerId>;
 
   /** Whether FMA supports autothrottle. */
   supportAutothrottle: boolean;

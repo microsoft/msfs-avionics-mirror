@@ -21,6 +21,7 @@ export * from './Settings';
 export * from './SoftKey';
 export * from './Sound';
 export * from './TAWS';
+export * from './Terrain';
 export * from './TestingUtils';
 export * from './Traffic';
 export * from './Vnav';

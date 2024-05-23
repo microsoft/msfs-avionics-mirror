@@ -1,0 +1,61 @@
+.touch-button.pfd-traffic-inset {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border: solid 3px var(--g3x-color-border-light-gray) !important;
+  border-radius: 3px;
+  background: var(--g3x-color-black) !important;
+  box-shadow: none !important;
+  color: var(--g3x-color-white);
+  font-size: 18px;
+}
+
+.pfd-traffic-inset-map {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  transform: rotateX(0deg);
+  overflow: hidden;
+}
+
+.pfd-traffic-inset-map .traffic-map-range-display {
+  padding: 0px 3px;
+  background: var(--g3x-color-black);
+  border: 1px solid #808080;
+  line-height: 1em;
+}
+
+.pfd-traffic-inset-map .map-indicator-group-top-left {
+  position: absolute;
+  left: 5px;
+  top: 2px;
+}
+
+.pfd-traffic-inset-map .traffic-map-opmode {
+  line-height: 1em;
+}
+
+.pfd-traffic-inset-map .map-indicator-group-top-right {
+  position: absolute;
+  right: 5px;
+  top: 2px;
+}
+
+.pfd-traffic-inset-map .map-indicator-group-bottom-left {
+  position: absolute;
+  left: 0px;
+  bottom: 2px;
+}
+
+.pfd-traffic-inset-map .map-indicator-group-bottom-right {
+  position: absolute;
+  right: 0px;
+  bottom: 2px;
+}
+
+.pfd-traffic-inset-map .map-status-indicator-container {
+  margin: 0px 2px;
+  flex-flow: column nowrap;
+}

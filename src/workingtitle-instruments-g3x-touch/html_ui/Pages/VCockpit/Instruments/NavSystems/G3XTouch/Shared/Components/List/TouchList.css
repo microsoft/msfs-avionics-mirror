@@ -1,0 +1,8 @@
+.touch-list {
+  position: relative;
+
+  /* These vars get overriden by TouchList code. */
+  --touch-list-length: 100px;
+  --touch-list-item-margin: 2px;
+  --touch-list-item-length: 134px;
+}

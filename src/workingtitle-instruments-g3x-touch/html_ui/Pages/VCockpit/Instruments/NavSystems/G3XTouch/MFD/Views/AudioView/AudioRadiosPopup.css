@@ -1,0 +1,75 @@
+.audio-radios-popup {
+  display: flex;
+  flex-direction: column;
+  width: 460px;
+  height: 400px;
+  font-size: 18px;
+}
+
+.audio-radios-popup .touch-button.touch-button-img {
+  font-size: 16px;
+}
+
+.audio-radios-popup-title {
+  font-size: 23px;
+  width: 100%;
+  text-align: center;
+}
+
+.audio-radios-popup-ui-view-box {
+  padding-left: 18px;
+  padding-right: 18px;
+  padding-top: 9px;
+  padding-bottom: 20px;
+  display: flex;
+  flex-flow: column nowrap;
+  margin-top: 15px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.audio-radios-popup .touch-button-img img{
+  margin-top: 8px;
+}
+
+.audio-radios-popup .touch-button-img .touch-button-label{
+  margin-top: 8px;
+}
+
+.audio-radios-popup-ui-view-box-title {
+  font-size: 18px;
+}
+
+.audio-radios-popup-ui-view-box .touch-button {
+  margin-top: 20px;
+  width: 160px;
+  height: 80px;
+}
+
+.audio-radios-popup-buttons-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.audio-radios-popup-buttons-row-first .touch-button{
+  width: 200px;
+  height: 80px;
+}
+
+.audio-radios-popup-buttons-row-second .touch-button{
+  width: 120px;
+  height: 80px;
+}
+
+.audio-radios-popup-back-button {
+  margin-right: 20px;
+}
+
+.audio-radios-popup-marker-sensitivity-button {
+  margin-right: 20px;
+  --touch-button-value-value-text-color: var(--g3x-color-cyan);
+  --touch-button-value-label-center-y: 14px;
+  --touch-button-value-value-center-y: 46px;
+}

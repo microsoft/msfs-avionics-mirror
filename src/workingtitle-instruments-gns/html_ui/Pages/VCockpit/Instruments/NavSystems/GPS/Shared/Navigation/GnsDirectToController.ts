@@ -1,6 +1,6 @@
 import {
-  BasicNavAngleUnit, ConsumerValue, ControlEvents, Facility, FacilityWaypoint, FacilityWaypointUtils, FlightPlan,
-  ICAO, LegDefinition, NavEvents, Subject, Waypoint
+  BasicNavAngleUnit, ConsumerValue, Facility, FacilityWaypoint, FacilityWaypointUtils, FlightPlan, ICAO,
+  LNavControlEvents, LNavObsEvents, LNavUtils, LegDefinition, Subject, Wait, Waypoint
 } from '@microsoft/msfs-sdk';
 
 import { DirectToState, Fms, FmsUtils, ObsSuspModes } from '@microsoft/msfs-garminsdk';
@@ -326,17 +326,15 @@ export class GnsDirectToController {
    * @returns A promise when the obs has been deactivated.
    */
   private async awaitObsCancel(): Promise<void> {
+    const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(this.fms.lnavIndex);
+
     SimVar.SetSimVarValue('K:GPS_OBS_OFF', 'number', 0);
-    this.fms.bus.getPublisher<ControlEvents>().pub('suspend_sequencing', false);
-    return new Promise(resolve => {
-      const sub = this.fms.bus.getSubscriber<NavEvents>().on('gps_obs_active').whenChanged().handle(isActive => {
-        if (!isActive) {
-          sub.destroy();
-          resolve();
-        }
-      }, true);
-      sub.resume(true);
-    });
+    this.fms.bus.getPublisher<LNavControlEvents>().pub(`suspend_sequencing${lnavTopicSuffix}`, false, true, true);
+
+    return Wait.awaitConsumer(
+      this.fms.bus.getSubscriber<LNavObsEvents>().on(`lnav_obs_active${lnavTopicSuffix}`),
+      active => active,
+    ).then();
   }
 
   /**

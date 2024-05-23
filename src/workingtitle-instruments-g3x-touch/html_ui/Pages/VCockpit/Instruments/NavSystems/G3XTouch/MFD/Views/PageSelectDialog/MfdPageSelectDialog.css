@@ -1,0 +1,42 @@
+.mfd-page-select-dialog {
+  align-self: flex-end;
+  flex-shrink: 1;
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .mfd-page-select-dialog {
+  width: 576px;
+  margin: auto 10px 34px;
+
+  --ui-directory-button-width: 110px;
+  --ui-directory-button-height: 110px;
+  --ui-directory-button-font-size: 16px;
+
+  --mfd-page-select-dialog-title-margin: 0px;
+  --mfd-page-select-dialog-title-font-size: 20px;
+
+  --mfd-page-select-dialog-list-height: 432px;
+}
+
+.mfd-page-select-dialog-title {
+  margin: var(--mfd-page-select-dialog-title-margin);
+  text-align: center;
+  font-size: var(--mfd-page-select-dialog-title-font-size);
+}
+
+.mfd-page-select-dialog-list {
+  height: var(--mfd-page-select-dialog-list-height);
+}
+
+.mfd-page-select-dialog-row {
+  height: var(--scroll-list-item-length);
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: repeat(4, 1fr);
+  justify-items: center;
+  align-items: center;
+}

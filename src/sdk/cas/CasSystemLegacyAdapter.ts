@@ -8,21 +8,17 @@ import { CasAlertDefinition, CasEvents } from './CasSystem';
  * An adapter to convert legacy panel.xml annunciations into the new CasSystem.
  */
 export class CasSystemLegacyAdapter {
-  private logicHost: CompositeLogicXMLHost;
-  private pub: Publisher<CasEvents>;
-  private regManager: CasRegistrationManager;
-
-  /** The panel.xml-defined annunciations. */
-  private legacyAnnunciations: Annunciation[];
+  private readonly pub: Publisher<CasEvents>;
+  private readonly regManager: CasRegistrationManager;
 
   /** A map of logic elements for non-suffixed events. */
-  private nonSuffixLogic = new Map<string, CompositeLogicXMLElement>();
+  private readonly nonSuffixLogic = new Map<string, CompositeLogicXMLElement>();
 
   /** A map of logic elements for suffixed events, mapped by suffix. */
-  private suffixLogic = new Map<string, Map<string, CompositeLogicXMLElement>>();
+  private readonly suffixLogic = new Map<string, Map<string, CompositeLogicXMLElement>>();
 
   /** Alert definitions and priorities based on the legacy configuration for feeding into the new system. */
-  private annunciations = new Map<string, {
+  private readonly annunciations = new Map<string, {
     /** The alert def */
     def: CasAlertDefinition,
     /** The alert type */
@@ -35,17 +31,15 @@ export class CasSystemLegacyAdapter {
    * @param logicHost A CompositeLogicXMLHost for running the events.
    * @param annunciationDefs An array of system annunciations to monitor.
    */
-  public constructor(bus: EventBus, logicHost: CompositeLogicXMLHost, annunciationDefs: Annunciation[]) {
-    this.logicHost = logicHost;
-    this.legacyAnnunciations = annunciationDefs;
+  public constructor(bus: EventBus, private readonly logicHost: CompositeLogicXMLHost, annunciationDefs: readonly Annunciation[]) {
     this.regManager = new CasRegistrationManager(bus);
 
     this.pub = bus.getPublisher<CasEvents>();
 
     // Go through the legacy annunciation definitions and create a bunch of definitions suitable
     // for the new CAS system, each tied to an XML logic element for managind the alert state.
-    for (let i = 0; i < this.legacyAnnunciations.length; i++) {
-      const legacy = this.legacyAnnunciations[i];
+    for (let i = 0; i < annunciationDefs.length; i++) {
+      const legacy = annunciationDefs[i];
       const annunciation = this.annunciations.get(legacy.uuid);
 
       if (annunciation === undefined) {

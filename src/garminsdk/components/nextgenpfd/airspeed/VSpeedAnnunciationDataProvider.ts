@@ -1,7 +1,10 @@
 import {
-  AdcEvents, ConsumerSubject, EventBus, MappedSubject, MappedSubscribable, Subject, Subscribable, Subscription, UserSetting, UserSettingManager
+  AdcEvents, ConsumerSubject, EventBus, MappedSubject, MappedSubscribable, Subject, Subscribable, SubscribableUtils,
+  Subscription, UserSetting, UserSettingManager
 } from '@microsoft/msfs-sdk';
-import { FmsEvents, FmsFlightPhase } from '../../../flightplan/Fms';
+
+import { FmsEvents } from '../../../flightplan/FmsEvents';
+import { FmsFlightPhase } from '../../../flightplan/FmsTypes';
 import { FmsUtils } from '../../../flightplan/FmsUtils';
 import { VSpeedUserSettingTypes } from '../../../settings/VSpeedUserSettings';
 
@@ -23,11 +26,21 @@ export interface VSpeedAnnunciationDataProvider {
 }
 
 /**
+ * Configuration options for {@link DefaultVSpeedAnnunciationDataProvider}.
+ */
+export type DefaultVSpeedAnnunciationDataProviderOptions = {
+  /** The ID of the FMS from which to source flight phase data. Defaults to the empty ID (`''`). */
+  fmsId?: string | Subscribable<string>;
+};
+
+/**
  * A default implementation of {@link VSpeedAnnunciationDataProvider}.
  */
 export class DefaultVSpeedAnnunciationDataProvider implements VSpeedAnnunciationDataProvider {
 
   private static readonly COUNT_TRUE_FUNC = (sum: number, v: boolean): number => sum + (v ? 1 : 0);
+
+  private readonly fmsId: Subscribable<string>;
 
   private readonly _annunciation = Subject.create(VSpeedAnnunciation.None);
   /** @inheritdoc */
@@ -37,6 +50,7 @@ export class DefaultVSpeedAnnunciationDataProvider implements VSpeedAnnunciation
 
   private readonly flightPhase = ConsumerSubject.create<Readonly<FmsFlightPhase>>(null, {
     isApproachActive: false,
+    isToFaf: false,
     isPastFaf: false,
     isInMissedApproach: false
   }, FmsUtils.flightPhaseEquals);
@@ -51,6 +65,7 @@ export class DefaultVSpeedAnnunciationDataProvider implements VSpeedAnnunciation
   private isAlive = true;
   private isPaused = false;
 
+  private fmsIdSub?: Subscription;
   private isOnGroundSub?: Subscription;
   private takeoffAnnuncPipe?: Subscription;
   private landingAnnuncPipe?: Subscription;
@@ -61,13 +76,17 @@ export class DefaultVSpeedAnnunciationDataProvider implements VSpeedAnnunciation
    * @param vSpeedSettingManager A manager for V-speed user settings.
    * @param takeoffVSpeedNames The names of every takeoff V-speed.
    * @param landingVSpeedNames The names of every landing V-speed.
+   * @param options Options with which to configure the data provider.
    */
   constructor(
     private readonly bus: EventBus,
     vSpeedSettingManager: UserSettingManager<VSpeedUserSettingTypes>,
     takeoffVSpeedNames: Iterable<string>,
-    landingVSpeedNames: Iterable<string>
+    landingVSpeedNames: Iterable<string>,
+    options?: Readonly<DefaultVSpeedAnnunciationDataProviderOptions>
   ) {
+    this.fmsId = SubscribableUtils.toSubscribable(options?.fmsId ?? '', true);
+
     this.takeoffVSpeedShowSettings = Array.from(takeoffVSpeedNames)
       .map(name => vSpeedSettingManager.tryGetSetting(`vSpeedShow_${name}`))
       .filter(setting => setting !== undefined) as UserSetting<boolean>[];
@@ -107,8 +126,11 @@ export class DefaultVSpeedAnnunciationDataProvider implements VSpeedAnnunciation
     if (this.takeoffVSpeedShowSettings.length > 0 || this.landingVSpeedShowSettings.length > 0) {
       const sub = this.bus.getSubscriber<AdcEvents & FmsEvents>();
 
+      this.fmsIdSub = this.fmsId.sub(id => {
+        this.flightPhase.setConsumer(FmsUtils.onFmsEvent(id, sub, 'fms_flight_phase'));
+      }, true);
+
       this.isOnGround.setConsumer(sub.on('on_ground'));
-      this.flightPhase.setConsumer(sub.on('fms_flight_phase'));
 
       this.takeoffVSpeedShowCount.resume();
       this.landingVSpeedShowCount.resume();
@@ -225,5 +247,7 @@ export class DefaultVSpeedAnnunciationDataProvider implements VSpeedAnnunciation
     this.flightPhase.destroy();
     this.takeoffVSpeedShowCount.destroy();
     this.landingVSpeedShowCount.destroy();
+
+    this.fmsIdSub?.destroy();
   }
 }

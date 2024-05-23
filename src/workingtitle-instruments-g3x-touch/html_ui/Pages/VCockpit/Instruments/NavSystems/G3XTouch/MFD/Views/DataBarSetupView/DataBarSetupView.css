@@ -1,0 +1,63 @@
+.data-bar-setup-view {
+  color: var(--g3x-color-white);
+  background: var(--g3x-color-black);
+
+  --ui-list-select-button-label-height: 0px;
+}
+
+.gdu-460-display .data-bar-setup-view {
+  font-size: 21px;
+
+  --ui-list-select-button-dropdown-width: 50px;
+
+  --data-bar-setup-view-list-margin: 0px 2px 0px 9px;
+
+  --data-bar-setup-view-list-item-padding: 7px 9px;
+  --data-bar-setup-view-list-item-column-gap: 5px;
+}
+
+.gdu-460-display .ui-pane-full .data-bar-setup-view {
+  --data-bar-setup-view-row-right-width: 368px;
+}
+
+.gdu-460-display .ui-pane-half .data-bar-setup-view {
+  --data-bar-setup-view-row-right-width: 228px;
+}
+
+.data-bar-setup-view-content {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.data-bar-setup-view-list {
+  margin: var(--data-bar-setup-view-list-margin);
+}
+
+.data-bar-setup-view-list .touch-button.ui-list-item-button {
+  padding: var(--data-bar-setup-view-list-item-padding);
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr var(--data-bar-setup-view-row-right-width);
+  grid-column-gap: var(--data-bar-setup-view-list-item-column-gap);
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.data-bar-setup-view-list .combined-touch-button .touch-button {
+  flex-basis: 0px;
+  flex-grow: 1;
+}
+
+.data-bar-setup-view-row-left {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+}
+
+.gdu-460-display .data-bar-setup-view-select-list {
+  --ui-list-dialog-width: 255px;
+  --ui-list-dialog-padding: 4px;
+  --ui-list-dialog-font-size: 21px;
+}

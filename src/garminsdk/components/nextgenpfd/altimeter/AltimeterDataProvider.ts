@@ -1,7 +1,6 @@
 import {
-  AdcEvents, AltitudeSelectEvents, APEvents, AvionicsSystemState, AvionicsSystemStateEvent, ClockEvents,
-  ConsumerSubject, EventBus, MappedSubject, MappedSubscribable, MinimumsEvents, MinimumsMode, Subject,
-  Subscribable, SubscribableUtils, Subscription
+  AdcEvents, AltitudeSelectEvents, APEvents, ClockEvents, ConsumerSubject, EventBus, MappedSubject, MappedSubscribable,
+  MinimumsEvents, MinimumsMode, Subject, Subscribable, SubscribableMapFunctions, SubscribableUtils, Subscription
 } from '@microsoft/msfs-sdk';
 
 import { AdcSystemEvents } from '../../../system/AdcSystem';
@@ -99,12 +98,11 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
   private readonly _radarAlt = Subject.create<number | null>(null);
   public readonly radarAlt = this._radarAlt as Subscribable<number | null>;
 
-  private readonly _isDataFailed = Subject.create(false);
+  private readonly isAltitudeDataValid = ConsumerSubject.create(null, false);
   /** @inheritdoc */
-  public readonly isDataFailed = this._isDataFailed as Subscribable<boolean>;
+  public readonly isDataFailed = this.isAltitudeDataValid.map(SubscribableMapFunctions.not()) as Subscribable<boolean>;
 
   private readonly adcIndex: Subscribable<number>;
-  private readonly adcSystemState = ConsumerSubject.create<AvionicsSystemStateEvent>(null, { previous: undefined, current: undefined });
 
   private readonly simTime = ConsumerSubject.create(null, 0);
   private readonly isOnGround = ConsumerSubject.create(null, false);
@@ -175,7 +173,7 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
       this._baroIsStdActive.setConsumer(sub.on(`adc_altimeter_baro_is_std_${index}`));
       this._baroPreselect.setConsumer(sub.on(`adc_altimeter_baro_preselect_inhg_${index}`));
       this.verticalSpeed.setConsumer(sub.on(`adc_vertical_speed_${index}`));
-      this.adcSystemState.setConsumer(sub.on(`adc_state_${index}`));
+      this.isAltitudeDataValid.setConsumer(sub.on(`adc_altitude_data_valid_${index}`));
     }, true);
 
     this.selectedAltSource.setConsumer(sub.on('ap_altitude_selected'));
@@ -249,14 +247,6 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
       baroMinimums.pipe(this._minimums);
     }
 
-    this.adcSystemState.sub(state => {
-      if (state.current === undefined || state.current === AvionicsSystemState.On) {
-        this._isDataFailed.set(false);
-      } else {
-        this._isDataFailed.set(true);
-      }
-    }, true);
-
     if (paused) {
       this.pause();
     }
@@ -298,7 +288,7 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
     this.baroMinimumsSource.resume();
     this.radarMinimumsSource.resume();
 
-    this.adcSystemState.resume();
+    this.isAltitudeDataValid.resume();
   }
 
   /**
@@ -335,7 +325,7 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
     this.baroMinimumsSource.pause();
     this.radarMinimumsSource.pause();
 
-    this.adcSystemState.pause();
+    this.isAltitudeDataValid.pause();
 
     this.isPaused = true;
   }
@@ -365,7 +355,7 @@ export class DefaultAltimeterDataProvider implements AltimeterDataProvider {
     this.baroMinimumsSource.destroy();
     this.radarMinimumsSource.destroy();
 
-    this.adcSystemState.destroy();
+    this.isAltitudeDataValid.destroy();
 
     this.adcIndexSub?.destroy();
     this.radarAltIsFailedSub?.destroy();

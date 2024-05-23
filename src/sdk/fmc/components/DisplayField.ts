@@ -13,14 +13,14 @@ export interface DisplayFieldOptions<T> extends FmcComponentOptions {
    */
   formatter: FmcComponentFormatter<T>,
 
-  /** @inheritDoc */
-  style?: string | ((value: T | null) => string),
-
   /** Text shown before the value (can be used for start indentation) */
   prefix?: string,
 
   /** Text shown after the value (can be used for end indentation) */
   suffix?: string,
+
+  /** The style to apply to the value. MUST BE WRAPPED IN SQUARE BRACKETS. */
+  style?: string | ((value: T | null) => string),
 }
 
 /**

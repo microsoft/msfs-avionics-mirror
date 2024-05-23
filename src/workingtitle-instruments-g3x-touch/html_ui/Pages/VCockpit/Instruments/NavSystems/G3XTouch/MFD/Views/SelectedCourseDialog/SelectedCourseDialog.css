@@ -1,0 +1,22 @@
+.gdu-460-display .selected-crs-dialog {
+  --selected-crs-dialog-sync-font-size: 20px;
+}
+
+.selected-crs-dialog-input .cursor-input-inactive {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: auto;
+  height: auto;
+  transform: translate(-50%, -50%);
+  background: var(--g3x-color-cyan);
+}
+
+.touch-button.selected-crs-dialog-sync {
+  position: absolute;
+  left: var(--number-dialog-backspace-right);
+  top: var(--number-dialog-backspace-top);
+  width: var(--number-dialog-backspace-width);
+  height: var(--number-dialog-backspace-height);
+  font-size: var(--selected-crs-dialog-sync-font-size);
+}

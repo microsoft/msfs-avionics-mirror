@@ -1,0 +1,80 @@
+.mfd-fpl-page-approach-leg-preview-list-item-container {
+  position: relative;
+  width: 100%;
+  height: var(--touch-list-item-length, 100px);
+}
+
+.mfd-fpl-page-approach-leg-preview-list-item-container .ui-list-item {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.mfd-fpl-page-approach-leg-preview-list-item-top-divider {
+  position: absolute;
+  left: 0px;
+  top: calc(-1 * var(--touch-list-item-margin) / 2);
+  width: 100%;
+  height: 1px;
+  background: var(--g3x-color-border-light-gray);
+}
+
+.mfd-fpl-page-approach-leg-preview-list-item {
+  flex-grow: 1;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--ui-list-item-padding);
+  color: #808080;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+
+  --ui-fpl-leg-display-ident-color: #808080;
+  --ui-fpl-leg-display-bottom-color: #808080;
+}
+
+.gdu-460-display .mfd-fpl-page-approach-leg-preview-list-item {
+  --ui-fpl-leg-display-top-width: 140px;
+
+  --mfd-fpl-page-approach-leg-preview-list-item-leg-name-font-size: 26px;
+
+  --mfd-fpl-page-approach-leg-preview-list-item-button-leg-display-padding: 0px 0px 0px 12px;
+  --mfd-fpl-page-approach-leg-preview-list-item-button-leg-display-font-size: 19px;
+
+  --mfd-fpl-page-approach-leg-preview-list-item-data-field-slot-width: 90px;
+}
+
+.mfd-fpl-page-approach-leg-preview-list-item-button {
+  flex-basis: 0px;
+  flex-grow: 1;
+}
+
+.mfd-fpl-page-approach-leg-preview-list-item-button-leg-display {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  transform: translateY(-50%);
+  padding: var(--mfd-fpl-page-approach-leg-preview-list-item-button-leg-display-padding);
+  font-size: var(--mfd-fpl-page-approach-leg-preview-list-item-button-leg-display-font-size);
+
+  --ui-fpl-leg-display-ident-font-size: var(--mfd-fpl-page-approach-leg-preview-list-item-leg-name-font-size);
+}
+
+.mfd-fpl-page-approach-leg-preview-list-item-data-field-container {
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+.mfd-fpl-page-approach-leg-preview-list-item .mfd-fpl-page-data-field-slot {
+  position: relative;
+  width: var(--mfd-fpl-page-approach-leg-preview-list-item-data-field-slot-width);
+}

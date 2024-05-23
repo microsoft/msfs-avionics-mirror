@@ -1,0 +1,11 @@
+.find-frequency-dialog-input-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-around;
+  margin-bottom: 10px;
+}
+
+.find-frequency-dialog-action-button {
+  width: 220px;
+  height: var(--ui-nav-button-height);
+}

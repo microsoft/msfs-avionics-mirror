@@ -6,8 +6,10 @@ import { Subject } from '../sub';
  *
  * This registers routes and handles setting the appropriate page and params.
  */
-export class FmcRouter<T extends AbstractFmcPage> {
-  private readonly routes: { [k: string]: PageConstructor<T> } = {};
+export class FmcRouter<T extends AbstractFmcPage<any>> {
+  private readonly routes: { [k: string]: PageConstructor<T, any> } = {};
+
+  private readonly routesDefaultProps = new Map<PageConstructor<T, any>, any>();
 
   public currentRoute = Subject.create('/');
 
@@ -20,9 +22,11 @@ export class FmcRouter<T extends AbstractFmcPage> {
    *
    * @param route the route string
    * @param page the target page constructor
+   * @param defaultProps the default props to pass in to the page
    */
-  public addRoute(route: string, page: PageConstructor<T>): void {
+  public addRoute<P extends object | null>(route: string, page: PageConstructor<T, P>, defaultProps: P): void {
     this.routes[route] = page;
+    this.routesDefaultProps.set(page, defaultProps);
   }
 
   /**
@@ -32,8 +36,25 @@ export class FmcRouter<T extends AbstractFmcPage> {
    *
    * @returns the associated page
    */
-  public getPageForRoute(routeString: string): PageConstructor<T> | undefined {
+  public getPageForRoute(routeString: string): PageConstructor<T, any> | undefined {
     return this.routes[routeString.split('#', 2)[0].trim()];
+  }
+
+  /**
+   * Gets the associated route (or undefined) for a page
+   *
+   * @param pageCtor the page constructor
+   *
+   * @returns the associated route
+   */
+  public getRouteForPage(pageCtor: PageConstructor<T, any>): string | undefined {
+    for (const [route, ctor] of Object.entries(this.routes)) {
+      if (ctor === pageCtor) {
+        return route;
+      }
+    }
+
+    return undefined;
   }
 
   /**
@@ -45,6 +66,23 @@ export class FmcRouter<T extends AbstractFmcPage> {
    */
   public getSubpageForRoute(routeString: string): number {
     return parseInt(routeString.split('#', 2)[1] ?? '1');
+  }
+
+  /**
+   * Returns the default props for a given page class
+   *
+   * @param page the page class
+   *
+   * @throws if the page was not registered
+   *
+   * @returns the default props
+   */
+  public getDefaultPropsForPage<P extends PageConstructor<T>>(page: P): P extends PageConstructor<AbstractFmcPage<infer V>, infer V> ? V : never {
+    if (!this.routesDefaultProps.has(page)) {
+      throw new Error('No default props registered for page');
+    }
+
+    return this.routesDefaultProps.get(page);
   }
 
   /**

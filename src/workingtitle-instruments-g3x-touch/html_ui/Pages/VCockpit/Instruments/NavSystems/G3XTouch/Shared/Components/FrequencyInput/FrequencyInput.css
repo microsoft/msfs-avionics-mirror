@@ -1,0 +1,21 @@
+@keyframes freq-input-com-100-blink {
+  from {
+    background: var(--g3x-color-cyan);
+  }
+
+  50% {
+    background: var(--g3x-color-cyan);
+  }
+
+  80% {
+    background: none;
+  }
+
+  to {
+    background: none;
+  }
+}
+
+.freq-input-com-100-blink .cursor-input-slot-character {
+  animation: freq-input-com-100-blink 1s infinite;
+}

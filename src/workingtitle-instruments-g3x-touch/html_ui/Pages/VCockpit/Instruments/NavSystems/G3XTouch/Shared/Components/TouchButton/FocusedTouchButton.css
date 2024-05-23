@@ -1,0 +1,17 @@
+html {
+  --ui-button-focused-border-color: var(--g3x-color-focus-blue);
+}
+
+.touch-button.ui-button-focused {
+  border: var(--ui-button-focused-border, var(--touch-button-border-width) var(--touch-button-border-style) var(--ui-button-focused-border-color));
+  box-shadow: inset 0 0 1px 1px var(--ui-button-focused-border-color), var(--touch-button-box-shadow);
+}
+
+.touch-button.touch-button-primed.ui-button-focused:not(.touch-button-highlight) {
+  box-shadow: inset 0 0 1px 1px var(--ui-button-focused-border-color), var(--touch-button-primed-box-shadow);
+}
+
+.touch-button.touch-button-highlight.ui-button-focused {
+  border: var(--ui-button-highlight-focused-border, var(--touch-button-border-width) var(--touch-button-border-style) var(--ui-button-focused-border-color));
+  box-shadow: inset 0 0 1px 1px var(--ui-button-focused-border-color), var(--touch-button-highlight-box-shadow);
+}

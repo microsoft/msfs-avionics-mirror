@@ -1,11 +1,12 @@
 import { FmcRouter } from './FmcRouter';
 import { FmcOutputTemplate, FmcRenderer, FmcRenderTemplate } from './FmcRenderer';
 import { FmcPageFactory } from './FmcPageFactory';
-import { AbstractFmcPage, FmcPageLifecyclePolicy, PageConstructor } from './AbstractFmcPage';
+import { AbstractFmcPage, FmcPageLifecyclePolicy, PageConstructor, PageConstructorUtils } from './AbstractFmcPage';
 import { Subject } from '../sub';
 import { Consumer, EventBus } from '../data';
 import { FmcScratchpad } from './FmcScratchpad';
 import { FmcPagingEvents, LineSelectKeyEvent } from './FmcInteractionEvents';
+import { AbstractFmcPageExtension, FmcPageExtension, FmcScreenPluginContext } from './FmcScreenPluginContext';
 
 /**
  * Options for an FMC screen
@@ -62,10 +63,10 @@ export interface FmcScreenOptions {
  * This is done so that different avionics can have different types for different kinds of events and any data that pages might need to be
  * instantiated with.
  */
-export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<string, unknown>> {
+export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<string, unknown>> implements FmcScreenPluginContext<P, E> {
   private readonly router = new FmcRouter<P>();
 
-  private readonly pageInstanceCache = new Map<PageConstructor<P>, P>();
+  private readonly pageInstanceCache = new Map<PageConstructor<P>, P & AbstractFmcPage<any>>();
 
   public readonly options: Required<FmcScreenOptions> = {
     screenDimensions: {
@@ -80,6 +81,12 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
   };
 
   protected currentlyDisplayedPage: P | null = null;
+
+  private pendingPageAdditions: Record<string, [PageConstructor<P>, (keyof E & string) | undefined, any]> = {};
+
+  private pendingPageReplacements: Record<string, [PageConstructor<P>, (keyof E & string) | undefined, any]> = {};
+
+  private attachedPageExtensions = [] as [PageConstructor<P>, new (page: P) => FmcPageExtension<P>][];
 
   /**
    * Ctor
@@ -100,8 +107,26 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
 
     if (this.options.enableScratchpad) {
       this.scratchpad.renderedText.sub((text) => {
-        this.renderer.editOutputTemplate([[text]], this.options.screenDimensions.cellHeight - 1);
+        this.renderer.editOutputTemplate([[text]], this.scratchpadRenderRow, []);
       });
+    }
+  }
+
+  /**
+   * Processes page replacement calls made by plugins. Must be called after plugins are initialized, and before stock routes are added.
+   */
+  public processPluginPageAdditions(): void {
+    for (const [route, [pageCtor, routeEvent, initialTypedParameters]] of Object.entries(this.pendingPageAdditions)) {
+      this.addPageRoute(route, pageCtor, routeEvent, initialTypedParameters);
+    }
+  }
+
+  /**
+   * Processes page replacement calls made by plugins. Must be called after plugins are initialized, and after stock routes are added.
+   */
+  public processPluginPageReplacements(): void {
+    for (const [route, [pageCtor, routeEvent, initialTypedParameters]] of Object.entries(this.pendingPageReplacements)) {
+      this.addPageRoute(route, pageCtor, routeEvent, initialTypedParameters);
     }
   }
 
@@ -138,45 +163,75 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
    * @param route the route
    * @param params the parameters to pass to the page
    */
-  public navigateTo(route: string, params?: Record<string, unknown>): void {
-    const pageCtor = this.router.getPageForRoute(route);
+  public navigateTo(
+    route: string,
+    params?: Record<string, unknown>,
+  ): void;
+  /**
+   * Navigates to a given route and displays the associated page, if available
+   *
+   * @param pageClass the page's class
+   * @param props props to pass in to the page
+   */
+  public navigateTo<U extends PageConstructor<P>>(
+    pageClass: U,
+    props: U extends PageConstructor<AbstractFmcPage<infer V>, infer V> ? V : never,
+  ): void;
+  /**
+   * Navigates to a given route and displays the associated page, if available
+   *
+   * @param arg0 the route
+   * @param arg1 the parameters to pass to the page
+   *
+   * @throws if a page class is passed in as the first argument and no associated route is found
+   */
+  public navigateTo<U extends PageConstructor<P>>(
+    arg0: string | U,
+    arg1?: Record<string, unknown> | U extends PageConstructor<AbstractFmcPage<infer V>, infer V> ? V : never,
+  ): void {
+    const pageCtor = typeof arg0 === 'string' ? this.router.getPageForRoute(arg0) : arg0;
+    const pageRoute = typeof arg0 === 'string' ? arg0 : this.router.getRouteForPage(arg0);
 
-    if (pageCtor) {
-      this.router.currentRoute.set(route);
-
-      let instance: P;
-      if (pageCtor.lifecyclePolicy === FmcPageLifecyclePolicy.Singleton) {
-        const existingInstance = this.pageInstanceCache.get(pageCtor);
-
-        instance = existingInstance ?? this.instantiatePage(pageCtor);
-
-        this.pageInstanceCache.set(pageCtor, instance);
-      } else {
-        instance = this.instantiatePage(pageCtor);
-      }
-
-      if (this.currentlyDisplayedPage) {
-        this.currentlyDisplayedPage.pause();
-      }
-
-      this.currentlyDisplayedPage = instance;
-
-      instance.params.clear();
-      if (params) {
-        for (const key of Object.keys(params)) {
-          instance.params.set(key, params[key]);
-        }
-      }
-
-      if (!instance.isInitialized) {
-        instance.init();
-      }
-
-      this.router.currentSubpageCount.set(instance.render().length);
-      this.router.setSubpage(this.router.getSubpageForRoute(route));
-      instance.isInitialized = true;
-      instance.resume();
+    if (pageCtor === undefined || pageRoute === undefined) {
+      throw new Error(`Could not find a page route for ${arg0}`);
     }
+
+    this.router.currentRoute.set(pageRoute);
+
+    let instance: P & AbstractFmcPage<U>;
+    if (pageCtor.lifecyclePolicy === FmcPageLifecyclePolicy.Singleton) {
+      const existingInstance = this.pageInstanceCache.get(pageCtor);
+
+      instance = existingInstance ?? this.instantiatePage(pageCtor);
+
+      this.pageInstanceCache.set(pageCtor, instance);
+    } else {
+      instance = this.instantiatePage(pageCtor);
+    }
+
+    if (this.currentlyDisplayedPage) {
+      this.currentlyDisplayedPage.pause();
+    }
+
+    this.currentlyDisplayedPage = instance;
+
+    instance.params.clear();
+    if (arg1 && !PageConstructorUtils.isPageConstructor(arg1)) {
+      const params = arg1 as Record<string, unknown>;
+
+      for (const key of Object.keys(params)) {
+        instance.params.set(key, params[key]);
+      }
+    }
+
+    if (!instance.isInitialized) {
+      instance.init();
+    }
+
+    this.router.currentSubpageCount.set(instance.render().length);
+    this.router.setSubpage(this.router.getSubpageForRoute(pageRoute));
+    instance.isInitialized = true;
+    instance.resume((arg1 as U | undefined));
   }
 
   /**
@@ -193,18 +248,76 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
    * @param page the page to associate with it
    * @param routeEvent the event to associate with it
    */
-  public addPageRoute(route: string, page: PageConstructor<P>, routeEvent?: keyof E & string): void {
-    this.router.addRoute(route, page);
+  public addPageRoute<T extends null>(
+    route: string,
+    page: PageConstructor<P & AbstractFmcPage<T>>,
+    routeEvent?: (keyof E & string) | undefined,
+  ): void
+  /**
+   * Declares a route for a page class
+   *
+   * @param route the route to set
+   * @param page the page to associate with it
+   * @param routeEvent the event to associate with it
+   * @param defaultProps default props to pass in to the page
+   */
+  public addPageRoute<U extends PageConstructor<P>>(
+    route: string,
+    page: U,
+    routeEvent: (keyof E & string) | undefined,
+    defaultProps: U extends PageConstructor<AbstractFmcPage<infer V>, infer V> ? V : never,
+  ): void;
+  /**
+   * Declares a route for a page class
+   *
+   * @param route the route to set
+   * @param page the page to associate with it
+   * @param routeEvent the event to associate with it
+   * @param defaultProps default typed parameters to pass in to the page
+   */
+  public addPageRoute<U extends PageConstructor<P>>(
+    route: string,
+    page: U,
+    routeEvent?: keyof E & string | undefined,
+    defaultProps?: U extends PageConstructor<AbstractFmcPage<infer V>, infer V> ? V : never | undefined,
+  ): void {
+    this.router.addRoute(route, page, defaultProps ?? null);
 
     if (routeEvent) {
-      this.bus.getSubscriber<E>().on(`${this.options.eventPrefix}${routeEvent}` as keyof E & string).handle(() => {
+      this.onPrefixedEvent(routeEvent).handle(() => {
         if (this.currentRoute.get() === route) {
           this.currentlyDisplayedPage?.onPageButtonPressed();
         } else {
-          this.navigateTo(route);
+          this.navigateTo(page, this.router.getDefaultPropsForPage(page));
         }
       });
     }
+  }
+
+
+  /** @inheritDoc */
+  public addPluginPageRoute<T extends object>(
+    route: string,
+    page: PageConstructor<P & AbstractFmcPage<T>, T>,
+    routeEvent?: keyof E & string,
+    defaultTypedParameters?: T,
+  ): void {
+    this.pendingPageAdditions[route] = [page, routeEvent, defaultTypedParameters];
+  }
+
+  /** @inheritDoc */
+  public replacePageRoute<T extends object>(
+    route: string,
+    page: PageConstructor<P & AbstractFmcPage<T>, T>,
+    routeEvent?: keyof E & string,
+    defaultTypedParameters?: T,
+  ): void {
+    this.pendingPageReplacements[route] = [page, routeEvent, defaultTypedParameters];
+  }
+
+  /** @inheritDoc */
+  public attachPageExtension(pageClass: PageConstructor<P>, extensionCtor: new(...args: any[]) => AbstractFmcPageExtension<P>): void {
+    this.attachedPageExtensions.push([pageClass, extensionCtor]);
   }
 
   /**
@@ -245,16 +358,37 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
   }
 
   /**
+   * Edits part of the screen output
+   *
+   * @param rowIndex the row index to insert at
+   * @param output the output to insert
+   *
+   * @throws if `rowIndex` is too high
+   */
+  public editOutputTemplate(rowIndex: number, output: FmcOutputTemplate): void {
+    this.renderer.editOutputTemplate(output, rowIndex, []);
+  }
+
+  /**
    * Instantiates a page for this screen
    *
    * @param page the page constructor
    *
    * @returns the created page
    */
-  private instantiatePage<U extends { new(...args: any[]): P }>(page: U): P {
-    return this.pageFactory.createPage(page, this.bus, this, this.acceptPageOutput.bind(this));
-  }
+  private instantiatePage<U extends object>(page: PageConstructor<P & AbstractFmcPage<U>, U>): P & AbstractFmcPage<U> {
+    const initialProps = this.router.getDefaultPropsForPage(page);
 
+    const pageInstance = this.pageFactory.createPage(page, this.bus, this, initialProps, this.acceptPageOutput.bind(this));
+
+    for (const [pageTarget, extension] of this.attachedPageExtensions) {
+      if (pageInstance instanceof pageTarget) {
+        pageInstance.acceptPageExtension(new extension(pageInstance));
+      }
+    }
+
+    return pageInstance;
+  }
 
   /**
    * Method called when a page is rendered to the screen. This can be overridden to intercept the page data and act upon it.
@@ -267,15 +401,26 @@ export class FmcScreen<P extends AbstractFmcPage = AbstractFmcPage, E = Record<s
     const rows = [...output];
 
     const totalRows = this.options.screenDimensions.cellHeight - (this.options.enableScratchpad ? 2 : 0);
-    for (let i = rows.length; i < totalRows; i++) {
+    for (let i = atRowIndex + rows.length; i < totalRows; i++) {
       rows.push(['']);
     }
 
-    this.renderer.editOutputTemplate(rows, atRowIndex);
+    this.renderer.editOutputTemplate(rows, atRowIndex, template);
 
     if (this.options.enableScratchpad) {
-      this.renderer.editOutputTemplate([[this.scratchpad.renderedText.get()]], this.options.screenDimensions.cellHeight - 1);
+      this.renderer.editOutputTemplate([[this.scratchpad.renderedText.get()]], this.scratchpadRenderRow, template);
     }
+  }
+
+  /**
+   * Returns the row the scratchpad should render at
+   *
+   * @returns a number
+   */
+  private get scratchpadRenderRow(): number {
+    return this.scratchpad.options.renderRow === -1
+      ? this.options.screenDimensions.cellHeight - 1
+      : this.scratchpad.options.renderRow;
   }
 
   /**

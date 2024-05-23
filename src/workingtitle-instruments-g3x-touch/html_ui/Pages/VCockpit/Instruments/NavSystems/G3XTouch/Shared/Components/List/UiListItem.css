@@ -1,0 +1,47 @@
+html {
+  --ui-list-item-margin: 0px;
+  --ui-list-item-padding: 0px;
+
+  --ui-list-item-border-width: 1px;
+  --ui-list-item-border-style: solid;
+  --ui-list-item-border-color: #424242;
+  --ui-list-item-border-radius: 0px;
+
+  --ui-list-item-focused-border-color: var(--g3x-color-focus-blue);
+}
+
+.ui-list-item {
+  position: relative;
+  width: 100%;
+  height: var(--touch-list-item-length, 100px);
+  padding: var(--ui-list-item-margin);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.touch-button.ui-list-item-button {
+  flex-grow: 1;
+  padding: var(--ui-list-item-padding);
+  border: var(--ui-list-item-border, var(--ui-list-item-border-width) var(--ui-list-item-border-style) var(--ui-list-item-border-color));
+  border-radius: var(--ui-list-item-border-radius);
+  background: var(--g3x-color-black);
+  box-shadow: none;
+  display: flex;
+  flex-flow: row nowrap;
+}
+
+.ui-list-item-hide-border .touch-button.ui-list-item-button {
+  border: none !important;
+  border-radius: 0px !important;
+}
+
+.touch-button.ui-list-item-button.ui-button-focused {
+  border: var(--ui-list-item-focused-border, var(--ui-list-item-border-width) var(--ui-list-item-border-style) var(--ui-list-item-focused-border-color));
+  box-shadow: inset 0 0 1px 1px var(--ui-list-item-focused-border-color);
+}
+
+.ui-list-item-focusable-child .touch-button.ui-list-item-button.ui-button-focused {
+  border: var(--ui-list-item-border, var(--ui-list-item-border-width) var(--ui-list-item-border-style) var(--ui-list-item-border-color));
+  box-shadow: none;
+}

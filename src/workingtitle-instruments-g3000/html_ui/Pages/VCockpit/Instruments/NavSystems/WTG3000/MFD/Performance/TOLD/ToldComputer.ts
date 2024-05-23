@@ -1,14 +1,17 @@
 import {
-  AdcEvents,
-  AeroMath,
-  AirportFacility, AvionicsSystemState, AvionicsSystemStateEvent, ClockEvents, ConsumerSubject, ControlSurfacesEvents, EventBus, FacilityLoader,
-  FacilityType, FlightPlannerEvents, ICAO, MappedSubject, MappedSubscribable, OneWayRunway, RunwayUtils, Subject, Subscription, UnitType, UserSetting
+  AdcEvents, AeroMath, AirportFacility, AvionicsSystemState, AvionicsSystemStateEvent, ClockEvents, ConsumerSubject,
+  ControlSurfacesEvents, EventBus, FacilityLoader, FacilityType, ICAO, MappedSubject, MappedSubscribable, OneWayRunway,
+  RunwayUtils, Subject, Subscription, UnitType, UserSetting
 } from '@microsoft/msfs-sdk';
+
 import { AdcSystemEvents, Fms } from '@microsoft/msfs-garminsdk';
+
 import {
-  ToldConfig, ToldControlEvents, ToldLandingPerformanceResult, ToldLimitExceedance, ToldModule, ToldRunwaySurfaceCondition, ToldTakeoffPerformanceResult,
-  ToldThrustReverserSelectable, ToldUserSettings, VSpeedGroupType, VSpeedUserSettingManager, WeightFuelEvents, WeightFuelUserSettings
+  G3000FlightPlannerId, ToldConfig, ToldControlEvents, ToldLandingPerformanceResult, ToldLimitExceedance, ToldModule,
+  ToldRunwaySurfaceCondition, ToldTakeoffPerformanceResult, ToldThrustReverserSelectable, ToldUserSettings,
+  VSpeedGroupType, VSpeedUserSettingManager, WeightFuelEvents, WeightFuelUserSettings
 } from '@microsoft/msfs-wtg3000-common';
+
 import { FmsVSpeedManager } from './FmsVSpeedManager';
 
 /**
@@ -294,7 +297,7 @@ export class ToldComputer {
   public constructor(
     private readonly bus: EventBus,
     private readonly facLoader: FacilityLoader,
-    private readonly fms: Fms,
+    private readonly fms: Fms<G3000FlightPlannerId>,
     private readonly adcCount: number,
     private readonly config: ToldConfig,
     private readonly fmsVSpeedManager: FmsVSpeedManager,
@@ -540,15 +543,13 @@ export class ToldComputer {
   private initOriginDestAutoUpdateLogic(): void {
     this.onFlightPlanOriginDestChanged();
 
-    const sub = this.bus.getSubscriber<FlightPlannerEvents>();
-
-    this.fplOriginDestSub = sub.on('fplOriginDestChanged').handle(e => {
+    this.fplOriginDestSub = this.fms.flightPlanner.onEvent('fplOriginDestChanged').handle(e => {
       if (e.planIndex === Fms.PRIMARY_PLAN_INDEX) {
         this.onFlightPlanOriginDestChanged();
       }
     });
 
-    this.fplProcDetailsSub = sub.on('fplProcDetailsChanged').handle(e => {
+    this.fplProcDetailsSub = this.fms.flightPlanner.onEvent('fplProcDetailsChanged').handle(e => {
       if (e.planIndex === Fms.PRIMARY_PLAN_INDEX) {
         this.onFlightPlanOriginDestChanged();
       }

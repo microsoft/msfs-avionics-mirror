@@ -1,0 +1,50 @@
+.gdu-460-display {
+  --map-traffic-status-icon-size: 25px;
+}
+
+.map-traffic-status {
+  border: solid 1px var(--g3x-color-black);
+}
+
+.map-traffic-status-icon-container {
+  box-sizing: content-box;
+  position: relative;
+  width: var(--map-traffic-status-icon-size);
+  height: var(--map-traffic-status-icon-size);
+  background: var(--g3x-color-black);
+  border: solid 1px;
+  border-color: var(--g3x-color-white) #7f7f7f #7f7f7f var(--g3x-color-white);
+  overflow: hidden;
+}
+
+.map-traffic-status-icon {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.map-traffic-status-failed {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 67%;
+  height: 67%;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+}
+
+.map-traffic-status-failed-cross {
+  fill: transparent;
+}
+
+.map-traffic-status-failed-cross-outline {
+  stroke-width: 30;
+  stroke: var(--g3x-color-black);
+}
+
+.map-traffic-status-failed-cross-stroke {
+  stroke-width: 22;
+  stroke: var(--g3x-color-white);
+}

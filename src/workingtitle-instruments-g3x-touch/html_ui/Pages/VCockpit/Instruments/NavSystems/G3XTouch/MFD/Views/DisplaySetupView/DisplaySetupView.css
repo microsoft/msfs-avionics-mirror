@@ -1,0 +1,135 @@
+.display-setup-view {
+  color: var(--g3x-color-white);
+  background: var(--g3x-color-black);
+
+  --ui-list-select-button-label-height: 0px;
+}
+
+.gdu-460-display .display-setup-view {
+  font-size: 21px;
+
+  --ui-list-select-button-dropdown-width: 50px;
+
+  --display-setup-view-list-margin: 0px 2px 0px 9px;
+
+  --display-setup-view-list-item-padding: 7px 9px;
+  --display-setup-view-list-item-column-gap: 5px;
+
+  --display-setup-view-backlight-level-margin: 0px 25px 0px 10px;
+}
+
+.gdu-460-display .ui-pane-full .display-setup-view {
+  --display-setup-view-row-right-width: 368px;
+}
+
+.gdu-460-display .ui-pane-half .display-setup-view {
+  --display-setup-view-row-right-width: 228px;
+}
+
+.gdu-460-display.gdu-display-eis-left .ui-pane-half .display-setup-view,
+.gdu-460-display.gdu-display-eis-right .ui-pane-half .display-setup-view {
+  --display-setup-view-list-margin: 0px 2px 0px 2px;
+}
+
+.display-setup-view-content {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.display-setup-view-list {
+  margin: var(--display-setup-view-list-margin);
+}
+
+.display-setup-view-list .touch-button.ui-list-item-button {
+  padding: var(--display-setup-view-list-item-padding);
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr var(--display-setup-view-row-right-width);
+  grid-column-gap: var(--display-setup-view-list-item-column-gap);
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.display-setup-view-list .combined-touch-button .touch-button {
+  flex-basis: 0px;
+  flex-grow: 1;
+}
+
+.display-setup-view-row-left {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+}
+
+.display-setup-view-row-backlight-mode-left {
+  justify-content: space-between;
+}
+
+.display-setup-view-backlight-level {
+  flex-shrink: 0;
+  margin: var(--display-setup-view-backlight-level-margin);
+}
+
+.display-setup-view-backlight-slider {
+  width: 100%;
+  height: 100%;
+}
+
+.display-setup-view-backlight-slider .touch-slider-slider-container {
+  background: var(--g3x-color-black);
+}
+
+.display-setup-view-backlight-slider-background {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  background: var(--g3x-color-disabled-gray);
+}
+
+.display-setup-view-backlight-slider-foreground {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, #25811b, #46f232);
+}
+
+.display-setup-view-backlight-slider-inset {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.display-setup-view-backlight-slider-occlude {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  fill: var(--g3x-color-black);
+}
+
+.display-setup-view-backlight-slider-inset-overlay {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.ui-slider-focused .display-setup-view-backlight-slider-inset-overlay {
+  box-shadow: inset 0 0 1px 1px var(--ui-slider-focused-border-color);
+}
+
+.gdu-460-display .display-setup-view-select-list {
+  --ui-list-dialog-width: 255px;
+  --ui-list-dialog-padding: 4px;
+  --ui-list-dialog-font-size: 21px;
+}

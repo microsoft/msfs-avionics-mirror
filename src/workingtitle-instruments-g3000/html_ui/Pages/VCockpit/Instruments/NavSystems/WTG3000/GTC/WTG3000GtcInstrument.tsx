@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import {
-  DefaultObsSuspDataProvider, DefaultVNavDataProvider, Fms, GarminFacilityWaypointCache, GpsNavSource,
-  NavRadioNavSource,
-  NavReferenceIndicatorsCollection,
-  NavReferenceSource,
-  NavReferenceSourceCollection,
-  TrafficSystemType,
-} from '@microsoft/msfs-garminsdk';
+
 import {
   ClockEvents, FacilityWaypoint, FSComponent, IntersectionFacility, NdbFacility,
   PluginSystem, SetSubject, Subject, UserFacility, VNode, VorFacility, Wait, XPDRSimVarPublisher,
 } from '@microsoft/msfs-sdk';
+
+import {
+  DefaultObsSuspDataProvider, DefaultVNavDataProvider, Fms, GarminFacilityWaypointCache, GpsNavSource,
+  NavRadioNavSource, NavReferenceIndicatorsCollection, NavReferenceSource, NavReferenceSourceCollection,
+  TrafficSystemType,
+} from '@microsoft/msfs-garminsdk';
+
 import {
   AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent, DefaultFmsSpeedTargetDataProvider, ExistingUserWaypointsArray, FlightPlanListManager,
   FlightPlanStore, G3000ActiveSourceNavIndicator, G3000FilePaths, G3000NavIndicator, G3000NavIndicatorName, G3000NavIndicators, G3000NavSourceName,
@@ -182,6 +182,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
     this.backplane.init();
 
     this.minimumsDataProvider.init();
+    this.terrainSystemStateDataProvider.init();
     this.obsSuspDataProvider.init();
     this.posHeadingDataProvider.init();
     this.posHeadingDataProvider1Hz.init();
@@ -621,7 +622,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             displayPaneIndex={displayPaneIndex}
             horizonDirectorCueOption={this.config.horizon.directorCue}
             auralAlertsConfig={this.config.auralAlerts}
-            touchdownCalloutsConfig={this.config.taws.touchdownCallouts}
+            touchdownCalloutsConfig={this.config.terrain.touchdownCallouts}
           />
         );
       }

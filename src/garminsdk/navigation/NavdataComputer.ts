@@ -1,15 +1,40 @@
 import {
-  ActiveLegType, AdditionalApproachType, AirportFacility, BitFlags, ClockEvents, ConsumerSubject, ControlEvents, EventBus, FacilityLoader, FacilityType, FixTypeFlags,
-  FlightPathUtils, FlightPathVectorFlags, FlightPlan, FlightPlanLegEvent, FlightPlanner, FlightPlannerEvents, FlightPlanOriginDestEvent, FlightPlanSegment,
-  FlightPlanSegmentType, FlightPlanUtils, GeoCircle, GeoPoint, GeoPointInterface, GNSSEvents, LegCalculations, LegDefinition, LegDefinitionFlags, LegType, LNavDataVars,
-  LNavEvents, LNavTransitionMode, MagVar, MathUtils, NavEvents, NavMath, ObjectSubject, OriginDestChangeType, RnavTypeFlags, SimVarValueType, Subject,
-  UnitType, Vec3Math, VNavDataEvents, VNavEvents
+  ActiveLegType, AdditionalApproachType, AirportFacility, BaseVNavDataEvents, BitFlags, ClockEvents, ConsumerValue,
+  ControlEvents, EventBus, FacilityLoader, FacilityType, FixTypeFlags, FlightPathUtils, FlightPathVector, FlightPathVectorFlags,
+  FlightPlanActiveLegEvent, FlightPlanLegEvent, FlightPlanner, FlightPlanOriginDestEvent, FlightPlanSegment,
+  FlightPlanSegmentEvent, FlightPlanSegmentType, FlightPlanUtils, GeoCircle, GeoPoint, GeoPointInterface, GNSSEvents,
+  ICAO, LegCalculations, LegDefinition, LegDefinitionFlags, LegType, LNavControlEvents, LNavDataVars, LNavEvents,
+  LNavObsEvents, LNavTransitionMode, LNavUtils, MagVar, MathUtils, NavEvents, NavMath, ObjectSubject,
+  OriginDestChangeType, RnavTypeFlags, RunwayUtils, SimVarValueType, Subject, Subscribable, SubscribableUtils,
+  UnitType, Vec3Math, VNavDataEvents, VNavEvents, VNavUtils, VorToFrom
 } from '@microsoft/msfs-sdk';
 
-import { GlidepathServiceLevel } from '../autopilot/GarminVerticalNavigation';
+import { GlidepathServiceLevel } from '../autopilot/vnav/GarminVNavTypes';
 import { ApproachDetails, FmsEvents, FmsUtils } from '../flightplan';
-import { GarminControlEvents } from '../instruments';
-import { CDIScaleLabel, GarminLNavDataVars, LNavDataEvents, LNavDataDtkVector } from './LNavDataEvents';
+import {
+  BaseLNavDataEvents, BaseLNavDataSimVarEvents, CDIScaleLabel, GarminLNavDataVars, LNavDataDtkVector, LNavDataEvents
+} from './LNavDataEvents';
+
+/**
+ * Configuration options for {@link NavdataComputer}.
+ */
+export type NavdataComputerOptions = {
+  /** The index of the LNAV computer from which to source data. Defaults to `0`. */
+  lnavIndex?: number;
+
+  /**
+   * Whether to use the sim's native OBS state. If `true`, then the sim's OBS state as exposed through the event bus
+   * topics defined in `NavEvents` will be used. If `false`, then the OBS state exposed through the event bus topics
+   * defined in `LNavObsEvents` will be used. Defaults to `true`.
+   */
+  useSimObsState?: boolean;
+
+  /** The index of the VNAV from which to source data. Defaults to `0`. */
+  vnavIndex?: number | Subscribable<number>;
+
+  /** Whether to use VFR instead of IFR CDI scaling logic. Defaults to `false`. */
+  useVfrCdiScaling?: boolean | Subscribable<boolean>;
+};
 
 /**
  * Computes Garmin LNAV-related data.
@@ -22,9 +47,30 @@ export class NavdataComputer {
 
   private readonly publisher = this.bus.getPublisher<LNavDataEvents & VNavDataEvents>();
 
+  /** The index of the LNAV computer from which this computer sources data. */
+  public readonly lnavIndex: number;
+
+  private readonly useSimObsState: boolean;
+
+  private readonly simVarMap: Record<LNavDataVars | GarminLNavDataVars, string>;
+  private readonly lnavTopicMap: {
+    [P in Exclude<keyof BaseLNavDataEvents, keyof BaseLNavDataSimVarEvents>]: P | `${P}_${number}`
+  };
+
+  private readonly vnavIndex: Subscribable<number>;
+  private isVNavIndexValid = false;
+
+  private readonly vnavTopicMap: {
+    [P in Extract<keyof BaseVNavDataEvents, 'gp_gsi_scaling'>]: P | `${P}_${number}`
+  } = {
+      'gp_gsi_scaling': 'gp_gsi_scaling'
+    };
+
+  private readonly useVfrCdiScaling: Subscribable<boolean>;
+
   private readonly planePos = new GeoPoint(0, 0);
-  private readonly magVar: ConsumerSubject<number>;
-  private readonly isObsActive: ConsumerSubject<boolean>;
+  private readonly magVar: ConsumerValue<number>;
+  private readonly isObsActive: ConsumerValue<boolean>;
 
   private readonly obsAvailable = Subject.create<boolean>(false);
   private approachDetails: Readonly<ApproachDetails> = {
@@ -39,21 +85,20 @@ export class NavdataComputer {
     runway: null
   };
 
-  private readonly lnavIsTracking: ConsumerSubject<boolean>;
-  private readonly lnavLegIndex: ConsumerSubject<number>;
-  private readonly lnavVectorIndex: ConsumerSubject<number>;
-  private readonly lnavTransitionMode: ConsumerSubject<LNavTransitionMode>;
-  private readonly lnavIsSuspended: ConsumerSubject<boolean>;
-  private readonly lnavDtk: ConsumerSubject<number>;
-  private readonly lnavXtk: ConsumerSubject<number>;
-  private readonly lnavLegDistanceAlong: ConsumerSubject<number>;
-  private readonly lnavLegDistanceRemaining: ConsumerSubject<number>;
-  private readonly lnavVectorDistanceAlong: ConsumerSubject<number>;
+  private readonly lnavIsTracking: ConsumerValue<boolean>;
+  private readonly lnavLegIndex: ConsumerValue<number>;
+  private readonly lnavVectorIndex: ConsumerValue<number>;
+  private readonly lnavTransitionMode: ConsumerValue<LNavTransitionMode>;
+  private readonly lnavIsSuspended: ConsumerValue<boolean>;
+  private readonly lnavDtk: ConsumerValue<number>;
+  private readonly lnavXtk: ConsumerValue<number>;
+  private readonly lnavLegDistanceAlong: ConsumerValue<number>;
+  private readonly lnavLegDistanceRemaining: ConsumerValue<number>;
 
-  private readonly isMaprActive: ConsumerSubject<boolean>;
+  private readonly isMaprActive: ConsumerValue<boolean>;
 
-  private readonly gpServiceLevel: ConsumerSubject<GlidepathServiceLevel>;
-  private readonly gpDistance: ConsumerSubject<number>;
+  private readonly gpServiceLevel = ConsumerValue.create(null, GlidepathServiceLevel.None);
+  private readonly gpDistance = ConsumerValue.create(null, 0);
 
   private readonly lnavData = ObjectSubject.create({
     dtkTrue: 0,
@@ -67,8 +112,11 @@ export class NavdataComputer {
     waypointBearingMag: 0,
     waypointDistance: 0,
     waypointIdent: '',
-    destinationDistance: 0,
-    egressDistance: 0
+    destinationIcao: '',
+    destinationRunwayIcao: '',
+    destinationDistance: -1,
+    egressDistance: 0,
+    toFrom: VorToFrom.OFF
   });
 
   private readonly vnavData = ObjectSubject.create({
@@ -86,47 +134,110 @@ export class NavdataComputer {
 
   private readonly nominalPathCircle = { vectorIndex: -1, circle: new GeoCircle(Vec3Math.create(), 0) };
 
-  private originFacility?: AirportFacility;
+  private primaryPlanOriginFacility?: AirportFacility;
+  private primaryPlanDestinationFacility?: AirportFacility;
 
+  private needUpdateDestination = true;
+  private destinationPlanIndex?: number;
+  private destinationIcao?: string;
   private destinationFacility?: AirportFacility;
+  private destinationLeg?: LegDefinition;
 
   /**
    * Creates a new instance of the NavdataComputer.
    * @param bus The event bus to use with this instance.
    * @param flightPlanner The flight planner to use with this instance.
    * @param facilityLoader The facility loader to use with this instance.
+   * @param options Options with which to configure the computer.
    */
-  constructor(private readonly bus: EventBus, private readonly flightPlanner: FlightPlanner, private readonly facilityLoader: FacilityLoader) {
+  public constructor(
+    private readonly bus: EventBus,
+    private readonly flightPlanner: FlightPlanner,
+    private readonly facilityLoader: FacilityLoader,
+    options?: Readonly<NavdataComputerOptions>
+  ) {
+    this.lnavIndex = options?.lnavIndex ?? 0;
+
+    if (!LNavUtils.isValidLNavIndex(this.lnavIndex)) {
+      throw new Error(`NavdataComputer: invalid LNAV index (${this.lnavIndex}) specified (must be a non-negative integer)`);
+    }
+
+    this.useSimObsState = options?.useSimObsState ?? true;
+
+    this.vnavIndex = SubscribableUtils.toSubscribable(options?.vnavIndex ?? 0, true);
+
+    this.useVfrCdiScaling = SubscribableUtils.toSubscribable(options?.useVfrCdiScaling ?? false, true);
+
+    const simVarSuffix = this.lnavIndex === 0 ? '' : `:${this.lnavIndex}`;
+    this.simVarMap = {} as Record<LNavDataVars | GarminLNavDataVars, string>;
+    for (const simVar of [...Object.values(LNavDataVars), ...Object.values(GarminLNavDataVars)]) {
+      this.simVarMap[simVar] = `${simVar}${simVarSuffix}`;
+    }
+
+    const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(this.lnavIndex);
+    this.lnavTopicMap = {
+      'lnavdata_waypoint_ident': `lnavdata_waypoint_ident${lnavTopicSuffix}`,
+      'lnavdata_destination_icao': `lnavdata_destination_icao${lnavTopicSuffix}`,
+      'lnavdata_destination_ident': `lnavdata_destination_ident${lnavTopicSuffix}`,
+      'lnavdata_destination_runway_icao': `lnavdata_destination_runway_icao${lnavTopicSuffix}`,
+      'lnavdata_dtk_vector': `lnavdata_dtk_vector${lnavTopicSuffix}`,
+      'lnavdata_next_dtk_vector': `lnavdata_next_dtk_vector${lnavTopicSuffix}`,
+      'obs_available': `obs_available${lnavTopicSuffix}`,
+    };
+
     const sub = this.bus.getSubscriber<
-      NavEvents & GNSSEvents & LNavEvents & VNavEvents & VNavDataEvents & FlightPlannerEvents & FmsEvents & ClockEvents & ControlEvents
+      GNSSEvents & NavEvents & LNavEvents & LNavObsEvents & LNavControlEvents & VNavEvents & VNavDataEvents
+      & FmsEvents & ClockEvents & ControlEvents
     >();
 
-    this.magVar = ConsumerSubject.create(sub.on('magvar'), 0);
-    this.isObsActive = ConsumerSubject.create(sub.on('gps_obs_active'), false);
+    this.magVar = ConsumerValue.create(sub.on('magvar'), 0);
+    this.isObsActive = ConsumerValue.create(sub.on(this.useSimObsState ? 'gps_obs_active' : `lnav_obs_active${lnavTopicSuffix}`), false);
 
-    this.lnavIsTracking = ConsumerSubject.create(sub.on('lnav_is_tracking'), false);
-    this.lnavLegIndex = ConsumerSubject.create(sub.on('lnav_tracked_leg_index'), 0);
-    this.lnavVectorIndex = ConsumerSubject.create(sub.on('lnav_tracked_vector_index'), 0);
-    this.lnavTransitionMode = ConsumerSubject.create(sub.on('lnav_transition_mode'), LNavTransitionMode.None);
-    this.lnavIsSuspended = ConsumerSubject.create(sub.on('lnav_is_suspended'), false);
-    this.lnavDtk = ConsumerSubject.create(sub.on('lnav_dtk'), 0);
-    this.lnavXtk = ConsumerSubject.create(sub.on('lnav_xtk'), 0);
-    this.lnavLegDistanceAlong = ConsumerSubject.create(sub.on('lnav_leg_distance_along'), 0);
-    this.lnavLegDistanceRemaining = ConsumerSubject.create(sub.on('lnav_leg_distance_remaining'), 0);
-    this.lnavVectorDistanceAlong = ConsumerSubject.create(sub.on('lnav_vector_distance_along'), 0);
+    this.lnavIsTracking = ConsumerValue.create(sub.on(`lnav_is_tracking${lnavTopicSuffix}`), false);
+    this.lnavLegIndex = ConsumerValue.create(sub.on(`lnav_tracked_leg_index${lnavTopicSuffix}`), 0);
+    this.lnavVectorIndex = ConsumerValue.create(sub.on(`lnav_tracked_vector_index${lnavTopicSuffix}`), 0);
+    this.lnavTransitionMode = ConsumerValue.create(sub.on(`lnav_transition_mode${lnavTopicSuffix}`), LNavTransitionMode.None);
+    this.lnavIsSuspended = ConsumerValue.create(sub.on(`lnav_is_suspended${lnavTopicSuffix}`), false);
+    this.lnavDtk = ConsumerValue.create(sub.on(`lnav_dtk${lnavTopicSuffix}`), 0);
+    this.lnavXtk = ConsumerValue.create(sub.on(`lnav_xtk${lnavTopicSuffix}`), 0);
+    this.lnavLegDistanceAlong = ConsumerValue.create(sub.on(`lnav_leg_distance_along${lnavTopicSuffix}`), 0);
+    this.lnavLegDistanceRemaining = ConsumerValue.create(sub.on(`lnav_leg_distance_remaining${lnavTopicSuffix}`), 0);
+    this.isMaprActive = ConsumerValue.create(sub.on(`activate_missed_approach${lnavTopicSuffix}`), false);
 
-    this.isMaprActive = ConsumerSubject.create(sub.on('activate_missed_approach'), false);
+    const vnavDataSub = this.vnavData.sub((obj, key, value) => {
+      switch (key) {
+        case 'gpScale': this.publisher.pub(this.vnavTopicMap['gp_gsi_scaling'], value as number, true, true); break;
+      }
+    }, false, true);
 
-    this.gpServiceLevel = ConsumerSubject.create(sub.on('gp_service_level'), GlidepathServiceLevel.None);
-    this.gpDistance = ConsumerSubject.create(sub.on('gp_distance'), 0);
+    this.vnavIndex.sub(vnavIndex => {
+      this.isVNavIndexValid = VNavUtils.isValidVNavIndex(vnavIndex);
+      if (this.isVNavIndexValid) {
+        const suffix = VNavUtils.getEventBusTopicSuffix(vnavIndex);
+        this.gpServiceLevel.setConsumer(sub.on(`gp_service_level${suffix}`));
+        this.gpDistance.setConsumer(sub.on(`gp_distance${suffix}`));
+
+        this.vnavTopicMap['gp_gsi_scaling'] = `gp_gsi_scaling${suffix}`;
+
+        vnavDataSub.resume(true);
+      } else {
+        vnavDataSub.pause();
+
+        this.gpServiceLevel.setConsumer(null);
+        this.gpDistance.setConsumer(null);
+      }
+    }, true);
 
     sub.on('gps-position').handle(lla => { this.planePos.set(lla.lat, lla.long); });
-    sub.on('fplOriginDestChanged').handle(this.flightPlanOriginDestChanged.bind(this));
-    sub.on('fplActiveLegChange').handle(event => { event.type === ActiveLegType.Lateral && this.onActiveLegChanged(); });
-    sub.on('fplLegChange').handle(this.onLegChanged);
-    sub.on('fplIndexChanged').handle(() => this.onActiveLegChanged());
-    sub.on('fplSegmentChange').handle(() => this.onActiveLegChanged());
-    sub.on('fms_approach_details').handle(d => { this.approachDetails = d; });
+
+    this.flightPlanner.onEvent('fplOriginDestChanged').handle(this.onOriginDestChanged.bind(this));
+    this.flightPlanner.onEvent('fplSegmentChange').handle(() => this.onSegmentChanged.bind(this));
+    this.flightPlanner.onEvent('fplLegChange').handle(this.onLegChanged.bind(this));
+    this.flightPlanner.onEvent('fplIndexChanged').handle(this.onActivePlanChanged.bind(this));
+    this.flightPlanner.onEvent('fplActiveLegChange').handle(this.onActiveLegChanged.bind(this));
+
+    FmsUtils.onFmsEvent(this.flightPlanner.id, sub, 'fms_approach_details').handle(d => { this.approachDetails = d; });
+
     sub.on('realTime').handle(() => {
       this.computeTrackingData();
       this.computeCdiScaling();
@@ -135,87 +246,150 @@ export class NavdataComputer {
 
     this.lnavData.sub((obj, key, value) => {
       switch (key) {
-        case 'dtkTrue': SimVar.SetSimVarValue(LNavDataVars.DTKTrue, SimVarValueType.Degree, value); break;
-        case 'dtkMag': SimVar.SetSimVarValue(LNavDataVars.DTKMagnetic, SimVarValueType.Degree, value); break;
-        case 'xtk': SimVar.SetSimVarValue(LNavDataVars.XTK, SimVarValueType.NM, value); break;
-        case 'nextDtkTrue': SimVar.SetSimVarValue(GarminLNavDataVars.NextDTKTrue, SimVarValueType.Degree, value); break;
-        case 'nextDtkMag': SimVar.SetSimVarValue(GarminLNavDataVars.NextDTKMagnetic, SimVarValueType.Degree, value); break;
-        case 'cdiScale': SimVar.SetSimVarValue(LNavDataVars.CDIScale, SimVarValueType.NM, value); break;
-        case 'cdiScaleLabel': SimVar.SetSimVarValue(GarminLNavDataVars.CDIScaleLabel, SimVarValueType.Number, value); break;
-        case 'waypointBearingTrue': SimVar.SetSimVarValue(LNavDataVars.WaypointBearingTrue, SimVarValueType.Degree, value); break;
-        case 'waypointBearingMag': SimVar.SetSimVarValue(LNavDataVars.WaypointBearingMagnetic, SimVarValueType.Degree, value); break;
-        case 'waypointDistance': SimVar.SetSimVarValue(LNavDataVars.WaypointDistance, SimVarValueType.NM, value); break;
-        case 'waypointIdent': this.publisher.pub('lnavdata_waypoint_ident', value as string, true, true); break;
-        case 'destinationDistance': SimVar.SetSimVarValue(LNavDataVars.DestinationDistance, SimVarValueType.NM, value); break;
-        case 'egressDistance': SimVar.SetSimVarValue(GarminLNavDataVars.EgressDistance, SimVarValueType.NM, value); break;
-      }
-    }, true);
-
-    this.vnavData.sub((obj, key, value) => {
-      switch (key) {
-        case 'gpScale': this.publisher.pub('gp_gsi_scaling', value as number, true, true); break;
+        case 'dtkTrue': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.DTKTrue], SimVarValueType.Degree, value); break;
+        case 'dtkMag': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.DTKMagnetic], SimVarValueType.Degree, value); break;
+        case 'xtk': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.XTK], SimVarValueType.NM, value); break;
+        case 'nextDtkTrue': SimVar.SetSimVarValue(this.simVarMap[GarminLNavDataVars.NextDTKTrue], SimVarValueType.Degree, value); break;
+        case 'nextDtkMag': SimVar.SetSimVarValue(this.simVarMap[GarminLNavDataVars.NextDTKMagnetic], SimVarValueType.Degree, value); break;
+        case 'cdiScale': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.CDIScale], SimVarValueType.NM, value); break;
+        case 'cdiScaleLabel': SimVar.SetSimVarValue(this.simVarMap[GarminLNavDataVars.CDIScaleLabel], SimVarValueType.Number, value); break;
+        case 'waypointBearingTrue': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.WaypointBearingTrue], SimVarValueType.Degree, value); break;
+        case 'waypointBearingMag': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.WaypointBearingMagnetic], SimVarValueType.Degree, value); break;
+        case 'waypointDistance': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.WaypointDistance], SimVarValueType.NM, value); break;
+        case 'waypointIdent': this.publisher.pub(this.lnavTopicMap['lnavdata_waypoint_ident'], value as string, true, true); break;
+        case 'destinationIcao':
+          this.publisher.pub(this.lnavTopicMap['lnavdata_destination_icao'], value as string, true, true);
+          this.publisher.pub(this.lnavTopicMap['lnavdata_destination_ident'], ICAO.getIdent(value as string), true, true);
+          break;
+        case 'destinationRunwayIcao': this.publisher.pub(this.lnavTopicMap['lnavdata_destination_runway_icao'], value as string, true, true); break;
+        case 'destinationDistance': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.DestinationDistance], SimVarValueType.NM, value); break;
+        case 'egressDistance': SimVar.SetSimVarValue(this.simVarMap[GarminLNavDataVars.EgressDistance], SimVarValueType.NM, value); break;
+        case 'toFrom': SimVar.SetSimVarValue(this.simVarMap[GarminLNavDataVars.ToFrom], SimVarValueType.Number, value); break;
       }
     }, true);
 
     this.obsAvailable.sub(v => {
-      this.bus.getPublisher<GarminControlEvents>().pub('obs_available', v, true, true);
+      this.publisher.pub(this.lnavTopicMap['obs_available'], v, true, true);
     });
   }
 
   /**
-   * A callback fired when the active flight plan leg changes.
-   * @param plan The Lateral Flight Plan (optional)
+   * Responds to when a flight plan origin or destination changes.
+   * @param event The event data describing the change.
    */
-  private onActiveLegChanged(plan?: FlightPlan): void {
-    let activeLeg = null;
-    if (plan === undefined && this.flightPlanner.hasActiveFlightPlan()) {
-      plan = this.flightPlanner.getActiveFlightPlan();
-    }
-    if (plan !== undefined) {
-      activeLeg = plan.tryGetLeg(plan.activeLateralLeg);
+  private onOriginDestChanged(event: FlightPlanOriginDestEvent): void {
+    if (event.planIndex !== FmsUtils.PRIMARY_PLAN_INDEX) {
+      return;
     }
 
-    this.updateObsAvailable(activeLeg);
+    if (event.airport !== undefined) {
+      if (event.type === OriginDestChangeType.OriginAdded) {
+        this.updatePrimaryPlanOriginFacility(event.airport);
+      } else {
+        this.updatePrimaryPlanDestinationFacility(event.airport);
+      }
+    } else {
+      if (event.type === OriginDestChangeType.OriginRemoved) {
+        this.updatePrimaryPlanOriginFacility(undefined);
+      } else {
+        this.updatePrimaryPlanDestinationFacility(undefined);
+      }
+    }
+
+    if (event.type === OriginDestChangeType.DestinationAdded || event.type === OriginDestChangeType.DestinationRemoved) {
+      this.needUpdateDestination = true;
+    }
   }
 
   /**
-   * A callback fired when any flight plan leg changes.
-   * @param event is the FlightPlanLegEvent
+   * Responds to when a flight plan segment changes.
+   * @param event The event data describing the change.
    */
-  private onLegChanged = (event: FlightPlanLegEvent): void => {
-    if (this.flightPlanner.hasActiveFlightPlan()) {
-      const plan = this.flightPlanner.getActiveFlightPlan();
-      if (FmsUtils.getGlobalLegIndex(plan, event.segmentIndex, event.legIndex) === plan.activeLateralLeg && event.planIndex === this.flightPlanner.activePlanIndex) {
-        this.onActiveLegChanged(plan);
-      }
+  private onSegmentChanged(event: FlightPlanSegmentEvent): void {
+    if (
+      event.planIndex === FmsUtils.PRIMARY_PLAN_INDEX
+      || (event.planIndex === FmsUtils.DTO_RANDOM_PLAN_INDEX && this.flightPlanner.activePlanIndex === FmsUtils.DTO_RANDOM_PLAN_INDEX)
+    ) {
+      this.needUpdateDestination = true;
     }
-  };
+  }
 
   /**
-   * A callback fired when the origin or destination changes in the flight plan.
-   * @param e The event that was captured.
+   * Responds to when a flight plan leg changes.
+   * @param event The event data describing the change.
    */
-  private flightPlanOriginDestChanged(e: FlightPlanOriginDestEvent): void {
-    if (e.airport !== undefined) {
-      this.facilityLoader.getFacility(FacilityType.Airport, e.airport).then(fac => {
-        switch (e.type) {
-          case OriginDestChangeType.OriginAdded:
-            this.originFacility = fac;
-            break;
-          case OriginDestChangeType.DestinationAdded:
-            this.destinationFacility = fac;
-            break;
-        }
-      });
+  private onLegChanged(event: FlightPlanLegEvent): void {
+    if (
+      event.planIndex === FmsUtils.PRIMARY_PLAN_INDEX
+      || (event.planIndex === FmsUtils.DTO_RANDOM_PLAN_INDEX && this.flightPlanner.activePlanIndex === FmsUtils.DTO_RANDOM_PLAN_INDEX)
+    ) {
+      this.needUpdateDestination = true;
+    }
+  }
+
+  /**
+   * Responds to when the active flight plan changes.
+   */
+  private onActivePlanChanged(): void {
+    this.needUpdateDestination = true;
+  }
+
+  /**
+   * Responds to when a flight plan active leg changes.
+   * @param event The event data describing the change.
+   */
+  private onActiveLegChanged(event: FlightPlanActiveLegEvent): void {
+    if (event.type === ActiveLegType.Lateral) {
+      if (event.planIndex === FmsUtils.PRIMARY_PLAN_INDEX) {
+        this.needUpdateDestination = true;
+      }
+    }
+  }
+
+  private primaryPlanOriginFacilityOpId = 0;
+
+  /**
+   * Updates the primary flight plan's origin airport facility.
+   * @param icao The ICAO of the origin airport facility, or `undefined` if there is no origin airport.
+   */
+  private async updatePrimaryPlanOriginFacility(icao: string | undefined): Promise<void> {
+    const opId = ++this.primaryPlanOriginFacilityOpId;
+
+    if (icao === undefined) {
+      this.primaryPlanOriginFacility = undefined;
+      return;
     }
 
-    if (e.type === OriginDestChangeType.OriginRemoved) {
-      this.originFacility = undefined;
+    const facility = await this.facilityLoader.getFacility(FacilityType.Airport, icao);
+
+    if (opId !== this.primaryPlanOriginFacilityOpId) {
+      return;
     }
 
-    if (e.type === OriginDestChangeType.DestinationRemoved) {
-      this.destinationFacility = undefined;
+    this.primaryPlanOriginFacility = facility;
+  }
+
+  private primaryPlanDestinationFacilityOpId = 0;
+
+  /**
+   * Updates the primary flight plan's destination airport facility.
+   * @param icao The ICAO of the destination airport facility, or `undefined` if there is no destination airport.
+   */
+  private async updatePrimaryPlanDestinationFacility(icao: string | undefined): Promise<void> {
+    const opId = ++this.primaryPlanDestinationFacilityOpId;
+
+    if (icao === undefined) {
+      this.primaryPlanDestinationFacility = undefined;
+      return;
     }
+
+    const facility = await this.facilityLoader.getFacility(FacilityType.Airport, icao);
+
+    if (opId !== this.primaryPlanDestinationFacilityOpId) {
+      return;
+    }
+
+    this.primaryPlanDestinationFacility = facility;
   }
 
   /**
@@ -238,21 +412,29 @@ export class NavdataComputer {
     let waypointBearingMag = 0;
     let waypointIdent = '';
     let egressDistance = 0;
-    let totalDistance = 0;
+    let destinationDistance = -1;
+    let toFrom = VorToFrom.OFF;
+
+    const activePlan = this.flightPlanner.hasActiveFlightPlan() ? this.flightPlanner.getActiveFlightPlan() : undefined;
+
+    this.updateObsAvailable(activePlan ? activePlan.tryGetLeg(activePlan.activeLateralLeg) : null);
+
+    if (this.needUpdateDestination) {
+      this.updateDestination();
+      this.needUpdateDestination = false;
+    }
 
     if (this.lnavIsTracking.get()) {
-      const plan = this.flightPlanner.hasActiveFlightPlan() && this.flightPlanner.getActiveFlightPlan();
-
       const isSuspended = this.lnavIsSuspended.get();
       const trackedLegIndex = this.lnavLegIndex.get();
       const nextLegIndex = trackedLegIndex + 1;
 
-      const currentLeg = plan && trackedLegIndex >= 0 && trackedLegIndex < plan.length ? plan.getLeg(trackedLegIndex) : undefined;
-      const nextLeg = plan && nextLegIndex >= 0 && nextLegIndex < plan.length ? plan.getLeg(nextLegIndex) : undefined;
+      const currentLeg = activePlan && trackedLegIndex >= 0 && trackedLegIndex < activePlan.length ? activePlan.getLeg(trackedLegIndex) : undefined;
+      const nextLeg = activePlan && nextLegIndex >= 0 && nextLegIndex < activePlan.length ? activePlan.getLeg(nextLegIndex) : undefined;
 
       if (currentLeg?.calculated) {
         distance = this.getActiveDistance(currentLeg, this.planePos);
-        totalDistance = this.getTotalDistance(trackedLegIndex, distance);
+        destinationDistance = this.getDestinationDistance(trackedLegIndex, distance);
         waypointIdent = currentLeg.name ?? '';
 
         if (currentLeg.calculated.endLat !== undefined && currentLeg.calculated.endLon) {
@@ -286,15 +468,18 @@ export class NavdataComputer {
         dtkTrue = this.lnavDtk.get();
         dtkMag = MagVar.trueToMagnetic(dtkTrue, magVar);
         egressDistance = this.lnavLegDistanceRemaining.get();
+        toFrom = egressDistance < 0 ? VorToFrom.FROM : VorToFrom.TO;
       } else {
         const transitionMode = this.lnavTransitionMode.get();
 
-        let circle;
+        let dtkVector: FlightPathVector | undefined;
+        let circle: GeoCircle | undefined;
         if (transitionMode === LNavTransitionMode.Egress && nextLeg?.calculated?.flightPath.length) {
           const result = this.getNominalPathCircle(nextLeg, 0, LNavTransitionMode.Ingress, this.nominalPathCircle);
           if (result.vectorIndex >= 0) {
             dtkLegIndex = nextLegIndex;
             dtkVectorIndex = result.vectorIndex;
+            dtkVector = nextLeg.calculated.flightPath[dtkVectorIndex];
             circle = result.circle;
           }
 
@@ -307,6 +492,7 @@ export class NavdataComputer {
           if (result.vectorIndex >= 0) {
             dtkLegIndex = trackedLegIndex;
             dtkVectorIndex = result.vectorIndex;
+            dtkVector = currentLeg.calculated.flightPath[dtkVectorIndex];
             circle = result.circle;
           }
 
@@ -325,6 +511,23 @@ export class NavdataComputer {
           xtk = UnitType.GA_RADIAN.convertTo(circle.distance(this.planePos), UnitType.NMILE);
           dtkTrue = circle.bearingAt(this.planePos, Math.PI);
           dtkMag = MagVar.trueToMagnetic(dtkTrue, magVar);
+
+          const dtkLeg = dtkLegIndex === nextLegIndex ? nextLeg! : currentLeg!;
+          switch (dtkLeg.leg.type) {
+            case LegType.AF:
+            case LegType.RF:
+              toFrom = this.lnavLegDistanceRemaining.get() < 0 ? VorToFrom.FROM : VorToFrom.TO;
+              break;
+            default:
+              if (dtkVector && circle) {
+                if (circle.isGreatCircle()) {
+                  const angleAlong = circle.angleAlong(this.planePos, this.geoPointCache[0].set(dtkVector.endLat, dtkVector.endLon), Math.PI);
+                  toFrom = angleAlong > Math.PI ? VorToFrom.FROM : VorToFrom.TO;
+                } else {
+                  toFrom = this.lnavLegDistanceRemaining.get() < 0 ? VorToFrom.FROM : VorToFrom.TO;
+                }
+              }
+          }
         }
       }
     }
@@ -338,12 +541,112 @@ export class NavdataComputer {
     this.lnavData.set('waypointBearingMag', waypointBearingMag);
     this.lnavData.set('waypointDistance', distance);
     this.lnavData.set('waypointIdent', waypointIdent);
-    this.lnavData.set('destinationDistance', totalDistance);
+    this.lnavData.set('destinationDistance', destinationDistance);
 
     this.updateDtkVector('lnavdata_dtk_vector', dtkLegIndex, dtkVectorIndex);
     this.updateDtkVector('lnavdata_next_dtk_vector', nextDtkLegIndex, nextDtkVectorIndex);
 
+    this.lnavData.set('toFrom', toFrom);
     this.lnavData.set('egressDistance', egressDistance);
+  }
+
+  /**
+   * Updates the LNAV destination airport.
+   */
+  private updateDestination(): void {
+    let destinationPlanIndex: number | undefined = undefined;
+    let destinationIcao: string | undefined = undefined;
+    let destinationRunwayIcao: string | undefined = undefined;
+    let destinationLeg: LegDefinition | undefined = undefined;
+
+    const primaryPlan = this.flightPlanner.hasFlightPlan(FmsUtils.PRIMARY_PLAN_INDEX) ? this.flightPlanner.getFlightPlan(FmsUtils.PRIMARY_PLAN_INDEX) : undefined;
+
+    if (primaryPlan) {
+      if (primaryPlan.destinationAirport) {
+        // If the primary flight plan has a destination airport, then it is always the LNAV destination.
+        destinationPlanIndex = FmsUtils.PRIMARY_PLAN_INDEX;
+        destinationIcao = primaryPlan.destinationAirport;
+
+        destinationRunwayIcao = primaryPlan.procedureDetails.destinationRunway
+          ? RunwayUtils.getRunwayFacilityIcao(destinationIcao, primaryPlan.procedureDetails.destinationRunway)
+          : undefined;
+
+        for (const leg of primaryPlan.legs(true)) {
+          if (!BitFlags.isAll(leg.flags, LegDefinitionFlags.MissedApproach)) {
+            destinationLeg = leg;
+            break;
+          }
+        }
+      } else {
+        // Find the last airport in the primary flight plan that we have not yet sequenced.
+        let legIndex = primaryPlan.activeLateralLeg - 1;
+        for (const leg of primaryPlan.legs(true, undefined, primaryPlan.activeLateralLeg - 1)) {
+          if (BitFlags.isAll(leg.flags, LegDefinitionFlags.MissedApproach)) {
+            // Skip all missed approach legs.
+            continue;
+          } else if (legIndex === 0 && primaryPlan.getSegmentFromLeg(leg)?.segmentType === FlightPlanSegmentType.Departure) {
+            // Skip the first leg of the flight plan if it is in the departure segment. This prevents us from selecting
+            // the origin airport.
+            break;
+          }
+
+          if (ICAO.isFacility(leg.leg.fixIcao) && ICAO.getFacilityType(leg.leg.fixIcao) === FacilityType.Airport) {
+            destinationPlanIndex = FmsUtils.PRIMARY_PLAN_INDEX;
+            destinationIcao = leg.leg.fixIcao;
+            destinationLeg = leg;
+            break;
+          }
+
+          legIndex--;
+        }
+      }
+    }
+
+    if (destinationIcao === undefined) {
+      // If we can't find a destination in the primary flight plan, then check to see if we are on an off-route DTO
+      // to an airport.
+      const dtoRandomPlan = this.flightPlanner.hasFlightPlan(FmsUtils.DTO_RANDOM_PLAN_INDEX) ? this.flightPlanner.getFlightPlan(FmsUtils.DTO_RANDOM_PLAN_INDEX) : undefined;
+      if (dtoRandomPlan && this.flightPlanner.activePlanIndex === FmsUtils.DTO_RANDOM_PLAN_INDEX) {
+        // The leg to the DTO target is always at the same index. Note that there may be additional legs after the leg
+        // to the target (e.g. a hold leg), but the destination leg is always considered to be the leg to the target.
+        const leg = dtoRandomPlan.tryGetLeg(FmsUtils.DTO_LEG_OFFSET - 1);
+        if (leg && ICAO.isFacility(leg.leg.fixIcao) && ICAO.getFacilityType(leg.leg.fixIcao) === FacilityType.Airport) {
+          destinationPlanIndex = FmsUtils.DTO_RANDOM_PLAN_INDEX;
+          destinationIcao = leg.leg.fixIcao;
+          destinationLeg = leg;
+        }
+      }
+    }
+
+    this.destinationPlanIndex = destinationPlanIndex;
+    this.destinationIcao = destinationIcao;
+    this.destinationLeg = destinationLeg;
+    this.lnavData.set('destinationIcao', destinationIcao ?? '');
+    this.lnavData.set('destinationRunwayIcao', destinationRunwayIcao ?? '');
+    this.updateDestinationFacility(destinationIcao);
+  }
+
+  private destinationFacilityOpId = 0;
+
+  /**
+   * Updates the LNAV destination airport facility.
+   * @param icao The ICAO of the destination airport facility, or `undefined` if there is no destination airport.
+   */
+  private async updateDestinationFacility(icao: string | undefined): Promise<void> {
+    const opId = ++this.destinationFacilityOpId;
+
+    if (icao === undefined) {
+      this.destinationFacility = undefined;
+      return;
+    }
+
+    const facility = await this.facilityLoader.getFacility(FacilityType.Airport, icao);
+
+    if (opId !== this.destinationFacilityOpId) {
+      return;
+    }
+
+    this.destinationFacility = facility;
   }
 
   /**
@@ -366,7 +669,7 @@ export class NavdataComputer {
       dtkVector.globalLegIndex = globalLegIndex;
       dtkVector.vectorIndex = vectorIndex;
 
-      this.publisher.pub(topic, Object.assign({}, dtkVector), true, true);
+      this.publisher.pub(this.lnavTopicMap[topic], Object.assign({}, dtkVector), true, true);
     }
   }
 
@@ -374,6 +677,146 @@ export class NavdataComputer {
    * Computes CDI scaling.
    */
   private computeCdiScaling(): void {
+    if (this.useVfrCdiScaling.get()) {
+      this.computeVfrCdiScaling();
+    } else {
+      this.computeIfrCdiScaling();
+    }
+  }
+
+  /**
+   * Computes CDI scaling using VFR logic.
+   */
+  private computeVfrCdiScaling(): void {
+    let scale = 5.0;
+    let scaleLabel = CDIScaleLabel.VfrEnroute;
+
+    const lnavIsTracking = this.lnavIsTracking.get();
+    const flightPlan = this.flightPlanner.hasActiveFlightPlan() ? this.flightPlanner.getActiveFlightPlan() : undefined;
+    const activeLegIndex = this.lnavLegIndex.get();
+
+    if (lnavIsTracking && flightPlan && flightPlan.length > 0 && activeLegIndex < flightPlan.length) {
+      const activeSegment = flightPlan.getSegment(flightPlan.getSegmentIndex(activeLegIndex));
+
+      const approachSegment = FmsUtils.getApproachSegment(flightPlan);
+
+      if (activeSegment.segmentType === FlightPlanSegmentType.Approach) {
+        // If the active leg is part of an approach, then set CDI scale to 0.25 NM and label to VfrApproach.
+        scale = 0.25;
+        scaleLabel = CDIScaleLabel.VfrApproach;
+      } else {
+        // Find distance to closest airport in the active flight plan.
+
+        let distanceToAirport = Infinity;
+
+        for (let segmentIndex = 0; segmentIndex < flightPlan.segmentCount; segmentIndex++) {
+          const segment = flightPlan.tryGetSegment(segmentIndex);
+          if (segment) {
+            for (let segmentLegIndex = 0; segmentLegIndex < segment.legs.length; segmentLegIndex++) {
+              const leg = segment.legs[segmentLegIndex];
+
+              switch (leg.leg.type) {
+                case LegType.IF:
+                case LegType.TF:
+                case LegType.CF:
+                case LegType.DF:
+                case LegType.AF:
+                case LegType.RF:
+                case LegType.HF:
+                case LegType.HA:
+                case LegType.HM:
+                  if (
+                    ICAO.isFacility(leg.leg.fixIcao, FacilityType.Airport)
+                    && leg.calculated
+                    && leg.calculated.endLat !== undefined
+                    && leg.calculated.endLon !== undefined
+                  ) {
+                    distanceToAirport = Math.min(
+                      distanceToAirport,
+                      UnitType.GA_RADIAN.convertTo(this.planePos.distance(leg.calculated.endLat, leg.calculated.endLon), UnitType.NMILE)
+                    );
+                  }
+                  break;
+              }
+            }
+          }
+        }
+
+        // If distance to the closest airport is <= 31 NM, then reduce CDI scale down to 1.25 NM as distance to airport
+        // decreases from 31 NM to 30 NM. If distance is <= 30 NM, then set scale label to VfrTerminal.
+        if (distanceToAirport <= 31) {
+          scale = MathUtils.lerp(distanceToAirport, 30, 31, 1.25, scale, true, true);
+
+          if (distanceToAirport <= 30) {
+            scaleLabel = CDIScaleLabel.VfrTerminal;
+          }
+        }
+
+        if (approachSegment) {
+          // Find distance to faf or map.
+
+          let fafLeg: LegDefinition | undefined = undefined;
+          let mapLeg: LegDefinition | undefined = undefined;
+
+          for (let i = approachSegment.legs.length - 1; i >= 0 && (!fafLeg || !mapLeg); i--) {
+            const leg = approachSegment.legs[i];
+            if (BitFlags.isAny(leg.flags, LegDefinitionFlags.DirectTo | LegDefinitionFlags.MissedApproach | LegDefinitionFlags.VectorsToFinal)) {
+              continue;
+            }
+
+            if (!mapLeg && BitFlags.isAny(leg.leg.fixTypeFlags, FixTypeFlags.MAP)) {
+              mapLeg = leg;
+            } else if (!fafLeg && BitFlags.isAny(leg.leg.fixTypeFlags, FixTypeFlags.FAF)) {
+              fafLeg = leg;
+            }
+          }
+
+          let distanceToFafOrMap = Infinity;
+
+          if (
+            fafLeg
+            && fafLeg.calculated
+            && fafLeg.calculated.endLat !== undefined
+            && fafLeg.calculated.endLon !== undefined
+          ) {
+            distanceToFafOrMap = Math.min(
+              distanceToFafOrMap,
+              UnitType.GA_RADIAN.convertTo(this.planePos.distance(fafLeg.calculated.endLat, fafLeg.calculated.endLon), UnitType.NMILE)
+            );
+          }
+          if (
+            mapLeg
+            && mapLeg.calculated
+            && mapLeg.calculated.endLat !== undefined
+            && mapLeg.calculated.endLon !== undefined
+          ) {
+            distanceToFafOrMap = Math.min(
+              distanceToFafOrMap,
+              UnitType.GA_RADIAN.convertTo(this.planePos.distance(mapLeg.calculated.endLat, mapLeg.calculated.endLon), UnitType.NMILE)
+            );
+          }
+
+          // If distance to the faf/map is <= 3 NM, then reduce CDI scale down to 0.25 NM as distance to the fix
+          // decreases from 3 NM to 2 NM. If distance is <= 2 NM, then set scale label to VfrApproach.
+          if (distanceToFafOrMap <= 3) {
+            scale = MathUtils.lerp(distanceToFafOrMap, 2, 3, 0.25, scale, true, true);
+
+            if (distanceToFafOrMap <= 2) {
+              scaleLabel = CDIScaleLabel.VfrApproach;
+            }
+          }
+        }
+      }
+    }
+
+    this.lnavData.set('cdiScale', scale);
+    this.lnavData.set('cdiScaleLabel', scaleLabel);
+  }
+
+  /**
+   * Computes CDI scaling using IFR logic.
+   */
+  private computeIfrCdiScaling(): void {
     let scale = 2.0;
     let scaleLabel = CDIScaleLabel.Enroute;
     const flightPlan = this.flightPlanner.hasActiveFlightPlan() ? this.flightPlanner.getActiveFlightPlan() : undefined;
@@ -401,8 +844,8 @@ export class NavdataComputer {
       } else {
         // We are not in the departure segment
 
-        if (this.originFacility !== undefined) {
-          const distance = UnitType.GA_RADIAN.convertTo(this.planePos.distance(this.originFacility), UnitType.NMILE);
+        if (this.primaryPlanOriginFacility !== undefined) {
+          const distance = UnitType.GA_RADIAN.convertTo(this.planePos.distance(this.primaryPlanOriginFacility), UnitType.NMILE);
           scale = 2.0 - NavMath.clamp(31 - distance, 0, 1);
 
           if (distance <= 30) {
@@ -410,8 +853,8 @@ export class NavdataComputer {
           }
         }
 
-        if (this.destinationFacility !== undefined) {
-          const distance = UnitType.GA_RADIAN.convertTo(this.planePos.distance(this.destinationFacility), UnitType.NMILE);
+        if (this.primaryPlanDestinationFacility !== undefined) {
+          const distance = UnitType.GA_RADIAN.convertTo(this.planePos.distance(this.primaryPlanDestinationFacility), UnitType.NMILE);
           scale = 2.0 - NavMath.clamp(31 - distance, 0, 1);
 
           if (distance <= 30) {
@@ -487,7 +930,7 @@ export class NavdataComputer {
    * Computes glidepath scaling.
    */
   private computeGpScaling(): void {
-    const gpServiceLevel = this.gpServiceLevel.get();
+    const gpServiceLevel = this.isVNavIndexValid ? this.gpServiceLevel.get() : GlidepathServiceLevel.None;
     if (gpServiceLevel !== GlidepathServiceLevel.None) {
       const maxScaleFeet = 492; // 150 meters
       const minScaleFeet = gpServiceLevel === GlidepathServiceLevel.Lpv ? 49 : 148; // 15/45 meters
@@ -676,26 +1119,65 @@ export class NavdataComputer {
   }
 
   /**
-   * Gets the total distance from the plane position to the destination leg.
+   * Gets the distance remaining, in nautical miles, to the LNAV destination.
    * @param activeLegIndex The global leg index of the active flight plan leg.
-   * @param activeLegDistance The distance from the present position to the end of the active leg, in nautical miles.
-   * @returns The distance, in nautical miles.
+   * @param activeLegDistance The distance from the airplane's current position to the end of the active leg, in
+   * nautical miles.
+   * @returns The distance remaining, in nautical miles, to the LNAV destination, or `-1` if the distance cannot be
+   * calculated.
    */
-  private getTotalDistance(activeLegIndex: number, activeLegDistance: number): number {
-    const plan = this.flightPlanner.getActiveFlightPlan();
-    const activeLegCumulativeDistance = plan.tryGetLeg(activeLegIndex)?.calculated?.cumulativeDistanceWithTransitions ?? 0;
-
-    let lastLegIndex = plan.length - 1;
-    for (const leg of plan.legs(true)) {
-      if (!BitFlags.isAll(leg.flags, LegDefinitionFlags.MissedApproach)) {
-        break;
-      }
-      lastLegIndex--;
+  private getDestinationDistance(activeLegIndex: number, activeLegDistance: number): number {
+    if (this.destinationPlanIndex === undefined || this.destinationIcao === undefined) {
+      return -1;
     }
 
-    const destinationLegCumulativeDistance = plan.tryGetLeg(lastLegIndex)?.calculated?.cumulativeDistanceWithTransitions ?? 0;
+    const destinationPlan = this.flightPlanner.hasFlightPlan(this.destinationPlanIndex) ? this.flightPlanner.getFlightPlan(this.destinationPlanIndex) : undefined;
 
-    return UnitType.METER.convertTo(destinationLegCumulativeDistance - activeLegCumulativeDistance, UnitType.NMILE) + activeLegDistance;
+    if (!destinationPlan) {
+      return -1;
+    }
+
+    if (this.flightPlanner.activePlanIndex === this.destinationPlanIndex) {
+      // The flight plan containing the destination leg is the active flight plan. In this case, the distance to
+      // destination should be calculated as the along-track distance from the airplane to the destination (with one
+      // exception if we have already sequenced the destination leg - see the case below).
+
+      const activeLegCumDistance = destinationPlan.tryGetLeg(activeLegIndex)?.calculated?.cumulativeDistanceWithTransitions;
+      const destinationLegCumDistance = this.destinationLeg?.calculated?.cumulativeDistanceWithTransitions;
+
+      if (activeLegCumDistance === undefined || destinationLegCumDistance === undefined) {
+        return -1;
+      } else if (destinationLegCumDistance - activeLegCumDistance < 0) {
+        // The destination leg cumulative distance is less than the active leg cumulative distance. This means we have
+        // sequenced past the destination leg. In this case, we want to revert to a great-circle distance calculation
+        // if and only if the LNAV destination is the primary flight plan's destination airport or the LNAV destination
+        // is the off-route direct-to target. Therefore, if either of these conditions is met, then we will let the
+        // code fall through to the default case below. If neither is met, then the chosen destination is invalid, so
+        // we will return -1.
+        if (this.destinationPlanIndex === FmsUtils.PRIMARY_PLAN_INDEX && destinationPlan.destinationAirport !== this.destinationIcao) {
+          return -1;
+        }
+      } else {
+        return UnitType.METER.convertTo(destinationLegCumDistance - activeLegCumDistance, UnitType.NMILE) + activeLegDistance;
+      }
+    }
+
+    // If we have reached this point, then calculate the distance to destination as the great-circle distance from the
+    // airplane to the destination.
+
+    if (this.destinationLeg?.calculated && this.destinationLeg.calculated.endLat && this.destinationLeg.calculated.endLon) {
+      return UnitType.GA_RADIAN.convertTo(
+        this.planePos.distance(this.destinationLeg.calculated.endLat, this.destinationLeg.calculated.endLon),
+        UnitType.NMILE
+      );
+    } else if (this.destinationFacility) {
+      return UnitType.GA_RADIAN.convertTo(
+        this.planePos.distance(this.destinationFacility),
+        UnitType.NMILE
+      );
+    } else {
+      return -1;
+    }
   }
 
   /**
@@ -733,7 +1215,7 @@ export class NavdataComputer {
         if (this.approachDetails.isRnpAr) {
           return CDIScaleLabel.RNP;
         }
-        switch (this.gpServiceLevel.get()) {
+        switch (this.isVNavIndexValid ? this.gpServiceLevel.get() : GlidepathServiceLevel.None) {
           case GlidepathServiceLevel.LNavPlusV:
           case GlidepathServiceLevel.LNavPlusVBaro:
             return CDIScaleLabel.LNavPlusV;

@@ -1,7 +1,7 @@
 /// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/utils/xmllogic" />
 /// <reference types="@microsoft/msfs-types/pages/vcockpit/instruments/shared/baseinstrument" />
 
-import { UUID } from '../../utils';
+import { UUID } from '../../utils/uuid/UUID';
 import { Annunciation, AnnunciationType } from './Annunciaton';
 
 /** Create a list of annunciations from the instrument XML config. */
@@ -17,20 +17,14 @@ export class XMLAnnunciationFactory {
   }
 
   /**
-   * Parse an panel.xml configuration
-   * @param document The configuration as an XML document.
-   * @returns An array of Annunciations.
+   * Parses a configuration document element and generates an array of annunciations defined by the element.
+   * @param element The element to parse.
+   * @returns An array of annunciations defined by the element.
    */
-  public parseConfig(document: Document): Array<Annunciation> {
+  public parseConfigElement(element: Element): Array<Annunciation> {
     const annunciations = new Array<Annunciation>();
-    const configs = document.getElementsByTagName('Annunciations');
-    if (configs.length == 0) {
-      return annunciations;
-    }
 
-    const config = configs[0];
-
-    for (const ann of config.children) {
+    for (const ann of element.children) {
       let type: AnnunciationType;
       let suffix: string | undefined;
 
@@ -83,5 +77,21 @@ export class XMLAnnunciationFactory {
     }
 
     return annunciations;
+  }
+
+  /**
+   * Parses a configuration document and generates an array of annunciations defined by the document. This method
+   * looks for the first element in the document with a tag name equal to `Annunciations` and parses annunciations
+   * from that element. If such an element does not exist, then an empty array will be returned.
+   * @param document The configuration document to parse.
+   * @returns An array of annunciations defined by the document.
+   */
+  public parseConfig(document: Document): Array<Annunciation> {
+    const configs = document.getElementsByTagName('Annunciations');
+    if (configs.length === 0) {
+      return [];
+    } else {
+      return this.parseConfigElement(configs[0]);
+    }
   }
 }

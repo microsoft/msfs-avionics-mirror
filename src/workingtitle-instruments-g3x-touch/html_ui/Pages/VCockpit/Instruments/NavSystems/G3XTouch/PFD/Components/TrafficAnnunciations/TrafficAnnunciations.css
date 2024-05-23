@@ -1,0 +1,26 @@
+.traffic-annunciations {
+  width: 105px;
+  height: 18px;
+  color: var(--g3x-color-black);
+  background-color: var(--g3x-color-amber);
+  border-radius: 1px;
+  text-align: center;
+  padding-top: 1px;
+  font-size: 18px;
+}
+
+.traffic-annunciation-flash {
+  animation: traffic-annunciation-flash 1s infinite;
+}
+
+@keyframes traffic-annunciation-flash {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}

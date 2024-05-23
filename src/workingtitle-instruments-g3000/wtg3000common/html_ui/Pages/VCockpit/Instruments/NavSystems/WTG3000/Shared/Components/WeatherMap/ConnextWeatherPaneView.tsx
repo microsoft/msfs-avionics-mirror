@@ -1,10 +1,14 @@
 import {
-  CompiledMapSystem, EventBus, FlightPlanner, FSComponent, MapIndexedRangeModule, MapSystemBuilder, Subscription,
-  Vec2Math, Vec2Subject, VecNMath, VNode
+  CompiledMapSystem, EventBus, FlightPlanner, MapIndexedRangeModule, MapSystemBuilder, Subscription, Vec2Math,
+  Vec2Subject, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
-import { GarminMapKeys, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapRangeController, UnitsUserSettings, WindDataProvider } from '@microsoft/msfs-garminsdk';
+import {
+  GarminMapKeys, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapRangeController,
+  UnitsUserSettings, WindDataProvider
+} from '@microsoft/msfs-garminsdk';
 
+import { G3000FlightPlannerId } from '../../CommonTypes';
 import { DisplayPanesUserSettings } from '../../Settings/DisplayPanesUserSettings';
 import { IauUserSettingManager } from '../../Settings/IauUserSettings';
 import { ConnextMapUserSettings } from '../../Settings/WeatherMapUserSettings';
@@ -25,7 +29,7 @@ export interface ConnextWeatherPaneViewProps extends DisplayPaneViewProps {
   bus: EventBus;
 
   /** The flight planner. */
-  flightPlanner: FlightPlanner;
+  flightPlanner: FlightPlanner<G3000FlightPlannerId>;
 
   /** A provider of wind data. Required to display the map wind vector. */
   windDataProvider?: WindDataProvider;

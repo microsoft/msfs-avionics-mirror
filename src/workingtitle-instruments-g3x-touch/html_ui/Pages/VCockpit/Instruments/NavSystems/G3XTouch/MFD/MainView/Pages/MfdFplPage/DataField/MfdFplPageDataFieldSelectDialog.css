@@ -1,0 +1,68 @@
+.mfd-fpl-page-data-field-select-dialog {
+  flex-grow: 1;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .mfd-fpl-page-data-field-select-dialog {
+  margin: 0px 7px;
+  max-width: 800px;
+
+  --mfd-fpl-page-data-field-select-dialog-title-font-size: 21px;
+  --mfd-fpl-page-data-field-select-dialog-title-margin: 3px 0px;
+
+  --mfd-fpl-page-data-field-select-dialog-button-width: 148px;
+  --mfd-fpl-page-data-field-select-dialog-button-height: 118px;
+
+  --mfd-fpl-page-data-field-select-dialog-button-title-font-size: 17px;
+  --mfd-fpl-page-data-field-select-dialog-button-title-margin-top: 5px;
+
+  --mfd-fpl-page-data-field-select-dialog-button-field-font-size: 28px;
+}
+
+.mfd-fpl-page-data-field-select-dialog-title {
+  margin: var(--mfd-fpl-page-data-field-select-dialog-title-margin);
+  text-align: center;
+  font-size: var(--mfd-fpl-page-data-field-select-dialog-title-font-size);
+}
+
+.mfd-fpl-page-data-field-select-dialog-row {
+  height: var(--scroll-list-item-length);
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: repeat(2, 1fr);
+  justify-items: center;
+  align-items: center;
+}
+
+.gdu-460-display .ui-pane-full .mfd-fpl-page-data-field-select-dialog-row {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.mfd-fpl-page-data-field-select-dialog-button {
+  width: var(--mfd-fpl-page-data-field-select-dialog-button-width);
+  height: var(--mfd-fpl-page-data-field-select-dialog-button-height);
+
+  --touch-button-value-value-center-y: 75%;
+}
+
+.mfd-fpl-page-data-field-select-dialog-button .touch-button-label {
+  top: var(--mfd-fpl-page-data-field-select-dialog-button-title-margin-top);
+  transform: unset;
+  font-size: var(--mfd-fpl-page-data-field-select-dialog-button-title-font-size);
+}
+
+.mfd-fpl-page-data-field-select-dialog-button .mfd-fpl-page-data-field-slot {
+  position: relative;
+  width: 100%;
+  font-size: var(--mfd-fpl-page-data-field-select-dialog-button-field-font-size);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.mfd-fpl-page-data-field-select-dialog-button .time-sec {
+  display: none;
+}

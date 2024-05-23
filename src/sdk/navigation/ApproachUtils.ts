@@ -80,6 +80,34 @@ export class ApproachUtils {
   }
 
   /**
+   * Gets the origin facility ICAO for the FAF leg of an approach.
+   * The facility type is **not** checked against the approach type to ensure it is valid,
+   * in contrast to {@link getReferenceFacility} which does perform these checks.
+   * @param approach The approach for which to get a reference facility.
+   * @returns The ICAO of the origin facility for the FAF leg of the specified approach,
+   * or `undefined` if one could not be found.
+   */
+  public static getFafOriginIcao(approach: ApproachProcedure): string | undefined {
+    const finalLegs = approach.finalLegs;
+
+    // Find the faf
+    let fafLeg: FlightPlanLeg | undefined = undefined;
+    for (let i = 0; i < finalLegs.length; i++) {
+      const leg = finalLegs[i];
+      if (BitFlags.isAll(leg.fixTypeFlags, FixTypeFlags.FAF)) {
+        fafLeg = leg;
+        break;
+      }
+    }
+
+    if (!fafLeg || fafLeg.originIcao === ICAO.emptyIcao) {
+      return undefined;
+    }
+
+    return fafLeg.originIcao;
+  }
+
+  /**
    * Gets the reference facility for an approach. Only ILS, LOC (BC), LDA, SDF, VOR(DME), and NDB(DME) approaches can
    * have reference facilities.
    * @param approach The approach for which to get a reference facility.
@@ -111,28 +139,14 @@ export class ApproachUtils {
         return undefined;
     }
 
-    const finalLegs = approach.finalLegs;
+    const originIcao = ApproachUtils.getFafOriginIcao(approach);
 
-    // Find the faf
-    let fafLeg: FlightPlanLeg | undefined = undefined;
-    for (let i = 0; i < finalLegs.length; i++) {
-      const leg = finalLegs[i];
-      if (BitFlags.isAll(leg.fixTypeFlags, FixTypeFlags.FAF)) {
-        fafLeg = leg;
-        break;
-      }
-    }
-
-    if (!fafLeg) {
-      return undefined;
-    }
-
-    if (!ICAO.isFacility(fafLeg.originIcao, facilityType)) {
+    if (!originIcao || !ICAO.isFacility(originIcao, facilityType)) {
       return undefined;
     }
 
     try {
-      const facility = await facLoader.getFacility(facilityType, fafLeg.originIcao);
+      const facility = await facLoader.getFacility(facilityType, originIcao);
       if (isLoc && (facility as VorFacility).type !== VorType.ILS) {
         return undefined;
       } else {

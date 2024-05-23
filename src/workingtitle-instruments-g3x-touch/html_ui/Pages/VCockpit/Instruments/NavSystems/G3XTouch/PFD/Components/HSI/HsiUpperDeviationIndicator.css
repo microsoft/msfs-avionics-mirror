@@ -1,0 +1,29 @@
+.hsi-upper-cdi {
+  position: relative;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.gdu-460-display .hsi-upper-cdi {
+  border-radius: 7px;
+
+  --hsi-upper-cdi-pointer-size: 16px;
+}
+
+.hsi-upper-cdi-scale {
+  fill: none;
+  stroke: var(--g3x-color-white);
+  stroke-width: 1px;
+}
+
+.hsi-upper-cdi-pointer {
+  position: absolute;
+  left: calc(-1 * var(--hsi-upper-cdi-pointer-size) / 2);
+  top: calc(-1 * var(--hsi-upper-cdi-pointer-size) / 2);
+  width: var(--hsi-upper-cdi-pointer-size);
+  height: var(--hsi-upper-cdi-pointer-size);
+  fill: var(--hsi-nav-color);
+  stroke: var(--g3x-color-black);
+  stroke-width: 1px;
+  overflow: visible;
+}

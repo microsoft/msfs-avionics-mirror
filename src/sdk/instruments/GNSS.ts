@@ -36,6 +36,9 @@ export interface GNSSEvents {
    */
   magvar: number;
 
+  /** The altitude (elevation) of the ground directly below the airplane, in feet. */
+  ground_altitude: number;
+
   /** The plane's height above the ground, in feet. */
   above_ground_height: number;
 
@@ -70,6 +73,7 @@ export class GNSSPublisher extends BasePublisher<GNSSEvents> {
       ['zulu_time', { name: 'E:ZULU TIME', type: SimVarValueType.Seconds }],
       ['time_of_day', { name: 'E:TIME OF DAY', type: SimVarValueType.Number }],
       ['ground_speed', { name: 'GROUND VELOCITY', type: SimVarValueType.Knots }],
+      ['ground_altitude', { name: 'GROUND ALTITUDE', type: SimVarValueType.Feet }],
       ['above_ground_height', { name: 'PLANE ALT ABOVE GROUND', type: SimVarValueType.Feet }],
       ['inertial_vertical_speed', { name: 'VELOCITY WORLD Y', type: SimVarValueType.FPM }]
     ]),

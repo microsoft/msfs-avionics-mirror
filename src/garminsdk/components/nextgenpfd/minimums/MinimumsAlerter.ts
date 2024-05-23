@@ -104,7 +104,7 @@ export class MinimumsAlerter {
       this.adcSystemStateSub?.destroy();
 
       this.adcSystemStateSub = sub.on(`adc_state_${index}`).handle(state => {
-        if (state.current === AvionicsSystemState.On) {
+        if (state.current === AvionicsSystemState.On || state.current === undefined) {
           this.isAdcOperating.set(true);
         } else {
           this.isAdcOperating.set(false);

@@ -34,7 +34,10 @@ export class StandardNavMapFields extends GNSUiControl<StandardNavMapFieldsProps
   private readonly settingsProvider = new GNSSettingsProvider(this.props.bus);
 
   private readonly fieldContext: DataFieldContext = {
-    modelFactory: new DefaultNavDataBarFieldModelFactory(this.props.bus, this.props.fms, this.gpsValidity),
+    modelFactory: new DefaultNavDataBarFieldModelFactory(this.props.bus, this.gpsValidity, {
+      lnavIndex: this.props.fms.lnavIndex,
+      vnavIndex: this.props.fms.vnavIndex
+    }),
     renderer: new GNSDataFieldRenderer(this.settingsProvider.units, this.settingsProvider.time),
     fieldTypeMenuEntries: [
       { label: 'BRG - Bearing', disabled: false, type: NavDataFieldType.BearingToWaypoint },

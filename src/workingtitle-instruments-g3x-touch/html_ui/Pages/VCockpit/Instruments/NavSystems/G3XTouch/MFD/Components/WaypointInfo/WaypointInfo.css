@@ -1,0 +1,94 @@
+.waypoint-info {
+  position: relative;
+
+  --tabbed-container-content-box-border-width: 3px;
+  --tabbed-container-content-box-border-color: var(--g3x-color-border-light-gray);
+  --tabbed-container-tab-button-label-margin-top: 1px;
+  --tabbed-container-tab-button-label-margin-bottom: 1px;
+}
+
+.gdu-460-display .waypoint-info {
+  --tabbed-container-tab-width: 92px;
+
+  --waypoint-info-grid-row-gap: 7px;
+  --waypoint-info-grid-column-gap: 7px;
+
+  --waypoint-info-select-height: 70px;
+
+  --waypoint-info-tab-label-icon-scale: 1;
+
+  --waypoint-info-info-wrapper-left: 0px;
+  --waypoint-info-info-wrapper-top: 77px;
+  --waypoint-info-info-wrapper-padding: 2px 8px;
+}
+
+.waypoint-info-grid {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.ui-pane-full .waypoint-info-grid {
+  grid-template-rows: 100%;
+  grid-template-columns: 5fr 6fr;
+  grid-column-gap: var(--waypoint-info-grid-column-gap);
+}
+
+.ui-pane-half .waypoint-info-grid {
+  grid-template-rows: min-content 1fr;
+  grid-template-columns: 100%;
+  grid-row-gap: var(--waypoint-info-grid-row-gap);
+}
+
+.waypoint-info-select {
+  align-self: start;
+  height: var(--waypoint-info-select-height);
+
+  --touch-button-disabled-background: var(--g3x-color-black);
+  --touch-button-disabled-box-shadow: none;
+  --touch-button-disabled-filter: none;
+}
+
+.waypoint-info-select.touch-button-disabled {
+  --touch-button-border-color: var(--g3x-color-border-gray);
+  --ui-wpt-display-ident-color: var(--g3x-color-white);
+}
+
+.waypoint-info-tab-container .tabbed-container-tab-box {
+  background: none;
+}
+
+.waypoint-info-tab-container .tabbed-content-tab-button {
+  font-size: 18px;
+}
+
+.waypoint-info-tab-label-icon {
+  max-height: calc(var(--waypoint-info-tab-label-icon-img-height) * var(--waypoint-info-tab-label-icon-scale));
+  min-height: 0px;
+  margin-bottom: 1px;
+  object-fit: contain;
+}
+
+.waypoint-info-tab-label-text {
+  flex-shrink: 0;
+}
+
+.waypoint-info-info-wrapper {
+  position: absolute;
+  left: var(--waypoint-info-info-wrapper-left);
+  top: var(--waypoint-info-info-wrapper-top);
+  padding: var(--waypoint-info-info-wrapper-padding);
+  border: solid var(--tabbed-container-content-box-border-width) var(--tabbed-container-content-box-border-color);
+  border-radius: var(--tabbed-container-content-box-border-radius);
+  background: var(--g3x-color-black);
+}
+
+.waypoint-info-info-in-tab .waypoint-info-info-wrapper {
+  border-color: transparent;
+  background: none;
+}

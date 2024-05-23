@@ -1,6 +1,6 @@
 import {
-  ConsumerSubject, ControlPublisher, FSComponent, NavEvents, NumberUnitSubject, SimVarValueType,
-  Subject, Unit, UnitFamily, UnitType, VNode, MappedSubject, NavComEvents,
+  ConsumerSubject, FSComponent, NumberUnitSubject, SimVarValueType, Subject, Unit, UnitFamily, UnitType, VNode,
+  MappedSubject, NavComEvents, LNavUtils, LNavControlEvents,
 } from '@microsoft/msfs-sdk';
 
 import { ObsSuspModes } from '@microsoft/msfs-garminsdk';
@@ -18,14 +18,20 @@ import { InteractionEvent } from '../../InteractionEvent';
 import './ObsDialog.css';
 
 /**
+ * Component props for {@link ObsDialog}.
+ */
+export interface ObsDialogProps extends PageProps {
+  /** The index of the LNAV associated with the dialog's parent instrument. */
+  lnavIndex: number;
+}
+
+/**
  * OBS dialog
  */
-export class ObsDialog extends Dialog {
+export class ObsDialog extends Dialog<ObsDialogProps> {
   private readonly courseInput = FSComponent.createRef<GNSGenericNumberInput>();
 
   private readonly cancelObsPrompt = FSComponent.createRef<HTMLSpanElement>();
-
-  private readonly controlPublisher = new ControlPublisher(this.props.bus);
 
   private readonly angleUnit = Subject.create<Unit<UnitFamily.Angle>>(UnitType.DEGREE);
 
@@ -36,10 +42,10 @@ export class ObsDialog extends Dialog {
   private readonly navObsValue = ConsumerSubject.create(null, 0);
 
   /** @inheritDoc */
-  constructor(props: PageProps) {
+  constructor(props: ObsDialogProps) {
     super(props);
 
-    const sub = this.props.bus.getSubscriber<GnsObsEvents & NavComEvents & NavEvents>();
+    const sub = this.props.bus.getSubscriber<GnsObsEvents & NavComEvents>();
 
     this.obsMode.setConsumer(sub.on('obs_susp_mode'));
     this.navObsValue.setConsumer(sub.on('nav_obs_1'));
@@ -81,8 +87,10 @@ export class ObsDialog extends Dialog {
    * @returns true
    */
   private handleCancelObs(): boolean {
+    const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(this.props.lnavIndex);
+
     SimVar.SetSimVarValue('K:GPS_OBS_OFF', SimVarValueType.Bool, true);
-    this.controlPublisher.publishEvent('suspend_sequencing', false);
+    this.props.bus.getPublisher<LNavControlEvents>().pub(`suspend_sequencing${lnavTopicSuffix}`, false);
     ViewService.back();
     return true;
   }

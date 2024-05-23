@@ -1,10 +1,10 @@
 import { EventBus, FSComponent, Subject, VNode } from '@microsoft/msfs-sdk';
 
 import { UiControl, UiControlProps } from '../UiControl';
-
-import './InputComponent.css';
 import { ControlPadKeyOperations, ControlpadHEventHandler } from '../../Input/ControlpadHEventHandler';
 import { FmsHEvent } from '../FmsHEvent';
+
+import './InputComponent.css';
 
 /**
  * @interface InputComponentProps

@@ -5,9 +5,8 @@
 
 import {
   AdcPublisher, AnnunciationType, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, CasEvents, Clock, CompositeLogicXMLHost, ControlPublisher, ControlSurfacesPublisher,
-  DebounceTimer,
-  ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner, FlightPlannerEvents,
-  FSComponent, GNSSPublisher, HEventPublisher, InstrumentBackplane, InstrumentEvents, LNavSimVarPublisher, MinimumsControlEvents, MinimumsSimVarPublisher,
+  DebounceTimer, ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner, FlightPlannerEvents,
+  FSComponent, GNSSPublisher, HEventPublisher, InstrumentBackplane, InstrumentEvents, LNavObsSimVarPublisher, LNavSimVarPublisher, MinimumsControlEvents, MinimumsSimVarPublisher,
   NavComInstrument, NavComSimVarPublisher, NavProcessor, PluginSystem, SimVarValueType, SoundServer, Subject, TrafficInstrument, UnitType,
   UserSettingSaveManager, VNavSimVarPublisher, Wait, XMLGaugeConfigFactory, XMLWarningFactory, XPDRInstrument
 } from '@microsoft/msfs-sdk';
@@ -105,6 +104,7 @@ class WTG1000_PFD extends BaseInstrument {
   private readonly controlPublisher: ControlPublisher;
   private readonly g1000ControlPublisher: G1000ControlPublisher;
   private readonly lNavPublisher: LNavSimVarPublisher;
+  private readonly lNavObsPublisher: LNavObsSimVarPublisher;
   private readonly lNavDataPublisher: LNavDataSimVarPublisher;
   private readonly vNavPublisher: VNavSimVarPublisher;
   private readonly gnssPublisher: GNSSPublisher;
@@ -185,6 +185,7 @@ class WTG1000_PFD extends BaseInstrument {
     this.ahrsPublisher = new AhrsPublisher(this.bus);
     this.gnssPublisher = new GNSSPublisher(this.bus);
     this.lNavPublisher = new LNavSimVarPublisher(this.bus);
+    this.lNavObsPublisher = new LNavObsSimVarPublisher(this.bus);
     this.lNavDataPublisher = new LNavDataSimVarPublisher(this.bus);
     this.vNavPublisher = new VNavSimVarPublisher(this.bus);
     this.electricalPublisher = new ElectricalPublisher(this.bus);
@@ -224,6 +225,7 @@ class WTG1000_PFD extends BaseInstrument {
     this.backplane.addPublisher('adc', this.adcPublisher);
     this.backplane.addPublisher('ahrs', this.ahrsPublisher);
     this.backplane.addPublisher('lnav', this.lNavPublisher);
+    this.backplane.addPublisher('lnavobs', this.lNavObsPublisher);
     this.backplane.addPublisher('lnavdata', this.lNavDataPublisher);
     this.backplane.addPublisher('vnav', this.vNavPublisher);
     this.backplane.addPublisher('hEvents', this.hEventPublisher);

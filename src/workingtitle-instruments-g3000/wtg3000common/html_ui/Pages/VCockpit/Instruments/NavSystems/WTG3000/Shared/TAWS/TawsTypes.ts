@@ -1,5 +1,6 @@
 /**
  * TAWS operating modes.
+ * @deprecated
  */
 export enum TawsOperatingMode {
   Off = 'Off',

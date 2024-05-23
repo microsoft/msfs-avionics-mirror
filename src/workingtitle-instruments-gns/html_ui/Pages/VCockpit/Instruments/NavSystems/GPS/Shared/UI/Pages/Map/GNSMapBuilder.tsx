@@ -1,12 +1,12 @@
 
 
 import {
-  BitFlags, DefaultLodBoundaryCache, EventBus, FlightPlanDisplayBuilder, FlightPlanner, FSComponent, IntersectionType, MapAirspaceModule, MapDataIntegrityModule,
+  BitFlags, DefaultLodBoundaryCache, EventBus, FlightPlanDisplayBuilder, FSComponent, IntersectionType, MapAirspaceModule, MapDataIntegrityModule,
   MapFlightPlanModule, MapOwnAirplaneIconOrientation, MapSystemBuilder, MapSystemFlightPlanLayer, MapSystemIconFactory, MapSystemKeys, MapSystemLabelFactory,
   MapSystemPlanRenderer, MapSystemWaypointRoles, MapSystemWaypointsRenderer, MapWaypointDisplayModule, NumberUnit, TcasAdvisoryDataProvider, UnitType, Vec2Math
 } from '@microsoft/msfs-sdk';
 
-import { GarminAirspaceShowTypeMap, GarminMapBuilder, MapUnitsModule, TrafficSystem } from '@microsoft/msfs-garminsdk';
+import { Fms, GarminAirspaceShowTypeMap, GarminMapBuilder, MapUnitsModule, TrafficSystem } from '@microsoft/msfs-garminsdk';
 
 import { GNSSettingsProvider } from '../../../Settings/GNSSettingsProvider';
 import { GNSType } from '../../../UITypes';
@@ -37,7 +37,7 @@ export class GNSMapBuilder {
   /**
    * Creates an arc nav map.
    * @param bus The event bus to use with this map.
-   * @param flightPlanner The flight planner to use for flight plan display.
+   * @param fms The FMS instance.
    * @param settingsProvider The GNS system settings provider.
    * @param gnsType The GNS type (430 or 530) that this map will display on.
    * @param instrumentIndex The index of this instrument.
@@ -45,7 +45,7 @@ export class GNSMapBuilder {
    * @param tcasDataProvider The GNS TA data provider to use to provide TA sets.
    * @returns The modified builder.
    */
-  public static withArcMap(bus: EventBus, flightPlanner: FlightPlanner, settingsProvider: GNSSettingsProvider, gnsType: GNSType,
+  public static withArcMap(bus: EventBus, fms: Fms, settingsProvider: GNSSettingsProvider, gnsType: GNSType,
     instrumentIndex: number, trafficSystem: TrafficSystem, tcasDataProvider: TcasAdvisoryDataProvider):
     MapSystemBuilder<GNSMapModules, GNSMapLayers, GNSMapControllers, GNSMapContextProps> {
     const builder = MapSystemBuilder.create(bus)
@@ -79,9 +79,9 @@ export class GNSMapBuilder {
       })
       .withOwnAirplaneIcon(gnsType === 'wt430' ? 22 : 16, OwnshipIconPath, Vec2Math.create(0.5, 0.5))
       .withOwnAirplaneIconOrientation(MapOwnAirplaneIconOrientation.TrackUp)
-      .withFlightPlan(MapSystemConfig.configureFlightPlan(settingsProvider, gnsType, bus), flightPlanner, 0, true)
-      .withFlightPlan(MapSystemConfig.configureFlightPlan(settingsProvider, gnsType, bus), flightPlanner, 1, true)
-      .withLayer(GNSMapKeys.Obs, c => <ObsLayer bus={bus} model={c.model} mapProjection={c.projection} />)
+      .withFlightPlan(MapSystemConfig.configureFlightPlan(settingsProvider, gnsType, bus, fms), fms.flightPlanner, 0, true)
+      .withFlightPlan(MapSystemConfig.configureFlightPlan(settingsProvider, gnsType, bus, fms), fms.flightPlanner, 1, true)
+      .withLayer(GNSMapKeys.Obs, c => <ObsLayer bus={bus} model={c.model} mapProjection={c.projection} fms={fms} />)
       .with(GarminMapBuilder.traffic, trafficSystem, GNSTrafficIcons.IconOptions(gnsType), false)
       .withLayer(GNSMapKeys.TrafficBanner, c => <TrafficBannerLayer model={c.model} tcasDataProvider={tcasDataProvider} mapProjection={c.projection} />)
       .withLayer(GNSMapKeys.RangeLegend, c => <RangeLegendLayer model={c.model} mapProjection={c.projection} />)
@@ -105,7 +105,7 @@ export class GNSMapBuilder {
   /**
    * Creates an standard nav map.
    * @param bus The event bus to use with this map.
-   * @param flightPlanner The flight planner to use for flight plan display.
+   * @param fms The FMS instance.
    * @param settingsProvider The GNS system settings provider.
    * @param gnsType The GNS type (430 or 530) that this map will display on.
    * @param instrumentIndex The index of this instrument.
@@ -114,7 +114,7 @@ export class GNSMapBuilder {
    * @param tcasDataProvider The optional GNS TA data provider to use to provide TA sets.
    * @returns The modified builder.
    */
-  public static withStandardMap(bus: EventBus, flightPlanner: FlightPlanner, settingsProvider: GNSSettingsProvider, gnsType: GNSType,
+  public static withStandardMap(bus: EventBus, fms: Fms, settingsProvider: GNSSettingsProvider, gnsType: GNSType,
     instrumentIndex: number, supportDataIntegrity: boolean, trafficSystem?: TrafficSystem, tcasDataProvider?: TcasAdvisoryDataProvider):
     MapSystemBuilder<GNSMapModules, GNSMapLayers, GNSMapControllers, GNSMapContextProps> {
     const builder = MapSystemBuilder.create(bus)
@@ -140,9 +140,9 @@ export class GNSMapBuilder {
           showTerminalWaypoints: true
         });
       })
-      .withFlightPlan(MapSystemConfig.configureFlightPlan(settingsProvider, gnsType, bus), flightPlanner, 0, true)
-      .withFlightPlan(MapSystemConfig.configureFlightPlan(settingsProvider, gnsType, bus), flightPlanner, 1, true)
-      .withLayer(GNSMapKeys.Obs, c => <ObsLayer bus={bus} model={c.model} mapProjection={c.projection} />)
+      .withFlightPlan(MapSystemConfig.configureFlightPlan(settingsProvider, gnsType, bus, fms), fms.flightPlanner, 0, true)
+      .withFlightPlan(MapSystemConfig.configureFlightPlan(settingsProvider, gnsType, bus, fms), fms.flightPlanner, 1, true)
+      .withLayer(GNSMapKeys.Obs, c => <ObsLayer bus={bus} model={c.model} mapProjection={c.projection} fms={fms} />)
       .withModule(MapSystemKeys.DataIntegrity, () => new MapDataIntegrityModule())
       .withModule(GNSMapKeys.Declutter, () => new MapDeclutterModule());
 

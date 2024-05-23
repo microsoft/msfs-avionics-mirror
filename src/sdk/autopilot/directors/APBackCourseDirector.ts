@@ -1,3 +1,5 @@
+import { CdiEvents } from '../../cdi/CdiEvents';
+import { CdiUtils } from '../../cdi/CdiUtils';
 import { ConsumerValue } from '../../data/ConsumerValue';
 import { EventBus } from '../../data/EventBus';
 import { SimVarValueType } from '../../data/SimVars';
@@ -6,7 +8,7 @@ import { MagVar } from '../../geo/MagVar';
 import { NavMath } from '../../geo/NavMath';
 import { NavRadioEvents } from '../../instruments/APRadioNavInstrument';
 import { GNSSEvents, GNSSPublisher } from '../../instruments/GNSS';
-import { CdiDeviation, Localizer, NavEvents, NavSourceId, NavSourceType } from '../../instruments/NavProcessor';
+import { CdiDeviation, Localizer, NavSourceId, NavSourceType } from '../../instruments/NavProcessor';
 import { MathUtils } from '../../math/MathUtils';
 import { UnitType } from '../../math/NumberUnit';
 import { APValues } from '../APConfig';
@@ -242,11 +244,11 @@ export class APBackCourseDirector implements PlaneDirector {
   /** @inheritdoc */
   public driveBank?: (bank: number, rate?: number) => void;
 
-  private readonly sub = this.bus.getSubscriber<GNSSEvents & NavRadioEvents & NavEvents>();
+  private readonly sub = this.bus.getSubscriber<GNSSEvents & NavRadioEvents & CdiEvents>();
 
   private readonly cdi = ConsumerValue.create<CdiDeviation>(null, { source: { index: 0, type: NavSourceType.Nav }, deviation: null });
   private readonly loc = ConsumerValue.create<Localizer>(null, { isValid: false, course: 0, source: { index: 0, type: NavSourceType.Nav } });
-  private navSource: NavSourceId = { index: 0, type: NavSourceType.Nav };
+  private navSource: Readonly<NavSourceId> = { index: 0, type: NavSourceType.Nav };
 
   private deviationSimVar = 'NAV CDI:1';
   private radialErrorSimVar = 'NAV RADIAL ERROR:1';
@@ -319,7 +321,7 @@ export class APBackCourseDirector implements PlaneDirector {
       [APBackCourseDirectorPhase.Tracking]: trackingParams
     };
 
-    this.sub.on('cdi_select').handle(source => {
+    this.sub.on(`cdi_select${CdiUtils.getEventBusTopicSuffix(apValues.cdiId)}`).handle(source => {
       this.navSource = source;
 
       if (source.type === NavSourceType.Nav) {

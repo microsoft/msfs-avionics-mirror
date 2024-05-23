@@ -1,9 +1,14 @@
 import {
-  CombinedSubject, ComponentProps, DisplayComponent, EventBus, FlightPlanner, FSComponent, ObjectSubject, SetSubject, Subject, UserSettingManager, Vec2Math,
-  Vec2Subject, VNode
+  CombinedSubject, ComponentProps, DisplayComponent, EventBus, FlightPlanner, FSComponent, ObjectSubject, SetSubject,
+  Subject, UserSettingManager, Vec2Math, Vec2Subject, VNode
 } from '@microsoft/msfs-sdk';
+
 import { TrafficSystem } from '@microsoft/msfs-garminsdk';
-import { DisplayPaneSizeMode, DisplayPaneViewEvent, IauUserSettingManager, MapConfig, PfdIndex, PfdMapLayoutSettingMode, PfdMapLayoutUserSettingTypes } from '@microsoft/msfs-wtg3000-common';
+
+import {
+  DisplayPaneSizeMode, DisplayPaneViewEvent, G3000FlightPlannerId, IauUserSettingManager, MapConfig, PfdIndex,
+  PfdMapLayoutSettingMode, PfdMapLayoutUserSettingTypes
+} from '@microsoft/msfs-wtg3000-common';
 
 import { NavInsetMap } from './NavInsetMap';
 import { TrafficInsetMap } from './TrafficInsetMap';
@@ -18,7 +23,7 @@ export interface InsetMapContainerProps extends ComponentProps {
   bus: EventBus;
 
   /** The flight planner. */
-  flightPlanner: FlightPlanner;
+  flightPlanner: FlightPlanner<G3000FlightPlannerId>;
 
   /** The traffic system used by the map to display traffic. */
   trafficSystem: TrafficSystem;

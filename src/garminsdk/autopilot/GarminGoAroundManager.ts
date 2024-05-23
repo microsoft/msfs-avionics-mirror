@@ -1,8 +1,19 @@
-import { APVerticalModes, ConsumerSubject, ConsumerValue, ControlEvents, DebounceTimer, EventBus, LNavEvents, NavSourceType, SimVarValueType, Subscription } from '@microsoft/msfs-sdk';
-import { FmsUtils } from '../flightplan';
+import {
+  APVerticalModes, CdiControlEvents, CdiEvents, CdiUtils, ConsumerSubject, ConsumerValue, DebounceTimer, EventBus, LNavEvents,
+  LNavUtils, NavSourceId, NavSourceType, SimVarValueType, Subscribable, SubscribableUtils, Subscription
+} from '@microsoft/msfs-sdk';
+
 import { Fms } from '../flightplan/Fms';
-import { ActiveNavSource, GarminNavEvents } from '../navigation/GarminNavEvents';
+import { FmsUtils } from '../flightplan/FmsUtils';
 import { FmaDataEvents } from './FmaData';
+
+/**
+ * Configuration options for {@link GarminGoAroundManager}.
+ */
+export type GarminGoAroundManagerOptions = {
+  /** The ID of the CDI controlled by the manager. Defaults to the empty string (`''`). */
+  cdiId?: string | Subscribable<string>;
+};
 
 /**
  * A manager which responds to autopilot go-around mode activation by attempting to switch the active navigation
@@ -10,14 +21,23 @@ import { FmaDataEvents } from './FmaData';
  */
 export class GarminGoAroundManager {
 
+  private readonly fms: Subscribable<Fms>;
+  private isLNavIndexValid = false;
+
+  private readonly cdiId: Subscribable<string>;
+
   private isGaActive?: boolean;
 
   private readonly isLNavTracking = ConsumerValue.create(null, false).pause();
-  private readonly activeNavSource = ConsumerSubject.create(null, ActiveNavSource.Nav1).pause();
+  private readonly activeNavSource = ConsumerSubject.create<Readonly<NavSourceId>>(
+    null,
+    { type: NavSourceType.Nav, index: 1 },
+    CdiUtils.navSourceIdEquals
+  ).pause();
 
   private readonly gpsSelectedDebounceTimer = new DebounceTimer();
   private readonly gpsSelectedCallback = (): void => {
-    if (this.activeNavSource.get() === ActiveNavSource.Gps1) {
+    if (this.activeNavSource.get().type === NavSourceType.Gps) {
       this.onGpsNavSourceSelected();
     }
   };
@@ -26,15 +46,24 @@ export class GarminGoAroundManager {
   private isAlive = true;
   private isPaused = true;
 
+  private fmsSub?: Subscription;
+  private cdiIdSub?: Subscription;
   private fmaDataSub?: Subscription;
   private activeNavSourceSub?: Subscription;
 
   /**
-   * Constructor.
+   * Creates a new instance of GarminGoAroundManager.
    * @param bus The event bus.
    * @param fms The FMS.
+   * @param options Options with which to configure the manager.
    */
-  public constructor(private readonly bus: EventBus, private readonly fms: Fms) {
+  public constructor(
+    private readonly bus: EventBus,
+    fms: Fms | Subscribable<Fms>,
+    options?: Readonly<GarminGoAroundManagerOptions>
+  ) {
+    this.fms = SubscribableUtils.toSubscribable(fms, true);
+    this.cdiId = SubscribableUtils.toSubscribable(options?.cdiId ?? '', true);
   }
 
   /**
@@ -54,15 +83,26 @@ export class GarminGoAroundManager {
 
     this.isInit = true;
 
-    const sub = this.bus.getSubscriber<FmaDataEvents & LNavEvents & GarminNavEvents>();
+    const sub = this.bus.getSubscriber<FmaDataEvents & LNavEvents & CdiEvents>();
 
-    this.isLNavTracking.setConsumer(sub.on('lnav_is_tracking'));
-    this.activeNavSource.setConsumer(sub.on('active_nav_source_1'));
+    this.fmsSub = this.fms.sub(fms => {
+      if (LNavUtils.isValidLNavIndex(fms.lnavIndex)) {
+        this.isLNavIndexValid = true;
+        this.isLNavTracking.setConsumer(sub.on(`lnav_is_tracking${LNavUtils.getEventBusTopicSuffix(fms.lnavIndex)}`));
+      } else {
+        this.isLNavIndexValid = false;
+        this.isLNavTracking.setConsumer(null);
+      }
+    }, true);
+
+    this.cdiIdSub = this.cdiId.sub(id => {
+      this.activeNavSource.setConsumer(sub.on(`cdi_select${CdiUtils.getEventBusTopicSuffix(id)}`));
+    }, true);
 
     this.activeNavSourceSub = this.activeNavSource.sub(source => {
       this.activeNavSourceSub?.pause();
 
-      if (source === ActiveNavSource.Gps1) {
+      if (source.type === NavSourceType.Gps) {
         // Delay the callback by one frame in order to ensure that Fms gets the active nav source change event
         // before we try to activate the missed approach.
         this.gpsSelectedDebounceTimer.schedule(this.gpsSelectedCallback, 0);
@@ -92,17 +132,20 @@ export class GarminGoAroundManager {
   private onGaActivated(): void {
     this.activeNavSourceSub?.pause();
 
+    const fms = this.fms.get();
+
     if (
-      this.isLNavTracking.get()
-      && this.fms.hasPrimaryFlightPlan()
-      && FmsUtils.isApproachLoaded(this.fms.getPrimaryFlightPlan())
+      this.isLNavIndexValid
+      && this.isLNavTracking.get()
+      && fms.hasPrimaryFlightPlan()
+      && FmsUtils.isApproachLoaded(fms.getPrimaryFlightPlan())
     ) {
-      if (this.activeNavSource.get() === ActiveNavSource.Gps1) {
+      if (this.activeNavSource.get().type === NavSourceType.Gps) {
         this.onGpsNavSourceSelected();
       } else {
         this.activeNavSourceSub?.resume();
 
-        this.bus.getPublisher<ControlEvents>().pub('cdi_src_set', {
+        this.bus.getPublisher<CdiControlEvents>().pub(`cdi_src_set${CdiUtils.getEventBusTopicSuffix(this.cdiId.get())}`, {
           type: NavSourceType.Gps,
           index: 1
         }, true, false);
@@ -117,9 +160,11 @@ export class GarminGoAroundManager {
     // Switch AP lateral mode to NAV.
     SimVar.SetSimVarValue('K:AP_NAV1_HOLD_ON', SimVarValueType.Number, 0);
 
+    const fms = this.fms.get();
+
     // Attempt to activate missed approach.
-    if (this.fms.canMissedApproachActivate()) {
-      this.fms.activateMissedApproach();
+    if (fms.canMissedApproachActivate()) {
+      fms.activateMissedApproach();
     }
   }
 
@@ -182,6 +227,8 @@ export class GarminGoAroundManager {
     this.isLNavTracking.destroy();
     this.activeNavSource.destroy();
 
+    this.fmsSub?.destroy();
+    this.cdiIdSub?.destroy();
     this.activeNavSourceSub?.destroy();
     this.fmaDataSub?.destroy();
   }

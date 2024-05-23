@@ -1,0 +1,63 @@
+.aileron-and-rudder-trim-gauge {
+  width: 105px;
+  height: 40px;
+  display: flex;
+  flex-direction: row;
+  font-size: 15px;
+}
+
+.aileron-and-rudder-trim-gauge .green {
+  stroke: var(--g3x-color-green);
+}
+
+.aileron-and-rudder-trim-gauge .white {
+  stroke: var(--g3x-color-white);
+}
+
+.aileron-and-rudder-trim-gauge .left-label {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 0;
+  padding-right: 4px;
+}
+
+.aileron-and-rudder-trim-gauge .right-label {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 0;
+  padding-left: 4px;
+}
+
+.aileron-and-rudder-trim-gauge .body {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  flex-grow: 1;
+}
+
+.aileron-and-rudder-trim-gauge .body .container {
+  position: absolute;
+}
+
+.aileron-and-rudder-trim-gauge .body .ruler-frame {
+  position: absolute;
+  overflow: visible;
+}
+
+.aileron-and-rudder-trim-gauge .body .bottom-value-marker {
+  position: absolute;
+  bottom: 0px;
+  transform: translate(-50%, 0);
+  overflow: visible;
+}
+
+.aileron-and-rudder-trim-gauge .body .top-value-marker {
+  position: absolute;
+  top: 0px;
+  transform: translate(-50%, 0);
+  overflow: visible;
+}

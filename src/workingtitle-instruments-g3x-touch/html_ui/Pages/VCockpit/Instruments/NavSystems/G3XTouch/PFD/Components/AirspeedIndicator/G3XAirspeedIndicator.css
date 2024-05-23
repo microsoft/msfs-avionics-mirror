@@ -1,0 +1,634 @@
+.airspeed {
+  position: relative;
+
+  /* Top/bottom box vars */
+  --airspeed-alert-font-size: 0.8em;
+  --airspeed-alert-border-radius: 3px;
+
+  --airspeed-vspeed-annunciation-font-size: 0.8em;
+
+  /* IAS display box vars */
+
+  --airspeed-ias-box-border-width: 1px;
+
+  /* Reference speed bug vars */
+
+  --airspeed-refspeed-bug-manual-right: 0px;
+  --airspeed-refspeed-bug-manual-height: calc(var(--airspeed-ias-box-font-size) * 0.8);
+  --airspeed-refspeed-bug-manual-width: calc(var(--airspeed-ias-box-margin-right) + (100% - var(--airspeed-ias-box-margin-right)) * 0.16);
+  --airspeed-refspeed-bug-manual-fill: var(--g3x-color-cyan);
+  --airspeed-refspeed-bug-manual-stroke: #505050;
+
+  /* Reference V-speed bug vars */
+
+  --airspeed-vspeed-bug-icon-color: var(--g3x-color-cyan);
+  --airspeed-vspeed-bug-icon-bg-color: var(--g3x-color-black);
+
+  --airspeed-vspeed-bug-container-width-factor: 0.6;
+
+  --airspeed-vspeed-offscale-container-height: 50%;
+
+  /* Computed vars */
+
+  --airspeed-tape-top-border-radius: var(--airspeed-tape-bg-border-radius);
+  --airspeed-tape-bottom-border-radius: var(--airspeed-tape-bg-border-radius);
+
+  --airspeed-tape-top-border: 1px solid transparent;
+  --airspeed-tape-bottom-border: 1px solid var(--airspeed-tape-bottom-border-color);
+}
+
+.gdu-460-display .airspeed {
+  width: 100px;
+  height: 336px;
+
+  /* Top/bottom box vars */
+
+  --airspeed-top-box-height: 31px;
+  --airspeed-bottom-box-height: 31px;
+
+  --airspeed-speed-display-padding: 0px 4px 0px 2px;
+  --airspeed-speed-display-title-font-size: 18px;
+  --airspeed-speed-display-value-font-size: 23px;
+
+  --airspeed-refspeed-font-size: 23px;
+  --airspeed-refspeed-icon-manual-margin-left: 6px;
+  --airspeed-refspeed-icon-manual-width: 8px;
+  --airspeed-refspeed-icon-manual-height: 18px;
+
+  /* Tape vars */
+
+  --airspeed-tape-bg-border-radius: 10px;
+
+  --airspeed-tick-minor-width: 13px;
+  --airspeed-tick-minor-stroke-width: 1px;
+  --airspeed-tick-major-width: 16px;
+  --airspeed-tick-major-stroke-width: 2px;
+
+  --airspeed-tape-label-offset-y: 3px;
+  --airspeed-tape-label-margin-right: 14px;
+  --airspeed-tape-label-font-size: 26px;
+
+  /* IAS display box vars */
+
+  --airspeed-ias-box-margin-right: 9px;
+  --airspeed-ias-box-width: 82px;
+  --airspeed-ias-box-height: 72px;
+  --airspeed-ias-box-font-size: 34px;
+
+  --airspeed-ias-box-scrollers-padding-right: 8px;
+
+  --airspeed-ias-box-digit-container-width: 20px;
+  --airspeed-ias-box-hundreds-tens-height: 32px;
+  --airspeed-ias-box-ones-height: 68px;
+
+  --digit-scroller-line-height: 32px;
+  --digit-scroller-line-offset-y: 4px;
+
+  /* Color range vars */
+
+  --airspeed-tape-color-range-full-width: 10px;
+  --airspeed-tape-color-range-half-width: 5px;
+
+  /* Trend vector vars */
+
+  --airspeed-trend-width: 6px;
+
+  /* Reference speed bug vars */
+
+  --airspeed-refspeed-bug-manual-right: 0px;
+  --airspeed-refspeed-bug-manual-width: 15px;
+  --airspeed-refspeed-bug-manual-height: 36px;
+
+  /* Reference V-speed bug vars */
+
+  --airspeed-vspeed-bug-icon-height: 12px;
+  --airspeed-vspeed-bug-icon-font-size: 14px;
+  --airspeed-vspeed-bug-icon-label-padding-right: 3px;
+
+  --airspeed-vspeed-bug-margin-left: 2px;
+
+  --airspeed-vspeed-offscale-label-margin-bottom: 3px;
+  --airspeed-vspeed-offscale-label-margin-right: 5px;
+  --airspeed-vspeed-offscale-label-font-size: 18px;
+
+  /* Failure box vars */
+
+  --airspeed-failure-box-font-size: 24px;
+  --airspeed-tape-failure-box-label-word-gap: 20px;
+}
+
+.airspeed.airspeed-reference-visible {
+  --airspeed-tape-top-border-radius: 0px;
+}
+
+.airspeed.airspeed-bottom-display-visible {
+  --airspeed-tape-bottom-border-radius: 0px;
+}
+
+.airspeed-speed-display {
+  position: absolute;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 100%;
+  padding: var(--airspeed-speed-display-padding);
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.airspeed-speed-display-title {
+  height: 0.9em;
+  font-size: var(--airspeed-speed-display-title-font-size);
+  color: #a8a8a8;
+}
+
+.airspeed-speed-display-value {
+  height: 0.9em;
+  font-size: var(--airspeed-speed-display-value-font-size);
+}
+
+/* ---- Top container displays ---- */
+
+.airspeed-top-container {
+  position: absolute;
+  top: 0%;
+  width: 100%;
+  height: var(--airspeed-top-box-height);
+  transform: rotateX(0deg);
+  border-top-left-radius: var(--airspeed-tape-bg-border-radius);
+  border-top-right-radius: var(--airspeed-tape-bg-border-radius);
+}
+
+.airspeed-refspeed-container {
+  position: absolute;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: inherit;
+  border: solid 1px transparent;
+  border-bottom: none;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.airspeed-refspeed-icon-manual {
+  width: var(--airspeed-refspeed-icon-manual-width);
+  height: var(--airspeed-refspeed-icon-manual-height);
+  margin-left: var(--airspeed-refspeed-icon-manual-margin-left);
+  fill: var(--airspeed-refspeed-bug-manual-fill);
+}
+
+.airspeed-refspeed-text {
+  flex-grow: 1;
+  position: relative;
+  color: var(--g3x-color-cyan);
+  font-size: var(--airspeed-refspeed-font-size);
+  white-space: nowrap;
+}
+
+.airspeed-refspeed-ias,
+.airspeed-refspeed-mach {
+  width: 100%;
+  height: 0.8em;
+  text-align: center;
+}
+
+.airspeed-tas-display {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.airspeed-tas-display .airspeed-speed-display {
+  border-radius: inherit;
+  border: solid 1px transparent;
+  border-bottom: none;
+}
+
+.airspeed-tas-display .airspeed-speed-display-value {
+  color: var(--g3x-color-white);
+}
+
+@keyframes airspeed-alert-flash {
+  0% {
+    background: var(--g3x-color-yellow);
+    color: var(--g3x-color-black);
+  }
+
+  75% {
+    background: var(--g3x-color-black);
+    color: var(--g3x-color-yellow);
+  }
+}
+
+.airspeed-protection-container {
+  position: absolute;
+  top: 0%;
+  left: 0%;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--airspeed-alert-border-radius);
+  animation: airspeed-alert-flash 1s infinite step-end;
+}
+
+.airspeed-protection-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--airspeed-alert-font-size);
+}
+
+.airspeed-alert-overspeed .airspeed-bottom-container,
+.airspeed-alert-underspeed .airspeed-bottom-container {
+  --airspeed-bottom-speed-display-bg-actual: var(--g3x-color-red);
+}
+
+.airspeed-alert-trend-overspeed .airspeed-bottom-container,
+.airspeed-alert-trend-underspeed .airspeed-bottom-container {
+  --airspeed-bottom-speed-display-color: var(--g3x-color-yellow);
+}
+
+/* ---- Bottom container displays ---- */
+
+.airspeed-bottom-container {
+  position: absolute;
+  left: 0%;
+  bottom: 0%;
+  width: 100%;
+  height: var(--airspeed-bottom-box-height);
+  transform: rotateX(0deg);
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.airspeed-gs-display {
+  border-radius: inherit;
+  border: solid 1px transparent;
+  border-top: none;
+}
+
+.airspeed-gs-display .airspeed-speed-display-value {
+  color: var(--g3x-color-magenta);
+}
+
+.airspeed-vspeed-annunciation {
+  font-size: var(--airspeed-vspeed-annunciation-font-size);
+}
+
+.airspeed-vspeed-annunciation-box {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 1px 2px;
+  border-radius: 5px;
+  color: var(--g3x-color-black);
+  letter-spacing: -1px;
+}
+
+.airspeed-vspeed-annunciation-takeoff .airspeed-vspeed-annunciation-box {
+  background: var(--g3x-color-yellow);
+}
+
+.airspeed-vspeed-annunciation-landing .airspeed-vspeed-annunciation-box {
+  background: var(--g3x-color-white);
+}
+
+/* ---- Airspeed tape ---- */
+
+.airspeed-tape-container {
+  position: absolute;
+  left: 0%;
+  top: var(--airspeed-top-box-height);
+  width: 100%;
+  height: calc(100% - var(--airspeed-top-box-height) - var(--airspeed-bottom-box-height));
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: var(--airspeed-tape-top-border-radius) var(--airspeed-tape-top-border-radius) var(--airspeed-tape-bottom-border-radius) var(--airspeed-tape-bottom-border-radius);
+}
+
+.airspeed-tape-window {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  border-left: solid 1px transparent;
+  border-right: solid 1px transparent;
+}
+
+.airspeed-tape {
+  position: absolute;
+  bottom: 50%;
+  width: 100%;
+}
+
+.airspeed-tape-tick-minor-container {
+  position: absolute;
+  right: 0%;
+  width: var(--airspeed-tick-minor-width);
+  height: 100%;
+  stroke: #c0c0c0;
+  stroke-width: var(--airspeed-tick-minor-stroke-width);
+}
+
+.airspeed-tape-tick-major-container {
+  position: absolute;
+  right: 0%;
+  width: var(--airspeed-tick-major-width);
+  height: 100%;
+  stroke: #c0c0c0;
+  stroke-width: var(--airspeed-tick-major-stroke-width);
+}
+
+.airspeed-tape-label-container {
+  position: absolute;
+  --airspeed-tape-label-container-right: calc(var(--airspeed-tick-major-width) + var(--airspeed-tape-label-margin-right));
+  right: var(--airspeed-tape-label-container-right);
+  width: calc(100% - var(--airspeed-tape-label-container-right));
+  height: 100%;
+  font-size: var(--airspeed-tape-label-font-size);
+  color: var(--g3x-color-white);
+}
+
+.airspeed-tape-label {
+  margin-top: var(--airspeed-tape-label-offset-y);
+}
+
+.airspeed-ias-box {
+  position: absolute;
+  right: var(--airspeed-ias-box-margin-right);
+  top: 50%;
+  width: var(--airspeed-ias-box-width);
+  height: var(--airspeed-ias-box-height);
+  transform: translateY(-50%);
+  font-size: var(--airspeed-ias-box-font-size);
+  color: var(--g3x-color-white);
+  --airspeed-ias-box-fill: var(--g3x-color-black);
+  --airspeed-ias-box-stroke: #505050;
+  --airspeed-ias-box-bg: linear-gradient(to bottom, rgba(0, 0, 0, 1.0), rgb(30, 30, 30), rgba(0, 0, 0, 1.0));
+  --airspeed-ias-box-scroller-mask-bg: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0) 90%, rgba(0, 0, 0, 1) 100%);
+}
+
+.airspeed-alert-overspeed .airspeed-ias-box,
+.airspeed-alert-underspeed .airspeed-ias-box {
+  --airspeed-ias-box-fill: var(--g3x-color-red);
+  --airspeed-ias-box-stroke: var(--g3x-color-red);
+  --airspeed-ias-box-bg: var(--g3x-color-red);
+  --airspeed-ias-box-scroller-mask-bg: transparent;
+}
+
+.airspeed-alert-trend-overspeed .airspeed-ias-box,
+.airspeed-alert-trend-underspeed .airspeed-ias-box {
+  color: var(--g3x-color-yellow);
+  --airspeed-ias-box-bg: var(--g3x-color-black);
+  --airspeed-ias-box-scroller-mask-bg: transparent;
+}
+
+.airspeed-ias-box-bg {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  fill: var(--airspeed-ias-box-fill);
+  stroke: var(--airspeed-ias-box-stroke);
+  stroke-width: var(--airspeed-ias-box-border-width);
+  overflow: visible;
+}
+
+.airspeed-ias-box-scrollers {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding-right: var(--airspeed-ias-box-scrollers-padding-right);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.airspeed-ias-box-digit-container {
+  position: relative;
+  width: var(--airspeed-ias-box-digit-container-width);
+  height: var(--airspeed-ias-box-hundreds-tens-height);
+  overflow: hidden;
+}
+
+.airspeed-ias-box-digit-container.airspeed-ias-box-ones {
+  height: var(--airspeed-ias-box-ones-height);
+}
+
+.airspeed-ias-box-digit-container .digit-scroller {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+}
+
+.airspeed-ias-box-digit-bg {
+  position: absolute;
+  left: 0;
+  top: 0%;
+  width: 100%;
+  height: 100%;
+}
+
+.airspeed-ias-box-scroller-mask {
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: var(--airspeed-ias-box-scroller-mask-bg);
+}
+
+.airspeed-tape-color-range {
+  right: 0%;
+}
+
+.airspeed-tape-color-range-full {
+  width: var(--airspeed-tape-color-range-full-width);
+}
+
+.airspeed-tape-color-range-half {
+  width: var(--airspeed-tape-color-range-half-width);
+}
+
+.airspeed-tape-color-range-red {
+  background: var(--g3x-color-red);
+}
+
+.airspeed-tape-color-range-white {
+  background: var(--g3x-color-white);
+}
+
+.airspeed-tape-color-range-green {
+  background: var(--g3x-color-dark-green);
+}
+
+.airspeed-tape-color-range-yellow {
+  background: var(--g3x-color-yellow);
+}
+
+.airspeed-tape-color-range-barber-pole {
+  background: repeating-linear-gradient(135deg, var(--g3x-color-red), var(--g3x-color-red) 6px, var(--g3x-color-white) 6px, var(--g3x-color-white) 12px);
+}
+
+.airspeed-refspeed-bug {
+  right: var(--airspeed-refspeed-bug-manual-right);
+  width: var(--airspeed-refspeed-bug-manual-width);
+  height: var(--airspeed-refspeed-bug-manual-height);
+}
+
+.airspeed-refspeed-bug-icon {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  stroke-width: 1px;
+  overflow: visible;
+}
+
+.airspeed-refspeed-bug-icon-manual {
+  fill: var(--airspeed-refspeed-bug-manual-fill);
+  stroke: var(--airspeed-refspeed-bug-manual-stroke);
+}
+
+.airspeed-trend {
+  left: 100%;
+  width: var(--airspeed-trend-width);
+  background: var(--g3x-color-magenta);
+  border: 1px solid var(--g3x-color-white);
+}
+
+/* ---- V-speed bugs ---- */
+
+.airspeed-vspeed-fms {
+  --airspeed-vspeed-bug-icon-color: var(--g3x-color-magenta);
+}
+
+.airspeed-vspeed-bug-icon {
+  position: relative;
+  height: var(--airspeed-vspeed-bug-icon-height);
+  font-size: var(--airspeed-vspeed-bug-icon-font-size);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  transform: rotateX(0deg);
+}
+
+.airspeed-vspeed-bug-icon-arrow {
+  height: 100%;
+  width: 0.5em;
+  fill: var(--airspeed-vspeed-bug-icon-bg-color);
+}
+
+.airspeed-vspeed-bug-icon-label {
+  height: 100%;
+  background: var(--airspeed-vspeed-bug-icon-bg-color);
+  color: var(--airspeed-vspeed-bug-icon-color);
+  padding-right: var(--airspeed-vspeed-bug-icon-label-padding-right);
+  white-space: pre;
+}
+
+.airspeed-vspeed-bug-container {
+  left: 100%;
+  width: calc(100% * var(--airspeed-vspeed-bug-container-width-factor));
+}
+
+.airspeed-vspeed-bug {
+  left: var(--airspeed-vspeed-bug-margin-left);
+}
+
+.airspeed-vspeed-offscale-container {
+  left: 0;
+  width: calc(100% * (1 + var(--airspeed-vspeed-bug-container-width-factor)));
+  height: var(--airspeed-vspeed-offscale-container-height);
+  align-items: stretch;
+}
+
+.airspeed-vspeed-offscale-label {
+  position: relative;
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: calc(100% * 1 / (1 + var(--airspeed-vspeed-bug-container-width-factor))) 1fr;
+  align-items: center;
+  margin-bottom: var(--airspeed-vspeed-offscale-label-margin-bottom);
+
+  --airspeed-vspeed-offscale-label-color: var(--airspeed-vspeed-bug-icon-color);
+}
+
+.airspeed-vspeed-offscale-label.airspeed-vspeed-fms.airspeed-vspeed-fms-config-miscompare {
+  --airspeed-vspeed-offscale-label-color: var(--g3x-color-yellow);
+}
+
+.airspeed-vspeed-offscale-label-value {
+  justify-self: end;
+  height: 0.9em;
+  margin-right: var(--airspeed-vspeed-offscale-label-margin-right);
+  font-size: var(--airspeed-vspeed-offscale-label-font-size);
+  color: var(--airspeed-vspeed-offscale-label-color);
+}
+
+.airspeed-vspeed-offscale-label .airspeed-vspeed-bug-icon {
+  justify-self: start;
+  margin-left: var(--airspeed-vspeed-bug-margin-left);
+}
+
+/* ---- Failed state ---- */
+
+.data-failed .airspeed-tape-label-container {
+  display: none;
+}
+
+.airspeed .failure-box {
+  font-size: var(--airspeed-failure-box-font-size);
+}
+
+.airspeed-tape-failure-box {
+  position: absolute;
+  left: 0%;
+  top: var(--airspeed-top-box-height);
+  width: 100%;
+  height: calc(100% - var(--airspeed-top-box-height) - var(--airspeed-bottom-box-height));
+  line-height: 0.9em;
+}
+
+.airspeed-tape-failure-box .failure-box-label {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.airspeed-tape-failure-box-label-word-1 {
+  margin-right: var(--airspeed-tape-failure-box-label-word-gap);
+}
+
+.airspeed-tas-failure-box {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.airspeed-tas-failure-box .failure-box-label {
+  height: 0.9em;
+}

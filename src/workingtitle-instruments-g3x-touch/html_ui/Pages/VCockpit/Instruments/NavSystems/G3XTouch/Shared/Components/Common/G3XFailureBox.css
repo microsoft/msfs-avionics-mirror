@@ -1,0 +1,47 @@
+html {
+  --failure-box-background: rgba(240, 0, 0, 0.375);
+}
+
+.gdu-460-display {
+  --failure-box-cross-margin-horiz: 6px;
+  --failure-box-cross-margin-vert: 6px;
+  --failure-box-cross-line-outline-width: 6px;
+  --failure-box-cross-line-stroke-width: 5px;
+}
+
+.failure-box {
+  position: relative;
+  background: var(--failure-box-background);
+  overflow: hidden;
+}
+
+.failure-box-cross {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(100% - 2 * var(--failure-box-cross-margin-horiz));
+  height: calc(100% - 2 * var(--failure-box-cross-margin-vert));
+  transform: translate(-50%, -50%);
+  overflow: visible;
+}
+
+.failure-box-cross-line-outline {
+  fill: none;
+  stroke: black;
+  stroke-width: var(--failure-box-cross-line-outline-width);
+}
+
+.failure-box-cross-line-stroke {
+  fill: none;
+  stroke: #f00000;
+  stroke-width: var(--failure-box-cross-line-stroke-width);
+}
+
+.failure-box-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--g3x-color-yellow);
+  white-space: pre;
+}

@@ -1,0 +1,82 @@
+@keyframes cas-flash-red {
+
+  0%,
+  45% {
+    color: var(--g3x-color-red);;
+    background-color: var(--g3x-color-pfd-box-background);
+  }
+
+  55%,
+  100% {
+    color: var(--g3x-color-white);
+    background-color: var(--g3x-color-red);
+  }
+}
+
+.cas-container {
+  background-color: var(--g3x-color-black);
+  border: 3px solid var(--g3x-color-border-gray);
+  border-radius: 5px;
+  display: flex;
+  flex-flow: column nowrap;
+  font-size: 18px;
+  align-items: stretch;
+  position: absolute;
+  min-width: 90px;
+  padding: 4px 4px 0 4px;
+}
+
+.cas-container-split {
+  top: 464px;
+  right: 2px;
+}
+
+.cas-container-full {
+  top: 140px;
+  right: 5px;
+}
+
+.cas-display {
+  margin: 0 1px;
+  display: block;
+}
+
+.cas-message-count {
+  margin: 0 2px;
+  border-top: 1px solid var(--g3x-color-border-gray);
+  display: block;
+  text-align: center;
+}
+
+.cas-message-count > span {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.cas-message-count-header.cas-caution {
+  color: var(--g3x-color-yellow);
+}
+
+.cas-message-count-header.cas-warning {
+  color: var(--g3x-color-red);
+}
+
+.cas-annunciation.cas-warning {
+  color: var(--g3x-color-red);
+}
+
+.cas-annunciation.cas-warning.cas-new {
+  animation: cas-flash-red 1s infinite;
+}
+
+.cas-annunciation.cas-caution {
+  color: var(--g3x-color-yellow);
+}
+
+.cas-annunciation.cas-advisory {
+  color: var(--g3x-color-white);
+}
+
+.cas-annunciation.cas-safeop {
+  color: var(--g3x-color-green);
+}

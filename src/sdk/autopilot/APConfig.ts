@@ -1,7 +1,11 @@
+import { NavSourceId } from '../instruments/NavProcessor';
+import { NavRadioIndex } from '../instruments/RadioCommon';
 import { Subject } from '../sub/Subject';
+import { Subscribable } from '../sub/Subscribable';
 import { AutopilotDriverOptions } from './AutopilotDriver';
 import { PlaneDirector } from './directors/PlaneDirector';
 import { NavToNavManager } from './managers/NavToNavManager';
+import { NavToNavManager2 } from './managers/NavToNavManager2';
 import { VNavManager } from './managers/VNavManager';
 
 export enum APVerticalModes {
@@ -51,6 +55,12 @@ export enum APAltitudeModes {
  * An object containing values pertinent to autopilot operation.
  */
 export type APValues = {
+  /** The ID of the CDI associated with the autopilot. */
+  readonly cdiId: string;
+
+  /** The autopilot's current CDI source. */
+  readonly cdiSource: Subscribable<Readonly<NavSourceId>>;
+
   /** The current simulation rate. */
   readonly simRate: Subject<number>;
 
@@ -120,8 +130,43 @@ export type APValues = {
   /** The AP Approach Mode is on */
   readonly apApproachModeOn: Subject<boolean>;
 
-  /** Returns whether nav to nav says that LOC can be armed. */
+  /**
+   * Checks whether the autopilot localizer lateral mode ()`APLateralModes.LOC`) can be armed while waiting for the
+   * nav-to-nav manager to switch CDI source.
+   * @returns Whether the autopilot localizer lateral mode ()`APLateralModes.LOC`) can be armed while waiting for the
+   * nav-to-nav manager to switch CDI source.
+   */
   navToNavLocArm?: () => boolean;
+
+  /**
+   * Gets the index of the NAV radio that can be armed for a CDI source switch by the nav-to-nav manager, or `-1` if a
+   * CDI source switch cannot be armed.
+   * @returns The index of the NAV radio that can be armed for a CDI source switch by the nav-to-nav manager, or `-1`
+   * if a CDI source switch cannot be armed.
+   */
+  navToNavArmableNavRadioIndex?: () => NavRadioIndex | -1;
+
+  /**
+   * Gets the autopilot lateral mode that can be armed while waiting for the nav-to-nav manager to switch CDI source,
+   * or `APLateralModes.NONE` if no modes can be armed.
+   * @returns The autopilot lateral mode that can be armed while waiting for the nav-to-nav manager to switch CDI
+   * source, or `APLateralModes.NONE` if no modes can be armed.
+   */
+  navToNavArmableLateralMode?: () => APLateralModes;
+
+  /**
+   * Gets the autopilot vertical mode that can be armed while waiting for the nav-to-nav manager to switch CDI source,
+   * or `APLateralModes.NONE` if no modes can be armed.
+   * @returns The autopilot vertical mode that can be armed while waiting for the nav-to-nav manager to switch CDI
+   * source, or `APLateralModes.NONE` if no modes can be armed.
+   */
+  navToNavArmableVerticalMode?: () => APVerticalModes;
+
+  /**
+   * Checks whether a CDI source switch initiated by the nav-to-nav manager is currently in progress.
+   * @returns Whether a CDI source switch initiated by the nav-to-nav manager is currently in progress.
+   */
+  navToNavTransferInProgress?: () => boolean;
 }
 
 /**
@@ -141,7 +186,7 @@ export interface APConfig {
    * @param apValues The autopilot's state values.
    * @returns The autopilot's nav-to-nav manager.
    */
-  createNavToNavManager?(apValues: APValues): NavToNavManager | undefined;
+  createNavToNavManager?(apValues: APValues): NavToNavManager | NavToNavManager2 | undefined;
 
   /**
    * Creates the autopilot's variable bank manager.
@@ -361,6 +406,9 @@ export interface APConfig {
 
   /** The heading hold slot index to use. Defaults to 1 */
   headingHoldSlotIndex?: 1 | 2 | 3;
+
+  /** The ID of the CDI associated with the autopilot. Defaults to the empty string `''`. */
+  readonly cdiId?: string;
 
   /**
    * Whether to only allow disarming (not deactivating) LNAV when receiving the `AP_NAV1_HOLD_OFF` event

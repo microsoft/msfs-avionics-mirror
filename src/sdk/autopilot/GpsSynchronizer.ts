@@ -1,72 +1,87 @@
 import { ConsumerSubject, EventBus, SimVarValueType } from '../data';
-import { FlightPlan, FlightPlanner, FlightPlannerEvents, FlightPlanSegmentType, FlightPlanUtils, LegDefinition, LegDefinitionFlags } from '../flightplan';
+import { FlightPlan, FlightPlanSegmentType, FlightPlanUtils, FlightPlanner, LegDefinition, LegDefinitionFlags } from '../flightplan';
 import { AhrsEvents, GNSSEvents } from '../instruments';
 import { BitFlags } from '../math/BitFlags';
 import { UnitType } from '../math/NumberUnit';
 import { AdditionalApproachType, FacilityLoader, FacilityType, FixTypeFlags, LegTurnDirection, LegType } from '../navigation';
+import { MappedSubject } from '../sub/MappedSubject';
 import { Subject } from '../sub/Subject';
-import { VNavDataEvents } from './data';
-import { LNavDataEvents } from './data/LNavDataEvents';
-import { LNavEvents } from './data/LNavEvents';
-import { VNavEvents } from './data/VNavEvents';
-import { VNavUtils } from './VNavUtils';
+import { Subscribable } from '../sub/Subscribable';
+import { SubscribableMapFunctions } from '../sub/SubscribableMapFunctions';
+import { SubscribableUtils } from '../sub/SubscribableUtils';
+import { Subscription } from '../sub/Subscription';
+import { LNavDataEvents } from './lnav/LNavDataEvents';
+import { LNavEvents } from './lnav/LNavEvents';
+import { LNavUtils } from './lnav/LNavUtils';
+import { VNavDataEvents } from './vnav/VNavDataEvents';
+import { VNavEvents } from './vnav/VNavEvents';
+import { VNavUtils } from './vnav/VNavUtils';
 
 /**
- * A class that synchronizes the local NXi state to the sim GPS system.
+ * Configuration options for {@link GpsSynchronizer}.
+ */
+export type GpsSynchronizerOptions = {
+  /** The index of the LNAV from which to source data. Defaults to `0`. */
+  lnavIndex?: number | Subscribable<number>;
+
+  /** The index of the VNAV from which to source data. Defaults to `0`. */
+  vnavIndex?: number | Subscribable<number>;
+};
+
+/**
+ * A class that synchronizes LNAV and VNAV data to the sim's built-in GPS system.
  */
 export class GpsSynchronizer {
 
+  private readonly lnavIndex: Subscribable<number>;
+  private readonly vnavIndex: Subscribable<number>;
+
   private magvar = 0;
-  private distanceToCurrentLeg = -1;
   private groundSpeed = 0;
-  private trueTrack = 0;
   private zuluTime = 0;
   private numPlanLegs = Subject.create<number>(0);
   private hasReachedDestination = Subject.create<boolean>(false);
   private isDestinationLegActive = Subject.create<boolean>(false);
   private isDirectToActive = Subject.create<boolean>(false);
 
-  private readonly gpFpa = ConsumerSubject.create(this.bus.getSubscriber<VNavEvents>().on('gp_fpa').whenChanged(), 0);
-  private readonly gpDeviation = ConsumerSubject.create(this.bus.getSubscriber<VNavEvents>().on('gp_vertical_deviation').whenChangedBy(1), 0);
+  private isVNavIndexValid = false;
+  private gpFpa = 0;
+  private gpDeviation = 0;
+  private gpDistance = 0;
   private readonly isApproachActive = Subject.create<boolean>(false);
-  private readonly gpAvailable = ConsumerSubject.create<boolean>(this.bus.getSubscriber<VNavDataEvents>().on('gp_available').whenChanged(), false);
-  private readonly gsiScaling = ConsumerSubject.create<number>(this.bus.getSubscriber<VNavDataEvents>().on('gp_gsi_scaling').whenChanged(), UnitType.FOOT.convertTo(1000, UnitType.METER));
+  private readonly gpAvailable = ConsumerSubject.create<boolean>(null, false);
+
+  private readonly publishGpVsr = MappedSubject.create(
+    SubscribableMapFunctions.and(),
+    this.isApproachActive,
+    this.gpAvailable
+  ).pause();
+  private readonly vnavVsr = ConsumerSubject.create(null, 0);
+  private readonly gpVsr = ConsumerSubject.create(null, 0);
+
+  private publishedGpAngleError: number | undefined = undefined;
 
   /**
-   * Creates an instance of GpsSynchronizer.
-   * @param bus The bus to source events from.
-   * @param flightPlanner An instance of the flight planner.
+   * Creates a new instance of GpsSynchronizer.
+   * @param bus The event bus.
+   * @param flightPlanner The flight planner from which to source active flight plan data.
    * @param facLoader An instance of the facility loader.
+   * @param options Options with which to configure the synchronizer.
    */
-  constructor(private bus: EventBus, private flightPlanner: FlightPlanner, private readonly facLoader: FacilityLoader) {
-    const lnav = bus.getSubscriber<LNavEvents & LNavDataEvents>();
-    lnav.on('lnavdata_dtk_mag').handle(this.onDtkChanged.bind(this));
-    lnav.on('lnavdata_xtk').handle(this.onXtkChanged.bind(this));
-    lnav.on('lnavdata_waypoint_distance').handle(this.onLnavDistanceChanged.bind(this));
-    lnav.on('lnavdata_waypoint_bearing_mag').handle(this.onLnavBearingChanged.bind(this));
-    lnav.on('lnavdata_destination_distance').handle(this.onLnavDistanceToDestinationChanged.bind(this));
-    lnav.on('lnav_course_to_steer').handle(this.onLNavCourseToSteerChanged.bind(this));
-    lnav.on('lnavdata_cdi_scale').whenChanged().handle(this.onCdiScaleChanged.bind(this));
+  public constructor(
+    private bus: EventBus,
+    private flightPlanner: FlightPlanner,
+    private readonly facLoader: FacilityLoader,
+    options?: Readonly<GpsSynchronizerOptions>
+  ) {
+    this.lnavIndex = SubscribableUtils.toSubscribable(options?.lnavIndex ?? 0, true);
+    this.vnavIndex = SubscribableUtils.toSubscribable(options?.vnavIndex ?? 0, true);
+
+    this.initLNav();
+    this.initVNav();
 
     const ahrs = bus.getSubscriber<AhrsEvents>();
     ahrs.on('hdg_deg_true').handle(this.onTrueHeadingChanged.bind(this));
-
-    const vnav = bus.getSubscriber<VNavEvents & VNavDataEvents>();
-    vnav.on('vnav_required_vs').handle(vs => {
-      if (!this.isApproachActive.get() || !this.gpAvailable.get()) {
-        this.requiredVsChanged(vs);
-      }
-    });
-
-    vnav.on('gp_required_vs').handle(vs => {
-      if (this.isApproachActive.get() && this.gpAvailable.get()) {
-        this.requiredVsChanged(vs);
-      }
-    });
-
-    vnav.on('vnav_target_altitude').handle(this.onTargetAltChanged.bind(this));
-    vnav.on('vnav_active_leg_alt').handle(this.onActiveLegAltChanged.bind(this));
-    vnav.on('gp_distance').handle(this.onGpDistanceChanged.bind(this));
 
     const gnss = bus.getSubscriber<GNSSEvents>();
     gnss.on('gps-position').handle(this.onPositionChanged.bind(this));
@@ -75,8 +90,7 @@ export class GpsSynchronizer {
     gnss.on('ground_speed').handle(this.onGroundSpeedChanged.bind(this));
     gnss.on('magvar').handle(this.onMagvarChanged.bind(this));
 
-    const plan = bus.getSubscriber<FlightPlannerEvents>();
-    plan.on('fplActiveLegChange').handle(() => {
+    this.flightPlanner.onEvent('fplActiveLegChange').handle(() => {
       this.hasReachedDestination.set(false);
       if (this.flightPlanner.hasActiveFlightPlan()) {
         const activeFlightplan = this.flightPlanner.getActiveFlightPlan();
@@ -87,18 +101,141 @@ export class GpsSynchronizer {
       }
     });
 
-    plan.on('fplSegmentChange').handle(this.onPlanChanged.bind(this));
-    plan.on('fplIndexChanged').handle(this.onPlanChanged.bind(this));
+    this.flightPlanner.onEvent('fplSegmentChange').handle(this.onPlanChanged.bind(this));
+    this.flightPlanner.onEvent('fplIndexChanged').handle(this.onPlanChanged.bind(this));
 
     this.numPlanLegs.sub(this.onNumLegsChanged.bind(this));
 
     this.isDirectToActive.sub(this.onDirectToActive, true);
     this.hasReachedDestination.sub(this.onDestinationReached, true);
-    this.gpDeviation.sub(this.onGpDeviation, true);
-    this.gpFpa.sub(this.onGpFpa, true);
     this.isApproachActive.sub(this.onApproachActive, true);
-    this.gpAvailable.sub(this.onApproachHasGp, true);
-    this.gsiScaling.sub(this.onGsiScaling, true);
+  }
+
+  /**
+   * Initializes this synchronizer's LNAV subscriptions.
+   */
+  private initLNav(): void {
+    const lnav = this.bus.getSubscriber<LNavEvents & LNavDataEvents>();
+
+    const dtkHandler = this.onDtkChanged.bind(this);
+    const xtkHandler = this.onXtkChanged.bind(this);
+    const disHandler = this.onLnavDistanceChanged.bind(this);
+    const brgHandler = this.onLnavBearingChanged.bind(this);
+    const destDisHandler = this.onLnavDistanceToDestinationChanged.bind(this);
+    const courseToSteerHandler = this.onLNavCourseToSteerChanged.bind(this);
+    const cdiScaleHandler = this.onCdiScaleChanged.bind(this);
+
+    const lnavSubs: Subscription[] = [];
+
+    this.lnavIndex.sub(index => {
+      for (const sub of lnavSubs) {
+        sub.destroy();
+      }
+      lnavSubs.length = 0;
+
+      if (LNavUtils.isValidLNavIndex(index)) {
+        const suffix = LNavUtils.getEventBusTopicSuffix(index);
+        lnavSubs.push(
+          lnav.on(`lnavdata_dtk_mag${suffix}`).whenChanged().handle(dtkHandler),
+          lnav.on(`lnavdata_xtk${suffix}`).whenChanged().handle(xtkHandler),
+          lnav.on(`lnavdata_waypoint_distance${suffix}`).whenChanged().handle(disHandler),
+          lnav.on(`lnavdata_waypoint_bearing_mag${suffix}`).whenChanged().handle(brgHandler),
+          lnav.on(`lnavdata_destination_distance${suffix}`).whenChanged().handle(destDisHandler),
+          lnav.on(`lnav_course_to_steer${suffix}`).whenChanged().handle(courseToSteerHandler),
+          lnav.on(`lnavdata_cdi_scale${suffix}`).whenChanged().handle(cdiScaleHandler)
+        );
+      } else {
+        dtkHandler(0);
+        xtkHandler(0);
+        disHandler(0);
+        brgHandler(0);
+        destDisHandler(0);
+        courseToSteerHandler(0);
+        cdiScaleHandler(0);
+      }
+    }, true);
+  }
+
+  /**
+   * Initializes this synchronizer's VNAV and glidepath subscriptions.
+   */
+  private initVNav(): void {
+    const vnavSubs: Subscription[] = [];
+
+    const vnav = this.bus.getSubscriber<VNavEvents & VNavDataEvents>();
+
+    const approachHasGpHandler = this.onApproachHasGpChanged.bind(this);
+    const gpFpaHandler = this.onGpFpaChanged.bind(this);
+    const gpDeviationHandler = this.onGpDeviationChanged.bind(this);
+    const gpDistanceHandler = this.onGpDistanceChanged.bind(this);
+    const gsiScaleHandler = this.onGsiScalingChanged.bind(this);
+    const targetAltHandler = this.onTargetAltChanged.bind(this);
+    const activeLegAltHandler = this.onActiveLegAltChanged.bind(this);
+    const vsrHandler = this.onVsrChanged.bind(this);
+
+    const gpAvailableSub = this.gpAvailable.sub(approachHasGpHandler, false, true);
+
+    const vnavVsrSub = this.vnavVsr.sub(vsrHandler, false, true);
+    const gpVsrSub = this.gpVsr.sub(vsrHandler, false, true);
+
+    const publishGpVsrSub = this.publishGpVsr.sub(publishGpVsr => {
+      if (publishGpVsr) {
+        vnavVsrSub.pause();
+        gpVsrSub.resume(true);
+      } else {
+        gpVsrSub.pause();
+        vnavVsrSub.resume(true);
+      }
+    }, false, true);
+
+    this.vnavIndex.sub(index => {
+      for (const sub of vnavSubs) {
+        sub.destroy();
+      }
+      vnavSubs.length = 0;
+
+      this.isVNavIndexValid = VNavUtils.isValidVNavIndex(index);
+      if (this.isVNavIndexValid) {
+        const suffix = VNavUtils.getEventBusTopicSuffix(index);
+
+        vnavSubs.push(
+          vnav.on(`gp_fpa${suffix}`).whenChanged().handle(gpFpaHandler),
+          vnav.on(`gp_vertical_deviation${suffix}`).whenChanged().handle(gpDeviationHandler),
+          vnav.on(`gp_distance${suffix}`).whenChanged().handle(gpDistanceHandler),
+          vnav.on(`gp_gsi_scaling${suffix}`).whenChanged().handle(gsiScaleHandler),
+          vnav.on(`vnav_target_altitude${suffix}`).whenChanged().handle(targetAltHandler),
+          vnav.on(`vnav_active_leg_alt${suffix}`).whenChanged().handle(activeLegAltHandler),
+        );
+
+        this.gpAvailable.setConsumer(vnav.on(`gp_available${suffix}`));
+        gpAvailableSub.resume(true);
+
+        this.vnavVsr.setConsumer(vnav.on(`vnav_required_vs${suffix}`));
+        this.gpVsr.setConsumer(vnav.on(`gp_required_vs${suffix}`));
+
+        this.publishGpVsr.resume();
+        publishGpVsrSub.resume(true);
+      } else {
+        gpAvailableSub.pause();
+
+        approachHasGpHandler(false);
+        gpFpaHandler(0);
+        gpDeviationHandler(0);
+        gpDistanceHandler(0);
+        gsiScaleHandler(0);
+        targetAltHandler(0);
+        activeLegAltHandler(0);
+
+        this.gpAvailable.setConsumer(null);
+        this.vnavVsr.setConsumer(null);
+        this.gpVsr.setConsumer(null);
+        this.publishGpVsr.pause();
+        publishGpVsrSub.pause();
+        vnavVsrSub.pause();
+        gpVsrSub.pause();
+        vsrHandler(0);
+      }
+    }, true);
   }
 
   /**
@@ -116,6 +253,28 @@ export class GpsSynchronizer {
       numPlanLegs = plan.length;
     }
     this.numPlanLegs.set(numPlanLegs);
+
+    this.updateGpAngleError();
+  }
+
+  /**
+   * Updates the current glidepath angle error.
+   */
+  private updateGpAngleError(): void {
+    let valueToPublish: number;
+
+    if (!this.isVNavIndexValid || this.gpFpa <= 0) {
+      valueToPublish = 0;
+    } else {
+      const fpaAltitude = VNavUtils.altitudeForDistance(this.gpFpa, this.gpDistance);
+      const calculatedFpaToTarget = VNavUtils.getFpa(this.gpDistance, fpaAltitude + this.gpDeviation);
+      valueToPublish = this.gpFpa - calculatedFpaToTarget;
+    }
+
+    if (valueToPublish !== this.publishedGpAngleError) {
+      this.publishedGpAngleError = valueToPublish;
+      SimVar.SetSimVarValue('GPS VERTICAL ANGLE ERROR', SimVarValueType.Degree, valueToPublish);
+    }
   }
 
   /**
@@ -176,25 +335,8 @@ export class GpsSynchronizer {
     SimVar.SetSimVarValue('GPS IS ARRIVED', SimVarValueType.Bool, state);
   };
 
-  private onGpDeviation = (deviation: number): void => {
-    const deviationMeters = UnitType.FOOT.convertTo(deviation, UnitType.METER);
-    SimVar.SetSimVarValue('GPS VERTICAL ERROR', SimVarValueType.Meters, -deviationMeters);
-  };
-
-  private onGpFpa = (fpa: number): void => {
-    SimVar.SetSimVarValue('GPS VERTICAL ANGLE', SimVarValueType.Degree, fpa);
-  };
-
   private onApproachActive = (isApproachActive: boolean): void => {
     SimVar.SetSimVarValue('GPS IS APPROACH ACTIVE', SimVarValueType.Bool, isApproachActive);
-  };
-
-  private onApproachHasGp = (approachHasGp: boolean): void => {
-    SimVar.SetSimVarValue('GPS HAS GLIDEPATH', SimVarValueType.Bool, approachHasGp);
-  };
-
-  private onGsiScaling = (gsiScaling: number): void => {
-    SimVar.SetSimVarValue('GPS GSI SCALING', SimVarValueType.Meters, gsiScaling);
   };
 
   /**
@@ -405,50 +547,6 @@ export class GpsSynchronizer {
   }
 
   /**
-   * Handle when the VNAV Target Altitude changes.
-   * @param targetAlt Target Altitude [feet] (can be -1 if none is defined or available)
-   */
-  private onTargetAltChanged(targetAlt: number): void {
-    SimVar.SetSimVarValue('GPS TARGET ALTITUDE', SimVarValueType.Meters, targetAlt > 0 ? UnitType.FOOT.convertTo(targetAlt, UnitType.METER) : 0);
-  }
-
-  /**
-   * Handle when the VNAV Active Leg Altitude Changes.
-   * @param alt The active leg altitude in meters.
-   */
-  private onActiveLegAltChanged(alt: number): void {
-    SimVar.SetSimVarValue('GPS WP NEXT ALT', SimVarValueType.Meters, alt > 0 ? alt : 0);
-  }
-
-  /**
-   * Handles when the VNAV required VS changes.
-   * @param vs The required vertical speed.
-   */
-  private requiredVsChanged(vs: number): void {
-    // SimVar.SetSimVarValue('GPS WP VERTICAL SPEED', SimVarValueType.FPM, vs);
-    SimVar.SetSimVarValue('GPS WP VERTICAL SPEED', SimVarValueType.MetersPerSecond, UnitType.FPM.convertTo(vs, UnitType.MPS));
-  }
-
-  /**
-   * Handles when the distance to the GlidePath Target changes.
-   * @param dis The distance to the glidepath target (runway).
-   */
-  private onGpDistanceChanged(dis: number): void {
-    let verticalAngleError = 0;
-    const fpa = this.gpFpa.get();
-
-    if (fpa > 0) {
-      const deviation = this.gpDeviation.get();
-      const fpaAltitude = VNavUtils.altitudeForDistance(fpa, dis);
-      const calculatedFpaToTarget = VNavUtils.getFpa(dis, fpaAltitude + deviation);
-      verticalAngleError = fpa - calculatedFpaToTarget;
-    }
-
-    SimVar.SetSimVarValue('GPS VERTICAL ANGLE ERROR', SimVarValueType.Degree, verticalAngleError);
-
-  }
-
-  /**
    * Handles when the plane position changes.
    * @param pos The new plane position.
    */
@@ -464,6 +562,74 @@ export class GpsSynchronizer {
    */
   private onCdiScaleChanged(scaleNm: number): void {
     SimVar.SetSimVarValue('GPS CDI SCALING', SimVarValueType.Meters, UnitType.NMILE.convertTo(scaleNm, UnitType.METER));
+  }
+
+  /**
+   * Handles when whether the loaded approach has glidepath guidance changes.
+   * @param approachHasGp Whether the loaded approach has glidepath guidance.
+   */
+  private onApproachHasGpChanged(approachHasGp: boolean): void {
+    SimVar.SetSimVarValue('GPS HAS GLIDEPATH', SimVarValueType.Bool, approachHasGp);
+  }
+
+  /**
+   * Handles when the glidepath angle changes.
+   * @param fpa The new glidepath angle, in degrees.
+   */
+  private onGpFpaChanged(fpa: number): void {
+    this.gpFpa = fpa;
+    SimVar.SetSimVarValue('GPS VERTICAL ANGLE', SimVarValueType.Degree, fpa);
+  }
+
+  /**
+   * Handles when the glidepath deviation changes.
+   * @param deviation The new deviation, in feet.
+   */
+  private onGpDeviationChanged(deviation: number): void {
+    this.gpDeviation = deviation;
+    const deviationMeters = UnitType.FOOT.convertTo(deviation, UnitType.METER);
+    SimVar.SetSimVarValue('GPS VERTICAL ERROR', SimVarValueType.Meters, -deviationMeters);
+  }
+
+  /**
+   * Handles when the distance to the glidepath endpoint changes.
+   * @param dis The new distance to the glidepath endpoint, in feet.
+   */
+  private onGpDistanceChanged(dis: number): void {
+    this.gpDistance = dis;
+  }
+
+  /**
+   * Handles when the glidepath deviation scale changes.
+   * @param gsiScaling The new scale, in feet.
+   */
+  private onGsiScalingChanged(gsiScaling: number): void {
+    const gsiScalingMeters = UnitType.FOOT.convertTo(gsiScaling, UnitType.METER);
+    SimVar.SetSimVarValue('GPS GSI SCALING', SimVarValueType.Meters, gsiScalingMeters);
+  }
+
+  /**
+   * Handles when the VNAV target altitude changes.
+   * @param targetAlt The new target altitude, in feet (can be -1 if none is defined or available)
+   */
+  private onTargetAltChanged(targetAlt: number): void {
+    SimVar.SetSimVarValue('GPS TARGET ALTITUDE', SimVarValueType.Meters, targetAlt > 0 ? UnitType.FOOT.convertTo(targetAlt, UnitType.METER) : 0);
+  }
+
+  /**
+   * Handles when the VNAV active leg altitude changes.
+   * @param alt The new active leg altitude, in meters.
+   */
+  private onActiveLegAltChanged(alt: number): void {
+    SimVar.SetSimVarValue('GPS WP NEXT ALT', SimVarValueType.Meters, alt > 0 ? alt : 0);
+  }
+
+  /**
+   * Handles when the vertical speed required changes.
+   * @param vs The new required vertical speed, in feet per minute.
+   */
+  private onVsrChanged(vs: number): void {
+    SimVar.SetSimVarValue('GPS WP VERTICAL SPEED', SimVarValueType.MetersPerSecond, UnitType.FPM.convertTo(vs, UnitType.MPS));
   }
 
   /**

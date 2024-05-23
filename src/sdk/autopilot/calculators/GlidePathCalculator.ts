@@ -1,10 +1,12 @@
-import { EventBus } from '../../data';
-import { FlightPlan, FlightPlanLegIterator, FlightPlanner, FlightPlannerEvents } from '../../flightplan';
-import { GeoPoint, NavMath } from '../../geo';
-import { GNSSEvents } from '../../instruments';
-import { UnitType } from '../../math';
-import { FacilityType, ICAO } from '../../navigation';
-import { VNavUtils } from '../VNavUtils';
+import { EventBus } from '../../data/EventBus';
+import { FlightPlan } from '../../flightplan/FlightPlan';
+import { FlightPlanner } from '../../flightplan/FlightPlanner';
+import { GeoPoint } from '../../geo/GeoPoint';
+import { NavMath } from '../../geo/NavMath';
+import { GNSSEvents } from '../../instruments/GNSS';
+import { UnitType } from '../../math/NumberUnit';
+import { FacilityType, ICAO } from '../../navigation/Facilities';
+import { VNavUtils } from '../vnav/VNavUtils';
 
 /**
  * Handles the calculation of a Glide Path.
@@ -18,57 +20,76 @@ export class GlidePathCalculator {
 
   public glidepathFpa = 0;
 
-  private flightPlanIterator = new FlightPlanLegIterator();
-
   /**
-   * Creates an instance of the GlidePathCalculator.
-   * @param bus The EventBus to use with this instance.
+   * Creates a new instance of GlidePathCalculator.
+   * @param bus The event bus.
    * @param flightPlanner The flight planner to use with this instance.
    * @param primaryPlanIndex The primary plan index to use for calculating GlidePath.
    */
-  constructor(private readonly bus: EventBus, private readonly flightPlanner: FlightPlanner, private readonly primaryPlanIndex: number) {
-    const fpl = bus.getSubscriber<FlightPlannerEvents>();
-
-    fpl.on('fplCopied').handle(e => e.planIndex === 0 || e.targetPlanIndex === 0 && this.onPlanChanged());
-    fpl.on('fplCreated').handle(e => e.planIndex === 0 && this.onPlanChanged());
-    fpl.on('fplLegChange').handle(e => {
-      if (e.planIndex === 0) {
+  public constructor(
+    private readonly bus: EventBus,
+    private readonly flightPlanner: FlightPlanner,
+    private readonly primaryPlanIndex: number
+  ) {
+    this.flightPlanner.onEvent('fplCopied').handle(e => {
+      if (e.targetPlanIndex === this.primaryPlanIndex) {
         this.onPlanChanged();
       }
     });
-    fpl.on('fplLoaded').handle(e => e.planIndex === 0 && this.onPlanChanged());
-    fpl.on('fplSegmentChange').handle(e => {
-      if (e.planIndex === 0) {
+    this.flightPlanner.onEvent('fplCreated').handle(e => {
+      if (e.planIndex === this.primaryPlanIndex) {
         this.onPlanChanged();
       }
     });
-    fpl.on('fplIndexChanged').handle(() => this.onPlanChanged());
-
-    fpl.on('fplCalculated').handle(e => e.planIndex === 0 && this.onPlanCalculated());
+    this.flightPlanner.onEvent('fplLegChange').handle(e => {
+      if (e.planIndex === this.primaryPlanIndex) {
+        this.onPlanChanged();
+      }
+    });
+    this.flightPlanner.onEvent('fplLoaded').handle(e => {
+      if (e.planIndex === this.primaryPlanIndex) {
+        this.onPlanChanged();
+      }
+    });
+    this.flightPlanner.onEvent('fplSegmentChange').handle(e => {
+      if (e.planIndex === this.primaryPlanIndex) {
+        this.onPlanChanged();
+      }
+    });
+    this.flightPlanner.onEvent('fplIndexChanged').handle(() => this.onPlanChanged());
+    this.flightPlanner.onEvent('fplCalculated').handle(e => {
+      if (e.planIndex === this.primaryPlanIndex) {
+        this.onPlanCalculated();
+      }
+    });
 
     const gnss = this.bus.getSubscriber<GNSSEvents>();
     gnss.on('gps-position').handle(lla => {
       this.planePos.set(lla.lat, lla.long);
-      //this.currentGpsAltitude = UnitType.METER.convertTo(lla.alt, UnitType.FOOT);
     });
-    //gnss.on('ground_speed').handle(gs => this.currentGroundSpeed = gs);
   }
 
-  private onPlanChanged = (): void => {
+  /**
+   * Responds to when the primary flight plan changes.
+   */
+  private onPlanChanged(): void {
     if (this.flightPlanner.hasFlightPlan(this.primaryPlanIndex)) {
       const plan = this.flightPlanner.getFlightPlan(this.primaryPlanIndex);
       this.mapLegIndex = VNavUtils.getMissedApproachLegIndex(plan);
       const faf = VNavUtils.getFafIndex(plan);
       this.fafLegIndex = faf !== undefined ? faf : Math.max(0, plan.length - 1);
     }
-  };
+  }
 
-  private onPlanCalculated = (): void => {
+  /**
+   * Responds to when the primary flight plan's lateral flight path vectors are calculated.
+   */
+  private onPlanCalculated(): void {
     if (this.flightPlanner.hasFlightPlan(this.primaryPlanIndex)) {
       const plan = this.flightPlanner.getFlightPlan(this.primaryPlanIndex);
       this.calcGlidepathFpa(plan);
     }
-  };
+  }
 
   /**
    * Gets the current Glidepath distance in meters.

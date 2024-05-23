@@ -19,6 +19,9 @@ type XmlAuralAlertBaseDefinition = {
   /** The priority of the alert within its queue. */
   priority: number;
 
+  /** The name of the track on which to play the alert. */
+  track?: string;
+
   /** The sequence of sound atoms to play for the alert. */
   sequence: string[];
 
@@ -27,6 +30,12 @@ type XmlAuralAlertBaseDefinition = {
 
   /** Whether the alert should repeat while active. */
   repeat: boolean;
+
+  /**
+   * The amount of time, in milliseconds, that the alert can remain in the queue before it is automatically removed
+   * from the queue.
+   */
+  queuedLifetime?: number;
 };
 
 /**
@@ -135,6 +144,8 @@ export class DefaultXmlAuralAlertParser implements XmlAuralAlertParser {
       priority = 0;
     }
 
+    const track = element.getAttribute('track') ?? '';
+
     const sequence = this.parseSequence(element.querySelector(':scope>Sequence'));
     if (!sequence || sequence.length === 0) {
       return undefined;
@@ -170,6 +181,18 @@ export class DefaultXmlAuralAlertParser implements XmlAuralAlertParser {
         repeat = false;
     }
 
+    let queuedLifetime: number | undefined;
+    const queuedLifetimeText = element.getAttribute('queued-lifetime');
+    if (queuedLifetimeText) {
+      queuedLifetime = Number(queuedLifetimeText);
+      if (isNaN(queuedLifetime)) {
+        console.warn('AuralAlertSystemXmlAdapter: unrecognized alert "queued-lifetime" attribute (must be a number). Defaulting to Infinity.');
+        queuedLifetime = undefined;
+      }
+    } else {
+      queuedLifetime = undefined;
+    }
+
     let logic: CompositeLogicXMLElement | undefined = undefined;
 
     const conditionElement = element.querySelector(':scope>Condition');
@@ -183,9 +206,11 @@ export class DefaultXmlAuralAlertParser implements XmlAuralAlertParser {
         uuid,
         queue,
         priority,
+        track,
         sequence,
         continuous,
         repeat,
+        queuedLifetime,
         logic
       };
     } else {
@@ -240,9 +265,11 @@ export class DefaultXmlAuralAlertParser implements XmlAuralAlertParser {
           uuid,
           queue,
           priority,
+          track,
           sequence,
           continuous,
-          repeat: repeat,
+          repeat,
+          queuedLifetime,
           casUuid,
           casPriority,
           casSuffix,
@@ -318,9 +345,11 @@ export class AuralAlertSystemXmlAdapter {
         uuid: def.uuid,
         queue: def.queue,
         priority: def.priority,
+        track: def.track,
         sequence: def.sequence,
         continuous: def.continuous,
-        repeat: def.repeat
+        repeat: def.repeat,
+        queuedLifetime: def.queuedLifetime
       });
 
       if (def.type === 'logic') {

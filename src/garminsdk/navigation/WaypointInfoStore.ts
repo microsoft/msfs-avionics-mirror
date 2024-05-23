@@ -7,6 +7,17 @@ import {
 import { Regions } from './Regions';
 
 /**
+ * Configuration options for {@link WaypointInfoStore}.
+ */
+export type WaypointInfoStoreOptions = {
+  /**
+   * Whether to fall back to using an airport's city name for region text if the airport's region cannot be found.
+   * Defaults to `true`.
+   */
+  useRegionFallbackForAirport?: boolean;
+};
+
+/**
  * A store for commonly used waypoint info.
  */
 export class WaypointInfoStore {
@@ -26,51 +37,26 @@ export class WaypointInfoStore {
     return this._location;
   }
 
-  private readonly _name = this._facility.map(facility => {
+  /** The name of this store's current waypoint, or `undefined` if there is no such value. */
+  public readonly name = this._facility.map(facility => {
     if (facility?.name) {
       return Utils.Translate(facility.name);
     }
 
     return undefined;
-  });
-  /** The name of this store's current waypoint, or `undefined` if there is no such value. */
-  public readonly name = this._name as Subscribable<string | undefined>;
+  }) as Subscribable<string | undefined>;
 
-  private readonly _region = this._facility.map(facility => {
-    if (facility === null) {
-      return undefined;
-    }
-
-    if (FacilityUtils.isFacilityType(facility, FacilityType.Airport)) {
-      let text = AirportUtils.tryGetRegionCode(facility);
-
-      if (text !== undefined) {
-        text = Regions.getName(text);
-      } else if (facility.city !== '') {
-        // If we've failed to get a region code for the airport, we will fall back to using the city name if available.
-        text = facility.city.split(', ').map(name => Utils.Translate(name)).join(', ');
-      }
-
-      return text;
-    } else {
-      const region = Regions.getName(ICAO.getRegionCode(facility.icao));
-      if (region !== '') {
-        return region;
-      }
-    }
-  });
   /** The region of this store's current waypoint, or `undefined` if there is no such value. */
-  public readonly region = this._region as Subscribable<string | undefined>;
+  public readonly region: Subscribable<string | undefined>;
 
-  private readonly _city = this._facility.map(facility => {
+  /** The city associated with this store's current waypoint, or `undefined` if there is no such value. */
+  public readonly city = this._facility.map(facility => {
     if (facility?.city) {
       return facility.city.split(', ').map(name => Utils.Translate(name)).join(', ');
     }
 
     return undefined;
-  });
-  /** The city associated with this store's current waypoint, or `undefined` if there is no such value. */
-  public readonly city = this._city as Subscribable<string | undefined>;
+  }) as Subscribable<string | undefined>;
 
   private readonly _distance = NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN));
   // eslint-disable-next-line jsdoc/require-returns
@@ -105,11 +91,15 @@ export class WaypointInfoStore {
    * waypoint. If not defined, this store's waypoint can still be set via its `.waypoint` property.
    * @param planePos A subscribable which provides the current airplane position for this store. If not defined, then
    * this store will not provide distance- or bearing-to-waypoint information.
+   * @param options Options with which to configure the store.
    */
   constructor(
     waypoint?: Waypoint | null | Subscribable<Waypoint | null>,
-    private readonly planePos?: Subscribable<GeoPointInterface>
+    private readonly planePos?: Subscribable<GeoPointInterface>,
+    options?: Readonly<WaypointInfoStoreOptions>
   ) {
+    this.region = this._facility.map(this.getFacilityRegion.bind(this, options?.useRegionFallbackForAirport ?? true));
+
     if (SubscribableUtils.isSubscribable(waypoint)) {
       this.waypointPipe = waypoint.pipe(this.waypoint);
     } else {
@@ -118,6 +108,34 @@ export class WaypointInfoStore {
 
     this.waypointSub = this.waypoint.sub(this.onWaypointChanged.bind(this), true);
     this.pposSub = planePos?.sub(this.onPlanePosChanged.bind(this), true);
+  }
+
+  /**
+   * Gets the region text for a facility.
+   * @param useFallbackForAirport Whether to fall back
+   * @param facility The facility for which to get region text.
+   * @returns The region text for the specified facility, or `undefined` if the region text could not be retrieved.
+   */
+  private getFacilityRegion(useFallbackForAirport: boolean, facility: Facility | null): string | undefined {
+    if (facility === null) {
+      return undefined;
+    }
+
+    if (FacilityUtils.isFacilityType(facility, FacilityType.Airport)) {
+      let text = AirportUtils.tryGetRegionCode(facility);
+
+      if (text !== undefined) {
+        text = Regions.getName(text);
+      } else if (useFallbackForAirport && facility.city !== '') {
+        // If we've failed to get a region code for the airport, we will fall back to using the city name if available.
+        text = facility.city.split(', ').map(name => Utils.Translate(name)).join(', ');
+      }
+
+      return text;
+    } else {
+      const region = Regions.getName(ICAO.getRegionCode(facility.icao));
+      return region === '' ? undefined : region;
+    }
   }
 
   /**

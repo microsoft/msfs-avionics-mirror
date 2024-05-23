@@ -3,7 +3,7 @@ import {
   MapLayer, MapLayerProps, MapProjection, MapSyncedCanvasLayer, NullPathStream, VecNSubject, VNode
 } from '@microsoft/msfs-sdk';
 
-import { ProcedureType } from '../../../flightplan/Fms';
+import { ProcedureType } from '../../../flightplan/FmsTypes';
 import { GarminFacilityWaypointCache } from '../../../navigation/GarminFacilityWaypointCache';
 import { MapFlightPathProcRenderer } from '../flightplan/MapFlightPathProcRenderer';
 import { MapFlightPlanWaypointRecordManager } from '../flightplan/MapFlightPlanWaypointRecordManager';

@@ -1,0 +1,382 @@
+.hsi-rose {
+  /* The root rose element has width and height of 0px, and its origin is at the center of the compass. */
+
+  position: relative;
+}
+
+.gdu-460-display .hsi-rose {
+  font-size: 19px;
+
+  --hsi-rose-compass-radius: 133px;
+  --hsi-rose-compass-size: 266px;
+
+  --hsi-rose-outer-tick-offset: 9px;
+  --hsi-rose-outer-tick-length: 14px;
+  --hsi-rose-outer-tick-width: 4px;
+
+  --hsi-rose-bearing-pointer-circle-stroke-width: 2px;
+
+  --hsi-rose-hdgtrk-readout-right: -37px;
+  --hsi-rose-hdgtrk-readout-top: -177px;
+  --hsi-rose-hdgtrk-readout-height: 33px;
+  --hsi-rose-hdgtrk-readout-padding: 0px 1px 0px 4px;
+  --hsi-rose-hdgtrk-readout-border-radius: 5px;
+  --hsi-rose-hdgtrk-readout-border-width: 2px;
+  --hsi-rose-hdgtrk-readout-font-size: 26px;
+
+  --hsi-rose-trk-readout-title-margin-right: 4px;
+  --hsi-rose-trk-readout-title-font-size: 14px;
+
+  --hsi-rose-index-pointer-top: -146px;
+  --hsi-rose-index-pointer-width: 16px;
+  --hsi-rose-index-pointer-height: 11px;
+
+  --hsi-rose-plane-icon-size: 38px;
+
+  --hsi-rose-hdg-pointer-top: -13px;
+  --hsi-rose-hdg-pointer-width: 8px;
+  --hsi-rose-hdg-pointer-height: 10px;
+
+  --hsi-rose-hdg-bug-top: -9px;
+  --hsi-rose-hdg-bug-width: 24px;
+  --hsi-rose-hdg-bug-height: 12px;
+
+  --hsi-rose-track-pointer-bottom: 136px;
+  --hsi-rose-track-pointer-width: 14px;
+  --hsi-rose-track-pointer-height: 7px;
+
+  --hsi-rose-track-line-outline-width: 4px;
+  --hsi-rose-track-line-outline-dasharray: 0 4 6 0;
+  --hsi-rose-track-line-outline-dashoffset: -3;
+  --hsi-rose-track-line-stroke-width: 2px;
+  --hsi-rose-track-line-stroke-dasharray: 0 5 4 1;
+  --hsi-rose-track-line-stroke-dashoffset: -3;
+
+  --hsi-rose-nav-source-left: -40px;
+  --hsi-rose-nav-source-top: -46px;
+
+  --hsi-rose-nav-sensitivity-left: 40px;
+  --hsi-rose-nav-sensitivity-top: -46px;
+
+  --hsi-rose-susp-left: 40px;
+  --hsi-rose-susp-top: 15px;
+
+  --hsi-rose-xtk-top: 38px;
+
+  --hsi-rose-hdg-failure-box-margin: 2px;
+
+  --hsi-rose-hdg-failure-box-cross-margin-horiz: 2px;
+  --hsi-rose-hdg-failure-box-cross-margin-vert: 4px;
+  --hsi-rose-hdg-failure-box-cross-line-outline-width: 5px;
+  --hsi-rose-hdg-failure-box-cross-line-stroke-width: 4px;
+}
+
+.hsi-rose-checklist-box {
+  position: absolute;
+  left: calc(var(--hsi-rose-compass-radius) * -1 + var(--hsi-rose-hdg-bug-top));
+  top: var(--hsi-rose-hdgtrk-readout-top);
+  width: calc(var(--hsi-rose-compass-size) + var(--hsi-rose-hdg-bug-top) * -2);
+  height: calc(var(--hsi-rose-compass-radius) - var(--hsi-rose-hdg-bug-top) - var(--hsi-rose-hdgtrk-readout-top));
+  pointer-events: none;
+}
+
+.hsi-rose-outer-tick-container {
+  /** Private vars **/
+  --hsi-rose-outer-tick-outer-radius: calc(var(--hsi-rose-compass-radius) + var(--hsi-rose-outer-tick-offset) + var(--hsi-rose-outer-tick-length));
+}
+
+.hsi-rose-outer-tick {
+  position: absolute;
+  left: calc(-1 * var(--hsi-rose-outer-tick-width) / 2);
+  top: calc(-1 * var(--hsi-rose-outer-tick-outer-radius));
+  width: var(--hsi-rose-outer-tick-width);
+  height: var(--hsi-rose-outer-tick-length);
+  background: var(--g3x-color-white);
+  transform-origin: calc(var(--hsi-rose-outer-tick-width) / 2) var(--hsi-rose-outer-tick-outer-radius);
+}
+
+.hsi-rose-bearing-pointer-circle {
+  position: absolute;
+  left: calc(-1 * var(--hsi-rose-compass-radius));
+  top: calc(-1 * var(--hsi-rose-compass-radius));
+  width: var(--hsi-rose-compass-size);
+  height: var(--hsi-rose-compass-size);
+  fill: none;
+  stroke: var(--g3x-color-white);
+  stroke-width: var(--hsi-rose-bearing-pointer-circle-stroke-width);
+}
+
+.hsi-rose-hdgtrk-readout {
+  position: absolute;
+  right: var(--hsi-rose-hdgtrk-readout-right);
+  top: var(--hsi-rose-hdgtrk-readout-top);
+  height: var(--hsi-rose-hdgtrk-readout-height);
+  padding: var(--hsi-rose-hdgtrk-readout-padding);
+  background: var(--g3x-color-black);
+  border-radius: var(--hsi-rose-hdgtrk-readout-border-radius);
+  border: var(--hsi-rose-hdgtrk-readout-border-width) solid #484848;
+  font-size: var(--hsi-rose-hdgtrk-readout-font-size);
+  transform: rotateX(0deg);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.hsi-rose-hdgtrk-readout-value {
+  height: 0.8em;
+}
+
+.hsi-rose-hdg-readout {
+  color: var(--g3x-color-white);
+}
+
+.hsi-rose-trk-readout {
+  color: var(--g3x-color-magenta);
+}
+
+.hsi-rose-trk-readout-title {
+  height: 0.8em;
+  margin-right: var(--hsi-rose-trk-readout-title-margin-right);
+  font-size: var(--hsi-rose-trk-readout-title-font-size);
+}
+
+.hsi-rose-index-pointer {
+  position: absolute;
+  left: calc(-1 * var(--hsi-rose-index-pointer-width) / 2);
+  top: var(--hsi-rose-index-pointer-top);
+  width: var(--hsi-rose-index-pointer-width);
+  height: var(--hsi-rose-index-pointer-height);
+}
+
+.hsi-rose-index-pointer-background {
+  fill: var(--g3x-color-white);
+}
+
+.hsi-rose-index-pointer-foreground {
+  fill: var(--g3x-color-black);
+}
+
+.hsi-rose .hsi-turn-rate-indicator {
+  position: absolute;
+  left: calc(-1 * var(--hsi-rose-compass-radius));
+  bottom: 0px;
+  transform: rotateX(0);
+}
+
+.hsi-rose-plane-icon {
+  position: absolute;
+  left: calc(50% - var(--hsi-rose-plane-icon-size) / 2);
+  top: calc(50% - var(--hsi-rose-plane-icon-size) / 2);
+  width: var(--hsi-rose-plane-icon-size);
+  height: var(--hsi-rose-plane-icon-size);
+  fill: var(--g3x-color-white);
+}
+
+.hsi-rose-rotating {
+  position: absolute;
+  left: calc(-1 * var(--hsi-rose-compass-radius));
+  top: calc(-1 * var(--hsi-rose-compass-radius));
+  width: var(--hsi-rose-compass-size);
+  height: var(--hsi-rose-compass-size);
+}
+
+.hsi-rose .hsi-compass {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+
+.hsi-rose-hdg-pointer {
+  position: absolute;
+  left: calc(50% - var(--hsi-rose-hdg-pointer-width) / 2);
+  top: var(--hsi-rose-hdg-pointer-top);
+  width: var(--hsi-rose-hdg-pointer-width);
+  height: var(--hsi-rose-hdg-pointer-height);
+  transform-origin: calc(var(--hsi-rose-hdg-pointer-width) / 2) calc(0% + var(--hsi-rose-compass-radius) - var(--hsi-rose-hdg-pointer-top));
+  fill: var(--g3x-color-white);
+  stroke: var(--g3x-color-black);
+  stroke-width: 1px;
+  overflow: visible;
+}
+
+.hsi-rose .hsi-course-needle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+
+.hsi-rose .hsi-bearing-pointer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+
+.hsi-rose-track-pointer {
+  position: absolute;
+  left: calc(-1 * var(--hsi-rose-track-pointer-width) / 2);
+  bottom: var(--hsi-rose-track-pointer-bottom);
+  width: var(--hsi-rose-track-pointer-width);
+  height: var(--hsi-rose-track-pointer-height);
+  fill: var(--g3x-color-magenta);
+  stroke: var(--g3x-color-black);
+  stroke-width: 1px;
+  overflow: visible;
+}
+
+.hsi-rose-track-line {
+  overflow: visible;
+}
+
+.hsi-rose-track-line-outline {
+  fill: none;
+  stroke: var(--g3x-color-black);
+  stroke-width: var(--hsi-rose-track-line-outline-width);
+  stroke-dasharray: var(--hsi-rose-track-line-outline-dasharray);
+  stroke-dashoffset: var(--hsi-rose-track-line-outline-dashoffset);
+}
+
+.hsi-rose-track-line-stroke {
+  fill: none;
+  stroke: var(--g3x-color-white);
+  stroke-width: var(--hsi-rose-track-line-stroke-width);
+  stroke-dasharray: var(--hsi-rose-track-line-stroke-dasharray);
+  stroke-dashoffset: var(--hsi-rose-track-line-stroke-dashoffset);
+}
+
+.hsi-rose-hdg-bug {
+  position: absolute;
+  left: calc(50% - var(--hsi-rose-hdg-bug-width) / 2);
+  top: var(--hsi-rose-hdg-bug-top);
+  width: var(--hsi-rose-hdg-bug-width);
+  height: var(--hsi-rose-hdg-bug-height);
+  transform-origin: calc(var(--hsi-rose-hdg-bug-width) / 2) calc(0% + var(--hsi-rose-compass-radius) - var(--hsi-rose-hdg-bug-top));
+  fill: var(--g3x-color-cyan);
+  stroke: var(--g3x-color-black);
+  stroke-width: 1px;
+  overflow: visible;
+}
+
+.hsi-rose-nav-source {
+  position: absolute;
+  left: var(--hsi-rose-nav-source-left);
+  top: var(--hsi-rose-nav-source-top);
+  transform: translateX(-50%);
+  white-space: pre;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.hsi-rose-nav-source-value {
+  color: var(--hsi-nav-color);
+}
+
+.hsi-rose-nav-source-flag {
+  display: none;
+}
+
+.hsi-rose-nav-source-int {
+  color: var(--g3x-color-cyan);
+}
+
+.hsi-rose-nav-source-int .hsi-rose-nav-source-flag-int {
+  display: block;
+}
+
+.hsi-rose-nav-source-rev {
+  color: var(--g3x-color-yellow);
+}
+
+.hsi-rose-nav-source-rev .hsi-rose-nav-source-flag-rev {
+  display: block;
+}
+
+.hsi-rose-nav-sensitivity {
+  position: absolute;
+  left: var(--hsi-rose-nav-sensitivity-left);
+  top: var(--hsi-rose-nav-sensitivity-top);
+  transform: translateX(-50%);
+  color: var(--g3x-color-magenta);
+  white-space: pre;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.hsi-rose-nav-sensitivity-value-unit {
+  font-size: 0.5em;
+}
+
+.hsi-rose-nav-sensitivity-flag-rev {
+  color: var(--g3x-color-yellow);
+}
+
+.hsi-rose-susp {
+  position: absolute;
+  left: var(--hsi-rose-susp-left);
+  top: var(--hsi-rose-susp-top);
+  transform: translateX(-50%);
+  color: var(--g3x-color-magenta);
+  white-space: pre;
+}
+
+.hsi-rose-xtk {
+  position: absolute;
+  left: 0px;
+  top: var(--hsi-rose-xtk-top);
+  transform: translateX(-50%);
+  color: var(--g3x-color-magenta);
+  white-space: pre;
+}
+
+.hsi-rose-xtk-value {
+  display: inline-block;
+}
+
+.touch-button.hsi-rose-button {
+  position: absolute;
+  left: calc(-1 * var(--hsi-rose-compass-radius));
+  top: calc(-1 * var(--hsi-rose-compass-radius));
+  width: var(--hsi-rose-compass-size);
+  height: var(--hsi-rose-compass-size);
+
+  --touch-button-background: none;
+  --touch-button-box-shadow: none;
+  --touch-button-border: none;
+  --touch-button-border-radius: 50%;
+
+  --touch-button-primed-background: none;
+  --touch-button-primed-box-shadow: none;
+}
+
+/* Fail States */
+
+.heading-data-failed .hsi-rose .hsi-compass-label,
+.heading-data-failed .hsi-rose-bearing-pointer-circle,
+.heading-data-failed .hsi-rose-hdg-pointer,
+.heading-data-failed .hsi-rose-track-bug,
+.heading-data-failed .hsi-rose-hdg-bug {
+  display: none;
+}
+
+.heading-data-failed .hsi-rose-hdgtrk-readout-value {
+  visibility: hidden;
+}
+
+.hsi-rose-hdg-failure-box {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(100% - 2 * var(--hsi-rose-hdg-failure-box-margin));
+  height: calc(100% - 2 * var(--hsi-rose-hdg-failure-box-margin));
+  transform: translate(-50%, -50%);
+
+  --failure-box-cross-margin-horiz: var(--hsi-rose-hdg-failure-box-cross-margin-horiz);
+  --failure-box-cross-margin-vert: var(--hsi-rose-hdg-failure-box-cross-margin-vert);
+  --failure-box-cross-line-outline-width: var(--hsi-rose-hdg-failure-box-cross-line-outline-width);
+  --failure-box-cross-line-stroke-width: var(--hsi-rose-hdg-failure-box-cross-line-stroke-width);
+}
+
+.hsi-rose-hdg-failure-box .failure-box-label {
+  height: 0.8em;
+}

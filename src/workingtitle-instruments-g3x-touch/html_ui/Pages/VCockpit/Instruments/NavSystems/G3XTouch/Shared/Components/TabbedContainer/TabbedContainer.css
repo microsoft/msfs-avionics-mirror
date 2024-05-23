@@ -1,0 +1,610 @@
+html {
+  /* The border color of the the container's content box. Also used for selected tabs. */
+  --tabbed-container-content-box-border-color: var(--g3x-color-border-gray);
+
+  /* The border color of unselected tabs. */
+  --tabbed-container-tab-unselected-border-color: #585858;
+}
+
+.gdu-460-display {
+  --tabbed-container-content-box-border-radius: 5px;
+  /* The border width of the container's content box. Also used for tabs. */
+  --tabbed-container-content-box-border-width: 3px;
+  /* The margin between the container's content area and the border of the content box. */
+  --tabbed-container-content-area-margin: 2px;
+
+  /* The length of the container's tab list scroll arrows along the axis in which the tabs are arranged. */
+  --tabbed-container-tab-arrow-length: 10px;
+  /* The width of the container's tab list scroll arrows along the axis orthogonal to the one in which the tabs are arranged. */
+  --tabbed-container-tab-arrow-width: 16px;
+  /* The margin between the container's tab list scroll arrows and the edges of their containing boxes along the axis in which the tabs are arranged. */
+  --tabbed-container-tab-arrow-margin: 3px;
+
+  /* The width of each tab along the axis orthogonal to the one in which the tabs are arranged. */
+  --tabbed-container-tab-width: 70px;
+  --tabbed-container-tab-border-radius: 6px;
+
+  /* The width of the bar indicating a tab has been selected along the axis orthogonal to the one in which the tabs are arranged. */
+  --tabbed-container-tab-select-bar-width: 4px;
+  /* The margin between each tab selection indicator bar and the outside edge of its tab. */
+  --tabbed-container-tab-select-bar-margin-outer: 1px;
+  /* The margin between each tab selection indicator bar and the edges of its tab along the axis in which the tabs are arranged. */
+  --tabbed-container-tab-select-bar-margin-side: 0px;
+}
+
+.tabbed-container {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.tabbed-container-left {
+  flex-flow: row-reverse nowrap;
+}
+
+.tabbed-container-right {
+  flex-flow: row nowrap;
+}
+
+.tabbed-container-top {
+  flex-flow: column-reverse nowrap;
+}
+
+.tabbed-container-bottom {
+  flex-flow: column nowrap;
+}
+
+/* ---- Content ---- */
+
+.tabbed-container-content-box {
+  /*
+   * If --tabbed-container-content-area-width or --tabbed-container-content-area-height is defined, then use it to
+   * define the content area's width/height. Otherwise, fall back to stretching the content box to fill as much
+   * available area as possible.
+   */
+
+  flex-grow: 1;
+  box-sizing: content-box;
+  position: relative;
+  width: var(--tabbed-container-content-area-width, auto);
+  height: var(--tabbed-container-content-area-height, auto);
+  padding: var(--tabbed-container-content-area-margin);
+  border: solid var(--tabbed-container-content-box-border-width) var(--tabbed-container-content-box-border-color);
+  border-radius: var(--tabbed-container-content-box-border-radius);
+  background: var(--g3x-color-black);
+  display: flex;
+  align-items: stretch;
+}
+
+.tabbed-content-wrapper {
+  flex-grow: 1;
+  position: relative;
+}
+
+/* ---- Tab list ---- */
+
+/*
+ * We need the selected tabs to overlap the content box border so that they can occlude the border to create the
+ * impression that the selected tab is "connected" to the content box. So we need to extend the width of the tab list
+ * by the content box border width and shift the tab list over to overlap the border by the same amount. Note that
+ * we can't just have the selected tabs overflow the tab list because Coherent doesn't support separate values for
+ * overflow-x and overflow-y and we need the tab list to hide overflow along the scroll axis.
+ */
+
+.tabbed-container-tab-box {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  background: var(--g3x-color-black);
+
+  /* Private var - DO NOT OVERRIDE. */
+  --tabbed-container-tab-list-clip-length: calc(var(--tabbed-container-tab-list-length) + 2 * var(--tabbed-container-tab-border-radius));
+  --tabbed-container-tab-list-width: calc(var(--tabbed-container-tab-width) + var(--tabbed-container-content-box-border-width));
+}
+
+.tabbed-container-vert .tabbed-container-tab-box {
+  width: var(--tabbed-container-tab-width);
+  flex-flow: column nowrap;
+}
+
+.tabbed-container-horiz .tabbed-container-tab-box {
+  height: var(--tabbed-container-tab-width);
+  flex-flow: row nowrap;
+}
+
+.tabbed-container-tab-list-clip {
+  order: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.tabbed-container-vert .tabbed-container-tab-list-clip {
+  flex-flow: column nowrap;
+  height: var(--tabbed-container-tab-list-clip-length);
+  width: var(--tabbed-container-tab-list-width);
+}
+
+.tabbed-container-horiz .tabbed-container-tab-list-clip {
+  flex-flow: row nowrap;
+  width: var(--tabbed-container-tab-list-clip-length);
+  height: var(--tabbed-container-tab-list-width);
+}
+
+.tabbed-container-right .tabbed-container-tab-list-clip {
+  right: var(--tabbed-container-content-box-border-width);
+}
+
+.tabbed-container-bottom .tabbed-container-tab-list-clip {
+  bottom: var(--tabbed-container-content-box-border-width);
+}
+
+.tabbed-container-tab-list {
+  position: relative;
+}
+
+.tabbed-container-selected-tab-container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  display: flex;
+  align-items: stretch;
+  /* Make sure the container div does not block pointer events from reaching the unselected tabs. */
+  pointer-events: none;
+}
+
+.tabbed-container-vert .tabbed-container-selected-tab-container {
+  width: 100%;
+  flex-flow: column nowrap;
+}
+
+.tabbed-container-horiz .tabbed-container-selected-tab-container {
+  height: 100%;
+  flex-flow: row nowrap;
+}
+
+/* ---- Tab arrows ---- */
+
+.tabbed-container-tab-arrow-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--g3x-color-black);
+}
+
+.tabbed-container-tab-arrow-box-back {
+  order: -1;
+}
+
+.tabbed-container-tab-arrow-box-forward {
+  order: 1;
+}
+
+.tabbed-container-vert .tabbed-container-tab-arrow-box {
+  flex-flow: column nowrap;
+}
+
+.tabbed-container-horiz .tabbed-container-tab-arrow-box {
+  flex-flow: row nowrap;
+}
+
+.tabbed-container-vert .tabbed-container-tab-arrow-box-back {
+  top: calc(var(--tabbed-container-tab-border-radius) / 2);
+}
+
+.tabbed-container-vert .tabbed-container-tab-arrow-box-forward {
+  bottom: calc(var(--tabbed-container-tab-border-radius) / 2);
+}
+
+.tabbed-container-horiz .tabbed-container-tab-arrow-box-back {
+  left: calc(var(--tabbed-container-tab-border-radius) / 2);
+}
+
+.tabbed-container-horiz .tabbed-container-tab-arrow-box-forward {
+  right: calc(var(--tabbed-container-tab-border-radius) / 2);
+}
+
+.tabbed-container-tab-arrow {
+  fill: var(--g3x-color-green);
+  transform: scale(1);
+  transition: fill 0.4s, transform 0.4s;
+}
+
+.tabbed-container-vert .tabbed-container-tab-arrow {
+  width: var(--tabbed-container-tab-arrow-width);
+  height: var(--tabbed-container-tab-arrow-length);
+  margin: var(--tabbed-container-tab-arrow-margin) 0px;
+}
+
+.tabbed-container-horiz .tabbed-container-tab-arrow {
+  width: var(--tabbed-container-tab-arrow-length);
+  height: var(--tabbed-container-tab-arrow-width);
+  margin: 0px var(--tabbed-container-tab-arrow-margin);
+}
+
+.tabbed-container-tab-arrow-box-disabled .tabbed-container-tab-arrow {
+  fill: var(--g3x-color-disabled-gray);
+  transform: scale(0.9);
+}
+
+/* ---- Tabs ---- */
+
+.tabbed-content-tab {
+  position: relative;
+  /* Need to explicitly set pointer-events because selected tabs will inherit the 'none' value from their container. */
+  pointer-events: auto;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.tabbed-container-vert .tabbed-content-tab {
+  height: var(--tabbed-container-tab-length);
+  margin-bottom: var(--tabbed-container-tab-spacing);
+  flex-flow: column nowrap;
+}
+
+.tabbed-container-horiz .tabbed-content-tab {
+  width: var(--tabbed-container-tab-length);
+  margin-right: var(--tabbed-container-tab-spacing);
+  flex-flow: row nowrap;
+}
+
+/* Make sure hidden tabs in the selected tab container don't block pointer events from reaching the unselected tabs. */
+.tabbed-content-tab.visibility-hidden {
+  pointer-events: none;
+}
+
+.tabbed-content-tab-button {
+  --touch-button-background: linear-gradient(var(--tabbed-content-tab-button-bg-gradient-dir), var(--g3x-color-black) 50%, #101010 54%, #424242 100%);
+  --touch-button-box-shadow: none;
+
+  --touch-button-primed-background: rgba(27, 98, 242, 1);
+  --touch-button-primed-box-shadow: none;
+
+  --touch-button-border-width: var(--tabbed-container-content-box-border-width);
+  --touch-button-border-color: var(--tabbed-container-tab-unselected-border-color);
+}
+
+.tabbed-container-vert .tabbed-content-tab-button {
+  height: 100%;
+}
+
+.tabbed-container-horiz .tabbed-content-tab-button {
+  width: 100%;
+}
+
+.touch-button.tabbed-content-tab-button {
+  display: flex;
+  align-items: stretch;
+}
+
+.tabbed-container-left .tabbed-content-tab-button {
+  margin-right: var(--tabbed-container-content-box-border-width);
+  flex-flow: row-reverse nowrap;
+  border-right: none;
+  --touch-button-border-radius: var(--tabbed-container-tab-border-radius) 0px 0px var(--tabbed-container-tab-border-radius);
+
+  /* Private var - DO NOT OVERRIDE. */
+  --tabbed-content-tab-button-bg-gradient-dir: to left;
+}
+
+.tabbed-container-right .tabbed-content-tab-button {
+  margin-left: var(--tabbed-container-content-box-border-width);
+  flex-flow: row nowrap;
+  border-left: none;
+  --touch-button-border-radius: 0px var(--tabbed-container-tab-border-radius) var(--tabbed-container-tab-border-radius) 0px;
+
+  /* Private var - DO NOT OVERRIDE. */
+  --tabbed-content-tab-button-bg-gradient-dir: to right;
+}
+
+.tabbed-container-top .tabbed-content-tab-button {
+  margin-bottom: var(--tabbed-container-content-box-border-width);
+  flex-flow: column-reverse nowrap;
+  border-bottom: none;
+  --touch-button-border-radius: var(--tabbed-container-tab-border-radius) var(--tabbed-container-tab-border-radius) 0px 0px;
+
+  /* Private var - DO NOT OVERRIDE. */
+  --tabbed-content-tab-button-bg-gradient-dir: to top;
+}
+
+.tabbed-container-bottom .tabbed-content-tab-button {
+  margin-top: var(--tabbed-container-content-box-border-width);
+  flex-flow: column nowrap;
+  border-top: none;
+  --touch-button-border-radius: 0px 0px var(--tabbed-container-tab-border-radius) var(--tabbed-container-tab-border-radius);
+
+  /* Private var - DO NOT OVERRIDE. */
+  --tabbed-content-tab-button-bg-gradient-dir: to bottom;
+}
+
+.tabbed-container-selected-tab-container .tabbed-content-tab-button {
+  --touch-button-border-color: var(--tabbed-container-content-box-border-color);
+}
+
+.tabbed-content-tab-button-inner-shadow {
+  position: absolute;
+  left: calc(-1 * var(--touch-button-border-width));
+  right: calc(-1 * var(--touch-button-border-width));
+  top: calc(-1 * var(--touch-button-border-width));
+  bottom: calc(-1 * var(--touch-button-border-width));
+  border-radius: inherit;
+  border: solid calc(var(--touch-button-border-width) + 1px) rgba(0, 0, 0, 0.7);
+}
+
+.tabbed-container-left .tabbed-content-tab-button-inner-shadow {
+  border-right: none;
+}
+
+.tabbed-container-right .tabbed-content-tab-button-inner-shadow {
+  border-left: none;
+}
+
+.tabbed-container-top .tabbed-content-tab-button-inner-shadow {
+  border-bottom: none;
+}
+
+.tabbed-container-bottom .tabbed-content-tab-button-inner-shadow {
+  border-top: none;
+}
+
+.tabbed-content-tab-button .touch-button-label {
+  flex-grow: 1;
+  position: relative;
+  left: unset;
+  top: unset;
+  transform: unset;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.tabbed-container-vert .tabbed-content-tab-button .touch-button-label {
+  margin-top: var(--tabbed-container-tab-button-label-margin-top, 0px);
+  margin-bottom: var(--tabbed-container-tab-button-label-margin-bottom, 0px);
+}
+
+.tabbed-container-left .tabbed-content-tab-button .touch-button-label {
+  margin-left: var(--tabbed-container-tab-button-label-margin-outer, calc(var(--tabbed-container-tab-select-bar-width) + var(--tabbed-container-tab-select-bar-margin-outer)));
+  margin-right: var(--tabbed-container-tab-button-label-margin-inner, 0px);
+}
+
+.tabbed-container-right .tabbed-content-tab-button .touch-button-label {
+  margin-right: var(--tabbed-container-tab-button-label-margin-outer, calc(var(--tabbed-container-tab-select-bar-width) + var(--tabbed-container-tab-select-bar-margin-outer)));
+  margin-left: var(--tabbed-container-tab-button-label-margin-inner, 0px);
+}
+
+.tabbed-container-horiz .tabbed-content-tab-button .touch-button-label {
+  margin-left: var(--tabbed-container-tab-button-label-margin-left, 0px);
+  margin-right: var(--tabbed-container-tab-button-label-margin-right, 0px);
+}
+
+.tabbed-container-top .tabbed-content-tab-button .touch-button-label {
+  margin-top: var(--tabbed-container-tab-button-label-margin-outer, 0px);
+  margin-bottom: var(--tabbed-container-tab-button-label-margin-inner, 0px);
+}
+
+.tabbed-container-bottom .tabbed-content-tab-button .touch-button-label {
+  margin-bottom: var(--tabbed-container-tab-button-label-margin-outer, 0px);
+  margin-top: var(--tabbed-container-tab-button-label-margin-inner, 0px);
+}
+
+.tabbed-content-tab-selected-bar {
+  position: absolute;
+}
+
+.tabbed-container-vert .tabbed-content-tab-selected-bar {
+  width: var(--tabbed-container-tab-select-bar-width);
+  top: var(--tabbed-container-tab-select-bar-margin-side);
+  bottom: var(--tabbed-container-tab-select-bar-margin-side);
+}
+
+.tabbed-container-horiz .tabbed-content-tab-selected-bar {
+  position: absolute;
+  height: var(--tabbed-container-tab-select-bar-width);
+  left: var(--tabbed-container-tab-select-bar-margin-side);
+  right: var(--tabbed-container-tab-select-bar-margin-side);
+}
+
+.tabbed-container-left .tabbed-content-tab-selected-bar {
+  left: var(--tabbed-container-tab-select-bar-margin-outer);
+}
+
+.tabbed-container-right .tabbed-content-tab-selected-bar {
+  right: var(--tabbed-container-tab-select-bar-margin-outer);
+}
+
+.tabbed-container-top .tabbed-content-tab-selected-bar {
+  top: var(--tabbed-container-tab-select-bar-margin-outer);
+}
+
+.tabbed-container-bottom .tabbed-content-tab-selected-bar {
+  bottom: var(--tabbed-container-tab-select-bar-margin-outer);
+}
+
+.tabbed-container-selected-tab-container .tabbed-content-tab-selected-bar {
+  background: linear-gradient(var(--tabbed-content-tab-selected-bar-gradient-dir), var(--g3x-color-focus-blue), rgba(27, 98, 242, 0.7));
+}
+
+.tabbed-container-left .tabbed-container-selected-tab-container .tabbed-content-tab-selected-bar {
+  /* Private var - DO NOT OVERRIDE. */
+  --tabbed-content-tab-selected-bar-gradient-dir: to right bottom;
+}
+
+.tabbed-container-right .tabbed-container-selected-tab-container .tabbed-content-tab-selected-bar {
+  /* Private var - DO NOT OVERRIDE. */
+  --tabbed-content-tab-selected-bar-gradient-dir: to left bottom;
+}
+
+.tabbed-container-top .tabbed-container-selected-tab-container .tabbed-content-tab-selected-bar {
+  /* Private var - DO NOT OVERRIDE. */
+  --tabbed-content-tab-selected-bar-gradient-dir: to left bottom;
+}
+
+.tabbed-container-bottom .tabbed-container-selected-tab-container .tabbed-content-tab-selected-bar {
+  /* Private var - DO NOT OVERRIDE. */
+  --tabbed-content-tab-selected-bar-gradient-dir: to left top;
+}
+
+/* ---- Inverted border radius effect for selected tabs ---- */
+
+/* This div occludes the inside border of the tab. */
+.tabbed-content-tab-border-occlude {
+  display: none;
+}
+
+.tabbed-container-selected-tab-container .tabbed-content-tab-border-occlude {
+  display: block;
+  position: absolute;
+  background: var(--g3x-color-black);
+}
+
+.tabbed-container-vert .tabbed-content-tab-border-occlude {
+  top: 0px;
+  width: var(--tabbed-container-content-box-border-width);
+  height: 100%;
+}
+
+.tabbed-container-horiz .tabbed-content-tab-border-occlude {
+  left: 0px;
+  width: 100%;
+  height: var(--tabbed-container-content-box-border-width);
+}
+
+.tabbed-container-left .tabbed-content-tab-border-occlude {
+  right: 0px;
+}
+
+.tabbed-container-right .tabbed-content-tab-border-occlude {
+  left: 0px;
+}
+
+.tabbed-container-top .tabbed-content-tab-border-occlude {
+  bottom: 0px;
+}
+
+.tabbed-container-bottom .tabbed-content-tab-border-occlude {
+  top: 0px;
+}
+
+/* These divs occlude the tab and content box borders at the corners where the tab touches the content box. */
+.tabbed-content-tab-inverted-border {
+  position: absolute;
+  width: var(--tabbed-container-tab-border-radius);
+  height: var(--tabbed-container-tab-border-radius);
+}
+
+/*
+ * Align each inverted border element such that it extends from the inner edge of the tab button's border "outward"
+ * along the axis in which the tabs are arranged. This will allow the element to occlude the tab button's border and
+ * line up the pseudo-element's inverted-radius border (see below) with the tab button's border.
+ */
+
+.tabbed-container-vert .tabbed-content-tab-inverted-border-1 {
+  top: calc(var(--tabbed-container-content-box-border-width) - var(--tabbed-container-tab-border-radius));
+}
+
+.tabbed-container-vert .tabbed-content-tab-inverted-border-2 {
+  bottom: calc(var(--tabbed-container-content-box-border-width) - var(--tabbed-container-tab-border-radius));
+}
+
+.tabbed-container-horiz .tabbed-content-tab-inverted-border-1 {
+  left: calc(var(--tabbed-container-content-box-border-width) - var(--tabbed-container-tab-border-radius));
+}
+
+.tabbed-container-horiz .tabbed-content-tab-inverted-border-2 {
+  right: calc(var(--tabbed-container-content-box-border-width) - var(--tabbed-container-tab-border-radius));
+}
+
+/*
+ * Align the inverted border elements with the "inner" edge of the tab button (the edge that touches the tab content
+ * box).
+ */
+
+.tabbed-container-left .tabbed-content-tab-inverted-border {
+  right: 0px;
+}
+
+.tabbed-container-right .tabbed-content-tab-inverted-border {
+  left: 0px;
+}
+
+.tabbed-container-top .tabbed-content-tab-inverted-border {
+  bottom: 0px;
+}
+
+.tabbed-container-bottom .tabbed-content-tab-inverted-border {
+  top: 0px;
+}
+
+.tabbed-container-selected-tab-container .tabbed-content-tab-inverted-border {
+  /* This prevents the pseudo-element box-shadow (see below) from overflowing into the tab button and tab content box. */
+  overflow: hidden;
+}
+
+/* These pseudo-elements render the borders with inverted radius that connect the tab to the content box. */
+.tabbed-container-selected-tab-container .tabbed-content-tab-inverted-border::after {
+  content: "";
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border-color: var(--tabbed-container-content-box-border-color);
+  border-width: var(--tabbed-container-content-box-border-width);
+  /* The box shadow occludes the borders of the tab button and tab content box behind the part where the tab "connects" with the content box. */
+  box-shadow: 0 0 0 calc(var(--tabbed-container-tab-border-radius) * 0.5) var(--g3x-color-black);
+}
+
+.tabbed-container-left .tabbed-container-selected-tab-container .tabbed-content-tab-inverted-border-1::after {
+  border-bottom-right-radius: var(--tabbed-container-tab-border-radius);
+  border-right-style: solid;
+  border-bottom-style: solid;
+}
+
+.tabbed-container-left .tabbed-container-selected-tab-container .tabbed-content-tab-inverted-border-2::after {
+  border-top-right-radius: var(--tabbed-container-tab-border-radius);
+  border-right-style: solid;
+  border-top-style: solid;
+}
+
+.tabbed-container-right .tabbed-container-selected-tab-container .tabbed-content-tab-inverted-border-1::after {
+  border-bottom-left-radius: var(--tabbed-container-tab-border-radius);
+  border-left-style: solid;
+  border-bottom-style: solid;
+}
+
+.tabbed-container-right .tabbed-container-selected-tab-container .tabbed-content-tab-inverted-border-2::after {
+  border-top-left-radius: var(--tabbed-container-tab-border-radius);
+  border-left-style: solid;
+  border-top-style: solid;
+}
+
+.tabbed-container-top .tabbed-container-selected-tab-container .tabbed-content-tab-inverted-border-1::after {
+  border-bottom-right-radius: var(--tabbed-container-tab-border-radius);
+  border-right-style: solid;
+  border-bottom-style: solid;
+}
+
+.tabbed-container-top .tabbed-container-selected-tab-container .tabbed-content-tab-inverted-border-2::after {
+  border-bottom-left-radius: var(--tabbed-container-tab-border-radius);
+  border-left-style: solid;
+  border-bottom-style: solid;
+}
+
+.tabbed-container-bottom .tabbed-container-selected-tab-container .tabbed-content-tab-inverted-border-1::after {
+  border-top-right-radius: var(--tabbed-container-tab-border-radius);
+  border-right-style: solid;
+  border-top-style: solid;
+}
+
+.tabbed-container-bottom .tabbed-container-selected-tab-container .tabbed-content-tab-inverted-border-2::after {
+  border-top-left-radius: var(--tabbed-container-tab-border-radius);
+  border-left-style: solid;
+  border-top-style: solid;
+}

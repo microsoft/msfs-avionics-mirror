@@ -15,6 +15,9 @@ export interface LatLonDisplayProps extends ComponentProps {
 
   /** CSS class(es) to add to the root of the icon component. */
   class?: string | SubscribableSet<string>;
+
+  /** The number of fractional digits to display for minutes. Optional, defaults to 2. */
+  minFracDigits?: number;
 }
 
 /**
@@ -72,19 +75,21 @@ export class LatLonDisplay extends DisplayComponent<LatLonDisplayProps> {
       deg++;
       minutes = 0;
     }
+    const fractionDigits = this.props.minFracDigits ?? 2;
 
     prefixSub.set(prefix);
-    numSub.set(`${deg.toString().padStart(padDeg, '0')}°${minutes.toFixed(2).padStart(5, '0')}'`);
+    numSub.set(`${deg.toString().padStart(padDeg, '0')}°${minutes.toFixed(fractionDigits).padStart(fractionDigits + 3, '0')}'`);
   }
 
   /**
    * Displays the blank default value.
    */
   private clearDisplay(): void {
+    const fractionDigits = this.props.minFracDigits ?? 2;
     this.latPrefix.set('_');
-    this.latNum.set('__°__.__\'');
+    this.latNum.set(`__°__.${'_'.repeat(fractionDigits)}'`);
     this.lonPrefix.set('_');
-    this.lonNum.set('___°__.__\'');
+    this.lonNum.set(`___°__.${'_'.repeat(fractionDigits)}'`);
   }
 
   /** @inheritdoc */

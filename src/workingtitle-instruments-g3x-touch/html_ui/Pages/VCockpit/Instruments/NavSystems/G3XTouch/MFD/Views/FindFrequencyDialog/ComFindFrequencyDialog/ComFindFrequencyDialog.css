@@ -1,0 +1,65 @@
+.com-find-dialog {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .com-find-dialog {
+  width: 570px;
+  height: 630px;
+  margin: 0 1px;
+  padding: 1px 1px 1px;
+  font-size: 19px;
+
+  --com-find-dialog-title-font-size: 21px;
+
+  --com-find-dialog-input-row-max-width: 480px;
+
+  --com-find-dialog-freq-title-margin-bottom: 2px;
+
+  --com-find-dialog-input-width: 158px;
+  --com-find-dialog-input-height: 40px;
+  --com-find-dialog-input-font-size: 26px;
+
+  --com-find-dialog-numpad-width: 264px;
+  --com-find-dialog-numpad-height: 352px;
+
+  --com-find-dialog-middle-row-bottom-margin: 18px;
+
+  --com-find-dialog-volume-label-font-size: 18px;
+
+  --tabbed-container-content-area-height: 515px;
+  --tabbed-container-content-area-margin: 1px;
+}
+
+.com-find-dialog-title {
+  font-size: var(--com-find-dialog-title-font-size);
+  text-align: center;
+}
+
+
+.com-find-dialog-title-icon {
+  width: 26px;
+  height: 17px;
+  margin-right: 6px;
+}
+
+.com-find-dialog .tabbed-content-tab-button .touch-button-label {
+  white-space: pre-line;
+}
+
+.com-find-dialog-tab-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+.com-find-dialog-tabbed-content {
+  flex-grow: 1;
+}
+
+

@@ -1,6 +1,6 @@
-import { AirportFacility, ApproachProcedure, ArraySubject, FacilityType, FSComponent, ICAO, Subject, VNode } from '@microsoft/msfs-sdk';
+import { AirportFacility, ArraySubject, FacilityType, FSComponent, ICAO, Subject, VNode } from '@microsoft/msfs-sdk';
 
-import { Fms, FmsUtils, ProcedureType } from '@microsoft/msfs-garminsdk';
+import { Fms, FmsUtils, GarminApproachProcedure, ProcedureType } from '@microsoft/msfs-garminsdk';
 
 import { ApproachNameDisplay } from '../../../../Shared/UI/FPL';
 import { MenuItemDefinition, PopoutMenuItem } from '../../../../Shared/UI/Dialogs/PopoutMenuItem';
@@ -34,7 +34,7 @@ export class MFDProc extends UiView<MFDProcProps> {
   private readonly departure = Subject.create('_ _ _ _-');
 
   private readonly destinationAirportSub = Subject.create<AirportFacility | null>(null);
-  private readonly approachSub = Subject.create<ApproachProcedure | null>(null);
+  private readonly approachSub = Subject.create<GarminApproachProcedure | null>(null);
 
   /**
    * A local method to get the ident from an ICAO.

@@ -1,0 +1,62 @@
+.pfd-fpl-inset {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border: solid 3px var(--g3x-color-border-light-gray);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--g3x-color-white);
+  font-size: 19px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+
+  --touch-button-border: none;
+  --touch-button-background: none;
+  --touch-button-box-shadow: none;
+
+  --touch-button-primed-background: none;
+  --touch-button-primed-box-shadow: none;
+
+  --pfd-fpl-inset-header-padding-left: 26px;
+
+  --pfd-fpl-inset-list-margin: 0px 4px 0px 10px;
+}
+
+.gdu-display-eis-left.gdu-display-eis-narrow .pfd-fpl-inset,
+.gdu-display-eis-right.gdu-display-eis-narrow .pfd-fpl-inset {
+  --pfd-fpl-inset-header-padding-left: 10px;
+}
+
+.gdu-display-eis-left.gdu-display-eis-wide .pfd-fpl-inset,
+.gdu-display-eis-right.gdu-display-eis-wide .pfd-fpl-inset {
+  --pfd-fpl-inset-header-padding-left: 3px;
+
+  --pfd-fpl-inset-list-margin: 0px 1px;
+}
+
+.pfd-fpl-inset-header {
+  padding: 1px 3px 1px var(--pfd-fpl-inset-header-padding-left);
+  border-bottom: solid 1px var(--g3x-color-border-gray);
+  font-size: 17px;
+  white-space: pre;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.pfd-fpl-inset-list {
+  margin: var(--pfd-fpl-inset-list-margin);
+}
+
+.pfd-fpl-inset-list .ui-list-item {
+  left: 25px;
+  width: calc(100% - 25px);
+}
+
+.pfd-fpl-inset-list .touch-button.ui-list-item-button {
+  background: none;
+}

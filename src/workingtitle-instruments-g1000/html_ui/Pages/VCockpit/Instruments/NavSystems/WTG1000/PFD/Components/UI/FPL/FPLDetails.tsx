@@ -1,6 +1,9 @@
 /// <reference types="@microsoft/msfs-types/js/avionics" />
 
-import { BlurReconciliation, EventBus, FlightPlanSegment, FlightPlanSegmentType, FocusPosition, FSComponent, HardwareUiControl, Subject, VNode } from '@microsoft/msfs-sdk';
+import {
+  BlurReconciliation, EventBus, FlightPlanSegment, FlightPlanSegmentType, FocusPosition, FSComponent,
+  HardwareUiControl, VNode
+} from '@microsoft/msfs-sdk';
 
 import { Fms, FmsUtils } from '@microsoft/msfs-garminsdk';
 
@@ -202,9 +205,11 @@ export class FPLDetails<P extends FPLDetailProps = FPLDetailProps> extends G1000
         id: 'remove-app', renderContent: (): VNode => <span>Remove Approach</span>, isEnabled: FmsUtils.isApproachLoaded(plan), action: (): void => {
           this.props.viewService.open('MessageDialog', true).setInput({
             renderContent: (): VNode => {
-              const approach = this.store.facilityInfo.destinationFacility ? FmsUtils.getApproachFromPlan(plan, this.store.facilityInfo.destinationFacility) : undefined;
+              const approach = this.store.facilityInfo.destinationFacility
+                ? FmsUtils.getApproachFromPlan(plan, this.store.facilityInfo.destinationFacility)
+                : undefined;
               return (
-                <div style='display: inline-block;'>Remove {<ApproachNameDisplay approach={Subject.create(approach ?? null)} />} from flight plan?</div>
+                <div style='display: inline-block;'>Remove {<ApproachNameDisplay approach={approach} />} from flight plan?</div>
               );
             },
             hasRejectButton: true

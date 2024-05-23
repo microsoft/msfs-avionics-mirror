@@ -1,4 +1,4 @@
-import { ComputedSubject, GeoPoint, GeoPointInterface, MutableSubscribable, Subject, Subscribable, VorToFrom } from '@microsoft/msfs-sdk';
+import { ComputedSubject, GeoPoint, GeoPointInterface, LatLonInterface, MutableSubscribable, Subject, Subscribable, VorToFrom } from '@microsoft/msfs-sdk';
 
 /**
  * Information pertaining to a navigation reference. A navigation reference consists of a geographic position and
@@ -103,7 +103,7 @@ export abstract class AbstractNavReferenceBase implements NavReferenceBase {
   private readonly _locationRefs = [new GeoPoint(0, 0), new GeoPoint(0, 0)];
   private _locationRefPointer = 0;
   /** @inheritdoc */
-  public readonly location = ComputedSubject.create<GeoPointInterface | null, GeoPointInterface | null>(
+  public readonly location = ComputedSubject.create<LatLonInterface | null, GeoPointInterface | null>(
     null,
     input => {
       if (input === null) {

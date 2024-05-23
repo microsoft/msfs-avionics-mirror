@@ -1,8 +1,10 @@
 import {
-  AirportFacility, AirportRunway, DebounceTimer, EventBus, FacilityType, FlightPlan, FlightPlanLeg, FlightPlannerEvents, FlightPlanSegmentType,
+  AirportFacility, AirportRunway, DebounceTimer, EventBus, FacilityType, FlightPlan, FlightPlanLeg, FlightPlanSegmentType,
   ICAO, LegType, OneWayRunway, RunwayUtils, Subscription, UserFacilityUtils, Wait
 } from '@microsoft/msfs-sdk';
-import { DirectToState, Fms } from './Fms';
+
+import { Fms } from './Fms';
+import { DirectToState } from './FmsTypes';
 
 /**
  * A manager for syncing the active flight plan to and from the sim.
@@ -49,16 +51,14 @@ export class FlightPlanSimSyncManager {
       }
     };
 
-    const sub = this.bus.getSubscriber<FlightPlannerEvents>();
-
     this.autoSyncSubs = [
-      sub.on('fplLoaded').handle(e => { e.planIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
-      sub.on('fplCopied').handle(e => { e.targetPlanIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
-      sub.on('fplSegmentChange').handle(e => { e.planIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
-      sub.on('fplLegChange').handle(e => { e.planIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
-      sub.on('fplOriginDestChanged').handle(e => { e.planIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
-      sub.on('fplProcDetailsChanged').handle(e => { e.planIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
-      sub.on('fplIndexChanged').handle(() => { scheduleSync(); }).pause(),
+      this.fms.flightPlanner.onEvent('fplLoaded').handle(e => { e.planIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
+      this.fms.flightPlanner.onEvent('fplCopied').handle(e => { e.targetPlanIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
+      this.fms.flightPlanner.onEvent('fplSegmentChange').handle(e => { e.planIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
+      this.fms.flightPlanner.onEvent('fplLegChange').handle(e => { e.planIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
+      this.fms.flightPlanner.onEvent('fplOriginDestChanged').handle(e => { e.planIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
+      this.fms.flightPlanner.onEvent('fplProcDetailsChanged').handle(e => { e.planIndex === this.fms.flightPlanner.activePlanIndex && scheduleSync(); }).pause(),
+      this.fms.flightPlanner.onEvent('fplIndexChanged').handle(() => { scheduleSync(); }).pause(),
     ];
   }
 

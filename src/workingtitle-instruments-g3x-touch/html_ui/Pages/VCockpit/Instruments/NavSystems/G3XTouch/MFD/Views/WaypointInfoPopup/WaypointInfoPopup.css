@@ -1,0 +1,52 @@
+.waypoint-info-popup {
+  position: relative;
+  color: var(--g3x-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.gdu-460-display .waypoint-info-popup {
+  width: 1210px;
+  min-width: 0px;
+  height: 668px;
+  margin: 0px 6px;
+  padding: 0px 7px 7px;
+
+  --waypoint-info-popup-title-height: 31px;
+  --waypoint-info-popup-title-font-size: 22px;
+}
+
+.gdu-460-display .ui-pane-half .waypoint-info-popup {
+  width: 600px;
+}
+
+.gdu-460-display.gdu-display-pfd-left .ui-pane-half .waypoint-info-popup {
+  margin-right: 0px;
+}
+
+.gdu-460-display.gdu-display-pfd-right .ui-pane-half .waypoint-info-popup {
+  margin-left: 0px;
+}
+
+.waypoint-info-popup-title {
+  height: var(--waypoint-info-popup-title-height);
+  font-size: var(--waypoint-info-popup-title-font-size);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.waypoint-info-popup-main {
+  flex-grow: 1;
+  position: relative;
+}
+
+.waypoint-info-popup .waypoint-info {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}

@@ -151,6 +151,12 @@ export type NextGenWaypointMapOptions = {
   /** The flight planner containing the active flight plan. Required to display the active flight plan. */
   flightPlanner?: FlightPlanner;
 
+  /** The index of the LNAV from which to source data. Defaults to `0`. */
+  lnavIndex?: number | Subscribable<number>;
+
+  /** The index of the VNAV from which to source data. Defaults to `0`. */
+  vnavIndex?: number | Subscribable<number>;
+
   /** The URI of the mini-compass's image asset. Required to display the mini-compass. */
   miniCompassImgSrc?: string;
 
@@ -377,6 +383,11 @@ export class NextGenWaypointMapBuilder {
               NextGenMapWaypointStyles.flightPlanIconStyles(true, 3, options.waypointStyleScale),
               NextGenMapWaypointStyles.flightPlanLabelStyles(true, 3, options.waypointStyleFontType, options.waypointStyleScale)
             );
+        },
+        {
+          lnavIndex: options.lnavIndex,
+          vnavIndex: options.vnavIndex,
+          supportFocus: false
         }
       );
     }

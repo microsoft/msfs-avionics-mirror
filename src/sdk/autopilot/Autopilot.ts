@@ -1,5 +1,7 @@
 /// <reference types="@microsoft/msfs-types/coherent/apcontroller" />
 
+import { CdiEvents } from '../cdi/CdiEvents';
+import { CdiUtils } from '../cdi/CdiUtils';
 import { ControlEvents } from '../data/ControlPublisher';
 import { EventBus } from '../data/EventBus';
 import { FlightPlanner } from '../flightplan/FlightPlanner';
@@ -7,18 +9,20 @@ import { APEvents } from '../instruments/APPublisher';
 import { AdcEvents } from '../instruments/Adc';
 import { ClockEvents } from '../instruments/Clock';
 import { NavComEvents } from '../instruments/NavCom';
-import { NavEvents, NavSourceId, NavSourceType } from '../instruments/NavProcessor';
+import { NavSourceId, NavSourceType } from '../instruments/NavProcessor';
+import { NavRadioIndex } from '../instruments/RadioCommon';
 import { MSFSAPStates } from '../navigation/AutopilotListener';
 import { Subject } from '../sub/Subject';
 import { APAltitudeModes, APConfig, APLateralModes, APValues, APVerticalModes } from './APConfig';
 import { AutopilotDriver } from './AutopilotDriver';
 import { VNavAltCaptureType, VNavState } from './VerticalNavigation';
-import { VNavEvents } from './data/VNavEvents';
 import { APNoneLateralDirector, APNoneVerticalDirector } from './directors/APNoneDirectors';
 import { DirectorState, PlaneDirector } from './directors/PlaneDirector';
 import { APModePressEvent, APStateManager } from './managers/APStateManager';
 import { NavToNavManager } from './managers/NavToNavManager';
+import { NavToNavManager2 } from './managers/NavToNavManager2';
 import { VNavManager } from './managers/VNavManager';
+import { VNavEvents } from './vnav/VNavEvents';
 
 /**
  * A collection of autopilot plane directors.
@@ -118,7 +122,9 @@ export class Autopilot<Config extends APConfig = APConfig> {
   public readonly directors: APDirectors;
 
   /** This autopilot's nav-to-nav transfer manager. */
-  public readonly navToNavManager: NavToNavManager | undefined;
+  public readonly navToNavManager: NavToNavManager | NavToNavManager2 | undefined;
+
+  protected readonly navToNavManagerToUse: NavToNavManager2 | undefined;
 
   /** This autopilot's VNav Manager. */
   public readonly vnavManager: VNavManager | undefined;
@@ -129,7 +135,7 @@ export class Autopilot<Config extends APConfig = APConfig> {
   /** This autopilot's variable bank angle Manager. */
   private readonly apDriver: AutopilotDriver;
 
-  protected cdiSource: NavSourceId = { type: NavSourceType.Nav, index: 0 };
+  protected cdiSource: Readonly<NavSourceId> = { type: NavSourceType.Nav, index: 0 };
 
   protected lateralModes: Map<APLateralModes, PlaneDirector> = new Map();
 
@@ -148,7 +154,9 @@ export class Autopilot<Config extends APConfig = APConfig> {
   /** Can be set to false in child classes to override behavior for certain aircraft. */
   protected requireApproachIsActiveForNavToNav = true;
 
-  public readonly apValues: APValues = {
+  protected readonly _apValues = {
+    cdiId: this.config.cdiId ?? '',
+    cdiSource: Subject.create<Readonly<NavSourceId>>(this.cdiSource, CdiUtils.navSourceIdEquals),
     simRate: Subject.create(0),
     selectedAltitude: Subject.create(0),
     selectedVerticalSpeed: Subject.create(0),
@@ -174,6 +182,8 @@ export class Autopilot<Config extends APConfig = APConfig> {
     apApproachModeOn: Subject.create<boolean>(false)
   };
 
+  public readonly apValues: APValues = this._apValues;
+
   protected autopilotInitialized = false;
 
   /**
@@ -198,7 +208,20 @@ export class Autopilot<Config extends APConfig = APConfig> {
     this.vnavManager = config.createVNavManager?.(this.apValues);
     this.navToNavManager = config.createNavToNavManager?.(this.apValues);
     this.variableBankManager = config.createVariableBankManager?.(this.apValues);
-    this.apValues.navToNavLocArm = this.navToNavManager?.canLocArm.bind(this.navToNavManager);
+
+    if (this.navToNavManager) {
+      if ((this.navToNavManager as any)['isNavToNavManager2'] === true) {
+        this.navToNavManagerToUse = this.navToNavManager as NavToNavManager2;
+      } else {
+        this.navToNavManagerToUse = new DelegatedNavToNavManager2(this.navToNavManager as NavToNavManager);
+      }
+
+      this.apValues.navToNavLocArm = () => this.navToNavManagerToUse!.getArmableLateralMode() === APLateralModes.LOC;
+      this.apValues.navToNavArmableNavRadioIndex = this.navToNavManagerToUse.getArmableNavRadioIndex.bind(this.navToNavManagerToUse);
+      this.apValues.navToNavArmableLateralMode = this.navToNavManagerToUse.getArmableLateralMode.bind(this.navToNavManagerToUse);
+      this.apValues.navToNavArmableVerticalMode = this.navToNavManagerToUse.getArmableVerticalMode.bind(this.navToNavManagerToUse);
+      this.apValues.navToNavTransferInProgress = this.navToNavManagerToUse.isTransferInProgress.bind(this.navToNavManagerToUse);
+    }
 
     this.stateManager.stateManagerInitialized.sub((v) => {
       if (v) {
@@ -277,10 +300,12 @@ export class Autopilot<Config extends APConfig = APConfig> {
   public update(): void {
     if (this.autopilotInitialized) {
       this.onBeforeUpdate();
+      this.updateNavToNavManagerBefore();
       this.apDriver.update();
       this.checkModes();
       this.manageAltitudeCapture();
       this.updateModes();
+      this.updateNavToNavManagerAfter();
       this.onAfterUpdate();
     }
   }
@@ -578,8 +603,11 @@ export class Autopilot<Config extends APConfig = APConfig> {
       case NavSourceType.Gps:
         if (this.apValues.approachIsActive.get() && this.apValues.approachHasGP.get()) {
           return APLateralModes.GPSS;
-        } else if (this.navToNavManager && this.navToNavManager.canLocArm()) {
-          return APLateralModes.LOC;
+        } else if (this.navToNavManagerToUse) {
+          const navToNavArmableMode = this.navToNavManagerToUse.getArmableLateralMode();
+          if (navToNavArmableMode !== APLateralModes.NONE) {
+            return navToNavArmableMode;
+          }
         }
     }
     return APLateralModes.NONE;
@@ -800,11 +828,14 @@ export class Autopilot<Config extends APConfig = APConfig> {
   /**
    * Initializes the Autopilot with the available Nav To Nav Manager.
    */
-  private initNavToNavManager(): void {
-    if (this.navToNavManager) {
-      this.navToNavManager.onTransferred = (): void => {
-        if (this.apValues.lateralActive.get() === APLateralModes.GPSS) {
-          this.lateralModes.get(APLateralModes.LOC)?.activate();
+  protected initNavToNavManager(): void {
+    if (this.navToNavManagerToUse) {
+      this.navToNavManagerToUse.onTransferred = (activateLateralMode, activateVerticalMode) => {
+        if (activateLateralMode !== APLateralModes.NONE && this.apValues.lateralActive.get() !== activateLateralMode) {
+          this.lateralModes.get(activateLateralMode)?.activate();
+        }
+        if (activateVerticalMode !== APVerticalModes.NONE && this.apValues.verticalActive.get() !== activateVerticalMode) {
+          this.verticalModes.get(activateVerticalMode)?.activate();
         }
       };
     }
@@ -1082,6 +1113,20 @@ export class Autopilot<Config extends APConfig = APConfig> {
   }
 
   /**
+   * Updates this autopilot's nav-to-nav manager before directors have been updated.
+   */
+  protected updateNavToNavManagerBefore(): void {
+    this.navToNavManagerToUse?.onBeforeUpdate();
+  }
+
+  /**
+   * Updates this autopilot's nav-to-nav manager after directors have been updated.
+   */
+  protected updateNavToNavManagerAfter(): void {
+    this.navToNavManagerToUse?.onAfterUpdate();
+  }
+
+  /**
    * Monitors subevents and bus events.
    */
   private monitorEvents(): void {
@@ -1116,6 +1161,12 @@ export class Autopilot<Config extends APConfig = APConfig> {
     // Sets up the subs for selected speed, selected mach and selected is mach.
     this.monitorApSpeedValues();
 
+    const cdi = this.bus.getSubscriber<CdiEvents>();
+    cdi.on(`cdi_select${CdiUtils.getEventBusTopicSuffix(this.apValues.cdiId)}`).handle((src) => {
+      this.cdiSource = src;
+      this._apValues.cdiSource.set(src);
+    });
+
     const clock = this.bus.getSubscriber<ClockEvents>();
     clock.on('simRate').withPrecision(0).handle(this.apValues.simRate.set.bind(this.apValues.simRate));
 
@@ -1138,11 +1189,6 @@ export class Autopilot<Config extends APConfig = APConfig> {
 
     ap.on('ap_max_bank_id').handle(id => {
       this.apValues.maxBankId.set(id);
-    });
-
-    const nav = this.bus.getSubscriber<NavEvents>();
-    nav.on('cdi_select').handle((src) => {
-      this.cdiSource = src;
     });
 
     const navproc = this.bus.getSubscriber<NavComEvents>();
@@ -1297,5 +1343,56 @@ export class Autopilot<Config extends APConfig = APConfig> {
     } else {
       return this.config.defaultVerticalMode();
     }
+  }
+}
+
+/**
+ * An implementation of `NavToNavManager2` that delegates to an instance of `NavToNavManager`.
+ */
+class DelegatedNavToNavManager2 implements NavToNavManager2 {
+  /** @inheritDoc */
+  public readonly isNavToNavManager2 = true;
+
+  /** @inheritDoc */
+  public onTransferred?: (activateLateralMode: APLateralModes) => void;
+
+  /**
+   * Creates a new instance of DelegatedNavToNavManager2.
+   * @param navToNavManager The manager to which to delegate.
+   */
+  public constructor(private readonly navToNavManager: NavToNavManager) {
+    navToNavManager.onTransferred = () => {
+      this.onTransferred?.(APLateralModes.LOC);
+    };
+  }
+
+  /** @inheritDoc */
+  public getArmableNavRadioIndex(): NavRadioIndex | -1 {
+    return -1;
+  }
+
+  /** @inheritDoc */
+  public getArmableLateralMode(): APLateralModes {
+    return this.navToNavManager.canLocArm() ? APLateralModes.LOC : APLateralModes.NONE;
+  }
+
+  /** @inheritDoc */
+  public getArmableVerticalMode(): APVerticalModes {
+    return this.navToNavManager.canLocArm() ? APVerticalModes.GS : APVerticalModes.NONE;
+  }
+
+  /** @inheritDoc */
+  public isTransferInProgress(): boolean {
+    return false;
+  }
+
+  /** @inheritDoc */
+  public onBeforeUpdate(): void {
+    // noop
+  }
+
+  /** @inheritDoc */
+  public onAfterUpdate(): void {
+    // noop
   }
 }

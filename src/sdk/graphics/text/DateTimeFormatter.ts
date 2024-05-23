@@ -64,29 +64,29 @@ export type DateTimeFormatterOptions = {
  * * AM/PM fragment. In EBNF notation, these take the form `'am' | 'a.m.' | 'AM' | 'A.M.'`. Each AM/PM fragment is
  * replaced with an AM/PM string depending on the time of day of the input. The case of the definition determines the
  * case of the output. Use of periods in the definition will add periods to the output.
- * 
+ *
  * @example <caption>Formatting to a date</caption>
  * const formatter = DateTimeFormatter.create('{dd}-{MM}-{YY}');
  * formatter(0);              // 01-01-70
  * formatter(1597723200000);  // 18-08-20
- * 
+ *
  * @example <caption>Formatting to a time (24-hr)</caption>
  * const formatter = DateTimeFormatter.create('{HH}:{mm}:{ss}');
  * formatter(0);              // 00:00:00
  * formatter(5145000);        // 01:25:45
  * formatter(57600000);       // 16:00:00
- * 
+ *
  * @example <caption>Formatting to a time (12-hr)</caption>
  * const formatter = DateTimeFormatter.create('{hh}:{mm}:{ss} {am}');
  * formatter(0);              // 12:00:00 am
  * formatter(5145000);        // 01:25:45 am
  * formatter(57600000);       // 04:00:00 pm
- * 
+ *
  * @example <caption>Formatting to a time with decimals</caption>
  * const formatter = DateTimeFormatter.create('{H}:{mm.m(m)}');
  * formatter(0);              // 0:00.0
  * formatter(5145000);        // 1:25.75
- * 
+ *
  * @example <caption>Formatting to ISO 8601</caption>
  * const formatter = DateTimeFormatter.create('{YYYY}-{MM}-{dd}T{HH}:{mm}:{ss}');
  * formatter(0);              // 1970-01-01T00:00:00
@@ -351,7 +351,7 @@ export class DateTimeFormatter {
   private static parseYearFragment(match: RegExpMatchArray): (date: Date) => string {
     if (match[10].length === 2) {
       // YY
-      return (date: Date): string => (date.getUTCFullYear() % 100).toString();
+      return (date: Date): string => (date.getUTCFullYear() % 100).toString().padStart(2, '0');
     } else {
       // YYYY
       return (date: Date): string => date.getUTCFullYear().toString();

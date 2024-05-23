@@ -17,7 +17,7 @@ export class DynamicList<DataType extends DynamicListData> {
 
   // Key everything on index instead of data item since data items are not guaranteed to be unique in the data array
 
-  private readonly renderedItems: NodeInstance[] = [];
+  private readonly renderedNodes: VNode[] = [];
   private readonly visibilitySubscriptions: (Subscription | undefined)[] = [];
   private readonly elements: (Element | undefined)[] = [];
 
@@ -159,7 +159,7 @@ export class DynamicList<DataType extends DynamicListData> {
    * @returns The rendered instance of the specified data item, or `undefined` if {@linkcode index} is out of bounds.
    */
   public getRenderedItem(index: number): NodeInstance | undefined {
-    return this.renderedItems[index];
+    return this.renderedNodes[index]?.instance;
   }
 
   /**
@@ -179,17 +179,17 @@ export class DynamicList<DataType extends DynamicListData> {
     let iteratorIndex = 0;
 
     if (sortedOrder) {
-      for (let i = 0; i < this.renderedItems.length; i++) {
+      for (let i = 0; i < this.renderedNodes.length; i++) {
         const index = this.sortedIndexes[i];
         if (!visibleOnly || this.data.get(index).isVisible?.get() !== false) {
-          fn(this.renderedItems[index] as T | undefined, iteratorIndex);
+          fn(this.renderedNodes[index].instance as T | undefined, iteratorIndex);
         }
         iteratorIndex++;
       }
     } else {
-      for (let i = 0; i < this.renderedItems.length; i++) {
+      for (let i = 0; i < this.renderedNodes.length; i++) {
         if (!visibleOnly || this.data.get(i).isVisible?.get() !== false) {
-          fn(this.renderedItems[i] as T | undefined, iteratorIndex);
+          fn(this.renderedNodes[i].instance as T | undefined, iteratorIndex);
         }
         iteratorIndex++;
       }
@@ -259,7 +259,7 @@ export class DynamicList<DataType extends DynamicListData> {
   private addDataItem(dataItem: DataType, indexToAdd: number): void {
     // Create list item and store a reference to the instance if it is a DisplayComponent so we can destroy it later
     const listItemVNode = this.renderItem(dataItem, indexToAdd);
-    this.renderedItems.splice(indexToAdd, 0, listItemVNode.instance);
+    this.renderedNodes.splice(indexToAdd, 0, listItemVNode);
 
     // Render the list item into the DOM and store a reference to the root element of the rendered item.
     // By default, we will render the item to the same index at which it appears in the data array. Therefore, if
@@ -319,7 +319,7 @@ export class DynamicList<DataType extends DynamicListData> {
     }
 
     if (numRemoved > 0) {
-      this.renderedItems.splice(index, numRemoved);
+      this.renderedNodes.splice(index, numRemoved);
       this.visibilitySubscriptions.splice(index, numRemoved);
       this.elements.splice(index, numRemoved);
 
@@ -350,10 +350,7 @@ export class DynamicList<DataType extends DynamicListData> {
   private removeDataItem(data: DataType, index: number): void {
     this.removeDomNode(data, index);
 
-    const renderedItem = this.renderedItems[index];
-    if (renderedItem instanceof DisplayComponent) {
-      renderedItem.destroy();
-    }
+    FSComponent.shallowDestroy(this.renderedNodes[index]);
 
     if (data.isVisible === undefined || data.isVisible.get() === true) {
       this.decrementVisibleCount();
@@ -386,13 +383,10 @@ export class DynamicList<DataType extends DynamicListData> {
     this.sortedIndexes.length = 0;
     this.indexToSortedIndex.length = 0;
 
-    for (let i = 0; i < this.renderedItems.length; i++) {
-      const renderedItem = this.renderedItems[i];
-      if (renderedItem instanceof DisplayComponent) {
-        renderedItem.destroy();
-      }
+    for (let i = 0; i < this.renderedNodes.length; i++) {
+      FSComponent.shallowDestroy(this.renderedNodes[i]);
     }
-    this.renderedItems.length = 0;
+    this.renderedNodes.length = 0;
 
     this.visibilitySubscriptions.forEach(x => x?.destroy());
     this.visibilitySubscriptions.length = 0;

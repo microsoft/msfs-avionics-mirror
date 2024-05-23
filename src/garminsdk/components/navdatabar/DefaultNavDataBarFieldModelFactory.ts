@@ -14,40 +14,91 @@ import {
 } from './NavDataBarFieldTypeModelFactories';
 
 /**
+ * Configuration options for {@link DefaultNavDataBarFieldModelFactory}.
+ */
+export type DefaultNavDataBarFieldModelFactoryOptions = {
+  /** The index of the LNAV from which to source data. Defaults to `0`. */
+  lnavIndex?: number | Subscribable<number>;
+
+  /** The index of the VNAV from which to source data. Defaults to `0`. */
+  vnavIndex?: number | Subscribable<number>;
+};
+
+/**
  * A default implementation of NavDataBarFieldModelFactory.
  */
 export class DefaultNavDataBarFieldModelFactory implements NavDataBarFieldModelFactory {
   protected readonly factory: GenericNavDataBarFieldModelFactory;
 
   /**
-   * Constructor.
+   * Creates a new instance of DefaultNavDataBarFieldModelFactory.
+   * @param bus The event bus.
+   * @param gpsValidity The subscribable that provides the validity of the GPS data for the models.
+   * @param options Options with which to configure the factory.
+   */
+  public constructor(
+    bus: EventBus,
+    gpsValidity: Subscribable<NavDataFieldGpsValidity>,
+    options?: Readonly<DefaultNavDataBarFieldModelFactoryOptions>
+  );
+  /**
+   * Creates a new instance of DefaultNavDataBarFieldModelFactory.
    * @param bus The event bus.
    * @param fms The flight management system.
    * @param gpsValidity The subscribable that provides the validity of the GPS data for the models.
+   * @param options Options with which to configure the factory.
+   * @deprecated Please use the constructor overload without the `fms` parameter, since that parameter is no longer
+   * used.
    */
-  constructor(bus: EventBus, fms: Fms, gpsValidity: Subscribable<NavDataFieldGpsValidity>) {
+  public constructor(
+    bus: EventBus,
+    fms: Fms,
+    gpsValidity: Subscribable<NavDataFieldGpsValidity>,
+    options?: Readonly<DefaultNavDataBarFieldModelFactoryOptions>
+  );
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public constructor(
+    bus: EventBus,
+    arg2: Fms | Subscribable<NavDataFieldGpsValidity>,
+    arg3?: Subscribable<NavDataFieldGpsValidity> | Readonly<DefaultNavDataBarFieldModelFactoryOptions>,
+    arg4?: Readonly<DefaultNavDataBarFieldModelFactoryOptions>
+  ) {
+    let gpsValidity: Subscribable<NavDataFieldGpsValidity>;
+    let options: Readonly<DefaultNavDataBarFieldModelFactoryOptions> | undefined;
+
+    if (arg2 instanceof Fms) {
+      gpsValidity = arg3 as Subscribable<NavDataFieldGpsValidity>;
+      options = arg4;
+    } else {
+      gpsValidity = arg2;
+      options = arg3 as Readonly<DefaultNavDataBarFieldModelFactoryOptions> | undefined;
+    }
+
     this.factory = new GenericNavDataBarFieldModelFactory(gpsValidity);
 
-    this.factory.register(NavDataFieldType.BearingToWaypoint, new NavDataBarFieldBrgModelFactory(bus));
-    this.factory.register(NavDataFieldType.Waypoint, new NavDataBarFieldWptModelFactory(bus));
-    this.factory.register(NavDataFieldType.Destination, new NavDataBarFieldDestModelFactory(bus, fms));
-    this.factory.register(NavDataFieldType.DistanceToWaypoint, new NavDataBarFieldDisModelFactory(bus));
-    this.factory.register(NavDataFieldType.DistanceToDestination, new NavDataBarFieldDtgModelFactory(bus));
-    this.factory.register(NavDataFieldType.DesiredTrack, new NavDataBarFieldDtkModelFactory(bus));
+    const lnavIndex = options?.lnavIndex ?? 0;
+    const vnavIndex = options?.vnavIndex ?? 0;
+
+    this.factory.register(NavDataFieldType.BearingToWaypoint, new NavDataBarFieldBrgModelFactory(bus, lnavIndex));
+    this.factory.register(NavDataFieldType.Destination, new NavDataBarFieldDestModelFactory(bus, lnavIndex));
+    this.factory.register(NavDataFieldType.DistanceToWaypoint, new NavDataBarFieldDisModelFactory(bus, lnavIndex));
+    this.factory.register(NavDataFieldType.DistanceToDestination, new NavDataBarFieldDtgModelFactory(bus, lnavIndex));
+    this.factory.register(NavDataFieldType.DesiredTrack, new NavDataBarFieldDtkModelFactory(bus, lnavIndex));
     this.factory.register(NavDataFieldType.Endurance, new NavDataBarFieldEndModelFactory(bus));
-    this.factory.register(NavDataFieldType.TimeToDestination, new NavDataBarFieldEnrModelFactory(bus));
-    this.factory.register(NavDataFieldType.TimeOfWaypointArrival, new NavDataBarFieldEtaModelFactory(bus));
-    this.factory.register(NavDataFieldType.TimeToWaypoint, new NavDataBarFieldEteModelFactory(bus));
+    this.factory.register(NavDataFieldType.TimeToDestination, new NavDataBarFieldEnrModelFactory(bus, lnavIndex));
+    this.factory.register(NavDataFieldType.TimeOfWaypointArrival, new NavDataBarFieldEtaModelFactory(bus, lnavIndex));
+    this.factory.register(NavDataFieldType.TimeToWaypoint, new NavDataBarFieldEteModelFactory(bus, lnavIndex));
     this.factory.register(NavDataFieldType.FuelOnBoard, new NavDataBarFieldFobModelFactory(bus));
-    this.factory.register(NavDataFieldType.FuelOverDestination, new NavDataBarFieldFodModelFactory(bus));
+    this.factory.register(NavDataFieldType.FuelOverDestination, new NavDataBarFieldFodModelFactory(bus, lnavIndex));
     this.factory.register(NavDataFieldType.GroundSpeed, new NavDataBarFieldGsModelFactory(bus));
     this.factory.register(NavDataFieldType.ISA, new NavDataBarFieldIsaModelFactory(bus));
-    this.factory.register(NavDataFieldType.TimeOfDestinationArrival, new NavDataBarFieldLdgModelFactory(bus));
+    this.factory.register(NavDataFieldType.TimeOfDestinationArrival, new NavDataBarFieldLdgModelFactory(bus, lnavIndex));
     this.factory.register(NavDataFieldType.TrueAirspeed, new NavDataBarFieldTasModelFactory(bus));
-    this.factory.register(NavDataFieldType.TrackAngleError, new NavDataBarFieldTkeModelFactory(bus));
+    this.factory.register(NavDataFieldType.TrackAngleError, new NavDataBarFieldTkeModelFactory(bus, lnavIndex));
     this.factory.register(NavDataFieldType.GroundTrack, new NavDataBarFieldTrkModelFactory(bus));
-    this.factory.register(NavDataFieldType.VerticalSpeedRequired, new NavDataBarFieldVsrModelFactory(bus));
-    this.factory.register(NavDataFieldType.CrossTrack, new NavDataBarFieldXtkModelFactory(bus));
+    this.factory.register(NavDataFieldType.VerticalSpeedRequired, new NavDataBarFieldVsrModelFactory(bus, vnavIndex));
+    this.factory.register(NavDataFieldType.Waypoint, new NavDataBarFieldWptModelFactory(bus, lnavIndex));
+    this.factory.register(NavDataFieldType.CrossTrack, new NavDataBarFieldXtkModelFactory(bus, lnavIndex));
   }
 
   /**

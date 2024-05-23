@@ -1,0 +1,19 @@
+.terrain-annunc {
+  border-radius: 5px;
+  white-space: pre;
+}
+
+.terrain-annunc.terrain-annunc-advisory {
+  color: var(--g3000-color-black);
+  background: var(--g3000-color-white);
+}
+
+.terrain-annunc.terrain-annunc-caution {
+  color: var(--g3000-color-black);
+  background: var(--g3000-color-yellow);
+}
+
+.terrain-annunc.terrain-annunc-warning {
+  color: var(--g3000-color-white);
+  background: var(--g3000-color-red);
+}

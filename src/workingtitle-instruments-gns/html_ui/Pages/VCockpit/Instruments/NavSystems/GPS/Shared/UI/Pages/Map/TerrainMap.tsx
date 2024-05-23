@@ -48,8 +48,8 @@ export class TerrainMap extends Page<TerrainMapProps> {
   private readonly compassEl = FSComponent.createRef<HTMLCanvasElement>();
 
   private readonly StandardMap = GNSMapBuilder
-    .withStandardMap(this.props.bus, this.props.flightPlanner, this.props.settingsProvider, this.props.gnsType, this.props.instrumentIndex, true)
-    .withController(GNSMapKeys.Controller, c => new GNSMapController(c, this.props.settingsProvider, this.props.flightPlanner, true))
+    .withStandardMap(this.props.bus, this.props.fms, this.props.settingsProvider, this.props.gnsType, this.props.instrumentIndex, true)
+    .withController(GNSMapKeys.Controller, c => new GNSMapController(c, this.props.settingsProvider, this.props.fms, true))
     .withProjectedSize(this.mapSize)
     .build<GNSMapModules, GNSMapLayers, GNSStandardMapControllers, GNSMapContextProps>('terrain-map-container');
 

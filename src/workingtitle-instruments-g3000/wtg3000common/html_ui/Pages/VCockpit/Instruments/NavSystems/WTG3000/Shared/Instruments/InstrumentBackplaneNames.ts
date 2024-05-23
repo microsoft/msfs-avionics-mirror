@@ -18,6 +18,7 @@ export enum InstrumentBackplaneNames {
   Gnss = 'Gnss',
   HEvents = 'HEvents',
   LNav = 'LNav',
+  LNavObs = 'GarminObs',
   LNavData = 'LNavData',
   Minimums = 'Minimums',
   NavCom = 'NavCom',

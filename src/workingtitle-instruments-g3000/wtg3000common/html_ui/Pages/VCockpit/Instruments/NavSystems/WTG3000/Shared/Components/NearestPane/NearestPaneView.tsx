@@ -1,14 +1,15 @@
 import {
-  CompiledMapSystem, EventBus, FacilityLoader, FlightPlanner, FSComponent, ICAO, MapIndexedRangeModule, MapSystemBuilder,
+  CompiledMapSystem, EventBus, FacilityLoader, FlightPlanner, ICAO, MapIndexedRangeModule, MapSystemBuilder,
   Subscription, Vec2Math, Vec2Subject, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
   GarminFacilityWaypointCache, GarminMapKeys, MapPointerController, MapPointerInfoLayerSize, MapPointerModule,
-  MapRangeController, MapWaypointHighlightModule, NearestMapRTRController, TrafficSystem, TrafficUserSettings, UnitsUserSettings,
-  WindDataProvider
+  MapRangeController, MapWaypointHighlightModule, NearestMapRTRController, TrafficSystem, TrafficUserSettings,
+  UnitsUserSettings, WindDataProvider
 } from '@microsoft/msfs-garminsdk';
 
+import { G3000FlightPlannerId } from '../../CommonTypes';
 import { DisplayPanesUserSettings } from '../../Settings/DisplayPanesUserSettings';
 import { IauUserSettingManager } from '../../Settings/IauUserSettings';
 import { MapUserSettings } from '../../Settings/MapUserSettings';
@@ -33,7 +34,7 @@ export interface NearestPaneViewProps extends DisplayPaneViewProps {
   facLoader: FacilityLoader;
 
   /** The flight planner. */
-  flightPlanner: FlightPlanner;
+  flightPlanner: FlightPlanner<G3000FlightPlannerId>;
 
   /** The traffic system used by the map to display traffic. */
   trafficSystem: TrafficSystem;

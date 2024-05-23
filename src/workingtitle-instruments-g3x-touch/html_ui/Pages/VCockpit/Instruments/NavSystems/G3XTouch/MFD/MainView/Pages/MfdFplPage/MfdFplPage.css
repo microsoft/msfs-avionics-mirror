@@ -1,0 +1,314 @@
+.mfd-fpl-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3x-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.gdu-460-display .mfd-fpl-page {
+  padding: 7px;
+  font-size: 19px;
+
+  --mfd-fpl-page-box-gap: 7px;
+
+  --mfd-fpl-page-box-border-width: 3px;
+  --mfd-fpl-page-box-border-radius: 4px;
+
+  --mfd-fpl-page-main-padding: 4px 5px;
+
+  --mfd-fpl-page-main-header-height: 60px;
+
+  --mfd-fpl-page-main-header-button-gap: 4px;
+
+  --mfd-fpl-page-main-header-button-label-font-size: 18px;
+
+  --mfd-fpl-page-main-header-left-button-width: 100px;
+
+  --mfd-fpl-page-fpl-source-button-width: 152px;
+  --mfd-fpl-page-fpl-source-button-label-height: 26px;
+  --mfd-fpl-page-fpl-source-button-label-gap: 1px;
+  --mfd-fpl-page-fpl-source-button-value-padding: 0px 5px;
+
+  --mfd-fpl-page-main-header-data-field-slot-width: 90px;
+
+  --mfd-fpl-page-list-scroll-bar-width-plus-margin: 6px;
+
+  --mfd-fpl-page-list-arrow-margin: 25px;
+
+  --ui-list-item-padding: 3px 0px 3px 4px;
+
+  --mfd-fpl-page-main-divider-margin: 4px;
+
+  --mfd-fpl-page-main-footer-data-field-font-size: 23px;
+
+  --mfd-fpl-page-main-footer-data-field-slot-width: 90px;
+}
+
+.gdu-460-display.gdu-display-pfd-left .mfd-fpl-page {
+  padding-right: 0px;
+}
+
+.gdu-460-display.gdu-display-pfd-right .mfd-fpl-page {
+  padding-left: 0px;
+}
+
+.gdu-460-display .ui-pane-full .mfd-fpl-page {
+  flex-flow: row nowrap;
+}
+
+.gdu-460-display .fpl-page-table-header-fpl-source-dialog {
+  --ui-list-dialog-font-size: 20px;
+  --ui-list-dialog-width: 154px;
+  --ui-list-dialog-padding: 3px;
+}
+
+.gdu-460-display .fpl-page-table-row-leg-dialog {
+  --ui-list-dialog-font-size: 20px;
+  --ui-list-dialog-width: 176px;
+  --ui-list-dialog-padding: 3px;
+}
+
+/* Map */
+
+.mfd-fpl-page-map-box {
+  position: relative;
+  margin-bottom: var(--mfd-fpl-page-box-gap);
+  border: solid var(--mfd-fpl-page-box-border-width) var(--g3x-color-border-light-gray);
+  border-radius: var(--mfd-fpl-page-box-border-radius);
+  background: var(--g3x-color-black);
+  overflow: hidden;
+  display: none;
+}
+
+.mfd-fpl-page-show-map .mfd-fpl-page-map-box {
+  display: block;
+}
+
+.gdu-460-display .ui-pane-full .mfd-fpl-page-map-box {
+  margin-bottom: 0px;
+  margin-right: var(--mfd-fpl-page-box-gap);
+}
+
+.gdu-460-display .common-map.mfd-fpl-map {
+  --common-map-scale-bar-detail-container-margin: 0px 5px 0px 0px;
+
+  --common-map-status-indicator-container-margin: 0px 3px 0px 0px;
+}
+
+.gdu-460-display .ui-pane-full .common-map.mfd-fpl-map {
+  --common-map-scale-bar-detail-container-margin: 0px 8px 1px 0px;
+
+  --common-map-range-target-control-margin: 3px 0px 0px 0px;
+
+  --common-map-status-indicator-container-margin: 3px 0px 0px 0px;
+}
+
+.mfd-fpl-map {
+  overflow: hidden;
+  transform: rotateX(0deg);
+}
+
+.mfd-fpl-map .map-indicator-group-top-right {
+  flex-flow: row-reverse nowrap;
+  align-items: flex-start;
+}
+
+.common-map.mfd-fpl-map .map-status-indicator-container {
+  max-height: var(--common-map-status-indicator-container-max-width);
+  flex-flow: column wrap-reverse;
+  justify-content: flex-start;
+  align-content: flex-start;
+}
+
+.gdu-460-display .ui-pane-full .mfd-fpl-map .map-indicator-group-top-right {
+  flex-flow: column nowrap;
+  align-items: flex-end;
+}
+
+.gdu-460-display .ui-pane-full .common-map.mfd-fpl-map .map-status-indicator-container {
+  max-width: var(--common-map-status-indicator-container-max-width);
+  max-height: unset;
+  flex-flow: row wrap;
+  justify-content: flex-end;
+}
+
+/* List */
+
+.mfd-fpl-page-main {
+  flex-grow: 1;
+  position: relative;
+  padding: var(--mfd-fpl-page-main-padding);
+  border: solid var(--mfd-fpl-page-box-border-width) var(--g3x-color-border-light-gray);
+  border-radius: var(--mfd-fpl-page-box-border-radius);
+  background: var(--g3x-color-black);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.mfd-fpl-page .mfd-fpl-page-data-field-slot-3,
+.mfd-fpl-page-main-header-data-field-button-3 {
+  display: none;
+}
+
+.mfd-fpl-page.mfd-fpl-page-show-data-field-3 .mfd-fpl-page-data-field-slot-3,
+.mfd-fpl-page-show-data-field-3 .mfd-fpl-page-main-header-data-field-button-3 {
+  display: block;
+}
+
+.mfd-fpl-page .mfd-fpl-page-data-field .time-sec {
+  display: none;
+}
+
+.mfd-fpl-page-main-divider {
+  margin: var(--mfd-fpl-page-main-divider-margin) 0px;
+  height: 1px;
+  background: var(--g3x-color-border-light-gray);
+}
+
+.mfd-fpl-page-main-header {
+  height: var(--mfd-fpl-page-main-header-height);
+  /*
+   * To line up the header data field buttons with the leg item data fields, we need to account for the space taken up
+   * by the list's scroll bar and margin and the border width of the leg item.
+   */
+  margin-right: calc(var(--mfd-fpl-page-list-scroll-bar-width-plus-margin) + 1px);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+.mfd-fpl-page-main-header .touch-button-label {
+  font-size: var(--mfd-fpl-page-main-header-button-label-font-size);
+}
+
+.mfd-fpl-page-main-header-left {
+  flex-grow: 1;
+  margin-left: calc(var(--mfd-fpl-page-main-header-button-gap) * -1);
+  margin-right: var(--mfd-fpl-page-main-header-button-gap);
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+.mfd-fpl-page-main-header-left .touch-button {
+  width: var(--mfd-fpl-page-main-header-left-button-width);
+  margin-left: var(--mfd-fpl-page-main-header-button-gap);
+
+  --touch-button-value-label-center-y: 30%;
+  --touch-button-value-value-center-y: 70%;
+  --touch-button-value-value-text-color: var(--g3x-color-cyan);
+}
+
+.mfd-fpl-page-fpl-source-button {
+  width: var(--mfd-fpl-page-fpl-source-button-width);
+  margin: 0px auto;
+
+  --touch-button-value-value-text-color: var(--g3x-color-cyan);
+  --ui-list-select-button-label-height: var(--mfd-fpl-page-fpl-source-button-label-height);
+  --ui-list-select-button-label-gap: var(--mfd-fpl-page-fpl-source-button-label-gap);
+}
+
+.ui-list-select-button.mfd-fpl-page-fpl-source-button>.touch-button-label {
+  align-self: end;
+}
+
+.ui-list-select-button.mfd-fpl-page-fpl-source-button>.touch-button-value-value {
+  align-self: start;
+
+  /*
+   * This is to force the "GPS" part of the "External GPS" text to wrap to a new line and be hidden when there is
+   * not enough space to display the entire text in one line. The real unit probably dynamically sizes or scales the
+   * text to fit, but that is surprisingly hard to do in Coherent.
+   */
+  width: 100%;
+  height: 1.2em;
+  padding: var(--mfd-fpl-page-fpl-source-button-value-padding);
+  line-height: 1.2em;
+  overflow: hidden;
+}
+
+.mfd-fpl-page-main-header-data-field-button {
+  flex-shrink: 0;
+  width: calc(var(--mfd-fpl-page-main-header-data-field-slot-width) - var(--mfd-fpl-page-main-header-button-gap));
+  margin-left: var(--mfd-fpl-page-main-header-button-gap);
+
+  --touch-button-value-value-center-y: 50%;
+}
+
+.mfd-fpl-page-main-header-data-field-button .touch-button-value-value {
+  white-space: pre;
+}
+
+.mfd-fpl-page-list .ui-list-item,
+.mfd-fpl-page-list .mfd-fpl-page-approach-leg-preview-list-item-container .ui-list-item,
+.mfd-fpl-page-list .mfd-fpl-page-approach-leg-preview-list-item-top-divider {
+  left: var(--mfd-fpl-page-list-arrow-margin);
+  width: calc(100% - var(--mfd-fpl-page-list-arrow-margin));
+}
+
+.mfd-fpl-page-list .touch-button.ui-list-item-button {
+  align-items: stretch;
+}
+
+.mfd-fpl-page-list-add-waypoint-button {
+  flex-grow: 1;
+}
+
+.mfd-fpl-page-main-footer {
+  /*
+   * To line up the footer data fields with the leg item data fields, we need to account for the space taken up by the
+   * list's scroll bar and margin and the border width of the leg item.
+   */
+  margin-right: calc(var(--mfd-fpl-page-list-scroll-bar-width-plus-margin) + 1px);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.mfd-fpl-page-main-footer-title {
+  flex-basis: 0px;
+  flex-grow: 1;
+  text-align: center;
+}
+
+.mfd-fpl-page-main-footer .mfd-fpl-page-data-field-slot {
+  flex-shrink: 0;
+  position: relative;
+  width: var(--mfd-fpl-page-main-footer-data-field-slot-width);
+  font-size: var(--mfd-fpl-page-main-footer-data-field-font-size);
+}
+
+.mfd-fpl-page-main-footer .mfd-fpl-page-data-field {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: baseline;
+}
+
+/* Dialogs */
+
+.gdu-460-display .mfd-fpl-page-fpl-source-select-dialog {
+  --ui-list-dialog-width: 158px;
+  --ui-list-dialog-font-size: 19px;
+}
+
+.gdu-460-display .mfd-fpl-page-leg-dialog {
+  --ui-list-dialog-width: 170px;
+  --ui-list-dialog-font-size: 19px;
+}
+
+.gdu-460-display .mfd-fpl-page-approach-leg-dialog {
+  --ui-list-dialog-width: 210px;
+  --ui-list-dialog-font-size: 19px;
+}

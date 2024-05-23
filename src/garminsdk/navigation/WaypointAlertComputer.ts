@@ -1,7 +1,8 @@
 import {
-  BitFlags, CircleVector, ClockEvents, ConsumerSubject, EventBus, FlightPathUtils, FlightPathVector, FlightPathVectorFlags, FlightPlanner, GeoCircle, GeoPoint, GNSSEvents,
-  LegCalculations, LegDefinition, LegType, LNavEvents, LNavTrackingState, LNavTransitionMode, LNavUtils, MagVar, NavMath, NumberUnitSubject, SubEvent, Subject,
-  Subscribable, UnitType, VectorTurnDirection
+  BitFlags, CircleVector, ClockEvents, ConsumerSubject, EventBus, EventSubscriber, FlightPathUtils, FlightPathVector,
+  FlightPathVectorFlags, FlightPlanner, GeoCircle, GeoPoint, GNSSEvents, LegCalculations, LegDefinition, LegType,
+  LNavEvents, LNavTrackingState, LNavTransitionMode, LNavUtils, MagVar, NavMath, NumberUnitSubject, SubEvent, Subject,
+  Subscribable, SubscribableUtils, UnitType, VectorTurnDirection
 } from '@microsoft/msfs-sdk';
 
 import { LNavDataEvents } from './LNavDataEvents';
@@ -53,25 +54,51 @@ export interface WaypointAlertStateEvent {
 }
 
 /**
+ * Configuration options for {@link WaypointAlertComputer}.
+ */
+export type WaypointAlertComputerOptions = {
+  /** The flight planner from which to retrieve the active flight plan. */
+  flightPlanner: FlightPlanner | Subscribable<FlightPlanner>,
+
+  /** The index of the LNAV from which to source data. Defaults to `0`. */
+  lnavIndex?: number | Subscribable<number>;
+
+  /** The amount of time from the waypoint or target turn, in seconds, to begin alerting. */
+  alertLookaheadTime: number;
+
+  /**
+   * The amount of time, in seconds, to keep "...NOW" alerts active after they have been triggered. Defaults to five
+   * seconds.
+   */
+  nowAlertTime?: number;
+};
+
+/**
  * A class that computes the current waypoint alert state for consumers to use for waypoint alert displays.
  */
 export class WaypointAlertComputer {
   private static readonly DEFAULT_NOW_ALERT_TIME = 5;
   private static readonly HOLD_ALERT_TIME = 10;
 
-  private readonly sub = this.bus.getSubscriber<GNSSEvents & LNavDataEvents & LNavEvents & ClockEvents>();
-  private readonly simTime = ConsumerSubject.create(this.sub.on('simTime'), 0);
-  private readonly groundSpeed = ConsumerSubject.create(this.sub.on('ground_speed'), 0);
+  private readonly flightPlanner: Subscribable<FlightPlanner>;
+
+  private readonly lnavIndex: Subscribable<number>;
+
+  private readonly alertLookaheadTime: number;
+  private readonly nowAlertTime: number;
+
+  private readonly simTime = ConsumerSubject.create(null, 0);
+  private readonly groundSpeed = ConsumerSubject.create(null, 0);
   private readonly ppos = new GeoPoint(NaN, NaN);
 
-  private readonly alongTrackSpeed = ConsumerSubject.create(this.sub.on('lnav_along_track_speed'), 0);
-  private readonly distanceRemaining = ConsumerSubject.create(this.sub.on('lnavdata_egress_distance'), 0);
-  private readonly currentDtk = ConsumerSubject.create(this.sub.on('lnavdata_dtk_true'), 0);
-  private readonly nextDtk = ConsumerSubject.create(this.sub.on('lnavdata_next_dtk_true'), 0);
-  private readonly nextDtkMag = ConsumerSubject.create(this.sub.on('lnavdata_next_dtk_mag'), 0);
-  private readonly nextDtkVector = ConsumerSubject.create(this.sub.on('lnavdata_next_dtk_vector'), { globalLegIndex: -1, vectorIndex: -1 });
+  private readonly alongTrackSpeed = ConsumerSubject.create(null, 0);
+  private readonly distanceRemaining = ConsumerSubject.create(null, 0);
+  private readonly currentDtk = ConsumerSubject.create(null, 0);
+  private readonly nextDtk = ConsumerSubject.create(null, 0);
+  private readonly nextDtkMag = ConsumerSubject.create(null, 0);
+  private readonly nextDtkVector = ConsumerSubject.create(null, { globalLegIndex: -1, vectorIndex: -1 });
 
-  private readonly lnavTrackingState = ConsumerSubject.create(this.sub.on('lnav_tracking_state'), {
+  private readonly lnavTrackingState = ConsumerSubject.create(null, {
     isTracking: false,
     globalLegIndex: 0,
     transitionMode: LNavTransitionMode.None,
@@ -97,6 +124,8 @@ export class WaypointAlertComputer {
   /** The time remaining for the current alert state, or `NaN` if an alert is not active. */
   public readonly timeRemaining = NumberUnitSubject.create(UnitType.SECOND.createNumber(NaN));
 
+  private canUpdate = false;
+
   private previousState = WaypointAlertingState.None;
   private currentState = WaypointAlertingState.None;
 
@@ -108,7 +137,7 @@ export class WaypointAlertComputer {
   private armedNowCourseType = WaypointAlertCourseType.DesiredTrack;
   private nowStateTimeStamp = 0;
 
-  private stateSub = Subject.create(WaypointAlertingState.None);
+  private readonly stateSubject = Subject.create(WaypointAlertingState.None);
 
   private currentCourse = NaN;
   private currentCourseMag = NaN;
@@ -120,21 +149,91 @@ export class WaypointAlertComputer {
   /**
    * Creates an instance of the WaypointAlertComputer.
    * @param bus The event bus to use with this instance.
-   * @param flightPlanner The flight planner to use with this instance.
+   * @param options Options with which to configure the computer.
+   */
+  public constructor(
+    bus: EventBus,
+    options: Readonly<WaypointAlertComputerOptions>
+  );
+  /**
+   * Creates an instance of the WaypointAlertComputer.
+   * @param bus The event bus to use with this instance.
+   * @param flightPlanner The flight planner from which to retrieve the active flight plan.
    * @param alertLookaheadTime The amount of time from the waypoint or target turn, in seconds, to begin alerting.
    * @param nowAlertTime The amount of time, in seconds, to keep "...NOW" alerts active after they have been triggered.
    * Defaults to five seconds.
    */
-  constructor(
+  public constructor(
+    bus: EventBus,
+    flightPlanner: FlightPlanner,
+    alertLookaheadTime: number,
+    nowAlertTime?: number
+  );
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public constructor(
     private readonly bus: EventBus,
-    private readonly flightPlanner: FlightPlanner,
-    private readonly alertLookaheadTime: number,
-    private readonly nowAlertTime = WaypointAlertComputer.DEFAULT_NOW_ALERT_TIME
+    arg2: Readonly<WaypointAlertComputerOptions> | FlightPlanner,
+    alertLookaheadTime?: number,
+    nowAlertTime?: number
   ) {
-    this.stateSub.sub(this.handleStateChanged.bind(this));
-    this.lnavTrackingState.sub(this.handleTrackedIndicesChanged.bind(this));
+    let flightPlanner: FlightPlanner | Subscribable<FlightPlanner>;
+    let lnavIndex: number | Subscribable<number> | undefined;
 
-    this.bus.getSubscriber<GNSSEvents>().on('gps-position').handle(pos => this.ppos.set(pos.lat, pos.long));
+    if (arg2 instanceof FlightPlanner) {
+      flightPlanner = arg2;
+    } else {
+      ({ flightPlanner, lnavIndex, alertLookaheadTime, nowAlertTime } = arg2);
+    }
+
+    this.flightPlanner = SubscribableUtils.toSubscribable(flightPlanner, true);
+    this.lnavIndex = SubscribableUtils.toSubscribable(lnavIndex ?? 0, true);
+    this.alertLookaheadTime = alertLookaheadTime as number;
+    this.nowAlertTime = nowAlertTime ?? WaypointAlertComputer.DEFAULT_NOW_ALERT_TIME;
+
+    const sub = this.bus.getSubscriber<GNSSEvents & LNavDataEvents & LNavEvents & ClockEvents>();
+
+    this.simTime.setConsumer(sub.on('simTime'));
+    this.groundSpeed.setConsumer(sub.on('ground_speed'));
+    sub.on('gps-position').handle(pos => this.ppos.set(pos.lat, pos.long));
+
+    this.flightPlanner.sub(this.reset.bind(this));
+    this.lnavIndex.sub(this.onLNavIndexChanged.bind(this, sub), true);
+
+    this.stateSubject.sub(this.handleStateChanged.bind(this));
+    this.lnavTrackingState.sub(this.handleTrackedIndicesChanged.bind(this));
+  }
+
+  /**
+   * Responds to when this computer's LNAV index changes.
+   * @param lnavEvents An event subscriber for LNAV events.
+   * @param index The new LNAV index.
+   */
+  private onLNavIndexChanged(lnavEvents: EventSubscriber<LNavEvents & LNavDataEvents>, index: number): void {
+    this.reset();
+
+    if (LNavUtils.isValidLNavIndex(index)) {
+      const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(index);
+
+      this.alongTrackSpeed.setConsumer(lnavEvents.on(`lnav_along_track_speed${lnavTopicSuffix}`));
+      this.distanceRemaining.setConsumer(lnavEvents.on(`lnavdata_egress_distance${lnavTopicSuffix}`));
+      this.currentDtk.setConsumer(lnavEvents.on(`lnavdata_dtk_true${lnavTopicSuffix}`));
+      this.nextDtk.setConsumer(lnavEvents.on(`lnavdata_next_dtk_true${lnavTopicSuffix}`));
+      this.nextDtkMag.setConsumer(lnavEvents.on(`lnavdata_next_dtk_mag${lnavTopicSuffix}`));
+      this.nextDtkVector.setConsumer(lnavEvents.on(`lnavdata_next_dtk_vector${lnavTopicSuffix}`));
+      this.lnavTrackingState.setConsumer(lnavEvents.on(`lnav_tracking_state${lnavTopicSuffix}`));
+
+      this.canUpdate = true;
+    } else {
+      this.alongTrackSpeed.setConsumer(null);
+      this.distanceRemaining.setConsumer(null);
+      this.currentDtk.setConsumer(null);
+      this.nextDtk.setConsumer(null);
+      this.nextDtkMag.setConsumer(null);
+      this.nextDtkVector.setConsumer(null);
+      this.lnavTrackingState.setConsumer(null);
+
+      this.canUpdate = false;
+    }
   }
 
   /**
@@ -170,15 +269,16 @@ export class WaypointAlertComputer {
    * @param state The new LNAV tracking state.
    */
   private handleTrackedIndicesChanged(state: LNavTrackingState): void {
-    if (this.armedNowState !== WaypointAlertingState.None
+    if (
+      this.armedNowState !== WaypointAlertingState.None
       && this.armedNowVectorIndex === state.vectorIndex
-      && this.armedNowLegIndex === state.globalLegIndex) {
-
+      && this.armedNowLegIndex === state.globalLegIndex
+    ) {
       this.currentCourse = this.armedNowCourse;
       this.currentCourseMag = this.armedNowCourseMag;
       this.currentCourseType = this.armedNowCourseType;
 
-      this.stateSub.set(this.armedNowState);
+      this.stateSubject.set(this.armedNowState);
       this.nowStateTimeStamp = this.simTime.get();
       this.armedNowState = WaypointAlertingState.None;
       this.armedNowCourse = NaN;
@@ -190,13 +290,41 @@ export class WaypointAlertComputer {
   }
 
   /**
+   * Resets this computer's internal state.
+   */
+  private reset(): void {
+    this.previousState = WaypointAlertingState.None;
+    this.currentState = WaypointAlertingState.None;
+
+    this.armedNowState = WaypointAlertingState.None;
+    this.armedNowLegIndex = -1;
+    this.armedNowVectorIndex = -1;
+    this.armedNowCourse = NaN;
+    this.armedNowCourseMag = NaN;
+    this.armedNowCourseType = WaypointAlertCourseType.DesiredTrack;
+    this.nowStateTimeStamp = 0;
+
+    this.currentCourse = NaN;
+    this.currentCourseMag = NaN;
+    this.currentCourseType = WaypointAlertCourseType.DesiredTrack;
+
+    this.stateSubject.set(WaypointAlertingState.None);
+    this.timeRemaining.set(NaN);
+  }
+
+  /**
    * Updates the WaypointAlertComputer.
    */
   public update(): void {
+    if (!this.canUpdate) {
+      return;
+    }
+
+    const flightPlanner = this.flightPlanner.get();
     const trackingState = this.lnavTrackingState.get();
 
-    if (this.flightPlanner.hasActiveFlightPlan() && trackingState.isTracking && this.groundSpeed.get() >= 30) {
-      const plan = this.flightPlanner.getActiveFlightPlan();
+    if (flightPlanner.hasActiveFlightPlan() && trackingState.isTracking && this.groundSpeed.get() >= 30) {
+      const plan = flightPlanner.getActiveFlightPlan();
 
       // LNAV tracking indexes can lag behind flight plan updates, so we need to be careful when getting the tracked
       // leg because it could have been removed from the flight plan.
@@ -207,7 +335,7 @@ export class WaypointAlertComputer {
         if (this.isInNowState()) {
           const secondsRemaining = ((this.nowStateTimeStamp + (this.nowAlertTime * 1000)) - this.simTime.get()) / 1000;
           if (secondsRemaining <= 0 || secondsRemaining > this.nowAlertTime) {
-            this.stateSub.set(WaypointAlertingState.None);
+            this.stateSubject.set(WaypointAlertingState.None);
             this.timeRemaining.set(NaN);
           } else {
             this.timeRemaining.set(secondsRemaining);
@@ -230,7 +358,7 @@ export class WaypointAlertComputer {
       }
     }
 
-    this.stateSub.set(WaypointAlertingState.None);
+    this.stateSubject.set(WaypointAlertingState.None);
     this.timeRemaining.set(NaN);
 
     this.armedNowState = WaypointAlertingState.None;
@@ -291,10 +419,10 @@ export class WaypointAlertComputer {
           const turnIsLargerThan10Degrees = currentLegSupportsTurn && nextLegSupportsTurn && Math.abs(NavMath.diffAngle(nextDtk, this.currentDtk.get())) >= 10;
 
           if (turnDirection !== undefined && currentLegSupportsTurn && nextLegSupportsTurn && turnIsLargerThan10Degrees) {
-            this.stateSub.set(turnDirection === 'left' ? WaypointAlertingState.LeftTurnInSeconds : WaypointAlertingState.RightTurnInSeconds);
+            this.stateSubject.set(turnDirection === 'left' ? WaypointAlertingState.LeftTurnInSeconds : WaypointAlertingState.RightTurnInSeconds);
             this.armedNowState = turnDirection === 'left' ? WaypointAlertingState.LeftTurnNow : WaypointAlertingState.RightTurnNow;
           } else {
-            this.stateSub.set(WaypointAlertingState.CourseInSeconds);
+            this.stateSubject.set(WaypointAlertingState.CourseInSeconds);
             this.armedNowState = WaypointAlertingState.CourseNow;
           }
 
@@ -311,7 +439,7 @@ export class WaypointAlertComputer {
           }
           this.timeRemaining.set(secondsRemaining);
         } else if (!this.isInNowState()) {
-          this.stateSub.set(WaypointAlertingState.None);
+          this.stateSubject.set(WaypointAlertingState.None);
           this.timeRemaining.set(NaN);
         }
       }
@@ -356,7 +484,7 @@ export class WaypointAlertComputer {
    * @returns True if in a now type state, false otherwise.
    */
   private isInNowState(): boolean {
-    const currentState = this.stateSub.get();
+    const currentState = this.stateSubject.get();
     return currentState === WaypointAlertingState.CourseNow || currentState === WaypointAlertingState.LeftTurnNow || currentState === WaypointAlertingState.RightTurnNow;
   }
 
@@ -453,7 +581,7 @@ export class WaypointAlertComputer {
       const turnDirection = FlightPathUtils.getTurnDirectionFromCircle(FlightPathUtils.setGeoCircleFromVector(vector, this.geoCircleCache[0]));
 
       if (withinAlertDistance) {
-        this.stateSub.set(turnDirection === 'left' ? WaypointAlertingState.LeftTurnInSeconds : WaypointAlertingState.RightTurnInSeconds);
+        this.stateSubject.set(turnDirection === 'left' ? WaypointAlertingState.LeftTurnInSeconds : WaypointAlertingState.RightTurnInSeconds);
         this.armedNowState = turnDirection === 'left' ? WaypointAlertingState.LeftTurnNow : WaypointAlertingState.RightTurnNow;
         this.armedNowVectorIndex = turnVectorIndex;
         this.armedNowLegIndex = trackingState.globalLegIndex;
@@ -464,11 +592,11 @@ export class WaypointAlertComputer {
 
         this.timeRemaining.set(secondsRemaining);
       } else if (!this.isInNowState()) {
-        this.stateSub.set(WaypointAlertingState.None);
+        this.stateSubject.set(WaypointAlertingState.None);
         this.timeRemaining.set(NaN);
       }
     } else if (!this.isInNowState()) {
-      this.stateSub.set(WaypointAlertingState.None);
+      this.stateSubject.set(WaypointAlertingState.None);
       this.timeRemaining.set(NaN);
     }
   }
@@ -597,7 +725,7 @@ export class WaypointAlertComputer {
 
       const withinAlertDistance = secondsRemaining <= holdAlertMaximum && secondsRemaining > holdAlertMinimum;
       if (withinAlertDistance) {
-        this.stateSub.set(holdState);
+        this.stateSubject.set(holdState);
         this.timeRemaining.set(secondsRemaining - this.alertLookaheadTime);
 
         return true;
@@ -613,11 +741,11 @@ export class WaypointAlertComputer {
    */
   private handleArrivingAtWaypoint(secondsRemaining: number): void {
     if (secondsRemaining < 0) {
-      this.stateSub.set(WaypointAlertingState.None);
+      this.stateSubject.set(WaypointAlertingState.None);
       this.timeRemaining.set(NaN);
     } else {
       const withinAlertDistance = secondsRemaining <= this.alertLookaheadTime;
-      this.stateSub.set(withinAlertDistance ? WaypointAlertingState.ArrivingAtWaypoint : WaypointAlertingState.None);
+      this.stateSubject.set(withinAlertDistance ? WaypointAlertingState.ArrivingAtWaypoint : WaypointAlertingState.None);
       this.timeRemaining.set(withinAlertDistance ? secondsRemaining : NaN);
     }
   }

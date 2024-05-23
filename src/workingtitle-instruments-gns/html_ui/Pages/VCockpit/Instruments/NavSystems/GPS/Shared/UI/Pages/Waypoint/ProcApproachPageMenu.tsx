@@ -1,5 +1,5 @@
 import { Fms } from '@microsoft/msfs-garminsdk';
-import { EventBus, FlightPlannerEvents, Subject } from '@microsoft/msfs-sdk';
+import { EventBus, Subject } from '@microsoft/msfs-sdk';
 import { MenuDefinition, MenuEntry, ViewService } from '../Pages';
 
 /**
@@ -54,15 +54,15 @@ export class ProcApproachPageMenu extends MenuDefinition {
   ];
 
   /** @inheritdoc */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  constructor(bus: EventBus,
+  constructor(
+    bus: EventBus,
     private fms: Fms,
     private noProcedureLoaded: Subject<boolean>,
     private onFacilitySelected: (facility?: string) => void,
-    private insertApproach: (activate: boolean) => Promise<void>) {
+    private insertApproach: (activate: boolean) => Promise<void>
+  ) {
     super();
-    bus.getSubscriber<FlightPlannerEvents>().on('fplLegChange').handle(this.onPlanChanged);
-
+    fms.flightPlanner.onEvent('fplLegChange').handle(this.onPlanChanged);
   }
 
   public onPlanChanged = (): void => {

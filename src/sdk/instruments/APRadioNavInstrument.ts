@@ -1,9 +1,11 @@
+import { CdiEvents } from '../cdi/CdiEvents';
+import { CdiUtils } from '../cdi/CdiUtils';
 import { EventBus, IndexedEvents, Publisher } from '../data/EventBus';
 import { NavMath } from '../geo/NavMath';
 import { ArrayUtils } from '../utils/datastructures/ArrayUtils';
 import { Instrument } from './Backplane';
 import { NavComEvents } from './NavCom';
-import { CdiDeviation, Glideslope, Localizer, NavEvents, NavSourceId, NavSourceType, ObsSetting } from './NavProcessor';
+import { CdiDeviation, Glideslope, Localizer, NavSourceId, NavSourceType, ObsSetting } from './NavProcessor';
 import { NavRadioIndex } from './RadioCommon';
 
 /**
@@ -127,13 +129,15 @@ export class APRadioNavInstrument implements Instrument {
   });
 
   private readonly publisher: Publisher<NavRadioEvents>;
-  private currentCdiIndex = 1;
+  private currentCdiNavSourceIndex = 1;
 
   /**
    * Creates an instance of the APRadioNavInstrument.
    * @param bus The event bus to use with this instance.
+   * @param cdiId The ID of the CDI from which this instrument sources navigation source data. Defaults to the empty
+   * string (`''`).
    */
-  constructor(private readonly bus: EventBus) {
+  constructor(private readonly bus: EventBus, private readonly cdiId = '') {
     this.publisher = bus.getPublisher<NavRadioEvents>();
   }
 
@@ -156,13 +160,13 @@ export class APRadioNavInstrument implements Instrument {
       navComSubscriber.on(`nav_magvar_${i}`).whenChanged().handle(this.setMagVar.bind(this, i));
     }
 
-    const navEvents = this.bus.getSubscriber<NavEvents>();
-    navEvents.on('cdi_select').handle(source => {
-      const oldIndex = this.currentCdiIndex;
-      this.currentCdiIndex = source.type === NavSourceType.Nav ? source.index : 0;
+    const navEvents = this.bus.getSubscriber<CdiEvents>();
+    navEvents.on(`cdi_select${CdiUtils.getEventBusTopicSuffix(this.cdiId)}`).handle(source => {
+      const oldIndex = this.currentCdiNavSourceIndex;
+      this.currentCdiNavSourceIndex = source.type === NavSourceType.Nav ? source.index : 0;
 
-      if (oldIndex !== this.currentCdiIndex) {
-        const data = this.navRadioData[this.currentCdiIndex];
+      if (oldIndex !== this.currentCdiNavSourceIndex) {
+        const data = this.navRadioData[this.currentCdiNavSourceIndex];
 
         this.publisher.pub('nav_radio_active_gs_location', data.gsLocation);
         this.publisher.pub('nav_radio_active_nav_location', data.navLocation);
@@ -190,7 +194,7 @@ export class APRadioNavInstrument implements Instrument {
   private setGlideslopeValue<T extends keyof Glideslope>(index: number, field: T, value: Glideslope[T]): void {
     this.navRadioData[index].glideslope[field] = value;
 
-    if (this.currentCdiIndex === index) {
+    if (this.currentCdiNavSourceIndex === index) {
       this.publisher.pub('nav_radio_active_glideslope', this.navRadioData[index].glideslope);
     }
 
@@ -218,7 +222,7 @@ export class APRadioNavInstrument implements Instrument {
   private setGlideslopePosition(index: number, lla: LatLongAlt): void {
     this.navRadioData[index].gsLocation = lla;
 
-    if (this.currentCdiIndex === index) {
+    if (this.currentCdiNavSourceIndex === index) {
       this.publisher.pub('nav_radio_active_gs_location', lla);
     }
 
@@ -246,7 +250,7 @@ export class APRadioNavInstrument implements Instrument {
   private setNavPosition(index: number, lla: LatLongAlt): void {
     this.navRadioData[index].navLocation = lla;
 
-    if (this.currentCdiIndex === index) {
+    if (this.currentCdiNavSourceIndex === index) {
       this.publisher.pub('nav_radio_active_nav_location', lla);
     }
 
@@ -275,7 +279,7 @@ export class APRadioNavInstrument implements Instrument {
   private setLocalizerValue<T extends keyof Localizer>(index: number, field: T, value: Localizer[T]): void {
     this.navRadioData[index].localizer[field] = value;
 
-    if (this.currentCdiIndex === index) {
+    if (this.currentCdiNavSourceIndex === index) {
       this.publisher.pub('nav_radio_active_localizer', this.navRadioData[index].localizer);
     }
 
@@ -304,7 +308,7 @@ export class APRadioNavInstrument implements Instrument {
   private setCDIValue<T extends keyof CdiDeviation>(index: number, field: T, value: CdiDeviation[T]): void {
     this.navRadioData[index].cdi[field] = value;
 
-    if (this.currentCdiIndex === index) {
+    if (this.currentCdiNavSourceIndex === index) {
       this.publisher.pub('nav_radio_active_cdi_deviation', this.navRadioData[index].cdi);
     }
 
@@ -333,7 +337,7 @@ export class APRadioNavInstrument implements Instrument {
   private setOBSValue<T extends keyof ObsSetting>(index: number, field: T, value: ObsSetting[T]): void {
     this.navRadioData[index].obs[field] = value;
 
-    if (this.currentCdiIndex === index) {
+    if (this.currentCdiNavSourceIndex === index) {
       this.publisher.pub('nav_radio_active_obs_setting', this.navRadioData[index].obs);
     }
 
@@ -360,7 +364,7 @@ export class APRadioNavInstrument implements Instrument {
    */
   private setRadialError(index: number, radialError: number): void {
     this.navRadioData[index].radialError = radialError;
-    if (this.currentCdiIndex === index) {
+    if (this.currentCdiNavSourceIndex === index) {
       this.publisher.pub('nav_radio_active_radial_error', radialError);
     }
 
@@ -389,7 +393,7 @@ export class APRadioNavInstrument implements Instrument {
     magVar = NavMath.normalizeHeading(-magVar + 180) % 360 - 180;
 
     this.navRadioData[index].magVar = magVar;
-    if (this.currentCdiIndex === index) {
+    if (this.currentCdiNavSourceIndex === index) {
       this.publisher.pub('nav_radio_active_magvar', magVar);
     }
 

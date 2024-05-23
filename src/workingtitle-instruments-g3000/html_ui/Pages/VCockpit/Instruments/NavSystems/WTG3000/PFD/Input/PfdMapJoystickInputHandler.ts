@@ -112,7 +112,7 @@ export class PfdMapJoystickInputHandler {
         mapPointerActivePipe.pause();
         this.isMapPointerActive.set(false);
       } else {
-        this.controlledMapPaneSettingManager.useDisplayPaneSettings(index);
+        this.controlledMapPaneSettingManager.useDisplayPaneSettings(index as DisplayPaneIndex);
         mapPointerActivePipe.resume(true);
       }
     }, true);
@@ -171,7 +171,7 @@ export class PfdMapJoystickInputHandler {
       return;
     } else {
       this.publisher.pub('display_pane_view_event', {
-        displayPaneIndex: displayPaneIndex,
+        displayPaneIndex: displayPaneIndex as DisplayPaneIndex,
         eventType: `display_pane_map_range_${incOrDec}`,
         eventData: undefined
       }, true);
@@ -189,7 +189,7 @@ export class PfdMapJoystickInputHandler {
       return;
     } else {
       this.publisher.pub('display_pane_view_event', {
-        displayPaneIndex: displayPaneIndex,
+        displayPaneIndex: displayPaneIndex as DisplayPaneIndex,
         eventType: 'display_pane_map_pointer_active_toggle',
         eventData: undefined
       }, true);
@@ -209,7 +209,7 @@ export class PfdMapJoystickInputHandler {
     } else {
       const delta = this.mapPointerJoystickHandler.onInput(direction, PfdMapJoystickInputHandler.vec2Cache[0]);
       this.publisher.pub('display_pane_view_event', {
-        displayPaneIndex: displayPaneIndex,
+        displayPaneIndex: displayPaneIndex as DisplayPaneIndex,
         eventType: 'display_pane_map_pointer_move',
         eventData: [delta[0], delta[1]]
       }, true);

@@ -1,0 +1,95 @@
+.cns-data-bar {
+  position: relative;
+  background: var(--g3x-color-black);
+  border-bottom: solid 1px var(--g3x-color-pane-border);
+  padding-bottom: 1px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.gdu-460-display .cns-data-bar {
+  --cns-data-bar-split-width: 80px;
+  --cns-data-bar-split-font-size: 15px;
+  /* TODO: double and single-width audio button */
+  --cns-data-bar-radio-width: 240px;
+  --cns-data-bar-radio-minimized-width: 120px;
+  --cns-data-bar-xpdr-width: 216px;
+  --cns-data-bar-timer-width: 100px;
+  --cns-data-bar-timer-font-size: 20px;
+}
+
+.cns-data-bar-item-container {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+.cns-data-bar .g3x-nav-data-bar {
+  flex-grow: 1;
+}
+
+.cns-data-bar-item-container-left .cns-data-bar-item-container {
+  margin-right: 7px;
+}
+
+.cns-data-bar-item-container-right .cns-data-bar-item-container {
+  margin-left: 7px;
+}
+
+.cns-data-bar-item-container .cns-split {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+
+  --ui-directory-button-width: 100%;
+  --ui-directory-button-height: 100%;
+  --ui-directory-button-font-size: var(--cns-data-bar-split-font-size);
+}
+
+.cns-data-bar-item-container .cns-timer {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  font-size: var(--cns-data-bar-timer-font-size);
+}
+
+.cns-data-bar-item-container .cns-com {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.cns-data-bar-item-container .cns-nav {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.cns-data-bar-item-container .cns-audio {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.cns-data-bar-item-container .cns-xpdr {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.cns-split.touch-button-disabled {
+  visibility: hidden;
+}

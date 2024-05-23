@@ -55,6 +55,8 @@ export interface ScrollListProps extends ComponentProps {
 export class ScrollList<P extends ScrollListProps = ScrollListProps> extends DisplayComponent<P> {
   protected static readonly RESERVED_CLASSES = ['scroll-list', 'scroll-list-x', 'scroll-list-y'];
 
+  protected childrenNode?: VNode;
+
   protected readonly rootRef = FSComponent.createRef<HTMLDivElement>();
   protected readonly translatableRef = FSComponent.createRef<HTMLDivElement>();
   protected readonly itemsContainerRef = FSComponent.createRef<HTMLDivElement>();
@@ -254,7 +256,7 @@ export class ScrollList<P extends ScrollListProps = ScrollListProps> extends Dis
 
   protected cssClassSub?: Subscription | Subscription[];
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
     if (this._itemsPerPage && this.itemsPerPageProp) {
       this.listItemLengthPx.set(this.listItemLengthPxProp.get());
@@ -827,7 +829,7 @@ export class ScrollList<P extends ScrollListProps = ScrollListProps> extends Dis
     return this.getOverscrollPx() !== 0;
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     let cssClass: string | SetSubject<string>;
 
@@ -846,11 +848,13 @@ export class ScrollList<P extends ScrollListProps = ScrollListProps> extends Dis
       }
     }
 
+    this.childrenNode = this.props.children === undefined ? undefined : <>{this.props.children}</>;
+
     return (
       <div ref={this.rootRef} class={cssClass}>
         <div ref={this.translatableRef} class='scroll-list-translatable'>
           <div ref={this.itemsContainerRef} class='items-container' />
-          {this.props.children}
+          {this.childrenNode}
         </div>
       </div>
     );
@@ -864,8 +868,10 @@ export class ScrollList<P extends ScrollListProps = ScrollListProps> extends Dis
     return ScrollList.RESERVED_CLASSES;
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
+    this.childrenNode && FSComponent.shallowDestroy(this.childrenNode);
+
     for (const sub of this.listItemParamSubs) {
       sub.destroy();
     }

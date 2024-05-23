@@ -1,0 +1,16 @@
+.data-bar-field-edit-view {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+
+  --touch-button-border: none;
+  --touch-button-border-radius: 0px;
+  --touch-button-background: var(--g3x-color-black);
+  --touch-button-box-shadow: none;
+}
+
+.gdu-460-display .data-bar-field-edit-view {
+  font-size: 21px;
+}

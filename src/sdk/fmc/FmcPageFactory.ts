@@ -18,8 +18,15 @@ export abstract class FmcPageFactory<T extends AbstractFmcPage> {
    * @param pageCtor the page constructor
    * @param bus the event bus
    * @param screen the FMC screen instance
+   * @param props the props to create this page with
    * @param renderCallback the render callback to give to the page
    */
-  abstract createPage(pageCtor: new(...args: any[]) => T, bus: EventBus, screen: FmcScreen<T, any>, renderCallback: FmcRenderCallback): T;
+  abstract createPage<U extends object | null>(
+    pageCtor: new(...args: any[]) => T,
+    bus: EventBus,
+    screen: FmcScreen<T & AbstractFmcPage<U>, any>,
+    props: U,
+    renderCallback: FmcRenderCallback,
+  ): T & AbstractFmcPage<U>;
 }
 

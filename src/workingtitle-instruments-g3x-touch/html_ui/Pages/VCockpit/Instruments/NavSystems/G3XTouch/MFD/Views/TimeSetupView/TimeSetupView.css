@@ -1,0 +1,99 @@
+.time-setup-view {
+  color: var(--g3x-color-white);
+  background: var(--g3x-color-black);
+
+  --ui-list-select-button-label-height: 0px;
+}
+
+.gdu-460-display .time-setup-view {
+  font-size: 21px;
+
+  --ui-list-select-button-dropdown-width: 50px;
+
+  --time-setup-view-list-margin: 0px 2px 0px 13px;
+
+  --time-setup-view-list-item-padding: 7px 9px;
+  --time-setup-view-list-item-column-gap: 5px;
+
+  --time-setup-view-row-right-width: 266px;
+
+  --time-setup-view-time-margin-bottom: 3px;
+
+  --time-setup-view-utc-offset-incdec-button-width: 80px;
+}
+
+.gdu-460-display .ui-pane-full .time-setup-view {
+  --time-setup-view-row-right-width: 368px;
+}
+
+.time-setup-view-content {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.time-setup-view-list {
+  margin: var(--time-setup-view-list-margin);
+}
+
+.time-setup-view-list .touch-button.ui-list-item-button {
+  padding: var(--time-setup-view-list-item-padding);
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr var(--time-setup-view-row-right-width);
+  grid-column-gap: var(--time-setup-view-list-item-column-gap);
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.time-setup-view-row-left {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+}
+
+.time-setup-view-row-date-time-right {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.time-setup-view-row-date-time .time-sec {
+  display: none;
+}
+
+.time-setup-view-time {
+  margin-bottom: var(--time-setup-view-time-margin-bottom);
+}
+
+.time-setup-view-row-utc-offset-right {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+.time-setup-view-utc-offset-incdec-button {
+  width: var(--time-setup-view-utc-offset-incdec-button-width);
+}
+
+.time-setup-view-utc-offset-value-button {
+  flex-grow: 1;
+
+  --touch-button-border-color: transparent;
+  --touch-button-background: none;
+  --touch-button-box-shadow: none;
+}
+
+.gdu-460-display .time-setup-view-select-list {
+  --ui-list-dialog-width: 284px;
+  --ui-list-dialog-padding: 3px;
+  --ui-list-dialog-font-size: 21px;
+}
+
+.gdu-460-display .ui-pane-full .time-setup-view-select-list {
+  --ui-list-dialog-width: 386px;
+}

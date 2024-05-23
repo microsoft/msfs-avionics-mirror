@@ -1,0 +1,143 @@
+html {
+  /* The length of the thumb along the main axis */
+  --touch-slider-thumb-length: 0px;
+  /*
+   * The justification of the thumb relative to the slider's current value. A value of 0 places the 100% of the thumb
+   * above the current value. A value of 0.5 places the middle of the thumb at the current value. A value of 1 places
+   * 100% of the thumb below the current value.
+   */
+  --touch-slider-thumb-justify: 0.5;
+
+  --touch-slider-slider-container-border-width: 2px;
+  --touch-slider-slider-container-border-style: solid;
+  --touch-slider-slider-container-border-color: #878e9e;
+}
+
+.touch-slider {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+}
+
+.touch-slider.touch-slider-to-left {
+  flex-flow: row-reverse nowrap;
+}
+
+.touch-slider.touch-slider-to-right {
+  flex-flow: row nowrap;
+}
+
+.touch-slider.touch-slider-to-top {
+  flex-flow: column-reverse nowrap;
+}
+
+.touch-slider.touch-slider-to-bottom {
+  flex-flow: column nowrap;
+}
+
+.touch-slider.touch-slider-disabled {
+  filter: brightness(35%);
+}
+
+/*
+ * Need to individually apply filter to these elements because the filter on the root element doesn't get applied
+ * due to layering
+ */
+.touch-slider-disabled .touch-slider-slider-thumb-translate {
+  filter: brightness(35%);
+}
+
+.touch-slider.touch-slider-hidden {
+  display: none !important;
+}
+
+.touch-slider-slider-container {
+  position: relative;
+  flex-grow: 1;
+  border: var(--touch-slider-slider-container-border, var(--touch-slider-slider-container-border-width) var(--touch-slider-slider-container-border-style) var(--touch-slider-slider-container-border-color));
+}
+
+.touch-slider-slider-background {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.touch-slider-slider-foreground {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.touch-slider-slider-inset {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.touch-slider-slider-thumb-translate {
+  position: absolute;
+}
+
+.touch-slider-horizontal .touch-slider-slider-thumb-translate {
+  top: 0px;
+  width: calc(100% - var(--touch-slider-thumb-length));
+  height: 100%;
+}
+
+.touch-slider-to-left .touch-slider-slider-thumb-translate {
+  left: calc(100% - var(--touch-slider-thumb-length) * var(--touch-slider-thumb-justify));
+}
+
+.touch-slider-to-right .touch-slider-slider-thumb-translate {
+  left: calc(var(--touch-slider-thumb-length) * var(--touch-slider-thumb-justify));
+}
+
+.touch-slider-vertical .touch-slider-slider-thumb-translate {
+  left: 0px;
+  top: var(--touch-slider-thumb-length) / 2;
+  width: 100%;
+  height: calc(100% - var(--touch-slider-thumb-length));
+}
+
+.touch-slider-to-top .touch-slider-slider-thumb-translate {
+  top: calc(100% - var(--touch-slider-thumb-length) * var(--touch-slider-thumb-justify));
+}
+
+.touch-slider-to-bottom .touch-slider-slider-thumb-translate {
+  top: calc(var(--touch-slider-thumb-length) * var(--touch-slider-thumb-justify));
+}
+
+.touch-slider-slider-thumb {
+  position: relative;
+}
+
+.touch-slider-horizontal .touch-slider-slider-thumb {
+  width: var(--touch-slider-thumb-length);
+}
+
+.touch-slider-to-left .touch-slider-slider-thumb {
+  right: calc(100% - var(--touch-slider-thumb-length) * var(--touch-slider-thumb-justify));
+}
+
+.touch-slider-to-right .touch-slider-slider-thumb {
+  left: calc(-1 * var(--touch-slider-thumb-length) * var(--touch-slider-thumb-justify));
+}
+
+.touch-slider-vertical .touch-slider-slider-thumb {
+  height: var(--touch-slider-thumb-length);
+}
+
+.touch-slider-to-top .touch-slider-slider-thumb {
+  bottom: calc(100% - var(--touch-slider-thumb-length) * var(--touch-slider-thumb-justify));
+}
+
+.touch-slider-to-bottom .touch-slider-slider-thumb {
+  top: calc(-1 * var(--touch-slider-thumb-length) * var(--touch-slider-thumb-justify));
+}

@@ -1,0 +1,32 @@
+.hsi-compass {
+  --hsi-compass-background-fill: rgba(0, 0, 0, 0.4);
+
+  --hsi-compass-tick-color: var(--g3x-color-white);
+
+  --hsi-compass-label-fill: var(--g3x-color-white);
+}
+
+.gdu-460-display {
+  --hsi-compass-tick-width: 3px;
+
+  --hsi-compass-label-width: 28px;
+  --hsi-compass-label-font-size: 26px;
+}
+
+.hsi-compass-background {
+  fill: var(--hsi-compass-background-fill);
+}
+
+.hsi-compass-ticks {
+  fill: none;
+  stroke: var(--hsi-compass-tick-color);
+  stroke-width: var(--hsi-compass-tick-width);
+}
+
+.hsi-compass-label {
+  width: var(--hsi-compass-label-width);
+  height: 0.85em;
+  color: var(--g3x-color-white);
+  font-size: var(--hsi-compass-label-font-size);
+  text-align: center;
+}

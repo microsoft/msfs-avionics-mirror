@@ -1,0 +1,15 @@
+.direct-to-nearest-tab {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.gdu-460-display .direct-to-nearest-tab {
+  padding: 0px 1px 0px 7px;
+}

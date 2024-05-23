@@ -78,6 +78,24 @@ export class SubscribableMapFunctions {
   }
 
   /**
+   * Generates a function which maps an input number tuple to the minimum numeric value contained in the tuple.
+   * A zero-length tuple is mapped to Infinity.
+   * @returns A function which maps an input number tuple to the minimum numeric value contained in the tuple.
+   */
+  public static min(): (input: readonly number[], currentVal?: number) => number {
+    return (input: readonly number[]): number => Math.min(...input);
+  }
+
+  /**
+   * Generates a function which maps an input number tuple to the maximum numeric value contained in the tuple.
+   * A zero-length tuple is mapped to -Infinity.
+   * @returns A function which maps an input number tuple to the maximum numeric value contained in the tuple.
+   */
+  public static max(): (input: readonly number[], currentVal?: number) => number {
+    return (input: readonly number[]): number => Math.max(...input);
+  }
+
+  /**
    * Generates a function which maps an input tuple to a count of the number of items in the tuple that satisfy a
    * given condition.
    * @param predicate A function which evaluates whether an item should be counted.
@@ -93,7 +111,44 @@ export class SubscribableMapFunctions {
       }
     };
 
-    return (input: readonly T[]): number => input.reduce(reduceFunc, 0);
+    return SubscribableMapFunctions.reduce(reduceFunc, 0);
+  }
+
+  /**
+   * Generates a function which maps an input tuple to an arbitrary accumulated value by calling a specified function
+   * for each input in the tuple in order. The return value of the callback function is the accumulated value and is
+   * provided as an argument in the next call to the callback function. The accumulated value provided as an argument
+   * to the first call to the callback function is equal to the first input in the tuple. The value returned by the
+   * last invocation of the callback function is the final mapped value.
+   * @param callbackFn A callback function that returns an accumulated value after being called for each input.
+   * @returns A function which maps an input tuple to an arbitrary accumulated value by calling the specified function
+   * for each input in the tuple in order.
+   */
+  public static reduce<T>(
+    callbackFn: (previousValue: T, currentInput: T, currentIndex: number, inputs: readonly T[]) => T,
+    initialValue?: T
+  ): (input: readonly T[], currentVal?: T) => T;
+  /**
+   * Generates a function which maps an input tuple to an arbitrary accumulated value by calling a specified function
+   * for each input in the tuple in order. The return value of the callback function is the accumulated value and is
+   * provided as an argument in the next call to the callback function. The value returned by the last invocation of
+   * the callback function is the final mapped value.
+   * @param callbackFn A callback function that returns an accumulated value after being called for each input.
+   * @param initialValue The initial accumulated value to provide as an argument to the first call to the callback
+   * function.
+   * @returns A function which maps an input tuple to an arbitrary accumulated value by calling the specified function
+   * for each input in the tuple in order.
+   */
+  public static reduce<T, U>(
+    callbackFn: (previousValue: U, currentInput: T, currentIndex: number, inputs: readonly T[]) => U,
+    initialValue: U
+  ): (input: readonly T[], currentVal?: U) => U;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static reduce<T>(
+    callbackFn: (previousValue: any, currentInput: T, currentIndex: number, inputs: readonly T[]) => any,
+    initialValue?: any
+  ): (input: readonly T[], currentVal?: any) => any {
+    return (input: readonly T[]): any => input.reduce(callbackFn, initialValue);
   }
 
   /**
@@ -128,7 +183,14 @@ export class SubscribableMapFunctions {
 
   /**
    * Generates a function which maps an input number to itself up to a maximum frequency, and to the previous mapped
-   * value otherwise.
+   * value otherwise. In other words, the mapping function will not pass through changes in the input value if not
+   * enough time has elapsed since the last change that was passed through.
+   * 
+   * **Caution**: The mapping function can only pass through the input value when the input value changes. This means
+   * that if the mapping function rejects a change in the input value due to the maximum frequency being exceeded, it
+   * is possible that particular input value will never be reflected in the mapped value, even after the frequency
+   * cutoff has expired. For example, if the input value changes from `a` to `b` but is rejected by the mapping
+   * function and subsequently remains `b` forever, then the mapped value will remain `a` forever.
    * @param freq The maximum frequency at which to map the input to itself, in hertz.
    * @param timeFunc A function which gets the current time in milliseconds. Defaults to `Date.now()`.
    * @returns A function which maps an input number to itself up to the specified maximum frequency, and to the

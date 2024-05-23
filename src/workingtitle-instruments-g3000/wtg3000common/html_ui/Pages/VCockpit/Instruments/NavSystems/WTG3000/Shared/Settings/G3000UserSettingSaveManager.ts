@@ -122,10 +122,10 @@ export class G3000UserSettingSaveManager extends UserSettingSaveManager {
             : []
         ),
         ...(
-          config.taws.touchdownCallouts.isUserConfigurable
+          config.terrain.touchdownCallouts?.isUserConfigurable
             ? [
               TouchdownCalloutUserSettings.getManager(bus).getSetting('touchdownCalloutMasterEnabled'),
-              ...Object.values(config.taws.touchdownCallouts.options).filter(options => options.userConfigurable).map(options => {
+              ...Object.values(config.terrain.touchdownCallouts.options).filter(options => options.userConfigurable).map(options => {
                 return TouchdownCalloutUserSettings.getManager(bus).getEnabledSetting(options.altitude);
               })
             ]

@@ -47,6 +47,7 @@ export class XPDRSimVarPublisher extends SimVarPublisher<XPDRSimVarEvents> {
 
 /** A transponder. */
 export class XPDRInstrument {
+
   private simVarPublisher: XPDRSimVarPublisher;
   private controlSubscriber: EventSubscriber<ControlEvents>;
 

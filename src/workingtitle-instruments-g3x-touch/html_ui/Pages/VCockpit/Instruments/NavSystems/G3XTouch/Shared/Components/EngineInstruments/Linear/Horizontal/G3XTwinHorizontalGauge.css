@@ -1,0 +1,108 @@
+.twin-horiz-container {
+  --horizontal-bar-gauge-color-zone-height: 10px;
+  --double-horizontal-bar-gauge-color-line-height: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.twin-horiz-container .inner-frame {
+  width: 100%;
+  height: 100%;
+}
+
+.twin-horiz-container .gauges-row {
+  width: 100%;
+  height: 14px;
+  display: flex;
+  flex-direction: row;
+}
+
+.twin-horiz-container .text-frame {
+  width: 100%;
+  height: 20px;
+  font-size: 17px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  flex-shrink: 0;
+  margin-bottom: 6px;
+}
+
+.twin-horiz-container .inner-lines-frame {
+  position: absolute;
+  left: 0;
+  top: calc((100% - var(--double-horizontal-bar-gauge-color-line-height)) / 2);
+  height: var(--double-horizontal-bar-gauge-color-line-height);
+  width: 100%;
+}
+
+.twin-horiz-container .f {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.twin-horiz-container .color-zone-fragment {
+  y: calc(100% - var(--horizontal-bar-gauge-color-zone-height));
+  height: var(--horizontal-bar-gauge-color-zone-height);
+}
+
+.twin-horiz-container .color-zone-fragment-cover {
+  y: calc(100% - var(--horizontal-bar-gauge-color-zone-height));
+  height: var(--horizontal-bar-gauge-color-zone-height);
+}
+
+.twin-horiz-container .gauge_pointer {
+  position: absolute;
+  width: 100%;
+  bottom: -1px;
+  left: 0px;
+}
+
+.twin-horiz-container .left-gauge {
+  position: relative;
+  margin-right: 18px;
+}
+
+.twin-horiz-container .right-gauge {
+  position: relative;
+}
+
+.twin-horiz-container .gauge_pointer_text {
+  position: absolute;
+  font-size: 11px;
+  fill: var(--g3x-color-black);
+  text-align: center;
+}
+
+.double_horiz_container {
+  position: relative;
+  width: 100%;
+  padding-top: 1px;
+}
+
+.double_horiz_container .gauge_pointer_top {
+  position: absolute;
+  top: 0px;
+  left: -4px;
+  width: 30px;
+  height: 30px;
+}
+
+.double_horiz_container .gauge_pointer_bottom {
+  position: absolute;
+  top: 2px;
+  width: 30px;
+  left: -4px;
+  height: 30px;
+}
+
+.double_horiz_container .gauge_pointer_text {
+  position: absolute;
+  font-size: 11px;
+  fill: var(--g3x-color-black);
+  text-align: center;
+}

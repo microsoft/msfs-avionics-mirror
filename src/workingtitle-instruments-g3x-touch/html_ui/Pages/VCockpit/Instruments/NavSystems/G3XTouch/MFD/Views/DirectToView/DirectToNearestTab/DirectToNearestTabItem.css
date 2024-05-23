@@ -1,0 +1,32 @@
+.gdu-460-display .direct-to-nearest-tab-item {
+  padding: 0px 18px 0px 14px;
+  font-size: 23px;
+
+  --direct-to-nearest-tab-item-waypoint-margin-right: 6px;
+  --direct-to-nearest-tab-item-waypoint-font-size: 17px;
+  --direct-to-nearest-tab-item-waypoint-ident-font-size: 23px;
+
+  --direct-to-nearest-tab-item-brg-dist-width: 88px;
+}
+
+.direct-to-nearest-tab-item {
+  display: flex;
+  align-items: center;
+  flex-flow: row nowrap;
+}
+
+.direct-to-nearest-tab-item-waypoint {
+  flex-grow: 1;
+  margin-right: var(--direct-to-nearest-tab-item-waypoint-margin-right);
+  font-size: var(--direct-to-nearest-tab-item-waypoint-font-size);
+}
+
+.direct-to-nearest-tab-item-waypoint .ui-nearest-wpt-display-ident {
+  font-size: var(--direct-to-nearest-tab-item-waypoint-ident-font-size);
+}
+
+.direct-to-nearest-tab-item-brg-dist {
+  flex-shrink: 0;
+  width: var(--direct-to-nearest-tab-item-brg-dist-width);
+  text-align: right;
+}

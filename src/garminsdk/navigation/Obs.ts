@@ -1,5 +1,9 @@
-import { ConsumerSubject, EventBus, LNavEvents, MappedSubject, NavEvents, Subscribable } from '@microsoft/msfs-sdk';
-import { GarminControlEvents } from '../instruments/GarminControlEvents';
+import {
+  ConsumerSubject, EventBus, LNavEvents, LNavObsEvents, LNavUtils, MappedSubject, Subject, Subscribable, SubscribableUtils,
+  Subscription
+} from '@microsoft/msfs-sdk';
+
+import { LNavDataEvents } from './LNavDataEvents';
 
 /**
  * LNAV OBS/suspend modes.
@@ -25,39 +29,63 @@ export interface ObsSuspDataProvider {
 }
 
 /**
+ * Configuration options for {@link DefaultObsSuspDataProvider}.
+ */
+export type DefaultObsSuspDataProviderOptions = {
+  /** The index of the LNAV from which to source data. Defaults to `0`. */
+  lnavIndex?: number | Subscribable<number>;
+}
+
+/**
  * A default implementation of {@link ObsSuspDataProvider}.
  */
 export class DefaultObsSuspDataProvider implements ObsSuspDataProvider {
-  private readonly isLNavSuspended = ConsumerSubject.create(null, false);
-  private readonly isObsActive = ConsumerSubject.create(null, false);
+  private readonly lnavIndex: Subscribable<number>;
 
+  private readonly isLNavIndexValid = Subject.create(false);
+  private readonly isLNavSuspended = ConsumerSubject.create(null, false).pause();
+  private readonly isObsActive = ConsumerSubject.create(null, false).pause();
+
+  /** @inheritDoc */
   public readonly mode = MappedSubject.create(
-    ([isLNavSuspended, isObsActive]): ObsSuspModes => {
+    ([isLNavIndexValid, isLNavSuspended, isObsActive]): ObsSuspModes => {
+      if (!isLNavIndexValid) {
+        return ObsSuspModes.NONE;
+      }
+
       return isObsActive
         ? ObsSuspModes.OBS
         : isLNavSuspended ? ObsSuspModes.SUSP : ObsSuspModes.NONE;
     },
+    this.isLNavIndexValid,
     this.isLNavSuspended,
     this.isObsActive
   ) as Subscribable<ObsSuspModes>;
 
-  private readonly _isObsAvailable = ConsumerSubject.create(null, false);
-  /** @inheritdoc */
+  private readonly _isObsAvailable = ConsumerSubject.create(null, false).pause();
+  /** @inheritDoc */
   public readonly isObsAvailable = this._isObsAvailable as Subscribable<boolean>;
 
-  private readonly _obsCourse = ConsumerSubject.create(null, 0);
-  /** @inheritdoc */
+  private readonly _obsCourse = ConsumerSubject.create(null, 0).pause();
+  /** @inheritDoc */
   public readonly obsCourse = this._obsCourse as Subscribable<number>;
 
   private isAlive = true;
   private isInit = false;
-  private isPaused = false;
+  private isPaused = true;
+
+  private lnavIndexSub?: Subscription;
 
   /**
-   * Constructor.
+   * Creates a new instance of DefaultObsSuspDataProvider.
    * @param bus The event bus.
+   * @param options Options with which to configure the data provider.
    */
-  public constructor(private readonly bus: EventBus) {
+  public constructor(
+    private readonly bus: EventBus,
+    options?: Readonly<DefaultObsSuspDataProviderOptions>
+  ) {
+    this.lnavIndex = SubscribableUtils.toSubscribable(options?.lnavIndex ?? 0, true);
   }
 
   /**
@@ -69,7 +97,7 @@ export class DefaultObsSuspDataProvider implements ObsSuspDataProvider {
    */
   public init(paused = false): void {
     if (!this.isAlive) {
-      throw new Error('DefaultHsiDataProvider: cannot initialize a dead provider');
+      throw new Error('DefaultObsSuspDataProvider: cannot initialize a dead provider');
     }
 
     if (this.isInit) {
@@ -77,18 +105,28 @@ export class DefaultObsSuspDataProvider implements ObsSuspDataProvider {
     }
 
     this.isInit = true;
-    this.isPaused = paused;
 
-    const sub = this.bus.getSubscriber<LNavEvents & NavEvents & GarminControlEvents>();
+    const sub = this.bus.getSubscriber<LNavEvents & LNavDataEvents & LNavObsEvents>();
 
-    this.isLNavSuspended.setConsumer(sub.on('lnav_is_suspended'));
-    this.isObsActive.setConsumer(sub.on('gps_obs_active'));
+    this.lnavIndexSub = this.lnavIndex.sub(index => {
+      if (Number.isInteger(index) && index >= 0) {
+        const suffix = LNavUtils.getEventBusTopicSuffix(index);
+        this.isLNavSuspended.setConsumer(sub.on(`lnav_is_suspended${suffix}`));
+        this._isObsAvailable.setConsumer(sub.on(`obs_available${suffix}`));
+        this.isObsActive.setConsumer(sub.on(`lnav_obs_active${suffix}`));
+        this._obsCourse.setConsumer(sub.on(`lnav_obs_course${suffix}`));
+        this.isLNavIndexValid.set(true);
+      } else {
+        this.isLNavIndexValid.set(false);
+        this.isLNavSuspended.setConsumer(null);
+        this._isObsAvailable.setConsumer(null);
+        this.isObsActive.setConsumer(null);
+        this._obsCourse.setConsumer(null);
+      }
+    }, true);
 
-    this._isObsAvailable.setConsumer(sub.on('obs_available'));
-    this._obsCourse.setConsumer(sub.on('gps_obs_value'));
-
-    if (paused) {
-      this.pause();
+    if (!paused) {
+      this.resume();
     }
   }
 
@@ -107,6 +145,9 @@ export class DefaultObsSuspDataProvider implements ObsSuspDataProvider {
     }
 
     this.isPaused = false;
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    this.lnavIndexSub!.resume(true);
 
     this.isLNavSuspended.resume();
     this.isObsActive.resume();
@@ -127,6 +168,9 @@ export class DefaultObsSuspDataProvider implements ObsSuspDataProvider {
     if (!this.isInit || this.isPaused) {
       return;
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    this.lnavIndexSub!.pause();
 
     this.isLNavSuspended.pause();
     this.isObsActive.pause();
@@ -149,5 +193,7 @@ export class DefaultObsSuspDataProvider implements ObsSuspDataProvider {
 
     this._isObsAvailable.destroy();
     this._obsCourse.destroy();
+
+    this.lnavIndexSub?.destroy();
   }
 }

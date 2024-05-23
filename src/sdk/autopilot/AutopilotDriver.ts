@@ -8,7 +8,7 @@ import { Subscribable } from '../sub/Subscribable';
 import { LinearServo } from '../utils/controllers/LinearServo';
 import { APValues } from './APConfig';
 import { FlightDirectorEvents } from './data/FlightDirectorEvents';
-import { VNavUtils } from './VNavUtils';
+import { VNavUtils } from './vnav/VNavUtils';
 
 /**
  * Options for {@link AutopilotDriver}.

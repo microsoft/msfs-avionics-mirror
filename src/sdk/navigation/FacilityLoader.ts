@@ -1,13 +1,15 @@
 /// <reference types="@microsoft/msfs-types/js/common" />
 /// <reference types="@microsoft/msfs-types/js/simplane" />
 
-import { GeoPoint } from '../geo';
-import { BitFlags, UnitType } from '../math';
-import { GeoKdTreeSearchFilter } from '../utils/datastructures';
+import { SimVarValueType } from '../data/SimVars';
+import { GeoPoint } from '../geo/GeoPoint';
+import { BitFlags } from '../math/BitFlags';
+import { UnitType } from '../math/NumberUnit';
+import { GeoKdTreeSearchFilter } from '../utils/datastructures/GeoKdTree';
+import { AiracCycle, AiracUtils } from './AiracUtils';
 import {
-  AirportClass, AirportFacility, AirwaySegment, BoundaryFacility, Facility, FacilitySearchType, FacilityType,
-  FacilityTypeMap, ICAO, IntersectionFacility, IntersectionType, Metar, NdbFacility, NearestSearchResults, UserFacility, VisualFacility,
-  VorClass, VorFacility, VorType,
+  AirportClass, AirportFacility, AirwaySegment, BoundaryFacility, Facility, FacilitySearchType, FacilityType, FacilityTypeMap, ICAO, IntersectionFacility,
+  IntersectionType, Metar, NdbFacility, NearestSearchResults, UserFacility, VisualFacility, VorClass, VorFacility, VorType
 } from './Facilities';
 import { FacilityRepository } from './FacilityRepository';
 import { RunwayUtils } from './RunwayUtils';
@@ -163,6 +165,16 @@ type SearchRequest<TAdded, TRemoved> = {
   resolve: (results: NearestSearchResults<TAdded, TRemoved>) => void;
 }
 
+/** Facility database cycle information. */
+export interface FacilityDatabaseCycles {
+  /** The AIRAC cycle immediately prior to the facility database cycle. */
+  previous: AiracCycle;
+  /** The AIRAC cycle of the facility database. */
+  current: AiracCycle;
+  /** The AIRAC cycle immediately after the facility database cycle. */
+  next: AiracCycle;
+}
+
 /**
  * A class that handles loading facility data from the simulator.
  */
@@ -178,6 +190,7 @@ export class FacilityLoader {
   private static readonly facCache: Map<string, Facility> = new Map();
   private static readonly typeMismatchFacCache: Map<string, Facility> = new Map();
   private static readonly airwayCache: Map<string, AirwayObject> = new Map();
+  private static databaseCycleCache?: FacilityDatabaseCycles;
 
   private static readonly searchSessions = new Map<number, NearestSearchSession<any, any>>();
 
@@ -516,6 +529,9 @@ export class FacilityLoader {
     isNaN(raw.altimeterA) && delete raw.altimeterA;
     raw.altimeterQ < 0 && delete raw.altimeterQ;
     isNaN(raw.slp) && delete raw.slp;
+    raw.maxWindDir < 0 && delete raw.maxWindDir;
+    raw.minWindDir < 0 && delete raw.minWindDir;
+    raw.windDir < 0 && delete raw.windDir;
 
     return raw;
   }
@@ -651,6 +667,34 @@ export class FacilityLoader {
     if (FacilityLoader.airwayCache.size > FacilityLoader.MAX_AIRWAY_CACHE_ITEMS) {
       FacilityLoader.airwayCache.delete(FacilityLoader.airwayCache.keys().next().value);
     }
+  }
+
+  /**
+   * Gets the AIRAC cycles associated with the facility database.
+   * @returns an object containing the previous, current, and next cycles.
+   * If an error occurs and the MSFS facility cycle cannot be determined, the effective cycle for the current date is used instead.
+   */
+  public static getDatabaseCycles(): FacilityDatabaseCycles {
+    if (FacilityLoader.databaseCycleCache === undefined) {
+      const facilitiesRange = SimVar.GetGameVarValue('FLIGHT NAVDATA DATE RANGE', SimVarValueType.String);
+      let current = AiracUtils.parseFacilitiesCycle(facilitiesRange);
+      if (current === undefined) {
+        console.error('FacilityLoader: Could not get facility database AIRAC cycle! Falling back to current cycle.');
+        // fall back to current cycle!
+        current = AiracUtils.getCurrentCycle(new Date());
+      }
+
+      const previous = AiracUtils.getOffsetCycle(current, -1);
+      const next = AiracUtils.getOffsetCycle(current, 1);
+
+      FacilityLoader.databaseCycleCache = {
+        previous,
+        current,
+        next,
+      };
+    }
+
+    return FacilityLoader.databaseCycleCache;
   }
 }
 

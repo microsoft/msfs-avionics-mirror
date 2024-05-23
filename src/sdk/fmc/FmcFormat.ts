@@ -16,7 +16,7 @@ export const RawValidator: Validator<string | null> = {
   /** @inheritDoc */
   parse(input: string | null): string {
     return input ?? '';
-  }
+  },
 };
 
 /**
@@ -64,5 +64,5 @@ export const RawFormatter: Formatter<string | number | null> = {
     }
 
     return value ?? '';
-  }
+  },
 };

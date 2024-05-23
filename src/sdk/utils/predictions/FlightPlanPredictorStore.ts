@@ -1,6 +1,6 @@
 import { LNavDataSimVarEvents } from '../../autopilot';
 import { ConsumerSubject, EventBus } from '../../data';
-import { FlightPlanner, FlightPlannerEvents, LegDefinition } from '../../flightplan';
+import { FlightPlanner, LegDefinition } from '../../flightplan';
 import { AdcEvents, ClockEvents, EngineEvents, GNSSEvents } from '../../instruments';
 import { Subject, Subscribable } from '../../sub';
 
@@ -47,7 +47,7 @@ export class FlightPlanPredictorStore {
     private readonly flightPlanner: FlightPlanner,
     private readonly planIndexSub: Subscribable<number>,
   ) {
-    const sub = this.bus.getSubscriber<AdcEvents & GNSSEvents & EngineEvents & LNavDataSimVarEvents & FlightPlannerEvents & ClockEvents>();
+    const sub = this.bus.getSubscriber<AdcEvents & GNSSEvents & EngineEvents & LNavDataSimVarEvents & ClockEvents>();
 
     this.ppos.setConsumer(sub.on('gps-position').atFrequency(1));
     this.groundSpeed.setConsumer(sub.on('ground_speed'));
@@ -58,13 +58,13 @@ export class FlightPlanPredictorStore {
     this.lnavDtg.setConsumer(sub.on('lnavdata_waypoint_distance'));
     this.unixSimTime.setConsumer(sub.on('simTime'));
 
-    sub.on('fplActiveLegChange').handle((data) => {
+    this.flightPlanner.onEvent('fplActiveLegChange').handle((data) => {
       if (data.planIndex === this.planIndexSub.get()) {
         this.handleNewActiveLeg();
       }
     });
 
-    sub.on('fplCopied').handle((data) => {
+    this.flightPlanner.onEvent('fplCopied').handle((data) => {
       if (data.planIndex === this.planIndexSub.get()) {
         this.handleNewActiveLeg();
       }

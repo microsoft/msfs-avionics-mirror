@@ -9,7 +9,7 @@ import {
   AdcPublisher, AltitudeSelectManagerAccelFilter, APRadioNavInstrument, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, Clock, ClockEvents,
   CompositeLogicXMLHost, ControlPublisher, EISPublisher, ElectricalPublisher, EventBus, EventSubscriber, FacilityLoader, FacilityRepository,
   FlightPathAirplaneSpeedMode, FlightPathCalculator, FlightPlanner, FSComponent, GameStateProvider, GNSSPublisher, GpsSynchronizer, HEvent, HEventPublisher,
-  InstrumentBackplane, InstrumentEvents, LNavSimVarPublisher, MinimumsManager, MinimumsSimVarPublisher, NavComSimVarPublisher, NavEvents, NavSourceType,
+  InstrumentBackplane, InstrumentEvents, LNavObsManager, LNavObsSimVarPublisher, LNavSimVarPublisher, MinimumsManager, MinimumsSimVarPublisher, NavComSimVarPublisher, NavEvents, NavSourceType,
   PluginSystem, SimVarValueType, SmoothingPathCalculator, TrafficInstrument, UserSettingSaveManager, VNavSimVarPublisher, VNode, Wait, XMLGaugeConfigFactory
 } from '@microsoft/msfs-sdk';
 
@@ -113,6 +113,7 @@ class WTG1000_MFD extends BaseInstrument {
   private readonly navComSimVarPublisher: NavComSimVarPublisher;
 
   private readonly lNavPublisher: LNavSimVarPublisher;
+  private readonly lNavObsPublisher: LNavObsSimVarPublisher;
   private readonly lNavDataPublisher: LNavDataSimVarPublisher;
   private readonly vNavPublisher: VNavSimVarPublisher;
   private fms!: Fms;
@@ -142,6 +143,8 @@ class WTG1000_MFD extends BaseInstrument {
   private autopilot!: G1000Autopilot;
 
   private viewService: MFDViewService;
+
+  private readonly obsManager: LNavObsManager;
 
   private readonly navdataComputer: NavdataComputer;
   private readonly gpsSynchronizer: GpsSynchronizer;
@@ -188,6 +191,7 @@ class WTG1000_MFD extends BaseInstrument {
     this.eis = new EISPublisher(this.bus);
     this.electricalPublisher = new ElectricalPublisher(this.bus);
     this.lNavPublisher = new LNavSimVarPublisher(this.bus);
+    this.lNavObsPublisher = new LNavObsSimVarPublisher(this.bus);
     this.lNavDataPublisher = new LNavDataSimVarPublisher(this.bus);
     this.vNavPublisher = new VNavSimVarPublisher(this.bus);
     this.apRadioNav = new APRadioNavInstrument(this.bus);
@@ -222,6 +226,7 @@ class WTG1000_MFD extends BaseInstrument {
     this.backplane.addPublisher('control', this.controlPublisher);
     this.backplane.addPublisher('g1000Control', this.g1000ControlPublisher);
     this.backplane.addPublisher('lnav', this.lNavPublisher);
+    this.backplane.addPublisher('lnavobs', this.lNavObsPublisher);
     this.backplane.addPublisher('lnavdata', this.lNavDataPublisher);
     this.backplane.addPublisher('vnav', this.vNavPublisher);
     this.backplane.addPublisher('electrical', this.electricalPublisher);
@@ -259,6 +264,9 @@ class WTG1000_MFD extends BaseInstrument {
     this.gaugeFactory = new XMLGaugeConfigFactory(this, this.bus);
 
     this.airframeOptions = new G1000AirframeOptionsManager(this, this.bus);
+
+    this.obsManager = new LNavObsManager(this.bus, 0, true);
+    this.obsManager.init();
 
     this.navdataComputer = new NavdataComputer(this.bus, this.planner, this.loader);
 
@@ -338,7 +346,7 @@ class WTG1000_MFD extends BaseInstrument {
       }
     );
 
-    Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.briefing || state === GameState.ingame).then(() => {
+    Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.briefing || state === GameState.ingame, true).then(() => {
       this.bus.getSubscriber<ClockEvents>().on('simTimeHiFreq').handle(() => {
         this.autopilot.update();
       });

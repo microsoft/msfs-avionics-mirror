@@ -6,31 +6,49 @@ export default [
   {
     input: 'build/Plugins/PFD/index.js',
     output: {
-      file: 'dist/workingtitle-aircraft-sr22t/SimObjects/Airplanes/Asobo_SR22/panel/Instruments/G1000/Plugins/SR22TPfdPlugins.js',
+      file: 'dist/workingtitle-aircraft-sr22t/SimObjects/Airplanes/Asobo_SR22/panel/Instruments/G3000/Plugins/TbmPfdPlugins.js',
       format: 'iife',
       name: 'sr22tPfd',
       globals: {
         '@microsoft/msfs-sdk': 'msfssdk',
         '@microsoft/msfs-garminsdk': 'garminsdk',
-        '@microsoft/msfs-wtg1000': 'wtg1000'
+        '@microsoft/msfs-wtg3000-common': 'wtg3000common',
+        '@microsoft/msfs-wtg3000-pfd': 'wtg3000pfd'
       }
     },
-    external: ['@microsoft/msfs-sdk', '@microsoft/msfs-garminsdk', '@microsoft/msfs-wtg1000'],
-    plugins: [image(), css({ output: 'SR22TPfdPlugins.css' }), resolve()]
+    external: ['@microsoft/msfs-sdk', '@microsoft/msfs-garminsdk', '@microsoft/msfs-wtg3000-common', '@microsoft/msfs-wtg3000-pfd'],
+    plugins: [image(), css({ output: 'TbmPfdPlugins.css' }), resolve()]
   },
   {
-    input: 'build/Plugins/PFD/index.js',
+    input: 'build/Plugins/MFD/index.js',
     output: {
-      file: 'dist/workingtitle-aircraft-sr22t/SimObjects/Airplanes/Asobo_SR22/panel/Instruments/G1000/Plugins/SR22TMfdPlugins.js',
+      file: 'dist/workingtitle-aircraft-sr22t/SimObjects/Airplanes/Asobo_SR22/panel/Instruments/G3000/Plugins/TbmMfdPlugins.js',
       format: 'iife',
       name: 'sr22tMfd',
       globals: {
         '@microsoft/msfs-sdk': 'msfssdk',
         '@microsoft/msfs-garminsdk': 'garminsdk',
-        '@microsoft/msfs-wtg1000': 'wtg1000'
+        '@microsoft/msfs-wtg3000-common': 'wtg3000common',
+        '@microsoft/msfs-wtg3000-mfd': 'wtg3000mfd'
       }
     },
-    external: ['@microsoft/msfs-sdk', '@microsoft/msfs-garminsdk', '@microsoft/msfs-wtg1000'],
-    plugins: [image(), css({ output: 'SR22TMfdPlugins.css' }), resolve()]
+    external: ['@microsoft/msfs-sdk', '@microsoft/msfs-garminsdk', '@microsoft/msfs-wtg3000-common', '@microsoft/msfs-wtg3000-mfd'],
+    plugins: [image(), css({ output: 'TbmMfdPlugins.css' }), resolve()]
   },
+  {
+    input: 'build/Plugins/GTC/index.js',
+    output: {
+      file: 'dist/workingtitle-aircraft-sr22t/SimObjects/Airplanes/Asobo_SR22/panel/Instruments/G3000/Plugins/TbmGtcPlugins.js',
+      format: 'iife',
+      name: 'sr22tGtc',
+      globals: {
+        '@microsoft/msfs-sdk': 'msfssdk',
+        '@microsoft/msfs-garminsdk': 'garminsdk',
+        '@microsoft/msfs-wtg3000-common': 'wtg3000common',
+        '@microsoft/msfs-wtg3000-gtc': 'wtg3000gtc'
+      }
+    },
+    external: ['@microsoft/msfs-sdk', '@microsoft/msfs-garminsdk', '@microsoft/msfs-wtg3000-common', '@microsoft/msfs-wtg3000-gtc'],
+    plugins: [image(), css({ output: 'TbmGtcPlugins.css' }), resolve()]
+  }
 ];

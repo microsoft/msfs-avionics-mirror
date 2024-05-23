@@ -1,7 +1,10 @@
 import {
-  EventBus, FlightPlannerEvents, FSComponent, GeoCircle, GeoCircleLineRenderer, GeoCircleResampler, GeoPoint, GeoProjectionPathStreamStack, MagVar,
-  MapCachedCanvasLayer, MapFlightPlanModule, MapLayer, MapLayerProps, MapProjection, MapSystemKeys, NavEvents, NullPathStream, Subscription, UnitType, VNode
+  EventBus, FSComponent, GeoCircle, GeoCircleLineRenderer, GeoCircleResampler, GeoPoint, GeoProjectionPathStreamStack,
+  LNavObsEvents, LNavUtils, MagVar, MapCachedCanvasLayer, MapFlightPlanModule, MapLayer, MapLayerProps, MapProjection,
+  MapSystemKeys, NullPathStream, Subscription, UnitType, VNode
 } from '@microsoft/msfs-sdk';
+
+import { Fms } from '@microsoft/msfs-garminsdk';
 
 /**
  * Modules required by the layer.
@@ -15,8 +18,11 @@ interface RequiredModules {
  * Props on the ObsLayer component.
  */
 interface ObsLayerProps extends MapLayerProps<RequiredModules> {
-  /** Aninstance of the event bus */
+  /** An instance of the event bus */
   bus: EventBus;
+
+  /** The FMS instance. */
+  fms: Fms;
 }
 
 /**
@@ -42,18 +48,21 @@ export class ObsLayer extends MapLayer<ObsLayerProps> {
 
   /** @inheritdoc */
   public onAttached(): void {
-    const sub = this.props.bus.getSubscriber<NavEvents & FlightPlannerEvents>();
-    this.obsActiveSub = sub.on('gps_obs_active').whenChanged().handle(v => {
+    const sub = this.props.bus.getSubscriber<LNavObsEvents>();
+
+    const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(this.props.fms.lnavIndex);
+
+    this.obsActiveSub = sub.on(`lnav_obs_active${lnavTopicSuffix}`).whenChanged().handle(v => {
       this.isObsActive = v;
       this.needsRender = true;
     });
 
-    this.obsCourseSub = sub.on('gps_obs_value').whenChanged().handle(v => {
+    this.obsCourseSub = sub.on(`lnav_obs_course${lnavTopicSuffix}`).whenChanged().handle(v => {
       this.obsCourse = v;
       this.needsRender = true;
     });
 
-    this.activePlanSub = sub.on('fplIndexChanged').handle(v => {
+    this.activePlanSub = this.props.fms.flightPlanner.onEvent('fplIndexChanged').handle(v => {
       this.activePlanIndex = v.planIndex;
       this.needsRender = true;
     });

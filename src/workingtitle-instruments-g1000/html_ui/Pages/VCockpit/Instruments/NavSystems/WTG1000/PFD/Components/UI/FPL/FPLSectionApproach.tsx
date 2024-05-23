@@ -1,4 +1,4 @@
-import { FSComponent, Subject, VNode } from '@microsoft/msfs-sdk';
+import { FSComponent, VNode } from '@microsoft/msfs-sdk';
 
 import { FmsUtils } from '@microsoft/msfs-garminsdk';
 
@@ -28,7 +28,7 @@ export class FPLApproach extends FPLSection {
       this.props.viewService.open('MessageDialog', true).setInput({
         renderContent: (): VNode => {
           return (
-            <div style='display: inline-block;'>Remove <ApproachNameDisplay approach={Subject.create(approach)} /> from flight plan?</div>
+            <div style='display: inline-block;'>Remove <ApproachNameDisplay approach={approach} /> from flight plan?</div>
           );
         },
         hasRejectButton: true

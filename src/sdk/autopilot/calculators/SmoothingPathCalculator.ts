@@ -1,23 +1,29 @@
-import { EventBus } from '../../data';
+import { EventBus } from '../../data/EventBus';
 import {
-  FlightPlan, FlightPlanCalculatedEvent, FlightPlanLegEvent, FlightPlanner, FlightPlannerEvents, FlightPlanSegment, FlightPlanSegmentEvent,
+  FlightPlan, FlightPlanCalculatedEvent, FlightPlanLegEvent, FlightPlanner, FlightPlanSegment, FlightPlanSegmentEvent,
   FlightPlanSegmentType, LegDefinition, LegDefinitionFlags, VerticalFlightPhase
 } from '../../flightplan';
-import { GeoPoint } from '../../geo';
+import { GeoPoint } from '../../geo/GeoPoint';
 import { BitFlags } from '../../math/BitFlags';
 import { MathUtils } from '../../math/MathUtils';
 import { UnitType } from '../../math/NumberUnit';
 import { AltitudeRestrictionType, LegType } from '../../navigation';
 import { ReadonlySubEvent, SubEvent } from '../../sub';
-import { VNavControlEvents } from '../data/VNavControlEvents';
-import { VerticalFlightPlan, VNavConstraint, AltitudeConstraintDetails } from '../VerticalNavigation';
-import { VNavUtils } from '../VNavUtils';
+import { AltitudeConstraintDetails, VerticalFlightPlan, VNavConstraint } from '../VerticalNavigation';
+import { VNavControlEvents } from '../vnav/VNavControlEvents';
+import { VNavUtils } from '../vnav/VNavUtils';
 import { VNavPathCalculator } from './VNavPathCalculator';
 
 /**
  * Options for a SmoothingPathCalculator.
  */
 export type SmoothingPathCalculatorOptions = {
+  /**
+   * The VNAV index to assign to the path calculator. The VNAV index determines the index of the control events used
+   * to control the calculator. Defaults to `0`.
+   */
+  index?: number;
+
   /**
    * The default flight path angle, in degrees, for descent paths. Increasingly positive values indicate steeper
    * descents. Defaults to 3 degrees.
@@ -135,6 +141,9 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
   /** The Vertical Flight Plans managed by this Path Calculator */
   protected readonly verticalFlightPlans: (VerticalFlightPlan | undefined)[] = [];
 
+  /** This calculator's VNAV index. */
+  public readonly index: number;
+
   /** The default flight path angle, in degrees, for descent paths. Increasingly positive values indicate steeper descents. */
   public flightPathAngle: number;
 
@@ -201,6 +210,7 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
     protected readonly primaryPlanIndex: number,
     options?: SmoothingPathCalculatorOptions
   ) {
+    this.index = options?.index ?? 0;
 
     this.flightPathAngle = options?.defaultFpa ?? SmoothingPathCalculator.DEFAULT_DEFAULT_FPA;
     this.minFlightPathAngle = options?.minFpa ?? SmoothingPathCalculator.DEFAULT_MIN_FPA;
@@ -212,24 +222,26 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
     this.invalidateClimbConstraintFunc = options?.invalidateClimbConstraint ?? SmoothingPathCalculator.invalidateClimbConstraint;
     this.invalidateDescentConstraintFunc = options?.invalidateDescentConstraint ?? SmoothingPathCalculator.invalidateDescentConstraint;
 
-    const fpl = this.bus.getSubscriber<FlightPlannerEvents>();
+    this.flightPlanner.onEvent('fplCreated').handle(e => this.createVerticalPlan(e.planIndex));
 
-    fpl.on('fplCreated').handle(e => this.createVerticalPlan(e.planIndex));
+    this.flightPlanner.onEvent('fplCopied').handle(e => this.onPlanChanged(e.targetPlanIndex));
+    this.flightPlanner.onEvent('fplLoaded').handle(e => this.onPlanChanged(e.planIndex));
 
-    fpl.on('fplCopied').handle(e => this.onPlanChanged(e.targetPlanIndex));
-    fpl.on('fplLoaded').handle(e => this.onPlanChanged(e.planIndex));
+    this.flightPlanner.onEvent('fplLegChange').handle(e => this.onPlanChanged(e.planIndex, e));
 
-    fpl.on('fplLegChange').handle(e => this.onPlanChanged(e.planIndex, e));
+    this.flightPlanner.onEvent('fplSegmentChange').handle(e => this.onPlanChanged(e.planIndex, undefined, e));
 
-    fpl.on('fplSegmentChange').handle(e => this.onPlanChanged(e.planIndex, undefined, e));
+    this.flightPlanner.onEvent('fplIndexChanged').handle(e => this.onPlanChanged(e.planIndex));
 
-    fpl.on('fplIndexChanged').handle(e => this.onPlanChanged(e.planIndex));
+    this.flightPlanner.onEvent('fplCalculated').handle(e => this.onPlanCalculated(e));
 
-    fpl.on('fplCalculated').handle(e => this.onPlanCalculated(e));
+    const vnavTopicSuffix = VNavUtils.getEventBusTopicSuffix(this.index);
 
-    bus.getSubscriber<VNavControlEvents>().on('vnav_set_default_fpa').handle(this.setDefaultFpa.bind(this));
+    const sub = bus.getSubscriber<VNavControlEvents>();
 
-    bus.getSubscriber<VNavControlEvents>().on('vnav_set_vnav_direct_to').handle(data => {
+    sub.on(`vnav_set_default_fpa${vnavTopicSuffix}`).handle(this.setDefaultFpa.bind(this));
+
+    sub.on(`vnav_set_vnav_direct_to${vnavTopicSuffix}`).handle(data => {
       if (data.globalLegIndex < 0) {
         this.cancelVerticalDirect(data.planIndex);
       } else {

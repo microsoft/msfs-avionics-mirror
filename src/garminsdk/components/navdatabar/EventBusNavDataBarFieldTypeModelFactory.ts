@@ -18,6 +18,6 @@ export abstract class EventBusNavDataBarFieldTypeModelFactory<T extends NavDataF
   constructor(private readonly bus: EventBus) {
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public abstract create(gpsValidity: Subscribable<NavDataFieldGpsValidity>): NavDataBarFieldTypeModelMap[T];
 }

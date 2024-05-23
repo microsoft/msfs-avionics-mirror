@@ -1,0 +1,47 @@
+.mfd-waypoint-options-popup {
+  align-self: flex-end;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .mfd-waypoint-options-popup {
+  margin: auto 0px 25px;
+  padding: 2px 17px 8px;
+  font-size: 19px;
+
+  --mfd-waypoint-options-popup-title-font-size: 21px;
+
+  --mfd-waypoint-options-popup-main-margin: 17px 0px;
+
+  --mfd-waypoint-options-popup-row-height: 80px;
+  --mfd-waypoint-options-popup-row-gap: 15px;
+  --mfd-waypoint-options-popup-column-width: 180px;
+  --mfd-waypoint-options-popup-column-gap: 15px;
+
+  --mfd-waypoint-options-popup-button-width: 150px;
+  --mfd-waypoint-options-popup-button-gap: 12px;
+
+  --mfd-waypoint-options-popup-main-menu-icon-width: 48px;
+}
+
+.mfd-waypoint-options-popup-title {
+  font-size: var(--mfd-waypoint-options-popup-title-font-size);
+}
+
+.mfd-waypoint-options-popup-main {
+  margin: var(--mfd-waypoint-options-popup-main-margin);
+  display: grid;
+  grid-template-rows: repeat(2, var(--mfd-waypoint-options-popup-row-height));
+  grid-template-columns: repeat(2, var(--mfd-waypoint-options-popup-column-width));
+  grid-row-gap: var(--mfd-waypoint-options-popup-row-gap);
+  grid-column-gap: var(--mfd-waypoint-options-popup-column-gap);
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.mfd-waypoint-options-popup-main-menu-icon {
+  width: var(--mfd-waypoint-options-popup-main-menu-icon-width);
+  vertical-align: middle;
+}

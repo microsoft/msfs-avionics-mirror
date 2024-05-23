@@ -1,12 +1,17 @@
 import {
-  CompiledMapSystem, ComponentProps, DisplayComponent, EventBus, FlightPlanner, MapIndexedRangeModule, MapSystemBuilder, ReadonlyFloat64Array, Subscribable,
-  Subscription, VecNMath, VNode
+  CompiledMapSystem, ComponentProps, DisplayComponent, EventBus, FlightPlanner, MapIndexedRangeModule,
+  MapSystemBuilder, ReadonlyFloat64Array, Subscribable, Subscription, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
+
 import {
-  GarminMapKeys, MapOrientation, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapRangeController, TrafficSystem, TrafficUserSettings,
-  UnitsUserSettings
+  GarminMapKeys, MapOrientation, MapPointerController, MapPointerInfoLayerSize, MapPointerModule, MapRangeController,
+  TrafficSystem, TrafficUserSettings, UnitsUserSettings
 } from '@microsoft/msfs-garminsdk';
-import { BingUtils, DisplayPaneIndex, DisplayPanesUserSettings, DisplayPaneViewEvent, IauUserSettingManager, MapBuilder, MapConfig, MapUserSettings, PfdIndex } from '@microsoft/msfs-wtg3000-common';
+
+import {
+  BingUtils, DisplayPaneIndex, DisplayPanesUserSettings, DisplayPaneViewEvent, G3000FlightPlannerId,
+  IauUserSettingManager, MapBuilder, MapConfig, MapUserSettings, PfdIndex
+} from '@microsoft/msfs-wtg3000-common';
 
 import './NavInsetMap.css';
 
@@ -18,7 +23,7 @@ export interface NavInsetMapProps extends ComponentProps {
   bus: EventBus;
 
   /** The flight planner. */
-  flightPlanner: FlightPlanner;
+  flightPlanner: FlightPlanner<G3000FlightPlannerId>;
 
   /** The traffic system used by the map to display traffic. */
   trafficSystem: TrafficSystem;

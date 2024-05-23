@@ -1,0 +1,328 @@
+.vsi {
+  position: relative;
+}
+
+.gdu-460-display .vsi {
+  width: 38px;
+  height: 256px;
+
+  /* Main indicator vars */
+
+  --vsi-main-compact-width: 24px;
+
+  /* Background vars */
+
+  --vsi-main-background-pointer-stroke-width: 2px;
+
+  /* Scale vars */
+
+  --vsi-scale-height: 234px;
+
+  --vsi-tick-minor-width: 4px;
+  --vsi-tick-minor-stroke-width: 1px;
+  --vsi-tick-major-width: 5px;
+  --vsi-tick-major-stroke-width: 2px;
+
+  --vsi-tape-label-margin-left: 5px;
+  --vsi-tape-label-offset-y: 2px;
+  --vsi-tape-label-major-font-size: 18px;
+  --vsi-tape-label-minor-font-size: 14px;
+
+  /* VNAV target altitude display vars */
+
+  --vsi-vnavalt-display-width: 68px;
+  --vsi-vnavalt-display-height: 23px;
+  --vsi-vnavalt-display-font-size: 18px;
+  --vsi-vnavalt-display-bg: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, .7));
+  --vsi-vnavalt-display-bar-margin-vertical: 1px;
+
+  /* Selected VS display vars */
+
+  --vsi-selectedvs-display-width: 68px;
+  --vsi-selectedvs-display-height: 23px;
+  --vsi-selectedvs-display-margin-top: 2px;
+  --vsi-selectedvs-display-font-size: 18px;
+  --vsi-selectedvs-display-bg: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, .7));
+
+  /* Pointer bug vars */
+
+  --vsi-pointer-bug-margin-left: 2px;
+  --vsi-pointer-bug-width: 68px;
+  --vsi-pointer-bug-height: 24px;
+  --vsi-pointer-bug-border-width: 2px;
+  --vsi-pointer-bug-text-margin-right: 5px;
+  --vsi-pointer-bug-text-offset-y: 2px;
+  --vsi-pointer-bug-text-font-size: 18px;
+
+  /* Selected VS bug vars */
+
+  --vsi-selectedvs-bug-width: 8px;
+  --vsi-selectedvs-bug-height: 18px;
+
+  /* Required VS bug vars */
+
+  --vsi-requiredvs-bug-width: 16px;
+  --vsi-requiredvs-bug-height: 28px;
+
+  /* Private vars */
+
+  --vsi-pointer-bug-background-color: var(--g3x-color-black);
+  --vsi-pointer-bug-background-stroke-width: 0px;
+}
+
+.advanced-vnav .vsi-vnavalt-display-bar {
+  display: block;
+}
+
+.vsi-vnavalt-display-at .vsi-vnavalt-display-bar,
+.vsi-vnavalt-display-atorabove .vsi-vnavalt-display-bar {
+  border-bottom-style: solid;
+}
+
+.vsi-vnavalt-display-at .vsi-vnavalt-display-bar,
+.vsi-vnavalt-display-atorbelow .vsi-vnavalt-display-bar {
+  border-top-style: solid;
+}
+
+.vsi-selectedvs-display {
+  position: absolute;
+  left: 0px;
+  top: calc(var(--vsi-vnavalt-display-height) + var(--vsi-selectedvs-display-margin-top));
+  width: var(--vsi-selectedvs-display-width);
+  height: var(--vsi-selectedvs-display-height);
+  background: var(--vsi-selectedvs-display-bg);
+  border-radius: 5px;
+  font-size: var(--vsi-selectedvs-display-font-size);
+  color: var(--g3x-color-cyan);
+  overflow: hidden;
+}
+
+.vsi-selectedvs-display-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.vsi-main {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.vsi-compact .vsi-main {
+  width: var(--vsi-main-compact-width);
+}
+
+.vsi-main-background {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.vsi-main-background-compact,
+.vsi-compact .vsi-main-background-full {
+  display: none;
+}
+
+.vsi-main-background-full,
+.vsi-compact .vsi-main-background-compact {
+  display: block;
+}
+
+.vsi-main-background-transparency {
+  fill: rgba(0, 0, 0, 0.55);
+}
+
+.vsi-main-background-pointer {
+  fill: none;
+  stroke: var(--g3x-color-white);
+  stroke-width: var(--vsi-main-background-pointer-stroke-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vsi-scale {
+  position: absolute;
+  left: 0px;
+  top: calc(50% - var(--vsi-scale-height) / 2);
+  width: 100%;
+  height: var(--vsi-scale-height);
+}
+
+.vsi-scale-left-border {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 1px;
+  height: 100%;
+  background: var(--g3x-color-white);
+}
+
+.vsi-scale-tick-minor-container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: var(--vsi-tick-minor-width);
+  height: 100%;
+  stroke: var(--g3x-color-white);
+  stroke-width: var(--vsi-tick-minor-stroke-width);
+  overflow: visible;
+}
+
+.vsi-scale-tick-major-container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: var(--vsi-tick-major-width);
+  height: 100%;
+  stroke: var(--g3x-color-white);
+  stroke-width: var(--vsi-tick-major-stroke-width);
+  overflow: visible;
+}
+
+.vsi-scale-label-container {
+  position: absolute;
+  left: calc(var(--vsi-tick-major-width) + var(--vsi-tape-label-margin-left));
+  top: 0px;
+  width: calc(100% - var(--vsi-tick-major-width) - var(--vsi-tape-label-margin-left));
+  height: 100%;
+  font-size: var(--vsi-tape-label-font-size);
+  color: var(--g3x-color-white);
+  text-align: left;
+}
+
+.vsi-scale-label {
+  margin-top: var(--vsi-tape-label-offset-y);
+}
+
+.vsi-scale-label-major {
+  font-size: var(--vsi-tape-label-major-font-size);
+}
+
+.vsi-scale-label-minor {
+  font-size: var(--vsi-tape-label-minor-font-size);
+}
+
+.vsi-bug-container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.vsi-bug-container-clip {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.vsi-pointer-bug-container {
+  left: var(--vsi-pointer-bug-margin-left);
+  width: var(--vsi-pointer-bug-width);
+  height: var(--vsi-pointer-bug-height);
+}
+
+.vsi-pointer-bug {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.vsi-pointer-bug-compact,
+.vsi-compact .vsi-pointer-bug-full {
+  display: none;
+}
+
+.vsi-pointer-bug-full,
+.vsi-compact .vsi-pointer-bug-compact {
+  display: block;
+}
+
+.vsi-pointer-bug-background {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.vsi-pointer-bug-compact .vsi-pointer-bug-background {
+  fill: var(--g3x-color-white);
+  stroke-width: var(--vsi-pointer-bug-border-width);
+  stroke: var(--g3x-color-black);
+}
+
+.vsi-pointer-bug-full .vsi-pointer-bug-background {
+  fill: var(--g3x-color-black);
+  stroke-width: var(--vsi-pointer-bug-border-width);
+  stroke: #404040;
+}
+
+.vsi-pointer-bug-text {
+  position: absolute;
+  right: var(--vsi-pointer-bug-text-margin-right);
+  top: 50%;
+  transform: translateY(-50%);
+  margin-top: var(--vsi-pointer-bug-text-offset-y);
+  color: var(--g3x-color-white);
+  font-size: var(--vsi-pointer-bug-text-font-size);
+}
+
+.vsi-selectedvs-bug {
+  left: 0%;
+  width: var(--vsi-selectedvs-bug-width);
+  height: var(--vsi-selectedvs-bug-height);
+}
+
+.vsi-selectedvs-bug-icon {
+  width: 100%;
+  height: 100%;
+  fill: var(--g3x-color-cyan);
+  stroke: #505050;
+  stroke-width: 1px;
+}
+
+.vsi-requiredvs-bug {
+  left: 0%;
+  width: var(--vsi-requiredvs-bug-width);
+  height: var(--vsi-requiredvs-bug-height);
+}
+
+.vsi-requiredvs-bug-icon {
+  width: 100%;
+  height: 100%;
+  fill: var(--g3x-color-magenta);
+  stroke: var(--g3x-color-black);
+  stroke-width: 1px;
+}
+
+/* ---- Failed state ---- */
+
+.data-failed .vsi-scale,
+.data-failed .vsi-main-background {
+  display: none !important;
+}
+
+.vsi-failure-box {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+
+  --failure-box-cross-margin-horiz: 4px;
+  --failure-box-cross-margin-vert: 4px;
+  --failure-box-cross-line-outline-width: 5px;
+  --failure-box-cross-line-stroke-width: 4px;
+}

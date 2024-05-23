@@ -1,0 +1,143 @@
+.mfd-fpl-options-popup {
+  align-self: flex-end;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .mfd-fpl-options-popup {
+  width: 502px;
+  margin: auto 0px 25px;
+  padding: 2px 14px 8px;
+  font-size: 19px;
+
+  --mfd-fpl-options-popup-title-font-size: 21px;
+
+  --mfd-fpl-options-popup-main-margin: 20px 0px 0px;
+
+  --mfd-fpl-options-popup-button-width: 140px;
+  --mfd-fpl-options-popup-button-height: 80px;
+
+  --mfd-fpl-options-popup-upper-height: 218px;
+  --mfd-fpl-options-popup-upper-margin: 0px 8px;
+
+  --mfd-fpl-options-popup-upper-button-tall-height: 120px;
+
+  --mfd-fpl-options-popup-upper-divider-margin-vert: 3px;
+
+  --mfd-fpl-options-popup-main-divider-margin: 18px 3px;
+
+  --mfd-fpl-options-popup-lower-margin: 0px 8px 20px;
+
+  --mfd-fpl-options-popup-approach-margin: 18px 0px 10px;
+  --mfd-fpl-options-popup-approach-padding: 18px 7px 9px;
+
+  --mfd-fpl-options-popup-show-map-button-margin-bottom: 20px;
+
+  --mfd-fpl-options-popup-main-menu-icon-width: 48px;
+}
+
+.mfd-fpl-options-popup .touch-button {
+  width: var(--mfd-fpl-options-popup-button-width);
+  height: var(--mfd-fpl-options-popup-button-height);
+}
+
+.mfd-fpl-options-popup-title {
+  font-size: var(--mfd-fpl-options-popup-title-font-size);
+}
+
+.mfd-fpl-options-popup-main {
+  align-self: stretch;
+  position: relative;
+  margin: var(--mfd-fpl-options-popup-main-margin);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.mfd-fpl-options-popup-upper {
+  position: relative;
+  height: var(--mfd-fpl-options-popup-upper-height);
+  margin: var(--mfd-fpl-options-popup-upper-margin);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+
+  --ui-directory-button-width: var(--mfd-fpl-options-popup-button-width);
+  --ui-directory-button-height: var(--mfd-fpl-options-popup-upper-button-tall-height);
+}
+
+.mfd-fpl-options-popup-upper .ui-directory-button.touch-button-img {
+  width: var(--ui-directory-button-width);
+  height: var(--ui-directory-button-height);
+}
+
+.mfd-fpl-options-popup-upper-col {
+  position: relative;
+  width: var(--mfd-fpl-options-popup-button-width);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+}
+
+.mfd-fpl-options-popup-upper-divider {
+  position: absolute;
+  left: calc(33% - 1px);
+  top: var(--mfd-fpl-options-popup-upper-divider-margin-vert);
+  width: 1px;
+  height: calc(100% - 2 * var(--mfd-fpl-options-popup-upper-divider-margin-vert));
+  background: var(--g3x-color-border-gray);
+}
+
+.mfd-fpl-options-popup-main-divider {
+  height: 1px;
+  margin: var(--mfd-fpl-options-popup-main-divider-margin);
+  background: var(--g3x-color-border-gray);
+}
+
+.mfd-fpl-options-popup-lower {
+  position: relative;
+  margin: var(--mfd-fpl-options-popup-lower-margin);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.mfd-fpl-options-popup-lower-col {
+  position: relative;
+  width: var(--mfd-fpl-options-popup-button-width);
+}
+
+.mfd-fpl-options-popup-approach {
+  margin: var(--mfd-fpl-options-popup-approach-margin);
+  padding: var(--mfd-fpl-options-popup-approach-padding);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.mfd-fpl-options-popup-approach-col {
+  position: relative;
+  width: var(--mfd-fpl-options-popup-button-width);
+}
+
+.mfd-fpl-options-popup-approach-button {
+  white-space: pre;
+
+  --touch-button-value-value-center-y: 50%;
+  --touch-button-value-value-text-color: var(--g3x-color-cyan);
+}
+
+.mfd-fpl-options-popup-show-map-button {
+  align-self: center;
+  margin-bottom: var(--mfd-fpl-options-popup-show-map-button-margin-bottom);
+}
+
+.mfd-fpl-options-popup-main-menu-icon {
+  width: var(--mfd-fpl-options-popup-main-menu-icon-width);
+  vertical-align: middle;
+}

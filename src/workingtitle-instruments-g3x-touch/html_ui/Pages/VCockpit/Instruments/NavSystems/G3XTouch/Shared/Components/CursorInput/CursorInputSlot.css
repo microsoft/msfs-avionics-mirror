@@ -1,0 +1,39 @@
+.cursor-input-slot {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: baseline;
+  color: var(--g3x-color-cyan);
+  white-space: pre;
+}
+
+@keyframes cursor-input-slot-blink {
+  from {
+    color: var(--g3x-color-black);
+  }
+
+  50% {
+    color: var(--g3x-color-black);
+  }
+
+  80% {
+    color: var(--g3x-color-cyan);
+  }
+
+  to {
+    color: var(--g3x-color-cyan);
+  }
+}
+
+.cursor-input-slot-character-highlight {
+  color: var(--g3x-color-black);
+}
+
+.cursor-input-slot-character-blink {
+  animation: cursor-input-slot-blink 1s infinite;
+}
+
+.cursor-input-slot-character.cursor-input-slot-character-empty {
+  color: #003333;
+  animation: none;
+}

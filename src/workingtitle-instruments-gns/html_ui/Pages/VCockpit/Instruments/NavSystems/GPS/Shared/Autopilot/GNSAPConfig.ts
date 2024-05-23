@@ -1,12 +1,12 @@
 import {
-  APAltCapDirector, APAltDirector, APBackCourseDirector, APConfig, APFLCDirector, APGPDirector, APGSDirector, APHdgDirector, APLateralModes, APLvlDirector, APNavDirector,
-  APPitchDirector, APRollDirector, APValues, APVerticalModes, APVSDirector, ConsumerSubject, EventBus,
-  FlightPlanner, GPSSatComputerEvents, GPSSystemState, LNavDirector, NavMath, SimVarValueType, UnitType, VNavManager
+  Accessible, APAltCapDirector, APAltDirector, APBackCourseDirector, APConfig, APFLCDirector, APGPDirector, APGpsSteerDirector, APGpsSteerDirectorSteerCommand,
+  APGSDirector, APHdgDirector, APLateralModes, APLvlDirector, APNavDirector, APPitchDirector, APRollDirector, APValues, APVerticalModes, APVSDirector,
+  EventBus, NavMath, SimVarValueType, UnitType, VNavManager
 } from '@microsoft/msfs-sdk';
 
-import { GarminNavToNavManager, GarminObsDirector } from '@microsoft/msfs-garminsdk';
+import { GarminNavToNavManager2, GarminNavToNavManager2Guidance, GarminVNavGlidepathGuidance, GarminVNavManager2 } from '@microsoft/msfs-garminsdk';
 
-import { GNSVNavManager } from './GNSVNavManager';
+import { GNSAPCdiId } from './GNSAPTypes';
 
 /**
  * A GNS Autopilot Configuration.
@@ -15,29 +15,39 @@ export class GNSAPConfig implements APConfig {
   public defaultLateralMode = APLateralModes.ROLL;
   public defaultVerticalMode = APVerticalModes.PITCH;
   public defaultMaxBankAngle = 27.5;
+  public readonly cdiId: GNSAPCdiId = 'gnsAP';
   private disableNavModeArming = false;
   private disableBackcourse = false;
   public supportFlightDirector = false;
+  private maxBankAngle = this.defaultMaxBankAngle;
 
   /**
    * Instantiates the AP Config for the Autopilot.
    * @param bus is an instance of the Event Bus.
-   * @param flightPlanner is an instance of the flight planner.
+   * @param gpsSteerCommand The steering command to send to the autopilot's GPS roll-steering director.
+   * @param glidepathGuidance Guidance for the autopilot's glidepath director to use.
+   * @param navToNavGuidance Guidance for the autopilot's nav-to-nav manager to use.
    * @param disableNavModeArming Whether to disable nav mode arming on this autopilot.
    * @param disableBackcourse Whether to disable backcourse support for this autopilot.
    * @param supportFlightDirector Whether to support a flight director independent from the autopilot state.
+   * @param maxBankAngle The max bank angle
    */
   constructor(
     private readonly bus: EventBus,
-    private readonly flightPlanner: FlightPlanner,
+    private readonly gpsSteerCommand: Accessible<Readonly<APGpsSteerDirectorSteerCommand>>,
+    private readonly glidepathGuidance: Accessible<Readonly<GarminVNavGlidepathGuidance>>,
+    private readonly navToNavGuidance: GarminNavToNavManager2Guidance,
     disableNavModeArming?: boolean,
     disableBackcourse?: boolean,
-    supportFlightDirector?: boolean) {
+    supportFlightDirector?: boolean,
+    maxBankAngle?: number
+  ) {
     const defaultRollMode = SimVar.GetSimVarValue('AUTOPILOT DEFAULT ROLL MODE', SimVarValueType.Number) as number;
     const defaultPitchMode = SimVar.GetSimVarValue('AUTOPILOT DEFAULT PITCH MODE', SimVarValueType.Number) as number;
     this.disableNavModeArming = disableNavModeArming ?? false;
     this.disableBackcourse = disableBackcourse ?? false;
     this.supportFlightDirector = supportFlightDirector ?? false;
+    this.maxBankAngle = maxBankAngle ?? this.maxBankAngle;
 
     switch (defaultRollMode) {
       case 1:
@@ -84,14 +94,14 @@ export class GNSAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
-  public createGpssDirector(apValues: APValues): LNavDirector {
-    return new LNavDirector(
+  public createGpssDirector(apValues: APValues): APGpsSteerDirector {
+    return new APGpsSteerDirector(
       this.bus,
       apValues,
-      this.flightPlanner,
-      new GarminObsDirector(this.bus, apValues),
+      this.gpsSteerCommand,
       {
-        lateralInterceptCurve: this.lnavInterceptCurve.bind(this),
+        maxBankAngle: this.maxBankAngle,
+        canActivate: state => Math.abs(state.xtk) < 0.6 && Math.abs(state.tae) < 110,
         disableArming: this.disableNavModeArming
       }
     );
@@ -143,21 +153,19 @@ export class GNSAPConfig implements APConfig {
     return new APAltCapDirector(apValues);
   }
 
-  private vnavManager?: VNavManager;
-
   /** @inheritdoc */
   public createVNavManager(apValues: APValues): VNavManager | undefined {
-    return new GNSVNavManager(this.bus, this.flightPlanner, apValues, 0, {
-      allowApproachBaroVNav: false,
-      allowPlusVWithoutSbas: false,
-      enableAdvancedVNav: false,
-      gpsSystemState: ConsumerSubject.create(this.bus.getSubscriber<GPSSatComputerEvents>().on('gps_system_state_changed_1'), GPSSystemState.Searching)
-    });
+    return new GarminVNavManager2(this.bus, apValues, undefined, this.glidepathGuidance);
   }
 
   /** @inheritdoc */
   public createGpDirector(apValues: APValues): APGPDirector {
-    return new APGPDirector(this.bus, apValues);
+    return new APGPDirector(this.bus, apValues, {
+      guidance: this.glidepathGuidance,
+      canCapture: () => {
+        return apValues.lateralActive.get() === APLateralModes.GPSS && this.glidepathGuidance!.get().canCapture;
+      }
+    });
   }
 
   /** @inheritdoc */
@@ -166,8 +174,8 @@ export class GNSAPConfig implements APConfig {
   }
 
   /** @inheritdoc */
-  public createNavToNavManager(apValues: APValues): GarminNavToNavManager {
-    return new GarminNavToNavManager(this.bus, this.flightPlanner, apValues);
+  public createNavToNavManager(apValues: APValues): GarminNavToNavManager2 {
+    return new GarminNavToNavManager2(this.bus, apValues, this.navToNavGuidance);
   }
 
   /**

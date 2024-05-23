@@ -1,30 +1,31 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
-  CompiledMapSystem, EventBus, FacilityLoader, FacilityType, FlightPlan, FlightPlanner, FlightPlannerEvents, FlightPlanSegmentType, FSComponent,
-  ICAO, LegDefinition, LegType, MapIndexedRangeModule, MapSystemBuilder, NodeReference, SetSubject, Subject, Subscription, UnitType, Vec2Math,
-  Vec2Subject, VecNMath, VNode
+  CompiledMapSystem, EventBus, FacilityLoader, FacilityType, FlightPlan, FlightPlanner, FlightPlanSegmentType, FSComponent,
+  ICAO, LegDefinition, LegType, MapIndexedRangeModule, MapSystemBuilder, NodeReference, SetSubject, Subject, Subscription,
+  UnitType, Vec2Math, Vec2Subject, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
-  FlightPlanFocus, Fms, FmsUtils, GarminMapKeys, MapFlightPlanFocusModule, MapPointerController, MapPointerInfoLayerSize,
+  FlightPlanFocus, Fms, FmsUtils, GarminAdditionalApproachType, GarminMapKeys, MapFlightPlanFocusModule, MapPointerController, MapPointerInfoLayerSize,
   MapPointerModule, MapRangeController, TrafficSystem, TrafficUserSettings, UnitsUserSettings, VNavDataProvider, WindDataProvider
 } from '@microsoft/msfs-garminsdk';
 
+import { G3000FlightPlannerId } from '../../CommonTypes';
+import { FlightPlanListManager, FlightPlanStore } from '../../FlightPlan';
 import { G3000FPLUtils } from '../../FlightPlan/G3000FPLUtils';
 import { DisplayPanesUserSettings } from '../../Settings/DisplayPanesUserSettings';
 import { IauUserSettingManager } from '../../Settings/IauUserSettings';
 import { MapInsetSettingMode, MapUserSettings } from '../../Settings/MapUserSettings';
-import { FlightPlanListManager, FlightPlanStore } from '../../FlightPlan';
 import { BingUtils } from '../Bing/BingUtils';
 import { ApproachNameDisplay } from '../Common/ApproachNameDisplay';
+import { DisplayPaneInsetView } from '../DisplayPanes/DisplayPaneInsetView';
 import { ControllableDisplayPaneIndex, DisplayPaneSizeMode } from '../DisplayPanes/DisplayPaneTypes';
 import { DisplayPaneView, DisplayPaneViewProps } from '../DisplayPanes/DisplayPaneView';
 import { DisplayPaneViewEvent } from '../DisplayPanes/DisplayPaneViewEvents';
-import { DisplayPaneInsetView } from '../DisplayPanes/DisplayPaneInsetView';
 import { MapBuilder } from '../Map/MapBuilder';
 import { MapConfig } from '../Map/MapConfig';
-import { FlightPlanTextUpdateData, NavigationMapPaneFlightPlanFocusData, NavigationMapPaneViewEventTypes } from './NavigationMapPaneViewEvents';
 import { FlightPlanTextInset } from './FlightPlanTextInset/FlightPlanTextInset';
+import { FlightPlanTextUpdateData, NavigationMapPaneFlightPlanFocusData, NavigationMapPaneViewEventTypes } from './NavigationMapPaneViewEvents';
 
 import '../Map/CommonMap.css';
 import './NavigationMapPaneView.css';
@@ -40,7 +41,7 @@ export interface NavigationMapPaneViewProps extends DisplayPaneViewProps {
   facLoader: FacilityLoader;
 
   /** The flight planner. */
-  flightPlanner: FlightPlanner;
+  flightPlanner: FlightPlanner<G3000FlightPlannerId>;
 
   /** The traffic system used by the map to display traffic. */
   trafficSystem: TrafficSystem;
@@ -55,7 +56,7 @@ export interface NavigationMapPaneViewProps extends DisplayPaneViewProps {
   vnavDataProvider: VNavDataProvider;
 
   /** The Fms. */
-  fms: Fms;
+  fms: Fms<G3000FlightPlannerId>;
 
   /** The flight plan list manager instance for this pane. */
   flightPlanListManager: FlightPlanListManager;
@@ -213,19 +214,17 @@ export class NavigationMapPaneView extends DisplayPaneView<NavigationMapPaneView
 
     this.planNameTitlePipe = this.focusedPlanName.pipe(this._title, name => `Flight Plan – ${name}`, true);
 
-    const sub = this.props.bus.getSubscriber<FlightPlannerEvents>();
-
-    this.planNameSetSub = sub.on('fplUserDataSet').handle(e => {
+    this.planNameSetSub = this.props.flightPlanner.onEvent('fplUserDataSet').handle(e => {
       if (e.planIndex === this.focusedPlanIndex && e.key === 'name') {
         this.focusedPlanName.set(G3000FPLUtils.getFlightPlanDisplayName(this.props.flightPlanner.getFlightPlan(this.focusedPlanIndex)));
       }
     });
-    this.planNameDeleteSub = sub.on('fplUserDataDelete').handle(e => {
+    this.planNameDeleteSub = this.props.flightPlanner.onEvent('fplUserDataDelete').handle(e => {
       if (e.planIndex === this.focusedPlanIndex && e.key === 'name') {
         this.focusedPlanName.set(G3000FPLUtils.getFlightPlanDisplayName(this.props.flightPlanner.getFlightPlan(this.focusedPlanIndex)));
       }
     });
-    this.planOriginDestSub = sub.on('fplOriginDestChanged').handle(e => {
+    this.planOriginDestSub = this.props.flightPlanner.onEvent('fplOriginDestChanged').handle(e => {
       if (e.planIndex === this.focusedPlanIndex) {
         this.focusedPlanName.set(G3000FPLUtils.getFlightPlanDisplayName(this.props.flightPlanner.getFlightPlan(this.focusedPlanIndex)));
       }
@@ -492,7 +491,7 @@ export class NavigationMapPaneView extends DisplayPaneView<NavigationMapPaneView
             const airport = await this.props.facLoader.getFacility(FacilityType.Airport, plan.procedureDetails.approachFacilityIcao);
             const approach = FmsUtils.getApproachFromPlan(plan, airport);
 
-            if (approach !== undefined) {
+            if (approach !== undefined && approach.approachType !== GarminAdditionalApproachType.APPROACH_TYPE_VFR) {
               return (
                 <ApproachNameDisplay
                   approach={approach}

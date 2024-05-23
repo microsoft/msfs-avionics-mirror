@@ -1,0 +1,39 @@
+.gdu-460-display .status-bar-oat {
+  --status-bar-oat-main-padding: 1px 4px 0px;
+}
+
+.status-bar-oat {
+  position: relative;
+}
+
+.status-bar-oat-main {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--status-bar-oat-main-padding);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.data-failed .status-bar-oat-main {
+  justify-content: center;
+}
+
+.data-failed .status-bar-oat-value {
+  display: none;
+}
+
+.status-bar-oat-failure-box {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+
+  --failure-box-cross-margin-horiz: 3px;
+  --failure-box-cross-margin-vert: 3px;
+}

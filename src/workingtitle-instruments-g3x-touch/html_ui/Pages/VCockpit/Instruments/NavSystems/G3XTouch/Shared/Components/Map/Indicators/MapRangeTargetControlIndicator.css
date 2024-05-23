@@ -1,0 +1,51 @@
+.gdu-460-display {
+  --map-range-target-control-button-size: 60px;
+
+  --map-range-target-control-range-button-gap: 2px;
+  --map-range-target-control-range-button-img-size: 46px;
+
+  --map-range-target-control-target-button-margin-top: 30px;
+  --map-range-target-control-target-button-img-size: 50px;
+}
+
+.map-range-target-control {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.map-range-target-control-button {
+  width: var(--map-range-target-control-button-size);
+  height: var(--map-range-target-control-button-size);
+
+  --touch-button-background: rgba(23, 23, 23, 0.5);
+  --touch-button-border-color: rgba(80, 85, 99, 0.9);
+  --touch-button-box-shadow: 0px 0px 4px 0 rgba(0, 0, 0, 0.7) inset;
+}
+
+.map-range-target-control-range-button-minus {
+  margin-bottom: var(--map-range-target-control-range-button-gap);
+}
+
+.map-range-target-control-range-button-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--map-range-target-control-range-button-img-size);
+  height: var(--map-range-target-control-range-button-img-size);
+  transform: translate(-50%, -50%);
+}
+
+.map-range-target-control-target-button {
+  margin-top: var(--map-range-target-control-target-button-margin-top);
+}
+
+.map-range-target-control-target-button-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--map-range-target-control-target-button-img-size);
+  height: var(--map-range-target-control-target-button-img-size);
+  transform: translate(-50%, -50%);
+}

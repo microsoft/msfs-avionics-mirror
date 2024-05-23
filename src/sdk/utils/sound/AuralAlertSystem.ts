@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import { EventBus } from '../../data/EventBus';
 import { BinaryHeap } from '../datastructures/BinaryHeap';
 import { DebounceTimer } from '../time/DebounceTimer';
@@ -11,7 +13,10 @@ export type AuralAlertDefinition = {
   /** The ID of the alert. */
   uuid: string;
 
-  /** The name of the queue to which the alert belongs. Only one alert from each queue can play simultaneously. */
+  /**
+   * The name of the queue to which the alert belongs. Only one alert from each queue can play simultaneously unless
+   * they are on different tracks (see the documentation for `track` for more information).
+   */
   queue: string;
 
   /**
@@ -20,6 +25,14 @@ export type AuralAlertDefinition = {
    * playing, regardless of their relative priorities.
    */
   priority: number;
+
+  /**
+   * The name of the track on which to play the alert. Each queue has an arbitrary number of tracks. Alerts on
+   * different tracks can play at the same time. However, an alert will still wait until all other alerts in the same
+   * queue with higher priority are finished playing before it starts playing, even if the other alerts are playing on
+   * different tracks. If not defined, then the alert will play on the default track (with name equal to `''`).
+   */
+  track?: string;
 
   /**
    * The sequence of sound atoms to play for the alert, as either a single ID or an array of IDs. Each atom is a single
@@ -46,6 +59,12 @@ export type AuralAlertDefinition = {
    * entire sequence. If the alert is continuous, the timeout is reset with each loop. Defaults to 10000 milliseconds.
    */
   timeout?: number;
+
+  /**
+   * The amount of time, in milliseconds, that the alert can remain in the queue before it is automatically removed
+   * from the queue. Defaults to `Infinity`.
+   */
+  queuedLifetime?: number;
 };
 
 /**
@@ -88,6 +107,14 @@ export type AuralAlertActivation = {
   suffix?: string;
 
   /**
+   * The name of the track on which to play the alert. Each queue has an arbitrary number of tracks. Alerts on
+   * different tracks can play at the same time. However, an alert will still wait until all other alerts in the same
+   * queue with higher priority are finished playing before it starts playing, even if the other alerts are playing on
+   * different tracks. If not defined, then the track defined when the alert was registered will be used.
+   */
+  track?: string;
+
+  /**
    * The sequence of sound atoms to play for the alert, as either a single ID or an array of IDs. Each atom is a single
    * sound file. If not defined, then the sequence defined when the alert was registered will be played.
    */
@@ -115,6 +142,12 @@ export type AuralAlertActivation = {
    * defined when the alert was registered will be used.
    */
   timeout?: number;
+
+  /**
+   * The amount of time, in milliseconds, that the alert can remain in the queue before it is automatically removed
+   * from the queue. If not defined, then the lifetime defined when the alert was registered will be used.
+   */
+  queuedLifetime?: number;
 };
 
 /**
@@ -188,12 +221,29 @@ export interface AuralAlertControlEvents {
  * An entry for an alert queue.
  */
 type QueueEntry = {
-  /** A priority queue of alerts waiting to be played. */
-  queue: BinaryHeap<QueuedAuralAlert>;
+  /** The name of the queue. */
+  name: string;
+
+  /** This queue's tracks, keyed by track name. */
+  tracks: Map<string, QueueTrack>;
 
   /** A timer used to debounce newly activated or triggered alerts when the queue is empty. */
   debounceTimer: DebounceTimer;
-}
+};
+
+/**
+ * A track for an alert queue.
+ */
+type QueueTrack = {
+  /** The name of the track. */
+  name: string;
+
+  /** The `SoundServer` packet key used to play alerts on the track. */
+  packetKey: string;
+
+  /** A priority queue of alerts waiting to be played. */
+  queue: BinaryHeap<QueuedAuralAlert>;
+};
 
 /**
  * An alert that is playing or is queued to be played.
@@ -205,6 +255,9 @@ type QueuedAuralAlert = {
   /** The ID used to play the alert. */
   id: string;
 
+  /** The name of the queue track on which to play the alert. */
+  track: string;
+
   /** Whether the alert should repeat while it is active. */
   repeat: boolean;
 
@@ -213,6 +266,12 @@ type QueuedAuralAlert = {
 
   /** The time when the alert was first queued, as a UNIX timestamp in milliseconds. */
   timestamp: number;
+
+  /**
+   * The amount of time, in milliseconds, that the alert can remain in the queue before it will no longer be played
+   * when it is dequeued.
+   */
+  queuedLifetime: number;
 };
 
 /**
@@ -244,11 +303,10 @@ export class AuralAlertSystem {
 
   private readonly registeredAlerts = new Map<string, Readonly<AuralAlertDefinition>>();
 
-  private readonly queueToPacketKeyMap = new Map<string, string>();
   private readonly packetKeyToQueueMap = new Map<string, string>();
 
   private readonly queues = new Map<string, QueueEntry>();
-  private readonly playing = new Map<string, QueuedAuralAlert>();
+  private readonly playing = new Map<string, QueuedAuralAlert[]>();
 
   private readonly activeAliasToUuid = new Map<string, string>();
   private readonly triggeredAliasToUuid = new Map<string, string>();
@@ -346,17 +404,31 @@ export class AuralAlertSystem {
    */
   private createQueue(queueName: string): QueueEntry {
     const entry: QueueEntry = {
-      queue: new BinaryHeap(AuralAlertSystem.ALERT_COMPARATOR),
+      name: queueName,
+      tracks: new Map([['', this.createQueueTrack(queueName, '')]]),
       debounceTimer: new DebounceTimer()
     };
 
     this.queues.set(queueName, entry);
 
-    const packetKey = AuralAlertSystem.createPacketKey(queueName);
-    this.queueToPacketKeyMap.set(queueName, packetKey);
+    return entry;
+  }
+
+  /**
+   * Creates a queue track.
+   * @param queueName The name of the queue.
+   * @param trackName The name of the track.
+   * @returns The new queue track.
+   */
+  private createQueueTrack(queueName: string, trackName: string): QueueTrack {
+    const packetKey = AuralAlertSystem.createPacketKey(queueName, trackName);
     this.packetKeyToQueueMap.set(packetKey, queueName);
 
-    return entry;
+    return {
+      name: trackName,
+      packetKey: packetKey,
+      queue: new BinaryHeap(AuralAlertSystem.ALERT_COMPARATOR)
+    };
   }
 
   /**
@@ -535,7 +607,7 @@ export class AuralAlertSystem {
 
     // If a triggered instance of this alert is already playing, then do nothing.
     const existing = this.triggeredAlerts.get(queuedId);
-    if (existing && this.playing.get(existing.definition.queue) === existing) {
+    if (existing && this.playing.get(existing.definition.queue)?.includes(existing)) {
       return;
     }
 
@@ -569,17 +641,27 @@ export class AuralAlertSystem {
    * @returns The queued alert.
    */
   private createQueuedAlert(definition: Readonly<AuralAlertDefinition>, activation?: AuralAlertActivation): QueuedAuralAlert {
+    const queueEntry = this.queues.get(definition.queue)!;
+    const trackName = activation?.track ?? definition.track ?? '';
+    let track = queueEntry.tracks.get(trackName);
+    if (!track) {
+      track = this.createQueueTrack(definition.queue, trackName);
+      queueEntry.tracks.set(trackName, track);
+    }
+
     return {
       definition,
       id: activation?.alias ?? definition.uuid,
+      track: trackName,
       repeat: activation?.repeat ?? definition.repeat,
       packet: {
-        key: this.queueToPacketKeyMap.get(definition.queue) as string,
+        key: track.packetKey,
         sequence: activation?.sequence ?? definition.sequence,
         continuous: activation?.continuous ?? definition.continuous,
         timeout: activation?.timeout ?? definition.timeout
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      queuedLifetime: activation?.queuedLifetime ?? definition.queuedLifetime ?? Infinity
     };
   }
 
@@ -591,15 +673,30 @@ export class AuralAlertSystem {
     const queueName = alert.definition.queue;
     const queueEntry = this.queues.get(queueName) ?? this.createQueue(queueName);
 
-    queueEntry.queue.insert(alert);
+    queueEntry.tracks.get(alert.track)!.queue.insert(alert);
 
     if (this.isSoundServerInit) {
-      const playing = this.playing.get(queueName);
+      const playingAlerts = this.playing.get(queueName);
 
-      if (!playing) {
-        // If nothing is currently playing, then wait one frame before we start dequeuing so that alerts that are
-        // activated on the same frame are correctly prioritized.
+      let isTrackPlaying = false;
+      let playingPriority: number | undefined = undefined;
 
+      if (playingAlerts) {
+        for (let i = 0; i < playingAlerts.length; i++) {
+          const playing = playingAlerts[i];
+          if (playing.track === alert.track) {
+            isTrackPlaying = true;
+          }
+          if (playingPriority === undefined || playing.definition.priority > playingPriority) {
+            playingPriority = playing.definition.priority;
+          }
+        }
+      }
+
+      // If the alert would be immediately dequeued (i.e. there is nothing playing on its track and there are no
+      // currently playing alerts in its queue that are of higher priority), then wait one frame before we start
+      // dequeuing so that alerts that are activated on the same frame are correctly prioritized.
+      if (!isTrackPlaying && (playingPriority === undefined || alert.definition.priority >= playingPriority)) {
         if (!queueEntry.debounceTimer.isPending()) {
           queueEntry.debounceTimer.schedule(this.dequeueAlert.bind(this, queueEntry), 0);
         }
@@ -614,31 +711,94 @@ export class AuralAlertSystem {
    */
   private dequeueAlert(entry: QueueEntry): void {
     if (this.isActive) {
-      // Find the next alert in the queue that is active or triggered.
-      let next: QueuedAuralAlert | undefined = undefined;
-      while (entry.queue.size > 0) {
-        next = entry.queue.removeMin() as QueuedAuralAlert;
+      const time = Date.now();
 
-        // We need to compare the dequeued alert with the one in the active/triggered alerts map by reference instead
-        // of just comparing their IDs because the alert could have been deactivated and activated or triggered again
-        // while it was queued. The map contains the queued alert object from the most recent activation, so that is
-        // the one we want to play.
-        if (
-          this.activeAlerts.get(next.id) === next
-          || this.triggeredAlerts.get(next.id) === next
-        ) {
-          break;
-        } else {
-          next = undefined;
+      let playingAlerts = this.playing.get(entry.name);
+
+      // Go through each track of the queue and mark queued alerts to potentially dequeue and play.
+      const nextAlerts = new BinaryHeap<QueuedAuralAlert>(AuralAlertSystem.ALERT_COMPARATOR);
+      for (const track of entry.tracks.values()) {
+        // If an alert is still playing on this track, then we will not attempt to dequeue any alerts on this track.
+        if (playingAlerts && playingAlerts.find(query => query.track === track.name)) {
+          continue;
+        }
+
+        while (track.queue.size > 0) {
+          const next = track.queue.findMin() as QueuedAuralAlert;
+
+          // We need to compare the queued alert with the one in the active/triggered alerts map by reference instead
+          // of just comparing their IDs because the alert could have been deactivated and activated or triggered again
+          // while it was queued. The maps contain the queued alert object from the most recent activation/trigger, so
+          // that is the one we want to play.
+          if (
+            time - next.timestamp <= next.queuedLifetime
+            && (
+              this.activeAlerts.get(next.id) === next
+              || this.triggeredAlerts.get(next.id) === next
+            )
+          ) {
+            // If the queued alert was not expired, replaced, deactivated, or untriggered, then mark it as a candidate
+            // to be dequeued and played. However, we will not remove it from the track queue yet because we don't know
+            // yet whether it will actually be dequeued.
+            nextAlerts.insert(next);
+            break;
+          } else {
+            // If the queued alert was expired, replaced, deactivated, or untriggered, then remove it from the queue.
+            track.queue.removeMin();
+          }
         }
       }
 
-      if (next) {
-        this.playing.set(next.definition.queue, next);
-        this.soundServerPublisher.pub('sound_server_interrupt', next.packet, true, false);
+      if (nextAlerts.size === 0) {
+        return;
+      }
+
+      // Now we will evaluate every queued alert marked as a candidate for dequeuing in order of decreasing priority.
+      // If there are no currently playing alerts that have a higher priority than the candidate with the highest
+      // priority, then we will dequeue the highest-priority candidate along with every other candidate with the same
+      // priority. Candidates that are not dequeued remain in their respective track queues.
+
+      let priority: number | undefined = undefined;
+      if (playingAlerts) {
+        for (let i = 0; i < playingAlerts.length; i++) {
+          const playing = playingAlerts[i];
+          if (priority === undefined || playing.definition.priority > priority) {
+            priority = playing.definition.priority;
+          }
+        }
+      }
+
+      while (nextAlerts.size > 0) {
+        const toPlay = nextAlerts.removeMin() as QueuedAuralAlert;
+        if (priority === undefined) {
+          priority = toPlay.definition.priority;
+        }
+
+        if (toPlay.definition.priority >= priority) {
+          priority = toPlay.definition.priority;
+
+          const track = entry.tracks.get(toPlay.track)!;
+          track.queue.removeMin();
+
+          if (!playingAlerts) {
+            playingAlerts = [];
+            this.playing.set(entry.name, playingAlerts);
+          }
+          playingAlerts.push(toPlay);
+
+          this.soundServerPublisher.pub('sound_server_interrupt', toPlay.packet, true, false);
+        } else {
+          // The current candidate has a lower priority than the minimum required to be dequeued and played. Since we
+          // are evaluating candidates in order of decreasing priority, we are guaranteed that all remaining candidates
+          // have equal or lower priority than the current one. Therefore, we know no further candidates will be
+          // dequeued and can stop immediately.
+          break;
+        }
       }
     } else {
-      entry.queue.clear();
+      for (const track of entry.tracks.values()) {
+        track.queue.clear();
+      }
     }
   }
 
@@ -667,9 +827,12 @@ export class AuralAlertSystem {
     const alertDef = this.registeredAlerts.get(deactivatedUuid);
 
     if (alertDef) {
-      const playing = this.playing.get(alertDef.queue);
-      if (playing && playing.id === deactivatedId && this.triggeredAlerts.get(deactivatedId) !== playing) {
-        this.soundServerPublisher.pub('sound_server_stop', playing.packet.key, true, false);
+      const playingAlerts = this.playing.get(alertDef.queue);
+      if (playingAlerts) {
+        const playing = playingAlerts.find(query => query.id === deactivatedId);
+        if (playing && this.triggeredAlerts.get(deactivatedId) !== playing) {
+          this.soundServerPublisher.pub('sound_server_stop', playing.packet.key, true, false);
+        }
       }
     }
   }
@@ -728,9 +891,12 @@ export class AuralAlertSystem {
     const alertDef = this.registeredAlerts.get(untriggeredUuid);
 
     if (alertDef) {
-      const playing = this.playing.get(alertDef.queue);
-      if (playing && playing.id === untriggeredId && this.activeAlerts.get(untriggeredId) !== playing) {
-        this.soundServerPublisher.pub('sound_server_stop', playing.packet.key, true, false);
+      const playingAlerts = this.playing.get(alertDef.queue);
+      if (playingAlerts) {
+        const playing = playingAlerts.find(query => query.id === untriggeredId);
+        if (playing && this.activeAlerts.get(untriggeredId) !== playing) {
+          this.soundServerPublisher.pub('sound_server_stop', playing.packet.key, true, false);
+        }
       }
     }
   }
@@ -804,17 +970,23 @@ export class AuralAlertSystem {
     let killedPacketKey: string | undefined = undefined;
 
     if (deactivatedAlertDef) {
-      const playing = this.playing.get(deactivatedAlertDef.queue);
-      if (playing && playing.id === deactivatedId && this.triggeredAlerts.get(deactivatedId) !== playing) {
-        this.soundServerPublisher.pub('sound_server_kill', playing.packet.key, true, false);
-        killedPacketKey = playing.packet.key;
+      const playingAlerts = this.playing.get(deactivatedAlertDef.queue);
+      if (playingAlerts) {
+        const playing = playingAlerts.find(query => query.id === deactivatedId);
+        if (playing && this.triggeredAlerts.get(deactivatedId!) !== playing) {
+          this.soundServerPublisher.pub('sound_server_kill', playing.packet.key, true, false);
+          killedPacketKey = playing.packet.key;
+        }
       }
     }
 
     if (untriggeredAlertDef) {
-      const playing = this.playing.get(untriggeredAlertDef.queue);
-      if (playing && playing.id === untriggeredId && this.activeAlerts.get(untriggeredId) !== playing && killedPacketKey !== playing.packet.key) {
-        this.soundServerPublisher.pub('sound_server_kill', playing.packet.key, true, false);
+      const playingAlerts = this.playing.get(untriggeredAlertDef.queue);
+      if (playingAlerts) {
+        const playing = playingAlerts.find(query => query.id === untriggeredId);
+        if (playing && this.activeAlerts.get(untriggeredId!) !== playing && killedPacketKey !== playing.packet.key) {
+          this.soundServerPublisher.pub('sound_server_kill', playing.packet.key, true, false);
+        }
       }
     }
   }
@@ -829,9 +1001,11 @@ export class AuralAlertSystem {
     this.activeSuffixedIdToId.clear();
     this.idToActiveSuffixedIds.clear();
 
-    for (const playing of this.playing.values()) {
-      if (this.triggeredAlerts.get(playing.id) !== playing) {
-        this.soundServerPublisher.pub('sound_server_stop', playing.packet.key, true, false);
+    for (const playingAlerts of this.playing.values()) {
+      for (const playing of playingAlerts) {
+        if (this.triggeredAlerts.get(playing.id) !== playing) {
+          this.soundServerPublisher.pub('sound_server_stop', playing.packet.key, true, false);
+        }
       }
     }
   }
@@ -846,9 +1020,11 @@ export class AuralAlertSystem {
     this.triggeredSuffixedIdToId.clear();
     this.idToTriggeredSuffixedIds.clear();
 
-    for (const playing of this.playing.values()) {
-      if (this.activeAlerts.get(playing.id) !== playing) {
-        this.soundServerPublisher.pub('sound_server_stop', playing.packet.key, true, false);
+    for (const playingAlerts of this.playing.values()) {
+      for (const playing of playingAlerts) {
+        if (this.activeAlerts.get(playing.id) !== playing) {
+          this.soundServerPublisher.pub('sound_server_stop', playing.packet.key, true, false);
+        }
       }
     }
   }
@@ -867,8 +1043,10 @@ export class AuralAlertSystem {
     this.triggeredSuffixedIdToId.clear();
     this.idToTriggeredSuffixedIds.clear();
 
-    for (const playing of this.playing.values()) {
-      this.soundServerPublisher.pub('sound_server_kill', playing.packet.key, true, false);
+    for (const playingAlerts of this.playing.values()) {
+      for (const playing of playingAlerts) {
+        this.soundServerPublisher.pub('sound_server_kill', playing.packet.key, true, false);
+      }
     }
   }
 
@@ -886,40 +1064,44 @@ export class AuralAlertSystem {
 
     if (!queueEntry) {
       this.packetKeyToQueueMap.delete(key);
-      this.queueToPacketKeyMap.delete(queueName);
       return;
     }
 
-    const finishedAlert = this.playing.get(queueName);
-    if (finishedAlert) {
-      // Check if the alert that finished playing was triggered. If so, remove the alert from the triggered list as well
-      // as all of its triggered suffixes.
-      if (this.triggeredAlerts.get(finishedAlert.id) === finishedAlert) {
-        this.triggeredAlerts.delete(finishedAlert.id);
+    const playingAlerts = this.playing.get(queueName);
 
-        if (finishedAlert.id !== finishedAlert.definition.uuid) {
-          this.triggeredAliasToUuid.delete(finishedAlert.id);
-        }
+    if (playingAlerts) {
+      const finishedAlertIndex = playingAlerts.findIndex(alert => alert.packet.key === key);
+      const finishedAlert = playingAlerts[finishedAlertIndex];
+      if (finishedAlert) {
+        // Check if the alert that finished playing was triggered. If so, remove the alert from the triggered list as well
+        // as all of its triggered suffixes.
+        if (this.triggeredAlerts.get(finishedAlert.id) === finishedAlert) {
+          this.triggeredAlerts.delete(finishedAlert.id);
 
-        const suffixedIds = this.idToTriggeredSuffixedIds.get(finishedAlert.id);
-        if (suffixedIds) {
-          for (const suffixedId of suffixedIds) {
-            this.triggeredSuffixedIdToId.delete(suffixedId);
+          if (finishedAlert.id !== finishedAlert.definition.uuid) {
+            this.triggeredAliasToUuid.delete(finishedAlert.id);
           }
 
-          this.idToTriggeredSuffixedIds.delete(finishedAlert.id);
-        }
-      }
+          const suffixedIds = this.idToTriggeredSuffixedIds.get(finishedAlert.id);
+          if (suffixedIds) {
+            for (const suffixedId of suffixedIds) {
+              this.triggeredSuffixedIdToId.delete(suffixedId);
+            }
 
-      // Requeue the alert if it is repeatable and is still active.
-      if (finishedAlert.repeat && this.activeAlerts.get(finishedAlert.id) === finishedAlert) {
-        this.queueAlert(finishedAlert);
+            this.idToTriggeredSuffixedIds.delete(finishedAlert.id);
+          }
+        }
+
+        // Requeue the alert if it is repeatable and is still active.
+        if (finishedAlert.repeat && this.activeAlerts.get(finishedAlert.id) === finishedAlert) {
+          this.queueAlert(finishedAlert);
+        }
+
+        playingAlerts.splice(finishedAlertIndex, 1);
       }
     }
 
-    // Remove the alert that finished playing.
-    this.playing.delete(queueName);
-
+    queueEntry.debounceTimer.clear();
     this.dequeueAlert(queueEntry);
   }
 
@@ -941,7 +1123,9 @@ export class AuralAlertSystem {
       // commands we sent to the server to start playing packets while the server was asleep but before we got the
       // notification were ignored (so we will never receive a packet ended event for them). Therefore, we need to
       // clear all playing alerts to ensure that alerts don't get stuck in the 'playing' state.
-      this.playing.clear();
+      for (const playingAlerts of this.playing.values()) {
+        playingAlerts.length = 0;
+      }
     }
   }
 
@@ -978,15 +1162,20 @@ export class AuralAlertSystem {
 
       // Clear all queued alerts.
       for (const queueEntry of this.queues.values()) {
-        queueEntry.queue.clear();
+        queueEntry.debounceTimer.clear();
+        for (const track of queueEntry.tracks.values()) {
+          track.queue.clear();
+        }
       }
 
       // If the sound server is awake, kill all alerts that are currently playing. If the sound server is asleep, it
       // will stop all packets automatically and will not respond to commands, so there is no need to send the kill
       // commands.
       if (this.isSoundServerAwake) {
-        for (const playing of this.playing.values()) {
-          this.soundServerPublisher.pub('sound_server_kill', playing.packet.key, true, false);
+        for (const playingAlerts of this.playing.values()) {
+          for (const playing of playingAlerts) {
+            this.soundServerPublisher.pub('sound_server_kill', playing.packet.key, true, false);
+          }
         }
       }
 
@@ -994,11 +1183,12 @@ export class AuralAlertSystem {
   }
 
   /**
-   * Creates a sound packet key for a queue.
-   * @param queue The name of the queue.
-   * @returns A sound packet key for the specified queue.
+   * Creates a sound packet key for a queue track.
+   * @param queueName The name of the queue.
+   * @param trackName The name of track.
+   * @returns A sound packet key for the specified queue track.
    */
-  private static createPacketKey(queue: string): string {
-    return `$$aural-alert-system-queue-${queue}$$`;
+  private static createPacketKey(queueName: string, trackName: string): string {
+    return `$$aural-alert-system-queue-${queueName}${trackName === '' ? '' : `-${trackName}`}$$`;
   }
 }

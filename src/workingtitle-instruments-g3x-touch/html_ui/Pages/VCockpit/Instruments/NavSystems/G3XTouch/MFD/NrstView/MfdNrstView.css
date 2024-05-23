@@ -1,0 +1,146 @@
+.mfd-nrst-view {
+  background: var(--g3x-color-black);
+}
+
+.gdu-460-display .mfd-nrst-view {
+  --mfd-nrst-view-content-padding: 7px;
+
+  --mfd-nrst-view-container-border-width: 3px;
+  --mfd-nrst-view-container-border-radius: 4px;
+
+  --mfd-nrst-view-container-height: 294px;
+
+  --mfd-nrst-view-full-pane-container-gap: 7px;
+
+  --common-map-scale-bar-detail-container-margin: 0px 5px 0px 0px;
+
+  --mfd-nrst-view-nav-bar-height: 33px;
+}
+
+.gdu-470-display .mfd-nrst-view {
+  --mfd-nrst-view-nav-bar-height: 27px;
+}
+
+.mfd-nrst-view-content-main {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: calc(100% - var(--mfd-nrst-view-nav-bar-height));
+  padding: var(--mfd-nrst-view-content-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.gdu-460-display .ui-pane-full .mfd-nrst-view-content-main {
+  flex-flow: row nowrap;
+}
+
+.gdu-display-pfd-left .ui-pane-half .mfd-nrst-view-content-main {
+  padding-right: 0px;
+}
+
+.gdu-display-pfd-right .ui-pane-half .mfd-nrst-view-content-main {
+  padding-left: 0px;
+}
+
+/* ---- Map ---- */
+
+.mfd-nrst-view-map-container {
+  position: relative;
+  height: var(--mfd-nrst-view-container-height);
+  border: solid var(--mfd-nrst-view-container-border-width) var(--g3x-color-border-light-gray);
+  border-radius: var(--mfd-nrst-view-container-border-radius);
+  background: var(--g3x-color-black);
+  overflow: hidden;
+}
+
+.gdu-460-display .ui-pane-full .mfd-nrst-view-map-container {
+  height: unset;
+  margin-right: var(--mfd-nrst-view-full-pane-container-gap);
+}
+
+.mfd-nrst-map {
+  overflow: hidden;
+  transform: rotateX(0deg);
+}
+
+.gdu-460-display .common-map.mfd-nrst-map {
+  --common-map-scale-bar-detail-container-margin: 0px 5px 0px 0px;
+
+  --common-map-status-indicator-container-margin: 0px 3px 0px 0px;
+}
+
+.gdu-460-display .ui-pane-full .common-map.mfd-nrst-map {
+  --common-map-scale-bar-detail-container-margin: 0px 8px 1px 0px;
+
+  --common-map-range-target-control-margin: 3px 0px 0px 0px;
+
+  --common-map-status-indicator-container-margin: 3px 0px 0px 0px;
+}
+
+.mfd-nrst-map .map-indicator-group-top-right {
+  flex-flow: row-reverse nowrap;
+  align-items: flex-start;
+}
+
+.common-map.mfd-nrst-map .map-status-indicator-container {
+  max-height: var(--common-map-status-indicator-container-max-width);
+  flex-flow: column wrap-reverse;
+  justify-content: flex-start;
+  align-content: flex-start;
+}
+
+.gdu-460-display .ui-pane-full .mfd-nrst-map .map-indicator-group-top-right {
+  flex-flow: column nowrap;
+  align-items: flex-end;
+}
+
+.gdu-460-display .ui-pane-full .common-map.mfd-nrst-map .map-status-indicator-container {
+  max-width: var(--common-map-status-indicator-container-max-width);
+  max-height: unset;
+  flex-flow: row wrap;
+  justify-content: flex-end;
+}
+
+/* ---- Page container ---- */
+
+.mfd-nrst-view-page-container-container {
+  position: relative;
+  height: var(--mfd-nrst-view-container-height);
+  border: solid var(--mfd-nrst-view-container-border-width) var(--g3x-color-border-light-gray);
+  border-radius: var(--mfd-nrst-view-container-border-radius);
+  background: var(--g3x-color-black);
+}
+
+.gdu-460-display .ui-pane-full .mfd-nrst-view-page-container-container {
+  flex-grow: 1;
+  height: unset;
+}
+
+.mfd-nrst-view .mfd-page-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- Navigation bar ---- */
+
+.mfd-nrst-view-nav-bar-container {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  width: 100%;
+  height: var(--mfd-nrst-view-nav-bar-height);
+}
+
+.mfd-nrst-view-nav-bar-container .mfd-page-nav-bar {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  transform: rotateX(0deg);
+}

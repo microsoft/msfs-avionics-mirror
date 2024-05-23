@@ -153,7 +153,7 @@ export class StartupScreen extends DisplayComponent<StartupScreenProps> {
           Garmin Ltd. or its subs<br />
         </div>
         <div class='startup-screen-cptext' ref={this.screenRefs[1]}>
-          Main SW Version 5.40 - WT 1.1.10<br />
+          Main SW Version 5.40 - WT 1.2.4<br />
           GPS SW Version 5.0<br />
         </div>
         <div class='startup-screen-cptext' ref={this.screenRefs[2]}>

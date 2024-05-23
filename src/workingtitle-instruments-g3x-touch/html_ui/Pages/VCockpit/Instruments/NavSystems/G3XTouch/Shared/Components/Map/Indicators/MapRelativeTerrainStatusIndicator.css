@@ -1,0 +1,49 @@
+.gdu-460-display {
+  --map-rel-terrain-status-icon-size: 25px;
+}
+
+.map-rel-terrain-status {
+  border: solid 1px var(--g3x-color-black);
+}
+
+.map-rel-terrain-status-icon-container {
+  box-sizing: content-box;
+  position: relative;
+  width: var(--map-rel-terrain-status-icon-size);
+  height: var(--map-rel-terrain-status-icon-size);
+  border: solid 1px;
+  border-color: var(--g3x-color-white) #7f7f7f #7f7f7f var(--g3x-color-white);
+  overflow: hidden;
+}
+
+.map-rel-terrain-status-icon {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.map-rel-terrain-status-failed {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 67%;
+  height: 67%;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+}
+
+.map-rel-terrain-status-failed-cross {
+  fill: transparent;
+}
+
+.map-rel-terrain-status-failed-cross-outline {
+  stroke-width: 30;
+  stroke: var(--g3x-color-black);
+}
+
+.map-rel-terrain-status-failed-cross-stroke {
+  stroke-width: 22;
+  stroke: var(--g3x-color-white);
+}

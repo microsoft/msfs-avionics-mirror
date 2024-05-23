@@ -1,0 +1,57 @@
+.select-radio-dialog {
+  width: 330px;
+  height: 282px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 0 5px;
+}
+
+.select-radio-dialog .select-radio-dialog-frequency {
+  width: 100%;
+
+  font-size: 22px;
+
+  padding: 8px 0;
+  margin-top: 3px;
+  border-top: 1px solid var(--g3x-color-gray);
+  border-bottom: 1px solid var(--g3x-color-gray);
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.select-radio-dialog .select-radio-dialog-radios {
+  width: 100%;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+}
+
+.select-radio-dialog .select-radio-dialog-radios .touch-button {
+  width: 100px;
+  height: 70px;
+
+  font-size: 16px;
+
+  margin-top: 18px;
+}
+
+.select-radio-dialog .select-radio-dialog-bottom {
+  width: 100%;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.select-radio-dialog .select-radio-dialog-bottom .touch-button {
+  --ui-nav-button-width: 100px;
+  --ui-nav-button-height: 70px;
+
+  margin-top: 20px;
+}

@@ -1,19 +1,20 @@
 import { EventBus } from '../../data/EventBus';
 import {
-  FlightPlan, FlightPlanCalculatedEvent, FlightPlanLegEvent, FlightPlanLegIterator, FlightPlanner, FlightPlannerEvents, FlightPlanSegmentEvent,
+  FlightPlan, FlightPlanCalculatedEvent, FlightPlanLegEvent, FlightPlanLegIterator, FlightPlanner, FlightPlanSegmentEvent,
   FlightPlanSegmentType, LegDefinition, LegDefinitionFlags, VerticalFlightPhase
 } from '../../flightplan';
 import { AdcEvents } from '../../instruments';
 import { BitFlags, UnitType } from '../../math';
 import { AltitudeRestrictionType, LegType } from '../../navigation';
 import { ReadonlySubEvent, SubEvent } from '../../sub';
-import { VNavControlEvents } from '../data/VNavControlEvents';
-import { VerticalFlightPlan, VNavConstraint, AltitudeConstraintDetails, VNavLeg } from '../VerticalNavigation';
-import { VNavUtils } from '../VNavUtils';
+import { AltitudeConstraintDetails, VerticalFlightPlan, VNavConstraint, VNavLeg } from '../VerticalNavigation';
+import { VNavControlEvents } from '../vnav/VNavControlEvents';
+import { VNavUtils } from '../vnav/VNavUtils';
 import { VNavPathCalculator } from './VNavPathCalculator';
 
 /**
  * Handles the calculation of the VNAV flight path for VNAV Implemetations that use only the bottom altitude of each constraint.
+ * @deprecated
  */
 export class BottomTargetPathCalculator implements VNavPathCalculator {
 
@@ -54,24 +55,22 @@ export class BottomTargetPathCalculator implements VNavPathCalculator {
     this.flightPathAngle = defaultFpa;
     this.maxFlightPathAngle = defaultMaxFpa;
 
-    const fpl = bus.getSubscriber<FlightPlannerEvents>();
-
     // While these events and classes were refactored to handle more that one plan, in the case of the bottom target path calculator,
     // I have inhibited processing anything but plan index 0.
 
-    fpl.on('fplCreated').handle(e => e.planIndex === 0 && this.createVerticalPlan(e.planIndex));
+    this.flightPlanner.onEvent('fplCreated').handle(e => e.planIndex === 0 && this.createVerticalPlan(e.planIndex));
 
-    fpl.on('fplCopied').handle(e => e.targetPlanIndex === 0 && this.onPlanChanged(e.targetPlanIndex));
+    this.flightPlanner.onEvent('fplCopied').handle(e => e.targetPlanIndex === 0 && this.onPlanChanged(e.targetPlanIndex));
 
-    fpl.on('fplLoaded').handle(e => e.planIndex === 0 && this.onPlanChanged(e.planIndex));
+    this.flightPlanner.onEvent('fplLoaded').handle(e => e.planIndex === 0 && this.onPlanChanged(e.planIndex));
 
-    fpl.on('fplLegChange').handle(e => e.planIndex === 0 && this.onPlanChanged(e.planIndex, e));
+    this.flightPlanner.onEvent('fplLegChange').handle(e => e.planIndex === 0 && this.onPlanChanged(e.planIndex, e));
 
-    fpl.on('fplSegmentChange').handle(e => e.planIndex === 0 && this.onPlanChanged(e.planIndex, undefined, e));
+    this.flightPlanner.onEvent('fplSegmentChange').handle(e => e.planIndex === 0 && this.onPlanChanged(e.planIndex, undefined, e));
 
-    fpl.on('fplIndexChanged').handle(e => e.planIndex === 0 && this.onPlanChanged(e.planIndex));
+    this.flightPlanner.onEvent('fplIndexChanged').handle(e => e.planIndex === 0 && this.onPlanChanged(e.planIndex));
 
-    fpl.on('fplCalculated').handle(e => e.planIndex === 0 && this.onPlanCalculated(e));
+    this.flightPlanner.onEvent('fplCalculated').handle(e => e.planIndex === 0 && this.onPlanCalculated(e));
 
     bus.getSubscriber<AdcEvents>().on('indicated_alt').whenChangedBy(1).handle(alt => this.currentAltitude = UnitType.FOOT.convertTo(alt, UnitType.METER));
 

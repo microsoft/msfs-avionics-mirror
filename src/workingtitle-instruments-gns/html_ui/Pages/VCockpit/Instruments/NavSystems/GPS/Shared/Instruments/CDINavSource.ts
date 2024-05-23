@@ -1,6 +1,9 @@
-import { ControlEvents, EventBus, EventSubscriber, NavEvents, NavSourceId, NavSourceType, Publisher, SimVarValueType, Subject } from '@microsoft/msfs-sdk';
-import { GNSEvents } from '../GNSEvents';
+import {
+  CdiControlEvents, CdiEvents, CdiUtils, EventBus, NavRadioIndex, NavSourceId, NavSourceType, SimVarValueType,
+  Subject, Subscribable
+} from '@microsoft/msfs-sdk';
 
+import { GNSType } from '../UITypes';
 
 /** Possible GNS CDI Modes */
 export enum GnsCdiMode {
@@ -13,106 +16,68 @@ export enum GnsCdiMode {
  */
 export class CDINavSource {
 
-  private readonly nav1Source: NavSourceId = {
-    type: NavSourceType.Nav,
-    index: 1
-  };
-  private readonly nav2Source: NavSourceId = {
-    type: NavSourceType.Nav,
-    index: 2
-  };
-  private currentSource: NavSourceId = {
-    type: NavSourceType.Nav,
-    index: 1
-  };
+  private readonly publisher = this.bus.getPublisher<CdiEvents>();
 
-  private controlSub: EventSubscriber<GNSEvents>;
-  private navEventPub: Publisher<NavEvents>;
+  private readonly cdiId = `gns${this.navIndex}`;
+
+  private readonly cdiSelectTopic = `cdi_select${CdiUtils.getEventBusTopicSuffix(this.cdiId)}` as const;
+  private readonly cdiSimVar = `L:AS${this.gnsType === 'wt430' ? '430' : '530'}_CDI_Source_${this.instrumentIndex}`;
+
+  private readonly _gnsCdiMode = Subject.create(GnsCdiMode.GPS);
+  /** The current CDI mode. */
+  public readonly gnsCdiMode = this._gnsCdiMode as Subscribable<GnsCdiMode>;
 
   /**
    * Creates an instance of CDINavSource.
+   * @param gnsType The GNS type of this class's parent instrument.
+   * @param instrumentIndex The index of this class's parent instrument.
+   * @param navIndex The NAV radio index of this class's parent instrument.
    * @param bus The event bus to use with this instance.
-   * @param gnsCdiMode A subject identifying what the current CDI source for this instrument is.
    */
   constructor(
-    private readonly bus: EventBus,
-    private readonly gnsCdiMode: Subject<GnsCdiMode>
+    private readonly gnsType: GNSType,
+    private readonly instrumentIndex: number,
+    private readonly navIndex: NavRadioIndex,
+    private readonly bus: EventBus
   ) {
+    this.gnsCdiMode.sub(this.publishCdiSource.bind(this), true);
 
-    this.bus.getSubscriber<NavEvents>().on('cdi_select').handle(source => {
-      this.currentSource = source;
-    });
+    const sub = this.bus.getSubscriber<CdiControlEvents>();
 
-    const gpsDrivesNav1 = SimVar.GetSimVarValue('GPS DRIVES NAV1', SimVarValueType.Bool);
-    this.bus.getPublisher<NavEvents>().pub('cdi_select', gpsDrivesNav1 ?
-      {
-        type: NavSourceType.Gps,
-        index: 1
-      }
-      : {
-        type: NavSourceType.Nav,
-        index: 1
-      },
-      false,
-      true);
+    const cdiTopicSuffix = CdiUtils.getEventBusTopicSuffix(this.cdiId);
 
-    this.bus.getSubscriber<ControlEvents>().on('cdi_src_set').handle(this.handleSrcSet.bind(this));
+    sub.on(`cdi_src_gps_toggle${cdiTopicSuffix}`).handle(this.toggleMode.bind(this));
+    sub.on(`cdi_src_set${cdiTopicSuffix}`).handle(this.setCdiSource.bind(this));
 
-    this.gnsCdiMode.sub(v => {
-      SimVar.SetSimVarValue('GPS DRIVES NAV1', SimVarValueType.Bool, v === GnsCdiMode.GPS);
-    });
-
-    this.controlSub = this.bus.getSubscriber<GNSEvents>();
-    this.navEventPub = this.bus.getPublisher<NavEvents>();
-
-    this.controlSub.on('set_ap_nav_source').handle(this.handleApNavSet.bind(this));
-
-    this.controlSub.on('gns_cdi_mode').handle(v => {
-      if (v.navIndex === 1) {
-        this.nav1Source.type = v.gnsCdiMode === GnsCdiMode.GPS ? NavSourceType.Gps : NavSourceType.Nav;
-      } else if (v.navIndex === 2) {
-        this.nav2Source.type = v.gnsCdiMode === GnsCdiMode.GPS ? NavSourceType.Gps : NavSourceType.Nav;
-      }
-
-      if (v.navIndex === this.currentSource.index) {
-        this.currentSource = v.navIndex === 1 ? this.nav1Source : this.nav2Source;
-        this.navEventPub.pub('cdi_select', this.currentSource, false, true);
-        SimVar.SetSimVarValue('AUTOPILOT NAV SELECTED', SimVarValueType.Number, v.navIndex);
-      }
-    });
+    SimVar.SetSimVarValue(`L:AS${gnsType}_CDI_Source_${this.instrumentIndex}`, SimVarValueType.Bool, true);
   }
 
   /**
-   * Handle an AP nav set event.
-   * @param index The index of the new AP nav source.
-  .*/
-  private handleApNavSet(index: number): void {
-
-    if (index === 1) {
-      this.currentSource = this.nav1Source;
-    } else if (index === 2) {
-      this.currentSource = this.nav2Source;
-    }
-
-    this.navEventPub.pub('cdi_select', this.currentSource, false, true);
-    SimVar.SetSimVarValue('AUTOPILOT NAV SELECTED', SimVarValueType.Number, index);
-  }
-
-  /**
-   * Handles when the CDI source set event is recieved.
-   * @param navSource The NavSourceId.
+   * Toggles the CDI source between GPS and NAV.
    */
-  private handleSrcSet(navSource: NavSourceId): void {
-    // const previousSourceType = this.currentSource.type;
+  private toggleMode(): void {
+    this._gnsCdiMode.set(this.gnsCdiMode.get() === GnsCdiMode.GPS ? GnsCdiMode.VLOC : GnsCdiMode.GPS);
+  }
 
-    if (navSource.index === 1) {
-      this.nav1Source.type = navSource.type;
-      this.currentSource = this.nav1Source;
-    } else if (navSource.index === 2) {
-      this.nav2Source.type = navSource.type;
-      this.currentSource = this.nav2Source;
+  /**
+   * Sets the CDI source.
+   * @param source The source to set.
+   */
+  private setCdiSource(source: Readonly<NavSourceId>): void {
+    if (source.type === NavSourceType.Gps) {
+      this._gnsCdiMode.set(GnsCdiMode.GPS);
+    } else {
+      this._gnsCdiMode.set(GnsCdiMode.VLOC);
     }
-    this.navEventPub.pub('cdi_select', this.currentSource, false, true);
-    SimVar.SetSimVarValue('AUTOPILOT NAV SELECTED', SimVarValueType.Number, this.currentSource.index);
+  }
+
+  /**
+   * Publishes a CDI source based on a CDI mode.
+   * @param mode The CDI mode to publish.
+   */
+  private publishCdiSource(mode: GnsCdiMode): void {
+    const isGps = mode === GnsCdiMode.GPS;
+    SimVar.SetSimVarValue(this.cdiSimVar, SimVarValueType.Bool, isGps);
+    this.publisher.pub(this.cdiSelectTopic, { type: isGps ? NavSourceType.Gps : NavSourceType.Nav, index: this.navIndex }, true, true);
   }
 }

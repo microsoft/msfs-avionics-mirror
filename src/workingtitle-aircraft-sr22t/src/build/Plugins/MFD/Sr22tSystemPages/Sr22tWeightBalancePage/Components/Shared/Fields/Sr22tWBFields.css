@@ -1,0 +1,56 @@
+.wb-labeled-number {
+  display: flex;
+  flex-direction: row;
+  font-size: inherit;
+  height: 26px;
+  padding-right: 7px;
+}
+
+.wb-labeled-number-title,
+.wb-labeled-number-value {
+  height: max-content;
+  margin-top: auto;
+}
+
+.wb-labeled-number-unit {
+  margin-top: 9px;
+}
+
+.wb-labeled-number-title {
+  flex-grow: 1;
+  font-size: 16px;
+  color: #bbb;
+}
+
+.wb-labeled-number-value {
+  flex-grow: 0;
+  font-size: 19px;
+  color: white;
+}
+
+.wb-labeled-number-unit {
+  flex-grow: 0;
+  font-size: 13.5px;
+  color: white;
+}
+
+.wb-labeled-number-entry-value {
+  background: rgb(0, 0, 0);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: cyan;
+  font-size: 20px;
+}
+
+.wb-labeled-number-entry-value.highlight-active {
+  background: cyan;
+  color: inherit;
+}
+
+.wb-labeled-number-entry-unit {
+  flex-grow: 0;
+  font-size: 13.5px;
+  padding-top: 5px;
+  color: inherit;
+}

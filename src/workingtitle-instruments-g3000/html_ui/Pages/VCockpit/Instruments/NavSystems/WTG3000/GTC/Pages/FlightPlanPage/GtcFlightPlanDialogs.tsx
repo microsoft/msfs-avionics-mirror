@@ -82,6 +82,7 @@ export class GtcFlightPlanDialogs {
    * @param segment The segment containing the leg.
    * @param leg The leg to remove.
    * @param legName The leg name.
+   * @returns A Promise which is fulfilled with whether the leg was successfully removed.
    */
   public static async removeWaypoint(gtcService: GtcService, fms: Fms, store: FlightPlanStore, segment: FlightPlanSegment, leg: LegDefinition, legName?: string): Promise<boolean> {
     const accepted = await GtcDialogs
@@ -129,6 +130,7 @@ export class GtcFlightPlanDialogs {
    * @param gtcService The GtcService.
    * @param store The Flight Plan Store.
    * @param fms The Fms.
+   * @returns A Promise which is fulfilled with whether the departure was successfully removed.
    */
   public static async removeDeparture(gtcService: GtcService, store: FlightPlanStore, fms: Fms): Promise<boolean> {
     let departure = store.departureProcedure.get();
@@ -149,6 +151,7 @@ export class GtcFlightPlanDialogs {
    * @param gtcService The GtcService.
    * @param store The Flight Plan Store.
    * @param fms The Fms.
+   * @returns A Promise which is fulfilled with whether the arrival was successfully removed.
    */
   public static async removeArrival(gtcService: GtcService, store: FlightPlanStore, fms: Fms): Promise<boolean> {
     let arrival = store.arrivalProcedure.get();
@@ -169,6 +172,7 @@ export class GtcFlightPlanDialogs {
    * @param gtcService The GtcService.
    * @param store The Flight Plan Store.
    * @param fms The Fms.
+   * @returns A Promise which is fulfilled with whether the approach was successfully removed.
    */
   public static async removeApproach(gtcService: GtcService, store: FlightPlanStore, fms: Fms): Promise<boolean> {
     if (!store.isApproachLoaded.get()) { return false; }
@@ -199,6 +203,7 @@ export class GtcFlightPlanDialogs {
    * @param gtcService The GtcService.
    * @param fms The Fms.
    * @param planIndex The plan index.
+   * @returns The inserted leg, if one was inserted.
    */
   public static async insertEnrouteWaypoint(gtcService: GtcService, fms: Fms, planIndex: number): Promise<LegDefinition | undefined> {
     const result = await this.openWaypointIdentifierLookup(gtcService);
@@ -227,6 +232,7 @@ export class GtcFlightPlanDialogs {
    * @param planIndex Tha flight plan index.
    * @param leg The existing leg to place the new leg relative to.
    * @param position Whether to place the new leg before or after the existing leg.
+   * @returns The inserted leg, if one was inserted.
    */
   public static async insertWaypointBeforeAfter(
     gtcService: GtcService,

@@ -1,0 +1,21 @@
+.gdu-460-display .mfd-nrst-airport-page {
+  --mfd-nrst-airport-page-list-item-freq-width: 160px;
+  --mfd-nrst-airport-page-list-item-freq-type-margin-top: 10px;
+
+  --nearest-wpt-list-item-button-width: 260px;
+
+  --nearest-wpt-list-item-brg-compact-font-size: 18px;
+  --nearest-wpt-list-item-dis-compact-font-size: 22px;
+}
+
+.mfd-nrst-airport-page-list-item-freq {
+  width: var(--mfd-nrst-airport-page-list-item-freq-width);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.mfd-nrst-airport-page-list-item-freq-type {
+  margin-top: var(--mfd-nrst-airport-page-list-item-freq-type-margin-top);
+  font-size: var(--nearest-wpt-list-item-small-font-size);
+}

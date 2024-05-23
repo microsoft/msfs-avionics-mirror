@@ -11,9 +11,9 @@ import { NavRadioIndex } from '../../instruments/RadioCommon';
 import { MathUtils } from '../../math/MathUtils';
 import { UnitType } from '../../math/NumberUnit';
 import { Subscription } from '../../sub/Subscription';
-import { APLateralModes, APValues } from '../APConfig';
-import { VNavVars } from '../data/VNavEvents';
+import { APLateralModes, APValues, APVerticalModes } from '../APConfig';
 import { ApproachGuidanceMode } from '../VerticalNavigation';
+import { VNavVars } from '../vnav/VNavEvents';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
@@ -234,7 +234,10 @@ export class APGSDirector implements PlaneDirector {
    */
   private canArm(): boolean {
     const glideslope = this.glideslope.get();
-    if ((this.apValues.navToNavLocArm && this.apValues.navToNavLocArm()) || (glideslope !== undefined && glideslope.isValid)) {
+    if (
+      (this.apValues.navToNavArmableVerticalMode && this.apValues.navToNavArmableVerticalMode() === APVerticalModes.GS)
+      || (glideslope !== undefined && glideslope.isValid)
+    ) {
       return true;
     }
     return false;

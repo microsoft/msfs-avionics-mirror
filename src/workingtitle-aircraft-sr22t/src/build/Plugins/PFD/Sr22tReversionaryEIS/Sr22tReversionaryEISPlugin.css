@@ -1,0 +1,25 @@
+.sr22t-pfd-reversionary-eis {
+  position: absolute;
+  top: 56px;
+  left: 0px;
+  background-color: black;
+  color: white;
+  height: 100%;
+  width: 147px;
+  z-index: 9999;
+}
+
+.sr22t-pfd-reversionary-eis .eis-engine-tab,
+.sr22t-pfd-reversionary-eis .eis-system-tab {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  height: 100%;
+  width: 147px;
+}
+
+.eis-gauge {
+  position: absolute;
+  width: 149px;
+  color: white;
+}

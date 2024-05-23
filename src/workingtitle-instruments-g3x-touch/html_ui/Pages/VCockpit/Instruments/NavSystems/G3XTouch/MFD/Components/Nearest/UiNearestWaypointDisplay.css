@@ -1,0 +1,62 @@
+.ui-nearest-wpt-display {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .ui-nearest-wpt-display {
+  --ui-nearest-wpt-display-icon-scale: 1;
+  --ui-nearest-wpt-display-icon-margin-right: 7px;
+
+  --ui-nearest-wpt-display-row-gap: 5px;
+
+  --ui-nearest-wpt-display-bottom-margin-left: 32px;
+}
+
+.ui-nearest-wpt-display-top {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.ui-nearest-wpt-display-icon {
+  flex-shrink: 0;
+  align-self: center;
+  margin-right: var(--ui-nearest-wpt-display-icon-margin-right);
+  transform: scale(var(--ui-nearest-wpt-display-icon-scale));
+  transform-origin: 0% 50%;
+}
+
+.ui-nearest-wpt-display-ident {
+  flex-grow: 1;
+  white-space: pre;
+}
+
+.ui-nearest-wpt-display-top-right {
+  width: 50%;
+  white-space: pre;
+}
+
+.ui-nearest-wpt-display-bottom {
+  position: relative;
+  margin-left: var(--ui-nearest-wpt-display-bottom-margin-left);
+  margin-top: var(--ui-nearest-wpt-display-row-gap);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: baseline;
+}
+
+.ui-nearest-wpt-display-bottom-left {
+  flex-grow: 1;
+  height: 1.2em;
+  line-height: 1.2em;
+  white-space: pre-wrap;
+  /* This prevents the text from being cut off in the middle of a character. */
+  word-break: break-all;
+  overflow: hidden;
+}

@@ -1,6 +1,6 @@
 import { FlightPlan, Subject } from '@microsoft/msfs-sdk';
 
-import { ProcedureType } from '../../../flightplan/Fms';
+import { ProcedureType } from '../../../flightplan/FmsTypes';
 
 /**
  * A module describing a flight plan procedure to be previewed.

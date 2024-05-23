@@ -11,6 +11,9 @@ export class FlightPlanUtils {
   /** Array of "heading to" leg types. */
   private static readonly HEADING_LEG_TYPES = [LegType.VA, LegType.VD, LegType.VI, LegType.VM, LegType.VR] as const;
 
+  /** Array of "to radial" leg types. */
+  private static readonly TO_RADIAL_LEG_TYPES = [LegType.CR, LegType.VR] as const;
+
   /** Array of "hold" leg types. */
   private static readonly HOLD_LEG_TYPES = [LegType.HA, LegType.HF, LegType.HM] as const;
 
@@ -36,6 +39,15 @@ export class FlightPlanUtils {
    */
   public static isHeadingToLeg(legType: LegType): legType is ArrayType<typeof FlightPlanUtils.HEADING_LEG_TYPES> {
     return ArrayUtils.includes(FlightPlanUtils.HEADING_LEG_TYPES, legType);
+  }
+
+  /**
+   * Checks if a leg type is a "to radial" leg type.
+   * @param legType The leg type to check.
+   * @returns Whether the leg type is a "to radial" leg type.
+   */
+  public static isToRadialLeg(legType: LegType): legType is ArrayType<typeof FlightPlanUtils.TO_RADIAL_LEG_TYPES> {
+    return ArrayUtils.includes(FlightPlanUtils.TO_RADIAL_LEG_TYPES, legType);
   }
 
   /**

@@ -1,9 +1,9 @@
 import {
-  ApproachProcedure, ArraySubject, ComputedSubject, ConsumerSubject, FacilityType, FlightPlannerEvents, FocusPosition, FSComponent,
+  ApproachProcedure, ArraySubject, ComputedSubject, ConsumerSubject, FacilityType, FocusPosition, FSComponent,
   ICAO, Subject, VNode,
 } from '@microsoft/msfs-sdk';
 
-import { Fms, FmsEvents, FmsFlightPhase } from '@microsoft/msfs-garminsdk';
+import { Fms, FmsFlightPhase } from '@microsoft/msfs-garminsdk';
 
 import { GNSUiControlList, GNSUiControlListProps } from '../../GNSUiControl';
 import { InteractionEvent } from '../../InteractionEvent';
@@ -37,11 +37,11 @@ interface ProcedurePageProps extends PageProps {
  */
 export class ProcedurePage extends Page<ProcedurePageProps> {
   private readonly hasNoApproachLoaded = Subject.create<boolean>(true);
-  private readonly procDetailsConsumer = this.props.bus.getSubscriber<FlightPlannerEvents>().on('fplProcDetailsChanged').handle(this.onPlanChanged.bind(this));
+  private readonly procDetailsConsumer = this.props.fms.flightPlanner.onEvent('fplProcDetailsChanged').handle(this.onPlanChanged.bind(this));
   private readonly menu = new ProcedurePageMenu();
   private readonly procPageMenuItems = FSComponent.createRef<GNSUiControlList<MenuItemInformation, GNSUiControlListProps<MenuItemInformation>>>();
 
-  private readonly flightPhaseConsumer = ConsumerSubject.create<FmsFlightPhase>(null, { isApproachActive: false, isInMissedApproach: false, isPastFaf: false });
+  private readonly flightPhaseConsumer = ConsumerSubject.create<FmsFlightPhase>(null, { isApproachActive: false, isToFaf: false, isPastFaf: false, isInMissedApproach: false });
 
   private readonly approachAiportIdent = ComputedSubject.create<string | undefined, string>(undefined, v => {
     if (v === undefined) {
@@ -254,9 +254,7 @@ export class ProcedurePage extends Page<ProcedurePageProps> {
   onAfterRender(node: VNode): void {
     super.onAfterRender(node);
 
-    const sub = this.props.bus.getSubscriber<FmsEvents>();
-
-    this.flightPhaseConsumer.setConsumer(sub.on('fms_flight_phase'));
+    this.flightPhaseConsumer.setConsumer(this.props.fms.onEvent('fms_flight_phase'));
   }
 
   /** @inheritdoc */

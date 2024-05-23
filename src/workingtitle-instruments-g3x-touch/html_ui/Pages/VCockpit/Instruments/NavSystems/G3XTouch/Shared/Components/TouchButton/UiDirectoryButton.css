@@ -1,0 +1,34 @@
+.gdu-460-display {
+  --ui-directory-button-width: 124px;
+  --ui-directory-button-height: 124px;
+  --ui-directory-button-padding: 4px 0px;
+  --ui-directory-button-font-size: 18px;
+  --ui-directory-button-img-scale: 1;
+}
+
+.ui-directory-button.touch-button-img {
+  width: var(--ui-directory-button-width);
+  height: var(--ui-directory-button-height);
+  padding: var(--ui-directory-button-padding);
+  font-size: var(--ui-directory-button-font-size);
+  display: flex;
+  flex-flow: column-reverse nowrap;
+  justify-content: flex-start;
+}
+
+.touch-button-img.ui-directory-button>.touch-button-label {
+  position: relative;
+  left: 0px;
+  top: 0px;
+  transform: unset;
+  line-height: 1.1em;
+}
+
+.ui-directory-button>.touch-button-img-img {
+  flex-grow: 1;
+  position: relative;
+  left: 0px;
+  top: 0px;
+  object-fit: none;
+  transform: scale(var(--ui-directory-button-img-scale));
+}

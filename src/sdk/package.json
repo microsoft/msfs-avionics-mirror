@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-sdk",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "HTML and Typescript SDK for MSFS Coherent based instruments and aircraft development.",
   "main": "msfssdk.js",
   "typings": "msfssdk.d.ts",
@@ -21,6 +21,6 @@
     "@microsoft/msfs-types": "^1.14.6",
     "rollup": "^2.79.1",
     "rollup-plugin-dts": "^4.2.3",
-    "typescript": "4.5.5"
+    "typescript": "5.3.3"
   }
 }

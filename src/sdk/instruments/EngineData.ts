@@ -7,6 +7,16 @@ import { UnitType } from '../math/NumberUnit';
 import { NumberToRangeUnion } from '../utils';
 import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
 
+/** The type of engine (see `ENGINE TYPE` simvar). */
+export enum EngineType {
+  Piston,
+  Jet,
+  None,
+  HeloTurbine,
+  Unsupported,
+  Turboprop,
+}
+
 /**
  * An interface that describes the possible Engine Parameter events (non-indexed).
  */

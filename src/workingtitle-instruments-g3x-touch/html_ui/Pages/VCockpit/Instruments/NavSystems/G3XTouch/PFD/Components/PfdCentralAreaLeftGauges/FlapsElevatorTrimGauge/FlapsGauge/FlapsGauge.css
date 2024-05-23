@@ -1,0 +1,51 @@
+.flaps-gauge-top-label {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 0;
+  padding-bottom: 4px;
+}
+
+.flaps-gauge-bottom-label {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 0;
+  padding-top: 4px;
+}
+
+.flaps-gauge {
+  width: 15px;
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+}
+
+.flaps-gauge-ruler {
+  width: 100%;
+  position: relative;
+  overflow: visible;
+  flex-grow: 1;
+}
+
+.flaps-gauge-ruler-frame {
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  position: absolute;
+}
+
+.flaps-gauge-value-marker {
+  position: absolute;
+  width: 20px;
+  right: 2px;
+}
+
+.flaps-gauge-lines-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}

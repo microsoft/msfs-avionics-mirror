@@ -1,0 +1,29 @@
+.attitude-aircraft-symbol {
+  --attitude-aircraft-symbol-single-cue-bar-stroke-width: 1px;
+  --attitude-aircraft-symbol-single-cue-arrow-stroke-width: 1px;
+  --attitude-aircraft-symbol-single-cue-stroke: var(--g3x-color-black);
+
+  --attitude-aircraft-symbol-dual-cue-outline-width: 2.5px;
+  --attitude-aircraft-symbol-dual-cue-stroke-width: 1.5px;
+  --attitude-aircraft-symbol-dual-cue-stroke: var(--g3x-color-black);
+}
+
+.attitude-aircraft-symbol-yellow {
+  --attitude-aircraft-symbol-fill-light: var(--g3x-color-yellow);
+  --attitude-aircraft-symbol-fill-dark: rgb(152, 140, 0);
+}
+
+.attitude-aircraft-symbol-white {
+  --attitude-aircraft-symbol-fill-light: var(--g3x-color-white);
+  --attitude-aircraft-symbol-fill-dark: rgb(150, 150, 150);
+}
+
+.attitude-aircraft-symbol-single-cue {
+  width: 340px;
+  height: 60px;
+}
+
+.attitude-aircraft-symbol-dual-cue {
+  width: 326px;
+  height: 46px;
+}

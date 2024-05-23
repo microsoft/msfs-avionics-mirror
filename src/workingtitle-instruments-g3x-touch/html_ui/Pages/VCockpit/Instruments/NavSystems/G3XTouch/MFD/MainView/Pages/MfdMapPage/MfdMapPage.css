@@ -1,0 +1,55 @@
+.mfd-map-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .mfd-map-page {
+  --mfd-nav-map-range-target-control-outline-width: 4px;
+}
+
+.mfd-nav-map-container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.mfd-map-page-touch-pad {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.mfd-nav-map {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  transform: rotateX(0deg);
+  overflow: hidden;
+}
+
+.mfd-nav-map .map-range-target-control::after {
+  content: "";
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border: solid var(--mfd-nav-map-range-target-control-outline-width) var(--g3x-color-focus-blue);
+  box-shadow: inset 0 0 1px 1px var(--g3x-color-focus-blue);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.common-map.mfd-nav-map .map-indicator-group-bottom-right {
+  position: absolute;
+  right: 0px;
+  bottom: 1px;
+}

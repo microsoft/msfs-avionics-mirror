@@ -1,5 +1,5 @@
 import {
-  ActiveLegType, FlightPlan, LNavTrackingState, NumberUnitInterface, NumberUnitSubject, SubEvent, Subject, Subscribable, UnitFamily,
+  ActiveLegType, FlightPlan, LNavTrackingState, NumberUnitInterface, NumberUnitSubject, SubEvent, Subject, Subscribable, Subscription, UnitFamily,
   UnitType, VNavPathMode, VNavState
 } from '@microsoft/msfs-sdk';
 
@@ -60,16 +60,20 @@ export class MapStandaloneFlightPlanPlanDataProvider implements MapFlightPlanDat
 
   private oldPlan: FlightPlan | null = null;
 
+  private readonly planSub: Subscription;
+
   /**
    * Constructor.
    * @param plan A subscribable which provides the flight plan for this data provider.
    */
-  constructor(public readonly plan: Subscribable<FlightPlan | null>) {
-    plan.sub(flightPlan => {
+  public constructor(public readonly plan: Subscribable<FlightPlan | null>) {
+    this.planSub = plan.sub(flightPlan => {
       if (this.oldPlan !== null) {
         this.oldPlan.events.onActiveLegChanged = undefined;
         this.oldPlan.events.onCalculated = undefined;
       }
+
+      this.oldPlan = flightPlan;
 
       if (flightPlan !== null) {
         this._activeLateralLegIndex.set(flightPlan.activeLateralLeg);
@@ -94,5 +98,19 @@ export class MapStandaloneFlightPlanPlanDataProvider implements MapFlightPlanDat
         this._activeLateralLegIndex.set(0);
       }
     }, true);
+  }
+
+  /**
+   * Destroys this data provider.
+   */
+  public destroy(): void {
+    this.planSub.destroy();
+
+    if (this.oldPlan !== null) {
+      this.oldPlan.events.onActiveLegChanged = undefined;
+      this.oldPlan.events.onCalculated = undefined;
+    }
+
+    this.oldPlan = null;
   }
 }

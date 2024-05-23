@@ -2,13 +2,13 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 import {
-  ConsumerSubject, EventBus, ExtendedApproachType, GeoPoint, GeoPointInterface, GeoPointSubject, GNSSEvents, MappedSubject, MappedSubscribable,
+  ConsumerSubject, EventBus, GeoPoint, GeoPointInterface, GeoPointSubject, GNSSEvents, MappedSubject, MappedSubscribable,
   NavSourceType, RadioFrequencyFormatter, RnavTypeFlags, Subject, Subscribable, Subscription, UnitType, UserSettingManager
 } from '@microsoft/msfs-sdk';
 
 import {
-  ActiveNavSource, ApproachDetails, BasicNavReferenceIndicator, FmsEvents, FmsFlightPhase, FmsUtils, GarminNavEvents, NavReferenceBase,
-  NavReferenceIndicator, NavReferenceIndicators, NavReferenceSource, NavReferenceSources
+  ActiveNavSource, ApproachDetails, BasicNavReferenceIndicator, FmsEvents, FmsFlightPhase, FmsUtils, GarminApproachType,
+  GarminNavEvents, NavReferenceBase, NavReferenceIndicator, NavReferenceIndicators, NavReferenceSource, NavReferenceSources
 } from '@microsoft/msfs-garminsdk';
 
 import { PfdBearingPointerSource, PfdBearingPointerUserSettingTypes } from '../Settings/PfdUserSettings';
@@ -80,7 +80,7 @@ export class G3000ActiveSourceNavIndicator extends BasicNavReferenceIndicator<G3
  * A provider of approach preview data.
  */
 export class G3000ApproachPreviewDataProvider {
-  private static readonly SUPPORTED_APPROACH_TYPES = new Set<ExtendedApproachType>([
+  private static readonly SUPPORTED_APPROACH_TYPES = new Set<GarminApproachType>([
     ApproachType.APPROACH_TYPE_ILS,
     ApproachType.APPROACH_TYPE_LOCALIZER,
     ApproachType.APPROACH_TYPE_LDA,
@@ -115,6 +115,7 @@ export class G3000ApproachPreviewDataProvider {
 
   private readonly flightPhase = ConsumerSubject.create<Readonly<FmsFlightPhase>>(null, {
     isApproachActive: false,
+    isToFaf: false,
     isPastFaf: false,
     isInMissedApproach: false
   }, FmsUtils.flightPhaseEquals);

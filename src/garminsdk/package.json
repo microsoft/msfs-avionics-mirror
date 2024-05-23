@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-garminsdk",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Common files for the Garmin series of avionics systems",
   "main": "garminsdk.js",
   "scripts": {
@@ -11,13 +11,13 @@
   "author": "Working Title Simulations",
   "license": "MIT",
   "devDependencies": {
-    "@microsoft/msfs-sdk": "0.7.0",
+    "@microsoft/msfs-sdk": "0.8.0",
     "@microsoft/msfs-types": "1.14.6",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@types/node": "^18.11.18",
     "rollup": "^2.79.1",
     "rollup-plugin-dts": "^4.2.3",
-    "typescript": "4.5.5"
+    "typescript": "5.3.3"
   },
   "repository": {
     "type": "git",

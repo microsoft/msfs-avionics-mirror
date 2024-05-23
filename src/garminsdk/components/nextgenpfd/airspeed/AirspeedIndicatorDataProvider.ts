@@ -1,6 +1,6 @@
 import {
-  AdcEvents, APEvents, AvionicsSystemState, AvionicsSystemStateEvent, BitFlags, ClockEvents, ConsumerSubject, EventBus,
-  ExpSmoother, Lookahead, MappedSubject, MappedSubscribable, Subject, Subscribable, SubscribableUtils, Subscription
+  AdcEvents, APEvents, BitFlags, ClockEvents, ConsumerSubject, EventBus, ExpSmoother, Lookahead, MappedSubject,
+  MappedSubscribable, Subject, Subscribable, SubscribableMapFunctions, SubscribableUtils, Subscription
 } from '@microsoft/msfs-sdk';
 
 import { AdcSystemEvents } from '../../../system/AdcSystem';
@@ -174,12 +174,11 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
   /** @inheritdoc */
   public readonly normAoaIasCoef = this.aoaDataProvider?.normAoaIasCoef ?? Subject.create(null);
 
-  private readonly _isDataFailed = Subject.create(false);
+  private readonly isAirspeedDataValid = ConsumerSubject.create(null, false);
   /** @inheritdoc */
-  public readonly isDataFailed = this._isDataFailed as Subscribable<boolean>;
+  public readonly isDataFailed = this.isAirspeedDataValid.map(SubscribableMapFunctions.not()) as Subscribable<boolean>;
 
   private readonly adcIndex: Subscribable<number>;
-  private readonly adcSystemState = ConsumerSubject.create<AvionicsSystemStateEvent>(null, { previous: undefined, current: undefined });
 
   private readonly machToKiasSmoother = new ExpSmoother(DefaultAirspeedIndicatorDataProvider.SPEED_CONVERSION_SMOOTHING_TAU);
   private lastMachToKiasTime = 0;
@@ -315,7 +314,7 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
       this._tasKnots.setConsumer(sub.on(`adc_tas_${index}`));
       this._mach.setConsumer(sub.on(`adc_mach_number_${index}`));
       this._pressureAlt.setConsumer(sub.on(`adc_pressure_alt_${index}`));
-      this.adcSystemState.setConsumer(sub.on(`adc_state_${index}`));
+      this.isAirspeedDataValid.setConsumer(sub.on(`adc_airspeed_data_valid_${index}`));
 
       this.machToKiasSub = sub.on(`adc_mach_to_kias_factor_${index}`).handle(machToKcas => {
         const time = Date.now();
@@ -336,14 +335,6 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
     this._referenceIsManual.setConsumer(sub.on('ap_selected_speed_is_manual'));
 
     this.isFlcActive?.setConsumer(sub.on('ap_flc_hold'));
-
-    this.adcSystemState.sub(state => {
-      if (state.current === undefined || state.current === AvionicsSystemState.On) {
-        this._isDataFailed.set(false);
-      } else {
-        this._isDataFailed.set(true);
-      }
-    }, true);
 
     if (paused) {
       this.pause();
@@ -437,7 +428,7 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
     this.isUnderspeed.resume();
     this.isTrendUnderspeed.resume();
 
-    this.adcSystemState.resume();
+    this.isAirspeedDataValid.resume();
   }
 
   /**
@@ -477,7 +468,7 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
     this.isUnderspeed.pause();
     this.isTrendUnderspeed.pause();
 
-    this.adcSystemState.pause();
+    this.isAirspeedDataValid.pause();
 
     this.lastTrendTime = undefined;
     this.iasLookahead.reset();
@@ -512,7 +503,7 @@ export class DefaultAirspeedIndicatorDataProvider implements AirspeedIndicatorDa
     this.isUnderspeed.destroy();
     this.isTrendUnderspeed.destroy();
 
-    this.adcSystemState.destroy();
+    this.isAirspeedDataValid.destroy();
 
     this.adcIndexSub?.destroy();
     this.machToKiasSub?.destroy();

@@ -1,0 +1,81 @@
+.mfd-traffic-options-popup {
+  align-self: flex-end;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  color: var(--g3x-color-white);
+
+  --touch-button-toggle-bar-width: 42%;
+
+  --touch-button-value-label-center-y: 33%;
+  --touch-button-value-value-center-y: 75%;
+  --touch-button-value-value-text-color: var(--g3x-color-cyan);
+}
+
+.gdu-460-display .mfd-traffic-options-popup {
+  margin: auto 0px 25px;
+  padding: 0px 12px 8px;
+  font-size: 18px;
+
+  --mfd-traffic-options-popup-title-font-size: 20px;
+
+  --mfd-traffic-options-popup-main-max-width: 512px;
+  --mfd-traffic-options-popup-main-margin: 16px 0px;
+
+  --mfd-traffic-options-popup-row-height: 80px;
+  --mfd-traffic-options-popup-row-gap: 12px;
+
+  --mfd-traffic-options-popup-button-width: 150px;
+  --mfd-traffic-options-popup-button-gap: 12px;
+
+  --mfd-traffic-options-popup-main-menu-icon-width: 48px;
+}
+
+.mfd-traffic-options-popup-title {
+  font-size: var(--mfd-traffic-options-popup-title-font-size);
+}
+
+.mfd-traffic-options-popup-main {
+  width: 100%;
+  max-width: var(--mfd-traffic-options-popup-main-max-width);
+  margin: var(--mfd-traffic-options-popup-main-margin);
+  display: grid;
+  grid-template-rows: repeat(2, var(--mfd-traffic-options-popup-row-height));
+  grid-template-columns: 1fr;
+  grid-row-gap: var(--mfd-traffic-options-popup-row-gap);
+  justify-items: center;
+  align-items: stretch;
+}
+
+.mfd-traffic-options-popup-row {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+.mfd-traffic-options-popup-row .touch-button {
+  width: var(--mfd-traffic-options-popup-button-width);
+}
+
+.mfd-traffic-options-popup-row .touch-button+.touch-button {
+  margin-left: var(--mfd-traffic-options-popup-button-gap);
+}
+
+.mfd-traffic-options-popup-spacer {
+  flex-shrink: 1;
+  width: var(--mfd-traffic-options-popup-spacer-width);
+  min-width: var(--mfd-traffic-options-popup-spacer-min-width);
+}
+
+.mfd-traffic-options-popup-main-menu-icon {
+  width: var(--mfd-traffic-options-popup-main-menu-icon-width);
+  vertical-align: middle;
+}
+
+.gdu-460-display .mfd-traffic-options-popup-list-dialog {
+  --ui-list-dialog-width: 150px;
+  --ui-list-dialog-padding: 3px;
+  --ui-list-dialog-font-size: 18px;
+}

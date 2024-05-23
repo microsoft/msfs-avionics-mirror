@@ -1,56 +1,129 @@
-import { EventBus, FlightPlanner, FlightPlannerEvents } from '@microsoft/msfs-sdk';
+import { EventBus, FlightPlanner, Subject, Subscribable, SubscribableUtils, Subscription } from '@microsoft/msfs-sdk';
 
 import { MapFlightPlanDataProvider } from './MapFlightPlanDataProvider';
-import { MapFlightPlannerPlanDataProvider } from './MapFlightPlannerPlanDataProvider';
+import { MapFlightPlannerPlanDataProvider, MapFlightPlannerPlanDataProviderOptions } from './MapFlightPlannerPlanDataProvider';
 
 /**
- * A map flight plan layer data provider which provides the active flight plan to be displayed.
+ * A map flight plan layer data provider that provides the active flight plan from a flight planner to be displayed.
  */
 export class MapActiveFlightPlanDataProvider implements MapFlightPlanDataProvider {
-  private readonly provider = new MapFlightPlannerPlanDataProvider(this.bus, this.planner);
+  private readonly planner: Subject<FlightPlanner>;
 
-  /** @inheritdoc */
-  public readonly plan = this.provider.plan;
-  /** @inheritdoc */
-  public readonly planModified = this.provider.planModified;
-  /** @inheritdoc */
-  public readonly planCalculated = this.provider.planCalculated;
-  /** @inheritdoc */
-  public readonly activeLateralLegIndex = this.provider.activeLateralLegIndex;
-  /** @inheritdoc */
-  public readonly lnavData = this.provider.lnavData;
-  /** @inheritdoc */
-  public readonly vnavState = this.provider.vnavState;
-  /** @inheritdoc */
-  public readonly vnavPathMode = this.provider.vnavPathMode;
-  /** @inheritdoc */
-  public readonly vnavTodLegIndex = this.provider.vnavTodLegIndex;
-  /** @inheritdoc */
-  public readonly vnavBodLegIndex = this.provider.vnavBodLegIndex;
-  /** @inheritdoc */
-  public readonly vnavTodLegDistance = this.provider.vnavTodLegDistance;
-  /** @inheritdoc */
-  public readonly vnavDistanceToTod = this.provider.vnavDistanceToTod;
-  /** @inheritdoc */
-  public readonly vnavTocLegIndex = this.provider.vnavTocLegIndex;
-  /** @inheritdoc */
-  public readonly vnavBocLegIndex = this.provider.vnavBocLegIndex;
-  /** @inheritdoc */
-  public readonly vnavTocLegDistance = this.provider.vnavTocLegDistance;
-  /** @inheritdoc */
-  public readonly vnavDistanceToToc = this.provider.vnavDistanceToToc;
-  /** @inheritdoc */
-  public readonly obsCourse = this.provider.obsCourse;
+  private readonly provider: MapFlightPlannerPlanDataProvider;
+
+  /** @inheritDoc */
+  public readonly plan;
+  /** @inheritDoc */
+  public readonly planModified;
+  /** @inheritDoc */
+  public readonly planCalculated;
+  /** @inheritDoc */
+  public readonly activeLateralLegIndex;
+  /** @inheritDoc */
+  public readonly lnavData;
+  /** @inheritDoc */
+  public readonly vnavState;
+  /** @inheritDoc */
+  public readonly vnavPathMode;
+  /** @inheritDoc */
+  public readonly vnavTodLegIndex;
+  /** @inheritDoc */
+  public readonly vnavBodLegIndex;
+  /** @inheritDoc */
+  public readonly vnavTodLegDistance;
+  /** @inheritDoc */
+  public readonly vnavDistanceToTod;
+  /** @inheritDoc */
+  public readonly vnavTocLegIndex;
+  /** @inheritDoc */
+  public readonly vnavBocLegIndex;
+  /** @inheritDoc */
+  public readonly vnavTocLegDistance;
+  /** @inheritDoc */
+  public readonly vnavDistanceToToc;
+  /** @inheritDoc */
+  public readonly obsCourse;
+
+  private readonly plannerSub: Subscription;
+  private fplIndexSub?: Subscription;
 
   /**
-   * Constructor.
+   * Creates a new instance of MapActiveFlightPlanDataProvider.
    * @param bus The event bus.
-   * @param planner The flight planner.
+   * @param options Options with which to configure the data provider.
    */
-  constructor(protected readonly bus: EventBus, protected readonly planner: FlightPlanner) {
-    const plannerEvents = bus.getSubscriber<FlightPlannerEvents>();
-    plannerEvents.on('fplIndexChanged').handle(data => { this.provider.setPlanIndex(data.planIndex); });
+  public constructor(
+    bus: EventBus,
+    options: Readonly<MapFlightPlannerPlanDataProviderOptions>
+  );
+  /**
+   * Creates a new instance of MapActiveFlightPlanDataProvider.
+   * @param bus The event bus.
+   * @param flightPlanner The flight planner from which to retrieve displayed flight plans.
+   */
+  public constructor(
+    bus: EventBus,
+    flightPlanner: FlightPlanner
+  );
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public constructor(
+    private readonly bus: EventBus,
+    arg2: Readonly<MapFlightPlannerPlanDataProviderOptions> | FlightPlanner,
+  ) {
+    let flightPlanner: FlightPlanner | Subscribable<FlightPlanner>;
+    let options: Readonly<MapFlightPlannerPlanDataProviderOptions> | undefined;
 
+    if (arg2 instanceof FlightPlanner) {
+      flightPlanner = arg2;
+    } else {
+      flightPlanner = arg2.flightPlanner;
+      options = arg2;
+    }
+
+    const plannerSubscribable = SubscribableUtils.toSubscribable(flightPlanner, true);
+    this.planner = Subject.create(plannerSubscribable.get());
+
+    this.provider = new MapFlightPlannerPlanDataProvider(this.bus, { ...options, flightPlanner: this.planner });
+
+    this.plan = this.provider.plan;
+    this.planModified = this.provider.planModified;
+    this.planCalculated = this.provider.planCalculated;
+    this.activeLateralLegIndex = this.provider.activeLateralLegIndex;
+    this.lnavData = this.provider.lnavData;
+    this.vnavState = this.provider.vnavState;
+    this.vnavPathMode = this.provider.vnavPathMode;
+    this.vnavTodLegIndex = this.provider.vnavTodLegIndex;
+    this.vnavBodLegIndex = this.provider.vnavBodLegIndex;
+    this.vnavTodLegDistance = this.provider.vnavTodLegDistance;
+    this.vnavDistanceToTod = this.provider.vnavDistanceToTod;
+    this.vnavTocLegIndex = this.provider.vnavTocLegIndex;
+    this.vnavBocLegIndex = this.provider.vnavBocLegIndex;
+    this.vnavTocLegDistance = this.provider.vnavTocLegDistance;
+    this.vnavDistanceToToc = this.provider.vnavDistanceToToc;
+    this.obsCourse = this.provider.obsCourse;
+
+    this.plannerSub = plannerSubscribable.sub(this.onFlightPlannerChanged.bind(this), true);
+  }
+
+  /**
+   * Responds to when this provider's flight planner changes.
+   * @param planner The new flight planner.
+   */
+  private onFlightPlannerChanged(planner: FlightPlanner): void {
+    this.fplIndexSub?.destroy();
+
+    this.fplIndexSub = planner.onEvent('fplIndexChanged').handle(data => { this.provider.setPlanIndex(data.planIndex); });
+
+    this.planner.set(planner);
     this.provider.setPlanIndex(planner.activePlanIndex);
+  }
+
+  /**
+   * Destroys this data provider.
+   */
+  public destroy(): void {
+    this.plannerSub.destroy();
+    this.fplIndexSub?.destroy();
+    this.provider.destroy();
   }
 }

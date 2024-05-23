@@ -1,0 +1,125 @@
+.circle_gauge_container {
+  --dual-circle-gauge-gauges-margin: 12px;
+  
+  position: relative;
+  width: 130px;
+  height: 130px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.circle_gauge_container.twin {
+  width: 150px;
+}
+
+.circle_gauge_container .circle_gauge {
+  position: absolute;
+  left: calc((100% - 130px) / 2);
+  top: 0px;
+  width: 130px;
+  height: 130px;
+}
+
+.circle_gauge_container .circle_gauge_1 {
+  position: absolute;
+  left: calc((100% - 130px) / 2 - var(--dual-circle-gauge-gauges-margin) / 2);
+  top: 0px;
+  width: 130px;
+  height: 130px;
+}
+
+.circle_gauge_container .circle_gauge_2 {
+  position: absolute;
+  right: calc((100% - 130px) / 2 - var(--dual-circle-gauge-gauges-margin) / 2);
+  top: 0px;
+  width: 130px;
+  height: 130px;
+}
+
+.circle_gauge_container .footer {
+  display: flex;
+  flex-direction: row;
+  position: absolute;
+  top: 75px;
+  width: 100%;
+}
+
+.circle_gauge_container .gauge_pointer, .circle_gauge_container .reference-bug {
+  transform: rotate3d(0, 0, 1, 0deg);
+  transform-origin: 50% 50%;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  text-align: center;
+}
+
+.circle_gauge_container .gauge_minimum {
+  position: absolute;
+  top: 93px;
+  left: 6px;
+  font-size: 12px;
+}
+
+.circle_gauge_container .gauge_maximum {
+  position: absolute;
+  top: 93px;
+  left: 112px;
+  font-size: 12px;
+}
+
+.circle_gauge_container .footer .footer_content {
+  margin-left: auto;
+  text-align: right;
+}
+
+.circle_gauge_container .footer .gauge_units {
+  font-size: 18px;
+  margin-top: 1px;
+}
+
+.circle_gauge_container .footer_dual {
+  display: flex;
+  align-items: center;
+  top: 90px;
+  width: 100%;
+  position: absolute;
+}
+
+.circle_gauge_container .footer_dual .gauge_units {
+  text-align: center;
+  font-size: 14px;
+}
+
+.circle_gauge_container .footer_dual .footer_content {
+  width: 100%;
+  padding-right:3px;
+}
+
+.circle_gauge_container .footer_dual .gauge_values {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.circle_gauge_container .gauge_value {
+  font-size: 26px;
+  margin-top: -3px;
+}
+
+.circle_gauge_container .inner_circle {
+  position: absolute;
+  top: 20px;
+  left: 40px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  fill: var(--g3x-color-black);
+}
+
+.circle_gauge_container .relative_value {
+  top: 124px;
+  left: 6px;
+  font-size: 18px;
+  position: absolute;
+}

@@ -6,6 +6,9 @@ import { EventBus } from '../data';
  * Options for {@link FmcScratchpad}
  */
 export interface FmcScratchpadOptions {
+  /** The row at which to render the scratchpad. -1 signifies the last row. */
+  renderRow: number,
+
   /** Cell width of the scratchpad on the screen */
   cellWidth: number,
 
@@ -16,7 +19,7 @@ export interface FmcScratchpadOptions {
   deleteText?: string,
 
   /** Defines surrounding text [left, right] around the contents. Defaults to none. */
-  surroundingText?: [string, string],
+  surroundingText?: readonly [string, string],
 
   /** Whether error text is centered. Defaults to false. */
   errorTextCentered?: boolean,
@@ -29,7 +32,8 @@ export interface FmcScratchpadOptions {
  * Scratchpad for an FMC screen
  */
 export class FmcScratchpad {
-  private readonly options: Required<FmcScratchpadOptions> = {
+  public readonly options: Required<FmcScratchpadOptions> = {
+    renderRow: -1,
     cellWidth: 16,
     style: 'white d-text',
     deleteText: 'DELETE',
@@ -59,7 +63,7 @@ export class FmcScratchpad {
   ) {
     Object.assign(this.options, options);
 
-    MappedSubject.create(this.contents, this.errorContents, this.isInDelete).sub(() => this.renderText());
+    MappedSubject.create(this.contents, this.errorContents, this.isInDelete).sub(() => this.renderText(), true);
   }
 
   /**
@@ -139,7 +143,16 @@ export class FmcScratchpad {
    * Renders the scratchpad and sets the subject
    */
   private renderText(): void {
-    const surroundingTextWidth = this.options.surroundingText[0].length + this.options.surroundingText[1].length;
+    const leftCleanSurroundText = this.options.surroundingText[0]
+      .replace(/__LSB/g, '[')
+      .replace(/__RSB/g, ']')
+      .replace(/\[[\w\s]+]/g, '');
+    const rightCleanSurroundText = this.options.surroundingText[1]
+      .replace(/__LSB/g, '[')
+      .replace(/__RSB/g, ']')
+      .replace(/\[[\w\s]+]/g, '');
+    const surroundingTextWidth = leftCleanSurroundText.length + rightCleanSurroundText.length;
+
     const spaceToPadTo = this.options.cellWidth - surroundingTextWidth;
 
     // We use `\u00a0` instead of the normal space character here, due to what seems to be an issue involving the regular space character

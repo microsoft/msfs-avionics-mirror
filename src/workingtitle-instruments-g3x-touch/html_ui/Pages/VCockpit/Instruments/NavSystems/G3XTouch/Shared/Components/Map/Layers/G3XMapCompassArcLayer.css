@@ -1,0 +1,10 @@
+.map-compass-arc-readout {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.map-compass-arc-readout-value {
+  -webkit-text-stroke: 3px var(--g3x-color-black);
+  paint-order: stroke;
+}

@@ -271,6 +271,7 @@ export class GtcWeightFuelPage extends GtcView<GtcWeightFuelPageProps> {
    * Opens a {@link GtcWeightDialog} and sets the output value if its mutable and not cancelled.
    * @param inputs See {@link InvokeWeightDialogParams}.
    * @param type Whether the quantity being set is a weight or a fuel amount.
+   * @returns The dialog output if the dialog was not cancelled, otherwise `undefined`.
    */
   private async invokeWeightDialog(
     inputs: InvokeWeightDialogParams, type: 'weight' | 'fuel' = 'weight'

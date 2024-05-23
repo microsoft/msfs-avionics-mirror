@@ -6,11 +6,13 @@ import { MathUtils } from '../math/MathUtils';
 import { UnitType } from '../math/NumberUnit';
 import { ReadonlyFloat64Array, Vec2Math, Vec3Math, VecNMath } from '../math/VecMath';
 import { Vec2Subject, Vec3Subject } from '../math/VectorSubject';
+import { Accessible } from '../sub/Accessible';
 import { SetSubject } from '../sub/SetSubject';
 import { Subject } from '../sub/Subject';
 import { Subscribable } from '../sub/Subscribable';
 import { SubscribableSet } from '../sub/SubscribableSet';
 import { SubscribableUtils } from '../sub/SubscribableUtils';
+import { Value } from '../sub/Value';
 import { ArrayUtils } from '../utils/datastructures/ArrayUtils';
 import { Instrument } from './Backplane';
 import { ClockEvents } from './Clock';
@@ -135,6 +137,9 @@ type GPSSatStateSyncData = {
 
   /** The state of the satellite. */
   state: GPSSatelliteState;
+
+  /** Whether differential corrections have been downloaded from the satellite. */
+  areDiffCorrectionsDownloaded: boolean;
 }
 
 /**
@@ -146,6 +151,9 @@ type GPSStateSyncData = {
 
   /** The states of the satellites. */
   satStates: readonly Readonly<GPSSatStateSyncData>[];
+
+  /** The names of the SBAS satellite groups for which signal reception is enabled. */
+  enabledSbasGroups: readonly string[];
 };
 
 /**
@@ -160,6 +168,9 @@ interface GPSSatComputerSyncEvents {
 
   /** A primary GPS satellite system has changed the state of one of its satellites. */
   [gps_system_sync_sat_state_changed: IndexedEventType<'gps_system_sync_sat_state_changed'>]: Readonly<GPSSatStateSyncData>;
+
+  /** A primary GPS satellite system has changed its enabled SBAS groups. */
+  [gps_system_sync_enabled_sbas_changed: IndexedEventType<'gps_system_sync_enabled_sbas_changed'>]: readonly string[];
 
   /** A primary GPS satellite system has been reset. */
   [gps_system_sync_reset: IndexedEventType<'gps_system_sync_reset'>]: void;
@@ -177,6 +188,12 @@ interface GPSSatComputerSyncEvents {
 export interface GPSSatComputerEvents {
   /** An event published when a GPS satellite changes state. */
   [gps_sat_state_changed: IndexedEventType<'gps_sat_state_changed'>]: GPSSatellite;
+
+  /**
+   * The nominal total number of receiver channels supported by the GPS system, or `null` if the system supports an
+   * unlimited number of channels.
+   */
+  [gps_system_nominal_channel_count: IndexedEventType<'gps_system_nominal_channel_count'>]: number | null;
 
   /** An event published when the GPS satellite system changes state. */
   [gps_system_state_changed: IndexedEventType<'gps_system_state_changed'>]: GPSSystemState;
@@ -335,6 +352,7 @@ export class GPSSatComputer implements Instrument {
   private readonly publisher = this.bus.getPublisher<GPSSatComputerEvents>();
   private readonly syncPublisher = this.bus.getPublisher<GPSSatComputerSyncEvents>();
 
+  private readonly nominalChannelCountTopic = `gps_system_nominal_channel_count_${this.index}` as const;
   private readonly stateChangedTopic = `gps_system_state_changed_${this.index}` as const;
   private readonly satStateChangedTopic = `gps_sat_state_changed_${this.index}` as const;
   private readonly satPosCalcTopic = `gps_sat_pos_calculated_${this.index}` as const;
@@ -348,6 +366,7 @@ export class GPSSatComputer implements Instrument {
   private readonly channelStateSyncTopic = `gps_system_sync_channel_state_changed_${this.index}` as const;
   private readonly satCalcSyncTopic = `gps_system_sync_sat_calc_${this.index}` as const;
   private readonly satStateSyncTopic = `gps_system_sync_sat_state_changed_${this.index}` as const;
+  private readonly enabledSbasSyncTopic = `gps_system_sync_enabled_sbas_changed_${this.index}` as const;
   private readonly resetSyncTopic = `gps_system_sync_reset_${this.index}` as const;
   private readonly stateRequestSyncTopic = `gps_system_sync_state_request_${this.index}` as const;
   private readonly stateResponseSyncTopic = `gps_system_sync_state_response_${this.index}` as const;
@@ -358,7 +377,7 @@ export class GPSSatComputer implements Instrument {
   private readonly currentAvailableSbasGroups = new Set<string>();
 
   private readonly satellites: GPSSatellite[] = [];
-  private readonly publishedSatStates: GPSSatelliteState[] = [];
+  private readonly publishedSatStates: GPSSatStateSyncData[] = [];
 
   private readonly channels: (GPSSatellite | null)[] = [];
 
@@ -371,12 +390,13 @@ export class GPSSatComputer implements Instrument {
   private altitude = 0;
   private simTime = 0;
   private previousSimTime = 0;
-  private lastUpdateTime = 0;
+  private lastUpdateTime: number | undefined = undefined;
 
   private _state = GPSSystemState.Searching;
   private _sbasState = GPSSystemSBASState.Disabled;
 
-  private readonly enabledSBASGroups: SubscribableSet<string>;
+  private readonly enabledSBASGroupsSet?: Set<string>;
+  private readonly enabledSBASGroups: Accessible<ReadonlySet<string>>;
 
   private readonly dops = Vec3Math.create();
   private _pdop = -1;
@@ -394,7 +414,13 @@ export class GPSSatComputer implements Instrument {
   private lastAlamanacTime: number | undefined = undefined;
   private _isAlmanacValid = false;
 
-  private channelCount: number;
+  /**
+   * The nominal total number of receiver channels supported by this computer, or `null` if this computer supports an
+   * unlimited number of channels.
+   */
+  public readonly nominalChannelCount: number | null;
+
+  private _channelCount: number;
   private readonly satInUseMaxCount: Subscribable<number>;
   private readonly satInUsePdopTarget: Subscribable<number>;
   private readonly satInUseOptimumCount: Subscribable<number>;
@@ -456,18 +482,19 @@ export class GPSSatComputer implements Instrument {
   }
 
   /**
-   * Creates an instance of GPSSat.
-   * @param index The index of this GPSSat.
+   * Creates an instance of GPSSatComputer.
+   * @param index The index of this computer.
    * @param bus An instance of the event bus.
    * @param ephemerisFile The HTTP path to the ephemeris file to use for computations.
    * @param sbasFile The HTTP path to the SBAS definitions file.
    * @param updateInterval The interval in milliseconds to update the satellite positions.
-   * @param enabledSBASGroups The names of the SBAS satellite groups for which signal reception is enabled.
-   * @param syncRole This system's sync role. A `primary` system will broadcast sync events through the event bus when
-   * satellite positions are calculated, satellite states change, or the system is reset. A `replica` system will
-   * listen for the aforementioned sync events on the event bus and set its state accordingly. A system with a sync
-   * role of `none` does neither; it maintains its own independent state and does not sync it to other systems.
-   * Defaults to `none`.
+   * @param enabledSBASGroups The names of the SBAS satellite groups for which signal reception is enabled. If the
+   * computer's sync role is `replica`, then this parameter is ignored and the computer will sync enabled SBAS groups
+   * from the primary instance.
+   * @param syncRole This computer's sync role. A `primary` computer will broadcast sync events through the event bus
+   * that allow corresponding `replica` computers to sync their state with the primary. A computer with a sync role of
+   * `none` neither broadcasts sync events nor receives them; it maintains its own independent state. Defaults to
+   * `none`.
    * @param options Options with which to configure the computer.
    */
   constructor(
@@ -476,11 +503,13 @@ export class GPSSatComputer implements Instrument {
     private readonly ephemerisFile: string,
     private readonly sbasFile: string,
     private readonly updateInterval: number,
-    enabledSBASGroups: Iterable<string> | SubscribableSet<string>,
+    enabledSBASGroups: Iterable<string> | SubscribableSet<string> | undefined,
     public readonly syncRole: 'primary' | 'replica' | 'none' = 'none',
     options?: Readonly<GPSSatComputerOptions>
   ) {
-    this.channelCount = Math.max(options?.channelCount ?? Infinity, 4);
+    const desiredChannelCount = Math.max(options?.channelCount ?? Infinity, 4);
+    this.nominalChannelCount = isFinite(desiredChannelCount) ? desiredChannelCount : null;
+    this._channelCount = desiredChannelCount;
 
     this.satInUseMaxCount = SubscribableUtils.toSubscribable(options?.satInUseMaxCount ?? Infinity, true);
     this.satInUsePdopTarget = SubscribableUtils.toSubscribable(options?.satInUsePdopTarget ?? -1, true);
@@ -502,7 +531,13 @@ export class GPSSatComputer implements Instrument {
     this.satelliteTimingOptions.sbasCorrectionDownloadTime ??= 150500;
     this.satelliteTimingOptions.sbasCorrectionDownloadTimeRange ??= 149500;
 
-    this.enabledSBASGroups = 'isSubscribableSet' in enabledSBASGroups ? enabledSBASGroups : SetSubject.create(enabledSBASGroups);
+    if (syncRole === 'replica') {
+      this.enabledSBASGroups = Value.create(this.enabledSBASGroupsSet = new Set<string>());
+    } else {
+      this.enabledSBASGroups = enabledSBASGroups !== undefined && 'isSubscribableSet' in enabledSBASGroups
+        ? enabledSBASGroups
+        : SetSubject.create(enabledSBASGroups);
+    }
 
     // Initialize these properties directly from SimVars in case the computer is created before values are published
     // to the bus.
@@ -550,6 +585,7 @@ export class GPSSatComputer implements Instrument {
   /** @inheritdoc */
   public init(): void {
     // Publish initial state.
+    this.publisher.pub(this.nominalChannelCountTopic, this.nominalChannelCount, false, true);
     this.publisher.pub(this.stateChangedTopic, this._state, false, true);
     this.publisher.pub(this.sbasStateChangedTopic, this._sbasState, false, true);
     this.publisher.pub(this.pdopTopic, this._pdop, false, true);
@@ -558,10 +594,13 @@ export class GPSSatComputer implements Instrument {
 
     this.loadEphemerisData().then(() => this.loadSbasData()).then(() => {
       this.publishedSatStates.length = this.satellites.length;
-      this.publishedSatStates.fill(GPSSatelliteState.None);
+      for (let i = 0; i < this.satellites.length; i++) {
+        const sat = this.satellites[i];
+        this.publishedSatStates[i] = { prn: sat.prn, state: GPSSatelliteState.None, areDiffCorrectionsDownloaded: false };
+      }
 
-      this.channelCount = Math.min(this.channelCount, this.satellites.length);
-      this.channels.length = this.channelCount;
+      this._channelCount = Math.min(this._channelCount, this.satellites.length);
+      this.channels.length = this._channelCount;
       this.channels.fill(null);
 
       this.isInit = true;
@@ -570,9 +609,17 @@ export class GPSSatComputer implements Instrument {
       if (this.syncRole === 'replica') {
         const sub = this.bus.getSubscriber<GPSSatComputerSyncEvents>();
 
+        const copyEnabledSbasGroups = (groups: readonly string[]): void => {
+          this.enabledSBASGroupsSet!.clear();
+          for (const group of groups) {
+            this.enabledSBASGroupsSet!.add(group);
+          }
+        };
+
         sub.on(this.channelStateSyncTopic).handle(data => { this.pendingChannelStateUpdates.set(data.index, data); });
         sub.on(this.satCalcSyncTopic).handle(() => { this.needSatCalc = true; });
         sub.on(this.satStateSyncTopic).handle(data => { this.pendingSatStateUpdates.set(data.prn, data); });
+        sub.on(this.enabledSbasSyncTopic).handle(copyEnabledSbasGroups);
         sub.on(this.resetSyncTopic).handle(() => { this.reset(); });
         sub.on(this.stateResponseSyncTopic).handle(response => {
           this.needSatCalc = true;
@@ -582,6 +629,8 @@ export class GPSSatComputer implements Instrument {
           for (const satState of response.satStates) {
             this.pendingSatStateUpdates.set(satState.prn, satState);
           }
+
+          copyEnabledSbasGroups(response.enabledSbasGroups);
         });
 
         // Request initial state.
@@ -592,8 +641,13 @@ export class GPSSatComputer implements Instrument {
         sub.on(this.stateRequestSyncTopic).handle(() => {
           this.syncPublisher.pub(this.stateResponseSyncTopic, {
             channels: this.channels.map((sat, index) => { return { index, prn: sat === null ? null : sat.prn }; }),
-            satStates: this.satellites.map(sat => { return { prn: sat.prn, state: sat.state.get() }; })
+            satStates: this.satellites.map(sat => { return { prn: sat.prn, state: sat.state.get(), areDiffCorrectionsDownloaded: sat.areDiffCorrectionsDownloaded }; }),
+            enabledSbasGroups: Array.from(this.enabledSBASGroups.get())
           }, true, false);
+        });
+
+        (this.enabledSBASGroups as SubscribableSet<string>).sub(groups => {
+          this.syncPublisher.pub(this.enabledSbasSyncTopic, Array.from(groups), true, false);
         });
       }
 
@@ -771,10 +825,11 @@ export class GPSSatComputer implements Instrument {
     }
 
     for (const sat of this.satellites) {
-      const currentState = sat.state.get();
+      const oldState = sat.state.get();
+      sat.setTracked(false);
       sat.state.set(GPSSatelliteState.None);
 
-      if (currentState !== GPSSatelliteState.None) {
+      if (oldState !== GPSSatelliteState.None) {
         this.publisher.pub(this.satStateChangedTopic, sat, false, false);
       }
     }
@@ -804,7 +859,10 @@ export class GPSSatComputer implements Instrument {
     if (this.syncRole !== 'replica') {
       if (deltaTime < 0 || deltaTime > (this.updateInterval * 2)) {
         this.previousSimTime = this.simTime;
-        this.lastUpdateTime = this.simTime;
+
+        if (this.lastUpdateTime !== undefined) {
+          this.lastUpdateTime = this.simTime;
+        }
 
         return;
       }
@@ -812,7 +870,7 @@ export class GPSSatComputer implements Instrument {
 
     const shouldUpdatePositions = this.syncRole === 'replica'
       ? this.needSatCalc
-      : this.simTime >= this.lastUpdateTime + this.updateInterval;
+      : this.lastUpdateTime === undefined || this.simTime >= this.lastUpdateTime + this.updateInterval;
 
     this.needSatCalc = false;
 
@@ -877,9 +935,13 @@ export class GPSSatComputer implements Instrument {
     for (let i = 0; i < this.satellites.length; i++) {
       const sat = this.satellites[i];
 
-      const updatedState = this.syncRole === 'replica'
-        ? sat.forceUpdateState(simTime, this.pendingSatStateUpdates.get(sat.prn)?.state ?? sat.state.get())
-        : sat.updateState(simTime, deltaTime, this.distanceFromLastKnownPos, forceAcquireAndUse);
+      let updatedState: boolean;
+      if (this.syncRole === 'replica') {
+        const stateUpdate = this.pendingSatStateUpdates.get(sat.prn);
+        updatedState = sat.forceUpdateState(simTime, stateUpdate?.state, stateUpdate?.areDiffCorrectionsDownloaded);
+      } else {
+        updatedState = sat.updateState(simTime, deltaTime, this.distanceFromLastKnownPos, forceAcquireAndUse);
+      }
 
       if (updatedState) {
         shouldUpdateDop = true;
@@ -1024,8 +1086,8 @@ export class GPSSatComputer implements Instrument {
   private updateChannelAssignments(forceAcquireAndUse: boolean): void {
     // If we have at least one channel for every satellite, then we will simply assign each satellite to its own
     // channel.
-    if (this.channelCount >= this.satellites.length) {
-      const end = Math.min(this.channelCount, this.satellites.length);
+    if (this._channelCount >= this.satellites.length) {
+      const end = Math.min(this._channelCount, this.satellites.length);
       for (let i = 0; i < end; i++) {
         if (this.channels[i] === null) {
           this.assignSatelliteToChannel(i, this.satellites[i]);
@@ -1043,7 +1105,7 @@ export class GPSSatComputer implements Instrument {
 
     if (forceAcquireAndUse) {
       losSatellitesNotTrackedIndexes = ArrayUtils.range(losSatellites.length);
-      openChannelIndexes = ArrayUtils.range(this.channelCount, this.channelCount - 1, -1);
+      openChannelIndexes = ArrayUtils.range(this._channelCount, this._channelCount - 1, -1);
     } else {
       losSatellitesNotTrackedIndexes = [];
 
@@ -1079,7 +1141,7 @@ export class GPSSatComputer implements Instrument {
         // The currently tracked satellites are not sufficient to produce a 3D position solution. In this case we
         // will replace a random tracked satellite with an untracked.
 
-        openChannelIndexes.push(Math.trunc(Math.random() * this.channelCount));
+        openChannelIndexes.push(Math.trunc(Math.random() * this._channelCount));
       } else {
         // The currently tracked satellites are sufficient to produce a 3D position solution. In this case we will
         // only try to replace a tracked satellite if we are tracking at least one redundant satellite, we are not
@@ -1087,7 +1149,7 @@ export class GPSSatComputer implements Instrument {
         // If the above is true, then we will replace the tracked satellite with the smallest contribution to reducing
         // PDOP with the SBAS satellite with highest signal strength.
 
-        if (this.channelCount > 4 && !isTrackingSbasSatelliteInLos) {
+        if (this._channelCount > 4 && !isTrackingSbasSatelliteInLos) {
           let highestSbasSignal = 0;
           let highestSbasSignalIndex = -1;
 
@@ -1166,8 +1228,9 @@ export class GPSSatComputer implements Instrument {
         satelliteIndexes.sort(this.satelliteCostCompare);
 
         for (let i = satelliteIndexes.length - 1; i >= 0; i--) {
-          if (losSatellitesNotTrackedIndexes.includes(i)) {
-            const sat = losSatellites[i];
+          const satIndex = satelliteIndexes[i];
+          if (losSatellitesNotTrackedIndexes.includes(satIndex)) {
+            const sat = losSatellites[satIndex];
             const channelIndex = openChannelIndexes.pop() as number;
             this.assignSatelliteToChannel(channelIndex, sat);
 
@@ -1179,8 +1242,9 @@ export class GPSSatComputer implements Instrument {
       } else {
         // We have enough open channels to begin tracking all satellites currently within LOS.
         for (let i = 0; i < losSatellitesNotTrackedIndexes.length; i++) {
+          const satIndex = losSatellitesNotTrackedIndexes[i];
           const channelIndex = openChannelIndexes.pop() as number;
-          this.assignSatelliteToChannel(channelIndex, losSatellites[i]);
+          this.assignSatelliteToChannel(channelIndex, losSatellites[satIndex]);
         }
       }
 
@@ -1210,13 +1274,13 @@ export class GPSSatComputer implements Instrument {
       return;
     }
 
-    if (oldSat && oldSat.state.get() !== GPSSatelliteState.Unreachable) {
+    if (oldSat) {
       oldSat.setTracked(false);
     }
 
     this.channels[channelIndex] = sat;
 
-    if (sat !== null) {
+    if (sat) {
       sat.setTracked(true);
     }
 
@@ -1299,7 +1363,7 @@ export class GPSSatComputer implements Instrument {
     const losMatrix = GPSSatComputer.getLosMatrix(satellitesToUse);
     const covarMatrix = GPSSatComputer.calculateCovarMatrix(losMatrix, this.covarMatrix);
 
-    const maxCount = MathUtils.clamp(this.satInUseMaxCount.get(), 4, this.channelCount);
+    const maxCount = MathUtils.clamp(this.satInUseMaxCount.get(), 4, this._channelCount);
 
     if (
       !VecNMath.isFinite(covarMatrix[0])
@@ -1459,14 +1523,24 @@ export class GPSSatComputer implements Instrument {
    */
   private diffAndPublishSatelliteStates(): void {
     for (let i = 0; i < this.satellites.length; i++) {
+      const publishedState = this.publishedSatStates[i];
       const sat = this.satellites[i];
       const state = sat.state.get();
+      const areDiffCorrectionsDownloaded = sat.areDiffCorrectionsDownloaded;
 
-      if (this.publishedSatStates[i] !== state) {
-        this.publishedSatStates[i] = state;
-        this.publisher.pub(this.satStateChangedTopic, sat, false, false);
+      const needPublishState = publishedState.state !== state;
+      const needSyncState = needPublishState || publishedState.areDiffCorrectionsDownloaded !== areDiffCorrectionsDownloaded;
+
+      if (needSyncState) {
+        publishedState.state = state;
+        publishedState.areDiffCorrectionsDownloaded = areDiffCorrectionsDownloaded;
+
+        if (needPublishState) {
+          this.publisher.pub(this.satStateChangedTopic, sat, false, false);
+        }
+
         if (this.syncRole === 'primary') {
-          this.syncPublisher.pub(this.satStateSyncTopic, { prn: sat.prn, state }, true, false);
+          this.syncPublisher.pub(this.satStateSyncTopic, { prn: sat.prn, state, areDiffCorrectionsDownloaded }, true, false);
         }
       }
     }
@@ -2300,10 +2374,12 @@ export class GPSSatellite {
   /**
    * Forces an update of this satellite's state to a specific value.
    * @param simTime The current simulation time, as a Javascript timestamp.
-   * @param state The state to which to update this satellite.
+   * @param state The state to which to update this satellite. Defaults to this satellite's current state.
+   * @param areDiffCorrectionsDownloaded Whether to force differential corrections to be downloaded. Defaults to the
+   * satellite's current differential corrections download state.
    * @returns Whether this satellite's state changed as a result of the update.
    */
-  public forceUpdateState(simTime: number, state: GPSSatelliteState): boolean {
+  public forceUpdateState(simTime: number, state = this.state.get(), areDiffCorrectionsDownloaded = this._areDiffCorrectionsDownloaded): boolean {
     switch (state) {
       case GPSSatelliteState.Unreachable:
         this.timeSpentAcquiring = undefined;
@@ -2322,10 +2398,11 @@ export class GPSSatellite {
       case GPSSatelliteState.InUse:
       case GPSSatelliteState.InUseDiffApplied:
         this.timeToDownloadEphemeris = undefined;
-
         this._lastEphemerisTime = simTime;
         break;
     }
+
+    this._areDiffCorrectionsDownloaded = this.sbasGroup !== undefined && areDiffCorrectionsDownloaded;
 
     if (this.state.get() !== state) {
       this.state.set(state);

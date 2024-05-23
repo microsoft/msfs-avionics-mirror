@@ -1065,8 +1065,14 @@ export interface Metar {
   /** The minute of observation, in UTC time. */
   readonly min: number;
 
+  /** The max wind direction, in degrees relative to true north. */
+  readonly maxWindDir?: number;
+
+  /** The min wind direction, in degrees relative to true north. */
+  readonly minWindDir?: number;
+
   /** The wind direction, in degrees relative to true north. */
-  readonly windDir: number;
+  readonly windDir?: number;
 
   /** The wind speed, expressed in units defined by `windSpeedUnits`. */
   readonly windSpeed: number;
@@ -1210,6 +1216,9 @@ export interface MetarPhenomenon {
 
   /** Whether this phenomenon has the temporary modifier. */
   readonly tempo: boolean;
+
+  /** Whether this phenomenon has the thunderstorm modifier. */
+  readonly ts: boolean;
 }
 
 /** METAR phenomenon types. */

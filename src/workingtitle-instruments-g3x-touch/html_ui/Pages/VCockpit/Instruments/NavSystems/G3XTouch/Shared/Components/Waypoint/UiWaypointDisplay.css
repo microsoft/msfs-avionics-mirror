@@ -1,0 +1,71 @@
+html {
+  --ui-wpt-display-ident-color: var(--g3x-color-cyan);
+}
+
+.gdu-460-display {
+  --ui-wpt-display-icon-scale: 1;
+  --ui-wpt-display-icon-margin-right: 9px;
+
+  --ui-wpt-display-column-gap: 15px;
+
+  --ui-wpt-display-ident-font-size: 1.2em;
+}
+
+.ui-wpt-display {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.ui-wpt-display-icon {
+  flex-shrink: 0;
+  margin-right: var(--ui-wpt-display-icon-margin-right);
+  transform: scale(var(--ui-wpt-display-icon-scale));
+  transform-origin: 0% 50%;
+}
+
+.ui-wpt-display-left {
+  flex-grow: 1;
+  margin-top: var(--ui-wpt-display-left-offset-y, 0px);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.ui-wpt-display-ident {
+  color: var(--ui-wpt-display-ident-color);
+  font-size: var(--ui-wpt-display-ident-font-size);
+  white-space: pre;
+}
+
+.ui-wpt-display-name {
+  height: 1.2em;
+  line-height: 1.2em;
+  margin-top: var(--ui-wpt-display-left-row-gap, 0px);
+  white-space: pre-wrap;
+  /* This prevents the name from being cut off in the middle of a character. */
+  word-break: break-all;
+  overflow: hidden;
+}
+
+.ui-wpt-display-right {
+  flex-shrink: 0;
+  margin-top: var(--ui-wpt-display-right-offset-y, 0px);
+  margin-left: var(--ui-wpt-display-column-gap);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.ui-wpt-display-type {
+  white-space: pre;
+}
+
+.ui-wpt-display-city {
+  height: 1.2em;
+  line-height: 1.2em;
+  margin-top: var(--ui-wpt-display-right-row-gap, 0px);
+  white-space: pre;
+}

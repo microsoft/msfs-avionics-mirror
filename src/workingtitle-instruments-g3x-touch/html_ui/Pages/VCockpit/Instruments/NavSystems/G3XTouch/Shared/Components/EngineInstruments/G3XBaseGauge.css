@@ -1,0 +1,16 @@
+@keyframes gauge-alert-blink-red {
+
+  0% {
+    background-color: var(--g3x-color-red);
+    color: var(--g3x-color-white);
+    fill: var(--g3x-color-white);
+  }
+
+  75%,
+  100% {
+    background-color: var(--g3x-color-white);
+    color: var(--g3x-color-red);
+    fill: var(--g3x-color-red);
+  }
+
+}

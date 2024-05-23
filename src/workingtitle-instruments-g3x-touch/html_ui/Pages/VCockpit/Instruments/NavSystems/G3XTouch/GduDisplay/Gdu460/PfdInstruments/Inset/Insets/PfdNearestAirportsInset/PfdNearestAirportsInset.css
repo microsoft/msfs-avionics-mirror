@@ -1,0 +1,90 @@
+.pfd-nearest-airports-inset {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border: solid 3px var(--g3x-color-border-light-gray);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--g3x-color-white);
+  font-size: 19px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+
+  --touch-button-border: none;
+  --touch-button-background: none;
+  --touch-button-box-shadow: none;
+
+  --touch-button-primed-background: none;
+  --touch-button-primed-box-shadow: none;
+}
+
+.pfd-nearest-airports-inset-header {
+  padding: 1px 8px 1px 4px;
+  border-bottom: solid 1px var(--g3x-color-border-gray);
+  font-size: 17px;
+  white-space: pre;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.pfd-nearest-airports-inset-header-apts {
+  flex-grow: 1;
+}
+
+.pfd-nearest-airports-inset-header-brg {
+  width: 58px;
+  padding-right: 7px;
+  text-align: right;
+}
+
+.pfd-nearest-airports-inset-header-dis {
+  width: 78px;
+  padding-right: 7px;
+  text-align: right;
+}
+
+.pfd-nearest-airports-inset-list {
+  margin-right: 2px;
+}
+
+.pfd-nearest-airports-inset-list .touch-button.ui-list-item-button {
+  background: none;
+}
+
+.pfd-nearest-airports-inset-list-item-button {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.pfd-nearest-airports-inset-list-item-icon {
+  margin-left: 7px;
+  margin-right: 3px;
+}
+
+.pfd-nearest-airports-inset-list-item-main {
+  flex-grow: 1;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+}
+
+.pfd-nearest-airports-inset-list-item-ident {
+  flex-basis: 0px;
+  flex-grow: 1;
+  font-size: 24px;
+}
+
+.pfd-nearest-airports-inset-list-item-brg {
+  text-align: right;
+  width: 58px;
+}
+
+.pfd-nearest-airports-inset-list-item-dis {
+  text-align: right;
+  width: 78px;
+}

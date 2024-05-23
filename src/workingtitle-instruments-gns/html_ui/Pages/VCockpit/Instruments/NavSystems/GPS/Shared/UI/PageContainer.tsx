@@ -3,7 +3,7 @@ import {
   SubscribableSetEventType, VNode
 } from '@microsoft/msfs-sdk';
 
-import { Fms, FmsEvents, TrafficSystem } from '@microsoft/msfs-garminsdk';
+import { Fms, TrafficSystem } from '@microsoft/msfs-garminsdk';
 
 import { NavInfo } from '../../WT430/UI/Pages/Map/NavInfo';
 import { ArcNavMap } from '../../WT530/UI/Pages/Map/ArcNavMap';
@@ -149,7 +149,7 @@ export class PageContainer extends DisplayComponent<PageContainerProps> implemen
     this.tcasDataProvider.init();
 
     this.props.bus.getSubscriber<GNSSEvents>().on('ground_speed').handle(gs => this.currentGs = gs);
-    this.props.bus.getSubscriber<FmsEvents>().on('fms_flight_phase').handle(phase => this.approachActive = phase.isApproachActive);
+    this.props.fms.onEvent('fms_flight_phase').handle(phase => this.approachActive = phase.isApproachActive);
   }
 
   /**
@@ -595,7 +595,7 @@ export class PageContainer extends DisplayComponent<PageContainerProps> implemen
         <MenuDialog bus={this.props.bus} gnsType={this.props.gnsType} ref={this.menuDialog} fms={this.props.fms} />
         <DirectToDialog bus={this.props.bus} gnsType={this.props.gnsType} ref={this.directToDialog} fms={this.props.fms} />
         <ActivateLegDialog bus={this.props.bus} gnsType={this.props.gnsType} ref={this.activateLegDialog} fms={this.props.fms} />
-        <ObsDialog bus={this.props.bus} gnsType={this.props.gnsType} ref={this.obsDialog} />
+        <ObsDialog bus={this.props.bus} gnsType={this.props.gnsType} ref={this.obsDialog} lnavIndex={this.props.fms.lnavIndex} />
         <TrafficAlertDialog bus={this.props.bus} gnsType={this.props.gnsType} trafficSystem={this.props.trafficSystem} ref={this.trafficAlertDialog} />
         <MessageDialog bus={this.props.bus} gnsType={this.props.gnsType} ref={this.messageDialog} alerts={this.props.alerts} />
       </>

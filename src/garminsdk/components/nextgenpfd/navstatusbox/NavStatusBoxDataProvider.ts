@@ -1,10 +1,11 @@
 import {
-  ActiveLegType, BitFlags, ClockEvents, ConsumerSubject, EventBus, FlightPlannerEvents, GNSSEvents, LegDefinition,
-  LegDefinitionFlags, LNavEvents, MappedSubject, NavEvents, NumberUnitInterface, Subject, Subscribable, Subscription, UnitFamily,
+  ActiveLegType, BitFlags, ClockEvents, ConsumerSubject, EventBus, GNSSEvents, LegDefinition, LegDefinitionFlags,
+  MappedSubject, NavEvents, NumberUnitInterface, Subject, Subscribable, Subscription, UnitFamily
 } from '@microsoft/msfs-sdk';
-import { DirectToState, Fms } from '../../../flightplan/Fms';
+
+import { Fms } from '../../../flightplan/Fms';
+import { DirectToState } from '../../../flightplan/FmsTypes';
 import { FmsUtils } from '../../../flightplan/FmsUtils';
-import { LNavDataEvents } from '../../../navigation/LNavDataEvents';
 import { WaypointAlertComputer, WaypointAlertStateEvent } from '../../../navigation/WaypointAlertComputer';
 
 /**
@@ -111,45 +112,45 @@ export class DefaultNavStatusBoxDataProvider implements NavStatusBoxDataProvider
     this.isInit = true;
     this.isPaused = paused;
 
-    const sub = this.bus.getSubscriber<ClockEvents & FlightPlannerEvents & NavEvents & GNSSEvents & LNavEvents & LNavDataEvents>();
+    const sub = this.bus.getSubscriber<ClockEvents & NavEvents & GNSSEvents>();
 
     this.isObsActive.setConsumer(sub.on('gps_obs_active'));
     this.obsCourseSource.setConsumer(sub.on('gps_obs_value'));
 
-    this.fplSubs.push(sub.on('fplCreated').handle(evt => {
+    this.fplSubs.push(this.fms.flightPlanner.onEvent('fplCreated').handle(evt => {
       if (evt.planIndex === this.fms.flightPlanner.activePlanIndex) {
         this.needUpdateTrackedLegs = true;
       }
     }));
-    this.fplSubs.push(sub.on('fplDeleted').handle(evt => {
+    this.fplSubs.push(this.fms.flightPlanner.onEvent('fplDeleted').handle(evt => {
       if (evt.planIndex === this.fms.flightPlanner.activePlanIndex) {
         this.needUpdateTrackedLegs = true;
       }
     }));
-    this.fplSubs.push(sub.on('fplLoaded').handle(evt => {
+    this.fplSubs.push(this.fms.flightPlanner.onEvent('fplLoaded').handle(evt => {
       if (evt.planIndex === this.fms.flightPlanner.activePlanIndex) {
         this.needUpdateTrackedLegs = true;
       }
     }));
-    this.fplSubs.push(sub.on('fplCopied').handle(evt => {
+    this.fplSubs.push(this.fms.flightPlanner.onEvent('fplCopied').handle(evt => {
       if (evt.planIndex === this.fms.flightPlanner.activePlanIndex) {
         this.needUpdateTrackedLegs = true;
       }
     }));
-    this.fplSubs.push(sub.on('fplIndexChanged').handle(() => {
+    this.fplSubs.push(this.fms.flightPlanner.onEvent('fplIndexChanged').handle(() => {
       this.needUpdateTrackedLegs = true;
     }));
-    this.fplSubs.push(sub.on('fplSegmentChange').handle((evt) => {
+    this.fplSubs.push(this.fms.flightPlanner.onEvent('fplSegmentChange').handle((evt) => {
       if (evt.planIndex === this.fms.flightPlanner.activePlanIndex) {
         this.needUpdateTrackedLegs = true;
       }
     }));
-    this.fplSubs.push(sub.on('fplLegChange').handle((evt) => {
+    this.fplSubs.push(this.fms.flightPlanner.onEvent('fplLegChange').handle((evt) => {
       if (evt.planIndex === this.fms.flightPlanner.activePlanIndex) {
         this.needUpdateTrackedLegs = true;
       }
     }));
-    this.fplSubs.push(sub.on('fplActiveLegChange').handle((evt) => {
+    this.fplSubs.push(this.fms.flightPlanner.onEvent('fplActiveLegChange').handle((evt) => {
       if (evt.planIndex === this.fms.flightPlanner.activePlanIndex && evt.type === ActiveLegType.Lateral) {
         this.needUpdateTrackedLegs = true;
       }

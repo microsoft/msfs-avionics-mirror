@@ -1,0 +1,132 @@
+.cns-com {
+  position: relative;
+}
+
+.cns-com-combined-button {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cns-button-com {
+  flex-basis: 0;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cns-button-com-content {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cns-button-com .cns-button-com-title {
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.cns-button-com .cns-button-com-freq {
+  font-size: 27px;
+  margin-top: -5px;
+}
+
+.cns-button-nav.cns-button-com-active {
+  width: 100%;
+  height: 100%;
+  flex-basis: 0;
+  flex-grow: 1;
+}
+
+.cns-button-com.cns-button-com-active .cns-button-com-freq {
+  color: var(--g3x-color-green);
+}
+
+.cns-button-com.cns-button-com-standby .cns-button-com-freq {
+  color: var(--g3x-color-cyan);
+}
+
+.cns-button-com .cns-button-com-name {
+  font-size: 14px;
+  margin-top: -6px;
+}
+
+.cns-button-com-slider-background {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  padding-top: 15px;
+  fill: var(--g3x-color-gray);
+}
+
+.cns-button-com-slider-occlude {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  padding-top: 15px;
+  fill: var(--g3x-color-green);
+}
+
+.cns-button-com-minimized {
+  width: 100%;
+  height: 100%;
+}
+
+.cns-button-com-slider-value {
+  position: absolute;
+  left: 5px;
+  top: 20px;
+  font-size: 14px;
+}
+
+.cns-button-com-slider-vol {
+  position: absolute;
+  right: 7px;
+  bottom: 5px;
+  font-size: 14px;
+}
+
+.cns-button-com-slider-shadow {
+  box-shadow: var(--touch-button-box-shadow);
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+.cns-button-com-minimized .cns-button-com-title {
+  font-size: 16px;
+  margin-top: 1px;
+  color: var(--g3x-color-white);
+}
+
+.cns-button-com-minimized .cns-button-com-active-freq {
+  font-size: 21px;
+  line-height: 16px;
+  color: var(--g3x-color-white);
+}
+
+.cns-button-com-minimized .cns-button-com-standby-freq {
+  font-size: 19px;
+  margin-top: -2px;
+  color: var(--g3x-color-cyan);
+}
+
+.cns-button-com-minimized .cns-button-com-title {
+  font-size: 16px;
+  margin-top: 1px;
+  color: var(--g3x-color-white);
+}
+
+.cns-button-com-volume-title {
+  width: 100%;
+  text-align: center;
+  font-size: 16px;
+  margin-top: 2px;
+  color: var(--g3x-color-white);
+}

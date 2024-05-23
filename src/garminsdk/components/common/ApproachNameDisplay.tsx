@@ -1,13 +1,15 @@
 import {
-  AirportFacility, ApproachProcedure, ComponentProps, DisplayComponent,
-  FSComponent, ICAO, StringUtils, Subscribable, SubscribableUtils, VNode,
+  AirportFacility, ComponentProps, DisplayComponent, FSComponent, ICAO, StringUtils, Subscribable, SubscribableUtils,
+  VNode
 } from '@microsoft/msfs-sdk';
-import { ApproachNameParts, FmsUtils } from '../../flightplan';
+
+import { GarminApproachProcedure } from '../../flightplan/FmsTypes';
+import { ApproachNameParts, FmsUtils } from '../../flightplan/FmsUtils';
 
 /** Properties for a VNode representing an approach name. */
 export interface ApproachNameDisplayProps extends ComponentProps {
   /** A subscribable which provides an approach procedure. */
-  approach?: ApproachProcedure | null | undefined | Subscribable<ApproachProcedure | null | undefined>;
+  approach?: GarminApproachProcedure | null | undefined | Subscribable<GarminApproachProcedure | null | undefined>;
 
   /**
    * A subscribable which provides the approach name parts.
@@ -52,7 +54,7 @@ export class ApproachNameDisplay extends DisplayComponent<ApproachNameDisplayPro
   private readonly flagsRef = FSComponent.createRef<HTMLSpanElement>();
   private readonly nullRef = FSComponent.createRef<HTMLSpanElement>();
 
-  private readonly approach = SubscribableUtils.toSubscribable(this.props.approach, true) as Subscribable<ApproachProcedure | null | undefined>;
+  private readonly approach = SubscribableUtils.toSubscribable(this.props.approach, true) as Subscribable<GarminApproachProcedure | null | undefined>;
   private readonly approachNamePartsProp = SubscribableUtils.toSubscribable(this.props.approachNameParts, true) as Subscribable<ApproachNameParts | null | undefined>;
 
   private readonly airport = SubscribableUtils.toSubscribable(this.props.airport ?? null, true) as Subscribable<AirportFacility | null | undefined>;

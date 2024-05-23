@@ -1,0 +1,121 @@
+.gdu-display .audio-popup .tabbed-container-tab-box {
+  --tabbed-container-tab-width: 62px;
+}
+
+.gdu-display .audio-popup {
+  --ui-view-box-title-font-size: 20px;
+}
+
+.audio-popup {
+  padding: 1px;
+  max-width: 550px;
+  width: 100%;
+}
+
+.audio-popup-title {
+  font-size: 23px;
+  width: 100%;
+  text-align: center;
+  padding: 6px;
+}
+
+.audio-popup-column {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  position: relative;
+}
+
+.audio-popup-column.audio-popup-column-left {
+  margin-right: 24px;
+}
+
+.audio-popup-column.audio-popup-column-right {
+  width: 100%;
+}
+
+.audio-popup .tabbed-content-tab-button {
+  font-size: 18px;
+}
+
+.audio-popup-radios {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: stretch;
+  height: 510px;
+  width: 100%;
+  padding: 42px 13px;
+}
+
+.audio-popup-radios .touch-button {
+  width: 120px;
+  height: 80px;
+}
+
+.audio-popup-ui-view-box {
+  padding-left: 18px;
+  padding-right: 18px;
+  padding-top: 9px;
+  padding-bottom: 20px;
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+.audio-popup .touch-button {
+  font-size: 20px;
+}
+
+.audio-popup .touch-button.touch-button-img {
+  font-size: 16px;
+}
+
+.audio-popup .touch-button-img img {
+  margin-top: 8px;
+}
+
+.audio-popup .touch-button-img .touch-button-label {
+  margin-top: 8px;
+}
+
+.audio-popup-radios-buttons-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.audio-popup-com-1-mic-button {
+  margin-right: 20px;
+}
+
+.audio-popup-back-button {
+  margin-right: 20px;
+}
+
+.audio-popup-com-1-button {
+  margin-right: 20px;
+}
+
+.audio-popup-column-left .audio-popup-radios-buttons-row {
+  margin-top: 30px;
+}
+
+.audio-popup-column-right .audio-popup-ui-view-box .touch-button{
+  margin-top: 20px;
+}
+
+.audio-popup-column-right>.touch-button{
+  margin-top: 30px;
+}
+
+.audio-popup-radios-buttons-column {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+}
+
+.audio-popup-ui-view-box-title {
+  position: absolute;
+  font-size: 20px;
+}

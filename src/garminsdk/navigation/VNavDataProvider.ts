@@ -1,10 +1,13 @@
 import {
-  AdcEvents, AltitudeConstraintDetails, AltitudeRestrictionType, ApproachGuidanceMode, ClockEvents, ConsumerSubject, ConsumerValue, EventBus, GNSSEvents,
-  LegDefinition, LNavEvents, NavEvents, NavSourceId, NavSourceType, RnavTypeFlags, Subject, Subscribable, SubscribableUtils,
-  Subscription, UnitType, VerticalFlightPhase, VNavEvents, VNavPathCalculator, VNavPathMode, VNavState, VNavUtils
+  AdcEvents, AltitudeConstraintDetails, AltitudeRestrictionType, ApproachGuidanceMode, CdiEvents, CdiUtils,
+  ClockEvents, ConsumerSubject, ConsumerValue, EventBus, GNSSEvents, LegDefinition, NavSourceId, NavSourceType,
+  RnavTypeFlags, Subject, Subscribable, SubscribableUtils, Subscription, UnitType, VerticalFlightPhase, VNavEvents,
+  VNavPathMode, VNavState, VNavUtils
 } from '@microsoft/msfs-sdk';
-import { GarminVNavFlightPhase, GarminVNavTrackingPhase, VNavDataEvents } from '../autopilot/data/VNavDataEvents';
-import { ApproachDetails, Fms, FmsEvents, FmsFlightPhase } from '../flightplan/Fms';
+
+import { GarminVNavDataEvents, GarminVNavFlightPhase, GarminVNavTrackingPhase } from '../autopilot/vnav/GarminVNavDataEvents';
+import { Fms } from '../flightplan/Fms';
+import { ApproachDetails, FmsFlightPhase } from '../flightplan/FmsTypes';
 import { AdcSystemEvents } from '../system/AdcSystem';
 
 /**
@@ -80,11 +83,30 @@ export interface VNavDataProvider {
 }
 
 /**
+ * Configuration options for {@link DefaultVNavDataProvider}.
+ */
+export type DefaultVNavDataProviderOptions = {
+  /** The index of the VNAV from which to source data. Defaults to `0`. */
+  vnavIndex?: number | Subscribable<number>;
+
+  /** The index of the ADC from which to source data. Defaults to `1`. */
+  adcIndex?: number | Subscribable<number>;
+
+  /** The ID of the CDI from which to source data. Defaults to the empty string (`''`). */
+  cdiId?: string | Subscribable<string>;
+};
+
+/**
  * A default implementation of {@link VNavDataProvider}.
  */
 export class DefaultVNavDataProvider implements VNavDataProvider {
   /** The amount of time before reaching TOD/BOC when VNAV path tracking data becomes valid, in hours. */
   private static readonly PATH_TRACKING_LOOKAHEAD = 1 / 60;
+
+  private readonly fms: Subscribable<Fms>;
+
+  private readonly vnavIndex: Subscribable<number>;
+  private isVNavIndexValid = false;
 
   private readonly _phase = Subject.create<VerticalFlightPhase | null>(null);
   /** @inheritdoc */
@@ -155,13 +177,11 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
   /** @inheritdoc */
   public readonly timeToBoc = this._timeToBoc as Subscribable<number | null>;
 
-  private readonly verticalPathCalc: VNavPathCalculator;
-
   private readonly indicatedAlt = ConsumerValue.create(null, 0);
 
   private readonly groundSpeed = ConsumerValue.create(null, 0);
 
-  private readonly activeNavSource = ConsumerValue.create<NavSourceId>(null, { type: null, index: 1 });
+  private readonly activeNavSource = ConsumerValue.create<Readonly<NavSourceId>>(null, { type: null, index: 1 });
 
   private readonly approachDetails = ConsumerValue.create<Readonly<ApproachDetails>>(null, {
     isLoaded: false,
@@ -176,6 +196,7 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
   });
   private readonly flightPhase = ConsumerValue.create<Readonly<FmsFlightPhase>>(null, {
     isApproachActive: false,
+    isToFaf: false,
     isPastFaf: false,
     isInMissedApproach: false
   });
@@ -209,32 +230,91 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
 
   private readonly adcIndex: Subscribable<number>;
 
+  private readonly cdiId: Subscribable<string>;
+
   private isInit = false;
   private isAlive = true;
   private isPaused = false;
 
+  private readonly pauseable = [
+    this.indicatedAlt,
+    this.groundSpeed,
+    this.activeNavSource,
+    this.approachDetails,
+    this.vnavFlightPhaseSource,
+    this.vnavTrackingPhaseSource,
+    this.vnavPathMode,
+    this.vnavCruiseAltitude,
+    this.vnavActiveConstraintLegIndex,
+    this.vnavFpa,
+    this.vnavVsRequired,
+    this.vnavVerticalDeviation,
+    this.vnavTodIndex,
+    this.vnavTodDistance,
+    this.vnavBodIndex,
+    this.vnavBodDistance,
+    this.vnavTocIndex,
+    this.vnavTocDistance,
+    this.vnavBocIndex,
+    this.vnavBocDistance,
+    this.approachGuidanceMode,
+    this.vnavConstraintDetails
+  ];
+
+  private fmsSub?: Subscription;
+  private vnavIndexSub?: Subscription;
   private adcIndexSub?: Subscription;
+  private cdiIdSub?: Subscription;
   private clockSub?: Subscription;
   private vnavStateSub?: Subscription;
 
   /**
-   * Constructor.
+   * Creates a new instance of DefaultVNavDataProvider.
    * @param bus The event bus.
    * @param fms The FMS.
    * @param adcIndex The index of the ADC that is the source of this provider's data.
    */
-  constructor(
+  public constructor(
+    bus: EventBus,
+    fms: Fms | Subscribable<Fms>,
+    options?: Readonly<DefaultVNavDataProviderOptions>
+  );
+  /**
+   * Creates a new instance of DefaultVNavDataProvider that sources data from VNAV index 0.
+   * @param bus The event bus.
+   * @param fms The FMS.
+   * @param adcIndex The index of the ADC that is the source of this provider's data. Defaults to `1`.
+   */
+  public constructor(
+    bus: EventBus,
+    fms: Fms | Subscribable<Fms>,
+    adcIndex?: number | Subscribable<number>
+  );
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public constructor(
     private readonly bus: EventBus,
-    private readonly fms: Fms,
-    adcIndex: number | Subscribable<number>
+    fms: Fms | Subscribable<Fms>,
+    arg3?: number | Subscribable<number> | Readonly<DefaultVNavDataProviderOptions>
   ) {
-    if (this.fms.verticalPathCalculator === undefined) {
-      throw new Error('DefaultVNavDataProvider: cannot use an FMS instance with no VNAV path calculator');
+    this.fms = SubscribableUtils.toSubscribable(fms, true);
+
+    let vnavIndex: number | Subscribable<number> | undefined;
+    let adcIndex: number | Subscribable<number> | undefined;
+    let cdiId: string | Subscribable<string> | undefined;
+
+    if (typeof arg3 === 'number' || SubscribableUtils.isSubscribable(arg3)) {
+      vnavIndex = 0;
+      adcIndex = arg3;
+      cdiId = '';
+    } else {
+      vnavIndex = arg3?.vnavIndex;
+      adcIndex = arg3?.adcIndex;
+      cdiId = arg3?.cdiId;
     }
 
-    this.verticalPathCalc = this.fms.verticalPathCalculator;
-
-    this.adcIndex = SubscribableUtils.toSubscribable(adcIndex, true);
+    this.vnavIndex = SubscribableUtils.toSubscribable(vnavIndex ?? 0, true);
+    this.adcIndex = SubscribableUtils.toSubscribable(adcIndex ?? 1, true);
+    this.cdiId = SubscribableUtils.toSubscribable(cdiId ?? '', true);
   }
 
   /**
@@ -255,7 +335,13 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
 
     this.isInit = true;
 
-    const sub = this.bus.getSubscriber<ClockEvents & AdcEvents & AdcSystemEvents & GNSSEvents & NavEvents & VNavEvents & VNavDataEvents & LNavEvents & FmsEvents>();
+    const sub = this.bus.getSubscriber<
+      ClockEvents & AdcEvents & AdcSystemEvents & GNSSEvents & CdiEvents & VNavEvents & GarminVNavDataEvents
+    >();
+
+    this.cdiIdSub = this.cdiId.sub(id => {
+      this.activeNavSource.setConsumer(sub.on(`cdi_select${CdiUtils.getEventBusTopicSuffix(id)}`));
+    }, true);
 
     this.adcIndexSub = this.adcIndex.sub(index => {
       this.indicatedAlt.setConsumer(sub.on(`adc_indicated_alt_${index}`));
@@ -263,94 +349,85 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
 
     this.groundSpeed.setConsumer(sub.on('ground_speed'));
 
-    this.activeNavSource.setConsumer(sub.on('cdi_select'));
-
-    this.approachDetails.setConsumer(sub.on('fms_approach_details'));
-    this.flightPhase.setConsumer(sub.on('fms_flight_phase'));
-
-    this.vnavState.setConsumer(sub.on('vnav_state'));
-    this.vnavFlightPhaseSource.setConsumer(sub.on('vnav_flight_phase'));
-    this.vnavTrackingPhaseSource.setConsumer(sub.on('vnav_tracking_phase'));
-    this.vnavPathMode.setConsumer(sub.on('vnav_path_mode'));
-    this.vnavCruiseAltitude.setConsumer(sub.on('vnav_cruise_altitude'));
-    this.vnavActiveConstraintLegIndex.setConsumer(sub.on('vnav_active_constraint_global_leg_index'));
-    this.vnavFpa.setConsumer(sub.on('vnav_fpa'));
-    this.vnavVsRequired.setConsumer(sub.on('vnav_required_vs'));
-    this.vnavVerticalDeviation.setConsumer(sub.on('vnav_vertical_deviation'));
-    this.vnavTodIndex.setConsumer(sub.on('vnav_tod_global_leg_index'));
-    this.vnavTodDistance.setConsumer(sub.on('vnav_tod_distance'));
-    this.vnavBodIndex.setConsumer(sub.on('vnav_bod_global_leg_index'));
-    this.vnavBodDistance.setConsumer(sub.on('vnav_bod_distance'));
-    this.vnavTocIndex.setConsumer(sub.on('vnav_toc_global_leg_index'));
-    this.vnavTocDistance.setConsumer(sub.on('vnav_toc_distance'));
-    this.vnavBocIndex.setConsumer(sub.on('vnav_boc_global_leg_index'));
-    this.vnavBocDistance.setConsumer(sub.on('vnav_boc_distance'));
-    this.approachGuidanceMode.setConsumer(sub.on('gp_approach_mode'));
-    this.vnavConstraintDetails.setConsumer(sub.on('vnav_altitude_constraint_details'));
+    this.fmsSub = this.fms.sub(fms => {
+      this.approachDetails.setConsumer(fms.onEvent('fms_approach_details'));
+      this.flightPhase.setConsumer(fms.onEvent('fms_flight_phase'));
+    }, true);
 
     const clockSub = this.clockSub = sub.on('realTime').handle(this.update.bind(this), true);
 
     this.vnavStateSub = this.vnavState.sub(state => {
       if (state === VNavState.Disabled) {
-        this.indicatedAlt.pause();
-        this.groundSpeed.pause();
-
-        this.activeNavSource.pause();
-
-        this.approachDetails.pause();
-
-        this.vnavFlightPhaseSource.pause();
-        this.vnavTrackingPhaseSource.pause();
-        this.vnavPathMode.pause();
-        this.vnavCruiseAltitude.pause();
-        this.vnavActiveConstraintLegIndex.pause();
-        this.vnavFpa.pause();
-        this.vnavVsRequired.pause();
-        this.vnavVerticalDeviation.pause();
-        this.vnavTodIndex.pause();
-        this.vnavTodDistance.pause();
-        this.vnavBodIndex.pause();
-        this.vnavBodDistance.pause();
-        this.vnavTocIndex.pause();
-        this.vnavTocDistance.pause();
-        this.vnavBocIndex.pause();
-        this.vnavBocDistance.pause();
-        this.approachGuidanceMode.pause();
-
-        this.vnavConstraintDetails.pause();
+        for (const pauseable of this.pauseable) {
+          pauseable.pause();
+        }
 
         clockSub.pause();
 
         this.clearData();
       } else {
-        this.indicatedAlt.resume();
-        this.groundSpeed.resume();
-
-        this.activeNavSource.resume();
-
-        this.approachDetails.resume();
-
-        this.vnavFlightPhaseSource.resume();
-        this.vnavTrackingPhaseSource.resume();
-        this.vnavPathMode.resume();
-        this.vnavCruiseAltitude.resume();
-        this.vnavActiveConstraintLegIndex.resume();
-        this.vnavFpa.resume();
-        this.vnavVsRequired.resume();
-        this.vnavVerticalDeviation.resume();
-        this.vnavTodIndex.resume();
-        this.vnavTodDistance.resume();
-        this.vnavBodIndex.resume();
-        this.vnavBodDistance.resume();
-        this.vnavTocIndex.resume();
-        this.vnavTocDistance.resume();
-        this.vnavBocIndex.resume();
-        this.vnavBocDistance.resume();
-        this.approachGuidanceMode.resume();
-
-        this.vnavConstraintDetails.resume();
+        for (const pauseable of this.pauseable) {
+          pauseable.resume();
+        }
 
         clockSub.resume(true);
+      }
+    }, false, true);
+
+    this.approachGuidanceMode.setConsumer(sub.on('gp_approach_mode'));
+
+    this.vnavIndexSub = this.vnavIndex.sub(index => {
+      this.isVNavIndexValid = VNavUtils.isValidVNavIndex(index);
+      if (this.isVNavIndexValid) {
+        const suffix = VNavUtils.getEventBusTopicSuffix(index);
+        this.vnavState.setConsumer(sub.on(`vnav_state${suffix}`));
+        this.vnavFlightPhaseSource.setConsumer(sub.on(`vnav_flight_phase${suffix}`));
+        this.vnavTrackingPhaseSource.setConsumer(sub.on(`vnav_tracking_phase${suffix}`));
+        this.vnavPathMode.setConsumer(sub.on(`vnav_path_mode${suffix}`));
+        this.vnavCruiseAltitude.setConsumer(sub.on(`vnav_cruise_altitude${suffix}`));
+        this.vnavActiveConstraintLegIndex.setConsumer(sub.on(`vnav_active_constraint_global_leg_index${suffix}`));
+        this.vnavFpa.setConsumer(sub.on(`vnav_fpa${suffix}`));
+        this.vnavVsRequired.setConsumer(sub.on(`vnav_required_vs${suffix}`));
+        this.vnavVerticalDeviation.setConsumer(sub.on(`vnav_vertical_deviation${suffix}`));
+        this.vnavTodIndex.setConsumer(sub.on(`vnav_tod_global_leg_index${suffix}`));
+        this.vnavTodDistance.setConsumer(sub.on(`vnav_tod_distance${suffix}`));
+        this.vnavBodIndex.setConsumer(sub.on(`vnav_bod_global_leg_index${suffix}`));
+        this.vnavBodDistance.setConsumer(sub.on(`vnav_bod_distance${suffix}`));
+        this.vnavTocIndex.setConsumer(sub.on(`vnav_toc_global_leg_index${suffix}`));
+        this.vnavTocDistance.setConsumer(sub.on(`vnav_toc_distance${suffix}`));
+        this.vnavBocIndex.setConsumer(sub.on(`vnav_boc_global_leg_index${suffix}`));
+        this.vnavBocDistance.setConsumer(sub.on(`vnav_boc_distance${suffix}`));
+        this.vnavConstraintDetails.setConsumer(sub.on(`vnav_altitude_constraint_details${suffix}`));
+
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this.vnavStateSub!.resume(true);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this.vnavStateSub!.pause();
+
+        for (const pauseable of this.pauseable) {
+          pauseable.pause();
+        }
+
+        this.vnavState.setConsumer(null);
+        this.vnavFlightPhaseSource.setConsumer(null);
+        this.vnavTrackingPhaseSource.setConsumer(null);
+        this.vnavPathMode.setConsumer(null);
+        this.vnavCruiseAltitude.setConsumer(null);
+        this.vnavActiveConstraintLegIndex.setConsumer(null);
+        this.vnavFpa.setConsumer(null);
+        this.vnavVsRequired.setConsumer(null);
+        this.vnavVerticalDeviation.setConsumer(null);
+        this.vnavTodIndex.setConsumer(null);
+        this.vnavTodDistance.setConsumer(null);
+        this.vnavBodIndex.setConsumer(null);
+        this.vnavBodDistance.setConsumer(null);
+        this.vnavTocIndex.setConsumer(null);
+        this.vnavTocDistance.setConsumer(null);
+        this.vnavBocIndex.setConsumer(null);
+        this.vnavBocDistance.setConsumer(null);
+        this.approachGuidanceMode.setConsumer(null);
+        this.vnavConstraintDetails.setConsumer(null);
       }
     }, true);
 
@@ -364,12 +441,23 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
    */
   private update(): void {
     // TODO: Support VNAV for off-route DTOs
-    const plan = this.fms.hasPrimaryFlightPlan() ? this.fms.getPrimaryFlightPlan() : undefined;
-    const verticalPlan = plan === undefined ? undefined : this.verticalPathCalc.getVerticalFlightPlan(Fms.PRIMARY_PLAN_INDEX);
+    const fms = this.fms.get();
+    const verticalPathCalculator = fms.verticalPathCalculator;
+    const plan = fms.hasPrimaryFlightPlan() ? fms.getPrimaryFlightPlan() : undefined;
+    const verticalPlan = verticalPathCalculator === undefined || plan === undefined
+      ? undefined
+      : verticalPathCalculator.getVerticalFlightPlan(Fms.PRIMARY_PLAN_INDEX);
     const vnavState = this.vnavState.get();
     const vnavTrackingPhase = this.vnavTrackingPhaseSource.get();
 
-    if (plan === undefined || verticalPlan === undefined || vnavState === VNavState.Disabled || vnavTrackingPhase === GarminVNavTrackingPhase.None) {
+    if (
+      !this.isVNavIndexValid
+      || verticalPathCalculator === undefined
+      || plan === undefined
+      || verticalPlan === undefined
+      || vnavState === VNavState.Disabled
+      || vnavTrackingPhase === GarminVNavTrackingPhase.None
+    ) {
       this.clearData();
       return;
     }
@@ -430,7 +518,7 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
           ) {
             // negative FPA = downward
             const requiredFpa = VNavUtils.getFpaFromVerticalSpeed(vsr, groundSpeed);
-            const isRequiredFpaValid = requiredFpa >= -this.verticalPathCalc.maxFlightPathAngle;
+            const isRequiredFpaValid = requiredFpa >= -verticalPathCalculator.maxFlightPathAngle;
 
             showTargetAltitude = true;
             showVsr = isRequiredFpaValid;
@@ -545,31 +633,9 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
       return;
     }
 
-    this.indicatedAlt.pause();
-    this.groundSpeed.pause();
-
-    this.activeNavSource.pause();
-
-    this.approachDetails.pause();
-
-    this.vnavState.pause();
-    this.vnavFlightPhaseSource.pause();
-    this.vnavTrackingPhaseSource.pause();
-    this.vnavPathMode.pause();
-    this.vnavCruiseAltitude.pause();
-    this.vnavActiveConstraintLegIndex.pause();
-    this.vnavFpa.pause();
-    this.vnavVsRequired.pause();
-    this.vnavVerticalDeviation.pause();
-    this.vnavTodIndex.pause();
-    this.vnavTodDistance.pause();
-    this.vnavBodIndex.pause();
-    this.vnavBodDistance.pause();
-    this.vnavTocIndex.pause();
-    this.vnavTocDistance.pause();
-    this.vnavBocIndex.pause();
-    this.vnavBocDistance.pause();
-    this.approachGuidanceMode.pause();
+    for (const pauseable of this.pauseable) {
+      pauseable.pause();
+    }
 
     this.clockSub?.pause();
     this.vnavStateSub?.pause();
@@ -610,7 +676,10 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
     this.vnavBocDistance.destroy();
     this.approachGuidanceMode.destroy();
 
+    this.fmsSub?.destroy();
+    this.vnavIndexSub?.destroy();
     this.adcIndexSub?.destroy();
+    this.cdiIdSub?.destroy();
     this.clockSub?.destroy();
     this.vnavStateSub?.destroy();
   }

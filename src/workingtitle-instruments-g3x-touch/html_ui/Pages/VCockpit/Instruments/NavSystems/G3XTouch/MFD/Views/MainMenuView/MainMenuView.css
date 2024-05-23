@@ -1,0 +1,19 @@
+.main-menu-view-content {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.main-menu-view-row {
+  height: var(--scroll-list-item-length);
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: repeat(4, 1fr);
+  justify-items: center;
+  align-items: center;
+}
+
+.main-menu-view-title-img {
+  padding-right: 6px;
+}

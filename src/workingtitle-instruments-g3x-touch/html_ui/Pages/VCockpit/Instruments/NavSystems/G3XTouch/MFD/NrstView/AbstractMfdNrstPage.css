@@ -1,0 +1,16 @@
+.mfd-nrst-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.gdu-460-display .mfd-nrst-page {
+  padding: 0px 6px;
+  font-size: 18px;
+}

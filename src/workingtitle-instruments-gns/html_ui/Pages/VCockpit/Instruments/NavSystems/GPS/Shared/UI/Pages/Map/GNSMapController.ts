@@ -1,11 +1,12 @@
 import {
-  AirportRunway, BingComponent, FlightPlanner, FlightPlannerEvents, GeoPoint, GeoPointInterface, GPSSatComputerEvents, GPSSystemState, LNavEvents, MapRotation,
-  MapSystemContext, MapSystemController, MapSystemKeys, MapTrafficAlertLevelVisibility, NavEvents, NavMath, NumberUnitInterface, ResourceConsumer, Unit,
-  UnitFamily, UnitType, UserSetting, UserSettingValueFilter, Vec2Math
+  AirportRunway, BingComponent, GeoPoint, GeoPointInterface, GPSSatComputerEvents, GPSSystemState, LNavEvents,
+  LNavObsEvents, LNavUtils, MapRotation, MapSystemContext, MapSystemController, MapSystemKeys,
+  MapTrafficAlertLevelVisibility, NavMath, NumberUnitInterface, ResourceConsumer, Unit, UnitFamily, UnitType,
+  UserSetting, UserSettingValueFilter, Vec2Math
 } from '@microsoft/msfs-sdk';
 
 import {
-  AirportSize, AirportWaypoint, GarminMapKeys, LNavDataEvents, MapTrafficAltitudeRestrictionMode, MapTrafficMotionVectorMode
+  AirportSize, AirportWaypoint, Fms, GarminMapKeys, LNavDataEvents, MapTrafficAltitudeRestrictionMode, MapTrafficMotionVectorMode
 } from '@microsoft/msfs-garminsdk';
 
 import { GNSSettingsProvider } from '../../../Settings/GNSSettingsProvider';
@@ -75,13 +76,15 @@ export class GNSMapController extends MapSystemController<GNSMapModules, GNSMapL
    * Creates an instance of the GNSMapController.
    * @param context The map system context to use with this controller.
    * @param settingProvider The GNS settings provider to use with this controller.
-   * @param flightPlanner The GNS FMS flight planner.
+   * @param fms The GNS FMS flight planner.
    * @param forceTrackUp Whether or not the map is forced into track up mode.
    */
-  constructor(context: MapSystemContext<GNSMapModules, GNSMapLayers, GNSMapControllers, GNSMapContextProps>,
+  constructor(
+    context: MapSystemContext<GNSMapModules, GNSMapLayers, GNSMapControllers, GNSMapContextProps>,
     private readonly settingProvider: GNSSettingsProvider,
-    private readonly flightPlanner: FlightPlanner,
-    private readonly forceTrackUp?: boolean) {
+    private readonly fms: Fms,
+    private readonly forceTrackUp?: boolean
+  ) {
     super(context);
   }
 
@@ -99,8 +102,10 @@ export class GNSMapController extends MapSystemController<GNSMapModules, GNSMapL
       this.settingProvider.map.getSetting('map_orientation').sub(r => rotationModule.rotationType.set(r), true);
     }
 
-    this.context.bus.getSubscriber<LNavDataEvents>().on('lnavdata_waypoint_bearing_true').whenChanged().handle(brg => this.onWaypointBearingChanged(brg));
-    this.context.bus.getSubscriber<FlightPlannerEvents>().on('fplActiveLegChange')
+    const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(this.fms.lnavIndex);
+
+    this.context.bus.getSubscriber<LNavDataEvents>().on(`lnavdata_waypoint_bearing_true${lnavTopicSuffix}`).whenChanged().handle(brg => this.onWaypointBearingChanged(brg));
+    this.fms.flightPlanner.onEvent('fplActiveLegChange')
       .handle(() => this.onWaypointBearingChanged(this.context.model.getModule(GNSMapKeys.WaypointBearing)?.waypointBearing.get()));
 
     this.settingProvider.map.getAllSettings().forEach(s => s.sub(() => this.syncElementVisibilities(rangeModule.nominalRange.get()), true));
@@ -130,11 +135,13 @@ export class GNSMapController extends MapSystemController<GNSMapModules, GNSMapL
 
     //Kick the plan calculated event when the LNAV transition mode changes in order to force
     //a flight plan redraw (needed for switching draw styles during holds)
-    this.context.bus.getSubscriber<LNavEvents>().on('lnav_transition_mode').whenChanged().handle(() => {
-      this.context.model.getModule('flightPlan').getPlanSubjects(0).planCalculated.notify(undefined);
+    this.context.bus.getSubscriber<LNavEvents>().on(`lnav_transition_mode${lnavTopicSuffix}`).whenChanged().handle(() => {
+      if (this.context.model.getModule('flightPlan') !== undefined) {
+        this.context.model.getModule('flightPlan').getPlanSubjects(0).planCalculated.notify(undefined);
+      }
     });
 
-    this.context.bus.getSubscriber<NavEvents>().on('gps_obs_active').whenChanged().handle(this.onObsActiveChanged.bind(this));
+    this.context.bus.getSubscriber<LNavObsEvents>().on(`lnav_obs_active${lnavTopicSuffix}`).whenChanged().handle(this.onObsActiveChanged.bind(this));
   }
 
   /**
@@ -145,7 +152,7 @@ export class GNSMapController extends MapSystemController<GNSMapModules, GNSMapL
     const dtkModule = this.context.model.getModule(GNSMapKeys.WaypointBearing);
 
     if (dtkModule !== undefined) {
-      if (this.flightPlanner.hasActiveFlightPlan() && this.flightPlanner.getActiveFlightPlan().length > 1) {
+      if (this.fms.flightPlanner.hasActiveFlightPlan() && this.fms.flightPlanner.getActiveFlightPlan().length > 1) {
         dtkModule.waypointBearing.set(brg);
       } else {
         dtkModule.waypointBearing.set(undefined);

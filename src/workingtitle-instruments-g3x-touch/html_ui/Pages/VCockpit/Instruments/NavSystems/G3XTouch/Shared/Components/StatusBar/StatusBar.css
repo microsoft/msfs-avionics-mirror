@@ -1,0 +1,71 @@
+.status-bar-bottom {
+  position: relative;
+  background: linear-gradient(#424242, black);
+  border: solid 2px black;
+  outline: solid 1px #7f7f7f;
+  outline-offset: -1px;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+.gdu-460-display .status-bar-bottom {
+  font-size: 15px;
+}
+
+.status-bar-section {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: baseline;
+  padding-left: 4px;
+  padding-top: 1px;
+  padding-right: 2px;
+  justify-content: space-between;
+}
+
+.status-bar-divider {
+  /*
+   * We need the divider to overflow its container at the top and bottom by 1px each so that it "connects" to the
+   * "border" of the status bar (which is actually the outline).
+   */
+  position: relative;
+  top: -1px;
+  width: 3px;
+  height: calc(100% + 2px);
+  background: #7f7f7f;
+  border-left: solid 1px black;
+  border-right: solid 1px black;
+}
+
+.status-bar-knob-left {
+  width: 404px;
+  padding-left: 4px;
+  justify-content: flex-start;
+}
+
+.status-bar-section.status-bar-timer-container {
+  width: 111px;
+}
+
+.status-bar-oat {
+  width: 91px;
+}
+
+.status-bar-section.status-bar-clock-container {
+  width: 141px;
+  padding-right: 6px;
+}
+
+.status-bar-section.status-bar-messages-container {
+  width: 99px;
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.status-bar-knob-right {
+  width: 432px;
+  justify-content: flex-end;
+  padding-right: 4px;
+}

@@ -1,0 +1,19 @@
+.flight-director-dual-cue-pitch {
+  box-sizing: content-box;
+  width: 172px;
+  height: 4px;
+}
+
+.flight-director-dual-cue-bank {
+  box-sizing: content-box;
+  width: 4px;
+  height: 172px;
+}
+
+.flight-director-dual-cue-bar {
+  background: var(--g3x-color-magenta);
+}
+
+.flight-director-dual-cue-outline {
+  border: solid 1px var(--g3x-color-black);
+}

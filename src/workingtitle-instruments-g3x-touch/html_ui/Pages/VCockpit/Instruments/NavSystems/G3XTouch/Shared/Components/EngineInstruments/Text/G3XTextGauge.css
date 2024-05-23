@@ -1,0 +1,7 @@
+.text_gauge_container {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}

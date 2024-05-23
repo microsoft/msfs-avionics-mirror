@@ -1,5 +1,7 @@
-import { ClockEvents, Consumer, EventBus } from '../index';
-
+import { Consumer } from '../data/Consumer';
+import { EventBus } from '../data/EventBus';
+import { ClockEvents } from '../instruments/Clock';
+import { AbstractFmcPage } from './AbstractFmcPage';
 import { FmcColumnInformation, FmcDirection, FmcOutputRow, FmcOutputTemplate, FmcRenderer } from './FmcRenderer';
 import { FmcRendererOptions } from './FmcScreenOptions';
 
@@ -81,17 +83,12 @@ export class SimpleFmcRenderer implements FmcRenderer {
     }
   }
 
-  /**
-   * Edits part of the row output
-   * @param output the output to insert
-   * @param rowIndex the row index to insert at
-   * @throws if `rowIndex` is too high
-   */
+  /** @inheritDoc */
   editOutputTemplate(output: FmcOutputTemplate, rowIndex: number): void {
     const rowsAvailable = (this.options.screenCellHeight) - rowIndex;
 
     if (rowsAvailable <= 0 || rowsAvailable < output.length) {
-      throw new Error(`[FmcRenderer](editTemplate) Tried to write ${output.length - rowsAvailable} too many rows.`);
+      throw new Error(`[SimpleFmcRenderer](editTemplate) Tried to write ${output.length - rowsAvailable} too many rows.`);
     }
 
     for (let i = rowIndex, c = 0; i < rowIndex + rowsAvailable && output[c]; i++, c++) {
@@ -109,7 +106,7 @@ export class SimpleFmcRenderer implements FmcRenderer {
 
     // parse and fill in the column data
     for (let index = 0; index < this.options.screenCellHeight; index++) {
-      this.buildRowInfo(this.currentOutput[index], index);
+      this.currentOutput[index] && this.buildRowInfo(this.currentOutput[index], index);
     }
 
     // go through all rows and columns and update the content if necessary
@@ -141,34 +138,62 @@ export class SimpleFmcRenderer implements FmcRenderer {
    * Parse row templates and build the column information.
    * @param template the template to parse
    * @param rowIndex the row index
+   * @throws If something other than a `PositionedFmcColumn` follows another `PositionedFmcColumn`.
    */
   private buildRowInfo(template: FmcOutputRow, rowIndex: number): void {
+    const illegalOrder = template.some((column, index) =>
+      AbstractFmcPage.isRenderedPositionedFmcColumn(column) &&
+      (!AbstractFmcPage.isRenderedPositionedFmcColumn(template[index + 1]) && template[index + 1] !== undefined)
+    );
+
+    if (illegalOrder) {
+      console.warn(template);
+      throw new Error('FmcRenderer: Nothing may follow a `PositionedFmcColumn` in an `FmcRenderTemplateRow` except for another `PositionedFmcColumn`.');
+    }
+
     // only content
     if (rowIndex < this.options.screenCellHeight && template) {
-      if (template[0] && template[0] !== '') {
+      if (template[0] && typeof template[0] === 'string' && template[0] !== '') {
         // LEFT
         this.buildColumnInformation(template[0], rowIndex, 'left');
       }
 
-      if (template[1] && template[1] !== '') {
+      if (template[1] && typeof template[1] === 'string' && template[1] !== '') {
         // RIGHT
         this.buildColumnInformation(template[1], rowIndex, 'right');
       }
 
-      if (template[2] && template[2] !== '') {
+      if (template[2] && typeof template[2] === 'string' && template[2] !== '') {
         // CENTER
         this.buildColumnInformation(template[2], rowIndex, 'center');
       }
     }
+
+    template.forEach(column => {
+      if (AbstractFmcPage.isRenderedPositionedFmcColumn(column) && column.text !== '') {
+        this.buildColumnInformation(
+          column.text,
+          rowIndex,
+          column.alignment,
+          column.columnIndex,
+        );
+      }
+    });
   }
 
   /**
    * Builds the data struct for the row's columns.
    * @param templateRowColumn template
    * @param rowIndex the row index
-   * @param dir direction
+   * @param dir direction, defaults to `left`
+   * @param columnIndex If specified, determines which column the text should begin or end on, whether left- or right-aligned, respectively.
    */
-  private buildColumnInformation(templateRowColumn: string, rowIndex: number, dir: FmcDirection = 'left'): void {
+  private buildColumnInformation(
+    templateRowColumn: string,
+    rowIndex: number,
+    dir: FmcDirection = 'left',
+    columnIndex?: number,
+  ): void {
     const content = this.parseContent(templateRowColumn);
 
     let charCount = 0;
@@ -179,25 +204,28 @@ export class SimpleFmcRenderer implements FmcRenderer {
     charCount = Math.min(charCount, this.options.screenCellWidth);
 
     // set start pos
-    let charIndex = 0;
-    if (dir === 'right') {
-      charIndex = this.options.screenCellWidth - charCount;
+    let charGridColumn = 0;
+    if (columnIndex !== undefined) {
+      charGridColumn = dir === 'right' ? columnIndex - charCount + 1 : columnIndex;
+    } else if (dir === 'right') {
+      charGridColumn = this.options.screenCellWidth - charCount;
     } else if (dir == 'center') {
-      charIndex = Math.round((((this.options.screenCellWidth - 1) / 2) - (charCount / 2)));
+      charGridColumn = Math.round((((this.options.screenCellWidth - 1) / 2) - (charCount / 2)));
     }
 
     // build data struct
     const row = this.columnData[rowIndex];
-    content.forEach(x => {
-      const letters = x.content.split('');
-      letters.forEach((c: string) => {
-        if (charIndex >= this.options.screenCellWidth) {
-          return;
+    content.forEach(styleGroup => {
+      const letters = styleGroup.content.split('');
+      letters.forEach((char: string) => {
+        const colInfo = row[charGridColumn] as FmcColumnInformation | undefined;
+
+        if (charGridColumn < this.options.screenCellWidth && colInfo !== undefined) {
+          colInfo.styles = styleGroup.styles;
+          colInfo.content = char === '' ? ' ' : char;
         }
-        const colInfo = row[charIndex];
-        colInfo.styles = x.styles;
-        colInfo.content = c === '' ? ' ' : c;
-        charIndex++;
+
+        charGridColumn++;
       });
     });
   }
@@ -223,7 +251,7 @@ export class SimpleFmcRenderer implements FmcRenderer {
       while (match != null) {
         const el: FmcColumnInformation = {
           content: match[1].replace('__LSB', '[').replace('__RSB', ']'),
-          styles: ''
+          styles: '',
         };
 
         if (match[2]) {
@@ -331,7 +359,7 @@ export class SimpleFmcRenderer implements FmcRenderer {
       for (let c = 0; c < this.options.screenCellWidth; c++) {
         const colInfo: FmcColumnInformation = {
           content: ' ',
-          styles: ''
+          styles: '',
         };
 
         rowColumns.push(colInfo);

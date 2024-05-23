@@ -1,6 +1,6 @@
 import { EventBus, MappedSubject, Subject, UserSetting } from '@microsoft/msfs-sdk';
 
-import { DisplayPanesUserSettings } from '../../Settings/DisplayPanesUserSettings';
+import { DisplayPaneController, DisplayPanesUserSettings } from '../../Settings/DisplayPanesUserSettings';
 import { DisplayPaneControlEvents } from './DisplayPaneControlEvents';
 import { DisplayPaneEvents } from './DisplayPaneEvents';
 import { ControllableDisplayPaneIndex, DisplayPaneControlGtcIndex, DisplayPaneIndex } from './DisplayPaneTypes';
@@ -51,7 +51,7 @@ export class DisplayPanesController {
     [DisplayPaneIndex.RightPfdInstrument]: this.displayPanesSettings.getSetting(`displayPaneVisible_${DisplayPaneIndex.RightPfdInstrument}`),
   };
 
-  private readonly displayPaneControllerSettings: Record<DisplayPaneIndex, UserSetting<DisplayPaneControlGtcIndex>> = {
+  private readonly displayPaneControllerSettings: Record<DisplayPaneIndex, UserSetting<DisplayPaneController>> = {
     [DisplayPaneIndex.LeftPfdInstrument]: this.displayPanesSettings.getSetting(`displayPaneController_${DisplayPaneIndex.LeftPfdInstrument}`),
     [DisplayPaneIndex.LeftPfd]: this.displayPanesSettings.getSetting(`displayPaneController_${DisplayPaneIndex.LeftPfd}`),
     [DisplayPaneIndex.LeftMfd]: this.displayPanesSettings.getSetting(`displayPaneController_${DisplayPaneIndex.LeftMfd}`),
@@ -89,7 +89,7 @@ export class DisplayPanesController {
           ? DisplayPaneControlGtcIndex.LeftGtc
           : gtc2SelectedPane === paneIndex
             ? DisplayPaneControlGtcIndex.RightGtc
-            : -1;
+            : -1 as DisplayPaneControlGtcIndex; // Explicitly cast -1 to DisplayPaneControlGtcIndex
       }
     }, true);
 

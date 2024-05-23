@@ -1,15 +1,15 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
-  DefaultLodBoundaryCache, FlightPlanner, FlightPlannerEvents, FSComponent, GeoPoint, LatLonInterface, MapAltitudeArcLayer, MapAltitudeArcLayerModules,
-  MapAltitudeArcLayerProps, MapAltitudeArcModule, MapBinding, MapCullableTextLabelManager,
-  MapFollowAirplaneModule, MapGenericLayer, MapGenericLayerProps, MapIndexedRangeModule, MapLayerProps, MapLineLayer, MapLineLayerProps,
-  MapOwnAirplanePropsModule, MapSyncedCanvasLayer, MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys, MapTerrainColorsModule,
+  DefaultLodBoundaryCache, FlightPlanner, FSComponent, GeoPoint, LatLonInterface, MapAltitudeArcLayer, MapAltitudeArcLayerModules,
+  MapAltitudeArcLayerProps, MapAltitudeArcModule, MapBinding, MapCullableTextLabelManager, MapFollowAirplaneModule, MapGenericLayer,
+  MapGenericLayerProps, MapIndexedRangeModule, MapLayerProps, MapLineLayer, MapLineLayerProps, MapOwnAirplanePropsModule,
+  MapSyncedCanvasLayer, MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys, MapTerrainColorsModule,
   MapTrafficIntruderIconFactory, MapTrafficModule, MapWxrModule, MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer,
-  ResourceModerator, SetSubject, Subject, Subscribable, SubscribableSet, SubscribableSetEventType, Subscription, TcasAlertLevel, TcasIntruder,
+  ResourceModerator, SetSubject, Subject, Subscribable, SubscribableSet, SubscribableSetEventType, SubscribableUtils, Subscription, TcasAlertLevel, TcasIntruder,
   TrafficOffScaleOobOptions, UnitFamily, UnitType, UserSettingManager, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
-import { Fms } from '../../flightplan/Fms';
+import { FmsUtils } from '../../flightplan/FmsUtils';
 import { MapDeclutterSettingMode } from '../../settings/MapUserSettings';
 import { TrafficUserSettingTypes } from '../../settings/TrafficUserSettings';
 import { UnitsUserSettingManager } from '../../settings/UnitsUserSettings';
@@ -94,7 +94,24 @@ export type FlightPlanOptions = {
 
   /** Whether to always draw the entire plan, or a subscribable which provides it. Defaults to `false`. */
   drawEntirePlan?: boolean | Subscribable<boolean>;
-}
+};
+
+/**
+ * Options for the display of the active flight plan.
+ */
+export type ActiveFlightPlanOptions = {
+  /** The index of the LNAV from which to source data. Defaults to `0`. */
+  lnavIndex?: number | Subscribable<number>;
+
+  /** The index of the VNAV from which to source data. Defaults to `0`. */
+  vnavIndex?: number | Subscribable<number>;
+
+  /**
+   * Whether to support flight plan focus on the primary flight plan. If focus is supported, the primary flight plan
+   * will be drawn when it is focused, regardless of whether it is active. Defaults to `false`.
+   */
+  supportFocus?: boolean;
+};
 
 /**
  * Options for the waypoint highlight line.
@@ -107,7 +124,7 @@ export type WaypointHighlightLineOptions = Omit<MapLineLayerProps, keyof MapLaye
 export type TrafficIconOptions = MapTrafficIntruderIconOptions & {
   /** The name of the icon font. */
   font: string;
-}
+};
 
 /**
  * Options for the traffic map range rings.
@@ -979,12 +996,12 @@ export class GarminMapBuilder {
    * If a text layer has already been added to the builder, its order will be changed so that it is rendered above the
    * flight plan layers. Otherwise, a text layer will be added to the builder after the flight plan layers.
    * @param mapBuilder The map builder to configure.
-   * @param flightPlanner The flight planner.
+   * @param flightPlanner The flight planner from which to retrieve the active flight plan.
    * @param pathRenderer The flight path renderer to use to the draw the flight plan.
    * @param drawEntirePlan Whether the entire flight plan should always be drawn.
    * @param configure A function used to configure the display and styling of flight plan waypoint icons and labels.
-   * @param supportFocus Whether to support flight plan focus on the primary flight plan. If focus is supported, the
-   * primary flight plan will be drawn when it is focused, regardless of whether it is active. Defaults to `false`.
+   * @param options Options with which to configure the display of the active flight plan. If a `boolean` value is
+   * provided in place of an options object, then it will be interpreted as the `supportFocus` option.
    * @param order The order to assign to the flight plan layers. Layers with lower assigned order will be attached to
    * the map before and appear below layers with greater assigned order values. Defaults to the number of layers
    * already added to the map builder.
@@ -992,24 +1009,29 @@ export class GarminMapBuilder {
    */
   public static activeFlightPlan<MapBuilder extends MapSystemBuilder>(
     mapBuilder: MapBuilder,
-    flightPlanner: FlightPlanner,
+    flightPlanner: FlightPlanner | Subscribable<FlightPlanner>,
     pathRenderer: MapFlightPathPlanRenderer,
     drawEntirePlan: boolean | Subscribable<boolean>,
     configure: (builder: MapWaypointDisplayBuilder) => void,
-    supportFocus = false,
+    options?: Readonly<ActiveFlightPlanOptions> | boolean,
     order?: number
   ): MapBuilder {
+    if (typeof options !== 'object') {
+      options = {
+        supportFocus: options
+      };
+    }
+
+    const lnavIndex = options.lnavIndex ?? 0;
+    const vnavIndex = options.vnavIndex ?? 0;
+    const supportFocus = options.supportFocus ?? false;
+
     if (supportFocus) {
       // Because flight plan focus still leaves the DTO random flight plan visible when it is active, we need to
       // support drawing two flight plans at the same time under those circumstances.
 
-      const primaryPlanProvider = new MapFlightPlannerPlanDataProvider(mapBuilder.bus, flightPlanner);
-      const dtoPlanProvider = new MapFlightPlannerPlanDataProvider(mapBuilder.bus, flightPlanner);
-
-      let fplIndexSub: Subscription | undefined;
-      let isFocusedSub: Subscription | undefined;
-
-      let controller: MapSystemGenericController;
+      const primaryPlanProvider = new MapFlightPlannerPlanDataProvider(mapBuilder.bus, { flightPlanner, lnavIndex, vnavIndex });
+      const dtoPlanProvider = new MapFlightPlannerPlanDataProvider(mapBuilder.bus, { flightPlanner, lnavIndex, vnavIndex });
 
       return mapBuilder
         .with(
@@ -1023,41 +1045,70 @@ export class GarminMapBuilder {
         )
         .withController<MapSystemGenericController, { [GarminMapKeys.FlightPlanFocus]?: MapFlightPlanFocusModule }>(
           'activeFlightPlanProvider',
-          context => controller = new MapSystemGenericController(context, {
-            onAfterMapRender: (): void => {
-              const focusModule = context.model.getModule(GarminMapKeys.FlightPlanFocus);
+          context => {
+            let controller: MapSystemGenericController;
 
-              const planProviderHandler = (): void => {
-                const activePlanIndex = flightPlanner.activePlanIndex;
-                const isFlightPlanFocused = focusModule?.planHasFocus.get() ?? false;
+            let plannerSub: Subscription | undefined;
+            let fplIndexSub: Subscription | undefined;
+            let isFocusedSub: Subscription | undefined;
 
-                // Show the primary plan when a DTO random is not active or when it is focused.
-                primaryPlanProvider.setPlanIndex(activePlanIndex === Fms.PRIMARY_PLAN_INDEX || isFlightPlanFocused ? Fms.PRIMARY_PLAN_INDEX : -1);
-                // Only show the DTO random plan when a DTO random is active.
-                dtoPlanProvider.setPlanIndex(activePlanIndex === Fms.DTO_RANDOM_PLAN_INDEX ? Fms.DTO_RANDOM_PLAN_INDEX : -1);
-              };
+            return controller = new MapSystemGenericController(context, {
+              onAfterMapRender: (): void => {
+                const focusModule = context.model.getModule(GarminMapKeys.FlightPlanFocus);
 
-              fplIndexSub = context.bus.getSubscriber<FlightPlannerEvents>().on('fplIndexChanged').handle(planProviderHandler);
-              isFocusedSub = focusModule?.planHasFocus.sub(planProviderHandler, true);
-            },
+                const plannerSubscribable = SubscribableUtils.toSubscribable(flightPlanner, true);
 
-            onMapDestroyed: (): void => {
-              controller.destroy();
-            },
+                const planProviderHandler = (): void => {
+                  const activePlanIndex = plannerSubscribable.get().activePlanIndex;
+                  const isFlightPlanFocused = focusModule?.planHasFocus.get() ?? false;
 
-            onDestroyed: (): void => {
-              fplIndexSub?.destroy();
-              isFocusedSub?.destroy();
-            }
-          })
+                  // Show the primary plan when a DTO random is not active or when it is focused.
+                  primaryPlanProvider.setPlanIndex(activePlanIndex === FmsUtils.PRIMARY_PLAN_INDEX || isFlightPlanFocused ? FmsUtils.PRIMARY_PLAN_INDEX : -1);
+                  // Only show the DTO random plan when a DTO random is active.
+                  dtoPlanProvider.setPlanIndex(activePlanIndex === FmsUtils.DTO_RANDOM_PLAN_INDEX ? FmsUtils.DTO_RANDOM_PLAN_INDEX : -1);
+                };
+
+                isFocusedSub = focusModule?.planHasFocus.sub(planProviderHandler);
+
+                plannerSub = plannerSubscribable.sub(planner => {
+                  fplIndexSub?.destroy();
+                  fplIndexSub = planner.onEvent('fplIndexChanged').handle(planProviderHandler);
+                  planProviderHandler();
+                }, true);
+              },
+
+              onMapDestroyed: (): void => {
+                controller.destroy();
+              },
+
+              onDestroyed: (): void => {
+                plannerSub?.destroy();
+                fplIndexSub?.destroy();
+                isFocusedSub?.destroy();
+
+                primaryPlanProvider.destroy();
+                dtoPlanProvider.destroy();
+              }
+            });
+          }
         );
     } else {
-      return mapBuilder.with(
-        GarminMapBuilder.flightPlans,
-        [{ dataProvider: new MapActiveFlightPlanDataProvider(mapBuilder.bus, flightPlanner), pathRenderer, drawEntirePlan }],
-        configure,
-        order
-      );
+      const dataProvider = new MapActiveFlightPlanDataProvider(mapBuilder.bus, { flightPlanner, lnavIndex });
+
+      return mapBuilder
+        .with(
+          GarminMapBuilder.flightPlans,
+          [{
+            dataProvider,
+            pathRenderer,
+            drawEntirePlan
+          }],
+          configure,
+          order
+        )
+        .withDestroy('activeFlightPlanProvider', () => {
+          dataProvider.destroy();
+        });
     }
   }
 
@@ -1103,7 +1154,7 @@ export class GarminMapBuilder {
     mapBuilder: MapBuilder,
     includeLine: boolean,
     configure: (builder: MapWaypointDisplayBuilder) => void,
-    lineOptions?: WaypointHighlightLineOptions,
+    lineOptions?: Readonly<WaypointHighlightLineOptions>,
     order?: number
   ): MapBuilder {
     mapBuilder

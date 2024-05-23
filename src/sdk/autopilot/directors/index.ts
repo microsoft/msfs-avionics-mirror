@@ -3,6 +3,7 @@ export * from './APAltDirector';
 export * from './APFLCDirector';
 export * from './APFPADirector';
 export * from './APGPDirector';
+export * from './APGpsSteerDirector';
 export * from './APGSDirector';
 export * from './APHdgDirector';
 export * from './APHdgHoldDirector';

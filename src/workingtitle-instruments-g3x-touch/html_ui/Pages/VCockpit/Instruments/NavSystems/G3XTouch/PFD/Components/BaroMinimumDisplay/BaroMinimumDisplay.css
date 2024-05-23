@@ -1,0 +1,34 @@
+.baro-minimum-display {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.gdu-460-display .baro-minimum-display {
+  width: 96px;
+  height: 56px;
+  padding: 6px 0px 0px;
+
+  --baro-minimum-display-title-font-size: 18px;
+
+  --baro-minimum-display-value-margin-right: 10px;
+  --baro-minimum-display-value-font-size: 22px;
+}
+
+.baro-minimum-display-title {
+  text-align: center;
+  font-size: var(--baro-minimum-display-title-font-size);
+}
+
+.baro-minimum-display-value {
+  margin-right: var(--baro-minimum-display-value-margin-right);
+  color: var(--g3x-color-cyan);
+  text-align: right;
+  font-size: var(--baro-minimum-display-value-font-size);
+}
+
+.baro-minimum-display.minimums-alert-atorbelow .baro-minimum-display-value {
+  color: var(--g3x-color-yellow);
+}

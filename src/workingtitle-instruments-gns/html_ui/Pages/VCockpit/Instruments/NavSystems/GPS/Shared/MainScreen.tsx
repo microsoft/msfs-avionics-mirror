@@ -1,24 +1,32 @@
 import {
-  AdcPublisher, APRadioNavInstrument, AutopilotInstrument, Clock, CombinedSubject, ComponentProps, ComRadioIndex,
-  ComSpacing, ConsumerSubject, ControlPublisher, DisplayComponent, EventBus, FacilityLoader, FacilityRepository, FlightPathCalculator, FlightPlanner,
-  FSComponent, VNavControlEvents, GNSSPublisher, GPSSatComputer, GpsSynchronizer, HEvent, InstrumentBackplane, LNavEvents,
-  LNavSimVarPublisher, MappedSubject, NavEvents, NavRadioIndex, NearestContext, RadioType, SBASGroupName, SetSubject,
-  TrafficInstrument, VNavDataEventPublisher, VNavSimVarPublisher, VNode, Wait, SimVarValueType, Subject, ControlEvents, NavSourceType,
-  FlightPathAirplaneSpeedMode, BitFlags, IntersectionType, GameStateProvider, ClockEvents
+  AdcPublisher, APRadioNavInstrument, AutopilotInstrument, BitFlags, CdiControlEvents, CdiUtils, Clock, ClockEvents,
+  CombinedSubject, ComponentProps, ComRadioIndex, ComSpacing, ConsumerSubject, ConsumerValue, ControlPublisher,
+  DisplayComponent, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathCalculator,
+  FlightPlanner, FSComponent, GameStateProvider, GNSSPublisher, GPSSatComputer, GPSSatComputerEvents, GpsSynchronizer,
+  GPSSystemState, HEvent, InstrumentBackplane, IntersectionType, LNavComputer, LNavControlEvents, LNavObsManager,
+  LNavObsSimVarPublisher, LNavSimVarPublisher, LNavUtils, NavRadioIndex, NearestContext, RadioType, SBASGroupName,
+  SetSubject, SimVarValueType, TrafficInstrument, VNavDataEventPublisher, VNavSimVarPublisher, VNode, Wait
 } from '@microsoft/msfs-sdk';
 
 import {
-  FlightPlanSimSyncManager, Fms, GarminAdsb, GarminControlEvents, LNavDataSimVarPublisher, NavdataComputer, NavEventsPublisher,
+  DefaultObsSuspDataProvider, FlightPlanSimSyncManager, FmaData, Fms, GarminAdsb, GarminAPUtils,
+  GarminGlidepathComputer, GarminNavToNavComputer, GarminObsLNavModule, LNavDataSimVarPublisher, NavdataComputer, NavEventsPublisher,
   ObsSuspModes, TrafficAdvisorySystem
 } from '@microsoft/msfs-garminsdk';
 
 import { GNSAPConfig } from './Autopilot/GNSAPConfig';
+import { GNSAPStateManager } from './Autopilot/GNSAPStateManager';
 import { GNSAutopilot } from './Autopilot/GNSAutopilot';
-import { GnsVnavController } from './Navigation/Vnav/GnsVnavController';
-import { CDINavSource, GnsCdiMode } from './Instruments/CDINavSource';
+import { CDINavSource } from './Instruments/CDINavSource';
+import { ExternalSourceEvents } from './Instruments/ExternalSourceEvents';
 import { GNSAdsbPublisher } from './Instruments/GNSAdsbPublisher';
+import { GnsAhrsPublisher } from './Instruments/GnsAhrsPublisher';
 import { PowerEvents, PowerState } from './Instruments/Power';
+import { GnsCourseController } from './Navigation/GnsCourseController';
+import { GNSExternalGuidancePublisher } from './Navigation/GNSExternalGuidancePublisher';
+import { GnsFmsUtils } from './Navigation/GnsFmsUtils';
 import { GnsObsEvents } from './Navigation/GnsObsEvents';
+import { GnsVnavController } from './Navigation/Vnav/GnsVnavController';
 import { GNSSettingsProvider } from './Settings/GNSSettingsProvider';
 import { StartupScreen } from './StartupScreen';
 import { FooterBar, NavInfoPane, PageContainer, RadioPane, StatusPane } from './UI';
@@ -27,13 +35,12 @@ import { AlertMessageEvents, AlertsSubject } from './UI/Pages/Dialogs/AlertsSubj
 import { SelfTest } from './UI/Pages/SelfTest';
 import { GNSType } from './UITypes';
 import { NearestAirportFilter } from './Utils/NearestAirportFilter';
-import { GnsFmsUtils } from './Navigation/GnsFmsUtils';
-import { GnsCourseController } from './Navigation/GnsCourseController';
-import { GnsAhrsPublisher } from './Instruments/GnsAhrsPublisher';
-import { GNSAPStateManager } from './Autopilot/GNSAPStateManager';
-import { GNSEvents } from './GNSEvents';
 
 import './MainScreen.css';
+import { GNSAPEvents } from './Autopilot/GNSAPEvents';
+import { GNSNavToNavGuidancePublisher } from './Autopilot/GNSNavToNavGuidancePublisher';
+import { GNSAPCdiSourceManager } from './Autopilot/GNSAPCdiSourceManager';
+import { GnsNavToNavManager } from './Navigation/GnsNavToNavManager';
 
 /**
  * Main Screen Options
@@ -57,6 +64,9 @@ export interface MainScreenOptions {
   /** Whether the instrument is configured to use split CDIs */
   isUsingNewCdiBehaviour: boolean;
 
+  /** Whether autopilot should be disabled */
+  disableAutopilot: boolean,
+
   /** Whether autopilot nav arming should be disabled */
   disableApNavArm: boolean,
 
@@ -64,7 +74,31 @@ export interface MainScreenOptions {
   apSupportsFlightDirector: boolean,
 
   /** Whether autopilot backcourse guidance should be disabled */
-  disableApBackCourse: boolean
+  disableApBackCourse: boolean;
+
+  /** Maximum AP bank angle */
+  maxApBankAngle?: number;
+
+  /** LNAV index, if not provided it defaults to 0 */
+  lnavIndex?: number;
+
+  /** VNAV index, if not provided it defaults to 0 */
+  vnavIndex?: number;
+
+  /** Flight planner ID, if not provided it defaults to an empty string */
+  flightPlannerId: string;
+
+  /**
+   * Whether the GNS instrument hosts a primary FMS instance. If not defined, then the instrument hosts a primary FMS
+   * instance if and only if its assigned NAV radio index is 1.
+   */
+  isFmsPrimary?: boolean;
+
+  /**
+   * The G3X external source index assigned to the GNS, either 1 or 2. If not defined, then the GNS will not attempt to
+   * communicate with the G3X.
+   */
+  g3xExternalSourceIndex?: 1 | 2;
 }
 
 
@@ -107,6 +141,7 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
   public adsbPublisher: GNSAdsbPublisher;
   public navEventsPublisher: NavEventsPublisher;
   public lNavPublisher!: LNavSimVarPublisher;
+  public lNavObsPublisher!: LNavObsSimVarPublisher;
   public vNavPublisher!: VNavSimVarPublisher;
   public lNavDataPublisher!: LNavDataSimVarPublisher;
   public vNavDataPublisher!: VNavDataEventPublisher;
@@ -117,11 +152,32 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
   public controlPublisher: ControlPublisher;
 
   //begin flight planning classes
+  private readonly isFmsPrimary = this.props.options.isFmsPrimary ?? this.isPrimaryInstrument;
+
+  private readonly lnavIndex = (this.props.options.lnavIndex !== undefined && LNavUtils.isValidLNavIndex(this.props.options.lnavIndex))
+    ? this.props.options.lnavIndex : 0;
+
+  private readonly vnavIndex = (this.props.options.vnavIndex !== undefined && LNavUtils.isValidLNavIndex(this.props.options.vnavIndex))
+    ? this.props.options.vnavIndex : 0;
+
+  private readonly cdiId = `gns${this.props.options.navIndex}`;
+
+  private readonly lnavComputer?: LNavComputer;
+  private readonly navdataComputer?: NavdataComputer;
+
+  private readonly glidepathComputer?: GarminGlidepathComputer;
+
+  private readonly navToNavComputer?: GarminNavToNavComputer;
+  private readonly navToNavManager?: GnsNavToNavManager;
+
+  private readonly fmaData = ConsumerValue.create<Readonly<FmaData> | undefined>(null, undefined);
+
+  private readonly externalGuidancePublisher?: GNSExternalGuidancePublisher;
+
   public planner: FlightPlanner;
   public facLoader: FacilityLoader;
   public calculator: FlightPathCalculator;
   public fms: Fms;
-  public navdataComputer: NavdataComputer;
 
   private primaryFlightPlanInitPromiseResolve!: () => void;
   private readonly primaryFlightPlanInitPromise = new Promise<void>(resolve => { this.primaryFlightPlanInitPromiseResolve = resolve; });
@@ -129,15 +185,19 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
   private flightPlanSimSyncManager?: FlightPlanSimSyncManager;
 
   private readonly settingsProvider = new GNSSettingsProvider(this.props.bus);
-  private cdiNavSource!: CDINavSource;
 
-  private readonly isLNavSuspended: ConsumerSubject<boolean>;
-  private readonly isObsActive: ConsumerSubject<boolean>;
-  private readonly isObsAvailable: ConsumerSubject<boolean>;
-  private readonly obsMode: MappedSubject<[boolean, boolean], ObsSuspModes>;
-  private readonly gnsCdiMode = Subject.create<GnsCdiMode>(GnsCdiMode.GPS);
+  private readonly obsManager?: LNavObsManager;
 
-  public autopilot!: GNSAutopilot;
+  private readonly obsSuspDataProvider: DefaultObsSuspDataProvider;
+  private readonly cdiNavSource = new CDINavSource(
+    this.props.class,
+    this.props.options.instrumentIndex,
+    this.props.options.navIndex,
+    this.props.bus
+  );
+
+  private apCdiSourceManager?: GNSAPCdiSourceManager;
+  public autopilot?: GNSAutopilot;
 
   private vnavController: GnsVnavController | undefined;
 
@@ -174,7 +234,7 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     SimVar.SetSimVarValue('L:XMLVAR_NEXTGEN_FLIGHTPLAN_ENABLED', SimVarValueType.Bool, true);
 
     this.alertsSubject = new AlertsSubject(this.props.bus);
-    this.gnsCourseController = new GnsCourseController(this.props.bus, this.props.options.navIndex);
+    this.gnsCourseController = new GnsCourseController(this.props.bus, this.lnavIndex, this.props.options.navIndex);
 
     this.gnssPublisher = new GNSSPublisher(this.props.bus);
 
@@ -199,6 +259,7 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
 
     this.navEventsPublisher = new NavEventsPublisher(this.props.bus);
     this.lNavPublisher = new LNavSimVarPublisher(this.props.bus);
+    this.lNavObsPublisher = new LNavObsSimVarPublisher(this.props.bus);
     this.vNavPublisher = new VNavSimVarPublisher(this.props.bus);
     this.lNavDataPublisher = new LNavDataSimVarPublisher(this.props.bus);
     this.vNavDataPublisher = new VNavDataEventPublisher(this.props.bus);
@@ -236,50 +297,113 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     });
 
     this.calculator = new FlightPathCalculator(this.facLoader, {
+      id: this.props.options.flightPlannerId,
+      initSyncRole: this.props.options.g3xExternalSourceIndex === undefined ? 'none' : 'primary',
       defaultClimbRate: 1000,
       defaultSpeed: 120,
       bankAngle: 20,
       holdBankAngle: null,
       courseReversalBankAngle: null,
       turnAnticipationBankAngle: null,
-      maxBankAngle: 20,
+      maxBankAngle: this.props.options.maxApBankAngle ?? 20,
       airplaneSpeedMode: FlightPathAirplaneSpeedMode.GroundSpeed
     }, this.props.bus);
-    this.planner = FlightPlanner.getPlanner(this.props.bus, this.calculator);
-    this.fms = new Fms(this.isPrimaryInstrument, this.props.bus, this.planner, undefined, undefined, GnsFmsUtils.gnsProcedureLegValid);
-    this.navdataComputer = new NavdataComputer(this.props.bus, this.planner, this.facLoader);
 
-    // Setup nav and control event consumers
-    const sub = this.props.bus.getSubscriber<NavEvents & LNavEvents & ControlEvents & GarminControlEvents>();
+    this.planner = FlightPlanner.getPlanner(this.props.options.flightPlannerId, this.props.bus, { calculator: this.calculator });
 
-    sub.on('cdi_src_gps_toggle').handle(this.handleCDISourceToggle.bind(this));
-
-    sub.on('cdi_src_set').handle(v => {
-      if (v.type === NavSourceType.Nav) {
-        this.gnsCdiMode.set(GnsCdiMode.VLOC);
+    this.fms = new Fms(
+      this.isFmsPrimary,
+      this.props.bus,
+      this.planner,
+      undefined,
+      {
+        procedureLegMapper: GnsFmsUtils.gnsProcedureLegValid,
+        lnavIndex: this.lnavIndex,
+        navRadioIndexes: [this.props.options.navIndex],
+        cdiId: this.cdiId,
+        disableApproachAvailablePublish: true
       }
-    });
-
-    this.gnsCdiMode.sub(v => {
-      this.props.bus.getPublisher<GNSEvents>().pub('gns_cdi_mode', { navIndex: this.props.options.navIndex, gnsCdiMode: v }, true, true);
-    }, true);
-
-    this.isLNavSuspended = ConsumerSubject.create(sub.on('lnav_is_suspended'), false);
-    this.isObsActive = ConsumerSubject.create(sub.on('gps_obs_active'), false);
-    this.isObsAvailable = ConsumerSubject.create(sub.on('obs_available'), false);
-
-    this.obsMode = MappedSubject.create(
-      ([isLnavSuspended, isObsActive]): ObsSuspModes => {
-        return isObsActive
-          ? ObsSuspModes.OBS
-          : isLnavSuspended ? ObsSuspModes.SUSP : ObsSuspModes.NONE;
-      },
-      this.isLNavSuspended,
-      this.isObsActive
     );
 
+    const approachActiveTopic = `gns_ap_approach_active_${this.props.options.navIndex}` as const;
+    this.fms.onEvent('fms_flight_phase').handle(flightPhase => {
+      this.props.bus.getPublisher<GNSAPEvents>().pub(approachActiveTopic, flightPhase.isApproachActive, true, true);
+    });
+
+    if (this.isFmsPrimary) {
+      this.lnavComputer = new LNavComputer(
+        this.lnavIndex,
+        this.props.bus,
+        this.planner,
+        new GarminObsLNavModule(this.lnavIndex, this.props.bus, this.planner, {
+          maxBankAngle: this.props.options.maxApBankAngle ?? 20,
+          intercept: GarminAPUtils.lnavIntercept,
+        }),
+        {
+          maxBankAngle: this.props.options.maxApBankAngle ?? 20,
+          intercept: GarminAPUtils.lnavIntercept,
+          // TODO: hook up FMS position system selection.
+          // isPositionDataValid: () => this.fmsPositionSelector.selectedFmsPosMode.get() !== FmsPositionMode.None,
+          hasVectorAnticipation: true
+        }
+      );
+
+      this.navdataComputer = new NavdataComputer(this.props.bus, this.planner, this.facLoader, { lnavIndex: this.lnavIndex, vnavIndex: this.vnavIndex });
+
+      this.glidepathComputer = new GarminGlidepathComputer(
+        this.vnavIndex,
+        this.props.bus,
+        this.planner,
+        {
+          lnavIndex: this.lnavIndex,
+          allowApproachBaroVNav: false,
+          allowPlusVWithoutSbas: false,
+          gpsSystemState: ConsumerSubject.create(this.props.bus.getSubscriber<GPSSatComputerEvents>().on('gps_system_state_changed_1'), GPSSystemState.Searching)
+        }
+      );
+
+      this.externalGuidancePublisher = new GNSExternalGuidancePublisher(this.lnavIndex);
+
+      // TODO: Add support for configurable OBS index and sim state use.
+      this.obsManager = new LNavObsManager(this.props.bus, this.lnavIndex, true);
+      this.obsManager.init();
+    }
+
+    this.navToNavComputer = new GarminNavToNavComputer(this.props.bus, this.fms, {
+      cdiId: this.cdiId,
+      navRadioIndexes: [this.props.options.navIndex],
+      inhibitMultipleSwitches: true
+    });
+    this.navToNavManager = new GnsNavToNavManager(this.cdiId, this.props.bus, this.navToNavComputer);
+
+    if (!this.props.options.disableAutopilot) {
+      new GNSNavToNavGuidancePublisher(this.props.bus, this.navToNavComputer, this.navToNavManager, {
+        armableNavRadioIndex: `gns_ap_nav_to_nav_armable_nav_radio_index_${this.props.options.navIndex}`,
+        armableLateralMode: `gns_ap_nav_to_nav_armable_lateral_mode_${this.props.options.navIndex}`,
+        armableVerticalMode: `gns_ap_nav_to_nav_armable_vertical_mode_${this.props.options.navIndex}`,
+        isExternalCdiSwitchInProgress: `gns_ap_nav_to_nav_external_switch_in_progress_${this.props.options.navIndex}`
+      });
+
+      this.props.bus.pub(`gns_ap_nav_to_nav_can_switch_${this.props.options.navIndex}`, false, true, true);
+    }
+    if (this.props.options.g3xExternalSourceIndex !== undefined) {
+      new GNSNavToNavGuidancePublisher(this.props.bus, this.navToNavComputer, this.navToNavManager, {
+        armableNavRadioIndex: `g3x_external_nav_to_nav_armable_nav_radio_index_${this.props.options.g3xExternalSourceIndex}`,
+        armableLateralMode: `g3x_external_nav_to_nav_armable_lateral_mode_${this.props.options.g3xExternalSourceIndex}`,
+        armableVerticalMode: `g3x_external_nav_to_nav_armable_vertical_mode_${this.props.options.g3xExternalSourceIndex}`,
+        isExternalCdiSwitchInProgress: `g3x_external_nav_to_nav_external_switch_in_progress_${this.props.options.g3xExternalSourceIndex}`
+      });
+
+      this.props.bus.pub(`g3x_external_nav_to_nav_can_switch_${this.props.options.g3xExternalSourceIndex}`, false, true, true);
+    }
+
+    this.obsSuspDataProvider = new DefaultObsSuspDataProvider(this.props.bus, {
+      lnavIndex: this.lnavIndex
+    });
+    this.obsSuspDataProvider.init();
+
     // Publish OBS mode on bus
-    this.obsMode.sub((mode) => {
+    this.obsSuspDataProvider.mode.sub((mode) => {
       this.props.bus.getPublisher<GnsObsEvents>().pub('obs_susp_mode', mode);
     });
 
@@ -291,6 +415,7 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     this.props.backplane.addPublisher('gnss', this.gnssPublisher);
     this.props.backplane.addPublisher('navEvents', this.navEventsPublisher);
     this.props.backplane.addPublisher('lnav', this.lNavPublisher);
+    this.props.backplane.addPublisher('lnavobs', this.lNavObsPublisher);
     this.props.backplane.addPublisher('vnav', this.vNavPublisher);
     this.props.backplane.addPublisher('lnavdata', this.lNavDataPublisher);
     this.props.backplane.addPublisher('vnavdata', this.vNavDataPublisher);
@@ -298,13 +423,6 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     this.props.backplane.addInstrument('traffic', this.trafficInstrument);
 
     this.init();
-  }
-
-  /** Handle CDI source toggling. */
-  private handleCDISourceToggle(): void {
-    if (!this.props.options.isUsingNewCdiBehaviour || this.isPrimaryInstrument) {
-      this.gnsCdiMode.set(this.gnsCdiMode.get() === GnsCdiMode.GPS ? GnsCdiMode.VLOC : GnsCdiMode.GPS);
-    }
   }
 
   /**
@@ -356,14 +474,28 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     if (state === PowerState.OnSkipInit) {
       this.gpsSatComputer.acquireAndUseSatellites();
       this.pageContainer.instance.openPageGroup('NAV', true, 1);
+      this.setExternalSourceState(true);
     }
 
     if (state === PowerState.On) {
       this.pageContainer.instance.openPageGroup('NAV', true, 4);
+      this.setExternalSourceState(true);
     }
 
     if (state === PowerState.Off) {
       this.gpsSatComputer.reset();
+      this.setExternalSourceState(false);
+    }
+  }
+
+  /**
+   * Sets whether the GNS is available as an external source state
+   * @param powered Whether the GNS is now powered
+   */
+  private setExternalSourceState(powered: boolean): void {
+    if (this.props.options.g3xExternalSourceIndex !== undefined) {
+      this.props.bus.getPublisher<ExternalSourceEvents>().pub(`g3x_fpl_source_external_available_${this.props.options.g3xExternalSourceIndex}`, powered, true, true);
+      SimVar.SetSimVarValue(`L:WT_G3X_Fpl_Source_External_Available:${this.props.options.g3xExternalSourceIndex}`, SimVarValueType.Bool, powered);
     }
   }
 
@@ -376,9 +508,12 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     this.initSbasSettingsSync();
 
     if (this.isPrimaryInstrument) {
-      this.apRadioNavInstrument = new APRadioNavInstrument(this.props.bus);
+      this.apRadioNavInstrument = new APRadioNavInstrument(this.props.bus, 'gnsAP');
       this.autopilotInstrument = new AutopilotInstrument(this.props.bus);
-      this.gpsSynchronizer = new GpsSynchronizer(this.props.bus, this.fms.flightPlanner, this.fms.facLoader);
+      this.gpsSynchronizer = new GpsSynchronizer(this.props.bus, this.fms.flightPlanner, this.fms.facLoader, {
+        lnavIndex: this.lnavIndex,
+        vnavIndex: this.vnavIndex
+      });
 
       this.props.backplane.addInstrument('ap', this.autopilotInstrument);
       this.props.backplane.addInstrument('apradionav', this.apRadioNavInstrument);
@@ -435,37 +570,36 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     this.primaryFlightPlanInitPromiseResolve();
 
     // Setup AP
-    if (this.isPrimaryInstrument) {
-      this.cdiNavSource = new CDINavSource(
-        this.props.bus,
-        this.gnsCdiMode);
+    if (this.isFmsPrimary && this.isPrimaryInstrument && !this.props.options.disableAutopilot) {
+      this.apCdiSourceManager = new GNSAPCdiSourceManager(this.props.bus);
 
       const apConfig = new GNSAPConfig(
         this.props.bus,
-        this.planner,
+        this.lnavComputer!.steerCommand,
+        this.glidepathComputer!.glidepathGuidance,
+        this.apCdiSourceManager.navToNavGuidance,
         this.props.options.disableApNavArm,
         this.props.options.disableApBackCourse,
         this.props.options.apSupportsFlightDirector,
+        this.props.options.maxApBankAngle,
       );
 
       this.autopilot = new GNSAutopilot(
         this.props.bus,
         this.planner,
         apConfig,
-        new GNSAPStateManager(this.props.bus, apConfig, this.props.options.apSupportsFlightDirector),
+        new GNSAPStateManager(this.props.bus, apConfig, this.apCdiSourceManager, this.props.options.apSupportsFlightDirector),
       );
 
-      Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.briefing || state === GameState.ingame).then(() => {
-        this.props.bus.getSubscriber<ClockEvents>().on('simTimeHiFreq').handle(() => {
-          this.autopilot.update();
-        });
-      });
-
       setTimeout(() => {
-        this.autopilot.stateManager.initialize();
+        this.autopilot?.stateManager.initialize();
       }, 500);
+    }
 
-      this.props.bus.getPublisher<VNavControlEvents>().pub('vnav_set_state', false);
+    if (this.isFmsPrimary) {
+      Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.briefing || state === GameState.ingame, true).then(() => {
+        this.props.bus.getSubscriber<ClockEvents>().on('simTimeHiFreq').handle(this.updateNavigation.bind(this));
+      });
     }
 
     this.vnavController = new GnsVnavController(this.props.bus, this.fms);
@@ -475,7 +609,7 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
    * Method to run on flight start.
    */
   public onFlightStart(): void {
-    if (this.props.options.navIndex === 1) {
+    if (this.props.options.navIndex === 1 && this.autopilot) {
       this.autopilot.stateManager.initialize();
     }
 
@@ -547,6 +681,23 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
   }
 
   /**
+   * Updates FMS lateral/vertical guidance and the autopilot.
+   */
+  private updateNavigation(): void {
+    this.lnavComputer!.update();
+
+    if (this.autopilot) {
+      this.glidepathComputer!.update();
+
+      this.autopilot.update();
+    } else {
+      this.glidepathComputer!.update();
+
+      this.externalGuidancePublisher!.update(this.lnavComputer!.steerCommand, this.glidepathComputer!.glidepathGuidance);
+    }
+  }
+
+  /**
    * Handles when an interaction event is received by the main screen.
    * @param evt The event that was received.
    */
@@ -585,7 +736,7 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
           SimVar.SetSimVarValue(`K:COM${this.props.options.navIndex}_RADIO_SWAP`, 'number', 0);
           break;
         case InteractionEvent.CDI:
-          this.gnsCdiMode.set(this.gnsCdiMode.get() === GnsCdiMode.GPS ? GnsCdiMode.VLOC : GnsCdiMode.GPS);
+          this.props.bus.getPublisher<CdiControlEvents>().pub(`cdi_src_gps_toggle${CdiUtils.getEventBusTopicSuffix(this.cdiId)}`, undefined, true, false);
           break;
         case InteractionEvent.OBS: {
           this.obsPressed();
@@ -621,17 +772,19 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
    * Handles when the OBS button is pressed.
    */
   private obsPressed(): void {
-    const obsMode = this.obsMode.get();
+    const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(this.lnavIndex);
+
+    const obsMode = this.obsSuspDataProvider.mode.get();
     switch (obsMode) {
       case ObsSuspModes.SUSP:
-        this.controlPublisher.publishEvent('suspend_sequencing', false);
+        this.props.bus.getPublisher<LNavControlEvents>().pub(`suspend_sequencing${lnavTopicSuffix}`, false, true, true);
         break;
       case ObsSuspModes.OBS:
         SimVar.SetSimVarValue('K:GPS_OBS_OFF', 'number', 0);
-        this.controlPublisher.publishEvent('suspend_sequencing', false);
+        this.props.bus.getPublisher<LNavControlEvents>().pub(`suspend_sequencing${lnavTopicSuffix}`, false, true, true);
         break;
       default:
-        if (this.isObsAvailable.get()) {
+        if (this.obsSuspDataProvider.isObsAvailable.get()) {
           SimVar.SetSimVarValue('K:GPS_OBS_ON', 'number', 0);
         } else {
           this.props.bus.getPublisher<AlertMessageEvents>().pub('alerts_push', {
@@ -669,7 +822,7 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
           <RadioPane bus={this.props.bus} type={RadioType.Com} index={this.props.options.comIndex} ref={this.comPane} />
           <RadioPane bus={this.props.bus} type={RadioType.Nav} index={this.props.options.navIndex} ref={this.vLocPane} />
           {this.props.class === 'wt530' ? <NavInfoPane bus={this.props.bus} radioIndex={this.props.options.navIndex} /> : null}
-          <StatusPane bus={this.props.bus} />
+          <StatusPane bus={this.props.bus} lnavIndex={this.lnavIndex} />
         </div>
         <div class={`${this.props.class} mainscreen-right`}>
           <PageContainer
@@ -693,9 +846,7 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
             bus={this.props.bus}
             gnsType={this.props.class}
             isPrimaryInstrument={this.isPrimaryInstrument}
-            isUsingSplitCDIs={this.props.options.isUsingNewCdiBehaviour}
-            gnsCdiMode={this.gnsCdiMode}
-            instrumentIndex={this.props.options.instrumentIndex}
+            gnsCdiMode={this.cdiNavSource.gnsCdiMode}
             alerts={this.alertsSubject}
             flightPlanner={this.fms.flightPlanner}
           />

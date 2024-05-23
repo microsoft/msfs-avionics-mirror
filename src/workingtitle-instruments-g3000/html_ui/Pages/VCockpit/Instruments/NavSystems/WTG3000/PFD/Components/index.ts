@@ -13,6 +13,7 @@ export * from './InstrumentContainer';
 export * from './Minimums';
 export * from './NavDmeInfo';
 export * from './NavStatusBox';
+export * from './Terrain';
 export * from './Traffic';
 export * from './VDI';
 export * from './VSI';

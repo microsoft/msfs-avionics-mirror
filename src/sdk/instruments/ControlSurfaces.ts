@@ -85,6 +85,9 @@ export interface BaseControlSurfacesEvents {
 
   /** Whether landing gear is on the ground. */
   gear_is_on_ground: boolean;
+
+  /** The position of the landing gear lever, where 0 is fully retracted, and 1 is fully extended. */
+  gear_handle_position: number;
 }
 
 /**
@@ -146,7 +149,8 @@ export class ControlSurfacesPublisher extends SimVarPublisher<ControlSurfacesEve
       ['aileron_right_percent', { name: 'AILERON RIGHT DEFLECTION PCT', type: SimVarValueType.Percent }],
       ['elevator_percent', { name: 'ELEVATOR DEFLECTION PCT', type: SimVarValueType.Percent }],
       ['elevator_position', { name: 'ELEVATOR POSITION', type: SimVarValueType.Percent }],
-      ['rudder_percent', { name: 'RUDDER DEFLECTION PCT', type: SimVarValueType.Percent }]
+      ['rudder_percent', { name: 'RUDDER DEFLECTION PCT', type: SimVarValueType.Percent }],
+      ['gear_handle_position', { name: 'GEAR HANDLE POSITION', type: SimVarValueType.PercentOver100 }],
     ];
 
     const gearIndexedSimVars: [Extract<keyof BaseControlSurfacesEvents, LandingGearIndexedTopics>, SimVarPublisherEntry<any>][] = [

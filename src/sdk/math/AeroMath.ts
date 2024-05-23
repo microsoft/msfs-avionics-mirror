@@ -258,12 +258,25 @@ export class AeroMath {
   }
 
   /**
-   * Gets the offset to apply to pressure altitude, in meters, to obtain indicated altitude for a given barometric setting.
-   * @param baro The barometic setting for which to get the offset, in hectopascals.
-   * @returns The offset to apply to pressure altitude, in meters, to obtain indicated altitude for the specified barometric setting.
+   * Gets the offset to apply to pressure altitude, in meters, to obtain indicated altitude for a given altimeter
+   * barometric pressure setting.
+   * @param baro The barometic pressure setting, in hectopascals, for which to get the offset.
+   * @returns The offset to apply to pressure altitude, in meters, to obtain indicated altitude for the specified
+   * altimeter barometric pressure setting.
    */
   public static baroPressureAltitudeOffset(baro: number): number {
-    return 44307.694 * (Math.pow(baro / 1013.25, 0.190284) - 1);
+    return 44330.76067152236 * (Math.pow(baro / 1013.25, 0.1902659918566155) - 1);
+  }
+
+  /**
+   * Gets the altimeter barometric pressure setting, in hectopascals, to obtain a given offset to apply to pressure
+   * altitude to yield indicated altitude.
+   * @param offset The altitude offset, in meters, for which to get the barometric pressure setting.
+   * @returns The altimeter barometric pressure setting, in hectopascals, to obtain the specified offset to apply to
+   * pressure altitude to yield indicated altitude.
+   */
+  public static altitudeOffsetBaroPressure(offset: number): number {
+    return 1013.25 * Math.pow(1 + 2.25577e-5 * offset, 5.25580);
   }
 
 

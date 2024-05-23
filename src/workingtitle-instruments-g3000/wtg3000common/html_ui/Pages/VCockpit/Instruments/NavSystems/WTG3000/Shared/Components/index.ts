@@ -11,6 +11,7 @@ export * from './NavDataField';
 export * from './NavigationMap';
 export * from './NearestPane';
 export * from './ProcedurePreviewPane';
+export * from './Terrain';
 export * from './TrafficMap';
 export * from './WaypointInfoPane';
 export * from './WeatherMap';

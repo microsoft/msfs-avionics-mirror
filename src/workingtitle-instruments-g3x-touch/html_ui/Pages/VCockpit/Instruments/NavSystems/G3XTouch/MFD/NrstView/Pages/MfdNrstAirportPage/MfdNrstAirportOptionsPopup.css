@@ -1,0 +1,111 @@
+.mfd-nrst-airport-options-popup {
+  align-self: flex-end;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  color: var(--g3x-color-white);
+
+  --touch-button-value-label-center-y: 19%;
+  --touch-button-value-value-center-y: 70%;
+  --touch-button-value-value-text-color: var(--g3x-color-cyan);
+}
+
+.gdu-460-display .mfd-nrst-airport-options-popup {
+  width: 466px;
+  height: 466px;
+  margin: auto 0px 25px;
+  padding: 0px 16px 8px;
+  font-size: 19px;
+
+  --mfd-nrst-airport-options-popup-title-font-size: 21px;
+
+  --mfd-nrst-airport-options-popup-main-margin: 22px 0px 0px;
+
+  --mfd-nrst-airport-options-popup-button-height: 80px;
+
+  --mfd-nrst-airport-options-popup-runway-view-box-margin-bottom: 8px;
+  --mfd-nrst-airport-options-popup-runway-view-box-padding: 24px 0px 15px;
+
+  --mfd-nrst-airport-options-popup-runway-button-width: 186px;
+  --mfd-nrst-airport-options-popup-runway-button-label-font-size: 16px;
+
+  --mfd-nrst-airport-options-popup-runway-length-value-font-size: 22px;
+
+  --mfd-nrst-airport-options-popup-types-row-margin-bottom: 15px;
+  --mfd-nrst-airport-options-popup-types-row-button-width: 206px;
+
+  --mfd-nrst-airport-options-popup-main-menu-icon-width: 48px;
+
+  --ui-view-box-title-font-size: 17px;
+
+  --touch-button-toggle-bar-width: 64px;
+  --touch-button-set-value-bar-width: 64px;
+}
+
+.mfd-nrst-airport-options-popup-title {
+  font-size: var(--mfd-nrst-airport-options-popup-title-font-size);
+}
+
+.mfd-nrst-airport-options-popup-main {
+  align-self: stretch;
+  margin: var(--mfd-nrst-airport-options-popup-main-margin);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.mfd-nrst-airport-options-popup .touch-button {
+  height: var(--mfd-nrst-airport-options-popup-button-height);
+}
+
+.mfd-nrst-airport-options-popup-runway-view-box {
+  height: var(--mfd-nrst-airport-options-popup-runway-view-box-height);
+  margin-bottom: var(--mfd-nrst-airport-options-popup-runway-view-box-margin-bottom);
+  padding: var(--mfd-nrst-airport-options-popup-runway-view-box-padding);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.mfd-nrst-airport-options-popup-runway-view-box .touch-button {
+  width: var(--mfd-nrst-airport-options-popup-runway-button-width);
+}
+
+.mfd-nrst-airport-options-popup-runway-view-box .touch-button-label {
+  font-size: var(--mfd-nrst-airport-options-popup-runway-button-label-font-size);
+}
+
+.mfd-nrst-airport-options-popup-runway-length .touch-button-value-value {
+  font-size: var(--mfd-nrst-airport-options-popup-runway-length-value-font-size);
+}
+
+.mfd-nrst-airport-options-popup-types-row {
+  margin-bottom: var(--mfd-nrst-airport-options-popup-types-row-margin-bottom);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+}
+
+.mfd-nrst-airport-options-popup-types-row .touch-button {
+  width: var(--mfd-nrst-airport-options-popup-types-row-button-width);
+}
+
+.mfd-nrst-airport-options-popup-names .touch-button {
+  flex-basis: 0px;
+  flex-grow: 1;
+}
+
+.mfd-nrst-airport-options-popup-main-menu-msg {
+  margin-top: auto;
+}
+
+.mfd-nrst-airport-options-popup-main-menu-icon {
+  width: var(--mfd-nrst-airport-options-popup-main-menu-icon-width);
+  vertical-align: middle;
+}
+
+.gdu-460-display .mfd-nrst-airport-options-popup-list-dialog {
+  --ui-list-dialog-width: 188px;
+  --ui-list-dialog-font-size: 19px;
+}

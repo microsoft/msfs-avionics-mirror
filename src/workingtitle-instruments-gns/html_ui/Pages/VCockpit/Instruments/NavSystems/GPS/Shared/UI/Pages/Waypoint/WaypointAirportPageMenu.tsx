@@ -1,5 +1,7 @@
+import { EventBus, Subject } from '@microsoft/msfs-sdk';
+
 import { Fms } from '@microsoft/msfs-garminsdk';
-import { EventBus, FlightPlannerEvents, Subject } from '@microsoft/msfs-sdk';
+
 import { MenuDefinition, MenuEntry, ViewService } from '../Pages';
 /**
  * menu button popups barebones since no options are selectable in AUX menus
@@ -35,7 +37,7 @@ export class WaypointAirportPageMenu extends MenuDefinition {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   constructor(bus: EventBus, private fms: Fms, private onFacilitySelected = (facility?: string): void => undefined) {
     super();
-    bus.getSubscriber<FlightPlannerEvents>().on('fplLegChange').handle(this.onPlanChanged);
+    fms.flightPlanner.onEvent('fplLegChange').handle(this.onPlanChanged);
   }
 
   public onPlanChanged = (): void => {

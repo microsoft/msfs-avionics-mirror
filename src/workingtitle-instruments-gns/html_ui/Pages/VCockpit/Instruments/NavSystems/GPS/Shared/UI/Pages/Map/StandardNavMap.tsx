@@ -63,14 +63,14 @@ export class StandardNavMap extends Page<StandardNavMapProps> {
   private readonly StandardMap = GNSMapBuilder
     .withStandardMap(
       this.props.bus,
-      this.props.flightPlanner,
+      this.props.fms,
       this.props.settingsProvider,
       this.props.gnsType,
       this.props.instrumentIndex,
       true,
       this.props.trafficSystem,
       this.props.tcasDataProvider)
-    .withController(GNSMapKeys.Controller, c => new GNSMapController(c, this.props.settingsProvider, this.props.flightPlanner))
+    .withController(GNSMapKeys.Controller, c => new GNSMapController(c, this.props.settingsProvider, this.props.fms))
     .withProjectedSize(this.mapSize)
     .build<GNSMapModules, GNSMapLayers, GNSStandardMapControllers, GNSMapContextProps>('standard-map-container');
 

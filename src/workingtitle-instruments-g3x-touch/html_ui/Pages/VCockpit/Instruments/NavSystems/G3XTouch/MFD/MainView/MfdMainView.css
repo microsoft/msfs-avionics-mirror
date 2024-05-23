@@ -1,0 +1,41 @@
+.mfd-main-view {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  background: var(--g3x-color-black);
+}
+
+.gdu-460-display .mfd-main-view {
+  --mfd-main-view-nav-bar-height: 33px;
+}
+
+.gdu-470-display .mfd-main-view {
+  --mfd-main-view-nav-bar-height: 27px;
+}
+
+.mfd-main-view .mfd-page-container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: calc(100% - var(--mfd-main-view-nav-bar-height));
+}
+
+.mfd-main-view-nav-bar-container {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  width: 100%;
+  height: var(--mfd-main-view-nav-bar-height);
+}
+
+.mfd-main-view-nav-bar-container .mfd-page-nav-bar {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  transform: rotateX(0deg);
+}

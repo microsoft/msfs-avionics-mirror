@@ -1,47 +1,71 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-import { ConsumerSubject, EventBus, LNavEvents, MappedSubject, NavSourceType, VNavDataEvents, VNavEvents } from '@microsoft/msfs-sdk';
+import {
+  ConsumerSubject, EventBus, LNavEvents, LNavUtils, MappedSubject, NavSourceType, Subject, Subscribable,
+  SubscribableUtils, VNavDataEvents, VNavEvents, VNavUtils, VorToFrom
+} from '@microsoft/msfs-sdk';
 
-import { LNavDataEvents } from '../../navigation/LNavDataEvents';
+import { CDIScaleLabel, LNavDataEvents } from '../../navigation/LNavDataEvents';
 import { AbstractNavReferenceBase } from '../NavReferenceBase';
 import { NavReferenceSource } from './NavReferenceSource';
+
+/**
+ * Configuration options for {@link GpsNavSource}.
+ */
+export type GpsNavSourceOptions = {
+  /** The index of the LNAV from which to source data. Defaults to `0`. */
+  lnavIndex?: number | Subscribable<number>;
+
+  /** The index of the VNAV from which to source data. Defaults to `0`. */
+  vnavIndex?: number | Subscribable<number>;
+};
 
 /**
  * A {@link NavReferenceSource} which derives its data from LNAV.
  */
 export class GpsNavSource<NameType extends string> extends AbstractNavReferenceBase implements NavReferenceSource<NameType> {
-  private readonly lnavIsTracking: ConsumerSubject<boolean>;
-  private readonly lnavIdent: ConsumerSubject<string>;
-  private readonly lnavBrgMag: ConsumerSubject<number>;
-  private readonly lnavDis: ConsumerSubject<number>;
-  private readonly lnavDtkMag: ConsumerSubject<number>;
-  private readonly lnavXtk: ConsumerSubject<number>;
-  private readonly lnavCdiScale: ConsumerSubject<number>;
+  private readonly lnavIndex: Subscribable<number>;
+  private readonly vnavIndex: Subscribable<number>;
 
-  private readonly gpAvailable: ConsumerSubject<boolean>;
-  private readonly gpDeviation: ConsumerSubject<number>;
-  private readonly gpScale: ConsumerSubject<number>;
+  private readonly lnavIsTracking = Subject.create(false);
+
+  private readonly lnavIsTrackingSource = ConsumerSubject.create(null, false);
+  private readonly lnavIdent = ConsumerSubject.create(null, '').pause();
+  private readonly lnavBrgMag = ConsumerSubject.create(null, 0).pause();
+  private readonly lnavDis = ConsumerSubject.create(null, 0).pause();
+  private readonly lnavDtkMag = ConsumerSubject.create(null, 0).pause();
+  private readonly lnavXtk = ConsumerSubject.create(null, 0).pause();
+  private readonly lnavToFrom = ConsumerSubject.create(null, VorToFrom.OFF).pause();
+  private readonly lnavCdiScaleLabel = ConsumerSubject.create(null, CDIScaleLabel.Enroute);
+  private readonly lnavCdiScale = ConsumerSubject.create(null, 0);
+
+  private readonly gpAvailable = ConsumerSubject.create(null, false);
+  private readonly gpDeviation = ConsumerSubject.create(null, 0);
+  private readonly gpScale = ConsumerSubject.create(null, 0);
 
   /**
    * Creates a new instance of GpsNavSource.
    * @param bus The event bus.
    * @param name The name of this source.
    * @param index The index of this source.
+   * @param options Options with which to configure the source.
    */
-  public constructor(bus: EventBus, public readonly name: NameType, public readonly index: number) {
+  public constructor(
+    bus: EventBus,
+    public readonly name: NameType,
+    public readonly index: number,
+    options?: Readonly<GpsNavSourceOptions>
+  ) {
     super();
 
-    const lnav = bus.getSubscriber<LNavEvents & LNavDataEvents>();
-    this.lnavIsTracking = ConsumerSubject.create(lnav.on('lnav_is_tracking'), false);
-    this.lnavIdent = ConsumerSubject.create(lnav.on('lnavdata_waypoint_ident'), '').pause();
-    this.lnavBrgMag = ConsumerSubject.create(lnav.on('lnavdata_waypoint_bearing_mag'), 0).pause();
-    this.lnavDis = ConsumerSubject.create(lnav.on('lnavdata_waypoint_distance'), 0).pause();
-    this.lnavDtkMag = ConsumerSubject.create(lnav.on('lnavdata_dtk_mag'), 0).pause();
-    this.lnavXtk = ConsumerSubject.create(lnav.on('lnavdata_xtk'), 0).pause();
-    this.lnavCdiScale = ConsumerSubject.create(lnav.on('lnavdata_cdi_scale'), 0);
+    this.lnavIndex = SubscribableUtils.toSubscribable(options?.lnavIndex ?? 0, true);
+    this.vnavIndex = SubscribableUtils.toSubscribable(options?.vnavIndex ?? 0, true);
 
-    this.lnavCdiScale.pipe(this.lateralDeviationScale);
-    lnav.on('lnavdata_cdi_scale_label').handle(cdiScale => { this.lateralDeviationScalingMode.set(cdiScale); });
+    const lnav = bus.getSubscriber<LNavEvents & LNavDataEvents>();
+
+    const lnavIsTrackingPipe = this.lnavIsTrackingSource.pipe(this.lnavIsTracking, true);
+    const cdiScaleLabelPipe = this.lnavCdiScaleLabel.pipe(this.lateralDeviationScalingMode, true);
+    const cdiScalePipe = this.lnavCdiScale.pipe(this.lateralDeviationScale, true);
 
     const lateralDeviation = MappedSubject.create(
       ([xtk, scale]): number | null => {
@@ -56,6 +80,7 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
     const distancePipe = this.lnavDis.pipe(this.distance, true);
     const dtkPipe = this.lnavDtkMag.pipe(this.course, true);
     const lateralDeviationPipe = lateralDeviation.pipe(this.lateralDeviation, true);
+    const toFromPipe = this.lnavToFrom.pipe(this.toFrom, true);
 
     this.lnavIsTracking.sub(isTracking => {
       if (isTracking) {
@@ -65,12 +90,14 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
         this.lnavDtkMag.resume();
         this.lnavXtk.resume();
         lateralDeviation.resume();
+        this.lnavToFrom.resume();
 
         identPipe.resume(true);
         bearingPipe.resume(true);
         distancePipe.resume(true);
         dtkPipe.resume(true);
         lateralDeviationPipe.resume(true);
+        toFromPipe.resume(true);
 
         this.signalStrength.set(1);
       } else {
@@ -82,27 +109,66 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
         this.lnavDtkMag.pause();
         this.lnavXtk.pause();
         lateralDeviation.pause();
+        this.lnavToFrom.pause();
 
         identPipe.pause();
         bearingPipe.pause();
         distancePipe.pause();
         dtkPipe.pause();
         lateralDeviationPipe.pause();
+        toFromPipe.pause();
 
         this.ident.set(null);
         this.bearing.set(null);
         this.distance.set(null);
         this.course.set(null);
         this.lateralDeviation.set(null);
+        this.toFrom.set(null);
+      }
+    }, true);
+
+    this.lnavIndex.sub(lnavIndex => {
+      if (LNavUtils.isValidLNavIndex(index)) {
+        const suffix = LNavUtils.getEventBusTopicSuffix(lnavIndex);
+
+        this.lnavIsTrackingSource.setConsumer(lnav.on(`lnav_is_tracking${suffix}`));
+        this.lnavIdent.setConsumer(lnav.on(`lnavdata_waypoint_ident${suffix}`));
+        this.lnavBrgMag.setConsumer(lnav.on(`lnavdata_waypoint_bearing_mag${suffix}`));
+        this.lnavDis.setConsumer(lnav.on(`lnavdata_waypoint_distance${suffix}`));
+        this.lnavDtkMag.setConsumer(lnav.on(`lnavdata_dtk_mag${suffix}`));
+        this.lnavXtk.setConsumer(lnav.on(`lnavdata_xtk${suffix}`));
+        this.lnavToFrom.setConsumer(lnav.on(`lnavdata_tofrom${suffix}`));
+        this.lnavCdiScaleLabel.setConsumer(lnav.on(`lnavdata_cdi_scale_label${suffix}`));
+        this.lnavCdiScale.setConsumer(lnav.on(`lnavdata_cdi_scale${suffix}`));
+
+        cdiScaleLabelPipe.resume(true);
+        cdiScalePipe.resume(true);
+        lnavIsTrackingPipe.resume(true);
+      } else {
+        cdiScaleLabelPipe.pause();
+        cdiScalePipe.pause();
+        lnavIsTrackingPipe.pause();
+
+        this.lnavIsTrackingSource.setConsumer(null);
+        this.lnavIdent.setConsumer(null);
+        this.lnavBrgMag.setConsumer(null);
+        this.lnavDis.setConsumer(null);
+        this.lnavDtkMag.setConsumer(null);
+        this.lnavXtk.setConsumer(null);
+        this.lnavToFrom.setConsumer(null);
+        this.lnavCdiScaleLabel.setConsumer(null);
+        this.lnavCdiScale.setConsumer(null);
+
+        this.lnavIsTracking.set(false);
+        this.signalStrength.set(0);
+        this.lateralDeviationScalingMode.set(null);
+        this.lateralDeviationScale.set(null);
       }
     }, true);
 
     const vnav = bus.getSubscriber<VNavEvents & VNavDataEvents>();
-    this.gpAvailable = ConsumerSubject.create(vnav.on('gp_available'), false);
-    this.gpDeviation = ConsumerSubject.create(vnav.on('gp_vertical_deviation'), 0);
-    this.gpScale = ConsumerSubject.create(vnav.on('gp_gsi_scaling'), 0);
 
-    this.gpScale.pipe(this.verticalDeviationScale, scale => scale <= 0 ? null : scale);
+    const gpScalePipe = this.gpScale.pipe(this.verticalDeviationScale, scale => scale <= 0 ? null : scale, true);
 
     const verticalDeviation = MappedSubject.create(
       ([gpDeviation, scale]): number | null => {
@@ -114,7 +180,7 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
 
     const verticalDeviationPipe = verticalDeviation.pipe(this.verticalDeviation, true);
 
-    this.gpAvailable.sub(isGpAvailable => {
+    const gpAvailableSub = this.gpAvailable.sub(isGpAvailable => {
       if (isGpAvailable) {
         verticalDeviation.resume();
         verticalDeviationPipe.resume(true);
@@ -122,6 +188,31 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
         verticalDeviation.pause();
         verticalDeviationPipe.pause();
         this.verticalDeviation.set(null);
+      }
+    }, false, true);
+
+    this.vnavIndex.sub(vnavIndex => {
+      if (VNavUtils.isValidVNavIndex(index)) {
+        const suffix = VNavUtils.getEventBusTopicSuffix(vnavIndex);
+
+        this.gpAvailable.setConsumer(vnav.on(`gp_available${suffix}`));
+        this.gpDeviation.setConsumer(vnav.on(`gp_vertical_deviation${suffix}`));
+        this.gpScale.setConsumer(vnav.on(`gp_gsi_scaling${suffix}`));
+
+        gpScalePipe.resume(true);
+        gpAvailableSub.resume(true);
+      } else {
+        gpScalePipe.pause();
+        gpAvailableSub.pause();
+        verticalDeviation.pause();
+        verticalDeviationPipe.pause();
+
+        this.gpAvailable.setConsumer(null);
+        this.gpDeviation.setConsumer(null);
+        this.gpScale.setConsumer(null);
+
+        this.verticalDeviation.set(null);
+        this.verticalDeviationScale.set(null);
       }
     }, true);
   }

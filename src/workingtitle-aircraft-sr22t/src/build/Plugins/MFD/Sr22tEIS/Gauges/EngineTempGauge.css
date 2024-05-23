@@ -1,0 +1,188 @@
+.eis-gauge.engine-temp-gauge {
+  bottom: 55px;
+  height: 206px;
+  width: 146px;
+}
+
+.eis-gauge.engine-temp-gauge .eng-temp-row {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 21px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  padding-right: 7px;
+}
+
+.eis-gauge.engine-temp-gauge .eng-temp-row.cht {
+  bottom: 104px;
+}
+
+.eis-gauge.engine-temp-gauge .eng-temp-row.egt {
+  bottom: 0;
+}
+
+.eis-gauge.engine-temp-gauge .eng-temp-label {
+  padding-top: 2px;
+  padding-left: 5px;
+}
+
+.eis-gauge.engine-temp-gauge .eng-temp-value {
+  text-align: right;
+  font-size: 18px;
+}
+
+.eis-gauge.engine-temp-gauge .engine-temp-diagram-container {
+  position: absolute;
+  left: 7px;
+  width: 133px;
+  height: 77px;
+}
+
+.eis-gauge.engine-temp-gauge .engine-temp-diagram-container.cht-diagram {
+  top: 3px;
+}
+
+.eis-gauge.engine-temp-gauge .engine-temp-diagram-container.egt-diagram {
+  top: 106px;
+  width: 97px;
+}
+
+.eis-gauge.engine-temp-gauge .engine-temp-diagram-container.tit-diagram {
+  top: 106px;
+  left: 112px;
+  width: 24px;
+}
+
+.engine-temp-diagram-container .diagram-scale {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.engine-temp-diagram-container .scale-warning-section {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  width: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.engine-temp-diagram-container .scale-warning-section.egt {
+  right: 0;
+  width: 5px;
+}
+
+.engine-temp-diagram-container.egt-diagram .diagram-scale {
+  transform: rotateY(180deg);
+}
+
+.scale-warning-section .scale-warning {
+  height: 6px;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(159, 0, 0, 1) 0, rgba(255, 0, 0, 1) 2px, rgba(255, 0, 0, 1) 5px, rgba(159, 0, 0, 1) 100%);
+}
+
+.scale-warning-section.egt .scale-warning {
+  height: 4px;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(159, 0, 0, 1) 0, rgba(255, 0, 0, 1) 2px, rgba(255, 0, 0, 1) 5px, rgba(159, 0, 0, 1) 100%);
+}
+
+.scale-warning-section .scale-caution {
+  height: 6px;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(159, 159, 0, 1) 0, rgba(255, 255, 0, 1) 2px, rgba(255, 255, 0, 1) 5px, rgba(159, 159, 0, 1) 100%);
+}
+
+.engine-temp-diagram-container .diagram-scale,
+.engine-temp-diagram-container .scale-warning-section {
+  display: none;
+}
+
+.engine-temp-diagram-container.cht-diagram .diagram-scale.cht,
+.engine-temp-diagram-container.cht-diagram .scale-warning-section.cht {
+  display: inherit;
+}
+
+.engine-temp-diagram-container.egt-diagram .diagram-scale.egt,
+.engine-temp-diagram-container.egt-diagram .scale-warning-section.egt {
+  display: inherit;
+}
+
+.engine-temp-diagram-container .cylinder-number-row {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 107px;
+  height: 15px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.engine-temp-diagram-container.egt-diagram .cylinder-number-row {
+  width: 81px;
+}
+
+.engine-temp-diagram-container.tit-diagram .cylinder-number-row {
+  width: 24px;
+}
+
+.cylinder-number-row .cylinder-number {
+  height: 100%;
+  width: 9px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 1px;
+}
+
+.cylinder-number-row .cylinder-number.hottest {
+  background: cyan;
+  color: black;
+}
+
+.engine-temp-diagram-container .cylinder-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 107px;
+  height: 61px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.engine-temp-diagram-container.egt-diagram .cylinder-container {
+  width: 81px;
+}
+
+.engine-temp-diagram-container.tit-diagram .cylinder-container {
+  width: 24px;
+}
+
+.cylinder-container .cylinder-column {
+  position: relative;
+  width: 9px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.cylinder-column .temp-cylinder {
+  position: absolute;
+  top: 61px;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(0, 160, 0, 1) 0, rgba(0, 255, 0, 1) 3px, rgba(0, 255, 0, 1) 7px, rgba(0, 160, 0, 1) 100%);
+}
+
+.cylinder-column .temp-cylinder.caution {
+  background: linear-gradient(90deg, rgba(159, 159, 0, 1) 0, rgba(255, 255, 0, 1) 3px, rgba(255, 255, 0, 1) 7px, rgba(159, 159, 0, 1) 100%);
+}
+
+.cylinder-column .temp-cylinder.warning {
+  background: linear-gradient(90deg, rgba(159, 0, 0, 1) 0, rgba(255, 0, 0, 1) 3px, rgba(255, 0, 0, 1) 7px, rgba(159, 0, 0, 1) 100%) !important;
+}

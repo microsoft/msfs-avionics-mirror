@@ -6,7 +6,8 @@ import {
 /**
  * Topics for bus events from which GPS receiver data is sourced.
  */
-type GpsReceiverDataSourceTopics = `gps_system_state_changed_${number}` | `gps_system_sbas_state_changed_${number}`
+type GpsReceiverDataSourceTopics = `gps_system_nominal_channel_count_${number}`
+  | `gps_system_state_changed_${number}` | `gps_system_sbas_state_changed_${number}`
   | `gps_sat_pos_calculated_${number}` | `gps_sat_state_changed_${number}`
   | `gps_system_pdop_${number}` | `gps_system_hdop_${number}` | `gps_system_vdop_${number}`;
 
@@ -44,6 +45,7 @@ export class GpsReceiverSystem extends BasicAvionicsSystem<GpsReceiverSystemEven
   protected initializationTime = 0;
 
   private readonly cachedDataSourceTopicMap = {
+    [`gps_rec_gps_system_nominal_channel_count_${this.index}`]: `gps_system_nominal_channel_count_${this.gpsSatComputer.index}`,
     [`gps_rec_gps_system_state_changed_${this.index}`]: `gps_system_state_changed_${this.gpsSatComputer.index}`,
     [`gps_rec_gps_system_sbas_state_changed_${this.index}`]: `gps_system_sbas_state_changed_${this.gpsSatComputer.index}`
   } as const;
@@ -134,7 +136,7 @@ export class GpsReceiverSystem extends BasicAvionicsSystem<GpsReceiverSystemEven
       );
 
       this.dataSubs.push(processedDop.sub(dop => {
-        this.publisher.pub(topic as keyof GpsReceiverGPSSatComputerDataEvents, dop, false, false);
+        this.publisher.pub(topic as keyof GpsReceiverGPSSatComputerDataEvents, dop, false, true);
       }, true));
     }
   }

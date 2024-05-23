@@ -259,6 +259,7 @@ export class GtcAirwaySelectionDialog extends GtcView<GtcAirwaySelectionDialogPr
   /**
    * Initializes the selected airway.
    * @param opId The ID for the current initialization operation.
+   * @returns A promise that resolves when the airway is initialized.
    */
   private async initAirway(opId: number): Promise<void> {
     if (this.input.editAirwaySegmentIndex !== undefined) {

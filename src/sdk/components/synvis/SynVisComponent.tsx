@@ -50,7 +50,10 @@ export interface SynVisProps extends ComponentProps {
  * A synthetic vision display.
  */
 export class SynVisComponent extends DisplayComponent<SynVisProps> {
-  protected readonly bingRef = FSComponent.createRef<HTMLImageElement>();
+  protected readonly bingRef = FSComponent.createRef<BingComponent>();
+
+  protected isRendered = false;
+  protected _isAwake = true;
 
   /**
    * A callback which is called when the Bing component is bound.
@@ -59,10 +62,48 @@ export class SynVisComponent extends DisplayComponent<SynVisProps> {
     // noop
   };
 
+  /** @inheritDoc */
+  public onAfterRender(): void {
+    this.isRendered = true;
+
+    if (!this._isAwake) {
+      this.bingRef.instance.sleep();
+    }
+  }
+
   /**
-   * Renders the syn vis component.
-   * @returns A component VNode.
+   * Checks whether this display is awake.
+   * @returns whether this display is awake.
    */
+  public isAwake(): boolean {
+    return this._isAwake;
+  }
+
+  /**
+   * Wakes this display. Upon awakening, this display will synchronize its state to the Bing instance to which it is
+   * bound.
+   */
+  public wake(): void {
+    this._isAwake = true;
+
+    if (this.isRendered) {
+      this.bingRef.instance.wake();
+    }
+  }
+
+  /**
+   * Puts this display to sleep. While asleep, this display cannot make changes to the Bing instance to which it is
+   * bound.
+   */
+  public sleep(): void {
+    this._isAwake = false;
+
+    if (this.isRendered) {
+      this.bingRef.instance.sleep();
+    }
+  }
+
+  /** @inheritDoc */
   public render(): VNode {
     return (
       <BingComponent
@@ -78,5 +119,12 @@ export class SynVisComponent extends DisplayComponent<SynVisProps> {
         class={this.props.class}
       />
     );
+  }
+
+  /** @inheritDoc */
+  public destroy(): void {
+    this.bingRef.getOrDefault()?.destroy();
+
+    super.destroy();
   }
 }

@@ -1,0 +1,91 @@
+.pfd-setup-view {
+  color: var(--g3x-color-white);
+  background: var(--g3x-color-black);
+
+  --ui-list-select-button-label-height: 0px;
+}
+
+.gdu-460-display .pfd-setup-view {
+  font-size: 21px;
+
+  --touch-button-toggle-bar-width: 64px;
+  --ui-list-select-button-dropdown-width: 50px;
+
+  --pfd-setup-view-list-margin: 0px 2px 0px 9px;
+
+  --pfd-setup-view-row-button-grid-padding: 0px 4px;
+  --pfd-setup-view-row-button-grid-column-gap: 13px;
+
+  --pfd-setup-view-list-item-padding: 7px 9px;
+  --pfd-setup-view-list-item-column-gap: 5px;
+}
+
+.gdu-460-display .ui-pane-full .pfd-setup-view {
+  --pfd-setup-view-row-right-width: 368px;
+
+  --pfd-setup-view-row-button-grid-column-width: 182px;
+}
+
+.gdu-460-display .ui-pane-half .pfd-setup-view {
+  --pfd-setup-view-row-right-width: 228px;
+
+  --pfd-setup-view-row-button-grid-column-width: 112px;
+}
+
+.pfd-setup-view-content {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.pfd-setup-view-list {
+  margin: var(--pfd-setup-view-list-margin);
+}
+
+.pfd-setup-view-list .touch-button.ui-list-item-button {
+  padding: var(--pfd-setup-view-list-item-padding);
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr min-content;
+  grid-column-gap: var(--pfd-setup-view-list-item-column-gap);
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.pfd-setup-view-list .combined-touch-button .touch-button {
+  flex-basis: 0px;
+  flex-grow: 1;
+}
+
+.pfd-setup-view-row-left {
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+}
+
+.pfd-setup-view-row-right {
+  width: var(--pfd-setup-view-row-right-width);
+}
+
+.pfd-setup-view-row-button-grid {
+  grid-column: 2;
+  padding: var(--pfd-setup-view-row-button-grid-padding);
+  display: grid;
+  grid-template-rows: 100%;
+  grid-auto-columns: var(--pfd-setup-view-row-button-grid-column-width);
+  grid-auto-flow: column;
+  grid-column-gap: var(--pfd-setup-view-row-button-grid-column-gap);
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.pfd-setup-view-svt-button {
+  grid-column: span 2;
+}
+
+.gdu-460-display .pfd-setup-view-select-list {
+  --ui-list-dialog-width: 228px;
+  --ui-list-dialog-padding: 3px;
+  --ui-list-dialog-font-size: 21px;
+}

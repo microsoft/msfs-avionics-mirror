@@ -8,7 +8,7 @@ import {
 import { MinimumsDataProvider } from '../minimums/MinimumsDataProvider';
 import { FmaData, FmaDataEvents, FmaVNavState } from './FmaData';
 import { GarminAPConfigInterface } from './GarminAPConfigInterface';
-import { GarminVNavManager2 } from './GarminVNavManager2';
+import { GarminVNavManager2 } from './vnav/GarminVNavManager2';
 
 /**
  * Options with which to configure a {@link GarminAutopilot}.
@@ -151,19 +151,24 @@ export class GarminAutopilot extends Autopilot<GarminAPConfigInterface> {
     }
   }
 
-  /** @inheritdoc */
-  protected onAfterUpdate(): void {
-    this.updateFma();
+  /** @inheritDoc */
+  protected initVerticalModes(): void {
+    super.initVerticalModes();
+
+    if (this.directors.gpDirector) {
+      this.directors.gpDirector.onActivate = (): void => {
+        this.setVerticalActive(APVerticalModes.GP);
+        this.setVerticalArmed(APVerticalModes.NONE);
+      };
+    }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   protected onInitialized(): void {
-    this.bus.pub('vnav_set_state', true);
-
     this.monitorAdditionalEvents();
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   protected monitorAdditionalEvents(): void {
     const sub = this.bus.getSubscriber<APEvents & AdcEvents>();
 
@@ -228,19 +233,26 @@ export class GarminAutopilot extends Autopilot<GarminAPConfigInterface> {
     }
   }
 
+  /** @inheritDoc */
+  protected onAfterUpdate(): void {
+    this.updateFma();
+  }
+
   /**
    * Publishes data for the FMA.
    */
   protected updateFma(): void {
     const fmaData = this.fmaData;
 
-    const vnavManager = this.vnavManager as GarminVNavManager2;
+    const vnavManager = this.vnavManager as GarminVNavManager2 | undefined;
 
     let fmaVNavState = FmaVNavState.OFF;
 
-    fmaVNavState = vnavManager.isActive
-      ? FmaVNavState.ACTIVE
-      : vnavManager.state === VNavState.Enabled_Active ? FmaVNavState.ARMED : FmaVNavState.OFF;
+    if (vnavManager) {
+      fmaVNavState = vnavManager.isActive
+        ? FmaVNavState.ACTIVE
+        : vnavManager.state === VNavState.Enabled_Active ? FmaVNavState.ARMED : FmaVNavState.OFF;
+    }
 
     fmaData.set('verticalApproachArmed', this.verticalApproachArmed);
     fmaData.set('verticalArmed', this.apValues.verticalArmed.get());

@@ -3,8 +3,8 @@ import { LatLonInterface } from '../../../geo/GeoInterfaces';
 import { UnitType } from '../../../math';
 import {
   AirportFacility, DefaultFacilityWaypointCache, FacilitySearchType, FacilityWaypoint, FacilityWaypointCache, FacilityWaypointUtils, IntersectionFacility,
-  NdbFacility, NearestAirportSearchSession, NearestIntersectionSearchSession, NearestSearchSession, NearestVorSearchSession,
-  VorFacility, Waypoint, WaypointTypes
+  NdbFacility, NearestAirportSearchSession, NearestIntersectionSearchSession, NearestSearchSession, NearestVorSearchSession, VorFacility, Waypoint,
+  WaypointTypes
 } from '../../../navigation';
 import { FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps, MapNearestWaypointsLayer, MapProjection, MapSyncedCanvasLayer } from '../../map';

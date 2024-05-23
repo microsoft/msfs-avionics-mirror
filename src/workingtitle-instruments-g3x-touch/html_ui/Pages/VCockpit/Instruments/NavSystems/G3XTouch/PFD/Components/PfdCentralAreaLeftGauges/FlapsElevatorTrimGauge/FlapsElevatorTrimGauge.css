@@ -1,0 +1,11 @@
+.flaps-elevator-trim-gauge {
+  padding: 8px 15px;
+  border-radius: 6px;
+  background-color: #120D0FFC;
+  display: flex;
+  flex-direction: row;
+}
+
+.flaps-elevator-trim-gauge div:first-child {
+  margin-right: 14px;
+}

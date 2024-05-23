@@ -6,16 +6,43 @@ import { AffineTransformPathStream, ComponentProps, DisplayComponent, FSComponen
 export interface TurnRateProps extends ComponentProps {
   /** The radius of the HSI compass, in pixels. */
   compassRadius: number;
+
+  /** The height of the indicator, in pixels. Defaults to 24 pixels. */
+  height?: number;
+
+  /**
+   * The radial offset, in pixels, of the inner end of each indicator tick from the outer edge of the HSI compass.
+   * Positive values move the ticks outward. Defaults to 3 pixels.
+   */
+  tickOffset?: number;
+
+  /** The length of each indicator tick, in pixels. Defaults to 15 pixels. */
+  tickLength?: number;
+
+  /**
+   * The radial offset, in pixels, of the inner edge of the turn rate vector from the outer edge of the HSI compass.
+   * Positive values move the vector outward. Defaults to 1 pixel.
+   */
+  vectorOffset?: number;
+
+  /** The width of the turn rate vector, in pixels. Defaults to 6 pixels. */
+  vectorWidth?: number;
+
+  /** The width of the turn rate vector arrow (inner to outer edge), in pixels. Defaults to 12 pixels. */
+  vectorArrowWidth?: number;
+
+  /** The length of the turn rate vector arrow (base to tip), in pixels. Defaults to 12 pixels. */
+  vectorArrowLength?: number;
 }
 
 /**
  * A turn rate indicator for a next-generation (NXi, G3000, etc) HSI.
  *
  * The turn rate indicator is rendered such that it sits on the top edge of an HSI compass. The indicator spans 24
- * degrees of arc on either side of the lubber line and is 24 pixels tall. Markings are present at 9 and 18 degrees
- * on either side of the lubber line. A turn rate vector is extended along an arc parallel to the compass edge
- * subtending an angle equal to the estimated change in heading over the next 6 seconds. If turn rate exceeds 4
- * degrees per second, the vector is clamped to 24 degrees of arc and an arrowhead is added to the end.
+ * degrees of arc on either side of the lubber line. Markings are present at 9 and 18 degrees on either side of the
+ * lubber line. A turn rate vector is extended along an arc parallel to the compass edge subtending an angle equal to
+ * the estimated change in heading over the next 6 seconds. If turn rate exceeds 4 degrees per second, the vector is
+ * clamped to 24 degrees of arc and an arrowhead is added to the end.
  *
  * The turn rate indicator's root element should be positioned such that its bottom edge intersects the center of the
  * HSI compass, and its left edge sits flush with the left edge of the HSI compass (the width of the root element is
@@ -23,13 +50,13 @@ export interface TurnRateProps extends ComponentProps {
  */
 export class TurnRateIndicator extends DisplayComponent<TurnRateProps> {
   private static readonly HALF_ANGULAR_WIDTH = 24; // degrees
-  private static readonly HEIGHT = 24; // px
-  private static readonly TICK_OFFSET = 3; // px
-  private static readonly TICK_LENGTH = 15; // px
-  private static readonly VECTOR_OFFSET = 1; // px
-  private static readonly VECTOR_WIDTH = 6; // px
-  private static readonly ARROW_WIDTH = 12; // px
-  private static readonly ARROW_LENGTH = 12; // px
+  private static readonly DEFAULT_HEIGHT = 24; // px
+  private static readonly DEFAULT_TICK_OFFSET = 3; // px
+  private static readonly DEFAULT_TICK_LENGTH = 15; // px
+  private static readonly DEFAULT_VECTOR_OFFSET = 1; // px
+  private static readonly DEFAULT_VECTOR_WIDTH = 6; // px
+  private static readonly DEFAULT_VECTOR_ARROW_WIDTH = 12; // px
+  private static readonly DEFAULT_VECTOR_ARROW_LENGTH = 12; // px
 
   private readonly clipStyle = ObjectSubject.create({
     position: 'absolute',
@@ -60,7 +87,7 @@ export class TurnRateIndicator extends DisplayComponent<TurnRateProps> {
   private readonly vectorRotateSign = this.vectorRotate.map(rotate => rotate < 0 ? -1 : 1);
   private readonly vectorRotateMag = this.vectorRotate.map(Math.abs);
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public override onAfterRender(): void {
     this.vectorRotateSign.sub(sign => {
       this.clipStyle.set('transform', `scaleX(${sign}) rotateX(0deg)`);
@@ -80,17 +107,24 @@ export class TurnRateIndicator extends DisplayComponent<TurnRateProps> {
     this.vectorRotate.set(MathUtils.clamp(MathUtils.round(turnRate * 6, 0.1), -24, 24));
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public override render(): VNode {
     const svgPathStream = new SvgPathStream(0.1);
     const transformStream = new AffineTransformPathStream(svgPathStream);
 
     const compassRadius = this.props.compassRadius;
+    const height = this.props.height ?? TurnRateIndicator.DEFAULT_HEIGHT;
+    const tickOffset = this.props.tickOffset ?? TurnRateIndicator.DEFAULT_TICK_OFFSET;
+    const tickLength = this.props.tickLength ?? TurnRateIndicator.DEFAULT_TICK_LENGTH;
+    const vectorOffset = this.props.vectorOffset ?? TurnRateIndicator.DEFAULT_VECTOR_OFFSET;
+    const vectorWidth = this.props.vectorWidth ?? TurnRateIndicator.DEFAULT_VECTOR_WIDTH;
+    const vectorArrowWidth = this.props.vectorArrowWidth ?? TurnRateIndicator.DEFAULT_VECTOR_ARROW_WIDTH;
+    const vectorArrowLength = this.props.vectorArrowLength ?? TurnRateIndicator.DEFAULT_VECTOR_ARROW_LENGTH;
 
     // ---- Build border ----
 
     const innerRadius = compassRadius;
-    const outerRadius = compassRadius + TurnRateIndicator.HEIGHT;
+    const outerRadius = compassRadius + height;
 
     transformStream.beginPath();
     transformStream.resetTransform();
@@ -108,8 +142,8 @@ export class TurnRateIndicator extends DisplayComponent<TurnRateProps> {
 
     // ---- Build ticks ----
 
-    const tickStart = compassRadius + TurnRateIndicator.TICK_OFFSET;
-    const tickEnd = tickStart + TurnRateIndicator.TICK_LENGTH;
+    const tickStart = compassRadius + tickOffset;
+    const tickEnd = tickStart + tickLength;
 
     transformStream.beginPath();
     transformStream.resetTransform();
@@ -138,8 +172,8 @@ export class TurnRateIndicator extends DisplayComponent<TurnRateProps> {
 
     // ---- Build no-arrow vector ----
 
-    const vectorInnerRadius = compassRadius + TurnRateIndicator.VECTOR_OFFSET;
-    const vectorOuterRadius = innerRadius + TurnRateIndicator.VECTOR_WIDTH;
+    const vectorInnerRadius = compassRadius + vectorOffset;
+    const vectorOuterRadius = innerRadius + vectorWidth;
 
     transformStream.beginPath();
     transformStream.resetTransform();
@@ -168,13 +202,13 @@ export class TurnRateIndicator extends DisplayComponent<TurnRateProps> {
     transformStream.arc(0, 0, vectorOuterRadius, 0, TurnRateIndicator.HALF_ANGULAR_WIDTH * Avionics.Utils.DEG2RAD);
 
     transformStream.addRotation(TurnRateIndicator.HALF_ANGULAR_WIDTH * Avionics.Utils.DEG2RAD);
-    transformStream.lineTo(vectorCenter + TurnRateIndicator.ARROW_WIDTH / 2, 0);
+    transformStream.lineTo(vectorCenter + vectorArrowWidth / 2, 0);
 
-    transformStream.addRotation(TurnRateIndicator.ARROW_LENGTH / vectorCenter);
+    transformStream.addRotation(vectorArrowLength / vectorCenter);
     transformStream.lineTo(vectorCenter, 0);
 
-    transformStream.addRotation(-TurnRateIndicator.ARROW_LENGTH / vectorCenter);
-    transformStream.lineTo(vectorCenter - TurnRateIndicator.ARROW_WIDTH / 2, 0);
+    transformStream.addRotation(-vectorArrowLength / vectorCenter);
+    transformStream.lineTo(vectorCenter - vectorArrowWidth / 2, 0);
     transformStream.lineTo(vectorInnerRadius, 0);
     transformStream.arc(0, 0, vectorInnerRadius, 0, -TurnRateIndicator.HALF_ANGULAR_WIDTH * Avionics.Utils.DEG2RAD, true);
 

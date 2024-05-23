@@ -29,6 +29,7 @@ export class SimbriefClient {
    * Returns the current simbrief ofp
    *
    * @param userId the simbrief userid
+   * @returns a Promise with the simbrief OFP
    */
   public static async getOfp(userId: number): Promise<SimbriefOfp> {
     const result = await fetch(`${SIMBRIEF_URL}?json=1&userid=${userId}`);

@@ -93,6 +93,51 @@ export class G1000UiControl<P extends G1000UiControlProps = G1000UiControlProps>
   }
 
   /**
+   * Handles Inner Control Knob decrease events.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onInnerControlKnobDec(source: G1000UiControl): boolean {
+    return this.props.onInnerControlKnobDec ? this.props.onInnerControlKnobDec(source) : false;
+  }
+
+  /**
+   * Handles Inner Control Knob increase events.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onInnerControlKnobInc(source: G1000UiControl): boolean {
+    return this.props.onInnerControlKnobInc ? this.props.onInnerControlKnobInc(source) : false;
+  }
+
+  /**
+   * Handles Inner Control Knob push events.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onInnerControlKnobPush(source: G1000UiControl): boolean {
+    return this.props.onInnerControlKnobPush ? this.props.onInnerControlKnobPush(source) : false;
+  }
+
+  /**
+   * Handles Outer Control Knob decrease events.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onOuterControlKnobDec(source: G1000UiControl): boolean {
+    return this.props.onOuterControlKnobDec ? this.props.onOuterControlKnobDec(source) : false;
+  }
+
+  /**
+   * Handles Outer Control Knob increase events.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onOuterControlKnobInc(source: G1000UiControl): boolean {
+    return this.props.onOuterControlKnobInc ? this.props.onOuterControlKnobInc(source) : false;
+  }
+
+  /**
    * Handles MENU button press events.
    * @param source The source of the event.
    * @returns Whether the event was handled.
@@ -714,6 +759,51 @@ export class G1000ControlList<T>
   }
 
   /**
+   * Handles Inner Control Knob decrease events.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onInnerControlKnobDec(source: G1000UiControl): boolean {
+    return this.props.onInnerControlKnobDec ? this.props.onInnerControlKnobDec(source) : false;
+  }
+
+  /**
+   * Handles Inner Control Knob increase events.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onInnerControlKnobInc(source: G1000UiControl): boolean {
+    return this.props.onInnerControlKnobInc ? this.props.onInnerControlKnobInc(source) : false;
+  }
+
+  /**
+   * Handles Inner Control Knob push events.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onInnerControlKnobPush(source: G1000UiControl): boolean {
+    return this.props.onInnerControlKnobPush ? this.props.onInnerControlKnobPush(source) : false;
+  }
+
+  /**
+   * Handles Outer Control Knob decrease events.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onOuterControlKnobDec(source: G1000UiControl): boolean {
+    return this.props.onOuterControlKnobDec ? this.props.onOuterControlKnobDec(source) : false;
+  }
+
+  /**
+   * Handles Outer Control Knob increase events.
+   * @param source The source of the event.
+   * @returns Whether the event was handled.
+   */
+  public onOuterControlKnobInc(source: G1000UiControl): boolean {
+    return this.props.onOuterControlKnobInc ? this.props.onOuterControlKnobInc(source) : false;
+  }
+
+  /**
    * Handles MENU button press events.
    * @param source The source of the event.
    * @returns Whether the event was handled.
@@ -1253,9 +1343,6 @@ export class G1000ControlList<T>
   public consolidateKeyboardHEvent(source: G1000UiControl, evt: FmsHEvent): boolean {
     return false;
   }
-
-
-
 
   /** @inheritdoc */
   protected renderScrollbar(): VNode {

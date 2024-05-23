@@ -6,9 +6,11 @@
 /// <reference types="@microsoft/msfs-types/js/Avionics" />
 
 import {
-  BaseInstrumentPublisher, ComRadioIndex, EventBus, FSComponent, HEventPublisher, InstrumentBackplane, NavComInstrument, NavComSimVarPublisher, NavRadioIndex, SimVarValueType
+  BaseInstrumentPublisher, ComRadioIndex, EventBus, FSComponent, HEventPublisher, InstrumentBackplane, NavComInstrument, NavComSimVarPublisher, NavRadioIndex,
+  SimVarValueType
 } from '@microsoft/msfs-sdk';
 
+import { GNSDummyInstrument } from '../Shared/GnsDummyInstrument';
 import { PowerEvents, PowerState } from '../Shared/Instruments/Power';
 import { MainScreen, MainScreenOptions } from '../Shared/MainScreen';
 import { GNSSettingSaveManager } from '../Shared/Settings/GNSSettingSaveManager';
@@ -38,9 +40,12 @@ class WT530 extends BaseInstrument {
     navIndex: 1,
     comIndex: 1,
     isUsingNewCdiBehaviour: false,
+    disableAutopilot: false,
     disableApNavArm: false,
     apSupportsFlightDirector: false,
-    disableApBackCourse: false
+    disableApBackCourse: false,
+    flightPlannerId: '',
+    g3xExternalSourceIndex: undefined
   };
 
   private gpsDisabledVar?: string;
@@ -161,12 +166,24 @@ class WT530 extends BaseInstrument {
     const node = elements?.[nodeIndex] ?? undefined;
 
     if (node !== undefined) {
+      const externalSourceIndex = parseInt(node.querySelector('G3XExternalSourceIndex')?.textContent ?? '-1');
       this.options.isUsingNewCdiBehaviour = node.querySelector('NewCDIBehavior')?.textContent === 'True';
       this.options.comIndex = parseInt(node.querySelector('ComIndex')?.textContent ?? '1') as ComRadioIndex;
       this.options.navIndex = parseInt(node.querySelector('NavIndex')?.textContent ?? '1') as NavRadioIndex;
+      this.options.disableAutopilot = node.querySelector('DisableAutopilot')?.textContent === 'True';
       this.options.disableApNavArm = node.querySelector('DisableAPNavArm')?.textContent === 'True';
       this.options.apSupportsFlightDirector = node.querySelector('SupportAPFlightDirector')?.textContent === 'True';
       this.options.disableApBackCourse = node.querySelector('DisableAPBackCourse')?.textContent === 'True';
+      this.options.lnavIndex = parseInt(node.querySelector('LNavIndex')?.textContent ?? 'NaN');
+      this.options.vnavIndex = parseInt(node.querySelector('VNavIndex')?.textContent ?? 'NaN');
+      this.options.maxApBankAngle = parseInt(node.querySelector('MaxAPBankAngle')?.textContent ?? 'NaN');
+      this.options.flightPlannerId = node.querySelector('FlightPlannerId')?.textContent ?? '';
+      this.options.isFmsPrimary = node.querySelector('IsFMSPrimary') !== null ? node.querySelector('IsFMSPrimary')?.textContent === 'True' : undefined;
+      this.options.g3xExternalSourceIndex = (externalSourceIndex === 1 || externalSourceIndex === 2) ? externalSourceIndex : undefined;
+
+      this.options.lnavIndex = isNaN(this.options.lnavIndex) ? undefined : this.options.lnavIndex;
+      this.options.vnavIndex = isNaN(this.options.vnavIndex) ? undefined : this.options.vnavIndex;
+      this.options.maxApBankAngle = isNaN(this.options.maxApBankAngle) ? undefined : this.options.maxApBankAngle;
     }
 
     this.options.templateId = this.templateID;
@@ -208,6 +225,7 @@ function setup(): void {
     let viewListener: any = undefined;
     let isNavigating = false;
     let initted = false;
+    let isDummyRegistered = false;
     const checkVar = (): void => {
       try {
         if (RegisterViewListener !== undefined && SimVar !== undefined && !isNavigating) {
@@ -233,6 +251,11 @@ function setup(): void {
             if (isDisabled !== null && isDisabled !== 1) {
               window.location.assign('coui://html_ui/Pages/VCockpit/Core/VCockpit.html');
               isNavigating = true;
+            } else {
+              if (!isDummyRegistered) {
+                registerInstrument('wt-gns530', GNSDummyInstrument);
+                isDummyRegistered = true;
+              }
             }
           }
         }

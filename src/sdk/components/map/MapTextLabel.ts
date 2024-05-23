@@ -1,6 +1,6 @@
 import { GeoPointInterface } from '../../geo/GeoPoint';
 import { ReadonlyFloat64Array, Vec2Math, VecNMath } from '../../math/VecMath';
-import { MappedSubject } from '../../sub';
+import { MappedSubject } from '../../sub/MappedSubject';
 import { Subscribable } from '../../sub/Subscribable';
 import { SubscribableUtils } from '../../sub/SubscribableUtils';
 import { MapProjection } from './MapProjection';
@@ -155,7 +155,6 @@ export abstract class AbstractMapTextLabel implements MapTextLabel {
 
   // eslint-disable-next-line jsdoc/require-jsdoc
   public draw(context: CanvasRenderingContext2D, mapProjection: MapProjection): void {
-
     if (this.fontSize.get() !== 0) {
       this.setTextStyle(context);
 
@@ -181,7 +180,6 @@ export abstract class AbstractMapTextLabel implements MapTextLabel {
 
       this.drawText(context, centerX, centerY);
     }
-
   }
 
   /**

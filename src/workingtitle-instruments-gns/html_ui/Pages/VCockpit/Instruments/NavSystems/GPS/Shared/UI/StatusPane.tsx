@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, EventBus, FSComponent, GPSSatComputerEvents, GPSSystemState, Subject, VNode } from '@microsoft/msfs-sdk';
+import { ComponentProps, DisplayComponent, EventBus, FSComponent, GPSSatComputerEvents, GPSSystemState, LNavUtils, Subject, VNode } from '@microsoft/msfs-sdk';
 
 import { CdiScaleFormatter, CDIScaleLabel, LNavDataEvents } from '@microsoft/msfs-garminsdk';
 
@@ -10,6 +10,9 @@ import './StatusPane.css';
 interface StatusPaneProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
+
+  /** The index of the LNAV used by the pane's parent instrument. */
+  lnavIndex: number;
 }
 /**
  * A component that displays the current instrument and CDI scaling status.
@@ -22,7 +25,9 @@ export class StatusPane extends DisplayComponent<StatusPaneProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.props.bus.getSubscriber<LNavDataEvents>().on('lnavdata_cdi_scale_label')
+    const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(this.props.lnavIndex);
+
+    this.props.bus.getSubscriber<LNavDataEvents>().on(`lnavdata_cdi_scale_label${lnavTopicSuffix}`)
       .whenChanged()
       .handle(this.onCdiScaleChanged.bind(this));
 

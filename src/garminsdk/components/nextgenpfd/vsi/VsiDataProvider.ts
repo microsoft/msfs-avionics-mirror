@@ -1,6 +1,6 @@
 import {
-  AdcEvents, APEvents, AvionicsSystemState, AvionicsSystemStateEvent, ConsumerSubject, EventBus, MappedSubject, Subject,
-  Subscribable, SubscribableUtils, Subscription, TcasEvents, VNavDataEvents, VNavEvents
+  APEvents, ConsumerSubject, EventBus, MappedSubject, Subscribable, SubscribableMapFunctions, SubscribableUtils,
+  Subscription
 } from '@microsoft/msfs-sdk';
 
 import { VNavDataProvider, VNavTargetAltitudeRestriction } from '../../../navigation/VNavDataProvider';
@@ -52,12 +52,11 @@ export class DefaultVsiDataProvider implements VsiDataProvider {
   /** @inheritdoc */
   public readonly vsRequired = this.vnavDataProvider.vsRequired;
 
-  private readonly _isDataFailed = Subject.create(false);
+  private readonly isAltitudeDataValid = ConsumerSubject.create(null, false);
   /** @inheritdoc */
-  public readonly isDataFailed = this._isDataFailed as Subscribable<boolean>;
+  public readonly isDataFailed = this.isAltitudeDataValid.map(SubscribableMapFunctions.not()) as Subscribable<boolean>;
 
   private readonly adcIndex: Subscribable<number>;
-  private readonly adcSystemState = ConsumerSubject.create<AvionicsSystemStateEvent>(null, { previous: undefined, current: undefined });
 
   private isInit = false;
   private isAlive = true;
@@ -98,23 +97,15 @@ export class DefaultVsiDataProvider implements VsiDataProvider {
     this.isInit = true;
     this.isPaused = paused;
 
-    const sub = this.bus.getSubscriber<AdcEvents & AdcSystemEvents & APEvents & VNavEvents & VNavDataEvents & TcasEvents>();
+    const sub = this.bus.getSubscriber<AdcSystemEvents & APEvents>();
 
     this.adcIndexSub = this.adcIndex.sub(index => {
       this._verticalSpeed.setConsumer(sub.on(`adc_vertical_speed_${index}`));
-      this.adcSystemState.setConsumer(sub.on(`adc_state_${index}`));
+      this.isAltitudeDataValid.setConsumer(sub.on(`adc_altitude_data_valid_${index}`));
     }, true);
 
     this.selectedVsSource.setConsumer(sub.on('ap_vs_selected'));
     this.isVsHoldActive.setConsumer(sub.on('ap_vs_hold'));
-
-    this.adcSystemState.sub(state => {
-      if (state.current === undefined || state.current === AvionicsSystemState.On) {
-        this._isDataFailed.set(false);
-      } else {
-        this._isDataFailed.set(true);
-      }
-    }, true);
 
     if (paused) {
       this.pause();
@@ -142,7 +133,7 @@ export class DefaultVsiDataProvider implements VsiDataProvider {
     this.selectedVsSource.resume();
     this.isVsHoldActive.resume();
 
-    this.adcSystemState.resume();
+    this.isAltitudeDataValid.resume();
   }
 
   /**
@@ -163,7 +154,7 @@ export class DefaultVsiDataProvider implements VsiDataProvider {
     this.selectedVsSource.pause();
     this.isVsHoldActive.pause();
 
-    this.adcSystemState.pause();
+    this.isAltitudeDataValid.pause();
 
     this.isPaused = true;
   }
@@ -180,7 +171,7 @@ export class DefaultVsiDataProvider implements VsiDataProvider {
     this.selectedVsSource.destroy();
     this.isVsHoldActive.destroy();
 
-    this.adcSystemState.destroy();
+    this.isAltitudeDataValid.destroy();
 
     this.adcIndexSub?.destroy();
   }

@@ -1,7 +1,7 @@
 import {
-  AdcEvents, AdditionalApproachType, APEvents, ClockEvents, ComponentProps, ConsumerSubject, ControlSurfacesEvents, DisplayComponent, EventBus, FacilityType, FlightPlannerEvents,
-  FSComponent, GeoPoint, GNSSEvents, ICAO, LNavEvents, MappedSubject, MetarWindSpeedUnits, NavSourceType, SetSubject, Subject, Unit, UnitFamily, UnitType, VNavControlEvents,
-  VNavDataEvents, VNavEvents, VNode,
+  AdcEvents, AdditionalApproachType, APEvents, ClockEvents, ComponentProps, ConsumerSubject, ControlSurfacesEvents, DisplayComponent, EventBus, FacilityType,
+  FlightPlannerEvents, FSComponent, GeoPoint, GNSSEvents, ICAO, LNavEvents, MappedSubject, MetarWindSpeedUnits, NavSourceType, SetSubject, Subject, Unit,
+  UnitFamily, UnitType, VNavControlEvents, VNavDataEvents, VNavEvents, VNode
 } from '@microsoft/msfs-sdk';
 
 import { Fms, FmsEvents, GPDisplayMode, HsiSource, NavIndicatorController, NavSensitivity, VNavDisplayMode } from '@microsoft/msfs-garminsdk';
@@ -165,13 +165,13 @@ export class Sr22tStabilizedApproachComponent extends DisplayComponent<Sr22tStab
   private updateTimeBasedStabilizedApproachAnnunciations(): void {
     const activeSource = this.props.navIndicatorController.navStates[this.props.navIndicatorController.activeSourceIndex];
     // the order of these updates doesn't matter (they can run simultaneously) and we don't want to fail fast on any of them:
-      // Processing for the CROSSWIND or TAILWIND annunciations:
+    // Processing for the CROSSWIND or TAILWIND annunciations:
     void this.updateCrosswindTailwindAnnunciations();
 
-      // Processing for the GLIDESLOPE or GLIDEPATH annunciations:
+    // Processing for the GLIDESLOPE or GLIDEPATH annunciations:
     void this.updateGlidepathAnnunciations(activeSource);
 
-      // Processing for the COURSE annunciation:
+    // Processing for the COURSE annunciation:
     void this.updateCourseAnnunciations(activeSource);
   }
 
@@ -243,12 +243,12 @@ export class Sr22tStabilizedApproachComponent extends DisplayComponent<Sr22tStab
             // crosswind and tailwind alerts shown below 900 feet AGL on instrument approaches, 600 feet AGL on visual approaches
             const altAboveGroundWithinLimits = altAboveGround >= 200 && altAboveGround <= (this.isInstrumentApproach.get() ? 900 : 600);
 
-            const crossWind = windSpeedInKnots * (Math.sin((approachRwy.course * Math.PI / 180) - (destinationMetar.windDir * Math.PI / 180)));
+            const crossWind = windSpeedInKnots * (Math.sin((approachRwy.course * Math.PI / 180) - ((destinationMetar.windDir ?? 0) * Math.PI / 180)));
             const crossWindAnnunciationPriority = altAboveGroundWithinLimits && Math.abs(crossWind) > 20 ? AnnunicationPriority.Warning :
               altAboveGroundWithinLimits && Math.abs(crossWind) > 15 ? AnnunicationPriority.Alert : AnnunicationPriority.None;
             this.crossWindAnnunciationPriority.set(crossWindAnnunciationPriority);
 
-            const headWind = windSpeedInKnots * (Math.cos((approachRwy.course * Math.PI / 180) - (destinationMetar.windDir * Math.PI / 180)));
+            const headWind = windSpeedInKnots * (Math.cos((approachRwy.course * Math.PI / 180) - ((destinationMetar.windDir ?? 0) * Math.PI / 180)));
             const headWindAnnunciationPriority = altAboveGroundWithinLimits && headWind < -10 ? AnnunicationPriority.Warning :
               altAboveGroundWithinLimits && headWind < -8 ? AnnunicationPriority.Alert : AnnunicationPriority.None;
             this.tailWindAnnunciationPriority.set(headWindAnnunciationPriority);

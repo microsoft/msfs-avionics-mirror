@@ -1,0 +1,50 @@
+.gdu-460-display {
+  --ui-message-dialog-padding: 0px;
+  --ui-message-dialog-font-size: 20px;
+
+  --ui-message-dialog-content-padding: 4px 7px 0px;
+
+  --ui-message-dialog-buttons-margin: 14px 7px;
+  --ui-message-dialog-buttons-gap: 14px;
+
+  --ui-message-dialog-button-width: 124px;
+  --ui-message-dialog-button-height: 68px;
+}
+
+.ui-message-dialog {
+  position: relative;
+  padding: var(--ui-message-dialog-padding);
+  color: var(--g3x-color-white);
+  font-size: var(--ui-message-dialog-font-size);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.ui-message-dialog-content {
+  width: var(--ui-message-dialog-content-width, auto);
+  height: var(--ui-message-dialog-content-height, auto);
+  padding: var(--ui-message-dialog-content-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  white-space: pre-wrap;
+  text-align: center;
+}
+
+.ui-message-dialog-buttons {
+  margin: var(--ui-message-dialog-buttons-margin);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-around;
+}
+
+.ui-message-dialog-button {
+  width: var(--ui-message-dialog-button-width);
+  height: var(--ui-message-dialog-button-height);
+}
+
+.ui-message-dialog-reject-button {
+  margin-right: var(--ui-message-dialog-buttons-gap);
+}

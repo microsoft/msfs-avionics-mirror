@@ -1,0 +1,58 @@
+.airport-freq-tab {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.gdu-460-display .airport-freq-tab {
+  font-size: 18px;
+
+  --airport-freq-tab-list-margin: 0px 8px 0px 14px;
+
+  --airport-freq-tab-list-item-padding: 8px 9px;
+  --airport-freq-tab-list-item-right-width: 130px;
+  --airport-freq-tab-list-item-column-gap: 10px;
+
+  --airport-freq-tab-remark-width: 64px;
+}
+
+.airport-freq-tab-list {
+  margin: var(--airport-freq-tab-list-margin);
+}
+
+.airport-freq-tab-list .touch-button.ui-list-item-button {
+  padding: var(--airport-freq-tab-list-item-padding);
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr var(--airport-freq-tab-list-item-right-width);
+  grid-column-gap: var(--airport-freq-tab-list-item-column-gap);
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.airport-freq-tab-list-item-left {
+  align-self: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.airport-freq-tab-remark {
+  width: var(--airport-freq-tab-remark-width);
+  text-align: center;
+}
+
+.airport-freq-tab-freq-button {
+  --touch-button-disabled-background: none;
+  --touch-button-disabled-box-shadow: none;
+  --touch-button-disabled-filter: none;
+}
+
+.airport-freq-tab-freq-button.touch-button-disabled {
+  --touch-button-border-color: transparent;
+}

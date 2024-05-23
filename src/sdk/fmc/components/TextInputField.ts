@@ -86,6 +86,7 @@ export class TextInputField<T = string, V = T> extends EditableField<T, V> {
    * Allows text input to be programmatically sent to the field.
    *
    * @param input the text input
+   * @returns a Promise that resolves to a boolean or string
    */
   public async takeTextInput(input: string): Promise<boolean | string> {
     return this.handleTextInputInternal(input);
@@ -113,6 +114,7 @@ export class TextInputField<T = string, V = T> extends EditableField<T, V> {
    * Internal handling of text input
    *
    * @param text the input text
+   * @returns a Promise that resolves to a boolean or string
    */
   private async handleTextInputInternal(text: string): Promise<boolean | string> {
     const parsedValue = await this.options.formatter.parse(text);

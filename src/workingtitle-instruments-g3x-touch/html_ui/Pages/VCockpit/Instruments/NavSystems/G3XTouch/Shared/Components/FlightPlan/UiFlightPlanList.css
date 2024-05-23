@@ -1,0 +1,8 @@
+.gdu-460-display .ui-fpl-list {
+  --ui-fpl-list-arrow-margin-left: 3px;
+}
+
+.ui-fpl-list-arrow-part {
+  left: var(--ui-fpl-list-arrow-margin-left);
+  fill: var(--g3x-color-magenta);
+}

@@ -1,0 +1,26 @@
+.gdu-460-display .com-find-dialog.add-user-frequency-dialog {
+  width: 400px;
+  height: 500px;
+}
+
+.gdu-460-display .com-find-dialog.add-user-frequency-dialog .find-frequency-dialog-action-button {
+  width: var(--ui-nav-button-width);
+}
+
+.gdu-460-display .com-find-dialog.add-user-frequency-dialog .user-frequency-input-dialog-container {
+  width: 100%;
+  height: calc(2 * var(--ui-nav-button-height) + 30px);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gdu-460-display .com-find-dialog.add-user-frequency-dialog .user-frequency-input-touchbutton {
+  width: 255px;
+  height: var(--ui-nav-button-height);
+
+  --touch-button-value-label-center-y: 25%;
+  --touch-button-value-value-center-y: 75%;
+  --touch-button-value-value-text-color: var(--g3x-color-cyan);
+}

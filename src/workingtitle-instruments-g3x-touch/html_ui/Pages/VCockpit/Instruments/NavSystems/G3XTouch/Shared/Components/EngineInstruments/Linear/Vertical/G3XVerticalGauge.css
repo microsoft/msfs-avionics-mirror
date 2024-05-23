@@ -1,0 +1,82 @@
+.single-vert-container {
+  --vertical-bar-gauge-text-bottom-margin: 10px;
+  --vertical-bar-gauge-color-zone-width: 10px;
+  --vertical-bar-gauge-label-row-font-size: 17px;
+  --vertical-bar-gauge-value-row-font-size: 17px;
+  --vertical-bar-gauge-label-row-height: 20px;
+
+  position: relative;
+  margin-left: 0px;
+  margin-right: 0px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.single-vert-container .inner-frame {
+  width: 14px;
+  flex-grow: 1;
+  position: relative;
+}
+
+.single-vert-container .text-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  height: calc(var(--vertical-bar-gauge-label-row-height) + var(--vertical-bar-gauge-value-row-height));
+  margin-bottom: var(--vertical-bar-gauge-text-bottom-margin);
+}
+
+.single-vert-container .horizontal-label {
+  height: var(--vertical-bar-gauge-label-row-height);
+  font-size: var(--vertical-bar-gauge-label-row-font-size);
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.single-vert-container .horizontal-value {
+  height: var(--vertical-bar-gauge-value-row-height);
+  font-size: var(--vertical-bar-gauge-value-row-font-size);
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.single-vert-container .zones-and-lines {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+.single-vert-container .inner-lines-frame {
+  position: absolute;
+  top: 0;
+  left: calc(100% - var(--vertical-bar-gauge-color-line-width));
+  width: var(--vertical-bar-gauge-color-line-width);
+  height: 100%;
+}
+
+.single-vert-container .color-zone-fragment {
+  x: calc(100% - var(--vertical-bar-gauge-color-zone-width));
+  width: var(--vertical-bar-gauge-color-zone-width);
+}
+
+.single-vert-container .color-zone-fragment-cover {
+  x: calc(100% - var(--vertical-bar-gauge-color-zone-width));
+  width: var(--vertical-bar-gauge-color-zone-width);
+}
+
+.single-vert-container .gauge_pointer {
+  position: absolute;
+  height: 100%;
+  right: 1px;
+  top: 0px;
+}
+
+.single-vert-container .gauge_pointer_text {
+  position: absolute;
+  font-size: 11px;
+  fill: var(--g3x-color-black);
+  text-align: center;
+}

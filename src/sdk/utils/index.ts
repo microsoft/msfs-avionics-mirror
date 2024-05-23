@@ -1,3 +1,4 @@
+export * from './config';
 export * from './controllers';
 export * from './datastructures';
 export * from './predictions';

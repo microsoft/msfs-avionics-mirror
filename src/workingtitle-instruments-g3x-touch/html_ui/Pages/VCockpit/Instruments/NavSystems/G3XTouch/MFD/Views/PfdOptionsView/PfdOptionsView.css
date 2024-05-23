@@ -1,0 +1,275 @@
+.pfd-options-view-wrapper {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.pfd-options-view {
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  color: var(--g3x-color-white);
+}
+
+.gdu-460-display .pfd-options-view {
+  height: 610px;
+  margin-left: 7px;
+  padding: 0px 12px;
+  font-size: 19px;
+
+  --ui-list-select-button-label-height: 0px;
+  --ui-list-select-button-dropdown-width: 50px;
+
+  --pfd-options-view-title-margin: 2px 0px 19px;
+  --pfd-options-view-title-font-size: 21px;
+
+  --pfd-options-view-spacer-min-width: 12px;
+  --pfd-options-view-spacer-collapsible-min-width: 5px;
+
+  --pfd-options-view-button-height: 80px;
+
+  --pfd-options-view-row-height: 127px;
+
+  --pfd-options-view-box-height: 110px;
+  --pfd-options-view-box-padding: 17px 0px 11px;
+  --pfd-options-view-box-border-radius: 5px;
+
+  --pfd-options-view-divider-margin: 3px 0px;
+
+  --pfd-options-view-box-fpl-source-max-width: 216px;
+  --pfd-options-view-box-fpl-source-min-width: 126px;
+  --pfd-options-view-fpl-source-button-max-width: 185px;
+
+  --pfd-options-view-box-cdi-source-max-width: 216px;
+  --pfd-options-view-box-fpl-source-min-width: 126px;
+  --pfd-options-view-cdi-source-button-max-width: 185px;
+
+  --pfd-options-view-inset-button-width: 228px;
+
+  --pfd-options-view-box-bearing-max-width: 445px;
+  --pfd-options-view-brg-pointer-button-max-width: 228px;
+  --pfd-options-view-brg-pointer-button-min-width: 150px;
+
+  --pfd-options-view-row-3-spacer-width: 12px;
+
+  --pfd-options-view-box-timer-max-width: 288px;
+  --pfd-options-view-timer-button-max-width: 144px;
+  --pfd-options-view-timer-reset-button-max-width: 96px;
+  --pfd-options-view-timer-button-label-font-size: 17px;
+  --pfd-options-view-timer-button-value-font-size: 25px;
+  --pfd-options-view-box-timer-spacer-width: 15px;
+
+  --pfd-options-view-box-mins-max-width: 144px;
+  --pfd-options-view-mins-button-max-width: 120px;
+
+  --pfd-options-view-more-options-button-max-width: 120px;
+  --pfd-options-view-more-options-button-min-width: 100px;
+
+  --pfd-options-view-row-4-spacer-width: 12px;
+
+  --pfd-options-view-menu-msg-margin: 7px 0px 0px;
+  --pfd-options-view-main-menu-icon-width: 48px;
+
+  --ui-view-box-title-font-size: 17px;
+}
+
+.pfd-options-view-title {
+  margin: var(--pfd-options-view-title-margin);
+  font-size: var(--pfd-options-view-title-font-size);
+  text-align: center;
+}
+
+.pfd-options-view-spacer {
+  min-width: var(--pfd-options-view-spacer-min-width);
+}
+
+.pfd-options-view-spacer.pfd-options-view-row-spacer-collapsible {
+  min-width: var(--pfd-options-view-spacer-collapsible-min-width);
+}
+
+.pfd-options-view-row {
+  height: var(--pfd-options-view-row-height);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.pfd-options-view-box {
+  height: var(--pfd-options-view-box-height);
+  padding: var(--pfd-options-view-box-padding);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-evenly;
+  align-items: stretch;
+}
+
+.pfd-options-view-divider {
+  width: 1px;
+  margin: var(--pfd-options-view-divider-margin);
+  background: var(--g3x-color-border-gray);
+}
+
+.pfd-options-view-row-1 {
+  margin: 0px calc(-1 * var(--pfd-options-view-spacer-min-width) / 2);
+}
+
+.pfd-options-view-row-1 .pfd-options-view-box {
+  margin: 0px calc(var(--pfd-options-view-spacer-min-width) / 2);
+}
+
+.pfd-options-view-box-fpl-source {
+  flex-shrink: 1;
+  width: var(--pfd-options-view-box-fpl-source-max-width);
+  min-width: var(--pfd-options-view-box-fpl-source-min-width);
+}
+
+.pfd-options-view-fpl-source-button {
+  flex-shrink: 1;
+  width: var(--pfd-options-view-fpl-source-button-max-width);
+  height: var(--pfd-options-view-button-height);
+  margin: 0px var(--pfd-options-view-spacer-min-width);
+  white-space: pre;
+
+  --touch-button-value-value-center-y: 50%;
+}
+
+.pfd-options-view-box-cdi-source {
+  flex-shrink: 1;
+  width: var(--pfd-options-view-box-cdi-source-max-width);
+  min-width: var(--pfd-options-view-box-cdi-source-min-width);
+}
+
+.pfd-options-view-cdi-source-button {
+  flex-shrink: 1;
+  width: var(--pfd-options-view-cdi-source-button-max-width);
+  height: var(--pfd-options-view-button-height);
+  margin: 0px var(--pfd-options-view-spacer-min-width);
+
+  --touch-button-value-value-center-y: 50%;
+  --touch-button-value-value-text-color: var(--g3x-color-green);
+}
+
+.pfd-options-view-cdi-source-button.pfd-options-view-cdi-source-button-gps {
+  --touch-button-value-value-text-color: var(--g3x-color-magenta);
+}
+
+.pfd-options-view-box-inset {
+  width: 100%;
+}
+
+.pfd-options-view-inset-button {
+  width: var(--pfd-options-view-inset-button-width);
+}
+
+.pfd-options-view-box-bearing {
+  position: relative;
+  flex-shrink: 1;
+  width: var(--pfd-options-view-box-bearing-max-width);
+  min-width: 0px;
+}
+
+.pfd-options-view-box-bearing-spacer {
+  flex-shrink: 0;
+  width: var(--pfd-options-view-spacer-min-width);
+}
+
+.pfd-options-view-brg-pointer-button {
+  flex-shrink: 1;
+  width: var(--pfd-options-view-brg-pointer-button-max-width);
+  min-width: var(--pfd-options-view-brg-pointer-button-min-width);
+}
+
+.pfd-options-view-row-3 .pfd-options-view-row-spacer {
+  flex-shrink: 5;
+  width: var(--pfd-options-view-row-3-spacer-width);
+}
+
+.pfd-options-view-box-timer {
+  position: relative;
+  flex-shrink: 1;
+  width: var(--pfd-options-view-box-timer-max-width);
+  min-width: 0px;
+}
+
+.pfd-options-view-timer-button {
+  flex-shrink: 1;
+  width: var(--pfd-options-view-timer-button-max-width);
+  height: var(--pfd-options-view-button-height);
+  font-size: var(--pfd-options-view-timer-button-label-font-size);
+
+  --touch-button-value-label-center-y: 20%;
+  --touch-button-value-value-center-y: 65%;
+}
+
+.pfd-options-view-timer-button .touch-button-value-value {
+  font-size: var(--pfd-options-view-timer-button-value-font-size);
+}
+
+.pfd-options-view-timer-reset-button {
+  flex-shrink: 1;
+  width: var(--pfd-options-view-timer-reset-button-max-width);
+  height: var(--pfd-options-view-button-height);
+}
+
+.pfd-options-view-box-timer-spacer {
+  flex-shrink: 1;
+  width: var(--pfd-options-view-box-timer-spacer-width);
+  min-width: var(--pfd-options-view-spacer-min-width);
+}
+
+.pfd-options-view-box-mins {
+  position: relative;
+  flex-shrink: 1;
+  width: var(--pfd-options-view-box-mins-max-width);
+  min-width: 0px;
+}
+
+.pfd-options-view-mins-button {
+  flex-shrink: 1;
+  width: var(--pfd-options-view-mins-button-max-width);
+  height: var(--pfd-options-view-button-height);
+  margin: 0px var(--pfd-options-view-spacer-min-width);
+}
+
+.pfd-options-view-more-options-button {
+  flex-shrink: 1;
+  width: var(--pfd-options-view-more-options-button-max-width);
+  min-width: var(--pfd-options-view-more-options-button-min-width);
+  height: var(--pfd-options-view-button-height);
+}
+
+.pfd-options-view-row-4 .pfd-options-view-row-spacer {
+  flex-shrink: 5;
+  width: var(--pfd-options-view-row-4-spacer-width);
+}
+
+.pfd-options-view-menu-msg {
+  margin: var(--pfd-options-view-menu-msg-margin);
+  text-align: center;
+}
+
+.pfd-options-view-main-menu-icon {
+  width: var(--pfd-options-view-main-menu-icon-width);
+  vertical-align: middle;
+}
+
+.gdu-460-display .pfd-options-view-select-dialog {
+  --ui-list-dialog-padding: 4px;
+  --ui-list-dialog-font-size: 20px;
+}
+
+.gdu-460-display .pfd-options-view-inset-select-dialog {
+  --ui-list-dialog-width: 232px;
+}
+
+.gdu-460-display .pfd-options-view-brg-pointer-select-dialog {
+  --ui-list-dialog-width: 180px;
+}

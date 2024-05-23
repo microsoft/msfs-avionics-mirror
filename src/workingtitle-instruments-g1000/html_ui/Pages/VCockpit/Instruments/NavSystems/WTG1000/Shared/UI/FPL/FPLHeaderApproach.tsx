@@ -1,6 +1,6 @@
-import { AirportFacility, ApproachProcedure, FSComponent, ICAO, Subject, VNode } from '@microsoft/msfs-sdk';
+import { AirportFacility, FSComponent, ICAO, Subject, VNode } from '@microsoft/msfs-sdk';
 
-import { FmsUtils } from '@microsoft/msfs-garminsdk';
+import { FmsUtils, GarminApproachProcedure } from '@microsoft/msfs-garminsdk';
 
 import { ApproachNameDisplay } from './ApproachNameDisplay';
 import { FPLHeader } from './FPLHeader';
@@ -14,7 +14,7 @@ export class FPLHeaderApproach extends FPLHeader {
   private readonly vtfRef = FSComponent.createRef<HTMLSpanElement>();
 
   private readonly airportSub = Subject.create<AirportFacility | null>(null);
-  private readonly approachSub = Subject.create<ApproachProcedure | null>(null);
+  private readonly approachSub = Subject.create<GarminApproachProcedure | null>(null);
 
   /** @inheritdoc */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

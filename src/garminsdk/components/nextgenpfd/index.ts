@@ -8,6 +8,7 @@ export * from './marker';
 export * from './minimums';
 export * from './navstatusbox';
 export * from './traffic';
+export * from './vdi';
 export * from './vsi';
 export * from './wind';
 

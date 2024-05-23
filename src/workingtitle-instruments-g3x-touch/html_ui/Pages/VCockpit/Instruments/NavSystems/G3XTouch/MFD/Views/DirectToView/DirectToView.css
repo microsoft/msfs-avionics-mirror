@@ -1,0 +1,33 @@
+.gdu-460-display .direct-to-view {
+  position: relative;
+  padding: 2px;
+  font-size: 19px;
+  color: var(--g3x-color-white);
+
+  --direct-to-view-title-margin-bottom: 15px;
+  --direct-to-view-title-font-size: 23px;
+  --direct-to-view-title-icon-height: 17px;
+  --direct-to-view-title-icon-margin: 5px 12px 0px 0px;
+
+  --direct-to-view-tabbed-container-width: 520px;
+  --direct-to-view-tabbed-container-height: 571px;
+
+  --tabbed-container-tab-width: 61px;
+}
+
+.direct-to-view-title {
+  width: 100%;
+  font-size: var(--direct-to-view-title-font-size);
+  text-align: center;
+  margin-bottom: var(--direct-to-view-title-margin-bottom);
+}
+
+.direct-to-view-title-icon {
+  height: var(--direct-to-view-title-icon-height);
+  margin: var(--direct-to-view-title-icon-margin);
+}
+
+.direct-to-view-tabbed-container {
+  width: var(--direct-to-view-tabbed-container-width);
+  height: var(--direct-to-view-tabbed-container-height);
+}

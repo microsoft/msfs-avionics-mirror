@@ -14,13 +14,14 @@ export class NavRadioNavSource<NameType extends string> extends AbstractNavRefer
   private readonly glideSlopeErrorDegrees = Subject.create(0);
   private readonly navLocalizerCrsRad = Subject.create(0);
   private readonly navCdi = Subject.create(0);
-  private readonly navRadial = Subject.create(0);
 
   private readonly dmePipe: Subscription;
   private readonly bearingPipe: Subscription;
 
   private readonly vorLla: ConsumerSubject<LatLongAlt>;
   private readonly dmeLla: ConsumerSubject<LatLongAlt>;
+
+  private readonly toFromPipe: Subscription;
 
   /**
    * Creates a new instance of NavRadioNavSource.
@@ -42,11 +43,7 @@ export class NavRadioNavSource<NameType extends string> extends AbstractNavRefer
     navComSubscriber.on(`nav_glideslope_${index}`).handle(val => { this.hasGlideSlope.set(val); });
     navComSubscriber.on(`nav_obs_${index}`).handle(val => { this.course.set(val); });
     navComSubscriber.on(`nav_cdi_${index}`).handle(val => { this.navCdi.set(val); });
-    navComSubscriber.on(`nav_to_from_${index}`).handle(val => { this.toFrom.set(val); });
     navComSubscriber.on(`nav_active_frequency_${index}`).handle(val => { this.activeFrequency.set(val); });
-
-    this.dmePipe = navComSubscriber.on(`nav_dme_${index}`).handle(val => { this.distance.set(val); }, true);
-    this.bearingPipe = navComSubscriber.on(`nav_radial_${index}`).handle(val => { this.bearing.set((val + 180) % 360); }, true);
 
     this.vorLla = ConsumerSubject.create(navComSubscriber.on(`nav_lla_${index}`), new LatLongAlt(0, 0), (a, b) => {
       return a.lat === b.lat && a.long === b.long;
@@ -105,6 +102,7 @@ export class NavRadioNavSource<NameType extends string> extends AbstractNavRefer
     }, true);
 
     // Distance
+    this.dmePipe = navComSubscriber.on(`nav_dme_${index}`).handle(val => { this.distance.set(val); }, true);
     MappedSubject.create(
       this.hasDme,
       this.hasSignal
@@ -118,6 +116,7 @@ export class NavRadioNavSource<NameType extends string> extends AbstractNavRefer
     }, true);
 
     // Bearing
+    this.bearingPipe = navComSubscriber.on(`nav_radial_${index}`).handle(val => { this.bearing.set((val + 180) % 360); }, true);
     MappedSubject.create(
       this.hasNav,
       this.hasSignal
@@ -130,17 +129,40 @@ export class NavRadioNavSource<NameType extends string> extends AbstractNavRefer
       }
     }, true);
 
-    this.hasLocalizer.sub(this.updateIsLocalizer);
-    this.activeFrequency.sub(this.updateIsLocalizer);
+    // Is localizer
+    const updateIsLocalizer = this.updateIsLocalizer.bind(this);
+    this.hasLocalizer.sub(updateIsLocalizer);
+    this.activeFrequency.sub(updateIsLocalizer);
 
-    this.hasLocalizer.sub(this.updateLocalizerCourse);
-    this.navLocalizerCrsRad.sub(this.updateLocalizerCourse);
+    // Localizer course
+    const updateLocalizerCourse = this.updateLocalizerCourse.bind(this);
+    this.hasLocalizer.sub(updateLocalizerCourse);
+    this.navLocalizerCrsRad.sub(updateLocalizerCourse);
 
-    this.hasGlideSlope.sub(this.updateVerticalDeviation);
-    this.glideSlopeErrorDegrees.sub(this.updateVerticalDeviation);
+    // Vertical deviation
+    const updateVerticalDeviation = this.updateVerticalDeviation.bind(this);
+    this.hasGlideSlope.sub(updateVerticalDeviation);
+    this.glideSlopeErrorDegrees.sub(updateVerticalDeviation);
 
-    this.navCdi.sub(this.updateLateralDeviation);
-    this.hasNav.sub(this.updateLateralDeviation);
+    // Lateral deviation
+    const updateLateralDeviation = this.updateLateralDeviation.bind(this);
+    this.navCdi.sub(updateLateralDeviation);
+    this.hasNav.sub(updateLateralDeviation);
+
+    // TO/FROM
+    this.toFromPipe = navComSubscriber.on(`nav_to_from_${index}`).handle(val => { this.toFrom.set(val); }, true);
+    MappedSubject.create(
+      this.isLocalizer,
+      this.hasSignal,
+      this.hasNav,
+    ).sub(([isLoc, hasSignal, hasNav]) => {
+      if (isLoc || !hasSignal || !hasNav) {
+        this.toFromPipe.pause();
+        this.toFrom.set(null);
+      } else {
+        this.toFromPipe.resume(true);
+      }
+    }, true);
   }
 
   /** @inheritdoc */
@@ -148,46 +170,38 @@ export class NavRadioNavSource<NameType extends string> extends AbstractNavRefer
     return NavSourceType.Nav;
   }
 
-  private readonly updateIsLocalizer = (): void => {
+  /**
+   * Updates whether this source's reference is a localizer.
+   */
+  private updateIsLocalizer(): void {
     const navHasLocalizer = this.hasLocalizer.get();
     const _isLocalizerFrequency = RadioUtils.isLocalizerFrequency(this.activeFrequency.get() ?? 0);
     this.isLocalizer.set(navHasLocalizer || _isLocalizerFrequency);
-  };
+  }
 
-  private readonly updateLocalizerCourse = (): void => {
+  /**
+   * Updates this source's localizer course.
+   */
+  private updateLocalizerCourse(): void {
     this.localizerCourse.set(
       this.hasLocalizer.get()
         ? this.navLocalizerCrsRad.get() * Avionics.Utils.RAD2DEG
         : null
     );
-  };
-
-  private readonly updateVerticalDeviation = (): void => {
-    this.verticalDeviation.set(this.getVerticalDeviation());
-  };
-
-  /** @returns Deviation is in degrees, and standard glideslope is 1.4 degrees thick,
-   * so the vdev indicator will max out when 0.7 degrees off the GS */
-  private getVerticalDeviation(): number | null {
-    if (!this.hasGlideSlope.get()) {
-      return null;
-    } else {
-      return -this.glideSlopeErrorDegrees.get() / 0.7;
-    }
   }
 
-  private readonly updateLateralDeviation = (): void => {
-    this.lateralDeviation.set(this.getLateralDeviation());
-  };
+  /**
+   * Updates this source's vertical deviation.
+   */
+  private updateVerticalDeviation(): void {
+    this.verticalDeviation.set(this.hasGlideSlope.get() ? -this.glideSlopeErrorDegrees.get() / 0.7 : null);
+  }
 
-  /** @returns Deviation is in degrees, and standard glideslope is 1.4 degrees thick,
-   * so the vdev indicator will max out when 0.7 degrees off the GS */
-  private getLateralDeviation(): number | null {
-    if (!this.hasNav.get()) {
-      return null;
-    } else {
-      // The NAV CDI simvar holds the deviation as a range from -127 to 127
-      return this.navCdi.get() / 127;
-    }
+  /**
+   * Updates this source's lateral deviation.
+   */
+  private updateLateralDeviation(): void {
+    // The NAV CDI simvar holds the deviation as a range from -127 to 127
+    this.lateralDeviation.set(this.hasNav.get() ? this.navCdi.get() / 127 : null);
   }
 }

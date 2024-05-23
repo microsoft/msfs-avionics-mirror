@@ -1,0 +1,21 @@
+html {
+  --pfd-touch-button-border-color: #a8a8a8;
+  --pfd-touch-button-border-width: 2px;
+  --pfd-touch-button-border-radius: 10px;
+  --pfd-touch-button-background: linear-gradient(to bottom, rgba(0, 0, 0, 0.175), rgba(0, 0, 0, 0.725));
+  --pfd-touch-button-box-shadow: 0px 0px 1px 1px black inset;
+
+  --pfd-touch-button-primed-background: var(--g3x-color-focus-blue);
+  --pfd-touch-button-primed-box-shadow: 0px 0px 1px 1px #105c76 inset;
+}
+
+.pfd-touch-button {
+  --touch-button-border-color: var(--pfd-touch-button-border-color);
+  --touch-button-border-width: var(--pfd-touch-button-border-width);
+  --touch-button-border-radius: var(--pfd-touch-button-border-radius);
+  --touch-button-background: var(--pfd-touch-button-background);
+  --touch-button-box-shadow: var(--pfd-touch-button-box-shadow);
+
+  --touch-button-primed-background: var(--pfd-touch-button-primed-background);
+  --touch-button-primed-box-shadow: var(--pfd-touch-button-primed-box-shadow);
+}

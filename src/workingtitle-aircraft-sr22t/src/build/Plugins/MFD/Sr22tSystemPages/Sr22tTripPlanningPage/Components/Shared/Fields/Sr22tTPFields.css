@@ -1,0 +1,112 @@
+.tp-labeled-number {
+  display: flex;
+  flex-direction: row;
+  font-size: inherit;
+  height: 28px;
+  padding-right: 7px;
+}
+
+.tp-labeled-number-title,
+.tp-labeled-number-value,
+.tp-labeled-editable-number-value,
+.tp-generic-number-input {
+  height: max-content;
+  margin-top: auto;
+}
+
+.tp-labeled-number-unit {
+  margin-top: 11px;
+}
+
+.tp-labeled-number-title {
+  flex-grow: 1;
+  font-size: 16px;
+  color: #bbb;
+}
+
+.tp-labeled-number-value {
+  flex-grow: 0;
+  font-size: 19px;
+  color: white;
+}
+
+.tp-generic-number-input {
+  flex-grow: 0;
+  font-size: 19px;
+}
+
+.tp-leg-target-name {
+  flex-grow: 0;
+  font-size: 19px;
+  color: white;
+  margin-top: 6px;
+}
+
+.tp-number-input-value {
+  font-size: 19px;
+  margin-top: 6px;
+  color: cyan;
+}
+
+.tp-number-input-value.input-disabled {
+  color: white;
+}
+
+.tp-labeled-editable-number-value {
+  flex-grow: 0;
+  font-size: 19px;
+  color: cyan;
+}
+
+.tp-labeled-number-unit {
+  flex-grow: 0;
+  font-size: 13.5px;
+  color: white;
+}
+
+.tp-labeled-editable-number-unit {
+  margin-top: auto;
+  font-size: 13.5px;
+  color: cyan;
+}
+
+.digit-input.highlight-active .tp-labeled-editable-number-unit,
+.digit-input.highlight-select .tp-labeled-editable-number-unit,
+.number-input.highlight-active .tp-labeled-editable-number-unit,
+.number-input.highlight-select .tp-labeled-editable-number-unit {
+  color: inherit;
+}
+
+.tp-editable-emulation-value {
+  color: cyan;
+  font-size: 20px;
+  margin-right: 40px;
+}
+
+.tp-field-disabled-value {
+  color: #555;
+  font-size: 20px;
+  margin-right: 40px;
+}
+
+.tp-labeled-number-entry-value {
+  background: rgb(0, 0, 0);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: cyan;
+  font-size: 20px;
+  margin-top: 6px;
+}
+
+.tp-labeled-number-entry-value.highlight-active {
+  background: cyan;
+  color: inherit;
+}
+
+.tp-labeled-number-entry-unit {
+  flex-grow: 0;
+  font-size: 13.5px;
+  padding-top: 5px;
+  color: inherit;
+}

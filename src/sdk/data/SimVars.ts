@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-duplicate-enum-values */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /**
  * Valid type arguments for Set/GetSimVarValue
@@ -14,6 +15,7 @@ export enum SimVarValueType {
   FPM = 'feet per minute',
   GAL = 'gallons',
   GPH = 'gph',
+  Hertz = 'hertz',
   Hours = 'Hours',
   HPA = 'hectopascals',
   InHG = 'inches of mercury',
