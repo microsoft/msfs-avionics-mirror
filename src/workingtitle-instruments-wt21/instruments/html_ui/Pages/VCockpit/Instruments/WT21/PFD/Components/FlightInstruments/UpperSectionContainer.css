@@ -1,0 +1,116 @@
+.translucent-box {
+  position: absolute;
+  background-color: var(--wt21-colors-translucent-background);
+  overflow: hidden;
+}
+
+.adi-box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.adi-mask {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+.fma-box {
+  top: 0;
+  left: 22.8%;
+  width: 54.4%;
+  height: 13.1%
+}
+
+.aoa-box {
+  top: 25%;
+  left: 0;
+  width: 7.9%;
+  height: 65%;
+  box-shadow: inset -3px 0 5px -3px rgba(0, 0, 0, 0.4);
+  border-right: 3px solid var(--wt21-colors-dark-gray);
+  transform: rotateX(0);
+}
+
+.spd-select-box {
+  position: absolute;
+  top: 14.6%;
+  left: 10.1%;
+  width: 12.5%;
+  height: 6.2%;
+}
+
+.airspeed-box {
+  position: absolute;
+  overflow: hidden;
+  top: 22.2%;
+  left: 7.7%;
+  width: 16%;
+  height: 70.5%;
+}
+
+.mach-box {
+  position: absolute;
+  top: 94%;
+  left: 12%;
+  width: 10%;
+  text-shadow: var(--wt21-fonts-shadow-normal);
+}
+
+.vnav-select-box {
+  top: 8.5%;
+  right: 0.7%;
+  width: 8.7%;
+  height: 7.8%;
+}
+
+.altimeter-box {
+  top: 20%;
+  right: 7.3%;
+  width: 16.5%;
+  height: 74%;
+  box-shadow: 3px 0 5px -3px rgba(0, 0, 0, 0.4);
+  border-right: 3px solid var(--wt21-colors-dark-gray);
+}
+
+.altimeter-baro-preset-box {
+  position: absolute;
+  top: 94%;
+  right: 8%;
+  width: 15.7%;
+  height: 12%;
+  z-index: 1;
+}
+
+.vertical-speed-box {
+  top: 14%;
+  right: 0%;
+  width: 7.4%;
+  height: 86.1%;
+}
+
+.lateral-deviation-box {
+  position: absolute;
+  width: 35%;
+  height: 6.65%;
+  bottom: 0.45%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.vertical-deviation-box {
+  position: absolute;
+  width: 3.5%;
+  height: 50%;
+  top: 32.5%;
+  right: 23.7%;
+}
+
+.marker-beacon-box {
+  position: absolute;
+  left: 208px;
+  top: 211px;
+}

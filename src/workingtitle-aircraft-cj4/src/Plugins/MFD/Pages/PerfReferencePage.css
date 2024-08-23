@@ -1,0 +1,80 @@
+.mfd-page-perf-ref-container {
+  position: absolute;
+  left: 20%;
+  top: 10%;
+  display: flex;
+  flex-direction: column;
+}
+
+.perf-ref-header {
+  display: flex;
+  width: 450px;
+  justify-content: space-between;
+}
+
+.perf-ref-data-container {
+  margin-top: 20px;
+}
+
+.perf-ref-data-row {
+  display: flex;
+}
+
+.data1-size {
+  width: 160px;
+}
+
+.data2-size {
+  width: 100px;
+}
+
+.data3-size {
+  width: 80px;
+}
+
+.data4-size {
+  width: 158px;
+}
+
+.data5-size {
+  width: 128px;
+}
+
+.data6-size {
+  width: 128px;
+}
+
+.perf-ref-vspeed-container {
+  position: absolute;
+  top: 9.5%;
+  left: 63%;
+}
+
+.perf-ref-app-vspeed-container {
+  position: absolute;
+  top: 9.5%;
+  left: 63%;
+}
+
+.perf-ref-vspeed-container, .perf-ref-app-vspeed-container >div {
+  margin-bottom: 25px;
+}
+
+.perf-ref-vspeed {
+  text-align: end;
+  padding-right: 12px;
+}
+
+.perf-ref-field-length-container {
+  position: absolute;
+  left: 79%;
+  top: 58.5%;
+  text-align: center;
+}
+
+.perf-ref-field-length-value {
+  text-align: center;
+}
+
+
+

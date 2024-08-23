@@ -1,0 +1,29 @@
+{
+  "name": "workingtitle-aircraft-cj4",
+  "version": "2.0.1",
+  "description": "Working Title MSFS CJ4",
+  "scripts": {
+    "build": "npm run build:compile && npm run build:rollup",
+    "build:compile": "npx tsc",
+    "build:rollup": "robocopy src/Plugins *.css build/Plugins /s & npx rollup -c rollup.config.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/msfs-avionics-mirror/"
+  },
+  "author": "Working Title Simulations, LLC",
+  "license": "Modified MIT",
+  "devDependencies": {
+    "@rollup/plugin-image": "^3.0.2",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@microsoft/msfs-sdk": "0.8.0-beta3",
+    "@microsoft/msfs-types": "1.14.6",
+    "@microsoft/msfs-wt21-shared": "2.0.5",
+    "@microsoft/msfs-wt21-fmc": "2.0.5",
+    "@microsoft/msfs-wt21-mfd": "2.0.5",
+    "@microsoft/msfs-wt21-pfd": "2.0.5",
+    "rollup": "^2.79.1",
+    "rollup-plugin-import-css": "^3.1.0",
+    "typescript": "5.3.3"
+  }
+}

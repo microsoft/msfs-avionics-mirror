@@ -1,0 +1,13 @@
+.select-box {
+  position: relative;
+  background-color: var(--wt21-colors-translucent-background);
+  height: 100%;
+}
+
+.select-value {
+  position: absolute;
+  top: 7%;
+  left: 40%;
+  font-size: 28px;
+  color: var(--wt21-colors-cyan);
+}

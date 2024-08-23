@@ -1,0 +1,30 @@
+.adi-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+.adi-container .fail-box {
+  top: 48%;
+  left: 46.7%;
+}
+
+.adi-container .info-box {
+  background: var(--wt21-colors-blue);
+  color: var(--wt21-colors-white);
+  border-color: var(--wt21-colors-blue);
+}
+
+.adi-container #alignInfo {
+  top: 44%;
+  left: 33.8%
+}
+
+.adi-container #taxiInfo {
+  top: 51%;
+  left: 38.9%
+}
+
+.adi-container.align .info-box {
+  display: block;
+}

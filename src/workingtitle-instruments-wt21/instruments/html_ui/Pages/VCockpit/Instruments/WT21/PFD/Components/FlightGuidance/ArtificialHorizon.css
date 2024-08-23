@@ -1,0 +1,34 @@
+.artificial-horizon-container {
+  position: absolute;
+  height: 5000px;
+  width: 5000px;
+  top: -2238px;
+  left: -2114px;
+  /* opacity: 0.75; */
+}
+
+.artificial-horizon-inner {
+  height: 100%;
+  width: 100%;
+}
+
+.artificial-horizon-sky {
+  background-color: var(--wt21-horizon-blue);
+  height: calc(50% - 1px);
+}
+
+.artificial-horizon-horizon {
+  background: var(--wt21-colors-white);
+  height: 2px;
+}
+
+.artificial-horizon-ground {
+  background: var(--wt21-ground-brown);
+  height: calc(50% - 1px);
+}
+
+.fail .artificial-horizon-container,
+.warn .artificial-horizon-container,
+.align .artificial-horizon-container {
+  display: none;
+}

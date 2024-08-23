@@ -1,0 +1,116 @@
+.lateral-deviation-indicator {
+  height: 100%;
+  background-color: var(--wt21-colors-translucent-background);
+  overflow: hidden;
+}
+
+.lateral-deviation-indicator svg {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.lateral-deviation-indicator svg.waypoint path {
+  transform: translate(50%, 50%);
+}
+
+.lateral-deviation-indicator .NAV svg.waypoint {
+  display: none;
+}
+
+.lateral-deviation-indicator svg.diamond path {
+  transform: translate(50%, 50%);
+}
+
+.lateral-deviation-indicator .FMS svg.diamond,
+.lateral-deviation-indicator .FMS svg.diamondLeft,
+.lateral-deviation-indicator .FMS svg.diamondRight {
+  display: none;
+}
+
+.lateral-deviation-indicator .maxDeviationLeft svg.diamond path,
+.lateral-deviation-indicator .maxDeviationRight svg.diamond path {
+  display: none;
+}
+
+.lateral-deviation-indicator svg.diamondLeft {
+  left: -5%;
+  transform: none;
+}
+
+.lateral-deviation-indicator svg.diamondLeft path {
+  transform: translate(25%, 50%);
+  display: none;
+}
+
+.lateral-deviation-indicator .maxDeviationLeft svg.diamondLeft path {
+  display: block !important;
+}
+
+.lateral-deviation-indicator svg.diamondRight {
+  right: 0;
+  transform: none;
+}
+
+.lateral-deviation-indicator svg.diamondRight path {
+  transform: translate(85%, 50%);
+  display: none;
+}
+
+.lateral-deviation-indicator .maxDeviationRight svg.diamondRight path {
+  display: block !important;
+}
+
+.lateral-deviation-indicator svg .shadow {
+  stroke: var(--wt21-colors-black);
+  stroke-width: 4.5;
+  opacity: 0.5;
+}
+
+.lateral-deviation-indicator .activeNavSourceDeviation {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.lateral-deviation-indicator .activeNavSourceDeviation.NAV {
+  color: var(--wt21-colors-green);
+}
+
+.lateral-deviation-indicator .activeNavSourceDeviation.FMS {
+  color: var(--wt21-colors-magenta);
+}
+
+.lateral-deviation-indicator .translatable {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.lateral-deviation-indicator .ghostNeedleDeviation {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--wt21-colors-cyan);
+}
+
+.lateral-deviation-box .fail-box-small {
+  top: -80%;
+  right: 14.5%;
+}
+
+.fail .lateral-deviation-indicator,
+.warn .lateral-deviation-indicator {
+  display: block !important;
+}
+
+.fail .activeNavSourceDeviation,
+.fail .ghostNeedleDeviation,
+.warn .activeNavSourceDeviation,
+.warn .ghostNeedleDeviation {
+  display: none;
+}

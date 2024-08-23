@@ -1,0 +1,12 @@
+.right-info-panel {
+  position: relative;
+  top: 180px;
+  /* TODO This should be temporary. */
+  /* TODO Remove once the geometry for the panel has been fixed to leave gaps around the panel. */
+  margin-right: 4px;
+  height: 100%;
+}
+
+.right-info-panel-side-buttons {
+  top: 38%;
+}
