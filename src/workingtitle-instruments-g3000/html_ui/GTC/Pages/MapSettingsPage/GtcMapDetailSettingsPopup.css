@@ -1,0 +1,131 @@
+.map-detail-settings {
+  position: absolute;
+  left: calc(50% - var(--map-detail-settings-width) / 2);
+  top: var(--map-detail-settings-top);
+  width: var(--map-detail-settings-width);
+  height: var(--map-detail-settings-height);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.gtc-horizontal .map-detail-settings {
+  --map-detail-settings-top: 45px;
+  --map-detail-settings-width: 445px;
+  --map-detail-settings-height: 715px;
+
+  --map-detail-settings-button-icon-width: 100px;
+
+  --map-detail-settings-slider-width: 130px;
+  --map-detail-settings-slider-height: 435px;
+  --map-detail-settings-slider-padding: 0px 13px;
+  --map-detail-settings-slider-stop-height: 2px;
+  --map-detail-settings-slider-container-border-width: 2px;
+
+  --map-detail-settings-slider-label-margin: 4px 0px;
+
+  --map-detail-settings-slider-thumb-width: 110px;
+}
+
+.gtc-vertical .map-detail-settings {
+  --map-detail-settings-top: 23px;
+  --map-detail-settings-width: 240px;
+  --map-detail-settings-height: 385px;
+
+  --map-detail-settings-button-icon-width: 50px;
+
+  --map-detail-settings-slider-width: 70px;
+  --map-detail-settings-slider-height: 230px;
+  --map-detail-settings-slider-padding: 0px 6px;
+  --map-detail-settings-slider-stop-height: 2px;
+  --map-detail-settings-slider-container-border-width: 1px;
+
+  --map-detail-settings-slider-label-margin: 2px 0px;
+
+  --map-detail-settings-slider-thumb-width: 60px;
+}
+
+.map-detail-settings-button {
+  width: var(--map-detail-settings-slider-width);
+  height: var(--map-detail-settings-slider-width);
+}
+
+.map-detail-settings-button img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--map-detail-settings-button-icon-width);
+  height: var(--map-detail-settings-button-icon-width);
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+}
+
+.map-detail-settings-slider {
+  width: var(--map-detail-settings-slider-width);
+  height: var(--map-detail-settings-slider-height);
+  margin: 1px 0px;
+  padding: var(--map-detail-settings-slider-padding);
+  font-size: var(--map-settings-popup-font-size-large);
+  align-items: center;
+
+  --touch-slider-thumb-length: var(--gtc-slider-thumb-icon-length);
+  --touch-slider-thumb-justify: 1;
+}
+
+.map-detail-settings-slider-most {
+  order: 3;
+  margin: var(--map-detail-settings-slider-label-margin);
+}
+
+.map-detail-settings-slider-least {
+  order: 1;
+  margin: var(--map-detail-settings-slider-label-margin);
+}
+
+.map-detail-settings-slider .touch-slider-slider-container {
+  background: var(--g3000-color-black);
+  order: 2;
+  align-self: stretch;
+  border: solid var(--map-detail-settings-slider-container-border-width);
+  border-image-slice: 1;
+  border-image-source: linear-gradient(to right, #2d3c4b, #949fa9);
+}
+
+.map-detail-settings-slider .touch-slider-slider-foreground {
+  background: url('coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG3000v2/Assets/Images/GTC/slider_gradient_to_top.png');
+  background-size: cover;
+}
+
+.map-detail-settings-slider-gradient-stop-container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-evenly;
+  align-items: stretch;
+}
+
+.map-detail-settings-slider-gradient-stop {
+  height: var(--map-detail-settings-slider-stop-height);
+  background: var(--g3000-color-black);
+}
+
+.map-detail-settings-slider-gradient-occlude {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  fill: var(--g3000-color-black);
+}
+
+.map-detail-settings-slider .touch-slider-slider-thumb {
+  position: absolute;
+  left: calc(50% - var(--map-detail-settings-slider-thumb-width) / 2);
+  top: 0px;
+  width: var(--map-detail-settings-slider-thumb-width);
+}

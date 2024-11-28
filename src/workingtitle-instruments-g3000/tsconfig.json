@@ -8,7 +8,7 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "build/workingtitle-instruments-g3000/html_ui/Pages/VCockpit/Instruments/NavSystems/WTG3000",
+    "outDir": "build/html_ui",
     "declaration": true,
     "declarationMap": true,
     "removeComments": false,

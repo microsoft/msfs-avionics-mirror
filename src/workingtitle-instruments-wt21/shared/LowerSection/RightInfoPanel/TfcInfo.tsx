@@ -1,15 +1,15 @@
 import {
   AdcEvents, AvionicsSystemState, ComponentProps, ConsumerSubject, DebounceTimer, DisplayComponent, EventBus, FSComponent, MappedSubject, ObjectSubject,
-  Subject, Subscribable, SubscribableMapFunctions, TcasOperatingMode, UserSettingManager, VNode
+  Subject, Subscribable, SubscribableMapFunctions, Subscription, TcasOperatingMode, UserSettingManager, VNode
 } from '@microsoft/msfs-sdk';
 
+import { InstrumentConfig, WT21InstrumentType } from '../../Config';
 import { DisplayUnitLayout } from '../../Config/DisplayUnitConfig';
-import { HSIFormat, MapUserSettings, PfdOrMfd } from '../../Map/MapUserSettings';
-import { TSSSystemEvents } from '../../Systems';
+import { HSIFormat, MapSettingsMfdAliased, MapSettingsPfdAliased } from '../../Map/MapUserSettings';
+import { TransponderSystemEvents } from '../../Systems';
 import { TrafficSettings, TrafficUserSettings } from '../../Traffic/TrafficUserSettings';
 import { WT21TCAS } from '../../Traffic/WT21TCAS';
 import { WT21_PFD_MFD_Colors as WT21_PFD_MFD_Colors } from '../../WT21_Colors';
-import { WT21DisplayUnitFsInstrument } from '../../WT21DisplayUnitFsInstrument';
 
 import './TfcInfo.css';
 
@@ -18,14 +18,14 @@ interface TfcInfoProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
 
-  /** The display unit */
-  displayUnit: WT21DisplayUnitFsInstrument;
+  /** The instrument config object */
+  instrumentConfig: InstrumentConfig;
 
   /** The TCAS instance. */
   tcas: WT21TCAS;
 
-  /** Whether the component is on the PFD or the MFD. */
-  pfdOrMfd: PfdOrMfd;
+  /** The map user settings */
+  mapSettingsManager: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>
 }
 
 /** The TfcInfo component. */
@@ -36,22 +36,25 @@ export class TfcInfo extends DisplayComponent<TfcInfoProps> {
   private readonly aboveBelowRef = FSComponent.createRef<TfcInfoAboveBelow>();
   private readonly altitudeRef = FSComponent.createRef<TfcInfoAltitude>();
 
-  private readonly mapSettings = MapUserSettings.getAliasedManager(this.props.bus, this.props.pfdOrMfd);
+  private readonly instrumentType = this.props.instrumentConfig.instrumentType;
+
   private readonly trafficSettings = TrafficUserSettings.getManager(this.props.bus);
 
-  private readonly isUsingSoftkeys = this.props.displayUnit.displayUnitConfig.displayUnitLayout === DisplayUnitLayout.Softkeys;
+  private readonly isUsingSoftkeys = this.props.instrumentConfig.displayUnitConfig.displayUnitLayout === DisplayUnitLayout.Softkeys;
 
   private readonly isVisible = MappedSubject.create(
     ([format, isTfcEnabled]): boolean => {
       return format === 'TCAS' || isTfcEnabled;
     },
-    this.mapSettings.getSetting('hsiFormat'),
-    this.mapSettings.getSetting('tfcEnabled')
+    this.props.mapSettingsManager.getSetting('hsiFormat'),
+    this.props.mapSettingsManager.getSetting('tfcEnabled')
   );
+
+  private formatSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.mapSettings.getSetting('hsiFormat').sub(this.handleFormat, true);
+    this.formatSub = this.props.mapSettingsManager.getSetting('hsiFormat').sub(this.handleFormat, true);
 
     this.isVisible.sub(isVisible => {
       this.rootRef.instance.classList.toggle('tfc-disabled', !isVisible);
@@ -79,10 +82,10 @@ export class TfcInfo extends DisplayComponent<TfcInfoProps> {
 
         <div class="tfc-label">TFC</div>
         <div class="tfc-info-hideable">
-          <TfcInfoDataField bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
-          <TfcInfoOtherTraffic bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
-          <TfcInfoAboveBelow bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
-          <TfcInfoAltitude bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
+          <TfcInfoDataField bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} instrumentType={this.instrumentType} />
+          <TfcInfoOtherTraffic bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} instrumentType={this.instrumentType} />
+          <TfcInfoAboveBelow bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} instrumentType={this.instrumentType} />
+          <TfcInfoAltitude bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} instrumentType={this.instrumentType} />
         </div>
       </div>
     );
@@ -94,10 +97,10 @@ export class TfcInfo extends DisplayComponent<TfcInfoProps> {
       <div ref={this.rootRef} class='tfc-info'>
         <div class='tfc-label'>TFC</div>
         <div class='tfc-info-hideable'>
-          <TfcInfoDataField bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
-          <TfcInfoOtherTraffic bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
-          <TfcInfoAboveBelow bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
-          <TfcInfoAltitude bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} pfdOrMfd={this.props.pfdOrMfd} />
+          <TfcInfoDataField bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} instrumentType={this.instrumentType} />
+          <TfcInfoOtherTraffic bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} instrumentType={this.instrumentType} />
+          <TfcInfoAboveBelow bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} instrumentType={this.instrumentType} />
+          <TfcInfoAltitude bus={this.props.bus} tcas={this.props.tcas} trafficSettings={this.trafficSettings} isVisible={this.isVisible} instrumentType={this.instrumentType} />
         </div>
       </div>
     );
@@ -105,7 +108,7 @@ export class TfcInfo extends DisplayComponent<TfcInfoProps> {
 
   /** @inheritdoc */
   public destroy(): void {
-    this.mapSettings.getSetting('hsiFormat').unsub(this.handleFormat);
+    this.formatSub?.destroy();
     this.isVisible.destroy();
 
     this.dataFieldRef.instance.destroy();
@@ -118,12 +121,15 @@ export class TfcInfo extends DisplayComponent<TfcInfoProps> {
 /**
  * Component props for individual TfcInfo subfields.
  */
-interface TfcInfoFieldProps extends Omit<TfcInfoProps, 'displayUnit'> {
+interface TfcInfoFieldProps extends Omit<TfcInfoProps, 'instrumentConfig' | 'mapSettingsManager'> {
   /** The traffic user settings manager. */
   trafficSettings: UserSettingManager<TrafficSettings>;
 
   /** Whether the traffic legend is visible. */
   isVisible: Subscribable<boolean>;
+
+  /** The instrument type */
+  instrumentType: WT21InstrumentType;
 }
 
 /**
@@ -164,7 +170,7 @@ class TfcInfoDataField extends DisplayComponent<TfcInfoFieldProps> {
   private readonly operatingMode = ConsumerSubject.create(null, TcasOperatingMode.Standby).pause();
   private readonly raCount = ConsumerSubject.create(null, 0).pause();
 
-  private readonly visibilityHandler = this.updateFromVisibility.bind(this);
+  private isVisibleSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
@@ -182,16 +188,14 @@ class TfcInfoDataField extends DisplayComponent<TfcInfoFieldProps> {
     this.operatingMode.sub(updateStatusHandler);
     this.raCount.sub(updateStatusHandler);
 
-    this.props.bus.getSubscriber<TSSSystemEvents>().on('tss_state')
-      .whenChanged()
-      .handle(state => {
-        this.tssState = state.current;
-        this.updateStatus();
-      });
+    this.props.bus.getSubscriber<TransponderSystemEvents>().on('transponder_state').whenChanged().handle(state => {
+      this.tssState = state.current;
+      this.updateStatus();
+    });
 
     this.updateStatus();
 
-    this.props.isVisible.sub(this.visibilityHandler, true);
+    this.isVisibleSub = this.props.isVisible.sub(this.updateFromVisibility.bind(this), true);
   }
 
   /**
@@ -225,7 +229,7 @@ class TfcInfoDataField extends DisplayComponent<TfcInfoFieldProps> {
       this.status.set(TfcInfoDataFieldStatus.TCASOff);
       return;
     } else {
-      this.status.set(this.props.pfdOrMfd === 'MFD' ? TfcInfoDataFieldStatus.TCASFail : TfcInfoDataFieldStatus.None);
+      this.status.set(this.props.instrumentType === WT21InstrumentType.Mfd ? TfcInfoDataFieldStatus.TCASFail : TfcInfoDataFieldStatus.None);
       return;
     }
 
@@ -248,7 +252,7 @@ class TfcInfoDataField extends DisplayComponent<TfcInfoFieldProps> {
   public destroy(): void {
     super.destroy();
 
-    this.props.isVisible.unsub(this.visibilityHandler);
+    this.isVisibleSub?.destroy();
     this.operatingMode.destroy();
     this.raCount.destroy();
   }
@@ -262,7 +266,7 @@ class TfcInfoOtherTraffic extends DisplayComponent<TfcInfoFieldProps> {
 
   private readonly showOther = ConsumerSubject.create(null, false).pause();
 
-  private readonly visibilityHandler = this.updateFromVisibility.bind(this);
+  private isVisibleSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
@@ -271,7 +275,7 @@ class TfcInfoOtherTraffic extends DisplayComponent<TfcInfoFieldProps> {
       this.rootRef.instance.classList.toggle('visibility-hidden', show);
     }, true);
 
-    this.props.isVisible.sub(this.visibilityHandler, true);
+    this.isVisibleSub = this.props.isVisible.sub(this.updateFromVisibility.bind(this), true);
   }
 
   /**
@@ -302,7 +306,7 @@ class TfcInfoOtherTraffic extends DisplayComponent<TfcInfoFieldProps> {
   public destroy(): void {
     super.destroy();
 
-    this.props.isVisible.unsub(this.visibilityHandler);
+    this.isVisibleSub?.destroy();
     this.showOther.destroy();
   }
 }
@@ -317,7 +321,7 @@ class TfcInfoAboveBelow extends DisplayComponent<TfcInfoFieldProps> {
   private readonly aboveStyle = ObjectSubject.create({ color: '' });
   private readonly belowStyle = ObjectSubject.create({ color: '' });
 
-  private readonly visibilityHandler = this.updateFromVisibility.bind(this);
+  private isVisibleSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
@@ -331,7 +335,7 @@ class TfcInfoAboveBelow extends DisplayComponent<TfcInfoFieldProps> {
       this.belowStyle.set('color', show ? WT21_PFD_MFD_Colors.cyan : WT21_PFD_MFD_Colors.white);
     }, true);
 
-    this.props.isVisible.sub(this.visibilityHandler, true);
+    this.isVisibleSub = this.props.isVisible.sub(this.updateFromVisibility.bind(this), true);
   }
 
   /**
@@ -362,7 +366,7 @@ class TfcInfoAboveBelow extends DisplayComponent<TfcInfoFieldProps> {
   public destroy(): void {
     super.destroy();
 
-    this.props.isVisible.unsub(this.visibilityHandler);
+    this.isVisibleSub?.destroy();
     this.showAbove.destroy();
     this.showBelow.destroy();
   }
@@ -384,8 +388,8 @@ class TfcInfoAltitude extends DisplayComponent<TfcInfoFieldProps> {
 
   private readonly inopTimer = new DebounceTimer();
 
-  private readonly visibilityHandler = this.updateFromVisibility.bind(this);
-  private readonly altitudeHandler = this.updateAltitudeDisplay.bind(this);
+  private pressureAltSub?: Subscription;
+  private isVisibleSub?: Subscription;
 
   /** @inheritdoc */
   public onAfterRender(): void {
@@ -393,6 +397,8 @@ class TfcInfoAltitude extends DisplayComponent<TfcInfoFieldProps> {
 
     this.pressureAlt.setConsumer(sub.on('pressure_alt').withPrecision(0));
     this.isAltitudeRelative.setConsumer(this.props.trafficSettings.whenSettingChanged('trafficAltitudeRelative'));
+
+    this.pressureAltSub = this.pressureAlt.sub(this.updateAltitudeDisplay.bind(this), false, true);
 
     this.isInop.sub(isInop => {
       if (!this.isAltitudeRelative.get()) {
@@ -408,7 +414,7 @@ class TfcInfoAltitude extends DisplayComponent<TfcInfoFieldProps> {
       }
     }, true);
 
-    this.props.isVisible.sub(this.visibilityHandler, true);
+    this.isVisibleSub = this.props.isVisible.sub(this.updateFromVisibility.bind(this), true);
   }
 
   /**
@@ -435,8 +441,7 @@ class TfcInfoAltitude extends DisplayComponent<TfcInfoFieldProps> {
 
     this.topTextSub.set('ALT');
 
-    this.pressureAlt.unsub(this.altitudeHandler);
-    this.pressureAlt.sub(this.altitudeHandler, true);
+    this.pressureAltSub!.resume(true);
     if (isInop) {
       this.inopTimer.schedule(() => {
         this.stopAltitudeDisplay();
@@ -450,7 +455,7 @@ class TfcInfoAltitude extends DisplayComponent<TfcInfoFieldProps> {
    */
   private stopAltitudeDisplay(): void {
     this.inopTimer.clear();
-    this.pressureAlt.unsub(this.altitudeHandler);
+    this.pressureAltSub!.pause();
 
     this.topTextSub.set('');
     this.bottomTextSub.set('');
@@ -487,7 +492,7 @@ class TfcInfoAltitude extends DisplayComponent<TfcInfoFieldProps> {
   public destroy(): void {
     super.destroy();
 
-    this.props.isVisible.unsub(this.visibilityHandler);
+    this.isVisibleSub?.destroy();
     this.pressureAlt.destroy();
     this.isAltitudeRelative.destroy();
   }

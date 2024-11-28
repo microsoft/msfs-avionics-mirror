@@ -1,3 +1,5 @@
+import { MathUtils, Rounding } from '../math/MathUtils';
+import { Accessible } from './Accessible';
 import { Subscribable } from './Subscribable';
 import { SubscribableUtils } from './SubscribableUtils';
 
@@ -115,6 +117,33 @@ export class SubscribableMapFunctions {
   }
 
   /**
+   * Generates a function which maps an input tuple to the sum of the numeric items contained in the tuple.
+   * @returns A function which maps an input tuple to the sum of the numeric items contained in the tuple.
+   */
+  public static sum(): (input: readonly number[], currentVal?: number) => number {
+    const reduceFunc = (sum: number, curr: number): number => sum + curr;
+
+    return SubscribableMapFunctions.reduce(reduceFunc, 0);
+  }
+
+  /**
+   * Generates a function which maps an input number tuple to the average numeric value contained in the tuple.
+   * A zero-length tuple is mapped to NaN.
+   * @returns A function which maps an input number tuple to the average numeric value contained in the tuple.
+   */
+  public static average(): (inputs: readonly number[], currentVal?: number) => number {
+    return (inputs: readonly number[]): number => {
+      const inputLength = inputs.length;
+      let sum = 0;
+      for (let i = 0; i < inputLength; i++) {
+        sum += inputs[i];
+      }
+
+      return sum / inputLength;
+    };
+  }
+
+  /**
    * Generates a function which maps an input tuple to an arbitrary accumulated value by calling a specified function
    * for each input in the tuple in order. The return value of the callback function is the accumulated value and is
    * provided as an argument in the next call to the callback function. The accumulated value provided as an argument
@@ -153,18 +182,131 @@ export class SubscribableMapFunctions {
 
   /**
    * Generates a function which maps an input number to a rounded version of itself at a certain precision.
-   * @param precision The precision to which to round the input.
+   * @param precision The precision to which to round the input. If the precision is defined as an `Accessible`, then
+   * changes in the precision value will not be reflected in the mapped output until the next time the value of the
+   * input number changes.
+   * @param round The rounding behavior to use. Defaults to `Rounding.Nearest`.
    * @returns A function which maps an input number to a rounded version of itself at the specified precision.
    */
-  public static withPrecision<T extends number>(precision: number | Subscribable<number>): (input: T, currentVal?: T) => number {
-    return SubscribableUtils.isSubscribable(precision)
+  public static withPrecision<T extends number>(
+    precision: number | Accessible<number>,
+    round = Rounding.Nearest
+  ): (input: T, currentVal?: T) => number {
+    const roundFunc = round > 0 ? MathUtils.ceil : round < 0 ? MathUtils.floor : MathUtils.round;
+
+    return typeof precision === 'object'
       ? (input: T): number => {
         const precisionVal = precision.get();
-        return Math.round(input / precisionVal) * precisionVal;
+        return roundFunc(input, precisionVal);
       }
       : (input: T): number => {
-        return Math.round(input / precision) * precision;
+        return roundFunc(input, precision);
       };
+  }
+
+  /**
+   * Generates a function which maps an input number to a rounded version of itself at a certain precision with
+   * hysteresis applied.
+   *
+   * When a previously mapped value exists, any new input value (`x`) is compared to the previously mapped value
+   * (`y0`). Define `x1` as the least input value that can be rounded to `y0` and `x2` as the greatest input value that
+   * can be rounded to `y0`. Then `x` is mapped to a new rounded output value if and only if `x < x1 - h1` or
+   * `x > x2 + h2`, where `h1` and `h2` are the lower and upper hysteresis values, respectively. Otherwise, `x` is
+   * mapped to `y0`.
+   * @param precision The precision to which to round the input.
+   * @param hysteresis The hysteresis to apply to the mapping function. If defined as a `[number, number]` tuple, then
+   * the first number in the tuple is taken as the lower hysteresis and second number as the upper hysteresis. If
+   * defined as a single number, then that is taken as both the lower and upper hysteresis. Negative values are clamped
+   * to zero.
+   * @param round The rounding behavior to use. Defaults to `Rounding.Nearest`.
+   * @returns A function which maps an input number to a rounded version of itself at the specified precision and with
+   * the specified hysteresis.
+   */
+  public static withPrecisionHysteresis<T extends number>(
+    precision: number,
+    hysteresis: number | readonly [number, number],
+    round = Rounding.Nearest
+  ): (input: T, currentVal?: T) => number {
+    let hysteresisLower: number;
+    let hysteresisUpper: number;
+
+    if (typeof hysteresis === 'number') {
+      hysteresisLower = hysteresisUpper = Math.max(0, hysteresis);
+    } else {
+      hysteresisLower = Math.max(0, hysteresis[0]);
+      hysteresisUpper = Math.max(0, hysteresis[1]);
+    }
+
+    let roundFunc: (value: number, precision: number) => number;
+    let lowerOffset: number;
+    let upperOffset: number;
+
+    if (round > 0) {
+      roundFunc = MathUtils.ceil;
+      lowerOffset = -(precision + hysteresisLower);
+      upperOffset = hysteresisUpper;
+    } else if (round < 0) {
+      roundFunc = MathUtils.floor;
+      lowerOffset = -hysteresisLower;
+      upperOffset = precision + hysteresisUpper;
+    } else {
+      roundFunc = MathUtils.round;
+      lowerOffset = -(precision * 0.5 + hysteresisLower);
+      upperOffset = precision * 0.5 + hysteresisUpper;
+    }
+
+    // Use a helper function to generate the mapping function so that the generated closure doesn't capture extraneous
+    // variables and prevent them from being GC'd.
+    return SubscribableMapFunctions.withPrecisionHysteresisHelper(precision, roundFunc, lowerOffset, upperOffset, round <= 0);
+  }
+
+  /**
+   * Generates a function which maps an input number to a rounded version of itself at a certain precision with
+   * hysteresis applied.
+   * @param precision The precision to which to round the input.
+   * @param roundFunc The function to use to round the input.
+   * @param lowerOffset The offset from the previously mapped value to the lower boundary of the range in which a new
+   * input number should not be mapped to a new output value.
+   * @param upperOffset The offset from the previously mapped value to the upper boundary of the range in which a new
+   * input number should not be mapped to a new output value.
+   * @param isRangeOpenLower Whether the boundaries of the range in which a new input number should not be mapped to a
+   * new output value is open at the lower end and closed at the upper end instead of closed at the lower end and open
+   * at the upper end.
+   * @returns A function which maps an input number to a rounded version of itself at the specified precision and with
+   * the specified hysteresis.
+   */
+  private static withPrecisionHysteresisHelper<T extends number>(
+    precision: number,
+    roundFunc: (value: number, precision: number) => number,
+    lowerOffset: number,
+    upperOffset: number,
+    isRangeOpenLower: boolean,
+  ): (input: T, currentVal?: T) => number {
+    if (isRangeOpenLower) {
+      return (input: T, currentVal?: T): number => {
+        if (currentVal === undefined || !isFinite(input)) {
+          return roundFunc(input, precision);
+        } else {
+          if (input < currentVal + lowerOffset || input >= currentVal + upperOffset) {
+            return roundFunc(input, precision);
+          } else {
+            return currentVal;
+          }
+        }
+      };
+    } else {
+      return (input: T, currentVal?: T): number => {
+        if (currentVal === undefined || !isFinite(input)) {
+          return roundFunc(input, precision);
+        } else {
+          if (input <= currentVal + lowerOffset || input > currentVal + upperOffset) {
+            return roundFunc(input, precision);
+          } else {
+            return currentVal;
+          }
+        }
+      };
+    }
   }
 
   /**
@@ -179,64 +321,5 @@ export class SubscribableMapFunctions {
     return SubscribableUtils.isSubscribable(threshold)
       ? (input: T, currentVal?: T): number => currentVal === undefined || Math.abs(input - currentVal) >= threshold.get() ? input : currentVal
       : (input: T, currentVal?: T): number => currentVal === undefined || Math.abs(input - currentVal) >= threshold ? input : currentVal;
-  }
-
-  /**
-   * Generates a function which maps an input number to itself up to a maximum frequency, and to the previous mapped
-   * value otherwise. In other words, the mapping function will not pass through changes in the input value if not
-   * enough time has elapsed since the last change that was passed through.
-   * 
-   * **Caution**: The mapping function can only pass through the input value when the input value changes. This means
-   * that if the mapping function rejects a change in the input value due to the maximum frequency being exceeded, it
-   * is possible that particular input value will never be reflected in the mapped value, even after the frequency
-   * cutoff has expired. For example, if the input value changes from `a` to `b` but is rejected by the mapping
-   * function and subsequently remains `b` forever, then the mapped value will remain `a` forever.
-   * @param freq The maximum frequency at which to map the input to itself, in hertz.
-   * @param timeFunc A function which gets the current time in milliseconds. Defaults to `Date.now()`.
-   * @returns A function which maps an input number to itself up to the specified maximum frequency, and to the
-   * previous mapped value otherwise.
-   */
-  public static atFrequency<T>(freq: number | Subscribable<number>, timeFunc: () => number = Date.now): (input: T, currentVal?: T) => T {
-    let t0: number;
-    let timeRemaining = 0;
-
-    if (SubscribableUtils.isSubscribable(freq)) {
-      return (input: T, currentVal?: T): T => {
-        let returnValue = currentVal ?? input;
-
-        const currentTime = timeFunc();
-        const dt = currentTime - (t0 ??= currentTime);
-        t0 = currentTime;
-
-        timeRemaining -= dt;
-
-        if (timeRemaining <= 0) {
-          const period = 1000 / freq.get();
-          timeRemaining = period + timeRemaining % period;
-          returnValue = input;
-        }
-
-        return returnValue;
-      };
-    } else {
-      const period = 1000 / freq;
-
-      return (input: T, currentVal?: T): T => {
-        let returnValue = currentVal ?? input;
-
-        const currentTime = timeFunc();
-        const dt = currentTime - (t0 ??= currentTime);
-        t0 = currentTime;
-
-        timeRemaining -= dt;
-
-        if (timeRemaining <= 0) {
-          timeRemaining = period + timeRemaining % period;
-          returnValue = input;
-        }
-
-        return returnValue;
-      };
-    }
   }
 }

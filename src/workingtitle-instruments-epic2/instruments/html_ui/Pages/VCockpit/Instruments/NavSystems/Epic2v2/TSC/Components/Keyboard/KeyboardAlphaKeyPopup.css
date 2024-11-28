@@ -1,0 +1,24 @@
+.tsc-keyboard-alpha-key-popup-container {
+  position: absolute;
+  top: -87px;
+  margin-left: 3px;
+  width: 68px;
+  height: 76px;
+  z-index: 3;
+  transition: 1200ms all;
+}
+
+.tsc-keyboard-alpha-key-popup-label {
+  z-index: 4;
+  position: absolute;
+  top: -4px;
+  left: -3px;
+  color: var(--epic2-color-black);
+  font-size: 58px;
+  text-align: center;
+  width: 100%;
+}
+
+.tsc-keyboard-alpha-key-popup-background {
+  transform: scale3d(1.3, 1.29, 1);
+}

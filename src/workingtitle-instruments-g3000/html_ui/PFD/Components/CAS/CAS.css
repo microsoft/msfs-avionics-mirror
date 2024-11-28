@@ -1,0 +1,32 @@
+@keyframes cas-flash-yellow {
+
+  5%,
+  45% {
+    color: var(--g3000-color-yellow);
+    background-color: var(--g3000-color-pfd-box-background);
+  }
+
+  55%,
+  100% {
+    color: var(--g3000-color-black);
+    background-color: var(--g3000-color-yellow);
+  }
+
+}
+
+@keyframes cas-flash-red {
+
+  0%,
+  45% {
+    color: var(--g3000-color-red);
+    ;
+    background-color: var(--g3000-color-pfd-box-background);
+  }
+
+  55%,
+  100% {
+    color: var(--g3000-color-white);
+    background-color: var(--g3000-color-red);
+  }
+
+}

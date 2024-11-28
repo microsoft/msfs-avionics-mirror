@@ -69,9 +69,8 @@ export class ArrayUtils {
    * @returns The array, after it has been filled with the specified number sequence.
    */
   public static fillRange(array: number[], length: number, startIndex = 0, start = startIndex, increment = 1): number[] {
-    const endIndex = startIndex + length;
-    for (let i = startIndex; i < endIndex; i++) {
-      array[i] = start + i * increment;
+    for (let i = 0; i < length; i++) {
+      array[startIndex + i] = start + i * increment;
     }
     return array;
   }

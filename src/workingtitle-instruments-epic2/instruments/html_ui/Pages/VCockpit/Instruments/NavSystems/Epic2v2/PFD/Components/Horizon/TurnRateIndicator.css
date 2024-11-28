@@ -1,0 +1,58 @@
+.turn-rate-container {
+  position: absolute;
+  height: 26px;
+  width: 106px;
+  top: 404px;
+  left: 256px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+
+.turn-rate-container.hidden {
+  display: 'none'
+}
+
+.turn-rate-container .turn-rate-failed-overlay {
+  stroke: var(--epic2-color-red);
+  stroke-width: 3px;
+  fill: none;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.turn-rate-container .turn-rate-pip-container {
+  position: absolute;
+  display: flex;
+  top: 4px;
+  flex-direction: row;
+  width: 82px;
+  justify-content: space-between;
+}
+
+.turn-rate-pip-container .turn-rate-pip {
+  width: 12px;
+  height: 9px;
+  border: 3px solid var(--epic2-color-white);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .5);
+}
+
+.turn-rate-container .turn-rate-t {
+  position: absolute;
+  left: calc(50% - 8px);
+  top: 13px;
+  fill: var(--epic2-color-white);
+  stroke: var(--epic2-color-black);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.turn-rate-t svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}

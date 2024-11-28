@@ -1,0 +1,54 @@
+.roll-scale-stroke {
+  stroke: var(--epic2-color-white);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.roll-scale-shadow {
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.roll-scale-fill {
+  fill: none;
+}
+
+.roll-scale-ref-pointer {
+  fill: none;
+  stroke: var(--epic2-color-white);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.roll-indicator-fill {
+  fill: var(--epic2-color-white);
+}
+
+.roll-indicator-fill .amber {
+  fill: var(--epic2-color-amber);
+}
+
+.roll-indicator-black-fill {
+  stroke: none;
+  fill: var(--epic2-color-black);
+}
+
+.roll-indicator-pointer {
+  stroke: var(--epic2-color-black);
+  stroke-width: 0.5px;
+}
+
+.roll-indicator-low-bank-arc {
+  stroke: var(--epic2-color-magenta);
+  stroke-width: 2px;
+}
+
+.roll-indicator-slip-skid-failed {
+  stroke: var(--epic2-color-amber);
+  stroke-width: 2px;
+}

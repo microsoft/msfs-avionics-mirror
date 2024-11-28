@@ -1,0 +1,45 @@
+.avionics-window-section {
+  width: 100%;
+  height: 100%;
+}
+
+.avionics-window-main-tabbed-content-container {
+  flex-grow: 1;
+  height: 100%;
+  background: var(--epic2-color-black);
+}
+
+.avionics-settings-row {
+  position: relative;
+  height: 52px;
+  margin-right: 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.avionics-settings-row .lsk-button {
+  margin-left: 8px;
+  padding-top: 3px;
+  width: 54px;
+  height: 40px;
+  line-height: 96%;
+  font-size: 17px;
+}
+
+.avionics-settings-row .lsk-button.touch-button-disabled {
+  color: var(--epic2-color-grey);
+}
+
+.avionics-window-section .divider-line,
+.avionics-window-section .empty-divider-line {
+  height: 2px;
+  margin-left: 10px;
+  width: 95%;
+}
+
+
+.avionics-window-section .divider-line {
+  background: var(--epic2-color-dark-grey);
+}

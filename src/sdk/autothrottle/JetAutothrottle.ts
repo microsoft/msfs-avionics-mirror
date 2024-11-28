@@ -1,6 +1,7 @@
 import { EventBus } from '../data/EventBus';
 import { SimVarValueType } from '../data/SimVars';
 import { ThrottleLeverManager } from '../fadec/ThrottleLeverManager';
+import { Accessible } from '../sub/Accessible';
 import { Subscribable } from '../sub/Subscribable';
 import { AbstractAutothrottle, AutothrottleThrottle, AutothrottleThrottleInfo } from './AbstractAutothrottle';
 
@@ -12,7 +13,7 @@ export class JetAutothrottle extends AbstractAutothrottle {
   protected createThrottle(
     bus: EventBus,
     info: AutothrottleThrottleInfo,
-    servoSpeed: number,
+    servoSpeed: number | Accessible<number>,
     powerSmoothingConstant: number,
     powerSmoothingVelocityConstant: number | undefined,
     powerLookahead: Subscribable<number>,
@@ -42,7 +43,7 @@ class JetAutothrottleThrottle extends AutothrottleThrottle {
   public constructor(
     bus: EventBus,
     info: AutothrottleThrottleInfo,
-    servoSpeed: number,
+    servoSpeed: number | Accessible<number>,
     powerSmoothingConstant: number,
     powerSmoothingVelocityConstant: number | undefined,
     powerLookahead: Subscribable<number>,

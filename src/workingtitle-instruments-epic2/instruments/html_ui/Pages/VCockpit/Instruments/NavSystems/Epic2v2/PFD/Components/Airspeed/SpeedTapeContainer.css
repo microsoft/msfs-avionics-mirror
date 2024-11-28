@@ -1,0 +1,17 @@
+.speed-tape-container {
+  position: absolute;
+  left: 4px;
+  top: 34px;
+  width: 126px;
+  height: 362px;
+}
+
+.speed-failed-overlay {
+  stroke: var(--epic2-color-red);
+  stroke-width: 3px;
+  fill: none;
+
+  position: absolute;
+  top: 0;
+  left: 4px;
+}

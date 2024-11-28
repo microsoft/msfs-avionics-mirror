@@ -115,8 +115,10 @@ export class FmsPositionSystem extends BasicAvionicsSystem<FmsPositionSystemEven
    * Defaults to `-1`.
    * @param dmeIndex The index of the DME/DME navigation system used by this system. No DME/DME data will be used if
    * the index is negative. Defaults to `-1`.
-   * @param powerSource The {@link ElectricalEvents} topic or electricity logic element to which to connect the
-   * system's power.
+   * @param powerSource The source from which to retrieve the system's power state. Can be an event bus topic defined
+   * in {@link ElectricalEvents} with boolean-valued data, an XML logic element that evaluates to zero (false) or
+   * non-zero (true) values, or a boolean-valued subscribable. If not defined, then the system will be considered
+   * always powered on.
    */
   constructor(
     index: number,
@@ -126,7 +128,7 @@ export class FmsPositionSystem extends BasicAvionicsSystem<FmsPositionSystemEven
     ahrsIndex: number | Subscribable<number>,
     hnsIndex?: number | Subscribable<number>,
     dmeIndex?: number | Subscribable<number>,
-    powerSource?: SystemPowerKey | CompositeLogicXMLElement,
+    powerSource?: SystemPowerKey | CompositeLogicXMLElement | Subscribable<boolean>,
   ) {
     super(index, bus, `fms_pos_state_${index}` as const);
 

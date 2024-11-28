@@ -207,7 +207,7 @@ export class TouchButton<P extends TouchButtonProps = TouchButtonProps> extends 
   protected isPrimed = false;
   protected isHeld = false;
 
-  protected holdTickInterval: NodeJS.Timer | null = null;
+  protected holdTickInterval: NodeJS.Timeout | null = null;
   protected lastHoldTickTime: number | undefined = undefined;
   protected totalHoldTime = 0;
   protected holdTimeSinceLastPress = 0;

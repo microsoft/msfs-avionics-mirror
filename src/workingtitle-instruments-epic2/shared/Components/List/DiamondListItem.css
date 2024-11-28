@@ -1,0 +1,15 @@
+.diamond-list-item .touch-button-label {
+  display: flex;
+  align-items: center;
+}
+
+.diamond-list-item .touch-button-label svg {
+  margin: 0 2px;
+  flex: none;
+  height: var(--touch-list-item-length);
+}
+
+.diamond-list-item .touch-button-label span {
+  margin-top: 6px;
+  white-space: pre;
+}

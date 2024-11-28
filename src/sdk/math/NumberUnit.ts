@@ -937,6 +937,7 @@ export enum UnitFamily {
  */
 export class UnitType {
   public static readonly METER = new SimpleUnit(UnitFamily.Distance, 'meter', 1);
+  public static readonly CENTIMETER = new SimpleUnit(UnitFamily.Distance, 'centimeter', 0.01);
   public static readonly KILOMETER = new SimpleUnit(UnitFamily.Distance, 'kilometer', 1000);
   public static readonly INCH = new SimpleUnit(UnitFamily.Distance, 'inch', 0.0254);
   public static readonly FOOT = new SimpleUnit(UnitFamily.Distance, 'foot', 0.3048);
@@ -970,6 +971,10 @@ export class UnitType {
   public static readonly LITER_FUEL = new SimpleUnit(UnitFamily.Weight, 'liter', 0.80283679);
   /** Weight equivalent of one gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
   public static readonly GALLON_FUEL = new SimpleUnit(UnitFamily.Weight, 'gallon', 3.0390664);
+  /** Weight equivalent of one liter of fuel, using the generic conversion 1 gallon = 6.0 pounds. */
+  public static readonly LITER_AUTOGAS_FUEL = new SimpleUnit(UnitFamily.Weight, 'liter', 0.71895832);
+  /** Weight equivalent of one gallon of fuel, using the generic conversion 1 gallon = 6.0 pounds. */
+  public static readonly GALLON_AUTOGAS_FUEL = new SimpleUnit(UnitFamily.Weight, 'gallon', 2.721552);
   /** Weight equivalent of one imperial gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
   public static readonly IMP_GALLON_FUEL = new SimpleUnit(UnitFamily.Weight, 'imperial gallon', 3.6497683);
 

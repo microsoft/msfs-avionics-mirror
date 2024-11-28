@@ -1,3 +1,4 @@
+export * from './DefaultNavStatusBoxDataProvider';
 export * from './NavStatusBox';
 export * from './NavStatusBoxDataProvider';
 export * from './NavStatusBoxDtkAlert';

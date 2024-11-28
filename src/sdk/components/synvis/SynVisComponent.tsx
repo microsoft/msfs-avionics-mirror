@@ -17,6 +17,9 @@ export interface SynVisProps extends ComponentProps {
   /** The amount of time, in milliseconds, to delay binding the component's Bing instance. Defaults to 0. */
   bingDelay?: number;
 
+  /** Whether to skip unbinding the component's bound Bing instance when the component is destroyed. Defaults to `false`. */
+  bingSkipUnbindOnDestroy?: boolean;
+
   /**
    * A subscribable which provides the internal resolution for the Bing component.
    */
@@ -116,6 +119,7 @@ export class SynVisComponent extends DisplayComponent<SynVisProps> {
         earthColorsElevationRange={this.props.earthColorsElevationRange}
         skyColor={this.props.skyColor}
         delay={this.props.bingDelay}
+        skipUnbindOnDestroy={this.props.bingSkipUnbindOnDestroy}
         class={this.props.class}
       />
     );

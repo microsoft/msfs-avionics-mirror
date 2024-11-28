@@ -1,0 +1,30 @@
+.number-pad {
+  position: absolute;
+  top: 27px;
+  left: 17px;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.number-pad-button {
+  width: 68px;
+  height: 68px;
+  border-radius: 34px;
+  background-color: var(--epic2-color-darker-grey);
+  border: 2px solid var(--epic2-color-light-grey);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 56px;
+  line-height: 68px;
+  color: var(--epic2-color-white);
+  text-decoration: none;
+  cursor: pointer;
+  margin: 5px 22px 12px 5px;
+  padding: 0;
+}
+
+
+.number-pad-button span {
+  transform: translateY(-3px);
+}

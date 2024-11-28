@@ -50,6 +50,8 @@ export class GarminMapKeys {
 
   public static readonly WaypointHighlightRTR = 'waypointHighlightRTR' as const;
 
+  public static readonly FlightPlan = 'garminFlightPlan' as const;
+
   public static readonly FlightPlanWaypoints = 'flightPlanWaypoints' as const;
 
   public static readonly FlightPlanFocus = 'flightPlanFocus' as const;

@@ -1,0 +1,16 @@
+.checklist-window-container .checklist-contents .checkbox-container.checkbox-disabled {
+  color: unset;
+  -webkit-text-stroke-width: unset;
+}
+
+.checklist-window-container .checklist-contents .checkbox-container.checkbox-disabled .checkbox-wrapper .checkbox {
+  border-color: unset;
+}
+
+.checklist-window-container .checklist-contents .checkbox-container.checkbox-disabled {
+  opacity: unset;
+}
+
+.checklist-item.checklist-action-item.checklist-complete-item {
+  margin-top: auto;
+}

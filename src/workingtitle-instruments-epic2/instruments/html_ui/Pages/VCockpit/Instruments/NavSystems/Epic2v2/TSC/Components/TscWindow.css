@@ -1,0 +1,98 @@
+.tsc-tabbed-content-container {
+  position: relative;
+  top: 0px;
+  left: 150px;
+  display: flex;
+  flex-wrap: wrap;
+  width: 650px;
+}
+
+.tab-label {
+  text-align: left;
+  font-size: 26px;
+  margin-left: 8px;
+  margin-top: 13px;
+}
+
+.tab-label-1-active {
+  text-align: left;
+  font-size: 26px;
+  margin-left: 8px;
+  margin-top: 4px;
+  color: green;
+}
+
+.tab-label-2-active {
+  text-align: left;
+  font-size: 26px;
+  margin-left: 8px;
+  margin-top: -18px;
+  color: green;
+}
+
+.tab-label-3-active {
+  text-align: left;
+  font-size: 26px;
+  margin-left: 8px;
+  margin-top: -18px;
+  color: green;
+}
+
+.tab-label-4-active {
+  text-align: left;
+  font-size: 26px;
+  margin-left: 8px;
+  margin-top: 4px;
+  color: green;
+}
+
+.tab-label-5-active {
+  text-align: left;
+  font-size: 26px;
+  margin-left: 8px;
+  margin-top: 4px;
+  color: green;
+}
+
+.tab-svg-1,
+.tab-svg-2,
+.tab-svg-3,
+.tab-svg-4,
+.tab-svg-5 {
+  position: relative;
+}
+
+.tab-svg-1 svg {
+  position: absolute;
+  top: -4px;
+  left: 45px;
+  transform: scale(0.6);
+}
+
+.tab-svg-2 svg {
+  position: absolute;
+  top: -15px;
+  left: -2px;
+  transform: scale(0.6);
+}
+
+.tab-svg-3 svg {
+  position: absolute;
+  top: -8px;
+  left: 38px;
+  transform: scale(0.65);
+}
+
+.tab-svg-4 svg {
+  position: absolute;
+  top: -4px;
+  left: 40px;
+  transform: scale(0.65);
+}
+
+.tab-svg-5 svg {
+  position: absolute;
+  top: -13px;
+  left: 38px;
+  transform: scale(0.65);
+}

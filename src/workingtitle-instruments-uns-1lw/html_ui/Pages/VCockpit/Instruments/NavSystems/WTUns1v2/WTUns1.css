@@ -1,0 +1,51 @@
+@font-face {
+  ;
+  font-family: "UnsRegular";
+  src: url("/Fonts/WTUns1v2/Uns-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  ;
+  font-family: "UnsSmallRegular";
+  src: url("/Fonts/WTUns1v2/UnsSmall-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  --uns-colors-black: black;
+  --uns-colors-black-translucent: rgba(0, 0, 0, 0.2);
+  --uns-colors-black-translucent-border: rgba(0, 0, 0, 0.5);
+  --uns-colors-white: white;
+  --uns-colors-gray: hsl(0, 0%, 70%);
+  --uns-colors-dark-gray: hsl(0, 0%, 60%);
+  --uns-colors-darker-gray: hsl(0, 0%, 40%);
+  --uns-colors-blue: hsl(230, 100%, 51%);
+  --uns-colors-cyan: hsl(192, 100%, 50%);
+  --uns-colors-red: red;
+  --uns-colors-amber: hsl(45, 100%, 50%);
+  --uns-colors-green: #49e700;
+  --uns-colors-dark-green: #007500;
+  --uns-colors-magenta: #ff00ff;
+}
+
+
+#Mainframe,
+#Electricity,
+.uns-main-frame {
+  width: 100%;
+  height: 100%;
+}
+
+.uns-main-frame {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.uns-main-frame>span {
+  font-size: 36px;
+}

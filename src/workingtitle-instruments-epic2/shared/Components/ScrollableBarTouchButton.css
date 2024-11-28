@@ -1,0 +1,23 @@
+.scrollable-bar-touch-button .touch-button-label {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.scrollable-bar-touch-button .scrollable-button-row-top {
+  display: flex;
+  width: 100%;
+  height: 50%;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.scrollable-bar-touch-button .scrollable-button-row-bottom {
+  display: flex;
+  width: 43%;
+  height: 50%;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-left: 72px;
+}

@@ -1,0 +1,55 @@
+.fpln-columns {
+  display:grid;
+  grid-template-columns: 45% 55%;
+  padding:5px 10px;
+  grid-gap:5px;
+}
+.fpln-tab .origin-dest-column {
+  display: flex;
+  flex-direction: column;
+  position:relative;
+}
+.fpln-tab .fpln-name-input {
+  margin:0 auto;
+}
+.fpln-tab .fpln-name-input .input-box {
+  width:115px;
+}
+.fpln-column-border {
+  border:1px solid var(--epic2-color-white);
+  box-shadow: 1px 1px 1px var(--epic2-color-black);
+  position:absolute;
+  right:0;
+  top:5px;
+  height:220px;
+}
+
+.fpln-tab .origin-dest-column .input-box {
+  width: 63px;
+}
+.fpln-button-group {
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap:2px;
+  margin-top:5px;
+  padding:0 10px;
+}
+.fpln-insert-button {
+  width: 90px;
+  margin: 10px auto;
+}
+
+.fpln-insert-button-blue {
+  background-color: var(--epic2-color-cyan);
+  color: var(--epic2-color-black) !important;
+}
+
+.fpln-source-menu {
+  width:135px;
+}
+.fpln-source-menu .touch-button {
+  height:35px;
+}
+.fpln-source-menu .touch-button.box-arrow .touch-button-label {
+  width:100px;
+}

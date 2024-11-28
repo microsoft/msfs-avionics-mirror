@@ -1,0 +1,137 @@
+.weight-balance-config-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-white);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.gtc-horizontal .weight-balance-config-page {
+  font-size: 29px;
+  padding: 45px 0px 20px;
+
+  --weight-balance-config-page-left-panel-width: 218px;
+  --weight-balance-config-page-left-panel-margin-right: 6px;
+
+  --weight-balance-config-page-value-row-height: 176px;
+
+  --weight-balance-config-page-list-panel-width: 640px;
+
+  --weight-balance-page-list-item-left-width: 445px;
+  --weight-balance-page-list-item-column-gap: 5px;
+
+  --weight-balance-page-list-item-toggle-button-bar-width: 120px;
+}
+
+.gtc-vertical .weight-balance-config-page {
+  font-size: 16px;
+  padding: 25px 0px 10px;
+
+  --weight-balance-config-page-left-panel-width: 120px;
+  --weight-balance-config-page-left-panel-margin-right: 3px;
+
+  --weight-balance-config-page-value-row-height: 176px;
+
+  --weight-balance-config-page-list-panel-width: 320px;
+
+  --weight-balance-page-list-item-left-width: 220px;
+  --weight-balance-page-list-item-column-gap: 2px;
+
+  --weight-balance-page-list-item-toggle-button-bar-width: 60px;
+}
+
+.weight-balance-config-page-left-panel.gtc-panel {
+  position: relative;
+  width: var(--weight-balance-config-page-left-panel-width);
+  margin-right: var(--weight-balance-config-page-left-panel-margin-right);
+  background: var(--g3000-color-black);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.weight-balance-config-page-value-row {
+  height: var(--weight-balance-config-page-value-row-height);
+  text-align: center;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.weight-balance-config-page-value-row-value {
+  font-size: 1.35em;
+}
+
+.weight-balance-config-page-list-panel {
+  position: relative;
+  width: var(--weight-balance-config-page-list-panel-width);
+  padding: 0px 1px;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.weight-balance-config-page-list .list-item.weight-balance-page-list-item {
+  position: relative;
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: var(--weight-balance-page-list-item-left-width) 1fr;
+  grid-column-gap: var(--weight-balance-page-list-item-column-gap);
+}
+
+.weight-balance-page-list-item-toggle-button {
+  --touch-button-toggle-bar-width: var(--weight-balance-page-list-item-toggle-button-bar-width);
+}
+
+.weight-balance-page-list-item-settings-button {
+  --touch-button-text-color: var(--g3000-color-cyan);
+}
+
+/* ---- Settings popup ---- */
+
+.weight-balance-config-settings-popup {
+  position: absolute;
+  color: var(--g3000-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.gtc-horizontal .weight-balance-config-settings-popup {
+  left: calc(50% - 544px / 2);
+  top: calc(50% - 380px / 2);
+  width: 544px;
+  height: 380px;
+  font-size: 29px;
+
+  --weight-balance-config-settings-popup-button-width: 484px;
+  --weight-balance-config-settings-popup-button-height: 140px;
+}
+
+.gtc-vertical .weight-balance-config-settings-popup {
+  left: calc(50% - 294px / 2);
+  top: calc(50% - 195px / 2);
+  width: 294px;
+  height: 195px;
+  font-size: 16px;
+
+  --weight-balance-config-settings-popup-button-width: 264px;
+  --weight-balance-config-settings-popup-button-height: 75px;
+}
+
+.weight-balance-config-settings-popup-button {
+  width: var(--weight-balance-config-settings-popup-button-width);
+  height: var(--weight-balance-config-settings-popup-button-height);
+}
+
+.weight-balance-config-settings-popup-button .touch-button-value-value {
+  font-size: 1.35em;
+}

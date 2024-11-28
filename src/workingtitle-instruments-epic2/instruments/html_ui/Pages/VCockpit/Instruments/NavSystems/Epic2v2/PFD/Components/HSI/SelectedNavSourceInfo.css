@@ -1,0 +1,74 @@
+.selected-nav-source-info-container {
+  position: absolute;
+  top: 434px;
+  left: 398px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 30px;
+  line-height: 26px;
+  color: var(--epic2-color-white);
+}
+
+.nav-source-c1 {
+  margin-right: 26px;
+}
+
+.nav-source-c3 {
+  position: absolute;
+  top: 26px;
+  left: 136px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.course-select-and-desired-track-readout {
+  font-size: 27px;
+}
+
+.ident-readout {
+  font-size: 26px;
+  margin-left: -12px;
+}
+
+.distance-readout {
+  font-size: 26px;
+}
+
+.unit-type-display {
+  font-size: 26px;
+}
+
+.unit-type-display .dme-hold {
+  margin-left: 6px;
+  color: var(--epic2-color-amber);
+}
+
+.primary-nav-source.invalid,
+.course-select-and-desired-track-readout.invalid,
+.ident-readout.invalid,
+.distance-readout.invalid,
+.unit-type-display.invalid {
+  color: var(--epic2-color-amber);
+}
+
+.primary-nav-source.is-magenta,
+.course-select-and-desired-track-readout.is-magenta,
+.ident-readout.is-magenta,
+.distance-readout.is-magenta,
+.unit-type-display.is-magenta {
+  color: var(--epic2-color-magenta);
+}
+
+.primary-nav-source.is-cyan,
+.course-select-and-desired-track-readout.is-cyan,
+.ident-readout.is-cyan,
+.distance-readout.is-cyan,
+.unit-type-display.is-cyan {
+  color: var(--epic2-color-cyan);
+}
+
+.primary-nav-source.is-amber {
+  color: var(--epic2-color-amber);
+}

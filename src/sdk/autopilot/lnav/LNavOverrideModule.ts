@@ -1,4 +1,30 @@
+import { BaseLNavEvents } from './LNavEvents';
 import { LNavAircraftState, LNavState, LNavSteerCommand } from './LNavTypes';
+
+/**
+ * A publisher of an LNAV event bus topic.
+ */
+export interface LNavEventBusTopicPublisher<T extends keyof BaseLNavEvents> {
+  /** The topic name to which this publisher publishes. */
+  readonly topic: T | `${T}_${number}`;
+
+  /** The value of this publisher's topic data. */
+  readonly value: BaseLNavEvents[T];
+
+  /**
+   * Publishes a value to this publisher's topic. The value will be published if and only if it is not equal to this
+   * publisher's existing value or if a republish is requested.
+   * @param value The value to publish to the topic. If not defined, then the current value will be republished.
+   */
+  publish(value?: BaseLNavEvents[T]): void;
+}
+
+/**
+ * A record of LNAV event bus topic publishers, keyed by base topic name.
+ */
+export type LNavEventBusTopicPublisherRecord = {
+  [P in keyof Omit<BaseLNavEvents, 'lnav_is_awaiting_calc'>]: LNavEventBusTopicPublisher<P>;
+};
 
 /**
  * A module that can optionally override an LNAV computer's default tracking behavior.
@@ -28,8 +54,9 @@ export interface LNavOverrideModule {
    * publishing LNAV data to the event bus.
    * @param lnavState The current LNAV state.
    * @param aircraftState The current state of the airplane.
+   * @param eventBusTopicRecord A record of publishers to use to publish data to LNAV event bus topics.
    */
-  activate(lnavState: LNavState, aircraftState: Readonly<LNavAircraftState>): void;
+  activate(lnavState: LNavState, aircraftState: Readonly<LNavAircraftState>, eventBusTopicRecord: LNavEventBusTopicPublisherRecord): void;
 
   /**
    * Deactivates this module. When this module is deactivated, it is no longer responsible for generating steering
@@ -42,6 +69,8 @@ export interface LNavOverrideModule {
    * Updates this module.
    * @param lnavState The current LNAV state.
    * @param aircraftState The current state of the airplane.
+   * @param eventBusTopicRecord A record of publishers to use to publish data to LNAV event bus topics. The record is
+   * only provided when the module is active.
    */
-  update(lnavState: LNavState, aircraftState: Readonly<LNavAircraftState>): void;
+  update(lnavState: LNavState, aircraftState: Readonly<LNavAircraftState>, eventBusTopicRecord?: LNavEventBusTopicPublisherRecord): void;
 }

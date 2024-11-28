@@ -1,0 +1,62 @@
+.epic2-xpdr-detail-page-vfr-code-row {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+}
+
+.epic2-xpdr-detail-page-vfr-code-row .epic2-xpdr-vfr-code {
+  position: absolute;
+  top: -6px;
+  left: 48px;
+  padding: 6px 12px 5px 12px;
+  border: .2rem solid grey;
+  border-radius: 10px;
+}
+
+epic2-pfd.right .epic2-xpdr-detail-page-vfr-code-row .epic2-xpdr-vfr-code {
+  left: 92px;
+}
+
+.epic2-xpdr-detail-page-vfr-code-row .epic2-xpdr-reply {
+  position: absolute;
+  top: -6px;
+  right: 100px;
+  padding: 8px 9.5px 5px 10px;
+  border: .2rem solid grey;
+  border-radius: 10px;
+  height: 68px;
+}
+
+epic2-pfd.right .epic2-xpdr-detail-page-vfr-code-row .epic2-xpdr-reply {
+  right: 56px;
+}
+
+.epic2-xpdr-detail-page-vfr-code-row .epic2-vfr-code-label,
+.epic2-xpdr-detail-page-vfr-code-row .epic2-xpdr-reply-label {
+  font-size: 1.02rem;
+  color: var(--epic2-color-grey);
+  padding-bottom: 7px;
+}
+
+.epic2-xpdr-detail-page-vfr-code-row .epic2-vfr-code-value {
+  text-align: center;
+  line-height: 22px;
+  font-size: 1.4rem;
+  border: 2px solid transparent;
+}
+
+.epic2-xpdr-detail-page-vfr-code-row .epic2-vfr-code-value.epic2-xpdr-vfr-code-active {
+  border: 2px solid var(--epic2-color-cyan);
+  border-radius: 1px;
+}
+
+.epic2-xpdr-detail-page-vfr-code-row .epic2-xpdr-reply-signal-circle {
+  position: absolute;
+  bottom: 9px;
+  left: 18px;
+  border-radius: 50%;
+  width: 23px;
+  height: 23px;
+  border: 1.5px solid white;
+}

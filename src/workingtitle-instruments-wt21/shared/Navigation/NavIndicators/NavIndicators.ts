@@ -57,8 +57,11 @@ export class NavIndicator<T extends readonly string[]> extends NavBase {
     const newSource = (newSourceName ? this.navSources.get(newSourceName) : null);
 
     if (oldSource) {
-      this.setters.forEach((setter, key) => {
-        oldSource[key].unsub(setter);
+      this.setters.forEach((setter) => {
+        if (setter.sub) {
+          setter.sub.destroy();
+          setter.sub = undefined;
+        }
       });
     }
 
@@ -66,11 +69,11 @@ export class NavIndicator<T extends readonly string[]> extends NavBase {
 
     if (newSource) {
       this.setters.forEach((setter, key) => {
-        newSource[key].sub(setter, true);
+        setter.sub = newSource[key].sub(setter.setter, true);
       });
     } else {
       this.setters.forEach((setter) => {
-        setter(null);
+        setter.setter(null);
       });
     }
   }

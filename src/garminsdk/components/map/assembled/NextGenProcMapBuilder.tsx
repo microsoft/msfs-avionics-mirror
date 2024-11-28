@@ -244,7 +244,7 @@ export class NextGenProcMapBuilder {
         });
       })
       .with(GarminMapBuilder.declutter, options.useDeclutterUserSetting ? options.settingManager : undefined)
-      .withBing(options.bingId, options.bingDelay)
+      .withBing(options.bingId, { bingDelay: options.bingDelay })
       .with(GarminMapBuilder.terrainColors,
         {
           [MapTerrainMode.None]: MapUtils.noTerrainEarthColors(),

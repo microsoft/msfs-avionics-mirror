@@ -80,7 +80,6 @@ export abstract class AbstractFlightPathPlanRenderer<Args extends any[] = []> {
    * @param activeLeg The active leg in the flight plan.
    * @param legIndex The global index of the leg in its flight plan.
    * @param activeLegIndex The global index of the active flight plan leg.
-   * @param projection The map projection to use when rendering.
    * @param context The canvas 2D rendering context to which to render.
    * @param streamStack The path stream stack to which to render.
    */

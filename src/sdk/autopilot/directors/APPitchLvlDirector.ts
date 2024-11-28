@@ -1,6 +1,6 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
-import { APValues } from '../APConfig';
+import { APValues } from '../APValues';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**

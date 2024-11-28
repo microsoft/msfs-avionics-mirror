@@ -47,5 +47,6 @@ export * from './layers/MapLabeledRingLayer';
 export * from './layers/MapLineLayer';
 export * from './layers/MapNearestWaypointsLayer';
 export * from './layers/MapOwnAirplaneLayer';
+export * from './layers/MapSharedCachedCanvasLayer';
 export * from './layers/MapSharedCanvasLayer';
 export * from './layers/MapSyncedCanvasLayer';

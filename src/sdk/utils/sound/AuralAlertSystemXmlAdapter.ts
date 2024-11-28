@@ -361,7 +361,18 @@ export class AuralAlertSystemXmlAdapter {
           }
         }, 0);
       } else {
-        CasAuralAlertTransporter.create(this.bus, def.uuid, undefined, def.casUuid, def.casPriority, def.casSuffix, def.casIncludeAcknowledged, this.casSystem);
+        CasAuralAlertTransporter.create(
+          this.bus,
+          {
+            auralUuid: def.uuid,
+            auralAction: 'activate',
+            casUuid: def.casUuid,
+            casPriority: def.casPriority,
+            casSuffix: def.casSuffix,
+            includeAcknowledged: def.casIncludeAcknowledged,
+          },
+          this.casSystem
+        );
       }
     }
   }

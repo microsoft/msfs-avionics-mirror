@@ -1,0 +1,39 @@
+.map-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+
+  --map-path-stroke-width: 3px;
+  --map-path-stroke-width-outline: 4px;
+}
+
+#HorizonSection .map-container {
+  position: absolute;
+  bottom: 0;
+  left: 109px;
+  /* Keep in sync with MapSystemCommon.ts */
+  width: 400px;
+  height: 334px;
+  overflow: hidden;
+}
+
+.map-system {
+  position: absolute;
+  left: -50px;
+  top: 0;
+  width: 500px;
+  height: 334px;
+}
+
+.map-compass-overlay svg {
+  stroke: var(--epic2-color-white);
+  stroke-width: var(--map-path-stroke-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.map-compass-overlay .map-path-shadow {
+  stroke: var(--epic2-color-black) !important;
+  stroke-width: var(--map-path-stroke-width-outline);
+}

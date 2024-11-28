@@ -1,0 +1,27 @@
+.flight-director-flt-pth-cue {
+  width: 160px;
+  height: 16px;
+  stroke-linecap: round;
+}
+
+.flight-director-flt-pth-cue line {
+  stroke: var(--epic2-color-magenta);
+  stroke-width: 5px;
+  fill: none;
+}
+
+.flight-director-flt-pth-cue line.shadow {
+  stroke: var(--epic2-color-black);
+  stroke-width: 6px;
+  stroke-opacity: 0.5;
+}
+
+.flight-director-flt-pth-cue circle {
+  stroke: none;
+  fill: var(--epic2-color-magenta);
+}
+
+.flight-director-flt-pth-cue circle.shadow {
+  fill: var(--epic2-color-black);
+  fill-opacity: 0.5;
+}

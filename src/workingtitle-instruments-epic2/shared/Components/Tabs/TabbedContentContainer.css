@@ -1,0 +1,6 @@
+.tsc-tabbed-content-container .touch-button-primed {
+  border-color: var(--epic2-color-cyan) !important;
+  background: var(--epic2-color-cyan) !important;
+  color: var(--epic2-color-darker-grey) !important;
+  transition: 150ms all;
+}

@@ -3,6 +3,7 @@ export * from './AbstractSubscribableArray';
 export * from './AbstractSubscribableMap';
 export * from './AbstractSubscribableSet';
 export * from './Accessible';
+export * from './AccessibleUtils';
 export * from './ArraySubject';
 export * from './CombinedSubject';
 export * from './ComputedSubject';

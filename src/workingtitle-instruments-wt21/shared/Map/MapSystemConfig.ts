@@ -1,8 +1,8 @@
 import {
-  BitFlags, CircleVector, EventBus, FacilityWaypoint, FlightPathLegRenderPart, FlightPathRenderStyle, FlightPathVectorStyle, FlightPathWaypoint,
+  BitFlags, EventBus, FacilityWaypoint, FlightPathLegRenderPart, FlightPathRenderStyle, FlightPathVector, FlightPathVectorStyle, FlightPathWaypoint,
   FlightPlanDisplayBuilder, GNSSEvents, ICAO, ImageCache, LatLonInterface, LegDefinitionFlags, LegType, MapCullableLocationTextLabel, MapOwnAirplanePropsKey,
   MapOwnAirplanePropsModule, MapSystemContext, MapSystemKeys, MapSystemWaypointRoles, MapTrafficModule, MapWaypointImageIcon, Subject, TcasIntruder,
-  UserSetting, Vec2Math, VorFacility, VorType, Waypoint, WaypointDisplayBuilder, WaypointTypes
+  UserSetting, UserSettingManager, Vec2Math, VorFacility, VorType, Waypoint, WaypointDisplayBuilder, WaypointTypes
 } from '@microsoft/msfs-sdk';
 
 import { FmcSimVarEvents } from '../FmcSimVars';
@@ -13,20 +13,20 @@ import { ActiveWaypointIcon } from './ActiveWaypoint';
 import { FlightPathWaypointLabel } from './FlightPathWaypointLabel';
 import { WT21MapWaypointIconPriority } from './MapSystemCommon';
 import { MapTrafficIntruderIcon } from './MapTrafficIntruderIcon';
-import { MapUserSettings, MapWaypointsDisplay, PfdOrMfd } from './MapUserSettings';
+import { MapSettingsMfdAliased, MapSettingsPfdAliased, MapWaypointsDisplay } from './MapUserSettings';
 
-ImageCache.addToCache('AIRPORT', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/airport_c.png');
-ImageCache.addToCache('INTERSECTION', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/intersection.png');
-ImageCache.addToCache('NDB', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/ndb.png');
-ImageCache.addToCache('VOR', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/vor.png');
-ImageCache.addToCache('DME', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/dme.png');
-ImageCache.addToCache('VORDME', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/vordme.png');
-ImageCache.addToCache('VORTAC', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/vortac.png');
-ImageCache.addToCache('TACAN', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/tacan.png');
-ImageCache.addToCache('FLIGHTPLAN', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/flightplan.png');
-ImageCache.addToCache('FLIGHTPLAN_M', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/flightplan_m.png');
-ImageCache.addToCache('FLIGHTPLAN_C', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/flightplan_c.png');
-ImageCache.addToCache('TOD', 'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/tod.png');
+ImageCache.addToCache('AIRPORT', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/airport_c.png');
+ImageCache.addToCache('INTERSECTION', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/intersection.png');
+ImageCache.addToCache('NDB', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/ndb.png');
+ImageCache.addToCache('VOR', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/vor.png');
+ImageCache.addToCache('DME', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/dme.png');
+ImageCache.addToCache('VORDME', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/vordme.png');
+ImageCache.addToCache('VORTAC', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/vortac.png');
+ImageCache.addToCache('TACAN', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/tacan.png');
+ImageCache.addToCache('FLIGHTPLAN', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/flightplan.png');
+ImageCache.addToCache('FLIGHTPLAN_M', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/flightplan_m.png');
+ImageCache.addToCache('FLIGHTPLAN_C', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/flightplan_c.png');
+ImageCache.addToCache('TOD', 'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/tod.png');
 
 /**
  * Events on the bus that control the WT21 plan map display position.
@@ -121,7 +121,7 @@ export class MapSystemConfig {
    * @returns The appropriate hold leg display style.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private static buildWhiteHoldStyle(vector: CircleVector, isIngress: boolean): FlightPathRenderStyle {
+  private static buildWhiteHoldStyle(vector: Readonly<FlightPathVector>, isIngress: boolean): FlightPathRenderStyle {
     return MapSystemConfig.WhitePath;
   }
 
@@ -132,7 +132,7 @@ export class MapSystemConfig {
    * @returns The appropriate hold leg display style.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private static buildMagentaHoldStyle(vector: CircleVector, isIngress: boolean): FlightPathRenderStyle {
+  private static buildMagentaHoldStyle(vector: Readonly<FlightPathVector>, isIngress: boolean): FlightPathRenderStyle {
     return MapSystemConfig.MagentaPath;
   }
 
@@ -143,7 +143,7 @@ export class MapSystemConfig {
    * @returns The appropriate hold leg display style.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private static buildCyanHoldStyle(vector: CircleVector, isIngress: boolean): FlightPathRenderStyle {
+  private static buildCyanHoldStyle(vector: Readonly<FlightPathVector>, isIngress: boolean): FlightPathRenderStyle {
     return MapSystemConfig.CyanPath;
   }
 
@@ -154,7 +154,7 @@ export class MapSystemConfig {
    * @returns The appropriate hold leg display style.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private static buildWhiteDashedHoldStyle(vector: CircleVector, isIngress: boolean): FlightPathRenderStyle {
+  private static buildWhiteDashedHoldStyle(vector: Readonly<FlightPathVector>, isIngress: boolean): FlightPathRenderStyle {
     return MapSystemConfig.WhiteDashedPath;
   }
 
@@ -253,16 +253,19 @@ export class MapSystemConfig {
    * Configures the map flight plan display layer.
    * @param bus The event bus to use.
    * @param waypointAlerter A waypoint alerter that will control the flash of the alering waypoint.
-   * @param pfdOrMfd Whether this map is on the PFD or MFD.
+   * @param settings The map user settings
    * @returns A builder function to configure the flight plan display system.
    */
-  public static configureFlightPlan(bus: EventBus, waypointAlerter: WaypointAlerter, pfdOrMfd: PfdOrMfd): (builder: FlightPlanDisplayBuilder) => void {
+  public static configureFlightPlan(
+    bus: EventBus,
+    waypointAlerter: WaypointAlerter,
+    settings: UserSettingManager<MapSettingsMfdAliased | MapSettingsPfdAliased>
+  ): (builder: FlightPlanDisplayBuilder) => void {
     return (builder): void => {
       const effectiveLegIndex = Subject.create(-1);
 
       const sub = bus.getSubscriber<WT21LNavDataEvents & GNSSEvents>();
 
-      const settings = MapUserSettings.getAliasedManager(bus, pfdOrMfd);
       const showMissedAppr = (): boolean => BitFlags.isAll(settings.getSetting('mapWaypointsDisplay').value, MapWaypointsDisplay.MissedApproach);
 
       const isMissedApproachActive = Subject.create(false);
@@ -354,12 +357,11 @@ export class MapSystemConfig {
   /**
    * Configures the map flight plan display layer for the mod flight plan.
    * @param bus The event bus to use.
-   * @param pfdOrMfd Whether this map is on the PFD or MFD.
+   * @param settings The map user settings
    * @returns A builder function to configure the mod flight plan display system.
    */
-  public static configureModFlightPlan(bus: EventBus, pfdOrMfd: PfdOrMfd): (builder: FlightPlanDisplayBuilder) => void {
+  public static configureModFlightPlan(bus: EventBus, settings: UserSettingManager<MapSettingsMfdAliased | MapSettingsPfdAliased>): (builder: FlightPlanDisplayBuilder) => void {
     return (builder): void => {
-      const settings = MapUserSettings.getAliasedManager(bus, pfdOrMfd);
       const showMissedAppr = (): boolean => BitFlags.isAll(settings.getSetting('mapWaypointsDisplay').value, MapWaypointsDisplay.MissedApproach);
 
       const isMissedApproachActive = Subject.create(false);

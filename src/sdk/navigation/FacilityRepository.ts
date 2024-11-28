@@ -1,7 +1,10 @@
 import { EventBus } from '../data/EventBus';
 import { GeoPoint } from '../geo/GeoPoint';
 import { GeoKdTree, GeoKdTreeSearchFilter, GeoKdTreeSearchVisitor } from '../utils/datastructures';
-import { Facility, FacilityType, FacilityUtils, ICAO } from './Facilities';
+import { Facility, FacilityType } from './Facilities';
+import { FacilityUtils } from './FacilityUtils';
+import { IcaoValue } from './Icao';
+import { ICAO } from './IcaoUtils';
 
 /**
  * Topics published by {@link FacilityRepository} on the event bus.
@@ -13,13 +16,13 @@ export interface FacilityRepositoryEvents {
   /** A facility was changed. */
   facility_changed: Facility;
 
-  /** A facility was changed. The suffix of the topic specifies the ICAO of the changed facility. */
+  /** A facility was changed. The suffix of the topic is the UID of the changed facility's ICAO. */
   [facility_changed: `facility_changed_${string}`]: Facility;
 
   /** A facility was removed. */
   facility_removed: Facility;
 
-  /** A facility was removed. The suffix of the topic specifies the ICAO of the removed facility. */
+  /** A facility was removed. The suffix of the topic is the UID of the removed facility's ICAO. */
   [facility_removed: `facility_removed_${string}`]: Facility;
 }
 
@@ -52,7 +55,7 @@ type FacilityRepositoryRemove = {
   type: FacilityRepositorySyncType.Remove;
 
   /** The ICAOs of the facilities that were removed. */
-  facs: string[];
+  facs: IcaoValue[];
 }
 
 /**
@@ -93,8 +96,10 @@ interface FacilityRepositorySyncEvents {
   facilityrepo_sync: FacilityRepositorySyncData;
 }
 
-/** Facility types for which {@link FacilityRepository} supports spatial searches. */
-export type SearchableFacilityTypes = FacilityType.USR | FacilityType.VIS;
+/**
+ * Facility types for which {@link FacilityRepository} supports spatial searches.
+ */
+export type FacilityRepositorySearchableTypes = FacilityType.USR | FacilityType.VIS;
 
 /**
  * A repository of facilities.
@@ -111,7 +116,7 @@ export class FacilityRepository {
   private readonly publisher = this.bus.getPublisher<FacilityRepositoryEvents & FacilityRepositorySyncEvents>();
 
   private readonly repos = new Map<FacilityType, Map<string, Facility>>();
-  private readonly trees: Record<SearchableFacilityTypes, GeoKdTree<Facility>> = {
+  private readonly trees: Record<FacilityRepositorySearchableTypes, GeoKdTree<Facility>> = {
     [FacilityType.USR]: new GeoKdTree(FacilityRepository.treeKeyFunc),
     [FacilityType.VIS]: new GeoKdTree(FacilityRepository.treeKeyFunc),
   };
@@ -158,12 +163,12 @@ export class FacilityRepository {
    * @param icao The ICAO of the facility to retrieve.
    * @returns The requested user facility, or undefined if it was not found in this repository.
    */
-  public get(icao: string): Facility | undefined {
-    if (!ICAO.isFacility(icao)) {
+  public get(icao: IcaoValue): Facility | undefined {
+    if (!ICAO.isValueFacility(icao)) {
       return undefined;
     }
 
-    return this.repos.get(ICAO.getFacilityType(icao))?.get(icao);
+    return this.repos.get(ICAO.getFacilityTypeFromValue(icao))?.get(ICAO.getUid(icao));
   }
 
   /**
@@ -177,7 +182,7 @@ export class FacilityRepository {
    * immediately halt.
    * @throws Error if spatial searches are not supported for the specified facility type.
    */
-  public search(type: SearchableFacilityTypes, lat: number, lon: number, radius: number, visitor: GeoKdTreeSearchVisitor<Facility>): void;
+  public search(type: FacilityRepositorySearchableTypes, lat: number, lon: number, radius: number, visitor: GeoKdTreeSearchVisitor<Facility>): void;
   /**
    * Searches for facilities around a point. Only supported for USR and VIS facilities.
    * @param type The type of facility for which to search.
@@ -190,7 +195,7 @@ export class FacilityRepository {
    * @throws Error if spatial searches are not supported for the specified facility type.
    */
   public search(
-    type: SearchableFacilityTypes,
+    type: FacilityRepositorySearchableTypes,
     lat: number,
     lon: number,
     radius: number,
@@ -200,7 +205,7 @@ export class FacilityRepository {
   ): Facility[]
   // eslint-disable-next-line jsdoc/require-jsdoc
   public search(
-    type: SearchableFacilityTypes,
+    type: FacilityRepositorySearchableTypes,
     lat: number,
     lon: number,
     radius: number,
@@ -227,8 +232,8 @@ export class FacilityRepository {
    * @throws Error if the facility has an invalid ICAO.
    */
   public add(fac: Facility): void {
-    if (!ICAO.isFacility(fac.icao)) {
-      throw new Error(`FacilityRepository: invalid facility ICAO ${fac.icao}`);
+    if (!ICAO.isValueFacility(fac.icaoStruct)) {
+      throw new Error(`FacilityRepository: invalid facility ICAO ${ICAO.tryValueToStringV2(fac.icaoStruct)}`);
     }
 
     this.addToRepo(fac);
@@ -251,10 +256,10 @@ export class FacilityRepository {
    * @param fac The facility to remove, or the ICAO of the facility to remove.
    * @throws Error if the facility has an invalid ICAO.
    */
-  public remove(fac: Facility | string): void {
-    const icao = typeof fac === 'string' ? fac : fac.icao;
-    if (!ICAO.isFacility(icao)) {
-      throw new Error(`FacilityRepository: invalid facility ICAO ${icao}`);
+  public remove(fac: Facility | IcaoValue): void {
+    const icao = ICAO.isValue(fac) ? fac : fac.icaoStruct;
+    if (!ICAO.isValueFacility(icao)) {
+      throw new Error(`FacilityRepository: invalid facility ICAO ${ICAO.tryValueToStringV2(icao)}`);
     }
 
     this.removeFromRepo(icao);
@@ -265,9 +270,9 @@ export class FacilityRepository {
    * Removes multiple facilities from this repository and all other repositories synced with this one.
    * @param facs The facilities to remove, or the ICAOs of the facilties to remove.
    */
-  public removeMultiple(facs: readonly (Facility | string)[]): void {
+  public removeMultiple(facs: readonly (Facility | IcaoValue)[]): void {
     this.removeMultipleFromRepo(facs);
-    this.pubSyncEvent({ type: FacilityRepositorySyncType.Remove, facs: facs.map(fac => typeof fac === 'object' ? fac.icao : fac) });
+    this.pubSyncEvent({ type: FacilityRepositorySyncType.Remove, facs: facs.map(fac => ICAO.isValue(fac) ? fac : fac.icaoStruct) });
   }
 
   /**
@@ -292,16 +297,18 @@ export class FacilityRepository {
    * @param fac The facility to add.
    */
   private addToRepo(fac: Facility): void {
-    const facilityType = ICAO.getFacilityType(fac.icao);
+    const facilityType = ICAO.getFacilityTypeFromValue(fac.icaoStruct);
 
     let repo = this.repos.get(facilityType);
     if (repo === undefined) {
       this.repos.set(facilityType, repo = new Map<string, Facility>());
     }
 
-    const existing = repo.get(fac.icao);
+    const uid = ICAO.getUid(fac.icaoStruct);
 
-    repo.set(fac.icao, fac);
+    const existing = repo.get(uid);
+
+    repo.set(uid, fac);
 
     if (facilityType === FacilityType.USR || facilityType === FacilityType.VIS) {
       if (existing === undefined) {
@@ -314,7 +321,7 @@ export class FacilityRepository {
     if (existing === undefined) {
       this.publisher.pub('facility_added', fac, false, false);
     } else {
-      this.publisher.pub(`facility_changed_${fac.icao}`, fac, false, false);
+      this.publisher.pub(`facility_changed_${uid}`, fac, false, false);
       this.publisher.pub('facility_changed', fac, false, false);
     }
   }
@@ -334,16 +341,16 @@ export class FacilityRepository {
 
     for (let i = 0; i < facs.length; i++) {
       const fac = facs[i];
-      const facilityType = ICAO.getFacilityType(fac.icao);
+      const facilityType = ICAO.getFacilityTypeFromValue(fac.icaoStruct);
 
       let repo = this.repos.get(facilityType);
       if (repo === undefined) {
         this.repos.set(facilityType, repo = new Map<string, Facility>());
       }
 
-      const existing = repo.get(fac.icao);
+      const existing = repo.get(ICAO.getUid(fac.icaoStruct));
 
-      repo.set(fac.icao, fac);
+      repo.set(ICAO.getUid(fac.icaoStruct), fac);
 
       if (existing === undefined) {
         addedFacilities.push(fac);
@@ -371,7 +378,7 @@ export class FacilityRepository {
     }
     for (let i = 0; i < changedFacilitiesAdded.length; i++) {
       const fac = changedFacilitiesAdded[i];
-      this.publisher.pub(`facility_changed_${fac.icao}`, fac, false, false);
+      this.publisher.pub(`facility_changed_${ICAO.getUid(fac.icaoStruct)}`, fac, false, false);
       this.publisher.pub('facility_changed', fac, false, false);
     }
   }
@@ -380,28 +387,30 @@ export class FacilityRepository {
    * Removes a facility from this repository.
    * @param fac The facility to remove, or the ICAO of the facility to remove.
    */
-  private removeFromRepo(fac: Facility | string): void {
-    const icao = typeof fac === 'string' ? fac : fac.icao;
-    const facilityType = ICAO.getFacilityType(icao);
-    const repo = this.repos.get(ICAO.getFacilityType(icao));
+  private removeFromRepo(fac: Facility | IcaoValue): void {
+    const icao = ICAO.isValue(fac) ? fac : fac.icaoStruct;
+    const facilityType = ICAO.getFacilityTypeFromValue(icao);
+    const repo = this.repos.get(facilityType);
 
     if (repo === undefined) {
       return;
     }
 
-    const facilityInRepo = repo.get(icao);
+    const uid = ICAO.getUid(icao);
+
+    const facilityInRepo = repo.get(uid);
 
     if (facilityInRepo === undefined) {
       return;
     }
 
-    repo.delete(icao);
+    repo.delete(uid);
 
     if (facilityType === FacilityType.USR || facilityType === FacilityType.VIS) {
       this.trees[facilityType].remove(facilityInRepo);
     }
 
-    this.publisher.pub(`facility_removed_${icao}`, facilityInRepo, false, false);
+    this.publisher.pub(`facility_removed_${uid}`, facilityInRepo, false, false);
     this.publisher.pub('facility_removed', facilityInRepo, false, false);
   }
 
@@ -409,7 +418,7 @@ export class FacilityRepository {
    * Removes multiple facilities from this repository.
    * @param facs The facilities to remove, or the ICAOs of the facilities to remove.
    */
-  private removeMultipleFromRepo(facs: readonly (Facility | string)[]): void {
+  private removeMultipleFromRepo(facs: readonly (Facility | IcaoValue)[]): void {
     if (facs.length === 0) {
       return;
     }
@@ -418,20 +427,20 @@ export class FacilityRepository {
 
     for (let i = 0; i < facs.length; i++) {
       const fac = facs[i];
-      const icao = typeof fac === 'string' ? fac : fac.icao;
-      const repo = this.repos.get(ICAO.getFacilityType(icao));
+      const icao = ICAO.isValue(fac) ? fac : fac.icaoStruct;
+      const repo = this.repos.get(ICAO.getFacilityTypeFromValue(icao));
 
       if (repo === undefined) {
         continue;
       }
 
-      const facilityInRepo = repo.get(icao);
+      const facilityInRepo = repo.get(ICAO.getUid(icao));
 
       if (facilityInRepo === undefined) {
         continue;
       }
 
-      repo.delete(icao);
+      repo.delete(ICAO.getUid(icao));
 
       removedFacilities.push(facilityInRepo);
     }
@@ -448,7 +457,7 @@ export class FacilityRepository {
 
     for (let i = 0; i < removedFacilities.length; i++) {
       const removedFac = removedFacilities[i];
-      this.publisher.pub(`facility_removed_${removedFac.icao}`, removedFac, false, false);
+      this.publisher.pub(`facility_removed_${ICAO.getUid(removedFac.icaoStruct)}`, removedFac, false, false);
       this.publisher.pub('facility_removed', removedFac, false, false);
     }
   }

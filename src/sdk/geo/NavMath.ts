@@ -1,3 +1,4 @@
+import { MathUtils } from '../math/MathUtils';
 import { UnitType } from '../math/NumberUnit';
 import { GeoCircle } from './GeoCircle';
 import { LatLonInterface } from './GeoInterfaces';
@@ -65,6 +66,31 @@ export class NavMath {
   public static bankAngle(airspeedTrue: number, radius: number): number {
     const airspeedMS = airspeedTrue * 0.51444444;
     return Math.atan(Math.pow(airspeedMS, 2) / (radius * 9.80665)) * Avionics.Utils.RAD2DEG;
+  }
+
+  /**
+   * Calculates the expected ground track of an airplane for a given heading, true airspeed, and wind conditions.
+   * @param heading The airplane's heading, in degrees.
+   * @param tas The airplane's true airspeed, in the same units as `windSpeed`.
+   * @param windDirection The wind direction, in degrees. Wind direction is defined as the heading **from** which the
+   * wind is blowing.
+   * @param windSpeed The wind speed, in the same units as `tas`.
+   * @returns The expected ground track of an airplane, in degrees, for the specified heading, true airspeed, and wind
+   * conditions. If the specified parameters result in an expected ground speed of zero, then `NaN` is returned.
+   */
+  public static headingToGroundTrack(heading: number, tas: number, windDirection: number, windSpeed: number): number {
+    if (windSpeed === 0) {
+      return heading;
+    }
+
+    const x = tas * Math.cos(heading * Avionics.Utils.DEG2RAD) - windSpeed * Math.cos(windDirection * Avionics.Utils.DEG2RAD);
+    const y = tas * Math.sin(heading * Avionics.Utils.DEG2RAD) - windSpeed * Math.sin(windDirection * Avionics.Utils.DEG2RAD);
+
+    if (x === 0 && y === 0) {
+      return NaN;
+    }
+
+    return MathUtils.normalizeAngleDeg(Math.atan2(y, x) * Avionics.Utils.RAD2DEG);
   }
 
   /**
@@ -346,7 +372,7 @@ export class NavMath {
    * Gets the total difference in degrees between two angles.
    * @param a The first angle.
    * @param b The second angle.
-   * @returns The difference between the two angles, in degrees.
+   * @returns The difference between the two angles, in degrees, in range -180°...+180°.
    */
   public static diffAngle(a: number, b: number): number {
     let diff = b - a;

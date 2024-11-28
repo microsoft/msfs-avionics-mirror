@@ -1,0 +1,25 @@
+.approach-status {
+  position: absolute;
+  /* aligned with right side of approach vertical mode on FMA */
+  right: 234px;
+  top: 36px;
+  /* UNVL modes grow wider */
+  min-width: 60px;
+  height: 26px;
+  padding: 3px 6px;
+
+  font-size: 24px;
+  text-align: right;
+}
+
+.approach-status.armed {
+  color: var(--epic2-color-white);
+}
+
+.approach-status.active {
+  color: var(--epic2-color-green);
+}
+
+.approach-status.unavailable {
+  color: var(--epic2-color-amber);
+}

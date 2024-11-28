@@ -1,0 +1,48 @@
+.selected-altitude-container {
+  position: absolute;
+  top: 2px;
+  left: 527px;
+  width: 89px;
+  height: 32px;
+}
+
+.selected-altitude-container .selected-alt-value-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  flex-direction: row;
+  justify-content: flex-end;
+  color: var(--epic2-color-white);
+  padding: 1px 4px 0 0;
+}
+
+.selected-alt-value-container .selected-alt-thousands {
+  padding-right: 2px;
+  font-size: 30px;
+}
+
+.selected-alt-value-container .selected-alt-tens,
+.selected-alt-value-container .metric {
+  padding-top: 3px;
+  font-size: 27px;
+}
+
+.selected-alt-value-container .selected-alt-unit {
+  padding-left: 5px;
+}
+
+.selected-alt-value-container.magenta {
+  color: var(--epic2-color-magenta);
+}
+
+.selected-alt-value-container.cyan {
+  color: var(--epic2-color-cyan);
+}
+
+.selected-alt-value-container.amber {
+  color: var(--epic2-color-amber);
+}
+
+.selected-alt-value-container.invalid {
+  color: var(--epic2-color-amber);
+}

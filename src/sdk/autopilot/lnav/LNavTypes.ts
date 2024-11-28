@@ -24,17 +24,17 @@ export enum LNavTransitionMode {
  * An object describing the airplane's state used by LNAV.
  */
 export type LNavAircraftState = {
-  /** The airplane's position. */
+  /** The airplane's position. If data is not available, then `planePos.isValid()` will return false. */
   planePos: GeoPointInterface;
 
-  /** The airplane's ground speed, in knots. */
-  gs: number;
+  /** The airplane's ground speed, in knots, or `null` if data is not available. */
+  gs: number | null;
 
-  /** The airplane's true ground track, in degrees. */
-  track: number;
+  /** The airplane's true ground track, in degrees, or `null` if data is not available. */
+  track: number | null;
 
-  /** The airplane's true airspeed, in knots. */
-  tas: number;
+  /** The airplane's true airspeed, in knots, or `null` if data is not available. */
+  tas: number | null;
 };
 
 /**
@@ -70,18 +70,45 @@ export type LNavSteerCommand = {
   /** Whether this command is valid. */
   isValid: boolean;
 
-  /** The desired bank angle, in degrees. Positive values indicate left bank. */
-  desiredBankAngle: number;
+  /** Whether this command is attempting to steer toward a heading instead of a track. */
+  isHeading: boolean;
 
-  /** The current desired track, in degrees true. */
+  /**
+   * The true course to steer, in degrees. If `isHeading` is true, then this value can be interpreted as the true
+   * heading to steer instead.
+   */
+  courseToSteer: number;
+
+  /**
+   * The radius of the track toward which the command is attempting to steer, in great-arc radians. A radius of
+   * `pi / 2` indicates the track is a great circle. A radius less than `pi / 2` indicates the track turns to the left.
+   * A radius greater than `pi / 2` indicates the track turns to the right. This value has no meaning if `isHeading`
+   * is true.
+   */
+  trackRadius: number;
+
+  /**
+   * The current desired true track, in degrees. This value has no meaning if `isHeading` is true.
+   */
   dtk: number;
 
   /**
    * The current cross-track error, in nautical miles. Positive values indicate that the plane is to the right of the
-   * desired track.
+   * desired track. This value has no meaning if `isHeading` is true.
    */
   xtk: number;
 
-  /** The current track angle error, in degrees in the range `[-180, 180)`. */
+  /**
+   * The current track angle error, in degrees in the range `[-180, 180)`. If `isHeading` is true, then this value can
+   * be interpreted as the heading error instead.
+   */
   tae: number;
+};
+
+/**
+ * A roll steering command generated from an LNAV steering command.
+ */
+export type LNavRollSteerCommand = LNavSteerCommand & {
+  /** The desired bank angle, in degrees. Positive values indicate leftward bank. */
+  desiredBankAngle: number;
 };

@@ -1,0 +1,110 @@
+* {
+  box-sizing: border-box;
+}
+
+.home-container {
+  position: relative;
+}
+
+.taws-wx-lightning-container .tab-container  {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100px;
+}
+
+.taws-wx-lightning-container .tab-container  .touch-button {
+  height: 80px;
+  width: 33%;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-top: 7px solid lightgray;
+  margin-left: 4px;
+  background-color: #272727;
+  display: flex;
+}
+
+.taws-wx-lightning-container .tab-container  .touch-button-active {
+  border-top: 7px solid green;
+}
+
+.taws-wx-lightning-container .tab-container  .touch-button.touch-button-base,
+.taws-wx-lightning-container .tab-container  .touch-button-base {
+  border-image-source: none;
+}
+
+/* .taws-wx-lightning-container .tab-container  .touch-button.touch-button-base.touch-button-active {
+  height: 97px;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  border-left: 7px solid green;
+}
+
+.taws-wx-lightning-container .tab-container  .touch-button.touch-button-base.touch-button-active {
+  border-bottom: none;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-color: none;
+} */
+
+.taws-wx-lightning-container .tab-container  .touch-button.touch-button-base.touch-button-active::after {
+  content: none;
+}
+
+.taws-wx-lightning-container .tab-container  .touch-button-base.touch-button-active::after,
+.taws-wx-lightning-container .tab-container  .touch-button-base:hover::after {
+  content: none;
+}
+
+.taws-wx-lightning-container .tab-container  .touch-button-label {
+  position: static;
+  left: auto;
+  top: auto;
+  transform: none;
+  font-size: 32px;
+  margin: auto auto;
+}
+
+.taws-wx-lightning-container .tsc-tabbed-content-container {
+  position: relative;
+  top: 0px;
+  left: 150px;
+  display: flex;
+  flex-wrap: wrap;
+  width: 641px;
+}
+
+.taws-wx-lightning-container .tsc-tabbed-content-container > div {
+  position: absolute !important;
+  top: 95px !important;
+  left: -130px !important;
+}
+
+.taws-button-active {
+  height: 10px;
+  width: 35%;
+  border: 2px solid var(--epic2-color-grey);
+  border-radius: 4px;
+  transform: translateY(45px);
+}
+
+.taws-button-active.active {
+  background-color: var(--epic2-color-green);
+}
+
+.taws-steep-appr.touch-button {
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.taws-steep-appr.touch-button .touch-button-label {
+  padding-bottom: 25px;
+}

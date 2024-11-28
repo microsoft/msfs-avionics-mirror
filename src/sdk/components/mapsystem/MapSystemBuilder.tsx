@@ -96,7 +96,7 @@ type ModuleFactory = {
   key: string;
 
   /** The constructor of the module to create. */
-  factory: () => any;
+  factory: (context: MapSystemContext<EmptyRecord, EmptyRecord, EmptyRecord, any>) => any;
 };
 
 /**
@@ -156,9 +156,26 @@ type IsAny<T> = boolean extends (T extends never ? true : false) ? true : false;
 type DefaultIfAny<T, Default> = IsAny<T> extends true ? Default : T;
 
 /**
+ * Configuration options for a Map System Bing layer.
+ */
+export type MapSystemBuilderBingLayerOptions = {
+  /**
+   * The amount of time, in milliseconds, to delay binding the layer's Bing instance after the layer has been rendered.
+   * Defaults to 0.
+   */
+  bingDelay?: number;
+
+  /** Whether to skip unbinding the layer's bound Bing instance when the layer is destroyed. Defaults to `false`. */
+  bingSkipUnbindOnDestroy?: boolean;
+
+  /** The opacity to apply to the layer. If not defined, then no specific opacity will be set. */
+  opacity?: number | Subscribable<number>;
+};
+
+/**
  * Options for handling off-scale and out-of-bounds traffic intruders on a traffic layer.
  */
-export type TrafficOffScaleOobOptions = {
+export type MapSystemBuilderTrafficOffScaleOobOptions = {
   /** A subscribable set to update with off-scale intruders. */
   offScaleIntruders?: MutableSubscribableSet<TcasIntruder>,
 
@@ -313,7 +330,10 @@ export class MapSystemBuilder<
    * @param factory A function which creates the module.
    * @returns This builder, after the map module has been added.
    */
-  public withModule(key: string, factory: () => any): this {
+  public withModule<UseContext extends ContextRecord = any>(
+    key: string,
+    factory: (context: MapSystemContext<EmptyRecord, EmptyRecord, EmptyRecord, DefaultIfAny<UseContext, Context>>) => any
+  ): this {
     this.moduleFactories.set(key, { key, factory });
     return this;
   }
@@ -800,23 +820,18 @@ export class MapSystemBuilder<
    * Layers:
    * * `[MapSystemKeys.Bing]: MapBingLayer`
    * @param bingId The ID to assign to the Bing Map instance bound to the layer.
-   * @param delay The delay, in milliseconds, to wait after the Bing layer has been rendered before attempting to bind
-   * a Bing Map instance.
-   * @param mode The mode of the map, optional. If omitted, will be EBingMode.PLANE.
+   * @param options Options with which to configure the layer.
    * @param order The order value to assign to the Bing layer. Layers with lower assigned order will be attached to the
    * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
    * added to the map builder.
-   * @param cssClass The CSS class(es) to apply to the root of the map bing layer.
-   * @param opacity The opacity to apply to the layer. If not defined, control of opacity will be left to CSS.
+   * @param cssClass The CSS class(es) to apply to the flight plan canvas elements.
    * @returns This builder, after it has been configured.
    */
   public withBing(
     bingId: string,
-    delay = 0,
-    mode?: EBingMode,
+    options?: Readonly<MapSystemBuilderBingLayerOptions>,
     order?: number,
-    cssClass?: string | SubscribableSet<string>,
-    opacity?: Subscribable<number>,
+    cssClass?: string | SubscribableSet<string>
   ): this {
     return this
       .withModule(MapSystemKeys.TerrainColors, () => new MapTerrainColorsModule())
@@ -833,16 +848,16 @@ export class MapSystemBuilder<
             model={context.model}
             mapProjection={context.projection}
             bingId={bingId}
+            bingDelay={options?.bingDelay}
+            bingSkipUnbindOnDestroy={options?.bingSkipUnbindOnDestroy}
             reference={terrainColors.reference}
             earthColors={terrainColors.colors}
             earthColorsElevationRange={terrainColors.colorsElevationRange}
             isoLines={terrainColors.showIsoLines}
             wxrMode={weather.wxrMode}
             wxrColors={weather.weatherRadarColors}
-            mode={mode}
-            delay={delay}
+            opacity={options?.opacity}
             class={cssClass}
-            opacity={opacity}
           />
         );
       }, order);
@@ -1192,7 +1207,7 @@ export class MapSystemBuilder<
         DefaultIfAny<UseLayers, Layers>,
         DefaultIfAny<UserControllers, Controllers>,
         DefaultIfAny<UseContext, Context>
-      >) => TrafficOffScaleOobOptions,
+      >) => MapSystemBuilderTrafficOffScaleOobOptions,
     order?: number,
     cssClass?: string | SubscribableSet<string>
   ): this {
@@ -1512,7 +1527,7 @@ export class MapSystemBuilder<
     }
 
     for (const factory of this.moduleFactories.values()) {
-      context.model.addModule(factory.key, factory.factory());
+      context.model.addModule(factory.key, factory.factory(context));
     }
 
     return context;

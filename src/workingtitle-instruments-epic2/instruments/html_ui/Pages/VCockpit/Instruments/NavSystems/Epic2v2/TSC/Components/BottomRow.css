@@ -1,0 +1,174 @@
+.bottom-row-wrapper * {
+  font-family: sans-serif;
+  box-sizing: border-box;
+}
+
+.bottom-row-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+}
+
+.scroll-1 {
+  position: relative;
+  bottom: 6px;
+  left: 20px;
+  font-size: 24px;
+}
+
+.scroll-1-label {
+  position: relative;
+  bottom: 15px;
+  left: 22px;
+  font-size: 21px;
+}
+
+.datalink {
+  position: relative;
+  bottom: 7px;
+  left: 24px;
+  font-size: 24px;
+}
+
+.mfd-swap {
+  position: relative;
+  bottom: 7px;
+  right: 14px;
+  font-size: 24px;
+}
+
+.event {
+  position: relative;
+  bottom: 7px;
+  right: 34px;
+  font-size: 24px;
+}
+
+.scroll-2 {
+  position: relative;
+  bottom: 6px;
+  right: 18px;
+  font-size: 24px;
+}
+
+.scroll-2-label {
+  position: relative;
+  bottom: 15px;
+  right: 44px;
+  font-size: 21px;
+}
+
+.icon-row-1 {
+  position: relative;
+  top: 0px;
+  left: 17px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.icon-2 {
+  position: relative;
+  top: 0px;
+  left: 6px;
+}
+
+.icon-3 {
+  position: relative;
+  top: 0px;
+  left: 10px;
+}
+
+
+.icon-row-2 {
+  position: relative;
+  top: 0px;
+  right: 47px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.icon-5 {
+  position: relative;
+  top: 0px;
+  left: 4px;
+}
+
+.icon-6 {
+  position: relative;
+  top: 0px;
+  left: 6px;
+}
+
+.br-circle-half-circle-svg {
+  width: 35px;
+}
+
+.rotate-svg {
+  width: 25px;
+}
+
+.rotate-svg path:nth-child(1) {
+  stroke: var(--epic2-color-white);
+  stroke-width: 2;
+  fill: none;
+}
+
+.rotate-svg path:nth-child(2) {
+  fill: var(--epic2-color-white);
+}
+
+.rotate-svg path:nth-child(3) {
+  fill: var(--epic2-color-white);
+}
+
+.br-circle-half-circle-svg path {
+  stroke: var(--epic2-color-cyan);
+}
+
+.br-circle-half-circle-svg circle {
+  fill: var(--epic2-color-cyan);
+}
+
+.br-circle-half-circle-svg.knob-disabled path {
+  stroke: var(--epic2-color-darker-grey)
+}
+
+.br-circle-half-circle-svg.knob-disabled circle {
+  fill: var(--epic2-color-darker-grey)
+}
+
+.is-hidden {
+  visibility: hidden;
+}
+
+.homeDuCcdLabel1 {
+  height: 85px;
+  width: 125px;
+  padding-top: 62px;
+  padding-left: 16px;
+}
+
+.comNavXpdrLabel1 {
+  padding-top: 52px;
+  height: 85px;
+  width: 125px;
+  align-items: center;
+}
+
+.homeDuCcdLabel2 {
+  height: 85px;
+  width: 125px;
+  padding-top: 62px;
+  padding-left: 16px;
+}
+
+.comNavXpdrLabel2 {
+  padding-top: 52px;
+  height: 85px;
+  width: 125px;
+  align-items: center;
+}

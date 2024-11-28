@@ -1,0 +1,63 @@
+.touch-list {
+  position: relative;
+
+  /* These vars get overriden in TouchList.tsx. */
+  --touch-list-length: 100px;
+  --touch-list-item-margin: 2px;
+  --touch-list-item-length: 134px;
+
+  overflow: hidden;
+}
+
+.touch-list-x {
+  width: var(--touch-list-length);
+}
+
+.touch-list-y {
+  height: var(--touch-list-length);
+}
+
+.touch-list .touch-list-translatable {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.touch-list-x .touch-list-translatable {
+  width: auto;
+  height: 100%;
+}
+
+.touch-list-y .touch-list-translatable {
+  width: 100%;
+  height: auto;
+
+  --touch-list-height: var(--touch-list-length);
+  --touch-list-item-height: var(--touch-list-item-length);
+}
+
+.touch-list .items-container {
+  position: relative;
+}
+
+.touch-list-x .items-container {
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  width: auto;
+}
+
+.touch-list-y .items-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+}
+
+.touch-list-x .items-container>* {
+  margin-right: var(--touch-list-item-margin);
+}
+
+.touch-list-y .items-container>* {
+  margin-bottom: var(--touch-list-item-margin);
+}

@@ -1,0 +1,95 @@
+.altitude-tape {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  height: 100%;
+  width: 102px;
+  overflow: hidden;
+}
+
+.altitude-tape-border {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 89px;
+  height: 100%;
+}
+
+.altitude-tape-clip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.altitude-tape-ref-mark {
+  position: absolute;
+  top: 180px;
+  left: 3px;
+  width: 13px;
+  height: 4px;
+}
+
+.altitude-tape path,
+.altitude-tape line {
+  fill: none;
+  stroke: var(--epic2-color-white);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.altitude-tape path.shadow,
+.altitude-tape line.shadow {
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+  stroke-width: 3px;
+  fill: none;
+}
+
+.altitude-tape text {
+  font-size: 26px;
+  stroke-width: 1px;
+  stroke: var(--epic2-color-black);
+  fill: var(--epic2-color-white);
+  paint-order: stroke;
+}
+
+.altitude-bug-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.altitude-bug {
+  position: absolute;
+  /* Align vertically on the altitude reference position. */
+  top: 50%;
+  left: 0;
+}
+
+.ra-crosshatched {
+  position: absolute;
+  bottom: 0;
+  left: 14px;
+  box-sizing: border-box;
+  border-top: 3px solid var(--epic2-color-yellow);
+  border-right: 3px solid var(--epic2-color-yellow);
+  width: 88px;
+  height: 0;
+  background: linear-gradient(-45deg,
+      yellow 16%,
+      transparent 16%,
+      transparent 50%,
+      yellow 50%,
+      yellow 66%,
+      transparent 66%,
+      transparent);
+  background-size: 15px 15px;
+  background-position: 0 0, 20px 20px;
+}

@@ -1,0 +1,115 @@
+.fpln-fuel-weight {
+  padding: 3px 5px 2px 2px;
+}
+
+.fpln-fuel-weight-right {
+  padding-top: 5px;
+}
+
+.fpln-fuel-weight p {
+  font-size: 22px;
+}
+
+.fpln-fuel-weight-grid {
+  height: 290px;
+  position: relative;
+  grid-template-columns: 210px auto;
+  display: grid;
+}
+
+.fpln-fuel-weight-gross,
+.fpln-dest-altn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.fpln-fuel-weight-gross {
+  margin-left: 10px;
+  grid-template-columns: auto 1fr;
+}
+
+.fpln-fuel-weight-gross p {
+  padding-right: 10px;
+}
+
+.fpln-fuel-weight-time {
+  margin-left: -8px;
+  margin-top: -2px;
+}
+
+.fpln-fuel-weight-gross-num {
+  text-align: right;
+}
+
+.fpln-fuel-weight-compute-button {
+  width: 80px;
+  margin-left: 10px;
+  bottom: 5px;
+  position: absolute;
+}
+
+.fpln-fuel-weight .compute-button-blue {
+  background-color: var(--epic2-color-cyan);
+  color: var(--epic2-color-black);
+}
+
+.fpln-fuel-weight-passengers-num {
+  width: 90px;
+  margin-right: 10px;
+}
+
+.fpln-fuel-weight-passengers .input-box-container,
+.fpln-fuel-weight-passengers .input-box {
+  width: 65px;
+}
+
+.fpln-fuel-weight-passengers-lb {
+  width: 90px;
+}
+
+.fpln-fuel-weight-bow-lb {
+  margin-left: 10px;
+}
+
+.fpln-fuel-weight-bow-lb .input-box {
+  width: 95px;
+}
+
+.fpln-fuel-weight-passengers,
+.fpln-fuel-weight-passengers-title {
+  margin-left: 8px;
+
+}
+
+.fpln-fuel-weight-gross,
+.fpln-dest-altn-grid {
+  margin-top: 20px;
+}
+
+.fpln-dest-altn-grid {
+  grid-template-columns: 1fr auto;
+}
+
+.fpln-fuel-weight-ete {
+  padding-left: 110px;
+  padding-top: 5px;
+}
+
+.fpln-fuel-weight-passengers {
+  display: flex;
+  margin-left: 6px;
+}
+
+.fpln-fuel-weight-destination-time {
+  margin-top: 10px;
+}
+
+p.fpln-fuel-weight-computing-msg {
+  margin-left: 5px;
+  font-size: 20px;
+  margin-top: 5px;
+}
+
+.fpln-fuel-weight-green-text {
+  color: var(--epic2-color-green);
+}

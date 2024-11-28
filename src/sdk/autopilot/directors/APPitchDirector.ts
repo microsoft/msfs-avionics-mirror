@@ -2,7 +2,7 @@
 
 import { EventBus, KeyEventData, KeyEvents, KeyEventManager, SimVarValueType } from '../../data';
 import { MathUtils } from '../../math';
-import { APValues } from '../APConfig';
+import { APValues } from '../APValues';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /** Options for {@link APPitchDirector} */
@@ -86,10 +86,10 @@ export class APPitchDirector implements PlaneDirector {
   ) {
     // handle legacy constructor args
     const options = typeof arg0 === 'number' ? {
-        pitchIncrement: arg0,
-        minPitch,
-        maxPitch,
-      } as Partial<Readonly<APPitchDirectorOptions>>
+      pitchIncrement: arg0,
+      minPitch,
+      maxPitch,
+    } as Partial<Readonly<APPitchDirectorOptions>>
       : arg0;
 
     // set options

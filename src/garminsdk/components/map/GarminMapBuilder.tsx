@@ -1,12 +1,14 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
-  DefaultLodBoundaryCache, FlightPlanner, FSComponent, GeoPoint, LatLonInterface, MapAltitudeArcLayer, MapAltitudeArcLayerModules,
-  MapAltitudeArcLayerProps, MapAltitudeArcModule, MapBinding, MapCullableTextLabelManager, MapFollowAirplaneModule, MapGenericLayer,
-  MapGenericLayerProps, MapIndexedRangeModule, MapLayerProps, MapLineLayer, MapLineLayerProps, MapOwnAirplanePropsModule,
-  MapSyncedCanvasLayer, MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys, MapTerrainColorsModule,
-  MapTrafficIntruderIconFactory, MapTrafficModule, MapWxrModule, MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer,
-  ResourceModerator, SetSubject, Subject, Subscribable, SubscribableSet, SubscribableSetEventType, SubscribableUtils, Subscription, TcasAlertLevel, TcasIntruder,
-  TrafficOffScaleOobOptions, UnitFamily, UnitType, UserSettingManager, VecNMath, VNode
+  DefaultLodBoundaryCache, EmptyRecord, FlightPlanner, FSComponent, GeoPoint, LatLonInterface, MapAltitudeArcLayer,
+  MapAltitudeArcLayerModules, MapAltitudeArcLayerProps, MapAltitudeArcModule, MapBinding, MapCullableTextLabelManager,
+  MapFollowAirplaneModule, MapGenericLayer, MapGenericLayerProps, MapIndexedRangeModule, MapLayerProps, MapLineLayer,
+  MapLineLayerProps, MapOwnAirplanePropsModule, MapSyncedCanvasLayer, MapSystemBuilder,
+  MapSystemBuilderTrafficOffScaleOobOptions, MapSystemContext, MapSystemGenericController, MapSystemKeys,
+  MapTerrainColorsModule, MapTrafficIntruderIconFactory, MapTrafficModule, MapWxrModule, MutableSubscribable,
+  NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, SetSubject, Subject, Subscribable,
+  SubscribableSet, SubscribableSetEventType, SubscribableUtils, Subscription, TcasAlertLevel, TcasIntruder, UnitFamily,
+  UnitType, UserSettingManager, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
 import { FmsUtils } from '../../flightplan/FmsUtils';
@@ -32,16 +34,20 @@ import {
   MapWxrController, MapWxrControllerModules, TrafficMapRangeController, TrafficMapRangeControllerModules, TrafficMapRangeControllerSettings,
   WeatherMapOrientationSettingsController, WeatherMapOrientationSettingsControllerModules, WeatherMapOrientationSettingsControllerSettings
 } from './controllers';
-import { MapActiveFlightPlanDataProvider, MapFlightPathPlanRenderer, MapFlightPathProcRenderer, MapFlightPlannerPlanDataProvider } from './flightplan';
-import { MapFlightPlanDataProvider } from './flightplan/MapFlightPlanDataProvider';
+import {
+  MapActiveFlightPlanDataProvider, MapFlightPathPlanRenderer, MapFlightPathProcRenderer,
+  MapFlightPlannerPlanDataProvider, MapFlightPlanWaypointRecordManager
+} from './flightplan';
 import { GarminMapKeys } from './GarminMapKeys';
 import {
-  MapCrosshairLayer, MapCrosshairLayerModules, MapFlightPlanLayer, MapMiniCompassLayer, MapPointerInfoLayer, MapPointerInfoLayerModules,
-  MapPointerInfoLayerSize, MapPointerLayer, MapPointerLayerModules, MapProcedurePreviewLayer, MapProcedurePreviewLayerModules,
-  MapRangeCompassLayer, MapRangeCompassLayerModules, MapRangeCompassLayerProps, MapRangeRingLayer, MapRangeRingLayerModules,
-  MapRangeRingLayerProps, MapTrackVectorLayer, MapTrackVectorLayerModules, MapTrackVectorLayerProps, MapWaypointHighlightLayer,
-  MapWaypointHighlightLayerModules, MapWaypointsLayer, MapWaypointsLayerModules, MapWindVectorLayer, MapWindVectorLayerModules,
-  TrafficMapRangeLayer, TrafficMapRangeLayerModules, TrafficMapRangeLayerProps
+  MapCrosshairLayer, MapCrosshairLayerModules, MapMiniCompassLayer, MapPointerInfoLayer, MapPointerInfoLayerModules,
+  MapPointerInfoLayerSize, MapPointerLayer, MapPointerLayerModules, MapProcedurePreviewLayer,
+  MapProcedurePreviewLayerModules, MapRangeCompassLayer, MapRangeCompassLayerModules, MapRangeCompassLayerProps,
+  MapRangeRingLayer, MapRangeRingLayerModules, MapRangeRingLayerProps, MapSharedFlightPlanLayer,
+  MapSharedFlightPlanLayerModules, MapTrackVectorLayer, MapTrackVectorLayerModules, MapTrackVectorLayerProps,
+  MapWaypointHighlightLayer, MapWaypointHighlightLayerModules, MapWaypointsLayer, MapWaypointsLayerModules,
+  MapWindVectorLayer, MapWindVectorLayerModules, TrafficMapRangeLayer, TrafficMapRangeLayerModules,
+  TrafficMapRangeLayerProps
 } from './layers';
 import { MapAirspaceRendering } from './MapAirspaceRendering';
 import { MapTrafficIntruderIcon, MapTrafficIntruderIconOptions } from './MapTrafficIntruderIcon';
@@ -49,10 +55,11 @@ import { MapTrafficOffScaleStatus } from './MapTrafficOffScaleStatus';
 import { MapWaypointDisplayBuilder, MapWaypointDisplayBuilderClass } from './MapWaypointDisplayBuilder';
 import { MapWaypointRenderer, MapWaypointRenderRole } from './MapWaypointRenderer';
 import {
-  GarminAirspaceShowTypeMap, MapCrosshairModule, MapDeclutterMode, MapDeclutterModule, MapFlightPlanFocusModule, MapGarminAutopilotPropsModule,
-  MapGarminDataIntegrityModule, MapGarminTrafficModule, MapNexradModule, MapOrientation, MapOrientationModule, MapPanningModule, MapPointerModule, MapProcedurePreviewModule,
-  MapRangeCompassModule, MapRangeRingModule, MapTerrainMode, MapTerrainModule, MapTrackVectorModule, MapUnitsModule, MapWaypointHighlightModule,
-  MapWaypointsModule, MapWindVectorModule
+  GarminAirspaceShowTypeMap, MapCrosshairModule, MapDeclutterMode, MapDeclutterModule, MapFlightPlanFocusModule,
+  MapGarminAutopilotPropsModule, MapGarminDataIntegrityModule, MapGarminFlightPlanEntry, MapGarminFlightPlanModule,
+  MapGarminTrafficModule, MapNexradModule, MapOrientation, MapOrientationModule, MapPanningModule, MapPointerModule,
+  MapProcedurePreviewModule, MapRangeCompassModule, MapRangeRingModule, MapTerrainMode, MapTerrainModule,
+  MapTrackVectorModule, MapUnitsModule, MapWaypointHighlightModule, MapWaypointsModule, MapWindVectorModule
 } from './modules';
 
 /**
@@ -83,28 +90,56 @@ export type RangeCompassHeadingBugOptions = {
 };
 
 /**
- * Options for flight plan layers.
+ * Options for the nearest waypoints layer.
  */
-export type FlightPlanOptions = {
-  /** The data provider for the flight plan to render. */
-  dataProvider: MapFlightPlanDataProvider;
+export type GarminMapBuilderWaypointsLayerOptions = {
+  /** Whether to support the rendering of airport runway outlines. Defaults to `false`. */
+  supportRunwayOutlines?: boolean;
 
-  /** The flight path renderer to use. */
-  pathRenderer: MapFlightPathPlanRenderer;
-
-  /** Whether to always draw the entire plan, or a subscribable which provides it. Defaults to `false`. */
-  drawEntirePlan?: boolean | Subscribable<boolean>;
+  /**
+   * A function that filters user facilities to be displayed by the nearest waypoints layer based on their scopes. If
+   * not defined, then user facilities will not be filtered based on scope.
+   * @param scope A user facility scope.
+   * @returns Whether to display the user facility with the specified scope.
+   */
+  userFacilityScopeFilter?: (scope: string) => boolean;
 };
+
+/**
+ * A function that creates an entry describing the display of a flight plan.
+ * @param context The context of the map for which to create the entry.
+ * @returns An entry describing the display of a flight plan.
+ */
+export type MapGarminFlightPlanEntryFactory = (context: MapSystemContext<EmptyRecord, EmptyRecord, EmptyRecord, any>) => MapGarminFlightPlanEntry;
 
 /**
  * Options for the display of the active flight plan.
  */
-export type ActiveFlightPlanOptions = {
+export type GarminMapBuilderActiveFlightPlanOptions = {
   /** The index of the LNAV from which to source data. Defaults to `0`. */
   lnavIndex?: number | Subscribable<number>;
 
   /** The index of the VNAV from which to source data. Defaults to `0`. */
   vnavIndex?: number | Subscribable<number>;
+
+  /** Whether the entire primary flight plan should always be drawn. */
+  drawEntirePlan: boolean | Subscribable<boolean>;
+
+  /**
+   * A function that creates a flight plan waypoint record manager to use to manage the waypoints to draw for the
+   * flight plan.
+   * @param context The map system context.
+   * @param waypointRenderer The waypoint renderer used to draw the flight plan waypoints.
+   * @returns A flight plan waypoint record manager to use to manage the waypoints to draw for the flight plan.
+   */
+  waypointRecordManagerFactory: (context: MapSystemContext<any, any, any, any>, waypointRenderer: MapWaypointRenderer) => MapFlightPlanWaypointRecordManager;
+
+  /**
+   * A function that creates a flight path renderer to use to draw the flight plan.
+   * @param context The map system context.
+   * @returns A flight path renderer to use to draw the flight plan.
+   */
+  pathRendererFactory: (context: MapSystemContext<any, any, any, any>) => MapFlightPathPlanRenderer;
 
   /**
    * Whether to support flight plan focus on the primary flight plan. If focus is supported, the primary flight plan
@@ -817,9 +852,9 @@ export class GarminMapBuilder {
    * * `[GarminMapKeys.WaypointsVisibility]: MapWaypointsVisController` (only if user settings are supported)
    * @param mapBuilder The map builder to configure.
    * @param configure A function used to configure the display and styling of waypoint icons and labels.
-   * @param supportRunwayOutlines Whether to support the rendering of airport runway outlines.
    * @param settingManager A setting manager containing the user settings controlling waypoint visibility. If not
    * defined, waypoint visibility will not be bound to user settings.
+   * @param options Options with which to configure the layer.
    * @param order The order to assign to the waypoint layer. Layers with lower assigned order will be attached to the
    * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
    * added to the map builder.
@@ -828,8 +863,8 @@ export class GarminMapBuilder {
   public static waypoints<MapBuilder extends MapSystemBuilder>(
     mapBuilder: MapBuilder,
     configure: (builder: MapWaypointDisplayBuilder, context: MapSystemContext<any, any, any, any>) => void,
-    supportRunwayOutlines: boolean,
     settingManager?: UserSettingManager<Partial<MapWaypointVisUserSettings>>,
+    options?: Readonly<GarminMapBuilderWaypointsLayerOptions>,
     order?: number
   ): MapBuilder {
     mapBuilder
@@ -858,7 +893,8 @@ export class GarminMapBuilder {
               mapProjection={context.projection}
               bus={context.bus}
               waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
-              supportRunwayOutlines={supportRunwayOutlines}
+              supportRunwayOutlines={options?.supportRunwayOutlines === true}
+              userFacilityScopeFilter={options?.userFacilityScopeFilter}
             />
           );
         },
@@ -903,44 +939,85 @@ export class GarminMapBuilder {
     return mapBuilder.withController(GarminMapKeys.WaypointsVisibility, context => new MapWaypointsVisController(context, settingManager, options));
   }
 
-  public static flightPlans<MapBuilder extends MapSystemBuilder>(
+  /**
+   * Configures a map builder to generate a map which displays flight plans. The flight path and all waypoints that are
+   * part of each flight plan are displayed. Waypoints displayed in this manner are rendered by a
+   * {@link MapWaypointRenderer} under the roles {@link MapWaypointRenderRole.FlightPlanActive} or
+   * {@link MapWaypointRenderRole.FlightPlanInactive} to a flight plan waypoint layer. Additionally, if VNAV is
+   * supported, TOD and BOD markers will also be rendered under the role {@link MapWaypointRenderRole.VNav} to the same
+   * waypoint layer.
+   *
+   * If a text layer has already been added to the builder, then its order will be changed so that it is rendered above
+   * the flight plan layer and the flight plan waypoint layer. Otherwise, a text layer will be added to the builder
+   * after the flight plan layer and the flight plan waypoint layer.
+   *
+   * The flight plans to display are taken from the map context property under the `GarminMapKeys.FlightPlan` key. The
+   * property should be an array of {@link MapGarminFlightPlanEntryFactory} functions. Each function is evaluated to generate an
+   * entry describing the display of a single flight plan. Each entry is then added to the
+   * {@link MapGarminFlightPlanModule} stored under the `GarminMapKeys.FlightPlan` key.
+   *
+   * Adds the following...
+   *
+   * Context properties:
+   * * `[MapSystemKeys.TextManager]: MapCullableTextLabelManager`
+   * * `[MapSystemKeys.WaypointRenderer]: MapWaypointRenderer`
+   * * `[GarminMapKeys.WaypointDisplayBuilder]: MapWaypointDisplayBuilder`
+   *
+   * Modules:
+   * * `[GarminMapKeys.FlightPlan]: MapGarminFlightPlanModule`
+   *
+   * Layers:
+   * * `[GarminMapKeys.FlightPlan]: MapSharedFlightPlanLayer`
+   * * `[GarminMapKeys.FlightPlanWaypoints]: MapSyncedCanvasLayer`
+   *
+   * Controllers:
+   * * `[MapSystemKeys.WaypointRenderer]: MapSystemGenericController` (handles initialization and updating of the
+   * waypoint renderer)
+   * * `[GarminMapKeys.FlightPlanWaypoints]: MapSystemGenericController` (initializes the canvas contexts assigned to
+   * the waypoint renderer's flight plan waypoint roles)
+   * @param mapBuilder The map builder to configure.
+   * @param configure A function used to configure the display and styling of flight plan waypoint icons and labels.
+   * @param order The order to assign to the flight plan layers. Layers with lower assigned order will be attached to
+   * the map before and appear below layers with greater assigned order values. Defaults to the number of layers
+   * already added to the map builder.
+   * @returns The map builder, after it has been configured.
+   */
+  public static sharedFlightPlans<MapBuilder extends MapSystemBuilder<
+    any, any, any, {
+      [GarminMapKeys.FlightPlan]?: MapGarminFlightPlanEntryFactory[]
+    }
+  >>(
     mapBuilder: MapBuilder,
-    options: FlightPlanOptions[],
-    configure: (builder: MapWaypointDisplayBuilder) => void,
+    configure: (builder: MapWaypointDisplayBuilder, context: MapSystemContext<any, any, any, any>) => void,
     order?: number
   ): MapBuilder {
-    if (options.length === 0) {
-      return mapBuilder;
-    }
-
     mapBuilder
       .withTextLayer(true)
       .withContext<{ [MapSystemKeys.TextManager]: MapCullableTextLabelManager }>(
         MapSystemKeys.WaypointRenderer, context => new MapWaypointRenderer(context[MapSystemKeys.TextManager])
       )
-      .withContext(GarminMapKeys.WaypointDisplayBuilder, () => new MapWaypointDisplayBuilderClass());
+      .withContext(GarminMapKeys.WaypointDisplayBuilder, () => new MapWaypointDisplayBuilderClass())
+      .withModule<{
+        [GarminMapKeys.FlightPlan]?: MapGarminFlightPlanEntryFactory[]
+      }>(GarminMapKeys.FlightPlan, context => {
+        const flightPlanEntryFactories = context[GarminMapKeys.FlightPlan] ?? [];
+        // Delete the property from the context so we don't leak the factories after we are done with them.
+        delete (context as any)[GarminMapKeys.FlightPlan];
+        return new MapGarminFlightPlanModule(flightPlanEntryFactories.map(factory => factory(context)));
+      });
 
     const layerCount = mapBuilder.layerCount;
 
-    for (let i = 0; i < options.length; i++) {
-      const { dataProvider, pathRenderer, drawEntirePlan } = options[i];
-
-      mapBuilder.withLayer<MapFlightPlanLayer, any, { [MapSystemKeys.WaypointRenderer]: MapWaypointRenderer }>(`${MapSystemKeys.FlightPlan}${i}`, context => {
+    return mapBuilder
+      .withLayer<MapSharedFlightPlanLayer, MapSharedFlightPlanLayerModules>(GarminMapKeys.FlightPlan, context => {
         return (
-          <MapFlightPlanLayer
+          <MapSharedFlightPlanLayer
             model={context.model}
             mapProjection={context.projection}
             bus={context.bus}
-            waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
-            dataProvider={dataProvider}
-            pathRenderer={pathRenderer}
-            drawEntirePlan={typeof drawEntirePlan !== 'object' ? Subject.create(drawEntirePlan ?? false) : drawEntirePlan}
           />
         );
-      }, order ?? layerCount);
-    }
-
-    return mapBuilder
+      }, order ?? layerCount)
       .withLayer(GarminMapKeys.FlightPlanWaypoints, context => {
         return (
           <MapSyncedCanvasLayer
@@ -954,7 +1031,7 @@ export class GarminMapBuilder {
         any, any, any,
         { [GarminMapKeys.WaypointDisplayBuilder]: MapWaypointDisplayBuilderClass }
       >('flightPlanLayerDisplayConfigure', context => {
-        configure(context[GarminMapKeys.WaypointDisplayBuilder]);
+        configure(context[GarminMapKeys.WaypointDisplayBuilder], context);
       })
       .withController<
         MapSystemGenericController,
@@ -990,126 +1067,289 @@ export class GarminMapBuilder {
    * Configures a map builder to generate a map which displays the active flight plan. The flight path and all
    * waypoints that are part of the flight plan are displayed. Waypoints displayed in this manner are rendered by a
    * {@link MapWaypointRenderer} under the roles {@link MapWaypointRenderRole.FlightPlanActive} or
-   * {@link MapWaypointRenderRole.FlightPlanInactive}. Additionally, if VNAV is supported, TOD and BOD markers will
-   * also be rendered under the role {@link MapWaypointRenderRole.VNav}.
+   * {@link MapWaypointRenderRole.FlightPlanInactive} to a flight plan waypoint layer. Additionally, if VNAV is
+   * supported, TOD and BOD markers will also be rendered under the role {@link MapWaypointRenderRole.VNav} to the same
+   * waypoint layer.
    *
-   * If a text layer has already been added to the builder, its order will be changed so that it is rendered above the
-   * flight plan layers. Otherwise, a text layer will be added to the builder after the flight plan layers.
+   * If a text layer has already been added to the builder, then its order will be changed so that it is rendered above
+   * the flight plan layer and the flight plan waypoint layer. Otherwise, a text layer will be added to the builder
+   * after the flight plan layer and the flight plan waypoint layer.
+   *
+   * Adds the following...
+   *
+   * Context properties:
+   * * `[MapSystemKeys.TextManager]: MapCullableTextLabelManager`
+   * * `[MapSystemKeys.WaypointRenderer]: MapWaypointRenderer`
+   * * `[GarminMapKeys.WaypointDisplayBuilder]: MapWaypointDisplayBuilder`
+   *
+   * Modules:
+   * * `[GarminMapKeys.FlightPlan]: MapGarminFlightPlanModule`
+   *
+   * Layers:
+   * * `[GarminMapKeys.FlightPlan]: MapSharedFlightPlanLayer`
+   * * `[GarminMapKeys.FlightPlanWaypoints]: MapSyncedCanvasLayer`
+   *
+   * Controllers:
+   * * `[MapSystemKeys.WaypointRenderer]: MapSystemGenericController` (handles initialization and updating of the
+   * waypoint renderer)
+   * * `[GarminMapKeys.FlightPlanWaypoints]: MapSystemGenericController` (initializes the canvas contexts assigned to
+   * the waypoint renderer's flight plan waypoint roles)
+   * * `'activeFlightPlanProvider': MapSystemGenericController` (handles the logic for selecting the active flight plan
+   * to display)
    * @param mapBuilder The map builder to configure.
    * @param flightPlanner The flight planner from which to retrieve the active flight plan.
-   * @param pathRenderer The flight path renderer to use to the draw the flight plan.
-   * @param drawEntirePlan Whether the entire flight plan should always be drawn.
    * @param configure A function used to configure the display and styling of flight plan waypoint icons and labels.
-   * @param options Options with which to configure the display of the active flight plan. If a `boolean` value is
-   * provided in place of an options object, then it will be interpreted as the `supportFocus` option.
+   * @param options Options with which to configure the display of the active flight plan.
    * @param order The order to assign to the flight plan layers. Layers with lower assigned order will be attached to
    * the map before and appear below layers with greater assigned order values. Defaults to the number of layers
    * already added to the map builder.
    * @returns The map builder, after it has been configured.
    */
-  public static activeFlightPlan<MapBuilder extends MapSystemBuilder>(
+  public static activeFlightPlan<MapBuilder extends MapSystemBuilder<
+    any, any, any, {
+      [GarminMapKeys.FlightPlan]?: MapGarminFlightPlanEntryFactory[]
+    }
+  >>(
     mapBuilder: MapBuilder,
     flightPlanner: FlightPlanner | Subscribable<FlightPlanner>,
-    pathRenderer: MapFlightPathPlanRenderer,
-    drawEntirePlan: boolean | Subscribable<boolean>,
     configure: (builder: MapWaypointDisplayBuilder) => void,
-    options?: Readonly<ActiveFlightPlanOptions> | boolean,
+    options: Readonly<GarminMapBuilderActiveFlightPlanOptions>,
     order?: number
   ): MapBuilder {
-    if (typeof options !== 'object') {
-      options = {
-        supportFocus: options
-      };
-    }
-
-    const lnavIndex = options.lnavIndex ?? 0;
-    const vnavIndex = options.vnavIndex ?? 0;
     const supportFocus = options.supportFocus ?? false;
 
+    mapBuilder.with(
+      GarminMapBuilder.sharedFlightPlans,
+      configure,
+      order
+    );
+
     if (supportFocus) {
-      // Because flight plan focus still leaves the DTO random flight plan visible when it is active, we need to
-      // support drawing two flight plans at the same time under those circumstances.
-
-      const primaryPlanProvider = new MapFlightPlannerPlanDataProvider(mapBuilder.bus, { flightPlanner, lnavIndex, vnavIndex });
-      const dtoPlanProvider = new MapFlightPlannerPlanDataProvider(mapBuilder.bus, { flightPlanner, lnavIndex, vnavIndex });
-
-      return mapBuilder
-        .with(
-          GarminMapBuilder.flightPlans,
-          [
-            { dataProvider: primaryPlanProvider, pathRenderer, drawEntirePlan },
-            { dataProvider: dtoPlanProvider, pathRenderer, drawEntirePlan: false }
-          ],
-          configure,
-          order
-        )
-        .withController<MapSystemGenericController, { [GarminMapKeys.FlightPlanFocus]?: MapFlightPlanFocusModule }>(
-          'activeFlightPlanProvider',
-          context => {
-            let controller: MapSystemGenericController;
-
-            let plannerSub: Subscription | undefined;
-            let fplIndexSub: Subscription | undefined;
-            let isFocusedSub: Subscription | undefined;
-
-            return controller = new MapSystemGenericController(context, {
-              onAfterMapRender: (): void => {
-                const focusModule = context.model.getModule(GarminMapKeys.FlightPlanFocus);
-
-                const plannerSubscribable = SubscribableUtils.toSubscribable(flightPlanner, true);
-
-                const planProviderHandler = (): void => {
-                  const activePlanIndex = plannerSubscribable.get().activePlanIndex;
-                  const isFlightPlanFocused = focusModule?.planHasFocus.get() ?? false;
-
-                  // Show the primary plan when a DTO random is not active or when it is focused.
-                  primaryPlanProvider.setPlanIndex(activePlanIndex === FmsUtils.PRIMARY_PLAN_INDEX || isFlightPlanFocused ? FmsUtils.PRIMARY_PLAN_INDEX : -1);
-                  // Only show the DTO random plan when a DTO random is active.
-                  dtoPlanProvider.setPlanIndex(activePlanIndex === FmsUtils.DTO_RANDOM_PLAN_INDEX ? FmsUtils.DTO_RANDOM_PLAN_INDEX : -1);
-                };
-
-                isFocusedSub = focusModule?.planHasFocus.sub(planProviderHandler);
-
-                plannerSub = plannerSubscribable.sub(planner => {
-                  fplIndexSub?.destroy();
-                  fplIndexSub = planner.onEvent('fplIndexChanged').handle(planProviderHandler);
-                  planProviderHandler();
-                }, true);
-              },
-
-              onMapDestroyed: (): void => {
-                controller.destroy();
-              },
-
-              onDestroyed: (): void => {
-                plannerSub?.destroy();
-                fplIndexSub?.destroy();
-                isFocusedSub?.destroy();
-
-                primaryPlanProvider.destroy();
-                dtoPlanProvider.destroy();
-              }
-            });
-          }
-        );
+      return mapBuilder.with(
+        GarminMapBuilder.activeFlightPlanWithFocusProvider,
+        flightPlanner,
+        options
+      );
     } else {
-      const dataProvider = new MapActiveFlightPlanDataProvider(mapBuilder.bus, { flightPlanner, lnavIndex });
-
-      return mapBuilder
-        .with(
-          GarminMapBuilder.flightPlans,
-          [{
-            dataProvider,
-            pathRenderer,
-            drawEntirePlan
-          }],
-          configure,
-          order
-        )
-        .withDestroy('activeFlightPlanProvider', () => {
-          dataProvider.destroy();
-        });
+      return mapBuilder.with(
+        GarminMapBuilder.activeFlightPlanNoFocusProvider,
+        flightPlanner,
+        options
+      );
     }
+  }
+
+  /**
+   * Configures a map builder to provide entries describing the display of an active flight plan with support for
+   * flight plan focus. Factories for the entries are added to the array stored in the map context under the
+   * `GarminMapKeys.FlightPlan` key.
+   *
+   * Adds the controller `'activeFlightPlanProvider': MapSystemGenericController`.
+   * @param mapBuilder The map builder to configure.
+   * @param flightPlanner The flight planner from which to retrieve the active flight plan.
+   * @param options Options with which to configure the display of the active flight plan.
+   * @returns The map builder, after it has been configured.
+   */
+  private static activeFlightPlanWithFocusProvider<MapBuilder extends MapSystemBuilder<
+    any, any, any, {
+      [GarminMapKeys.FlightPlan]?: MapGarminFlightPlanEntryFactory[]
+    }
+  >>(
+    mapBuilder: MapBuilder,
+    flightPlanner: FlightPlanner | Subscribable<FlightPlanner>,
+    options: Readonly<GarminMapBuilderActiveFlightPlanOptions>,
+  ): MapBuilder {
+    const lnavIndex = options.lnavIndex ?? 0;
+    const vnavIndex = options.vnavIndex ?? 0;
+
+    // Because flight plan focus still leaves the DTO random flight plan visible when it is active, we need to
+    // support drawing two flight plans at the same time under those circumstances.
+
+    const primaryPlanShow = Subject.create(true);
+    const primaryPlanProvider = new MapFlightPlannerPlanDataProvider(mapBuilder.bus, { flightPlanner, lnavIndex, vnavIndex });
+
+    const dtoPlanShow = Subject.create(true);
+    const dtoPlanProvider = new MapFlightPlannerPlanDataProvider(mapBuilder.bus, { flightPlanner, lnavIndex, vnavIndex });
+
+    return mapBuilder
+      .withContext<{
+        [GarminMapKeys.FlightPlan]?: MapGarminFlightPlanEntryFactory[]
+      }>(
+        'activeFlightPlanProvider',
+        context => {
+          const factories = (context[GarminMapKeys.FlightPlan] as MapGarminFlightPlanEntryFactory[]) ??= [];
+          factories.push(
+            // Primary flight plan
+            factoryContext => {
+              return {
+                id: 'activePrimary',
+                show: primaryPlanShow,
+                dataProvider: primaryPlanProvider,
+                drawEntirePlan: SubscribableUtils.toSubscribable(options.drawEntirePlan, true),
+                waypointRenderer: factoryContext[MapSystemKeys.WaypointRenderer],
+                waypointRecordManager: options.waypointRecordManagerFactory(factoryContext, factoryContext[MapSystemKeys.WaypointRenderer]),
+                pathRenderer: options.pathRendererFactory(factoryContext),
+              };
+            },
+
+            // DTO flight plan
+            factoryContext => {
+              return {
+                id: 'activeDto',
+                show: dtoPlanShow,
+                dataProvider: dtoPlanProvider,
+                drawEntirePlan: Subject.create(false),
+                waypointRenderer: factoryContext[MapSystemKeys.WaypointRenderer],
+                waypointRecordManager: options.waypointRecordManagerFactory(factoryContext, factoryContext[MapSystemKeys.WaypointRenderer]),
+                pathRenderer: options.pathRendererFactory(factoryContext),
+              };
+            }
+          );
+
+          return undefined;
+        }
+      )
+      .withController<MapSystemGenericController, { [GarminMapKeys.FlightPlanFocus]?: MapFlightPlanFocusModule }>(
+        'activeFlightPlanProvider',
+        context => {
+          let controller: MapSystemGenericController;
+
+          let primaryPlanShowSub: Subscription | undefined;
+          let dtoPlanShowSub: Subscription | undefined;
+
+          let plannerSub: Subscription | undefined;
+          let fplIndexSub: Subscription | undefined;
+          let isFocusedSub: Subscription | undefined;
+
+          return controller = new MapSystemGenericController(context, {
+            onAfterMapRender: (): void => {
+              const focusModule = context.model.getModule(GarminMapKeys.FlightPlanFocus);
+
+              const plannerSubscribable = SubscribableUtils.toSubscribable(flightPlanner, true);
+
+              const planProviderHandler = (): void => {
+                const activePlanIndex = plannerSubscribable.get().activePlanIndex;
+                const isFlightPlanFocused = focusModule?.planHasFocus.get() ?? false;
+
+                // Show the primary plan when a DTO random is not active or when it is focused.
+                primaryPlanProvider.setPlanIndex(
+                  primaryPlanShow.get() && (activePlanIndex === FmsUtils.PRIMARY_PLAN_INDEX || isFlightPlanFocused)
+                    ? FmsUtils.PRIMARY_PLAN_INDEX
+                    : -1
+                );
+                // Only show the DTO random plan when a DTO random is active.
+                dtoPlanProvider.setPlanIndex(
+                  dtoPlanShow.get() && activePlanIndex === FmsUtils.DTO_RANDOM_PLAN_INDEX
+                    ? FmsUtils.DTO_RANDOM_PLAN_INDEX
+                    : -1
+                );
+              };
+
+              primaryPlanShowSub = primaryPlanShow.sub(planProviderHandler);
+              dtoPlanShowSub = dtoPlanShow.sub(planProviderHandler);
+
+              isFocusedSub = focusModule?.planHasFocus.sub(planProviderHandler);
+
+              plannerSub = plannerSubscribable.sub(planner => {
+                fplIndexSub?.destroy();
+                fplIndexSub = planner.onEvent('fplIndexChanged').handle(planProviderHandler);
+                planProviderHandler();
+              }, true);
+            },
+
+            onMapDestroyed: (): void => {
+              controller.destroy();
+            },
+
+            onDestroyed: (): void => {
+              primaryPlanShowSub?.destroy();
+              dtoPlanShowSub?.destroy();
+
+              plannerSub?.destroy();
+              fplIndexSub?.destroy();
+              isFocusedSub?.destroy();
+
+              primaryPlanProvider.destroy();
+              dtoPlanProvider.destroy();
+            }
+          });
+        }
+      );
+  }
+
+  /**
+   * Configures a map builder to provide entries describing the display of an active flight plan without support for
+   * flight plan focus. Factories for the entries are added to the array stored in the map context under the
+   * `GarminMapKeys.FlightPlan` key.
+   *
+   * Adds the controller `'activeFlightPlanProvider': MapSystemGenericController`.
+   * @param mapBuilder The map builder to configure.
+   * @param flightPlanner The flight planner from which to retrieve the active flight plan.
+   * @param options Options with which to configure the display of the active flight plan.
+   * @returns The map builder, after it has been configured.
+   */
+  private static activeFlightPlanNoFocusProvider<MapBuilder extends MapSystemBuilder<
+    any, any, any, {
+      [GarminMapKeys.FlightPlan]?: MapGarminFlightPlanEntryFactory[]
+    }
+  >>(
+    mapBuilder: MapBuilder,
+    flightPlanner: FlightPlanner | Subscribable<FlightPlanner>,
+    options: Readonly<GarminMapBuilderActiveFlightPlanOptions>,
+  ): MapBuilder {
+    const lnavIndex = options.lnavIndex ?? 0;
+    const vnavIndex = options.vnavIndex ?? 0;
+
+    const show = Subject.create(true);
+    const flightPlannerSubject = Subject.create<FlightPlanner | null>(null);
+    const dataProvider = new MapActiveFlightPlanDataProvider(mapBuilder.bus, { flightPlanner: flightPlannerSubject, lnavIndex, vnavIndex });
+
+    return mapBuilder
+      .withContext<{
+        [GarminMapKeys.FlightPlan]?: MapGarminFlightPlanEntryFactory[]
+      }>(
+        'activeFlightPlanProvider',
+        context => {
+          const factories = (context[GarminMapKeys.FlightPlan] as MapGarminFlightPlanEntryFactory[]) ??= [];
+          factories.push(factoryContext => {
+            return {
+              id: 'active',
+              show,
+              dataProvider,
+              drawEntirePlan: SubscribableUtils.toSubscribable(options.drawEntirePlan, true),
+              waypointRenderer: factoryContext[MapSystemKeys.WaypointRenderer],
+              waypointRecordManager: options.waypointRecordManagerFactory(factoryContext, factoryContext[MapSystemKeys.WaypointRenderer]),
+              pathRenderer: options.pathRendererFactory(factoryContext),
+            };
+          });
+
+          return undefined;
+        }
+      )
+      .withController<MapSystemGenericController>(
+        'activeFlightPlanProvider',
+        context => {
+          let controller: MapSystemGenericController;
+
+          return controller = new MapSystemGenericController(context, {
+            onAfterMapRender: (): void => {
+
+            },
+
+            onBeforeUpdated: (): void => {
+              flightPlannerSubject.set(show.get() ? SubscribableUtils.isSubscribable(flightPlanner) ? flightPlanner.get() : flightPlanner : null);
+            },
+
+            onMapDestroyed: (): void => {
+              controller.destroy();
+            },
+
+            onDestroyed: (): void => {
+              dataProvider.destroy();
+            }
+          });
+        }
+      );
   }
 
   /**
@@ -1381,10 +1621,10 @@ export class GarminMapBuilder {
   ): MapBuilder {
     const canvasFont = `${iconOptions.fontSize}px ${iconOptions.font}`;
 
-    let offScaleOobOptions: ((context: MapSystemContext<any, any, any, any>) => TrafficOffScaleOobOptions) | undefined;
+    let offScaleOobOptions: ((context: MapSystemContext<any, any, any, any>) => MapSystemBuilderTrafficOffScaleOobOptions) | undefined;
 
     if (offScaleStatus !== undefined) {
-      offScaleOobOptions = (context: MapSystemContext<any, any, any, any>): TrafficOffScaleOobOptions => {
+      offScaleOobOptions = (context: MapSystemContext<any, any, any, any>): MapSystemBuilderTrafficOffScaleOobOptions => {
         const offScaleIntruders = SetSubject.create<TcasIntruder>();
         const oobIntruders = SetSubject.create<TcasIntruder>();
 

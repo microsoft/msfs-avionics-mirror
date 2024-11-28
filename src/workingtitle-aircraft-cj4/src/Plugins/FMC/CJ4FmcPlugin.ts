@@ -1,21 +1,20 @@
 import {
-  ConsumerSubject, FacilityType, FlightPlanCopiedEvent, FlightPlanIndicationEvent, FlightPlanOriginDestEvent,
-  FlightPlanPredictor, FlightPlanProcedureDetailsEvent, FmcScreenPluginContext, OriginDestChangeType,
-  PerformancePlanRepository, registerPlugin, Subject,
+  ConsumerSubject, FacilityType, FlightPlanCopiedEvent, FlightPlanIndicationEvent, FlightPlanOriginDestEvent, FlightPlanPredictor,
+  FlightPlanProcedureDetailsEvent, FmcScreenPluginContext, OriginDestChangeType, PerformancePlanRepository, registerPlugin, Subject
 } from '@microsoft/msfs-sdk';
 
+import { FmcMiscEvents, PerfInitPage, PerfMenuPage, UserSettingsPage, WT21FmcAvionicsPlugin, WT21FmcEvents, WT21FmcPage } from '@microsoft/msfs-wt21-fmc';
 import { WT21FlightPlanPredictorConfiguration, WT21FmsUtils, WT21LNavDataEvents } from '@microsoft/msfs-wt21-shared';
 
-import {
-  FmcMiscEvents, PerfInitPage, PerfMenuPage, WT21FmcAvionicsPlugin, WT21FmcEvents, WT21FmcPage,
-} from '@microsoft/msfs-wt21-fmc';
-
-import { CJ4PerfMenuPageExtension } from './Pages/CJ4PerfMenuPageExtension';
-import { CJ4TakeoffRefPage } from './Pages/CJ4TakeoffRefPage';
-import { CJ4ApproachRefPage } from './Pages/CJ4ApproachRefPage';
+import { CJ4UserSettings } from '../Shared/CJ4UserSettings';
+import { CJ4CabinLightsSystem } from '../Shared/Misc/CJ4CabinLightsSystem';
 import { CJ4_PERFORMANCE_PLAN_DEFINITIONS, CJ4PerformancePlan } from '../Shared/Performance/CJ4PerformancePlan';
 import { ApproachPerformanceManager, TakeoffPerformanceManager } from '../Shared/Performance/PerformanceCalculators';
+import { CJ4ApproachRefPage } from './Pages/CJ4ApproachRefPage';
 import { CJ4PerfInitPageExtension } from './Pages/CJ4PerfInitPageExtension';
+import { CJ4PerfMenuPageExtension } from './Pages/CJ4PerfMenuPageExtension';
+import { CJ4TakeoffRefPage } from './Pages/CJ4TakeoffRefPage';
+import { CJ4UserSettingPageExtension } from './Pages/CJ4UserSettingPageExtension';
 
 /**
  * CJ4 FMC plugin
@@ -83,11 +82,17 @@ export class CJ4FmcPlugin extends WT21FmcAvionicsPlugin {
     this.flightPlanPredictor,
   );
 
+  private readonly cj4SettingsManager = CJ4UserSettings.getManager(this.binder.bus);
+
+  private readonly cabinLightSystem = new CJ4CabinLightsSystem(this.binder.bus);
+
   /** @inheritdoc */
   public onInstalled(): void {
     if (this.binder.isPrimaryInstrument) {
       this.setupEventListeners();
     }
+
+    this.binder.backplane.addInstrument('cabinlights', this.cabinLightSystem);
   }
 
   /**
@@ -201,6 +206,7 @@ export class CJ4FmcPlugin extends WT21FmcAvionicsPlugin {
   public override registerFmcExtensions(context: FmcScreenPluginContext<WT21FmcPage<any>, WT21FmcEvents>): void {
     context.attachPageExtension(PerfMenuPage, CJ4PerfMenuPageExtension);
     context.attachPageExtension(PerfInitPage, CJ4PerfInitPageExtension); // TODO fix attachPageExtension typings
+    context.attachPageExtension(UserSettingsPage, CJ4UserSettingPageExtension);
 
     context.addPluginPageRoute(
       '/cj4/takeoff-ref',

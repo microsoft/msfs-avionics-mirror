@@ -1,0 +1,18 @@
+{
+  "name": "@microsoft/msfs-wtg3x",
+  "version": "2.0.4",
+  "description": "Working Title MSFS G3X Touch",
+  "main": "index.ts",
+  "scripts": { },
+  "repository": {
+    "type": "git",
+    "url": "https://workingtitlesim@dev.azure.com/workingtitlesim/KittyHawk/_git/ProjectGolf"
+  },
+  "author": "Working Title Simulations, LLC",
+  "license": "Modified MIT",
+  "devDependencies": {
+    "@microsoft/msfs-sdk": "workspace:x",
+    "@microsoft/msfs-types": "workspace:x",
+    "@microsoft/msfs-garminsdk": "workspace:x"
+  }
+}

@@ -4,17 +4,23 @@ import { Subscription } from './Subscription';
  * A {@link Subscription} which executes a handler function every time it receives a notification.
  */
 export class HandlerSubscription<HandlerType extends (...args: any[]) => void> implements Subscription {
-  private _isAlive = true;
-  /** @inheritdoc */
-  public get isAlive(): boolean {
-    return this._isAlive;
-  }
+  
+  // Note: isAlive and isPaused used to be getters (to avoid mutation from consumers)
+  //       but this has a non negligeable overhead in the publishers hotpath.
+  //       So instead, the two properties are declared readonly, but will actually be mutated
+  //       by this class ONLY, using casts.
 
-  private _isPaused = false;
   /** @inheritdoc */
-  public get isPaused(): boolean {
-    return this._isPaused;
-  }
+  public readonly isAlive = true;
+
+  /**
+   * Whether this subscription is paused. Paused subscriptions do not receive notifications from their sources until
+   * they are resumed.
+   *
+   * Note that `!isAlive` implies `isPaused` for `HandlerSubscription`
+   * @override 
+   */
+  public readonly isPaused = false;
 
   /** @inheritdoc */
   public readonly canInitialNotify: boolean;
@@ -40,7 +46,7 @@ export class HandlerSubscription<HandlerType extends (...args: any[]) => void> i
    * @throws Error if this subscription is not alive.
    */
   public initialNotify(): void {
-    if (!this._isAlive) {
+    if (!this.isAlive) {
       throw new Error('HandlerSubscription: cannot notify a dead Subscription.');
     }
 
@@ -49,26 +55,26 @@ export class HandlerSubscription<HandlerType extends (...args: any[]) => void> i
 
   /** @inheritdoc */
   public pause(): this {
-    if (!this._isAlive) {
+    if (!this.isAlive) {
       throw new Error('Subscription: cannot pause a dead Subscription.');
     }
 
-    this._isPaused = true;
+    (this.isPaused as boolean) = true; // See comment at definition for cast info
 
     return this;
   }
 
   /** @inheritdoc */
   public resume(initialNotify = false): this {
-    if (!this._isAlive) {
+    if (!this.isAlive) {
       throw new Error('Subscription: cannot resume a dead Subscription.');
     }
 
-    if (!this._isPaused) {
+    if (!this.isPaused) {
       return this;
     }
 
-    this._isPaused = false;
+    (this.isPaused as boolean) = false; // See comment at definition for cast info
 
     if (initialNotify) {
       this.initialNotify();
@@ -79,11 +85,14 @@ export class HandlerSubscription<HandlerType extends (...args: any[]) => void> i
 
   /** @inheritdoc */
   public destroy(): void {
-    if (!this._isAlive) {
+    if (!this.isAlive) {
       return;
     }
 
-    this._isAlive = false;
+    (this.isAlive as boolean) = false; // See comment at definition for cast info
+    // Note: We rely on dead subscriptions to be paused to avoid checking both
+    (this.isPaused as boolean) = true; // See comment at definition for cast info
+
     this.onDestroy && this.onDestroy(this);
   }
 }

@@ -1,12 +1,15 @@
 import {
   AdcEvents, AirportFacility, APVerticalModes, AvionicsSystemState, AvionicsSystemStateEvent, ClockEvents,
   ConsumerSubject, ConsumerValue, ControlSurfacesEvents, EventBus, FacilityType, GeoPoint, GeoPointInterface,
-  GNSSEvents, MathUtils, MultiExpSmoother, NearestAirportSubscription, RunwaySurfaceType, Subscribable,
-  SubscribableUtils, Subscription, UnitType
+  GNSSEvents, ICAO, MathUtils, MultiExpSmoother, NavSourceType, NearestAirportSubscription, RunwaySurfaceType, Subscribable,
+  SubscribableUtils, Subscription, UnitType, VNavEvents, VNavUtils
 } from '@microsoft/msfs-sdk';
 
 import { FmaData, FmaDataEvents } from '../autopilot/FmaData';
+import { GlidepathServiceLevel } from '../autopilot/vnav/GarminVNavTypes';
 import { Fms } from '../flightplan/Fms';
+import { FmsUtils } from '../flightplan/FmsUtils';
+import { NavReferenceIndicator } from '../navreference/indicator/NavReferenceIndicator';
 import { AdcSystemEvents } from '../system/AdcSystem';
 import { AhrsSystemEvents } from '../system/AhrsSystem';
 import { FmsPositionMode, FmsPositionSystemEvents } from '../system/FmsPositionSystem';
@@ -15,7 +18,7 @@ import { TerrainSystemDataProvider } from './TerrainSystemDataProvider';
 import { TerrainSystemData } from './TerrainSystemTypes';
 
 /**
- * Parameters for exponential smoothers used by {@link DefaultTerrainSystemDataProvider}. 
+ * Parameters for exponential smoothers used by {@link DefaultTerrainSystemDataProvider}.
  */
 export type DefaultTerrainSystemDataProviderSmootherParams = {
   /**
@@ -176,6 +179,11 @@ export class DefaultTerrainSystemDataProvider implements TerrainSystemDataProvid
   private destinationAirportIcao: string | null = null;
   private destinationAirport: AirportFacility | null = null;
 
+  private readonly approachDetails = ConsumerValue.create(null, FmsUtils.createEmptyApproachDetails());
+  private readonly flightPhase = ConsumerValue.create(null, FmsUtils.createEmptyFlightPhase());
+
+  private readonly gpServiceLevel = ConsumerValue.create(null, GlidepathServiceLevel.None);
+
   private readonly _data: MutableTerrainSystemData = {
     realTime: 0,
     simTime: 0,
@@ -204,6 +212,10 @@ export class DefaultTerrainSystemDataProvider implements TerrainSystemDataProvid
     departureRunway: null,
     destinationAirport: null,
     destinationRunway: null,
+    approachDetails: this.approachDetails.get(),
+    flightPhase: this.flightPhase.get(),
+    gpServiceLevel: GlidepathServiceLevel.None,
+    gsGpDeviation: NaN,
     nearestAirport: null
   };
   /** @inheritDoc */
@@ -231,18 +243,23 @@ export class DefaultTerrainSystemDataProvider implements TerrainSystemDataProvid
     this.isAltitudeDataValid,
     this.baroAltitude,
     this.baroVerticalSpeed,
-    this.fmaData
+    this.fmaData,
+    this.approachDetails,
+    this.flightPhase,
+    this.gpServiceLevel
   ];
 
   /**
    * Creates a new instance of DefaultTerrainSystemDataProvider.
    * @param bus The event bus.
    * @param fms The FMS instance.
+   * @param activeNavReferenceIndicator The navigation reference indicator for the active navigation source.
    * @param options Options with which to configure the data provider.
    */
   public constructor(
     private readonly bus: EventBus,
     private readonly fms: Fms,
+    private readonly activeNavReferenceIndicator: NavReferenceIndicator<string>,
     options: Readonly<DefaultTerrainSystemDataProviderOptions>
   ) {
     this.fmsPosIndex = SubscribableUtils.toSubscribable(options.fmsPosIndex, true);
@@ -302,7 +319,7 @@ export class DefaultTerrainSystemDataProvider implements TerrainSystemDataProvid
 
     const sub = this.bus.getSubscriber<
       ClockEvents & AdcEvents & GNSSEvents & ControlSurfacesEvents & FmsPositionSystemEvents & RadarAltimeterSystemEvents
-      & AdcSystemEvents & AhrsSystemEvents & FmaDataEvents
+      & AdcSystemEvents & AhrsSystemEvents & FmaDataEvents & VNavEvents
     >();
 
     this.simTime.setConsumer(sub.on('simTime'));
@@ -382,6 +399,11 @@ export class DefaultTerrainSystemDataProvider implements TerrainSystemDataProvid
     this.radarAltimeterState.sub(state => {
       this._data.isRadarAltitudeValid = state !== undefined && (state.current === undefined || state.current === AvionicsSystemState.On);
     }, true);
+
+    this.approachDetails.setConsumer(this.fms.onEvent('fms_approach_details'));
+    this.flightPhase.setConsumer(this.fms.onEvent('fms_flight_phase'));
+
+    this.gpServiceLevel.setConsumer(sub.on(`gp_service_level${VNavUtils.getEventBusTopicSuffix(this.fms.vnavIndex)}`));
   }
 
   /**
@@ -414,8 +436,9 @@ export class DefaultTerrainSystemDataProvider implements TerrainSystemDataProvid
     this.updateRadarAltitude(dt);
     this.updateBaroAltitude(dt);
     this.updateAttitudeHeading();
-    this.updateGlideslope();
+    this.updateAutopilot();
     this.updateFlightPlan();
+    this.updateGlideslopeGlidepath();
 
     this.lastUpdateRealTime = realTime;
   }
@@ -563,9 +586,9 @@ export class DefaultTerrainSystemDataProvider implements TerrainSystemDataProvid
   }
 
   /**
-   * Updates this provider's autopilot glideslope/glidepath mode data.
+   * Updates this provider's autopilot data.
    */
-  private updateGlideslope(): void {
+  private updateAutopilot(): void {
     const fmaData = this.fmaData.get();
     this._data.isGsGpActive = fmaData !== undefined && (fmaData.verticalActive === APVerticalModes.GS || fmaData.verticalActive === APVerticalModes.GP);
   }
@@ -574,49 +597,51 @@ export class DefaultTerrainSystemDataProvider implements TerrainSystemDataProvid
    * Updates this provider's flight plan data.
    */
   private updateFlightPlan(): void {
-    if (!this.fms.hasPrimaryFlightPlan()) {
-      this._data.departureAirport = null;
-      this._data.departureRunway = null;
-      this._data.destinationAirport = null;
-      this._data.destinationRunway = null;
-      return;
-    }
+    if (this.fms.hasPrimaryFlightPlan()) {
+      const flightPlan = this.fms.getPrimaryFlightPlan();
 
-    const flightPlan = this.fms.getPrimaryFlightPlan();
-
-    const departureAirportIcao = flightPlan.originAirport ?? null;
-    if (departureAirportIcao !== this.departureAirportIcao) {
-      this._data.departureAirport = null;
-      this._data.departureRunway = null;
-
-      this.departureAirportIcao = departureAirportIcao;
-      departureAirportIcao !== null && this.retrieveDepartureAirport(departureAirportIcao);
-    } else {
-      this._data.departureAirport = this.departureAirport;
-
-      if (this.departureAirport !== null) {
-        this._data.departureRunway = flightPlan.procedureDetails.originRunway ?? null;
-      } else {
+      const departureAirportIcao = flightPlan.originAirport ?? null;
+      if (departureAirportIcao !== this.departureAirportIcao) {
+        this._data.departureAirport = null;
         this._data.departureRunway = null;
-      }
-    }
 
-    const destinationAirportIcao = flightPlan.destinationAirport ?? null;
-    if (destinationAirportIcao !== this.destinationAirportIcao) {
+        this.departureAirportIcao = departureAirportIcao;
+        departureAirportIcao !== null && this.retrieveDepartureAirport(departureAirportIcao);
+      } else {
+        this._data.departureAirport = this.departureAirport;
+
+        if (this.departureAirport !== null) {
+          this._data.departureRunway = flightPlan.procedureDetails.originRunway ?? null;
+        } else {
+          this._data.departureRunway = null;
+        }
+      }
+
+      const destinationAirportIcao = flightPlan.destinationAirport ?? null;
+      if (destinationAirportIcao !== this.destinationAirportIcao) {
+        this._data.destinationAirport = null;
+        this._data.destinationRunway = null;
+
+        this.destinationAirportIcao = destinationAirportIcao;
+        destinationAirportIcao !== null && this.retrieveDestinationAirport(destinationAirportIcao);
+      } else {
+        this._data.destinationAirport = this.destinationAirport;
+
+        if (this.destinationAirport !== null) {
+          this._data.destinationRunway = flightPlan.procedureDetails.destinationRunway ?? null;
+        } else {
+          this._data.destinationRunway = null;
+        }
+      }
+    } else {
+      this._data.departureAirport = null;
+      this._data.departureRunway = null;
       this._data.destinationAirport = null;
       this._data.destinationRunway = null;
-
-      this.destinationAirportIcao = destinationAirportIcao;
-      destinationAirportIcao !== null && this.retrieveDestinationAirport(destinationAirportIcao);
-    } else {
-      this._data.destinationAirport = this.destinationAirport;
-
-      if (this.destinationAirport !== null) {
-        this._data.destinationRunway = flightPlan.procedureDetails.destinationRunway ?? null;
-      } else {
-        this._data.destinationRunway = null;
-      }
     }
+
+    this._data.approachDetails = this.approachDetails.get();
+    this._data.flightPhase = this.flightPhase.get();
   }
 
   /**
@@ -653,6 +678,37 @@ export class DefaultTerrainSystemDataProvider implements TerrainSystemDataProvid
     if (icao === this.destinationAirportIcao) {
       this.destinationAirport = airport;
     }
+  }
+
+  /**
+   * Updates this provider's glideslope/glidepath data.
+   */
+  private updateGlideslopeGlidepath(): void {
+    this._data.gpServiceLevel = this.gpServiceLevel.get();
+
+    let gsGpDeviation = this.activeNavReferenceIndicator.verticalDeviation.get();
+    if (gsGpDeviation !== null) {
+      if (this.flightPhase.get().isApproachActive) {
+        const approachDetails = this.approachDetails.get();
+        if (approachDetails.type === ApproachType.APPROACH_TYPE_ILS || approachDetails.type === ApproachType.APPROACH_TYPE_LDA) {
+          if (
+            this.activeNavReferenceIndicator.source.get()?.getType() !== NavSourceType.Nav
+            || approachDetails.referenceFacility === null
+            || this.activeNavReferenceIndicator.ident.get() !== ICAO.getIdent(approachDetails.referenceFacility.icao)
+          ) {
+            gsGpDeviation = null;
+          }
+        } else if (approachDetails.type === ApproachType.APPROACH_TYPE_RNAV) {
+          if (this.activeNavReferenceIndicator.source.get()?.getType() !== NavSourceType.Gps) {
+            gsGpDeviation = null;
+          }
+        }
+      } else {
+        gsGpDeviation = null;
+      }
+    }
+
+    this._data.gsGpDeviation = gsGpDeviation ?? NaN;
   }
 
   /**

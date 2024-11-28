@@ -1,5 +1,7 @@
+import { MathUtils } from '../math/MathUtils';
 import { ReadonlyFloat64Array, Vec3Math } from '../math/VecMath';
 import { LatLonInterface } from './GeoInterfaces';
+import { GeoMath } from './GeoMath';
 
 /**
  * A representation of a point on Earth's surface.
@@ -10,6 +12,12 @@ export interface GeoPointInterface {
 
   /** The longitude of the point. */
   lon: number;
+
+  /**
+   * Checks whether this point is valid. This point is valid if and only if both latitude and longitude are finite.
+   * @returns Whether this point is valid.
+   */
+  isValid(): boolean;
 
   /**
    * Calculates the great-circle distance between this point and another point.
@@ -43,7 +51,9 @@ export interface GeoPointInterface {
    * Calculates the initial true bearing (forward azimuth) from this point to another point along the great circle
    * connecting the two.
    * @param other The other point.
-   * @returns The initial true bearing to the other point, in degrees.
+   * @returns The initial true bearing to the other point, in degrees, or `NaN` if this point and the other point are
+   * coincident or antipodal. If this point is one of the poles, then the bearing will be expressed relative to the
+   * direction in which the meridian defined by this point's longitude crosses the pole rather than true north.
    */
   bearingTo(other: LatLonInterface): number;
   /**
@@ -51,7 +61,9 @@ export interface GeoPointInterface {
    * connecting the two.
    * @param lat The latitude of the other point, in degrees.
    * @param lon The longitude of the other point, in degrees.
-   * @returns The initial true bearing to the other point, in degrees.
+   * @returns The initial true bearing to the other point, in degrees, or `NaN` if this point and the other point are
+   * coincident or antipodal. If this point is one of the poles, then the bearing will be expressed relative to the
+   * direction in which the meridian defined by this point's longitude crosses the pole rather than true north.
    */
   bearingTo(lat: number, lon: number): number;
 
@@ -59,7 +71,9 @@ export interface GeoPointInterface {
    * Calculates the final true bearing from another point to this point (i.e. the back azimuth from this point to the
    * other point) along the great circle connecting the two.
    * @param other The other point.
-   * @returns The final true bearing from the other point, in degrees.
+   * @returns The final true bearing from the other point, in degrees, or `NaN` if this point and the other point are
+   * coincident or antipodal. If this point is one of the poles, then the bearing will be expressed relative to the
+   * direction in which the meridian defined by this point's longitude crosses the pole rather than true north.
    */
   bearingFrom(other: LatLonInterface): number;
   /**
@@ -67,7 +81,9 @@ export interface GeoPointInterface {
    * other point) along the great circle connecting the two.
    * @param lat The latitude of the other point, in degrees.
    * @param lon The longitude of the other point, in degrees.
-   * @returns The final true bearing from the other point, in degrees.
+   * @returns The final true bearing from the other point, in degrees, or `NaN` if this point and the other point are
+   * coincident or antipodal. If this point is one of the poles, then the bearing will be expressed relative to the
+   * direction in which the meridian defined by this point's longitude crosses the pole rather than true north.
    */
   bearingFrom(lat: number, lon: number): number;
 
@@ -87,7 +103,9 @@ export interface GeoPointInterface {
 
   /**
    * Offsets this point by an initial bearing and distance along a great circle.
-   * @param bearing The initial true bearing (forward azimuth), in degrees, by which to offset.
+   * @param bearing The bearing along which to offset, in degrees relative to true north. If this point is one of the
+   * poles, then the bearing will be measured relative to the direction in which the meridian defined by this point's
+   * longitude crosses the pole rather than the direction of true north.
    * @param distance The distance, in great-arc radians, by which to offset.
    * @param out The GeoPoint to which to write the result.
    * @returns The offset point.
@@ -177,6 +195,11 @@ export class GeoPointReadOnly implements GeoPointInterface, LatLonInterface {
     return this.source.lon;
   }
 
+  /** @inheritDoc */
+  public isValid(): boolean {
+    return this.source.isValid();
+  }
+
   /** @inheritdoc */
   public distance(other: LatLonInterface): number;
   /** @inheritdoc */
@@ -244,7 +267,9 @@ export class GeoPointReadOnly implements GeoPointInterface, LatLonInterface {
 
   /**
    * Offsets this point by an initial bearing and distance along a great circle.
-   * @param bearing The initial true bearing (forward azimuth), in degrees, by which to offset.
+   * @param bearing The bearing along which to offset, in degrees relative to true north. If this point is one of the
+   * poles, then the bearing will be measured relative to the direction in which the meridian defined by this point's
+   * longitude crosses the pole rather than the direction of true north.
    * @param distance The distance, in great-arc radians, by which to offset.
    * @param out The GeoPoint to which to write the result. If not supplied, a new GeoPoint object is created.
    * @returns The offset point.
@@ -323,7 +348,7 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
    * The default equality tolerance, defined as the maximum allowed distance between two equal points in great-arc
    * radians.
    */
-  public static readonly EQUALITY_TOLERANCE = 1e-7; // ~61 cm
+  public static readonly EQUALITY_TOLERANCE = GeoMath.ANGULAR_TOLERANCE;
 
   private static readonly tempVec3 = new Float64Array(3);
   private static readonly tempGeoPoint = new GeoPoint(0, 0);
@@ -388,6 +413,11 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
     }
   }
 
+  /** @inheritDoc */
+  public isValid(): boolean {
+    return isFinite(this._lat) && isFinite(this._lon);
+  }
+
   /**
    * Sets this point's latitude/longitude values.
    * @param other The point from which to take the new latitude/longitude values.
@@ -412,13 +442,13 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
       lon = arg1.lon;
     }
 
-    lat = GeoPoint.toPlusMinus180(lat);
-    lon = GeoPoint.toPlusMinus180(lon);
+    lat = MathUtils.normalizeAngleDeg(lat, -180);
+    lon = MathUtils.normalizeAngleDeg(lon, -180);
     if (Math.abs(lat) > 90) {
       lat = 180 - lat;
-      lat = GeoPoint.toPlusMinus180(lat);
+      lat = MathUtils.normalizeAngleDeg(lat, -180);
       lon += 180;
-      lon = GeoPoint.toPlusMinus180(lon);
+      lon = MathUtils.normalizeAngleDeg(lon, -180);
     }
     this._lat = lat;
     this._lon = lon;
@@ -504,27 +534,45 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
 
   /**
    * Offsets this point by an initial bearing and distance along a great circle.
-   * @param bearing The initial true bearing (forward azimuth), in degrees, by which to offset.
+   * @param bearing The bearing along which to offset, in degrees relative to true north. If this point is one of the
+   * poles, then the bearing will be measured relative to the direction in which the meridian defined by this point's
+   * longitude crosses the pole rather than the direction of true north.
    * @param distance The distance, in great-arc radians, by which to offset.
    * @param out The GeoPoint to which to write the result. By default this point.
    * @returns The offset point.
    */
   public offset(bearing: number, distance: number, out?: GeoPoint): GeoPoint {
-    const latRad = this.lat * Avionics.Utils.DEG2RAD;
-    const lonRad = this.lon * Avionics.Utils.DEG2RAD;
-    const sinLat = Math.sin(latRad);
-    const cosLat = Math.cos(latRad);
-    const sinBearing = Math.sin(bearing * Avionics.Utils.DEG2RAD);
-    const cosBearing = Math.cos(bearing * Avionics.Utils.DEG2RAD);
-    const angularDistance = distance;
-    const sinAngularDistance = Math.sin(angularDistance);
-    const cosAngularDistance = Math.cos(angularDistance);
+    let offsetLat: number;
+    let offsetLon: number;
 
-    const offsetLatRad = Math.asin(sinLat * cosAngularDistance + cosLat * sinAngularDistance * cosBearing);
-    const offsetLonDeltaRad = Math.atan2(sinBearing * sinAngularDistance * cosLat, cosAngularDistance - sinLat * Math.sin(offsetLatRad));
+    if (Math.abs(this.lat) === 90) {
+      // This point is one of the poles. Bearing (in the traditional sense) is undefined at the poles. Therefore, we
+      // will adopt a special definition here where bearing is defined clockwise (looking from above) from the
+      // direction that the meridian defined by this point's longitude crosses the pole. This will make the result of
+      // the offset consistent with the bearingTo() and bearingFrom() methods. In other words, the bearing from the
+      // initial point (the pole) to a point offset by bearing X as determined by bearingTo() will always be equal to
+      // X (assuming the offset distance is less than pi).
 
-    const offsetLat = offsetLatRad * Avionics.Utils.RAD2DEG;
-    const offsetLon = (lonRad + offsetLonDeltaRad) * Avionics.Utils.RAD2DEG;
+      // These values will be normalized by the call to .set() at the end.
+      offsetLat = this.lat + distance * Avionics.Utils.RAD2DEG;
+      offsetLon = this.lon + bearing * (this.lat > 0 ? -1 : 1);
+    } else {
+      const latRad = this.lat * Avionics.Utils.DEG2RAD;
+      const lonRad = this.lon * Avionics.Utils.DEG2RAD;
+      const sinLat = Math.sin(latRad);
+      const cosLat = Math.cos(latRad);
+      const sinBearing = Math.sin(bearing * Avionics.Utils.DEG2RAD);
+      const cosBearing = Math.cos(bearing * Avionics.Utils.DEG2RAD);
+      const angularDistance = distance;
+      const sinAngularDistance = Math.sin(angularDistance);
+      const cosAngularDistance = Math.cos(angularDistance);
+
+      const offsetLatRad = Math.asin(sinLat * cosAngularDistance + cosLat * sinAngularDistance * cosBearing);
+      const offsetLonDeltaRad = Math.atan2(sinBearing * sinAngularDistance * cosLat, cosAngularDistance - sinLat * Math.sin(offsetLatRad));
+
+      offsetLat = offsetLatRad * Avionics.Utils.RAD2DEG;
+      offsetLon = (lonRad + offsetLonDeltaRad) * Avionics.Utils.RAD2DEG;
+    }
 
     return (out ?? this).set(offsetLat, offsetLon);
   }
@@ -700,7 +748,7 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
   // eslint-disable-next-line jsdoc/require-jsdoc
   public static distance(arg1: LatLonInterface | ReadonlyFloat64Array | number, arg2: LatLonInterface | ReadonlyFloat64Array | number, arg3?: number, arg4?: number): number {
     if (arg1 instanceof Float64Array) {
-      return Math.acos(Utils.Clamp(Vec3Math.dot(arg1, arg2 as Float64Array), -1, 1));
+      return Vec3Math.unitAngle(arg1, arg2 as Float64Array);
     } else {
       let lat1, lon1, lat2, lon2;
 
@@ -795,7 +843,9 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
    * @param lat2 The latitude of the final point, in degrees.
    * @param lon2 The longitude of the final point, in degrees.
    * @returns The initial true bearing, in degrees, from the initial point to the final point along the great circle
-   * connecting the two.
+   * connecting the two, or `NaN` if the two points are coincident or antipodal. If the initial point is one of the
+   * poles, then the bearing will be expressed relative to the direction in which the meridian defined by the initial
+   * point's longitude crosses the pole rather than true north.
    */
   public static initialBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
     lat1 *= Avionics.Utils.DEG2RAD;
@@ -806,6 +856,12 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
     const cosLat2 = Math.cos(lat2);
     const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * cosLat2 * Math.cos(lon2 - lon1);
     const y = Math.sin(lon2 - lon1) * cosLat2;
+
+    if (Math.abs(x) < 1e-14 && Math.abs(y) < 1e-14) {
+      // The two points are coincident or antipodal. There is no unique great circle that connects them.
+      return NaN;
+    }
+
     const bearing = Math.atan2(y, x) * Avionics.Utils.RAD2DEG;
     return (bearing + 360) % 360; // enforce range [0, 360)
   }
@@ -817,7 +873,9 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
    * @param lat2 The latitude of the final point, in degrees.
    * @param lon2 The longitude of the final point, in degrees.
    * @returns The final true bearing, in degrees, from the initial point to the final point along the great circle
-   * connecting the two.
+   * connecting the two, or `NaN` if the two points are coincident or antipodal. If the final point is one of the
+   * poles, then the bearing will be expressed relative to the direction in which the meridian defined by the final
+   * point's longitude crosses the pole rather than true north.
    */
   public static finalBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
     return (GeoPoint.initialBearing(lat2, lon2, lat1, lon1) + 180) % 360;
@@ -844,15 +902,6 @@ export class GeoPoint implements GeoPointInterface, LatLonInterface {
       deltaLon += -Math.sign(deltaLon) * 2 * Math.PI;
     }
     return Math.atan2(deltaLon, deltaPsi) * Avionics.Utils.RAD2DEG;
-  }
-
-  /**
-   * Converts an angle, in degrees, to an equivalent value in the range [-180, 180).
-   * @param angle An angle in degrees.
-   * @returns The angle's equivalent in the range [-180, 180).
-   */
-  private static toPlusMinus180(angle: number): number {
-    return ((angle % 360) + 540) % 360 - 180;
   }
 
   /**

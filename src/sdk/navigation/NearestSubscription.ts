@@ -1,15 +1,22 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-
-import { GeoPoint } from '../geo';
+import { GeoPoint } from '../geo/GeoPoint';
+import { BitFlags } from '../math';
 import { AbstractSubscribableArray } from '../sub/AbstractSubscribableArray';
 import { Subscribable } from '../sub/Subscribable';
 import { SubscribableArray, SubscribableArrayEventType } from '../sub/SubscribableArray';
 import { SubscribableUtils } from '../sub/SubscribableUtils';
+import { GeoKdTreeSearchFilter } from '../utils/datastructures/GeoKdTree';
 import {
-  AirportFacility, Facility, FacilitySearchType, FacilityType, IntersectionFacility, NdbFacility, NearestSearchResults, VorFacility,
-  UserFacility, IntersectionFacilityUtils, ICAO
+  AirportFacility, AirportFacilityDataFlags, Facility, FacilitySearchType, FacilityType, IntersectionFacility,
+  NdbFacility, NearestSearchResults, UserFacility, VorFacility
 } from './Facilities';
-import { FacilityLoader, NearestAirportSearchSession, NearestIntersectionSearchSession, NearestSearchSession, NearestVorSearchSession } from './FacilityLoader';
+import { FacilityClient, NearestIcaoSearchSessionDataType, NearestSearchSession } from './FacilityClient';
+import {
+  FacilityLoader, NearestAirportSearchSession, NearestIntersectionSearchSession, NearestRepoFacilitySearchSession,
+  NearestVorSearchSession
+} from './FacilityLoader';
+import { IntersectionFacilityUtils } from './FacilityUtils';
+import { IcaoValue } from './Icao';
+import { ICAO } from './IcaoUtils';
 
 /**
  * A type map of search type to concrete facility loader query type.
@@ -34,10 +41,13 @@ export type NearestSubscriptionFacilityType<S extends NearestSubscription<any>> 
 export interface NearestSubscription<T extends Facility> extends SubscribableArray<T> {
   /** Whether this search has started. */
   readonly started: boolean;
+
   /** Waits until this search has started. */
   awaitStart(): Promise<void>;
+
   /** Starts this search. */
-  start: () => Promise<void>;
+  start(): Promise<void>;
+
   /**
    * Updates this search with new parameters. If an update is already in progress, this method will wait until the
    * existing update is finished and then fulfill its returned Promise immediately.
@@ -47,16 +57,18 @@ export interface NearestSubscription<T extends Facility> extends SubscribableArr
    * @param maxItems The maximum number of items to return from the search.
    * @returns A Promise which will be fulfilled when the update is complete.
    */
-  update: (lat: number, lon: number, radius: number, maxItems: number) => Promise<void>;
+  update(lat: number, lon: number, radius: number, maxItems: number): Promise<void>;
 }
 
 /**
  * A class for tracking a nearest facility session and making it available as a
  * subscribable array of facilities.
  */
-export abstract class AbstractNearestSubscription<T extends Facility, TAdded, TRemoved> extends AbstractSubscribableArray<T> implements NearestSubscription<T>{
+export abstract class AbstractNearestSubscription<T extends Facility, TAdded, TRemoved>
+  extends AbstractSubscribableArray<T> implements NearestSubscription<T> {
+
   protected readonly facilities: T[] = [];
-  protected readonly facilityIndex: Map<TRemoved, T> = new Map<TRemoved, T>();
+  protected readonly facilityIndex = new Map<string, T>();
 
   protected session: NearestSearchSession<TAdded, TRemoved> | undefined;
 
@@ -68,11 +80,14 @@ export abstract class AbstractNearestSubscription<T extends Facility, TAdded, TR
   private searchInProgress = false;
 
   /**
-   * Creates an instance of a NearestSubscription.
-   * @param facilityLoader An instance of the facility loader to search with.
+   * Creates a new instance of AbstractNearestSubscription.
+   * @param facilityClient The client from which to retrieve facilities.
    * @param type The type of facility to search for.
    */
-  constructor(protected readonly facilityLoader: FacilityLoader, protected readonly type: FacilitySearchType) {
+  public constructor(
+    protected readonly facilityClient: FacilityClient,
+    protected readonly type: Exclude<FacilitySearchType, FacilitySearchType.Boundary>
+  ) {
     super();
   }
 
@@ -118,13 +133,20 @@ export abstract class AbstractNearestSubscription<T extends Facility, TAdded, TR
 
       this.startPromiseResolves.push(resolve);
 
-      this.facilityLoader.startNearestSearchSession(this.type).then(session => {
+      this.startSearchSession().then(session => {
         this.session = session as NearestSearchSession<TAdded, TRemoved>;
         this.startPromiseResolves.forEach(queuedResolve => { queuedResolve(); });
         this.startPromiseResolves.length = 0;
       });
     });
   }
+
+  /**
+   * Starts this subscription's nearest search session.
+   * @returns A Promise which will be fulfilled with this subscription's nearest search session once it has been
+   * started.
+   */
+  protected abstract startSearchSession(): Promise<NearestSearchSession<TAdded, TRemoved>>;
 
   /** @inheritdoc */
   public update(lat: number, lon: number, radius: number, maxItems: number): Promise<void> {
@@ -173,7 +195,7 @@ export abstract class AbstractNearestSubscription<T extends Facility, TAdded, TR
    * @param facility The facility to add.
    * @param key The key to track this facility by.
    */
-  protected addFacility(facility: T, key: TRemoved): void {
+  protected addFacility(facility: T, key: string): void {
     if (this.facilityIndex.has(key)) {
       console.warn(`Facility ${key} is already in the collection.`);
     }
@@ -188,7 +210,7 @@ export abstract class AbstractNearestSubscription<T extends Facility, TAdded, TR
    * Removes a facility from the collection.
    * @param key The key of the facility to remove.
    */
-  protected removeFacility(key: TRemoved): void {
+  protected removeFacility(key: string): void {
     const facility = this.facilityIndex.get(key);
 
     if (facility !== undefined) {
@@ -205,18 +227,27 @@ export abstract class AbstractNearestSubscription<T extends Facility, TAdded, TR
  * A nearest search subscription for waypoint facilites, including logic for further filtering
  * of results beyond what the sim search API gives us.
  */
-abstract class NearestWaypointSubscription<T extends Facility> extends AbstractNearestSubscription<T, string, string> {
+abstract class NearestWaypointSubscription<T extends Facility> extends AbstractNearestSubscription<T, IcaoValue, IcaoValue> {
+
+  protected readonly facilityType = facilitySearchTypeMap.get(this.type);
+
+  protected readonly icaos = new Map<string, IcaoValue>();
+
   protected filterCb?: (facility: T) => boolean;
   protected readonly facilityCache = new Map<string, T>();
 
   /**
-   * Creates a new NearestWaypointSubscription.
+   * Creates a new instance of NearestWaypointSubscription.
    * @param facilityLoader An instance of the facility loader to search with.
    * @param type The type of facility to search for.
    * @param filterCb A function which filters results after they have been returned by this subscription's search
    * session. If not defined, no post-search session filtering will be performed.
    */
-  constructor(facilityLoader: FacilityLoader, type: FacilitySearchType, filterCb?: (facility: T) => boolean) {
+  public constructor(
+    facilityLoader: FacilityLoader,
+    type: Exclude<FacilitySearchType, FacilitySearchType.Boundary>,
+    filterCb?: (facility: T) => boolean
+  ) {
     super(facilityLoader, type);
     this.filterCb = filterCb;
   }
@@ -239,40 +270,69 @@ abstract class NearestWaypointSubscription<T extends Facility> extends AbstractN
     // Start the refresh of our data by iterating over the current entries and
     // removing any that no longer match the filter.
     if (this.filterCb) {
-      for (const icao of this.facilityIndex.keys()) {
-        if (!this.filterCb(this.facilityIndex.get(icao)!)) {
-          this.removeFacility(icao);
+      for (const [uid, fac] of this.facilityIndex) {
+        if (!this.filterCb(fac)) {
+          this.removeFacility(uid);
         }
       }
     }
 
     // Next go through our facility cache and add any existing entries that
     // hadn't previously matched but now do.
-    for (const icao of this.facilityCache.keys()) {
-      if (!this.facilityIndex.get(icao) && (this.filterCb === undefined || this.filterCb(this.facilityCache.get(icao)!))) {
-        this.addFacility(this.facilityCache.get(icao)!, icao);
+    for (const [uid, fac] of this.facilityCache) {
+      if ((this.filterCb === undefined || this.filterCb(fac))) {
+        this.addFacility(fac, uid);
       }
     }
   }
 
-  /** @inheritdoc */
-  protected async onResults(results: NearestSearchResults<string, string>): Promise<void> {
-    const facilityType = facilitySearchTypeMap.get(this.type);
-    if (facilityType !== undefined) {
-      const added = await Promise.all(results.added.map(icao => this.facilityLoader.getFacility(facilityType, icao) as unknown as Promise<T>));
+  /** @inheritDoc */
+  protected startSearchSession(): Promise<NearestSearchSession<IcaoValue, IcaoValue>> {
+    return this.facilityClient.startNearestSearchSessionWithIcaoStructs(this.type);
+  }
+
+  /** @inheritDoc */
+  protected async onResults(
+    results: NearestSearchResults<IcaoValue, IcaoValue>
+  ): Promise<void> {
+    if (this.facilityType !== undefined) {
+      const addedFacs = await this.getFacilities(results.added);
 
       for (let i = 0; i < results.removed.length; i++) {
-        this.facilityCache.delete(results.removed[i]);
-        this.removeFacility(results.removed[i]);
+        const uid = ICAO.getUid(results.removed[i]);
+        this.icaos.delete(uid);
+        this.facilityCache.delete(uid);
+        this.removeFacility(uid);
       }
 
-      for (let i = 0; i < added.length; i++) {
-        this.facilityCache.set(added[i].icao, added[i]);
-        if (this.filterCb === undefined || this.filterCb(added[i])) {
-          this.addFacility(added[i] as unknown as T, added[i].icao);
+      for (let i = 0; i < results.added.length; i++) {
+        const icao = results.added[i];
+        const uid = ICAO.getUid(icao);
+        this.icaos.set(uid, icao);
+        const fac = addedFacs[i];
+        if (fac) {
+          this.facilityCache.set(uid, fac);
+          if (this.filterCb === undefined || this.filterCb(fac)) {
+            this.addFacility(fac, uid);
+          }
         }
       }
     }
+  }
+
+  /**
+   * Retrieves facilities for an array of ICAOs.
+   * @param icaos The ICAOs for which to get facilities.
+   * @returns A Promise which will be fulfilled with an array of facilities corresponding to the specified ICAOs. Each
+   * position in the facilities array will contain either the facility for the ICAO at the corresponding position in
+   * the ICAO array, or `null` if a facility for that ICAO could not be retrieved.
+   */
+  protected getFacilities(icaos: readonly IcaoValue[]): Promise<(T | null)[]> {
+    if (this.facilityType === undefined) {
+      return Promise.resolve([]);
+    }
+
+    return this.facilityClient.getFacilitiesOfType(this.facilityType, icaos) as Promise<(T | null)[]>;
   }
 }
 
@@ -280,13 +340,16 @@ abstract class NearestWaypointSubscription<T extends Facility> extends AbstractN
  * A nearest search subscription for airport facilites.
  */
 export class NearestAirportSubscription extends NearestWaypointSubscription<AirportFacility> {
+  protected dataFlags = AirportFacilityDataFlags.All;
+  protected pendingDataFlags = this.dataFlags;
+
   /**
-   * Creates a new NearestAirportSubscription.
+   * Creates a new instance of NearestAirportSubscription.
    * @param facilityLoader The facility loader to use with this instance.
    * @param filterCb A function which filters results after they have been returned by this subscription's search
    * session. If not defined, no post-search session filtering will be performed.
    */
-  constructor(facilityLoader: FacilityLoader, filterCb?: (facility: AirportFacility) => boolean) {
+  public constructor(facilityLoader: FacilityLoader, filterCb?: (facility: AirportFacility) => boolean) {
     super(facilityLoader, FacilitySearchType.Airport, filterCb);
   }
 
@@ -297,7 +360,7 @@ export class NearestAirportSubscription extends NearestWaypointSubscription<Airp
    */
   public setFilter(showClosed: boolean, classMask: number): void {
     if (this.session !== undefined) {
-      (this.session as NearestAirportSearchSession).setAirportFilter(showClosed, classMask);
+      (this.session as NearestAirportSearchSession<NearestIcaoSearchSessionDataType.Struct>).setAirportFilter(showClosed, classMask);
     }
   }
 
@@ -310,8 +373,65 @@ export class NearestAirportSubscription extends NearestWaypointSubscription<Airp
    */
   public setExtendedFilters(surfaceTypeMask: number, approachTypeMask: number, toweredMask: number, minRunwayLength: number): void {
     if (this.session !== undefined) {
-      (this.session as NearestAirportSearchSession).setExtendedAirportFilters(surfaceTypeMask, approachTypeMask, toweredMask, minRunwayLength);
+      (this.session as NearestAirportSearchSession<NearestIcaoSearchSessionDataType.Struct>)
+        .setExtendedAirportFilters(surfaceTypeMask, approachTypeMask, toweredMask, minRunwayLength);
     }
+  }
+
+  /**
+   * Sets the bitflags describing the data to be loaded in the airport facilities provided by this subscription. All
+   * airport facilities in this subscription's array are guaranteed to have *at least* as much loaded data as defined
+   * by the bitflags. Changes to the bitflags will take effect the next time this subscription's search is updated.
+   * @param flags The bitflags to set.
+   */
+  public setDataFlags(flags: number): void {
+    this.pendingDataFlags = flags;
+  }
+
+  /** @inheritDoc */
+  protected async onResults(
+    results: NearestSearchResults<IcaoValue, IcaoValue>
+  ): Promise<void> {
+    if (!BitFlags.isAll(this.dataFlags, this.pendingDataFlags)) {
+      // The pending data flags are not a subset of the existing data flags. Therefore, we need to refresh all
+      // facilities that are currently in the array and that are cached in order to ensure they have the required data.
+
+      this.dataFlags = this.pendingDataFlags;
+
+      for (let i = 0; i < results.removed.length; i++) {
+        this.icaos.delete(ICAO.getUid(results.removed[i]));
+      }
+
+      const icaos = Array.from(this.icaos.values());
+      icaos.push(...results.added);
+      const facs = await this.getFacilities(icaos);
+
+      this.facilityCache.clear();
+      this.facilityIndex.clear();
+      this.facilities.length = 0;
+      this.notify(0, SubscribableArrayEventType.Cleared);
+
+      for (let i = 0; i < icaos.length; i++) {
+        const icao = icaos[i];
+        const uid = ICAO.getUid(icao);
+        this.icaos.set(uid, icao);
+        const fac = facs[i];
+        if (fac) {
+          this.facilityCache.set(uid, fac);
+          if (this.filterCb === undefined || this.filterCb(fac)) {
+            this.addFacility(fac, uid);
+          }
+        }
+      }
+    } else {
+      this.dataFlags = this.pendingDataFlags;
+      super.onResults(results);
+    }
+  }
+
+  /** @inheritDoc */
+  protected getFacilities(icaos: readonly IcaoValue[]): Promise<(AirportFacility | null)[]> {
+    return this.facilityClient.getFacilities(icaos, this.dataFlags) as Promise<(AirportFacility | null)[]>;
   }
 }
 
@@ -319,19 +439,24 @@ export class NearestAirportSubscription extends NearestWaypointSubscription<Airp
  * A nearest search subscription for intersection facilites.
  */
 export class NearestIntersectionSubscription extends NearestWaypointSubscription<IntersectionFacility> {
-  protected readonly nonTerminalIcaosToFilter = new Set<string>();
+
+  protected readonly nonTerminalIcaoUidsToFilter = new Set<string>();
 
   protected filterDupTerminal: boolean;
 
   /**
-   * Creates a new NearestIntersectionSubscription.
+   * Creates a new instance of NearestIntersectionSubscription.
    * @param facilityLoader The facility loader to use with this instance.
    * @param filterCb A function which filters results after they have been returned by this subscription's search
    * session. If not defined, no post-search session filtering will be performed.
    * @param filterDupTerminal Whether to filter out terminal intersections if their non-terminal counterparts are
    * also present in the subscription's results. Defaults to `false`.
    */
-  constructor(facilityLoader: FacilityLoader, filterCb?: (facility: IntersectionFacility) => boolean, filterDupTerminal = false) {
+  public constructor(
+    facilityLoader: FacilityLoader,
+    filterCb?: (facility: IntersectionFacility) => boolean,
+    filterDupTerminal = false
+  ) {
     super(facilityLoader, FacilitySearchType.Intersection, filterCb);
 
     this.filterDupTerminal = filterDupTerminal;
@@ -344,7 +469,7 @@ export class NearestIntersectionSubscription extends NearestWaypointSubscription
    */
   public setFilter(typeMask: number, showTerminalWaypoints = true): void {
     if (this.session !== undefined) {
-      (this.session as NearestIntersectionSearchSession).setIntersectionFilter(typeMask, showTerminalWaypoints);
+      (this.session as NearestIntersectionSearchSession<NearestIcaoSearchSessionDataType.Struct>).setIntersectionFilter(typeMask, showTerminalWaypoints);
     }
   }
 
@@ -365,16 +490,16 @@ export class NearestIntersectionSubscription extends NearestWaypointSubscription
 
   /** @inheritdoc */
   protected refilter(): void {
-    // Rebuild non-terminal ICAO set
-    this.nonTerminalIcaosToFilter.clear();
+    // Rebuild non-terminal key set
+    this.nonTerminalIcaoUidsToFilter.clear();
     if (this.filterDupTerminal) {
-      for (const icao of this.facilityCache.keys()) {
+      for (const [uid, fac] of this.facilityCache) {
         if (
-          ICAO.isFacility(icao, FacilityType.Intersection)
-          && !IntersectionFacilityUtils.isTerminal(icao)
-          && (this.filterCb === undefined || this.filterCb(this.facilityCache.get(icao)!))
+          ICAO.isValueFacility(fac.icaoStruct, FacilityType.Intersection)
+          && !IntersectionFacilityUtils.isTerminal(fac.icaoStruct)
+          && (this.filterCb === undefined || this.filterCb(fac))
         ) {
-          this.nonTerminalIcaosToFilter.add(icao);
+          this.nonTerminalIcaoUidsToFilter.add(uid);
         }
       }
     }
@@ -382,77 +507,86 @@ export class NearestIntersectionSubscription extends NearestWaypointSubscription
     // Start the refresh of our data by iterating over the current entries and
     // removing any that no longer match the filter.
     if (this.filterCb || this.filterDupTerminal) {
-      for (const icao of this.facilityIndex.keys()) {
+      for (const [uid, fac] of this.facilityIndex) {
         if (
-          (this.filterCb && !this.filterCb(this.facilityIndex.get(icao)!))
+          (this.filterCb && !this.filterCb(fac))
           || (
             this.filterDupTerminal
-            && ICAO.isFacility(icao, FacilityType.Intersection)
-            && IntersectionFacilityUtils.isTerminal(icao)
-            && this.nonTerminalIcaosToFilter.has(IntersectionFacilityUtils.getNonTerminalICAO(icao))
+            && ICAO.isValueFacility(fac.icaoStruct, FacilityType.Intersection)
+            && IntersectionFacilityUtils.isTerminal(fac.icaoStruct)
+            && this.nonTerminalIcaoUidsToFilter.has(ICAO.getUid(IntersectionFacilityUtils.getNonTerminalIcaoValue(fac.icaoStruct)))
           )
         ) {
-          this.removeFacility(icao);
+          this.removeFacility(uid);
         }
       }
     }
 
     // Next go through our facility cache and add any existing entries that
     // hadn't previously matched but now do.
-    for (const icao of this.facilityCache.keys()) {
-      if (!this.facilityIndex.get(icao)) {
+    for (const [uid, fac] of this.facilityCache) {
+      if (!this.facilityIndex.get(uid)) {
         if (
-          (this.filterCb === undefined || this.filterCb(this.facilityCache.get(icao)!))
+          (this.filterCb === undefined || this.filterCb(fac))
           && (
             !this.filterDupTerminal
-            || !ICAO.isFacility(icao, FacilityType.Intersection)
-            || !IntersectionFacilityUtils.isTerminal(icao)
-            || !this.nonTerminalIcaosToFilter.has(IntersectionFacilityUtils.getNonTerminalICAO(icao))
+            || !ICAO.isValueFacility(fac.icaoStruct, FacilityType.Intersection)
+            || !IntersectionFacilityUtils.isTerminal(fac.icaoStruct)
+            || !this.nonTerminalIcaoUidsToFilter.has(ICAO.getUid(IntersectionFacilityUtils.getNonTerminalIcaoValue(fac.icaoStruct)))
           )
         ) {
-          this.addFacility(this.facilityCache.get(icao)!, icao);
+          this.addFacility(fac, uid);
         }
       }
     }
   }
 
-  /** @inheritdoc */
-  protected async onResults(results: NearestSearchResults<string, string>): Promise<void> {
+  /** @inheritDoc */
+  protected async onResults(
+    results: NearestSearchResults<IcaoValue, IcaoValue>
+  ): Promise<void> {
     const facilityType = facilitySearchTypeMap.get(this.type);
     if (facilityType !== undefined) {
-      const added = await Promise.all(results.added.map(icao => this.facilityLoader.getFacility(facilityType, icao) as Promise<IntersectionFacility>));
+      const added = (await this.facilityClient.getFacilities(results.added)) as (IntersectionFacility | null)[];
 
       for (let i = 0; i < results.removed.length; i++) {
-        this.nonTerminalIcaosToFilter.delete(results.removed[i]);
-        this.facilityCache.delete(results.removed[i]);
-        this.removeFacility(results.removed[i]);
+        const uid = ICAO.getUid(results.removed[i]);
+        this.nonTerminalIcaoUidsToFilter.delete(uid);
+        this.facilityCache.delete(uid);
+        this.removeFacility(uid);
       }
 
       for (let i = 0; i < added.length; i++) {
         const fac = added[i];
-        this.facilityCache.set(fac.icao, fac);
-        if (
-          this.filterDupTerminal
-          && ICAO.isFacility(fac.icao, FacilityType.Intersection)
-          && !IntersectionFacilityUtils.isTerminal(fac)
-          && (this.filterCb === undefined || this.filterCb(fac))
-        ) {
-          this.nonTerminalIcaosToFilter.add(fac.icao);
+        if (fac) {
+          const uid = ICAO.getUid(fac.icaoStruct);
+          this.facilityCache.set(uid, fac);
+          if (
+            this.filterDupTerminal
+            && ICAO.isValueFacility(fac.icaoStruct, FacilityType.Intersection)
+            && !IntersectionFacilityUtils.isTerminal(fac)
+            && (this.filterCb === undefined || this.filterCb(fac))
+          ) {
+            this.nonTerminalIcaoUidsToFilter.add(uid);
+          }
         }
       }
 
       for (let i = 0; i < added.length; i++) {
         const fac = added[i];
-        if (
-          (this.filterCb === undefined || this.filterCb(fac))
-          && (
-            !this.filterDupTerminal
-            || !ICAO.isFacility(fac.icao, FacilityType.Intersection)
-            || !IntersectionFacilityUtils.isTerminal(fac)
-            || !this.nonTerminalIcaosToFilter.has(IntersectionFacilityUtils.getNonTerminalICAO(fac.icao))
-          )
-        ) {
-          this.addFacility(added[i], added[i].icao);
+        if (fac) {
+          const uid = ICAO.getUid(fac.icaoStruct);
+          if (
+            (this.filterCb === undefined || this.filterCb(fac))
+            && (
+              !this.filterDupTerminal
+              || !ICAO.isValueFacility(fac.icaoStruct, FacilityType.Intersection)
+              || !IntersectionFacilityUtils.isTerminal(fac)
+              || !this.nonTerminalIcaoUidsToFilter.has(ICAO.getUid(IntersectionFacilityUtils.getNonTerminalIcaoValue(fac.icaoStruct)))
+            )
+          ) {
+            this.addFacility(fac, uid);
+          }
         }
       }
     }
@@ -464,10 +598,10 @@ export class NearestIntersectionSubscription extends NearestWaypointSubscription
  */
 export class NearestVorSubscription extends NearestWaypointSubscription<VorFacility> {
   /**
-   * Creates a new NearestVorSubscription.
+   * Creates a new instance of NearestVorSubscription.
    * @param facilityLoader The facility loader to use with this instance.
    */
-  constructor(facilityLoader: FacilityLoader) {
+  public constructor(facilityLoader: FacilityLoader) {
     super(facilityLoader, FacilitySearchType.Vor);
   }
 
@@ -478,7 +612,7 @@ export class NearestVorSubscription extends NearestWaypointSubscription<VorFacil
    */
   public setVorFilter(classMask: number, typeMask: number): void {
     if (this.session !== undefined) {
-      (this.session as NearestVorSearchSession).setVorFilter(classMask, typeMask);
+      (this.session as NearestVorSearchSession<NearestIcaoSearchSessionDataType.Struct>).setVorFilter(classMask, typeMask);
     }
   }
 }
@@ -488,10 +622,10 @@ export class NearestVorSubscription extends NearestWaypointSubscription<VorFacil
  */
 export class NearestNdbSubscription extends NearestWaypointSubscription<NdbFacility> {
   /**
-   * Creates a new NearestNdbSubscription.
+   * Creates a new instance of NearestNdbSubscription.
    * @param facilityLoader The facility loader to use with this instance.
    */
-  constructor(facilityLoader: FacilityLoader) {
+  public constructor(facilityLoader: FacilityLoader) {
     super(facilityLoader, FacilitySearchType.Ndb);
   }
 }
@@ -506,6 +640,16 @@ export class NearestUsrSubscription extends NearestWaypointSubscription<UserFaci
    */
   constructor(facilityLoader: FacilityLoader) {
     super(facilityLoader, FacilitySearchType.User);
+  }
+
+  /**
+   * Sets the facility search filter.
+   * @param filter A function to filter the search results.
+   */
+  public setFacilityFilter(filter?: GeoKdTreeSearchFilter<UserFacility>): void {
+    if (this.session !== undefined) {
+      (this.session as NearestRepoFacilitySearchSession<FacilityType.USR, NearestIcaoSearchSessionDataType.Struct>).setFacilityFilter(filter);
+    }
   }
 }
 

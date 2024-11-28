@@ -278,9 +278,15 @@ export class JetFadec {
     }
 
     const clampedThrottle = MathUtils.clamp(desiredThrottle * 100, this.desiredThrottleMin, this.desiredThrottleMax);
+    const clampedVisibleThrottlePos = MathUtils.clamp(visibleThrottlePos, -1, 1);
 
-    SimVar.SetSimVarValue(info.throttleSimVar, SimVarValueType.Percent, clampedThrottle);
-    SimVar.SetSimVarValue(info.visiblePosSimVar, 'number', MathUtils.clamp(visibleThrottlePos, -1, 1));
+    if (isFinite(clampedThrottle)) {
+      SimVar.SetSimVarValue(info.throttleSimVar, SimVarValueType.Percent, clampedThrottle);
+    }
+
+    if (isFinite(clampedVisibleThrottlePos)) {
+      SimVar.SetSimVarValue(info.visiblePosSimVar, SimVarValueType.Number, clampedVisibleThrottlePos);
+    }
   }
 
   /**

@@ -3,7 +3,9 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
 export * from './autopilot';
+export * from './checklist';
 export * from './components';
+export * from './esp';
 export * from './flightplan';
 export * from './graphics';
 export * from './instruments';

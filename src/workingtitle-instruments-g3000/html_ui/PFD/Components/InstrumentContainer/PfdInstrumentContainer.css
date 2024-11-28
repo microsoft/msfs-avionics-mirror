@@ -1,0 +1,365 @@
+.pfd-instrument-container {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  --pfd-instrument-container-ui-center-x: 50%;
+}
+
+.display-pane-half .pfd-instrument-container {
+  --pfd-instrument-container-ui-center-x: 354px;
+}
+
+/* ---- Horizon display ---- */
+
+.pfd-instrument-container .horizon-display {
+  --horizon-display-center-x: var(--pfd-instrument-container-ui-center-x);
+}
+
+/* ---- ACFS status box ---- */
+
+.pfd-instrument-container .fma {
+  position: absolute;
+  left: 50%;
+  top: 0px;
+  height: 48px;
+  transform: translate3d(-50%, 0px, 0px);
+}
+
+.display-pane-half .pfd-instrument-container .fma {
+  left: 354px;
+}
+
+/* ---- Airspeed indicator ---- */
+
+.pfd-instrument-container .airspeed {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) - 325px);
+  top: 75px;
+  transform: rotateX(0deg);
+}
+
+/* ---- AoA indicator ---- */
+
+.pfd-instrument-container .aoa {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) - 325px);
+  top: 480px;
+  transform: rotateX(0deg);
+}
+
+/* ---- Altimeter ---- */
+
+.pfd-instrument-container .altimeter {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) + 240px);
+  top: 75px;
+  transform: rotateX(0deg);
+
+  --altimeter-indicatedalt-box-height: 70px;
+  --digit-scroller-line-height: 1.2em;
+  --digit-scroller-line-offset-y: 2px;
+}
+
+/* ---- VSI ---- */
+
+.pfd-instrument-container .vsi-container {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) + 345px);
+  top: 75px;
+  width: 70px;
+  height: 400px;
+  font-size: 18px;
+  transform: rotateX(0deg);
+}
+
+/* ---- VDI ---- */
+
+.pfd-instrument-container .vdi {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) + 216px);
+  top: 143px;
+  width: 24px;
+  height: 264px;
+  font-size: 18px;
+  transform: rotateX(0deg);
+}
+
+/* ---- Marker beacon ---- */
+
+.pfd-instrument-container .marker-beacon {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) + 213px);
+  top: 106px;
+  transform: rotateX(0deg);
+}
+
+/* ---- Wind display ---- */
+
+.pfd-instrument-container>.wind {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) - 236px);
+  top: 443px;
+  width: 88px;
+  height: 56px;
+  background: var(--g3000-color-pfd-box-background);
+  border-radius: 5px;
+  transform: rotateX(0deg);
+}
+
+/* ---- Radar altimeter ---- */
+
+.pfd-instrument-container .radar-altimeter {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) + 120px);
+  right: 435px;
+  bottom: 420px;
+  width: 85px;
+  height: 26px;
+  font-size: 21px;
+  transform: rotateX(0deg);
+
+  --radar-altimeter-padding: 2px 3px 0px 3px;
+}
+
+.pfd-instrument-container .radar-altimeter-failed {
+  letter-spacing: -1px;
+}
+
+/* ---- Minimums ---- */
+
+.pfd-instrument-container .minimums {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) + 120px);
+  bottom: 325px;
+  width: 115px;
+  height: 26px;
+  padding: 2px 2px 0px 2px;
+  font-size: 18px;
+  transform: rotateX(0deg);
+
+  --minimums-mode-line-height: 0.8em;
+  --minimums-min-line-height: 0.9em;
+}
+
+/* ---- HSI ---- */
+
+.pfd-instrument-container .hsi {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) - 368px / 2);
+  bottom: 82px;
+  width: 368px;
+  height: 330px;
+  font-size: 18px;
+  transform: rotateX(0deg);
+}
+
+/* ---- Navigation status box banner ---- */
+
+.pfd-instrument-container .nav-status-banner {
+  position: absolute;
+  right: calc(100% - var(--pfd-instrument-container-ui-center-x) - 412px);
+  bottom: 271px;
+  font-size: 18px;
+  transform: rotateX(0deg);
+
+  --nav-status-banner-padding-top: 3px;
+  --nav-status-banner-padding-bottom: 1px;
+}
+
+/* ---- NAV/DME information banner ---- */
+
+.pfd-instrument-container .nav-dme-info-banner {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) - 354px);
+  font-size: 18px;
+  transform: rotateX(0deg);
+
+  --nav-dme-info-banner-padding-top: 3px;
+  --nav-dme-info-banner-padding-bottom: 1px;
+}
+
+.pfd-instrument-container .nav-dme-info-banner-upper {
+  bottom: 160px;
+}
+
+.pfd-instrument-container .nav-dme-info-banner-lower {
+  bottom: 55px;
+}
+
+.pfd-instrument-container .nav-dme-info-banner-lower-softkey {
+  bottom: 108px;
+}
+
+.pfd-instrument-container .nav-dme-info {
+  letter-spacing: -1px;
+}
+
+/* ---- Bearing info banner ---- */
+
+.pfd-instrument-container .bearing-info-banner {
+  position: absolute;
+  right: calc(100% - var(--pfd-instrument-container-ui-center-x) - 412px);
+  font-size: 18px;
+  transform: rotateX(0deg);
+
+  --bearing-info-banner-padding-top: 3px;
+  --bearing-info-banner-padding-bottom: 0px;
+}
+
+.pfd-instrument-container .bearing-info-banner-no-softkey {
+  bottom: 55px;
+}
+
+.pfd-instrument-container .bearing-info-banner-softkey {
+  bottom: 108px;
+}
+
+/* ---- Traffic annunciation ---- */
+
+.pfd-instrument-container .traffic-annunc {
+  position: absolute;
+  right: calc(100% - var(--pfd-instrument-container-ui-center-x) + 96px);
+  bottom: 418px;
+  font-size: 18px;
+  transform: rotateX(0deg);
+}
+
+/* ---- Terrain annunciation ---- */
+
+.pfd-instrument-container .pfd-terrain-annunc {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) + 65px);
+  top: 58px;
+  font-size: 18px;
+  transform: rotateX(0deg);
+}
+
+/* ---- HSI GPS integrity annunciation ---- */
+
+.pfd-instrument-container .hsi-gps-annunc {
+  position: absolute;
+  left: calc(var(--pfd-instrument-container-ui-center-x) - 232px);
+  top: 502px;
+  font-size: 18px;
+  transform: rotateX(0deg);
+}
+
+/* ---- Inset maps ---- */
+
+.pfd-instrument-container .inset-map-container {
+  position: absolute;
+  left: 3px;
+  bottom: 56px;
+  width: 272px;
+  height: 284px;
+  transform: rotateX(0deg);
+}
+
+.pfd-instrument-container.pfd-softkey .inset-map-container {
+  bottom: 109px;
+}
+
+/* ---- CAS ---- */
+
+.pfd-instrument-container .full-cas-display-2 {
+  position: absolute;
+  right: 1px;
+  top: 520px;
+  width: 220px;
+  transform: rotateX(0deg);
+}
+
+.pfd-instrument-container.pfd-softkey .full-cas-display-2 {
+  top: 480px;
+}
+
+.display-pane-half .pfd-instrument-container.pfd-use-nav-status-banner .full-cas-display-2 {
+  top: 532px;
+}
+
+/* ---- Bottom info panel ---- */
+
+.pfd-instrument-container .bottom-info {
+  position: absolute;
+  left: 0px;
+  width: 100%;
+  height: 53px;
+  font-size: 18px;
+  transform: rotateX(0deg);
+  overflow: hidden;
+
+  --bottom-info-padding-top: 4px;
+  --bottom-info-padding-bottom: 0px;
+
+  --bottom-info-ui-center-x: var(--pfd-instrument-container-ui-center-x);
+}
+
+.pfd-instrument-container.pfd-softkey .bottom-info {
+  bottom: 53px;
+  --bottom-info-softkey-background-fill: url('#pfd-bottom-info-softkey-background-gradient');
+}
+
+.pfd-instrument-container.pfd-nosoftkey .bottom-info {
+  bottom: 0px;
+}
+
+.pfd-instrument-container .bottom-info .bearing-info {
+  letter-spacing: -1px;
+}
+
+.pfd-instrument-container .bottom-info.bottom-info-use-nav-dme .bearing-info {
+  --bearing-info-arrow-offset-y: -1px;
+}
+
+.pfd-instrument-container .bottom-info .speed-info,
+.pfd-instrument-container .bottom-info .temperature-info {
+  letter-spacing: -0.5px;
+}
+
+.pfd-instrument-container .bottom-info .time-info {
+  letter-spacing: -1px;
+}
+
+/* ---- Softkeys ---- */
+
+.pfd-instrument-container .softkey-container {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  width: 100%;
+  height: 53px;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  flex-flow: row nowrap;
+  font-size: 18px;
+  line-height: 19px;
+  letter-spacing: -0.5px;
+  background: #0a0d10;
+}
+
+.display-pane-container-pfd-left .display-pane-half .softkey-container {
+  padding-left: 4px;
+  justify-content: flex-start;
+}
+
+.display-pane-container-pfd-right .display-pane-half .softkey-container {
+  padding-right: 4px;
+  justify-content: flex-end;
+}
+
+.display-pane-half .softkey-7,
+.display-pane-half .softkey-8,
+.display-pane-half .softkey-9,
+.display-pane-half .softkey-10,
+.display-pane-half .softkey-11 {
+  display: none;
+}
+
+.pfd-instrument-container .softkey {
+  width: 106px;
+}

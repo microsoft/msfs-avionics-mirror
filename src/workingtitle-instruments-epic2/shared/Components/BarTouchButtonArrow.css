@@ -1,0 +1,8 @@
+.bar-touch-button-arrow {
+  stroke: var(--epic2-color-white);
+  stroke-width: 1px;
+}
+
+.bar-touch-button-arrow.arrow-disabled {
+  stroke: var(--touch-button-disabled-color);
+}

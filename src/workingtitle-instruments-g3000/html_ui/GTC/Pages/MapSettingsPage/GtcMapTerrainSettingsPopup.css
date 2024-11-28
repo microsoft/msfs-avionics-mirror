@@ -1,0 +1,78 @@
+.map-terrain-settings-popup {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+
+  --touch-button-toggle-label-center-y: 45%;
+  --touch-button-toggle-bar-center-y: 87%;
+}
+
+.gtc-horizontal .map-terrain-settings-popup {
+  top: 60px;
+  height: 706px;
+  padding: 4px 33px 12px;
+  font-size: 26px;
+
+  --touch-button-toggle-bar-width: 120px;
+
+  --map-terrain-settings-popup-map-settings-button-width: 148px;
+  --map-terrain-settings-popup-map-settings-button-height: 106px;
+  --map-terrain-settings-popup-map-settings-button-margin-bottom: 40px;
+}
+
+.gtc-vertical .map-terrain-settings-popup {
+  top: 32px;
+  height: 380px;
+  padding: 0px 15px 3px;
+  font-size: 16px;
+
+  --touch-button-toggle-bar-width: 64px;
+
+  --map-terrain-settings-popup-map-settings-button-width: 80px;
+  --map-terrain-settings-popup-map-settings-button-height: 60px;
+  --map-terrain-settings-popup-map-settings-button-margin-bottom: 20px;
+}
+
+.map-terrain-settings-popup .terrain-settings-display {
+  position: relative;
+}
+
+.map-terrain-settings-popup-map-settings-button {
+  width: var(--map-terrain-settings-popup-map-settings-button-width);
+  height: var(--map-terrain-settings-popup-map-settings-button-height);
+  margin: auto 0px var(--map-terrain-settings-popup-map-settings-button-margin-bottom);
+}
+
+.map-terrain-settings-map-settings {
+  position: absolute;
+  left: calc(50% - var(--map-terrain-settings-map-settings-width) / 2);
+  top: calc(50% - var(--map-terrain-settings-map-settings-height) / 2);
+  width: var(--map-terrain-settings-map-settings-width);
+  height: var(--map-terrain-settings-map-settings-height);
+  padding: var(--map-terrain-settings-map-settings-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-content: stretch;
+}
+
+.gtc-horizontal .map-terrain-settings-map-settings {
+  --map-terrain-settings-map-settings-width: 380px;
+  --map-terrain-settings-map-settings-height: 460px;
+  --map-terrain-settings-map-settings-padding: 60px 45px;
+  --map-terrain-settings-map-settings-button-height: 155px;
+}
+
+.gtc-vertical .map-terrain-settings-map-settings {
+  --map-terrain-settings-map-settings-width: 204px;
+  --map-terrain-settings-map-settings-height: 248px;
+  --map-terrain-settings-map-settings-padding: 30px 22px;
+  --map-terrain-settings-map-settings-button-height: 84px;
+}
+
+.map-terrain-settings-map-settings-button {
+  height: var(--map-terrain-settings-map-settings-button-height);
+}

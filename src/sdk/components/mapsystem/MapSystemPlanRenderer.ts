@@ -1,4 +1,4 @@
-import { CircleVector, FlightPlan, LegDefinition } from '../../flightplan';
+import { FlightPathVector, FlightPlan, LegDefinition } from '../../flightplan';
 import { Subscribable } from '../../sub';
 import { Subject } from '../../sub/Subject';
 import {
@@ -9,7 +9,7 @@ import {
 /**
  * A handler that takes some vector data and returns the appropriate flight path rendering style.
  */
-export type VectorStyleHandler = (vector: CircleVector, isIngress: boolean, isEgress: boolean) => FlightPathRenderStyle;
+export type VectorStyleHandler = (vector: Readonly<FlightPathVector>, isIngress: boolean, isEgress: boolean) => FlightPathRenderStyle;
 
 /**
  * A handler that takes some leg data and returns the appropriate flight path rendering style.
@@ -89,7 +89,7 @@ export class MapSystemLegRenderer extends AbstractFlightPathLegRenderer {
   public currentRenderStyle: FlightPathRenderStyle | FlightPathVectorStyle = new FlightPathRenderStyle();
 
   /** @inheritdoc */
-  protected renderVector(vector: CircleVector, isIngress: boolean, isEgress: boolean, leg: LegDefinition, context: CanvasRenderingContext2D,
+  protected renderVector(vector: Readonly<FlightPathVector>, isIngress: boolean, isEgress: boolean, leg: LegDefinition, context: CanvasRenderingContext2D,
     streamStack: GeoProjectionPathStreamStack): void {
 
     if ('styleBuilder' in this.currentRenderStyle) {

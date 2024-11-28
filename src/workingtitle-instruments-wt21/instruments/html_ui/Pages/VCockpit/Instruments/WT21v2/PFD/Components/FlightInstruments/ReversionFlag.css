@@ -1,0 +1,10 @@
+.reversion-box {
+  background-color: var(--wt21-colors-yellow);
+  color: black;
+  padding: 0px 4px;
+  padding-top: 6px;
+  line-height: 22px;
+  stroke: black;
+  stroke-width: 0.8px;
+  font-size: 20px;
+}

@@ -1,0 +1,221 @@
+<ModelBehaviors>
+	<Include ModelBehaviorFile="ASOBO\Inputs\Helpers.xml" />
+
+	<Template Name="WT_Uns_Template">
+		<Parameters Type="Default">
+			<INDEX>1</INDEX>
+		</Parameters>
+		<Parameters Type="Default">
+			<NODE_ID_PREFIX>UNS_Push_#INDEX#</NODE_ID_PREFIX>
+		</Parameters>
+		<Parameters Type="Default">
+			<LSK_BTN_ID_1>LSK_1_L</LSK_BTN_ID_1>
+			<LSK_BTN_ID_2>LSK_2_L</LSK_BTN_ID_2>
+			<LSK_BTN_ID_3>LSK_3_L</LSK_BTN_ID_3>
+			<LSK_BTN_ID_4>LSK_4_L</LSK_BTN_ID_4>
+			<LSK_BTN_ID_5>LSK_5_L</LSK_BTN_ID_5>
+			<LSK_BTN_ID_6>LSK_1_R</LSK_BTN_ID_6>
+			<LSK_BTN_ID_7>LSK_2_R</LSK_BTN_ID_7>
+			<LSK_BTN_ID_8>LSK_3_R</LSK_BTN_ID_8>
+			<LSK_BTN_ID_9>LSK_4_R</LSK_BTN_ID_9>
+			<LSK_BTN_ID_10>LSK_5_R</LSK_BTN_ID_10>
+			<LSK_COUNT>10</LSK_COUNT>
+		</Parameters>
+
+		<Parameters Type="Default">
+			<MODE_KEY_BTN_ID_1>MSG</MODE_KEY_BTN_ID_1>
+			<MODE_KEY_BTN_ID_2>DATA</MODE_KEY_BTN_ID_2>
+			<MODE_KEY_BTN_ID_3>FUEL</MODE_KEY_BTN_ID_3>
+			<MODE_KEY_BTN_ID_4>TUNE</MODE_KEY_BTN_ID_4>
+			<MODE_KEY_BTN_ID_5>NAV</MODE_KEY_BTN_ID_5>
+			<MODE_KEY_BTN_ID_6>DTO</MODE_KEY_BTN_ID_6>
+			<MODE_KEY_BTN_ID_7>FPL</MODE_KEY_BTN_ID_7>
+			<MODE_KEY_BTN_ID_8>VNAV</MODE_KEY_BTN_ID_8>
+			<MODE_KEY_BTN_ID_9>LIST</MODE_KEY_BTN_ID_9>
+			<MODE_KEY_BTN_ID_10>MENU</MODE_KEY_BTN_ID_10>
+			<MODE_KEY_BTN_ID_11>PERF</MODE_KEY_BTN_ID_11>
+
+			<MODE_KEY_COUNT>11</MODE_KEY_COUNT>
+		</Parameters>
+
+		<Parameters Type="Default">
+			<KEYBOARD_BTN_ID_1>NEXT_PAGE</KEYBOARD_BTN_ID_1>
+			<KEYBOARD_BTN_ID_2>PREV_PAGE</KEYBOARD_BTN_ID_2>
+			<KEYBOARD_BTN_ID_3>PWR_DIM</KEYBOARD_BTN_ID_3>
+			<KEYBOARD_BTN_ID_4>SCRATCHPAD_BACK</KEYBOARD_BTN_ID_4>
+			<KEYBOARD_BTN_ID_5>SCRATCHPAD_ENTER</KEYBOARD_BTN_ID_5>
+			<KEYBOARD_BTN_ID_6>SCRATCHPAD_PLUS_MINUS</KEYBOARD_BTN_ID_6>
+			<KEYBOARD_BTN_ID_7>SCRATCHPAD_TYPE_A</KEYBOARD_BTN_ID_7>
+			<KEYBOARD_BTN_ID_8>SCRATCHPAD_TYPE_B</KEYBOARD_BTN_ID_8>
+			<KEYBOARD_BTN_ID_9>SCRATCHPAD_TYPE_C</KEYBOARD_BTN_ID_9>
+			<KEYBOARD_BTN_ID_10>SCRATCHPAD_TYPE_D</KEYBOARD_BTN_ID_10>
+			<KEYBOARD_BTN_ID_11>SCRATCHPAD_TYPE_E</KEYBOARD_BTN_ID_11>
+			<KEYBOARD_BTN_ID_12>SCRATCHPAD_TYPE_F</KEYBOARD_BTN_ID_12>
+			<KEYBOARD_BTN_ID_13>SCRATCHPAD_TYPE_G</KEYBOARD_BTN_ID_13>
+			<KEYBOARD_BTN_ID_14>SCRATCHPAD_TYPE_H</KEYBOARD_BTN_ID_14>
+			<KEYBOARD_BTN_ID_15>SCRATCHPAD_TYPE_I</KEYBOARD_BTN_ID_15>
+			<KEYBOARD_BTN_ID_16>SCRATCHPAD_TYPE_J</KEYBOARD_BTN_ID_16>
+			<KEYBOARD_BTN_ID_17>SCRATCHPAD_TYPE_K</KEYBOARD_BTN_ID_17>
+			<KEYBOARD_BTN_ID_18>SCRATCHPAD_TYPE_L</KEYBOARD_BTN_ID_18>
+			<KEYBOARD_BTN_ID_19>SCRATCHPAD_TYPE_M</KEYBOARD_BTN_ID_19>
+			<KEYBOARD_BTN_ID_20>SCRATCHPAD_TYPE_N</KEYBOARD_BTN_ID_20>
+			<KEYBOARD_BTN_ID_21>SCRATCHPAD_TYPE_O</KEYBOARD_BTN_ID_21>
+			<KEYBOARD_BTN_ID_22>SCRATCHPAD_TYPE_P</KEYBOARD_BTN_ID_22>
+			<KEYBOARD_BTN_ID_23>SCRATCHPAD_TYPE_Q</KEYBOARD_BTN_ID_23>
+			<KEYBOARD_BTN_ID_24>SCRATCHPAD_TYPE_R</KEYBOARD_BTN_ID_24>
+			<KEYBOARD_BTN_ID_25>SCRATCHPAD_TYPE_S</KEYBOARD_BTN_ID_25>
+			<KEYBOARD_BTN_ID_26>SCRATCHPAD_TYPE_T</KEYBOARD_BTN_ID_26>
+			<KEYBOARD_BTN_ID_27>SCRATCHPAD_TYPE_U</KEYBOARD_BTN_ID_27>
+			<KEYBOARD_BTN_ID_28>SCRATCHPAD_TYPE_V</KEYBOARD_BTN_ID_28>
+			<KEYBOARD_BTN_ID_29>SCRATCHPAD_TYPE_W</KEYBOARD_BTN_ID_29>
+			<KEYBOARD_BTN_ID_30>SCRATCHPAD_TYPE_X</KEYBOARD_BTN_ID_30>
+			<KEYBOARD_BTN_ID_31>SCRATCHPAD_TYPE_Y</KEYBOARD_BTN_ID_31>
+			<KEYBOARD_BTN_ID_32>SCRATCHPAD_TYPE_Z</KEYBOARD_BTN_ID_32>
+			<KEYBOARD_BTN_ID_33>SCRATCHPAD_TYPE_0</KEYBOARD_BTN_ID_33>
+			<KEYBOARD_BTN_ID_34>SCRATCHPAD_TYPE_1</KEYBOARD_BTN_ID_34>
+			<KEYBOARD_BTN_ID_35>SCRATCHPAD_TYPE_2</KEYBOARD_BTN_ID_35>
+			<KEYBOARD_BTN_ID_36>SCRATCHPAD_TYPE_3</KEYBOARD_BTN_ID_36>
+			<KEYBOARD_BTN_ID_37>SCRATCHPAD_TYPE_4</KEYBOARD_BTN_ID_37>
+			<KEYBOARD_BTN_ID_38>SCRATCHPAD_TYPE_5</KEYBOARD_BTN_ID_38>
+			<KEYBOARD_BTN_ID_39>SCRATCHPAD_TYPE_6</KEYBOARD_BTN_ID_39>
+			<KEYBOARD_BTN_ID_40>SCRATCHPAD_TYPE_7</KEYBOARD_BTN_ID_40>
+			<KEYBOARD_BTN_ID_41>SCRATCHPAD_TYPE_8</KEYBOARD_BTN_ID_41>
+			<KEYBOARD_BTN_ID_42>SCRATCHPAD_TYPE_9</KEYBOARD_BTN_ID_42>
+
+			<KEYBOARD_KEY_COUNT>42</KEYBOARD_KEY_COUNT>
+
+			<HAS_TT_NEXT_PAGE>True</HAS_TT_NEXT_PAGE>
+			<HAS_TT_PREV_PAGE>True</HAS_TT_PREV_PAGE>
+			<HAS_TT_PWR_DIM>True</HAS_TT_PWR_DIM>
+			<TOOLTIP_TITLE_NEXT_PAGE>(R:1:@TT_Package.UNS_NEXT_TITLE)</TOOLTIP_TITLE_NEXT_PAGE>
+			<TT_DESCRIPTION_NEXT_PAGE>(R:1:@TT_Package.UNS_NEXT_ACTION)</TT_DESCRIPTION_NEXT_PAGE>
+			<TOOLTIP_TITLE_PREV_PAGE>(R:1:@TT_Package.UNS_PREV_TITLE)</TOOLTIP_TITLE_PREV_PAGE>
+			<TT_DESCRIPTION_PREV_PAGE>(R:1:@TT_Package.UNS_PREV_ACTION)</TT_DESCRIPTION_PREV_PAGE>
+			<TOOLTIP_TITLE_PWR_DIM>(R:1:@TT_Package.UNS_PWR_DIM_TITLE)</TOOLTIP_TITLE_PWR_DIM>
+			<TT_DESCRIPTION_PWR_DIM>(R:1:@TT_Package.UNS_PWR_DIM_ACTION)</TT_DESCRIPTION_PWR_DIM>
+		</Parameters>
+
+		<!-- Creates the Line Select Keys -->
+		<Component ID="Line_Select_Keys">
+			<Loop>
+				<Setup>
+					<Param>CUR_ID</Param>
+					<From>1</From>
+					<Inc>1</Inc>
+					<To>#LSK_COUNT#</To>
+				</Setup>
+				<Do>
+					<Parameters Type="Default">
+						<BTN_ID Process="Param">LSK_BTN_ID_#CUR_ID#</BTN_ID>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID_#BTN_ID#>#NODE_ID_PREFIX#_#BTN_ID#</NODE_ID_#BTN_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<ANIM_NAME_#BTN_ID# Process="Param">NODE_ID_#BTN_ID#</ANIM_NAME_#BTN_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID Process="Param">NODE_ID_#BTN_ID#</NODE_ID>
+						<ANIM_NAME Process="Param">ANIM_NAME_#BTN_ID#</ANIM_NAME>
+					</Parameters>
+					<UseTemplate Name="WT_Uns_Html_Button_Template">
+						<HTML_EVENT>UNS1_#INDEX#_#BTN_ID#</HTML_EVENT>
+
+						<TOOLTIP_TITLE>(R:1:@TT_Package.UNS_LSK_TITLE)</TOOLTIP_TITLE>
+						<TT_DESCRIPTION>(R:1:@TT_Package.UNS_LSK_ACTION)</TT_DESCRIPTION>
+					</UseTemplate>
+				</Do>
+			</Loop>
+		</Component>
+
+		<!-- Creates the mode key buttons -->
+		<Component ID="Mode_Keys">
+			<Loop>
+				<Setup>
+					<Param>CUR_ID</Param>
+					<From>1</From>
+					<Inc>1</Inc>
+					<To>#MODE_KEY_COUNT#</To>
+				</Setup>
+				<Do>
+					<Parameters Type="Default">
+						<BTN_ID Process="Param">MODE_KEY_BTN_ID_#CUR_ID#</BTN_ID>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID_#BTN_ID#>#NODE_ID_PREFIX#_#BTN_ID#</NODE_ID_#BTN_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<ANIM_NAME_#BTN_ID# Process="Param">NODE_ID_#BTN_ID#</ANIM_NAME_#BTN_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID Process="Param">NODE_ID_#BTN_ID#</NODE_ID>
+						<ANIM_NAME Process="Param">ANIM_NAME_#BTN_ID#</ANIM_NAME>
+					</Parameters>
+					<UseTemplate Name="WT_Uns_Html_Button_Template">
+						<HTML_EVENT>UNS1_#INDEX#_MODE_KEY_#BTN_ID#</HTML_EVENT>
+
+						<TOOLTIP_TITLE>(R:1:@TT_Package.UNS_#BTN_ID#_TITLE)</TOOLTIP_TITLE>
+						<TT_DESCRIPTION>(R:1:@TT_Package.UNS_PAGE_ACTION)</TT_DESCRIPTION>
+					</UseTemplate>
+				</Do>
+			</Loop>
+		</Component>
+
+		<!-- Creates keyboard buttons -->
+		<Component ID="Keyboard_Keys">
+			<Loop>
+				<Setup>
+					<Param>CUR_ID</Param>
+					<From>1</From>
+					<Inc>1</Inc>
+					<To>#KEYBOARD_KEY_COUNT#</To>
+				</Setup>
+				<Do>
+					<Parameters Type="Default">
+						<BTN_ID Process="Param">KEYBOARD_BTN_ID_#CUR_ID#</BTN_ID>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID_#BTN_ID#>#NODE_ID_PREFIX#_#BTN_ID#</NODE_ID_#BTN_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<ANIM_NAME_#BTN_ID# Process="Param">NODE_ID_#BTN_ID#</ANIM_NAME_#BTN_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID Process="Param">NODE_ID_#BTN_ID#</NODE_ID>
+						<ANIM_NAME Process="Param">ANIM_NAME_#BTN_ID#</ANIM_NAME>
+						<HAS_TT Process="Param">HAS_TT_#BTN_ID#</HAS_TT>
+					</Parameters>
+					<Parameters Type="Default">
+						<Condition NotEmpty="HAS_TT">
+							<TOOLTIP_TITLE Process="Param">TOOLTIP_TITLE_#BTN_ID#</TOOLTIP_TITLE>
+							<TT_DESCRIPTION Process="Param">TT_DESCRIPTION_#BTN_ID#</TT_DESCRIPTION>
+						</Condition>
+					</Parameters>
+					<UseTemplate Name="WT_Uns_Html_Button_Template">
+						<HTML_EVENT>UNS1_#INDEX#_#BTN_ID#</HTML_EVENT>
+					</UseTemplate>
+				</Do>
+			</Loop>
+		</Component>
+	</Template>
+
+	<!--
+		Defines the behaviour of a push button which fires a html event when pressed
+	-->
+	<Template Name="WT_Uns_Html_Button_Template">
+		<Parameters Type="Default">
+			<HTML_EVENT></HTML_EVENT>
+			<NODE_ID></NODE_ID>
+			<ANIM_NAME></ANIM_NAME>
+			<DONT_APPEND_ID>True</DONT_APPEND_ID>
+			<WWISE_EVENT_1>uns_wwise_event_on</WWISE_EVENT_1>
+			<WWISE_EVENT_2>uns_wwise_event_off</WWISE_EVENT_2>
+			<INTERACTION_TYPE>Push</INTERACTION_TYPE>
+		</Parameters>
+		<UseTemplate Name="ASOBO_INSTRUMENT_Base_Template">
+			<IE_NAME>#NODE_ID#_PUSH</IE_NAME>
+			<BTN_ID>#NODE_ID#_PUSH</BTN_ID>
+			<SET_STATE_EXTERNAL>(&gt;H:#HTML_EVENT#)</SET_STATE_EXTERNAL>
+		</UseTemplate>
+	</Template>
+</ModelBehaviors>

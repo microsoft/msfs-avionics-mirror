@@ -1,4 +1,4 @@
-import { CircleVector, FlightPathUtils } from '../../flightplan';
+import { FlightPathVector, FlightPathUtils } from '../../flightplan';
 import { GeoCircle } from '../../geo';
 import { PathPattern } from '../../graphics/path';
 import { GeoCirclePatternRenderer } from './GeoCirclePatternRenderer';
@@ -23,7 +23,7 @@ export class FlightPathVectorPatternRenderer {
    * rendered path does not terminate at the point where the projected vector starts. Defaults to false.
    */
   public render(
-    vector: CircleVector,
+    vector: Readonly<FlightPathVector>,
     context: CanvasRenderingContext2D,
     streamStack: GeoProjectionPathStreamStack,
     pattern: PathPattern,

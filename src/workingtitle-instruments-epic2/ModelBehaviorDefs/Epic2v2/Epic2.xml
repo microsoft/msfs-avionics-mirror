@@ -1,0 +1,515 @@
+<ModelBehaviors>
+	<Include ModelBehaviorFile="ASOBO\Inputs\Helpers.xml" />
+	<Include RelativeFile="Generic.xml" />
+	<Include RelativeFile="Autopilot.xml" />
+	<Include RelativeFile="Throttle.xml" />
+
+	<!--
+		Defines the softkeys located on the bezels of a display unit
+	-->
+	<Template Name="WT_Epic2_Display_Unit_Bezel_Template">
+		<Parameters Type="Default">
+			<DU_TYPE>PFD</DU_TYPE>
+			<DU_INDEX>1</DU_INDEX>
+
+			<SOFTKEY_COUNT>24</SOFTKEY_COUNT>
+			<TEMPLATE_TO_CALL>WT_Epic2_Html_Button_Template</TEMPLATE_TO_CALL>
+		</Parameters>
+		<Parameters Type="Default">
+			<DU_NAME>#DU_TYPE#_#DU_INDEX#</DU_NAME>
+			<FIRST_ID>1</FIRST_ID>
+			<MAX_ID>#SOFTKEY_COUNT#</MAX_ID>
+		</Parameters>
+		<Parameters Type="Default">
+			<NODE_NAME_PREFIX>#DU_NAME#</NODE_NAME_PREFIX>
+		</Parameters>
+		<UseTemplate Name="ASOBO_GT_Helper_Recursive_ID">
+			<TOOLTIP_TITLE>@TT_Package.EPIC2_DU_SOFTKEY_TITLE</TOOLTIP_TITLE>
+			<TT_DESCRIPTION_ID>@TT_Package.EPIC2_DU_SOFTKEY_ACTION</TT_DESCRIPTION_ID>
+			<EXIT_TEMPLATE>#TEMPLATE_TO_CALL#</EXIT_TEMPLATE>
+
+			<PARAM2>NODE_ID</PARAM2>
+			<PARAM2_PREFIX>#NODE_NAME_PREFIX#_SOFTKEY_</PARAM2_PREFIX>
+			<PARAM3>ANIM_NAME</PARAM3>
+			<PARAM3_PREFIX>#NODE_NAME_PREFIX#_SOFTKEY_</PARAM3_PREFIX>
+			<PARAM4>HTML_EVENT</PARAM4>
+			<PARAM4_PREFIX>#DU_NAME#_SOFTKEY_</PARAM4_PREFIX>
+		</UseTemplate>
+	</Template>
+
+	<!--
+		Defines the softkeys and knobs used with the Touchscreen Controller
+	-->
+	<Template Name="WT_Epic2_Touchscreen_Controller_Bezel_Template">
+		<Parameters Type="Default">
+			<SOFTKEY_COUNT>3</SOFTKEY_COUNT>
+			<LEFT_KNOB_PREFIX>TSC_KNOB_L</LEFT_KNOB_PREFIX>
+			<RIGHT_KNOB_PREFIX>TSC_KNOB_R</RIGHT_KNOB_PREFIX>
+		</Parameters>
+		<UseTemplate Name="WT_Epic2_Display_Unit_Bezel_Template">
+			<DU_NAME>TSC</DU_NAME>
+		</UseTemplate>
+
+		<UseTemplate Name="WT_Epic2_Infinite_Knob_Html_Template">
+			<NODE_ID>#LEFT_KNOB_PREFIX#_OUTER</NODE_ID>
+			<TOOLTIP_TITLE_KNOB>(R:1:@TT_Package.EPIC2_TSC_OUTER_KNOB_TITLE)</TOOLTIP_TITLE_KNOB>
+			<TT_DESCRIPTION_ID_KNOB>(R:1:@TT_Package.EPIC2_TSC_KNOB_ACTION)</TT_DESCRIPTION_ID_KNOB>
+		</UseTemplate>
+		<UseTemplate Name="WT_Epic2_Infinite_Knob_Html_Template">
+			<NODE_ID>#LEFT_KNOB_PREFIX#_INNER</NODE_ID>
+			<TOOLTIP_TITLE_KNOB>(R:1:@TT_Package.EPIC2_TSC_INNER_KNOB_TITLE)</TOOLTIP_TITLE_KNOB>
+			<TT_DESCRIPTION_ID_KNOB>(R:1:@TT_Package.EPIC2_TSC_KNOB_ACTION)</TT_DESCRIPTION_ID_KNOB>
+			<TT_DESCRIPTION_ID_PUSH>(R:1:@TT_Package.EPIC2_TSC_KNOB_PUSH_ACTION)</TT_DESCRIPTION_ID_PUSH>
+			<HAS_PUSH />
+		</UseTemplate>
+
+		<UseTemplate Name="WT_Epic2_Infinite_Knob_Html_Template">
+			<NODE_ID>#RIGHT_KNOB_PREFIX#_OUTER</NODE_ID>
+			<TOOLTIP_TITLE_KNOB>(R:1:@TT_Package.EPIC2_TSC_OUTER_KNOB_TITLE)</TOOLTIP_TITLE_KNOB>
+			<TT_DESCRIPTION_ID_KNOB>(R:1:@TT_Package.EPIC2_TSC_KNOB_ACTION)</TT_DESCRIPTION_ID_KNOB>
+		</UseTemplate>
+
+		<UseTemplate Name="WT_Epic2_Infinite_Knob_Html_Template">
+			<NODE_ID>#RIGHT_KNOB_PREFIX#_INNER</NODE_ID>
+			<TOOLTIP_TITLE_KNOB>(R:1:@TT_Package.EPIC2_TSC_INNER_KNOB_TITLE)</TOOLTIP_TITLE_KNOB>
+			<TT_DESCRIPTION_ID_KNOB>(R:1:@TT_Package.EPIC2_TSC_KNOB_ACTION)</TT_DESCRIPTION_ID_KNOB>
+			<TT_DESCRIPTION_ID_PUSH>(R:1:@TT_Package.EPIC2_TSC_KNOB_PUSH_ACTION)</TT_DESCRIPTION_ID_PUSH>
+			<HAS_PUSH />
+		</UseTemplate>
+	</Template>
+
+	<!--
+		Defines the buttons and knobs which are part of the PFD Controller
+		Required parameters:
+		 - CONTROLLER_ID: The index of the PFD controller
+		 - BTN_NODE_ID_PREFIX: The prefix to use the button nodes
+		 - KNOB_NODE_ID_PREFIX: The prefix to use the knob nodes
+		Settable parameters:
+		 Substitute #BTN_NAME# for the name of the button or knob, i.e. NAV_SEL, BRG1, etc
+		 - TT_DESCRIPTION_ID_#BTN_NAME#: the tooltip description to use for that button
+		 - TOOLTIP_TITLE_#BTN_NAME#: the tooltip title to use for that button
+		 - NODE_ID_#BTN_NAME#: the node id for that button, defaults to #BTN_NODE_ID_PREFIX#_#BTN_NAME#
+		 - ANIM_NAME_#BTN_NAME#: the animation name for that button, defaults to the node ID
+	-->
+	<Template Name="WT_Epic2_PFD_Controller_Template">
+		<Parameters Type="Default">
+			<CONTROLLER_ID>1</CONTROLLER_ID>
+			<BTN_NODE_ID_PREFIX>PFDCTRL</BTN_NODE_ID_PREFIX>
+			<KNOB_NODE_ID_PREFIX>PFDCTRL</KNOB_NODE_ID_PREFIX>
+		</Parameters>
+		<Parameters Type="Default">
+			<NODE_ID_SUFFIX>_#CONTROLLER_ID#</NODE_ID_SUFFIX>
+		</Parameters>
+		<Parameters Type="Default">
+			<BTN_COUNT>12</BTN_COUNT>
+			<BTN_ID_1>NAV_SEL</BTN_ID_1>
+			<BTN_ID_2>NAV_PREVIEW</BTN_ID_2>
+			<BTN_ID_3>BRG1</BTN_ID_3>
+			<BTN_ID_4>BRG2</BTN_ID_4>
+			<BTN_ID_5>HSI</BTN_ID_5>
+			<BTN_ID_6>ET</BTN_ID_6>
+			<BTN_ID_7>ADHRS</BTN_ID_7>
+			<BTN_ID_8>PFD</BTN_ID_8>
+			<BTN_ID_9>IDENT</BTN_ID_9>
+			<BTN_ID_10>VFR</BTN_ID_10>
+			<BTN_ID_11>DME</BTN_ID_11>
+			<BTN_ID_12>DETAIL</BTN_ID_12>
+
+			<BTN_INOP_ADHRS>True</BTN_INOP_ADHRS>
+			<BTN_INOP_PFD>True</BTN_INOP_PFD>
+		</Parameters>
+		<Parameters Type="Default">
+			<KNOB_COUNT>6</KNOB_COUNT>
+			<KNOB_ID_1>BARO</KNOB_ID_1>
+			<KNOB_ID_2>COURSE_SEL</KNOB_ID_2>
+			<KNOB_ID_3>RANGE</KNOB_ID_3>
+			<KNOB_ID_4>VOLUME</KNOB_ID_4>
+			<KNOB_ID_5>RADIO_SEL_INNER</KNOB_ID_5>
+			<KNOB_ID_6>RADIO_SEL_OUTER</KNOB_ID_6>
+
+			<HAS_PUSH_BARO>True</HAS_PUSH_BARO>
+			<HAS_PUSH_COURSE_SEL>True</HAS_PUSH_COURSE_SEL>
+			<HAS_PUSH_VOLUME>True</HAS_PUSH_VOLUME>
+			<HAS_PUSH_RADIO_SEL_INNER>True</HAS_PUSH_RADIO_SEL_INNER>
+
+			<FORMAT_VALUE_BARO>l0 &gt; if{ '%d%' @sprintf } els{ 'N/A' }</FORMAT_VALUE_BARO>
+			<GET_TT_VALUE_STATE_BARO>(L:XMLVAR_PFD_BARO_#CONTROLLER_ID#) sp0</GET_TT_VALUE_STATE_BARO>
+
+			<FORMAT_VALUE_COURSE_SEL>l0 d -1 &gt; if{ '%d°' @sprintf } els{ 'N/A' }</FORMAT_VALUE_COURSE_SEL>
+			<GET_TT_VALUE_STATE_COURSE_SEL>(L:XMLVAR_PFD_COURSE_#ID#) sp0</GET_TT_VALUE_STATE_COURSE_SEL>
+
+			<GET_TT_VALUE_STATE_RANGE>(L:XMLVAR_PFD_RANGE_#ID#) 5 max sp0</GET_TT_VALUE_STATE_RANGE>
+			<FORMAT_VALUE_RANGE>l0 '%d% NM' @sprintf</FORMAT_VALUE_RANGE>
+
+			<GET_TT_VALUE_STATE_VOLUME>(L:XMLVAR_PFD_VOLUME_#ID#) sp0</GET_TT_VALUE_STATE_VOLUME>
+			<FORMAT_VALUE_VOLUME>l0 100 * &gt; if{ '%d%' @sprintf } els{ 'N/A' }</FORMAT_VALUE_VOLUME>
+		</Parameters>
+
+		<Component ID="PFD_Controller_Buttons">
+			<Loop>
+				<Setup>
+					<Param>CUR_ID</Param>
+					<From>1</From>
+					<Inc>1</Inc>
+					<To>#BTN_COUNT#</To>
+				</Setup>
+				<Do>
+					<Parameters Type="Override">
+						<BTN_ID Process="Param">BTN_ID_#CUR_ID#</BTN_ID>
+					</Parameters>
+					<Parameters Type="Default">
+						<TT_DESCRIPTION_ID_#BTN_ID#>@TT_Package.EPIC2_PFD_CTRL_BTN_#BTN_ID#_ACTION</TT_DESCRIPTION_ID_#BTN_ID#>
+						<TOOLTIP_TITLE_#BTN_ID#>@TT_Package.EPIC2_PFD_CTRL_BTN_#BTN_ID#_TITLE</TOOLTIP_TITLE_#BTN_ID#>
+
+						<NODE_ID_#BTN_ID#>#BTN_NODE_ID_PREFIX#_#BTN_ID##NODE_ID_SUFFIX#</NODE_ID_#BTN_ID#>
+						<HTML_EVENT_#BTN_ID#>PFDCTRL_#CONTROLLER_ID#_#BTN_ID#</HTML_EVENT_#BTN_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<ANIM_NAME_#BTN_ID# Process="Param">NODE_ID_#BTN_ID#</ANIM_NAME_#BTN_ID#>
+					</Parameters>
+
+					<Condition Valid="BTN_INOP_#BTN_ID#">
+						<True>
+							<UseTemplate Name="ASOBO_GT_Interaction_Tooltip">
+								<NODE_ID Process="Param">NODE_ID_#BTN_ID#</NODE_ID>
+							</UseTemplate>
+						</True>
+						<False>
+							<UseTemplate Name="WT_Epic2_Html_Button_Template">
+								<NODE_ID Process="Param">NODE_ID_#BTN_ID#</NODE_ID>
+								<ANIM_NAME Process="Param">ANIM_NAME_#BTN_ID#</ANIM_NAME>
+								<TT_DESCRIPTION_ID Process="Param">TT_DESCRIPTION_ID_#BTN_ID#</TT_DESCRIPTION_ID>
+								<TOOLTIP_TITLE Process="Param">TOOLTIP_TITLE_#BTN_ID#</TOOLTIP_TITLE>
+								<HTML_EVENT Process="Param">HTML_EVENT_#BTN_ID#</HTML_EVENT>
+							</UseTemplate>
+						</False>
+					</Condition>
+				</Do>
+			</Loop>
+		</Component>
+
+		<Component ID="PFD_Controller_Knobs">
+			<Loop>
+				<Setup>
+					<Param>CUR_ID</Param>
+					<From>1</From>
+					<Inc>1</Inc>
+					<To>#KNOB_COUNT#</To>
+				</Setup>
+				<Do>
+					<Parameters Type="Override">
+						<KNOB_ID Process="Param">KNOB_ID_#CUR_ID#</KNOB_ID>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID_#KNOB_ID#>#KNOB_NODE_ID_PREFIX#_#KNOB_ID##NODE_ID_SUFFIX#</NODE_ID_#KNOB_ID#>
+						<HAS_PUSH_#KNOB_ID#>False</HAS_PUSH_#KNOB_ID#>
+
+						<TOOLTIP_TITLE_#KNOB_ID#>(R:1:@TT_Package.EPIC2_PFD_CTRL_KNOB_#KNOB_ID#_TITLE)</TOOLTIP_TITLE_#KNOB_ID#>
+						<TT_DESCRIPTION_ID_#KNOB_ID#>(R:1:@TT_Package.EPIC2_PFD_CTRL_KNOB_#KNOB_ID#_ACTION)</TT_DESCRIPTION_ID_#KNOB_ID#>
+						<TT_DESCRIPTION_ID_#KNOB_ID#_PUSH>(R:1:@TT_Package.EPIC2_PFD_CTRL_KNOB_PUSH_#KNOB_ID#_ACTION)</TT_DESCRIPTION_ID_#KNOB_ID#_PUSH>
+						<FORMAT_VALUE_#KNOB_ID#>@TT_Package.GT_STATE_NA</FORMAT_VALUE_#KNOB_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID Process="Param">NODE_ID_#KNOB_ID#</NODE_ID>
+					</Parameters>
+					<Parameters Type="Default">
+						<ANIM_NAME_#KNOB_ID#>#NODE_ID#</ANIM_NAME_#KNOB_ID#>
+						<ANIM_NAME_#KNOB_ID#_PUSH>#NODE_ID#_Push</ANIM_NAME_#KNOB_ID#_PUSH>
+					</Parameters>
+
+					<UseTemplate Name="WT_Epic2_Infinite_Knob_Html_Template">
+						<ANIM_NAME Process="Param">ANIM_NAME_#KNOB_ID#</ANIM_NAME>
+						<ANIM_NAME_KNOB_PUSH Process="Param">ANIM_NAME_#KNOB_ID#_PUSH</ANIM_NAME_KNOB_PUSH>
+
+						<TOOLTIP_TITLE_KNOB Process="Param">TOOLTIP_TITLE_#KNOB_ID#</TOOLTIP_TITLE_KNOB>
+						<TT_DESCRIPTION_ID_KNOB Process="Param">TT_DESCRIPTION_ID_#KNOB_ID#</TT_DESCRIPTION_ID_KNOB>
+						<TT_DESCRIPTION_ID_KNOB_PUSH Process="Param">TT_DESCRIPTION_ID_#KNOB_ID#_PUSH</TT_DESCRIPTION_ID_KNOB_PUSH>
+
+						<IE_NAME>PFDCTRL_#CONTROLLER_ID#_#KNOB_ID#</IE_NAME>
+						<HAS_PUSH Process="Param">HAS_PUSH_#KNOB_ID#</HAS_PUSH>
+						<GET_TT_VALUE_STATE Process="Param">GET_TT_VALUE_STATE_#KNOB_ID#</GET_TT_VALUE_STATE>
+						<FORMAT_VALUE Process="Param">FORMAT_VALUE_#KNOB_ID#</FORMAT_VALUE>
+					</UseTemplate>
+				</Do>
+			</Loop>
+		</Component>
+	</Template>
+
+	<!--
+		Defines the buttons and keys which are used on the MFD Controller.
+		This template is for use in aircraft which do not use the Touchscreen Controller.
+
+		Parameters:
+		 - KEYBOARD_NODE_ID_PREFIX: The prefix for nodes as part of the keyboard, i.e. #KEYBOARD_NODE_ID_PREFIX#_ENTER, #KEYBOARD_NODE_ID_PREFIX#_A, #KEYBOARD_NODE_ID_PREFIX#_2, etc
+		 - CONTROL_NODE_ID_PREFIX: The prefix for nodes which are used for control, such as the function keys, MFD swap key, etc.
+		 - CCD_NODE_ID_PREFIX: The prefix for nodes which are used for cursor control. At present this is only for the CCD enter key.
+	-->
+	<Template Name="WT_Epic2_MFD_Controller_Template">
+		<Parameters Type="Default">
+			<KEYBOARD_NODE_ID_PREFIX>MFD_Controller_Key</KEYBOARD_NODE_ID_PREFIX>
+			<CONTROL_NODE_ID_PREFIX>MFD_Controller_Push</CONTROL_NODE_ID_PREFIX>
+			<CCD_NODE_ID_PREFIX>MFD_Controller_CCD_Push</CCD_NODE_ID_PREFIX>
+		</Parameters>
+		<Parameters Type="Default">
+			<KEYBOARD_LETTER_START>65</KEYBOARD_LETTER_START> <!-- 65 corresponds to ASCII letter A -->
+			<KEYBOARD_LETTER_END>90</KEYBOARD_LETTER_END> <!-- 90 corresponds to ASCII letter Z -->
+			<KEYBOARD_BTN_COUNT>6</KEYBOARD_BTN_COUNT>
+			<KEYBOARD_BTN_ID_1>ENTER</KEYBOARD_BTN_ID_1>
+			<KEYBOARD_BTN_ID_2>SPACE</KEYBOARD_BTN_ID_2>
+			<KEYBOARD_BTN_ID_3>BACKSPACE</KEYBOARD_BTN_ID_3>
+			<KEYBOARD_BTN_ID_4>MINUS</KEYBOARD_BTN_ID_4>
+			<KEYBOARD_BTN_ID_5>PLUS</KEYBOARD_BTN_ID_5>
+			<KEYBOARD_BTN_ID_6>PERIOD</KEYBOARD_BTN_ID_6>
+
+			<NODE_ID_CCD_ENTER>#CCD_NODE_ID_PREFIX#_ENTER</NODE_ID_CCD_ENTER>
+			<NODE_ID_MFD_SWAP>#CONTROL_NODE_ID_PREFIX#_MFD_SWAP</NODE_ID_MFD_SWAP>
+		</Parameters>
+
+		<Parameters Type="Default">
+			<CONTROL_BTN_COUNT>15</CONTROL_BTN_COUNT>
+			<CONTROL_BTN_ID_1>COM</CONTROL_BTN_ID_1>
+			<CONTROL_BTN_ID_2>NAV</CONTROL_BTN_ID_2>
+			<CONTROL_BTN_ID_3>XPDR</CONTROL_BTN_ID_3>
+			<CONTROL_BTN_ID_4>CAS</CONTROL_BTN_ID_4>
+			<CONTROL_BTN_ID_5>FLAP_OVERRIDE</CONTROL_BTN_ID_5>
+			<CONTROL_BTN_ID_6>GS_INHIBIT</CONTROL_BTN_ID_6>
+			<CONTROL_BTN_ID_7>DIRECT</CONTROL_BTN_ID_7>
+			<CONTROL_BTN_ID_8>INFO</CONTROL_BTN_ID_8>
+			<CONTROL_BTN_ID_9>CKLIST</CONTROL_BTN_ID_9>
+			<CONTROL_BTN_ID_10>EVENT</CONTROL_BTN_ID_10>
+			<CONTROL_BTN_ID_11>CHART</CONTROL_BTN_ID_11>
+			<CONTROL_BTN_ID_12>TERR_INHIBIT</CONTROL_BTN_ID_12>
+			<CONTROL_BTN_ID_13>PAGE</CONTROL_BTN_ID_13>
+			<CONTROL_BTN_ID_14>DETAIL</CONTROL_BTN_ID_14>
+			<CONTROL_BTN_ID_15>FREQ_SWAP</CONTROL_BTN_ID_15>
+
+			<IS_INOP_COM>True</IS_INOP_COM>
+			<IS_INOP_NAV>True</IS_INOP_NAV>
+			<IS_INOP_XPDR>True</IS_INOP_XPDR>
+			<IS_INOP_CAS>True</IS_INOP_CAS>
+			<IS_INOP_FLAP_OVERRIDE>True</IS_INOP_FLAP_OVERRIDE>
+			<IS_INOP_GS_INHIBIT>True</IS_INOP_GS_INHIBIT>
+			<IS_INOP_DIRECT>True</IS_INOP_DIRECT>
+			<IS_INOP_INFO>True</IS_INOP_INFO>
+			<IS_INOP_CKLIST>True</IS_INOP_CKLIST>
+			<IS_INOP_EVENT>True</IS_INOP_EVENT>
+			<IS_INOP_CHART>True</IS_INOP_CHART>
+			<IS_INOP_TERR_INHIBIT>True</IS_INOP_TERR_INHIBIT>
+			<IS_INOP_FREQ_SWAP>True</IS_INOP_FREQ_SWAP>
+		</Parameters>
+
+		<Parameters Type="Default">
+			<SELECT_BTN_COUNT>4</SELECT_BTN_COUNT>
+			<SELECT_BTN_ID_1>LEFT_PFD</SELECT_BTN_ID_1>
+			<SELECT_BTN_ID_2>UPPER_MFD</SELECT_BTN_ID_2>
+			<SELECT_BTN_ID_3>LOWER_MFD</SELECT_BTN_ID_3>
+			<SELECT_BTN_ID_4>RIGHT_PFD</SELECT_BTN_ID_4>
+		</Parameters>
+
+		<Component ID="MFD_Controller_Keyboard">
+			<Loop>
+				<Setup>
+					<Param>CUR_ID</Param>
+					<From>#KEYBOARD_LETTER_START#</From>
+					<Inc>1</Inc>
+					<To>#KEYBOARD_LETTER_END#</To>
+				</Setup>
+				<Do>
+					<Parameters Type="Default">
+						<KEY_ID Process="String">#CUR_ID# chr</KEY_ID>
+					</Parameters>
+					<UseTemplate Name="WT_Epic2_MFD_Controller_Keyboard_Key_Template">
+						<NODE_ID>#KEYBOARD_NODE_ID_PREFIX#_#KEY_ID#</NODE_ID>
+					</UseTemplate>
+				</Do>
+			</Loop>
+
+			<Loop>
+				<Setup>
+					<Param>CUR_ID</Param>
+					<From>0</From>
+					<Inc>1</Inc>
+					<To>9</To>
+				</Setup>
+				<Do>
+					<Parameters Type="Default">
+						<KEY_ID>#CUR_ID#</KEY_ID>
+					</Parameters>
+					<UseTemplate Name="WT_Epic2_MFD_Controller_Keyboard_Key_Template">
+						<NODE_ID>#KEYBOARD_NODE_ID_PREFIX#_#KEY_ID#</NODE_ID>
+					</UseTemplate>
+				</Do>
+			</Loop>
+
+			<Loop>
+				<Setup>
+					<Param>CUR_ID</Param>
+					<From>0</From>
+					<Inc>1</Inc>
+					<To>#KEYBOARD_BTN_COUNT#</To>
+				</Setup>
+				<Do>
+					<Parameters Type="Default">
+						<KEY_ID Process="Param">KEYBOARD_BTN_ID_#CUR_ID#</KEY_ID>
+					</Parameters>
+					<UseTemplate Name="WT_Epic2_MFD_Controller_Keyboard_Key_Template">
+						<NODE_ID>#KEYBOARD_NODE_ID_PREFIX#_#KEY_ID#</NODE_ID>
+					</UseTemplate>
+				</Do>
+			</Loop>
+		</Component>
+
+		<Component ID="MFD_Controller_Control_Buttons">
+			<Loop>
+				<Setup>
+					<Param>CUR_ID</Param>
+					<From>1</From>
+					<Inc>1</Inc>
+					<To>#CONTROL_BTN_COUNT#</To>
+				</Setup>
+				<Do>
+					<Parameters Type="Default">
+						<BTN_ID Process="Param">CONTROL_BTN_ID_#CUR_ID#</BTN_ID>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID_#BTN_ID#>#CONTROL_NODE_ID_PREFIX#_#BTN_ID#</NODE_ID_#BTN_ID#>
+						<IS_INOP_#BTN_ID#>False</IS_INOP_#BTN_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<ANIM_NAME_#BTN_ID# Process="Param">NODE_ID_#BTN_ID#</ANIM_NAME_#BTN_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID Process="Param">NODE_ID_#BTN_ID#</NODE_ID>
+						<ANIM_NAME Process="Param">ANIM_NAME_#BTN_ID#</ANIM_NAME>
+						<IS_INOP Process="Param">IS_INOP_#BTN_ID#</IS_INOP>
+					</Parameters>
+
+					<Condition Valid="IS_INOP">
+						<True>
+							<UseTemplate Name="ASOBO_GT_Interaction_Tooltip" />
+						</True>
+						<False>
+							<UseTemplate Name="WT_Epic2_MFD_Controller_DU_Control_Button">
+								<NAME>#BTN_ID#</NAME>
+								<TOOLTIP_TITLE>(R:1:@TT_Package.EPIC2_MFD_CTRL_BTN_#BTN_ID#_ACTION)</TOOLTIP_TITLE>
+								<TT_DESCRIPTION>(R:1:@TT_Package.EPIC2_MFD_CTRL_BTN_#BTN_ID#_ACTION)</TT_DESCRIPTION>
+							</UseTemplate>
+						</False>
+					</Condition>
+				</Do>
+			</Loop>
+		</Component>
+
+		<Component ID="MFD_Controller_Select_Buttons">
+			<Loop>
+				<Setup>
+					<Param>CUR_ID</Param>
+					<From>1</From>
+					<Inc>1</Inc>
+					<To>#SELECT_BTN_COUNT#</To>
+				</Setup>
+				<Do>
+					<Parameters Type="Default">
+						<BTN_ID Process="Param">SELECT_BTN_ID_#CUR_ID#</BTN_ID>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID_#BTN_ID#>#CONTROL_NODE_ID_PREFIX#_#BTN_ID#</NODE_ID_#BTN_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<ANIM_NAME_#BTN_ID# Process="Param">NODE_ID_#BTN_ID#</ANIM_NAME_#BTN_ID#>
+					</Parameters>
+					<Parameters Type="Default">
+						<NODE_ID Process="Param">NODE_ID_#BTN_ID#</NODE_ID>
+						<ANIM_NAME Process="Param">ANIM_NAME_#BTN_ID#</ANIM_NAME>
+					</Parameters>
+
+					<UseTemplate Name="WT_Epic2_MFD_Controller_DU_Select_Button">
+						<TOOLTIP_TITLE>@TT_Package.EPIC2_MFD_CTRL_BTN_SELECT_TITLE</TOOLTIP_TITLE>
+						<TT_DESCRIPTION_ID>@TT_Package.EPIC2_MFD_CTRL_BTN_SELECT_#BTN_ID#_ACTION</TT_DESCRIPTION_ID>
+						<ID>#CUR_ID#</ID>
+					</UseTemplate>
+				</Do>
+			</Loop>
+		</Component>
+
+		<UseTemplate Name="WT_Epic2_MFD_Controller_Keyboard_Key_Template">
+			<NODE_ID>#NODE_ID_CCD_ENTER#</NODE_ID>
+			<KEY_ID>ENTER</KEY_ID>
+			<TOOLTIP_TITLE>@TT_Package.EPIC2_MFD_CTRL_BTN_SELECT_TITLE</TOOLTIP_TITLE>
+			<TT_DESCRIPTION_ID>@TT_Package.EPIC2_MFD_CTRL_KEY_ENTER_ACTION</TT_DESCRIPTION_ID>
+		</UseTemplate>
+
+		<UseTemplate Name="WT_Epic2_MFD_Controller_Swap_Button">
+			<NODE_ID>#NODE_ID_MFD_SWAP#</NODE_ID>
+			<TOOLTIP_TITLE>@TT_Package.EPIC2_MFD_CTRL_BTN_MFD_SWAP_TITLE</TOOLTIP_TITLE>
+			<TT_DESCRIPTION_ID>@TT_Package.EPIC2_MFD_CTRL_BTN_MFD_SWAP_ACTION</TT_DESCRIPTION_ID>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_MFD_Controller_Keyboard_Key_Template">
+		<Parameters Type="Default">
+			<NODE_ID>MFD_Controller_Key_#KEY_ID#</NODE_ID>
+
+			<TOOLTIP_TITLE_IS_DYNAMIC>True</TOOLTIP_TITLE_IS_DYNAMIC>
+			<TOOLTIP_TITLE>(R:1:CONTROL.JOYSTICK_BUTTON)</TOOLTIP_TITLE>
+			<TT_DESCRIPTION_IS_DYNAMIC>True</TT_DESCRIPTION_IS_DYNAMIC>
+			<TT_DESCRIPTION>'KEY #KEY_ID#'</TT_DESCRIPTION>
+		</Parameters>
+		<UseTemplate Name="WT_Epic2_Html_Button_Template">
+			<ANIM_NAME>#NODE_ID#</ANIM_NAME>
+			<HTML_EVENT>EPIC2_KEYBOARD_KEY_#KEY_ID#</HTML_EVENT>
+			<TT_VALUE>@TT_NA</TT_VALUE>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_MFD_Controller_DU_Control_Button">
+		<Parameters Type="Default">
+			<NODE_ID>MFD_Controller_Push_#KEY_ID#</NODE_ID>
+			<ID>1</ID>
+			<NAME>PAGE</NAME>
+
+			<TOOLTIP_TITLE_IS_DYNAMIC>True</TOOLTIP_TITLE_IS_DYNAMIC>
+			<TOOLTIP_TITLE>'PLACEHOLDER'</TOOLTIP_TITLE>
+			<TT_DESCRIPTION_IS_DYNAMIC>True</TT_DESCRIPTION_IS_DYNAMIC>
+			<TT_DESCRIPTION>'PLACEHOLDER'</TT_DESCRIPTION>
+		</Parameters>
+		<UseTemplate Name="WT_Epic2_Html_Button_Template">
+			<ANIM_NAME>#NODE_ID#</ANIM_NAME>
+			<HTML_EVENT>EPIC2_DU_BUTTON_#NAME#</HTML_EVENT>
+			<TT_VALUE>@TT_NA</TT_VALUE>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_MFD_Controller_DU_Select_Button">
+		<Parameters Type="Default">
+			<ID>1</ID>
+		</Parameters>
+		<Parameters Type="Override">
+			<IE_NAME>#NODE_ID#_PUSH</IE_NAME>
+			<BTN_ID>#NODE_ID#_PUSH</BTN_ID>
+			<GET_STATE_EXTERNAL>(L:WT_EPIC2_Selected_Display_Unit, enum) s0</GET_STATE_EXTERNAL>
+			<SET_STATE_EXTERNAL>#ID# (&gt;L:WT_EPIC2_SELECTED_DISPLAY_UNIT, enum)</SET_STATE_EXTERNAL>
+		</Parameters>
+		<UseTemplate Name="ASOBO_INSTRUMENT_Base_Template">
+			<INTERACTION_TYPE>Push</INTERACTION_TYPE>
+			<DONT_APPEND_ID>True</DONT_APPEND_ID>
+			<WWISE_EVENT_1>epic2_wwise_event_on</WWISE_EVENT_1>
+			<WWISE_EVENT_2>epic2_wwise_event_off</WWISE_EVENT_2>
+			<TT_VALUE>@TT_NA</TT_VALUE>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_MFD_Controller_Swap_Button">
+		<Parameters Type="Override">
+			<SET_STATE_EXTERNAL>(L:WT_Epic2_MFD_Swap, enum) ! (&gt;L:WT_Epic2_MFD_Swap, enum)</SET_STATE_EXTERNAL>
+		</Parameters>
+		<UseTemplate Name="ASOBO_INSTRUMENT_Base_Template">
+			<INTERACTION_TYPE>Push</INTERACTION_TYPE>
+			<WWISE_EVENT_1>epic2_wwise_event_on</WWISE_EVENT_1>
+			<WWISE_EVENT_2>epic2_wwise_event_off</WWISE_EVENT_2>
+			<IE_NAME>#NODE_ID#_PUSH</IE_NAME>
+			<BTN_ID>#NODE_ID#_PUSH</BTN_ID>
+			<TT_VALUE>@TT_NA</TT_VALUE>
+		</UseTemplate>
+	</Template>
+</ModelBehaviors>

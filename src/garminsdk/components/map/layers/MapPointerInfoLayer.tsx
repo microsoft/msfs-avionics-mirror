@@ -1,8 +1,7 @@
 import {
-  BasicNavAngleSubject,
-  BasicNavAngleUnit,
-  BitFlags, FSComponent, GeoPoint, GeoPointSubject, LatLonDisplay, MapLayer, MapLayerProps, MapOwnAirplanePropsModule, MapProjection, MapProjectionChangeType,
-  MapSystemKeys, NumberFormatter, NumberUnitSubject, Subject, Unit, UnitFamily, UnitType, VNode
+  BasicNavAngleSubject, BasicNavAngleUnit, BitFlags, FSComponent, GeoPoint, GeoPointSubject, LatLonDisplay, MapLayer,
+  MapLayerProps, MapOwnAirplanePropsModule, MapProjection, MapProjectionChangeType, MapSystemKeys, NumberFormatter,
+  NumberUnitSubject, Subject, Subscription, Unit, UnitFamily, UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
 import { BearingDisplay } from '../../common/BearingDisplay';
@@ -64,14 +63,16 @@ export class MapPointerInfoLayer extends MapLayer<MapPointerInfoLayerProps> {
 
   private readonly latLon = GeoPointSubject.create(new GeoPoint(0, 0));
 
-  private readonly scheduleUpdateHandler = (): void => { this.needUpdate = true; };
-
+  private isInit = false;
   private needUpdate = false;
 
-  /** @inheritdoc */
+  private airplanePositionSub?: Subscription;
+  private pointerPositionSub?: Subscription;
+
+  /** @inheritDoc */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public onVisibilityChanged(isVisible: boolean): void {
-    this.rootRef.getOrDefault() && this.updateFromVisibility();
+    this.isInit && this.updateFromVisibility();
   }
 
   /**
@@ -80,23 +81,30 @@ export class MapPointerInfoLayer extends MapLayer<MapPointerInfoLayerProps> {
   private updateFromVisibility(): void {
     if (this.isVisible()) {
       this.rootRef.instance.style.display = '';
-      this.ownAirplanePropsModule.position.sub(this.scheduleUpdateHandler);
-      this.pointerModule.position.sub(this.scheduleUpdateHandler, true);
+      this.airplanePositionSub!.resume();
+      this.pointerPositionSub!.resume();
+      this.needUpdate = true;
     } else {
       this.rootRef.instance.style.display = 'none';
-      this.ownAirplanePropsModule.position.unsub(this.scheduleUpdateHandler);
-      this.pointerModule.position.unsub(this.scheduleUpdateHandler);
+      this.airplanePositionSub!.pause();
+      this.pointerPositionSub!.pause();
     }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
+    const scheduleUpdateHandler = (): void => { this.needUpdate = true; };
+    this.airplanePositionSub = this.ownAirplanePropsModule.position.sub(scheduleUpdateHandler, false, true);
+    this.pointerPositionSub = this.pointerModule.position.sub(scheduleUpdateHandler, false, true);
+
+    this.isInit = true;
+
     this.updateFromVisibility();
     this.pointerModule.isActive.sub(isActive => this.setVisible(isActive), true);
     this.distanceLargeUnits.sub(this.updateDistanceUnit.bind(this));
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
     this.needUpdate ||= this.isVisible() && BitFlags.isAny(
       changeFlags,
@@ -104,7 +112,7 @@ export class MapPointerInfoLayer extends MapLayer<MapPointerInfoLayerProps> {
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public onUpdated(time: number, elapsed: number): void {
     if (!this.needUpdate) {
@@ -141,7 +149,7 @@ export class MapPointerInfoLayer extends MapLayer<MapPointerInfoLayerProps> {
     }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     return (
       <div ref={this.rootRef} class='map-pointerinfolayer-box'>
@@ -169,5 +177,13 @@ export class MapPointerInfoLayer extends MapLayer<MapPointerInfoLayerProps> {
         }
       </div>
     );
+  }
+
+  /** @inheritDoc */
+  public destroy(): void {
+    this.airplanePositionSub?.destroy();
+    this.pointerPositionSub?.destroy();
+
+    super.destroy();
   }
 }

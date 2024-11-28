@@ -7,6 +7,8 @@ import { BitFlags, ReadonlyFloat64Array, UnitType, Vec2Math, Vec2Subject } from 
 import { ObjectSubject } from '../../../sub/ObjectSubject';
 import { Subscribable } from '../../../sub/Subscribable';
 import { SubscribableArray } from '../../../sub/SubscribableArray';
+import { SubscribableUtils } from '../../../sub/SubscribableUtils';
+import { Subscription } from '../../../sub/Subscription';
 import { BingComponent, WxrMode } from '../../bing';
 import { FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps } from '../MapLayer';
@@ -18,6 +20,15 @@ import { MapProjection, MapProjectionChangeType } from '../MapProjection';
 export interface MapBingLayerProps<M> extends MapLayerProps<M> {
   /** The unique ID to assign to this Bing map. */
   bingId: string;
+
+  /**
+   * The amount of time, in milliseconds, to delay binding the layer's Bing instance after the layer has been rendered.
+   * Defaults to 0.
+   */
+  bingDelay?: number;
+
+  /** Whether to skip unbinding the layer's bound Bing instance when the layer is destroyed. Defaults to `false`. */
+  bingSkipUnbindOnDestroy?: boolean;
 
   /**
    * The earth colors for the layer's Bing component. Index 0 defines the water color, and indexes 1 to the end of the
@@ -64,16 +75,8 @@ export interface MapBingLayerProps<M> extends MapLayerProps<M> {
    */
   isoLines?: Subscribable<boolean>;
 
-  /**
-   * How long to delay binding the map in milliseconds. Defaults to zero milliseconds.
-   */
-  delay?: number;
-
-  /** The mode to put the map in. Defaults to {@link EBingMode.PLANE}. */
-  mode?: EBingMode;
-
-  /** The opacity of Map Bing Layer as set by pilot. Default to 1. */
-  opacity?: Subscribable<number>;
+  /** The opacity to apply to the layer. If not defined, then no specific opacity will be set. */
+  opacity?: number | Subscribable<number>;
 }
 
 /**
@@ -102,33 +105,45 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
 
   private needUpdate = false;
 
-  /** @inheritdoc */
+  private readonly subscriptions: Subscription[] = [];
+
+  /** @inheritDoc */
   public onVisibilityChanged(isVisible: boolean): void {
     this.wrapperStyle.set('display', isVisible ? '' : 'none');
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAttached(): void {
     this.updateFromProjectedSize(this.props.mapProjection.getProjectedSize());
 
-    this.props.opacity?.sub((v: number) => {
-      this.wrapperStyle.set('opacity', v.toString());
-    }, true);
+    if (this.props.opacity) {
+      if (SubscribableUtils.isSubscribable(this.props.opacity)) {
+        this.subscriptions.push(
+          this.props.opacity.sub((v: number) => {
+            this.wrapperStyle.set('opacity', v.toString());
+          }, true)
+        );
+      } else {
+        this.wrapperStyle.set('opacity', this.props.opacity.toString());
+      }
+    }
 
-    if (this.props.wxrMode !== undefined) {
-      this.props.wxrMode.sub(() => {
-        this.updateFromProjectedSize(this.props.mapProjection.getProjectedSize());
-        this.needUpdate = true;
-      });
+    if (this.props.wxrMode) {
+      this.subscriptions.push(
+        this.props.wxrMode.sub(() => {
+          this.updateFromProjectedSize(this.props.mapProjection.getProjectedSize());
+          this.needUpdate = true;
+        })
+      );
     }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onWake(): void {
     this.bingRef.instance.wake();
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onSleep(): void {
     this.bingRef.instance.sleep();
   }
@@ -175,7 +190,7 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
     return Vec2Math.abs(projectedSize);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
     if (BitFlags.isAny(changeFlags, MapProjectionChangeType.ProjectedSize | MapProjectionChangeType.TargetProjected)) {
       this.updateFromProjectedSize(mapProjection.getProjectedSize());
@@ -193,7 +208,7 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
     this.needUpdate = true;
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public onUpdated(time: number, elapsed: number): void {
     if (!this.needUpdate) {
@@ -241,24 +256,33 @@ export class MapBingLayer<M = any> extends MapLayer<MapBingLayerProps<M>> {
     return UnitType.GA_RADIAN.convertTo(radiusGARad, UnitType.METER) as number;
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     return (
       <div style={this.wrapperStyle} class={this.props.class ?? ''}>
         <BingComponent
-          ref={this.bingRef} id={this.props.bingId}
+          ref={this.bingRef}
+          id={this.props.bingId}
           onBoundCallback={this.onBingBound.bind(this)}
           resolution={this.resolution}
-          mode={this.props.mode ?? EBingMode.PLANE}
+          mode={EBingMode.PLANE}
           earthColors={this.props.earthColors}
           earthColorsElevationRange={this.props.earthColorsElevationRange}
           reference={this.props.reference}
           wxrMode={this.props.wxrMode}
           wxrColors={this.props.wxrColors}
           isoLines={this.props.isoLines}
-          delay={this.props.delay}
+          delay={this.props.bingDelay}
+          skipUnbindOnDestroy={this.props.bingSkipUnbindOnDestroy}
         />
       </div>
     );
+  }
+
+  /** @inheritDoc */
+  public destroy(): void {
+    this.bingRef.getOrDefault()?.destroy();
+
+    super.destroy();
   }
 }

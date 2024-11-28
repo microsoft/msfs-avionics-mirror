@@ -1,0 +1,25 @@
+.selected-heading-container {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 3px;
+  font-size: 30px;
+  height: 54px;
+  width: 48px;
+  line-height: 26px;
+  color: var(--epic2-color-white);
+}
+
+#HorizonSection .selected-heading-container {
+  top: 431px;
+  left: 169px;
+}
+
+.selected-heading-container.magenta {
+  color: var(--epic2-color-magenta);
+}
+
+.selected-heading-container.amber {
+  color: var(--epic2-color-amber);
+}

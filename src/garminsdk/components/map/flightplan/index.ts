@@ -1,5 +1,6 @@
 export * from './MapActiveFlightPlanDataProvider';
 export * from './MapDefaultFlightPathPlanRenderer';
+export * from './MapDefaultFlightPlanWaypointRecordManager';
 export * from './MapFlightPathPlanRenderer';
 export * from './MapFlightPathProcRenderer';
 export * from './MapFlightPathStyles';

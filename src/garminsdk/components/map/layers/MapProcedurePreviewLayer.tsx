@@ -5,8 +5,8 @@ import {
 
 import { ProcedureType } from '../../../flightplan/FmsTypes';
 import { GarminFacilityWaypointCache } from '../../../navigation/GarminFacilityWaypointCache';
+import { MapDefaultFlightPlanWaypointRecordManager } from '../flightplan/MapDefaultFlightPlanWaypointRecordManager';
 import { MapFlightPathProcRenderer } from '../flightplan/MapFlightPathProcRenderer';
-import { MapFlightPlanWaypointRecordManager } from '../flightplan/MapFlightPlanWaypointRecordManager';
 import { ProcMapTransitionWaypointRecordManager } from '../flightplan/ProcMapTransitionWaypointRecordManager';
 import { GarminMapKeys } from '../GarminMapKeys';
 import { MapWaypointRenderer, MapWaypointRenderRole } from '../MapWaypointRenderer';
@@ -54,7 +54,7 @@ export class MapProcedurePreviewLayer extends MapLayer<MapProcedurePreviewLayerP
 
   private readonly pathStreamStack = new GeoProjectionPathStreamStack(NullPathStream.INSTANCE, this.props.mapProjection.getGeoProjection(), this.resampler);
 
-  private readonly procedureWaypointRecordManager = new MapFlightPlanWaypointRecordManager(
+  private readonly procedureWaypointRecordManager = new MapDefaultFlightPlanWaypointRecordManager(
     this.facLoader, this.waypointCache, this.props.waypointRenderer,
     MapWaypointRenderRole.ProcedurePreview, MapWaypointRenderRole.ProcedurePreview
   );

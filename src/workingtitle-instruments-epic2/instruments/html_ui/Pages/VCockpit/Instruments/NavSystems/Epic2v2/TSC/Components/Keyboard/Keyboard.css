@@ -1,0 +1,237 @@
+.keyboard-container-mode.keyboard-qwerty .keyboard-row {
+  position: absolute;
+  display: flex;
+}
+
+.keyboard-container-mode.keyboard-qwerty .keyboard-row.keyboard-row-numpad {
+  top: 139px;
+  left: 20px;
+}
+
+.keyboard-container-mode.keyboard-qwerty .keyboard-row.keyboard-row-0 {
+  top: 83px;
+  left: 412px;
+}
+
+.keyboard-container-mode.keyboard-qwerty .keyboard-row.keyboard-row-1 {
+  top: 212px;
+  left: 18px;
+}
+
+.keyboard-container-mode.keyboard-qwerty .keyboard-row.keyboard-row-2 {
+  top: 284px;
+  left: 58px;
+}
+
+.keyboard-container-mode.keyboard-qwerty .keyboard-row.keyboard-row-3 {
+  top: 356px;
+  left: 18px;
+}
+
+.keyboard-container-mode.keyboard-qwerty .keyboard-row.keyboard-row-4 {
+  top: 430px;
+  left: 18px;
+}
+
+.keyboard-row.keyboard-row-4 .clear-button,
+.keyboard-row.keyboard-row-4 .space-button,
+.keyboard-row.keyboard-row-4 .enter-button {
+  height: 58px;
+  width: 74px;
+  font-size: 28px;
+  line-height: 52px;
+  background-color: var(--epic2-color-darker-grey);
+  color: var(--epic2-color-white);
+  border: 2px solid var(--epic2-color-light-grey);
+  margin: 0px 3px 0px 0px;
+}
+
+.keyboard-row.keyboard-row-4 .clear-button {
+  height: 62px;
+  width: 154px;
+}
+
+.keyboard-row.keyboard-row-4 .space-button {
+  position: absolute;
+  left: 232px;
+  height: 62px;
+  width: 230px;
+}
+
+.keyboard-row.keyboard-row-4 .enter-button {
+  position: absolute;
+  left: 540px;
+  height: 62px;
+  width: 228px;
+}
+
+.keyboard-row.keyboard-row-0 .left-arrow-button,
+.keyboard-row.keyboard-row-0 .right-arrow-button,
+.keyboard-row.keyboard-row-0 .delete-button {
+  font-size: 28px;
+  line-height: 40px;
+  background-color: var(--epic2-color-darker-grey);
+  color: var(--epic2-color-white);
+  border: 2px solid var(--epic2-color-light-grey);
+  margin: 0px 3px 0px 0px;
+}
+
+.left-arrow-button.touch-button-disabled,
+.right-arrow-button.touch-button-disabled,
+.delete-button.touch-button-disabled {
+  color: var(--epic2-color-dark-grey) !important;
+  border-color: var(--epic2-color-dark-grey) !important;
+  background: none !important;
+}
+
+.left-arrow-button svg,
+.right-arrow-button svg {
+  stroke: var(--epic2-color-white);
+}
+
+.left-arrow-button.touch-button-disabled svg,
+.right-arrow-button.touch-button-disabled svg {
+  stroke: var(--epic2-color-dark-grey);
+}
+
+.keyboard-row.keyboard-row-0 .left-arrow-button {
+  height: 43px;
+  width: 99px;
+}
+
+.keyboard-row.keyboard-row-0 .right-arrow-button {
+  position: absolute;
+  left: 118px;
+  height: 43px;
+  width: 98px;
+}
+
+.keyboard-row.keyboard-row-0 .delete-button {
+  position: absolute;
+  left: 233px;
+  height: 43px;
+  width: 138px;
+}
+
+.keyboard-row.keyboard-row-numpad .keyboard-numpad-key {
+  width: 62px;
+  height: 62px;
+  border-radius: 31px;
+  background-color: var(--epic2-color-darker-grey);
+  border: 2px solid var(--epic2-color-light-grey);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 56px;
+  line-height: 68px;
+  color: var(--epic2-color-white);
+  text-decoration: none;
+  cursor: pointer;
+  margin: 0px 10px 0px 5px;
+  padding: 0;
+}
+
+.keyboard-row.keyboard-row-numpad .keyboard-numpad-key>span {
+  margin-top: -5px;
+  margin-left: -1px;
+}
+
+.tsc-keyboard-input-display .cursor-input-slot-character.cursor-input-slot-character-empty {
+  color: var(--epic2-color-white);
+  animation: none;
+}
+
+.tsc-keyboard-input-wrapper {
+  position: absolute;
+  top: 79px;
+}
+
+.tsc-keyboard-input {
+  position: absolute;
+  left: 25px;
+  top: 80px;
+  background-color: transparent;
+  color: var(--epic2-color-white);
+  font-size: 28px;
+  font-weight: bolder;
+  border: 2px solid var(--epic2-color-grey);
+  border-radius: 1px;
+  height: 50px;
+  width: 370px;
+}
+
+.tsc-keyboard-input .cursor-input-slots {
+  justify-content: flex-end;
+}
+
+.tsc-keyboard-input .cursor-input-cursor.cursor-blink {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 13px;
+  height: 24px;
+  transform: translate3d(288px, 0px, 0px);
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-left-color: white;
+}
+
+.tsc-keyboard-header {
+  display: flex;
+  flex-direction: row;
+  height: 62px;
+  width: 780px;
+  margin-left: 16px;
+  border-bottom: 2px solid var(--epic2-color-white);
+}
+
+.tsc-keyboard-header-label {
+  position: absolute;
+  top: 14px;
+  left: 136px;
+  font-size: 30px;
+  font-family: sans-serif;
+}
+
+.tsc-keyboard-header .tsc-keyboard-close-button {
+  display: flex;
+  position: absolute;
+  top: 16px;
+  right: 32px;
+  width: 25px;
+  height: 25px;
+}
+
+.tsc-keyboard-input .cursor-input-active {
+  position: absolute;
+  width: 100%;
+  padding-right: 18px;
+  padding-top: 5px;
+  right: -8px;
+  left: auto !important;
+}
+
+.tsc-keyboard-slide-pagination {
+  position: absolute;
+  width: 760px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  bottom: -28px;
+}
+
+.tsc-keyboard-slide-pagination .left-circle,
+.tsc-keyboard-slide-pagination .right-circle {
+  width: 17px;
+  height: 17px;
+  border: 4px solid var(--epic2-color-light-grey);
+  border-radius: 50%;
+}
+
+.tsc-keyboard-slide-pagination .left-circle {
+  margin-right: 6px;
+}
+
+.tsc-keyboard-slide-pagination .right-circle {
+  background: var(--epic2-color-light-grey);
+}

@@ -1,0 +1,22 @@
+.misc-settings-window {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8em;
+}
+
+.misc-settings-window .avionics-settings-row .options {
+  flex-grow: 1;
+  padding-left: 24px;
+  display: flex;
+  flex-direction: row;
+}
+
+.misc-settings-window .avionics-settings-row .options > * {
+  flex: 1 0 0;
+}
+
+.misc-settings-window .active-profile {
+  color: var(--epic2-color-green);
+}

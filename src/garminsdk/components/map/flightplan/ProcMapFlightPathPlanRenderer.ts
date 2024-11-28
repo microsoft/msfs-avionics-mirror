@@ -1,11 +1,13 @@
 import {
-  AbstractFlightPathPlanRenderer, BitFlags, CircleVector, FlightPathLegLineRenderer, FlightPathLegLineStyle, FlightPathLegRenderPart, FlightPathVectorFlags,
-  FlightPlan, GeoProjection, GeoProjectionPathStreamStack, LegDefinition, LegDefinitionFlags, LegType
+  AbstractFlightPathPlanRenderer, BitFlags, FlightPathLegLineRenderer, FlightPathLegLineStyle, FlightPathLegRenderPart,
+  FlightPathVector, FlightPathVectorFlags, FlightPlan, GeoProjection, GeoProjectionPathStreamStack, LegDefinition,
+  LegDefinitionFlags, LegType
 } from '@microsoft/msfs-sdk';
 
 import { DefaultBaseFlightPathPlanRenderer } from './MapDefaultFlightPathPlanRenderer';
 import {
-  FlightPathDefaultLegRenderer, FlightPathHoldLegRenderer, FlightPathLegContinuousLineRenderer, FlightPathProcTurnLegRenderer, FlightPathVtfLegRenderer
+  FlightPathDefaultLegRenderer, FlightPathHoldLegRenderer, FlightPathLegContinuousLineRenderer,
+  FlightPathProcTurnLegRenderer, FlightPathVtfLegRenderer
 } from './MapFlightPathLegRenderers';
 import { MapFlightPathProcRenderer } from './MapFlightPathProcRenderer';
 import { MapFlightPathStyles } from './MapFlightPathStyles';
@@ -92,7 +94,7 @@ export class ProcMapFullFlightPathPlanRenderer extends AbstractFlightPathPlanRen
    * @returns The selected line style for the vector.
    */
   private selectTransitionLineStyle(
-    vector: CircleVector,
+    vector: Readonly<FlightPathVector>,
     isIngress: boolean,
     isEgress: boolean,
     leg: LegDefinition,
@@ -124,7 +126,7 @@ export class ProcMapFullFlightPathPlanRenderer extends AbstractFlightPathPlanRen
    * @param leg The flight plan leg to which the vector belongs.
    * @returns Whether the flight path vector should be styled as a roll-heading vector.
    */
-  private isRollHeadingVector(vector: CircleVector, leg: LegDefinition): boolean {
+  private isRollHeadingVector(vector: Readonly<FlightPathVector>, leg: LegDefinition): boolean {
     switch (leg.leg.type) {
       case LegType.CF:
         return BitFlags.isAny(vector.flags, FlightPathVectorFlags.InterceptCourse | FlightPathVectorFlags.Direct);

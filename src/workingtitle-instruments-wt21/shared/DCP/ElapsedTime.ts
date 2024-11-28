@@ -1,74 +1,89 @@
-import { ClockEvents, ComputedSubject, ConsumerSubject, EventBus, Subject, Subscribable } from '@microsoft/msfs-sdk';
+import { ClockEvents, ComputedSubject, ConsumerSubject, DurationFormatter, EventBus, Subject, UnitType } from '@microsoft/msfs-sdk';
 
 import { DcpEvent } from './DcpEvent';
 import { DcpEvents } from './DcpEventPublisher';
 
-// eslint-disable-next-line jsdoc/require-jsdoc
-export type ElapsedTimeState = 'Off' | 'Started' | 'Stopped';
+/** The state of the elapsed timer */
+export enum ElapsedTimeState {
+  Off,
+  Started,
+  Stopped
+}
 
 /** State for the ET timer in bottom left of PFD. */
 export class ElapsedTime {
-  public readonly elapsedTimeText = ComputedSubject.create(null as number | null, elapsedSecondsToString);
+  private static DURATION_FORMATTER = DurationFormatter.create('{mm}:{ss}', UnitType.SECOND, 1, '--:--');
+  private static HR_DURATION_FORMATTER = DurationFormatter.create('H{h}:{mm}', UnitType.SECOND, 1, 'H-:--');
+
+  public readonly elapsedTimeText = ComputedSubject.create<number, string>(NaN, ElapsedTime.getElapsedTimeString);
   public readonly elapsedTimeIsVisibile = Subject.create(false);
-  private readonly currentTimestampMs: Subscribable<number>;
-  private state: ElapsedTimeState = 'Off';
+
+  private readonly currentTimestampMs = ConsumerSubject.create(this.bus.getSubscriber<ClockEvents>().on('simTime').whenChangedBy(1000), 0);
+  private readonly timerSub = this.currentTimestampMs.sub((v) => this.updateTimer(v), false, false);
+
+  private state = ElapsedTimeState.Off;
   private startTimestampMs = 0;
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
+  /** @inheritdoc */
   public constructor(private readonly bus: EventBus) {
-    this.currentTimestampMs = ConsumerSubject.create(this.bus.getSubscriber<ClockEvents>().on('simTime'), 0);
-
-    this.bus.getSubscriber<DcpEvents>().on('dcpEvent')
-      .handle(x => x === DcpEvent.DCP_ET && this.handleEtButtonPress());
+    this.bus.getSubscriber<DcpEvents>().on('dcpEvent').handle(evt => evt === DcpEvent.DCP_ET && this.handleEtButtonPress());
   }
 
-  public readonly handleEtButtonPress = (): void => {
+  /**
+   * Handles the elapsed timer button being pressed
+   * @returns void
+   */
+  private handleEtButtonPress(): void {
     switch (this.state) {
-      case 'Off': return this.start();
-      case 'Started': return this.stop();
-      case 'Stopped': return this.reset();
+      case ElapsedTimeState.Off: return this.start();
+      case ElapsedTimeState.Started: return this.stop();
+      case ElapsedTimeState.Stopped: return this.reset();
     }
-  };
+  }
 
-  private readonly start = (): void => {
+  /**
+   * Starts the timer
+   */
+  private start(): void {
     this.elapsedTimeText.set(0);
     this.elapsedTimeIsVisibile.set(true);
+
     this.startTimestampMs = this.currentTimestampMs.get();
-    this.currentTimestampMs.sub(this.handleTick);
-    this.state = 'Started';
-  };
+    this.timerSub.resume();
+    this.state = ElapsedTimeState.Started;
+  }
 
-  private readonly stop = (): void => {
-    this.currentTimestampMs.unsub(this.handleTick);
-    this.state = 'Stopped';
-  };
+  /**
+   * Stops the timer
+   */
+  private stop(): void {
+    this.timerSub.pause();
+    this.state = ElapsedTimeState.Stopped;
+  }
 
-  private readonly reset = (): void => {
-    this.elapsedTimeText.set(null);
+  /**
+   * Resets the timer
+   */
+  private reset(): void {
+    this.elapsedTimeText.set(NaN);
     this.elapsedTimeIsVisibile.set(false);
-    this.state = 'Off';
-  };
+    this.state = ElapsedTimeState.Off;
+  }
 
-  private readonly handleTick = (timestampMs: number): void => {
-    this.elapsedTimeText.set(Math.floor((timestampMs - this.startTimestampMs) / 1000));
-  };
-}
+  /**
+   * Updates the timer
+   * @param currentTime The current simtime timestamp in ms
+   */
+  private updateTimer(currentTime: number): void {
+    this.elapsedTimeText.set(Math.floor((currentTime - this.startTimestampMs) / 1000));
+  }
 
-// eslint-disable-next-line jsdoc/require-jsdoc
-function elapsedSecondsToString(elapsedSeconds: number | null): string {
-  if (elapsedSeconds === null) {
-    return '';
-  } else {
-    const hours = Math.floor(elapsedSeconds / 3600);
-    const leftoverSeconds = elapsedSeconds % 3600;
-    const minutes = Math.floor(leftoverSeconds / 60);
-    const seconds = elapsedSeconds % 60;
-    if (hours < 1) {
-      return `${minutes.toFixed(0).padStart(2, '0')}:${seconds.toFixed(0).padStart(2, '0')}`;
-    } else if (hours < 10) {
-      return `H${hours.toFixed(0)}:${minutes.toFixed(0).padStart(2, '0')}`;
-    } else {
-      return '--:--';
-    }
+  /**
+   * Gets the elapsed time string
+   * @param elapsedTime The elapsed time in milliseconds
+   * @returns The elapsed time string
+   */
+  private static getElapsedTimeString(elapsedTime: number): string {
+    return elapsedTime > 3_600_000 ? ElapsedTime.HR_DURATION_FORMATTER(elapsedTime) : ElapsedTime.DURATION_FORMATTER(elapsedTime);
   }
 }

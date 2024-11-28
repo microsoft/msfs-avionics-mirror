@@ -1,31 +1,37 @@
 import {
-  Accessible, APValues, APVerticalModes, EventBus, FlightPlanner, GPSSystemState, Subscribable, VNavManager,
-  VNavPathCalculator, VNavPathMode, VNavState
+  Accessible, APValues, APVerticalModes, EventBus, VNavManager, VNavPathMode, VNavState
 } from '@microsoft/msfs-sdk';
 
-import { GarminVNavComputer, GarminVNavComputerOptions } from './GarminVNavComputer';
-import { GarminVNavGlidepathGuidance, GarminVNavGuidance } from './GarminVNavTypes';
+import { GarminVNavComputer } from './GarminVNavComputer';
 import { GarminVNavManagerEvents } from './GarminVNavManagerEvents';
-import { GarminGlidepathComputer, GarminGlidepathComputerOptions } from './GarminGlidepathComputer';
+import { GarminVNavGlidepathGuidance, GarminVNavGuidance } from './GarminVNavTypes';
+import { GarminGlidepathComputer } from './GarminGlidepathComputer';
 
 /**
  * Options for {@link GarminVNavManager2}.
  */
-export interface GarminVNavManager2InternalComputerOptions {
-  /** Whether to enable Garmin advanced VNAV. */
-  enableAdvancedVNav: boolean;
+export interface GarminVNavManager2Options {
+  /**
+   * A function that creates an internal VNAV computer for the VNAV manager. The internal computer will be updated by
+   * the VNAV manager, and the manager will use the internal computer's VNAV and VNAV path guidance.
+   * @param apValues The autopilot's state values.
+   * @returns An internal VNAV computer for the VNAV manager.
+   */
+  internalVNavComputer?: (apValues: APValues) => GarminVNavComputer;
 
-  /** Whether to allow +V approach service levels when no SBAS is present. */
-  allowPlusVWithoutSbas: boolean;
+  /**
+   * A function that creates an internal glidepath computer for the VNAV manager. The internal computer will be updated
+   * by the VNAV manager, and the manager will use the internal computer's glidepath guidance.
+   * @param apValues The autopilot's state values.
+   * @returns An internal glidepath computer for the VNAV manager.
+   */
+  internalGlidepathComputer?: (apValues: APValues) => GarminGlidepathComputer;
 
-  /** Whether to allow approach service levels requiring baro VNAV. */
-  allowApproachBaroVNav: boolean;
+  /** The VNAV guidance to use. Ignored if `internalVNavComputer` is defined. */
+  guidance?: Accessible<Readonly<GarminVNavGuidance>> | undefined;
 
-  /** Whether to allow RNP (AR) approach service levels. */
-  allowRnpAr: boolean;
-
-  /** The current GPS system state. */
-  gpsSystemState: Subscribable<GPSSystemState>;
+  /** The glidepath guidance to use. Ignored if `internalGlidepathComputer` is defined. */
+  glidepathGuidance?: Accessible<Readonly<GarminVNavGlidepathGuidance>> | undefined;
 }
 
 /**
@@ -45,12 +51,16 @@ export class GarminVNavManager2 implements VNavManager {
   public onDeactivate?: () => void;
 
   /** @inheritDoc */
-  public armMode?: (mode: APVerticalModes) => void;
+  public armMode?: (mode: number) => void;
 
   /** @inheritDoc */
-  public activateMode?: (mode: APVerticalModes) => void;
+  public activateMode?: (mode: number) => void;
 
-  private readonly apValues: APValues;
+  // eslint-disable-next-line jsdoc/require-returns
+  /** Whether VNAV is active. */
+  public get isActive(): boolean {
+    return this.guidance ? this.guidance.get().isActive : false;
+  }
 
   /** This manager's internal VNAV computer. */
   public readonly vnavComputer?: GarminVNavComputer;
@@ -59,13 +69,7 @@ export class GarminVNavManager2 implements VNavManager {
   public readonly glidepathComputer?: GarminGlidepathComputer;
 
   private readonly guidance?: Accessible<Readonly<GarminVNavGuidance>>;
-  private readonly glidePathGuidance?: Accessible<Readonly<GarminVNavGlidepathGuidance>>;
-
-  // eslint-disable-next-line jsdoc/require-returns
-  /** Whether VNAV is active. */
-  public get isActive(): boolean {
-    return this.guidance ? this.guidance.get().isActive : false;
-  }
+  private readonly glidepathGuidance?: Accessible<Readonly<GarminVNavGlidepathGuidance>>;
 
   private inhibitPathMode = false;
 
@@ -73,94 +77,27 @@ export class GarminVNavManager2 implements VNavManager {
    * Creates a new instance of GarminVNavManager2 that uses VNAV guidance from an external source.
    * @param bus The event bus.
    * @param apValues Autopilot values from this manager's parent autopilot.
-   * @param guidance The VNAV guidance to use.
-   * @param glidepathGuidance The glidepath guidance to use.
+   * @param options Options with which to configure the manager.
    */
-  public constructor(
-    bus: EventBus,
-    apValues: APValues,
-    guidance: Accessible<Readonly<GarminVNavGuidance>> | undefined,
-    glidepathGuidance: Accessible<Readonly<GarminVNavGlidepathGuidance>> | undefined
-  );
-  /**
-   * Creates a new instance of GarminVNavManager2 that maintains its own instance of `GarminVNavComputer` from which
-   * to source VNAV guidance. The index of the VNAV computer is `0`.
-   * @param bus The event bus.
-   * @param flightPlanner The flight planner containing the flight plan for which the VNAV computer provides guidance.
-   * @param calculator The VNAV path calculator providing the vertical flight path for which the VNAV computer provides
-   * guidance.
-   * @param apValues Autopilot values from this manager's parent autopilot.
-   * @param options Options with which to configure the internal VNAV and glidepath computers.
-   */
-  public constructor(
-    bus: EventBus,
-    flightPlanner: FlightPlanner,
-    calculator: VNavPathCalculator,
-    apValues: APValues,
-    options?: Readonly<GarminVNavManager2InternalComputerOptions>
-  );
-  /**
-   * Creates a new instance of GarminVNavManager2 that maintains its own instance of `GarminVNavComputer` from which
-   * to source VNAV guidance. The index of the VNAV computer is `0`.
-   * @param bus The event bus.
-   * @param flightPlanner The flight planner containing the flight plan for which the VNAV computer provides guidance.
-   * @param calculator The VNAV path calculator providing the vertical flight path for which the VNAV computer provides
-   * guidance.
-   * @param apValues Autopilot values from this manager's parent autopilot.
-   * @param primaryPlanIndex The index of the flight plan for which the VNAV computer provides vertical guidance.
-   * @param options Guidance options with which to configure the VNAV computer.
-   */
-  public constructor(
-    bus: EventBus,
-    flightPlanner: FlightPlanner,
-    calculator: VNavPathCalculator,
-    apValues: APValues,
-    primaryPlanIndex: number,
-    options?: Partial<Readonly<GarminVNavManager2InternalComputerOptions>>
-  );
-  // eslint-disable-next-line jsdoc/require-jsdoc
   public constructor(
     private readonly bus: EventBus,
-    arg2: APValues | FlightPlanner,
-    arg3?: Accessible<Readonly<GarminVNavGuidance>> | VNavPathCalculator,
-    arg4?: APValues | Accessible<Readonly<GarminVNavGlidepathGuidance>>,
-    arg5?: number | Readonly<GarminVNavManager2InternalComputerOptions>,
-    arg6?: Partial<Readonly<GarminVNavManager2InternalComputerOptions>>
+    private readonly apValues: APValues,
+    options?: Readonly<GarminVNavManager2Options>
   ) {
-    if (arg2 instanceof FlightPlanner) {
-      this.apValues = arg4 as APValues;
-
-      let options: Readonly<GarminVNavComputerOptions & GarminGlidepathComputerOptions> | undefined;
-      if (typeof arg5 === 'number') {
-        options = {
-          primaryPlanIndex: arg5,
-          ...arg6
-        };
+    if (options) {
+      if (options.internalVNavComputer) {
+        this.vnavComputer = options.internalVNavComputer(apValues);
+        this.guidance = this.vnavComputer.guidance;
       } else {
-        options = arg5;
+        this.guidance = options.guidance;
       }
 
-      this.vnavComputer = new GarminVNavComputer(
-        0,
-        bus,
-        arg2,
-        arg3 as VNavPathCalculator,
-        this.apValues,
-        options
-      );
-      this.glidepathComputer = new GarminGlidepathComputer(
-        0,
-        bus,
-        arg2,
-        options
-      );
-
-      this.guidance = this.vnavComputer.guidance;
-      this.glidePathGuidance = this.glidepathComputer.glidepathGuidance;
-    } else {
-      this.apValues = arg2;
-      this.guidance = arg3 as Accessible<Readonly<GarminVNavGuidance>> | undefined;
-      this.glidePathGuidance = arg4 as Accessible<Readonly<GarminVNavGlidepathGuidance>> | undefined;
+      if (options.internalGlidepathComputer) {
+        this.glidepathComputer = options.internalGlidepathComputer(apValues);
+        this.glidepathGuidance = this.glidepathComputer.glidepathGuidance;
+      } else {
+        this.glidepathGuidance = options.glidepathGuidance;
+      }
     }
   }
 
@@ -182,7 +119,7 @@ export class GarminVNavManager2 implements VNavManager {
   }
 
   /** @inheritDoc */
-  public canVerticalModeActivate(mode: APVerticalModes): boolean {
+  public canVerticalModeActivate(mode: number): boolean {
     if (this.guidance) {
       const guidance = this.guidance.get();
 
@@ -220,7 +157,7 @@ export class GarminVNavManager2 implements VNavManager {
    * Arms a climb mode. The mode will be armed only if the currently active vertical mode is an altitude hold mode.
    * @param mode The mode to arm.
    */
-  private armClimb(mode: APVerticalModes): void {
+  private armClimb(mode: number): void {
     if (this.apValues.verticalArmed.get() === mode || this.apValues.verticalActive.get() !== APVerticalModes.ALT) {
       return;
     }
@@ -232,7 +169,7 @@ export class GarminVNavManager2 implements VNavManager {
    * Activates a climb mode.
    * @param mode The mode to activate.
    */
-  private activateClimb(mode: APVerticalModes): void {
+  private activateClimb(mode: number): void {
     if (this.apValues.verticalActive.get() === mode) {
       return;
     }
@@ -293,8 +230,8 @@ export class GarminVNavManager2 implements VNavManager {
       this.glidepathComputer.update();
     }
 
-    if (this.glidePathGuidance) {
-      this.apValues.approachHasGP.set(this.glidePathGuidance.get().approachHasGlidepath);
+    if (this.glidepathGuidance) {
+      this.apValues.approachHasGP.set(this.glidepathGuidance.get().approachHasGlidepath);
     }
 
     if (this.guidance) {

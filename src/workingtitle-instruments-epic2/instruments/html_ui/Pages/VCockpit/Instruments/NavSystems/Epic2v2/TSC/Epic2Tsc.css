@@ -1,0 +1,28 @@
+epic2-tsc {
+  font-size: 60px;
+}
+
+epic2-tsc,
+epic2-tsc #Mainframe,
+epic2-tsc #Electricity {
+  width: 100%;
+  height: 100%;
+}
+
+epic2-tsc #TopSection {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 84%;
+  /* overflow: hidden; */
+}
+
+epic2-tsc #BottomSection {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 16%;
+  overflow: hidden;
+}

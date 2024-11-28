@@ -1,0 +1,12 @@
+.afcs-speed-bug {
+  position: absolute;
+  top: -1px;
+  right: -8px;
+
+  stroke: rgba(0, 0, 0, .5);
+  stroke-width: 1px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: var(--epic2-color-magenta);
+  filter: drop-shadow(0px 0px 1px rgba(0, 0, 0, .5));
+}

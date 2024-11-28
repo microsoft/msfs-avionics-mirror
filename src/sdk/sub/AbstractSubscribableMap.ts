@@ -73,19 +73,6 @@ export abstract class AbstractSubscribableMap<K, V> implements SubscribableMap<K
     return sub;
   }
 
-  /** @inheritdoc */
-  public unsub(handler: SubscribableMapHandler<K, V>): void {
-    let toDestroy: HandlerSubscription<SubscribableMapHandler<K, V>> | undefined = undefined;
-
-    if (this.singletonSub && this.singletonSub.handler === handler) {
-      toDestroy = this.singletonSub;
-    } else if (this.subs) {
-      toDestroy = this.subs.find(sub => sub.handler === handler);
-    }
-
-    toDestroy?.destroy();
-  }
-
   /**
    * Notifies subscriptions of a change in this map.
    * @param type The type of change.
@@ -130,7 +117,7 @@ export abstract class AbstractSubscribableMap<K, V> implements SubscribableMap<K
       for (let i = 0; i < subLen; i++) {
         try {
           const sub = this.subs[i];
-          if (sub.isAlive && !sub.isPaused) {
+          if (!sub.isPaused) {
             sub.handler(map, type, key, value);
           }
 

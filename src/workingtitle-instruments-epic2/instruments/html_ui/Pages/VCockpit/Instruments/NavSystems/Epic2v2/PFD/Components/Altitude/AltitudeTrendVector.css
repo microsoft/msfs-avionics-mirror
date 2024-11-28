@@ -1,0 +1,30 @@
+.altitude-trend-vector {
+  position: absolute;
+  bottom: 50%;
+  left: 7px;
+  height: 50%;
+  width: 20px;
+  overflow: hidden;
+  transform-origin: center bottom;
+}
+
+.altitude-trend-vector-line {
+  position: absolute;
+  width: 10px;
+  top: 100%;
+  left: 10px;
+  height: 100%;
+  background: var(--epic2-color-white);
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.altitude-trend-vector-line::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -10px;
+  height: 6px;
+  width: 15px;
+  background: var(--epic2-color-white);
+}

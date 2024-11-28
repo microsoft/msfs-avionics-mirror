@@ -28,6 +28,24 @@ export type BaseTerrainSystemEvents = {
   /** An inhibit flag was removed from the terrain system. */
   terrainsys_inhibit_removed: string;
 
+  /** The terrain system's triggered alerts. */
+  terrainsys_triggered_alerts: readonly string[];
+
+  /** An alert was triggered by the terrain system. */
+  terrainsys_alert_triggered: string;
+
+  /** An alert was untriggered by the terrain system. */
+  terrainsys_alert_untriggered: string;
+
+  /** The terrain system's inhibited alerts. */
+  terrainsys_inhibited_alerts: readonly string[];
+
+  /** An alert was inhibited by the terrain system. */
+  terrainsys_alert_inhibited: string;
+
+  /** An alert was uninhibited by the terrain system. */
+  terrainsys_alert_uninhibited: string;
+
   /** The terrain system's active alerts. */
   terrainsys_active_alerts: readonly string[];
 

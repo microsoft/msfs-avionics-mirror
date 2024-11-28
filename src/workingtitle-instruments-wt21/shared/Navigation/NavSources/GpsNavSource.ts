@@ -34,9 +34,9 @@ export class GpsSource<T extends readonly string[]> extends NavSourceBase<T> {
     lnav.on('lnavdata_waypoint_distance').whenChanged().handle(this.lnavDis.set.bind(this.lnavDis));
     lnav.on('lnavdata_dtk_mag').whenChanged().handle(this.lnavDtkMag.set.bind(this.lnavDtkMag));
     lnav.on('lnavdata_xtk').whenChanged().handle(this.lnavXtk.set.bind(this.lnavXtk));
-    lnav.on('lnavdata_cdi_scale').whenChanged().handle(this.setters.get('lateralDeviationScaling')!);
-    lnav.on('lnavdata_cdi_scale_label').whenChanged().handle(this.setters.get('lateralDeviationScalingLabel')!);
-    lnav.on('lnavdata_nominal_leg_index').atFrequency(2).handle(this.handleEffectiveLegIndex);
+    lnav.on('lnavdata_cdi_scale').whenChanged().handle(this.setters.get('lateralDeviationScaling')!.setter);
+    lnav.on('lnavdata_cdi_scale_label').whenChanged().handle(this.setters.get('lateralDeviationScalingLabel')!.setter);
+    lnav.on('lnavdata_nominal_leg_index').whenChanged().handle(this.handleEffectiveLegIndex);
 
     this.lnavIsTracking.sub(this.updateBearing);
     this.lnavBrgMag.sub(this.updateBearing);

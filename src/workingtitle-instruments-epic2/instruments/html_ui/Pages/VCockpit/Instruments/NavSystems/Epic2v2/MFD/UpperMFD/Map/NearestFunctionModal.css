@@ -1,0 +1,111 @@
+.nearest-function-modal {
+  left: 360px;
+  top: 70px;
+  border-radius: var(--bar-touch-button-border-radius);
+  border-image-width: var(--bar-touch-button-border-image-width);
+  border-image-source: var(--bar-touch-button-border-image-source);
+  border-width: var(--touch-button-border-width);
+  border-style: var(--touch-button-border-style);
+  border-image-slice: var(--touch-button-border-image-slice);
+  border-image-repeat: var(--touch-button-border-image-repeat);
+  width: var(--flight-management-window-width);
+  height: 268px;
+}
+
+.nearest-function-modal .title {
+  font-size: 27px;
+  padding-top: 10px;
+  padding-left: 4px;
+}
+
+.nearest-function-modal .airway {
+  font-size: 22px;
+  padding-left: 4px;
+}
+
+.nearest-function-modal .header {
+  display: flex;
+  position: relative;
+}
+
+.nearest-function-modal .subheader {
+  display: flex;
+  position: relative;
+  top: 12px;
+}
+
+.touch-button.nearest-airport-close-button {
+  margin-left: auto;
+  width: 57px;
+  height: 37px;
+  margin-top: 2px;
+}
+
+.airport-menu-label {
+  font-size: 18px;
+}
+
+
+.divert-button {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  padding: 2px 10px 0 10px;
+  height: 40px;
+  line-height: 16px;
+}
+
+.list-title {
+  font-size: 20px;
+  padding-left: 9px;
+  line-height: 12px;
+  padding-top: 12px;
+}
+
+.airport-container {
+  left: 5px;
+  width: calc(100% - 105px);
+  height: 70px;
+}
+
+.airport-list-container {
+  left: 5px;
+  top: 80px;
+  width: calc(100% - 10px);
+  height: calc(100% - 200px);
+}
+
+.airport-list-placeholder {
+  position: relative;
+  margin: 5px 5px 1px 3px;
+  padding: 2px;
+}
+
+.airport-name-menu-base {
+  right: -98px;
+}
+
+.select-airport-holder {
+  text-align: left;
+  padding-left: 3px;
+  padding-top: 2px;
+}
+
+.select-airport-holder * {
+  font-size: 20px;
+  white-space: pre;
+}
+
+.selected-airport-background {
+  width: 316px;
+  background: var(--epic2-color-black);
+  border: 2px solid var(--epic2-color-white);
+  border-radius: 2px;
+}
+
+.airport-item-image {
+  height: 14px;
+  width: 14px;
+  margin-left: 5px;
+  margin-right: 5px;
+}

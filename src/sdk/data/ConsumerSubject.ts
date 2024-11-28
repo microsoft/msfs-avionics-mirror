@@ -6,13 +6,17 @@ import { Consumer } from './Consumer';
  * A subscribable subject which derives its value from an event consumer.
  */
 export class ConsumerSubject<T> extends AbstractSubscribable<T> implements Subscription {
-  /** @inheritdoc */
+  /** @inheritDoc */
   public readonly canInitialNotify = true;
 
   private readonly consumerHandler = this.onEventConsumed.bind(this);
 
   private value: T;
+  private isValueConsumed = false;
   private consumerSub?: Subscription;
+
+  private needSetDefaultValue = false;
+  private defaultValue?: T;
 
   private _isAlive = true;
   // eslint-disable-next-line jsdoc/require-returns
@@ -93,10 +97,10 @@ export class ConsumerSubject<T> extends AbstractSubscribable<T> implements Subsc
   }
 
   /**
-   * Consumes an event.
-   * @param value The value of the event.
+   * Sets this subject's value and notifies subscribers if the value changed.
+   * @param value The value to set.
    */
-  private onEventConsumed(value: T): void {
+  private setValue(value: T): void {
     if (!this.equalityFunc(this.value, value)) {
       if (this.mutateFunc) {
         this.mutateFunc(this.value, value);
@@ -105,6 +109,26 @@ export class ConsumerSubject<T> extends AbstractSubscribable<T> implements Subsc
       }
       this.notify();
     }
+  }
+
+  /**
+   * Consumes an event.
+   * @param value The value of the event.
+   */
+  private onEventConsumed(value: T): void {
+    this.isValueConsumed = true;
+
+    if (this.needSetDefaultValue) {
+      this.needSetDefaultValue = false;
+      delete this.defaultValue;
+    }
+
+    this.setValue(value);
+  }
+
+  /** @inheritDoc */
+  public get(): T {
+    return this.value;
   }
 
   /**
@@ -118,8 +142,73 @@ export class ConsumerSubject<T> extends AbstractSubscribable<T> implements Subsc
       return this;
     }
 
+    this.needSetDefaultValue = false;
+    delete this.defaultValue;
+
     this.consumerSub?.destroy();
     this.consumerSub = consumer?.handle(this.consumerHandler, this._isPaused);
+
+    return this;
+  }
+
+  /**
+   * Sets the consumer from which this subject derives its value and designates a default value to set if an event is
+   * not immediately consumed from the new consumer when this subject is resumed. If the consumer is null, then this
+   * subject's value will be set to the default value.
+   * @param consumer An event consumer.
+   * @param defaultVal The default value to set if the new consumer is null or if an event is not immediately consumed
+   * from the new consumer when this subject is resumed.
+   * @returns This subject, after its consumer has been set.
+   */
+  public setConsumerWithDefault(consumer: Consumer<T> | null, defaultVal: T): this {
+    if (!this._isAlive) {
+      return this;
+    }
+
+    this.defaultValue = defaultVal;
+    this.needSetDefaultValue = true;
+
+    this.consumerSub?.destroy();
+    this.consumerSub = consumer?.handle(this.consumerHandler, this._isPaused);
+
+    if (!this._isPaused && this.needSetDefaultValue) {
+      const defaultValue = this.defaultValue;
+
+      this.needSetDefaultValue = false;
+      delete this.defaultValue;
+
+      this.setValue(defaultValue);
+    }
+
+    return this;
+  }
+
+  /**
+   * Resets this subject to an initial value and optionally sets a new consumer from which this subject will derive its
+   * value. If the consumer is null, then this subject's value will not be updated until a non-null consumer is set.
+   * 
+   * The reset is treated as an atomic operation. If a non-null consumer is set and a consumed value immediately
+   * replaces the initial value, then subscribers to this subject will only be notified of the change to the consumed
+   * value instead of to both the change to the initial value and then to the consumed value.
+   * @param initialVal The initial value to which to reset this subject.
+   * @param consumer An event consumer. Defaults to `null`.
+   * @returns This subject, after it has been reset.
+   */
+  public reset(initialVal: T, consumer: Consumer<T> | null = null): this {
+    if (!this._isAlive) {
+      return this;
+    }
+
+    this.isValueConsumed = false;
+    this.needSetDefaultValue = false;
+    delete this.defaultValue;
+
+    this.consumerSub?.destroy();
+    this.consumerSub = consumer?.handle(this.consumerHandler, this._isPaused);
+
+    if (!this.isValueConsumed) {
+      this.setValue(initialVal);
+    }
 
     return this;
   }
@@ -155,12 +244,16 @@ export class ConsumerSubject<T> extends AbstractSubscribable<T> implements Subsc
     this._isPaused = false;
     this.consumerSub?.resume(true);
 
-    return this;
-  }
+    if (this.needSetDefaultValue) {
+      const defaultValue = this.defaultValue as T;
 
-  /** @inheritdoc */
-  public get(): T {
-    return this.value;
+      this.needSetDefaultValue = false;
+      delete this.defaultValue;
+
+      this.setValue(defaultValue);
+    }
+
+    return this;
   }
 
   /**

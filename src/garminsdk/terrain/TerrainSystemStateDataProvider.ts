@@ -13,13 +13,19 @@ export interface TerrainSystemStateDataProvider {
   readonly operatingMode: Subscribable<TerrainSystemOperatingMode>;
 
   /** The terrain system's active status flags. */
-  readonly statusFlags: SubscribableSet<string>;
+  readonly statusFlags: SubscribableSet<string> & Subscribable<ReadonlySet<string>>;
 
   /** The terrain system's active inhibit flags. */
-  readonly inhibitFlags: SubscribableSet<string>;
+  readonly inhibitFlags: SubscribableSet<string> & Subscribable<ReadonlySet<string>>;
+
+  /** The terrain system's triggered alerts. */
+  readonly triggeredAlerts: SubscribableSet<string> & Subscribable<ReadonlySet<string>>;
+
+  /** The terrain system's inhibited alerts. */
+  readonly inhibitedAlerts: SubscribableSet<string> & Subscribable<ReadonlySet<string>>;
 
   /** The terrain system's active alerts. */
-  readonly activeAlerts: SubscribableSet<string>;
+  readonly activeAlerts: SubscribableSet<string> & Subscribable<ReadonlySet<string>>;
 
   /** The terrain system's current prioritized active alert. */
   readonly prioritizedAlert: Subscribable<string | null>;

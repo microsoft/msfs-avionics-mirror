@@ -5,8 +5,10 @@ import { UnitType } from '../math';
 import { Subject } from '../sub/Subject';
 import { Subscribable } from '../sub/Subscribable';
 import { Subscription } from '../sub/Subscription';
-import { Facility, FacilityType, FacilityTypeMap, FacilityUtils, ICAO } from './Facilities';
+import { Facility, FacilityType, FacilityTypeMap } from './Facilities';
 import { FacilityRepositoryEvents } from './FacilityRepository';
+import { FacilityUtils } from './FacilityUtils';
+import { ICAO } from './IcaoUtils';
 
 /**
  * A collection of unique string waypoint type keys.
@@ -87,7 +89,7 @@ export class CustomWaypoint extends AbstractWaypoint {
     let uid: string;
 
     if (typeof arg1 === 'number') {
-      location = GeoPointSubject.createFromGeoPoint(new GeoPoint(arg1, arg2 as number));
+      location = GeoPointSubject.create(new GeoPoint(arg1, arg2 as number));
       uid = `${arg3 as string}[${location.get().lat},${location.get().lon}]`;
     } else {
       location = arg1;
@@ -132,32 +134,32 @@ export class BasicFacilityWaypoint<T extends Facility = Facility> extends Abstra
   /** @inheritdoc */
   public readonly isFacilityWaypoint = true;
 
-  private _facility: Subject<T>;
+  private readonly _facility: Subject<T>;
   private readonly _location: GeoPointSubject;
   private readonly _type: WaypointTypes;
 
   private facChangeSub?: Subscription;
 
   /**
-   * Constructor.
+   * Creates a new instance of BasicFacilityWaypoint.
    * @param facility The facility associated with this waypoint.
    * @param bus The event bus.
    */
-  constructor(facility: T, private readonly bus: EventBus) {
+  public constructor(facility: T, private readonly bus: EventBus) {
     super();
 
     this._facility = Subject.create(facility);
 
-    this._location = GeoPointSubject.createFromGeoPoint(new GeoPoint(facility.lat, facility.lon));
+    this._location = GeoPointSubject.create(new GeoPoint(facility.lat, facility.lon));
     this._type = BasicFacilityWaypoint.getType(facility);
 
-    const facType = ICAO.getFacilityType(facility.icao);
+    const facType = ICAO.getFacilityTypeFromValue(facility.icaoStruct);
     if (facType === FacilityType.VIS || facType === FacilityType.USR) {
       // These types of facilities can be mutated. So we need to listen to the event bus for change events and respond
       // accordingly.
 
       this.facChangeSub = this.bus.getSubscriber<FacilityRepositoryEvents>()
-        .on(`facility_changed_${facility.icao}`)
+        .on(`facility_changed_${ICAO.getUid(facility.icaoStruct)}`)
         .handle(newFacility => {
           this._facility.set(newFacility as T);
           this._location.set(newFacility.lat, newFacility.lon);
@@ -172,7 +174,7 @@ export class BasicFacilityWaypoint<T extends Facility = Facility> extends Abstra
 
   /** @inheritdoc */
   public get uid(): string {
-    return this.facility.get().icao;
+    return ICAO.getUid(this.facility.get().icaoStruct);
   }
 
   /** @inheritdoc */
@@ -194,7 +196,7 @@ export class BasicFacilityWaypoint<T extends Facility = Facility> extends Abstra
    * @returns The waypoint type corresponding to the facility.
    */
   private static getType(facility: Facility): WaypointTypes {
-    switch (ICAO.getFacilityType(facility.icao)) {
+    switch (ICAO.getFacilityTypeFromValue(facility.icaoStruct)) {
       case FacilityType.Airport:
         return WaypointTypes.Airport;
       case FacilityType.Intersection:

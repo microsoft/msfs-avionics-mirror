@@ -5,7 +5,8 @@ import { GeoPoint } from '../../geo/GeoPoint';
 import { NavMath } from '../../geo/NavMath';
 import { GNSSEvents } from '../../instruments/GNSS';
 import { UnitType } from '../../math/NumberUnit';
-import { FacilityType, ICAO } from '../../navigation/Facilities';
+import { FacilityType } from '../../navigation/Facilities';
+import { ICAO } from '../../navigation/IcaoUtils';
 import { VNavUtils } from '../vnav/VNavUtils';
 
 /**

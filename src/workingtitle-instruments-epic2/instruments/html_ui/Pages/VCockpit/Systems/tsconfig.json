@@ -1,0 +1,16 @@
+{
+  "extends": "../../../../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../../../build/workingtitle-instruments-epic2-v2/html_ui/Pages/VCockpit/Systems",
+    "composite": true
+  },
+  "exclude": [
+    "Gulpfile.ts",
+    "**/node_modules",
+    "**/build",
+    "**/dist"
+  ],
+  "files": [
+    "./Systems_Epic2.ts"
+  ]
+}

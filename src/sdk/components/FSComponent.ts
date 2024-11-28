@@ -396,9 +396,18 @@ export namespace FSComponent {
                 }, true);
               } else {
                 // Bind an attribute to a subscribable.
-                prop.sub((v: any) => {
-                  element.setAttribute(key, v);
-                }, true);
+
+                const ns = getNamespaceToSetAttributeWith(key);
+
+                if (ns !== null) {
+                  prop.sub((v: any) => {
+                    element.setAttributeNS(ns, key, v);
+                  }, true);
+                } else {
+                  prop.sub((v: any) => {
+                    element.setAttribute(key, v);
+                  }, true);
+                }
               }
             } else if (key === 'class' && typeof prop === 'object') {
               // Bind CSS classes to an object of key value pairs where the values can be boolean | Subscribable<boolean>
@@ -431,7 +440,13 @@ export namespace FSComponent {
                 }
               }
             } else {
-              element.setAttribute(key, prop);
+              const ns = getNamespaceToSetAttributeWith(key);
+
+              if (ns !== null) {
+                element.setAttributeNS(ns, key, prop);
+              } else {
+                element.setAttribute(key, prop);
+              }
             }
           }
         }
@@ -511,6 +526,21 @@ export namespace FSComponent {
     }
 
     return vnode;
+  }
+
+  /**
+   * Returns the namespace to use for setting an attribute, or null if none
+   *
+   * @param attribute the attribute to set
+   *
+   * @returns a string or null
+   */
+  function getNamespaceToSetAttributeWith(attribute: string): string | null {
+    if (attribute.startsWith('xlink:')) {
+      return 'http://www.w3.org/1999/xlink';
+    }
+
+    return null;
   }
 
   /**
@@ -1343,10 +1373,17 @@ export class PluginSystem<T extends AvionicsPlugin<B>, B> {
   /**
    * Runs the provided function on all of the registered plugins.
    * @param fun The function to run.
+   * @param reverseOrder Whether to iterate through plugins in reverse order. Defaults to `false`.
    */
-  public callPlugins(fun: (plugin: T) => void): void {
-    for (const plugin of this.plugins) {
-      fun(plugin);
+  public callPlugins(fun: (plugin: T) => void, reverseOrder = false): void {
+    if (reverseOrder) {
+      for (let i = this.plugins.length - 1; i >= 0; i--) {
+        fun(this.plugins[i]);
+      }
+    } else {
+      for (let i = 0; i < this.plugins.length; i++) {
+        fun(this.plugins[i]);
+      }
     }
   }
 

@@ -1,0 +1,142 @@
+.dial-gauge {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  width: 148px;
+}
+
+.dial-gauge.left-side {
+  margin-right: 20px;
+}
+
+.dial-gauge.right-side {
+  margin-left: 8px;
+}
+
+.dial-gauge-rotate-center {
+  transform-origin: 90px 90px;
+  fill: var(--epic2-color-darker-grey);
+}
+
+.dial-gauge-svg-arc-rotating-gray-mask {
+  transition: rotate 0s;
+}
+
+.dial-gauge-svg-arc-static-mask {
+  background: var(--epic2-color-black);
+  width: 160px;
+  height: 90px;
+  bottom: -117px;
+  left: 10px;
+}
+
+.dial-gauge-container {
+  position: relative;
+  width: 148px;
+  height: 90px;
+  transform: scale(0.83);
+  left: -13px;
+  z-index: -1;
+}
+
+.dial-gauge-container>div {
+  position: absolute;
+}
+
+.dial-gauge-svg {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 90px;
+  z-index: -1;
+}
+
+.dial-gauge-svg .arc {
+  stroke-width: 3;
+  fill: none;
+}
+
+.dial-gauge-svg .grey-arc {
+  stroke: var(--epic2-color-dark-grey);
+}
+
+.dial-gauge-svg .green-arc {
+  stroke: var(--epic2-color-green);
+}
+
+.dial-gauge-svg .amber-arc {
+  stroke: var(--epic2-color-amber);
+}
+
+.dial-gauge-svg .red-arc {
+  stroke: var(--epic2-color-red);
+}
+
+.dial-gauge-svg .mark {
+  stroke-width: 3px;
+  transform-origin: 74px 80px;
+}
+
+.dial-gauge-svg .white {
+  stroke: var(--epic2-color-white);
+}
+
+.dial-gauge-svg .amber {
+  stroke: var(--epic2-color-amber);
+}
+
+.dial-gauge-svg .red {
+  stroke: var(--epic2-color-red);
+}
+
+.dial-gauge-svg .needle {
+  fill: var(--epic2-color-white);
+  stroke: var(--epic2-color-dark-grey);
+  stroke-width: 1px;
+  transform-origin: 74px 80px;
+}
+
+.dial-gauge-svg .needle-base {
+  fill: var(--epic2-color-green);
+}
+
+.dial-gauge .needle.amber {
+  fill: var(--epic2-color-amber);
+}
+
+.dial-gauge .needle.red {
+  fill: var(--epic2-color-red);
+}
+
+.dial-gauge-svg .pointer {
+  fill: none;
+  stroke: var(--epic2-color-white);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  transform-origin: 74px 80px;
+}
+
+.dial-gauge .value {
+  height: 39px;
+  padding: 2px 4px;
+  margin-bottom: 6px;
+  border: 3px solid var(--epic2-color-dark-grey);
+  background-color: var(--epic2-color-black);
+  z-index: 1;
+}
+
+.dial-gauge .value.amber {
+  color: var(--epic2-color-black);
+  background-color: var(--epic2-color-amber);
+}
+
+.dial-gauge .value.red {
+  color: var(--epic2-color-black);
+  background-color: var(--epic2-color-red);
+}
+
+.dial-gauge .label {
+  margin-bottom: 5px;
+}

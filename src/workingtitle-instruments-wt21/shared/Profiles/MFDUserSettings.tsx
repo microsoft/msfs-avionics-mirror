@@ -2,7 +2,6 @@ import { AliasedUserSettingManager, DefaultUserSettingManager, EventBus, UserSet
 
 import { HSIFormat, TerrWxState } from '../Map';
 import { WT21MfdTextPage } from '../WT21MfdTextPageEvents';
-import { MfdIndexEvents } from '../MfdIndexEvents';
 
 export enum EngineIndicationDisplayMode {
   Compressed,
@@ -180,7 +179,7 @@ export type MFDSettingsAliased = {
  */
 export class MFDUserSettings {
   private static INSTANCE_MASTER: DefaultUserSettingManager<MFDSettings> | undefined;
-  private static INSTANCE_ALIASED: AliasedUserSettingManager<MFDSettingsAliased> | undefined;
+  private static INSTANCE_ALIASED = [] as AliasedUserSettingManager<MFDSettingsAliased>[];
 
   /**
    * Retrieves a setting manager with all MFD user settings.
@@ -194,26 +193,25 @@ export class MFDUserSettings {
   /**
    * Retrieves a setting manager with aliased MFD user settings.
    * @param bus The event bus.
+   * @param index The instrument index
    * @returns A setting manager with aliased MFD user settings.
    */
-  public static getAliasedManager(bus: EventBus): UserSettingManager<MFDSettingsAliased> {
-    if (MFDUserSettings.INSTANCE_ALIASED === undefined) {
-      MFDUserSettings.INSTANCE_ALIASED = new AliasedUserSettingManager<MFDSettingsAliased>(bus, mfdSettingsAliased);
+  public static getAliasedManager(bus: EventBus, index: 1 | 2): UserSettingManager<MFDSettingsAliased> {
+    if (MFDUserSettings.INSTANCE_ALIASED[index] === undefined) {
+      MFDUserSettings.INSTANCE_ALIASED[index] = new AliasedUserSettingManager<MFDSettingsAliased>(bus, mfdSettingsAliased);
 
-      bus.getSubscriber<MfdIndexEvents>().on('mfd_index').handle(index => {
-        MFDUserSettings.INSTANCE_ALIASED?.useAliases(MFDUserSettings.getMasterManager(bus), {
-          mfdUpperWindowState: `mfdUpperWindowState_${index}`,
-          mfdEisState: `mfdEisState_${index}`,
-          mfdUpperFmsTextVNavShow: `mfdUpperFmsTextVNavShow_${index}`,
-          mfdDisplayMode: `mfdDisplayMode_${index}`,
-          mfdSelectedTextPage: `mfdSelectedTextPage_${index}`,
-          memButton1: `memButton1_${index}`,
-          memButton2: `memButton2_${index}`,
-          memButton3: `memButton3_${index}`,
-        });
+      MFDUserSettings.INSTANCE_ALIASED[index].useAliases(MFDUserSettings.getMasterManager(bus), {
+        mfdUpperWindowState: `mfdUpperWindowState_${index}`,
+        mfdEisState: `mfdEisState_${index}`,
+        mfdUpperFmsTextVNavShow: `mfdUpperFmsTextVNavShow_${index}`,
+        mfdDisplayMode: `mfdDisplayMode_${index}`,
+        mfdSelectedTextPage: `mfdSelectedTextPage_${index}`,
+        memButton1: `memButton1_${index}`,
+        memButton2: `memButton2_${index}`,
+        memButton3: `memButton3_${index}`,
       });
     }
 
-    return MFDUserSettings.INSTANCE_ALIASED;
+    return MFDUserSettings.INSTANCE_ALIASED[index];
   }
 }

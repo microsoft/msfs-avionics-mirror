@@ -4,8 +4,8 @@ import {
   AdditionalApproachType, AirportFacility, AltitudeRestrictionType, ApproachProcedure, ApproachUtils, ArrivalProcedure,
   BitFlags, Consumer, DepartureProcedure, EventBus, EventSubscriber, ExtendedApproachType, FacilityType, FixTypeFlags,
   FlightPathUtils, FlightPathVectorFlags, FlightPlan, FlightPlanLeg, FlightPlanSegment, FlightPlanSegmentType,
-  FlightPlanUtils, GeoCircle, GeoPoint, ICAO, LegCalculations, LegDefinition, LegDefinitionFlags, LegType, MagVar,
-  NavMath, OneWayRunway, RnavTypeFlags, RunwayUtils, SpeedRestrictionType, UnitType, VNavUtils
+  FlightPlanUtils, GeoCircle, GeoPoint, ICAO, IcaoType, IcaoValue, LegCalculations, LegDefinition, LegDefinitionFlags,
+  LegType, MagVar, NavMath, OneWayRunway, RnavTypeFlags, RunwayUtils, SpeedRestrictionType, UnitType, VNavUtils
 } from '@microsoft/msfs-sdk';
 
 import { BaseFmsEvents, FmsEventsForId } from './FmsEvents';
@@ -159,39 +159,18 @@ export class FmsUtils {
    * (TF) leg.
    * @returns A flight plan leg to the specified runway fix.
    */
-  public static buildRunwayLeg(airport: AirportFacility | string, runway: OneWayRunway, isInitialFix: boolean): FlightPlanLeg {
+  public static buildRunwayLeg(airport: AirportFacility | IcaoValue, runway: OneWayRunway, isInitialFix: boolean): FlightPlanLeg {
+    const runwayIcao = RunwayUtils.getRunwayFacilityIcaoValue(airport, runway);
+
     const leg = FlightPlan.createLeg({
       lat: runway.latitude,
       lon: runway.longitude,
       type: isInitialFix ? LegType.IF : LegType.TF,
-      fixIcao: RunwayUtils.getRunwayFacilityIcao(airport, runway),
+      fixIcaoStruct: runwayIcao,
       altitude1: runway.elevation
     });
-    return leg;
-  }
 
-  /**
-   * Utility method to return a one-way runway leg from an approach runway leg definition
-   * @param airport is the facility associated with the arrival
-   * @param runwayIcao is the icao string for the runway waypoint in the final legs
-   * @returns a leg object for the runway
-   */
-  public static buildRunwayLegForApproach(airport: AirportFacility, runwayIcao: string): FlightPlanLeg | undefined {
-    for (let i = 0; i < airport.runways.length; i++) {
-      const match = RunwayUtils.getOneWayRunways(airport.runways[i], i).find((r) => {
-        return (r.designation == ICAO.getIdent(runwayIcao));
-      });
-      if (match) {
-        const leg = FlightPlan.createLeg({
-          lat: match.latitude,
-          lon: match.longitude,
-          type: LegType.TF,
-          fixIcao: runwayIcao
-        });
-        return leg;
-      }
-    }
-    return undefined;
+    return leg;
   }
 
   /**
@@ -227,9 +206,10 @@ export class FmsUtils {
     const runwayLetter = RunwayUtils.getDesignatorLetter(runway.runwayDesignator).padStart(1, ' ');
     initialLegIdent ??= 'STRGHT';
 
+    const iafFixIcao = ICAO.value(IcaoType.VisualApproach, `${runwayCode}${runwayLetter}`, airport.icaoStruct.ident, initialLegIdent);
     const iafLeg = FlightPlan.createLeg({
       type: LegType.IF,
-      fixIcao: `S${ICAO.getIdent(airport.icao).padStart(4, ' ')}${runwayCode}${runwayLetter}${initialLegIdent}`,
+      fixIcaoStruct: iafFixIcao,
       lat: iafLatLon.lat,
       lon: iafLatLon.lon,
     });
@@ -239,11 +219,12 @@ export class FmsUtils {
       UnitType.NMILE.convertTo(-finalLegDistance, UnitType.GA_RADIAN),
       FmsUtils.geoPointCache[0]
     );
-    finalLegIdent ??= ' FINAL';
+    finalLegIdent ??= 'FINAL';
 
+    const fafFixIcao = ICAO.value(IcaoType.VisualApproach, `${runwayCode}${runwayLetter}`, airport.icaoStruct.ident, finalLegIdent);
     const fafLeg = FlightPlan.createLeg({
       type: LegType.CF,
-      fixIcao: `S${ICAO.getIdent(airport.icao).padStart(4, ' ')}${runwayCode}${runwayLetter}${finalLegIdent}`,
+      fixIcaoStruct: fafFixIcao,
       course: MagVar.trueToMagnetic(approachPath.bearingAt(fafLatLon), fafLatLon),
       fixTypeFlags: FixTypeFlags.FAF,
       lat: fafLatLon.lat,
@@ -269,9 +250,10 @@ export class FmsUtils {
       FmsUtils.geoPointCache[0]
     );
 
+    const missedFixIcao = ICAO.value(IcaoType.VisualApproach, `${runwayCode}${runwayLetter}`, airport.icaoStruct.ident, 'MANSEQ');
     const missedLeg = FlightPlan.createLeg({
       type: LegType.TF,
-      fixIcao: `S${ICAO.getIdent(airport.icao).padStart(4, ' ')}${runwayCode}${runwayLetter}MANSEQ`,
+      fixIcaoStruct: missedFixIcao,
       lat: missedLegLatLon.lat,
       lon: missedLegLatLon.lon,
     });
@@ -290,7 +272,9 @@ export class FmsUtils {
       approachSuffix: '',
       runwayDesignator: runway.runwayDesignator,
       runwayNumber: runway.direction,
-      rnavTypeFlags: RnavTypeFlags.None
+      rnavTypeFlags: RnavTypeFlags.None,
+      rnpAr: false,
+      missedApproachRnpAr: false,
     };
     return proc;
   }
@@ -315,7 +299,9 @@ export class FmsUtils {
       approachSuffix: '',
       runwayDesignator: runway.runwayDesignator,
       runwayNumber: runway.direction,
-      rnavTypeFlags: RnavTypeFlags.None
+      rnavTypeFlags: RnavTypeFlags.None,
+      rnpAr: false,
+      missedApproachRnpAr: false,
     };
   }
 
@@ -401,6 +387,8 @@ export class FmsUtils {
       runwayDesignator: approach.runwayDesignator,
       runwayNumber: approach.runwayNumber,
       rnavTypeFlags: RnavTypeFlags.None,
+      rnpAr: false,
+      missedApproachRnpAr: false,
       parentApproachInfo: {
         approachType: approach.approachType,
         rnavTypeFlags: approach.rnavTypeFlags
@@ -922,7 +910,9 @@ export class FmsUtils {
         approachSuffix: '',
         runwayDesignator: r.runwayDesignator,
         runwayNumber: r.direction,
-        rnavTypeFlags: RnavTypeFlags.None
+        rnavTypeFlags: RnavTypeFlags.None,
+        rnpAr: false,
+        missedApproachRnpAr: false,
       });
     });
     return approaches;
@@ -1343,7 +1333,7 @@ export class FmsUtils {
    * @param plan The flight plan to use.
    * @returns The ICAO of first airport fix from the flight plan legs.
    */
-  public static getFirstAirportFromPlan(plan: FlightPlan): string | undefined {
+  public static getFirstAirportFromPlan(plan: FlightPlan): IcaoValue | undefined {
     return this.getAirportFromPlan(plan, false);
   }
 
@@ -1352,7 +1342,7 @@ export class FmsUtils {
    * @param plan The flight plan to use.
    * @returns The ICAO of last airport fix from the flight plan legs.
    */
-  public static getLastAirportFromPlan(plan: FlightPlan): string | undefined {
+  public static getLastAirportFromPlan(plan: FlightPlan): IcaoValue | undefined {
     return this.getAirportFromPlan(plan, true);
   }
 
@@ -1362,10 +1352,10 @@ export class FmsUtils {
    * @param reverse Whether to get the first or last airport.
    * @returns The ICAO of last airport fix from the flight plan legs.
    */
-  public static getAirportFromPlan(plan: FlightPlan, reverse: boolean): string | undefined {
+  public static getAirportFromPlan(plan: FlightPlan, reverse: boolean): IcaoValue | undefined {
     for (const leg of plan.legs(reverse)) {
-      if (ICAO.isFacility(leg.leg.fixIcao) && ICAO.getFacilityType(leg.leg.fixIcao) === FacilityType.Airport) {
-        return leg.leg.fixIcao;
+      if (ICAO.isValueFacility(leg.leg.fixIcaoStruct, FacilityType.Airport)) {
+        return leg.leg.fixIcaoStruct;
       }
     }
     return undefined;
@@ -1582,6 +1572,19 @@ export class FmsUtils {
   }
 
   /**
+   * Creates a new empty, default flight phase object.
+   * @returns A new empty, default flight phase object.
+   */
+  public static createEmptyFlightPhase(): FmsFlightPhase {
+    return {
+      isApproachActive: false,
+      isToFaf: false,
+      isPastFaf: false,
+      isInMissedApproach: false
+    };
+  }
+
+  /**
    * Checks whether two FMS flight phase objects are equal.
    * @param a The first FMS flight phase object to compare.
    * @param b The second FMS flight phase object to compare.
@@ -1592,6 +1595,24 @@ export class FmsUtils {
       && a.isToFaf === b.isToFaf
       && a.isPastFaf === b.isPastFaf
       && a.isInMissedApproach === b.isInMissedApproach;
+  }
+
+  /**
+   * Creates a new empty, default approach details object.
+   * @returns A new empty, default approach details object.
+   */
+  public static createEmptyApproachDetails(): ApproachDetails {
+    return {
+      isLoaded: false,
+      type: ApproachType.APPROACH_TYPE_UNKNOWN,
+      isRnpAr: false,
+      bestRnavType: RnavTypeFlags.None,
+      rnavTypeFlags: RnavTypeFlags.None,
+      isCircling: false,
+      isVtf: false,
+      referenceFacility: null,
+      runway: null
+    };
   }
 
   /**

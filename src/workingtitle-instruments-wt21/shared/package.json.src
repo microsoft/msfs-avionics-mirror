@@ -1,6 +1,6 @@
 {
   "name": "msfs-wt21-shared",
-  "version": "2.0.5",
+  "version": "3.0.4",
   "description": "Working Title MSFS WT21 Shared library",
   "main": "wt21shared.js",
   "typings": "wt21shared.d.ts",

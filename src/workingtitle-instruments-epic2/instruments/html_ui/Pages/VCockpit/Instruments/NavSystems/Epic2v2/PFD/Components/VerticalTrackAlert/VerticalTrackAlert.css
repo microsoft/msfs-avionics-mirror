@@ -1,0 +1,33 @@
+.vertical-track-alert {
+  position: absolute;
+  right: 172px;
+  top: 91px;
+  padding: 5px 1px 0;
+  width: 42px;
+  font-size: 24px;
+  height: 22px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--epic2-color-white);
+}
+
+.vta-flashing {
+  animation: vta-flash 1s step-start infinite;
+}
+
+@keyframes vta-flash {
+
+  0%,
+  45% {
+    color: var(--epic2-color-white);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  55%,
+  100% {
+    color: var(--epic2-color-black);
+    background: var(--epic2-color-white);
+  }
+}

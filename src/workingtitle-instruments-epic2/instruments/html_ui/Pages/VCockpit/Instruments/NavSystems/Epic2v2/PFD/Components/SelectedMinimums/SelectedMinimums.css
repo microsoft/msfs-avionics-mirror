@@ -1,0 +1,29 @@
+.selected-minimums {
+  box-sizing: border-box;
+  position: absolute;
+  top: 335px;
+  left: 434px;
+  width: 69px;
+  height: 49px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.minimums-label {
+  font-size: 24px;
+  text-align: center;
+  transform: translateY(2px);
+}
+
+.minimums-value-baro {
+  font-size: 24px;
+  margin-left: auto;
+  transform: translateY(-3px) translateX(-3px);
+}
+
+.minimums-value-ra {
+  font-size: 24px;
+  text-align: center;
+  transform: translateY(-3px) translateX(2px);
+}

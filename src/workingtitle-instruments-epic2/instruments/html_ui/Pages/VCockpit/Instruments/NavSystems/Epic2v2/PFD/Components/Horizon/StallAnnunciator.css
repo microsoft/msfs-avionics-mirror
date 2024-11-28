@@ -1,0 +1,39 @@
+.stall-annunciator-container {
+  position: absolute;
+  top: 40px;
+  left: 147px;
+  height: 35px;
+  width: 325px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stall-annunciator-container .stall-annunciator-box {
+  height: 26px;
+  width: 65px;
+  font-size: 23px;
+  text-align: center;
+  border-radius: 2px;
+  padding-top: 4px;
+  color: var(--epic2-color-white);
+  background: var(--epic2-color-red);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .2);
+}
+
+.stall-annunciator-box.box-animation {
+  display: block;
+  animation: stall-box-flash 1s 5 step-end;
+}
+
+@keyframes stall-box-flash {
+  0% {
+    background-color: var(--epic2-color-red);
+    color: var(--epic2-color-white);
+  }
+  50% {
+    background-color: var(--epic2-color-black);
+    color: var(--epic2-color-white);
+  }
+}

@@ -1,21 +1,14 @@
 import {
-  APEvents, BaseLNavEvents, BaseLNavSimVarEvents, ConsumerSubject, EventBus, FlightPathUtils, FlightPlanner, GeoCircle,
-  GeoPoint, GeoPointSubject, LNavAircraftState, LNavControlEvents, LNavEvents, LNavInterceptFunc, LNavObsControlEvents,
-  LNavObsEvents, LNavOverrideModule, LNavState, LNavSteerCommand, LNavTrackingState, LNavTransitionMode, LNavUtils,
-  LNavVars, LegDefinition, MagVar, MathUtils, NavEvents, NavMath, ObjectSubject, SimVarValueType, UnitType, Vec3Math
+  APEvents, EventBus, FlightPathUtils, FlightPlanner, GeoCircle, GeoPoint, GeoPointSubject, LNavAircraftState,
+  LNavControlEvents, LNavEventBusTopicPublisherRecord, LNavEvents, LNavInterceptFunc, LNavObsControlEvents,
+  LNavObsEvents, LNavOverrideModule, LNavState, LNavSteerCommand, LNavTransitionMode, LNavUtils, LegDefinition, MagVar,
+  MathUtils, NavEvents, NavMath, SimVarValueType, UnitType, Vec3Math
 } from '@microsoft/msfs-sdk';
 
 /**
  * Options for {@link GarminObsLNavModule}.
  */
 export type GarminObsLNavModuleOptions = {
-  /**
-   * The maximum bank angle, in degrees, supported by the module, or a function which returns it. If not defined, then
-   * the module will use the value published to the event bus for the autopilot's maximum bank angle. Defaults to
-   * `undefined`.
-   */
-  maxBankAngle?: number | (() => number) | undefined;
-
   /**
    * A function used to translate DTK and XTK into a track intercept angle. If not defined, then a function that
    * computes intercept angles tuned for slow GA aircraft will be used.
@@ -56,65 +49,22 @@ export class GarminObsLNavModule implements LNavOverrideModule {
   private dtk: number | undefined = undefined;
   private xtk: number | undefined = undefined;
   private distanceRemaining = 0;
-
-  private readonly lnavData = ObjectSubject.create({
-    dtk: 0,
-    xtk: 0,
-    trackingState: {
-      isTracking: false,
-      globalLegIndex: 0,
-      transitionMode: LNavTransitionMode.None,
-      vectorIndex: 0,
-      isSuspended: true
-    } as LNavTrackingState,
-    isTracking: false,
-    legIndex: 0,
-    transitionMode: LNavTransitionMode.None,
-    vectorIndex: 0,
-    courseToSteer: 0,
-    isSuspended: true,
-    alongLegDistance: 0,
-    legDistanceRemaining: 0,
-    alongVectorDistance: 0,
-    vectorDistanceRemaining: 0
-  });
-
-  private readonly simVarMap: Record<LNavVars, string>;
-  private readonly eventBusTopicMap: {
-    [P in Exclude<keyof BaseLNavEvents, keyof BaseLNavSimVarEvents>]: P | `${P}_${number}`
-  };
-
-  private readonly lnavDataSub = this.lnavData.sub((obj, key, value): void => {
-    switch (key) {
-      case 'dtk': SimVar.SetSimVarValue(this.simVarMap[LNavVars.DTK], SimVarValueType.Degree, value); break;
-      case 'xtk': SimVar.SetSimVarValue(this.simVarMap[LNavVars.XTK], SimVarValueType.NM, value); break;
-      case 'isTracking': SimVar.SetSimVarValue(this.simVarMap[LNavVars.IsTracking], SimVarValueType.Bool, value); break;
-      case 'legIndex': SimVar.SetSimVarValue(this.simVarMap[LNavVars.TrackedLegIndex], SimVarValueType.Number, value); break;
-      case 'transitionMode': SimVar.SetSimVarValue(this.simVarMap[LNavVars.TransitionMode], SimVarValueType.Number, value); break;
-      case 'vectorIndex': SimVar.SetSimVarValue(this.simVarMap[LNavVars.TrackedVectorIndex], SimVarValueType.Number, value); break;
-      case 'courseToSteer': SimVar.SetSimVarValue(this.simVarMap[LNavVars.CourseToSteer], SimVarValueType.Degree, value); break;
-      case 'isSuspended': SimVar.SetSimVarValue(this.simVarMap[LNavVars.IsSuspended], SimVarValueType.Bool, value); break;
-      case 'alongLegDistance': SimVar.SetSimVarValue(this.simVarMap[LNavVars.LegDistanceAlong], SimVarValueType.NM, value); break;
-      case 'legDistanceRemaining': SimVar.SetSimVarValue(this.simVarMap[LNavVars.LegDistanceRemaining], SimVarValueType.NM, value); break;
-      case 'alongVectorDistance': SimVar.SetSimVarValue(this.simVarMap[LNavVars.VectorDistanceAlong], SimVarValueType.NM, value); break;
-      case 'vectorDistanceRemaining': SimVar.SetSimVarValue(this.simVarMap[LNavVars.VectorDistanceRemaining], SimVarValueType.NM, value); break;
-      case 'trackingState': this.publisher.pub(this.eventBusTopicMap['lnav_tracking_state'], value as LNavTrackingState, true, true); break;
-    }
-  }, false, true);
+  private alongTrackSpeed = 0;
+  private courseToSteer = 0;
 
   private readonly steerCommand: LNavSteerCommand = {
     isValid: false,
-    desiredBankAngle: 0,
+    isHeading: false,
+    courseToSteer: 0,
+    trackRadius: 0,
     dtk: 0,
     xtk: 0,
     tae: 0
   };
 
-  private readonly maxBankAngleFunc: () => number;
   private readonly interceptFunc?: LNavInterceptFunc;
 
   private _isActive = false;
-  private needSubLNavData = false;
 
   /**
    * Creates a new instance of GarminObsLNavModule.
@@ -135,36 +85,12 @@ export class GarminObsLNavModule implements LNavOverrideModule {
 
     this.useSimObsState = options?.useSimObsState ?? true;
 
-    const simVarSuffix = this.index === 0 ? '' : `:${this.index}`;
-    this.simVarMap = {} as Record<LNavVars, string>;
-    for (const simVar of Object.values(LNavVars)) {
-      this.simVarMap[simVar] = `${simVar}${simVarSuffix}`;
-    }
-
     const eventBusTopicSuffix = LNavUtils.getEventBusTopicSuffix(this.index);
-    this.eventBusTopicMap = {
-      'lnav_tracking_state': `lnav_tracking_state${eventBusTopicSuffix}`,
-      'lnav_is_awaiting_calc': `lnav_is_awaiting_calc${eventBusTopicSuffix}`
-    };
 
     this.setActiveTopic = `lnav_obs_set_active${eventBusTopicSuffix}`;
     this.setCourseTopic = `lnav_obs_set_course${eventBusTopicSuffix}`;
 
     const sub = bus.getSubscriber<NavEvents & LNavEvents & APEvents & LNavControlEvents & LNavObsEvents>();
-
-    const maxBankAngleOpt = options?.maxBankAngle ?? undefined;
-    switch (typeof maxBankAngleOpt) {
-      case 'number':
-        this.maxBankAngleFunc = () => maxBankAngleOpt;
-        break;
-      case 'function':
-        this.maxBankAngleFunc = maxBankAngleOpt;
-        break;
-      default: {
-        const maxBankAngle = ConsumerSubject.create(sub.on('ap_max_bank_value'), 0);
-        this.maxBankAngleFunc = maxBankAngle.get.bind(maxBankAngle);
-      }
-    }
 
     this.interceptFunc = options?.intercept;
 
@@ -218,7 +144,7 @@ export class GarminObsLNavModule implements LNavOverrideModule {
   }
 
   /** @inheritDoc */
-  public activate(lnavState: LNavState): void {
+  public activate(lnavState: LNavState, aircraftState: Readonly<LNavAircraftState>, eventBusTopicRecord: LNavEventBusTopicPublisherRecord): void {
     if (this._isActive) {
       return;
     }
@@ -228,7 +154,12 @@ export class GarminObsLNavModule implements LNavOverrideModule {
     lnavState.isSuspended = true;
     lnavState.inhibitedSuspendLegIndex = lnavState.globalLegIndex;
 
-    this.needSubLNavData = true;
+    eventBusTopicRecord['lnav_is_suspended'].publish(true);
+    eventBusTopicRecord['lnav_tracked_vector_index'].publish(0);
+    eventBusTopicRecord['lnav_transition_mode'].publish(LNavTransitionMode.None);
+    eventBusTopicRecord['lnav_leg_distance_along'].publish(0);
+    eventBusTopicRecord['lnav_vector_distance_along'].publish(0);
+    eventBusTopicRecord['lnav_vector_anticipation_distance'].publish(0);
   }
 
   /** @inheritDoc */
@@ -240,13 +171,10 @@ export class GarminObsLNavModule implements LNavOverrideModule {
     this._isActive = false;
 
     lnavState.isSuspended = false;
-
-    this.lnavDataSub.pause();
-    this.needSubLNavData = false;
   }
 
   /** @inheritDoc */
-  public update(lnavState: LNavState, aircraftState: Readonly<LNavAircraftState>): void {
+  public update(lnavState: LNavState, aircraftState: Readonly<LNavAircraftState>, eventBusTopicRecord?: LNavEventBusTopicPublisherRecord): void {
     const flightPlan = this.flightPlanner.hasActiveFlightPlan() ? this.flightPlanner.getActiveFlightPlan() : undefined;
 
     this.legIndex = lnavState.globalLegIndex;
@@ -256,7 +184,7 @@ export class GarminObsLNavModule implements LNavOverrideModule {
       return;
     }
 
-    this.lnavData.set('legIndex', this.legIndex);
+    eventBusTopicRecord!['lnav_tracked_leg_index'].publish(this.legIndex);
 
     this.calculateTracking(aircraftState);
 
@@ -264,15 +192,12 @@ export class GarminObsLNavModule implements LNavOverrideModule {
     const dtk = this.dtk ?? 0;
     const xtk = this.xtk ?? 0;
 
-    this.lnavData.set('isTracking', isTracking);
-    this.lnavData.set('dtk', dtk);
-    this.lnavData.set('xtk', xtk);
-    this.lnavData.set('legDistanceRemaining', this.distanceRemaining);
-    this.lnavData.set('vectorDistanceRemaining', this.distanceRemaining);
+    eventBusTopicRecord!['lnav_is_tracking'].publish(isTracking);
 
-    const trackingState = this.lnavData.get().trackingState;
+    const trackingStatePublisher = eventBusTopicRecord!['lnav_tracking_state'];
+    const trackingState = trackingStatePublisher.value;
     if (trackingState.isTracking !== isTracking || trackingState.globalLegIndex !== this.legIndex) {
-      this.lnavData.set('trackingState', {
+      trackingStatePublisher.publish({
         isTracking: isTracking,
         globalLegIndex: this.legIndex,
         transitionMode: LNavTransitionMode.None,
@@ -281,16 +206,19 @@ export class GarminObsLNavModule implements LNavOverrideModule {
       });
     }
 
+    eventBusTopicRecord!['lnav_dtk'].publish(dtk);
+    eventBusTopicRecord!['lnav_xtk'].publish(xtk);
+    eventBusTopicRecord!['lnav_leg_distance_remaining'].publish(this.distanceRemaining);
+    eventBusTopicRecord!['lnav_vector_distance_remaining'].publish(this.distanceRemaining);
+    eventBusTopicRecord!['lnav_along_track_speed'].publish(this.alongTrackSpeed);
+
     if (this.dtk === undefined || this.xtk === undefined) {
       this.setObsActive(false);
     }
 
     this.updateSteerCommand(aircraftState);
 
-    if (this.needSubLNavData) {
-      this.lnavDataSub.resume(true);
-      this.needSubLNavData = false;
-    }
+    eventBusTopicRecord!['lnav_course_to_steer'].publish(this.courseToSteer);
   }
 
   /**
@@ -300,7 +228,14 @@ export class GarminObsLNavModule implements LNavOverrideModule {
   private calculateTracking(aircraftState: Readonly<LNavAircraftState>): void {
     this.distanceRemaining = 0;
 
-    if (this.leg?.calculated && this.leg.calculated.endLat !== undefined && this.leg.calculated.endLon !== undefined) {
+    // Note: this method can only be called when this module is active, and this module can only be active when the
+    // plane position, ground speed, and ground track are valid and not null.
+
+    if (
+      this.leg?.calculated
+      && this.leg.calculated.endLat !== undefined
+      && this.leg.calculated.endLon !== undefined
+    ) {
       const end = this.geoPointCache[0].set(this.leg.calculated.endLat, this.leg.calculated.endLon);
       this.obsFix.set(end);
 
@@ -312,9 +247,13 @@ export class GarminObsLNavModule implements LNavOverrideModule {
 
       const angleRemaining = (path.angleAlong(aircraftState.planePos, end, Math.PI) + Math.PI) % MathUtils.TWO_PI - Math.PI;
       this.distanceRemaining = UnitType.GA_RADIAN.convertTo(angleRemaining, UnitType.NMILE);
+
+      const alongTrackSpeed = FlightPathUtils.projectVelocityToCircle(aircraftState.gs!, aircraftState.planePos, aircraftState.track!, path);
+      this.alongTrackSpeed = isNaN(alongTrackSpeed) ? aircraftState.gs! : alongTrackSpeed;
     } else {
       this.dtk = undefined;
       this.xtk = undefined;
+      this.alongTrackSpeed = 0;
     }
   }
 
@@ -325,51 +264,49 @@ export class GarminObsLNavModule implements LNavOverrideModule {
   private updateSteerCommand(aircraftState: Readonly<LNavAircraftState>): void {
     if (this.xtk === undefined || this.dtk === undefined) {
       this.steerCommand.isValid = false;
-      this.steerCommand.desiredBankAngle = 0;
+      this.steerCommand.courseToSteer = 0;
+      this.steerCommand.trackRadius = 0;
       this.steerCommand.dtk = 0;
       this.steerCommand.xtk = 0;
       this.steerCommand.tae = 0;
+      this.courseToSteer = 0;
       return;
     }
 
-    let absInterceptAngle: number;
+    // Note: if XTK and DTK are both defined, then this guarantees that aircraftState.track and aircraftState.gs is not
+    // null, because calculateTracking() would have set XTK and DTK to undefined if track is null.
+
+    let absInterceptAngle: number | undefined = undefined;
 
     if (this.interceptFunc !== undefined) {
-      absInterceptAngle = this.interceptFunc(this.dtk, this.xtk, aircraftState.tas);
+      absInterceptAngle = this.interceptFunc(this.dtk, this.xtk, aircraftState.tas ?? aircraftState.gs!);
     } else {
       absInterceptAngle = Math.min(Math.pow(Math.abs(this.xtk) * 20, 1.35) + (Math.abs(this.xtk) * 50), 45);
       if (absInterceptAngle <= 2.5) {
-        absInterceptAngle = NavMath.clamp(Math.abs(this.xtk * 150), 0, 2.5);
+        absInterceptAngle = MathUtils.clamp(Math.abs(this.xtk * 150), 0, 2.5);
       }
     }
 
+    if (absInterceptAngle === undefined) {
+      this.steerCommand.isValid = false;
+      this.steerCommand.courseToSteer = 0;
+      this.steerCommand.trackRadius = 0;
+      this.steerCommand.dtk = 0;
+      this.steerCommand.xtk = 0;
+      this.steerCommand.tae = 0;
+      this.courseToSteer = 0;
+      return;
+    }
+
     const interceptAngle = this.xtk < 0 ? absInterceptAngle : -1 * absInterceptAngle;
-    const courseToSteer = NavMath.normalizeHeading(this.dtk + interceptAngle);
-    const bankAngle = this.desiredBank(courseToSteer, aircraftState.track);
+    this.courseToSteer = NavMath.normalizeHeading(this.dtk + interceptAngle);
 
     this.steerCommand.isValid = true;
-    this.steerCommand.desiredBankAngle = bankAngle;
+    this.steerCommand.courseToSteer = this.courseToSteer;
+    this.steerCommand.trackRadius = MathUtils.HALF_PI;
     this.steerCommand.dtk = this.dtk;
     this.steerCommand.xtk = this.xtk;
-    this.steerCommand.tae = (MathUtils.diffAngleDeg(this.dtk, aircraftState.track) + 180) % 360 - 180;
-
-    this.lnavData.set('courseToSteer', courseToSteer);
-  }
-
-  /**
-   * Calculates a desired bank from a desired track and actual ground track.
-   * @param desiredTrack The desired track, in degrees.
-   * @param actualTrack The airplane's actual ground track, in degrees.
-   * @returns The desired bank angle, in degrees. Positive values represent left bank.
-   */
-  private desiredBank(desiredTrack: number, actualTrack: number): number {
-    const turnDirection = NavMath.getTurnDirection(actualTrack, desiredTrack);
-    const headingDiff = Math.abs(NavMath.diffAngle(actualTrack, desiredTrack));
-
-    let baseBank = Math.min(1.25 * headingDiff, this.maxBankAngleFunc());
-    baseBank *= (turnDirection === 'left' ? 1 : -1);
-
-    return baseBank;
+    this.steerCommand.tae = (MathUtils.angularDistanceDeg(this.dtk, aircraftState.track!, 1) + 180) % 360 - 180;
   }
 
   /**

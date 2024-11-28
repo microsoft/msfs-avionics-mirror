@@ -1,4 +1,4 @@
-import { CircleVector, LegDefinition } from '../../flightplan';
+import { FlightPathVector, LegDefinition } from '../../flightplan';
 import { AbstractFlightPathLegRenderer } from './AbstractFlightPathLegRenderer';
 import { GeoProjectionPathStreamStack } from './GeoProjectionPathStreamStack';
 
@@ -13,7 +13,7 @@ export class CustomFlightPathLegRenderer<Args extends any[]> extends AbstractFli
    */
   constructor(
     protected readonly renderVector: (
-      vector: CircleVector,
+      vector: Readonly<FlightPathVector>,
       isIngress: boolean,
       isEgress: boolean,
       leg: LegDefinition,

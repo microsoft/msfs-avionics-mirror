@@ -20,6 +20,7 @@ export * from './FlightTimer';
 export * from './GNSS';
 export * from './GPSSat';
 export * from './InstrumentEvents';
+export * from './LiquidDrop';
 export * from './MinimumsManager';
 export * from './NavCom';
 export * from './NavComInstrument';

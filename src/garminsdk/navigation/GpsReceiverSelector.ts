@@ -1,6 +1,6 @@
 import {
   ClockEvents, ConsumerSubject, EventBus, GPSSystemState, MapSubject, MappedSubject, SetSubject, Subject, Subscribable,
-  SubscribableMap, SubscribableSet, SubscribableSetEventType, SubscribableUtils, Subscription
+  SubscribableMap, SubscribableSet, SubscribableSetEventType, Subscription
 } from '@microsoft/msfs-sdk';
 
 import { GpsReceiverSystemEvents } from '../system/GpsReceiverSystem';
@@ -91,48 +91,11 @@ export class GpsReceiverSelector {
    * @param options Options with which to configure the selector.
    */
   public constructor(
-    bus: EventBus,
-    candidateReceiverIndexes: Iterable<number> | SubscribableSet<number>,
-    options?: Readonly<GpsReceiverSelectorOptions>
-  );
-  /**
-   * Creates a new instance of GpsReceiverSelector.
-   * @param bus The event bus.
-   * @param candidateReceiverIndexes The indexes of the GPS receivers from which to select.
-   * @param preferredReceiverIndex The index of this selector's preferred GPS receiver, or `-1` if there is no such
-   * receiver. This selector is guaranteed to select the preferred GPS receiver if its state is at least as desirable
-   * as the state of all other receivers from which to select. Defaults to `-1`.
-   */
-  public constructor(
-    bus: EventBus,
-    candidateReceiverIndexes: Iterable<number> | SubscribableSet<number>,
-    preferredReceiverIndex?: number | Subscribable<number>
-  );
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public constructor(
     private readonly bus: EventBus,
     candidateReceiverIndexes: Iterable<number> | SubscribableSet<number>,
-    arg3?: Readonly<GpsReceiverSelectorOptions> | number | Subscribable<number>
+    options?: Readonly<GpsReceiverSelectorOptions>
   ) {
     this.candidateReceiverIndexes = 'isSubscribableSet' in candidateReceiverIndexes ? candidateReceiverIndexes : SetSubject.create(candidateReceiverIndexes);
-
-    let options: Readonly<GpsReceiverSelectorOptions> | undefined;
-    if (typeof arg3 === 'number' || SubscribableUtils.isSubscribable(arg3)) {
-      let receiverPriorities: readonly number[] | SubscribableMap<number, number>;
-      if (typeof arg3 === 'number') {
-        receiverPriorities = [arg3];
-      } else {
-        const map = receiverPriorities = MapSubject.create<number, number>();
-        this.preferredReceiverIndexSub = arg3.sub(index => {
-          map.clear();
-          map.setValue(index, 1);
-        }, true);
-      }
-
-      options = { receiverPriorities };
-    } else {
-      options = arg3;
-    }
 
     if (options?.receiverPriorities) {
       if ('isSubscribableMap' in options.receiverPriorities) {

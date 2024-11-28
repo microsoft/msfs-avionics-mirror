@@ -22,6 +22,16 @@ export enum GarminVNavTrackingPhase {
 }
 
 /**
+ * Garmin VNAV track alert types.
+ */
+export enum GarminVNavTrackAlertType {
+  TodOneMinute = 'TodOneMinute',
+  BodOneMinute = 'BodOneMinute',
+  TocOneMinute = 'TocOneMinute',
+  BocOneMinute = 'BocOneMinute'
+}
+
+/**
  * Garmin VNAV-related data events keyed by base topic names.
  */
 export interface BaseGarminVNavDataEvents extends BaseVNavDataEvents {
@@ -36,6 +46,9 @@ export interface BaseGarminVNavDataEvents extends BaseVNavDataEvents {
 
   /** The global index of the leg that contains the active VNAV constraint. */
   vnav_active_constraint_global_leg_index: number;
+
+  /** A VNAV track alert has been issued. */
+  vnav_track_alert: GarminVNavTrackAlertType;
 }
 
 /**

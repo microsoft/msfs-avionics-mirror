@@ -1,26 +1,24 @@
 import { GameStateProvider, MapSystemContext, MapSystemController, MapSystemKeys, UnitType, UserSettingManager } from '@microsoft/msfs-sdk';
 
-import { MapSettingsMfdAliased, MapSettingsPfdAliased, MapUserSettings, PfdOrMfd } from './MapUserSettings';
+import { MapSettingsMfdAliased, MapSettingsPfdAliased } from './MapUserSettings';
 import { WT21MapKeys } from './WT21MapKeys';
 
 /**
  * A controller that handles map range settings.
  */
 export class MapRangeController extends MapSystemController {
-  private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>;
+
 
   /**
    * Creates an instance of the MapRangeController.
    * @param context The map system context to use with this controller.
-   * @param pfdOrMfd Whether or not the map is on the PFD or MFD.
+   * @param settings The map user settings
    */
   constructor(
     context: MapSystemContext,
-    private readonly pfdOrMfd: PfdOrMfd
+    private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>
   ) {
     super(context);
-
-    this.settings = MapUserSettings.getAliasedManager(this.context.bus, this.pfdOrMfd);
   }
 
   /** @inheritdoc */

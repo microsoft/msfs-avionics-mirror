@@ -1,0 +1,55 @@
+.nd-information-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  font-size: 38px;
+  /* display: flex;
+  justify-content: center; */
+}
+
+.nd-information-container .speed-wind-range-info-block,
+.nd-information-container .time-to-align {
+  position: absolute;
+  top: 98px;
+  left: 4px;
+}
+
+.nd-information-container .active-waypoint-data-block-container {
+  position: absolute;
+  top: 82px;
+}
+
+.display-pane-full .nd-information-container .active-waypoint-data-block-container {
+  top: 90px;
+}
+
+.display-pane-full .nd-information-container .speed-wind-range-info-block,
+.display-pane-full .nd-information-container .time-to-align {
+  top: 107px;
+  left: 10px;
+}
+
+.nd-information-container>.nd-information-lower-section {
+  --nd-info-lower-padding: 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0px var(--nd-info-lower-padding);
+  color: var(--boeing-colors-green);
+}
+
+.nd-information-container .map-navigation-performance-container .digital-deviation-display-upper {
+  position: absolute;
+  right: 12px;
+  bottom: 220px;
+}
+
+.nd-information-container .map-navigation-performance-container .digital-deviation-display-lower {
+  position: absolute;
+  right: 12px;
+  bottom: -46px;
+}

@@ -1,0 +1,20 @@
+.tcas-ra-pitch-nofly {
+  fill: var(--epic2-color-red);
+  stroke: var(--epic2-color-red);
+  stroke-width: 3px;
+}
+
+.tcas-ra-pitch-flyto {
+  width: 250px;
+  box-shadow: 0 0 0 4px var(--epic2-color-black);
+  border-radius: 1px;
+}
+
+.tcas-ra-pitch-flyto::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  box-shadow: 0 0 0 3px var(--epic2-color-green);
+  border-radius: 1px;
+}

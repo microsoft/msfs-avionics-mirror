@@ -1,0 +1,43 @@
+.flight-plan-disco-list-item.active-leg {
+  color: var(--epic2-color-green);
+}
+.flight-plan-disco-list-item.from-leg {
+  color: var(--epic2-color-grey);
+}
+
+.flight-plan-list.plan-pending .flight-plan-disco-list-item.removing-leg, .flight-plan-list.plan-pending .flight-plan-disco-list-item.removing-leg * {
+  color: var(--epic2-color-grey) !important;
+}
+
+/* Creates diagonal cut through line */
+.flight-plan-disco-list-item.removing-leg .section-outline {
+  background: linear-gradient(to bottom right, var(--epic2-color-black), var(--epic2-color-black) 48.5%, var(--epic2-color-grey) 48.5%, gray 51.5%, var(--epic2-color-black) 51.5%, var(--epic2-color-black));
+  -webkit-text-stroke: 0px;
+}
+
+.flight-plan-disco-list-item .container {
+  position: relative;
+  border-right: 2px solid var(--epic2-color-white);
+  width: 100%;
+}
+
+.flight-plan-disco-list-item .top-row,
+.flight-plan-disco-list-item .bottom-row {
+  position: absolute;
+  display: flex;
+  width: 100%;
+}
+
+.flight-plan-disco-list-item .top-row>*,
+.flight-plan-disco-list-item .bottom-row>* {
+  position: absolute;
+}
+
+.flight-plan-disco-list-item .top-row {
+  top: 8px;
+}
+
+.flight-plan-disco-list-item .bottom-row {
+  top: 38px;
+  left: 4px;
+}

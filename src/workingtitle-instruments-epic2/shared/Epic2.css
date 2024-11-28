@@ -1,0 +1,101 @@
+html {
+  --epic2-color-black: black;
+  --epic2-color-white: white;
+  --epic2-color-light-grey: lightgrey;
+  --epic2-color-grey: #959DAF;
+  --epic2-color-dark-grey: #5e6470;
+  --epic2-color-darker-grey: #2b2b2b;
+  --epic2-color-green: lime;
+  --epic2-color-yellow: yellow;
+  --epic2-color-amber: #fcbd06;
+  --epic2-color-red: red;
+  --epic2-color-magenta: magenta;
+  --epic2-color-cyan: cyan;
+
+  --epic2-border-section-top-width: 4px;
+  --epic2-border-section-right-width: 4px;
+  --epic2-border-section-bottom-width: 4px;
+  --epic2-border-section-left-width: 4px;
+}
+
+@font-face {
+  font-family: "epic";
+  src: url("/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Fonts/epic2-regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "epichortest";
+  src: url("/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Fonts/hortest.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "epicwtest";
+  src: url("/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Fonts/wtest.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  font-family: "epic";
+  paint-order: stroke;
+  -webkit-text-stroke: .14em rgba(0, 0, 0, 0.6);
+  color: var(--epic2-color-white);
+  box-sizing: border-box;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.visibility-hidden {
+  visibility: hidden !important;
+}
+
+.no-text-shadow {
+  -webkit-text-stroke: 0;
+}
+
+.border-section {
+  border-image: url('coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Images/section-border-image.png') round;
+  border-image-slice: 4;
+  border-image-width: var(--epic2-border-section-top-width) var(--epic2-border-section-right-width) var(--epic2-border-section-bottom-width) var(--epic2-border-section-left-width);
+}
+
+.border-section-no-top {
+  --epic2-border-section-top-width: 0;
+}
+
+.border-section-no-right {
+  --epic2-border-section-right-width: 0;
+}
+
+.border-section-no-bottom {
+  --epic2-border-section-bottom-width: 0;
+}
+
+.border-section-no-left {
+  --epic2-border-section-left-width: 0;
+}
+
+.white-border-box-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--epic2-color-black);
+  border: 2px solid var(--epic2-color-white);
+  border-radius: 2px;
+}
+
+#Bootup, #Powered {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}

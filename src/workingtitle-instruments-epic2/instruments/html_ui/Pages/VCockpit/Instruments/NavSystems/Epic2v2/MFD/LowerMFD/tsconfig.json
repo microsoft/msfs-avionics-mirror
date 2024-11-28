@@ -1,0 +1,12 @@
+{
+  "extends": "../../../../../../../../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "build/workingtitle-instruments-epic2-v2/html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/MFD/LowerMFD"
+  },
+  "exclude": [
+    "Gulpfile.ts",
+    "**/node_modules",
+    "**/build",
+    "**/dist"
+  ]
+}

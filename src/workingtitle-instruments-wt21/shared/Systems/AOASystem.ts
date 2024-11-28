@@ -1,5 +1,7 @@
 import { AdcEvents, AvionicsSystemStateEvent, BasicAvionicsSystem, ConsumerSubject, ControlSurfacesEvents, EventBus, Subject } from '@microsoft/msfs-sdk';
 
+import { AoaDefinition } from '../Config';
+
 /**
  * A definition of AOA limits for a given flap configuration.
  */
@@ -19,7 +21,6 @@ export interface AoAFlapsDefinition {
  */
 export class AOASystem extends BasicAvionicsSystem<AOASystemEvents> {
   protected readonly initializationTime = 3000;
-  protected readonly aoaFlapsDefinitions = new Map<number, AoAFlapsDefinition>();
 
   protected aoaDegrees = ConsumerSubject.create(this.bus.getSubscriber<AdcEvents>().on('aoa').whenChanged(), 0);
   protected zeroLiftAoa = ConsumerSubject.create(this.bus.getSubscriber<AdcEvents>().on('zero_lift_aoa').whenChanged(), 0);
@@ -31,51 +32,19 @@ export class AOASystem extends BasicAvionicsSystem<AOASystemEvents> {
   /**
    * Creates an instance of the AOASystem.
    * @param index The index of the system.
-   * @param xmlConfig The instance of the panel.xml configuration to use.
    * @param bus The instance of the event bus for the system to use.
+   * @param def AOASystem configuration definition
    */
-  constructor(public readonly index: number, protected readonly xmlConfig: Document, protected readonly bus: EventBus) {
+  constructor(public readonly index: number, protected readonly bus: EventBus, private readonly def: AoaDefinition) {
     super(index, bus, 'aoa_state');
-    this.connectToPower('elec_av1_bus');
 
-    this.readAoAConfiguration();
     this.aoaDegrees.sub(this.updateAoaPct.bind(this, false));
     this.zeroLiftAoa.sub(this.updateAoaPct.bind(this, true));
     this.stallAoa.sub(this.updateAoaPct.bind(this, true));
     this.flapsHandleIndex.sub(this.updateAoaPct.bind(this, true));
 
-    this.aoaPercent.sub(aoaPct => {
-      this.bus.getPublisher<AOASystemEvents>().pub('aoasys_aoa_pct', aoaPct);
-    }, true);
-  }
-
-  /**
-   * Reads the AOASystem configuration from the XML config.
-   */
-  protected readAoAConfiguration(): void {
-    const aoaSystem = this.xmlConfig.getElementsByTagName('AOASystem');
-    if (aoaSystem.length > 0) {
-      const aoaSystemTag = aoaSystem[0];
-      const flapsElements = aoaSystemTag.getElementsByTagName('Flaps');
-
-      for (let i = 0; i < flapsElements.length; i++) {
-        const index = flapsElements[i].getAttribute('index');
-        if (index !== null) {
-          const indexNum = parseInt(index);
-          const stallAttr = flapsElements[i].getAttribute('stall');
-          const zeroLiftAttr = flapsElements[i].getAttribute('zeroLift');
-          const correctionFactorAttr = flapsElements[i].getAttribute('correctionFactor');
-
-          if (stallAttr !== null && zeroLiftAttr !== null) {
-            const stall = parseFloat(stallAttr);
-            const zeroLift = parseFloat(zeroLiftAttr);
-            const correctionFactor = parseFloat(correctionFactorAttr ?? '1');
-
-            this.aoaFlapsDefinitions.set(indexNum, { stall, zeroLift, correctionFactor });
-          }
-        }
-      }
-    }
+    this.aoaPercent.sub(aoaPct => this.bus.getPublisher<AOASystemEvents>().pub('aoasys_aoa_pct', aoaPct), true);
+    this.connectToPower(this.def.electricity ?? Subject.create(true));
   }
 
   /**
@@ -84,7 +53,7 @@ export class AOASystem extends BasicAvionicsSystem<AOASystemEvents> {
    */
   protected updateAoaPct(updateStallAndZeroLift: boolean): void {
     const flapsHandleIndex = this.flapsHandleIndex.get();
-    const flapsAoaDefinition = this.aoaFlapsDefinitions.get(flapsHandleIndex);
+    const flapsAoaDefinition = this.def.flapAoaDefinitions.get(flapsHandleIndex);
     const publisher = this.bus.getPublisher<AOASystemEvents>();
 
     let aoaPct = 0;

@@ -829,11 +829,23 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
           let altitude = constraint.targetAltitude;
 
           let constraintIsBod = true;
+
+          // Check to see if the current constraint is not considered a BOD constraint. A constraint is not BOD if and
+          // only if there is a following constraint (in flight plan order) that is not a climb constraint and is
+          // path-eligible, and one of the following is true:
+          // - the following constraint is not flat (has FPA > 0) and the computed vertical path to the following
+          // constraint is not above the path ending at the current constraint at the location of the current
+          // constraint (with a 25-meter margin).
+          // - the current constraint is flat (has FPA = 0).
           if (constraintIndex > 0) {
-            const nextConstraint = verticalPlan.constraints[constraintIndex - 1];
-            if (nextConstraint !== undefined && nextConstraint.type !== 'climb') {
-              const constraintAltForDist = nextConstraint.targetAltitude + VNavUtils.altitudeForDistance(nextConstraint.fpa, nextConstraint.distance);
-              if ((nextConstraint.fpa > 0 && constraintAltForDist <= constraint.targetAltitude + 25) || constraint.fpa === 0) {
+            const followingConstraint = verticalPlan.constraints[constraintIndex - 1];
+            if (
+              followingConstraint.type !== 'climb'
+              && followingConstraint.type !== 'missed'
+              && followingConstraint.nextVnavEligibleLegIndex === undefined
+            ) {
+              const constraintAltForDist = followingConstraint.targetAltitude + VNavUtils.altitudeForDistance(followingConstraint.fpa, followingConstraint.distance);
+              if ((followingConstraint.fpa > 0 && constraintAltForDist <= constraint.targetAltitude + 25) || constraint.fpa === 0) {
                 constraintIsBod = false;
               }
             }
@@ -1068,8 +1080,9 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
   }
 
   /**
-   * Fills the VNAV plan constraint distances.
-   * @param verticalPlan The Vertical Flight Plan.
+   * Populates a vertical flight plan's constraints with legs and updates the constraint distances and VNAV path
+   * eligibility data.
+   * @param verticalPlan The vertical flight plan for which to populate constraints.
    */
   protected populateConstraints(verticalPlan: VerticalFlightPlan): void {
     for (let constraintIndex = 0; constraintIndex < verticalPlan.constraints.length; constraintIndex++) {
@@ -1080,8 +1093,8 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
 
       constraint.distance = VNavUtils.getConstraintDistanceFromLegs(constraint, previousConstraint, verticalPlan);
 
-      let eligibleLegIndex;
-      let ineligibleLegIndex;
+      let eligibleLegIndex = constraint.index + 1;
+      let ineligibleLegIndex: number | undefined;
 
       for (let globalLegIndex = constraint.index; globalLegIndex > (previousConstraint !== undefined ? previousConstraint.index : -1); globalLegIndex--) {
         const verticalLeg = VNavUtils.getVerticalLegFromPlan(verticalPlan, globalLegIndex);
@@ -1096,7 +1109,7 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
         }
       }
 
-      if (ineligibleLegIndex !== undefined && eligibleLegIndex !== undefined) {
+      if (ineligibleLegIndex !== undefined) {
         constraint.nextVnavEligibleLegIndex = eligibleLegIndex;
       }
     }
@@ -1187,6 +1200,9 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
       }
 
       let pathSegmentIsFlat = false;
+      let ineligibleFollowingConstraint = currentTargetConstraint.nextVnavEligibleLegIndex !== undefined
+        ? currentTargetConstraint
+        : undefined;
 
       for (let currentConstraintIndex = targetConstraintIndex + 1; currentConstraintIndex <= firstDescentConstraintIndex; currentConstraintIndex++) {
 
@@ -1235,6 +1251,50 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
 
           targetConstraintIndex = currentConstraintIndex;
           currentTargetConstraint = undefined;
+
+          break;
+        }
+
+        if (ineligibleFollowingConstraint) {
+          // The constraint following the current one (in flight plan order) is path-ineligible. In this case, we will
+          // attempt to make the current constraint the new target constraint since we cannot compute a valid path from
+          // the current constraint to the target constraint.
+
+          // Because the following constraint is path-ineligible, the FPA of the target constraint does not have to be
+          // restricted by the current constraint, since the path between the two is undefined.
+          currentTargetConstraint.fpa = MathUtils.clamp(this.flightPathAngle, currentPathSegmentMinFpa, currentPathSegmentMaxFpa);
+
+          // Attempt to set the maximum altitude of the path from the current constraint to the current target
+          // constraint to the minimum altitude of the current constraint, if it exists, or to the maximum altitude
+          // otherwise. We will then clamp this from below using the current target constraint's target altitude. Since
+          // we didn't restrict the current target constraint's FPA based on the current constraint, this ensures we
+          // don't have to climb when traveling from the current constraint to the current target constraint. We will
+          // also clamp from above using the prior (in flight plan order) maximum altitude constraint. This ensures we
+          // don't have to descend when traveling to the current constraint.
+          const currentConstraintTargetAltitude = currentConstraint.minAltitude > Number.NEGATIVE_INFINITY
+            ? currentConstraint.minAltitude
+            : currentConstraint.maxAltitude;
+          const priorMaxAltitude = SmoothingPathCalculator.findPriorMaxAltitude(verticalPlan, currentConstraintIndex, firstDescentConstraintIndex);
+          const maxAltitude = Math.min(Math.max(currentConstraintTargetAltitude, currentTargetConstraint.targetAltitude), priorMaxAltitude);
+
+          const terminatedIndex = this.terminateSmoothedPath(
+            verticalPlan,
+            targetConstraintIndex,
+            currentConstraintIndex,
+            maxAltitude,
+            true
+          );
+
+          if (terminatedIndex < currentConstraintIndex) {
+            // The path was terminated early, which means there is a new target constraint.
+
+            targetConstraintIndex = terminatedIndex - 1; // reduce the targetConstraintIndex by 1 because the for loop will +1 it.
+            currentTargetConstraint = verticalPlan.constraints[terminatedIndex];
+            break;
+          } else {
+            targetConstraintIndex = currentConstraintIndex - 1; // reduce the targetConstraintIndex by 1 because the for loop will +1 it.
+            currentTargetConstraint = currentConstraint;
+          }
 
           break;
         }
@@ -1339,8 +1399,10 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
             currentTargetConstraint.fpa = MathUtils.clamp(this.flightPathAngle, currentPathSegmentMinFpa, currentPathSegmentMaxFpa);
           }
 
-          // Find the next constraint with a max altitude
-          const nextMaxAltitude = SmoothingPathCalculator.findPriorMaxAltitude(verticalPlan, currentConstraintIndex, firstDescentConstraintIndex);
+          // Set the maximum altitude of the path from the current constraint to the current target constraint to the
+          // prior (in flight plan order) maximum altitude constraint. This ensures we don't have to descend when
+          // traveling to the current constraint.
+          const priorMaxAltitude = SmoothingPathCalculator.findPriorMaxAltitude(verticalPlan, currentConstraintIndex, firstDescentConstraintIndex);
 
           // Attempt to extend a constant-FPA path from the existing target constraint to the current constraint and
           // make the current constraint the new target constraint.
@@ -1349,7 +1411,7 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
             verticalPlan,
             targetConstraintIndex,
             currentConstraintIndex,
-            nextMaxAltitude,
+            priorMaxAltitude,
             true
           );
 
@@ -1392,6 +1454,10 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
           currentPathSegmentMaxFpa = Math.min(maxFpa, currentPathSegmentMaxFpa);
           currentPathSegmentDistance += currentConstraint.distance;
         }
+
+        ineligibleFollowingConstraint = currentConstraint.nextVnavEligibleLegIndex !== undefined
+          ? currentConstraint
+          : undefined;
       }
     }
 

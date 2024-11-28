@@ -3,7 +3,7 @@ import { EventBus } from '../../data/EventBus';
 import { NavMath } from '../../geo/NavMath';
 import { GNSSEvents, GNSSPublisher } from '../../instruments/GNSS';
 import { MathUtils } from '../../math/MathUtils';
-import { APValues } from '../APConfig';
+import { APValues } from '../APValues';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**

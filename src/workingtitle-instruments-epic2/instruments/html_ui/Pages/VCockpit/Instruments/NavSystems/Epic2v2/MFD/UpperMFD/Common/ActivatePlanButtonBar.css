@@ -1,0 +1,30 @@
+.activate-plan-button-bar {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 2;
+}
+
+.flight-plan-list-section .activate-plan-button-bar {
+  bottom: 20px;
+}
+
+.map-container .activate-plan-button-bar {
+  bottom: 30px;
+}
+
+.activate-plan-button-bar .plan-bar-wrapper {
+  display: flex;
+  justify-content: space-between;
+  width: 338px;
+  height: 48px;
+  line-height: 17px;
+  font-size: 20px;
+}
+
+.activate-plan-button-bar .touch-button {
+  height: 100%;
+  width: 109px;
+}

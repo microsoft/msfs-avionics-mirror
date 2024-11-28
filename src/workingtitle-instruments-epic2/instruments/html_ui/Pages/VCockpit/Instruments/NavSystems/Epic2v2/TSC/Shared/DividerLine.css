@@ -1,0 +1,7 @@
+.tsc-divider-line {
+  position: relative;
+  top: -3px;
+  left: 18px;
+  width: 614px;
+  border-top: 3px solid var(--epic2-color-grey);
+}

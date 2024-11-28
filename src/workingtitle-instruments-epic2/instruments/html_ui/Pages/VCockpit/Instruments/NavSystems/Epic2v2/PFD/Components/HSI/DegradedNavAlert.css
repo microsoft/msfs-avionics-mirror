@@ -1,0 +1,10 @@
+.degraded-nav-alert {
+  position: absolute;
+  bottom: 311px;
+  right: 74px;
+  color: var(--epic2-color-amber);
+  border: 2px solid var(--epic2-color-amber);
+  font-size: 24px;
+  height: 26px;
+  padding: 1px;
+}

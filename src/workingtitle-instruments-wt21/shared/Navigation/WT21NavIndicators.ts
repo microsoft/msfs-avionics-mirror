@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { ControlEvents, EventBus, ExtractSubjectTypes, NavEvents, NavSourceType, Publisher, SimVarValueType, Subject } from '@microsoft/msfs-sdk';
+import { ControlEvents, EventBus, ExtractSubjectTypes, NavEvents, NavSourceType, Publisher, SimVarValueType, Subject, Subscription } from '@microsoft/msfs-sdk';
 
-import { WT21DisplayUnitFsInstrument, WT21DisplayUnitType } from '../WT21DisplayUnitFsInstrument';
+import { InstrumentConfig, WT21InstrumentType } from '../Config';
 import { NavBaseEvents, NavBaseFields } from './NavBase';
 import { NavIndicator, NavIndicatorControlEvents, NavIndicatorEvents, NavIndicators } from './NavIndicators/NavIndicators';
 import { NavSourceBase, NavSources } from './NavSources/NavSourceBase';
@@ -80,10 +80,10 @@ export class WT21CourseNeedleNavIndicator extends NavIndicator<WT21NavSourceName
 
   /** NavIndicator constructor.
    * @param navSources The possible nav sources that could be pointed to.
-   * @param displayUnit The parent display unit.
+   * @param instrumentConfig The parent instrument config object
    * @param bus The bus.
    */
-  public constructor(navSources: WT21NavSources, private readonly displayUnit: WT21DisplayUnitFsInstrument, readonly bus: EventBus) {
+  public constructor(navSources: WT21NavSources, private readonly instrumentConfig: InstrumentConfig, readonly bus: EventBus) {
     super(navSources, 'FMS1');
 
     this.navEventsPublisher = this.bus.getPublisher<NavEvents>();
@@ -96,7 +96,7 @@ export class WT21CourseNeedleNavIndicator extends NavIndicator<WT21NavSourceName
 
     this.updateStandbySource();
 
-    if (this.displayUnit.displayUnitType === WT21DisplayUnitType.Pfd) {
+    if (this.instrumentConfig.instrumentType === WT21InstrumentType.Pfd) {
       this.source.sub(x => this.handleSourceChange(x!), true);
 
       this.bus.getSubscriber<ControlEvents>().on('cdi_src_set').handle((src) => {
@@ -161,11 +161,13 @@ export class WT21CourseNeedleNavIndicator extends NavIndicator<WT21NavSourceName
     return this.standbySources[this.standbySourceIndex];
   }
 
+  private updateStandbySourceLabelSub?: Subscription;
+
   // eslint-disable-next-line jsdoc/require-jsdoc
   private updateStandbySource(): void {
-    this.standbyPresetSource.get().isLocalizer.unsub(this.updateStandbySourceLabel);
+    this.updateStandbySourceLabelSub?.destroy();
     this.standbyPresetSource.set(this.getStandbySource());
-    this.standbyPresetSource.get().isLocalizer.sub(this.updateStandbySourceLabel);
+    this.updateStandbySourceLabelSub = this.standbyPresetSource.get().isLocalizer.sub(this.updateStandbySourceLabel);
     this.updateStandbySourceLabel();
   }
 

@@ -1,0 +1,151 @@
+<ModelBehaviors>
+	<Include ModelBehaviorFile="Asobo\Generic.xml"/>
+	<Include ModelBehaviorFile="Asobo\GlassCockpit\AS3000.xml"/>
+	<Include ModelBehaviorFile="Asobo\GlassCockpit\Inputs\AS1000_Inputs.xml"/>
+	<Include RelativeFile="Common.xml"/>
+
+	<ParametersFn Name="G3000_PFD_Backlight_Var">
+		<Parameters Type="Default">
+			<RETURN_TYPE_PARAM_NAME>BACKLIGHT_VAR_TYPE</RETURN_TYPE_PARAM_NAME>
+			<RETURN_NAME_PARAM_NAME>BACKLIGHT_VAR_NAME</RETURN_NAME_PARAM_NAME>
+			<ID>1</ID>
+		</Parameters>
+		<ReturnParameters>
+			<#RETURN_TYPE_PARAM_NAME#>L:1</#RETURN_TYPE_PARAM_NAME#>
+			<#RETURN_NAME_PARAM_NAME#>WTG3000_Pfd_Backlight_#ID#</#RETURN_NAME_PARAM_NAME#>
+		</ReturnParameters>
+	</ParametersFn>
+
+	<ParametersFn Name="G3000_MFD_Backlight_Var">
+		<Parameters Type="Default">
+			<RETURN_TYPE_PARAM_NAME>BACKLIGHT_VAR_TYPE</RETURN_TYPE_PARAM_NAME>
+			<RETURN_NAME_PARAM_NAME>BACKLIGHT_VAR_NAME</RETURN_NAME_PARAM_NAME>
+		</Parameters>
+		<ReturnParameters>
+			<#RETURN_TYPE_PARAM_NAME#>L:1</#RETURN_TYPE_PARAM_NAME#>
+			<#RETURN_NAME_PARAM_NAME#>WTG3000_Mfd_Backlight_1</#RETURN_NAME_PARAM_NAME#>
+		</ReturnParameters>
+	</ParametersFn>
+
+	<Template Name="WT_G3000_PFD_Template">
+		<UseTemplate Name="WT_G3000_GDU_Template">
+			<DISPLAY>PFD</DISPLAY>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_G3000_MFD_Template">
+		<UseTemplate Name="WT_G3000_GDU_Template">
+			<DISPLAY>MFD</DISPLAY>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_G3000_GDU_Template">
+		<Parameters Type="Default">
+			<ID>1</ID>
+		</Parameters>
+
+		<UseTemplate Name="ASOBO_GT_Helper_Suffix_ID_Appender">
+			<TEMPLATE_TO_CALL>WT_G3000_GDU_SubTemplate</TEMPLATE_TO_CALL>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_G3000_GDU_SubTemplate">
+		<Parameters Type="Default">
+			<AS3000>AS3000</AS3000>
+
+			<Switch Param="DISPLAY">
+				<Case Value="PFD">
+					<Switch Param="ID">
+						<Case Value="1">
+							<DISPLAY_POS>L</DISPLAY_POS>
+						</Case>
+						<Case Value="2">
+							<DISPLAY_POS>R</DISPLAY_POS>
+						</Case>
+					</Switch>
+					<DISPLAY_ID>#DISPLAY#_#ID#</DISPLAY_ID>
+				</Case>
+				<Case Value="MFD">
+					<DISPLAY_POS>M</DISPLAY_POS>
+					<DISPLAY_ID>#DISPLAY#</DISPLAY_ID>
+				</Case>
+			</Switch>
+		</Parameters>
+
+		<Parameters Type="Override">
+			<UseParametersFn Name="G3000_#DISPLAY#_Backlight_Var">
+			</UseParametersFn>
+		</Parameters>
+
+		<Parameters Type="Default">
+			<EMISSIVE_MIN>0.02</EMISSIVE_MIN>
+			<EMISSIVE_MAX>1</EMISSIVE_MAX>
+			<EMISSIVE_GAMMA>2.2</EMISSIVE_GAMMA>
+			<EMISSIVE_INPUT>(#BACKLIGHT_VAR_TYPE#:#BACKLIGHT_VAR_NAME#)</EMISSIVE_INPUT>
+		</Parameters>
+
+		<Parameters Type="Default">
+			<SCREEN_EMISSIVE_MIN>#EMISSIVE_MIN#</SCREEN_EMISSIVE_MIN>
+			<SCREEN_EMISSIVE_MAX>#EMISSIVE_MAX#</SCREEN_EMISSIVE_MAX>
+			<SCREEN_EMISSIVE_GAMMA>#EMISSIVE_GAMMA#</SCREEN_EMISSIVE_GAMMA>
+			<SCREEN_EMISSIVE_INPUT>#EMISSIVE_INPUT#</SCREEN_EMISSIVE_INPUT>
+		</Parameters>
+
+		<Parameters Type="Default">
+			<SCREEN_NODE_ID>AS1000_#DISPLAY_ID#</SCREEN_NODE_ID>
+			<UseParametersFn Name="G3000_Emissive_Power_Curve">
+				<PREFIX>SCREEN</PREFIX>
+			</UseParametersFn>
+		</Parameters>
+
+		<Condition Check="NO_SOFTKEYS">
+			<False>
+				<Component ID="#AS3000#_Softkeys_#DISPLAY_ID#">
+					<Parameters Type="Default">
+						<Condition Check="CIRCUIT_ID">
+							<True>
+								<SOFTKEY_FAILURE>(A:CIRCUIT ON:#CIRCUIT_ID#, Bool)</SOFTKEY_FAILURE>
+							</True>
+							<False>
+								<SOFTKEY_FAILURE>(A:CIRCUIT GENERAL PANEL ON, Bool)</SOFTKEY_FAILURE>
+							</False>
+						</Condition>
+
+						<SOFTKEY_EMISSIVE_MIN>#EMISSIVE_MIN#</SOFTKEY_EMISSIVE_MIN>
+						<SOFTKEY_EMISSIVE_MAX>#EMISSIVE_MAX#</SOFTKEY_EMISSIVE_MAX>
+						<SOFTKEY_EMISSIVE_GAMMA>#EMISSIVE_GAMMA#</SOFTKEY_EMISSIVE_GAMMA>
+						<SOFTKEY_EMISSIVE_INPUT>#EMISSIVE_INPUT#</SOFTKEY_EMISSIVE_INPUT>
+					</Parameters>
+
+					<Parameters Type="Default">
+						<UseParametersFn Name="G3000_Emissive_Power_Curve">
+							<PREFIX>SOFTKEY</PREFIX>
+						</UseParametersFn>
+					</Parameters>
+
+					<Parameters Type="Override">
+						<EMISSIVE_CODE>#SOFTKEY_EMISSIVE_CODE#</EMISSIVE_CODE>
+						<FAILURE>#SOFTKEY_FAILURE#</FAILURE>
+					</Parameters>
+
+					<Loop>
+						<Setup>
+							<Param>KEY_ID</Param>
+							<From>1</From>
+							<Inc>1</Inc>
+							<To>12</To>
+						</Setup>
+						<Do>
+							<UseTemplate Name="ASOBO_AS3000_Softkey_Template"/>
+						</Do>
+					</Loop>
+				</Component>
+			</False>
+		</Condition>
+
+		<UseTemplate Name="ASOBO_AS3000_Screen_Template">
+			<SCREEN_EMISSIVE_CODE>#SCREEN_EMISSIVE_CODE#</SCREEN_EMISSIVE_CODE>
+		</UseTemplate>
+	</Template>
+
+</ModelBehaviors>

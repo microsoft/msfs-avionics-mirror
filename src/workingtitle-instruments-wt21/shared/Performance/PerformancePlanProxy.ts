@@ -39,6 +39,7 @@ export class PerformancePlanProxy implements PerformancePlanData {
 
   public cruiseTargetSpeedMach = new ProxiedPerformancePlanProperty('cruiseTargetSpeedMach', this);
 
+  /** The cruise altitude in feet, or null when not set. */
   public cruiseAltitude = new ProxiedPerformancePlanProperty('cruiseAltitude', this);
 
   public descentTargetSpeedIas = new ProxiedPerformancePlanProperty('descentTargetSpeedIas', this);

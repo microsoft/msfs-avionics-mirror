@@ -1,5 +1,6 @@
 export * from './AirportWaypoint';
 export * from './FmsPositionSystemSelector';
+export * from './GarminExistingUserWaypointsArray';
 export * from './GarminFacilityWaypointCache';
 export * from './GarminNavEvents';
 export * from './GpsIntegrityDataProvider';

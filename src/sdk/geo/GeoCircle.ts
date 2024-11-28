@@ -1,6 +1,8 @@
 import { MathUtils } from '../math';
 import { ReadonlyFloat64Array, Vec3Math } from '../math/VecMath';
+import { ArrayUtils } from '../utils/datastructures/ArrayUtils';
 import { LatLonInterface } from './GeoInterfaces';
+import { GeoMath } from './GeoMath';
 import { GeoPoint } from './GeoPoint';
 
 /**
@@ -8,25 +10,26 @@ import { GeoPoint } from './GeoPoint';
  * geodetically) from a central point.
  */
 export class GeoCircle {
-  public static readonly ANGULAR_TOLERANCE = 1e-7; // ~61cm
+  /** The default angular tolerance used by `GeoCircle`, in radians. */
+  public static readonly ANGULAR_TOLERANCE = GeoMath.ANGULAR_TOLERANCE;
 
-  private static readonly NORTH_POLE = new Float64Array([0, 0, 1]);
+  private static readonly NORTH_POLE = Vec3Math.create(0, 0, 1);
 
-  private static readonly tempGeoPoint = new GeoPoint(0, 0);
-  private static readonly vec3Cache = [new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3), new Float64Array(3)];
-  private static readonly intersectionCache = [new Float64Array(3), new Float64Array(3)];
+  private static readonly geoPointCache = [new GeoPoint(0, 0)];
+  private static readonly vec3Cache = ArrayUtils.create(6, () => Vec3Math.create());
+  private static readonly intersectionCache = [Vec3Math.create(), Vec3Math.create()];
 
-  private _center = new Float64Array(3);
+  private _center = Vec3Math.create();
   private _radius = 0;
   private _sinRadius = 0;
 
   /**
-   * Constructor.
-   * @param center The center of the new small circle, represented as a position vector in the standard geographic
+   * Creates a new instance of GeoCircle.
+   * @param center The center of the new circle, represented as a position vector in the standard geographic
    * cartesian reference system.
-   * @param radius The radius of the new small circle in great-arc radians.
+   * @param radius The radius of the new circle in great-arc radians.
    */
-  constructor(center: ReadonlyFloat64Array, radius: number) {
+  public constructor(center: ReadonlyFloat64Array, radius: number) {
     this.set(center, radius);
   }
 
@@ -44,6 +47,15 @@ export class GeoCircle {
    */
   public get radius(): number {
     return this._radius;
+  }
+
+  /**
+   * Checks whether this circle is a valid. A circle is valid if and only if it has a finite radius and its center is a
+   * position vector pointing to a point on the earth's surface.
+   * @returns Whether this circle is valid.
+   */
+  public isValid(): boolean {
+    return Vec3Math.isFinite(this._center) && isFinite(this._radius);
   }
 
   /**
@@ -77,13 +89,13 @@ export class GeoCircle {
    * Sets the center and radius of this circle.
    * @param center The new center.
    * @param radius The new radius in great-arc radians.
-   * @returns this circle, after it has been changed.
+   * @returns This circle, after it has been changed.
    */
   public set(center: ReadonlyFloat64Array | LatLonInterface, radius: number): this {
     if (center instanceof Float64Array) {
       if (Vec3Math.abs(center) === 0) {
-        // if center has no direction, arbitrarily set the center to 0 N, 0 E.
-        Vec3Math.set(1, 0, 0, this._center);
+        // If center has no direction, then set the vector to NaN.
+        Vec3Math.set(NaN, NaN, NaN, this._center);
       } else {
         Vec3Math.normalize(center, this._center);
       }
@@ -91,34 +103,67 @@ export class GeoCircle {
       GeoPoint.sphericalToCartesian(center as LatLonInterface, this._center);
     }
 
+    return this._setRadius(radius);
+  }
+
+  /**
+   * Sets the center and radius of this circle. This method does not validate or normalize the provided center vector.
+   * @param center The new center.
+   * @param radius The new radius in great-arc radians.
+   * @returns This circle, after it has been changed.
+   */
+  private _set(center: ReadonlyFloat64Array, radius: number): this {
+    Vec3Math.copy(center, this._center);
     this._radius = Math.abs(radius) % Math.PI;
     this._sinRadius = Math.sin(this._radius);
-
     return this;
   }
 
   /**
-   * Sets this circle to be a great circle which contains two given points. There are two possible great circles that
-   * contain any two unique points; these circles differ only by their directionality (equivalently, the sign of their
-   * normal vectors). The order of points passed to this method and the right-hand rule determines which of the two is
-   * returned.
+   * Sets the radius of this circle.
+   * @param radius The new radius in great-arc radians.
+   * @returns This circle, after it has been changed.
+   */
+  private _setRadius(radius: number): this {
+    this._radius = Math.abs(radius) % Math.PI;
+    this._sinRadius = Math.sin(this._radius);
+    return this;
+  }
+
+  /**
+   * Sets this circle to be a great circle that includes two given points and is parallel to the path from the first
+   * point to the second point. If the two points are coincident or antipodal, then this circle will be set to an
+   * invalid circle with center coordinates equal to `[NaN, NaN, NaN]`.
    * @param point1 The first point that lies on the great circle.
    * @param point2 The second point that lies on the great circle.
-   * @returns this circle, after it has been changed.
+   * @returns This circle, after it has been changed.
    */
   public setAsGreatCircle(point1: ReadonlyFloat64Array | LatLonInterface, point2: ReadonlyFloat64Array | LatLonInterface): this;
   /**
-   * Sets this circle to be a great circle defined by a point and bearing offset, equivalent to the path projected from
-   * the point with the specified initial bearing (forward azimuth).
+   * Sets this circle to be a great circle that includes a given point and is parallel to an initial bearing from the
+   * same point.
    * @param point A point that lies on the great circle.
-   * @param bearing The initial bearing from the point.
-   * @returns this circle, after it has been changed.
+   * @param bearing The initial bearing from the point, in degrees.
+   * @returns This circle, after it has been changed.
    */
   public setAsGreatCircle(point: ReadonlyFloat64Array | LatLonInterface, bearing: number): this;
+  /**
+   * Sets this circle to be a great circle that is tangent and parallel to another GeoCircle at a given point. If the
+   * specified point does not lie exactly on the other GeoCircle, then the projection of the point onto the other
+   * GeoCircle will be used instead. If the point cannot be projected onto the GeoCircle, then this circle will be set
+   * to an invalid circle with center coordinates equal to `[NaN, NaN, NaN]`.
+   * @param point The point at which this circle will be tangent and parallel to the other circle.
+   * @param circle The other GeoCircle.
+   * @returns This circle, after it has been changed.
+   */
+  public setAsGreatCircle(point: ReadonlyFloat64Array | LatLonInterface, circle: GeoCircle): this;
   // eslint-disable-next-line jsdoc/require-jsdoc
-  public setAsGreatCircle(arg1: ReadonlyFloat64Array | LatLonInterface, arg2: ReadonlyFloat64Array | LatLonInterface | number): this {
-    this.set(GeoCircle._getGreatCircleNormal(arg1, arg2, GeoCircle.vec3Cache[0]), Math.PI / 2);
-    return this;
+  public setAsGreatCircle(
+    arg1: ReadonlyFloat64Array | LatLonInterface,
+    arg2: ReadonlyFloat64Array | LatLonInterface | number | GeoCircle
+  ): this {
+    GeoCircle._getGreatCircleNormal(arg1, arg2, this._center);
+    return this._setRadius(Math.PI / 2);
   }
 
   /**
@@ -144,14 +189,13 @@ export class GeoCircle {
       point = GeoPoint.sphericalToCartesian(point as LatLonInterface, GeoCircle.vec3Cache[0]);
     }
 
-    const dot = Vec3Math.dot(point, this._center);
-    return Math.acos(Utils.Clamp(dot, -1, 1));
+    return Vec3Math.unitAngle(point, this._center);
   }
 
   /**
    * Finds the closest point on this circle to a specified point. In other words, projects the specified point onto
    * this circle. If the specified point is equidistant from all points on this circle (i.e. it is coincident with or
-   * antipodal to this circle's center), NaN will be written to all fields of the result.
+   * antipodal to this circle's center), then `NaN` will be written to all components of the result.
    * @param point A point, represented as either a position vector or lat/long coordinates.
    * @param out A Float64Array object to which to write the result.
    * @returns The closest point on this circle to the specified point.
@@ -160,7 +204,7 @@ export class GeoCircle {
   /**
    * Finds the closest point on this circle to a specified point. In other words, projects the specified point onto
    * this circle. If the specified point is equidistant from all points on this circle (i.e. it is coincident with or
-   * antipodal to this circle's center), NaN will be written to all fields of the result.
+   * antipodal to this circle's center), NaN will be written to all components of the result.
    * @param point A point, represented as either a position vector or lat/long coordinates.
    * @param out A GeoPoint object to which to write the result.
    * @returns The closest point on this circle to the specified point.
@@ -184,7 +228,9 @@ export class GeoCircle {
       Vec3Math.normalize(
         Vec3Math.sub(planeProjected, offset, GeoCircle.vec3Cache[2]),
         GeoCircle.vec3Cache[2]
-      ), Math.sin(this._radius), GeoCircle.vec3Cache[2]
+      ),
+      this._sinRadius,
+      GeoCircle.vec3Cache[2]
     );
     const closest = Vec3Math.add(offset, displacement, GeoCircle.vec3Cache[2]);
 
@@ -258,7 +304,7 @@ export class GeoCircle {
       end = GeoPoint.sphericalToCartesian(end as LatLonInterface, GeoCircle.vec3Cache[2]);
     }
 
-    if (!this.includes(start, tolerance) || !this.includes(end, tolerance)) {
+    if (tolerance < Math.PI && !this.includes(start, tolerance) || !this.includes(end, tolerance)) {
       throw new Error(`GeoCircle: at least one of the two specified arc end points does not lie on this circle (start point distance of ${this.distance(start)}, end point distance of ${this.distance(end)}, vs tolerance of ${tolerance}).`);
     }
 
@@ -311,11 +357,11 @@ export class GeoCircle {
       point = GeoPoint.sphericalToCartesian(point as LatLonInterface, GeoCircle.vec3Cache[1]);
     }
 
-    if (!this.includes(point, tolerance)) {
+    if (tolerance < Math.PI && !this.includes(point, tolerance)) {
       throw new Error(`GeoCircle: the specified point does not lie on this circle (distance of ${Math.abs(this.distance(point))} vs tolerance of ${tolerance}).`);
     }
 
-    if (this._radius <= GeoCircle.ANGULAR_TOLERANCE || 1 - Math.abs(Vec3Math.dot(point, GeoCircle.NORTH_POLE)) <= GeoCircle.ANGULAR_TOLERANCE) {
+    if (this._sinRadius <= GeoCircle.ANGULAR_TOLERANCE || 1 - Math.abs(Vec3Math.dot(point, GeoCircle.NORTH_POLE)) <= GeoCircle.ANGULAR_TOLERANCE) {
       // Meaningful bearings cannot be defined along a circle with 0 radius (effectively a point) and at the north and south poles.
       return NaN;
     }
@@ -323,7 +369,7 @@ export class GeoCircle {
     const radialNormal = Vec3Math.normalize(Vec3Math.cross(this._center, point, GeoCircle.vec3Cache[2]), GeoCircle.vec3Cache[2]);
     const northNormal = Vec3Math.normalize(Vec3Math.cross(point, GeoCircle.NORTH_POLE, GeoCircle.vec3Cache[3]), GeoCircle.vec3Cache[3]);
 
-    return (Math.acos(Utils.Clamp(Vec3Math.dot(radialNormal, northNormal), -1, 1)) * (radialNormal[2] >= 0 ? 1 : -1) * Avionics.Utils.RAD2DEG - 90 + 360) % 360;
+    return (Vec3Math.unitAngle(radialNormal, northNormal) * (radialNormal[2] >= 0 ? 1 : -1) * Avionics.Utils.RAD2DEG - 90 + 360) % 360;
   }
 
   /**
@@ -416,12 +462,13 @@ export class GeoCircle {
       point = GeoPoint.sphericalToCartesian(point as LatLonInterface, GeoCircle.vec3Cache[3]);
     }
 
-    if (!this.includes(point, tolerance)) {
+    if (tolerance < Math.PI && !this.includes(point, tolerance)) {
       throw new Error(`GeoCircle: the specified point does not lie on this circle (distance of ${Math.abs(this.distance(point))} vs tolerance of ${tolerance}).`);
     }
 
-    if (this.radius === 0) {
-      return out instanceof GeoPoint ? out.setFromCartesian(point) : Vec3Math.copy(point, out);
+    if (this._sinRadius <= GeoCircle.ANGULAR_TOLERANCE) {
+      // Offsetting any point on a circle of effectively zero radius (i.e. a point) will just yield the same point.
+      return out instanceof GeoPoint ? out.setFromCartesian(this._center) : Vec3Math.copy(this._center, out);
     }
 
     // Since point may not lie exactly on this circle due to error tolerance, project point onto this circle to ensure
@@ -465,6 +512,51 @@ export class GeoCircle {
     return out instanceof Float64Array
       ? Vec3Math.set(rotX, rotY, rotZ, out)
       : out.setFromCartesian(Vec3Math.set(rotX, rotY, rotZ, GeoCircle.vec3Cache[2]));
+  }
+
+  /**
+   * Rotates this circle around a pivot.
+   * @param pivot The pivot point of the rotation. If the pivot point does not lie exactly on this circle, then it will
+   * be projected onto this circle.
+   * @param angle The angle by which to rotate, in radians. Positive angles rotate the circle clockwise. In other
+   * words, if vector A is parallel to this circle at the pivot point and vector B is parallel to this circle after a
+   * rotation by angle `delta` at the pivot point, then vector B is equal to vector A after a clockwise rotation by
+   * angle `delta`, as viewed from directly above the earth's surface at the pivot point.
+   * @param tolerance The error tolerance, in great-arc radians, when checking if `pivot` lies on this circle. Defaults
+   * to `GeoCircle.ANGULAR_TOLERANCE` if not specified.
+   * @returns This circle, after it has been rotated around the specified pivot point by the specified angle.
+   * @throws Error if the pivot point does not lie on this circle, or if the pivot point cannot be projected onto this
+   * circle because it is equidistant to all points on this circle.
+   */
+  public rotate(
+    pivot: ReadonlyFloat64Array | LatLonInterface,
+    angle: number,
+    tolerance = GeoCircle.ANGULAR_TOLERANCE
+  ): GeoCircle {
+    if (!(pivot instanceof Float64Array)) {
+      pivot = GeoPoint.sphericalToCartesian(pivot as LatLonInterface, GeoCircle.vec3Cache[0]);
+    }
+
+    const pivotDistance = Math.abs(this.distance(pivot));
+
+    if (tolerance < Math.PI && pivotDistance > tolerance) {
+      throw new Error(`GeoCircle::rotate(): the specified pivot does not lie on this circle (distance of ${pivotDistance} vs tolerance of ${tolerance}).`);
+    }
+
+    const pivotToUse = pivotDistance <= Math.min(tolerance, GeoCircle.ANGULAR_TOLERANCE) ? pivot : this.closest(pivot, GeoCircle.vec3Cache[0]);
+
+    if (!Vec3Math.isFinite(pivotToUse)) {
+      throw new Error('GeoCircle::rotate(): the specified pivot cannot be projected onto this circle because it is equidistant to all points on the circle.');
+    }
+
+    if (Math.abs(angle) <= GeoCircle.ANGULAR_TOLERANCE || this._sinRadius <= GeoCircle.ANGULAR_TOLERANCE) {
+      return this;
+    }
+
+    const center = Vec3Math.copy(this._center, GeoCircle.vec3Cache[5]);
+    Vec3Math.copy(pivotToUse, this._center);
+    this.offsetAngleAlong(center, -angle, this._center, Math.PI);
+    return this;
   }
 
   /**
@@ -621,20 +713,40 @@ export class GeoCircle {
   }
 
   /**
-   * Creates a new great circle that contains two points. There are two possible great circles that contain any two
-   * unique points; these circles differ only by their directionality (equivalently, the sign of their normal vectors).
-   * The order of points passed to this method and the right-hand rule determines which of the two is returned.
+   * Creates a new great circle that includes two points and is parallel to the path from the first point to the
+   * second point. If the two points are coincident or antipodal, then the new circle will be set to an invalid circle
+   * with center coordinates equal to `[NaN, NaN, NaN]`.
    * @param point1 The first point that lies on the new great circle.
    * @param point2 The second point that lies on the new great circle.
-   * @returns a great circle.
+   * @returns A great circle that includes both specified points and is parallel to the path from the first point to
+   * the second point.
    */
-  /* eslint-disable jsdoc/require-jsdoc */
   public static createGreatCircle(point1: ReadonlyFloat64Array | LatLonInterface, point2: ReadonlyFloat64Array | LatLonInterface): GeoCircle;
+  /**
+   * Creates a new great circle that includes a given point and is parallel to an initial bearing from the same point.
+   * @param point A point that lies on the new great circle.
+   * @param bearing The initial bearing from the point, in degrees.
+   * @returns A great circle that includes the specified point and is parallel to the specified initial bearing from
+   * the same point.
+   */
   public static createGreatCircle(point: ReadonlyFloat64Array | LatLonInterface, bearing: number): GeoCircle;
-  public static createGreatCircle(arg1: ReadonlyFloat64Array | LatLonInterface, arg2: ReadonlyFloat64Array | LatLonInterface | number): GeoCircle {
+  /**
+   * Creates a new great circle that is tangent and parallel to another GeoCircle at a given point. If the specified
+   * point does not lie exactly on the other GeoCircle, then the projection of the point onto the other GeoCircle will
+   * be used instead. If the point cannot be projected onto the GeoCircle, then the new circle will be set to an
+   * invalid circle with center coordinates equal to `[NaN, NaN, NaN]`.
+   * @param point The point at which the new great circle is tangent and parallel to the other circle.
+   * @param circle The other GeoCircle.
+   * @returns A great circle that is tangent and parallel to the specified other GeoCircle at the specified point.
+   */
+  public static createGreatCircle(point: ReadonlyFloat64Array | LatLonInterface, circle: GeoCircle): GeoCircle;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static createGreatCircle(
+    arg1: ReadonlyFloat64Array | LatLonInterface,
+    arg2: ReadonlyFloat64Array | LatLonInterface | number | GeoCircle
+  ): GeoCircle {
     return new GeoCircle(GeoCircle._getGreatCircleNormal(arg1, arg2, GeoCircle.vec3Cache[0]), Math.PI / 2);
   }
-  /* eslint-enable jsdoc/require-jsdoc */
 
   /**
    * Creates a new great circle defined by one point and a bearing offset. The new great circle will be equivalent to
@@ -648,49 +760,79 @@ export class GeoCircle {
   }
 
   /**
-   * Calculates a normal vector for a great circle given two points which lie on the circle. The order of points passed
-   * to this method and the right-hand rule determines which of the two possible normal vectors for the great circle is
-   * returned.
+   * Calculates a normal vector for a great circle that includes two given points and is parallel to the path from the
+   * first point to the second point. If the two points are coincident or antipodal, then `NaN` will be written to all
+   * components of the result.
    * @param point1 The first point that lies on the great circle.
    * @param point2 The second point that lies on the great circle.
    * @param out The vector to which to write the result.
-   * @returns the normal vector for the great circle.
+   * @returns The normal vector for the great circle that is tangent and parallel to the specified GeoCircle at the
+   * specified point.
    */
   public static getGreatCircleNormal(point1: ReadonlyFloat64Array | LatLonInterface, point2: ReadonlyFloat64Array | LatLonInterface, out: Float64Array): Float64Array;
   /**
-   * Calculates a normal vector for a great circle given a point and initial bearing.
+   * Calculates a normal vector for a great circle that includes a given a point and is parallel to an initial bearing
+   * at the same point.
    * @param point A point that lies on the great circle.
    * @param bearing The initial bearing from the point.
    * @param out The vector to which to write the result.
-   * @returns the normal vector for the great circle.
+   * @returns The normal vector for the great circle that includes the specified point and is parallel to the specified
+   * bearing at that point.
    */
   public static getGreatCircleNormal(point: ReadonlyFloat64Array | LatLonInterface, bearing: number, out: Float64Array): Float64Array;
+  /**
+   * Calculates a normal vector for a great circle that is tangent and parallel to a GeoCircle at a given point. If the
+   * specified point does not lie exactly on the GeoCircle, then the projection of the point onto the GeoCircle will be
+   * used instead. If the point cannot be projected onto the GeoCircle, then `NaN` will be written to all components of
+   * the result.
+   * @param point The point at which the great circle whose normal vector to calculate is tangent and parallel to the
+   * GeoCircle.
+   * @param circle A GeoCircle.
+   * @param out The vector to which to write the result.
+   * @returns The normal vector for the great circle that is tangent and parallel to the specified GeoCircle at the
+   * specified point.
+   */
+  public static getGreatCircleNormal(point: ReadonlyFloat64Array | LatLonInterface, circle: GeoCircle, out: Float64Array): Float64Array;
   // eslint-disable-next-line jsdoc/require-jsdoc
-  public static getGreatCircleNormal(arg1: ReadonlyFloat64Array | LatLonInterface, arg2: ReadonlyFloat64Array | LatLonInterface | number, out: Float64Array): Float64Array {
+  public static getGreatCircleNormal(
+    arg1: ReadonlyFloat64Array | LatLonInterface,
+    arg2: ReadonlyFloat64Array | LatLonInterface | number | GeoCircle,
+    out: Float64Array
+  ): Float64Array {
     return GeoCircle._getGreatCircleNormal(arg1, arg2, out);
   }
 
   /**
-   * Calculates a normal vector for a great circle given two points which lie on the circle, or a point and initial bearing.
+   * Calculates a normal vector for a great circle given certain parameters.
    * @param arg1 A point that lies on the great circle.
-   * @param arg2 A second point that lies on the great circle, or an initial bearing from the first point.
+   * @param arg2 A second point that lies on the great circle, or an initial bearing from the first point, or a
+   * GeoCircle that is tangent and parallel to the great circle at the first point.
    * @param out The vector to which to write the result.
-   * @returns the normal vector for the great circle.
+   * @returns The normal vector for the great circle with the specified parameters.
    */
-  private static _getGreatCircleNormal(arg1: ReadonlyFloat64Array | LatLonInterface, arg2: ReadonlyFloat64Array | LatLonInterface | number, out: Float64Array): Float64Array {
+  private static _getGreatCircleNormal(
+    arg1: ReadonlyFloat64Array | LatLonInterface,
+    arg2: ReadonlyFloat64Array | LatLonInterface | number | GeoCircle,
+    out: Float64Array
+  ): Float64Array {
     if (typeof arg2 === 'number') {
       return GeoCircle.getGreatCircleNormalFromPointBearing(arg1, arg2, out);
+    } else if (arg2 instanceof GeoCircle) {
+      return GeoCircle.getGreatCircleNormalFromCircle(arg1, arg2, out);
     } else {
       return GeoCircle.getGreatCircleNormalFromPoints(arg1, arg2, out);
     }
   }
 
   /**
-   * Calculates a normal vector for a great circle given two points which lie on the cirlce.
+   * Calculates a normal vector for a great circle that includes two given points and is parallel to the path from the
+   * first point to the second point. If the two points are coincident or antipodal, then `NaN` will be written to all
+   * components of the result.
    * @param point1 The first point that lies on the great circle.
    * @param point2 The second point that lies on the great circle.
    * @param out The vector to which to write the result.
-   * @returns the normal vector for the great circle.
+   * @returns The normal vector for the great circle that includes the two specified points and is parallel to the path
+   * from the first point to the second point.
    */
   private static getGreatCircleNormalFromPoints(point1: ReadonlyFloat64Array | LatLonInterface, point2: ReadonlyFloat64Array | LatLonInterface, out: Float64Array): Float64Array {
     if (!(point1 instanceof Float64Array)) {
@@ -703,15 +845,17 @@ export class GeoCircle {
   }
 
   /**
-   * Calculates a normal vector for a great circle given a point and initial bearing.
+   * Calculates a normal vector for a great circle that includes a given a point and is parallel to an initial bearing
+   * at the same point.
    * @param point A point that lies on the great circle.
    * @param bearing The initial bearing from the point.
    * @param out The vector to which to write the result.
-   * @returns the normal vector for the great circle.
+   * @returns The normal vector for the great circle that includes the specified point and is parallel to the specified
+   * bearing at that point.
    */
   private static getGreatCircleNormalFromPointBearing(point: ReadonlyFloat64Array | LatLonInterface, bearing: number, out: Float64Array): Float64Array {
     if (point instanceof Float64Array) {
-      point = GeoCircle.tempGeoPoint.setFromCartesian(point);
+      point = GeoCircle.geoPointCache[0].setFromCartesian(point);
     }
 
     const lat = (point as LatLonInterface).lat * Avionics.Utils.DEG2RAD;
@@ -728,5 +872,42 @@ export class GeoCircle {
     const z = Math.cos(lat) * sinBearing;
 
     return Vec3Math.set(x, y, z, out);
+  }
+
+  /**
+   * Calculates a normal vector for a great circle that is tangent and parallel to a GeoCircle at a given point. If the
+   * specified point does not lie exactly on the GeoCircle, then the projection of the point onto the GeoCircle will be
+   * used instead. If the point cannot be projected onto the GeoCircle, then `NaN` will be written to all components of
+   * the result.
+   * @param point The point at which the great circle whose normal vector to calculate is tangent and parallel to the
+   * GeoCircle.
+   * @param circle A GeoCircle.
+   * @param out The vector to which to write the result.
+   * @returns The normal vector for the great circle that is tangent and parallel to the specified GeoCircle at the
+   * specified point.
+   */
+  private static getGreatCircleNormalFromCircle(point: ReadonlyFloat64Array | LatLonInterface, circle: GeoCircle, out: Float64Array): Float64Array {
+    const projectedPoint = circle.closest(point, GeoCircle.vec3Cache[0]);
+
+    if (!Vec3Math.isFinite(projectedPoint)) {
+      return Vec3Math.set(NaN, NaN, NaN, out);
+    }
+
+    if (circle.isGreatCircle()) {
+      return Vec3Math.copy(circle.center, out);
+    }
+
+    return Vec3Math.normalize(
+      Vec3Math.cross(
+        Vec3Math.cross(
+          projectedPoint,
+          circle._center,
+          out
+        ),
+        projectedPoint,
+        out
+      ),
+      out
+    );
   }
 }

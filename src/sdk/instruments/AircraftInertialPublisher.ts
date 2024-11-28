@@ -44,6 +44,12 @@ export interface AircraftInertialEvents {
    * of change of its roll/bank angle). Positive values indicate the airplane is rolling to the left.
    */
   rotation_velocity_body_z: number;
+
+  /** The airplane's load factor. */
+  load_factor: number;
+
+  /** The rate of change of the airplane's load factor per second. */
+  load_factor_rate: number;
 }
 
 /**
@@ -65,6 +71,8 @@ export class AircraftInertialPublisher extends SimVarPublisher<AircraftInertialE
       ['rotation_velocity_body_x', { name: 'ROTATION VELOCITY BODY X', type: SimVarValueType.DegreesPerSecond }],
       ['rotation_velocity_body_y', { name: 'ROTATION VELOCITY BODY Y', type: SimVarValueType.DegreesPerSecond }],
       ['rotation_velocity_body_z', { name: 'ROTATION VELOCITY BODY Z', type: SimVarValueType.DegreesPerSecond }],
+      ['load_factor', { name: 'SEMIBODY LOADFACTOR Y', type: SimVarValueType.Number }],
+      ['load_factor_rate', { name: 'SEMIBODY LOADFACTOR YDOT', type: SimVarValueType.PerSecond }],
     ]);
 
     super(simvars, bus, pacer);

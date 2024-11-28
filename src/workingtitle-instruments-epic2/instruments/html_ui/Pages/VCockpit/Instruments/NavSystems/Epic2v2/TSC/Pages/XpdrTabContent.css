@@ -1,0 +1,153 @@
+* {
+  box-sizing: border-box;
+}
+
+.tsc-xpdr-tab-content .keyboard-button {
+  height: 19px;
+  width: 19px;
+  position: absolute;
+  right: 70px;
+  top: 22px;
+}
+
+.xpdr-active-input-container {
+  position: relative;
+  height: 65px;
+}
+
+.xpdr-active-input-label {
+  position: relative;
+  top: 21px;
+  left: 33px;
+  color: var(--epic2-color-white);
+  font-size: 30px;
+  letter-spacing: 2px;
+}
+
+.xpdr-active-input {
+  position: absolute;
+  top: -2px;
+  left: 148px;
+  background-color: transparent;
+  border: none;
+  color: var(--epic2-color-amber);
+  font-size: 28px;
+  text-align: center;
+  font-weight: bolder;
+  font-family: var(--font), sans-serif;
+  letter-spacing: -1px;
+}
+
+.xpdr-active-input.powered {
+  color: var(--epic2-color-white);
+}
+
+/* STBY and Num Pad row */
+
+.stby-number-pad-and-xpdr-buttons {
+  display: flex;
+  height: 346px;
+}
+
+.stby-and-number-pad {
+  width: 50%;
+  height: 100%;
+}
+
+.xpdr-stby-input-container {
+  position: relative;
+  height: 70px;
+  left: 30px;
+}
+
+.xpdr-stby-input-container .top-label {
+  font-size: 26px;
+}
+
+.xpdr-stby-input-container .input-field {
+  display: flex;
+  align-items: center;
+  position: relative;
+  top: 12px;
+  width: 265px;
+}
+
+.xpdr-stby-input-container .input-field .input-row {
+  padding-left: 81px;
+}
+
+.xpdr-stby-input-container .input-field .input-row input {
+  width: 180px;
+  height: 55px;
+  color: var(--epic2-color-amber);
+  padding-right: 10px;
+  padding-top: 10px;
+  font-size: 30px;
+}
+
+.xpdr-stby-input-container.powered .input-field .input-row input {
+  color: var(--epic2-color-cyan);
+}
+
+.xpdr-stby-input-container .br-circle-half-circle-svg {
+  position: absolute;
+  top: 27px;
+  left: 96px;
+  width: 28px;
+}
+
+.white-text-color {
+  color: var(--epic2-color-white);
+}
+
+.xpdr-number-pad-container {
+  position: relative;
+  top: -3px;
+  left: -1px;
+}
+
+.xpdr-number-pad-options-container {
+  position: relative;
+  top: -3px;
+  width: 30%;
+}
+
+.number-pad-options-buttons {
+  position: absolute;
+  top: 20px;
+  left: 56px;
+  display: flex;
+  flex-direction: column;
+}
+
+.xpdr-swap-button-container {
+  position: relative;
+  top: 341px;
+  right: 13px;
+}
+
+.xpdr-buttons-container {
+  position: relative;
+  top: -4px;
+  width: 20%;
+}
+
+.xpdr-buttons {
+  position: absolute;
+  top: 20px;
+  left: 2px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tsc-xpdr-tab-content .touch-button-label {
+  all: unset;
+  font-family: sans-serif;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  paint-order: stroke;
+}

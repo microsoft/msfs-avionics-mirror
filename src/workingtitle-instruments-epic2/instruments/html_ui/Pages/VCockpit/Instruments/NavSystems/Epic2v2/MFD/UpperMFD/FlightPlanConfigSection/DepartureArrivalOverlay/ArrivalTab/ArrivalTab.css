@@ -1,0 +1,159 @@
+.arrival-tab {
+  margin: 7px;
+}
+
+.arrival-tab-view {
+  display: none;
+}
+
+.arrival-tab-section-view .arrival-tab-view {
+  display: block;
+}
+
+.arrival-tab-runway-sid-section {
+  display: none;
+}
+
+.arrival-tab-section-runway-sid .arrival-tab-runway-sid-section {
+  display: block;
+}
+
+.arrival-tab-buttons {
+  display: grid;
+  grid-template-columns: auto 140px auto;
+  grid-column-gap: 5px;
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  left: 8px;
+}
+
+.arrival-tab-buttons .touch-button.touch-button-bar {
+  height: 35px;
+  font-size: 23px;
+}
+
+.arrival-tab-runway-sid {
+  display: grid;
+  grid-template-columns: 80px 122px 122px;
+  grid-column-gap: 0px;
+}
+
+.arrival-tab-list-placeholder {
+  position: relative;
+  border-radius: 2px;
+  margin: 5px 5px 1px 5px;
+  padding: 2px;
+}
+
+.arrival-tab-selection-heading {
+  height: 30px;
+}
+
+.arrival-tab-selection p {
+  font-size: 20px;
+}
+
+.arrival-tab-heading-trans {
+  padding-left: 10px;
+  margin-top: -3px
+}
+
+.arrival-tab-section-runway-sid .arrival-tab-runway-sid-section {
+  display: block;
+}
+
+.arrival-tab-view-labels {
+  display: flex;
+  align-items: center;
+  align-content: center;
+  margin: 0 20px;
+}
+
+.arrival-tab-view-labels p {
+  font-size: 23px;
+}
+
+.arrival-tab-view-labels p:nth-of-type(1) {
+  padding-right: 10px;
+}
+
+.arrival-tab-view-labels p:nth-of-type(2) {
+  padding-right: 27px;
+}
+
+.arrival-tab-view-labels p:nth-of-type(3) {
+  padding-right: 38px;
+}
+
+.arrival-tab-view-labels p:nth-of-type(4) {
+  padding-right: 30px;
+}
+
+.arrival-tab-buttons-view {
+  display: flex;
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  left: 8px;
+}
+
+.arrival-tab-buttons-view .touch-button.touch-button-bar {
+  height: 35px;
+  width: 88px;
+  font-size: 23px;
+  margin-left: auto;
+}
+
+.arrival-tab-view-list-placeholder {
+  position: relative;
+  border-radius: 2px;
+  margin: 5px 5px 1px 5px;
+  padding: 2px;
+}
+
+.arrival-tab .epic2-list .epic2-list-scroll-bar-container {
+  /* This makes the scroll bar slightly bigger than the list so it overlaps the list border. */
+  top: -2px;
+  right: -2px;
+  height: calc(100% + 4px);
+  --epic2-list-scroll-bar-color: var(--epic2-color-white);
+}
+
+/* .arrival-tab .epic2-list .touch-list {
+  width: calc(100% - var(--epic2-list-scroll-bar-width));
+} */
+
+/* .arrival-tab .epic2-list {
+  --epic2-list-scroll-bar-width: 8px;
+} */
+
+.arrival-tab .epic2-list .approach-transition,
+.arrival-tab .epic2-list .enroute-transition {
+  padding-left: 11px;
+}
+
+.arrival-tab .epic2-list .approach-transition {
+  padding-left: 3px;
+}
+
+.arrival-tab .epic2-list .approach-transition svg {
+  margin-right: -2px;
+}
+
+.list-item.approach .touch-button.list-item-button {
+  height: calc(2 * var(--touch-list-item-length));
+}
+
+
+.list-item.approach .touch-button.list-item-button .touch-button-label {
+  align-items: unset;
+  height: 100%;
+}
+
+.list-item.approach .touch-button.list-item-button .touch-button-label span {
+  height: calc(2 * var(--touch-list-item-length));
+  margin-top: 6px;
+  line-height: 18px;
+  text-align: left;
+}

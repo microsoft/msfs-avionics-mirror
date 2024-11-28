@@ -1,0 +1,58 @@
+.vertical-speed-container {
+  position: absolute;
+  right: 2px;
+  top: 73px;
+  width: 59px;
+  height: 284px;
+}
+
+.vertical-speed-scale {
+  position: absolute;
+  top: 27px;
+  right: 0;
+
+  stroke: var(--epic2-color-white);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.vertical-speed-scale .shadow {
+  stroke: var(--epic2-color-black);
+  stroke-width: 3px;
+  stroke-opacity: 0.5;
+}
+
+.vertical-speed-scale text {
+  font-size: 24px;
+  stroke-width: 1px;
+  stroke: var(--epic2-color-black);
+  fill: var(--epic2-color-white);
+  paint-order: stroke;
+}
+
+.vertical-speed-failed-overlay {
+  stroke: var(--epic2-color-red);
+  stroke-width: 3px;
+  fill: none;
+
+  position: absolute;
+  top: 27px;
+  left: 3px;
+}
+
+.vertical-speed-digital {
+  font-size: 24px;
+  color: var(--epic2-color-white);
+
+  position: absolute;
+  left: 0;
+}
+
+.vertical-speed-digital-above {
+  top: 0;
+}
+
+.vertical-speed-digital-below {
+  bottom: 0;
+}

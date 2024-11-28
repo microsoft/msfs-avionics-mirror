@@ -1,0 +1,54 @@
+html {
+  --bar-touch-button-border-radius: 0;
+  --bar-touch-button-border-image-width: 12px;
+  --bar-touch-button-border-image-source: url('coui://html_UI/pages/vcockpit/instruments/navsystems/Epic2v2/assets/images/grey-border-sq.png');
+}
+
+.touch-button.touch-button-bar {
+  height: 57px;
+  font-size: 21px;
+  display: flex;
+  align-items: center;
+  border-radius: var(--bar-touch-button-border-radius);
+  border-image-width: var(--bar-touch-button-border-image-width);
+  border-image-source: var(--bar-touch-button-border-image-source);
+}
+
+.touch-button-bar-image-border {
+  background: var(--touch-button-background);
+  border-radius: var(--bar-touch-button-border-radius);
+  border-image-width: var(--bar-touch-button-border-image-width);
+  border-image-source: var(--bar-touch-button-border-image-source);
+  border-image-slice: var(--touch-button-border-image-slice);
+  border-image-repeat: var(--touch-button-border-image-repeat);
+}
+
+.touch-button.touch-button-bar .touch-button-label {
+  width: 100%;
+  position: relative;
+  transform: none;
+  left: revert;
+  top: revert;
+}
+
+.touch-button.with-triangle .touch-button-label {
+  line-height: 1;
+}
+
+.touch-button.touch-button-bar.touch-button-highlight {
+  box-shadow: none;
+  border: none;
+  background: var(--epic2-color-cyan);
+  color: var(--epic2-color-black);
+  -webkit-text-stroke-width: 0;
+}
+
+.touch-button.touch-button-bar-lime.touch-button-active::after {
+  border-color: var(--epic2-color-green);
+}
+
+.touch-button.touch-button-bar-menu {
+  height: auto;
+  min-height: 30px;
+  padding-top: 2px;
+}

@@ -114,9 +114,4 @@ export class ProxiedPerformancePlanProperty<K extends keyof PerformancePlanData>
     return this.subject.sub(handler, initialNotify, paused);
   }
 
-  /** @inheritDoc */
-  public unsub(handler: (value: ValueType<K>) => void): void {
-    return this.subject.unsub(handler);
-  }
-
 }

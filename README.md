@@ -1,10 +1,19 @@
 # Project
 
-Welcome to the Microsoft Flight Simulator avionics source code mirror. At this time, this repository contains the source code for the Garmin G1000 NXi as well as the related Typescript/JSX avionics creation framework. Additional avionics sources may be mirrored on this repository at a later date.
+Welcome to the Microsoft Flight Simulator avionics source code repository. At this time, this repository contains the source code for the following MSFS 2024 (V2) avionics:
+- Garmin G1000 NXi
+- Garmin GNS430W/530W
+- Garmin G3000/G5000
+- Garmin G3X Touch 10" Landscape
+- WT21
+- Epic 2/Apex
+- UNS-1 FMS
+
+For the MSFS 2020 (V1) source, please use the `v1` branch.
 
 ## Documentation
 
-Documentation for the provided Typescript/JSX avionics creation framework can be found at https://microsoft.github.io/msfs-avionics-mirror/
+Documentation for the provided Typescript/JSX avionics creation framework can be found at https://microsoft.github.io/msfs-avionics-mirror/2024/
 
 ## Contributing
 

@@ -1,0 +1,54 @@
+.bearing-pointer-container {
+  position: absolute;
+}
+
+.map-compass-offset .bearing-pointer-container {
+  top: 120px;
+  left: 120px;
+}
+
+.bearing-pointer-container svg {
+  overflow: visible;
+  filter: drop-shadow(0px 0px 1px rgba(0, 0, 0, .8));
+}
+
+.bearing-pointer-container svg path,
+.bearing-pointer-container svg circle {
+  stroke: var(--epic2-color-green);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.pointer-sources-display {
+  position: absolute;
+  top: 532px;
+  left: 578px;
+  font-size: 24px;
+  color: var(--epic2-color-green);
+}
+
+.pointer-sources-display div {
+  position: relative;
+  display: flex;
+  height: 20px;
+  margin: 2px 2px 2px 0px;
+  text-align: left;
+}
+
+.pointer-sources-display div svg {
+  fill: none;
+  stroke: var(--epic2-color-green);
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  margin-top: 4px;
+}
+
+.pointer-dme-span {
+  margin-left: 4px;
+}
+
+.hidden-pointer-distance {
+  visibility: hidden;
+}

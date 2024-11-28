@@ -1,0 +1,11 @@
+.fpln-config-init-tab {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.fpln-config-init-tab .fpln-config-init-tabbed-content-container {
+  background: var(--epic2-color-dark-grey);
+  flex-grow: 1;
+}

@@ -1,0 +1,39 @@
+.avionics-window-top-bar {
+  position: relative;
+  padding: 4px 2px 0 14px;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  height: 32px;
+  border-bottom: 2px solid var(--epic2-color-white);
+
+  --bar-touch-button-border-radius: 5px;
+}
+
+.avionics-window-top-bar .touch-button {
+  flex-grow: 1;
+  font-size: 23px;
+  height: 30px;
+}
+
+.avionics-window-top-bar .touch-button-active {
+  border-bottom: none;
+  color: var(--epic2-color-green);
+}
+
+.avionics-window-top-bar .touch-button-white-footer {
+  position: absolute;
+  bottom: -1px;
+  width: calc(100% + 6px);
+  left: -3px;
+  background: var(--epic2-color-white);
+  height: 2px;
+}
+
+.avionics-window-top-bar .touch-button-active .touch-button-white-footer {
+  display: none;
+}
+
+.avionics-window-top-bar .touch-button:hover .touch-button-white-footer {
+  background: var(--epic2-color-cyan);
+}

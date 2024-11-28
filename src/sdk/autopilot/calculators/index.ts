@@ -1,7 +1,5 @@
 export * from './ArcTurnController';
-export * from './VNavPathCalculator';
-export * from './BottomTargetPathCalculator';
+export * from './GenericFlcComputer';
 export * from './GlidePathCalculator';
 export * from './SmoothingPathCalculator';
-export * from './GenericFlcComputer';
-
+export * from './VNavPathCalculator';

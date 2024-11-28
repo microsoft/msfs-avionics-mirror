@@ -1,5 +1,6 @@
 import {
-  BackplanePublisher, ControlSurfacesEvents, ControlSurfacesPublisher, EISPublisher, ElectricalEvents, EngineEvents, EventBus, EventSubscriber, FadecEvents, ObjectSubject,
+  BackplanePublisher, ControlSurfacesEvents, ControlSurfacesPublisher, EISPublisher, ElectricalEvents, EngineEvents, EventBus, EventSubscriber, FadecEvents,
+  HydraulicsEvents, HydraulicsPublisher, ObjectSubject
 } from '@microsoft/msfs-sdk';
 
 import { FuelTempEvents, FuelTempSystemSimple } from '@microsoft/msfs-wt21-shared';
@@ -75,12 +76,6 @@ export interface EisEngineData {
    */
   fuel_right: number;
 
-  /** A hydraulic pressure value for engine 1 */
-  eng_hyd_press_1: number;
-
-  /** A hydraulic pressure value for engine 2 */
-  eng_hyd_press_2: number;
-
   /** A value indicating if engine 1 starter is on */
   eng_starter_on_1: boolean;
 
@@ -128,22 +123,22 @@ export interface EisSurfacesData {
  */
 export interface EisElectricsData {
   /** A voltage value for the generator/alternator 1 bus */
-  elec_bus_genalt_1_v: number,
+  elec_gen_v_1: number,
 
   /** A voltage value for the generator/alternator 2 bus */
-  elec_bus_genalt_2_v: number,
+  elec_gen_v_2: number,
 
   /** A current value for the generator/alternator 1 bus */
-  elec_bus_genalt_1_a: number,
+  elec_gen_a_1: number,
 
   /** A current value for the generator/alternator 2 bus */
-  elec_bus_genalt_2_a: number,
+  elec_gen_a_2: number,
 
   /** The voltage value for the battery bus */
-  elec_bus_main_v_3: number;
+  elec_bat_v_1: number;
 
   /** The current value for the battery */
-  elec_bat_a_1: number;
+  elec_bat_load_1: number;
 }
 
 /**
@@ -164,17 +159,29 @@ export interface EisFadecData {
 }
 
 /**
+ * Struct for the EIS hydraulic data in the CJ4
+ */
+export interface EisHydraulicData {
+  /** Hydraulic pressure in the left pump, in PSI */
+  hyd_pump_pressure_1: number;
+  /** Hydraulic pressure in the right pump, in PSI */
+  hyd_pump_pressure_2: number;
+}
+
+/**
  * An instrument for gathering engine and systems data.
  */
 export class EisInstrument implements BackplanePublisher {
   public readonly eisPub: EISPublisher;
   public readonly surfacesPub: ControlSurfacesPublisher;
   public readonly fadecPub: CJ4FadecPublisher;
+  public readonly hydPub: HydraulicsPublisher;
   private readonly eisSub: EventSubscriber<EngineEvents>;
   private readonly fuelTempSub: EventSubscriber<FuelTempEvents>;
   private readonly surfacesSub: EventSubscriber<ControlSurfacesEvents>;
   private readonly elecSub: EventSubscriber<ElectricalEvents>;
   private readonly fadecSub: EventSubscriber<FadecEvents>;
+  private readonly hydSub: EventSubscriber<HydraulicsEvents>;
   private readonly fuelTempSystem: FuelTempSystemSimple;
 
   public readonly engineData = ObjectSubject.create<EisEngineData>({
@@ -194,8 +201,6 @@ export class EisInstrument implements BackplanePublisher {
     fuel_temp_2: 0,
     fuel_left: 0,
     fuel_right: 0,
-    eng_hyd_press_1: 0,
-    eng_hyd_press_2: 0,
     eng_starter_on_1: false,
     eng_starter_on_2: false,
     eng_combustion_1: false,
@@ -214,12 +219,12 @@ export class EisInstrument implements BackplanePublisher {
   });
 
   public readonly elecData = ObjectSubject.create<EisElectricsData>({
-    elec_bus_genalt_1_v: 0,
-    elec_bus_genalt_2_v: 0,
-    elec_bus_genalt_1_a: 0,
-    elec_bus_genalt_2_a: 0,
-    elec_bus_main_v_3: 0,
-    elec_bat_a_1: 0,
+    elec_gen_v_1: 0,
+    elec_gen_v_2: 0,
+    elec_gen_a_1: 0,
+    elec_gen_a_2: 0,
+    elec_bat_v_1: 0,
+    elec_bat_load_1: 0,
   });
 
   public readonly fadecData = ObjectSubject.create<EisFadecData>({
@@ -227,6 +232,11 @@ export class EisInstrument implements BackplanePublisher {
     fadec_mode_2: '',
     fadec_tgt_n1_1: 0,
     fadec_tgt_n1_2: 0,
+  });
+
+  public readonly hydData = ObjectSubject.create<EisHydraulicData>({
+    hyd_pump_pressure_1: 0,
+    hyd_pump_pressure_2: 0,
   });
 
   /**
@@ -238,11 +248,13 @@ export class EisInstrument implements BackplanePublisher {
     this.eisPub = new EISPublisher(bus);
     this.surfacesPub = new ControlSurfacesPublisher(bus, 3);
     this.fadecPub = new CJ4FadecPublisher(bus);
+    this.hydPub = new HydraulicsPublisher(bus);
     this.eisSub = bus.getSubscriber<EngineEvents>();
     this.fuelTempSub = bus.getSubscriber<FuelTempEvents>();
     this.surfacesSub = bus.getSubscriber<ControlSurfacesEvents>();
     this.elecSub = bus.getSubscriber<ElectricalEvents>();
     this.fadecSub = bus.getSubscriber<FadecEvents>();
+    this.hydSub = bus.getSubscriber<HydraulicsEvents>();
     this.setupSubscriptions();
   }
 
@@ -251,6 +263,7 @@ export class EisInstrument implements BackplanePublisher {
     this.eisPub.startPublish();
     this.surfacesPub.startPublish();
     this.fadecPub.startPublish();
+    this.hydPub.startPublish();
   }
 
   /** @inheritDoc */
@@ -258,6 +271,7 @@ export class EisInstrument implements BackplanePublisher {
     this.eisPub.onUpdate();
     this.surfacesPub.onUpdate();
     this.fadecPub.onUpdate();
+    this.hydPub.onUpdate();
   }
 
   /**
@@ -294,6 +308,12 @@ export class EisInstrument implements BackplanePublisher {
     for (const event in this.fadecData.get()) {
       this.fadecSub.on(event as keyof FadecEvents).whenChanged().handle((value: string | boolean): void => {
         this.fadecData.set(event as keyof EisFadecData, value as string);
+      });
+    }
+
+    for (const event in this.hydData.get()) {
+      this.hydSub.on(event as keyof HydraulicsEvents).withPrecision(0).handle((value: any): void => {
+        this.hydData.set(event as keyof EisHydraulicData, value);
       });
     }
   }

@@ -1,5 +1,4 @@
 import { NavRadioIndex } from '../../instruments/RadioCommon';
-import { APLateralModes, APVerticalModes } from '../APConfig';
 
 /**
  * A manager that handles CDI source switching to a NAV radio source for an autopilot.
@@ -14,7 +13,7 @@ export interface NavToNavManager2 {
    * @param activateVerticalMode The autopilot vertical mode that can be activated as a result of the CDI source
    * switch.
    */
-  onTransferred?: (activateLateralMode: APLateralModes, activateVerticalMode: APVerticalModes) => void;
+  onTransferred?: (activateLateralMode: number, activateVerticalMode: number) => void;
 
   /**
    * Gets the index of the NAV radio that can be armed for a CDI source switch by this manager, or `-1` if a CDI source
@@ -30,7 +29,7 @@ export interface NavToNavManager2 {
    * @returns The autopilot lateral mode that can be armed while waiting for this manager to switch CDI source, or
    * `APLateralModes.NONE` if no modes can be armed.
    */
-  getArmableLateralMode(): APLateralModes;
+  getArmableLateralMode(): number;
 
   /**
    * Gets the autopilot vertical mode that can be armed while waiting for this manager to switch CDI source, or
@@ -38,7 +37,7 @@ export interface NavToNavManager2 {
    * @returns The autopilot vertical mode that can be armed while waiting for this manager to switch CDI source, or
    * `APVerticalModes.NONE` if no modes can be armed.
    */
-  getArmableVerticalMode(): APVerticalModes;
+  getArmableVerticalMode(): number;
 
   /**
    * Checks whether a CDI source switch initiated by this manager is currently in progress.

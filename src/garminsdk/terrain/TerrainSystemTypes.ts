@@ -1,5 +1,8 @@
 import { AirportFacility, GeoPointReadOnly, OneWayRunway } from '@microsoft/msfs-sdk';
 
+import { GlidepathServiceLevel } from '../autopilot/vnav/GarminVNavTypes';
+import { ApproachDetails, FmsFlightPhase } from '../flightplan/FmsTypes';
+
 /**
  * Types of Garmin terrain alerting systems.
  */
@@ -106,6 +109,22 @@ export type TerrainSystemData = {
   /** The destination runway loaded into the FMS, or `null` if there is no such runway. */
   destinationRunway: OneWayRunway | null;
 
+  /** Details of the approach loaded into the FMS. */
+  approachDetails: Readonly<ApproachDetails>;
+
+  /** The current FMS flight phase. */
+  flightPhase: Readonly<FmsFlightPhase>;
+
+  /** The current glidepath service level. */
+  gpServiceLevel: GlidepathServiceLevel;
+
+  /**
+   * The current glideslope or glidepath vertical deviation for the active approach, scaled such that ±1 represents
+   * full-scale deviation, or `NaN` if deviation is not available. Positive deviation indicates the airplane is below
+   * the glideslope/glidepath.
+   */
+  gsGpDeviation: number;
+
   /** The nearest airport within five nautical miles of the airplane, or `null` if there is no such airport. */
   nearestAirport: AirportFacility | null;
 };
@@ -115,14 +134,26 @@ export type TerrainSystemData = {
  */
 export interface TerrainSystemAlertController {
   /**
-   * Activates an alert.
-   * @param alert The alert to activate.
+   * Triggers an alert.
+   * @param alert The alert to trigger.
    */
-  activateAlert(alert: string): void;
+  triggerAlert(alert: string): void;
 
   /**
-   * Deactivates an alert.
-   * @param alert The alert to deactivate.
+   * Untriggers an alert.
+   * @param alert The alert to untrigger.
    */
-  deactivateAlert(alert: string): void;
+  untriggerAlert(alert: string): void;
+
+  /**
+   * Inhibits an alert.
+   * @param alert The alert to inhibit.
+   */
+  inhibitAlert(alert: string): void;
+
+  /**
+   * Uninhibits an alert.
+   * @param alert The alert to uninhibit.
+   */
+  uninhibitAlert(alert: string): void;
 }

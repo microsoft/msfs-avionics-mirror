@@ -1,30 +1,27 @@
 import {
-  Accessible, APAltCapDirector, APAltDirector, APBackCourseDirector, APFLCDirector, APGPDirector, APGpsSteerDirector,
-  APGpsSteerDirectorSteerCommand, APGSDirector, APHdgDirector, APLateralModes, APLvlDirector, APNavDirector,
-  APPitchDirector, APPitchLvlDirector, APRollDirector, APTogaPitchDirector, APValues, APVerticalModes,
-  APVNavPathDirector, APVSDirector, AutopilotDriverOptions, EventBus, FlightPlanner, LNavDirector, NavToNavManager,
-  NavToNavManager2, PlaneDirector, Subscribable, VNavManager, VNavPathCalculator
+  Accessible, APAltCapDirector, APAltDirector, APBackCourseDirector, APConfigDirectorEntry, APFLCDirector,
+  APGPDirector, APGpsSteerDirector, APGpsSteerDirectorSteerCommand, APGSDirector, APHdgDirector, APLateralModes,
+  APLvlDirector, APNavDirector, APPitchDirector, APPitchLvlDirector, APRollDirector, APTogaPitchDirector, APValues,
+  APVerticalModes, APVNavPathDirector, APVSDirector, AutopilotDriverOptions, EventBus,
+  NavToNavManager2, PlaneDirector, VNavManager
 } from '@microsoft/msfs-sdk';
 
-import { Fms } from '../flightplan/Fms';
-import { GarminObsDirector } from './directors/GarminObsDirector';
 import { GarminAPConfigInterface } from './GarminAPConfigInterface';
 import { GarminAPUtils } from './GarminAPUtils';
-import { GarminNavToNavManager } from './navtonav/GarminNavToNavManager';
 import { GarminNavToNavManager2, GarminNavToNavManager2Guidance, GarminNavToNavManager2Options } from './navtonav/GarminNavToNavManager2';
-import { GarminVNavManager2, GarminVNavManager2InternalComputerOptions } from './vnav/GarminVNavManager2';
+import { GarminVNavComputer } from './vnav/GarminVNavComputer';
+import { GarminVNavManager2 } from './vnav/GarminVNavManager2';
 import { GarminVNavGlidepathGuidance, GarminVNavGuidance, GarminVNavPathGuidance } from './vnav/GarminVNavTypes';
+import { GarminGlidepathComputer } from './vnav/GarminGlidepathComputer';
 
 /**
  * Options for configuring a Garmin GPS (LNAV) director.
  */
 export type GarminLNavDirectorOptions = {
   /**
-   * The steering command to send to the autopilot's GPS roll-steering director. If not defined and the autopilot is
-   * configured to source data from a static flight planner or FMS instance, then the autopilot will use a GPS director
-   * that is bundled with its own LNAV computer.
+   * The steering command to send to the autopilot's GPS roll-steering director.
    */
-  steerCommand?: Accessible<Readonly<APGpsSteerDirectorSteerCommand>>;
+  steerCommand: Accessible<Readonly<APGpsSteerDirectorSteerCommand>>;
 
   /**
    * Whether to disable arming on the GPS director. If `true`, then the director will skip the arming phase and instead
@@ -34,40 +31,64 @@ export type GarminLNavDirectorOptions = {
 };
 
 /**
- * Options for configuring Garmin autopilot directors.
+ * Options for configuring Garmin autopilots.
  */
-export type GarminAPConfigDirectorOptions = {
+export type GarminAPConfigOptions = {
+  /** The ID of the CDI associated with the autopilot. Defaults to the empty string (`''`). */
+  cdiId?: string;
+
+  /**
+   * Whether the autopilot should use mach number calculated from the impact pressure derived from indicated airspeed
+   * and ambient pressure instead of the true mach number. Defaults to `false`.
+   */
+  useIndicatedMach?: boolean;
+
   /** The default rate at which commanded pitch changes, in degrees per second. Defaults to `5`. */
   defaultPitchRate?: number;
 
   /** The default rate at which commanded bank changes, in degrees per second. Defaults to `10`. */
   defaultBankRate?: number;
 
-  /** The ID of the CDI associated with the autopilot. Defaults to the empty string (`''`). */
-  cdiId?: string;
-
-  /** Options for the LNAV director. */
+  /** Options for the LNAV (GPSS) director. If not defined, then the autopilot will not include an LNAV director */
   lnavOptions?: Readonly<GarminLNavDirectorOptions>;
 
   /**
-   * Whether the autopilot should use internal VNAV and glidepath computers. Internal computers require that a vertical
-   * path calculator and either flight planner or _static_ (not subscribable) FMS instance be defined. If these
-   * conditions are not met and `useInternalVNavComputer` is `true`, then the autopilot will be configured without
-   * VNAV or glidepath capability. Defaults to `true`.
+   * A function that creates an internal VNAV computer for the autopilot's VNAV manager. The internal computer will be
+   * updated by the VNAV manager, and the autopilot will use the internal computer's VNAV and VNAV path guidance.
+   * @param apValues The autopilot's state values.
+   * @returns An internal VNAV computer for the autopilot's VNAV manager.
    */
-  useInternalVNavComputer?: boolean;
+  internalVNavComputer?: (apValues: APValues) => GarminVNavComputer;
 
-  /** Options for the autopilot's internal VNAV and glidepath computers. Ignored if `useInternalVNavComputer` is `false`. */
-  vnavOptions?: Readonly<GarminVNavManager2InternalComputerOptions>;
+  /**
+   * A function that creates an internal glidepath computer for the autopilot's VNAV manager. The internal computer
+   * will be updated by the VNAV manager, and the autopilot will use the internal computer's glidepath guidance.
+   * @param apValues The autopilot's state values.
+   * @returns An internal glidepath computer for the autopilot's VNAV manager.
+   */
+  internalGlidepathComputer?: (apValues: APValues) => GarminGlidepathComputer;
 
-  /** VNAV guidance for the autopilot's VNAV manager to use. Ignored if `useInternalVNavComputer` is `true`. */
+  /** VNAV guidance for the autopilot's VNAV manager to use. Ignored if `internalVNavComputer` is defined. */
   vnavGuidance?: Accessible<Readonly<GarminVNavGuidance>>;
 
-  /** Guidance for the autopilot's VNAV path director to use. Ignored if `useInternalVNavComputer` is `true`. */
+  /** Guidance for the autopilot's VNAV path director to use. Ignored if `internalVNavComputer` is defined. */
   verticalPathGuidance?: Accessible<Readonly<GarminVNavPathGuidance>>;
 
-  /** Guidance for the autopilot's glidepath director to use. Ignored if `useInternalVNavComputer` is `true`. */
+  /** Guidance for the autopilot's glidepath director to use. Ignored if `internalGlidepathComputer` is defined. */
   glidepathGuidance?: Accessible<Readonly<GarminVNavGlidepathGuidance>>;
+
+  /**
+   * Guidance for the autopilot's nav-to-nav manager to use. If defined, then a `GarminNavToNavManager2` will be
+   * created as the autopilot's nav-to-nav manager and the guidance will be passed to it. If not defined, then the
+   * autopilot will not support nav-to-nav.
+   */
+  navToNavGuidance?: GarminNavToNavManager2Guidance;
+
+  /**
+   * Options with which to configure the autopilot's `GarminNavToNavManager2` nav-to-nav manager. Ignored if
+   * `navToNavGuidance` is undefined.
+   */
+  navToNavOptions?: Readonly<GarminNavToNavManager2Options>;
 
   /** The minimum bank angle, in degrees, supported by the ROL director. Defaults to `6`. */
   rollMinBankAngle?: number;
@@ -94,6 +115,18 @@ export type GarminAPConfigDirectorOptions = {
   lowBankAngle?: number;
 
   /**
+   * The target pitch angle, in degrees, commanded by the TO director. Positive values indicate upward pitch. Defaults
+   * to `10`.
+   */
+  toPitchAngle?: number;
+
+  /**
+   * The target pitch angle, in degrees, commanded by the GA director. Positive values indicate upward pitch. Defaults
+   * to `7.5`.
+   */
+  gaPitchAngle?: number;
+
+  /**
    * The threshold difference between selected heading and current heading, in degrees, at which the heading director
    * unlocks its commanded turn direction and chooses a new optimal turn direction to establish on the selected
    * heading, potentially resulting in a turn reversal. Any value less than or equal to 180 degrees effectively
@@ -102,31 +135,9 @@ export type GarminAPConfigDirectorOptions = {
    * director to issue a turn reversal. Defaults to `331`.
    */
   hdgTurnReversalThreshold?: number;
-};
 
-/**
- * Options for configuring Garmin autopilots.
- */
-export type GarminAPConfigOptions = GarminAPConfigDirectorOptions & {
-  /**
-   * Whether the autopilot should use mach number calculated from the impact pressure derived from indicated airspeed
-   * and ambient pressure instead of the true mach number. Defaults to `false`.
-   */
-  useIndicatedMach?: boolean;
-
-  /**
-   * Guidance for the autopilot's nav-to-nav manager to use. If defined, then a `GarminNavToNavManager2` will be
-   * created as the autopilot's nav-to-nav manager and the guidance will be passed to it. If not defined, then a
-   * `GarminNavToNavManager` will be created instead if an FMS instance or flight planner is passed to the
-   * configuration.
-   */
-  navToNavGuidance?: GarminNavToNavManager2Guidance;
-
-  /**
-   * Options with which to configure the autopilot's `GarminNavToNavManager2` nav-to-nav manager. Ignored if
-   * `navToNavGuidance` is undefined.
-   */
-  navToNavOptions?: Readonly<GarminNavToNavManager2Options>;
+  /** Whether to deactivate the autopilot when GA mode is armed in response to a TO/GA mode button press. Defaults to `true`. */
+  deactivateAutopilotOnGa?: boolean;
 }
 
 /**
@@ -148,6 +159,12 @@ export class GarminAPConfig implements GarminAPConfigInterface {
   /** The default maximum bank angle, in degrees, in Low Bank Mode. */
   public static readonly DEFAULT_LOW_BANK_ANGLE = 15;
 
+  /** The default target pitch angle, in degrees, commanded by the TO director. Positive values indicate upward pitch. */
+  public static readonly DEFAULT_TO_PITCH_ANGLE = 10;
+
+  /** The default target pitch angle, in degrees, commanded by the GA director. Positive values indicate upward pitch. */
+  public static readonly DEFAULT_GA_PITCH_ANGLE = 7.5;
+
   /** The default HDG director turn direction unlock threshold, in degrees. */
   public static readonly DEFAULT_HDG_DIRECTION_UNLOCK_THRESHOLD = 331;
 
@@ -158,6 +175,9 @@ export class GarminAPConfig implements GarminAPConfigInterface {
   /** @inheritDoc */
   public readonly cdiId: string;
 
+  /** @inheritDoc */
+  public readonly deactivateAutopilotOnGa: boolean;
+
   public autopilotDriverOptions: AutopilotDriverOptions;
 
   /**
@@ -166,16 +186,8 @@ export class GarminAPConfig implements GarminAPConfigInterface {
    */
   public readonly useIndicatedMach: boolean;
 
-  private readonly flightPlanner?: FlightPlanner;
-  private readonly fms?: Fms | Subscribable<Fms>;
-
   /** Options for the LNAV director. */
-  private readonly lnavOptions: Partial<Readonly<GarminLNavDirectorOptions>>;
-
-  private readonly useInternalVNavComputer: boolean;
-
-  private readonly vnavOptions?: Readonly<GarminVNavManager2InternalComputerOptions>;
-  private readonly vnavGuidance?: Accessible<Readonly<GarminVNavGuidance>>;
+  private readonly lnavOptions?: Readonly<GarminLNavDirectorOptions>;
 
   private readonly rollMinBankAngle: number;
   private readonly rollMaxBankAngle: number;
@@ -185,9 +197,17 @@ export class GarminAPConfig implements GarminAPConfigInterface {
   private readonly lnavMaxBankAngle: number;
   private readonly lowBankAngle: number;
 
+  private readonly toPitchAngle: number;
+  private readonly gaPitchAngle: number;
+
   private readonly hdgTurnReversalThreshold: number;
 
   private vnavManager?: GarminVNavManager2;
+
+  private readonly internalVNavComputer?: (apValues: APValues) => GarminVNavComputer;
+  private readonly internalGlidepathComputer?: (apValues: APValues) => GarminGlidepathComputer;
+
+  private readonly vnavGuidance?: Accessible<Readonly<GarminVNavGuidance>>;
 
   private readonly defaultVerticalPathGuidance: GarminVNavPathGuidance = {
     isValid: false,
@@ -211,52 +231,14 @@ export class GarminAPConfig implements GarminAPConfigInterface {
   /**
    * Creates a new instance of GarminAPConfig.
    * @param bus The event bus.
-   * @param flightPlanner The flight planner of the FMS instance from which to source data. The LNAV instance index
-   * associated with the flight planner is assumed to be `0`.
-   * @param verticalPathCalculator The vertical path calculator to use for the autopilot's internal VNAV and glidepath
-   * computers. If not defined, then the internal computers will not be created even if the omission would leave the
-   * autopilot without VNAV and glidepath capability.
-   * @param options Options to configure the directors.
-   * @deprecated
-   */
-  public constructor(
-    bus: EventBus,
-    flightPlanner: FlightPlanner,
-    verticalPathCalculator?: VNavPathCalculator,
-    options?: Readonly<GarminAPConfigOptions>
-  );
-  /**
-   * Creates a new instance of GarminAPConfig.
-   * @param bus The event bus.
-   * @param fms The FMS instance from which to source data.
-   * @param verticalPathCalculator The vertical path calculator to use for the autopilot's internal VNAV and glidepath
-   * computers. If not defined, then the internal computers will not be created even if the omission would leave the
-   * autopilot without VNAV and glidepath capability.
    * @param options Options to configure the directors.
    */
-  public constructor(
-    bus: EventBus,
-    fms: Fms | Subscribable<Fms>,
-    verticalPathCalculator?: VNavPathCalculator,
-    options?: Readonly<GarminAPConfigOptions>
-  );
-  // eslint-disable-next-line jsdoc/require-jsdoc
   public constructor(
     private readonly bus: EventBus,
-    arg2: FlightPlanner | Fms | Subscribable<Fms>,
-    private readonly verticalPathCalculator?: VNavPathCalculator,
     options?: Readonly<GarminAPConfigOptions>
   ) {
     this.cdiId = options?.cdiId ?? '';
-
-    if (arg2 instanceof FlightPlanner) {
-      this.flightPlanner = arg2;
-    } else {
-      this.fms = arg2;
-      if (this.fms instanceof Fms) {
-        this.flightPlanner = this.fms.flightPlanner;
-      }
-    }
+    this.deactivateAutopilotOnGa = options?.deactivateAutopilotOnGa ?? true;
 
     this.autopilotDriverOptions = {
       pitchServoRate: options?.defaultPitchRate ?? GarminAPConfig.DEFAULT_PITCH_RATE,
@@ -265,15 +247,16 @@ export class GarminAPConfig implements GarminAPConfigInterface {
 
     this.useIndicatedMach = options?.useIndicatedMach ?? false;
 
-    this.lnavOptions = { ...options?.lnavOptions };
+    if (options?.lnavOptions) {
+      this.lnavOptions = { ...options.lnavOptions };
+    }
 
-    this.useInternalVNavComputer = options?.useInternalVNavComputer ?? true;
+    this.internalVNavComputer = options?.internalVNavComputer;
+    this.internalGlidepathComputer = options?.internalGlidepathComputer;
 
     this.vnavGuidance = options?.vnavGuidance;
 
-    this.vnavOptions = this.useInternalVNavComputer ? options?.vnavOptions : undefined;
-
-    this.verticalPathGuidance = this.useInternalVNavComputer
+    this.verticalPathGuidance = this.internalVNavComputer
       ? {
         /** @inheritDoc */
         get: (): Readonly<GarminVNavPathGuidance> => {
@@ -284,7 +267,7 @@ export class GarminAPConfig implements GarminAPConfigInterface {
       }
       : options?.verticalPathGuidance ?? { get: () => this.defaultVerticalPathGuidance };
 
-    this.glidepathGuidance = this.useInternalVNavComputer
+    this.glidepathGuidance = this.internalGlidepathComputer
       ? {
         /** @inheritDoc */
         get: (): Readonly<GarminVNavGlidepathGuidance> => {
@@ -305,141 +288,245 @@ export class GarminAPConfig implements GarminAPConfigInterface {
     this.lnavMaxBankAngle = options?.lnavMaxBankAngle ?? GarminAPConfig.DEFAULT_MAX_BANK_ANGLE;
     this.lowBankAngle = options?.lowBankAngle ?? GarminAPConfig.DEFAULT_LOW_BANK_ANGLE;
     this.hdgTurnReversalThreshold = options?.hdgTurnReversalThreshold ?? GarminAPConfig.DEFAULT_HDG_DIRECTION_UNLOCK_THRESHOLD;
+
+    this.toPitchAngle = options?.toPitchAngle ?? GarminAPConfig.DEFAULT_TO_PITCH_ANGLE;
+    this.gaPitchAngle = options?.gaPitchAngle ?? GarminAPConfig.DEFAULT_GA_PITCH_ANGLE;
   }
 
-  /** @inheritdoc */
-  public createHeadingDirector(apValues: APValues): APHdgDirector {
+  /** @inheritDoc */
+  public createLateralDirectors(apValues: APValues): Iterable<Readonly<APConfigDirectorEntry>> {
+    return [
+      { mode: APLateralModes.ROLL, director: this.createRollDirector(apValues) },
+      { mode: APLateralModes.LEVEL, director: this.createWingLevelerDirector(apValues) },
+      { mode: APLateralModes.HEADING, director: this.createHeadingDirector(apValues) },
+      { mode: APLateralModes.TRACK, director: this.createTrackDirector(apValues) },
+      { mode: APLateralModes.GPSS, director: this.createGpssDirector(apValues) },
+      { mode: APLateralModes.VOR, director: this.createVorDirector(apValues) },
+      { mode: APLateralModes.LOC, director: this.createLocDirector(apValues) },
+      { mode: APLateralModes.BC, director: this.createBcDirector(apValues) },
+      { mode: APLateralModes.TO, director: this.createToLateralDirector(apValues) },
+      { mode: APLateralModes.GA, director: this.createGaLateralDirector(apValues) },
+    ].filter(entry => entry.director !== undefined) as Iterable<Readonly<APConfigDirectorEntry>>;
+  }
+
+  /** @inheritDoc */
+  public createVerticalDirectors(apValues: APValues): Iterable<Readonly<APConfigDirectorEntry>> {
+    return [
+      { mode: APVerticalModes.PITCH, director: this.createPitchDirector(apValues) },
+      { mode: APVerticalModes.LEVEL, director: this.createPitchLevelerDirector(apValues) },
+      { mode: APVerticalModes.VS, director: this.createVsDirector(apValues) },
+      { mode: APVerticalModes.FLC, director: this.createFlcDirector(apValues) },
+      { mode: APVerticalModes.ALT, director: this.createAltHoldDirector(apValues) },
+      { mode: APVerticalModes.CAP, director: this.createAltCapDirector(apValues) },
+      { mode: APVerticalModes.PATH, director: this.createVNavPathDirector(apValues) },
+      { mode: APVerticalModes.GP, director: this.createGpDirector(apValues) },
+      { mode: APVerticalModes.GS, director: this.createGsDirector(apValues) },
+      { mode: APVerticalModes.TO, director: this.createToVerticalDirector(apValues) },
+      { mode: APVerticalModes.GA, director: this.createGaVerticalDirector(apValues) },
+    ].filter(entry => entry.director !== undefined) as Iterable<Readonly<APConfigDirectorEntry>>;
+  }
+
+  /**
+   * Creates the autopilot's roll mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's roll mode director, or `undefined` to omit the director.
+   */
+  protected createRollDirector(apValues: APValues): PlaneDirector | undefined {
+    return new APRollDirector(apValues, { minBankAngle: this.rollMinBankAngle, maxBankAngle: this.rollMaxBankAngle });
+  }
+
+  /**
+   * Creates the autopilot's wing level mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's wing level mode director, or `undefined` to omit the director.
+   */
+  protected createWingLevelerDirector(apValues: APValues): PlaneDirector | undefined {
+    return new APLvlDirector(apValues);
+  }
+
+  /**
+   * Creates the autopilot's heading mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's heading mode director, or `undefined` to omit the director.
+   */
+  protected createHeadingDirector(apValues: APValues): PlaneDirector | undefined {
     return new APHdgDirector(this.bus, apValues, {
       maxBankAngle: () => apValues.maxBankId.get() === 1 ? Math.min(this.hdgMaxBankAngle, this.lowBankAngle) : this.hdgMaxBankAngle,
       turnReversalThreshold: this.hdgTurnReversalThreshold
     });
   }
 
-  /** @inheritdoc */
-  public createRollDirector(apValues: APValues): APRollDirector {
-    return new APRollDirector(apValues, { minBankAngle: this.rollMinBankAngle, maxBankAngle: this.rollMaxBankAngle });
+  /**
+   * Creates the autopilot's track mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's track mode director, or `undefined` to omit the director.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected createTrackDirector(apValues: APValues): PlaneDirector | undefined {
+    // TODO
+    return undefined;
   }
 
-  /** @inheritdoc */
-  public createWingLevelerDirector(apValues: APValues): APLvlDirector {
-    return new APLvlDirector(this.bus, apValues);
-  }
+  /**
+   * Creates the autopilot's GPSS mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's GPSS mode director, or `undefined` to omit the director.
+   */
+  protected createGpssDirector(apValues: APValues): PlaneDirector | undefined {
+    if (this.lnavOptions) {
+      const maxBankAngle = (): number => apValues.maxBankId.get() === 1 ? Math.min(this.lnavMaxBankAngle, this.lowBankAngle) : this.lnavMaxBankAngle;
 
-  /** @inheritdoc */
-  public createPitchLevelerDirector(apValues: APValues): APPitchLvlDirector {
-    return new APPitchLvlDirector(apValues);
-  }
-
-  /** @inheritdoc */
-  public createGpssDirector(apValues: APValues): PlaneDirector | undefined {
-    const maxBankAngle = (): number => apValues.maxBankId.get() === 1 ? Math.min(this.lnavMaxBankAngle, this.lowBankAngle) : this.lnavMaxBankAngle;
-
-    if (this.lnavOptions.steerCommand) {
       return new APGpsSteerDirector(
-        this.bus,
         apValues,
         this.lnavOptions.steerCommand,
         {
           maxBankAngle,
-          canActivate: state => Math.abs(state.xtk) < 0.6 && Math.abs(state.tae) < 110,
-          disableArming: this.lnavOptions.disableArming
+          canActivate: this.lnavOptions.disableArming
+            ? () => true
+            : GarminAPUtils.gpssCanActivate,
         }
       );
     } else {
-      if (this.flightPlanner) {
-        return new LNavDirector(
-          this.bus,
-          apValues,
-          this.flightPlanner,
-          new GarminObsDirector(this.bus, apValues, {
-            maxBankAngle,
-            lateralInterceptCurve: GarminAPUtils.lnavIntercept,
-          }),
-          {
-            maxBankAngle,
-            lateralInterceptCurve: GarminAPUtils.lnavIntercept,
-            hasVectorAnticipation: true,
-            disableArming: this.lnavOptions.disableArming
-          }
-        );
-      } else {
-        return undefined;
-      }
+      return undefined;
     }
   }
 
-  /** @inheritdoc */
-  public createVorDirector(apValues: APValues): APNavDirector {
+  /**
+   * Creates the autopilot's VOR mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's VOR mode director, or `undefined` to omit the director.
+   */
+  protected createVorDirector(apValues: APValues): PlaneDirector | undefined {
     return new APNavDirector(this.bus, apValues, APLateralModes.VOR, {
       maxBankAngle: () => apValues.maxBankId.get() === 1 ? Math.min(this.vorMaxBankAngle, this.lowBankAngle) : this.vorMaxBankAngle,
+      canArm: GarminAPUtils.navCanArm,
+      canActivate: GarminAPUtils.navCanActivate,
+      canRemainActive: GarminAPUtils.navCanRemainActive,
       lateralInterceptCurve: GarminAPUtils.navIntercept
     });
   }
 
-  /** @inheritdoc */
-  public createLocDirector(apValues: APValues): APNavDirector {
+  /**
+   * Creates the autopilot's localizer mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's localizer mode director, or `undefined` to omit the director.
+   */
+  protected createLocDirector(apValues: APValues): PlaneDirector | undefined {
     return new APNavDirector(this.bus, apValues, APLateralModes.LOC, {
       maxBankAngle: () => apValues.maxBankId.get() === 1 ? Math.min(this.locMaxBankAngle, this.lowBankAngle) : this.locMaxBankAngle,
+      canArm: GarminAPUtils.navCanArm,
+      canActivate: GarminAPUtils.navCanActivate,
+      canRemainActive: GarminAPUtils.navCanRemainActive,
       lateralInterceptCurve: GarminAPUtils.navIntercept
     });
   }
 
-  /** @inheritdoc */
-  public createBcDirector(apValues: APValues): APBackCourseDirector {
+  /**
+   * Creates the autopilot's localizer backcourse mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's localizer backcourse mode director, or `undefined` to omit the director.
+   */
+  protected createBcDirector(apValues: APValues): PlaneDirector | undefined {
     return new APBackCourseDirector(this.bus, apValues, {
       maxBankAngle: () => apValues.maxBankId.get() === 1 ? Math.min(this.locMaxBankAngle, this.lowBankAngle) : this.locMaxBankAngle,
+      canArm: GarminAPUtils.backCourseCanArm,
+      canActivate: GarminAPUtils.backCourseCanActivate,
+      canRemainActive: GarminAPUtils.backCourseCanRemainActive,
       lateralInterceptCurve: (distanceToSource: number, deflection: number, xtk: number, tas: number) => GarminAPUtils.localizerIntercept(xtk, tas)
     });
   }
 
-  /** @inheritdoc */
-  public createPitchDirector(apValues: APValues): APPitchDirector {
+  /**
+   * Creates the autopilot's takeoff lateral mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's takeoff lateral mode director, or `undefined` to omit the director.
+   */
+  protected createToLateralDirector(apValues: APValues): PlaneDirector | undefined {
+    return new APLvlDirector(apValues, { omitWingLeveler: true });
+  }
+
+  /**
+   * Creates the autopilot's go-around lateral mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's go-around lateral mode director, or `undefined` to omit the director.
+   */
+  protected createGaLateralDirector(apValues: APValues): PlaneDirector | undefined {
+    return new APLvlDirector(apValues, { omitWingLeveler: true });
+  }
+
+  /**
+   * Creates the autopilot's pitch mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's pitch mode director, or `undefined` to omit the director.
+   */
+  protected createPitchDirector(apValues: APValues): PlaneDirector | undefined {
     return new APPitchDirector(this.bus, apValues);
   }
 
-  /** @inheritdoc */
-  public createVsDirector(apValues: APValues): APVSDirector {
+  /**
+   * Creates the autopilot's pitch level mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's pitch level mode director, or `undefined` to omit the director.
+   */
+  protected createPitchLevelerDirector(apValues: APValues): PlaneDirector | undefined {
+    return new APPitchLvlDirector(apValues);
+  }
+
+  /**
+   * Creates the autopilot's vertical speed mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's vertical speed mode director, or `undefined` to omit the director.
+   */
+  protected createVsDirector(apValues: APValues): PlaneDirector | undefined {
     return new APVSDirector(apValues);
   }
 
-  /** @inheritdoc */
-  public createFlcDirector(apValues: APValues): APFLCDirector {
+  /**
+   * Creates the autopilot's flight level change mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's flight level change mode director, or `undefined` to omit the director.
+   */
+  protected createFlcDirector(apValues: APValues): PlaneDirector | undefined {
     return new APFLCDirector(apValues, { useIndicatedMach: this.useIndicatedMach });
   }
 
-  /** @inheritdoc */
-  public createAltHoldDirector(apValues: APValues): APAltDirector {
+  /**
+   * Creates the autopilot's altitude hold mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's altitude hold mode director, or `undefined` to omit the director.
+   */
+  protected createAltHoldDirector(apValues: APValues): PlaneDirector | undefined {
     return new APAltDirector(apValues);
   }
 
-  /** @inheritdoc */
-  public createAltCapDirector(apValues: APValues): APAltCapDirector {
+  /**
+   * Creates the autopilot's altitude capture mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's altitude capture mode director, or `undefined` to omit the director.
+   */
+  protected createAltCapDirector(apValues: APValues): PlaneDirector | undefined {
     return new APAltCapDirector(apValues);
   }
 
-  /** @inheritdoc */
-  public createVNavManager(apValues: APValues): VNavManager | undefined {
-    if (this.useInternalVNavComputer) {
-      if (this.flightPlanner && this.verticalPathCalculator) {
-        return this.vnavManager = new GarminVNavManager2(this.bus, this.flightPlanner, this.verticalPathCalculator, apValues, this.vnavOptions);
-      } else {
-        return undefined;
-      }
-    } else {
-      return this.vnavManager = new GarminVNavManager2(this.bus, apValues, this.vnavGuidance, this.glidepathGuidance);
-    }
-  }
-
-  /** @inheritdoc */
+  /**
+   * Creates the autopilot's VNAV path mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's VNAV path mode director, or `undefined` to omit the director.
+   */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public createVNavPathDirector(apValues: APValues): PlaneDirector | undefined {
+  protected createVNavPathDirector(apValues: APValues): PlaneDirector | undefined {
     return new APVNavPathDirector(this.bus, { guidance: this.verticalPathGuidance });
   }
 
-  /** @inheritdoc */
-  public createGpDirector(apValues: APValues): APGPDirector {
+  /**
+   * Creates the autopilot's glidepath mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's glidepath mode director, or `undefined` to omit the director.
+   */
+  protected createGpDirector(apValues: APValues): PlaneDirector | undefined {
     return new APGPDirector(this.bus, apValues, {
       guidance: this.glidepathGuidance,
+      canArm: GarminAPUtils.glidepathCanArm.bind(undefined, apValues),
       canCapture: this.glidepathGuidance
         ? () => {
           return apValues.lateralActive.get() === APLateralModes.GPSS && this.glidepathGuidance!.get().canCapture;
@@ -448,41 +535,51 @@ export class GarminAPConfig implements GarminAPConfigInterface {
     });
   }
 
-  /** @inheritdoc */
-  public createGsDirector(apValues: APValues): APGSDirector {
-    return new APGSDirector(this.bus, apValues);
+  /**
+   * Creates the autopilot's glideslope mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's glideslope mode director, or `undefined` to omit the director.
+   */
+  protected createGsDirector(apValues: APValues): PlaneDirector | undefined {
+    return new APGSDirector(this.bus, apValues, {
+      canArm: GarminAPUtils.glideslopeCanArm,
+      canActivate: GarminAPUtils.glideslopeCanActivate,
+      canRemainActive: GarminAPUtils.glideslopeCanRemainActive
+    });
   }
 
-  /** @inheritdoc */
-  public createToVerticalDirector(): PlaneDirector | undefined {
-    //TODO: This value should be read in from the systems.cfg 'pitch_takeoff_ga' value
-
-    return new APTogaPitchDirector(10);
+  /**
+   * Creates the autopilot's takeoff vertical mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's takeoff vertical mode director, or `undefined` to omit the director.
+   */
+  protected createToVerticalDirector(apValues: APValues): PlaneDirector | undefined {
+    return new APTogaPitchDirector(apValues, { targetPitchAngle: this.toPitchAngle });
   }
 
-  /** @inheritdoc */
-  public createGaVerticalDirector(): PlaneDirector | undefined {
-    return new APTogaPitchDirector(7.5);
+  /**
+   * Creates the autopilot's go-around vertical mode director.
+   * @param apValues The autopilot's state values.
+   * @returns The autopilot's go-around vertical mode director, or `undefined` to omit the director.
+   */
+  protected createGaVerticalDirector(apValues: APValues): PlaneDirector | undefined {
+    return new APTogaPitchDirector(apValues, { targetPitchAngle: this.gaPitchAngle });
   }
 
-  /** @inheritdoc */
-  public createToLateralDirector(apValues: APValues): PlaneDirector | undefined {
-    return new APLvlDirector(this.bus, apValues, { isToGaMode: true });
+  /** @inheritDoc */
+  public createVNavManager(apValues: APValues): VNavManager | undefined {
+    return this.vnavManager = new GarminVNavManager2(this.bus, apValues, {
+      internalVNavComputer: this.internalVNavComputer,
+      internalGlidepathComputer: this.internalGlidepathComputer,
+      guidance: this.vnavGuidance,
+      glidepathGuidance: this.glidepathGuidance
+    });
   }
 
-  /** @inheritdoc */
-  public createGaLateralDirector(apValues: APValues): PlaneDirector | undefined {
-    return new APLvlDirector(this.bus, apValues, { isToGaMode: true });
-  }
-
-  /** @inheritdoc */
-  public createNavToNavManager(apValues: APValues): NavToNavManager | NavToNavManager2 | undefined {
+  /** @inheritDoc */
+  public createNavToNavManager(apValues: APValues): NavToNavManager2 | undefined {
     if (this.navToNavGuidance) {
       return new GarminNavToNavManager2(this.bus, apValues, this.navToNavGuidance, this.navToNavOptions);
-    } if (this.fms) {
-      return new GarminNavToNavManager(this.bus, this.fms, apValues);
-    } else if (this.flightPlanner) {
-      return new GarminNavToNavManager(this.bus, this.flightPlanner, apValues);
     } else {
       return undefined;
     }

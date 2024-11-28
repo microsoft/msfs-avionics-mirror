@@ -1,14 +1,18 @@
 import {
-  BitFlags, ComponentProps, DigitScroller, DisplayComponent, FSComponent, MappedSubject, MappedSubscribable, MathUtils,
-  MutableSubscribable, NodeReference, NumberFormatter, NumberUnitSubject, ObjectSubject, SetSubject, SubEvent, Subject, Subscribable,
-  SubscribableMapFunctions, SubscribableSet, SubscribableUtils, Subscription, ToggleableClassNameRecord, UnitType, UserSettingManager, VNode
+  BitFlags, ComponentProps, CssTransformBuilder, CssTransformSubject, DigitScroller, DisplayComponent, FSComponent, MappedSubject, MappedSubscribable, MathUtils,
+  MutableSubscribable, NodeReference, NumberFormatter, NumberUnitSubject, ObjectSubject, SetSubject, SubEvent, Subject,
+  Subscribable, SubscribableMapFunctions, SubscribableSet, SubscribableUtils, Subscription, ToggleableClassNameRecord,
+  UnitType, UserSettingManager, VNode
 } from '@microsoft/msfs-sdk';
 
 import { VSpeedUserSettingTypes, VSpeedUserSettingUtils } from '../../../settings/VSpeedUserSettings';
 import { NumberUnitDisplay } from '../../common/NumberUnitDisplay';
+import { AirspeedDefinition } from './AirspeedDefinition';
+import { AirspeedDefinitionFactory } from './AirspeedDefinitionFactory';
 import { AirspeedIndicatorColorRange, AirspeedIndicatorColorRangeColor, AirspeedIndicatorColorRangeWidth } from './AirspeedIndicatorColorRange';
 import { AirspeedAlert, AirspeedIndicatorDataProvider } from './AirspeedIndicatorDataProvider';
 import { VSpeedAnnunciation, VSpeedAnnunciationDataProvider } from './VSpeedAnnunciationDataProvider';
+import { VSpeedBugColor, VSpeedBugDefinition } from './VSpeedBugDefinition';
 
 /**
  * Scale options for an airspeed tape.
@@ -57,23 +61,6 @@ export type AirspeedIndicatorBottomDisplayOptions = {
 };
 
 /**
- * A definition for an airspeed indicator reference V-speed bug.
- */
-export type VSpeedBugDefinition = {
-  /** The name of the bug's reference V-speed. */
-  readonly name: string;
-
-  /** The bug's label text. */
-  readonly label: string;
-
-  /** Whether to show an off-scale label for the bug when the airspeed is off-scale. */
-  readonly showOffscale: boolean;
-
-  /** Whether to show a legend for the bug at the bottom of the airspeed tape. */
-  readonly showLegend: boolean;
-}
-
-/**
  * Options for an airspeed indicator's displayed reference V-speed bugs.
  */
 export type VSpeedBugOptions = {
@@ -88,7 +75,18 @@ export type VSpeedBugOptions = {
 };
 
 /**
- * Component props for AirspeedIndicator.
+ * Options for an airspeed indicator's approach cue bug.
+ */
+export type AirspeedApproachCueBugOptions = {
+  /**
+   * A factory that generates the speed value of the bug, in knots. If the speed value is `NaN`, then the bug will be
+   * hidden.
+   */
+  speed: AirspeedDefinitionFactory;
+};
+
+/**
+ * Component props for {@link AirspeedIndicator}.
  */
 export interface AirspeedIndicatorProps extends ComponentProps {
   /** A data provider for the indicator. */
@@ -97,8 +95,29 @@ export interface AirspeedIndicatorProps extends ComponentProps {
   /** A provider of V-speed annunciation data. If not defined, the indicator will not display V-speed annunciations. */
   vSpeedAnnunciationDataProvider?: VSpeedAnnunciationDataProvider;
 
-  /** Whether the indicator should be decluttered. */
+  /**
+   * Whether the indicator should be decluttered due to unusual attitudes. When decluttered, the following features are
+   * hidden:
+   * * Airspeed reference display
+   * * Airspeed protection annunciations
+   */
   declutter: Subscribable<boolean>;
+
+  /**
+   * Whether the indicator should be shown in simplified mode. In simplified mode, the airspeed reference display is
+   * replaced by an 'Speed' label, and the following features are hidden:
+   * * Airspeed protection annunciations
+   * * Airspeed alert (overspeed/underspeed) indications
+   * * Color ranges
+   * * Reference airspeed bug
+   * * V-speed bugs
+   * * Approach cue bug
+   * * Trend vector
+   * * Bottom display box
+   *
+   * Defaults to `false`.
+   */
+  simplified?: boolean | Subscribable<boolean>;
 
   /** Scale options for the airspeed tape. */
   tapeScaleOptions: Readonly<AirspeedTapeScaleOptions>;
@@ -109,14 +128,17 @@ export interface AirspeedIndicatorProps extends ComponentProps {
   /** Options for the trend vector. */
   trendVectorOptions: Readonly<AirspeedTrendVectorOptions>;
 
-  /** Options for airspeed alerts. */
-  airspeedAlertOptions: Readonly<AirspeedAlertOptions>;
+  /** Options for airspeed alerts. If not defined, then airspeed alert indications will not be displayed. */
+  airspeedAlertOptions?: Readonly<AirspeedAlertOptions>;
 
   /** Options for the bottom display box. */
   bottomDisplayOptions: Readonly<AirspeedIndicatorBottomDisplayOptions>;
 
-  /** Options for reference V-speed bugs. */
-  vSpeedBugOptions: Readonly<VSpeedBugOptions>;
+  /** Options for reference V-speed bugs. If not defined, then V-speed bugs will not be displayed. */
+  vSpeedBugOptions?: Readonly<VSpeedBugOptions>;
+
+  /** Options for the approach cue bug. If not defined, then the approach cue bug will not be displayed. */
+  approachCueBugOptions?: Readonly<AirspeedApproachCueBugOptions>;
 
   /** CSS class(es) to apply to the indicator's root element. */
   class?: string | SubscribableSet<string> | ToggleableClassNameRecord;
@@ -143,66 +165,138 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
 
   private readonly rootCssClass = SetSubject.create(['airspeed']);
 
-  private readonly airspeedAlertOptions = { ...this.props.airspeedAlertOptions };
+  private readonly simplified = SubscribableUtils.toSubscribable(this.props.simplified ?? false, true) as Subscribable<boolean>;
 
-  private readonly activeAlert = this.props.dataProvider.airspeedAlerts.map((alerts): AirspeedAlert => {
-    // We should never have an overspeed and underspeed alert at the same time, but just in case, underspeed alerts
-    // will take precedence
+  private readonly airspeedAlertOptions = this.props.airspeedAlertOptions ? { ...this.props.airspeedAlertOptions } : undefined;
 
-    if (this.airspeedAlertOptions.supportUnderspeed && BitFlags.isAny(alerts, AirspeedAlert.Underspeed)) {
-      return AirspeedAlert.Underspeed;
-    } else if (this.airspeedAlertOptions.supportOverspeed && BitFlags.isAny(alerts, AirspeedAlert.Overspeed)) {
-      return AirspeedAlert.Overspeed;
-    } else if (this.airspeedAlertOptions.supportTrendUnderspeed && BitFlags.isAny(alerts, AirspeedAlert.TrendUnderspeed)) {
-      return AirspeedAlert.TrendUnderspeed;
-    } else if (this.airspeedAlertOptions.supportTrendOverspeed && BitFlags.isAny(alerts, AirspeedAlert.TrendOverspeed)) {
-      return AirspeedAlert.TrendOverspeed;
-    } else {
-      return AirspeedAlert.None;
-    }
-  }).pause();
+  private readonly activeAlert = this.airspeedAlertOptions ?
+    MappedSubject.create(
+      ([alerts, simplified]): AirspeedAlert => {
+        if (simplified) {
+          return AirspeedAlert.None;
+        }
 
-  private readonly showTopDisplay = this.props.declutter.map(SubscribableMapFunctions.not());
+        // We should never have an overspeed and underspeed alert at the same time, but just in case, underspeed alerts
+        // will take precedence
 
-  private readonly isReferenceDisplayVisible = Subject.create(false);
+        if (this.airspeedAlertOptions!.supportUnderspeed && BitFlags.isAny(alerts, AirspeedAlert.Underspeed)) {
+          return AirspeedAlert.Underspeed;
+        } else if (this.airspeedAlertOptions!.supportOverspeed && BitFlags.isAny(alerts, AirspeedAlert.Overspeed)) {
+          return AirspeedAlert.Overspeed;
+        } else if (this.airspeedAlertOptions!.supportTrendUnderspeed && BitFlags.isAny(alerts, AirspeedAlert.TrendUnderspeed)) {
+          return AirspeedAlert.TrendUnderspeed;
+        } else if (this.airspeedAlertOptions!.supportTrendOverspeed && BitFlags.isAny(alerts, AirspeedAlert.TrendOverspeed)) {
+          return AirspeedAlert.TrendOverspeed;
+        } else {
+          return AirspeedAlert.None;
+        }
+      },
+      this.props.dataProvider.airspeedAlerts,
+      this.simplified
+    ).pause()
+    : undefined;
+
+  private readonly showDefaultTopBottomDisplays = MappedSubject.create(
+    SubscribableMapFunctions.nor(),
+    this.props.declutter,
+    this.simplified
+  ).pause();
+
+  private readonly topAltitudeLabelDisplay = this.simplified.map(simplified => simplified ? '' : 'none').pause();
+
+  private readonly isAirspeedReferenceDisplayVisible = Subject.create(false);
+
+  private readonly isTopDisplayVisible = MappedSubject.create(
+    SubscribableMapFunctions.or(),
+    this.isAirspeedReferenceDisplayVisible,
+    this.simplified
+  ).pause();
   private readonly isBottomDisplayVisible = Subject.create(false);
 
+  private isAlive = true;
+  private isAwake = false;
+
   private readonly subscriptions: Subscription[] = [
-    this.activeAlert,
-    this.showTopDisplay
+    this.showDefaultTopBottomDisplays,
+    this.topAltitudeLabelDisplay,
+    this.isTopDisplayVisible,
   ];
 
-  /** @inheritdoc */
-  public onAfterRender(): void {
-    this.activeAlert.resume();
+  private isDataFailedSub?: Subscription;
 
-    this.isReferenceDisplayVisible.sub(isVisible => {
-      if (isVisible) {
-        this.rootCssClass.add('airspeed-reference-visible');
-      } else {
-        this.rootCssClass.delete('airspeed-reference-visible');
-      }
+  /** @inheritDoc */
+  public onAfterRender(): void {
+    this.isTopDisplayVisible.sub(isVisible => {
+      this.rootCssClass.toggle('airspeed-reference-visible', isVisible);
     }, true);
 
     this.isBottomDisplayVisible.sub(isVisible => {
-      if (isVisible) {
-        this.rootCssClass.add('airspeed-bottom-display-visible');
-      } else {
-        this.rootCssClass.delete('airspeed-bottom-display-visible');
-      }
+      this.rootCssClass.toggle('airspeed-bottom-display-visible', isVisible);
     }, true);
 
-    this.activeAlert.sub(this.updateAlertClass.bind(this), true);
+    this.activeAlert?.sub(this.updateAlertClass.bind(this), true);
 
     this.subscriptions.push(
-      this.props.dataProvider.isDataFailed.sub(isDataFailed => {
-        if (isDataFailed) {
-          this.rootCssClass.add('data-failed');
-        } else {
-          this.rootCssClass.delete('data-failed');
-        }
-      }, true)
+      this.isDataFailedSub = this.props.dataProvider.isDataFailed.sub(this.onDataFailedChanged.bind(this), true, !this.isAwake)
     );
+  }
+
+  /**
+   * Wakes this indicator. While awake, this indicator will automatically update its appearance.
+   * @throws Error if this indicator is dead.
+   */
+  public wake(): void {
+    if (!this.isAlive) {
+      throw new Error('AirspeedIndicator: cannot wake a dead component');
+    }
+
+    if (this.isAwake) {
+      return;
+    }
+
+    this.isAwake = true;
+
+    this.activeAlert?.resume();
+    this.showDefaultTopBottomDisplays.resume();
+    this.topAltitudeLabelDisplay.resume();
+    this.isTopDisplayVisible.resume();
+
+    this.isDataFailedSub?.resume(true);
+
+    this.tapeRef.instance.wake();
+  }
+
+  /**
+   * Puts this indicator to sleep. While asleep, this indicator will not automatically update its appearance.
+   * @throws Error if this indicator is dead.
+   */
+  public sleep(): void {
+    if (!this.isAlive) {
+      throw new Error('AirspeedIndicator: cannot sleep a dead component');
+    }
+
+    if (!this.isAwake) {
+      return;
+    }
+
+    this.isAwake = false;
+
+    this.activeAlert?.pause();
+    this.showDefaultTopBottomDisplays.pause();
+    this.topAltitudeLabelDisplay.pause();
+    this.isTopDisplayVisible.pause();
+
+    this.isDataFailedSub?.pause();
+
+    this.tapeRef.instance.sleep();
+  }
+
+  /**
+   * Responds to when whether airspeed data is in a failed state changes.
+   * @param isDataFailed Whether airspeed data is in a failed state.
+   */
+  private onDataFailedChanged(isDataFailed: boolean): void {
+    this.rootCssClass.toggle('data-failed', isDataFailed);
   }
 
   /**
@@ -231,7 +325,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
     }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     if (typeof this.props.class === 'object') {
       const sub = FSComponent.bindCssClassSet(this.rootCssClass, this.props.class, AirspeedIndicator.RESERVED_CLASSES);
@@ -267,13 +361,16 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
 
         // TAS display is hidden whenever any V-speed annunciation is active.
         showTas = MappedSubject.create(
-          ([isTakeoffVSpeedVisible, isLandingVSpeedVisible]) => !(isTakeoffVSpeedVisible || isLandingVSpeedVisible),
+          ([showDefaultTopBottomDisplays, isTakeoffVSpeedVisible, isLandingVSpeedVisible]) => {
+            return showDefaultTopBottomDisplays && !(isTakeoffVSpeedVisible || isLandingVSpeedVisible);
+          },
+          this.showDefaultTopBottomDisplays,
           isTakeoffVSpeedAnnuncVisible,
           isLandingVSpeedAnnuncVisible
         );
 
-        showTakeoffVSpeedAnnunc = Subject.create(true);
-        showLandingVSpeedAnnunc = Subject.create(true);
+        showTakeoffVSpeedAnnunc = this.showDefaultTopBottomDisplays;
+        showLandingVSpeedAnnunc = this.showDefaultTopBottomDisplays;
 
         MappedSubject.create(
           ([isTasVisible, isTakeoffVSpeedVisible, isLandingVSpeedVisible]) => isTasVisible || isTakeoffVSpeedVisible || isLandingVSpeedVisible,
@@ -282,7 +379,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
           isLandingVSpeedAnnuncVisible
         ).pipe(this.isBottomDisplayVisible);
       } else {
-        showTas = Subject.create(true);
+        showTas = this.showDefaultTopBottomDisplays;
         isTasDisplayVisible.pipe(this.isBottomDisplayVisible);
       }
     } else {
@@ -295,11 +392,19 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
         isLandingVSpeedAnnuncVisible = Subject.create<boolean>(false);
 
         // Mach display is hidden when the takeoff V-speed annunciation is active.
-        showMach = isTakeoffVSpeedAnnuncVisible.map(SubscribableMapFunctions.not());
+        showMach = MappedSubject.create(
+          ([showDefaultTopBottomDisplays, isTakeoffVSpeedAnnuncVisibleVal]) => showDefaultTopBottomDisplays && !isTakeoffVSpeedAnnuncVisibleVal,
+          this.showDefaultTopBottomDisplays,
+          isTakeoffVSpeedAnnuncVisible
+        );
 
-        showTakeoffVSpeedAnnunc = Subject.create(true);
+        showTakeoffVSpeedAnnunc = this.showDefaultTopBottomDisplays;
         // Landing V-speed annunciation is hidden when the mach display is visible.
-        showLandingVSpeedAnnunc = isMachDisplayVisible.map(SubscribableMapFunctions.not());
+        showLandingVSpeedAnnunc = MappedSubject.create(
+          ([showDefaultTopBottomDisplays, isMachDisplayVisibleVal]) => showDefaultTopBottomDisplays && !isMachDisplayVisibleVal,
+          this.showDefaultTopBottomDisplays,
+          isMachDisplayVisible
+        );
 
         MappedSubject.create(
           ([isTasVisible, isTakeoffVSpeedVisible, isLandingVSpeedVisible]) => isTasVisible || isTakeoffVSpeedVisible || isLandingVSpeedVisible,
@@ -308,7 +413,7 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
           isLandingVSpeedAnnuncVisible
         ).pipe(this.isBottomDisplayVisible);
       } else {
-        showMach = Subject.create(true);
+        showMach = this.showDefaultTopBottomDisplays;
         isMachDisplayVisible.pipe(this.isBottomDisplayVisible);
       }
     }
@@ -318,24 +423,31 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
         <AirspeedTape
           ref={this.tapeRef}
           dataProvider={this.props.dataProvider}
+          simplified={this.simplified}
           {...this.props.tapeScaleOptions}
           colorRanges={this.props.colorRanges}
           {...this.props.trendVectorOptions}
           vSpeedBugOptions={this.props.vSpeedBugOptions}
+          approachCueBugOptions={this.props.approachCueBugOptions}
         />
         <div class='airspeed-top-container' data-checklist="checklist-airspeed-top">
+          <div class='airspeed-top-label-container' style={{ 'display': this.topAltitudeLabelDisplay }}>
+            <div class='airspeed-top-label-text'>
+              Speed
+            </div>
+          </div>
           <AirspeedReferenceDisplay
             ref={this.referenceRef}
-            show={this.showTopDisplay}
+            show={this.showDefaultTopBottomDisplays}
             referenceIas={this.props.dataProvider.referenceIas}
             referenceMach={this.props.dataProvider.referenceMach}
             referenceIsManual={this.props.dataProvider.referenceIsManual}
             isAirspeedHoldActive={this.props.dataProvider.isAirspeedHoldActive}
-            isVisible={this.isReferenceDisplayVisible}
+            isVisible={this.isAirspeedReferenceDisplayVisible}
           />
           <AirspeedProtectionAnnunciation
             ref={this.alertRef}
-            show={this.showTopDisplay}
+            show={this.showDefaultTopBottomDisplays}
             isOverspeedProtectionActive={this.props.dataProvider.isOverspeedProtectionActive}
             isUnderspeedProtectionActive={this.props.dataProvider.isUnderspeedProtectionActive}
           />
@@ -383,11 +495,13 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
     this.referenceRef.getOrDefault()?.destroy();
     this.alertRef.getOrDefault()?.destroy();
     this.tapeRef.getOrDefault()?.destroy();
+
+    this.activeAlert?.destroy();
 
     for (const sub of this.subscriptions) {
       sub.destroy();
@@ -403,6 +517,9 @@ export class AirspeedIndicator extends DisplayComponent<AirspeedIndicatorProps> 
 interface AirspeedTapeProps extends ComponentProps {
   /** A data provider for the indicator. */
   dataProvider: AirspeedIndicatorDataProvider;
+
+  /** Whether the tape should be shown in simplified mode. */
+  simplified: Subscribable<boolean>;
 
   /** The minimum airspeed representable on the tape, in knots. */
   minimum: number | Subscribable<number>;
@@ -428,8 +545,11 @@ interface AirspeedTapeProps extends ComponentProps {
   /** The minimum absolute value of the airspeed trend, in knots, required to display the trend vector. */
   trendThreshold: number | Subscribable<number>;
 
-  /** Options for reference V-speed bugs. */
-  vSpeedBugOptions: Readonly<VSpeedBugOptions>;
+  /** Options for reference V-speed bugs. If not defined, then V-speed bugs will not be displayed. */
+  vSpeedBugOptions?: Readonly<VSpeedBugOptions>;
+
+  /** Options for the approach cue bug. If not defined, then the approach cue bug will not be displayed. */
+  approachCueBugOptions?: Readonly<AirspeedApproachCueBugOptions>;
 }
 
 /**
@@ -445,6 +565,7 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
   private readonly vSpeedBugRefs: NodeReference<VSpeedBug>[] = [];
   private readonly vSpeedOffScaleLabelRefs: NodeReference<VSpeedOffScaleLabel>[] = [];
   private readonly vSpeedLegendRefs: NodeReference<VSpeedLegend>[] = [];
+  private readonly approachCueBugRef = FSComponent.createRef<ApproachCueBug>();
 
   private readonly rootCssClass = SetSubject.create(['airspeed-tape-container']);
 
@@ -503,6 +624,8 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
   private currentMinimum = 0;
   private readonly currentTranslate = Subject.create(0);
 
+  private readonly isAwake = Subject.create(false);
+
   private readonly minimum = SubscribableUtils.toSubscribable(this.props.minimum, true);
   private readonly maximum = SubscribableUtils.toSubscribable(this.props.maximum, true);
   private readonly window = SubscribableUtils.toSubscribable(this.props.window, true);
@@ -523,7 +646,7 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
     },
     this.props.dataProvider.iasKnots,
     this.minimum
-  );
+  ).pause();
 
   private readonly isIasAboveScale = MappedSubject.create(
     ([iasKnots, maximum]): boolean => {
@@ -531,7 +654,7 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
     },
     this.props.dataProvider.iasKnots,
     this.maximum
-  );
+  ).pause();
 
   private readonly isIasOffScale = MappedSubject.create(
     ([isIasBelowScale, isIasAboveScale]): boolean => {
@@ -550,7 +673,7 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
     this.maximum,
     this.window,
     this.props.dataProvider.isDataFailed
-  );
+  ).pause();
 
   private readonly iasBoxValue = MappedSubject.create(
     ([iasKnots, isIasOffScale]): number => {
@@ -558,26 +681,27 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
     },
     this.props.dataProvider.iasKnots,
     this.isIasOffScale
-  );
+  ).pause();
 
   private readonly trendThreshold = SubscribableUtils.toSubscribable(this.props.trendThreshold, true);
 
   private readonly showTrendVector = MappedSubject.create(
-    ([iasKnot, minimum, maximum, threshold, iasTrend, isDataFailed]): boolean => {
-      return !isDataFailed && iasKnot >= minimum && iasKnot < maximum && Math.abs(iasTrend) >= threshold;
+    ([iasKnot, minimum, maximum, threshold, iasTrend, isDataFailed, simplified]): boolean => {
+      return !simplified && !isDataFailed && iasKnot >= minimum && iasKnot < maximum && Math.abs(iasTrend) >= threshold;
     },
     this.props.dataProvider.iasKnots,
     this.minimum,
     this.maximum,
     this.trendThreshold,
     this.props.dataProvider.iasTrend,
-    this.props.dataProvider.isDataFailed
-  );
+    this.props.dataProvider.isDataFailed,
+    this.props.simplified
+  ).pause();
 
   private readonly iasTrendParams = MappedSubject.create(
     this.props.dataProvider.iasTrend,
     this.window
-  );
+  ).pause();
 
   private readonly trendVectorHeight = Subject.create(0);
   private readonly trendVectorScale = Subject.create(1);
@@ -585,54 +709,104 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
   private readonly updateTapeEvent = new SubEvent<this, void>();
   private readonly updateTapeWindowEvent = new SubEvent<this, void>();
 
-  private readonly colorRangeSubscribables: MappedSubscribable<number>[] = [];
+  private readonly colorRangeSpeedDefs: AirspeedDefinition[] = [];
 
   private readonly vSpeedBugSubscribables: MappedSubscribable<any>[] = [];
 
-  private readonly showAirspeedData = this.props.dataProvider.isDataFailed.map(SubscribableMapFunctions.not());
+  private readonly approachCueBugSpeedDef = this.props.approachCueBugOptions?.speed(this.props.dataProvider);
 
-  /** @inheritdoc */
-  constructor(props: AirspeedTapeProps) {
-    super(props);
+  private readonly showAirspeedData = this.props.dataProvider.isDataFailed.map(SubscribableMapFunctions.not()).pause();
 
-    this.iasTapeValue.pause();
-    this.iasBoxValue.pause();
-    this.showTrendVector.pause();
-    this.iasTrendParams.pause();
-  }
+  private readonly showColorRangesAndBugs = MappedSubject.create(
+    ([isAwake, showIndicatedAltData, simplified]) => isAwake && showIndicatedAltData && !simplified,
+    this.isAwake,
+    this.showAirspeedData,
+    this.props.simplified
+  );
 
-  /** @inheritdoc */
+  private optionsSub?: Subscription;
+  private showTrendVectorSub?: Subscription;
+  private iasTrendParamsSub?: Subscription;
+
+  /** @inheritDoc */
   public onAfterRender(): void {
-    this.iasTapeValue.resume();
-    this.iasBoxValue.resume();
+    this.iasTapeValue.sub(this.updateTape.bind(this), true);
 
-    this.iasTapeValue.sub(this.updateTape.bind(this));
+    this.iasTrendParamsSub = this.iasTrendParams.sub(this.updateTrendVector.bind(this), false, true);
 
-    this.iasTrendParams.sub(this.updateTrendVector.bind(this));
-
-    this.showTrendVector.resume();
-    this.showTrendVector.sub(show => {
+    this.showTrendVectorSub = this.showTrendVector.sub(show => {
       if (show) {
         this.trendVectorStyle.set('display', '');
         this.iasTrendParams.resume();
+        this.iasTrendParamsSub!.resume(true);
       } else {
+        this.iasTrendParamsSub!.pause();
         this.iasTrendParams.pause();
         this.trendVectorStyle.set('display', 'none');
       }
-    }, true);
+    }, true, !this.isAwake);
 
-    this.trendVectorHeight.sub(height => { this.trendVectorStyle.set('height', `${height}%`); });
-    this.trendVectorScale.sub(scale => { this.trendVectorStyle.set('transform', `scale(${scale}) rotateX(0deg)`); });
+    this.trendVectorHeight.sub(height => { this.trendVectorStyle.set('height', `${height}%`); }, true);
+    this.trendVectorScale.sub(scale => { this.trendVectorStyle.set('transform', `scale(${scale}) rotateX(0deg)`); }, true);
 
     this.currentTranslate.sub(translate => {
       this.tapeStyle.set('transform', `translate3d(0, ${translate * 100}%, 0)`);
-    });
+    }, true);
 
-    this.options.sub(this.rebuildTape.bind(this), true);
+    this.optionsSub = this.options.sub(this.rebuildTape.bind(this), true, !this.isAwake);
 
     this.isIasBelowScale.sub(isIasBelowScale => {
       this.vSpeedOffScaleContainerStyle.set('display', isIasBelowScale ? 'flex' : 'none');
     }, true);
+  }
+
+  /**
+   * Wakes this tape. While awake, this tape will automatically update its appearance.
+   */
+  public wake(): void {
+    if (this.isAwake.get()) {
+      return;
+    }
+
+    this.isAwake.set(true);
+
+    this.isIasBelowScale.resume();
+    this.isIasAboveScale.resume();
+    this.iasTapeValue.resume();
+    this.iasBoxValue.resume();
+
+    this.showTrendVector.resume();
+
+    this.showAirspeedData.resume();
+
+    this.optionsSub?.resume(true);
+    this.showTrendVectorSub?.resume(true);
+  }
+
+  /**
+   * Puts this tape to sleep. While asleep, this display will not automatically update its appearance.
+   */
+  public sleep(): void {
+    if (!this.isAwake.get()) {
+      return;
+    }
+
+    this.isAwake.set(false);
+
+    this.isIasBelowScale.pause();
+    this.isIasAboveScale.pause();
+    this.iasTapeValue.pause();
+    this.iasBoxValue.pause();
+
+    this.showTrendVector.pause();
+    this.showTrendVectorSub?.pause();
+
+    this.iasTrendParams.pause();
+    this.iasTrendParamsSub?.pause();
+
+    this.showAirspeedData.pause();
+
+    this.optionsSub?.pause();
   }
 
   /**
@@ -783,7 +957,7 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
     this.trendVectorScale.set(iasTrend < 0 ? -1 : 1);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     const { bugs: vSpeedBugs, offscale: vSpeedOffscaleLabels, legends: vSpeedLegends } = this.renderVSpeedBugs();
 
@@ -837,16 +1011,28 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
           {vSpeedBugs}
         </div>
 
+        {this.approachCueBugSpeedDef !== undefined && (
+          <div class='airspeed-approach-cue-bug-container' style='position: absolute; top: 0; height: 100%; overflow: hidden;'>
+            <ApproachCueBug
+              ref={this.approachCueBugRef}
+              value={SubscribableUtils.toSubscribable(this.approachCueBugSpeedDef.value, true)}
+              show={this.showColorRangesAndBugs}
+              updateEvent={this.updateTapeWindowEvent}
+              getPosition={this.calculateWindowTapePosition.bind(this)}
+            />
+          </div>
+        )}
+
         <AirspeedIasDisplayBox
           ref={this.iasBoxRef}
           show={this.showAirspeedData}
           ias={this.iasBoxValue}
         />
 
-        <div class='airspeed-refspeed-bug-container' style='position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden;'>
+        <div class='airspeed-refspeed-bug-container' style='position: absolute; top: 0; height: 100%; overflow: hidden;'>
           <ReferenceSpeedBug
             ref={this.manualRefSpeedBugRef}
-            show={this.showAirspeedData}
+            show={this.showColorRangesAndBugs}
             referenceIas={this.props.dataProvider.referenceIas}
             referenceMach={this.props.dataProvider.referenceMach}
             referenceIsManual={this.props.dataProvider.referenceIsManual}
@@ -875,21 +1061,17 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
       const ref = FSComponent.createRef<AirspeedColorRange>();
       this.colorRangeRefs.push(ref);
 
-      if (SubscribableUtils.isSubscribable(minimum)) {
-        this.colorRangeSubscribables.push(minimum);
-      }
-      if (SubscribableUtils.isSubscribable(maximum)) {
-        this.colorRangeSubscribables.push(maximum);
-      }
+      this.colorRangeSpeedDefs.push(minimum);
+      this.colorRangeSpeedDefs.push(maximum);
 
       ranges.push(
         <AirspeedColorRange
           ref={ref}
           width={definition.width}
           color={definition.color}
-          show={this.showAirspeedData}
-          minimum={minimum}
-          maximum={maximum}
+          show={this.showColorRangesAndBugs}
+          minimum={minimum.value}
+          maximum={maximum.value}
           updateEvent={this.updateTapeEvent}
           getPosition={getPosition}
         />
@@ -918,112 +1100,140 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
     const legendShow: Subscribable<boolean>[] = [];
 
     const options = this.props.vSpeedBugOptions;
-    const allowZeroValue = options.allowZeroValue ?? false;
 
-    for (const def of options.vSpeedBugDefinitions) {
-      const showSetting = options.vSpeedSettingManager.tryGetSetting(`vSpeedShow_${def.name}`);
+    if (options) {
+      const allowZeroValue = options.allowZeroValue ?? false;
 
-      if (showSetting !== undefined) {
-        const bugRef = FSComponent.createRef<VSpeedBug>();
-        this.vSpeedBugRefs.push(bugRef);
+      for (const def of options.vSpeedBugDefinitions) {
+        const showSetting = options.vSpeedSettingManager.tryGetSetting(`vSpeedShow_${def.name}`);
 
-        const activeValue = VSpeedUserSettingUtils.activeValue(def.name, options.vSpeedSettingManager, true, allowZeroValue);
-        const isFmsValueActive = VSpeedUserSettingUtils.isFmsValueActive(def.name, options.vSpeedSettingManager);
-        const isFmsConfigMiscompare = options.vSpeedSettingManager.tryGetSetting(`vSpeedFmsConfigMiscompare_${def.name}`) ?? Subject.create(false);
+        if (showSetting !== undefined) {
+          const bugRef = FSComponent.createRef<VSpeedBug>();
+          this.vSpeedBugRefs.push(bugRef);
 
-        const showBug = MappedSubject.create(
-          ([showAirspeedData, isIasOffScale, show, value, isConfigMiscompare]): boolean => {
-            return showAirspeedData && !isIasOffScale && show && (allowZeroValue ? value >= 0 : value > 0) && !isConfigMiscompare;
-          },
-          this.showAirspeedData,
-          this.isIasOffScale,
-          showSetting,
-          activeValue,
-          isFmsConfigMiscompare
-        );
+          const labelColor = def.labelColor ?? VSpeedBugColor.Cyan;
+          const labelColorIgnoreFms = def.labelColorIgnoreFms ?? false;
 
-        this.vSpeedBugSubscribables.push(activeValue);
-        this.vSpeedBugSubscribables.push(isFmsValueActive);
-        this.vSpeedBugSubscribables.push(showBug);
+          const activeValue = VSpeedUserSettingUtils.activeValue(def.name, options.vSpeedSettingManager, true, allowZeroValue);
+          const isFmsValueActive = VSpeedUserSettingUtils.isFmsValueActive(def.name, options.vSpeedSettingManager);
+          const isFmsConfigMiscompare = options.vSpeedSettingManager.tryGetSetting(`vSpeedFmsConfigMiscompare_${def.name}`) ?? Subject.create(false);
 
-        bugs.push(
-          <VSpeedBug
-            ref={bugRef}
-            value={activeValue}
-            isFmsValueActive={isFmsValueActive}
-            label={def.label}
-            show={showBug}
-            updateEvent={this.updateTapeWindowEvent}
-            getPosition={getPosition}
-          />
-        );
-
-        if (def.showOffscale) {
-          const labelRef = FSComponent.createRef<VSpeedOffScaleLabel>();
-          this.vSpeedOffScaleLabelRefs.push(labelRef);
-
-          const showLabel = MappedSubject.create(
-            ([showAirspeedData, show, value]): boolean => showAirspeedData && show && (allowZeroValue ? value >= 0 : value > 0),
+          const showBug = MappedSubject.create(
+            ([isAwake, showAirspeedData, isIasOffScale, show, value, isConfigMiscompare, simplified]): boolean => {
+              return isAwake
+                && showAirspeedData
+                && !isIasOffScale
+                && show
+                && (allowZeroValue ? value >= 0 : value > 0)
+                && !isConfigMiscompare
+                && !simplified;
+            },
+            this.isAwake,
             this.showAirspeedData,
+            this.isIasOffScale,
             showSetting,
-            activeValue
+            activeValue,
+            isFmsConfigMiscompare,
+            this.props.simplified
           );
-          this.vSpeedBugSubscribables.push(showLabel);
 
-          offscale.push(
-            <VSpeedOffScaleLabel
-              ref={labelRef}
+          this.vSpeedBugSubscribables.push(activeValue);
+          isFmsValueActive && this.vSpeedBugSubscribables.push(isFmsValueActive);
+          this.vSpeedBugSubscribables.push(showBug);
+
+          bugs.push(
+            <VSpeedBug
+              ref={bugRef}
               value={activeValue}
               isFmsValueActive={isFmsValueActive}
-              isFmsConfigMiscompare={isFmsConfigMiscompare}
               label={def.label}
-              show={showLabel}
-            />
-          );
-        }
-
-        if (def.showLegend) {
-          const legendRef = FSComponent.createRef<VSpeedLegend>();
-          this.vSpeedLegendRefs.push(legendRef);
-
-          legendShow.push(showBug);
-
-          legends.push(
-            <VSpeedLegend
-              ref={legendRef}
-              value={activeValue}
-              isFmsValueActive={isFmsValueActive}
-              isFmsConfigMiscompare={isFmsConfigMiscompare}
-              label={def.label}
+              labelColor={labelColor}
+              labelColorIgnoreFms={labelColorIgnoreFms}
               show={showBug}
+              updateEvent={this.updateTapeWindowEvent}
+              getPosition={getPosition}
             />
           );
-        }
-      }
-    }
 
-    if (legendShow.length > 0) {
-      // Initialize logic to show/hide the V-speed legend container. The container should be visible if and only if IAS
-      // is not below scale and at least one legend is visible.
-      MappedSubject.create(
-        inputs => {
-          if (inputs[0]) { // IAS is below scale
-            return false;
+          if (def.showOffscale) {
+            const labelRef = FSComponent.createRef<VSpeedOffScaleLabel>();
+            this.vSpeedOffScaleLabelRefs.push(labelRef);
+
+            const showLabel = MappedSubject.create(
+              ([isAwake, showAirspeedData, show, value, simplified]): boolean => {
+                return isAwake
+                  && showAirspeedData
+                  && show
+                  && (allowZeroValue ? value >= 0 : value > 0)
+                  && !simplified;
+              },
+              this.isAwake,
+              this.showAirspeedData,
+              showSetting,
+              activeValue,
+              this.props.simplified
+            );
+            this.vSpeedBugSubscribables.push(showLabel);
+
+            offscale.push(
+              <VSpeedOffScaleLabel
+                ref={labelRef}
+                value={activeValue}
+                isFmsValueActive={isFmsValueActive}
+                isFmsConfigMiscompare={isFmsConfigMiscompare}
+                label={def.label}
+                labelColor={labelColor}
+                labelColorIgnoreFms={labelColorIgnoreFms}
+                show={showLabel}
+              />
+            );
           }
 
-          return inputs.includes(true, 1);
-        },
-        this.isIasBelowScale,
-        ...legendShow
-      ).sub(show => {
-        this.vSpeedLegendContainerStyle.set('display', show ? 'flex' : 'none');
-      }, true);
+          if (def.showLegend) {
+            const legendRef = FSComponent.createRef<VSpeedLegend>();
+            this.vSpeedLegendRefs.push(legendRef);
+
+            legendShow.push(showBug);
+
+            legends.push(
+              <VSpeedLegend
+                ref={legendRef}
+                value={activeValue}
+                isFmsValueActive={isFmsValueActive}
+                isFmsConfigMiscompare={isFmsConfigMiscompare}
+                label={def.label}
+                labelColor={labelColor}
+                labelColorIgnoreFms={labelColorIgnoreFms}
+                show={showBug}
+              />
+            );
+          }
+        }
+      }
+
+      if (legendShow.length > 0) {
+        // Initialize logic to show/hide the V-speed legend container. The container should be visible if and only if IAS
+        // is not below scale and at least one legend is visible.
+        MappedSubject.create(
+          inputs => {
+            if (inputs[0]) { // IAS is below scale
+              return false;
+            }
+
+            return inputs.includes(true, 1);
+          },
+          this.isIasBelowScale,
+          ...legendShow
+        ).sub(show => {
+          this.vSpeedLegendContainerStyle.set('display', show ? 'flex' : 'none');
+        }, true);
+      }
     }
 
     return { bugs, offscale, legends };
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
     this.iasBoxRef.getOrDefault()?.destroy();
 
@@ -1045,21 +1255,28 @@ class AirspeedTape extends DisplayComponent<AirspeedTapeProps> {
       ref.getOrDefault()?.destroy();
     }
 
+    this.approachCueBugRef.getOrDefault()?.destroy();
+
     this.options.destroy();
     this.isIasBelowScale.destroy();
     this.isIasAboveScale.destroy();
     this.isIasOffScale.destroy();
     this.iasTapeValue.destroy();
     this.iasBoxValue.destroy();
+    this.showTrendVector.destroy();
     this.iasTrendParams.destroy();
+    this.showAirspeedData.destroy();
+    this.showColorRangesAndBugs.destroy();
 
-    for (const subscribable of this.colorRangeSubscribables) {
-      subscribable.destroy();
+    for (const def of this.colorRangeSpeedDefs) {
+      def.destroy?.();
     }
 
     for (const subscribable of this.vSpeedBugSubscribables) {
       subscribable.destroy();
     }
+
+    this.approachCueBugSpeedDef?.destroy?.();
 
     super.destroy();
   }
@@ -1350,90 +1567,117 @@ interface SpeedBugProps extends ComponentProps {
   getPosition: (iasKnots: number) => number;
 
   /** CSS class(es) to apply to the speed bug's root element. */
-  class?: string | SubscribableSet<string>;
+  class?: string | SubscribableSet<string> | ToggleableClassNameRecord;
 }
 
 /**
  * A speed bug for a next-generation (NXi, G3000, etc) Garmin airspeed tape.
  */
 class SpeedBug extends DisplayComponent<SpeedBugProps> {
-  private readonly style = ObjectSubject.create({
-    display: '',
-    position: 'absolute',
-    top: '50%',
-    transform: 'translate3d(0, -50%, 0)'
-  });
+  private static readonly RESERVED_CSS_CLASSES = ['airspeed-speed-bug'];
 
-  private readonly position = Subject.create(0);
+  private readonly display = Subject.create('');
 
-  private readonly speedKnotsRounded = this.props.speedKnots.map(SubscribableMapFunctions.withPrecision(1)).pause();
+  private readonly transform = CssTransformSubject.create(CssTransformBuilder.concat(
+    CssTransformBuilder.translateY('%'),
+    CssTransformBuilder.translate3d('px', '%', 'px')
+  ));
 
-  private cssClassSub?: Subscription;
+  private cssClassSub?: Subscription | Subscription[];
   private showSub?: Subscription;
+  private speedKnotsSub?: Subscription;
   private updateEventSub?: Subscription;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
+    this.transform.transform.getChild(0).set(-50);
+
     const updateHandler = this.updatePosition.bind(this);
 
-    const speedKnotsRoundedSub = this.speedKnotsRounded.sub(updateHandler, false, true);
-    const updateSub = this.updateEventSub = this.props.updateEvent.on(updateHandler, true);
+    this.speedKnotsSub = this.props.speedKnots.sub(updateHandler, false, true);
+    this.updateEventSub = this.props.updateEvent.on(updateHandler, true);
 
-    this.position.sub(translate => {
-      this.style.set('top', `${translate}%`);
-    });
+    this.showSub = this.props.show.sub(this.onShowChanged.bind(this), true);
+  }
 
-    this.showSub = this.props.show.sub(show => {
-      if (show) {
-        this.speedKnotsRounded.resume();
-        speedKnotsRoundedSub.resume();
-        updateSub.resume();
+  /**
+   * Responds to when whether to show this bug changes.
+   * @param show Whether to show this bug.
+   */
+  private onShowChanged(show: boolean): void {
+    if (show) {
+      this.updatePosition();
 
-        this.updatePosition();
+      this.speedKnotsSub!.resume();
+      this.updateEventSub!.resume();
+    } else {
+      this.speedKnotsSub!.pause();
+      this.updateEventSub!.pause();
 
-        this.style.set('display', '');
-      } else {
-        this.speedKnotsRounded.pause();
-        speedKnotsRoundedSub.pause();
-        updateSub.pause();
-
-        this.style.set('display', 'none');
-      }
-    }, true);
+      this.display.set('none');
+    }
   }
 
   /**
    * Updates this speed bug's position on its parent airspeed tape window.
    */
   private updatePosition(): void {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const pos = this.props.getPosition(this.speedKnotsRounded!.get());
-    this.position.set(MathUtils.round(pos * 100, 0.1));
+    const knots = this.props.speedKnots.get();
+    if (isFinite(knots)) {
+      this.display.set('');
+      const pos = this.props.getPosition(knots);
+      this.transform.transform.getChild(1).set(0, pos * 100, 0, undefined, 0.1);
+      this.transform.resolve();
+    } else {
+      this.display.set('none');
+    }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     let cssClass: string | SetSubject<string>;
     if (typeof this.props.class === 'object') {
-      cssClass = SetSubject.create(['airspeed-speed-bug']);
-      this.cssClassSub = FSComponent.bindCssClassSet(cssClass, this.props.class, ['airspeed-speed-bug']);
+      cssClass = SetSubject.create();
+      cssClass.add('airspeed-speed-bug');
+      this.cssClassSub = FSComponent.bindCssClassSet(cssClass, this.props.class, SpeedBug.RESERVED_CSS_CLASSES);
     } else {
       cssClass = `airspeed-speed-bug ${this.props.class ?? ''}`;
     }
 
     return (
-      <div class={cssClass} style={this.style}>
-        {this.props.children}
+      <div
+        class='airspeed-speed-bug-translating'
+        style={{
+          'display': this.display,
+          'position': 'absolute',
+          'left': '0px',
+          'top': '0px',
+          'width': '100%',
+          'height': '100%',
+          'transform': this.transform
+        }}
+      >
+        <div class={cssClass} style='position: absolute; top: 50%; transform: translateY(-50%);'>
+          {this.props.children}
+        </div>
       </div>
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
-    this.speedKnotsRounded.destroy();
+    if (this.cssClassSub) {
+      if (Array.isArray(this.cssClassSub)) {
+        for (const sub of this.cssClassSub) {
+          sub.destroy();
+        }
+      } else {
+        this.cssClassSub.destroy();
+      }
+    }
 
-    this.cssClassSub?.destroy();
     this.showSub?.destroy();
+    this.speedKnotsSub?.destroy();
     this.updateEventSub?.destroy();
 
     super.destroy();
@@ -1612,6 +1856,12 @@ interface VSpeedBugProps extends ComponentProps {
   /** The bug's label text. */
   label: string;
 
+  /** The bug's label color. */
+  labelColor: VSpeedBugColor;
+
+  /** Whether the bug's displayed label color should ignore whether the bug's reference V-speed has been set by FMS. */
+  labelColorIgnoreFms: boolean;
+
   /** Whether the speed bug should be visible. */
   show: Subscribable<boolean>;
 
@@ -1628,27 +1878,22 @@ interface VSpeedBugProps extends ComponentProps {
 class VSpeedBug extends DisplayComponent<VSpeedBugProps> {
   private readonly bugRef = FSComponent.createRef<SpeedBug>();
 
-  private readonly cssClass = SetSubject.create(['airspeed-vspeed-bug']);
+  private readonly isFmsValueActive = this.props.isFmsValueActive.map(SubscribableMapFunctions.identity()).pause();
 
   private showSub?: Subscription;
-  private fmsSub?: Subscription;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
-    const fmsSub = this.fmsSub = this.props.isFmsValueActive.sub(isFmsValueActive => {
-      this.cssClass.toggle('airspeed-vspeed-fms', isFmsValueActive);
-    }, false, true);
-
     this.showSub = this.props.show.sub(show => {
       if (show) {
-        fmsSub.resume(true);
+        this.isFmsValueActive.resume();
       } else {
-        fmsSub.pause();
+        this.isFmsValueActive.pause();
       }
     }, true);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     return (
       <SpeedBug
@@ -1657,19 +1902,74 @@ class VSpeedBug extends DisplayComponent<VSpeedBugProps> {
         show={this.props.show}
         updateEvent={this.props.updateEvent}
         getPosition={(iasKnots: number): number => MathUtils.clamp(this.props.getPosition(iasKnots, false), -0.5, 1.5)}
-        class={this.cssClass}
+        class={{
+          'airspeed-vspeed-bug': true,
+          [`airspeed-vspeed-color-${this.props.labelColor.toLowerCase()}`]: true,
+          'airspeed-vspeed-color-use-fms': !this.props.labelColorIgnoreFms,
+          'airspeed-vspeed-fms': this.isFmsValueActive
+        }}
       >
         <VSpeedBugIcon>{this.props.label}</VSpeedBugIcon>
       </SpeedBug>
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
     this.bugRef.getOrDefault()?.destroy();
 
+    this.isFmsValueActive.destroy();
+
     this.showSub?.destroy();
-    this.fmsSub?.destroy();
+
+    super.destroy();
+  }
+}
+
+/**
+ * Component props for {@link ApproachCueBug}.
+ */
+interface ApproachCueBugProps extends ComponentProps {
+  /** The value of the bug's speed, in knots. */
+  value: Subscribable<number>;
+
+  /** Whether the speed bug should be visible. */
+  show: Subscribable<boolean>;
+
+  /** An event which signals that the speed bug needs to be updated with a new tape window position. */
+  updateEvent: SubEvent<any, void>;
+
+  /** A function which gets the position on the speed bug's parent tape window at which a particular airspeed is located. */
+  getPosition: (iasKnots: number, clamp?: boolean) => number;
+}
+
+/**
+ * An approach cue bug.
+ */
+class ApproachCueBug extends DisplayComponent<ApproachCueBugProps> {
+  private readonly bugRef = FSComponent.createRef<SpeedBug>();
+
+  /** @inheritDoc */
+  public render(): VNode {
+    return (
+      <SpeedBug
+        ref={this.bugRef}
+        speedKnots={this.props.value}
+        show={this.props.show}
+        updateEvent={this.props.updateEvent}
+        getPosition={(iasKnots: number): number => MathUtils.clamp(this.props.getPosition(iasKnots, false), -0.5, 1.5)}
+        class='airspeed-approach-cue-bug'
+      >
+        <svg viewBox='-6 6 12 12' class='airspeed-approach-cue-bug-icon'>
+          <path d='M 0 -6 a 6 6 90 0 0 0 12 a 6 6 90 0 0 0 -12 m 0 3.5 a 2.5 2.5 90 0 1 0 5 a 2.5 2.5 90 0 1 0 -5' vector-effect='non-scaling-stroke' />
+        </svg>
+      </SpeedBug>
+    );
+  }
+
+  /** @inheritDoc */
+  public destroy(): void {
+    this.bugRef.getOrDefault()?.destroy();
 
     super.destroy();
   }
@@ -1691,8 +1991,14 @@ interface VSpeedOffScaleLabelProps extends ComponentProps {
    */
   isFmsConfigMiscompare: Subscribable<boolean>;
 
-  /** The bug's label text. */
+  /** The label text. */
   label: string;
+
+  /** The label color. */
+  labelColor: VSpeedBugColor;
+
+  /** Whether the displayed label color should ignore whether the label's reference V-speed has been set by FMS. */
+  labelColorIgnoreFms: boolean;
 
   /** Whether the label should be visible. */
   show: Subscribable<boolean>;
@@ -1702,8 +2008,6 @@ interface VSpeedOffScaleLabelProps extends ComponentProps {
  * A reference V-speed label displayed when the airspeed tape is off-scale.
  */
 class VSpeedOffScaleLabel extends DisplayComponent<VSpeedOffScaleLabelProps> {
-  private readonly rootCssClass = SetSubject.create(['airspeed-vspeed-offscale-label']);
-
   private readonly style = ObjectSubject.create({
     display: '',
     order: '0'
@@ -1716,21 +2020,14 @@ class VSpeedOffScaleLabel extends DisplayComponent<VSpeedOffScaleLabelProps> {
     this.props.isFmsConfigMiscompare
   ).pause();
 
+  private readonly isFmsValueActive = this.props.isFmsValueActive.map(SubscribableMapFunctions.identity()).pause();
+  private readonly isFmsConfigMiscompare = this.props.isFmsConfigMiscompare.map(SubscribableMapFunctions.identity()).pause();
+
   private showSub?: Subscription;
   private valueSub?: Subscription;
-  private fmsSub?: Subscription;
-  private configSub?: Subscription;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
-    const fmsSub = this.fmsSub = this.props.isFmsValueActive.sub(isFmsValueActive => {
-      this.rootCssClass.toggle('airspeed-vspeed-fms', isFmsValueActive);
-    }, false, true);
-
-    const configSub = this.configSub = this.props.isFmsConfigMiscompare.sub(miscompare => {
-      this.rootCssClass.toggle('airspeed-vspeed-fms-config-miscompare', miscompare);
-    }, false, true);
-
     this.valueSub = this.props.value.sub(value => {
       this.style.set('order', value.toFixed(0));
     }, true);
@@ -1738,35 +2035,44 @@ class VSpeedOffScaleLabel extends DisplayComponent<VSpeedOffScaleLabelProps> {
     this.showSub = this.props.show.sub(show => {
       if (show) {
         this.valueText.resume();
-        fmsSub.resume(true);
-        configSub.resume(true);
+        this.isFmsValueActive.resume();
+        this.isFmsConfigMiscompare.resume();
         this.style.set('display', '');
       } else {
         this.valueText.pause();
-        fmsSub.pause();
-        configSub.pause();
+        this.isFmsValueActive.pause();
+        this.isFmsConfigMiscompare.pause();
         this.style.set('display', 'none');
       }
     }, true);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     return (
-      <div class={this.rootCssClass} style={this.style}>
+      <div
+        class={{
+          'airspeed-vspeed-offscale-label': true,
+          [`airspeed-vspeed-color-${this.props.labelColor.toLowerCase()}`]: true,
+          'airspeed-vspeed-color-use-fms': !this.props.labelColorIgnoreFms,
+          'airspeed-vspeed-fms': this.isFmsValueActive,
+          'airspeed-vspeed-fms-config-miscompare': this.isFmsConfigMiscompare
+        }}
+        style={this.style}
+      >
         <div class='airspeed-vspeed-offscale-label-value'>{this.valueText}</div>
         <VSpeedBugIcon>{this.props.label}</VSpeedBugIcon>
       </div>
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
     this.valueText.destroy();
+    this.isFmsValueActive.destroy();
+    this.isFmsConfigMiscompare.destroy();
     this.showSub?.destroy();
     this.valueSub?.destroy();
-    this.fmsSub?.destroy();
-    this.configSub?.destroy();
 
     super.destroy();
   }
@@ -1791,6 +2097,12 @@ interface VSpeedLegendProps extends ComponentProps {
   /** The legend's label text. */
   label: string;
 
+  /** The legend's label color. */
+  labelColor: VSpeedBugColor;
+
+  /** Whether the legend's displayed label color should ignore whether the legend's reference V-speed has been set by FMS. */
+  labelColorIgnoreFms: boolean;
+
   /** Whether the legend should be visible. */
   show: Subscribable<boolean>;
 }
@@ -1799,8 +2111,6 @@ interface VSpeedLegendProps extends ComponentProps {
  * A reference V-speed legend.
  */
 class VSpeedLegend extends DisplayComponent<VSpeedLegendProps> {
-  private readonly rootCssClass = SetSubject.create(['airspeed-vspeed-legend']);
-
   private readonly style = ObjectSubject.create({
     display: '',
     order: '0'
@@ -1813,21 +2123,14 @@ class VSpeedLegend extends DisplayComponent<VSpeedLegendProps> {
     this.props.isFmsConfigMiscompare
   ).pause();
 
+  private readonly isFmsValueActive = this.props.isFmsValueActive.map(SubscribableMapFunctions.identity()).pause();
+  private readonly isFmsConfigMiscompare = this.props.isFmsConfigMiscompare.map(SubscribableMapFunctions.identity()).pause();
+
   private showSub?: Subscription;
   private valueSub?: Subscription;
-  private fmsSub?: Subscription;
-  private configSub?: Subscription;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
-    const fmsSub = this.fmsSub = this.props.isFmsValueActive.sub(isFmsValueActive => {
-      this.rootCssClass.toggle('airspeed-vspeed-fms', isFmsValueActive);
-    }, false, true);
-
-    const configSub = this.configSub = this.props.isFmsConfigMiscompare.sub(miscompare => {
-      this.rootCssClass.toggle('airspeed-vspeed-fms-config-miscompare', miscompare);
-    }, false, true);
-
     this.valueSub = this.props.value.sub(value => {
       this.style.set('order', value.toFixed(0));
     }, true);
@@ -1835,35 +2138,44 @@ class VSpeedLegend extends DisplayComponent<VSpeedLegendProps> {
     this.showSub = this.props.show.sub(show => {
       if (show) {
         this.valueText.resume();
-        fmsSub.resume(true);
-        configSub.resume(true);
+        this.isFmsValueActive.resume();
+        this.isFmsConfigMiscompare.resume();
         this.style.set('display', '');
       } else {
         this.valueText.pause();
-        fmsSub.pause();
-        configSub.pause();
+        this.isFmsValueActive.pause();
+        this.isFmsConfigMiscompare.pause();
         this.style.set('display', 'none');
       }
     }, true);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     return (
-      <div class={this.rootCssClass} style={this.style}>
+      <div
+        class={{
+          'airspeed-vspeed-legend': true,
+          [`airspeed-vspeed-color-${this.props.labelColor.toLowerCase()}`]: true,
+          'airspeed-vspeed-color-use-fms': !this.props.labelColorIgnoreFms,
+          'airspeed-vspeed-fms': this.isFmsValueActive,
+          'airspeed-vspeed-fms-config-miscompare': this.isFmsConfigMiscompare
+        }}
+        style={this.style}
+      >
         <div class='airspeed-vspeed-legend-name'>{this.props.label}</div>
         <div class='airspeed-vspeed-legend-value'>{this.valueText}</div>
       </div>
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
     this.valueText.destroy();
+    this.isFmsValueActive.destroy();
+    this.isFmsConfigMiscompare.destroy();
     this.showSub?.destroy();
     this.valueSub?.destroy();
-    this.fmsSub?.destroy();
-    this.configSub?.destroy();
 
     super.destroy();
   }

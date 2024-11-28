@@ -1,11 +1,11 @@
 /// <reference types="@microsoft/msfs-types/js/avionics" />
 
 export * from './FmcSimVars';
-export * from './MfdIndexEvents';
 export * from './ReferenceSpeeds';
 export * from './Types';
 export * from './WT21AvionicsPlugin';
 export * from './WT21ControlEvents';
+export * from './WT21ControlVarEvents';
 export * from './WT21DisplayUnitFsInstrument';
 export * from './WT21FlightPlanPredictorConfiguration';
 export * from './WT21MfdTextPageEvents';

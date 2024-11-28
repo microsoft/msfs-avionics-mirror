@@ -20,11 +20,11 @@ export class AirportWaypoint extends BasicFacilityWaypoint<AirportFacility> {
   public readonly size: AirportSize;
 
   /**
-   * Constructor.
+   * Creates a new instance of AirportWaypoint.
    * @param airport The airport associated with this waypoint.
    * @param bus The event bus.
    */
-  constructor(airport: AirportFacility, bus: EventBus) {
+  public constructor(airport: AirportFacility, bus: EventBus) {
     super(airport, bus);
 
     this.longestRunway = AirportWaypoint.getLongestRunway(airport);

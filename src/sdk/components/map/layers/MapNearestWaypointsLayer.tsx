@@ -2,8 +2,9 @@ import { EventBus } from '../../../data';
 import { GeoPoint, GeoPointReadOnly, LatLonInterface } from '../../../geo';
 import { BitFlags, UnitType, Vec2Math } from '../../../math';
 import {
-  Facility, FacilityLoader, FacilityRepository, FacilityRepositoryEvents, FacilitySearchType, FacilityType, ICAO, NearestAirportSearchSession,
-  NearestIntersectionSearchSession, NearestRepoFacilitySearchSession, NearestSearchResults, NearestSearchSession, NearestVorSearchSession, UserFacility
+  Facility, FacilityLoader, FacilityRepository, FacilityRepositoryEvents, FacilitySearchType, FacilityType, ICAO,
+  IcaoValue, NearestAirportSearchSession, NearestIcaoSearchSession, NearestIcaoSearchSessionDataType,
+  NearestIntersectionSearchSession, NearestRepoFacilitySearchSession, NearestSearchResults, NearestVorSearchSession
 } from '../../../navigation';
 import { Subscription } from '../../../sub/Subscription';
 import { FSComponent, VNode } from '../../FSComponent';
@@ -61,8 +62,13 @@ export interface MapAbstractNearestWaypointsLayerProps<R extends MapWaypointRend
   searchDebounceDelay?: number;
 
   /** A callback called when the search sessions are started. */
-  onSessionsStarted?: (airportSession: NearestAirportSearchSession, vorSession: NearestVorSearchSession, ndbSession: NearestSearchSession<string, string>,
-    intSession: NearestIntersectionSearchSession, userSession: NearestRepoFacilitySearchSession<UserFacility>) => void
+  onSessionsStarted?: (
+    airportSession: NearestAirportSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    vorSession: NearestVorSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    ndbSession: NearestIcaoSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    intSession: NearestIntersectionSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    userSession: NearestRepoFacilitySearchSession<FacilityType.USR, NearestIcaoSearchSessionDataType.Struct>
+  ) => void
 }
 
 /**
@@ -116,17 +122,17 @@ export class MapNearestWaypointsLayer
    */
   private onFacilityLoaderInitialized(): void {
     Promise.all([
-      this.facLoader.startNearestSearchSession(FacilitySearchType.Airport),
-      this.facLoader.startNearestSearchSession(FacilitySearchType.Vor),
-      this.facLoader.startNearestSearchSession(FacilitySearchType.Ndb),
-      this.facLoader.startNearestSearchSession(FacilitySearchType.Intersection),
-      this.facLoader.startNearestSearchSession(FacilitySearchType.User)
+      this.facLoader.startNearestSearchSessionWithIcaoStructs(FacilitySearchType.Airport),
+      this.facLoader.startNearestSearchSessionWithIcaoStructs(FacilitySearchType.Vor),
+      this.facLoader.startNearestSearchSessionWithIcaoStructs(FacilitySearchType.Ndb),
+      this.facLoader.startNearestSearchSessionWithIcaoStructs(FacilitySearchType.Intersection),
+      this.facLoader.startNearestSearchSessionWithIcaoStructs(FacilitySearchType.User)
     ]).then((value: [
-      NearestAirportSearchSession,
-      NearestVorSearchSession,
-      NearestSearchSession<string, string>,
-      NearestIntersectionSearchSession,
-      NearestRepoFacilitySearchSession<UserFacility>,
+      NearestAirportSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+      NearestVorSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+      NearestIcaoSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+      NearestIntersectionSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+      NearestRepoFacilitySearchSession<FacilityType.USR, NearestIcaoSearchSessionDataType.Struct>,
     ]) => {
       const [airportSession, vorSession, ndbSession, intSession, userSession] = value;
       this.onSessionsStarted(airportSession, vorSession, ndbSession, intSession, userSession);
@@ -141,8 +147,13 @@ export class MapNearestWaypointsLayer
    * @param intSession The intersection search session.
    * @param userSession The user facility search session.
    */
-  protected onSessionsStarted(airportSession: NearestAirportSearchSession, vorSession: NearestVorSearchSession, ndbSession: NearestSearchSession<string, string>,
-    intSession: NearestIntersectionSearchSession, userSession: NearestRepoFacilitySearchSession<UserFacility>): void {
+  protected onSessionsStarted(
+    airportSession: NearestAirportSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    vorSession: NearestVorSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    ndbSession: NearestIcaoSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    intSession: NearestIntersectionSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    userSession: NearestRepoFacilitySearchSession<FacilityType.USR, NearestIcaoSearchSessionDataType.Struct>
+  ): void {
     const callback = this.processSearchResults.bind(this);
     this.facilitySearches = {
       [FacilitySearchType.Airport]: new MapNearestWaypointsLayerSearch(airportSession, callback),
@@ -158,17 +169,17 @@ export class MapNearestWaypointsLayer
     // display outdated user waypoints.
     this.facilityRepoSubs.push(
       sub.on('facility_added').handle(fac => {
-        if (ICAO.isFacility(fac.icao, FacilityType.USR)) {
+        if (ICAO.isValueFacility(fac.icaoStruct, FacilityType.USR)) {
           this.userFacilityHasChanged = true;
         }
       }),
       sub.on('facility_changed').handle(fac => {
-        if (ICAO.isFacility(fac.icao, FacilityType.USR)) {
+        if (ICAO.isValueFacility(fac.icaoStruct, FacilityType.USR)) {
           this.userFacilityHasChanged = true;
         }
       }),
       sub.on('facility_removed').handle(fac => {
-        if (ICAO.isFacility(fac.icao, FacilityType.USR)) {
+        if (ICAO.isValueFacility(fac.icaoStruct, FacilityType.USR)) {
           this.userFacilityHasChanged = true;
         }
       })
@@ -388,7 +399,7 @@ export class MapNearestWaypointsLayer
    * deregistered.
    * @param results Nearest facility search results.
    */
-  private processSearchResults(results: NearestSearchResults<string, string> | undefined): void {
+  private processSearchResults(results: NearestSearchResults<IcaoValue, IcaoValue> | undefined): void {
     if (!results) {
       return;
     }
@@ -396,7 +407,7 @@ export class MapNearestWaypointsLayer
     const numAdded = results.added.length;
     for (let i = 0; i < numAdded; i++) {
       const icao = results.added[i];
-      if (icao === undefined || icao === ICAO.emptyIcao) {
+      if (ICAO.isValueEmpty(icao)) {
         continue;
       }
 
@@ -406,7 +417,7 @@ export class MapNearestWaypointsLayer
     const numRemoved = results.removed.length;
     for (let i = 0; i < numRemoved; i++) {
       const icao = results.removed[i];
-      if (icao === undefined || icao === ICAO.emptyIcao) {
+      if (ICAO.isValueEmpty(icao)) {
         continue;
       }
 
@@ -419,17 +430,20 @@ export class MapNearestWaypointsLayer
    * layer using a waypoint renderer.
    * @param icao The ICAO string to register.
    */
-  private async registerIcao(icao: string): Promise<void> {
-    this.icaosToRender.add(icao);
+  private async registerIcao(icao: IcaoValue): Promise<void> {
+    const uid = ICAO.getUid(icao);
+    this.icaosToRender.add(uid);
 
     try {
-      const facility = await this.facLoader.getFacility(ICAO.getFacilityType(icao), icao);
+      const facility = await this.facLoader.tryGetFacility(ICAO.getFacilityTypeFromValue(icao), icao);
 
-      if (!this.icaosToRender.has(icao)) {
-        return;
+      if (facility) {
+        if (!this.icaosToRender.has(uid)) {
+          return;
+        }
+
+        this.registerWaypointWithRenderer(this.props.waypointRenderer, facility);
       }
-
-      this.registerWaypointWithRenderer(this.props.waypointRenderer, facility);
     } catch {
       // noop
     }
@@ -442,7 +456,7 @@ export class MapNearestWaypointsLayer
    */
   private registerWaypointWithRenderer(renderer: R, facility: Facility): void {
     const waypoint = this.props.waypointForFacility(facility);
-    this.cachedRenderedWaypoints.set(facility.icao, waypoint);
+    this.cachedRenderedWaypoints.set(ICAO.getUid(facility.icaoStruct), waypoint);
     this.props.registerWaypoint(waypoint, renderer);
   }
 
@@ -450,29 +464,33 @@ export class MapNearestWaypointsLayer
    * Deregisters an ICAO string from this layer.
    * @param icao The ICAO string to deregister.
    */
-  private async deregisterIcao(icao: string): Promise<void> {
-    this.icaosToRender.delete(icao);
+  private async deregisterIcao(icao: IcaoValue): Promise<void> {
+    const uid = ICAO.getUid(icao);
+
+    this.icaosToRender.delete(uid);
+
+    let facility: Facility | null = null;
 
     try {
-      const facility = await this.facLoader.getFacility(ICAO.getFacilityType(icao), icao);
-
-      if (this.icaosToRender.has(icao)) {
-        return;
-      }
-
-      this.deregisterWaypointWithRenderer(this.props.waypointRenderer, facility);
+      facility = await this.facLoader.tryGetFacility(ICAO.getFacilityTypeFromValue(icao), icao);
     } catch {
-      if (this.icaosToRender.has(icao)) {
-        return;
-      }
+      // noop
+    }
 
+    if (this.icaosToRender.has(uid)) {
+      return;
+    }
+
+    if (facility) {
+      this.deregisterWaypointWithRenderer(this.props.waypointRenderer, facility);
+    } else {
       // If we can't find the facility from the ICAO, it could be that the facility has been removed, in which case
       // we grab the cached waypoint (the waypoint that was most recently registered with the renderer under the
       // removed ICAO) and deregister it.
 
-      const cachedWaypoint = this.cachedRenderedWaypoints.get(icao);
+      const cachedWaypoint = this.cachedRenderedWaypoints.get(uid);
       if (cachedWaypoint !== undefined) {
-        this.cachedRenderedWaypoints.delete(icao);
+        this.cachedRenderedWaypoints.delete(uid);
         this.props.deregisterWaypoint(cachedWaypoint, this.props.waypointRenderer);
       }
     }
@@ -485,7 +503,7 @@ export class MapNearestWaypointsLayer
    */
   private deregisterWaypointWithRenderer(renderer: R, facility: Facility): void {
     const waypoint = this.props.waypointForFacility(facility);
-    this.cachedRenderedWaypoints.delete(facility.icao);
+    this.cachedRenderedWaypoints.delete(ICAO.getUid(facility.icaoStruct));
     this.props.deregisterWaypoint(waypoint, renderer);
   }
 
@@ -515,7 +533,9 @@ export class MapNearestWaypointsLayer
 /**
  * A nearest facility search for MapAbstractNearestWaypointsLayer.
  */
-export class MapNearestWaypointsLayerSearch<S extends NearestSearchSession<string, string> = NearestSearchSession<string, string>> {
+export class MapNearestWaypointsLayerSearch<
+  S extends NearestIcaoSearchSession<NearestIcaoSearchSessionDataType.Struct> = NearestIcaoSearchSession<NearestIcaoSearchSessionDataType.Struct>
+> {
   private readonly _lastCenter = new GeoPoint(0, 0);
   private _lastRadius = 0;
 
@@ -547,7 +567,7 @@ export class MapNearestWaypointsLayerSearch<S extends NearestSearchSession<strin
    */
   constructor(
     private readonly session: S,
-    private readonly refreshCallback: (results: NearestSearchResults<string, string>) => void
+    private readonly refreshCallback: (results: NearestSearchResults<IcaoValue, IcaoValue>) => void
   ) {
   }
 

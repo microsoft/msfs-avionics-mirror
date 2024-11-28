@@ -1,6 +1,4 @@
-import { MutableSubscribable, OneWayRunway } from '@microsoft/msfs-sdk';
-
-import { WindEntry } from '../Types';
+import { MutableSubscribable } from '@microsoft/msfs-sdk';
 
 /**
  * Defines the data available through a performance plan or a performance plan proxy
@@ -36,6 +34,7 @@ export interface PerformancePlanData {
 
   get cruiseTargetSpeedMach(): MutableSubscribable<number | null>;
 
+  /** The cruise altitude in feet, or null when not set. */
   get cruiseAltitude(): MutableSubscribable<number | null>;
 
   get descentTargetSpeedIas(): MutableSubscribable<number | null>;

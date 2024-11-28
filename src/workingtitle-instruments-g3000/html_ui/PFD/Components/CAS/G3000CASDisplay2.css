@@ -1,0 +1,151 @@
+.full-cas-display-2 {
+  background-color: var(--g3000-color-black);
+  border: 1px solid var(--g3000-color-border-gray);
+  font-size: 15px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.full-cas-display-2-list {
+  position: relative;
+  margin: 0px 1px;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+.full-cas-display-2-list .cas-display-2 {
+  flex: 1;
+}
+
+.full-cas-display-2:not(.full-cas-display-2-scroll-enabled) .full-cas-display-2-scroll-bar-container {
+  display: none;
+}
+
+.full-cas-display-2-scroll-bar-container {
+  position: relative;
+  margin-left: 1px;
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+.full-cas-display-2-scroll-bar-container .cas-scroll-bar {
+  height: calc(100% * var(--full-cas-display-2-scrollable-frac));
+  margin-top: auto;
+  padding: 1px 0px;
+}
+
+.cas-display-2-msg-warning {
+  color: var(--g3000-color-red);
+}
+
+.cas-display-2-msg-warning.cas-display-2-msg-new {
+  animation: cas-flash-red 1s infinite;
+}
+
+.cas-display-2-msg-caution {
+  color: var(--g3000-color-yellow);
+}
+
+.cas-display-2-msg-caution.cas-display-2-msg-new {
+  animation: cas-flash-yellow 1s infinite;
+}
+
+.cas-display-2-msg-advisory,
+.cas-display-2-msg-safe-op {
+  color: var(--g3000-color-white);
+}
+
+/*
+ * Render a white bar between the unscrollable slots and scrollable slots if scrolling is enabled.
+ */
+.cas-display-2-scroll-enabled .cas-display-2-msg-scroll-boundary.cas-display-2-msg-scrollable {
+  margin-top: -1px;
+  border-top: solid 1px var(--g3000-color-white);
+}
+
+.cas-message-count {
+  margin: 0px 2px;
+  border-top: 1px solid var(--g3000-color-border-gray);
+  color: var(--g3000-color-border-gray);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.cas-message-count-label {
+  margin-right: 4px;
+}
+
+.cas-message-count-label-caution {
+  color: var(--g3000-color-yellow);
+}
+
+.cas-message-count-label-warning {
+  color: var(--g3000-color-red);
+}
+
+.cas-message-count-count {
+  width: 28px;
+  text-align: right;
+}
+
+.cas-message-count-count-arrow {
+  margin-left: -3px;
+}
+
+.cas-scroll-bar {
+  position: relative;
+  width: 7px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.cas-scroll-bar-arrow {
+  width: 7px;
+  height: 4px;
+  fill: #606060;
+}
+
+.cas-scroll-bar-arrow.cas-scroll-bar-arrow-enabled {
+  fill: #c0c0c0;
+}
+
+.cas-scroll-bar-bar-container {
+  flex: 1;
+  position: relative;
+  width: 5px;
+  margin: 2px 0px;
+  overflow: hidden;
+}
+
+.cas-scroll-bar-line {
+  position: absolute;
+  left: 2px;
+  top: 0px;
+  width: 1px;
+  height: 100%;
+  background: #c0c0c0;
+}
+
+.cas-scroll-bar-shading {
+  left: 0px;
+  width: 100%;
+}
+
+.cas-scroll-bar-shading-caution {
+  background: rgba(255, 255, 0, 0.5);
+}
+
+.cas-scroll-bar-shading-warning {
+  background: rgba(255, 0, 0, 0.5);
+}
+
+.cas-scroll-bar-bar {
+  left: 0px;
+  width: 100%;
+  background: #c0c0c0;
+}

@@ -1,0 +1,74 @@
+.dto-random-touch-button {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+  position: relative;
+  color: var(--touch-button-text-color);
+  text-align: center;
+  background: var(--touch-button-background);
+  border-width: var(--touch-button-border-width);
+  border-radius: var(--touch-button-border-radius);
+  border-image-source: var(--touch-button-border-image-source);
+  border-style: var(--touch-button-border-style);
+  border-image-slice: var(--touch-button-border-image-slice);
+  border-image-width: var(--touch-button-border-image-width);
+  border-image-repeat: var(--touch-button-border-image-repeat);
+}
+
+.dto-random-top-row-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.dto-random-touch-button .close-button {
+  display: flex;
+  align-items: center;
+  height: 50%;
+}
+
+.dto-random-touch-button .close-button .text {
+  padding-right: 8px;
+  padding-left: 1px;
+  height: 22px;
+  padding-top: 1px;
+}
+
+.dto-random-touch-button  .keyboard-button {
+  margin-top: 2px;
+  margin-right: 1px;
+}
+
+.dto-random-bottom-row-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.dto-random-touch-button .enter-button {
+  display: flex;
+  align-items: center;
+  height: 25px;
+  bottom: -4px;
+  width: 100px;
+}
+
+.dto-random-touch-button .enter-button .text {
+  text-align: center;
+  width: 100%;
+  height: 22px;
+  padding-top: 1px;
+}
+
+.dto-random-bottom-row-container .input-field,
+.dto-random-bottom-row-container .input-box-container,
+.dto-random-bottom-row-container .input-box {
+  width: 100%;
+}
+
+.dto-random-bottom-row-container input {
+  font-size: 20px;
+}
+
+.dto-random-leg-name {
+  color: var(--epic2-color-green)
+}

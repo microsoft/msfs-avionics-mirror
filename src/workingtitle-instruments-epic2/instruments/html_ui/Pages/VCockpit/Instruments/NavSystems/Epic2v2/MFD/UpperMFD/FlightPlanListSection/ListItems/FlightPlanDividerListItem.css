@@ -1,0 +1,10 @@
+.flight-plan-list-section .flight-plan-list .list-item.flight-plan-divider-list-item {
+  background: var(--epic2-color-dark-grey);
+}
+
+.flight-plan-divider-list-item .container {
+  position: relative;
+  width: 100%;
+  top: calc(50% - 11px);
+  text-align: center;
+}

@@ -1,8 +1,9 @@
 import {
   AirportFacility, BitFlags, EventBus, FacilitySearchType, FacilityType, FacilityWaypointUtils, FSComponent, ICAO,
   IntersectionType, MapLayer, MapLayerProps, MapNearestWaypointsLayer, MapNearestWaypointsLayerSearchTypes,
-  MapProjection, MapSyncedCanvasLayer, MapSystemKeys, NearestAirportSearchSession, NearestIntersectionSearchSession,
-  NearestSearchSession, NearestVorSearchSession, RunwayUtils, UnitType, VNode, Waypoint
+  MapProjection, MapSyncedCanvasLayer, MapSystemKeys, NearestAirportSearchSession, NearestIcaoSearchSession,
+  NearestIcaoSearchSessionDataType, NearestIntersectionSearchSession, NearestRepoFacilitySearchSession,
+  NearestVorSearchSession, RunwayUtils, UnitType, VNode, Waypoint
 } from '@microsoft/msfs-sdk';
 
 import { AirportSize, AirportWaypoint } from '../../../navigation/AirportWaypoint';
@@ -34,6 +35,14 @@ export interface MapWaypointsLayerProps extends MapLayerProps<MapWaypointsLayerM
 
   /** Whether to support the rendering of runway outlines. */
   supportRunwayOutlines: boolean;
+
+  /**
+   * A function that filters user facilities to be displayed by the layer based on their scopes. If not defined, then
+   * user facilities will not be filtered based on scope.
+   * @param scope A user facility scope.
+   * @returns Whether to display the user facility with the specified scope.
+   */
+  userFacilityScopeFilter?: (scope: string) => boolean;
 }
 
 /**
@@ -182,12 +191,14 @@ export class MapWaypointsLayer extends MapLayer<MapWaypointsLayerProps> {
    * @param vorSession The VOR search session.
    * @param ndbSession The NDB search session.
    * @param intSession The intersection search session.
+   * @param userSession The user facility search session.
    */
   private onSessionsStarted(
-    airportSession: NearestAirportSearchSession,
-    vorSession: NearestVorSearchSession,
-    ndbSession: NearestSearchSession<string, string>,
-    intSession: NearestIntersectionSearchSession
+    airportSession: NearestAirportSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    vorSession: NearestVorSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    ndbSession: NearestIcaoSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    intSession: NearestIntersectionSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    userSession: NearestRepoFacilitySearchSession<FacilityType.USR, NearestIcaoSearchSessionDataType.Struct>
   ): void {
     intSession.setIntersectionFilter(BitFlags.union(
       BitFlags.createFlag(IntersectionType.None),
@@ -198,6 +209,10 @@ export class MapWaypointsLayer extends MapLayer<MapWaypointsLayerProps> {
       BitFlags.createFlag(IntersectionType.FAF),
       BitFlags.createFlag(IntersectionType.RNAV)
     ), true);
+
+    if (this.props.userFacilityScopeFilter) {
+      userSession.setFacilityFilter(fac => this.props.userFacilityScopeFilter!(fac.icaoStruct.airport));
+    }
   }
 
   /**

@@ -1,4 +1,4 @@
-import { CircleVector, LegDefinition } from '../../flightplan';
+import { FlightPathVector, LegDefinition } from '../../flightplan';
 import { GeoProjection } from '../../geo';
 import { PathPattern } from '../../graphics/path';
 import { AbstractFlightPathLegRenderer } from './AbstractFlightPathLegRenderer';
@@ -28,7 +28,7 @@ export type FlightPathLegPatternStyle = {
  * @returns The selected pattern style for the vector.
  */
 export type FlightPathLegPatternStyleSelector<Args extends any[]> = (
-  vector: CircleVector,
+  vector: Readonly<FlightPathVector>,
   isIngress: boolean,
   isEgress: boolean,
   leg: LegDefinition,
@@ -76,7 +76,7 @@ export class FlightPathLegPatternRenderer<Args extends any[] = any[]> extends Ab
 
   /** @inheritdoc */
   protected renderVector(
-    vector: CircleVector,
+    vector: Readonly<FlightPathVector>,
     isIngress: boolean,
     isEgress: boolean,
     leg: LegDefinition,

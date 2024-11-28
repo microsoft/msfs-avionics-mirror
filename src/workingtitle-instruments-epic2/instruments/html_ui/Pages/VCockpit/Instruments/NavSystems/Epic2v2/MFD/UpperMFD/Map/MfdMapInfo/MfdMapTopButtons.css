@@ -1,0 +1,80 @@
+.mfd-map-top-buttons {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  margin-left: 6px;
+  line-height: 1;
+}
+
+.button-menu-aero.button-menu-buttons {
+  width: 170px;
+}
+
+.button-menu-buttons.button-menu-aero-geo {
+  width: 183px;
+}
+
+.button-menu-buttons.button-menu-aero-terr,
+.button-menu-buttons.button-menu-aero-wx {
+  width: 140px;
+}
+
+.button-menu-aero-wx .touch-button.wx-tall-button {
+  height: 57px;
+}
+
+.button-menu-aero .touch-button,
+.button-menu-aero-geo .touch-button,
+.button-menu-aero-wx .touch-button {
+  height: 35px;
+}
+
+.button-menu-aero .touch-button .touch-button-label,
+.button-menu-aero-geo .touch-button .touch-button-label,
+.button-menu-aero-terr .touch-button .touch-button-label,
+.button-menu-aero-wx .touch-button .touch-button-label {
+  padding-left: 0;
+  text-align: left;
+}
+
+.button-menu-aero .checkbox-wrapper,
+.button-menu-aero-geo .checkbox-wrapper,
+.button-menu-aero-terr .checkbox-wrapper,
+.button-menu-aero-wx .checkbox-wrapper,
+.mfd-map-top-buttons .radio-button-wrapper {
+  margin-right: 5px;
+}
+
+.mfd-map-top-buttons .aeronautical-map-button {
+  width: 155px;
+}
+
+.mfd-map-top-buttons .fpln-map-button {
+  width: 90px;
+}
+
+.mfd-map-top-buttons .geo-map-button {
+  width: 86px;
+}
+
+.mfd-map-top-buttons .terr-map-button {
+  width: 97px;
+}
+
+.mfd-map-top-buttons .wx-map-button {
+  width: 85px;
+}
+
+.mfd-map-top-buttons .tcas-map-button {
+  width: 82px;
+}
+
+.mfd-map-top-buttons .touch-button.with-checkbox .touch-button-checkbox-label {
+  height: auto !important;
+  margin-right: 1px;
+}
+
+.mfd-map-top-buttons .touch-button.with-checkbox .checkbox-container {
+  margin-bottom: 2px;
+}

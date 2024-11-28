@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-wt21-shared",
-  "version": "2.0.5",
+  "version": "3.0.4",
   "description": "Working Title MSFS WT21 Shared library",
   "main": "index.ts",
   "module": "build/index.js",
@@ -8,7 +8,7 @@
   "scripts": {
     "build": "npm run build:compile && npm run build:rollup && npm run build:npm",
     "build:compile": "npx tsc",
-    "build:rollup": "robocopy *.css . build/ /s & npx rollup -c rollup.config.js",
+    "build:rollup": "robocopy *.css . build/ /s & npx rollup -c rollup.config.mjs",
     "build:npm": "cp package.json.src dist/package.json && cd dist && npm pack"
   },
   "repository": {
@@ -21,9 +21,9 @@
     "@rollup/plugin-image": "^3.0.2",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@types/node": "^18.11.18",
-    "@microsoft/msfs-sdk": "0.8.0",
+    "@microsoft/msfs-sdk": "2.0.5",
     "@microsoft/msfs-types": "1.14.6",
-    "rollup": "^2.79.1",
+    "rollup": "^4.7.23",
     "rollup-plugin-import-css": "^3.1.0",
     "typescript": "5.3.3"
   }

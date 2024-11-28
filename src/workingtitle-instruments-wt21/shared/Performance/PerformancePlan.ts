@@ -76,6 +76,7 @@ export class PerformancePlan implements PerformancePlanData {
 
   public cruiseTargetSpeedMach = Subject.create<number>(-1);
 
+  /** The cruise altitude in feet, or null when not set. */
   public cruiseAltitude = Subject.create<number | null>(null);
 
   public descentTargetSpeedIas = Subject.create<number>(-1);

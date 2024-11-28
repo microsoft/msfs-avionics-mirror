@@ -21,7 +21,7 @@ type ValueType<P extends PerformancePlan, K extends keyof P> = ExtractSubjectTyp
  * Proxied `MutableSubscribable` that mirrors a property to be accessed by {@link PerformancePlanProxy}
  */
 export class ProxiedPerformancePlanProperty<P extends PerformancePlan, K extends keyof P>
-    extends AbstractSubscribable<ValueType<P, K>> implements MutableSubscribable<ValueType<P, K>> {
+  extends AbstractSubscribable<ValueType<P, K>> implements MutableSubscribable<ValueType<P, K>> {
   public readonly isSubscribable = true;
 
   public readonly isMutableSubscribable = true;
@@ -115,10 +115,5 @@ export class ProxiedPerformancePlanProperty<P extends PerformancePlan, K extends
   /** @inheritDoc */
   public sub(handler: (value: ValueType<P, K>) => void, initialNotify?: boolean, paused?: boolean): Subscription {
     return this.subject.sub(handler, initialNotify, paused);
-  }
-
-  /** @inheritDoc */
-  public unsub(handler: (value: ValueType<P, K>) => void): void {
-    return this.subject.unsub(handler);
   }
 }

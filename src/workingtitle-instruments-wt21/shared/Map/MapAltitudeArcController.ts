@@ -1,6 +1,6 @@
 import { MapAltitudeArcModule, MapSystemContext, MapSystemController, MapSystemKeys, UserSettingManager } from '@microsoft/msfs-sdk';
 
-import { HSIFormat, MapSettingsMfdAliased, MapSettingsPfdAliased, MapUserSettings, PfdOrMfd } from './MapUserSettings';
+import { HSIFormat, MapSettingsMfdAliased, MapSettingsPfdAliased } from './MapUserSettings';
 
 /**
  * Modules required by MapAltitudeArcController.
@@ -14,20 +14,18 @@ export interface MapAltitudeArcControllerModules {
  * A map system controller that controls the display of the altitude arc.
  */
 export class MapAltitudeArcController extends MapSystemController<MapAltitudeArcControllerModules> {
-  private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>;
   private readonly altArcModule: MapAltitudeArcModule = this.context.model.getModule(MapSystemKeys.AltitudeArc);
 
   /**
    * Creates an instance of the MapAltitudeArcController.
    * @param context The map system context to use with this controller.
-   * @param pfdOrMfd Whether or not the map is on the PFD or MFD.
+   * @param settings The map user settings
    */
   constructor(
     context: MapSystemContext<MapAltitudeArcControllerModules>,
-    pfdOrMfd: PfdOrMfd,
+    private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>
   ) {
     super(context);
-    this.settings = MapUserSettings.getAliasedManager(context.bus, pfdOrMfd);
   }
 
   /** @inheritdoc */

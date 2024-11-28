@@ -1,4 +1,4 @@
-import { ExtractSubjectType, Subject, VorToFrom } from '@microsoft/msfs-sdk';
+import { ExtractSubjectType, Subject, Subscription, VorToFrom } from '@microsoft/msfs-sdk';
 
 // TODO Add FMS LVars to field jsdocs
 /** These are the fields that should be exposed by NavSources and NavIndicators.
@@ -107,13 +107,19 @@ export type NavBaseControlEvents<Prefix extends string, T extends { [key: string
 export abstract class NavBase extends NavBaseFields {
   /** An automatically generated map of setters to make it easy to set, sub, and unsub,
    * getting around having to call .bind(). */
-  protected readonly setters = new Map<(keyof NavBaseFields), (value: any) => void>();
+  protected readonly setters = new Map<(keyof NavBaseFields), {
+    /** The setter function. */
+    setter: (value: any) => void;
+
+    /** The subscription for which the setter is a handler. */
+    sub?: Subscription;
+  }>();
 
   /** Creates a Map of setters to make unsubbing and subbing easy. */
   public constructor() {
     super();
     (Object.keys(new NavBaseFields()) as Array<keyof NavBaseFields>).forEach((key) => {
-      this.setters.set(key, this[key].set.bind(this[key]));
+      this.setters.set(key, { setter: this[key].set.bind(this[key]) });
     });
   }
 }

@@ -1,8 +1,10 @@
 import {
-  AhrsEvents, APEvents, AvionicsSystemState, AvionicsSystemStateEvent, ComponentProps, ComputedSubject, DisplayComponent, EventBus, FlightPlanner, FSComponent, MapAltitudeArcLayer,
-  MapAltitudeArcLayerModules, MapAltitudeArcModule, MapSystemBuilder, MapSystemKeys, Subject, UnitType, UserSettingManager, VNode,
+  APEvents, AvionicsSystemState, AvionicsSystemStateEvent, ComponentProps, ComputedSubject, ConsumerSubject, DisplayComponent, EventBus, FlightPlanner,
+  FSComponent, MapAltitudeArcLayer, MapAltitudeArcLayerModules, MapAltitudeArcModule, MapSystemBuilder, MapSystemKeys, Subject, Subscription, UnitType,
+  UserSettingManager, VNode
 } from '@microsoft/msfs-sdk';
 
+import { InstrumentConfig, WT21InstrumentType } from '../../Config';
 import { MapAltitudeArcController } from '../../Map/MapAltitudeArcController';
 import { MapFacilitySelectModule } from '../../Map/MapFacilitySelectModule';
 import { MapFormatController } from '../../Map/MapFormatController';
@@ -14,14 +16,15 @@ import { MapTerrainColorsController } from '../../Map/MapTerrainColorsController
 import { MapTerrainStateModule } from '../../Map/MapTerrainWeatherStateModule';
 import { MapTodLayer } from '../../Map/MapTodLayer';
 import { MapTrafficController } from '../../Map/MapTrafficController';
-import { HSIFormat, MapRange, MapSettingsMfdAliased, MapUserSettings, PfdOrMfd } from '../../Map/MapUserSettings';
+import { HSIFormat, MapRange, MapSettingsMfdAliased, MapUserSettings } from '../../Map/MapUserSettings';
 import { PlanFormatController, PlanFormatControllerContext } from '../../Map/PlanFormatController';
 import { WaypointDisplayController } from '../../Map/WaypointDisplayController';
 import { WT21MapKeys } from '../../Map/WT21MapKeys';
 import { WT21MapStylesModule } from '../../Map/WT21MapStylesModule';
 import { WT21_PFD_MsgInfo } from '../../MessageSystem/PfdMsgInfo';
 import { PerformancePlan } from '../../Performance/PerformancePlan';
-import { AHRSSystemEvents } from '../../Systems/AHRSSystem';
+import { AhrsSystemSelectorEvents } from '../../Systems';
+import { AhrsSystemEvents } from '../../Systems/AHRSSystem';
 import { WT21FixInfoManager } from '../../Systems/FixInfo/WT21FixInfoManager';
 import { WT21TCAS } from '../../Traffic/WT21TCAS';
 import { WaypointAlerter } from '../WaypointAlerter';
@@ -41,17 +44,14 @@ interface HSIContainerProps extends ComponentProps {
   /** The event bus. */
   bus: EventBus;
 
-  /** Whether the component is rendered on the PFD or the MFD. */
-  pfdOrMfd: PfdOrMfd;
+  /** The instrument configuration object */
+  instrumentConfig: InstrumentConfig;
 
   /** An instance of the flight planner. */
   flightPlanner: FlightPlanner;
 
   /** An instance of TCAS. */
   tcas: WT21TCAS;
-
-  /** The index of the MFD screen. */
-  mfdIndex: number;
 
   /** A waypoint alerter instance that controls display of waypoint alert flashing. */
   waypointAlerter: WaypointAlerter;
@@ -65,7 +65,6 @@ interface HSIContainerProps extends ComponentProps {
 
 /** The container for the Horizontal Situation Indicator. */
 export class HSIContainer extends DisplayComponent<HSIContainerProps> {
-
   private readonly hsiArcRef = FSComponent.createRef<HSIArc>();
   // We re-use the HSIArc component because there are only a couple differences between ARC and PPOS
   private readonly hsiPPOSRef = FSComponent.createRef<HSIArc>();
@@ -78,7 +77,7 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
   private selectedHeadingTimeout?: number;
   private readonly headingWasSelectedInLast5Seconds = Subject.create(false);
   private readonly mapShouldExtend = Subject.create(false);
-  private readonly mapUserSettings = MapUserSettings.getAliasedManager(this.props.bus, this.props.pfdOrMfd);
+  private readonly mapUserSettings = MapUserSettings.getAliasedManager(this.props.bus, this.props.instrumentConfig.instrumentType, this.props.instrumentConfig.instrumentIndex);
 
   private readonly selectedHeadingValue = ComputedSubject.create(0, (newSelectedHeadingDegrees): string =>
     (newSelectedHeadingDegrees === 0 ? 360 : newSelectedHeadingDegrees).toFixed(0).padStart(3, '0')
@@ -93,10 +92,10 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
 
   private readonly mapSystem = MapSystemBuilder.create(this.props.bus)
     .withModule(WT21MapKeys.MapStyles, () => new WT21MapStylesModule(MapSystemCommon.mapStyles))
-    .withBing(`wt21-map-${this.props.pfdOrMfd}-${this.props.mfdIndex}`, this.props.pfdOrMfd === 'PFD' ? 1000 : 0)
+    .withBing(`wt21-map-${this.props.instrumentConfig.instrumentType}-${this.props.instrumentConfig.instrumentIndex}`, { bingDelay: this.props.instrumentConfig.instrumentType === WT21InstrumentType.Pfd ? 1000 : 0 })
     .withNearestWaypoints(MapSystemConfig.configureMapWaypoints(), false)
-    .withFlightPlan(MapSystemConfig.configureModFlightPlan(this.props.bus, this.props.pfdOrMfd), this.props.flightPlanner, 1, false)
-    .withFlightPlan(MapSystemConfig.configureFlightPlan(this.props.bus, this.props.waypointAlerter, this.props.pfdOrMfd), this.props.flightPlanner, 0, false)
+    .withFlightPlan(MapSystemConfig.configureModFlightPlan(this.props.bus, this.mapUserSettings), this.props.flightPlanner, 1, false)
+    .withFlightPlan(MapSystemConfig.configureFlightPlan(this.props.bus, this.props.waypointAlerter, this.mapUserSettings), this.props.flightPlanner, 0, false)
     .withLayer(WT21MapKeys.Tod,
       (context): VNode => <MapTodLayer bus={context.bus} model={context.model} mapProjection={context.projection}
         planner={this.props.flightPlanner} waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
@@ -113,7 +112,7 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
 
     .withOwnAirplaneIcon(
       56,
-      'coui://html_ui/Pages/VCockpit/Instruments/WT21/Assets/icons/ownship.svg',
+      'coui://html_ui/Pages/VCockpit/Instruments/WT21v2/Assets/icons/ownship.svg',
       new Float64Array([0.5, 0.6]),
       'hsi-map-ownship-icon'
     )
@@ -123,14 +122,11 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
     .withOwnAirplanePropBindings(MapSystemConfig.getOwnAirplanePropsToBind(), 30)
     .withFollowAirplane()
     .withRotation()
-    .withController('format', context => new MapFormatController(context, this.props.pfdOrMfd))
-    .withController('range', context => new MapRangeController(context, this.props.pfdOrMfd))
-    .withController('waypoints', context => new WaypointDisplayController(context, this.props.pfdOrMfd, this.props.fixInfo))
-    .withController<PlanFormatController, any, any, any, PlanFormatControllerContext>(
-      'planFormat',
-      context => new PlanFormatController(context, this.props.pfdOrMfd, this.props.mfdIndex as 1 | 2, this.props.flightPlanner)
-    )
-    .withController('traffic', context => new MapTrafficController(context, this.props.pfdOrMfd))
+    .withController('format', context => new MapFormatController(context, this.props.instrumentConfig.instrumentType, this.mapUserSettings))
+    .withController('range', context => new MapRangeController(context, this.mapUserSettings))
+    .withController('waypoints', context => new WaypointDisplayController(context, this.mapUserSettings, this.props.fixInfo))
+    .withController<PlanFormatController, any, any, any, PlanFormatControllerContext>('planFormat', context => new PlanFormatController(context, this.props.instrumentConfig, this.props.flightPlanner, this.mapUserSettings))
+    .withController('traffic', context => new MapTrafficController(context, this.mapUserSettings))
 
     // alt banana
     .withAutopilotProps(
@@ -156,22 +152,33 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
         />
       );
     })
-    .withController('altitudeArc', context => new MapAltitudeArcController(context, this.props.pfdOrMfd))
+    .withController('altitudeArc', context => new MapAltitudeArcController(context, this.mapUserSettings))
 
     .withTargetOffset(new Float64Array([0, 66]))
     .withProjectedSize(new Float64Array([564, 564]))
     .withClockUpdate(30)
     .build();
 
+  private readonly selectedAhrs = ConsumerSubject.create(this.props.bus.getSubscriber<AhrsSystemSelectorEvents>().on('ahrs_selected_source_index'), 1);
+  private ahrsSubs = [] as Subscription[];
+
   /** @inheritdoc */
   public onAfterRender(): void {
     const { bus } = this.props;
 
-    const ahrs = bus.getSubscriber<AhrsEvents>();
+    const ahrs = bus.getSubscriber<AhrsSystemEvents>();
+    this.selectedAhrs.sub((ahrsIndex) => {
+      for (const sub of this.ahrsSubs) {
+        sub.destroy();
+      }
+      this.ahrsSubs = [];
 
-    ahrs.on('hdg_deg')
-      .withPrecision(0)
-      .handle(this.staticHeadingBoxValue.set.bind(this.staticHeadingBoxValue));
+      this.ahrsSubs.push(
+        ahrs.on(`ahrs_hdg_deg_${ahrsIndex}`).withPrecision(0).handle(this.staticHeadingBoxValue.set.bind(this.staticHeadingBoxValue)),
+        ahrs.on(`ahrs_state_${ahrsIndex}`).whenChanged().handle(this.onAhrsStateChanged.bind(this)),
+        ahrs.on(`ahrs_heading_data_valid_${ahrsIndex}`).whenChanged().handle(this.onAhrsHdgValidityChanged.bind(this)),
+      );
+    }, true);
 
     this.mapUserSettings.whenSettingChanged('hsiFormat').handle(this.handleFormat);
     this.mapUserSettings.whenSettingChanged('mapRange').handle(this.handleMapRange);
@@ -181,11 +188,6 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
     apEvents.on('ap_heading_selected')
       .whenChanged()
       .handle(this.handleNewSelectedHeading);
-
-    const ahrsEvents = this.props.bus.getSubscriber<AHRSSystemEvents>();
-    ahrsEvents.on('ahrs_state')
-      .whenChanged()
-      .handle(this.onAhrsStateChanged.bind(this));
 
     this.mapUserSettings.whenSettingChanged('hsiFormat').handle((format) => {
       this.handleFormat(format);
@@ -205,8 +207,15 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
    * @param state The state change event to handle.
    */
   private onAhrsStateChanged(state: AvionicsSystemStateEvent): void {
-    this.hsiContainerRef.instance.classList.toggle('fail', state.current === AvionicsSystemState.Failed || state.current === AvionicsSystemState.Off);
     this.hsiContainerRef.instance.classList.toggle('align', state.current === AvionicsSystemState.Initializing);
+  }
+
+  /**
+   * A callback called when the AHRS heading validity changes.
+   * @param valid Whether the AHRS heading is valid
+   */
+  private onAhrsHdgValidityChanged(valid: boolean): void {
+    this.hsiContainerRef.instance.classList.toggle('fail', !valid);
   }
 
   private readonly handleTfcEnabled = (tfcEnabled: boolean): void => {
@@ -231,7 +240,7 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
     this.hsiContainerRef.instance.classList.toggle('hsi-format-ppos', format === 'PPOS');
     this.hsiRoseRef.instance.setVisibility(format === 'ROSE');
     this.hsiContainerRef.instance.classList.toggle('hsi-format-rose', format === 'ROSE');
-    if (this.props.pfdOrMfd === 'MFD') {
+    if (this.props.instrumentConfig.instrumentType === WT21InstrumentType.Mfd) {
       const extendMap = this.mapShouldExtend.get() && (format === 'PLAN' || format === 'PPOS');
       (this.mapUserSettings as UserSettingManager<MapSettingsMfdAliased>).getSetting('mapExtended').set(extendMap);
 
@@ -281,9 +290,8 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
           PPOSMode={false}
           mapRange={this.mapRange}
           mapRangeHalf={this.mapRangeHalf}
-          pfdOrMfd={this.props.pfdOrMfd}
+          instrumentType={this.props.instrumentConfig.instrumentType}
           flightPlanner={this.props.flightPlanner}
-          mfdIndex={this.props.mfdIndex}
         />
         <HSIArc
           ref={this.hsiPPOSRef}
@@ -293,18 +301,17 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
           PPOSMode={true}
           mapRange={this.mapRange}
           mapRangeHalf={this.mapRangeHalf}
-          pfdOrMfd={this.props.pfdOrMfd}
+          instrumentType={this.props.instrumentConfig.instrumentType}
           flightPlanner={this.props.flightPlanner}
-          mfdIndex={this.props.mfdIndex}
         />
         <HSIRose
           ref={this.hsiRoseRef}
           bus={this.props.bus}
           svgViewBoxSize={svgViewBoxSize}
           mapRangeHalf={this.mapRangeHalf}
-          pfdOrMfd={this.props.pfdOrMfd}
+          instrumentType={this.props.instrumentConfig.instrumentType}
         />
-        {this.props.pfdOrMfd === 'MFD' && (
+        {this.props.instrumentConfig.instrumentType === WT21InstrumentType.Mfd && (
           <>
             <HSIPlan
               ref={this.hsiPlanRef}
@@ -320,7 +327,7 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
             />
           </>
         )}
-        <WT21_PFD_MsgInfo bus={this.props.bus} pfdOrMfd={this.props.pfdOrMfd} />
+        <WT21_PFD_MsgInfo bus={this.props.bus} instrumentType={this.props.instrumentConfig.instrumentType} />
         <WindVector bus={this.props.bus} />
         <div class="hsi-heading-infos">
           <div class="hsi-selected-heading-readout">

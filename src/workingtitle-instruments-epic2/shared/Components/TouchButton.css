@@ -1,0 +1,126 @@
+html {
+  --touch-button-background: hsl(216, 10%, 55%);
+  --touch-button-border-width: 3px;
+  --touch-button-border-radius: 3px;
+  --touch-button-box-shadow: inset .1rem .1rem .3rem .2rem hsl(0, 0%, 50%),
+    inset -.1rem -.1rem .3rem .2rem var(--epic2-color-black);
+  --touch-button-text-color: var(--epic2-color-white);
+
+  --touch-button-primed-background: linear-gradient(#73ccf2 3px, #3e9cce 8px, #167ab4 12px, #0061a0 20px, #005594 30px, #005594 87%, #004482 100%);
+  --touch-button-primed-box-shadow: 0px 0px 2px 2px #1b649c inset;
+
+  --touch-button-highlight-background: hsl(0, 0%, 30%);
+  --touch-button-highlight-border: 2px solid #00e8e8;
+  --touch-button-highlight-box-shadow: inset .1rem .1rem .3rem .2rem hsl(0, 0%, 50%),
+    inset -.1rem -.1rem .3rem .1rem var(--epic2-color-black);
+  --touch-button-highlight-text-color: var(--epic2-color-black);
+
+  --touch-button-active-background: var(--epic2-color-dark-grey);
+
+  --touch-button-label-center-y: 50%;
+  --touch-button-disabled-color: rgb(185, 184, 194);
+
+  --touch-button-border-image-source: url('coui://html_UI/pages/vcockpit/instruments/navsystems/Epic2v2/assets/images/grey-border.png');
+  --touch-button-border-style: solid;
+  --touch-button-border-image-slice: 27;
+  --touch-button-border-image-width: 20px;
+  --touch-button-border-image-repeat: stretch stretch;
+}
+
+.touch-button {
+  display: block;
+  position: relative;
+  color: var(--touch-button-text-color);
+  /* overflow: hidden; */
+  text-align: center;
+  background: var(--touch-button-background);
+}
+
+.touch-button.touch-button-disabled {
+  pointer-events: none;
+}
+
+.touch-button-base.touch-button-disabled {
+  color: var(--touch-button-disabled-color);
+  -webkit-text-stroke-color: rgb(113, 113, 113);
+}
+
+.touch-button-base {
+  border-width: var(--touch-button-border-width);
+  border-radius: var(--touch-button-border-radius);
+  border-image-source: var(--touch-button-border-image-source);
+  border-style: var(--touch-button-border-style);
+  border-image-slice: var(--touch-button-border-image-slice);
+  border-image-width: var(--touch-button-border-image-width);
+  border-image-repeat: var(--touch-button-border-image-repeat);
+}
+
+.touch-button-image-border {
+  background: var(--touch-button-background);
+  border-radius: var(--touch-button-border-radius);
+  overflow: hidden;
+  border-image-source: var(--touch-button-border-image-source);
+  border-style: var(--touch-button-border-style);
+  border-image-slice: var(--touch-button-border-image-slice);
+  border-image-width: var(--touch-button-border-image-width);
+  border-image-repeat: var(--touch-button-border-image-repeat);
+}
+
+.touch-button-label {
+  position: absolute;
+  left: 0;
+  top: var(--touch-button-label-center-y);
+  width: 100%;
+  transform: translateY(-50%);
+  text-align: center;
+  white-space: pre;
+  word-break: break-all;
+}
+
+.touch-button-base.touch-button-highlight {
+  background: var(--touch-button-highlight-background);
+  border-image-source: url('coui://html_UI/pages/vcockpit/instruments/navsystems/Epic2v2/assets/images/cyan-border.png');
+  border-style: solid;
+  border-image-slice: 27;
+  border-image-width: 16px;
+  border-image-repeat: stretch stretch;
+  box-shadow: var(--touch-button-highlight-box-shadow);
+  border-image-outset: 2px;
+}
+
+.touch-button-base:active,
+.touch-button-base.touch-button-active {
+  background: var(--touch-button-active-background);
+}
+
+.touch-button-base.touch-button-active::after,
+.touch-button-base:hover::after {
+  content: "";
+  position: absolute;
+  top: calc(-1 * var(--touch-button-border-width));
+  left: calc(-1 * var(--touch-button-border-width));
+  bottom: calc(-1 * var(--touch-button-border-width));
+  right: calc(-1 * var(--touch-button-border-width));
+  border: 2px solid var(--epic2-color-cyan);
+  border-radius: var(--touch-button-border-radius);
+}
+
+.touch-button.touch-button-hidden {
+  display: none !important;
+}
+
+.touch-button.touch-button-small {
+  height: 30px;
+  font-size: 18px;
+  text-align: center;
+  border-radius: 0;
+  border-image-width: 12px;
+  border-image-source: url('coui://html_UI/pages/vcockpit/instruments/navsystems/Epic2v2/assets/images/grey-border-sq.png');
+}
+
+.touch-button .touch-button-label-boxed {
+  padding: 2px 0 0 0;
+  background-color: var(--epic2-color-black);
+  border: 1px solid var(--epic2-color-white);
+  border-radius: var(--touch-button-border-radius);
+}

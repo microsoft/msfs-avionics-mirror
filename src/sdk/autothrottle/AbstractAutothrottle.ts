@@ -1,19 +1,20 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-
 import { ConsumerSubject } from '../data/ConsumerSubject';
 import { EventBus } from '../data/EventBus';
 import { KeyEventManager } from '../data/KeyEventManager';
 import { SimVarValueType } from '../data/SimVars';
-import { ThrottleLeverManager, VirtualThrottleLeverEvents } from '../fadec/ThrottleLeverManager';
+import { ThrottleLeverManager } from '../fadec/ThrottleLeverManager';
+import { VirtualThrottleLeverEvents } from '../fadec/VirtualThrottleLeverEvents';
 import { ClockEvents } from '../instruments/Clock';
 import { AeroMath } from '../math/AeroMath';
 import { ExpSmoother } from '../math/ExpSmoother';
 import { MathUtils } from '../math/MathUtils';
 import { MultiExpSmoother } from '../math/MultiExpSmoother';
 import { UnitType } from '../math/NumberUnit';
+import { Accessible } from '../sub/Accessible';
 import { Subject } from '../sub/Subject';
 import { Subscribable } from '../sub/Subscribable';
 import { SubscribableUtils } from '../sub/SubscribableUtils';
+import { Value } from '../sub/Value';
 import { PidController } from '../utils/controllers/PidController';
 import { AutothrottleEvents, AutothrottleTargetMode, AutothrottleThrottleIndex } from './Autothrottle';
 
@@ -61,6 +62,76 @@ export type AutothrottlePidParams = {
 };
 
 /**
+ * A function which generates an acceleration target, in knots per second, from a given target airspeed error.
+ * @param iasError The target airspeed error, in knots. Positive values indicate the target airspeed is greater than
+ * the airplane's effective airspeed.
+ * @param targetIas The target indicated airspeed, in knots.
+ * @param effectiveIas The airplane's effective indicated airspeed, in knots. The effective airspeed value is reported
+ * after smoothing and lookahead (if they are specified for airspeed data) have been applied.
+ * @param effectiveAccel The airplane's effective acceleration, in knots per second. The effective acceleration value
+ * is reported after smoothing (if it is specified for acceleration data) has been applied.
+ * @param accelCorrection The acceleration, in knots per second, required for the airplane to maintain a constant
+ * target airspeed error. For example, if `accelCorrection` is equal to 1 knot per second and the airplane's current
+ * target airspeed error is zero, then the airplane must accelerate at 1 knot per second to maintain a target airspeed
+ * error of zero.
+ * @returns An acceleration to target, in knots per second, for the specified overspeed protection airspeed error.
+ */
+export type AutothrottleAccelTargetFunc = (
+  iasError: number,
+  targetIas: number,
+  effectiveIas: number,
+  effectiveAccel: number,
+  accelCorrection: number
+) => number;
+
+/**
+ * A function which transforms a power target correction calculated by a speed controller.
+ * @param correction The raw power target correction.
+ * @param iasError The target airspeed error, in knots. Positive values indicate the target airspeed is greater than
+ * the airplane's effective airspeed.
+ * @param targetIas The target indicated airspeed, in knots.
+ * @param effectiveIas The airplane's effective indicated airspeed, in knots. The effective airspeed value is reported
+ * after smoothing and lookahead (if they are specified for airspeed data) have been applied.
+ * @returns The transformed power target correction.
+ */
+export type AutothrottlePowerCorrectionTransformer = (
+  correction: number,
+  iasError: number,
+  targetIas: number,
+  effectiveIas: number
+) => number;
+
+/**
+ * Options for the autothrottle latch function.
+ */
+export type AutothrottleLatchOptions = {
+  /**
+   * The commanded throttle position adjustment speed, in units of normalized position per second, at or below which
+   * will allow a throttle to become latched. A negative value will disable latching entirely. Defaults to `-1`.
+   */
+  latchThreshold?: number;
+
+  /**
+   * The consecutive amount of time, in seconds, that the conditions for latching a throttle must be met before the
+   * throttle becomes latched. Defaults to `0`.
+   */
+  latchDebounce?: number;
+
+  /**
+   * The commanded throttle position adjustment speed, in units of normalized position per second, at or above which
+   * will allow a throttle to become unlatched from a latched state. This value will be clamped to be greater than or
+   * equal to `latchThreshold`. Defaults to `0`.
+   */
+  unlatchThreshold?: number;
+
+  /**
+   * The consecutive amount of time, in seconds, that the conditions for unlatching a throttle must be met before the
+   * throttle becomes unlatched. Defaults to `0`.
+   */
+  unlatchDebounce?: number;
+};
+
+/**
  * Options used to initialize an autothrottle.
  */
 export type AutothrottleOptions = {
@@ -75,7 +146,7 @@ export type AutothrottleOptions = {
    * One normalized throttle position is equal to the distance traversed by the throttle from the idle position to
    * the max thrust position.
    */
-  servoSpeed: number;
+  servoSpeed: number | Accessible<number>;
 
   /**
    * The smoothing time constant, in seconds, to use to smooth airspeed data. A value of zero is equivalent to no
@@ -114,38 +185,20 @@ export type AutothrottleOptions = {
   /**
    * A function which generates an acceleration target, in knots per second, from a given selected airspeed error. If
    * not defined, then the speed controller will directly target selected airspeed instead of acceleration.
-   * @param iasError The selected airspeed error, in knots. Positive values indicate the target airspeed is greater
-   * than the airplane's effective airspeed.
-   * @param targetIas The target indicated airspeed, in knots.
-   * @param effectiveIas The airplane's effective indicated airspeed, in knots. If smoothing and/or lookahead are
-   * specified for airspeed data, then they will be applied to the effective airspeed.
-   * @returns An acceleration to target, in knots per second, for the specified selected airspeed error.
    */
-  selectedSpeedAccelTarget?: (iasError: number, targetIas: number, effectiveIas: number) => number;
+  selectedSpeedAccelTarget?: AutothrottleAccelTargetFunc;
 
   /**
    * A function which generates an acceleration target, in knots per second, from a given overspeed protection airspeed
    * error. Defaults to the function specified for `selectedSpeedAccelTarget`.
-   * @param iasError The overspeed protection airspeed error, in knots. Positive values indicate the target airspeed is
-   * greater than the airplane's effective airspeed.
-   * @param targetIas The target indicated airspeed, in knots.
-   * @param effectiveIas The airplane's effective indicated airspeed, in knots. If smoothing and/or lookahead are
-   * specified for airspeed data, then they will be applied to the effective airspeed.
-   * @returns An acceleration to target, in knots per second, for the specified overspeed protection airspeed error.
    */
-  overspeedAccelTarget?: (iasError: number, targetIas: number, effectiveIas: number) => number;
+  overspeedAccelTarget?: AutothrottleAccelTargetFunc;
 
   /**
    * A function which generates an acceleration target, in knots per second, from a given underspeed protection
    * airspeed error. Defaults to the function specified for `selectedSpeedAccelTarget`.
-   * @param iasError The underspeed protection airspeed error, in knots. Positive values indicate the target airspeed
-   * is greater than the airplane's effective airspeed.
-   * @param targetIas The target indicated airspeed, in knots.
-   * @param effectiveIas The airplane's effective indicated airspeed, in knots. If smoothing and/or lookahead are
-   * specified for airspeed data, then they will be applied to the effective airspeed.
-   * @returns An acceleration to target, in knots per second, for the specified underspeed protection airspeed error.
    */
-  underspeedAccelTarget?: (iasError: number, targetIas: number, effectiveIas: number) => number;
+  underspeedAccelTarget?: AutothrottleAccelTargetFunc;
 
   /**
    * The smoothing time constant, in seconds, to use to smooth observed acceleration used by the speed controller to
@@ -165,6 +218,24 @@ export type AutothrottleOptions = {
    * A value of zero is equivalent to no smoothing. Defaults to `0`.
    */
   accelTargetSmoothingConstant?: number;
+
+  /**
+   * A function which transforms a power target correction calculated by the selected speed controller. If not defined,
+   * then the identity transformation is used.
+   */
+  selectedSpeedPowerCorrectionTransformer?: AutothrottlePowerCorrectionTransformer;
+
+  /**
+   * A function which transforms a power target correction calculated by the overspeed protection speed controller.
+   * Defaults to the function specified for `selectedSpeedPowerCorrectionTransformer`.
+   */
+  overspeedPowerCorrectionTransformer?: AutothrottlePowerCorrectionTransformer;
+
+  /**
+   * A function which transforms a power target correction calculated by the underspeed protection speed controller.
+   * Defaults to the function specified for `selectedSpeedPowerCorrectionTransformer`.
+   */
+  underspeedPowerCorrectionTransformer?: AutothrottlePowerCorrectionTransformer;
 
   /**
    * The smoothing time constant, in seconds, to use to smooth engine power data. A value of zero is equivalent to no
@@ -218,6 +289,23 @@ export type AutothrottleOptions = {
    * of zero is equivalent to no smoothing.
    */
   powerTargetSmoothingConstant: number;
+
+  /**
+   * The smoothing time constant, in seconds, to use to smooth throttle position adjustment speeds commanded by the
+   * power controllers. A value of zero is equivalent to no smoothing. Smoothing is not applied when throttle lever
+   * position targeting is active (unless the targeted throttle position is overridden by speed or power protection).
+   * Defaults to `0`.
+   */
+  throttleSpeedSmoothingConstant?: number;
+
+  /**
+   * Options for the latch function. A throttle can be latched if the commanded position adjustment speed for the
+   * throttle remains less than a specified threshold for a period of time. The autothrottle will not move a latched
+   * throttle. Once latched, the throttle is unlatched when the commanded position adjustment speed exceeds another
+   * threshold. Latching is disabled when throttle lever position targeting is active (unless the targeted throttle
+   * position is overridden by speed or power protection).
+   */
+  latchOptions?: Readonly<AutothrottleLatchOptions>;
 
   /**
    * The amount of hysteresis to apply to throttle position adjustment speeds commanded by the autothrottle's power
@@ -311,6 +399,48 @@ export type PowerCommand = {
 };
 
 /**
+ * A record of an autothrottle speed target.
+ */
+export class AutothrottleSpeedTargetRecord {
+  /** The target indicated airspeed, in knots, or `null` if there is no targeted indicated airspeed. */
+  public ias: number | null = null;
+
+  /** The target mach number, or `null` if there is no targeted mach number. */
+  public mach: number | null = null;
+
+  /** The conversion factor from mach number to indicated airspeed (knots), or `null` if the factor is unavailable. */
+  public machToKias: number | null = null;
+
+  /**
+   * Copies this record from another one.
+   * @param other The record to copy from.
+   */
+  public copyFrom(other: AutothrottleSpeedTargetRecord): void {
+    this.ias = other.ias;
+    this.mach = other.mach;
+    this.machToKias = other.machToKias;
+  }
+
+  /**
+   * Resets this record. All properties will be set to `null`.
+   */
+  public reset(): void {
+    this.ias = null;
+    this.mach = null;
+    this.machToKias = null;
+  }
+}
+
+/** The current autothrottle envelope protection state used to determine when to publish an autothrottle command */
+interface AtEnvelopeProtectionState {
+  /** Whether overspeed protection is engaged. */
+  isOverspeedProtEngaged: boolean;
+
+  /** Whether underspeed protection is engaged. */
+  isUnderspeedProtEngaged: boolean;
+}
+
+/**
  * An abstract implementation of an autothrottle system.
  *
  * The system contains a global speed controller and one power controller for each engine throttle. The speed
@@ -361,15 +491,23 @@ export abstract class AbstractAutothrottle {
 
   protected readonly shouldTargetAccel: boolean;
 
-  protected readonly selectedSpeedAccelTargetFunc?: (iasError: number, targetIas: number, effectiveIas: number) => number;
-  protected readonly overspeedAccelTargetFunc?: (iasError: number, targetIas: number, effectiveIas: number) => number;
-  protected readonly underspeedAccelTargetFunc?: (iasError: number, targetIas: number, effectiveIas: number) => number;
+  protected readonly selectedSpeedAccelTargetFunc?: AutothrottleAccelTargetFunc;
+  protected readonly overspeedAccelTargetFunc?: AutothrottleAccelTargetFunc;
+  protected readonly underspeedAccelTargetFunc?: AutothrottleAccelTargetFunc;
 
   protected readonly accelSmoother?: MultiExpSmoother;
+
+  protected readonly selectedSpeedAccelCorrectionSmoother?: MultiExpSmoother;
+  protected readonly overspeedAccelCorrectionSmoother?: MultiExpSmoother;
+  protected readonly underspeedAccelCorrectionSmoother?: MultiExpSmoother;
 
   protected readonly selectedSpeedAccelTargetSmoother?: ExpSmoother;
   protected readonly overspeedProtAccelTargetSmoother?: ExpSmoother;
   protected readonly underspeedProtAccelTargetSmoother?: ExpSmoother;
+
+  protected readonly selectedSpeedPowerCorrectionTransformer: AutothrottlePowerCorrectionTransformer;
+  protected readonly overspeedPowerCorrectionTransformer: AutothrottlePowerCorrectionTransformer;
+  protected readonly underspeedPowerCorrectionTransformer: AutothrottlePowerCorrectionTransformer;
 
   protected readonly powerLookahead: Subscribable<number>;
 
@@ -379,23 +517,32 @@ export abstract class AbstractAutothrottle {
   protected readonly selectedPowerPids: Record<AutothrottleThrottleIndex, PidController>;
   protected readonly overpowerPids: Record<AutothrottleThrottleIndex, PidController>;
 
+  protected readonly throttleSpeedSmoothers: Record<AutothrottleThrottleIndex, ExpSmoother>;
+
   protected readonly speedTargetChangeThreshold: number;
   protected readonly overspeedChangeThreshold: number;
   protected readonly underspeedChangeThreshold: number;
 
-  protected lastTargetIas: number | undefined = undefined;
-  protected lastOverspeedIas: number | undefined = undefined;
-  protected lastUnderspeedIas: number | undefined = undefined;
+  protected readonly selectedSpeedTarget = new AutothrottleSpeedTargetRecord();
+  protected readonly overspeedSpeedTarget = new AutothrottleSpeedTargetRecord();
+  protected readonly underspeedSpeedTarget = new AutothrottleSpeedTargetRecord();
+
+  protected readonly prevSelectedSpeedTarget = new AutothrottleSpeedTargetRecord();
+  protected readonly prevOverspeedSpeedTarget = new AutothrottleSpeedTargetRecord();
+  protected readonly prevUnderspeedSpeedTarget = new AutothrottleSpeedTargetRecord();
 
   protected readonly selectedSpeedPowerTargetSmoother: ExpSmoother;
   protected readonly overspeedProtPowerTargetSmoother: ExpSmoother;
   protected readonly underspeedProtPowerTargetSmoother: ExpSmoother;
 
+  protected readonly latchOptions: Readonly<Required<AutothrottleLatchOptions>>;
+  protected readonly latchRecord: Record<AutothrottleThrottleIndex, number>;
+
   protected readonly hysteresis: number;
   protected readonly hysteresisRecord: Record<AutothrottleThrottleIndex, number>;
 
   private readonly realTime = ConsumerSubject.create(this.bus.getSubscriber<ClockEvents>().on('realTime'), 0);
-  private updateTimer: NodeJS.Timer | null = null;
+  private updateTimer: NodeJS.Timeout | null = null;
   private lastUpdateTime = 0;
   private readonly updateHandler = this.update.bind(this);
 
@@ -412,6 +559,11 @@ export abstract class AbstractAutothrottle {
     isOverspeedProtEngaged: false,
     isUnderspeedProtEngaged: false,
     isOverpowerProtEngaged: false
+  };
+
+  private readonly prevProtectionStates: AtEnvelopeProtectionState = {
+    isOverspeedProtEngaged: false,
+    isUnderspeedProtEngaged: false
   };
 
   protected isAlive = true;
@@ -472,7 +624,13 @@ export abstract class AbstractAutothrottle {
     this.underspeedAccelTargetFunc = options.underspeedAccelTarget ?? options.selectedSpeedAccelTarget;
 
     if (this.shouldTargetAccel) {
-      this.accelSmoother = new MultiExpSmoother(options.accelSmoothingConstant ?? 0, options.accelSmoothingVelocityConstant);
+      const accelSmoothingConstant = options.accelSmoothingConstant ?? 0;
+
+      this.accelSmoother = new MultiExpSmoother(accelSmoothingConstant, options.accelSmoothingVelocityConstant);
+
+      this.selectedSpeedAccelCorrectionSmoother = new MultiExpSmoother(accelSmoothingConstant, options.accelSmoothingVelocityConstant);
+      this.overspeedAccelCorrectionSmoother = new MultiExpSmoother(accelSmoothingConstant, options.accelSmoothingVelocityConstant);
+      this.underspeedAccelCorrectionSmoother = new MultiExpSmoother(accelSmoothingConstant, options.accelSmoothingVelocityConstant);
 
       const accelTargetTau = options.accelTargetSmoothingConstant ?? 0;
       this.selectedSpeedAccelTargetSmoother = new ExpSmoother(accelTargetTau);
@@ -484,18 +642,10 @@ export abstract class AbstractAutothrottle {
     this.overspeedPid = AbstractAutothrottle.createPidFromParams(options.overspeedPid ?? options.speedTargetPid);
     this.underspeedPid = AbstractAutothrottle.createPidFromParams(options.underspeedPid ?? options.speedTargetPid);
 
-    this.selectedPowerPids = {
-      [1]: AbstractAutothrottle.createPidFromParams(options.powerTargetPid),
-      [2]: AbstractAutothrottle.createPidFromParams(options.powerTargetPid),
-      [3]: AbstractAutothrottle.createPidFromParams(options.powerTargetPid),
-      [4]: AbstractAutothrottle.createPidFromParams(options.powerTargetPid)
-    };
-    this.overpowerPids = {
-      [1]: AbstractAutothrottle.createPidFromParams(options.overpowerPid ?? options.powerTargetPid),
-      [2]: AbstractAutothrottle.createPidFromParams(options.overpowerPid ?? options.powerTargetPid),
-      [3]: AbstractAutothrottle.createPidFromParams(options.overpowerPid ?? options.powerTargetPid),
-      [4]: AbstractAutothrottle.createPidFromParams(options.overpowerPid ?? options.powerTargetPid)
-    };
+    this.selectedPowerPids = {} as Record<AutothrottleThrottleIndex, PidController>;
+    this.overpowerPids = {} as Record<AutothrottleThrottleIndex, PidController>;
+
+    this.throttleSpeedSmoothers = {} as Record<AutothrottleThrottleIndex, ExpSmoother>;
 
     this.speedTargetChangeThreshold = options.speedTargetChangeThreshold ?? Infinity;
     this.overspeedChangeThreshold = options.overspeedChangeThreshold ?? Infinity;
@@ -505,13 +655,32 @@ export abstract class AbstractAutothrottle {
     this.overspeedProtPowerTargetSmoother = new ExpSmoother(options.powerTargetSmoothingConstant);
     this.underspeedProtPowerTargetSmoother = new ExpSmoother(options.powerTargetSmoothingConstant);
 
-    this.hysteresis = Math.max(0, options.hysteresis);
-    this.hysteresisRecord = {
-      [1]: 0,
-      [2]: 0,
-      [3]: 0,
-      [4]: 0,
+    this.selectedSpeedPowerCorrectionTransformer = options.selectedSpeedPowerCorrectionTransformer ?? AbstractAutothrottle.defaultPowerCorrectionTransformer;
+    this.overspeedPowerCorrectionTransformer = options.overspeedPowerCorrectionTransformer ?? this.selectedSpeedPowerCorrectionTransformer;
+    this.underspeedPowerCorrectionTransformer = options.underspeedPowerCorrectionTransformer ?? this.selectedSpeedPowerCorrectionTransformer;
+
+    const latchOptions = {
+      ...options.latchOptions
     };
+    latchOptions.latchThreshold ??= -1;
+    latchOptions.latchDebounce ??= 0;
+    latchOptions.unlatchThreshold = Math.max(latchOptions.unlatchThreshold ?? 0, latchOptions.latchThreshold);
+    latchOptions.unlatchDebounce ??= 0;
+    this.latchOptions = latchOptions as Required<AutothrottleLatchOptions>;
+    this.latchRecord = {} as Record<AutothrottleThrottleIndex, number>;
+
+    this.hysteresis = Math.max(0, options.hysteresis);
+    this.hysteresisRecord = {} as Record<AutothrottleThrottleIndex, number>;
+
+    for (const index of AbstractAutothrottle.ALL_THROTTLE_INDEXES) {
+      this.selectedPowerPids[index] = AbstractAutothrottle.createPidFromParams(options.powerTargetPid);
+      this.overpowerPids[index] = AbstractAutothrottle.createPidFromParams(options.overpowerPid ?? options.powerTargetPid);
+
+      this.throttleSpeedSmoothers[index] = new ExpSmoother(options.throttleSpeedSmoothingConstant ?? 0);
+
+      this.latchRecord[index] = 0;
+      this.hysteresisRecord[index] = 0;
+    }
 
     // Publish data
 
@@ -533,6 +702,9 @@ export abstract class AbstractAutothrottle {
     this.maxPower.sub(val => this.publisher.pub('at_max_power', val, true, true), true);
     this.maxThrottlePos.sub(val => this.publisher.pub('at_max_throttle_pos', val, true, true), true);
     this.minThrottlePos.sub(val => this.publisher.pub('at_min_throttle_pos', val, true, true), true);
+
+    this.publisher.pub('at_overspeed_prot_is_engaged', false, true);
+    this.publisher.pub('at_underspeed_prot_is_engaged', false, true);
   }
 
   /**
@@ -559,7 +731,7 @@ export abstract class AbstractAutothrottle {
   protected abstract createThrottle(
     bus: EventBus,
     info: AutothrottleThrottleInfo,
-    servoSpeed: number,
+    servoSpeed: number | Accessible<number>,
     powerSmoothingConstant: number,
     powerSmoothingVelocityConstant: number | undefined,
     powerLookahead: Subscribable<number>,
@@ -749,6 +921,9 @@ export abstract class AbstractAutothrottle {
     this.lastSmoothedIas = undefined;
 
     this.accelSmoother?.reset();
+    this.selectedSpeedAccelCorrectionSmoother?.reset();
+    this.overspeedAccelCorrectionSmoother?.reset();
+    this.underspeedAccelCorrectionSmoother?.reset();
 
     this.selectedSpeedAccelTargetSmoother?.reset();
     this.overspeedProtAccelTargetSmoother?.reset();
@@ -758,9 +933,9 @@ export abstract class AbstractAutothrottle {
     this.overspeedPid.reset();
     this.underspeedPid.reset();
 
-    this.lastTargetIas = undefined;
-    this.lastOverspeedIas = undefined;
-    this.lastUnderspeedIas = undefined;
+    this.prevSelectedSpeedTarget.reset();
+    this.prevOverspeedSpeedTarget.reset();
+    this.prevUnderspeedSpeedTarget.reset();
 
     this.selectedSpeedPowerTargetSmoother.reset();
     this.overspeedProtPowerTargetSmoother.reset();
@@ -773,6 +948,8 @@ export abstract class AbstractAutothrottle {
     for (const index of AbstractAutothrottle.ALL_THROTTLE_INDEXES) {
       this.selectedPowerPids[index].reset();
       this.overpowerPids[index].reset();
+      this.throttleSpeedSmoothers[index].reset();
+      this.latchRecord[index] = 0;
       this.hysteresisRecord[index] = 0;
     }
 
@@ -817,6 +994,8 @@ export abstract class AbstractAutothrottle {
     const minThrottlePos = this.minThrottlePos.get();
     const maxThrottlePos = this.maxThrottlePos.get();
 
+    let isUnderspeedProtEngaged = false;
+    let isOverspeedProtEngaged = false;
     for (let i = 0; i < this.throttles.length; i++) {
       const throttle = this.throttles[i];
 
@@ -842,36 +1021,106 @@ export abstract class AbstractAutothrottle {
           // If the commanded throttle lever position is out of bounds, clamp it to within bounds.
 
           targetPos = MathUtils.clamp(targetPos!, minThrottlePos, maxThrottlePos);
-          speed = targetPos - throttle.normPosition;
+          speed = (targetPos - throttle.normPosition) / dt;
         } else if (isThrottlePosOob && targetPos === undefined) {
           // If there is no commanded throttle lever position but the current throttle lever position is out of
           // bounds, command the throttle lever to move back in bounds.
 
           targetPos = MathUtils.clamp(throttle.normPosition, minThrottlePos, maxThrottlePos);
-          speed = targetPos - throttle.normPosition;
+          speed = (targetPos - throttle.normPosition) / dt;
         }
 
         if (targetPos !== undefined && speed !== undefined) {
-          // Check hysteresis, unless the current throttle position is out of bounds, in which case we always want to
-          // move the throttle back in bounds.
-          const lastCommandedSpeed = this.hysteresisRecord[throttle.index];
+          let shouldDriveThrottle = true;
+
+          // Check throttle latch.
           if (
-            isThrottlePosOob
-            || lastCommandedSpeed === 0
-            || Math.sign(lastCommandedSpeed) === Math.sign(speed)
-            || Math.abs(speed) > this.hysteresis
+            (
+              !isThrottlePosTargetActive
+              || powerCommand.isOverpowerProtEngaged
+              || powerCommand.isOverspeedProtEngaged
+              || powerCommand.isUnderspeedProtEngaged
+            )
+            && powerCommand.speed !== undefined
+            && this.latchOptions.latchThreshold >= 0
           ) {
-            throttle.drive(targetPos, dt);
-            this.hysteresisRecord[throttle.index] = speed;
+            if (this.latchRecord[throttle.index] < this.latchOptions.latchDebounce) {
+              // The throttle is not latched. Check if the throttle lever position is not out of bounds and the
+              // difference between the position and the commanded position does not exceed the latch threshold. If so,
+              // then increment the latch timer. Otherwise, reset the latch timer.
+
+              if (!isThrottlePosOob && Math.abs(powerCommand.speed) <= this.latchOptions.latchThreshold) {
+                this.latchRecord[throttle.index] = Math.min(this.latchRecord[throttle.index] + dt, this.latchOptions.latchDebounce);
+              } else {
+                this.latchRecord[throttle.index] = 0;
+              }
+            } else {
+              // The throttle is latched. Check if the throttle lever position is out of bounds or if the difference
+              // between the position and the commanded position has exceeded the unlatch threshold for the required
+              // debounce delay. If so, then unlatch the throttle. Otherwise, prevent the throttle lever from moving.
+
+              if (isThrottlePosOob) {
+                this.latchRecord[throttle.index] = 0;
+              } else if (Math.abs(powerCommand.speed) >= this.latchOptions.unlatchThreshold) {
+                if ((this.latchRecord[throttle.index] += dt) >= this.latchOptions.latchDebounce + this.latchOptions.unlatchDebounce) {
+                  this.latchRecord[throttle.index] = 0;
+                } else {
+                  shouldDriveThrottle = false;
+                }
+              } else {
+                this.latchRecord[throttle.index] = this.latchOptions.latchDebounce;
+                shouldDriveThrottle = false;
+              }
+            }
+          }
+
+          if (shouldDriveThrottle) {
+            // Check hysteresis, unless the current throttle position is out of bounds, in which case we always want to
+            // move the throttle back in bounds.
+            const lastCommandedSpeed = this.hysteresisRecord[throttle.index];
+            if (
+              isThrottlePosOob
+              || lastCommandedSpeed === 0
+              || Math.sign(lastCommandedSpeed) === Math.sign(speed)
+              || Math.abs(speed) > this.hysteresis
+            ) {
+              this.hysteresisRecord[throttle.index] = speed;
+            } else {
+              shouldDriveThrottle = false;
+            }
+
+            if (shouldDriveThrottle) {
+              throttle.drive(targetPos, dt);
+            }
+          } else {
+            this.hysteresisRecord[throttle.index] = 0;
           }
         } else {
+          this.latchRecord[throttle.index] = 0;
           this.hysteresisRecord[throttle.index] = 0;
+        }
+
+        if (powerCommand.isOverspeedProtEngaged) {
+          isOverspeedProtEngaged = true;
+        } else if (powerCommand.isUnderspeedProtEngaged) {
+          isUnderspeedProtEngaged = true;
         }
       } else {
         this.selectedPowerPids[throttle.index].reset();
         this.overpowerPids[throttle.index].reset();
+        this.throttleSpeedSmoothers[throttle.index].reset();
         this.hysteresisRecord[throttle.index] = 0;
+        this.latchRecord[throttle.index] = 0;
       }
+    }
+
+    if (isOverspeedProtEngaged !== this.prevProtectionStates.isOverspeedProtEngaged) {
+      this.publisher.pub('at_overspeed_prot_is_engaged', isOverspeedProtEngaged, true);
+      this.prevProtectionStates.isOverspeedProtEngaged = isOverspeedProtEngaged;
+    }
+    if (isUnderspeedProtEngaged !== this.prevProtectionStates.isUnderspeedProtEngaged) {
+      this.publisher.pub('at_underspeed_prot_is_engaged', isUnderspeedProtEngaged, true);
+      this.prevProtectionStates.isUnderspeedProtEngaged = isUnderspeedProtEngaged;
     }
   }
 
@@ -901,7 +1150,7 @@ export abstract class AbstractAutothrottle {
         currentMachToKias = 1 / AeroMath.casToMach(1, pressure);
       }
     } else {
-      const mach = SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Number);
+      const mach = SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Mach);
       currentMachToKias = ias > 1 && mach > 0 ? ias / mach : 1 / AeroMath.casToMach(1, pressure);
     }
 
@@ -932,9 +1181,11 @@ export abstract class AbstractAutothrottle {
 
     this.lastSmoothedIas = smoothedIas;
 
+    let prevEffectiveAccel: number | null = null;
     let effectiveAccel = 0;
 
     if (this.shouldTargetAccel) {
+      prevEffectiveAccel = this.accelSmoother!.last();
       effectiveAccel = this.accelSmoother!.next(deltaIas / dt, dt);
     }
 
@@ -947,105 +1198,139 @@ export abstract class AbstractAutothrottle {
     let selectedSpeedDelta: number | undefined;
 
     if (isOverspeedProtActive) {
-      const maxIas = Math.min(this.maxMach.get() * machToKias, this.maxIas.get());
+      this.overspeedSpeedTarget.ias = this.maxIas.get();
+      this.overspeedSpeedTarget.mach = this.maxMach.get();
+      this.overspeedSpeedTarget.machToKias = machToKias;
 
       if (this.shouldTargetAccel) {
         overspeedProtDelta = this.updateAccelTargetPid(
           this.overspeedPid,
           this.overspeedAccelTargetFunc!,
+          this.overspeedAccelCorrectionSmoother!,
           this.overspeedProtAccelTargetSmoother!,
+          this.overspeedPowerCorrectionTransformer,
           effectiveAccel,
+          prevEffectiveAccel,
           effectiveIas,
-          maxIas,
-          this.lastOverspeedIas,
+          this.overspeedSpeedTarget,
+          this.prevOverspeedSpeedTarget,
+          false,
           dt,
           this.overspeedChangeThreshold
         );
       } else {
         overspeedProtDelta = this.updateSpeedTargetPid(
           this.overspeedPid,
+          this.overspeedPowerCorrectionTransformer,
           effectiveIas,
-          maxIas,
-          this.lastOverspeedIas,
+          this.overspeedSpeedTarget,
+          this.prevOverspeedSpeedTarget,
+          false,
           dt,
           this.overspeedChangeThreshold
         );
       }
 
-      out.isOverspeed = effectiveIas > maxIas;
-      this.lastOverspeedIas = maxIas;
+      out.isOverspeed = effectiveIas > Math.min(this.overspeedSpeedTarget.mach * machToKias, this.overspeedSpeedTarget.ias);
+      this.prevOverspeedSpeedTarget.copyFrom(this.overspeedSpeedTarget);
     } else {
       this.overspeedPid.reset();
+      this.overspeedAccelCorrectionSmoother?.reset();
       this.overspeedProtAccelTargetSmoother?.reset();
-      this.lastOverspeedIas = undefined;
+      this.prevOverspeedSpeedTarget.reset();
     }
 
     if (isUnderspeedProtActive) {
-      const minIas = Math.max(this.minMach.get() * machToKias, this.minIas.get());
+      this.underspeedSpeedTarget.ias = this.minIas.get();
+      this.underspeedSpeedTarget.mach = this.minMach.get();
+      this.underspeedSpeedTarget.machToKias = machToKias;
 
       if (this.shouldTargetAccel) {
         underspeedProtDelta = this.updateAccelTargetPid(
           this.underspeedPid,
           this.underspeedAccelTargetFunc!,
+          this.underspeedAccelCorrectionSmoother!,
           this.underspeedProtAccelTargetSmoother!,
+          this.underspeedPowerCorrectionTransformer,
           effectiveAccel,
+          prevEffectiveAccel,
           effectiveIas,
-          minIas,
-          this.lastUnderspeedIas,
+          this.underspeedSpeedTarget,
+          this.prevUnderspeedSpeedTarget,
+          true,
           dt,
           this.underspeedChangeThreshold
         );
       } else {
         underspeedProtDelta = this.updateSpeedTargetPid(
           this.underspeedPid,
+          this.underspeedPowerCorrectionTransformer,
           effectiveIas,
-          minIas,
-          this.lastUnderspeedIas,
+          this.underspeedSpeedTarget,
+          this.prevUnderspeedSpeedTarget,
+          true,
           dt,
           this.underspeedChangeThreshold
         );
       }
 
-      out.isUnderspeed = effectiveIas < minIas;
-      this.lastUnderspeedIas = minIas;
+      out.isUnderspeed = effectiveIas < Math.max(this.underspeedSpeedTarget.mach * machToKias, this.underspeedSpeedTarget.ias);
+      this.prevUnderspeedSpeedTarget.copyFrom(this.underspeedSpeedTarget);
     } else {
       this.underspeedPid.reset();
+      this.underspeedAccelCorrectionSmoother?.reset();
       this.underspeedProtAccelTargetSmoother?.reset();
-      this.lastUnderspeedIas = undefined;
+      this.underspeedSpeedTarget.reset();
     }
 
     if (isTargetSpeed) {
       // Targeting speed
-      const targetIas = this.selectedSpeedIsMach.get() ? this.selectedMach.get() * machToKias : this.selectedIas.get();
+
+      if (this.selectedSpeedIsMach.get()) {
+        this.selectedSpeedTarget.ias = null;
+        this.selectedSpeedTarget.mach = this.selectedMach.get();
+      } else {
+        this.selectedSpeedTarget.ias = this.selectedIas.get();
+        this.selectedSpeedTarget.mach = null;
+      }
+
+      this.selectedSpeedTarget.machToKias = machToKias;
 
       if (this.shouldTargetAccel) {
         selectedSpeedDelta = this.updateAccelTargetPid(
           this.selectedSpeedPid,
           this.selectedSpeedAccelTargetFunc!,
+          this.selectedSpeedAccelCorrectionSmoother!,
           this.selectedSpeedAccelTargetSmoother!,
+          this.selectedSpeedPowerCorrectionTransformer,
           effectiveAccel,
+          prevEffectiveAccel,
           effectiveIas,
-          targetIas,
-          this.lastTargetIas,
+          this.selectedSpeedTarget,
+          this.prevSelectedSpeedTarget,
+          false,
           dt,
           this.speedTargetChangeThreshold
         );
       } else {
         selectedSpeedDelta = this.updateSpeedTargetPid(
           this.selectedSpeedPid,
+          this.selectedSpeedPowerCorrectionTransformer,
           effectiveIas,
-          targetIas,
-          this.lastTargetIas,
+          this.selectedSpeedTarget,
+          this.prevSelectedSpeedTarget,
+          false,
           dt,
           this.speedTargetChangeThreshold
         );
       }
 
-      this.lastTargetIas = targetIas;
+      this.prevSelectedSpeedTarget.copyFrom(this.selectedSpeedTarget);
     } else {
       this.selectedSpeedPid.reset();
+      this.selectedSpeedAccelCorrectionSmoother?.reset();
       this.selectedSpeedAccelTargetSmoother?.reset();
-      this.lastTargetIas = undefined;
+      this.prevSelectedSpeedTarget.reset();
     }
 
     let throttlePowerSum = 0;
@@ -1087,9 +1372,14 @@ export abstract class AbstractAutothrottle {
   /**
    * Updates a speed PID controller when directly targeting airspeed.
    * @param pid The PID controller to update.
+   * @param correctionTransformer A function which transforms the power target correction calculated by the speed PID
+   * controller.
    * @param effectiveIas The airplane's current effective indicated airspeed, in knots.
-   * @param targetIas The target indicated airspeed, in knots.
-   * @param lastTargetIas The target indicated airspeed during the last update, in knots.
+   * @param currentSpeedTarget The current target speed.
+   * @param prevSpeedTarget The target speed during the previous update.
+   * @param useMaxSpeed If `true`, then the greater of the target indicated airspeed or target mach will be used if
+   * both are defined. If `false`, then the lesser of the target indicated airspeed or target mach will be used if both
+   * are defined.
    * @param dt The elapsed time since the last update, in seconds.
    * @param targetChangeThreshold The threshold, in knots per second, such that if the rate of change of the target
    * speed exceeds the threshold, the PID controller will ignore any contribution to the derivative term from the
@@ -1098,24 +1388,29 @@ export abstract class AbstractAutothrottle {
    */
   private updateSpeedTargetPid(
     pid: PidController,
+    correctionTransformer: AutothrottlePowerCorrectionTransformer,
     effectiveIas: number,
-    targetIas: number,
-    lastTargetIas: number | undefined,
+    currentSpeedTarget: AutothrottleSpeedTargetRecord,
+    prevSpeedTarget: AutothrottleSpeedTargetRecord,
+    useMaxSpeed: boolean,
     dt: number,
     targetChangeThreshold: number
   ): number {
-    const error = targetIas - effectiveIas;
+    const targetSpeedFunc = useMaxSpeed ? Math.max : Math.min;
+    const currentTargetIas = targetSpeedFunc(currentSpeedTarget.ias ?? Infinity, (currentSpeedTarget.mach ?? Infinity) * currentSpeedTarget.machToKias!);
+    const error = currentTargetIas - effectiveIas;
 
     // Cancel out any derivative term contributed by changes in the target speed.
-    if (lastTargetIas !== undefined) {
-      const targetIasDelta = targetIas - lastTargetIas;
+    const prevTargetIasAtCurrentUpdate = targetSpeedFunc(prevSpeedTarget.ias ?? Infinity, (prevSpeedTarget.mach ?? Infinity) * currentSpeedTarget.machToKias!);
+    if (isFinite(prevTargetIasAtCurrentUpdate)) {
+      const targetIasDelta = currentTargetIas - prevTargetIasAtCurrentUpdate;
       const lastError = pid.getPreviousError();
       if (lastError !== undefined && Math.abs(targetIasDelta / dt) >= targetChangeThreshold) {
         pid.getOutput(0, lastError + targetIasDelta);
       }
     }
 
-    return pid.getOutput(dt, error);
+    return correctionTransformer(pid.getOutput(dt, error), error, currentTargetIas, effectiveIas);
   }
 
   /**
@@ -1123,11 +1418,19 @@ export abstract class AbstractAutothrottle {
    * @param pid The PID controller to update.
    * @param accelTargetFunc A function which generates an acceleration to target, in knots per second, for a given
    * airspeed error.
+   * @param accelCorrectionSmoother The smoother to use to smooth the target acceleration correction.
    * @param accelTargetSmoother The smoother to use to smooth the target acceleration.
+   * @param correctionTransformer A function which transforms the power target correction calculated by the speed PID
+   * controller.
    * @param effectiveAccel The airplane's effective indicated acceleration, in knots per second.
+   * @param prevEffectiveAccel The airplane's effective indicated acceleration during the previous update, in knots per
+   * second.
    * @param effectiveIas The airplane's current effective indicated airspeed, in knots.
-   * @param targetIas The target indicated airspeed, in knots.
-   * @param lastTargetIas The target indicated airspeed during the last update, in knots.
+   * @param currentSpeedTarget The current target speed.
+   * @param prevSpeedTarget The target speed during the previous update.
+   * @param useMaxSpeed If `true`, then the greater of the target indicated airspeed or target mach will be used if
+   * both are defined. If `false`, then the lesser of the target indicated airspeed or target mach will be used if both
+   * are defined.
    * @param dt The elapsed time since the last update, in seconds.
    * @param targetChangeThreshold The threshold, in knots per second, such that if the rate of change of the target
    * speed exceeds the threshold, the PID controller will ignore any contribution to the derivative term from the
@@ -1136,35 +1439,48 @@ export abstract class AbstractAutothrottle {
    */
   private updateAccelTargetPid(
     pid: PidController,
-    accelTargetFunc: (iasError: number, targetIas: number, effectiveIas: number) => number,
+    accelTargetFunc: AutothrottleAccelTargetFunc,
+    accelCorrectionSmoother: MultiExpSmoother,
     accelTargetSmoother: ExpSmoother,
+    correctionTransformer: AutothrottlePowerCorrectionTransformer,
     effectiveAccel: number,
+    prevEffectiveAccel: number | null,
     effectiveIas: number,
-    targetIas: number,
-    lastTargetIas: number | undefined,
+    currentSpeedTarget: AutothrottleSpeedTargetRecord,
+    prevSpeedTarget: AutothrottleSpeedTargetRecord,
+    useMaxSpeed: boolean,
     dt: number,
     targetChangeThreshold: number
   ): number {
-    const iasError = targetIas - effectiveIas;
-    const lastTargetAccel = accelTargetSmoother.last();
-    const targetAccel = accelTargetSmoother.next(accelTargetFunc(iasError, targetIas, effectiveIas), dt);
+    const targetSpeedFunc = useMaxSpeed ? Math.max : Math.min;
+    const currentTargetIas = targetSpeedFunc(currentSpeedTarget.ias ?? Infinity, (currentSpeedTarget.mach ?? Infinity) * currentSpeedTarget.machToKias!);
+
+    // Correct for any change in target IAS due to changing conditions (e.g. target IAS will increase or decrease with
+    // static pressure if derived from a constant targeted mach).
+    let accelCorrection = 0;
+    if (prevSpeedTarget.machToKias !== null) {
+      const currentTargetIasAtPrevUpdate = targetSpeedFunc(currentSpeedTarget.ias ?? Infinity, (currentSpeedTarget.mach ?? Infinity) * prevSpeedTarget.machToKias);
+      accelCorrection = accelCorrectionSmoother.next((currentTargetIas - currentTargetIasAtPrevUpdate) / dt, dt);
+    } else {
+      accelCorrectionSmoother.reset();
+    }
+
+    const iasError = currentTargetIas - effectiveIas;
+    const targetAccel = accelTargetSmoother.next(accelTargetFunc(iasError, currentTargetIas, effectiveIas, effectiveAccel, accelCorrection), dt);
 
     // Cancel out any derivative term contributed by changes in the target speed.
-    if (lastTargetIas !== undefined) {
-      const targetIasDelta = targetIas - lastTargetIas;
-      const lastError = pid.getPreviousError();
-      if (lastError !== undefined && Math.abs(targetIasDelta / dt) >= targetChangeThreshold) {
-        accelTargetSmoother.reset(lastTargetAccel);
-        const correctedTargetAccel = accelTargetSmoother.next(accelTargetFunc(iasError, targetIas - targetIasDelta, effectiveIas), dt);
-        const targetAccelDelta = targetAccel - correctedTargetAccel;
-
-        pid.getOutput(0, lastError + targetAccelDelta);
-        accelTargetSmoother.reset(targetAccel);
+    if (prevEffectiveAccel !== null && pid.getPreviousError() !== undefined) {
+      const prevTargetIasAtCurrentUpdate = targetSpeedFunc(prevSpeedTarget.ias ?? Infinity, (prevSpeedTarget.mach ?? Infinity) * currentSpeedTarget.machToKias!);
+      if (isFinite(prevTargetIasAtCurrentUpdate)) {
+        const targetIasDelta = currentTargetIas - prevTargetIasAtCurrentUpdate;
+        if (Math.abs(targetIasDelta / dt) >= targetChangeThreshold) {
+          pid.getOutput(0, targetAccel - prevEffectiveAccel);
+        }
       }
     }
 
     const error = targetAccel - effectiveAccel;
-    return pid.getOutput(dt, error);
+    return correctionTransformer(pid.getOutput(dt, error), iasError, currentTargetIas, effectiveIas);
   }
 
   /**
@@ -1225,25 +1541,51 @@ export abstract class AbstractAutothrottle {
       powerTarget = speedCommand.selectedSpeedPowerTarget;
     }
 
-    // Engage over/underspeed protection if the engine power target commanded by the protection controller is
-    // less/greater than that commanded by the selected speed controller or the selected power, respectively, or if the
-    // airplane is currently over/underspeeding and the protection controller is attempting to reduce/increase power,
-    // respectively, when no other power target is being commanded.
+    let selectedThrottlePositionPowerTargetDelta: number | undefined;
+    if (isThrottlePosTargetActive) {
+      const selectedTarget = this.selectedThrottlePos.get();
+      const servoSpeed = throttle.servoSpeed.get();
+      selectedThrottlePositionPowerTargetDelta = MathUtils.clamp((selectedTarget - throttle.normPosition) / dt, -servoSpeed, servoSpeed);
+    }
+
     if (powerTarget === undefined) {
+      // The autothrottle is not targeting selected speed or selected power. Engage over/underspeed protection if the
+      // airplane is currently over/underspeeding and the protection is attempting to reduce power (overspeed)
+      // increase power (underspeed). If neither protection can be engaged in this way, then check if a selected
+      // throttle position is being targeted. If so, then engage over/underspeed protection if either is active (with
+      // arbitrary preference for overspeed protection). Selected throttle position will get a chance to "override" the
+      // protection further down in this method.
+
       if (
         speedCommand.overspeedProtPowerTarget !== undefined
-        && (isThrottlePosTargetActive || (speedCommand.isOverspeed && speedCommand.overspeedProtPowerTarget < effectivePower))
+        && speedCommand.isOverspeed
+        && speedCommand.overspeedProtPowerTarget < effectivePower
       ) {
-        powerTarget = speedCommand.overspeedProtPowerTarget;
         isUsingOverspeedProtCommand = true;
       } else if (
         speedCommand.underspeedProtPowerTarget !== undefined
-        && (isThrottlePosTargetActive || (speedCommand.isUnderspeed && speedCommand.underspeedProtPowerTarget > effectivePower))
+        && speedCommand.isUnderspeed
+        && speedCommand.underspeedProtPowerTarget > effectivePower
       ) {
-        powerTarget = speedCommand.underspeedProtPowerTarget;
         isUsingUnderspeedProtCommand = true;
+      } else if (selectedThrottlePositionPowerTargetDelta !== undefined) {
+        if (speedCommand.overspeedProtPowerTarget !== undefined) {
+          isUsingOverspeedProtCommand = true;
+        } else if (speedCommand.underspeedProtPowerTarget !== undefined) {
+          isUsingUnderspeedProtCommand = true;
+        }
+      }
+
+      if (isUsingOverspeedProtCommand) {
+        powerTarget = speedCommand.overspeedProtPowerTarget;
+      } else if (isUsingUnderspeedProtCommand) {
+        powerTarget = speedCommand.underspeedProtPowerTarget;
       }
     } else {
+      // The autothrottle is targeting a selected speed or selected power. Engage over/underspeed protection if the
+      // protection is commanding a power target less than (overspeed) or greater than (underspeed) that commanded by
+      // the selected speed or selected power controller.
+
       if (speedCommand.overspeedProtPowerTarget !== undefined && speedCommand.overspeedProtPowerTarget < powerTarget) {
         powerTarget = speedCommand.overspeedProtPowerTarget;
         isUsingOverspeedProtCommand = true;
@@ -1260,15 +1602,19 @@ export abstract class AbstractAutothrottle {
       targetPid.reset();
     }
 
-    // Engage overpower protection if the throttle position adjustment commanded by the protection controller is less
-    // than that commanded by the target power controller, or if the engine is currently overpowered and the protection
-    // controller is attempting to reduce power when no other throttle adjustment is being commanded.
     if (targetDelta === undefined) {
+      // No power target is defined. Engage overpower protection if the airplane is currently in an overpower condition
+      // and the protection is attempting to reduce power OR if a selected throttle position is being targeted.
+      // Selected throttle position will get a chance to "override" the protection further down in this method.
+
       if (overpowerProtDelta !== undefined && (isThrottlePosTargetActive || (isOverpower && overpowerProtDelta < 0))) {
         delta = overpowerProtDelta;
         isUsingOverpowerProtCommand = true;
       }
     } else {
+      // A power target is defined. Engage overpower protection if the protection is targeting a lower power than the
+      // existing power target.
+
       if (overpowerProtDelta !== undefined && overpowerProtDelta < targetDelta) {
         delta = overpowerProtDelta;
         isUsingOverpowerProtCommand = true;
@@ -1277,22 +1623,26 @@ export abstract class AbstractAutothrottle {
       }
     }
 
-    if (isThrottlePosTargetActive) {
-      const selectedTarget = this.selectedThrottlePos.get();
-      const selectedTargetDelta = MathUtils.clamp((selectedTarget - throttle.normPosition) / dt, -throttle.servoSpeed, throttle.servoSpeed);
+    if (delta !== undefined) {
+      delta = this.throttleSpeedSmoothers[throttle.index].next(delta, dt);
+    } else {
+      this.throttleSpeedSmoothers[throttle.index].reset();
+    }
 
-      // Override the throttle adjustment commanded by the power controller if...
+    if (selectedThrottlePositionPowerTargetDelta !== undefined) {
+      // Override the throttle adjustment commanded by the power controller with the adjustment commanded by the
+      // selected throttle position if...
       if (
         // ... the power controller is not commanding any adjustment
         delta === undefined
         // ... OR overspeed or overpower protection is engaged but the adjustment required to move toward the selected
         // throttle position would reduce throttle *lower* than that commanded by the power controller
-        || ((isUsingOverspeedProtCommand || isUsingOverpowerProtCommand) && selectedTargetDelta < delta)
+        || ((isUsingOverspeedProtCommand || isUsingOverpowerProtCommand) && selectedThrottlePositionPowerTargetDelta < delta)
         // ... OR underspeed protection is engaged but the adjustment required to move toward the selected throttle
         // position would increase throttle *higher* than that commanded by the power controller
-        || (isUsingUnderspeedProtCommand && selectedTargetDelta > delta)
+        || (isUsingUnderspeedProtCommand && selectedThrottlePositionPowerTargetDelta > delta)
       ) {
-        delta = selectedTargetDelta;
+        delta = selectedThrottlePositionPowerTargetDelta;
         isUsingOverspeedProtCommand = false;
         isUsingUnderspeedProtCommand = false;
         isUsingOverpowerProtCommand = false;
@@ -1332,6 +1682,15 @@ export abstract class AbstractAutothrottle {
    */
   protected static createPidFromParams(params: AutothrottlePidParams): PidController {
     return new PidController(params.kP, params.kI, params.kD, params.maxOut, params.minOut, params.maxI, params.minI);
+  }
+
+  /**
+   * A default transformation function for power target corrections which returns the correction unchanged.
+   * @param correction The raw power target correction.
+   * @returns The transformed power target correction.
+   */
+  protected static defaultPowerCorrectionTransformer(correction: number): number {
+    return correction;
   }
 }
 
@@ -1407,6 +1766,8 @@ export abstract class AutothrottleThrottle {
   private lastPowerLookahead = this.powerLookahead.get();
   private lastSmoothedPower: number | undefined = undefined;
 
+  public readonly servoSpeed: Accessible<number>;
+
   /**
    * Constructor.
    * @param bus The event bus.
@@ -1431,7 +1792,7 @@ export abstract class AutothrottleThrottle {
   public constructor(
     bus: EventBus,
     info: AutothrottleThrottleInfo,
-    public readonly servoSpeed: number,
+    servoSpeed: number | Accessible<number>,
     powerSmoothingConstant: number,
     powerSmoothingVelocityConstant: number | undefined,
     private readonly powerLookahead: Subscribable<number>,
@@ -1439,6 +1800,8 @@ export abstract class AutothrottleThrottle {
     powerLookaheadSmoothingVelocityConstant: number | undefined,
     throttleLeverManager?: ThrottleLeverManager
   ) {
+    this.servoSpeed = typeof servoSpeed === 'number' ? Value.create(servoSpeed) : servoSpeed;
+
     this.initKeyManager(bus);
 
     ({ index: this.index, idlePosition: this.idlePosition, maxThrustPosition: this.maxThrustPosition } = info);
@@ -1526,7 +1889,7 @@ export abstract class AutothrottleThrottle {
     }
 
     const deltaSign = Math.sign(delta);
-    const toDrive = Math.min(dt * this.servoSpeed, (targetNormPos - current) * deltaSign) * deltaSign;
+    const toDrive = Math.min(dt * this.servoSpeed.get(), (targetNormPos - current) * deltaSign) * deltaSign;
     const finalPos = this.idlePosition + (current + toDrive) * this.normRange;
 
     if (Math.abs(finalPos - this._position) < 0.5 / AutothrottleThrottle.RAW_AXIS_MAX) {

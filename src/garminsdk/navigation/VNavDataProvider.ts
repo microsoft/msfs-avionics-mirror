@@ -1,11 +1,11 @@
 import {
   AdcEvents, AltitudeConstraintDetails, AltitudeRestrictionType, ApproachGuidanceMode, CdiEvents, CdiUtils,
   ClockEvents, ConsumerSubject, ConsumerValue, EventBus, GNSSEvents, LegDefinition, NavSourceId, NavSourceType,
-  RnavTypeFlags, Subject, Subscribable, SubscribableUtils, Subscription, UnitType, VerticalFlightPhase, VNavEvents,
-  VNavPathMode, VNavState, VNavUtils
+  ReadonlySubEvent, RnavTypeFlags, SubEvent, Subject, Subscribable, SubscribableUtils, Subscription, UnitType,
+  VerticalFlightPhase, VNavEvents, VNavPathMode, VNavState, VNavUtils
 } from '@microsoft/msfs-sdk';
 
-import { GarminVNavDataEvents, GarminVNavFlightPhase, GarminVNavTrackingPhase } from '../autopilot/vnav/GarminVNavDataEvents';
+import { GarminVNavDataEvents, GarminVNavFlightPhase, GarminVNavTrackAlertType, GarminVNavTrackingPhase } from '../autopilot/vnav/GarminVNavDataEvents';
 import { Fms } from '../flightplan/Fms';
 import { ApproachDetails, FmsFlightPhase } from '../flightplan/FmsTypes';
 import { AdcSystemEvents } from '../system/AdcSystem';
@@ -80,6 +80,9 @@ export interface VNavDataProvider {
 
   /** The time remaining to the next bottom of climb, in seconds. */
   readonly timeToBoc: Subscribable<number | null>;
+
+  /** An event that is fired when a vertical track alert is issued. The event data is the alert type. */
+  readonly trackAlert: ReadonlySubEvent<void, GarminVNavTrackAlertType>;
 }
 
 /**
@@ -177,6 +180,10 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
   /** @inheritdoc */
   public readonly timeToBoc = this._timeToBoc as Subscribable<number | null>;
 
+  private readonly _trackAlert = new SubEvent<void, GarminVNavTrackAlertType>();
+  /** @inheritdoc */
+  public readonly trackAlert = this._trackAlert as ReadonlySubEvent<void, GarminVNavTrackAlertType>;
+
   private readonly indicatedAlt = ConsumerValue.create(null, 0);
 
   private readonly groundSpeed = ConsumerValue.create(null, 0);
@@ -267,12 +274,13 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
   private cdiIdSub?: Subscription;
   private clockSub?: Subscription;
   private vnavStateSub?: Subscription;
+  private trackAlertSub?: Subscription;
 
   /**
    * Creates a new instance of DefaultVNavDataProvider.
    * @param bus The event bus.
    * @param fms The FMS.
-   * @param adcIndex The index of the ADC that is the source of this provider's data.
+   * @param options Options with which to configure the provider.
    */
   public constructor(
     bus: EventBus,
@@ -399,6 +407,8 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
         this.vnavBocDistance.setConsumer(sub.on(`vnav_boc_distance${suffix}`));
         this.vnavConstraintDetails.setConsumer(sub.on(`vnav_altitude_constraint_details${suffix}`));
 
+        this.trackAlertSub = sub.on(`vnav_track_alert${suffix}`).handle(this.onTrackAlertIssued.bind(this), this.isPaused);
+
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         this.vnavStateSub!.resume(true);
       } else {
@@ -408,6 +418,9 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
         for (const pauseable of this.pauseable) {
           pauseable.pause();
         }
+
+        this.trackAlertSub?.destroy();
+        this.trackAlertSub = undefined;
 
         this.vnavState.setConsumer(null);
         this.vnavFlightPhaseSource.setConsumer(null);
@@ -602,6 +615,16 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
   }
 
   /**
+   * Responds to when a vertical track alert is issued.
+   * @param type The type of alert that was issued.
+   */
+  private onTrackAlertIssued(type: GarminVNavTrackAlertType): void {
+    if (this.activeNavSource.get().type === NavSourceType.Gps) {
+      this._trackAlert.notify(undefined, type);
+    }
+  }
+
+  /**
    * Resumes this data provider. Once resumed, this data provider will continuously update its data until paused or
    * destroyed.
    * @throws Error if this data provider is dead.
@@ -618,6 +641,7 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
     this.isPaused = false;
 
     this.vnavStateSub?.resume(true);
+    this.trackAlertSub?.resume();
   }
 
   /**
@@ -639,6 +663,7 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
 
     this.clockSub?.pause();
     this.vnavStateSub?.pause();
+    this.trackAlertSub?.pause();
 
     this.isPaused = true;
   }
@@ -682,5 +707,6 @@ export class DefaultVNavDataProvider implements VNavDataProvider {
     this.cdiIdSub?.destroy();
     this.clockSub?.destroy();
     this.vnavStateSub?.destroy();
+    this.trackAlertSub?.destroy();
   }
 }

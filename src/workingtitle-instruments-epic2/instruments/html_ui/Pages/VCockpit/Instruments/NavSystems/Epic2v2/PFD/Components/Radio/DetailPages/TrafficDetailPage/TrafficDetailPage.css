@@ -1,0 +1,21 @@
+.epic2-traffic-detail-page .epic2-radio-detail-options-container .radio-button-container {
+  width: 80px;
+  justify-content: flex-end;
+}
+
+.epic2-traffic-detail-page .epic2-radio-detail-options-container {
+  flex-wrap: wrap;
+}
+
+.epic2-traffic-detail-page .epic2-radio-detail-options-container .radio-button-wrapper-left-label {
+  margin-left: 14px;
+}
+
+.epic2-traffic-detail-page .epic2-radio-detail-text-container {
+  width: 249px;
+}
+
+epic2-pfd.right .epic2-traffic-detail-page .epic2-radio-detail-options-container,
+epic2-pfd.right .epic2-traffic-detail-page .epic2-radio-detail-text-container {
+  margin-left: 60px;
+}

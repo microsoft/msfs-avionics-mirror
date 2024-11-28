@@ -167,7 +167,7 @@ export class TouchPad<P extends TouchPadProps = TouchPadProps>
   protected readonly inhibitOnDragAxis = this.props.inhibitOnDragAxis ?? 'both';
   protected readonly dragInhibitThresholdPx = this.props.dragInhibitThresholdPx ?? 40;
 
-  protected tickInterval: NodeJS.Timer | null = null;
+  protected tickInterval: NodeJS.Timeout | null = null;
   protected lastTickTime: number | undefined = undefined;
   protected readonly lastTickMousePosition = Vec2Math.create();
 

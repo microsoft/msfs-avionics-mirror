@@ -1,0 +1,91 @@
+.waypoint-list-header {
+    top: 54px;
+    left: 17px;
+    position: absolute;
+}
+
+.waypoint-list-header-options {
+    display: flex;
+}
+
+.waypoint-list-header-options p {
+    font-size: 22px;
+}
+
+.waypoint-list-header-options .visible {
+    display: inline;
+}
+
+.waypoint-list-header-options p {
+    position: relative;
+}
+
+/* Crs */
+.waypoint-list-header-options p:nth-child(1) {
+    left: 0px;
+}
+
+/* Dist */
+.waypoint-list-header-options p:nth-child(2) {
+    left: 20px;
+}
+
+/* GS */
+.waypoint-list-header-options p:nth-child(3) {
+    left: 36px;
+}
+
+/* DTG */
+.waypoint-list-header-options p:nth-child(4) {
+    left: 85px;
+}
+
+/* ETE */
+.waypoint-list-header-options p:nth-child(5) {
+    left: 133px;
+}
+
+/* Alt */
+.waypoint-list-header-options p:nth-child(6) {
+    left: 43px;
+}
+
+/* Ang */
+.waypoint-list-header-options p:nth-child(7) {
+    left: 67px;
+}
+
+/* Spd */
+.waypoint-list-header-options p:nth-child(8) {
+    left: 81px;
+}
+
+/* Time */
+.waypoint-list-header-options p:nth-child(9) {
+    left: 95px;
+}
+
+/* Wind */
+.waypoint-list-header-options p:nth-child(10) {
+    left: 50px;
+}
+
+/* °C */
+.waypoint-list-header-options p:nth-child(11) {
+    left: 87px;
+}
+
+/* Dev */
+.waypoint-list-header-options p:nth-child(12) {
+    left: 140px;
+}
+
+/* Rem */
+.waypoint-list-header-options p:nth-child(13) {
+    left: 60px;
+}
+
+/* Gross */
+.waypoint-list-header-options p:nth-child(14) {
+    left: 130px;
+}

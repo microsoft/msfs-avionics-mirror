@@ -1,5 +1,6 @@
 export * from './GeoInterfaces';
 export * from './MagVar';
+export * from './GeoMath';
 export * from './GeoPoint';
 export * from './GeoCircle';
 export * from './GeoPointSubject';

@@ -19,14 +19,6 @@ export interface Subscribable<T> extends Accessible<T> {
   sub(handler: (value: T) => void, initialNotify?: boolean, paused?: boolean): Subscription;
 
   /**
-   * Unsubscribes a callback function from this subscribable.
-   * @param handler The function to unsubscribe.
-   * @deprecated This method has been deprecated in favor of using the {@link Subscription} object returned by `.sub()`
-   * to manage subscriptions.
-   */
-  unsub(handler: (value: T) => void): void;
-
-  /**
    * Maps this subscribable to a new subscribable.
    * @param fn The function to use to map to the new subscribable.
    * @param equalityFunc The function to use to check for equality between mapped values. Defaults to the strict

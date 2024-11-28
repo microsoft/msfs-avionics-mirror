@@ -1,0 +1,29 @@
+.selected-vertical-speed-bug-container {
+  position: absolute;
+  top: calc((100% - 222px) / 2);
+  left: 5px;
+  width: 14px;
+  height: 222px;
+  overflow: hidden;
+}
+
+.selected-vertical-speed-bug {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 100%;
+}
+
+.selected-vertical-speed-bug svg {
+  position: absolute;
+  top: -10px;
+  left: 0;
+
+  stroke: var(--epic2-color-magenta);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  fill: var(--epic2-color-magenta);
+  fill-opacity: 0.4;
+}

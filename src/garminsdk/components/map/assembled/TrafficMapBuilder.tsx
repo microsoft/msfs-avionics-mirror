@@ -1,30 +1,39 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
-  AdsbOperatingMode, FlightPlanner, FSComponent, MapDataIntegrityModule, MapOwnAirplaneIconModule, MapOwnAirplaneIconOrientation, MapOwnAirplanePropsModule,
-  MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys, MapTrafficIntruderIconFactory, MutableSubscribable, NumberUnitInterface,
-  ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, SubscribableUtils, Subscription, TcasOperatingMode, UnitFamily, UserSettingManager, VNode
+  AdsbOperatingMode, FacilityLoader, FacilityRepository, FlightPlanner, FSComponent, MapDataIntegrityModule,
+  MapOwnAirplaneIconModule, MapOwnAirplaneIconOrientation, MapOwnAirplanePropsModule, MapSystemBuilder,
+  MapSystemContext, MapSystemGenericController, MapSystemKeys, MapTrafficIntruderIconFactory, MutableSubscribable,
+  NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable,
+  SubscribableUtils, Subscription, TcasOperatingMode, UnitFamily, UserSettingManager, VNode
 } from '@microsoft/msfs-sdk';
 
 import { WaypointIconImageCache } from '../../../graphics/img/WaypointIconImageCache';
+import { GarminFacilityWaypointCache } from '../../../navigation/GarminFacilityWaypointCache';
 import { TrafficUserSettingTypes } from '../../../settings/TrafficUserSettings';
 import { UnitsUserSettingManager } from '../../../settings/UnitsUserSettings';
 import { TrafficSystem } from '../../../traffic/TrafficSystem';
 import { TrafficSystemType } from '../../../traffic/TrafficSystemType';
 import { TrafficMapRangeControllerSettings } from '../controllers';
-import { DefaultFlightPathPlanRenderer, MapFlightPathPlanRenderer } from '../flightplan';
+import {
+  DefaultFlightPathPlanRenderer, MapDefaultFlightPlanWaypointRecordManager, MapFlightPathPlanRenderer,
+  MapFlightPlanWaypointRecordManager
+} from '../flightplan';
 import { GarminMapBuilder, TrafficIconOptions, TrafficRangeRingOptions } from '../GarminMapBuilder';
 import { GarminMapKeys } from '../GarminMapKeys';
 import {
-  MapOrientationIndicator, TrafficMapAdsbModeIndicator, TrafficMapAdsbOffBannerIndicator, TrafficMapAltitudeModeIndicator, TrafficMapFailedBannerIndicator,
-  TrafficMapOperatingModeIndicator, TrafficMapStandbyBannerIndicator
+  MapOrientationIndicator, TrafficMapAdsbModeIndicator, TrafficMapAdsbOffBannerIndicator,
+  TrafficMapAltitudeModeIndicator, TrafficMapFailedBannerIndicator, TrafficMapOperatingModeIndicator,
+  TrafficMapStandbyBannerIndicator
 } from '../indicators';
 import { MapMiniCompassLayer } from '../layers';
 import { MapTrafficOffScaleStatus } from '../MapTrafficOffScaleStatus';
 import { MapUtils } from '../MapUtils';
 import { MapWaypointDisplayBuilder } from '../MapWaypointDisplayBuilder';
+import { MapWaypointRenderer, MapWaypointRenderRole } from '../MapWaypointRenderer';
 import { NextGenMapWaypointStyles } from '../MapWaypointStyles';
 import {
-  MapGarminDataIntegrityModule, MapGarminTrafficModule, MapOrientation, MapOrientationModule, MapTrafficAlertLevelMode, MapTrafficAltitudeRestrictionMode, MapUnitsModule
+  MapGarminDataIntegrityModule, MapGarminTrafficModule, MapOrientation, MapOrientationModule, MapTrafficAlertLevelMode,
+  MapTrafficAltitudeRestrictionMode, MapUnitsModule
 } from '../modules';
 
 /**
@@ -110,8 +119,22 @@ export type TrafficMapOptions = {
   /** The index of the VNAV from which to source data. Defaults to `0`. */
   vnavIndex?: number | Subscribable<number>;
 
-  /** The flight path renderer to use to render the active plan. Required to display the active flight plan. */
-  flightPathRenderer?: MapFlightPathPlanRenderer;
+  /**
+   * A function that creates a flight plan waypoint record manager to use to manage the waypoints to draw for the
+   * flight plan. Required to display the active flight plan.
+   * @param context The map system context.
+   * @param waypointRenderer The waypoint renderer used to draw the flight plan waypoints.
+   * @returns A flight plan waypoint record manager to use to manage the waypoints to draw for the flight plan.
+   */
+  flightPlanWaypointRecordManagerFactory?: (context: MapSystemContext<any, any, any, any>, waypointRenderer: MapWaypointRenderer) => MapFlightPlanWaypointRecordManager;
+
+  /**
+   * A function that creates a flight path renderer to use to draw the flight plan. Required to display the active
+   * flight plan.
+   * @param context The map system context.
+   * @returns A flight path renderer to use to draw the flight plan.
+   */
+  flightPathRendererFactory?: (context: MapSystemContext<any, any, any, any>) => MapFlightPathPlanRenderer;
 
   /** A function which configures the display of flight plan waypoints. Required to display the active flight plan. */
   configureFlightPlan?: (builder: MapWaypointDisplayBuilder) => void;
@@ -200,8 +223,9 @@ export type NextGenTrafficMapIconOptions
 export type NextGenTrafficMapOptions
   = Omit<
     TrafficMapOptions,
-    'nauticalRangeArray' | 'metricRangeArray' | 'trafficIconOptions' | 'includeRangeRings' | 'flightPathRenderer'
-    | 'configureFlightPlan' | 'orientation' | 'orientationText' | 'operatingModeText' | 'adsbModeText' | 'altitudeModeText' | 'standbyText'
+    'nauticalRangeArray' | 'metricRangeArray' | 'trafficIconOptions' | 'includeRangeRings'
+    | 'flightPlanWaypointRecordManagerFactory' | 'flightPathRendererFactory' | 'configureFlightPlan'
+    | 'orientation' | 'orientationText' | 'operatingModeText' | 'adsbModeText' | 'altitudeModeText' | 'standbyText'
   > & {
     /** Configuration options for traffic icons. */
     trafficIconOptions: NextGenTrafficMapIconOptions;
@@ -303,16 +327,22 @@ export class TrafficMapBuilder {
         });
       });
 
-    if (options.flightPlanner !== undefined && options.flightPathRenderer !== undefined && options.configureFlightPlan !== undefined) {
+    if (
+      options.flightPlanner !== undefined
+      && options.flightPlanWaypointRecordManagerFactory !== undefined
+      && options.flightPathRendererFactory !== undefined
+      && options.configureFlightPlan !== undefined
+    ) {
       mapBuilder.with(
         GarminMapBuilder.activeFlightPlan,
         options.flightPlanner,
-        options.flightPathRenderer,
-        false,
         options.configureFlightPlan,
         {
           lnavIndex: options.lnavIndex,
           vnavIndex: options.vnavIndex,
+          drawEntirePlan: false,
+          waypointRecordManagerFactory: options.flightPlanWaypointRecordManagerFactory,
+          pathRendererFactory: options.flightPathRendererFactory,
           supportFocus: false
         }
       );
@@ -671,7 +701,17 @@ export class TrafficMapBuilder {
     };
 
     if (options.flightPlanner !== undefined) {
-      optionsToUse.flightPathRenderer = new DefaultFlightPathPlanRenderer();
+      optionsToUse.flightPlanWaypointRecordManagerFactory = (context, renderer) => {
+        return new MapDefaultFlightPlanWaypointRecordManager(
+          new FacilityLoader(FacilityRepository.getRepository(context.bus)),
+          GarminFacilityWaypointCache.getCache(context.bus),
+          renderer,
+          MapWaypointRenderRole.FlightPlanInactive,
+          MapWaypointRenderRole.FlightPlanActive
+        );
+      };
+
+      optionsToUse.flightPathRendererFactory = () => new DefaultFlightPathPlanRenderer();
 
       optionsToUse.configureFlightPlan = (builder): void => {
         builder

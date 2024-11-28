@@ -1,8 +1,8 @@
 import { EventBus } from '@microsoft/msfs-sdk';
 
 import { AbstractTerrainSystem } from './AbstractTerrainSystem';
+import { GarminTawsAlert, GarminTawsInhibit, GarminTawsStatus } from './GarminTawsTypes';
 import { TerrainSystemDataProvider } from './TerrainSystemDataProvider';
-import { GarminTawsAlert, GarminTawsStatus } from './GarminTawsTypes';
 import { TerrainSystemOperatingMode } from './TerrainSystemTypes';
 
 /**
@@ -76,6 +76,19 @@ export class GarminTaws<ID extends string> extends AbstractTerrainSystem<ID> {
 
     this.operatingMode.set(TerrainSystemOperatingMode.Test);
     this.testTimeRemaining = this.testDuration;
+  }
+
+  /** @inheritDoc */
+  protected untriggerAlert(alert: string): void {
+    super.untriggerAlert(alert);
+
+    // Remove GS/GP inhibits if the corresponding alert was untriggered.
+    if (alert === GarminTawsAlert.GsdGlideslopeCaution) {
+      this.removeInhibit(GarminTawsInhibit.GsdGlideslope);
+    }
+    if (alert === GarminTawsAlert.GsdGlidepathCaution) {
+      this.removeInhibit(GarminTawsInhibit.GsdGlidepath);
+    }
   }
 
   /** @inheritDoc */

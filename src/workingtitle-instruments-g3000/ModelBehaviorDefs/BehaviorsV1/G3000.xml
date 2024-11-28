@@ -1,0 +1,9 @@
+<ModelBehaviors>
+	<Include RelativeFile="Autopilot.xml"/>
+	<Include RelativeFile="Common.xml"/>
+	<Include RelativeFile="Controls.xml"/>
+	<Include RelativeFile="ESP.xml"/>
+	<Include RelativeFile="GDU.xml"/>
+	<Include RelativeFile="GTC.xml"/>
+	<Include RelativeFile="Inputs.xml"/>
+</ModelBehaviors>

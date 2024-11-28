@@ -6,7 +6,7 @@ import { TerrainSystemEvents } from './TerrainSystemEvents';
 import { TerrainSystemUtils } from './TerrainSystemUtils';
 
 /**
- * A default implementation of `TerrainSystemStateDataProvider`.
+ * A default implementation of {@link TerrainSystemStateDataProvider}.
  */
 export class DefaultTerrainSystemStateDataProvider implements TerrainSystemStateDataProvider {
 
@@ -21,17 +21,27 @@ export class DefaultTerrainSystemStateDataProvider implements TerrainSystemState
   private readonly statusFlagsSource = ConsumerValue.create<readonly string[]>(null, []);
   private readonly _statusFlags = SetSubject.create<string>();
   /** @inheritDoc */
-  public readonly statusFlags = this._statusFlags as SubscribableSet<string>;
+  public readonly statusFlags = this._statusFlags as SubscribableSet<string> & Subscribable<ReadonlySet<string>>;
 
   private readonly inhibitFlagsSource = ConsumerValue.create<readonly string[]>(null, []);
   private readonly _inhibitFlags = SetSubject.create<string>();
   /** @inheritDoc */
-  public readonly inhibitFlags = this._inhibitFlags as SubscribableSet<string>;
+  public readonly inhibitFlags = this._inhibitFlags as SubscribableSet<string> & Subscribable<ReadonlySet<string>>;
+
+  private readonly triggeredAlertsSource = ConsumerValue.create<readonly string[]>(null, []);
+  private readonly _triggeredAlerts = SetSubject.create<string>();
+  /** @inheritDoc */
+  public readonly triggeredAlerts = this._triggeredAlerts as SubscribableSet<string> & Subscribable<ReadonlySet<string>>;
+
+  private readonly inhibitedAlertsSource = ConsumerValue.create<readonly string[]>(null, []);
+  private readonly _inhibitedAlerts = SetSubject.create<string>();
+  /** @inheritDoc */
+  public readonly inhibitedAlerts = this._inhibitedAlerts as SubscribableSet<string> & Subscribable<ReadonlySet<string>>;
 
   private readonly activeAlertsSource = ConsumerValue.create<readonly string[]>(null, []);
   private readonly _activeAlerts = SetSubject.create<string>();
   /** @inheritDoc */
-  public readonly activeAlerts = this._activeAlerts as SubscribableSet<string>;
+  public readonly activeAlerts = this._activeAlerts as SubscribableSet<string> & Subscribable<ReadonlySet<string>>;
 
   private readonly _prioritizedAlert = ConsumerSubject.create<string | null>(null, null).pause();
   /** @inheritDoc */
@@ -92,6 +102,8 @@ export class DefaultTerrainSystemStateDataProvider implements TerrainSystemState
 
     this.statusFlagsSource.setConsumer(TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_status_flags'));
     this.inhibitFlagsSource.setConsumer(TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_inhibit_flags'));
+    this.triggeredAlertsSource.setConsumer(TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_triggered_alerts'));
+    this.inhibitedAlertsSource.setConsumer(TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_inhibited_alerts'));
     this.activeAlertsSource.setConsumer(TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_active_alerts'));
 
     this._prioritizedAlert.setConsumer(TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_prioritized_alert'));
@@ -108,6 +120,10 @@ export class DefaultTerrainSystemStateDataProvider implements TerrainSystemState
       TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_status_removed').handle(removeFromSet.bind(this, this._statusFlags)),
       TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_inhibit_added').handle(addToSet.bind(this, this._inhibitFlags)),
       TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_inhibit_removed').handle(removeFromSet.bind(this, this._inhibitFlags)),
+      TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_alert_triggered').handle(addToSet.bind(this, this._triggeredAlerts)),
+      TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_alert_untriggered').handle(removeFromSet.bind(this, this._triggeredAlerts)),
+      TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_alert_inhibited').handle(addToSet.bind(this, this._inhibitedAlerts)),
+      TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_alert_uninhibited').handle(removeFromSet.bind(this, this._inhibitedAlerts)),
       TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_alert_activated').handle(addToSet.bind(this, this._activeAlerts)),
       TerrainSystemUtils.onEvent(this.id, sub, 'terrainsys_alert_deactivated').handle(removeFromSet.bind(this, this._activeAlerts))
     ];
@@ -138,6 +154,8 @@ export class DefaultTerrainSystemStateDataProvider implements TerrainSystemState
 
     this._statusFlags.set(this.statusFlagsSource.get());
     this._inhibitFlags.set(this.inhibitFlagsSource.get());
+    this._triggeredAlerts.set(this.triggeredAlertsSource.get());
+    this._inhibitedAlerts.set(this.inhibitedAlertsSource.get());
     this._activeAlerts.set(this.activeAlertsSource.get());
 
     for (const pauseable of this.pauseable) {

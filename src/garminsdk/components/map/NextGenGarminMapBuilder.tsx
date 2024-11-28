@@ -3,7 +3,7 @@
 import { MapSystemBuilder, MapSystemContext, MapSystemKeys, Subject, UserSettingManager } from '@microsoft/msfs-sdk';
 
 import { MapSymbolVisController, MapSymbolVisControllerModules, MapWaypointVisUserSettings } from './controllers';
-import { GarminMapBuilder } from './GarminMapBuilder';
+import { GarminMapBuilder, GarminMapBuilderWaypointsLayerOptions } from './GarminMapBuilder';
 import { GarminMapKeys } from './GarminMapKeys';
 import { MapWaypointDisplayBuilder } from './MapWaypointDisplayBuilder';
 import { MapDeclutterMode, MapWaypointsModule } from './modules';
@@ -45,9 +45,9 @@ export class NextGenGarminMapBuilder {
    * * `[GarminMapKeys.RunwayLabelVisibility]: MapSymbolVisController` (only if runway outlines are supported)
    * @param mapBuilder The map builder to configure.
    * @param configure A function used to configure the display and styling of waypoint icons and labels.
-   * @param supportRunwayOutlines Whether to support the rendering of airport runway outlines.
    * @param settingManager A setting manager containing the user settings controlling waypoint visibility. If not
    * defined, waypoint visibility will not be bound to user settings.
+   * @param options Options with which to configure the layer.
    * @param order The order to assign to the waypoint layer. Layers with lower assigned order will be attached to the
    * map before and appear below layers with greater assigned order values. Defaults to the number of layers already
    * added to the map builder.
@@ -56,14 +56,14 @@ export class NextGenGarminMapBuilder {
   public static waypoints<MapBuilder extends MapSystemBuilder>(
     mapBuilder: MapBuilder,
     configure: (builder: MapWaypointDisplayBuilder, context: MapSystemContext<any, any, any, any>) => void,
-    supportRunwayOutlines: boolean,
     settingManager?: UserSettingManager<Partial<MapWaypointVisUserSettings>>,
+    options?: Readonly<GarminMapBuilderWaypointsLayerOptions>,
     order?: number
   ): MapBuilder {
     mapBuilder
-      .with(GarminMapBuilder.waypoints, configure, supportRunwayOutlines, settingManager, order);
+      .with(GarminMapBuilder.waypoints, configure, settingManager, options, order);
 
-    if (supportRunwayOutlines && settingManager) {
+    if (options?.supportRunwayOutlines && settingManager) {
       const trueSubject = Subject.create(true);
       const maxSafeIntegerSubject = Subject.create(Number.MAX_SAFE_INTEGER);
 

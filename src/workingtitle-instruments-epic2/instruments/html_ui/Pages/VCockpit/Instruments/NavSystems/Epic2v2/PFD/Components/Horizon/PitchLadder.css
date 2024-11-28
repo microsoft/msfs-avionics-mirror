@@ -1,0 +1,37 @@
+.pitch-ladder {
+  font-size: 24px;
+  color: var(--epic2-color-white);
+}
+
+.pitch-ladder-line {
+  stroke: var(--epic2-color-white);
+  fill: none;
+  stroke-width: 1.5px;
+}
+
+.pitch-ladder-line-major {
+  stroke-width: 2.5px;
+}
+
+.pitch-ladder-line.shadow {
+  stroke-width: 2.5px;
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+}
+
+.pitch-ladder-line-major.shadow {
+  stroke-width: 3.5px;
+}
+
+.pitch-ladder-text {
+  paint-order: stroke;
+  fill: var(--epic2-color-white);
+  stroke: var(--epic2-color-black);
+  stroke-width: 1px;
+}
+
+.pitch-ladder-chevron {
+  fill: none;
+  stroke: var(--epic2-color-red);
+  stroke-width: 2px;
+}

@@ -1,0 +1,37 @@
+.vnav-altitude-readout {
+  position: absolute;
+  right: 170px;
+  top: 62px;
+  padding: 5px 1px 0;
+  width: 65px;
+  height: 28px;
+  overflow: hidden;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.vnav-altitude-readout.white {
+  color: var(--epic2-color-white);
+}
+
+.vnav-altitude-readout.cyan {
+  color: var(--epic2-color-cyan);
+}
+
+.vnav-altitude-readout.magenta {
+  color: var(--epic2-color-magenta);
+}
+
+.vnav-altitude-readout.amber {
+  color: var(--epic2-color-amber);
+}
+
+.vnav-readout-hundreds {
+  font-size: 24px;
+}
+
+.vnav-readout-tens {
+  font-size: 21px;
+  margin: 2px 2px 0;
+}

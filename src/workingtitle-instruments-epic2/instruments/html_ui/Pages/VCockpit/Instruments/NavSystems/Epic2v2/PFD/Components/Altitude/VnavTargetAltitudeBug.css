@@ -1,0 +1,38 @@
+.vnav-target-altitude-bug path {
+  stroke: var(--epic2-color-white);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: var(--epic2-color-white);
+  fill-opacity: 0.5;
+}
+
+.vnav-target-altitude-bug {
+  width: 24px;
+  height: 36px;
+  position: absolute;
+  top: -18px;
+  left: 0
+}
+
+.vnav-target-altitude-bug.magenta path {
+  stroke: var(--epic2-color-magenta);
+  fill: var(--epic2-color-magenta);
+}
+
+.vnav-target-altitude-bug.cyan path {
+  stroke: var(--epic2-color-cyan);
+  fill: var(--epic2-color-cyan);
+}
+
+.vnav-target-altitude-bug.amber path {
+  stroke: var(--epic2-color-amber);
+  fill: var(--epic2-color-amber);
+}
+
+.vnav-target-altitude-bug path.shadow {
+  stroke-width: 3px;
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+  fill: none;
+}

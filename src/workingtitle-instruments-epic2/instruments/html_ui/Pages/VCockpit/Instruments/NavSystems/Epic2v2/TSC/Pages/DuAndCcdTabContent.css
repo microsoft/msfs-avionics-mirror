@@ -1,0 +1,75 @@
+.du-ccd-page-button {
+  width: 100px;
+  height: 80px;
+  font-size: 28px;
+}
+
+.tsc-du-ccd-tab-content {
+  padding-top: 4px;
+  padding-left: 10px;
+}
+
+.tsc-du-ccd-tab-content .display-buttons {
+  display: flex;
+  flex-direction: row;
+}
+
+.tsc-du-ccd-tab-content .display-buttons .page-button {
+  position: absolute;
+  right: 2px;
+}
+
+.tsc-du-ccd-tab-content .display-buttons .page-button .touch-button-label {
+  text-align: center;
+  padding-left: 0px;
+}
+
+.tsc-du-ccd-tab-content .display-buttons .display-button {
+  height: 90px;
+  width: 112px;
+  font-size: 22px;
+  background-color: var(--epic2-color-darker-grey);
+  color: var(--epic2-color-white);
+  border: 2px solid var(--epic2-color-light-grey);
+  margin: 4px 5px 10px;
+}
+
+.tsc-du-ccd-tab-content .display-buttons .touch-button-label {
+  text-align: left;
+  padding-left: 10px;
+  font-family: sans-serif;
+}
+
+.tsc-du-ccd-tab-content .display-buttons .touch-button .radio {
+  height: 15px;
+  width: 15px;
+  background-color: var(--epic2-color-darker-grey);
+  position: absolute;
+  right: 5px;
+  top: 37.5px;
+  border: 2px solid var(--epic2-color-light-grey);
+  border-radius: 10px;
+}
+
+.tsc-du-ccd-tab-content .display-buttons.pilot-pfd .pilot-pfd-button,
+.tsc-du-ccd-tab-content .display-buttons.copilot-pfd .copilot-pfd-button,
+.tsc-du-ccd-tab-content .display-buttons.upper-mfd .upper-mfd-button,
+.tsc-du-ccd-tab-content .display-buttons.lower-mfd .lower-mfd-button {
+  background-color: var(--epic2-color-black);
+  border: 2px solid var(--epic2-color-green);
+  color: var(--epic2-color-green);
+}
+
+.tsc-du-ccd-tab-content .display-buttons.pilot-pfd .pilot-pfd-button .radio ,
+.tsc-du-ccd-tab-content .display-buttons.copilot-pfd .copilot-pfd-button .radio ,
+.tsc-du-ccd-tab-content .display-buttons.upper-mfd .upper-mfd-button .radio ,
+.tsc-du-ccd-tab-content .display-buttons.lower-mfd .lower-mfd-button .radio {
+  background-color: var(--epic2-color-green);
+  border: 2px solid var(--epic2-color-dark-grey);
+}
+
+.tsc-du-ccd-tab-content .touch-button-primed .radio {
+  background-color: var(--epic2-color-cyan) !important;
+  border: 2px solid var(--epic2-color-white) !important;
+}
+

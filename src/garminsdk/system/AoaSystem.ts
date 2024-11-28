@@ -1,6 +1,6 @@
 import {
   AdcEvents, AvionicsSystemState, AvionicsSystemStateEvent, BaseAdcEvents, BasicAvionicsSystem, EventBus,
-  EventBusMetaEvents, Subscription, SystemPowerKey
+  EventBusMetaEvents, Subject, Subscribable, SubscribableUtils, Subscription, SystemPowerKey
 } from '@microsoft/msfs-sdk';
 
 /**
@@ -24,7 +24,27 @@ type AoaDataEvents = {
 export interface AoaSystemEvents extends AoaDataEvents {
   /** An event fired when the AoA system state changes. */
   [aoa_state: `aoa_state_${number}`]: AvionicsSystemStateEvent;
+
+  /** An event fired when the data state of an AoA system changes. */
+  [aoa_data_valid: `aoa_data_valid_${number}`]: boolean;
 }
+
+/**
+ * Configuration options for {@link AoaSystem}.
+ */
+export type AoaSystemOptions = {
+  /**
+   * The airplane's critical (stall) angle of attack, in degrees. If not defined, then the system will use the value
+   * reported by the sim.
+   */
+  stallAoa?: number | Subscribable<number>;
+
+  /**
+   * The airplane's zero-lift angle of attack, in degrees. If not defined, then the system will use the value reported
+   * by the sim.
+   */
+  zeroLiftAoa?: number | Subscribable<number>;
+};
 
 /**
  * A Garmin angle of attack computer system.
@@ -36,6 +56,9 @@ export class AoaSystem extends BasicAvionicsSystem<AoaSystemEvents> {
 
   private readonly dataSubs: Subscription[] = [];
 
+  private readonly customStallAoa?: Subscribable<number>;
+  private readonly customZeroLiftAoa?: Subscribable<number>;
+
   private aoa?: number;
   private stallAoa?: number;
   private zeroLiftAoa?: number;
@@ -44,25 +67,37 @@ export class AoaSystem extends BasicAvionicsSystem<AoaSystemEvents> {
   private isStallAoaSubbed = false;
   private isZeroLiftAoaSubbed = false;
 
+  private isDataValid = true;
+
+  private readonly aoaDataValidTopic = `aoa_data_valid_${this.index}` as const;
   private readonly normAoaTopic = `aoa_norm_aoa_${this.index}` as const;
 
   /**
    * Creates an instance of an angle of attack computer system.
    * @param index The index of the AoA computer.
    * @param bus An instance of the event bus.
-   * @param powerSource The {@link ElectricalEvents} topic or electricity logic element to which to connect the
-   * system's power.
+   * @param powerSource The source from which to retrieve the system's power state. Can be an event bus topic defined
+   * in {@link ElectricalEvents} with boolean-valued data, an XML logic element that evaluates to zero (false) or
+   * non-zero (true) values, or a boolean-valued subscribable. If not defined, then the system will be considered
+   * always powered on.
+   * @param options Options with which to configure the system.
    */
-  constructor(
+  public constructor(
     index: number,
     bus: EventBus,
-    powerSource?: SystemPowerKey | CompositeLogicXMLElement,
+    powerSource?: SystemPowerKey | CompositeLogicXMLElement | Subscribable<boolean>,
+    options?: Readonly<AoaSystemOptions>
   ) {
     super(index, bus, `aoa_state_${index}` as const);
 
-    if (powerSource !== undefined) {
-      this.connectToPower(powerSource);
+    if (options) {
+      this.customStallAoa = options.stallAoa ? SubscribableUtils.toSubscribable(options.stallAoa, true) : undefined;
+      this.customZeroLiftAoa = options.zeroLiftAoa ? SubscribableUtils.toSubscribable(options.zeroLiftAoa, true) : undefined;
     }
+
+    this.publisher.pub(this.aoaDataValidTopic, this.isDataValid, false, true);
+
+    this.connectToPower(powerSource ?? Subject.create(true));
 
     this.startDataPublish();
   }
@@ -96,7 +131,7 @@ export class AoaSystem extends BasicAvionicsSystem<AoaSystemEvents> {
    * @param topic The topic that was subscribed to.
    */
   private onTopicSubscribed(topic: keyof AoaDataEvents): void {
-    const paused = this.state === AvionicsSystemState.Failed || this.state === AvionicsSystemState.Off;
+    const paused = this._state !== AvionicsSystemState.On;
 
     let shouldSubAoa = false;
     let shouldSubStallAoa = false;
@@ -132,42 +167,66 @@ export class AoaSystem extends BasicAvionicsSystem<AoaSystemEvents> {
       this.isStallAoaSubbed = true;
 
       const pubTopic = `aoa_stall_aoa_${this.index}` as const;
-      this.dataSubs.push(this.dataSourceSubscriber.on('stall_aoa').handle(val => {
+      const handler = (val: number): void => {
+        if (!isFinite(val)) {
+          val = 0;
+        }
+
         this.stallAoa = val;
         this.publisher.pub(pubTopic, val, false, true);
-      }, paused));
+      };
+
+      this.dataSubs.push(
+        this.customStallAoa?.sub(handler, true, paused)
+        ?? this.dataSourceSubscriber.on('stall_aoa').handle(handler, paused)
+      );
     }
     if (shouldSubZeroLiftAoa && !this.isZeroLiftAoaSubbed) {
       this.isZeroLiftAoaSubbed = true;
 
       const pubTopic = `aoa_zero_lift_aoa_${this.index}` as const;
-      this.dataSubs.push(this.dataSourceSubscriber.on('zero_lift_aoa').handle(val => {
+      const handler = (val: number): void => {
+        if (!isFinite(val)) {
+          val = 0;
+        }
+
         this.zeroLiftAoa = val;
         this.publisher.pub(pubTopic, val, false, true);
-      }, paused));
+      };
+
+      this.dataSubs.push(
+        this.customZeroLiftAoa?.sub(handler, true, paused)
+        ?? this.dataSourceSubscriber.on('zero_lift_aoa').handle(handler, paused)
+      );
     }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   protected onStateChanged(previousState: AvionicsSystemState | undefined, currentState: AvionicsSystemState): void {
-    if (currentState === AvionicsSystemState.Failed || currentState === AvionicsSystemState.Off) {
-      for (const sub of this.dataSubs) {
-        sub.pause();
-      }
-    } else {
+    const isDataValid = currentState === AvionicsSystemState.On;
+
+    if (isDataValid) {
       for (const sub of this.dataSubs) {
         sub.resume(true);
       }
+    } else {
+      for (const sub of this.dataSubs) {
+        sub.pause();
+      }
+    }
+
+    if (isDataValid !== this.isDataValid) {
+      this.isDataValid = isDataValid;
+      this.publisher.pub(this.aoaDataValidTopic, this.isDataValid, false, true);
     }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onUpdate(): void {
     super.onUpdate();
 
     if (
-      this._state === AvionicsSystemState.Failed
-      || this._state === AvionicsSystemState.Off
+      this._state !== AvionicsSystemState.On
       || this.aoa === undefined
       || this.stallAoa === undefined
       || this.zeroLiftAoa === undefined
@@ -175,6 +234,8 @@ export class AoaSystem extends BasicAvionicsSystem<AoaSystemEvents> {
       return;
     }
 
-    this.publisher.pub(this.normAoaTopic, (this.aoa - this.zeroLiftAoa) / (this.stallAoa - this.zeroLiftAoa), false, true);
+    const normAoa = (this.aoa - this.zeroLiftAoa) / (this.stallAoa - this.zeroLiftAoa);
+
+    this.publisher.pub(this.normAoaTopic, isFinite(normAoa) ? normAoa : 0, false, true);
   }
 }

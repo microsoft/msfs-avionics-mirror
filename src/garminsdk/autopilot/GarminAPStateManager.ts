@@ -1,5 +1,5 @@
 import {
-  APLateralModes, APModeType, APStateManager, APVerticalModes, ControlEvents, HEvent, KeyEventData, KeyEventManager, SimVarValueType
+  APLateralModes, APModeType, APStateManager, APVerticalModes, HEvent, KeyEventData, KeyEventManager, SimVarValueType
 } from '@microsoft/msfs-sdk';
 
 /**
@@ -7,9 +7,8 @@ import {
  */
 export class GarminAPStateManager extends APStateManager {
   private vsLastPressed = 0;
-  private controlEventPub = this.bus.getPublisher<ControlEvents>();
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   protected onAPListenerRegistered(): void {
     super.onAPListenerRegistered();
 
@@ -21,7 +20,7 @@ export class GarminAPStateManager extends APStateManager {
     });
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   protected setupKeyIntercepts(manager: KeyEventManager): void {
     //alt modes
     manager.interceptKey('AP_ALT_HOLD', false);
@@ -105,7 +104,7 @@ export class GarminAPStateManager extends APStateManager {
     manager.interceptKey('AUTO_THROTTLE_TO_GA', false);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   protected handleKeyIntercepted({ key, value0 }: KeyEventData): void {
     switch (key) {
       case 'AP_NAV1_HOLD':
@@ -240,8 +239,14 @@ export class GarminAPStateManager extends APStateManager {
     }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   protected onBeforeInitialize(): void {
     SimVar.SetSimVarValue('L:WT1000_AP_G1000_INSTALLED', SimVarValueType.Bool, true);
+  }
+
+  /** @inheritDoc */
+  protected initFlightDirector(): void {
+    // We want to initialize the flight director state to the sim's internal flight director state, so we will do
+    // nothing here.
   }
 }

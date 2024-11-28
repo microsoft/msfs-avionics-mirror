@@ -1,0 +1,19 @@
+.flight-path-acceleration-chevron {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 22px;
+
+  fill: none;
+  stroke: var(--epic2-color-green);
+  stroke-width: 5;
+  stroke-linejoin: round;
+  stroke-linecap: butt;
+}
+
+.flight-path-acceleration-chevron .shadow {
+  stroke: var(--epic2-color-black);
+  stroke-width: 6;
+  stroke-opacity: 0.5;
+}

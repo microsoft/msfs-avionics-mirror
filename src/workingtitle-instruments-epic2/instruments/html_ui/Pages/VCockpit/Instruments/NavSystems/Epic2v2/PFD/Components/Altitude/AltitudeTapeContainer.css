@@ -1,0 +1,39 @@
+.altitude-tape-container {
+  position: absolute;
+  left: 515px;
+  top: 34px;
+  width: 103px;
+  height: 362px;
+}
+
+.altitude-failed-overlay {
+  stroke: var(--epic2-color-red);
+  stroke-width: 3px;
+  fill: none;
+
+  position: absolute;
+  top: 0;
+  left: 12px;
+}
+
+.altitude-miscompare-flag {
+  background: var(--epic2-color-amber);
+  color: var(--epic2-color-black);
+  font-size: 24px;
+  -webkit-text-stroke: none;
+  overflow-wrap: anywhere;
+  width: 21px;
+  padding: 3px 0 0 5px;
+}
+
+.altitude-miscompare-flag-alt {
+  position: absolute;
+  right: 4px;
+  top: 40px;
+}
+
+.altitude-miscompare-flag-baro {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+}

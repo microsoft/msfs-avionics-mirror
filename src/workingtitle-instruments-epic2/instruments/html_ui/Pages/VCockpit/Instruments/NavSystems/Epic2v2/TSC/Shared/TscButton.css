@@ -1,0 +1,51 @@
+.keyboard-alpha-key {
+  height: 58px;
+  width: 74px;
+  font-size: 52px;
+  line-height: 52px;
+  background-color: var(--epic2-color-darker-grey);
+  color: var(--epic2-color-white);
+  border: 2px solid var(--epic2-color-light-grey);
+  margin: 0px 3px 0px 0px;
+}
+
+.keyboard-numpad-key {
+  width: 68px;
+  height: 68px;
+  border-radius: 34px;
+  background-color: var(--epic2-color-darker-grey);
+  border: 2px solid var(--epic2-color-light-grey);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 56px;
+  line-height: 68px;
+  color: var(--epic2-color-white);
+  text-decoration: none;
+  cursor: pointer;
+  margin: 5px 22px 12px 5px;
+  padding: 0;
+}
+
+.keyboard-row .touch-button-label {
+  margin-top: 6px;
+}
+
+.keyboard-row .touch-button-base {
+  border: 2px solid var(--epic2-color-light-grey)
+}
+
+.keyboard-row .touch-button-base.touch-button-primed {
+  border: 2px solid var(--epic2-color-cyan);
+}
+
+.keyboard-row .touch-button-active,
+.keyboard-row .touch-button-base:active,
+.keyboard-row .touch-button-primed {
+  background-color: var(--epic2-color-darker-grey) !important;
+}
+
+.touch-button-base.touch-button-active::after,
+.touch-button-base:hover::after {
+  border: 2px solid transparent !important;
+}

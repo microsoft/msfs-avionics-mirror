@@ -1,0 +1,44 @@
+epic2-lower-mfd {
+  font-size: 60px;
+}
+
+epic2-lower-mfd,
+epic2-lower-mfd #Mainframe,
+epic2-lower-mfd #Electricity {
+  width: 100%;
+  height: 100%;
+}
+
+epic2-lower-mfd #Electricity #Powered {
+  display: flex;
+  flex-direction: row;
+}
+
+epic2-lower-mfd #OneThirdSection {
+  display: flex;
+  flex-direction: column;
+  height: 768px;
+  width: 341px;
+  overflow: hidden;
+}
+
+epic2-lower-mfd #TopOneSixthSection {
+  overflow: hidden;
+}
+
+epic2-lower-mfd #BottomOneSixthSection {
+  height: 50%;
+
+  /* temp hax */
+  background: var(--epic2-color-black);
+}
+
+epic2-lower-mfd #TwoThirdSection {
+  display: flex;
+  flex-direction: column;
+  height: 768px;
+  width: 683px;
+  overflow: hidden;
+  /* temp hax */
+  background: var(--epic2-color-black);
+}

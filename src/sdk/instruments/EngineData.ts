@@ -1,11 +1,8 @@
-/// <reference types="@microsoft/msfs-types/js/simvar" />
-
-import { EventBus, IndexedEvents, IndexedEventType } from '../data/EventBus';
+import { EventBus, EventBusMetaEvents, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { SimVarValueType } from '../data/SimVars';
 import { UnitType } from '../math/NumberUnit';
-import { NumberToRangeUnion } from '../utils';
-import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
+import { BasePublisher, SimVarPublisher } from './BasePublishers';
 
 /** The type of engine (see `ENGINE TYPE` simvar). */
 export enum EngineType {
@@ -18,9 +15,9 @@ export enum EngineType {
 }
 
 /**
- * An interface that describes the possible Engine Parameter events (non-indexed).
+ * Non-indexed events related to engine information, keyed by base topic.
  */
-interface BaseEngineEvents {
+interface BaseNonIndexedEngineEvents {
   /** A pressure value for vacuum system */
   vac: number;
   /** Total fuel flow rate, in gallons per hour. */
@@ -65,16 +62,14 @@ interface BaseEngineEvents {
   apu_pct_starter: number;
   /** The APU switch state */
   apu_switch: boolean;
-  /** Whether the engine starter is active. */
-  eng_starter_active: boolean;
   /** The minimum throttle value, from 0 to -1. */
   throttle_lower_limit: number;
 }
 
 /**
- * Topics indexed by engine.
+ * Engine-indexed events related to engine information, keyed by base topic.
  */
-interface EngineIndexedTopics {
+interface BaseEngineIndexedEngineEvents {
   /** Engine RPM. */
   rpm: number;
   /** Propeller RPM. */
@@ -129,36 +124,50 @@ interface EngineIndexedTopics {
   cylinder_head_temp_avg: number;
   /** The average engine turbine inlet temp (for all turbines). */
   recip_turbine_inlet_temp_avg: number;
+  /** The engine turbine inlet temperature, in degrees Celsius. */
+  turbine_inlet_temp: number;
+  /** Thrust produced in pounds, only applicable to jet engines */
+  jet_net_thrust: number;
+  /** Whether the engine is on fire. */
+  eng_fire: boolean;
+  /** Whether the engine starter is active. */
+  eng_starter_active: boolean;
 }
 
-/** Indexed topics. */
-type IndexedTopics = 'eng_starter_active';
-
-
-/** Indexed events. */
-type EngineIndexedEvents = {
-  [P in keyof Pick<BaseEngineEvents, IndexedTopics> as IndexedEventType<P>]: BaseEngineEvents[P];
+/**
+ * Indexed events related to engine information.
+ */
+type IndexedEngineEvents = {
+  [P in keyof BaseEngineIndexedEngineEvents as IndexedEventType<P>]: BaseEngineIndexedEngineEvents[P];
 };
 
-/** Events related to the planes engines. */
-export type EngineEvents<E extends number = number> = BaseEngineEvents & IndexedEvents<EngineIndexedTopics, NumberToRangeUnion<E>> & EngineIndexedEvents;
+/**
+ * Events related to engine information.
+ */
+export type EngineEvents = BaseNonIndexedEngineEvents & BaseEngineIndexedEngineEvents & IndexedEngineEvents;
 
 /** A publisher for Engine information. */
-export class EISPublisher extends SimVarPublisher<EngineEvents> {
+export class EISPublisher extends BasePublisher<EngineEvents> {
   private readonly engineCount: number;
+
+  private readonly simVarPublisher: SimVarPublisher<EngineEvents>;
+
+  private needPublishTotalFuelFlow = false;
+  private readonly totalFuelFlowSimVarIds: number[] = [];
 
   /**
    * Create an EISPublisher
    * @param bus The EventBus to publish to
    * @param pacer An optional pacer to use to control the rate of publishing
    */
-  public constructor(bus: EventBus, pacer: PublishPacer<EngineEvents> | undefined = undefined) {
+  public constructor(bus: EventBus, pacer?: PublishPacer<EngineEvents>) {
+    super(bus, pacer);
 
     const isUsingAdvancedFuelSystem = SimVar.GetSimVarValue('NEW FUEL SYSTEM', SimVarValueType.Bool) !== 0;
     const totalUnusableFuelGal = SimVar.GetSimVarValue('UNUSABLE FUEL TOTAL QUANTITY', SimVarValueType.GAL);
     const totalUnusableFuelLb = UnitType.GALLON_FUEL.convertTo(totalUnusableFuelGal, UnitType.POUND);
 
-    const nonIndexedSimVars: [keyof BaseEngineEvents, SimVarPublisherEntry<any>][] = [
+    this.simVarPublisher = new SimVarPublisher([
       ['vac', { name: 'SUCTION PRESSURE', type: SimVarValueType.InHG }],
       ['fuel_total', { name: 'FUEL TOTAL QUANTITY', type: SimVarValueType.GAL, map: isUsingAdvancedFuelSystem ? v => v + totalUnusableFuelGal : undefined }],
       ['fuel_total_weight', { name: 'FUEL TOTAL QUANTITY WEIGHT', type: SimVarValueType.Pounds, map: isUsingAdvancedFuelSystem ? v => v + totalUnusableFuelGal : undefined }],
@@ -180,77 +189,101 @@ export class EISPublisher extends SimVarPublisher<EngineEvents> {
       ['apu_pct', { name: 'APU PCT RPM', type: SimVarValueType.Percent }],
       ['apu_pct_starter', { name: 'APU PCT STARTER', type: SimVarValueType.Percent }],
       ['apu_switch', { name: 'APU SWITCH', type: SimVarValueType.Bool }],
-      ['eng_starter_active', { name: 'GENERAL ENG STARTER ACTIVE:#index#', type: SimVarValueType.Bool, indexed: true }],
       ['throttle_lower_limit', { name: 'THROTTLE LOWER LIMIT', type: SimVarValueType.Number }],
-    ];
 
-    const engineIndexedSimVars: [keyof EngineIndexedTopics, SimVarPublisherEntry<any>][] = [
-      ['rpm', { name: 'GENERAL ENG RPM', type: SimVarValueType.RPM }],
-      ['prop_rpm', { name: 'PROP RPM', type: SimVarValueType.RPM }],
-      ['n1', { name: 'TURB ENG CORRECTED N1', type: SimVarValueType.Percent }],
-      ['n1_uncorrected', { name: 'TURB ENG N1', type: SimVarValueType.Percent }],
-      ['n2', { name: 'TURB ENG CORRECTED N2', type: SimVarValueType.Percent }],
-      ['n2_uncorrected', { name: 'TURB ENG N2', type: SimVarValueType.Percent }],
-      ['torque', { name: 'TURB ENG MAX TORQUE PERCENT', type: SimVarValueType.Percent }],
-      ['fuel_flow', { name: 'ENG FUEL FLOW GPH', type: SimVarValueType.GPH }],
-      ['recip_ff', { name: 'RECIP ENG FUEL FLOW', type: SimVarValueType.PPH }],
-      ['oil_press', { name: 'ENG OIL PRESSURE', type: SimVarValueType.PSI }],
-      ['oil_temp', { name: 'ENG OIL TEMPERATURE', type: SimVarValueType.Farenheit }],
-      ['itt', { name: 'TURB ENG ITT', type: SimVarValueType.Celsius }],
-      ['egt', { name: 'ENG EXHAUST GAS TEMPERATURE', type: SimVarValueType.Farenheit }],
-      ['eng_hyd_press', { name: 'ENG HYDRAULIC PRESSURE', type: SimVarValueType.PSI }],
-      ['eng_starter_on', { name: 'GENERAL ENG STARTER', type: SimVarValueType.Bool }],
-      ['eng_combustion', { name: 'GENERAL ENG COMBUSTION', type: SimVarValueType.Bool }],
-      ['eng_ignition_switch_state', { name: 'TURB ENG IGNITION SWITCH EX1', type: SimVarValueType.Number }],
-      ['eng_igniting', { name: 'TURB ENG IS IGNITING', type: SimVarValueType.Bool }],
-      ['eng_fuel_pump_on', { name: 'GENERAL ENG FUEL PUMP ON', type: SimVarValueType.Bool }],
-      ['eng_fuel_pump_switch_state', { name: 'GENERAL ENG FUEL PUMP SWITCH EX1', type: SimVarValueType.Number }],
-      ['eng_vibration', { name: 'ENG VIBRATION', type: SimVarValueType.Number }],
-      ['fuel_flow_pph', { name: 'ENG FUEL FLOW PPH', type: SimVarValueType.PPH }],
-      ['torque_moment', { name: 'ENG TORQUE', type: SimVarValueType.FtLb }],
-      ['eng_manifold_pressure', { name: 'ENG MANIFOLD PRESSURE', type: SimVarValueType.PSI }],
-      ['reverse_thrust_engaged', { name: 'GENERAL ENG REVERSE THRUST ENGAGED', type: SimVarValueType.Bool }],
-      ['cylinder_head_temp_avg', { name: 'ENG CYLINDER HEAD TEMPERATURE', type: SimVarValueType.Farenheit }],
-      ['recip_turbine_inlet_temp_avg', { name: 'RECIP ENG TURBINE INLET TEMPERATURE', type: SimVarValueType.Farenheit }],
-    ];
+      ['rpm', { name: 'GENERAL ENG RPM:#index#', type: SimVarValueType.RPM, indexed: true }],
+      ['prop_rpm', { name: 'PROP RPM:#index#', type: SimVarValueType.RPM, indexed: true }],
+      ['n1', { name: 'TURB ENG CORRECTED N1:#index#', type: SimVarValueType.Percent, indexed: true }],
+      ['n1_uncorrected', { name: 'TURB ENG N1:#index#', type: SimVarValueType.Percent, indexed: true }],
+      ['n2', { name: 'TURB ENG CORRECTED N2:#index#', type: SimVarValueType.Percent, indexed: true }],
+      ['n2_uncorrected', { name: 'TURB ENG N2:#index#', type: SimVarValueType.Percent, indexed: true }],
+      ['torque', { name: 'TURB ENG MAX TORQUE PERCENT:#index#', type: SimVarValueType.Percent, indexed: true }],
+      ['fuel_flow', { name: 'ENG FUEL FLOW GPH:#index#', type: SimVarValueType.GPH, indexed: true }],
+      ['recip_ff', { name: 'RECIP ENG FUEL FLOW:#index#', type: SimVarValueType.PPH, indexed: true }],
+      ['oil_press', { name: 'ENG OIL PRESSURE:#index#', type: SimVarValueType.PSI, indexed: true }],
+      ['oil_temp', { name: 'ENG OIL TEMPERATURE:#index#', type: SimVarValueType.Farenheit, indexed: true }],
+      ['itt', { name: 'TURB ENG ITT:#index#', type: SimVarValueType.Celsius, indexed: true }],
+      ['egt', { name: 'ENG EXHAUST GAS TEMPERATURE:#index#', type: SimVarValueType.Farenheit, indexed: true }],
+      ['eng_hyd_press', { name: 'ENG HYDRAULIC PRESSURE:#index#', type: SimVarValueType.PSI, indexed: true }],
+      ['eng_starter_on', { name: 'GENERAL ENG STARTER:#index#', type: SimVarValueType.Bool, indexed: true }],
+      ['eng_combustion', { name: 'GENERAL ENG COMBUSTION:#index#', type: SimVarValueType.Bool, indexed: true }],
+      ['eng_ignition_switch_state', { name: 'TURB ENG IGNITION SWITCH EX1:#index#', type: SimVarValueType.Number, indexed: true }],
+      ['eng_igniting', { name: 'TURB ENG IS IGNITING:#index#', type: SimVarValueType.Bool, indexed: true }],
+      ['eng_fuel_pump_on', { name: 'GENERAL ENG FUEL PUMP ON:#index#', type: SimVarValueType.Bool, indexed: true }],
+      ['eng_fuel_pump_switch_state', { name: 'GENERAL ENG FUEL PUMP SWITCH EX1:#index#', type: SimVarValueType.Number, indexed: true }],
+      ['eng_vibration', { name: 'ENG VIBRATION:#index#', type: SimVarValueType.Number, indexed: true }],
+      ['fuel_flow_pph', { name: 'ENG FUEL FLOW PPH:#index#', type: SimVarValueType.PPH, indexed: true }],
+      ['torque_moment', { name: 'ENG TORQUE:#index#', type: SimVarValueType.FtLb, indexed: true }],
+      ['eng_manifold_pressure', { name: 'ENG MANIFOLD PRESSURE:#index#', type: SimVarValueType.PSI, indexed: true }],
+      ['reverse_thrust_engaged', { name: 'GENERAL ENG REVERSE THRUST ENGAGED:#index#', type: SimVarValueType.Bool, indexed: true }],
+      ['cylinder_head_temp_avg', { name: 'ENG CYLINDER HEAD TEMPERATURE:#index#', type: SimVarValueType.Farenheit, indexed: true }],
+      ['recip_turbine_inlet_temp_avg', { name: 'RECIP ENG TURBINE INLET TEMPERATURE:#index#', type: SimVarValueType.Farenheit, indexed: true }],
+      ['turbine_inlet_temp', { name: 'TURB ENG INLET TEMPERATURE:#index#', type: SimVarValueType.Celsius, indexed: true }],
+      ['jet_net_thrust', { name: 'TURB ENG JET THRUST:#index#', type: SimVarValueType.Pounds, indexed: true }],
+      ['eng_fire', { name: 'ENG ON FIRE:#index#', type: SimVarValueType.Bool, indexed: true }],
+      ['eng_starter_active', { name: 'GENERAL ENG STARTER ACTIVE:#index#', type: SimVarValueType.Bool, indexed: true }],
+    ], bus, pacer);
 
-    const simvars = new Map<keyof EngineEvents, SimVarPublisherEntry<any>>(nonIndexedSimVars);
+    this.engineCount = SimVar.GetSimVarValue('NUMBER OF ENGINES', SimVarValueType.Number);
 
-    // add engine-indexed simvars
-    const engineCount = SimVar.GetSimVarValue('NUMBER OF ENGINES', SimVarValueType.Number);
-    for (const [topic, simvar] of [...engineIndexedSimVars]) {
-      // describe the indexed engine topics
-      for (let i = 1; i <= engineCount; i++) {
-        simvars.set(
-          `${topic}_${i}`,
-          {
-            name: `${simvar.name}:${i}`,
-            type: simvar.type,
-            map: simvar.map
-          }
-        );
-      }
+    if (bus.getTopicSubscriberCount('fuel_flow_total') > 0) {
+      this.onTopicSubscribed('fuel_flow_total');
+    } else {
+      bus.getSubscriber<EventBusMetaEvents>().on('event_bus_topic_first_sub').handle(this.onTopicSubscribed.bind(this));
     }
-
-    super(simvars, bus, pacer);
-
-    this.engineCount = engineCount;
-
-    this.subscribed.add('fuel_flow_total');
   }
 
-  /** @inheritdoc */
-  public onUpdate(): void {
-    super.onUpdate();
-
-    if (this.subscribed.has('fuel_flow_total')) {
-      let totalFuelFlow = 0;
+  /**
+   * Responds to when a topic is first subscribed to on the event bus.
+   * @param topic The subscribed topic.
+   */
+  private onTopicSubscribed(topic: string): void {
+    if (topic === 'fuel_flow_total') {
+      this.needPublishTotalFuelFlow = true;
 
       for (let i = 1; i <= this.engineCount; i++) {
-        totalFuelFlow += SimVar.GetSimVarValue(`ENG FUEL FLOW GPH:${i}`, SimVarValueType.GPH);
+        this.totalFuelFlowSimVarIds.push(SimVar.GetRegisteredId(`ENG FUEL FLOW GPH:${i}`, SimVarValueType.GPH, ''));
       }
 
-      this.publish('fuel_flow_total', totalFuelFlow);
+      if (this.publishActive) {
+        this.publishTotalFuelFlow();
+      }
     }
+  }
+
+  /** @inheritDoc */
+  public startPublish(): void {
+    super.startPublish();
+
+    this.simVarPublisher.startPublish();
+  }
+
+  /** @inheritDoc */
+  public stopPublish(): void {
+    super.stopPublish();
+
+    this.simVarPublisher.stopPublish();
+  }
+
+  /** @inheritDoc */
+  public onUpdate(): void {
+    this.simVarPublisher.onUpdate();
+
+    if (this.needPublishTotalFuelFlow) {
+      this.publishTotalFuelFlow();
+    }
+  }
+
+  /**
+   * Publishes the `fuel_flow_total` topic.
+   */
+  private publishTotalFuelFlow(): void {
+    let totalFuelFlow = 0;
+
+    for (let i = 0; i < this.totalFuelFlowSimVarIds.length; i++) {
+      totalFuelFlow += SimVar.GetSimVarValueFastReg(this.totalFuelFlowSimVarIds[i]);
+    }
+
+    this.publish('fuel_flow_total', totalFuelFlow);
   }
 }

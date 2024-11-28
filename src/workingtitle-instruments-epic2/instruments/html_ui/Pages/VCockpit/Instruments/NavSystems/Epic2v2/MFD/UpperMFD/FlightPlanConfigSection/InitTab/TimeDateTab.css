@@ -1,0 +1,58 @@
+.fpln-time-date-tab {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+}
+
+.fpln-time-date-tab .time-date-row {
+  display: flex;
+  height: 22px;
+  width: 165px;
+  font-size: 22px;
+  color: var(--epic2-color-white);
+}
+
+.fpln-time-date-tab .time-date-row .box {
+  display: flex;
+  height: 23px;
+  border: 2px solid var(--epic2-color-white);
+  background: var(--epic2-color-black);
+  color: var(--epic2-color-white);
+  border-radius: 2px;
+  font-size: 22px;
+  padding: 0 5px 0 5px;
+  margin-top: -2px;
+}
+
+.fpln-time-date-tab .time-date-row .time-date-suffix {
+  padding-left: 5px;
+}
+
+.fpln-time-date-tab .current-position {
+  display: flex;
+  height: 45px;
+  flex-direction: column;
+  align-items: center;
+  font-size: 22px;
+  color: var(--epic2-color-white);
+}
+
+.fpln-time-date-tab .current-position .position-text {
+  font-size: 22px;
+  color: var(--epic2-color-green);
+}
+
+.fms-position-button.touch-button-small {
+  width: 220px;
+  height: 30px;
+  margin-bottom: 50px;
+}
+
+.fms-position-button.touch-button-small .touch-button-label {
+  padding-top: 6px;
+  font-size: 22px;
+}

@@ -1,8 +1,8 @@
 import {
-  AdditionalApproachType, AirportFacility, AirwayObject, AltitudeRestrictionType, ApproachProcedure, ApproachUtils, BitFlags, ExtendedApproachType,
+  AdditionalApproachType, AirportFacility, AirwayData, AltitudeRestrictionType, ApproachProcedure, ApproachUtils, BitFlags, ExtendedApproachType,
   FacilityFrequency, FacilityFrequencyType, FacilityLoader, FacilityRepository, FacilityType, FixTypeFlags, FlightPathUtils, FlightPlan, FlightPlanLeg,
-  FlightPlanSegment, FlightPlanSegmentType, GeoCircle, GeoPoint, ICAO, IntersectionFacility, LegDefinition, LegDefinitionFlags, LegTurnDirection, LegType,
-  LNavVars, MagVar, NumberFormatter, OneWayRunway, RnavTypeFlags, RunwayUtils, SimVarValueType, SpeedRestrictionType, SpeedUnit, UnitType, UserFacilityUtils,
+  FlightPlanSegment, FlightPlanSegmentType, GeoCircle, GeoPoint, ICAO, IcaoType, IntersectionFacility, LegDefinition, LegDefinitionFlags, LegTurnDirection, LegType,
+  MagVar, NumberFormatter, OneWayRunway, RnavTypeFlags, RunwayUtils, SpeedRestrictionType, SpeedUnit, UnitType, UserFacilityUtils,
   VerticalData, VerticalFlightPhase, VNavConstraint, VNavLeg
 } from '@microsoft/msfs-sdk';
 
@@ -65,34 +65,10 @@ export class WT21FmsUtils {
       lat: oneWayRunway.latitude,
       lon: oneWayRunway.longitude,
       type: isOriginRunway ? LegType.IF : LegType.TF,
-      fixIcao: RunwayUtils.getRunwayFacilityIcao(airport, oneWayRunway),
+      fixIcaoStruct: RunwayUtils.getRunwayFacilityIcaoValue(airport, oneWayRunway),
       altitude1: isOriginRunway ? oneWayRunway.elevation : oneWayRunway.elevation + 15  //Arrival runway leg altitude should be 50 feet above threshold
     });
     return leg;
-  }
-
-  /**
-   * Utility method to return a one-way runway leg from an approach runway leg definition
-   * @param airport is the facility associated with the arrival
-   * @param runwayIcao is the icao string for the runway waypoint in the final legs
-   * @returns a leg object for the runway
-   */
-  public static buildRunwayLegForApproach(airport: AirportFacility, runwayIcao: string): FlightPlanLeg | undefined {
-    for (let i = 0; i < airport.runways.length; i++) {
-      const match = RunwayUtils.getOneWayRunways(airport.runways[i], i).find((r) => {
-        return (r.designation == ICAO.getIdent(runwayIcao));
-      });
-      if (match) {
-        const leg = FlightPlan.createLeg({
-          lat: match.latitude,
-          lon: match.longitude,
-          type: LegType.TF,
-          fixIcao: runwayIcao
-        });
-        return leg;
-      }
-    }
-    return undefined;
   }
 
   /**
@@ -131,16 +107,16 @@ export class WT21FmsUtils {
 
     finalLegIdent ??= `RX${runwayIdent}`;
 
-    const icao = `S${ICAO.getIdent(airport.icao).padStart(4, ' ')}${runwayCode}${runwayLetter}${finalLegIdent}`;
+    const icao = ICAO.value(IcaoType.VisualApproach, `${runwayCode}${runwayLetter}`, airport.icaoStruct.ident, finalLegIdent);
 
     // Add facility to facRepo
-    const fafFacility = UserFacilityUtils.createFromLatLon(icao, fafLatLon.lat, fafLatLon.lon);
+    const fafFacility = UserFacilityUtils.createFromLatLon(ICAO.valueToStringV1(icao), fafLatLon.lat, fafLatLon.lon);
 
     facRepo.add(fafFacility);
 
     const fafLeg = FlightPlan.createLeg({
       type: LegType.TF,
-      fixIcao: icao,
+      fixIcaoStruct: icao,
       course: MagVar.trueToMagnetic(approachPath.bearingAt(fafLatLon), fafLatLon),
       fixTypeFlags: FixTypeFlags.FAF,
       lat: fafLatLon.lat,
@@ -169,7 +145,9 @@ export class WT21FmsUtils {
       approachSuffix: '',
       runwayDesignator: runway.runwayDesignator,
       runwayNumber: runway.direction,
-      rnavTypeFlags: RnavTypeFlags.None
+      rnavTypeFlags: RnavTypeFlags.None,
+      rnpAr: false,
+      missedApproachRnpAr: false,
     };
     return proc;
   }
@@ -237,7 +215,9 @@ export class WT21FmsUtils {
             approachSuffix: '',
             runwayDesignator: runway.runwayDesignator,
             runwayNumber: runway.direction,
-            rnavTypeFlags: RnavTypeFlags.None
+            rnavTypeFlags: RnavTypeFlags.None,
+            rnpAr: false,
+            missedApproachRnpAr: false,
           };
         }
       }
@@ -956,7 +936,7 @@ export class WT21FmsUtils {
    * @param airwayName The airway to search for.
    * @returns The airway object or undefined
    */
-  public static async isAirwayAtLeg(facLoader: FacilityLoader, icao: string, airwayName: string): Promise<AirwayObject | undefined> {
+  public static async isAirwayAtLeg(facLoader: FacilityLoader, icao: string, airwayName: string): Promise<AirwayData | undefined> {
     const facility = await facLoader.getFacility(FacilityType.Intersection, icao);
     if (facility) {
       const matchedRoute = facility.routes.find((r) => r.name === airwayName);
@@ -974,7 +954,7 @@ export class WT21FmsUtils {
    * @param icao The icao of the entry to check.
    * @returns The Intersection Facility if the leg is a valid exit to the airway.
    */
-  public static isLegValidAirwayExit(airway: AirwayObject, icao: string): IntersectionFacility | undefined {
+  public static isLegValidAirwayExit(airway: AirwayData, icao: string): IntersectionFacility | undefined {
     return airway.waypoints.find((w) => w.icao === icao);
   }
 
@@ -984,7 +964,7 @@ export class WT21FmsUtils {
    * @param ident The Ident to search for.
    * @returns The Intersection Facility if the leg is a valid exit to the airway.
    */
-  public static matchIdentToAirway(airway: AirwayObject, ident: string): IntersectionFacility | undefined {
+  public static matchIdentToAirway(airway: AirwayData, ident: string): IntersectionFacility | undefined {
     return airway.waypoints.find((w) => ICAO.getIdent(w.icao) === ident);
   }
 
@@ -1311,10 +1291,11 @@ export class WT21FmsUtils {
    * Returns the distance from PPOS to the end of a leg, given a lateral plan and a global leg index
    * @param lateralPlan the lateral plan
    * @param globalLegIndex the global leg index
+   * @param legDistanceRemaining The remaining distance to the end of the leg currently tracked by LNAV, in nautical
+   * miles.
    * @returns the distance, in metres
    */
-  public static getDistanceFromPposToLegEnd(lateralPlan: FlightPlan, globalLegIndex: number): number | undefined {
-    const legDistanceRemaining = SimVar.GetSimVarValue(LNavVars.LegDistanceRemaining, SimVarValueType.NM);
+  public static getDistanceFromPposToLegEnd(lateralPlan: FlightPlan, globalLegIndex: number, legDistanceRemaining: number): number | undefined {
     const legDistanceRemainingMetres = UnitType.METER.convertFrom(legDistanceRemaining, UnitType.NMILE);
 
     const currentLeg = lateralPlan.getLeg(lateralPlan.activeLateralLeg);

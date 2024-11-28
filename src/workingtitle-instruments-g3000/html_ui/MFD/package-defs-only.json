@@ -1,0 +1,12 @@
+{
+  "name": "@microsoft/msfs-wtg3000-mfd",
+  "version": "2.0.4",
+  "description": "Working Title MSFS G3000 MFD Definitions",
+  "typings": "index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/msfs-avionics-mirror/"
+  },
+  "author": "Working Title Simulations, LLC",
+  "license": "Modified MIT"
+}

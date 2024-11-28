@@ -1,0 +1,117 @@
+.departure-tab {
+  margin: 7px;
+}
+
+.departure-tab-buttons {
+  display: grid;
+  grid-template-columns: auto 140px auto;
+  grid-column-gap: 5px;
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  left: 8px;
+}
+
+.departure-tab-buttons .touch-button.touch-button-bar {
+  height: 35px;
+  font-size: 23px;
+}
+
+.departure-tab-runway-sid {
+  display: grid;
+  grid-template-columns: 120px 130px;
+  grid-column-gap: 10px;
+}
+
+.departure-tab-list-placeholder {
+  position: relative;
+  border-radius: 2px;
+  margin: 5px 5px 1px 5px;
+  padding: 2px;
+}
+
+.departure-tab-selection-heading {
+  height: 30px;
+}
+
+.departure-tab-selection p {
+  font-size: 20px;
+}
+
+.departure-tab-heading-trans {
+  padding-left: 10px;
+  margin-top: -3px
+}
+
+.departure-tab-view {
+  display: none;
+}
+
+.departure-tab-section-view .departure-tab-view {
+  display: block;
+}
+
+.departure-tab-runway-sid-section {
+  display: none;
+}
+
+.departure-tab-section-runway-sid .departure-tab-runway-sid-section {
+  display: block;
+}
+
+.departure-tab-view-labels {
+  display: flex;
+  align-items: center;
+  align-content: center;
+  margin: 0 20px;
+}
+
+.departure-tab-view-labels p {
+  font-size: 23px;
+}
+
+.departure-tab-view-labels p:nth-of-type(1) {
+  padding-right: 10px;
+}
+
+.departure-tab-view-labels p:nth-of-type(2) {
+  padding-right: 27px;
+}
+
+.departure-tab-view-labels p:nth-of-type(3) {
+  padding-right: 38px;
+}
+
+.departure-tab-view-labels p:nth-of-type(4) {
+  padding-right: 30px;
+}
+
+.departure-tab-buttons-view {
+  display: flex;
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  left: 8px;
+}
+
+.departure-tab-buttons-view .touch-button.touch-button-bar {
+  height: 35px;
+  width: 88px;
+  font-size: 23px;
+  margin-left: auto;
+}
+
+.departure-tab-view-list-placeholder {
+  position: relative;
+  border-radius: 2px;
+  margin: 5px 5px 1px 5px;
+  padding: 2px;
+}
+
+.departure-tab .epic2-list .epic2-list-scroll-bar-container {
+  --epic2-list-scroll-bar-color: var(--epic2-color-white);
+}
+
+.departure-tab .epic2-list .enroute-transition {
+  padding-left: 11px;
+}

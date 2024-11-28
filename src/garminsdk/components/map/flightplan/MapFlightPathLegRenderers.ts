@@ -1,7 +1,8 @@
 import {
-  BitFlags, CircleVector, FlightPathLegLineRenderer, FlightPathLegLineStyle, FlightPathLegPatternRenderer, FlightPathLegPatternStyle,
-  FlightPathLegRenderPart, FlightPathUtils, FlightPathVectorFlags, FlightPlan, GeoCircle, GeoCircleLineRenderer, GeoPoint, GeoProjection,
-  GeoProjectionPathStreamStack, LegDefinition, LegDefinitionFlags, LegType, LNavTrackingState, LNavTransitionMode, MagVar, UnitType
+  BitFlags, FlightPathLegLineRenderer, FlightPathLegLineStyle, FlightPathLegPatternRenderer, FlightPathLegPatternStyle,
+  FlightPathLegRenderPart, FlightPathUtils, FlightPathVector, FlightPathVectorFlags, FlightPlan, GeoCircle,
+  GeoCircleLineRenderer, GeoPoint, GeoProjection, GeoProjectionPathStreamStack, LegDefinition, LegDefinitionFlags,
+  LegType, LNavTrackingState, LNavTransitionMode, MagVar, UnitType
 } from '@microsoft/msfs-sdk';
 
 import { FlightPathArrowPattern } from './MapFlightPathPatterns';
@@ -12,11 +13,11 @@ import { MapFlightPathStyleFlags, MapFlightPathStyles } from './MapFlightPathSty
  */
 export class FlightPathLegContinuousLineRenderer extends FlightPathLegLineRenderer<[width: number, style: string, dash?: readonly number[]]> {
   /**
-   * Constructor.
+   * Creates a new instance of FlightPathLegContinuousLineRenderer.
    */
-  constructor() {
+  public constructor() {
     super((
-      vector: CircleVector,
+      vector: Readonly<FlightPathVector>,
       isIngress: boolean,
       isEgress: boolean,
       leg: LegDefinition,
@@ -44,10 +45,12 @@ export class FlightPathLegContinuousLineRenderer extends FlightPathLegLineRender
  * styled as a roll-heading vector.
  */
 export class FlightPathDefaultLegRenderer {
-  protected readonly arrowPattern = new FlightPathArrowPattern();
+  private readonly rollHeadingArrowPattern = new FlightPathArrowPattern(12, 10, 6);
+  private readonly headingArrowPattern = new FlightPathArrowPattern(32, 16, 6);
+  private readonly futureHeadingArrowPattern = new FlightPathArrowPattern(32, 16, 4);
 
-  protected readonly legLineRenderer = new FlightPathLegLineRenderer(this.selectLineStyle.bind(this));
-  protected readonly legPatternRenderer = new FlightPathLegPatternRenderer(this.selectPatternStyle.bind(this));
+  private readonly legLineRenderer = new FlightPathLegLineRenderer(this.selectLineStyle.bind(this));
+  private readonly legPatternRenderer = new FlightPathLegPatternRenderer(this.selectPatternStyle.bind(this));
 
   /**
    * Renders a default leg to a canvas.
@@ -57,7 +60,7 @@ export class FlightPathDefaultLegRenderer {
    * @param legIndex The global index of the leg to render.
    * @param activeLegIndex The global index of the active flight plan leg.
    * @param prevLeg The leg prior to the leg to render.
-   * @param nextLeg The leg after to the leg to render.
+   * @param nextLeg The leg after the leg to render.
    * @param isMissedApproachActive Whether the missed approach is active.
    */
   public render(
@@ -90,16 +93,51 @@ export class FlightPathDefaultLegRenderer {
       styleFlags |= MapFlightPathStyleFlags.Active;
     }
 
-    const isIngressRollHeading = (!useMissedApproachStyle || isFirstMissedApproachLeg) && this.isIngressRollHeading(leg, prevLeg);
-    const isEgressRollHeading = !useMissedApproachStyle && this.isEgressRollHeading(leg, nextLeg);
+    let ingressStyleFlags = styleFlags;
+    let egressStyleFlags = styleFlags;
 
-    this.arrowPattern.context = context;
+    // Heading
+
+    if (
+      (!useMissedApproachStyle || isFirstMissedApproachLeg)
+      && this.isHeadingVector(false, leg, nextLeg)
+    ) {
+      ingressStyleFlags |= MapFlightPathStyleFlags.Heading;
+      styleFlags |= MapFlightPathStyleFlags.Heading;
+    }
+    if (
+      !useMissedApproachStyle
+      && this.isHeadingVector(true, leg, nextLeg)
+    ) {
+      egressStyleFlags |= MapFlightPathStyleFlags.Heading;
+    }
+
+    // Roll heading
+
+    if (
+      !BitFlags.isAll(ingressStyleFlags, MapFlightPathStyleFlags.Heading)
+      && (!useMissedApproachStyle || isFirstMissedApproachLeg)
+      && this.isIngressRollHeading(leg, prevLeg)
+    ) {
+      ingressStyleFlags |= MapFlightPathStyleFlags.RollHeading;
+    }
+    if (
+      !BitFlags.isAll(egressStyleFlags, MapFlightPathStyleFlags.Heading)
+      && !useMissedApproachStyle
+      && this.isEgressRollHeading(leg, nextLeg)
+    ) {
+      egressStyleFlags |= MapFlightPathStyleFlags.RollHeading;
+    }
+
+    this.rollHeadingArrowPattern.context = context;
+    this.headingArrowPattern.context = context;
+    this.futureHeadingArrowPattern.context = context;
 
     this.legLineRenderer.render(
-      leg, context, streamStack, FlightPathLegRenderPart.All, styleFlags, isIngressRollHeading, isEgressRollHeading, useMissedApproachStyle
+      leg, context, streamStack, FlightPathLegRenderPart.All, styleFlags, ingressStyleFlags, egressStyleFlags
     );
     this.legPatternRenderer.render(
-      leg, context, streamStack, FlightPathLegRenderPart.All, styleFlags, isIngressRollHeading, isEgressRollHeading, useMissedApproachStyle
+      leg, context, streamStack, FlightPathLegRenderPart.All, styleFlags, ingressStyleFlags, egressStyleFlags
     );
   }
 
@@ -110,7 +148,7 @@ export class FlightPathDefaultLegRenderer {
    * such leg.
    * @returns If the ingress transition following the specified leg should be rendered as roll-heading vectors.
    */
-  protected isIngressRollHeading(leg: LegDefinition, prevLeg: LegDefinition | undefined): boolean {
+  private isIngressRollHeading(leg: LegDefinition, prevLeg: LegDefinition | undefined): boolean {
     const firstIngressVector = leg.calculated?.ingress[0];
 
     if (firstIngressVector === undefined) {
@@ -141,7 +179,7 @@ export class FlightPathDefaultLegRenderer {
    * leg.
    * @returns If the egress transition prior to the specified leg should be rendered as roll-heading vectors.
    */
-  protected isEgressRollHeading(leg: LegDefinition, nextLeg: LegDefinition | undefined): boolean {
+  private isEgressRollHeading(leg: LegDefinition, nextLeg: LegDefinition | undefined): boolean {
     const firstEgressVector = leg.calculated?.egress[0];
 
     if (firstEgressVector === undefined) {
@@ -173,29 +211,45 @@ export class FlightPathDefaultLegRenderer {
    * @param leg The flight plan leg containing the vector to render.
    * @param projection The map projection to use when rendering.
    * @param out The line style object to which to write the selected style.
-   * @param styleFlags Bit flags describing the style with which to render the line.
-   * @param isIngressRollHeading Whether the ingress transition should be rendered as roll-heading vectors.
-   * @param isEgressRollHeading Whether the egress transition should be rendered as roll-heading vectors.
-   * @param useMissedApproachStyle Whether the missed approach style should be applied to the vector.
+   * @param styleFlags Bit flags describing the style with which to render the line for non-transition vectors.
+   * @param ingressStyleFlags Bit flags describing the style with which to render the line for ingress transition
+   * vectors.
+   * @param egressStyleFlags Bit flags describing the style with which to render the line for egress transition
+   * vectors.
    * @returns The selected line style for the vector.
    */
-  protected selectLineStyle(
-    vector: CircleVector,
+  private selectLineStyle(
+    vector: Readonly<FlightPathVector>,
     isIngress: boolean,
     isEgress: boolean,
     leg: LegDefinition,
     projection: GeoProjection,
     out: FlightPathLegLineStyle,
     styleFlags: number,
-    isIngressRollHeading: boolean,
-    isEgressRollHeading: boolean,
-    useMissedApproachStyle: boolean
+    ingressStyleFlags: number,
+    egressStyleFlags: number,
   ): FlightPathLegLineStyle {
-    if (
-      (isIngress && isIngressRollHeading)
-      || (isEgress && isEgressRollHeading)
-      || (!isIngress && !isEgress && !useMissedApproachStyle && this.isRollHeadingVector(vector, leg))
-    ) {
+    if (!isIngress && !isEgress) {
+      if (
+        !BitFlags.isAny(styleFlags, MapFlightPathStyleFlags.MissedApproach | MapFlightPathStyleFlags.Heading)
+        && this.isRollHeadingVector(vector, leg)
+      ) {
+        styleFlags |= MapFlightPathStyleFlags.RollHeading;
+      }
+    }
+
+    const styleFlagsToUse = isIngress ? ingressStyleFlags
+      : isEgress ? egressStyleFlags
+        : styleFlags;
+
+    if (BitFlags.isAll(styleFlagsToUse, MapFlightPathStyleFlags.Heading)) {
+      out.strokeWidth = 0;
+      out.strokeStyle = '';
+      out.strokeDash = null;
+      out.outlineWidth = 0;
+      out.isContinuous = true;
+      return out;
+    } else if (BitFlags.isAll(styleFlagsToUse, MapFlightPathStyleFlags.RollHeading)) {
       return this.selectRollHeadingLineStyle(styleFlags, out);
     } else {
       return this.selectNormalLineStyle(styleFlags, out);
@@ -208,7 +262,7 @@ export class FlightPathDefaultLegRenderer {
    * @param out The line style object to which to write the selected style.
    * @returns The selected line style for the vector.
    */
-  protected selectNormalLineStyle(styleFlags: number, out: FlightPathLegLineStyle): FlightPathLegLineStyle {
+  private selectNormalLineStyle(styleFlags: number, out: FlightPathLegLineStyle): FlightPathLegLineStyle {
     let width, style;
 
     if (BitFlags.isAny(styleFlags, MapFlightPathStyleFlags.Active)) {
@@ -241,7 +295,7 @@ export class FlightPathDefaultLegRenderer {
    * @param out The line style object to which to write the selected style.
    * @returns The selected line style for the vector.
    */
-  protected selectRollHeadingLineStyle(styleFlags: number, out: FlightPathLegLineStyle): FlightPathLegLineStyle {
+  private selectRollHeadingLineStyle(styleFlags: number, out: FlightPathLegLineStyle): FlightPathLegLineStyle {
     let width, style, dash;
 
     if (BitFlags.isAny(styleFlags, MapFlightPathStyleFlags.Active)) {
@@ -276,35 +330,55 @@ export class FlightPathDefaultLegRenderer {
    * @param leg The flight plan leg containing the vector to render.
    * @param projection The map projection to use when rendering.
    * @param out The line style object to which to write the selected style.
-   * @param styleFlags Bit flags describing the style with which to render the pattern.
-   * @param isIngressRollHeading Whether the ingress transition should be rendered as roll-heading vectors.
-   * @param isEgressRollHeading Whether the egress transition should be rendered as roll-heading vectors.
-   * @param useMissedApproachStyle Whether the missed approach style should be applied to the vector.
+   * @param styleFlags Bit flags describing the style with which to render the pattern for non-transition vectors.
+   * @param ingressStyleFlags Bit flags describing the style with which to render the pattern for ingress transition
+   * vectors.
+   * @param egressStyleFlags Bit flags describing the style with which to render the pattern for egress transition
+   * vectors.
    * @returns The selected pattern style for the vector.
    */
-  protected selectPatternStyle(
-    vector: CircleVector,
+  private selectPatternStyle(
+    vector: Readonly<FlightPathVector>,
     isIngress: boolean,
     isEgress: boolean,
     leg: LegDefinition,
     projection: GeoProjection,
     out: FlightPathLegPatternStyle,
     styleFlags: number,
-    isIngressRollHeading: boolean,
-    isEgressRollHeading: boolean,
-    useMissedApproachStyle: boolean
+    ingressStyleFlags: number,
+    egressStyleFlags: number
   ): FlightPathLegPatternStyle {
-    if (
-      (isIngress && isIngressRollHeading)
-      || (isEgress && isEgressRollHeading)
-      || (!isIngress && !isEgress && !useMissedApproachStyle && this.isRollHeadingVector(vector, leg))
-    ) {
+    if (!isIngress && !isEgress) {
+      if (
+        !BitFlags.isAny(styleFlags, MapFlightPathStyleFlags.MissedApproach | MapFlightPathStyleFlags.Heading)
+        && this.isRollHeadingVector(vector, leg)
+      ) {
+        styleFlags |= MapFlightPathStyleFlags.RollHeading;
+      }
+    }
+
+    const styleFlagsToUse = isIngress ? ingressStyleFlags
+      : isEgress ? egressStyleFlags
+        : styleFlags;
+
+    if (BitFlags.isAll(styleFlagsToUse, MapFlightPathStyleFlags.Heading)) {
       if (BitFlags.isAny(styleFlags, MapFlightPathStyleFlags.Active)) {
-        this.arrowPattern.color = MapFlightPathStyles.ACTIVE_STROKE_COLOR;
-        out.pattern = this.arrowPattern;
+        this.headingArrowPattern.color = MapFlightPathStyles.ACTIVE_STROKE_COLOR;
+        out.pattern = this.headingArrowPattern;
       } else if (BitFlags.isAny(styleFlags, MapFlightPathStyleFlags.Next)) {
-        this.arrowPattern.color = MapFlightPathStyles.STROKE_COLOR;
-        out.pattern = this.arrowPattern;
+        this.headingArrowPattern.color = MapFlightPathStyles.STROKE_COLOR;
+        out.pattern = this.headingArrowPattern;
+      } else {
+        this.futureHeadingArrowPattern.color = MapFlightPathStyles.STROKE_COLOR;
+        out.pattern = this.futureHeadingArrowPattern;
+      }
+    } else if (BitFlags.isAll(styleFlagsToUse, MapFlightPathStyleFlags.RollHeading)) {
+      if (BitFlags.isAny(styleFlags, MapFlightPathStyleFlags.Active)) {
+        this.rollHeadingArrowPattern.color = MapFlightPathStyles.ACTIVE_STROKE_COLOR;
+        out.pattern = this.rollHeadingArrowPattern;
+      } else if (BitFlags.isAny(styleFlags, MapFlightPathStyleFlags.Next)) {
+        this.rollHeadingArrowPattern.color = MapFlightPathStyles.STROKE_COLOR;
+        out.pattern = this.rollHeadingArrowPattern;
       } else {
         out.pattern = null;
       }
@@ -323,7 +397,17 @@ export class FlightPathDefaultLegRenderer {
    * @param leg The flight plan leg containing the vector.
    * @returns Whether the vector should be rendered as a roll-heading vector.
    */
-  protected isRollHeadingVector(vector: CircleVector, leg: LegDefinition): boolean {
+  private isRollHeadingVector(vector: Readonly<FlightPathVector>, leg: LegDefinition): boolean {
+    // Do not style any part of a heading leg as a roll-heading vector.
+    switch (leg.leg.type) {
+      case LegType.VA:
+      case LegType.VD:
+      case LegType.VI:
+      case LegType.VM:
+      case LegType.VR:
+        return false;
+    }
+
     if (BitFlags.isAny(
       vector.flags,
       FlightPathVectorFlags.Fallback
@@ -341,13 +425,55 @@ export class FlightPathDefaultLegRenderer {
         return false;
     }
   }
+
+  /**
+   * Checks whether a vector should be rendered as a heading vector.
+   * @param isEgress Whether the vector is an egress transition vector.
+   * @param leg The flight plan leg containing the vector.
+   * @param nextLeg The leg after the leg containing the vector.
+   * @returns Whether the vector should be rendered as a heading vector.
+   */
+  private isHeadingVector(
+    isEgress: boolean,
+    leg: LegDefinition,
+    nextLeg: LegDefinition | undefined
+  ): boolean {
+    switch (leg.leg.type) {
+      case LegType.VA:
+      case LegType.VD:
+      case LegType.VI:
+      case LegType.VM:
+      case LegType.VR:
+        if (isEgress) {
+          // Egress vectors on heading legs are not heading vectors unless the next leg is also a heading leg.
+          if (nextLeg) {
+            switch (nextLeg.leg.type) {
+              case LegType.VA:
+              case LegType.VD:
+              case LegType.VI:
+              case LegType.VM:
+              case LegType.VR:
+                return true;
+              default:
+                return false;
+            }
+          } else {
+            return true;
+          }
+        } else {
+          return true;
+        }
+      default:
+        return false;
+    }
+  }
 }
 
 /**
  * Renders hold legs.
  */
 export class FlightPathHoldLegRenderer {
-  private readonly arrowPattern = new FlightPathArrowPattern();
+  private readonly arrowPattern = new FlightPathArrowPattern(12, 10, 6);
 
   private readonly legContinuousLineRenderer = new FlightPathLegContinuousLineRenderer();
   private readonly legLineRenderer = new FlightPathLegLineRenderer<[number, number]>(this.selectLineStyle.bind(this));
@@ -439,7 +565,7 @@ export class FlightPathHoldLegRenderer {
    * @returns The selected line style for the vector.
    */
   private selectLineStyle(
-    vector: CircleVector,
+    vector: Readonly<FlightPathVector>,
     isIngress: boolean,
     isEgress: boolean,
     leg: LegDefinition,
@@ -497,7 +623,7 @@ export class FlightPathHoldLegRenderer {
    * @returns The selected pattern style for the vector.
    */
   private selectPatternStyle(
-    vector: CircleVector,
+    vector: Readonly<FlightPathVector>,
     isIngress: boolean,
     isEgress: boolean,
     leg: LegDefinition,
@@ -522,22 +648,21 @@ export class FlightPathHoldLegRenderer {
  * Renders procedure turn legs.
  */
 export class FlightPathProcTurnLegRenderer {
-  private readonly arrowPattern: FlightPathArrowPattern;
+  private readonly arrowPattern = new FlightPathArrowPattern(12, 10, 6);
 
   private readonly legLineRenderer: FlightPathLegContinuousLineRenderer;
   private readonly legPatternRenderer: FlightPathLegPatternRenderer;
 
   /**
-   * Constructor.
+   * Creates a new instance of FlightPathProcTurnLegRenderer.
    */
-  constructor() {
-    this.arrowPattern = new FlightPathArrowPattern();
+  public constructor() {
     this.arrowPattern.color = MapFlightPathStyles.ACTIVE_STROKE_COLOR;
 
     this.legLineRenderer = new FlightPathLegContinuousLineRenderer();
     this.legPatternRenderer = new FlightPathLegPatternRenderer(
       (
-        vector: CircleVector,
+        vector: Readonly<FlightPathVector>,
         isIngress: boolean,
         isEgress: boolean,
         leg: LegDefinition,

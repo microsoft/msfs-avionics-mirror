@@ -1,4 +1,4 @@
-import { FSComponent, NodeReference, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { FSComponent, NodeReference, Subject, Subscribable, Subscription, VNode } from '@microsoft/msfs-sdk';
 
 import { GuiDialog } from './GuiDialog';
 import { GuiHEvent } from './GuiHEvent';
@@ -34,6 +34,8 @@ export abstract class MenuViewService<K = Record<string, unknown>> {
   protected interactionTimeoutId: number | null = null;
 
   private viewClosedHandler: (closedView: GuiDialog) => void;
+
+  private viewClosedSub?: Subscription;
 
   /**
    * Ctor
@@ -96,7 +98,7 @@ export abstract class MenuViewService<K = Record<string, unknown>> {
 
     view.open();
     view.onClose.clear();
-    view.onClose.on(this.viewClosedHandler);
+    this.viewClosedSub = view.onClose.on(this.viewClosedHandler);
 
     const index = this.openViews.indexOf(viewEntry);
     if (index >= 0) {
@@ -114,7 +116,8 @@ export abstract class MenuViewService<K = Record<string, unknown>> {
    */
   private handleViewClosed(closedView: GuiDialog): void {
     const viewIndex = this.openViews.findIndex(entry => entry.ref.instance === closedView);
-    closedView.onClose.off(this.viewClosedHandler);
+    this.viewClosedSub?.destroy();
+    this.viewClosedSub = undefined;
 
     if (viewIndex > -1) {
       this.openViews.splice(viewIndex, 1);

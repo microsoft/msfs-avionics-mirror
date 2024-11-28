@@ -20,13 +20,13 @@ export interface GarminNavToNavManager2Guidance {
    * The autopilot lateral mode that can be armed prior to a CDI source switch, or `APLateralModes.NONE` if no modes
    * can be armed.
    */
-  readonly armableLateralMode: Accessible<APLateralModes>;
+  readonly armableLateralMode: Accessible<number>;
 
   /**
    * The autopilot vertical mode that can be armed prior to a CDI source switch, or `APVerticalModes.NONE` if no modes
    * can be armed.
    */
-  readonly armableVerticalMode: Accessible<APVerticalModes>;
+  readonly armableVerticalMode: Accessible<number>;
 
   /** Whether a CDI source switch is allowed at the current time. */
   readonly canSwitchCdi: Accessible<boolean>;
@@ -45,7 +45,7 @@ export type GarminNavToNavManager2Options = {
    * @param armedLateralMode The armed autopilot lateral mode.
    * @returns Whether the specified armed autopilot lateral mode can be activated as part of a CDI source switch.
    */
-  canArmedModeActivate?: (navRadioIndex: NavRadioIndex, armedLateralMode: APLateralModes) => boolean;
+  canArmedModeActivate?: (navRadioIndex: NavRadioIndex, armedLateralMode: number) => boolean;
 };
 
 /**
@@ -56,15 +56,15 @@ export class GarminNavToNavManager2 implements NavToNavManager2 {
   /** @inheritDoc */
   public readonly isNavToNavManager2 = true;
 
-  public onTransferred?: ((activateLateralMode: APLateralModes, activateVerticalMode: APVerticalModes) => void) | undefined;
+  public onTransferred?: ((activateLateralMode: number, activateVerticalMode: number) => void) | undefined;
 
   private readonly cdiSource = ConsumerValue.create<Readonly<NavSourceId> | undefined>(null, undefined);
 
-  private readonly canArmedModeActivate: (navRadioIndex: NavRadioIndex, armedLateralMode: APLateralModes) => boolean;
+  private readonly canArmedModeActivate: (navRadioIndex: NavRadioIndex, armedLateralMode: number) => boolean;
 
   private isNavToNavInProgress = false;
   private navToNavInProgressCdiId: string | undefined = undefined;
-  private navToNavInProgressLateralMode = APLateralModes.NONE;
+  private navToNavInProgressLateralMode: number = APLateralModes.NONE;
 
   /**
    * Creates a new instance of GarminNavToNavManager2.
@@ -90,12 +90,12 @@ export class GarminNavToNavManager2 implements NavToNavManager2 {
   }
 
   /** @inheritDoc */
-  public getArmableLateralMode(): APLateralModes {
+  public getArmableLateralMode(): number {
     return this.guidance.armableLateralMode.get();
   }
 
   /** @inheritDoc */
-  public getArmableVerticalMode(): APVerticalModes {
+  public getArmableVerticalMode(): number {
     return this.guidance.armableVerticalMode.get();
   }
 
@@ -166,7 +166,7 @@ export class GarminNavToNavManager2 implements NavToNavManager2 {
    * @param navRadioIndex The index of the NAV radio to which to switch the CDI.
    * @param armedLateralMode The armed autopilot lateral mode to activate as part of the switch.
    */
-  private startNavToNav(cdiId: string, navRadioIndex: NavRadioIndex, armedLateralMode: APLateralModes): void {
+  private startNavToNav(cdiId: string, navRadioIndex: NavRadioIndex, armedLateralMode: number): void {
     this.isNavToNavInProgress = true;
     this.navToNavInProgressCdiId = cdiId;
     this.navToNavInProgressLateralMode = armedLateralMode;
@@ -209,7 +209,7 @@ export class GarminNavToNavManager2 implements NavToNavManager2 {
    * @returns Whether the specified armed autopilot lateral mode can be activated as part of a CDI source switch using
    * criteria that reproduce the default localizer capture criteria for the autopilot's LOC director.
    */
-  private static defaultCanArmedModeActivate(navRadioIndex: NavRadioIndex, armedLateralMode: APLateralModes): boolean {
+  private static defaultCanArmedModeActivate(navRadioIndex: NavRadioIndex, armedLateralMode: number): boolean {
     if (armedLateralMode === APLateralModes.LOC) {
       const hasSignal = SimVar.GetSimVarValue(`NAV SIGNAL:${navRadioIndex}`, SimVarValueType.Number) > 0;
       if (hasSignal) {

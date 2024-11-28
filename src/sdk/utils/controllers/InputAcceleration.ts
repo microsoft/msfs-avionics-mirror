@@ -2,13 +2,14 @@
 
 import { MathUtils } from '../../math/MathUtils';
 
-
 /** An interface the acceleration settings of a knob. */
 export interface InputAccelerationSettings {
   /** The default increment value. */
   increment: number;
   /** The big increment value (default is increment*10) */
   bigIncrement: number;
+  /** How often to dampen the acceleration in milliseconds, default is 50ms */
+  accelDampeningPeriod: number
 }
 
 /** A class to simulate knob acceleration on value inputs */
@@ -16,7 +17,6 @@ export class InputAcceleration {
   private acceleration = 0;
   private isPaused = false;
   private readonly maxAcceleration = 15;
-  private readonly accelDampeningPeriod = 50;
   public readonly options: InputAccelerationSettings;
 
   /**
@@ -28,6 +28,7 @@ export class InputAcceleration {
     this.options = Object.assign({
       increment: 1,
       bigIncrement: (options.increment ?? 1) * 10,
+      accelDampeningPeriod: 50
     }, options);
     this.isPaused = initiallyPaused;
     if (!initiallyPaused) {
@@ -41,7 +42,7 @@ export class InputAcceleration {
     if (this.acceleration > 0) {
       this.acceleration = MathUtils.clamp(this.acceleration - 1, 0, this.maxAcceleration);
       if (!this.isPaused) {
-        setTimeout(() => { this.update(); }, this.accelDampeningPeriod);
+        setTimeout(() => { this.update(); }, this.options.accelDampeningPeriod);
       }
     }
   }

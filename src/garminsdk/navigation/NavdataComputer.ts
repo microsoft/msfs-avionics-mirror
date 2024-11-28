@@ -1,19 +1,17 @@
 import {
-  ActiveLegType, AdditionalApproachType, AirportFacility, BaseVNavDataEvents, BitFlags, ClockEvents, ConsumerValue,
-  ControlEvents, EventBus, FacilityLoader, FacilityType, FixTypeFlags, FlightPathUtils, FlightPathVector, FlightPathVectorFlags,
-  FlightPlanActiveLegEvent, FlightPlanLegEvent, FlightPlanner, FlightPlanOriginDestEvent, FlightPlanSegment,
-  FlightPlanSegmentEvent, FlightPlanSegmentType, FlightPlanUtils, GeoCircle, GeoPoint, GeoPointInterface, GNSSEvents,
-  ICAO, LegCalculations, LegDefinition, LegDefinitionFlags, LegType, LNavControlEvents, LNavDataVars, LNavEvents,
-  LNavObsEvents, LNavTransitionMode, LNavUtils, MagVar, MathUtils, NavEvents, NavMath, ObjectSubject,
-  OriginDestChangeType, RnavTypeFlags, RunwayUtils, SimVarValueType, Subject, Subscribable, SubscribableUtils,
-  UnitType, Vec3Math, VNavDataEvents, VNavEvents, VNavUtils, VorToFrom
+  ActiveLegType, AdditionalApproachType, AirportFacility, AirportFacilityDataFlags, BaseVNavDataEvents, BitFlags,
+  ClockEvents, ConsumerValue, ControlEvents, EventBus, FacilityLoader, FacilityType, FixTypeFlags, FlightPathUtils,
+  FlightPathVector, FlightPathVectorFlags, FlightPlanActiveLegEvent, FlightPlanLegEvent, FlightPlanner,
+  FlightPlanOriginDestEvent, FlightPlanSegment, FlightPlanSegmentEvent, FlightPlanSegmentType, FlightPlanUtils,
+  GeoCircle, GeoPoint, GeoPointInterface, GNSSEvents, ICAO, IcaoValue, LegCalculations, LegDefinition,
+  LegDefinitionFlags, LegType, LNavControlEvents, LNavEvents, LNavObsEvents, LNavTransitionMode, LNavUtils, MagVar,
+  MathUtils, NavEvents, NavMath, ObjectSubject, OriginDestChangeType, Publisher, RnavTypeFlags, RunwayUtils, Subject,
+  Subscribable, SubscribableUtils, UnitType, Vec3Math, VNavDataEvents, VNavEvents, VNavUtils, VorToFrom
 } from '@microsoft/msfs-sdk';
 
 import { GlidepathServiceLevel } from '../autopilot/vnav/GarminVNavTypes';
 import { ApproachDetails, FmsEvents, FmsUtils } from '../flightplan';
-import {
-  BaseLNavDataEvents, BaseLNavDataSimVarEvents, CDIScaleLabel, GarminLNavDataVars, LNavDataDtkVector, LNavDataEvents
-} from './LNavDataEvents';
+import { BaseLNavDataEvents, CDIScaleLabel, LNavDataEvents } from './LNavDataEvents';
 
 /**
  * Configuration options for {@link NavdataComputer}.
@@ -37,6 +35,53 @@ export type NavdataComputerOptions = {
 };
 
 /**
+ * A publisher of an LNAV data event bus topic.
+ */
+class LNavDataTopicPublisher<T extends keyof BaseLNavDataEvents> {
+  /** The topic name to which this publisher publishes. */
+  public topic: T | `${T}_${number}`;
+
+  /** The value of this publisher's topic data. */
+  public value: BaseLNavDataEvents[T];
+
+  private readonly equalityFunc: (a: BaseLNavDataEvents[T], b: BaseLNavDataEvents[T]) => boolean;
+
+  /**
+   * Creates a new instance of LNavDataTopicPublisher.
+   * @param publisher The publisher to use to publish this entry's topic.
+   * @param topic The topic name.
+   * @param initialValue The topic's initial value.
+   * @param equalityFunc A function that checks whether two values are equal. If not defined, then the publisher will
+   * use the strict equality operator (`===`) to determine whether two values are equal.
+   */
+  public constructor(
+    private readonly publisher: Publisher<LNavDataEvents>, topic: T | `${T}_${number}`,
+    initialValue: BaseLNavDataEvents[T],
+    equalityFunc?: (a: BaseLNavDataEvents[T], b: BaseLNavDataEvents[T]) => boolean
+  ) {
+    this.topic = topic;
+    this.value = initialValue;
+
+    this.equalityFunc = equalityFunc ?? ((a, b) => a === b);
+  }
+
+  /**
+   * Publishes a value to this publisher's topic. The value will be published if and only if it is not equal to this
+   * publisher's existing value or if a republish is requested.
+   * @param value The value to publish to the topic. If not defined, then the current value will be republished.
+   */
+  public publish(value?: BaseLNavDataEvents[T]): void {
+    if (value === undefined || !this.equalityFunc(value, this.value)) {
+      if (value !== undefined) {
+        (this.value as BaseLNavDataEvents[T]) = value;
+      }
+
+      this.publisher.pub(this.topic, this.value as any, true, true);
+    }
+  }
+}
+
+/**
  * Computes Garmin LNAV-related data.
  */
 export class NavdataComputer {
@@ -52,9 +97,8 @@ export class NavdataComputer {
 
   private readonly useSimObsState: boolean;
 
-  private readonly simVarMap: Record<LNavDataVars | GarminLNavDataVars, string>;
-  private readonly lnavTopicMap: {
-    [P in Exclude<keyof BaseLNavDataEvents, keyof BaseLNavDataSimVarEvents>]: P | `${P}_${number}`
+  private readonly eventBusTopicPublishers: {
+    [P in keyof BaseLNavDataEvents]: LNavDataTopicPublisher<P>;
   };
 
   private readonly vnavIndex: Subscribable<number>;
@@ -100,37 +144,9 @@ export class NavdataComputer {
   private readonly gpServiceLevel = ConsumerValue.create(null, GlidepathServiceLevel.None);
   private readonly gpDistance = ConsumerValue.create(null, 0);
 
-  private readonly lnavData = ObjectSubject.create({
-    dtkTrue: 0,
-    dtkMag: 0,
-    xtk: 0,
-    nextDtkTrue: 0,
-    nextDtkMag: 0,
-    cdiScale: 0,
-    cdiScaleLabel: CDIScaleLabel.Enroute,
-    waypointBearingTrue: 0,
-    waypointBearingMag: 0,
-    waypointDistance: 0,
-    waypointIdent: '',
-    destinationIcao: '',
-    destinationRunwayIcao: '',
-    destinationDistance: -1,
-    egressDistance: 0,
-    toFrom: VorToFrom.OFF
-  });
-
   private readonly vnavData = ObjectSubject.create({
     gpScale: 0
   });
-
-  private readonly dtkVector: LNavDataDtkVector = {
-    globalLegIndex: -1,
-    vectorIndex: -1
-  };
-  private readonly nextDtkVector: LNavDataDtkVector = {
-    globalLegIndex: -1,
-    vectorIndex: -1
-  };
 
   private readonly nominalPathCircle = { vectorIndex: -1, circle: new GeoCircle(Vec3Math.create(), 0) };
 
@@ -139,7 +155,7 @@ export class NavdataComputer {
 
   private needUpdateDestination = true;
   private destinationPlanIndex?: number;
-  private destinationIcao?: string;
+  private destinationIcao?: IcaoValue;
   private destinationFacility?: AirportFacility;
   private destinationLeg?: LegDefinition;
 
@@ -168,21 +184,38 @@ export class NavdataComputer {
 
     this.useVfrCdiScaling = SubscribableUtils.toSubscribable(options?.useVfrCdiScaling ?? false, true);
 
-    const simVarSuffix = this.lnavIndex === 0 ? '' : `:${this.lnavIndex}`;
-    this.simVarMap = {} as Record<LNavDataVars | GarminLNavDataVars, string>;
-    for (const simVar of [...Object.values(LNavDataVars), ...Object.values(GarminLNavDataVars)]) {
-      this.simVarMap[simVar] = `${simVar}${simVarSuffix}`;
-    }
-
     const lnavTopicSuffix = LNavUtils.getEventBusTopicSuffix(this.lnavIndex);
-    this.lnavTopicMap = {
-      'lnavdata_waypoint_ident': `lnavdata_waypoint_ident${lnavTopicSuffix}`,
-      'lnavdata_destination_icao': `lnavdata_destination_icao${lnavTopicSuffix}`,
-      'lnavdata_destination_ident': `lnavdata_destination_ident${lnavTopicSuffix}`,
-      'lnavdata_destination_runway_icao': `lnavdata_destination_runway_icao${lnavTopicSuffix}`,
-      'lnavdata_dtk_vector': `lnavdata_dtk_vector${lnavTopicSuffix}`,
-      'lnavdata_next_dtk_vector': `lnavdata_next_dtk_vector${lnavTopicSuffix}`,
-      'obs_available': `obs_available${lnavTopicSuffix}`,
+    this.eventBusTopicPublishers = {
+      'lnavdata_dtk_true': new LNavDataTopicPublisher<'lnavdata_dtk_true'>(this.publisher, `lnavdata_dtk_true${lnavTopicSuffix}`, 0),
+      'lnavdata_dtk_mag': new LNavDataTopicPublisher<'lnavdata_dtk_mag'>(this.publisher, `lnavdata_dtk_mag${lnavTopicSuffix}`, 0),
+      'lnavdata_xtk': new LNavDataTopicPublisher<'lnavdata_xtk'>(this.publisher, `lnavdata_xtk${lnavTopicSuffix}`, 0),
+      'lnavdata_next_dtk_true': new LNavDataTopicPublisher<'lnavdata_next_dtk_true'>(this.publisher, `lnavdata_next_dtk_true${lnavTopicSuffix}`, 0),
+      'lnavdata_next_dtk_mag': new LNavDataTopicPublisher<'lnavdata_next_dtk_mag'>(this.publisher, `lnavdata_next_dtk_mag${lnavTopicSuffix}`, 0),
+      'lnavdata_cdi_scale': new LNavDataTopicPublisher<'lnavdata_cdi_scale'>(this.publisher, `lnavdata_cdi_scale${lnavTopicSuffix}`, 0),
+      'lnavdata_cdi_scale_label': new LNavDataTopicPublisher<'lnavdata_cdi_scale_label'>(this.publisher, `lnavdata_cdi_scale_label${lnavTopicSuffix}`, CDIScaleLabel.Enroute),
+      'lnavdata_waypoint_bearing_true': new LNavDataTopicPublisher<'lnavdata_waypoint_bearing_true'>(this.publisher, `lnavdata_waypoint_bearing_true${lnavTopicSuffix}`, 0),
+      'lnavdata_waypoint_bearing_mag': new LNavDataTopicPublisher<'lnavdata_waypoint_bearing_mag'>(this.publisher, `lnavdata_waypoint_bearing_mag${lnavTopicSuffix}`, 0),
+      'lnavdata_waypoint_distance': new LNavDataTopicPublisher<'lnavdata_waypoint_distance'>(this.publisher, `lnavdata_waypoint_distance${lnavTopicSuffix}`, 0),
+      'lnavdata_waypoint_ident': new LNavDataTopicPublisher<'lnavdata_waypoint_ident'>(this.publisher, `lnavdata_waypoint_ident${lnavTopicSuffix}`, ''),
+      'lnavdata_destination_distance': new LNavDataTopicPublisher<'lnavdata_destination_distance'>(this.publisher, `lnavdata_destination_distance${lnavTopicSuffix}`, -1),
+      'lnavdata_destination_icao': new LNavDataTopicPublisher<'lnavdata_destination_icao'>(
+        this.publisher,
+        `lnavdata_destination_icao${lnavTopicSuffix}`,
+        ICAO.emptyValue(),
+        ICAO.valueEquals
+      ),
+      'lnavdata_destination_ident': new LNavDataTopicPublisher<'lnavdata_destination_ident'>(this.publisher, `lnavdata_destination_ident${lnavTopicSuffix}`, ''),
+      'lnavdata_destination_runway_icao': new LNavDataTopicPublisher<'lnavdata_destination_runway_icao'>(
+        this.publisher,
+        `lnavdata_destination_runway_icao${lnavTopicSuffix}`,
+        ICAO.emptyValue(),
+        ICAO.valueEquals
+      ),
+      'lnavdata_egress_distance': new LNavDataTopicPublisher<'lnavdata_egress_distance'>(this.publisher, `lnavdata_egress_distance${lnavTopicSuffix}`, 0),
+      'lnavdata_tofrom': new LNavDataTopicPublisher<'lnavdata_tofrom'>(this.publisher, `lnavdata_tofrom${lnavTopicSuffix}`, VorToFrom.OFF),
+      'lnavdata_dtk_vector': new LNavDataTopicPublisher<'lnavdata_dtk_vector'>(this.publisher, `lnavdata_dtk_vector${lnavTopicSuffix}`, { globalLegIndex: -1, vectorIndex: -1 }),
+      'lnavdata_next_dtk_vector': new LNavDataTopicPublisher<'lnavdata_next_dtk_vector'>(this.publisher, `lnavdata_next_dtk_vector${lnavTopicSuffix}`, { globalLegIndex: -1, vectorIndex: -1 }),
+      'obs_available': new LNavDataTopicPublisher<'obs_available'>(this.publisher, `obs_available${lnavTopicSuffix}`, false),
     };
 
     const sub = this.bus.getSubscriber<
@@ -244,33 +277,20 @@ export class NavdataComputer {
       this.computeGpScaling();
     });
 
-    this.lnavData.sub((obj, key, value) => {
-      switch (key) {
-        case 'dtkTrue': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.DTKTrue], SimVarValueType.Degree, value); break;
-        case 'dtkMag': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.DTKMagnetic], SimVarValueType.Degree, value); break;
-        case 'xtk': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.XTK], SimVarValueType.NM, value); break;
-        case 'nextDtkTrue': SimVar.SetSimVarValue(this.simVarMap[GarminLNavDataVars.NextDTKTrue], SimVarValueType.Degree, value); break;
-        case 'nextDtkMag': SimVar.SetSimVarValue(this.simVarMap[GarminLNavDataVars.NextDTKMagnetic], SimVarValueType.Degree, value); break;
-        case 'cdiScale': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.CDIScale], SimVarValueType.NM, value); break;
-        case 'cdiScaleLabel': SimVar.SetSimVarValue(this.simVarMap[GarminLNavDataVars.CDIScaleLabel], SimVarValueType.Number, value); break;
-        case 'waypointBearingTrue': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.WaypointBearingTrue], SimVarValueType.Degree, value); break;
-        case 'waypointBearingMag': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.WaypointBearingMagnetic], SimVarValueType.Degree, value); break;
-        case 'waypointDistance': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.WaypointDistance], SimVarValueType.NM, value); break;
-        case 'waypointIdent': this.publisher.pub(this.lnavTopicMap['lnavdata_waypoint_ident'], value as string, true, true); break;
-        case 'destinationIcao':
-          this.publisher.pub(this.lnavTopicMap['lnavdata_destination_icao'], value as string, true, true);
-          this.publisher.pub(this.lnavTopicMap['lnavdata_destination_ident'], ICAO.getIdent(value as string), true, true);
-          break;
-        case 'destinationRunwayIcao': this.publisher.pub(this.lnavTopicMap['lnavdata_destination_runway_icao'], value as string, true, true); break;
-        case 'destinationDistance': SimVar.SetSimVarValue(this.simVarMap[LNavDataVars.DestinationDistance], SimVarValueType.NM, value); break;
-        case 'egressDistance': SimVar.SetSimVarValue(this.simVarMap[GarminLNavDataVars.EgressDistance], SimVarValueType.NM, value); break;
-        case 'toFrom': SimVar.SetSimVarValue(this.simVarMap[GarminLNavDataVars.ToFrom], SimVarValueType.Number, value); break;
-      }
-    }, true);
+    this.republishEventBusTopics();
 
     this.obsAvailable.sub(v => {
-      this.publisher.pub(this.lnavTopicMap['obs_available'], v, true, true);
+      this.eventBusTopicPublishers['obs_available'].publish(v);
     });
+  }
+
+  /**
+   * Immediately republishes all event bus topics with their current values.
+   */
+  private republishEventBusTopics(): void {
+    for (const topic in this.eventBusTopicPublishers) {
+      this.eventBusTopicPublishers[topic as keyof BaseLNavDataEvents].publish();
+    }
   }
 
   /**
@@ -532,22 +552,22 @@ export class NavdataComputer {
       }
     }
 
-    this.lnavData.set('dtkTrue', dtkTrue);
-    this.lnavData.set('dtkMag', dtkMag);
-    this.lnavData.set('xtk', xtk);
-    this.lnavData.set('nextDtkTrue', nextDtkTrue);
-    this.lnavData.set('nextDtkMag', nextDtkMag);
-    this.lnavData.set('waypointBearingTrue', waypointBearingTrue);
-    this.lnavData.set('waypointBearingMag', waypointBearingMag);
-    this.lnavData.set('waypointDistance', distance);
-    this.lnavData.set('waypointIdent', waypointIdent);
-    this.lnavData.set('destinationDistance', destinationDistance);
+    this.eventBusTopicPublishers['lnavdata_dtk_true'].publish(dtkTrue);
+    this.eventBusTopicPublishers['lnavdata_dtk_mag'].publish(dtkMag);
+    this.eventBusTopicPublishers['lnavdata_xtk'].publish(xtk);
+    this.eventBusTopicPublishers['lnavdata_next_dtk_true'].publish(nextDtkTrue);
+    this.eventBusTopicPublishers['lnavdata_next_dtk_mag'].publish(nextDtkMag);
+    this.eventBusTopicPublishers['lnavdata_waypoint_bearing_true'].publish(waypointBearingTrue);
+    this.eventBusTopicPublishers['lnavdata_waypoint_bearing_mag'].publish(waypointBearingMag);
+    this.eventBusTopicPublishers['lnavdata_waypoint_distance'].publish(distance);
+    this.eventBusTopicPublishers['lnavdata_waypoint_ident'].publish(waypointIdent);
+    this.eventBusTopicPublishers['lnavdata_destination_distance'].publish(destinationDistance);
 
     this.updateDtkVector('lnavdata_dtk_vector', dtkLegIndex, dtkVectorIndex);
     this.updateDtkVector('lnavdata_next_dtk_vector', nextDtkLegIndex, nextDtkVectorIndex);
 
-    this.lnavData.set('toFrom', toFrom);
-    this.lnavData.set('egressDistance', egressDistance);
+    this.eventBusTopicPublishers['lnavdata_tofrom'].publish(toFrom);
+    this.eventBusTopicPublishers['lnavdata_egress_distance'].publish(egressDistance);
   }
 
   /**
@@ -555,20 +575,20 @@ export class NavdataComputer {
    */
   private updateDestination(): void {
     let destinationPlanIndex: number | undefined = undefined;
-    let destinationIcao: string | undefined = undefined;
-    let destinationRunwayIcao: string | undefined = undefined;
+    let destinationIcao: IcaoValue | undefined = undefined;
+    let destinationRunwayIcao: IcaoValue | undefined = undefined;
     let destinationLeg: LegDefinition | undefined = undefined;
 
     const primaryPlan = this.flightPlanner.hasFlightPlan(FmsUtils.PRIMARY_PLAN_INDEX) ? this.flightPlanner.getFlightPlan(FmsUtils.PRIMARY_PLAN_INDEX) : undefined;
 
     if (primaryPlan) {
-      if (primaryPlan.destinationAirport) {
+      if (primaryPlan.destinationAirportIcao) {
         // If the primary flight plan has a destination airport, then it is always the LNAV destination.
         destinationPlanIndex = FmsUtils.PRIMARY_PLAN_INDEX;
-        destinationIcao = primaryPlan.destinationAirport;
+        destinationIcao = primaryPlan.destinationAirportIcao;
 
         destinationRunwayIcao = primaryPlan.procedureDetails.destinationRunway
-          ? RunwayUtils.getRunwayFacilityIcao(destinationIcao, primaryPlan.procedureDetails.destinationRunway)
+          ? RunwayUtils.getRunwayFacilityIcaoValue(destinationIcao, primaryPlan.procedureDetails.destinationRunway)
           : undefined;
 
         for (const leg of primaryPlan.legs(true)) {
@@ -590,9 +610,9 @@ export class NavdataComputer {
             break;
           }
 
-          if (ICAO.isFacility(leg.leg.fixIcao) && ICAO.getFacilityType(leg.leg.fixIcao) === FacilityType.Airport) {
+          if (ICAO.isValueFacility(leg.leg.fixIcaoStruct, FacilityType.Airport)) {
             destinationPlanIndex = FmsUtils.PRIMARY_PLAN_INDEX;
-            destinationIcao = leg.leg.fixIcao;
+            destinationIcao = leg.leg.fixIcaoStruct;
             destinationLeg = leg;
             break;
           }
@@ -610,9 +630,9 @@ export class NavdataComputer {
         // The leg to the DTO target is always at the same index. Note that there may be additional legs after the leg
         // to the target (e.g. a hold leg), but the destination leg is always considered to be the leg to the target.
         const leg = dtoRandomPlan.tryGetLeg(FmsUtils.DTO_LEG_OFFSET - 1);
-        if (leg && ICAO.isFacility(leg.leg.fixIcao) && ICAO.getFacilityType(leg.leg.fixIcao) === FacilityType.Airport) {
+        if (leg && ICAO.isValueFacility(leg.leg.fixIcaoStruct, FacilityType.Airport)) {
           destinationPlanIndex = FmsUtils.DTO_RANDOM_PLAN_INDEX;
-          destinationIcao = leg.leg.fixIcao;
+          destinationIcao = leg.leg.fixIcaoStruct;
           destinationLeg = leg;
         }
       }
@@ -621,8 +641,13 @@ export class NavdataComputer {
     this.destinationPlanIndex = destinationPlanIndex;
     this.destinationIcao = destinationIcao;
     this.destinationLeg = destinationLeg;
-    this.lnavData.set('destinationIcao', destinationIcao ?? '');
-    this.lnavData.set('destinationRunwayIcao', destinationRunwayIcao ?? '');
+
+    const destinationIcaoToPublish = destinationIcao ?? ICAO.emptyValue();
+    this.eventBusTopicPublishers['lnavdata_destination_icao'].publish(destinationIcaoToPublish);
+    this.eventBusTopicPublishers['lnavdata_destination_ident'].publish(destinationIcaoToPublish.ident);
+
+    this.eventBusTopicPublishers['lnavdata_destination_runway_icao'].publish(destinationRunwayIcao ?? ICAO.emptyValue());
+
     this.updateDestinationFacility(destinationIcao);
   }
 
@@ -632,7 +657,7 @@ export class NavdataComputer {
    * Updates the LNAV destination airport facility.
    * @param icao The ICAO of the destination airport facility, or `undefined` if there is no destination airport.
    */
-  private async updateDestinationFacility(icao: string | undefined): Promise<void> {
+  private async updateDestinationFacility(icao: IcaoValue | undefined): Promise<void> {
     const opId = ++this.destinationFacilityOpId;
 
     if (icao === undefined) {
@@ -640,13 +665,13 @@ export class NavdataComputer {
       return;
     }
 
-    const facility = await this.facilityLoader.getFacility(FacilityType.Airport, icao);
+    const facility = await this.facilityLoader.tryGetFacility(FacilityType.Airport, icao, AirportFacilityDataFlags.Minimal);
 
     if (opId !== this.destinationFacilityOpId) {
       return;
     }
 
-    this.destinationFacility = facility;
+    this.destinationFacility = facility ?? undefined;
   }
 
   /**
@@ -660,16 +685,13 @@ export class NavdataComputer {
     globalLegIndex: number,
     vectorIndex: number
   ): void {
-    const dtkVector = topic === 'lnavdata_dtk_vector' ? this.dtkVector : this.nextDtkVector;
-
+    const publisher = this.eventBusTopicPublishers[topic];
+    const dtkVector = publisher.value;
     const needUpdate = dtkVector.globalLegIndex !== globalLegIndex
       || dtkVector.vectorIndex !== vectorIndex;
 
     if (needUpdate) {
-      dtkVector.globalLegIndex = globalLegIndex;
-      dtkVector.vectorIndex = vectorIndex;
-
-      this.publisher.pub(this.lnavTopicMap[topic], Object.assign({}, dtkVector), true, true);
+      publisher.publish({ globalLegIndex, vectorIndex });
     }
   }
 
@@ -809,8 +831,8 @@ export class NavdataComputer {
       }
     }
 
-    this.lnavData.set('cdiScale', scale);
-    this.lnavData.set('cdiScaleLabel', scaleLabel);
+    this.eventBusTopicPublishers['lnavdata_cdi_scale'].publish(scale);
+    this.eventBusTopicPublishers['lnavdata_cdi_scale_label'].publish(scaleLabel);
   }
 
   /**
@@ -922,8 +944,8 @@ export class NavdataComputer {
       }
     }
 
-    this.lnavData.set('cdiScale', scale);
-    this.lnavData.set('cdiScaleLabel', scaleLabel);
+    this.eventBusTopicPublishers['lnavdata_cdi_scale'].publish(scale);
+    this.eventBusTopicPublishers['lnavdata_cdi_scale_label'].publish(scaleLabel);
   }
 
   /**
@@ -1154,7 +1176,13 @@ export class NavdataComputer {
         // is the off-route direct-to target. Therefore, if either of these conditions is met, then we will let the
         // code fall through to the default case below. If neither is met, then the chosen destination is invalid, so
         // we will return -1.
-        if (this.destinationPlanIndex === FmsUtils.PRIMARY_PLAN_INDEX && destinationPlan.destinationAirport !== this.destinationIcao) {
+        if (
+          this.destinationPlanIndex === FmsUtils.PRIMARY_PLAN_INDEX
+          && (
+            !!destinationPlan.destinationAirportIcao !== !!this.destinationIcao
+            || (destinationPlan.destinationAirportIcao && !ICAO.valueEquals(destinationPlan.destinationAirportIcao, this.destinationIcao))
+          )
+        ) {
           return -1;
         }
       } else {

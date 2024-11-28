@@ -1,0 +1,35 @@
+.heading-bug-container {
+  position: absolute;
+  filter: drop-shadow(0px 0px 1px rgba(0, 0, 0, .8));
+}
+
+.map-container .heading-bug-container {
+  top: 87px;
+  left: 311px;
+}
+
+.pfd-hsi-map .heading-bug-container,
+.pfd-hsi-wx .heading-bug-container {
+  top: 5px;
+  left: 167px;
+}
+
+.pfd-hsi-full .heading-bug-container {
+  top: -16px;
+  left: 107px;
+}
+
+.heading-bug-container svg {
+  fill-opacity: 0.6;
+  stroke-linejoin: round;
+  stroke-width: 2.7;
+}
+
+.heading-bug-arrow {
+  position: absolute;
+}
+
+.heading-bug-arrow svg {
+  stroke-width: 3px;
+  stroke-linecap: round;
+}

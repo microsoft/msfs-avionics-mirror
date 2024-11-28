@@ -9,8 +9,6 @@ export class BasicConsumer<T> implements Consumer<T> {
   /** @inheritdoc */
   public readonly isConsumer = true;
 
-  private readonly activeSubs = new Map<Handler<T>, Subscription[]>();
-
   /**
    * Creates an instance of a Consumer.
    * @param subscribe A function which subscribes a handler to the source of this consumer's events.
@@ -41,44 +39,7 @@ export class BasicConsumer<T> implements Consumer<T> {
       activeHandler = handler;
     }
 
-    let activeSubArray = this.activeSubs.get(handler);
-    if (!activeSubArray) {
-      activeSubArray = [];
-      this.activeSubs.set(handler, activeSubArray);
-    }
-
-    const onDestroyed = (destroyed: ConsumerSubscription): void => {
-      const activeSubsArray = this.activeSubs.get(handler);
-      if (activeSubsArray) {
-        activeSubsArray.splice(activeSubsArray.indexOf(destroyed), 1);
-        if (activeSubsArray.length === 0) {
-          this.activeSubs.delete(handler);
-        }
-      }
-    };
-
-    const sub = new ConsumerSubscription(this.subscribe(activeHandler, paused), onDestroyed);
-
-    // Need to handle the case where the subscription is destroyed immediately
-    if (sub.isAlive) {
-      activeSubArray.push(sub);
-    } else if (activeSubArray.length === 0) {
-      this.activeSubs.delete(handler);
-    }
-
-    return sub;
-  }
-
-  /** @inheritdoc */
-  public off(handler: Handler<T>): void {
-    const activeSubArray = this.activeSubs.get(handler);
-    if (activeSubArray) {
-      activeSubArray.shift()?.destroy();
-
-      if (activeSubArray.length === 0) {
-        this.activeSubs.delete(handler);
-      }
-    }
+    return new ConsumerSubscription(this.subscribe(activeHandler, paused));
   }
 
   /** @inheritdoc */
@@ -242,12 +203,8 @@ class ConsumerSubscription implements Subscription {
   /**
    * Constructor.
    * @param sub The event bus subscription backing this subscription.
-   * @param onDestroy A function which is called when this subscription is destroyed.
    */
-  constructor(
-    private readonly sub: Subscription,
-    private readonly onDestroy: (sub: ConsumerSubscription) => void
-  ) {
+  constructor(private readonly sub: Subscription) {
   }
 
   /** @inheritdoc */
@@ -265,7 +222,5 @@ class ConsumerSubscription implements Subscription {
   /** @inheritdoc */
   public destroy(): void {
     this.sub.destroy();
-
-    this.onDestroy(this);
   }
 }

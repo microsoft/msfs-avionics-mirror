@@ -1,0 +1,40 @@
+.weight-balance-pane-summary {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-auto-flow: column;
+  justify-items: stretch;
+  align-items: center;
+  grid-column-gap: 7px;
+}
+
+.weight-balance-pane-summary-field {
+  position: relative;
+  height: 30px;
+  white-space: nowrap;
+  letter-spacing: -0.5px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.weight-balance-pane-summary-field-cyan {
+  color: var(--g3000-color-cyan);
+}
+
+.weight-balance-pane-summary-field-caution {
+  color: var(--g3000-color-yellow);
+}
+
+.weight-balance-pane-summary-field-warning {
+  color: var(--g3000-color-red);
+}
+
+.weight-balance-pane-summary-field-title {
+  color: var(--g3000-color-title-gray);
+}
+
+.weight-balance-pane-summary-field-value {
+  font-size: 1.25em;
+}

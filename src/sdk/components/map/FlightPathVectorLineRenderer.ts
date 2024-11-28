@@ -1,4 +1,4 @@
-import { CircleVector, FlightPathUtils } from '../../flightplan';
+import { FlightPathVector, FlightPathUtils } from '../../flightplan';
 import { GeoCircle } from '../../geo';
 import { GeoCircleLineRenderer } from './GeoCircleLineRenderer';
 import { GeoProjectionPathStreamStack } from './GeoProjectionPathStreamStack';
@@ -24,7 +24,7 @@ export class FlightPathVectorLineRenderer {
    * @param lineCap The line cap style to use. Defaults to `'butt'`.
    */
   public render(
-    vector: CircleVector,
+    vector: Readonly<FlightPathVector>,
     context: CanvasRenderingContext2D,
     streamStack: GeoProjectionPathStreamStack,
     width: number,

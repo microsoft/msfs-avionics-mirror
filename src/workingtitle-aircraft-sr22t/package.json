@@ -1,11 +1,11 @@
 {
   "name": "workingtitle-aircraft-sr22t",
-  "version": "1.1.10",
+  "version": "2.0.0",
   "description": "Working Title MSFS SR22T",
   "scripts": {
     "build": "npm run build:compile && npm run build:rollup",
     "build:compile": "npx tsc",
-    "build:rollup": "robocopy src/Plugins *.css build/Plugins /s & npx rollup -c rollup.config.js"
+    "build:rollup": "robocopy src *.css build/Plugins /s & npx rollup -c rollup.config.mjs"
   },
   "repository": {
     "type": "git",
@@ -14,13 +14,13 @@
   "author": "Working Title Simulations, LLC",
   "license": "Modified MIT",
   "devDependencies": {
+    "@microsoft/msfs-garminsdk": "2.0.5",
+    "@microsoft/msfs-sdk": "2.0.5",
+    "@microsoft/msfs-wtg1000": "2.0.7",
+    "@microsoft/msfs-types": "1.14.6",
     "@rollup/plugin-image": "^3.0.2",
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "@microsoft/msfs-garminsdk": "0.3.0",
-    "@microsoft/msfs-sdk": "0.5.0",
-    "@microsoft/msfs-types": "1.14.6",
-    "@microsoft/msfs-wtg1000": "1.1.6",
-    "rollup": "^2.79.1",
+    "rollup": "^4.27.3",
     "rollup-plugin-import-css": "^3.1.0",
     "typescript": "4.5.5"
   }

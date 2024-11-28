@@ -1,0 +1,21 @@
+.epic2-xpdr-detail-page .epic2-radio-detail-options-container .radio-button-wrapper-left-label {
+  margin-left: 14px;
+}
+
+.epic2-xpdr-detail-page .epic2-radio-detail-options-container .radio-button-container {
+  align-items: flex-end;
+  justify-content: flex-end;
+  width: 90px;
+}
+
+.epic2-xpdr-detail-page .epic2-radio-detail-text-container {
+  width: 254px;
+}
+
+epic2-pfd.right .epic2-xpdr-detail-page .epic2-radio-detail-options-container {
+  padding-left: 45px;
+}
+
+epic2-pfd.right .epic2-xpdr-detail-page .epic2-radio-detail-text-container {
+  padding-left: 315px;
+}

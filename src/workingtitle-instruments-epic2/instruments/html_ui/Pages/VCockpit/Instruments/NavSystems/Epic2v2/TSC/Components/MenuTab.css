@@ -1,0 +1,13 @@
+.tab {
+  display: flex;
+  flex-direction: column;
+}
+
+.tab.isActive {
+  border-left: 7px solid #00ff00;
+  background-color: black;
+}
+
+.tab-label.isActive {
+  color: #00ff00;
+}

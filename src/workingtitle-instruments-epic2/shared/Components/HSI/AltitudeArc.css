@@ -1,0 +1,12 @@
+.altitude-arc-container {
+  position: absolute;
+  filter: drop-shadow(0px 0px 1px rgba(0, 0, 0, .8));
+  top: 107px;
+  left: 241px;
+}
+
+.altitude-arc-container svg {
+  stroke: var(--epic2-color-green);
+  stroke-linejoin: round;
+  stroke-width: 3;
+}

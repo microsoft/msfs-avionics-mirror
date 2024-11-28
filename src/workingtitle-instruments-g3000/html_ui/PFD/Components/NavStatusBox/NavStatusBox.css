@@ -1,0 +1,132 @@
+.nav-status {
+  position: relative;
+  color: var(--g3000-color-magenta);
+  overflow: hidden;
+
+  --nav-status-leg-left: 0px;
+  --nav-status-leg-top: 0px;
+  --nav-status-leg-width: 100%;
+  --nav-status-leg-height: 50%;
+
+  --nav-status-leg-font-size: 1em;
+
+  --nav-status-icon-color: var(--g3000-color-magenta);
+
+  --nav-status-leg-arrow-offset-y: 0px;
+  --nav-status-leg-arrow-margin-horiz: 5px;
+
+  --nav-status-fields-left: 0px;
+  --nav-status-fields-top: 50%;
+  --nav-status-fields-width: 100%;
+  --nav-status-fields-height: 50%;
+
+  --nav-status-field-width: 50%;
+}
+
+.nav-status-gps-loi {
+  --nav-data-field-gps-color: var(--g3000-color-yellow);
+}
+
+.nav-status-leg {
+  position: absolute;
+  left: var(--nav-status-leg-left);
+  top: var(--nav-status-leg-top);
+  width: var(--nav-status-leg-width);
+  height: var(--nav-status-leg-height);
+  white-space: nowrap;
+}
+
+.nav-status-leg-base {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  font-size: var(--nav-status-leg-font-size);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.nav-status-leg-arrow {
+  position: relative;
+  top: var(--nav-status-leg-arrow-offset-y);
+  margin: 0px var(--nav-status-leg-arrow-margin-horiz);
+}
+
+@keyframes nav-status-alert-flash {
+  0% {
+    color: var(--g3000-color-black);
+  }
+
+  74.9% {
+    color: var(--g3000-color-black);
+  }
+
+  75% {
+    color: transparent;
+  }
+
+  99.9% {
+    color: transparent;
+  }
+}
+
+.nav-status-alert {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-black);
+  background: var(--g3000-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.nav-status-alert-text {
+  transform: scaleX(0.85);
+}
+
+.nav-status-alert-course {
+  display: inline-block;
+}
+
+.nav-status-alert-flash {
+  animation: nav-status-alert-flash 1s infinite;
+}
+
+.nav-status-fields {
+  position: absolute;
+  left: var(--nav-status-fields-left);
+  top: var(--nav-status-fields-top);
+  width: var(--nav-status-fields-width);
+  height: var(--nav-status-fields-height);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.nav-status-field-slot {
+  position: relative;
+  width: var(--nav-status-field-width);
+}
+
+.nav-status-vertical-track-alert {
+  position: absolute;
+  left: calc(50% - 210px / 2);
+  top: 3px;
+  width: 210px;
+  height: calc(100% - 3px);
+  color: var(--g3000-color-black);
+  background: var(--g3000-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  animation: nav-status-alert-flash 1s infinite;
+}

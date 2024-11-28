@@ -1,20 +1,9 @@
 import { DefaultUserSettingManager, EventBus } from '@microsoft/msfs-sdk';
 
-export enum CabinLightsMode {
-  OFF = 0,
-  ON = 1,
-  DIM = 2,
-  AUTO = 3,
-}
-
 /**
  * Type description for WT21 related user settings
  */
 const userSettings = [
-  {
-    name: 'cabinLightsMode',
-    defaultValue: CabinLightsMode.DIM as CabinLightsMode,
-  },
 ] as const;
 
 /** Generates the UserSettingDefinition type based on the settings object */

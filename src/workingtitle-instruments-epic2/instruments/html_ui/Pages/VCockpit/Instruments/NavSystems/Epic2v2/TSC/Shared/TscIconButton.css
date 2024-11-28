@@ -1,0 +1,72 @@
+.navigation-button,
+.com-button,
+.xpdr-button {
+  height: 63px;
+  width: 115px;
+  font-size: 22px;
+  border: 2px solid var(--epic2-color-white);
+  color: var(--epic2-color-white);
+  background-color: var(--epic2-color-darker-grey);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 2px;
+}
+
+.nav1-btn.isActive,
+.nav2-btn.isActive,
+.adf-btn.isActive,
+.com1-btn.isActive,
+.com2-btn.isActive,
+.ident-btn.isActive,
+.vfr-btn.isActive {
+  border: 2px solid var(--epic2-color-green);
+}
+
+.nav1-text,
+.nav2-text,
+.adf-text,
+.com1-text,
+.com2-text,
+.ident-text,
+.vfr-text {
+  margin-left: 10px;
+  margin-top: 2px;
+}
+
+.nav1-text.isActive,
+.nav2-text.isActive,
+.adf-text.isActive,
+.com1-text.isActive,
+.com2-text.isActive,
+.ident-text.isActive,
+.vfr-text.isActive {
+  color: var(--epic2-color-green);
+}
+
+.nav1-circle,
+.nav2-circle,
+.adf-circle,
+.com1-circle,
+.com2-circle,
+.ident-circle,
+.vfr-circle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--epic2-color-white);
+  background-color: transparent;
+  margin-top: 5px;
+  margin-left: auto;
+}
+
+.nav1-circle.isActive,
+.nav2-circle.isActive,
+.adf-circle.isActive,
+.com1-circle.isActive,
+.com2-circle.isActive,
+.ident-circle.isActive,
+.vfr-circle.isActive {
+  border: 1px solid var(--epic2-color-green);
+  background-color: var(--epic2-color-green);
+}

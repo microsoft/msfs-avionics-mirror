@@ -65,25 +65,25 @@ interface SBASGroupDefinition {
  */
 export enum GPSSatelliteState {
   /** There is no current valid state. */
-  None = 'None',
+  None,
 
   /** The satellite is out of view and cannot be reached. */
-  Unreachable = 'Unreachable',
+  Unreachable,
 
   /** The satellite has been found and data is being downloaded. */
-  Acquired = 'Acquired',
+  Acquired,
 
   /** The satellite is faulty. */
-  Faulty = 'Faulty',
+  Faulty,
 
   /** The satellite has been found, data is downloaded, but is not presently used in the GPS solution. */
-  DataCollected = 'DataCollected',
+  DataCollected,
 
   /** The satellite is being active used in the GPS solution. */
-  InUse = 'InUse',
+  InUse,
 
   /** The satellite is being active used in the GPS solution and SBAS differential corrections are being applied. */
-  InUseDiffApplied = 'InUseDiffApplied'
+  InUseDiffApplied
 }
 
 /**
@@ -909,6 +909,7 @@ export class GPSSatComputer implements Instrument {
     this.updateAvailableSbasGroups();
 
     const enabledSBASGroups = this.enabledSBASGroups.get();
+    const invMaxZenithAngle = 1.0 / (GPSSatellite.calcHorizonAngle(this.altitude) + (Math.PI / 2));
 
     for (let i = 0; i < this.satellites.length; i++) {
       const sat = this.satellites[i];
@@ -918,7 +919,7 @@ export class GPSSatComputer implements Instrument {
         sat.applyProjection(this.ppos, this.altitude);
       }
 
-      sat.calculateSignalStrength(this.altitude);
+      sat.calculateSignalStrength(invMaxZenithAngle);
     }
 
     if (this.syncRole === 'replica') {
@@ -2091,12 +2092,11 @@ export class GPSSatellite {
 
   /**
    * Calculates the current signal strength.
-   * @param altitude The current plane altitude in meters.
+   * @param invMaxZenithAngle The inverse of the maximum zenith angle at which a satellite can still have line of sight, in radians.
    */
-  public calculateSignalStrength(altitude: number): void {
+  public calculateSignalStrength(invMaxZenithAngle: number): void {
     if (this.hasComputedPosition) {
-      const maxZenithAngle = GPSSatellite.calcHorizonAngle(altitude) + (Math.PI / 2);
-      const signalStrength = Math.max(0, 1 - (this.position.get()[0] / maxZenithAngle));
+      const signalStrength = Math.max(0, 1 - (this.position.get()[0] * invMaxZenithAngle));
 
       this.signalStrength.set(signalStrength);
     }

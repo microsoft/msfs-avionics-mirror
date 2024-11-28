@@ -1,7 +1,8 @@
-import { EventBus, KeyEventData, KeyEvents, KeyEventManager, SimVarValueType } from '../../data';
-import { APEvents } from '../../instruments';
+import { EventBus, KeyEventData, KeyEventManager, KeyEvents, SimVarValueType } from '../../data';
+import { APEvents } from '../../instruments/APPublisher';
+import { ClockEvents } from '../../instruments/Clock';
 import { BitFlags, MathUtils, NumberUnitInterface, Unit, UnitFamily, UnitType } from '../../math';
-import { UserSetting, UserSettingManager } from '../../settings';
+import { UserSetting, UserSettingManager } from '../../settings/UserSetting';
 import { SubscribableSet, SubscribableSetEventType } from '../../sub/SubscribableSet';
 import { SortedArray } from '../../utils/datastructures/SortedArray';
 import { DebounceTimer } from '../../utils/time';
@@ -26,6 +27,23 @@ export type MetricAltitudeSelectSetting = {
  * A type describing a settings manager that at least has the metric altimeter setting.
  */
 export type MetricAltitudeSettingsManager = UserSettingManager<MetricAltitudeSelectSetting>;
+
+/**
+ * Types of input acceleration supported by {@link AltitudeSelectManager}.
+ */
+export enum AltitudeSelectManagerAccelType {
+  /** No input acceleration. */
+  None = 'None',
+
+  /** While input acceleration is active, small-increment inputs will be converted to large increments. */
+  SmallToLarge = 'SmallToLarge',
+
+  /**
+   * While input acceleration is active, the magnitude of small-increment inputs will be adjusted by an arbitrary
+   * factor based on the observed rate of small-increment inputs.
+   */
+  DynamicSmall = 'DynamicSmall'
+}
 
 /**
  * Bitflags used to filter input events eligible to trigger input acceleration for {@link AltitudeSelectManager}.
@@ -124,11 +142,47 @@ export type AltitudeSelectManagerOptions = {
   lockAltToStepOnSetMetric?: boolean;
 
   /**
-   * The required number of consecutive small-increment inputs received to trigger input acceleration. While
-   * acceleration is active, small-increment inputs will be converted to large increments. A threshold less than or
-   * equal to zero effectively disables input acceleration. Defaults to 0.
+   * The type of input acceleration to use when handling increment/decrement events. Defaults to
+   * {@link AltitudeSelectManagerAccelType.None}.
+   */
+  accelType?: AltitudeSelectManagerAccelType;
+
+  /**
+   * The required number of consecutive small-increment inputs received to trigger input acceleration. Only applies
+   * to the {@link AltitudeSelectManagerAccelType.SmallToLarge} acceleration type. A threshold less than or equal to
+   * zero disables input acceleration. Defaults to 0.
    */
   accelInputCountThreshold?: number;
+
+  /**
+   * The maximum amount of time, in milliseconds, between input events that are counted as consecutive for triggering
+   * input acceleration. Only applies to the {@link AltitudeSelectManagerAccelType.SmallToLarge} acceleration type.
+   * Defaults to 300.
+   */
+  accelInputCountWindow?: number;
+
+  /**
+   * The required average rate of inputs received to trigger input acceleration. Only applies to the
+   * {@link AltitudeSelectManagerAccelType.DynamicSmall} acceleration type. A threshold less than or equal to zero
+   * enables input acceleration for every eligible input. Defaults to 0.
+   */
+  accelInputRateThreshold?: number;
+
+  /**
+   * The window of time, in milliseconds, over which input rate is averaged when calculating input acceleration. Only
+   * applies to the {@link AltitudeSelectManagerAccelType.DynamicSmall} acceleration type. A window less than or equal
+   * to zero disables input acceleration. Defaults to 0.
+   */
+  accelInputRateWindow?: number;
+
+  /**
+   * A function that transforms an observed input rate to an accelerated input rate when input acceleration is active.
+   * The amount by which each input increments the selected altitude setting will be adjusted such that the setting's
+   * rate of change approximately equals that which would be effected by unaccelerated inputs at the transformed rate.
+   * @param inputRate The observed input rate to transform, in inputs per second.
+   * @returns The accelerated input rate for the specified observed input rate, in inputs per second.
+   */
+  accelInputRateTransformer?: (inputRate: number) => number;
 
   /** Whether to reset input acceleration if the direction of increment changes. Defaults to `false`. */
   accelResetOnDirectionChange?: boolean;
@@ -161,8 +215,6 @@ export type AltitudeSelectManagerOptions = {
  * Controls the value of the autopilot selected altitude setting in response to key events.
  */
 export class AltitudeSelectManager {
-  private static readonly CONSECUTIVE_INPUT_PERIOD = 300; // the maximum amount of time, in ms, between input events that are counted as consecutive
-
   private keyEventManager?: KeyEventManager;
 
   private readonly publisher = this.bus.getPublisher<AltitudeSelectEvents>();
@@ -186,7 +238,14 @@ export class AltitudeSelectManager {
   private readonly lockAltToStepOnSet: boolean;
   private readonly lockAltToStepOnSetMetric: boolean;
 
+  private readonly accelType: AltitudeSelectManagerAccelType;
   private readonly accelInputCountThreshold: number;
+  private readonly accelInputCountWindow: number;
+
+  private readonly accelInputRateThreshold: number;
+  private readonly accelInputRateWindow: number;
+  private readonly accelInputRateTransformer: (inputRate: number) => number;
+
   private readonly accelResetOnDirectionChange: boolean;
   private readonly accelFilter: number;
 
@@ -198,16 +257,26 @@ export class AltitudeSelectManager {
 
   private readonly stops = new SortedArray<number>((a, b) => a - b);
 
+  private readonly lockDebounceTimer = new DebounceTimer();
+
+  private isKeyEventInit = false;
+
   private isEnabled = true;
   private isInitialized = false;
   private isPaused = false;
   private isLocked = false;
 
-  private lockDebounceTimer = new DebounceTimer();
+  private frameCounter = 0;
 
-  private consecIncrSmallCount = 0;
-  private lastIncrSmallDirection = 1;
-  private lastIncrSmallInputTime = 0;
+  private isAccelActive = false;
+
+  private accelConsecIncrSmallCount = 0;
+  private accelLastIncrDirection = 0;
+  private accelLastIncrInputTime = 0;
+
+  private readonly accelWindowRecord: number[] = [];
+  private lastAccelInputFrame: number | undefined = undefined;
+  private accelInputRateResidual = 0;
 
   private readonly selectedAltitudeChangedHandler = (): void => {
     // wait one frame before unlocking due to delay between when a key event is created and when it is intercepted on
@@ -253,7 +322,15 @@ export class AltitudeSelectManager {
     this.lockAltToStepOnSet = options.lockAltToStepOnSet ?? false;
     this.lockAltToStepOnSetMetric = options.lockAltToStepOnSetMetric ?? this.lockAltToStepOnSet;
 
+    this.accelType = options.accelType ?? AltitudeSelectManagerAccelType.None;
+
     this.accelInputCountThreshold = options.accelInputCountThreshold ?? 0;
+    this.accelInputCountWindow = options.accelInputCountWindow ?? 300;
+
+    this.accelInputRateThreshold = options.accelInputRateThreshold ?? 0;
+    this.accelInputRateWindow = options.accelInputRateWindow ?? 0;
+    this.accelInputRateTransformer = options.accelInputRateTransformer ?? AltitudeSelectManager.defaultInputRateTransformer;
+
     this.accelResetOnDirectionChange = options.accelResetOnDirectionChange ?? false;
     this.accelFilter = options.accelFilter ?? AltitudeSelectManagerAccelFilter.All;
 
@@ -265,13 +342,7 @@ export class AltitudeSelectManager {
 
     if (stops !== undefined) {
       if ('isSubscribableSet' in stops) {
-        stops.sub((set, type, key) => {
-          if (type === SubscribableSetEventType.Added) {
-            this.stops.insert(key);
-          } else {
-            this.stops.remove(key);
-          }
-        }, true);
+        stops.sub(this.onStopsChanged.bind(this), true);
       } else {
         this.stops.insertAll(new Set(stops)); // Make sure there are no duplicates.
       }
@@ -279,24 +350,33 @@ export class AltitudeSelectManager {
 
     this.isInitialized = !(options.initOnInput ?? false);
 
-    KeyEventManager.getManager(bus).then(manager => {
-      this.keyEventManager = manager;
+    this.initKeyEvents();
+  }
 
-      manager.interceptKey('AP_ALT_VAR_SET_ENGLISH', false);
-      manager.interceptKey('AP_ALT_VAR_SET_METRIC', false);
-      manager.interceptKey('AP_ALT_VAR_INC', false);
-      manager.interceptKey('AP_ALT_VAR_DEC', false);
+  /**
+   * Initializes this manager's key event intercepts.
+   */
+  private async initKeyEvents(): Promise<void> {
+    this.keyEventManager = await KeyEventManager.getManager(this.bus);
 
-      const sub = this.bus.getSubscriber<KeyEvents & APEvents>();
+    this.keyEventManager.interceptKey('AP_ALT_VAR_SET_ENGLISH', false);
+    this.keyEventManager.interceptKey('AP_ALT_VAR_SET_METRIC', false);
+    this.keyEventManager.interceptKey('AP_ALT_VAR_INC', false);
+    this.keyEventManager.interceptKey('AP_ALT_VAR_DEC', false);
 
-      if (this.transformSetToIncDec) {
-        sub.on(`ap_altitude_selected_${this.altitudeHoldSlotIndex}`).whenChanged().handle(this.selectedAltitudeChangedHandler);
-      }
+    this.isKeyEventInit = true;
 
-      sub.on('key_intercept').handle(this.onKeyIntercepted.bind(this));
+    const sub = this.bus.getSubscriber<KeyEvents & APEvents & ClockEvents>();
 
-      this.publisher.pub('alt_select_is_initialized', !this.isEnabled || this.isInitialized, true);
-    });
+    if (this.transformSetToIncDec) {
+      sub.on(`ap_altitude_selected_${this.altitudeHoldSlotIndex}`).whenChanged().handle(this.selectedAltitudeChangedHandler);
+    }
+
+    sub.on('key_intercept').handle(this.onKeyIntercepted.bind(this));
+
+    this.publisher.pub('alt_select_is_initialized', !this.isEnabled || this.isInitialized, true);
+
+    sub.on('simTimeHiFreq').handle(this.update.bind(this));
   }
 
   /**
@@ -305,8 +385,15 @@ export class AltitudeSelectManager {
    * @param isEnabled Whether this manager is enabled.
    */
   public setEnabled(isEnabled: boolean): void {
+    if (this.isEnabled === isEnabled) {
+      return;
+    }
+
     this.isEnabled = isEnabled;
-    this.publisher.pub('alt_select_is_initialized', !isEnabled || this.isInitialized, true);
+
+    if (this.isKeyEventInit) {
+      this.publisher.pub('alt_select_is_initialized', !isEnabled || this.isInitialized, true);
+    }
   }
 
   /**
@@ -339,7 +426,39 @@ export class AltitudeSelectManager {
     SimVar.SetSimVarValue(this.altitudeHoldSlotSimVar, SimVarValueType.Feet, altitude);
     if (resetInitialized) {
       this.isInitialized = false;
-      this.publisher.pub('alt_select_is_initialized', false, true);
+      if (this.isKeyEventInit) {
+        this.publisher.pub('alt_select_is_initialized', false, true);
+      }
+    }
+  }
+
+  /**
+   * Sets the initialized state of the selected altitude.
+   * @param initialized The state to set.
+   */
+  public setSelectedAltitudeInitialized(initialized: boolean): void {
+    if (this.isInitialized === initialized) {
+      return;
+    }
+
+    this.isInitialized = initialized;
+
+    if (this.isKeyEventInit) {
+      this.publisher.pub('alt_select_is_initialized', !this.isEnabled || initialized, true);
+    }
+  }
+
+  /**
+   * Responds to when the set of additional altitude increment stops changes.
+   * @param set The set containing all additional altitude increment stops.
+   * @param type The type of change.
+   * @param stop The stop that changed.
+   */
+  private onStopsChanged(set: ReadonlySet<number>, type: SubscribableSetEventType, stop: number): void {
+    if (type === SubscribableSetEventType.Added) {
+      this.stops.insert(stop);
+    } else {
+      this.stops.remove(stop);
     }
   }
 
@@ -382,15 +501,12 @@ export class AltitudeSelectManager {
   private handleKeyEvent(key: string, value?: number): void {
     const currentValue = SimVar.GetSimVarValue(this.altitudeHoldSlotSimVar, SimVarValueType.Feet);
     let startValue = currentValue;
-
     if (!this.isInitialized) {
       if (this.initToIndicatedAlt) {
         startValue = SimVar.GetSimVarValue('INDICATED ALTITUDE', SimVarValueType.Feet);
       } else {
         startValue = 0;
       }
-      this.publisher.pub('alt_select_is_initialized', true, true);
-      this.isInitialized = true;
     }
 
     let direction: 0 | 1 | -1 = 0;
@@ -439,38 +555,17 @@ export class AltitudeSelectManager {
     }
 
     // Handle input acceleration
-    if (this.accelInputCountThreshold > 0) {
-      const time = Date.now();
-
-      let isAccelActive = this.consecIncrSmallCount >= this.accelInputCountThreshold;
-
-      const didPassFilter = BitFlags.isAny(accelFilterChallenge, this.accelFilter);
-
-      if (
-        useLargeIncrement
-        || !didPassFilter
-        || direction === 0
-        || (this.consecIncrSmallCount > 0 && time - this.lastIncrSmallInputTime > AltitudeSelectManager.CONSECUTIVE_INPUT_PERIOD)
-        || ((isAccelActive ? this.accelResetOnDirectionChange : this.consecIncrSmallCount > 0) && this.lastIncrSmallDirection !== direction)
-      ) {
-        this.consecIncrSmallCount = 0;
-      }
-
-      if (!useLargeIncrement && didPassFilter) {
-        this.consecIncrSmallCount++;
-        this.lastIncrSmallDirection = direction;
-        this.lastIncrSmallInputTime = time;
-      }
-
-      isAccelActive = this.consecIncrSmallCount >= this.accelInputCountThreshold;
-
-      if (isAccelActive) {
-        useLargeIncrement = true;
-      }
-    }
-
-    if (direction !== 0) {
-      this.changeSelectedAltitude(startValue, direction, useLargeIncrement);
+    switch (this.accelType) {
+      case AltitudeSelectManagerAccelType.SmallToLarge:
+        this.handleSmallToLargeAccel(startValue, direction, useLargeIncrement, accelFilterChallenge);
+        break;
+      case AltitudeSelectManagerAccelType.DynamicSmall:
+        this.handleDynamicSmallAccel(startValue, direction, useLargeIncrement, accelFilterChallenge);
+        break;
+      default:
+        if (direction !== 0) {
+          this.changeSelectedAltitude(startValue, direction, useLargeIncrement);
+        }
     }
   }
 
@@ -512,6 +607,169 @@ export class AltitudeSelectManager {
     if (valueToSet !== SimVar.GetSimVarValue(this.altitudeHoldSlotSimVar, SimVarValueType.Feet)) {
       SimVar.SetSimVarValue(this.altitudeHoldSlotSimVar, SimVarValueType.Feet, valueToSet);
     }
+
+    if (!this.isInitialized) {
+      this.publisher.pub('alt_select_is_initialized', true, true, true);
+      this.isInitialized = true;
+    }
+  }
+
+  /**
+   * Handles an increment/decrement input with small-to-large increment acceleration.
+   * @param startValue The value from which to change, in feet.
+   * @param direction The direction of change.
+   * @param useLargeIncrement Whether the input to handle is for a large increment.
+   * @param accelFilterChallenge Bitflags with which to challenge this manager's input acceleration filter. The input
+   * will meet the conditions for acceleration if and only if the challenge flags shares at least one non-zero bit with
+   * the filter.
+   */
+  private handleSmallToLargeAccel(
+    startValue: number,
+    direction: 0 | 1 | -1,
+    useLargeIncrement: boolean,
+    accelFilterChallenge: number
+  ): void {
+    if (this.accelInputCountThreshold > 0) {
+      const time = Date.now();
+
+      let isAccelActive = this.accelConsecIncrSmallCount >= this.accelInputCountThreshold;
+
+      const didPassFilter = BitFlags.isAny(accelFilterChallenge, this.accelFilter);
+
+      if (
+        useLargeIncrement
+        || !didPassFilter
+        || direction === 0
+        || (this.accelConsecIncrSmallCount > 0 && time - this.accelLastIncrInputTime > this.accelInputCountWindow)
+        || ((isAccelActive ? this.accelResetOnDirectionChange : this.accelConsecIncrSmallCount > 0) && this.accelLastIncrDirection !== direction)
+      ) {
+        this.accelConsecIncrSmallCount = 0;
+      }
+
+      if (!useLargeIncrement && didPassFilter) {
+        this.accelConsecIncrSmallCount++;
+        this.accelLastIncrDirection = direction;
+        this.accelLastIncrInputTime = time;
+      }
+
+      isAccelActive = this.accelConsecIncrSmallCount >= this.accelInputCountThreshold;
+
+      if (isAccelActive) {
+        useLargeIncrement = true;
+      }
+
+      this.isAccelActive = isAccelActive;
+    }
+
+    if (direction !== 0) {
+      this.changeSelectedAltitude(startValue, direction, useLargeIncrement);
+    }
+  }
+
+  /**
+   * Handles an increment/decrement input with dynamic small-increment acceleration.
+   * @param startValue The value from which to change, in feet.
+   * @param direction The direction of change.
+   * @param useLargeIncrement Whether the input to handle is for a large increment.
+   * @param accelFilterChallenge Bitflags with which to challenge this manager's input acceleration filter. The input
+   * will meet the conditions for acceleration if and only if the challenge flags shares at least one non-zero bit with
+   * the filter.
+   */
+  private handleDynamicSmallAccel(
+    startValue: number,
+    direction: 0 | 1 | -1,
+    useLargeIncrement: boolean,
+    accelFilterChallenge: number
+  ): void {
+    let delta = direction;
+
+    if (this.accelInputRateWindow > 0) {
+      const time = Date.now();
+
+      if (direction !== 0 && direction !== this.accelLastIncrDirection) {
+        if (this.isAccelActive) {
+          this.accelInputRateResidual = 0;
+          if (this.accelResetOnDirectionChange) {
+            this.accelWindowRecord.length = 0;
+            this.isAccelActive = false;
+          }
+        } else {
+          this.accelWindowRecord.length = 0;
+        }
+      }
+
+      this.updateAccelWindowRecord(time);
+
+      const isLastAccelInputThisFrame = this.frameCounter === this.lastAccelInputFrame;
+      const isInputEligibleForAccel = direction !== 0 && !useLargeIncrement && BitFlags.isAny(accelFilterChallenge, this.accelFilter);
+
+      // Do not push the current input into the record if the input was received on the same frame as the previous
+      // acceleration-eligible input. We are effectively limited to changing the selected altitude once per frame, so
+      // we are unable to "accumulate" multiple increments per frame.
+      if (isInputEligibleForAccel && !isLastAccelInputThisFrame) {
+        this.accelWindowRecord.push(time);
+        this.lastAccelInputFrame = this.frameCounter;
+      }
+
+      const inputRate = this.accelWindowRecord.length / this.accelInputRateWindow * 1000;
+      const isAccelActive = inputRate >= this.accelInputRateThreshold;
+
+      if (isAccelActive !== this.isAccelActive) {
+        if (!isAccelActive) {
+          this.accelWindowRecord.length = 0;
+          this.accelInputRateResidual = 0;
+        }
+        this.isAccelActive = isAccelActive;
+      } else if (isAccelActive && isInputEligibleForAccel) {
+        // Do not try to change the selected altitude if the current input was received on the same frame as the
+        // previous acceleration-eligible input.
+        if (isLastAccelInputThisFrame) {
+          delta = 0;
+        } else {
+          // Over multiple frames, error from quantizing the change in the selected altitude to the small increment can
+          // add to become significant. To combat this, we calculate a residual input rate and add it to the next
+          // accelerated input.
+          const desiredInputRate = Math.max(Math.max(this.accelInputRateTransformer(inputRate), 0) + this.accelInputRateResidual, 0);
+          const increment = Math.round(desiredInputRate / inputRate);
+          this.accelInputRateResidual = desiredInputRate - increment * inputRate;
+          delta *= increment;
+        }
+      }
+
+      this.accelLastIncrDirection = direction;
+    }
+
+    if (delta !== 0) {
+      this.changeSelectedAltitude(startValue, delta, useLargeIncrement);
+    }
+  }
+
+  /**
+   * Updates the record of input events within the acceleration window. Existing events in the record that are older
+   * than the window are removed. If the current time is less than the most recent event in the record, then all events
+   * are removed from the record.
+   * @param time The current real (operating system) time, as a Javascript timestamp.
+   */
+  private updateAccelWindowRecord(time: number): void {
+    if (this.accelWindowRecord.length === 0) {
+      return;
+    }
+
+    // Check if the most recent time is after the current time (can only happen if the operating system clock is
+    // changed). If it is, then empty the entire record.
+    if (this.accelWindowRecord[this.accelWindowRecord.length - 1] > time) {
+      this.accelWindowRecord.length = 0;
+    }
+
+    // Remove all entries that are older than the window.
+    let startIndex = 0;
+    for (; startIndex < this.accelWindowRecord.length; startIndex++) {
+      const dt = time - this.accelWindowRecord[startIndex];
+      if (dt <= this.accelInputRateWindow) {
+        break;
+      }
+    }
+    this.accelWindowRecord.splice(0, startIndex);
   }
 
   /**
@@ -519,12 +777,16 @@ export class AltitudeSelectManager {
    * PFD altimeter metric mode is enabled. The value of the setting after the change is guaranteed to be a round number
    * in the appropriate units (nearest 100 feet or 50 meters).
    * @param startValue The value from which to change, in feet.
-   * @param direction The direction of the change: `1` for increment, `-1` for decrement.
+   * @param delta The direction of the change: `1` for increment, `-1` for decrement.
    * @param useLargeIncrement Whether to change the altitude by the large increment (1000 feet/500 meters) instead of
    * the small increment (100 feet/50 meters). False by default.
    */
-  private changeSelectedAltitude(startValue: number, direction: -1 | 1, useLargeIncrement = false): void {
-    const roundFunc = direction === 1 ? Math.floor : Math.ceil;
+  private changeSelectedAltitude(startValue: number, delta: number, useLargeIncrement = false): void {
+    if (delta === 0) {
+      return;
+    }
+
+    const roundFunc = delta > 0 ? MathUtils.floor : MathUtils.ceil;
     const isMetric = this.altimeterMetricSetting?.value ?? false;
 
     let min, max, incrSmall, incrLarge, units, lockAlt;
@@ -547,14 +809,14 @@ export class AltitudeSelectManager {
     const startValueConverted = Math.round(UnitType.FOOT.convertTo(startValue, units));
     useLargeIncrement &&= !lockAlt || (startValueConverted % incrSmall === 0);
     let valueToSet = UnitType.FOOT.convertFrom(
-      MathUtils.clamp((lockAlt ? roundFunc(startValueConverted / incrSmall) * incrSmall : startValueConverted) + direction * (useLargeIncrement ? incrLarge : incrSmall), min, max),
+      MathUtils.clamp((lockAlt ? roundFunc(startValueConverted, incrSmall) : startValueConverted) + delta * (useLargeIncrement ? incrLarge : incrSmall), min, max),
       units
     );
 
     // Check if we need to set the new altitude to a stop instead.
     if (this.stops.length > 0) {
       let nextStopIndex = this.stops.matchIndex(startValue);
-      if (direction === 1) {
+      if (delta > 0) {
         if (nextStopIndex < 0) {
           nextStopIndex = -nextStopIndex - 1;
         } else {
@@ -587,6 +849,11 @@ export class AltitudeSelectManager {
         this.lockDebounceTimer.schedule(() => { this.isLocked = false; }, 250);
       }
     }
+
+    if (!this.isInitialized) {
+      this.publisher.pub('alt_select_is_initialized', true, true, true);
+      this.isInitialized = true;
+    }
   }
 
   /**
@@ -618,5 +885,21 @@ export class AltitudeSelectManager {
     }
 
     SimVar.SetSimVarValue(`AUTOPILOT ALTITUDE LOCK VAR:${index}`, SimVarValueType.Feet, valueToSet);
+  }
+
+  /**
+   * Updates this manager every frame.
+   */
+  private update(): void {
+    this.frameCounter = (this.frameCounter + 1) % Number.MAX_SAFE_INTEGER;
+  }
+
+  /**
+   * A function that returns an input rate without changing it.
+   * @param inputRate An input rate.
+   * @returns The specified input rate, unchanged.
+   */
+  private static defaultInputRateTransformer(inputRate: number): number {
+    return inputRate;
   }
 }

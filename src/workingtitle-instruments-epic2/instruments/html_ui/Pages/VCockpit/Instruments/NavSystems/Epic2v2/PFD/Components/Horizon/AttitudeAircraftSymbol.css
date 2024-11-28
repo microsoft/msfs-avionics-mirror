@@ -1,0 +1,43 @@
+.attitude-aircraft-symbol {
+  stroke-width: 2px;
+  stroke: var(--epic2-color-green);
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.attitude-aircraft-symbol .shadow {
+  stroke-width: 4px;
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+}
+
+.attitude-aircraft-symbol-single-cue {
+  width: 348px;
+  height: 42px;
+}
+
+.attitude-aircraft-symbol-dual-cue {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 326px;
+  height: 46px;
+}
+
+.attitude-aircraft-symbol-flt-pth {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 326px;
+  height: 46px;
+
+  stroke-linejoin: miter;
+  stroke-width: 5px;
+  stroke: var(--epic2-color-grey);
+  fill: var(--epic2-color-white);
+}
+
+/* the centre box in dual cue mode displays above the flight director */
+.attitude-aircraft-symbol-top-layer {
+  z-index: 10;
+}

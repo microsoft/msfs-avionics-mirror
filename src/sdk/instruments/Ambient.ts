@@ -1,7 +1,7 @@
 import { EventBus } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { SimVarValueType } from '../data/SimVars';
-import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
+import { SimVarPublisher } from './BasePublishers';
 
 /**
  * Ambient precipitation states.
@@ -39,6 +39,9 @@ export interface AmbientEvents {
    * at the airplane's current position, in millibars.
    */
   ambient_qnh_mb: number;
+
+  /** The ambient light intensity at the airplane's current position, in lux. */
+  ambient_light_intensity: number;
 }
 
 /**
@@ -51,15 +54,14 @@ export class AmbientPublisher extends SimVarPublisher<AmbientEvents> {
    * @param pacer An optional pacer to use to control the rate of publishing.
    */
   public constructor(bus: EventBus, pacer?: PublishPacer<AmbientEvents>) {
-    const simvars = new Map<keyof AmbientEvents, SimVarPublisherEntry<any>>([
+    super([
       ['ambient_precip_state', { name: 'AMBIENT PRECIP STATE', type: SimVarValueType.Number }],
       ['ambient_precip_rate', { name: 'AMBIENT PRECIP RATE', type: SimVarValueType.MillimetersWater }],
       ['ambient_visibility', { name: 'AMBIENT VISIBILITY', type: SimVarValueType.Meters }],
       ['ambient_in_cloud', { name: 'AMBIENT IN CLOUD', type: SimVarValueType.Bool }],
       ['ambient_qnh_inhg', { name: 'SEA LEVEL PRESSURE', type: SimVarValueType.InHG }],
       ['ambient_qnh_mb', { name: 'SEA LEVEL PRESSURE', type: SimVarValueType.MB }],
-    ]);
-
-    super(simvars, bus, pacer);
+      ['ambient_light_intensity', { name: 'AMBIENT LIGHT SENSOR', type: SimVarValueType.Number }],
+    ], bus, pacer);
   }
 }

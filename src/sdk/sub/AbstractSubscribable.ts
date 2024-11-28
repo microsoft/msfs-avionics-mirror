@@ -61,19 +61,6 @@ export abstract class AbstractSubscribable<T> implements Subscribable<T> {
     return sub;
   }
 
-  /** @inheritdoc */
-  public unsub(handler: (v: T) => void): void {
-    let toDestroy: HandlerSubscription<(v: T) => void> | undefined = undefined;
-
-    if (this.singletonSub && this.singletonSub.handler === handler) {
-      toDestroy = this.singletonSub;
-    } else if (this.subs) {
-      toDestroy = this.subs.find(sub => sub.handler === handler);
-    }
-
-    toDestroy?.destroy();
-  }
-
   /**
    * Notifies subscriptions that this subscribable's value has changed.
    */
@@ -84,7 +71,7 @@ export abstract class AbstractSubscribable<T> implements Subscribable<T> {
 
     if (this.singletonSub) {
       try {
-        if (this.singletonSub.isAlive && !this.singletonSub.isPaused) {
+        if (!this.singletonSub.isPaused) {
           this.notifySubscription(this.singletonSub);
         }
       } catch (error) {
@@ -113,7 +100,7 @@ export abstract class AbstractSubscribable<T> implements Subscribable<T> {
       for (let i = 0; i < subLen; i++) {
         try {
           const sub = this.subs[i];
-          if (sub.isAlive && !sub.isPaused) {
+          if (!sub.isPaused) {
             this.notifySubscription(sub);
           }
 

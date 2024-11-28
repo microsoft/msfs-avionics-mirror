@@ -1,12 +1,13 @@
 import {
-  AbstractFlightPathPlanRenderer, BitFlags, CircleVector, FlightPathLegLineRenderer, FlightPathLegLineStyle, FlightPathLegRenderPart, FlightPathVectorFlags,
-  FlightPlan, GeoProjection, GeoProjectionPathStreamStack, LegDefinition, LegDefinitionFlags, LegType, LNavTrackingState
+  AbstractFlightPathPlanRenderer, BitFlags, FlightPathLegLineRenderer, FlightPathLegLineStyle, FlightPathLegRenderPart,
+  FlightPathVector, FlightPathVectorFlags, FlightPlan, GeoProjection, GeoProjectionPathStreamStack, LegDefinition,
+  LegDefinitionFlags, LegType, LNavTrackingState
 } from '@microsoft/msfs-sdk';
 
 import { FmsUtils } from '../../../flightplan/FmsUtils';
 import {
-  FlightPathDefaultLegRenderer, FlightPathDirectToCourseLegRenderer, FlightPathHoldLegRenderer, FlightPathObsLegRenderer, FlightPathProcTurnLegRenderer,
-  FlightPathVtfLegRenderer
+  FlightPathDefaultLegRenderer, FlightPathDirectToCourseLegRenderer, FlightPathHoldLegRenderer,
+  FlightPathObsLegRenderer, FlightPathProcTurnLegRenderer, FlightPathVtfLegRenderer
 } from './MapFlightPathLegRenderers';
 import { MapFlightPathPlanRenderer } from './MapFlightPathPlanRenderer';
 import { MapFlightPathStyles } from './MapFlightPathStyles';
@@ -71,14 +72,14 @@ export class DefaultBaseFlightPathPlanRenderer extends AbstractFlightPathPlanRen
    * @returns The selected line style for the vector.
    */
   private selectLineStyle(
-    vector: CircleVector,
+    vector: Readonly<FlightPathVector>,
     isIngress: boolean,
     isEgress: boolean,
     leg: LegDefinition,
     projection: GeoProjection,
     out: FlightPathLegLineStyle
   ): FlightPathLegLineStyle {
-    if (this.isRollHeadingVector(vector, leg)) {
+    if (this.isHeadingVector(leg) || this.isRollHeadingVector(vector, leg)) {
       out.strokeWidth = 0;
     } else {
       out.strokeWidth = MapFlightPathStyles.BASE_STROKE_WIDTH;
@@ -97,7 +98,7 @@ export class DefaultBaseFlightPathPlanRenderer extends AbstractFlightPathPlanRen
    * @param leg The flight plan leg to which the vector belongs.
    * @returns Whether the flight path vector should be styled as a roll-heading vector.
    */
-  private isRollHeadingVector(vector: CircleVector, leg: LegDefinition): boolean {
+  private isRollHeadingVector(vector: Readonly<FlightPathVector>, leg: LegDefinition): boolean {
     if (BitFlags.isAny(vector.flags, FlightPathVectorFlags.Fallback)) {
       return true;
     }
@@ -105,6 +106,24 @@ export class DefaultBaseFlightPathPlanRenderer extends AbstractFlightPathPlanRen
     switch (leg.leg.type) {
       case LegType.CF:
         return BitFlags.isAny(vector.flags, FlightPathVectorFlags.InterceptCourse | FlightPathVectorFlags.Direct);
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Checks whether a vector should be rendered as a heading vector.
+   * @param leg The flight plan leg containing the vector.
+   * @returns Whether the vector should be rendered as a heading vector.
+   */
+  private isHeadingVector(leg: LegDefinition): boolean {
+    switch (leg.leg.type) {
+      case LegType.VA:
+      case LegType.VD:
+      case LegType.VI:
+      case LegType.VM:
+      case LegType.VR:
+        return true;
       default:
         return false;
     }

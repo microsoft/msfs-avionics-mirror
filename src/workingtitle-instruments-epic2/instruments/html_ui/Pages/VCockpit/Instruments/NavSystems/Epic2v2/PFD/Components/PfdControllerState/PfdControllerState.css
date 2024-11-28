@@ -1,0 +1,14 @@
+.pfd-controller-state {
+  position: absolute;
+  right: 160px;
+  top: 382px;
+  width: 120px;
+  height: 46px;
+  padding-top: 4px;
+
+  text-align: center;
+  line-height: 0.9em;
+  font-size: 23px;
+  color: var(--epic2-color-amber);
+  border-color: var(--epic2-color-amber) !important;
+}

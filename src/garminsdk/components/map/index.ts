@@ -25,3 +25,4 @@ export * from './MapWaypointIcon';
 export * from './MapWaypointRenderer';
 export * from './MapWaypointStyles';
 export * from './NextGenGarminMapBuilder';
+export * from './NextGenGarminMapUtils';

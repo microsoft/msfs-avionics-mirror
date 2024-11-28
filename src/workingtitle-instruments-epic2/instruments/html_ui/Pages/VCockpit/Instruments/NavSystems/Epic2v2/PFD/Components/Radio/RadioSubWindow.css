@@ -1,0 +1,296 @@
+.radio-sub-window {
+  height: 14.6%;
+  display: grid;
+  grid-template-rows: 32% 64% 5%;
+  grid-auto-flow: row;
+  font-size: .34em;
+  white-space: pre;
+}
+
+epic2-pfd.left .radio-sub-window {
+  grid-template-columns: 6% 10.5% 13.5% 13.5% 34% 20% 6%;
+  grid-template-areas:
+    ". top-left top-middle top-right volume soft-key-ident ."
+    ". active-freq active-freq active-freq standby-freq soft-key-ident ."
+    ". bottom-sep bottom-sep bottom-sep bottom-sep . .";
+}
+
+epic2-pfd.right .radio-sub-window {
+  grid-template-columns: 4% 20% 10.5% 13.5% 13.5% 34% 6%;
+  grid-template-areas:
+    ". soft-key-ident top-left top-middle top-right volume ."
+    ". soft-key-ident active-freq active-freq active-freq standby-freq ."
+    ". . bottom-sep bottom-sep bottom-sep bottom-sep .";
+}
+
+epic2-pfd.left .radio-sub-window.adf-radio-sub-window {
+  grid-template-areas:
+    ". top-left top-right top-right volume soft-key-ident ."
+    "active-freq active-freq active-freq active-freq . soft-key-ident ."
+    ". bottom-sep bottom-sep bottom-sep bottom-sep . .";
+}
+
+epic2-pfd.right .radio-sub-window.adf-radio-sub-window {
+  grid-template-areas:
+    ". soft-key-ident top-left top-right top-right volume ."
+    ". soft-key-ident active-freq active-freq active-freq active-freq ."
+    ". . bottom-sep bottom-sep bottom-sep bottom-sep .";
+}
+
+.radio-sub-window.xpdr-radio-sub-window {
+  grid-template-rows: 1fr 5%;
+}
+
+epic2-pfd.left .radio-sub-window.xpdr-radio-sub-window {
+  grid-template-areas:
+    "active-freq active-freq active-freq active-freq standby-freq soft-key-ident ."
+    "active-freq active-freq active-freq active-freq standby-freq . .";
+}
+
+epic2-pfd.right .radio-sub-window.xpdr-radio-sub-window {
+  grid-template-areas:
+    ". soft-key-ident active-freq active-freq active-freq active-freq standby-freq"
+    ". . active-freq active-freq active-freq active-freq standby-freq";
+}
+
+.top-left {
+  grid-area: top-left;
+  padding-top: 5%;
+}
+
+.top-middle {
+  grid-area: top-middle;
+  padding-top: 5%;
+}
+
+.top-right {
+  grid-area: top-right;
+  padding-top: 5%;
+}
+
+.radio-sub-window.adf-radio-sub-window .top-right {
+  justify-self: center;
+  padding-top: 3%;
+}
+
+.volume {
+  grid-area: volume;
+}
+
+.active-freq {
+  grid-area: active-freq;
+  font-size: 1.6em;
+  padding-top: 2%;
+  padding-left: 3%;
+  color: var(--epic2-color-amber);
+}
+
+.active-freq.adf-freq {
+  padding-top: 2.5%;
+}
+
+.active-freq.powered {
+  color: var(--epic2-color-white);
+}
+
+.standby-freq.powered {
+  color: var(--epic2-color-cyan);
+}
+
+.top-left .dme-hold {
+  color: var(--epic2-color-amber);
+  margin-left: 4px;
+}
+
+epic2-pfd.left .active-freq.adf-freq {
+  margin-left: 13.5%;
+}
+
+epic2-pfd.right .active-freq.adf-freq,
+epic2-pfd.right .active-freq.xpdr-code {
+  padding-left: 2%;
+  position: relative;
+  top: -4%;
+}
+
+.sub-window-selected .active-freq.adf-freq {
+  height: 97%;
+  padding-top: 0;
+  border: .2rem solid var(--epic2-color-cyan);
+  border-radius: .2rem;
+}
+
+epic2-pfd.left .sub-window-selected .active-freq.adf-freq {
+  width: 75%;
+  margin-left: 11%;
+  padding-left: 4%;
+}
+
+epic2-pfd.right .sub-window-selected .active-freq.adf-freq {
+  width: 45%;
+}
+
+epic2-pfd.right .sub-window-selected .active-freq.adf-freq {
+  left: -1%;
+  top: 0;
+}
+
+.active-freq.xpdr-code {
+  height: 100%;
+  margin-top: 4%;
+  padding-top: 0;
+  padding-left: 4%;
+  border: .2rem solid transparent;
+  border-radius: .2rem;
+}
+
+epic2-pfd.left .active-freq.xpdr-code {
+  width: 54%;
+  margin-left: 13.5%;
+}
+
+epic2-pfd.right .active-freq.xpdr-code {
+  width: 32%;
+  left: -1%;
+}
+
+.sub-window-selected .active-freq.xpdr-code {
+  border: .2rem solid var(--epic2-color-cyan);
+}
+
+.xpdr-code-number {
+  height: 64%;
+}
+
+.xpdr-adsb {
+  font-size: 1.1rem;
+  margin-left: 14%;
+}
+
+epic2-pfd.left .xpdr-annunciations {
+  position: relative;
+  left: -45px;
+}
+
+epic2-pfd.right .xpdr-annunciations {
+  position: relative;
+  left: 160px;
+}
+
+.xpdr-annunciations .xpdr-tcas {
+  font-size: 32px;
+}
+
+.xpdr-annunciations .xpdr-tcas-alt-mode {
+  position: absolute;
+  left: 80px;
+  top: 6px;
+  color: var(--epic2-color-cyan)
+}
+
+.xpdr-annunciations .xpdr-ground {
+  position: absolute;
+  left: 35px;
+}
+
+.xpdr-annunciations .xpdr-ident {
+  position: absolute;
+  left: 67px;
+  color: var(--epic2-color-yellow)
+}
+
+.standby-freq {
+  grid-area: standby-freq;
+  font-size: 1.4em;
+  margin-left: 1%;
+  margin-right: 2%;
+  padding-top: 6%;
+  padding-left: 9%;
+  height: 96%;
+  color: var(--epic2-color-amber);
+}
+
+.sub-window-selected .standby-freq {
+  height: 90%;
+  margin-top: 1%;
+  padding-top: 2%;
+  padding-left: 7%;
+  border: .2rem solid var(--epic2-color-cyan);
+  border-radius: .2rem;
+}
+
+.soft-key-ident {
+  grid-area: soft-key-ident;
+  width: 56px;
+  height: 42px;
+  border-radius: 4px;
+  padding: 6px;
+  background-color: hsl(0, 0%, 30%);
+  font-size: 1.1rem;
+  color: var(--epic2-color-white);
+  line-height: .95rem;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.soft-key-ident.soft-key-selected {
+  border: .2rem solid var(--epic2-color-cyan);
+  border-radius: 12px;
+  box-shadow: inset .1rem .1rem .2rem .1rem hsl(0, 0%, 50%), inset -.1rem -.1rem .2rem .1rem var(--epic2-color-black);
+}
+
+.radio-sub-window-soft-key-label {
+  font-size: 1.1rem;
+  color: var(--epic2-color-white);
+  height: 100%;
+  align-items: center;
+  display: flex;
+}
+
+epic2-pfd.left .soft-key-ident {
+  margin-left: 18%;
+}
+
+epic2-pfd.right .soft-key-ident {
+  margin-right: 18%;
+}
+
+.sub-window-selected .soft-key-ident {
+  border: .3rem solid var(--epic2-color-cyan);
+  border-radius: 1rem;
+  width: 94%;
+  height: 94%;
+}
+
+epic2-pfd.left .sub-window-selected .soft-key-ident {
+  margin-left: 13%;
+}
+
+epic2-pfd.right .sub-window-selected .soft-key-ident {
+  position: relative;
+  left: -1%;
+}
+
+.sub-window-selected .soft-key-ident-stacked {
+  padding-top: 2%;
+}
+
+epic2-pfd.left .soft-key-label {
+  padding-left: 2%;
+}
+
+.soft-key-swap-arrow {
+  width: 100%;
+  height: 90%;
+  fill: var(--epic2-color-white)
+}
+
+.radio-sub-window:not(:last-child) .bottom-separator {
+  grid-area: bottom-sep;
+  background-color: var(--epic2-color-grey);
+}
+
+.radio-sub-window:not(:last-child) .bottom-separator.full-width {
+  grid-area: 3 / 1 / 4 / 8;
+}

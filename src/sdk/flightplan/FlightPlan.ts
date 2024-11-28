@@ -1,9 +1,10 @@
-import { AltitudeRestrictionType, FlightPlanLeg, ICAO, OneWayRunway } from '../navigation/Facilities';
+import { AltitudeRestrictionType, FlightPlanLeg, LegTurnDirection, LegType, OneWayRunway, SpeedRestrictionType } from '../navigation/Facilities';
+import { IcaoValue } from '../navigation/Icao';
+import { ICAO } from '../navigation/IcaoUtils';
 import { UUID } from '../utils/uuid/UUID';
-import { FlightPathCalculator } from './FlightPathCalculator';
+import { FlightPathCalculator } from './flightpath/FlightPathCalculator';
 import {
-  FlightPlanSegment, FlightPlanSegmentType, LegDefinition, ProcedureDetails,
-  SpeedRestrictionType, SpeedUnit, VerticalData, VerticalFlightPhase
+  FlightPlanLegIndexes, FlightPlanSegment, FlightPlanSegmentType, LegDefinition, ProcedureDetails, SpeedUnit, VerticalData, VerticalFlightPhase
 } from './FlightPlanning';
 
 export enum LegEventType {
@@ -32,13 +33,10 @@ export enum OriginDestChangeType {
   DestinationRemoved = 'DestinationRemoved'
 }
 
-/** Direct To Metadata for Flight Plan. */
-export interface DirectToData {
-  /** The segment index of the direct to target. */
-  segmentIndex: number;
-  /** The segment leg index of the direct to target. */
-  segmentLegIndex: number;
-}
+/**
+ * Indexes describing the location of the direct to target leg in a flight plan.
+ */
+export type DirectToData = FlightPlanLegIndexes;
 
 /**
  * A flight plan modification batch.
@@ -99,11 +97,11 @@ export interface PlanEvents {
   /**
    * A callback which is executed when the origin or destination changes.
    * @param type The origin/destination change type.
-   * @param airport The airport that was changed.
+   * @param airportIcao The ICAO value of the airport that was changed, or `undefined` if no airport was changed.
    * @param batch The modification batch stack to which the change was assigned, in order of increasing nestedness.
    * Not defined if the change was not assigned to any batches.
    */
-  onOriginDestChanged?(type: OriginDestChangeType, airport?: string, batch?: readonly Readonly<FlightPlanModBatch>[]): void;
+  onOriginDestChanged?(type: OriginDestChangeType, airportIcao: IcaoValue | undefined, batch?: readonly Readonly<FlightPlanModBatch>[]): void;
 
   /**
    * A callback which is executed when the procedure details change.
@@ -111,7 +109,7 @@ export interface PlanEvents {
    * @param batch The modification batch stack to which the change was assigned, in order of increasing nestedness.
    * Not defined if the change was not assigned to any batches.
    */
-  onProcedureDetailsChanged?(details: ProcedureDetails, batch?: readonly Readonly<FlightPlanModBatch>[]): void;
+  onProcedureDetailsChanged?(details: Readonly<ProcedureDetails>, batch?: readonly Readonly<FlightPlanModBatch>[]): void;
 
   /**
    * A callback which is executed when a global key-value user data pair is set.
@@ -219,16 +217,40 @@ type FlightPlanModBatchEntry = {
  */
 export class FlightPlan {
 
+  private _originAirportIcao?: IcaoValue;
+  // eslint-disable-next-line jsdoc/require-returns
+  /** The ICAO value of the flight plan's origin airport, or `undefined` if the flight plan has no origin airport. */
+  public get originAirportIcao(): IcaoValue | undefined {
+    return this._originAirportIcao;
+  }
+
+  private _destinationAirportIcao?: IcaoValue;
+  // eslint-disable-next-line jsdoc/require-returns
+  /**
+   * The ICAO value of the flight plan's destination airport, or `undefined` if the flight plan has no destination
+   * airport.
+   */
+  public get destinationAirportIcao(): IcaoValue | undefined {
+    return this._destinationAirportIcao;
+  }
+
   private _originAirport?: string;
   // eslint-disable-next-line jsdoc/require-returns
-  /** The ICAO of the origin airport in the flight plan, if any. */
+  /**
+   * The ICAO string (V1) of the flight plan's origin airport, or `undefined` if the flight plan has no origin airport.
+   * @deprecated Please use `originAirportIcao` instead.
+   */
   public get originAirport(): string | undefined {
     return this._originAirport;
   }
 
   private _destinationAirport?: string;
   // eslint-disable-next-line jsdoc/require-returns
-  /** The ICAO of the destination airport in the flight plan, if any. */
+  /**
+   * The ICAO string (V1) of the flight plan's destination airport, or `undefined` if the flight plan has no
+   * destination airport.
+   * @deprecated Please use `destinationAirportIcao` instead.
+   */
   public get destinationAirport(): string | undefined {
     return this._destinationAirport;
   }
@@ -255,7 +277,7 @@ export class FlightPlan {
   }
 
   /** The direct to metadata for this plan. */
-  public readonly directToData: DirectToData = { segmentIndex: -1, segmentLegIndex: -1 };
+  public readonly directToData: FlightPlanLegIndexes = { segmentIndex: -1, segmentLegIndex: -1 };
 
   /**
    * Gets the current number of legs in the flight plan.
@@ -282,7 +304,7 @@ export class FlightPlan {
   public events: PlanEvents = {};
 
   /** The details about the selected procedures. */
-  public readonly procedureDetails = new ProcedureDetails();
+  public readonly procedureDetails = FlightPlan.createProcedureDetails();
 
   /** The flight plan segments that make up this flight plan. */
   private readonly planSegments: (FlightPlanSegment | undefined)[] = [];
@@ -293,15 +315,19 @@ export class FlightPlan {
   private readonly batchEntryStack: FlightPlanModBatchEntry[] = [];
   private batchToCloseIndex: number | undefined = undefined;
 
+  private readonly legIndexesCache: DirectToData = { segmentIndex: -1, segmentLegIndex: -1 };
+
   /**
    * Creates an instance of a FlightPlan.
    * @param planIndex The index within the flight planner of this flight plan.
    * @param calculator The flight path calculator to use to calculate the flight path.
    * @param onLegNameRequested A callback fired when a flight plan leg is to be named.
    */
-  constructor(public planIndex: number,
+  public constructor(
+    public planIndex: number,
     public calculator: FlightPathCalculator,
-    private onLegNameRequested: ((leg: FlightPlanLeg) => string | undefined)) { }
+    private onLegNameRequested: ((leg: FlightPlanLeg) => string | undefined)
+  ) { }
 
   /**
    * Gets this flight plan's legs.
@@ -445,30 +471,48 @@ export class FlightPlan {
 
   /**
    * Gets a leg from the flight plan.
+   * @param indexes The indexes describing the location of the leg to get.
+   * @returns A flight plan leg.
+   * @throws Error if the leg could not be found.
+   */
+  public getLeg(indexes: Readonly<FlightPlanLegIndexes>): LegDefinition;
+  /**
+   * Gets a leg from the flight plan.
    * @param segmentIndex The index of the segment containing the leg to get.
    * @param segmentLegIndex The index of the leg to get in its segment.
    * @returns A flight plan leg.
-   * @throws An error if the leg could not be found.
+   * @throws Error if the leg could not be found.
    */
   public getLeg(segmentIndex: number, segmentLegIndex: number): LegDefinition;
   /**
    * Gets a leg from the flight plan.
    * @param globalLegIndex The global leg index of the leg to get.
    * @returns A flight plan leg.
-   * @throws An error if the leg could not be found.
+   * @throws Error if the leg could not be found.
    */
   public getLeg(globalLegIndex: number): LegDefinition;
   // eslint-disable-next-line jsdoc/require-jsdoc
-  public getLeg(arg1: number, arg2?: number): LegDefinition {
+  public getLeg(arg1: number | Readonly<FlightPlanLegIndexes>, arg2?: number): LegDefinition {
     const leg = this._tryGetLeg(arg1, arg2);
 
     if (leg) {
       return leg;
     }
 
-    throw new Error(`Leg with ${arg2 === undefined ? `index ${arg1}` : `segmentIndex ${arg1}, segmentLegIndex ${arg2}`} could not be found.`);
+    const indexes = typeof arg1 === 'object' || arg2 !== undefined
+      ? arg2 === undefined
+        ? `segment index ${(arg1 as Readonly<FlightPlanLegIndexes>).segmentIndex}, segment leg index ${(arg1 as Readonly<FlightPlanLegIndexes>).segmentLegIndex}`
+        : `segment index ${arg1}, segment leg index ${arg2}`
+      : `global leg index ${arg1}`;
+    throw new Error(`Leg with ${indexes} could not be found.`);
   }
 
+  /**
+   * Attempts to get a leg from the flight plan.
+   * @param indexes The indexes describing the location of the leg to get.
+   * @returns A flight plan leg, or `null` if one could not be found at the specified location.
+   */
+  public tryGetLeg(indexes: Readonly<FlightPlanLegIndexes>): LegDefinition | null;
   /**
    * Attempts to get a leg from the flight plan.
    * @param segmentIndex The index of the segment containing the leg to get.
@@ -483,7 +527,7 @@ export class FlightPlan {
    */
   public tryGetLeg(globalLegIndex: number): LegDefinition | null;
   // eslint-disable-next-line jsdoc/require-jsdoc
-  public tryGetLeg(arg1: number, arg2?: number): LegDefinition | null {
+  public tryGetLeg(arg1: number | Readonly<FlightPlanLegIndexes>, arg2?: number): LegDefinition | null {
     return this._tryGetLeg(arg1, arg2);
   }
 
@@ -493,20 +537,26 @@ export class FlightPlan {
    * @param arg2 The index of the leg to get in its segment.
    * @returns A flight plan leg, or `null` if one could not be found at the specified index.
    */
-  private _tryGetLeg(arg1: number, arg2?: number): LegDefinition | null {
-    if (arg2 === undefined) {
+  private _tryGetLeg(arg1: number | Readonly<FlightPlanLegIndexes>, arg2?: number): LegDefinition | null {
+    if (typeof arg1 === 'object' || arg2 !== undefined) {
+      let segmentIndex: number;
+      let segmentLegIndex: number;
+      if (arg2 === undefined) {
+        ({ segmentIndex, segmentLegIndex } = arg1 as Readonly<FlightPlanLegIndexes>);
+      } else {
+        segmentIndex = arg1 as number;
+        segmentLegIndex = arg2;
+      }
+      return this.planSegments[segmentIndex]?.legs[segmentLegIndex] ?? null;
+    } else {
       const legIndex = arg1;
-      for (const segment of this.segments()) {
-        if (segment.offset <= legIndex && legIndex < segment.offset + segment.legs.length) {
+      for (let i = 0; i < this.planSegments.length; i++) {
+        const segment = this.planSegments[i];
+        if (segment && segment.offset <= legIndex && legIndex < segment.offset + segment.legs.length) {
           return segment.legs[legIndex - segment.offset];
         }
       }
-
       return null;
-    } else {
-      const segmentIndex = arg1;
-      const segmentLegIndex = arg2;
-      return this.planSegments[segmentIndex]?.legs[segmentLegIndex] ?? null;
     }
   }
 
@@ -528,6 +578,81 @@ export class FlightPlan {
   }
 
   /**
+   * Gets the indexes describing the location of a flight plan leg in this flight plan.
+   * @param leg The flight plan leg for which to get indexes.
+   * @param out The object to which to write the result. If not defined, then a new index object will be created.
+   * @returns The indexes describing the location of the specified flight plan leg in this flight plan. If the leg
+   * is not in this flight plan, then all indexes will be equal to `-1`.
+   */
+  public getLegIndexesFromLeg(leg: LegDefinition, out?: FlightPlanLegIndexes): FlightPlanLegIndexes {
+    out ??= {
+      segmentIndex: -1,
+      segmentLegIndex: -1
+    };
+
+    for (let segmentIndex = 0; segmentIndex < this.planSegments.length; segmentIndex++) {
+      const segment = this.planSegments[segmentIndex];
+
+      if (segment !== undefined && segment.legs.length > 0) {
+        for (let segmentLegIndex = 0; segmentLegIndex < segment.legs.length; segmentLegIndex++) {
+          if (segment.legs[segmentLegIndex] === leg) {
+            out.segmentIndex = segmentIndex;
+            out.segmentLegIndex = segmentLegIndex;
+            return out;
+          }
+        }
+      }
+    }
+
+    return out;
+  }
+
+  /**
+   * Gets the indexes describing the location of a global leg index in this flight plan.
+   * @param globalLegIndex The global leg index for which to get indexes.
+   * @param out The object to which to write the result. If not defined, then a new index object will be created.
+   * @returns The indexes describing the location of the specified global leg index this flight plan. If the global leg
+   * index does not point to a valid leg in this flight plan, then all indexes will be equal to `-1`.
+   */
+  public getLegIndexesFromGlobalLegIndex(globalLegIndex: number, out?: FlightPlanLegIndexes): FlightPlanLegIndexes {
+    out ??= {
+      segmentIndex: -1,
+      segmentLegIndex: -1
+    };
+
+    if (globalLegIndex >= 0 && globalLegIndex < this.length) {
+      for (let i = 0; i < this.planSegments.length; i++) {
+        const segment = this.planSegments[i];
+        if (segment && segment.offset <= globalLegIndex && globalLegIndex < segment.offset + segment.legs.length) {
+          out.segmentIndex = segment.segmentIndex;
+          out.segmentLegIndex = globalLegIndex - segment.offset;
+          return out;
+        }
+      }
+    }
+
+    return out;
+  }
+
+  /**
+   * Gets the segment index for a given global leg index.
+   * @param globalLegIndex The global leg index to get the segment index for.
+   * @returns The segment index for the given global leg index, or -1 if not found.
+   */
+  public getSegmentIndex(globalLegIndex: number): number {
+    return this.getLegIndexesFromGlobalLegIndex(globalLegIndex, this.legIndexesCache).segmentIndex;
+  }
+
+  /**
+   * Gets the segment leg index (the index of the leg in its segment) for a given global leg index.
+   * @param globalLegIndex The global leg index to get the segment leg index for.
+   * @returns The segment leg index, or -1 if not found.
+   */
+  public getSegmentLegIndex(globalLegIndex: number): number {
+    return this.getLegIndexesFromGlobalLegIndex(globalLegIndex, this.legIndexesCache).segmentLegIndex;
+  }
+
+  /**
    * Gets the flight plan segment to which a leg belongs.
    * @param leg A flight plan leg definition.
    * @returns The segment to which the leg belongs, or null if the leg is not in this flight plan.
@@ -543,48 +668,39 @@ export class FlightPlan {
   }
 
   /**
-   * Gets the segment index for a given global leg index.
-   * @param globalLegIndex The global leg index to get the segment index for.
-   * @returns The segment index for the given global leg index, or -1 if not found.
+   * Gets the leg immediately previous to a position in this flight plan.
+   * @param legIndexes The indexes describing the position for which to get the previous leg.
+   * @returns The leg immediately previous to the specified position, or `null` if there is no such leg.
    */
-  public getSegmentIndex(globalLegIndex: number): number {
-    for (const segment of this.segments()) {
-      if (segment.offset <= globalLegIndex && globalLegIndex < segment.offset + segment.legs.length) {
-        return segment.segmentIndex;
-      }
-    }
-    return -1;
-  }
-
+  public getPrevLeg(legIndexes: Readonly<FlightPlanLegIndexes>): LegDefinition | null;
   /**
-   * Gets the segment leg index (the index of the leg in its segment) for a given global leg index.
-   * @param globalLegIndex The global leg index to get the segment leg index for.
-   * @returns The segment leg index, or -1 if not found.
+   * Gets the leg immediately previous to a position in this flight plan.
+   * @param segmentIndex The index of the segment containing the position for which to get the previous leg.
+   * @param segmentLegIndex The index of the position for which to get the previous leg in its containing segment.
+   * @returns The leg immediately previous to the specified position, or `null` if there is no such leg.
    */
-  public getSegmentLegIndex(globalLegIndex: number): number {
-    const segmentIndex = this.getSegmentIndex(globalLegIndex);
-    if (segmentIndex === -1) {
-      return -1;
-    }
-    return globalLegIndex - this.getSegment(segmentIndex).offset;
-  }
+  public getPrevLeg(segmentIndex: number, segmentLegIndex: number): LegDefinition | null;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public getPrevLeg(arg1: number | Readonly<FlightPlanLegIndexes>, arg2?: number): LegDefinition | null {
+    let segmentIndex: number;
+    let segmentLegIndex: number;
 
-  /**
-   * Gets the leg immediately previous to a position in this flight plan specified by segment index and leg index.
-   * @param segmentIndex A segment index.
-   * @param legIndex A leg index.
-   * @returns the leg immediately previous to the specified position, or null if there is no such leg.
-   */
-  public getPrevLeg(segmentIndex: number, legIndex: number): LegDefinition | null {
+    if (arg2 === undefined) {
+      ({ segmentIndex, segmentLegIndex } = arg1 as Readonly<FlightPlanLegIndexes>);
+    } else {
+      segmentIndex = arg1 as number;
+      segmentLegIndex = arg2;
+    }
+
     if (segmentIndex < 0) {
       return null;
     }
 
     segmentIndex = Math.min(segmentIndex, this.planSegments.length);
-    legIndex = Math.min(legIndex, this.planSegments[segmentIndex]?.legs.length ?? 0);
+    segmentLegIndex = Math.min(segmentLegIndex, this.planSegments[segmentIndex]?.legs.length ?? 0);
 
     let segment = this.planSegments[segmentIndex];
-    let leg = segment?.legs[legIndex - 1];
+    let leg = segment?.legs[segmentLegIndex - 1];
     while (!leg && --segmentIndex >= 0) {
       segment = this.planSegments[segmentIndex];
       if (segment) {
@@ -596,21 +712,39 @@ export class FlightPlan {
   }
 
   /**
-   * Gets the leg immediately after a position in this flight plan specified by segment index and leg index.
-   * @param segmentIndex A segment index.
-   * @param legIndex A leg index.
-   * @returns the leg immediately after the specified position, or null if there is no such leg.
+   * Gets the leg immediately after a position in this flight plan.
+   * @param legIndexes The indexes describing the position for which to get the next leg.
+   * @returns The leg immediately after the specified position, or `null` if there is no such leg.
    */
-  public getNextLeg(segmentIndex: number, legIndex: number): LegDefinition | null {
+  public getNextLeg(legIndexes: Readonly<FlightPlanLegIndexes>): LegDefinition | null;
+  /**
+   * Gets the leg immediately after a position in this flight plan.
+   * @param segmentIndex The index of the segment containing the position for which to get the next leg.
+   * @param segmentLegIndex The index of the position for which to get the next leg in its containing segment.
+   * @returns The leg immediately after the specified position, or `null` if there is no such leg.
+   */
+  public getNextLeg(segmentIndex: number, segmentLegIndex: number): LegDefinition | null;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public getNextLeg(arg1: number | Readonly<FlightPlanLegIndexes>, arg2?: number): LegDefinition | null {
+    let segmentIndex: number;
+    let segmentLegIndex: number;
+
+    if (arg2 === undefined) {
+      ({ segmentIndex, segmentLegIndex } = arg1 as Readonly<FlightPlanLegIndexes>);
+    } else {
+      segmentIndex = arg1 as number;
+      segmentLegIndex = arg2;
+    }
+
     if (segmentIndex >= this.planSegments.length) {
       return null;
     }
 
     segmentIndex = Math.max(segmentIndex, -1);
-    legIndex = Math.max(legIndex, -1);
+    segmentLegIndex = Math.max(segmentLegIndex, -1);
 
     let segment = this.planSegments[segmentIndex];
-    let leg = segment?.legs[legIndex + 1];
+    let leg = segment?.legs[segmentLegIndex + 1];
     while (!leg && ++segmentIndex < this.planSegments.length) {
       segment = this.planSegments[segmentIndex];
       if (segment) {
@@ -762,7 +896,14 @@ export class FlightPlan {
     };
     this.batchEntryStack.push(entry);
 
-    this.events.onBatchOpened && this.events.onBatchOpened(batch);
+    try {
+      this.events.onBatchOpened && this.events.onBatchOpened(batch);
+    } catch (e) {
+      console.error(e);
+      if (e instanceof Error) {
+        console.error(e.stack);
+      }
+    }
 
     return uuid;
   }
@@ -1026,20 +1167,39 @@ export class FlightPlan {
 
   /**
    * Sets the origin airport in the flight plan.
-   * @param facilityIcao The origin airport to set.
-   * @param notify Whether or not to send notifications after the operation.
+   * @param facilityIcao The ICAO value of the origin airport to set.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
    */
-  public setOriginAirport(facilityIcao: string, notify = true): void {
-    this._originAirport = facilityIcao;
-    notify && this.events.onOriginDestChanged && this.events.onOriginDestChanged(OriginDestChangeType.OriginAdded, facilityIcao, this.getBatchStack());
+  public setOriginAirport(facilityIcao: IcaoValue, notify?: boolean): void;
+  /**
+   * Sets the origin airport in the flight plan.
+   * @param facilityIcao The ICAO string (V1) of the origin airport to set.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
+   * @deprecated Please use the signature that takes an `IcaoValue` for the `facilityIcao` parameter.
+   */
+  public setOriginAirport(facilityIcao: string, notify?: boolean): void;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public setOriginAirport(facilityIcao: IcaoValue | string, notify = true): void {
+    if (typeof facilityIcao === 'object') {
+      this._originAirportIcao = facilityIcao;
+      this._originAirport = ICAO.valueToStringV1(facilityIcao);
+    } else {
+      this._originAirportIcao = ICAO.stringV1ToValue(facilityIcao);
+      this._originAirport = facilityIcao;
+    }
+
+    notify && this.events.onOriginDestChanged
+      && this.events.onOriginDestChanged(OriginDestChangeType.OriginAdded, this._originAirportIcao, this.getBatchStack());
   }
 
   /**
    * Removes the origin airport from the flight plan.
-   * @param notify Whether or not to send notifications after the operation.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
    */
   public removeOriginAirport(notify = true): void {
-    const facilityIcao = this._originAirport;
+    const facilityIcao = this._originAirportIcao;
+
+    this._originAirportIcao = undefined;
     this._originAirport = undefined;
 
     this.procedureDetails.departureIndex = -1;
@@ -1047,25 +1207,45 @@ export class FlightPlan {
     this.procedureDetails.departureTransitionIndex = -1;
     this.procedureDetails.originRunway = undefined;
 
-    notify && this.events.onOriginDestChanged && this.events.onOriginDestChanged(OriginDestChangeType.OriginRemoved, facilityIcao, this.getBatchStack());
+    notify && this.events.onOriginDestChanged
+      && this.events.onOriginDestChanged(OriginDestChangeType.OriginRemoved, facilityIcao, this.getBatchStack());
   }
 
   /**
    * Sets the destination airport in the flight plan.
-   * @param facilityIcao The destination airport to set.
-   * @param notify Whether or not to send notifications after the operation.
+   * @param facilityIcao The ICAO value of the destination airport to set.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
    */
-  public setDestinationAirport(facilityIcao: string, notify = true): void {
-    this._destinationAirport = facilityIcao;
-    notify && this.events.onOriginDestChanged && this.events.onOriginDestChanged(OriginDestChangeType.DestinationAdded, facilityIcao, this.getBatchStack());
+  public setDestinationAirport(facilityIcao: IcaoValue, notify?: boolean): void;
+  /**
+   * Sets the destination airport in the flight plan.
+   * @param facilityIcao The ICAO string (V1) of the destination airport to set.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
+   * @deprecated Please use the signature that takes an `IcaoValue` for the `facilityIcao` parameter.
+   */
+  public setDestinationAirport(facilityIcao: string, notify?: boolean): void;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public setDestinationAirport(facilityIcao: IcaoValue | string, notify = true): void {
+    if (typeof facilityIcao === 'object') {
+      this._destinationAirportIcao = facilityIcao;
+      this._destinationAirport = ICAO.valueToStringV1(facilityIcao);
+    } else {
+      this._destinationAirportIcao = ICAO.stringV1ToValue(facilityIcao);
+      this._destinationAirport = facilityIcao;
+    }
+
+    notify && this.events.onOriginDestChanged &&
+      this.events.onOriginDestChanged(OriginDestChangeType.DestinationAdded, this._destinationAirportIcao, this.getBatchStack());
   }
 
   /**
    * Removes the destination airport from the flight plan.
-   * @param notify Whether or not to send notifications after the operation.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
    */
   public removeDestinationAirport(notify = true): void {
-    const facilityIcao = this._destinationAirport;
+    const facilityIcao = this._destinationAirportIcao;
+
+    this._destinationAirportIcao = undefined;
     this._destinationAirport = undefined;
 
     this.procedureDetails.approachIndex = -1;
@@ -1076,7 +1256,8 @@ export class FlightPlan {
     this.procedureDetails.arrivalTransitionIndex = -1;
     this.procedureDetails.destinationRunway = undefined;
 
-    notify && this.events.onOriginDestChanged && this.events.onOriginDestChanged(OriginDestChangeType.DestinationRemoved, facilityIcao, this.getBatchStack());
+    notify && this.events.onOriginDestChanged
+      && this.events.onOriginDestChanged(OriginDestChangeType.DestinationRemoved, facilityIcao, this.getBatchStack());
   }
 
   /**
@@ -1188,18 +1369,74 @@ export class FlightPlan {
   }
 
   /**
-   * Sets the flight plan procedure details.
-   * @param details The details of the flight plan's procedures.
-   * @param notify Whether or not to send notifications after the operation.
+   * Sets this flight plan's procedure details.
+   * @param details An object containing the procedure details properties to set. Properties omitted from the object
+   * (i.e. that are not enumerable) will not be set. Properties that are present in the object (including those whose
+   * values are equal to `undefined`) will set the corresponding properties in the flight plan procedure details with
+   * the same values.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
    */
-  public setProcedureDetails(details: Partial<ProcedureDetails>, notify = true): void {
+  public setProcedureDetails(details: Partial<Readonly<ProcedureDetails>>, notify = true): void {
+    // Temporary fix to ensure the various ICAO struct properties are always in sync with the ICAO string properties.
+    // TODO: Remove this when the deprecated ICAO string properties are removed.
+
+    const modifiedDetails: Partial<ProcedureDetails> = Object.assign({}, details);
+
+    this.reconcileProcedureDetailsIcaoPropPair(modifiedDetails, 'departureFacilityIcaoStruct', 'departureFacilityIcao');
+    this.reconcileProcedureDetailsIcaoPropPair(modifiedDetails, 'arrivalFacilityIcaoStruct', 'arrivalFacilityIcao');
+    this.reconcileProcedureDetailsIcaoPropPair(modifiedDetails, 'approachFacilityIcaoStruct', 'approachFacilityIcao');
+
     // We iterate of the keys of `details` because we need to be able to set fields to undefined
     // and we only want to overwrite fields that were in the `details` object
-    for (const key of Object.keys(details)) {
-      (this.procedureDetails as any)[key] = details[key as keyof ProcedureDetails];
+    for (const key of Object.keys(modifiedDetails)) {
+      (this.procedureDetails as any)[key] = modifiedDetails[key as keyof ProcedureDetails];
     }
 
     notify && this.events.onProcedureDetailsChanged && this.events.onProcedureDetailsChanged(this.procedureDetails, this.getBatchStack());
+  }
+
+  /**
+   * Reconciles a pair of associated ICAO properties in a `ProcedureDetails` object. If one of the pair is defined but
+   * the other is not, then the undefined property will be added to the object with a value derived from its defined
+   * partner. If both of the pair are defined but have incompatible values, then the string (V1) property will be
+   * redefined to be compatible with the struct property. Otherwise, the object will remain unchanged.
+   * @param details The object containing the properties to reconcile.
+   * @param icaoStructProp The name of the ICAO struct property to reconcile.
+   * @param icaoStringProp The name of the ICAO string (V1) property to reconcile.
+   */
+  private reconcileProcedureDetailsIcaoPropPair(
+    details: Partial<ProcedureDetails>,
+    icaoStructProp: keyof Pick<ProcedureDetails, 'departureFacilityIcaoStruct' | 'arrivalFacilityIcaoStruct' | 'approachFacilityIcaoStruct'>,
+    icaoStringProp: keyof Pick<ProcedureDetails, 'departureFacilityIcao' | 'arrivalFacilityIcao' | 'approachFacilityIcao'>,
+  ): void {
+    const isStructPropDefined = icaoStructProp in details;
+    const isStringPropDefined = icaoStringProp in details;
+
+    if (isStructPropDefined && !isStringPropDefined) {
+      // Struct prop is defined but string prop is not -> need to set string prop from struct prop
+      details[icaoStringProp] = details[icaoStructProp]
+        ? ICAO.tryValueToStringV1(details[icaoStructProp]!)
+        : undefined;
+    } else if (!isStructPropDefined && isStringPropDefined) {
+      // String prop is defined but struct prop is not -> need to set struct prop from string prop
+      details[icaoStructProp] = details[icaoStringProp] !== undefined
+        ? ICAO.stringV1ToValue(details[icaoStringProp]!)
+        : undefined;
+    } else if (isStructPropDefined && isStringPropDefined) {
+      const structProp = details[icaoStructProp];
+      const stringProp = details[icaoStringProp];
+
+      if (
+        (structProp !== undefined && stringProp === undefined)
+        || (structProp === undefined && stringProp !== undefined)
+        || (structProp !== undefined && stringProp !== undefined && ICAO.valueToStringV1(structProp) !== stringProp)
+      ) {
+        // Both struct and string props are defined but their values are incompatible -> need to set string prop from struct prop
+        details[icaoStringProp] = structProp
+          ? ICAO.tryValueToStringV1(structProp)
+          : undefined;
+      }
+    }
   }
 
   /**
@@ -1451,8 +1688,7 @@ export class FlightPlan {
    */
   public setOriginRunway(runway: OneWayRunway | undefined = undefined, notify = true): void {
     this.procedureDetails.originRunway = runway;
-    const details = new ProcedureDetails;
-    Object.assign(details, this.procedureDetails);
+    const details = Object.assign(FlightPlan.createProcedureDetails(), this.procedureDetails);
 
     this.events.onProcedureDetailsChanged && notify && this.events.onProcedureDetailsChanged(details, this.getBatchStack());
   }
@@ -1464,69 +1700,163 @@ export class FlightPlan {
    */
   public setDestinationRunway(runway: OneWayRunway | undefined = undefined, notify = true): void {
     this.procedureDetails.destinationRunway = runway;
-    const details = new ProcedureDetails;
-    Object.assign(details, this.procedureDetails);
+    const details = Object.assign(FlightPlan.createProcedureDetails(), this.procedureDetails);
 
     this.events.onProcedureDetailsChanged && notify && this.events.onProcedureDetailsChanged(details, this.getBatchStack());
   }
 
   /**
    * Sets the departure procedure details.
-   * @param facilityIcao The facility ICAO of the facility containing the procedure
-   * @param departureIndex The index of the departure in the origin airport information
-   * @param departureTransitionIndex The index of the departure transition in the origin airport departure information
-   * @param departureRunwayIndex The index of the selected runway in the original airport departure information
-   * @param notify Whether or not to notify subscribers.
+   * @param facilityIcao The ICAO value of the facility containing the procedure. Defaults to `undefined`.
+   * @param departureIndex The index of the departure procedure in the departure airport facility's departures array.
+   * Defaults to `-1`.
+   * @param departureTransitionIndex The index of the departure enroute transition in the departure procedure's enroute
+   * transitions array. Defaults to `-1`.
+   * @param departureRunwayIndex The index of the departure runway transition in the departure procedure's runway
+   * transitions array. Defaults to `-1`.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
    */
-  public setDeparture(facilityIcao: string | undefined = undefined, departureIndex = -1, departureTransitionIndex = -1, departureRunwayIndex = -1, notify = true): void {
+  public setDeparture(facilityIcao?: IcaoValue, departureIndex?: number, departureTransitionIndex?: number, departureRunwayIndex?: number, notify?: boolean): void;
+  /**
+   * Sets the departure procedure details.
+   * @param facilityIcao The ICAO string (V1) of the facility containing the procedure. Defaults to `undefined`.
+   * @param departureIndex The index of the departure procedure in the departure airport facility's departures array.
+   * Defaults to `-1`.
+   * @param departureTransitionIndex The index of the departure enroute transition in the departure procedure's enroute
+   * transitions array. Defaults to `-1`.
+   * @param departureRunwayIndex The index of the departure runway transition in the departure procedure's runway
+   * transitions array. Defaults to `-1`.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
+   * @deprecated Please use the signature that takes an `IcaoValue` for the `facilityIcao` parameter.
+   */
+  public setDeparture(facilityIcao?: string, departureIndex?: number, departureTransitionIndex?: number, departureRunwayIndex?: number, notify?: boolean): void;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public setDeparture(facilityIcao?: IcaoValue | string, departureIndex = -1, departureTransitionIndex = -1, departureRunwayIndex = -1, notify = true): void {
     this.procedureDetails.departureIndex = departureIndex;
-    this.procedureDetails.departureFacilityIcao = facilityIcao;
+    if (facilityIcao === undefined) {
+      this.procedureDetails.departureFacilityIcaoStruct = undefined;
+      this.procedureDetails.departureFacilityIcao = undefined;
+    } else if (typeof facilityIcao === 'object') {
+      this.procedureDetails.departureFacilityIcaoStruct = facilityIcao;
+      this.procedureDetails.departureFacilityIcao = ICAO.valueToStringV1(facilityIcao);
+    } else {
+      this.procedureDetails.departureFacilityIcaoStruct = ICAO.stringV1ToValue(facilityIcao);
+      this.procedureDetails.departureFacilityIcao = facilityIcao;
+    }
     this.procedureDetails.departureTransitionIndex = departureTransitionIndex;
     this.procedureDetails.departureRunwayIndex = departureRunwayIndex;
-    const details = new ProcedureDetails;
-    Object.assign(details, this.procedureDetails);
+    const details = Object.assign(FlightPlan.createProcedureDetails(), this.procedureDetails);
 
     this.events.onProcedureDetailsChanged && notify && this.events.onProcedureDetailsChanged(details, this.getBatchStack());
   }
 
   /**
    * Sets the arrival procedure details.
-   * @param facilityIcao The facility ICAO of the facility containing the procedure
-   * @param arrivalIndex The index of the arrival in the destination airport information
-   * @param arrivalTransitionIndex index of the arrival transition in the destination airport arrival information
-   * @param arrivalRunwayTransitionIndex The index of the selected runway transition at the destination airport arrival information
-   * @param arrivalRunway The oneway runway to set as the arrival runway, or undefined
-   * @param notify Whether or not to notify subscribers
+   * @param facilityIcao The ICAO value of the facility containing the procedure. Defaults to `undefined`.
+   * @param arrivalIndex The index of the arrival procedure in the arrival airport facility's arrivals array.
+   * Defaults to `-1`.
+   * @param arrivalTransitionIndex The index of the arrival enroute transition in the arrival procedure's enroute
+   * transitions array. Defaults to `-1`.
+   * @param arrivalRunwayTransitionIndex The index of the arrival runway transition in the arrival procedure's runway
+   * transitions array. Defaults to `-1`.
+   * @param arrivalRunway The arrival procedure runway. Defaults to `undefined.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
    */
   public setArrival(
-    facilityIcao: string | undefined = undefined, arrivalIndex = -1, arrivalTransitionIndex = -1,
-    arrivalRunwayTransitionIndex = -1, arrivalRunway: OneWayRunway | undefined = undefined, notify = true,
+    facilityIcao?: IcaoValue,
+    arrivalIndex?: number,
+    arrivalTransitionIndex?: number,
+    arrivalRunwayTransitionIndex?: number,
+    arrivalRunway?: OneWayRunway,
+    notify?: boolean,
+  ): void;
+  /**
+   * Sets the arrival procedure details.
+   * @param facilityIcao The ICAO string (V1) of the facility containing the procedure. Defaults to `undefined`.
+   * @param arrivalIndex The index of the arrival procedure in the arrival airport facility's arrivals array.
+   * Defaults to `-1`.
+   * @param arrivalTransitionIndex The index of the arrival enroute transition in the arrival procedure's enroute
+   * transitions array. Defaults to `-1`.
+   * @param arrivalRunwayTransitionIndex The index of the arrival runway transition in the arrival procedure's runway
+   * transitions array. Defaults to `-1`.
+   * @param arrivalRunway The arrival procedure runway. Defaults to `undefined.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
+   * @deprecated Please use the signature that takes an `IcaoValue` for the `facilityIcao` parameter.
+   */
+  public setArrival(
+    facilityIcao?: string,
+    arrivalIndex?: number,
+    arrivalTransitionIndex?: number,
+    arrivalRunwayTransitionIndex?: number,
+    arrivalRunway?: OneWayRunway,
+    notify?: boolean,
+  ): void;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public setArrival(
+    facilityIcao?: IcaoValue | string,
+    arrivalIndex = -1,
+    arrivalTransitionIndex = -1,
+    arrivalRunwayTransitionIndex = -1,
+    arrivalRunway?: OneWayRunway,
+    notify = true,
   ): void {
     this.procedureDetails.arrivalIndex = arrivalIndex;
-    this.procedureDetails.arrivalFacilityIcao = facilityIcao;
+    if (facilityIcao === undefined) {
+      this.procedureDetails.arrivalFacilityIcaoStruct = undefined;
+      this.procedureDetails.arrivalFacilityIcao = undefined;
+    } else if (typeof facilityIcao === 'object') {
+      this.procedureDetails.arrivalFacilityIcaoStruct = facilityIcao;
+      this.procedureDetails.arrivalFacilityIcao = ICAO.valueToStringV1(facilityIcao);
+    } else {
+      this.procedureDetails.arrivalFacilityIcaoStruct = ICAO.stringV1ToValue(facilityIcao);
+      this.procedureDetails.arrivalFacilityIcao = facilityIcao;
+    }
     this.procedureDetails.arrivalTransitionIndex = arrivalTransitionIndex;
     this.procedureDetails.arrivalRunwayTransitionIndex = arrivalRunwayTransitionIndex;
     this.procedureDetails.arrivalRunway = arrivalRunway;
-    const details = new ProcedureDetails;
-    Object.assign(details, this.procedureDetails);
+    const details = Object.assign(FlightPlan.createProcedureDetails(), this.procedureDetails);
 
     this.events.onProcedureDetailsChanged && notify && this.events.onProcedureDetailsChanged(details, this.getBatchStack());
   }
 
   /**
    * Sets the approach procedure details.
-   * @param facilityIcao The facility ICAO of the facility containing the procedure
-   * @param approachIndex The index of the apporach in the destination airport information
-   * @param approachTransitionIndex The index of the approach transition in the destination airport approach information
-   * @param notify Whether or not to notify subscribers
+   * @param facilityIcao The ICAO value of the facility containing the procedure. Defaults to `undefined`.
+   * @param approachIndex The index of the approach procedure in the approach airport facility's approaches array.
+   * Defaults to `-1`.
+   * @param approachTransitionIndex The index of the approach transition in the approach procedure's transitions array.
+   * Defaults to `-1`.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
+   * @deprecated Please use the signature that takes an `IcaoValue` for the `facilityIcao` parameter.
    */
-  public setApproach(facilityIcao: string | undefined = undefined, approachIndex = -1, approachTransitionIndex = -1, notify = true): void {
+  public setApproach(facilityIcao?: IcaoValue, approachIndex?: number, approachTransitionIndex?: number, notify?: boolean): void;
+  /**
+   * Sets the approach procedure details.
+   * @param facilityIcao The ICAO string (V1) of the facility containing the procedure. Defaults to `undefined`.
+   * @param approachIndex The index of the approach procedure in the approach airport facility's approaches array.
+   * Defaults to `-1`.
+   * @param approachTransitionIndex The index of the approach transition in the approach procedure's transitions array.
+   * Defaults to `-1`.
+   * @param notify Whether to notify subscribers of the change. Defaults to `true`.
+   * @deprecated Please use the signature that takes an `IcaoValue` for the `facilityIcao` parameter.
+   */
+  public setApproach(facilityIcao?: string, approachIndex?: number, approachTransitionIndex?: number, notify?: boolean): void;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public setApproach(facilityIcao?: IcaoValue | string, approachIndex = -1, approachTransitionIndex = -1, notify = true): void {
     this.procedureDetails.approachIndex = approachIndex;
-    this.procedureDetails.approachFacilityIcao = facilityIcao;
+    if (facilityIcao === undefined) {
+      this.procedureDetails.approachFacilityIcaoStruct = undefined;
+      this.procedureDetails.approachFacilityIcao = undefined;
+    } else if (typeof facilityIcao === 'object') {
+      this.procedureDetails.approachFacilityIcaoStruct = facilityIcao;
+      this.procedureDetails.approachFacilityIcao = ICAO.valueToStringV1(facilityIcao);
+    } else {
+      this.procedureDetails.approachFacilityIcaoStruct = ICAO.stringV1ToValue(facilityIcao);
+      this.procedureDetails.approachFacilityIcao = facilityIcao;
+    }
     this.procedureDetails.approachIndex = approachIndex;
     this.procedureDetails.approachTransitionIndex = approachTransitionIndex;
-    const details = new ProcedureDetails;
-    Object.assign(details, this.procedureDetails);
+    const details = Object.assign(FlightPlan.createProcedureDetails(), this.procedureDetails);
 
     this.events.onProcedureDetailsChanged && notify && this.events.onProcedureDetailsChanged(details, this.getBatchStack());
   }
@@ -1549,7 +1879,14 @@ export class FlightPlan {
     notify && this.events.onCalculatePended && this.events.onCalculatePended(globalLegIndex, batchStack);
 
     const legs = [...this.legs()];
-    await this.calculator.calculateFlightPath(legs, this.activeLateralLeg, globalLegIndex === undefined ? this.activeCalculatingLeg : globalLegIndex);
+    try {
+      await this.calculator.calculateFlightPath(legs, this.activeLateralLeg, globalLegIndex === undefined ? this.activeCalculatingLeg : globalLegIndex);
+    } catch (e) {
+      console.error(e);
+      if (e instanceof Error) {
+        console.error(e.stack);
+      }
+    }
 
     notify && this.events.onCalculated && this.events.onCalculated(globalLegIndex, batchStack);
 
@@ -1588,21 +1925,21 @@ export class FlightPlan {
    */
   public copyFrom(sourcePlan: FlightPlan, copyCalcs = false): void {
 
-    if (sourcePlan._originAirport !== undefined) {
-      this.setOriginAirport(sourcePlan._originAirport, false);
+    if (sourcePlan._originAirportIcao !== undefined) {
+      this.setOriginAirport(sourcePlan._originAirportIcao, false);
     } else {
       this.removeOriginAirport(false);
     }
 
-    if (sourcePlan._destinationAirport !== undefined) {
-      this.setDestinationAirport(sourcePlan._destinationAirport, false);
+    if (sourcePlan._destinationAirportIcao !== undefined) {
+      this.setDestinationAirport(sourcePlan._destinationAirportIcao, false);
     } else {
       this.removeDestinationAirport(false);
     }
 
     // We do object assign against new proc details in case the incoming details are missing fields because of coming from json
     // and because we want to overwrite the entire object, instead of just some fields.
-    this.setProcedureDetails(Object.assign(new ProcedureDetails(), sourcePlan.procedureDetails), false);
+    this.setProcedureDetails(Object.assign(FlightPlan.createProcedureDetails(), sourcePlan.procedureDetails), false);
 
     const targetPlanSegmentsCount = this.planSegments.length;
     for (let i = 0; i < targetPlanSegmentsCount; i++) {
@@ -1669,6 +2006,7 @@ export class FlightPlan {
         ingressToEgress: existingLeg.calculated.ingressToEgress.map(vector => Object.assign({}, vector)),
         egressJoinIndex: existingLeg.calculated.egressJoinIndex,
         egress: existingLeg.calculated.egress.map(vector => Object.assign({}, vector)),
+        endsInDiscontinuity: existingLeg.calculated.endsInDiscontinuity,
         endsInFallback: existingLeg.calculated.endsInFallback
       };
     }
@@ -1676,28 +2014,104 @@ export class FlightPlan {
   }
 
   /**
-   * Creates a default instance of a flight plan leg.
-   * @param partial A portion of leg options to apply.
-   * @returns A default instance of a flight plan leg.
+   * Creates a new flight plan leg.
+   * @param partial The properties to initialize on the new leg. Any undefined properties will be initialized to
+   * default values. For ICAO property pairs - struct and string (V1) - only one of each pair needs to be defined; the
+   * other property in the pair will be set from the property that is defined. If paired ICAO properties are not
+   * consistent with each other, then the struct property will take precedence.
+   * @returns A new flight plan leg.
    */
-  public static createLeg = (partial: Partial<FlightPlanLeg>): FlightPlanLeg => Object.assign({
-    type: 0,
-    fixIcao: ICAO.emptyIcao,
-    arcCenterFixIcao: ICAO.emptyIcao,
-    originIcao: ICAO.emptyIcao,
-    flyOver: 0,
-    turnDirection: 0,
-    trueDegrees: 0,
-    theta: 0,
-    rho: 0,
-    distance: 0,
-    distanceMinutes: 0,
-    speedRestriction: 0,
-    altDesc: 0,
-    altitude1: 0,
-    altitude2: 0,
-    course: 0,
-    fixTypeFlags: 0,
-    verticalAngle: 0,
-  }, partial);
+  public static createLeg(partial: Partial<FlightPlanLeg>): FlightPlanLeg {
+    partial = Object.assign({}, partial);
+
+    FlightPlan.reconcileFlightPlanLegIcaoPropPair(partial, 'fixIcaoStruct', 'fixIcao');
+    FlightPlan.reconcileFlightPlanLegIcaoPropPair(partial, 'originIcaoStruct', 'originIcao');
+    FlightPlan.reconcileFlightPlanLegIcaoPropPair(partial, 'arcCenterFixIcaoStruct', 'arcCenterFixIcao');
+
+    return {
+      type: partial.type ?? LegType.Unknown,
+      fixIcao: partial.fixIcao ?? ICAO.EMPTY_V1,
+      fixIcaoStruct: partial.fixIcaoStruct ?? ICAO.emptyValue(),
+      arcCenterFixIcao: partial.arcCenterFixIcao ?? ICAO.EMPTY_V1,
+      arcCenterFixIcaoStruct: partial.arcCenterFixIcaoStruct ?? ICAO.emptyValue(),
+      originIcao: partial.originIcao ?? ICAO.EMPTY_V1,
+      originIcaoStruct: partial.originIcaoStruct ?? ICAO.emptyValue(),
+      flyOver: partial.flyOver ?? false,
+      turnDirection: partial.turnDirection ?? LegTurnDirection.None,
+      trueDegrees: partial.trueDegrees ?? false,
+      theta: partial.theta ?? 0,
+      rho: partial.rho ?? 0,
+      distance: partial.distance ?? 0,
+      distanceMinutes: partial.distanceMinutes ?? false,
+      speedRestriction: partial.speedRestriction ?? 0,
+      speedRestrictionDesc: partial.speedRestrictionDesc ?? SpeedRestrictionType.Unused,
+      altDesc: partial.altDesc ?? AltitudeRestrictionType.Unused,
+      altitude1: partial.altitude1 ?? 0,
+      altitude2: partial.altitude2 ?? 0,
+      course: partial.course ?? 0,
+      fixTypeFlags: partial.fixTypeFlags ?? 0,
+      verticalAngle: partial.verticalAngle ?? 0,
+      rnp: partial.rnp ?? 0,
+      lat: partial.lat,
+      lon: partial.lon,
+    };
+  }
+
+  /**
+   * Reconciles a pair of associated ICAO properties in a partial `FlightPlanLeg` object. If one of the pair is defined
+   * but the other is not, then the undefined property will be added to the object with a value derived from its
+   * defined partner. If both of the pair are defined but have incompatible values, then the string (V1) property will
+   * be redefined to be compatible with the struct property. Otherwise, the object will remain unchanged.
+   * @param leg The object containing the properties to reconcile.
+   * @param icaoStructProp The name of the ICAO struct property to reconcile.
+   * @param icaoStringProp The name of the ICAO string (V1) property to reconcile.
+   */
+  private static reconcileFlightPlanLegIcaoPropPair(
+    leg: Partial<FlightPlanLeg>,
+    icaoStructProp: keyof Pick<FlightPlanLeg, 'fixIcaoStruct' | 'originIcaoStruct' | 'arcCenterFixIcaoStruct'>,
+    icaoStringProp: keyof Pick<FlightPlanLeg, 'fixIcao' | 'originIcao' | 'arcCenterFixIcao'>,
+  ): void {
+    const isStructPropDefined = leg[icaoStructProp] !== undefined;
+    const isStringPropDefined = leg[icaoStringProp] !== undefined;
+
+    if (isStructPropDefined && !isStringPropDefined) {
+      // Struct prop is defined but string prop is not -> need to set string prop from struct prop
+      leg[icaoStringProp] = ICAO.tryValueToStringV1(leg[icaoStructProp]!);
+    } else if (!isStructPropDefined && isStringPropDefined) {
+      // String prop is defined but struct prop is not -> need to set struct prop from string prop
+      leg[icaoStructProp] = ICAO.stringV1ToValue(leg[icaoStringProp]!);
+    } else if (isStructPropDefined && isStringPropDefined) {
+      const structString = ICAO.tryValueToStringV1(leg[icaoStructProp]!);
+      if (structString !== leg[icaoStringProp]) {
+        // Both struct and string props are defined but their values are incompatible -> need to set string prop from struct prop
+        leg[icaoStringProp] = structString;
+      }
+    }
+  }
+
+  /**
+   * Creates an empty procedure details object.
+   * @returns An empty procedure details object.
+   */
+  public static createProcedureDetails(): ProcedureDetails {
+    return {
+      originRunway: undefined,
+      departureFacilityIcaoStruct: undefined,
+      departureFacilityIcao: undefined,
+      departureIndex: -1,
+      departureTransitionIndex: -1,
+      departureRunwayIndex: -1,
+      arrivalFacilityIcaoStruct: undefined,
+      arrivalFacilityIcao: undefined,
+      arrivalIndex: -1,
+      arrivalTransitionIndex: -1,
+      arrivalRunwayTransitionIndex: -1,
+      arrivalRunway: undefined,
+      approachFacilityIcaoStruct: undefined,
+      approachFacilityIcao: undefined,
+      approachIndex: -1,
+      approachTransitionIndex: -1,
+      destinationRunway: undefined,
+    };
+  }
 }

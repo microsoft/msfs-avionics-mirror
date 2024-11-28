@@ -1,5 +1,3 @@
-import { LegDefinition } from '../../flightplan/FlightPlanning';
-
 /**
  * The state of a given plane director.
  */
@@ -91,39 +89,14 @@ export interface PlaneDirector {
    * conjunction with the angle of attack correction. Defaults to `false`.
    * @param rate The rate at which to drive the commanded pitch angle, in degrees per second. If not defined, a default
    * rate will be used.
+   * @param maxNoseDownPitch The maximum nose down pitch angle, defaults to the global AP pitch limit.
+   * @param maxNoseUpPitch The maximum nose up pitch angle, defaults to the global AP pitch limit.
    */
-  drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean, rate?: number) => void;
+  drivePitch?: (pitch: number, adjustForAoa?: boolean, adjustForVerticalWind?: boolean, rate?: number, maxNoseDownPitch?: number, maxNoseUpPitch?: number) => void;
 
   /** The current director state. */
   state: DirectorState;
 }
-
-/**
- * A director that handles OBS Lateral Navigation.
- * @deprecated
- */
-export interface ObsDirector extends PlaneDirector {
-  /** Whether or not OBS mode is active. */
-  readonly obsActive: boolean;
-
-  /**
-   * Sets the flight plan leg whose terminator defines this director's OBS fix.
-   * @param index The global leg index of the leg.
-   * @param leg The leg to track.
-   */
-  setLeg(index: number, leg: LegDefinition | null): void;
-
-  /** Whether or not OBS mode can be activated currently. */
-  canActivate(): boolean;
-
-  /** Starts tracking the OBS course. */
-  startTracking(): void;
-
-  /** Stops tracking the OBS course. */
-  stopTracking(): void;
-}
-
-/* eslint-disable @typescript-eslint/no-empty-function */
 
 /**
  * A plane director that provides no behavior.

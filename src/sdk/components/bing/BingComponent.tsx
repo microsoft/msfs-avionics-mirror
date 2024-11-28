@@ -3,6 +3,7 @@
 /// <reference types="@microsoft/msfs-types/js/netbingmap" />
 
 import { GameStateProvider } from '../../data/GameStateProvider';
+import { BitFlags } from '../../math/BitFlags';
 import { ReadonlyFloat64Array, Vec2Math } from '../../math/VecMath';
 import { Vec2Subject } from '../../math/VectorSubject';
 import { ArraySubject } from '../../sub/ArraySubject';
@@ -93,6 +94,13 @@ export interface BingComponentProps extends ComponentProps {
    */
   delay?: number;
 
+  /**
+   * Whether to skip unbinding the component's bound Bing instance when the component is destroyed. This option should
+   * be set to `true` if other components are sharing the same Bing instance and the other components need the Bing
+   * instance to remain bound after the component is destroyed. Defaults to `false`.
+   */
+  skipUnbindOnDestroy?: boolean;
+
   /** CSS class(es) to add to the Bing component's image. */
   class?: string | SubscribableSet<string>;
 }
@@ -113,7 +121,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
 
   private static readonly POSITION_RADIUS_INHIBIT_FRAMES = 10;
 
-  private readonly modeFlags = this.props.mode === EBingMode.HORIZON ? 4 : 0;
+  private bingFlags = this.getBingFlags(EBingReference.SEA);
 
   private mapListener!: ViewListener.ViewListener;
   private isListenerRegistered = false;
@@ -200,8 +208,8 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
     Coherent.call('SET_MAP_CLEAR_COLOR', this.uid, color);
   };
   private readonly referenceHandler = (reference: EBingReference): void => {
-    const flags = this.modeFlags | (reference === EBingReference.PLANE ? 1 : 0);
-    this.mapListener.trigger('JS_BIND_BINGMAP', this.props.id, flags);
+    this.bingFlags = this.getBingFlags(reference);
+    this.mapListener.trigger('JS_BIND_BINGMAP', this.props.id, this.bingFlags);
   };
   private readonly wxrModeHandler = (wxrMode: WxrMode): void => {
     Coherent.call('SHOW_MAP_WEATHER', this.uid, wxrMode.mode, wxrMode.arcRadians);
@@ -227,7 +235,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
     Coherent.call('SHOW_MAP_ISOLINES', this.uid, showIsolines);
   };
 
-  private setCurrentMapParamsTimer: NodeJS.Timer | null = null;
+  private setCurrentMapParamsTimer: NodeJS.Timeout | null = null;
 
   private positionRadiusInhibitFramesRemaining = 0;
   private isPositionRadiusPending = false;
@@ -313,11 +321,11 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
       return;
     }
 
-    this.mapListener.on('MapBinded', this.onListenerBound);
+    this.mapListener.on('MapBinded', this.onMapBound);
     this.mapListener.on('MapUpdated', this.onMapUpdate);
 
     this.isListenerRegistered = true;
-    this.mapListener.trigger('JS_BIND_BINGMAP', this.props.id, this.modeFlags);
+    this.mapListener.trigger('JS_BIND_BINGMAP', this.props.id, this.bingFlags);
   }
 
   /**
@@ -325,13 +333,12 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
    * @param binder The binder from the listener.
    * @param uid The unique ID of the bound map.
    */
-  private onListenerBound = (binder: BingMapsBinder, uid: number): void => {
+  private onMapBound = (binder: BingMapsBinder, uid: number): void => {
     if (this.isDestroyed) {
       return;
     }
 
     if (binder.friendlyName === this.props.id) {
-      // console.log('Bing map listener bound.');
       this.binder = binder;
       this.uid = uid;
       if (this._isBound) {
@@ -358,7 +365,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
 
       // Only when not SVT, send in initial map params (even if we are asleep), because a bing instance that doesn't
       // have params initialized causes GPU perf issues.
-      if (this.modeFlags !== 4) {
+      if (!BitFlags.isAll(this.bingFlags, BingMapsFlags.FL_BINGMAP_3D)) {
         Coherent.call('SET_MAP_PARAMS', this.uid, this.pos, this.radius);
       }
 
@@ -387,6 +394,29 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
   };
 
   /**
+   * Gets Bing flags for this component's Bing mode and a Bing reference mode.
+   * @param reference A Bing reference mode.
+   * @returns Bing flags for this component's Bing mode and the specified Bing reference mode.
+   */
+  private getBingFlags(reference: EBingReference): number {
+    let flags = 0;
+
+    if (this.props.mode === EBingMode.HORIZON) {
+      flags |= BingMapsFlags.FL_BINGMAP_3D;
+    } else if (this.props.mode === EBingMode.TOPVIEW) {
+      flags |= BingMapsFlags.FL_BINGMAP_3D | BingMapsFlags.FL_BINGMAP_3D_TOPVIEW;
+    }
+
+    if (reference === EBingReference.PLANE) {
+      flags |= BingMapsFlags.FL_BINGMAP_REF_PLANE;
+    } else if (reference === EBingReference.AERIAL) {
+      flags |= BingMapsFlags.FL_BINGMAP_REF_AERIAL;
+    }
+
+    return flags;
+  }
+
+  /**
    * Wakes this Bing component. Upon awakening, this component will synchronize its state to the Bing instance to which
    * it is bound.
    */
@@ -401,7 +431,7 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
 
     // Only when not SVT, periodically send map params to Coherent in case another BingComponent binds to the same
     // bing instance and sends in the initial params set and overrides our params.
-    if (this.modeFlags !== 4) {
+    if (!BitFlags.isAll(this.bingFlags, BingMapsFlags.FL_BINGMAP_3D)) {
       this.setCurrentMapParamsTimer = setInterval(this.setCurrentMapParams, 200);
     }
 
@@ -485,9 +515,11 @@ export class BingComponent extends DisplayComponent<BingComponentProps> {
     this.resolutionSub?.destroy();
     this.isoLinesSub?.destroy();
 
-    this.mapListener?.off('MapBinded', this.onListenerBound);
+    this.mapListener?.off('MapBinded', this.onMapBound);
     this.mapListener?.off('MapUpdated', this.onMapUpdate);
-    this.mapListener?.trigger('JS_UNBIND_BINGMAP', this.props.id);
+    if (!this.props.skipUnbindOnDestroy) {
+      this.mapListener?.trigger('JS_UNBIND_BINGMAP', this.props.id);
+    }
     this.isListenerRegistered = false;
 
     this.imgRef.instance.src = '';

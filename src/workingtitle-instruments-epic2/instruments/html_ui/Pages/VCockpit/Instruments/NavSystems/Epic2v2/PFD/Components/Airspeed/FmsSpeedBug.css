@@ -1,0 +1,28 @@
+.fms-speed-bug {
+  width: 24px;
+  height: 36px;
+  position: absolute;
+  top: -18px;
+  right: 0px;
+}
+
+.fms-speed-bug path {
+  stroke: var(--epic2-color-white);
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: var(--epic2-color-white);
+}
+
+.fms-speed-bug.magenta path {
+  stroke: var(--epic2-color-magenta);
+  fill: var(--epic2-color-magenta);
+}
+
+.fms-speed-bug path.shadow {
+  stroke-width: 4px;
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+
+  fill: none;
+}

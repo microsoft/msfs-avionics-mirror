@@ -1,0 +1,55 @@
+.epic2-radio-detail-options-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 54px;
+  width: 245px;
+}
+
+.epic2-radio-detail-text-container {
+  display: flex;
+  justify-content: flex-end;
+  height: 54px;
+  align-items: center;
+  width: 260px;
+  letter-spacing: 1.2px;
+  font-size: 1.4rem;
+}
+
+.epic2-radio-detail-vnode-container {
+  display: flex;
+  justify-content: flex-end;
+  height: 54px;
+  align-items: center;
+  width: 260px;
+  letter-spacing: 1.2px;
+  font-size: 1.4rem;
+}
+
+.epic2-radio-detail-options-container .radio-button-container {
+  display: flex;
+  align-items: flex-end;
+}
+
+.epic2-radio-detail-options-container .radio-button-label {
+  font-size: 1.4rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.epic2-radio-detail-options-container .radio-button-label-suffix {
+  font-size: 1.2rem;
+  color: var(--epic2-color-grey);
+}
+
+.epic2-radio-detail-options-container .radio-detail-option-wrapper {
+  padding-left: 35px;
+}
+
+.epic2-radio-detail-options-container .radio-button-wrapper {
+  height: 22px;
+}
+
+.epic2-radio-detail-options-container .radio-button-wrapper-left-label {
+  margin-left: 0;
+}

@@ -1,0 +1,23 @@
+.metric-altitude {
+  position: absolute;
+  top: 216px;
+  right: 2px;
+  width: 82px;
+  height: 29px;
+}
+
+.metric-altitude .metric-value {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  flex-direction: row;
+  justify-content: flex-end;
+  font-size: 25px;
+  color: var(--epic2-color-white);
+  padding: 2px 2px 0 0;
+}
+
+.metric-value .metric-unit {
+  padding-left: 2px;
+  color: var(--epic2-color-grey);
+}

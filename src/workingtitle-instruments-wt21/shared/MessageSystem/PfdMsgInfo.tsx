@@ -1,6 +1,6 @@
 import { ComponentProps, DisplayComponent, EventBus, FSComponent, Subject, VNode } from '@microsoft/msfs-sdk';
 
-import { PfdOrMfd } from '../Map/MapUserSettings';
+import { WT21InstrumentType } from '../Config';
 import { MESSAGE_LEVEL } from './MessageDefinition';
 import { PfdMessagePacket } from './PfdMessagePacket';
 import { PfdMessageEvents } from './PfdMessageReceiver';
@@ -12,7 +12,7 @@ interface PfdMsgInfoProps extends ComponentProps {
   // eslint-disable-next-line jsdoc/require-jsdoc
   bus: EventBus;
   // eslint-disable-next-line jsdoc/require-jsdoc
-  pfdOrMfd: PfdOrMfd;
+  instrumentType: WT21InstrumentType;
 }
 
 const rightAlignedMessages = ['TERM'] as readonly string[];
@@ -43,7 +43,7 @@ export class WT21_PFD_MsgInfo extends DisplayComponent<PfdMsgInfoProps> {
   public readonly handleMessages = (messagePacket: PfdMessagePacket): void => {
     const { bot, top, map, mfd } = messagePacket;
 
-    if (this.props.pfdOrMfd === 'PFD') {
+    if (this.props.instrumentType === WT21InstrumentType.Pfd) {
       this.messageBotRight.set(bot ? bot.content : '');
       this.messageBotRightRef.instance.classList.toggle('yellow-text', bot && bot.level === MESSAGE_LEVEL.Yellow);
       this.messageBotRightRef.instance.classList.toggle('msg-info-blink', bot?.isBlinking);
@@ -74,7 +74,7 @@ export class WT21_PFD_MsgInfo extends DisplayComponent<PfdMsgInfoProps> {
       this.messageBotLeftRef.instance.classList.toggle('msg-info-blink', isBlinking);
     }
 
-    if (this.props.pfdOrMfd === 'MFD') {
+    if (this.props.instrumentType === WT21InstrumentType.Mfd) {
       this.messageMfdTopRight.set(mfd ? mfd.content : '');
       this.messageMfdTopRightRef.instance.classList.toggle('yellow-text', mfd && mfd.level === MESSAGE_LEVEL.Yellow);
       this.messageMfdTopRightRef.instance.classList.toggle('msg-info-blink', mfd?.isBlinking);
@@ -89,7 +89,7 @@ export class WT21_PFD_MsgInfo extends DisplayComponent<PfdMsgInfoProps> {
   public render(): VNode {
     return (
       <div id="MsgInfo">
-        {this.props.pfdOrMfd === 'PFD' &&
+        {this.props.instrumentType === WT21InstrumentType.Pfd &&
           <>
             <div ref={this.messageTopLeftRef} id="PFDMessageTopLeft">{this.messageTopLeft}</div>
             <div ref={this.messageTopRightRef} id="PFDMessageTopRight">{this.messageTopRight}</div>
@@ -97,7 +97,7 @@ export class WT21_PFD_MsgInfo extends DisplayComponent<PfdMsgInfoProps> {
             <div ref={this.messageBotRightRef} id="PFDMessageBotRight">{this.messageBotRight}</div>
           </>
         }
-        {this.props.pfdOrMfd === 'MFD' &&
+        {this.props.instrumentType === WT21InstrumentType.Mfd &&
           <div ref={this.messageMfdTopRightRef} id="MFDMessageTopRight">{this.messageMfdTopRight}</div>
         }
         <div ref={this.messageMapRef} id="PFDMessageMap">{this.messageMap}</div>

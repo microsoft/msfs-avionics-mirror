@@ -1,5 +1,3 @@
-/// <reference types="@microsoft/msfs-types/js/simvar" />
-
 import { EventBus, IndexedEventType } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { SimVarValueType } from '../data/SimVars';
@@ -115,6 +113,9 @@ export interface BaseAdcEvents {
 
   /** The density altitude, in feet */
   density_alt: number;
+
+  /** The dynamic pressure, in inches of mercury */
+  dynamic_pressure_inhg: number;
 }
 
 /**
@@ -149,11 +150,11 @@ export interface AdcEvents extends BaseAdcEvents, AdcIndexedEvents {
  * An entry describing indicated airspeed-related topics to publish for a single airspeed indicator index.
  */
 type IasTopicEntry = {
-  /** The name of the SimVar from which to retrieve indicated airspeed. */
-  iasSimVar: string;
+  /** The registered SimVar ID with which to retrieve indicated airspeed. */
+  iasSimVarId: number;
 
-  /** The name of the SimVar from which to retrieve indicated airspeed. */
-  tasSimVar: string;
+  /** The registered SimVar ID with which to retrieve indicated airspeed. */
+  tasSimVarId: number;
 
   /** The most recently retrieved indicated airspeed value, in knots. */
   kias: number;
@@ -210,6 +211,12 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
     'indicated_tas_to_ias_factor': /^indicated_tas_to_ias_factor(?:_(0|(?:[1-9])\d*))?$/
   };
 
+  private readonly registeredSimVarIds = {
+    mach: SimVar.GetRegisteredId('AIRSPEED MACH', SimVarValueType.Mach, ''),
+    ambientPressure: SimVar.GetRegisteredId('AMBIENT PRESSURE', SimVarValueType.InHG, ''),
+    ambientTemperature: SimVar.GetRegisteredId('AMBIENT TEMPERATURE', SimVarValueType.Celsius, ''),
+  };
+
   private needRetrievePressure: boolean;
   private needRetrieveTemperature: boolean;
   private needRetrieveMach: boolean;
@@ -259,6 +266,7 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
       ['stall_aoa', { name: 'STALL ALPHA', type: SimVarValueType.Degree }],
       ['zero_lift_aoa', { name: 'ZERO LIFT ALPHA', type: SimVarValueType.Degree }],
       ['density_alt', { name: 'DENSITY ALTITUDE', type: SimVarValueType.Feet }],
+      ['dynamic_pressure_inhg', { name: 'DYNAMIC PRESSURE', type: SimVarValueType.InHG }],
     ]);
 
     super(simvars, bus, pacer);
@@ -465,8 +473,8 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
     let entry = this.needPublishIasTopics.get(index);
     if (!entry) {
       entry = {
-        iasSimVar: index < 0 ? 'AIRSPEED INDICATED:1' : `AIRSPEED INDICATED:${index}`,
-        tasSimVar: index < 0 ? 'AIRSPEED TRUE:1' : `AIRSPEED TRUE:${index}`,
+        iasSimVarId: SimVar.GetRegisteredId(index < 0 ? 'AIRSPEED INDICATED:1' : `AIRSPEED INDICATED:${index}`, SimVarValueType.Knots, ''),
+        tasSimVarId: SimVar.GetRegisteredId(index < 0 ? 'AIRSPEED TRUE:1' : `AIRSPEED TRUE:${index}`, SimVarValueType.Knots, ''),
         kias: 0,
         iasMps: 0,
         ktas: 0,
@@ -518,7 +526,7 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
    * @param publish Whether to publish the value.
    */
   private retrieveAmbientPressure(publish: boolean): void {
-    const pressureInHg = SimVar.GetSimVarValue('AMBIENT PRESSURE', SimVarValueType.InHG);
+    const pressureInHg = SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.ambientPressure);
     this.pressure = UnitType.IN_HG.convertTo(pressureInHg, UnitType.HPA);
     publish && this.publish('ambient_pressure_inhg', pressureInHg);
   }
@@ -528,7 +536,7 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
    * @param publish Whether to publish the value.
    */
   private retrieveAmbientTemperature(publish: boolean): void {
-    this.temperature = SimVar.GetSimVarValue('AMBIENT TEMPERATURE', SimVarValueType.Celsius);
+    this.temperature = SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.ambientTemperature);
     publish && this.publish('ambient_temp_c', this.temperature);
   }
 
@@ -537,7 +545,7 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
    * @param publish Whether to publish the value.
    */
   private retrieveMach(publish: boolean): void {
-    this.mach = SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Mach);
+    this.mach = SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.mach);
     publish && this.publish('mach_number', this.mach);
   }
 
@@ -547,7 +555,7 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
    * @param publish Whether to publish the value.
    */
   private retrieveIas(entry: IasTopicEntry, publish: boolean): void {
-    entry.kias = SimVar.GetSimVarValue(entry.iasSimVar, SimVarValueType.Knots);
+    entry.kias = SimVar.GetSimVarValueFastReg(entry.iasSimVarId);
     entry.iasMps = UnitType.KNOT.convertTo(entry.kias, UnitType.MPS);
     publish && entry.iasTopic && this.publish(entry.iasTopic, entry.kias);
   }
@@ -558,7 +566,7 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
    * @param publish Whether to publish the value.
    */
   private retrieveTas(entry: IasTopicEntry, publish: boolean): void {
-    entry.ktas = SimVar.GetSimVarValue(entry.tasSimVar, SimVarValueType.Knots);
+    entry.ktas = SimVar.GetSimVarValueFastReg(entry.tasSimVarId);
     publish && entry.tasTopic && this.publish(entry.tasTopic, entry.ktas);
   }
 
@@ -593,7 +601,8 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
     }
 
     const factor = entry.kias < 1 || this.mach === 0
-      ? 1 / AeroMath.casToMach(1, this.pressure)
+      // 1 m/s = 1.943844492440605 knots
+      ? AeroMath.machToCas(1, this.pressure) * 1.943844492440605
       : entry.kias / this.mach;
 
     this.publish(entry.machToKiasTopic, isFinite(factor) ? factor : 1);
@@ -626,7 +635,8 @@ export class AdcPublisher extends SimVarPublisher<AdcEvents> {
     }
 
     const factor = entry.kias < 1 || entry.indicatedMach === 0
-      ? 1 / AeroMath.casToMach(1, this.pressure)
+      // 1 m/s = 1.943844492440605 knots
+      ? AeroMath.machToCas(1, this.pressure) * 1.943844492440605
       : entry.kias / entry.indicatedMach;
 
     this.publish(entry.indicatedMachToKiasTopic, isFinite(factor) ? factor : 1);

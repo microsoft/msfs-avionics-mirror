@@ -11,7 +11,7 @@ import { MapFlightPlanDataProvider } from './MapFlightPlanDataProvider';
  */
 export type MapFlightPlannerPlanDataProviderOptions = {
   /** The flight planner from which to retrieve displayed flight plans. */
-  flightPlanner: FlightPlanner | Subscribable<FlightPlanner>;
+  flightPlanner: FlightPlanner | Subscribable<FlightPlanner | null>;
 
   /** The index of the LNAV from which to source LNAV tracking data. Defaults to `0`. */
   lnavIndex?: number | Subscribable<number>;
@@ -24,7 +24,7 @@ export type MapFlightPlannerPlanDataProviderOptions = {
  * A map flight plan layer data provider that provides a displayed flight plan from a flight planner.
  */
 export class MapFlightPlannerPlanDataProvider implements MapFlightPlanDataProvider {
-  private readonly planner: Subscribable<FlightPlanner>;
+  private readonly planner: Subscribable<FlightPlanner | null>;
 
   private readonly _plan = Subject.create<FlightPlan | null>(null);
   /** @inheritDoc */
@@ -154,7 +154,7 @@ export class MapFlightPlannerPlanDataProvider implements MapFlightPlanDataProvid
     private readonly bus: EventBus,
     arg2: Readonly<MapFlightPlannerPlanDataProviderOptions> | FlightPlanner,
   ) {
-    let flightPlanner: FlightPlanner | Subscribable<FlightPlanner>;
+    let flightPlanner: FlightPlanner | Subscribable<FlightPlanner | null>;
     let options: Readonly<MapFlightPlannerPlanDataProviderOptions> | undefined;
 
     if (arg2 instanceof FlightPlanner) {
@@ -205,24 +205,26 @@ export class MapFlightPlannerPlanDataProvider implements MapFlightPlanDataProvid
    * Responds to when this provider's flight planner changes.
    * @param planner The new flight planner.
    */
-  private onFlightPlannerChanged(planner: FlightPlanner): void {
+  private onFlightPlannerChanged(planner: FlightPlanner | null): void {
     for (const sub of this.fplSubs) {
       sub.destroy();
     }
     this.fplSubs.length = 0;
 
-    this.fplSubs.push(
-      planner.onEvent('fplCreated').handle(data => { data.planIndex === this.planIndex && this.updatePlan(); }),
-      planner.onEvent('fplDeleted').handle(data => { data.planIndex === this.planIndex && this.updatePlan(); }),
-      planner.onEvent('fplLoaded').handle(data => { data.planIndex === this.planIndex && this.updatePlan(); }),
-      planner.onEvent('fplIndexChanged').handle(() => { this.updateActivePlanRelatedSubs(); }),
+    if (planner) {
+      this.fplSubs.push(
+        planner.onEvent('fplCreated').handle(data => { data.planIndex === this.planIndex && this.updatePlan(); }),
+        planner.onEvent('fplDeleted').handle(data => { data.planIndex === this.planIndex && this.updatePlan(); }),
+        planner.onEvent('fplLoaded').handle(data => { data.planIndex === this.planIndex && this.updatePlan(); }),
+        planner.onEvent('fplIndexChanged').handle(() => { this.updateActivePlanRelatedSubs(); }),
 
-      planner.onEvent('fplLegChange').handle(data => { data.planIndex === this.planIndex && this.planModified.notify(this); }),
-      planner.onEvent('fplSegmentChange').handle(data => { data.planIndex === this.planIndex && this.planModified.notify(this); }),
-      planner.onEvent('fplOriginDestChanged').handle(data => { data.planIndex === this.planIndex && this.planModified.notify(this); }),
-      planner.onEvent('fplActiveLegChange').handle(data => { data.planIndex === this.planIndex && data.type === ActiveLegType.Lateral && this.updateActiveLegIndex(); }),
-      planner.onEvent('fplCalculated').handle(data => { data.planIndex === this.planIndex && this.planCalculated.notify(this); })
-    );
+        planner.onEvent('fplLegChange').handle(data => { data.planIndex === this.planIndex && this.planModified.notify(this); }),
+        planner.onEvent('fplSegmentChange').handle(data => { data.planIndex === this.planIndex && this.planModified.notify(this); }),
+        planner.onEvent('fplOriginDestChanged').handle(data => { data.planIndex === this.planIndex && this.planModified.notify(this); }),
+        planner.onEvent('fplActiveLegChange').handle(data => { data.planIndex === this.planIndex && data.type === ActiveLegType.Lateral && this.updateActiveLegIndex(); }),
+        planner.onEvent('fplCalculated').handle(data => { data.planIndex === this.planIndex && this.planCalculated.notify(this); })
+      );
+    }
 
     this.updatePlan();
     this.updateActivePlanRelatedSubs();
@@ -348,7 +350,7 @@ export class MapFlightPlannerPlanDataProvider implements MapFlightPlanDataProvid
   private updatePlan(): void {
     const planner = this.planner.get();
 
-    if (planner.hasFlightPlan(this.planIndex)) {
+    if (planner && planner.hasFlightPlan(this.planIndex)) {
       this._plan.set(planner.getFlightPlan(this.planIndex));
     } else {
       this._plan.set(null);
@@ -363,7 +365,7 @@ export class MapFlightPlannerPlanDataProvider implements MapFlightPlanDataProvid
 
     const planner = this.planner.get();
 
-    if (this.planIndex === planner.activePlanIndex) {
+    if (planner && this.planIndex === planner.activePlanIndex) {
       for (const sub of this.activePlanSubs) {
         sub.resume(true);
       }
@@ -391,7 +393,7 @@ export class MapFlightPlannerPlanDataProvider implements MapFlightPlanDataProvid
   private updateActiveLegIndex(): void {
     const planner = this.planner.get();
     const plan = this.plan.get();
-    this._activeLateralLegIndex.set(plan && this.planIndex === planner.activePlanIndex ? plan.activeLateralLeg : -1);
+    this._activeLateralLegIndex.set(planner && plan && this.planIndex === planner.activePlanIndex ? plan.activeLateralLeg : -1);
   }
 
   /**

@@ -1,0 +1,36 @@
+<ModelBehaviors>
+  <ParametersFn Name="G3000_Emissive_Power_Curve">
+		<Parameters Type="Default">
+			<PREFIX></PREFIX>
+		</Parameters>
+		<Parameters Type="Default">
+			<Condition NotEmpty="PREFIX">
+				<True>
+					<#PREFIX#_EMISSIVE_MIN>0</#PREFIX#_EMISSIVE_MIN>
+					<#PREFIX#_EMISSIVE_MAX>1</#PREFIX#_EMISSIVE_MAX>
+					<#PREFIX#_EMISSIVE_GAMMA>2.2</#PREFIX#_EMISSIVE_GAMMA>
+					<#PREFIX#_EMISSIVE_INPUT>0</#PREFIX#_EMISSIVE_INPUT>
+					<RETURN_PARAM_NAME>#PREFIX#_EMISSIVE_CODE</RETURN_PARAM_NAME>
+				</True>
+				<False>
+					<EMISSIVE_MIN>0</EMISSIVE_MIN>
+					<EMISSIVE_MAX>1</EMISSIVE_MAX>
+					<EMISSIVE_GAMMA>2.2</EMISSIVE_GAMMA>
+					<EMISSIVE_INPUT>0</EMISSIVE_INPUT>
+					<RETURN_PARAM_NAME>EMISSIVE_CODE</RETURN_PARAM_NAME>
+				</False>
+			</Condition>
+		</Parameters>
+		<Parameters Type="Override">
+			<Condition NotEmpty="PREFIX">
+				<EMISSIVE_MIN Process="Param">#PREFIX#_EMISSIVE_MIN</EMISSIVE_MIN>
+				<EMISSIVE_MAX Process="Param">#PREFIX#_EMISSIVE_MAX</EMISSIVE_MAX>
+				<EMISSIVE_GAMMA Process="Param">#PREFIX#_EMISSIVE_GAMMA</EMISSIVE_GAMMA>
+				<EMISSIVE_INPUT Process="Param">#PREFIX#_EMISSIVE_INPUT</EMISSIVE_INPUT>
+			</Condition>
+		</Parameters>
+		<ReturnParameters>
+			<#RETURN_PARAM_NAME#>#EMISSIVE_MIN# #EMISSIVE_INPUT# #EMISSIVE_GAMMA# pow #EMISSIVE_MAX# #EMISSIVE_MIN# - * +</#RETURN_PARAM_NAME#>
+		</ReturnParameters>
+	</ParametersFn>
+</ModelBehaviors>

@@ -1,0 +1,184 @@
+@keyframes fma-flash-green {
+  0%,
+  45% {
+    color: var(--epic2-color-green);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  55%,
+  100% {
+    -webkit-text-stroke: none;
+    color: var(--epic2-color-black);
+    background: var(--epic2-color-green);
+  }
+}
+
+@keyframes fma-flash-amber {
+  0%,
+  45% {
+    color: var(--epic2-color-amber);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  55%,
+  100% {
+    -webkit-text-stroke: none;
+    color: var(--epic2-color-black);
+    background: var(--epic2-color-amber);
+  }
+}
+
+@keyframes fma-flash-red {
+  0%,
+  45% {
+    color: var(--epic2-color-red);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  55%,
+  100% {
+    -webkit-text-stroke: none;
+    color: var(--epic2-color-black);
+    background: var(--epic2-color-red);
+  }
+}
+
+@keyframes fma-slide-lateral {
+  0% {
+    right: 70px;
+  }
+
+  100% {
+    right: 0;
+  }
+}
+
+@keyframes fma-slide-vertical {
+  0% {
+    left: 70px;
+  }
+
+  100% {
+    left: 0;
+  }
+}
+
+.fma {
+  position: absolute;
+  top: 0;
+  left: 91px;
+  width: 435px;
+  height: 37px;
+
+  font-size: 28px;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  text-align: center;
+}
+
+.fma .active {
+  color: var(--epic2-color-green);
+  height: 30px;
+  padding-top: 3px;
+}
+
+.fma .flash-green {
+  animation: fma-flash-green 1s infinite;
+}
+
+.fma .flash-amber {
+  animation: fma-flash-amber 1s infinite;
+}
+
+.fma .flash-red {
+  animation: fma-flash-red 1s infinite;
+}
+
+.fma .armed {
+  color: var(--epic2-color-white);
+  font-size: 24px;
+  height: 30px;
+  padding-top: 6px;
+}
+
+.fma .coupling-arrow {
+  color: var(--epic2-color-green);
+  margin: 0 -1px 0 -1px;
+}
+
+.fma .coupling-arrow path {
+  fill: var(--epic2-color-green);
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+  paint-order: stroke;
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fma .ap,
+.fma .yd {
+  position: relative;
+  height: 30px;
+  margin: 4px 0;
+  width: 50px;
+}
+
+.fma .ap {
+  margin-right: 4px;
+}
+
+.fma .amber {
+  color: var(--epic2-color-amber);
+}
+
+.fma-slot {
+  position: relative;
+  height: 30px;
+  margin: 4px 0;
+}
+
+.fma-slot div {
+  position: absolute;
+  top: 0;
+  height: 30px;
+}
+
+.fma-slot.lateral {
+  margin-left: 19px;
+  width: 130px;
+}
+
+.fma-slot.lateral .active {
+  right: 0;
+  width: 60px;
+}
+
+.fma-slot.lateral .active.slide {
+  animation: fma-slide-lateral 0.5s linear 1;
+}
+
+.fma-slot.lateral .armed {
+  left: 0;
+  width: 70px;
+}
+
+.fma-slot.vertical {
+  width: 144px;
+}
+
+.fma-slot.vertical .active {
+  left: 0;
+  width: 74px;
+}
+
+.fma-slot.vertical .active.slide {
+  animation: fma-slide-vertical 0.5s linear 1;
+}
+
+.fma-slot.vertical .armed {
+  right: 0;
+  width: 70px;
+}

@@ -1,0 +1,109 @@
+.fpln-config-sum-tab {
+  padding: 15px 10px;
+  font-size: 20px;
+  position: relative;
+}
+
+.fpln-config-sum-tab-icon-line-arrow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 20px;
+}
+
+.fpln-config-sum-tab-icon-plane-path {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 63px;
+  width: 235px;
+  margin: 0 auto;
+}
+
+.fpln-config-sum-tab-icon-plane-takeoff {
+  position: absolute;
+  left: 10px;
+  top: 130px;
+  width: 60px;
+}
+
+.fpln-config-sum-tab-icon-plane-landing {
+  position: absolute;
+  right: 10px;
+  top: 130px;
+  width: 64px;
+}
+
+.fpln-config-sum-tab-icon-line {
+  width: 210px;
+  padding-right: 15px;
+  margin: 0 auto;
+  height: 0;
+}
+
+.fpln-config-sum-units {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr 1fr);
+  grid-row-gap: 5px;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.fpln-config-sum-units-top {
+  margin-bottom: 40px;
+}
+
+.fpln-config-sum-units span.numberunit-num {
+  padding-left: 30px;
+  padding-right: 2px;
+}
+
+.fpln-config-sum-units span.numberunit-unit-small,
+.fpln-config-sum-units span.numberunit-unit-big {
+  color: var(--epic2-color-white);
+  font-size: 16px;
+}
+
+.fpln-config-sum-units:nth-of-type(1) {
+  margin-bottom: 40px;
+}
+
+.fpln-config-takeoff-landing-icao {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.fpln-config-takeoff-landing-time {
+  display: flex;
+  justify-content: space-between;
+}
+
+.fpln-config-takeoff-landing-time .time-sec {
+  display: none;
+}
+
+.fpln-config-takeoff-landing-time .time-display {
+  display: inline;
+}
+
+.fpln-config-takeoff-landing-time>div {
+  text-align: left;
+}
+
+.fpln-config-takeoff-landing-time>div:nth-of-type(2) {
+  text-align: right;
+}
+
+.fpln-config-flight-time {
+  text-align: center;
+  padding-top: 30px;
+}
+
+.fpln-config-sum-tab span {
+  color: var(--epic2-color-green);
+}
+
+.fpln-config-sum-tab .number-unit-display {
+  text-align: right;
+}

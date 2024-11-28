@@ -248,16 +248,16 @@ export class TcasRaPitchCueLayer extends HorizonLayer<TcasRaPitchCueLayerProps> 
     const center = this.props.projection.getOffsetCenterProjected();
     const bounds = this.clipBounds.get();
 
-    const width = bounds[2] - bounds[0];
-    const height = bounds[3] - bounds[1];
+    const width = Math.max(bounds[2] - bounds[0], 0);
+    const height = Math.max(bounds[3] - bounds[1], 0);
 
     this.rootStyle.set('left', `${center[0] + bounds[0]}px`);
     this.rootStyle.set('top', `${center[1] + bounds[1]}px`);
     this.rootStyle.set('width', `${width}px`);
     this.rootStyle.set('height', `${height}px`);
 
-    this.clipCenterX.set(`${width / 2}px`);
-    this.clipCenterY.set(`${height / 2}px`);
+    this.clipCenterX.set(`${-bounds[0]}px`);
+    this.clipCenterY.set(`${-bounds[1]}px`);
 
     this.checkNeedUpdateCues();
   }

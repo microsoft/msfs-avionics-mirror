@@ -1,3 +1,5 @@
+import { MathUtils } from './MathUtils';
+
 /**
  * A readonly version of a {@link Float64Array}.
  */
@@ -179,6 +181,33 @@ export class Vec2Math {
    */
   public static distance(vec1: ReadonlyFloat64Array, vec2: ReadonlyFloat64Array): number {
     return Math.hypot(vec2[0] - vec1[0], vec2[1] - vec1[1]);
+  }
+
+  /**
+   * Gets the angle between two vectors, in radians.
+   * @param vec1 The first vector.
+   * @param vec2 The second vector.
+   * @returns The angle between the two specified unit vectors, in radians, or `NaN` if either of the vectors has a
+   * magnitude equal to zero.
+   */
+  public static angle(vec1: ReadonlyFloat64Array, vec2: ReadonlyFloat64Array): number {
+    const absProduct = Vec2Math.abs(vec1) * Vec2Math.abs(vec2);
+
+    if (absProduct === 0) {
+      return NaN;
+    } else {
+      return Vec2Math.unitAngle(vec1, vec2) / absProduct;
+    }
+  }
+
+  /**
+   * Gets the angle between two unit vectors, in radians.
+   * @param vec1 The first unit vector.
+   * @param vec2 The second unit vector.
+   * @returns The angle between the two specified unit vectors, in radians.
+   */
+  public static unitAngle(vec1: ReadonlyFloat64Array, vec2: ReadonlyFloat64Array): number {
+    return Math.acos(MathUtils.clamp(Vec2Math.dot(vec1, vec2), -1, 1));
   }
 
   /**
@@ -460,6 +489,22 @@ export class Vec3Math {
   }
 
   /**
+   * Sets the magnitude of a vector.
+   * @param v1 The vector to receive a new length.
+   * @param magnitude The length to apply.
+   * @param out The vector to write the results to.
+   * @returns The scaled vector.
+   */
+  public static setMagnitude(v1: ReadonlyFloat64Array, magnitude: number, out: Float64Array): Float64Array {
+    const magnitudeV1 = Vec3Math.abs(v1);
+    const factor = (magnitudeV1 === 0) ? NaN : magnitude / magnitudeV1;
+    out[0] = factor * v1[0];
+    out[1] = factor * v1[1];
+    out[2] = factor * v1[2];
+    return out;
+  }
+
+  /**
    * Normalizes the vector to a unit vector.
    * @param v1 The vector to normalize.
    * @param out The vector to write the results to.
@@ -482,6 +527,33 @@ export class Vec3Math {
    */
   public static distance(vec1: ReadonlyFloat64Array, vec2: ReadonlyFloat64Array): number {
     return Math.hypot(vec2[0] - vec1[0], vec2[1] - vec1[0], vec2[2] - vec1[2]);
+  }
+
+  /**
+   * Gets the angle between two vectors, in radians.
+   * @param vec1 The first vector.
+   * @param vec2 The second vector.
+   * @returns The angle between the two specified unit vectors, in radians, or `NaN` if either of the vectors has a
+   * magnitude equal to zero.
+   */
+  public static angle(vec1: ReadonlyFloat64Array, vec2: ReadonlyFloat64Array): number {
+    const absProduct = Vec3Math.abs(vec1) * Vec3Math.abs(vec2);
+
+    if (absProduct === 0) {
+      return NaN;
+    } else {
+      return Vec3Math.unitAngle(vec1, vec2) / absProduct;
+    }
+  }
+
+  /**
+   * Gets the angle between two unit vectors, in radians.
+   * @param vec1 The first unit vector.
+   * @param vec2 The second unit vector.
+   * @returns The angle between the two specified unit vectors, in radians.
+   */
+  public static unitAngle(vec1: ReadonlyFloat64Array, vec2: ReadonlyFloat64Array): number {
+    return Math.acos(MathUtils.clamp(Vec3Math.dot(vec1, vec2), -1, 1));
   }
 
   /**

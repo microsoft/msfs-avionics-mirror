@@ -1,6 +1,6 @@
 import { SimVarValueType } from '../../data/SimVars';
 import { MathUtils } from '../../math/MathUtils';
-import { APValues } from '../APConfig';
+import { APValues } from '../APValues';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**

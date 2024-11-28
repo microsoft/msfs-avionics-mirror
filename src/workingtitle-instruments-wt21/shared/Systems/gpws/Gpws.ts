@@ -5,7 +5,7 @@ import {
 } from '@microsoft/msfs-sdk';
 
 import { FmaData } from '../../WT21ControlEvents';
-import { RASystemEvents } from '../RASystem';
+import { RASystemEvents } from '../RadioAltimeterSystem';
 import { GpwsEvents } from './GpwsEvents';
 import { GpwsData, GpwsModule } from './GpwsModule';
 import { GpwsOperatingMode } from './GpwsTypes';

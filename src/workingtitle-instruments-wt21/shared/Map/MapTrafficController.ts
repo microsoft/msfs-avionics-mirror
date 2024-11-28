@@ -4,7 +4,7 @@ import {
 } from '@microsoft/msfs-sdk';
 
 import { TrafficUserSettings } from '../Traffic/TrafficUserSettings';
-import { MapSettingsMfdAliased, MapSettingsPfdAliased, MapUserSettings, PfdOrMfd } from './MapUserSettings';
+import { MapSettingsMfdAliased, MapSettingsPfdAliased } from './MapUserSettings';
 
 /**
  * Modules required by PlanFormatController.
@@ -21,7 +21,6 @@ export class MapTrafficController extends MapSystemController<MapTrafficControll
   private static readonly ALTITUDE_RESTRICTION_NORMAL = UnitType.FOOT.createNumber(2700);
   private static readonly ALTITUDE_RESTRICTION_FULL = UnitType.FOOT.createNumber(9900);
 
-  private readonly mapSettings: UserSettingManager<MapSettingsMfdAliased | MapSettingsPfdAliased>;
   private readonly trafficSettings = TrafficUserSettings.getManager(this.context.bus);
 
   private readonly trafficModule = this.context.model.getModule(MapSystemKeys.Traffic);
@@ -37,15 +36,13 @@ export class MapTrafficController extends MapSystemController<MapTrafficControll
   /**
    * Constructor.
    * @param context The map system context to use with this controller.
-   * @param pfdOrMfd Whether the map is on the PFD or MFD.
+   * @param mapSettings The map settings manager
    */
   constructor(
     context: MapSystemContext<MapTrafficControllerModules>,
-    pfdOrMfd: PfdOrMfd
+    private readonly mapSettings: UserSettingManager<MapSettingsMfdAliased | MapSettingsPfdAliased>,
   ) {
     super(context);
-
-    this.mapSettings = MapUserSettings.getAliasedManager(context.bus, pfdOrMfd);
   }
 
   /** @inheritdoc */

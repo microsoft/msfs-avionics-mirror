@@ -88,12 +88,6 @@ export class ComputedSubject<I, T> implements MutableSubscribable<T, I> {
 
   }
 
-  /** @inheritdoc */
-  public unsub(handler: (v: T, rv: I) => void): void {
-    const toDestroy = this.subs.find(sub => sub.handler === handler);
-    toDestroy?.destroy();
-  }
-
   /**
    * Notifies subscriptions that this subject's value has changed.
    */
@@ -105,7 +99,7 @@ export class ComputedSubject<I, T> implements MutableSubscribable<T, I> {
     for (let i = 0; i < subLen; i++) {
       try {
         const sub = this.subs[i];
-        if (sub.isAlive && !sub.isPaused) {
+        if (!sub.isPaused) {
           this.notifySubscription(sub);
         }
 

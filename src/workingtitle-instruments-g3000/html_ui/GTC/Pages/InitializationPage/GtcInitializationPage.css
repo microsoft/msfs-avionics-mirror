@@ -1,0 +1,182 @@
+.init-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .init-page {
+  font-size: 30px;
+
+  --init-page-left-button-left: 67px;
+  --init-page-left-button-width: 370px;
+  --init-page-left-button-height: 148px;
+  --init-page-left-button-font-size: 33px;
+
+  --init-page-profile-button-top: 92px;
+
+  --init-page-reset-init-button-top: 409px;
+
+  --init-page-accept-init-button-top: 594px;
+
+  --init-page-list-panel-right: 67px;
+  --init-page-list-panel-top: 40px;
+  --init-page-list-panel-width: 464px;
+  --init-page-list-panel-height: 710px;
+  --init-page-list-panel-padding: 3px 1px 0px 5px;
+
+  --init-page-list-header-height: 43px;
+
+  --init-page-list-header-task-center: 109px;
+
+  --init-page-list-header-completed-right: 30px;
+
+  --init-page-list-task-item-left-width: 214px;
+
+  --init-page-task-item-name-height: 70px;
+
+  --init-page-task-item-check-box-size: 74px;
+  --init-page-task-item-check-icon-height: 52px;
+}
+
+.gtc-vertical .init-page {
+  font-size: 16px;
+
+  --init-page-left-button-left: 10px;
+  --init-page-left-button-width: 200px;
+  --init-page-left-button-height: 80px;
+  --init-page-left-button-font-size: 18px;
+
+  --init-page-profile-button-top: 50px;
+
+  --init-page-reset-init-button-top: 220px;
+
+  --init-page-accept-init-button-top: 320px;
+
+  --init-page-list-panel-right: 10px;
+  --init-page-list-panel-top: 22px;
+  --init-page-list-panel-width: 250px;
+  --init-page-list-panel-height: 380px;
+  --init-page-list-panel-padding: 1px 1px 0px 5px;
+
+  --init-page-list-header-height: 23px;
+
+  --init-page-list-header-task-center: 55px;
+
+  --init-page-list-header-completed-right: 12px;
+
+  --init-page-list-task-item-left-width: 118px;
+
+  --init-page-task-item-name-height: 36px;
+
+  --init-page-task-item-check-box-size: 40px;
+  --init-page-task-item-check-icon-height: 30px;
+}
+
+.init-page-left-button {
+  position: absolute;
+  left: var(--init-page-left-button-left);
+  width: var(--init-page-left-button-width);
+  height: var(--init-page-left-button-height);
+  font-size: var(--init-page-left-button-font-size);
+}
+
+.init-page-profile-button {
+  top: var(--init-page-profile-button-top);
+
+  --touch-button-value-label-center-y: 25%;
+  --touch-button-value-value-center-y: 50%;
+}
+
+.init-page-reset-init-button {
+  top: var(--init-page-reset-init-button-top);
+}
+
+.init-page-accept-init-button {
+  top: var(--init-page-accept-init-button-top);
+}
+
+.init-page-list-panel {
+  position: absolute;
+  right: var(--init-page-list-panel-right);
+  top: var(--init-page-list-panel-top);
+  width: var(--init-page-list-panel-width);
+  height: var(--init-page-list-panel-height);
+  padding: var(--init-page-list-panel-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.init-page-list-header {
+  position: relative;
+  height: var(--init-page-list-header-height);
+}
+
+.init-page-list-header-task {
+  position: absolute;
+  left: var(--init-page-list-header-task-center);
+  top: 0px;
+  transform: translateX(-50%);
+}
+
+.init-page-list-header-completed {
+  position: absolute;
+  right: var(--init-page-list-header-completed-right);
+  top: 0px;
+}
+
+.init-page-task-item {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.init-page-task-item-left {
+  position: relative;
+  width: var(--init-page-list-task-item-left-width);
+  height: 100%;
+}
+
+.init-page-task-item-icon {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%) scale(var(--gtc-directory-button-img-scale));
+}
+
+.init-page-task-item-name {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  width: 100%;
+  height: var(--init-page-task-item-name-height);
+  line-height: 1.1em;
+  text-align: center;
+  white-space: pre;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.init-page-task-item-check-box {
+  position: relative;
+  width: var(--init-page-task-item-check-box-size);
+  height: var(--init-page-task-item-check-box-size);
+  margin: 0px auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.init-page-task-item-check-icon {
+  width: auto;
+  height: var(--init-page-task-item-check-icon-height);
+}

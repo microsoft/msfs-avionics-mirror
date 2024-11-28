@@ -2,9 +2,11 @@ import { Consumer } from '../data/Consumer';
 import { EventBus, Publisher } from '../data/EventBus';
 import { EventSubscriber } from '../data/EventSubscriber';
 import { UnitType } from '../math/NumberUnit';
-import { FlightPlanLeg, ICAO, LegType } from '../navigation/Facilities';
+import { FlightPlanLeg, LegType } from '../navigation/Facilities';
+import { IcaoValue } from '../navigation/Icao';
+import { ICAO } from '../navigation/IcaoUtils';
 import { SubEvent } from '../sub/SubEvent';
-import { FlightPathCalculator } from './FlightPathCalculator';
+import { FlightPathCalculator } from './flightpath/FlightPathCalculator';
 import {
   ActiveLegType, DirectToData, FlightPlan, FlightPlanModBatch, LegEventType, OriginDestChangeType, PlanEvents,
   SegmentEventType
@@ -188,7 +190,13 @@ export interface FlightPlanOriginDestEvent {
   /** The index of the flight plan. */
   readonly planIndex: number;
 
-  /** The airport that was changed. */
+  /** The ICAO value of the airport that was changed. */
+  readonly airportIcao?: IcaoValue;
+
+  /**
+   * The ICAO string (V1) of the airport that was changed.
+   * @deprecated Please use `airportIcao` instead.
+   */
   readonly airport?: string;
 
   /**
@@ -206,7 +214,7 @@ export interface FlightPlanProcedureDetailsEvent {
   readonly planIndex: number;
 
   /** The procedure details that changed. */
-  readonly details: ProcedureDetails;
+  readonly details: Readonly<ProcedureDetails>;
 
   /**
    * The modification batch stack to which the change was assigned, in order of increasing nestedness. Not defined if
@@ -234,7 +242,7 @@ export interface FlightPlanResponseEvent {
   readonly uid: number;
 
   /** The plans contained by the flight planner. */
-  readonly flightPlans: FlightPlan[];
+  readonly flightPlans: (FlightPlan | null)[];
 
   /** The index of the active plan. */
   readonly planIndex: number;
@@ -540,6 +548,10 @@ export class FlightPlanner<ID extends string = any> {
     this.publisher.pub(`fplsync_fplResponse${this.eventSuffix}`, {
       uid: data.uid,
       flightPlans: this.flightPlans.map(plan => {
+        if (!plan) {
+          return null;
+        }
+
         const newPlan = Object.assign({}, plan) as any;
         newPlan.calculator = undefined;
 
@@ -570,13 +582,13 @@ export class FlightPlanner<ID extends string = any> {
     this.lastRequestUid = undefined;
 
     for (let i = 0; i < data.flightPlans.length; i++) {
-      // ignore bogus flight plans
-      if (data.flightPlans[i].segmentCount === 0) {
+      const flightPlan = data.flightPlans[i];
+      if (flightPlan === null || flightPlan.segmentCount === 0) {
         continue;
       }
 
       const newPlan = new FlightPlan(i, this.calculator, this.getLegNameFunc);
-      newPlan.copyFrom(data.flightPlans[i], true);
+      newPlan.copyFrom(flightPlan, true);
       newPlan.events = this.buildPlanEventHandlers(i);
 
       this.flightPlans[i] = newPlan;
@@ -999,11 +1011,11 @@ export class FlightPlanner<ID extends string = any> {
    * Sends a origin/dest change event.
    * @param planIndex The index of the flight plan.
    * @param type The origin/destination change type.
-   * @param airport The airport that was changed.
+   * @param airportIcao The ICAO value of the airport that was changed.
    * @param batch The modification batch to which the change was assigned.
    */
-  private sendOriginDestChanged(planIndex: number, type: OriginDestChangeType, airport?: string, batch?: readonly Readonly<FlightPlanModBatch>[]): void {
-    const data = { planIndex, type, airport, batch };
+  private sendOriginDestChanged(planIndex: number, type: OriginDestChangeType, airportIcao: IcaoValue | undefined, batch?: readonly Readonly<FlightPlanModBatch>[]): void {
+    const data = { planIndex, type, airportIcao, airport: airportIcao ? ICAO.valueToStringV1(airportIcao) : undefined, batch };
     this.sendEvent('fplOriginDestChanged', data, true);
   }
 
@@ -1019,7 +1031,7 @@ export class FlightPlanner<ID extends string = any> {
 
     // We do object assign against new proc details in case the incoming details are missing fields because of coming from json
     // and because we want to overwrite the entire object, instead of just some fields.
-    plan.setProcedureDetails(Object.assign(new ProcedureDetails(), data.details), false);
+    plan.setProcedureDetails(Object.assign(FlightPlan.createProcedureDetails(), data.details), false);
 
     this.sendEvent('fplProcDetailsChanged', data, false);
   }

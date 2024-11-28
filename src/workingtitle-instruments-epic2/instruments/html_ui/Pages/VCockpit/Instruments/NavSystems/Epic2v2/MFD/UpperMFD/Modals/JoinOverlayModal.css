@@ -1,0 +1,111 @@
+.join-airway-modal .title {
+  font-size: 27px;
+  padding-top: 10px;
+  padding-left: 4px;
+}
+
+.join-airway-modal .airway {
+  font-size: 22px;
+  padding-left: 4px;
+}
+
+.join-airway-modal .header {
+  display: flex;
+  position: relative;
+}
+
+.join-airway-modal .subheader {
+  display: flex;
+  position: relative;
+  top: 12px;
+}
+
+.touch-button.join-airway-close-button {
+  margin-left: auto;
+  width: 57px;
+  height: 37px;
+  margin-top: 2px;
+}
+
+.touch-button.join-airway-view-toggle-button {
+  width: 79px;
+  height: 33px;
+  position: absolute;
+  right: 0;
+  top: -8px;
+  z-index: 3;
+}
+
+.join-airway-view-toggle-button .touch-button-checkbox-label {
+  margin-right: 4px;
+}
+
+.join-airway-popout-rectangle {
+  background: var(--touch-button-background);
+  border-radius: var(--bar-touch-button-border-radius);
+  border-image-width: var(--bar-touch-button-border-image-width);
+  border-image-source: var(--bar-touch-button-border-image-source);
+
+  border-width: var(--touch-button-border-width);
+  border-style: var(--touch-button-border-style);
+  border-image-slice: var(--touch-button-border-image-slice);
+  border-image-repeat: var(--touch-button-border-image-repeat);
+}
+
+.join-airway-airway-container {
+  top: 80px;
+  left: 15px;
+  position: absolute;
+  width: calc(40% - 10px);
+  height: calc(100% - 120px);
+}
+
+.join-airway-exit-waypoint-container {
+  position: absolute;
+  top: 80px;
+  left: calc(40% + 10px);
+  width: calc(60% - 15px);
+  height: calc(100% - 120px);
+}
+
+.join-airway-list-placeholder {
+  position: relative;
+  border-radius: 2px;
+  margin: 5px 5px 1px 3px;
+  padding: 2px;
+}
+
+.airway-container-title, .waypoint-menu-label {
+  font-size: 18px;
+}
+
+.airway-name-menu-container .triangle {
+  position: absolute;
+  right: 0px;
+  top: 6px;
+  fill: transparent;
+  stroke: var(--epic2-color-white);
+  stroke-width: 1;
+}
+
+.airway-name-menu-container {
+  display: flex;
+}
+
+.airway-name-menu-label {
+  width: 150px;
+  text-align: left;
+  padding-left: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.waypoint-name-menu-base {
+  right: -98px;
+}
+
+.insert-airway-button {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  padding: 2px 10px 0 10px;
+}

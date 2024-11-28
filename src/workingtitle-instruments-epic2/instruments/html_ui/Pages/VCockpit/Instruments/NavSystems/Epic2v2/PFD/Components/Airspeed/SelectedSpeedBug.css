@@ -1,0 +1,30 @@
+.selected-speed-bug {
+  width: 24px;
+  height: 36px;
+  position: absolute;
+  top: -18px;
+  right: 0
+}
+
+.selected-speed-bug path {
+  stroke: var(--epic2-color-white);
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  fill: var(--epic2-color-white);
+  fill-opacity: 0.5;
+}
+
+.selected-speed-bug.magenta path {
+  stroke: var(--epic2-color-magenta);
+  fill: var(--epic2-color-magenta);
+}
+
+.selected-speed-bug path.shadow {
+  stroke-width: 4px;
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+
+  fill: none;
+}

@@ -77,10 +77,16 @@ export interface VerticalFlightPlan {
   /** The number of legs in this flight plan. */
   length: number;
 
-  /** The Flight Plan Segments in the VerticalFlightPlan (should always be the same as the lateral plan) */
+  /**
+   * The flight plan segments in this flight plan. Vertical flight plan segments have a one-to-one correspondence with
+   * the segments in the associated lateral flight plan and have the same ordering.
+   */
   segments: VNavPlanSegment[];
 
-  /** The VNav Constraints in this Vertical Flight Plan */
+  /**
+   * The VNAV constraints in this flight plan. Constraints are positioned in the array in the *reverse* order in which
+   * they appear in the flight plan.
+   */
   constraints: VNavConstraint[];
 
   /** The global leg index of the destination leg, or undefined */
@@ -180,89 +186,99 @@ export interface TocBocDetails {
  */
 export interface VNavLeg {
   /** The index of the flight plan segment. */
-  segmentIndex: number,
+  segmentIndex: number;
 
   /** The index of the leg within the plan segment. */
-  legIndex: number,
+  legIndex: number;
 
   /** The name of the leg. */
-  name: string,
+  name: string;
 
   /** The fpa of the leg in degrees. Always a positive number. */
-  fpa: number,
+  fpa: number;
 
   /** The distance of the leg in meters. */
-  distance: number,
+  distance: number;
 
-  /** Whether the leg is eligible for VNAV. */
+  /** Whether the leg is eligible for VNAV to compute a vertical path through it. */
   isEligible: boolean;
 
   /** If the leg is a bottom of descent. */
-  isBod: boolean,
+  isBod: boolean;
 
   /** Whether or not the altitude provided is advisory. */
-  isAdvisory: boolean,
+  isAdvisory: boolean;
 
   /** The altitude that the leg ends at in meters. */
-  altitude: number,
+  altitude: number;
 
   /** Whether or not the constraint at this leg is user defined. */
-  isUserDefined: boolean,
+  isUserDefined: boolean;
 
   /** Whether or not the leg is a direct to target. */
-  isDirectToTarget: boolean,
+  isDirectToTarget: boolean;
 
   /** The constrant altitude assigned to this leg that is invalid, in meters, if one exists. */
-  invalidConstraintAltitude?: number
+  invalidConstraintAltitude?: number;
 }
 
 /**
  * A Vertical Flight Plan Constraint.
  */
 export interface VNavConstraint {
-  /** The global leg index for the constraint. */
-  index: number,
+  /**
+   * The global index of the flight plan leg that hosts the constraint. The constraint is always considered to be
+   * located at the end of its host leg.
+   */
+  index: number;
 
   /** The minimum altitude of the constraint in meters, or negative infinity if the constraint has no minimum altitude. */
-  minAltitude: number,
+  minAltitude: number;
 
   /** The max altitude of the constraint in meters, or positive infinity if the constraint has no maximum altitude. */
-  maxAltitude: number,
+  maxAltitude: number;
 
   /** The target altitude of the constraint in meters. */
-  targetAltitude: number,
+  targetAltitude: number;
 
   /**
    * Whether or not this constraint is a target that will be held at
    * during a level-off or whether it will instead be passed through
    * with no level off.
    */
-  isTarget: boolean,
+  isTarget: boolean;
 
   /** Whether or not this constraint is the last constraint prior to a MANSEQ or other VNAV ineligible leg type. */
-  isPathEnd: boolean,
+  isPathEnd: boolean;
 
-  /** If this constraint isPathEnd, what is the leg index of the next vnav eligible leg. */
-  nextVnavEligibleLegIndex?: number,
+  /**
+   * The global index of the earliest flight plan leg that is eligible for computing a VNAV path that is not followed
+   * by a path-ineligible leg in this constraint, if this constraint contains at least one path-ineligible leg. If the
+   * last leg in this constraint is path-ineligible, then this index will be equal to the global index of this
+   * constraint's host leg plus one. If this constraint has no path-ineligible legs, then this property is undefined.
+   */
+  nextVnavEligibleLegIndex?: number;
 
   /** The name of the leg at this constraint. */
-  name: string,
+  name: string;
 
   /** The total distance of the legs that make up this constriant segment in meters. */
-  distance: number,
+  distance: number;
 
   /** The flight path angle to take through the legs in this constraint in degrees. Always a positive number. */
-  fpa: number,
+  fpa: number;
 
-  /** The legs contained in this constraint segment. */
-  legs: VNavLeg[],
+  /**
+   * The legs contained in this constraint segment. Legs are positioned in the array in the *reverse* order in which
+   * they appear in the flight plan.
+   */
+  legs: VNavLeg[];
 
   /** The type of constraint segment. */
-  // type: 'normal' | 'dest' | 'cruise' | 'dep' | 'direct' | 'missed' | 'manual' | 'climb' | 'descent',
-  type: 'climb' | 'descent' | 'direct' | 'manual' | 'missed' | 'dest',
+  type: 'climb' | 'descent' | 'direct' | 'manual' | 'missed' | 'dest';
 
   /** Whether or not this constraint is beyond the FAF. */
-  isBeyondFaf: boolean
+  isBeyondFaf: boolean;
 }
 
 /**

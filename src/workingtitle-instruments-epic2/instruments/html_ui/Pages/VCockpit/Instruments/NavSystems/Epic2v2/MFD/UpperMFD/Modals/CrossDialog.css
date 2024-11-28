@@ -1,0 +1,169 @@
+.cross-modal {
+  left: 360px;
+  top: 70px;
+  width: var(--flight-management-window-width);
+  height: 365px;
+  border-radius: var(--bar-touch-button-border-radius);
+  border-image-width: var(--bar-touch-button-border-image-width);
+  border-image-source: var(--bar-touch-button-border-image-source);
+  border-width: var(--touch-button-border-width);
+  border-style: var(--touch-button-border-style);
+  border-image-slice: var(--touch-button-border-image-slice);
+  border-image-repeat: var(--touch-button-border-image-repeat);
+}
+
+.cross-modal p {
+  font-size: 20px;
+}
+
+.cross-modal .title {
+  font-size: 27px;
+  padding-top: 10px;
+  padding-left: 4px;
+}
+
+.cross-modal .header {
+  display: flex;
+  position: relative;
+}
+
+.cross-modal .header .close-button {
+  width: 57px;
+  height: 37px;
+  margin-top: 2px;
+}
+
+.cross-modal .header .keyboard-button {
+  margin-left: auto;
+  margin-right: 5px;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.cross-modal .insert-button {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  padding: 2px 10px 0 10px;
+  width: 80px;
+}
+
+.cross-modal .delete-button {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  padding: 2px 10px 0 10px;
+  width: 90px;
+}
+
+.cross-modal .as-published-button {
+  position: absolute;
+  bottom: 5px;
+  left: 99px;
+  padding: 2px 10px 0 10px;
+  width: 146px;
+}
+
+.cross-modal .container .left {
+  width: 55%;
+  float: left;
+  padding-left: 2px;
+}
+
+.cross-modal .container .right {
+  width: calc(45% - 5px);
+  float: right;
+  margin-right: 3px;
+}
+
+.cross-modal .container .vertical-border {
+  position: absolute;
+  right: calc(45% + 3px);
+  width: 2px;
+  height: 280px;
+  background-color: #ffffff;
+}
+
+.cross-modal .side-text.input-field {
+  display: flex;
+  margin: 0 auto;
+  align-items: center;
+}
+
+.cross-modal .input-box-disabled .input-box {
+  background: none;
+  color: var(--epic2-color-grey);
+  border: solid var(--epic2-color-grey) 2px;
+}
+
+.cross-modal .radio-row {
+  display: flex;
+}
+
+.cross-modal .radio-row > * {
+  flex: 1;
+}
+
+.cross-modal .line {
+  background-color: #fff;
+  height: 2px;
+  margin-right: 3px;
+  margin-bottom: 5px;
+}
+
+.cross-modal .container .right .line {
+  position: relative;
+  width: calc(100% + 8px);
+  left: -7px;
+}
+
+.cross-modal .container-border {
+  width: calc(100% - 10px);
+  position: absolute;
+  left: 3px;
+  top: 256px;
+}
+
+.cross-modal .cross-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.cross-modal .cross-wpt {
+  position: absolute;
+  height: 25px;
+}
+
+.cross-modal .turn-title {
+  padding-top: 3px;
+  padding-bottom: 7px;
+}
+
+.cross-modal .cross-type {
+  text-align: right;
+}
+
+.cross-modal .radio-button-disabled .radio-button {
+  border-color: var(--epic2-color-grey);
+  opacity: 0.3;
+}
+
+.cross-modal .radio-button-disabled {
+  color: var(--epic2-color-grey);
+}
+
+.cross-modal .radio-button-disabled .radio-icon-selected {
+  background-color: var(--epic2-color-grey);
+}
+
+.cross-modal .indented-container {
+  position: relative;
+  left: 10px;
+}
+
+.cross-modal .modify-alt-button {
+  width: 100px;
+  left: 10px;
+}

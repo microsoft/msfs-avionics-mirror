@@ -668,7 +668,7 @@ export class AeroMath {
   public static dragCoefficient: {
     /**
      * Calculates the drag coefficient given certain parameters.
-     * @param lift The drag force, in newtons.
+     * @param drag The drag force, in newtons.
      * @param area The wing area, in meters squared.
      * @param density The flow density, in kilograms per cubic meter.
      * @param flowSpeed The flow speed, in meters per second.
@@ -704,4 +704,20 @@ export class AeroMath {
      */
     (cd: number, area: number, dynamicPressure: number): number;
   } = AeroMath.flowForceFromCoef;
+
+
+  // ---- Engine equations ----
+
+  /**
+   * Calculates a thrust correction factor. Multiplying the correction factor by uncorrected thrust yields corrected
+   * thrust.
+   * @param mach The mach number.
+   * @param ambientPressure The ambient static pressure in hPa.
+   * @returns The thrust correction factor for the specified parameters.
+   */
+  public static thrustCorrectionFactor(mach: number, ambientPressure: number): number {
+    const totalInletPressureMachRise = AeroMath.totalPressureRatioAir(mach);
+    const deltaPressureRatio = ambientPressure / 1013.25;
+    return 1 / (deltaPressureRatio * totalInletPressureMachRise);
+  }
 }

@@ -1,0 +1,17 @@
+.radio-alt {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12.1%;
+  height: 5.9%;
+  margin: 1px;
+  padding: 0;
+  text-align: right;
+  font-size: 26px;
+  line-height: 1.2em;
+  color: var(--epic2-color-green)
+}
+
+.radio-alt-failed {
+  color: var(--epic2-color-white);
+}

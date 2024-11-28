@@ -3,7 +3,8 @@ import { SimVarValueType } from '../../data/SimVars';
 import { Accessible } from '../../sub/Accessible';
 import { Subscribable } from '../../sub/Subscribable';
 import { SubscribableUtils } from '../../sub/SubscribableUtils';
-import { APLateralModes, APValues } from '../APConfig';
+import { APLateralModes } from '../APTypes';
+import { APValues } from '../APValues';
 import { ApproachGuidanceMode } from '../VerticalNavigation';
 import { VNavVars } from '../vnav/VNavEvents';
 import { VNavUtils } from '../vnav/VNavUtils';
@@ -43,15 +44,33 @@ export type APGPDirectorOptions = {
   vnavIndex?: number | Subscribable<number>;
 
   /**
-   * A function which checks if the director can capture a glidepath from an armed state. If not defined, then the
+   * A function that checks whether the director can be armed. If not defined, then the director can always be armed.
+   * @param isGuidanceValid Whether valid glidepath guidance is available.
+   * @param fpa The flight path angle of the glidepath, in degrees. Positive angles indicate a downward-sloping path.
+   * @param deviation The deviation of the glidepath from the airplane, in feet. Positive values indicate the path lies
+   * above the airplane.
+   * @returns Whether the director can be armed.
+   */
+  canArm?: (isGuidanceValid: boolean, fpa: number, deviation: number) => boolean;
+
+  /**
+   * A function that checks whether the director can capture a glidepath from an armed state. If not defined, then the
    * director will capture if the autopilot's active lateral mode is `APLateralModes.GPSS`, the glidepath's flight
    * path angle is greater than zero, and deviation is between 100 and -15 feet.
+   * @param fpa The flight path angle of the glidepath, in degrees. Positive angles indicate a downward-sloping path.
+   * @param deviation The deviation of the glidepath from the airplane, in feet. Positive values indicate the path lies
+   * above the airplane.
+   * @returns Whether the director can capture a glidepath from an armed state.
    */
   canCapture?: (fpa: number, deviation: number) => boolean;
 
   /**
-   * A function which checks if the director can continue tracking a glidepath. If not defined, then the director will
-   * continue tracking as long as the autopilot's active lateral mode is `APLateralModes.GPSS`.
+   * A function that checks whether the director can continue tracking a glidepath. If not defined, then the director
+   * will continue tracking as long as the autopilot's active lateral mode is `APLateralModes.GPSS`.
+   * @param fpa The flight path angle of the glidepath, in degrees. Positive angles indicate a downward-sloping path.
+   * @param deviation The deviation of the glidepath from the airplane, in feet. Positive values indicate the path lies
+   * above the airplane.
+   * @returns Whether the director can continue tracking a glidepath.
    */
   canTrack?: (fpa: number, deviation: number) => boolean;
 };
@@ -83,6 +102,7 @@ export class APGPDirector implements PlaneDirector {
   private readonly getFpaFunc: () => number;
   private readonly getDeviationFunc: () => number;
 
+  private readonly canArmFunc: (isGuidanceValid: boolean, fpa: number, deviation: number) => boolean;
   private readonly canCaptureFunc: (fpa: number, deviation: number) => boolean;
   private readonly canTrackFunc: (fpa: number, deviation: number) => boolean;
 
@@ -121,6 +141,7 @@ export class APGPDirector implements PlaneDirector {
       this.getDeviationFunc = SimVar.GetSimVarValue.bind(undefined, this.deviationSimVar, SimVarValueType.Feet);
     }
 
+    this.canArmFunc = options?.canArm ?? APGPDirector.defaultCanArm;
     this.canCaptureFunc = options?.canCapture ?? APGPDirector.defaultCanCapture.bind(undefined, this.apValues);
     this.canTrackFunc = options?.canTrack ?? APGPDirector.defaultCanTrack.bind(undefined, this.apValues);
 
@@ -148,14 +169,16 @@ export class APGPDirector implements PlaneDirector {
   /** @inheritDoc */
   public arm(): void {
     if (this.state === DirectorState.Inactive) {
-      this.state = DirectorState.Armed;
-      SimVar.SetSimVarValue(VNavVars.GPApproachMode, SimVarValueType.Number, ApproachGuidanceMode.GPArmed);
-      if (this.onArm !== undefined) {
-        this.onArm();
+      if (this.canArmFunc(this.isGuidanceValidFunc(), this.getFpaFunc(), this.getDeviationFunc())) {
+        this.state = DirectorState.Armed;
+        SimVar.SetSimVarValue(VNavVars.GPApproachMode, SimVarValueType.Number, ApproachGuidanceMode.GPArmed);
+        if (this.onArm !== undefined) {
+          this.onArm();
+        }
+        SimVar.SetSimVarValue('AUTOPILOT GLIDESLOPE ARM', 'Bool', true);
+        SimVar.SetSimVarValue('AUTOPILOT GLIDESLOPE ACTIVE', 'Bool', false);
+        SimVar.SetSimVarValue('AUTOPILOT APPROACH ACTIVE', 'Bool', true);
       }
-      SimVar.SetSimVarValue('AUTOPILOT GLIDESLOPE ARM', 'Bool', true);
-      SimVar.SetSimVarValue('AUTOPILOT GLIDESLOPE ACTIVE', 'Bool', false);
-      SimVar.SetSimVarValue('AUTOPILOT APPROACH ACTIVE', 'Bool', true);
     }
   }
 
@@ -178,7 +201,9 @@ export class APGPDirector implements PlaneDirector {
       fpa = this.getFpaFunc();
       deviation = this.getDeviationFunc();
 
-      if (isGuidanceValid && this.canCaptureFunc(fpa, deviation)) {
+      if (!this.canArmFunc(isGuidanceValid, fpa, deviation)) {
+        this.deactivate();
+      } else if (isGuidanceValid && this.canCaptureFunc(fpa, deviation)) {
         this.activate();
       }
     }
@@ -196,6 +221,14 @@ export class APGPDirector implements PlaneDirector {
       const fpaPercentage = Math.max(deviation / (VNavUtils.getPathErrorDistance(groundSpeed) * -1), -1) + 1;
       this.drivePitch && this.drivePitch(fpa * fpaPercentage, true, true);
     }
+  }
+
+  /**
+   * Checks whether the director can be armed using default logic.
+   * @returns Whether the director can be armed.
+   */
+  private static defaultCanArm(): boolean {
+    return true;
   }
 
   /**

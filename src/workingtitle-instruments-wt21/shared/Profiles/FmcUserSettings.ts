@@ -12,11 +12,6 @@ export type FmcSettingsManagerType = {
    * The flight number setting.
    */
   flightNumber: string,
-
-  /**
-   * The setting for simbrief pilot id.
-   */
-  simbriefPilotId: number
 }
 
 /**
@@ -40,10 +35,6 @@ export class FmcUserSettings {
         name: 'flightNumber',
         defaultValue: ''
       },
-      {
-        name: 'simbriefPilotId',
-        defaultValue: -1
-      }
     ]);
   }
 }

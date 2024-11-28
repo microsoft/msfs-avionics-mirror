@@ -1,5 +1,8 @@
 import { BitFlags, UnitType } from '../math';
-import { AirportFacility, AirportRunway, FacilityType, FixTypeFlags, ICAO } from './Facilities';
+import { DeepReadonly } from '../utils/types/UtilityTypes';
+import { ApproachUtils } from './ApproachUtils';
+import { AirportFacility, AirportRunway, ApproachIdentifier, FacilityType, FixTypeFlags, Procedure, RunwayIdentifier } from './Facilities';
+import { ICAO } from './IcaoUtils';
 import { RunwayUtils } from './RunwayUtils';
 
 /**
@@ -256,5 +259,137 @@ export class AirportUtils {
       }
     }
     return false;
+  }
+
+  /**
+   * Finds the index of a named departure or arrival procedure in an airport facility procedure array, the index of a
+   * named enroute transition in the procedure's enroute transition array, and the index of a runway transition in the
+   * procedure's runway transition array for a given runway.
+   * @param procedureArray The procedure array in which to search for the procedure.
+   * @param procedureName The name of the procedure to find.
+   * @param transitionName The name of the procedure enroute transition to find.
+   * @param runway The identifier for the runway associated with the procedure runway transition to find.
+   * @returns The indexes of the specified departure or arrival procedure in the specified procedure array, of the
+   * specified enroute transition in the procedure's enroute transition array, and of the specified runway transition
+   * in the procedure's runway transition array.
+   */
+  public static findDepartureArrivalIndexesFromName(
+    procedureArray: readonly Procedure[],
+    procedureName: string,
+    transitionName: string,
+    runway: Readonly<RunwayIdentifier>
+  ): {
+    /** The index of the procedure, or `-1` if no procedure could be found. */
+    procedureIndex: number;
+
+    /** The index of the enroute transition, or `-1` if no enroute transition could be found. */
+    enrouteTransitionIndex: number;
+
+    /** The index of the runway transition, or `-1` if no runway transition could be found. */
+    runwayTransitionIndex: number;
+  } {
+    const result = {
+      procedureIndex: -1,
+      enrouteTransitionIndex: -1,
+      runwayTransitionIndex: -1
+    };
+
+    if (procedureName !== '') {
+      for (let procedureIndex = 0; procedureIndex < procedureArray.length; procedureIndex++) {
+        const procedure = procedureArray[procedureIndex];
+        if (procedure.name === procedureName) {
+          result.procedureIndex = procedureIndex;
+
+          if (transitionName !== '') {
+            for (let enrouteTransitionIndex = 0; enrouteTransitionIndex < procedure.enRouteTransitions.length; enrouteTransitionIndex++) {
+              const transition = procedure.enRouteTransitions[enrouteTransitionIndex];
+              if (transition.name === transitionName) {
+                result.enrouteTransitionIndex = enrouteTransitionIndex;
+                break;
+              }
+            }
+          }
+
+          if (runway.number !== '') {
+            for (let runwayTransitionIndex = 0; runwayTransitionIndex < procedure.runwayTransitions.length; runwayTransitionIndex++) {
+              const transition = procedure.runwayTransitions[runwayTransitionIndex];
+              if (
+                RunwayUtils.getNumberString(transition.runwayNumber) === runway.number
+                && RunwayUtils.getDesignatorLetter(transition.runwayDesignation) === runway.designator
+              ) {
+                result.runwayTransitionIndex = runwayTransitionIndex;
+                break;
+              }
+            }
+          }
+
+          break;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Finds the index of an approach in an airport facility described by an approach identifier and the index of a
+   * named transition in the approach's transition array.
+   * @param airport The airport facility in which to search for the approach.
+   * @param identifier The identifier for the approach to find.
+   * @param transitionName The name of the approach transition to find.
+   * @returns The indexes of the specified approach in the airport facility's approach array and of the specified
+   * transition in the approach's transition array.
+   */
+  public static findApproachIndexesFromIdentifier(
+    airport: AirportFacility,
+    identifier: DeepReadonly<ApproachIdentifier>,
+    transitionName: string
+  ): {
+    /** The index of the approach, or `-1` if no approach could be found. */
+    approachIndex: number;
+
+    /** The index of the approach transition, or `-1` if no transition could be found. */
+    transitionIndex: number;
+  } {
+    const result = {
+      approachIndex: -1,
+      transitionIndex: -1
+    };
+
+    if (airport.approaches.length === 0) {
+      return result;
+    }
+
+    const approachType = ApproachUtils.nameToType(identifier.type);
+
+    if (approachType === ApproachType.APPROACH_TYPE_UNKNOWN) {
+      return result;
+    }
+
+    for (let approachIndex = 0; approachIndex < airport.approaches.length; approachIndex++) {
+      const approach = airport.approaches[approachIndex];
+      if (
+        approach.approachType === approachType
+        && RunwayUtils.getNumberString(approach.runwayNumber) === identifier.runway.number
+        && RunwayUtils.getDesignatorLetter(approach.runwayDesignator) === identifier.runway.designator
+        && approach.approachSuffix === identifier.suffix
+      ) {
+        result.approachIndex = approachIndex;
+
+        if (transitionName !== '') {
+          for (let transitionIndex = 0; transitionIndex < approach.transitions.length; transitionIndex++) {
+            const transition = approach.transitions[transitionIndex];
+            if (transition.name === transitionName) {
+              result.transitionIndex = transitionIndex;
+              break;
+            }
+          }
+        }
+
+        break;
+      }
+    }
+
+    return result;
   }
 }

@@ -1,10 +1,10 @@
 import {
-  ComponentProps, ComputedSubject, DebounceTimer, DigitScroller, DisplayComponent, EventBus, FSComponent, MappedSubject,
-  MathUtils, NodeReference, NumberFormatter, NumberUnitSubject, ObjectSubject, SetSubject, SubEvent, Subject, Subscribable, SubscribableMapFunctions,
-  SubscribableSet, SubscribableUtils, Subscription, UnitType, UserSettingManager, VNode
+  ComponentProps, ComputedSubject, DebounceTimer, DigitScroller, DisplayComponent, FSComponent, MappedSubject,
+  MathUtils, NodeReference, NumberFormatter, NumberUnitSubject, ObjectSubject, SetSubject, SubEvent, Subject,
+  Subscribable, SubscribableMapFunctions, SubscribableSet, SubscribableUtils, Subscription, ToggleableClassNameRecord,
+  UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
-import { AltimeterUserSettingTypes } from '../../../settings';
 import { NumberUnitDisplay } from '../../common/NumberUnitDisplay';
 import { AltimeterDataProvider } from './AltimeterDataProvider';
 import { AltitudeAlertState } from './AltitudeAlerter';
@@ -21,23 +21,44 @@ export type AltimeterTapeScaleOptions = Pick<AltimeterTapeProps, 'minimum' | 'ma
 export type AltimeterTrendVectorOptions = Pick<AltimeterTapeProps, 'trendThreshold'>;
 
 /**
- * Component props for Altimeter.
+ * Component props for {@link Altimeter}.
  */
 export interface AltimeterProps extends ComponentProps {
-  /** An instance of the event bus. */
-  bus: EventBus;
-
   /** A data provider for the indicator. */
   dataProvider: AltimeterDataProvider;
 
-  /** The current altitude alert state. */
-  altitudeAlertState: Subscribable<AltitudeAlertState>;
+  /**
+   * The current altitude alert state. If not defined, then the altimeter will not support thye display of altitude
+   * alert indications.
+   */
+  altitudeAlertState?: Subscribable<AltitudeAlertState>;
 
-  /** The current minimums alert state. */
-  minimumsAlertState: Subscribable<MinimumsAlertState>;
+  /**
+   * The current minimums alert state. If not defined, then the altimeter will not support the display of minimums
+   * alert indications.
+   */
+  minimumsAlertState?: Subscribable<MinimumsAlertState>;
 
-  /** Whether the indicator should be decluttered. */
+  /**
+   * Whether the indicator should be decluttered due to unusual attitudes. When decluttered, the following features are
+   * hidden:
+   * * Selected altitude display
+   * * Baro setting display
+   */
   declutter: Subscribable<boolean>;
+
+  /**
+   * Whether the indicator should be shown in simplified mode. In simplified mode, the selected altitude display is
+   * replaced by an 'Altitude' label, and the following features are hidden:
+   * * Selected altitude bug
+   * * Minimums bug
+   * * Trend vector
+   * * Ground line
+   * * Baro setting display
+   *
+   * Defaults to `false`.
+   */
+  simplified?: boolean | Subscribable<boolean>;
 
   /** Scale options for the airspeed tape. */
   tapeScaleOptions: Readonly<AltimeterTapeScaleOptions>;
@@ -48,80 +69,226 @@ export interface AltimeterProps extends ComponentProps {
   /** Whether to support the display of the preselected barometric pressure setting. */
   supportBaroPreselect: boolean;
 
-  /** A manager for altimeter user settings. */
-  settingManager: UserSettingManager<AltimeterUserSettingTypes>;
+  /** Whether to show metric altitude indications. Defaults to `false`. */
+  showMetricAltitude?: boolean | Subscribable<boolean>;
+
+  /** Whether to show metric units for the baro setting instead of imperial units. Defaults to `false`. */
+  showMetricBaroSetting?: boolean | Subscribable<boolean>;
+
+  /** CSS class(es) to apply to the altimeter's root element. */
+  class?: string | SubscribableSet<string> | ToggleableClassNameRecord;
 }
 
 /**
  * A next-generation (NXi, G3000, etc) Garmin PFD altimeter.
  */
 export class Altimeter extends DisplayComponent<AltimeterProps> {
+  private static readonly RESERVED_CLASSES = [
+    'altimeter',
+    'altimeter-top-visible',
+    'altimeter-bottom-visible',
+    'minimums-alert-within100',
+    'minimums-alert-atorbelow',
+    'data-failed'
+  ];
+
   private readonly tapeRef = FSComponent.createRef<AltimeterTape>();
   private readonly selectedAltitudeRef = FSComponent.createRef<SelectedAltitudeDisplay>();
   private readonly baroSettingRef = FSComponent.createRef<BaroSettingDisplay>();
 
   private readonly rootCssClass = SetSubject.create(['altimeter']);
 
-  private readonly showTopBottomDisplays = this.props.declutter.map(SubscribableMapFunctions.not());
+  private readonly simplified = SubscribableUtils.toSubscribable(this.props.simplified ?? false, true) as Subscribable<boolean>;
 
-  private minimumsAlertSub?: Subscription;
+  private readonly showMetricAltitude = SubscribableUtils.toSubscribable(this.props.showMetricAltitude ?? false, true) as Subscribable<boolean>;
+  private readonly showMetricBaroSetting = SubscribableUtils.toSubscribable(this.props.showMetricBaroSetting ?? false, true) as Subscribable<boolean>;
+
+  private readonly showDefaultTopBottomDisplays = MappedSubject.create(
+    SubscribableMapFunctions.nor(),
+    this.props.declutter,
+    this.simplified
+  ).pause();
+
+  private readonly topAltitudeLabelDisplay = this.simplified.map(simplified => simplified ? '' : 'none').pause();
+
+  private readonly isTopDisplayVisible = MappedSubject.create(
+    ([declutter, simplified]) => simplified || !declutter,
+    this.props.declutter,
+    this.simplified
+  ).pause();
+  private readonly isBottomDisplayVisible = this.showDefaultTopBottomDisplays;
+
+  private isAlive = true;
+  private isAwake = false;
+
+  private readonly subscriptions: Subscription[] = [
+    this.showDefaultTopBottomDisplays,
+    this.topAltitudeLabelDisplay,
+    this.isTopDisplayVisible,
+  ];
+
+  private minimumsAlertStateSub?: Subscription;
   private isDataFailedSub?: Subscription;
+  private simplifiedSub?: Subscription;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
-    this.showTopBottomDisplays.sub(show => {
-      this.rootCssClass.toggle('altimeter-top-visible', show);
-      this.rootCssClass.toggle('altimeter-bottom-visible', show);
+    this.isTopDisplayVisible.sub(isVisible => {
+      this.rootCssClass.toggle('altimeter-top-visible', isVisible);
     }, true);
 
-    this.minimumsAlertSub = this.props.minimumsAlertState.sub(state => {
-      this.rootCssClass.delete('minimums-alert-within100');
-      this.rootCssClass.delete('minimums-alert-atorbelow');
-
-      switch (state) {
-        case MinimumsAlertState.Within100:
-          this.rootCssClass.add('minimums-alert-within100');
-          break;
-        case MinimumsAlertState.AtOrBelow:
-          this.rootCssClass.add('minimums-alert-atorbelow');
-          break;
-      }
+    this.isBottomDisplayVisible.sub(isVisible => {
+      this.rootCssClass.toggle('altimeter-bottom-visible', isVisible);
     }, true);
 
-    this.isDataFailedSub = this.props.dataProvider.isDataFailed.sub(isDataFailed => {
-      if (isDataFailed) {
-        this.rootCssClass.add('data-failed');
-      } else {
-        this.rootCssClass.delete('data-failed');
-      }
-    }, true);
+    if (this.props.minimumsAlertState) {
+      this.subscriptions.push(
+        this.minimumsAlertStateSub = this.props.minimumsAlertState.sub(this.onMinimumsAlertStateChanged.bind(this), false, true)
+      );
+    }
+
+    this.subscriptions.push(
+      this.isDataFailedSub = this.props.dataProvider.isDataFailed.sub(this.onDataFailedChanged.bind(this), true, !this.isAwake),
+
+      this.simplifiedSub = this.simplified.sub(this.onSimplifiedModeChanged.bind(this), true, !this.isAwake)
+    );
   }
 
-  /** @inheritdoc */
+  /**
+   * Wakes this altimeter. While awake, this altimeter will automatically update its appearance.
+   * @throws Error if this altimeter is dead.
+   */
+  public wake(): void {
+    if (!this.isAlive) {
+      throw new Error('Altimeter: cannot wake a dead component');
+    }
+
+    if (this.isAwake) {
+      return;
+    }
+
+    this.isAwake = true;
+
+    this.showDefaultTopBottomDisplays.resume();
+    this.topAltitudeLabelDisplay.resume();
+    this.isTopDisplayVisible.resume();
+
+    this.isDataFailedSub?.resume(true);
+    this.simplifiedSub?.resume(true);
+
+    this.tapeRef.instance.wake();
+  }
+
+  /**
+   * Puts this altimeter to sleep. While asleep, this altimeter will not automatically update its appearance.
+   * @throws Error if this altimeter is dead.
+   */
+  public sleep(): void {
+    if (!this.isAlive) {
+      throw new Error('Altimeter: cannot sleep a dead component');
+    }
+
+    if (!this.isAwake) {
+      return;
+    }
+
+    this.isAwake = false;
+
+    this.showDefaultTopBottomDisplays.pause();
+    this.topAltitudeLabelDisplay.pause();
+    this.isTopDisplayVisible.pause();
+
+    this.isDataFailedSub?.pause();
+    this.simplifiedSub?.pause();
+    this.minimumsAlertStateSub?.pause();
+
+    this.tapeRef.instance.sleep();
+  }
+
+  /**
+   * Responds to when whether simplified mode is active changes.
+   * @param simplified Whether simplified mode is active.
+   */
+  private onSimplifiedModeChanged(simplified: boolean): void {
+    if (simplified) {
+      this.minimumsAlertStateSub?.pause();
+      this.rootCssClass.delete('minimums-alert-within100');
+      this.rootCssClass.delete('minimums-alert-atorbelow');
+    } else {
+      this.minimumsAlertStateSub?.resume(true);
+    }
+  }
+
+  /**
+   * Responds to when whether altitude data is in a failed state changes.
+   * @param isDataFailed Whether altitude data is in a failed state.
+   */
+  private onDataFailedChanged(isDataFailed: boolean): void {
+    this.rootCssClass.toggle('data-failed', isDataFailed);
+  }
+
+  /**
+   * Responds to when the minimums alert state changes.
+   * @param state The new minimums alert state.
+   */
+  private onMinimumsAlertStateChanged(state: MinimumsAlertState): void {
+    this.rootCssClass.delete('minimums-alert-within100');
+    this.rootCssClass.delete('minimums-alert-atorbelow');
+
+    switch (state) {
+      case MinimumsAlertState.Within100:
+        this.rootCssClass.add('minimums-alert-within100');
+        break;
+      case MinimumsAlertState.AtOrBelow:
+        this.rootCssClass.add('minimums-alert-atorbelow');
+        break;
+    }
+  }
+
+  /** @inheritDoc */
   public render(): VNode {
+    if (typeof this.props.class === 'object') {
+      const sub = FSComponent.bindCssClassSet(this.rootCssClass, this.props.class, Altimeter.RESERVED_CLASSES);
+      if (Array.isArray(sub)) {
+        this.subscriptions.push(...sub);
+      } else {
+        this.subscriptions.push(sub);
+      }
+    } else if (this.props.class) {
+      for (const classToAdd of FSComponent.parseCssClassesFromString(this.props.class, classToFilter => !Altimeter.RESERVED_CLASSES.includes(classToFilter))) {
+        this.rootCssClass.add(classToAdd);
+      }
+    }
+
     return (
       <div class={this.rootCssClass} data-checklist="checklist-altimeter">
         <AltimeterTape
           ref={this.tapeRef}
           dataProvider={this.props.dataProvider}
+          simplified={this.simplified}
           {...this.props.tapeScaleOptions}
           {...this.props.trendVectorOptions}
-          showMetric={this.props.settingManager.getSetting('altMetric')}
+          showMetric={this.showMetricAltitude}
         />
         <div class='altimeter-top-container' data-checklist="checklist-altimeter-top">
+          <div class='altimeter-top-label-container' style={{ 'display': this.topAltitudeLabelDisplay }}>
+            <div class='altimeter-top-label-text'>
+              Altitude
+            </div>
+          </div>
           <SelectedAltitudeDisplay
-            show={this.showTopBottomDisplays}
+            show={this.showDefaultTopBottomDisplays}
             selectedAlt={this.props.dataProvider.selectedAlt}
             altitudeAlertState={this.props.altitudeAlertState}
           />
         </div>
         <div class='altimeter-bottom-container' data-checklist="checklist-altimeter-bottom">
           <BaroSettingDisplay
-            show={this.showTopBottomDisplays}
+            show={this.showDefaultTopBottomDisplays}
             baroSetting={this.props.dataProvider.baroSetting}
             isStdActive={this.props.dataProvider.baroIsStdActive}
             baroPreselect={this.props.supportBaroPreselect ? this.props.dataProvider.baroPreselect : undefined}
-            isMetric={this.props.settingManager.getSetting('altimeterBaroMetric')}
+            isMetric={this.showMetricBaroSetting}
           />
         </div>
 
@@ -130,27 +297,31 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
-    super.destroy();
+    this.isAlive = false;
 
     this.tapeRef.getOrDefault()?.destroy();
     this.selectedAltitudeRef.getOrDefault()?.destroy();
     this.baroSettingRef.getOrDefault()?.destroy();
 
-    this.showTopBottomDisplays.destroy();
+    for (const sub of this.subscriptions) {
+      sub.destroy();
+    }
 
-    this.minimumsAlertSub?.destroy();
-    this.isDataFailedSub?.destroy();
+    super.destroy();
   }
 }
 
 /**
- * Component props for AltimeterTape.
+ * Component props for {@link AltimeterTape}.
  */
 interface AltimeterTapeProps extends ComponentProps {
   /** A data provider for the indicator. */
   dataProvider: AltimeterDataProvider;
+
+  /** Whether the tape should be shown in simplified mode. */
+  simplified: Subscribable<boolean>;
 
   /** The minimum altitude representable on the tape, in feet. */
   minimum: number | Subscribable<number>;
@@ -227,17 +398,11 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     'transform-origin': '50% 100%'
   });
 
-  private readonly vSpeedOffScaleContainerStyle = ObjectSubject.create({
-    display: 'flex',
-    'flex-flow': 'column-reverse nowrap',
-    position: 'absolute',
-    bottom: '0%',
-    overflow: 'hidden'
-  });
-
   private readonly currentLength = Subject.create(0);
   private currentMinimum = 0;
   private readonly currentTranslate = Subject.create(0);
+
+  private readonly isAwake = Subject.create(false);
 
   private readonly minimum = SubscribableUtils.toSubscribable(this.props.minimum, true);
   private readonly maximum = SubscribableUtils.toSubscribable(this.props.maximum, true);
@@ -259,7 +424,7 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     },
     this.props.dataProvider.indicatedAlt,
     this.minimum
-  );
+  ).pause();
 
   private readonly isIndicatedAltAboveScale = MappedSubject.create(
     ([indicatedAlt, maximum]): boolean => {
@@ -267,7 +432,7 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     },
     this.props.dataProvider.indicatedAlt,
     this.maximum
-  );
+  ).pause();
 
   private readonly isIndicatedAltOffScale = MappedSubject.create(
     ([isIndicatedAltBelowScale, isIndicatedAltAboveScale]): boolean => {
@@ -286,7 +451,7 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     this.maximum,
     this.window,
     this.props.dataProvider.isDataFailed
-  );
+  ).pause();
 
   private readonly indicatedAltBoxValue = MappedSubject.create(
     ([indicatedAlt, isIndicatedAltOffScale]): number => {
@@ -294,13 +459,13 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     },
     this.props.dataProvider.indicatedAlt,
     this.isIndicatedAltOffScale
-  );
+  ).pause();
 
   private readonly showMetricIndicatedAlt = MappedSubject.create(
     ([showMetric, isDataFailed]): boolean => showMetric && !isDataFailed,
     this.props.showMetric,
     this.props.dataProvider.isDataFailed
-  );
+  ).pause();
 
   private readonly metricIndicatedAltValue = MappedSubject.create(
     ([indicatedAltFeet, minimum, maximum]): number => {
@@ -309,87 +474,154 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     this.props.dataProvider.indicatedAlt,
     this.minimum,
     this.maximum
-  );
+  ).pause();
 
   private readonly showGroundLine = MappedSubject.create(
-    ([isIndicatedAltOffScale, isDataFailed]): boolean => !isIndicatedAltOffScale && !isDataFailed,
+    SubscribableMapFunctions.nor(),
     this.isIndicatedAltOffScale,
-    this.props.dataProvider.isDataFailed
-  );
+    this.props.dataProvider.isDataFailed,
+    this.props.simplified
+  ).pause();
 
   private readonly trendThreshold = SubscribableUtils.toSubscribable(this.props.trendThreshold, true);
 
   private readonly showTrendVector = MappedSubject.create(
-    ([indicatedAlt, minimum, maximum, threshold, altitudeTrend, isDataFailed]): boolean => {
-      return !isDataFailed && indicatedAlt >= minimum && indicatedAlt < maximum && Math.abs(altitudeTrend) >= threshold;
+    ([indicatedAlt, minimum, maximum, threshold, altitudeTrend, isDataFailed, simplified]): boolean => {
+      return !simplified && !isDataFailed && indicatedAlt >= minimum && indicatedAlt < maximum && Math.abs(altitudeTrend) >= threshold;
     },
     this.props.dataProvider.indicatedAlt,
     this.minimum,
     this.maximum,
     this.trendThreshold,
     this.props.dataProvider.altitudeTrend,
-    this.props.dataProvider.isDataFailed
-  );
+    this.props.dataProvider.isDataFailed,
+    this.props.simplified
+  ).pause();
 
   private readonly altitudeTrendParams = MappedSubject.create(
     this.props.dataProvider.altitudeTrend,
     this.window
-  );
+  ).pause();
 
   private readonly trendVectorHeight = Subject.create(0);
   private readonly trendVectorScale = Subject.create(1);
 
+  private readonly showMetricSelectedAltDisplay = MappedSubject.create(
+    ([showMetric, simplified]) => showMetric && !simplified,
+    this.props.showMetric,
+    this.props.simplified
+  ).pause();
   private readonly selectedAltMeters = this.props.dataProvider.selectedAlt.map(selectedAltFeet => {
     return selectedAltFeet === null ? null : UnitType.FOOT.convertTo(selectedAltFeet, UnitType.METER);
-  });
+  }).pause();
 
   private readonly updateTapeEvent = new SubEvent<this, void>();
   private readonly updateTapeWindowEvent = new SubEvent<this, void>();
 
-  private readonly showIndicatedAltData = this.props.dataProvider.isDataFailed.map(SubscribableMapFunctions.not());
+  private readonly showIndicatedAltData = this.props.dataProvider.isDataFailed.map(SubscribableMapFunctions.not()).pause();
 
-  /** @inheritdoc */
-  constructor(props: AltimeterTapeProps) {
-    super(props);
+  private readonly showBugs = MappedSubject.create(
+    ([isAwake, showIndicatedAltData, simplified]) => isAwake && showIndicatedAltData && !simplified,
+    this.isAwake,
+    this.showIndicatedAltData,
+    this.props.simplified
+  );
 
-    this.indicatedAltTapeValue.pause();
-    this.indicatedAltBoxValue.pause();
-    this.showTrendVector.pause();
-    this.altitudeTrendParams.pause();
-  }
+  private optionsSub?: Subscription;
+  private showTrendVectorSub?: Subscription;
+  private altitudeTrendParamsSub?: Subscription;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
-    this.indicatedAltTapeValue.resume();
-    this.indicatedAltBoxValue.resume();
+    this.indicatedAltTapeValue.sub(this.updateTape.bind(this), true);
 
-    this.indicatedAltTapeValue.sub(this.updateTape.bind(this));
+    this.altitudeTrendParamsSub = this.altitudeTrendParams.sub(this.updateTrendVector.bind(this), false, true);
 
-    this.altitudeTrendParams.sub(this.updateTrendVector.bind(this));
-
-    this.showTrendVector.resume();
-    this.showTrendVector.sub(show => {
+    this.showTrendVectorSub = this.showTrendVector.sub(show => {
       if (show) {
         this.trendVectorStyle.set('display', '');
         this.altitudeTrendParams.resume();
+        this.altitudeTrendParamsSub!.resume(true);
       } else {
+        this.altitudeTrendParamsSub!.pause();
         this.altitudeTrendParams.pause();
         this.trendVectorStyle.set('display', 'none');
       }
-    }, true);
+    }, true, !this.isAwake);
 
-    this.trendVectorHeight.sub(height => { this.trendVectorStyle.set('height', `${height}%`); });
-    this.trendVectorScale.sub(scale => { this.trendVectorStyle.set('transform', `scale(${scale}) rotateX(0deg)`); });
+    this.trendVectorHeight.sub(height => { this.trendVectorStyle.set('height', `${height}%`); }, true);
+    this.trendVectorScale.sub(scale => { this.trendVectorStyle.set('transform', `scale(${scale}) rotateX(0deg)`); }, true);
 
     this.currentTranslate.sub(translate => {
       this.tapeStyle.set('transform', `translate3d(0, ${translate * 100}%, 0)`);
-    });
-
-    this.options.sub(this.rebuildTape.bind(this), true);
-
-    this.isIndicatedAltBelowScale.sub(isIasBelowScale => {
-      this.vSpeedOffScaleContainerStyle.set('display', isIasBelowScale ? 'flex' : 'none');
     }, true);
+
+    this.optionsSub = this.options.sub(this.rebuildTape.bind(this), true, !this.isAwake);
+  }
+
+  /**
+   * Wakes this tape. While awake, this tape will automatically update its appearance.
+   */
+  public wake(): void {
+    if (this.isAwake.get()) {
+      return;
+    }
+
+    this.isAwake.set(true);
+
+    this.isIndicatedAltBelowScale.resume();
+    this.isIndicatedAltAboveScale.resume();
+    this.indicatedAltTapeValue.resume();
+    this.indicatedAltBoxValue.resume();
+
+    this.showMetricIndicatedAlt.resume();
+    this.metricIndicatedAltValue.resume();
+
+    this.showGroundLine.resume();
+
+    this.showTrendVector.resume();
+
+    this.showMetricSelectedAltDisplay.resume();
+    this.selectedAltMeters.resume();
+
+    this.showIndicatedAltData.resume();
+
+    this.optionsSub?.resume(true);
+    this.showTrendVectorSub?.resume(true);
+  }
+
+  /**
+   * Puts this tape to sleep. While asleep, this display will not automatically update its appearance.
+   */
+  public sleep(): void {
+    if (!this.isAwake.get()) {
+      return;
+    }
+
+    this.isAwake.set(false);
+
+    this.isIndicatedAltBelowScale.pause();
+    this.isIndicatedAltAboveScale.pause();
+    this.indicatedAltTapeValue.pause();
+    this.indicatedAltBoxValue.pause();
+
+    this.showMetricIndicatedAlt.pause();
+    this.metricIndicatedAltValue.pause();
+
+    this.showGroundLine.pause();
+
+    this.showTrendVector.pause();
+    this.showTrendVectorSub?.pause();
+
+    this.altitudeTrendParams.pause();
+    this.altitudeTrendParamsSub?.pause();
+
+    this.showMetricSelectedAltDisplay.pause();
+    this.selectedAltMeters.pause();
+
+    this.showIndicatedAltData.pause();
+
+    this.optionsSub?.pause();
   }
 
   /**
@@ -541,7 +773,7 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     this.trendVectorScale.set(iasTrend < 0 ? -1 : 1);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     return (
       <div class={this.rootCssClass} data-checklist="checklist-altimeter-tape">
@@ -600,21 +832,21 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
 
         <MetricSelectedAltitudeDisplay
           ref={this.metricSelectedAltDisplayRef}
-          show={this.props.showMetric}
+          show={this.showMetricSelectedAltDisplay}
           selectedAltMeters={this.selectedAltMeters}
         />
 
         <div class='altimeter-bug-container' style='position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden;'>
           <MinimumsBug
             ref={this.minimumsBugRef}
-            show={this.showIndicatedAltData}
+            show={this.showBugs}
             minimums={this.props.dataProvider.minimums}
             updateEvent={this.updateTapeWindowEvent}
             getPosition={this.calculateWindowTapePosition.bind(this)}
           />
           <SelectedAltitudeBug
             ref={this.selectedAltBugRef}
-            show={this.showIndicatedAltData}
+            show={this.showBugs}
             selectedAlt={this.props.dataProvider.selectedAlt}
             updateEvent={this.updateTapeWindowEvent}
             getPosition={this.calculateWindowTapePosition.bind(this)}
@@ -624,7 +856,7 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
     this.indicatedAltBoxRef.getOrDefault()?.destroy();
     this.metricIndicatedAltDisplayRef.getOrDefault()?.destroy();
@@ -639,11 +871,15 @@ class AltimeterTape extends DisplayComponent<AltimeterTapeProps> {
     this.isIndicatedAltOffScale.destroy();
     this.indicatedAltTapeValue.destroy();
     this.indicatedAltBoxValue.destroy();
+    this.showMetricIndicatedAlt.destroy();
     this.metricIndicatedAltValue.destroy();
+    this.showGroundLine.destroy();
+    this.showTrendVector.destroy();
     this.altitudeTrendParams.destroy();
+    this.showMetricSelectedAltDisplay.destroy();
     this.selectedAltMeters.destroy();
     this.showIndicatedAltData.destroy();
-    this.showMetricIndicatedAlt.destroy();
+    this.showBugs.destroy();
 
     super.destroy();
   }
@@ -1259,7 +1495,7 @@ class MinimumsBug extends DisplayComponent<MinimumsBugProps> {
   private readonly show = Subject.create(false);
   private readonly minimumsFeet = Subject.create(0);
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAfterRender(): void {
     this.visibilityState.resume();
 
@@ -1273,7 +1509,7 @@ class MinimumsBug extends DisplayComponent<MinimumsBugProps> {
     }, true);
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     return (
       <AltitudeBug
@@ -1291,7 +1527,7 @@ class MinimumsBug extends DisplayComponent<MinimumsBugProps> {
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
     this.bugRef.getOrDefault()?.destroy();
 
@@ -1312,7 +1548,7 @@ interface SelectedAltitudeDisplayProps extends ComponentProps {
   selectedAlt: Subscribable<number | null>;
 
   /** The current altitude alert state. */
-  altitudeAlertState: Subscribable<AltitudeAlertState>;
+  altitudeAlertState?: Subscribable<AltitudeAlertState>;
 }
 
 /**
@@ -1357,7 +1593,7 @@ class SelectedAltitudeDisplay extends DisplayComponent<SelectedAltitudeDisplayPr
       }
     }, false, true);
 
-    this.alertStateSub = this.props.altitudeAlertState.sub(state => {
+    this.alertStateSub = this.props.altitudeAlertState?.sub(state => {
       this.cssClassSet.delete('alt-alert-within1000-flash');
       this.cssClassSet.delete('alt-alert-within1000');
       this.cssClassSet.delete('alt-alert-deviation-flash');

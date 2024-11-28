@@ -1,0 +1,53 @@
+.pfd-hsi-map .map-system {
+  -webkit-mask-image: url(coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Images/mapmask.png);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-origin: border;
+  -webkit-mask-clip: content;
+  -webkit-mask-position: 50% -12px;
+  -webkit-mask-size: 395px 279px;
+  position: relative;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pfd-hsi-wx .map-system {
+  -webkit-mask-image: url(coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Images/mapmask-cone.png);
+  -webkit-mask-position: 50% -12px;
+  -webkit-mask-size: 395px 279px;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-origin: border;
+  -webkit-mask-clip: content;
+  position: relative;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pfd-hsi-map .map-system:after,
+.pfd-hsi-wx .map-system:after {
+  content: '';
+  background: url(coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Images/mapmask-shadow.png);
+  background-repeat: no-repeat;
+  position: absolute;
+  background-size: 395px 190px;
+  background-position: 50% -4px;
+  width: 395px;
+  overflow: hidden;
+  top: 0;
+  left: 52px;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+.pfd-hsi-full {
+  position: absolute;
+}
+
+.lat-dev-failed-overlay {
+  position: absolute;
+  top: 254px;
+  left: 170px;
+  stroke: var(--epic2-color-red);
+  stroke-width: 3px;
+  fill: none;
+}

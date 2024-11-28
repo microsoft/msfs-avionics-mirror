@@ -1,0 +1,52 @@
+.hsi-map-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+  pointer-events: all;
+}
+
+.hsi-map-overlay .range-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hsi-map-overlay .map-range-numbers {
+  position: absolute;
+  z-index: 2;
+}
+
+.hsi-map-overlay .compass-numbers {
+  font-size: 20px;
+}
+
+.hsi-map-overlay svg {
+  position: absolute;
+}
+
+.hsi-map-overlay .heading-bug-arrow.heading-bug-arrow-left {
+  top: 53px;
+  left: 68px;
+}
+
+.hsi-map-overlay .heading-bug-arrow.heading-bug-arrow-right {
+  top: 53px;
+  left: 407px;
+}
+
+.lat-dev-fail-parent-div .lat-dev-failed-overlay {
+  position: absolute;
+  top: 252px;
+  left: 170px;
+  stroke: var(--epic2-color-red);
+  stroke-width: 3px;
+  fill: none;
+}

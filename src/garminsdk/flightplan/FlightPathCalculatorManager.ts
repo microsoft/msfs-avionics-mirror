@@ -1,5 +1,5 @@
 import {
-  APEvents, EventBus, FlightPathAirplaneSpeedMode, FlightPathCalculatorControlEvents, MappedSubject, MappedSubscribable,
+  APEvents, EventBus, FlightPathAirplaneSpeedMode, FlightPathAirplaneWindMode, FlightPathCalculatorControlEvents, MappedSubject, MappedSubscribable,
   Subject, Subscribable, SubscribableUtils, Subscription
 } from '@microsoft/msfs-sdk';
 
@@ -156,8 +156,8 @@ export class FlightPathCalculatorManager {
    */
   private onSpeedDataValidityChanged(state: readonly [boolean | undefined, boolean | undefined]): void {
     const [isAdcDataValid, isGpsDataValid] = state;
-    let airplaneSpeedMode: FlightPathAirplaneSpeedMode;
 
+    let airplaneSpeedMode: FlightPathAirplaneSpeedMode;
     if (isAdcDataValid !== undefined) {
       if (isAdcDataValid) {
         airplaneSpeedMode = isGpsDataValid ? FlightPathAirplaneSpeedMode.TrueAirspeedPlusWind : FlightPathAirplaneSpeedMode.TrueAirspeed;
@@ -168,7 +168,9 @@ export class FlightPathCalculatorManager {
       airplaneSpeedMode = isGpsDataValid ? FlightPathAirplaneSpeedMode.GroundSpeed : FlightPathAirplaneSpeedMode.Default;
     }
 
-    this.publisher.pub('flightpath_set_options', { airplaneSpeedMode }, true, false);
+    const airplaneWindMode = isAdcDataValid && isGpsDataValid ? FlightPathAirplaneWindMode.Automatic : FlightPathAirplaneWindMode.None;
+
+    this.publisher.pub(this.setOptionsTopic, { airplaneSpeedMode, airplaneWindMode }, true, false);
   }
 
   /**

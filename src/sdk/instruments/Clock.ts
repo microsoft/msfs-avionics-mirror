@@ -1,7 +1,7 @@
 import { EventBus, EventBusMetaEvents } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { SimVarValueType } from '../data/SimVars';
-import { BasePublisher, SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
+import { BasePublisher, SimVarPublisher } from './BasePublishers';
 
 /**
  * Events related to the clock.
@@ -14,10 +14,26 @@ export interface ClockEvents {
   realTime: number;
 
   /**
-   * A Javascript timestamp corresponding to the simulation time. The timestamp uses the UNIX epoch
+   * A Javascript timestamp corresponding to the simulation world time. The timestamp uses the UNIX epoch
    * (00:00 UTC January 1, 1970) and has units of milliseconds.
    */
   simTime: number;
+
+  /**
+   * The total amount of simulated time, in milliseconds, that has elapsed since the beginning of the current
+   * simulation session. This value does not change when the simulation is paused (e.g. when the in-game menu is open).
+   * Note that active pause does not pause the simulation. Simulated time does scale with the simulation rate factor.
+   */
+  activeSimDuration: number;
+
+  /**
+   * A Javascript timestamp corresponding to the real-world (operating system) time, fired every sim frame instead of
+   * on each Coherent animation frame. The timestamp uses the UNIX epoch (00:00 UTC January 1, 1970) and has units of
+   * milliseconds.
+   *
+   * USE THIS EVENT SPARINGLY, as it will impact performance and ignores the user set glass cockpit refresh setting.
+   */
+  realTimeHiFreq: number;
 
   /**
    * A Javascript timestamp corresponding to the simulation time, fired every sim frame instead of on each Coherent
@@ -26,6 +42,16 @@ export interface ClockEvents {
    * USE THIS EVENT SPARINGLY, as it will impact performance and ignores the user set glass cockpit refresh setting.
    */
   simTimeHiFreq: number;
+
+  /**
+   * The total amount of simulated time, in milliseconds, that has elapsed since the beginning of the current
+   * simulation session, fired every sim frame instead of on each Coherent animation frame. This value does not change
+   * when the simulation is paused (e.g. when the in-game menu is open). Note that active pause does not pause the
+   * simulation. Simulated time does scale with the simulation rate factor.
+   *
+   * USE THIS EVENT SPARINGLY, as it will impact performance and ignores the user set glass cockpit refresh setting.
+   */
+  activeSimDurationHiFreq: number;
 
   /** The simulation rate factor. */
   simRate: number;
@@ -43,9 +69,20 @@ export interface ClockEvents {
 export class ClockPublisher extends BasePublisher<ClockEvents> {
   private readonly simVarPublisher: SimVarPublisher<ClockEvents>;
 
+  private readonly registeredSimVarIds = {
+    absoluteTime: SimVar.GetRegisteredId('E:ABSOLUTE TIME', SimVarValueType.Seconds, ''),
+    simulationTime: SimVar.GetRegisteredId('E:SIMULATION TIME', SimVarValueType.Seconds, ''),
+  };
+
   private needPublishRealTime = false;
 
-  private hiFreqInterval?: NodeJS.Timer;
+  private readonly hiFreqTopicsToPublish = {
+    realTime: false,
+    simTime: false,
+    activeSimDuration: false
+  };
+
+  private hiFreqInterval?: NodeJS.Timeout;
 
   /**
    * Creates a new instance of ClockPublisher.
@@ -55,23 +92,68 @@ export class ClockPublisher extends BasePublisher<ClockEvents> {
   public constructor(bus: EventBus, pacer?: PublishPacer<ClockEvents>) {
     super(bus, pacer);
 
-    this.simVarPublisher = new SimVarPublisher(new Map<keyof ClockEvents, SimVarPublisherEntry<any>>([
+    this.simVarPublisher = new SimVarPublisher<ClockEvents>([
       ['simTime', { name: 'E:ABSOLUTE TIME', type: SimVarValueType.Seconds, map: ClockPublisher.absoluteTimeToUNIXTime }],
+      ['activeSimDuration', { name: 'E:SIMULATION TIME', type: SimVarValueType.Seconds, map: seconds => seconds * 1000 }],
       ['simRate', { name: 'E:SIMULATION RATE', type: SimVarValueType.Number }],
       ['zulu_sunrise', { name: 'E:ZULU SUNRISE TIME', type: SimVarValueType.Seconds }],
       ['zulu_sunset', { name: 'E:ZULU SUNSET TIME', type: SimVarValueType.Seconds }],
-    ]), bus, pacer);
+    ], bus, pacer);
 
     if (this.bus.getTopicSubscriberCount('realTime') > 0) {
       this.needPublishRealTime = true;
-    } else {
-      const sub = this.bus.getSubscriber<EventBusMetaEvents>().on('event_bus_topic_first_sub').handle(topic => {
-        if (topic === 'realTime') {
+    }
+    if (this.bus.getTopicSubscriberCount('realTimeHiFreq') > 0) {
+      this.hiFreqTopicsToPublish.realTime = true;
+    }
+    if (this.bus.getTopicSubscriberCount('simTimeHiFreq') > 0) {
+      this.hiFreqTopicsToPublish.simTime = true;
+    }
+    if (this.bus.getTopicSubscriberCount('activeSimDurationHiFreq') > 0) {
+      this.hiFreqTopicsToPublish.activeSimDuration = true;
+    }
+
+    this.bus.getSubscriber<EventBusMetaEvents>().on('event_bus_topic_first_sub').handle(this.onTopicFirstSub.bind(this));
+  }
+
+  /**
+   * Responds to when a topic is first subscribed to on the event bus.
+   * @param topic The topic that was subscribed to.
+   */
+  private onTopicFirstSub(topic: string): void {
+    switch (topic) {
+      case 'realTime':
+        if (!this.needPublishRealTime) {
           this.needPublishRealTime = true;
-          sub.destroy();
+          if (this.publishActive) {
+            this.publish('realTime', Date.now());
+          }
         }
-      }, true);
-      sub.resume();
+        break;
+      case 'realTimeHiFreq':
+        if (!this.hiFreqTopicsToPublish.realTime) {
+          this.hiFreqTopicsToPublish.realTime = true;
+          if (this.publishActive) {
+            this.publish('realTimeHiFreq', Date.now());
+          }
+        }
+        break;
+      case 'simTimeHiFreq':
+        if (!this.hiFreqTopicsToPublish.simTime) {
+          this.hiFreqTopicsToPublish.simTime = true;
+          if (this.publishActive) {
+            this.publish('simTimeHiFreq', ClockPublisher.absoluteTimeToUNIXTime(SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.absoluteTime)));
+          }
+        }
+        break;
+      case 'activeSimDurationHiFreq':
+        if (!this.hiFreqTopicsToPublish.activeSimDuration) {
+          this.hiFreqTopicsToPublish.activeSimDuration = true;
+          if (this.publishActive) {
+            this.publish('activeSimDurationHiFreq', SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.simulationTime) * 1000);
+          }
+        }
+        break;
     }
   }
 
@@ -82,7 +164,7 @@ export class ClockPublisher extends BasePublisher<ClockEvents> {
     this.simVarPublisher.startPublish();
 
     if (this.hiFreqInterval === undefined) {
-      this.hiFreqInterval = setInterval(() => this.publish('simTimeHiFreq', ClockPublisher.absoluteTimeToUNIXTime(SimVar.GetSimVarValue('E:ABSOLUTE TIME', 'seconds'))), 0);
+      this.hiFreqInterval = setInterval(this.publishHiFreq.bind(this), 0);
     }
   }
 
@@ -105,6 +187,23 @@ export class ClockPublisher extends BasePublisher<ClockEvents> {
     }
 
     this.simVarPublisher.onUpdate();
+  }
+
+  /**
+   * Publishes the high-frequency topics.
+   */
+  private publishHiFreq(): void {
+    if (this.hiFreqTopicsToPublish.realTime) {
+      this.publish('realTimeHiFreq', Date.now());
+    }
+
+    if (this.hiFreqTopicsToPublish.simTime) {
+      this.publish('simTimeHiFreq', ClockPublisher.absoluteTimeToUNIXTime(SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.absoluteTime)));
+    }
+
+    if (this.hiFreqTopicsToPublish.activeSimDuration) {
+      this.publish('activeSimDurationHiFreq', SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.simulationTime) * 1000);
+    }
   }
 
   /**

@@ -1,0 +1,31 @@
+.active-input-clear-icon {
+  position: absolute;
+  top: 17px;
+  right: 37px;
+}
+
+
+.active-input-cross {
+  position: relative;
+  width: 20px;
+  height: 20px;
+}
+
+.active-input-cross::before,
+.active-input-cross::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 10px;
+  width: 3px;
+  height: 30px;
+  background-color: var(--epic2-color-white);
+}
+
+.active-input-cross::before {
+  transform: rotate(45deg);
+}
+
+.active-input-cross::after {
+  transform: rotate(-45deg);
+}

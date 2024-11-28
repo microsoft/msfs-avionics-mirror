@@ -1,0 +1,72 @@
+html {
+  --touch-button-background: linear-gradient(#506b85 3px, #2a3947 8px, #141b23 12px, #030405 20px, black 30px);
+  --touch-button-border: 2px solid #FFFFFF;
+  --touch-button-border-radius: 4px;
+  --touch-button-box-shadow: 0px 0px 2px 2px black inset;
+  --touch-button-text-color: var(--g3000-color-white);
+
+  --touch-button-primed-background: linear-gradient(#73ccf2 3px, #3e9cce 8px, #167ab4 12px, #0061a0 20px, #005594 30px, #005594 87%, #004482 100%);
+  --touch-button-primed-box-shadow: 0px 0px 2px 2px #1b649c inset;
+
+  --touch-button-highlight-background: linear-gradient(#00dcf5 3px, #00badc 8px, #00a7cf 12px, #0090bc 20px, #0088b4 30px, #0088b4 87%, #007ca7 100%);
+  --touch-button-highlight-border: 2px solid #00e8e8;
+  --touch-button-highlight-box-shadow: 0px 0px 2px 2px #0088a6 inset;
+  --touch-button-highlight-text-color: var(--g3000-color-black);
+
+  --touch-button-disabled-filter: brightness(35%);
+
+  --touch-button-label-center-y: 50%;
+}
+
+.touch-button.touch-button-special:not(.touch-button-disabled) {
+  --touch-button-background: linear-gradient(#0082B2 0%, #00455F 6%, #00212D 11%, var(--g3000-color-black) 19%, var(--g3000-color-black) 81%, #00212D 89%, #00455F 94%, #0082B2 100%);
+  --touch-button-box-shadow: 0px 0px 1px 2px #7FF7F8 inset;
+  /* Leaving this here as an alternative to the box shadow. */
+  /* outline: 2px solid #7FF7F8;
+  outline-offset: -4px; */
+}
+
+.touch-button {
+  display: block;
+  background: var(--touch-button-background);
+  border: var(--touch-button-border);
+  border-radius: var(--touch-button-border-radius);
+  box-shadow: var(--touch-button-box-shadow);
+  position: relative;
+  color: var(--touch-button-text-color);
+  overflow: hidden;
+}
+
+.gtc-vertical {
+  --touch-button-border-radius: 3px;
+}
+
+.touch-button-label {
+  position: absolute;
+  left: 0;
+  top: var(--touch-button-label-center-y);
+  width: 100%;
+  transform: translateY(-50%);
+  text-align: center;
+  white-space: pre;
+}
+
+.touch-button.touch-button-primed:not(.touch-button-highlight) {
+  background: var(--touch-button-primed-background);
+  box-shadow: var(--touch-button-primed-box-shadow);
+}
+
+.touch-button.touch-button-highlight {
+  background: var(--touch-button-highlight-background);
+  border: var(--touch-button-highlight-border);
+  box-shadow: var(--touch-button-highlight-box-shadow);
+  color: var(--touch-button-highlight-text-color);
+}
+
+.touch-button.touch-button-disabled {
+  filter: var(--touch-button-disabled-filter);
+}
+
+.touch-button.touch-button-hidden {
+  display: none !important;
+}

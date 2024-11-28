@@ -1,0 +1,202 @@
+.show-info-modal .title {
+  font-size: 27px;
+  padding-top: 10px;
+  padding-left: 4px;
+}
+
+.show-info-modal .airway {
+  font-size: 22px;
+  padding-left: 4px;
+}
+
+.show-info-modal .header {
+  display: flex;
+  position: relative;
+}
+
+.show-info-modal .subheader {
+  display: flex;
+  position: relative;
+  top: 12px;
+}
+
+.touch-button.show-info-close-button {
+  margin-left: auto;
+  width: 57px;
+  height: 37px;
+  margin-top: 2px;
+}
+
+.touch-button.show-info-view-toggle-button {
+  width: 79px;
+  height: 33px;
+  position: absolute;
+  right: 0;
+  top: -8px;
+  z-index: 3;
+}
+
+.show-info-view-toggle-button .touch-button-checkbox-label {
+  margin-right: 4px;
+}
+
+.show-info-popout-rectangle {
+  background: var(--touch-button-background);
+  border-radius: var(--bar-touch-button-border-radius);
+  border-image-width: var(--bar-touch-button-border-image-width);
+  border-image-source: var(--bar-touch-button-border-image-source);
+
+  border-width: var(--touch-button-border-width);
+  border-style: var(--touch-button-border-style);
+  border-image-slice: var(--touch-button-border-image-slice);
+  border-image-repeat: var(--touch-button-border-image-repeat);
+}
+
+.show-info-airway-container {
+  top: 80px;
+  left: 15px;
+  position: absolute;
+  width: calc(40% - 10px);
+  height: calc(100% - 120px);
+}
+
+.show-info-exit-waypoint-container {
+  position: absolute;
+  top: 80px;
+  left: calc(40% + 10px);
+  width: calc(60% - 15px);
+  height: calc(100% - 120px);
+}
+
+.show-info-list-placeholder {
+  position: relative;
+  border-radius: 2px;
+  margin: 5px 5px 1px 3px;
+  padding: 2px;
+}
+
+.airway-container-title, .waypoint-menu-label {
+  font-size: 18px;
+}
+
+.airway-name-menu-container .triangle {
+  position: absolute;
+  right: 0px;
+  top: 6px;
+  fill: transparent;
+  stroke: var(--epic2-color-white);
+  stroke-width: 1;
+}
+
+.airway-name-menu-container {
+  display: flex;
+}
+
+.airway-name-menu-label {
+  width: 150px;
+  text-align: left;
+  padding-left: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.waypoint-name-menu-base {
+  right: -98px;
+}
+
+.insert-airway-button {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  padding: 2px 10px 0 10px;
+}
+
+.show-info-modal .show-info-tabbed-content-container {
+  background: var(--epic2-color-dark-grey);
+  flex-grow: 1;
+}
+
+.show-info-modal .tabs {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.show-info-modal p {
+  font-size: 20px;
+}
+
+.show-info-modal .variable {
+  color: var(--epic2-color-green);
+  white-space: pre-line;
+}
+
+.show-info-modal .database-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+
+.show-info-modal .database-container p {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.show-info-modal .database-container span {
+  display: inline-block;
+  width: 194px;
+}
+
+.show-info-modal .database-mode-button {
+  padding-top: 5px;
+  width: 100px;
+  float: right;
+  text-align: left;
+  height: 35px;
+}
+
+.show-info-modal .database-mode-button .touch-button-label {
+  text-align: left;
+  padding-left: 1px;
+}
+
+.show-info-modal .main-database-container {
+  position: relative;
+  top: 40px;
+}
+
+.show-info-modal .database-item-menu {
+  right: 0px;
+  position: absolute;
+  top: 0px;
+  z-index: 2;
+  height: 35px;
+}
+
+.show-info-modal .database-item-menu .menu-container {
+  display: flex;
+}
+
+.show-info-modal .database-item-menu .menu-label {
+  width: 150px;
+  text-align: left;
+  padding-left: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.show-info-modal .runway-menu {
+  position: absolute;
+  right: 123px;
+}
+
+
+.show-info-modal .main-database-container .frequency {
+  border-bottom: solid 1px;
+  padding-bottom: 0px;
+  margin-bottom: 5px;
+  padding-left: 6px;
+}

@@ -1,0 +1,51 @@
+html {
+  --input-box-color: var(--epic2-color-white);
+}
+
+.input-box-container {
+  position: relative;
+}
+
+.input-box-container.input-box-disabled .input-box {
+  border-color: var(--touch-button-disabled-color);
+}
+
+.input-box {
+  width: 80px;
+  height: 25px;
+  font-size: inherit;
+  font-family: inherit;
+  color: var(--input-box-color);
+  background: var(--epic2-color-black);
+  -webkit-text-stroke-width: 0.01em;
+  -webkit-text-stroke-color: var(--epic2-color-white);
+  border: solid var(--epic2-color-white) 2px;
+  border-radius: 3px;
+  padding: 4px 2px 0 2px;
+  box-shadow: 0px 0px 3px 0px var(--epic2-color-black);
+  /** It's not possible to input lower case on the real unit. */
+  text-transform: uppercase;
+}
+
+.input-box-wheel {
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  width: 15px;
+  opacity: 0;
+}
+
+.input-box-wheel-active {
+  opacity: 1;
+}
+
+/* This effectively hides the blinking cursor. */
+.input-box:focus {
+  color: transparent;
+  text-shadow: 0px 0px 0px var(--input-box-color);
+}
+
+.input-box-error input {
+  background: var(--epic2-color-white) !important;
+  color: var(--epic2-color-black) !important;
+}

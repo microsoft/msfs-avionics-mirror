@@ -45,15 +45,15 @@ type NavRadioData = {
 
 /**
  * A computer that calculates Garmin guidance data for an autopilot nav-to-nav manager.
- * 
+ *
  * The guidance data produced by the computer allows automatic CDI source switching to be armed while all of the
  * following conditions are met:
  * - A localizer-based approach is loaded and active in the flight plan.
  * - The approach frequency is tuned in the active frequency bank of one or more supported NAV radios.
- * 
+ *
  * While the guidance data allows automatic CDI source switching to be armed, it also allows the autopilot's LOC and GS
  * modes to be armed.
- * 
+ *
  * The guidance data allows automatic CDI source switching to occur when the conditions for arming in addition to all
  * of the following conditions are met:
  * - The approach leg ending at the faf fix is active in the flight plan.
@@ -104,19 +104,19 @@ export class GarminNavToNavComputer {
    */
   public readonly armableNavRadioIndex = this._armableNavRadioIndex as Subscribable<NavRadioIndex | -1>;
 
-  private readonly _armableLateralMode = Subject.create(APLateralModes.NONE);
+  private readonly _armableLateralMode = Subject.create<number>(APLateralModes.NONE);
   /**
    * The autopilot lateral mode that can be armed prior to a CDI source switch, or `APLateralModes.NONE` if no modes
    * can be armed.
    */
-  public readonly armableLateralMode = this._armableLateralMode as Subscribable<APLateralModes>;
+  public readonly armableLateralMode = this._armableLateralMode as Subscribable<number>;
 
-  private readonly _armableVerticalMode = Subject.create(APVerticalModes.NONE);
+  private readonly _armableVerticalMode = Subject.create<number>(APVerticalModes.NONE);
   /**
    * The autopilot vertical mode that can be armed prior to a CDI source switch, or `APVerticalModes.NONE` if no modes
    * can be armed.
    */
-  public readonly armableVerticalMode = this._armableVerticalMode as Subscribable<APVerticalModes>;
+  public readonly armableVerticalMode = this._armableVerticalMode as Subscribable<number>;
 
   private readonly _canSwitchCdi = Subject.create(false);
   /** Whether a CDI source switch is allowed at the current time. */
@@ -130,7 +130,7 @@ export class GarminNavToNavComputer {
   /**
    * Creates a new instance of GarminNavToNavComputer.
    * @param bus The event bus.
-   * @param arg2 The FMS from which to source data.
+   * @param fms The FMS from which to source data.
    * @param options Options with which to configure the computer.
    */
   public constructor(
@@ -141,7 +141,7 @@ export class GarminNavToNavComputer {
   /**
    * Creates a new instance of GarminNavToNavComputer.
    * @param bus The event bus.
-   * @param arg2 The FMS from which to source data.
+   * @param flightPlanner The flight planner from which to source data.
    * @param options Options with which to configure the computer.
    */
   public constructor(

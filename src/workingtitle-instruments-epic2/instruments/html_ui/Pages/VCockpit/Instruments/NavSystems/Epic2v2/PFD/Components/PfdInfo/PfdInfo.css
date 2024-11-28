@@ -1,0 +1,92 @@
+.pfd-info-box-grid.container {
+  position: absolute;
+  bottom: 0px;
+  width: 150px;
+  left: 515px;
+  display: grid;
+  grid-template-columns: 30% 34% 30%;
+  grid-auto-rows: minmax(0px, auto);
+  grid-column-gap: 8px;
+  font-size: 25px;
+  line-height: 24px;
+}
+
+.pfd-info-box-grid .info-box-value {
+  justify-self: end;
+  color: var(--epic2-color-white);
+}
+
+.pfd-info-box-grid .info-box-value.invalid {
+  justify-self: end;
+  color: var(--epic2-color-amber);
+}
+
+.pfd-info-box-grid .label {
+  color: var(--epic2-color-grey);
+}
+
+.pfd-info-box-grid .wind-label {
+  align-self: center;
+}
+
+.pfd-info-box-grid .wind-value {
+	text-align: right;
+  color: var(--epic2-color-white);
+}
+
+.pfd-info-box-grid .invalid .wind-value,
+.pfd-info-box-grid .wind-value-vector.invalid {
+  color: var(--epic2-color-amber);
+}
+
+.pfd-info-box-grid .wind-value-vector {
+	justify-self: end;
+  color: var(--epic2-color-white);
+}
+
+.pfd-info-box-grid .wind-arrow-container {
+	position: relative;
+  height: 45px;
+  width: 45px;
+}
+
+.pfd-info-box-grid .wind-value-arrow-x {
+  position: absolute;
+	height: 70px;
+  width: 40px;
+  bottom: 0px;
+  right: 13px;
+  fill: var(--epic2-color-white);
+  stroke: var(--epic2-color-black);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+.pfd-info-box-grid .wind-value-arrow-y {
+  position: absolute;
+  height: 70px;
+  width: 40px;
+  bottom: -23px;
+  right: 13px;
+  fill: var(--epic2-color-white);
+  stroke: var(--epic2-color-black);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+.pfd-info-box-grid .wind-arrow-container-vector {
+	position: relative;
+  height: 19px;
+}
+
+.pfd-info-box-grid .wind-value-arrow-vector {
+  position: absolute;
+  height: 70px;
+  width: 45px;
+  bottom: -25px;
+  right: 12px;
+  fill: var(--epic2-color-white);
+  stroke: var(--epic2-color-black);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}

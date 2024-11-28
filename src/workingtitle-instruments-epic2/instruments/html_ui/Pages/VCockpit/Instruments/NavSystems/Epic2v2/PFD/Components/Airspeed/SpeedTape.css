@@ -1,0 +1,122 @@
+.speed-tape {
+  position: absolute;
+  top: 0;
+  left: 4px;
+  width: 122px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.speed-tape-border {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 83px;
+  height: 100%;
+}
+
+.speed-tape-clip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.speed-tape-ref-mark {
+  position: absolute;
+  top: 180px;
+  right: 27px;
+  width: 13px;
+  height: 4px;
+}
+
+.speed-tape line {
+  fill: none;
+  stroke: var(--epic2-color-white);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.speed-tape line.shadow {
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+  stroke-width: 3px;
+  fill: none;
+}
+
+.speed-tape text {
+  font-size: 26px;
+  stroke-width: 1px;
+  stroke: var(--epic2-color-black);
+  fill: var(--epic2-color-white);
+  paint-order: stroke;
+}
+
+.speed-bug-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.speed-bug {
+  position: absolute;
+  /* Align vertically on the altitude reference position. */
+  top: 50%;
+  right: 26px;
+}
+
+.max-speed-vertical-pole {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  right: 41px;
+  width: 6px;
+
+  background: repeating-linear-gradient(135deg, var(--epic2-color-red), var(--epic2-color-red) 6px, var(--epic2-color-white) 6px, var(--epic2-color-white) 12px);
+}
+
+.placard-speed-vertical-pole {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  right: 0;
+  width: 100%;
+
+  background: var(--epic2-color-red);
+}
+
+.placard-speed-clip {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  right: 41px;
+  width: 6px;
+  overflow: hidden;
+}
+
+.min-speed-vertical-pole {
+  position: absolute;
+  top: 100%;
+  height: 100%;
+  right: 41px;
+  width: 6px;
+
+  background: var(--epic2-color-red);
+}
+
+.caution-speed-vertical-pole {
+  position: absolute;
+  top: 100%;
+  height: 100%;
+  right: 41px;
+  width: 6px;
+
+  background: var(--epic2-color-amber);
+  opacity: 0.6;
+}

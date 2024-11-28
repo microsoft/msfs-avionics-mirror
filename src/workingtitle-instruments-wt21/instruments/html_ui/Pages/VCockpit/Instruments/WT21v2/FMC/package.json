@@ -1,0 +1,15 @@
+{
+  "name": "@microsoft/msfs-wt21-fmc",
+  "version": "3.0.4",
+  "description": "Working Title MSFS WT21 FMC library",
+  "main": "index.ts",
+  "scripts": {
+    "build:defs": "tsc -p tsconfig-defs-only.json && robocopy *.css . build/ /s & rollup -c rollup.config-defs-only.mjs && cp package-defs-only.json dist/package.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://workingtitlesim@dev.azure.com/workingtitlesim/KittyHawk/_git/ProjectGolf"
+  },
+  "author": "Working Title Simulations, LLC",
+  "license": "Modified MIT"
+}

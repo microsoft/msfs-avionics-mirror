@@ -7,7 +7,7 @@ import { MapFlightPlannerPlanDataProvider, MapFlightPlannerPlanDataProviderOptio
  * A map flight plan layer data provider that provides the active flight plan from a flight planner to be displayed.
  */
 export class MapActiveFlightPlanDataProvider implements MapFlightPlanDataProvider {
-  private readonly planner: Subject<FlightPlanner>;
+  private readonly planner: Subject<FlightPlanner | null>;
 
   private readonly provider: MapFlightPlannerPlanDataProvider;
 
@@ -70,7 +70,7 @@ export class MapActiveFlightPlanDataProvider implements MapFlightPlanDataProvide
     private readonly bus: EventBus,
     arg2: Readonly<MapFlightPlannerPlanDataProviderOptions> | FlightPlanner,
   ) {
-    let flightPlanner: FlightPlanner | Subscribable<FlightPlanner>;
+    let flightPlanner: FlightPlanner | Subscribable<FlightPlanner | null>;
     let options: Readonly<MapFlightPlannerPlanDataProviderOptions> | undefined;
 
     if (arg2 instanceof FlightPlanner) {
@@ -109,13 +109,16 @@ export class MapActiveFlightPlanDataProvider implements MapFlightPlanDataProvide
    * Responds to when this provider's flight planner changes.
    * @param planner The new flight planner.
    */
-  private onFlightPlannerChanged(planner: FlightPlanner): void {
+  private onFlightPlannerChanged(planner: FlightPlanner | null): void {
     this.fplIndexSub?.destroy();
+    this.fplIndexSub = undefined;
 
-    this.fplIndexSub = planner.onEvent('fplIndexChanged').handle(data => { this.provider.setPlanIndex(data.planIndex); });
+    if (planner) {
+      this.fplIndexSub = planner.onEvent('fplIndexChanged').handle(data => { this.provider.setPlanIndex(data.planIndex); });
+    }
 
     this.planner.set(planner);
-    this.provider.setPlanIndex(planner.activePlanIndex);
+    this.provider.setPlanIndex(planner ? planner.activePlanIndex : -1);
   }
 
   /**

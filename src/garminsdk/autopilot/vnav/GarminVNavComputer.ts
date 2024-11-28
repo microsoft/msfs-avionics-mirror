@@ -1,5 +1,5 @@
 import {
-  AdcEvents, AltitudeConstraintDetails, AltitudeRestrictionType, APEvents, APLateralModes, APVerticalModes, ArrayUtils,
+  AdcEvents, AltitudeConstraintDetails, AltitudeRestrictionType, AltitudeSelectEvents, APEvents, APLateralModes, APVerticalModes, ArrayUtils,
   BaseVNavControlEvents, BaseVNavSimVarEvents, BitFlags, ClockEvents, ConsumerValue, EventBus, FlightPlan,
   FlightPlanner, FlightPlanSegmentType, GeoPoint, GNSSEvents, LegDefinitionFlags, LNavControlEvents, LNavDataEvents,
   LNavEvents, LNavUtils, MathUtils, NavMath, ObjectSubject, SimVarValueType, Subject, Subscribable, SubscribableUtils,
@@ -8,7 +8,7 @@ import {
 } from '@microsoft/msfs-sdk';
 
 import { FmsEvents } from '../../flightplan/FmsEvents';
-import { BaseGarminVNavDataEvents, GarminVNavDataEvents, GarminVNavFlightPhase, GarminVNavTrackingPhase } from './GarminVNavDataEvents';
+import { BaseGarminVNavDataEvents, GarminVNavDataEvents, GarminVNavFlightPhase, GarminVNavTrackAlertType, GarminVNavTrackingPhase } from './GarminVNavDataEvents';
 import { BaseGarminVNavEvents, GarminVNavEvents } from './GarminVNavEvents';
 import { GarminTodBodDetails, GarminVNavComputerAPValues, GarminVNavGuidance, GarminVNavPathGuidance, GlidepathServiceLevel } from './GarminVNavTypes';
 import { GarminVNavUtils } from './GarminVNavUtils';
@@ -32,7 +32,7 @@ export interface GarminVNavComputerOptions {
  */
 type UsedBaseVNavDataEvents = Pick<
   BaseGarminVNavDataEvents,
-  'vnav_cruise_altitude' | 'vnav_flight_phase' | 'vnav_tracking_phase' | 'vnav_active_constraint_global_leg_index'
+  'vnav_cruise_altitude' | 'vnav_flight_phase' | 'vnav_tracking_phase' | 'vnav_active_constraint_global_leg_index' | 'vnav_track_alert'
 >;
 
 /**
@@ -71,6 +71,18 @@ export class GarminVNavComputer {
    */
   private static readonly ACTIVE_PATH_TOD_TIME_HYSTERESIS = 30;
 
+  /**
+   * The amount of time, in seconds, remaining to a vertical track change, at or below which a vertical track alert can
+   * be issued.
+   */
+  private static readonly TRACK_ALERT_ISSUE_THRESHOLD = 60;
+
+  /**
+   * The amount of time, in seconds, remaining to a vertical track change, at or above which the corresponding vertical
+   * track alert is re-armed.
+   */
+  private static readonly TRACK_ALERT_REARM_THRESHOLD = 90;
+
   private readonly publisher = this.bus.getPublisher<GarminVNavEvents & GarminVNavDataEvents>();
 
   private readonly simVarMap: Record<VNavVars, string>;
@@ -95,16 +107,16 @@ export class GarminVNavComputer {
 
   private currentAltitude = 0;
   private currentGpsAltitude = 0;
-  private preselectedAltitude = 0;
   private currentGroundSpeed = 0;
   private currentVS = 0;
   private trueTrack = 0;
 
+  private readonly isAltSelectInitialized = ConsumerValue.create(null, true);
   private apSelectedAltitude = 0;
   private apSelectedVs = 0;
-  private apLateralActiveMode = APLateralModes.NONE;
-  private apVerticalActiveMode = APVerticalModes.NONE;
-  private apVerticalArmedMode = APVerticalModes.NONE;
+  private apLateralActiveMode: number = APLateralModes.NONE;
+  private apVerticalActiveMode: number = APVerticalModes.NONE;
+  private apVerticalArmedMode: number = APVerticalModes.NONE;
 
   private readonly isVNavUnavailable = Subject.create<boolean>(false);
 
@@ -159,6 +171,14 @@ export class GarminVNavComputer {
 
   private readonly todBodDetailsSubject = ObjectSubject.create<GarminTodBodDetails>(Object.assign({}, this.todBodDetails));
   private readonly tocBocDetailsSubject = ObjectSubject.create<TocBocDetails>(Object.assign({}, this.tocBocDetails));
+
+  private readonly allTrackAlertTypes = Object.values(GarminVNavTrackAlertType);
+  private readonly isTrackAlertArmed: Record<GarminVNavTrackAlertType, boolean> = {
+    [GarminVNavTrackAlertType.TodOneMinute]: true,
+    [GarminVNavTrackAlertType.BodOneMinute]: true,
+    [GarminVNavTrackAlertType.TocOneMinute]: true,
+    [GarminVNavTrackAlertType.BocOneMinute]: true,
+  };
 
   // Subjects for each vnav var to be set
   private readonly vnavState = Subject.create<VNavState>(VNavState.Enabled_Inactive);
@@ -304,6 +324,7 @@ export class GarminVNavComputer {
       'vnav_flight_phase': `vnav_flight_phase${eventBusTopicSuffix}`,
       'vnav_tracking_phase': `vnav_tracking_phase${eventBusTopicSuffix}`,
       'vnav_active_constraint_global_leg_index': `vnav_active_constraint_global_leg_index${eventBusTopicSuffix}`,
+      'vnav_track_alert': `vnav_track_alert${eventBusTopicSuffix}`,
 
       // VNAV control events
       'vnav_set_state': `vnav_set_state${eventBusTopicSuffix}`,
@@ -316,7 +337,7 @@ export class GarminVNavComputer {
 
     const sub = this.bus.getSubscriber<
       LNavEvents & LNavDataEvents & LNavControlEvents & APEvents & AdcEvents & GNSSEvents & ClockEvents
-      & VNavControlEvents & FmsEvents
+      & VNavControlEvents & AltitudeSelectEvents & FmsEvents
     >();
 
     this.lnavIndex.sub(lnavIndex => {
@@ -339,7 +360,6 @@ export class GarminVNavComputer {
       }
     }, true);
 
-    sub.on('ap_altitude_selected').handle(selected => this.preselectedAltitude = selected);
     sub.on('indicated_alt').handle(alt => this.currentAltitude = alt);
     sub.on('vertical_speed').whenChangedBy(1).handle(vs => this.currentVS = vs);
     sub.on('track_deg_true').whenChangedBy(1).handle(trueTrack => this.trueTrack = trueTrack);
@@ -351,6 +371,8 @@ export class GarminVNavComputer {
       this.currentGpsAltitude = UnitType.METER.convertTo(lla.alt, UnitType.FOOT);
     });
     sub.on('ground_speed').handle(gs => this.currentGroundSpeed = gs);
+
+    this.isAltSelectInitialized.setConsumer(sub.on('alt_select_is_initialized'));
 
     this.publisher.pub(this.vnavTopicMap['vnav_is_enabled'], this.isEnabled, true, true);
     sub.on(this.vnavTopicMap['vnav_set_state']).handle(this.setEnabled.bind(this));
@@ -502,6 +524,7 @@ export class GarminVNavComputer {
     this.resetVNavTrackingVars();
     this.resetTodBodVars();
     this.resetTocBocVars();
+    this.resetTrackAlerts();
 
     this.activePathConstraintIndex = -1;
     this.isAwaitingPathRearm = false;
@@ -613,7 +636,11 @@ export class GarminVNavComputer {
     this.updateAPValues();
 
     // Update cruise altitude
-    this.cruiseAltitude.set(MathUtils.round(Math.max(this.currentAltitude, this.preselectedAltitude, this.highestConstraintAltitude), 10));
+    this.cruiseAltitude.set(MathUtils.round(Math.max(
+      this.currentAltitude,
+      this.isAltSelectInitialized.get() ? this.apSelectedAltitude : 0,
+      this.highestConstraintAltitude
+    ), 10));
 
     if (!this.isLNavIndexValid || !this.flightPlanner.hasFlightPlan(this.primaryPlanIndex)) {
       this.failVNav();
@@ -660,6 +687,12 @@ export class GarminVNavComputer {
 
           const trackError = this.noVNavTae.get() || this.noVNavXtk.get();
 
+          // If altitude select is not initialized, then we need to disarm climb since FLC cannot be active without a
+          // selected altitude.
+          if (!this.isAltSelectInitialized.get()) {
+            this.disarmClimb();
+          }
+
           // If there is no active constraint (meaning we've passed the last constraint in the flight plan or there are no
           // constraints in the flight plan), then switch to FLC mode if it is armed.
           if (
@@ -681,6 +714,7 @@ export class GarminVNavComputer {
             this.resetVNavTrackingVars();
             this.resetTodBodVars();
             this.resetTocBocVars();
+            this.resetTrackAlerts();
             this.activePathConstraintIndex = -1;
             this.isAwaitingPathRearm = false;
             this.pathRearmIndex = -1;
@@ -828,6 +862,7 @@ export class GarminVNavComputer {
               this.resetVNavTrackingVars();
               this.resetTodBodVars();
               this.resetTocBocVars();
+              this.resetTrackAlerts();
 
               if (inClimb) {
                 // The active constraint is the current phase constraint.
@@ -953,6 +988,8 @@ export class GarminVNavComputer {
               this.isActive = this.state === VNavState.Enabled_Active;
 
               if (!inClimb && !this.isClimbArmed) {
+                this.updateDescentTrackAlerts(todBodDetails);
+
                 // If there is no active descent constraint, then VNAV remains inactive and PATH cannot be armed.
                 if (activeConstraintIndex < 0) {
                   this.isActive = false;
@@ -965,6 +1002,8 @@ export class GarminVNavComputer {
                 this.pathAvailable.set(true);
                 this.trackDescent(dt, verticalPlan, lateralPlan, todBodDetails, activeConstraintIndex, activePathConstraintIndex);
               } else if (this.enableAdvancedVNav && (inClimb || this.isClimbArmed)) {
+                this.updateClimbTrackAlerts(tocBocDetails);
+
                 this.disarmPath();
 
                 this.fpa.set(null);
@@ -973,6 +1012,8 @@ export class GarminVNavComputer {
                 this.lastCapturedPathDesiredAltitude = undefined;
                 this.trackClimb(verticalPlan, lateralPlan, tocBocDetails, activeConstraintIndex);
               } else {
+                this.resetTrackAlerts();
+
                 this.disarmPath();
                 this.fpa.set(null);
                 this.resetVNavTrackingVars();
@@ -1099,7 +1140,7 @@ export class GarminVNavComputer {
    * Updates the autopilot's active lateral mode.
    * @param mode The active lateral mode.
    */
-  private updateApLateralActiveMode(mode: APLateralModes): void {
+  private updateApLateralActiveMode(mode: number): void {
     if (mode === this.apLateralActiveMode) {
       return;
     }
@@ -1115,7 +1156,7 @@ export class GarminVNavComputer {
    * Updates the autopilot's active vertical mode.
    * @param mode The active vertical mode.
    */
-  private updateApVerticalActiveMode(mode: APVerticalModes): void {
+  private updateApVerticalActiveMode(mode: number): void {
     if (mode === this.apVerticalActiveMode) {
       return;
     }
@@ -1153,7 +1194,7 @@ export class GarminVNavComputer {
    * Updates the autopilot's armed vertical mode.
    * @param mode The armed vertical mode.
    */
-  private updateApVerticalArmedMode(mode: APVerticalModes): void {
+  private updateApVerticalArmedMode(mode: number): void {
     if (mode === this.apVerticalArmedMode) {
       return;
     }
@@ -1231,6 +1272,96 @@ export class GarminVNavComputer {
   }
 
   /**
+   * Updates vertical track alerts for the climb phase.
+   * @param tocBocDetails The computed TOC/BOC details.
+   */
+  private updateClimbTrackAlerts(tocBocDetails: TocBocDetails): void {
+    this.isTrackAlertArmed[GarminVNavTrackAlertType.TodOneMinute] = true;
+    this.isTrackAlertArmed[GarminVNavTrackAlertType.BodOneMinute] = true;
+
+    let alertTypeToIssue: GarminVNavTrackAlertType.TocOneMinute | GarminVNavTrackAlertType.BocOneMinute | null = null;
+
+    if (tocBocDetails.tocLegIndex >= 0 && tocBocDetails.distanceFromToc > 0) {
+      const timeToTocSeconds = UnitType.METER.convertTo(tocBocDetails.distanceFromToc, UnitType.NMILE) / this.currentGroundSpeed * 3600;
+
+      if (timeToTocSeconds >= GarminVNavComputer.TRACK_ALERT_REARM_THRESHOLD) {
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.TocOneMinute] = true;
+      } else if (timeToTocSeconds <= GarminVNavComputer.TRACK_ALERT_ISSUE_THRESHOLD && this.isTrackAlertArmed[GarminVNavTrackAlertType.TocOneMinute]) {
+        alertTypeToIssue = GarminVNavTrackAlertType.TocOneMinute;
+      }
+    } else if (tocBocDetails.bocLegIndex >= 0 && tocBocDetails.distanceFromBoc >= 0) {
+      const timeToBocSeconds = UnitType.METER.convertTo(tocBocDetails.distanceFromBoc, UnitType.NMILE) / this.currentGroundSpeed * 3600;
+
+      if (timeToBocSeconds >= GarminVNavComputer.TRACK_ALERT_REARM_THRESHOLD) {
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.BocOneMinute] = true;
+      } else if (timeToBocSeconds <= GarminVNavComputer.TRACK_ALERT_ISSUE_THRESHOLD && this.isTrackAlertArmed[GarminVNavTrackAlertType.BocOneMinute]) {
+        alertTypeToIssue = GarminVNavTrackAlertType.BocOneMinute;
+      }
+    }
+
+    if (alertTypeToIssue !== null) {
+      if (alertTypeToIssue === GarminVNavTrackAlertType.TocOneMinute) {
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.TocOneMinute] = false;
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.BocOneMinute] = true;
+      } else {
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.BocOneMinute] = false;
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.TocOneMinute] = true;
+      }
+
+      this.issueTrackAlert(alertTypeToIssue);
+    }
+  }
+
+  /**
+   * Updates vertical track alerts for the descent phase.
+   * @param todBodDetails The computed TOD/BOD details.
+   */
+  private updateDescentTrackAlerts(todBodDetails: GarminTodBodDetails): void {
+    this.isTrackAlertArmed[GarminVNavTrackAlertType.TocOneMinute] = true;
+    this.isTrackAlertArmed[GarminVNavTrackAlertType.BocOneMinute] = true;
+
+    let alertTypeToIssue: GarminVNavTrackAlertType.TodOneMinute | GarminVNavTrackAlertType.BodOneMinute | null = null;
+
+    if (todBodDetails.todLegIndex >= 0 && todBodDetails.distanceFromTod > 0) {
+      const timeToTodSeconds = UnitType.METER.convertTo(todBodDetails.distanceFromTod, UnitType.NMILE) / this.currentGroundSpeed * 3600;
+
+      if (timeToTodSeconds >= GarminVNavComputer.TRACK_ALERT_REARM_THRESHOLD) {
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.TodOneMinute] = true;
+      } else if (timeToTodSeconds <= GarminVNavComputer.TRACK_ALERT_ISSUE_THRESHOLD && this.isTrackAlertArmed[GarminVNavTrackAlertType.TodOneMinute]) {
+        alertTypeToIssue = GarminVNavTrackAlertType.TodOneMinute;
+      }
+    } else if (todBodDetails.bodLegIndex >= 0 && todBodDetails.distanceFromBod >= 0) {
+      const timeToBodSeconds = UnitType.METER.convertTo(todBodDetails.distanceFromBod, UnitType.NMILE) / this.currentGroundSpeed * 3600;
+
+      if (timeToBodSeconds >= GarminVNavComputer.TRACK_ALERT_REARM_THRESHOLD) {
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.BodOneMinute] = true;
+      } else if (timeToBodSeconds <= GarminVNavComputer.TRACK_ALERT_ISSUE_THRESHOLD && this.isTrackAlertArmed[GarminVNavTrackAlertType.BodOneMinute]) {
+        alertTypeToIssue = GarminVNavTrackAlertType.BodOneMinute;
+      }
+    }
+
+    if (alertTypeToIssue !== null) {
+      if (alertTypeToIssue === GarminVNavTrackAlertType.TodOneMinute) {
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.TodOneMinute] = false;
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.BodOneMinute] = true;
+      } else {
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.BodOneMinute] = false;
+        this.isTrackAlertArmed[GarminVNavTrackAlertType.TodOneMinute] = true;
+      }
+
+      this.issueTrackAlert(alertTypeToIssue);
+    }
+  }
+
+  /**
+   * Issues a vertical track alert.
+   * @param type The type of alert to issue.
+   */
+  private issueTrackAlert(type: GarminVNavTrackAlertType): void {
+    this.publisher.pub(this.vnavTopicMap['vnav_track_alert'], type, true, false);
+  }
+
+  /**
    * Updates vertical tracking for climb.
    * @param verticalPlan The vertical flight plan.
    * @param lateralPlan The lateral flight plan.
@@ -1280,6 +1411,7 @@ export class GarminVNavComputer {
     }
 
     if (
+      // NOTE: climb cannot be armed if selected altitude is not initialized.
       this.isClimbArmed
       && (currentClimbConstraint === undefined || Math.round(constraintAltitudeFeet) > this.capturedAltitude)
       && this.apSelectedAltitude > this.capturedAltitude
@@ -1295,6 +1427,8 @@ export class GarminVNavComputer {
       this.captureType.set(VNavAltCaptureType.None);
       return;
     }
+
+    const isAltSelectInitialized = this.isAltSelectInitialized.get();
 
     let canArmAltV: boolean;
 
@@ -1313,13 +1447,13 @@ export class GarminVNavComputer {
         break;
       case APVerticalModes.FLC:
         // ALTV can arm if preselected altitude is toward the constraint altitude.
-        canArmAltV = constraintAltitudeDeltaSign * Math.sign(this.apSelectedAltitude - this.currentAltitude) >= 0;
+        canArmAltV = isAltSelectInitialized && constraintAltitudeDeltaSign * Math.sign(this.apSelectedAltitude - this.currentAltitude) >= 0;
         break;
       default:
         canArmAltV = false;
     }
 
-    if (canArmAltV) {
+    if (canArmAltV && isAltSelectInitialized) {
       // If ALTV can be armed, we need to make sure that we will not capture the preselected altitude first (if the
       // constraint and preselected altitudes are the same, preselected altitude takes precedence).
 
@@ -1538,6 +1672,7 @@ export class GarminVNavComputer {
         return;
       }
 
+      // NOTE: If PATH is active, then the selected altitude is guaranteed to be initialized.
       const altitudeToCaptureIsSelectedAltitude = this.apSelectedAltitude === altitudeToCaptureInPath;
 
       this.captureType.set(altitudeToCaptureIsSelectedAltitude ? VNavAltCaptureType.Selected : VNavAltCaptureType.VNAV);
@@ -1552,11 +1687,25 @@ export class GarminVNavComputer {
       const isPathEnd = activePathConstraint.isPathEnd;
       const nextLeg = !isPathEnd ? VNavUtils.getVerticalLegFromPlan(verticalPlan, activePathConstraint.index + 1) : undefined;
 
-      if (altitudeToCaptureIsSelectedAltitude || nextLeg === undefined || nextLeg.fpa === 0) {
+      // We will capture the altitude if...
+      if (
+        // ... we are capturing a selected altitude...
+        altitudeToCaptureIsSelectedAltitude
+        // ... or we are capturing the last altitude constraint in the vertical path...
+        || nextLeg === undefined
+        // ... or the next leg is a flat segment (i.e. the altitude constraint to capture is a BOD)...
+        || nextLeg.fpa === 0
+        // ... or the next leg is path-ineligible (this is functionally the same as if we were capturing the last
+        // altitude constraint in the vertical path).
+        || !nextLeg.isEligible
+      ) {
         if (this.apVerticalActiveMode === APVerticalModes.PATH) {
           this.activateAltCap(
             altitudeToCaptureInPath,
+            // Arm PATH after capturing the altitude unless we are at the end of the vertical path.
             !isPathEnd ? VerticalFlightPhase.Descent : undefined,
+            // Wait to arm PATH until we sequence to the next leg unless we are capturing a selected altitude or the
+            // current vertical leg does not end in a BOD.
             !altitudeToCaptureIsSelectedAltitude && currentVerticalLeg?.isBod ? lateralLegIndex + 1 : lateralLegIndex
           );
         }
@@ -1580,6 +1729,8 @@ export class GarminVNavComputer {
       // If we are in a non-PATH vertical mode, ALTV should capture the minimum altitude of the current constraint
       // (VNAV ineligible legs and discontinuities don't matter here since we aren't tracking a path).
 
+      const isAltSelectInitialized = this.isAltSelectInitialized.get();
+
       let canArmAltV: boolean;
 
       const constraintAltitudeFeet = Math.round(UnitType.METER.convertTo(currentConstraint.minAltitude, UnitType.FOOT));
@@ -1599,13 +1750,13 @@ export class GarminVNavComputer {
           break;
         case APVerticalModes.FLC:
           // ALTV can arm if preselected altitude is toward the constraint altitude.
-          canArmAltV = constraintAltitudeDeltaSign * Math.sign(this.apSelectedAltitude - this.currentAltitude) >= 0;
+          canArmAltV = isAltSelectInitialized && constraintAltitudeDeltaSign * Math.sign(this.apSelectedAltitude - this.currentAltitude) >= 0;
           break;
         default:
           canArmAltV = false;
       }
 
-      if (canArmAltV) {
+      if (canArmAltV && isAltSelectInitialized) {
         // If ALTV can be armed, we need to make sure that we will not capture the preselected altitude first (if the
         // constraint and preselected altitudes are the same, preselected altitude takes precedence).
 
@@ -1705,7 +1856,8 @@ export class GarminVNavComputer {
       && this.apVerticalActiveMode !== APVerticalModes.TO
       && this.apVerticalActiveMode !== APVerticalModes.GA
       && !this.isAwaitingPathRearm
-      && this.preselectedAltitude + 75 < this.currentAltitude;
+      && this.isAltSelectInitialized.get()
+      && this.apSelectedAltitude + 75 < this.currentAltitude;
   }
 
   /**
@@ -1750,7 +1902,7 @@ export class GarminVNavComputer {
         // Enable check alt sel message if preselector is not at least 75 feet below current altitude, we have not
         // yet reached TOD, and we are within 45 seconds of TOD.
         this.checkAltSel.set(
-          this.preselectedAltitude + 75 >= this.currentAltitude
+          this.apSelectedAltitude + 75 >= this.currentAltitude
           && this.todBodDetails.distanceFromTod > 0
           && UnitType.METER.convertTo(this.todBodDetails.distanceFromTod, UnitType.NMILE) / (this.currentGroundSpeed / 60) < 0.75
         );
@@ -2045,6 +2197,15 @@ export class GarminVNavComputer {
     this.tocBocDetailsSubject.set('tocLegDistance', 0);
     this.tocBocDetailsSubject.set('distanceFromBoc', 0);
     this.tocBocDetailsSubject.set('distanceFromToc', 0);
+  }
+
+  /**
+   * Resets vertical track alert state.
+   */
+  private resetTrackAlerts(): void {
+    for (let i = 0; i < this.allTrackAlertTypes.length; i++) {
+      this.isTrackAlertArmed[this.allTrackAlertTypes[i]] = true;
+    }
   }
 
   /**

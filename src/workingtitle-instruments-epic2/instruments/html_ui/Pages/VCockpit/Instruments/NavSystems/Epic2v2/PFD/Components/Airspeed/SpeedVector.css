@@ -1,0 +1,32 @@
+.airspeed-trend-vector {
+  position: absolute;
+  right: 33px;
+  height: 50%;
+  width: 28px;
+  overflow: hidden;
+  transform-origin: center bottom;
+}
+
+.airspeed-trend-vector-line {
+  position: absolute;
+  width: 10px;
+  top: 100%;
+  right: 10px;
+  height: 100%;
+  background: var(--epic2-color-white);
+  /** We can get away with always applying radius to top and bottom because the other end is always occluded by the speed readout */
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+
+.airspeed-trend-vector-cap {
+  position: absolute;
+  top: 50%;
+  left: 75px;
+  /** Needs to be wide enough to cover the barber poles, but not too wide so as to overlap the radius on the trend pole */
+  height: 6px;
+  width: 13px;
+  background: var(--epic2-color-white);
+  /** hax as this needs to appear above the barber poles */
+  z-index: 9000;
+}

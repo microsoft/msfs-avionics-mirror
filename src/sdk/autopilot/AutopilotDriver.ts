@@ -3,10 +3,11 @@ import { ConsumerSubject } from '../data/ConsumerSubject';
 import { EventBus, Publisher } from '../data/EventBus';
 import { SimVarValueType } from '../data/SimVars';
 import { AdcEvents } from '../instruments/Adc';
+import { MathUtils } from '../math';
 import { ExpSmoother } from '../math/ExpSmoother';
 import { Subscribable } from '../sub/Subscribable';
 import { LinearServo } from '../utils/controllers/LinearServo';
-import { APValues } from './APConfig';
+import { APValues } from './APValues';
 import { FlightDirectorEvents } from './data/FlightDirectorEvents';
 import { VNavUtils } from './vnav/VNavUtils';
 
@@ -243,24 +244,19 @@ export class AutopilotDriver {
    * conjunction with the angle of attack correction. Defaults to `false`.
    * @param rate The rate at which to drive the commanded pitch angle, in degrees per second. Defaults to the pitch
    * servo's default rate.
+   * @param maxNoseDownPitch The maximum nose down pitch angle, defaults to the global AP pitch limit.
+   * @param maxNoseUpPitch The maximum nose up pitch angle, defaults to the global AP pitch limit.
    */
-  public drivePitch(pitch: number, adjustForAoa = false, adjustForVerticalWind = false, rate?: number): void {
+  public drivePitch(
+    pitch: number,
+    adjustForAoa = false,
+    adjustForVerticalWind = false,
+    rate?: number,
+    maxNoseDownPitch = this.apValues.maxNoseDownPitchAngle.get(),
+    maxNoseUpPitch = this.apValues.maxNoseUpPitchAngle.get()
+  ): void {
+    pitch = this.getAdjustedPitch(pitch, adjustForAoa, adjustForVerticalWind);
     if (isFinite(pitch)) {
-      //pitch = -5 we want a 5 degree FPA up
-      if (adjustForVerticalWind) {
-        // with an updraft, we get a down correction value
-        // if pitch were normal (+ === up), we would add the correction 5 + (-1) = 4 (pitch adjusted down because of updraft)
-        // since pitch is actually inverse (- === up), we want to subtract the correction value -5 - (-1) = -4
-        pitch -= this.getVerticalWindCorrection();
-      }
-      if (adjustForAoa) {
-        // if we want to fly an FPA of +5 degrees, we need to add our AOA to our FPA for the desired pitch.
-        // if our AOA is 1 degree, we want to set our pitch to 5 + 1 = 6 degrees to achieve a 5 degree FPA.
-        // since pitch is inverse and AOA is not, we want to subtract the aoa value -5 - (+1) = -6 (6 degree up pitch)
-        // if we are wanting to fly an FPA of -3 degrees, and our AOA is +1 degree, we would set +3 - (+1) = 2 (2 degree down pitch)
-        pitch -= SimVar.GetSimVarValue('INCIDENCE ALPHA', SimVarValueType.Degree);
-      }
-
       const currentTime = Date.now();
       if (this._lastPitchSetTime !== undefined) {
         const deltaTime = currentTime - this._lastPitchSetTime;
@@ -272,9 +268,8 @@ export class AutopilotDriver {
       }
 
       this._lastPitchSetTime = currentTime;
-
-      this.setPitch(this.pitchServo.drive(this.currentPitchRef, pitch, currentTime, rate), false);
-
+      const limitedPitch = MathUtils.clamp(pitch, -maxNoseDownPitch, maxNoseUpPitch);
+      this.setPitch(this.pitchServo.drive(this.currentPitchRef, limitedPitch, currentTime, rate), false, maxNoseDownPitch, maxNoseUpPitch);
     } else {
       console.warn('AutopilotDriver: Non-finite pitch angle was attempted to be set.');
     }
@@ -284,10 +279,12 @@ export class AutopilotDriver {
    * Sets the commanded autopilot pitch angle, in degrees.
    * @param pitch The commanded pitch angle, in degrees. Positive values indicate downward pitch.
    * @param resetServo Whether to reset the pitch servo. Defaults to `true`.
+   * @param maxNoseDownPitch The maximum nose down pitch angle, defaults to the global AP pitch limit.
+   * @param maxNoseUpPitch The maximum nose up pitch angle, defaults to the global AP pitch limit.
    */
-  public setPitch(pitch: number, resetServo = true): void {
+  public setPitch(pitch: number, resetServo = true, maxNoseDownPitch = this.apValues.maxNoseDownPitchAngle.get(), maxNoseUpPitch = this.apValues.maxNoseUpPitchAngle.get()): void {
     if (isFinite(pitch)) {
-      this.currentPitchRef = pitch;
+      this.currentPitchRef = MathUtils.clamp(pitch, -maxNoseDownPitch, maxNoseUpPitch);
       SimVar.SetSimVarValue('AUTOPILOT PITCH HOLD REF', SimVarValueType.Degree, this.currentPitchRef);
       this.fdPublisher?.pub('fd_target_pitch', this.currentPitchRef, true, true);
     } else {
@@ -296,6 +293,41 @@ export class AutopilotDriver {
     if (resetServo) {
       this._lastPitchSetTime = undefined;
     }
+  }
+
+  /**
+   * Adjusts a pitch angle optionally for AOA and vertical wind.
+   * @param pitch The desired pitch angle, in degrees. Positive values indicate downward pitch.
+   * @param adjustForAoa Whether to adjust the commanded pitch angle for angle of attack. If `true`, the provided pitch
+   * angle is treated as a desired flight path angle and a new commanded pitch angle will be calculated to produce the
+   * desired FPA given the airplane's current angle of attack. This correction can be used in conjunction with the
+   * vertical wind correction. Defaults to `false`.
+   * @param adjustForVerticalWind Whether to adjust the commanded pitch angle for vertical wind velocity. If `true`,
+   * the provided pitch angle is treated as a desired flight path angle and a new commanded pitch angle will be
+   * calculated to produce the desired FPA given the current vertical wind component. This correction can be used in
+   * conjunction with the angle of attack correction. Defaults to `false`.
+   * @returns The adjusted pitch.
+   */
+  public getAdjustedPitch(pitch: number, adjustForAoa = false, adjustForVerticalWind = false): number {
+    if (!isFinite(pitch)) {
+      return pitch;
+    }
+
+    //pitch = -5 we want a 5 degree FPA up
+    if (adjustForVerticalWind) {
+      // with an updraft, we get a down correction value
+      // if pitch were normal (+ === up), we would add the correction 5 + (-1) = 4 (pitch adjusted down because of updraft)
+      // since pitch is actually inverse (- === up), we want to subtract the correction value -5 - (-1) = -4
+      pitch -= this.getVerticalWindCorrection();
+    }
+    if (adjustForAoa) {
+      // if we want to fly an FPA of +5 degrees, we need to add our AOA to our FPA for the desired pitch.
+      // if our AOA is 1 degree, we want to set our pitch to 5 + 1 = 6 degrees to achieve a 5 degree FPA.
+      // since pitch is inverse and AOA is not, we want to subtract the aoa value -5 - (+1) = -6 (6 degree up pitch)
+      // if we are wanting to fly an FPA of -3 degrees, and our AOA is +1 degree, we would set +3 - (+1) = 2 (2 degree down pitch)
+      pitch -= SimVar.GetSimVarValue('INCIDENCE ALPHA', SimVarValueType.Degree);
+    }
+    return pitch;
   }
 
   /**

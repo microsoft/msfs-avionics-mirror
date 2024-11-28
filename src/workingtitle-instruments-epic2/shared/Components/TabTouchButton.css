@@ -1,0 +1,26 @@
+.touch-button.touch-button-tab {
+  height: 57px;
+  font-size: 21px;
+  border-radius: 0;
+  border-image-source: url('coui://html_UI/pages/vcockpit/instruments/navsystems/Epic2v2/assets/images/grey-border-sq.png');
+}
+
+.touch-button.touch-button-tab:hover::after {
+  z-index: 1;
+}
+
+.touch-button.touch-button-tab.touch-button-active {
+  border-color: transparent;
+  z-index: 1;
+}
+
+.touch-button.touch-button-tab.touch-button-active::after {
+  border-bottom: none;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-color: var(--epic2-color-green);
+}
+
+.touch-button.touch-button-tab.touch-button-active .touch-button-label {
+  color: var(--epic2-color-green);
+}

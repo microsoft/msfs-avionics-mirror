@@ -1,0 +1,74 @@
+@font-face {
+  font-family: "DejaVuSans-SemiBold";
+  src: url("/Pages/VCockpit/Instruments/NavSystems/G3XTouchv2/Assets/Fonts/DejaVuSans-SemiBold-G3X.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "G3X-Mono-Regular";
+  src: url("/Pages/VCockpit/Instruments/NavSystems/G3XTouchv2/Assets/Fonts/G3X-Mono-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+html {
+  --g3x-color-black: black;
+  --g3x-color-black-transparent: rgba(0, 0, 0, 0.45);
+  --g3x-color-white: white;
+  --g3x-color-off-white: #f4f4f4;
+  --g3x-color-whitesmoke: whitesmoke;
+  --g3x-color-red: red;
+  --g3x-color-magenta: magenta;
+  --g3x-color-cyan: cyan;
+  --g3x-color-green: lime;
+  --g3x-color-dark-green: #008000;
+  --g3x-color-yellow: yellow;
+  --g3x-color-amber: #ffdc24;
+  --g3x-color-gray: grey;
+  --g3x-color-dark-gray: #424242;
+  --g3x-color-title-gray: #b7b7b7;
+  --g3x-color-disabled-gray: #424242;
+  --g3x-color-border-gray: #969696;
+  --g3x-color-border-light-gray: #bcbcbc;
+  --g3x-color-pane-border: #efefef;
+  --g3x-color-focus-blue: #37c0ef;
+  --g3x-color-light-blue: rgba(156, 214, 216, 1);
+  --g3x-color-pfd-box-border: #787878;
+  --g3x-color-pfd-box-background: rgba(22, 22, 22, 0.75);
+}
+
+body {
+  font-family: "DejaVuSans-SemiBold";
+}
+
+#Mainframe {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#Electricity {
+  width: 100%;
+  height: 100%;
+}
+
+#Electricity[state="off"] {
+  display: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.full-size {
+  width: 100%;
+  height: 100%;
+}
+
+.visibility-hidden {
+  visibility: hidden !important;
+}

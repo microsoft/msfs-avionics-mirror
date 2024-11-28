@@ -1,0 +1,31 @@
+.mfd-map-side-buttons {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: 6px;
+  position: absolute;
+  right: 18px;
+  top: 12px;
+  width: 59px;
+  bottom: 190px;
+}
+
+.mdf-map-side-button-upper {
+  padding-bottom: 60px;
+  padding-top: 25px;
+}
+
+.mfd-map-side-buttons .touch-button {
+  margin-bottom: 12px;
+  font-size: 19px;
+  height: 42px;
+  line-height: 15px;
+}
+
+.mfd-map-side-buttons .touch-button.touch-button-bar .touch-button-label {
+  padding: 4px 0 0 0;
+}
+
+.mfd-side-button-vsd .touch-button-checkbox-label {
+  margin-right: 2px;
+}

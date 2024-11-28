@@ -1,0 +1,16 @@
+.section-outline {
+  width: 100%;
+  height: 100%;
+  position:relative;
+}
+.section-outline.outline-active:after {
+  content:'';
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  top:0;
+  border:3px solid var(--epic2-color-cyan);
+  z-index:9;
+  pointer-events: none;
+}

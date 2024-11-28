@@ -1,0 +1,186 @@
+.weight-balance-pane-graph {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  font-size: 16px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.weight-balance-pane-graph-marker {
+  width: 20px;
+  height: 20px;
+}
+
+.weight-balance-pane-graph-marker-icon {
+  fill: #c0c0c0;
+  stroke: black;
+  stroke-width: 1px;
+}
+
+.weight-balance-pane-graph-marker-normal .weight-balance-pane-graph-marker-icon {
+  fill: var(--g3000-color-green);
+}
+
+.weight-balance-pane-graph-marker-caution .weight-balance-pane-graph-marker-icon {
+  fill: var(--g3000-color-yellow);
+}
+
+.weight-balance-pane-graph-marker-gradient {
+  fill: black;
+  opacity: 0.05;
+}
+
+.weight-balance-pane-graph-graph {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.weight-balance-pane-graph-plot-area {
+  flex: 1;
+  position: relative;
+  margin-left: 72px;
+  margin-bottom: 44px;
+  overflow: hidden;
+}
+
+.weight-balance-pane-graph-canvas {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.weight-balance-pane-graph-scale-y {
+  position: absolute;
+  left: 22px;
+  top: 0px;
+  width: 50px;
+  height: calc(100% - 44px);
+}
+
+.weight-balance-pane-graph-scale-x {
+  position: absolute;
+  right: 0px;
+  bottom: 22px;
+  width: calc(100% - 72px);
+  height: 22px;
+}
+
+.weight-balance-pane-graph-scale-label {
+  font-size: 12px;
+}
+
+.weight-balance-pane-graph-scale-y .weight-balance-pane-graph-scale-label {
+  right: 3px;
+}
+
+.weight-balance-pane-graph-scale-x .weight-balance-pane-graph-scale-label {
+  top: 3px;
+}
+
+.weight-balance-pane-graph-title {
+  position: absolute;
+  white-space: nowrap;
+}
+
+.weight-balance-pane-graph-title-x {
+  right: calc((100% - 22px) / 2);
+  bottom: 11px;
+  transform: translate(50%, 50%);
+}
+
+.weight-balance-pane-graph-title-y {
+  left: 11px;
+  top: calc((100% - 44px) / 2);
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+.weight-balance-pane-graph-offscale-banner {
+  position: absolute;
+  right: calc((100% - 22px) / 2);
+  top: calc((100% - 22px) / 2);
+  transform: translate(50%, -50%);
+  color: var(--g3000-color-yellow);
+  white-space: pre;
+  display: grid;
+  grid-template-rows: repeat(2, min-content);
+  grid-template-columns: min-content;
+  justify-items: center;
+  grid-row-gap: 3px;
+}
+
+.weight-balance-pane-graph-offscale-banner-line {
+  padding: 1px;
+  background: var(--g3000-color-black);
+}
+
+.weight-balance-pane-graph-legend {
+  position: relative;
+  height: 68px;
+  margin-top: 3px;
+  padding: 1px 5px;
+  border: solid 1px #404040;
+  display: grid;
+  grid-template-rows: 22px 1fr;
+  grid-template-columns: repeat(3, 1fr);
+  grid-row-gap: 2px;
+  grid-column-gap: 60px;
+}
+
+.display-pane-full .weight-balance-pane-graph-legend {
+  grid-column-gap: 46px;
+}
+
+.weight-balance-pane-graph-legend-cell {
+  white-space: nowrap;
+}
+
+.weight-balance-pane-graph-legend-icon {
+  margin-left: 3px;
+  vertical-align: middle;
+}
+
+.weight-balance-pane-graph-legend-envelope-icon {
+  width: 20px;
+  height: 12px;
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2px;
+}
+
+.weight-balance-pane-graph-legend-landing-weight-icon {
+  width: 50px;
+  height: 2px;
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2px;
+}
+
+.weight-balance-pane-graph-legend-fuel-burn-cell {
+  justify-self: start;
+  text-align: center;
+}
+
+.weight-balance-pane-graph-legend-icon.weight-balance-pane-graph-legend-fuel-burn-icon {
+  width: 40px;
+  height: 3px;
+  margin-left: 0px;
+  fill: none;
+  stroke: #c0c0c0;
+  stroke-width: 3px;
+}
+
+.weight-balance-pane-graph-legend-fuel-burn-icon.weight-balance-pane-graph-legend-fuel-burn-icon-normal {
+  stroke: var(--g3000-color-green);
+}
+
+.weight-balance-pane-graph-legend-fuel-burn-icon.weight-balance-pane-graph-legend-fuel-burn-icon-caution {
+  stroke: var(--g3000-color-yellow);
+}

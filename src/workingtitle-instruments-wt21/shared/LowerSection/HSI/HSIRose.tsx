@@ -1,9 +1,9 @@
 import {
-  AhrsEvents, AvionicsSystemState, AvionicsSystemStateEvent, ComponentProps, DisplayComponent, EventBus, FSComponent, Subject, Subscription, SVGUtils, VNode
+  AvionicsSystemState, AvionicsSystemStateEvent, ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FSComponent, Subject, Subscription, SVGUtils, VNode
 } from '@microsoft/msfs-sdk';
 
-import { PfdOrMfd } from '../../Map/MapUserSettings';
-import { AHRSSystemEvents } from '../../Systems';
+import { WT21InstrumentType } from '../../Config';
+import { AhrsSystemEvents, AhrsSystemSelectorEvents } from '../../Systems';
 import { CompassRose } from './CompassRose';
 import { HSIBearingPointer } from './HSIBearingPointer';
 import { HSICommon } from './HSICommon';
@@ -22,8 +22,9 @@ interface HSIRoseProps extends ComponentProps {
   svgViewBoxSize: number;
   // eslint-disable-next-line jsdoc/require-jsdoc
   mapRangeHalf: Subject<string>;
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  pfdOrMfd: PfdOrMfd;
+
+  /** The instrument type */
+  instrumentType: WT21InstrumentType;
 }
 
 /** Rose format for the HSI. */
@@ -33,8 +34,15 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
   private currentHeading = 0;
   private half: number;
 
+
   private hdgSub?: Subscription;
   private mockHdgSub?: Subscription;
+  private ahrsStateSub?: Subscription;
+  private ahrsHdgValidSub?: Subscription;
+
+  private isAhrsInitializing = false;
+  private isAhrsHdgValid = true;
+  private readonly selectedAhrs = ConsumerSubject.create(this.props.bus.getSubscriber<AhrsSystemSelectorEvents>().on('ahrs_selected_source_index'), 1);
 
   /** @inheritdoc */
   public constructor(props: HSIRoseProps) {
@@ -44,19 +52,18 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    const ahrs = this.props.bus.getSubscriber<AhrsEvents>();
+    const ahrs = this.props.bus.getSubscriber<AhrsSystemEvents>();
+    this.selectedAhrs.sub((ahrsIndex) => {
+      this.hdgSub?.destroy();
+      this.mockHdgSub?.destroy();
+      this.ahrsStateSub?.destroy();
+      this.ahrsHdgValidSub?.destroy();
 
-    this.hdgSub = ahrs.on('hdg_deg')
-      .withPrecision(2)
-      .handle(hdg => this.handleNewCurrentHeading(hdg));
-
-    const ahrsSub = this.props.bus.getSubscriber<AHRSSystemEvents>();
-
-    ahrsSub.on('ahrs_state').whenChanged()
-      .handle(this.onAhrsStateChanged.bind(this));
-
-    this.mockHdgSub = ahrsSub.on('ahrs_init_hdg_deg').withPrecision(2)
-      .handle(hdg => this.handleNewCurrentHeading(hdg), true);
+      this.hdgSub = ahrs.on(`ahrs_hdg_deg_${ahrsIndex}`).withPrecision(2).handle(hdg => this.handleNewCurrentHeading(hdg), true);
+      this.mockHdgSub = ahrs.on(`ahrs_init_hdg_deg_${ahrsIndex}`).withPrecision(2).handle(hdg => this.handleNewCurrentHeading(hdg), true);
+      this.ahrsStateSub = ahrs.on(`ahrs_state_${ahrsIndex}`).whenChanged().handle(this.onAhrsStateChanged.bind(this));
+      this.ahrsHdgValidSub = ahrs.on(`ahrs_heading_data_valid_${ahrsIndex}`).handle(this.onAhrsHdgValidityChanged.bind(this));
+    }, true);
   }
 
   /**
@@ -64,12 +71,29 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
    * @param state The state change event to handle.
    */
   private onAhrsStateChanged(state: AvionicsSystemStateEvent): void {
-    if (state.current === AvionicsSystemState.On) {
-      this.mockHdgSub?.pause();
-      this.hdgSub?.resume(true);
-    } else {
+    this.isAhrsInitializing = state.current === AvionicsSystemState.Initializing;
+    if (state.current === AvionicsSystemState.Initializing) {
       this.hdgSub?.pause();
-      this.mockHdgSub?.resume(true);
+      this.mockHdgSub?.resume();
+    } else if (state.current === AvionicsSystemState.On && this.isAhrsHdgValid) {
+      this.mockHdgSub?.pause();
+      this.hdgSub?.resume();
+    }
+  }
+
+  /**
+   * A callback called when the AHRS heading validity changes
+   * @param valid Whether the AHRS heading data is valid
+   */
+  private onAhrsHdgValidityChanged(valid: boolean): void {
+    this.isAhrsHdgValid = valid;
+
+    if (!this.isAhrsInitializing) {
+      if (valid) {
+        this.hdgSub?.resume();
+      } else {
+        this.hdgSub?.pause();
+      }
     }
   }
 
@@ -240,7 +264,7 @@ export class HSIRose extends DisplayComponent<HSIRoseProps> {
             innerRadius={innerCircleRadius}
             bearingPointerNumber={1}
           />
-          {this.props.pfdOrMfd === 'PFD' &&
+          {this.props.instrumentType === WT21InstrumentType.Pfd &&
             <HSIGhostNeedle
               bus={this.props.bus}
               svgViewBoxSize={this.props.svgViewBoxSize}

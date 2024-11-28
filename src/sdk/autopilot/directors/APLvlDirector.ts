@@ -1,5 +1,4 @@
-import { EventBus } from '../../data/EventBus';
-import { APValues } from '../APConfig';
+import { APValues } from '../APValues';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
 /**
@@ -13,10 +12,10 @@ export type APLvlDirectorOptions = {
   bankRate?: number | (() => number) | undefined;
 
   /**
-   * Whether the director is to be used as a TO/GA lateral mode. If `true`, the director will not control the
-   * `AUTOPILOT HEADING LOCK` simvar. Defaults to `false`.
+   * Whether the director should omit setting the `AUTOPILOT WING LEVELER` SimVar to true (1) when the director is
+   * active. Defaults to `false`.
    */
-  isToGaMode?: boolean;
+  omitWingLeveler?: boolean;
 };
 
 /**
@@ -36,16 +35,14 @@ export class APLvlDirector implements PlaneDirector {
 
   private readonly driveBankFunc: (bank: number) => void;
 
-  private readonly isToGaMode: boolean;
+  private readonly omitWingLeveler: boolean;
 
   /**
    * Creates an instance of the wing leveler.
-   * @param bus The event bus to use with this instance.
    * @param apValues Autopilot values from this director's parent autopilot.
    * @param options Options to configure the new director.
    */
-  constructor(
-    private readonly bus: EventBus,
+  public constructor(
     private readonly apValues: APValues,
     options?: Readonly<APLvlDirectorOptions>
   ) {
@@ -73,7 +70,7 @@ export class APLvlDirector implements PlaneDirector {
         };
     }
 
-    this.isToGaMode = options?.isToGaMode ?? false;
+    this.omitWingLeveler = options?.omitWingLeveler ?? false;
 
     this.state = DirectorState.Inactive;
   }
@@ -86,7 +83,7 @@ export class APLvlDirector implements PlaneDirector {
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
-    if (!this.isToGaMode) { SimVar.SetSimVarValue('AUTOPILOT WING LEVELER', 'Bool', true); }
+    if (!this.omitWingLeveler) { SimVar.SetSimVarValue('AUTOPILOT WING LEVELER', 'Bool', true); }
   }
 
   /**
@@ -104,7 +101,7 @@ export class APLvlDirector implements PlaneDirector {
    */
   public deactivate(): void {
     this.state = DirectorState.Inactive;
-    if (!this.isToGaMode) { SimVar.SetSimVarValue('AUTOPILOT WING LEVELER', 'Bool', false); }
+    if (!this.omitWingLeveler) { SimVar.SetSimVarValue('AUTOPILOT WING LEVELER', 'Bool', false); }
   }
 
   /**

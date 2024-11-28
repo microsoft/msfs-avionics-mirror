@@ -1,0 +1,272 @@
+.flight-plan-leg-list-item.active-leg {
+  color: var(--epic2-color-green);
+}
+
+.flight-plan-leg-list-item.from-leg {
+  color: var(--epic2-color-grey);
+}
+
+.flight-plan-list.plan-pending .flight-plan-leg-list-item.removing-leg, .flight-plan-list.plan-pending .flight-plan-leg-list-item.removing-leg * {
+  color: var(--epic2-color-grey) !important;
+}
+
+.flight-plan-list.plan-pending .flight-plan-leg-list-item.adding-leg, .flight-plan-list.plan-pending .flight-plan-leg-list-item.adding-leg * {
+  color: var(--epic2-color-cyan);
+}
+
+
+/* Creates diagonal cut through line */
+.flight-plan-leg-list-item.removing-leg .section-outline {
+  background: linear-gradient(to bottom right, var(--epic2-color-black), var(--epic2-color-black) 48.5%, var(--epic2-color-grey) 48.5%, gray 51.5%, var(--epic2-color-black) 51.5%, var(--epic2-color-black));
+  -webkit-text-stroke: 0px;
+}
+
+.flight-plan-leg-list-item .left-box {
+  position: relative;
+  border-right: 2px solid var(--epic2-color-white);
+  width: 115px;
+}
+
+.flight-plan-leg-list-item .time-sec {
+  display: none;
+}
+
+.flight-plan-leg-list-item .top-row,
+.flight-plan-leg-list-item .bottom-row {
+  position: absolute;
+  display: flex;
+  width: 100%;
+}
+
+.flight-plan-leg-list-item .top-row>*,
+.flight-plan-leg-list-item .bottom-row>* {
+  position: absolute;
+}
+
+.flight-plan-leg-list-item .top-row {
+  top: 8px;
+}
+
+.flight-plan-leg-list-item .bottom-row {
+  top: 38px;
+}
+
+.flight-plan-leg-list-item .right-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  color: var(--epic2-color-green);
+}
+
+.flight-plan-leg-list-item .course {
+  left: 19px;
+}
+
+.flight-plan-leg-list-item .distance {
+  right: 3px;
+}
+
+.flight-plan-leg-list-item .leg-name {
+  font-size: 24px;
+  left: 4px;
+}
+
+.flight-plan-leg-list-item .altitude-lower {
+  width: 50px;
+  text-align: center;
+}
+
+.flight-plan-leg-list-item .altitude-upper {
+  top: -30px;
+  width: 50px;
+  text-align: center;
+}
+
+.flight-plan-leg-list-item .altitude-lower.constraint,.flight-plan-leg-list-item .altitude-upper.constraint {
+  color: var(--epic2-color-white)
+}
+
+.flight-plan-leg-list-item .speed.constraint {
+  color: var(--epic2-color-white)
+}
+
+
+.flight-plan-leg-list-item .angle {
+  left: 60px;
+}
+
+.flight-plan-leg-list-item .speed {
+  right: 65px;
+}
+
+.flight-plan-leg-list-item .ground-speed {
+  left: 0px;
+}
+
+.flight-plan-leg-list-item .distance-to-go {
+  left: 82px;
+}
+
+.flight-plan-leg-list-item .time-ete {
+  right: 8px;
+}
+
+.flight-plan-leg-list-item .time {
+  right: 9px;
+}
+
+.flight-plan-leg-list-item .t-comp {
+  right: 9px;
+  color: var(--epic2-color-white)
+}
+
+.flight-plan-leg-list-item .rem {
+  left: 40px;
+}
+
+.flight-plan-leg-list-item .gross {
+  right: 32px;
+}
+
+.flight-plan-leg-list-item .lat {
+  left: 2px;
+}
+
+.flight-plan-leg-list-item .wind {
+  left: 0px;
+}
+
+.flight-plan-leg-list-item .temperature {
+  right: 86px;
+}
+
+.flight-plan-leg-list-item .deviation {
+  right: 8px;
+}
+
+.flight-plan-leg-list-item .icao {
+  left: 20px;
+  color: var(--epic2-color-white)
+}
+
+.flight-plan-leg-list-item .sid {
+  right: 30px;
+  color: var(--epic2-color-white)
+}
+
+.flight-plan-leg-list-item .airway-name {
+  left: 20px;
+  color: var(--epic2-color-white)
+}
+
+.flight-plan-leg-list-item .airway {
+  right: 30px;
+  color: var(--epic2-color-white)
+}
+
+.flight-plan-leg-list-item .constraint-line {
+  width: 50px;
+  height: 2px;
+  background-color: var(--epic2-color-white);
+}
+
+.flight-plan-leg-list-item .constraint-line.top {
+  top: -34px;
+}
+
+.flight-plan-leg-list-item .constraint-line.middle {
+  top: -4px;
+}
+
+.flight-plan-leg-list-item .constraint-line.bottom {
+  top: 20px;
+}
+
+.flight-plan-leg-list-item .speed-constraint-line {
+  width: 30px;
+  height: 2px;
+  right: 65px;
+  top: -4px;
+  background-color: var(--epic2-color-white);
+}
+
+
+ /* .flight-plan-leg-list-item .list-view-cross .cross-items,
+.flight-plan-leg-list-item .list-view-wind-temp-isa .wind-temp-isa-items,
+.flight-plan-leg-list-item .list-view-spd-dist-time .spd-dist-time-items,
+.flight-plan-leg-list-item .list-view-fuel-wt .fuel-wt-items,
+.flight-plan-leg-list-item .list-view-lat-lon .lat-lon-items
+.flight-plan-leg-list-item .list-view-route .route-items {
+  display: block !important;
+}  */
+
+.flight-plan-leg-list-item .list-view-cross,
+.flight-plan-leg-list-item .list-view-wind-temp-isa,
+.flight-plan-leg-list-item .list-view-spd-dist-time,
+.flight-plan-leg-list-item .list-view-fuel-wt,
+.flight-plan-leg-list-item .list-view-lat-lon,
+.flight-plan-leg-list-item .list-view-route {
+  /*display: block !important;*/
+  padding-left: 4px;
+}
+
+.flight-plan-leg-list-item .list-view-spd-dist-time,
+.flight-plan-leg-list-item .list-view-fuel-wt,
+.flight-plan-leg-list-item .list-view-route,
+.flight-plan-leg-list-item .list-view-lat-lon {
+  /*display: block !important;*/
+  background-color: var(--epic2-color-dark-grey);
+  width: 100%;
+  height: 100%;
+}
+
+
+
+.flight-plan-leg-list-item .lat-lon-items .lat-lon-display,
+.flight-plan-leg-list-item .lat-lon-items .latlon-coord {
+  display: flex;
+}
+
+.flight-plan-leg-list-item .pattern-icon {
+  right: 12px;
+  height: 19px;
+  width: 12px;
+  text-align: center;
+  background-color: var(--epic2-color-white);
+  color: black;
+}
+
+.flight-plan-leg-list-item .turn-direction {
+  left: 3px;
+  height: 19px;
+  width: 12px;
+  text-align: center;
+  background-color: var(--epic2-color-white);
+  color: black;
+}
+
+.flight-plan-leg-list-item.active-leg .pattern-icon, .flight-plan-leg-list-item.active-leg .turn-direction {
+  background-color: var(--epic2-color-green);
+  color: black;
+}
+
+.flight-plan-leg-list-item.from-leg .pattern-icon, .flight-plan-leg-list-item.from-leg .turn-direction {
+  background-color: var(--epic2-color-grey);
+  color: black;
+}
+
+.flight-plan-list.plan-pending .flight-plan-leg-list-item.removing-leg .pattern-icon, .flight-plan-list.plan-pending .flight-plan-leg-list-item.removing-leg .turn-direction {
+  background-color: var(--epic2-color-grey);
+  color: black;
+}
+
+.flight-plan-list.plan-pending .flight-plan-leg-list-item.adding-leg .pattern-icon {
+  background-color: var(--epic2-color-cyan);
+  color: black;
+}
+
+
+.flight-plan-list .right-box:has(.list-view-spd-dist-time) {
+  background-color: var(--epic2-color-white);
+}

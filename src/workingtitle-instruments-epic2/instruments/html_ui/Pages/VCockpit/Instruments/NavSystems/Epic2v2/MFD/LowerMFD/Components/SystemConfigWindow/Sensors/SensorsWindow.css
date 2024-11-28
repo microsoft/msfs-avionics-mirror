@@ -1,0 +1,47 @@
+.performance-window-menu {
+  margin-top: 4px;
+}
+
+.performance-window-content {
+  margin:12px 8px 8px 8px;
+}
+
+.performance-window-content .title {
+  color: var(--epic2-color-white);
+  width: 100%;
+  border-top: 2px solid var(--epic2-color-grey);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.performance-window-data {
+  width: 100%;
+  color: var(--epic2-color-grey);
+  display: grid;
+  grid-template-columns: 38% 62%;
+}
+
+.performance-window-data > div:nth-child(odd) {
+  text-align: right;
+  margin-right: 10px;
+}
+
+.performance-window-data .white {
+  color: var(--epic2-color-white);
+}
+
+.performance-window-data .green {
+  color: var(--epic2-color-green);
+}
+
+.performance-window-data .amber {
+  color: var(--epic2-color-amber);
+}
+
+.performance-window-data .numberunit-unit {
+  color: var(--epic2-color-grey);
+}
+
+.performance-window-data .numberunit-num {
+  margin-right: 10px;
+}

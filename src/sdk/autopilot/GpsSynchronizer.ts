@@ -150,7 +150,7 @@ export class GpsSynchronizer {
         disHandler(0);
         brgHandler(0);
         destDisHandler(0);
-        courseToSteerHandler(0);
+        courseToSteerHandler(null);
         cdiScaleHandler(0);
       }
     }, true);
@@ -309,9 +309,8 @@ export class GpsSynchronizer {
    * Handles when the course steered by LNAV changes.
    * @param course The course steered by LNAV, in degrees true.
    */
-  private onLNavCourseToSteerChanged(course: number): void {
-    SimVar.SetSimVarValue('GPS COURSE TO STEER', SimVarValueType.Radians, UnitType.DEGREE.convertTo(course, UnitType.RADIAN));
-    // SimVar.SetSimVarValue('GPS COURSE TO STEER', SimVarValueType.Degree, course);
+  private onLNavCourseToSteerChanged(course: number | null): void {
+    SimVar.SetSimVarValue('GPS COURSE TO STEER', SimVarValueType.Radians, course ? UnitType.DEGREE.convertTo(course, UnitType.RADIAN) : 0);
   }
 
   /**

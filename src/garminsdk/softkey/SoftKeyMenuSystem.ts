@@ -1,4 +1,4 @@
-import { EventBus, HEvent, Subject, Subscribable } from '@microsoft/msfs-sdk';
+import { EventBus, Subject, Subscribable } from '@microsoft/msfs-sdk';
 
 import { SoftKeyMenu } from './SoftKeyMenu';
 
@@ -34,16 +34,8 @@ export class SoftKeyMenuSystem {
   /**
    * Creates an instance of SoftKeyMenuSystem.
    * @param bus The event bus to use with this instance.
-   * @param hEventMap A function which maps H events to softkey indexes. The function should return the index of the
-   * pressed softkey for softkey press H events, and `undefined` for all other H events.
    */
-  constructor(public readonly bus: EventBus, hEventMap: (hEvent: string) => number | undefined) {
-    bus.getSubscriber<HEvent>().on('hEvent').handle(hEvent => {
-      const index = hEventMap(hEvent);
-      if (index !== undefined) {
-        this.onSoftKeyPressed(index);
-      }
-    });
+  public constructor(public readonly bus: EventBus) {
   }
 
   /**
@@ -123,10 +115,10 @@ export class SoftKeyMenuSystem {
   }
 
   /**
-   * Responds to when a softkey is pressed.
+   * Handles a softkey press.
    * @param index The index of the pressed softkey.
    */
-  private onSoftKeyPressed(index: number): void {
+  public onSoftKeyPressed(index: number): void {
     this.currentMenu.get()?.handleItemPressed(index);
   }
 }

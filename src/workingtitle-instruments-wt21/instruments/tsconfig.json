@@ -8,7 +8,7 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "build/workingtitle-instruments-wt21/html_ui/Pages/VCockpit/Instruments/WT21",
+    "outDir": "build/workingtitle-instruments-wt21-v2/html_ui/Pages/VCockpit/Instruments/WT21v2",
     "declaration": true,
     "declarationMap": true,
     "removeComments": false,

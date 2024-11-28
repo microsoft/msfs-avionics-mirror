@@ -1,8 +1,10 @@
 import {
-  AffineTransformPathStream, BitFlags, CssTransformBuilder, CssTransformSubject, FSComponent, HorizonLayer, HorizonLayerProps,
-  HorizonProjection, HorizonProjectionChangeType, MathUtils, ObjectSubject, ReadonlyFloat64Array, Subscribable, Subscription,
-  SvgPathStream, VNode
+  AffineTransformPathStream, BitFlags, CssTransformBuilder, CssTransformSubject, DisplayComponent, FSComponent,
+  HorizonLayer, HorizonLayerProps, HorizonProjection, HorizonProjectionChangeType, MathUtils, ObjectSubject,
+  ReadonlyFloat64Array, Subscribable, Subscription, SvgPathStream, VNode
 } from '@microsoft/msfs-sdk';
+
+import { RollIndicatorScaleComponent, RollIndicatorScaleParameters } from './RollIndicatorScaleComponent';
 
 /**
  * Options for {@link RollIndicator}.
@@ -60,7 +62,16 @@ export type RollIndicatorOptions = {
 }
 
 /**
- * Component props for RollIndicator.
+ * A function that renders a roll scale component for a {@link RollIndicator}. The rendered component should be an
+ * instance of {@link RollIndicatorScaleComponent}.
+ * @param projection The component's horizon projection.
+ * @param scaleParams Parameters describing the component's parent roll scale.
+ * @returns A roll scale component, as a VNode.
+ */
+export type RollIndicatorScaleComponentFactory = (projection: HorizonProjection, scaleParams: Readonly<RollIndicatorScaleParameters>) => VNode;
+
+/**
+ * Component props for {@link RollIndicator}.
  */
 export interface RollIndicatorProps extends HorizonLayerProps {
   /** Whether to show the indicator. */
@@ -76,7 +87,12 @@ export interface RollIndicatorProps extends HorizonLayerProps {
   turnCoordinatorBall: Subscribable<number>;
 
   /** Options for the roll indicator. */
-  options: RollIndicatorOptions;
+  options: Readonly<RollIndicatorOptions>;
+
+  /**
+   * Factories to create roll scale components to render with the indicator.
+   */
+  scaleComponents?: Iterable<RollIndicatorScaleComponentFactory>;
 }
 
 /**
@@ -102,18 +118,25 @@ export class RollIndicator extends HorizonLayer<RollIndicatorProps> {
   private readonly rollTransform = CssTransformSubject.create(CssTransformBuilder.rotate3d('deg'));
   private readonly slipSkidTransform = CssTransformSubject.create(CssTransformBuilder.translate3d('px'));
 
+  private readonly scaleComponents: RollIndicatorScaleComponent[] = [];
+  private areScaleComponentsAttached = false;
+
   private needUpdateRoll = false;
   private needUpdateSlipSkid = false;
 
   private showSub?: Subscription;
   private turnCoordinatorBallSub?: Subscription;
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   protected onVisibilityChanged(isVisible: boolean): void {
-    this.rootStyle.set('display', isVisible ? '' : 'none');
+    if (this.areScaleComponentsAttached) {
+      for (const component of this.scaleComponents) {
+        component.onScaleVisibilityChanged(isVisible);
+      }
+    }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onAttached(): void {
     super.onAttached();
 
@@ -125,9 +148,19 @@ export class RollIndicator extends HorizonLayer<RollIndicatorProps> {
 
     this.needUpdateRoll = true;
     this.needUpdateSlipSkid = true;
+
+    for (const component of this.scaleComponents) {
+      component.onScaleAttached();
+    }
+    this.areScaleComponentsAttached = true;
+    if (!this.isVisible()) {
+      for (const component of this.scaleComponents) {
+        component.onScaleVisibilityChanged(false);
+      }
+    }
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onProjectionChanged(projection: HorizonProjection, changeFlags: number): void {
     if (BitFlags.isAll(changeFlags, HorizonProjectionChangeType.OffsetCenterProjected)) {
       this.updateRootPosition();
@@ -135,6 +168,10 @@ export class RollIndicator extends HorizonLayer<RollIndicatorProps> {
 
     if (BitFlags.isAny(changeFlags, HorizonProjectionChangeType.Roll)) {
       this.needUpdateRoll = true;
+    }
+
+    for (let i = 0; i < this.scaleComponents.length; i++) {
+      this.scaleComponents[i].onProjectionChanged(projection, changeFlags);
     }
   }
 
@@ -147,26 +184,32 @@ export class RollIndicator extends HorizonLayer<RollIndicatorProps> {
     this.rootStyle.set('top', `${offsetCenter[1]}px`);
   }
 
-  /** @inheritdoc */
-  public onUpdated(): void {
-    if (!this.isVisible()) {
-      return;
+  /** @inheritDoc */
+  public onUpdated(time: number, elapsed: number): void {
+    if (this.isVisible()) {
+      this.rootStyle.set('display', '');
+
+      if (this.needUpdateRoll) {
+        this.updateRoll();
+
+        this.needUpdateRoll = false;
+      }
+
+      if (!this.props.showSlipSkid.get()) {
+        return;
+      }
+
+      if (this.needUpdateSlipSkid) {
+        this.updateSlipSkid();
+
+        this.needUpdateSlipSkid = false;
+      }
+    } else {
+      this.rootStyle.set('display', 'none');
     }
 
-    if (this.needUpdateRoll) {
-      this.updateRoll();
-
-      this.needUpdateRoll = false;
-    }
-
-    if (!this.props.showSlipSkid.get()) {
-      return;
-    }
-
-    if (this.needUpdateSlipSkid) {
-      this.updateSlipSkid();
-
-      this.needUpdateSlipSkid = false;
+    for (let i = 0; i < this.scaleComponents.length; i++) {
+      this.scaleComponents[i].onUpdated(time, elapsed);
     }
   }
 
@@ -188,14 +231,18 @@ export class RollIndicator extends HorizonLayer<RollIndicatorProps> {
     this.slipSkidTransform.resolve();
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public onDetached(): void {
     super.onDetached();
+
+    for (const component of this.scaleComponents) {
+      component.onScaleDetached();
+    }
 
     this.destroy();
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public render(): VNode {
     return (
       <div class='roll-indicator' style={this.rootStyle}>
@@ -208,9 +255,20 @@ export class RollIndicator extends HorizonLayer<RollIndicatorProps> {
   /**
    * Renders the bank scale, which includes the bank reference pointer and the scale ticks.
    * @returns The bank scale, as a VNode.
+   * @throws Error if a scale component factory creates a VNode that is not an instance of
+   * `RollIndicatorScaleComponent`.
    */
   private renderScale(): VNode {
-    const { radius, showArc, lowBankAngle, majorTickLength, minorTickLength, referencePointerSize, referencePointerOffset } = this.props.options;
+    const {
+      radius,
+      showArc,
+      pointerStyle,
+      lowBankAngle,
+      majorTickLength,
+      minorTickLength,
+      referencePointerSize,
+      referencePointerOffset
+    } = this.props.options;
 
     const svgPathStream = new SvgPathStream(0.01);
     const transformPathStream = new AffineTransformPathStream(svgPathStream);
@@ -304,6 +362,31 @@ export class RollIndicator extends HorizonLayer<RollIndicatorProps> {
 
     const viewBox = `${leftPx} ${topPx} ${widthPx} ${heightPx}`;
 
+    // Render scale components
+
+    const scaleComponentNodes: VNode[] = [];
+    if (this.props.scaleComponents) {
+      const scaleParams: RollIndicatorScaleParameters = {
+        radius,
+        showArc,
+        pointerStyle,
+        majorTickLength,
+        minorTickLength,
+        referencePointerSize,
+        referencePointerOffset
+      };
+
+      for (const factory of this.props.scaleComponents) {
+        const node = factory(this.props.projection, scaleParams);
+        if (node.instance instanceof DisplayComponent && (node.instance as any).isRollIndicatorScaleComponent === true) {
+          scaleComponentNodes.push(node);
+          this.scaleComponents.push(node.instance as RollIndicatorScaleComponent);
+        } else {
+          throw new Error('RollIndicator: a scale component node was created that is not an instance of RollIndicatorScaleComponent');
+        }
+      }
+    }
+
     return (
       <div
         style={{
@@ -312,7 +395,7 @@ export class RollIndicator extends HorizonLayer<RollIndicatorProps> {
           'top': '0px',
           'width': '0px',
           'height': '0px',
-          'transform': this.props.options.pointerStyle === 'sky' ? '' : this.rollTransform,
+          'transform': pointerStyle === 'sky' ? '' : this.rollTransform,
         }}
       >
         <svg
@@ -357,6 +440,7 @@ export class RollIndicator extends HorizonLayer<RollIndicatorProps> {
             />
           </svg>
         )}
+        {scaleComponentNodes}
       </div>
     );
   }
@@ -427,8 +511,12 @@ export class RollIndicator extends HorizonLayer<RollIndicatorProps> {
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   public destroy(): void {
+    for (const component of this.scaleComponents) {
+      component.destroy();
+    }
+
     this.lowBankArcDisplay.destroy();
     this.slipSkidDisplay.destroy();
 

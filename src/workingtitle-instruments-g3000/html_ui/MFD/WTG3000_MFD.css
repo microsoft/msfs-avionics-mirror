@@ -1,0 +1,78 @@
+body {
+  font-family: "DejaVuSans-SemiBold";
+}
+
+#Mainframe {
+  background-color: var(--g3000-color-black);
+  /* This helps avoid pixels bleeding over the edge to the other side on the top and right side. */
+  /* Something is wrong with the mesh that's being rendered to and this hides those issues. */
+  /* Commenting this out when checking it in so that it doesn't mess up other people's measurements */
+  /* padding: 4px; */
+}
+
+#Electricity {
+  position: relative;
+}
+
+.mfd-main-content {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.mfd-display-overlay {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.mfd-boot-splash {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  background: var(--g3000-color-black);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.nav-data-bar {
+  position: absolute;
+  left: 280px;
+  top: 0;
+  width: 1000px;
+  height: 30px;
+  padding: 0 2px;
+  overflow: hidden;
+  font-size: 18px;
+  transform: rotateX(0deg);
+}
+
+.display-pane-container.display-pane-container-mfd {
+  left: 280px;
+  bottom: 0;
+  width: 1000px;
+  height: 770px;
+
+  --display-pane-container-left-pane-width: calc(50% - 1px);
+  --display-pane-container-right-pane-width: calc(50% - 1px);
+}
+
+.display-pane-container.display-pane-container-mfd .display-pane {
+  margin-right: 1px;
+}
+
+.engine-instruments {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 280px;
+}

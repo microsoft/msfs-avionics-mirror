@@ -3,7 +3,7 @@
 import { SimVarValueType } from '../../data/SimVars';
 import { MathUtils } from '../../math/MathUtils';
 import { UnitType } from '../../math/NumberUnit';
-import { APValues } from '../APConfig';
+import { APValues } from '../APValues';
 import { VNavUtils } from '../vnav/VNavUtils';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 

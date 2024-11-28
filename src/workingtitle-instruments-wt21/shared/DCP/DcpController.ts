@@ -1,5 +1,6 @@
-import { EventBus, HEvent, NavEvents, NavSourceType } from '@microsoft/msfs-sdk';
+import { EventBus, HEvent, MathUtils, NavEvents, NavSourceType } from '@microsoft/msfs-sdk';
 
+import { InstrumentConfig } from '../Config';
 import { MapUserSettings } from '../Map/MapUserSettings';
 import { DcpEvent } from './DcpEvent';
 import { DcpEvents } from './DcpEventPublisher';
@@ -7,11 +8,13 @@ import { WT21_H_EVENT_GENERIC_UPR_REGEX } from './DcpHEvents';
 
 /** Display Control Panel Controller. */
 export class DcpController {
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public constructor(
+  private readonly mapSettingsManager = MapUserSettings.getAliasedManager(this.bus, this.instrumentConfig.instrumentType, this.instrumentConfig.instrumentIndex);
+  private readonly masterMapSettingsManager = MapUserSettings.getMasterManager(this.bus);
+
+  /** @inheritdoc */
+  constructor(
     private readonly bus: EventBus,
-    private readonly mapSettingsManager = MapUserSettings.getAliasedManager(bus, 'PFD'),
-    private readonly masterMapSettingsManager = MapUserSettings.getMasterManager(bus)
+    private readonly instrumentConfig: InstrumentConfig,
   ) {
     const dcpEvents = this.bus.getSubscriber<DcpEvents>();
     const hEvents = this.bus.getSubscriber<HEvent>();
@@ -23,11 +26,13 @@ export class DcpController {
       const hEventWithoutPrefix = WT21_H_EVENT_GENERIC_UPR_REGEX[Symbol.match](evt);
 
       const btnName = hEventWithoutPrefix?.[2];
-      const evtIndex = hEventWithoutPrefix?.[1] as '1' | '2';
-      if (btnName === 'RANGE_INC') {
-        this.handleDcpRangeIncrease(evtIndex);
-      } else if (btnName === 'RANGE_DEC') {
-        this.handleDcpRangeDecrease(evtIndex);
+      const eventInstrIndex = Number(hEventWithoutPrefix?.[1] ?? 1);
+      if (eventInstrIndex === this.instrumentConfig.instrumentIndex) {
+        if (btnName === 'RANGE_INC') {
+          this.handleRangeChange(1);
+        } else if (btnName === 'RANGE_DEC') {
+          this.handleRangeChange(-1);
+        }
       }
     });
 
@@ -46,8 +51,8 @@ export class DcpController {
 
   private readonly handlePfdDcpEvent = (event: DcpEvent): void => {
     if (event === DcpEvent.DCP_FRMT) { this.handleDcpFrmtEvent(); }
-    if (event === DcpEvent.DCP_RANGE_INC) { this.handleDcpRangeIncrease('1'); }
-    if (event === DcpEvent.DCP_RANGE_DEC) { this.handleDcpRangeDecrease('1'); }
+    if (event === DcpEvent.DCP_RANGE_INC) { this.handleRangeChange(1); }
+    if (event === DcpEvent.DCP_RANGE_DEC) { this.handleRangeChange(-1); }
     if (event === DcpEvent.DCP_TFC) { this.handleTfcButtonPress(); }
     if (event === DcpEvent.DCP_TERR_WX) { this.handleTerrWxButtonPress(); }
   };
@@ -63,42 +68,22 @@ export class DcpController {
     hsiFormatPFDSetting.value = newFormat;
   }
 
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  private handleDcpRangeIncrease(index: '1' | '2'): void {
-    // TODO Handle when WX/TERR is enabled.
-    // TODO The 600 NM range is not available when the WX overlay or TERR overlay is active.
-    const mapRangeSetting = this.masterMapSettingsManager.getSetting(`mapRange_${index}`);
-    // const mapRangeSetting = this.mapSettingsManager.getSetting('mapRange');
-    const currentRange = mapRangeSetting.value;
-    const currentIndex = MapUserSettings.mapRanges.indexOf(currentRange);
-    const newIndex = Math.min(currentIndex + 1, MapUserSettings.mapRanges.length - 1);
-    const newFormat = MapUserSettings.mapRanges[newIndex];
+  /**
+   * Handles a range change event
+   * @param direction The direction in which the range is being incremented
+   */
+  private handleRangeChange(direction: -1 | 1): void {
+    const mapRangeSetting = this.masterMapSettingsManager.getSetting(`mapRange_${this.instrumentConfig.instrumentIndex as 1 | 2}`);
+    const currentRangeIndex = MapUserSettings.mapRanges.indexOf(mapRangeSetting.value);
+    const newRangeIndex = MathUtils.clamp(currentRangeIndex + direction, 0, MapUserSettings.mapRanges.length - 1);
+    const newRange = MapUserSettings.mapRanges[newRangeIndex];
 
-    // limit to 300nm when in wx or terr
-    const terrWxPFDSetting = this.mapSettingsManager.getSetting('terrWxState');
-    if (terrWxPFDSetting.get() !== 'OFF' && newFormat === 600) {
+    const terrWxSetting = this.mapSettingsManager.getSetting('terrWxState');
+    if (terrWxSetting.get() !== 'OFF' && newRange === 600) {
       return;
     }
 
-    mapRangeSetting.value = newFormat;
-  }
-
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  private handleDcpRangeDecrease(index: '1' | '2'): void {
-    const mapRangeSetting = this.masterMapSettingsManager.getSetting(`mapRange_${index}`);
-    // const mapRangeSetting = this.mapSettingsManager.getSetting('mapRange');
-    const currentRange = mapRangeSetting.value;
-    const currentIndex = MapUserSettings.mapRanges.indexOf(currentRange);
-    const newIndex = Math.max(currentIndex - 1, 0);
-    const newFormat = MapUserSettings.mapRanges[newIndex];
-
-    // limit to 300nm when in wx or terr
-    const terrWxPFDSetting = this.mapSettingsManager.getSetting('terrWxState');
-    if (terrWxPFDSetting.get() !== 'OFF' && newFormat === 600) {
-      return;
-    }
-
-    mapRangeSetting.value = newFormat;
+    mapRangeSetting.set(newRange);
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc

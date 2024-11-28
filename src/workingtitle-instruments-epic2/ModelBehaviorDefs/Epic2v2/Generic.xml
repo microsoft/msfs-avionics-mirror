@@ -1,0 +1,85 @@
+<ModelBehaviors>
+	<Include ModelBehaviorFile="ASOBO\Inputs\Helpers.xml" />
+
+	<!--
+		Defines the behaviour of a push button which fires a html event when pressed
+	-->
+	<Template Name="WT_Epic2_Html_Button_Template">
+		<Parameters Type="Default">
+			<HTML_EVENT></HTML_EVENT>
+			<NODE_ID></NODE_ID>
+			<ANIM_NAME></ANIM_NAME>
+			<DONT_APPEND_ID>True</DONT_APPEND_ID>
+			<WWISE_EVENT_1>epic2_wwise_event_on</WWISE_EVENT_1>
+			<WWISE_EVENT_2>epic2_wwise_event_off</WWISE_EVENT_2>
+			<INTERACTION_TYPE>Push</INTERACTION_TYPE>
+		</Parameters>
+		<UseTemplate Name="ASOBO_INSTRUMENT_Base_Template">
+			<IE_NAME>#NODE_ID#_PUSH</IE_NAME>
+			<BTN_ID>#NODE_ID#_PUSH</BTN_ID>
+			<SET_STATE_EXTERNAL>(&gt;H:#HTML_EVENT#)</SET_STATE_EXTERNAL>
+		</UseTemplate>
+	</Template>
+
+	<!--
+		Defines the behaviour of a generic infinite knob with HTML events.
+		Required parameter:
+		NODE_ID
+	-->
+	<Template Name="WT_Epic2_Infinite_Knob_Html_Template">
+		<Parameters Type="Default">
+			<IE_NAME>#NODE_ID#</IE_NAME>
+			<ANIM_NAME>#NODE_ID#</ANIM_NAME>
+			<COMPONENT_ID>#NODE_ID#</COMPONENT_ID>
+			<COUNT>36</COUNT>
+			<TOOLTIP_TITLE_KNOB>'TEST KNOB'</TOOLTIP_TITLE_KNOB>
+			<TOOLTIP_TITLE_IS_DYNAMIC>True</TOOLTIP_TITLE_IS_DYNAMIC>
+			<TT_DESCRIPTION_ID_KNOB_PUSH>'TEST Push'</TT_DESCRIPTION_ID_KNOB_PUSH>
+			<TT_DESCRIPTION_IS_DYNAMIC>True</TT_DESCRIPTION_IS_DYNAMIC>
+			<TT_DESCRIPTION_ID_KNOB>'TEST Knob'</TT_DESCRIPTION_ID_KNOB>
+		</Parameters>
+		<Parameters Type="Default">
+			<ANIM_NAME_KNOB>#ANIM_NAME#</ANIM_NAME_KNOB>
+			<ANIM_NAME_KNOB_PUSH>#ANIM_NAME#_PUSH</ANIM_NAME_KNOB_PUSH>
+			<CLOCKWISE_HTML_EVENT>#IE_NAME#_INC</CLOCKWISE_HTML_EVENT>
+			<ANTICLOCKWISE_HTML_EVENT>#IE_NAME#_DEC</ANTICLOCKWISE_HTML_EVENT>
+			<PUSH_HTML_EVENT>#IE_NAME#_PUSH</PUSH_HTML_EVENT>
+		</Parameters>
+		<Parameters Type="Override">
+			<INTERACTION_TYPE>Knob</INTERACTION_TYPE>
+			<IS_INFINITE>True</IS_INFINITE>
+
+			<WWISE_EVENT>epic2_wwise_event_knob</WWISE_EVENT>
+			<WWISE_EVENT_1>epic2_wwise_event_on</WWISE_EVENT_1>
+			<WWISE_EVENT_2>epic2_wwise_event_off</WWISE_EVENT_2>
+		</Parameters>
+		<Component ID="#COMPONENT_ID#" Node="#NODE_ID#">
+			<Condition Check="HAS_PUSH">
+				<True>
+					<UseTemplate Name="ASOBO_INSTRUMENT_Push_Event_Base_Template">
+						<IE_NAME>#IE_NAME#_Push</IE_NAME>
+						<INTERACTION_TYPE>Push</INTERACTION_TYPE>
+						<ON_PUSH_EVENT>(&gt;H:#PUSH_HTML_EVENT#)</ON_PUSH_EVENT>
+						<TT_DESCRIPTION_ID>#TT_DESCRIPTION_ID_KNOB_PUSH#</TT_DESCRIPTION_ID>
+					</UseTemplate>
+				</True>
+			</Condition>
+			<UseTemplate Name="ASOBO_INSTRUMENT_Base_Template">
+				<INTERACTION_TYPE>Knob</INTERACTION_TYPE>
+				<KNOB_ID>#IE_NAME#</KNOB_ID>
+				<CREATE_COMPONENT>False</CREATE_COMPONENT>
+				<ANIM_NAME_KNOB>#ANIM_NAME_KNOB#</ANIM_NAME_KNOB>
+				<ANIM_NAME_PUSH>#ANIM_NAME_KNOB_PUSH#</ANIM_NAME_PUSH>
+				<PART_ID>#NODE_ID#</PART_ID>
+				<SET_STATE_EXTERNAL>0 &gt; if{ (&gt;H:#CLOCKWISE_HTML_EVENT#) } els{ (&gt;H:#ANTICLOCKWISE_HTML_EVENT#) }</SET_STATE_EXTERNAL>
+				<Condition Check="HAS_PUSH">
+					<True>
+						<IE_ID_EXTERNAL_0>#IE_NAME#_Push</IE_ID_EXTERNAL_0>
+					</True>
+				</Condition>
+				<TOOLTIP_TITLE>#TOOLTIP_TITLE_KNOB#</TOOLTIP_TITLE>
+				<TT_DESCRIPTION_ID>#TT_DESCRIPTION_ID_KNOB#</TT_DESCRIPTION_ID>
+			</UseTemplate>
+		</Component>
+	</Template>
+</ModelBehaviors>

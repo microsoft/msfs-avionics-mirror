@@ -1,0 +1,51 @@
+.flight-plan-config-top-bar {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  height: 46px;
+}
+
+.flight-plan-config-top-bar .fpln-button.touch-button {
+  width: 119px;
+}
+
+.flight-plan-config-top-bar .fpln-button.touch-button .touch-button-label {
+  transform: none;
+  top: 0;
+  text-align: left;
+  padding: 0px 4px;
+  font-size: 22px;
+}
+
+.flight-plan-config-top-bar .touch-button {
+  flex-grow: 1;
+  font-size: 23px;
+  height: 46px;
+  width: 60px;
+}
+
+.fpln-tab-icon-button.touch-button-active svg path,
+.fpln-tab-icon-button.touch-button-active svg rect,
+.fpln-tab-icon-button.touch-button-active svg polyline,
+.fpln-tab-icon-button.touch-button-active svg {
+  fill: var(--epic2-color-green);
+  stroke: var(--epic2-color-green);
+}
+
+.fpln-tab-icon-button.touch-button:nth-of-type(3) .touch-button-label {
+  bottom: -16px;
+  width: 80%;
+  margin: 0 auto;
+}
+
+.fpln-tab-icon-button.touch-button:nth-of-type(4) .touch-button-label {
+  width: 90%;
+  margin: 0 auto;
+  bottom: -4px;
+}
+
+.fpln-tab-icon-button.touch-button:nth-of-type(5) .touch-button-label {
+  width: 90%;
+  margin: 0 auto;
+  bottom: -3px;
+}

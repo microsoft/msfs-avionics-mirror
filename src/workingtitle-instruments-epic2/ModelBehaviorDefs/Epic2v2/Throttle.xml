@@ -1,0 +1,506 @@
+<ModelBehaviors>
+	<!-- Epic2 Engine Throttle -->
+	<!-- Ideally we would just change 'ASOBO_ENGINE_Throttle_SubTemplate' to support the new THROTTLE_VAR param,
+			 but I don't want to pull in such a generic and large file into our repo as an override, so we will just do
+			 this copy-paste until we can change the asobo template in perforce.
+	 -->
+
+	 <Template Name="WT_Epic2_Engine_Throttle_Template">
+		<Parameters Type="Default">
+			<ID>1</ID>
+			<ID_NODE>#ID#</ID_NODE>
+		</Parameters>
+		<Parameters Type="Default">
+			<NODE_ID>ENGINE_#INTERACTION_TYPE#_Throttle_#ID_NODE#</NODE_ID>
+			<ANIM_NAME>ENGINE_#INTERACTION_TYPE#_Throttle_#ID_NODE#</ANIM_NAME>
+			<PART_ID>ENGINE_#INTERACTION_TYPE#_Throttle</PART_ID>
+			<THROTTLE_VAR>A:GENERAL ENG THROTTLE LEVER POSITION:#ID#</THROTTLE_VAR>
+			<Switch Param="INTERACTION_TYPE">
+				<Case Value="Lever">
+					<RESET_LIMITS/>
+					<PROCESS_LIMITS>
+						(A:THROTTLE LOWER LIMIT, position 16k) (&gt;O:XMLVAR_MIN_Limit)
+						16384 (&gt;O:XMLVAR_MAX_Limit)
+					</PROCESS_LIMITS>
+					<DRAG_AXIS_SCALE>-450</DRAG_AXIS_SCALE>
+					<POSITION_TYPE>O</POSITION_TYPE>
+					<POSITION_VAR>Position</POSITION_VAR>
+					<DELTA_MIN>0.00025</DELTA_MIN>
+					<AXIS>Y</AXIS>
+					<USE_TRAJECTORY_DRAG_MODE>true</USE_TRAJECTORY_DRAG_MODE>
+					<NO_ARROWS/>
+					<Condition NotEmpty="AFTERBURNER_GATE_POS">
+						<AFTERBURNER_GATE_POS_16K Process="Int">#AFTERBURNER_GATE_POS# 16384 *</AFTERBURNER_GATE_POS_16K>
+						<AFTERBURNER_GATE_POS_WITH_MARGIN Process="Float">#AFTERBURNER_GATE_POS# 0.01 -</AFTERBURNER_GATE_POS_WITH_MARGIN>
+					</Condition>
+					<Condition NotEmpty="OFF_GATE_POS">
+						<OFF_GATE_POS_16K Process="Int">#OFF_GATE_POS# 16384 *</OFF_GATE_POS_16K>
+					</Condition>
+					<Condition NotEmpty="GROUND_GATE_ANIM_POS">
+						<ENABLE_FORCED_BETA>#ID# (&gt;K:PROP_FORCE_BETA_ON) 30  180 / 16384 * #ID# (&gt;K:2:PROP_FORCE_BETA_VALUE_SET)</ENABLE_FORCED_BETA>
+						<DISABLE_FORCED_BETA>#ID# (&gt;K:PROP_FORCE_BETA_OFF)</DISABLE_FORCED_BETA>
+						<CHECK_FORCED_BETA>(A:PROP BETA FORCED ACTIVE:#ID#, Bool)</CHECK_FORCED_BETA>
+					</Condition>
+					<GATE_MARGIN>256</GATE_MARGIN>
+				</Case>
+			</Switch>
+			<TOOLTIPID>TT:COCKPIT.TOOLTIPS.THROTTLE_CONTROL</TOOLTIPID>
+			<INCREMENT>163.84</INCREMENT>
+			<SCROLL_INCREMENT>701</SCROLL_INCREMENT>
+			<CURSOR>Hand</CURSOR>
+		</Parameters>
+		<Parameters Type="Override">
+			<Condition NotEmpty="GROUND_GATE_ANIM_POS">
+				<True>
+					<IDLE_GATE_SET_ABOVE>#CHECK_FORCED_BETA# ! (&gt;O:XMLVAR_MIN_Limit)</IDLE_GATE_SET_ABOVE>
+					<IDLE_GATE_SET_BELOW>#CHECK_FORCED_BETA# (&gt;O:XMLVAR_MAX_Limit)</IDLE_GATE_SET_BELOW>
+					<IDLE_GATE_SET_IN>
+						#CHECK_FORCED_BETA# if{
+							1 (&gt;O:XMLVAR_MAX_Limit)
+						} els{
+							0 (&gt;O:XMLVAR_MIN_Limit)
+						}
+					</IDLE_GATE_SET_IN>
+					<ON_BEFORE_SET>
+						(O:XMLVAR_MIN_Limit) 0 == (O:XMLVAR_MAX_Limit) 0 == or p0 0 == and if{ #ENABLE_FORCED_BETA# } els{
+						(O:XMLVAR_MAX_Limit) 1 == p0 0 != if{ #DISABLE_FORCED_BETA# }
+						}
+					</ON_BEFORE_SET>
+				</True>
+				<False>
+					<IDLE_GATE_SET_ABOVE>0 (&gt;O:XMLVAR_MIN_Limit)</IDLE_GATE_SET_ABOVE>
+					<IDLE_GATE_SET_BELOW>0 (&gt;O:XMLVAR_MAX_Limit)</IDLE_GATE_SET_BELOW>
+					<IDLE_GATE_SET_IN></IDLE_GATE_SET_IN>
+				</False>
+			</Condition>
+		</Parameters>
+		<Parameters Type="Override">
+			<Switch Param="INTERACTION_TYPE">
+				<Case Value="Lever">
+					<Switch>
+						<Case Check="HAS_IDLE_GATE">
+							<DRAG_MAX_VALUE>16384 (O:XMLVAR_MAX_Limit) min</DRAG_MAX_VALUE>
+							<PROCESS_LIMITS>
+								#PROCESS_LIMITS#
+								(#THROTTLE_VAR#, position 16k) s0 #GATE_MARGIN# &gt; if{
+									#IDLE_GATE_SET_ABOVE#
+								} els{
+								l0 #GATE_MARGIN# neg &lt; if{
+									#IDLE_GATE_SET_BELOW#
+								} els{
+									#IDLE_GATE_SET_IN#
+								} }
+							</PROCESS_LIMITS>
+							<RESET_LIMITS>
+								(A:THROTTLE LOWER LIMIT, position 16k) (&gt;O:XMLVAR_MIN_Limit)
+								16384 (&gt;O:XMLVAR_MAX_Limit)
+							</RESET_LIMITS>
+							<DRAG_MIN_VALUE>(A:THROTTLE LOWER LIMIT, position 16k) (O:XMLVAR_MIN_Limit) max</DRAG_MIN_VALUE>
+							<Condition Check="IDLE_GATE_ANIM_POS">
+								<Condition NotEmpty="GROUND_GATE_ANIM_POS">
+									<True>
+										<IDLE_MIN>#GROUND_GATE_ANIM_POS#</IDLE_MIN>
+									</True>
+									<False>
+										<IDLE_MIN>#IDLE_GATE_ANIM_POS#</IDLE_MIN>
+									</False>
+								</Condition>
+								<IDLE_MAX>#IDLE_GATE_ANIM_POS#</IDLE_MAX>
+								<TRUE_IDLE_01 Process="Float">0 (A:THROTTLE LOWER LIMIT, percent) - 100 (A:THROTTLE LOWER LIMIT, percent) - /</TRUE_IDLE_01>
+								<IDLE_MARGIN>0.001</IDLE_MARGIN>
+							</Condition>
+						</Case>
+						<Case NotEmpty="OFF_GATE_POS_16K">
+							<DRAG_MAX_VALUE>16384 (O:XMLVAR_MAX_Limit) min</DRAG_MAX_VALUE>
+							<DRAG_MIN_VALUE>(A:THROTTLE LOWER LIMIT, position 16k) (O:XMLVAR_MIN_Limit) max</DRAG_MIN_VALUE>
+							<PROCESS_LIMITS>
+								#PROCESS_LIMITS#
+								(#THROTTLE_VAR#, position 16k) #OFF_GATE_POS_16K# &gt; if{
+									#OFF_GATE_POS_16K# (&gt;O:XMLVAR_MIN_Limit)
+								}
+							</PROCESS_LIMITS>
+						</Case>
+						<Default>
+							<DRAG_MAX_VALUE>16384</DRAG_MAX_VALUE>
+							<DRAG_MIN_VALUE Process="Int">(A:THROTTLE LOWER LIMIT, position 16k)</DRAG_MIN_VALUE>
+						</Default>
+					</Switch>
+				</Case>
+			</Switch>
+		</Parameters>
+		<Parameters Type="Default">
+			<Switch Param="INTERACTION_TYPE">
+				<Case Value="Lever">
+					<MIN_DIFF_POS_16K>819.2</MIN_DIFF_POS_16K>
+					<Condition Valid="USE_TRAJECTORY_DRAG_MODE">
+						<DRAG_ANIM_NAME>#ANIM_NAME#</DRAG_ANIM_NAME>
+					</Condition>
+					<MAIN_LEVER_REVERSE_POSITION Process="Int">(A:THROTTLE LOWER LIMIT, position 16k)</MAIN_LEVER_REVERSE_POSITION>
+					<MAIN_LEVER_REVERSE_POSITION_PCT Process="Int">(A:THROTTLE LOWER LIMIT, percent)</MAIN_LEVER_REVERSE_POSITION_PCT>
+					<SNAP_DISTANCE>1</SNAP_DISTANCE>
+					<DRAG_VALUE_OVERRIDE/>
+					<Condition>
+						<Test>
+							<And>
+								<Arg Check="HAS_IDLE_GATE"/>
+								<Arg Check="IDLE_GATE_ANIM_POS"/>
+							</And>
+						</Test>
+						<True>
+							<!-- adjust drag value based on anim value (positive range) -->
+							<LERP_IDLE_FULL>l0 #IDLE_MAX# max #IDLE_MAX# - 1 #IDLE_MAX# - / 1 #TRUE_IDLE_01# - * #TRUE_IDLE_01# +</LERP_IDLE_FULL>
+							<!-- adjust drag value based on anim value (negative range) -->
+							<LERP_IDLE_REVERSE>l0 #IDLE_MIN# min #IDLE_MIN# - #IDLE_MIN# / #TRUE_IDLE_01# * #TRUE_IDLE_01# +</LERP_IDLE_REVERSE>
+							<!-- adjust Idle/Ground based on LocalVar State -->
+							<Condition NotEmpty="GROUND_GATE_ANIM_POS">
+								<True>
+									<PICK_IDLE_GROUND>#IDLE_MIN# #IDLE_MAX# #CHECK_FORCED_BETA# ?</PICK_IDLE_GROUND>
+								</True>
+								<False>
+									<PICK_IDLE_GROUND>#IDLE_MIN#</PICK_IDLE_GROUND>
+								</False>
+							</Condition>
+						</True>
+					</Condition>
+				</Case>
+			</Switch>
+		</Parameters>
+		<Parameters Type="Default">
+			<Switch Param="INTERACTION_TYPE">
+				<Case Value="Lever">
+					<Condition>
+						<Test>
+							<And>
+								<Arg Check="HAS_IDLE_GATE"/>
+								<Arg Check="IDLE_GATE_ANIM_POS"/>
+							</And>
+						</Test>
+						<True>
+							<ADJUST_RAW_DRAG_VALUE>sp0 #LERP_IDLE_FULL# #LERP_IDLE_REVERSE# l0 #PICK_IDLE_GROUND# &gt; ?</ADJUST_RAW_DRAG_VALUE>
+						</True>
+						<False>
+							<ADJUST_RAW_DRAG_VALUE/>
+						</False>
+					</Condition>
+					<Condition NotEmpty="GROUND_GATE_ANIM_POS">
+						<True>
+							<GROUND_THROTTLE_ANIM_CODE>
+								#IDLE_MIN# #IDLE_MAX# (* Idle/Ground *)
+								#CHECK_FORCED_BETA# ? r l0 l1 0.01 eps ?
+							</GROUND_THROTTLE_ANIM_CODE>
+						</True>
+						<False>
+							<GROUND_THROTTLE_ANIM_CODE/>
+						</False>
+					</Condition>
+				</Case>
+			</Switch>
+			<Condition NotEmpty="OFF_GATE_POS">
+				<Condition NotEmpty="VALVE_ID">
+					<True>
+						<VALVE_GET>(A:FUELSYSTEM VALVE SWITCH:#VALVE_ID#, Boolean) !</VALVE_GET>
+						<VALVE_CLOSE>#VALVE_ID# (&gt;K:FUELSYSTEM_VALVE_CLOSE)</VALVE_CLOSE>
+						<VALVE_OPEN>#VALVE_ID# (&gt;K:FUELSYSTEM_VALVE_OPEN)</VALVE_OPEN>
+					</True>
+					<False>
+						<VALVE_GET>(A:SHUTOFF VALVE PULLED, Boolean)</VALVE_GET>
+						<VALVE_CLOSE>(&gt;K:SHUTOFF_VALVE_OFF)</VALVE_CLOSE>
+						<VALVE_OPEN>(&gt;K:SHUTOFF_VALVE_ON)</VALVE_OPEN>
+					</False>
+				</Condition>
+			</Condition>
+		</Parameters>
+		<Parameters Type="Override">
+			<Switch Param="INTERACTION_TYPE">
+				<Case Value="Lever">
+					<Switch Param="LEVER_TYPE">
+						<Case NotEmpty="OFF_GATE_POS">
+							<ADJUST_RAW_DRAG_VALUE>
+								#OFF_GATE_POS# max #OFF_GATE_POS# - 1 #OFF_GATE_POS# - /
+							</ADJUST_RAW_DRAG_VALUE>
+							<THROTTLE_ANIM_CODE>(B:ENGINE_Throttle_#ID#, percent)</THROTTLE_ANIM_CODE>
+						</Case>
+						<Default>
+							<Condition>
+								<Test>
+									<And>
+										<Arg Check="HAS_IDLE_GATE"/>
+										<Arg Check="IDLE_GATE_ANIM_POS"/>
+									</And>
+								</Test>
+								<True>
+									<THROTTLE_ANIM_CODE>
+										(B:ENGINE_Throttle_#ID#, percent over 100) 1000 * int 1000 / sp0
+										#TRUE_IDLE_01# 1000 * int 1000 / sp1
+										l0 l1 - 1 #TRUE_IDLE_01# - / 1 #IDLE_MAX# - * #IDLE_MAX# + (* Upper part of throttle *)
+										#GROUND_THROTTLE_ANIM_CODE#
+										l0 l1 / #IDLE_MIN# * (* Reverse *)
+										l0 l1 &gt;= ? 100 *
+									</THROTTLE_ANIM_CODE>
+								</True>
+								<False>
+									<THROTTLE_ANIM_CODE>(B:ENGINE_Throttle_#ID#, percent)</THROTTLE_ANIM_CODE>
+								</False>
+							</Condition>
+						</Default>
+					</Switch>
+				</Case>
+			</Switch>
+		</Parameters>
+		<Component ID="#NODE_ID#" Node="#NODE_ID#">
+			<Parameters Type="Default">
+				<TOOLTIP_THROTTLE_TITLE>@TT_Package.ENGINE_THROTTLE_TITLE</TOOLTIP_THROTTLE_TITLE>
+				<THROTTLE_ON_AFTER_SET/>
+				<RIGHT_SINGLE_CODE/>
+				<ENTRIES_COUNT>1</ENTRIES_COUNT>
+			</Parameters>
+			<Parameters Type="Override">
+				<TOOLTIP_TITLE>#TOOLTIP_THROTTLE_TITLE#</TOOLTIP_TITLE>
+				<TOOLTIP_ENTRY_0>ENGINE_Throttle_#ID#</TOOLTIP_ENTRY_0>
+				<Condition Valid="HAS_WEP">
+					<TOOLTIP_ENTRY_#ENTRIES_COUNT#>ENGINE_Throttle_#ID#_WEP</TOOLTIP_ENTRY_#ENTRIES_COUNT#>
+					<ENTRIES_COUNT Process="Int">#ENTRIES_COUNT# 1 +</ENTRIES_COUNT>
+					<RIGHT_SINGLE_CODE>#RIGHT_SINGLE_CODE# (&gt;B:ENGINE_Throttle_#ID#_WEP_On)</RIGHT_SINGLE_CODE>
+					<THROTTLE_ANIM_CODE>
+						#THROTTLE_ANIM_CODE# sp0
+						(B:ENGINE_Throttle_#ID#_WEP) if{ l0 } els{ l0 0.9 * }
+					</THROTTLE_ANIM_CODE>
+				</Condition>
+			</Parameters>
+			<Parameters Type="Override">
+				<Condition NotEmpty="OFF_GATE_POS">
+					<TOOLTIP_ENTRY_#ENTRIES_COUNT#>ENGINE_Throttle_#ID#_STOP</TOOLTIP_ENTRY_#ENTRIES_COUNT#>
+					<ENTRIES_COUNT Process="Int">#ENTRIES_COUNT# 1 +</ENTRIES_COUNT>
+					<RIGHT_SINGLE_CODE>#RIGHT_SINGLE_CODE# (&gt;B:ENGINE_Throttle_#ID#_STOP_On)</RIGHT_SINGLE_CODE>
+					<THROTTLE_ANIM_CODE>
+						#THROTTLE_ANIM_CODE# sp0
+						(B:ENGINE_Throttle_#ID#_STOP) if{ 0 } els{ #OFF_GATE_POS# 100 * l0 1 #OFF_GATE_POS# - * + }
+					</THROTTLE_ANIM_CODE>
+					<THROTTLE_ON_AFTER_SET>#THROTTLE_ON_AFTER_SET# (&gt;B:ENGINE_Throttle_#ID#_STOP_Off)</THROTTLE_ON_AFTER_SET>
+				</Condition>
+			</Parameters>
+			<Parameters Type="Override">
+				<Condition NotEmpty="AFTERBURNER_GATE_POS">
+					<TOOLTIP_ENTRY_#ENTRIES_COUNT#>ENGINE_Throttle_#ID#_Afterburner</TOOLTIP_ENTRY_#ENTRIES_COUNT#>
+					<ENTRIES_COUNT Process="Int">#ENTRIES_COUNT# 1 +</ENTRIES_COUNT>
+					<RIGHT_SINGLE_CODE>#RIGHT_SINGLE_CODE# (&gt;B:ENGINE_Throttle_#ID#_Afterburner_On)</RIGHT_SINGLE_CODE>
+					<THROTTLE_ON_AFTER_SET>#THROTTLE_ON_AFTER_SET# l0 #AFTERBURNER_GATE_POS_WITH_MARGIN# &lt; if{ (&gt;B:ENGINE_Throttle_#ID#_Afterburner_Off) }</THROTTLE_ON_AFTER_SET>
+					<PROCESS_LIMITS>
+						#PROCESS_LIMITS#
+						(B:ENGINE_Throttle_#ID#_Afterburner) ! if{
+							(O:XMLVAR_MAX_Limit) #AFTERBURNER_GATE_POS_16K# min (&gt;O:XMLVAR_MAX_Limit)
+						}
+					</PROCESS_LIMITS>
+					<ADJUST_RAW_DRAG_VALUE>#ADJUST_RAW_DRAG_VALUE# d (&gt;L:XMLVAR_LastAB#ID#ThrottleSet)</ADJUST_RAW_DRAG_VALUE>
+					<CLAMP_IE>True</CLAMP_IE>
+					<AFTERBURNER_BINDING_SET>(B:ENGINE_Throttle_#ID#, Percent over 100) #AFTERBURNER_GATE_POS_WITH_MARGIN# &gt;= if{ 1 } els{ 0 }</AFTERBURNER_BINDING_SET>
+					<ON_AFTER_SET_BINDING>d (&gt;L:XMLVAR_LastAB#ID#ThrottleSet)</ON_AFTER_SET_BINDING>
+					<THROTTLE_ON_AFTER_INC>(B:ENGINE_Throttle_#ID#, Percent over 100) (&gt;L:XMLVAR_LastAB#ID#ThrottleSet)</THROTTLE_ON_AFTER_INC>
+					<THROTTLE_ON_AFTER_DEC>(B:ENGINE_Throttle_#ID#, Percent over 100) (&gt;L:XMLVAR_LastAB#ID#ThrottleSet)</THROTTLE_ON_AFTER_DEC>
+					<AFTERBURNER_THROTTLE_INC>
+						(E:SIMULATION TIME, seconds) s0 (L:XMLVAR_IE_Afterburner_#ID#_LastThrottleInc) 0.2 + &lt; if{ 1 (&gt;L:XMLVAR_IE_Afterburner_#ID#_Quit) }
+						l0 (&gt;L:XMLVAR_IE_Afterburner_#ID#_LastThrottleInc)
+						1
+					</AFTERBURNER_THROTTLE_INC>
+				</Condition>
+			</Parameters>
+			<Switch Param="INTERACTION_TYPE">
+				<Case Value="Lever">
+					<Condition Check="ANIM_NAME_REVERSE_LOCK">
+						<UseTemplate Name="ASOBO_GT_Anim_Code">
+							<ANIM_CODE>
+								(A:GENERAL ENG REVERSE THRUST ENGAGED:#ID#, bool) (#THROTTLE_VAR#, Percent) 0 &lt; or 100 *
+							</ANIM_CODE>
+							<ANIM_NAME>#ANIM_NAME_REVERSE_LOCK#</ANIM_NAME>
+						</UseTemplate>
+						<UseTemplate Name = "ASOBO_GT_AnimTriggers_2SoundEvents">
+							<ANIM_NAME>#ANIM_NAME_REVERSE_LOCK#</ANIM_NAME>
+							<WWISE_EVENT_1>throttle_lever_lock_on</WWISE_EVENT_1>
+							<WWISE_EVENT_2>throttle_lever_lock_off</WWISE_EVENT_2>
+						</UseTemplate>
+					</Condition>
+					<UseInputEvent ID="ENGINE">
+						<THROTTLE_ID>#ID#</THROTTLE_ID>
+						<GET_THROTTLE>(#THROTTLE_VAR#, position 16k)</GET_THROTTLE>
+						<Condition NotEmpty="THROTTLE_ON_AFTER_SET">
+							<ON_AFTER_SET>#THROTTLE_ON_AFTER_SET#</ON_AFTER_SET>
+						</Condition>
+						<Condition NotEmpty="THROTTLE_ON_AFTER_INC">
+							<ON_AFTER_INC>#THROTTLE_ON_AFTER_INC#</ON_AFTER_INC>
+						</Condition>
+						<Condition NotEmpty="THROTTLE_ON_AFTER_DEC">
+							<ON_AFTER_DEC>#THROTTLE_ON_AFTER_DEC#</ON_AFTER_DEC>
+						</Condition>
+						<RESET_LIMITS>
+							#PROCESS_LIMITS#
+						</RESET_LIMITS>
+						<Condition Valid="CLAMP_IE">
+							<CLAMP_UPPER_LIMIT>(O:XMLVAR_MAX_Limit)</CLAMP_UPPER_LIMIT>
+							<CLAMP_LOWER_LIMIT>(O:XMLVAR_MIN_Limit)</CLAMP_LOWER_LIMIT>
+							<ON_AFTER_INIT>#PROCESS_LIMITS#</ON_AFTER_INIT>
+						</Condition>
+					</UseInputEvent>
+					<Condition Valid="HAS_WEP">
+						<UseInputEvent ID="ENGINE">
+							<BTN_ID>Throttle_#ID#_WEP</BTN_ID>
+							<SET_STATE_EXTERNAL>(B:ENGINE_Throttle_#ID#) 100 == (A:RECIP ENG EMERGENCY BOOST ACTIVE:#ID#, Bool) ! and if{ (&gt;K:WAR_EMERGENCY_POWER) 1 (&gt;O:IsWEPActive) }</SET_STATE_EXTERNAL>
+							<TT_ICON>PUSH</TT_ICON>
+							<TT_INTERACTION>PRIMARY_DOWN+SECONDARY_DOWN</TT_INTERACTION>
+							<TT_INTERACTION_LOCKABLE>SECONDARY_DOWN</TT_INTERACTION_LOCKABLE>
+							<TT_DESCRIPTION>@TT_Package.THROTTLE_SWITCH_WEP_ACTION</TT_DESCRIPTION>
+							<TT_DESCRIPTION_IS_DYNAMIC>False</TT_DESCRIPTION_IS_DYNAMIC>
+							<TT_VALUE>(O:IsWEPActive) @TT_OnOff_Cond</TT_VALUE>
+							<TT_VALUE_IS_DYNAMIC>True</TT_VALUE_IS_DYNAMIC>
+							<VALUE_CODE>(O:IsWEPActive)</VALUE_CODE>
+							<VALUE_UNITS>Boolean</VALUE_UNITS>
+							<BINDING_SET_0>On</BINDING_SET_0>
+							<BINDING_SET_0_PARAM_0>(B:ENGINE_Throttle_#ID#) 100 == (A:RECIP ENG EMERGENCY BOOST ACTIVE:#ID#, Bool) ! and</BINDING_SET_0_PARAM_0>
+							<BINDING_SET_0_PARAM_0_IS_DYNAMIC>True</BINDING_SET_0_PARAM_0_IS_DYNAMIC>
+							<BINDING_SET_1>Activate</BINDING_SET_1>
+							<BINDING_SET_1_EVENT_ID_ONLY>True</BINDING_SET_1_EVENT_ID_ONLY>
+							<BINDING_SET_1_EVENT_ID>WAR_EMERGENCY_POWER</BINDING_SET_1_EVENT_ID>
+							<BINDING_SET_1_PARAM_0>1</BINDING_SET_1_PARAM_0>
+						</UseInputEvent>
+					</Condition>
+					<Condition NotEmpty="OFF_GATE_POS">
+						<UseInputEvent ID="ENGINE">
+							<BTN_ID>Throttle_#ID#_STOP</BTN_ID>
+							<GET_STATE_EXTERNAL>#VALVE_GET#</GET_STATE_EXTERNAL>
+							<SET_STATE_EXTERNAL>(B:ENGINE_Throttle_#ID#) 0.1 &lt; p0 and if{ #VALVE_CLOSE# } els{ #VALVE_OPEN# }</SET_STATE_EXTERNAL>
+							<ON_BEFORE_SET_CODE>
+								p0 (B:ENGINE_Throttle_#ID#, Percent over 100) 0 &gt; and if{ quit }
+							</ON_BEFORE_SET_CODE>
+							<TT_ICON>PUSH</TT_ICON>
+							<TT_INTERACTION>PRIMARY_DOWN+SECONDARY_DOWN</TT_INTERACTION>
+							<TT_INTERACTION_LOCKABLE>SECONDARY_DOWN</TT_INTERACTION_LOCKABLE>
+							<TT_DESCRIPTION>@TT_Package.THROTTLE_FUEL_CUTOFF_ACTION</TT_DESCRIPTION>
+							<TT_VALUE>#VALVE_GET# @TT_OnOff_Cond</TT_VALUE>
+							<TT_VALUE_IS_DYNAMIC>True</TT_VALUE_IS_DYNAMIC>
+							<VALUE_CODE>#VALVE_GET#</VALUE_CODE>
+							<VALUE_UNITS>Boolean</VALUE_UNITS>
+							<Condition NotEmpty="ON_AFTER_SET_STOP">
+								<ON_AFTER_SET_CODE>#ON_AFTER_SET_STOP#</ON_AFTER_SET_CODE>
+							</Condition>
+						</UseInputEvent>
+					</Condition>
+					<Condition NotEmpty="AFTERBURNER_GATE_POS">
+						<UseInputEvent ID="ENGINE">
+							<BTN_ID>Throttle_#ID#_Afterburner</BTN_ID>
+							<GET_STATE_EXTERNAL>(A:TURB ENG AFTERBURNER:#ID#, Boolean) sp0</GET_STATE_EXTERNAL>
+							<ON_BEFORE_SET_CODE>
+								p0 (B:ENGINE_Throttle_#ID#, Percent over 100) #AFTERBURNER_GATE_POS_WITH_MARGIN# &lt; and (L:XMLVAR_IE_Afterburner_#ID#_Quit) or 0 (&gt;L:XMLVAR_IE_Afterburner_#ID#_Quit) if{ quit }
+							</ON_BEFORE_SET_CODE>
+							<SET_STATE_EXTERNAL>
+								p0 if{
+									16384 (&gt;O:XMLVAR_MAX_Limit)
+									(L:XMLVAR_LastAB#ID#ThrottleSet) (&gt;B:ENGINE_Throttle_#ID#_Set)
+								}
+							</SET_STATE_EXTERNAL>
+							<TT_ICON>PUSH</TT_ICON>
+							<TT_INTERACTION>PRIMARY_DOWN+SECONDARY_DOWN</TT_INTERACTION>
+							<TT_INTERACTION_LOCKABLE>SECONDARY_DOWN</TT_INTERACTION_LOCKABLE>
+							<TT_DESCRIPTION>@TT_Package.THROTTLE_SWITCH_AFTERBURNER_ACTION</TT_DESCRIPTION>
+							<TT_VALUE>(B:ENGINE_Throttle_#ID#_Afterburner) @TT_OnOff_Cond</TT_VALUE>
+							<TT_VALUE_IS_DYNAMIC>True</TT_VALUE_IS_DYNAMIC>
+							<Condition NotEmpty="ON_AFTER_SET_STOP">
+								<ON_AFTER_SET_CODE>#ON_AFTER_SET_STOP#</ON_AFTER_SET_CODE>
+							</Condition>
+							<BINDING_SET_3>KeyBind_Toggle</BINDING_SET_3>
+							<BINDING_SET_3_EVENT_ID_ONLY>True</BINDING_SET_3_EVENT_ID_ONLY>
+							<BINDING_SET_3_EVENT_ID>TOGGLE_AFTERBURNER</BINDING_SET_3_EVENT_ID>
+							<BINDING_SET_3_PARAM_0>#AFTERBURNER_BINDING_SET#</BINDING_SET_3_PARAM_0>
+							<BINDING_SET_3_PARAM_0_IS_DYNAMIC>True</BINDING_SET_3_PARAM_0_IS_DYNAMIC>
+							<BINDING_SET_4>KeyBind_ToggleID</BINDING_SET_4>
+							<BINDING_SET_4_EVENT_ID_ONLY>True</BINDING_SET_4_EVENT_ID_ONLY>
+							<BINDING_SET_4_EVENT_ID>TOGGLE_AFTERBURNER#ID#</BINDING_SET_4_EVENT_ID>
+							<BINDING_SET_4_PARAM_0>#AFTERBURNER_BINDING_SET#</BINDING_SET_4_PARAM_0>
+							<BINDING_SET_4_PARAM_0_IS_DYNAMIC>True</BINDING_SET_4_PARAM_0_IS_DYNAMIC>
+							<BINDING_SET_5>KeyBind_IncreaseThrottle</BINDING_SET_5>
+							<BINDING_SET_5_EVENT_ID>THROTTLE_INCR</BINDING_SET_5_EVENT_ID>
+							<BINDING_SET_5_PARAM_0>#AFTERBURNER_THROTTLE_INC#</BINDING_SET_5_PARAM_0>
+							<BINDING_SET_5_PARAM_0_IS_DYNAMIC>True</BINDING_SET_5_PARAM_0_IS_DYNAMIC>
+							<BINDING_SET_6>KeyBind_IncreaseThrottleSmall</BINDING_SET_6>
+							<BINDING_SET_6_EVENT_ID>THROTTLE_INCR_SMALL</BINDING_SET_6_EVENT_ID>
+							<BINDING_SET_6_PARAM_0>#AFTERBURNER_THROTTLE_INC#</BINDING_SET_6_PARAM_0>
+							<BINDING_SET_6_PARAM_0_IS_DYNAMIC>True</BINDING_SET_6_PARAM_0_IS_DYNAMIC>
+							<BINDING_SET_7>KeyBind_IncreaseThrottle#ID#</BINDING_SET_7>
+							<BINDING_SET_7_EVENT_ID>THROTTLE#ID#_INCR</BINDING_SET_7_EVENT_ID>
+							<BINDING_SET_7_PARAM_0>#AFTERBURNER_THROTTLE_INC#</BINDING_SET_7_PARAM_0>
+							<BINDING_SET_7_PARAM_0_IS_DYNAMIC>True</BINDING_SET_7_PARAM_0_IS_DYNAMIC>
+							<BINDING_SET_8>KeyBind_IncreaseThrottle#ID#Small</BINDING_SET_8>
+							<BINDING_SET_8_EVENT_ID>THROTTLE#ID#_INCR_SMALL</BINDING_SET_8_EVENT_ID>
+							<BINDING_SET_8_PARAM_0>#AFTERBURNER_THROTTLE_INC#</BINDING_SET_8_PARAM_0>
+							<BINDING_SET_8_PARAM_0_IS_DYNAMIC>True</BINDING_SET_8_PARAM_0_IS_DYNAMIC>
+							<SIMVAR_TO_WATCH_0>TURB ENG AFTERBURNER:#ID#</SIMVAR_TO_WATCH_0>
+						</UseInputEvent>
+					</Condition>
+
+					<UseTemplate Name="ASOBO_GT_Anim_Code">
+						<Condition Valid="OVERRIDE_ANIM_CODE">
+							<True>
+								<ANIM_CODE>#OVERRIDE_ANIM_CODE#</ANIM_CODE>
+							</True>
+							<False>
+								<ANIM_CODE>#THROTTLE_ANIM_CODE#</ANIM_CODE>
+							</False>
+						</Condition>
+					</UseTemplate>
+
+					<Update Once="True">
+						#RESET_LIMITS#
+					</Update>
+					<UseTemplate Name="ASOBO_GT_Interaction_WheelLeftDrag_Axis">
+						<LOCK_CODE>
+							#PROCESS_LIMITS#
+						</LOCK_CODE>
+						<UNLOCK_CODE>
+							#RESET_LIMITS#
+						</UNLOCK_CODE>
+						<HELPID>HELPID_GAUGE_THROTTLE_THROTTLE</HELPID>
+						<DRAG_SIMVAR>#THROTTLE_VAR#</DRAG_SIMVAR>
+						<Condition Valid="USE_TRAJECTORY_DRAG_MODE">
+							<True>
+								<DRAG_CODE>
+									(M:InputType) 1 == if{
+										(O:_ResetLimitsTime) (E:SIMULATION TIME, second) &lt; if{
+											(#THROTTLE_VAR#, position 16k) abs #MIN_DIFF_POS_16K# &lt; if{
+												#RESET_LIMITS#
+											}
+										}
+										(E:SIMULATION TIME, second) 0.1 + (&gt;O:_ResetLimitsTime)
+									}
+									16384 #MAIN_LEVER_REVERSE_POSITION# - (M:DragPercent) #ADJUST_RAW_DRAG_VALUE# * #MAIN_LEVER_REVERSE_POSITION# + sp0
+									#DRAG_VALUE_OVERRIDE#
+									l0 #DRAG_MAX_VALUE# min #DRAG_MIN_VALUE# max 16384 / (&gt;B:ENGINE_Throttle_#ID#_Set)
+									(#THROTTLE_VAR#, position 16k) abs #MIN_DIFF_POS_16K# &gt; if{
+										#PROCESS_LIMITS#
+									}
+								</DRAG_CODE>
+							</True>
+							<False>
+								<DRAG_CODE>
+									(#THROTTLE_VAR#, position 16k) #INCREMENT# (O:DragScale) * + #DRAG_MAX_VALUE# min #DRAG_MIN_VALUE# max 16384 / (&gt;B:ENGINE_Throttle_#ID#_Set)
+									(#THROTTLE_VAR#, position 16k) abs #MIN_DIFF_POS_16K# &gt; if{
+										#PROCESS_LIMITS#
+									}
+								</DRAG_CODE>
+							</False>
+						</Condition>
+						<POSITIVE_AXIS_CODE>1 (&gt;B:ENGINE_Throttle_#ID#_Inc)</POSITIVE_AXIS_CODE>
+						<NEGATIVE_AXIS_CODE>1 (&gt;B:ENGINE_Throttle_#ID#_Dec)</NEGATIVE_AXIS_CODE>
+					</UseTemplate>
+
+					<UseTemplate Name="ASOBO_GT_Visibility_Code">
+						<VISIBILITY_CODE>(L:XMLVAR_LeverThrottleHidden#ID#) !</VISIBILITY_CODE>
+					</UseTemplate>
+				</Case>
+			</Switch>
+		</Component>
+
+		<Condition Check="HIGHLIGHT_NODE_ID">
+			<UseTemplate Name="ASOBO_GT_ComponentWith_PART_ID">
+				<NODE_ID>#HIGHLIGHT_NODE_ID#</NODE_ID>
+			</UseTemplate>
+		</Condition>
+	</Template>
+</ModelBehaviors>

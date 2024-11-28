@@ -53,19 +53,6 @@ export abstract class AbstractSubscribableArray<T> implements SubscribableArray<
   }
 
   /** @inheritdoc */
-  public unsub(handler: SubscribableArrayHandler<T>): void {
-    let toDestroy: HandlerSubscription<SubscribableArrayHandler<T>> | undefined = undefined;
-
-    if (this.singletonSub && this.singletonSub.handler === handler) {
-      toDestroy = this.singletonSub;
-    } else if (this.subs) {
-      toDestroy = this.subs.find(sub => sub.handler === handler);
-    }
-
-    toDestroy?.destroy();
-  }
-
-  /** @inheritdoc */
   public abstract getArray(): readonly T[];
 
   /**
@@ -133,7 +120,7 @@ export abstract class AbstractSubscribableArray<T> implements SubscribableArray<
       for (let i = 0; i < subLen; i++) {
         try {
           const sub = this.subs[i];
-          if (sub.isAlive && !sub.isPaused) {
+          if (!sub.isPaused) {
             sub.handler(index, type, modifiedItem, this.getArray());
           }
 

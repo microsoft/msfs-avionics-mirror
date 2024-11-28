@@ -1,0 +1,77 @@
+.traffic.annunciator-container {
+  left: 10px;
+  top: 484px;
+}
+
+.traffic .annunciator-sub-title {
+  margin-top: -4px;
+}
+
+.traffic .annunciator-label {
+  margin-left: -2px;
+  font-size: 22px;
+}
+
+.ra-intruder-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.intruder {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+
+  font-size: 18px;
+  height: 100%;
+  padding-top: 2px;
+  line-height: 16px;
+}
+
+.intruder .dist {
+  position: absolute;
+  right: 36px;
+}
+
+.intruder .alt {
+  position: absolute;
+  right: 2px;
+  display: flex;
+}
+
+.intruder .alt span {
+  margin-right: -1px
+}
+
+.intruder .alt svg {
+  width: 11px;
+  height: 18px;
+  margin-top: -3px;
+  margin-right: -2px;
+}
+
+.intruder .alt svg path {
+  fill: var(--epic2-color-white);
+  stroke: var(--epic2-color-black);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+.intruder .alt svg.vs-down {
+  transform: rotateZ('180deg');
+  margin-top: -5px;
+}
+
+.ra-intruder {
+  background-color: var(--epic2-color-red);
+}
+
+.ta-intruder {
+  color: var(--epic2-color-amber);
+  border: 1px solid var(--epic2-color-amber);
+  background-color: #503c24;
+}
+
+.ta-intruder.intruder .alt svg path {
+  fill: var(--epic2-color-amber);
+}

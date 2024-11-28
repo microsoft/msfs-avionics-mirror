@@ -2,7 +2,7 @@ import { ComponentProps, DisplayComponent, FSComponent, VNode } from '@microsoft
 
 import { SystemsPageComponent } from '@microsoft/msfs-wt21-mfd';
 
-import { EisElectricsData, EisEngineData, EisInstrument } from '../EngineIndication/EisData';
+import { EisElectricsData, EisEngineData, EisHydraulicData, EisInstrument } from '../EngineIndication/EisData';
 import { Battery } from './SystemsComponents/Battery';
 import { DCElec } from './SystemsComponents/DCElec';
 import { HydraulicsAndFuel } from './SystemsComponents/HydraulicsAndFuel';
@@ -31,6 +31,7 @@ export class Systems1 extends DisplayComponent<Systems1Props> implements Systems
   public onAfterRender(): void {
     this.props.eis.elecData.sub(this.onElecDataUpdate.bind(this), true);
     this.props.eis.engineData.sub(this.onEngineDataUpdate.bind(this), true);
+    this.props.eis.hydData.sub(this.onHydraulicDataUpdate.bind(this), true);
   }
 
   /**
@@ -61,10 +62,21 @@ export class Systems1 extends DisplayComponent<Systems1Props> implements Systems
       case 'fuel_temp_2':
         this.hydFuelRef.instance.updateFuelTempRight(newValue);
         break;
-      case 'eng_hyd_press_1':
+    }
+  }
+
+  /**
+   * Called when the hydraulic data updates.
+   * @param data The hydraulic data.
+   * @param prop The hydraulic property that changed.
+   * @param newValue The new value of the property.
+   */
+  private onHydraulicDataUpdate(data: EisHydraulicData, prop: keyof EisHydraulicData, newValue: any): void {
+    switch (prop) {
+      case 'hyd_pump_pressure_1':
         this.hydFuelRef.instance.updateHydPressLeft(newValue);
         break;
-      case 'eng_hyd_press_2':
+      case 'hyd_pump_pressure_2':
         this.hydFuelRef.instance.updateHydPressRight(newValue);
         break;
     }
@@ -78,22 +90,22 @@ export class Systems1 extends DisplayComponent<Systems1Props> implements Systems
    */
   private onElecDataUpdate(data: EisElectricsData, prop: keyof EisElectricsData, newValue: number): void {
     switch (prop) {
-      case 'elec_bus_main_v_3':
+      case 'elec_bat_v_1':
         this.batteryRef.instance.updateVoltage(newValue);
         break;
-      case 'elec_bat_a_1':
+      case 'elec_bat_load_1':
         this.batteryRef.instance.updateCurrent(newValue);
         break;
-      case 'elec_bus_genalt_1_v':
+      case 'elec_gen_v_1':
         this.dcElecRef.instance.updateVoltageBus1(newValue);
         break;
-      case 'elec_bus_genalt_1_a':
+      case 'elec_gen_a_1':
         this.dcElecRef.instance.updateAmpBus1(newValue);
         break;
-      case 'elec_bus_genalt_2_v':
+      case 'elec_gen_v_2':
         this.dcElecRef.instance.updateVoltageBus2(newValue);
         break;
-      case 'elec_bus_genalt_2_a':
+      case 'elec_gen_a_2':
         this.dcElecRef.instance.updateAmpBus2(newValue);
         break;
     }

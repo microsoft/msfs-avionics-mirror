@@ -1,0 +1,165 @@
+.vertical-deviation-container {
+  position: absolute;
+  top: 112px;
+  left: 467px;
+  width: 46px;
+  height: 204px;
+  overflow: hidden;
+}
+
+.vertical-deviation-container .vnav-failed-overlay {
+  stroke: var(--epic2-color-red);
+  stroke-width: 3px;
+  fill: none;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.vertical-deviation-container .vertical-deviation-pip-container {
+  position: absolute;
+  display: flex;
+  top: 13px;
+  left: 10px;
+  flex-direction: column;
+  width: 15px;
+  height: 174px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vertical-deviation-pip-container .vertical-deviation-pip {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--epic2-color-white);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .5);
+}
+
+.vertical-deviation-pip-container .vertical-deviation-middle-pip {
+  width: 12px;
+  height: 10px;
+  background: var(--epic2-color-white);
+  border: 1px solid var(--epic2-color-black);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .2);
+}
+
+.vertical-deviation-container .pre-approach-vnav-arrow {
+  position: absolute;
+  top: -1px;
+  height: 202px;
+  width: 16px;
+  overflow: hidden;
+  right: 31px;
+  fill: var(--epic2-color-white);
+  stroke: var(--epic2-color-black);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.vertical-deviation-container .vnav-pointer {
+  position: absolute;
+  top: -1px;
+  height: 202px;
+  width: 20px;
+  overflow: hidden;
+  left: 24px;
+  fill: none;
+  stroke: var(--epic2-color-white);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.vertical-deviation-container .gs-arrow {
+  position: absolute;
+  top: -1px;
+  height: 202px;
+  width: 20px;
+  overflow: hidden;
+  left: 24px;
+  fill: none;
+  stroke: var(--epic2-color-white);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.gs-arrow svg,
+.vnav-pointer svg,
+.pre-approach-vnav-arrow svg {
+  position: absolute;
+  top: 83px;
+}
+
+.vnav-pointer.magenta,
+.pre-approach-vnav-arrow.magenta,
+.gs-arrow.magenta {
+  fill: var(--epic2-color-magenta);
+  stroke: var(--epic2-color-black);
+}
+
+.vnav-pointer.cyan,
+.pre-approach-vnav-arrow.cyan,
+.gs-arrow.cyan {
+  fill: var(--epic2-color-cyan);
+  stroke: var(--epic2-color-black);
+}
+
+.vnav-pointer.cyan-stroke {
+  stroke: var(--epic2-color-cyan);
+}
+
+.vertical-deviation-container.amber,
+.vertical-deviation-pip.amber {
+  border-color: var(--epic2-color-amber);
+}
+
+.vertical-deviation-middle-pip.amber {
+  background: var(--epic2-color-amber);
+}
+
+.vertical-deviation-middle-pip.amber-flash {
+  display: block;
+  animation: fill-flash 1s 5 step-end;
+}
+
+@keyframes fill-flash {
+  0% {
+    background-color: var(--epic2-color-amber);
+  }
+
+  50% {
+    background-color: var(--epic2-color-white);
+  }
+}
+
+.vertical-deviation-pip.amber-flash {
+  display: block;
+  animation: border-flash-pip 1s 5 step-end;
+}
+
+@keyframes border-flash-pip {
+  0% {
+    border-color: var(--epic2-color-amber);
+  }
+
+  50% {
+    border-color: var(--epic2-color-white);
+  }
+}
+
+.vertical-deviation-container.amber-flash {
+  display: block;
+  animation: border-flash 1s 5 step-end;
+}
+
+@keyframes border-flash {
+  0% {
+    border-color: var(--epic2-color-amber);
+  }
+
+  50% {
+    border-color: var(--epic2-color-grey);
+  }
+}

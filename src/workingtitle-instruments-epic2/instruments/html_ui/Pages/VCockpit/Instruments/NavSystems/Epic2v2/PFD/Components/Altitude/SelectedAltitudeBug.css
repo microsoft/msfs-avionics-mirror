@@ -1,0 +1,32 @@
+.selected-altitude-bug path {
+  stroke: var(--epic2-color-white);
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  fill: var(--epic2-color-white);
+  fill-opacity: 0.5;
+}
+
+.selected-altitude-bug.magenta path {
+  stroke: var(--epic2-color-magenta);
+  fill: var(--epic2-color-magenta);
+}
+
+.selected-altitude-bug.cyan path {
+  stroke: var(--epic2-color-cyan);
+  fill: var(--epic2-color-cyan);
+}
+
+.selected-altitude-bug.amber path {
+  stroke: var(--epic2-color-amber);
+  fill: var(--epic2-color-amber);
+}
+
+.selected-altitude-bug path.shadow {
+  stroke-width: 4px;
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+
+  fill: none;
+}

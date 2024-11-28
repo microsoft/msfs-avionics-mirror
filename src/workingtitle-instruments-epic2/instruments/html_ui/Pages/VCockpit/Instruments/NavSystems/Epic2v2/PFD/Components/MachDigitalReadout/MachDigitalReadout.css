@@ -1,0 +1,40 @@
+.mach-digital-readout {
+  position: absolute;
+  top: 396px;
+  left: 8px;
+  height: 32px;
+  width: 83px;
+  padding-top: 5px;
+  display: flex;
+  align-items: center;
+  color: var(--epic2-color-white);
+}
+
+.mach-digital-readout.amber {
+  background-color: var(--epic2-color-amber);
+  color: var(--epic2-color-black);
+  -webkit-text-stroke: 0;
+}
+
+.mach-digital-readout.red {
+  background-color: var(--epic2-color-red);
+  color: var(--epic2-color-white);
+  -webkit-text-stroke: 0;
+}
+
+.mach-digital-readout .value {
+  flex-grow: 1;
+  text-align: center;
+  font-size: 26px;
+}
+
+.mach-digital-readout .value.invalid {
+  color: var(--epic2-color-amber);
+}
+
+.mach-digital-readout .suffix {
+  flex-grow: 0;
+  padding: 0 1px;
+  color: var(--epic2-color-grey);
+  font-size: 24px;
+}

@@ -2,9 +2,9 @@ import { EventBus } from '../../../data/EventBus';
 import { LatLonInterface } from '../../../geo/GeoInterfaces';
 import { UnitType } from '../../../math';
 import {
-  AirportFacility, DefaultFacilityWaypointCache, FacilitySearchType, FacilityWaypoint, FacilityWaypointCache, FacilityWaypointUtils, IntersectionFacility,
-  NdbFacility, NearestAirportSearchSession, NearestIntersectionSearchSession, NearestSearchSession, NearestVorSearchSession, VorFacility, Waypoint,
-  WaypointTypes
+  AirportFacility, DefaultFacilityWaypointCache, FacilitySearchType, FacilityType, FacilityWaypoint, FacilityWaypointCache, FacilityWaypointUtils, IntersectionFacility,
+  NdbFacility, NearestAirportSearchSession, NearestIcaoSearchSession, NearestIcaoSearchSessionDataType, NearestIntersectionSearchSession, NearestRepoFacilitySearchSession,
+  NearestVorSearchSession, VorFacility, Waypoint, WaypointTypes
 } from '../../../navigation';
 import { FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps, MapNearestWaypointsLayer, MapProjection, MapSyncedCanvasLayer } from '../../map';
@@ -117,9 +117,15 @@ export class MapSystemWaypointsLayer extends MapLayer<MapSystemWaypointsLayerPro
    * @param vorSession The VOR search session.
    * @param ndbSession The NDB search session.
    * @param intSession The intersection search session.
+   * @param usrSession The user facility search session.
    */
-  private onSessionsStarted(airportSession: NearestAirportSearchSession, vorSession: NearestVorSearchSession, ndbSession: NearestSearchSession<string, string>,
-    intSession: NearestIntersectionSearchSession): void {
+  private onSessionsStarted(
+    airportSession: NearestAirportSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    vorSession: NearestVorSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    ndbSession: NearestIcaoSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    intSession: NearestIntersectionSearchSession<NearestIcaoSearchSessionDataType.Struct>,
+    usrSession: NearestRepoFacilitySearchSession<FacilityType.USR, NearestIcaoSearchSessionDataType.Struct>
+  ): void {
     this.displayModule.intersectionsFilter.sub(filters => intSession.setIntersectionFilter(filters.typeMask, filters.showTerminalWaypoints), true);
     this.displayModule.vorsFilter.sub(filters => vorSession.setVorFilter(filters.classMask, filters.typeMask), true);
     this.displayModule.airportsFilter.sub(filters => {
@@ -128,6 +134,9 @@ export class MapSystemWaypointsLayer extends MapLayer<MapSystemWaypointsLayerPro
     this.displayModule.extendedAirportsFilter.sub(filters => {
       airportSession.setExtendedAirportFilters(filters.runwaySurfaceTypeMask, filters.approachTypeMask, filters.toweredMask, filters.minimumRunwayLength);
     }, true);
+    this.displayModule.usersFilter.sub(filter => {
+      usrSession.setFacilityFilter(filter);
+    });
   }
 
   /**

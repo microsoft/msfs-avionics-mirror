@@ -1,0 +1,10 @@
+.fms-message-icon {
+  position: absolute;
+  bottom: 290px;
+  right: 12px;
+  color: var(--epic2-color-amber);
+  border: 2px solid var(--epic2-color-amber);
+  font-size: 24px;
+  height: 26px;
+  padding: 1px;
+}

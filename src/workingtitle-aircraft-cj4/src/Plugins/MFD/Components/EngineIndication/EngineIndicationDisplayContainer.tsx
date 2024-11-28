@@ -1,8 +1,7 @@
-import { AdcEvents, ComponentProps, DisplayComponent, ElectricalEvents, EventBus, FSComponent, ObjectSubject, VNode } from '@microsoft/msfs-sdk';
-
-import { EngineIndicationDisplayMode } from '@microsoft/msfs-wt21-shared';
+import { AdcEvents, ComponentProps, DisplayComponent, ElectricalEvents, EventBus, FSComponent, ObjectSubject, Subscription, VNode } from '@microsoft/msfs-sdk';
 
 import { CcpControlEvents } from '@microsoft/msfs-wt21-mfd';
+import { EngineIndicationDisplayMode } from '@microsoft/msfs-wt21-shared';
 
 import { CompressedEngineIndicationDisplay } from './CompressedEngineIndicationDisplay';
 import { EisEngineData, EisFadecData, EisInstrument, EisSurfacesData } from './EisData';
@@ -23,6 +22,8 @@ interface EngineIndicationDisplayContainerProps extends ComponentProps {
  */
 export class EngineIndicationDisplayContainer extends DisplayComponent<EngineIndicationDisplayContainerProps> {
   private mode = EngineIndicationDisplayMode.Compressed;
+
+  private static readonly FADEC_CIRCUIT = 60; // The circuit index for the emer avionics bus is used to determine if the FADEC is powered.
 
   private readonly compressedEisRef = FSComponent.createRef<CompressedEngineIndicationDisplay>();
   private readonly expandedEisRef = FSComponent.createRef<ExpandedEngineIndicationDisplay>();
@@ -47,8 +48,6 @@ export class EngineIndicationDisplayContainer extends DisplayComponent<EngineInd
     fuel_temp_2: -999,
     fuel_left: -1,
     fuel_right: -1,
-    eng_hyd_press_1: 0,
-    eng_hyd_press_2: 0,
     eng_starter_on_1: false,
     eng_starter_on_2: false,
     eng_combustion_1: false,
@@ -66,6 +65,12 @@ export class EngineIndicationDisplayContainer extends DisplayComponent<EngineInd
     gear_position: 0,
   });
 
+  private realSurfacesDataSub?: Subscription;
+  private realEngineDataSub?: Subscription;
+
+  private fakeSurfacesDataSub?: Subscription;
+  private fakeEngineDataSub?: Subscription;
+
   /** @inheritdoc */
   public onAfterRender(): void {
     this.props.eis.fadecData.sub(this.onFadecDataUpdate.bind(this), true);
@@ -81,9 +86,15 @@ export class EngineIndicationDisplayContainer extends DisplayComponent<EngineInd
       this.updateEisFormat();
     });
 
+    this.realSurfacesDataSub = this.props.eis.surfacesData.sub(this.surfaceDataHandler, false, true);
+    this.realEngineDataSub = this.props.eis.engineData.sub(this.engineDataHandler, false, true);
+
+    this.fakeSurfacesDataSub = this.fakeSurfacesData.sub(this.surfaceDataHandler, false, true);
+    this.fakeEngineDataSub = this.fakeEngineData.sub(this.engineDataHandler, false, true);
+
     // Faking some of the boot up sequence
     const elecSub = this.props.bus.getSubscriber<ElectricalEvents>();
-    elecSub.on('elec_av2_bus').whenChanged().handle((status: boolean): void => {
+    elecSub.on(`elec_circuit_on_${EngineIndicationDisplayContainer.FADEC_CIRCUIT}`).whenChanged().handle((status: boolean): void => {
       if (status === true) {
         this.wireUpRealEisData();
       } else {
@@ -96,17 +107,17 @@ export class EngineIndicationDisplayContainer extends DisplayComponent<EngineInd
    * Unhooks the fake EIS data and wires up the real data providers.
    */
   private wireUpRealEisData(): void {
-    this.fakeEngineData.unsub(this.engineDataHandler);
-    this.fakeSurfacesData.unsub(this.surfaceDataHandler);
+    this.fakeEngineDataSub!.pause();
+    this.fakeSurfacesDataSub!.pause();
     setTimeout(() => {
       this.compressedEisRef.instance.updateOnGround(true);
       this.expandedEisRef.instance.updateOnGround(true);
     }, 750);
     setTimeout(() => {
-      this.props.eis.surfacesData.sub(this.surfaceDataHandler, true);
+      this.realSurfacesDataSub!.resume(true);
     }, 1100);
     setTimeout(() => {
-      this.props.eis.engineData.sub(this.engineDataHandler, true);
+      this.realEngineDataSub!.resume(true);
     }, 1500);
   }
 
@@ -116,10 +127,10 @@ export class EngineIndicationDisplayContainer extends DisplayComponent<EngineInd
   private wireUpInvalidEisData(): void {
     this.compressedEisRef.instance.updateOnGround(false);
     this.expandedEisRef.instance.updateOnGround(false);
-    this.props.eis.engineData.unsub(this.engineDataHandler);
-    this.props.eis.surfacesData.unsub(this.surfaceDataHandler);
-    this.fakeEngineData.sub(this.engineDataHandler, true);
-    this.fakeSurfacesData.sub(this.surfaceDataHandler, true);
+    this.realEngineDataSub!.pause();
+    this.realSurfacesDataSub!.pause();
+    this.fakeEngineDataSub!.resume(true);
+    this.fakeSurfacesDataSub!.resume(true);
   }
 
   /**

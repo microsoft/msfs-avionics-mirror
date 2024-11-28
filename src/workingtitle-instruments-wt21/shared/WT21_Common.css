@@ -1,13 +1,13 @@
 @font-face {
   font-family: "WT21";
-  src: url("/Pages/VCockpit/Instruments/WT21/Assets/Fonts/Custom_Altimeter_wt21-LightCondensed.ttf") format("truetype");
+  src: url("/Pages/VCockpit/Instruments/WT21v2/Assets/Fonts/Custom_Altimeter_wt21-LightCondensed.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
 }
 
 @font-face {
   font-family: "WT21 FMC";
-  src: url("/Pages/VCockpit/Instruments/WT21/Assets/Fonts/wt21-Condensed.ttf") format("truetype");
+  src: url("/Pages/VCockpit/Instruments/WT21v2/Assets/Fonts/wt21-Condensed.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
 }

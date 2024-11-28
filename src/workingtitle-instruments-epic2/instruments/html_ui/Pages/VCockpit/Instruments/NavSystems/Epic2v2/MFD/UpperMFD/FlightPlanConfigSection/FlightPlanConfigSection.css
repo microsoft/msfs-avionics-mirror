@@ -1,0 +1,10 @@
+.flight-plan-config-main-tabbed-content-container {
+  flex-grow: 1;
+  height:100%;
+}
+
+.flight-plan-config-section .keyboard-button {
+  position: absolute;
+  right: 3px;
+  top: 53px;
+}

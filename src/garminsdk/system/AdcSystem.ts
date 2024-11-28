@@ -1,4 +1,7 @@
-import { AdcEvents, AvionicsSystemState, AvionicsSystemStateEvent, BaseAdcEvents, BasicAvionicsSystem, EventBus, EventBusMetaEvents, Subscription, SystemPowerKey } from '@microsoft/msfs-sdk';
+import {
+  AdcEvents, AvionicsSystemState, AvionicsSystemStateEvent, BaseAdcEvents, BasicAvionicsSystem, EventBus,
+  EventBusMetaEvents, Subject, Subscribable, Subscription, SystemPowerKey
+} from '@microsoft/msfs-sdk';
 
 /**
  * Topics for bus events from which ADC data is sourced.
@@ -96,15 +99,17 @@ export class AdcSystem extends BasicAvionicsSystem<AdcSystemEvents> {
    * @param bus An instance of the event bus.
    * @param airspeedIndicatorIndex The index of the sim airspeed indicator from which this ADC derives its data.
    * @param altimeterIndex The index of the sim altimeter from which this ADC derives its data.
-   * @param powerSource The {@link ElectricalEvents} topic or electricity logic element to which to connect the
-   * system's power.
+   * @param powerSource The source from which to retrieve the system's power state. Can be an event bus topic defined
+   * in {@link ElectricalEvents} with boolean-valued data, an XML logic element that evaluates to zero (false) or
+   * non-zero (true) values, or a boolean-valued subscribable. If not defined, then the system will be considered
+   * always powered on.
    */
-  constructor(
+  public constructor(
     index: number,
     bus: EventBus,
     private readonly airspeedIndicatorIndex: number,
     private readonly altimeterIndex: number,
-    powerSource?: SystemPowerKey | CompositeLogicXMLElement,
+    powerSource?: SystemPowerKey | CompositeLogicXMLElement | Subscribable<boolean>,
   ) {
     super(index, bus, `adc_state_${index}` as const);
 
@@ -112,9 +117,7 @@ export class AdcSystem extends BasicAvionicsSystem<AdcSystemEvents> {
     this.publisher.pub(`adc_airspeed_data_valid_${this.index}`, this.isAirspeedDataValid, false, true);
     this.publisher.pub(`adc_temperature_data_valid_${this.index}`, this.isTemperatureDataValid, false, true);
 
-    if (powerSource !== undefined) {
-      this.connectToPower(powerSource);
-    }
+    this.connectToPower(powerSource ?? Subject.create(true));
 
     this.startDataPublish();
   }
@@ -177,7 +180,7 @@ export class AdcSystem extends BasicAvionicsSystem<AdcSystemEvents> {
     );
   }
 
-  /** @inheritdoc */
+  /** @inheritDoc */
   protected onStateChanged(previousState: AvionicsSystemState | undefined, currentState: AvionicsSystemState): void {
     const wasAltitudeDataValid = this.isAltitudeDataValid;
     const wasAirspeedDataValid = this.isAirspeedDataValid;

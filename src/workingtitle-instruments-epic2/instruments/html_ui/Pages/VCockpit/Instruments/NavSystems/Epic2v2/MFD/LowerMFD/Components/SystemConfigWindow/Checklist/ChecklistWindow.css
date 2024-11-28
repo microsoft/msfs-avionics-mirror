@@ -1,0 +1,91 @@
+.checklist-window-container {
+  display: flex;
+  flex-direction: row;
+}
+
+.left-side {
+  width: 71px;
+  height: 379px;
+  border-right: 2px solid var(--epic2-color-dark-grey);
+
+  display: flex;
+  flex-direction: column;
+}
+
+.page-index {
+  width: 100%;
+  text-align: center;
+  margin-top: 1px;
+  border-bottom: 2px solid var(--epic2-color-dark-grey);
+
+  color: var(--epic2-color-dark-grey);
+  height: 23px;
+}
+
+.checklist-window-container .left-side .touch-button {
+  height: 46px;
+  margin: 10px 5px 0px 5px;
+  font-size: 20px;
+  line-height: 0.8;
+}
+
+.checklist-window-container .left-side .touch-button .touch-button-label {
+  padding-top: 3px;
+  white-space: normal;
+  text-align: center;
+  word-break: normal;
+}
+
+
+.right-side {
+  width: 264px;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.page-title {
+  padding-top: 1px;
+  padding-left: 36px;
+  margin-bottom: -5px;
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.checklist-contents {
+  width: 100%;
+  min-height: 331px;
+  display: flex;
+  flex-direction: column;
+  border-top: 2px solid var(--epic2-color-dark-grey);
+}
+
+.checklist-item {
+  padding-top: 4px;
+}
+
+.checklist-item-text {
+  position: relative;
+  padding-top: 1px;
+  width: 225px;
+  letter-spacing: 1.5px;
+  line-height: 1.05;
+}
+
+.checklist-last-item .checklist-item-text {
+  color: var(--epic2-color-dark-grey)
+}
+
+.checklist-cas-warning .checklist-item-text {
+  color: var(--epic2-color-red)
+}
+
+.checklist-cas-caution .checklist-item-text {
+  color: var(--epic2-color-amber)
+}
+
+.checklist-cas-advisory .checklist-item-text {
+  color: var(--epic2-color-cyan)
+}

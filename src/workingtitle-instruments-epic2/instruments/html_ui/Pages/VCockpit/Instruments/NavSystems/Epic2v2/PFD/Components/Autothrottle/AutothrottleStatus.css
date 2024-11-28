@@ -1,0 +1,79 @@
+.autothrottle-status {
+  position: absolute;
+  top: 73px;
+  left: 135px;
+
+  color: var(--epic2-color-green);
+  font-size: 26px;
+  height: 27px;
+}
+
+.autothrottle-status > span {
+  display: inline-block;
+  vertical-align: middle;
+  padding: 3px;
+}
+
+.autothrottle-mode {
+  height: 27px;
+  margin-top: -7px;
+  margin-left: -0px;
+
+  padding-top: 4px;
+  padding-right: 4px;
+  padding-left: 3px;
+}
+
+.autothrottle-status.armed,
+.autothrottle-status .armed {
+  color: var(--epic2-color-cyan);
+}
+
+.autothrottle-status.amber,
+.autothrottle-status .amber {
+  color: var(--epic2-color-amber);
+}
+
+.autothrottle-status .autothrottle-mode {
+  margin-left: 0px;
+  font-size: 24px;
+}
+
+@keyframes at-status-flash-amber {
+  0%,
+  45% {
+    color: var(--epic2-color-amber);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  55%,
+  100% {
+    -webkit-text-stroke: none;
+    color: var(--epic2-color-black);
+    background: var(--epic2-color-amber);
+  }
+}
+
+.autothrottle-status.disconnect-warn {
+  animation: at-status-flash-amber 1s infinite;
+}
+
+@keyframes at-mode-flash-green {
+  0%, 12.5%,
+  50%, 62.5%,
+  100% {
+    background-color: var(--epic2-color-green);
+    color: var(--epic2-color-black);
+  }
+
+  25%, 37.5%,
+  75%, 87.5% {
+    background-color: rgba(0, 0, 0, 0.2);
+    color: var(--epic2-color-green);
+  }
+
+}
+
+.autothrottle-mode.lim-mode {
+  animation: at-mode-flash-green 2s steps(4) forwards;
+}

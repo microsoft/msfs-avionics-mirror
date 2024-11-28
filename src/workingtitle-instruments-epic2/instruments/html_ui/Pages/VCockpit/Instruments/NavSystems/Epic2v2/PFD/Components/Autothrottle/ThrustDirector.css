@@ -1,0 +1,55 @@
+.thrust-director {
+  position: absolute;
+  /* these are the centre of the thrust director */
+  left: 140px;
+  top: 215px;
+
+  box-sizing: border-box;
+}
+
+.thrust-director .thrust-reference {
+  position: absolute;
+  left: -17px;
+  top: -17px;
+  width: 34px;
+  height: 34px;
+
+  stroke: var(--epic2-color-green);
+  stroke-width: 2;
+  fill: none;
+}
+
+.thrust-director .thrust-target {
+  position: absolute;
+  left: -14px;
+  top: -1px;
+  width: 28px;
+  height: 2px;
+
+  border: 1.5px solid var(--epic2-color-magenta);
+  border-radius: 1.5px;
+  box-shadow: 0px 0px 1.5px rgba(0, 0, 0, 0.8);
+}
+
+.thrust-director .thrust-target-stem {
+  position: absolute;
+  top: -9px;
+  left: -1px;
+  width: 2px;
+  height: 11px;
+  transform-origin: top center;
+
+  background: var(--epic2-color-green);
+  box-shadow: 0px 0px 1.5px rgba(0, 0, 0, 0.8);
+}
+
+.thrust-director .thrust-target-stem.negative {
+  top: 9px;
+}
+
+.thrust-director .thrust-reference .shadow,
+.thrust-director .thrust-target-stem .shadow {
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+  stroke-width: 4;
+}

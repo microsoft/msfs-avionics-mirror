@@ -1,0 +1,158 @@
+.hold-modal {
+  left: 360px;
+  top: 70px;
+  width: var(--flight-management-window-width);
+  height: 355px;
+  border-radius: var(--bar-touch-button-border-radius);
+  border-image-width: var(--bar-touch-button-border-image-width);
+  border-image-source: var(--bar-touch-button-border-image-source);
+  border-width: var(--touch-button-border-width);
+  border-style: var(--touch-button-border-style);
+  border-image-slice: var(--touch-button-border-image-slice);
+  border-image-repeat: var(--touch-button-border-image-repeat);
+}
+
+.hold-modal p {
+  font-size: 20px;
+}
+
+.hold-modal .title {
+  font-size: 27px;
+  padding-top: 10px;
+  padding-left: 4px;
+}
+
+.hold-modal .header {
+  display: flex;
+  position: relative;
+}
+
+.hold-modal .header .close-button {
+  width: 57px;
+  height: 37px;
+  margin-top: 2px;
+}
+
+.hold-modal .header .keyboard-button {
+  margin-left: auto;
+  margin-right: 5px;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.hold-modal .insert-button {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  padding: 2px 10px 0 10px;
+  width: 80px;
+}
+
+.hold-modal .delete-button {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  padding: 2px 10px 0 10px;
+  width: 90px;
+}
+
+.hold-modal .as-published-button {
+  position: absolute;
+  bottom: 5px;
+  left: 99px;
+  padding: 2px 10px 0 10px;
+}
+
+.hold-modal .upper-container .inputs {
+  width: 40%;
+  float: left;
+  padding-left: 2px;
+}
+
+.hold-modal .upper-container .display {
+  background-color: #000000;
+  width: calc(60% - 10px);
+  height: 197px;
+  float: right;
+  margin-right: 3px;
+}
+
+.hold-modal .side-text.input-field {
+  display: flex;
+  margin: 0 auto;
+  align-items: center;
+}
+
+.hold-modal .input-box-disabled .input-box {
+  background: none;
+  color: var(--epic2-color-grey);
+  border: solid var(--epic2-color-grey) 2px;
+}
+
+.hold-modal .radio-row {
+  display: flex;
+}
+
+.hold-modal .radio-row > * {
+  flex: 1;
+}
+
+.hold-modal .line {
+  background-color: #fff;
+  height: 2px;
+  margin-left: 3px;
+  margin-right: 3px;
+}
+
+.hold-modal .container-border {
+  width: calc(100% - 10px);
+  position: absolute;
+  left: 3px;
+  top: 256px;
+}
+
+.hold-modal .lower-container {
+  position: absolute;
+  top: 262px;
+}
+
+.hold-modal .lower-container .left {
+  width: 50%;
+  float: left;
+  padding-left: 2px;
+}
+
+.hold-modal .lower-container .right {
+  width: 50%;
+  float: right;
+  padding-right: 2px;
+}
+
+.hold-modal .lower-container .vertical-border {
+  position: absolute;
+  right: calc(50% + 3px);
+  width: 2px;
+  height: 100%;
+  background-color: #ffffff;
+}
+
+.hold-modal .hold-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.hold-modal .hold-wpt {
+  position: absolute;
+  height: 25px;
+}
+
+.hold-modal .turn-title {
+  padding-top: 3px;
+  padding-bottom: 7px;
+}
+
+.hold-modal .hold-type {
+  text-align: right;
+}

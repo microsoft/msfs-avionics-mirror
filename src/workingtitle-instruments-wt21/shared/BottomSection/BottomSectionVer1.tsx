@@ -1,10 +1,9 @@
 import {
-  AdcEvents, AvionicsSystemState, AvionicsSystemStateEvent, ComponentProps, ComputedSubject, DisplayComponent, EventBus, FSComponent, GNSSEvents, NavComSimVars,
-  Subject, VNode, XPDRMode, XPDRSimVarEvents
+  AdcEvents, AvionicsSystemState, AvionicsSystemStateEvent, ComponentProps, ComputedSubject, ConsumerSubject, DisplayComponent, ElectricalEvents, EventBus,
+  FSComponent, GNSSEvents, NavComSimVars, Subject, VNode, XPDRMode, XPDRSimVarEvents
 } from '@microsoft/msfs-sdk';
 
-import { COMReceiverSystemEvents } from '../Systems';
-import { TDRSystemEvents } from '../Systems/TDRSystem';
+import { TransponderSystemEvents } from '../Systems/TransponderSystem';
 
 /**
  * The properties for the BottomSectionVer1 component.
@@ -33,6 +32,9 @@ export class BottomSectionVer1 extends DisplayComponent<BottomSectionVer1Props> 
     return `${hours.toFixed(0).padStart(2, '0')}:${minutes.toFixed(0).padStart(2, '0')}:${seconds.toFixed(0).padStart(2, '0')}`;
   });
 
+  private readonly com1Power = ConsumerSubject.create(this.props.bus.getSubscriber<ElectricalEvents>().on('elec_circuit_com_on_1'), false);
+  private readonly com2Power = ConsumerSubject.create(this.props.bus.getSubscriber<ElectricalEvents>().on('elec_circuit_com_on_2'), false);
+
   /**
    * A callback called after the component renders.
    */
@@ -56,13 +58,7 @@ export class BottomSectionVer1 extends DisplayComponent<BottomSectionVer1Props> 
       }
     });
 
-    this.props.bus.getSubscriber<TDRSystemEvents>()
-      .on('tdr_state').whenChanged()
-      .handle(this.onTdrStateChanged.bind(this));
-
-    this.props.bus.getSubscriber<COMReceiverSystemEvents>()
-      .on('com_state').whenChanged()
-      .handle(this.onComReceiverStateChanged.bind(this));
+    this.props.bus.getSubscriber<TransponderSystemEvents>().on('transponder_state').whenChanged().handle(this.onTdrStateChanged.bind(this));
   }
 
   /**
@@ -76,14 +72,6 @@ export class BottomSectionVer1 extends DisplayComponent<BottomSectionVer1Props> 
   }
 
   /**
-   * A callback called when the COM receiver system state changes.
-   * @param state The state change event to handle.
-   */
-  private onComReceiverStateChanged(state: AvionicsSystemStateEvent): void {
-    this.com2Element.instance.classList.toggle('fail', state.current !== AvionicsSystemState.On);
-  }
-
-  /**
    * Renders the component.
    * @returns The component VNode.
    */
@@ -92,11 +80,11 @@ export class BottomSectionVer1 extends DisplayComponent<BottomSectionVer1Props> 
       <div class="bottom-section-container">
         <div class="bottom-section-data-container">
           <div class="bottom-section-data-title">COM1</div>
-          <div class="bottom-section-data-value" ref={this.com1Element}>{this.com1}</div>
+          <div class={{ 'bottom-section-data-value': true, 'fail': this.com1Power.map((v) => !v) }}>{this.com1}</div>
         </div>
         <div class="bottom-section-data-container">
           <div class="bottom-section-data-title">COM2</div>
-          <div class="bottom-section-data-value" ref={this.com2Element}>{this.com2}</div>
+          <div class={{ 'bottom-section-data-value': true, 'fail': this.com2Power.map((v) => !v) }}>{this.com2}</div>
         </div>
         <div class="bottom-section-data-container xpdr" ref={this.xpdrElement}>
           <div class="bottom-section-data-title">ATC<span class="bottom-section-xpdr-id">1</span></div>

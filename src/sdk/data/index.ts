@@ -14,4 +14,3 @@ export * from './DataStore';
 export * from './ConsumerSubject';
 export * from './KeyEventManager';
 export * from './GameStateProvider';
-export * from './gpssearch/IcaoSearch';

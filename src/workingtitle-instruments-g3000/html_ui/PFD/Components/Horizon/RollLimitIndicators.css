@@ -1,0 +1,10 @@
+.roll-limit-indicator-marker {
+  position: absolute;
+  top: -26px;
+  width: 6px;
+  left: -3px;
+  height: 40px;
+  fill: none;
+  stroke: var(--g3000-color-white);
+  stroke-width: 4px;
+}

@@ -3,7 +3,7 @@ import {
   Subject, TcasEvents, VNode
 } from '@microsoft/msfs-sdk';
 
-import { TSSSystemEvents } from '../../Systems/TSSSystem';
+import { TransponderSystemEvents } from '../../Systems/TransponderSystem';
 
 import './TcasFlag.css';
 
@@ -23,10 +23,8 @@ export class TcasFlag extends DisplayComponent<TcasFlagProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    const tssEvents = this.props.bus.getSubscriber<TSSSystemEvents>();
-    tssEvents.on('tss_state')
-      .whenChanged()
-      .handle(this.onTssStateChanged.bind(this));
+    const tssEvents = this.props.bus.getSubscriber<TransponderSystemEvents>();
+    tssEvents.on('transponder_state').whenChanged().handle(this.onTssStateChanged.bind(this));
 
     const tcasSub = this.props.bus.getSubscriber<TcasEvents>();
     const hasAlert = MappedSubject.create(([ta, ra]): boolean => {

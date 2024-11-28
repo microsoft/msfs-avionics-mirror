@@ -1,0 +1,17 @@
+.weight-balance-pane-weight-balance {
+  grid-template-rows: repeat(8, min-content);
+  grid-template-columns: 1fr;
+}
+
+.weight-balance-pane-weight-balance.weight-balance-pane-weight-balance-mac {
+  grid-template-rows: repeat(9, min-content);
+}
+
+.display-pane-full .weight-balance-pane-weight-balance {
+  grid-template-rows: repeat(4, min-content);
+  grid-template-columns: 1fr 1fr;
+}
+
+.display-pane-full .weight-balance-pane-weight-balance.weight-balance-pane-weight-balance-mac {
+  grid-template-rows: repeat(5, min-content);
+}

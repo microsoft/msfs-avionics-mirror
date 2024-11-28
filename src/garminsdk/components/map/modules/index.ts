@@ -4,6 +4,7 @@ export * from './MapDeclutterModule';
 export * from './MapFlightPlanFocusModule';
 export * from './MapGarminAutopilotPropsModule';
 export * from './MapGarminDataIntegrityModule';
+export * from './MapGarminFlightPlanModule';
 export * from './MapGarminTrafficModule';
 export * from './MapNexradModule';
 export * from './MapOrientationModule';

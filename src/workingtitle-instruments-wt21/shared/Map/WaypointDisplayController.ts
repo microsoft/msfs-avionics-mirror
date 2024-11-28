@@ -6,7 +6,7 @@ import {
 import { WT21FixInfoManager } from '../Systems/FixInfo/WT21FixInfoManager';
 import { WT21FmsUtils } from '../Systems/FMS/WT21FmsUtils';
 import { MapFacilitySelectModule } from './MapFacilitySelectModule';
-import { MapSettingsMfdAliased, MapSettingsPfdAliased, MapUserSettings, MapWaypointsDisplay, PfdOrMfd } from './MapUserSettings';
+import { MapSettingsMfdAliased, MapSettingsPfdAliased, MapWaypointsDisplay } from './MapUserSettings';
 import { WT21MapKeys } from './WT21MapKeys';
 
 /**
@@ -25,7 +25,7 @@ export interface WaypointDisplayControllerModules {
  * A map system controller that controls the display settings of the nearest waypoints.
  */
 export class WaypointDisplayController extends MapSystemController<WaypointDisplayControllerModules> {
-  private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>;
+
   private readonly waypoints: MapWaypointDisplayModule = this.context.model.getModule(MapSystemKeys.NearestWaypoints);
   private readonly selectWaypointModule: MapFacilitySelectModule = this.context.model.getModule(WT21MapKeys.CtrWpt);
   private readonly flightPlanModule: MapFlightPlanModule = this.context.model.getModule(MapSystemKeys.FlightPlan);
@@ -40,17 +40,16 @@ export class WaypointDisplayController extends MapSystemController<WaypointDispl
   /**
    * Creates an instance of the WaypointDisplayController.
    * @param context The map system context to use with this controller.
-   * @param pfdOrMfd Whether or not the map is on the PFD or MFD.
+   * @param settings The map user settings
    * @param fixInfo The fix info manager.
    */
   constructor(
     context: MapSystemContext<WaypointDisplayControllerModules>,
-    pfdOrMfd: PfdOrMfd,
+    private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>,
     private readonly fixInfo?: WT21FixInfoManager,
   ) {
     super(context);
 
-    this.settings = MapUserSettings.getAliasedManager(context.bus, pfdOrMfd);
   }
 
   /** @inheritdoc */

@@ -31,7 +31,7 @@ export abstract class AbstractFlightPathLegRenderer<Args extends any[] = []> {
   protected static readonly geoPointCache = [new GeoPoint(0, 0), new GeoPoint(0, 0)];
   protected static readonly geoCircleCache = [new GeoCircle(new Float64Array(3), 0)];
 
-  protected readonly tempVector = FlightPathUtils.createEmptyCircleVector();
+  protected readonly tempVector = FlightPathUtils.createEmptyVector();
 
   /**
    * Renders a flight plan leg path to a canvas.
@@ -85,7 +85,7 @@ export abstract class AbstractFlightPathLegRenderer<Args extends any[] = []> {
 
           if (!ingressEnd.equals(vectorEnd)) {
             const ingressJoinVectorCircle = FlightPathUtils.setGeoCircleFromVector(ingressJoinVector, AbstractFlightPathLegRenderer.geoCircleCache[0]);
-            FlightPathUtils.setCircleVector(this.tempVector, ingressJoinVectorCircle, ingressEnd, vectorEnd, ingressJoinVector.flags);
+            FlightPathUtils.setVectorFromCircle(this.tempVector, ingressJoinVectorCircle, ingressEnd, vectorEnd, ingressJoinVector.flags);
             this.renderVector(this.tempVector, false, false, leg, context, streamStack, ...args);
           }
 
@@ -111,7 +111,7 @@ export abstract class AbstractFlightPathLegRenderer<Args extends any[] = []> {
           const egressJoinVectorStart = AbstractFlightPathLegRenderer.geoPointCache[1].set(egressJoinVector.startLat, egressJoinVector.startLon);
           if (!egressStart.equals(egressJoinVectorStart)) {
             const egressJoinVectorCircle = FlightPathUtils.setGeoCircleFromVector(egressJoinVector, AbstractFlightPathLegRenderer.geoCircleCache[0]);
-            FlightPathUtils.setCircleVector(this.tempVector, egressJoinVectorCircle, egressJoinVectorStart, egressStart, egressJoinVector.flags);
+            FlightPathUtils.setVectorFromCircle(this.tempVector, egressJoinVectorCircle, egressJoinVectorStart, egressStart, egressJoinVector.flags);
             this.renderVector(this.tempVector, false, false, leg, context, streamStack, ...args);
           }
         }
@@ -129,7 +129,6 @@ export abstract class AbstractFlightPathLegRenderer<Args extends any[] = []> {
    * @param isIngress Whether the vector is part of the ingress transition.
    * @param isEgress Whether the vector is part of the egress transition.
    * @param leg The flight plan leg containing the vector to render.
-   * @param projection The map projection to use when rendering.
    * @param context The canvas 2D rendering context to which to render.
    * @param streamStack The path stream stack to which to render.
    */

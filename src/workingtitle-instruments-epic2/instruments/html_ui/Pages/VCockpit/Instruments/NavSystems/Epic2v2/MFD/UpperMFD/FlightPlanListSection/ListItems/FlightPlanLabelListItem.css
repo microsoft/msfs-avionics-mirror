@@ -1,0 +1,50 @@
+.flight-plan-label-list-item.active-leg {
+  color: var(--epic2-color-green);
+}
+
+.flight-plan-label-list-item.from-leg {
+  color: var(--epic2-color-grey);
+}
+
+.flight-plan-list.plan-pending .flight-plan-label-list-item.from-leg.removing-leg,
+.flight-plan-list.plan-pending .flight-plan-label-list-item.from-leg.removing-leg * {
+  color: var(--epic2-color-grey) !important;
+}
+
+.flight-plan-label-list-item.removing-leg .section-outline {
+  background: linear-gradient(to bottom right, var(--epic2-color-black), var(--epic2-color-black) 48.5%, var(--epic2-color-grey) 48.5%, gray 51.5%, var(--epic2-color-black) 51.5%, var(--epic2-color-black));
+  -webkit-text-stroke: 0px;
+}
+
+.flight-plan-label-list-item .container {
+  position: relative;
+  border-right: 2px solid var(--epic2-color-white);
+  width: 100%;
+}
+
+.flight-plan-label-list-item .top-row,
+.flight-plan-label-list-item .bottom-row {
+  position: absolute;
+  display: flex;
+  width: 100%;
+}
+
+.flight-plan-label-list-item .top-row>*,
+.flight-plan-label-list-item .bottom-row>* {
+  position: absolute;
+}
+
+.flight-plan-label-list-item .top-row {
+  top: 8px;
+  left: 4px;
+}
+
+.flight-plan-label-list-item .bottom-row {
+  top: 38px;
+  left: 4px;
+}
+
+
+.flight-plan-list-section .flight-plan-list .list-item.flight-plan-label-list-item.top-of-marker {
+  background-color: var(--epic2-color-dark-grey);
+}

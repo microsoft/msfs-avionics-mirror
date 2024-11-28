@@ -1,0 +1,96 @@
+.weight-balance-pane {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  background: var(--display-pane-inset-gray-background-color);
+  font-size: 15px;
+  color: var(--g3000-color-white);
+  display: flex;
+  flex-flow: column wrap;
+  justify-content: flex-start;
+  align-content: space-evenly;
+  align-items: stretch;
+}
+
+.display-pane-full .weight-balance-pane {
+  justify-content: space-evenly;
+}
+
+.weight-balance-pane-child-panel {
+  display: flex;
+  align-items: stretch;
+}
+
+.display-pane-full .weight-balance-pane-child-panel {
+  width: 466px;
+}
+
+.weight-balance-pane-child-container {
+  flex-grow: 1;
+  position: relative;
+}
+
+.weight-balance-pane-summary-panel {
+  margin: 15px 15px 0px;
+  padding: 12px 30px 5px;
+}
+
+.display-pane-full .weight-balance-pane-summary-panel {
+  margin: 0px 0px 15px;
+  padding: 12px 3px 5px;
+}
+
+.weight-balance-pane-load-panel {
+  height: 100%;
+}
+
+.display-pane-full .weight-balance-pane-load-panel {
+  height: 704px;
+}
+
+.weight-balance-pane-graph-panel {
+  height: 100%;
+  padding: 16px 10px 10px 2px;
+}
+
+.display-pane-full .weight-balance-pane-graph-panel {
+  /*
+   * In full-size mode, the graph panel takes up whatever height is remaining in its column after the aircraft weight
+   * and balance and estimated weight panels have been sized.
+   */
+  flex: 1;
+  height: unset;
+  margin: 15px 0px;
+  padding: 21px 9px 9px 5px;
+}
+
+/*
+ * The following hides the title, border, and backgrounds of the aircraft load and graph panels when not in full-size
+ * mode (i.e. when these panels take up the entire pane while visible).
+ */
+
+.pane-inset-panel.weight-balance-pane-load-panel,
+.pane-inset-panel.weight-balance-pane-graph-panel {
+  border-radius: 0px;
+  border: none;
+  background: var(--g3000-color-black);
+}
+
+.weight-balance-pane-load-panel .pane-inset-panel-title,
+.weight-balance-pane-graph-panel .pane-inset-panel-title {
+  display: none;
+}
+
+.display-pane-full .pane-inset-panel.weight-balance-pane-load-panel,
+.display-pane-full .pane-inset-panel.weight-balance-pane-graph-panel {
+  border-radius: var(--display-pane-inset-panel-border-radius);
+  border: var(--display-pane-inset-panel-border-width) solid var(--display-pane-inset-panel-border-color);
+  background: var(--display-pane-inset-panel-background);
+}
+
+.display-pane-full .weight-balance-pane-load-panel .pane-inset-panel-title,
+.display-pane-full .weight-balance-pane-graph-panel .pane-inset-panel-title {
+  display: block;
+}

@@ -1,4 +1,4 @@
-import { EventBus, JetFadec, LerpLookupTable, SimVarDefinition, SimVarPublisher, SimVarValueType, ThrottleLeverManager, VirtualThrottleLeverEvents } from '@microsoft/msfs-sdk';
+import { EventBus, GameStateProvider, JetFadec, LerpLookupTable, SimVarDefinition, SimVarPublisher, SimVarValueType, ThrottleLeverManager, VirtualThrottleLeverEvents, Wait } from '@microsoft/msfs-sdk';
 
 /**
  * Events published by the FADEC SimVar publisher.
@@ -16,8 +16,8 @@ interface CJ4FadecEvents {
  */
 export class CJ4FadecPublisher extends SimVarPublisher<CJ4FadecEvents> {
   private static simvars = new Map<keyof CJ4FadecEvents, SimVarDefinition>([
-    ['fadec_tgt_n1_1', {name: 'L:FADEC_TGT_N1_1', type: SimVarValueType.Percent}],
-    ['fadec_tgt_n1_2', {name: 'L:FADEC_TGT_N1_2', type: SimVarValueType.Percent}],
+    ['fadec_tgt_n1_1', { name: 'L:FADEC_TGT_N1_1', type: SimVarValueType.Percent }],
+    ['fadec_tgt_n1_2', { name: 'L:FADEC_TGT_N1_2', type: SimVarValueType.Percent }],
   ]);
 
   /**
@@ -236,7 +236,8 @@ export class CJ4Fadec {
   /**
    * Initializes this FADEC.
    */
-  private init(): void {
+  private async init(): Promise<void> {
+    await Wait.awaitSubscribable(GameStateProvider.get(), state => state === GameState.ingame, true);
     this.fadec.start(CJ4Fadec.UPDATE_FREQ);
   }
 

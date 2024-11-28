@@ -1,0 +1,34 @@
+{
+  "name": "workingtitle-instruments-epic2-instruments",
+  "version": "2.0.7",
+  "description": "Working Title MSFS Epic 2 Instruments",
+  "main": "index.ts",
+  "scripts": {
+    "build": "npm run build:compile && npm run build:rollup && npm run build:copies",
+    "build:compile": "npx tsc",
+    "build:rollup": "robocopy html_ui *.css build/html_ui /s & npx rollup -c rollup.config.mjs",
+    "build:copies": "npm run build:copies:extras & npm run build:copies:sdk & npm run build:copies:e2shared & npm run build:copies:behaviors",
+    "build:copies:extras": "robocopy html_ui *.svg *.png *.html *.json *.ttf dist/html_ui /s",
+    "build:copies:sdk": "xcopy node_modules\\@microsoft\\msfs-sdk\\msfssdk-iife.js dist\\html_ui\\Pages\\VCockpit\\Instruments\\NavSystems\\Epic2v2\\Libraries\\msfssdk.js /Y /-I",
+    "build:copies:e2shared": "npm run build:copies:e2shared:js & npm run build:copies:e2shared:css",
+    "build:copies:e2shared:js": "xcopy node_modules\\@microsoft\\msfs-epic2-shared\\wte2shared.js dist\\html_ui\\Pages\\VCockpit\\Instruments\\NavSystems\\Epic2v2\\Libraries\\ /Y",
+    "build:copies:e2shared:css": "xcopy node_modules\\@microsoft\\msfs-epic2-shared\\wte2shared.css dist\\html_ui\\Pages\\VCockpit\\Instruments\\NavSystems\\Epic2v2\\Libraries\\ /Y",
+    "build:copies:behaviors": "robocopy ../ModelBehaviorDefs dist/ModelBehaviorDefs /s"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/msfs-avionics-mirror/"
+  },
+  "author": "Working Title Simulations, LLC",
+  "license": "Modified MIT",
+  "devDependencies": {
+    "@microsoft/msfs-sdk": "2.0.5",
+    "@microsoft/msfs-types": "1.14.6",
+    "@microsoft/msfs-epic2-shared": "../shared/dist/microsoft-msfs-epic2-shared-2.0.7.tgz",
+    "@rollup/plugin-image": "^3.0.2",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "rollup": "^4.27.3",
+    "rollup-plugin-import-css": "^3.1.0",
+    "typescript": "5.3.3"
+  }
+}

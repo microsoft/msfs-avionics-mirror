@@ -1,7 +1,7 @@
 import { NumberUnitSubject, UnitType } from '../../../math';
 import {
   AirportFacility, Facility, FacilityWaypoint, IntersectionFacility, NdbFacility, NearestAirportSearchSession, NearestIntersectionSearchSession,
-  NearestVorSearchSession, VorFacility, Waypoint
+  NearestVorSearchSession, UserFacility, VorFacility, Waypoint
 } from '../../../navigation';
 import { SubEvent } from '../../../sub';
 import { Subject } from '../../../sub/Subject';
@@ -127,6 +127,9 @@ export class MapWaypointDisplayModule {
     minimumRunwayLength: NearestAirportSearchSession.Defaults.MinimumRunwayLength,
     toweredMask: NearestAirportSearchSession.Defaults.ToweredMask
   });
+
+  /** The filter to apply to the user facility search. */
+  public readonly usersFilter = Subject.create<((facility: UserFacility) => boolean) | undefined>(undefined);
 
   /** A function that will be called with a waypoint when it is registered,
    * and should return the role to use for that waypoint. */

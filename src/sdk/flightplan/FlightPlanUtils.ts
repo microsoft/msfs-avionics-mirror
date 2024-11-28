@@ -1,5 +1,8 @@
-import { FlightPlanLeg, LegType } from '../navigation/Facilities';
+import { FacilityType, FlightPlanLeg, LegType } from '../navigation/Facilities';
+import { IcaoValue } from '../navigation/Icao';
+import { ICAO } from '../navigation/IcaoUtils';
 import { ArrayType, ArrayUtils } from '../utils/datastructures/ArrayUtils';
+import { FlightPlanLegIndexes } from './FlightPlanning';
 
 /**
  * Utility class for working with flight plans.
@@ -98,5 +101,71 @@ export class FlightPlanUtils {
       default:
         return undefined;
     }
+  }
+
+  /**
+   * Creates a new {@link FlightPlanLegIndexes} object with all indexes set to `-1`.
+   * @returns A new `FlightPlanLegIndexes` object with all indexes set to `-1`.
+   */
+  public static emptyLegIndexes(): FlightPlanLegIndexes {
+    return { segmentIndex: -1, segmentLegIndex: -1 };
+  }
+
+  /**
+   * Converts all runway ICAO references in a flight plan leg to the runway ICAO format used by the MSFS avionics
+   * SDK.
+   * @param leg The flight plan leg to change.
+   * @returns The specified flight plan leg, after all of its runway ICAO references have been changed to the format
+   * used by the MSFS avionics SDK.
+   */
+  public static convertLegRunwayIcaosToSdkFormat(leg: FlightPlanLeg): FlightPlanLeg {
+    if (ICAO.isValueFacility(leg.fixIcaoStruct, FacilityType.RWY)) {
+      const convertedIcao = ICAO.value(leg.fixIcaoStruct.type, '', leg.fixIcaoStruct.airport, leg.fixIcaoStruct.ident);
+      leg.fixIcaoStruct = convertedIcao;
+      leg.fixIcao = ICAO.tryValueToStringV1(convertedIcao);
+    }
+
+    if (ICAO.isValueFacility(leg.originIcaoStruct, FacilityType.RWY)) {
+      const convertedIcao = ICAO.value(leg.originIcaoStruct.type, '', leg.originIcaoStruct.airport, leg.originIcaoStruct.ident);
+      leg.originIcao = ICAO.tryValueToStringV1(convertedIcao);
+    }
+
+    if (ICAO.isValueFacility(leg.arcCenterFixIcaoStruct, FacilityType.RWY)) {
+      const convertedIcao = ICAO.value(leg.arcCenterFixIcaoStruct.type, '', leg.arcCenterFixIcaoStruct.airport, leg.arcCenterFixIcaoStruct.ident);
+      leg.arcCenterFixIcao = ICAO.tryValueToStringV1(convertedIcao);
+    }
+
+    return leg;
+  }
+
+  /**
+   * Sets an ICAO property on a {@link FlightPlanLeg}, ensuring that both the associated value and string (V1)
+   * properties stay in sync.
+   * @param leg The flight plan leg to change.
+   * @param prop The property to set.
+   * @param icao The ICAO value to set on the property.
+   * @returns The specified flight plan leg, after it has been changed.
+   */
+  public static setLegIcao(
+    leg: FlightPlanLeg,
+    prop: keyof Pick<FlightPlanLeg, 'fixIcaoStruct' | 'originIcaoStruct' | 'arcCenterFixIcaoStruct'>,
+    icao: IcaoValue
+  ): FlightPlanLeg {
+    switch (prop) {
+      case 'fixIcaoStruct':
+        leg.fixIcaoStruct = icao;
+        leg.fixIcao = ICAO.valueToStringV1(icao);
+        break;
+      case 'originIcaoStruct':
+        leg.originIcaoStruct = icao;
+        leg.originIcao = ICAO.valueToStringV1(icao);
+        break;
+      case 'arcCenterFixIcaoStruct':
+        leg.arcCenterFixIcaoStruct = icao;
+        leg.arcCenterFixIcao = ICAO.valueToStringV1(icao);
+        break;
+    }
+
+    return leg;
   }
 }

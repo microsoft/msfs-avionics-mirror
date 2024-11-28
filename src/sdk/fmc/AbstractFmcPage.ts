@@ -70,6 +70,8 @@ export abstract class AbstractFmcPage<P extends object | null = any> {
   protected clockConsumer;
   private isDirty = false;
 
+  private readonly clockSub: Subscription;
+
   /**
    * Ctor
    * @param bus the event bus
@@ -80,6 +82,8 @@ export abstract class AbstractFmcPage<P extends object | null = any> {
     this.screen = screen;
     this.clockConsumer = this.bus.getSubscriber<ClockEvents>().on('realTime').atFrequency(10, false);
     this._props = props;
+
+    this.clockSub = this.clockConsumer.handle(this.clockHandler, true);
   }
 
   /**
@@ -132,7 +136,7 @@ export abstract class AbstractFmcPage<P extends object | null = any> {
     }
 
     this.isDirty = false;
-    this.clockConsumer.off(this.clockHandler);
+    this.clockSub.pause();
 
     this.onPause();
 
@@ -173,7 +177,7 @@ export abstract class AbstractFmcPage<P extends object | null = any> {
     }
 
     this.isDirty = true;
-    this.clockConsumer.handle(this.clockHandler);
+    this.clockSub.resume(true);
   }
 
   /**
@@ -193,7 +197,7 @@ export abstract class AbstractFmcPage<P extends object | null = any> {
    */
   public destroy(): void {
     this.isDirty = false;
-    this.clockConsumer.off(this.clockHandler);
+    this.clockSub.destroy();
 
     for (const binding of this.bindings) {
       if (!binding.isAlive) {

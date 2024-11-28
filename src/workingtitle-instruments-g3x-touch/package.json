@@ -1,16 +1,16 @@
 {
   "name": "workingtitle-instruments-g3x-touch",
-  "version": "0.5.2",
+  "version": "2.0.4",
   "description": "Working Title Garmin G3X Touch",
   "main": "index.ts",
   "scripts": {
     "build": "npm run build:compile && npm run build:rollup && npm run build:copies",
     "build:compile": "npx tsc",
-    "build:rollup": "robocopy html_ui *.css build/workingtitle-instruments-g3x-touch/html_ui /s & npx rollup -c rollup.config.js",
+    "build:rollup": "robocopy html_ui *.css build/html_ui /s & npx rollup -c rollup.config.mjs",
     "build:copies": "npm run build:copies:extras & npm run build:copies:garminsdk & npm run build:copies:msfssdk",
-    "build:copies:extras": "robocopy html_ui *.svg *.png *.html *.json *.ttf dist/workingtitle-instruments-g3x-touch/html_ui /s",
-    "build:copies:garminsdk": "xcopy node_modules\\@microsoft\\msfs-garminsdk\\garminsdk-iife.js dist\\workingtitle-instruments-g3x-touch\\html_ui\\Pages\\VCockpit\\Instruments\\NavSystems\\G3XTouch\\Libraries\\garminsdk.js /Y /-I",
-    "build:copies:msfssdk": "xcopy node_modules\\@microsoft\\msfs-sdk\\msfssdk-iife.js dist\\workingtitle-instruments-g3x-touch\\html_ui\\Pages\\VCockpit\\Instruments\\NavSystems\\G3XTouch\\Libraries\\msfssdk.js /Y /-I"
+    "build:copies:extras": "robocopy html_ui *.svg *.png *.html *.json *.ttf dist/workingtitle-instruments-g3xtouch-v2/html_ui/Pages/VCockpit/Instruments/NavSystems/G3XTouchv2 /s",
+    "build:copies:garminsdk": "xcopy node_modules\\@microsoft\\msfs-garminsdk\\garminsdk-iife.js dist\\workingtitle-instruments-g3xtouch-v2\\html_ui\\Pages\\VCockpit\\Instruments\\NavSystems\\G3XTouchv2\\Libraries\\garminsdk.js /Y /-I",
+    "build:copies:msfssdk": "xcopy node_modules\\@microsoft\\msfs-sdk\\msfssdk-iife.js dist\\workingtitle-instruments-g3xtouch-v2\\html_ui\\Pages\\VCockpit\\Instruments\\NavSystems\\G3XTouchv2\\Libraries\\msfssdk.js /Y /-I"
   },
   "repository": {
     "type": "git",
@@ -19,12 +19,12 @@
   "author": "Working Title Simulations, LLC",
   "license": "Modified MIT",
   "devDependencies": {
-    "@microsoft/msfs-sdk": "0.8.0",
+    "@microsoft/msfs-sdk": "2.0.5",
     "@microsoft/msfs-types": "1.14.6",
-    "@microsoft/msfs-garminsdk": "0.6.0",
+    "@microsoft/msfs-garminsdk": "2.0.5",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@types/node": "^18.11.18",
-    "rollup": "^2.79.1",
+    "rollup": "^4.27.3",
     "rollup-plugin-import-css": "^3.1.0",
     "typescript": "5.3.3"
   }

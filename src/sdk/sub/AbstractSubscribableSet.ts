@@ -68,19 +68,6 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
     return sub;
   }
 
-  /** @inheritdoc */
-  public unsub(handler: SubscribableSetHandler<T>): void {
-    let toDestroy: HandlerSubscription<SubscribableSetHandler<T>> | undefined = undefined;
-
-    if (this.singletonSub && this.singletonSub.handler === handler) {
-      toDestroy = this.singletonSub;
-    } else if (this.subs) {
-      toDestroy = this.subs.find(sub => sub.handler === handler);
-    }
-
-    toDestroy?.destroy();
-  }
-
   /**
    * Notifies subscriptions of a change in this set.
    * @param type The type of change.
@@ -124,7 +111,7 @@ export abstract class AbstractSubscribableSet<T> implements SubscribableSet<T>, 
       for (let i = 0; i < subLen; i++) {
         try {
           const sub = this.subs[i];
-          if (sub.isAlive && !sub.isPaused) {
+          if (!sub.isPaused) {
             sub.handler(set, type, key);
           }
 

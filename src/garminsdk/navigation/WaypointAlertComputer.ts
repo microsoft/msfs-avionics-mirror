@@ -1,5 +1,5 @@
 import {
-  BitFlags, CircleVector, ClockEvents, ConsumerSubject, EventBus, EventSubscriber, FlightPathUtils, FlightPathVector,
+  BitFlags, ClockEvents, ConsumerSubject, EventBus, EventSubscriber, FlightPathUtils, FlightPathVector,
   FlightPathVectorFlags, FlightPlanner, GeoCircle, GeoPoint, GNSSEvents, LegCalculations, LegDefinition, LegType,
   LNavEvents, LNavTrackingState, LNavTransitionMode, LNavUtils, MagVar, NavMath, NumberUnitSubject, SubEvent, Subject,
   Subscribable, SubscribableUtils, UnitType, VectorTurnDirection
@@ -617,11 +617,11 @@ export class WaypointAlertComputer {
    * @param includeContinuous Whether or not to include turns that are continous to the next turn.
    * @returns The next turn vector index, or -1 if none found.
    */
-  private getNextTurnIndex(startIndex: number, flightPath: CircleVector[] | undefined, includeContinuous: boolean): number {
+  private getNextTurnIndex(startIndex: number, flightPath: Readonly<FlightPathVector>[] | undefined, includeContinuous: boolean): number {
     let foundVectorIndex = -1;
 
     if (flightPath !== undefined) {
-      let currentVector: CircleVector | undefined = undefined;
+      let currentVector: Readonly<FlightPathVector> | undefined = undefined;
 
       for (let i = startIndex + 1; i < flightPath.length; i++) {
         if (currentVector !== undefined) {
@@ -653,7 +653,7 @@ export class WaypointAlertComputer {
    * @param b The second vector.
    * @returns Whether or not the two vectors are continuous.
    */
-  private areTurnsContinuous(a: CircleVector, b: CircleVector): boolean {
+  private areTurnsContinuous(a: Readonly<FlightPathVector>, b: Readonly<FlightPathVector>): boolean {
     //If we're on a turn already, then we only need to check radii
     if (Math.abs(a.radius - b.radius) <= GeoCircle.ANGULAR_TOLERANCE) {
       return true;
@@ -669,7 +669,7 @@ export class WaypointAlertComputer {
    * @param flightPath The set of leg vectors to pull from.
    * @returns The amount of distance remaining.
    */
-  private getSegmentDistanceRemaining(startIndex: number, endIndex: number, flightPath: CircleVector[] | undefined): number {
+  private getSegmentDistanceRemaining(startIndex: number, endIndex: number, flightPath: Readonly<FlightPathVector>[] | undefined): number {
     if (flightPath !== undefined) {
       let distance = 0;
 

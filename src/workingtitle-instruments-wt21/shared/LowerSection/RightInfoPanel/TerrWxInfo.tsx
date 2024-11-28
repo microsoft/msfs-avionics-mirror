@@ -1,9 +1,9 @@
 import { ComponentProps, DisplayComponent, EventBus, FSComponent, Subject, UserSettingManager, VNode } from '@microsoft/msfs-sdk';
 
+import { InstrumentConfig } from '../../Config';
 import { DisplayUnitLayout } from '../../Config/DisplayUnitConfig';
 import { MapFormatSupportMatrix } from '../../Map/MapFormatSupportMatrix';
-import { MapSettingsMfdAliased, MapSettingsPfdAliased, MapUserSettings, TerrWxState } from '../../Map/MapUserSettings';
-import { WT21DisplayUnitFsInstrument, WT21DisplayUnitType } from '../../WT21DisplayUnitFsInstrument';
+import { MapSettingsMfdAliased, MapSettingsPfdAliased, TerrWxState } from '../../Map/MapUserSettings';
 
 import './TerrWxInfo.css';
 
@@ -12,24 +12,26 @@ interface TerrWxInfoProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
 
-  /** The display unit */
-  displayUnit: WT21DisplayUnitFsInstrument,
+  /** The instrument config object */
+  instrumentConfig: InstrumentConfig,
+
+  /** The map user settings */
+  mapSettingsManager: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>
 }
 
 /** The TerrWxInfo component. */
 export class TerrWxInfo extends DisplayComponent<TerrWxInfoProps> {
-  private readonly mapSettingsManager = MapUserSettings.getAliasedManager(this.props.bus, this.props.displayUnit.displayUnitType === WT21DisplayUnitType.Pfd ? 'PFD' : 'MFD');
   private readonly mapFormatSupport = new MapFormatSupportMatrix();
   private readonly terrWxInfoRef = FSComponent.createRef<HTMLDivElement>();
   private readonly line3 = Subject.create('');
   private readonly line4 = Subject.create('');
   private readonly line5 = Subject.create('');
-  private readonly isUsingSoftkeys = this.props.displayUnit.displayUnitConfig.displayUnitLayout === DisplayUnitLayout.Softkeys;
+  private readonly isUsingSoftkeys = this.props.instrumentConfig.displayUnitConfig.displayUnitLayout === DisplayUnitLayout.Softkeys;
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.mapSettingsManager.whenSettingChanged('terrWxState').handle(this.handleTerrWxState);
-    this.mapSettingsManager.whenSettingChanged('hsiFormat').handle(this.handleSupported);
+    this.props.mapSettingsManager.whenSettingChanged('terrWxState').handle(this.handleTerrWxState);
+    this.props.mapSettingsManager.whenSettingChanged('hsiFormat').handle(this.handleSupported);
   }
 
   private readonly handleTerrWxState = (terrWxState: TerrWxState): void => {
@@ -52,8 +54,8 @@ export class TerrWxInfo extends DisplayComponent<TerrWxInfoProps> {
   };
 
   private readonly handleSupported = (): void => {
-    const format = this.mapSettingsManager.getSetting('hsiFormat').get();
-    const terrWxState = this.mapSettingsManager.getSetting('terrWxState').get();
+    const format = this.props.mapSettingsManager.getSetting('hsiFormat').get();
+    const terrWxState = this.props.mapSettingsManager.getSetting('terrWxState').get();
     let isSupported = true;
     if (terrWxState !== 'OFF') {
       isSupported = this.mapFormatSupport.isSupported(format, terrWxState === 'WX' ? 2 : 1);
@@ -74,7 +76,7 @@ export class TerrWxInfo extends DisplayComponent<TerrWxInfoProps> {
   private renderSoftkeyLayout(): VNode {
     return (
       <div class="terr-wx-info terr-wx-info-side-buttons" ref={this.terrWxInfoRef}>
-        <TerrWxSideButtonSwitch mapUserSettings={this.mapSettingsManager} />
+        <TerrWxSideButtonSwitch mapUserSettings={this.props.mapSettingsManager} />
       </div>
     );
   }

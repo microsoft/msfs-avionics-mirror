@@ -1,0 +1,7 @@
+.epic2-list .list-item {
+  position: relative;
+  width: 100%;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+}

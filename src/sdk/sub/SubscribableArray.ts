@@ -56,12 +56,4 @@ export interface SubscribableArray<T> {
    * @returns The new subscription.
    */
   sub(handler: SubscribableArrayHandler<T>, initialNotify?: boolean, paused?: boolean): Subscription;
-
-  /**
-   * Unsubscribes a callback function from this array.
-   * @param handler The function to unsubscribe.
-   * @deprecated This method has been deprecated in favor of using the {@link Subscription} object returned by `.sub()`
-   * to manage subscriptions.
-   */
-  unsub(handler: SubscribableArrayHandler<T>): void;
 }

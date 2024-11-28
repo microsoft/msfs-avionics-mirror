@@ -1,7 +1,13 @@
 import { GeoPoint } from '../geo/GeoPoint';
 import { NavMath } from '../geo/NavMath';
 import { UnitType } from '../math/NumberUnit';
-import { AirportFacility, AirportRunway, ApproachProcedure, FacilityFrequency, OneWayRunway, RunwayFacility, RunwayLightingType, RunwaySurfaceType } from './Facilities';
+import { ArrayUtils } from '../utils/datastructures/ArrayUtils';
+import {
+  AirportFacility, AirportRunway, ApproachProcedure, FacilityFrequency, OneWayRunway, RunwayFacility, RunwayIdentifier,
+  RunwayLightingType, RunwaySurfaceType
+} from './Facilities';
+import { IcaoType, IcaoValue } from './Icao';
+import { ICAO } from './IcaoUtils';
 
 export enum RunwaySurfaceCategory {
   Unknown = 1 << 0,
@@ -14,6 +20,19 @@ export enum RunwaySurfaceCategory {
  * Methods for working with Runways and Runway Designations.
  */
 export class RunwayUtils {
+  private static readonly RUNWAY_NUMBER_STRINGS = [
+    '', // NONE
+    ...ArrayUtils.create(36, index => `${index + 1}`.padStart(2, '0')), // 01-36
+    'N',
+    'NE',
+    'E',
+    'SE',
+    'S',
+    'SW',
+    'W',
+    'NW',
+  ];
+
   private static readonly RUNWAY_DESIGNATOR_LETTERS = {
     [RunwayDesignator.RUNWAY_DESIGNATOR_NONE]: '',
     [RunwayDesignator.RUNWAY_DESIGNATOR_LEFT]: 'L',
@@ -66,6 +85,51 @@ export class RunwayUtils {
   ];
 
   protected static tempGeoPoint = new GeoPoint(0, 0);
+
+  /**
+   * Creates an empty runway identifier.
+   * @returns An empty runway identifier.
+   */
+  public static emptyIdentifier(): RunwayIdentifier {
+    return {
+      __Type: 'JS_RunwayIdentifier',
+      number: '',
+      designator: ''
+    };
+  }
+
+  /**
+   * Sets a runway identifier to be empty.
+   * @param ident The identifier to set.
+   * @returns The specified identifier, after it has been set to be empty.
+   */
+  public static toEmptyIdentifier(ident: RunwayIdentifier): RunwayIdentifier {
+    ident.number = '';
+    ident.designator = '';
+    return ident;
+  }
+
+  /**
+   * Gets the runway identifier that describes a {@link OneWayRunway}.
+   * @param runway The runway for which to get an identifier.
+   * @param out The object to which to write the results. If not defined, then a new identifier object will be
+   * created.
+   * @returns The runway identifier that describes the specified runway.
+   */
+  public static getIdentifierFromOneWayRunway(runway: OneWayRunway, out = RunwayUtils.emptyIdentifier()): RunwayIdentifier {
+    out.number = RunwayUtils.getNumberString(runway.direction);
+    out.designator = RunwayUtils.getDesignatorLetter(runway.runwayDesignator);
+    return out;
+  }
+
+  /**
+   * Gets the standard string representation for a runway number.
+   * @param runwayNumber A runway number.
+   * @returns The standard string representation for the specified runway number.
+   */
+  public static getNumberString(runwayNumber: number): string {
+    return RunwayUtils.RUNWAY_NUMBER_STRINGS[runwayNumber] ?? '';
+  }
 
   /**
    * Gets the letter for a runway designator.
@@ -470,10 +534,28 @@ export class RunwayUtils {
   }
 
   /**
+   * Gets the ICAO value for the runway facility associated with a one-way runway.
+   * @param airport The runway's parent airport, or the ICAO value of the airport.
+   * @param runway A one-way runway.
+   * @returns The ICAO value for the runway facility associated with the specified one-way runway.
+   */
+  public static getRunwayFacilityIcaoValue(
+    airport: AirportFacility | IcaoValue,
+    runway: OneWayRunway
+  ): IcaoValue {
+    const airportIcao = (airport as any).__Type === 'JS_ICAO'
+      ? airport as IcaoValue
+      : (airport as AirportFacility).icaoStruct;
+
+    return ICAO.value(IcaoType.Runway, '', airportIcao.ident, `RW${runway.designation}`);
+  }
+
+  /**
    * Gets the ICAO string for the runway facility associated with a one-way runway.
    * @param airport The runway's parent airport, or the ICAO of the airport.
    * @param runway A one-way runway.
    * @returns the ICAO string for the runway facility associated with the one-way runway.
+   * @deprecated Please use {@link RunwayUtils.getRunwayFacilityIcaoValue | getRunwayFacilityIcaoValue()} instead.
    */
   public static getRunwayFacilityIcao(airport: AirportFacility | string, runway: OneWayRunway): string {
     const icao = typeof airport === 'string' ? airport : airport.icao;
@@ -487,14 +569,15 @@ export class RunwayUtils {
    * @returns A runway waypoint facility corresponding to the runway.
    */
   public static createRunwayFacility(airport: AirportFacility, runway: OneWayRunway): RunwayFacility {
+    const icao = RunwayUtils.getRunwayFacilityIcao(airport, runway);
     return {
-      icao: RunwayUtils.getRunwayFacilityIcao(airport, runway),
+      icao,
+      icaoStruct: ICAO.stringV1ToValue(icao),
       name: `Runway ${runway.designation}`,
       region: airport.region,
       city: airport.city,
       lat: runway.latitude,
       lon: runway.longitude,
-      magvar: airport.magvar,
       runway
     };
   }

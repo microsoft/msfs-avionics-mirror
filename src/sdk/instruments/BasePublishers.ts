@@ -1,6 +1,6 @@
 import { EventBus, EventBusMetaEvents, MockEventTypes, Publisher } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
-import { SimVarDefinition, SimVarValueType } from '../data/SimVars';
+import { GetRegisteredSimVarValue, SimVarDefinition, SimVarValueType, ResolveRegisteredSimVar, RegisteredSimVarDefinition } from '../data/SimVars';
 
 /**
  * A basic event-bus publisher.
@@ -135,6 +135,10 @@ type ResolvedSimVarPublisherEntry<T> = Omit<SimVarPublisherEntry<T>, 'indexed' |
    * simvar topics that have been resolved to the topic's default index.
    */
   unsuffixedTopic?: string;
+  /**
+   * The registered SimVar definition for fast access, set on topic subscription.
+   */
+  registeredDef?: Readonly<RegisteredSimVarDefinition>;
 };
 
 /**
@@ -148,7 +152,7 @@ export class SimVarPublisher<Events extends Record<string, any>, IndexedEventRoo
 
   protected readonly indexedSimVars = new Map<keyof IndexedEventRoots & string, IndexedSimVarPublisherEntry<any>>();
 
-  protected readonly subscribed = new Set<keyof Events & string>();
+  protected readonly subscribed = new Map<keyof Events & string, ResolvedSimVarPublisherEntry<any>>();
 
   /**
    * Creates a new instance of SimVarPublisher.
@@ -170,7 +174,7 @@ export class SimVarPublisher<Events extends Record<string, any>, IndexedEventRoo
           type: entry.type,
           map: entry.map,
           indexes: entry.indexed === true ? undefined : new Set(entry.indexed),
-          defaultIndex: entry.defaultIndex,
+          defaultIndex: entry.defaultIndex
         });
       } else {
         this.resolvedSimVars.set(topic, { ...entry });
@@ -266,7 +270,7 @@ export class SimVarPublisher<Events extends Record<string, any>, IndexedEventRoo
       name: entry.name.replace('#index#', `${index ?? 1}`),
       type: entry.type,
       map: entry.map,
-      unsuffixedTopic: defaultIndex === index ? topic : undefined
+      unsuffixedTopic: defaultIndex === index ? topic : undefined,
     });
 
     return resolvedTopic;
@@ -280,51 +284,32 @@ export class SimVarPublisher<Events extends Record<string, any>, IndexedEventRoo
     if (this.subscribed.has(topic)) {
       return;
     }
-
-    this.subscribed.add(topic);
+    const resSimVar = this.resolvedSimVars.get(topic)!;
+    resSimVar.registeredDef = ResolveRegisteredSimVar(resSimVar, true);
+    this.subscribed.set(topic, resSimVar);
 
     // Immediately publish the current value if publishing is active.
     if (this.publishActive) {
-      this.publishTopic(topic);
+      this.publishTopic(topic, resSimVar);
     }
-  }
-
-  /**
-   * NOOP - For backwards compatibility.
-   * @deprecated
-   * @param data Key of the event type in the simVarMap
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public subscribe(data: keyof Events): void {
-    return;
-  }
-
-  /**
-   * NOOP - For backwards compatibility.
-   * @deprecated
-   * @param data Key of the event type in the simVarMap
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public unsubscribe(data: keyof Events): void {
-    return;
   }
 
   /**
    * Publish all subscribed data points to the bus.
    */
   public onUpdate(): void {
-    for (const topic of this.subscribed.values()) {
-      this.publishTopic(topic);
+    for (const topicAndEntry of this.subscribed) {
+      this.publishTopic(topicAndEntry[0], topicAndEntry[1]);
     }
   }
 
   /**
    * Publishes data to the event bus for a topic.
    * @param topic The topic to publish.
+   * @param entry The entry corresponding to the topic
    */
-  protected publishTopic(topic: keyof Events & string): void {
-    const entry = this.resolvedSimVars.get(topic);
-    if (entry !== undefined) {
+  protected publishTopic(topic: keyof Events & string, entry: ResolvedSimVarPublisherEntry<any> | undefined): void {
+    if (entry) {
       const value = this.getValueFromEntry(entry);
       this.publish(topic, value);
 
@@ -356,24 +341,10 @@ export class SimVarPublisher<Events extends Record<string, any>, IndexedEventRoo
    */
   protected getValueFromEntry<T>(entry: ResolvedSimVarPublisherEntry<T>): T {
     return entry.map === undefined
-      ? this.getSimVarValue(entry)
-      : entry.map(this.getSimVarValue(entry));
-  }
-
-  /**
-   * Gets the value of the SimVar
-   * @param entry The SimVar definition entry
-   * @returns The value of the SimVar
-   */
-  private getSimVarValue(entry: ResolvedSimVarPublisherEntry<any>): any {
-    const svValue = SimVar.GetSimVarValue(entry.name, entry.type);
-    if (entry.type === SimVarValueType.Bool) {
-      return svValue === 1;
-    }
-    return svValue;
+      ? GetRegisteredSimVarValue(entry.registeredDef!)
+      : entry.map(GetRegisteredSimVarValue(entry.registeredDef!));
   }
 }
-
 
 /**
  * A base class for publishers that need to handle simvars with built-in
@@ -432,26 +403,6 @@ export class GameVarPublisher<E extends Record<string, any>> extends BasePublish
   }
 
   /**
-   * NOOP - For backwards compatibility.
-   * @deprecated
-   * @param data Key of the event type in the simVarMap
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public subscribe(data: keyof E): void {
-    return;
-  }
-
-  /**
-   * NOOP - For backwards compatibility.
-   * @deprecated
-   * @param data Key of the event type in the simVarMap
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public unsubscribe(data: keyof E): void {
-    return;
-  }
-
-  /**
    * Publish all subscribed data points to the bus.
    */
   public onUpdate(): void {
@@ -500,4 +451,3 @@ export class GameVarPublisher<E extends Record<string, any>> extends BasePublish
     return svValue;
   }
 }
-

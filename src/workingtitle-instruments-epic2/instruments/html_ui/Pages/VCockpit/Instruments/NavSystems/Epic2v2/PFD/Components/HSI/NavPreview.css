@@ -1,0 +1,34 @@
+.nav-preview-container {
+  position: absolute;
+  top: 494px;
+  right: 16px;
+  font-size: 24px;
+}
+
+.nav-preview-container .preview-source-and-course-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: -6px;
+}
+
+.nav-preview-container .preview-source {
+  margin-right: 12px;
+}
+
+.nav-preview-container .preview-source-dme-container {
+  display: flex;
+}
+
+.nav-preview-container .preview-dme-unit {
+  margin-left: 4px;
+}
+
+.nav-preview-container .preview-dme-hold {
+  color: var(--epic2-color-amber);
+  margin-left: 4px;
+}
+
+.nav-preview-container .dme-h-hidden {
+  visibility: hidden;
+}

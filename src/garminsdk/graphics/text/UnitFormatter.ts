@@ -8,7 +8,9 @@ import { Unit, UnitFamily, UnitType } from '@microsoft/msfs-sdk';
 export class UnitFormatter {
   private static readonly UNIT_TEXT: Partial<Record<string, Partial<Record<string, string>>>> = {
     [UnitFamily.Distance]: {
+      [UnitType.CENTIMETER.name]: 'CM',
       [UnitType.METER.name]: 'M',
+      [UnitType.INCH.name]: 'IN',
       [UnitType.FOOT.name]: 'FT',
       [UnitType.KILOMETER.name]: 'KM',
       [UnitType.NMILE.name]: 'NM',

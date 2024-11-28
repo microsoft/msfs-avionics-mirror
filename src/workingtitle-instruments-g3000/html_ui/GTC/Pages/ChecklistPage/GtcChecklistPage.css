@@ -1,0 +1,73 @@
+.checklist-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .checklist-page {
+  font-size: 30px;
+
+  --checklist-page-tab-container-top: 45px;
+  --checklist-page-tab-container-width: 860px;
+  --checklist-page-tab-container-height: 710px;
+
+  --checklist-page-tab-padding: 0px 10px;
+
+  --checklist-page-tab-list-button-label-padding: 0px 10px;
+
+  --checklist-page-options-button-width: 172px;
+  --checklist-page-options-button-height: 132px;
+}
+
+.gtc-vertical .checklist-page {
+  font-size: 16px;
+
+  --checklist-page-tab-container-top: 25px;
+  --checklist-page-tab-container-width: 470px;
+  --checklist-page-tab-container-height: 380px;
+
+  --checklist-page-tab-padding: 0px 5px;
+
+  --checklist-page-tab-list-button-label-padding: 0px 5px;
+
+  --checklist-page-options-button-width: 94px;
+  --checklist-page-options-button-height: 68px;
+}
+
+.checklist-page-tab-container {
+  position: absolute;
+  left: calc(50% - var(--checklist-page-tab-container-width) / 2);
+  top: var(--checklist-page-tab-container-top);
+  width: var(--checklist-page-tab-container-width);
+  height: var(--checklist-page-tab-container-height);
+}
+
+.checklist-page-tab {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--checklist-page-tab-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.checklist-page-tab-list-button .touch-button-label {
+  padding: var(--checklist-page-tab-list-button-label-padding);
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+.checklist-page-options-button {
+  position: absolute;
+  right: calc(50% - var(--checklist-page-tab-container-width) / 2);
+  bottom: calc(100% - var(--checklist-page-tab-container-top) - var(--checklist-page-tab-container-height) + var(--gtc-tabbed-container-content-border-radius));
+  width: var(--checklist-page-options-button-width);
+  height: var(--checklist-page-options-button-height);
+}

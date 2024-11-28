@@ -1,0 +1,88 @@
+.expanded-localizer-outer-container {
+  position: absolute;
+  top: 400px;
+  left: 243px;
+  height: 30px;
+  width: 135px;
+}
+
+.expanded-localizer-outer-container .loc-back-course-label {
+  position: relative;
+  height: 15px;
+  width: 15px;
+  left: 2px;
+  top: 8px;
+  font-size: 15px;
+  color: var(--epic2-color-white);
+}
+
+.expanded-localizer-outer-container .expanded-localizer-inner-container {
+  position: absolute;
+  height: 30px;
+  width: 98px;
+  top: 0;
+  left: 17px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+
+.expanded-localizer-inner-container .loc-failed-overlay {
+  stroke: var(--epic2-color-red);
+  stroke-width: 3px;
+  fill: none;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.expanded-localizer-inner-container .loc-deviation-pip-container {
+  position: absolute;
+  display: flex;
+  top: 8px;
+  flex-direction: row;
+  width: 82px;
+  justify-content: space-between;
+}
+
+.loc-deviation-pip-container .loc-deviation-pip {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--epic2-color-white);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .5);
+}
+
+.loc-deviation-pip-container .loc-deviation-middle-pip {
+  width: 10px;
+  height: 12px;
+  background: var(--epic2-color-white);
+  border: 1px solid var(--epic2-color-black);
+  border-radius: 1px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .2);
+}
+
+.expanded-localizer-inner-container .loc-deviation-arrow {
+  position: absolute;
+  left: calc(50% - 8px);
+  fill: var(--epic2-color-white);
+  stroke: var(--epic2-color-black);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.expanded-localizer-inner-container .loc-deviation-arrow.magenta {
+  fill: var(--epic2-color-magenta);
+}
+
+.expanded-localizer-inner-container .loc-deviation-arrow.cyan {
+  fill: var(--epic2-color-cyan);
+}
+
+.loc-deviation-arrow svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}

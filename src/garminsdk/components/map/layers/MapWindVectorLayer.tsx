@@ -86,7 +86,7 @@ export class MapWindVectorLayer extends MapLayer<MapWindVectorLayerProps> {
 
   /** @inheritdoc */
   public onMapProjectionChanged(mapProjection: MapProjection, changeFlags: number): void {
-    this.needUpdateArrow = BitFlags.isAny(changeFlags, MapProjectionChangeType.Rotation);
+    this.needUpdateArrow ||= BitFlags.isAny(changeFlags, MapProjectionChangeType.Rotation);
   }
 
   /** @inheritdoc */

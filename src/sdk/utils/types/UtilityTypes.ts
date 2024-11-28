@@ -1,3 +1,11 @@
+/**
+ * Applies the `readonly` modifier recursively to all properties of a type. Primitive types are left unchanged.
+ * Array types are converted to their `readonly` versions.
+ */
+export type DeepReadonly<T> = T extends (infer U)[] ? readonly DeepReadonly<U>[] : {
+  readonly [P in keyof T as P]: DeepReadonly<T[P]>;
+};
+
 /** Takes a number type from 1 to 8 and returns a union type ranging from 1 to E inclusive, 8 is the limit. */
 export type NumberToRangeUnion<E extends number | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8> =
   E extends 1 ? 1

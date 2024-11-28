@@ -19,14 +19,6 @@ export interface SubEventInterface<SenderType, DataType> {
   on(handler: (sender: SenderType, data: DataType) => void, paused?: boolean): Subscription;
 
   /**
-   * Unsubscribes a callback function from this event.
-   * @param handler The function to unsubscribe.
-   * @deprecated This method has been deprecated in favor of using the {@link Subscription} object returned by `.on()`
-   * to manage subscriptions.
-   */
-  off(handler: (sender: SenderType, data: DataType) => void): void;
-
-  /**
    * Clears all subscriptions to this event.
    */
   clear(): void;
@@ -61,12 +53,6 @@ export class SubEvent<SenderType, DataType> implements SubEventInterface<SenderT
   }
 
   /** @inheritdoc */
-  public off(handler: (sender: SenderType, data: DataType) => void): void {
-    const toDestroy = this.subs.find(sub => sub.handler === handler);
-    toDestroy?.destroy();
-  }
-
-  /** @inheritdoc */
   public clear(): void {
     this.notifyDepth++;
     for (let i = 0; i < this.subs.length; i++) {
@@ -88,7 +74,7 @@ export class SubEvent<SenderType, DataType> implements SubEventInterface<SenderT
     for (let i = 0; i < subLen; i++) {
       try {
         const sub = this.subs[i];
-        if (sub.isAlive && !sub.isPaused) {
+        if (!sub.isPaused) {
           sub.handler(sender, data);
         }
 

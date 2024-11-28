@@ -1,0 +1,63 @@
+.pfd-settings-window {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.pfd-settings-window .next-prev-button {
+  position: relative;
+  height: 52px;
+  margin-left: 10px;
+  width: 95%;
+  padding: 14px;
+  border: 2px solid transparent;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  font-size: 18px;
+  stroke: var(--epic2-color-white);
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pfd-settings-window .next-prev-button:hover {
+  border-color: var(--epic2-color-cyan);
+  border-radius: 5px;
+}
+
+.pfd-settings-window .next-prev-button span {
+  margin-top: 9px;
+}
+
+.pfd-settings-window .next-prev-button svg {
+  margin-top: 6px;
+  margin-left: 10px;
+}
+
+.pfd-settings-window .pfd-status-title {
+  margin-left: 8px;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.pfd-settings-window .pfd-status-title span {
+  background: var(--epic2-color-dark-grey);
+  color: var(--epic2-color-green);
+  border: 2px solid var(--epic2-color-green);
+  border-radius: 5px;
+  padding: 8px;
+}
+
+.pfd-settings-window .pfd-status {
+  margin-left: 8px;
+  padding: 8px;
+  height: 216px;
+  font-size: 0.8em;
+}
+
+.pfd-settings-window .pfd-status li {
+  list-style-type: none;
+}

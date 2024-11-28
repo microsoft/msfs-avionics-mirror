@@ -1,0 +1,60 @@
+/* .departure-arrival-modal {} */
+
+.departure-arrival-modal-tabs {
+  height: 300px;
+}
+
+.departure-arrival-tabbed-content-container {
+  height: 100%;
+}
+
+.departure-arrival-modal .departure-arrival-origin {
+  font-size: 27px;
+  padding-top: 10px;
+  padding-left: 4px;
+}
+
+.departure-arrival-modal .departure-arrival-header {
+  display: flex;
+  position: relative;
+}
+
+.touch-button.departure-arrival-close-button {
+  margin-left: auto;
+  width: 57px;
+  height: 37px;
+  margin-top: 2px;
+}
+
+.touch-button.departure-arrival-view-toggle-button {
+  width: 79px;
+  height: 33px;
+  position: absolute;
+  right: 0;
+  top: 40px;
+  z-index: 3;
+}
+
+.departure-arrival-view-toggle-button .touch-button-checkbox-label {
+  margin-right: 4px;
+}
+
+.epic-tabby-tabs.departure-arrival-tabs {
+  padding-left: 8px;
+  margin-left: 0;
+  width: 100%;
+  justify-content: left;
+}
+
+.departure-arrival-tabs.style-a .touch-button {
+  margin-right: 0;
+  width: 126px;
+}
+
+.departure-arrival-tabs.style-a .touch-button-label {
+  font-size: 23px;
+}
+
+.departure-arrival-tabs.style-a .touch-button:nth-child(2) .touch-button-label {
+  padding: 0 23px
+}

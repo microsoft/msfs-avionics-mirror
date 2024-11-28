@@ -1,160 +1,122 @@
-import { AltitudeRestrictionType, FlightPlanLeg, OneWayRunway } from '../navigation';
+import { AltitudeRestrictionType, FlightPlanLeg, IcaoValue, OneWayRunway, SpeedRestrictionType } from '../navigation';
+import { FlightPathVector } from './flightpath/FlightPathVector';
 
 /**
- * A flight path vector turn direction.
+ * A record of indexes describing the location of a flight plan leg within a flight plan.
  */
-export type VectorTurnDirection = 'left' | 'right';
+export interface FlightPlanLegIndexes {
+  /** The index of the leg's containing segment. */
+  segmentIndex: number;
 
-/**
- * The transition type to which a flight path vector belongs.
- */
-export enum FlightPathVectorFlags {
-  None,
-
-  /** A turn to a specific course. */
-  TurnToCourse = 1 << 0,
-
-  /** An arcing turn to a specific point. */
-  Arc = 1 << 1,
-
-  /** A direct course to a specific point. */
-  Direct = 1 << 2,
-
-  /** A path to intercept a specific course. */
-  InterceptCourse = 1 << 3,
-
-  /** Inbound leg of a hold. */
-  HoldInboundLeg = 1 << 4,
-
-  /** Outbound leg of a hold. */
-  HoldOutboundLeg = 1 << 5,
-
-  /** A direct hold entry. */
-  HoldDirectEntry = 1 << 6,
-
-  /** A teardrop hold entry. */
-  HoldTeardropEntry = 1 << 7,
-
-  /** A parallel hold entry. */
-  HoldParallelEntry = 1 << 8,
-
-  /** A course reversal. */
-  CourseReversal = 1 << 9,
-
-  /** A turn from one leg to another. */
-  LegToLegTurn = 1 << 10,
-
-  /** An anticipated turn from one leg to another. */
-  AnticipatedTurn = 1 << 11,
-
-  /** A fallback path. */
-  Fallback = 1 << 12
+  /** The index of the leg in its containing segment. */
+  segmentLegIndex: number;
 }
-
-/**
- * A basic flight path vector.
- */
-export interface BaseFlightPathVector {
-  /** The type of vector. */
-  vectorType: string;
-
-  /** Bit flags describing the vector. */
-  flags: number;
-
-  /** The latitude of the start of the vector. */
-  startLat: number;
-
-  /** The longitude of the start of the vector. */
-  startLon: number;
-
-  /** The latitude of the end of the vector. */
-  endLat: number;
-
-  /** The longitude of the end of the vector. */
-  endLon: number;
-
-  /** The total distance of the vector, in meters. */
-  distance: number;
-}
-
-/**
- * A flight path vector whose path is defined by a geo circle.
- */
-export interface CircleVector extends BaseFlightPathVector {
-  /** The type of vector. */
-  vectorType: 'circle';
-
-  /** The radius of the circle, in great-arc radians. */
-  radius: number;
-
-  /** The x-coordinate of the center of the circle. */
-  centerX: number;
-
-  /** The y-coordinate of the center of the circle. */
-  centerY: number;
-
-  /** The z-coordinate of the center of the circle. */
-  centerZ: number;
-}
-
-/**
- * A flight path vector within a leg flight path calculation.
- */
-export type FlightPathVector = CircleVector;
 
 /**
  * The details of procedures selected in the flight plan.
  */
-export class ProcedureDetails {
-  // *********************************************************************************************************
-  // ******** When adding new fields, they MUST be initialized, even if it just gets set to undefined ********
-  // ******** This is so that it can be used with Object.keys()                                       ********
-  // *********************************************************************************************************
+export interface ProcedureDetails {
+  // **********************************************************************************************************
+  // ******** When adding new fields, they MUST be initialized in FlightPlan.createProcedureDetails(), ********
+  // ******** even if it just gets set to undefined. This is so that it can be used with Object.keys() ********
+  // **********************************************************************************************************
 
-  /** The origin runway object, consisting of the index of the origin runway
-   * in the origin runway information and the direction. */
-  public originRunway: OneWayRunway | undefined = undefined;
+  /** The selected origin runway. */
+  originRunway: OneWayRunway | undefined;
 
-  /** The ICAO for the facility associated with the departure procedure. */
-  public departureFacilityIcao: string | undefined = undefined;
+  /**
+   * The ICAO value of the airport facility associated with the flight plan's selected published departure procedure,
+   * or `undefined` if the flight plan does not have a selected published departure procedure.
+   */
+  departureFacilityIcaoStruct: IcaoValue | undefined;
 
-  /** The index of the departure in the origin airport information. */
-  public departureIndex = -1;
+  /**
+   * The ICAO string (V1) of the airport facility associated with the flight plan's selected published departure
+   * procedure, or `undefined` if the flight plan does not have a selected published departure procedure.
+   * @deprecated Please use `departureFacilityIcaoStruct` instead.
+   */
+  departureFacilityIcao: string | undefined;
 
-  /** The index of the departure transition in the origin airport departure information. */
-  public departureTransitionIndex = -1;
+  /**
+   * The index of the flight plan's selected published departure procedure in the departure airport's departures
+   * array, or `-1` if the flight plan does not have a selected published departure procedure.
+   */
+  departureIndex: number;
 
-  /** The index of the selected runway in the original airport departure information. */
-  public departureRunwayIndex = -1;
+  /**
+   * The index of the flight plan's selected published departure enroute transition in the departure procedure's
+   * enroute transitions array, or `-1` if the flight plan does not have a selected published departure enroute
+   * transition.
+   */
+  departureTransitionIndex: number;
 
-  /** The ICAO for the facility associated with the arrival procedure. */
-  public arrivalFacilityIcao: string | undefined = undefined;
+  /**
+   * The index of the flight plan's selected published departure runway transition in the departure procedure's runway
+   * transitions array, or `-1` if the flight plan does not have a selected published departure runway transition.
+   */
+  departureRunwayIndex: number;
 
-  /** The index of the arrival in the destination airport information. */
-  public arrivalIndex = -1;
+  /**
+   * The ICAO value of the airport facility associated with the flight plan's selected published arrival procedure,
+   * or `undefined` if the flight plan does not have a selected published arrival procedure.
+   */
+  arrivalFacilityIcaoStruct: IcaoValue | undefined;
 
-  /** The index of the arrival transition in the destination airport arrival information. */
-  public arrivalTransitionIndex = -1;
+  /**
+   * The ICAO string (V1) of the airport facility associated with the flight plan's selected published arrival
+   * procedure, or `undefined` if the flight plan does not have a selected published arrival procedure.
+   * @deprecated Please use `arrivalFacilityIcaoStruct` instead.
+   */
+  arrivalFacilityIcao: string | undefined;
 
-  /** The index of the selected runway transition at the destination airport arrival information. */
-  public arrivalRunwayTransitionIndex = -1;
+  /**
+   * The index of the flight plan's selected published arrival procedure in the arrival airport's arrivals array, or
+   * `-1` if the flight plan does not have a selected published arrival procedure.
+   */
+  arrivalIndex: number;
 
-  /** The arrival runway object, consisting of the index of the destination runway
-   * in the destination runway information and the direction. */
-  public arrivalRunway: OneWayRunway | undefined = undefined;
+  /**
+   * The index of the flight plan's selected published arrival enroute transition in the arrival procedure's enroute
+   * transitions array, or `-1` if the flight plan does not have a selected published arrival enroute transition.
+   */
+  arrivalTransitionIndex: number;
 
-  /** The ICAO for the facility associated with the approach procedure. */
-  public approachFacilityIcao: string | undefined = undefined;
+  /**
+   * The index of the flight plan's selected published arrival runway transition in the arrival procedure's runway
+   * transitions array, or `-1` if the flight plan does not have a selected published arrival runway transition.
+   */
+  arrivalRunwayTransitionIndex: number;
 
-  /** The index of the apporach in the destination airport information.*/
-  public approachIndex = -1;
+  /** The selected arrival procedure runway. */
+  arrivalRunway: OneWayRunway | undefined;
 
-  /** The index of the approach transition in the destination airport approach information.*/
-  public approachTransitionIndex = -1;
+  /**
+   * The ICAO value of the airport facility associated with the flight plan's selected published approach procedure,
+   * or `undefined` if the flight plan does not have a selected published approach procedure.
+   */
+  approachFacilityIcaoStruct: IcaoValue | undefined;
 
-  /** The destination runway object, consisting of the index of the destination runway
-   * in the destination runway information and the direction. */
-  public destinationRunway: OneWayRunway | undefined = undefined;
+  /**
+   * The ICAO string (V1) of the airport facility associated with the flight plan's selected published approach
+   * procedure, or `undefined` if the flight plan does not have a selected published approach procedure.
+   * @deprecated Please use `approachFacilityIcaoStruct` instead.
+   */
+  approachFacilityIcao: string | undefined;
+
+  /**
+   * The index of the flight plan's selected published approach procedure in the approach airport's approaches array,
+   * or `-1` if the flight plan does not have a selected published approach procedure.
+   */
+  approachIndex: number;
+
+  /**
+   * The index of the flight plan's selected published approach transition in the approach procedure's transitions
+   * array, or `-1` if the flight plan does not have a selected published approach transition.
+   */
+  approachTransitionIndex: number;
+
+  /** The selected destination runway. */
+  destinationRunway: OneWayRunway | undefined;
 }
 
 /**
@@ -205,16 +167,22 @@ export interface LegCalculations {
   /** The initial DTK of the leg in degrees magnetic. */
   initialDtk: number | undefined;
 
-  /** The leg's total distance in meters, not cut short by ingress/egress turn radii. */
+  /** The total distance of the leg's base flight path vectors, in meters. */
   distance: number;
 
-  /** The cumulative distance in meters up to this point in the flight plan. */
+  /**
+   * The total distance of the leg's base flight path vectors summed with those of all prior legs in the same flight
+   * plan, in meters.
+   */
   cumulativeDistance: number;
 
-  /** The leg's total distance in meters, with leg transition turns take into account. */
+  /** The total distance, of the leg's ingress, ingress-to-egress, and egress flight path vectors, in meters. */
   distanceWithTransitions: number;
 
-  /** The cumulative distance in meters up to this point, with leg transition turns taken into account. */
+  /**
+   * The total distance of the leg's ingress, ingress-to-egress, and egress flight path vectors summed with those of
+   * all prior legs in the same flight plan, in meters.
+   */
   cumulativeDistanceWithTransitions: number;
 
   /** The latitude of the start of the leg. */
@@ -229,7 +197,7 @@ export interface LegCalculations {
   /** The longitude of the end of the leg. */
   endLon: number | undefined;
 
-  /** The calculated flight path for the leg. */
+  /** The calculated base flight path for the leg. */
   flightPath: FlightPathVector[];
 
   /** The leg's flight path ingress transition. */
@@ -246,6 +214,9 @@ export interface LegCalculations {
 
   /** The leg's flight path egress transition. */
   egress: FlightPathVector[];
+
+  /** Whether the leg's flight path ends in a discontinuity. */
+  endsInDiscontinuity: boolean;
 
   /** Whether the leg's flight path ends in a fallback state. */
   endsInFallback: boolean;
@@ -324,15 +295,6 @@ export type SpeedConstraint = Pick<VerticalData, 'speedDesc' | 'speed' | 'speedU
 export enum SpeedUnit {
   IAS,
   MACH,
-}
-
-/** Types of speed restrictions on legs. */
-export enum SpeedRestrictionType {
-  Unused,
-  At,
-  AtOrAbove,
-  AtOrBelow,
-  Between,
 }
 
 /**

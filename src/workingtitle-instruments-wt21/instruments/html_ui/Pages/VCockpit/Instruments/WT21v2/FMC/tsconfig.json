@@ -1,0 +1,12 @@
+{
+  "extends": "../../../../../../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "build/workingtitle-instruments-wt21-v2/html_ui/Pages/VCockpit/Instruments/WT21v2/FMC"
+  },
+  "exclude": [
+    "Gulpfile.ts",
+    "**/node_modules",
+    "**/build",
+    "**/dist"
+  ]
+}

@@ -1,0 +1,9 @@
+.max-speed-bug {
+  position: absolute;
+  top: -3px;
+  height: 6px;
+  right: 15px;
+  width: 79px;
+
+  background: repeating-linear-gradient(135deg, var(--epic2-color-red), var(--epic2-color-red) 6px, var(--epic2-color-white) 6px, var(--epic2-color-white) 12px);
+}

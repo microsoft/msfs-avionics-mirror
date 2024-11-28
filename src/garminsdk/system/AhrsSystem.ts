@@ -1,7 +1,8 @@
 import {
-  AhrsEvents, AvionicsSystemState, AvionicsSystemStateEvent, BaseAhrsEvents, BasicAvionicsSystem, EventBus, EventBusMetaEvents, Subscription,
-  SystemPowerKey
+  AhrsEvents, AvionicsSystemState, AvionicsSystemStateEvent, BaseAhrsEvents, BasicAvionicsSystem, EventBus,
+  EventBusMetaEvents, Subject, Subscribable, Subscription, SystemPowerKey
 } from '@microsoft/msfs-sdk';
+
 import { AdcSystemEvents } from './AdcSystem';
 import { MagnetometerSystemEvents } from './MagnetometerSystem';
 
@@ -63,24 +64,24 @@ export class AhrsSystem extends BasicAvionicsSystem<AhrsSystemEvents> {
    * @param bus An instance of the event bus.
    * @param attitudeIndicatorIndex The index of the sim attitude indicator from which this AHRS derives its data.
    * @param directionIndicatorIndex The index of the sim direction indicator from which this AHRS derives its data.
-   * @param powerSource The {@link ElectricalEvents} topic or electricity logic element to which to connect the
-   * system's power.
+   * @param powerSource The source from which to retrieve the system's power state. Can be an event bus topic defined
+   * in {@link ElectricalEvents} with boolean-valued data, an XML logic element that evaluates to zero (false) or
+   * non-zero (true) values, or a boolean-valued subscribable. If not defined, then the system will be considered
+   * always powered on.
    */
-  constructor(
+  public constructor(
     index: number,
     bus: EventBus,
     private readonly attitudeIndicatorIndex: number,
     private readonly directionIndicatorIndex: number,
-    private readonly powerSource?: SystemPowerKey | CompositeLogicXMLElement,
+    powerSource?: SystemPowerKey | CompositeLogicXMLElement | Subscribable<boolean>,
   ) {
     super(index, bus, `ahrs_state_${index}` as const);
 
-    if (this.powerSource !== undefined) {
-      this.connectToPower(this.powerSource);
-    }
-
     this.publisher.pub(`ahrs_heading_data_valid_${index}`, this.isHeadingDataValid);
     this.publisher.pub(`ahrs_attitude_data_valid_${index}`, this.isAttitudeDataValid);
+
+    this.connectToPower(powerSource ?? Subject.create(true));
 
     this.bus.getSubscriber<MagnetometerSystemEvents>()
       .on(`magnetometer_state_${index}`)

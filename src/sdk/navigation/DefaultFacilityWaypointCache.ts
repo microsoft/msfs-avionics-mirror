@@ -1,6 +1,8 @@
 import { EventBus } from '../data/EventBus';
-import { Facility, FacilityType, FacilityUtils, ICAO } from './Facilities';
+import { Facility, FacilityType } from './Facilities';
+import { FacilityUtils } from './FacilityUtils';
 import { FacilityWaypointCache } from './FacilityWaypointCache';
+import { ICAO } from './IcaoUtils';
 import { BasicFacilityWaypoint, FacilityWaypoint } from './Waypoint';
 
 /**

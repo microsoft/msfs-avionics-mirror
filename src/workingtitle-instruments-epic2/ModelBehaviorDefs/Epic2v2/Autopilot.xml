@@ -1,0 +1,442 @@
+<ModelBehaviors>
+	<Include ModelBehaviorFile="ASOBO\Inputs\Helpers.xml" />
+	<Include RelativeFile="Generic.xml" />
+
+	<!--
+		Defines an autopilot panel to use with the Epic2
+	-->
+	<Template Name="WT_Epic2_Autopilot_Panel_Template">
+		<Parameters Type="Default">
+			<ID>1</ID>
+			<HAS_AUTOTHROTTLE>True</HAS_AUTOTHROTTLE>
+		</Parameters>
+		<Parameters Type="Default">
+			<Condition Valid="HAS_AUTOTHROTTLE">
+				<True>
+					<NODE_COUNT>21</NODE_COUNT>
+				</True>
+				<False>
+					<NODE_COUNT>20</NODE_COUNT>
+				</False>
+			</Condition>
+
+			<NODE_ID_1>Knob_VerticalSpeed</NODE_ID_1>
+			<NODE_ID_2>Knob_Heading</NODE_ID_2>
+			<NODE_ID_3>Knob_SpeedMach</NODE_ID_3>
+			<NODE_ID_4>Knob_Altitude_100</NODE_ID_4>
+			<NODE_ID_5>Knob_Altitude_1000</NODE_ID_5>
+			<NODE_ID_6>Knob_Minimums</NODE_ID_6>
+			<NODE_ID_7>Switch_Heading_Track</NODE_ID_7>
+			<NODE_ID_8>Push_Bank</NODE_ID_8>
+			<NODE_ID_9>Push_Approach</NODE_ID_9>
+			<NODE_ID_10>Push_Heading</NODE_ID_10>
+			<NODE_ID_11>Push_Navigation</NODE_ID_11>
+			<NODE_ID_12>Switch_Speed_Mode</NODE_ID_12>
+			<NODE_ID_13>Push_VerticalSpeed</NODE_ID_13>
+			<NODE_ID_14>Push_FlightLevelChange</NODE_ID_14>
+			<NODE_ID_15>Push_Altitude</NODE_ID_15>
+			<NODE_ID_16>Push_VerticalNavigation</NODE_ID_16>
+			<NODE_ID_17>Push_FlightDirector</NODE_ID_17>
+			<NODE_ID_18>Push_FlightDirector_Coupling</NODE_ID_18>
+			<NODE_ID_19>Push_Autopilot</NODE_ID_19>
+			<NODE_ID_20>Push_YawDamper</NODE_ID_20>
+			<NODE_ID_21>Push_Autothrottle</NODE_ID_21>
+		</Parameters>
+		<Parameters Type="Override">
+			<HAS_PUSH_KNOB_HEADING>True</HAS_PUSH_KNOB_HEADING>
+			<HAS_PUSH_KNOB_SPEEDMACH>True</HAS_PUSH_KNOB_SPEEDMACH>
+		</Parameters>
+
+		<Loop>
+			<Setup>
+				<Param>CUR_ID</Param>
+				<From>1</From>
+				<Inc>1</Inc>
+				<To>#NODE_COUNT#</To>
+			</Setup>
+			<Do>
+				<Parameters Type="Override">
+					<NODE_NAME Process="Param">NODE_ID_#CUR_ID#</NODE_NAME>
+				</Parameters>
+				<Parameters Type="Default">
+					<NODE_ID_#NODE_NAME#>AUTOPILOT_#NODE_NAME#_#ID#</NODE_ID_#NODE_NAME#>
+					<NODE_ID_STATUS_LIGHT_#NODE_NAME#>AUTOPILOT_#NODE_NAME#_Active_#ID#</NODE_ID_STATUS_LIGHT_#NODE_NAME#>
+					<HAS_PUSH_#NODE_NAME#>False</HAS_PUSH_#NODE_NAME#>
+				</Parameters>
+				<Parameters Type="Default">
+					<ANIM_NAME_#NODE_NAME# Process="Param">NODE_ID_#NODE_NAME#</ANIM_NAME_#NODE_NAME#>
+				</Parameters>
+				<Parameters Type="Override">
+					<NODE_ID Process="Param">NODE_ID_#NODE_NAME#</NODE_ID>
+					<ANIM_NAME Process="Param">ANIM_NAME_#NODE_NAME#</ANIM_NAME>
+					<ACTIVE_NODE_ID Process="Param">NODE_ID_STATUS_LIGHT_#NODE_NAME#</ACTIVE_NODE_ID>
+					<HAS_PUSH Process="Param">HAS_PUSH_#NODE_NAME#</HAS_PUSH>
+				</Parameters>
+				<Parameters Type="Default">
+					<ANIM_NAME_PUSH_#NODE_NAME#>#ANIM_NAME#_Push</ANIM_NAME_PUSH_#NODE_NAME#>
+				</Parameters>
+
+				<UseTemplate Name="WT_Epic2_Autopilot_#NODE_NAME#_Template">
+					<DONT_APPEND_ID>True</DONT_APPEND_ID>
+
+					<Condition Valid="HAS_PUSH">
+						<True>
+							<ANIM_NAME_PUSH Process="Param">ANIM_NAME_PUSH_#NODE_NAME#</ANIM_NAME_PUSH>
+						</True>
+					</Condition>
+				</UseTemplate>
+			</Do>
+		</Loop>
+
+		<!-- HDG/T Button -->
+		<!-- <UseTemplate Name="ASOBO_AUTOPILOT_Push_Heading_Template">
+			<NODE_ID>#NODE_ID_PUSH_HEADING#</NODE_ID>
+			<ACTIVE_NODE_ID>#NODE_ID_STATUS_LIGHT_PUSH_HEADING#</ACTIVE_NODE_ID>
+			<EMISSIVE_NODE_ID>#NODE_ID_PUSH_HEADING#_Text</EMISSIVE_NODE_ID>
+		</UseTemplate> -->
+	</Template>
+
+	<!--
+		A generic horizontal switch used by the Epic2 autopilot.
+		Required parameters:
+	 		- NODE_ID
+	-->
+	<Template Name="WT_Epic2_Autopilot_Switch_Template">
+		<Parameters Type="Default">
+			<NODE_ID></NODE_ID>
+
+			<DONT_APPEND_ID>True</DONT_APPEND_ID>
+			<CODE_ON></CODE_ON>
+			<CODE_OFF></CODE_OFF>
+			<WWISE_EVENT_1>epic2_wwise_event_on</WWISE_EVENT_1>
+			<WWISE_EVENT_2>epic2_wwise_event_off</WWISE_EVENT_2>
+		</Parameters>
+		<Parameters Type="Default">
+			<ANIM_NAME>#NODE_ID#</ANIM_NAME>
+			<IE_NAME>#NODE_ID#</IE_NAME>
+		</Parameters>
+		<Parameters Type="Default">
+			<VAR_NAME>XMLVAR_#IE_NAME#</VAR_NAME>
+			<TT_DESCRIPTION>@TT_Package.EPIC2_AP_#IE_NAME#_ACTION</TT_DESCRIPTION>
+			<TOOLTIP_TITLE>@TT_Package.EPIC2_AP_#IE_NAME#_TITLE</TOOLTIP_TITLE>
+
+			<TT_VALUE_ON>@TT_Package.EPIC2_AP_#IE_NAME#_ON_VALUE</TT_VALUE_ON>
+			<TT_VALUE_OFF>@TT_Package.EPIC2_AP_#IE_NAME#_OFF_VALUE</TT_VALUE_OFF>
+		</Parameters>
+		<Parameters Type="Default">
+			<GET_STATE_EXTERNAL>(L:#VAR_NAME#) sp0</GET_STATE_EXTERNAL>
+		</Parameters>
+		<UseTemplate Name="ASOBO_INSTRUMENT_Base_Template">
+			<INTERACTION_TYPE>Switch</INTERACTION_TYPE>
+			<SWITCH_DIRECTION>Horizontal</SWITCH_DIRECTION>
+
+			<SET_STATE_ON>#CODE_ON# 1 (&gt;L:#VAR_NAME#)</SET_STATE_ON>
+			<SET_STATE_OFF>#CODE_OFF# 0 (&gt;L:#VAR_NAME#)</SET_STATE_OFF>
+		</UseTemplate>
+	</Template>
+
+	<!--
+		Defines the behaviour of the flight director/ap coupling button and indicators.
+		The Lvar values should be a bitmask as follows:
+		- 1: left
+		- 2: right
+		Therefore 3 = both for dual-coupled ILS approaches (the button can't change the coupling in that state).
+	-->
+	<Template Name="WT_Epic2_Autopilot_Push_FlightDirector_Coupling_Template">
+		<Parameters Type="Default">
+			<NODE_ID>AUTOPILOT_Push_FlightDirectorCoupling</NODE_ID>
+			<IE_NAME>Autopilot_LR</IE_NAME>
+
+			<INTERACTION_TYPE>Push</INTERACTION_TYPE>
+			<DONT_APPEND_ID>True</DONT_APPEND_ID>
+			<WWISE_EVENT_1>epic2_wwise_event_on</WWISE_EVENT_1>
+			<WWISE_EVENT_2>epic2_wwise_event_off</WWISE_EVENT_2>
+		</Parameters>
+		<Parameters Type="Default">
+			<ANIM_NAME>#NODE_ID#</ANIM_NAME>
+			<VAR_NAME>XMLVAR_#IE_NAME#</VAR_NAME>
+
+			<TT_DESCRIPTION_ID>@TT_Package.COCKPIT.TOOLTIPSV2.EPIC2_AP_FD_COUPLING_ACTION</TT_DESCRIPTION_ID>
+			<TOOLTIP_TITLE>@TT_Package.COCKPIT.TOOLTIPSV2.EPIC2_AP_FD_COUPLING_TITLE</TOOLTIP_TITLE>
+			<TT_VALUE>(R:1:@TT_Package.GT_STATE_BOTH) (R:1:@TT_Package.GT_STATE_RIGHT) (R:1:@TT_Package.GT_STATE_LEFT) (R:1:@TT_Package.GT_STATE_OFF) 4 (L:XMLVAR_AUTOPILOT_LR) case</TT_VALUE>
+		</Parameters>
+		<Component ID="#NODE_ID#">
+			<UseTemplate Name="ASOBO_INSTRUMENT_Base_Template">
+				<SET_STATE_ON>(L:#VAR_NAME#) 3 &lt; if{ 2 (&gt;L:#VAR_NAME#) }</SET_STATE_ON>
+				<SET_STATE_OFF>(L:#VAR_NAME#) 3 &lt; if{ 1 (&gt;L:#VAR_NAME#) }</SET_STATE_OFF>
+				<GET_STATE_EXTERNAL>(L:#VAR_NAME#) 1 &gt; sp0</GET_STATE_EXTERNAL>
+				<COMP_INIT_CODE>1 (&gt;L:#VAR_NAME#)</COMP_INIT_CODE>
+			</UseTemplate>
+		</Component>
+		<Component ID="#NODE_ID#_L" Node="#NODE_ID#_Active_L">
+			<UseTemplate Name="ASOBO_GT_Emissive_Gauge">
+				<EMISSIVE_CODE>(L:#VAR_NAME#) 1 &amp;</EMISSIVE_CODE>
+			</UseTemplate>
+		</Component>
+		<Component ID="#NODE_ID#_Active_R" Node="#NODE_ID#_Active_R">
+			<UseTemplate Name="ASOBO_GT_Emissive_Gauge">
+				<EMISSIVE_CODE>(L:#VAR_NAME#) 2 &amp; 0 &gt;</EMISSIVE_CODE>
+			</UseTemplate>
+		</Component>
+	</Template>
+
+	<!--
+		Defines the behaviour of a heading/track knob with push to sync.
+	-->
+	<Template Name="WT_Epic2_Autopilot_Knob_Heading_Template">
+		<Component ID="#NODE_ID#" Node="#NODE_ID#">
+			<Parameters Type="Default">
+				<KNOB_ID>Heading</KNOB_ID>
+				<HEADING_INDEX>1</HEADING_INDEX>
+			</Parameters>
+			<Parameters Type="Default">
+				<ANIM_NAME_KNOB>#ANIM_NAME#</ANIM_NAME_KNOB>
+				<ANIM_NAME_PUSH>#ANIM_NAME#_PUSH</ANIM_NAME_PUSH>
+			</Parameters>
+
+			<UseTemplate Name="ASOBO_AUTOPILOT_Push_Event_Only_Template">
+				<BTN_ID>Heading_Sync</BTN_ID>
+				<EVENT_TYPE>PUSH</EVENT_TYPE>
+				<SET_STATE_EXTERNAL>(&gt;H:AP_HEADING_SYNC)</SET_STATE_EXTERNAL>
+				<TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_PUSH_HEADING_ACTION_HOLD</TT_DESCRIPTION_ID>
+			</UseTemplate>
+
+			<!-- knob -->
+			<UseTemplate Name="ASOBO_AUTOPILOT_Knob_Template">
+				<TYPE>PUSH</TYPE>
+				<ADDITIONAL_EVENT_TYPE>PUSH</ADDITIONAL_EVENT_TYPE>
+				<BTN_ID_EXTERNAL>Heading_Sync</BTN_ID_EXTERNAL>
+				<SET_STATE_EXTERNAL>1 -1 p0 0 &gt; ? sp0 #HEADING_INDEX# (A:AUTOPILOT HEADING LOCK DIR:#HEADING_INDEX#, degrees) 1 l0 * + dnor (&gt;K:2:HEADING_BUG_SET)</SET_STATE_EXTERNAL>
+
+				<TOOLTIP_TITLE>@TT_Package.AUTOPILOT_KNOB_HEADING_TITLE</TOOLTIP_TITLE>
+				<TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_KNOB_HEADING_ACTION_SET_ADJUST</TT_DESCRIPTION_ID>
+				<GET_TT_VALUE_STATE>360 (A:AUTOPILOT HEADING LOCK DIR:#HEADING_INDEX#, degrees) d 0 == ? sp0</GET_TT_VALUE_STATE>
+				<FORMAT_VALUE>l0 '%d°' @sprintf</FORMAT_VALUE>
+
+				<WWISE_EVENT_1>autopilot_altitude_100_knob</WWISE_EVENT_1>
+				<WWISE_EVENT_2>autopilot_altitude_100_knob</WWISE_EVENT_2>
+				<WWISE_EVENT>autopilot_altitude_100_knob</WWISE_EVENT>
+			</UseTemplate>
+		</Component>
+	</Template>
+
+	<!--
+		Defines the behaviour of a yaw damper button that turns the AP off when YD is turned off.
+	-->
+	<Template Name="WT_Epic2_Autopilot_Push_YawDamper_Template">
+		<Parameters Type="Default">
+			<DEFAULT_NAME>YawDamper</DEFAULT_NAME>
+		</Parameters>
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_Template">
+			<EMISSIVE_SIMVAR_ACTIVE>AUTOPILOT YAW DAMPER</EMISSIVE_SIMVAR_ACTIVE>
+			<SIMVAR_TO_WATCH_0>AUTOPILOT YAW DAMPER</SIMVAR_TO_WATCH_0>
+			<SIM_STATE_IS_ON_EXTERNAL>l0</SIM_STATE_IS_ON_EXTERNAL>
+			<GET_STATE_EXTERNAL>(A:AUTOPILOT YAW DAMPER, Bool) sp0</GET_STATE_EXTERNAL>
+			<SET_STATE_EXTERNAL>p0 ! if{ (&gt;K:AUTOPILOT_OFF) } (&gt;K:YAW_DAMPER_TOGGLE)</SET_STATE_EXTERNAL>
+			<BTN_ID>YD_Button</BTN_ID>
+			<TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_PUSH_YAWDAMPER_ACTION_SET</TT_DESCRIPTION_ID>
+			<TOOLTIP_TITLE>@TT_Package.AUTOPILOT_PUSH_YAWDAMPER_TITLE</TOOLTIP_TITLE>
+		</UseTemplate>
+	</Template>
+
+	<!--
+		Defines the behaviour of a pitch wheel that adjusts VS when in VS mode, or pitch in PIT mode, or nothing otherwise.
+		An event is emitted if the wheel is turned while not in VS or PIT mode (H:AP_PITCH_WHEEL_TURNED) for the AP to act on.
+	-->
+	<!-- FIXME need this in systems.cfg autopilot section:
+		min_vertical_speed_ref=-5000
+		max_vertical_speed_ref=5000
+	-->
+	<Template Name="WT_Epic2_Autopilot_Knob_VerticalSpeed_Template">
+		<Parameters Type="Default">
+			<NODE_ID>AUTOPILOT_Knob_VerticalSpeed_#ID#</NODE_ID>
+			<ANIM_NAME>AUTOPILOT_Knob_VerticalSpeed_#ID#</ANIM_NAME>
+			<PART_ID>AUTOPILOT_Knob_VerticalSpeed</PART_ID>
+			<WWISE_EVENT>autopilot_verticalspeed_knob</WWISE_EVENT>
+			<WWISE_EVENT_1>autopilot_knob_push_button_on</WWISE_EVENT_1>
+			<WWISE_EVENT_2>autopilot_knob_push_button_off</WWISE_EVENT_2>
+			<COUNT>36</COUNT>
+			<UP_DEC_DN_INC>True</UP_DEC_DN_INC>
+			<PITCH_INCREMENT>0.25</PITCH_INCREMENT>
+			<MAX_PITCH_KNOB>25</MAX_PITCH_KNOB>
+			<VS_INDEX>#ID#</VS_INDEX>
+			<VS_INCREMENT>100</VS_INCREMENT>
+			<MAX_VS>5000</MAX_VS>
+			<IS_WHEEL>True</IS_WHEEL>
+			<KNOB_ID>VerticalSpeed</KNOB_ID>
+		</Parameters>
+
+		<Component ID="#NODE_ID#" Node="#NODE_ID#">
+			<UseTemplate Name="ASOBO_AUTOPILOT_Knob_Template">
+				<TT_DESCRIPTION_ID>@TT_Package.AUTOPILOT_KNOB_VERTICALSPEED_ACTION_SET</TT_DESCRIPTION_ID>
+				<TOOLTIP_TITLE>@TT_Package.AUTOPILOT_KNOB_VERTICALSPEED_TITLE</TOOLTIP_TITLE>
+				<GET_TT_VALUE_STATE>(A:AUTOPILOT VERTICAL HOLD:#VS_INDEX#, Bool) sp2 (A:AUTOPILOT PITCH HOLD:#VS_INDEX#, Bool) s1 if{ (A:AUTOPILOT PITCH HOLD REF, degrees) neg } els{ (A:AUTOPILOT VERTICAL HOLD VAR:#VS_INDEX#, feet per minute) } sp0</GET_TT_VALUE_STATE>
+				<FORMAT_VALUE>l0 l1 if{ '%.2f °' (F:Format) } els{ l2 if{ '%d ft/min' (F:Format) } els{ 'N/A' } }</FORMAT_VALUE>
+				<SET_STATE_EXTERNAL>
+					1 -1 p0 0 &gt; s1 ? sp0
+					(A:AUTOPILOT VERTICAL HOLD:#VS_INDEX#, Bool) if{
+						#VS_INDEX# (A:AUTOPILOT VERTICAL HOLD VAR:#VS_INDEX#, feet per minute) #VS_INCREMENT# l0 * + (&gt;K:2:AP_VS_VAR_SET_ENGLISH)
+					} els{
+						(A:AUTOPILOT PITCH HOLD, Bool) if{
+							l1 if{ (&gt;K:AP_PITCH_REF_INC_UP) } els{ (&gt;K:AP_PITCH_REF_INC_DN) }
+						} els{
+							(&gt;H:AP_PITCH_WHEEL_TURNED)
+						}
+					}
+				</SET_STATE_EXTERNAL>
+				<SWITCH_DIRECTION>Vertical</SWITCH_DIRECTION>
+				<THRESHOLD_Y_MOUSE>0.005</THRESHOLD_Y_MOUSE>
+			</UseTemplate>
+		</Component>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Baro_Knob">
+		<Parameters Type="Default">
+			<BARO_ID>#ID#</BARO_ID>
+			<NODE_ID>AUTOPILOT_Knob_Baro_1_#ID#</NODE_ID>
+			<BTN_ID_EXTERNAL>Baro_#ID#_STD</BTN_ID_EXTERNAL>
+			<TT_DESCRIPTION_ID_BTN>@TT_Package.AUTOPILOT_KNOB_BARO_ACTION_SET_STD</TT_DESCRIPTION_ID_BTN>
+		</Parameters>
+		<Parameters Type="Default">
+			<ANIM_NAME>#NODE_ID#</ANIM_NAME>
+		</Parameters>
+
+		<UseTemplate Name="ASOBO_AUTOPILOT_Knob_Baro_Template">
+			<ADDITIONAL_EVENT_TYPE>PUSH</ADDITIONAL_EVENT_TYPE>
+			<BTN_SET_STATE_EXTERNAL>#BARO_ID# (&gt;K:BAROMETRIC_STD_PRESSURE)</BTN_SET_STATE_EXTERNAL>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Push_Autothrottle_Template">
+		<Parameters Type="Default">
+			<DEFAULT_NAME>AutoThrottle</DEFAULT_NAME>
+		</Parameters>
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_Template">
+			<GET_STATE_EXTERNAL>(L:WT_Epic2_Autothrottle_Status) sp0</GET_STATE_EXTERNAL>
+			<SIM_STATE_IS_ON_EXTERNAL>l0 1 &gt;</SIM_STATE_IS_ON_EXTERNAL>
+			<SET_STATE_EXTERNAL>0 (&gt;K:AUTO_THROTTLE_ARM)</SET_STATE_EXTERNAL>
+			<BTN_ID>#DEFAULT_NAME#</BTN_ID>
+			<TT_DESCRIPTION_ID>COCKPIT.TOOLTIPS.AUTOPILOT_PANEL_AUTOTHROTTLE_OFF</TT_DESCRIPTION_ID>
+			<TOOLTIP_TITLE>@TT_Package.AUTOPILOT_PUSH_AUTOTHROTTLE_TITLE</TOOLTIP_TITLE>
+			<TT_VALUE>(R:1:@TT_Package.GT_STATE_ON) (R:1:@TT_Package.GT_STATE_ARMED) (R:1:@TT_Package.GT_STATE_DISCONNECTED) (R:1:@TT_Package.GT_STATE_OFF) 4 (L:WT_Epic2_Autothrottle_Status) case</TT_VALUE>
+
+			<LOCAL_VAR_TO_WATCH_0>WT_Epic2_Autothrottle_Status</LOCAL_VAR_TO_WATCH_0>
+			<EMISSIVE_CODE_ACTIVE>(L:WT_Epic2_Autothrottle_Status) 3 ==</EMISSIVE_CODE_ACTIVE>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Push_Bank_Template">
+		<Parameters Type="Default">
+			<DEFAULT_NAME>Bank</DEFAULT_NAME>
+			<VAR_NAME>WT_Epic2_Half_Bank_Mode</VAR_NAME>
+		</Parameters>
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_Template">
+			<GET_STATE_EXTERNAL>(L:#VAR_NAME#) sp0</GET_STATE_EXTERNAL>
+			<SIM_STATE_IS_ON_EXTERNAL>l0 1 &gt;</SIM_STATE_IS_ON_EXTERNAL>
+			<SET_STATE_EXTERNAL>(L:#VAR_NAME#) ! (&gt;L:#VAR_NAME#)</SET_STATE_EXTERNAL>
+			<BTN_ID>#DEFAULT_NAME#</BTN_ID>
+			<TOOLTIP_TITLE>@TT_Package.EPIC2_AP_HALF_BANK_TITLE</TOOLTIP_TITLE>
+			<TT_DESCRIPTION_ID>@TT_Package.EPIC2_AP_HALF_BANK_ACTION</TT_DESCRIPTION_ID>
+			<LOCAL_VAR_TO_WATCH_0>#VAR_NAME#</LOCAL_VAR_TO_WATCH_0>
+			<EMISSIVE_CODE_ACTIVE>(L:#VAR_NAME#) 1 ==</EMISSIVE_CODE_ACTIVE>
+			<TT_VALUE>(L:#VAR_NAME#) 1 == if{ @TT_On } els{ @TT_Off }</TT_VALUE>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Switch_Heading_Track_Template">
+		<UseTemplate Name="WT_Epic2_Autopilot_Switch_Template">
+			<IE_NAME>HDG_TRK</IE_NAME>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Switch_Speed_Mode_Template">
+		<UseTemplate Name="WT_Epic2_Autopilot_Switch_Template">
+			<IE_NAME>FMS_MAN</IE_NAME>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Push_VerticalSpeed_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_VerticalSpeed_Template">
+			<TYPE>FLC_AIRSPEED</TYPE>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Knob_Altitude_100_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Knob_Altitude_Template">
+			<PUSH/>
+			<INCREMENT>100</INCREMENT>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Knob_Altitude_1000_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Knob_Altitude_Template">
+			<INCREMENT>1000</INCREMENT>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Knob_Minimums_Template">
+		<Parameters Type="Default">
+			<NODE_ID>AUTOPILOT_Knob_Minimums_#ID#</NODE_ID>
+		</Parameters>
+		<Parameters Type="Default">
+			<ANIM_NAME>#NODE_ID#</ANIM_NAME>
+			<ANIM_NAME_PUSH>#NODE_ID#_Push</ANIM_NAME_PUSH>
+		</Parameters>
+		<Parameters Type="Default">
+			<ANIM_NAME_KNOB_PUSH>#ANIM_NAME_PUSH#</ANIM_NAME_KNOB_PUSH>
+		</Parameters>
+		<UseTemplate Name="WT_Epic2_Infinite_Knob_Html_Template">
+			<HAS_PUSH />
+			<CLOCKWISE_HTML_EVENT>MINIMUMS_INC</CLOCKWISE_HTML_EVENT>
+			<ANTICLOCKWISE_HTML_EVENT>MINIMUMS_DEC</ANTICLOCKWISE_HTML_EVENT>
+			<PUSH_HTML_EVENT>MINIMUMS_PRESS</PUSH_HTML_EVENT>
+			<TOOLTIP_TITLE_IS_DYNAMIC>False</TOOLTIP_TITLE_IS_DYNAMIC>
+			<TT_DESCRIPTION_IS_DYNAMIC>False</TT_DESCRIPTION_IS_DYNAMIC>
+			<TOOLTIP_TITLE_KNOB>@TT_Package.AIRLINER_KNOB_BARO_KNOB_MINS_TITLE</TOOLTIP_TITLE_KNOB>
+			<TT_DESCRIPTION_ID_KNOB>@TT_Package.AIRLINER_KNOB_BARO_KNOB_MINS_ACTION</TT_DESCRIPTION_ID_KNOB>
+			<TT_DESCRIPTION_ID_KNOB_PUSH>@TT_Package.EPIC2_MINIMUMS_TOGGLE_ACTION</TT_DESCRIPTION_ID_KNOB_PUSH>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Push_Autopilot_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_Autopilot_Template">
+			<ON_AP_MASTER_SWITCH>YD_ON</ON_AP_MASTER_SWITCH>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Push_Approach_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_Approach_Template">
+			<NO_SIMVAR_LIGHT />
+			<SIMVAR_TO_WATCH_0>AUTOPILOT APPROACH HOLD</SIMVAR_TO_WATCH_0>
+			<SIMVAR_TO_WATCH_1>AUTOPILOT GLIDESLOPE HOLD</SIMVAR_TO_WATCH_1>
+		</UseTemplate>
+	</Template>
+
+	<Template Name="WT_Epic2_Autopilot_Knob_SpeedMach_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Knob_SpeedMach_Template">
+			<TYPE>PUSH</TYPE>
+		</UseTemplate>
+	</Template>
+
+	<!--
+		The below templates are wrappers for default templates, to make the loop easier to implement.
+	-->
+	<Template Name="WT_Epic2_Autopilot_Push_Heading_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_Heading_Template" />
+	</Template>
+	<Template Name="WT_Epic2_Autopilot_Push_Navigation_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_Navigation_Template" />
+	</Template>
+	<Template Name="WT_Epic2_Autopilot_Push_FlightLevelChange_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_FlightLevelChange_Template" />
+	</Template>
+	<Template Name="WT_Epic2_Autopilot_Push_VerticalNavigation_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_Vertical_Navigation_Template" />
+	</Template>
+	<Template Name="WT_Epic2_Autopilot_Push_Altitude_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_Altitude_Template" />
+	</Template>
+	<Template Name="WT_Epic2_Autopilot_Push_FlightDirector_Template">
+		<UseTemplate Name="ASOBO_AUTOPILOT_Push_FlightDirector_Template" />
+	</Template>
+</ModelBehaviors>

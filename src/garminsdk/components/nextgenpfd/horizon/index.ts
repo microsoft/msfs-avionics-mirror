@@ -10,5 +10,7 @@ export * from './HorizonLine';
 export * from './HorizonOcclusionArea';
 export * from './PitchLadder';
 export * from './RollIndicator';
+export * from './RollIndicatorScaleComponent';
+export * from './RollLimitIndicators';
 export * from './SyntheticVision';
 export * from './TcasRaPitchCueLayer';

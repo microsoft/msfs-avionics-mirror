@@ -63,15 +63,24 @@ export interface Publisher<E> {
   pub<K extends keyof E>(topic: K, data: E[K], sync?: boolean, isCached?: boolean): void;
 }
 
+
+/**
+ * A structure that holds both the subscriptions for a given topic, and its notify recursion depth
+ */
+type EventBusTopicSubscriptions = {
+  /** The subscriptions */
+  handlerSubscriptions: HandlerSubscription<Handler<any>>[];
+  /** Current recursion depth of notifications. Used to guard against destruction during recursion  */
+  notifyDepth: number;
+}
+
 /**
  * An event bus that can be used to publish data from backend
  * components and devices to consumers.
  */
 export class EventBus {
-  private _topicSubsMap = new Map<string, HandlerSubscription<Handler<any>>[]>();
+  private _topicSubsMap = new Map<string, EventBusTopicSubscriptions>();
   private _wildcardSubs = new Array<HandlerSubscription<WildcardHandler>>();
-
-  private _notifyDepthMap = new Map<string, number>();
   private _wildcardNotifyDepth = 0;
 
   private _eventCache = new Map<string, CachedEvent>();
@@ -114,7 +123,8 @@ export class EventBus {
     let subs = this._topicSubsMap.get(topic);
 
     if (subs === undefined) {
-      this._topicSubsMap.set(topic, subs = []);
+      subs = { handlerSubscriptions: [], notifyDepth: 0 };
+      this._topicSubsMap.set(topic, subs);
       this.pub('event_bus_topic_first_sub', topic, false, false);
     }
 
@@ -127,16 +137,13 @@ export class EventBus {
     const onDestroyFunc = (sub: HandlerSubscription<Handler<any>>): void => {
       // If we are not in the middle of a notify operation, remove the subscription.
       // Otherwise, do nothing and let the post-notify clean-up code handle it.
-      if ((this._notifyDepthMap.get(topic) ?? 0) === 0) {
-        const subsToSplice = this._topicSubsMap.get(topic);
-        if (subsToSplice) {
-          subsToSplice.splice(subsToSplice.indexOf(sub), 1);
-        }
+      if (subs && !subs.notifyDepth) {
+        subs.handlerSubscriptions.splice(subs.handlerSubscriptions.indexOf(sub), 1);
       }
     };
 
     const sub = new HandlerSubscription<Handler<any>>(handler, initialNotifyFunc, onDestroyFunc);
-    subs.push(sub);
+    subs.handlerSubscriptions.push(sub);
 
     if (paused) {
       sub.pause();
@@ -148,19 +155,6 @@ export class EventBus {
   }
 
   /**
-   * Unsubscribes a handler from the topic's events.
-   * @param topic The topic to unsubscribe from.
-   * @param handler The handler to unsubscribe from topic.
-   * @deprecated This method has been deprecated in favor of using the {@link Subscription} object returned by `.on()`
-   * to manage subscriptions.
-   */
-  public off(topic: string, handler: Handler<any>): void {
-    const handlers = this._topicSubsMap.get(topic);
-    const toDestroy = handlers?.find(sub => sub.handler === handler);
-    toDestroy?.destroy();
-  }
-
-  /**
    * Subscribes to all topics.
    * @param handler The handler to subscribe to all events.
    * @returns The new subscription.
@@ -169,17 +163,6 @@ export class EventBus {
     const sub = new HandlerSubscription<WildcardHandler>(handler, undefined, this.onWildcardSubDestroyedFunc);
     this._wildcardSubs.push(sub);
     return sub;
-  }
-
-  /**
-   * Unsubscribe the handler from all topics.
-   * @param handler The handler to unsubscribe from all events.
-   * @deprecated This method has been deprecated in favor of using the {@link Subscription} object returned by
-   * `.onAll()` to manage subscriptions.
-   */
-  public offAll(handler: WildcardHandler): void {
-    const toDestroy = this._wildcardSubs.find(sub => sub.handler === handler);
-    toDestroy?.destroy();
   }
 
   /**
@@ -199,14 +182,16 @@ export class EventBus {
 
       let needCleanUpSubs = false;
 
-      const notifyDepth = this._notifyDepthMap.get(topic) ?? 0;
-      this._notifyDepthMap.set(topic, notifyDepth + 1);
+      const notifyDepth = subs.notifyDepth;
+      subs.notifyDepth = notifyDepth + 1;
 
-      const len = subs.length;
+      const subsArray = subs.handlerSubscriptions;
+      const len = subsArray.length;
       for (let i = 0; i < len; i++) {
         try {
-          const sub = subs[i];
-          if (sub.isAlive && !sub.isPaused) {
+          const sub = subsArray[i];
+          // Note: a dead HandlerSubscription is necessarily paused.
+          if (!sub.isPaused) {
             sub.handler(data);
           }
 
@@ -220,11 +205,11 @@ export class EventBus {
         }
       }
 
-      this._notifyDepthMap.set(topic, notifyDepth);
+      subs.notifyDepth = notifyDepth;
 
       if (needCleanUpSubs && notifyDepth === 0) {
-        const filteredSubs = subs.filter(sub => sub.isAlive);
-        this._topicSubsMap.set(topic, filteredSubs);
+        const filteredSubs = subsArray.filter(sub => sub.isAlive);
+        subs.handlerSubscriptions = filteredSubs;
       }
     }
 
@@ -242,7 +227,7 @@ export class EventBus {
     const wcLen = this._wildcardSubs.length;
     for (let i = 0; i < wcLen; i++) {
       const sub = this._wildcardSubs[i];
-      if (sub.isAlive && !sub.isPaused) {
+      if (!sub.isPaused) {
         sub.handler(topic, data);
       }
 
@@ -311,7 +296,7 @@ export class EventBus {
    * @returns The number of subscribers.
    **/
   public getTopicSubscriberCount(topic: string): number {
-    return this._topicSubsMap.get(topic)?.length ?? 0;
+    return this._topicSubsMap.get(topic)?.handlerSubscriptions.length ?? 0;
   }
 
   /**
@@ -319,7 +304,7 @@ export class EventBus {
    * @param fn The function to execute.
    */
   public forEachSubscribedTopic(fn: (topic: string, subscriberCount: number) => void): void {
-    this._topicSubsMap.forEach((subs, topic) => { subs.length > 0 && fn(topic, subs.length); });
+    this._topicSubsMap.forEach((subs, topic) => { subs.handlerSubscriptions.length > 0 && fn(topic, subs.handlerSubscriptions.length); });
   }
 }
 

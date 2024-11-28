@@ -1,0 +1,42 @@
+.baro-selection {
+  position: absolute;
+  top: 396px;
+  left: 527px;
+  height: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 3px 0 10px;
+  width: 111px;
+}
+
+.baro-selection.std {
+  display: flex;
+  justify-content: center;
+  padding: 0 4px 0 4px;
+  width: 90px;
+}
+
+.baro-value {
+  position: relative;
+  font-size: 24px;
+  margin-top: 5px;
+  color: var(--epic2-color-white);
+  margin-left: 0;
+}
+
+.baro-value.invalid {
+  color: var(--epic2-color-amber);
+  margin-left: auto;
+}
+
+.baro-type {
+  position: relative;
+  font-size: 24px;
+  margin-top: 5px;
+  color: var(--epic2-color-grey);
+}
+
+.baro-type.invalid {
+  margin-left: auto;
+}

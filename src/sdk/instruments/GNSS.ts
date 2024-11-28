@@ -1,9 +1,9 @@
-/// <reference types="@microsoft/msfs-types/js/simplane" />
-
 import { EventBus, EventBusMetaEvents } from '../data/EventBus';
 import { PublishPacer } from '../data/EventBusPacer';
 import { SimVarValueType } from '../data/SimVars';
-import { NavMath } from '../geo';
+import { MagVar } from '../geo/MagVar';
+import { NavMath } from '../geo/NavMath';
+import { BitFlags } from '../math/BitFlags';
 import { Vec3Math } from '../math/VecMath';
 import { BasePublisher, SimVarPublisher } from './BasePublishers';
 
@@ -21,11 +21,32 @@ export interface GNSSEvents {
   /** The current time of day change event. */
   time_of_day: number;
 
-  /** The airplane's ground track, in degrees true north. */
+  /**
+   * The airplane's ground track, in degrees relative to true north. This value defaults to the last known valid ground
+   * track value if the current value cannot be computed due to low ground speed (less than or equal to 0.1 knots). If
+   * there is no last known valid ground track value, then the airplane's heading is used as the default instead.
+   */
   track_deg_true: number;
 
-  /** The airplane's ground track, in degrees magnetic north. */
+  /**
+   * The airplane's ground track, in degrees relative to magnetic north. This value defaults to the last known valid
+   * ground track value if the current value cannot be computed due to low ground speed (less than or equal to 0.1
+   * knots). If there is no last known valid ground track value, then the airplane's heading is used as the default
+   * instead.
+   */
   track_deg_magnetic: number;
+
+  /**
+   * The airplane's raw ground track, in degrees relative to true north. This value defaults to `NaN` when the
+   * airplane's ground speed is equal to zero.
+   */
+  raw_track_deg_true: number;
+
+  /**
+   * The airplane's raw ground track, in degrees relative to magnetic north. This value defaults to `NaN` when the
+   * airplane's ground speed is equal to zero.
+   */
+  raw_track_deg_magnetic: number;
 
   /** The airplane's ground speed, in knots. */
   ground_speed: number;
@@ -62,6 +83,17 @@ export interface GNSSEvents {
 }
 
 /**
+ * Bit flags describing ground track topics published by {@link GNSSPublisher}.
+ */
+enum TrackPublishFlag {
+  None = 0,
+  Gated = 1 << 0,
+  Raw = 1 << 1,
+  True = 1 << 2,
+  Magnetic = 1 << 3,
+}
+
+/**
  * A publisher for global positioning and inertial data.
  */
 export class GNSSPublisher extends BasePublisher<GNSSEvents> {
@@ -81,15 +113,45 @@ export class GNSSPublisher extends BasePublisher<GNSSEvents> {
     this.pacer
   );
 
+  private readonly registeredSimVarIds = {
+    latitude: SimVar.GetRegisteredId('PLANE LATITUDE', SimVarValueType.Degree, ''),
+    longitude: SimVar.GetRegisteredId('PLANE LONGITUDE', SimVarValueType.Degree, ''),
+    altitude: SimVar.GetRegisteredId('PLANE ALTITUDE', SimVarValueType.Meters, ''),
+
+    magVar: SimVar.GetRegisteredId('MAGVAR', SimVarValueType.Degree, ''),
+
+    heading: SimVar.GetRegisteredId('PLANE HEADING DEGREES TRUE', SimVarValueType.Degree, ''),
+
+    velocityWorldX: SimVar.GetRegisteredId('VELOCITY WORLD X', SimVarValueType.Knots, ''),
+    velocityWorldZ: SimVar.GetRegisteredId('VELOCITY WORLD Z', SimVarValueType.Knots, ''),
+
+    velocityBodyX: SimVar.GetRegisteredId('VELOCITY BODY X', SimVarValueType.MetersPerSecond, ''),
+    velocityBodyY: SimVar.GetRegisteredId('VELOCITY BODY Y', SimVarValueType.MetersPerSecond, ''),
+    velocityBodyZ: SimVar.GetRegisteredId('VELOCITY BODY Z', SimVarValueType.MetersPerSecond, ''),
+
+    accelerationBodyX: SimVar.GetRegisteredId('ACCELERATION BODY X', SimVarValueType.MetersPerSecond, ''),
+    accelerationBodyY: SimVar.GetRegisteredId('ACCELERATION BODY Y', SimVarValueType.MetersPerSecond, ''),
+    accelerationBodyZ: SimVar.GetRegisteredId('ACCELERATION BODY Z', SimVarValueType.MetersPerSecond, ''),
+  };
+
   private readonly needPublish = {
     'gps-position': false,
-    'track_deg_true': false,
-    'track_deg_magnetic': false,
     'magvar': false,
     'inertial_speed': false,
     'inertial_acceleration': false,
     'inertial_track_acceleration': false
   } as const;
+
+  private readonly trackTopicToPublishFlagsMap: Partial<Record<string, number>> = {
+    'track_deg_true': TrackPublishFlag.Gated | TrackPublishFlag.True,
+    'track_deg_magnetic': TrackPublishFlag.Gated | TrackPublishFlag.Magnetic,
+    'raw_track_deg_true': TrackPublishFlag.Raw | TrackPublishFlag.True,
+    'raw_track_deg_magnetic': TrackPublishFlag.Raw | TrackPublishFlag.Magnetic
+  };
+  private trackPublishFlags = TrackPublishFlag.None;
+
+  private prevGatedTrueTrack: number | undefined = undefined;
+  private prevGatedMagneticTrack: number | undefined = undefined;
 
   /**
    * Create an GNSSPublisher
@@ -101,6 +163,12 @@ export class GNSSPublisher extends BasePublisher<GNSSEvents> {
 
     for (const topic in this.needPublish) {
       (this.needPublish as any)[topic] = bus.getTopicSubscriberCount(topic) > 0;
+    }
+
+    for (const topic in this.trackTopicToPublishFlagsMap) {
+      if (bus.getTopicSubscriberCount(topic) > 0) {
+        this.trackPublishFlags |= (this.trackTopicToPublishFlagsMap as any)[topic];
+      }
     }
 
     bus.getSubscriber<EventBusMetaEvents>().on('event_bus_topic_first_sub').handle(this.onTopicSubscribed.bind(this));
@@ -119,14 +187,8 @@ export class GNSSPublisher extends BasePublisher<GNSSEvents> {
           case 'gps-position':
             this.publishPosition();
             break;
-          case 'track_deg_true':
-            this.publishTrack(true, false, false);
-            break;
-          case 'track_deg_magnetic':
-            this.publishTrack(false, true, false);
-            break;
           case 'magvar':
-            this.publishTrack(false, false, true);
+            this.publishTrack(TrackPublishFlag.None, true);
             break;
           case 'inertial_speed':
             this.publishInertialData(true, false, false);
@@ -138,6 +200,13 @@ export class GNSSPublisher extends BasePublisher<GNSSEvents> {
             this.publishInertialData(false, false, true);
             break;
         }
+      }
+    } else if (topic in this.trackTopicToPublishFlagsMap) {
+      const topicTrackPublishFlags = this.trackTopicToPublishFlagsMap[topic] as number;
+      this.trackPublishFlags |= topicTrackPublishFlags;
+
+      if (this.publishActive) {
+        this.publishTrack(topicTrackPublishFlags, false);
       }
     }
   }
@@ -160,11 +229,7 @@ export class GNSSPublisher extends BasePublisher<GNSSEvents> {
   public onUpdate(): void {
     this.needPublish['gps-position'] && this.publishPosition();
 
-    this.publishTrack(
-      this.needPublish['track_deg_true'],
-      this.needPublish['track_deg_magnetic'],
-      this.needPublish['magvar']
-    );
+    this.publishTrack(this.trackPublishFlags, this.needPublish['magvar']);
 
     this.publishInertialData(
       this.needPublish['inertial_speed'],
@@ -179,40 +244,59 @@ export class GNSSPublisher extends BasePublisher<GNSSEvents> {
    * Publishes the gps-position event.
    */
   private publishPosition(): void {
-    const lat = SimVar.GetSimVarValue('PLANE LATITUDE', SimVarValueType.Degree);
-    const lon = SimVar.GetSimVarValue('PLANE LONGITUDE', SimVarValueType.Degree);
-    const alt = SimVar.GetSimVarValue('PLANE ALTITUDE', SimVarValueType.Meters);
+    const lat = SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.latitude);
+    const lon = SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.longitude);
+    const alt = SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.altitude);
 
     this.publish('gps-position', new LatLongAlt(lat, lon, alt));
   }
 
   /**
-   * Publishes the `track_deg_true`, `track_deg_magnetic`, and `magvar` topics.
-   * @param publishTrue Whether to publish the `track_deg_true` topic.
-   * @param publishMagnetic Whether to publish the `track_deg_magnetic` topic.
+   * Publishes the `track_deg_true`, `raw_track_deg_true`, `track_deg_magnetic`, `raw_track_deg_magnetic`, and `magvar`
+   * topics.
+   * @param trackFlags Bit flags describing which of the track topics to publish.
    * @param publishMagvar Whether to publish the `magvar` topic.
    */
-  private publishTrack(publishTrue: boolean, publishMagnetic: boolean, publishMagvar: boolean): void {
-    let trueTrack = 0;
-    let magneticTrack = 0;
-    let magvar = 0;
+  private publishTrack(trackFlags: number, publishMagvar: boolean): void {
+    const velocityEW = SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.velocityWorldX);
+    const velocityNS = SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.velocityWorldZ);
 
-    if (publishTrue || publishMagnetic) {
-      const headingTrue = SimVar.GetSimVarValue('PLANE HEADING DEGREES TRUE', SimVarValueType.Degree);
-      trueTrack = GNSSPublisher.getInstantaneousTrack(headingTrue);
+    let trueTrackRaw = 0;
+
+    if (velocityEW === 0 && velocityNS === 0) {
+      trueTrackRaw = NaN;
+    } else {
+      trueTrackRaw = NavMath.normalizeHeading(Math.atan2(velocityEW, velocityNS) * Avionics.Utils.RAD2DEG);
     }
 
-    if (publishMagvar || publishMagnetic) {
-      magvar = SimVar.GetSimVarValue('MAGVAR', SimVarValueType.Degree);
+    const magVar = SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.magVar);
 
-      if (publishMagnetic) {
-        magneticTrack = NavMath.normalizeHeading(trueTrack - magvar);
-      }
+    if (velocityEW * velocityEW + velocityNS * velocityNS > 0.01) {
+      this.prevGatedTrueTrack = trueTrackRaw;
+    } else {
+      this.prevGatedTrueTrack ??= SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.heading) as number;
     }
 
-    publishTrue && this.publish('track_deg_true', trueTrack);
-    publishMagnetic && this.publish('track_deg_magnetic', magneticTrack);
-    publishMagvar && this.publish('magvar', magvar);
+    this.prevGatedMagneticTrack = MagVar.trueToMagnetic(this.prevGatedTrueTrack, magVar);
+
+    if (trackFlags === TrackPublishFlag.None) {
+      return;
+    }
+
+    const publishGated = BitFlags.isAll(trackFlags, TrackPublishFlag.Gated);
+    const publishRaw = BitFlags.isAll(trackFlags, TrackPublishFlag.Raw);
+    const publishTrue = BitFlags.isAll(trackFlags, TrackPublishFlag.True);
+    const publishMagnetic = BitFlags.isAll(trackFlags, TrackPublishFlag.Magnetic);
+
+    if (publishRaw) {
+      publishTrue && this.publish('raw_track_deg_true', trueTrackRaw);
+      publishMagnetic && this.publish('raw_track_deg_magnetic', MagVar.trueToMagnetic(trueTrackRaw, magVar));
+    }
+    if (publishGated) {
+      publishTrue && this.publish('track_deg_true', this.prevGatedTrueTrack);
+      publishMagnetic && this.publish('track_deg_magnetic', this.prevGatedMagneticTrack);
+    }
+    publishMagvar && this.publish('magvar', magVar);
   }
 
   /**
@@ -230,9 +314,9 @@ export class GNSSPublisher extends BasePublisher<GNSSEvents> {
 
     if (publishSpeed || publishTrackAcceleration) {
       Vec3Math.set(
-        SimVar.GetSimVarValue('VELOCITY BODY X', SimVarValueType.MetersPerSecond),
-        SimVar.GetSimVarValue('VELOCITY BODY Y', SimVarValueType.MetersPerSecond),
-        SimVar.GetSimVarValue('VELOCITY BODY Z', SimVarValueType.MetersPerSecond),
+        SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.velocityBodyX),
+        SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.velocityBodyY),
+        SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.velocityBodyZ),
         velocityVec
       );
 
@@ -241,9 +325,9 @@ export class GNSSPublisher extends BasePublisher<GNSSEvents> {
 
     if (publishAcceleration || publishTrackAcceleration) {
       Vec3Math.set(
-        SimVar.GetSimVarValue('ACCELERATION BODY X', SimVarValueType.MetersPerSecond),
-        SimVar.GetSimVarValue('ACCELERATION BODY Y', SimVarValueType.MetersPerSecond),
-        SimVar.GetSimVarValue('ACCELERATION BODY Z', SimVarValueType.MetersPerSecond),
+        SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.accelerationBodyX),
+        SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.accelerationBodyY),
+        SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.accelerationBodyZ),
         accelerationVec
       );
 
@@ -256,18 +340,26 @@ export class GNSSPublisher extends BasePublisher<GNSSEvents> {
   }
 
   /**
-   * Gets the instantaneous true track.
-   * @param headingTrue The true heading, in degrees.
-   * @returns The true track, in degrees.
+   * Gets the airplane's instantaneous true ground track, in degrees.
+   * @param defaultTrack The default value to return if the airplane's ground speed is less than the threshold. If not
+   * defined, then the airplane's true heading (obtained from the `PLANE HEADING DEGREES TRUE` SimVar) will be used as
+   * the default value.
+   * @param groundSpeedThreshold The ground speed, in knots, at or below which the default value is returned instead of
+   * the ground track.
+   * @returns The airplane's instantaneous true ground track, in degrees, or the default value if the airplane's ground
+   * speed is less than or equal to the specified threshold.
    */
-  public static getInstantaneousTrack(headingTrue = 0): number {
+  public static getInstantaneousTrack(
+    defaultTrack?: number,
+    groundSpeedThreshold = 0
+  ): number {
     const velocityEW = SimVar.GetSimVarValue('VELOCITY WORLD X', SimVarValueType.Knots);
     const velocityNS = SimVar.GetSimVarValue('VELOCITY WORLD Z', SimVarValueType.Knots);
 
-    let track = headingTrue;
-    if (velocityEW !== 0 || velocityNS !== 0) {
-      track = NavMath.normalizeHeading(Math.atan2(velocityEW, velocityNS) * Avionics.Utils.RAD2DEG);
+    if (velocityEW * velocityEW + velocityNS * velocityNS > Math.max(groundSpeedThreshold * groundSpeedThreshold, 0)) {
+      return NavMath.normalizeHeading(Math.atan2(velocityEW, velocityNS) * Avionics.Utils.RAD2DEG);
+    } else {
+      return defaultTrack ?? SimVar.GetSimVarValue('PLANE HEADING DEGREES TRUE', SimVarValueType.Degree);
     }
-    return track;
   }
 }

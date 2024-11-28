@@ -3,10 +3,11 @@ import {
   MapSystemKeys, MapSystemWaypointsLayer, MapWxrModule, UnitType, UserSettingManager, Vec2Math, VecNMath
 } from '@microsoft/msfs-sdk';
 
+import { WT21InstrumentType } from '../Config';
 import { MapFormatSupportMatrix } from './MapFormatSupportMatrix';
 import { MapTerrainStateModule } from './MapTerrainWeatherStateModule';
 import { MapTodLayer } from './MapTodLayer';
-import { HSIFormat, MapSettingsMfdAliased, MapSettingsPfdAliased, MapUserSettings, PfdOrMfd, TerrWxState } from './MapUserSettings';
+import { HSIFormat, MapSettingsMfdAliased, MapSettingsPfdAliased, TerrWxState } from './MapUserSettings';
 import { WT21MapKeys } from './WT21MapKeys';
 
 /**
@@ -80,7 +81,7 @@ export class MapFormatController extends MapSystemController<MapFormatController
     ['TCAS']: VecNMath.create(4, 0.5, 276 / 824, 0.5, 46 / 824)
   };
 
-  private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>;
+
   private readonly terrain = this.context.model.getModule(WT21MapKeys.TerrainModeState);
   private readonly wxr = this.context.model.getModule(MapSystemKeys.Weather);
   private readonly ownship = this.context.model.getModule(MapSystemKeys.OwnAirplaneIcon);
@@ -103,15 +104,16 @@ export class MapFormatController extends MapSystemController<MapFormatController
   /**
    * Creates an instance of the MapFormatController.
    * @param context The map system context to use with this controller.
-   * @param pfdOrMfd Whether or not the map is on the PFD or MFD.
+   * @param instrumentType The instrument type
+   * @param settings The map user settings
    */
   constructor(
     context: MapSystemContext<MapFormatControllerModules>,
-    private readonly pfdOrMfd: PfdOrMfd
+    private readonly instrumentType: WT21InstrumentType,
+    private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>
   ) {
     super(context);
     this.wxr.weatherRadarArc.set(120);
-    this.settings = MapUserSettings.getAliasedManager(this.context.bus, this.pfdOrMfd);
   }
 
   /** @inheritdoc */
@@ -128,7 +130,7 @@ export class MapFormatController extends MapSystemController<MapFormatController
     this.settings.whenSettingChanged('hsiFormat')
       .handle((v) => this.handleFormatOrTerrWxChanged(this.currentTerrWxState, v, this.currentNexrad));
 
-    if (this.pfdOrMfd === 'MFD') {
+    if (this.instrumentType === WT21InstrumentType.Mfd) {
       (this.settings as UserSettingManager<MapSettingsMfdAliased>).whenSettingChanged('nexradEnabled')
         .handle((v) => this.handleFormatOrTerrWxChanged(this.currentTerrWxState, this.currentFormat, v));
 

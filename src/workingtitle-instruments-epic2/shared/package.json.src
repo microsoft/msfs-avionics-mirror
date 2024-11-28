@@ -1,0 +1,13 @@
+{
+  "name": "@microsoft/msfs-epic2-shared",
+  "version": "2.0.7",
+  "description": "Working Title Epic 2 Common Library",
+  "main": "wte2shared.js",
+  "files": ["wte2shared.js", "wte2shared.d.ts", "wte2shared.css"],
+  "repository": {
+    "type": "git",
+    "url": "https://workingtitlesim@dev.azure.com/workingtitlesim/KittyHawk/_git/ProjectGolf"
+  },
+  "author": "Working Title Simulations, LLC",
+  "license": "Modified MIT"
+}

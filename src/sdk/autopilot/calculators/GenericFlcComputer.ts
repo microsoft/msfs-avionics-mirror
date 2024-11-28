@@ -34,16 +34,16 @@ export interface FlcComputerOptions {
 export class GenericFlcComputer {
 
   private _isActive = false;
-  private _targetIas = 0;
-  private _climbMode = false;
+  protected _targetIas = 0;
+  protected _climbMode = false;
 
   private readonly _pitchTarget = Subject.create<number | null>(null);
   /** The current pitch target calculated by this computer, in degrees. Positive values indicate downward pitch. */
   public readonly pitchTarget: Subscribable<number | null> = this._pitchTarget;
 
-  private _lastTime = 0;
+  protected _lastTime = 0;
   private readonly pitchController: PidController;
-  private readonly filter = new ExpSmoother(2.5);
+  protected filter = new ExpSmoother(2.5);
 
   /**
    * Gets if this computer is active
@@ -149,7 +149,7 @@ export class GenericFlcComputer {
    * Gets a desired pitch when airborne to maintain a given speed.
    * @returns The desired pitch angle.
    */
-  private getDesiredPitch(): number {
+  protected getDesiredPitch(): number {
     const time = performance.now() / 1000;
     let dt = time - this._lastTime;
     if (this._lastTime === 0) {

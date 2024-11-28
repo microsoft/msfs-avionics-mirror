@@ -1,0 +1,118 @@
+.text-dialog {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .text-dialog {
+  --cursor-input-slots-padding: 0px 12px;
+
+  --text-dialog-top-section-width: 893px;
+  --text-dialog-top-section-height: 78px;
+
+  --text-dialog-input-width: 573px;
+  --text-dialog-input-height: 62px;
+  --text-dialog-input-margin: 0px 0px 0px 16px;
+  --text-dialog-input-font-size: 48px;
+
+  --text-dialog-input-label-margin: 0px 10px 0px 22px;
+  --text-dialog-input-label-font-size: 33px;
+
+  --text-dialog-input-icon-margin: 0px 57px 0px 0px;
+  --text-dialog-input-icon-scale: 1.8;
+
+  --text-dialog-keyboard-left: 61px;
+  --text-dialog-keyboard-top: 81px;
+}
+
+.gtc-vertical .text-dialog {
+  --cursor-input-slots-padding: 0px 7px;
+
+  --text-dialog-top-section-width: 100%;
+  --text-dialog-top-section-height: 42px;
+
+  --text-dialog-input-width: 300px;
+  --text-dialog-input-height: 34px;
+  --text-dialog-input-margin: 0px 0px 0px 8px;
+  --text-dialog-input-font-size: 27px;
+
+  --text-dialog-input-label-margin: 0px 3px 0px 11px;
+  --text-dialog-input-label-font-size: 18px;
+
+  --text-dialog-input-icon-margin: 0px 13px 0px 0px;
+  --text-dialog-input-icon-scale: 1;
+
+  --text-dialog-keyboard-left: 7px;
+  --text-dialog-keyboard-top: 44px;
+}
+
+.text-dialog-top-section {
+  position: absolute;
+  left: 50%;
+  top: 0px;
+  width: var(--text-dialog-top-section-width);
+  height: var(--text-dialog-top-section-height);
+  transform: translateX(-50%);
+  background-color: var(--g3000-color-black);
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.text-dialog-input-container {
+  flex-shrink: 0;
+  position: relative;
+}
+
+.text-dialog-input {
+  width: var(--text-dialog-input-width);
+  height: var(--text-dialog-input-height);
+  margin: var(--text-dialog-input-margin);
+  color: var(--g3000-color-cyan);
+  font-size: var(--text-dialog-input-font-size);
+}
+
+.text-dialog-input.cursor-input-edit-inactive {
+  color: #003333;
+}
+
+.text-dialog-input .cursor-input-inactive {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  height: auto;
+  padding: var(--cursor-input-slots-padding);
+  transform: translateY(-50%);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+}
+
+.text-dialog-input-inactive-value-text {
+  background: var(--g3000-color-cyan);
+}
+
+.text-dialog-input-inactive-value-text-empty {
+  color: var(--g3000-color-black);
+}
+
+.text-dialog-input-label {
+  flex-grow: 1;
+  height: 1.2em;
+  margin: var(--text-dialog-input-label-margin);
+  font-size: var(--text-dialog-input-label-font-size);
+  line-height: 1.2em;
+  overflow: hidden;
+  /* This makes it so the text doesn't get clipped in the middle of a character. */
+  word-break: break-all;
+}
+
+.text-dialog .text-dialog-keyboard {
+  position: absolute;
+  left: var(--text-dialog-keyboard-left);
+  top: var(--text-dialog-keyboard-top);
+}

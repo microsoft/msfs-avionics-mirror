@@ -1,0 +1,9 @@
+.weight-balance-pane-est-weight {
+  grid-template-rows: repeat(5, min-content);
+  grid-template-columns: 1fr;
+}
+
+.display-pane-full .weight-balance-pane-est-weight {
+  grid-template-rows: repeat(3, min-content);
+  grid-template-columns: 1fr 1fr;
+}

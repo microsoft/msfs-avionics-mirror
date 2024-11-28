@@ -1,0 +1,74 @@
+.digital-speed {
+  position: absolute;
+  left: 1px;
+  top: 141px;
+  height: 84px;
+  width: 89px;
+}
+
+.digital-speed-background {
+  position: absolute;
+  left: 0;
+  top: 0;
+
+  stroke: var(--epic2-color-grey);
+  stroke-width: 2px;
+  fill: var(--epic2-color-black);
+  paint-order: fill;
+}
+
+.digital-speed .amber {
+  fill: var(--epic2-color-amber);
+  color: var(--epic2-color-black);
+}
+
+.digital-speed .red {
+  fill: var(--epic2-color-red);
+  color: var(--epic2-color-white);
+}
+
+.digital-speed-background .shadow {
+  stroke: var(--epic2-color-black);
+  stroke-width: 3px;
+  stroke-opacity: 0.5;
+  fill: none;
+}
+
+.digital-speed-tumblers {
+  position: absolute;
+  right: 24px;
+  top: 0;
+
+  color: var(--epic2-color-white);
+  font-size: 34px;
+}
+
+.speed-digit-scroller {
+  overflow: hidden;
+  position: absolute;
+  width: 20px;
+}
+
+.speed-ones-scroller,
+.speed-tens-scroller,
+.speed-hundreds-scroller {
+  --digit-scroller-line-offset-y: 4px;
+  --digit-scroller-line-height: 0.9em;
+}
+
+.speed-hundreds-scroller {
+  top: 23px;
+  height: 36px;
+  right: 40px;
+}
+
+.speed-tens-scroller {
+  top: 23px;
+  height: 36px;
+  right: 20px;
+}
+.speed-ones-scroller {
+  top: 3px;
+  height: 76px;
+  right: 0px;
+}

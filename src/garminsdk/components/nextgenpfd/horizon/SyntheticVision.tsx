@@ -1,6 +1,7 @@
 import {
-  ArraySubject, BingComponent, BitFlags, ColorUtils, FSComponent, HorizonLayer, HorizonLayerProps, HorizonProjection, HorizonProjectionChangeType,
-  ObjectSubject, Subject, Subscribable, Subscription, SynVisComponent, Vec2Math, Vec2Subject, VNode
+  ArraySubject, BingComponent, BitFlags, ColorUtils, FSComponent, HorizonLayer, HorizonLayerProps, HorizonProjection,
+  HorizonProjectionChangeType, ObjectSubject, Subject, Subscribable, Subscription, SynVisComponent, Vec2Math,
+  Vec2Subject, VNode
 } from '@microsoft/msfs-sdk';
 
 import { MapUtils } from '../../map/MapUtils';
@@ -14,6 +15,9 @@ export interface SyntheticVisionProps extends HorizonLayerProps {
 
   /** The amount of time, in milliseconds, to delay binding the layer's Bing instance. Defaults to 0. */
   bingDelay?: number;
+
+  /** Whether to skip unbinding the layer's bound Bing instance when the layer is destroyed. Defaults to `false`. */
+  bingSkipUnbindOnDestroy?: boolean;
 
   /** Whether synthetic vision is enabled. */
   isEnabled: Subscribable<boolean>;
@@ -144,6 +148,7 @@ export class SyntheticVision extends HorizonLayer<SyntheticVisionProps> {
           ref={this.synVisRef}
           bingId={this.props.bingId}
           bingDelay={this.props.bingDelay}
+          bingSkipUnbindOnDestroy={this.props.bingSkipUnbindOnDestroy}
           resolution={this.resolution}
           skyColor={Subject.create(BingComponent.hexaToRGBColor(SyntheticVision.SKY_COLOR))}
           earthColors={ArraySubject.create(colorsDef.colors)}

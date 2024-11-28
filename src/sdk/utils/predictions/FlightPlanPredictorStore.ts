@@ -1,4 +1,4 @@
-import { LNavDataSimVarEvents } from '../../autopilot';
+import { LNavDataEvents } from '../../autopilot';
 import { ConsumerSubject, EventBus } from '../../data';
 import { FlightPlanner, LegDefinition } from '../../flightplan';
 import { AdcEvents, ClockEvents, EngineEvents, GNSSEvents } from '../../instruments';
@@ -47,7 +47,7 @@ export class FlightPlanPredictorStore {
     private readonly flightPlanner: FlightPlanner,
     private readonly planIndexSub: Subscribable<number>,
   ) {
-    const sub = this.bus.getSubscriber<AdcEvents & GNSSEvents & EngineEvents & LNavDataSimVarEvents & ClockEvents>();
+    const sub = this.bus.getSubscriber<AdcEvents & GNSSEvents & EngineEvents & LNavDataEvents & ClockEvents>();
 
     this.ppos.setConsumer(sub.on('gps-position').atFrequency(1));
     this.groundSpeed.setConsumer(sub.on('ground_speed'));

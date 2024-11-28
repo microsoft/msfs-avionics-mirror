@@ -1,93 +1,190 @@
-import { FsInstrument } from '@microsoft/msfs-sdk';
+/// <reference types="@microsoft/msfs-types/Pages/VCockpit/Instruments/Shared/BaseInstrument" />
+/// <reference types="@microsoft/msfs-types/Pages/VCockpit/Core/VCockpit" />
+/// <reference types="@microsoft/msfs-types/js/simvar" />
+/// <reference types="@microsoft/msfs-types/js/avionics" />
+/// <reference types="@microsoft/msfs-types/js/common" />
 
-import { DisplayUnitConfig, DisplayUnitConfigInterface } from './Config/DisplayUnitConfig';
+import {
+  AdcPublisher, AhrsPublisher, AutopilotInstrument, BaseInstrumentPublisher, BasicAvionicsSystem, Clock, ElectricalPublisher, EventBus, FacilityLoader,
+  FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner, FsInstrument, GNSSPublisher,
+  HEventPublisher, InstrumentBackplane, MinimumsSimVarPublisher, NavComSimVarPublisher, TrafficInstrument, VNavSimVarPublisher, Wait,
+  XPDRSimVarPublisher
+} from '@microsoft/msfs-sdk';
+
+import { AvionicsConfig } from './Config/AvionicsConfig';
+import { InstrumentConfig } from './Config/InstrumentConfig';
+import { FmcSimVarPublisher } from './FmcSimVars';
+import {
+  AdfRadioSource, GpsSource, initNavIndicatorContext, NavIndicators, NavRadioNavSource, NavSources, WT21BearingPointerNavIndicator,
+  WT21CourseNeedleNavIndicator, WT21GhostNeedleNavIndicator, WT21NavIndicator, WT21NavIndicatorName, WT21NavIndicators, WT21NavSourceNames
+} from './Navigation';
+import { PerformancePlanRepository } from './Performance';
+import {
+  AdcSystem, AdcSystemSelector, AhrsSystem, AhrsSystemSelector, AOASystem, RadioAltimeterSystem, TransponderSystem, WT21FixInfoConfig, WT21FixInfoManager,
+  WT21FmsUtils
+} from './Systems';
+import { WT21TCAS } from './Traffic';
+import { WT21ControlPublisher } from './WT21ControlEvents';
+import { WT21ControlSimVarPublisher } from './WT21ControlVarEvents';
 
 import './WT21_Common.css';
-
-/**
- * WT21 display unit type
- */
-export enum WT21DisplayUnitType {
-  Pfd,
-  Mfd,
-}
-
-/**
- * WT21 display unit type. Not taken into account for `WT21DisplayUnitType.Pfd`
- */
-export type WT21DisplayUnitIndex = 1 | 2
 
 /**
  * Base WT21 FsInstrument
  */
 export abstract class WT21DisplayUnitFsInstrument implements FsInstrument {
-  public displayUnitConfig: DisplayUnitConfigInterface = DisplayUnitConfig.DEFAULT;
+  protected readonly bus = new EventBus();
+  protected readonly backplane = new InstrumentBackplane();
+
+  protected readonly facRepo = FacilityRepository.getRepository(this.bus);
+  protected readonly facLoader = new FacilityLoader(this.facRepo);
+  protected readonly calculator = new FlightPathCalculator(this.facLoader, {
+    defaultClimbRate: 2000,
+    defaultSpeed: 220,
+    bankAngle: 25,
+    holdBankAngle: null,
+    courseReversalBankAngle: null,
+    turnAnticipationBankAngle: null,
+    maxBankAngle: 25,
+    airplaneSpeedMode: FlightPathAirplaneSpeedMode.TrueAirspeedPlusWind,
+    airplaneWindMode: FlightPathAirplaneWindMode.Automatic,
+  }, this.bus);
+
+  protected readonly planner = FlightPlanner.getPlanner(this.bus, this.calculator, WT21FmsUtils.buildWT21LegName);
+  protected readonly perfPlanRepository = new PerformancePlanRepository(this.planner, this.bus);
+  protected readonly fixInfoManager = new WT21FixInfoManager(this.bus, this.facLoader, WT21FmsUtils.PRIMARY_ACT_PLAN_INDEX, this.planner, WT21FixInfoConfig); // FIXME Add route predictor when FlightPlanPredictor refactored to implement FlightPlanPredictionsProvider
+
+  protected readonly trafficInstrument = new TrafficInstrument(this.bus, { realTimeUpdateFreq: 2, simTimeUpdateFreq: 1, contactDeprecateTime: 10 });
+  protected readonly clock = new Clock(this.bus);
+  protected readonly tcas = new WT21TCAS(this.bus, this.trafficInstrument);
+
+  protected readonly baseInstrumentPublisher = new BaseInstrumentPublisher(this.instrument, this.bus);
+  protected readonly hEventPublisher = new HEventPublisher(this.bus);
+  protected readonly adcPublisher = new AdcPublisher(this.bus);
+  protected readonly ahrsPublisher = new AhrsPublisher(this.bus);
+  protected readonly electricalPublisher = new ElectricalPublisher(this.bus);
+  protected readonly gnssPublisher = new GNSSPublisher(this.bus);
+  protected readonly fmcSimVarPublisher = new FmcSimVarPublisher(this.bus);
+  protected readonly minimumsPublisher = new MinimumsSimVarPublisher(this.bus);
+  protected readonly xpdrSimVarPublisher = new XPDRSimVarPublisher(this.bus);
+  protected readonly wt21ControlPublisher = new WT21ControlPublisher(this.bus);
+  protected readonly wt21ControlVarPublisher = new WT21ControlSimVarPublisher(this.bus);
+
+  protected readonly navSources = new NavSources<WT21NavSourceNames>(
+    new NavRadioNavSource<WT21NavSourceNames>(this.bus, 'NAV1', 1),
+    new NavRadioNavSource<WT21NavSourceNames>(this.bus, 'NAV2', 2),
+    new AdfRadioSource<WT21NavSourceNames>(this.bus, 'ADF', 1),
+    new GpsSource<WT21NavSourceNames>(this.bus, 'FMS1', 1, this.planner),
+    new GpsSource<WT21NavSourceNames>(this.bus, 'FMS2', 2, this.planner),
+  );
+  protected readonly courseNeedleIndicator = new WT21CourseNeedleNavIndicator(this.navSources, this.instrumentConfig, this.bus);
+  protected readonly navIndicators: WT21NavIndicators = new NavIndicators(new Map<WT21NavIndicatorName, WT21NavIndicator>([
+    ['courseNeedle', this.courseNeedleIndicator],
+    ['ghostNeedle', new WT21GhostNeedleNavIndicator(this.navSources, this.bus)],
+    ['bearingPointer1', new WT21BearingPointerNavIndicator(this.navSources, this.bus, 1, 'NAV1')],
+    ['bearingPointer2', new WT21BearingPointerNavIndicator(this.navSources, this.bus, 2, 'NAV2')],
+  ]));
+  protected readonly navComSimVarPublisher = new NavComSimVarPublisher(this.bus);
+  protected readonly vnavSimVarPublisher = new VNavSimVarPublisher(this.bus);
+
+  protected readonly apInstrument = new AutopilotInstrument(this.bus);
+
+  protected readonly avionicsSystems: BasicAvionicsSystem<any>[] = [];
+  protected readonly ahrsSystemSelector = new AhrsSystemSelector(this.bus, this.instrumentConfig.instrumentIndex, this.config.sensors.ahrsDefinitions);
+  protected readonly adcSystemSelector = new AdcSystemSelector(this.bus, this.instrumentConfig.instrumentIndex, this.config.sensors.adcDefinitions);
 
   /** @inheritDoc */
   protected constructor(
     public readonly instrument: BaseInstrument,
-
-    /** The WT21 display unit type of this instrument */
-    public readonly displayUnitType: WT21DisplayUnitType,
-
-    /** The WT21 display unit index of this instrument */
-    public readonly displayUnitIndex: WT21DisplayUnitIndex,
+    protected readonly config: AvionicsConfig,
+    protected readonly instrumentConfig: InstrumentConfig
   ) {
-    const instrumentConfigTag = this.getInstrumentConfigTag(instrument.xmlConfig, displayUnitType, displayUnitIndex);
+    this.backplane.addPublisher('base', this.baseInstrumentPublisher);
+    this.backplane.addPublisher('adc', this.adcPublisher);
+    this.backplane.addPublisher('ahrs', this.ahrsPublisher);
+    this.backplane.addPublisher('hEvents', this.hEventPublisher);
+    this.backplane.addPublisher('gnss', this.gnssPublisher);
+    this.backplane.addPublisher('vnav', this.vnavSimVarPublisher);
+    this.backplane.addPublisher('xpdr', this.xpdrSimVarPublisher);
+    this.backplane.addPublisher('electrical', this.electricalPublisher);
+    this.backplane.addPublisher('wt21control', this.wt21ControlPublisher);
+    this.backplane.addPublisher('wt21controlvar', this.wt21ControlVarPublisher);
+    this.backplane.addPublisher('navCom', this.navComSimVarPublisher);
+    this.backplane.addPublisher('fmc', this.fmcSimVarPublisher);
+    this.backplane.addPublisher('minimums', this.minimumsPublisher);
 
-    if (!instrumentConfigTag) {
-      console.warn(`No matching 'Instrument' tag found in XML config for display unit with type '${displayUnitType}' and index '${displayUnitIndex}'`);
-      return;
-    }
+    this.backplane.addInstrument('navSources', this.navSources);
+    this.backplane.addInstrument('navIndicators', this.navIndicators);
+    this.backplane.addInstrument('traffic', this.trafficInstrument);
+    this.backplane.addInstrument('ap', this.apInstrument);
 
-    const displayUnitConfig = instrumentConfigTag.querySelector(':scope > DisplayUnitConfig');
+    // force enable animations
+    document.documentElement.classList.add('animationsEnabled');
 
-    if (displayUnitConfig) {
-      this.displayUnitConfig = new DisplayUnitConfig(displayUnitConfig);
+    this.initPrimaryFlightPlan();
+
+    initNavIndicatorContext(this.navIndicators);
+
+    this.clock.init();
+    this.tcas.init();
+
+    this.initializeSystems();
+  }
+
+  /**
+   * Initialises the instrument
+   */
+  protected doInit(): void {
+    this.backplane.init();
+  }
+
+  /**
+   * Initializes various avionics' systems.
+   */
+  private initializeSystems(): void {
+    this.config.sensors.ahrsDefinitions.map((ahrs, index) => {
+      this.avionicsSystems.push(new AhrsSystem(index, this.bus, ahrs));
+    });
+
+    this.config.sensors.adcDefinitions.map((adc, index) => {
+      this.avionicsSystems.push(new AdcSystem(index, this.bus, adc));
+    });
+
+    this.avionicsSystems.push(new AOASystem(1, this.bus, this.config.sensors.aoaDefinition));
+    this.avionicsSystems.push(new RadioAltimeterSystem(1, this.bus, this.config.sensors.raDefinition));
+    this.avionicsSystems.push(new TransponderSystem(1, this.bus, this.config.sensors.xpdrDefinition));
+  }
+
+  /**
+   * Updates this instrument's systems.
+   */
+  private updateSystems(): void {
+    for (let i = 0; i < this.avionicsSystems.length; i++) {
+      this.avionicsSystems[i].onUpdate();
     }
   }
 
   /**
-   * Tries to find the instrument config tag for this instrument in an XML config
-   *
-   * @param xmlConfig the XML config document
-   * @param displayUnitType the display unit type
-   * @param displayUnitIndex the display unit index
-   *
-   * @returns an XML element or `undefined`, if not appropriate tag is found
+   * Initializes the primary flight plan.
    */
-  private getInstrumentConfigTag(xmlConfig: Document, displayUnitType: WT21DisplayUnitType, displayUnitIndex: WT21DisplayUnitIndex): Element | undefined {
-    const instrumentTags = Array.from(xmlConfig.querySelectorAll('Instrument'));
+  private async initPrimaryFlightPlan(): Promise<void> {
+    // Request a sync from the FMC in case of an instrument reload
+    await Wait.awaitDelay(2500);
+    this.planner.requestSync();
+    // // Initialize the primary plan in case one was not synced.
+    // if (this.planner.hasFlightPlan(0)) {
+    //   return;
+    // }
 
-    let instrumentConfigTag: Element | undefined;
-    if (displayUnitType === WT21DisplayUnitType.Pfd) {
-      instrumentConfigTag = instrumentTags.find((tag) => {
-        const name = tag.querySelector(':scope > Name');
-
-        if (!name) {
-          return false;
-        }
-
-        return name.textContent === `WT21_PFD_${displayUnitIndex}` || (displayUnitIndex === 1 && name.textContent === 'WT21_PFD');
-      });
-    } else if (displayUnitType === WT21DisplayUnitType.Mfd) {
-      instrumentConfigTag = instrumentTags.find((tag) => {
-        const name = tag.querySelector(':scope > Name');
-
-        if (!name) {
-          return false;
-        }
-
-        return name.textContent === `WT21_MFD_${displayUnitIndex}` || (displayUnitIndex === 1 && name.textContent === 'WT21_MFD');
-      });
-    }
-
-    return instrumentConfigTag;
+    // this.planner.createFlightPlan(0);
+    // this.planner.createFlightPlan(1);
   }
 
   /** @inheritDoc */
   public Update(): void {
-    // noop
+    this.backplane.onUpdate();
+    this.clock.onUpdate();
+    this.updateSystems();
   }
 
   /** @inheritDoc */

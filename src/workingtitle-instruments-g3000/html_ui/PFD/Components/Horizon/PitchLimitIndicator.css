@@ -1,0 +1,15 @@
+.pitch-limit-icon {
+  fill: none;
+  stroke: var(--g3000-color-white);
+  stroke-width: 1.5px;
+}
+
+.pitch-limit-icon-single-cue {
+  width: 76px;
+  height: 26px;
+}
+
+.pitch-limit-icon-dual-cue {
+  width: 208px;
+  height: 36px;
+}

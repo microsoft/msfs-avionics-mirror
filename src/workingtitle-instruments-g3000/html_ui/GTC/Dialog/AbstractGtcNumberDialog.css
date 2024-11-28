@@ -1,0 +1,110 @@
+.number-dialog {
+  position: absolute;
+  background: var(--gtc-black-background-gradient);
+  border: var(--gtc-black-background-border);
+  border-radius: var(--gtc-popup-border-radius);
+  color: var(--g3000-color-white);
+
+  --number-dialog-input-center: 50%;
+}
+
+.gtc-horizontal .number-dialog {
+  top: 55px;
+  left: calc(50% - 745px / 2);
+  width: 745px;
+  height: 690px;
+
+  --number-dialog-input-top: 20px;
+  --number-dialog-input-width: 280px;
+  --number-dialog-input-height: 60px;
+  --number-dialog-input-font-size: 44px;
+
+  --number-dialog-numpad-top: 105px;
+  --number-dialog-numpad-width: 495px;
+  --number-dialog-numpad-height: 570px;
+
+  --number-dialog-backspace-right: 20px;
+  --number-dialog-backspace-top: 10px;
+  --number-dialog-backspace-width: 120px;
+  --number-dialog-backspace-height: 120px;
+  --number-dialog-backspace-font-size: 32px;
+  --number-dialog-backspace-img-scale: 1.8;
+}
+
+.gtc-vertical .number-dialog {
+  top: 30px;
+  left: calc(50% - 410px / 2);
+  width: 410px;
+  height: 375px;
+
+  --number-dialog-input-top: 12px;
+  --number-dialog-input-width: 153px;
+  --number-dialog-input-height: 34px;
+  --number-dialog-input-font-size: 22px;
+
+  --number-dialog-numpad-top: 58px;
+  --number-dialog-numpad-width: 270px;
+  --number-dialog-numpad-height: 313px;
+
+  --number-dialog-backspace-right: 12px;
+  --number-dialog-backspace-top: 5px;
+  --number-dialog-backspace-width: 65px;
+  --number-dialog-backspace-height: 65px;
+  --number-dialog-backspace-font-size: 16px;
+  --number-dialog-backspace-img-scale: 1;
+}
+
+.number-dialog-input-container {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.cursor-input.number-dialog-input {
+  position: absolute;
+  left: calc(var(--number-dialog-input-center) - var(--number-dialog-input-width) / 2);
+  top: var(--number-dialog-input-top);
+  width: var(--number-dialog-input-width);
+  height: var(--number-dialog-input-height);
+  font-size: var(--number-dialog-input-font-size);
+  color: var(--g3000-color-cyan);
+  --cursor-input-slots-justify: center;
+}
+
+.cursor-input.number-dialog-input.cursor-input-edit-inactive {
+  color: var(--g3000-color-black);
+}
+
+.number-dialog-numpad-container {
+  position: absolute;
+  left: calc(var(--number-dialog-input-center) - var(--number-dialog-numpad-width) / 2);
+  top: var(--number-dialog-numpad-top);
+  width: var(--number-dialog-numpad-width);
+  height: var(--number-dialog-numpad-height);
+}
+
+.number-dialog-numpad {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  justify-items: center;
+  align-items: center;
+}
+
+.touch-button.number-dialog-backspace {
+  position: absolute;
+  right: var(--number-dialog-backspace-right);
+  top: var(--number-dialog-backspace-top);
+  width: var(--number-dialog-backspace-width);
+  height: var(--number-dialog-backspace-height);
+  font-size: var(--number-dialog-backspace-font-size);
+}
+
+.number-dialog-backspace .touch-button-img-img {
+  transform: translate(-50%, -50%) scale(var(--number-dialog-backspace-img-scale));
+}

@@ -1,15 +1,90 @@
 import { BitFlags } from '../math/BitFlags';
 import {
-  AirportFacility, ApproachProcedure, FacilityFrequency, FacilityType, FixTypeFlags, FlightPlanLeg, ICAO,
-  NdbFacility, RnavTypeFlags, VorFacility, VorType
+  AdditionalApproachType, AirportFacility, ApproachIdentifier, ApproachProcedure, ApproachTypeName,
+  ExtendedApproachType, FacilityFrequency, FacilityType, FixTypeFlags, FlightPlanLeg, NdbFacility, RnavTypeFlags,
+  VorFacility, VorType
 } from './Facilities';
 import { FacilityLoader } from './FacilityLoader';
+import { ICAO } from './IcaoUtils';
 import { RunwayUtils } from './RunwayUtils';
 
 /**
  * A utility class for working with approach procedures.
  */
 export class ApproachUtils {
+
+  /**
+   * Converts an approach type name to its corresponding approach type.
+   * @param name The name to convert.
+   * @returns The approach type corresponding to the specified name.
+   */
+  public static nameToType(name: string): ExtendedApproachType {
+    switch (name) {
+      case ApproachTypeName.Gps: return ApproachType.APPROACH_TYPE_GPS;
+      case ApproachTypeName.Vor: return ApproachType.APPROACH_TYPE_VOR;
+      case ApproachTypeName.Ndb: return ApproachType.APPROACH_TYPE_NDB;
+      case ApproachTypeName.Ils: return ApproachType.APPROACH_TYPE_ILS;
+      case ApproachTypeName.Loc: return ApproachType.APPROACH_TYPE_LOCALIZER;
+      case ApproachTypeName.Sdf: return ApproachType.APPROACH_TYPE_SDF;
+      case ApproachTypeName.Lda: return ApproachType.APPROACH_TYPE_LDA;
+      case ApproachTypeName.VorDme: return ApproachType.APPROACH_TYPE_VORDME;
+      case ApproachTypeName.NdbDme: return ApproachType.APPROACH_TYPE_NDBDME;
+      case ApproachTypeName.Rnav: return ApproachType.APPROACH_TYPE_RNAV;
+      case ApproachTypeName.LocBackcourse: return ApproachType.APPROACH_TYPE_LOCALIZER_BACK_COURSE;
+      case ApproachTypeName.GeneratedVisual: return AdditionalApproachType.APPROACH_TYPE_VISUAL;
+      default:
+        return ApproachType.APPROACH_TYPE_UNKNOWN;
+    }
+  }
+
+  /**
+   * Converts an approach type to its corresponding approach type name.
+   * @param type The type to convert.
+   * @returns The approach type name corresponding to the specified type.
+   */
+  public static typeToName(type: ExtendedApproachType): string {
+    switch (type) {
+      case ApproachType.APPROACH_TYPE_GPS: return ApproachTypeName.Gps;
+      case ApproachType.APPROACH_TYPE_VOR: return ApproachTypeName.Vor;
+      case ApproachType.APPROACH_TYPE_NDB: return ApproachTypeName.Ndb;
+      case ApproachType.APPROACH_TYPE_ILS: return ApproachTypeName.Ils;
+      case ApproachType.APPROACH_TYPE_LOCALIZER: return ApproachTypeName.Loc;
+      case ApproachType.APPROACH_TYPE_SDF: return ApproachTypeName.Sdf;
+      case ApproachType.APPROACH_TYPE_LDA: return ApproachTypeName.Lda;
+      case ApproachType.APPROACH_TYPE_VORDME: return ApproachTypeName.VorDme;
+      case ApproachType.APPROACH_TYPE_NDBDME: return ApproachTypeName.NdbDme;
+      case ApproachType.APPROACH_TYPE_RNAV: return ApproachTypeName.Rnav;
+      case ApproachType.APPROACH_TYPE_LOCALIZER_BACK_COURSE: return ApproachTypeName.LocBackcourse;
+      case AdditionalApproachType.APPROACH_TYPE_VISUAL: return ApproachTypeName.GeneratedVisual;
+      default:
+        return ApproachTypeName.Undefined;
+    }
+  }
+
+  /**
+   * Creates an empty approach identifier.
+   * @returns An empty approach identifier.
+   */
+  public static emptyIdentifier(): ApproachIdentifier {
+    return {
+      __Type: 'JS_ApproachIdentifier',
+      type: ApproachTypeName.Undefined,
+      runway: RunwayUtils.emptyIdentifier(),
+      suffix: ''
+    };
+  }
+
+  /**
+   * Sets an approach identifier to be empty.
+   * @param ident The identifier to set.
+   * @returns The specified identifier, after it has been set to be empty.
+   */
+  public static toEmptyIdentifier(ident: ApproachIdentifier): ApproachIdentifier {
+    ident.type = ApproachTypeName.Undefined;
+    RunwayUtils.toEmptyIdentifier(ident.runway);
+    return ident;
+  }
+
   /**
    * Gets the best RNAV minimum type available for a given approach.
    * @param query The approach to check, or its RNAV type flags.

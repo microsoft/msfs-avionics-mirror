@@ -1,0 +1,137 @@
+.sid-takeoff-tab {
+  padding: 10px 2px 5px 2px;
+  background: var(--epic2-color-dark-grey);
+  height: 100%;
+  position: relative;
+}
+
+.sid-takeoff-tab p {
+  font-size: 21px;
+}
+
+.sid-takeoff-tab-title {
+  text-align: center;
+}
+
+.sid-takeoff-tab-grid {
+  display: grid;
+  grid-template-columns: 120px auto;
+  grid-column-gap: 20px;
+  margin-top: 20px;
+  margin-bottom: 5px;
+}
+
+.sid-takeoff-tab-grid span {
+  color: var(--epic2-color-green);
+}
+
+.sid-takeoff-tab-grid > div:first-of-type {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  grid-row-gap: 2px;
+}
+
+.sid-takeoff-tab-orig-button {
+  width: 105px;
+}
+
+.sid-takeoff-tab-rwy {
+  margin-bottom: 7px;
+}
+
+.sid-takeoff-tab-bottom {
+  border-top: 2px solid var(--epic2-color-white);
+}
+
+.sid-takeoff-tab-grid-bottom {
+  display: grid;
+  grid-template-columns: 200px auto;
+}
+
+.sid-takeoff-tab-vspd {
+  position: relative;
+  padding-top: 25px
+}
+
+.sid-takeoff-tab-line {
+  border-right: 2px solid var(--epic2-color-white);
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 210px;
+}
+
+.sid-takeoff-tab-vspd-headings {
+  display: flex;
+  justify-content: space-between;
+  width: 100px;
+  margin: 0 auto;
+}
+
+.sid-takeoff-tab-vspd-headings p:first-of-type {
+  margin-left: -5px;
+}
+
+.sid-takeoff-tab-vspd-column {
+  margin: 0 auto;
+}
+
+.sid-takeoff-tab-vspd-metrics {
+  width: 100px;
+  margin: 0 auto;
+}
+
+.sid-takeoff-tab-vspd-column .prefix-label {
+  margin-top: 3px;
+  color: var(--epic2-color-white);
+  font-size: 18px;
+}
+
+.sid-takeoff-tab-vspd-column .input-field {
+  display: flex;
+  margin: 0 auto;
+  align-items: center;
+}
+
+.sid-takeoff-tab-vspd-column .input-row,
+.sid-takeoff-tab-vspd-column .input-box {
+  width: 70px;
+}
+
+.sid-takeoff-tab-vspd-column .input-field .top-label {
+  margin-right: 8px;
+  text-align: left;
+  height: 15px;
+  font-size: 19px;
+  align-self: flex-end;
+  margin-bottom: 2px;
+}
+
+p.side-takeoff-tab-vspd-pilot-defined {
+  text-align: center;
+  font-size: 17px;
+  margin-bottom: 2px;
+}
+
+.touch-button.touch-button-small.sid-takeoff-tab-button-send {
+  width: 90px;
+  height: 38px;
+  margin: 0 auto;
+}
+
+.sid-takeoff-tab .send-button-blue {
+  background-color: var(--epic2-color-cyan);
+  color: var(--epic2-color-white);
+}
+
+.touch-button.touch-button-small.sid-takeoff-tab-button-send .touch-button-label {
+  font-size: 20px;
+}
+
+.sid-takeoff-tab-trans {
+  padding-top: 86px;
+}
+
+.sid-takeoff-tab-trans .input-field {
+  margin: 0 auto;
+}

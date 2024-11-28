@@ -1,0 +1,95 @@
+* {
+  box-sizing: border-box;
+}
+
+.home-container {
+  position: relative;
+}
+
+.home-buttons {
+  position: absolute;
+  top: 6px;
+  left: -34px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  padding: 35px;
+}
+
+.home-button.touch-button {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-top: 15px;
+}
+
+.home-button.touch-button .touch-button-label {
+  font-size: 22px;
+  font-weight: bolder;
+  font-family: sans-serif;
+  height: 24px;
+  margin-top: -35px;
+  text-align: center;
+}
+
+.home-button-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60px;
+  margin-top: 30px;
+  margin-bottom: 8px;
+}
+
+.home-button-icon svg,
+.home-button-icon img {
+  transform: scale(0.6);
+}
+
+.temp-dark-grey-mask {
+  position: absolute;
+  width: 148px;
+  height: 114px;
+  background: rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.temp-dark-grey-mask-2 {
+  top: 44px;
+  left: 209px;
+}
+
+.temp-dark-grey-mask-3 {
+  top: 44px;
+  left: 378px;
+}
+
+.temp-dark-grey-mask-4 {
+  top: 198px;
+  left: 42px;
+}
+
+.temp-dark-grey-mask-5 {
+  top: 198px;
+  left: 209px;
+}
+
+.temp-dark-grey-mask-6 {
+  top: 198px;
+  left: 378px;
+}
+
+.temp-dark-grey-mask-8 {
+  top: 350px;
+  left: 209px;
+}
+
+.temp-dark-grey-mask-9 {
+  top: 350px;
+  left: 378px;
+}

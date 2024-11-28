@@ -1,13 +1,13 @@
 {
   "name": "@microsoft/msfs-wtg3000-common",
-  "version": "1.1.19",
+  "version": "2.0.4",
   "description": "Working Title MSFS G3000 Common Library",
   "main": "index.ts",
   "scripts": {
     "build": "npm run build:compile && npm run build:rollup && npm run build:npm",
     "build:compile": "npx tsc",
-    "build:rollup": "robocopy html_ui/Pages/VCockpit/Instruments/NavSystems/WTG3000/Shared *.css build /s & npx rollup -c rollup.config.js",
-    "build:npm": "cp html_ui/Pages/VCockpit/Instruments/NavSystems/WTG3000/Shared/package.json.src dist/package.json && cd dist && npm pack"
+    "build:rollup": "robocopy html_ui/Shared *.css build /s & npx rollup -c rollup.config.mjs",
+    "build:npm": "cp html_ui/Shared/package.json.src dist/package.json && cd dist && npm pack"
   },
   "repository": {
     "type": "git",
@@ -17,11 +17,11 @@
   "license": "Modified MIT",
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "@microsoft/msfs-sdk": "0.8.0",
+    "@microsoft/msfs-sdk": "2.0.5",
     "@microsoft/msfs-types": "1.14.6",
-    "@microsoft/msfs-garminsdk": "0.6.0",
-    "rollup": "^2.79.1",
-    "rollup-plugin-dts": "^4.2.3",
+    "@microsoft/msfs-garminsdk": "2.0.5",
+    "rollup": "^4.27.3",
+    "rollup-plugin-dts": "^6.1.1",
     "rollup-plugin-import-css": "^3.1.0",
     "typescript": "5.3.3"
   }

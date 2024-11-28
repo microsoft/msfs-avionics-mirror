@@ -31,11 +31,6 @@ export class ReadonlyPerformanceVariable<T> implements Subscribable<T> {
     return this.input.sub(fn, initialNotify, paused);
   }
 
-  /** @inheritDoc */
-  unsub(fn: (value: T) => void): void {
-    this.input.unsub(fn);
-  }
-
   /**
    * Maps this subscribable to a new subscribable.
    * @param fn The function to use to map to the new subscribable.

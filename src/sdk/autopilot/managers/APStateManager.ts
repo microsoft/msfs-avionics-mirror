@@ -1,8 +1,14 @@
-import { EventBus, KeyEventData, KeyEvents, KeyEventManager, SimVarValueType } from '../../data';
+import { EventBus } from '../../data/EventBus';
+import { KeyEventData, KeyEventManager, KeyEvents } from '../../data/KeyEventManager';
+import { SimVarValueType } from '../../data/SimVars';
 import { APEvents, APLockType } from '../../instruments';
 import { MSFSAPStates } from '../../navigation';
-import { SubEventInterface, SubEvent, Subject, Subscribable, MappedSubject } from '../../sub';
-import { APConfig, APLateralModes, APVerticalModes } from '../APConfig';
+import { MappedSubject } from '../../sub/MappedSubject';
+import { SubEvent, SubEventInterface } from '../../sub/SubEvent';
+import { Subject } from '../../sub/Subject';
+import { Subscribable } from '../../sub/Subscribable';
+import { SubscribableMapFunctions } from '../../sub/SubscribableMapFunctions';
+import { APConfig } from '../APConfig';
 
 /** AP Mode Types */
 export enum APModeType {
@@ -14,7 +20,8 @@ export enum APModeType {
 /** Interface for APModePressEvents */
 export interface APModePressEvent {
   /** The Mode */
-  mode: APLateralModes | APVerticalModes;
+  mode: number;
+
   /** The Set Value, if any */
   set?: boolean;
 }
@@ -24,13 +31,33 @@ export interface APModePressEvent {
  */
 export abstract class APStateManager {
 
-  protected keyEventManager?: KeyEventManager;
-
-  private readonly apListener: ViewListener.ViewListener;
+  private readonly apListenerPromise: Promise<void>;
+  private readonly keyEventManagerPromise: Promise<KeyEventManager>;
 
   protected apListenerRegistered = false;
-  private managedModeSet = false;
-  public stateManagerInitialized = Subject.create(false);
+
+  protected keyEventManager?: KeyEventManager;
+
+  protected readonly flightDirectorStateSimVars = {
+    [1]: 'AUTOPILOT FLIGHT DIRECTOR ACTIVE:1',
+    [2]: 'AUTOPILOT FLIGHT DIRECTOR ACTIVE:2',
+  };
+  private readonly flightDirectorSimStates: Record<1 | 2, boolean | undefined> = {
+    [1]: undefined,
+    [2]: undefined,
+  };
+  private readonly flightDirectorPendingStates: Record<1 | 2, boolean> = {
+    [1]: false,
+    [2]: false,
+  };
+  private readonly flightDirectorPushedPendingStates: Record<1 | 2, boolean> = {
+    [1]: false,
+    [2]: false,
+  };
+
+  private readonly _stateManagerInitialized = Subject.create(false);
+  /** Whether this manager has been initialized. */
+  public readonly stateManagerInitialized = this._stateManagerInitialized as Subscribable<boolean>;
 
   public lateralPressed: SubEventInterface<this, APModePressEvent> = new SubEvent<this, APModePressEvent>();
   public verticalPressed: SubEventInterface<this, APModePressEvent> = new SubEvent<this, APModePressEvent>();
@@ -42,12 +69,9 @@ export abstract class APStateManager {
   public isFlightDirectorOn = this._isFlightDirectorOn as Subscribable<boolean>;
   protected _isFlightDirectorCoPilotOn = Subject.create(false);
   public isFlightDirectorCoPilotOn = this._isFlightDirectorCoPilotOn as Subscribable<boolean>;
-  /**
-   * Whether any of the flight directors are switched on.
-   * Only looks at FD1/pilot unless the {@link APConfig.independentFds} option is enabled.
-   */
+  /** Whether any flight director is switched on. */
   public readonly isAnyFlightDirectorOn = MappedSubject.create(
-    ([isFlightDirectorOn, isFlightDirectorCoPilotOn]) => isFlightDirectorOn || (this.apConfig.independentFds && isFlightDirectorCoPilotOn),
+    SubscribableMapFunctions.or(),
     this._isFlightDirectorOn,
     this._isFlightDirectorCoPilotOn,
   );
@@ -57,22 +81,63 @@ export abstract class APStateManager {
    * @param bus An instance of the event bus.
    * @param apConfig This autopilot's configuration.
    */
-  constructor(protected readonly bus: EventBus, protected readonly apConfig: APConfig) {
+  public constructor(protected readonly bus: EventBus, protected readonly apConfig: APConfig) {
+    this.apListenerPromise = this.initAPListener();
+    this.keyEventManagerPromise = this.initKeyEventManager();
+  }
 
-    KeyEventManager.getManager(bus).then(manager => {
-      this.keyEventManager = manager;
-      this.setupKeyIntercepts(manager);
-      this.bus.getSubscriber<KeyEvents>().on('key_intercept').handle(this.handleKeyIntercepted.bind(this));
-    });
-
-    this.apListener = RegisterViewListener('JS_LISTENER_AUTOPILOT', () => {
-      this.onAPListenerRegistered();
-      this.apListenerRegistered = true;
+  /**
+   * Initializes the Coherent autopilot listener and calls `this.onAPListenerRegistered()` when the listener is
+   * registered.
+   * @returns A Promise which is fulfilled when the autopilot listener has been registered and
+   * `this.onAPListenerRegistered()` is finished executing.
+   */
+  private initAPListener(): Promise<void> {
+    return new Promise<void>(resolve => {
+      RegisterViewListener('JS_LISTENER_AUTOPILOT', () => {
+        this.apListenerRegistered = true;
+        this.onAPListenerRegistered();
+        resolve();
+      });
     });
   }
 
   /**
-   * A callback which is called when the autopilot listener has been registered.
+   * Initializes the key event manager and calls `this.onKeyEventManagerReady()` when the manager has been retrieved.
+   * @returns A Promise which is fulfilled with the key event manager when it has been retrieved and
+   * `this.onKeyEventManagerReady()` is finished executing.
+   */
+  private initKeyEventManager(): Promise<KeyEventManager> {
+    return new Promise<KeyEventManager>(resolve => {
+      KeyEventManager.getManager(this.bus).then(manager => {
+        this.keyEventManager = manager;
+        this.onKeyEventManagerReady(manager);
+        resolve(manager);
+      });
+    });
+  }
+
+  /**
+   * Waits until the Coherent autopilot listener has been registered and `this.onAPListenerRegistered()` has finished
+   * executing.
+   * @returns A Promise which is fulfilled when the Coherent autopilot listener has been registered and
+   * `this.onAPListenerRegistered()` has finished executing.
+   */
+  protected awaitApListenerRegistered(): Promise<void> {
+    return this.apListenerPromise;
+  }
+
+  /**
+   * Waits until the key event manager has been retrieved and `this.onKeyEventManagerReady()` has finished executing.
+   * @returns A Promise which is fulfilled when the key event manager has been retrieved and
+   * `this.onKeyEventManagerReady()` has finished executing.
+   */
+  protected awaitKeyEventManagerReady(): Promise<KeyEventManager> {
+    return this.keyEventManagerPromise;
+  }
+
+  /**
+   * A callback which is called when the Coherent autopilot listener has been registered.
    */
   protected onAPListenerRegistered(): void {
     const ap = this.bus.getSubscriber<APEvents>();
@@ -90,25 +155,28 @@ export abstract class APStateManager {
     });
 
     ap.on('ap_master_status').handle(this.apMasterOn.set.bind(this.apMasterOn));
+  }
 
-    ap.on('flight_director_is_active_1').whenChanged().handle((fd) => {
-      this._isFlightDirectorOn.set(fd);
-      if (!this.apConfig.independentFds) {
-        this.setFlightDirector(fd);
-      }
-    });
+  /**
+   * A callback which is called when the key event manager has been retrieved.
+   * @param manager The key event manager.
+   */
+  protected onKeyEventManagerReady(manager: KeyEventManager): void {
+    this.setupKeyIntercepts(manager);
+    this.bus.getSubscriber<KeyEvents>().on('key_intercept').handle(this.handleKeyIntercepted.bind(this));
+  }
 
-    ap.on('flight_director_is_active_2').whenChanged().handle((fd) => {
-      this._isFlightDirectorCoPilotOn.set(fd);
-      if (!this.apConfig.independentFds) {
-        this.setFlightDirector(fd);
-      }
-    });
+  /**
+   * Sets up key intercepts necessary for managing the sim's flight director state.
+   * @param manager The key event manager.
+   */
+  protected setupFlightDirectorKeyIntercepts(manager: KeyEventManager): void {
+    manager.interceptKey('TOGGLE_FLIGHT_DIRECTOR', false);
   }
 
   /**
    * Sets up key intercepts for the simulation autopilot key events.
-   * @param manager The key intercept manager.
+   * @param manager The key event manager.
    */
   protected abstract setupKeyIntercepts(manager: KeyEventManager): void;
 
@@ -119,59 +187,140 @@ export abstract class APStateManager {
   protected abstract handleKeyIntercepted(data: KeyEventData): void;
 
   /**
-   * Checks whether the AP State Manager has completed listerner steps,
-   * and if so, finishes initializing and then notifies Autopilot of the same.
-   * @param force forces the initialize
+   * Initializes this manager. If this manager has already been initialized, then this method does nothing.
+   * @returns A Promise which will be fulfilled when the manager has been initialized. If the manager has already been
+   * initialized, then the Promise will be fulfilled immediately.
    */
-  public initialize(force = false): void {
-    this.onBeforeInitialize();
-    if (force || (this.keyEventManager && this.apListenerRegistered)) {
-      this.setManagedMode(true).then(() => {
-        SimVar.SetSimVarValue('AUTOPILOT ALTITUDE LOCK VAR', SimVarValueType.Feet, this.apConfig.altitudeHoldDefaultAltitude ?? 0);
-        this.initFlightDirector();
-        this.stateManagerInitialized.set(true);
-      });
+  public async initialize(): Promise<void> {
+    if (this._stateManagerInitialized.get()) {
+      return;
     }
+
+    this.onBeforeInitialize();
+
+    await Promise.all([this.awaitApListenerRegistered(), this.awaitKeyEventManagerReady()]);
+    await this.enableAvionicsManagedMode();
+
+    this.updateFlightDirectorStateFromSim(1);
+    this.updateFlightDirectorStateFromSim(2);
+
+    this.initFlightDirector();
+    this._stateManagerInitialized.set(true);
   }
 
-  /** Initializes the flight director to a default value. */
+  /**
+   * Enables avionics managed mode for the autopilot.
+   */
+  private async enableAvionicsManagedMode(): Promise<void> {
+    if (!this.apListenerRegistered) {
+      await this.awaitApListenerRegistered();
+    }
+
+    await Coherent.call('apSetAutopilotMode', MSFSAPStates.AvionicsManaged, 1);
+  }
+
+  /**
+   * Initializes the flight director to a default value.
+   */
   protected initFlightDirector(): void {
     this.setFlightDirector(false);
   }
 
   /**
-   * Sets the Flight Director State
-   * @param on is wheter to set the FD On.
+   * Sets the flight director state.
+   * @param state The state to set: `true` = on, `false` = off.
+   * @param index The index of the flight director to set. If not defined, then the state of both flight directors will
+   * be set. This parameter is ignored if the autopilot is not configured with independent flight directors, in which
+   * case the state of both flight directors will always be set.
    */
-  public setFlightDirector(on: boolean): void {
-    // HINT: Delay this by a frame so we know about the actual FD state
-    setTimeout(() => {
-      if (on !== this.isFlightDirectorOn.get()) {
-        SimVar.SetSimVarValue('K:TOGGLE_FLIGHT_DIRECTOR', 'number', 1);
-        this._isFlightDirectorOn.set(on);
-      }
-      if (on !== this.isFlightDirectorCoPilotOn.get()) {
-        SimVar.SetSimVarValue('K:TOGGLE_FLIGHT_DIRECTOR', 'number', 2);
-        this._isFlightDirectorCoPilotOn.set(on);
-      }
-    }, 0);
+  public setFlightDirector(state: boolean, index?: 1 | 2): void {
+    if (!this.apConfig.independentFds) {
+      index = undefined;
+    }
+
+    if (index === 1 || index === undefined) {
+      this.setFlightDirectorState(1, state);
+    }
+
+    if (index === 2 || index === undefined) {
+      this.setFlightDirectorState(2, state);
+    }
   }
 
   /**
-   * Sets Managed Mode.
-   * @param set is wheter to set or unset managed mode.
+   * Sets the state of a flight director.
+   * @param index The index of the flight director to set.
+   * @param state The state to set.
    */
-  private async setManagedMode(set: boolean): Promise<void> {
-    return new Promise<void>(resolve => {
-      setTimeout(() => {
-        if (set) {
-          Coherent.call('apSetAutopilotMode', MSFSAPStates.AvionicsManaged, 1).then(() => resolve());
-        } else {
-          Coherent.call('apSetAutopilotMode', MSFSAPStates.AvionicsManaged, 0).then(() => resolve());
-        }
-        this.managedModeSet = set;
-      }, 1000);
-    });
+  protected setFlightDirectorState(index: 1 | 2, state: boolean): void {
+    this.pendSimFlightDirectorState(index, state);
+  }
+
+  /**
+   * Pends a flight director state to push to the sim.
+   * @param index The index of the flight director for which to pend the state.
+   * @param state The state to pend.
+   */
+  protected pendSimFlightDirectorState(index: 1 | 2, state: boolean): void {
+    this.flightDirectorPendingStates[index] = state;
+  }
+
+  /**
+   * A method that is called on every autopilot update cycle before the autopilot directors are updated.
+   */
+  public onBeforeUpdate(): void {
+    this.updateFlightDirectorStateFromSim(1);
+    this.updateFlightDirectorStateFromSim(2);
+  }
+
+  /**
+   * Updates this manager's tracked flight director state from the sim.
+   * @param index The index of the flight director to update.
+   */
+  protected updateFlightDirectorStateFromSim(index: 1 | 2): void {
+    const simState = SimVar.GetSimVarValue(this.flightDirectorStateSimVars[1], SimVarValueType.Bool) !== 0;
+    if (simState !== this.flightDirectorSimStates[index]) {
+      this.flightDirectorSimStates[index] = simState;
+      this.flightDirectorPendingStates[index] = simState;
+      this.flightDirectorPushedPendingStates[index] = simState;
+      this.onFlightDirectorSimStateChanged(index, simState);
+    }
+  }
+
+  /**
+   * Responds to when the sim state of a flight director changes.
+   * @param index The index of the flight director whose state changed.
+   * @param state The flight director's new state.
+   */
+  protected onFlightDirectorSimStateChanged(index: 1 | 2, state: boolean): void {
+    if (!this.apConfig.independentFds) {
+      this.setFlightDirectorState(index === 1 ? 2 : 1, state);
+    }
+
+    if (index === 1) {
+      this._isFlightDirectorOn.set(state);
+    } else {
+      this._isFlightDirectorCoPilotOn.set(state);
+    }
+  }
+
+  /**
+   * A method that is called on every autopilot update cycle after the autopilot directors are updated.
+   */
+  public onAfterUpdate(): void {
+    this.pushPendingFlightDirectorStateToSim(1);
+    this.pushPendingFlightDirectorStateToSim(2);
+  }
+
+  /**
+   * Pushes the pending state of a flight director to the sim.
+   * @param index The index of the flight director for which to push the pending state.
+   */
+  protected pushPendingFlightDirectorStateToSim(index: 1 | 2): void {
+    if (this.flightDirectorPendingStates[index] !== this.flightDirectorPushedPendingStates[index]) {
+      SimVar.SetSimVarValue('K:TOGGLE_FLIGHT_DIRECTOR', 'number', index);
+      this.flightDirectorPushedPendingStates[index] = this.flightDirectorPendingStates[index];
+    }
   }
 
   /**
@@ -188,7 +337,7 @@ export abstract class APStateManager {
    * @param mode is the mode to set/unset.
    * @param set is whether to actively set or unset this mode.
    */
-  protected sendApModeEvent(type: APModeType, mode?: APLateralModes | APVerticalModes, set?: boolean): void {
+  protected sendApModeEvent(type: APModeType, mode?: number, set?: boolean): void {
     switch (type) {
       case APModeType.LATERAL:
         if (mode !== undefined) {

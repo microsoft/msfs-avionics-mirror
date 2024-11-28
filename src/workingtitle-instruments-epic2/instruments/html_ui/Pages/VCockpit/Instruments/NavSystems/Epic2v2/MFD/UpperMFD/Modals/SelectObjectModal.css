@@ -1,0 +1,72 @@
+.select-object-modal .title {
+  font-size: 27px;
+  padding-top: 10px;
+  padding-left: 4px;
+}
+
+.select-object-modal .header {
+  display: flex;
+  position: relative;
+}
+
+.select-object-modal .header .waypoint-modal-close-button {
+  margin-left: auto;
+  width: 57px;
+  height: 37px;
+  margin-top: 2px;
+}
+
+.waypoint-container {
+  left: 5px;
+  width: calc(100% - 105px);
+  height: 70px;
+}
+
+.waypoint-list-container {
+  left: 5px;
+  top: 80px;
+  width: calc(100% - 105px);
+  height: calc(100% - 200px);
+}
+
+.waypoint-list-placeholder {
+  position: relative;
+  margin: 5px 5px 1px 3px;
+  padding: 2px;
+}
+
+.waypoint-name-menu-base {
+  right: -98px;
+}
+
+.insert-waypoint-button {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  padding: 2px 10px 0 10px;
+}
+
+.select-object-modal-label {
+  text-align: left;
+  padding-left: 3px;
+  padding-top: 2px;
+}
+
+.select-object-modal-label * {
+  font-size: 20px;
+  white-space: pre;
+}
+
+.selected-waypoint-background {
+  width: 227px;
+  background: var(--epic2-color-black);
+  border: 2px solid var(--epic2-color-white);
+  border-radius: 2px;
+}
+
+.waypoint-item-image {
+  height: 14px;
+  width: 14px;
+  margin-left: 5px;
+  margin-right: 5px;
+}

@@ -1,0 +1,429 @@
+<ModelBehaviors>
+	<Include ModelBehaviorFile="Asobo\Generic.xml"/>
+	<Include RelativeFile="Inputs.xml"/>
+
+	<!--
+		Takes an increment to change a control axis in response to a key event and adjusts it for true airspeed.
+
+		Required params:
+		* INCR_CODE - RPN to compute the increment (as a position 16k) to change a control axis in response to a key event.
+
+		Optional params:
+		* RETURN_PARAM_NAME - The name to assign the parameter returned by this function. Defaults to INCR_CODE_TAS.
+		* INCR_RESP_TAS_HALF - The true airspeed, in knots, at which the input increment is reduced to one-half the
+													 original amount. A value less than or equal to zero disables all adjustments to the
+													 increment based on airspeed. Defaults to 0.
+		* INCR_RESP_TAS_EIGHTH - The true airspeed, in knots, at which the input increment is reduced to one-eighth the
+														 original amount. Defaults to 0.
+
+		Returns:
+		* #RETURN_PARAM_NAME# - RPN to compute the increment (as a position 16k) to change a control axis in response to a
+														key event, after being adjusted for true airspeed.
+	-->
+	<ParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_TAS">
+		<Parameters Type="Default">
+			<RETURN_PARAM_NAME>INCR_CODE_TAS</RETURN_PARAM_NAME>
+			<INCR_RESP_HALF_TAS>0</INCR_RESP_HALF_TAS>
+			<INCR_RESP_EIGHTH_TAS>0</INCR_RESP_EIGHTH_TAS>
+		</Parameters>
+
+		<Parameters Type="Override">
+			<Condition>
+				<Test>
+					<Greater>
+							<Value>INCR_RESP_HALF_TAS</Value>
+							<Number>0</Number>
+					</Greater>
+				</Test>
+				<True>
+					<INCR_TAS_RESP_CODE>
+						(A:AIRSPEED TRUE, knots) s0 #INCR_RESP_HALF_TAS# &lt; if{
+							1 0.5 l0 #INCR_RESP_HALF_TAS# / * -
+						} els{
+							#INCR_RESP_HALF_TAS# #INCR_RESP_EIGHTH_TAS# &lt; l0 #INCR_RESP_EIGHTH_TAS# &lt; and if{
+								0.5 0.375 l0 #INCR_RESP_HALF_TAS# - #INCR_RESP_EIGHTH_TAS# #INCR_RESP_HALF_TAS# - / * -
+							} els{
+								0.125
+							}
+						}
+					</INCR_TAS_RESP_CODE>
+				</True>
+				<False>
+					<INCR_TAS_RESP_CODE>1</INCR_TAS_RESP_CODE>
+				</False>
+			</Condition>
+		</Parameters>
+
+		<ReturnParameters>
+			<#RETURN_PARAM_NAME#>
+				#INCR_CODE# #INCR_TAS_RESP_CODE# *
+			</#RETURN_PARAM_NAME#>
+		</ReturnParameters>
+	</ParametersFn>
+
+	<!--
+		Takes an increment to change a control axis in response to a key event and adjusts it for key press timing.
+
+		Required params:
+		* ID - The name to assign to the key. Should be unique for each key whose press/release timing is independently
+					 tracked.
+		* INCR_CODE - RPN to compute the increment (as a position 16k) to change a control axis in response to a key event.
+		* GET_INPUT_CODE - RPN to retrieve the current input value (as a position 16k).
+
+		Optional params:
+		* RETURN_PARAM_NAME - The name to assign the parameter returned by this function. Defaults to INCR_CODE_#ID#.
+		* INCR_TIMING_RELEASE_THRESHOLD - The maximum amount of time, in seconds, allowed to separate two consecutive key
+																			events while the key is still considered held down. Defaults to 0.2.
+		* INCR_TIMING_FACTOR_CODE - RPN to compute the scaling factor to apply to the input increment given a duration for
+																which the key has been held. The duration for which the key has been held is at the top
+																of the stack when the code is executed. Defaults to code that computes a scaling factor
+																of 4 when the duration is least 1 second, a factor of 2 when the duration is between
+																0.5 and 1 second, and a factor of 1 otherwise.
+		* INCR_NEUTRAL_FACTOR - The scaling factor to apply to the input increment when the key is pressed (not held) and
+														the current input value is close to the neutral position. Defaults to 4.
+		* INCR_NEUTRAL_EPSILON - The tolerance to use (as a position 16k) when determining if the current input value is
+														 close to the neutral position. Defaults to 16.
+
+		Returns:
+		* #RETURN_PARAM_NAME# - RPN to compute the increment (as a position 16k) to change a control axis in response to a
+														key event, after being adjusted for key press timing.
+	-->
+	<ParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_Timing">
+		<Parameters Type="Default">
+			<RETURN_PARAM_NAME>INCR_CODE_#ID#</RETURN_PARAM_NAME>
+			<INCR_TIMING_RELEASE_THRESHOLD>0.2</INCR_TIMING_RELEASE_THRESHOLD>
+			<INCR_TIMING_FACTOR_CODE>
+				s0 0.5 &lt; if{ 1 } els{ l0 1 &lt; if{ 2 } els{ 4 } }
+			</INCR_TIMING_FACTOR_CODE>
+			<INCR_NEUTRAL_FACTOR>4</INCR_NEUTRAL_FACTOR>
+			<INCR_NEUTRAL_EPSILON>16</INCR_NEUTRAL_EPSILON>
+		</Parameters>
+
+		<ReturnParameters>
+			<#RETURN_PARAM_NAME#>
+				#INCR_CODE# sp0
+
+				(E:SIMULATION TIME, second) sp1
+				(O:#ID#_Has_Last_Event, bool) sp2
+				(O:#ID#_Last_Event_Time, second) sp3
+
+				l2 l1 l3 &lt; and if{
+					0 s2 (&gt;O:#ID#_Has_Last_Event, bool)
+				}
+
+				l2 l1 l3 - #INCR_TIMING_RELEASE_THRESHOLD# &lt;= and if{
+					(O:#ID#_Held_Time, second) l1 l3 - + s4 (&gt;O:#ID#_Held_Time, second)
+				} els{
+					0 s4 (&gt;O:#ID#_Held_Time, second)
+				}
+
+				1 (&gt;O:#ID#_Has_Last_Event, bool)
+				l1 (&gt;O:#ID#_Last_Event_Time, second)
+
+				l0 #INCR_NEUTRAL_FACTOR# 1 l4 0 == #GET_INPUT_CODE# abs #INCR_NEUTRAL_EPSILON# &lt; and ? * l4 #INCR_TIMING_FACTOR_CODE# *
+			</#RETURN_PARAM_NAME#>
+		</ReturnParameters>
+	</ParametersFn>
+
+	<!--
+		Creates an input event to manage inputs for a control axis in response to ESP forces. The value of the input event
+		tracks an input control axis position. The input control axis position is then modulated by an ESP force to
+		generate an output control axis position that is used to set a control axis position within the sim.
+
+		Required params:
+		* IE_NAME - The name to use for the input event that manages the control axis.
+		* FORCE_VAR - The name of the LVAR (without the L:1: prefix) that provides the ESP force applied to the control axis.
+									Positive force deflects the control axis in the positive direction.
+		* SET_CONTROL_AXIS_CODE - RPN to set the sim's control axis position. The position to set is at the top of the
+															stack when the code is executed.
+
+		Optional params:
+		* OUTPUT_CODE - RPN to transform an input control axis position and ESP force to an output control axis position.
+										The input position can be retrieved using (O:ESP_#IE_NAME#_Input), and the ESP force can be
+										retrieved using (L:1:#FORCE_VAR#).
+	-->
+	<Template Name="WT_G3000_ESP_Control_Axis_Template">
+		<Parameters Type="Default">
+			<OUTPUT_CODE>
+				(L:1:#FORCE_VAR#) 1 min -1 max @16K * sp0
+				(O:ESP_#IE_NAME#_Input) s1 sign @16K * sp2
+				l2 l0 - l1 l2 / * l0 + near
+			</OUTPUT_CODE>
+		</Parameters>
+
+		<Parameters Type="Override">
+			<PROCESS_OUTPUT_CODE>#OUTPUT_CODE# #SET_CONTROL_AXIS_CODE#</PROCESS_OUTPUT_CODE>
+		</Parameters>
+
+		<UseInputEvent ID="G3000_GIE_Base_Ex1">
+			<INPUT_EVENT_ID_SOURCE>ESP</INPUT_EVENT_ID_SOURCE>
+
+			<VALUE_UNITS>number</VALUE_UNITS>
+			<VALUE_CODE>(O:ESP_#IE_NAME#_Input)</VALUE_CODE>
+
+			<INIT_CODE>
+				#PROCESS_OUTPUT_CODE#
+			</INIT_CODE>
+
+			<SET_ARG_COUNT>1</SET_ARG_COUNT>
+			<SET_CODE>
+				p0 @16K min -@16K max (&gt;O:ESP_#IE_NAME#_Input)
+				#PROCESS_OUTPUT_CODE#
+			</SET_CODE>
+
+			<INC_ARG_COUNT>1</INC_ARG_COUNT>
+			<INC_CODE>
+				(O:ESP_#IE_NAME#_Input) p0 + (&gt;B:ESP_#IE_NAME#_Set)
+			</INC_CODE>
+
+			<DEC_ARG_COUNT>1</DEC_ARG_COUNT>
+			<DEC_CODE>
+				(O:ESP_#IE_NAME#_Input) p0 - (&gt;B:ESP_#IE_NAME#_Set)
+			</DEC_CODE>
+
+			<SCOPED_VAR_TO_WATCH_0>#FORCE_VAR#</SCOPED_VAR_TO_WATCH_0>
+			<SCOPED_VAR_TO_WATCH_0_SCOPE>L</SCOPED_VAR_TO_WATCH_0_SCOPE>
+
+			<!--
+				Even though we don't use these params, they still need to be declared because G3000_GIE_Base_Ex1 expects them.
+				Otherwise we will get warnings.
+			-->
+			<TT_ICON />
+			<TT_INTERACTION />
+			<TT_INTERACTION_LOCKABLE />
+			<TT_DESCRIPTION />
+			<TT_DESCRIPTION_IS_DYNAMIC />
+			<TT_VALUE />
+			<TT_VALUE_IS_DYNAMIC />
+		</UseInputEvent>
+	</Template>
+
+	<!--
+		Creates an input event to manage inputs for the pitch control axis in response to ESP forces. The input event
+		intercepts and uses the ELEVATOR_SET, AXIS_ELEVATOR_SET, ELEVATOR_DOWN, ELEV_DOWN, ELEVATOR_UP, and ELEV_UP key
+		events to track an input control axis position as the input event's value. The input control axis position is then
+		modulated by an ESP force to generate an output control axis position that is used to set the sim's elevator
+		position.
+
+		Optional params:
+		* IE_NAME - The name to use for the input event that manages the control axis. Defaults to Pitch_Control_Axis.
+		* FORCE_VAR - The name of the LVAR (without the L:1: prefix) that provides the ESP force applied to the control axis.
+									Positive force deflects the control axis in the positive direction. Defaults to
+									Esp_Pitch_Control_Axis_Force.
+		* INCR_CODE - RPN to compute the base amount to change the input control axis position (as a position 16k) in
+									response to incrementing and decrementing key events. Defaults to 514.
+		* INCR_RESP_TAS_HALF - The true airspeed, in knots, at which the input increment is reduced to one-half the base
+													 amount. A value less than or equal to zero disables all adjustments to the increment based
+													 on airspeed. Defaults to 0.
+		* INCR_RESP_TAS_EIGHTH - The true airspeed, in knots, at which the input increment is reduced to one-eighth the
+														 base amount. Defaults to 0.
+		* INCR_TIMING_RELEASE_THRESHOLD - The maximum amount of time, in seconds, allowed to separate two consecutive
+																			input-incrementing or -decrementing key events while the key is still considered
+																			held down. Defaults to 0.2.
+		* INCR_TIMING_FACTOR_CODE - RPN to compute the scaling factor to apply to the input increment given a duration for
+																which the associated key has been held. The duration for which the key has been held is
+																at the top of the stack when the code is executed. Defaults to code that computes a
+																scaling factor of 4 when the duration is least 1 second, a factor of 2 when the
+																duration is between 0.5 and 1 second, and a factor of 1 otherwise.
+		* INCR_NEUTRAL_FACTOR - The scaling factor to apply to the input increment when the associated key is pressed (not
+														held) and the current input value is close to the neutral position. Defaults to 4.
+		* INCR_NEUTRAL_EPSILON - The tolerance to use (as a position 16k) when determining if the current input value is
+														 close to the neutral position. Defaults to 16.
+		* OUTPUT_CODE - RPN to transform an input control axis position and ESP force to an output control axis position.
+										The input position can be retrieved using (O:ESP_#IE_NAME#_Input), and the ESP force can be
+										retrieved using (L:1:#FORCE_VAR#).
+	-->
+	<Template Name="WT_G3000_ESP_Pitch_Control_Axis_Template">
+		<Parameters Type="Default">
+			<IE_NAME>Pitch_Control_Axis</IE_NAME>
+			<FORCE_VAR>Esp_Pitch_Control_Axis_Force</FORCE_VAR>
+			<INCR_CODE>514</INCR_CODE>
+		</Parameters>
+
+		<Parameters Type="Override">
+			<GET_INPUT_CODE>(O:ESP_#IE_NAME#_Input)</GET_INPUT_CODE>
+		</Parameters>
+
+		<Parameters Type="Default">
+			<UseParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_TAS">
+			</UseParametersFn>
+		</Parameters>
+
+		<Parameters Type="Default">
+			<UseParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_Timing">
+				<ID>ELEVATOR_DOWN</ID>
+				<INCR_CODE>#INCR_CODE_TAS#</INCR_CODE>
+			</UseParametersFn>
+			<UseParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_Timing">
+				<ID>ELEV_DOWN</ID>
+				<INCR_CODE>#INCR_CODE_TAS#</INCR_CODE>
+			</UseParametersFn>
+			<UseParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_Timing">
+				<ID>ELEVATOR_UP</ID>
+				<INCR_CODE>#INCR_CODE_TAS#</INCR_CODE>
+			</UseParametersFn>
+			<UseParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_Timing">
+				<ID>ELEV_UP</ID>
+				<INCR_CODE>#INCR_CODE_TAS#</INCR_CODE>
+			</UseParametersFn>
+		</Parameters>
+
+		<UseTemplate Name="WT_G3000_ESP_Control_Axis_Template">
+			<SET_CONTROL_AXIS_CODE>neg (&gt;K:ELEVATOR_SET)</SET_CONTROL_AXIS_CODE>
+
+			<BINDING_SET_0>ELEVATOR_SET</BINDING_SET_0>
+			<BINDING_SET_0_EVENT_ID>ELEVATOR_SET</BINDING_SET_0_EVENT_ID>
+			<BINDING_SET_0_EVENT_ID_ONLY>True</BINDING_SET_0_EVENT_ID_ONLY>
+			<BINDING_SET_0_PARAM_0_IS_DYNAMIC>True</BINDING_SET_0_PARAM_0_IS_DYNAMIC>
+			<BINDING_SET_0_PARAM_0>p1 neg</BINDING_SET_0_PARAM_0>
+
+			<BINDING_SET_1>AXIS_ELEVATOR_SET</BINDING_SET_1>
+			<BINDING_SET_1_EVENT_ID>AXIS_ELEVATOR_SET</BINDING_SET_1_EVENT_ID>
+			<BINDING_SET_1_EVENT_ID_ONLY>True</BINDING_SET_1_EVENT_ID_ONLY>
+			<BINDING_SET_1_PARAM_0_IS_DYNAMIC>True</BINDING_SET_1_PARAM_0_IS_DYNAMIC>
+			<BINDING_SET_1_PARAM_0>p1 neg</BINDING_SET_1_PARAM_0>
+
+			<BINDING_DEC_0>ELEVATOR_DOWN</BINDING_DEC_0>
+			<BINDING_DEC_0_EVENT_ID>ELEVATOR_DOWN</BINDING_DEC_0_EVENT_ID>
+			<BINDING_DEC_0_EVENT_ID_ONLY>True</BINDING_DEC_0_EVENT_ID_ONLY>
+			<BINDING_DEC_0_PARAM_0_IS_DYNAMIC>True</BINDING_DEC_0_PARAM_0_IS_DYNAMIC>
+			<BINDING_DEC_0_PARAM_0>#INCR_CODE_ELEVATOR_DOWN#</BINDING_DEC_0_PARAM_0>
+
+			<BINDING_DEC_1>ELEV_DOWN</BINDING_DEC_1>
+			<BINDING_DEC_1_EVENT_ID>ELEV_DOWN</BINDING_DEC_1_EVENT_ID>
+			<BINDING_DEC_1_EVENT_ID_ONLY>True</BINDING_DEC_1_EVENT_ID_ONLY>
+			<BINDING_DEC_1_PARAM_0_IS_DYNAMIC>True</BINDING_DEC_1_PARAM_0_IS_DYNAMIC>
+			<BINDING_DEC_1_PARAM_0>#INCR_CODE_ELEV_DOWN#</BINDING_DEC_1_PARAM_0>
+
+			<BINDING_INC_0>ELEVATOR_UP</BINDING_INC_0>
+			<BINDING_INC_0_EVENT_ID>ELEVATOR_DOWN</BINDING_INC_0_EVENT_ID>
+			<BINDING_INC_0_EVENT_ID_ONLY>True</BINDING_INC_0_EVENT_ID_ONLY>
+			<BINDING_INC_0_PARAM_0_IS_DYNAMIC>True</BINDING_INC_0_PARAM_0_IS_DYNAMIC>
+			<BINDING_INC_0_PARAM_0>#INCR_CODE_ELEVATOR_UP#</BINDING_INC_0_PARAM_0>
+
+			<BINDING_INC_1>ELEV_UP</BINDING_INC_1>
+			<BINDING_INC_1_EVENT_ID>ELEV_UP</BINDING_INC_1_EVENT_ID>
+			<BINDING_INC_1_EVENT_ID_ONLY>True</BINDING_INC_1_EVENT_ID_ONLY>
+			<BINDING_INC_1_PARAM_0_IS_DYNAMIC>True</BINDING_INC_1_PARAM_0_IS_DYNAMIC>
+			<BINDING_INC_1_PARAM_0>#INCR_CODE_ELEV_UP#</BINDING_INC_1_PARAM_0>
+		</UseTemplate>
+	</Template>
+
+	<!--
+		Creates an input event to manage inputs for the roll control axis in response to ESP forces. The input event
+		intercepts and uses the AILERON_SET, AXIS_AILERONS_SET, CENTER_AILER_RUDDER, AILERONS_LEFT, AILERON_LEFT,
+		AILERONS_RIGHT, and AILERON_RIGHT key events to track an input control axis position as the input event's value.
+		The input control axis position is then modulated by an ESP force to generate an output control axis position that
+		is used to set the sim's aileron position.
+
+		Optional params:
+		* IE_NAME - The name to use for the input event that manages the control axis. Defaults to Roll_Control_Axis.
+		* FORCE_VAR - The name of the LVAR (without the L:1: prefix) that provides the ESP force applied to the control axis.
+									Positive force deflects the control axis in the positive direction. Defaults to
+									Esp_Roll_Control_Axis_Force.
+		* INCR_CODE - RPN to compute the base amount to change the input control axis position (as a position 16k) in
+									response to incrementing and decrementing key events. Defaults to 514.
+		* INCR_RESP_TAS_HALF - The true airspeed, in knots, at which the input increment is reduced to one-half the base
+													 amount. A value less than or equal to zero disables all adjustments to the increment based
+													 on airspeed. Defaults to 0.
+		* INCR_RESP_TAS_EIGHTH - The true airspeed, in knots, at which the input increment is reduced to one-eighth the
+														 base amount. Defaults to 0.
+		* INCR_TIMING_RELEASE_THRESHOLD - The maximum amount of time, in seconds, allowed to separate two consecutive
+																			input-incrementing or -decrementing key events while the key is still considered
+																			held down. Defaults to 0.2.
+		* INCR_TIMING_FACTOR_CODE - RPN to compute the scaling factor to apply to the input increment given a duration for
+																which the associated key has been held. The duration for which the key has been held is
+																at the top of the stack when the code is executed. Defaults to code that computes a
+																scaling factor of 4 when the duration is least 1 second, a factor of 2 when the
+																duration is between 0.5 and 1 second, and a factor of 1 otherwise.
+		* INCR_NEUTRAL_FACTOR - The scaling factor to apply to the input increment when the associated key is pressed (not
+														held) and the current input value is close to the neutral position. Defaults to 4.
+		* INCR_NEUTRAL_EPSILON - The tolerance to use (as a position 16k) when determining if the current input value is
+														 close to the neutral position. Defaults to 16.
+		* OUTPUT_CODE - RPN to transform an input control axis position and ESP force to an output control axis position.
+										The input position can be retrieved using (O:ESP_#IE_NAME#_Input), and the ESP force can be
+										retrieved using (L:1:#FORCE_VAR#).
+	-->
+	<Template Name="WT_G3000_ESP_Roll_Control_Axis_Template">
+		<Parameters Type="Default">
+			<IE_NAME>Roll_Control_Axis</IE_NAME>
+			<FORCE_VAR>Esp_Roll_Control_Axis_Force</FORCE_VAR>
+			<INCR_CODE>1028</INCR_CODE>
+		</Parameters>
+
+		<Parameters Type="Override">
+			<GET_INPUT_CODE>(O:ESP_#IE_NAME#_Input)</GET_INPUT_CODE>
+		</Parameters>
+
+		<Parameters Type="Default">
+			<UseParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_TAS">
+			</UseParametersFn>
+		</Parameters>
+
+		<Parameters Type="Default">
+			<UseParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_Timing">
+				<ID>AILERONS_LEFT</ID>
+				<INCR_CODE>#INCR_CODE_TAS#</INCR_CODE>
+			</UseParametersFn>
+			<UseParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_Timing">
+				<ID>AILERON_LEFT</ID>
+				<INCR_CODE>#INCR_CODE_TAS#</INCR_CODE>
+			</UseParametersFn>
+			<UseParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_Timing">
+				<ID>AILERONS_RIGHT</ID>
+				<INCR_CODE>#INCR_CODE_TAS#</INCR_CODE>
+			</UseParametersFn>
+			<UseParametersFn Name="WT_G3000_ESP_Adjust_Input_Incr_Param_From_Timing">
+				<ID>AILERON_RIGHT</ID>
+				<INCR_CODE>#INCR_CODE_TAS#</INCR_CODE>
+			</UseParametersFn>
+		</Parameters>
+
+		<UseTemplate Name="WT_G3000_ESP_Control_Axis_Template">
+			<SET_CONTROL_AXIS_CODE>neg (&gt;K:AILERON_SET)</SET_CONTROL_AXIS_CODE>
+
+			<BINDING_SET_0>AILERON_SET</BINDING_SET_0>
+			<BINDING_SET_0_EVENT_ID>AILERON_SET</BINDING_SET_0_EVENT_ID>
+			<BINDING_SET_0_EVENT_ID_ONLY>True</BINDING_SET_0_EVENT_ID_ONLY>
+			<BINDING_SET_0_PARAM_0_IS_DYNAMIC>True</BINDING_SET_0_PARAM_0_IS_DYNAMIC>
+			<BINDING_SET_0_PARAM_0>p1 neg</BINDING_SET_0_PARAM_0>
+
+			<BINDING_SET_1>AXIS_AILERONS_SET</BINDING_SET_1>
+			<BINDING_SET_1_EVENT_ID>AXIS_AILERONS_SET</BINDING_SET_1_EVENT_ID>
+			<BINDING_SET_1_EVENT_ID_ONLY>True</BINDING_SET_1_EVENT_ID_ONLY>
+			<BINDING_SET_1_PARAM_0_IS_DYNAMIC>True</BINDING_SET_1_PARAM_0_IS_DYNAMIC>
+			<BINDING_SET_1_PARAM_0>p1 neg</BINDING_SET_1_PARAM_0>
+
+			<BINDING_SET_2>CENTER_AILER_RUDDER</BINDING_SET_2>
+			<BINDING_SET_2_EVENT_ID>CENTER_AILER_RUDDER</BINDING_SET_2_EVENT_ID>
+			<BINDING_SET_2_EVENT_ID_ONLY>True</BINDING_SET_2_EVENT_ID_ONLY>
+			<BINDING_SET_2_PARAM_0_IS_DYNAMIC>True</BINDING_SET_2_PARAM_0_IS_DYNAMIC>
+			<BINDING_SET_2_PARAM_0>0 (&gt;K:RUDDER_SET) p1 neg</BINDING_SET_2_PARAM_0>
+
+			<BINDING_DEC_0>AILERONS_LEFT</BINDING_DEC_0>
+			<BINDING_DEC_0_EVENT_ID>AILERONS_LEFT</BINDING_DEC_0_EVENT_ID>
+			<BINDING_DEC_0_EVENT_ID_ONLY>True</BINDING_DEC_0_EVENT_ID_ONLY>
+			<BINDING_DEC_0_PARAM_0_IS_DYNAMIC>True</BINDING_DEC_0_PARAM_0_IS_DYNAMIC>
+			<BINDING_DEC_0_PARAM_0>#INCR_CODE_AILERONS_LEFT#</BINDING_DEC_0_PARAM_0>
+
+			<BINDING_DEC_1>AILERON_LEFT</BINDING_DEC_1>
+			<BINDING_DEC_1_EVENT_ID>AILERON_LEFT</BINDING_DEC_1_EVENT_ID>
+			<BINDING_DEC_1_EVENT_ID_ONLY>True</BINDING_DEC_1_EVENT_ID_ONLY>
+			<BINDING_DEC_1_PARAM_0_IS_DYNAMIC>True</BINDING_DEC_1_PARAM_0_IS_DYNAMIC>
+			<BINDING_DEC_1_PARAM_0>#INCR_CODE_AILERON_LEFT#</BINDING_DEC_1_PARAM_0>
+
+			<BINDING_INC_0>AILERONS_RIGHT</BINDING_INC_0>
+			<BINDING_INC_0_EVENT_ID>AILERONS_RIGHT</BINDING_INC_0_EVENT_ID>
+			<BINDING_INC_0_EVENT_ID_ONLY>True</BINDING_INC_0_EVENT_ID_ONLY>
+			<BINDING_INC_0_PARAM_0_IS_DYNAMIC>True</BINDING_INC_0_PARAM_0_IS_DYNAMIC>
+			<BINDING_INC_0_PARAM_0>#INCR_CODE_AILERONS_RIGHT#</BINDING_INC_0_PARAM_0>
+
+			<BINDING_INC_1>AILERON_RIGHT</BINDING_INC_1>
+			<BINDING_INC_1_EVENT_ID>AILERON_RIGHT</BINDING_INC_1_EVENT_ID>
+			<BINDING_INC_1_EVENT_ID_ONLY>True</BINDING_INC_1_EVENT_ID_ONLY>
+			<BINDING_INC_1_PARAM_0_IS_DYNAMIC>True</BINDING_INC_1_PARAM_0_IS_DYNAMIC>
+			<BINDING_INC_1_PARAM_0>#INCR_CODE_AILERON_RIGHT#</BINDING_INC_1_PARAM_0>
+		</UseTemplate>
+	</Template>
+
+</ModelBehaviors>

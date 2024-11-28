@@ -4,7 +4,7 @@ import { DirectorState, PlaneDirector } from './PlaneDirector';
 import { SimVarValueType } from '../../data/SimVars';
 import { MathUtils } from '../../math/MathUtils';
 import { MappedSubscribable } from '../../sub';
-import { APValues } from '../APConfig';
+import { APValues } from '../APValues';
 
 /**
  * Options for {@link APFPADirector}.

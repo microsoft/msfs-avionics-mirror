@@ -1,0 +1,33 @@
+.flight-path-marker {
+  width: 160px;
+  height: 60px;
+  stroke-linecap: round;
+
+  --flight-path-marker-primary-stroke: var(--epic2-color-green);
+  --flight-path-marker-primary-stroke-width: 5;
+  --flight-path-marker-primary-outline-stroke: var(--epic2-color-black);
+  --flight-path-marker-primary-outline-stroke-width: 6;
+
+  --flight-path-marker-secondary-stroke: var(--epic2-color-grey);
+  --flight-path-marker-secondary-stroke-width: 2;
+  --flight-path-marker-secondary-outline-stroke: var(--epic2-color-black);
+  --flight-path-marker-secondary-outline-stroke-width: 3;
+}
+
+.flight-path-marker-secondary {
+  position: absolute;
+  top : 50%;
+  left: 50%;
+  width: 66px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+}
+
+.flight-path-marker-primary {
+  position: absolute;
+  top : 50%;
+  left: 50%;
+  width: 120px;
+  height: 60px;
+  transform: translate(-50%, -50%);
+}

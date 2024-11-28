@@ -1,3 +1,5 @@
+import { Rounding } from '../../math/MathUtils';
+
 /**
  * Options for creating a number formatter.
  */
@@ -5,8 +7,21 @@ export type NumberFormatterOptions = {
   /** The precision to which to round the number. A value of 0 denotes no rounding. Defaults to `0`. */
   precision?: number;
 
-  /** Rounding behavior. Always round down = `-1`. Always round up = `+1`. Normal rounding = `0`. Defaults to `0`. */
-  round?: -1 | 0 | 1;
+  /** Rounding behavior. Defaults to `Rounding.Nearest`. */
+  round?: Rounding;
+
+  /**
+   * The hysteresis to apply to the formatter. If defined as a `[number, number]` tuple, then the first number in the
+   * tuple is taken as the lower hysteresis and second number as the upper hysteresis. If defined as a single number,
+   * then that is taken as both the lower and upper hysteresis. Negative values are clamped to zero.
+   * 
+   * When a previously formatted string exists, any new input number (`x`) is compared to the precision-rounded value
+   * of the previously formatted string (`x0`). Define `x1` as the least number that can be rounded to `x0` and `x2` as
+   * the greatest number that can be rounded to `x0`. Then the formatter returns a newly formatted string for `x` if
+   * and only if `x < x1 - h1` or `x > x2 + h2`, where `h1` and `h2` are the lower and upper hysteresis values,
+   * respectively. Otherwise, the formatter returns the previously formatted string.
+   */
+  hysteresis?: number | readonly [number, number];
 
   /**
    * The maximum number of digits to enforce. Digits to the _right_ of the decimal point will be omitted (with proper
@@ -40,19 +55,41 @@ export type NumberFormatterOptions = {
   /** Whether to hide the display of the positive/negative sign. Overrides `forceSign`. Defaults to `false`. */
   hideSign?: boolean;
 
-  /** The string to output for an input of NaN. Defaults to `'NaN'`. */
+  /** The string to output for an input of `NaN`. Defaults to `'NaN'`. */
   nanString?: string;
 
-  /** Whether to cache and reuse the previously generated string when possible. Defaults to `false`. */
+  /** The string to output for an input of `Infinity`. Defaults to `'Infinity'`. */
+  posInfinityString?: string;
+
+  /** The string to output for an input of `-Infinity`. Defaults to `'-Infinity'`. */
+  negInfinityString?: string;
+
+  /**
+   * Whether to cache and reuse the previously generated string when possible. If a non-zero hysteresis value is
+   * specified, then this option is ignored because hysteresis always requires cached values to be used. Defaults to
+   * `false`.
+   */
   cache?: boolean;
 };
 
 /**
  * Options used for formatting numbers, for internal use.
  */
-type NumberFormatterOptionsInternal = Required<NumberFormatterOptions> & {
+type NumberFormatterOptionsInternal = Omit<Required<NumberFormatterOptions>, 'hysteresis'> & {
   /** The function to use to round the number before formatting. */
   roundFunc: (value: number) => number;
+
+  /**
+   * The offset from the previously rounded value to the lower boundary of the range in which a new number should not
+   * be formatted to a new output string.
+   */
+  hysteresisOffsetLower: number;
+
+  /**
+   * The offset from the previously rounded value to the upper boundary of the range in which a new number should not
+   * be formatted to a new output string.
+   */
+  hysteresisOffsetUpper: number;
 
   /** The number used to generate the cached formatted string. */
   cachedNumber?: number;
@@ -71,7 +108,8 @@ type NumberFormatterOptionsInternal = Required<NumberFormatterOptions> & {
 export class NumberFormatter {
   public static readonly DEFAULT_OPTIONS: Readonly<Required<NumberFormatterOptions>> = {
     precision: 0,
-    round: 0,
+    round: Rounding.Nearest,
+    hysteresis: 0,
     maxDigits: Infinity,
     forceDecimalZeroes: true,
     pad: 1,
@@ -80,13 +118,9 @@ export class NumberFormatter {
     forceSign: false,
     hideSign: false,
     nanString: 'NaN',
+    posInfinityString: 'Infinity',
+    negInfinityString: '-Infinity',
     cache: false
-  };
-
-  private static readonly roundFuncs = {
-    [-1]: Math.floor,
-    [0]: Math.round,
-    [1]: Math.ceil
   };
 
   private static readonly TRAILING_ZERO_REGEX = /0+$/;
@@ -104,12 +138,20 @@ export class NumberFormatter {
     opts: NumberFormatterOptionsInternal
   ): string {
     if (isNaN(number)) {
+      opts.cachedNumber = undefined;
+      opts.cachedString = undefined;
       return opts.nanString;
+    } else if (!isFinite(number)) {
+      opts.cachedNumber = undefined;
+      opts.cachedString = undefined;
+      return number > 0 ? opts.posInfinityString : opts.negInfinityString;
     }
 
     const {
       precision,
       roundFunc,
+      hysteresisOffsetLower,
+      hysteresisOffsetUpper,
       maxDigits,
       forceDecimalZeroes,
       pad,
@@ -120,13 +162,30 @@ export class NumberFormatter {
       cache
     } = opts;
 
-    const sign = number < 0 ? -1 : 1;
-    const abs = Math.abs(number);
-    let rounded = abs;
-
-    if (precision !== 0) {
-      rounded = roundFunc(abs / precision) * precision;
+    if (
+      opts.cachedNumber !== undefined
+      && opts.cachedString !== undefined
+      && (
+        hysteresisOffsetLower !== 0 || hysteresisOffsetUpper !== 0
+      )
+    ) {
+      if (opts.round > 0) {
+        if (number > opts.cachedNumber + hysteresisOffsetLower && number <= opts.cachedNumber + hysteresisOffsetUpper) {
+          return opts.cachedString;
+        }
+      } else {
+        if (number >= opts.cachedNumber + hysteresisOffsetLower && number < opts.cachedNumber + hysteresisOffsetUpper) {
+          return opts.cachedString;
+        }
+      }
     }
+
+    let rounded = number;
+    if (precision !== 0) {
+      rounded = roundFunc(number / precision) * precision;
+    }
+
+    const absRounded = Math.abs(rounded);
 
     if (cache) {
       if (opts.cachedString !== undefined && opts.cachedNumber === rounded) {
@@ -136,21 +195,18 @@ export class NumberFormatter {
       opts.cachedNumber = rounded;
     }
 
-    const signText = sign === -1
-      ? useMinusSign ? '−' : '-'
-      : '+';
     let formatted: string;
 
-    if (precision != 0) {
+    if (precision !== 0) {
       const precisionString = `${precision}`;
       const decimalIndex = precisionString.indexOf('.');
       if (decimalIndex >= 0) {
-        formatted = rounded.toFixed(precisionString.length - decimalIndex - 1);
+        formatted = absRounded.toFixed(precisionString.length - decimalIndex - 1);
       } else {
-        formatted = `${rounded}`;
+        formatted = `${absRounded}`;
       }
     } else {
-      formatted = `${abs}`;
+      formatted = `${absRounded}`;
     }
 
     let decimalIndex = formatted.indexOf('.');
@@ -161,29 +217,56 @@ export class NumberFormatter {
       }
     }
 
-    decimalIndex = formatted.indexOf('.');
-    if (decimalIndex >= 0 && formatted.length - 1 > maxDigits) {
-      const shift = Math.max(maxDigits - decimalIndex, 0);
-      const shiftPrecision = Math.pow(0.1, shift);
-      formatted = (roundFunc(abs / shiftPrecision) * shiftPrecision).toFixed(shift);
-    }
-    formatted;
-
-    if (pad === 0) {
-      formatted = formatted.replace(NumberFormatter.LEADING_ZERO_REGEX, '.');
-    } else if (pad > 1) {
+    let needRecalcPadAndMaxDigits = false;
+    let calcPadIterCount = 0;
+    do {
       decimalIndex = formatted.indexOf('.');
-      if (decimalIndex < 0) {
-        decimalIndex = formatted.length;
+
+      // Add (or subtract) leading zeroes as necessary.
+      if (pad === 0) {
+        if (decimalIndex > 0) {
+          formatted = formatted.replace(NumberFormatter.LEADING_ZERO_REGEX, '.');
+        }
+      } else if (pad > 1) {
+        if (decimalIndex < 0) {
+          decimalIndex = formatted.length;
+        }
+
+        if (decimalIndex < pad) {
+          formatted = formatted.padStart(pad + formatted.length - decimalIndex, '0');
+        }
       }
-      formatted = formatted.padStart(pad + formatted.length - decimalIndex, '0');
-    }
+
+      // Check if the formatted number exceeds the maximum digit count. If so, reduce the number of digits to the
+      // right of the decimal place as necessary.
+      decimalIndex = formatted.indexOf('.');
+      if (decimalIndex >= 0 && formatted.length - 1 > maxDigits) {
+        const desiredRightDigits = Math.max(maxDigits - decimalIndex, 0);
+        const shiftPrecision = Math.pow(0.1, desiredRightDigits);
+        rounded = roundFunc(rounded / shiftPrecision) * shiftPrecision;
+        formatted = Math.abs(rounded).toFixed(desiredRightDigits);
+
+        // Reformatting may change the number of digits to the left of the decimal point required to represent the
+        // number. Additionally, reformatting will mess up any left zero-padding we set up earlier. For both reasons,
+        // we need to recalculate the padding and number of decimal places again.
+        needRecalcPadAndMaxDigits = pad !== 0 || desiredRightDigits > 0;
+      } else {
+        needRecalcPadAndMaxDigits = false;
+      }
+
+      calcPadIterCount++;
+    } while (needRecalcPadAndMaxDigits && calcPadIterCount < 2);
 
     if (showCommas) {
       const parts = formatted.split('.');
       parts[0] = parts[0].replace(NumberFormatter.COMMAS_REGEX, ',');
       formatted = parts.join('.');
     }
+
+    const sign = rounded < 0 ? -1 : 1;
+    const signText = sign === -1
+      ? useMinusSign ? '−' : '-'
+      : '+';
 
     if (!hideSign && (forceSign || signText !== '+')) {
       formatted = signText + formatted;
@@ -204,15 +287,42 @@ export class NumberFormatter {
    * options object.
    */
   private static resolveOptions(options?: Readonly<NumberFormatterOptions>): NumberFormatterOptionsInternal {
-    const resolved = Object.assign({}, options) as NumberFormatterOptionsInternal;
+    const resolved = {} as Required<NumberFormatterOptions>;
 
     for (const key in NumberFormatter.DEFAULT_OPTIONS) {
-      (resolved as any)[key] ??= NumberFormatter.DEFAULT_OPTIONS[key as keyof NumberFormatterOptions];
+      (resolved as any)[key] = (options as any)?.[key] ?? NumberFormatter.DEFAULT_OPTIONS[key as keyof NumberFormatterOptions];
     }
 
-    resolved.roundFunc = NumberFormatter.roundFuncs[resolved.round];
+    let hysteresisLower: number;
+    let hysteresisUpper: number;
+    if (typeof resolved.hysteresis === 'number') {
+      hysteresisLower = hysteresisUpper = Math.max(0, resolved.hysteresis);
+    } else {
+      hysteresisLower = Math.max(0, resolved.hysteresis[0]);
+      hysteresisUpper = Math.max(0, resolved.hysteresis[1]);
+    }
 
-    return resolved;
+    delete (resolved as any).hysteresis;
+
+    const resolvedInt = resolved as unknown as NumberFormatterOptionsInternal;
+
+    if (resolvedInt.round > 0) {
+      resolvedInt.roundFunc = Math.ceil;
+      resolvedInt.hysteresisOffsetLower = -(resolvedInt.precision + hysteresisLower);
+      resolvedInt.hysteresisOffsetUpper = hysteresisUpper;
+    } else if (resolvedInt.round < 0) {
+      resolvedInt.roundFunc = Math.floor;
+      resolvedInt.hysteresisOffsetLower = -hysteresisLower;
+      resolvedInt.hysteresisOffsetUpper = resolvedInt.precision + hysteresisUpper;
+    } else {
+      resolvedInt.roundFunc = Math.round;
+      resolvedInt.hysteresisOffsetLower = -(resolvedInt.precision * 0.5 + hysteresisLower);
+      resolvedInt.hysteresisOffsetUpper = resolvedInt.precision * 0.5 + hysteresisUpper;
+    }
+
+    resolvedInt.cache ||= resolvedInt.hysteresisOffsetLower !== 0 || resolvedInt.hysteresisOffsetUpper !== 0;
+
+    return resolvedInt;
   }
 
   /**

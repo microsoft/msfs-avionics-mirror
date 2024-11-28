@@ -1,0 +1,11 @@
+.hsi-range-number {
+  position: absolute;
+  left: 102px;
+  top: 218px;
+  width: 54px;
+  height: 26px;
+  padding: 3px;
+
+  font-size: 24px;
+  text-align: right;
+}

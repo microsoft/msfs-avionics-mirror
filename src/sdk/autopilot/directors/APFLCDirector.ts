@@ -2,7 +2,7 @@ import { SimVarValueType } from '../../data/SimVars';
 import { AeroMath } from '../../math/AeroMath';
 import { MathUtils } from '../../math/MathUtils';
 import { UnitType } from '../../math/NumberUnit';
-import { APValues } from '../APConfig';
+import { APValues } from '../APValues';
 import { GenericFlcComputer } from '../calculators/GenericFlcComputer';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 
@@ -51,6 +51,11 @@ export type APFLCDirectorOptions = {
    * and ambient pressure instead of the true mach number. Defaults to `false`.
    */
   useIndicatedMach?: boolean;
+
+  /**
+   * Allows to pass in the FLC computer to be used:
+   */
+  flcComputer?: GenericFlcComputer;
 };
 
 /**
@@ -122,7 +127,7 @@ export class APFLCDirector implements PlaneDirector {
     this.useIndicatedMach = options?.useIndicatedMach ?? false;
 
     this.state = DirectorState.Inactive;
-    this.flcComputer = new GenericFlcComputer({ kP: 2, kI: 0, kD: 0, maxOut: 90, minOut: -90 });
+    this.flcComputer = options?.flcComputer ?? new GenericFlcComputer({ kP: 2, kI: 0, kD: 0, maxOut: 90, minOut: -90 });
   }
 
   /**
@@ -143,7 +148,7 @@ export class APFLCDirector implements PlaneDirector {
     if (this.useIndicatedMach) {
       mach = AeroMath.casToMach(UnitType.KNOT.convertTo(ias, UnitType.MPS), SimVar.GetSimVarValue('AMBIENT PRESSURE', SimVarValueType.HPA));
     } else {
-      mach = SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Number);
+      mach = SimVar.GetSimVarValue('AIRSPEED MACH', SimVarValueType.Mach);
     }
 
     this.setSpeedOnActivationFunc(

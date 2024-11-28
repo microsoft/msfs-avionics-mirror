@@ -1,9 +1,9 @@
 import { ComponentProps, DisplayComponent, EventBus, FSComponent, Subscribable, VNode } from '@microsoft/msfs-sdk';
 
-import { ElapsedTime } from '../../DCP/ElapsedTime';
+import { InstrumentConfig, WT21InstrumentType } from '../../Config';
 import { DisplayUnitLayout } from '../../Config/DisplayUnitConfig';
+import { ElapsedTime } from '../../DCP/ElapsedTime';
 import { GuiDialog, GuiDialogProps } from '../../UI/GuiDialog';
-import { WT21DisplayUnitFsInstrument, WT21DisplayUnitType } from '../../WT21DisplayUnitFsInstrument';
 import { FormatSwitch } from '../RightInfoPanel/FormatSwitch';
 import { WaypointAlerter } from '../WaypointAlerter';
 import { BearingPointerDataFields } from './BearingPointerDataFields';
@@ -16,10 +16,10 @@ interface LeftInfoPanelProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
 
-  /** The display unit */
-  displayUnit: WT21DisplayUnitFsInstrument;
+  /** The instrument configuration object */
+  instrumentConfig: InstrumentConfig;
 
-  // /** The elapsed time state */
+  /** The elapsed time state */
   elapsedTime?: ElapsedTime;
 
   /** A subscribable to the active menu */
@@ -34,7 +34,7 @@ export class LeftInfoPanel extends DisplayComponent<LeftInfoPanelProps> {
   private readonly navSourcePresetRef = FSComponent.createRef<NavSourcePreset>();
   private readonly bearingPointerDataFieldsRef = FSComponent.createRef<BearingPointerDataFields>();
 
-  private readonly isUsingSoftkeys = this.props.displayUnit.displayUnitConfig.displayUnitLayout === DisplayUnitLayout.Softkeys;
+  private readonly isUsingSoftkeys = this.props.instrumentConfig.displayUnitConfig.displayUnitLayout === DisplayUnitLayout.Softkeys;
 
   /** @inheritdoc */
   public onAfterRender(): void {
@@ -51,15 +51,15 @@ export class LeftInfoPanel extends DisplayComponent<LeftInfoPanelProps> {
       <>
         <NavSourceDataField bus={this.props.bus} waypointAlerter={this.props.waypointAlerter} />
 
-        {this.props.displayUnit.displayUnitType === WT21DisplayUnitType.Mfd && this.isUsingSoftkeys && (
-          <FormatSwitch bus={this.props.bus} displayUnit={this.props.displayUnit} format="upper" orientation="left" />
+        {this.props.instrumentConfig.instrumentType === WT21InstrumentType.Mfd && this.isUsingSoftkeys && (
+          <FormatSwitch bus={this.props.bus} instrumentConfig={this.props.instrumentConfig} format="upper" orientation="left" />
         )}
 
-        {this.props.displayUnit.displayUnitType === WT21DisplayUnitType.Pfd && (
+        {this.props.instrumentConfig.instrumentType === WT21InstrumentType.Pfd && (
           <NavSourcePreset
             bus={this.props.bus}
             ref={this.navSourcePresetRef}
-            displayUnitLayout={this.props.displayUnit.displayUnitConfig.displayUnitLayout}
+            displayUnitLayout={this.props.instrumentConfig.displayUnitConfig.displayUnitLayout}
           />
         )}
 
@@ -68,7 +68,7 @@ export class LeftInfoPanel extends DisplayComponent<LeftInfoPanelProps> {
           <ElapsedTimeDisplay
             elapsedTimeText={this.props.elapsedTime.elapsedTimeText}
             isVisible={this.props.elapsedTime.elapsedTimeIsVisibile}
-            displayUnitLayout={this.props.displayUnit.displayUnitConfig.displayUnitLayout}
+            displayUnitLayout={this.props.instrumentConfig.displayUnitConfig.displayUnitLayout}
           />
         }
       </>

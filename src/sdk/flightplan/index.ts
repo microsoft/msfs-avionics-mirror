@@ -1,12 +1,10 @@
-export * from './FlightPathCalculator';
-export * from './FlightPathCalculatorControlEvents';
-export * from './FlightPathLegCalculator';
-export * from './FlightPathState';
-export * from './FlightPathTurnCalculator';
-export * from './FlightPathUtils';
-export * from './FlightPathVectorBuilder';
+export * from './flightpath';
+
 export * from './FlightPlan';
 export * from './FlightPlanner';
 export * from './FlightPlanning';
+export * from './FlightPlanRoute';
+export * from './FlightPlanRouteManager';
+export * from './FlightPlanRouteUtils';
 export * from './FlightPlanLegIterator';
 export * from './FlightPlanUtils';

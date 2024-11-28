@@ -8,9 +8,9 @@ import { TerrainSystemAlertController, TerrainSystemOperatingMode } from './Terr
 import { TerrainSystemUtils } from './TerrainSystemUtils';
 
 /**
- * An abstract implementation of `TerrainSystem`. This class handles adding, initializing, updating, and destroying
- * modules. It also handles publishing topics to the event bus in responses to changes in state. Finally, it handles
- * listening to and responding to control events published to the event bus.
+ * An abstract implementation of {@link TerrainSystem}. This class handles adding, initializing, updating, and
+ * destroying modules. It also handles publishing topics to the event bus in responses to changes in state. Finally, it
+ * handles listening to and responding to control events published to the event bus.
  */
 export abstract class AbstractTerrainSystem<ID extends string> implements TerrainSystem {
 
@@ -27,15 +27,18 @@ export abstract class AbstractTerrainSystem<ID extends string> implements Terrai
   protected readonly statuses = SetSubject.create<string>();
   protected readonly inhibits = SetSubject.create<string>();
 
-  protected readonly alerts = SetSubject.create<string>();
+  protected readonly triggeredAlerts = SetSubject.create<string>();
+  protected readonly inhibitedAlerts = SetSubject.create<string>();
+  protected readonly activeAlerts = SetSubject.create<string>();
   protected readonly prioritizedAlert = Subject.create<string | null>(null);
 
   protected readonly modules: TerrainSystemModule[] = [];
 
   protected readonly alertController: TerrainSystemAlertController = {
-    activateAlert: this.activateAlert.bind(this),
-
-    deactivateAlert: this.deactivateAlert.bind(this),
+    triggerAlert: this.triggerAlert.bind(this),
+    untriggerAlert: this.untriggerAlert.bind(this),
+    inhibitAlert: this.inhibitAlert.bind(this),
+    uninhibitAlert: this.uninhibitAlert.bind(this)
   };
 
   protected isAlive = true;
@@ -70,6 +73,12 @@ export abstract class AbstractTerrainSystem<ID extends string> implements Terrai
       'terrainsys_inhibit_flags': `terrainsys_inhibit_flags${this.idSuffix}`,
       'terrainsys_inhibit_added': `terrainsys_inhibit_added${this.idSuffix}`,
       'terrainsys_inhibit_removed': `terrainsys_inhibit_removed${this.idSuffix}`,
+      'terrainsys_triggered_alerts': `terrainsys_triggered_alerts${this.idSuffix}`,
+      'terrainsys_alert_triggered': `terrainsys_alert_triggered${this.idSuffix}`,
+      'terrainsys_alert_untriggered': `terrainsys_alert_untriggered${this.idSuffix}`,
+      'terrainsys_inhibited_alerts': `terrainsys_inhibited_alerts${this.idSuffix}`,
+      'terrainsys_alert_inhibited': `terrainsys_alert_inhibited${this.idSuffix}`,
+      'terrainsys_alert_uninhibited': `terrainsys_alert_uninhibited${this.idSuffix}`,
       'terrainsys_active_alerts': `terrainsys_active_alerts${this.idSuffix}`,
       'terrainsys_alert_activated': `terrainsys_alert_activated${this.idSuffix}`,
       'terrainsys_alert_deactivated': `terrainsys_alert_deactivated${this.idSuffix}`,
@@ -80,7 +89,9 @@ export abstract class AbstractTerrainSystem<ID extends string> implements Terrai
 
     this.operatingMode.sub(this.onOperatingModeChanged.bind(this), true);
 
-    this.alerts.sub(this.onAlertsChanged.bind(this));
+    this.triggeredAlerts.sub(this.onTriggeredAlertsChanged.bind(this));
+    this.inhibitedAlerts.sub(this.onInhibitedAlertsChanged.bind(this));
+    this.activeAlerts.sub(this.onActiveAlertsChanged.bind(this));
   }
 
   /** @inheritDoc */
@@ -163,8 +174,8 @@ export abstract class AbstractTerrainSystem<ID extends string> implements Terrai
    * Initializes publishing of this system's active alerts to the event bus.
    */
   protected initAlertPublishing(): void {
-    this.publisher.pub(this.topicMap['terrainsys_active_alerts'], Array.from(this.alerts.get()), true, true);
-    for (const alert of this.alerts.get()) {
+    this.publisher.pub(this.topicMap['terrainsys_active_alerts'], Array.from(this.triggeredAlerts.get()), true, true);
+    for (const alert of this.triggeredAlerts.get()) {
       this.publisher.pub(this.topicMap['terrainsys_alert_activated'], alert, true, false);
     }
 
@@ -285,7 +296,47 @@ export abstract class AbstractTerrainSystem<ID extends string> implements Terrai
       if (mode === TerrainSystemOperatingMode.Off) {
         this.statuses.clear();
       }
-      this.alerts.clear();
+      this.triggeredAlerts.clear();
+    }
+  }
+
+  /**
+   * Responds to when the set of this system's triggered alerts changes.
+   * @param alerts The set of triggered alerts.
+   * @param type The type of change that occurred.
+   * @param alert The alert that was changed.
+   */
+  protected onTriggeredAlertsChanged(alerts: ReadonlySet<string>, type: SubscribableSetEventType, alert: string): void {
+    if (this.isInit) {
+      this.publishTriggeredAlert(alerts, type, alert);
+    }
+
+    if (type === SubscribableSetEventType.Added) {
+      if (!this.inhibitedAlerts.has(alert)) {
+        this.activeAlerts.add(alert);
+      }
+    } else {
+      this.activeAlerts.delete(alert);
+    }
+  }
+
+  /**
+   * Responds to when the set of this system's inhibited alerts changes.
+   * @param alerts The set of inhibited alerts.
+   * @param type The type of change that occurred.
+   * @param alert The alert that was changed.
+   */
+  protected onInhibitedAlertsChanged(alerts: ReadonlySet<string>, type: SubscribableSetEventType, alert: string): void {
+    if (this.isInit) {
+      this.publishInhibitedAlert(alerts, type, alert);
+    }
+
+    if (type === SubscribableSetEventType.Added) {
+      this.activeAlerts.delete(alert);
+    } else {
+      if (this.triggeredAlerts.has(alert)) {
+        this.activeAlerts.add(alert);
+      }
     }
   }
 
@@ -295,9 +346,9 @@ export abstract class AbstractTerrainSystem<ID extends string> implements Terrai
    * @param type The type of change that occurred.
    * @param alert The alert that was changed.
    */
-  protected onAlertsChanged(alerts: ReadonlySet<string>, type: SubscribableSetEventType, alert: string): void {
+  protected onActiveAlertsChanged(alerts: ReadonlySet<string>, type: SubscribableSetEventType, alert: string): void {
     if (this.isInit) {
-      this.publishAlert(alerts, type, alert);
+      this.publishActiveAlert(alerts, type, alert);
     }
 
     this.prioritizedAlert.set(this.prioritizedAlertSelector(alerts));
@@ -309,7 +360,39 @@ export abstract class AbstractTerrainSystem<ID extends string> implements Terrai
    * @param type The type of change that occurred.
    * @param alert The alert that was changed.
    */
-  protected publishAlert(alerts: ReadonlySet<string>, type: SubscribableSetEventType, alert: string): void {
+  protected publishTriggeredAlert(alerts: ReadonlySet<string>, type: SubscribableSetEventType, alert: string): void {
+    this.publisher.pub(this.topicMap['terrainsys_triggered_alerts'], Array.from(alerts), true, true);
+
+    if (type === SubscribableSetEventType.Added) {
+      this.publisher.pub(this.topicMap['terrainsys_alert_triggered'], alert, true, false);
+    } else {
+      this.publisher.pub(this.topicMap['terrainsys_alert_untriggered'], alert, true, false);
+    }
+  }
+
+  /**
+   * Publishes data to event bus alert topics based on a change to this system's active alerts.
+   * @param alerts The set of active alerts.
+   * @param type The type of change that occurred.
+   * @param alert The alert that was changed.
+   */
+  protected publishInhibitedAlert(alerts: ReadonlySet<string>, type: SubscribableSetEventType, alert: string): void {
+    this.publisher.pub(this.topicMap['terrainsys_inhibited_alerts'], Array.from(alerts), true, true);
+
+    if (type === SubscribableSetEventType.Added) {
+      this.publisher.pub(this.topicMap['terrainsys_alert_inhibited'], alert, true, false);
+    } else {
+      this.publisher.pub(this.topicMap['terrainsys_alert_uninhibited'], alert, true, false);
+    }
+  }
+
+  /**
+   * Publishes data to event bus alert topics based on a change to this system's active alerts.
+   * @param alerts The set of active alerts.
+   * @param type The type of change that occurred.
+   * @param alert The alert that was changed.
+   */
+  protected publishActiveAlert(alerts: ReadonlySet<string>, type: SubscribableSetEventType, alert: string): void {
     this.publisher.pub(this.topicMap['terrainsys_active_alerts'], Array.from(alerts), true, true);
 
     if (type === SubscribableSetEventType.Added) {
@@ -364,21 +447,37 @@ export abstract class AbstractTerrainSystem<ID extends string> implements Terrai
   }
 
   /**
-   * Activates an alert.
-   * @param alert The alert to activate.
+   * Triggers an alert.
+   * @param alert The alert to trigger.
    */
-  protected activateAlert(alert: string): void {
+  protected triggerAlert(alert: string): void {
     if (this.operatingMode.get() === TerrainSystemOperatingMode.Operating) {
-      this.alerts.add(alert);
+      this.triggeredAlerts.add(alert);
     }
   }
 
   /**
-   * Deactivates an alert.
-   * @param alert The alert to deactivate.
+   * Untriggers an alert.
+   * @param alert The alert to untrigger.
    */
-  protected deactivateAlert(alert: string): void {
-    this.alerts.delete(alert);
+  protected untriggerAlert(alert: string): void {
+    this.triggeredAlerts.delete(alert);
+  }
+
+  /**
+   * Inhibits an alert.
+   * @param alert The alert to inhibit.
+   */
+  protected inhibitAlert(alert: string): void {
+    this.inhibitedAlerts.add(alert);
+  }
+
+  /**
+   * Uninhibits an alert.
+   * @param alert The alert to uninhibit.
+   */
+  protected uninhibitAlert(alert: string): void {
+    this.inhibitedAlerts.delete(alert);
   }
 
   /** @inheritDoc */

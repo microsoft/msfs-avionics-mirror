@@ -11,7 +11,7 @@ export class GarminFacilityWaypointCache implements FacilityWaypointCache {
   private readonly cache = new Map<string, FacilityWaypoint>();
 
   /**
-   * Constructor.
+   * Creates a new instance of GarminFacilityWaypointCache.
    * @param bus The event bus.
    * @param size The maximum size of this cache.
    */
@@ -27,7 +27,7 @@ export class GarminFacilityWaypointCache implements FacilityWaypointCache {
     const key = GarminFacilityWaypointCache.getFacilityKey(facility);
     let existing = this.cache.get(key);
     if (!existing) {
-      if (ICAO.getFacilityType(facility.icao) === FacilityType.Airport) {
+      if (ICAO.getFacilityTypeFromValue(facility.icaoStruct) === FacilityType.Airport) {
         existing = new AirportWaypoint(facility as unknown as AirportFacility, this.bus);
       } else {
         existing = new BasicFacilityWaypoint(facility, this.bus);
@@ -46,14 +46,14 @@ export class GarminFacilityWaypointCache implements FacilityWaypointCache {
   private addToCache(key: string, waypoint: FacilityWaypoint): void {
     this.cache.set(key, waypoint);
     if (this.cache.size > this.size) {
-      this.cache.delete(this.cache.keys().next().value);
+      this.cache.delete(this.cache.keys().next().value!);
     }
   }
 
   /**
-   * Gets a FacilityWaypointCache instance.
+   * Gets a GarminFacilityWaypointCache instance.
    * @param bus The event bus.
-   * @returns A FacilityWaypointCache instance.
+   * @returns A GarminFacilityWaypointCache instance.
    */
   public static getCache(bus: EventBus): GarminFacilityWaypointCache {
     return GarminFacilityWaypointCache.INSTANCE ??= new GarminFacilityWaypointCache(bus, 1000);
@@ -65,10 +65,14 @@ export class GarminFacilityWaypointCache implements FacilityWaypointCache {
    * @returns The cache key for the specified facility.
    */
   private static getFacilityKey(facility: Facility): string {
-    if (FacilityUtils.isFacilityType(facility, FacilityType.Intersection) && ICAO.getFacilityType(facility.icao) !== FacilityType.Intersection) {
-      return `mismatch.${facility.icao}`;
+    if (FacilityUtils.isFacilityType(facility, FacilityType.Intersection) && ICAO.getFacilityTypeFromValue(facility.icaoStruct) !== FacilityType.Intersection) {
+      return `mismatch.${ICAO.getUid(facility.icaoStruct)}`;
     }
 
-    return facility.icao;
+    if (FacilityUtils.isFacilityType(facility, FacilityType.Airport)) {
+      return `${ICAO.getUid(facility.icaoStruct)}\n${facility.loadedDataFlags}`;
+    }
+
+    return ICAO.getUid(facility.icaoStruct);
   }
 }

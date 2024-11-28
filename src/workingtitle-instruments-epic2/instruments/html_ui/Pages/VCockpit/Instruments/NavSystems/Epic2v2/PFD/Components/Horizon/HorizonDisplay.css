@@ -1,0 +1,29 @@
+.horizon-display {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+
+  /* Configurable vars */
+  --horizon-display-center-x: 310px;
+  --horizon-display-center-y: 256px;
+}
+
+.horizon-display .ahrs-align-msg {
+  position: absolute;
+  left: var(--horizon-display-center-x);
+  top: 221px;
+  text-align: center;
+  font-size: 23px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.horizon-display .attitude-failure-box {
+  position: absolute;
+  left: calc(var(--horizon-display-center-x) - 240px);
+  top: calc(var(--horizon-display-center-y) - 227px);
+  width: 480px;
+  height: 350px;
+}

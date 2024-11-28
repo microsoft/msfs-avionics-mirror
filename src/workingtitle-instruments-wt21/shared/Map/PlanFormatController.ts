@@ -3,11 +3,12 @@ import {
   ResourceConsumer, ResourceModerator, UserSettingManager, VNavUtils
 } from '@microsoft/msfs-sdk';
 
+import { InstrumentConfig, WT21InstrumentType } from '../Config';
 import { WT21NavigationUserSettings } from '../Navigation/WT21NavigationUserSettings';
 import { WT21FmsUtils } from '../Systems/FMS/WT21FmsUtils';
 import { MapFacilitySelectModule } from './MapFacilitySelectModule';
 import { PlanMapEvents } from './MapSystemConfig';
-import { HSIFormat, MapSettingsMfdAliased, MapSettingsPfdAliased, MapUserSettings, MapWaypointsDisplay, PfdOrMfd } from './MapUserSettings';
+import { HSIFormat, MapSettingsMfdAliased, MapSettingsPfdAliased, MapWaypointsDisplay } from './MapUserSettings';
 import { WT21MapKeys } from './WT21MapKeys';
 
 /** A type for setting the search direction. */
@@ -36,7 +37,6 @@ export class PlanFormatController extends MapSystemController<PlanFormatControll
   private readonly targetControlModerator = this.context[MapSystemKeys.TargetControl];
   private readonly facilitySelectModule = this.context.model.getModule(WT21MapKeys.CtrWpt);
 
-  private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>;
   private readonly fmsPosSetting;
 
   private currentFmsPos = new LatLongAlt(0, 0);
@@ -76,25 +76,24 @@ export class PlanFormatController extends MapSystemController<PlanFormatControll
   /**
    * Creates an instance of the PlanFormatController.
    * @param context The map system context to use with this controller.
-   * @param pfdOrMfd Whether or not the map is on the PFD or MFD.
-   * @param displayIndex The index of the display, 1 or 2.
+   * @param instrumentConfig The instrument config
    * @param flightPlanner The flight planner to use with this controller.
+   * @param settings The map user settings
    */
   constructor(
     context: MapSystemContext<any, any, any, PlanFormatControllerContext>,
-    private readonly pfdOrMfd: PfdOrMfd,
-    private readonly displayIndex: 1 | 2,
+    private readonly instrumentConfig: InstrumentConfig,
     private readonly flightPlanner: FlightPlanner,
+    private readonly settings: UserSettingManager<MapSettingsPfdAliased | MapSettingsMfdAliased>
   ) {
     super(context);
 
-    this.settings = MapUserSettings.getAliasedManager(this.context.bus, pfdOrMfd);
     this.fmsPosSetting = WT21NavigationUserSettings.getManager(this.context.bus).getSetting('lastFmsPos');
   }
 
   /** @inheritdoc */
   public onAfterMapRender(): void {
-    if (this.pfdOrMfd === 'MFD') {
+    if (this.instrumentConfig.instrumentType === WT21InstrumentType.Mfd) {
       this.wireSettings();
     }
   }
@@ -120,7 +119,7 @@ export class PlanFormatController extends MapSystemController<PlanFormatControll
     });
 
     subscriber.on('plan_map_next').handle(i => {
-      if (i === this.displayIndex && this.hasValidFlightPlan()) {
+      if (i === this.instrumentConfig.instrumentIndex && this.hasValidFlightPlan()) {
         this.isDisconnected = false;
         this.trackingActiveLeg = false;
         this.facilitySelectModule.facilityIcao.set(null);
@@ -130,7 +129,7 @@ export class PlanFormatController extends MapSystemController<PlanFormatControll
     });
 
     subscriber.on('plan_map_prev').handle(i => {
-      if (i === this.displayIndex && this.hasValidFlightPlan()) {
+      if (i === this.instrumentConfig.instrumentIndex && this.hasValidFlightPlan()) {
         this.isDisconnected = false;
         this.trackingActiveLeg = false;
         this.facilitySelectModule.facilityIcao.set(null);
@@ -140,7 +139,7 @@ export class PlanFormatController extends MapSystemController<PlanFormatControll
     });
 
     subscriber.on('plan_map_to').handle(i => {
-      if (i === this.displayIndex && this.hasValidFlightPlan()) {
+      if (i === this.instrumentConfig.instrumentIndex && this.hasValidFlightPlan()) {
         this.isDisconnected = false;
         this.trackingActiveLeg = true;
         this.facilitySelectModule.facilityIcao.set(null);
@@ -152,7 +151,7 @@ export class PlanFormatController extends MapSystemController<PlanFormatControll
     });
 
     subscriber.on('plan_map_ctr_wpt').handle(i => {
-      if (i.index === this.displayIndex) {
+      if (i.index === this.instrumentConfig.instrumentIndex) {
         this.isDisconnected = true;
         this.trackingActiveLeg = false;
         this.facilitySelectModule.facilityIcao.set(i.icao);

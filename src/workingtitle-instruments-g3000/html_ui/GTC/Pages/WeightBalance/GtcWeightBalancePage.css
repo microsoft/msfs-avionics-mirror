@@ -1,0 +1,232 @@
+.weight-balance-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .weight-balance-page {
+  font-size: 29px;
+
+  --weight-balance-page-tab-container-top: 55px;
+  --weight-balance-page-tab-container-width: 860px;
+  --weight-balance-page-tab-container-height: 710px;
+
+  --weight-balance-page-display-button-right-margin: 12px;
+  --weight-balance-page-display-button-width: 186px;
+  --weight-balance-page-display-button-height: 134px;
+
+  /* ---- Empty Weight tab ---- */
+
+  --weight-balance-page-empty-weight-tab-padding: 25px 30px 35px 18px;
+
+  --weight-balance-page-empty-weight-tab-values-container-height: 340px;
+  --weight-balance-page-empty-weight-tab-values-container-row-gap: 105px;
+
+  --weight-balance-page-empty-weight-tab-button-container-width: 484px;
+  --weight-balance-page-empty-weight-tab-button-container-height: 276px;
+
+  --weight-balance-page-empty-weight-tab-button-height: 130px;
+
+  /* ---- Aircraft Loading tab ---- */
+
+  --weight-balance-page-loading-tab-list-width: 520px;
+
+  /* ---- Fuel tab ---- */
+
+  --weight-balance-page-fuel-tab-padding: 30px 85px 0px;
+
+  --weight-balance-page-fuel-tab-row-height: 140px;
+  --weight-balance-page-fuel-tab-row-margin-bottom: 15px;
+
+  --weight-balance-page-fuel-tab-value-row-button-width: 210px;
+
+  --weight-balance-page-fuel-tab-value-title-margin-bottom: 15px;
+}
+
+.gtc-vertical .weight-balance-page {
+  font-size: 16px;
+
+  --weight-balance-page-tab-container-top: 25px;
+  --weight-balance-page-tab-container-width: 470px;
+  --weight-balance-page-tab-container-height: 380px;
+
+  /* ---- Empty Weight tab ---- */
+
+  --weight-balance-page-empty-weight-tab-padding: 12px 15px 17px 9px;
+
+  --weight-balance-page-empty-weight-tab-values-container-height: 180px;
+  --weight-balance-page-empty-weight-tab-values-container-row-gap: 50px;
+
+  --weight-balance-page-empty-weight-tab-button-container-width: 264px;
+  --weight-balance-page-empty-weight-tab-button-container-height: 148px;
+
+  --weight-balance-page-empty-weight-tab-button-height: 70px;
+
+  /* ---- Aircraft Loading tab ---- */
+
+  --weight-balance-page-loading-tab-list-width: 290px;
+
+  /* ---- Fuel tab ---- */
+
+  --weight-balance-page-fuel-tab-padding: 15px 40px 0px;
+
+  --weight-balance-page-fuel-tab-row-height: 75px;
+  --weight-balance-page-fuel-tab-row-margin-bottom: 7px;
+
+  --weight-balance-page-fuel-tab-value-row-button-width: 110px;
+
+  --weight-balance-page-fuel-tab-value-title-margin-bottom: 7px;
+}
+
+.weight-balance-page-tab-container {
+  position: absolute;
+  left: calc(50% - var(--weight-balance-page-tab-container-width) / 2);
+  top: var(--weight-balance-page-tab-container-top);
+  width: var(--weight-balance-page-tab-container-width);
+  height: var(--weight-balance-page-tab-container-height);
+}
+
+.weight-balance-page-tab-container .touch-button-value-value {
+  font-size: 1.35em;
+}
+
+.weight-balance-page-display-button {
+  position: absolute;
+  right: calc(50% + var(--weight-balance-page-tab-container-width) / 2 - var(--gtc-tabbed-container-vert-tab-width) + var(--weight-balance-page-display-button-right-margin));
+  bottom: calc(100% - var(--weight-balance-page-tab-container-top) - var(--weight-balance-page-tab-container-height) + 2px);
+  width: var(--weight-balance-page-display-button-width);
+  height: var(--weight-balance-page-display-button-height);
+}
+
+/* ---- Empty Weight tab ---- */
+
+.weight-balance-page-empty-weight-tab {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--weight-balance-page-empty-weight-tab-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.weight-balance-page-empty-weight-tab-values-container {
+  align-self: stretch;
+  position: relative;
+  height: var(--weight-balance-page-empty-weight-tab-values-container-height);
+  display: grid;
+  grid-template-rows: 1fr 1fr 1fr;
+  grid-template-columns: 100%;
+  grid-row-gap: var(--weight-balance-page-empty-weight-tab-values-container-row-gap);
+  justify-items: stretch;
+  align-items: center;
+}
+
+.weight-balance-page-empty-weight-tab-value-row {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.weight-balance-page-empty-weight-tab-value-row-value {
+  font-size: 1.35em;
+}
+
+.weight-balance-page-empty-weight-tab-button-container {
+  position: relative;
+  width: var(--weight-balance-page-empty-weight-tab-button-container-width);
+  height: var(--weight-balance-page-empty-weight-tab-button-container-height);
+}
+
+.weight-balance-page-empty-weight-tab-button {
+  position: absolute;
+  left: 0px;
+  width: 100%;
+  height: var(--weight-balance-page-empty-weight-tab-button-height);
+}
+
+.weight-balance-page-empty-weight-tab-set-empty-button {
+  top: 0px;
+}
+
+.weight-balance-page-empty-weight-tab-envelope-button {
+  bottom: 0px;
+}
+
+/* ---- Aircraft Loading tab ---- */
+
+.weight-balance-page-loading-tab {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.weight-balance-page-loading-tab-list {
+  width: var(--weight-balance-page-loading-tab-list-width);
+}
+
+/* ---- Fuel tab ---- */
+
+.weight-balance-page-fuel-tab {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--weight-balance-page-fuel-tab-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.weight-balance-page-fuel-tab-row {
+  height: var(--weight-balance-page-fuel-tab-row-height);
+  margin-bottom: var(--weight-balance-page-fuel-tab-row-margin-bottom);
+}
+
+.weight-balance-page-fuel-tab-value-row {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+}
+
+.weight-balance-page-fuel-tab-value-row-button {
+  width: var(--weight-balance-page-fuel-tab-value-row-button-width);
+}
+
+.weight-balance-page-fuel-tab-fuel-init-button {
+  --gtc-directory-button-width: var(--weight-balance-page-fuel-tab-value-row-button-width);
+  --gtc-directory-button-height: var(--weight-balance-page-fuel-tab-row-height);
+  --touch-button-img-img-center-y: 35%;
+  --touch-button-img-label-center-y: 85%;
+}
+
+.weight-balance-page-fuel-tab-value-container {
+  flex-grow: 1;
+  position: relative;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.weight-balance-page-fuel-tab-value-title {
+  margin-bottom: var(--weight-balance-page-fuel-tab-value-title-margin-bottom);
+}
+
+.weight-balance-page-fuel-tab-value-value {
+  font-size: 1.35em;
+}

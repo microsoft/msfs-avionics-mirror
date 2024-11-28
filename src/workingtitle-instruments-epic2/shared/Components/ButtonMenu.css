@@ -1,0 +1,56 @@
+.button-menu-container {
+  display: inline-block;
+  position: relative;
+}
+
+.button-menu-container.button-menu-disabled {
+  pointer-events: none;
+}
+
+.button-menu-buttons {
+  display: none;
+}
+
+.button-menu-container.button-menu-open>.button-menu-buttons {
+  display: flex;
+  position: absolute;
+  z-index: 9
+}
+
+.button-menu-position-bottom .button-menu-buttons {
+  flex-direction: column;
+  top: 100%;
+  left: 0;
+  width: 100%;
+}
+
+.button-menu-position-bottom-offset .button-menu-buttons {
+  flex-direction: column;
+  top: 100%;
+  right: 0;
+  width: 100%;
+}
+
+.button-menu-position-right .button-menu-buttons {
+  flex-direction: row;
+  top: 0;
+  left: 100%;
+}
+
+.button-menu-position-left .button-menu-buttons {
+  flex-direction: row;
+  top: 0;
+  left: -62%;
+}
+
+.button-menu-position-right-down .button-menu-buttons {
+  flex-direction: column;
+  top: 0;
+  left: 100%;
+}
+
+.button-menu-position-left-down .button-menu-buttons {
+  flex-direction: column;
+  top: 0;
+  left: -122%;
+}

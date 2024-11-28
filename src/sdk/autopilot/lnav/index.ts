@@ -1,3 +1,4 @@
+export * from './DefaultLNavComputerDataProvider';
 export * from './LNavComputer';
 export * from './LNavControlEvents';
 export * from './LNavDataEvents';
@@ -6,5 +7,6 @@ export * from './LNavObsControlEvents';
 export * from './LNavObsEvents';
 export * from './LNavObsManager';
 export * from './LNavOverrideModule';
+export * from './LNavRollSteerComputer';
 export * from './LNavTypes';
 export * from './LNavUtils';

@@ -1,0 +1,138 @@
+.wind-display {
+  color: var(--g3x-color-white);
+
+  --touch-button-disabled-background: rgba(0, 0, 0, 0.725);
+  --touch-button-disabled-box-shadow: none;
+  --touch-button-disabled-filter: none;
+}
+
+.wind-display.touch-button-disabled {
+  --pfd-touch-button-border-width: 1px;
+  --pfd-touch-button-border-color: transparent;
+}
+
+.gdu-460-display .wind-display {
+  width: 93px;
+  height: 52px;
+
+  --wind-display-unit-small-margin: 1px;
+  --wind-display-unit-small-letter-spacing: 1px;
+
+  --wind-display-head-xwind-font-size: 16px;
+  --wind-display-head-xwind-arrows-left: 6px;
+  --wind-display-head-xwind-arrows-top: 2px;
+  --wind-display-head-xwind-arrows-size: 30px;
+  --wind-display-head-xwind-arrows-margin: 2px;
+
+  --wind-display-speed-direction-padding: 0px 5px;
+  --wind-display-speed-direction-font-size: 18px;
+  --wind-display-speed-direction-arrow-left: 7px;
+  --wind-display-speed-direction-arrow-size: 26px;
+  --wind-display-speed-direction-value-gap: 5px;
+
+  --wind-display-no-data-font-size: 14px;
+}
+
+.wind-display-speed-value,
+.wind-display-bearing-value {
+  height: 0.9em;
+}
+
+.wind-display .numberunit-unit-small {
+  margin-left: var(--wind-display-unit-small-margin);
+  letter-spacing: var(--wind-display-unit-small-letter-spacing);
+}
+
+.wind-display-arrow-stem {
+  fill: none;
+  stroke-width: 2px;
+  stroke: var(--g3x-color-white);
+}
+
+.wind-display-arrow-head {
+  fill: var(--g3x-color-white);
+}
+
+.wind-display-head-xwind {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  font-size: var(--wind-display-head-xwind-font-size);
+}
+
+.wind-display-head-xwind-arrows {
+  position: absolute;
+  left: var(--wind-display-head-xwind-arrows-left);
+  top: var(--wind-display-head-xwind-arrows-top);
+  width: var(--wind-display-head-xwind-arrows-size);
+  height: var(--wind-display-head-xwind-arrows-size);
+}
+
+.wind-display-head-xwind-arrow-stems,
+.wind-display-head-xwind-arrow-head {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+.wind-display-head-xwind-crosswind-value {
+  position: absolute;
+  left: calc(var(--wind-display-head-xwind-arrows-left) + var(--wind-display-head-xwind-arrows-size) + var(--wind-display-head-xwind-arrows-margin));
+  top: calc(var(--wind-display-head-xwind-arrows-top) + var(--wind-display-head-xwind-arrows-size) / 2);
+  transform: translateY(-50%);
+}
+
+.wind-display-head-xwind-headwind-value {
+  position: absolute;
+  left: var(--wind-display-head-xwind-arrows-left);
+  top: calc(var(--wind-display-head-xwind-arrows-top) + var(--wind-display-head-xwind-arrows-size) + var(--wind-display-head-xwind-arrows-margin));
+}
+
+.wind-display-head-xwind-headwind-value .numberunit-num {
+  white-space: pre;
+}
+
+.wind-display-speed-direction {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--wind-display-speed-direction-padding);
+  font-size: var(--wind-display-speed-direction-font-size);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.wind-display-speed-direction-arrow-container {
+  position: absolute;
+  left: var(--wind-display-speed-direction-arrow-left);
+  top: 50%;
+  width: var(--wind-display-speed-direction-arrow-size);
+  height: var(--wind-display-speed-direction-arrow-size);
+  transform: translateY(-50%);
+}
+
+.wind-display-speed-direction-arrow {
+  width: 100%;
+  height: 100%;
+}
+
+.wind-display-speed-direction .wind-display-speed-value {
+  margin-bottom: var(--wind-display-speed-direction-value-gap);
+}
+
+.wind-display-wind-no-data {
+  position: absolute;
+  top: 50%;
+  width: 100%;
+  transform: translateY(-50%);
+  font-size: var(--wind-display-no-data-font-size);
+  text-align: center;
+}

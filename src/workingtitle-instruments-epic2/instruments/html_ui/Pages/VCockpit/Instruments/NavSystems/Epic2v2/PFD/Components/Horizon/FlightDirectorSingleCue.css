@@ -1,0 +1,9 @@
+.flight-director-single-cue {
+  width: 232px;
+  height: 38px;
+
+  --flight-director-fill: var(--epic2-color-magenta);
+  --flight-director-stroke: var(--epic2-color-black);
+  --flight-director-thin-stroke-width: 1px;
+  --flight-director-thick-stroke-width: 1.5px;
+}

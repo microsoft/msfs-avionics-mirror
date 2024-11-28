@@ -1,0 +1,19 @@
+.fms-message-window {
+  position: absolute;
+  top: 160px;
+  left: 110px;
+  width: 360px;
+  height: 30px;
+  background: var(--touch-button-active-background);
+  padding: 2px;
+  display: flex;
+  padding-top: 4px;
+}
+
+.fms-message-window .fms-message-prefix {
+  margin-right: 20px;
+}
+
+.fms-message-window .fms-message-title {
+  color: var(--epic2-color-green);
+}

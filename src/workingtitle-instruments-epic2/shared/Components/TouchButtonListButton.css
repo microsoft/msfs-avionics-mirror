@@ -1,0 +1,10 @@
+.touch-button.touch-button-list-button {
+  height: var(--touch-list-item-length);
+  border-radius: 2px;
+  background: none;
+  width: 100%;
+}
+
+.touch-button.touch-button-list-button.touch-button-highlight, .touch-button.touch-button-list-button:hover {
+  box-shadow: inset 0px 0px 0px 2px var(--epic2-color-cyan);
+}

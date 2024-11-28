@@ -6,7 +6,7 @@ import { TerrainSystemAlertController, TerrainSystemData, TerrainSystemOperating
 import { GarminExcessiveClosureRateAlert } from './GarminExcessiveClosureRateTypes';
 
 /**
- * Parameters for exponential smoothers used by {@link GarminExcessiveClosureRateModule}. 
+ * Parameters for exponential smoothers used by {@link GarminExcessiveClosureRateModule}.
  */
 export type GarminExcessiveClosureRateModuleSmootherParams = {
   /**
@@ -67,6 +67,30 @@ export type GarminExcessiveClosureRateModuleOptions = {
   /** Parameters for smoothing applied to terrain closure rate. */
   closureRateSmootherParams?: Readonly<GarminExcessiveClosureRateModuleSmootherParams>;
 
+  /**
+   * The consecutive amount of time, in milliseconds, that the conditions for one of the module's alerts must be met
+   * before the alert is triggered. Defaults to `2000`.
+   */
+  triggerDebounce?: number;
+
+  /**
+   * The consecutive amount of time, in milliseconds, that the conditions for one of the module's alerts must not be
+   * met before the alert is untriggered. Defaults to `2000`.
+   */
+  untriggerDebounce?: number;
+
+  /**
+   * The amount of time, in milliseconds, after an alert becomes triggered before it can be untriggered. Defaults to
+   * `5000`.
+   */
+  triggerHysteresis?: number;
+
+  /**
+   * The amount of time, in milliseconds, after an alert becomes untriggered before it can be triggered. Defaults to
+   * `0`.
+   */
+  untriggerHysteresis?: number;
+
   /** The inhibit flags that should inhibit alerting. If not defined, then no flags will inhibit alerting. */
   inhibitFlags?: Iterable<string>;
 };
@@ -81,11 +105,26 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
 
   private readonly flapsLandingAngle: readonly [number, number];
 
+  private readonly triggerDebounce: number;
+  private readonly untriggerDebounce: number;
+
+  private readonly triggerHysteresis: number;
+  private readonly untriggerHysteresis: number;
+
   private readonly inhibitFlags: string[];
 
   private isReset = true;
+  private isInhibited = false;
 
-  private activeAlert: GarminExcessiveClosureRateAlert | null = null;
+  private triggeredAlert: GarminExcessiveClosureRateAlert | null = null;
+
+  private warningTriggerDebounceTimer = 0;
+  private cautionTriggerDebounceTimer = 0;
+  private warningUntriggerDebounceTimer = 0;
+  private cautionUntriggerDebounceTimer = 0;
+
+  private triggerHysteresisTimer = 0;
+  private untriggerHysteresisTimer = 0;
 
   private readonly closureRateSmoother: MultiExpSmoother;
   private lastAgl: number | undefined = undefined;
@@ -100,6 +139,10 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
     this.functionAsGpws = options?.functionAsGpws ?? false;
     this.forceNoFlta = options?.forceNoFlta ?? false;
     this.flapsLandingAngle = options?.flapsLandingAngle ?? [Infinity, Infinity];
+    this.triggerDebounce = options?.triggerDebounce ?? 2000;
+    this.untriggerDebounce = options?.untriggerDebounce ?? 2000;
+    this.triggerHysteresis = options?.triggerHysteresis ?? 5000;
+    this.untriggerHysteresis = options?.untriggerHysteresis ?? 0;
     this.inhibitFlags = options?.inhibitFlags ? Array.from(options.inhibitFlags) : [];
 
     this.closureRateSmoother = new MultiExpSmoother(
@@ -124,8 +167,10 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
     data: Readonly<TerrainSystemData>,
     alertController: TerrainSystemAlertController
   ): void {
-    const dt = this.lastUpdateTime === undefined ? 0 : Math.max(data.realTime - this.lastUpdateTime, 0) * data.simRate;
+    const dt = this.lastUpdateTime === undefined ? 0 : MathUtils.clamp((data.realTime - this.lastUpdateTime) * data.simRate, 0, 10000);
     this.lastUpdateTime = data.realTime;
+
+    this.updateInhibits(inhibits, alertController);
 
     if (
       operatingMode !== TerrainSystemOperatingMode.Operating
@@ -136,16 +181,8 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
       )
       || data.isOnGround
     ) {
-      this.reset(alertController);
+      this.reset(dt, alertController);
       return;
-    }
-
-    // Check if one of our inhibit flags is active.
-    for (let i = 0; i < this.inhibitFlags.length; i++) {
-      if (inhibits.has(this.inhibitFlags[i])) {
-        this.reset(alertController);
-        return;
-      }
     }
 
     const noFlta = this.forceNoFlta || statuses.has(GarminTawsStatus.TawsFailed) || statuses.has(GarminTawsStatus.TawsNotAvailable);
@@ -153,39 +190,63 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
     // Alerting is disabled when the distance to the nearest airport is less than or equal to 5 nautical miles and
     // FLTA alerting is available.
     if (!noFlta && data.nearestAirport) {
-      this.reset(alertController);
+      this.reset(dt, alertController);
       return;
     }
 
     if (this.functionAsGpws) {
       if (data.isRadarAltitudeValid && (data.isGpsPosValid || data.isBaroAltitudeValid) && data.radarAltitude <= 2500) {
         this.isReset = false;
-        this.updateAlerts(data, noFlta, data.radarAltitude, dt, alertController);
+        this.updateAlerts(dt, data, noFlta, data.radarAltitude, alertController);
       } else {
-        this.reset(alertController);
+        this.reset(dt, alertController);
       }
     } else {
       if (data.isGpsPosValid) {
         this.isReset = false;
-        this.updateAlerts(data, noFlta, data.gpsAgl, dt, alertController);
+        this.updateAlerts(dt, data, noFlta, data.gpsAgl, alertController);
       } else {
-        this.reset(alertController);
+        this.reset(dt, alertController);
+      }
+    }
+  }
+
+  /**
+   * Updates whether this module's alerts are inhibited.
+   * @param inhibits The parent system's currently active inhibits.
+   * @param alertController A controller for alerts issued by the parent system.
+   */
+  private updateInhibits(inhibits: ReadonlySet<string>, alertController: TerrainSystemAlertController): void {
+    let isInhibited = false;
+    for (let i = 0; !isInhibited && i < this.inhibitFlags.length; i++) {
+      isInhibited = inhibits.has(this.inhibitFlags[i]);
+    }
+
+    if (this.isInhibited !== isInhibited) {
+      this.isInhibited = isInhibited;
+
+      if (isInhibited) {
+        alertController.inhibitAlert(GarminTawsAlert.EcrWarning);
+        alertController.inhibitAlert(GarminTawsAlert.EcrCaution);
+      } else {
+        alertController.uninhibitAlert(GarminTawsAlert.EcrWarning);
+        alertController.uninhibitAlert(GarminTawsAlert.EcrCaution);
       }
     }
   }
 
   /**
    * Updates whether to issue an excessive closure rate alert.
+   * @param dt The amount of simulation time elapsed since the last update, in milliseconds.
    * @param data Terrain system data.
    * @param noFlta Whether FLTA is not available.
    * @param agl The airplane's current height above ground level, in feet.
-   * @param dt The elapsed simulation time, in milliseconds, since the last update cycle.
    * @param alertController A controller for alerts tracked by this module's parent system.
    */
-  private updateAlerts(data: Readonly<TerrainSystemData>, noFlta: boolean, agl: number, dt: number, alertController: TerrainSystemAlertController): void {
-    let activeAlert: GarminExcessiveClosureRateAlert | null = null;
+  private updateAlerts(dt: number, data: Readonly<TerrainSystemData>, noFlta: boolean, agl: number, alertController: TerrainSystemAlertController): void {
+    let triggeredAlert: GarminExcessiveClosureRateAlert | null = null;
 
-    if (this.lastAgl === undefined) {
+    if (this.lastAgl === undefined || dt === 0) {
       this.closureRateSmoother.reset();
     } else {
       const closureRate = this.closureRateSmoother.next((this.lastAgl - agl) / dt * 60000, dt);
@@ -194,41 +255,190 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
       const isFlapsLanding = data.flapsAngle[0] >= this.flapsLandingAngle[0] && data.flapsAngle[0] <= this.flapsLandingAngle[1]
         && data.flapsAngle[1] >= this.flapsLandingAngle[0] && data.flapsAngle[1] <= this.flapsLandingAngle[1];
 
-      // Set up hysteresis offsets.
-      const warningThresholdOffset = this.activeAlert === GarminTawsAlert.EcrWarning ? -100 : 0;
-      const cautionThresholdOffset = this.activeAlert === GarminTawsAlert.EcrCaution ? -100 : 0;
-
-      if (GarminExcessiveClosureRateModule.isWarning(agl, closureRate, noFlta, isFlapsLanding, isGearDown, warningThresholdOffset)) {
-        activeAlert = GarminTawsAlert.EcrWarning;
-      } else if (GarminExcessiveClosureRateModule.isCaution(agl, closureRate, noFlta, isFlapsLanding, isGearDown, cautionThresholdOffset)) {
-        activeAlert = GarminTawsAlert.EcrCaution;
+      if (GarminExcessiveClosureRateModule.isWarning(agl, closureRate, noFlta, isFlapsLanding, isGearDown)) {
+        triggeredAlert = GarminTawsAlert.EcrWarning;
+      } else if (GarminExcessiveClosureRateModule.isCaution(agl, closureRate, noFlta, isFlapsLanding, isGearDown)) {
+        triggeredAlert = GarminTawsAlert.EcrCaution;
       }
     }
 
-    if (activeAlert !== this.activeAlert) {
-      activeAlert !== null && alertController.activateAlert(activeAlert);
-      this.activeAlert !== null && alertController.deactivateAlert(this.activeAlert);
+    triggeredAlert = this.resolveTriggeredAlert(dt, triggeredAlert);
 
-      this.activeAlert = activeAlert;
+    if (triggeredAlert !== this.triggeredAlert) {
+      // Don't reset the warning trigger debounce timer if we are upgrading from no alert -> caution.
+      if (!(triggeredAlert === GarminTawsAlert.EcrCaution && this.triggeredAlert === null)) {
+        this.warningTriggerDebounceTimer = 0;
+      }
+
+      this.cautionTriggerDebounceTimer = 0;
+      this.warningUntriggerDebounceTimer = 0;
+
+      // Don't reset the caution untrigger debounce timer if we are downgrading from warning -> caution.
+      if (!(triggeredAlert === GarminTawsAlert.EcrCaution && this.triggeredAlert === GarminTawsAlert.EcrWarning)) {
+        this.cautionUntriggerDebounceTimer = 0;
+      }
+
+      this.triggerHysteresisTimer = this.triggerHysteresis;
+      this.untriggerHysteresisTimer = this.untriggerHysteresis;
+
+      triggeredAlert !== null && alertController.triggerAlert(triggeredAlert);
+      this.triggeredAlert !== null && alertController.untriggerAlert(this.triggeredAlert);
+
+      this.triggeredAlert = triggeredAlert;
+    } else {
+      if (this.triggeredAlert !== null) {
+        this.triggerHysteresisTimer = Math.max(this.triggerHysteresisTimer - dt, 0);
+      } else {
+        this.untriggerHysteresisTimer = Math.max(this.untriggerHysteresisTimer - dt, 0);
+      }
     }
 
     this.lastAgl = agl;
   }
 
   /**
+   * Resolves a desired triggered alert to an alert to trigger.
+   * @param dt The amount of simulation time elapsed since the last update, in milliseconds.
+   * @param desiredTriggeredAlert The desired triggered alert, or `null` if all alerts are desired to be untriggered.
+   * @returns The alert to trigger, or `null` if no alert should be triggered.
+   */
+  private resolveTriggeredAlert(dt: number, desiredTriggeredAlert: GarminExcessiveClosureRateAlert | null): GarminExcessiveClosureRateAlert | null {
+    if (this.triggeredAlert === desiredTriggeredAlert) {
+      switch (desiredTriggeredAlert) {
+        case GarminTawsAlert.EcrWarning:
+          this.warningUntriggerDebounceTimer = 0;
+          this.cautionUntriggerDebounceTimer = 0;
+          break;
+        case GarminTawsAlert.EcrCaution:
+          this.warningTriggerDebounceTimer = 0;
+          this.cautionUntriggerDebounceTimer = 0;
+          break;
+        case null:
+          this.warningTriggerDebounceTimer = 0;
+          this.cautionTriggerDebounceTimer = 0;
+          break;
+      }
+
+      return desiredTriggeredAlert;
+    }
+
+    if (this.triggeredAlert === null || desiredTriggeredAlert === GarminTawsAlert.EcrWarning) {
+      this.warningUntriggerDebounceTimer = 0;
+      this.cautionUntriggerDebounceTimer = 0;
+      return this.resolveTriggeredAlertUpgrade(dt, desiredTriggeredAlert as GarminExcessiveClosureRateAlert);
+    } else {
+      this.warningTriggerDebounceTimer = 0;
+      this.cautionTriggerDebounceTimer = 0;
+      return this.resolveTriggeredAlertDowngrade(dt, desiredTriggeredAlert);
+    }
+  }
+
+  /**
+   * Resolves a desired triggered alert that is of higher severity than this module's existing triggered alert.
+   * @param dt The amount of simulation time elapsed since the last update, in milliseconds.
+   * @param desiredTriggeredAlert The desired triggered alert.
+   * @returns The alert to trigger, or `null` if no alert should be triggered.
+   */
+  private resolveTriggeredAlertUpgrade(dt: number, desiredTriggeredAlert: GarminExcessiveClosureRateAlert): GarminExcessiveClosureRateAlert | null {
+    let triggeredAlert: GarminExcessiveClosureRateAlert | null = desiredTriggeredAlert;
+
+    let triggerDebounceTimerProp: 'warningTriggerDebounceTimer' | 'cautionTriggerDebounceTimer';
+    if (desiredTriggeredAlert === GarminTawsAlert.EcrWarning) {
+      triggerDebounceTimerProp = 'warningTriggerDebounceTimer';
+    } else {
+      triggerDebounceTimerProp = 'cautionTriggerDebounceTimer';
+
+      // If the desired alert is caution, then reset the warning trigger debounce timer, since the conditions for
+      // triggering the warning alert have not been met.
+      this.warningTriggerDebounceTimer = 0;
+    }
+
+    if (this[triggerDebounceTimerProp] >= this.triggerDebounce) {
+      // The trigger debounce timer for the desired alert has expired. Check if untrigger hysteresis is still active.
+      // If so, then we need to abort the alert upgrade.
+      if (this.triggeredAlert === null && this.untriggerHysteresisTimer > 0) {
+        triggeredAlert = this.triggeredAlert;
+      }
+    } else {
+      // The trigger debounce timer for the desired alert has not yet expired. Increment the timer.
+      this[triggerDebounceTimerProp] += dt;
+      if (this.triggeredAlert === null && desiredTriggeredAlert === GarminTawsAlert.EcrWarning) {
+        // If we are trying to upgrade from no alert -> warning but can't because of debounce, then check if we could
+        // upgrade to caution instead.
+        return this.resolveTriggeredAlertUpgrade(dt, GarminTawsAlert.EcrCaution);
+      }
+      triggeredAlert = this.triggeredAlert;
+    }
+
+    return triggeredAlert;
+  }
+
+  /**
+   * Resolves a desired triggered alert that is of lower severity than this module's existing triggered alert.
+   * @param dt The amount of simulation time elapsed since the last update, in milliseconds.
+   * @param desiredTriggeredAlert The desired triggered alert, or `null` if all alerts are desired to be untriggered.
+   * @returns The alert to trigger, or `null` if no alert should be triggered.
+   */
+  private resolveTriggeredAlertDowngrade(dt: number, desiredTriggeredAlert: GarminTawsAlert.EcrCaution | null): GarminExcessiveClosureRateAlert | null {
+    let triggeredAlert: GarminExcessiveClosureRateAlert | null = desiredTriggeredAlert;
+
+    let untriggerDebounceTimerProp: 'warningUntriggerDebounceTimer' | 'cautionUntriggerDebounceTimer';
+    if (this.triggeredAlert === GarminTawsAlert.EcrWarning) {
+      untriggerDebounceTimerProp = 'warningUntriggerDebounceTimer';
+    } else {
+      untriggerDebounceTimerProp = 'cautionUntriggerDebounceTimer';
+    }
+
+    if (desiredTriggeredAlert === GarminTawsAlert.EcrCaution) {
+      // If the desired alert is caution, then reset the caution untrigger debounce timer, since the conditions for
+      // triggering the caution alert are still met.
+      this.cautionUntriggerDebounceTimer = 0;
+    } else if (desiredTriggeredAlert === null && this.triggeredAlert === GarminTawsAlert.EcrWarning) {
+      // If we are trying to downgrade from warning -> no alert, then we need to increment the caution untrigger
+      // debounce timer, since the conditions for triggering the caution alert are not met and we won't increment the
+      // timer below.
+      if (this.cautionTriggerDebounceTimer < this.untriggerDebounce) {
+        this.cautionUntriggerDebounceTimer += dt;
+      }
+    }
+
+    if (this[untriggerDebounceTimerProp] < this.untriggerDebounce) {
+      // The untrigger debounce timer for the existing triggered alert has not yet expired. Increment the timer and
+      // abort the alert downgrade.
+      this[untriggerDebounceTimerProp] += dt;
+      triggeredAlert = this.triggeredAlert;
+    } else if (this.triggerHysteresisTimer > 0) {
+      // The untrigger debounce timer for the desired alert has expired, but trigger hysteresis is still active, so we
+      // need to abort the alert downgrade.
+      triggeredAlert = this.triggeredAlert;
+    }
+
+    return triggeredAlert;
+  }
+
+  /**
    * Deactivates all excessive closure rate alerts.
+   * @param dt The amount of simulation time elapsed since the last update, in milliseconds.
    * @param alertController A controller for alerts tracked by this module's parent system.
    */
-  private reset(alertController: TerrainSystemAlertController): void {
+  private reset(dt: number, alertController: TerrainSystemAlertController): void {
     if (this.isReset) {
+      this.untriggerHysteresisTimer = Math.max(this.untriggerHysteresisTimer - dt, 0);
       return;
     }
 
+    this.warningTriggerDebounceTimer = 0;
+    this.cautionTriggerDebounceTimer = 0;
+    this.warningUntriggerDebounceTimer = 0;
+    this.cautionUntriggerDebounceTimer = 0;
+    this.triggerHysteresisTimer = this.triggerHysteresis;
+    this.untriggerHysteresisTimer = this.untriggerHysteresis;
+
     this.lastAgl = undefined;
 
-    this.activeAlert = null;
-    alertController.deactivateAlert(GarminTawsAlert.EcrWarning);
-    alertController.deactivateAlert(GarminTawsAlert.EcrCaution);
+    this.triggeredAlert = null;
+    alertController.untriggerAlert(GarminTawsAlert.EcrWarning);
+    alertController.untriggerAlert(GarminTawsAlert.EcrCaution);
 
     this.isReset = true;
   }
@@ -297,7 +507,6 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
    * @param noFlta Whether FLTA is not available.
    * @param isFlapsLanding Whether flaps are in the landing configuration.
    * @param isGearDown Whether landing gear are extended.
-   * @param thresholdOffset An offset to apply to the closure rate threshold for alerting, in feet per minute.
    * @returns Whether the specified closure rate meets the threshold for an excessive closure rate warning alert.
    */
   private static isWarning(
@@ -305,8 +514,7 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
     closureRate: number,
     noFlta: boolean,
     isFlapsLanding: boolean,
-    isGearDown: boolean,
-    thresholdOffset: number
+    isGearDown: boolean
   ): boolean {
     let breakpoints: [number, number][];
 
@@ -322,7 +530,7 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
           : GarminExcessiveClosureRateModule.WARNING_GEAR_UP_BREAKPOINTS;
     }
 
-    return GarminExcessiveClosureRateModule.isAlert(breakpoints, agl, closureRate, thresholdOffset);
+    return GarminExcessiveClosureRateModule.isAlert(breakpoints, agl, closureRate);
   }
 
   /**
@@ -333,7 +541,6 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
    * @param noFlta Whether FLTA is not available.
    * @param isFlapsLanding Whether flaps are in the landing configuration.
    * @param isGearDown Whether landing gear are extended.
-   * @param thresholdOffset An offset to apply to the closure rate threshold for alerting, in feet per minute.
    * @returns Whether the specified closure rate meets the threshold for an excessive closure rate caution alert.
    */
   private static isCaution(
@@ -341,8 +548,7 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
     closureRate: number,
     noFlta: boolean,
     isFlapsLanding: boolean,
-    isGearDown: boolean,
-    thresholdOffset: number
+    isGearDown: boolean
   ): boolean {
     let breakpoints: [number, number][];
 
@@ -358,7 +564,7 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
           : GarminExcessiveClosureRateModule.CAUTION_GEAR_UP_BREAKPOINTS;
     }
 
-    return GarminExcessiveClosureRateModule.isAlert(breakpoints, agl, closureRate, thresholdOffset);
+    return GarminExcessiveClosureRateModule.isAlert(breakpoints, agl, closureRate);
   }
 
   /**
@@ -367,14 +573,12 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
    * @param breakpoints The closure rate threshold vs. height above ground level breakpoints to use.
    * @param agl The height above ground level, in feet.
    * @param closureRate The closure rate, in feet per minute.
-   * @param thresholdOffset An offset to apply to the closure rate threshold for alerting, in feet per minute.
    * @returns Whether the specified closure rate meets the threshold for an excessive closure rate caution alert.
    */
   private static isAlert(
     breakpoints: readonly (readonly [number, number])[],
     agl: number,
-    closureRate: number,
-    thresholdOffset: number
+    closureRate: number
   ): boolean {
     let threshold = Infinity;
 
@@ -388,6 +592,6 @@ export class GarminExcessiveClosureRateModule implements TerrainSystemModule {
       }
     }
 
-    return closureRate >= threshold + thresholdOffset;
+    return closureRate >= threshold;
   }
 }

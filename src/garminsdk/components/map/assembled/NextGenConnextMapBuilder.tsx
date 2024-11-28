@@ -1,17 +1,19 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
-  FlightPlanner, FSComponent, MapDataIntegrityModule, MapIndexedRangeModule, MapOwnAirplanePropsKey, MappedSubject, MapSystemBuilder, MapSystemContext,
-  MapSystemKeys, MapTerrainColorsModule, MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, Subject, Subscribable, UnitFamily, UnitType,
+  FacilityLoader, FacilityRepository, FlightPlanner, FSComponent, MapDataIntegrityModule, MapIndexedRangeModule,
+  MapOwnAirplanePropsKey, MappedSubject, MapSystemBuilder, MapSystemContext, MapSystemKeys, MapTerrainColorsModule,
+  MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, Subject, Subscribable, UnitFamily, UnitType,
   UserSettingManager, Vec2Math, Vec2Subject, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
 import { WaypointIconImageCache } from '../../../graphics/img/WaypointIconImageCache';
+import { GarminFacilityWaypointCache } from '../../../navigation/GarminFacilityWaypointCache';
 import { MapUserSettingTypes } from '../../../settings/MapUserSettings';
 import { UnitsDistanceSettingMode, UnitsUserSettingManager } from '../../../settings/UnitsUserSettings';
 import { WeatherMapUserSettingTypes } from '../../../settings/WeatherMapUserSettings';
 import { WindDataProvider } from '../../../wind/WindDataProvider';
 import { MapGarminAutopilotPropsKey } from '../controllers';
-import { DefaultFlightPathPlanRenderer } from '../flightplan';
+import { DefaultFlightPathPlanRenderer, MapDefaultFlightPlanWaypointRecordManager } from '../flightplan';
 import { GarminMapBuilder, RangeCompassOptions, RangeRingOptions } from '../GarminMapBuilder';
 import { GarminMapKeys } from '../GarminMapKeys';
 import {
@@ -22,6 +24,7 @@ import { MapRangeDisplay } from '../MapRangeDisplay';
 import { MapRunwayDesignationImageCache } from '../MapRunwayDesignationImageCache';
 import { MapUtils } from '../MapUtils';
 import { MapWaypointDisplayBuilder } from '../MapWaypointDisplayBuilder';
+import { MapWaypointRenderRole } from '../MapWaypointRenderer';
 import { NextGenMapWaypointStyles } from '../MapWaypointStyles';
 import {
   MapFlightPlanFocusModule, MapOrientation, MapOrientationModule, MapPointerModule, MapUnitsModule
@@ -114,6 +117,14 @@ export type NextGenConnextMapOptions = {
    * rendered. Ignored if `includeRunwayOutlines` is `false`.
    */
   runwayDesignationImageCache?: MapRunwayDesignationImageCache;
+
+  /**
+   * A function that filters user facilities to be displayed by the nearest waypoints layer based on their scopes. If
+   * not defined, then user facilities will not be filtered based on scope.
+   * @param scope A user facility scope.
+   * @returns Whether to display the user facility with the specified scope.
+   */
+  userFacilityScopeFilter?: (scope: string) => boolean;
 
   /** Whether to display airspaces. Defaults to `true`. */
   includeAirspaces?: boolean;
@@ -310,7 +321,7 @@ export class NextGenConnextMapBuilder {
         options.rangeEndpoints,
         options.useOrientationUserSettings ? options.settingManager : undefined
       )
-      .withBing(options.bingId, options.bingDelay)
+      .withBing(options.bingId, { bingDelay: options.bingDelay })
       .withInit<{
         [MapSystemKeys.TerrainColors]: MapTerrainColorsModule,
       }>(GarminMapKeys.Terrain, context => {
@@ -340,15 +351,16 @@ export class NextGenConnextMapBuilder {
           options.runwayDesignationImageCache
         );
       },
-      options.includeRunwayOutlines,
-      options.useWaypointVisUserSettings ? options.settingManager : undefined
+      options.useWaypointVisUserSettings ? options.settingManager : undefined,
+      {
+        supportRunwayOutlines: options.includeRunwayOutlines,
+        userFacilityScopeFilter: options.userFacilityScopeFilter
+      }
     );
 
     if (options.flightPlanner) {
       mapBuilder.with(GarminMapBuilder.activeFlightPlan,
         options.flightPlanner,
-        new DefaultFlightPathPlanRenderer(),
-        false,
         (builder): void => {
           builder
             .withFlightPlanInactiveStyles(
@@ -370,6 +382,17 @@ export class NextGenConnextMapBuilder {
         {
           lnavIndex: options.lnavIndex,
           vnavIndex: options.vnavIndex,
+          drawEntirePlan: false,
+          waypointRecordManagerFactory: (context, renderer) => {
+            return new MapDefaultFlightPlanWaypointRecordManager(
+              new FacilityLoader(FacilityRepository.getRepository(context.bus)),
+              GarminFacilityWaypointCache.getCache(context.bus),
+              renderer,
+              MapWaypointRenderRole.FlightPlanInactive,
+              MapWaypointRenderRole.FlightPlanActive
+            );
+          },
+          pathRendererFactory: () => new DefaultFlightPathPlanRenderer(),
           supportFocus: false
         }
       );

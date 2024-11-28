@@ -1,4 +1,5 @@
-import { FlightPathVector, LegCalculations } from '../../flightplan/FlightPlanning';
+import { FlightPathVector } from '../../flightplan/flightpath/FlightPathVector';
+import { LegCalculations } from '../../flightplan/FlightPlanning';
 import { LNavTrackingState } from './LNavEvents';
 import { LNavTransitionMode } from './LNavTypes';
 

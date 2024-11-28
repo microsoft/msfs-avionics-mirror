@@ -1,0 +1,44 @@
+.annunciator-container {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  font-size: 24px;
+  width: 94px;
+}
+
+.annunciator-main-title {
+  font-size: 16px;
+
+  text-align: center;
+  overflow: hidden;
+}
+
+.annunciator-main-title span {
+  padding: 0 5px;
+}
+
+.annunciator-main-title::before,
+.annunciator-main-title::after {
+  content: '';
+  width: 100%;
+  border-bottom: rgba(255, 255, 255, 0.5) solid;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.annunciator-main-title::before {
+  margin-left: -100%;
+}
+
+.annunciator-main-title::after {
+  margin-right: -100%;
+}
+
+.annunciator-sub-title {
+  display: flex;
+  margin-top: 6px;
+}
+
+.annunciator-label {
+  margin-left: 10px;
+}

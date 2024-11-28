@@ -3,5 +3,5 @@
  */
 export class CJ4FilePaths {
   /** The virtual file system path to the plugins directory. */
-  public static readonly PLUGINS_PATH = 'coui://SimObjects/Airplanes/Asobo_CJ4/panel/Instruments/WT21/Plugins';
+  public static readonly PLUGINS_PATH = 'coui://SimObjects/Airplanes/Asobo_CJ4/common/panel/Instruments/WT21/Plugins';
 }

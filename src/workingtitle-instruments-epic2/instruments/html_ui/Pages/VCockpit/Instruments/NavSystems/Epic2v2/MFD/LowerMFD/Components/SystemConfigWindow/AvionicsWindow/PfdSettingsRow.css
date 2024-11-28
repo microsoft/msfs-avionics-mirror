@@ -1,0 +1,14 @@
+.pfd-settings-row .option {
+  flex-grow: 1;
+  flex-basis: 0;
+  padding-left: 32px;
+  order: 2;
+  color: var(--epic2-color-cyan);
+  font-size: 18px;
+}
+
+.pfd-settings-row .selected-option {
+  color: var(--epic2-color-white);
+  font-size: 24px;
+  order: 1;
+}

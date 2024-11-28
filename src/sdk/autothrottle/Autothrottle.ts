@@ -36,6 +36,12 @@ export interface AutothrottleEvents {
   /** Whether the autothrottle's overpower protection is active. */
   at_overpower_prot_is_active: boolean;
 
+  /** Whether the autothrottle's overspeed protection is currently limiting thrust on any managed throttle */
+  at_overspeed_prot_is_engaged: boolean;
+
+  /** Whether the autothrottle's underspeed protection is currently maximizing thrust on any managed throttle */
+  at_underspeed_prot_is_engaged: boolean;
+
   /** Autothrottle target mode. */
   at_target_mode: AutothrottleTargetMode;
 

@@ -1,0 +1,47 @@
+.checklist-options-popup {
+  position: absolute;
+  color: var(--g3000-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.gtc-horizontal .checklist-options-popup {
+  top: 35px;
+  right: 50px;
+  width: 350px;
+  height: 720px;
+  padding-top: 12px;
+  font-size: 29px;
+
+  --checklist-options-popup-title-margin-bottom: 20px;
+
+  --checklist-options-popup-button-width: 256px;
+  --checklist-options-popup-button-height: 120px;
+  --checklist-options-popup-button-margin-bottom: 20px;
+}
+
+.gtc-vertical .checklist-options-popup {
+  top: 20px;
+  right: 0px;
+  width: 190px;
+  height: 390px;
+  padding-top: 6px;
+  font-size: 16px;
+
+  --checklist-options-popup-title-margin-bottom: 10px;
+
+  --checklist-options-popup-button-width: 150px;
+  --checklist-options-popup-button-height: 74px;
+  --checklist-options-popup-button-margin-bottom: 13px;
+}
+
+.checklist-options-popup-title {
+  margin-bottom: var(--checklist-options-popup-title-margin-bottom);
+}
+
+.checklist-options-popup-button {
+  width: var(--checklist-options-popup-button-width);
+  height: var(--checklist-options-popup-button-height);
+  margin-bottom: var(--checklist-options-popup-button-margin-bottom);
+}

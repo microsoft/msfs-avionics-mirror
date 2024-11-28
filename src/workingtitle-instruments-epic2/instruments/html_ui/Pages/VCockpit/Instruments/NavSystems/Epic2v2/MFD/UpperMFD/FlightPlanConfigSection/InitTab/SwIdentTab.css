@@ -1,0 +1,59 @@
+.fpln-sw-ident-tab {
+  position: relative;
+  height: 90%;
+  width: 85%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  margin: -8px 0 0 52px;
+  font-size: 22px;
+  color: var(--epic2-color-white);
+}
+
+.fpln-sw-ident-tab .sw-title {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.fpln-sw-ident-tab .fms-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.fpln-sw-ident-tab .fms-column .fms-text {
+  display: flex;
+  color: var(--epic2-color-green);
+  margin-left: 37px;
+}
+
+.fpln-sw-ident-tab .tail-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.fpln-sw-ident-tab .tail-row .tail-text {
+  display: flex;
+  color: var(--epic2-color-green);
+  margin-left: 50px;
+}
+
+.fpln-sw-ident-tab .id-box {
+  display: flex;
+  justify-content: flex-start;
+  margin-left: -4px;
+}
+
+.fpln-sw-ident-tab .fpln-id-input {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  height: 27px;
+  padding: 2px 6px 0 6px;
+}
+
+.fpln-sw-ident-tab .id-box .input-box {
+  width: 110px;
+  padding-right: 14px;
+}

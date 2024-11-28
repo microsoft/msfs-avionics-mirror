@@ -297,7 +297,11 @@ export class DefaultAoaDataProvider implements AoaDataProvider {
     const iasSquared = ias * ias;
     const coef = normAoa * iasSquared;
 
-    this._normAoaIasCoef.set(this.aoaCoefSmoother.next(coef, dt));
+    if (isFinite(coef)) {
+      this._normAoaIasCoef.set(this.aoaCoefSmoother.next(coef, dt));
+    } else {
+      this._normAoaIasCoef.set(this.aoaCoefSmoother.reset());
+    }
   }
 
   /**

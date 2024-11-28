@@ -1,0 +1,40 @@
+.checklist-action-item {
+  display: flex;
+}
+
+.checklist-action-item .checkbox-container {
+  padding-left: 7px;
+  padding-top: 3px;
+}
+
+.checklist-action-item .checklist-item-text {
+  left: 8px;
+}
+
+.checklist-action-item.checklist-item-completed .checklist-item-text {
+  color: var(--epic2-color-green)
+}
+
+.checklist-action-item .section-outline {
+  padding-top: 5px;
+  margin-top: -5px;
+  margin-left: 5px;
+}
+
+.checklist-action-item .checklist-checkbox-container {
+  position: relative;
+  width: 26px;
+}
+
+.checklist-checkbox-container .checklist-selected-indicator {
+  position: absolute;
+  left: 3px;
+  top: -7px;
+  width: 27px;
+  height: auto;
+}
+
+.checklist-selected-indicator .selection-outline {
+  stroke: var(--epic2-color-green);
+  stroke-linejoin: round;
+}

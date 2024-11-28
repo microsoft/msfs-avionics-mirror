@@ -1,9 +1,14 @@
-import { MappedSubscribable, Subscribable } from '@microsoft/msfs-sdk';
+import { EventBus, Subscribable } from '@microsoft/msfs-sdk';
+
+import { AirspeedDefinition } from './AirspeedDefinition';
 
 /**
  * A context for a {@link AirspeedDefinitionFactory}.
  */
 export type AirspeedDefinitionContext = {
+  /** The event bus. */
+  readonly bus: EventBus;
+
   /** The current pressure altitude, in feet. */
   readonly pressureAlt: Subscribable<number>;
 
@@ -29,10 +34,9 @@ export type AirspeedDefinitionContext = {
    * attack, or `NaN` if an estimate cannot be made.
    */
   estimateIasFromNormAoa(normAoa: number): number;
-}
+};
 
 /**
- * A function which creates a number or a subscribable which provides a number representing an indicated airspeed
- * value in knots.
+ * A function that creates a definition of an indicated airspeed value.
  */
-export type AirspeedDefinitionFactory = (context: AirspeedDefinitionContext) => number | MappedSubscribable<number>;
+export type AirspeedDefinitionFactory = (context: AirspeedDefinitionContext) => AirspeedDefinition;

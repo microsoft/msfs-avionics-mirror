@@ -1,0 +1,133 @@
+.aoa {
+  position: relative;
+  width: 88px;
+  height: 80px;
+  background: var(--g3000-color-pfd-box-background);
+  border-radius: 7px;
+  color: var(--g3000-color-white);
+  overflow: hidden;
+
+  --aoa-needle-color: var(--g3000-color-white);
+}
+
+.aoa-simple {
+  --aoa-gauge-left: 6px;
+  --aoa-gauge-top: 4px;
+  --aoa-gauge-width: 70px;
+  --aoa-gauge-height: 70px;
+}
+
+.aoa-advanced {
+  --aoa-gauge-left: 7px;
+  --aoa-gauge-top: 3px;
+  --aoa-gauge-width: 74px;
+  --aoa-gauge-height: 74px;
+}
+
+.aoa.aoa-warning {
+  --aoa-needle-color: var(--g3000-color-red);
+}
+
+.aoa.aoa-caution {
+  --aoa-needle-color: var(--g3000-color-yellow);
+}
+
+.aoa-gauge {
+  position: absolute;
+  left: var(--aoa-gauge-left);
+  top: var(--aoa-gauge-top);
+  width: var(--aoa-gauge-width);
+  height: var(--aoa-gauge-height);
+}
+
+.aoa-gauge-arc {
+  fill: none;
+  stroke: var(--g3000-color-white);
+}
+
+.aoa-gauge-arc-caution {
+  stroke: var(--g3000-color-yellow);
+}
+
+.aoa-gauge-arc-warning {
+  stroke: var(--g3000-color-red);
+}
+
+.aoa-gauge-tick {
+  fill: none;
+  stroke: var(--g3000-color-white);
+}
+
+.aoa-gauge-tick-caution {
+  stroke: var(--g3000-color-yellow);
+}
+
+.aoa-gauge-tick-warning {
+  stroke: var(--g3000-color-red);
+}
+
+.aoa-gauge-label {
+  font-size: 12px;
+  fill: var(--g3000-color-white);
+}
+
+.aoa-gauge-donut-cue {
+  fill: var(--g3000-color-green);
+  stroke: var(--g3000-color-black);
+}
+
+.aoa-gauge-needle {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  fill: var(--aoa-needle-color);
+  stroke: var(--g3000-color-black);
+}
+
+.aoa-label {
+  position: absolute;
+  transform: translateX(-50%) scaleX(0.9);
+  font-size: 15px;
+}
+
+.aoa-simple .aoa-label {
+  left: calc(100% - 19px);
+  top: 37px;
+}
+
+.aoa-advanced .aoa-label {
+  left: 19px;
+  top: 23px;
+}
+
+.aoa-readout {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 19px;
+}
+
+.aoa-warning .aoa-readout {
+  background: var(--g3000-color-red);
+}
+
+.aoa-caution .aoa-readout {
+  color: var(--g3000-color-black);
+  background: var(--g3000-color-yellow);
+}
+
+.aoa-simple .aoa-readout {
+  left: calc(100% - 19px);
+  top: 53px;
+}
+
+.aoa-advanced .aoa-readout {
+  left: 19px;
+  top: 39px;
+}
+
+.aoa-data-failed .aoa-gauge,
+.aoa-data-failed .aoa-readout {
+  display: none;
+}

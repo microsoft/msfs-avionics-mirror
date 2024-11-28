@@ -17,14 +17,6 @@ export interface Consumer<T> {
   handle(handler: Handler<T>, paused?: boolean): Subscription;
 
   /**
-   * Disables handling of the event.
-   * @param handler The handler to disable.
-   * @deprecated This method has been deprecated in favor of using the {@link Subscription} object returned by
-   * `.handle()` to manage subscriptions.
-   */
-  off(handler: Handler<T>): void;
-
-  /**
    * Caps the event subscription to a specified frequency, in Hz.
    * @param frequency The frequency, in Hz, to cap to.
    * @param immediateFirstPublish Whether to fire once immediately before throttling.

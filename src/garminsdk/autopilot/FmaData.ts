@@ -1,32 +1,30 @@
-import { APAltitudeModes, APLateralModes, APVerticalModes } from '@microsoft/msfs-sdk';
-
 /**
  * Data describing autopilot status used by Garmin FMAs.
  */
 export type FmaData = {
   /** The active vertical mode. */
-  verticalActive: APVerticalModes;
+  verticalActive: number;
 
   /** The armed vertical mode. */
-  verticalArmed: APVerticalModes;
+  verticalArmed: number;
 
   /** The armed vertical approach mode. */
-  verticalApproachArmed: APVerticalModes;
+  verticalApproachArmed: number;
 
   /** The armed altitude capture mode. */
-  verticalAltitudeArmed: APAltitudeModes;
+  verticalAltitudeArmed: number;
 
   /** Whether an altitude capture mode is armed. */
-  altitideCaptureArmed: boolean;
+  altitudeCaptureArmed: boolean;
 
   /** The target altitude capture value, in feet. */
-  altitideCaptureValue: number;
+  altitudeCaptureValue: number;
 
   /** The active lateral mode. */
-  lateralActive: APLateralModes;
+  lateralActive: number;
 
   /** The armed lateral mode. */
-  lateralArmed: APLateralModes;
+  lateralArmed: number;
 
   /** Whether the lateral mode is in a failed state. */
   lateralModeFailed: boolean;

@@ -1,0 +1,61 @@
+.selected-speed {
+  position: absolute;
+  display: flex;
+  top: 2px;
+  left: 8px;
+  width: 83px;
+  height: 32px;
+  justify-content: center;
+}
+
+.selected-speed.bug-icon {
+  justify-content: space-evenly;
+}
+
+.selected-speed .speed-value {
+  font-size: 29px;
+  padding-top: 2px;
+  color: var(--epic2-color-white);
+}
+
+.selected-speed .speed-value.magenta {
+  color: var(--epic2-color-magenta);
+}
+
+.selected-speed .speed-value.invalid {
+  color: var(--epic2-color-amber);
+}
+
+.selected-speed.bug-icon .bug-icon-container {
+  position: relative;
+  margin-top: 2px;
+  width: 12px;
+}
+
+.selected-speed.selected-speed.bug-icon .selected-speed-bug {
+  position: absolute;
+  height: 23px;
+  width: initial;
+
+  top: 0;
+  left: 0;
+}
+
+.selected-speed.selected-speed.bug-icon .fms-speed-bug {
+  position: absolute;
+
+  top: -6px;
+  left: -12px;
+  right: initial;
+}
+
+
+.selected-speed.selected-speed.bug-icon .afcs-speed-bug {
+  position: absolute;
+  height: 13px;
+  width: initial;
+
+  top: 6px;
+  left: -4px;
+  right: initial;
+}

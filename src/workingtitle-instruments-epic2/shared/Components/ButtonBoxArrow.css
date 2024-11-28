@@ -1,0 +1,38 @@
+.touch-button.box-arrow .triangle {
+  fill: transparent;
+  stroke: var(--epic2-color-white);
+  stroke-width: 1;
+}
+
+.touch-button.box-arrow {
+  height: 35px;
+  display: flex;
+  align-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 0 5px;
+}
+
+.touch-button.box-arrow .touch-button-label {
+  height: 25px;
+  font-size: inherit;
+  font-family: inherit;
+  background: var(--epic2-color-black);
+  border: solid var(--epic2-color-white) 2px;
+  border-radius: 3px;
+  padding: 4px 2px 0 2px;
+  box-shadow: 0px 0px 3px 0px var(--epic2-color-black);
+  position: relative;
+  transform: none;
+  margin-right: 8px;
+  left: initial;
+  top: initial;
+}
+
+.touch-button.box-arrow.touch-button-disabled .touch-button-label {
+  border-color: var(--touch-button-disabled-color);
+}
+
+.touch-button.box-arrow.touch-button-disabled .touch-button-label {
+  stroke: var(--touch-button-disabled-color);
+}

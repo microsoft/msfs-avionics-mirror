@@ -1,172 +1,18 @@
-import { NavSourceId } from '../instruments/NavProcessor';
-import { NavRadioIndex } from '../instruments/RadioCommon';
-import { Subject } from '../sub/Subject';
-import { Subscribable } from '../sub/Subscribable';
+import { APValues } from './APValues';
 import { AutopilotDriverOptions } from './AutopilotDriver';
 import { PlaneDirector } from './directors/PlaneDirector';
-import { NavToNavManager } from './managers/NavToNavManager';
 import { NavToNavManager2 } from './managers/NavToNavManager2';
 import { VNavManager } from './managers/VNavManager';
 
-export enum APVerticalModes {
-  NONE,
-  PITCH,
-  VS,
-  FLC,
-  ALT,
-  PATH,
-  GP,
-  GS,
-  CAP,
-  TO,
-  GA,
-  FPA,
-  FLARE,
-  LEVEL
-}
-
-export enum APLateralModes {
-  NONE,
-  ROLL,
-  LEVEL,
-  GPSS,
-  HEADING,
-  VOR,
-  LOC,
-  BC,
-  ROLLOUT,
-  NAV,
-  TO,
-  GA,
-  HEADING_HOLD,
-  TRACK,
-  TRACK_HOLD,
-  FMS_LOC,
-  TO_LOC,
-}
-
-export enum APAltitudeModes {
-  NONE,
-  ALTS,
-  ALTV
-}
-
 /**
- * An object containing values pertinent to autopilot operation.
+ * An entry describing an autopilot mode director.
  */
-export type APValues = {
-  /** The ID of the CDI associated with the autopilot. */
-  readonly cdiId: string;
+export type APConfigDirectorEntry = {
+  /** The director mode. */
+  mode: number;
 
-  /** The autopilot's current CDI source. */
-  readonly cdiSource: Subscribable<Readonly<NavSourceId>>;
-
-  /** The current simulation rate. */
-  readonly simRate: Subject<number>;
-
-  /** The selected altitude, in feet. */
-  readonly selectedAltitude: Subject<number>;
-
-  /** The selected vertical speed target, in feet per minute. */
-  readonly selectedVerticalSpeed: Subject<number>;
-
-  /** The selected flight path angle target, in degrees */
-  readonly selectedFlightPathAngle: Subject<number>;
-
-  /** The selected indicated airspeed target, in knots. */
-  readonly selectedIas: Subject<number>;
-
-  /** The selected mach target. */
-  readonly selectedMach: Subject<number>;
-
-  /** Whether the selected airspeed target is in mach. */
-  readonly isSelectedSpeedInMach: Subject<boolean>;
-
-  /** The selected pitch target, in degrees. */
-  readonly selectedPitch: Subject<number>;
-
-  /** The maximum bank setting ID. */
-  readonly maxBankId: Subject<number>;
-
-  /** The maximum Bank Angle the autopilot may command in absolute degrees. */
-  readonly maxBankAngle: Subject<number>;
-
-  /** The selected heading, in degrees. */
-  readonly selectedHeading: Subject<number>;
-
-  /** The captured altitude, in feet. */
-  readonly capturedAltitude: Subject<number>;
-
-  /** Approach is Activated in Flight Plan */
-  readonly approachIsActive: Subject<boolean>;
-
-  /** The activated approach has an LPV GP */
-  readonly approachHasGP: Subject<boolean>;
-
-  /** The Nav 1 Radio is tuned to an ILS with a GS signal */
-  readonly nav1HasGs: Subject<boolean>;
-
-  /** The Nav 2 Radio is tuned to an ILS with a GS signal */
-  readonly nav2HasGs: Subject<boolean>;
-
-  /** The Nav 3 Radio is tuned to an ILS with a GS signal */
-  readonly nav3HasGs: Subject<boolean>;
-
-  /** The Nav 4 Radio is tuned to an ILS with a GS signal */
-  readonly nav4HasGs: Subject<boolean>;
-
-  /** The Active Lateral Mode */
-  readonly lateralActive: Subject<APLateralModes>;
-
-  /** The Active Vertical Mode */
-  readonly verticalActive: Subject<APVerticalModes>;
-
-  /** The Armed Lateral Mode */
-  readonly lateralArmed: Subject<APLateralModes>;
-
-  /** The Armed Vertical Mode */
-  readonly verticalArmed: Subject<APVerticalModes>;
-
-  /** The AP Approach Mode is on */
-  readonly apApproachModeOn: Subject<boolean>;
-
-  /**
-   * Checks whether the autopilot localizer lateral mode ()`APLateralModes.LOC`) can be armed while waiting for the
-   * nav-to-nav manager to switch CDI source.
-   * @returns Whether the autopilot localizer lateral mode ()`APLateralModes.LOC`) can be armed while waiting for the
-   * nav-to-nav manager to switch CDI source.
-   */
-  navToNavLocArm?: () => boolean;
-
-  /**
-   * Gets the index of the NAV radio that can be armed for a CDI source switch by the nav-to-nav manager, or `-1` if a
-   * CDI source switch cannot be armed.
-   * @returns The index of the NAV radio that can be armed for a CDI source switch by the nav-to-nav manager, or `-1`
-   * if a CDI source switch cannot be armed.
-   */
-  navToNavArmableNavRadioIndex?: () => NavRadioIndex | -1;
-
-  /**
-   * Gets the autopilot lateral mode that can be armed while waiting for the nav-to-nav manager to switch CDI source,
-   * or `APLateralModes.NONE` if no modes can be armed.
-   * @returns The autopilot lateral mode that can be armed while waiting for the nav-to-nav manager to switch CDI
-   * source, or `APLateralModes.NONE` if no modes can be armed.
-   */
-  navToNavArmableLateralMode?: () => APLateralModes;
-
-  /**
-   * Gets the autopilot vertical mode that can be armed while waiting for the nav-to-nav manager to switch CDI source,
-   * or `APLateralModes.NONE` if no modes can be armed.
-   * @returns The autopilot vertical mode that can be armed while waiting for the nav-to-nav manager to switch CDI
-   * source, or `APLateralModes.NONE` if no modes can be armed.
-   */
-  navToNavArmableVerticalMode?: () => APVerticalModes;
-
-  /**
-   * Checks whether a CDI source switch initiated by the nav-to-nav manager is currently in progress.
-   * @returns Whether a CDI source switch initiated by the nav-to-nav manager is currently in progress.
-   */
-  navToNavTransferInProgress?: () => boolean;
+  /** The director. */
+  director: PlaneDirector;
 }
 
 /**
@@ -186,7 +32,7 @@ export interface APConfig {
    * @param apValues The autopilot's state values.
    * @returns The autopilot's nav-to-nav manager.
    */
-  createNavToNavManager?(apValues: APValues): NavToNavManager | NavToNavManager2 | undefined;
+  createNavToNavManager?(apValues: APValues): NavToNavManager2 | undefined;
 
   /**
    * Creates the autopilot's variable bank manager.
@@ -196,201 +42,24 @@ export interface APConfig {
   createVariableBankManager?(apValues: APValues): Record<any, any> | undefined;
 
   /**
-   * Creates the autopilot's VNAV Path mode director.
+   * Creates the autopilot's lateral mode directors. Mode `APLateralModes.NONE` (0) is ignored.
    * @param apValues The autopilot's state values.
-   * @returns The autopilot's VNAV Path mode director.
+   * @returns An iterable of lateral mode directors to add to the autopilot.
    */
-  createVNavPathDirector?(apValues: APValues): PlaneDirector | undefined;
+  createLateralDirectors?(apValues: APValues): Iterable<Readonly<APConfigDirectorEntry>>;
 
   /**
-   * Creates the autopilot's heading mode director.
+   * Creates the autopilot's vertical mode directors. Mode `APVerticalModes.NONE` (0) is ignored.
    * @param apValues The autopilot's state values.
-   * @returns The autopilot's heading mode director.
+   * @returns An iterable of vertical mode directors to add to the autopilot.
    */
-  createHeadingDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's heading hold (level off and then capture heading)
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's heading hold director.
-   */
-  createHeadingHoldDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's track mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's heading mode director.
-   */
-  createTrackDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's track hold (level off and then capture track)
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's heading hold director.
-   */
-  createTrackHoldDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's roll mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's heading mode director.
-   */
-  createRollDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's wings level mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's wings level mode director.
-   */
-  createWingLevelerDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's pitch level mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's pitch level mode director.
-   */
-  createPitchLevelerDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's GPS LNAV mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's GPS LNAV mode director.
-   */
-  createGpssDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's VOR mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's VOR mode director.
-   */
-  createVorDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's LOC mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's LOC mode director.
-   */
-  createLocDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's back-course mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's back-course mode director.
-   */
-  createBcDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's ROLLOUT mode director.
-   * @returns The autopilot's ROLLOUT mode director.
-   */
-  createRolloutDirector?(): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's pitch mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's pitch mode director.
-   */
-  createPitchDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's vertical speed mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's vertical speed mode director.
-   */
-  createVsDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's flight path angle mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's flight path angle mode director.
-   */
-  createFpaDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's flight level change mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's flight level change mode director.
-   */
-  createFlcDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's altitude hold mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's altitude hold mode director.
-   */
-  createAltHoldDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's altitude capture mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's altitude capture mode director.
-   */
-  createAltCapDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's GPS glidepath mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's GPS glidepath mode director.
-   */
-  createGpDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's ILS glideslope mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's ILS glideslope mode director.
-   */
-  createGsDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the auto land FLARE mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's FLARE mode director.
-   */
-  createFlareDirector?(): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's vertical takeoff mode director (or combined vertical takeoff/go-around mode director).
-   * @returns The autopilot's vertical takeoff mode director.
-   */
-  createToVerticalDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's vertical go-around mode director.
-   * @returns The autopilot's vertical go-around mode director.
-   */
-  createGaVerticalDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's lateral takeoff mode director (or combined lateral takeoff/go-around mode director).
-   * @returns The autopilot's lateral takeoff mode director.
-   */
-  createToLateralDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's lateral go-around mode director.
-   * @returns The autopilot's lateral go-around mode director.
-   */
-  createGaLateralDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's FMC LOC-style mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's FMS LOC mode director.
-   */
-  createFmsLocLateralDirector?(apValues: APValues): PlaneDirector | undefined;
-
-  /**
-   * Creates the autopilot's takeoff LOC mode director.
-   * @param apValues The autopilot's state values.
-   * @returns The autopilot's takeoff LOC mode director.
-   */
-  createTakeoffLocLateralDirector?(apValues: APValues): PlaneDirector | undefined;
+  createVerticalDirectors?(apValues: APValues): Iterable<Readonly<APConfigDirectorEntry>>;
 
   /** The autopilot's default lateral mode. */
-  defaultLateralMode: APLateralModes | (() => APLateralModes);
+  defaultLateralMode: number | (() => number);
 
   /** The autopilot's default vertical mode. */
-  defaultVerticalMode: APVerticalModes | (() => APVerticalModes);
+  defaultVerticalMode: number | (() => number);
 
   /**
    * The default maximum bank angle the autopilot may command in degrees.
@@ -398,11 +67,20 @@ export interface APConfig {
    **/
   defaultMaxBankAngle?: number;
 
+  /**
+   * The default maximum nose up pitch angle the autopilot may command in degrees.
+   * If not defined, then the maximum angle will be 15 degrees.
+   **/
+  defaultMaxNoseUpPitchAngle?: number;
+
+  /**
+   * The default maximum nose down pitch angle the autopilot may command in degrees.
+   * If not defined, then the maximum angle will be 15 degrees.
+   **/
+  defaultMaxNoseDownPitchAngle?: number;
+
   /** The altitude hold slot index to use. Defaults to 1 */
   altitudeHoldSlotIndex?: 1 | 2 | 3;
-
-  /** The default altitude hold value set during init, defaults to 0 */
-  altitudeHoldDefaultAltitude?: number;
 
   /** The heading hold slot index to use. Defaults to 1 */
   headingHoldSlotIndex?: 1 | 2 | 3;
@@ -414,6 +92,9 @@ export interface APConfig {
    * Whether to only allow disarming (not deactivating) LNAV when receiving the `AP_NAV1_HOLD_OFF` event
    */
   onlyDisarmLnavOnOffEvent?: boolean;
+
+  /** Whether to deactivate the autopilot when GA mode is armed in response to a TO/GA mode button press. Defaults to `true`. */
+  readonly deactivateAutopilotOnGa?: boolean;
 
   /**
    * Whether to automatically engage the FD(s) with AP or mode button presses, defaults to true.
@@ -427,15 +108,12 @@ export interface APConfig {
   independentFds?: boolean;
 
   /**
-   * When true, will initialize the state manager when the flight plan is next synced.
-   * This is a work around to delay initialization of autopilot,
-   * and you may not need it if you handle initialization of the ap state manager in your code.
-   * Defaults to true.
-   */
-  readonly initializeStateManagerOnFirstFlightPlanSync?: boolean;
-
-  /**
    * Options for the Autopilot Driver
    */
   readonly autopilotDriverOptions?: Readonly<AutopilotDriverOptions>;
+
+  /**
+   * Whether to publish the active and armed autopilot modes as LVars. Defaults to false.
+   */
+  readonly publishAutopilotModesAsLVars?: boolean;
 }

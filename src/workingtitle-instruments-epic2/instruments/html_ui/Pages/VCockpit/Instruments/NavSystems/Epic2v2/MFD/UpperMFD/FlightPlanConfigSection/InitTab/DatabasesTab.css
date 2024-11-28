@@ -1,0 +1,54 @@
+.fpln-databases-tab {
+  position: relative;
+  height: 90%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  margin-top: -6px
+}
+
+.fpln-databases-tab .column {
+  display: flex;
+  width: 220px;
+  flex-direction: column;
+  margin-left: 52px;
+  font-size: 22px;
+}
+
+.fpln-databases-tab .column .title {
+  display: flex;
+  justify-content: flex-start;
+  color: var(--epic2-color-white);
+}
+
+.fpln-databases-tab .column .database-text {
+  display: flex;
+  justify-content: flex-start;
+  color: var(--epic2-color-green);
+  margin-left: 38px;
+}
+
+.fpln-databases-tab .column .database-button-box {
+  display: flex;
+  flex-direction: column;
+  margin-left: 35px;
+}
+
+.fpln-databases-tab .column .database-button-box .sub-title {
+  margin-bottom: 6px;
+  padding-left: 4px;
+  color: var(--epic2-color-white);
+}
+
+.fpln-databases-tab .radio-button-wrapper {
+  margin-right: 40px;
+}
+
+.fpln-databases-tab .radio-button-container {
+  white-space: nowrap;
+}
+
+.fpln-databases-tab .radio-button {
+  margin-top: 2px;
+}

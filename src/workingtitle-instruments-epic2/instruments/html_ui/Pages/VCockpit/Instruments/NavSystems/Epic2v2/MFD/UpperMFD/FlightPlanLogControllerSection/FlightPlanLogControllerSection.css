@@ -1,0 +1,39 @@
+.flight-plan-log-controller-section {
+  position: absolute;
+  top: 0px;
+  left: 8px;
+  width: 300px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 21;
+}
+
+.flight-plan-log-controller-menu {
+  right: 0;
+  position: absolute;
+  top: 15px
+}
+
+.flight-plan-log-item-menu {
+  right: 34px;
+  position: absolute;
+  top: 51px;
+  z-index: 2
+}
+
+.flight-plan-log-item-menu-container {
+  display: flex;
+}
+
+.flight-plan-log-item-menu-image {
+  width: 25px;
+  height: 25px;
+}
+
+.flight-plan-log-item-menu-label {
+  width: 150px;
+  text-align: left;
+  padding-left: 0.5rem;
+  padding-top: 0.25rem;
+}

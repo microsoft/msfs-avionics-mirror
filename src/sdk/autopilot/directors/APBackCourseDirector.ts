@@ -1,18 +1,60 @@
-import { CdiEvents } from '../../cdi/CdiEvents';
-import { CdiUtils } from '../../cdi/CdiUtils';
 import { ConsumerValue } from '../../data/ConsumerValue';
 import { EventBus } from '../../data/EventBus';
 import { SimVarValueType } from '../../data/SimVars';
 import { GeoPoint } from '../../geo/GeoPoint';
 import { MagVar } from '../../geo/MagVar';
 import { NavMath } from '../../geo/NavMath';
-import { NavRadioEvents } from '../../instruments/APRadioNavInstrument';
-import { GNSSEvents, GNSSPublisher } from '../../instruments/GNSS';
-import { CdiDeviation, Localizer, NavSourceId, NavSourceType } from '../../instruments/NavProcessor';
+import { GNSSPublisher } from '../../instruments/GNSS';
+import { NavComEvents } from '../../instruments/NavCom';
+import { NavSourceId, NavSourceType } from '../../instruments/NavProcessor';
+import { NavRadioIndex } from '../../instruments/RadioCommon';
 import { MathUtils } from '../../math/MathUtils';
 import { UnitType } from '../../math/NumberUnit';
-import { APValues } from '../APConfig';
+import { APValues } from '../APValues';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
+
+/**
+ * Radio navigation data received by a {@link APBackCourseDirector}.
+ */
+export type APBackCourseDirectorNavData = {
+  /** The CDI source of the data. An index of `0` indicates no data is received. */
+  navSource: Readonly<NavSourceId>;
+
+  /** The frequency on which the data was received, in megahertz, or `0` if no data is received. */
+  frequency: number;
+
+  /** The signal strength. */
+  signal: number;
+
+  /** Whether a lateral deviation signal is being received. */
+  hasNav: boolean;
+
+  /** Whether a localizer signal is being received. */
+  hasLoc: boolean;
+
+  /**
+   * The magnetic course of the received localizer signal, in degrees. If a localizer signal is not being received,
+   * then this value is `null`.
+   */
+  locCourse: number | null;
+
+  /**
+   * The lateral deviation, in the range `[-1, 1]`. Positive values indicate deviation of the airplane to the left of
+   * course. If a lateral deviation signal is not being received, then this value is `null`.
+   */
+  deviation: number | null;
+};
+
+/**
+ * Radio navigation data received by a {@link APBackCourseDirector} at the moment of activation.
+ */
+export type APBackCourseDirectorActivateNavData = {
+  /** The CDI source of the data. */
+  navSource: Readonly<NavSourceId>;
+
+  /** The frequency on which the data was received, in megahertz. */
+  frequency: number;
+};
 
 /**
  * Phases used by {@link APBackCourseDirector} when active and tracking a localizer signal.
@@ -161,6 +203,37 @@ export type APBackCourseDirectorOptions = {
   bankRateTracking?: number | (() => number) | undefined;
 
   /**
+   * A function that checks whether the director can be armed. If not defined, then default logic will be used.
+   * @param apValues Autopilot values from the director's parent autopilot.
+   * @param navData The current radio navigation data received by the director.
+   * @returns Whether the director can be armed.
+   */
+  canArm?: (apValues: APValues, navData: Readonly<APBackCourseDirectorNavData>) => boolean;
+
+  /**
+   * A function that checks whether the director can be activated from an armed state. If not defined, then default
+   * logic will be used.
+   * @param apValues Autopilot values from the director's parent autopilot.
+   * @param navData The current radio navigation data received by the director.
+   * @returns Whether the director can be activated from an armed state.
+   */
+  canActivate?: (apValues: APValues, navData: Readonly<APBackCourseDirectorNavData>) => boolean;
+
+  /**
+   * A function that checks whether the director can remain in the active state. If not defined, then default logic
+   * will be used.
+   * @param apValues Autopilot values from the director's parent autopilot.
+   * @param navData The current radio navigation data received by the director.
+   * @param activateNavData The radio navigation data received by the director at the moment of activation.
+   * @returns Whether the director can remain in the active state.
+   */
+  canRemainActive?: (
+    apValues: APValues,
+    navData: Readonly<APBackCourseDirectorNavData>,
+    activateNavData: Readonly<APBackCourseDirectorActivateNavData>
+  ) => boolean;
+
+  /**
    * Options with which to configure the default phase selector logic. Ignored if the `phaseSelector` option is
    * specified.
    */
@@ -207,6 +280,11 @@ export type APBackCourseDirectorOptions = {
    * a linear function which scales the track error by `1.25` to derive the desired bank angle.
    */
   desiredBankTracking?: ((trackError: number) => number) | undefined;
+
+  /**
+   * Force the director to always use a certain NAV/CDI source
+   */
+  forceNavSource?: NavRadioIndex;
 };
 
 /**
@@ -227,7 +305,11 @@ type PhaseParameters = {
 };
 
 /**
- * A BackCourse autopilot director.
+ * An autopilot director that provides lateral guidance by tracking a back-course signal from a localizer radio
+ * navigation aid.
+ *
+ * Requires that the navigation radio topics defined in {@link NavComEvents} be published to the event bus in order to
+ * function properly.
  */
 export class APBackCourseDirector implements PlaneDirector {
   public state: DirectorState;
@@ -244,19 +326,45 @@ export class APBackCourseDirector implements PlaneDirector {
   /** @inheritdoc */
   public driveBank?: (bank: number, rate?: number) => void;
 
-  private readonly sub = this.bus.getSubscriber<GNSSEvents & NavRadioEvents & CdiEvents>();
-
-  private readonly cdi = ConsumerValue.create<CdiDeviation>(null, { source: { index: 0, type: NavSourceType.Nav }, deviation: null });
-  private readonly loc = ConsumerValue.create<Localizer>(null, { isValid: false, course: 0, source: { index: 0, type: NavSourceType.Nav } });
-  private navSource: Readonly<NavSourceId> = { index: 0, type: NavSourceType.Nav };
+  private navSource: Readonly<NavSourceId> = {
+    index: 0,
+    type: NavSourceType.Nav,
+  };
 
   private deviationSimVar = 'NAV CDI:1';
   private radialErrorSimVar = 'NAV RADIAL ERROR:1';
 
-  private readonly magVar = ConsumerValue.create(null, 0);
+  private readonly navFrequency = ConsumerValue.create(null, 0);
+  private readonly navSignal = ConsumerValue.create(null, 0);
+  private readonly navHasNav = ConsumerValue.create(null, false);
+  private readonly navCdi = ConsumerValue.create<number | null>(null, null);
+  private readonly navHasLoc = ConsumerValue.create(null, false);
+  private readonly navLocCourse = ConsumerValue.create(null, 0);
+  private readonly navMagVar = ConsumerValue.create(null, 0);
+  private readonly navLla = ConsumerValue.create<LatLongAlt | null>(null, null);
 
-  private readonly navLocation = new GeoPoint(NaN, NaN);
-  private readonly navLocationSub = this.sub.on('nav_radio_active_nav_location').handle(lla => this.navLocation.set(lla.lat, lla.long));
+  private readonly navData = {
+    navSource: { index: 0, type: NavSourceType.Nav } as NavSourceId,
+    frequency: 0,
+    signal: 0,
+    hasNav: false as boolean,
+    hasLoc: false as boolean,
+    locCourse: null as number | null,
+    deviation: null as number | null
+  } satisfies APBackCourseDirectorNavData;
+
+  private readonly activateNavData = {
+    navSource: { index: 0, type: NavSourceType.Nav } as NavSourceId,
+    frequency: 0,
+  } satisfies APBackCourseDirectorActivateNavData;
+
+  private readonly canArm: (apValues: APValues, navData: Readonly<APBackCourseDirectorNavData>) => boolean;
+  private readonly canActivate: (apValues: APValues, navData: Readonly<APBackCourseDirectorNavData>) => boolean;
+  private readonly canRemainActive: (
+    apValues: APValues,
+    navData: Readonly<APBackCourseDirectorNavData>,
+    activateNavData: Readonly<APBackCourseDirectorActivateNavData>
+  ) => boolean;
 
   private phase: APBackCourseDirectorPhase | undefined = undefined;
 
@@ -265,11 +373,13 @@ export class APBackCourseDirector implements PlaneDirector {
 
   private readonly phaseParameters: Record<APBackCourseDirectorPhase, PhaseParameters>;
 
+  private readonly forceNavSource: NavRadioIndex | undefined;
+
   /**
    * Creates a new instance of APBackCourseDirector.
    * @param bus The event bus to use with this instance.
    * @param apValues Autopilot values from this director's parent autopilot.
-   * @param options Options to configure the new director.
+   * @param options Options with which to configure the director.
    */
   constructor(
     private readonly bus: EventBus,
@@ -294,6 +404,10 @@ export class APBackCourseDirector implements PlaneDirector {
       });
     interceptParams.driveBankFunc = this.resolveBankRateOption(options?.bankRateIntercept) ?? driveBankFunc;
     trackingParams.driveBankFunc = this.resolveBankRateOption(options?.bankRateTracking) ?? driveBankFunc;
+
+    this.canArm = options?.canArm ?? APBackCourseDirector.defaultCanArm;
+    this.canActivate = options?.canActivate ?? APBackCourseDirector.defaultCanActivate;
+    this.canRemainActive = options?.canRemainActive ?? APBackCourseDirector.defaultCanRemainActive;
 
     this.phaseOptions = { ...options?.phaseOptions } as Required<APBackCourseDirectorPhaseOptions>;
     this.phaseOptions.interceptDeflection ??= 0.25;
@@ -321,20 +435,9 @@ export class APBackCourseDirector implements PlaneDirector {
       [APBackCourseDirectorPhase.Tracking]: trackingParams
     };
 
-    this.sub.on(`cdi_select${CdiUtils.getEventBusTopicSuffix(apValues.cdiId)}`).handle(source => {
-      this.navSource = source;
+    this.forceNavSource = options?.forceNavSource;
 
-      if (source.type === NavSourceType.Nav) {
-        this.deviationSimVar = `NAV CDI:${source.index}`;
-        this.radialErrorSimVar = `NAV RADIAL ERROR:${source.index}`;
-      }
-    });
-
-    this.cdi.setConsumer(this.sub.on('nav_radio_active_cdi_deviation'));
-    this.loc.setConsumer(this.sub.on('nav_radio_active_localizer'));
-    this.magVar.setConsumer(this.sub.on('nav_radio_active_magvar'));
-
-    this.pauseSubs();
+    this.initCdiSourceSubs();
   }
 
   /**
@@ -379,27 +482,81 @@ export class APBackCourseDirector implements PlaneDirector {
     }
   }
 
-  /** Resumes Subscriptions. */
-  private resumeSubs(): void {
-    this.navLocationSub.resume(true);
-    this.cdi.resume();
-    this.loc.resume();
-    this.magVar.resume();
+  /**
+   * Initializes this director's subscription to the autopilot's CDI source. If this director is forced to use a
+   * specific CDI source, then the autopilot's CDI source will be ignored.
+   */
+  protected initCdiSourceSubs(): void {
+    if (this.forceNavSource !== undefined) {
+      this.onCdiSourceChanged({
+        index: this.forceNavSource,
+        type: NavSourceType.Nav,
+      });
+    } else {
+      this.navSource = {
+        index: 0,
+        type: NavSourceType.Nav,
+      };
+
+      this.apValues.cdiSource.sub(this.onCdiSourceChanged.bind(this), true);
+    }
   }
 
-  /** Pauses Subscriptions. */
-  private pauseSubs(): void {
-    this.navLocationSub.pause();
-    this.cdi.pause();
-    this.loc.pause();
-    this.magVar.pause();
+  /**
+   * Responds to when the CDI source used by this director changes.
+   * @param source The new CDI source to use.
+   */
+  private onCdiSourceChanged(source: Readonly<NavSourceId>): void {
+    Object.assign(this.navSource, source);
+
+    if (source.type === NavSourceType.Nav && source.index >= 1 && source.index <= 4) {
+      const index = source.index as NavRadioIndex;
+
+      this.deviationSimVar = `NAV CDI:${index}`;
+      this.radialErrorSimVar = `NAV RADIAL ERROR:${index}`;
+
+      const sub = this.bus.getSubscriber<NavComEvents>();
+
+      this.navFrequency.setConsumerWithDefault(sub.on(`nav_active_frequency_${index}`), 0);
+      this.navSignal.setConsumerWithDefault(sub.on(`nav_signal_${index}`), 0);
+      this.navHasNav.setConsumerWithDefault(sub.on(`nav_has_nav_${index}`), false);
+      this.navCdi.setConsumerWithDefault(sub.on(`nav_cdi_${index}`), null);
+      this.navHasLoc.setConsumerWithDefault(sub.on(`nav_localizer_${index}`), false);
+      this.navLocCourse.setConsumerWithDefault(sub.on(`nav_localizer_crs_${index}`), 0);
+      this.navMagVar.setConsumerWithDefault(sub.on(`nav_magvar_${index}`), 0);
+      this.navLla.setConsumerWithDefault(sub.on(`nav_lla_${index}`), null);
+    } else {
+      this.navFrequency.reset(0);
+      this.navSignal.reset(0);
+      this.navHasNav.reset(false);
+      this.navCdi.reset(null);
+      this.navHasLoc.reset(false);
+      this.navLocCourse.reset(0);
+      this.navMagVar.reset(0);
+      this.navLla.reset(null);
+    }
+  }
+
+  /**
+   * Updates this director's radio navigation data.
+   */
+  private updateNavData(): void {
+    Object.assign(this.navData.navSource, this.navSource);
+    this.navData.frequency = this.navFrequency.get();
+    this.navData.signal = this.navSignal.get();
+    this.navData.hasNav = this.navHasNav.get();
+    this.navData.hasLoc = this.navHasLoc.get();
+    this.navData.locCourse = this.navData.hasLoc ? this.navLocCourse.get() * Avionics.Utils.RAD2DEG : null;
+    this.navData.deviation = this.navData.signal > 0 && this.navData.hasNav ? this.navCdi.get() : null;
+    if (this.navData.deviation !== null) {
+      this.navData.deviation /= 127;
+    }
   }
 
   /**
    * Activates this director.
    */
   public activate(): void {
-    this.resumeSubs();
     if (this.onActivate !== undefined) {
       this.onActivate();
     }
@@ -407,21 +564,26 @@ export class APBackCourseDirector implements PlaneDirector {
     SimVar.SetSimVarValue('AUTOPILOT BACKCOURSE HOLD', 'Bool', true);
     SimVar.SetSimVarValue('AUTOPILOT APPROACH ACTIVE', 'Bool', true);
     this.state = DirectorState.Active;
+
+    Object.assign(this.activateNavData.navSource, this.navSource);
+    this.activateNavData.frequency = this.navFrequency.get();
   }
 
   /**
    * Arms this director.
    */
   public arm(): void {
-    this.resumeSubs();
-    if (this.state === DirectorState.Inactive && this.canArm()) {
-      this.state = DirectorState.Armed;
-      if (this.onArm !== undefined) {
-        this.onArm();
+    if (this.state === DirectorState.Inactive) {
+      this.updateNavData();
+      if (this.canArm(this.apValues, this.navData)) {
+        this.state = DirectorState.Armed;
+        if (this.onArm !== undefined) {
+          this.onArm();
+        }
+        SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', true);
+        SimVar.SetSimVarValue('AUTOPILOT BACKCOURSE HOLD', 'Bool', true);
+        SimVar.SetSimVarValue('AUTOPILOT APPROACH ACTIVE', 'Bool', true);
       }
-      SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', true);
-      SimVar.SetSimVarValue('AUTOPILOT BACKCOURSE HOLD', 'Bool', true);
-      SimVar.SetSimVarValue('AUTOPILOT APPROACH ACTIVE', 'Bool', true);
     }
   }
 
@@ -434,7 +596,6 @@ export class APBackCourseDirector implements PlaneDirector {
     SimVar.SetSimVarValue('AUTOPILOT NAV1 LOCK', 'Bool', false);
     SimVar.SetSimVarValue('AUTOPILOT BACKCOURSE HOLD', 'Bool', false);
     SimVar.SetSimVarValue('AUTOPILOT APPROACH ACTIVE', 'Bool', false);
-    this.pauseSubs();
   }
 
   /**
@@ -442,14 +603,16 @@ export class APBackCourseDirector implements PlaneDirector {
    */
   public update(): void {
     if (this.state === DirectorState.Armed) {
-      if (!this.canArm()) {
+      this.updateNavData();
+      if (!this.canArm(this.apValues, this.navData)) {
         this.deactivate();
-      } else if (this.canActivate()) {
+      } else if (this.canActivate(this.apValues, this.navData)) {
         this.activate();
       }
     }
     if (this.state === DirectorState.Active) {
-      if (!this.canRemainActive()) {
+      this.updateNavData();
+      if (!this.canRemainActive(this.apValues, this.navData, this.activateNavData)) {
         this.deactivate();
       } else {
         this.trackSignal();
@@ -458,94 +621,18 @@ export class APBackCourseDirector implements PlaneDirector {
   }
 
   /**
-   * Checks whether this director can be armed.
-   * @returns Whether this director can be armed.
-   */
-  private canArm(): boolean {
-    if (this.navSource.type !== NavSourceType.Nav) {
-      return false;
-    }
-
-    const cdi = this.cdi.get();
-    const loc = this.loc.get();
-
-    return this.navSource.index == cdi.source.index && loc.isValid && this.navSource.index == loc.source.index;
-  }
-
-  /**
-   * Checks whether this director can be activated from an armed state.
-   * @returns Whether this director can be activated from an armed state.
-   */
-  private canActivate(): boolean {
-    const cdi = this.cdi.get();
-    const loc = this.loc.get();
-
-    const typeIsCorrect = this.navSource.type === NavSourceType.Nav;
-    const index = this.navSource.index;
-    const indexIsCorrect = index == cdi.source.index && (loc.isValid && index == loc.source.index);
-
-    if (typeIsCorrect && indexIsCorrect && cdi.deviation !== null && Math.abs(cdi.deviation) < 127) {
-      const dtk = loc.isValid ? NavMath.normalizeHeading((loc.course * Avionics.Utils.RAD2DEG) + 180) : null;
-      if (dtk === null || dtk === undefined) {
-        return false;
-      }
-      const headingDiff = NavMath.diffAngle(SimVar.GetSimVarValue('PLANE HEADING DEGREES MAGNETIC', SimVarValueType.Degree), dtk);
-      const isLoc = loc.isValid ?? false;
-      const sensitivity = isLoc ? 1 : .6;
-      if (Math.abs(cdi.deviation * sensitivity) < 127 && Math.abs(headingDiff) < 110) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Checks whether this director can remain active.
-   * @returns Whether this director can remain active.
-   */
-  private canRemainActive(): boolean {
-    if (this.navSource.type !== NavSourceType.Nav) {
-      return false;
-    }
-
-    const cdi = this.cdi.get();
-
-    if (cdi.deviation === null) {
-      return false;
-    }
-
-    const loc = this.loc.get();
-
-    return this.navSource.index === cdi.source.index && loc.isValid && this.navSource.index == loc.source.index;
-  }
-
-  /**
    * Tracks the active localizer signal received by this director.
    */
   private trackSignal(): void {
-    const cdi = this.cdi.get();
-    const loc = this.loc.get();
+    const deviation = this.navSignal.get() > 0 && this.navHasNav.get() ? this.navCdi.get() : null;
 
-    const isLoc = loc.isValid ?? false;
-    const hasValidDeviation = cdi.deviation !== null && Math.abs(cdi.deviation) < 127;
-
-    if (!isLoc || (isLoc && !hasValidDeviation)) {
-      this.deactivate();
-      return;
-    }
-
-    if (cdi.deviation !== null) {
-      const courseMag = isLoc ? NavMath.normalizeHeading((loc.course * Avionics.Utils.RAD2DEG) + 180) : null;
-      if (courseMag === null || courseMag === undefined) {
-        this.deactivate();
-        return;
-      }
-
+    if (deviation !== null) {
+      const courseMag = NavMath.normalizeHeading(this.navLocCourse.get() * Avionics.Utils.RAD2DEG + 180);
       const distanceToSource = this.getNavDistance();
       const deflection = -SimVar.GetSimVarValue(this.deviationSimVar, SimVarValueType.Number) / 127;
       const radialError = SimVar.GetSimVarValue(this.radialErrorSimVar, SimVarValueType.Radians);
       const xtk = distanceToSource * Math.sin(radialError);
-      const courseTrue = MagVar.magneticToTrue(courseMag, this.magVar.get());
+      const courseTrue = MagVar.magneticToTrue(courseMag, -this.navMagVar.get());
       const trueTrack = GNSSPublisher.getInstantaneousTrack();
 
       this.phase = this.phaseSelectorFunc(this.phase, deflection, xtk, courseTrue, trueTrack);
@@ -569,8 +656,6 @@ export class APBackCourseDirector implements PlaneDirector {
       if (isFinite(desiredBank)) {
         phaseParams.driveBankFunc(desiredBank);
       }
-    } else {
-      this.deactivate();
     }
   }
 
@@ -579,8 +664,11 @@ export class APBackCourseDirector implements PlaneDirector {
    * @returns The distance value in nautical miles.
    */
   private getNavDistance(): number {
-    if (!isNaN(this.navLocation.lat)) {
-      return UnitType.GA_RADIAN.convertTo(this.navLocation.distance(
+    const navLla = this.navLla.get();
+    if (navLla !== null) {
+      return UnitType.GA_RADIAN.convertTo(GeoPoint.distance(
+        navLla.lat,
+        navLla.long,
         SimVar.GetSimVarValue('PLANE LATITUDE', SimVarValueType.Degree),
         SimVar.GetSimVarValue('PLANE LONGITUDE', SimVarValueType.Degree)
       ), UnitType.NMILE);
@@ -661,6 +749,59 @@ export class APBackCourseDirector implements PlaneDirector {
       return APBackCourseDirectorPhase.Intercept;
     }
 
+  }
+
+  /**
+   * A default function that checks whether the director can be armed.
+   * @param apValues Autopilot values from the director's parent autopilot.
+   * @param navData The current radio navigation data received by the director.
+   * @returns Whether the director can be armed.
+   */
+  private static defaultCanArm(apValues: APValues, navData: Readonly<APBackCourseDirectorNavData>): boolean {
+    return navData.navSource.type === NavSourceType.Nav && navData.navSource.index !== 0 && navData.hasLoc;
+  }
+
+  /**
+   * A default function that checks whether the director can be activated from an armed state.
+   * @param apValues Autopilot values from the director's parent autopilot.
+   * @param navData The current radio navigation data received by the director.
+   * @returns Whether the director can be activated from an armed state.
+   */
+  private static defaultCanActivate(apValues: APValues, navData: Readonly<APBackCourseDirectorNavData>): boolean {
+    if (
+      navData.navSource.type === NavSourceType.Nav
+      && navData.navSource.index !== 0
+      && navData.hasLoc
+      && navData.locCourse !== null
+      && navData.deviation !== null
+      && Math.abs(navData.deviation) < 1
+    ) {
+      const dtk = NavMath.normalizeHeading(navData.locCourse + 180);
+      const headingDiff = NavMath.diffAngle(SimVar.GetSimVarValue('PLANE HEADING DEGREES MAGNETIC', SimVarValueType.Degree), dtk);
+      if (Math.abs(headingDiff) < 110) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * A default function that checks whether the director can remain in the active state.
+   * @param apValues Autopilot values from the director's parent autopilot.
+   * @param navData The current radio navigation data received by the director.
+   * @returns Whether the director can remain in the active state.
+   */
+  private static defaultCanRemainActive(
+    apValues: APValues,
+    navData: Readonly<APBackCourseDirectorNavData>
+  ): boolean {
+    return navData.navSource.type === NavSourceType.Nav
+      && navData.navSource.index !== 0
+      && navData.hasLoc
+      && navData.locCourse !== null
+      && navData.deviation !== null
+      && Math.abs(navData.deviation) < 1;
   }
 
   /**

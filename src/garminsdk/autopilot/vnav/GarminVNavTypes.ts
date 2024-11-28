@@ -1,4 +1,4 @@
-import { APLateralModes, APVerticalModes, Accessible, VNavAltCaptureType, VNavPathMode, VNavState } from '@microsoft/msfs-sdk';
+import { Accessible, VNavAltCaptureType, VNavPathMode, VNavState } from '@microsoft/msfs-sdk';
 
 import { TodBodDetails } from '@microsoft/msfs-sdk';
 
@@ -62,13 +62,13 @@ export type GarminVNavComputerAPValues = {
   selectedVerticalSpeed: Accessible<number>;
 
   /** The active lateral mode. */
-  lateralActive: Accessible<APLateralModes>;
+  lateralActive: Accessible<number>;
 
   /** The active vertical mode. */
-  verticalActive: Accessible<APVerticalModes>;
+  verticalActive: Accessible<number>;
 
   /** The armed vertical mode. */
-  verticalArmed: Accessible<APVerticalModes>;
+  verticalArmed: Accessible<number>;
 };
 
 /**
@@ -85,7 +85,7 @@ export type GarminVNavGuidance = {
   pathMode: VNavPathMode;
 
   /** The climb mode to arm. */
-  armedClimbMode: APVerticalModes;
+  armedClimbMode: number;
 
   /** Whether the armed climb mode should be activated. */
   shouldActivateClimbMode: boolean;

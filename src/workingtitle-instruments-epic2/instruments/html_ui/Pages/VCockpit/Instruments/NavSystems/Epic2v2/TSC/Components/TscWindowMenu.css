@@ -1,0 +1,85 @@
+.tsc-window-menu {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  width: 152px;
+}
+
+.tsc-window-menu .touch-button {
+  height: 97px;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  border-left: 7px solid lightgray;
+  margin-bottom: 4px;
+  background-color: #272727;
+}
+
+.tsc-window-menu .touch-button-active {
+  height: 97px;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  border-left: 7px solid green;
+}
+
+.tsc-window-menu .touch-button-primed {
+  background: var(--epic2-color-cyan);
+  color: var(--epic2-color-darker-grey);
+  transition: 120ms all;
+}
+
+/*
+  FIX ME:
+  Refactor SVG paths so that they are not hardcoded so that
+  `fill` and `stroke` colors can be changed propertly with CSS variables
+*/
+
+/* .tsc-window-menu .touch-button-primed path,
+.tsc-window-menu .touch-button-primed rect {
+  stroke: var(--epic2-color-darker-grey) !important;
+}
+
+.tsc-window-menu .touch-button-primed path {
+  fill: var(--epic2-color-darker-grey) !important;
+} */
+
+.tsc-window-menu .touch-button.touch-button-base,
+.tsc-window-menu .touch-button-base {
+  border-image-source: none;
+}
+
+.tsc-window-menu .touch-button.touch-button-base.touch-button-active {
+  height: 97px;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  border-left: 7px solid green;
+}
+
+.tsc-window-menu .touch-button.touch-button-base.touch-button-active {
+  border-bottom: none;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-color: none;
+}
+
+.tsc-window-menu .touch-button.touch-button-base.touch-button-active::after {
+  content: none;
+}
+
+.tsc-window-menu .touch-button-base.touch-button-active::after,
+.tsc-window-menu .touch-button-base:hover::after {
+  content: none;
+}
+
+.tsc-window-menu .touch-button-label {
+  position: static;
+  left: auto;
+  top: auto;
+  width: 100%;
+  transform: none;
+  text-align: left;
+}

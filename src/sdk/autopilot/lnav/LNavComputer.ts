@@ -1,12 +1,14 @@
 import { ConsumerSubject } from '../../data/ConsumerSubject';
-import { EventBus } from '../../data/EventBus';
-import { SimVarValueType } from '../../data/SimVars';
-import { FlightPathUtils } from '../../flightplan/FlightPathUtils';
+import { EventBus, Publisher } from '../../data/EventBus';
+import { FlightPathUtils } from '../../flightplan/flightpath/FlightPathUtils';
+import { FlightPathVector, FlightPathVectorFlags } from '../../flightplan/flightpath/FlightPathVector';
 import { ActiveLegType, FlightPlan } from '../../flightplan/FlightPlan';
 import { FlightPlanner } from '../../flightplan/FlightPlanner';
-import { CircleVector, FlightPathVector, LegDefinition, LegDefinitionFlags } from '../../flightplan/FlightPlanning';
+import { LegDefinition, LegDefinitionFlags } from '../../flightplan/FlightPlanning';
 import { GeoCircle } from '../../geo/GeoCircle';
+import { LatLonInterface } from '../../geo/GeoInterfaces';
 import { GeoPoint } from '../../geo/GeoPoint';
+import { MagVar } from '../../geo/MagVar';
 import { NavMath } from '../../geo/NavMath';
 import { APEvents } from '../../instruments/APPublisher';
 import { BitFlags } from '../../math/BitFlags';
@@ -14,15 +16,38 @@ import { MathUtils } from '../../math/MathUtils';
 import { UnitType } from '../../math/NumberUnit';
 import { Vec3Math } from '../../math/VecMath';
 import { FixTypeFlags, LegType } from '../../navigation/Facilities';
-import { ObjectSubject } from '../../sub/ObjectSubject';
+import { Accessible } from '../../sub/Accessible';
 import { Subject } from '../../sub/Subject';
 import { Subscribable } from '../../sub/Subscribable';
-import { ArcTurnController } from '../calculators/ArcTurnController';
+import { DefaultLNavComputerDataProvider } from './DefaultLNavComputerDataProvider';
 import { LNavControlEvents } from './LNavControlEvents';
-import { BaseLNavEvents, BaseLNavSimVarEvents, LNavEvents, LNavTrackingState, LNavVars } from './LNavEvents';
-import { LNavOverrideModule } from './LNavOverrideModule';
+import { BaseLNavEvents, LNavEvents } from './LNavEvents';
+import { LNavEventBusTopicPublisher, LNavOverrideModule } from './LNavOverrideModule';
 import { LNavState, LNavSteerCommand, LNavTransitionMode } from './LNavTypes';
 import { LNavUtils } from './LNavUtils';
+
+/**
+ * A provider of data for {@link LNavComputer}.
+ */
+export interface LNavComputerDataProvider {
+  /** The airplane's position. If data is not available, then `NaN` is written to one or both lat/lon properties. */
+  readonly planePos: Accessible<Readonly<LatLonInterface>>;
+
+  /** The airplane's ground speed, in knots, or `null` if data is not available. */
+  readonly gs: Accessible<number | null>;
+
+  /** The airplane's true ground track, in degrees, or `null` if data is not available. */
+  readonly track: Accessible<number | null>;
+
+  /** The airplane's true heading, in degrees, or `null` if data is not available. */
+  readonly heading: Accessible<number | null>;
+
+  /** The magnetic variation at the airplane's position, in degrees east, or `null` if data is not available. */
+  readonly magVar: Accessible<number | null>;
+
+  /** The airplane's true airspeed, in knots, or `null` if data is not available. */
+  readonly tas: Accessible<number | null>;
+}
 
 /**
  * Calculates an intercept angle, in degrees, to capture the desired GPS track for {@link LNavComputer}.
@@ -39,6 +64,12 @@ export type LNavInterceptFunc = (dtk: number, xtk: number, tas: number) => numbe
  */
 export type LNavComputerOptions = {
   /**
+   * The provider from which to source data. If not defined, then an instance of {@link DefaultLNavComputerDataProvider}
+   * that always provides valid data will be used.
+   */
+  dataProvider?: LNavComputerDataProvider;
+
+  /**
    * The maximum bank angle, in degrees, supported by the computer, or a function which returns it. If not defined,
    * then the computer will use the value published to the event bus for the autopilot's maximum bank angle. Defaults
    * to `undefined`.
@@ -50,13 +81,6 @@ export type LNavComputerOptions = {
    * computes intercept angles tuned for slow GA aircraft will be used.
    */
   intercept?: LNavInterceptFunc;
-
-  /**
-   * A function which returns whether valid position data (including ground speed and track) is available to the
-   * computer. When valid position data is not available, the computer is unable to generate guidance. If not defined,
-   * then valid position data is always considered to be available.
-   */
-  isPositionDataValid?: () => boolean;
 
   /**
    * Whether the computer supports vector anticipation. If `true`, the computer will begin tracking the next flight
@@ -79,15 +103,74 @@ export type LNavComputerOptions = {
 };
 
 /**
- * An encapsulation of an LNAV's desired bank angle state.
+ * Data used by {@link LNavComputer}.
  */
-type LNavBankAngleState = {
-  /** A controller for computing desired bank angle for arc vectors. */
-  arcController: ArcTurnController;
+type LNavComputerData = {
+  /** The airplane's position. If data is not available, then `planePos.isValid()` will return false. */
+  readonly planePos: GeoPoint;
 
-  /** The desired bank angle, in degrees. Positive values indicate leftward bank. */
-  desiredBankAngle: number;
+  /** The airplane's ground speed, in knots, or `null` if data is not available. */
+  gs: number | null;
+
+  /** The airplane's true ground track, in degrees, or `null` if data is not available. */
+  track: number | null;
+
+  /** The airplane's true heading, in degrees, or `null` if data is not available. */
+  heading: number | null;
+
+  /** The magnetic variation at the airplane's position, in degrees east, or `null` if data is not available. */
+  magVar: number | null;
+
+  /** The airplane's true airspeed, in knots, or `null` if data is not available. */
+  tas: number | null;
 };
+
+/**
+ * Data used by {@link LNavComputer} that has valid data required for LNAV tracking.
+ */
+type LNavComputerDataTrackingValid = Omit<LNavComputerData, 'planePos' | 'gs' | 'track'> & {
+  /** The airplane's position. */
+  readonly planePos: GeoPoint;
+
+  /** The airplane's ground speed, in knots. */
+  gs: number;
+
+  /** The airplane's true ground track, in degrees. */
+  track: number;
+};
+
+/**
+ * An implementation of {@link LNavEventBusTopicPublisher}.
+ */
+class LNavTopicPublisher<T extends keyof BaseLNavEvents> implements LNavEventBusTopicPublisher<T> {
+  /** @inheritDoc */
+  public readonly topic: T | `${T}_${number}`;
+
+  /** @inheritDoc */
+  public readonly value: BaseLNavEvents[T];
+
+  /**
+   * Creates a new instance of LNavTopicPublisher.
+   * @param publisher The publisher to use to publish this entry's topic.
+   * @param topic The topic name.
+   * @param initialValue The topic's initial value.
+   */
+  public constructor(private readonly publisher: Publisher<LNavEvents>, topic: T | `${T}_${number}`, initialValue: BaseLNavEvents[T]) {
+    this.topic = topic;
+    this.value = initialValue;
+  }
+
+  /** @inheritDoc */
+  public publish(value?: BaseLNavEvents[T]): void {
+    if (value !== this.value) {
+      if (value !== undefined) {
+        (this.value as BaseLNavEvents[T]) = value;
+      }
+
+      this.publisher.pub(this.topic, this.value as any, true, true);
+    }
+  }
+}
 
 /**
  * A computer that calculates lateral navigation guidance for an active flight plan.
@@ -102,10 +185,15 @@ export class LNavComputer {
 
   private readonly publisher = this.bus.getPublisher<LNavEvents>();
 
-  private readonly aircraftState = {
-    planePos: new GeoPoint(0, 0),
-    gs: 0,
-    track: 0,
+  private readonly defaultDataProvider?: DefaultLNavComputerDataProvider;
+  private readonly dataProvider: LNavComputerDataProvider;
+
+  private readonly data: LNavComputerData = {
+    planePos: new GeoPoint(NaN, NaN),
+    gs: null,
+    track: null,
+    heading: null,
+    magVar: null,
     tas: 0
   };
 
@@ -114,8 +202,8 @@ export class LNavComputer {
 
   private dtk = 0;
   private xtk = 0;
-  private bearingToVectorEnd = 0;
-  private courseToSteer = 0;
+  private courseToSteer: number | null = null;
+  private isSteerHeading = false;
   private alongVectorDistance = 0;
   private vectorDistanceRemaining = 0;
   private vectorAnticipationDistance = 0;
@@ -125,9 +213,10 @@ export class LNavComputer {
 
   private anticipationDtk = 0;
   private anticipationXtk = 0;
-  private anticipationBearingToVectorEnd = 0;
 
   private inhibitNextSequence = false;
+
+  private trackedHeadingVector: FlightPathVector | undefined = undefined;
 
   private readonly currentState: LNavState = {
     globalLegIndex: 0,
@@ -149,74 +238,22 @@ export class LNavComputer {
     isMissedApproachActive: false
   };
 
-  private readonly currentBankAngleState: LNavBankAngleState = {
-    arcController: new ArcTurnController(),
-    desiredBankAngle: 0
-  };
-
-  private readonly lnavData = ObjectSubject.create({
-    dtk: 0,
-    xtk: 0,
-    trackingState: {
-      isTracking: false,
-      globalLegIndex: 0,
-      transitionMode: LNavTransitionMode.None,
-      vectorIndex: 0,
-      isSuspended: false
-    } as LNavTrackingState,
-    isTracking: false,
-    legIndex: 0,
-    transitionMode: LNavTransitionMode.None,
-    vectorIndex: 0,
-    courseToSteer: 0,
-    isSuspended: false,
-    alongLegDistance: 0,
-    legDistanceRemaining: 0,
-    alongVectorDistance: 0,
-    vectorDistanceRemaining: 0,
-    vectorAnticipationDistance: 0,
-    alongTrackSpeed: 0
-  });
-
   private awaitCalculateId = 0;
   private isAwaitingCalculate = false;
-  private isAwaitingCalculatePublished = false;
 
-  private readonly simVarMap: Record<LNavVars, string>;
-  private readonly eventBusTopicMap: {
-    [P in Exclude<keyof BaseLNavEvents, keyof BaseLNavSimVarEvents>]: P | `${P}_${number}`
+  private readonly eventBusTopicPublishers: {
+    [P in keyof BaseLNavEvents]: LNavTopicPublisher<P>;
   };
-
-  private readonly lnavDataSub = this.lnavData.sub((obj, key, value): void => {
-    switch (key) {
-      case 'dtk': SimVar.SetSimVarValue(this.simVarMap[LNavVars.DTK], SimVarValueType.Degree, value); break;
-      case 'xtk': SimVar.SetSimVarValue(this.simVarMap[LNavVars.XTK], SimVarValueType.NM, value); break;
-      case 'isTracking': SimVar.SetSimVarValue(this.simVarMap[LNavVars.IsTracking], SimVarValueType.Bool, value); break;
-      case 'legIndex': SimVar.SetSimVarValue(this.simVarMap[LNavVars.TrackedLegIndex], SimVarValueType.Number, value); break;
-      case 'transitionMode': SimVar.SetSimVarValue(this.simVarMap[LNavVars.TransitionMode], SimVarValueType.Number, value); break;
-      case 'vectorIndex': SimVar.SetSimVarValue(this.simVarMap[LNavVars.TrackedVectorIndex], SimVarValueType.Number, value); break;
-      case 'courseToSteer': SimVar.SetSimVarValue(this.simVarMap[LNavVars.CourseToSteer], SimVarValueType.Degree, value); break;
-      case 'isSuspended': SimVar.SetSimVarValue(this.simVarMap[LNavVars.IsSuspended], SimVarValueType.Bool, value); break;
-      case 'alongLegDistance': SimVar.SetSimVarValue(this.simVarMap[LNavVars.LegDistanceAlong], SimVarValueType.NM, value); break;
-      case 'legDistanceRemaining': SimVar.SetSimVarValue(this.simVarMap[LNavVars.LegDistanceRemaining], SimVarValueType.NM, value); break;
-      case 'alongVectorDistance': SimVar.SetSimVarValue(this.simVarMap[LNavVars.VectorDistanceAlong], SimVarValueType.NM, value); break;
-      case 'vectorDistanceRemaining': SimVar.SetSimVarValue(this.simVarMap[LNavVars.VectorDistanceRemaining], SimVarValueType.NM, value); break;
-      case 'vectorAnticipationDistance': SimVar.SetSimVarValue(this.simVarMap[LNavVars.VectorAnticipationDistance], SimVarValueType.NM, value); break;
-      case 'alongTrackSpeed': SimVar.SetSimVarValue(this.simVarMap[LNavVars.AlongTrackSpeed], SimVarValueType.Knots, value); break;
-      case 'trackingState': this.publisher.pub(this.eventBusTopicMap['lnav_tracking_state'], value as LNavTrackingState, true, true); break;
-    }
-  }, false, true);
 
   private readonly maxBankAngleFunc: () => number;
   private readonly interceptFunc?: LNavInterceptFunc;
-  private readonly isPositionDataValidFunc: () => boolean;
   private readonly hasVectorAnticipation: boolean;
   private readonly vectorAnticipationBankRate: number;
   private readonly disableAutoSuspendAtMissedApproachPoint: boolean;
 
   private readonly steerCommandBuffer: [LNavSteerCommand, LNavSteerCommand] = [
-    { isValid: false, desiredBankAngle: 0, dtk: 0, xtk: 0, tae: 0 },
-    { isValid: false, desiredBankAngle: 0, dtk: 0, xtk: 0, tae: 0 }
+    { isValid: false, isHeading: false, courseToSteer: 0, trackRadius: 0, dtk: 0, xtk: 0, tae: 0 },
+    { isValid: false, isHeading: false, courseToSteer: 0, trackRadius: 0, dtk: 0, xtk: 0, tae: 0 }
   ];
 
   private readonly _steerCommand = Subject.create(
@@ -227,7 +264,9 @@ export class LNavComputer {
       }
 
       return a.isValid === b.isValid
-        && a.desiredBankAngle === b.desiredBankAngle
+        && a.isHeading === b.isHeading
+        && a.courseToSteer === b.courseToSteer
+        && a.trackRadius === b.trackRadius
         && a.dtk === b.dtk
         && a.xtk === b.xtk
         && a.tae === b.tae;
@@ -256,19 +295,34 @@ export class LNavComputer {
       throw new Error(`LNavComputer: invalid index (${index}) specified (must be a non-negative integer)`);
     }
 
-    const simVarSuffix = this.index === 0 ? '' : `:${this.index}`;
-    this.simVarMap = {} as Record<LNavVars, string>;
-    for (const simVar of Object.values(LNavVars)) {
-      this.simVarMap[simVar] = `${simVar}${simVarSuffix}`;
-    }
+    this.dataProvider = options?.dataProvider ?? (this.defaultDataProvider = new DefaultLNavComputerDataProvider());
 
     const eventBusTopicSuffix = LNavUtils.getEventBusTopicSuffix(this.index);
-    this.eventBusTopicMap = {
-      'lnav_tracking_state': `lnav_tracking_state${eventBusTopicSuffix}`,
-      'lnav_is_awaiting_calc': `lnav_is_awaiting_calc${eventBusTopicSuffix}`
+    this.eventBusTopicPublishers = {
+      'lnav_dtk': new LNavTopicPublisher<'lnav_dtk'>(this.publisher, `lnav_dtk${eventBusTopicSuffix}`, 0),
+      'lnav_xtk': new LNavTopicPublisher<'lnav_xtk'>(this.publisher, `lnav_xtk${eventBusTopicSuffix}`, 0),
+      'lnav_is_tracking': new LNavTopicPublisher<'lnav_is_tracking'>(this.publisher, `lnav_is_tracking${eventBusTopicSuffix}`, false),
+      'lnav_tracked_leg_index': new LNavTopicPublisher<'lnav_tracked_leg_index'>(this.publisher, `lnav_tracked_leg_index${eventBusTopicSuffix}`, 0),
+      'lnav_transition_mode': new LNavTopicPublisher<'lnav_transition_mode'>(this.publisher, `lnav_transition_mode${eventBusTopicSuffix}`, LNavTransitionMode.None),
+      'lnav_tracked_vector_index': new LNavTopicPublisher<'lnav_tracked_vector_index'>(this.publisher, `lnav_tracked_vector_index${eventBusTopicSuffix}`, 0),
+      'lnav_course_to_steer': new LNavTopicPublisher<'lnav_course_to_steer'>(this.publisher, `lnav_course_to_steer${eventBusTopicSuffix}`, null),
+      'lnav_is_steer_heading': new LNavTopicPublisher<'lnav_is_steer_heading'>(this.publisher, `lnav_is_steer_heading${eventBusTopicSuffix}`, false),
+      'lnav_is_suspended': new LNavTopicPublisher<'lnav_is_suspended'>(this.publisher, `lnav_is_suspended${eventBusTopicSuffix}`, false),
+      'lnav_leg_distance_along': new LNavTopicPublisher<'lnav_leg_distance_along'>(this.publisher, `lnav_leg_distance_along${eventBusTopicSuffix}`, 0),
+      'lnav_leg_distance_remaining': new LNavTopicPublisher<'lnav_leg_distance_remaining'>(this.publisher, `lnav_leg_distance_remaining${eventBusTopicSuffix}`, 0),
+      'lnav_vector_distance_along': new LNavTopicPublisher<'lnav_vector_distance_along'>(this.publisher, `lnav_vector_distance_along${eventBusTopicSuffix}`, 0),
+      'lnav_vector_distance_remaining': new LNavTopicPublisher<'lnav_vector_distance_remaining'>(this.publisher, `lnav_vector_distance_remaining${eventBusTopicSuffix}`, 0),
+      'lnav_vector_anticipation_distance': new LNavTopicPublisher<'lnav_vector_anticipation_distance'>(this.publisher, `lnav_vector_anticipation_distance${eventBusTopicSuffix}`, 0),
+      'lnav_along_track_speed': new LNavTopicPublisher<'lnav_along_track_speed'>(this.publisher, `lnav_along_track_speed${eventBusTopicSuffix}`, 0),
+      'lnav_tracking_state': new LNavTopicPublisher<'lnav_tracking_state'>(this.publisher, `lnav_tracking_state${eventBusTopicSuffix}`, {
+        isTracking: false,
+        globalLegIndex: 0,
+        transitionMode: LNavTransitionMode.None,
+        vectorIndex: 0,
+        isSuspended: false
+      }),
+      'lnav_is_awaiting_calc': new LNavTopicPublisher<'lnav_is_awaiting_calc'>(this.publisher, `lnav_is_awaiting_calc${eventBusTopicSuffix}`, false),
     };
-
-    this.lnavDataSub.resume(true);
 
     const sub = bus.getSubscriber<APEvents & LNavControlEvents>();
 
@@ -291,8 +345,6 @@ export class LNavComputer {
     }
 
     this.interceptFunc = options?.intercept;
-
-    this.isPositionDataValidFunc = options?.isPositionDataValid ?? (() => true);
 
     sub.on(`suspend_sequencing${eventBusTopicSuffix}`).handle(suspend => {
       const flightPlan = this.flightPlanner.hasActiveFlightPlan() ? this.flightPlanner.getActiveFlightPlan() : undefined;
@@ -335,8 +387,7 @@ export class LNavComputer {
       }
     });
 
-    this.isAwaitingCalculatePublished = this.isAwaitingCalculate;
-    this.publisher.pub(this.eventBusTopicMap['lnav_is_awaiting_calc'], this.isAwaitingCalculate, true, true);
+    this.republishEventBusTopics();
   }
 
   /**
@@ -346,19 +397,28 @@ export class LNavComputer {
     this.currentState.vectorIndex = 0;
     this.currentState.transitionMode = LNavTransitionMode.Ingress;
     this.inhibitNextSequence = false;
+    this.trackedHeadingVector = undefined;
     this.awaitCalculate();
+  }
+
+  /**
+   * Checks whether a flight path vector can be tracked.
+   * @param vector The flight path vector to check.
+   * @returns Whether the specified flight path vector can be tracked.
+   */
+  private canTrackVector(vector: FlightPathVector): boolean {
+    return !BitFlags.isAny(vector.flags, FlightPathVectorFlags.Discontinuity)
+      && vector.radius > LNavComputer.ANGULAR_TOLERANCE
+      && vector.distance > LNavComputer.ANGULAR_TOLERANCE_METERS;
   }
 
   /**
    * Updates this computer.
    */
   public update(): void {
-    this.updateAircraftState();
+    this.updateData();
 
-    if (this.isAwaitingCalculatePublished !== this.isAwaitingCalculate) {
-      this.isAwaitingCalculatePublished = this.isAwaitingCalculate;
-      this.publisher.pub(this.eventBusTopicMap['lnav_is_awaiting_calc'], this.isAwaitingCalculate, true, true);
-    }
+    this.eventBusTopicPublishers['lnav_is_awaiting_calc'].publish(this.isAwaitingCalculate);
 
     let clearInhibitNextSequence = false;
 
@@ -368,7 +428,7 @@ export class LNavComputer {
     let isTracking
       = !!flightPlan
       && this.currentState.globalLegIndex <= flightPlan.length - 1
-      && this.isPositionDataValidFunc();
+      && this.isTrackingDataValid();
 
     let didUpdateSteerCommand = false;
 
@@ -377,49 +437,57 @@ export class LNavComputer {
         return;
       }
 
+      const dataTrackingValid = this.data as LNavComputerDataTrackingValid;
+
       this.currentLeg = flightPlan.getLeg(this.currentState.globalLegIndex);
 
       // We don't want to clear the inhibit next sequence flag until the active leg has been calculated
       // since we never sequence through non-calculated legs.
       clearInhibitNextSequence = !!this.currentLeg.calculated;
 
-      this.calculateTracking(flightPlan);
+      this.calculateTracking(dataTrackingValid, flightPlan);
 
       if (this.isAwaitingCalculate) {
         return;
       }
 
       if (this.hasVectorAnticipation) {
-        this.updateVectorAnticipation(flightPlan);
+        this.updateVectorAnticipation(dataTrackingValid, flightPlan);
       }
 
       isTracking = this.currentState.globalLegIndex < flightPlan.length
         && this.currentVector !== undefined
-        && this.currentVector.radius > LNavComputer.ANGULAR_TOLERANCE
-        && this.currentVector.distance > LNavComputer.ANGULAR_TOLERANCE_METERS;
+        && this.canTrackVector(this.currentVector);
 
       if (isTracking) {
         const calcs = this.currentLeg.calculated;
 
         if (this.overrideModule) {
-          if (this.overrideModule.canActivate(this.currentState, this.aircraftState)) {
+          if (this.overrideModule.canActivate(this.currentState, this.data)) {
             if (!this.overrideModule.isActive()) {
-              this.lnavDataSub.pause();
-              this.overrideModule.activate(this.currentState, this.aircraftState);
+              this.overrideModule.activate(this.currentState, this.data, this.eventBusTopicPublishers);
             }
 
-            this.overrideModule.update(this.currentState, this.aircraftState);
+            this.overrideModule.update(this.currentState, this.data, this.eventBusTopicPublishers);
 
             // Delegate steering command to the override module.
             const steerCommand = this.overrideModule.getSteerCommand();
-            this.setSteerCommand(steerCommand.isValid, steerCommand.desiredBankAngle, steerCommand.dtk, steerCommand.xtk, steerCommand.tae);
+            this.setSteerCommand(
+              steerCommand.isValid,
+              steerCommand.isHeading,
+              steerCommand.courseToSteer,
+              steerCommand.trackRadius,
+              steerCommand.dtk,
+              steerCommand.xtk,
+              steerCommand.tae
+            );
             return;
           }
         }
 
         isTracking = calcs !== undefined;
 
-        this.updateSteerCommand();
+        this.updateSteerCommand(dataTrackingValid);
         didUpdateSteerCommand = true;
       }
 
@@ -429,7 +497,7 @@ export class LNavComputer {
           this.overrideModule.deactivate(this.currentState);
         }
 
-        this.overrideModule.update(this.currentState, this.aircraftState);
+        this.overrideModule.update(this.currentState, this.data);
       }
     } else {
       if (this.overrideModule) {
@@ -437,7 +505,7 @@ export class LNavComputer {
           this.overrideModule.deactivate(this.currentState);
         }
 
-        this.overrideModule.update(this.currentState, this.aircraftState);
+        this.overrideModule.update(this.currentState, this.data);
       }
 
       // We can't be suspended if we are not tracking a flight plan.
@@ -446,15 +514,17 @@ export class LNavComputer {
     }
 
     if (!didUpdateSteerCommand) {
-      this.currentBankAngleState.arcController.reset();
-      this.setSteerCommand(false, 0, 0, 0, 0);
+      this.courseToSteer = null;
+      this.isSteerHeading = false;
+      this.setSteerCommand(false, false, 0, 0, 0, 0, 0);
     }
 
-    this.lnavData.set('isTracking', isTracking);
-    this.lnavData.set('isSuspended', this.currentState.isSuspended);
+    this.eventBusTopicPublishers['lnav_is_tracking'].publish(isTracking);
+    this.eventBusTopicPublishers['lnav_is_suspended'].publish(this.currentState.isSuspended);
 
     if (isTracking) {
-      const trackingState = this.lnavData.get().trackingState;
+      const trackingStatePublisher = this.eventBusTopicPublishers['lnav_tracking_state'];
+      const trackingState = trackingStatePublisher.value;
       if (
         trackingState.isTracking !== isTracking
         || trackingState.globalLegIndex !== this.currentState.globalLegIndex
@@ -462,7 +532,7 @@ export class LNavComputer {
         || trackingState.vectorIndex !== this.currentState.vectorIndex
         || trackingState.isSuspended !== this.currentState.isSuspended
       ) {
-        this.lnavData.set('trackingState', {
+        trackingStatePublisher.publish({
           isTracking: isTracking,
           globalLegIndex: this.currentState.globalLegIndex,
           transitionMode: this.currentState.transitionMode,
@@ -471,24 +541,30 @@ export class LNavComputer {
         });
       }
 
-      this.lnavData.set('dtk', this.dtk);
-      this.lnavData.set('xtk', this.xtk);
-      this.lnavData.set('legIndex', this.currentState.globalLegIndex);
-      this.lnavData.set('vectorIndex', this.currentState.vectorIndex);
-      this.lnavData.set('transitionMode', this.currentState.transitionMode);
-      this.lnavData.set('courseToSteer', this.courseToSteer);
-      this.lnavData.set('alongVectorDistance', this.alongVectorDistance);
-      this.lnavData.set('vectorDistanceRemaining', this.vectorDistanceRemaining);
-      this.lnavData.set('vectorAnticipationDistance', this.vectorAnticipationDistance);
-      this.lnavData.set('alongTrackSpeed', this.alongTrackSpeed);
+      this.eventBusTopicPublishers['lnav_dtk'].publish(this.dtk);
+      this.eventBusTopicPublishers['lnav_xtk'].publish(this.xtk);
+      this.eventBusTopicPublishers['lnav_tracked_leg_index'].publish(this.currentState.globalLegIndex);
+      this.eventBusTopicPublishers['lnav_tracked_vector_index'].publish(this.currentState.vectorIndex);
+      this.eventBusTopicPublishers['lnav_transition_mode'].publish(this.currentState.transitionMode);
+      this.eventBusTopicPublishers['lnav_course_to_steer'].publish(this.courseToSteer);
+      this.eventBusTopicPublishers['lnav_is_steer_heading'].publish(this.isSteerHeading);
+      this.eventBusTopicPublishers['lnav_vector_distance_along'].publish(this.alongVectorDistance);
+      this.eventBusTopicPublishers['lnav_vector_distance_remaining'].publish(this.vectorDistanceRemaining);
+      this.eventBusTopicPublishers['lnav_vector_anticipation_distance'].publish(this.vectorAnticipationDistance);
+      this.eventBusTopicPublishers['lnav_along_track_speed'].publish(this.alongTrackSpeed);
 
-      this.lnavData.set('alongLegDistance', this.getAlongLegDistance(flightPlan as FlightPlan, this.currentState, this.alongVectorDistance));
-      this.lnavData.set('legDistanceRemaining', this.getLegDistanceRemaining(flightPlan as FlightPlan, this.currentState, this.vectorDistanceRemaining));
+      this.eventBusTopicPublishers['lnav_leg_distance_along'].publish(
+        this.getAlongLegDistance(flightPlan as FlightPlan, this.currentState, this.alongVectorDistance)
+      );
+      this.eventBusTopicPublishers['lnav_leg_distance_remaining'].publish(
+        this.getLegDistanceRemaining(flightPlan as FlightPlan, this.currentState, this.vectorDistanceRemaining)
+      );
     } else {
       this.currentLeg = undefined;
       this.currentVector = undefined;
 
-      const trackingState = this.lnavData.get().trackingState;
+      const trackingStatePublisher = this.eventBusTopicPublishers['lnav_tracking_state'];
+      const trackingState = trackingStatePublisher.value;
       if (
         trackingState.isTracking
         || trackingState.globalLegIndex !== 0
@@ -496,7 +572,7 @@ export class LNavComputer {
         || trackingState.vectorIndex !== 0
         || trackingState.isSuspended !== this.currentState.isSuspended
       ) {
-        this.lnavData.set('trackingState', {
+        trackingStatePublisher.publish({
           isTracking: false,
           globalLegIndex: 0,
           transitionMode: LNavTransitionMode.None,
@@ -505,56 +581,68 @@ export class LNavComputer {
         });
       }
 
-      this.lnavData.set('dtk', 0);
-      this.lnavData.set('xtk', 0);
-      this.lnavData.set('legIndex', 0);
-      this.lnavData.set('vectorIndex', 0);
-      this.lnavData.set('transitionMode', LNavTransitionMode.None);
-      this.lnavData.set('courseToSteer', 0);
-      this.lnavData.set('alongLegDistance', 0);
-      this.lnavData.set('vectorDistanceRemaining', 0);
-      this.lnavData.set('alongVectorDistance', 0);
-      this.lnavData.set('legDistanceRemaining', 0);
-      this.lnavData.set('vectorAnticipationDistance', 0);
-      this.lnavData.set('alongTrackSpeed', 0);
-    }
+      this.eventBusTopicPublishers['lnav_dtk'].publish(0);
+      this.eventBusTopicPublishers['lnav_xtk'].publish(0);
+      this.eventBusTopicPublishers['lnav_tracked_leg_index'].publish(0);
+      this.eventBusTopicPublishers['lnav_tracked_vector_index'].publish(0);
+      this.eventBusTopicPublishers['lnav_transition_mode'].publish(LNavTransitionMode.None);
+      this.eventBusTopicPublishers['lnav_course_to_steer'].publish(null);
+      this.eventBusTopicPublishers['lnav_is_steer_heading'].publish(false);
+      this.eventBusTopicPublishers['lnav_vector_distance_along'].publish(0);
+      this.eventBusTopicPublishers['lnav_vector_distance_remaining'].publish(0);
+      this.eventBusTopicPublishers['lnav_vector_anticipation_distance'].publish(0);
+      this.eventBusTopicPublishers['lnav_along_track_speed'].publish(0);
 
-    // If we have reached this point, then it means that the override module is deactivated. Therefore we need to
-    // resume publishing LNAV data.
-    this.lnavDataSub.resume(true);
+      this.eventBusTopicPublishers['lnav_leg_distance_along'].publish(0);
+      this.eventBusTopicPublishers['lnav_leg_distance_remaining'].publish(0);
+    }
 
     this.inhibitNextSequence &&= !clearInhibitNextSequence;
   }
 
   /**
-   * Updates this computer's current aircraft state.
+   * Immediately republishes all event bus topics with their current values.
    */
-  private updateAircraftState(): void {
-    const lat = SimVar.GetSimVarValue('PLANE LATITUDE', SimVarValueType.Degree);
-    const lon = SimVar.GetSimVarValue('PLANE LONGITUDE', SimVarValueType.Degree);
-
-    this.aircraftState.planePos.set(lat, lon);
-
-    const velocityEW = SimVar.GetSimVarValue('VELOCITY WORLD X', SimVarValueType.Knots);
-    const velocityNS = SimVar.GetSimVarValue('VELOCITY WORLD Z', SimVarValueType.Knots);
-
-    this.aircraftState.gs = Math.hypot(velocityEW, velocityNS);
-
-    if (this.aircraftState.gs > 1) {
-      this.aircraftState.track = NavMath.normalizeHeading(Math.atan2(velocityEW, velocityNS) * Avionics.Utils.RAD2DEG);
+  private republishEventBusTopics(): void {
+    for (const topic in this.eventBusTopicPublishers) {
+      this.eventBusTopicPublishers[topic as keyof BaseLNavEvents].publish();
     }
+  }
 
-    this.aircraftState.tas = SimVar.GetSimVarValue('AIRSPEED TRUE', SimVarValueType.Knots);
+  /**
+   * Updates this computer's data.
+   */
+  private updateData(): void {
+    this.defaultDataProvider?.update();
+    this.data.planePos.set(this.dataProvider.planePos.get());
+    this.data.gs = this.dataProvider.gs.get();
+    this.data.track = this.dataProvider.track.get();
+    this.data.heading = this.dataProvider.heading.get();
+    this.data.magVar = this.dataProvider.magVar.get();
+    this.data.tas = this.dataProvider.tas.get();
+  }
+
+  /**
+   * Checks whether the current LNAV data contains valid tracking data.
+   * @returns Whether the current LNAV data contains valid tracking data.
+   */
+  private isTrackingDataValid(): boolean {
+    return this.data.planePos.isValid()
+      && this.data.gs !== null
+      && this.data.track !== null;
   }
 
   /**
    * Updates this computer's steering command using guidance generated from this computer's currently tracked flight
    * path vector.
+   * @param data The current LNAV data with valid tracking data.
    */
-  private updateSteerCommand(): void {
-    let bankAngle: number | undefined;
+  private updateSteerCommand(data: LNavComputerDataTrackingValid): void {
+    let vector: FlightPathVector | undefined = undefined;
+    let trackRadius = 0;
     let dtk = 0;
     let xtk = 0;
+    let tae = 0;
 
     if (
       this.anticipationVector
@@ -564,44 +652,65 @@ export class LNavComputer {
       // vector's radius. This keeps us from flying the wrong "side" of an anticipated vector.
       && Math.abs(this.xtk) < UnitType.GA_RADIAN.convertTo(FlightPathUtils.getVectorTurnRadius(this.anticipationVector), UnitType.NMILE)
     ) {
+      vector = this.anticipationVector;
       dtk = this.anticipationDtk;
       xtk = this.anticipationXtk;
-      this.updateBankAngle(this.anticipationVector, this.anticipationDtk, this.anticipationXtk, this.currentBankAngleState);
-      bankAngle = this.currentBankAngleState.desiredBankAngle;
+      trackRadius = this.anticipationVector.radius;
     } else if (
       this.currentVector
-      && this.currentVector.radius > LNavComputer.ANGULAR_TOLERANCE
-      && this.currentVector.distance > LNavComputer.ANGULAR_TOLERANCE_METERS
+      && this.canTrackVector(this.currentVector)
     ) {
+      vector = this.currentVector;
       dtk = this.dtk;
       xtk = this.xtk;
-      this.updateBankAngle(this.currentVector, this.dtk, this.xtk, this.currentBankAngleState);
-      bankAngle = this.currentBankAngleState.desiredBankAngle;
-    } else {
-      this.currentBankAngleState.arcController.reset();
+      trackRadius = this.currentVector.radius;
     }
 
-    if (bankAngle === undefined) {
-      this.setSteerCommand(false, 0, 0, 0, 0);
+    if (vector) {
+      this.isSteerHeading = vector.heading !== null && BitFlags.isAll(vector.flags, FlightPathVectorFlags.ConstantHeading);
+      if (this.isSteerHeading) {
+        if (data.heading !== null) {
+          this.courseToSteer = this.getCourseToSteerHeading(data, vector);
+          trackRadius = 0;
+          dtk = 0;
+          xtk = 0;
+          tae = (MathUtils.angularDistanceDeg(this.courseToSteer, data.heading, 1) + 180) % 360 - 180;
+        } else {
+          this.courseToSteer = null;
+          this.isSteerHeading = false;
+        }
+      } else {
+        this.courseToSteer = this.getCourseToSteerTrack(data, dtk, xtk);
+        tae = (MathUtils.angularDistanceDeg(dtk, data.track, 1) + 180) % 360 - 180;
+      }
     } else {
-      const tae = (MathUtils.diffAngleDeg(dtk, this.aircraftState.track) + 180) % 360 - 180;
-      this.setSteerCommand(true, bankAngle, dtk, xtk, tae);
+      this.courseToSteer = null;
+      this.isSteerHeading = false;
+    }
+
+    if (this.courseToSteer === null) {
+      this.setSteerCommand(false, false, 0, 0, 0, 0, 0);
+    } else {
+      this.setSteerCommand(true, this.isSteerHeading, this.courseToSteer, trackRadius, dtk, xtk, tae);
     }
   }
 
   /**
-   * Updates a bank angle state for a tracked flight path vector.
-   * @param vector The tracked flight path vector.
-   * @param dtk The desired track, in degrees true.
+   * Gets a true course to steer to follow a track, in degrees.
+   * @param data The current LNAV data with valid tracking data.
+   * @param dtk The desired true track, in degrees.
    * @param xtk The cross-track error, in nautical miles.
-   * @param bankAngleState The bank angle state to udpate.
-   * @returns The updated bank angle state.
+   * @returns The true course to steer to follow the specified track, in degrees.
    */
-  private updateBankAngle(vector: CircleVector, dtk: number, xtk: number, bankAngleState: LNavBankAngleState): LNavBankAngleState {
-    let absInterceptAngle = 0;
+  private getCourseToSteerTrack(
+    data: LNavComputerDataTrackingValid,
+    dtk: number,
+    xtk: number
+  ): number {
+    let absInterceptAngle: number;
 
     if (this.interceptFunc !== undefined) {
-      absInterceptAngle = this.interceptFunc(dtk, xtk, this.aircraftState.tas);
+      absInterceptAngle = this.interceptFunc(dtk, xtk, data.tas ?? data.gs);
     } else {
       absInterceptAngle = Math.min(Math.pow(Math.abs(xtk) * 20, 1.35) + (Math.abs(xtk) * 50), 45);
       if (absInterceptAngle <= 2.5) {
@@ -610,78 +719,53 @@ export class LNavComputer {
     }
 
     const interceptAngle = xtk < 0 ? absInterceptAngle : -1 * absInterceptAngle;
-    const courseToSteer = NavMath.normalizeHeading(dtk + interceptAngle);
-
-    bankAngleState.desiredBankAngle = this.desiredBank(courseToSteer);
-
-    if (FlightPathUtils.isVectorGreatCircle(vector)) {
-      bankAngleState.arcController.reset();
-    } else {
-      this.adjustBankAngleForArc(vector, bankAngleState);
-    }
-
-    return bankAngleState;
+    return MathUtils.normalizeAngleDeg(dtk + interceptAngle);
   }
 
   /**
-   * Calculates a desired bank angle from a desired track.
-   * @param desiredTrack The desired track, in degrees true.
-   * @returns The desired bank angle, in degrees. Positive values indicate left bank.
+   * Gets a true course to steer to follow a heading, in degrees.
+   * @param data The current LNAV data with valid tracking data.
+   * @param vector The flight path vector that defines the heading to follow.
+   * @returns The true course to steer to follow the specified heading, in degrees.
    */
-  private desiredBank(desiredTrack: number): number {
-    const turnDirection = NavMath.getTurnDirection(this.aircraftState.track, desiredTrack);
-    const headingDiff = Math.abs(NavMath.diffAngle(this.aircraftState.track, desiredTrack));
-
-    let baseBank = Math.min(1.25 * headingDiff, this.maxBankAngleFunc());
-    baseBank *= (turnDirection === 'left' ? 1 : -1);
-
-    return baseBank;
-  }
-
-  /**
-   * Adjusts a bank angle state's desired bank angle for arc vectors.
-   * @param vector The arc vector to adjust for.
-   * @param bankAngleState The bank angle state to adjust.
-   * @returns The adjusted bank angle state.
-   */
-  private adjustBankAngleForArc(vector: CircleVector, bankAngleState: LNavBankAngleState): LNavBankAngleState {
-    const circle = FlightPathUtils.setGeoCircleFromVector(vector, this.geoCircleCache[0]);
-    const turnDirection = FlightPathUtils.getTurnDirectionFromCircle(circle);
-    const radius = UnitType.GA_RADIAN.convertTo(FlightPathUtils.getTurnRadiusFromCircle(circle), UnitType.METER);
-
-    const distance = UnitType.GA_RADIAN.convertTo(circle.distance(this.aircraftState.planePos), UnitType.METER);
-    const bankAdjustment = bankAngleState.arcController.getOutput(distance);
-
-    const turnBankAngle = NavMath.bankAngle(this.aircraftState.gs, radius) * (turnDirection === 'left' ? 1 : -1);
-    const turnRadius = NavMath.turnRadius(this.aircraftState.gs, 25);
-
-    const bankBlendFactor = Math.max(1 - (Math.abs(UnitType.NMILE.convertTo(this.xtk, UnitType.METER)) / turnRadius), 0);
-
-    const maxBank = this.maxBankAngleFunc();
-    bankAngleState.desiredBankAngle = MathUtils.clamp(
-      (bankAngleState.desiredBankAngle * (1 - bankBlendFactor)) + (turnBankAngle * bankBlendFactor) + bankAdjustment,
-      -maxBank,
-      maxBank
-    );
-
-    return bankAngleState;
+  private getCourseToSteerHeading(
+    data: LNavComputerDataTrackingValid,
+    vector: Readonly<FlightPathVector>
+  ): number {
+    return vector.isHeadingTrue || data.magVar === null
+      ? vector.heading!
+      : MagVar.magneticToTrue(vector.heading!, data.magVar);
   }
 
   /**
    * Sets this computer's steering command.
    * @param isValid Whether the steering command is valid.
-   * @param desiredBankAngle The desired bank angle, in degrees. Positive values indicate left bank.
-   * @param dtk The current desired track, in degrees true.
+   * @param isHeading Whether the command is attempting to steer toward a heading instead of a track.
+   * @param courseToSteer The true course to steer, in degrees.
+   * @param trackRadius The radius of the track toward which the command is attempting to steer, in great-arc radians.
+   * A radius of `pi / 2` indicates the track is a great circle. A radius less than `pi / 2` indicates the track turns
+   * to the left. A radius greater than `pi / 2` indicates the track turns to the right.
+   * @param dtk The current desired true track, in degrees.
    * @param xtk The current cross-track error, in nautical miles. Positive values indicate that the plane is to the
    * right of the desired track.
    * @param tae The current track angle error, in degrees in the range `[-180, 180)`.
    */
-  private setSteerCommand(isValid: boolean, desiredBankAngle: number, dtk: number, xtk: number, tae: number): void {
+  private setSteerCommand(
+    isValid: boolean,
+    isHeading: boolean,
+    courseToSteer: number,
+    trackRadius: number,
+    dtk: number,
+    xtk: number,
+    tae: number
+  ): void {
     const steerCommandBufferActiveIndex = this._steerCommand.get() === this.steerCommandBuffer[0] ? 0 : 1;
     const command = this.steerCommandBuffer[(steerCommandBufferActiveIndex + 1) % 2];
 
     command.isValid = isValid;
-    command.desiredBankAngle = desiredBankAngle;
+    command.isHeading = isHeading;
+    command.courseToSteer = courseToSteer;
+    command.trackRadius = trackRadius;
     command.dtk = dtk;
     command.xtk = xtk;
     command.tae = tae;
@@ -691,9 +775,10 @@ export class LNavComputer {
 
   /**
    * Calculates the tracking from the current leg.
+   * @param data The current LNAV data with valid tracking data.
    * @param plan The active flight plan.
    */
-  private calculateTracking(plan: FlightPlan): void {
+  private calculateTracking(data: LNavComputerDataTrackingValid, plan: FlightPlan): void {
     let didAdvance: boolean;
 
     do {
@@ -710,6 +795,8 @@ export class LNavComputer {
         plan.setCalculatingLeg(this.currentState.globalLegIndex);
         plan.setLateralLeg(this.currentState.globalLegIndex);
 
+        this.trackedHeadingVector = undefined;
+
         continue;
       }
 
@@ -721,14 +808,40 @@ export class LNavComputer {
       const calcs = this.currentLeg.calculated;
 
       if (calcs) {
+        // Heading legs can be recalculated while they are active. When that happens, we want to reset the tracked
+        // vector index to the first vector so that we don't "skip" over any recalculated vectors.
+        if (
+          this.trackedHeadingVector
+          && (
+            this.currentState.transitionMode === LNavTransitionMode.Egress
+            || this.currentState.vectorIndex > 0
+          )
+        ) {
+          const vectors = LNavUtils.getVectorsForTransitionMode(calcs, this.currentState.transitionMode, this.currentState.isSuspended);
+          const vector = vectors[this.currentState.vectorIndex];
+          if (
+            !vector
+            || vector.startLat !== this.trackedHeadingVector.startLat
+            || vector.startLon !== this.trackedHeadingVector.startLon
+            || vector.centerX !== this.trackedHeadingVector.centerX
+            || vector.centerY !== this.trackedHeadingVector.centerY
+            || vector.centerZ !== this.trackedHeadingVector.centerZ
+            || vector.radius !== this.trackedHeadingVector.radius
+          ) {
+            // Heading legs don't have ingress transitions.
+            this.currentState.transitionMode = LNavTransitionMode.None;
+            this.currentState.vectorIndex = 0;
+          }
+        }
+
         const vectors = LNavUtils.getVectorsForTransitionMode(calcs, this.currentState.transitionMode, this.currentState.isSuspended);
         const vector = vectors[this.currentState.vectorIndex];
-        const isVectorValid = vector && vector.radius > LNavComputer.ANGULAR_TOLERANCE && vector.distance > LNavComputer.ANGULAR_TOLERANCE_METERS;
+        const isVectorValid = vector && this.canTrackVector(vector);
         const isUnsuspendInvalid = this.currentState.transitionMode === LNavTransitionMode.Unsuspend
           && (calcs.ingress.length === 0 || calcs.flightPath[calcs.ingressJoinIndex] === undefined);
 
         if (isVectorValid && !isUnsuspendInvalid) {
-          const planePos = this.aircraftState.planePos;
+          const planePos = data.planePos;
 
           const circle = FlightPathUtils.setGeoCircleFromVector(vector, this.geoCircleCache[0]);
           const start = GeoPoint.sphericalToCartesian(vector.startLat, vector.startLon, this.vec3Cache[0]);
@@ -756,10 +869,8 @@ export class LNavComputer {
           this.xtk = UnitType.GA_RADIAN.convertTo(circle.distance(planePos), UnitType.NMILE);
           this.dtk = circle.bearingAt(planePos, Math.PI);
 
-          this.bearingToVectorEnd = planePos.bearingTo(endLat, endLon);
-
-          const alongTrackSpeed = FlightPathUtils.projectVelocityToCircle(this.aircraftState.gs, planePos, this.aircraftState.track, circle);
-          this.alongTrackSpeed = isNaN(alongTrackSpeed) ? this.aircraftState.gs : alongTrackSpeed;
+          const alongTrackSpeed = FlightPathUtils.projectVelocityToCircle(data.gs, planePos, data.track, circle);
+          this.alongTrackSpeed = isNaN(alongTrackSpeed) ? data.gs : alongTrackSpeed;
 
           const normDist = FlightPathUtils.getAlongArcNormalizedDistance(circle, start, end, planePos);
 
@@ -801,21 +912,23 @@ export class LNavComputer {
     this.currentVector = this.currentLeg?.calculated
       ? LNavUtils.getVectorsForTransitionMode(this.currentLeg.calculated, this.currentState.transitionMode, this.currentState.isSuspended)[this.currentState.vectorIndex]
       : undefined;
+
+    this.trackedHeadingVector = this.currentVector !== undefined && this.currentVector.heading !== null ? this.currentVector : undefined;
   }
 
   /**
    * Updates this director's vector anticipation data, including the anticipation distance, DTK and XTK for the
    * anticipated vector, and bearing from the airplane to the end of the anticipated vector.
+   * @param data The current LNAV data with valid tracking data.
    * @param plan The active flight plan.
    */
-  private updateVectorAnticipation(plan: FlightPlan): void {
+  private updateVectorAnticipation(data: LNavComputerDataTrackingValid, plan: FlightPlan): void {
     this.anticipationVector = undefined;
     this.vectorAnticipationDistance = 0;
     this.anticipationDtk = 0;
     this.anticipationXtk = 0;
-    this.anticipationBearingToVectorEnd = 0;
 
-    if (!this.currentVector || this.currentVector.radius === 0 || this.currentVector.distance <= LNavComputer.ANGULAR_TOLERANCE_METERS) {
+    if (!this.currentVector || !this.canTrackVector(this.currentVector)) {
       return;
     }
 
@@ -834,8 +947,7 @@ export class LNavComputer {
     if (
       !this.anticipationVector
       || this.anticipationVector === this.currentVector
-      || this.anticipationVector.radius === 0
-      || this.anticipationVector.distance <= LNavComputer.ANGULAR_TOLERANCE_METERS
+      || !this.canTrackVector(this.anticipationVector)
     ) {
       this.anticipationVector = undefined;
       return;
@@ -843,9 +955,8 @@ export class LNavComputer {
 
     const circle = FlightPathUtils.setGeoCircleFromVector(this.anticipationVector, this.geoCircleCache[0]);
 
-    this.anticipationXtk = UnitType.GA_RADIAN.convertTo(circle.distance(this.aircraftState.planePos), UnitType.NMILE);
-    this.anticipationDtk = circle.bearingAt(this.aircraftState.planePos, Math.PI);
-    this.anticipationBearingToVectorEnd = this.aircraftState.planePos.bearingTo(this.anticipationVector.endLat, this.anticipationVector.endLon);
+    this.anticipationXtk = UnitType.GA_RADIAN.convertTo(circle.distance(data.planePos), UnitType.NMILE);
+    this.anticipationDtk = circle.bearingAt(data.planePos, Math.PI);
 
     // Find the bank angles that are required to keep the airplane following the current and anticipated vectors
     // assuming zero XTK error and wind. Then approximate how long it will take the airplane to roll from one to the
@@ -853,8 +964,8 @@ export class LNavComputer {
     // by along-track speed.
 
     const maxBankAngle = this.maxBankAngleFunc();
-    const currentVectorIdealBankAngle = MathUtils.clamp(LNavComputer.getVectorIdealBankAngle(this.currentVector, this.aircraftState.gs), -maxBankAngle, maxBankAngle);
-    const anticipationIdealBankAngle = MathUtils.clamp(LNavComputer.getVectorIdealBankAngle(this.anticipationVector, this.aircraftState.gs), -maxBankAngle, maxBankAngle);
+    const currentVectorIdealBankAngle = MathUtils.clamp(LNavComputer.getVectorIdealBankAngle(this.currentVector, data.gs), -maxBankAngle, maxBankAngle);
+    const anticipationIdealBankAngle = MathUtils.clamp(LNavComputer.getVectorIdealBankAngle(this.anticipationVector, data.gs), -maxBankAngle, maxBankAngle);
 
     const deltaBank = Math.abs(currentVectorIdealBankAngle - anticipationIdealBankAngle);
     const rollTimeSeconds = deltaBank / this.vectorAnticipationBankRate;
@@ -996,8 +1107,8 @@ export class LNavComputer {
       }
     }
 
-    // Continue advancing until we reach a vector with non-zero radius and distance.
-    while (!vectors || vectorIndex >= vectorEndIndex || vectors[vectorIndex].radius === 0 || vectors[vectorIndex].distance <= LNavComputer.ANGULAR_TOLERANCE_METERS) {
+    // Continue advancing until we reach a trackable vector.
+    while (!vectors || vectorIndex >= vectorEndIndex || !this.canTrackVector(vectors[vectorIndex])) {
       switch (transitionMode) {
         case LNavTransitionMode.Ingress:
           transitionMode = LNavTransitionMode.None;
@@ -1171,12 +1282,17 @@ export class LNavComputer {
             // Suspended -> Unsuspended.
             let pastIngressJoin = state.vectorIndex > legCalc.ingressJoinIndex;
 
-            if (!pastIngressJoin && state.vectorIndex === legCalc.ingressJoinIndex && legCalc.flightPath[legCalc.ingressJoinIndex]) {
+            if (
+              !pastIngressJoin
+              && state.vectorIndex === legCalc.ingressJoinIndex
+              && legCalc.flightPath[legCalc.ingressJoinIndex]
+              && this.data.planePos.isValid()
+            ) {
               const vector = legCalc.flightPath[legCalc.ingressJoinIndex];
               const circle = FlightPathUtils.setGeoCircleFromVector(vector, this.geoCircleCache[0]);
               const start = GeoPoint.sphericalToCartesian(vector.startLat, vector.startLon, this.vec3Cache[0]);
               const end = GeoPoint.sphericalToCartesian(ingressJoinVector.endLat, ingressJoinVector.endLon, this.vec3Cache[1]);
-              pastIngressJoin = FlightPathUtils.getAlongArcNormalizedDistance(circle, start, end, this.aircraftState.planePos) >= 1;
+              pastIngressJoin = FlightPathUtils.getAlongArcNormalizedDistance(circle, start, end, this.data.planePos) >= 1;
             }
 
             if (pastIngressJoin) {
@@ -1426,7 +1542,7 @@ export class LNavComputer {
    * @returns The ideal bank angle, in degrees, to follow the specified flight path vector at the specified ground
    * speed.
    */
-  private static getVectorIdealBankAngle(vector: FlightPathVector, groundSpeed: number): number {
+  private static getVectorIdealBankAngle(vector: Readonly<FlightPathVector>, groundSpeed: number): number {
     if (FlightPathUtils.isVectorGreatCircle(vector)) {
       return 0;
     }

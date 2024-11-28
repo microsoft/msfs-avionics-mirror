@@ -167,7 +167,7 @@ export class GarminVoiceCalloutModule implements TerrainSystemModule {
 
           if (entry.activateAltitude !== 500 || !this.inhibit500WhenGsGpActive || !isGsGpActive) {
             entry.isActivated = true;
-            alertController.activateAlert(entry.alert);
+            alertController.triggerAlert(entry.alert);
           }
         }
       } else if (altitudeAbove >= entry.armAltitude) {
@@ -175,7 +175,7 @@ export class GarminVoiceCalloutModule implements TerrainSystemModule {
 
         if (entry.isActivated) {
           entry.isActivated = false;
-          alertController.deactivateAlert(entry.alert);
+          alertController.untriggerAlert(entry.alert);
         }
       }
     }
@@ -195,7 +195,7 @@ export class GarminVoiceCalloutModule implements TerrainSystemModule {
       entry.isArmed = false;
       if (entry.isActivated) {
         entry.isActivated = false;
-        alertController.deactivateAlert(entry.alert);
+        alertController.untriggerAlert(entry.alert);
       }
     }
 

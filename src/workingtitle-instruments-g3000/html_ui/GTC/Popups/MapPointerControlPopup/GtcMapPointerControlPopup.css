@@ -1,0 +1,77 @@
+.pointer-control {
+  position: absolute;
+  box-sizing: border-box;
+  border: solid 1px #747474;
+  border-radius: 5px;
+  background: var(--g3000-color-black);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gtc-horizontal .pointer-control {
+  left: calc(50% - 890px / 2);
+  top: 0px;
+  width: 890px;
+  height: 100%;
+  padding: 47px 0px 15px 0px;
+  font-size: 30px;
+
+  --pointer-control-header-button-width: 145px;
+  --pointer-control-header-button-height: 120px;
+  --pointer-control-header-button-margin: 10px;
+
+  --pointer-control-dto-button-img-scale: 1.8;
+
+  --pointer-control-touchpad-width: 855px;
+  --pointer-control-touchpad-height: 565px;
+}
+
+.gtc-vertical .pointer-control {
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: 25px 0px 7px 0px;
+  font-size: 16px;
+
+  --pointer-control-header-button-width: 75px;
+  --pointer-control-header-button-height: 60px;
+  --pointer-control-header-button-margin: 5px;
+
+  --pointer-control-dto-button-img-scale: 1;
+
+  --pointer-control-touchpad-width: 460px;
+  --pointer-control-touchpad-height: 304px;
+}
+
+.pointer-control-header {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.pointer-control-header .touch-button {
+  width: var(--pointer-control-header-button-width);
+  height: var(--pointer-control-header-button-height);
+  margin: 0px var(--pointer-control-header-button-margin);
+  white-space: pre;
+}
+
+.pointer-control-header .touch-button-img {
+  --touch-button-img-img-center-y: 50%;
+}
+
+.pointer-control-header .touch-button-img-img {
+  transform: translate(-50%, -50%) scale(var(--pointer-control-dto-button-img-scale));
+}
+
+.pointer-control-touchpad {
+  width: var(--pointer-control-touchpad-width);
+  height: var(--pointer-control-touchpad-height);
+  background: url("coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG3000v2/Assets/Images/GTC/touchpad.png");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}

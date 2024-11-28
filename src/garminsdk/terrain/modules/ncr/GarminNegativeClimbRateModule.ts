@@ -17,6 +17,30 @@ export type GarminNegativeClimbRateModuleOptions = {
    */
   functionAsGpws?: boolean;
 
+  /**
+   * The consecutive amount of time, in milliseconds, that the conditions for one of the module's alerts must be met
+   * before the alert is triggered. Defaults to `2000`.
+   */
+  triggerDebounce?: number;
+
+  /**
+   * The consecutive amount of time, in milliseconds, that the conditions for one of the module's alerts must not be
+   * met before the alert is untriggered. Defaults to `2000`.
+   */
+  untriggerDebounce?: number;
+
+  /**
+   * The amount of time, in milliseconds, after an alert becomes triggered before it can be untriggered. Defaults to
+   * `5000`.
+   */
+  triggerHysteresis?: number;
+
+  /**
+   * The amount of time, in milliseconds, after an alert becomes untriggered before it can be triggered. Defaults to
+   * `0`.
+   */
+  untriggerHysteresis?: number;
+
   /** The inhibit flags that should inhibit alerting. If not defined, then no flags will inhibit alerting. */
   inhibitFlags?: Iterable<string>;
 };
@@ -29,14 +53,28 @@ export class GarminNegativeClimbRateModule implements TerrainSystemModule {
 
   private readonly functionAsGpws: boolean;
 
+  private readonly triggerDebounce: number;
+  private readonly untriggerDebounce: number;
+
+  private readonly triggerHysteresis: number;
+  private readonly untriggerHysteresis: number;
+
   private readonly inhibitFlags: string[];
 
   private isReset = true;
+  private isInhibited = false;
 
   private altitudeLossReference: number | undefined = undefined;
 
-  private isAltitudeLossAlertActive = false;
-  private isSinkRateAlertActive = false;
+  private isAlertTriggered = false;
+
+  private triggerDebounceTimer = 0;
+  private untriggerDebounceTimer = 0;
+
+  private triggerHysteresisTimer = 0;
+  private untriggerHysteresisTimer = 0;
+
+  private lastUpdateTime: number | undefined = undefined;
 
   /**
    * Creates a new instance of GarminNegativeClimbRateModule.
@@ -44,6 +82,10 @@ export class GarminNegativeClimbRateModule implements TerrainSystemModule {
    */
   public constructor(options?: Readonly<GarminNegativeClimbRateModuleOptions>) {
     this.functionAsGpws = options?.functionAsGpws ?? false;
+    this.triggerDebounce = options?.triggerDebounce ?? 2000;
+    this.untriggerDebounce = options?.untriggerDebounce ?? 2000;
+    this.triggerHysteresis = options?.triggerHysteresis ?? 5000;
+    this.untriggerHysteresis = options?.untriggerHysteresis ?? 0;
     this.inhibitFlags = options?.inhibitFlags ? Array.from(options.inhibitFlags) : [];
   }
 
@@ -60,6 +102,11 @@ export class GarminNegativeClimbRateModule implements TerrainSystemModule {
     data: Readonly<TerrainSystemData>,
     alertController: TerrainSystemAlertController
   ): void {
+    const dt = this.lastUpdateTime === undefined ? 0 : MathUtils.clamp((data.realTime - this.lastUpdateTime) * data.simRate, 0, 10000);
+    this.lastUpdateTime = data.realTime;
+
+    this.updateInhibits(inhibits, alertController);
+
     if (
       operatingMode !== TerrainSystemOperatingMode.Operating
       || (
@@ -69,16 +116,8 @@ export class GarminNegativeClimbRateModule implements TerrainSystemModule {
       )
       || data.isOnGround
     ) {
-      this.reset(alertController);
+      this.reset(dt, alertController);
       return;
-    }
-
-    // Check if one of our inhibit flags is active.
-    for (let i = 0; i < this.inhibitFlags.length; i++) {
-      if (inhibits.has(this.inhibitFlags[i])) {
-        this.reset(alertController);
-        return;
-      }
     }
 
     if (
@@ -88,7 +127,7 @@ export class GarminNegativeClimbRateModule implements TerrainSystemModule {
       || MathUtils.diffAngleDeg(data.departureRunway.course, data.headingTrue, false) > 110
       || data.gpsPos.distance(data.departureAirport) > GarminNegativeClimbRateModule.MAX_DISTANCE_FROM_AIRPORT
     ) {
-      this.reset(alertController);
+      this.reset(dt, alertController);
       return;
     }
 
@@ -107,31 +146,54 @@ export class GarminNegativeClimbRateModule implements TerrainSystemModule {
           verticalSpeed = data.baroVerticalSpeed;
         }
 
-        this.updateAlerts(data.radarAltitude, altitude, verticalSpeed, alertController);
+        this.updateAlerts(dt, data.radarAltitude, altitude, verticalSpeed, alertController);
       } else {
-        this.reset(alertController);
+        this.reset(dt, alertController);
       }
     } else {
       if (data.isGpsPosValid) {
         this.isReset = false;
         const agl = data.gpsAltitude - UnitType.METER.convertTo(data.departureRunway.elevationEnd, UnitType.FOOT);
-        this.updateAlerts(agl, data.gpsAltitude, data.gpsVerticalSpeed, alertController);
+        this.updateAlerts(dt, agl, data.gpsAltitude, data.gpsVerticalSpeed, alertController);
       } else {
-        this.reset(alertController);
+        this.reset(dt, alertController);
+      }
+    }
+  }
+
+  /**
+   * Updates whether this module's alerts are inhibited.
+   * @param inhibits The parent system's currently active inhibits.
+   * @param alertController A controller for alerts issued by the parent system.
+   */
+  private updateInhibits(inhibits: ReadonlySet<string>, alertController: TerrainSystemAlertController): void {
+    let isInhibited = false;
+    for (let i = 0; !isInhibited && i < this.inhibitFlags.length; i++) {
+      isInhibited = inhibits.has(this.inhibitFlags[i]);
+    }
+
+    if (this.isInhibited !== isInhibited) {
+      this.isInhibited = isInhibited;
+
+      if (isInhibited) {
+        alertController.inhibitAlert(GarminTawsAlert.NcrCaution);
+      } else {
+        alertController.uninhibitAlert(GarminTawsAlert.NcrCaution);
       }
     }
   }
 
   /**
    * Updates whether to issue a negative climb rate after takeoff alert.
+   * @param dt The amount of simulation time elapsed since the last update, in milliseconds.
    * @param agl The airplane's current height above ground level, in feet.
    * @param altitude The airplane's current altitude, in feet.
    * @param verticalSpeed The airplane's current vertical speed, in feet per minute.
    * @param alertController A controller for alerts tracked by this module's parent system.
    */
-  private updateAlerts(agl: number, altitude: number, verticalSpeed: number, alertController: TerrainSystemAlertController): void {
+  private updateAlerts(dt: number, agl: number, altitude: number, verticalSpeed: number, alertController: TerrainSystemAlertController): void {
     if (agl > 700) {
-      this.reset(alertController);
+      this.reset(dt, alertController);
       return;
     }
 
@@ -143,37 +205,95 @@ export class GarminNegativeClimbRateModule implements TerrainSystemModule {
       altitudeLoss = this.altitudeLossReference - altitude;
     }
 
-    // Set up hysteresis offsets.
-    const altitudeLossThresholdOffset = this.isAltitudeLossAlertActive ? -5 : 0;
-    const sinkRateThresholdOffset = this.isSinkRateAlertActive ? -50 : 0;
+    const isAltitudeLossAlertTriggered = GarminNegativeClimbRateModule.isAltitudeLoss(agl, altitudeLoss);
+    const isSinkRateAlertTriggered = GarminNegativeClimbRateModule.isSinkRate(agl, -verticalSpeed);
+    const isAlertTriggered = this.resolveAlertTriggerState(dt, isAltitudeLossAlertTriggered || isSinkRateAlertTriggered);
 
-    const isAltitudeLossAlertActive = GarminNegativeClimbRateModule.isAltitudeLoss(agl, altitudeLoss, altitudeLossThresholdOffset);
-    const isSinkRateAlertActive = GarminNegativeClimbRateModule.isSinkRate(agl, -verticalSpeed, sinkRateThresholdOffset);
-    const isAlertActive = isAltitudeLossAlertActive || isSinkRateAlertActive;
+    if (isAlertTriggered !== this.isAlertTriggered) {
+      this.triggerDebounceTimer = 0;
+      this.untriggerDebounceTimer = 0;
+      this.triggerHysteresisTimer = this.triggerHysteresis;
+      this.untriggerHysteresisTimer = this.untriggerHysteresis;
 
-    if (isAlertActive !== (this.isAltitudeLossAlertActive || this.isSinkRateAlertActive)) {
-      isAlertActive
-        ? alertController.activateAlert(GarminTawsAlert.NcrCaution)
-        : alertController.deactivateAlert(GarminTawsAlert.NcrCaution);
+      isAlertTriggered
+        ? alertController.triggerAlert(GarminTawsAlert.NcrCaution)
+        : alertController.untriggerAlert(GarminTawsAlert.NcrCaution);
+
+      this.isAlertTriggered = isAlertTriggered;
+    } else {
+      if (this.isAlertTriggered) {
+        this.triggerHysteresisTimer = Math.max(this.triggerHysteresisTimer - dt, 0);
+      } else {
+        this.untriggerHysteresisTimer = Math.max(this.untriggerHysteresisTimer - dt, 0);
+      }
+    }
+  }
+
+  /**
+   * Resolves a desired alert trigger state to a trigger state to set.
+   * @param dt The amount of simulation time elapsed since the last update, in milliseconds.
+   * @param isTriggerDesired Whether the desired alert trigger state is to trigger the alert.
+   * @returns The trigger state to set.
+   */
+  private resolveAlertTriggerState(dt: number, isTriggerDesired: boolean): boolean {
+    if (isTriggerDesired) {
+      // The conditions for triggering the alert have been met, so reset the untrigger debounce timer.
+      this.untriggerDebounceTimer = 0;
+
+      if (!this.isAlertTriggered) {
+        if (this.triggerDebounceTimer >= this.triggerDebounce) {
+          // The trigger debounce timer has expired. Check if untrigger hysteresis is still active. If so, then we can
+          // trigger the alert.
+          if (this.untriggerHysteresisTimer <= 0) {
+            return true;
+          }
+        } else {
+          // The trigger debounce timer has not yet expired. Increment the timer.
+          this.triggerDebounceTimer += dt;
+        }
+      } else {
+        // If the alert is already triggered, then keep it triggered.
+        return true;
+      }
+    } else {
+      // The conditions for triggering the alert have not been met, so reset the trigger debounce timer.
+      this.triggerDebounceTimer = 0;
+
+      if (this.isAlertTriggered) {
+        if (this.untriggerDebounceTimer < this.untriggerDebounce) {
+          // The untrigger debounce timer has not yet expired. Increment the timer and keep the alert triggered.
+          this.untriggerDebounceTimer += dt;
+          return true;
+        } else if (this.triggerHysteresisTimer > 0) {
+          // The untrigger debounce timer has expired, but trigger hysteresis is still active, so we need to keep the
+          // alert triggered.
+          return true;
+        }
+      }
     }
 
-    this.isAltitudeLossAlertActive = isAltitudeLossAlertActive;
-    this.isSinkRateAlertActive = isSinkRateAlertActive;
+    return false;
   }
 
   /**
    * Deactivates all negative climb rate after takeoff alerts.
+   * @param dt The amount of simulation time elapsed since the last update, in milliseconds.
    * @param alertController A controller for alerts tracked by this module's parent system.
    */
-  private reset(alertController: TerrainSystemAlertController): void {
+  private reset(dt: number, alertController: TerrainSystemAlertController): void {
     if (this.isReset) {
+      this.untriggerHysteresisTimer = Math.max(this.untriggerHysteresisTimer - dt, 0);
       return;
     }
 
+    this.triggerDebounceTimer = 0;
+    this.untriggerDebounceTimer = 0;
+    this.triggerHysteresisTimer = this.triggerHysteresis;
+    this.untriggerHysteresisTimer = this.untriggerHysteresis;
+
     this.altitudeLossReference = undefined;
-    this.isAltitudeLossAlertActive = false;
-    this.isSinkRateAlertActive = false;
-    alertController.deactivateAlert(GarminTawsAlert.NcrCaution);
+    this.isAlertTriggered = false;
+    alertController.untriggerAlert(GarminTawsAlert.NcrCaution);
 
     this.isReset = true;
   }
@@ -188,10 +308,9 @@ export class GarminNegativeClimbRateModule implements TerrainSystemModule {
    * level.
    * @param agl The height above ground level, in feet.
    * @param altitudeLoss The altitude loss, in feet.
-   * @param thresholdOffset An offset to apply to the altitude loss threshold for alerting, in feet.
    * @returns Whether the specified descent rate meets the threshold for an altitude loss alert.
    */
-  private static isAltitudeLoss(agl: number, altitudeLoss: number, thresholdOffset: number): boolean {
+  private static isAltitudeLoss(agl: number, altitudeLoss: number): boolean {
     let threshold: number;
 
     if (agl <= 50) {
@@ -202,17 +321,16 @@ export class GarminNegativeClimbRateModule implements TerrainSystemModule {
       threshold = Infinity;
     }
 
-    return altitudeLoss >= threshold + thresholdOffset;
+    return altitudeLoss >= threshold;
   }
 
   /**
    * Checks whether a descent rate meets the threshold for a sink rate alert for a given height above ground level.
    * @param agl The height above ground level, in feet.
    * @param descentRate The descent rate, in feet per minute.
-   * @param thresholdOffset An offset to apply to the descent rate threshold for alerting, in feet per minute.
    * @returns Whether the specified descent rate meets the threshold for a sink rate alert.
    */
-  private static isSinkRate(agl: number, descentRate: number, thresholdOffset: number): boolean {
+  private static isSinkRate(agl: number, descentRate: number): boolean {
     let threshold: number;
 
     if (agl <= 50) {
@@ -223,6 +341,6 @@ export class GarminNegativeClimbRateModule implements TerrainSystemModule {
       threshold = Infinity;
     }
 
-    return descentRate >= threshold + thresholdOffset;
+    return descentRate >= threshold;
   }
 }

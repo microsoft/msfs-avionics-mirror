@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-
 import {
-  AdcEvents, AhrsEvents, APEvents, ArraySubject, AvionicsSystemState, AvionicsSystemStateEvent, BitFlags, ClockEvents,
-  ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FSComponent, GeoPoint, GNSSEvents, HorizonComponent,
-  HorizonProjection, HorizonProjectionChangeType, HorizonSharedCanvasLayer, MappedSubject, MutableSubscribable,
+  Accessible, AccessibleUtils, AdcEvents, AhrsEvents, APEvents, ArraySubject, AvionicsSystemState,
+  AvionicsSystemStateEvent, BitFlags, ClockEvents, ComponentProps, ConsumerSubject, ConsumerValue, DisplayComponent,
+  EventBus, ExpSmoother, FSComponent, GeoPoint, GNSSEvents, HorizonComponent, HorizonProjection,
+  HorizonProjectionChangeType, HorizonSharedCanvasLayer, MappedSubject, MathUtils, MutableSubscribable,
   ReadonlyFloat64Array, Subject, Subscribable, SubscribableArray, SubscribableMapFunctions, SubscribableSet,
   SubscribableUtils, Subscription, UserSettingManager, VecNMath, VecNSubject, VNode
 } from '@microsoft/msfs-sdk';
@@ -11,6 +10,7 @@ import {
 import { SynVisUserSettingTypes } from '../../../settings/SynVisUserSettings';
 import { AdcSystemEvents } from '../../../system/AdcSystem';
 import { AhrsSystemEvents } from '../../../system/AhrsSystem';
+import { AoaSystemEvents } from '../../../system/AoaSystem';
 import { FmsPositionMode, FmsPositionSystemEvents } from '../../../system/FmsPositionSystem';
 import { TcasRaCommandDataProvider } from '../../../traffic/TcasRaCommandDataProvider';
 import { FailureBox } from '../../common/FailureBox';
@@ -24,7 +24,9 @@ import { FlightPathMarker, FlightPathMarkerProps } from './FlightPathMarker';
 import { HorizonLine, HorizonLineOptions } from './HorizonLine';
 import { HorizonOcclusionArea } from './HorizonOcclusionArea';
 import { PitchLadder, PitchLadderProps } from './PitchLadder';
-import { RollIndicator, RollIndicatorOptions } from './RollIndicator';
+import { PitchLimitIndicator, PitchLimitIndicatorFormat } from './PitchLimitIndicator';
+import { RollIndicator, RollIndicatorOptions, RollIndicatorScaleComponentFactory } from './RollIndicator';
+import { RollLimitIndicators } from './RollLimitIndicators';
 import { SyntheticVision } from './SyntheticVision';
 import { TcasRaPitchCueLayer, TcasRaPitchCueLayerProps } from './TcasRaPitchCueLayer';
 
@@ -65,6 +67,73 @@ export type FlightDirectorDualCueOptions = Pick<FlightDirectorDualCueProps, 'con
 export type FlightPathMarkerOptions = Pick<FlightPathMarkerProps, 'minGroundSpeed' | 'lookahead'>;
 
 /**
+ * Options for the roll limit indicators.
+ */
+export type HorizonRollLimitIndicatorsOptions = {
+  /**
+   * The roll angle magnitude at which to place the left limit indicator, in degrees. A non-finite value or `NaN` will
+   * cause the indicator to not be displayed.
+   */
+  leftRollLimit: number | Accessible<number>;
+
+  /**
+   * The roll angle magnitude at which to place the right limit indicator, in degrees. A non-finite value or `NaN` will
+   * cause the indicator to not be displayed.
+   */
+  rightRollLimit: number | Accessible<number>;
+
+  /**
+   * The duration of the indicators' easing animation, in milliseconds. The easing animation is used to smoothly
+   * transition the indicators from one roll angle to another when the roll limits change. Defaults to `1000`.
+   */
+  easeDuration?: number;
+};
+
+/**
+ * Options for the pitch limit indicator.
+ */
+export type HorizonPitchLimitIndicatorOptions = {
+  /**
+   * The pitch angle, in degrees, at which to position the indicator. A non-finite value or `NaN` will cause the
+   * indicator to not be displayed.
+   */
+  pitchLimit?: number | Accessible<number>;
+
+  /**
+   * The angle of attack value, in degrees, at which to position the indicator. A non-finite value or `NaN` will cause
+   * the indicator to not be displayed. Ignored if `pitchLimit` is defined.
+   */
+  aoaLimit?: number | Accessible<number>;
+
+  /**
+   * The normalized angle of attack value, at which to position the indicator. A non-finite value or `NaN` will cause
+   * the indicator to not be displayed. Ignored if `pitchLimit` or `aoaLimit` is defined.
+   */
+  normAoaLimit?: number | Accessible<number>;
+
+  /**
+   * The time constant, in milliseconds, to apply to angle of attack smoothing when converting angle of attack limits
+   * to pitch limits. A value less than or equal to zero is equivalent to no smoothing. Ignored if `pitchLimit` is
+   * defined. Defaults to `0`.
+   */
+  aoaSmoothingTau?: number;
+
+  /**
+   * The offset of the airplane's pitch from the indicated pitch limit, in degrees, at which to show the indicator. For
+   * example, a value of `-5` will cause the indicator to be shown once the airplane's pitch is greater than or equal
+   * to the pitch limit minus 5 degrees.
+   */
+  showPitchOffsetThreshold: number | Accessible<number>;
+
+  /**
+   * The offset of the airplane's pitch from the indicated pitch limit, in degrees, at which to hide the indicator. For
+   * example, a value of `-5` will cause the indicator to be hidden once the airplane's pitch is less than the pitch
+   * limit minus 5 degrees. This value will be clamped to be less than or equal to `showPitchOffsetThreshold`.
+   */
+  hidePitchOffsetThreshold: number | Accessible<number>;
+};
+
+/**
  * Options for the TCAS resolution advisory pitch cue layer.
  */
 export type TcasRaPitchCueLayerOptions = Pick<TcasRaPitchCueLayerProps, 'clipBounds' | 'conformalBounds' | 'tasSmoothingTau' | 'pitchSmoothingTau'>;
@@ -84,6 +153,12 @@ export interface HorizonDisplayProps extends ComponentProps {
 
   /** The index of the FMS positioning system that is the source of the horizon display's data. */
   fmsPosIndex: number | Subscribable<number>;
+
+  /**
+   * The index of the angle of attack computer system that is the source of the horizon display's data. If not defined,
+   * then the display will not have access to angle of attack data.
+   */
+  aoaIndex?: number | Subscribable<number>;
 
   /** The size, as `[width, height]` in pixels, of the horizon display. */
   projectedSize: ReadonlyFloat64Array | Subscribable<ReadonlyFloat64Array>;
@@ -123,6 +198,12 @@ export interface HorizonDisplayProps extends ComponentProps {
 
   /** Options for the dual-cue flight director. Required to display the dual-cue director. */
   flightDirectorDualCueOptions?: Readonly<FlightDirectorDualCueOptions>;
+
+  /** Options for the roll limit indicators. Required to display the roll limit indicators. */
+  rollLimitIndicatorsOptions?: Readonly<HorizonRollLimitIndicatorsOptions>;
+
+  /** Options for the pitch limit indicator. Required to display the pitch limit indicator. */
+  pitchLimitIndicatorOptions?: Readonly<HorizonPitchLimitIndicatorOptions>;
 
   /** Options for the TCAS resolution advisory pitch cue layer. Required to display the TCAS RA pitch cue layer. */
   tcasRaPitchCueLayerOptions?: Readonly<TcasRaPitchCueLayerOptions>;
@@ -169,6 +250,95 @@ export interface HorizonDisplayProps extends ComponentProps {
 }
 
 /**
+ * Resolved options for the roll limit indicators.
+ */
+type RollLimitIndicatorsResolvedOptions = {
+  /**
+   * The roll angle magnitude at which to place the left limit indicator, in degrees. A non-finite value or `NaN` will
+   * cause the indicator to not be displayed.
+   */
+  leftRollLimit: Accessible<number>;
+
+  /**
+   * The roll angle magnitude at which to place the right limit indicator, in degrees. A non-finite value or `NaN` will
+   * cause the indicator to not be displayed.
+   */
+  rightRollLimit: Accessible<number>;
+
+  /**
+   * The duration of the indicators' easing animation, in milliseconds. The easing animation is used to smoothly
+   * transition the indicators from one roll angle to another when the roll limits change.
+   */
+  easeDuration: number;
+};
+
+/**
+ * Resolved base options for the pitch limit indicator.
+ */
+type PitchLimitIndicatorResolvedBaseOptions = {
+  /**
+   * The offset of the airplane's pitch from the indicated pitch limit, in degrees, at which to show the indicator. For
+   * example, a value of `-5` will cause the indicator to be shown once the airplane's pitch is greater than or equal
+   * to the pitch limit minus 5 degrees.
+   */
+  showPitchOffsetThreshold: Accessible<number>;
+
+  /**
+   * The offset of the airplane's pitch from the indicated pitch limit, in degrees, at which to hide the indicator. For
+   * example, a value of `-5` will cause the indicator to be hidden once the airplane's pitch is less than the pitch
+   * limit minus 5 degrees. This value will be clamped to be less than or equal to `showPitchOffsetThreshold`.
+   */
+  hidePitchOffsetThreshold: Accessible<number>;
+};
+
+/**
+ * Resolved pitch limit options for the pitch limit indicator.
+ */
+type PitchLimitIndicatorResolvedPitchOptions = PitchLimitIndicatorResolvedBaseOptions & {
+  /** The type of limit to use. */
+  type: 'pitch';
+
+  /** The pitch angle, in degrees, at which to position the indicator. */
+  pitchLimit: Accessible<number>;
+};
+
+/**
+ * Resolved angle of attack limit options for the pitch limit indicator.
+ */
+type PitchLimitIndicatorResolvedAoaOptions = PitchLimitIndicatorResolvedBaseOptions & {
+  /** The type of limit to use. */
+  type: 'aoa';
+
+  /** The angle of attack value, in degrees, at which to position the indicator. */
+  aoaLimit: Accessible<number>;
+
+  /** The smoother to use to smooth angle of attack values. */
+  aoaSmoother: ExpSmoother;
+};
+
+/**
+ * Resolved normalized angle of attack limit options for the pitch limit indicator.
+ */
+type PitchLimitIndicatorResolvedNormAoaOptions = PitchLimitIndicatorResolvedBaseOptions & {
+  /** The type of limit to use. */
+  type: 'normAoa';
+
+  /** The normalized angle of attack value, at which to position the indicator. */
+  normAoaLimit: Accessible<number>;
+
+  /** The smoother to use to smooth angle of attack values. */
+  aoaSmoother: ExpSmoother;
+};
+
+/**
+ * Resolved options for the pitch limit indicator.
+ */
+type PitchLimitIndicatorResolvedOptions
+  = PitchLimitIndicatorResolvedPitchOptions
+  | PitchLimitIndicatorResolvedAoaOptions
+  | PitchLimitIndicatorResolvedNormAoaOptions;
+
+/**
  * A next-generation (NXi, G3000, etc) Garmin PFD horizon display. Includes an artificial horizon, attitude indicator,
  * aircraft symbol, flight director, and synthetic vision technology (SVT) display.
  */
@@ -197,10 +367,12 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
   private readonly adcIndex = SubscribableUtils.toSubscribable(this.props.adcIndex, true);
   private readonly ahrsIndex = SubscribableUtils.toSubscribable(this.props.ahrsIndex, true);
   private readonly fmsPosIndex = SubscribableUtils.toSubscribable(this.props.fmsPosIndex, true);
+  private readonly aoaIndex = this.props.aoaIndex !== undefined ? SubscribableUtils.toSubscribable(this.props.aoaIndex, true) : undefined;
 
   private adcIndexSub?: Subscription;
   private ahrsIndexSub?: Subscription;
   private fmsPosIndexSub?: Subscription;
+  private aoaIndexSub?: Subscription;
 
   private readonly position = ConsumerSubject.create(null, new LatLongAlt(0, 0, 0));
   private readonly heading = ConsumerSubject.create(null, 0);
@@ -220,14 +392,11 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
 
   private readonly simRate = ConsumerSubject.create(null, 1);
 
-  private readonly adcState = ConsumerSubject.create<AvionicsSystemStateEvent | undefined>(null, undefined);
+  private readonly isOnGround = ConsumerValue.create(null, false);
 
-  private readonly ahrsState = ConsumerSubject.create<AvionicsSystemStateEvent | undefined>(null, undefined);
-  private readonly isHeadingDataValid = ConsumerSubject.create(null, true);
-  private readonly isAttitudeDataValid = ConsumerSubject.create(null, true);
-
-  private readonly fmsPosMode = ConsumerSubject.create(null, FmsPositionMode.None);
-
+  private readonly isAltitudeDataValid = ConsumerSubject.create(null, false);
+  private readonly isAirspeedDataValid = ConsumerSubject.create(null, false);
+  private readonly isTemperatureDataValid = ConsumerSubject.create(null, false);
   private readonly verticalSpeed = this.props.tcasRaPitchCueLayerOptions && this.props.tcasRaCommandDataProvider
     ? ConsumerSubject.create(null, 0)
     : undefined;
@@ -235,7 +404,17 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
     ? ConsumerSubject.create(null, 0)
     : undefined;
 
+  private readonly ahrsState = ConsumerSubject.create<AvionicsSystemStateEvent | undefined>(null, undefined);
+  private readonly isHeadingDataValid = ConsumerSubject.create(null, true);
+  private readonly isAttitudeDataValid = ConsumerSubject.create(null, true);
   private readonly turnCoordinatorBall = ConsumerSubject.create(null, 0);
+
+  private readonly fmsPosMode = ConsumerSubject.create(null, FmsPositionMode.None);
+
+  private readonly isAoaDataValid = ConsumerValue.create(null, false);
+  private readonly aoa = ConsumerValue.create(null, 0);
+  private readonly zeroLiftAoa = ConsumerValue.create(null, 0);
+  private readonly stallAoa = ConsumerValue.create(null, 0);
 
   private readonly fdDataProvider = new DefaultFlightDirectorDataProvider(
     this.props.bus,
@@ -263,11 +442,24 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
   private readonly apMaxBankId = ConsumerSubject.create(null, 0);
   private readonly showLowBankArc = this.apMaxBankId.map(id => id === 1);
 
+  private readonly rollLimitIndicatorsOptions = this.resolveRollLimitIndicatorsOptions();
+
+  private readonly pitchLimitIndicatorOptions = this.resolvePitchLimitIndicatorOptions();
+  private readonly showPitchLimitIndicator = this.pitchLimitIndicatorOptions ? Subject.create(false) : undefined;
+  private readonly pitchLimit = this.pitchLimitIndicatorOptions ? Subject.create(0) : undefined;
+  private readonly pitchLimitIndicatorFormat = this.pitchLimitIndicatorOptions
+    ? SubscribableUtils.isSubscribable(this.props.flightDirectorFormat)
+      ? this.props.flightDirectorFormat.map(format => format === FlightDirectorFormat.DualCue ? PitchLimitIndicatorFormat.DualCue : PitchLimitIndicatorFormat.SingleCue)
+      : this.props.flightDirectorFormat === FlightDirectorFormat.DualCue ? PitchLimitIndicatorFormat.DualCue : PitchLimitIndicatorFormat.SingleCue
+    : undefined;
+
   private readonly showTcasRaPitchCueLayer = this.props.tcasRaPitchCueLayerOptions && this.props.tcasRaCommandDataProvider
     ? MappedSubject.create(
-      ([isAttitudeDataValid, adcState]) => isAttitudeDataValid && adcState !== undefined && (adcState.current === undefined || adcState.current === AvionicsSystemState.On),
+      SubscribableMapFunctions.and(),
       this.isAttitudeDataValid,
-      this.adcState,
+      this.isAltitudeDataValid,
+      this.isAirspeedDataValid,
+      this.isTemperatureDataValid
     )
     : undefined;
 
@@ -340,9 +532,10 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
   private readonly showFailureBox = this.ahrsAlignState.map(state => state === 'failed');
 
   private isAlive = true;
-  private isAwake = true;
+  private isAwake = false;
 
   private readonly updateFreq = SubscribableUtils.toSubscribable(this.props.updateFreq, true);
+  private lastUpdateTime: number | undefined;
 
   private updateFreqSub?: Subscription;
   private updateCycleSub?: Subscription;
@@ -350,7 +543,64 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
 
   private readonly updateCycleHandler = this.onUpdated.bind(this);
 
-  /** @inheritdoc */
+  /**
+   * Resolves pitch limit indicator options passed to this display.
+   * @returns Resolved pitch limit indicator options, or `undefined` if the indicator should not be displayed.
+   */
+  private resolvePitchLimitIndicatorOptions(): PitchLimitIndicatorResolvedOptions | undefined {
+    const options = this.props.pitchLimitIndicatorOptions;
+
+    if (options) {
+      if (options.pitchLimit !== undefined) {
+        return {
+          type: 'pitch',
+          pitchLimit: AccessibleUtils.toAccessible(options.pitchLimit, true),
+          showPitchOffsetThreshold: AccessibleUtils.toAccessible(options.showPitchOffsetThreshold, true),
+          hidePitchOffsetThreshold: AccessibleUtils.toAccessible(options.hidePitchOffsetThreshold, true),
+        };
+      } else if (this.aoaIndex !== undefined) {
+        if (options.aoaLimit !== undefined) {
+          return {
+            type: 'aoa',
+            aoaLimit: AccessibleUtils.toAccessible(options.aoaLimit, true),
+            aoaSmoother: new ExpSmoother(options.aoaSmoothingTau ?? 0),
+            showPitchOffsetThreshold: AccessibleUtils.toAccessible(options.showPitchOffsetThreshold, true),
+            hidePitchOffsetThreshold: AccessibleUtils.toAccessible(options.hidePitchOffsetThreshold, true),
+          };
+        } else if (options.normAoaLimit !== undefined) {
+          return {
+            type: 'normAoa',
+            normAoaLimit: AccessibleUtils.toAccessible(options.normAoaLimit, true),
+            aoaSmoother: new ExpSmoother(options.aoaSmoothingTau ?? 0),
+            showPitchOffsetThreshold: AccessibleUtils.toAccessible(options.showPitchOffsetThreshold, true),
+            hidePitchOffsetThreshold: AccessibleUtils.toAccessible(options.hidePitchOffsetThreshold, true),
+          };
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Resolves roll limit indicators options passed to this display.
+   * @returns Resolved roll limit indicators options, or `undefined` if the indicators should not be displayed.
+   */
+  private resolveRollLimitIndicatorsOptions(): RollLimitIndicatorsResolvedOptions | undefined {
+    const options = this.props.rollLimitIndicatorsOptions;
+
+    if (options) {
+      return {
+        leftRollLimit: AccessibleUtils.toAccessible(options.leftRollLimit, true),
+        rightRollLimit: AccessibleUtils.toAccessible(options.rightRollLimit, true),
+        easeDuration: options.easeDuration ?? 1000
+      };
+    }
+
+    return undefined;
+  }
+
+  /** @inheritDoc */
   public onAfterRender(): void {
     this.horizonRef.instance.projection.onChange(this.onProjectionChanged.bind(this));
 
@@ -358,10 +608,7 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       this.horizonRef.instance.sleep();
     }
 
-    const sub = this.props.bus.getSubscriber<
-      ClockEvents & AdcEvents & AhrsEvents & GNSSEvents & AdcSystemEvents & AhrsSystemEvents & FmsPositionSystemEvents
-      & APEvents
-    >();
+    const sub = this.props.bus.getSubscriber<ClockEvents & AdcEvents & AhrsEvents & GNSSEvents & APEvents>();
 
     this.simRate.setConsumer(sub.on('simRate'));
 
@@ -398,29 +645,12 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
       }
     }, true);
 
-    this.adcIndexSub = this.adcIndex.sub(index => {
-      this.verticalSpeed?.setConsumer(sub.on(`adc_vertical_speed_${index}`));
-      this.tas?.setConsumer(sub.on(`adc_tas_${index}`));
+    this.isOnGround.setConsumer(sub.on('on_ground'));
 
-      this.adcState.setConsumer(sub.on(`adc_state_${index}`));
-    }, true);
-
-    this.ahrsIndexSub = this.ahrsIndex.sub(index => {
-      this.heading.setConsumer(sub.on(`ahrs_hdg_deg_true_${index}`));
-      this.pitch.setConsumer(sub.on(`ahrs_pitch_deg_${index}`));
-      this.roll.setConsumer(sub.on(`ahrs_roll_deg_${index}`));
-
-      this.turnCoordinatorBall.setConsumer(sub.on(`ahrs_turn_coordinator_ball_${index}`));
-
-      this.ahrsState.setConsumer(sub.on(`ahrs_state_${index}`));
-      this.isHeadingDataValid.setConsumer(sub.on(`ahrs_heading_data_valid_${index}`));
-      this.isAttitudeDataValid.setConsumer(sub.on(`ahrs_attitude_data_valid_${index}`));
-    }, true);
-
-    this.fmsPosIndexSub = this.fmsPosIndex.sub(index => {
-      this.position.setConsumer(sub.on(`fms_pos_gps-position_${index}`));
-      this.fmsPosMode.setConsumer(sub.on(`fms_pos_mode_${index}`));
-    }, true);
+    this.adcIndexSub = this.adcIndex.sub(this.onAdcIndexChanged.bind(this), true);
+    this.ahrsIndexSub = this.ahrsIndex.sub(this.onAhrsIndexChanged.bind(this), true);
+    this.fmsPosIndexSub = this.fmsPosIndex.sub(this.onFmsPosIndexChanged.bind(this), true);
+    this.aoaIndexSub = this.aoaIndex?.sub(this.onAoaIndexChanged.bind(this), true);
 
     this.apMaxBankId.setConsumer(sub.on('ap_max_bank_id'));
 
@@ -451,6 +681,91 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
         .atFrequency(freq)
         .handle(this.updateCycleHandler, !this.isAwake);
     }, true);
+  }
+
+  /**
+   * Responds to when the index of the ADC from which this display sources data changes.
+   * @param index The new index of the ADC from which this display sources data.
+   */
+  private onAdcIndexChanged(index: number): void {
+    if (index < 1) {
+      this.verticalSpeed?.reset(0);
+      this.tas?.reset(0);
+      this.isAltitudeDataValid.reset(false);
+      this.isAirspeedDataValid.reset(false);
+      this.isTemperatureDataValid.reset(false);
+    } else {
+      const sub = this.props.bus.getSubscriber<AdcSystemEvents>();
+      this.verticalSpeed?.setConsumerWithDefault(sub.on(`adc_vertical_speed_${index}`), 0);
+      this.tas?.setConsumerWithDefault(sub.on(`adc_tas_${index}`), 0);
+      this.isAltitudeDataValid.setConsumerWithDefault(sub.on(`adc_altitude_data_valid_${index}`), false);
+      this.isAirspeedDataValid.setConsumerWithDefault(sub.on(`adc_airspeed_data_valid_${index}`), false);
+      this.isTemperatureDataValid.setConsumerWithDefault(sub.on(`adc_temperature_data_valid_${index}`), false);
+    }
+  }
+
+  /**
+   * Responds to when the index of the AHRS from which this display sources data changes.
+   * @param index The new index of the AHRS from which this display sources data.
+   */
+  private onAhrsIndexChanged(index: number): void {
+    if (index < 1) {
+      this.heading.reset(0);
+      this.pitch.reset(0);
+      this.roll.reset(0);
+
+      this.turnCoordinatorBall.reset(0);
+
+      this.ahrsState.reset(undefined);
+      this.isHeadingDataValid.reset(false);
+      this.isAttitudeDataValid.reset(false);
+    } else {
+      const sub = this.props.bus.getSubscriber<AhrsSystemEvents>();
+
+      this.heading.setConsumerWithDefault(sub.on(`ahrs_hdg_deg_true_${index}`), 0);
+      this.pitch.setConsumerWithDefault(sub.on(`ahrs_pitch_deg_${index}`), 0);
+      this.roll.setConsumerWithDefault(sub.on(`ahrs_roll_deg_${index}`), 0);
+
+      this.turnCoordinatorBall.setConsumerWithDefault(sub.on(`ahrs_turn_coordinator_ball_${index}`), 0);
+
+      this.ahrsState.setConsumerWithDefault(sub.on(`ahrs_state_${index}`), undefined);
+      this.isHeadingDataValid.setConsumerWithDefault(sub.on(`ahrs_heading_data_valid_${index}`), false);
+      this.isAttitudeDataValid.setConsumerWithDefault(sub.on(`ahrs_attitude_data_valid_${index}`), false);
+    }
+  }
+
+  /**
+   * Responds to when the index of the FMS positioning system from which this display sources data changes.
+   * @param index The new index of the FMS positioning system from which this display sources data.
+   */
+  private onFmsPosIndexChanged(index: number): void {
+    if (index < 1) {
+      this.position.setConsumer(null);
+      this.fmsPosMode.reset(FmsPositionMode.None);
+    } else {
+      const sub = this.props.bus.getSubscriber<FmsPositionSystemEvents>();
+      this.position.setConsumer(sub.on(`fms_pos_gps-position_${index}`));
+      this.fmsPosMode.setConsumerWithDefault(sub.on(`fms_pos_mode_${index}`), FmsPositionMode.None);
+    }
+  }
+
+  /**
+   * Responds to when the index of the angle of attack computer system from which this display sources data changes.
+   * @param index The new index of the angle of attack computer system from which this display sources data.
+   */
+  private onAoaIndexChanged(index: number): void {
+    if (index < 1) {
+      this.isAoaDataValid.reset(false);
+      this.aoa.reset(0);
+      this.zeroLiftAoa.reset(0);
+      this.stallAoa.reset(0);
+    } else {
+      const sub = this.props.bus.getSubscriber<AoaSystemEvents>();
+      this.isAoaDataValid.setConsumerWithDefault(sub.on(`aoa_data_valid_${index}`), false);
+      this.aoa.setConsumerWithDefault(sub.on(`aoa_aoa_${index}`), 0);
+      this.zeroLiftAoa.setConsumerWithDefault(sub.on(`aoa_zero_lift_aoa_${index}`), 0);
+      this.stallAoa.setConsumerWithDefault(sub.on(`aoa_stall_aoa_${index}`), 0);
+    }
   }
 
   /**
@@ -501,6 +816,7 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
 
     this.horizonRef.getOrDefault()?.sleep();
     this.updateCycleSub?.pause();
+    this.lastUpdateTime = undefined;
   }
 
   /**
@@ -508,7 +824,7 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
    * @param projection This display's horizon projection.
    * @param changeFlags The types of changes made to the projection.
    */
-  public onProjectionChanged(projection: HorizonProjection, changeFlags: number): void {
+  private onProjectionChanged(projection: HorizonProjection, changeFlags: number): void {
     if (BitFlags.isAny(
       changeFlags,
       HorizonProjectionChangeType.ProjectedOffset
@@ -549,13 +865,76 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
    * @param time The current time, as a UNIX timestamp in milliseconds.
    */
   private onUpdated(time: number): void {
+    const dt = this.lastUpdateTime === undefined
+      ? 0
+      : MathUtils.clamp(time - this.lastUpdateTime, 0, 2000) * this.simRate.get();
+
     this.fdDataProvider.update(time);
 
     this.horizonRef.instance.projection.set(this.projectionParams);
+
+    this.updatePitchLimitIndicatorParams(dt);
+
     this.horizonRef.instance.update(time);
+
+    this.lastUpdateTime = time;
   }
 
-  /** @inheritdoc */
+  /**
+   * Updates the parameters for this display's pitch limit indicator.
+   * @param dt The elapsed time since the last update, in milliseconds.
+   */
+  private updatePitchLimitIndicatorParams(dt: number): void {
+    if (!this.pitchLimitIndicatorOptions) {
+      return;
+    }
+
+    const options = this.pitchLimitIndicatorOptions;
+
+    if (!this.isAttitudeDataValid.get() || this.isOnGround.get()) {
+      if (options.type !== 'pitch') {
+        options.aoaSmoother.reset();
+      }
+      this.showPitchLimitIndicator!.set(false);
+      return;
+    }
+
+    const pitch = this.horizonRef.instance.projection.getPitch();
+
+    let pitchLimit = NaN;
+    if (options.type === 'pitch') {
+      pitchLimit = options.pitchLimit.get();
+    } else {
+      if (this.isAoaDataValid.get()) {
+        const aoa = options.aoaSmoother.next(this.aoa.get(), dt);
+
+        let aoaLimit: number;
+        if (options.type === 'normAoa') {
+          aoaLimit = MathUtils.lerp(options.normAoaLimit.get(), 0, 1, this.zeroLiftAoa.get(), this.stallAoa.get());
+        } else {
+          aoaLimit = options.aoaLimit.get();
+        }
+
+        pitchLimit = pitch + aoaLimit - aoa;
+      } else {
+        options.aoaSmoother.reset();
+      }
+    }
+
+    const isVisible = this.showPitchLimitIndicator!.get();
+    const showThreshold = options.hidePitchOffsetThreshold.get();
+    const hideThreshold = Math.min(options.hidePitchOffsetThreshold.get(), showThreshold);
+
+    const show = isFinite(pitchLimit)
+      && pitch >= pitchLimit + (isVisible ? hideThreshold : showThreshold);
+
+    this.showPitchLimitIndicator!.set(show);
+    if (show) {
+      this.pitchLimit!.set(pitchLimit);
+    }
+  }
+
+  /** @inheritDoc */
   public render(): VNode {
     const projection = new HorizonProjection(100, 100, 60);
 
@@ -619,6 +998,7 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
           showLowBankArc={this.showLowBankArc}
           turnCoordinatorBall={this.turnCoordinatorBall}
           options={this.props.rollIndicatorOptions}
+          scaleComponents={this.createRollScaleComponentFactories()}
         />
         <FlightPathMarker
           projection={projection}
@@ -653,12 +1033,46 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
             />
           )
         }
+        {this.pitchLimitIndicatorOptions !== undefined && (
+          <PitchLimitIndicator
+            projection={projection}
+            show={this.showPitchLimitIndicator!}
+            format={this.pitchLimitIndicatorFormat!}
+            pitchLimit={this.pitchLimit!}
+            clipBounds={this.props.pitchLadderOptions.clipBounds}
+          />
+        )}
         <FailureBox show={this.showFailureBox} class='attitude-failure-box' />
       </HorizonComponent>
     );
   }
 
-  /** @inheritdoc */
+  /**
+   * Creates roll scale component factories for this display's roll indicator.
+   * @returns An array containing the roll scale component factories for this display's roll indicator.
+   */
+  private createRollScaleComponentFactories(): RollIndicatorScaleComponentFactory[] {
+    const factories: RollIndicatorScaleComponentFactory[] = [];
+
+    if (this.rollLimitIndicatorsOptions) {
+      factories.push((projection, scaleParams) => {
+        return (
+          <RollLimitIndicators
+            projection={projection}
+            scaleParams={scaleParams}
+            show={this.isAttitudeDataValid}
+            leftRollLimit={this.rollLimitIndicatorsOptions!.leftRollLimit}
+            rightRollLimit={this.rollLimitIndicatorsOptions!.rightRollLimit}
+            easeDuration={this.rollLimitIndicatorsOptions!.easeDuration}
+          />
+        );
+      });
+    }
+
+    return factories;
+  }
+
+  /** @inheritDoc */
   public destroy(): void {
     this.isAlive = false;
 
@@ -668,16 +1082,29 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
 
     this.fdDataProvider.destroy();
 
-    this.adcState.destroy();
+    this.isAltitudeDataValid.destroy();
+    this.isAirspeedDataValid.destroy();
+    this.isTemperatureDataValid.destroy();
+    this.verticalSpeed?.destroy();
+    this.tas?.destroy();
     this.ahrsState.destroy();
     this.isHeadingDataValid.destroy();
     this.isAttitudeDataValid.destroy();
+    this.turnCoordinatorBall.destroy();
     this.fmsPosMode.destroy();
+    this.isAoaDataValid.destroy();
+    this.aoa.destroy();
+    this.zeroLiftAoa.destroy();
+    this.stallAoa.destroy();
     this.isSvtEnabled.destroy();
     this.apMaxBankId.destroy();
     this.horizonLineShowHeadingLabels.destroy();
     this.showFpm?.destroy();
     this.showFlightDirector.destroy();
+
+    if (SubscribableUtils.isSubscribable(this.pitchLimitIndicatorFormat)) {
+      this.pitchLimitIndicatorFormat.destroy();
+    }
 
     if (SubscribableUtils.isSubscribable(this.aircraftSymbolFormat)) {
       this.aircraftSymbolFormat.destroy();
@@ -696,6 +1123,7 @@ export class HorizonDisplay extends DisplayComponent<HorizonDisplayProps> {
     this.adcIndexSub?.destroy();
     this.ahrsIndexSub?.destroy();
     this.fmsPosIndexSub?.destroy();
+    this.aoaIndexSub?.destroy();
     this.isSvtEnabledPipe?.destroy();
 
     this.horizonRef.getOrDefault()?.destroy();

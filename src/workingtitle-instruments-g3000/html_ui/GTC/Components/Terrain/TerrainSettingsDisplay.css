@@ -1,0 +1,37 @@
+.terrain-settings-display {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.gtc-horizontal .terrain-settings-display {
+  font-size: 35px;
+
+  --terrain-settings-display-button-width: 260px;
+  --terrain-settings-display-button-height: 166px;
+
+  --terrain-settings-display-button-margin: 8px 12px;
+}
+
+.gtc-vertical .terrain-settings-display {
+  font-size: 18px;
+
+  --terrain-settings-display-button-width: 140px;
+  --terrain-settings-display-button-height: 75px;
+
+  --terrain-settings-display-button-margin: 3px 5px;
+}
+
+.terrain-settings-display-row {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.terrain-settings-display-button {
+  width: var(--terrain-settings-display-button-width);
+  height: var(--terrain-settings-display-button-height);
+  margin: var(--terrain-settings-display-button-margin);
+}

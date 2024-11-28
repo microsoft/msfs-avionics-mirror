@@ -1,0 +1,12 @@
+.flight-path-speed-error {
+  position: absolute;
+  top: 50%;
+  left: 21px;
+  width: 8px;
+  height: 50px;
+  transform-origin: top;
+
+  background: var(--epic2-color-green);
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 0 1px var(--epic2-color-black);
+}

@@ -1,0 +1,46 @@
+.fpln-alt-spd-tab {
+  padding: 4px 2px 5px 1px;
+}
+
+.fpln-alt-spd-tab p {
+  font-size: 21px;
+}
+
+.fpln-alt-spd-grid-speeds {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+}
+
+.fpln-alt-spd-grid-speeds .input-box-container,
+.fpln-alt-spd-grid-speeds .input-box {
+  width: 60px;
+}
+
+.fpln-alt-spd-title {
+  margin-bottom: 2px;
+}
+
+.fpln-perf-mode {
+  border-top: 2px solid var(--epic2-color-white);
+}
+
+.fpln-perf-mode-title {
+  margin-bottom: 10px;
+  margin-top: 5px;
+}
+
+.fpln-alt-spd-tab-padding {
+  padding-left: 10px;
+}
+
+.fpln-alt-spd-tab-radios {
+  padding-left: 5px;
+}
+
+.fpln-alt-spd-tab-radios .radio-button-container {
+  margin-bottom: 12px;
+}
+
+.fpln-alt-spd-tab-hide-crzFF {
+  visibility: hidden;
+}

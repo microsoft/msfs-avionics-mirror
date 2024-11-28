@@ -1,0 +1,131 @@
+epic2-pfd {
+  font-size: 60px;
+}
+
+epic2-pfd,
+epic2-pfd #Mainframe,
+epic2-pfd #Electricity {
+  width: 100%;
+  height: 100%;
+}
+
+epic2-pfd #border-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: flex;
+}
+
+epic2-pfd.right #border-overlay {
+  flex-direction: row-reverse;
+}
+
+epic2-pfd #border-overlay #left-two-thirds {
+  width: 679px;
+  height: 100%;
+  --epic2-border-section-top-width: 0;
+  --epic2-border-section-bottom-width: 0;
+}
+
+epic2-pfd.right #border-overlay #left-two-thirds {
+  width: 679px;
+}
+
+epic2-pfd.left #border-overlay #left-two-thirds {
+  --epic2-border-section-left-width: 0;
+}
+
+epic2-pfd.right #border-overlay #left-two-thirds {
+  --epic2-border-section-right-width: 0;
+}
+
+epic2-pfd #border-overlay #right-one-third {
+  flex-grow: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+epic2-pfd #border-overlay #right-one-third #top-one-sixth,
+epic2-pfd #border-overlay #right-one-third #bottom-one-sixth {
+  width: 100%;
+  height: 50%;
+}
+
+epic2-pfd.left #border-overlay #right-one-third #top-one-sixth {
+  --epic2-border-section-top-width: 0;
+  --epic2-border-section-right-width: 0;
+}
+
+epic2-pfd.right #border-overlay #right-one-third #top-one-sixth {
+  --epic2-border-section-top-width: 0;
+  --epic2-border-section-left-width: 0;
+}
+
+epic2-pfd.left #border-overlay #right-one-third #bottom-one-sixth {
+  --epic2-border-section-bottom-width: 0;
+  --epic2-border-section-right-width: 0;
+}
+
+epic2-pfd.right #border-overlay #right-one-third #bottom-one-sixth {
+  --epic2-border-section-bottom-width: 0;
+  --epic2-border-section-left-width: 0;
+}
+
+epic2-pfd #HorizonSection {
+  position: absolute;
+  top: 0;
+  width: 683px;
+  height: 100%;
+  overflow: hidden;
+}
+
+epic2-pfd #SystemSection {
+  position: absolute;
+  top: 0;
+  width: 341px;
+  height: 100%;
+  overflow: hidden;
+}
+
+epic2-pfd.left #HorizonSection,
+epic2-pfd.right #SystemSection {
+  left: 0;
+}
+
+epic2-pfd.right #HorizonSection {
+  right: -7px;
+}
+
+epic2-pfd.left #SystemSection {
+  right: 0;
+}
+
+epic2-pfd #EngineSection {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+}
+
+epic2-pfd #RadioSection {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+}
+
+epic2-pfd .border-box {
+  border: 2px solid var(--epic2-color-grey);
+  border-radius: 3px;
+  box-shadow: 0px 0px 1.5px rgba(0, 0, 0, 0.8), inset 0px 0px 1.5px rgba(0, 0, 0, 0.8);
+}
+
+epic2-pfd .shaded-box {
+  background: rgba(0, 0, 0, 0.2);
+}

@@ -1,7 +1,7 @@
 import { ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FSComponent, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
 
+import { InstrumentConfig, WT21InstrumentType } from '../../Config';
 import { WT21ControlEvents } from '../../WT21ControlEvents';
-import { WT21DisplayUnitFsInstrument, WT21DisplayUnitType } from '../../WT21DisplayUnitFsInstrument';
 
 import './FormatInfo.css';
 
@@ -12,8 +12,8 @@ export interface FormatInfoProps extends ComponentProps {
   /** The event bus */
   bus: EventBus,
 
-  /** The display unit */
-  displayUnit: WT21DisplayUnitFsInstrument,
+  /** The instrument config object */
+  instrumentConfig: InstrumentConfig,
 
   /** The format to control */
   format: 'upper' | 'lower',
@@ -31,11 +31,11 @@ export class FormatSwitch extends DisplayComponent<FormatInfoProps> {
     right: 'M 3, 2 l 4, 5 l -4, 5',
   };
 
-  private readonly formatChangeSub = ConsumerSubject.create(this.props.bus.getSubscriber<WT21ControlEvents>().on(`softkeyFormatChangeActive_${this.props.displayUnit.displayUnitIndex}`), false);
+  private readonly formatChangeSub = ConsumerSubject.create(this.props.bus.getSubscriber<WT21ControlEvents>().on(`softkeyFormatChangeActive_${this.props.instrumentConfig.instrumentIndex as 1 | 2}`), false);
 
-  private readonly formatText = this.props.displayUnit.displayUnitType === WT21DisplayUnitType.Pfd ? 'FORMAT' : (this.props.format === 'upper' ? 'UPPER FORMAT' : 'LOWER FORMAT');
+  private readonly formatText = this.props.instrumentConfig.instrumentType === WT21InstrumentType.Pfd ? 'FORMAT' : (this.props.format === 'upper' ? 'UPPER FORMAT' : 'LOWER FORMAT');
 
-  private readonly showLabel: Subscribable<boolean> = this.props.displayUnit.displayUnitType === WT21DisplayUnitType.Pfd
+  private readonly showLabel: Subscribable<boolean> = this.props.instrumentConfig.instrumentType === WT21InstrumentType.Pfd
     ? Subject.create(true)
     : this.formatChangeSub;
 

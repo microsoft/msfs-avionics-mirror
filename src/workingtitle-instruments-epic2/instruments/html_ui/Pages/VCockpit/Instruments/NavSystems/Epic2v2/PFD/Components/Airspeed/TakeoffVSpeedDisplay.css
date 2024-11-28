@@ -1,0 +1,33 @@
+.takeoff-vspeed-display {
+  position: absolute;
+  width: 83px;
+  bottom: 2px;
+  right: 58px;
+  display: flex;
+  flex-direction: column;
+}
+
+.takeoff-vspeed-display .row {
+  display: flex;
+  font-size: 22px;
+  justify-content: flex-end;
+  color: var(--epic2-color-white);
+  line-height: 0.9em;
+}
+
+.takeoff-vspeed-display .vspeed-symbol {
+  stroke: var(--epic2-color-white);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  filter: drop-shadow(0px 0px 1px rgba(0, 0, 0, 1));
+  margin-top: -3px;
+}
+
+.takeoff-vspeed-display .vspeed-symbol text {
+  stroke: rgba(0, 0, 0, 0.2);
+  stroke-width: 1px;
+  fill: var(--epic2-color-white);
+  font-size: 22px;
+}

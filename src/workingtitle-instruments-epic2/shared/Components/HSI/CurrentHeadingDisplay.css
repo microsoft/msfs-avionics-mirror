@@ -1,0 +1,37 @@
+.current-heading-container {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+}
+
+#HorizonSection .current-heading-container {
+  top: 431px;
+  left: 309px;
+  z-index: 10;
+}
+
+.map-container .current-heading-container {
+  top: 62px;
+}
+
+.current-heading-container .heading-value {
+  position: absolute;
+  font-size: 30px;
+  color: var(--epic2-color-white);
+  white-space: pre;
+}
+
+.current-heading-container .heading-value.invalid {
+  color: var(--epic2-color-amber);
+}
+
+.current-heading-container .lubber-line {
+  position: absolute;
+  width: 75px;
+  height: 45px;
+  stroke: var(--epic2-color-white);
+  fill: none;
+  stroke-width: 3px;
+  stroke-linecap: round;
+  filter: drop-shadow(0px 0px 1px rgba(0, 0, 0, .8));
+}

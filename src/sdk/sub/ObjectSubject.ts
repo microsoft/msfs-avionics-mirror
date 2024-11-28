@@ -81,19 +81,6 @@ export class ObjectSubject<T extends Record<string, any>> implements MutableSubs
     }
   }
 
-  /** @inheritdoc */
-  public unsub(handler: ObjectSubjectHandler<T>): void {
-    let toDestroy: HandlerSubscription<ObjectSubjectHandler<T>> | undefined = undefined;
-
-    if (this.singletonSub && this.singletonSub.handler === handler) {
-      toDestroy = this.singletonSub;
-    } else if (this.subs) {
-      toDestroy = this.subs.find(sub => sub.handler === handler);
-    }
-
-    toDestroy?.destroy();
-  }
-
   /**
    * Sets the values of a subset of the properties of this subject's object and notifies subscribers if any of the
    * values changed.
@@ -164,7 +151,7 @@ export class ObjectSubject<T extends Record<string, any>> implements MutableSubs
       for (let i = 0; i < subLen; i++) {
         try {
           const sub = this.subs[i];
-          if (sub.isAlive && !sub.isPaused) {
+          if (!sub.isPaused) {
             sub.handler(this.obj, key, this.obj[key], oldValue);
           }
 

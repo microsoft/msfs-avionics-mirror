@@ -1,8 +1,8 @@
-import { PublishPacer } from '../data';
 import { EventBus, IndexedEventType } from '../data/EventBus';
+import { PublishPacer } from '../data/EventBusPacer';
 import { SimVarValueType } from '../data/SimVars';
-import { MagVar } from '../geo';
-import { SimVarPublisher, SimVarPublisherEntry } from './BasePublishers';
+import { MagVar } from '../geo/MagVar';
+import { SimVarPublisher } from './BasePublishers';
 
 /**
  * Base events related to attitude and heading of the airplane.
@@ -71,6 +71,10 @@ export interface AhrsEvents extends BaseAhrsEvents, AhrsIndexedEvents {
  * A publisher for AHRS information.
  */
 export class AhrsPublisher extends SimVarPublisher<AhrsEvents> {
+  private readonly registeredSimVarIds = {
+    magVar: SimVar.GetRegisteredId('MAGVAR', SimVarValueType.Degree, ''),
+  };
+
   private magVar: number;
   private needUpdateMagVar: boolean;
 
@@ -80,7 +84,7 @@ export class AhrsPublisher extends SimVarPublisher<AhrsEvents> {
    * @param pacer An optional pacer to use to control the rate of publishing.
    */
   public constructor(bus: EventBus, pacer?: PublishPacer<AhrsEvents>) {
-    const simvars = new Map<keyof AhrsEvents, SimVarPublisherEntry<any>>([
+    super([
       ['pitch_deg', { name: 'ATTITUDE INDICATOR PITCH DEGREES:#index#', type: SimVarValueType.Degree, indexed: true }],
       ['roll_deg', { name: 'ATTITUDE INDICATOR BANK DEGREES:#index#', type: SimVarValueType.Degree, indexed: true }],
 
@@ -93,9 +97,7 @@ export class AhrsPublisher extends SimVarPublisher<AhrsEvents> {
       ['actual_hdg_deg_true', { name: 'PLANE HEADING DEGREES TRUE', type: SimVarValueType.Degree }],
       ['actual_pitch_deg', { name: 'PLANE PITCH DEGREES', type: SimVarValueType.Degree }],
       ['actual_roll_deg', { name: 'PLANE BANK DEGREES', type: SimVarValueType.Degree }],
-    ]);
-
-    super(simvars, bus, pacer);
+    ], bus, pacer);
 
     this.magVar = 0;
     this.needUpdateMagVar ??= false;
@@ -113,7 +115,7 @@ export class AhrsPublisher extends SimVarPublisher<AhrsEvents> {
   /** @inheritdoc */
   public onUpdate(): void {
     if (this.needUpdateMagVar) {
-      this.magVar = SimVar.GetSimVarValue('MAGVAR', SimVarValueType.Degree);
+      this.magVar = SimVar.GetSimVarValueFastReg(this.registeredSimVarIds.magVar);
     }
 
     super.onUpdate();

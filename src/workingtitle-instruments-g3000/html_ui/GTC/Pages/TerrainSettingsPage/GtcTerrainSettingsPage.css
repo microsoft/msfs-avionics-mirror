@@ -1,0 +1,58 @@
+.terrain-settings-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+
+  --touch-button-toggle-label-center-y: 45%;
+  --touch-button-toggle-bar-center-y: 87%;
+}
+
+.gtc-horizontal .terrain-settings-page {
+  font-size: 35px;
+
+  --touch-button-toggle-bar-width: 120px;
+
+  --terrain-settings-page-main-top: 60px;
+  --terrain-settings-page-main-height: 706px;
+  --terrain-settings-page-main-padding: 4px 33px 12px;
+
+  --terrain-settings-page-button-width: 260px;
+  --terrain-settings-page-button-height: 166px;
+}
+
+.gtc-vertical .terrain-settings-page {
+  font-size: 18px;
+
+  --touch-button-toggle-bar-width: 64px;
+
+  --terrain-settings-page-main-top: 32px;
+  --terrain-settings-page-main-height: 380px;
+  --terrain-settings-page-main-padding: 0px 15px 3px;
+
+  --terrain-settings-page-button-width: 140px;
+  --terrain-settings-page-button-height: 75px;
+}
+
+.terrain-settings-page-main {
+  position: absolute;
+  left: 50%;
+  top: var(--terrain-settings-page-main-top);
+  height: var(--terrain-settings-page-main-height);
+  padding: var(--terrain-settings-page-main-padding);
+  transform: translateX(-50%);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.terrain-settings-page .terrain-settings-display {
+  position: relative;
+}
+
+.terrain-settings-page-show-aviation-data-button {
+  width: var(--terrain-settings-page-button-width);
+  height: var(--terrain-settings-page-button-height);
+  margin: auto 0px;
+}

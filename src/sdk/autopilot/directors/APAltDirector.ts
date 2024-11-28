@@ -4,7 +4,7 @@ import { SimVarValueType } from '../../data';
 import { NavMath } from '../../geo';
 import { MathUtils } from '../../math';
 import { Subscription } from '../../sub';
-import { APValues } from '../APConfig';
+import { APValues } from '../APValues';
 import { VNavUtils } from '../vnav/VNavUtils';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
 

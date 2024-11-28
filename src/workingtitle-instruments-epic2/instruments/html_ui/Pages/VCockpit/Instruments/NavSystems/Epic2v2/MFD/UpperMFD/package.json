@@ -1,0 +1,15 @@
+{
+  "name": "@microsoft/msfs-epic2-mfd-upper",
+  "version": "2.0.7",
+  "description": "Working Title MSFS Epic2 (upper) MFD Library",
+  "main": "index.ts",
+  "scripts": {
+    "build:defs": "tsc -p tsconfig-defs-only.json && cp package-defs-only.json build/package.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://workingtitlesim@dev.azure.com/workingtitlesim/KittyHawk/_git/ProjectGolf"
+  },
+  "author": "Working Title Simulations, LLC",
+  "license": "Modified MIT"
+}

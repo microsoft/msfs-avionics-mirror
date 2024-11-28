@@ -1,0 +1,26 @@
+.weight-balance-pane-load-station {
+  font-size: 15px;
+  background: var(--g3000-color-black);
+  border: solid 1px #404040;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+}
+
+.weight-balance-pane-load-station-title {
+  padding: 1px 0px;
+  border-bottom: solid 1px #404040;
+  text-align: center;
+}
+
+.weight-balance-pane-load-station-weight {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.weight-balance-pane-load-station-weight-value {
+  font-size: 1.25em;
+  color: var(--g3000-color-cyan);
+}
