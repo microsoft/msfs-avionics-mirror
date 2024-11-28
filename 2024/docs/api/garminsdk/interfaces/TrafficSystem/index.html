@@ -1,0 +1,864 @@
+<!doctype html><html lang=en dir=ltr class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-api/garminsdk/interfaces/TrafficSystem" data-has-hydrated=false><meta charset=UTF-8><meta name=generator content="Docusaurus v3.6.3"><title data-rh=true>Interface: TrafficSystem | MSFS Avionics Frameworks and Instruments</title><meta data-rh=true name=viewport content="width=device-width,initial-scale=1.0"><meta data-rh=true name=twitter:card content=summary_large_image><meta data-rh=true property=og:url content=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficSystem><meta data-rh=true property=og:locale content=en><meta data-rh=true name=docusaurus_locale content=en><meta data-rh=true name=docsearch:language content=en><meta data-rh=true name=docusaurus_version content=current><meta data-rh=true name=docusaurus_tag content=docs-default-current><meta data-rh=true name=docsearch:version content=current><meta data-rh=true name=docsearch:docusaurus_tag content=docs-default-current><meta data-rh=true property=og:title content="Interface: TrafficSystem | MSFS Avionics Frameworks and Instruments"><meta data-rh=true name=description content="A Garmin traffic system."><meta data-rh=true property=og:description content="A Garmin traffic system."><link data-rh=true rel=icon href=/msfs-avionics-mirror/2024/img/favicon.ico><link data-rh=true rel=canonical href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficSystem><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficSystem hreflang=en><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficSystem hreflang=x-default><link rel=stylesheet href=/msfs-avionics-mirror/2024/assets/css/styles.cf019111.css><script src=/msfs-avionics-mirror/2024/assets/js/runtime~main.20b6808c.js defer></script><script src=/msfs-avionics-mirror/2024/assets/js/main.2952ccb2.js defer></script><body class=navigation-with-keyboard><script>!function(){var t,e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();t=null!==e?e:"dark",document.documentElement.setAttribute("data-theme",t)}(),function(){try{for(var[t,e]of new URLSearchParams(window.location.search).entries())if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id=__docusaurus><div role=region aria-label="Skip to main content"><a class=skipToContent_fXgn href=#__docusaurus_skipToContent_fallback>Skip to main content</a></div><nav aria-label=Main class="navbar navbar--fixed-top"><div class=navbar__inner><div class=navbar__items><button aria-label="Toggle navigation bar" aria-expanded=false class="navbar__toggle clean-btn" type=button><svg width=30 height=30 viewBox="0 0 30 30" aria-hidden=true><path stroke=currentColor stroke-linecap=round stroke-miterlimit=10 stroke-width=2 d="M4 7h22M4 15h22M4 23h22"/></svg></button><a class=navbar__brand href=/msfs-avionics-mirror/2024/><div class=navbar__logo><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">MSFS Avionics Development</b></a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><a class="navbar__item navbar__link" href=/msfs-avionics-mirror/2024/docs/api/framework/>Framework API</a><a class="navbar__item navbar__link" href=/msfs-avionics-mirror/2024/docs/api/garminsdk/>Garmin API</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/g3000/overview>G3000 Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/gns/overview>GNS Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/g3xtouch/overview>G3X Touch Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/wt21/overview>WT21 Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/epic2/overview>Epic2 Development</a></div><div class="navbar__items navbar__items--right"><div class=navbarSearchContainer_Bca1></div></div></div><div role=presentation class=navbar-sidebar__backdrop></div></nav><div id=__docusaurus_skipToContent_fallback class="main-wrapper mainWrapper_z2l0"><div class=docsWrapper_hBAB><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type=button></button><div class=docRoot_UBD9><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class=sidebarViewport_aRkj><div class=sidebar_njMd><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class=menu__link href=/msfs-avionics-mirror/2024/docs/intro>MSFS Avionics Framework</a><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/getting-started/setting-up-your-environment>Getting Started</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/interacting-with-msfs/simvars>Interacting with MSFS</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true href=/msfs-avionics-mirror/2024/docs/api/framework/globals>API References</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/framework/globals>Framework API Reference</a><button aria-label="Expand sidebar category 'Framework API Reference'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--active" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/globals>Garmin API Reference</a><button aria-label="Collapse sidebar category 'Garmin API Reference'" aria-expanded=true type=button class="clean-btn menu__caret"></button></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/enumerations/ActiveNavSource>Enumerations</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/classes/AbstractFlightPlanLegWaypointsRecord>Classes</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AdcSystemEvents>Interfaces</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AdcSystemEvents>AdcSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AglSystemEvents>AglSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AhrsSystemEvents>AhrsSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AirspeedAoaDataProvider>AirspeedAoaDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AirspeedDefinition>AirspeedDefinition</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AirspeedIndicatorDataProvider>AirspeedIndicatorDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AirspeedIndicatorProps>AirspeedIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AltimeterDataProvider>AltimeterDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AltimeterProps>AltimeterProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AltitudeAlerterControlEvents>AltitudeAlerterControlEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AoaDataProvider>AoaDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AoAIndicatorProps>AoAIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AoaSystemEvents>AoaSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/ApproachNameDisplayProps>ApproachNameDisplayProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/ArtificalHorizonProps>ArtificalHorizonProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/ArtificialHorizonOptions>ArtificialHorizonOptions</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/AttitudeAircraftSymbolProps>AttitudeAircraftSymbolProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/BaseFmsEvents>BaseFmsEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/BaseGarminVNavDataEvents>BaseGarminVNavDataEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/BaseGarminVNavEvents>BaseGarminVNavEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/BaseLNavDataEvents>BaseLNavDataEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/BearingDisplayProps>BearingDisplayProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/BgImgTouchButtonProps>BgImgTouchButtonProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/CasDisplay2Props>CasDisplay2Props</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/CASProps>CASProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/DynamicListData>DynamicListData</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/EspDataProvider>EspDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/EspForceController>EspForceController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/EspModule>EspModule</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/FailureBoxProps>FailureBoxProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/FlightDirectorDataProvider>FlightDirectorDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/FlightDirectorDualCueProps>FlightDirectorDualCueProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/FlightDirectorSingleCueProps>FlightDirectorSingleCueProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/FlightPathMarkerProps>FlightPathMarkerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/FlightPlanLegWaypointsRecord>FlightPlanLegWaypointsRecord</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/FmaDataEvents>FmaDataEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/FmaMasterSlotProps>FmaMasterSlotProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/FmaModeSlotProps>FmaModeSlotProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/FmsEvents>FmsEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/FmsPositionSystemEvents>FmsPositionSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminAPConfigInterface>GarminAPConfigInterface</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminAPSimVarEvents>GarminAPSimVarEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminControlEvents>GarminControlEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminFlightPlanRouteLoader>GarminFlightPlanRouteLoader</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminFlightPlanRouteProvider>GarminFlightPlanRouteProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminGlidepathComputerOptions>GarminGlidepathComputerOptions</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminNavEvents>GarminNavEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminNavToNavManager2Guidance>GarminNavToNavManager2Guidance</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminTodBodDetails>GarminTodBodDetails</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminVNavComputerOptions>GarminVNavComputerOptions</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminVNavDataEvents>GarminVNavDataEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminVNavEvents>GarminVNavEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminVNavManager2Options>GarminVNavManager2Options</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GarminVNavManagerEvents>GarminVNavManagerEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GpsIntegrityDataProvider>GpsIntegrityDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/GpsReceiverSystemEvents>GpsReceiverSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/HeadingSyncEvents>HeadingSyncEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/HorizonDisplayProps>HorizonDisplayProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/HorizonLineProps>HorizonLineProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/HorizonOcclusionArea>HorizonOcclusionArea</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/HsiCompassProps>HsiCompassProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/HsiGpsIntegrityAnnunciationProps>HsiGpsIntegrityAnnunciationProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/ImgTouchButtonProps>ImgTouchButtonProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/LatLonDisplayProps>LatLonDisplayProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/LegIndexes>LegIndexes</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/LNavDataEvents>LNavDataEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MagnetometerSystemEvents>MagnetometerSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MagVarDisplayProps>MagVarDisplayProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapAirspaceVisControllerModules>MapAirspaceVisControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapBannerIndicatorProps>MapBannerIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapCrosshairLayerModules>MapCrosshairLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapDataIntegrityRTRControllerContext>MapDataIntegrityRTRControllerContext</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapDataIntegrityRTRControllerModules>MapDataIntegrityRTRControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapDeadReckoningLayerModules>MapDeadReckoningLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapDeadReckoningLayerProps>MapDeadReckoningLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapDesiredOrientationControllerContext>MapDesiredOrientationControllerContext</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapDesiredOrientationControllerModules>MapDesiredOrientationControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapDetailIndicatorProps>MapDetailIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapFlightPathPlanRenderer>MapFlightPathPlanRenderer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapFlightPathProcRenderer>MapFlightPathProcRenderer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapFlightPlanDataProvider>MapFlightPlanDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapFlightPlanFocusRTRControllerContext>MapFlightPlanFocusRTRControllerContext</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapFlightPlanFocusRTRControllerControllers>MapFlightPlanFocusRTRControllerControllers</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapFlightPlanFocusRTRControllerModules>MapFlightPlanFocusRTRControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapFlightPlanWaypointRecordManager>MapFlightPlanWaypointRecordManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapGarminAutopilotPropsControllerModules>MapGarminAutopilotPropsControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapGarminTrafficControllerModules>MapGarminTrafficControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapMiniCompassLayerProps>MapMiniCompassLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapNexradControllerModules>MapNexradControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapOrientationControllerContext>MapOrientationControllerContext</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapOrientationControllerModules>MapOrientationControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapOrientationIndicatorProps>MapOrientationIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapOrientationModeControllerContext>MapOrientationModeControllerContext</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapOrientationModeControllerModules>MapOrientationModeControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapOrientationRTRControllerContext>MapOrientationRTRControllerContext</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapOrientationRTRControllerModules>MapOrientationRTRControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapOrientationSettingsControllerModules>MapOrientationSettingsControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapPanningRTRControllerContext>MapPanningRTRControllerContext</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapPanningRTRControllerModules>MapPanningRTRControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapPointerControllerModules>MapPointerControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapPointerInfoLayerModules>MapPointerInfoLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapPointerInfoLayerProps>MapPointerInfoLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapPointerLayerModules>MapPointerLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapPointerRTRControllerModules>MapPointerRTRControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapProcedurePreviewLayerModules>MapProcedurePreviewLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapProcedurePreviewLayerProps>MapProcedurePreviewLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapRangeCompassControllerModules>MapRangeCompassControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapRangeCompassLayerModules>MapRangeCompassLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapRangeCompassLayerProps>MapRangeCompassLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapRangeControllerModules>MapRangeControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapRangeDisplayProps>MapRangeDisplayProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapRangeRingLayerModules>MapRangeRingLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapRangeRingLayerProps>MapRangeRingLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapRangeRTRControllerModules>MapRangeRTRControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapRelativeTerrainStatusIndicatorProps>MapRelativeTerrainStatusIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapRunwayDesignationImageCache>MapRunwayDesignationImageCache</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapSharedFlightPlanLayerModules>MapSharedFlightPlanLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapSharedFlightPlanLayerProps>MapSharedFlightPlanLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapSymbolVisControllerModules>MapSymbolVisControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapTerrainColorsControllerModules>MapTerrainColorsControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapTerrainControllerModules>MapTerrainControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapTerrainScaleIndicatorProps>MapTerrainScaleIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapTrackVectorLayerModules>MapTrackVectorLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapTrackVectorLayerProps>MapTrackVectorLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapTrafficControllerModules>MapTrafficControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapTrafficFailedIndicatorProps>MapTrafficFailedIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapTrafficOffScaleIndicatorProps>MapTrafficOffScaleIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapTrafficStatusIndicatorProps>MapTrafficStatusIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapWaypointDisplayBuilder>MapWaypointDisplayBuilder</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapWaypointHighlightLayerModules>MapWaypointHighlightLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapWaypointHighlightLayerProps>MapWaypointHighlightLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapWaypointsLayerModules>MapWaypointsLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapWaypointsLayerProps>MapWaypointsLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapWaypointsVisControllerModules>MapWaypointsVisControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapWindVectorControllerModules>MapWindVectorControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapWindVectorLayerModules>MapWindVectorLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MapWxrControllerModules>MapWxrControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MarkerBeaconDataProvider>MarkerBeaconDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MarkerBeaconDisplayProps>MarkerBeaconDisplayProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MarkerBeaconSystemEvents>MarkerBeaconSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MinimumsDataProvider>MinimumsDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/MinimumsDisplayProps>MinimumsDisplayProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataBarFieldModel>NavDataBarFieldModel</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataBarFieldModelFactory>NavDataBarFieldModelFactory</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataBarFieldTypeModelFactory>NavDataBarFieldTypeModelFactory</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataBarProps>NavDataBarProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataBearingFieldProps>NavDataBearingFieldProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataDurationFieldProps>NavDataDurationFieldProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataFieldModel>NavDataFieldModel</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataFieldProps>NavDataFieldProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataFieldRenderer>NavDataFieldRenderer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataFieldTypeRenderer>NavDataFieldTypeRenderer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataGenericFieldProps>NavDataGenericFieldProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataNumberFieldProps>NavDataNumberFieldProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataNumberUnitFieldProps>NavDataNumberUnitFieldProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavDataTimeFieldProps>NavDataTimeFieldProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavReferenceBase>NavReferenceBase</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavReferenceIndicator>NavReferenceIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavReferenceIndicators>NavReferenceIndicators</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavReferenceSource>NavReferenceSource</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavReferenceSources>NavReferenceSources</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavStatusBoxDataProvider>NavStatusBoxDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavStatusBoxDtkAlertProps>NavStatusBoxDtkAlertProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavStatusBoxFieldModel>NavStatusBoxFieldModel</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavStatusBoxFieldTypeModelFactory>NavStatusBoxFieldTypeModelFactory</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavStatusBoxLegArrowProps>NavStatusBoxLegArrowProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavStatusBoxLegDisplayProps>NavStatusBoxLegDisplayProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NavStatusBoxProps>NavStatusBoxProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NearestMapRTRControllerContext>NearestMapRTRControllerContext</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NearestMapRTRControllerControllers>NearestMapRTRControllerControllers</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NearestMapRTRControllerModules>NearestMapRTRControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/NumberUnitDisplayProps>NumberUnitDisplayProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/ObsSuspDataProvider>ObsSuspDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/PfdTrafficAnnunciationProps>PfdTrafficAnnunciationProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/PitchLadderProps>PitchLadderProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/RadarAltimeterDataProvider>RadarAltimeterDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/RadarAltimeterProps>RadarAltimeterProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/RadarAltimeterSystemEvents>RadarAltimeterSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/RollIndicatorProps>RollIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/RollIndicatorScaleComponent>RollIndicatorScaleComponent</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/RollLimitIndicatorsProps>RollLimitIndicatorsProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/ScrollListProps>ScrollListProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/SetValueTouchButtonProps>SetValueTouchButtonProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/SoftKeyBarProps>SoftKeyBarProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/SoftKeyMenuItem>SoftKeyMenuItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/SoftKeyProps>SoftKeyProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/SyntheticVisionProps>SyntheticVisionProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TcasRaCommandDataProvider>TcasRaCommandDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TcasRaPitchCueLayerProps>TcasRaPitchCueLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TerrainSystem>TerrainSystem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TerrainSystemAlertController>TerrainSystemAlertController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TerrainSystemAnnunciationProps>TerrainSystemAnnunciationProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TerrainSystemControlEvents>TerrainSystemControlEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TerrainSystemDataProvider>TerrainSystemDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TerrainSystemEvents>TerrainSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TerrainSystemModule>TerrainSystemModule</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TerrainSystemStateDataProvider>TerrainSystemStateDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TimeDisplayProps>TimeDisplayProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/ToggleStatusBarProps>ToggleStatusBarProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/ToggleTouchButtonProps>ToggleTouchButtonProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TouchButtonProps>TouchButtonProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TouchListProps>TouchListProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TouchPadProps>TouchPadProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TouchSliderProps>TouchSliderProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficAvionicsSystemEvents>TrafficAvionicsSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficMapAdsbModeIndicatorProps>TrafficMapAdsbModeIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficMapAdsbOffBannerIndicatorProps>TrafficMapAdsbOffBannerIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficMapAltitudeModeIndicatorProps>TrafficMapAltitudeModeIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficMapFailedBannerIndicatorProps>TrafficMapFailedBannerIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficMapOperatingModeIndicatorProps>TrafficMapOperatingModeIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficMapRangeControllerModules>TrafficMapRangeControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficMapRangeLayerModules>TrafficMapRangeLayerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficMapRangeLayerProps>TrafficMapRangeLayerProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficMapStandbyBannerIndicatorProps>TrafficMapStandbyBannerIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class="menu__link menu__link--active" aria-current=page tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficSystem>TrafficSystem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TransitionListItem>TransitionListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TurnRateProps>TurnRateProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/UnitsUserSettingManager>UnitsUserSettingManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/ValueTouchButtonProps>ValueTouchButtonProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/VdiDataProvider>VdiDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/VerticalDeviationIndicator>VerticalDeviationIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/VerticalSpeedIndicatorProps>VerticalSpeedIndicatorProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/VNavDataProvider>VNavDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/VsiDataProvider>VsiDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/VSpeedAnnunciationDataProvider>VSpeedAnnunciationDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WaypointAlertStateEvent>WaypointAlertStateEvent</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WaypointComponentProps>WaypointComponentProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WaypointIconImageCache>WaypointIconImageCache</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WaypointIconProps>WaypointIconProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WaypointMapHighlightControllerModules>WaypointMapHighlightControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WaypointMapRTRControllerContext>WaypointMapRTRControllerContext</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WaypointMapRTRControllerControllers>WaypointMapRTRControllerControllers</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WaypointMapRTRControllerModules>WaypointMapRTRControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WeatherMapOrientationControllerContext>WeatherMapOrientationControllerContext</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WeatherMapOrientationControllerModules>WeatherMapOrientationControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WeatherMapOrientationSettingsControllerModules>WeatherMapOrientationSettingsControllerModules</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WeatherRadarAvionicsSystemEvents>WeatherRadarAvionicsSystemEvents</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WeatherRadarProps>WeatherRadarProps</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WindDataProvider>WindDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-4 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/WindDisplayProps>WindDisplayProps</a></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/garminsdk/type-aliases/AdcSystemSelectionState>Type Aliases</a></div></ul></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/framework-systems/subscriptions/intro-to-subscriptions>Framework Systems</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/g1000/overview>Instrument Support</a></div></ul></nav></div></div></aside><main class=docMainContainer_TBSr><div class="container padding-top--md padding-bottom--lg"><div class=row><div class="col docItemCol_VOVn"><div class=docItemContainer_Djhp><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label=Breadcrumbs><ul class=breadcrumbs itemscope itemtype=https://schema.org/BreadcrumbList><li class=breadcrumbs__item><a aria-label="Home page" class=breadcrumbs__link href=/msfs-avionics-mirror/2024/><svg viewBox="0 0 24 24" class=breadcrumbHomeIcon_YNFT><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill=currentColor /></svg></a><li class=breadcrumbs__item><span class=breadcrumbs__link>API References</span><meta itemprop=position content=1><li itemscope itemprop=itemListElement itemtype=https://schema.org/ListItem class=breadcrumbs__item><a class=breadcrumbs__link itemprop=item href=/msfs-avionics-mirror/2024/docs/api/garminsdk/globals><span itemprop=name>Garmin API Reference</span></a><meta itemprop=position content=2><li class=breadcrumbs__item><span class=breadcrumbs__link>Interfaces</span><meta itemprop=position content=3><li itemscope itemprop=itemListElement itemtype=https://schema.org/ListItem class="breadcrumbs__item breadcrumbs__item--active"><span class=breadcrumbs__link itemprop=name>TrafficSystem</span><meta itemprop=position content=4></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type=button class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>Interface: TrafficSystem</h1></header>
+<p>A Garmin traffic system.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=extends>Extends<a href=#extends class=hash-link aria-label="Direct link to Extends" title="Direct link to Extends">​</a></h2>
+<ul>
+<li><code>Tcas</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=properties>Properties<a href=#properties class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=adsb>adsb<a href=#adsb class=hash-link aria-label="Direct link to adsb" title="Direct link to adsb">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>adsb</strong>: <code>null</code> | <code>Adsb</code></p>
+</blockquote>
+<p>The ADS-B system used by this traffic system, or <code>null</code> if this system does not support ADS-B.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in>Defined in<a href=#defined-in class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/garminsdk/traffic/TrafficSystem.ts:13</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=bus>bus<a href=#bus class=hash-link aria-label="Direct link to bus" title="Direct link to bus">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>bus</strong>: <code>EventBus</code></p>
+</blockquote>
+<p>The event bus.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from>Inherited from<a href=#inherited-from class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.bus</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-1>Defined in<a href=#defined-in-1 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:504</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=intrudersfiltered>intrudersFiltered<a href=#intrudersfiltered class=hash-link aria-label="Direct link to intrudersFiltered" title="Direct link to intrudersFiltered">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>intrudersFiltered</strong>: <code>AbstractTcasIntruder</code>[] = <code>[]</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-1>Inherited from<a href=#inherited-from-1 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.intrudersFiltered</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-2>Defined in<a href=#defined-in-2 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:463</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=intrudersra>intrudersRA<a href=#intrudersra class=hash-link aria-label="Direct link to intrudersRA" title="Direct link to intrudersRA">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>intrudersRA</strong>: <code>Set</code>&lt;<code>AbstractTcasIntruder</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-2>Inherited from<a href=#inherited-from-2 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.intrudersRA</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-3>Defined in<a href=#defined-in-3 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:465</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=intruderssorted>intrudersSorted<a href=#intruderssorted class=hash-link aria-label="Direct link to intrudersSorted" title="Direct link to intrudersSorted">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>intrudersSorted</strong>: <code>AbstractTcasIntruder</code>[] = <code>[]</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-3>Inherited from<a href=#inherited-from-3 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.intrudersSorted</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-4>Defined in<a href=#defined-in-4 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:462</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=lastupdaterealtime>lastUpdateRealTime<a href=#lastupdaterealtime class=hash-link aria-label="Direct link to lastUpdateRealTime" title="Direct link to lastUpdateRealTime">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>lastUpdateRealTime</strong>: <code>number</code> = <code>0</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-4>Inherited from<a href=#inherited-from-4 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.lastUpdateRealTime</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-5>Defined in<a href=#defined-in-5 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:487</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=lastupdatesimtime>lastUpdateSimTime<a href=#lastupdatesimtime class=hash-link aria-label="Direct link to lastUpdateSimTime" title="Direct link to lastUpdateSimTime">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>lastUpdateSimTime</strong>: <code>number</code> = <code>0</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-5>Inherited from<a href=#inherited-from-5 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.lastUpdateSimTime</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-6>Defined in<a href=#defined-in-6 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:486</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=maxintrudercount>maxIntruderCount<a href=#maxintrudercount class=hash-link aria-label="Direct link to maxIntruderCount" title="Direct link to maxIntruderCount">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>maxIntruderCount</strong>: <code>Subscribable</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-6>Inherited from<a href=#inherited-from-6 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.maxIntruderCount</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-7>Defined in<a href=#defined-in-7 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:452</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=operatingmodesub>operatingModeSub<a href=#operatingmodesub class=hash-link aria-label="Direct link to operatingModeSub" title="Direct link to operatingModeSub">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>operatingModeSub</strong>: <code>Subject</code>&lt;<code>TcasOperatingMode</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-7>Inherited from<a href=#inherited-from-7 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.operatingModeSub</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-8>Defined in<a href=#defined-in-8 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:456</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=ownairplane>ownAirplane<a href=#ownairplane class=hash-link aria-label="Direct link to ownAirplane" title="Direct link to ownAirplane">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>ownAirplane</strong>: <code>OwnAirplane</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-8>Inherited from<a href=#inherited-from-8 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.ownAirplane</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-9>Defined in<a href=#defined-in-9 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:460</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=ownairplanesubs>ownAirplaneSubs<a href=#ownairplanesubs class=hash-link aria-label="Direct link to ownAirplaneSubs" title="Direct link to ownAirplaneSubs">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>ownAirplaneSubs</strong>: <code>object</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=altitude>altitude<a href=#altitude class=hash-link aria-label="Direct link to altitude" title="Direct link to altitude">​</a></h4>
+<blockquote>
+<p><strong>altitude</strong>: <code>NumberUnitSubject</code>&lt;<code>Distance</code>, <code>SimpleUnit</code>&lt;<code>Distance</code>>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=groundspeed>groundSpeed<a href=#groundspeed class=hash-link aria-label="Direct link to groundSpeed" title="Direct link to groundSpeed">​</a></h4>
+<blockquote>
+<p><strong>groundSpeed</strong>: <code>NumberUnitSubject</code>&lt;<code>Speed</code>, <code>CompoundUnit</code>&lt;<code>Speed</code>>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=groundtrack>groundTrack<a href=#groundtrack class=hash-link aria-label="Direct link to groundTrack" title="Direct link to groundTrack">​</a></h4>
+<blockquote>
+<p><strong>groundTrack</strong>: <code>ConsumerSubject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=isonground>isOnGround<a href=#isonground class=hash-link aria-label="Direct link to isOnGround" title="Direct link to isOnGround">​</a></h4>
+<blockquote>
+<p><strong>isOnGround</strong>: <code>ConsumerSubject</code>&lt;<code>boolean</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=position>position<a href=#position class=hash-link aria-label="Direct link to position" title="Direct link to position">​</a></h4>
+<blockquote>
+<p><strong>position</strong>: <code>GeoPointSubject</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=radaraltitude>radarAltitude<a href=#radaraltitude class=hash-link aria-label="Direct link to radarAltitude" title="Direct link to radarAltitude">​</a></h4>
+<blockquote>
+<p><strong>radarAltitude</strong>: <code>NumberUnitSubject</code>&lt;<code>Distance</code>, <code>SimpleUnit</code>&lt;<code>Distance</code>>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=verticalspeed>verticalSpeed<a href=#verticalspeed class=hash-link aria-label="Direct link to verticalSpeed" title="Direct link to verticalSpeed">​</a></h4>
+<blockquote>
+<p><strong>verticalSpeed</strong>: <code>NumberUnitSubject</code>&lt;<code>Speed</code>, <code>CompoundUnit</code>&lt;<code>Speed</code>>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-9>Inherited from<a href=#inherited-from-9 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.ownAirplaneSubs</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-10>Defined in<a href=#defined-in-10 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:474</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=paseparationcache>paSeparationCache<a href=#paseparationcache class=hash-link aria-label="Direct link to paSeparationCache" title="Direct link to paSeparationCache">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>paSeparationCache</strong>: <code>object</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=horizontal>horizontal<a href=#horizontal class=hash-link aria-label="Direct link to horizontal" title="Direct link to horizontal">​</a></h4>
+<blockquote>
+<p><strong>horizontal</strong>: <code>NumberUnit</code>&lt;<code>Distance</code>, <code>SimpleUnit</code>&lt;<code>Distance</code>>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=vertical>vertical<a href=#vertical class=hash-link aria-label="Direct link to vertical" title="Direct link to vertical">​</a></h4>
+<blockquote>
+<p><strong>vertical</strong>: <code>NumberUnit</code>&lt;<code>Distance</code>, <code>SimpleUnit</code>&lt;<code>Distance</code>>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-10>Inherited from<a href=#inherited-from-10 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.paSeparationCache</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-11>Defined in<a href=#defined-in-11 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:880</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=realtimeupdatefreq>realTimeUpdateFreq<a href=#realtimeupdatefreq class=hash-link aria-label="Direct link to realTimeUpdateFreq" title="Direct link to realTimeUpdateFreq">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>realTimeUpdateFreq</strong>: <code>Subscribable</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-11>Inherited from<a href=#inherited-from-11 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.realTimeUpdateFreq</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-12>Defined in<a href=#defined-in-12 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:453</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=resolutionadvisoryhost>resolutionAdvisoryHost<a href=#resolutionadvisoryhost class=hash-link aria-label="Direct link to resolutionAdvisoryHost" title="Direct link to resolutionAdvisoryHost">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>resolutionAdvisoryHost</strong>: <code>TcasResolutionAdvisoryHostClass</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-12>Inherited from<a href=#inherited-from-12 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.resolutionAdvisoryHost</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-13>Defined in<a href=#defined-in-13 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:466</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=sensitivity>sensitivity<a href=#sensitivity class=hash-link aria-label="Direct link to sensitivity" title="Direct link to sensitivity">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>sensitivity</strong>: <code>TcasSensitivity</code>&lt;<code>TcasIntruder</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-13>Inherited from<a href=#inherited-from-13 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.sensitivity</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-14>Defined in<a href=#defined-in-14 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:458</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=simtime>simTime<a href=#simtime class=hash-link aria-label="Direct link to simTime" title="Direct link to simTime">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>simTime</strong>: <code>ConsumerSubject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-14>Inherited from<a href=#inherited-from-14 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.simTime</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-15>Defined in<a href=#defined-in-15 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:484</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=simtimeupdatefreq>simTimeUpdateFreq<a href=#simtimeupdatefreq class=hash-link aria-label="Direct link to simTimeUpdateFreq" title="Direct link to simTimeUpdateFreq">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>simTimeUpdateFreq</strong>: <code>Subscribable</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-15>Inherited from<a href=#inherited-from-15 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.simTimeUpdateFreq</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-16>Defined in<a href=#defined-in-16 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:454</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=tfcinstrument>tfcInstrument<a href=#tfcinstrument class=hash-link aria-label="Direct link to tfcInstrument" title="Direct link to tfcInstrument">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>tfcInstrument</strong>: <code>TrafficInstrument</code></p>
+</blockquote>
+<p>The traffic instrument which provides traffic contacts for this TCAS.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-16>Inherited from<a href=#inherited-from-16 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.tfcInstrument</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-17>Defined in<a href=#defined-in-17 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:505</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=type>type<a href=#type class=hash-link aria-label="Direct link to type" title="Direct link to type">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>type</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/garminsdk/enumerations/TrafficSystemType><code>TrafficSystemType</code></a></p>
+</blockquote>
+<p>The type of this traffic system.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-18>Defined in<a href=#defined-in-18 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/garminsdk/traffic/TrafficSystem.ts:10</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=methods>Methods<a href=#methods class=hash-link aria-label="Direct link to Methods" title="Direct link to Methods">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=cancancelproximityadvisory>canCancelProximityAdvisory()<a href=#cancancelproximityadvisory class=hash-link aria-label="Direct link to canCancelProximityAdvisory()" title="Direct link to canCancelProximityAdvisory()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>canCancelProximityAdvisory</strong>(<code>simTime</code>, <code>intruder</code>): <code>boolean</code></p>
+</blockquote>
+<p>Checks whether a proximity advisory can be canceled for an intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters>Parameters<a href=#parameters class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>simTime</code><td><code>number</code><td>The current sim time, as a UNIX timestamp in milliseconds.<tr><td><code>intruder</code><td><code>AbstractTcasIntruder</code><td>An intruder.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns>Returns<a href=#returns class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether a proximity advisory can be canceled for the intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-17>Inherited from<a href=#inherited-from-17 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.canCancelProximityAdvisory</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-19>Defined in<a href=#defined-in-19 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:1017</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=cancancelresolutionadvisory>canCancelResolutionAdvisory()<a href=#cancancelresolutionadvisory class=hash-link aria-label="Direct link to canCancelResolutionAdvisory()" title="Direct link to canCancelResolutionAdvisory()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>canCancelResolutionAdvisory</strong>(<code>simTime</code>, <code>intruder</code>): <code>boolean</code></p>
+</blockquote>
+<p>Checks whether a resolution advisory can be canceled for an intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-1>Parameters<a href=#parameters-1 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>simTime</code><td><code>number</code><td>The current sim time, as a UNIX timestamp in milliseconds.<tr><td><code>intruder</code><td><code>AbstractTcasIntruder</code><td>An intruder.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-1>Returns<a href=#returns-1 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether a resolution advisory can be issued for the intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-18>Inherited from<a href=#inherited-from-18 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.canCancelResolutionAdvisory</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-20>Defined in<a href=#defined-in-20 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:972</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=cancanceltrafficadvisory>canCancelTrafficAdvisory()<a href=#cancanceltrafficadvisory class=hash-link aria-label="Direct link to canCancelTrafficAdvisory()" title="Direct link to canCancelTrafficAdvisory()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>canCancelTrafficAdvisory</strong>(<code>simTime</code>, <code>intruder</code>): <code>boolean</code></p>
+</blockquote>
+<p>Checks whether a traffic advisory can be canceled for an intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-2>Parameters<a href=#parameters-2 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>simTime</code><td><code>number</code><td>The current sim time, as a UNIX timestamp in milliseconds.<tr><td><code>intruder</code><td><code>AbstractTcasIntruder</code><td>An intruder.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-2>Returns<a href=#returns-2 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether a traffic advisory can be canceled for the intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-19>Inherited from<a href=#inherited-from-19 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.canCancelTrafficAdvisory</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-21>Defined in<a href=#defined-in-21 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:995</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=canissueproximityadvisory>canIssueProximityAdvisory()<a href=#canissueproximityadvisory class=hash-link aria-label="Direct link to canIssueProximityAdvisory()" title="Direct link to canIssueProximityAdvisory()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>canIssueProximityAdvisory</strong>(<code>simTime</code>, <code>intruder</code>): <code>boolean</code></p>
+</blockquote>
+<p>Checks whether a proximity advisory can be issued for an intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-3>Parameters<a href=#parameters-3 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>simTime</code><td><code>number</code><td>The current sim time, as a UNIX timestamp in milliseconds.<tr><td><code>intruder</code><td><code>AbstractTcasIntruder</code><td>An intruder.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-3>Returns<a href=#returns-3 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether a proximity advisory can be issued for the intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-20>Inherited from<a href=#inherited-from-20 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.canIssueProximityAdvisory</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-22>Defined in<a href=#defined-in-22 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:1006</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=canissueresolutionadvisory>canIssueResolutionAdvisory()<a href=#canissueresolutionadvisory class=hash-link aria-label="Direct link to canIssueResolutionAdvisory()" title="Direct link to canIssueResolutionAdvisory()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>canIssueResolutionAdvisory</strong>(<code>simTime</code>, <code>intruder</code>): <code>boolean</code></p>
+</blockquote>
+<p>Checks whether a resolution advisory can be issued for an intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-4>Parameters<a href=#parameters-4 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>simTime</code><td><code>number</code><td>The current sim time, as a UNIX timestamp in milliseconds.<tr><td><code>intruder</code><td><code>AbstractTcasIntruder</code><td>An intruder.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-4>Returns<a href=#returns-4 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether a resolution advisory can be issued for the intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-21>Inherited from<a href=#inherited-from-21 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.canIssueResolutionAdvisory</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-23>Defined in<a href=#defined-in-23 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:958</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=canissuetrafficadvisory>canIssueTrafficAdvisory()<a href=#canissuetrafficadvisory class=hash-link aria-label="Direct link to canIssueTrafficAdvisory()" title="Direct link to canIssueTrafficAdvisory()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>canIssueTrafficAdvisory</strong>(<code>simTime</code>, <code>intruder</code>): <code>boolean</code></p>
+</blockquote>
+<p>Checks whether a traffic advisory can be issued for an intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-5>Parameters<a href=#parameters-5 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>simTime</code><td><code>number</code><td>The current sim time, as a UNIX timestamp in milliseconds.<tr><td><code>intruder</code><td><code>AbstractTcasIntruder</code><td>An intruder.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-5>Returns<a href=#returns-5 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether a traffic advisory can be issued for the intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-22>Inherited from<a href=#inherited-from-22 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.canIssueTrafficAdvisory</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-24>Defined in<a href=#defined-in-24 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:984</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=createintruderentry>createIntruderEntry()<a href=#createintruderentry class=hash-link aria-label="Direct link to createIntruderEntry()" title="Direct link to createIntruderEntry()">​</a></h3>
+<blockquote>
+<p><code>abstract</code> <code>protected</code> <strong>createIntruderEntry</strong>(<code>contact</code>): <code>AbstractTcasIntruder</code></p>
+</blockquote>
+<p>Creates a TCAS intruder entry from a traffic contact.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-6>Parameters<a href=#parameters-6 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>contact</code><td><code>TrafficContact</code><td>A traffic contact.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-6>Returns<a href=#returns-6 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>AbstractTcasIntruder</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-23>Inherited from<a href=#inherited-from-23 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.createIntruderEntry</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-25>Defined in<a href=#defined-in-25 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:736</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=createsensitivity>createSensitivity()<a href=#createsensitivity class=hash-link aria-label="Direct link to createSensitivity()" title="Direct link to createSensitivity()">​</a></h3>
+<blockquote>
+<p><code>abstract</code> <code>protected</code> <strong>createSensitivity</strong>(): <code>TcasSensitivity</code>&lt;<code>TcasIntruder</code>></p>
+</blockquote>
+<p>Creates a TCAS sensitivity object.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-7>Returns<a href=#returns-7 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>TcasSensitivity</code>&lt;<code>TcasIntruder</code>></p>
+<p>A TCAS sensitivity object.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-24>Inherited from<a href=#inherited-from-24 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.createSensitivity</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-26>Defined in<a href=#defined-in-26 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:541</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=doupdate>doUpdate()<a href=#doupdate class=hash-link aria-label="Direct link to doUpdate()" title="Direct link to doUpdate()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>doUpdate</strong>(<code>simTime</code>): <code>void</code></p>
+</blockquote>
+<p>Executes an update.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-7>Parameters<a href=#parameters-7 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>simTime</code><td><code>number</code><td>The current sim time, as a UNIX timestamp in milliseconds.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-8>Returns<a href=#returns-8 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-25>Inherited from<a href=#inherited-from-25 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.doUpdate</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-27>Defined in<a href=#defined-in-27 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:794</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=filterintruder>filterIntruder()<a href=#filterintruder class=hash-link aria-label="Direct link to filterIntruder()" title="Direct link to filterIntruder()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>filterIntruder</strong>(<code>intruder</code>): <code>boolean</code></p>
+</blockquote>
+<p>Filters an intruder.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-8>Parameters<a href=#parameters-8 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>intruder</code><td><code>AbstractTcasIntruder</code><td>An intruder.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-9>Returns<a href=#returns-9 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the intruder should be tracked by this TCAS.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-26>Inherited from<a href=#inherited-from-26 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.filterIntruder</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-28>Defined in<a href=#defined-in-28 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:850</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=geteventsubscriber>getEventSubscriber()<a href=#geteventsubscriber class=hash-link aria-label="Direct link to getEventSubscriber()" title="Direct link to getEventSubscriber()">​</a></h3>
+<blockquote>
+<p><strong>getEventSubscriber</strong>(): <code>EventSubscriber</code>&lt;<code>TcasEvents</code>></p>
+</blockquote>
+<p>Gets an event bus subscriber for TCAS events.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-10>Returns<a href=#returns-10 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>EventSubscriber</code>&lt;<code>TcasEvents</code>></p>
+<p>an event bus subscriber for TCAS events..</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-27>Inherited from<a href=#inherited-from-27 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.getEventSubscriber</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-29>Defined in<a href=#defined-in-29 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:579</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getintruders>getIntruders()<a href=#getintruders class=hash-link aria-label="Direct link to getIntruders()" title="Direct link to getIntruders()">​</a></h3>
+<blockquote>
+<p><strong>getIntruders</strong>(): readonly <code>TcasIntruder</code>[]</p>
+</blockquote>
+<p>Gets an array of all currently tracked intruders. The intruders are sorted in order of decreasing threat.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-11>Returns<a href=#returns-11 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p>readonly <code>TcasIntruder</code>[]</p>
+<p>an array of all currently tracked intruders.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-28>Inherited from<a href=#inherited-from-28 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.getIntruders</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-30>Defined in<a href=#defined-in-30 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:563</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getoperatingmode>getOperatingMode()<a href=#getoperatingmode class=hash-link aria-label="Direct link to getOperatingMode()" title="Direct link to getOperatingMode()">​</a></h3>
+<blockquote>
+<p><strong>getOperatingMode</strong>(): <code>TcasOperatingMode</code></p>
+</blockquote>
+<p>Gets this system's operating mode.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-12>Returns<a href=#returns-12 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>TcasOperatingMode</code></p>
+<p>This system's operating mode.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-29>Inherited from<a href=#inherited-from-29 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.getOperatingMode</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-31>Defined in<a href=#defined-in-31 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:547</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getresolutionadvisoryhost>getResolutionAdvisoryHost()<a href=#getresolutionadvisoryhost class=hash-link aria-label="Direct link to getResolutionAdvisoryHost()" title="Direct link to getResolutionAdvisoryHost()">​</a></h3>
+<blockquote>
+<p><strong>getResolutionAdvisoryHost</strong>(): <code>TcasResolutionAdvisoryHost</code></p>
+</blockquote>
+<p>Gets this system's resolution advisory host.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-13>Returns<a href=#returns-13 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>TcasResolutionAdvisoryHost</code></p>
+<p>This system's resolution advisory host.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-30>Inherited from<a href=#inherited-from-30 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.getResolutionAdvisoryHost</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-32>Defined in<a href=#defined-in-32 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:571</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=init>init()<a href=#init class=hash-link aria-label="Direct link to init()" title="Direct link to init()">​</a></h3>
+<blockquote>
+<p><strong>init</strong>(): <code>void</code></p>
+</blockquote>
+<p>Initializes this system.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-14>Returns<a href=#returns-14 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-31>Inherited from<a href=#inherited-from-31 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.init</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-33>Defined in<a href=#defined-in-33 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:586</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=intrudercomparator>intruderComparator()<a href=#intrudercomparator class=hash-link aria-label="Direct link to intruderComparator()" title="Direct link to intruderComparator()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>intruderComparator</strong>(<code>a</code>, <code>b</code>): <code>number</code></p>
+</blockquote>
+<p>Sorts two intruders.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-9>Parameters<a href=#parameters-9 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>a</code><td><code>AbstractTcasIntruder</code><td>The first intruder.<tr><td><code>b</code><td><code>AbstractTcasIntruder</code><td>The second intruder.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-15>Returns<a href=#returns-15 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>number</code></p>
+<p>A negative number if <code>a</code> is to be sorted before <code>b</code>, a positive number if <code>b</code> is to be sorted before <code>a</code>,
+and zero if the two are equal.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-32>Inherited from<a href=#inherited-from-32 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.intruderComparator</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-34>Defined in<a href=#defined-in-34 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:661</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=ispowered>isPowered()<a href=#ispowered class=hash-link aria-label="Direct link to isPowered()" title="Direct link to isPowered()">​</a></h3>
+<blockquote>
+<p><strong>isPowered</strong>(): <code>boolean</code></p>
+</blockquote>
+<p>Checks whether this traffic system is powered.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-16>Returns<a href=#returns-16 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether this traffic system is powered.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-35>Defined in<a href=#defined-in-35 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/garminsdk/traffic/TrafficSystem.ts:19</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=onoperatingmodechanged>onOperatingModeChanged()<a href=#onoperatingmodechanged class=hash-link aria-label="Direct link to onOperatingModeChanged()" title="Direct link to onOperatingModeChanged()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>onOperatingModeChanged</strong>(<code>mode</code>): <code>void</code></p>
+</blockquote>
+<p>Responds to changes in this TCAS's operating mode.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-10>Parameters<a href=#parameters-10 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>mode</code><td><code>TcasOperatingMode</code><td>The current operating mode.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-17>Returns<a href=#returns-17 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-33>Inherited from<a href=#inherited-from-33 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.onOperatingModeChanged</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-36>Defined in<a href=#defined-in-36 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:637</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setoperatingmode>setOperatingMode()<a href=#setoperatingmode class=hash-link aria-label="Direct link to setOperatingMode()" title="Direct link to setOperatingMode()">​</a></h3>
+<blockquote>
+<p><strong>setOperatingMode</strong>(<code>mode</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this system's operating mode.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-11>Parameters<a href=#parameters-11 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>mode</code><td><code>TcasOperatingMode</code><td>The new operating mode.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-18>Returns<a href=#returns-18 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-34>Inherited from<a href=#inherited-from-34 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.setOperatingMode</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-37>Defined in<a href=#defined-in-37 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:555</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setpowered>setPowered()<a href=#setpowered class=hash-link aria-label="Direct link to setPowered()" title="Direct link to setPowered()">​</a></h3>
+<blockquote>
+<p><strong>setPowered</strong>(<code>isPowered</code>): <code>void</code></p>
+</blockquote>
+<p>Sets whether this traffic system is powered.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-12>Parameters<a href=#parameters-12 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>isPowered</code><td><code>boolean</code><td>Whether the system is powered.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-19>Returns<a href=#returns-19 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-38>Defined in<a href=#defined-in-38 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/garminsdk/traffic/TrafficSystem.ts:25</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=updatefilteredintruderalertlevels>updateFilteredIntruderAlertLevels()<a href=#updatefilteredintruderalertlevels class=hash-link aria-label="Direct link to updateFilteredIntruderAlertLevels()" title="Direct link to updateFilteredIntruderAlertLevels()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>updateFilteredIntruderAlertLevels</strong>(<code>simTime</code>): <code>void</code></p>
+</blockquote>
+<p>Updates the alert levels for all intruders tracked by this system that have not been filtered out.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-13>Parameters<a href=#parameters-13 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>simTime</code><td><code>number</code><td>The current sim time, as a UNIX timestamp in milliseconds.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-20>Returns<a href=#returns-20 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-35>Inherited from<a href=#inherited-from-35 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.updateFilteredIntruderAlertLevels</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-39>Defined in<a href=#defined-in-39 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:858</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=updateintruderalertlevel>updateIntruderAlertLevel()<a href=#updateintruderalertlevel class=hash-link aria-label="Direct link to updateIntruderAlertLevel()" title="Direct link to updateIntruderAlertLevel()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>updateIntruderAlertLevel</strong>(<code>simTime</code>, <code>intruder</code>): <code>void</code></p>
+</blockquote>
+<p>Updates an intruder's alert level.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-14>Parameters<a href=#parameters-14 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>simTime</code><td><code>number</code><td>The current sim time, as a UNIX timestamp in milliseconds.<tr><td><code>intruder</code><td><code>AbstractTcasIntruder</code><td>An intruder.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-21>Returns<a href=#returns-21 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-36>Inherited from<a href=#inherited-from-36 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.updateIntruderAlertLevel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-40>Defined in<a href=#defined-in-40 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:890</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=updateintruderarrays>updateIntruderArrays()<a href=#updateintruderarrays class=hash-link aria-label="Direct link to updateIntruderArrays()" title="Direct link to updateIntruderArrays()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>updateIntruderArrays</strong>(): <code>void</code></p>
+</blockquote>
+<p>Updates the arrays of intruders tracked by this system.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-22>Returns<a href=#returns-22 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-37>Inherited from<a href=#inherited-from-37 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.updateIntruderArrays</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-41>Defined in<a href=#defined-in-41 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:823</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=updateintruderpredictions>updateIntruderPredictions()<a href=#updateintruderpredictions class=hash-link aria-label="Direct link to updateIntruderPredictions()" title="Direct link to updateIntruderPredictions()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>updateIntruderPredictions</strong>(<code>simTime</code>): <code>void</code></p>
+</blockquote>
+<p>Updates the TCA predictions for all intruders tracked by this system.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-15>Parameters<a href=#parameters-15 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>simTime</code><td><code>number</code><td>The current sim time, as a UNIX timestamp in milliseconds.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-23>Returns<a href=#returns-23 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-38>Inherited from<a href=#inherited-from-38 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.updateIntruderPredictions</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-42>Defined in<a href=#defined-in-42 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:808</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=updateresolutionadvisory>updateResolutionAdvisory()<a href=#updateresolutionadvisory class=hash-link aria-label="Direct link to updateResolutionAdvisory()" title="Direct link to updateResolutionAdvisory()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>updateResolutionAdvisory</strong>(<code>simTime</code>): <code>void</code></p>
+</blockquote>
+<p>Updates this TCAS's resolution advisory.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-16>Parameters<a href=#parameters-16 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>simTime</code><td><code>number</code><td>The current sim time, as a UNIX timestamp in milliseconds.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-24>Returns<a href=#returns-24 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-39>Inherited from<a href=#inherited-from-39 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.updateResolutionAdvisory</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-43>Defined in<a href=#defined-in-43 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:1025</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=updatesensitivity>updateSensitivity()<a href=#updatesensitivity class=hash-link aria-label="Direct link to updateSensitivity()" title="Direct link to updateSensitivity()">​</a></h3>
+<blockquote>
+<p><code>abstract</code> <code>protected</code> <strong>updateSensitivity</strong>(): <code>void</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-25>Returns<a href=#returns-25 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-40>Inherited from<a href=#inherited-from-40 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>Tcas.updateSensitivity</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-44>Defined in<a href=#defined-in-44 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>src/sdk/traffic/Tcas.ts:802</div></article><nav class="pagination-nav docusaurus-mt-lg" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TrafficMapStandbyBannerIndicatorProps><div class=pagination-nav__sublabel>Previous</div><div class=pagination-nav__label>TrafficMapStandbyBannerIndicatorProps</div></a><a class="pagination-nav__link pagination-nav__link--next" href=/msfs-avionics-mirror/2024/docs/api/garminsdk/interfaces/TransitionListItem><div class=pagination-nav__sublabel>Next</div><div class=pagination-nav__label>TransitionListItem</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href=#extends class="table-of-contents__link toc-highlight">Extends</a><li><a href=#properties class="table-of-contents__link toc-highlight">Properties</a><ul><li><a href=#adsb class="table-of-contents__link toc-highlight">adsb</a><li><a href=#bus class="table-of-contents__link toc-highlight">bus</a><li><a href=#intrudersfiltered class="table-of-contents__link toc-highlight">intrudersFiltered</a><li><a href=#intrudersra class="table-of-contents__link toc-highlight">intrudersRA</a><li><a href=#intruderssorted class="table-of-contents__link toc-highlight">intrudersSorted</a><li><a href=#lastupdaterealtime class="table-of-contents__link toc-highlight">lastUpdateRealTime</a><li><a href=#lastupdatesimtime class="table-of-contents__link toc-highlight">lastUpdateSimTime</a><li><a href=#maxintrudercount class="table-of-contents__link toc-highlight">maxIntruderCount</a><li><a href=#operatingmodesub class="table-of-contents__link toc-highlight">operatingModeSub</a><li><a href=#ownairplane class="table-of-contents__link toc-highlight">ownAirplane</a><li><a href=#ownairplanesubs class="table-of-contents__link toc-highlight">ownAirplaneSubs</a><li><a href=#paseparationcache class="table-of-contents__link toc-highlight">paSeparationCache</a><li><a href=#realtimeupdatefreq class="table-of-contents__link toc-highlight">realTimeUpdateFreq</a><li><a href=#resolutionadvisoryhost class="table-of-contents__link toc-highlight">resolutionAdvisoryHost</a><li><a href=#sensitivity class="table-of-contents__link toc-highlight">sensitivity</a><li><a href=#simtime class="table-of-contents__link toc-highlight">simTime</a><li><a href=#simtimeupdatefreq class="table-of-contents__link toc-highlight">simTimeUpdateFreq</a><li><a href=#tfcinstrument class="table-of-contents__link toc-highlight">tfcInstrument</a><li><a href=#type class="table-of-contents__link toc-highlight">type</a></ul><li><a href=#methods class="table-of-contents__link toc-highlight">Methods</a><ul><li><a href=#cancancelproximityadvisory class="table-of-contents__link toc-highlight">canCancelProximityAdvisory()</a><li><a href=#cancancelresolutionadvisory class="table-of-contents__link toc-highlight">canCancelResolutionAdvisory()</a><li><a href=#cancanceltrafficadvisory class="table-of-contents__link toc-highlight">canCancelTrafficAdvisory()</a><li><a href=#canissueproximityadvisory class="table-of-contents__link toc-highlight">canIssueProximityAdvisory()</a><li><a href=#canissueresolutionadvisory class="table-of-contents__link toc-highlight">canIssueResolutionAdvisory()</a><li><a href=#canissuetrafficadvisory class="table-of-contents__link toc-highlight">canIssueTrafficAdvisory()</a><li><a href=#createintruderentry class="table-of-contents__link toc-highlight">createIntruderEntry()</a><li><a href=#createsensitivity class="table-of-contents__link toc-highlight">createSensitivity()</a><li><a href=#doupdate class="table-of-contents__link toc-highlight">doUpdate()</a><li><a href=#filterintruder class="table-of-contents__link toc-highlight">filterIntruder()</a><li><a href=#geteventsubscriber class="table-of-contents__link toc-highlight">getEventSubscriber()</a><li><a href=#getintruders class="table-of-contents__link toc-highlight">getIntruders()</a><li><a href=#getoperatingmode class="table-of-contents__link toc-highlight">getOperatingMode()</a><li><a href=#getresolutionadvisoryhost class="table-of-contents__link toc-highlight">getResolutionAdvisoryHost()</a><li><a href=#init class="table-of-contents__link toc-highlight">init()</a><li><a href=#intrudercomparator class="table-of-contents__link toc-highlight">intruderComparator()</a><li><a href=#ispowered class="table-of-contents__link toc-highlight">isPowered()</a><li><a href=#onoperatingmodechanged class="table-of-contents__link toc-highlight">onOperatingModeChanged()</a><li><a href=#setoperatingmode class="table-of-contents__link toc-highlight">setOperatingMode()</a><li><a href=#setpowered class="table-of-contents__link toc-highlight">setPowered()</a><li><a href=#updatefilteredintruderalertlevels class="table-of-contents__link toc-highlight">updateFilteredIntruderAlertLevels()</a><li><a href=#updateintruderalertlevel class="table-of-contents__link toc-highlight">updateIntruderAlertLevel()</a><li><a href=#updateintruderarrays class="table-of-contents__link toc-highlight">updateIntruderArrays()</a><li><a href=#updateintruderpredictions class="table-of-contents__link toc-highlight">updateIntruderPredictions()</a><li><a href=#updateresolutionadvisory class="table-of-contents__link toc-highlight">updateResolutionAdvisory()</a><li><a href=#updatesensitivity class="table-of-contents__link toc-highlight">updateSensitivity()</a></ul></ul></div></div></div></div></main></div></div></div><footer class="footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="col footer__col"><div class=footer__title>Docs</div><ul class="footer__items clean-list"><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/framework/>Framework API Reference</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/garminsdk/>Garmin API Reference</a></ul></div><div class="col footer__col"><div class=footer__title>Community</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://forums.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Forums<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://discord.gg/msfs target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Discord<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://devsupport.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Dev Support AnswerHub<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://discord.com/invite/Fa6w2xK target=_blank rel="noopener noreferrer" class=footer__link-item>Working Title Discord<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a></ul></div><div class="col footer__col"><div class=footer__title>More</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://www.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>Microsoft Flight Simulator<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://github.com/microsoft/msfs-avionics-mirror target=_blank rel="noopener noreferrer" class=footer__link-item>GitHub<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a></ul></div></div><div class="footer__bottom text--center"><div class=footer__copyright>Copyright © 2024 Microsoft, Asobo Studio, and Working Title Simulations. Built with Docusaurus.</div></div></div></footer></div>

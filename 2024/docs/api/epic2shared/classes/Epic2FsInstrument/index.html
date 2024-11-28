@@ -1,0 +1,682 @@
+<!doctype html><html lang=en dir=ltr class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-api/epic2shared/classes/Epic2FsInstrument" data-has-hydrated=false><meta charset=UTF-8><meta name=generator content="Docusaurus v3.6.3"><title data-rh=true>Class: abstract Epic2FsInstrument | MSFS Avionics Frameworks and Instruments</title><meta data-rh=true name=viewport content="width=device-width,initial-scale=1.0"><meta data-rh=true name=twitter:card content=summary_large_image><meta data-rh=true property=og:url content=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FsInstrument><meta data-rh=true property=og:locale content=en><meta data-rh=true name=docusaurus_locale content=en><meta data-rh=true name=docsearch:language content=en><meta data-rh=true name=docusaurus_version content=current><meta data-rh=true name=docusaurus_tag content=docs-default-current><meta data-rh=true name=docsearch:version content=current><meta data-rh=true name=docsearch:docusaurus_tag content=docs-default-current><meta data-rh=true property=og:title content="Class: abstract Epic2FsInstrument | MSFS Avionics Frameworks and Instruments"><meta data-rh=true name=description content="A common instrument for the Epic 2."><meta data-rh=true property=og:description content="A common instrument for the Epic 2."><link data-rh=true rel=icon href=/msfs-avionics-mirror/2024/img/favicon.ico><link data-rh=true rel=canonical href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FsInstrument><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FsInstrument hreflang=en><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FsInstrument hreflang=x-default><link rel=stylesheet href=/msfs-avionics-mirror/2024/assets/css/styles.cf019111.css><script src=/msfs-avionics-mirror/2024/assets/js/runtime~main.20b6808c.js defer></script><script src=/msfs-avionics-mirror/2024/assets/js/main.2952ccb2.js defer></script><body class=navigation-with-keyboard><script>!function(){var t,e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();t=null!==e?e:"dark",document.documentElement.setAttribute("data-theme",t)}(),function(){try{for(var[t,e]of new URLSearchParams(window.location.search).entries())if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id=__docusaurus><div role=region aria-label="Skip to main content"><a class=skipToContent_fXgn href=#__docusaurus_skipToContent_fallback>Skip to main content</a></div><nav aria-label=Main class="navbar navbar--fixed-top"><div class=navbar__inner><div class=navbar__items><button aria-label="Toggle navigation bar" aria-expanded=false class="navbar__toggle clean-btn" type=button><svg width=30 height=30 viewBox="0 0 30 30" aria-hidden=true><path stroke=currentColor stroke-linecap=round stroke-miterlimit=10 stroke-width=2 d="M4 7h22M4 15h22M4 23h22"/></svg></button><a class=navbar__brand href=/msfs-avionics-mirror/2024/><div class=navbar__logo><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">MSFS Avionics Development</b></a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><a class="navbar__item navbar__link" href=/msfs-avionics-mirror/2024/docs/api/framework/>Framework API</a><a class="navbar__item navbar__link" href=/msfs-avionics-mirror/2024/docs/api/garminsdk/>Garmin API</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/g3000/overview>G3000 Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/gns/overview>GNS Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/g3xtouch/overview>G3X Touch Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/wt21/overview>WT21 Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/epic2/overview>Epic2 Development</a></div><div class="navbar__items navbar__items--right"><div class=navbarSearchContainer_Bca1></div></div></div><div role=presentation class=navbar-sidebar__backdrop></div></nav><div id=__docusaurus_skipToContent_fallback class="main-wrapper mainWrapper_z2l0"><div class=docsWrapper_hBAB><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type=button></button><div class=docRoot_UBD9><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class=sidebarViewport_aRkj><div class=sidebar_njMd><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class=menu__link href=/msfs-avionics-mirror/2024/docs/intro>MSFS Avionics Framework</a><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/getting-started/setting-up-your-environment>Getting Started</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/interacting-with-msfs/simvars>Interacting with MSFS</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/api/framework/globals>API References</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/framework-systems/subscriptions/intro-to-subscriptions>Framework Systems</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true href=/msfs-avionics-mirror/2024/docs/g1000/overview>Instrument Support</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/g1000/overview>G1000 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000common/globals>G3000 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/gns/overview>GNS Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3xtouchcommon/globals>G3X Touch Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/wt21shared/globals>WT21 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/epic2/overview>Epic2 Development</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/epic2/overview>Overview</a><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/epic2/integration/overview>Guide to Integration</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/epic2/plugins/plugin-basics>Plugin Information</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/globals>Epic2 Plugin API</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--active" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/globals>Shared Plugin API</a><button aria-label="Collapse sidebar category 'Shared Plugin API'" aria-expanded=true type=button class="clean-btn menu__caret"></button></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/enumerations/AcasSystemType>Enumerations</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AbstractEngineGauge>Classes</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AbstractEngineGauge>AbstractEngineGauge</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AbstractEngineIndicator>AbstractEngineIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/ActiveWaypointIcon>ActiveWaypointIcon</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AdahrsSystem>AdahrsSystem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AdahrsSystemSelector>AdahrsSystemSelector</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AdfRadioSource>AdfRadioSource</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AdfSystem>AdfSystem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AdsbSensitivityParameters>AdsbSensitivityParameters</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AirframeConfig>AirframeConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AirportIcaoInputFormat>AirportIcaoInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AirspeedCasInputFormat>AirspeedCasInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AirspeedMachInputFormat>AirspeedMachInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AltimeterBaroKeyEventHandler>AltimeterBaroKeyEventHandler</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AltitudeArc>AltitudeArc</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AltitudeFeetInputFormat>AltitudeFeetInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AltitudeInputFormat>AltitudeInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AoaSystem>AoaSystem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AoaSystemSelector>AoaSystemSelector</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AutopilotConfig>AutopilotConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AutothrottleConfig>AutothrottleConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AvionicsConfig>AvionicsConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/BarTouchButton>BarTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/BarTouchButtonArrow>BarTouchButtonArrow</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/BarTouchButtonWithArrowAndSelector>BarTouchButtonWithArrowAndSelector</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/BearingDisplay>BearingDisplay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/BearingInputFormat>BearingInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/ButtonBoxArrow>ButtonBoxArrow</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/ButtonMenu>ButtonMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/CelsiusTemperatureInputFormat>CelsiusTemperatureInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/CheckBox>CheckBox</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/ChecklistConfig>ChecklistConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/CockpitUserSettings>CockpitUserSettings</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/CompassRoseNumbers>CompassRoseNumbers</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/CompassRoseTicks>CompassRoseTicks</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/CurrentHeadingDisplay>CurrentHeadingDisplay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultAirGroundDataProvider>DefaultAirGroundDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultAirspeedDataProvider>DefaultAirspeedDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultAltitudeDataProvider>DefaultAltitudeDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultAttitudeDataProvider>DefaultAttitudeDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultAutopilotDataProvider>DefaultAutopilotDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultAutothrottleDataProvider>DefaultAutothrottleDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultCasInhibitStateDataProvider>DefaultCasInhibitStateDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultFlapWarningDataProvider>DefaultFlapWarningDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultHeadingDataProvider>DefaultHeadingDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultInertialDataProvider>DefaultInertialDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultLandingGearDataProvider>DefaultLandingGearDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultNavigationSourceDataProvider>DefaultNavigationSourceDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultRadioAltimeterDataProvider>DefaultRadioAltimeterDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultStallWarningDataProvider>DefaultStallWarningDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultTawsDataProvider>DefaultTawsDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultTcasRaCommandDataProvider>DefaultTcasRaCommandDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultUnitsUserSettingManager>DefaultUnitsUserSettingManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultVerticalDeviationDataProvider>DefaultVerticalDeviationDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DefaultVSpeedDataProvider>DefaultVSpeedDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DialGauge>DialGauge</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DiamondListItem>DiamondListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DisplayUnitsConfig>DisplayUnitsConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/DynamicList>DynamicList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/EngineReadout>EngineReadout</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2Adsb>Epic2Adsb</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2APConfig>Epic2APConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2APNavSourceController>Epic2APNavSourceController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2ApPanelPublisher>Epic2ApPanelPublisher</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2APStateManager>Epic2APStateManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2APUtils>Epic2APUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2Autopilot>Epic2Autopilot</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2AvionicsPlugin>Epic2AvionicsPlugin</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2BearingPointerNavIndicator>Epic2BearingPointerNavIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2Colors>Epic2Colors</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2ControlPublisher>Epic2ControlPublisher</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2CoordinatesUtils>Epic2CoordinatesUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2CourseNeedleNavIndicator>Epic2CourseNeedleNavIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2DuController>Epic2DuController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FixInfoManager>Epic2FixInfoManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FlightAreaComputer>Epic2FlightAreaComputer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FlightLogger>Epic2FlightLogger</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FmaPublisher>Epic2FmaPublisher</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2Fms>Epic2Fms</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FmsEventsPublisher>Epic2FmsEventsPublisher</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FmsUtils>Epic2FmsUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class="menu__link menu__link--active" aria-current=page tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FsInstrument>Epic2FsInstrument</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2GhostNeedleNavIndicator>Epic2GhostNeedleNavIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2GraphicsModule>Epic2GraphicsModule</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2HeadingSyncController>Epic2HeadingSyncController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2InputControlPublisher>Epic2InputControlPublisher</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2InputFormatters>Epic2InputFormatters</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2InputParsers>Epic2InputParsers</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2List>Epic2List</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2MapTrafficModule>Epic2MapTrafficModule</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2NavDataComputer>Epic2NavDataComputer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2NearestContext>Epic2NearestContext</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2RadioUtils>Epic2RadioUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2SpeedPredictions>Epic2SpeedPredictions</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2TcasAuralAlertManager>Epic2TcasAuralAlertManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2TcasII>Epic2TcasII</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2TcasIISensitivity>Epic2TcasIISensitivity</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2TcasIntruder>Epic2TcasIntruder</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2TouchList>Epic2TouchList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2TransponderManager>Epic2TransponderManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2VariableBankManager>Epic2VariableBankManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2Version>Epic2Version</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2VNavManager>Epic2VNavManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2VnavUtils>Epic2VnavUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2VSpeedController>Epic2VSpeedController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/EpicMapBuilder>EpicMapBuilder</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/EpicMapCommon>EpicMapCommon</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/EpicMapKeys>EpicMapKeys</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FaranheitTemperatureInputFormat>FaranheitTemperatureInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FlapWarningSystem>FlapWarningSystem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FlapWarningSystemSelector>FlapWarningSystemSelector</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FlightLevelInputFormat>FlightLevelInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FlightPathWaypointLabel>FlightPathWaypointLabel</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FlightPlanLegData>FlightPlanLegData</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FlightPlanLegListData>FlightPlanLegListData</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FlightPlanListManager>FlightPlanListManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FlightPlanSegmentData>FlightPlanSegmentData</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FlightPlanSegmentListData>FlightPlanSegmentListData</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FlightPlanStore>FlightPlanStore</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FmcSimVarPublisher>FmcSimVarPublisher</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FmsMessage>FmsMessage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FmsMessageManager>FmsMessageManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FmsMessageTransmitter>FmsMessageTransmitter</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FmsPositionSystem>FmsPositionSystem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FrequencyInputFormat>FrequencyInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FuelFlowInputFormat>FuelFlowInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FuelTotalizer>FuelTotalizer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FuelTotalizerSimVarPublisher>FuelTotalizerSimVarPublisher</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/GpsReceiverSelector>GpsReceiverSelector</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/GpsReceiverSystem>GpsReceiverSystem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/GpsSource>GpsSource</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Gpws>Gpws</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/HeadingBug>HeadingBug</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/HeadingBugArrow>HeadingBugArrow</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/HeadingFailureFlag>HeadingFailureFlag</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/HsiFormatController>HsiFormatController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/InputBox>InputBox</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/InputBoxTsc>InputBoxTsc</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/InputField>InputField</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/InputFocusManager>InputFocusManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/InputHEventHandler>InputHEventHandler</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/KeyboardInputButton>KeyboardInputButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/LandingGearSystem>LandingGearSystem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/ListButton>ListButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/ListItem>ListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MagnetometerSystem>MagnetometerSystem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapAutopilotPropsController>MapAutopilotPropsController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapCompassAnimator>MapCompassAnimator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapCompassArcMask>MapCompassArcMask</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapCompassOffset>MapCompassOffset</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapDataProvider>MapDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapFacilitySelectModule>MapFacilitySelectModule</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapFormatController>MapFormatController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapRangeController>MapRangeController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapStylesModule>MapStylesModule</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapSystemCommon>MapSystemCommon</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapSystemConfig>MapSystemConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapTerrainColorsController>MapTerrainColorsController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapTerrainWeatherStateModule>MapTerrainWeatherStateModule</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapTocLabelFactory>MapTocLabelFactory</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapTodIcon>MapTodIcon</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapTodIconFactory>MapTodIconFactory</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapTodLabelFactory>MapTodLabelFactory</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapTodLayer>MapTodLayer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapTrafficController>MapTrafficController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapTrafficIntruderIcon>MapTrafficIntruderIcon</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MapUtils>MapUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MfdUserSettingManager>MfdUserSettingManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Modal>Modal</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/ModalService>ModalService</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NavBase>NavBase</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NavBaseFields>NavBaseFields</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NavComUserSettingManager>NavComUserSettingManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NavIndicator>NavIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NavIndicators>NavIndicators</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NavRadioNavSource>NavRadioNavSource</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NavSourceBase>NavSourceBase</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NavSources>NavSources</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NumberDisplay>NumberDisplay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NumberInputFormat>NumberInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NumberUnitDisplay>NumberUnitDisplay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/OutlinedElement>OutlinedElement</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/PfdUserSettingManager>PfdUserSettingManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/PFDUserSettings>PFDUserSettings</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/RadioButton>RadioButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/RASystem>RASystem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Regions>Regions</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/ScrollableBarTouchButton>ScrollableBarTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/ScrollableButtonIcon>ScrollableButtonIcon</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/ScrollList>ScrollList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/SectionOutline>SectionOutline</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/SensorsConfig>SensorsConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/SpeedLimitPublisher>SpeedLimitPublisher</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/SpeedOverrideController>SpeedOverrideController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/SpeedScheduleConfig>SpeedScheduleConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/SxmRadioBarTouchButton>SxmRadioBarTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/TabbedContentContainer>TabbedContentContainer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/TabContent>TabContent</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Tabs>Tabs</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/TakeoffConfigPublisher>TakeoffConfigPublisher</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/TextInputFormat>TextInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/TimeDisplay>TimeDisplay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/TouchButton>TouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/TouchButtonCheckbox>TouchButtonCheckbox</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/TouchList>TouchList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/TrafficOperatingModeManager>TrafficOperatingModeManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/TrafficUserSettings>TrafficUserSettings</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/TransponderInputFormat>TransponderInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/UnitFormatter>UnitFormatter</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/UnitsUserSettings>UnitsUserSettings</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/UppercaseTextInputFormat>UppercaseTextInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/VNavDataController>VNavDataController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/VNavDataModule>VNavDataModule</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/WeightInputFormat>WeightInputFormat</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/XpdrSystem>XpdrSystem</a></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/interfaces/AbstractEngineGaugeProps>Interfaces</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/type-aliases/AcasSystemDefinition>Type Aliases</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/variables/DefinedFmsMessages>Variables</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/functions/getEpic2PerformanceDefinitions>Functions</a></div></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2pfd/globals>PFD Plugin API</a><button aria-label="Expand sidebar category 'PFD Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/globals>Upper MFD Plugin API</a><button aria-label="Expand sidebar category 'Upper MFD Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2lowermfd/globals>Lower MFD Plugin API</a><button aria-label="Expand sidebar category 'Lower MFD Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div></ul></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/uns/overview>UNS-1Lw Development</a></div></ul></ul></nav></div></div></aside><main class=docMainContainer_TBSr><div class="container padding-top--md padding-bottom--lg"><div class=row><div class="col docItemCol_VOVn"><div class=docItemContainer_Djhp><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label=Breadcrumbs><ul class=breadcrumbs itemscope itemtype=https://schema.org/BreadcrumbList><li class=breadcrumbs__item><a aria-label="Home page" class=breadcrumbs__link href=/msfs-avionics-mirror/2024/><svg viewBox="0 0 24 24" class=breadcrumbHomeIcon_YNFT><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill=currentColor /></svg></a><li class=breadcrumbs__item><span class=breadcrumbs__link>Instrument Support</span><meta itemprop=position content=1><li class=breadcrumbs__item><span class=breadcrumbs__link>Epic2 Development</span><meta itemprop=position content=2><li class=breadcrumbs__item><span class=breadcrumbs__link>Epic2 Plugin API</span><meta itemprop=position content=3><li itemscope itemprop=itemListElement itemtype=https://schema.org/ListItem class=breadcrumbs__item><a class=breadcrumbs__link itemprop=item href=/msfs-avionics-mirror/2024/docs/api/epic2shared/globals><span itemprop=name>Shared Plugin API</span></a><meta itemprop=position content=4><li class=breadcrumbs__item><span class=breadcrumbs__link>Classes</span><meta itemprop=position content=5><li itemscope itemprop=itemListElement itemtype=https://schema.org/ListItem class="breadcrumbs__item breadcrumbs__item--active"><span class=breadcrumbs__link itemprop=name>Epic2FsInstrument</span><meta itemprop=position content=6></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type=button class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>Class: <code>abstract</code> Epic2FsInstrument</h1></header>
+<p>A common instrument for the Epic 2.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=implements>Implements<a href=#implements class=hash-link aria-label="Direct link to Implements" title="Direct link to Implements">​</a></h2>
+<ul>
+<li><code>FsInstrument</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=constructors>Constructors<a href=#constructors class=hash-link aria-label="Direct link to Constructors" title="Direct link to Constructors">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=new-epic2fsinstrument>new Epic2FsInstrument()<a href=#new-epic2fsinstrument class=hash-link aria-label="Direct link to new Epic2FsInstrument()" title="Direct link to new Epic2FsInstrument()">​</a></h3>
+<blockquote>
+<p><strong>new Epic2FsInstrument</strong>(<code>instrument</code>, <code>config</code>): <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FsInstrument><code>Epic2FsInstrument</code></a></p>
+</blockquote>
+<p>Creates a new instance of Epic2FsInstrument.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters>Parameters<a href=#parameters class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>instrument</code><td><code>BaseInstrument</code><td>This instrument's parent BaseInstrument.<tr><td><code>config</code><td><a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AvionicsConfig><code>AvionicsConfig</code></a><td>The general avionics configuration object.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns>Returns<a href=#returns class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FsInstrument><code>Epic2FsInstrument</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in>Defined in<a href=#defined-in class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:142</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=properties>Properties<a href=#properties class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=adahrsselector>adahrsSelector?<a href=#adahrsselector class=hash-link aria-label="Direct link to adahrsSelector?" title="Direct link to adahrsSelector?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>optional</code> <strong>adahrsSelector</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AdahrsSystemSelector><code>AdahrsSystemSelector</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-1>Defined in<a href=#defined-in-1 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:131</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=adcpublisher>adcPublisher<a href=#adcpublisher class=hash-link aria-label="Direct link to adcPublisher" title="Direct link to adcPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>adcPublisher</strong>: <code>AdcPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-2>Defined in<a href=#defined-in-2 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:107</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=agm1state>agm1State<a href=#agm1state class=hash-link aria-label="Direct link to agm1State" title="Direct link to agm1State">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>agm1State</strong>: <code>Subject</code>&lt;<code>AvionicsSystemState</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-3>Defined in<a href=#defined-in-3 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:56</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=agm2state>agm2State<a href=#agm2state class=hash-link aria-label="Direct link to agm2State" title="Direct link to agm2State">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>agm2State</strong>: <code>Subject</code>&lt;<code>AvionicsSystemState</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-4>Defined in<a href=#defined-in-4 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:57</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=ahrspublisher>ahrsPublisher<a href=#ahrspublisher class=hash-link aria-label="Direct link to ahrsPublisher" title="Direct link to ahrsPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>ahrsPublisher</strong>: <code>AhrsPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-5>Defined in<a href=#defined-in-5 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:108</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=aircraftinertialpublisher>aircraftInertialPublisher<a href=#aircraftinertialpublisher class=hash-link aria-label="Direct link to aircraftInertialPublisher" title="Direct link to aircraftInertialPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>aircraftInertialPublisher</strong>: <code>AircraftInertialPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-6>Defined in<a href=#defined-in-6 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:109</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=antiicepublisher>antiIcePublisher<a href=#antiicepublisher class=hash-link aria-label="Direct link to antiIcePublisher" title="Direct link to antiIcePublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>antiIcePublisher</strong>: <code>AntiIcePublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-7>Defined in<a href=#defined-in-7 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:110</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=apinstrument>apInstrument<a href=#apinstrument class=hash-link aria-label="Direct link to apInstrument" title="Direct link to apInstrument">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>apInstrument</strong>: <code>AutopilotInstrument</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-8>Defined in<a href=#defined-in-8 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:124</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=appanelpublisher>apPanelPublisher<a href=#appanelpublisher class=hash-link aria-label="Direct link to apPanelPublisher" title="Direct link to apPanelPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>apPanelPublisher</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2ApPanelPublisher><code>Epic2ApPanelPublisher</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-9>Defined in<a href=#defined-in-9 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:122</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=backplane>backplane<a href=#backplane class=hash-link aria-label="Direct link to backplane" title="Direct link to backplane">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>backplane</strong>: <code>InstrumentBackplane</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-10>Defined in<a href=#defined-in-10 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:102</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=baseinstrumentpublisher>baseInstrumentPublisher<a href=#baseinstrumentpublisher class=hash-link aria-label="Direct link to baseInstrumentPublisher" title="Direct link to baseInstrumentPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>baseInstrumentPublisher</strong>: <code>BaseInstrumentPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-11>Defined in<a href=#defined-in-11 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:106</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=brakepublisher>brakePublisher<a href=#brakepublisher class=hash-link aria-label="Direct link to brakePublisher" title="Direct link to brakePublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>brakePublisher</strong>: <code>BrakeSimvarPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-12>Defined in<a href=#defined-in-12 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:111</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=bus>bus<a href=#bus class=hash-link aria-label="Direct link to bus" title="Direct link to bus">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>bus</strong>: <code>EventBus</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-13>Defined in<a href=#defined-in-13 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:63</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=clock>clock<a href=#clock class=hash-link aria-label="Direct link to clock" title="Direct link to clock">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>clock</strong>: <code>Clock</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-14>Defined in<a href=#defined-in-14 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:104</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=cockpitusersettings>cockpitUserSettings<a href=#cockpitusersettings class=hash-link aria-label="Direct link to cockpitUserSettings" title="Direct link to cockpitUserSettings">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>cockpitUserSettings</strong>: <code>DefaultUserSettingManager</code>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/type-aliases/RefsSettings><code>RefsSettings</code></a>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-15>Defined in<a href=#defined-in-15 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:65</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=config>config<a href=#config class=hash-link aria-label="Direct link to config" title="Direct link to config">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>config</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/AvionicsConfig><code>AvionicsConfig</code></a></p>
+</blockquote>
+<p>The general avionics configuration object.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-16>Defined in<a href=#defined-in-16 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:144</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=controlsurfacespublisher>controlSurfacesPublisher<a href=#controlsurfacespublisher class=hash-link aria-label="Direct link to controlSurfacesPublisher" title="Direct link to controlSurfacesPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>controlSurfacesPublisher</strong>: <code>ControlSurfacesPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-17>Defined in<a href=#defined-in-17 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:117</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=displayunitindex>displayUnitIndex<a href=#displayunitindex class=hash-link aria-label="Direct link to displayUnitIndex" title="Direct link to displayUnitIndex">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>displayUnitIndex</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/enumerations/DisplayUnitIndices><code>DisplayUnitIndices</code></a></p>
+</blockquote>
+<p>The home display unit for this display (i.e. without MFD swap).</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-18>Defined in<a href=#defined-in-18 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:43</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=ducontrolpublisher>duControlPublisher<a href=#ducontrolpublisher class=hash-link aria-label="Direct link to duControlPublisher" title="Direct link to duControlPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>duControlPublisher</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2InputControlPublisher><code>Epic2InputControlPublisher</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-19>Defined in<a href=#defined-in-19 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:78</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=eispublisher>eisPublisher<a href=#eispublisher class=hash-link aria-label="Direct link to eisPublisher" title="Direct link to eisPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>eisPublisher</strong>: <code>EISPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-20>Defined in<a href=#defined-in-20 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:116</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=electricalpublisher>electricalPublisher<a href=#electricalpublisher class=hash-link aria-label="Direct link to electricalPublisher" title="Direct link to electricalPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>electricalPublisher</strong>: <code>ElectricalPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-21>Defined in<a href=#defined-in-21 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:119</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=facloader>facLoader<a href=#facloader class=hash-link aria-label="Direct link to facLoader" title="Direct link to facLoader">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>facLoader</strong>: <code>FacilityLoader</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-22>Defined in<a href=#defined-in-22 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:68</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=facrepo>facRepo<a href=#facrepo class=hash-link aria-label="Direct link to facRepo" title="Direct link to facRepo">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>facRepo</strong>: <code>FacilityRepository</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-23>Defined in<a href=#defined-in-23 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:67</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=flapwarningselector>flapWarningSelector?<a href=#flapwarningselector class=hash-link aria-label="Direct link to flapWarningSelector?" title="Direct link to flapWarningSelector?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>optional</code> <strong>flapWarningSelector</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/FlapWarningSystemSelector><code>FlapWarningSystemSelector</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-24>Defined in<a href=#defined-in-24 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:132</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=flightpathcalculator>flightPathCalculator<a href=#flightpathcalculator class=hash-link aria-label="Direct link to flightPathCalculator" title="Direct link to flightPathCalculator">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>flightPathCalculator</strong>: <code>FlightPathCalculator</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-25>Defined in<a href=#defined-in-25 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:80</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=flightplanner>flightPlanner<a href=#flightplanner class=hash-link aria-label="Direct link to flightPlanner" title="Direct link to flightPlanner">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>flightPlanner</strong>: <code>FlightPlanner</code>&lt;<code>""</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-26>Defined in<a href=#defined-in-26 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:95</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=fuelsystempublisher>fuelSystemPublisher<a href=#fuelsystempublisher class=hash-link aria-label="Direct link to fuelSystemPublisher" title="Direct link to fuelSystemPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>fuelSystemPublisher</strong>: <code>FuelSystemSimVarPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-27>Defined in<a href=#defined-in-27 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:121</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=gnsspublisher>gnssPublisher<a href=#gnsspublisher class=hash-link aria-label="Direct link to gnssPublisher" title="Direct link to gnssPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>gnssPublisher</strong>: <code>GNSSPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-28>Defined in<a href=#defined-in-28 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:112</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=gpsreceiverselector>gpsReceiverSelector?<a href=#gpsreceiverselector class=hash-link aria-label="Direct link to gpsReceiverSelector?" title="Direct link to gpsReceiverSelector?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>optional</code> <strong>gpsReceiverSelector</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/GpsReceiverSelector><code>GpsReceiverSelector</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-29>Defined in<a href=#defined-in-29 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:130</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=haveupdatesstarted>haveUpdatesStarted<a href=#haveupdatesstarted class=hash-link aria-label="Direct link to haveUpdatesStarted" title="Direct link to haveUpdatesStarted">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>haveUpdatesStarted</strong>: <code>boolean</code> = <code>false</code></p>
+</blockquote>
+<p>Whether this instrument has started updating.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-30>Defined in<a href=#defined-in-30 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:135</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=heventpublisher>hEventPublisher<a href=#heventpublisher class=hash-link aria-label="Direct link to hEventPublisher" title="Direct link to hEventPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>hEventPublisher</strong>: <code>HEventPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-31>Defined in<a href=#defined-in-31 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:76</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=hostdisplayunitindex>hostDisplayUnitIndex<a href=#hostdisplayunitindex class=hash-link aria-label="Direct link to hostDisplayUnitIndex" title="Direct link to hostDisplayUnitIndex">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>hostDisplayUnitIndex</strong>: <code>Subject</code>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/enumerations/DisplayUnitIndices><code>DisplayUnitIndices</code></a>></p>
+</blockquote>
+<p>The actual DU hosting this display, considering MFD swap.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-32>Defined in<a href=#defined-in-32 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:45</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=instrument>instrument<a href=#instrument class=hash-link aria-label="Direct link to instrument" title="Direct link to instrument">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>instrument</strong>: <code>BaseInstrument</code></p>
+</blockquote>
+<p>This instrument's parent BaseInstrument.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=implementation-of>Implementation of<a href=#implementation-of class=hash-link aria-label="Direct link to Implementation of" title="Direct link to Implementation of">​</a></h4>
+<p><code>FsInstrument.instrument</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-33>Defined in<a href=#defined-in-33 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:143</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isagmon>isAgmOn<a href=#isagmon class=hash-link aria-label="Direct link to isAgmOn" title="Direct link to isAgmOn">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>isAgmOn</strong>: <code>Subject</code>&lt;<code>boolean</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-34>Defined in<a href=#defined-in-34 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:58</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isdubooted>isDuBooted<a href=#isdubooted class=hash-link aria-label="Direct link to isDuBooted" title="Direct link to isDuBooted">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>isDuBooted</strong>: <code>Subject</code>&lt;<code>boolean</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-35>Defined in<a href=#defined-in-35 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:59</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=ispowered>isPowered<a href=#ispowered class=hash-link aria-label="Direct link to isPowered" title="Direct link to isPowered">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>isPowered</strong>: <code>undefined</code> | <code>boolean</code> = <code>undefined</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-36>Defined in<a href=#defined-in-36 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:49</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=mfdusersettingsmanager>mfdUserSettingsManager<a href=#mfdusersettingsmanager class=hash-link aria-label="Direct link to mfdUserSettingsManager" title="Direct link to mfdUserSettingsManager">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>mfdUserSettingsManager</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/MfdUserSettingManager><code>MfdUserSettingManager</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-37>Defined in<a href=#defined-in-37 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:71</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=minimumspublisher>minimumsPublisher<a href=#minimumspublisher class=hash-link aria-label="Direct link to minimumsPublisher" title="Direct link to minimumsPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>minimumsPublisher</strong>: <code>MinimumsSimVarPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-38>Defined in<a href=#defined-in-38 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:115</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=navcomsimvarpublisher>navComSimVarPublisher<a href=#navcomsimvarpublisher class=hash-link aria-label="Direct link to navComSimVarPublisher" title="Direct link to navComSimVarPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>navComSimVarPublisher</strong>: <code>NavComSimVarPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-39>Defined in<a href=#defined-in-39 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:114</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=navcomusersettingsmanager>navComUserSettingsManager<a href=#navcomusersettingsmanager class=hash-link aria-label="Direct link to navComUserSettingsManager" title="Direct link to navComUserSettingsManager">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>navComUserSettingsManager</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/NavComUserSettingManager><code>NavComUserSettingManager</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-40>Defined in<a href=#defined-in-40 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:74</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=nearestcontext>nearestContext<a href=#nearestcontext class=hash-link aria-label="Direct link to nearestContext" title="Direct link to nearestContext">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>nearestContext</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2NearestContext><code>Epic2NearestContext</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-41>Defined in<a href=#defined-in-41 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:69</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=pfdusersettingsmanager>pfdUserSettingsManager<a href=#pfdusersettingsmanager class=hash-link aria-label="Direct link to pfdUserSettingsManager" title="Direct link to pfdUserSettingsManager">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>pfdUserSettingsManager</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/PfdUserSettingManager><code>PfdUserSettingManager</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-42>Defined in<a href=#defined-in-42 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:72</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedadahrsindex>selectedAdahrsIndex<a href=#selectedadahrsindex class=hash-link aria-label="Direct link to selectedAdahrsIndex" title="Direct link to selectedAdahrsIndex">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedAdahrsIndex</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-43>Defined in<a href=#defined-in-43 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:52</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedaoaindex>selectedAoaIndex<a href=#selectedaoaindex class=hash-link aria-label="Direct link to selectedAoaIndex" title="Direct link to selectedAoaIndex">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedAoaIndex</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-44>Defined in<a href=#defined-in-44 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:51</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedflapwarningindex>selectedFlapWarningIndex<a href=#selectedflapwarningindex class=hash-link aria-label="Direct link to selectedFlapWarningIndex" title="Direct link to selectedFlapWarningIndex">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedFlapWarningIndex</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-45>Defined in<a href=#defined-in-45 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:54</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedfmsposindex>selectedFmsPosIndex<a href=#selectedfmsposindex class=hash-link aria-label="Direct link to selectedFmsPosIndex" title="Direct link to selectedFmsPosIndex">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedFmsPosIndex</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-46>Defined in<a href=#defined-in-46 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:53</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=softkeycontroller>softKeyController<a href=#softkeycontroller class=hash-link aria-label="Direct link to softKeyController" title="Direct link to softKeyController">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>softKeyController</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2DuController><code>Epic2DuController</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-47>Defined in<a href=#defined-in-47 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:77</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=speedlimitpublisher>speedLimitPublisher<a href=#speedlimitpublisher class=hash-link aria-label="Direct link to speedLimitPublisher" title="Direct link to speedLimitPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>speedLimitPublisher</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/SpeedLimitPublisher><code>SpeedLimitPublisher</code></a></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-48>Defined in<a href=#defined-in-48 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:120</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=systems>systems<a href=#systems class=hash-link aria-label="Direct link to systems" title="Direct link to systems">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>systems</strong>: <code>AvionicsSystem</code>[] = <code>[]</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-49>Defined in<a href=#defined-in-49 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:128</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=timerpublisher>timerPublisher<a href=#timerpublisher class=hash-link aria-label="Direct link to timerPublisher" title="Direct link to timerPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>timerPublisher</strong>: <code>FlightTimerPublisher</code>&lt;<code>any</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-50>Defined in<a href=#defined-in-50 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:118</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=trafficinstrument>trafficInstrument<a href=#trafficinstrument class=hash-link aria-label="Direct link to trafficInstrument" title="Direct link to trafficInstrument">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>trafficInstrument</strong>: <code>TrafficInstrument</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-51>Defined in<a href=#defined-in-51 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:125</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=verticalpathcalculator>verticalPathCalculator<a href=#verticalpathcalculator class=hash-link aria-label="Direct link to verticalPathCalculator" title="Direct link to verticalPathCalculator">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>verticalPathCalculator</strong>: <code>SmoothingPathCalculator</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-52>Defined in<a href=#defined-in-52 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:97</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=vnavpublisher>vNavPublisher<a href=#vnavpublisher class=hash-link aria-label="Direct link to vNavPublisher" title="Direct link to vNavPublisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>vNavPublisher</strong>: <code>VNavSimVarPublisher</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-53>Defined in<a href=#defined-in-53 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:113</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=xpdrinstrument>xpdrInstrument<a href=#xpdrinstrument class=hash-link aria-label="Direct link to xpdrInstrument" title="Direct link to xpdrInstrument">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>xpdrInstrument</strong>: <code>XPDRInstrument</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-54>Defined in<a href=#defined-in-54 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:126</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=methods>Methods<a href=#methods class=hash-link aria-label="Direct link to Methods" title="Direct link to Methods">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=createsystems>createSystems()<a href=#createsystems class=hash-link aria-label="Direct link to createSystems()" title="Direct link to createSystems()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>createSystems</strong>(): <code>void</code></p>
+</blockquote>
+<p>Creates this instrument's avionics systems.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-1>Returns<a href=#returns-1 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-55>Defined in<a href=#defined-in-55 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:224</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=doinit>doInit()<a href=#doinit class=hash-link aria-label="Direct link to doInit()" title="Direct link to doInit()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>doInit</strong>(): <code>void</code></p>
+</blockquote>
+<p>Init instrument.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-2>Returns<a href=#returns-2 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-56>Defined in<a href=#defined-in-56 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:398</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getbootduration>getBootDuration()<a href=#getbootduration class=hash-link aria-label="Direct link to getBootDuration()" title="Direct link to getBootDuration()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>getBootDuration</strong>(): <code>number</code></p>
+</blockquote>
+<p>Gets the duration, in milliseconds, required for this instrument to boot on power up.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-3>Returns<a href=#returns-3 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>number</code></p>
+<p>The duration, in milliseconds, required for this instrument to boot on power up.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-57>Defined in<a href=#defined-in-57 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:355</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=onbootfinished>onBootFinished()<a href=#onbootfinished class=hash-link aria-label="Direct link to onBootFinished()" title="Direct link to onBootFinished()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>onBootFinished</strong>(): <code>void</code></p>
+</blockquote>
+<p>Responds to when this instrument is finished booting.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-4>Returns<a href=#returns-4 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-58>Defined in<a href=#defined-in-58 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:480</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=onbootstart>onBootStart()<a href=#onbootstart class=hash-link aria-label="Direct link to onBootStart()" title="Direct link to onBootStart()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>onBootStart</strong>(): <code>void</code></p>
+</blockquote>
+<p>Responds to when the instrument begins to boot</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-5>Returns<a href=#returns-5 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-59>Defined in<a href=#defined-in-59 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:472</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=onflightstart>onFlightStart()<a href=#onflightstart class=hash-link aria-label="Direct link to onFlightStart()" title="Direct link to onFlightStart()">​</a></h3>
+<blockquote>
+<p><strong>onFlightStart</strong>(): <code>void</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-6>Returns<a href=#returns-6 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherit-doc>Inherit Doc<a href=#inherit-doc class=hash-link aria-label="Direct link to Inherit Doc" title="Direct link to Inherit Doc">​</a></h4>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=implementation-of-1>Implementation of<a href=#implementation-of-1 class=hash-link aria-label="Direct link to Implementation of" title="Direct link to Implementation of">​</a></h4>
+<p><code>FsInstrument.onFlightStart</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-60>Defined in<a href=#defined-in-60 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:381</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=ongamestatechanged>onGameStateChanged()<a href=#ongamestatechanged class=hash-link aria-label="Direct link to onGameStateChanged()" title="Direct link to onGameStateChanged()">​</a></h3>
+<blockquote>
+<p><strong>onGameStateChanged</strong>(<code>oldState</code>, <code>newState</code>): <code>void</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-1>Parameters<a href=#parameters-1 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<tbody><tr><td><code>oldState</code><td><code>GameState</code><tr><td><code>newState</code><td><code>GameState</code></table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-7>Returns<a href=#returns-7 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherit-doc-1>Inherit Doc<a href=#inherit-doc-1 class=hash-link aria-label="Direct link to Inherit Doc" title="Direct link to Inherit Doc">​</a></h4>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=implementation-of-2>Implementation of<a href=#implementation-of-2 class=hash-link aria-label="Direct link to Implementation of" title="Direct link to Implementation of">​</a></h4>
+<p><code>FsInstrument.onGameStateChanged</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-61>Defined in<a href=#defined-in-61 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:387</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=oninteractionevent>onInteractionEvent()<a href=#oninteractionevent class=hash-link aria-label="Direct link to onInteractionEvent()" title="Direct link to onInteractionEvent()">​</a></h3>
+<blockquote>
+<p><strong>onInteractionEvent</strong>(<code>args</code>): <code>void</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-2>Parameters<a href=#parameters-2 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<tbody><tr><td><code>args</code><td><code>string</code>[]</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-8>Returns<a href=#returns-8 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherit-doc-2>Inherit Doc<a href=#inherit-doc-2 class=hash-link aria-label="Direct link to Inherit Doc" title="Direct link to Inherit Doc">​</a></h4>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=implementation-of-3>Implementation of<a href=#implementation-of-3 class=hash-link aria-label="Direct link to Implementation of" title="Direct link to Implementation of">​</a></h4>
+<p><code>FsInstrument.onInteractionEvent</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-62>Defined in<a href=#defined-in-62 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:376</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=onpowerchanged>onPowerChanged()<a href=#onpowerchanged class=hash-link aria-label="Direct link to onPowerChanged()" title="Direct link to onPowerChanged()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>onPowerChanged</strong>(<code>current</code>, <code>previous</code>): <code>void</code></p>
+</blockquote>
+<p>Responds to when this instrument's power state changes.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-3>Parameters<a href=#parameters-3 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>current</code><td><code>boolean</code><td>The current power state.<tr><td><code>previous</code><td><code>undefined</code> | <code>boolean</code><td>The previous power state, or <code>undefined</code> if the previous state was invalid.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-9>Returns<a href=#returns-9 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-63>Defined in<a href=#defined-in-63 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:455</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=onpoweredstart>onPoweredStart()<a href=#onpoweredstart class=hash-link aria-label="Direct link to onPoweredStart()" title="Direct link to onPoweredStart()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>onPoweredStart</strong>(): <code>void</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-10>Returns<a href=#returns-10 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherit-doc-3>Inherit Doc<a href=#inherit-doc-3 class=hash-link aria-label="Direct link to Inherit Doc" title="Direct link to Inherit Doc">​</a></h4>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-64>Defined in<a href=#defined-in-64 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:486</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=onpoweroff>onPowerOff()<a href=#onpoweroff class=hash-link aria-label="Direct link to onPowerOff()" title="Direct link to onPowerOff()">​</a></h3>
+<blockquote>
+<p><strong>onPowerOff</strong>(): <code>void</code></p>
+</blockquote>
+<p>A callback which is executed when this instrument transitions from a power-on to power-off state.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-11>Returns<a href=#returns-11 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-65>Defined in<a href=#defined-in-65 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:433</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=onpoweron>onPowerOn()<a href=#onpoweron class=hash-link aria-label="Direct link to onPowerOn()" title="Direct link to onPowerOn()">​</a></h3>
+<blockquote>
+<p><strong>onPowerOn</strong>(): <code>void</code></p>
+</blockquote>
+<p>A callback which is executed when this instrument transitions from a power-off to power-on state.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-12>Returns<a href=#returns-12 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-66>Defined in<a href=#defined-in-66 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:417</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=onsoundend>onSoundEnd()<a href=#onsoundend class=hash-link aria-label="Direct link to onSoundEnd()" title="Direct link to onSoundEnd()">​</a></h3>
+<blockquote>
+<p><strong>onSoundEnd</strong>(<code>soundEventId</code>): <code>void</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-4>Parameters<a href=#parameters-4 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<tbody><tr><td><code>soundEventId</code><td><code>Name_Z</code></table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-13>Returns<a href=#returns-13 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherit-doc-4>Inherit Doc<a href=#inherit-doc-4 class=hash-link aria-label="Direct link to Inherit Doc" title="Direct link to Inherit Doc">​</a></h4>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=implementation-of-4>Implementation of<a href=#implementation-of-4 class=hash-link aria-label="Direct link to Implementation of" title="Direct link to Implementation of">​</a></h4>
+<p><code>FsInstrument.onSoundEnd</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-67>Defined in<a href=#defined-in-67 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:393</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setselecteddu>setSelectedDu()<a href=#setselecteddu class=hash-link aria-label="Direct link to setSelectedDu()" title="Direct link to setSelectedDu()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>setSelectedDu</strong>(<code>hostDuIndex</code>?): <code>void</code></p>
+</blockquote>
+<p>Sets the selected display unit index (for TSC/MF controller input).</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-5>Parameters<a href=#parameters-5 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>hostDuIndex</code>?<td><a href=/msfs-avionics-mirror/2024/docs/api/epic2shared/enumerations/DisplayUnitIndices><code>DisplayUnitIndices</code></a><td>The DU index to set; defaults to this display's host DU.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-14>Returns<a href=#returns-14 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-68>Defined in<a href=#defined-in-68 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:495</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=update>Update()<a href=#update class=hash-link aria-label="Direct link to Update()" title="Direct link to Update()">​</a></h3>
+<blockquote>
+<p><strong>Update</strong>(): <code>void</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-15>Returns<a href=#returns-15 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherit-doc-5>Inherit Doc<a href=#inherit-doc-5 class=hash-link aria-label="Direct link to Inherit Doc" title="Direct link to Inherit Doc">​</a></h4>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=implementation-of-5>Implementation of<a href=#implementation-of-5 class=hash-link aria-label="Direct link to Implementation of" title="Direct link to Implementation of">​</a></h4>
+<p><code>FsInstrument.Update</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-69>Defined in<a href=#defined-in-69 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:360</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=updatesystems>updateSystems()<a href=#updatesystems class=hash-link aria-label="Direct link to updateSystems()" title="Direct link to updateSystems()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>updateSystems</strong>(): <code>void</code></p>
+</blockquote>
+<p>Updates this instrument's systems.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-16>Returns<a href=#returns-16 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-70>Defined in<a href=#defined-in-70 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/shared/Epic2FsInstrument.tsx:369</div></article><nav class="pagination-nav docusaurus-mt-lg" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2FmsUtils><div class=pagination-nav__sublabel>Previous</div><div class=pagination-nav__label>Epic2FmsUtils</div></a><a class="pagination-nav__link pagination-nav__link--next" href=/msfs-avionics-mirror/2024/docs/api/epic2shared/classes/Epic2GhostNeedleNavIndicator><div class=pagination-nav__sublabel>Next</div><div class=pagination-nav__label>Epic2GhostNeedleNavIndicator</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href=#implements class="table-of-contents__link toc-highlight">Implements</a><li><a href=#constructors class="table-of-contents__link toc-highlight">Constructors</a><ul><li><a href=#new-epic2fsinstrument class="table-of-contents__link toc-highlight">new Epic2FsInstrument()</a></ul><li><a href=#properties class="table-of-contents__link toc-highlight">Properties</a><ul><li><a href=#adahrsselector class="table-of-contents__link toc-highlight">adahrsSelector?</a><li><a href=#adcpublisher class="table-of-contents__link toc-highlight">adcPublisher</a><li><a href=#agm1state class="table-of-contents__link toc-highlight">agm1State</a><li><a href=#agm2state class="table-of-contents__link toc-highlight">agm2State</a><li><a href=#ahrspublisher class="table-of-contents__link toc-highlight">ahrsPublisher</a><li><a href=#aircraftinertialpublisher class="table-of-contents__link toc-highlight">aircraftInertialPublisher</a><li><a href=#antiicepublisher class="table-of-contents__link toc-highlight">antiIcePublisher</a><li><a href=#apinstrument class="table-of-contents__link toc-highlight">apInstrument</a><li><a href=#appanelpublisher class="table-of-contents__link toc-highlight">apPanelPublisher</a><li><a href=#backplane class="table-of-contents__link toc-highlight">backplane</a><li><a href=#baseinstrumentpublisher class="table-of-contents__link toc-highlight">baseInstrumentPublisher</a><li><a href=#brakepublisher class="table-of-contents__link toc-highlight">brakePublisher</a><li><a href=#bus class="table-of-contents__link toc-highlight">bus</a><li><a href=#clock class="table-of-contents__link toc-highlight">clock</a><li><a href=#cockpitusersettings class="table-of-contents__link toc-highlight">cockpitUserSettings</a><li><a href=#config class="table-of-contents__link toc-highlight">config</a><li><a href=#controlsurfacespublisher class="table-of-contents__link toc-highlight">controlSurfacesPublisher</a><li><a href=#displayunitindex class="table-of-contents__link toc-highlight">displayUnitIndex</a><li><a href=#ducontrolpublisher class="table-of-contents__link toc-highlight">duControlPublisher</a><li><a href=#eispublisher class="table-of-contents__link toc-highlight">eisPublisher</a><li><a href=#electricalpublisher class="table-of-contents__link toc-highlight">electricalPublisher</a><li><a href=#facloader class="table-of-contents__link toc-highlight">facLoader</a><li><a href=#facrepo class="table-of-contents__link toc-highlight">facRepo</a><li><a href=#flapwarningselector class="table-of-contents__link toc-highlight">flapWarningSelector?</a><li><a href=#flightpathcalculator class="table-of-contents__link toc-highlight">flightPathCalculator</a><li><a href=#flightplanner class="table-of-contents__link toc-highlight">flightPlanner</a><li><a href=#fuelsystempublisher class="table-of-contents__link toc-highlight">fuelSystemPublisher</a><li><a href=#gnsspublisher class="table-of-contents__link toc-highlight">gnssPublisher</a><li><a href=#gpsreceiverselector class="table-of-contents__link toc-highlight">gpsReceiverSelector?</a><li><a href=#haveupdatesstarted class="table-of-contents__link toc-highlight">haveUpdatesStarted</a><li><a href=#heventpublisher class="table-of-contents__link toc-highlight">hEventPublisher</a><li><a href=#hostdisplayunitindex class="table-of-contents__link toc-highlight">hostDisplayUnitIndex</a><li><a href=#instrument class="table-of-contents__link toc-highlight">instrument</a><li><a href=#isagmon class="table-of-contents__link toc-highlight">isAgmOn</a><li><a href=#isdubooted class="table-of-contents__link toc-highlight">isDuBooted</a><li><a href=#ispowered class="table-of-contents__link toc-highlight">isPowered</a><li><a href=#mfdusersettingsmanager class="table-of-contents__link toc-highlight">mfdUserSettingsManager</a><li><a href=#minimumspublisher class="table-of-contents__link toc-highlight">minimumsPublisher</a><li><a href=#navcomsimvarpublisher class="table-of-contents__link toc-highlight">navComSimVarPublisher</a><li><a href=#navcomusersettingsmanager class="table-of-contents__link toc-highlight">navComUserSettingsManager</a><li><a href=#nearestcontext class="table-of-contents__link toc-highlight">nearestContext</a><li><a href=#pfdusersettingsmanager class="table-of-contents__link toc-highlight">pfdUserSettingsManager</a><li><a href=#selectedadahrsindex class="table-of-contents__link toc-highlight">selectedAdahrsIndex</a><li><a href=#selectedaoaindex class="table-of-contents__link toc-highlight">selectedAoaIndex</a><li><a href=#selectedflapwarningindex class="table-of-contents__link toc-highlight">selectedFlapWarningIndex</a><li><a href=#selectedfmsposindex class="table-of-contents__link toc-highlight">selectedFmsPosIndex</a><li><a href=#softkeycontroller class="table-of-contents__link toc-highlight">softKeyController</a><li><a href=#speedlimitpublisher class="table-of-contents__link toc-highlight">speedLimitPublisher</a><li><a href=#systems class="table-of-contents__link toc-highlight">systems</a><li><a href=#timerpublisher class="table-of-contents__link toc-highlight">timerPublisher</a><li><a href=#trafficinstrument class="table-of-contents__link toc-highlight">trafficInstrument</a><li><a href=#verticalpathcalculator class="table-of-contents__link toc-highlight">verticalPathCalculator</a><li><a href=#vnavpublisher class="table-of-contents__link toc-highlight">vNavPublisher</a><li><a href=#xpdrinstrument class="table-of-contents__link toc-highlight">xpdrInstrument</a></ul><li><a href=#methods class="table-of-contents__link toc-highlight">Methods</a><ul><li><a href=#createsystems class="table-of-contents__link toc-highlight">createSystems()</a><li><a href=#doinit class="table-of-contents__link toc-highlight">doInit()</a><li><a href=#getbootduration class="table-of-contents__link toc-highlight">getBootDuration()</a><li><a href=#onbootfinished class="table-of-contents__link toc-highlight">onBootFinished()</a><li><a href=#onbootstart class="table-of-contents__link toc-highlight">onBootStart()</a><li><a href=#onflightstart class="table-of-contents__link toc-highlight">onFlightStart()</a><li><a href=#ongamestatechanged class="table-of-contents__link toc-highlight">onGameStateChanged()</a><li><a href=#oninteractionevent class="table-of-contents__link toc-highlight">onInteractionEvent()</a><li><a href=#onpowerchanged class="table-of-contents__link toc-highlight">onPowerChanged()</a><li><a href=#onpoweredstart class="table-of-contents__link toc-highlight">onPoweredStart()</a><li><a href=#onpoweroff class="table-of-contents__link toc-highlight">onPowerOff()</a><li><a href=#onpoweron class="table-of-contents__link toc-highlight">onPowerOn()</a><li><a href=#onsoundend class="table-of-contents__link toc-highlight">onSoundEnd()</a><li><a href=#setselecteddu class="table-of-contents__link toc-highlight">setSelectedDu()</a><li><a href=#update class="table-of-contents__link toc-highlight">Update()</a><li><a href=#updatesystems class="table-of-contents__link toc-highlight">updateSystems()</a></ul></ul></div></div></div></div></main></div></div></div><footer class="footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="col footer__col"><div class=footer__title>Docs</div><ul class="footer__items clean-list"><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/framework/>Framework API Reference</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/garminsdk/>Garmin API Reference</a></ul></div><div class="col footer__col"><div class=footer__title>Community</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://forums.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Forums<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://discord.gg/msfs target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Discord<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://devsupport.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Dev Support AnswerHub<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://discord.com/invite/Fa6w2xK target=_blank rel="noopener noreferrer" class=footer__link-item>Working Title Discord<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a></ul></div><div class="col footer__col"><div class=footer__title>More</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://www.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>Microsoft Flight Simulator<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://github.com/microsoft/msfs-avionics-mirror target=_blank rel="noopener noreferrer" class=footer__link-item>GitHub<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a></ul></div></div><div class="footer__bottom text--center"><div class=footer__copyright>Copyright © 2024 Microsoft, Asobo Studio, and Working Title Simulations. Built with Docusaurus.</div></div></div></footer></div>

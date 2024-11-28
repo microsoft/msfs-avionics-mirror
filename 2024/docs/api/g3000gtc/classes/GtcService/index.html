@@ -1,0 +1,1019 @@
+<!doctype html><html lang=en dir=ltr class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-api/g3000gtc/classes/GtcService" data-has-hydrated=false><meta charset=UTF-8><meta name=generator content="Docusaurus v3.6.3"><title data-rh=true>Class: GtcService | MSFS Avionics Frameworks and Instruments</title><meta data-rh=true name=viewport content="width=device-width,initial-scale=1.0"><meta data-rh=true name=twitter:card content=summary_large_image><meta data-rh=true property=og:url content=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcService><meta data-rh=true property=og:locale content=en><meta data-rh=true name=docusaurus_locale content=en><meta data-rh=true name=docsearch:language content=en><meta data-rh=true name=docusaurus_version content=current><meta data-rh=true name=docusaurus_tag content=docs-default-current><meta data-rh=true name=docsearch:version content=current><meta data-rh=true name=docsearch:docusaurus_tag content=docs-default-current><meta data-rh=true property=og:title content="Class: GtcService | MSFS Avionics Frameworks and Instruments"><meta data-rh=true name=description content="A service to manage GTC views"><meta data-rh=true property=og:description content="A service to manage GTC views"><link data-rh=true rel=icon href=/msfs-avionics-mirror/2024/img/favicon.ico><link data-rh=true rel=canonical href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcService><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcService hreflang=en><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcService hreflang=x-default><link rel=stylesheet href=/msfs-avionics-mirror/2024/assets/css/styles.cf019111.css><script src=/msfs-avionics-mirror/2024/assets/js/runtime~main.20b6808c.js defer></script><script src=/msfs-avionics-mirror/2024/assets/js/main.2952ccb2.js defer></script><body class=navigation-with-keyboard><script>!function(){var t,e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();t=null!==e?e:"dark",document.documentElement.setAttribute("data-theme",t)}(),function(){try{for(var[t,e]of new URLSearchParams(window.location.search).entries())if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id=__docusaurus><div role=region aria-label="Skip to main content"><a class=skipToContent_fXgn href=#__docusaurus_skipToContent_fallback>Skip to main content</a></div><nav aria-label=Main class="navbar navbar--fixed-top"><div class=navbar__inner><div class=navbar__items><button aria-label="Toggle navigation bar" aria-expanded=false class="navbar__toggle clean-btn" type=button><svg width=30 height=30 viewBox="0 0 30 30" aria-hidden=true><path stroke=currentColor stroke-linecap=round stroke-miterlimit=10 stroke-width=2 d="M4 7h22M4 15h22M4 23h22"/></svg></button><a class=navbar__brand href=/msfs-avionics-mirror/2024/><div class=navbar__logo><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">MSFS Avionics Development</b></a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><a class="navbar__item navbar__link" href=/msfs-avionics-mirror/2024/docs/api/framework/>Framework API</a><a class="navbar__item navbar__link" href=/msfs-avionics-mirror/2024/docs/api/garminsdk/>Garmin API</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/g3000/overview>G3000 Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/gns/overview>GNS Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/g3xtouch/overview>G3X Touch Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/wt21/overview>WT21 Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/epic2/overview>Epic2 Development</a></div><div class="navbar__items navbar__items--right"><div class=navbarSearchContainer_Bca1></div></div></div><div role=presentation class=navbar-sidebar__backdrop></div></nav><div id=__docusaurus_skipToContent_fallback class="main-wrapper mainWrapper_z2l0"><div class=docsWrapper_hBAB><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type=button></button><div class=docRoot_UBD9><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class=sidebarViewport_aRkj><div class=sidebar_njMd><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class=menu__link href=/msfs-avionics-mirror/2024/docs/intro>MSFS Avionics Framework</a><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/getting-started/setting-up-your-environment>Getting Started</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/interacting-with-msfs/simvars>Interacting with MSFS</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/api/framework/globals>API References</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/framework-systems/subscriptions/intro-to-subscriptions>Framework Systems</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true href=/msfs-avionics-mirror/2024/docs/g1000/overview>Instrument Support</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/g1000/overview>G1000 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000common/globals>G3000 Development</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000common/globals>G3000 Plugin API</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000common/globals>Common Plugin API</a><button aria-label="Expand sidebar category 'Common Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000pfd/globals>PFD Plugin API</a><button aria-label="Expand sidebar category 'PFD Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000mfd/globals>MFD Plugin API</a><button aria-label="Expand sidebar category 'MFD Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--active" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/globals>GTC Plugin API</a><button aria-label="Collapse sidebar category 'GTC Plugin API'" aria-expanded=true type=button class="clean-btn menu__caret"></button></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/enumerations/ChannelSpacing>Enumerations</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/AbstractG3000GtcPlugin>Classes</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/AbstractG3000GtcPlugin>AbstractG3000GtcPlugin</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/AbstractGtcNumberDialog>AbstractGtcNumberDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/AbstractSimpleGtcNumberDialog>AbstractSimpleGtcNumberDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/AddEnrouteWaypointListItem>AddEnrouteWaypointListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/AirwayOptionsSlideoutMenu>AirwayOptionsSlideoutMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/ApproachOptionsSlideoutMenu>ApproachOptionsSlideoutMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/ArrivalOptionsSlideoutMenu>ArrivalOptionsSlideoutMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/BgImgTouchButton>BgImgTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/ButtonBar>ButtonBar</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/ChannelInputSlot>ChannelInputSlot</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/CharInput>CharInput</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/CharInputSlot>CharInputSlot</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/CursorInput>CursorInput</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/DepartureOptionsSlideoutMenu>DepartureOptionsSlideoutMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/DestinationOptionsSlideoutMenu>DestinationOptionsSlideoutMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/DigitInputSlot>DigitInputSlot</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/EnrouteOptionsSlideoutMenu>EnrouteOptionsSlideoutMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/FlightPlanAltitudeConstraintBox>FlightPlanAltitudeConstraintBox</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/FlightPlanApproachListItem>FlightPlanApproachListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/FlightPlanArrivalListItem>FlightPlanArrivalListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/FlightPlanDataFieldsBox>FlightPlanDataFieldsBox</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/FlightPlanDataFieldsPage>FlightPlanDataFieldsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/FlightPlanDestinationListItem>FlightPlanDestinationListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/FlightPlanEnrouteListItem>FlightPlanEnrouteListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/FlightPlanLegListItem>FlightPlanLegListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/FlightPlanOriginListItem>FlightPlanOriginListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/FlightPlanSegmentListItem>FlightPlanSegmentListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/FrequencyInput>FrequencyInput</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GarminTouchList>GarminTouchList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GenericCursorInputSlot>GenericCursorInputSlot</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcAdvancedVnavProfilePage>GtcAdvancedVnavProfilePage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcAirportInfoPage>GtcAirportInfoPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcAirwaySelectionDialog>GtcAirwaySelectionDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcAltitudeDialog>GtcAltitudeDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcApproachMinimumsPopup>GtcApproachMinimumsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcApproachPage>GtcApproachPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcArrivalPage>GtcArrivalPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcAudioRadiosPopup>GtcAudioRadiosPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcAvionicsSettingsPage>GtcAvionicsSettingsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcAvionicsSettingsPageMfdFieldsList>GtcAvionicsSettingsPageMfdFieldsList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcAvionicsSettingsPageSystemList>GtcAvionicsSettingsPageSystemList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcAvionicsSettingsPageUnitsList>GtcAvionicsSettingsPageUnitsList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcBaroPressureDialog>GtcBaroPressureDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcBearingArrow>GtcBearingArrow</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcChecklistOptionsPopup>GtcChecklistOptionsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcChecklistPage>GtcChecklistPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcConfig>GtcConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcConnextWeatherSettingsPage>GtcConnextWeatherSettingsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcContainer>GtcContainer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcCourseDialog>GtcCourseDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcDefaultPositionHeadingDataProvider>GtcDefaultPositionHeadingDataProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcDeparturePage>GtcDeparturePage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcDesignatedPaneButton>GtcDesignatedPaneButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcDialogs>GtcDialogs</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcDirectToPage>GtcDirectToPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcDirectToPageWaypointTab>GtcDirectToPageWaypointTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcDistanceDialog>GtcDistanceDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcDuplicateWaypointDialog>GtcDuplicateWaypointDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcDurationDialog>GtcDurationDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcDurationDialogMSS>GtcDurationDialogMSS</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcFindWaypointDialog>GtcFindWaypointDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcFlapSpeedsPage>GtcFlapSpeedsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcFlightPlanDialogs>GtcFlightPlanDialogs</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcFlightPlanOptionsPopup>GtcFlightPlanOptionsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcFlightPlanPage>GtcFlightPlanPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcFmsSpeedDialog>GtcFmsSpeedDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcFrequencyDialog>GtcFrequencyDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcGenericView>GtcGenericView</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcHoldPage>GtcHoldPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcHorizButtonBackgroundImagePaths>GtcHorizButtonBackgroundImagePaths</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcImgTouchButton>GtcImgTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcInitialFuelPage>GtcInitialFuelPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcInitializationPage>GtcInitializationPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcIntegerDialog>GtcIntegerDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcInteractionEventUtils>GtcInteractionEventUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcIntersectionInfoPage>GtcIntersectionInfoPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcKnobHandler>GtcKnobHandler</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcKnobStatesManager>GtcKnobStatesManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcLandingDataPage>GtcLandingDataPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcLandingDataPageConfigTab>GtcLandingDataPageConfigTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcLandingDataPageDataTab>GtcLandingDataPageDataTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcLatLonDialog>GtcLatLonDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcList>GtcList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcListButton>GtcListButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcListDialog>GtcListDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcListItem>GtcListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcListSelectTouchButton>GtcListSelectTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcLoadFrequencyDialog>GtcLoadFrequencyDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcLocalTimeOffsetDialog>GtcLocalTimeOffsetDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMapDetailSettingIcon>GtcMapDetailSettingIcon</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMapDetailSettingsPopup>GtcMapDetailSettingsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMapNexradSettingsPopup>GtcMapNexradSettingsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMapPointerControlPopup>GtcMapPointerControlPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMapRangeSettingSelectButton>GtcMapRangeSettingSelectButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMapSettingsPage>GtcMapSettingsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMapTerrainSettingsPopup>GtcMapTerrainSettingsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMapTrafficSettingsPopup>GtcMapTrafficSettingsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMessageDialog>GtcMessageDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMfdHomePage>GtcMfdHomePage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMinimumsControl>GtcMinimumsControl</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMinimumsPage>GtcMinimumsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMinimumsSourceDialog>GtcMinimumsSourceDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMinimumsTouchButton>GtcMinimumsTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMinuteDurationDialog>GtcMinuteDurationDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcMomentArmDialog>GtcMomentArmDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNavComHome>GtcNavComHome</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNavComTopBar>GtcNavComTopBar</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNdbInfoPage>GtcNdbInfoPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestAirportOptionsPopup>GtcNearestAirportOptionsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestAirportPage>GtcNearestAirportPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestDirectoryPage>GtcNearestDirectoryPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestIntersectionPage>GtcNearestIntersectionPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestNdbPage>GtcNearestNdbPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestTab>GtcNearestTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestUserWaypointPage>GtcNearestUserWaypointPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestVorPage>GtcNearestVorPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestWaypointList>GtcNearestWaypointList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestWaypointListItem>GtcNearestWaypointListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestWaypointOptionsPopup>GtcNearestWaypointOptionsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestWaypointPage>GtcNearestWaypointPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestWaypointPageListItem>GtcNearestWaypointPageListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcNearestWeatherPage>GtcNearestWeatherPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcPerfPage>GtcPerfPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcPfdHomePage>GtcPfdHomePage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcPfdMapSettingsPage>GtcPfdMapSettingsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcPfdSettingsPage>GtcPfdSettingsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcPfdSettingsPageGeneralList>GtcPfdSettingsPageGeneralList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcPfdSettingsPageMasterList>GtcPfdSettingsPageMasterList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcPfdSettingsPagePfdList>GtcPfdSettingsPagePfdList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcPfdSettingsPageSvtList>GtcPfdSettingsPageSvtList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcPfdTrafficMapButton>GtcPfdTrafficMapButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcPressurizationDialog>GtcPressurizationDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcProcedureSelectionPage>GtcProcedureSelectionPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcProceduresPage>GtcProceduresPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcRunwayGradientDialog>GtcRunwayGradientDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcRunwayLengthDialog>GtcRunwayLengthDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class="menu__link menu__link--active" aria-current=page tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcService>GtcService</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcSetupPage>GtcSetupPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcSetValueTouchButton>GtcSetValueTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcSidebar>GtcSidebar</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcSliderThumbIcon>GtcSliderThumbIcon</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcSpeedBugsPage>GtcSpeedBugsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcSpeedConstraintDialog>GtcSpeedConstraintDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcSpeedDialog>GtcSpeedDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcTakeoffDataPage>GtcTakeoffDataPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcTakeoffDataPageConfigTab>GtcTakeoffDataPageConfigTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcTakeoffDataPageDataTab>GtcTakeoffDataPageDataTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcTemperatureDialog>GtcTemperatureDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcTerrainSettingsPage>GtcTerrainSettingsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcTextDialog>GtcTextDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcTimerPage>GtcTimerPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcToggleTouchButton>GtcToggleTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcToldConfigDefaultsPopup>GtcToldConfigDefaultsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcToldDataPage>GtcToldDataPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcToldDataPageOriginDestTab>GtcToldDataPageOriginDestTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcToldDataPageRunwayTab>GtcToldDataPageRunwayTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcToldDataPageWeatherTab>GtcToldDataPageWeatherTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcToldFactorDialog>GtcToldFactorDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcToldOriginDestDisplay>GtcToldOriginDestDisplay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcToldRunwayDisplay>GtcToldRunwayDisplay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcTouchButton>GtcTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcTrafficSettingsPage>GtcTrafficSettingsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcTransponderDialog>GtcTransponderDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcTransponderModePopup>GtcTransponderModePopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcUiMapWaypointIconImageCache>GtcUiMapWaypointIconImageCache</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcUserSettings>GtcUserSettings</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcUserWaypointDialog>GtcUserWaypointDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcUserWaypointEditController>GtcUserWaypointEditController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcUserWaypointInfoOptionsPopup>GtcUserWaypointInfoOptionsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcUserWaypointInfoPage>GtcUserWaypointInfoPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcUtilitiesMinimumsPopup>GtcUtilitiesMinimumsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcUtilitiesPage>GtcUtilitiesPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcValueTouchButton>GtcValueTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcVertButtonBackgroundImagePaths>GtcVertButtonBackgroundImagePaths</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView>GtcView</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcVnavAltitudeDialog>GtcVnavAltitudeDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcVnavFlightPathAngleDialog>GtcVnavFlightPathAngleDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcVnavProfilePage>GtcVnavProfilePage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcVorInfoPage>GtcVorInfoPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcVSpeedDialog>GtcVSpeedDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWaypointButton>GtcWaypointButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWaypointDialog>GtcWaypointDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWaypointIcon>GtcWaypointIcon</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWaypointInfoDirectoryPage>GtcWaypointInfoDirectoryPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWaypointInfoOptionsPopup>GtcWaypointInfoOptionsPopup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWaypointInfoPage>GtcWaypointInfoPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWaypointInfoPageInfo>GtcWaypointInfoPageInfo</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWaypointInfoPageNoWaypointMessage>GtcWaypointInfoPageNoWaypointMessage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWaypointSelectButton>GtcWaypointSelectButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWeatherRadarSettingsPage>GtcWeatherRadarSettingsPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWeatherSelectionPage>GtcWeatherSelectionPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWeightBalanceConfigPage>GtcWeightBalanceConfigPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWeightBalancePage>GtcWeightBalancePage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWeightDialog>GtcWeightDialog</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcWeightFuelPage>GtcWeightFuelPage</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/ImgTouchButton>ImgTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/Keyboard>Keyboard</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/LabelBar>LabelBar</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/LabelBarLabel>LabelBarLabel</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/NumberInput>NumberInput</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/NumberPad>NumberPad</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/OriginOptionsSlideoutMenu>OriginOptionsSlideoutMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/RoundTouchButton>RoundTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/SetValueTouchButton>SetValueTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/SignInputSlot>SignInputSlot</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/TabbedContainer>TabbedContainer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/TabbedContent>TabbedContent</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/TerrainSettingsDisplay>TerrainSettingsDisplay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/TitleBar>TitleBar</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/ToggleTouchButton>ToggleTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/TouchButton>TouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/TouchList>TouchList</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/TouchSlider>TouchSlider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/TrafficSettingsDisplay>TrafficSettingsDisplay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/ValueTouchButton>ValueTouchButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/WaypointOptionsSlideoutMenu>WaypointOptionsSlideoutMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/WTG3000GtcInstrument>WTG3000GtcInstrument</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/XpdrTcasSettingsGroup>XpdrTcasSettingsGroup</a></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/AirwayOptionsSlideoutMenuProps>Interfaces</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/CursorInputCharSelectionMode>Type Aliases</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/variables/GtcInteractionEvent>Variables</a></div></ul></ul><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/overview>Overview</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/instrument-setup>Instrument Setup</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/panel-xml-basics>panel.xml Basics</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/panel-xml-tag-documentation>panel.xml Tag Documentation</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/plugin-basics>Plugin Basics</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/pfd-plugins>PFD Plugins</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/mfd-plugins>MFD Plugins</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/gtc-plugins>GTC Plugins</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/display-panes>Display Panes</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/gtc-framework>GTC Framework</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/display-overlay>Display Overlay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/h-event-list>H Event List</a><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/g3000/features/autopilot>Features</a></div></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/gns/overview>GNS Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3xtouchcommon/globals>G3X Touch Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/wt21shared/globals>WT21 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/epic2/overview>Epic2 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/uns/overview>UNS-1Lw Development</a></div></ul></ul></nav></div></div></aside><main class=docMainContainer_TBSr><div class="container padding-top--md padding-bottom--lg"><div class=row><div class="col docItemCol_VOVn"><div class=docItemContainer_Djhp><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label=Breadcrumbs><ul class=breadcrumbs itemscope itemtype=https://schema.org/BreadcrumbList><li class=breadcrumbs__item><a aria-label="Home page" class=breadcrumbs__link href=/msfs-avionics-mirror/2024/><svg viewBox="0 0 24 24" class=breadcrumbHomeIcon_YNFT><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill=currentColor /></svg></a><li class=breadcrumbs__item><span class=breadcrumbs__link>Instrument Support</span><meta itemprop=position content=1><li class=breadcrumbs__item><span class=breadcrumbs__link>G3000 Development</span><meta itemprop=position content=2><li class=breadcrumbs__item><span class=breadcrumbs__link>G3000 Plugin API</span><meta itemprop=position content=3><li itemscope itemprop=itemListElement itemtype=https://schema.org/ListItem class=breadcrumbs__item><a class=breadcrumbs__link itemprop=item href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/globals><span itemprop=name>GTC Plugin API</span></a><meta itemprop=position content=4><li class=breadcrumbs__item><span class=breadcrumbs__link>Classes</span><meta itemprop=position content=5><li itemscope itemprop=itemListElement itemtype=https://schema.org/ListItem class="breadcrumbs__item breadcrumbs__item--active"><span class=breadcrumbs__link itemprop=name>GtcService</span><meta itemprop=position content=6></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type=button class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>Class: GtcService</h1></header>
+<p>A service to manage GTC views</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=constructors>Constructors<a href=#constructors class=hash-link aria-label="Direct link to Constructors" title="Direct link to Constructors">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=new-gtcservice>new GtcService()<a href=#new-gtcservice class=hash-link aria-label="Direct link to new GtcService()" title="Direct link to new GtcService()">​</a></h3>
+<blockquote>
+<p><strong>new GtcService</strong>(<code>bus</code>, <code>instrumentIndex</code>, <code>config</code>, <code>instrumentConfig</code>, <code>obsSuspDataProvider</code>): <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcService><code>GtcService</code></a></p>
+</blockquote>
+<p>Creates an instance of GtcService.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters>Parameters<a href=#parameters class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>bus</code><td><code>EventBus</code><td>The event bus.<tr><td><code>instrumentIndex</code><td><code>number</code><td>The index of the GTC instrument to which this service belongs.<tr><td><code>config</code><td><code>AvionicsConfig</code><td>The general avionics configuration object.<tr><td><code>instrumentConfig</code><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcConfig><code>GtcConfig</code></a><td>The GTC instrument configuration object.<tr><td><code>obsSuspDataProvider</code><td><code>ObsSuspDataProvider</code><td>A provider of LNAV OBS/suspend data.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns>Returns<a href=#returns class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcService><code>GtcService</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=throws>Throws<a href=#throws class=hash-link aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>Error if defaultControlMode is incompatible with <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcService#controlsetup><code>controlSetup</code></a>.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in>Defined in<a href=#defined-in class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:347</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=properties>Properties<a href=#properties class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=activecontrolmode>activeControlMode<a href=#activecontrolmode class=hash-link aria-label="Direct link to activeControlMode" title="Direct link to activeControlMode">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>activeControlMode</strong>: <code>Subscribable</code>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcControlMode><code>GtcControlMode</code></a>></p>
+</blockquote>
+<p>The currently active control mode.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-1>Defined in<a href=#defined-in-1 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:221</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=activeview>activeView<a href=#activeview class=hash-link aria-label="Direct link to activeView" title="Direct link to activeView">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>activeView</strong>: <code>Subscribable</code>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>>></p>
+</blockquote>
+<p>The view that is currently at the top of the active view stack.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-2>Defined in<a href=#defined-in-2 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:246</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=activeviewisnotahomepage>activeViewIsNotAHomePage<a href=#activeviewisnotahomepage class=hash-link aria-label="Direct link to activeViewIsNotAHomePage" title="Direct link to activeViewIsNotAHomePage">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>activeViewIsNotAHomePage</strong>: <code>Subscribable</code>&lt;<code>boolean</code>></p>
+</blockquote>
+<p>Whether the currently active view is a control mode home page.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-3>Defined in<a href=#defined-in-3 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:253</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=bus>bus<a href=#bus class=hash-link aria-label="Direct link to bus" title="Direct link to bus">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>bus</strong>: <code>EventBus</code></p>
+</blockquote>
+<p>The event bus.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-4>Defined in<a href=#defined-in-4 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:348</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=controlsetup>controlSetup<a href=#controlsetup class=hash-link aria-label="Direct link to controlSetup" title="Direct link to controlSetup">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>controlSetup</strong>: <code>GtcControlSetup</code></p>
+</blockquote>
+<p>The control mode setup supported by this service's parent GTC.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-5>Defined in<a href=#defined-in-5 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:199</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=currentinitializationtask>currentInitializationTask<a href=#currentinitializationtask class=hash-link aria-label="Direct link to currentInitializationTask" title="Direct link to currentInitializationTask">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>currentInitializationTask</strong>: <code>Subscribable</code>&lt;<code>null</code> | <code>InitializationTaskDef</code>></p>
+</blockquote>
+<p>The current initialization task loaded for the active view stack.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-6>Defined in<a href=#defined-in-6 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:323</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=currentpage>currentPage<a href=#currentpage class=hash-link aria-label="Direct link to currentPage" title="Direct link to currentPage">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>currentPage</strong>: <code>Subscribable</code>&lt;<code>null</code> | <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>>></p>
+</blockquote>
+<p>The page that is currently open in the active view stack.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-7>Defined in<a href=#defined-in-7 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:250</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=displaypanecontrolindex>displayPaneControlIndex<a href=#displaypanecontrolindex class=hash-link aria-label="Direct link to displayPaneControlIndex" title="Direct link to displayPaneControlIndex">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>displayPaneControlIndex</strong>: <code>DisplayPaneControlGtcIndex</code></p>
+</blockquote>
+<p>The display pane controlling index of this service's parent GTC.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-8>Defined in<a href=#defined-in-8 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:205</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=displaypanesettingmanager>displayPaneSettingManager<a href=#displaypanesettingmanager class=hash-link aria-label="Direct link to displayPaneSettingManager" title="Direct link to displayPaneSettingManager">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>displayPaneSettingManager</strong>: <code>UserSettingManager</code>&lt;<code>DisplayPaneAllUserSettingTypes</code>></p>
+</blockquote>
+<p>The display panes settings master manager.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-9>Defined in<a href=#defined-in-9 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:274</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=displaypanevisiblesettings>displayPaneVisibleSettings<a href=#displaypanevisiblesettings class=hash-link aria-label="Direct link to displayPaneVisibleSettings" title="Direct link to displayPaneVisibleSettings">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>displayPaneVisibleSettings</strong>: <code>Record</code>&lt;<code>ControllableDisplayPaneIndex</code>, <code>UserSetting</code>&lt;<code>boolean</code>>></p>
+</blockquote>
+<p>The visibility setting for each display pane.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-10>Defined in<a href=#defined-in-10 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:276</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=enabledcontrollablepanes>enabledControllablePanes<a href=#enabledcontrollablepanes class=hash-link aria-label="Direct link to enabledControllablePanes" title="Direct link to enabledControllablePanes">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>enabledControllablePanes</strong>: readonly <code>ControllableDisplayPaneIndex</code>[]</p>
+</blockquote>
+<p>An array containing the indexes of all enabled controllable display panes in ascending order.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-11>Defined in<a href=#defined-in-11 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:264</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=gtcknobstates>gtcKnobStates<a href=#gtcknobstates class=hash-link aria-label="Direct link to gtcKnobStates" title="Direct link to gtcKnobStates">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>gtcKnobStates</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcKnobStates><code>GtcKnobStates</code></a></p>
+</blockquote>
+<p>The control states of the hardware knobs attached to this service's parent GTC.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-12>Defined in<a href=#defined-in-12 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:330</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=gtcotherside>gtcOtherSide<a href=#gtcotherside class=hash-link aria-label="Direct link to gtcOtherSide" title="Direct link to gtcOtherSide">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>gtcOtherSide</strong>: <code>"left"</code> | <code>"right"</code></p>
+</blockquote>
+<p>The string name for which side the other GTC is on.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-13>Defined in<a href=#defined-in-13 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:258</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=gtcsettings>gtcSettings<a href=#gtcsettings class=hash-link aria-label="Direct link to gtcSettings" title="Direct link to gtcSettings">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>gtcSettings</strong>: <code>UserSettingManager</code>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcAliasedUserSettingTypes><code>GtcAliasedUserSettingTypes</code></a>></p>
+</blockquote>
+<p>The GTC specific user settings for this GTC.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-14>Defined in<a href=#defined-in-14 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:261</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=gtcthisside>gtcThisSide<a href=#gtcthisside class=hash-link aria-label="Direct link to gtcThisSide" title="Direct link to gtcThisSide">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>gtcThisSide</strong>: <code>"left"</code> | <code>"right"</code></p>
+</blockquote>
+<p>The string name for which side this GTC is on.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-15>Defined in<a href=#defined-in-15 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:256</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=hasmfdmode>hasMfdMode<a href=#hasmfdmode class=hash-link aria-label="Direct link to hasMfdMode" title="Direct link to hasMfdMode">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>hasMfdMode</strong>: <code>boolean</code></p>
+</blockquote>
+<p>Whether this GTC has an MFD mode and can control display panes.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-16>Defined in<a href=#defined-in-16 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:208</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=hasnavcommode>hasNavComMode<a href=#hasnavcommode class=hash-link aria-label="Direct link to hasNavComMode" title="Direct link to hasNavComMode">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>hasNavComMode</strong>: <code>boolean</code></p>
+</blockquote>
+<p>Whether this GTC has a NAV_COM.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-17>Defined in<a href=#defined-in-17 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:212</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=haspfdmode>hasPfdMode<a href=#haspfdmode class=hash-link aria-label="Direct link to hasPfdMode" title="Direct link to hasPfdMode">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>hasPfdMode</strong>: <code>boolean</code></p>
+</blockquote>
+<p>Whether this GTC has a PFD mode.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-18>Defined in<a href=#defined-in-18 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:210</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=initializationdataprovider>initializationDataProvider<a href=#initializationdataprovider class=hash-link aria-label="Direct link to initializationDataProvider" title="Direct link to initializationDataProvider">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>initializationDataProvider</strong>: <code>InitializationDataProvider</code></p>
+</blockquote>
+<p>A provider of initialization data.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-19>Defined in<a href=#defined-in-19 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:311</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=instrumentindex>instrumentIndex<a href=#instrumentindex class=hash-link aria-label="Direct link to instrumentIndex" title="Direct link to instrumentIndex">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>instrumentIndex</strong>: <code>number</code></p>
+</blockquote>
+<p>The index of the GTC instrument to which this service belongs.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-20>Defined in<a href=#defined-in-20 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:349</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isadvancedvnav>isAdvancedVnav<a href=#isadvancedvnav class=hash-link aria-label="Direct link to isAdvancedVnav" title="Direct link to isAdvancedVnav">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>isAdvancedVnav</strong>: <code>boolean</code></p>
+</blockquote>
+<p>Whether advanced VNAV is enabled.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-21>Defined in<a href=#defined-in-21 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:215</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isawake>isAwake<a href=#isawake class=hash-link aria-label="Direct link to isAwake" title="Direct link to isAwake">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>isAwake</strong>: <code>Subscribable</code>&lt;<code>boolean</code>></p>
+</blockquote>
+<p>Whether this service is awake.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-22>Defined in<a href=#defined-in-22 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:238</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=ishorizontal>isHorizontal<a href=#ishorizontal class=hash-link aria-label="Direct link to isHorizontal" title="Direct link to isHorizontal">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>isHorizontal</strong>: <code>boolean</code></p>
+</blockquote>
+<p>Whether this service's parent GTC is horizontal.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-23>Defined in<a href=#defined-in-23 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:196</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=navcomeventhandler>navComEventHandler<a href=#navcomeventhandler class=hash-link aria-label="Direct link to navComEventHandler" title="Direct link to navComEventHandler">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>navComEventHandler</strong>: <code>Subject</code>&lt;<code>null</code> | <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcInteractionHandler><code>GtcInteractionHandler</code></a>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-24>Defined in<a href=#defined-in-24 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:307</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=nextinitializationtask>nextInitializationTask<a href=#nextinitializationtask class=hash-link aria-label="Direct link to nextInitializationTask" title="Direct link to nextInitializationTask">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>nextInitializationTask</strong>: <code>Subscribable</code>&lt;<code>null</code> | <code>InitializationTaskDef</code>></p>
+</blockquote>
+<p>The initialization task that follows the current initialization task loaded for the active view stack.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-25>Defined in<a href=#defined-in-25 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:327</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=orientation>orientation<a href=#orientation class=hash-link aria-label="Direct link to orientation" title="Direct link to orientation">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>orientation</strong>: <code>GtcOrientation</code></p>
+</blockquote>
+<p>The orientation (horizontal or vertical) of this service's parent GTC.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-26>Defined in<a href=#defined-in-26 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:193</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=othergtcselectedpane>otherGtcSelectedPane<a href=#othergtcselectedpane class=hash-link aria-label="Direct link to otherGtcSelectedPane" title="Direct link to otherGtcSelectedPane">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>otherGtcSelectedPane</strong>: <code>ConsumerSubject</code>&lt;<code>-1</code> | <code>ControllableDisplayPaneIndex</code>></p>
+</blockquote>
+<p>The selected pane for the other GTC.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-27>Defined in<a href=#defined-in-27 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:270</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=pfdcontrolindex>pfdControlIndex<a href=#pfdcontrolindex class=hash-link aria-label="Direct link to pfdControlIndex" title="Direct link to pfdControlIndex">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>pfdControlIndex</strong>: <code>PfdIndex</code></p>
+</blockquote>
+<p>The index of the PFD controlled by this service's parent GTC.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-28>Defined in<a href=#defined-in-28 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:202</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=pfdinstrumentpaneindex>pfdInstrumentPaneIndex<a href=#pfdinstrumentpaneindex class=hash-link aria-label="Direct link to pfdInstrumentPaneIndex" title="Direct link to pfdInstrumentPaneIndex">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>pfdInstrumentPaneIndex</strong>: <code>LeftPfdInstrument</code> | <code>RightPfdInstrument</code></p>
+</blockquote>
+<p>The index of the PFD instrument display pane on the side of this GTC.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-29>Defined in<a href=#defined-in-29 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:295</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=pfdpaneindex>pfdPaneIndex<a href=#pfdpaneindex class=hash-link aria-label="Direct link to pfdPaneIndex" title="Direct link to pfdPaneIndex">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>pfdPaneIndex</strong>: <code>LeftPfd</code> | <code>RightPfd</code></p>
+</blockquote>
+<p>The index of the PFD display pane on the side of this GTC.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-30>Defined in<a href=#defined-in-30 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:298</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=pfdpanesettings>pfdPaneSettings<a href=#pfdpanesettings class=hash-link aria-label="Direct link to pfdPaneSettings" title="Direct link to pfdPaneSettings">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>pfdPaneSettings</strong>: <code>DisplayPanesAliasedUserSettingManager</code></p>
+</blockquote>
+<p>The display pane settings for this side's PFD display pane.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-31>Defined in<a href=#defined-in-31 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:300</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=radiobeingtuned>radioBeingTuned<a href=#radiobeingtuned class=hash-link aria-label="Direct link to radioBeingTuned" title="Direct link to radioBeingTuned">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>radioBeingTuned</strong>: <code>Subject</code>&lt;<code>ComRadio</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-32>Defined in<a href=#defined-in-32 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:306</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selecteddisplaypane>selectedDisplayPane<a href=#selecteddisplaypane class=hash-link aria-label="Direct link to selectedDisplayPane" title="Direct link to selectedDisplayPane">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>selectedDisplayPane</strong>: <code>Subscribable</code>&lt;<code>-1</code> | <code>ControllableDisplayPaneIndex</code>></p>
+</blockquote>
+<p>The index of the currently selected display pane.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-33>Defined in<a href=#defined-in-33 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:289</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedpanesettings>selectedPaneSettings<a href=#selectedpanesettings class=hash-link aria-label="Direct link to selectedPaneSettings" title="Direct link to selectedPaneSettings">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>selectedPaneSettings</strong>: <code>DisplayPanesAliasedUserSettingManager</code></p>
+</blockquote>
+<p>The settings manager for the currently selected display pane.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-34>Defined in<a href=#defined-in-34 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:292</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=thisgtcselectedpane>thisGtcSelectedPane<a href=#thisgtcselectedpane class=hash-link aria-label="Direct link to thisGtcSelectedPane" title="Direct link to thisGtcSelectedPane">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <strong>thisGtcSelectedPane</strong>: <code>ConsumerSubject</code>&lt;<code>-1</code> | <code>ControllableDisplayPaneIndex</code>></p>
+</blockquote>
+<p>The selected pane for this GTC.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-35>Defined in<a href=#defined-in-35 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:267</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=accessors>Accessors<a href=#accessors class=hash-link aria-label="Direct link to Accessors" title="Direct link to Accessors">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isvertnavcomviewstackempty>isVertNavComViewStackEmpty<a href=#isvertnavcomviewstackempty class=hash-link aria-label="Direct link to isVertNavComViewStackEmpty" title="Direct link to isVertNavComViewStackEmpty">​</a></h3>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=get-signature>Get Signature<a href=#get-signature class=hash-link aria-label="Direct link to Get Signature" title="Direct link to Get Signature">​</a></h4>
+<blockquote>
+<p><strong>get</strong> <strong>isVertNavComViewStackEmpty</strong>(): <code>boolean</code></p>
+</blockquote>
+<p>Whether the current vertical GTC NAV/COM view stack (i.e. the overlay view stack for the currently selected
+control mode) has no open popups.</p>
+<h5 class="anchor anchorWithStickyNavbar_LWe7" id=returns-1>Returns<a href=#returns-1 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h5>
+<p><code>boolean</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-36>Defined in<a href=#defined-in-36 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:541</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=methods>Methods<a href=#methods class=hash-link aria-label="Direct link to Methods" title="Direct link to Methods">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=attachplugininteractionhandler>attachPluginInteractionhandler()<a href=#attachplugininteractionhandler class=hash-link aria-label="Direct link to attachPluginInteractionhandler()" title="Direct link to attachPluginInteractionhandler()">​</a></h3>
+<blockquote>
+<p><strong>attachPluginInteractionhandler</strong>(<code>handler</code>): <code>void</code></p>
+</blockquote>
+<p>Attaches an interaction event handler which executes event handling logic defined by plugins.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-1>Parameters<a href=#parameters-1 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>handler</code><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcInteractionHandler><code>GtcInteractionHandler</code></a><td>The interaction event handler to attach.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-2>Returns<a href=#returns-2 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-37>Defined in<a href=#defined-in-37 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:651</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=attachpluginknobstateoverrides>attachPluginKnobStateOverrides()<a href=#attachpluginknobstateoverrides class=hash-link aria-label="Direct link to attachPluginKnobStateOverrides()" title="Direct link to attachPluginKnobStateOverrides()">​</a></h3>
+<blockquote>
+<p><strong>attachPluginKnobStateOverrides</strong>(<code>overrides</code>): <code>void</code></p>
+</blockquote>
+<p>Attaches plugin-defined knob control state overrides.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-2>Parameters<a href=#parameters-2 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>overrides</code><td>readonly <code>Readonly</code>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcKnobStatePluginOverrides><code>GtcKnobStatePluginOverrides</code></a>>[]<td>An array of plugin-defined knob control state overrides. The array should be ordered such that the overrides appear in the order in which their parent plugins were loaded.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-3>Returns<a href=#returns-3 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-38>Defined in<a href=#defined-in-38 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:643</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=changecontrolmodeto>changeControlModeTo()<a href=#changecontrolmodeto class=hash-link aria-label="Direct link to changeControlModeTo()" title="Direct link to changeControlModeTo()">​</a></h3>
+<blockquote>
+<p><strong>changeControlModeTo</strong>(<code>controlMode</code>): <code>void</code></p>
+</blockquote>
+<p>Changes the active control mode.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-3>Parameters<a href=#parameters-3 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>controlMode</code><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcControlMode><code>GtcControlMode</code></a><td>The control mode to change to.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-4>Returns<a href=#returns-4 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-39>Defined in<a href=#defined-in-39 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1198</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=changepageto>changePageTo()<a href=#changepageto class=hash-link aria-label="Direct link to changePageTo()" title="Direct link to changePageTo()">​</a></h3>
+<blockquote>
+<p><strong>changePageTo</strong>&lt;<code>T</code>>(<code>key</code>): <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<code>T</code>></p>
+</blockquote>
+<p>Opens a view as a page in the main view stack of the currently selected control mode and display pane (if
+applicable) and changes the current page to the opened view. This will close the current open page and any open
+popups in the main view stack.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=type-parameters>Type Parameters<a href=#type-parameters class=hash-link aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Type Parameter<th>Default type<tbody><tr><td><code>T</code> <em>extends</em> <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>></table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-4>Parameters<a href=#parameters-4 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>key</code><td><code>string</code><td>The key of the view to open.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-5>Returns<a href=#returns-5 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<code>T</code>></p>
+<p>The entry of the opened view.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=throws-1>Throws<a href=#throws-1 class=hash-link aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>Error if there is no view registered under the specified key.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-40>Defined in<a href=#defined-in-40 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1304</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=clearoverlayviewstack>clearOverlayViewStack()<a href=#clearoverlayviewstack class=hash-link aria-label="Direct link to clearOverlayViewStack()" title="Direct link to clearOverlayViewStack()">​</a></h3>
+<blockquote>
+<p><strong>clearOverlayViewStack</strong>(): <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+</blockquote>
+<p>Clears the overlay view stack of the currently selected control mode, closing all open popups in the stack and
+resetting its history.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-6>Returns<a href=#returns-6 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+<p>The active view entry after the operation is complete.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-41>Defined in<a href=#defined-in-41 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1785</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=closeoverlaypopup>closeOverlayPopup()<a href=#closeoverlaypopup class=hash-link aria-label="Direct link to closeOverlayPopup()" title="Direct link to closeOverlayPopup()">​</a></h3>
+<blockquote>
+<p><strong>closeOverlayPopup</strong>&lt;<code>F</code>>(<code>filter</code>, <code>closeOtherPopups</code>): <code>boolean</code></p>
+</blockquote>
+<p>Attempts to close a popup in the current overlay view stack by rewinding the history state of the view stack
+until the target popup is no longer open.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=type-parameters-1>Type Parameters<a href=#type-parameters-1 class=hash-link aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Type Parameter<th>Default type<tbody><tr><td><code>F</code> <em>extends</em> <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>></table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-5>Parameters<a href=#parameters-5 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>filter</code><td>(<code>entry</code>) => <code>boolean</code><td>A filter function which will be called once for each open popup found in the overlay view stack and returns whether the popup is the target popup to close.<tr><td><code>closeOtherPopups</code><td><code>boolean</code><td>Whether all other open popups in the overlay view stack should be closed if the target popup is not open within the view stack.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-7>Returns<a href=#returns-7 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the specified popup was closed.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-42>Defined in<a href=#defined-in-42 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1748</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=goback>goBack()<a href=#goback class=hash-link aria-label="Direct link to goBack()" title="Direct link to goBack()">​</a></h3>
+<blockquote>
+<p><strong>goBack</strong>(): <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+</blockquote>
+<p>Returns to the most recent previous history state of the active view stack.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-8>Returns<a href=#returns-8 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+<p>The active view entry after the operation is complete.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=throws-2>Throws<a href=#throws-2 class=hash-link aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>Error if the most recent previous history state of the active view stack is undefined.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-43>Defined in<a href=#defined-in-43 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1568</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=gobackto>goBackTo()<a href=#gobackto class=hash-link aria-label="Direct link to goBackTo()" title="Direct link to goBackTo()">​</a></h3>
+<blockquote>
+<p><strong>goBackTo</strong>(<code>selector</code>): <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+</blockquote>
+<p>Attempts to return to a previous history state of the active view stack.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-6>Parameters<a href=#parameters-6 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>selector</code><td>(<code>steps</code>, <code>stackPeeker</code>) => <code>boolean</code><td>A function which selects the history state to which to return. The function is called once for each history state in order of increasing age and takes two arguments: the number of steps from the present state to the selected state and a function which allows one to peek into the selected state's view stack by view entry. The function should return <code>true</code> if the operation should return to the selected state and <code>false</code> otherwise. If the function returns <code>false</code> for every selected state, then the operation is aborted.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-9>Returns<a href=#returns-9 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+<p>The active view entry after the operation is complete.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-44>Defined in<a href=#defined-in-44 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1624</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=gobacktohomepage>goBackToHomePage()<a href=#gobacktohomepage class=hash-link aria-label="Direct link to goBackToHomePage()" title="Direct link to goBackToHomePage()">​</a></h3>
+<blockquote>
+<p><strong>goBackToHomePage</strong>(): <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+</blockquote>
+<p>Goes back to the home page of the currently selected control mode.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-10>Returns<a href=#returns-10 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+<p>The active view entry after the operation is complete.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-45>Defined in<a href=#defined-in-45 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1670</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=gobacktoinitializationpage>goBackToInitializationPage()<a href=#gobacktoinitializationpage class=hash-link aria-label="Direct link to goBackToInitializationPage()" title="Direct link to goBackToInitializationPage()">​</a></h3>
+<blockquote>
+<p><strong>goBackToInitializationPage</strong>(): <code>null</code> | <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+</blockquote>
+<p>Goes back to the initialization page. This will close all open popups in the overlay layer and rewind history
+until the initialization page is the active view. If there is no history state (including the current history
+state) in which the initialization page is the active view, or if the currently active control mode is not equal
+to <code>'MFD'</code>, then this method does nothing and returns <code>null</code>.
+the currently active control mode is not <code>'MFD'</code>, then this method does</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-11>Returns<a href=#returns-11 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>null</code> | <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+<p>The active view entry after the operation is complete, or <code>null</code> if the operation could not be completed.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-46>Defined in<a href=#defined-in-46 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1869</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=gobacktoitem>goBackToItem()<a href=#gobacktoitem class=hash-link aria-label="Direct link to goBackToItem()" title="Direct link to goBackToItem()">​</a></h3>
+<blockquote>
+<p><strong>goBackToItem</strong>(<code>selector</code>): <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+</blockquote>
+<p>Attempts to return to a previous history state of the active view stack.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-7>Parameters<a href=#parameters-7 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>selector</code><td>(<code>steps</code>, <code>stackPeeker</code>) => <code>boolean</code><td>A function which selects the history state to which to return. The function is called once for each history state in order of increasing age and takes two arguments: the number of steps from the present state to the selected state and a function which allows one to peek into the selected state's view stack by view stack item. The function should return <code>true</code> if the operation should return to the selected state and <code>false</code> otherwise. If the function returns <code>false</code> for every selected state, then the operation is aborted.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-12>Returns<a href=#returns-12 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>>></p>
+<p>The active view entry after the operation is complete.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-47>Defined in<a href=#defined-in-47 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1645</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=gotohomepage>goToHomePage()<a href=#gotohomepage class=hash-link aria-label="Direct link to goToHomePage()" title="Direct link to goToHomePage()">​</a></h3>
+<blockquote>
+<p><strong>goToHomePage</strong>(): <code>void</code></p>
+</blockquote>
+<p>Closes all open popups and the open page, then opens the home page for the currently selected control mode.
+This also resets the history for the open view stack.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-13>Returns<a href=#returns-13 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-48>Defined in<a href=#defined-in-48 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1264</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=initialize>initialize()<a href=#initialize class=hash-link aria-label="Direct link to initialize()" title="Direct link to initialize()">​</a></h3>
+<blockquote>
+<p><strong>initialize</strong>(): <code>void</code></p>
+</blockquote>
+<p>Initializes this service.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-14>Returns<a href=#returns-14 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-49>Defined in<a href=#defined-in-49 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:847</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=loadinitializationtask>loadInitializationTask()<a href=#loadinitializationtask class=hash-link aria-label="Direct link to loadInitializationTask()" title="Direct link to loadInitializationTask()">​</a></h3>
+<blockquote>
+<p><strong>loadInitializationTask</strong>(<code>uid</code>): <code>boolean</code></p>
+</blockquote>
+<p>Loads an initialization task for the currently selected control mode and display pane. This method does nothing
+if the MFD control mode is not currently selected. When the task is loaded, the history of the view stack for the
+currently selected display pane will be rewound until the initialization page is the active view. If there is no
+previous history state in which the initialization page is the active view, then the initialization page will be
+opened instead. After the initialization page is made the active view, the task's associated page will be opened.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-8>Parameters<a href=#parameters-8 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>uid</code><td><code>string</code><td>The unique ID of the initialization task to load.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-15>Returns<a href=#returns-15 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the task was successfully loaded.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-50>Defined in<a href=#defined-in-50 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1817</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=ongtccontainerrendered>onGtcContainerRendered()<a href=#ongtccontainerrendered class=hash-link aria-label="Direct link to onGtcContainerRendered()" title="Direct link to onGtcContainerRendered()">​</a></h3>
+<blockquote>
+<p><strong>onGtcContainerRendered</strong>(<code>viewStackRefs</code>): <code>void</code></p>
+</blockquote>
+<p>Called by GtcContainer to pass in the refs to all the view stacks.
+Should only be called once.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-9>Parameters<a href=#parameters-9 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>viewStackRefs</code><td><code>Partial</code>&lt;<code>Record</code>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/enumerations/GtcViewStackKey><code>GtcViewStackKey</code></a>, <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewStackContainer><code>GtcViewStackContainer</code></a>>><td>The view stack refs.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-16>Returns<a href=#returns-16 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-51>Defined in<a href=#defined-in-51 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:633</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=oninteractionevent>onInteractionEvent()<a href=#oninteractionevent class=hash-link aria-label="Direct link to onInteractionEvent()" title="Direct link to onInteractionEvent()">​</a></h3>
+<blockquote>
+<p><strong>onInteractionEvent</strong>(<code>event</code>): <code>void</code></p>
+</blockquote>
+<p>Called when an interaction event needs to be sent to the active view.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-10>Parameters<a href=#parameters-10 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>event</code><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcInteractionEvent><code>GtcInteractionEvent</code></a><td>The event.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-17>Returns<a href=#returns-17 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-52>Defined in<a href=#defined-in-52 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:2003</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=openoverlaypopup>openOverlayPopup()<a href=#openoverlaypopup class=hash-link aria-label="Direct link to openOverlayPopup()" title="Direct link to openOverlayPopup()">​</a></h3>
+<blockquote>
+<p><strong>openOverlayPopup</strong>&lt;<code>T</code>>(<code>key</code>, <code>popupType</code>, <code>backgroundOcclusion</code>): <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<code>T</code>></p>
+</blockquote>
+<p>Opens a view as a popup in the overlay view stack of the currently selected control mode. The opened view will be
+brought to the top of the overlay view stack as the active view.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=type-parameters-2>Type Parameters<a href=#type-parameters-2 class=hash-link aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Type Parameter<th>Default type<tbody><tr><td><code>T</code> <em>extends</em> <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>></table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-11>Parameters<a href=#parameters-11 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Default value<th>Description<tbody><tr><td><code>key</code><td><code>string</code><td><code>undefined</code><td>The key of the view to open.<tr><td><code>popupType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcPopupType><code>GtcPopupType</code></a><td><code>'normal'</code><td>The type of popup to open the view as. Defaults to <code>'normal'</code>.<tr><td><code>backgroundOcclusion</code><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewOcclusionType><code>GtcViewOcclusionType</code></a><td><code>'darken'</code><td>The occlusion type applied to views beneath the popup. If <code>'none'</code> is chosen, then the popup will not prevent mouse events from reaching views beneath it (unless the mouse event was triggered on an element in the popup). Defaults to <code>'darken'</code>.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-18>Returns<a href=#returns-18 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<code>T</code>></p>
+<p>The entry of the opened view.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=throws-3>Throws<a href=#throws-3 class=hash-link aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>Error if there is no view registered under the specified key.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-53>Defined in<a href=#defined-in-53 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1458</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=openpopup>openPopup()<a href=#openpopup class=hash-link aria-label="Direct link to openPopup()" title="Direct link to openPopup()">​</a></h3>
+<blockquote>
+<p><strong>openPopup</strong>&lt;<code>T</code>>(<code>key</code>, <code>popupType</code>, <code>backgroundOcclusion</code>): <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<code>T</code>></p>
+</blockquote>
+<p>Opens a view as a popup in the main view stack of the currently selected control mode and display pane (if
+applicable). The opened view will be brought to the top of the main view stack.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=type-parameters-3>Type Parameters<a href=#type-parameters-3 class=hash-link aria-label="Direct link to Type Parameters" title="Direct link to Type Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Type Parameter<th>Default type<tbody><tr><td><code>T</code> <em>extends</em> <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcView><code>GtcView</code></a>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/interfaces/GtcViewProps><code>GtcViewProps</code></a>></table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-12>Parameters<a href=#parameters-12 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Default value<th>Description<tbody><tr><td><code>key</code><td><code>string</code><td><code>undefined</code><td>The key of the view to open.<tr><td><code>popupType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcPopupType><code>GtcPopupType</code></a><td><code>'normal'</code><td>The type of popup to open the view as. Defaults to <code>'normal'</code>.<tr><td><code>backgroundOcclusion</code><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewOcclusionType><code>GtcViewOcclusionType</code></a><td><code>'darken'</code><td>The occlusion type applied to views beneath the popup. If <code>'none'</code> is chosen, then the popup will not prevent mouse events from reaching views beneath it (unless the mouse event was triggered on an element in the popup). Defaults to <code>'darken'</code>.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-19>Returns<a href=#returns-19 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcViewEntry><code>GtcViewEntry</code></a>&lt;<code>T</code>></p>
+<p>The entry of the opened view.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=throws-4>Throws<a href=#throws-4 class=hash-link aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>Error if there is no view registered under the specified key.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-54>Defined in<a href=#defined-in-54 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1338</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=registeroverlayview>registerOverlayView()<a href=#registeroverlayview class=hash-link aria-label="Direct link to registerOverlayView()" title="Direct link to registerOverlayView()">​</a></h3>
+<blockquote>
+<p><strong>registerOverlayView</strong>(<code>lifecyclePolicy</code>, <code>key</code>, <code>factory</code>, <code>controlMode</code>?): <code>void</code></p>
+</blockquote>
+<p>Registers and renders a view (page or popup) with this service for an overlay view stack. Once a view is
+registered, it may be opened by referencing its key.</p>
+<p>Each view is registered with a specific view stack. There is one overlay view stack for each of the three control
+modes (PFD, MFD, and NAV/COM). Registering a view under the same key as an existing view in the same stack will
+replace the existing view.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-13>Parameters<a href=#parameters-13 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>lifecyclePolicy</code><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/enumerations/GtcViewLifecyclePolicy><code>GtcViewLifecyclePolicy</code></a><td>The lifecycle policy to apply to the view. If the view is registered under a home page key, then this value is ignored and the <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/enumerations/GtcViewLifecyclePolicy#static>GtcViewLifecyclePolicy.Static</a> policy will automatically be applied.<tr><td><code>key</code><td><code>string</code><td>The key to register the view under.<tr><td><code>factory</code><td>(<code>gtcService</code>, <code>controlMode</code>, <code>displayPaneIndex</code>, <code>isInOverlayStack</code>) => <code>VNode</code><td>A function that renders the view.<tr><td><code>controlMode</code>?<td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcControlMode><code>GtcControlMode</code></a><td>The control mode for which to register the view. If not defined, then the view will be registered once for each control mode supported by this service.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-20>Returns<a href=#returns-20 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-55>Defined in<a href=#defined-in-55 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:739</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=registerview>registerView()<a href=#registerview class=hash-link aria-label="Direct link to registerView()" title="Direct link to registerView()">​</a></h3>
+<blockquote>
+<p><strong>registerView</strong>(<code>lifecyclePolicy</code>, <code>key</code>, <code>controlMode</code>, <code>factory</code>, <code>displayPaneIndex</code>?): <code>void</code></p>
+</blockquote>
+<p>Registers and renders a view (page or popup) with this service for a main view stack. Once a view is registered,
+it may be opened by referencing its key.</p>
+<p>Each view is registered with a specific view stack. There is one main view stack for each of the PFD and NAV/COM
+control modes, and four main view stacks for the MFD control mode (one for each controllable display pane). Views
+registered with different stacks may share the same key. Registering a view under the same key as an existing
+view in the same stack will replace the existing view.</p>
+<p>If this service's parent GTC has the horizontal orientation, then registering views for the NAV/COM view stack
+using this method will cause the views to be registered for the PFD and MFD overlay view stacks instead.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-14>Parameters<a href=#parameters-14 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>lifecyclePolicy</code><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/enumerations/GtcViewLifecyclePolicy><code>GtcViewLifecyclePolicy</code></a><td>The lifecycle policy to apply to the view. If the view is registered under a home page key, then this value is ignored and the <a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/enumerations/GtcViewLifecyclePolicy#static>GtcViewLifecyclePolicy.Static</a> policy will automatically be applied.<tr><td><code>key</code><td><code>string</code><td>The key to register the view under.<tr><td><code>controlMode</code><td><a href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/type-aliases/GtcControlMode><code>GtcControlMode</code></a><td>The control mode for which to register the view.<tr><td><code>factory</code><td>(<code>gtcService</code>, <code>controlMode</code>, <code>displayPaneIndex</code>, <code>isInOverlayStack</code>) => <code>VNode</code><td>A function that renders the view.<tr><td><code>displayPaneIndex</code>?<td><code>ControllableDisplayPaneIndex</code><td>The index of the display pane for which to register the view. Ignored if <code>controlMode</code> is not <code>'MFD'</code>. If not defined, then the view will be registered once for each display pane.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-21>Returns<a href=#returns-21 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-56>Defined in<a href=#defined-in-56 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:674</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=reset>reset()<a href=#reset class=hash-link aria-label="Direct link to reset()" title="Direct link to reset()">​</a></h3>
+<blockquote>
+<p><strong>reset</strong>(): <code>void</code></p>
+</blockquote>
+<p>Resets this service, which does the following:</p>
+<ul>
+<li>Closes all open popups.</li>
+<li>Changes the open page to the home page of this service's default control mode.</li>
+<li>Clears all history.</li>
+<li>Sets the controlled display pane to this service's default, if applicable.</li>
+</ul>
+<p>Has no effect if this service is not initialized.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-22>Returns<a href=#returns-22 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-57>Defined in<a href=#defined-in-57 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:976</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=sleep>sleep()<a href=#sleep class=hash-link aria-label="Direct link to sleep()" title="Direct link to sleep()">​</a></h3>
+<blockquote>
+<p><strong>sleep</strong>(): <code>void</code></p>
+</blockquote>
+<p>Puts this service to sleep. Once asleep, this service will deselect any controlled display pane and will not
+respond to interaction events.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-23>Returns<a href=#returns-23 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-58>Defined in<a href=#defined-in-58 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1119</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=visithistory>visitHistory()<a href=#visithistory class=hash-link aria-label="Direct link to visitHistory()" title="Direct link to visitHistory()">​</a></h3>
+<blockquote>
+<p><strong>visitHistory</strong>(<code>visitor</code>): <code>void</code></p>
+</blockquote>
+<p>Visits each history state of the current view stack.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-15>Parameters<a href=#parameters-15 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>visitor</code><td>(<code>steps</code>, <code>stackPeeker</code>) => <code>boolean</code><td>A function which will visit each history state. The function is called once for each history state in order of increasing age (beginning with the present state) and takes two arguments: the number of steps from the present state to the selected state and a function which allows one to peek into the selected state's view stack. The function should return <code>true</code> if visitation should continue and <code>false</code> if visitation should stop.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-24>Returns<a href=#returns-24 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-59>Defined in<a href=#defined-in-59 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1139</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wake>wake()<a href=#wake class=hash-link aria-label="Direct link to wake()" title="Direct link to wake()">​</a></h3>
+<blockquote>
+<p><strong>wake</strong>(): <code>void</code></p>
+</blockquote>
+<p>Wakes this service. Once awake, this service will attempt to select an appropriate display pane to control and
+will respond to interaction events.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-25>Returns<a href=#returns-25 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-60>Defined in<a href=#defined-in-60 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-g3000/html_ui/GTC/GtcService/GtcService.tsx:1105</div></article><nav class="pagination-nav docusaurus-mt-lg" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcRunwayLengthDialog><div class=pagination-nav__sublabel>Previous</div><div class=pagination-nav__label>GtcRunwayLengthDialog</div></a><a class="pagination-nav__link pagination-nav__link--next" href=/msfs-avionics-mirror/2024/docs/api/g3000gtc/classes/GtcSetupPage><div class=pagination-nav__sublabel>Next</div><div class=pagination-nav__label>GtcSetupPage</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href=#constructors class="table-of-contents__link toc-highlight">Constructors</a><ul><li><a href=#new-gtcservice class="table-of-contents__link toc-highlight">new GtcService()</a></ul><li><a href=#properties class="table-of-contents__link toc-highlight">Properties</a><ul><li><a href=#activecontrolmode class="table-of-contents__link toc-highlight">activeControlMode</a><li><a href=#activeview class="table-of-contents__link toc-highlight">activeView</a><li><a href=#activeviewisnotahomepage class="table-of-contents__link toc-highlight">activeViewIsNotAHomePage</a><li><a href=#bus class="table-of-contents__link toc-highlight">bus</a><li><a href=#controlsetup class="table-of-contents__link toc-highlight">controlSetup</a><li><a href=#currentinitializationtask class="table-of-contents__link toc-highlight">currentInitializationTask</a><li><a href=#currentpage class="table-of-contents__link toc-highlight">currentPage</a><li><a href=#displaypanecontrolindex class="table-of-contents__link toc-highlight">displayPaneControlIndex</a><li><a href=#displaypanesettingmanager class="table-of-contents__link toc-highlight">displayPaneSettingManager</a><li><a href=#displaypanevisiblesettings class="table-of-contents__link toc-highlight">displayPaneVisibleSettings</a><li><a href=#enabledcontrollablepanes class="table-of-contents__link toc-highlight">enabledControllablePanes</a><li><a href=#gtcknobstates class="table-of-contents__link toc-highlight">gtcKnobStates</a><li><a href=#gtcotherside class="table-of-contents__link toc-highlight">gtcOtherSide</a><li><a href=#gtcsettings class="table-of-contents__link toc-highlight">gtcSettings</a><li><a href=#gtcthisside class="table-of-contents__link toc-highlight">gtcThisSide</a><li><a href=#hasmfdmode class="table-of-contents__link toc-highlight">hasMfdMode</a><li><a href=#hasnavcommode class="table-of-contents__link toc-highlight">hasNavComMode</a><li><a href=#haspfdmode class="table-of-contents__link toc-highlight">hasPfdMode</a><li><a href=#initializationdataprovider class="table-of-contents__link toc-highlight">initializationDataProvider</a><li><a href=#instrumentindex class="table-of-contents__link toc-highlight">instrumentIndex</a><li><a href=#isadvancedvnav class="table-of-contents__link toc-highlight">isAdvancedVnav</a><li><a href=#isawake class="table-of-contents__link toc-highlight">isAwake</a><li><a href=#ishorizontal class="table-of-contents__link toc-highlight">isHorizontal</a><li><a href=#navcomeventhandler class="table-of-contents__link toc-highlight">navComEventHandler</a><li><a href=#nextinitializationtask class="table-of-contents__link toc-highlight">nextInitializationTask</a><li><a href=#orientation class="table-of-contents__link toc-highlight">orientation</a><li><a href=#othergtcselectedpane class="table-of-contents__link toc-highlight">otherGtcSelectedPane</a><li><a href=#pfdcontrolindex class="table-of-contents__link toc-highlight">pfdControlIndex</a><li><a href=#pfdinstrumentpaneindex class="table-of-contents__link toc-highlight">pfdInstrumentPaneIndex</a><li><a href=#pfdpaneindex class="table-of-contents__link toc-highlight">pfdPaneIndex</a><li><a href=#pfdpanesettings class="table-of-contents__link toc-highlight">pfdPaneSettings</a><li><a href=#radiobeingtuned class="table-of-contents__link toc-highlight">radioBeingTuned</a><li><a href=#selecteddisplaypane class="table-of-contents__link toc-highlight">selectedDisplayPane</a><li><a href=#selectedpanesettings class="table-of-contents__link toc-highlight">selectedPaneSettings</a><li><a href=#thisgtcselectedpane class="table-of-contents__link toc-highlight">thisGtcSelectedPane</a></ul><li><a href=#accessors class="table-of-contents__link toc-highlight">Accessors</a><ul><li><a href=#isvertnavcomviewstackempty class="table-of-contents__link toc-highlight">isVertNavComViewStackEmpty</a></ul><li><a href=#methods class="table-of-contents__link toc-highlight">Methods</a><ul><li><a href=#attachplugininteractionhandler class="table-of-contents__link toc-highlight">attachPluginInteractionhandler()</a><li><a href=#attachpluginknobstateoverrides class="table-of-contents__link toc-highlight">attachPluginKnobStateOverrides()</a><li><a href=#changecontrolmodeto class="table-of-contents__link toc-highlight">changeControlModeTo()</a><li><a href=#changepageto class="table-of-contents__link toc-highlight">changePageTo()</a><li><a href=#clearoverlayviewstack class="table-of-contents__link toc-highlight">clearOverlayViewStack()</a><li><a href=#closeoverlaypopup class="table-of-contents__link toc-highlight">closeOverlayPopup()</a><li><a href=#goback class="table-of-contents__link toc-highlight">goBack()</a><li><a href=#gobackto class="table-of-contents__link toc-highlight">goBackTo()</a><li><a href=#gobacktohomepage class="table-of-contents__link toc-highlight">goBackToHomePage()</a><li><a href=#gobacktoinitializationpage class="table-of-contents__link toc-highlight">goBackToInitializationPage()</a><li><a href=#gobacktoitem class="table-of-contents__link toc-highlight">goBackToItem()</a><li><a href=#gotohomepage class="table-of-contents__link toc-highlight">goToHomePage()</a><li><a href=#initialize class="table-of-contents__link toc-highlight">initialize()</a><li><a href=#loadinitializationtask class="table-of-contents__link toc-highlight">loadInitializationTask()</a><li><a href=#ongtccontainerrendered class="table-of-contents__link toc-highlight">onGtcContainerRendered()</a><li><a href=#oninteractionevent class="table-of-contents__link toc-highlight">onInteractionEvent()</a><li><a href=#openoverlaypopup class="table-of-contents__link toc-highlight">openOverlayPopup()</a><li><a href=#openpopup class="table-of-contents__link toc-highlight">openPopup()</a><li><a href=#registeroverlayview class="table-of-contents__link toc-highlight">registerOverlayView()</a><li><a href=#registerview class="table-of-contents__link toc-highlight">registerView()</a><li><a href=#reset class="table-of-contents__link toc-highlight">reset()</a><li><a href=#sleep class="table-of-contents__link toc-highlight">sleep()</a><li><a href=#visithistory class="table-of-contents__link toc-highlight">visitHistory()</a><li><a href=#wake class="table-of-contents__link toc-highlight">wake()</a></ul></ul></div></div></div></div></main></div></div></div><footer class="footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="col footer__col"><div class=footer__title>Docs</div><ul class="footer__items clean-list"><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/framework/>Framework API Reference</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/garminsdk/>Garmin API Reference</a></ul></div><div class="col footer__col"><div class=footer__title>Community</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://forums.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Forums<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://discord.gg/msfs target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Discord<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://devsupport.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Dev Support AnswerHub<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://discord.com/invite/Fa6w2xK target=_blank rel="noopener noreferrer" class=footer__link-item>Working Title Discord<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a></ul></div><div class="col footer__col"><div class=footer__title>More</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://www.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>Microsoft Flight Simulator<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://github.com/microsoft/msfs-avionics-mirror target=_blank rel="noopener noreferrer" class=footer__link-item>GitHub<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a></ul></div></div><div class="footer__bottom text--center"><div class=footer__copyright>Copyright © 2024 Microsoft, Asobo Studio, and Working Title Simulations. Built with Docusaurus.</div></div></div></footer></div>
