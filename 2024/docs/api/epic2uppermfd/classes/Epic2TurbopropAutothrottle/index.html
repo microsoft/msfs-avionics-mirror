@@ -1,0 +1,1463 @@
+<!doctype html><html lang=en dir=ltr class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-api/epic2uppermfd/classes/Epic2TurbopropAutothrottle" data-has-hydrated=false><meta charset=UTF-8><meta name=generator content="Docusaurus v3.6.3"><title data-rh=true>Class: Epic2TurbopropAutothrottle | MSFS Avionics Frameworks and Instruments</title><meta data-rh=true name=viewport content="width=device-width,initial-scale=1.0"><meta data-rh=true name=twitter:card content=summary_large_image><meta data-rh=true property=og:url content=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2TurbopropAutothrottle><meta data-rh=true property=og:locale content=en><meta data-rh=true name=docusaurus_locale content=en><meta data-rh=true name=docsearch:language content=en><meta data-rh=true name=docusaurus_version content=current><meta data-rh=true name=docusaurus_tag content=docs-default-current><meta data-rh=true name=docsearch:version content=current><meta data-rh=true name=docsearch:docusaurus_tag content=docs-default-current><meta data-rh=true property=og:title content="Class: Epic2TurbopropAutothrottle | MSFS Avionics Frameworks and Instruments"><meta data-rh=true name=description content="Inherit Doc"><meta data-rh=true property=og:description content="Inherit Doc"><link data-rh=true rel=icon href=/msfs-avionics-mirror/2024/img/favicon.ico><link data-rh=true rel=canonical href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2TurbopropAutothrottle><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2TurbopropAutothrottle hreflang=en><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2TurbopropAutothrottle hreflang=x-default><link rel=stylesheet href=/msfs-avionics-mirror/2024/assets/css/styles.f3419bc0.css><script src=/msfs-avionics-mirror/2024/assets/js/runtime~main.cdeaf6bd.js defer></script><script src=/msfs-avionics-mirror/2024/assets/js/main.38dd0165.js defer></script><body class=navigation-with-keyboard><script>!function(){var t,e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();t=null!==e?e:"dark",document.documentElement.setAttribute("data-theme",t)}(),function(){try{for(var[t,e]of new URLSearchParams(window.location.search).entries())if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id=__docusaurus><div role=region aria-label="Skip to main content"><a class=skipToContent_fXgn href=#__docusaurus_skipToContent_fallback>Skip to main content</a></div><nav aria-label=Main class="navbar navbar--fixed-top"><div class=navbar__inner><div class=navbar__items><button aria-label="Toggle navigation bar" aria-expanded=false class="navbar__toggle clean-btn" type=button><svg width=30 height=30 viewBox="0 0 30 30" aria-hidden=true><path stroke=currentColor stroke-linecap=round stroke-miterlimit=10 stroke-width=2 d="M4 7h22M4 15h22M4 23h22"/></svg></button><a class=navbar__brand href=/msfs-avionics-mirror/2024/><div class=navbar__logo><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">MSFS Avionics Development</b></a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/api/framework/globals>Framework API</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/api/garminsdk/globals>Garmin API</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/avionics/>Avionics Development</a></div><div class="navbar__items navbar__items--right"><div class=navbarSearchContainer_Bca1></div></div></div><div role=presentation class=navbar-sidebar__backdrop></div></nav><div id=__docusaurus_skipToContent_fallback class="main-wrapper mainWrapper_z2l0"><div class=docsWrapper_hBAB><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type=button></button><div class=docRoot_UBD9><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class=sidebarViewport_aRkj><div class=sidebar_njMd><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class=menu__link href=/msfs-avionics-mirror/2024/docs/intro>MSFS Avionics Framework</a><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/getting-started/setting-up-your-environment>Getting Started</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/interacting-with-msfs/simvars>Interacting with MSFS</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/api/framework/globals>API References</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/framework-systems/subscriptions/intro-to-subscriptions>Framework Systems</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--active" href=/msfs-avionics-mirror/2024/docs/avionics/>Avionics Development</a><button aria-label="Collapse sidebar category 'Avionics Development'" aria-expanded=true type=button class="clean-btn menu__caret"></button></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/g1000/overview>G1000 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3000common/globals>G3000 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/gns/overview>GNS Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/g3xtouchcommon/globals>G3X Touch Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/wt21shared/globals>WT21 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/epic2/overview>Epic2 Development</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/epic2/overview>Overview</a><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/epic2/integration/overview>Guide to Integration</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/epic2/plugins/plugin-basics>Plugin Information</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/globals>Epic2 Plugin API</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2shared/globals>Shared Plugin API</a><button aria-label="Expand sidebar category 'Shared Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2pfd/globals>PFD Plugin API</a><button aria-label="Expand sidebar category 'PFD Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--active" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/globals>Upper MFD Plugin API</a><button aria-label="Collapse sidebar category 'Upper MFD Plugin API'" aria-expanded=true type=button class="clean-btn menu__caret"></button></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/enumerations/ChartAreaViewPages>Enumerations</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/ActivatePlanButtonBar>Classes</a></div><ul style=display:block;overflow:visible;height:auto class=menu__list><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/ActivatePlanButtonBar>ActivatePlanButtonBar</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/AltSpdTab>AltSpdTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/ArrivalTab>ArrivalTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/ChartsAirportDropdownLabel>ChartsAirportDropdownLabel</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/ChartsAirportSearch>ChartsAirportSearch</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/ChartsDisplay>ChartsDisplay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/ChartSelectionDropdown>ChartSelectionDropdown</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/ChartViewer>ChartViewer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/ChartViewSideButtons>ChartViewSideButtons</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/CrossModal>CrossModal</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/DatabasesTab>DatabasesTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/DatabaseTab>DatabaseTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/DepartureArrivalModal>DepartureArrivalModal</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/DepartureTab>DepartureTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/DescentTab>DescentTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/DestinationInfo>DestinationInfo</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2Autothrottle>Epic2Autothrottle</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2ChartUtils>Epic2ChartUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2DmeController>Epic2DmeController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2FlightPlanRouteLoader>Epic2FlightPlanRouteLoader</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2FlightPlanRouteSyncManager>Epic2FlightPlanRouteSyncManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2FlightPlanRouteUtils>Epic2FlightPlanRouteUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2FmsSpeedManager>Epic2FmsSpeedManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2JetAutothrottle>Epic2JetAutothrottle</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2JetFadec>Epic2JetFadec</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class="menu__link menu__link--active" aria-current=page tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2TurbopropAutothrottle>Epic2TurbopropAutothrottle</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2TurbopropFadec>Epic2TurbopropFadec</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2UpperMfdAvionicsPlugin>Epic2UpperMfdAvionicsPlugin</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2UpperMfdInstrument>Epic2UpperMfdInstrument</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FaaChartProvider>FaaChartProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanAmendListItem>FlightPlanAmendListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanConfigSection>FlightPlanConfigSection</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanConfigTopBar>FlightPlanConfigTopBar</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanDirectListItem>FlightPlanDirectListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanDiscoListItem>FlightPlanDiscoListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanDividerListItem>FlightPlanDividerListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanDtoRandomListItem>FlightPlanDtoRandomListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanHoldListItem>FlightPlanHoldListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanLabelListItem>FlightPlanLabelListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanLegListItem>FlightPlanLegListItem</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanListContextMenu>FlightPlanListContextMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanListSection>FlightPlanListSection</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanLogControllerSection>FlightPlanLogControllerSection</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FlightPlanLogTab>FlightPlanLogTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FltSumTab>FltSumTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FmsMessageWindow>FmsMessageWindow</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FplnTab>FplnTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/FuelWeightTab>FuelWeightTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/GroundTab>GroundTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/HdgTrkUpModeMapLayer>HdgTrkUpModeMapLayer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/HoldButton>HoldButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/HoldModal>HoldModal</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/IconLineArrow>IconLineArrow</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/IconPlaneAirportLanding>IconPlaneAirportLanding</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/IconPlaneAirportTakeOff>IconPlaneAirportTakeOff</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/IconPlaneLanding>IconPlaneLanding</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/IconPlanePath>IconPlanePath</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/IconPlaneRunway>IconPlaneRunway</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/IconPlaneTakeoff>IconPlaneTakeoff</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/InitTab>InitTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/InterceptModal>InterceptModal</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/JoinAirwayOverlay>JoinAirwayOverlay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/LidoChartProvider>LidoChartProvider</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/MfdMap>MfdMap</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/MfdMapInfo>MfdMapInfo</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/MfdMapSideButtons>MfdMapSideButtons</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/MfdMapTopButtons>MfdMapTopButtons</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/NearestFunctionModal>NearestFunctionModal</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/NorthUpModeMapLayer>NorthUpModeMapLayer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/PlanFormatController>PlanFormatController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/RangeNumbers>RangeNumbers</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/SelectObjectModal>SelectObjectModal</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/ShowInfoModal>ShowInfoModal</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/SidTakeoffTab>SidTakeoffTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/StarLdgTab>StarLdgTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/SwIdentTab>SwIdentTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/TCompTab>TCompTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/TimeDateTab>TimeDateTab</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/UpperMfdFormatController>UpperMfdFormatController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/UpperMfdPaneSizes>UpperMfdPaneSizes</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/UpperMfdSection>UpperMfdSection</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/VectorsButton>VectorsButton</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/WaypointListHeader>WaypointListHeader</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/WeatherTab>WeatherTab</a></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/interfaces/ChartsAirportDropdownLabelProps>Interfaces</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/type-aliases/DepartureArrivalTabs>Type Aliases</a></div></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/epic2lowermfd/globals>Lower MFD Plugin API</a><button aria-label="Expand sidebar category 'Lower MFD Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div></ul></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/uns/overview>UNS-1Lw Development</a></div></ul></ul></nav></div></div></aside><main class=docMainContainer_TBSr><div class="container padding-top--md padding-bottom--lg"><div class=row><div class="col docItemCol_VOVn"><div class=docItemContainer_Djhp><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label=Breadcrumbs><ul class=breadcrumbs itemscope itemtype=https://schema.org/BreadcrumbList><li class=breadcrumbs__item><a aria-label="Home page" class=breadcrumbs__link href=/msfs-avionics-mirror/2024/><svg viewBox="0 0 24 24" class=breadcrumbHomeIcon_YNFT><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill=currentColor /></svg></a><li itemscope itemprop=itemListElement itemtype=https://schema.org/ListItem class=breadcrumbs__item><a class=breadcrumbs__link itemprop=item href=/msfs-avionics-mirror/2024/docs/avionics/><span itemprop=name>Avionics Development</span></a><meta itemprop=position content=1><li class=breadcrumbs__item><span class=breadcrumbs__link>Epic2 Development</span><meta itemprop=position content=2><li class=breadcrumbs__item><span class=breadcrumbs__link>Epic2 Plugin API</span><meta itemprop=position content=3><li itemscope itemprop=itemListElement itemtype=https://schema.org/ListItem class=breadcrumbs__item><a class=breadcrumbs__link itemprop=item href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/globals><span itemprop=name>Upper MFD Plugin API</span></a><meta itemprop=position content=4><li class=breadcrumbs__item><span class=breadcrumbs__link>Classes</span><meta itemprop=position content=5><li itemscope itemprop=itemListElement itemtype=https://schema.org/ListItem class="breadcrumbs__item breadcrumbs__item--active"><span class=breadcrumbs__link itemprop=name>Epic2TurbopropAutothrottle</span><meta itemprop=position content=6></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type=button class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>Class: Epic2TurbopropAutothrottle</h1></header>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=inherit-doc>Inherit Doc<a href=#inherit-doc class=hash-link aria-label="Direct link to Inherit Doc" title="Direct link to Inherit Doc">​</a></h2>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=extends>Extends<a href=#extends class=hash-link aria-label="Direct link to Extends" title="Direct link to Extends">​</a></h2>
+<ul>
+<li><code>TurbopropAutothrottle</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=constructors>Constructors<a href=#constructors class=hash-link aria-label="Direct link to Constructors" title="Direct link to Constructors">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=new-epic2turbopropautothrottle>new Epic2TurbopropAutothrottle()<a href=#new-epic2turbopropautothrottle class=hash-link aria-label="Direct link to new Epic2TurbopropAutothrottle()" title="Direct link to new Epic2TurbopropAutothrottle()">​</a></h3>
+<blockquote>
+<p><strong>new Epic2TurbopropAutothrottle</strong>(<code>bus</code>, <code>airspeedIndex</code>, <code>throttleInfos</code>, <code>options</code>, <code>throttleLeverManager</code>?): <a href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2TurbopropAutothrottle><code>Epic2TurbopropAutothrottle</code></a></p>
+</blockquote>
+<p>Constructor.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters>Parameters<a href=#parameters class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>bus</code><td><code>EventBus</code><td>The event bus.<tr><td><code>airspeedIndex</code><td><code>number</code> | <code>Subscribable</code>&lt;<code>number</code>><td>The index of the sim airspeed indicator from which this autothrottle should source airspeed data.<tr><td><code>throttleInfos</code><td>readonly <code>Readonly</code>&lt;<code>AutothrottleThrottleInfo</code>>[]<td>Information on the throttles controlled by this autothrottle. Each entry in the array should describe a single unique throttle. Order does not matter.<tr><td><code>options</code><td><code>AutothrottleOptions</code><td>Options with which to initialize this autothrottle.<tr><td><code>throttleLeverManager</code>?<td><code>ThrottleLeverManager</code><td>The throttle lever manager to use to request position changes for virtual throttle levers. If not defined, position changes for virtual throttle levers will be requested using key events (specifically the <code>THROTTLE[N]_SET</code> event).</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns>Returns<a href=#returns class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2TurbopropAutothrottle><code>Epic2TurbopropAutothrottle</code></a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from>Inherited from<a href=#inherited-from class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.constructor</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in>Defined in<a href=#defined-in class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:583</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=properties>Properties<a href=#properties class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=accelsmoother>accelSmoother?<a href=#accelsmoother class=hash-link aria-label="Direct link to accelSmoother?" title="Direct link to accelSmoother?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <code>optional</code> <strong>accelSmoother</strong>: <code>MultiExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-1>Inherited from<a href=#inherited-from-1 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.accelSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-1>Defined in<a href=#defined-in-1 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:498</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=airspeedindex>airspeedIndex<a href=#airspeedindex class=hash-link aria-label="Direct link to airspeedIndex" title="Direct link to airspeedIndex">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>airspeedIndex</strong>: <code>Subscribable</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-2>Inherited from<a href=#inherited-from-2 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.airspeedIndex</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-2>Defined in<a href=#defined-in-2 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:458</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=airspeedsimvar>airspeedSimVar<a href=#airspeedsimvar class=hash-link aria-label="Direct link to airspeedSimVar" title="Direct link to airspeedSimVar">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>airspeedSimVar</strong>: <code>string</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-3>Inherited from<a href=#inherited-from-3 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.airspeedSimVar</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-3>Defined in<a href=#defined-in-3 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:459</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=hysteresis>hysteresis<a href=#hysteresis class=hash-link aria-label="Direct link to hysteresis" title="Direct link to hysteresis">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>hysteresis</strong>: <code>number</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-4>Inherited from<a href=#inherited-from-4 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.hysteresis</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-4>Defined in<a href=#defined-in-4 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:541</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=hysteresisrecord>hysteresisRecord<a href=#hysteresisrecord class=hash-link aria-label="Direct link to hysteresisRecord" title="Direct link to hysteresisRecord">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>hysteresisRecord</strong>: <code>Record</code>&lt;<code>AutothrottleThrottleIndex</code>, <code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-5>Inherited from<a href=#inherited-from-5 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.hysteresisRecord</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-5>Defined in<a href=#defined-in-5 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:542</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=iaslookahead>iasLookahead<a href=#iaslookahead class=hash-link aria-label="Direct link to iasLookahead" title="Direct link to iasLookahead">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>iasLookahead</strong>: <code>Subscribable</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-6>Inherited from<a href=#inherited-from-6 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.iasLookahead</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-6>Defined in<a href=#defined-in-6 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:486</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=iassmoother>iasSmoother<a href=#iassmoother class=hash-link aria-label="Direct link to iasSmoother" title="Direct link to iasSmoother">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>iasSmoother</strong>: <code>MultiExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-7>Inherited from<a href=#inherited-from-7 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.iasSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-7>Defined in<a href=#defined-in-7 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:487</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isalive>isAlive<a href=#isalive class=hash-link aria-label="Direct link to isAlive" title="Direct link to isAlive">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>isAlive</strong>: <code>boolean</code> = <code>true</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-8>Inherited from<a href=#inherited-from-8 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.isAlive</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-8>Defined in<a href=#defined-in-8 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:569</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isoverpowerprotactive>isOverpowerProtActive<a href=#isoverpowerprotactive class=hash-link aria-label="Direct link to isOverpowerProtActive" title="Direct link to isOverpowerProtActive">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>isOverpowerProtActive</strong>: <code>Subject</code>&lt;<code>boolean</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-9>Inherited from<a href=#inherited-from-9 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.isOverpowerProtActive</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-9>Defined in<a href=#defined-in-9 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:465</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isoverspeedprotactive>isOverspeedProtActive<a href=#isoverspeedprotactive class=hash-link aria-label="Direct link to isOverspeedProtActive" title="Direct link to isOverspeedProtActive">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>isOverspeedProtActive</strong>: <code>Subject</code>&lt;<code>boolean</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-10>Inherited from<a href=#inherited-from-10 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.isOverspeedProtActive</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-10>Defined in<a href=#defined-in-10 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:463</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isunderspeedprotactive>isUnderspeedProtActive<a href=#isunderspeedprotactive class=hash-link aria-label="Direct link to isUnderspeedProtActive" title="Direct link to isUnderspeedProtActive">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>isUnderspeedProtActive</strong>: <code>Subject</code>&lt;<code>boolean</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-11>Inherited from<a href=#inherited-from-11 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.isUnderspeedProtActive</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-11>Defined in<a href=#defined-in-11 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:464</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=lastiaslookahead>lastIasLookahead<a href=#lastiaslookahead class=hash-link aria-label="Direct link to lastIasLookahead" title="Direct link to lastIasLookahead">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>lastIasLookahead</strong>: <code>number</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-12>Inherited from<a href=#inherited-from-12 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.lastIasLookahead</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-12>Defined in<a href=#defined-in-12 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:489</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=lastsmoothedias>lastSmoothedIas<a href=#lastsmoothedias class=hash-link aria-label="Direct link to lastSmoothedIas" title="Direct link to lastSmoothedIas">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>lastSmoothedIas</strong>: <code>undefined</code> | <code>number</code> = <code>undefined</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-13>Inherited from<a href=#inherited-from-13 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.lastSmoothedIas</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-13>Defined in<a href=#defined-in-13 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:490</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=latchoptions>latchOptions<a href=#latchoptions class=hash-link aria-label="Direct link to latchOptions" title="Direct link to latchOptions">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>latchOptions</strong>: <code>Readonly</code>&lt;<code>Required</code>&lt;<code>AutothrottleLatchOptions</code>>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-14>Inherited from<a href=#inherited-from-14 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.latchOptions</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-14>Defined in<a href=#defined-in-14 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:538</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=latchrecord>latchRecord<a href=#latchrecord class=hash-link aria-label="Direct link to latchRecord" title="Direct link to latchRecord">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>latchRecord</strong>: <code>Record</code>&lt;<code>AutothrottleThrottleIndex</code>, <code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-15>Inherited from<a href=#inherited-from-15 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.latchRecord</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-15>Defined in<a href=#defined-in-15 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:539</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=lookaheadiassmoother>lookaheadIasSmoother<a href=#lookaheadiassmoother class=hash-link aria-label="Direct link to lookaheadIasSmoother" title="Direct link to lookaheadIasSmoother">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>lookaheadIasSmoother</strong>: <code>MultiExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-16>Inherited from<a href=#inherited-from-16 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.lookaheadIasSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-16>Defined in<a href=#defined-in-16 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:488</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=machtokiassmoother>machToKiasSmoother<a href=#machtokiassmoother class=hash-link aria-label="Direct link to machToKiasSmoother" title="Direct link to machToKiasSmoother">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>machToKiasSmoother</strong>: <code>ExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-17>Inherited from<a href=#inherited-from-17 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.machToKiasSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-17>Defined in<a href=#defined-in-17 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:484</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=maxias>maxIas<a href=#maxias class=hash-link aria-label="Direct link to maxIas" title="Direct link to maxIas">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>maxIas</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-18>Inherited from<a href=#inherited-from-18 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.maxIas</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-18>Defined in<a href=#defined-in-18 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:475</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=maxmach>maxMach<a href=#maxmach class=hash-link aria-label="Direct link to maxMach" title="Direct link to maxMach">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>maxMach</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-19>Inherited from<a href=#inherited-from-19 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.maxMach</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-19>Defined in<a href=#defined-in-19 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:477</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=maxpower>maxPower<a href=#maxpower class=hash-link aria-label="Direct link to maxPower" title="Direct link to maxPower">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>maxPower</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-20>Inherited from<a href=#inherited-from-20 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.maxPower</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-20>Defined in<a href=#defined-in-20 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:479</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=maxthrottlepos>maxThrottlePos<a href=#maxthrottlepos class=hash-link aria-label="Direct link to maxThrottlePos" title="Direct link to maxThrottlePos">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>maxThrottlePos</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-21>Inherited from<a href=#inherited-from-21 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.maxThrottlePos</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-21>Defined in<a href=#defined-in-21 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:481</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=minias>minIas<a href=#minias class=hash-link aria-label="Direct link to minIas" title="Direct link to minIas">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>minIas</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-22>Inherited from<a href=#inherited-from-22 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.minIas</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-22>Defined in<a href=#defined-in-22 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:476</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=minmach>minMach<a href=#minmach class=hash-link aria-label="Direct link to minMach" title="Direct link to minMach">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>minMach</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-23>Inherited from<a href=#inherited-from-23 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.minMach</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-23>Defined in<a href=#defined-in-23 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:478</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=minthrottlepos>minThrottlePos<a href=#minthrottlepos class=hash-link aria-label="Direct link to minThrottlePos" title="Direct link to minThrottlePos">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>minThrottlePos</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-24>Inherited from<a href=#inherited-from-24 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.minThrottlePos</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-24>Defined in<a href=#defined-in-24 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:482</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=overpowerpids>overpowerPids<a href=#overpowerpids class=hash-link aria-label="Direct link to overpowerPids" title="Direct link to overpowerPids">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>overpowerPids</strong>: <code>Record</code>&lt;<code>AutothrottleThrottleIndex</code>, <code>PidController</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-25>Inherited from<a href=#inherited-from-25 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.overpowerPids</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-25>Defined in<a href=#defined-in-25 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:518</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=overspeedaccelcorrectionsmoother>overspeedAccelCorrectionSmoother?<a href=#overspeedaccelcorrectionsmoother class=hash-link aria-label="Direct link to overspeedAccelCorrectionSmoother?" title="Direct link to overspeedAccelCorrectionSmoother?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <code>optional</code> <strong>overspeedAccelCorrectionSmoother</strong>: <code>MultiExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-26>Inherited from<a href=#inherited-from-26 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.overspeedAccelCorrectionSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-26>Defined in<a href=#defined-in-26 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:501</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=overspeedacceltargetfunc>overspeedAccelTargetFunc?<a href=#overspeedacceltargetfunc class=hash-link aria-label="Direct link to overspeedAccelTargetFunc?" title="Direct link to overspeedAccelTargetFunc?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <code>optional</code> <strong>overspeedAccelTargetFunc</strong>: <code>AutothrottleAccelTargetFunc</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-27>Inherited from<a href=#inherited-from-27 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.overspeedAccelTargetFunc</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-27>Defined in<a href=#defined-in-27 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:495</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=overspeedchangethreshold>overspeedChangeThreshold<a href=#overspeedchangethreshold class=hash-link aria-label="Direct link to overspeedChangeThreshold" title="Direct link to overspeedChangeThreshold">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>overspeedChangeThreshold</strong>: <code>number</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-28>Inherited from<a href=#inherited-from-28 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.overspeedChangeThreshold</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-28>Defined in<a href=#defined-in-28 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:523</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=overspeedpid>overspeedPid<a href=#overspeedpid class=hash-link aria-label="Direct link to overspeedPid" title="Direct link to overspeedPid">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>overspeedPid</strong>: <code>PidController</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-29>Inherited from<a href=#inherited-from-29 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.overspeedPid</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-29>Defined in<a href=#defined-in-29 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:515</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=overspeedpowercorrectiontransformer>overspeedPowerCorrectionTransformer<a href=#overspeedpowercorrectiontransformer class=hash-link aria-label="Direct link to overspeedPowerCorrectionTransformer" title="Direct link to overspeedPowerCorrectionTransformer">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>overspeedPowerCorrectionTransformer</strong>: <code>AutothrottlePowerCorrectionTransformer</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-30>Inherited from<a href=#inherited-from-30 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.overspeedPowerCorrectionTransformer</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-30>Defined in<a href=#defined-in-30 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:509</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=overspeedprotacceltargetsmoother>overspeedProtAccelTargetSmoother?<a href=#overspeedprotacceltargetsmoother class=hash-link aria-label="Direct link to overspeedProtAccelTargetSmoother?" title="Direct link to overspeedProtAccelTargetSmoother?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <code>optional</code> <strong>overspeedProtAccelTargetSmoother</strong>: <code>ExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-31>Inherited from<a href=#inherited-from-31 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.overspeedProtAccelTargetSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-31>Defined in<a href=#defined-in-31 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:505</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=overspeedprotpowertargetsmoother>overspeedProtPowerTargetSmoother<a href=#overspeedprotpowertargetsmoother class=hash-link aria-label="Direct link to overspeedProtPowerTargetSmoother" title="Direct link to overspeedProtPowerTargetSmoother">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>overspeedProtPowerTargetSmoother</strong>: <code>ExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-32>Inherited from<a href=#inherited-from-32 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.overspeedProtPowerTargetSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-32>Defined in<a href=#defined-in-32 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:535</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=overspeedspeedtarget>overspeedSpeedTarget<a href=#overspeedspeedtarget class=hash-link aria-label="Direct link to overspeedSpeedTarget" title="Direct link to overspeedSpeedTarget">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>overspeedSpeedTarget</strong>: <code>AutothrottleSpeedTargetRecord</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-33>Inherited from<a href=#inherited-from-33 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.overspeedSpeedTarget</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-33>Defined in<a href=#defined-in-33 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:527</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=powercommand>powerCommand<a href=#powercommand class=hash-link aria-label="Direct link to powerCommand" title="Direct link to powerCommand">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>powerCommand</strong>: <code>PowerCommand</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-34>Inherited from<a href=#inherited-from-34 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.powerCommand</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-34>Defined in<a href=#defined-in-34 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:556</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=powerlookahead>powerLookahead<a href=#powerlookahead class=hash-link aria-label="Direct link to powerLookahead" title="Direct link to powerLookahead">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>powerLookahead</strong>: <code>Subscribable</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-35>Inherited from<a href=#inherited-from-35 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.powerLookahead</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-35>Defined in<a href=#defined-in-35 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:512</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=prevoverspeedspeedtarget>prevOverspeedSpeedTarget<a href=#prevoverspeedspeedtarget class=hash-link aria-label="Direct link to prevOverspeedSpeedTarget" title="Direct link to prevOverspeedSpeedTarget">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>prevOverspeedSpeedTarget</strong>: <code>AutothrottleSpeedTargetRecord</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-36>Inherited from<a href=#inherited-from-36 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.prevOverspeedSpeedTarget</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-36>Defined in<a href=#defined-in-36 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:531</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=prevselectedspeedtarget>prevSelectedSpeedTarget<a href=#prevselectedspeedtarget class=hash-link aria-label="Direct link to prevSelectedSpeedTarget" title="Direct link to prevSelectedSpeedTarget">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>prevSelectedSpeedTarget</strong>: <code>AutothrottleSpeedTargetRecord</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-37>Inherited from<a href=#inherited-from-37 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.prevSelectedSpeedTarget</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-37>Defined in<a href=#defined-in-37 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:530</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=prevunderspeedspeedtarget>prevUnderspeedSpeedTarget<a href=#prevunderspeedspeedtarget class=hash-link aria-label="Direct link to prevUnderspeedSpeedTarget" title="Direct link to prevUnderspeedSpeedTarget">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>prevUnderspeedSpeedTarget</strong>: <code>AutothrottleSpeedTargetRecord</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-38>Inherited from<a href=#inherited-from-38 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.prevUnderspeedSpeedTarget</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-38>Defined in<a href=#defined-in-38 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:532</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=publisher>publisher<a href=#publisher class=hash-link aria-label="Direct link to publisher" title="Direct link to publisher">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>publisher</strong>: <code>Publisher</code>&lt;<code>AutothrottleEvents</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-39>Inherited from<a href=#inherited-from-39 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.publisher</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-39>Defined in<a href=#defined-in-39 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:454</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedias>selectedIas<a href=#selectedias class=hash-link aria-label="Direct link to selectedIas" title="Direct link to selectedIas">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedIas</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-40>Inherited from<a href=#inherited-from-40 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedIas</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-40>Defined in<a href=#defined-in-40 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:470</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedmach>selectedMach<a href=#selectedmach class=hash-link aria-label="Direct link to selectedMach" title="Direct link to selectedMach">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedMach</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-41>Inherited from<a href=#inherited-from-41 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedMach</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-41>Defined in<a href=#defined-in-41 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:471</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedpower>selectedPower<a href=#selectedpower class=hash-link aria-label="Direct link to selectedPower" title="Direct link to selectedPower">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedPower</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-42>Inherited from<a href=#inherited-from-42 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedPower</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-42>Defined in<a href=#defined-in-42 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:472</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedpowerpids>selectedPowerPids<a href=#selectedpowerpids class=hash-link aria-label="Direct link to selectedPowerPids" title="Direct link to selectedPowerPids">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedPowerPids</strong>: <code>Record</code>&lt;<code>AutothrottleThrottleIndex</code>, <code>PidController</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-43>Inherited from<a href=#inherited-from-43 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedPowerPids</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-43>Defined in<a href=#defined-in-43 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:517</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedspeedaccelcorrectionsmoother>selectedSpeedAccelCorrectionSmoother?<a href=#selectedspeedaccelcorrectionsmoother class=hash-link aria-label="Direct link to selectedSpeedAccelCorrectionSmoother?" title="Direct link to selectedSpeedAccelCorrectionSmoother?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <code>optional</code> <strong>selectedSpeedAccelCorrectionSmoother</strong>: <code>MultiExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-44>Inherited from<a href=#inherited-from-44 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedSpeedAccelCorrectionSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-44>Defined in<a href=#defined-in-44 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:500</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedspeedacceltargetfunc>selectedSpeedAccelTargetFunc?<a href=#selectedspeedacceltargetfunc class=hash-link aria-label="Direct link to selectedSpeedAccelTargetFunc?" title="Direct link to selectedSpeedAccelTargetFunc?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <code>optional</code> <strong>selectedSpeedAccelTargetFunc</strong>: <code>AutothrottleAccelTargetFunc</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-45>Inherited from<a href=#inherited-from-45 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedSpeedAccelTargetFunc</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-45>Defined in<a href=#defined-in-45 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:494</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedspeedacceltargetsmoother>selectedSpeedAccelTargetSmoother?<a href=#selectedspeedacceltargetsmoother class=hash-link aria-label="Direct link to selectedSpeedAccelTargetSmoother?" title="Direct link to selectedSpeedAccelTargetSmoother?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <code>optional</code> <strong>selectedSpeedAccelTargetSmoother</strong>: <code>ExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-46>Inherited from<a href=#inherited-from-46 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedSpeedAccelTargetSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-46>Defined in<a href=#defined-in-46 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:504</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedspeedismach>selectedSpeedIsMach<a href=#selectedspeedismach class=hash-link aria-label="Direct link to selectedSpeedIsMach" title="Direct link to selectedSpeedIsMach">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedSpeedIsMach</strong>: <code>Subject</code>&lt;<code>boolean</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-47>Inherited from<a href=#inherited-from-47 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedSpeedIsMach</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-47>Defined in<a href=#defined-in-47 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:469</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedspeedpid>selectedSpeedPid<a href=#selectedspeedpid class=hash-link aria-label="Direct link to selectedSpeedPid" title="Direct link to selectedSpeedPid">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedSpeedPid</strong>: <code>PidController</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-48>Inherited from<a href=#inherited-from-48 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedSpeedPid</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-48>Defined in<a href=#defined-in-48 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:514</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedspeedpowercorrectiontransformer>selectedSpeedPowerCorrectionTransformer<a href=#selectedspeedpowercorrectiontransformer class=hash-link aria-label="Direct link to selectedSpeedPowerCorrectionTransformer" title="Direct link to selectedSpeedPowerCorrectionTransformer">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedSpeedPowerCorrectionTransformer</strong>: <code>AutothrottlePowerCorrectionTransformer</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-49>Inherited from<a href=#inherited-from-49 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedSpeedPowerCorrectionTransformer</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-49>Defined in<a href=#defined-in-49 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:508</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedspeedpowertargetsmoother>selectedSpeedPowerTargetSmoother<a href=#selectedspeedpowertargetsmoother class=hash-link aria-label="Direct link to selectedSpeedPowerTargetSmoother" title="Direct link to selectedSpeedPowerTargetSmoother">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedSpeedPowerTargetSmoother</strong>: <code>ExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-50>Inherited from<a href=#inherited-from-50 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedSpeedPowerTargetSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-50>Defined in<a href=#defined-in-50 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:534</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedspeedtarget>selectedSpeedTarget<a href=#selectedspeedtarget class=hash-link aria-label="Direct link to selectedSpeedTarget" title="Direct link to selectedSpeedTarget">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedSpeedTarget</strong>: <code>AutothrottleSpeedTargetRecord</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-51>Inherited from<a href=#inherited-from-51 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedSpeedTarget</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-51>Defined in<a href=#defined-in-51 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:526</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=selectedthrottlepos>selectedThrottlePos<a href=#selectedthrottlepos class=hash-link aria-label="Direct link to selectedThrottlePos" title="Direct link to selectedThrottlePos">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>selectedThrottlePos</strong>: <code>Subject</code>&lt;<code>number</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-52>Inherited from<a href=#inherited-from-52 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.selectedThrottlePos</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-52>Defined in<a href=#defined-in-52 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:473</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=shouldtargetaccel>shouldTargetAccel<a href=#shouldtargetaccel class=hash-link aria-label="Direct link to shouldTargetAccel" title="Direct link to shouldTargetAccel">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>shouldTargetAccel</strong>: <code>boolean</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-53>Inherited from<a href=#inherited-from-53 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.shouldTargetAccel</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-53>Defined in<a href=#defined-in-53 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:492</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=speedcommand>speedCommand<a href=#speedcommand class=hash-link aria-label="Direct link to speedCommand" title="Direct link to speedCommand">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>speedCommand</strong>: <code>SpeedCommand</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-54>Inherited from<a href=#inherited-from-54 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.speedCommand</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-54>Defined in<a href=#defined-in-54 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:549</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=speedtargetchangethreshold>speedTargetChangeThreshold<a href=#speedtargetchangethreshold class=hash-link aria-label="Direct link to speedTargetChangeThreshold" title="Direct link to speedTargetChangeThreshold">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>speedTargetChangeThreshold</strong>: <code>number</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-55>Inherited from<a href=#inherited-from-55 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.speedTargetChangeThreshold</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-55>Defined in<a href=#defined-in-55 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:522</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=targetmode>targetMode<a href=#targetmode class=hash-link aria-label="Direct link to targetMode" title="Direct link to targetMode">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>targetMode</strong>: <code>Subject</code>&lt;<code>AutothrottleTargetMode</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-56>Inherited from<a href=#inherited-from-56 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.targetMode</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-56>Defined in<a href=#defined-in-56 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:467</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=throttles>throttles<a href=#throttles class=hash-link aria-label="Direct link to throttles" title="Direct link to throttles">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>throttles</strong>: <code>AutothrottleThrottle</code>[]</p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-57>Inherited from<a href=#inherited-from-57 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.throttles</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-57>Defined in<a href=#defined-in-57 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:461</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=throttlespeedsmoothers>throttleSpeedSmoothers<a href=#throttlespeedsmoothers class=hash-link aria-label="Direct link to throttleSpeedSmoothers" title="Direct link to throttleSpeedSmoothers">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>throttleSpeedSmoothers</strong>: <code>Record</code>&lt;<code>AutothrottleThrottleIndex</code>, <code>ExpSmoother</code>></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-58>Inherited from<a href=#inherited-from-58 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.throttleSpeedSmoothers</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-58>Defined in<a href=#defined-in-58 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:520</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=underspeedaccelcorrectionsmoother>underspeedAccelCorrectionSmoother?<a href=#underspeedaccelcorrectionsmoother class=hash-link aria-label="Direct link to underspeedAccelCorrectionSmoother?" title="Direct link to underspeedAccelCorrectionSmoother?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <code>optional</code> <strong>underspeedAccelCorrectionSmoother</strong>: <code>MultiExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-59>Inherited from<a href=#inherited-from-59 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.underspeedAccelCorrectionSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-59>Defined in<a href=#defined-in-59 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:502</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=underspeedacceltargetfunc>underspeedAccelTargetFunc?<a href=#underspeedacceltargetfunc class=hash-link aria-label="Direct link to underspeedAccelTargetFunc?" title="Direct link to underspeedAccelTargetFunc?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <code>optional</code> <strong>underspeedAccelTargetFunc</strong>: <code>AutothrottleAccelTargetFunc</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-60>Inherited from<a href=#inherited-from-60 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.underspeedAccelTargetFunc</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-60>Defined in<a href=#defined-in-60 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:496</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=underspeedchangethreshold>underspeedChangeThreshold<a href=#underspeedchangethreshold class=hash-link aria-label="Direct link to underspeedChangeThreshold" title="Direct link to underspeedChangeThreshold">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>underspeedChangeThreshold</strong>: <code>number</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-61>Inherited from<a href=#inherited-from-61 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.underspeedChangeThreshold</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-61>Defined in<a href=#defined-in-61 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:524</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=underspeedpid>underspeedPid<a href=#underspeedpid class=hash-link aria-label="Direct link to underspeedPid" title="Direct link to underspeedPid">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>underspeedPid</strong>: <code>PidController</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-62>Inherited from<a href=#inherited-from-62 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.underspeedPid</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-62>Defined in<a href=#defined-in-62 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:516</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=underspeedpowercorrectiontransformer>underspeedPowerCorrectionTransformer<a href=#underspeedpowercorrectiontransformer class=hash-link aria-label="Direct link to underspeedPowerCorrectionTransformer" title="Direct link to underspeedPowerCorrectionTransformer">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>underspeedPowerCorrectionTransformer</strong>: <code>AutothrottlePowerCorrectionTransformer</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-63>Inherited from<a href=#inherited-from-63 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.underspeedPowerCorrectionTransformer</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-63>Defined in<a href=#defined-in-63 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:510</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=underspeedprotacceltargetsmoother>underspeedProtAccelTargetSmoother?<a href=#underspeedprotacceltargetsmoother class=hash-link aria-label="Direct link to underspeedProtAccelTargetSmoother?" title="Direct link to underspeedProtAccelTargetSmoother?">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <code>optional</code> <strong>underspeedProtAccelTargetSmoother</strong>: <code>ExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-64>Inherited from<a href=#inherited-from-64 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.underspeedProtAccelTargetSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-64>Defined in<a href=#defined-in-64 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:506</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=underspeedprotpowertargetsmoother>underspeedProtPowerTargetSmoother<a href=#underspeedprotpowertargetsmoother class=hash-link aria-label="Direct link to underspeedProtPowerTargetSmoother" title="Direct link to underspeedProtPowerTargetSmoother">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>underspeedProtPowerTargetSmoother</strong>: <code>ExpSmoother</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-65>Inherited from<a href=#inherited-from-65 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.underspeedProtPowerTargetSmoother</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-65>Defined in<a href=#defined-in-65 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:536</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=underspeedspeedtarget>underspeedSpeedTarget<a href=#underspeedspeedtarget class=hash-link aria-label="Direct link to underspeedSpeedTarget" title="Direct link to underspeedSpeedTarget">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>underspeedSpeedTarget</strong>: <code>AutothrottleSpeedTargetRecord</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-66>Inherited from<a href=#inherited-from-66 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.underspeedSpeedTarget</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-66>Defined in<a href=#defined-in-66 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:528</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=useindicatedmach>useIndicatedMach<a href=#useindicatedmach class=hash-link aria-label="Direct link to useIndicatedMach" title="Direct link to useIndicatedMach">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <strong>useIndicatedMach</strong>: <code>boolean</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-67>Inherited from<a href=#inherited-from-67 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.useIndicatedMach</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-67>Defined in<a href=#defined-in-67 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:456</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=all_throttle_indexes>ALL_THROTTLE_INDEXES<a href=#all_throttle_indexes class=hash-link aria-label="Direct link to ALL_THROTTLE_INDEXES" title="Direct link to ALL_THROTTLE_INDEXES">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>readonly</code> <code>static</code> <strong>ALL_THROTTLE_INDEXES</strong>: readonly [<code>1</code>, <code>2</code>, <code>3</code>, <code>4</code>]</p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-68>Inherited from<a href=#inherited-from-68 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.ALL_THROTTLE_INDEXES</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-68>Defined in<a href=#defined-in-68 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:452</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=accessors>Accessors<a href=#accessors class=hash-link aria-label="Direct link to Accessors" title="Direct link to Accessors">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=thrustdirectorspeed>thrustDirectorSpeed<a href=#thrustdirectorspeed class=hash-link aria-label="Direct link to thrustDirectorSpeed" title="Direct link to thrustDirectorSpeed">​</a></h3>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=get-signature>Get Signature<a href=#get-signature class=hash-link aria-label="Direct link to Get Signature" title="Direct link to Get Signature">​</a></h4>
+<blockquote>
+<p><strong>get</strong> <strong>thrustDirectorSpeed</strong>(): <code>number</code></p>
+</blockquote>
+<p>Get the desired speed of the throttle(s).</p>
+<h5 class="anchor anchorWithStickyNavbar_LWe7" id=returns-1>Returns<a href=#returns-1 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h5>
+<p><code>number</code></p>
+<p>the desired speed of the throttle(s).</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-69>Defined in<a href=#defined-in-69 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>workingtitle-instruments-epic2/instruments/html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/MFD/UpperMFD/Autothrottle/Epic2Autothrottle.ts:1291</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=methods>Methods<a href=#methods class=hash-link aria-label="Direct link to Methods" title="Direct link to Methods">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=calculatepowertargetthrottlepos>calculatePowerTargetThrottlePos()<a href=#calculatepowertargetthrottlepos class=hash-link aria-label="Direct link to calculatePowerTargetThrottlePos()" title="Direct link to calculatePowerTargetThrottlePos()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>calculatePowerTargetThrottlePos</strong>(<code>throttle</code>, <code>speedCommand</code>, <code>isOverpowerProtActive</code>, <code>isPowerTargetActive</code>, <code>isThrottlePosTargetActive</code>, <code>dt</code>, <code>out</code>): <code>PowerCommand</code></p>
+</blockquote>
+<p>Calculates the throttle position for a specific throttle commanded by this autothrottle's power controller. The
+power controller incorporates the power target if active and overpower protection.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-1>Parameters<a href=#parameters-1 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>throttle</code><td><code>AutothrottleThrottle</code><td>The throttle for which to calculate commanded throttle position.<tr><td><code>speedCommand</code><td><code>SpeedCommand</code><td>The engine power commanded by this autothrottle's speed controller.<tr><td><code>isOverpowerProtActive</code><td><code>boolean</code><td>Whether overpower protection is active.<tr><td><code>isPowerTargetActive</code><td><code>boolean</code><td>Whether power target is active.<tr><td><code>isThrottlePosTargetActive</code><td><code>boolean</code><td>Whether throttle lever position target is active.<tr><td><code>dt</code><td><code>number</code><td>The elapsed time since the last update.<tr><td><code>out</code><td><code>PowerCommand</code><td>The object to which to write the results.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-2>Returns<a href=#returns-2 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>PowerCommand</code></p>
+<p>The throttle position for the specified throttle commanded by this autothrottle's power controller.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-69>Inherited from<a href=#inherited-from-69 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.calculatePowerTargetThrottlePos</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-70>Defined in<a href=#defined-in-70 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:1498</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=calculatespeedtargetpower>calculateSpeedTargetPower()<a href=#calculatespeedtargetpower class=hash-link aria-label="Direct link to calculateSpeedTargetPower()" title="Direct link to calculateSpeedTargetPower()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>calculateSpeedTargetPower</strong>(<code>dt</code>, <code>out</code>): <code>SpeedCommand</code></p>
+</blockquote>
+<p>Calculates the engine power for all throttles commanded by this autothrottle's speed controller. The speed
+controller incorporates the speed target and over-/under-speed protection if active.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-2>Parameters<a href=#parameters-2 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>dt</code><td><code>number</code><td>The elapsed time since the last update.<tr><td><code>out</code><td><code>SpeedCommand</code><td>The object to which to write the results.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-3>Returns<a href=#returns-3 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>SpeedCommand</code></p>
+<p>The engine power for all throttles commanded by this autothrottle's speed controller.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-70>Inherited from<a href=#inherited-from-70 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.calculateSpeedTargetPower</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-71>Defined in<a href=#defined-in-71 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:1134</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=createthrottle>createThrottle()<a href=#createthrottle class=hash-link aria-label="Direct link to createThrottle()" title="Direct link to createThrottle()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>createThrottle</strong>(<code>bus</code>, <code>info</code>, <code>servoSpeed</code>, <code>powerSmoothingConstant</code>, <code>powerSmoothingVelocityConstant</code>, <code>powerLookahead</code>, <code>powerLookaheadSmoothingConstant</code>, <code>powerLookaheadSmoothingVelocityConstant</code>, <code>throttleLeverManager</code>): <code>AutothrottleThrottle</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-3>Parameters<a href=#parameters-3 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<tbody><tr><td><code>bus</code><td><code>EventBus</code><tr><td><code>info</code><td><code>AutothrottleThrottleInfo</code><tr><td><code>servoSpeed</code><td><code>number</code> | <code>Accessible</code>&lt;<code>number</code>><tr><td><code>powerSmoothingConstant</code><td><code>number</code><tr><td><code>powerSmoothingVelocityConstant</code><td><code>undefined</code> | <code>number</code><tr><td><code>powerLookahead</code><td><code>Subscribable</code>&lt;<code>number</code>><tr><td><code>powerLookaheadSmoothingConstant</code><td><code>undefined</code> | <code>number</code><tr><td><code>powerLookaheadSmoothingVelocityConstant</code><td><code>undefined</code> | <code>number</code><tr><td><code>throttleLeverManager</code><td><code>undefined</code> | <code>ThrottleLeverManager</code></table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-4>Returns<a href=#returns-4 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>AutothrottleThrottle</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherit-doc-1>Inherit Doc<a href=#inherit-doc-1 class=hash-link aria-label="Direct link to Inherit Doc" title="Direct link to Inherit Doc">​</a></h4>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-71>Inherited from<a href=#inherited-from-71 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.createThrottle</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-72>Defined in<a href=#defined-in-72 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/TurbopropAutothrottle.ts:13</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=destroy>destroy()<a href=#destroy class=hash-link aria-label="Direct link to destroy()" title="Direct link to destroy()">​</a></h3>
+<blockquote>
+<p><strong>destroy</strong>(): <code>void</code></p>
+</blockquote>
+<p>Destroys this autothrottle.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-5>Returns<a href=#returns-5 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-72>Inherited from<a href=#inherited-from-72 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.destroy</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-73>Defined in<a href=#defined-in-73 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:1668</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setmaxias>setMaxIas()<a href=#setmaxias class=hash-link aria-label="Direct link to setMaxIas()" title="Direct link to setMaxIas()">​</a></h3>
+<blockquote>
+<p><strong>setMaxIas</strong>(<code>ias</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's maximum allowed indicated airspeed, in knots.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-4>Parameters<a href=#parameters-4 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>ias</code><td><code>number</code><td>An indicated airspeed, in knots.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-6>Returns<a href=#returns-6 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-73>Inherited from<a href=#inherited-from-73 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setMaxIas</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-74>Defined in<a href=#defined-in-74 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:819</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setmaxmach>setMaxMach()<a href=#setmaxmach class=hash-link aria-label="Direct link to setMaxMach()" title="Direct link to setMaxMach()">​</a></h3>
+<blockquote>
+<p><strong>setMaxMach</strong>(<code>mach</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's maximum allowed mach number.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-5>Parameters<a href=#parameters-5 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>mach</code><td><code>number</code><td>A mach number.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-7>Returns<a href=#returns-7 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-74>Inherited from<a href=#inherited-from-74 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setMaxMach</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-75>Defined in<a href=#defined-in-75 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:835</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setmaxpower>setMaxPower()<a href=#setmaxpower class=hash-link aria-label="Direct link to setMaxPower()" title="Direct link to setMaxPower()">​</a></h3>
+<blockquote>
+<p><strong>setMaxPower</strong>(<code>power</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's maximum allowed engine power.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-6>Parameters<a href=#parameters-6 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>power</code><td><code>number</code><td>An engine power value.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-8>Returns<a href=#returns-8 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-75>Inherited from<a href=#inherited-from-75 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setMaxPower</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-76>Defined in<a href=#defined-in-76 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:851</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setmaxthrottlepos>setMaxThrottlePos()<a href=#setmaxthrottlepos class=hash-link aria-label="Direct link to setMaxThrottlePos()" title="Direct link to setMaxThrottlePos()">​</a></h3>
+<blockquote>
+<p><strong>setMaxThrottlePos</strong>(<code>pos</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's maximum allowed normalized throttle lever position.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-7>Parameters<a href=#parameters-7 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>pos</code><td><code>number</code><td>A normalized throttle lever position.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-9>Returns<a href=#returns-9 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-76>Inherited from<a href=#inherited-from-76 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setMaxThrottlePos</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-77>Defined in<a href=#defined-in-77 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:859</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setminias>setMinIas()<a href=#setminias class=hash-link aria-label="Direct link to setMinIas()" title="Direct link to setMinIas()">​</a></h3>
+<blockquote>
+<p><strong>setMinIas</strong>(<code>ias</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's minimum allowed indicated airspeed, in knots.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-8>Parameters<a href=#parameters-8 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>ias</code><td><code>number</code><td>An indicated airspeed, in knots.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-10>Returns<a href=#returns-10 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-77>Inherited from<a href=#inherited-from-77 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setMinIas</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-78>Defined in<a href=#defined-in-78 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:827</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setminmach>setMinMach()<a href=#setminmach class=hash-link aria-label="Direct link to setMinMach()" title="Direct link to setMinMach()">​</a></h3>
+<blockquote>
+<p><strong>setMinMach</strong>(<code>mach</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's minimum allowed mach number.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-9>Parameters<a href=#parameters-9 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>mach</code><td><code>number</code><td>A mach number.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-11>Returns<a href=#returns-11 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-78>Inherited from<a href=#inherited-from-78 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setMinMach</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-79>Defined in<a href=#defined-in-79 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:843</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setminthrottlepos>setMinThrottlePos()<a href=#setminthrottlepos class=hash-link aria-label="Direct link to setMinThrottlePos()" title="Direct link to setMinThrottlePos()">​</a></h3>
+<blockquote>
+<p><strong>setMinThrottlePos</strong>(<code>pos</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's minimum allowed normalized throttle lever position.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-10>Parameters<a href=#parameters-10 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>pos</code><td><code>number</code><td>A normalized throttle lever position.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-12>Returns<a href=#returns-12 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-79>Inherited from<a href=#inherited-from-79 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setMinThrottlePos</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-80>Defined in<a href=#defined-in-80 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:867</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setoverpowerprotactive>setOverpowerProtActive()<a href=#setoverpowerprotactive class=hash-link aria-label="Direct link to setOverpowerProtActive()" title="Direct link to setOverpowerProtActive()">​</a></h3>
+<blockquote>
+<p><strong>setOverpowerProtActive</strong>(<code>val</code>): <code>void</code></p>
+</blockquote>
+<p>Sets whether this autothrottle's overpower protection is active.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-11>Parameters<a href=#parameters-11 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>val</code><td><code>boolean</code><td>Whether overpower protection is active.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-13>Returns<a href=#returns-13 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-80>Inherited from<a href=#inherited-from-80 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setOverpowerProtActive</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-81>Defined in<a href=#defined-in-81 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:763</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setoverspeedprotactive>setOverspeedProtActive()<a href=#setoverspeedprotactive class=hash-link aria-label="Direct link to setOverspeedProtActive()" title="Direct link to setOverspeedProtActive()">​</a></h3>
+<blockquote>
+<p><strong>setOverspeedProtActive</strong>(<code>val</code>): <code>void</code></p>
+</blockquote>
+<p>Sets whether this autothrottle's overspeed protection is active.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-12>Parameters<a href=#parameters-12 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>val</code><td><code>boolean</code><td>Whether overspeed protection is active.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-14>Returns<a href=#returns-14 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-81>Inherited from<a href=#inherited-from-81 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setOverspeedProtActive</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-82>Defined in<a href=#defined-in-82 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:747</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setselectedias>setSelectedIas()<a href=#setselectedias class=hash-link aria-label="Direct link to setSelectedIas()" title="Direct link to setSelectedIas()">​</a></h3>
+<blockquote>
+<p><strong>setSelectedIas</strong>(<code>ias</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's selected indicated airspeed target, in knots.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-13>Parameters<a href=#parameters-13 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>ias</code><td><code>number</code><td>An indicated airspeed, in knots.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-15>Returns<a href=#returns-15 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-82>Inherited from<a href=#inherited-from-82 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setSelectedIas</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-83>Defined in<a href=#defined-in-83 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:787</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setselectedmach>setSelectedMach()<a href=#setselectedmach class=hash-link aria-label="Direct link to setSelectedMach()" title="Direct link to setSelectedMach()">​</a></h3>
+<blockquote>
+<p><strong>setSelectedMach</strong>(<code>mach</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's selected mach number target.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-14>Parameters<a href=#parameters-14 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>mach</code><td><code>number</code><td>A mach number.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-16>Returns<a href=#returns-16 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-83>Inherited from<a href=#inherited-from-83 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setSelectedMach</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-84>Defined in<a href=#defined-in-84 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:795</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setselectedpower>setSelectedPower()<a href=#setselectedpower class=hash-link aria-label="Direct link to setSelectedPower()" title="Direct link to setSelectedPower()">​</a></h3>
+<blockquote>
+<p><strong>setSelectedPower</strong>(<code>power</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's selected engine power target.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-15>Parameters<a href=#parameters-15 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>power</code><td><code>number</code><td>An engine power value.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-17>Returns<a href=#returns-17 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-84>Inherited from<a href=#inherited-from-84 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setSelectedPower</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-85>Defined in<a href=#defined-in-85 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:803</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setselectedspeedismach>setSelectedSpeedIsMach()<a href=#setselectedspeedismach class=hash-link aria-label="Direct link to setSelectedSpeedIsMach()" title="Direct link to setSelectedSpeedIsMach()">​</a></h3>
+<blockquote>
+<p><strong>setSelectedSpeedIsMach</strong>(<code>val</code>): <code>void</code></p>
+</blockquote>
+<p>Sets whether this autothrottle's selected speed target is a mach number.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-16>Parameters<a href=#parameters-16 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>val</code><td><code>boolean</code><td>Whether the selected speed target is a mach number.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-18>Returns<a href=#returns-18 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-85>Inherited from<a href=#inherited-from-85 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setSelectedSpeedIsMach</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-86>Defined in<a href=#defined-in-86 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:779</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setselectedthrottlepos>setSelectedThrottlePos()<a href=#setselectedthrottlepos class=hash-link aria-label="Direct link to setSelectedThrottlePos()" title="Direct link to setSelectedThrottlePos()">​</a></h3>
+<blockquote>
+<p><strong>setSelectedThrottlePos</strong>(<code>pos</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's selected normalized throttle lever position target.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-17>Parameters<a href=#parameters-17 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>pos</code><td><code>number</code><td>A normalized throttle lever position.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-19>Returns<a href=#returns-19 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-86>Inherited from<a href=#inherited-from-86 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setSelectedThrottlePos</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-87>Defined in<a href=#defined-in-87 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:811</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setservoactive>setServoActive()<a href=#setservoactive class=hash-link aria-label="Direct link to setServoActive()" title="Direct link to setServoActive()">​</a></h3>
+<blockquote>
+<p><strong>setServoActive</strong>(<code>index</code>, <code>active</code>): <code>void</code></p>
+</blockquote>
+<p>Sets whether one of this autothrottle's throttle servos are active.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-18>Parameters<a href=#parameters-18 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>index</code><td><code>AutothrottleThrottleIndex</code><td>The index of the throttle servo to activate/deactivate.<tr><td><code>active</code><td><code>boolean</code><td>Whether the servo should be activated.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-20>Returns<a href=#returns-20 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-87>Inherited from<a href=#inherited-from-87 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setServoActive</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-88>Defined in<a href=#defined-in-88 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:876</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=settargetmode>setTargetMode()<a href=#settargetmode class=hash-link aria-label="Direct link to setTargetMode()" title="Direct link to setTargetMode()">​</a></h3>
+<blockquote>
+<p><strong>setTargetMode</strong>(<code>mode</code>): <code>void</code></p>
+</blockquote>
+<p>Sets this autothrottle's target mode.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-19>Parameters<a href=#parameters-19 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>mode</code><td><code>AutothrottleTargetMode</code><td>A target mode.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-21>Returns<a href=#returns-21 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-88>Inherited from<a href=#inherited-from-88 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setTargetMode</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-89>Defined in<a href=#defined-in-89 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:771</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setunderspeedprotactive>setUnderspeedProtActive()<a href=#setunderspeedprotactive class=hash-link aria-label="Direct link to setUnderspeedProtActive()" title="Direct link to setUnderspeedProtActive()">​</a></h3>
+<blockquote>
+<p><strong>setUnderspeedProtActive</strong>(<code>val</code>): <code>void</code></p>
+</blockquote>
+<p>Sets whether this autothrottle's underspeed protection is active.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-20>Parameters<a href=#parameters-20 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>val</code><td><code>boolean</code><td>Whether underspeed protection is active.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-22>Returns<a href=#returns-22 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-89>Inherited from<a href=#inherited-from-89 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.setUnderspeedProtActive</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-90>Defined in<a href=#defined-in-90 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:755</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=start>start()<a href=#start class=hash-link aria-label="Direct link to start()" title="Direct link to start()">​</a></h3>
+<blockquote>
+<p><strong>start</strong>(<code>frequency</code>): <code>void</code></p>
+</blockquote>
+<p>Turns this autothrottle on with a specified update frequency. If this autothrottle is already running, then it
+will be turned off before turning on again with the specified frequency.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-21>Parameters<a href=#parameters-21 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>frequency</code><td><code>number</code><td>The frequency, in hertz, at which this autothrottle will update.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-23>Returns<a href=#returns-23 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=throws>Throws<a href=#throws class=hash-link aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>Error if this autothrottle has been destroyed.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-90>Inherited from<a href=#inherited-from-90 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.start</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-91>Defined in<a href=#defined-in-91 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:889</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=stop>stop()<a href=#stop class=hash-link aria-label="Direct link to stop()" title="Direct link to stop()">​</a></h3>
+<blockquote>
+<p><strong>stop</strong>(): <code>void</code></p>
+</blockquote>
+<p>Turns this autothrottle off.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-24>Returns<a href=#returns-24 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=throws-1>Throws<a href=#throws-1 class=hash-link aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>Error if this autothrottle has been destroyed.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-91>Inherited from<a href=#inherited-from-91 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.stop</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-92>Defined in<a href=#defined-in-92 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:905</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=update>update()<a href=#update class=hash-link aria-label="Direct link to update()" title="Direct link to update()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <strong>update</strong>(): <code>void</code></p>
+</blockquote>
+<p>Updates this autothrottle.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-25>Returns<a href=#returns-25 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-92>Inherited from<a href=#inherited-from-92 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.update</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-93>Defined in<a href=#defined-in-93 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:962</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=createpidfromparams>createPidFromParams()<a href=#createpidfromparams class=hash-link aria-label="Direct link to createPidFromParams()" title="Direct link to createPidFromParams()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>static</code> <strong>createPidFromParams</strong>(<code>params</code>): <code>PidController</code></p>
+</blockquote>
+<p>Creates a PID controller using a given set of parameters.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-22>Parameters<a href=#parameters-22 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>params</code><td><code>AutothrottlePidParams</code><td>A set of PID parameters.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-26>Returns<a href=#returns-26 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>PidController</code></p>
+<p>A new PID controller created using the specified parameters.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-93>Inherited from<a href=#inherited-from-93 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.createPidFromParams</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-94>Defined in<a href=#defined-in-94 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:1683</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=defaultpowercorrectiontransformer>defaultPowerCorrectionTransformer()<a href=#defaultpowercorrectiontransformer class=hash-link aria-label="Direct link to defaultPowerCorrectionTransformer()" title="Direct link to defaultPowerCorrectionTransformer()">​</a></h3>
+<blockquote>
+<p><code>protected</code> <code>static</code> <strong>defaultPowerCorrectionTransformer</strong>(<code>correction</code>): <code>number</code></p>
+</blockquote>
+<p>A default transformation function for power target corrections which returns the correction unchanged.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-23>Parameters<a href=#parameters-23 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>correction</code><td><code>number</code><td>The raw power target correction.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-27>Returns<a href=#returns-27 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>number</code></p>
+<p>The transformed power target correction.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=inherited-from-94>Inherited from<a href=#inherited-from-94 class=hash-link aria-label="Direct link to Inherited from" title="Direct link to Inherited from">​</a></h4>
+<p><code>TurbopropAutothrottle.defaultPowerCorrectionTransformer</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=defined-in-95>Defined in<a href=#defined-in-95 class=hash-link aria-label="Direct link to Defined in" title="Direct link to Defined in">​</a></h4>
+<p>sdk/autothrottle/AbstractAutothrottle.ts:1692</div></article><nav class="pagination-nav docusaurus-mt-lg" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2JetFadec><div class=pagination-nav__sublabel>Previous</div><div class=pagination-nav__label>Epic2JetFadec</div></a><a class="pagination-nav__link pagination-nav__link--next" href=/msfs-avionics-mirror/2024/docs/api/epic2uppermfd/classes/Epic2TurbopropFadec><div class=pagination-nav__sublabel>Next</div><div class=pagination-nav__label>Epic2TurbopropFadec</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href=#inherit-doc class="table-of-contents__link toc-highlight">Inherit Doc</a><li><a href=#extends class="table-of-contents__link toc-highlight">Extends</a><li><a href=#constructors class="table-of-contents__link toc-highlight">Constructors</a><ul><li><a href=#new-epic2turbopropautothrottle class="table-of-contents__link toc-highlight">new Epic2TurbopropAutothrottle()</a></ul><li><a href=#properties class="table-of-contents__link toc-highlight">Properties</a><ul><li><a href=#accelsmoother class="table-of-contents__link toc-highlight">accelSmoother?</a><li><a href=#airspeedindex class="table-of-contents__link toc-highlight">airspeedIndex</a><li><a href=#airspeedsimvar class="table-of-contents__link toc-highlight">airspeedSimVar</a><li><a href=#hysteresis class="table-of-contents__link toc-highlight">hysteresis</a><li><a href=#hysteresisrecord class="table-of-contents__link toc-highlight">hysteresisRecord</a><li><a href=#iaslookahead class="table-of-contents__link toc-highlight">iasLookahead</a><li><a href=#iassmoother class="table-of-contents__link toc-highlight">iasSmoother</a><li><a href=#isalive class="table-of-contents__link toc-highlight">isAlive</a><li><a href=#isoverpowerprotactive class="table-of-contents__link toc-highlight">isOverpowerProtActive</a><li><a href=#isoverspeedprotactive class="table-of-contents__link toc-highlight">isOverspeedProtActive</a><li><a href=#isunderspeedprotactive class="table-of-contents__link toc-highlight">isUnderspeedProtActive</a><li><a href=#lastiaslookahead class="table-of-contents__link toc-highlight">lastIasLookahead</a><li><a href=#lastsmoothedias class="table-of-contents__link toc-highlight">lastSmoothedIas</a><li><a href=#latchoptions class="table-of-contents__link toc-highlight">latchOptions</a><li><a href=#latchrecord class="table-of-contents__link toc-highlight">latchRecord</a><li><a href=#lookaheadiassmoother class="table-of-contents__link toc-highlight">lookaheadIasSmoother</a><li><a href=#machtokiassmoother class="table-of-contents__link toc-highlight">machToKiasSmoother</a><li><a href=#maxias class="table-of-contents__link toc-highlight">maxIas</a><li><a href=#maxmach class="table-of-contents__link toc-highlight">maxMach</a><li><a href=#maxpower class="table-of-contents__link toc-highlight">maxPower</a><li><a href=#maxthrottlepos class="table-of-contents__link toc-highlight">maxThrottlePos</a><li><a href=#minias class="table-of-contents__link toc-highlight">minIas</a><li><a href=#minmach class="table-of-contents__link toc-highlight">minMach</a><li><a href=#minthrottlepos class="table-of-contents__link toc-highlight">minThrottlePos</a><li><a href=#overpowerpids class="table-of-contents__link toc-highlight">overpowerPids</a><li><a href=#overspeedaccelcorrectionsmoother class="table-of-contents__link toc-highlight">overspeedAccelCorrectionSmoother?</a><li><a href=#overspeedacceltargetfunc class="table-of-contents__link toc-highlight">overspeedAccelTargetFunc?</a><li><a href=#overspeedchangethreshold class="table-of-contents__link toc-highlight">overspeedChangeThreshold</a><li><a href=#overspeedpid class="table-of-contents__link toc-highlight">overspeedPid</a><li><a href=#overspeedpowercorrectiontransformer class="table-of-contents__link toc-highlight">overspeedPowerCorrectionTransformer</a><li><a href=#overspeedprotacceltargetsmoother class="table-of-contents__link toc-highlight">overspeedProtAccelTargetSmoother?</a><li><a href=#overspeedprotpowertargetsmoother class="table-of-contents__link toc-highlight">overspeedProtPowerTargetSmoother</a><li><a href=#overspeedspeedtarget class="table-of-contents__link toc-highlight">overspeedSpeedTarget</a><li><a href=#powercommand class="table-of-contents__link toc-highlight">powerCommand</a><li><a href=#powerlookahead class="table-of-contents__link toc-highlight">powerLookahead</a><li><a href=#prevoverspeedspeedtarget class="table-of-contents__link toc-highlight">prevOverspeedSpeedTarget</a><li><a href=#prevselectedspeedtarget class="table-of-contents__link toc-highlight">prevSelectedSpeedTarget</a><li><a href=#prevunderspeedspeedtarget class="table-of-contents__link toc-highlight">prevUnderspeedSpeedTarget</a><li><a href=#publisher class="table-of-contents__link toc-highlight">publisher</a><li><a href=#selectedias class="table-of-contents__link toc-highlight">selectedIas</a><li><a href=#selectedmach class="table-of-contents__link toc-highlight">selectedMach</a><li><a href=#selectedpower class="table-of-contents__link toc-highlight">selectedPower</a><li><a href=#selectedpowerpids class="table-of-contents__link toc-highlight">selectedPowerPids</a><li><a href=#selectedspeedaccelcorrectionsmoother class="table-of-contents__link toc-highlight">selectedSpeedAccelCorrectionSmoother?</a><li><a href=#selectedspeedacceltargetfunc class="table-of-contents__link toc-highlight">selectedSpeedAccelTargetFunc?</a><li><a href=#selectedspeedacceltargetsmoother class="table-of-contents__link toc-highlight">selectedSpeedAccelTargetSmoother?</a><li><a href=#selectedspeedismach class="table-of-contents__link toc-highlight">selectedSpeedIsMach</a><li><a href=#selectedspeedpid class="table-of-contents__link toc-highlight">selectedSpeedPid</a><li><a href=#selectedspeedpowercorrectiontransformer class="table-of-contents__link toc-highlight">selectedSpeedPowerCorrectionTransformer</a><li><a href=#selectedspeedpowertargetsmoother class="table-of-contents__link toc-highlight">selectedSpeedPowerTargetSmoother</a><li><a href=#selectedspeedtarget class="table-of-contents__link toc-highlight">selectedSpeedTarget</a><li><a href=#selectedthrottlepos class="table-of-contents__link toc-highlight">selectedThrottlePos</a><li><a href=#shouldtargetaccel class="table-of-contents__link toc-highlight">shouldTargetAccel</a><li><a href=#speedcommand class="table-of-contents__link toc-highlight">speedCommand</a><li><a href=#speedtargetchangethreshold class="table-of-contents__link toc-highlight">speedTargetChangeThreshold</a><li><a href=#targetmode class="table-of-contents__link toc-highlight">targetMode</a><li><a href=#throttles class="table-of-contents__link toc-highlight">throttles</a><li><a href=#throttlespeedsmoothers class="table-of-contents__link toc-highlight">throttleSpeedSmoothers</a><li><a href=#underspeedaccelcorrectionsmoother class="table-of-contents__link toc-highlight">underspeedAccelCorrectionSmoother?</a><li><a href=#underspeedacceltargetfunc class="table-of-contents__link toc-highlight">underspeedAccelTargetFunc?</a><li><a href=#underspeedchangethreshold class="table-of-contents__link toc-highlight">underspeedChangeThreshold</a><li><a href=#underspeedpid class="table-of-contents__link toc-highlight">underspeedPid</a><li><a href=#underspeedpowercorrectiontransformer class="table-of-contents__link toc-highlight">underspeedPowerCorrectionTransformer</a><li><a href=#underspeedprotacceltargetsmoother class="table-of-contents__link toc-highlight">underspeedProtAccelTargetSmoother?</a><li><a href=#underspeedprotpowertargetsmoother class="table-of-contents__link toc-highlight">underspeedProtPowerTargetSmoother</a><li><a href=#underspeedspeedtarget class="table-of-contents__link toc-highlight">underspeedSpeedTarget</a><li><a href=#useindicatedmach class="table-of-contents__link toc-highlight">useIndicatedMach</a><li><a href=#all_throttle_indexes class="table-of-contents__link toc-highlight">ALL_THROTTLE_INDEXES</a></ul><li><a href=#accessors class="table-of-contents__link toc-highlight">Accessors</a><ul><li><a href=#thrustdirectorspeed class="table-of-contents__link toc-highlight">thrustDirectorSpeed</a></ul><li><a href=#methods class="table-of-contents__link toc-highlight">Methods</a><ul><li><a href=#calculatepowertargetthrottlepos class="table-of-contents__link toc-highlight">calculatePowerTargetThrottlePos()</a><li><a href=#calculatespeedtargetpower class="table-of-contents__link toc-highlight">calculateSpeedTargetPower()</a><li><a href=#createthrottle class="table-of-contents__link toc-highlight">createThrottle()</a><li><a href=#destroy class="table-of-contents__link toc-highlight">destroy()</a><li><a href=#setmaxias class="table-of-contents__link toc-highlight">setMaxIas()</a><li><a href=#setmaxmach class="table-of-contents__link toc-highlight">setMaxMach()</a><li><a href=#setmaxpower class="table-of-contents__link toc-highlight">setMaxPower()</a><li><a href=#setmaxthrottlepos class="table-of-contents__link toc-highlight">setMaxThrottlePos()</a><li><a href=#setminias class="table-of-contents__link toc-highlight">setMinIas()</a><li><a href=#setminmach class="table-of-contents__link toc-highlight">setMinMach()</a><li><a href=#setminthrottlepos class="table-of-contents__link toc-highlight">setMinThrottlePos()</a><li><a href=#setoverpowerprotactive class="table-of-contents__link toc-highlight">setOverpowerProtActive()</a><li><a href=#setoverspeedprotactive class="table-of-contents__link toc-highlight">setOverspeedProtActive()</a><li><a href=#setselectedias class="table-of-contents__link toc-highlight">setSelectedIas()</a><li><a href=#setselectedmach class="table-of-contents__link toc-highlight">setSelectedMach()</a><li><a href=#setselectedpower class="table-of-contents__link toc-highlight">setSelectedPower()</a><li><a href=#setselectedspeedismach class="table-of-contents__link toc-highlight">setSelectedSpeedIsMach()</a><li><a href=#setselectedthrottlepos class="table-of-contents__link toc-highlight">setSelectedThrottlePos()</a><li><a href=#setservoactive class="table-of-contents__link toc-highlight">setServoActive()</a><li><a href=#settargetmode class="table-of-contents__link toc-highlight">setTargetMode()</a><li><a href=#setunderspeedprotactive class="table-of-contents__link toc-highlight">setUnderspeedProtActive()</a><li><a href=#start class="table-of-contents__link toc-highlight">start()</a><li><a href=#stop class="table-of-contents__link toc-highlight">stop()</a><li><a href=#update class="table-of-contents__link toc-highlight">update()</a><li><a href=#createpidfromparams class="table-of-contents__link toc-highlight">createPidFromParams()</a><li><a href=#defaultpowercorrectiontransformer class="table-of-contents__link toc-highlight">defaultPowerCorrectionTransformer()</a></ul></ul></div></div></div></div></main></div></div></div><footer class="footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="col footer__col"><div class=footer__title>Docs</div><ul class="footer__items clean-list"><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/framework/globals>Framework API Reference</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/garminsdk/globals>Garmin API Reference</a></ul></div><div class="col footer__col"><div class=footer__title>Community</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://forums.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Forums<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://discord.gg/msfs target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Discord<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://devsupport.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Dev Support AnswerHub<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://discord.com/invite/Fa6w2xK target=_blank rel="noopener noreferrer" class=footer__link-item>Working Title Discord<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a></ul></div><div class="col footer__col"><div class=footer__title>More</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://www.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>Microsoft Flight Simulator<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a><li class=footer__item><a href=https://github.com/microsoft/msfs-avionics-mirror target=_blank rel="noopener noreferrer" class=footer__link-item>GitHub<svg width=13.5 height=13.5 aria-hidden=true viewBox="0 0 24 24" class=iconExternalLink_nPIU><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></svg></a></ul></div></div><div class="footer__bottom text--center"><div class=footer__copyright>Copyright © 2025 Microsoft, Asobo Studio, and Working Title Simulations. Built with Docusaurus.</div></div></div></footer></div>
