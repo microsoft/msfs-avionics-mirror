@@ -6,11 +6,12 @@ import {
   VNavControlEvents, VNavDataEvents, VNavEvents, VNavManager, VNavPathCalculator, VNavPathMode, VNavState, VNavUtils, VNavVars, Wait, WeightBalanceEvents
 } from '@microsoft/msfs-sdk';
 
-import { ApproachDetails, Epic2FlightArea, Epic2FlightPlans, Epic2FmsEvents, Epic2VerticalFlightPhase, RnavMinima } from '../Fms';
+import { ApproachDetails, Epic2FlightPlans, Epic2FmsEvents, Epic2VerticalFlightPhase, RnavMinima } from '../Fms';
 import { FmsMessageKey, FmsMessageTransmitter } from '../FmsMessageSystem';
 import { Epic2LNavDataEvents } from '../Navigation';
 import { Epic2PerformancePlan } from '../Performance';
 import { Epic2VerticalPredictionFunctions, Epic2VnavUtils } from './Epic2VnavUtils';
+import { Epic2FlightArea } from './Epic2FlightAreaComputer';
 
 // import { PerformancePlan } from '../Performance';
 

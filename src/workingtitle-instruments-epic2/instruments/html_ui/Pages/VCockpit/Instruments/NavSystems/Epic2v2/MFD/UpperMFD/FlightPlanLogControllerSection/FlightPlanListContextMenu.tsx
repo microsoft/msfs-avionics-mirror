@@ -269,6 +269,9 @@ export class FlightPlanListContextMenu extends DisplayComponent<FlightPlanListCo
   private async tuneNav(itemData: FlightPlanLegListData, radioIndex: 1 | 2): Promise<void> {
     const facility = await this.props.fms.facLoader.getFacility(FacilityType.VOR, itemData.legData.leg.leg.fixIcao);
     Epic2RadioUtils.setActiveNavFrequencyMhz(radioIndex, facility.freqMHz);
+    if (facility.ils !== null) {
+      Epic2RadioUtils.setActiveNavCourse(radioIndex, facility.ils.localizerCourse);
+    }
   }
 
   /**

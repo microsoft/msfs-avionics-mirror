@@ -6,9 +6,10 @@ import {
 import { Epic2ApPanelEvents, FlightDirectorCouplingFlags } from '../Autopilot/Epic2ApPanelPublisher';
 import { Epic2FmaEvents } from '../Autopilot/Epic2FmaEvents';
 import { AutopilotConfig, FlightLevelChangeType } from '../AvionicsConfig/AutopilotConfig';
-import { Epic2FlightArea, Epic2FmsEvents, FmsSpeedEvents, RnavMinima } from '../Fms';
+import { Epic2FmsEvents, FmsSpeedEvents, RnavMinima } from '../Fms';
 import { DisplayUnitIndices } from '../InstrumentIndices';
 import { Epic2LNavDataEvents } from '../Navigation';
+import { Epic2FlightArea } from '../Autopilot';
 
 export enum Epic2ApLateralMode {
   None = '',

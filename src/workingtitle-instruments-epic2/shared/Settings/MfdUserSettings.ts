@@ -37,6 +37,11 @@ export enum PerfMode {
   CurrentGSFF = 'CurrentGSFF',
 }
 
+export enum UpperMfdDisplayPage {
+  Charts,
+  Inav,
+}
+
 /**
  * MFD user settings.
  */
@@ -97,6 +102,8 @@ export type MfdAliasedUserSettingTypes = {
   weatherMode: WeatherMode,
   // We skip SirusXM products here... huge list that we don't implement.
   // We also skip uplink weather settings.
+  /** The page to show on the upper MFD */
+  upperMfdDisplayPage: UpperMfdDisplayPage,
   /** Whether to display the VSD on the lower portion of the MFD. */
   vsdEnabled: boolean,
   /** Whether the TCAS data is displayed on the INAV map when in TA or TA/RA mode. */
@@ -176,6 +183,7 @@ export class MfdUserSettingManager implements UserSettingManager<MfdAllUserSetti
     'terrainEnabled',
     'saTerrainEnabled',
     'weatherMode',
+    'upperMfdDisplayPage',
     'vsdEnabled',
     'trafficEnabled',
     'tcasTrendVectorEnabled',
@@ -319,6 +327,7 @@ export class MfdUserSettingManager implements UserSettingManager<MfdAllUserSetti
       'terrainEnabled': true,
       'saTerrainEnabled': false,
       'weatherMode': WeatherMode.Off,
+      'upperMfdDisplayPage': UpperMfdDisplayPage.Inav,
       'vsdEnabled': false,
       'trafficEnabled': true,
       'tcasTrendVectorEnabled': true,

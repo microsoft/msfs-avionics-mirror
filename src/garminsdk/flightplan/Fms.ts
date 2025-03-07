@@ -644,6 +644,7 @@ export class Fms<ID extends string = any> {
     let approachRnavTypeFlags: RnavTypeFlags = RnavTypeFlags.None;
     let approachIsCircling = false;
     let approachIsVtf = false;
+    let approachIsRnpAr = false;
     let referenceFacility: VorFacility | null = null;
     let approachRunway: OneWayRunway | null = null;
 
@@ -667,6 +668,7 @@ export class Fms<ID extends string = any> {
           approachRnavTypeFlags = approach.rnavTypeFlags;
           approachIsCircling = !approach.runway;
           approachIsVtf = plan.procedureDetails.approachTransitionIndex < 0;
+          approachIsRnpAr = ApproachUtils.isRnpAr(approach);
           if (FmsUtils.approachHasNavFrequency(approach)) {
             referenceFacility = (await ApproachUtils.getReferenceFacility(approach, this.facLoader) as VorFacility | undefined) ?? null;
           }
@@ -697,7 +699,18 @@ export class Fms<ID extends string = any> {
       }
     }
 
-    this.setApproachDetails(false, approachLoaded, approachType, approachRnavType, approachRnavTypeFlags, approachIsCircling, approachIsVtf, referenceFacility, approachRunway);
+    this.setApproachDetails(
+      false,
+      approachLoaded,
+      approachType,
+      approachRnavType,
+      approachRnavTypeFlags,
+      approachIsCircling,
+      approachIsVtf,
+      approachIsRnpAr,
+      referenceFacility,
+      approachRunway,
+    );
   }
 
   /**
@@ -1456,7 +1469,7 @@ export class Fms<ID extends string = any> {
     }
 
     ++this.updateApproachDetailsOpId;
-    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null, null);
+    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, false, null, null);
     plan.deleteUserData(Fms.VTF_FAF_DATA_KEY);
 
     plan.calculate(0);
@@ -2105,19 +2118,21 @@ export class Fms<ID extends string = any> {
       }
     }
 
-    const approachType = visualRunway ? AdditionalApproachType.APPROACH_TYPE_VISUAL : facility.approaches[approachIndex].approachType;
-    const bestRnavType = visualRunway ? RnavTypeFlags.None : FmsUtils.getBestRnavType(facility.approaches[approachIndex].rnavTypeFlags);
-    const rnavTypeFlags = visualRunway ? RnavTypeFlags.None : facility.approaches[approachIndex].rnavTypeFlags;
-    const approachIsCircling = !visualRunway && !facility.approaches[approachIndex].runway ? true : false;
+    const approach = facility.approaches[approachIndex];
+    const approachType = visualRunway ? AdditionalApproachType.APPROACH_TYPE_VISUAL : approach.approachType;
+    const bestRnavType = visualRunway ? RnavTypeFlags.None : FmsUtils.getBestRnavType(approach.rnavTypeFlags);
+    const rnavTypeFlags = visualRunway ? RnavTypeFlags.None : approach.rnavTypeFlags;
+    const approachIsCircling = !visualRunway && !approach.runway ? true : false;
     const isVtf = approachTransitionIndex < 0;
+    const isRnpAr = visualRunway ? false : ApproachUtils.isRnpAr(approach);
 
     let referenceFacility: VorFacility | null = null;
-    if (!visualRunway && FmsUtils.approachHasNavFrequency(facility.approaches[approachIndex])) {
-      referenceFacility = (await ApproachUtils.getReferenceFacility(facility.approaches[approachIndex], this.facLoader) as VorFacility | undefined) ?? null;
+    if (!visualRunway && FmsUtils.approachHasNavFrequency(approach)) {
+      referenceFacility = (await ApproachUtils.getReferenceFacility(approach, this.facLoader) as VorFacility | undefined) ?? null;
     }
 
     ++this.updateApproachDetailsOpId;
-    this.setApproachDetails(true, true, approachType, bestRnavType, rnavTypeFlags, approachIsCircling, isVtf, referenceFacility, approachRunway);
+    this.setApproachDetails(true, true, approachType, bestRnavType, rnavTypeFlags, approachIsCircling, isVtf, isRnpAr, referenceFacility, approachRunway);
 
     this.autoDesignateProcedureConstraints(plan, approachSegment.segmentIndex);
 
@@ -2187,6 +2202,8 @@ export class Fms<ID extends string = any> {
       ? FmsUtils.buildVisualApproach(facility, visualRunway!, this.visualApproachOptions.finalFixDistance, this.visualApproachOptions.strghtFixDistance)
       : facility.approaches[approachIndex];
 
+    const finalLegs = approach.finalLegs;
+
     const transition = approach.transitions[approachTransitionIndex];
     const isVtf = approachTransitionIndex < 0;
     const insertProcedureObject: InsertProcedureObject = { procedureLegs: [] };
@@ -2200,14 +2217,33 @@ export class Fms<ID extends string = any> {
       }
     }
 
-    const lastTransitionLeg = insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1];
+    const lastTransitionLeg = insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1] as InsertProcedureObjectLeg | undefined;
+
+    let finalLegsStartIndex = 0;
 
     if (isVtf) {
       insertProcedureObject.procedureLegs.push(FlightPlan.createLeg({ type: LegType.ThruDiscontinuity }));
+    } else if (lastTransitionLeg) {
+      // Check if the last transition leg is an XF leg that terminates at the FACF (flagged as IF) or FAF. If so, then
+      // we need to merge the last transition leg with the FACF/FAF leg and skip every leg in the final legs array
+      // before the latter.
+      if (FlightPlanUtils.isToFixLeg(lastTransitionLeg.type) && !ICAO.isValueEmpty(lastTransitionLeg.fixIcaoStruct)) {
+        for (let i = 0; i < finalLegs.length; i++) {
+          const leg = finalLegs[i];
+          if (
+            BitFlags.isAny(leg.fixTypeFlags, FixTypeFlags.IF | FixTypeFlags.FAF)
+            && FlightPlanUtils.isToFixLeg(leg.type)
+            && ICAO.valueEquals(leg.fixIcaoStruct, lastTransitionLeg.fixIcaoStruct)
+          ) {
+            insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1] = this.mergeDuplicateLegData(lastTransitionLeg, leg);
+            finalLegsStartIndex = i + 1;
+            break;
+          }
+        }
+      }
     }
 
-    const finalLegs = approach.finalLegs;
-    for (let i = 0; i < finalLegs.length; i++) {
+    for (let i = finalLegsStartIndex; i < finalLegs.length; i++) {
       const leg = FlightPlanUtils.convertLegRunwayIcaosToSdkFormat(FlightPlan.createLeg(finalLegs[i]));
       if (i === 0 && lastTransitionLeg && this.isDuplicateIFLeg(lastTransitionLeg, leg)) {
         insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1] = this.mergeDuplicateLegData(lastTransitionLeg, leg);
@@ -2425,7 +2461,7 @@ export class Fms<ID extends string = any> {
     }
 
     ++this.updateApproachDetailsOpId;
-    this.setApproachDetails(true, true, approachType, bestRnavType, rnavTypeFlags, approachIsCircling, isVtf, referenceFacility, approachRunway);
+    this.setApproachDetails(true, true, approachType, bestRnavType, rnavTypeFlags, approachIsCircling, isVtf, false, referenceFacility, approachRunway);
 
     await plan.calculate();
 
@@ -3347,7 +3383,7 @@ export class Fms<ID extends string = any> {
     const plan = this.getFlightPlan();
 
     ++this.updateApproachDetailsOpId;
-    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null, null);
+    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, false, null, null);
     plan.deleteUserData(Fms.VTF_FAF_DATA_KEY);
 
     const hasArrival = plan.procedureDetails.arrivalIndex >= 0;
@@ -4264,7 +4300,7 @@ export class Fms<ID extends string = any> {
     plan.deleteUserData(FmsFplUserDataKey.ApproachSkipCourseReversal);
 
     ++this.updateApproachDetailsOpId;
-    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, null, null);
+    this.setApproachDetails(true, false, ApproachType.APPROACH_TYPE_UNKNOWN, RnavTypeFlags.None, RnavTypeFlags.None, false, false, false, null, null);
     plan.deleteUserData(Fms.VTF_FAF_DATA_KEY);
 
     plan.setCalculatingLeg(0);
@@ -5941,18 +5977,32 @@ export class Fms<ID extends string = any> {
   }
 
   /**
-   * Merges two duplicate legs such that the new merged leg contains the fix type and altitude data from the source leg
-   * and all other data is derived from the target leg.
+   * Merges two duplicate legs. The merged leg will be identical to the target leg with the following exceptions:
+   * - The merged leg's fix type flags are the union of those of the target and source legs.
+   * - The merged leg's altitude restriction data are equal to those of the source leg if the source leg defines an
+   * altitude restriction. Otherwise the merged leg's altitude restriction data are equal to those of the target leg.
+   * - The merged leg's speed restriction data are equal to those of the source leg if the source leg defines a speed
+   * restriction. Otherwise the merged leg's speed restriction data are equal to those of the target leg.
    * @param target The target leg.
    * @param source The source leg.
-   * @returns the merged leg.
+   * @returns The merged leg.
    */
   private mergeDuplicateLegData(target: FlightPlanLeg, source: FlightPlanLeg): FlightPlanLeg {
     const merged = FlightPlan.createLeg(target);
+
     merged.fixTypeFlags |= source.fixTypeFlags;
-    merged.altDesc = source.altDesc;
-    merged.altitude1 = source.altitude1;
-    merged.altitude2 = source.altitude2;
+
+    if (source.altDesc !== AltitudeRestrictionType.Unused) {
+      merged.altDesc = source.altDesc;
+      merged.altitude1 = source.altitude1;
+      merged.altitude2 = source.altitude2;
+    }
+
+    if (source.speedRestrictionDesc !== SpeedRestrictionType.Unused) {
+      merged.speedRestrictionDesc = source.speedRestrictionDesc;
+      merged.speedRestriction = source.speedRestriction;
+    }
+
     return merged;
   }
 
@@ -6165,6 +6215,7 @@ export class Fms<ID extends string = any> {
    * @param rnavTypeFlags The RNAV minimum type flags for the approach.
    * @param isCircling Whether the approach is a circling approach.
    * @param isVtf Whether the approach is a vectors-to-final approach.
+   * @param isRnpAr Whether the approach is an RNP-AR approach.
    * @param referenceFacility The approach's reference facility.
    * @param runway The assigned runway for the approach
    */
@@ -6176,6 +6227,7 @@ export class Fms<ID extends string = any> {
     rnavTypeFlags?: RnavTypeFlags,
     isCircling?: boolean,
     isVtf?: boolean,
+    isRnpAr?: boolean,
     referenceFacility?: VorFacility | null,
     runway?: OneWayRunway | null
   ): void {
@@ -6185,13 +6237,11 @@ export class Fms<ID extends string = any> {
     rnavTypeFlags !== undefined && this.approachDetails.set('rnavTypeFlags', rnavTypeFlags);
     isCircling !== undefined && this.approachDetails.set('isCircling', isCircling);
     isVtf !== undefined && this.approachDetails.set('isVtf', isVtf);
+    isRnpAr !== undefined && this.approachDetails.set('isRnpAr', isRnpAr);
     referenceFacility !== undefined && this.approachDetails.set('referenceFacility', referenceFacility);
     runway !== undefined && this.approachDetails.set('runway', runway);
 
     const approachDetails = this.approachDetails.get();
-
-    // If an approach is flagged as RNAV but has no defined RNAV minima, assume it is an RNP (AR) approach if it is not circling.
-    this.approachDetails.set('isRnpAr', approachDetails.type === ApproachType.APPROACH_TYPE_RNAV && approachDetails.bestRnavType === 0 && !approachDetails.isCircling);
 
     if (this.needPublishApproachDetails) {
       this.needPublishApproachDetails = false;

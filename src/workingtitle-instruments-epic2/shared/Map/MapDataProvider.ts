@@ -4,7 +4,6 @@ import {
   NumberFormatter, Subject, Subscribable, TcasAlertLevel, TcasEvents
 } from '@microsoft/msfs-sdk';
 
-import { Epic2FlightArea } from '../Fms';
 import { AirGroundDataProviderEvents } from '../Instruments/AirGroundDataProvider';
 import { HeadingDataProvider } from '../Instruments/HeadingDataProvider';
 import { InertialDataProvider } from '../Instruments/InertialDataProvider';
@@ -12,6 +11,7 @@ import { Epic2LNavDataEvents } from '../Navigation';
 import { Epic2NavIndicators } from '../Navigation/Epic2NavIndicators';
 import { MapWaypointsDisplay } from './EpicMapCommon';
 import { MapDisplayMode } from '../Settings';
+import { Epic2FlightArea } from '../Autopilot';
 
 // import { BoeingFmaDataUtils, BoeingLNavDataEvents, FmaDataEvents } from '../../autopilot';
 // import { IrsSystemGroupStatusEvents } from '../../instruments';

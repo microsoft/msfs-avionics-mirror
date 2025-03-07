@@ -3,7 +3,7 @@ import {
   Subscribable, VNode
 } from '@microsoft/msfs-sdk';
 
-import { DiamondListItem, Epic2Fms, Epic2FmsUtils, Epic2List, FlightPlanStore, TabContent, TouchButton } from '@microsoft/msfs-epic2-shared';
+import { DiamondListItem, Epic2Fms, Epic2List, FlightPlanStore, TabContent, TouchButton } from '@microsoft/msfs-epic2-shared';
 
 import './DepartureTab.css';
 
@@ -82,10 +82,7 @@ export class DepartureTab extends TabContent<DepartureTabProps> {
   private readonly enrouteTransitions = MappedSubject.create(([departure]) => {
     if (!departure) { return []; }
 
-    return [
-      Epic2FmsUtils.createDefaultEnrouteTransition(departure, this.selectedRunwayTransitionIndex.get()),
-      ...departure.enRouteTransitions,
-    ];
+    return departure.enRouteTransitions;
   }, this.selectedDeparture);
 
   private readonly departuresAndTransitions = MappedSubject.create(([airport, runway, selectedDeparture, selectedTransition, enrouteTransitions]) => {
@@ -133,7 +130,7 @@ export class DepartureTab extends TabContent<DepartureTabProps> {
     if (transition) {
       this.selectedTransition.set(transition);
     } else if (departure) {
-      this.selectedTransition.set(Epic2FmsUtils.createDefaultEnrouteTransition(departure, this.selectedRunwayTransitionIndex.get()));
+      this.selectedTransition.set(undefined);
     }
 
     // Just making sure the lists are fresh, might not need this
@@ -237,23 +234,13 @@ export class DepartureTab extends TabContent<DepartureTabProps> {
                               this.selectedTransition.set(undefined);
                             } else {
                               this.selectedDeparture.set(data);
-                              const enrouteTransitions = this.enrouteTransitions.get();
-                              if (enrouteTransitions.length === 1) {
-                                // auto select default trans if only trans available
-                                this.selectedTransition.set(enrouteTransitions[0]);
-                              } else {
-                                this.selectedTransition.set(undefined);
-                              }
+                              this.selectedTransition.set(undefined);
                             }
                           } else {
                             // is transition
                             if (selectedTransition) {
-                              const enrouteTransitions = this.enrouteTransitions.get();
-                              if (enrouteTransitions.length > 1) {
-                                this.selectedTransition.set(undefined);
-                              } else {
-                                // do nothing, because this is the only possible transition
-                              }
+                              this.selectedTransition.set(undefined);
+
                             } else {
                               this.selectedTransition.set(data);
                             }

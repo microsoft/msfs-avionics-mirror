@@ -54,7 +54,7 @@ export class HomeTabContent extends DisplayComponent<HomeTabContentProps> {
   private onButtonPress(buttonLabel: string): void {
     switch (buttonLabel) {
       case 'Direct-To':
-        this.publisher.pub('epic2_mfd_direct_to_entry_shown', undefined, true);
+        this.publisher.pub('epic2_mfd_direct_to_entry_shown', undefined, true, false);
         break;
       case 'WX LX TAWS':
         this.props.tscService.activeTab.set(this.props.tscService.tabs.tawsPage);

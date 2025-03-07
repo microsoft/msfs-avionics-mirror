@@ -882,17 +882,7 @@ export class MfdFplPage extends AbstractMfdPage<MfdFplPageProps> {
       return;
     }
 
-    const plan = this.props.fms.getInternalPrimaryFlightPlan();
-    if (plan.length > 0) {
-      // If the plan is not empty, then insert at the end of segment containing the last leg.
-      await this.props.fms.insertWaypoint(plan.getSegmentIndex(plan.length - 1), waypoint.facility.get());
-    } else {
-      // If the plan is empty, then insert at the end of the enroute segment.
-      const firstEnrouteSegment = FmsUtils.getFirstEnrouteSegment(plan);
-      if (firstEnrouteSegment) {
-        await this.props.fms.insertWaypoint(firstEnrouteSegment.segmentIndex, waypoint.facility.get());
-      }
-    }
+    await this.props.fms.insertWaypointAtEnd(waypoint.facility.get());
   }
 
   /**

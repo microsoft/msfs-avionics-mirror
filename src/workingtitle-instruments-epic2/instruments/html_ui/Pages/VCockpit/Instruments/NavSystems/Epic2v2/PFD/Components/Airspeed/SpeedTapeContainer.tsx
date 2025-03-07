@@ -67,15 +67,20 @@ export class SpeedTapeContainer extends DisplayComponent<SpeedTapeContainerProps
    */
   private getConfigLimitLabels(limits: ConfigurationLimit[]): string[] {
     return limits.map((limit) => {
+      if (limit.type === ConfigurationLimitType.GearExtended && this.props.airframeConfig.vmo !== limit.airspeed) {
+        return undefined;
+      }
+
       switch (limit.type) {
         case ConfigurationLimitType.Flaps: {
           const angle = SimVar.GetGameVarValue('AIRCRAFT FLAPS HANDLE ANGLE', SimVarValueType.Degree, limit.flapHandleIndex ?? 0);
           return angle.toFixed(0).padStart(2, '0') ?? 'NA';
         }
-        case ConfigurationLimitType.Gear:
-        case ConfigurationLimitType.GearExtend:
+        case ConfigurationLimitType.GearOperating:
+        case ConfigurationLimitType.GearExtention:
+        case ConfigurationLimitType.GearExtended:
           return 'G ';
-        case ConfigurationLimitType.GearRetract:
+        case ConfigurationLimitType.GearRetraction:
           return 'Gr';
       }
     });

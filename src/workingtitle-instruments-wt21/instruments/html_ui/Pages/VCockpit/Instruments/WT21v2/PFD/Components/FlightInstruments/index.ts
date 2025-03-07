@@ -15,6 +15,7 @@ export * from './MachDisplay';
 export * from './MarkerBeacon';
 export * from './MinimumsAlertController';
 export * from './RadioAltimeter';
+export * from './ReversionFlag';
 export * from './SpeedBug';
 export * from './SpeedRange';
 export * from './UpperSectionContainer';

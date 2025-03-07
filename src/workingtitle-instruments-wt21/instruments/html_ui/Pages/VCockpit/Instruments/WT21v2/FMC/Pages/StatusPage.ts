@@ -1,5 +1,5 @@
 import {
-  ClockEvents, ComputedSubject, ConsumerSubject, DisplayField, FmcRenderTemplate, Formatter, PageLinkField, RawFormatter, Subject
+  AiracCycleFormatter, ClockEvents, ConsumerSubject, DisplayField, FacilityLoader, FmcRenderTemplate, Formatter, PageLinkField, RawFormatter, Subject
 } from '@microsoft/msfs-sdk';
 
 import { TimeFormatter } from '../Framework/FmcFormats';
@@ -19,16 +19,7 @@ class StatusDateFormatter implements Formatter<Date> {
 /** STATUS page */
 export class StatusPage extends WT21FmcPage {
   private static readonly CLOCK_UPDATE_FREQUENCY = 1 / 2;
-  private static readonly WT21_NAVDATA_REGEX = /([A-Z]{3})(\d{2})([A-Z]{3})(\d{2})\/(\d{2})/;
-
-  private readonly navDbDate = ComputedSubject.create<string, string>(SimVar.GetGameVarValue('FLIGHT NAVDATA DATE RANGE', 'string'), (value) => {
-    const matches = value.match(StatusPage.WT21_NAVDATA_REGEX);
-    if (matches) {
-      const [, fromMonth, fromDay, toMonth, toDay, year] = matches;
-      return `${fromDay}${fromMonth}${year} ${toDay}${toMonth}${year}`;
-    }
-    return value;
-  });
+  private readonly databaseDatesFormatter = AiracCycleFormatter.create('{eff({dd}{MON}{YY})} {expMinus({dd}{MON}{YY})}');
 
   private readonly indexPageLink = PageLinkField.createLink(this, '<INDEX', '/');
   private readonly posInitLink = PageLinkField.createLink(this, 'POS INIT>', '/pos-init');
@@ -60,37 +51,17 @@ export class StatusPage extends WT21FmcPage {
   public init(): void {
     this.ClockField.bind(this.SimTimeConsumer);
     this.DateField.bind(this.SimTimeConsumer);
-    this.NavDbDateField.bind(this.navDbDate);
+
+    const databaseCycles = FacilityLoader.getDatabaseCycles();
+    this.NavDbDateField.takeValue(this.databaseDatesFormatter(databaseCycles.current));
     this.addBinding(this.isNavDbValid.sub((isValid) => {
       this.NavDbDateField.getOptions().style = isValid ? '' : '[yellow]';
       this.invalidate();
     }));
     this.addBinding(this.SimTimeConsumer.sub((value: Date) => {
-      const navDbDate = this.getDatesFromNavDbString(this.navDbDate.getRaw());
       const datenow = new Date(value).setHours(0, 0, 0, 0);
-      this.isNavDbValid.set((datenow >= navDbDate[0].getTime()) && (datenow <= navDbDate[1].getTime()));
+      this.isNavDbValid.set((datenow >= databaseCycles.current.effectiveTimestamp) && (datenow <= databaseCycles.current.expirationTimestamp));
     }));
-  }
-
-  /**
-   * Get date objects from nav data string
-   * @param navDbString The nav data string.
-   * @returns An array of From and To date.
-   */
-  private getDatesFromNavDbString(navDbString: string): Date[] {
-    const matches = navDbString.match(StatusPage.WT21_NAVDATA_REGEX);
-    const getMonth = (month: string): number => {
-      return (StatusDateFormatter.MONTH_NAMES.indexOf(month));
-    };
-
-    if (matches) {
-      const [, fromMonth, fromDay, toMonth, toDay, year] = matches;
-      const yearStr = parseInt(`20${year}`);
-      return [new Date(yearStr, getMonth(fromMonth), parseInt(fromDay)), new Date(yearStr, getMonth(toMonth), parseInt(toDay))];
-    }
-    const now = new Date();
-
-    return [now, now];
   }
 
   // eslint-disable-next-line jsdoc/require-jsdoc

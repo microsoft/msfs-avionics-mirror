@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-wtg3000-pfd",
-  "version": "2.0.4",
+  "version": "2.0.6",
   "description": "Working Title MSFS G3000 PFD Definitions",
   "typings": "index.d.ts",
   "repository": {

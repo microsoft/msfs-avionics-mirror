@@ -10,6 +10,8 @@ export interface Epic2TransponderEvents {
   'epic2_xpdr_set_code': number
   /** Toggles between the VFR code and the last active code */
   'epic2_xpdr_toggle_vfr_code': boolean
+  /** Toggles between the last transponder mode */
+  'epic2_xpdr_toggle_modes': unknown
 }
 
 /**
@@ -21,8 +23,13 @@ export class Epic2TransponderManager {
   private readonly settings = TrafficUserSettings.getManager(this.bus);
   public readonly xpdrCode = ConsumerSubject.create(this.bus.getSubscriber<XPDRSimVarEvents>().on('xpdr_code_1'), 0);
   private readonly vfrCode = this.navComSettingsManager.getSetting('vfrCode');
+
   private isVfrCodeSelected = this.xpdrCode.get() === this.vfrCode.get();
   private lastCode = Number(this.vfrCode.get().toString(8));
+
+  private lastXpdrMode = this.settings.getSetting('trafficOperatingMode').get();
+  private alternativeMode = this.settings.getSetting('trafficAlternativeMode');
+
 
   /** @inheritdoc */
   constructor(private readonly bus: EventBus, private readonly navComSettingsManager: NavComUserSettingManager) {
@@ -31,6 +38,9 @@ export class Epic2TransponderManager {
     sub.on('epic2_xpdr_set_vfr_code').handle((code) => this.vfrCode.set(code));
     sub.on('epic2_xpdr_set_code').handle((code) => this.setCode(code));
     sub.on('epic2_xpdr_toggle_vfr_code').handle(() => this.toggleVfrCode());
+    sub.on('epic2_xpdr_toggle_modes').handle(() => this.settings.getSetting('trafficOperatingMode').set(this.alternativeMode.get()));
+
+    this.alternativeMode.set(this.lastXpdrMode === TcasOperatingModeSetting.Standby ? TcasOperatingModeSetting.TA_RA : TcasOperatingModeSetting.Standby);
   }
 
   /**
@@ -78,6 +88,10 @@ export class Epic2TransponderManager {
           pub.pub('publish_xpdr_mode_1', XPDRMode.STBY, true, false);
           break;
       }
+
+      // If mode is changed to STBY, set the alternative to previous active mode; otherwise set alternative to STBY
+      this.alternativeMode.set(mode === TcasOperatingModeSetting.On ? this.lastXpdrMode : TcasOperatingModeSetting.On);
+      this.lastXpdrMode = mode;
     });
 
     sub.on('xpdr_mode_1').whenChanged().handle(mode => {

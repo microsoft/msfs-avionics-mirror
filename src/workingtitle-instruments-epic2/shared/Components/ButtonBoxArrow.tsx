@@ -4,18 +4,18 @@ import { TouchButton, TouchButtonProps } from './TouchButton';
 
 import './ButtonBoxArrow.css';
 
-/**
- * @inheritDoc
- */
+/** @inheritDoc */
 interface ButtonBoxArrowProps extends Omit<TouchButtonProps, 'variant'> {
-  /**
-   * Title displayed above the button
-   */
+  /** Title displayed above the button */
   title?: string;
-  /**
-   * Fixed width to apply
-   */
+  /** Fixed width to apply */
   width?: number;
+  /** Fixed width to apply to the arrow */
+  arrowWidth?: number;
+  /** Fixed height to apply to the arrow */
+  arrowHeight?: number;
+  /** Arrow polygons */
+  arrowPolygons?: string;
 }
 
 /**
@@ -32,8 +32,8 @@ export class ButtonBoxArrow extends DisplayComponent<ButtonBoxArrowProps> {
       >
         <div class={'button-box-arrow-label'}>{title}</div>
         <TouchButton {...rest} variant={'small'} class={'box-arrow'}>
-          <svg height="12" width="16">
-            <polygon points="0,0 0,12 12,6" class="triangle" />
+          <svg height={`${this.props.arrowHeight ?? '12'}`} width={`${this.props.arrowWidth ?? '16'}`}>
+            <polygon points={this.props.arrowPolygons ?? '0,0 0,12 12,6'} class="triangle" />
           </svg>
         </TouchButton>
       </div>

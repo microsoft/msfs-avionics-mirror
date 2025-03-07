@@ -13,7 +13,7 @@ import {
   AdfRadioSource, AvionicsConfig, DefaultAirGroundDataProvider, DefaultAirspeedDataProvider, DefaultAltitudeDataProvider, DefaultAttitudeDataProvider,
   DefaultAutopilotDataProvider, DefaultAutothrottleDataProvider, DefaultFlapWarningDataProvider, DefaultHeadingDataProvider, DefaultInertialDataProvider,
   DefaultLandingGearDataProvider, DefaultNavigationSourceDataProvider, DefaultRadioAltimeterDataProvider, DefaultStallWarningDataProvider,
-  DefaultTawsDataProvider, DefaultTcasRaCommandDataProvider, DefaultVerticalDeviationDataProvider, DefaultVSpeedDataProvider, DisplayUnitIndices, Epic2Adsb,
+  DefaultTawsDataProvider, DefaultTcasRaCommandDataProvider, DefaultVerticalDeviationDataProvider, DefaultVSpeedDataProvider, DisplayUnitDefinition, DisplayUnitIndices, Epic2Adsb,
   Epic2BearingPointerNavIndicator, Epic2CourseNeedleNavIndicator, Epic2CourseNeedleNavSourceNames, Epic2FsInstrument, Epic2GhostNeedleNavIndicator,
   Epic2GhostNeedleNavSourceNames, Epic2NavIndicator, Epic2NavIndicatorName, Epic2NavIndicators, Epic2NavSourceNames, Epic2TcasII, Epic2TransponderManager,
   Epic2VSpeedController, GpsSource, InstrumentBackplaneNames, MapDataProvider, MapWaypointsDisplay, NavIndicators, NavRadioNavSource, NavSources
@@ -141,6 +141,8 @@ export class Epic2PfdInstrument extends Epic2FsInstrument {
     this.agm1State, this.agm2State
   );
 
+  private readonly ahiSide: Exclude<DisplayUnitDefinition['ahiSide'], undefined>;
+
   /** @inheritdoc */
   constructor(
     public readonly instrument: BaseInstrument,
@@ -163,8 +165,8 @@ export class Epic2PfdInstrument extends Epic2FsInstrument {
     this.tcasRaCommandDataProvider = new DefaultTcasRaCommandDataProvider(this.bus, this.tcas);
 
     const duConfig = this.config.displayUnits.displayUnitDefinitions[this.displayUnitIndex];
-    const ahiSide = duConfig.ahiSide ?? (this.displayUnitIndex === DisplayUnitIndices.PfdRight ? 'right' : 'left');
-    this.instrument.classList.add(ahiSide);
+    this.ahiSide = duConfig.ahiSide ?? (this.displayUnitIndex === DisplayUnitIndices.PfdRight ? 'right' : 'left');
+    this.instrument.classList.add(this.ahiSide);
 
     this.backplane.addInstrument(InstrumentBackplaneNames.AirGroundDataProvider, this.airGroundDataProvider);
     this.backplane.addInstrument(InstrumentBackplaneNames.AirspeedDataProvider, this.airspeedDataProvider);
@@ -278,10 +280,12 @@ export class Epic2PfdInstrument extends Epic2FsInstrument {
       tawsDataProvider={this.tawsDataProvider}
       tcas={this.tcas}
       airframeConfig={this.config.airframe}
+      ahiSide={this.ahiSide}
     />, document.getElementById('HorizonSection'));
     FSComponent.render(<RadioSectionContainer
       bus={this.bus}
-      index={this.displayUnitIndex}
+      duIndex={this.displayUnitIndex}
+      duSide={this.ahiSide === 'right' ? 'left' : 'right'}
       navComSettingsManager={this.navComUserSettingsManager}
     />, document.getElementById('RadioSection'));
 

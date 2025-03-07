@@ -11,6 +11,10 @@
   bottom: 20px;
 }
 
+.flight-plan-list-section.expanded .activate-plan-button-bar {
+  bottom: 72px;
+}
+
 .map-container .activate-plan-button-bar {
   bottom: 30px;
 }

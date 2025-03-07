@@ -7,8 +7,7 @@ import {
   PerformancePlanRepository, Subject, Subscribable, TcasIntruder, Vec2Math, VorFacility, VorType, Waypoint, WaypointDisplayBuilder, WaypointTypes
 } from '@microsoft/msfs-sdk';
 
-import { Epic2FmaEvents } from '../Autopilot';
-import { Epic2FlightArea, Epic2FmsUtils } from '../Fms';
+import { Epic2FlightArea, Epic2FmaEvents } from '../Autopilot';
 import { Epic2Colors } from '../Misc/Epic2Colors';
 import { FmcSimVarEvents } from '../Misc/FmcSimVars';
 import { Epic2LNavDataEvents } from '../Navigation';
@@ -27,6 +26,7 @@ import { MapSystemCommon } from './MapSystemCommon';
 import { MapTrafficIntruderIcon } from './MapTrafficIntruderIcon';
 import { MapStyles } from './Modules/MapStylesModule';
 import { VNavDataModule } from './Modules/VNavDataModule';
+import { Epic2FmsUtils } from '../Fms';
 
 // const nonFixLegTypes = [LegType.CA, LegType.CI, LegType.CR, LegType.FA, LegType.FM, LegType.VA, LegType.VI, LegType.VM, LegType.VR];
 
@@ -414,9 +414,6 @@ export class MapSystemConfig {
           return FlightPathRenderStyle.Hidden;
         })
         .withLegWaypointRoles((plan, leg, activeLeg, legIndex) => {
-          if (this.isOriginDestOrRunwayLeg(plan, leg)) {
-            return 0;
-          }
 
           const isMissedApproachLeg = BitFlags.isAll(leg.flags, LegDefinitionFlags.MissedApproach);
           if (isMissedApproachLeg) {
@@ -488,10 +485,6 @@ export class MapSystemConfig {
       });
 
       builder.withLegWaypointRoles((plan, leg, activeLeg, legIndex, activeLegIndex) => {
-        if (this.isOriginDestOrRunwayLeg(plan, leg)) {
-          return 0;
-        }
-
         // Legs with no fix are shown as a circle
         const useCircleIcon = false; //nonFixLegTypes.includes(leg.leg.type);
 

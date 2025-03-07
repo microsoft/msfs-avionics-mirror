@@ -8,6 +8,9 @@ import { FlightPlanLegIndexes } from './FlightPlanning';
  * Utility class for working with flight plans.
  */
 export class FlightPlanUtils {
+  /** Array of "to fix" leg types. */
+  private static readonly TO_FIX_LEG_TYPES = [LegType.AF, LegType.CF, LegType.DF, LegType.IF, LegType.HF, LegType.RF, LegType.TF] as const;
+
   /** Array of "to altitude" leg types. */
   private static readonly ALTITUDE_LEG_TYPES = [LegType.CA, LegType.FA, LegType.VA] as const;
 
@@ -25,6 +28,16 @@ export class FlightPlanUtils {
 
   /** Array of discontinuity leg types. */
   private static readonly DISCO_LEG_TYPES = [LegType.Discontinuity, LegType.ThruDiscontinuity] as const;
+
+  /**
+   * Checks if a leg type is a "to fix" leg type. Note that while HM and HA legs may terminate at the hold fix, they
+   * are explicitly excluded from this check.
+   * @param legType The leg type to check.
+   * @returns Whether the leg type is a "to fix" leg type.
+   */
+  public static isToFixLeg(legType: LegType): legType is ArrayType<typeof FlightPlanUtils.TO_FIX_LEG_TYPES> {
+    return ArrayUtils.includes(FlightPlanUtils.TO_FIX_LEG_TYPES, legType);
+  }
 
   /**
    * Checks if a leg type is an "to altitude" leg type.

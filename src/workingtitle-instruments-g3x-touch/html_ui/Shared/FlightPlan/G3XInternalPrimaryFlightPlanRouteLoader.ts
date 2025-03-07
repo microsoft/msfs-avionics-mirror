@@ -1,14 +1,13 @@
 import {
-  AirportFacility, AirportUtils, AirwayData, AirwayType, ApproachIdentifier, ArrayUtils, Facility, FacilityType,
-  FacilityUtils, FlightPlan, GeoMath, GeoPoint, ICAO, IcaoType, IcaoValue, IntersectionFacility, LatLonInterface,
-  LegType, OneWayRunway, ReadonlyFlightPlanRoute, RunwayIdentifier, RunwayUtils, SimVarValueType, UnitType,
-  UserFacility, UserFacilityUtils
+  AirportFacility, AirportUtils, AirwayData, AirwayType, ApproachIdentifier, Facility, FacilityType, FacilityUtils,
+  FlightPlan, GeoMath, GeoPoint, ICAO, IcaoType, IcaoValue, IntersectionFacility, LatLonInterface, OneWayRunway,
+  ReadonlyFlightPlanRoute, RunwayIdentifier, RunwayUtils, SimVarValueType, UnitType, UserFacility, UserFacilityUtils
 } from '@microsoft/msfs-sdk';
 
 import { FmsUtils, GarminFlightPlanRouteLoader, GarminFlightPlanRouteUtils } from '@microsoft/msfs-garminsdk';
 
-import { G3XFms } from './G3XFms';
 import { G3XFacilityUtils } from '../Navigation/G3XFacilityUtils';
+import { G3XFms } from './G3XFms';
 
 /**
  * A loader of flight plan routes into the internal primary flight plan of an instance of {@link G3XFms}.
@@ -141,7 +140,7 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
         }
       }
 
-      await this.loadEnrouteLegs(opId, plan, route, pposLegIndex);
+      await this.loadEnrouteLegs(opId, route, pposLegIndex);
 
       if (opId !== this.loadOpId) {
         return false;
@@ -218,22 +217,14 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
    * Loads the enroute legs of a flight plan route into the primary flight plan. This method should be called when the
    * primary flight plan does not have any loaded destination, arrival, or approach procedures.
    * @param opId The load operation ID.
-   * @param plan The primary flight plan.
    * @param route The flight plan route to load.
    * @param pposLegIndex The index of the last PPOS leg in the enroute legs array, or `-1` if there are no PPOS legs.
    * @returns The desired on-route direct-to target leg within the enroute segments specified by the loaded flight plan
    * route, or `null` if there is no such leg.
    */
-  private async loadEnrouteLegs(opId: number, plan: FlightPlan, route: ReadonlyFlightPlanRoute, pposLegIndex: number): Promise<void> {
+  private async loadEnrouteLegs(opId: number, route: ReadonlyFlightPlanRoute, pposLegIndex: number): Promise<void> {
     // If the PPOS leg is the last enroute leg, then we are skipping every enroute leg, so there is nothing to do.
     if (pposLegIndex === route.enroute.length - 1) {
-      return;
-    }
-
-    const firstEnrouteSegment = FmsUtils.getFirstEnrouteSegment(plan);
-
-    if (!firstEnrouteSegment) {
-      // This should never happen.
       return;
     }
 
@@ -249,31 +240,10 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
       }
     }
 
-    const departureSegment = FmsUtils.getDepartureSegment(plan);
-    const lastDepartureLeg = departureSegment ? ArrayUtils.peekLast(departureSegment.legs) : undefined;
+    // The G3X internal flight plan can only have the origin airport in the departure segment, so we don't have to
+    // worry about initializing the airway entry facility to the last waypoint in the departure segment.
 
     let airwayEntryFacility: IntersectionFacility | null = null;
-
-    if (lastDepartureLeg) {
-      switch (lastDepartureLeg.leg.type) {
-        case LegType.AF:
-        case LegType.CF:
-        case LegType.DF:
-        case LegType.HF:
-        case LegType.HA:
-        case LegType.HM:
-        case LegType.IF:
-        case LegType.RF:
-        case LegType.TF:
-          airwayEntryFacility = await this.retrieveIntersectionFacility(ICAO.stringV1ToValue(lastDepartureLeg.leg.fixIcao));
-
-          if (opId !== this.loadOpId) {
-            return;
-          }
-      }
-    }
-
-    const currentSegment = firstEnrouteSegment;
 
     for (let legIndex = 0; legIndex < route.enroute.length; legIndex++) {
       const leg = route.enroute[legIndex];
@@ -310,7 +280,7 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
             const userFacility = this.createUserFacility(latLon, currentUserFacilityIndex);
 
             this.fms.addUserFacility(userFacility);
-            const inserted = await this.fms.insertWaypoint(currentSegment.segmentIndex, userFacility);
+            const inserted = await this.fms.insertWaypointAtEnd(userFacility);
 
             if (inserted) {
               ++currentUserFacilityIndex;
@@ -361,13 +331,6 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
               return;
             }
 
-            // There should never be any legs after the segment we are currently inserting into. If there are, then we
-            // will immediately abort and force the current load operation to be cancelled.
-            if (plan.getNextLeg(currentSegment.segmentIndex, currentSegment.legs.length)) {
-              ++this.loadOpId;
-              return;
-            }
-
             if (airway) {
               // We always flatten airways.
 
@@ -390,7 +353,7 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
                     }
 
                     if (facilityToInsert) {
-                      await this.fms.insertWaypoint(currentSegment.segmentIndex, facilityToInsert);
+                      await this.fms.insertWaypointAtEnd(facilityToInsert);
 
                       if (opId !== this.loadOpId) {
                         return;
@@ -399,7 +362,7 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
                   }
 
                   // Insert exit waypoint.
-                  await this.fms.insertWaypoint(currentSegment.segmentIndex, facility);
+                  await this.fms.insertWaypointAtEnd(facility);
                 }
               }
 
@@ -409,7 +372,7 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
 
               // Only insert the waypoint into the plan if the leg is after the last PPOS leg.
               if (legIndex > pposLegIndex) {
-                const inserted = await this.fms.insertWaypoint(currentSegment.segmentIndex, facility);
+                const inserted = await this.fms.insertWaypointAtEnd(facility);
                 updateAirwayEntry = !!inserted;
               } else {
                 updateAirwayEntry = true;

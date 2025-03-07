@@ -330,14 +330,28 @@ export class UserFacilityUtils {
    * @param icao The ICAO string of the new facility.
    * @param lat The latitude of the new facility.
    * @param lon The longitude of the new facility.
-   * @param isTemporary Whether the new facility is temporary.
-   * @param name The name of the new facility.
+   * @param isTemporary Whether the new facility is temporary. Defaults to false.
+   * @param name The name of the new facility. Defaults to empty string.
+   * @returns A new user facility.
+   * @deprecated Use the IcaoValue overload instead.
+   */
+  public static createFromLatLon(icao: string, lat: number, lon: number, isTemporary?: boolean, name?: string): UserFacility;
+  /**
+   * Creates a user facility from latitude/longitude coordinates.
+   * @param icao The ICAO value of the new facility.
+   * @param lat The latitude of the new facility.
+   * @param lon The longitude of the new facility.
+   * @param isTemporary Whether the new facility is temporary. Defaults to false.
+   * @param name The name of the new facility. Defaults to empty string.
    * @returns A new user facility.
    */
-  public static createFromLatLon(icao: string, lat: number, lon: number, isTemporary = false, name?: string): UserFacility {
+  public static createFromLatLon(icao: IcaoValue, lat: number, lon: number, isTemporary?: boolean, name?: string): UserFacility;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static createFromLatLon(icao: string | IcaoValue, lat: number, lon: number, isTemporary = false, name?: string): UserFacility {
+    const icaoStruct = typeof icao === 'string' ? ICAO.stringV1ToValue(icao) : icao;
     const fac: UserFacility = {
-      icao,
-      icaoStruct: ICAO.stringV1ToValue(icao),
+      icao: ICAO.valueToStringV1(icaoStruct),
+      icaoStruct,
       name: name ?? '',
       lat,
       lon,
@@ -355,16 +369,31 @@ export class UserFacilityUtils {
    * @param reference The reference facility.
    * @param radial The magnetic radial, in degrees, of the reference facility on which the new facility lies.
    * @param distance The distance, in nautical miles, from the reference facility.
-   * @param isTemporary Whether the new facility is temporary.
-   * @param name The name of the new facility.
+   * @param isTemporary Whether the new facility is temporary. Defaults to false.
+   * @param name The name of the new facility. Defaults to empty string.
+   * @returns A new user facility.
+   * @deprecated Use the IcaoValue overload instead.
+   */
+  public static createFromRadialDistance(icao: string, reference: Facility, radial: number, distance: number, isTemporary?: boolean, name?: string): UserFacility;
+  /**
+   * Creates a user facility from a radial and distance relative to a reference facility.
+   * @param icao The ICAO value of the new facility.
+   * @param reference The reference facility.
+   * @param radial The magnetic radial, in degrees, of the reference facility on which the new facility lies.
+   * @param distance The distance, in nautical miles, from the reference facility.
+   * @param isTemporary Whether the new facility is temporary. Defaults to false.
+   * @param name The name of the new facility. Defaults to empty string.
    * @returns A new user facility.
    */
-  public static createFromRadialDistance(icao: string, reference: Facility, radial: number, distance: number, isTemporary = false, name?: string): UserFacility {
+  public static createFromRadialDistance(icao: IcaoValue, reference: Facility, radial: number, distance: number, isTemporary?: boolean, name?: string): UserFacility;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static createFromRadialDistance(icao: string | IcaoValue, reference: Facility, radial: number, distance: number, isTemporary = false, name?: string): UserFacility {
     const location = FacilityUtils.getLatLonFromRadialDistance(reference, radial, distance, UserFacilityUtils.geoPointCache[0]);
+    const icaoStruct = typeof icao === 'string' ? ICAO.stringV1ToValue(icao) : icao;
 
     return {
-      icao,
-      icaoStruct: ICAO.stringV1ToValue(icao),
+      icao: ICAO.valueToStringV1(icaoStruct),
+      icaoStruct,
       name: name ?? '',
       lat: location.lat,
       lon: location.lon,
@@ -387,12 +416,43 @@ export class UserFacilityUtils {
    * @param radial1 The magnetic radial, in degrees, of the first reference facility on which the new facility lies.
    * @param reference2 The second reference facility.
    * @param radial2 The magnetic radial, in degrees, of the second reference facility on which the new facility lies.
-   * @param isTemporary Whether the new facility is temporary.
-   * @param name The name of the new facility.
+   * @param isTemporary Whether the new facility is temporary. Defaults to false.
+   * @param name The name of the new facility. Defaults to empty string.
    * @returns A new user facility, or `undefined` if the specified radials do not intersect at a unique point.
+   * @deprecated Use the IcaoValue overload instead.
    */
   public static createFromRadialRadial(
     icao: string,
+    reference1: Facility,
+    radial1: number,
+    reference2: Facility,
+    radial2: number,
+    isTemporary?: boolean,
+    name?: string
+  ): UserFacility | undefined;
+  /**
+   * Creates a user facility from a radial and distance relative to a reference facility.
+   * @param icao The ICAO value of the new facility.
+   * @param reference1 The first reference facility.
+   * @param radial1 The magnetic radial, in degrees, of the first reference facility on which the new facility lies.
+   * @param reference2 The second reference facility.
+   * @param radial2 The magnetic radial, in degrees, of the second reference facility on which the new facility lies.
+   * @param isTemporary Whether the new facility is temporary. Defaults to false.
+   * @param name The name of the new facility. Defaults to empty string.
+   * @returns A new user facility, or `undefined` if the specified radials do not intersect at a unique point.
+   */
+  public static createFromRadialRadial(
+    icao: IcaoValue,
+    reference1: Facility,
+    radial1: number,
+    reference2: Facility,
+    radial2: number,
+    isTemporary?: boolean,
+    name?: string
+  ): UserFacility | undefined;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static createFromRadialRadial(
+    icao: string | IcaoValue,
     reference1: Facility,
     radial1: number,
     reference2: Facility,
@@ -406,9 +466,11 @@ export class UserFacilityUtils {
       return undefined;
     }
 
+    const icaoStruct = typeof icao === 'string' ? ICAO.stringV1ToValue(icao) : icao;
+
     return {
-      icao,
-      icaoStruct: ICAO.stringV1ToValue(icao),
+      icao: ICAO.valueToStringV1(icaoStruct),
+      icaoStruct,
       name: name ?? '',
       lat: location.lat,
       lon: location.lon,

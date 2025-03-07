@@ -1,8 +1,8 @@
 import {
   Accessible, APAltCapDirector, APAltDirector, APBackCourseDirector, APConfig, APConfigDirectorEntry, APFLCDirector, APGPDirector, APGpsSteerDirector,
   APGpsSteerDirectorSteerCommand, APGSDirector, APHdgDirector, APLateralModes, APLvlDirector, APNavDirector, APRollDirector, APTogaPitchDirector, APTrkDirector,
-  APValues, APVerticalModes, APVNavPathDirector, APVSDirector, EventBus, FacilityLoader, FlightPlanner, PlaneDirector, PluginSystem, SimVarValueType,
-  SmoothingPathCalculator, Subscribable
+  APValues, APVerticalModes, APVNavPathDirector, APVSDirector, ClockEvents, ConsumerSubject, EventBus, FacilityLoader, FlightPlanner, MathUtils, PlaneDirector,
+  PluginSystem, SimVarValueType, SmoothingPathCalculator, Subscribable, UnitType
 } from '@microsoft/msfs-sdk';
 
 import { Epic2AvionicsPlugin, Epic2PluginBinder } from '../Epic2AvionicsPlugin';
@@ -31,6 +31,8 @@ export class Epic2APConfig implements APConfig {
 
   private readonly verticalPredictionFunctions = Epic2VnavUtils.getVerticalPredictionFunctions(this.pluginSystem);
 
+  private readonly simRate = ConsumerSubject.create<number>(null, 1);
+
   /**
    * Instantiates the AP Config for the Autopilot.
    * @param bus is an instance of the Event Bus.
@@ -53,7 +55,10 @@ export class Epic2APConfig implements APConfig {
     private readonly activePerformancePlan: Epic2PerformancePlan,
     private readonly gpsSteerCommand: Accessible<Readonly<APGpsSteerDirectorSteerCommand>>,
     private readonly pluginSystem: PluginSystem<Epic2AvionicsPlugin, Epic2PluginBinder>,
-  ) { }
+  ) {
+    const sub = this.bus.getSubscriber<ClockEvents>();
+    this.simRate.setConsumer(sub.on('simRate'));
+  }
 
   /** @inheritDoc */
   public createLateralDirectors(apValues: APValues): Iterable<Readonly<APConfigDirectorEntry>> {
@@ -212,7 +217,10 @@ export class Epic2APConfig implements APConfig {
    * @returns The autopilot's altitude capture mode director, or `undefined` to omit the director.
    */
   protected createAltCapDirector(apValues: APValues): APAltCapDirector {
-    return new APAltCapDirector(apValues);
+    return new APAltCapDirector(apValues, {
+      shouldActivate: this.shouldActivateAltitudeCapture.bind(this),
+      captureAltitude: this.captureAltitude.bind(this)
+    });
   }
 
   /**
@@ -289,5 +297,78 @@ export class Epic2APConfig implements APConfig {
   /** @inheritdoc */
   public createVariableBankManager(apValues: APValues): Epic2VariableBankManager {
     return new Epic2VariableBankManager(this.bus, apValues);
+  }
+
+  private static dVsNominal = 100; // Rate, at which altitudes shall be captured [ft/min/s], 200 translates to 0.104g, 100 to 0.052g
+  private lastDesiredVs = 0;
+  private previousAltCapTimestamp = 0;  // [msec] Timestamp when the capturing will end
+  private previousVelY = 0;
+
+  /**
+   * A function which returns true if the capturing shall be activated
+   * @param currentVs Current vertical speed in [ft/min]
+   * @param targetAltitude Target altitude [ft]
+   * @param currentAltitude Current altitude [ft]
+   * @returns True if the capturing shall be activated
+   */
+  private shouldActivateAltitudeCapture(currentVs: number, targetAltitude: number, currentAltitude: number): boolean {
+    // Determine the altitude capture range, i.e. the altitude deviation from target altitude at which the
+    // capturing shall begin to achieve a steady capturing with an average nominal vs-rate of dVsNominal.
+    const altCapturingRange = Math.min(((currentVs / 60) ** 2) / (2 * (Epic2APConfig.dVsNominal / 60)) + (Math.abs(currentVs) / 20), 1100);
+    const deviationFromTarget = Math.abs(targetAltitude - currentAltitude);
+    if (deviationFromTarget <= altCapturingRange) {
+      this.lastDesiredVs = currentVs;
+      this.previousAltCapTimestamp = Date.now();
+      this.previousVelY = SimVar.GetSimVarValue('VELOCITY WORLD Y', 'feet per second');
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * Method to use for capturing a target altitude.
+   * @param targetAltitude is the captured targed altitude
+   * @param indicatedAltitude is the current indicated altitude
+   * @param initialFpa is the FPA when capture was initiatiated
+   * @param tas The current true airspeed of the airplane, in knots.
+   * @returns The target pitch value to set.
+   */
+  private captureAltitude(
+    targetAltitude: number,
+    indicatedAltitude: number,
+    initialFpa: number,
+    tas: number
+  ): number {
+    const newTimestamp = Date.now();
+    const cycleDuration = (newTimestamp - this.previousAltCapTimestamp) / 1000.0;
+    this.previousAltCapTimestamp = newTimestamp;
+
+    const currentVs = SimVar.GetSimVarValue('VERTICAL SPEED', SimVarValueType.FPM);
+    const deltaAltitude = targetAltitude - indicatedAltitude;
+
+    // If active pause is switched on we want to pause the capturing logic as well. The only simvar
+    // that reliably freezes in active pause is world velocity Y:
+    const newVelY = SimVar.GetSimVarValue('VELOCITY WORLD Y', 'feet per second');
+    if (newVelY !== this.previousVelY) {
+      // For the actual capturing, we freshly calculate dVsAdaptive in each cycle. For any given delta altitude and vs,
+      // dVsAdaptive is the steady decceleration, that would bring us exactly to the target altitude:
+      const dVsAdaptive = 60 * ((currentVs / 60) ** 2) / (2 * Math.abs(deltaAltitude));  // [ft/min/s] !
+
+      // We want desiredVs to only converge towards zero, therefore we apply the sign of lastDesiredVs:
+      const thisCycleVsReduction = dVsAdaptive * cycleDuration * this.simRate.get() * Math.sign(this.lastDesiredVs);
+      if (Math.abs(this.lastDesiredVs) > Math.abs(thisCycleVsReduction)) {
+        // Apply the the reduction for this cycle as long as it is smaller than desiredVs:
+        this.lastDesiredVs -= thisCycleVsReduction;
+      } else {
+        // Otherwise set desiredVs like the alt director does:
+        this.lastDesiredVs = MathUtils.clamp(10 * deltaAltitude, -500, 500);
+      }
+    } else {
+      this.lastDesiredVs = currentVs;
+    }
+    this.previousVelY = newVelY;
+
+    return Math.asin(this.lastDesiredVs / UnitType.KNOT.convertTo(tas, UnitType.FPM)) * Avionics.Utils.RAD2DEG;
   }
 }

@@ -4,8 +4,8 @@ import {
 } from '@microsoft/msfs-sdk';
 
 import {
-  Epic2ExtraLegDefinitionFlags, Epic2Fms, Epic2FmsUtils, Epic2List, FlightPlanLegListData, FlightPlanListData, FlightPlanListManager, FlightPlanStore, ListItem,
-  ModalService, SectionOutline
+  AmendRouteButtonListData, Epic2ExtraLegDefinitionFlags, Epic2Fms, Epic2FmsUtils, Epic2List, FlightPlanLegListData, FlightPlanListData, FlightPlanListManager,
+  FlightPlanStore, ListItem, ModalService, SectionOutline
 } from '@microsoft/msfs-epic2-shared';
 
 import { ActivatePlanButtonBar } from '../Common/ActivatePlanButtonBar';
@@ -55,6 +55,27 @@ export class FlightPlanListSection extends DisplayComponent<FlightPlanListSectio
 
   private readonly listItemHeightPx = 63;
   private readonly listItemSpacingPx = 2;
+
+  /** @inheritdoc */
+  public onAfterRender(node: VNode): void {
+    // scroll to the top of the plan when DTO random opens
+    this.props.storeActive.isDtoRandomEntryShown.sub((isVisible) => isVisible && this.flightPlanListActive.instance.scrollToIndex(0, 0, false));
+    this.props.storePending.isDtoRandomEntryShown.sub((isVisible) => isVisible && this.flightPlanListPending.instance.scrollToIndex(0, 0, false));
+
+    this.props.storePending.amendWaypointForDisplay.sub(() => {
+      const index = this.findAmendListItemIndex(this.flightPlanListPending.instance);
+      if (index) { this.flightPlanListPending.instance.scrollToIndex(index, 1, false); }
+    });
+  }
+
+  /**
+   * Finds the index of the amend route list item
+   * @param list The flight plan list
+   * @returns The index of the amend route list item, or null
+   */
+  private findAmendListItemIndex(list: Epic2List<FlightPlanListData>): number | null {
+    return list.props.data?.getArray().findIndex((v) => v.type === 'amendRouteButton') ?? null;
+  }
 
   /**
    * Renders a flight plan list item.

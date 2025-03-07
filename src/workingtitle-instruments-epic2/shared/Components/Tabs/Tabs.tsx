@@ -1,16 +1,16 @@
 import { ComponentProps, DisplayComponent, FSComponent, Subject, Subscribable, SubscribableUtils, VNode } from '@microsoft/msfs-sdk';
 
 import { TouchButton } from '../TouchButton';
-import { Tab } from './TabTypes';
+import { TabMenuItem } from './TabTypes';
 
 import './Tabs.css';
 
 /** The properties for the {@link Tabs} component. */
-interface TabsProps extends ComponentProps {
+interface TabsProps<T extends TabMenuItem> extends ComponentProps {
   /** The active tab.*/
-  readonly activeTab: Subject<Tab>,
+  readonly activeTab: Subject<T>,
   /** Array of tab names to be displayed on each tab. Must have at least 1 element. */
-  readonly tabs: readonly Tab[];
+  readonly tabs: readonly T[];
   /** The css class to append to the root element class. */
   readonly class: string;
   /** What styling type to use. 'style-a' is like folder tabs with spac between the tabs. */
@@ -18,7 +18,7 @@ interface TabsProps extends ComponentProps {
 }
 
 /** The Tabs component. */
-export class Tabs extends DisplayComponent<TabsProps> {
+export class Tabs<T extends TabMenuItem> extends DisplayComponent<TabsProps<T>> {
   /** @inheritdoc */
   public render(): VNode {
     const { tabs } = this.props;

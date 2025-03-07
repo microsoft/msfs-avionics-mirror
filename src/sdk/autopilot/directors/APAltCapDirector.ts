@@ -3,6 +3,7 @@
 import { SimVarValueType } from '../../data/SimVars';
 import { MathUtils } from '../../math/MathUtils';
 import { UnitType } from '../../math/NumberUnit';
+import { DebounceTimer } from '../../utils/time/DebounceTimer';
 import { APValues } from '../APValues';
 import { VNavUtils } from '../vnav/VNavUtils';
 import { DirectorState, PlaneDirector } from './PlaneDirector';
@@ -21,6 +22,14 @@ export type APAltCapDirectorOptions = {
    * A function that returns true if the capturing shall start.
    */
   shouldActivate: APAltCapDirectorActivationFunc | undefined;
+
+  /**
+   * The time to inhibit altitude capture when the target altitude is changed, in ms.
+   * Setting the time to null disables inhibition.
+   * Defaults to 500 ms.
+   * Note that if alt capture is already active when the target is changed, this will have no effect.
+   */
+  targetChangeInhibitTime: number | null;
 };
 
 /**
@@ -57,6 +66,11 @@ export type APAltCapDirectorActivationFunc = (
  * An altitude capture autopilot director.
  */
 export class APAltCapDirector implements PlaneDirector {
+  private static readonly DEFAULT_TARGET_CHANGE_INHIBIT_MS = 500;
+  private static readonly EMPTY_FUNCTION = (): void => {};
+
+  private readonly targetChangeInhibitTimer?: DebounceTimer;
+  private readonly targetChangeInhibitTime: number | null = APAltCapDirector.DEFAULT_TARGET_CHANGE_INHIBIT_MS;
 
   public state: DirectorState;
 
@@ -74,6 +88,11 @@ export class APAltCapDirector implements PlaneDirector {
   private readonly shouldActivate: APAltCapDirectorActivationFunc = APAltCapDirector.shouldActivate;
 
   /**
+   * Inhibits altitude capture actrivation for {@link APAltCapDirector.targetChangeInhibitTime}.
+   */
+  private inhibitAltCapture?: () => void;
+
+  /**
    * Creates an instance of the APAltCapDirector.
    * @param apValues Autopilot data for this director.
    * @param options Optional options object with these:
@@ -81,6 +100,10 @@ export class APAltCapDirector implements PlaneDirector {
    * defined, a default function is used.
    * --> captureAltitude: An optional function which calculates desired pitch angles to capture a target altitude. If not
    * defined, a default function is used.
+   * --> targetChangeInhibitTime: The time to inhibit altitude capture when the target altitude is changed, in ms.
+   * Setting the time to null disables inhibition.
+   * Defaults to 500 ms.
+   * Note that if alt capture is already active when the target is changed, this will have no effect.
    */
   constructor(
     private readonly apValues: APValues,
@@ -93,8 +116,18 @@ export class APAltCapDirector implements PlaneDirector {
     if (options?.shouldActivate !== undefined) {
       this.shouldActivate = options.shouldActivate;
     }
-  }
+    if (options?.targetChangeInhibitTime !== undefined) {
+      this.targetChangeInhibitTime = options.targetChangeInhibitTime;
+    }
 
+    if (this.targetChangeInhibitTime !== null) {
+      this.targetChangeInhibitTimer = new DebounceTimer();
+      this.inhibitAltCapture = () => {
+        this.targetChangeInhibitTimer?.schedule(APAltCapDirector.EMPTY_FUNCTION, this.targetChangeInhibitTime!);
+      };
+      this.apValues.selectedAltitude.sub(this.inhibitAltCapture, false);
+    }
+  }
 
   /**
    * Activates this director.
@@ -157,6 +190,10 @@ export class APAltCapDirector implements PlaneDirector {
    * Attempts to activate altitude capture.
    */
   private tryActivate(): void {
+    if (this.targetChangeInhibitTimer?.isPending()) {
+      return;
+    }
+
     const selectedAltitude = this.apValues.selectedAltitude.get();
     const vs = SimVar.GetSimVarValue('VERTICAL SPEED', SimVarValueType.FPM);
     const alt = SimVar.GetSimVarValue('INDICATED ALTITUDE', SimVarValueType.Feet);

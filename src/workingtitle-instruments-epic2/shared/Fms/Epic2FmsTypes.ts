@@ -23,7 +23,8 @@ export enum DirectToState {
 }
 
 /**
- * Additional Bitflags describing a leg definition specific to the Epic2 FMS
+ * Additional Bitflags describing a leg definition specific to the Epic2 FMS,
+ * in addition to {@link LegDefinitionFlags}.
  */
 export enum Epic2ExtraLegDefinitionFlags {
   /** A leg which should be labelled Fly HDG Sel to intercept */
@@ -46,6 +47,11 @@ export enum Epic2ExtraLegDefinitionFlags {
   DirectToOrigin = (1 << 31),
 }
 
+export enum Epic2ApproachTransition {
+  VectorsToFinal = -2,
+  None = -1,
+}
+
 /**
  * Details of an approach insertion into the flight plan
  */
@@ -54,8 +60,13 @@ export interface ApproachProcedureDescription {
   facility: AirportFacility,
   /** The index of the desired approach procedure */
   approachIndex: number,
-  /** The index of the desired approach transition */
-  approachTransitionIndex: number,
+  /**
+   * The index of the desired approach transition:
+   * - -2 means VTF transition
+   * - -1 means no transition
+   * - 0 or greater means an index in the facility approach.
+   */
+  approachTransitionIndex: number | Epic2ApproachTransition,
   /** The runway number of the visual approach, if applicable */
   visualRunwayNumber?: number,
   /** The runway designator of the visual approach, if applicable */
@@ -64,8 +75,6 @@ export interface ApproachProcedureDescription {
   visualRunwayOffset?: number,
   /** The vertical path angle of the VFR approach, if applicable */
   vfrVerticalPathAngle?: number,
-  /** TODO */
-  transStartIndex?: number,
 }
 
 /** FMS Approach Details */

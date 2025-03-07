@@ -1,5 +1,5 @@
 import {
-  ArraySubject, ComponentProps, DisplayComponent, DmsFormatter2, EventBus, Facility, FacilityType, FSComponent, ICAO, MappedSubject, SetSubject, Subject,
+  ArraySubject, ComponentProps, DisplayComponent, DmsFormatter2, EventBus, Facility, FacilityType, FSComponent, ICAO, IcaoValue, MappedSubject, SetSubject, Subject,
   UnitType, VNode, VorFacility, VorType
 } from '@microsoft/msfs-sdk';
 
@@ -31,12 +31,12 @@ class WaypointDisplay extends DisplayComponent<WaypointDisplayProps> {
    * Sets the facility data of this modal
    * @param facilityIcaos List of the FS ICAOs for the facilitys to display
    */
-  public async setFacilityData(facilityIcaos?: string[]): Promise<void> {
-    this.facilityData.set([]);
+  public async setFacilityData(facilityIcaos?: IcaoValue[]): Promise<void> {
+    this.facilityData.clear();
     if (facilityIcaos) {
-      for (const icao of facilityIcaos) {
-        this.facilityData.insert(await this.props.fms.facLoader.getFacility(ICAO.getFacilityType(icao), icao));
-      }
+      // FIXME remove type cast when typescript upgraded
+      const facilities = (await this.props.fms.facLoader.getFacilities(facilityIcaos)).filter((v) => v !== null) as Facility[];
+      this.facilityData.set(facilities);
     }
     this.isHidden.set(facilityIcaos === undefined);
   }
@@ -46,25 +46,71 @@ class WaypointDisplay extends DisplayComponent<WaypointDisplayProps> {
    * @param facility The facility
    * @returns The link to the facility image
    */
-  private getWaypointImage(facility: Facility): string {
+  private static getWaypointImage(facility: Facility): string {
     /*  eslint-disable no-case-declarations */
     switch (ICAO.getFacilityType(facility.icao)) {
       case FacilityType.Airport:
         return 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/airport_w.png';
       case FacilityType.Intersection:
         return 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/intersection.png';
-      case FacilityType.VOR:
-        const vorType = (facility as VorFacility).type;
-        return vorType == VorType.DME ? 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/dme.png'
-          : vorType == VorType.VORTAC ? 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/sta_vortac.png'
-            : vorType == VorType.VORDME ? 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/vordme.png'
-              : 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/vor.png';
+      case FacilityType.VOR: {
+        switch ((facility as VorFacility).type) {
+          case VorType.DME:
+            return 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/dme.png';
+          case VorType.VORTAC:
+            return 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/vortac.png';
+          case VorType.VORDME:
+            return 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/vordme.png';
+          case VorType.ILS:
+            return 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/localizer.png';
+          default:
+            return 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/vor.png';
+        }
+      }
       case FacilityType.NDB:
-        return 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/sta_ndb.png';
+        return 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/ndb.png';
       default:
         return 'coui://html_ui/Pages/VCockpit/Instruments/NavSystems/Epic2v2/Assets/Icons/flightplan.png';
     }
     /*  eslint-enable no-case-declarations */
+  }
+
+  /**
+   * Renders the facility info row.
+   * @param facility The facility to render.
+   * @returns The DOM elements.
+   */
+  private static renderFacilityRow(facility: Facility): VNode {
+    let city = facility.city.split(', ')[0];
+    if (city.startsWith('TT:')) {
+      city = Utils.Translate(city);
+    }
+    if (city.length > 10) {
+      city = city.substring(0, 10);
+    }
+
+    let name = facility.name;
+    if (name.length === 0) {
+      name = '------';
+    } else {
+      if (name.startsWith('TT:')) {
+        name = Utils.Translate(name);
+      }
+      if (name.length > 22) {
+        name = `${name.slice(0, 19)}...`;
+      }
+    }
+
+    return (
+      <div class='select-object-modal-label'>
+        <p>
+          <span class="waypoint-item-image"><img src={WaypointDisplay.getWaypointImage(facility)} /></span>
+          {facility.icaoStruct.ident.padEnd(7, '\xa0')}&nbsp;{city}
+        </p>
+        <p>{name}</p>
+        <p>{WaypointDisplay.LAT_FORMATTER(facility.lat)} {WaypointDisplay.LON_FORMATTER(facility.lon)}</p>
+      </div>
+    );
   }
 
   /**
@@ -77,12 +123,7 @@ class WaypointDisplay extends DisplayComponent<WaypointDisplayProps> {
     }
 
     if (facility) {
-      FSComponent.render(
-        <div class='select-object-modal-label'>
-          <p><img class="waypoint-item-image" src={this.getWaypointImage(facility)} style="height: 14px; width: 14px;" />{ICAO.getIdent(facility.icao)}    {facility.city}</p>
-          <p>{facility.name.length > 22 ? `${facility.name.slice(0, 19)}...` : facility.name ?? ' '}</p>
-          <p>{WaypointDisplay.LAT_FORMATTER(facility.lat)} {WaypointDisplay.LON_FORMATTER(facility.lon)}</p>
-        </div>, this.selectedWaypointRef.instance);
+      FSComponent.render(WaypointDisplay.renderFacilityRow(facility), this.selectedWaypointRef.instance);
     } else {
       FSComponent.render(<div class='select-object-modal-label'>
         <p>{'   ----- -----'}</p>
@@ -116,17 +157,14 @@ class WaypointDisplay extends DisplayComponent<WaypointDisplayProps> {
               itemsPerPage={this.props.listCollapsed.map((collapsed) => collapsed ? 1 : 4)}
               scrollbarStyle="outside"
               data={this.facilityData}
+              sortItems={(a, b) => this.props.fms.ppos.isValid() ? (this.props.fms.ppos.distance(a.lat, a.lon) - this.props.fms.ppos.distance(b.lat, b.lon)) : 0}
               renderItem={(data: Facility) => {
                 return (<ListItem>
                   <TouchButton
                     variant='list-button'
                     isHighlighted={this.props.selectedFacility.map((selected) => data.icao.trim() == selected?.icao.trim())}
                     onPressed={() => this.props.selectedFacility.set(data)}>
-                    <div class='select-object-modal-label'>
-                      <p><img class="waypoint-item-image" src={this.getWaypointImage(data)} style="height: 14px; width: 14px;" />{ICAO.getIdent(data.icao)}    {data.city}</p>
-                      <p>{data.name}</p>
-                      <p>{WaypointDisplay.LAT_FORMATTER(data.lat)} {WaypointDisplay.LON_FORMATTER(data.lon)}</p>
-                    </div>
+                    {WaypointDisplay.renderFacilityRow(data)}
                   </TouchButton>
                 </ListItem>);
               }
@@ -165,7 +203,7 @@ export class SelectObjectModal extends Modal<SelectObjectOverlayProps> {
    * @param facilityIcaosB List of the FS ICAOs for the facilitys to display, or undefined if it is not a PBPB waypoint
    * @returns Promise that is resolved with a tuple of the selected facilitie(s) or null if the menu is closed
    */
-  public async getFacility(facilityIcaosA: string[], facilityIcaosB?: string[]): Promise<(Facility | null)[]> {
+  public async getFacility(facilityIcaosA: IcaoValue[], facilityIcaosB?: IcaoValue[]): Promise<(Facility | null)[]> {
     if (this.facilityListARef.instance) {
       this.selectedFacilityA.set(null);
       this.facilityListARef.instance.setFacilityData(facilityIcaosA);

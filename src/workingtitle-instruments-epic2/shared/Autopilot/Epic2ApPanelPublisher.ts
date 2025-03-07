@@ -1,4 +1,4 @@
-import { EventBus, PublishPacer, SimVarPublisher, SimVarValueType } from '@microsoft/msfs-sdk';
+import { BitFlags, EventBus, PublishPacer, SimVarPublisher, SimVarPublisherEntry, SimVarValueType } from '@microsoft/msfs-sdk';
 import { Epic2MaxBankIndex } from './Epic2VariableBankManager';
 
 export enum FlightDirectorCouplingFlags {
@@ -27,11 +27,23 @@ export class Epic2ApPanelPublisher extends SimVarPublisher<Epic2ApPanelEvents> {
    * @param pacer An optional pacer to control the rate of publishing.
    */
   constructor(bus: EventBus, pacer?: PublishPacer<Epic2ApPanelEvents>) {
-    super(new Map([
+    super(new Map<keyof Epic2ApPanelEvents, SimVarPublisherEntry<any>>([
       ['epic2_ap_half_bank_mode', { name: 'L:WT_Epic2_Half_Bank_Mode', type: SimVarValueType.Enum }],
       ['epic2_ap_fms_man_selector', { name: 'L:XMLVAR_FMS_MAN', type: SimVarValueType.Bool }],
       ['epic2_ap_hdg_trk_selector', { name: 'L:XMLVAR_HDG_TRK', type: SimVarValueType.Bool }],
-      ['epic2_ap_fd_coupling', { name: 'L:XMLVAR_AUTOPILOT_LR', type: SimVarValueType.Enum }],
+      ['epic2_ap_fd_coupling', { name: 'L:XMLVAR_AUTOPILOT_LR', type: SimVarValueType.Enum, map: Epic2ApPanelPublisher.mapFdCoupling }],
     ]), bus, pacer);
+  }
+
+  /**
+   * Maps only valid FD coupling flags.
+   * @param couplingFlags The coupling flags to map.
+   * @returns The input value if valid, else FlightDirectorCouplingFlags.Left.
+   */
+  private static mapFdCoupling(couplingFlags: number): FlightDirectorCouplingFlags {
+    if (BitFlags.isAny(couplingFlags, FlightDirectorCouplingFlags.Both)) {
+      return couplingFlags & FlightDirectorCouplingFlags.Both;
+    }
+    return FlightDirectorCouplingFlags.Left;
   }
 }

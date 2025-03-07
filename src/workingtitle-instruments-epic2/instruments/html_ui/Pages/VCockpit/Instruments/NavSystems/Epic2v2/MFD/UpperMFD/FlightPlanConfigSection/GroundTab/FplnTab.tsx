@@ -1,5 +1,5 @@
 import {
-  AirportFacility, FacilitySearchType, FacilityType, FSComponent, MappedSubject, NearestContext, SetSubject, Subject, Subscription, UnitType, VNode, Wait
+  AirportClass, AirportFacility, FacilityType, FSComponent, ICAO, MappedSubject, NearestContext, SetSubject, Subject, Subscription, UnitType, VNode, Wait
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -94,18 +94,14 @@ export class FplnTab extends TabContent<FplnTabProps> {
 
   /**
    * Loads an airport facility.
-   * @param searchString The search string.
+   * @param airportIdent The airport ident to load.
    * @returns Airport fac if found, else undefined.
    */
-  private async loadAirportFac(searchString: string): Promise<AirportFacility | undefined> {
-    const airportIcao = (await this.props.fms.facLoader.searchByIdent(FacilitySearchType.Airport, searchString.toUpperCase(), 1))[0];
-
-    if (airportIcao) {
-      const airportFac = await this.props.fms.facLoader.getFacility(FacilityType.Airport, airportIcao);
-
+  private async loadAirportFac(airportIdent: string): Promise<AirportFacility | undefined> {
+    const airportIcao = ICAO.value('A', '', '', airportIdent);
+    const airportFac = await this.props.fms.facLoader.tryGetFacility(FacilityType.Airport, airportIcao);
+    if (airportFac && airportFac.airportClass !== AirportClass.HeliportOnly && airportFac.airportClass !== AirportClass.None) {
       return airportFac;
-    } else {
-      return undefined;
     }
   }
 

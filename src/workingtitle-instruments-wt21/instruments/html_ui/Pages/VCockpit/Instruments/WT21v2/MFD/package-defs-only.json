@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-wt21-mfd",
-  "version": "3.0.4",
+  "version": "3.0.6",
   "description": "Working Title MSFS WT21 MFD Definitions",
   "typings": "wt21mfd.d.ts",
   "repository": {

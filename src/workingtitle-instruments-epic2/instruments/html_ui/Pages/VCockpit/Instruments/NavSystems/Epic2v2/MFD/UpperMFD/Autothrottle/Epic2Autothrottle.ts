@@ -352,6 +352,7 @@ export class Epic2Autothrottle {
    * @param apDataProvider The autopilot data provider.
    * @param flapWarningDataProvider The flap warning data provider.
    * @param radioAltDataProvider The radio altimeter data provider.
+   * @param options Optional set of autothrottle options (for injection by plugin)
    */
   public constructor(
     private readonly bus: EventBus,
@@ -363,7 +364,13 @@ export class Epic2Autothrottle {
     private readonly apDataProvider: AutopilotDataProvider,
     private readonly flapWarningDataProvider: FlapWarningDataProvider,
     private readonly radioAltDataProvider: RadioAltimeterDataProvider,
+    private readonly options: AutothrottleOptions | undefined
   ) {
+
+    if (this.options === undefined) {
+      this.options = Epic2Autothrottle.OPTIONS;  // Use default OPTIONS
+    }
+
     if (this.fadec.engineType === Epic2EngineType.Turboprop) {
       this.autothrottle = new Epic2TurbopropAutothrottle(
         bus,
@@ -374,7 +381,7 @@ export class Epic2Autothrottle {
           idlePosition: 0,
           maxThrustPosition: 1
         })),
-        Epic2Autothrottle.OPTIONS,
+        this.options,
         fadec.throttleLeverManager
       );
     } else {
@@ -387,7 +394,7 @@ export class Epic2Autothrottle {
           idlePosition: 0,
           maxThrustPosition: 1
         })),
-        Epic2Autothrottle.OPTIONS,
+        this.options,
         fadec.throttleLeverManager
       );
     }

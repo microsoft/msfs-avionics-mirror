@@ -5,9 +5,9 @@ import {
   TcasIntruder, TcasResolutionAdvisoryHost, TcasResolutionAdvisoryType
 } from '@microsoft/msfs-sdk';
 
-import { Epic2FlightArea } from '../Fms';
 import { Epic2LNavDataEvents } from '../Navigation';
 import { RASystemEvents } from '../Systems';
+import { Epic2FlightArea } from '../Autopilot';
 
 /**
  * A manager which handles registration and activation of aural alerts in response to traffic and resolution
@@ -34,7 +34,7 @@ export class Epic2TcasAuralAlertManager {
 
   private static readonly TA_AURAL_ID = 'aural_traffic_advisory';
 
-  private static readonly INCREASE_DESCENT_AURAL_ID = (Epic2TcasAuralAlertManager.RA_CORRECTIVE_AURAL_IDS[TcasResolutionAdvisoryType.IncreaseDescend] ?? ['aural_increase_descend'])[0] ;
+  private static readonly INCREASE_DESCENT_AURAL_ID = (Epic2TcasAuralAlertManager.RA_CORRECTIVE_AURAL_IDS[TcasResolutionAdvisoryType.IncreaseDescend] ?? ['aural_increase_descend'])[0];
 
   private readonly publisher = this.bus.getPublisher<AuralAlertControlEvents>();
 

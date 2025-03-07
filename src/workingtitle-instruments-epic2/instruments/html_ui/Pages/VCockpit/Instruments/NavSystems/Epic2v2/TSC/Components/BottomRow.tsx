@@ -121,19 +121,19 @@ export class BottomRow extends DisplayComponent<BottomRowProps> {
         }
         return;
       case 'TSC_KNOB_R_INNER_DEC':
-        label === 'XPDR' ? this.handleXpdrCodeChange('COARSE', -1) :
+        label === 'XPDR' ? this.handleXpdrCodeChange('FINE', -1) :
           SimVar.SetSimVarValue(`K:${label}_RADIO_FRACT_DEC`, SimVarValueType.Number, 0);
         return;
       case 'TSC_KNOB_R_INNER_INC':
-        label === 'XPDR' ? this.handleXpdrCodeChange('COARSE', 1) :
+        label === 'XPDR' ? this.handleXpdrCodeChange('FINE', 1) :
           SimVar.SetSimVarValue(`K:${label}_RADIO_FRACT_INC`, SimVarValueType.Number, 0);
         return;
       case 'TSC_KNOB_R_OUTER_DEC':
-        label === 'XPDR' ? this.handleXpdrCodeChange('FINE', -1) :
+        label === 'XPDR' ? this.handleXpdrCodeChange('COARSE', -1) :
           SimVar.SetSimVarValue(`K:${label}_RADIO_WHOLE_DEC`, SimVarValueType.Number, 0);
         return;
       case 'TSC_KNOB_R_OUTER_INC':
-        label === 'XPDR' ? this.handleXpdrCodeChange('FINE', 1) :
+        label === 'XPDR' ? this.handleXpdrCodeChange('COARSE', 1) :
           SimVar.SetSimVarValue(`K:${label}_RADIO_WHOLE_INC`, SimVarValueType.Number, 0);
         return;
 

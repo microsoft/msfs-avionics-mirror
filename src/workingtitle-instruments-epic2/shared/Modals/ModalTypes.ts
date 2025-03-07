@@ -7,6 +7,7 @@ export enum ModalKey {
   Cross = 'Cross',
   NearestAirports = 'NearestAirports',
   ShowInfo = 'ShowInfo',
+  ChartAirportSearch = 'ChartAirportSearch',
 }
 
 export enum ModalPosition {

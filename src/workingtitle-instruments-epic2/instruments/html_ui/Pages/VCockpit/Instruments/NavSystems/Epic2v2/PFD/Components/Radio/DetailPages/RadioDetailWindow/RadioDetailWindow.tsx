@@ -16,7 +16,7 @@ interface RadioDetailWindowProps extends ComponentProps {
   /** An instance of the event bus. */
   readonly bus: EventBus;
   /** Display unit index. */
-  index: DisplayUnitIndices;
+  duIndex: DisplayUnitIndices;
   /** Controls which Radio Management Detail Page to show in the subwindow and its display data. */
   detailPagesController: DetailPagesController;
   /** The settings manager to use. */

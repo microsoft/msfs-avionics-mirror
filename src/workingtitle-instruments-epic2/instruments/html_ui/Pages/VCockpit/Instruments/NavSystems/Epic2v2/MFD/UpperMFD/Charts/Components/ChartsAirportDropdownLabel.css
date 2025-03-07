@@ -1,0 +1,25 @@
+.charts-container .airport-dropdown-label {
+  display: flex;
+}
+
+.charts-container .airport-identifier {
+  color: var(--epic2-color-green);
+  padding-right: 16px;
+}
+
+
+.charts-container .airport-dropdown-label-colour-white .airport-identifier {
+  color: var(--epic2-color-white);
+}
+
+.charts-container .airport-dropdown-label-colour-green .airport-identifier {
+  color: var(--epic2-color-green);
+}
+
+.charts-container p {
+  font-size: 20px;
+}
+
+.charts-container .touch-button-bar .airport-dropdown-label {
+  padding-left: 14px;
+}

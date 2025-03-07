@@ -18,11 +18,8 @@ export class AvionicsComputerSystem extends BasicAvionicsSystem<AvionicsComputer
    */
   constructor(public readonly index: number, protected readonly bus: EventBus) {
     super(index, bus, `avionicscomputer_state_${index}`);
-    if (index === 1) {
-      this.connectToPower('elec_circuit_navcom1_on');
-    } else {
-      this.connectToPower('elec_circuit_navcom2_on');
-    }
+
+    this.connectToPower(`elec_circuit_nav_on_${index}`);
   }
 
   /** @inheritdoc */
@@ -55,6 +52,6 @@ export class AvionicsComputerSystem extends BasicAvionicsSystem<AvionicsComputer
  * Events fired by the avionics computer system.
  */
 export interface AvionicsComputerSystemEvents {
-  /** An event fired when the AHRS system state changes. */
+  /** An event fired when the GIA system state changes. */
   [evt: `avionicscomputer_state_${number}`]: AvionicsSystemStateEvent;
 }

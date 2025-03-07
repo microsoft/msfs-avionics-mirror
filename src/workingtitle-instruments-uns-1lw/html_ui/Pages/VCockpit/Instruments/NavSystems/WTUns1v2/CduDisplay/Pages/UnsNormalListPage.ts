@@ -291,7 +291,7 @@ class UnsNormalListPageStore {
    * @returns A facility or airway.
    */
   public getItemFromAirwayListIndex(selectedIndex: number, subPageIndex: number): NormalListItem<Facility> | undefined {
-    const actualIndex = ((subPageIndex -1) * 12) + selectedIndex - 1;
+    const actualIndex = ((subPageIndex - 1) * 12) + selectedIndex - 1;
 
     return this.itemsForAirwayWaypointList.find((_, index) => index === actualIndex);
   }
@@ -353,10 +353,10 @@ export class UnsNormalListPage extends UnsFmcDialogPage<UnsListPageInput, Facili
   private static DEFAULT_CATEGORY: NormalListCategory = 'vor';
 
   private static NormalTitleMap: Record<NormalListCategory, string> = {
-    apt:     ' AIRPORTS',
-    ndb:     '    NDBS',
-    int:     '    INTS', // TODO Is this right?
-    vor:     '    VORS',
+    apt: ' AIRPORTS',
+    ndb: '    NDBS',
+    int: '    INTS', // TODO Is this right?
+    vor: '    VORS',
     airways: '  AIRWAYS',
     // 'vor/plt': 'VOR/PLT',
   };
@@ -415,7 +415,7 @@ export class UnsNormalListPage extends UnsFmcDialogPage<UnsListPageInput, Facili
     ({ distance, ident }: NormalListItem, index: number): string => {
       const identStr: string = ident.padEnd(6, ' ');
       const distStr: string = distance ? distance.toFixed().padStart(4, ' ') : ' '.padEnd(4, ' ');
-      return ` ${(index % 12) + 1 } ${identStr}${distStr}[s-text]`;
+      return ` ${(index % 12) + 1} ${identStr}${distStr}[s-text]`;
     } :
     // Plain language formatter
     ({ ident, object }: NormalListItem, index: number): string => {
@@ -570,7 +570,7 @@ export class UnsNormalListPage extends UnsFmcDialogPage<UnsListPageInput, Facili
             [`${side === 'L' ? UnsChars.ArrowLeft : ''}PLN${side === 'R' ? UnsChars.ArrowRight : ''}`],
             ['LANG'],
           ] : `${side === 'L' ? UnsChars.ArrowLeft : ''}${label}${side === 'R' ? UnsChars.ArrowRight : ''}`
-          ) : '',
+        ) : '',
       onSelected: async () => {
         if (category === this.currentCategory.get() && category !== 'int') {
           this.listMode.set('plainLang');
@@ -602,9 +602,9 @@ export class UnsNormalListPage extends UnsFmcDialogPage<UnsListPageInput, Facili
 
   private AirwaysField = new UnsDisplayField<readonly [string, boolean]>(this, {
     formatter: ([[pageType, airwaysAvailable]]): FmcFormatterOutput => pageType === 'ALL' && airwaysAvailable === true ? [
-        [`AIR${UnsChars.ArrowRight}`],
-        ['WAYS'],
-      ] : '',
+      [`AIR${UnsChars.ArrowRight}`],
+      ['WAYS'],
+    ] : '',
     onSelected: async () => {
       this.changeCategory('airways');
       return true;
@@ -743,6 +743,23 @@ export class UnsNormalListPage extends UnsFmcDialogPage<UnsListPageInput, Facili
         ['', this.ReturnPrompt],
       ]];
     }
+  }
+
+  /** @inheritdoc */
+  renderPowerOverlay(): FmcRenderTemplate {
+    return [
+      [''],
+      ['', ' [line-tb-rl]         [line-rl]', ' '],
+      ['', this.BrightnessField, ' '],
+      ['', ' [line-tb]         ', ' '],
+      ['', this.DimField, ' '],
+      ['', ' [line-tb]         ', ' '],
+      ['', this.CancelPowerOverlayField, ' '],
+      ['', ' [line-tb]         ', ' '],
+      ['', ' [line-tb] DISPLAY→[disabled]', ' '],
+      ['', ' [line-tb]         ', ' '],
+      ['', this.PowerOffField, ' '],
+    ];
   }
 
   public cursorPath: UnsCduCursorPath = {

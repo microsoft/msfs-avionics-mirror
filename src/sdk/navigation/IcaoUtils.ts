@@ -39,6 +39,7 @@ export class ICAO {
 
   /**
    * Creates a new ICAO value.
+   * All of the fields must not have any leading or trailing spaces that would be removed by String.trim().
    * @param type The ICAO's facility type.
    * @param region The ICAO's region code.
    * @param airport The ICAO's associated airport ident.

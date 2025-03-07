@@ -1,10 +1,11 @@
 import {
-  AdcEvents, ComputedSubject, ConsumerSubject, ControlPublisher, DisplayComponent, EventBus, FSComponent, HEvent, VNode, XPDRMode, XPDRSimVarEvents,
+  AdcEvents, ComputedSubject, ConsumerSubject, ControlPublisher, DisplayComponent, EventBus, FSComponent, HEvent, Subject, VNode, XPDRMode, XPDRSimVarEvents,
 } from '@microsoft/msfs-sdk';
 
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
 
 import './Transponder.css';
+import { AvionicsSystemState, TransponderSystemEvents } from '../../../Shared';
 
 /**
  * The properties on the Attitude component.
@@ -22,7 +23,6 @@ interface TransponderProps {
  * The PFD attitude indicator.
  */
 export class Transponder extends DisplayComponent<TransponderProps> {
-
   private xpdrCodeElement = FSComponent.createRef<HTMLElement>();
   private xpdrModeElement = FSComponent.createRef<HTMLElement>();
   private xpdrIdentElement = FSComponent.createRef<HTMLElement>();
@@ -52,6 +52,7 @@ export class Transponder extends DisplayComponent<TransponderProps> {
     return 'XXX';
   });
   private readonly isOnGround = ConsumerSubject.create(this.props.bus.getSubscriber<AdcEvents>().on('on_ground').whenChanged(), true);
+  private isSystemOff = Subject.create(false);
 
   /**
    * A callback called after the component renders.
@@ -72,6 +73,11 @@ export class Transponder extends DisplayComponent<TransponderProps> {
       .handle(this.updateCodeEdit.bind(this));
     g1000ControlEvents.on('xpdr_code_digit')
       .handle(this.editCode.bind(this));
+
+    const transponderSystem = this.props.bus.getSubscriber<TransponderSystemEvents>();
+    transponderSystem.on('transponder_state').whenChanged().handle(v => {
+      this.isSystemOff.set(v.current !== AvionicsSystemState.On);
+    });
 
     this.isOnGround.sub(onGround => {
       this.xpdrCodeElement.instance.classList.toggle('on-ground', onGround);
@@ -267,9 +273,20 @@ export class Transponder extends DisplayComponent<TransponderProps> {
   public render(): VNode {
     return (
       <div class="xpdr-container">
-        <div class='small-text'>XPDR </div>
-        <div ref={this.xpdrCodeElement} class='size20 XPDRValue' data-checklist='XPDRValue'>{this.xpdrCodeSubject}</div>
-        <div ref={this.xpdrModeElement} class='size20 XPDRMode' data-checklist='XPDRMode'>&nbsp;{this.xpdrModeSubject}</div><div ref={this.xpdrIdentElement} class='size20 green hide-element'> Ident</div>
+        <div class='xpdr-content' style={{
+          'display': this.isSystemOff.map(v => v ? 'none' : 'grid'),
+        }}>
+          <div class='small-text'>XPDR </div>
+          <div ref={this.xpdrCodeElement} class='size20 XPDRValue' data-checklist='XPDRValue'>{this.xpdrCodeSubject}</div>
+          <div ref={this.xpdrModeElement} class='size20 XPDRMode' data-checklist='XPDRMode'>&nbsp;{this.xpdrModeSubject}</div><div ref={this.xpdrIdentElement} class='size20 green hide-element'> Ident</div>
+        </div>
+        <div class="xpdr-fail failed-instr" style={{
+          'display': this.isSystemOff.map(v => v ? 'block' : 'none'),
+        }}>
+          <div class="failed-box">
+            XPDR FAIL
+          </div>
+        </div>
       </div>
     );
   }

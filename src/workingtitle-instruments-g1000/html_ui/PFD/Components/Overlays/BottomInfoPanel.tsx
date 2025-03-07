@@ -1,5 +1,6 @@
 import {
   AdcEvents, AhrsEvents, BearingDirection, BearingDistance, BearingIdent, BearingSource, ClockEvents, ConsumerSubject, ControlPublisher, DisplayComponent,
+  ElectricalEvents,
   EventBus, FSComponent, InstrumentEvents, NavEvents, NavMath, NavSourceId, NavSourceType, NodeReference, NumberFormatter, NumberUnitSubject, Subject, Subscription, UnitType,
   VNode
 } from '@microsoft/msfs-sdk';
@@ -7,7 +8,7 @@ import {
 import { DateTimeFormatSettingMode, DateTimeUserSettings } from '@microsoft/msfs-garminsdk';
 
 import { G1000ControlEvents } from '../../../Shared/G1000Events';
-import { ADCSystemEvents, AvionicsComputerSystemEvents, AvionicsSystemState } from '../../../Shared/Systems';
+import { ADCSystemEvents, AvionicsSystemState } from '../../../Shared/Systems';
 import { NumberUnitDisplay } from '../../../Shared/UI/Common/NumberUnitDisplay';
 import { TimeDisplay, TimeDisplayFormat } from '../../../Shared/UI/Common/TimeDisplay';
 import { UnitsUserSettingManager } from '../../../Shared/Units/UnitsUserSettings';
@@ -141,50 +142,9 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
         }
       });
 
-    this.props.bus.getSubscriber<AvionicsComputerSystemEvents>()
-      .on('avionicscomputer_state_1')
-      .handle(state => {
-        let stateChanged = false;
-        if (state.current === AvionicsSystemState.On) {
-          this.av1StateOn = true;
-          stateChanged = true;
-        } else if (state.current === AvionicsSystemState.Off) {
-          this.av1StateOn = false;
-          stateChanged = true;
-        }
-
-        if (stateChanged) {
-          if (this.currentBearing1Source?.type == NavSourceType.Nav && this.currentBearing1Source.index == 1) {
-            this.updateBearing1FailedBoxes(this.av1StateOn);
-          }
-          if (this.currentBearing2Source?.type == NavSourceType.Nav && this.currentBearing2Source.index == 1) {
-            this.updateBearing2FailedBoxes(this.av1StateOn);
-          }
-        }
-      });
-
-    this.props.bus.getSubscriber<AvionicsComputerSystemEvents>()
-      .on('avionicscomputer_state_2')
-      .handle(state => {
-        let stateChanged = false;
-        if (state.current === AvionicsSystemState.On) {
-          this.av2StateOn = true;
-          stateChanged = true;
-        } else if (state.current === AvionicsSystemState.Off) {
-          this.av2StateOn = false;
-          stateChanged = true;
-        }
-
-        if (stateChanged) {
-          if (this.currentBearing1Source?.type == NavSourceType.Nav && this.currentBearing1Source.index == 2) {
-            this.updateBearing1FailedBoxes(this.av2StateOn);
-          }
-
-          if (this.currentBearing2Source?.type == NavSourceType.Nav && this.currentBearing2Source.index == 2) {
-            this.updateBearing2FailedBoxes(this.av2StateOn);
-          }
-        }
-      });
+    const electrical = this.props.bus.getSubscriber<ElectricalEvents>();
+    electrical.on('elec_circuit_nav_on_1').handle(on => this.onNavPowerChange(on, 1));
+    electrical.on('elec_circuit_nav_on_2').handle(on => this.onNavPowerChange(on, 2));
   }
 
   /**
@@ -289,6 +249,15 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
     }
   };
 
+  private onNavPowerChange = (on: boolean, index: number): void => {
+    if (this.currentBearing1Source?.type == NavSourceType.Nav && this.currentBearing1Source.index == index) {
+      this.updateBearing1FailedBoxes(on);
+    }
+
+    if (this.currentBearing2Source?.type == NavSourceType.Nav && this.currentBearing2Source.index == index) {
+      this.updateBearing2FailedBoxes(on);
+    }
+  };
 
   /**
    * updates the bearing 1 boxes

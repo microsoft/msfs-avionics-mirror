@@ -63,11 +63,14 @@ export interface BaseElectricalEvents {
   /** The navcom 1 circuit is on or off. */
   elec_circuit_navcom1_on: boolean;
 
-  /** The navcom 2 circuit is on of off. */
+  /** The navcom 2 circuit is on or off. */
   elec_circuit_navcom2_on: boolean;
 
-  /** The navcom 3 circuit is on of off. */
+  /** The navcom 3 circuit is on or off. */
   elec_circuit_navcom3_on: boolean;
+
+  /** Whether a transponder circuit is powered. */
+  elec_circuit_transponder_on: boolean;
 
   // ---- LINE ----
 
@@ -224,6 +227,7 @@ export class ElectricalPublisher extends BasePublisher<ElectricalEvents> {
       ['elec_circuit_navcom1_on', { name: 'CIRCUIT NAVCOM1 ON', type: SimVarValueType.Bool }],
       ['elec_circuit_navcom2_on', { name: 'CIRCUIT NAVCOM2 ON', type: SimVarValueType.Bool }],
       ['elec_circuit_navcom3_on', { name: 'CIRCUIT NAVCOM3 ON', type: SimVarValueType.Bool }],
+      ['elec_circuit_transponder_on', { name: 'CIRCUIT TRANSPONDER ON', type: SimVarValueType.Bool }],
 
       // ---- LINE ----
 

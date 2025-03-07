@@ -2055,10 +2055,10 @@ export class WT21Fms {
 
     const activeLegArray = this.getSegmentActiveLegsToDisplace(plan, segmentIndex);
 
-    const apprSegment = plan.getSegment(segmentIndex);
+    let apprSegment = plan.getSegment(segmentIndex);
 
     if (apprSegment.legs.length > 0) {
-      this.planClearSegment(segmentIndex, FlightPlanSegmentType.Approach);
+      apprSegment = this.planClearSegment(segmentIndex, FlightPlanSegmentType.Approach);
     }
 
     if (opId !== this.insertApproachOpId) {
@@ -2209,10 +2209,30 @@ export class WT21Fms {
     // }
 
     const finalLegs = approach.finalLegs;
-    for (let i = 0; i < finalLegs.length; i++) {
+
+    // The transition is allowed to join to either the FACF (IF flag in MSFS) or FAF, and the FACF can be bypassed.
+    let finalStartIndex = 0;
+    if (lastTransitionLeg && WT21Fms.isXFLeg(lastTransitionLeg)) {
+      for (let i = 0; i < finalLegs.length; i++) {
+        const finalLeg = finalLegs[i];
+
+        const isFafOrFacf = BitFlags.isAny(finalLeg.fixTypeFlags, FixTypeFlags.FAF | FixTypeFlags.IF);
+        if (isFafOrFacf && WT21Fms.isXFLeg(finalLeg) && ICAO.valueEquals(lastTransitionLeg.fixIcaoStruct, finalLeg.fixIcaoStruct)) {
+          finalStartIndex = i;
+        }
+
+        if (BitFlags.isAny(finalLeg.fixTypeFlags, FixTypeFlags.FAF)) {
+          break;
+        }
+      }
+    }
+
+    for (let i = finalStartIndex; i < finalLegs.length; i++) {
       const leg = FlightPlanUtils.convertLegRunwayIcaosToSdkFormat(FlightPlan.createLeg(finalLegs[i]));
-      if (i === 0 && lastTransitionLeg && this.isDuplicateIFLeg(lastTransitionLeg, leg)) {
-        insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1] = this.mergeDuplicateLegData(lastTransitionLeg, leg);
+
+      if (i === finalStartIndex && lastTransitionLeg && WT21Fms.isDuplicateXFLeg(lastTransitionLeg, leg)) {
+        // Merge legs, preferring the final approach constraints, but keep the transition constraints if there are none on the FAF/FACF
+        insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1] = this.mergeDuplicateLegData(lastTransitionLeg, leg, true);
         continue;
       }
 
@@ -4298,6 +4318,21 @@ export class WT21Fms {
   }
 
   /**
+   * Checks if a leg is an XF leg terminating at a fix.
+   * @param leg The leg to check.
+   * @returns Whether the leg terminates at a fix.
+   */
+  private static isXFLeg(leg: FlightPlanLeg): boolean {
+    return leg.type === LegType.TF
+      || leg.type === LegType.DF
+      || leg.type === LegType.RF
+      || leg.type === LegType.CF
+      || leg.type === LegType.AF
+      || leg.type === LegType.HF
+      || leg.type === LegType.IF;
+  }
+
+  /**
    * Checks whether of two consecutive flight plan legs, the second is a duplicate of the first. The second leg is
    * considered a duplicate if and only if it is an IF, TF, or DF leg with the same terminator fix as the first leg,
    * which is also an IF, TF, or DF leg.
@@ -4323,9 +4358,9 @@ export class WT21Fms {
       || leg1.type === LegType.TF
       || leg1.type === LegType.DF
       || leg1.type === LegType.CF)
-      && ICAO.getRegionCode(leg1.fixIcao) === ICAO.getRegionCode(leg2.fixIcao)
-      && ICAO.getIdent(leg1.fixIcao) === ICAO.getIdent(leg2.fixIcao)
-      && ICAO.getFacilityType(leg1.fixIcao) === ICAO.getFacilityType(leg2.fixIcao);
+      && leg1.fixIcaoStruct.region === leg2.fixIcaoStruct.region
+      && leg1.fixIcaoStruct.ident === leg2.fixIcaoStruct.ident
+      && leg1.fixIcaoStruct.type === leg2.fixIcaoStruct.type;
   }
 
   /**
@@ -4350,9 +4385,24 @@ export class WT21Fms {
       return false;
     }
 
-    return ICAO.getRegionCode(leg1.fixIcao) === ICAO.getRegionCode(leg2.fixIcao)
-      && ICAO.getIdent(leg1.fixIcao) === ICAO.getIdent(leg2.fixIcao)
-      && ICAO.getFacilityType(leg1.fixIcao) === ICAO.getFacilityType(leg2.fixIcao);
+    return WT21Fms.isDuplicateXFLeg(leg1, leg2);
+  }
+
+  /**
+   * Checks whether of two consecutive flight plan legs, the second is an XF leg and is a duplicate of the first. The
+   * XF leg is considered a duplicate if and only if its fix is the same as the fix at which the first leg terminates.
+   * @param leg1 The first leg.
+   * @param leg2 The second leg.
+   * @returns whether the second leg is an duplicate XF leg of the first.
+   */
+  private static isDuplicateXFLeg(leg1: FlightPlanLeg, leg2: FlightPlanLeg): boolean {
+    if (!WT21Fms.isXFLeg(leg1) || !WT21Fms.isXFLeg(leg2)) {
+      return false;
+    }
+
+    return leg1.fixIcaoStruct.region === leg2.fixIcaoStruct.region
+      && leg1.fixIcaoStruct.ident === leg2.fixIcaoStruct.ident
+      && leg1.fixIcaoStruct.type === leg2.fixIcaoStruct.type;
   }
 
   /**
@@ -4360,15 +4410,20 @@ export class WT21Fms {
    * and all other data is derived from the target leg.
    * @param target The target leg.
    * @param source The source leg.
+   * @param fallbackToTarget If true, and the source leg does not define constraints, the target leg constraints can be retained.
    * @returns the merged leg.
    */
-  private mergeDuplicateLegData(target: FlightPlanLeg, source: FlightPlanLeg): FlightPlanLeg {
+  private mergeDuplicateLegData(target: FlightPlanLeg, source: FlightPlanLeg, fallbackToTarget = false): FlightPlanLeg {
     const merged = FlightPlan.createLeg(target);
     merged.fixTypeFlags |= source.fixTypeFlags;
-    merged.altDesc = source.altDesc;
-    merged.altitude1 = source.altitude1;
-    merged.altitude2 = source.altitude2;
-    merged.speedRestriction = source.speedRestriction;
+    if (source.altDesc !== AltitudeRestrictionType.Unused || !fallbackToTarget) {
+      merged.altDesc = source.altDesc;
+      merged.altitude1 = source.altitude1;
+      merged.altitude2 = source.altitude2;
+    }
+    if (source.speedRestriction > 0 || !fallbackToTarget) {
+      merged.speedRestriction = source.speedRestriction;
+    }
     return merged;
   }
 
@@ -4417,7 +4472,13 @@ export class WT21Fms {
     let toDeleteSegment;
     let toDeleteIndex;
     let toDeleteLeg;
-    if (
+    // If leg2 doesn't contain an actual path and leg1 does, we want to keep the path.
+    if (isLeg1InProc && isLeg2InProc && leg2.leg.type === LegType.IF && leg1.leg.type !== LegType.IF) {
+      toDeleteSegment = leg2Segment;
+      toDeleteIndex = leg2Index - leg2Segment.offset;
+      leg1.leg = this.mergeDuplicateLegData(leg1.leg, leg2.leg);
+      toDeleteLeg = leg2;
+    } else if (
       (!isLeg1InProc && isLeg2InProc)
       || (isLeg1InProc && isLeg2InProc && leg1Segment !== leg2Segment)
       || BitFlags.isAny(leg2.leg.fixTypeFlags, FixTypeFlags.FAF | FixTypeFlags.MAP)

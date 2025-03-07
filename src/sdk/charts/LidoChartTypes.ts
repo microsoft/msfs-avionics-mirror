@@ -1,36 +1,42 @@
 /**
- * The different LIDO chart categories
+ * The different LIDO chart types
  */
 export enum LidoChartType {
-  Unknown = 'Unknown',
+  Unknown = 'UNKNOWN',
 
-  Sid = 'Sid',
+  /** Standard Instrument Departure. */
+  Sid = 'SID',
 
-  Eosid = 'Eosid',
+  /** SID Initial Climb */
+  SidInitialClimb = 'SID Initial Climb',
 
-  Dep = 'Dep',
+  /** Obstacle Departure */
+  ObstDep = 'ObstDep',
 
-  SidPt = 'SidPt',
+  /** Airport Facility Chart. */
+  Afc = 'AFC',
 
-  Afc = 'Afc',
+  /** Instrument Approach Chart. */
+  Iac = 'IAC',
 
-  Iac = 'Iac',
+  /** Visual Approach Chart. */
+  Vac = 'VAC',
 
-  Vac = 'Vac',
+  /** Standard Arrival Route / Arrival Chart. */
+  Star = 'STAR',
 
-  Star = 'Star',
+  /** Minimum Radar Vectoring Chart. */
+  Mrc = 'MRC',
 
-  StarPt = 'StarPt',
+  /** Airport Operational Information. */
+  Aoi = 'AOI',
 
-  Mrc = 'Mrc',
+  /** Low Visibility Chart. */
+  Lvc = 'LVC',
 
-  Aoi = 'Aoi',
+  /** Airport Ground Chart. */
+  Agc = 'AGC',
 
-  Lvc = 'Lvc',
-
-  Temp = 'Temp',
-
-  Agc = 'Agc',
-
-  Apc = 'Apc',
+  /** Airport Parking Chart. */
+  Apc = 'APC',
 }

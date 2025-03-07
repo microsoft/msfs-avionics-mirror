@@ -189,6 +189,7 @@ export class StarLdgTab extends TabContent<StarLdgTabProps> {
                 color={def.inputColourSubject}
                 maxLength={3}
                 tscConnected
+                tscDisplayLabel={`V${def.label}`}
               />)}
             </div>
             <p class="star-ldg-pilot-defined">{'(Pilot Defined)'}</p>
@@ -211,6 +212,7 @@ export class StarLdgTab extends TabContent<StarLdgTabProps> {
               color={'green'}
               maxLength={5}
               tscConnected
+              tscDisplayLabel={'Trans Lvl'}
             />
           </section>
         </div>

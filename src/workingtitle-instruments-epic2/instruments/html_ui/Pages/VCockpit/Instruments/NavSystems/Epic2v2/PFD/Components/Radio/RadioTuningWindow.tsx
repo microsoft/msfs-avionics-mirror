@@ -1,6 +1,6 @@
-import { ComponentProps, DisplayComponent, EventBus, FSComponent, HEvent, NodeReference, Subject, Subscription, VNode } from '@microsoft/msfs-sdk';
+import { ComponentProps, DisplayComponent, EventBus, FSComponent, HEvent, NodeReference, ObjectUtils, Subject, Subscription, VNode } from '@microsoft/msfs-sdk';
 
-import { DisplayUnitIndices, Epic2BezelButtonEvents, Epic2DuControlEvents, Epic2DuController, Epic2PfdControlRadioEvents } from '@microsoft/msfs-epic2-shared';
+import { DisplayUnitIndices, Epic2BezelButtonEvents, Epic2DuControlEvents, Epic2PfdControlRadioEvents } from '@microsoft/msfs-epic2-shared';
 
 import { AdfRadioSubWindow } from './AdfRadioSubWindow';
 import { ComRadioSubWindow } from './ComRadioSubWindow';
@@ -11,37 +11,71 @@ import { XpdrRadioSubWindow } from './XpdrRadioSubWindow';
 
 import './RadioTuningWindow.css';
 
+enum RadioSubWindowKey {
+  Com1 = 'Com1',
+  Com2 = 'Com2',
+  Nav1 = 'Nav1',
+  Nav2 = 'Nav2',
+  Adf = 'Adf',
+  Xpdr = 'Xpdr',
+}
+
 /** RadioTuningWindowProps */
 export interface RadioTuningWindowProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
   /** Display unit index. */
-  index: DisplayUnitIndices;
+  duIndex: DisplayUnitIndices;
+  /** Which side of the DU the radio window is on. */
+  duSide: 'left' | 'right',
   /** Controls which Radio Management Detail Page to show in the subwindow and its display data. */
   detailPagesController: DetailPagesController;
 }
 
 /** A RadioTuningWindow */
 export class RadioTuningWindow extends DisplayComponent<RadioTuningWindowProps> {
+  private static readonly BEZEL_LSK_TO_SUBWINDOW_MAP: Record<RadioTuningWindowProps['duSide'], Map<Epic2BezelButtonEvents, RadioSubWindowKey>> = {
+    'left': new Map([
+      [Epic2BezelButtonEvents.LSK_L7, RadioSubWindowKey.Com1],
+      [Epic2BezelButtonEvents.LSK_L8, RadioSubWindowKey.Com2],
+      [Epic2BezelButtonEvents.LSK_L9, RadioSubWindowKey.Nav1],
+      [Epic2BezelButtonEvents.LSK_L10, RadioSubWindowKey.Nav2],
+      [Epic2BezelButtonEvents.LSK_L11, RadioSubWindowKey.Adf],
+      [Epic2BezelButtonEvents.LSK_L12, RadioSubWindowKey.Xpdr],
+    ]),
+    'right': new Map([
+      [Epic2BezelButtonEvents.LSK_R7, RadioSubWindowKey.Com1],
+      [Epic2BezelButtonEvents.LSK_R8, RadioSubWindowKey.Com2],
+      [Epic2BezelButtonEvents.LSK_R9, RadioSubWindowKey.Nav1],
+      [Epic2BezelButtonEvents.LSK_R10, RadioSubWindowKey.Nav2],
+      [Epic2BezelButtonEvents.LSK_R11, RadioSubWindowKey.Adf],
+      [Epic2BezelButtonEvents.LSK_R12, RadioSubWindowKey.Xpdr],
+    ]),
+  };
+
+  private static readonly SUB_WINDOW_KEYS = [
+    RadioSubWindowKey.Com1, RadioSubWindowKey.Com2, RadioSubWindowKey.Nav1, RadioSubWindowKey.Nav2, RadioSubWindowKey.Adf, RadioSubWindowKey.Xpdr
+  ];
 
   private isPaused = true;
 
   private pausables: Subscription[] = [];
 
-  private readonly subWindowRefs: NodeReference<RadioSubWindow>[] =
-    Array.from({ length: 6 }, () => FSComponent.createRef<RadioSubWindow>());
+  private readonly subWindowRefs: Record<RadioSubWindowKey, NodeReference<RadioSubWindow>> = ObjectUtils.fromEntries(
+    RadioTuningWindow.SUB_WINDOW_KEYS.map((index) => [index, FSComponent.createRef<RadioSubWindow>()])
+  );
 
-  private readonly selectedSubWindowIndex = Subject.create<number>(0);
+  private readonly selectedSubWindowKey = Subject.create(RadioSubWindowKey.Com1);
 
-  private readonly subWindowIsSelected: Subject<boolean>[] =
-    Array.from({ length: 6 }, () => Subject.create<boolean>(false));
+  private lastSelectedComSubWindowIndex = RadioSubWindowKey.Com1;
+  private lastSelectedNavSubWindowIndex = RadioSubWindowKey.Nav1;
 
   /**
    * Gets the selected radio sub-window.
    * @returns The instance of the selected radio sub-window.
    */
   get selectedRadioSubWindow(): RadioSubWindow {
-    return this.subWindowRefs[this.selectedSubWindowIndex.get()].instance;
+    return this.subWindowRefs[this.selectedSubWindowKey.get()].instance;
   }
 
   /**
@@ -52,22 +86,23 @@ export class RadioTuningWindow extends DisplayComponent<RadioTuningWindowProps> 
     return this.selectedRadioSubWindow.handleRadioControlEvents;
   }
 
-  private readonly lskNameStrings: Epic2BezelButtonEvents[] =
-    this.props.index === DisplayUnitIndices.PfdLeft ? [
-      Epic2BezelButtonEvents.LSK_R7,
-      Epic2BezelButtonEvents.LSK_R8,
-      Epic2BezelButtonEvents.LSK_R9,
-      Epic2BezelButtonEvents.LSK_R10,
-      Epic2BezelButtonEvents.LSK_R11,
-      Epic2BezelButtonEvents.LSK_R12,
-    ] : [
-      Epic2BezelButtonEvents.LSK_L7,
-      Epic2BezelButtonEvents.LSK_L8,
-      Epic2BezelButtonEvents.LSK_L9,
-      Epic2BezelButtonEvents.LSK_L10,
-      Epic2BezelButtonEvents.LSK_L11,
-      Epic2BezelButtonEvents.LSK_L12,
-    ];
+  /**
+   * Checks if the index is a com subwindow
+   * @param index The subwindow index to check.
+   * @returns true if com subwindow.
+   */
+  private isComSubWindowIndex(index: RadioSubWindowKey): boolean {
+    return index === RadioSubWindowKey.Com1 || index === RadioSubWindowKey.Com2;
+  }
+
+  /**
+   * Checks if the index is a nav subwindow
+   * @param index The subwindow index to check.
+   * @returns true if nav subwindow.
+   */
+  private isNavSubWindowIndex(index: RadioSubWindowKey): boolean {
+    return index === RadioSubWindowKey.Nav1 || index === RadioSubWindowKey.Nav2;
+  }
 
   /** @inheritDoc */
   onAfterRender(node: VNode): void {
@@ -75,9 +110,15 @@ export class RadioTuningWindow extends DisplayComponent<RadioTuningWindowProps> 
 
     this.props.bus.getSubscriber<HEvent>().on('hEvent').handle(this.handleBezelButton);
 
-    this.selectedSubWindowIndex.sub(index => {
-      this.subWindowIsSelected.forEach((subject: Subject<boolean>) => subject.set(false));
-      this.subWindowIsSelected[index].set(true);
+    this.selectedSubWindowKey.sub((selectedIndex) => {
+      for (const key of Object.keys(this.subWindowRefs) as Iterable<RadioSubWindowKey>) {
+        this.subWindowRefs[key].instance.isSelected.set(key === selectedIndex);
+      }
+      if (this.isComSubWindowIndex(selectedIndex)) {
+        this.lastSelectedComSubWindowIndex = selectedIndex;
+      } else if (this.isNavSubWindowIndex(selectedIndex)) {
+        this.lastSelectedNavSubWindowIndex = selectedIndex;
+      }
     }, true);
 
     this.props.bus.getSubscriber<Epic2PfdControlRadioEvents>().on('pfd_control_detail_push')
@@ -110,6 +151,36 @@ export class RadioTuningWindow extends DisplayComponent<RadioTuningWindowProps> 
         .handle(() => this.selectedRadioControlEventHander('epic2_du_frequency_swap_button'), true),
     ];
 
+    // MFD controller events
+    if (this.props.duIndex === DisplayUnitIndices.PfdLeft) {
+      this.pausables.push(
+        this.props.bus.getSubscriber<Epic2DuControlEvents>().on('epic2_du_com_button')
+          .handle(() => {
+            if (this.isComSubWindowIndex(this.selectedSubWindowKey.get())) {
+              this.selectedRadioControlEventHander('epic2_du_com_button');
+            } else {
+              this.selectedSubWindowKey.set(this.lastSelectedComSubWindowIndex);
+            }
+          }, true),
+        this.props.bus.getSubscriber<Epic2DuControlEvents>().on('epic2_du_nav_button')
+          .handle(() => {
+            if (this.isNavSubWindowIndex(this.selectedSubWindowKey.get())) {
+              this.selectedRadioControlEventHander('epic2_du_nav_button');
+            } else {
+              this.selectedSubWindowKey.set(this.lastSelectedNavSubWindowIndex);
+            }
+          }, true),
+        this.props.bus.getSubscriber<Epic2DuControlEvents>().on('epic2_du_xpdr_button')
+          .handle(() => {
+            if (this.selectedSubWindowKey.get() === RadioSubWindowKey.Xpdr) {
+              this.selectedRadioControlEventHander('epic2_du_xpdr_button');
+            } else {
+              this.selectedSubWindowKey.set(RadioSubWindowKey.Xpdr);
+            }
+          }, true),
+      );
+    }
+
     this.props.detailPagesController.currentPage.sub((page: RadioSubWindowDetailPage) => {
       if (page !== RadioSubWindowDetailPage.NONE) {
         this.pause();
@@ -125,22 +196,10 @@ export class RadioTuningWindow extends DisplayComponent<RadioTuningWindowProps> 
       return;
     }
 
-    let index: number | undefined;
-
-    switch (event) {
-      case this.lskNameStrings[0]:
-      case this.lskNameStrings[1]:
-      case this.lskNameStrings[2]:
-      case this.lskNameStrings[3]:
-      case this.lskNameStrings[4]:
-      case this.lskNameStrings[5]:
-        index = Epic2DuController.getSoftKeyIndexFromSoftKeyHEvent(event) - 7;
-        break;
-    }
-
-    if (typeof index === 'number' && isFinite(index)) {
-      if (this.selectedSubWindowIndex.get() !== index) {
-        this.selectedSubWindowIndex.set(index);
+    const subWindowKey = RadioTuningWindow.BEZEL_LSK_TO_SUBWINDOW_MAP[this.props.duSide].get(event as Epic2BezelButtonEvents);
+    if (subWindowKey) {
+      if (this.selectedSubWindowKey.get() !== subWindowKey) {
+        this.selectedSubWindowKey.set(subWindowKey);
       } else {
         this.selectedRadioControlEventHander('BEZEL_BUTTON');
       }
@@ -178,49 +237,49 @@ export class RadioTuningWindow extends DisplayComponent<RadioTuningWindowProps> 
         <ComRadioSubWindow
           bus={this.props.bus}
           index={1}
+          duIndex={this.props.duIndex}
           detailPagesController={this.props.detailPagesController}
-          isSelected={this.subWindowIsSelected[0]}
-          lskString={this.lskNameStrings[0]}
-          ref={this.subWindowRefs[0]}
+          ref={this.subWindowRefs[RadioSubWindowKey.Com1]}
+          setSelected={() => this.selectedSubWindowKey.set(RadioSubWindowKey.Com1)}
         />
         <ComRadioSubWindow
           bus={this.props.bus}
           index={2}
+          duIndex={this.props.duIndex}
           detailPagesController={this.props.detailPagesController}
-          isSelected={this.subWindowIsSelected[1]}
-          lskString={this.lskNameStrings[1]}
-          ref={this.subWindowRefs[1]}
+          ref={this.subWindowRefs[RadioSubWindowKey.Com2]}
+          setSelected={() => this.selectedSubWindowKey.set(RadioSubWindowKey.Com2)}
         />
         <NavRadioSubWindow
           bus={this.props.bus}
           index={1}
+          duIndex={this.props.duIndex}
           detailPagesController={this.props.detailPagesController}
-          isSelected={this.subWindowIsSelected[2]}
-          lskString={this.lskNameStrings[2]}
-          ref={this.subWindowRefs[2]}
+          ref={this.subWindowRefs[RadioSubWindowKey.Nav1]}
+          setSelected={() => this.selectedSubWindowKey.set(RadioSubWindowKey.Nav1)}
         />
         <NavRadioSubWindow
           bus={this.props.bus}
           index={2}
+          duIndex={this.props.duIndex}
           detailPagesController={this.props.detailPagesController}
-          isSelected={this.subWindowIsSelected[3]}
-          lskString={this.lskNameStrings[3]}
-          ref={this.subWindowRefs[3]}
+          ref={this.subWindowRefs[RadioSubWindowKey.Nav2]}
+          setSelected={() => this.selectedSubWindowKey.set(RadioSubWindowKey.Nav2)}
           fullWidthSeparator
         />
         <AdfRadioSubWindow
           bus={this.props.bus}
+          duIndex={this.props.duIndex}
           detailPagesController={this.props.detailPagesController}
-          isSelected={this.subWindowIsSelected[4]}
-          lskString={this.lskNameStrings[4]}
-          ref={this.subWindowRefs[4]}
+          ref={this.subWindowRefs[RadioSubWindowKey.Adf]}
+          setSelected={() => this.selectedSubWindowKey.set(RadioSubWindowKey.Adf)}
         />
         <XpdrRadioSubWindow
           bus={this.props.bus}
+          duIndex={this.props.duIndex}
           detailPagesController={this.props.detailPagesController}
-          isSelected={this.subWindowIsSelected[5]}
-          lskString={this.lskNameStrings[5]}
-          ref={this.subWindowRefs[5]}
+          ref={this.subWindowRefs[RadioSubWindowKey.Xpdr]}
+          setSelected={() => this.selectedSubWindowKey.set(RadioSubWindowKey.Xpdr)}
         />
       </div>
     );

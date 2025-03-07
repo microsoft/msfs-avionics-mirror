@@ -1,4 +1,5 @@
 import {
+  AirportClass,
   BasicFacilityWaypoint, BitFlags, Facility, FacilityType, FacilityWaypoint, FacilityWaypointUtils, IntersectionType, MapFlightPlanModule,
   MapSystemContext, MapSystemController, MapSystemKeys, MapSystemWaypointRoles, MapSystemWaypointsRenderer, MapWaypointDisplayModule,
   NearestAirportSearchSession, NearestVorSearchSession, Subscribable, UnitType, UserSettingManager, Waypoint
@@ -88,11 +89,11 @@ export class MapWaypointDisplayController extends MapSystemController<
 
     this.waypointsDisplayModule.ndbsRange.set(100, UnitType.NMILE);
 
-    this.waypointsDisplayModule.numAirports.set(150);
+    this.waypointsDisplayModule.numAirports.set(100);
 
     this.waypointsDisplayModule.numIntersections.set(100);
 
-    this.waypointsDisplayModule.numVors.set(150);
+    this.waypointsDisplayModule.numVors.set(110);
 
     // TODO Review for the Epic2
     this.waypointsDisplayModule.intersectionsFilter.set({
@@ -113,14 +114,19 @@ export class MapWaypointDisplayController extends MapSystemController<
     });
 
     this.waypointsDisplayModule.airportsFilter.set({
-      classMask: NearestAirportSearchSession.Defaults.ClassMask,
+      classMask: BitFlags.union(
+        BitFlags.createFlag(AirportClass.HardSurface),
+        BitFlags.createFlag(AirportClass.SoftSurface),
+        BitFlags.createFlag(AirportClass.AllWater),
+        BitFlags.createFlag(AirportClass.Private),
+      ),
       showClosed: NearestAirportSearchSession.Defaults.ShowClosed,
     });
 
     this.waypointsDisplayModule.extendedAirportsFilter.set({
       runwaySurfaceTypeMask: NearestAirportSearchSession.Defaults.SurfaceTypeMask,
       approachTypeMask: NearestAirportSearchSession.Defaults.ApproachTypeMask,
-      minimumRunwayLength: NearestAirportSearchSession.Defaults.MinimumRunwayLength,
+      minimumRunwayLength: 155,
       toweredMask: NearestAirportSearchSession.Defaults.ToweredMask,
     });
   }

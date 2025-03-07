@@ -1,7 +1,7 @@
 import {
   AirportFacility, ArraySubject, DepartureProcedure, EnrouteTransition, EventBus, FacilitySearchType, FacilityType, FlightPlan, FlightPlanCopiedEvent,
   FlightPlanIndicationEvent, FlightPlanModBatchEvent, FlightPlannerEvents, FlightPlanProcedureDetailsEvent, FmcPagingEvents, FmcRenderTemplate, ICAO,
-  MappedSubject, OneWayRunway, PageLinkField, RunwayUtils, Subject, Subscription
+  MappedSubject, OneWayRunway, PageLinkField, Procedure, RunwayUtils, Subject, Subscription
 } from '@microsoft/msfs-sdk';
 
 import { UnsFlightPlans, UnsFms } from '../../Fms';
@@ -224,7 +224,7 @@ class UnsDeparturePageController {
    *
    * @throws if flight plan originAirport and FMS facilityinfo are out of sync
    */
-  private updateStoreFromFlightPlan(plan: FlightPlan): void {
+  public updateStoreFromFlightPlan(plan: FlightPlan): void {
     const airportIcao = plan.originAirport;
 
     if (airportIcao === undefined || airportIcao === ICAO.emptyIcao) {
@@ -246,7 +246,7 @@ class UnsDeparturePageController {
     const runway = plan.procedureDetails.originRunway ?? null;
     this.store.pickedRunway.set(runway);
 
-    const departure = plan.procedureDetails.departureIndex !== -1 ? airportFacility.departures[plan.procedureDetails.departureIndex]: null;
+    const departure = plan.procedureDetails.departureIndex !== -1 ? airportFacility.departures[plan.procedureDetails.departureIndex] : null;
     this.store.pickedDeparture.set(departure);
 
     const departureEnrouteTransition = (plan.procedureDetails.departureTransitionIndex !== -1 && departure)
@@ -257,6 +257,8 @@ class UnsDeparturePageController {
     this.store.availableRunways.set(this.availableRunwaysFromAirport(airportFacility));
     runway && this.store.availableDepartures.set(this.availableDeparturesFromRunway(airportFacility, runway));
     departure && this.store.availableDepartureTransitions.set(this.availableDepartureEnrouteTransitionsFromDeparture(departure));
+
+    this.handlePageStateChange(this.store.state.get());
   }
 
   /**
@@ -312,14 +314,14 @@ class UnsDeparturePageController {
    *
    * @param departure the departure
    */
-  public pickDeparture(departure: DepartureProcedure): void {
+  public pickDeparture(departure: DepartureProcedure | null): void {
     this.store.pickedDeparture.set(departure);
 
     this.store.pickedDepartureTransition.set(null);
 
     this.handleModifyFlightPlan();
 
-    this.store.availableDepartureTransitions.set(this.availableDepartureEnrouteTransitionsFromDeparture(departure));
+    this.store.availableDepartureTransitions.set(departure ? this.availableDepartureEnrouteTransitionsFromDeparture(departure) : []);
 
     this.store.state.set(UnsDeparturePageState.PickDepartureTransition);
   }
@@ -329,7 +331,7 @@ class UnsDeparturePageController {
    *
    * @param transition the transition
    */
-  public pickDepartureEnrouteTransition(transition: EnrouteTransition): void {
+  public pickDepartureEnrouteTransition(transition: EnrouteTransition | null): void {
     this.store.pickedDepartureTransition.set(transition);
 
     this.handleModifyFlightPlan();
@@ -457,7 +459,7 @@ export class UnsDeparturePage extends UnsFmcPage {
       },
 
       /** @inheritDoc */
-      parse: (input): OneWayRunway | null  =>{
+      parse: (input): OneWayRunway | null => {
         const int = parseInt(input);
 
         if (!Number.isFinite(int)) {
@@ -488,13 +490,15 @@ export class UnsDeparturePage extends UnsFmcPage {
     },
   }).bindWrappedData(this.store.pickedRunway);
 
-  private readonly DepartureField = new UnsTextInputField<readonly [DepartureProcedure | null, EnrouteTransition | null, UnsDeparturePageState], void>(this, {
+  private readonly DepartureField = new UnsTextInputField<readonly [Procedure | null, EnrouteTransition | null, UnsDeparturePageState], void>(this, {
     maxInputCharacterCount: 2,
+    acceptEmptyInput: true,
+    takeCursorControl: true,
     formatter: {
       nullValueString: '',
 
       /** @inheritDoc */
-      format([[departure, transition, state], isHighlighted, typedText]): string {
+      format: ([[departure, transition, state], isHighlighted, typedText]): string => {
         let departureString = '-------.[white]';
         if (isHighlighted && state === UnsDeparturePageState.PickDeparture) {
           departureString = `#[cyan] [white]${typedText.padStart(2, ' ')}[r-white]`;
@@ -515,32 +519,54 @@ export class UnsDeparturePage extends UnsFmcPage {
       },
 
       /** @inheritDoc */
-      parse: (input): void | null => {
+      parse: async (input): Promise<void | null> => {
+        const state = this.store.state.get();
+        if (input.trim() === '') {
+          switch (state) {
+            case UnsDeparturePageState.PickDeparture:
+              this.controller.pickDeparture(null);
+              return;
+            case UnsDeparturePageState.PickDepartureTransition:
+              this.controller.pickDepartureEnrouteTransition(null);
+              this.screen.tryFocusField(this.DepartureField);
+              return;
+          }
+        }
+
         const int = parseInt(input);
 
         if (!Number.isFinite(int)) {
           return null;
         }
 
-        const settingDeparture = !this.store.pickedDeparture.get();
-
-        if (settingDeparture) {
-          const departure = this.store.availableDepartures.get(int - 1);
+        if (state === UnsDeparturePageState.PickDeparture) {
+          const departure = this.store.availableDepartures.tryGet(int - 1);
 
           if (!departure) {
             return null;
           }
 
+          // We set the transition to null as the user may have previously set a transition for another arrival
+          this.controller.pickDepartureEnrouteTransition(null);
           this.controller.pickDeparture(departure);
+
+          if (this.store.availableDepartureTransitions.length > 0) {
+            this.screen.tryFocusField(this.DepartureField);
+          } else {
+            this.screen.interruptCursorPath();
+            this.store.state.set(UnsDeparturePageState.Standby);
+          }
+
           return;
-        } else {
-          const transition = this.store.availableDepartureTransitions.get(int - 1);
+        } else if (state === UnsDeparturePageState.PickDepartureTransition) {
+          const transition = this.store.availableDepartureTransitions.tryGet(int - 1);
 
           if (!transition) {
             return null;
           }
 
           this.controller.pickDepartureEnrouteTransition(transition);
+          this.screen.interruptCursorPath();
           return;
         }
       },
@@ -548,20 +574,14 @@ export class UnsDeparturePage extends UnsFmcPage {
 
     onSelected: async () => {
       if (this.screen.toggleFieldFocused(this.DepartureField)) {
-        this.store.state.set(
-          this.store.pickedDeparture.get()
-            ? UnsDeparturePageState.PickDepartureTransition
-            : UnsDeparturePageState.PickDeparture,
-        );
+        this.store.state.set(UnsDeparturePageState.PickDeparture);
       } else {
         this.store.state.set(UnsDeparturePageState.Standby);
       }
 
       return true;
     },
-  }).bindWrappedData(
-    MappedSubject.create(this.store.pickedDeparture, this.store.pickedDepartureTransition, this.store.state),
-  );
+  }).bindWrappedData(MappedSubject.create(this.store.pickedDeparture, this.store.pickedDepartureTransition, this.store.state));
 
   private readonly FplLink = PageLinkField.createLink(this, `FPL${UnsChars.ArrowRight}`, '/fpl');
 
@@ -592,23 +612,22 @@ export class UnsDeparturePage extends UnsFmcPage {
 
   /** @inheritDoc */
   protected override onResume(): void {
-    const planHasOriginAirport = this.fms.getPrimaryFlightPlan().originAirport !== undefined;
+    const plan = this.fms.getFlightPlan(this.store.targetPlanIndex);
+
+    const planHasOriginAirport = plan.originAirport !== undefined;
+    const planHasDepartureRunway = plan.procedureDetails.departureRunwayIndex !== -1;
+
+    this.controller.updateStoreFromFlightPlan(plan);
+
+    this.store.state.set(UnsDeparturePageState.Standby);
 
     if (!planHasOriginAirport) {
       this.screen.tryFocusField(this.AirportField);
       this.store.state.set(UnsDeparturePageState.Standby);
-      return;
-    }
-
-    const planHasDepartureRunway = this.fms.getPrimaryFlightPlan().procedureDetails.departureRunwayIndex !== -1;
-
-    if (!planHasDepartureRunway) {
+    } else if (!planHasDepartureRunway) {
       this.screen.tryFocusField(this.RunwayField);
       this.store.state.set(UnsDeparturePageState.PickRunway);
-      return;
     }
-
-    this.store.state.set(UnsDeparturePageState.Standby);
   }
 
   public override cursorPath: UnsCduCursorPath = {
@@ -616,8 +635,7 @@ export class UnsDeparturePage extends UnsFmcPage {
     rules: new Map<UnsFocusableField<any>, UnsFocusableField<any>>([
       [this.AirportField, this.RunwayField],
       [this.RunwayField, this.DepartureField],
-      [this.DepartureField, this.DepartureField],
-    ] ),
+    ]),
   };
 
   protected pageTitle = 'DEPARTURE';

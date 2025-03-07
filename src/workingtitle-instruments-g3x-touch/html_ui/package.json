@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-wtg3x",
-  "version": "2.0.4",
+  "version": "2.0.6",
   "description": "Working Title MSFS G3X Touch",
   "main": "index.ts",
   "scripts": { },

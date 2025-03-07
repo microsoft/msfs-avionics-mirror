@@ -1,2 +1,2 @@
-export * from './XpdrDetailPage';
 export * from './VfrCodeRow';
+export * from './XpdrDetailPage';

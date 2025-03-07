@@ -6,7 +6,7 @@ import {
 
 import {
   BarTouchButtonArrow, Epic2CoordinatesUtils, Epic2Fms, Epic2FmsUtils, FlightPlanLegData, FlightPlanStore, FmsMessageKey, FmsMessageTransmitter, InputField,
-  KeyboardInputButton, ListItem, ModalKey, ModalService, SectionOutline, TouchButton, UppercaseTextInputFormat
+  KeyboardInputButton, ListItem, ModalKey, ModalService, TouchButton, UppercaseTextInputFormat
 } from '@microsoft/msfs-epic2-shared';
 
 import { JoinAirwayOverlay } from '../../Modals/JoinOverlayModal';
@@ -38,9 +38,10 @@ interface FlightPlanAmendListItemProps {
 
 /** A component that wraps list item content for use with GtcList. */
 export class FlightPlanAmendListItem extends DisplayComponent<FlightPlanAmendListItemProps> {
+  private static readonly MAX_ITEMS = 100;
   private readonly fmsMessageTransmitter = new FmsMessageTransmitter(this.props.bus);
   private readonly listItemRef = FSComponent.createRef<DisplayComponent<any>>();
-  private readonly outlineRef = FSComponent.createRef<SectionOutline>();
+  private readonly inputFieldRef = FSComponent.createRef<DisplayComponent<any>>();
 
   private readonly hideBorder = Subject.create(false);
   private readonly paddedListItem = Subject.create(true);
@@ -77,41 +78,43 @@ export class FlightPlanAmendListItem extends DisplayComponent<FlightPlanAmendLis
   }
 
   /**
-   * Gets a facility from an icao
-   * @param icaoA The first icao
-   * @param icaoB The second icao if both have conflicting names
-   * @returns The chosen facility, or null if there are none
+   * Gets a facility, or pair of facilities, from ident(s).
+   * @param identA The first ident.
+   * @param identB The second ident.
+   * @returns An array containing a pair of facilities (null if no facility).
    */
-  private async getFacilityFromIcao(icaoA: string, icaoB?: string): Promise<[Facility | null, Facility | null]> {
-    const waypointsA = (await this.props.fms.facLoader.searchByIdent(FacilitySearchType.AllExceptVisual, icaoA)).filter((waypoint) => ICAO.getIdent(waypoint) == icaoA.toUpperCase());
-    const waypointsB = icaoB ? (await this.props.fms.facLoader.searchByIdent(FacilitySearchType.AllExceptVisual, icaoB)).filter((waypoint) => ICAO.getIdent(waypoint) == icaoB.toUpperCase()) : null;
+  private async getFacilityFromIcao(identA: string, identB?: string): Promise<[Facility | null, Facility | null]> {
+    const identAUpper = identA.toUpperCase();
+    const identBUpper = identB ? identB.toUpperCase() : identB;
+    const icaosA = (await this.props.fms.facLoader.searchByIdentWithIcaoStructs(FacilitySearchType.AllExceptVisual, identAUpper, FlightPlanAmendListItem.MAX_ITEMS)).filter((icao) => icao.ident == identAUpper);
+    const icaosB = identBUpper ? (await this.props.fms.facLoader.searchByIdentWithIcaoStructs(FacilitySearchType.AllExceptVisual, identBUpper, FlightPlanAmendListItem.MAX_ITEMS)).filter((icao) => icao.ident == identBUpper) : null;
 
-    if (!waypointsA || waypointsA.length == 0 || (waypointsB && waypointsB.length == 0)) {
+    if (!icaosA || icaosA.length == 0 || (icaosB && icaosB.length == 0)) {
       return [null, null];
     } else {
       let resultA = null, resultB = null;
-      if (waypointsA.length == 1 && waypointsA[0]) {
+      if (icaosA.length == 1 && icaosA[0]) {
         // Set result A if there is only one waypoint matching icao A
-        resultA = await this.props.fms.facLoader.getFacility(ICAO.getFacilityType(waypointsA[0]), waypointsA[0]);
+        resultA = await this.props.fms.facLoader.getFacility(ICAO.getFacilityTypeFromValue(icaosA[0]), icaosA[0]);
       }
 
-      if (waypointsB) {
-        if (waypointsB.length == 1 && waypointsB[0]) {
+      if (icaosB) {
+        if (icaosB.length == 1 && icaosB[0]) {
           // Set result B if there is only one waypoint matching icao A
-          resultB = await this.props.fms.facLoader.getFacility(ICAO.getFacilityType(waypointsB[0]), waypointsB[0]);
+          resultB = await this.props.fms.facLoader.getFacility(ICAO.getFacilityTypeFromValue(icaosB[0]), icaosB[0]);
 
           // If one waypoint matches icao B, but multiple match icao A, then we want to only show icao A on select waypoint menu
           if (!resultA) {
-            [resultA] = await this.props.modalService.open<SelectObjectModal>(ModalKey.SelectObject).modal.getFacility(waypointsA);
+            [resultA] = await this.props.modalService.open<SelectObjectModal>(ModalKey.SelectObject).modal.getFacility(icaosA);
           }
         } else {
-          [resultA, resultB] = await this.props.modalService.open<SelectObjectModal>(ModalKey.SelectObject).modal.getFacility(waypointsA, waypointsB);
+          [resultA, resultB] = await this.props.modalService.open<SelectObjectModal>(ModalKey.SelectObject).modal.getFacility(icaosA, icaosB);
         }
       }
 
-      if (!resultA && !waypointsB) {
+      if (!resultA && !icaosB) {
         // If there is no icao B provided, and there are multiple matching waypoints to icao A
-        [resultA] = await this.props.modalService.open<SelectObjectModal>(ModalKey.SelectObject).modal.getFacility(waypointsA);
+        [resultA] = await this.props.modalService.open<SelectObjectModal>(ModalKey.SelectObject).modal.getFacility(icaosA);
       }
 
       return [resultA, resultB];
@@ -231,10 +234,10 @@ export class FlightPlanAmendListItem extends DisplayComponent<FlightPlanAmendLis
    * @param data The amend waypoint selected
    */
   private setJoinButtonVisibility(data: FlightPlanLegData | undefined): void {
-    if (data && data.leg.leg.fixIcao.trim().length > 0) {
+    if (data && ICAO.isValueFacility(data.leg.leg.fixIcaoStruct, FacilityType.Intersection)) {
       const segmentType = data.segment.segmentType;
       if (segmentType == FlightPlanSegmentType.Departure || segmentType == FlightPlanSegmentType.Enroute) {
-        this.props.fms.facLoader.getFacility(FacilityType.Intersection, data.leg.leg.fixIcao).then((fac) => {
+        this.props.fms.facLoader.getFacility(FacilityType.Intersection, data.leg.leg.fixIcaoStruct).then((fac) => {
           this.isIntersection.set((fac && fac.routes !== undefined && fac.routes.length > 0) ? true : false);
         });
       } else {
@@ -280,6 +283,7 @@ export class FlightPlanAmendListItem extends DisplayComponent<FlightPlanAmendLis
           </div>
           <div class='amend-route-bottom-row-container'>
             <InputField
+              ref={this.inputFieldRef}
               bus={this.props.bus}
               textAlign='center'
               bind={this.input}
@@ -288,6 +292,7 @@ export class FlightPlanAmendListItem extends DisplayComponent<FlightPlanAmendLis
               tscConnected
               blurOnEnter
               onBlur={this.onEnterPress.bind(this)}
+              tscDisplayLabel={'Amend Route'}
             />
             <TouchButton onPressed={this.onEnterPress.bind(this)} isEnabled={true} variant='bar' class={'enter-button'}>
               <div class="text">Enter</div>
@@ -300,6 +305,7 @@ export class FlightPlanAmendListItem extends DisplayComponent<FlightPlanAmendLis
 
   /** @inheritdoc */
   public override destroy(): void {
+    this.inputFieldRef.getOrDefault()?.destroy();
     this.listItemRef.getOrDefault()?.destroy();
 
     this.subs.forEach(sub => { sub.destroy(); });

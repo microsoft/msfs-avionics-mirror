@@ -1,6 +1,6 @@
 import { ComponentProps, DisplayComponent, FSComponent, MappedSubject, Subject, Subscribable, VNode } from '@microsoft/msfs-sdk';
 
-import { AutopilotDataProvider, Epic2ApVerticalMode, Epic2FlightArea, RnavMinima } from '@microsoft/msfs-epic2-shared';
+import { AutopilotDataProvider, Epic2ApVerticalMode, Epic2FlightArea, RnavMinima, TawsDataProvider } from '@microsoft/msfs-epic2-shared';
 
 import './ApproachStatus.css';
 
@@ -8,6 +8,8 @@ import './ApproachStatus.css';
 export interface ApproachStatusProps extends ComponentProps {
   /** An autopilot data provider. */
   autopilotDataProvider: AutopilotDataProvider,
+  /** A TAWS data provider */
+  tawsDataProvider: TawsDataProvider,
   /** Whether the PFD is being decluttered */
   declutter: Subscribable<boolean>;
 }

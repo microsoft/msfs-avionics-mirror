@@ -45,7 +45,7 @@ export interface SpeedConstraintReturnRecord {
 
 /** Class responsible for the aircraft speed predictions */
 export class Epic2SpeedPredictions {
-  private readonly gpsPosition = ConsumerSubject.create<LatLongAlt>(this.bus.getSubscriber<GNSSEvents>().on('gps-position').atFrequency(5), new LatLongAlt(NaN));
+  private readonly gpsPosition = ConsumerSubject.create<LatLongAlt>(this.bus.getSubscriber<GNSSEvents>().on('gps-position').atFrequency(5), new LatLongAlt({ lat: NaN, long: NaN }));
   private readonly altitude = ConsumerSubject.create<number>(this.bus.getSubscriber<AdcEvents>().on('indicated_alt').whenChangedBy(10), 0);
   private readonly flapPosition = ConsumerSubject.create<number>(this.bus.getSubscriber<ControlSurfacesEvents>().on('flaps_left_angle'), 0);
   private readonly gaModeActive = ConsumerSubject.create<Epic2FmaData | undefined>(this.bus.getSubscriber<Epic2FmaEvents>().on('epic2_fma_data'), undefined).map((data) => data?.verticalActive === APVerticalModes.GA);

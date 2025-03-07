@@ -66,7 +66,7 @@ export class UnsFmcScreen extends FmcScreen<UnsFmcPage, UnsFmcEvents> {
         renderTarget,
         { screenCellWidth: UNS_CDU_CELL_WIDTH, screenCellHeight: UNS_CDU_CELL_HEIGHT, screenPXWidth: (630 * 1), screenPXHeight: 400 },
       ),
-      new FmcScratchpad(bus, { cellWidth: UNS_CDU_CELL_WIDTH }, () => {}),
+      new FmcScratchpad(bus, { cellWidth: UNS_CDU_CELL_WIDTH }, () => { }),
     );
 
     this.setupEvents();
@@ -498,24 +498,24 @@ export class UnsFmcScreen extends FmcScreen<UnsFmcPage, UnsFmcEvents> {
 
   /** @inheritDoc */
   public navigateTo(
-      route: string,
-      params?: Record<string, unknown>,
-      dontInterruptCursor?: boolean,
+    route: string,
+    params?: Record<string, unknown>,
+    dontInterruptCursor?: boolean,
   ): void;
   /** @inheritDoc */
   public navigateTo<U extends PageConstructor<UnsFmcPage>>(
-      pageClass: U,
-      props: U extends PageConstructor<AbstractFmcPage<infer V>, infer V> ? V : never,
-      dontInterruptCursor?: boolean,
+    pageClass: U,
+    props: U extends PageConstructor<AbstractFmcPage<infer V>, infer V> ? V : never,
+    dontInterruptCursor?: boolean,
   ): void;
   /** @inheritDoc */
   public navigateTo<U extends PageConstructor<UnsFmcPage>>(
-      arg0: string | U,
-      arg1?: Record<string, unknown> | U extends PageConstructor<AbstractFmcPage<infer V>, infer V> ? V : never,
-      dontInterruptCursor?: boolean
+    arg0: string | U,
+    arg1?: Record<string, unknown> | U extends PageConstructor<AbstractFmcPage<infer V>, infer V> ? V : never,
+    dontInterruptCursor?: boolean
   ): void {
     if (this.currentlyDisplayedPage instanceof UnsSelfTestPage
-        && (!!arg1 && typeof arg1 === 'object' && 'bypassSelfTestLock' in arg1 && !arg1?.['bypassSelfTestLock'])
+      && (!!arg1 && typeof arg1 === 'object' && 'bypassSelfTestLock' in arg1 && !arg1?.['bypassSelfTestLock'])
     ) {
       return;
     }

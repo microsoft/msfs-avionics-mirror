@@ -4,12 +4,12 @@ import {
 } from '@microsoft/msfs-sdk';
 
 import { AcasSystemDefinition } from '../AvionicsConfig';
-import { Epic2FlightArea } from '../Fms';
 import { Epic2LNavDataEvents } from '../Navigation';
 import { TcasOperatingModeSetting, TrafficUserSettings } from '../Settings';
 import { AdsbSensitivityParameters } from './AdsbSensitivityParameters';
 import { Epic2Adsb } from './Epic2Adsb';
 import { Epic2TcasIntruder } from './Epic2TcasIntruder';
+import { Epic2FlightArea } from '../Autopilot';
 
 /**
  * A TCAS II implementation for the Epic2.

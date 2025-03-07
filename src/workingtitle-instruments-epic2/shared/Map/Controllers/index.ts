@@ -4,3 +4,4 @@ export * from './MapAutopilotPropsController';
 export * from './MapFormatController';
 export * from './MapRangeController';
 export * from './MapTerrainColorsController';
+export * from './MapWaypointDisplayController';

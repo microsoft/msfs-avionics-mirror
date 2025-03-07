@@ -74,4 +74,13 @@ export class Epic2RadioUtils {
   public static setActiveNavFrequencyMhz(radioIndex: 1 | 2, frequency: number): void {
     SimVar.SetSimVarValue(`K:NAV${radioIndex}_RADIO_SET_HZ`, 'Hz', frequency * MHZ_TO_HZ_MULTIPLIER);
   }
+
+  /**
+   * Sets the specified navigation radio course.
+   * @param radioIndex The index of the radio to use.
+   * @param course The course in degrees.
+   */
+  public static setActiveNavCourse(radioIndex: 1 | 2, course: number): void {
+    SimVar.SetSimVarValue(`K:VOR${radioIndex}_SET`, 'number', course);
+  }
 }

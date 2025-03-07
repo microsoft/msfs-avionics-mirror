@@ -23,6 +23,16 @@ epic2-upper-mfd #UpperMfdContent {
   height: 768px;
 }
 
+.charts-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 684px;
+  height: 768px;
+  background: var(--epic2-color-dark-grey);
+  font-size: 23px;
+}
+
 .flight-plan-list-section {
   position: absolute;
   top: 0;

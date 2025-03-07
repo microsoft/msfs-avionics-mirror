@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-epic2-mfd-lower",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "Working Title Epic 2 Lower MFD",
   "typings": "index.d.ts",
   "repository": {

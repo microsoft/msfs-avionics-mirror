@@ -38,7 +38,6 @@ interface FlightPlanDtoRandomListItemProps {
 export class FlightPlanDtoRandomListItem extends DisplayComponent<FlightPlanDtoRandomListItemProps> {
   private readonly fmsMessageTransmitter = new FmsMessageTransmitter(this.props.bus);
   private readonly publisher = this.props.bus.getPublisher<Epic2TscKeyboardEvents>();
-  private readonly subscriber = this.props.bus.getSubscriber<Epic2TscKeyboardEvents>();
   private readonly listItemRef = FSComponent.createRef<DisplayComponent<any>>();
 
   private readonly inputFieldRef = FSComponent.createRef<InputField<string>>();
@@ -49,24 +48,24 @@ export class FlightPlanDtoRandomListItem extends DisplayComponent<FlightPlanDtoR
   private readonly classList = SetSubject.create(['dto-random-list-item']);
   private readonly isVisible = Subject.create(true);
 
-  private subs = [] as Subscription[];
   private readonly airwaySubs = [] as Subscription[];
 
   /**
-   * Gets a facility from an icao
-   * @param icao The waypoint icao
+   * Gets a facility from an ident
+   * @param ident The waypoint ident
    * @returns The chosen facility, or null if there are none
    */
-  private async getFacilityFromIcao(icao: string): Promise<Facility | null> {
-    const waypointsA = (await this.props.fms.facLoader.searchByIdent(FacilitySearchType.AllExceptVisual, icao)).filter((waypoint) => ICAO.getIdent(waypoint) == icao.toUpperCase());
-    if (!waypointsA || waypointsA.length == 0) {
+  private async getFacilityFromIdent(ident: string): Promise<Facility | null> {
+    const identUpper = ident.toUpperCase();
+    const icaos = (await this.props.fms.facLoader.searchByIdentWithIcaoStructs(FacilitySearchType.AllExceptVisual, identUpper)).filter((icao) => icao.ident == identUpper);
+    if (!icaos || icaos.length == 0) {
       return null;
     } else {
       let resultA = null;
-      if (waypointsA.length == 1 && waypointsA[0]) {
-        resultA = await this.props.fms.facLoader.getFacility(ICAO.getFacilityType(waypointsA[0]), waypointsA[0]);
+      if (icaos.length == 1 && icaos[0]) {
+        resultA = await this.props.fms.facLoader.tryGetFacility(ICAO.getFacilityTypeFromValue(icaos[0]), icaos[0]);
       } else {
-        [resultA] = await this.props.modalService.open<SelectObjectModal>(ModalKey.SelectObject).modal.getFacility(waypointsA);
+        [resultA] = await this.props.modalService.open<SelectObjectModal>(ModalKey.SelectObject).modal.getFacility(icaos);
       }
 
       return resultA;
@@ -78,20 +77,24 @@ export class FlightPlanDtoRandomListItem extends DisplayComponent<FlightPlanDtoR
    * @returns nothing
    */
   private async directTo(): Promise<void> {
-    this.closeTscKeyboard();
+    const ident = this.dtoWaypoint.get();
+    this.close();
 
-    const plan = this.props.fms.getModFlightPlan();
-    const wpt = this.dtoWaypoint.get() ?? '';
+    if (ident === null) {
+      return this.fmsMessageTransmitter.sendMessage(FmsMessageKey.GenericInvalidEntry);
+    }
 
-    const facility = await this.getFacilityFromIcao(wpt);
-
-    if (plan.length <= 2) {
+    if (this.props.fms.getFlightPlan(this.props.fms.getPlanIndexForFmcPage()).length < 2) {
       return this.fmsMessageTransmitter.sendMessage(FmsMessageKey.InvalidFlightPlanOp);
     }
+
+    const facility = await this.getFacilityFromIdent(ident);
 
     if (!facility) {
       return this.fmsMessageTransmitter.sendMessage(FmsMessageKey.GenericInvalidEntry);
     }
+
+    const plan = this.props.fms.getModFlightPlan();
 
     const legSegment = plan.getSegmentIndex(plan.activeLateralLeg);
     const legIndex = plan.getSegmentLegIndex(plan.activeLateralLeg);
@@ -111,17 +114,6 @@ export class FlightPlanDtoRandomListItem extends DisplayComponent<FlightPlanDtoR
   private close(): void {
     this.props.store.isDtoRandomEntryShown.set(false);
     this.closeTscKeyboard();
-  }
-
-  /** @inheritdoc */
-  public onAfterRender(): void {
-    this.subs = [
-      this.subscriber.on('tsc_keyboard_next').handle(async () => {
-        if (this.inputFieldRef.instance.inputBoxRef.instance.isActive.get() === true) {
-          await this.directTo();
-        }
-      }),
-    ];
   }
 
   /** Closes the tsc keyboard */
@@ -174,9 +166,9 @@ export class FlightPlanDtoRandomListItem extends DisplayComponent<FlightPlanDtoR
 
   /** @inheritdoc */
   public override destroy(): void {
+    this.inputFieldRef.getOrDefault()?.destroy();
     this.listItemRef.getOrDefault()?.destroy();
 
-    this.subs.forEach(sub => { sub.destroy(); });
     this.airwaySubs.forEach(sub => { sub.destroy(); });
 
     super.destroy();

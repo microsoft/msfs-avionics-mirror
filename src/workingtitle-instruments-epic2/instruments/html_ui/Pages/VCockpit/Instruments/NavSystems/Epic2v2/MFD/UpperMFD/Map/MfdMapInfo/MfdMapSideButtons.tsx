@@ -4,7 +4,7 @@ import {
 
 import {
   Epic2ApPanelEvents, Epic2BezelButtonEvents, FmsMessageControlEvents, FmsMessageEvents, MapDisplayMode, MfdAliasedUserSettingTypes, ModalKey, ModalService,
-  TouchButton, TouchButtonCheckbox
+  TouchButton, TouchButtonCheckbox, UpperMfdDisplayPage
 } from '@microsoft/msfs-epic2-shared';
 
 import { NearestFunctionModal } from '../NearestFunctionModal';
@@ -46,6 +46,7 @@ export class MfdMapSideButtons extends DisplayComponent<MfdMapSideButtonProps> {
     Epic2BezelButtonEvents.LSK_R5,
     Epic2BezelButtonEvents.LSK_R6,
     Epic2BezelButtonEvents.LSK_R7,
+    Epic2BezelButtonEvents.LSK_R8,
   ];
 
   /** @inheritdoc */
@@ -65,30 +66,36 @@ export class MfdMapSideButtons extends DisplayComponent<MfdMapSideButtonProps> {
    * @param event The HEvent string.
    */
   private handleLskHEvent(event: string): void {
-    switch (event) {
-      case this.lskNameStrings[0]:
-        this.onMapModeButtonPressed();
-        break;
-      case this.lskNameStrings[1]:
-        this.onCenterByAcButtonPressed();
-        break;
-      case this.lskNameStrings[2]:
-        this.onCenterToWptButtonPressed();
-        break;
-      case this.lskNameStrings[3]:
-        this.onSkipWptButtonPressed();
-        break;
-      case this.lskNameStrings[4]:
-        this.onRecallWptButtonPressed();
-        break;
-      case this.lskNameStrings[5]:
-        this.onMsgClearButtonPressed();
-        break;
-      case this.lskNameStrings[6]:
-        this.onNrstButtonPressed();
-        break;
-      default:
-        break;
+    // Only accept bezel button events if the map is currently being displayed
+    if (this.props.settings.getSetting('upperMfdDisplayPage').get() === UpperMfdDisplayPage.Inav) {
+      switch (event) {
+        case this.lskNameStrings[0]:
+          this.onMapModeButtonPressed();
+          break;
+        case this.lskNameStrings[1]:
+          this.onCenterByAcButtonPressed();
+          break;
+        case this.lskNameStrings[2]:
+          this.onCenterToWptButtonPressed();
+          break;
+        case this.lskNameStrings[3]:
+          this.onSkipWptButtonPressed();
+          break;
+        case this.lskNameStrings[4]:
+          this.onRecallWptButtonPressed();
+          break;
+        case this.lskNameStrings[5]:
+          this.onMsgClearButtonPressed();
+          break;
+        case this.lskNameStrings[6]:
+          this.onNrstButtonPressed();
+          break;
+        case this.lskNameStrings[7]:
+          this.onChartsButtonPressed();
+          break;
+        default:
+          break;
+      }
     }
   }
 
@@ -138,6 +145,11 @@ export class MfdMapSideButtons extends DisplayComponent<MfdMapSideButtonProps> {
     this.props.modalService.open<NearestFunctionModal>(ModalKey.NearestAirports);
   }
 
+  /** Callback when Charts button is pressed. */
+  private onChartsButtonPressed(): void {
+    this.props.settings.getSetting('upperMfdDisplayPage').set(UpperMfdDisplayPage.Charts);
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     return (
@@ -181,7 +193,7 @@ export class MfdMapSideButtons extends DisplayComponent<MfdMapSideButtonProps> {
           />
         </div>
         <TouchButton label="Nrst" variant="base" onPressed={() => this.onNrstButtonPressed()} />
-        <TouchButton label="Charts" variant="base" />
+        <TouchButton label="Charts" variant="base" onPressed={() => this.onChartsButtonPressed()} />
         <TouchButtonCheckbox label="VSD" class="mfd-side-button-vsd" isChecked={Subject.create<boolean>(false)} isEnabled={false} variant="base" />
       </div>
     );

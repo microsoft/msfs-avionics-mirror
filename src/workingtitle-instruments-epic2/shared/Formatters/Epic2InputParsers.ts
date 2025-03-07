@@ -6,12 +6,12 @@ export type Parser<T> = Validator<T>['parse'];
 /** Contains Boeing FMC parse functions and parse function factories. */
 export class Epic2InputParsers {
   /**
-   * A 4-character airport ICAO parser.
-   * @returns A 4-character airport ICAO parser.
+   * A 3-5 character airport ICAO parser.
+   * @returns A 3-5 character airport ICAO parser.
    */
   public static AirportIcao(): Parser<string> {
     return (input: string): string | null => {
-      const regex = /^[a-zA-Z0-9]{4}$/;
+      const regex = /^[a-zA-Z0-9]{3,5}$/;
       if (!regex.test(input)) {
         return null;
       }

@@ -68,14 +68,10 @@ export class FlightPlanLegListItem extends DisplayComponent<FlightPlanLegListIte
   );
 
   private readonly patternIconText = Subject.create<string | null>(null);
-  private readonly turnIndicatorText = this.legData.isLargeTurn.map((isLarge) => {
-    const turnDirection = this.legData.leg.leg.turnDirection;
-    if (isLarge && !this.legData.isArcLeg && !this.legData.isProcedureTurn) {
-      return turnDirection === LegTurnDirection.Left ? 'L' : 'R';
-    } else {
-      return null;
-    }
-  });
+  private readonly turnIndicatorText = !this.legData.isArcLeg && !this.legData.isProcedureTurn && !this.legData.isHoldLeg
+    ? (this.legData.leg.leg.turnDirection === LegTurnDirection.Left ? 'L' : (this.legData.leg.leg.turnDirection === LegTurnDirection.Right ? 'R' : null))
+    : null;
+
   private readonly icaoText = MappedSubject.create(([departure, arrival, approach]) => {
     if (this.legData.isInDepartureSegment) {
       return departure;
@@ -114,20 +110,13 @@ export class FlightPlanLegListItem extends DisplayComponent<FlightPlanLegListIte
 
   /** @inheritdoc */
   public override onAfterRender(): void {
-    this.props.legListData.legData.isActiveLeg.sub(isActiveLeg => {
-      this.classList.toggle('active-leg', isActiveLeg);
-    }, true);
-    this.props.legListData.legData.isFromLeg.sub(isFromLeg => {
-      this.classList.toggle('from-leg', isFromLeg);
-    }, true);
-    this.props.legListData.legData.isBehindActiveLeg.sub(removing => {
-      this.classList.toggle('removing-leg', removing);
-    });
-
-    this.props.legListData.isBeingRemoved.sub(removing => {
-      this.classList.toggle('removing-leg', removing);
-    });
+    this.props.legListData.legData.isActiveLeg.sub(isActiveLeg => this.classList.toggle('active-leg', isActiveLeg), true);
+    this.props.legListData.legData.isFromLeg.sub(isFromLeg => this.classList.toggle('from-leg', isFromLeg), true);
+    this.props.store.isLnavTracking.sub(isTracking => this.classList.toggle('lnav-tracking', isTracking), true);
     this.props.legListData.isNew.sub((isNew) => this.classList.toggle('adding-leg', isNew));
+
+    this.props.legListData.legData.isBehindActiveLeg.sub(removing => this.classList.toggle('removing-leg', removing));
+    this.props.legListData.isBeingRemoved.sub(removing => this.classList.toggle('removing-leg', removing));
 
     if (this.outlineRef.getOrDefault()) {
       this.outlineRef.instance.outlineElement.instance.addEventListener('mousedown', () => this.onMouseDown());
@@ -168,7 +157,7 @@ export class FlightPlanLegListItem extends DisplayComponent<FlightPlanLegListIte
         <div class="left-box">
           <SectionOutline bus={this.props.bus} ref={this.outlineRef}>
             <div class="top-row">
-              <div class={{ 'turn-direction': true, hidden: this.turnIndicatorText.map((text) => text === null) }}>{this.turnIndicatorText}</div>
+              <div class={{ 'turn-direction': true, hidden: this.turnIndicatorText === null }}>{this.turnIndicatorText}</div>
               <BearingDisplay
                 class="course"
                 value={this.props.legListData.displayDtk}

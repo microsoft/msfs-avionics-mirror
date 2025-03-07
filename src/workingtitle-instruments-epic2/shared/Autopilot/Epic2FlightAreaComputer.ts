@@ -1,9 +1,10 @@
 import {
-  ClockEvents, ConsumerValue, EventBus, FacilityType, FlightPlanSegmentType, GameStateProvider, GeoPoint, Instrument, NearestContext, SimVarValueType, Subject,
-  Subscribable, UnitType, Wait
+  BitFlags, ClockEvents, ConsumerValue, EventBus, FacilityType, FlightPlanSegmentType, GameStateProvider, GeoPoint, Instrument, LegDefinitionFlags, LegType,
+  NearestContext, SimVarValueType, Subject, Subscribable, UnitType, Wait
 } from '@microsoft/msfs-sdk';
 
 import { FlightPlanStore } from '../FlightPlan';
+import { Epic2FmsUtils } from '../Fms';
 import { AirGroundDataProviderEvents } from '../Instruments';
 import { Epic2LNavDataEvents } from '../Navigation/Epic2LNavDataEvents';
 import { FmsPositionSystemEvents } from '../Systems';
@@ -134,7 +135,7 @@ export class Epic2FlightAreaComputer implements Instrument {
   private readonly _activeArea = Subject.create(Epic2FlightArea.EnRoute);
   public readonly activeArea: Subscribable<Epic2FlightArea> = this._activeArea;
 
-  private readonly fmsPosition = ConsumerValue.create(null, new LatLongAlt(NaN, NaN));
+  private readonly fmsPosition = ConsumerValue.create(null, new LatLongAlt({ lat: NaN, long: NaN }));
 
   private readonly isOnGround = ConsumerValue.create(this.bus.getSubscriber<AirGroundDataProviderEvents>().on('air_ground_is_on_ground'), false);
 
@@ -243,12 +244,19 @@ export class Epic2FlightAreaComputer implements Instrument {
     Epic2FlightAreaComputer.geoPointCache.set(fmsPos.lat, fmsPos.long);
 
     const activeSegmentType = this.flightPlanStore.activeLegSegmentType.get();
+    const activeLeg = this.flightPlanStore.activeLeg.get();
+
     this.isOnSid = activeSegmentType === FlightPlanSegmentType.Departure || activeSegmentType === FlightPlanSegmentType.Origin;
     this.isOnArrival = activeSegmentType === FlightPlanSegmentType.Arrival;
-    // we avoid entering approach area while the flight plan is being constructed prior to takeoff (<= 2 waypoints and on ground)..
+    // We avoid entering approach area while the flight plan is being constructed prior to takeoff (<= 2 waypoints and on ground)..
+    // and also when we're inbound to a disconinuity or IF at the beginning of the approach.
     this.isOnApproach = (this.flightPlanStore.planLength.get() > 2 || !this.isOnGround.get())
-      && (activeSegmentType === FlightPlanSegmentType.Approach || activeSegmentType === FlightPlanSegmentType.Destination);
-    this.isOnMissedApproach = activeSegmentType === FlightPlanSegmentType.MissedApproach;
+      && (activeSegmentType === FlightPlanSegmentType.Approach || activeSegmentType === FlightPlanSegmentType.Destination)
+      && (
+        this.flightPlanStore.activeLegSegment.get()?.legs[0] !== activeLeg ||
+        (!!activeLeg && !Epic2FmsUtils.isDiscontinuityLeg(activeLeg.leg.type) && activeLeg.leg.type !== LegType.IF
+        ));
+    this.isOnMissedApproach = activeSegmentType === FlightPlanSegmentType.MissedApproach || (!!activeLeg && BitFlags.isAny(activeLeg.flags, LegDefinitionFlags.MissedApproach));
 
     const originFacility = this.flightPlanStore.originFacility.get();
     if (originFacility) {

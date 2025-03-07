@@ -1,0 +1,74 @@
+.charts-container .chart-view-area .chart-selection-dropdown {
+  position: absolute;
+  top: 90px;
+}
+
+.charts-container .chart-selection-dropdown .chart-selection-top-bar {
+  display: flex;
+  margin-left: 14px;
+  padding-top: 3px;
+  justify-content: space-between;
+  width: 570px;
+}
+
+.charts-container .chart-selection-dropdown .chart-selection-area {
+  width: 629px;
+  height: 610px;
+  margin-left: 4px;
+  margin-right: 5px;
+  margin-top: 5px;
+
+  background: var(--epic2-color-black);
+  border: solid var(--epic2-color-white) 2px;
+  border-radius: 3px;
+  box-shadow: 0px 0px 3px 0px var(--epic2-color-black);
+  position: relative;
+}
+
+.charts-container .chart-selection-dropdown .chart-item-divider-label {
+  background-color: var(--epic2-color-dark-grey);
+  text-align: center;
+  padding-top: 4px;
+  padding-bottom: 1px;
+}
+
+.charts-container .chart-selection-dropdown .fms-label {
+  margin-top: 4px;
+  padding-top: 4px;
+  margin-left: 5px;
+  padding-left: 5px;
+  margin-bottom: 8px;
+  height: 23px;
+  width: 50px;
+  background-color: var(--epic2-color-dark-grey);
+  color: var(--epic2-color-green);
+}
+
+.charts-container .chart-selection-dropdown .flight-plan-selection .list-button {
+  text-align: left;
+}
+
+.charts-container .chart-selection-dropdown .charts-selection {
+  margin-top: 3px;
+}
+
+.charts-container .chart-selection-dropdown .chart-name {
+  padding-left: 5px;
+  text-align: left;
+}
+
+.charts-container .chart-selection-dropdown .chart-selection-list .touch-button-label {
+  text-align: left;
+  padding-left: 5px;
+  padding-top: 8px;
+  font-size: 20px;
+}
+
+.charts-container .chart-selection-dropdown .chart-provider-selection {
+  display: flex;
+  padding-top: 8px;
+}
+
+.charts-container .chart-selection-dropdown .chart-provider-selection>div {
+  padding-right: 10px;
+}

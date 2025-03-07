@@ -2,11 +2,11 @@ import {
   ActiveLegType, AdcEvents, AdditionalApproachType, AirportFacility, AirportUtils, AirwayData, AltitudeRestrictionType, ApproachProcedure, ApproachUtils,
   BitFlags, ConsumerSubject, ConsumerValue, ControlEvents, EventBus, ExtendedApproachType, Facility, FacilityFrequency, FacilityLoader, FacilityRepository,
   FacilityType, FacilityUtils, FixTypeFlags, FlightPlan, FlightPlanCalculatedEvent, FlightPlanCopiedEvent, FlightPlanIndicationEvent, FlightPlanLeg,
-  FlightPlanner, FlightPlannerEvents, FlightPlanOriginDestEvent, FlightPlanSegment, FlightPlanSegmentType, FlightPlanUtils, GeoCircle, GeoPoint,
-  GeoPointInterface, GNSSEvents, ICAO, IcaoType, IcaoValue, IntersectionFacility, LatLonInterface, LegDefinition, LegDefinitionFlags, LegTurnDirection, LegType,
-  LNavEvents, MagVar, NavEvents, NavMath, NavSourceId, NavSourceType, OneWayRunway, PerformancePlanRepository, RnavTypeFlags, RunwayUtils,
-  SmoothingPathCalculator, SpeedRestrictionType, SpeedUnit, Subject, UnitType, UserFacility, UserFacilityUtils, VerticalData, VerticalFlightPhase,
-  VerticalFlightPlan, VisualFacility, VNavDataEvents, VNavUtils, VorFacility, VorType
+  FlightPlanner, FlightPlannerEvents, FlightPlanOriginDestEvent, FlightPlanSegment, FlightPlanSegmentType, FlightPlanUtils, GeoPoint, GeoPointInterface,
+  GNSSEvents, ICAO, IcaoType, IcaoValue, IntersectionFacility, LatLonInterface, LegDefinition, LegDefinitionFlags, LegTurnDirection, LegType, LNavEvents,
+  MagVar, NavEvents, NavMath, NavSourceId, NavSourceType, OneWayRunway, PerformancePlanRepository, RnavTypeFlags, RunwayUtils, SmoothingPathCalculator,
+  SpeedRestrictionType, SpeedUnit, Subject, UnitType, UserFacility, UserFacilityUtils, VerticalData, VerticalFlightPhase, VerticalFlightPlan, VisualFacility,
+  VNavDataEvents, VNavUtils, VorFacility, VorType
 } from '@microsoft/msfs-sdk';
 
 import { Epic2FlightArea } from '../Autopilot/Epic2FlightAreaComputer';
@@ -18,8 +18,8 @@ import { Epic2PerformancePlan, getEpic2PerformanceDefinitions } from '../Perform
 import { Epic2FlightLogger } from './Epic2FlightLogger';
 import { Epic2FmsEvents } from './Epic2FmsEvents';
 import {
-  AirwayLegType, ApproachDetails, ApproachProcedureDescription, DirectToState, Epic2ExtraLegDefinitionFlags, Epic2FlightPlans, Epic2UserDataKeys, FacilityInfo,
-  InsertProcedureObject, InsertProcedureObjectLeg, RnavMinima
+  AirwayLegType, ApproachDetails, ApproachProcedureDescription, DirectToState, Epic2ApproachTransition, Epic2ExtraLegDefinitionFlags, Epic2FlightPlans,
+  Epic2UserDataKeys, FacilityInfo, InsertProcedureObject, InsertProcedureObjectLeg, RnavMinima
 } from './Epic2FmsTypes';
 import { Epic2FmsUtils } from './Epic2FmsUtils';
 
@@ -1558,6 +1558,27 @@ export class Epic2Fms {
   }
 
   /**
+   * Clears the previously selected arrival if any.
+   * Creates a mod plan for the modification if it doesn't
+   * already exist.
+   */
+  public clearArrival(): void {
+    const plan = this.getModFlightPlan();
+
+    const arrSegmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Arrival);
+
+    const activeLegArray = this.getSegmentActiveLegsToDisplace(plan, arrSegmentIndex);
+    if (activeLegArray && activeLegArray.length > 0) {
+      this.displaceActiveLegsToEnroute(plan, activeLegArray, false);
+    }
+
+    plan.setArrival(undefined, -1, -1, -1);
+    if (arrSegmentIndex >= 0) {
+      this.planClearSegment(arrSegmentIndex, FlightPlanSegmentType.Arrival);
+    }
+  }
+
+  /**
    * Method to add or replace an arrival procedure in the flight plan.
    * @param facility is the facility that contains the procedure to add.
    * @param arrivalIndex is the index of the arrival procedure.
@@ -1762,6 +1783,28 @@ export class Epic2Fms {
   private insertApproachOpId = 0;
 
   /**
+   * Clears the previously selected approach if any.
+   * Creates a mod plan for the modification if it doesn't
+   * already exist.
+   */
+  public clearApproach(): void {
+    const plan = this.getModFlightPlan();
+
+    const apprSegmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Approach);
+
+    const activeLegArray = this.getSegmentActiveLegsToDisplace(plan, apprSegmentIndex);
+    if (activeLegArray && activeLegArray.length > 0) {
+      this.displaceActiveLegsToEnroute(plan, activeLegArray, true);
+    }
+
+    plan.setApproach(undefined, -1, -1);
+    if (apprSegmentIndex >= 0) {
+      this.planClearSegment(apprSegmentIndex, FlightPlanSegmentType.Approach);
+    }
+    plan.setDestinationRunway(undefined);
+  }
+
+  /**
    * Method to add or replace an approach procedure in the flight plan.
    * @param description the approach procedure description
    * @returns A Promise which is fulfilled with whether the approach was inserted.
@@ -1829,6 +1872,12 @@ export class Epic2Fms {
 
     if (plan.destinationAirport !== description.facility.icao) {
       plan.setDestinationAirport(description.facility.icao);
+    }
+
+    // clean up destination segment if it exists
+    const destSegmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Destination, false);
+    if (destSegmentIndex >= 0) {
+      this.planClearSegment(destSegmentIndex, FlightPlanSegmentType.Destination);
     }
 
     const segmentIndex = this.ensureOnlyOneSegmentOfType(FlightPlanSegmentType.Approach);
@@ -1984,26 +2033,42 @@ export class Epic2Fms {
   ): Promise<InsertProcedureObject> {
     const isVisual = resolvedApproach.approachType === AdditionalApproachType.APPROACH_TYPE_VISUAL;
     const transition = resolvedApproach.transitions[description.approachTransitionIndex];
-    const isVtf = description.approachTransitionIndex < 0;
+    const isVtf = description.approachTransitionIndex === Epic2ApproachTransition.VectorsToFinal;
 
     const insertProcedureObject: InsertProcedureObject = { procedureLegs: [] };
 
     if (transition !== undefined && transition.legs.length > 0) {
-      const startIndex = description.transStartIndex !== undefined ? description.transStartIndex : 0;
-
-      for (let t = startIndex; t < transition.legs.length; t++) {
-        insertProcedureObject.procedureLegs.push(FlightPlanUtils.convertLegRunwayIcaosToSdkFormat(FlightPlan.createLeg(transition.legs[t])));
+      for (const leg of transition.legs) {
+        insertProcedureObject.procedureLegs.push(FlightPlanUtils.convertLegRunwayIcaosToSdkFormat(FlightPlan.createLeg(leg)));
       }
     }
 
     const lastTransitionLeg = insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1];
-
     const finalLegs = resolvedApproach.finalLegs;
-    for (let i = 0; i < finalLegs.length; i++) {
+
+    // The transition is allowed to join to either the FACF (IF flag in MSFS) or FAF, and the FACF can be bypassed.
+    let finalStartIndex = 0;
+    if (lastTransitionLeg && Epic2Fms.isXFLeg(lastTransitionLeg)) {
+      for (let i = 0; i < finalLegs.length; i++) {
+        const finalLeg = finalLegs[i];
+
+        const isFafOrFacf = BitFlags.isAny(finalLeg.fixTypeFlags, FixTypeFlags.FAF | FixTypeFlags.IF);
+        if (isFafOrFacf && Epic2Fms.isXFLeg(finalLeg) && ICAO.valueEquals(lastTransitionLeg.fixIcaoStruct, finalLeg.fixIcaoStruct)) {
+          finalStartIndex = i;
+        }
+
+        if (BitFlags.isAny(finalLeg.fixTypeFlags, FixTypeFlags.FAF)) {
+          break;
+        }
+      }
+    }
+
+    for (let i = finalStartIndex; i < finalLegs.length; i++) {
       const leg = FlightPlanUtils.convertLegRunwayIcaosToSdkFormat(FlightPlan.createLeg(finalLegs[i]));
 
-      if (i === 0 && lastTransitionLeg && this.isDuplicateIFLeg(lastTransitionLeg, leg)) {
-        insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1] = this.mergeDuplicateLegData(lastTransitionLeg, leg);
+      if (i === finalStartIndex && lastTransitionLeg && Epic2Fms.isDuplicateXFLeg(lastTransitionLeg, leg)) {
+        // Merge legs, preferring the final approach constraints, but keep the transition constraints if there are none on the FAF/FACF
+        insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1] = this.mergeDuplicateLegData(lastTransitionLeg, leg, true);
         continue;
       }
 
@@ -4160,6 +4225,21 @@ export class Epic2Fms {
   }
 
   /**
+   * Checks if a leg is an XF leg terminating at a fix.
+   * @param leg The leg to check.
+   * @returns Whether the leg terminates at a fix.
+   */
+  private static isXFLeg(leg: FlightPlanLeg): boolean {
+    return leg.type === LegType.TF
+      || leg.type === LegType.DF
+      || leg.type === LegType.RF
+      || leg.type === LegType.CF
+      || leg.type === LegType.AF
+      || leg.type === LegType.HF
+      || leg.type === LegType.IF;
+  }
+
+  /**
    * Checks whether of two consecutive flight plan legs, the second is a duplicate of the first. The second leg is
    * considered a duplicate if and only if it is an IF, TF, or DF leg with the same terminator fix as the first leg,
    * which is also an IF, TF, or DF leg.
@@ -4185,9 +4265,9 @@ export class Epic2Fms {
       || leg1.type === LegType.TF
       || leg1.type === LegType.DF
       || leg1.type === LegType.CF)
-      && ICAO.getRegionCode(leg1.fixIcao) === ICAO.getRegionCode(leg2.fixIcao)
-      && ICAO.getIdent(leg1.fixIcao) === ICAO.getIdent(leg2.fixIcao)
-      && ICAO.getFacilityType(leg1.fixIcao) === ICAO.getFacilityType(leg2.fixIcao);
+      && leg1.fixIcaoStruct.region === leg2.fixIcaoStruct.region
+      && leg1.fixIcaoStruct.ident === leg2.fixIcaoStruct.ident
+      && leg1.fixIcaoStruct.type === leg2.fixIcaoStruct.type;
   }
 
   /**
@@ -4201,20 +4281,24 @@ export class Epic2Fms {
     if (leg2.type !== LegType.IF) {
       return false;
     }
-    if (
-      leg1.type !== LegType.TF
-      && leg1.type !== LegType.DF
-      && leg1.type !== LegType.RF
-      && leg1.type !== LegType.CF
-      && leg1.type !== LegType.AF
-      && leg1.type !== LegType.IF
-    ) {
+    return Epic2Fms.isDuplicateXFLeg(leg1, leg2);
+  }
+
+  /**
+   * Checks whether of two consecutive flight plan legs, the second is an XF leg and is a duplicate of the first. The
+   * XF leg is considered a duplicate if and only if its fix is the same as the fix at which the first leg terminates.
+   * @param leg1 The first leg.
+   * @param leg2 The second leg.
+   * @returns whether the second leg is an duplicate XF leg of the first.
+   */
+  private static isDuplicateXFLeg(leg1: FlightPlanLeg, leg2: FlightPlanLeg): boolean {
+    if (!Epic2Fms.isXFLeg(leg1) || !Epic2Fms.isXFLeg(leg2)) {
       return false;
     }
 
-    return ICAO.getRegionCode(leg1.fixIcao) === ICAO.getRegionCode(leg2.fixIcao)
-      && ICAO.getIdent(leg1.fixIcao) === ICAO.getIdent(leg2.fixIcao)
-      && ICAO.getFacilityType(leg1.fixIcao) === ICAO.getFacilityType(leg2.fixIcao);
+    return leg1.fixIcaoStruct.region === leg2.fixIcaoStruct.region
+      && leg1.fixIcaoStruct.ident === leg2.fixIcaoStruct.ident
+      && leg1.fixIcaoStruct.type === leg2.fixIcaoStruct.type;
   }
 
   /**
@@ -4222,15 +4306,20 @@ export class Epic2Fms {
    * and all other data is derived from the target leg.
    * @param target The target leg.
    * @param source The source leg.
+   * @param fallbackToTarget If true, and the source leg does not define constraints, the target leg constraints can be retained.
    * @returns the merged leg.
    */
-  private mergeDuplicateLegData(target: FlightPlanLeg, source: FlightPlanLeg): FlightPlanLeg {
+  private mergeDuplicateLegData(target: FlightPlanLeg, source: FlightPlanLeg, fallbackToTarget = false): FlightPlanLeg {
     const merged = FlightPlan.createLeg(target);
     merged.fixTypeFlags |= source.fixTypeFlags;
-    merged.altDesc = source.altDesc;
-    merged.altitude1 = source.altitude1;
-    merged.altitude2 = source.altitude2;
-    merged.speedRestriction = source.speedRestriction;
+    if (source.altDesc !== AltitudeRestrictionType.Unused || !fallbackToTarget) {
+      merged.altDesc = source.altDesc;
+      merged.altitude1 = source.altitude1;
+      merged.altitude2 = source.altitude2;
+    }
+    if (source.speedRestriction > 0 || !fallbackToTarget) {
+      merged.speedRestriction = source.speedRestriction;
+    }
     return merged;
   }
 
@@ -4288,6 +4377,7 @@ export class Epic2Fms {
     // come back - unlike leg2, which is in the enroute, and would not be reloaded.
     // The opposite is true if leg1 is not, and leg2 is in a procedure.
 
+    let needUpdateVerticalData = true;
     if (isLeg1InProc && !isLeg2InProc) {
       // Leg1 in proc + Leg2 not in proc - take data from Leg1
       toDeleteSegment = leg1Segment;
@@ -4295,10 +4385,19 @@ export class Epic2Fms {
       leg2.leg = this.mergeDuplicateLegData(leg2.leg, leg1.leg);
       toDeleteLeg = leg1;
     } else if (isLeg1InProc && isLeg2InProc) {
-      // Leg1 in proc + Leg2 in proc - leave Leg2 alone
-      toDeleteSegment = leg1Segment;
-      toDeleteIndex = leg1GlobalIndex - leg1Segment.offset;
-      toDeleteLeg = leg1;
+      // If leg2 doesn't contain an actual path and leg1 does, we want to keep the path.
+      if (leg2.leg.type === LegType.IF && leg1.leg.type !== LegType.IF) {
+        toDeleteSegment = leg2Segment;
+        toDeleteIndex = leg2GlobalIndex - leg2Segment.offset;
+        leg1.leg = this.mergeDuplicateLegData(leg1.leg, leg2.leg);
+        toDeleteLeg = leg2;
+      } else {
+        // Leg1 in proc + Leg2 in proc - leave Leg2 alone
+        toDeleteSegment = leg1Segment;
+        toDeleteIndex = leg1GlobalIndex - leg1Segment.offset;
+        toDeleteLeg = leg1;
+        needUpdateVerticalData = false;
+      }
     } else {
       // Leg1 not in proc + Leg2 in proc - take data from Leg2
       toDeleteSegment = leg2Segment;
@@ -4309,7 +4408,7 @@ export class Epic2Fms {
 
     // If the kept leg is not in a procedure, we need to manually generate the leg vertical data, as we won't get to it when doing it for
     // the procedure segments later
-    if (isLeg1InProc !== isLeg2InProc) {
+    if (needUpdateVerticalData) {
       const keptLeg = toDeleteLeg === leg1 ? leg2 : leg1;
       const keptLegSegment = toDeleteLeg === leg1 ? leg2Segment : leg1Segment;
 
@@ -4587,6 +4686,32 @@ export class Epic2Fms {
     this.getFlightPlan(planIndex).setUserData<number | undefined>(Epic2UserDataKeys.USER_DATA_KEY_VISUAL_APPROACH_VFR_VPA, vpa);
   }
 
+  private static readonly PILOT_WAYPOINT_REGEX = /^(?:LL|PBD|PBPB|PD)(\d\d)$/;
+
+  /**
+   * Gets an ICAO for the next pilot waypoint of a given type.
+   * @param prefix The prefix depending on waypoint type.
+   * @returns The ICAO for the next facility.
+   * @throws If the pilot waypoint list is full.
+   */
+  private getNextPilotWaypointIcao(prefix: 'LL' | 'PBD' | 'PBPB' | 'PD'): IcaoValue {
+    const userFacilities = this.getUserFacilities();
+    if (userFacilities.length >= 100) {
+      throw Error('PILOT WPT LIST FULL');
+    }
+    let lastNumber = 0;
+    for (let i = userFacilities.length - 1; i >= 0; i--) {
+      const facility = userFacilities[i];
+      const match = Epic2Fms.PILOT_WAYPOINT_REGEX.exec(facility.icaoStruct.ident);
+      if (match) {
+        lastNumber = Number(match[1]);
+        break;
+      }
+    }
+    const ident = `${prefix}${(lastNumber + 1).toString().padStart(2, '0')}`;
+    return ICAO.value('U', '', '', ident);
+  }
+
   /**
    * Creates a lat long waypoint
    * @param latLong The geopoint representing the lat long
@@ -4594,14 +4719,7 @@ export class Epic2Fms {
    * @throws If there are more than 99 user waypoints
    */
   public createLLWaypoint(latLong: GeoPointInterface): UserFacility {
-    const userFacilities = this.getUserFacilities();
-    if (userFacilities.length >= 100) {
-      throw Error('PILOT WPT LIST FULL');
-    }
-    const facilities = userFacilities.filter((facility) => facility.icao.includes('LL'));
-    const lastLL = facilities.length > 0 ? facilities[facilities.length - 1] : { icao: '00' };
-    const ident = 'LL' + (Number(lastLL.icao.trim().slice(-2)) + 1).toString().padStart(2, '0');
-    const icao = `U      ${ident.substring(0, 4)}`;
+    const icao = this.getNextPilotWaypointIcao('LL');
     const userFacility = UserFacilityUtils.createFromLatLon(icao, latLong.lat, latLong.lon);
 
     this.addUserFacility(userFacility);
@@ -4618,23 +4736,8 @@ export class Epic2Fms {
    * @throws If there are more than 99 user waypoints
    */
   public createPBDWaypoint(facility: Facility, bearing: number, distance: number): UserFacility {
-    const inPoint = new GeoPoint(facility.lat, facility.lon);
-    const outPoint = new GeoPoint(0, 0);
-
-    const magvar = Facilities.getMagVar(facility.lat, facility.lon);
-    const actualBearing = bearing + magvar;
-
-    inPoint.offset(actualBearing, UnitType.GA_RADIAN.convertFrom(distance, UnitType.NMILE), outPoint);
-
-    const userFacilities = this.getUserFacilities();
-    if (userFacilities.length >= 100) {
-      throw Error('PILOT WPT LIST FULL');
-    }
-    const pbdFacilities = userFacilities.filter((pbdFacility) => pbdFacility.icao.includes('LL'));
-    const lastPbd = pbdFacilities.length > 0 ? pbdFacilities[pbdFacilities.length - 1] : { icao: '00' };
-    const ident = 'LL' + (Number(lastPbd.icao.trim().slice(-2)) + 1).toString().padStart(2, '0');
-    const icao = `U      ${ident.substring(0, 5)}`;
-    const userFacility = UserFacilityUtils.createFromLatLon(icao, outPoint.lat, outPoint.lon);
+    const icao = this.getNextPilotWaypointIcao('PBD');
+    const userFacility = UserFacilityUtils.createFromRadialDistance(icao, facility, bearing, distance);
 
     this.addUserFacility(userFacility);
 
@@ -4648,43 +4751,15 @@ export class Epic2Fms {
    * @param facilityB Place 2
    * @param bearingB Bearing 2
    * @returns The created PBPB user facility
-   * @throws If there are more than 99 user waypoints
+   * @throws If there are more than 99 user waypoints, or the radials do not intersect.
    */
   public createPBPBWaypoint(facilityA: Facility, bearingA: number, facilityB: Facility, bearingB: number): null | UserFacility {
-    const inPointA = new GeoPoint(facilityA.lat, facilityA.lon);
-    const circleA = GeoCircle.createGreatCircleFromPointBearing(inPointA, bearingA);
-    const inPointB = new GeoPoint(facilityB.lat, facilityB.lon);
-    const circleB = GeoCircle.createGreatCircleFromPointBearing(inPointB, bearingB);
+    const icao = this.getNextPilotWaypointIcao('PBPB');
+    const userFacility = UserFacilityUtils.createFromRadialRadial(icao, facilityA, bearingA, facilityB, bearingB);
 
-    const out: GeoPoint[] = [];
-    const outPoint = new GeoPoint(0, 0);
-    const numIntersections = circleA.intersectionGeoPoint(circleB, out);
-
-    if (numIntersections !== 2) {
-      return null;
+    if (!userFacility) {
+      throw new Error('RADIALS DO NOT INTERSECT');
     }
-
-    const intersection1 = out[0];
-    const intersection2 = out[1];
-
-    const distance1 = intersection1.distance(inPointA);
-    const distance2 = intersection2.distance(inPointA);
-
-    if (distance1 < distance2) {
-      outPoint.set(intersection1);
-    } else {
-      outPoint.set(intersection2);
-    }
-
-    const userFacilities = this.getUserFacilities();
-    if (userFacilities.length >= 100) {
-      throw Error('PILOT WPT LIST FULL');
-    }
-    const facilities = userFacilities.filter((facility) => facility.icao.includes('RR'));
-    const lastPbd = facilities.length > 0 ? facilities[facilities.length - 1] : { icao: '00' };
-    const ident = 'RR' + (Number(lastPbd.icao.trim().slice(-2)) + 1).toString().padStart(2, '0');
-    const icao = `U      ${ident.substring(0, 4)}`;
-    const userFacility = UserFacilityUtils.createFromLatLon(icao, outPoint.lat, outPoint.lon);
 
     this.addUserFacility(userFacility);
 

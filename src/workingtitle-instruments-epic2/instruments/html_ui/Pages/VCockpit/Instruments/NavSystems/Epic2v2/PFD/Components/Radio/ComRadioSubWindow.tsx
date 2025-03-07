@@ -67,7 +67,7 @@ export class ComRadioSubWindow extends RadioSubWindow<ComRadioSubWindowProps> {
         <TouchButton
           variant='base'
           class={this.softKeyClass}
-          onPressed={() => this.publishHEventOnSoftKeyPressed()}
+          onPressed={this.softKeyHandler}
         >
           <span class="radio-sub-window-soft-key-label">
             {`COM${this.props.index}`}
@@ -75,7 +75,7 @@ export class ComRadioSubWindow extends RadioSubWindow<ComRadioSubWindowProps> {
           <svg
             class={{
               'soft-key-swap-arrow': true,
-              'hidden': this.props.isSelected.map(is => !is)
+              'hidden': this.isSelected.map(is => !is)
             }}
             viewBox='0 0 80 20'
           >

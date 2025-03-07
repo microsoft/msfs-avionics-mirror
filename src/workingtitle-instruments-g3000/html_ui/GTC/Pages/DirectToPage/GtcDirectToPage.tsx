@@ -1,7 +1,7 @@
 import {
   AltitudeRestrictionType, BasicNavAngleSubject, BasicNavAngleUnit, FacilitySearchType, FacilityWaypoint,
-  FSComponent, GeoPoint, GeoPointSubject, ICAO, MagVar, MappedSubject, NavMath, NumberFormatter, NumberUnitSubject, SetSubject,
-  StringUtils, Subject, SubscribableUtils, Subscription, UnitType, VNode,
+  FSComponent, GeoPoint, GeoPointSubject, ICAO, MagVar, MappedSubject, NavMath, NumberFormatter, NumberUnitSubject,
+  SetSubject, StringUtils, Subject, SubscribableUtils, Subscription, UnitType, VNode,
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -208,7 +208,7 @@ export class GtcDirectToPageWaypointTab extends GtcView<GtcDirectToPageWaypointT
 
   private readonly unitsSettingManager = UnitsUserSettings.getManager(this.props.gtcService.bus);
 
-  private readonly selectedWaypointIdent = this.props.selectedWaypointInfo.waypoint.map(x => x ? ICAO.getIdent(x.uid).replace(/0/g, '0̸') : '______');
+  private readonly selectedWaypointIdent = this.props.selectedWaypointInfo.facility.map(x => x ? x.icaoStruct.ident : '______');
   private readonly selectedWaypointCity = this.props.selectedWaypointInfo.city.map(x => x ?? '');
   private readonly selectedWaypointRegion = this.props.selectedWaypointInfo.region.map(x => x ?? '');
 

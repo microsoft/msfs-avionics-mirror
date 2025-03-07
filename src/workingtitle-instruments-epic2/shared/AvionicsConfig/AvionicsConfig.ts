@@ -3,6 +3,7 @@ import { AutopilotConfig } from './AutopilotConfig';
 import { AutothrottleConfig } from './AutothrottleConfig';
 import { ChecklistConfig } from './ChecklistConfig';
 import { DisplayUnitsConfig } from './DisplayUnitsConfig';
+import { PersistentUserSettingsConfig } from './PersistentUserSettingsConfig';
 import { SensorsConfig } from './SensorsConfig';
 import { SpeedScheduleConfig } from './SpeedScheduleConfig';
 
@@ -23,6 +24,8 @@ export class AvionicsConfig {
   public readonly autopilot: AutopilotConfig;
 
   public readonly autothrottle: AutothrottleConfig;
+
+  public readonly persistentSettings: PersistentUserSettingsConfig;
 
   /** A config which defines checklist stuff */
   public readonly checklist: ChecklistConfig;
@@ -46,6 +49,8 @@ export class AvionicsConfig {
     this.autopilot = this.parseAutopilotConfig(root.querySelector(':scope>Autopilot'), baseInstrument);
 
     this.autothrottle = this.parseAutothrottleConfig(root.querySelector(':scope>Autothrottle'), baseInstrument);
+
+    this.persistentSettings = this.parsePersistentSettingsConfig(root.querySelector(':scope>PersistentUserSettings'));
 
     this.checklist = this.parseChecklistConfig(root.querySelector(':scope>Checklist'));
   }
@@ -156,6 +161,23 @@ export class AvionicsConfig {
     }
 
     return new AutothrottleConfig(undefined, baseInstrument);
+  }
+
+  /**
+   * Parses a persistent settings configuration object from a configuration document element.
+   * @param element A configuration document element.
+   * @returns The persistent setting configuration defined by the configuration document element.
+   */
+  private parsePersistentSettingsConfig(element: Element | null): PersistentUserSettingsConfig {
+    if (element !== null) {
+      try {
+        return new PersistentUserSettingsConfig(element);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    return new PersistentUserSettingsConfig(undefined);
   }
 
   /**

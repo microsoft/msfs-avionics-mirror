@@ -75,9 +75,12 @@ export class SpeedLimitPublisher extends BasePublisher<SpeedLimitEvents> {
   private readonly loadFactorSmoother = new ExpSmoother(SpeedLimitPublisher.LOAD_FACTOR_SMOOTHING_TAU);
 
   private readonly flapSpeedLimits = new Map<number, number>();
-  private gearSpeedLimit?: number;
+  private gearExtendedSpeedLimit?: number;
+  private gearExtensionSpeedLimit?: number;
+  private gearRetractionSpeedLimit?: number;
 
   private readonly gearPosition = ConsumerValue.create(null, 0).pause();
+  private readonly gearHandlePosition = ConsumerValue.create(null, 0).pause();
   private readonly flapHandleIndex = ConsumerSubject.create(null, 0).pause();
 
   private readonly aoaIndex: Subscribable<number>;
@@ -130,9 +133,19 @@ export class SpeedLimitPublisher extends BasePublisher<SpeedLimitEvents> {
           case ConfigurationLimitType.Flaps:
             this.flapSpeedLimits.set(limitDefinition.flapHandleIndex ?? 0, limitDefinition.airspeed);
             break;
-          case ConfigurationLimitType.Gear:
-          case ConfigurationLimitType.GearExtend:
-            this.gearSpeedLimit = limitDefinition.airspeed;
+          case ConfigurationLimitType.GearExtended:
+            this.gearExtendedSpeedLimit = limitDefinition.airspeed;
+            break;
+          case ConfigurationLimitType.GearExtention:
+            this.gearExtensionSpeedLimit = limitDefinition.airspeed;
+            break;
+          case ConfigurationLimitType.GearRetraction:
+            this.gearRetractionSpeedLimit = limitDefinition.airspeed;
+            break;
+          case ConfigurationLimitType.GearOperating:
+            this.gearExtensionSpeedLimit = limitDefinition.airspeed;
+            this.gearRetractionSpeedLimit = limitDefinition.airspeed;
+            break;
         }
       }
     });
@@ -160,6 +173,7 @@ export class SpeedLimitPublisher extends BasePublisher<SpeedLimitEvents> {
     }, true);
 
     this.gearPosition.setConsumer(sub.on('gear_position_2'));
+    this.gearHandlePosition.setConsumer(sub.on('gear_handle_position'));
     this.flapHandleIndex.setConsumer(sub.on('flaps_handle_index'));
   }
 
@@ -208,7 +222,19 @@ export class SpeedLimitPublisher extends BasePublisher<SpeedLimitEvents> {
     const vmo = this.config.airframe.vmo && this.config.airframe.vmoUnit !== undefined ? this.getVmoCas(this.config.airframe.vmo, this.config.airframe.vmoUnit) : Infinity;
     const mmo = this.config.airframe.mmo;
     const flapLimit = this.flapSpeedLimits.get(this.flapHandleIndex.get()) ?? Infinity;
-    const gearLimit = this.gearSpeedLimit ?? Infinity;
+
+    const gearPos = this.gearPosition.get();
+    const gearHandlePos = this.gearHandlePosition.get();
+    let gearLimit = Infinity;
+    if (gearPos >= 0.98 && gearHandlePos >= 0.98) {
+      gearLimit = this.gearExtendedSpeedLimit ?? Infinity;
+    } else if (gearPos >= 0.02 && gearPos <= 0.98) {
+      if (gearHandlePos <= 0.98) {
+        gearLimit = this.gearRetractionSpeedLimit ?? Infinity;
+      } else {
+        gearLimit = this.gearExtensionSpeedLimit ?? Infinity;
+      }
+    }
 
     const mmoCas = mmo ? UnitType.KNOT.convertFrom(AeroMath.machToCas(mmo, this.ambientPressureHpa.get()), UnitType.MPS) : Infinity;
 

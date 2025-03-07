@@ -95,7 +95,7 @@ export class WT21FmsUtils {
     const approachPath = WT21FmsUtils.geoCircleCache[0].setAsGreatCircle(runwayVec, runway.course);
 
     const runwayCode = RunwayUtils.getRunwayCode(runway.direction);
-    const runwayLetter = RunwayUtils.getDesignatorLetter(runway.runwayDesignator).padStart(1, ' ');
+    const runwayLetter = RunwayUtils.getDesignatorLetter(runway.runwayDesignator).padStart(1, '-');
 
     const fafLatLon = approachPath.offsetDistanceAlong(
       runwayVec,
@@ -110,7 +110,7 @@ export class WT21FmsUtils {
     const icao = ICAO.value(IcaoType.VisualApproach, `${runwayCode}${runwayLetter}`, airport.icaoStruct.ident, finalLegIdent);
 
     // Add facility to facRepo
-    const fafFacility = UserFacilityUtils.createFromLatLon(ICAO.valueToStringV1(icao), fafLatLon.lat, fafLatLon.lon);
+    const fafFacility = UserFacilityUtils.createFromLatLon(icao, fafLatLon.lat, fafLatLon.lon);
 
     facRepo.add(fafFacility);
 

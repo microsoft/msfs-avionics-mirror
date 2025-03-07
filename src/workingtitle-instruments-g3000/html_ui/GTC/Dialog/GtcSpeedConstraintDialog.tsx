@@ -1,9 +1,9 @@
 import {
   DisplayComponent, FSComponent, MathUtils, NodeReference, NumberFormatter,
-  SetSubject, SpeedRestrictionType, SpeedUnit, Subject, UnitType, VNode,
+  SetSubject, SpeedRestrictionType, SpeedUnit, Subject, VNode,
 } from '@microsoft/msfs-sdk';
 
-import { ImgTouchButton, NumberUnitDisplay } from '@microsoft/msfs-garminsdk';
+import { ImgTouchButton } from '@microsoft/msfs-garminsdk';
 
 import { FmsSpeedsGeneralLimits, G3000FilePaths } from '@microsoft/msfs-wtg3000-common';
 
@@ -75,7 +75,6 @@ export interface GtcSpeedConstraintDialogResultRemove {
   result: 'remove';
 }
 
-const IAS_FORMATTER = NumberFormatter.create({ precision: 1, pad: 3 });
 const MACH_FORMATTER = NumberFormatter.create({ precision: 1, pad: 3 });
 
 /** Dialog to set speed constraint. */
@@ -180,7 +179,10 @@ export class GtcSpeedConstraintDialog extends GtcView<GtcSpeedConstraintDialogPr
       this.isDifferentFromPublished.set(input.isDifferentFromPublished);
       this.speedUnit.set(input.initialSpeedUnit);
       this.allowRemove.set(input.allowRemove);
-      this.speedDesc.set(input.initialSpeedDesc === SpeedRestrictionType.Unused ? SpeedRestrictionType.At : input.initialSpeedDesc);
+      this.speedDesc.set(
+        input.initialSpeedDesc === SpeedRestrictionType.AtOrAbove || input.initialSpeedDesc === SpeedRestrictionType.AtOrBelow
+          ? input.initialSpeedDesc : SpeedRestrictionType.At
+      );
 
       if (input.initialSpeedUnit === SpeedUnit.IAS) {
         this.valueIAS.set(isNaN(input.initialSpeed) ? 0 : input.initialSpeed);
@@ -392,13 +394,17 @@ export class GtcSpeedConstraintDialog extends GtcView<GtcSpeedConstraintDialogPr
           setDigitValues[2](clamped % 1e1, true);
         }}
         renderInactiveValue={value => {
+          const valueText = MathUtils.clamp(value, 0, 999).toFixed(0);
+          const leadingZeroCount = 3 - valueText.length;
+
           return (
-            <NumberUnitDisplay
-              value={UnitType.KNOT.createNumber(MathUtils.clamp(Math.round(value), 0, 999))}
-              displayUnit={null}
-              formatter={IAS_FORMATTER}
-              class="speed-constraint-dialog-input-inactive"
-            />
+            <div class='speed-constraint-dialog-input-inactive-value'>
+              <span class='visibility-hidden'>{('').padStart(leadingZeroCount, '0')}</span>
+              <span class='speed-constraint-dialog-input-inactive-value-text'>
+                {valueText}
+                <span class='numberunit-unit-small'>KT</span>
+              </span>
+            </div>
           );
         }}
         allowBackFill={true}
@@ -454,7 +460,7 @@ export class GtcSpeedConstraintDialog extends GtcView<GtcSpeedConstraintDialogPr
         }}
         renderInactiveValue={value => {
           return (
-            <div class="speed-constraint-dialog-input-inactive">
+            <div class='speed-constraint-dialog-input-inactive-value'>
               <span>M 0.</span><span>{MACH_FORMATTER(MathUtils.clamp(Math.round(value), 0, 999))}</span>
             </div>
           );

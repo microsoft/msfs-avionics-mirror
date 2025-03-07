@@ -59,20 +59,19 @@
 }
 
 .speed-constraint-dialog .cursor-input-inactive {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  height: auto;
+  transform: translateY(-50%);
   display: flex;
+  flex-flow: row nowrap;
   justify-content: center;
-  align-items: center;
 }
 
-.speed-constraint-dialog .speed-constraint-dialog-input-inactive {
-  text-align: right;
-  background-color: var(--g3000-color-cyan);
-  min-width: var(--speed-constraint-dialog-inactive-min-width);
-  height: var(--speed-constraint-dialog-input-height);
-}
-
-.speed-constraint-dialog .cursor-input-active {
-  height: var(--speed-constraint-dialog-input-height);
+.speed-constraint-dialog-input-inactive-value {
+  background: var(--g3000-color-cyan);
 }
 
 .speed-constraint-dialog .remove-button {

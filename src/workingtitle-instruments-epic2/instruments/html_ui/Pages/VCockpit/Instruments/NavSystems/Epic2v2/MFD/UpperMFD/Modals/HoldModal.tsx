@@ -169,16 +169,16 @@ export class HoldModal extends Modal<HoldModalProps> {
         <p class="hold-type">{this.holdType}</p>
         <div class="upper-container">
           <div class="inputs">
-            <InputField bus={this.props.bus} onModified={async (rad) => { this.holdType.set('Pilot Modified'); this.radial.set(rad); this.course.set(NavMath.reciprocateHeading(rad)); return true; }} class={'side-text'} prefix={'RAD: '} suffix={'°'} bind={this.radial} formatter={this.bearingInputFormat} textAlign='right' maxLength={3} isEnabled={this.isVOR} />
-            <InputField bus={this.props.bus} onModified={async (crs) => { this.holdType.set('Pilot Modified'); this.course.set(crs); this.radial.set(this.isVOR.get() ? NavMath.reciprocateHeading(crs) : null); return true; }} class={'side-text'} prefix={'CRS: '} suffix={'°'} bind={this.course} formatter={this.bearingInputFormat} textAlign='right' maxLength={3} />
+            <InputField bus={this.props.bus} onModified={async (rad) => { this.holdType.set('Pilot Modified'); this.radial.set(rad); this.course.set(NavMath.reciprocateHeading(rad)); return true; }} class={'side-text'} prefix={'RAD: '} suffix={'°'} bind={this.radial} formatter={this.bearingInputFormat} textAlign='right' maxLength={3} isEnabled={this.isVOR} tscConnected tscDisplayLabel={'Radial'} blurOnEnter />
+            <InputField bus={this.props.bus} onModified={async (crs) => { this.holdType.set('Pilot Modified'); this.course.set(crs); this.radial.set(this.isVOR.get() ? NavMath.reciprocateHeading(crs) : null); return true; }} class={'side-text'} prefix={'CRS: '} suffix={'°'} bind={this.course} formatter={this.bearingInputFormat} textAlign='right' maxLength={3} tscConnected tscDisplayLabel={'Course'} blurOnEnter />
 
             <div class="radio-row">
               <RadioButton selectedValue={this.magneticType} value={'mag'} label={'Mag'} />
               <RadioButton selectedValue={this.magneticType} value={'true'} label={'True'} />
             </div>
             <div class="line" />
-            <InputField bus={this.props.bus} onModified={async (time) => { this.holdType.set('Pilot Modified'); this.useLegDistance = false; this.legTime.set(time); this.setLegDistFromTime(time); return true; }} topLabel={'Leg Time'} suffix={'Min'} bind={this.legTime} formatter={this.timeInputFormat} textAlign='right' maxLength={3} />
-            <InputField bus={this.props.bus} onModified={async (dist) => { this.holdType.set('Pilot Modified'); this.useLegDistance = true; this.legDist.set(dist); this.setLegTimeFromDist(dist); return true; }} topLabel={'Leg Distance'} suffix={'NM '} bind={this.legDist} formatter={this.distInputFormat} textAlign='right' maxLength={3} />
+            <InputField bus={this.props.bus} onModified={async (time) => { this.holdType.set('Pilot Modified'); this.useLegDistance = false; this.legTime.set(time); this.setLegDistFromTime(time); return true; }} topLabel={'Leg Time'} suffix={'Min'} bind={this.legTime} formatter={this.timeInputFormat} textAlign='right' maxLength={3} tscConnected blurOnEnter />
+            <InputField bus={this.props.bus} onModified={async (dist) => { this.holdType.set('Pilot Modified'); this.useLegDistance = true; this.legDist.set(dist); this.setLegTimeFromDist(dist); return true; }} topLabel={'Leg Distance'} suffix={'NM '} bind={this.legDist} formatter={this.distInputFormat} textAlign='right' maxLength={3} tscConnected blurOnEnter />
           </div>
 
           <div class="display">
@@ -238,6 +238,7 @@ export class HoldModal extends Modal<HoldModalProps> {
               formatter={this.speedInputFormat}
               textAlign='right'
               maxLength={3}
+              tscConnected tscDisplayLabel={'Speed'} blurOnEnter
             />
             <CheckBox isEnabled={false} label='Max Endurance' isChecked={Subject.create(false)} />
           </div>

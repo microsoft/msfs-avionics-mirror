@@ -303,6 +303,9 @@ export class FplnPageController {
     const activeLeg = plan.tryGetLeg(activeLegIndex);
 
     if (activeLeg === null) {
+      this.store.setLegs(legs);
+      this.store.originRunway.set('');
+      this.invalidate();
       return;
     }
 

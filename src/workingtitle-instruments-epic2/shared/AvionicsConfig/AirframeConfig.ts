@@ -9,9 +9,10 @@ export enum SpeedLimitUnit {
 
 export enum ConfigurationLimitType {
   Flaps,
-  Gear,
-  GearExtend,
-  GearRetract,
+  GearExtended,
+  GearOperating,
+  GearExtention,
+  GearRetraction,
 }
 
 /** A definition for an aircraft configuration limit */
@@ -207,19 +208,32 @@ export class AirframeConfig {
 
     for (const element of elements) {
       const speedLimit = Number(element.textContent);
-      const gearType = element.getAttribute('type');
-      const isGearRetract = gearType?.toLowerCase() === 'retract';
-      const isGearExtend = gearType?.toLowerCase() === 'extend';
+      const gearType = element.getAttribute('type')?.toLowerCase();
 
-      let limitType = ConfigurationLimitType.Gear;
-      if (isGearRetract) {
-        limitType = ConfigurationLimitType.GearRetract;
-      } else if (isGearExtend) {
-        limitType = ConfigurationLimitType.GearExtend;
+      let limitType;
+      switch (gearType) {
+        case 'retraction':
+        case 'retract':
+          limitType = ConfigurationLimitType.GearRetraction;
+          break;
+        case 'extension':
+        case 'extend':
+          limitType = ConfigurationLimitType.GearExtention;
+          break;
+        case 'extended':
+          limitType = ConfigurationLimitType.GearExtended;
+          break;
+        case 'operating':
+        case undefined:
+          limitType = ConfigurationLimitType.GearOperating;
+          break;
+        default:
+          console.warn(`AirframeConfig: Invalid type (${gearType}) specified for Gear element. Must be one of: 'extension', 'retraction', 'operating', or 'extended'. Defaulting to 'operating' limit type.`);
+          limitType = ConfigurationLimitType.GearOperating;
       }
 
-      if (gearType && !isGearExtend && !isGearRetract) {
-        console.warn('AirframeConfig: Invalid type specified for Gear element. Must be either \'extend\', \'retract\' or undefined. Defaulting to undefined type.');
+      if (gearType === 'retract' || gearType === 'extend') {
+        console.warn(`AirframeConfig: The type ${gearType} is now deprecated and should not be used. Alternatives available are 'operating', 'extended', 'extension', or 'retraction'`);
       }
 
       if (isFinite(speedLimit)) {

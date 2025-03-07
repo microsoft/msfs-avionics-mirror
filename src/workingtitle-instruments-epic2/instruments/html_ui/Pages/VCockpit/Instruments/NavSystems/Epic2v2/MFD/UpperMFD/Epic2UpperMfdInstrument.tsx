@@ -7,8 +7,9 @@
 /// <reference types="@microsoft/msfs-types/js/avionics" />
 
 import {
-  APRadioNavInstrument, ArrayUtils, AutothrottleThrottleIndex, AvionicsSystemState, ClockEvents, ConsumerSubject, EngineType, FlightPlanRouteManager,
-  FSComponent, GameStateProvider, GpsSynchronizer, LNavComputer, MappedSubject, PluginSystem, SimVarValueType, Subject, Wait, WeightBalanceSimvarPublisher
+  APRadioNavInstrument, ArrayUtils, AutothrottleOptions, AutothrottleThrottleIndex, AvionicsSystemState, ClockEvents, ConsumerSubject, EngineType,
+  FlightPlanRouteManager, FSComponent, GameStateProvider, GpsSynchronizer, LNavComputer, MappedSubject, PluginSystem, SimVarValueType, Subject, Wait,
+  WeightBalanceSimvarPublisher
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -16,14 +17,16 @@ import {
   DefaultAutopilotDataProvider, DefaultFlapWarningDataProvider, DefaultHeadingDataProvider, DefaultInertialDataProvider, DefaultLandingGearDataProvider,
   DefaultRadioAltimeterDataProvider, DefaultStallWarningDataProvider, Epic2Adsb, Epic2APConfig, Epic2APStateManager, Epic2APUtils, Epic2Autopilot,
   Epic2DuControlEvents, Epic2Fadec, Epic2FlightAreaComputer, Epic2FlightPlans, Epic2Fms, Epic2FsInstrument, Epic2NavDataComputer, Epic2SpeedPredictions,
-  Epic2TcasAuralAlertManager, Epic2TcasII, Epic2VSpeedController, FlightPlanListManager, FlightPlanStore, FmcSimVarPublisher, FmsMessageManager,
-  FuelTotalizerSimVarPublisher, Gpws, InstrumentBackplaneNames, MapDataProvider, ModalKey, ModalPosition, ModalService, SpeedOverrideController,
-  TakeoffConfigPublisher, TrafficOperatingModeManager
+  Epic2TcasAuralAlertManager, Epic2TcasII, Epic2UserSettingSaveManager, Epic2VSpeedController, FlightPlanListManager, FlightPlanStore, FmcSimVarPublisher,
+  FmsMessageManager, FuelTotalizerSimVarPublisher, Gpws, InstrumentBackplaneNames, MapDataProvider, ModalKey, ModalPosition, ModalService,
+  SpeedOverrideController, TakeoffConfigPublisher, TrafficOperatingModeManager
 } from '@microsoft/msfs-epic2-shared';
 
 import { Epic2Autothrottle } from './Autothrottle/Epic2Autothrottle';
 import { Epic2JetFadec } from './Autothrottle/Epic2JetFadec';
 import { Epic2TurbopropFadec } from './Autothrottle/Epic2TurbopropFadec';
+import { ChartsDisplay } from './Charts/ChartsDisplay';
+import { ChartsAirportSearch } from './Charts/Modal/ChartAirportSearchDialog';
 import { Epic2UpperMfdAvionicsPlugin, Epic2UpperMfdPluginBinder } from './Epic2UpperMfdAvionicsPlugin';
 import { DepartureArrivalModal } from './FlightPlanConfigSection/DepartureArrivalOverlay/DepartureArrivalModal';
 import { FlightPlanConfigSection } from './FlightPlanConfigSection/FlightPlanConfigSection';
@@ -77,6 +80,7 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
   private readonly gpsSynchronizer = new GpsSynchronizer(this.bus, this.flightPlanner, this.facLoader);
 
   private readonly upperMfdSettings = this.mfdUserSettingsManager.getAliasedManager(this.displayUnitIndex);
+  private settingSaveManager?: Epic2UserSettingSaveManager;
 
   // When the MFDs are swapped, the upper MFD instrument is displayed on the lower DU. The lower DU is driven by AGM2.
   // When the MFD are not swapped, the upper MFD instrument is displayed on the upper DU which is driven by AGM1.
@@ -246,6 +250,10 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
         }
       });
 
+      if (!this.config.persistentSettings.disablePersistentSettings) {
+        this.initPersistentSettings(this.config.persistentSettings.aircraftKey);
+      }
+
       this.renderComponents();
 
       this.registerModals();
@@ -291,6 +299,22 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
     return this.pluginSystem.startSystem(pluginBinder);
   }
 
+  /**
+   * Initializes persistent settings. Loads saved settings and starts auto-save.
+   * @param aircraftKey The aircraft key under which persistent settings are saved.
+   */
+  private initPersistentSettings(aircraftKey: string): void {
+    this.settingSaveManager = new Epic2UserSettingSaveManager(
+      this.bus,
+      this.upperMfdSettings,
+      this.navComUserSettingsManager,
+      this.pfdUserSettingsManager
+    );
+    const profileKey = `${aircraftKey}_g3000-default-profile`;
+    this.settingSaveManager.load(profileKey);
+    this.settingSaveManager.startAutoSave(profileKey);
+  }
+
   /** Setup the baro key event handler. */
   protected setupBaroKeyEventHandler(): void {
     // this is the one and only instance managing all altimeters
@@ -317,6 +341,14 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
   private renderComponents(): void {
     FSComponent.render(
       <>
+        <ChartsDisplay
+          bus={this.bus}
+          settings={this.upperMfdSettings}
+          fms={this.fms}
+          store={this.flightPlanStoreActive}
+          modalService={this.modalService}
+          pluginSystem={this.pluginSystem}
+        />
         <MfdMap
           bus={this.bus}
           facLoader={this.facLoader}
@@ -394,6 +426,9 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
     this.modalService.registerModal(ModalKey.ShowInfo, ModalPosition.FlightManagementWindowBottom, () =>
       <ShowInfoModal fms={this.fms} bus={this.bus} store={this.flightPlanStorePending} modalService={this.modalService} />
     );
+    this.modalService.registerModal(ModalKey.ChartAirportSearch, ModalPosition.InavMap, () =>
+      <ChartsAirportSearch bus={this.bus} modalService={this.modalService} facLoader={this.facLoader} />
+    );
   }
 
   /** Makes sure that we have the flight plan, requesting sync if needed. */
@@ -461,6 +496,7 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
     const engineType = SimVar.GetSimVarValue('ENGINE TYPE', SimVarValueType.Enum) as EngineType;
 
     let fadecFactory: Epic2UpperMfdAvionicsPlugin['getFadec'];
+    let autothrottleOptions: AutothrottleOptions | undefined = undefined;
 
     this.pluginSystem.callPlugins((p) => {
       if (p.getFadec !== undefined) {
@@ -469,6 +505,12 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
         } else {
           console.warn('Multiple plugins attempted to provide FADECs!!');
         }
+      }
+
+      if (p.getAutothrottleOptions !== undefined) {
+        autothrottleOptions = p.getAutothrottleOptions();
+      } else {
+        console.warn('Multiple plugins attempted to provide Autothrottle Options!!');
       }
     });
 
@@ -496,6 +538,7 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
       this.autopilotDataProvider,
       this.flapWarningDataProvider,
       this.radioAltimeterDataProvider,
+      autothrottleOptions
     );
 
     this.autothrottle.init();

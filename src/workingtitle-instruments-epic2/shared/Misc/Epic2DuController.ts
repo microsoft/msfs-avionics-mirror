@@ -117,6 +117,7 @@ export class Epic2DuController {
       throw new Error(`[mapHEventToSoftKeyEvent] Unmapped H event 'SOFTKEY_${btnIndex.toUpperCase()}'.`);
     }
 
+    // FIXME this is not really publishing an H event... it should have it's own event type on the bus
     this.hEventPublisher.dispatchHEvent(mappedEvent);
 
     return true;

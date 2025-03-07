@@ -1,5 +1,5 @@
 import {
-  ComponentProps, DisplayComponent, DurationDisplay, DurationDisplayDelim, DurationDisplayFormat, EventBus, FSComponent, NumberFormatter, VNode
+  ComponentProps, DisplayComponent, DurationDisplay, DurationDisplayDelim, DurationDisplayFormat, EventBus, FSComponent, NumberFormatter, UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
 import { AirportIcaoInputFormat, FlightPlanStore, InputField, NumberUnitDisplay } from '@microsoft/msfs-epic2-shared';
@@ -21,6 +21,8 @@ export interface DestinationInfoProps extends ComponentProps {
  * The DestinationInfo component.
  */
 export class DestinationInfo extends DisplayComponent<DestinationInfoProps> {
+  private static readonly FUEL_WEIGHT_FORMATTER = NumberFormatter.create({ precision: 0.1, nanString: '', round: -1 });
+
   /** Destination Leg Name */
   private readonly destinationIdent = this.props.store.destinationIdent.map((ident) => ident ?? '');
 
@@ -63,8 +65,9 @@ export class DestinationInfo extends DisplayComponent<DestinationInfoProps> {
             <p>Fuel Rem</p>
             <NumberUnitDisplay
               class="destination-unit"
-              value={this.props.store.destinationFuelRemaining} displayUnit={null}
-              formatter={NumberFormatter.create({ precision: 2, forceDecimalZeroes: true, maxDigits: 2, nanString: '---' })}
+              value={this.props.store.destinationFuelRemaining}
+              displayUnit={UnitType.POUND}
+              formatter={(v) => DestinationInfo.FUEL_WEIGHT_FORMATTER(v / 1000)}
             />
           </div>
         </div>

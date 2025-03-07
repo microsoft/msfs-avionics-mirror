@@ -1,11 +1,17 @@
 .flight-plan-disco-list-item.active-leg {
   color: var(--epic2-color-green);
 }
+
+.flight-plan-disco-list-item.active-leg.lnav-tracking {
+  color: var(--epic2-color-magenta);
+}
+
 .flight-plan-disco-list-item.from-leg {
   color: var(--epic2-color-grey);
 }
 
-.flight-plan-list.plan-pending .flight-plan-disco-list-item.removing-leg, .flight-plan-list.plan-pending .flight-plan-disco-list-item.removing-leg * {
+.flight-plan-list.plan-pending .flight-plan-disco-list-item.removing-leg,
+.flight-plan-list.plan-pending .flight-plan-disco-list-item.removing-leg * {
   color: var(--epic2-color-grey) !important;
 }
 

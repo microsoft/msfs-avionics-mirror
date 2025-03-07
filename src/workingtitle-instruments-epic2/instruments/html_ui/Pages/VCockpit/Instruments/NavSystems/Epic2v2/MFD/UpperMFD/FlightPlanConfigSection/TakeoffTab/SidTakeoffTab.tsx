@@ -173,6 +173,7 @@ export class SidTakeoffTab extends TabContent<SidTakeoffTabProps> {
                     color={def.inputColourSubject}
                     maxLength={3}
                     tscConnected
+                    tscDisplayLabel={`V${def.label}`}
                   />)}
                 </div>
                 <p class="side-takeoff-tab-vspd-pilot-defined">

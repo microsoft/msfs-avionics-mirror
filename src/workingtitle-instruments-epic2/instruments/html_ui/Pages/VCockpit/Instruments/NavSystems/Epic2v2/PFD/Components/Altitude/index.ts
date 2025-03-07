@@ -5,3 +5,6 @@ export * from './AltitudeTrendVector';
 export * from './BaroMinimumBug';
 export * from './MetricAltitude';
 export * from './SelectedAltitudeBug';
+export * from './VnavTargetAltitudeBug';
+export * from './VnavTargetAltitudeController';
+export * from './VnavTargetAltitudeReadout';

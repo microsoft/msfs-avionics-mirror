@@ -16,6 +16,10 @@ const trafficSettings = [
     defaultValue: TcasOperatingModeSetting.TAOnly as TcasOperatingModeSetting
   },
   {
+    name: 'trafficAlternativeMode',
+    defaultValue: TcasOperatingModeSetting.Standby as TcasOperatingModeSetting
+  },
+  {
     name: 'trafficShowOther',
     defaultValue: true as boolean
   },

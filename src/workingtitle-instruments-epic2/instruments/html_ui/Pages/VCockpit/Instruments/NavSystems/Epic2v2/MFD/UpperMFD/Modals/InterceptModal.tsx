@@ -145,7 +145,7 @@ export class InterceptModal extends Modal<InterceptModalProps> {
         </div>
         <div class="lower-container">
           <div class="crs-input">
-            <InputField class={'side-text'} prefix={'CRS: '} suffix={'°'} bind={this.course} formatter={this.bearingInputFormat} textAlign='right' maxLength={3} bus={this.props.bus} />
+            <InputField class={'side-text'} prefix={'CRS: '} suffix={'°'} bind={this.course} formatter={this.bearingInputFormat} textAlign='right' maxLength={3} bus={this.props.bus} tscConnected blurOnEnter />
           </div>
           <div class="radio-row">
             <RadioButton selectedValue={this.magneticType} value={'mag'} label={'Mag'} />

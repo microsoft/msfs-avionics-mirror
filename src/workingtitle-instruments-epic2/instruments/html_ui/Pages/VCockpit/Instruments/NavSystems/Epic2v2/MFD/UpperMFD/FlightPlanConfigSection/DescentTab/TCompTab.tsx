@@ -1,11 +1,11 @@
 import {
-  AdcEvents, AltitudeRestrictionType, ConsumerSubject, EventBus, FlightPlanSegmentType, FSComponent, LegDefinition,
-  MappedSubject, NumberFormatter, NumberUnitSubject, Subject, Subscription, UnitType, VNode
+  AdcEvents, AltitudeRestrictionType, ConsumerSubject, EventBus, FlightPlanSegmentType, FSComponent, LegDefinition, MappedSubject, NumberFormatter,
+  NumberUnitSubject, Subject, Subscription, UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
-  AltitudeFeetInputFormat, ButtonBoxArrow, ButtonMenu, CelsiusTemperatureInputFormat, Epic2Fms, Epic2FmsUtils,
-  FaranheitTemperatureInputFormat, FlightPlanStore, InputField, NumberUnitDisplay, TabContent, TabContentProps, TouchButton
+  AltitudeFeetInputFormat, ButtonBoxArrow, ButtonMenu, CelsiusTemperatureInputFormat, Epic2Fms, Epic2FmsUtils, FaranheitTemperatureInputFormat, FlightPlanStore,
+  InputField, NumberUnitDisplay, TabContent, TabContentProps, TouchButton
 } from '@microsoft/msfs-epic2-shared';
 
 import './TCompTab.css';
@@ -211,6 +211,7 @@ export class TCompTab extends TabContent<TCompTabProps> {
                 textAlign={'right'}
                 maxLength={5}
                 tscConnected
+                tscDisplayLabel={'Dest OAT (°C)'}
               />
               <InputField
                 bus={this.props.bus}
@@ -226,6 +227,7 @@ export class TCompTab extends TabContent<TCompTabProps> {
                 textAlign={'right'}
                 maxLength={5}
                 tscConnected
+                tscDisplayLabel={'Dest OAT (°F)'}
               />
             </div>
             <div class="fpln-tcomp-calc">

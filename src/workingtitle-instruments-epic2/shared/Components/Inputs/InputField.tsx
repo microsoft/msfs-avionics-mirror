@@ -107,6 +107,7 @@ export class InputField<T extends number | string> extends DisplayComponent<Inpu
 
   /** @inheritdoc */
   public destroy(): void {
+    this.inputBoxRef.getOrDefault()?.destroy();
     this.inputIsActiveSub?.destroy();
     this.inputIsActivePipeSub?.destroy();
     this.inputIsCapturingPipeSub?.destroy();

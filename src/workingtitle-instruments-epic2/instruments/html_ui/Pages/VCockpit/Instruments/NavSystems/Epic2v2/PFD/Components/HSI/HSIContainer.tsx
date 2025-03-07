@@ -50,6 +50,8 @@ interface HSIContainerProps extends ComponentProps {
   readonly tcasAdvisoryDataProvider: TcasAdvisoryDataProvider
   /** The instrument index. */
   readonly instrumentIndex: number;
+  /** The side of the DU that the AHI is on. */
+  readonly ahiSide: 'left' | 'right';
   /** An instance of the flight planner. */
   readonly flightPlanner: FlightPlanner;
   /** An instance of the facility loader. */
@@ -86,6 +88,7 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
         bus={this.props.bus}
         settings={this.props.settings}
         index={this.props.instrumentIndex}
+        ahiSide={this.props.ahiSide}
         tcasAdvisoryDataProvider={this.props.tcasAdvisoryDataProvider}
       />
       <div class={{

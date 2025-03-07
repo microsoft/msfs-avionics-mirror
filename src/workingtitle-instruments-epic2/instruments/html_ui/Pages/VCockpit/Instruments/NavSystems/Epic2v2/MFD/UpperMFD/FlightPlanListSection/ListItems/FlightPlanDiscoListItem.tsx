@@ -52,12 +52,9 @@ export class FlightPlanDiscoListItem extends DisplayComponent<FlightPlanLegListI
 
   /** @inheritdoc */
   public override onAfterRender(): void {
-    this.props.legListData.legData.isActiveLeg.sub(isActiveLeg => {
-      this.classList.toggle('active-leg', isActiveLeg);
-    }, true);
-    this.props.legListData.legData.isFromLeg.sub(isFromLeg => {
-      this.classList.toggle('from-leg', isFromLeg);
-    }, true);
+    this.props.legListData.legData.isActiveLeg.sub(isActiveLeg => this.classList.toggle('active-leg', isActiveLeg), true);
+    this.props.store.isLnavTracking.sub(isTracking => this.classList.toggle('lnav-tracking', isTracking), true);
+    this.props.legListData.legData.isFromLeg.sub(isFromLeg => this.classList.toggle('from-leg', isFromLeg), true);
 
     this.props.legListData.legData.isBehindActiveLeg.sub(removing => this.classList.toggle('removing-leg', removing));
     this.props.legListData.isBeingRemoved.sub(removing => this.classList.toggle('removing-leg', removing));

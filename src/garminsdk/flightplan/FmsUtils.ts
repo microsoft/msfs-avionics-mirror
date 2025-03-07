@@ -203,7 +203,7 @@ export class FmsUtils {
     );
 
     const runwayCode = RunwayUtils.getRunwayCode(runway.direction);
-    const runwayLetter = RunwayUtils.getDesignatorLetter(runway.runwayDesignator).padStart(1, ' ');
+    const runwayLetter = RunwayUtils.getDesignatorLetter(runway.runwayDesignator).padStart(1, '-');
     initialLegIdent ??= 'STRGHT';
 
     const iafFixIcao = ICAO.value(IcaoType.VisualApproach, `${runwayCode}${runwayLetter}`, airport.icaoStruct.ident, initialLegIdent);

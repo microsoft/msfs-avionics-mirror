@@ -104,7 +104,7 @@ export class DefinePilotWptPage extends WT21FmcPage {
       const lla = this.latLongSub.get();
 
       if (ident !== null && lla !== null) {
-        const icao = `U      ${ident.substring(0, 5)}`;
+        const icao = ICAO.value('U', '', '', ident.substring(0, 5));
 
         const userFacilities = this.fms.getUserFacilities();
 
@@ -112,7 +112,7 @@ export class DefinePilotWptPage extends WT21FmcPage {
           return Promise.reject('PILOT WPT LIST FULL');
         }
 
-        const existing = userFacilities.some((it) => ICAO.getIdent(it.icao) === ICAO.getIdent(icao));
+        const existing = userFacilities.some((it) => ICAO.valueEquals(it.icaoStruct, icao));
 
         if (existing) {
           return Promise.reject('');

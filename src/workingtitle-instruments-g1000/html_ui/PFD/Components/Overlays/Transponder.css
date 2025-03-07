@@ -5,14 +5,28 @@
   height: 55px;
   top: 0px;
   font-size: 18px;
-  display: grid;
-  grid-template-columns: 60px 53px 53px;
   padding-bottom: 2px;
   background: linear-gradient(to top, rgba(0, 0, 0, 1.0), rgb(24, 24, 24));
+  display: flex;
+  align-items: flex-end;
 }
 
-.xpdr-container>div {
+.xpdr-content {
+  position: absolute;
+  display: grid;
+  grid-template-columns: 60px 53px 53px;
+}
+
+.xpdr-content div {
   align-self: end;
+}
+
+.xpdr-fail {
+  position: absolute;
+  width: 100%;
+  height: 20px;
+  text-align: center;
+  color: yellow;
 }
 
 .xpdr-container .highlight-white {

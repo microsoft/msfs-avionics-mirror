@@ -3,18 +3,19 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
-  AbstractSubscribable, ActiveLegType, AdcEvents, AirportFacility, AltitudeRestrictionType, APEvents, ApproachProcedure, ApproachTransition,
+  AbstractSubscribable, ActiveLegType, AdcEvents, AirportFacility, AltitudeRestrictionType, APEvents, APLateralModes, ApproachProcedure, ApproachTransition,
   BasicNavAngleSubject, BasicNavAngleUnit, BitFlags, ClockEvents, ConsumerSubject, DirectToData, EngineEvents, EnrouteTransition, EventBus, FacilityType,
   FlightPlan, FlightPlanActiveLegEvent, FlightPlanCalculatedEvent, FlightPlanDirectToDataEvent, FlightPlanIndicationEvent, FlightPlanLegEvent, FlightPlanner,
   FlightPlannerEvents, FlightPlanOriginDestEvent, FlightPlanPredictorUtils, FlightPlanProcedureDetailsEvent, FlightPlanSegment, FlightPlanSegmentEvent,
-  FlightPlanSegmentType, FlightPlanUserDataEvent, GNSSEvents, ICAO, LegDefinition, LegDefinitionFlags, LegEventType, LNavDataEvents, MagVar, MappedSubject,
-  NavAngleUnit, NavAngleUnitFamily, NumberUnitInterface, NumberUnitSubject, OneWayRunway, OriginDestChangeType, PerformancePlanRepository, Procedure,
-  ReadonlySubEvent, RunwayTransition, SegmentEventType, SimpleUnit, SimVarValueType, SmoothingPathCalculator, StringUtils, SubEvent, Subject, Subscribable,
-  SubscribableUtils, UnitFamily, UnitType, UserSettingManager, VerticalFlightPhase, VNavEvents, VNavLeg, VNavPathCalculator, VNavUtils
+  FlightPlanSegmentType, FlightPlanUserDataEvent, GNSSEvents, ICAO, LegDefinition, LegDefinitionFlags, LegEventType, LNavDataEvents, LNavEvents, MagVar,
+  MappedSubject, NavAngleUnit, NavAngleUnitFamily, NumberUnitInterface, NumberUnitSubject, OneWayRunway, OriginDestChangeType, PerformancePlanRepository,
+  Procedure, ReadonlySubEvent, RunwayTransition, SegmentEventType, SimpleUnit, SimVarValueType, SmoothingPathCalculator, StringUtils, SubEvent, Subject,
+  Subscribable, SubscribableUtils, UnitFamily, UnitType, UserSettingManager, VerticalFlightPhase, VNavEvents, VNavLeg, VNavPathCalculator, VNavUtils
 } from '@microsoft/msfs-sdk';
 
+import { Epic2FlightArea, Epic2FmaData, Epic2FmaEvents } from '../Autopilot';
 // import { DirectToState, Fms, FmsUtils, UnitsUserSettings } from '@microsoft/msfs-garminsdk';
-import { DirectToState, Epic2FlightArea, Epic2FlightPlans, Epic2Fms, Epic2FmsEvents, Epic2FmsUtils, Epic2UserDataKeys, RnavMinima } from '../Fms';
+import { DirectToState, Epic2FlightPlans, Epic2Fms, Epic2FmsEvents, Epic2FmsUtils, Epic2UserDataKeys, RnavMinima } from '../Fms';
 import { Epic2CockpitEvents, Epic2DuControlEvents } from '../Misc';
 import { Epic2LNavDataEvents } from '../Navigation';
 import { Epic2PerformancePlan, Epic2SpeedPredictions } from '../Performance';
@@ -30,6 +31,7 @@ const UNUSABLE_FUEL_QUANTITY_GALLONS = SimVar.GetSimVarValue('UNUSABLE FUEL TOTA
 /** Listens for flight plan events, and stores data as subjects to be used by the gtc flight plan page. */
 export class FlightPlanStore {
   // public readonly flightPlanListManager: FlightPlanListManager;
+  private readonly LNAV_ENGAGED_MODES = [APLateralModes.GPSS, APLateralModes.NAV];
 
   private readonly _segmentMap = new Map<FlightPlanSegment, FlightPlanSegmentData>();
   /** Unordered map of FlightPlanSegments to segment list data items.
@@ -203,6 +205,7 @@ export class FlightPlanStore {
   public readonly flightArea = ConsumerSubject.create<Epic2FlightArea>(this.bus.getSubscriber<Epic2LNavDataEvents>().on('lnavdata_flight_area'), Epic2FlightArea.Departure);
   public readonly vtfApproachState = Subject.create<VectorToFinalStates>(VectorToFinalStates.Unavailable);
   public readonly isFlightPlanListExpanded = Subject.create<boolean>(false);
+  public readonly isLnavTracking = Subject.create<boolean>(false);
 
   // Active leg data
   private readonly _activeLegGlobalIndex = Subject.create<number | undefined>(undefined);
@@ -221,6 +224,8 @@ export class FlightPlanStore {
   public readonly activeLegSegmentIndex = this._activeLegSegmentIndex as Subscribable<number | undefined>;
   private readonly _activeLegSegmentType = Subject.create<FlightPlanSegmentType | undefined>(undefined);
   public readonly activeLegSegmentType = this._activeLegSegmentType as Subscribable<FlightPlanSegmentType | undefined>;
+  private readonly _activeLegSegment = Subject.create<FlightPlanSegment | undefined>(undefined);
+  public readonly activeLegSegment = this._activeLegSegment as Subscribable<FlightPlanSegment | undefined>;
 
   // Direct to
   private readonly _directToData = Subject.create<DirectToData>({ segmentIndex: -1, segmentLegIndex: -1 });
@@ -373,7 +378,10 @@ export class FlightPlanStore {
       x => x?.fuelRemaining,
     );
 
-    this.bus.getSubscriber<Epic2CockpitEvents>().on('epic2_mfd_direct_to_entry_shown').handle(() => this.isDtoRandomEntryShown.set(!this.isDtoRandomEntryShown.get()));
+    const toggleDtoRandom = (): void => this.isDtoRandomEntryShown.set(!this.isDtoRandomEntryShown.get());
+    this.bus.getSubscriber<Epic2DuControlEvents>().on('epic2_du_dirto_button').handle(toggleDtoRandom);
+    this.bus.getSubscriber<Epic2CockpitEvents>().on('epic2_mfd_direct_to_entry_shown').handle(toggleDtoRandom);
+    this.bus.getSubscriber<Epic2FmaEvents>().on('epic2_fma_data').handle((data) => this.isLnavTracking.set(this.LNAV_ENGAGED_MODES.includes(data.lateralActive)));
   }
 
   /**
@@ -429,9 +437,6 @@ export class FlightPlanStore {
 
     this.bus.getSubscriber<APEvents>().on('ap_altitude_selected').withPrecision(0).handle(sAlt => this.selectedAltitude = sAlt);
     this.bus.getSubscriber<Epic2FmsEvents>().on('epic2_fms_approach_details_set').handle((proc) => this._selectedRnavMinima.set(proc.selectedRnavMinima));
-    this.bus.getSubscriber<Epic2CockpitEvents>().on('tsc_keyboard_active_input_id').handle((id) =>
-      id === undefined && this.isDtoRandomEntryShown.set(false)
-    );
     this.bus.getSubscriber<Epic2DuControlEvents>().on('epic2_du_page_button')
       .handle(() => this.isFlightPlanListExpanded.set(!this.isFlightPlanListExpanded.get()));
 
@@ -461,6 +466,7 @@ export class FlightPlanStore {
 
     if (this.planIndex !== Epic2FlightPlans.Active) { return; }
 
+    // Should be approx 15 NM before FAF according to training video.
     if (vtfState === VectorToFinalStates.Activated || vtfState === VectorToFinalStates.AwaitingActivation) {
       if (flightArea !== Epic2FlightArea.Arrival && flightArea !== Epic2FlightArea.Approach) {
         this.vtfApproachState.set(VectorToFinalStates.Unavailable);
@@ -486,8 +492,8 @@ export class FlightPlanStore {
   private handleModPlanDisplay(displayed: boolean): void {
     if (!displayed) {
       this.amendWaypointForDisplay.set(undefined);
-      this.isDtoRandomEntryShown.set(false);
     }
+    this.isDtoRandomEntryShown.set(false);
   }
 
   /**
@@ -1334,6 +1340,7 @@ export class FlightPlanStore {
       this._activeLegListData.set(undefined);
       this._activeLegSegmentIndex.set(undefined);
       this._activeLegSegmentType.set(undefined);
+      this._activeLegSegment.set(undefined);
       return;
     }
 
@@ -1343,7 +1350,10 @@ export class FlightPlanStore {
     this._activeLeg.set(activeLeg ?? undefined);
     this._activeLegListData.set(activeLeg ? this.legMap.get(activeLeg) : undefined);
     this._activeLegSegmentIndex.set(activeLeg ? plan.getSegmentIndex(activeLegGlobalIndex) : undefined);
-    this._activeLegSegmentType.set(activeLeg ? plan.getSegmentFromLeg(activeLeg)?.segmentType : undefined);
+
+    const activeLegSegment = activeLeg ? plan.getSegmentFromLeg(activeLeg) : undefined;
+    this._activeLegSegmentType.set(activeLegSegment ? activeLegSegment.segmentType : undefined);
+    this._activeLegSegment.set(activeLegSegment ? activeLegSegment : undefined);
   }
 
   /**

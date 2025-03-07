@@ -47,7 +47,7 @@ export class AdfRadioSubWindow extends RadioSubWindow {
         <TouchButton
           variant='base'
           class={this.softKeyClass}
-          onPressed={() => this.publishHEventOnSoftKeyPressed()}
+          onPressed={this.softKeyHandler}
         >
           <span class="radio-sub-window-soft-key-label">ADF</span>
         </TouchButton>

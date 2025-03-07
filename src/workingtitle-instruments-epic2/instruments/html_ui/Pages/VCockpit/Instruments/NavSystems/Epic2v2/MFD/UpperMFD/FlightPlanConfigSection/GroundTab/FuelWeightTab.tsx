@@ -207,6 +207,7 @@ export class FuelWeightTab extends TabContent<FuelWeightTabProps> {
                 textAlign="right"
                 class="fpln-fuel-weight-passengers-num"
                 tscConnected
+                tscDisplayLabel={'Passenger Count'}
               />
               <InputField
                 bus={this.props.bus}
@@ -217,6 +218,7 @@ export class FuelWeightTab extends TabContent<FuelWeightTabProps> {
                 textAlign="right"
                 class="fpln-fuel-weight-passengers-lb"
                 tscConnected
+                tscDisplayLabel={'Average Passenger Weight'}
               />
             </div>
             <div class="fpln-fuel-weight-gross">

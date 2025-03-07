@@ -1,6 +1,6 @@
 import {
   AirwayData,
-  AirwayObject, ArraySubject, FacilityType, FlightPlanSegmentType, FSComponent, ICAO, IntersectionFacility,
+  AirwayObject, ArraySubject, FacilityType, FlightPlanSegmentType, FSComponent, ICAO, IcaoValue, IntersectionFacility,
   LegDefinition, MappedSubject, SetSubject, Subject,
   VNode
 } from '@microsoft/msfs-sdk';
@@ -42,7 +42,7 @@ export class JoinAirwayOverlay extends Modal<JoinAirwayOverlayProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.props.store.amendWaypointForDisplay.sub((legData) => this.getAirways(legData?.leg.leg.fixIcao));
+    this.props.store.amendWaypointForDisplay.sub((legData) => this.getAirways(legData?.leg.leg.fixIcaoStruct));
     this.selectedAirway.sub((airwayIcao) => this.getExitWaypoints(this.airwayData.getArray().find((airway) => airway.name == airwayIcao)));
   }
 
@@ -50,17 +50,20 @@ export class JoinAirwayOverlay extends Modal<JoinAirwayOverlayProps> {
    * Gets all the airways present in a leg
    * @param waypointIcao The FS ICAO of the entry waypoint
    */
-  private async getAirways(waypointIcao?: string): Promise<void> {
+  private async getAirways(waypointIcao?: IcaoValue): Promise<void> {
     this.selectedAirway.set(null);
     this.selectedExitWaypoint.set(null);
     this.airwayData.set([]);
     const airways: AirwayData[] = [];
 
-    const facType = waypointIcao && waypointIcao.trim().length > 0 && ICAO.getFacilityType(waypointIcao);
-    if (facType && facType !== FacilityType.Airport && facType !== FacilityType.RWY && facType !== FacilityType.VIS && facType !== FacilityType.USR) {
-      const facility = waypointIcao ? await this.props.fms.facLoader.getFacility(FacilityType.Intersection, waypointIcao) : undefined;
+    if (waypointIcao &&
+      (ICAO.isValueFacility(waypointIcao, FacilityType.Intersection)
+      || ICAO.isValueFacility(waypointIcao, FacilityType.VOR)
+      || ICAO.isValueFacility(waypointIcao, FacilityType.NDB)
+    )) {
+      const facility = await this.props.fms.facLoader.tryGetFacility(FacilityType.Intersection, waypointIcao);
 
-      if (waypointIcao && facility) {
+      if (facility) {
         for (const airwaySegment of facility.routes) {
           const airwayObject = await this.props.fms.facLoader.getAirway(airwaySegment.name, airwaySegment.type, waypointIcao);
           airways.push(airwayObject);

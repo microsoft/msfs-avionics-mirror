@@ -55,6 +55,7 @@
 .select-object-modal-label * {
   font-size: 20px;
   white-space: pre;
+  text-transform: uppercase;
 }
 
 .selected-waypoint-background {
@@ -64,9 +65,16 @@
   border-radius: 2px;
 }
 
-.waypoint-item-image {
+span.waypoint-item-image {
+  display: inline-block;
+  text-align: center;
+  width: 29px;
   height: 14px;
-  width: 14px;
-  margin-left: 5px;
-  margin-right: 5px;
+}
+
+span.waypoint-item-image img {
+  max-width: 29px;
+  width: auto;
+  height: 14px;
+  margin: 0;
 }

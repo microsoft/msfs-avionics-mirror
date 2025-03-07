@@ -15,10 +15,11 @@ export class InputBoxTsc<T extends string | number> extends InputBox<T> {
 
     this.publisher.pub('tsc_keyboard_max_chars', this.inputRef.instance.maxLength, true);
 
+    const keyPressHandler = this.handleKeyPress.bind(this);
     this.subscriptions.push(
       this.isActive.sub((isActive: boolean) => {
-        isActive && this.inputRef.instance.addEventListener('keypress', this.handleKeyPress);
-        !isActive && this.inputRef.instance.removeEventListener('keypress', this.handleKeyPress.bind(this));
+        isActive && this.inputRef.instance.addEventListener('keypress', keyPressHandler);
+        !isActive && this.inputRef.instance.removeEventListener('keypress', keyPressHandler);
       }),
       this.subscriber.on('epic2_host_display_unit_selected').handle((isSelectedDu) => !isSelectedDu && this.isActive.get() && this.inputRef.instance.blur()),
     );
@@ -73,14 +74,17 @@ export class InputBoxTsc<T extends string | number> extends InputBox<T> {
    * @param event The `KeyboardEvent`;
    */
   private readonly handleKeyPress = (event: KeyboardEvent): void => {
-    if (event.keyCode === 13) {
+    if (event.keyCode === 13) { // enter key
       this.publisher.pub('tsc_keyboard_next', undefined, true);
     }
   };
 
   /** @inheritdoc */
   public override destroy(): void {
-    super.destroy();
+    for (const sub of this.subscriptions) {
+      sub.destroy();
+    }
     this.keyboardHandler.destroy();
+    super.destroy();
   }
 }

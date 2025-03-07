@@ -90,6 +90,8 @@ interface HorizonSectionContainerProps extends ComponentProps {
   readonly tcasRaCommandDataProvider: TcasRaCommandDataProvider;
   /** The instrument index. */
   readonly instrumentIndex: number;
+  /** The side of the DU that the AHI is on. */
+  readonly ahiSide: 'left' | 'right';
   /** An instance of the flight planner. */
   readonly flightPlanner: FlightPlanner;
   /** An instance of the facility loader. */
@@ -369,7 +371,8 @@ export class HorizonSectionContainer extends DisplayComponent<HorizonSectionCont
       <Fma autopilotDataProvider={this.props.autopilotDataProvider} declutter={this.props.attitudeDataProvider.excessiveAttitude} />
       <AutothrottleStatus autothrottleDataProvider={this.props.autothrottleDataProvider} declutter={this.props.attitudeDataProvider.excessiveAttitude} />
       <ThrustDirector autothrottleDataProvider={this.props.autothrottleDataProvider} thrustDirectorEnabled={this.props.pfdSettingsManager.getSetting('thrustDirectorEnabled')} declutter={this.props.attitudeDataProvider.excessiveAttitude} />
-      <ApproachStatus autopilotDataProvider={this.props.autopilotDataProvider} declutter={this.props.attitudeDataProvider.excessiveAttitude} />
+      <ApproachStatus autopilotDataProvider={this.props.autopilotDataProvider} declutter={this.props.attitudeDataProvider.excessiveAttitude}
+        tawsDataProvider={this.props.tawsDataProvider} />
       <SteepApproachStatus
         autopilotDataProvider={this.props.autopilotDataProvider}
         tawsDataProvider={this.props.tawsDataProvider}
@@ -391,6 +394,7 @@ export class HorizonSectionContainer extends DisplayComponent<HorizonSectionCont
         tcas={this.props.tcas}
         // navIndicators={this.props.navIndicators}
         instrumentIndex={this.props.instrumentIndex}
+        ahiSide={this.props.ahiSide}
       />
       <PfdInfo
         bus={this.props.bus}
@@ -403,7 +407,7 @@ export class HorizonSectionContainer extends DisplayComponent<HorizonSectionCont
       />
       <TimeInfo bus={this.props.bus} />
       <SelectedNavSourceInfo navigationSourceDataProvider={this.props.navigationSourceDataProvider} />
-      <NavPreview bus={this.props.bus} navigationSourceDataProvider={this.props.navigationSourceDataProvider} settings={this.props.navComSettingsManager}/>
+      <NavPreview bus={this.props.bus} navigationSourceDataProvider={this.props.navigationSourceDataProvider} settings={this.props.navComSettingsManager} />
       <BearingPointerSourcesDisplay navigationSourceDataProvider={this.props.navigationSourceDataProvider} />
       <PfdControllerState bus={this.props.bus} />
       <PfdAlerts bus={this.props.bus} />

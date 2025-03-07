@@ -8,7 +8,7 @@ import {
 import {
   AltitudeDataProvider, AutopilotDataProvider, Epic2FixInfoManager, Epic2Fms, Epic2MapModules, Epic2PerformancePlan, Epic2TcasII, EpicMapBuilder, EpicMapKeys,
   FlightPlanStore, HeadingDataProvider, InertialDataProvider, MapAutopilotPropsController, MapDataProvider, MapRangeController, MapTrafficController,
-  MfdAliasedUserSettingTypes, ModalService, SectionOutline
+  MfdAliasedUserSettingTypes, MfdUserSettingManager, ModalService, SectionOutline, UpperMfdDisplayPage
 } from '@microsoft/msfs-epic2-shared';
 
 import { ActivatePlanButtonBar } from '../Common/ActivatePlanButtonBar';
@@ -207,7 +207,12 @@ export class MfdMap extends DisplayComponent<MfdMapProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    // TODO do stuff
+    this.props.settings.whenSettingChanged('upperMfdDisplayPage').handle(
+      (page) => this.navMapContainerRef.instance.style.display = page === UpperMfdDisplayPage.Inav ? 'block' : 'none'
+    );
+
+
+    this.navMapContainerRef.instance.style.display = this.props.settings.getSetting('upperMfdDisplayPage').get() === UpperMfdDisplayPage.Inav ? 'block' : 'none';
   }
 
   /** @inheritdoc */

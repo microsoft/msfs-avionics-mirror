@@ -90,7 +90,7 @@ export class DefaultInertialDataProvider implements InertialDataProvider, Instru
   private readonly fmsPosWindDirection = ConsumerSubject.create(null, 0);
   private readonly fmsPosGroundSpeed = ConsumerSubject.create(null, 0);
   private readonly fmsPosGroundTrack = ConsumerSubject.create(null, 0);
-  private readonly fmsPosPosition = ConsumerSubject.create(null, new LatLongAlt());
+  private readonly fmsPosPosition = ConsumerSubject.create(null, new LatLongAlt({ lat: NaN, long: NaN }));
   private readonly fmsPosEpu = ConsumerSubject.create(null, Infinity);
   private readonly adahrsLateralAccel = ConsumerSubject.create(null, 0);
   private readonly adahrsLongitudinallAccel = ConsumerSubject.create(null, 0);
@@ -260,6 +260,7 @@ export class DefaultInertialDataProvider implements InertialDataProvider, Instru
         this.adahrsVerticalAccel.setConsumer(sub.on(`adahrs_acceleration_body_y_${index}`).withPrecision(3));
         this.adahrsPitch.setConsumer(sub.on(`adahrs_actual_pitch_deg_${index}`));
         this.adahrsRoll.setConsumer(sub.on(`adahrs_actual_roll_deg_${index}`));
+        this.adahrsHeadingTrue.setConsumer(sub.on(`adahrs_actual_hdg_deg_true_${index}`));
         this.adahrsAttitudeDataValid.setConsumer(sub.on(`adahrs_attitude_data_valid_${index}`));
       } else {
         this.adahrsAttitudeDataValid.setConsumer(null);
@@ -268,6 +269,7 @@ export class DefaultInertialDataProvider implements InertialDataProvider, Instru
         this.adahrsVerticalAccel.setConsumer(null);
         this.adahrsPitch.setConsumer(null);
         this.adahrsRoll.setConsumer(null);
+        this.adahrsHeadingTrue.setConsumer(null);
       }
     }, true, true);
 
@@ -312,7 +314,7 @@ export class DefaultInertialDataProvider implements InertialDataProvider, Instru
         this._filteredWindSpeedX.set(Math.round(filteredWindSpeedX));
         this._filteredWindSpeedY.set(Math.round(filteredWindSpeedY));
 
-        const windVector = Vec2Math.set(filteredWindSpeedY, filteredWindSpeedX, DefaultInertialDataProvider.vec2Cache[0]);
+        const windVector = Vec2Math.set(-filteredWindSpeedX, filteredWindSpeedY, DefaultInertialDataProvider.vec2Cache[0]);
         this._filteredWindDirection.set(Math.round(Vec2Math.theta(windVector) * Avionics.Utils.RAD2DEG));
         this._filteredWindSpeed.set(Math.round(Vec2Math.abs(windVector)));
       } else {
@@ -393,7 +395,7 @@ export class DefaultInertialDataProvider implements InertialDataProvider, Instru
       return;
     }
 
-    
+
     const relativeWindDirection = (windDirection + 180 - heading) * Avionics.Utils.DEG2RAD;
 
     // Note: the below X and Y assume a coordinate system where +X is to the right and +Y is forward

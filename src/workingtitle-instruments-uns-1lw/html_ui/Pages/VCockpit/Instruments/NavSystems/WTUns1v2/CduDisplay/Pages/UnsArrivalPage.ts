@@ -274,7 +274,7 @@ class UnsArrivalPageController {
    *
    * @throws if flight plan destinationAirport and FMS facilityinfo are out of sync
    */
-  private updateStoreFromFlightPlan(plan: FlightPlan): void {
+  public updateStoreFromFlightPlan(plan: FlightPlan): void {
     const airportIcao = plan.destinationAirport;
 
     if (airportIcao === undefined || airportIcao === ICAO.emptyIcao) {
@@ -589,7 +589,7 @@ export class UnsArrivalPage extends UnsFmcPage {
       },
 
       /** @inheritDoc */
-      parse: (input): OneWayRunway | null  =>{
+      parse: (input): OneWayRunway | null => {
         const int = parseInt(input);
 
         if (!Number.isFinite(int)) {
@@ -634,7 +634,7 @@ export class UnsArrivalPage extends UnsFmcPage {
         let transitionString = '-----.[white]';
         if (isHighlighted && state === UnsArrivalPageState.PickArrivalEnrouteTransition) {
           transitionString = ` #[cyan] [white]${typedText.padStart(2, ' ')}[r-white].[white]`;
-        } else if (state === UnsArrivalPageState.PickArrival || state ===UnsArrivalPageState.PickApproach) {
+        } else if (state === UnsArrivalPageState.PickArrival || state === UnsArrivalPageState.PickApproach) {
           transitionString = '';
         } else if (transition) {
           transitionString = `${transition.name}.[white]`;
@@ -832,6 +832,8 @@ export class UnsArrivalPage extends UnsFmcPage {
 
   /** @inheritdoc */
   protected override onResume(): void {
+    this.controller.updateStoreFromFlightPlan(this.fms.getFlightPlan(this.store.targetPlanIndex));
+
     this.screen.tryFocusField(this.store.pickedRunway.get() ? null : this.RunwayField);
     this.store.state.set(this.store.pickedRunway.get() ? UnsArrivalPageState.Standby : UnsArrivalPageState.PickRunway);
   }

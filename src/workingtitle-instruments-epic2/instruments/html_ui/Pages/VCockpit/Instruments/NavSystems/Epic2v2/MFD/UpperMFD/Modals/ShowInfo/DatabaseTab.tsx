@@ -1,7 +1,7 @@
 import {
   AirportFacility, AirportPrivateType, AirportRunway, AirportUtils, ArraySubject, DisplayComponent, DmsFormatter2, Facility, FacilityFrequency,
-  FacilityFrequencyType, FacilitySearchType, FacilityType, FSComponent, ICAO, MagVar, NdbFacility, OneWayRunway, RunwaySurfaceType, RunwayUtils, Subject,
-  Subscription, UnitType, VNode, VorClass, VorFacility, VorType
+  FacilityFrequencyType, FacilitySearchType, FacilityType, FacilityUtils, FSComponent, ICAO, MagVar, NdbFacility, OneWayRunway, RunwaySurfaceType, RunwayUtils,
+  Subject, Subscription, UnitType, UserFacilityType, VNode, VorClass, VorFacility, VorType
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -322,7 +322,7 @@ class AirportDialog extends DisplayComponent<DatabaseTabProps> {
         this.airportType.set(`${AirportPrivateType[airportFacility.airportPrivateType]} Airport`);
         this.latLong.set(`${DatabaseTab.LAT_FORMATTER(fac?.lat ?? 0)} ${DatabaseTab.LON_FORMATTER(fac?.lon ?? 0)}`);
         this.longestRwy.set(`${longestRunway ? this.getRunwayDesignation(longestRunway) : ''} (${UnitType.METER.convertTo(longestRunway?.length ?? 0, UnitType.FOOT).toFixed(0)}ft)`);
-        this.elevation.set(`${AirportUtils.getElevation(airportFacility)?.toFixed(0)} ft`);
+        this.elevation.set(`${UnitType.METER.convertTo(airportFacility.altitude, UnitType.FOOT).toFixed(0)} ft`);
         this.magvar.set(`${Math.abs(magvar).toFixed(0)}°${Math.sign(magvar) > 0 ? 'E' : 'W'}`);
 
         const runways = RunwayUtils.getOneWayRunwaysFromAirport(airportFacility);
@@ -396,6 +396,7 @@ class AirportDialog extends DisplayComponent<DatabaseTabProps> {
 
 /** Class used to show ILS navaid data */
 class WaypointDialog extends DisplayComponent<DatabaseTabProps> {
+  private readonly pilotWaypointInfo = Subject.create('');
   private latLong = Subject.create<string>('');
   private type = Subject.create<string>('');
   private country = Subject.create<string>('');
@@ -410,6 +411,24 @@ class WaypointDialog extends DisplayComponent<DatabaseTabProps> {
       if (facility) {
         const magvar = MagVar.get(facility.lat, facility.lon);
 
+        if (FacilityUtils.isFacilityType(facility, FacilityType.USR)) {
+          switch (true) {
+            case facility.userFacilityType === UserFacilityType.RADIAL_DISTANCE && !!facility.reference1IcaoStruct && !!facility.reference1Radial && !!facility.reference1Distance:
+              this.pilotWaypointInfo.set(`${facility.reference1IcaoStruct.ident}/${facility.reference1Radial.toFixed(0).padStart(3, '0')}/${facility.reference1Distance.toFixed(1)}`);
+              break;
+            case facility.userFacilityType === UserFacilityType.RADIAL_RADIAL
+                && !!facility.reference1IcaoStruct && !!facility.reference1Radial
+                && !!facility.reference2IcaoStruct && !!facility.reference2Radial:
+              this.pilotWaypointInfo.set(`${facility.reference1IcaoStruct.ident}/${facility.reference1Radial.toFixed(0).padStart(3, '0')}/${facility.reference2IcaoStruct.ident}/${facility.reference2Radial.toFixed(0).padStart(3, '0')}`);
+              break;
+            default:
+              this.pilotWaypointInfo.set('');
+              break;
+          }
+        } else {
+          this.pilotWaypointInfo.set('');
+        }
+
         this.latLong.set(`${DatabaseTab.LAT_FORMATTER(facility.lat)} ${DatabaseTab.LON_FORMATTER(facility.lon)}`);
         this.type.set(ICAO.getFacilityType(facility.icao) === FacilityType.Intersection ? 'Named Wpt' : 'Temporary Wpt');
         this.country.set(Regions.getName(facility.region));
@@ -423,10 +442,11 @@ class WaypointDialog extends DisplayComponent<DatabaseTabProps> {
     return (<div ref={this.ref}>
       <TouchButton isEnabled={false} label={'General'} variant={'bar'} class={'database-mode-button'} />
       <div class='main-database-container'>
+        <p class='variable'>{this.pilotWaypointInfo}</p>
         <p class='variable'>{this.latLong}</p>
         <div class='database-container'>
           <p>Type: <span class='variable'>{this.type}</span></p>
-          <p>Country: <span class='variable'>{this.country}</span></p>
+          <p class={{ 'hidden': this.props.facility.map((fac) => !fac || FacilityUtils.isFacilityType(fac, FacilityType.USR)) }}>Country: <span class='variable'>{this.country}</span></p>
           <p>Mag Dec: <span class='variable'>{this.magvar}</span></p>
         </div>
       </div>

@@ -45,7 +45,7 @@ export class Epic2NavToNavManager implements NavToNavManager2 {
   /** @inheritDoc */
   public readonly isNavToNavManager2 = true;
 
-  private readonly fmsPosition = ConsumerValue.create(null, new LatLongAlt(NaN, NaN));
+  private readonly fmsPosition = ConsumerValue.create(null, new LatLongAlt({ lat: NaN, long: NaN }));
 
   private currentState: Epic2NavToNavStates;
   private flightArea = ConsumerValue.create(this.bus.getSubscriber<Epic2LNavDataEvents>().on('lnavdata_flight_area'), Epic2FlightArea.Departure);

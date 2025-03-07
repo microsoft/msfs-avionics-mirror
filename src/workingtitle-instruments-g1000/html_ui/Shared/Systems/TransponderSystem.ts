@@ -16,7 +16,7 @@ export class TransponderSystem extends BasicAvionicsSystem<TransponderSystemEven
    */
   constructor(public readonly index: number, protected readonly bus: EventBus) {
     super(index, bus, 'transponder_state');
-    this.connectToPower('elec_av1_bus');
+    this.connectToPower('elec_circuit_transponder_on');
   }
 }
 

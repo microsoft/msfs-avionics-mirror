@@ -115,69 +115,104 @@ export class ArrivalTab extends TabContent<ArrivalTabProps> {
   }, this.selectedRunway, this.selectedArrival);
 
   private readonly approachTransitions = this.selectedApproach.map(approach => {
-    return Epic2FmsUtils.getApproachTransitions(approach);
+    return Epic2FmsUtils.getApproachTransitionListItems(approach);
   });
 
   private readonly allOneWayRunways = this.selectedAirport.map(x => x ? RunwayUtils.getOneWayRunwaysFromAirport(x) : []);
 
-  private readonly runways = MappedSubject.create(([allOneWayRunways, selectedRunway]) => {
-    return selectedRunway
-      ? [selectedRunway]
-      : allOneWayRunways;
-  }, this.allOneWayRunways, this.selectedRunway);
+  private readonly runways = MappedSubject.create(
+    ([allOneWayRunways, selectedRunway, selectedArrival]) => {
+      if (selectedRunway) {
+        return [selectedRunway];
+      }
 
-  private readonly approaches = this.props.allowRnpAr
-    ? this.selectedAirport.map(x => Epic2FmsUtils.getApproaches(x).sort(Epic2FmsUtils.sortApproachItem))
-    : this.selectedAirport.map(x => Epic2FmsUtils.getApproaches(x).filter(approach => !Epic2FmsUtils.isApproachRnpAr(approach.approach)).sort(Epic2FmsUtils.sortApproachItem));
+      if (selectedArrival && selectedArrival.runwayTransitions.length > 0) {
+        return allOneWayRunways.filter((runway) => selectedArrival.runwayTransitions.some(
+          (trans) => trans.runwayNumber === runway.direction && trans.runwayDesignation === runway.runwayDesignator
+        ));
+      }
+      return allOneWayRunways;
+    },
+    this.allOneWayRunways,
+    this.selectedRunway,
+    this.selectedArrival,
+  );
+
+  private readonly allApproaches = this.props.allowRnpAr
+    ? this.selectedAirport.map(x => Epic2FmsUtils.getApproachListItems(x).sort(Epic2FmsUtils.sortApproachItem))
+    : this.selectedAirport.map(x => Epic2FmsUtils.getApproachListItems(x).filter(
+      approach => !Epic2FmsUtils.isApproachRnpAr(approach.approach)
+    ).sort(Epic2FmsUtils.sortApproachItem));
 
   private readonly enrouteTransitions = MappedSubject.create(([arrival]) => {
     if (!arrival) { return []; }
 
-    return [
-      Epic2FmsUtils.createDefaultEnrouteTransition(arrival, this.selectedRunwayTransitionIndex.get()),
-      ...arrival.enRouteTransitions,
-    ];
+    return arrival.enRouteTransitions;
   }, this.selectedArrival);
 
   // Using null here so that an approach list item effectively takes up two rows in the list
-  private readonly approachesAndTransitions = MappedSubject.create(([selectedRunway, selectedApproach, approaches, approachTransitions]) => {
-    if (!selectedApproach) {
+  private readonly approachesAndTransitions = MappedSubject.create(
+    ([selectedRunway, selectedApproach, allApproaches, approachTransitions, selectedArrival]) => {
+      if (!selectedApproach) {
+        let filtered;
 
-      const filtered = selectedRunway ?
-        approaches.filter(x =>
-          x.approach.runway === selectedRunway.designation ||
-          '0' + x.approach.runway === selectedRunway.designation ||
-          x.approach.runway === '0' + selectedRunway.designation
-        )
-        : approaches;
+        if (selectedRunway) {
+          filtered = allApproaches.filter((appr) => appr.approach.runwayNumber === selectedRunway.direction && appr.approach.runwayDesignator === selectedRunway.runwayDesignator);
+        } else if (selectedArrival && selectedArrival.runwayTransitions.length > 0) {
+          filtered = allApproaches.filter((appr) => selectedArrival.runwayTransitions.some(
+            (trans) => trans.runwayNumber === appr.approach.runwayNumber && trans.runwayDesignation === appr.approach.runwayDesignator
+          ));
+        } else {
+          filtered = allApproaches;
+        }
 
-      const padded = [] as (ApproachListItem | object)[];
-      filtered.forEach(app => {
-        padded.push(app);
-        padded.push({});
-      });
-      return padded;
-    }
+        const padded = [] as (ApproachListItem | object)[];
+        filtered.forEach(app => {
+          padded.push(app);
+          padded.push({});
+        });
+        return padded;
+      }
 
-    return [selectedApproach, {}, ...approachTransitions];
+      return [selectedApproach, {}, ...approachTransitions];
 
-  }, this.selectedRunway, this.selectedApproach, this.approaches, this.approachTransitions);
+    },
+    this.selectedRunway,
+    this.selectedApproach,
+    this.allApproaches,
+    this.approachTransitions,
+    this.selectedArrival,
+  );
 
-  private readonly arrivalsAndTransitions = MappedSubject.create(([airport, selectedArrival, selectedTransition, enrouteTransitions]) => {
-    if (!airport) { return []; }
+  private readonly arrivalsAndTransitions = MappedSubject.create(
+    ([airport, selectedArrival, selectedTransition, enrouteTransitions, selectedRunway]) => {
+      if (!airport) {
+        return [];
+      }
 
-    if (!selectedArrival) {
-      return airport.arrivals;
-      /*return airport.arrivals.filter(x => x.runwayTransitions.some(
-          trans => RunwayUtils.getRunwayNameString(trans.runwayNumber, trans.runwayDesignation) === runway.designation));*/
-    }
+      if (!selectedArrival) {
+        if (!selectedRunway) {
+          return airport.arrivals;
+        }
+        return airport.arrivals.filter(
+          (x) => x.runwayTransitions.length === 0 || x.runwayTransitions.some(
+            (trans) => trans.runwayNumber === selectedRunway.direction && trans.runwayDesignation === selectedRunway.runwayDesignator
+          )
+        );
+      }
 
-    if (!selectedTransition) {
-      return [selectedArrival, ...enrouteTransitions];
-    }
+      if (!selectedTransition) {
+        return [selectedArrival, ...enrouteTransitions];
+      }
 
-    return [selectedArrival, selectedTransition];
-  }, this.selectedAirport, this.selectedArrival, this.selectedTransition, this.enrouteTransitions);
+      return [selectedArrival, selectedTransition];
+    },
+    this.selectedAirport,
+    this.selectedArrival,
+    this.selectedTransition,
+    this.enrouteTransitions,
+    this.selectedRunway,
+  );
 
   private readonly runwayListData = ArraySubject.create<OneWayRunway>();
   private readonly approachListData = ArraySubject.create<ApproachListElement>();
@@ -199,7 +234,6 @@ export class ArrivalTab extends TabContent<ArrivalTabProps> {
     this.selectedAirport.sub(() => this.onResume());
   }
 
-
   /** @inheritdoc */
   public onResume(): void {
     // Populate selections based on active flight plan
@@ -214,7 +248,7 @@ export class ArrivalTab extends TabContent<ArrivalTabProps> {
     }
 
     this.selectedApproach.set(this.getApproach());
-    this.selectedApproachTransition.set(this.getApproachTransition());
+    this.selectedApproachTransition.set(this.getPlanApproachTransition());
 
     // Just making sure the lists are fresh, might not need this
     this.runwayListData.set(this.runways.get());
@@ -228,7 +262,6 @@ export class ArrivalTab extends TabContent<ArrivalTabProps> {
     this.clearSelections();
   }
 
-
   /**
    * Choose the appropriate approach to use.
    * @returns The approach to use.
@@ -241,7 +274,7 @@ export class ArrivalTab extends TabContent<ArrivalTabProps> {
     const planDestinationRunway = this.destinationRunway.get();
 
     const selectedAirport = this.selectedAirport.get();
-    const approaches = this.approaches.get();
+    const approaches = this.allApproaches.get();
 
     // 1. If selected airport matches plan approach facility, and plan has an approach, use that
     if (selectedAirport === planDestinationFacility) {
@@ -264,33 +297,21 @@ export class ArrivalTab extends TabContent<ArrivalTabProps> {
       return approach;
     }
 
-    // 2. Use first approach from selected airport
-    // if (selectedAirport) {
-    //   return approaches[0];
-    // }
-
     return undefined;
   }
 
   /**
-   * Choose the appropriate transition to use.
-   * @returns The transition to use.
+   * Gets the approach transition list item for the approach transition selected in the flightplan.
+   * @returns The selected transition list item, or undefined if none selected.
    */
-  private getApproachTransition(): TransitionListItem | undefined {
+  private getPlanApproachTransition(): TransitionListItem | undefined {
     const planDestinationFacility = this.selectedAirport.get();
     const isApproachLoaded = this.isApproachLoaded.get();
     const planTransitionIndex = this.approachTransitionIndex.get();
     const selectedAirport = this.selectedAirport.get();
-    const selectedApproach = this.selectedApproach.get();
 
-    // 1. If selected airport matches plan approach facility, and plan has a transition, use that
     if (selectedAirport === planDestinationFacility && isApproachLoaded) {
-      return this.approachTransitions.get()[planTransitionIndex + 1];
-    }
-
-    // 2. Use first transition from selected approach
-    if (selectedApproach) {
-      return this.approachTransitions.get()[0];
+      return this.approachTransitions.get().find((v) => v.transitionIndex === planTransitionIndex);
     }
 
     return undefined;
@@ -406,9 +427,8 @@ export class ArrivalTab extends TabContent<ArrivalTabProps> {
                               this.selectedApproachTransition.set(undefined);
                             } else {
                               this.selectedApproach.set(data);
-                              const approachTransitions = this.approachTransitions.get();
-                              // auto select vectors trans
-                              this.selectedApproachTransition.set(approachTransitions[0]);
+                              // by default no transition is selected
+                              this.selectedApproachTransition.set(undefined);
                               // data.approach.runway will store 08R as 8R, so we need to strip the leading zero from the designation
                               this.selectedRunway.set(this.runways.get().find(x => x.designation === data.approach.runway || x.designation.replace(/^0/, '') === data.approach.runway));
                             }
@@ -455,23 +475,12 @@ export class ArrivalTab extends TabContent<ArrivalTabProps> {
                               this.selectedTransition.set(undefined);
                             } else {
                               this.selectedArrival.set(data);
-                              const enrouteTransitions = this.enrouteTransitions.get();
-                              if (enrouteTransitions.length === 1) {
-                                // auto select default trans if only trans available
-                                this.selectedTransition.set(enrouteTransitions[0]);
-                              } else {
-                                this.selectedTransition.set(undefined);
-                              }
+                              this.selectedTransition.set(undefined);
                             }
                           } else {
                             // is transition
                             if (selectedTransition) {
-                              const enrouteTransitions = this.enrouteTransitions.get();
-                              if (enrouteTransitions.length > 1) {
-                                this.selectedTransition.set(undefined);
-                              } else {
-                                // do nothing, because this is the only possible transition
-                              }
+                              this.selectedTransition.set(undefined);
                             } else {
                               this.selectedTransition.set(data);
                             }
@@ -513,6 +522,7 @@ export class ArrivalTab extends TabContent<ArrivalTabProps> {
                   const selectedArrival = this.selectedArrival.get();
                   const selectedApproach = this.selectedApproach.get();
                   const selectedApproachTransition = this.selectedApproachTransition.get();
+                  const selectedRunway = this.selectedRunway.get();
 
                   const isVisualApproach = selectedApproach?.isVisualApproach;
 
@@ -523,10 +533,10 @@ export class ArrivalTab extends TabContent<ArrivalTabProps> {
                         this.selectedArrivalIndex.get(),
                         this.selectedRunwayTransitionIndex.get(),
                         this.selectedTransitionIndex.get(),
-                        this.selectedRunway.get(),
+                        selectedRunway,
                       );
                     } else {
-                      this.props.fms.setDestination(this.selectedAirport.get(), this.selectedRunway.get());
+                      this.props.fms.clearArrival();
                     }
 
                     if (selectedApproach) {
@@ -538,8 +548,10 @@ export class ArrivalTab extends TabContent<ArrivalTabProps> {
                         visualRunwayDesignator: isVisualApproach ? selectedApproach.approach.runwayDesignator : undefined,
                         visualRunwayOffset: undefined,
                         vfrVerticalPathAngle: undefined,
-                        transStartIndex: selectedApproachTransition?.startIndex
                       });
+                    } else {
+                      this.props.fms.clearApproach();
+                      this.props.fms.setDestination(selectedAirport, selectedRunway);
                     }
 
                     this.props.onInserted();

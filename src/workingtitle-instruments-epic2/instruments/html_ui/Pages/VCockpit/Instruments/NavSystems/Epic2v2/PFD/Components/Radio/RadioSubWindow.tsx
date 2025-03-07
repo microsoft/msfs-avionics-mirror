@@ -1,9 +1,11 @@
 import {
-  ComponentProps, ComSpacing, ControlEvents, DisplayComponent, ElectricalEvents, EventBus, FSComponent, HEvent, NavComEvents, SetSubject, Subscribable,
-  XPDRSimVarEvents
+  ComponentProps, ComSpacing, ControlEvents, DisplayComponent, ElectricalEvents, EventBus, FSComponent, HEvent, MutableSubscribable, NavComEvents, SetSubject,
+  Subject, XPDRSimVarEvents
 } from '@microsoft/msfs-sdk';
 
-import { AdfSystemEvents, Epic2BezelButtonEvents, Epic2DmeStateEvents, Epic2DuControlEvents, Epic2PfdControlRadioEvents, XpdrSystemEvents } from '@microsoft/msfs-epic2-shared';
+import {
+  AdfSystemEvents, DisplayUnitIndices, Epic2DmeStateEvents, Epic2DuControlEvents, Epic2PfdControlRadioEvents, XpdrSystemEvents
+} from '@microsoft/msfs-epic2-shared';
 
 import { DetailPagesController } from './DetailPages';
 
@@ -16,14 +18,14 @@ export type RadioSubWindowControlEventTopics = keyof Epic2PfdControlRadioEvents 
 export interface RadioSubWindowProps extends ComponentProps {
   /** An EventBus. */
   bus: EventBus,
-  /** Whether the sub-window is currently selected. */
-  isSelected: Subscribable<boolean>,
+  /** The host display unit index. */
+  duIndex: DisplayUnitIndices;
   /** Whether to draw the bottom separator the full width. */
   fullWidthSeparator?: boolean,
   /** Controls which Radio Management Detail Page to show in the subwindow and its display data. */
   detailPagesController: DetailPagesController;
-  /** The HEvent string of the LSK allocated to this subwindow. */
-  lskString: Epic2BezelButtonEvents;
+  /** A function that will set this subwindow as selected. */
+  setSelected: () => void;
 }
 
 /** A base class for radio sub-window classes. */
@@ -36,6 +38,8 @@ export abstract class RadioSubWindow<P extends RadioSubWindowProps = RadioSubWin
   protected readonly hEventPublisher = this.props.bus.getPublisher<HEvent>();
 
   protected readonly softKeyClass = SetSubject.create<string>(['soft-key-ident']);
+
+  public readonly isSelected = Subject.create(false) as MutableSubscribable<boolean>;
 
   /**
    * Formats COM frequencies to strings.
@@ -62,18 +66,10 @@ export abstract class RadioSubWindow<P extends RadioSubWindowProps = RadioSubWin
       this.separatorRef.instance.classList.add('full-width');
     }
 
-    this.props.isSelected.sub((isSelected: boolean): void => {
+    this.isSelected.sub((isSelected: boolean): void => {
       this.subWindowRef.instance.classList.toggle('sub-window-selected', isSelected);
       this.softKeyClass.toggle('soft-key-selected', isSelected);
     }, true);
-  }
-
-  /**
-   * Publishes an HEvent when the soft key of this subwindow is pressed,
-   * to create the same effect as when the bezel button corresponding to this subwindow is pressed.
-   */
-  protected publishHEventOnSoftKeyPressed(): void {
-    this.hEventPublisher.pub('hEvent', this.props.lskString, true, false);
   }
 
   /**
@@ -91,4 +87,20 @@ export abstract class RadioSubWindow<P extends RadioSubWindowProps = RadioSubWin
         return this.props.bus.getPublisher<ControlEvents>().pub('xpdr_send_ident_1', true);
     }
   }
+
+  /**
+   * Handles the softkey for this subwindow being pressed.
+   */
+  private handleSoftKey(): void {
+    if (this.isSelected.get()) {
+      this.handleRadioControlEvents('BEZEL_BUTTON');
+    } else {
+      this.props.setSelected();
+    }
+  }
+
+  /**
+   * Handles the softkey for this subwindow being pressed.
+   */
+  protected softKeyHandler = this.handleSoftKey.bind(this);
 }

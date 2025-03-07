@@ -1,12 +1,10 @@
 /* eslint-disable max-len */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import {
-  ComponentProps, ComRadioTuneEvents, ComSpacing, ConsumerSubject, ControlPublisher, EventBus, FrequencyBank, FrequencyChangeEvent, FSComponent,
+  ComponentProps, ComRadioTuneEvents, ComSpacing, ConsumerSubject, ControlPublisher, ElectricalEvents, EventBus, FrequencyBank, FrequencyChangeEvent, FSComponent,
   IdentChangeEvent, NavComEvents, NavEvents, NavSourceId, NavSourceType, Radio, RadioEvents, RadioType, VNode
 } from '@microsoft/msfs-sdk';
 
-import { AvionicsComputerSystemEvents } from '../Systems/AvionicsComputerSystem';
-import { AvionicsSystemState, AvionicsSystemStateEvent } from '../Systems/G1000AvionicsSystem';
 import { FmsHEvent, G1000UiControl } from '../UI';
 
 import './NavComFrequencyElement.css';
@@ -42,8 +40,6 @@ export class NavComFrequencyElement extends G1000UiControl<NavComFrequencyElemen
     [FmsHEvent.D9, 9],
     [FmsHEvent.Dot, -1],
   ]);
-
-
 
   private containerRef = FSComponent.createRef<HTMLElement>();
   private selectorBorderElement = FSComponent.createRef<HTMLElement>();
@@ -96,23 +92,22 @@ export class NavComFrequencyElement extends G1000UiControl<NavComFrequencyElemen
    * Stuff to do after rendering.
    */
   public onAfterRender(): void {
-    const nav = this.props.bus.getSubscriber<RadioEvents>();
-    nav.on('set_radio_state').handle(this.onUpdateState);
-    nav.on('set_frequency').handle(this.onUpdateFrequency);
-    nav.on('set_ident').handle(this.onUpdateIdent);
-    nav.on('set_signal_strength').handle(this.onUpdateSignalStrength);
+    const sub = this.props.bus.getSubscriber<RadioEvents & NavEvents & NavComEvents & ElectricalEvents>();
+    sub.on('set_radio_state').handle(this.onUpdateState);
+    sub.on('set_frequency').handle(this.onUpdateFrequency);
+    sub.on('set_ident').handle(this.onUpdateIdent);
+    sub.on('set_signal_strength').handle(this.onUpdateSignalStrength);
+
     if (this.props.position === 'left') {
-      const navproc = this.props.bus.getSubscriber<NavEvents>();
-      navproc.on('cdi_select').handle(this.onUpdateCdiSelect);
+      sub.on('cdi_select').handle(this.onUpdateCdiSelect);
     }
 
-    this.props.bus.getSubscriber<AvionicsComputerSystemEvents>()
-      .on('avionicscomputer_state_1')
-      .handle(this.onComputerStateChanged.bind(this));
+    if (this.props.type === RadioType.Nav) {
+      sub.on(`elec_circuit_nav_on_${this.props.index}`).handle(this.onPowerChange);
+    } else {
+      sub.on(`elec_circuit_com_on_${this.props.index}`).handle(this.onPowerChange);
+    }
 
-    this.props.bus.getSubscriber<AvionicsComputerSystemEvents>()
-      .on('avionicscomputer_state_2')
-      .handle(this.onComputerStateChanged.bind(this));
 
     this.standbyFreq.instance.style.display = '';
     this.comInputDigits.every(digit => {
@@ -121,29 +116,19 @@ export class NavComFrequencyElement extends G1000UiControl<NavComFrequencyElemen
     });
 
     if (this.props.type === RadioType.Com) {
-      this.props.bus.getSubscriber<NavComEvents>().on(`com_transmit_${this.props.index === 1 ? 1 : 2}`).handle(this.onComTransmitChange.bind(this));
+      sub.on(`com_transmit_${this.props.index === 1 ? 1 : 2}`).handle(this.onComTransmitChange.bind(this));
     }
 
     this.controlPublisher.startPublish();
   }
 
   /**
-   * A callaback called when the system screen state changes.
-   * @param state The state change event to handle.
+   * Handle a circuit power state change event.
+   * @param on True if the power is on, false otherwise.
    */
-  private onComputerStateChanged(state: AvionicsSystemStateEvent): void {
-    if (state.index === this.props.index) {
-      if (state.previous === undefined && state.current !== AvionicsSystemState.Off) {
-        this.setFailed(false);
-      } else {
-        if (state.current === AvionicsSystemState.On) {
-          this.setFailed(false);
-        } else {
-          this.setFailed(true);
-        }
-      }
-    }
-  }
+  private onPowerChange = (on: boolean): void => {
+    this.setFailed(!on);
+  };
 
   /**
    * Sets if the display should be failed or not.

@@ -3,6 +3,7 @@ import { FmsUtils } from '@microsoft/msfs-garminsdk';
 import {
   AirportFacility,
   ApproachProcedure,
+  ApproachUtils,
   ArrivalProcedure,
   DepartureProcedure,
   FacilityFrequency,
@@ -278,7 +279,7 @@ export class GnsFmsUtils {
     if (facility.approaches.length > 0) {
       for (let i = 0; i < facility.approaches.length; i++) {
         const approach: Readonly<ApproachProcedure> = facility.approaches[i];
-        if (!(approach.approachType === ApproachType.APPROACH_TYPE_RNAV && approach.rnavTypeFlags === 0 && approach.runwayNumber !== 0)) {
+        if (!ApproachUtils.isRnpAr(approach)) {
           procedures.push({ index: i, approachProcedure: approach });
         }
       }

@@ -173,7 +173,7 @@ export class CrossModal extends Modal<CrossModalProps> {
             <div class="indented-container">
               <RadioButton isDisabled={this.pastPriorEnabled.map(x => !x)} selectedValue={this.pastPriorState} value={'past'} label={this.leg.map((leg) => `Past ${leg?.name ?? ''}`)} />
               <RadioButton isDisabled={this.pastPriorEnabled.map(x => !x)} selectedValue={this.pastPriorState} value={'prior'} label={this.leg.map((leg) => `Prior to ${leg?.name ?? ''}`)} />
-              <InputField isEnabled={this.pastPriorEnabled} suffix={'NM'} bind={this.pastPriorDist} formatter={this.distInputFormat} bus={this.props.bus} textAlign='right' maxLength={6} />
+              <InputField isEnabled={this.pastPriorEnabled} suffix={'NM'} bind={this.pastPriorDist} formatter={this.distInputFormat} bus={this.props.bus} textAlign='right' maxLength={6} tscConnected tscDisplayLabel={'Distance Past/Prior'} blurOnEnter />
             </div>
             <div class="line" />
             <CheckBox isEnabled={false} isChecked={this.isFlyover} label='Flyover' />
@@ -183,7 +183,7 @@ export class CrossModal extends Modal<CrossModalProps> {
               <RadioButton isDisabled={this.hasAltitudeConstraint.map(x => !x)} selectedValue={this.altConstraintType} value={AltitudeRestrictionType.At} label={'At'} />
               <RadioButton isDisabled={this.hasAltitudeConstraint.map(x => !x)} selectedValue={this.altConstraintType} value={AltitudeRestrictionType.AtOrAbove} label={'At Above'} />
               <RadioButton isDisabled={this.hasAltitudeConstraint.map(x => !x)} selectedValue={this.altConstraintType} value={AltitudeRestrictionType.AtOrBelow} label={'At Below'} />
-              <InputField isEnabled={this.hasAltitudeConstraint} suffix={'Ft'} bind={this.altConstraintHeight} formatter={this.altInputFormat} bus={this.props.bus} textAlign='right' maxLength={5} />
+              <InputField isEnabled={this.hasAltitudeConstraint} suffix={'Ft'} bind={this.altConstraintHeight} formatter={this.altInputFormat} bus={this.props.bus} textAlign='right' maxLength={5} tscConnected tscDisplayLabel={'Altitude Constraint'} blurOnEnter />
             </div>
             <div class={{ 'hidden': this.hasWindowAltitudeConstraint.map(x => !x) }}>
               <p>At Below {this.altConstraintHeight}Ft</p>
@@ -205,7 +205,7 @@ export class CrossModal extends Modal<CrossModalProps> {
           <div class="right">
             <CheckBox isChecked={this.hasSpeedConstraint} label='Speed' />
             <div class="indented-container">
-              <InputField isEnabled={this.hasSpeedConstraint} bind={this.speedConstraint} formatter={this.speedInputFormat} bus={this.props.bus} textAlign='right' maxLength={4} />
+              <InputField isEnabled={this.hasSpeedConstraint} bind={this.speedConstraint} formatter={this.speedInputFormat} bus={this.props.bus} textAlign='right' maxLength={4} tscConnected tscDisplayLabel={'Speed'} blurOnEnter />
               <div class="radio-row">
                 <RadioButton isDisabled={this.hasSpeedConstraint.map(x => !x)} selectedValue={this.speedUnit} value={SpeedUnit.IAS} label={'CAS'} />
                 <RadioButton isDisabled={true} selectedValue={this.speedUnit} value={SpeedUnit.MACH} label={'Mach'} />

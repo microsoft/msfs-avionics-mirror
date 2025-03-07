@@ -10,7 +10,9 @@ interface RadioSectionContainerProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
   /** Display unit index. */
-  index: DisplayUnitIndices;
+  duIndex: DisplayUnitIndices;
+  /** Which side of the DU the radio window is on. */
+  duSide: 'left' | 'right',
   /** A manager for NavCom user settings. */
   navComSettingsManager: NavComUserSettingManager;
 }
@@ -30,7 +32,7 @@ export class RadioSectionContainer extends DisplayComponent<RadioSectionContaine
 
   private readonly detailPagesController = new DetailPagesController(
     this.props.bus,
-    this.props.index,
+    this.props.duSide,
     this.props.navComSettingsManager
   );
 
@@ -62,13 +64,14 @@ export class RadioSectionContainer extends DisplayComponent<RadioSectionContaine
       <div class="radio-section-container" style={this.style}>
         <RadioTuningWindow
           bus={this.props.bus}
-          index={this.props.index}
+          duIndex={this.props.duIndex}
+          duSide={this.props.duSide}
           detailPagesController={this.detailPagesController}
           ref={this.radioTuningWindowRef}
         />
         <RadioDetailWindow
           bus={this.props.bus}
-          index={this.props.index}
+          duIndex={this.props.duIndex}
           detailPagesController={this.detailPagesController}
           ref={this.radioDetailWindowRef}
           settings={this.props.navComSettingsManager}

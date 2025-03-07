@@ -131,6 +131,7 @@ export class FlightDirector extends DisplayComponent<FlightDirectorProps> {
     if (!this.needUpdate) {
       return;
     }
+    this.fdServoBank = this.bankServo.drive(this.fdServoBank, this.fdRawBank);
     this.fdServoPitch = this.pitchServo.drive(this.fdServoPitch, this.fdRawPitch);
     const correctedBank = this.fdServoBank - this.currentBank;
     // const averagedPitch = this.pitchAverage.getAverage(this.fdRawPitch);

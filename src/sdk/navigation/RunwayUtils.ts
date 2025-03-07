@@ -273,8 +273,8 @@ export class RunwayUtils {
    * Utility method to return the runway name from the number and designator (L/R/C/W)
    * @param runwayNumber is the integer part of a runway name (18, 26, 27, etc)
    * @param designator is the RunwayDesignator enum for the runway
-   * @param padded Whether single-char runways should be 0-padded.
-   * @param prefix A prefix to put before the runway name.
+   * @param padded Whether single-char runways should be 0-padded. Defaults to `true`.
+   * @param prefix A prefix to put before the runway name. Defaults to `''`.
    * @returns the runway name string
    */
   public static getRunwayNameString(runwayNumber: number, designator: RunwayDesignator, padded = true, prefix = ''): string {

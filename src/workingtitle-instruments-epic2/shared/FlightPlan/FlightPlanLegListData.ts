@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
-  AltitudeRestrictionType, BasicNavAngleSubject, BasicNavAngleUnit, BitFlags, FacilityType, FixTypeFlags, FlightPathUtils, FlightPlan, FlightPlanSegment,
-  FlightPlanSegmentType, FlightPlanUtils, GeoPoint, GeoPointSubject, ICAO, LegDefinition, LegDefinitionFlags, LegType, MagVar, MappedSubject,
-  MappedSubscribable, NumberUnitSubject, PerformancePlanRepository, SpeedRestrictionType, SpeedUnit, Subject, Subscribable, SubscribableUtils, Subscription,
-  UnitType, UserSettingManager, VerticalFlightPhase, Wait
+  AltitudeRestrictionType, BasicNavAngleSubject, BasicNavAngleUnit, BitFlags, FacilityType, FixTypeFlags, FlightPlan, FlightPlanSegment, FlightPlanSegmentType,
+  FlightPlanUtils, GeoPoint, GeoPointSubject, ICAO, LegDefinition, LegDefinitionFlags, LegType, MappedSubject, MappedSubscribable, NumberUnitSubject,
+  PerformancePlanRepository, SpeedRestrictionType, SpeedUnit, Subject, Subscribable, SubscribableUtils, Subscription, UnitType, UserSettingManager,
+  VerticalFlightPhase, Wait
 } from '@microsoft/msfs-sdk';
 
 import { Epic2ExtraLegDefinitionFlags, Epic2FlightPlans, Epic2FmsUtils, Epic2UserDataKeys } from '../Fms';
@@ -250,24 +250,6 @@ export class FlightPlanLegListData implements FlightPlanBaseListData {
       this.displayDtk.set(NaN);
     } else {
       this.displayDtkSubs.push(legData.initialDtk.pipe(this.displayDtk));
-    }
-
-    // Calculate if considered a large turn
-    if (legData.globalLegIndex.get() > 0) {
-      const priorLeg = legData.plan.getLeg(legData.globalLegIndex.get() - 1);
-      if (priorLeg.calculated && legData.leg.calculated && legData.leg.calculated.endLat && legData.leg.calculated.endLon) {
-        const priorFinalTrueCourse = FlightPathUtils.getLegFinalCourse(priorLeg.calculated);
-        const priorFinalCourse = priorFinalTrueCourse && MagVar.trueToMagnetic(priorFinalTrueCourse, legData.leg.calculated.endLat, legData.leg.calculated.endLon);
-        const currentInitialCourse = legData.leg.calculated.initialDtk;
-
-        if (priorFinalCourse && currentInitialCourse) {
-          let turnAngle = Math.abs(currentInitialCourse - priorFinalCourse);
-          if (turnAngle > 180) {
-            turnAngle = 360 - turnAngle;
-          }
-          legData.isLargeTurn.set(turnAngle > 125);
-        }
-      }
     }
   }
 
@@ -539,9 +521,6 @@ export class FlightPlanLegData implements FlightPlanBaseData {
 
   /** The initial DTK of the leg. Magnetic. */
   public readonly initialDtk = BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(NaN));
-
-  /** Whether there is a 90 degree or more turn between this leg and the leg immediately prior */
-  public readonly isLargeTurn = Subject.create(false);
 
   /** The leg course, rounded, and with 0 as 360. */
   public readonly courseRounded = Math.round(this.leg.leg.course) === 0 ? 360 : Math.round(this.leg.leg.course);

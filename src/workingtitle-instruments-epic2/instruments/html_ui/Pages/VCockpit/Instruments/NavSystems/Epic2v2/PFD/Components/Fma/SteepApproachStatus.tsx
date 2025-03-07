@@ -1,18 +1,9 @@
-import { ComponentProps, DisplayComponent, FSComponent, MappedSubject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { DisplayComponent, FSComponent, MappedSubject, VNode } from '@microsoft/msfs-sdk';
 
-import { AutopilotDataProvider, Epic2ApVerticalMode, TawsDataProvider } from '@microsoft/msfs-epic2-shared';
+import { Epic2ApVerticalMode } from '@microsoft/msfs-epic2-shared';
 
 import './ApproachStatus.css';
-
-/** The flight mode annunciator props. */
-export interface ApproachStatusProps extends ComponentProps {
-  /** An autopilot data provider. */
-  autopilotDataProvider: AutopilotDataProvider,
-  /** A TAWS data provider */
-  tawsDataProvider: TawsDataProvider,
-  /** Whether the PFD is being decluttered */
-  declutter: Subscribable<boolean>;
-}
+import { ApproachStatusProps } from './ApproachStatus';
 
 /** The steep approach status component. */
 export class SteepApproachStatus extends DisplayComponent<ApproachStatusProps> {

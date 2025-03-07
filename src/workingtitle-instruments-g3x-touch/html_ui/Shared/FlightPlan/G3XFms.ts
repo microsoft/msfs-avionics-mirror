@@ -515,6 +515,30 @@ export class G3XFms {
   }
 
   /**
+   * Inserts a waypoint at the end of the internal primary flight plan.
+   * @param facility The waypoint facility to insert.
+   * @returns The leg that was inserted into the flight plan, or `undefined` if the insertion operation could not be
+   * carried out.
+   */
+  public async insertWaypointAtEnd(facility: Facility): Promise<LegDefinition | undefined> {
+    if (!this.internalFms.hasPrimaryFlightPlan()) {
+      return undefined;
+    }
+
+    const plan = this.internalFms.getPrimaryFlightPlan();
+    if (plan.length > 0) {
+      // If the plan is not empty, then insert at the end of segment containing the last leg.
+      return this.insertWaypoint(plan.getSegmentIndex(plan.length - 1), facility);
+    } else {
+      // If the plan is empty, then insert at the end of the enroute segment.
+      const firstEnrouteSegment = FmsUtils.getFirstEnrouteSegment(plan);
+      if (firstEnrouteSegment) {
+        return this.insertWaypoint(firstEnrouteSegment.segmentIndex, facility);
+      }
+    }
+  }
+
+  /**
    * Removes a leg to a waypoint from the internal primary flight plan.
    * @param segmentIndex The index of the segment containing the leg to remove.
    * @param segmentLegIndex The index of the leg to remove in its segment.
@@ -693,11 +717,11 @@ export class G3XFms {
 
   /**
    * Reconciles the origin and destination airport states of the internal primary flight plan.
-   * 
+   *
    * When reconciling the origin airport state, this method will move flight plan legs into and out of the departure
    * segment and set the flight plan's origin airport as appropriate to ensure that the first (non-approach) airport
    * waypoint in the flight plan is always considered to be the origin airport.
-   * 
+   *
    * When reconciling the destination airport state, this method will move flight plan legs into and out of the
    * destination segment and set the flight plan's destination airport as appropriate to ensure that when an approach
    * is not loaded, the last (non-origin) airport waypoint in the flight plan is always considered to be the

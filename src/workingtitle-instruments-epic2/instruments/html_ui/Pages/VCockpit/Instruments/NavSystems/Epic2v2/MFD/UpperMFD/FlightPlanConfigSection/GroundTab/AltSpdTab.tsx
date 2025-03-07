@@ -72,6 +72,7 @@ export class AltSpdTab extends TabContent<AltSpdTabProps> {
                 bus: this.props.bus,
               }}
               tscConnected
+              tscDisplayLabel={'Cruise Speed (M)'}
             />
             <InputField
               bus={this.props.bus}
@@ -87,6 +88,7 @@ export class AltSpdTab extends TabContent<AltSpdTabProps> {
                 bus: this.props.bus,
               }}
               tscConnected
+              tscDisplayLabel={'Cruise Speed (Kt)'}
             />
           </div>
           <div class="fpln-init-crz-alt">

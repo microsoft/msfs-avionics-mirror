@@ -114,9 +114,7 @@ export class ApproachUtils {
    * @returns Whether the approach procedure is an RNP (AR) approach.
    */
   public static isRnpAr(approach: ApproachProcedure): boolean {
-    return approach.approachType === ApproachType.APPROACH_TYPE_RNAV
-      && approach.rnavTypeFlags === RnavTypeFlags.None
-      && approach.runwayNumber !== 0;
+    return approach.rnpAr || approach.missedApproachRnpAr;
   }
 
   /**

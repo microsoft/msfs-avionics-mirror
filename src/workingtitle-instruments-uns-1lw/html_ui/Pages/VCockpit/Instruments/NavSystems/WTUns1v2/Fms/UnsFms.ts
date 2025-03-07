@@ -27,7 +27,7 @@ import { UnsFmsUtils } from './UnsFmsUtils';
 
 /** A UNS-1 FMS. */
 export class UnsFms {
-  public static version = 'WT2.0.6';
+  public static version = 'WT2.0.7';
 
   /** Set to true by FMC pages when the plan on this FMS instance is in modification and awaiting a cancel or exec. */
   public readonly planInMod = Subject.create<boolean>(false);
@@ -1963,13 +1963,31 @@ export class UnsFms {
     }
 
     const lastTransitionLeg = insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1];
-
     const finalLegs = resolvedApproach.finalLegs;
-    for (let i = 0; i < finalLegs.length; i++) {
+
+    // The transition is allowed to join to either the FACF (IF flag in MSFS) or FAF, and the FACF can be bypassed.
+    let finalStartIndex = 0;
+    if (lastTransitionLeg && UnsFms.isXFLeg(lastTransitionLeg)) {
+      for (let i = 0; i < finalLegs.length; i++) {
+        const finalLeg = finalLegs[i];
+
+        const isFafOrFacf = BitFlags.isAny(finalLeg.fixTypeFlags, FixTypeFlags.FAF | FixTypeFlags.IF);
+        if (isFafOrFacf && UnsFms.isXFLeg(finalLeg) && ICAO.valueEquals(lastTransitionLeg.fixIcaoStruct, finalLeg.fixIcaoStruct)) {
+          finalStartIndex = i;
+        }
+
+        if (BitFlags.isAny(finalLeg.fixTypeFlags, FixTypeFlags.FAF)) {
+          break;
+        }
+      }
+    }
+
+    for (let i = finalStartIndex; i < finalLegs.length; i++) {
       const leg = FlightPlanUtils.convertLegRunwayIcaosToSdkFormat(FlightPlan.createLeg(finalLegs[i]));
 
-      if (i === 0 && lastTransitionLeg && this.isDuplicateIFLeg(lastTransitionLeg, leg)) {
-        insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1] = this.mergeDuplicateLegData(lastTransitionLeg, leg);
+      if (i === finalStartIndex && lastTransitionLeg && UnsFms.isDuplicateXFLeg(lastTransitionLeg, leg)) {
+        // Merge legs, preferring the final approach constraints, but keep the transition constraints if there are none on the FAF/FACF
+        insertProcedureObject.procedureLegs[insertProcedureObject.procedureLegs.length - 1] = this.mergeDuplicateLegData(lastTransitionLeg, leg, true);
         continue;
       }
 
@@ -4049,6 +4067,21 @@ export class UnsFms {
   }
 
   /**
+   * Checks if a leg is an XF leg terminating at a fix.
+   * @param leg The leg to check.
+   * @returns Whether the leg terminates at a fix.
+   */
+  private static isXFLeg(leg: FlightPlanLeg): boolean {
+    return leg.type === LegType.TF
+      || leg.type === LegType.DF
+      || leg.type === LegType.RF
+      || leg.type === LegType.CF
+      || leg.type === LegType.AF
+      || leg.type === LegType.HF
+      || leg.type === LegType.IF;
+  }
+
+  /**
    * Checks whether of two consecutive flight plan legs, the second is a duplicate of the first. The second leg is
    * considered a duplicate if and only if it is an IF, TF, or DF leg with the same terminator fix as the first leg,
    * which is also an IF, TF, or DF leg.
@@ -4074,54 +4107,63 @@ export class UnsFms {
       || leg1.type === LegType.TF
       || leg1.type === LegType.DF
       || leg1.type === LegType.CF)
-      && ICAO.getRegionCode(leg1.fixIcao) === ICAO.getRegionCode(leg2.fixIcao)
-      && ICAO.getIdent(leg1.fixIcao) === ICAO.getIdent(leg2.fixIcao)
-      && ICAO.getFacilityType(leg1.fixIcao) === ICAO.getFacilityType(leg2.fixIcao);
+      && leg1.fixIcaoStruct.region === leg2.fixIcaoStruct.region
+      && leg1.fixIcaoStruct.ident === leg2.fixIcaoStruct.ident
+      && leg1.fixIcaoStruct.type === leg2.fixIcaoStruct.type;
   }
 
-  /**
-   * Checks whether of two consecutive flight plan legs, the second is an IF leg and is a duplicate of the first. The
-   * IF leg is considered a duplicate if and only if its fix is the same as the fix at which the first leg terminates.
-   * @param leg1 The first leg.
-   * @param leg2 The second leg.
-   * @returns whether the second leg is an duplicate IF leg of the first.
-   */
-  private isDuplicateIFLeg(leg1: FlightPlanLeg, leg2: FlightPlanLeg): boolean {
-    if (leg2.type !== LegType.IF) {
-      return false;
-    }
-    if (
-      leg1.type !== LegType.TF
-      && leg1.type !== LegType.DF
-      && leg1.type !== LegType.RF
-      && leg1.type !== LegType.CF
-      && leg1.type !== LegType.AF
-      && leg1.type !== LegType.IF
-    ) {
-      return false;
+    /**
+     * Checks whether of two consecutive flight plan legs, the second is an IF leg and is a duplicate of the first. The
+     * IF leg is considered a duplicate if and only if its fix is the same as the fix at which the first leg terminates.
+     * @param leg1 The first leg.
+     * @param leg2 The second leg.
+     * @returns whether the second leg is an duplicate IF leg of the first.
+     */
+    private isDuplicateIFLeg(leg1: FlightPlanLeg, leg2: FlightPlanLeg): boolean {
+      if (leg2.type !== LegType.IF) {
+        return false;
+      }
+      return UnsFms.isDuplicateXFLeg(leg1, leg2);
     }
 
-    return ICAO.getRegionCode(leg1.fixIcao) === ICAO.getRegionCode(leg2.fixIcao)
-      && ICAO.getIdent(leg1.fixIcao) === ICAO.getIdent(leg2.fixIcao)
-      && ICAO.getFacilityType(leg1.fixIcao) === ICAO.getFacilityType(leg2.fixIcao);
-  }
+    /**
+     * Checks whether of two consecutive flight plan legs, the second is an XF leg and is a duplicate of the first. The
+     * XF leg is considered a duplicate if and only if its fix is the same as the fix at which the first leg terminates.
+     * @param leg1 The first leg.
+     * @param leg2 The second leg.
+     * @returns whether the second leg is an duplicate XF leg of the first.
+     */
+    private static isDuplicateXFLeg(leg1: FlightPlanLeg, leg2: FlightPlanLeg): boolean {
+      if (!UnsFms.isXFLeg(leg1) || !UnsFms.isXFLeg(leg2)) {
+        return false;
+      }
 
-  /**
-   * Merges two duplicate legs such that the new merged leg contains the fix type and altitude data from the source leg
-   * and all other data is derived from the target leg.
-   * @param target The target leg.
-   * @param source The source leg.
-   * @returns the merged leg.
-   */
-  private mergeDuplicateLegData(target: FlightPlanLeg, source: FlightPlanLeg): FlightPlanLeg {
-    const merged = FlightPlan.createLeg(target);
-    merged.fixTypeFlags |= source.fixTypeFlags;
-    merged.altDesc = source.altDesc;
-    merged.altitude1 = source.altitude1;
-    merged.altitude2 = source.altitude2;
-    merged.speedRestriction = source.speedRestriction;
-    return merged;
-  }
+      return leg1.fixIcaoStruct.region === leg2.fixIcaoStruct.region
+        && leg1.fixIcaoStruct.ident === leg2.fixIcaoStruct.ident
+        && leg1.fixIcaoStruct.type === leg2.fixIcaoStruct.type;
+    }
+
+    /**
+     * Merges two duplicate legs such that the new merged leg contains the fix type and altitude data from the source leg
+     * and all other data is derived from the target leg.
+     * @param target The target leg.
+     * @param source The source leg.
+     * @param fallbackToTarget If true, and the source leg does not define constraints, the target leg constraints can be retained.
+     * @returns the merged leg.
+     */
+    private mergeDuplicateLegData(target: FlightPlanLeg, source: FlightPlanLeg, fallbackToTarget = false): FlightPlanLeg {
+      const merged = FlightPlan.createLeg(target);
+      merged.fixTypeFlags |= source.fixTypeFlags;
+      if (source.altDesc !== AltitudeRestrictionType.Unused || !fallbackToTarget) {
+        merged.altDesc = source.altDesc;
+        merged.altitude1 = source.altitude1;
+        merged.altitude2 = source.altitude2;
+      }
+      if (source.speedRestriction > 0 || !fallbackToTarget) {
+        merged.speedRestriction = source.speedRestriction;
+      }
+      return merged;
+    }
 
   /**
    * Deletes one of two consecutive duplicate legs. If one leg is in a procedure and the other is not, the leg that is
@@ -4177,6 +4219,7 @@ export class UnsFms {
     // come back - unlike leg2, which is in the enroute, and would not be reloaded.
     // The opposite is true if leg1 is not, and leg2 is in a procedure.
 
+    let needUpdateVerticalData = true;
     if (isLeg1InProc && !isLeg2InProc) {
       // Leg1 in proc + Leg2 not in proc - take data from Leg1
       toDeleteSegment = leg1Segment;
@@ -4184,10 +4227,19 @@ export class UnsFms {
       leg2.leg = this.mergeDuplicateLegData(leg2.leg, leg1.leg);
       toDeleteLeg = leg1;
     } else if (isLeg1InProc && isLeg2InProc) {
-      // Leg1 in proc + Leg2 in proc - leave Leg2 alone
-      toDeleteSegment = leg1Segment;
-      toDeleteIndex = leg1GlobalIndex - leg1Segment.offset;
-      toDeleteLeg = leg1;
+      // If leg2 doesn't contain an actual path and leg1 does, we want to keep the path.
+      if (leg2.leg.type === LegType.IF && leg1.leg.type !== LegType.IF) {
+        toDeleteSegment = leg2Segment;
+        toDeleteIndex = leg2GlobalIndex - leg2Segment.offset;
+        leg1.leg = this.mergeDuplicateLegData(leg1.leg, leg2.leg);
+        toDeleteLeg = leg2;
+      } else {
+        // Leg1 in proc + Leg2 in proc - leave Leg2 alone
+        toDeleteSegment = leg1Segment;
+        toDeleteIndex = leg1GlobalIndex - leg1Segment.offset;
+        toDeleteLeg = leg1;
+        needUpdateVerticalData = false;
+      }
     } else {
       // Leg1 not in proc + Leg2 in proc - take data from Leg2
       toDeleteSegment = leg2Segment;
@@ -4198,7 +4250,7 @@ export class UnsFms {
 
     // If the kept leg is not in a procedure, we need to manually generate the leg vertical data, as we won't get to it when doing it for
     // the procedure segments later
-    if (isLeg1InProc !== isLeg2InProc) {
+    if (needUpdateVerticalData) {
       const keptLeg = toDeleteLeg === leg1 ? leg2 : leg1;
       const keptLegSegment = toDeleteLeg === leg1 ? leg2Segment : leg1Segment;
 

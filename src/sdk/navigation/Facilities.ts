@@ -641,7 +641,7 @@ export interface Facility {
   /** The FS ICAO for this facility. */
   readonly icaoStruct: IcaoValue;
 
-  /** The name of the facility. */
+  /** The name of the facility. Can be a localized string (prefix with `TT:`) that needs passed to Utils.Translate. */
   readonly name: string;
 
   /** The latitude of the facility. */
@@ -653,7 +653,10 @@ export interface Facility {
   /** The region code in which this facility appears. */
   readonly region: string;
 
-  /** The city region boundary within which this facility appears.*/
+  /**
+   * The city region boundary within which this facility appears, and optionally also the state, separated by `, `.
+   * Both city and state can be localized strings (prefixed with `TT:`), and will need split before passing to Utils.Translate individually.
+   */
   readonly city: string;
 }
 

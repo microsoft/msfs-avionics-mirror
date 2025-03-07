@@ -1,6 +1,8 @@
 import { AvionicsSystemState, ConsumerSubject, FSComponent, MappedSubject, Subject, VNode, XPDRSimVarEvents } from '@microsoft/msfs-sdk';
 
-import { AirGroundDataProviderEvents, Epic2RadioUtils, Epic2TransponderEvents, TcasOperatingModeSetting, TouchButton } from '@microsoft/msfs-epic2-shared';
+import {
+  AirGroundDataProviderEvents, DisplayUnitIndices, Epic2RadioUtils, Epic2TransponderEvents, TcasOperatingModeSetting, TouchButton, TrafficUserSettings
+} from '@microsoft/msfs-epic2-shared';
 
 import { AdsBroadcastOutMode, RadioSubWindowDetailPage } from './DetailPages';
 import { RadioSubWindow, RadioSubWindowControlEventTopics } from './RadioSubWindow';
@@ -14,7 +16,7 @@ const TCAS_MODE_MAP = {
 
 /** A transponder radio sub-window */
 export class XpdrRadioSubWindow extends RadioSubWindow {
-  // private readonly trafficUserSettings = TrafficUserSettings.getManager(this.props.);
+  private readonly trafficUserSettings = TrafficUserSettings.getManager(this.props.bus);
   private readonly xpdrCode = ConsumerSubject.create(this.radioSub.on('xpdr_code_1').whenChanged(), 0);
   private readonly tcasMode = this.props.detailPagesController.currentTcasModes[0] as Subject<TcasOperatingModeSetting>;
   private readonly onGround = ConsumerSubject.create(this.props.bus.getSubscriber<AirGroundDataProviderEvents>().on('air_ground_is_on_ground'), false);
@@ -25,6 +27,7 @@ export class XpdrRadioSubWindow extends RadioSubWindow {
 
   private readonly xpdrCodeDisp = MappedSubject.create(([code, powered]) => powered ? code.toFixed().padStart(4, '0') : '----', this.xpdrCode, this.powered);
   private readonly tcasModeDisp = this.tcasMode.map((mode: TcasOperatingModeSetting) => TCAS_MODE_MAP[mode]);
+  private readonly alternateModeDisp = this.trafficUserSettings.getSetting('trafficAlternativeMode').map((mode: TcasOperatingModeSetting) => TCAS_MODE_MAP[mode]);
   private readonly groundDisp = this.onGround.map((onGround) => onGround ? 'GND' : '');
   private readonly adsBDisp = MappedSubject.create(([adsMode, powered]) => powered && adsMode === AdsBroadcastOutMode.ON ? 'ADS-B' : '', this.adsB, this.powered);
   private readonly identDisp = this.ident.map((ident) => ident ? 'IDT' : '');
@@ -45,6 +48,14 @@ export class XpdrRadioSubWindow extends RadioSubWindow {
         return this.props.detailPagesController.handleDetailButtonPressed(RadioSubWindowDetailPage.XPDR);
       case 'pfd_control_vfr_push':
         return this.props.detailPagesController.handleVfrButtonPress();
+      case 'BEZEL_BUTTON':
+        return this.props.bus.getPublisher<Epic2TransponderEvents>().pub('epic2_xpdr_toggle_modes', true);
+      case 'epic2_du_xpdr_button':
+        if (this.props.duIndex === DisplayUnitIndices.PfdLeft) {
+          return this.props.bus.getPublisher<Epic2TransponderEvents>().pub('epic2_xpdr_toggle_modes', true);
+        } else {
+          return;
+        }
     }
 
     super.handleRadioControlEvents(topic);
@@ -76,17 +87,17 @@ export class XpdrRadioSubWindow extends RadioSubWindow {
         </div>
         <div class={{ 'xpdr-annunciations': true, 'hidden': this.powered.map((x) => !x) }}>
           <div class="xpdr-tcas">{this.tcasModeDisp}</div>
-          {/* <div class="xpdr-tcas-alt-mode">STBY</div> */}
+          <div class="xpdr-tcas-alt-mode">{this.alternateModeDisp}</div>
           <div class="xpdr-ground">{this.groundDisp}</div>
           <div class="xpdr-ident">{this.identDisp}</div>
         </div>
         <TouchButton
           variant='base'
           class={this.softKeyClass}
-          onPressed={() => this.publishHEventOnSoftKeyPressed()}
+          onPressed={this.softKeyHandler}
         >
           <span class="radio-sub-window-soft-key-label">
-            {this.props.isSelected.map(isSel => isSel ? 'XPDR\nMODE' : 'XPDR')}
+            {this.isSelected.map(isSel => isSel ? 'XPDR\nMODE' : 'XPDR')}
           </span>
         </TouchButton>
         <div class='bottom-separator' ref={this.separatorRef}></div>

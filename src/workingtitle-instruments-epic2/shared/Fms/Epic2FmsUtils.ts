@@ -1,14 +1,14 @@
 import {
-  AdditionalApproachType, AirportFacility, AirwayData, AltitudeRestrictionType, ApproachProcedure, ApproachUtils, BitFlags, DepartureProcedure,
-  EnrouteTransition, ExtendedApproachType, Facility, FacilityFrequency, FacilityFrequencyType, FacilityLoader, FacilityRepository, FacilityType, FixTypeFlags,
-  FlightPathUtils, FlightPathVectorFlags, FlightPlan, FlightPlanLeg, FlightPlanSegment, FlightPlanSegmentType, FlightPlanUtils, GeoCircle, GeoPoint, ICAO,
-  IcaoType, IntersectionFacility, LegDefinition, LegDefinitionFlags, LegTurnDirection, LegType, MagVar, NumberFormatter, OneWayRunway, RnavTypeFlags,
-  RunwayUtils, SpeedRestrictionType, SpeedUnit, UnitType, UserFacilityUtils, VerticalData, VerticalFlightPhase, VNavConstraint, VNavLeg
+  AdditionalApproachType, AirportFacility, AirwayData, AltitudeRestrictionType, ApproachProcedure, ApproachUtils, BitFlags, ExtendedApproachType, Facility,
+  FacilityFrequency, FacilityFrequencyType, FacilityLoader, FacilityRepository, FacilityType, FixTypeFlags, FlightPathUtils, FlightPathVectorFlags, FlightPlan,
+  FlightPlanLeg, FlightPlanSegment, FlightPlanSegmentType, FlightPlanUtils, GeoCircle, GeoPoint, ICAO, IcaoType, IntersectionFacility, LegDefinition,
+  LegDefinitionFlags, LegTurnDirection, LegType, MagVar, NumberFormatter, OneWayRunway, RnavTypeFlags, RunwayUtils, SpeedRestrictionType, SpeedUnit, UnitType,
+  UserFacilityUtils, VerticalData, VerticalFlightPhase, VNavConstraint, VNavLeg
 } from '@microsoft/msfs-sdk';
 
 import { Epic2PerformancePlan } from '../Performance';
 import { Epic2Fms } from './Epic2Fms';
-import { ApproachDetails, RnavMinima } from './Epic2FmsTypes';
+import { ApproachDetails, Epic2ApproachTransition, Epic2ExtraLegDefinitionFlags, RnavMinima } from './Epic2FmsTypes';
 
 /**
  * Utility Methods for the Epic 2 FMS.
@@ -193,7 +193,7 @@ export class Epic2FmsUtils {
     const approachPath = Epic2FmsUtils.geoCircleCache[0].setAsGreatCircle(runwayVec, runway.course);
 
     const runwayCode = RunwayUtils.getRunwayCode(runway.direction);
-    const runwayLetter = RunwayUtils.getDesignatorLetter(runway.runwayDesignator).padStart(1, ' ');
+    const runwayLetter = RunwayUtils.getDesignatorLetter(runway.runwayDesignator).padStart(1, '-');
 
     const fafLatLon = approachPath.offsetDistanceAlong(
       runwayVec,
@@ -208,7 +208,7 @@ export class Epic2FmsUtils {
     const icao = ICAO.value(IcaoType.VisualApproach, `${runwayCode}${runwayLetter}`, airport.icaoStruct.ident, finalLegIdent);
 
     // Add facility to facRepo
-    const fafFacility = UserFacilityUtils.createFromLatLon(ICAO.valueToStringV1(icao), fafLatLon.lat, fafLatLon.lon);
+    const fafFacility = UserFacilityUtils.createFromLatLon(icao, fafLatLon.lat, fafLatLon.lon);
 
     facRepo.add(fafFacility);
 
@@ -563,15 +563,18 @@ export class Epic2FmsUtils {
         type = '???'; break;
     }
 
-    const transition = transitionIndex > -1 && proc.transitions.length > 0 ? proc.transitions[transitionIndex].name
-      : transitionIndex === 0 && proc.transitions.length === 0 && proc.finalLegs.length > 0 ? ICAO.getIdent(proc.finalLegs[0].fixIcao)
-        : 'VECTORS';
+    let transition = undefined;
+    if (transitionIndex === Epic2ApproachTransition.VectorsToFinal) {
+      transition = 'VECTORS';
+    } else if (transitionIndex >= 0 && proc.transitions[transitionIndex]) {
+      transition = proc.transitions[transitionIndex].name;
+    }
 
     return {
       type: type,
       suffix: proc.approachSuffix ? proc.approachSuffix : undefined,
       runway: proc.runwayNumber === 0 ? undefined : RunwayUtils.getRunwayNameString(proc.runwayNumber, proc.runwayDesignator, true),
-      transition: transition
+      transition,
     };
   }
 
@@ -694,7 +697,7 @@ export class Epic2FmsUtils {
     }
 
     for (leg of plan.legs(true, plan.getLegIndexFromLeg(leg))) {
-      if (!BitFlags.isAny(leg.flags, WT21LegDefinitionFlags.DirectTo | WT21LegDefinitionFlags.VectorsToFinal)) {
+      if (!BitFlags.isAny(leg.flags, LegDefinitionFlags.DirectTo | LegDefinitionFlags.VectorsToFinal)) {
         return leg;
       }
     }
@@ -719,7 +722,7 @@ export class Epic2FmsUtils {
 
     let index = plan.getLegIndexFromLeg(leg);
     for (leg of plan.legs(true, index)) {
-      if (!BitFlags.isAny(leg.flags, WT21LegDefinitionFlags.DirectTo | WT21LegDefinitionFlags.VectorsToFinal)) {
+      if (!BitFlags.isAny(leg.flags, LegDefinitionFlags.DirectTo | LegDefinitionFlags.VectorsToFinal)) {
         return index;
       }
       index--;
@@ -1002,7 +1005,7 @@ export class Epic2FmsUtils {
     } else {
       let dtk: number | undefined;
 
-      if (isToLeg && BitFlags.isAll(leg.flags, WT21LegDefinitionFlags.DirectTo) && (legType === LegType.DF || legType === LegType.CF)) {
+      if (isToLeg && BitFlags.isAll(leg.flags, LegDefinitionFlags.DirectTo) && (legType === LegType.DF || legType === LegType.CF)) {
         dtk = Epic2FmsUtils.getDirectToCourse(leg);
       } else if (Epic2FmsUtils.shouldShowLegCourse(legType)) {
         // For course and heading leg types, we show the actual course of the leg, instead of the initial dtk,
@@ -1265,7 +1268,7 @@ export class Epic2FmsUtils {
       const segment = plan.getSegment(i);
       for (let j = 0; j < segment.legs.length; j++) {
         const leg = segment.legs[j];
-        if (BitFlags.isAll(leg.flags, WT21LegDefinitionFlags.DirectTo)) {
+        if (BitFlags.isAll(leg.flags, LegDefinitionFlags.DirectTo)) {
           plan.directToData.segmentIndex = i;
           plan.directToData.segmentLegIndex = j - 1;
           return;
@@ -1289,7 +1292,7 @@ export class Epic2FmsUtils {
       const segment = plan.getSegment(i);
       for (let j = 0; j < segment.legs.length; j++) {
         const leg = segment.legs[j];
-        if (BitFlags.isAll(leg.flags, WT21LegDefinitionFlags.DirectTo)) {
+        if (BitFlags.isAll(leg.flags, LegDefinitionFlags.DirectTo)) {
           plan.removeLeg(i, j, true);
         }
       }
@@ -1310,7 +1313,7 @@ export class Epic2FmsUtils {
       const segment = plan.getSegment(i);
       for (let j = 0; j < segment.legs.length; j++) {
         const leg = segment.legs[j];
-        if (BitFlags.isAll(leg.flags, WT21LegDefinitionFlags.DisplacedActiveLeg)) {
+        if (BitFlags.isAll(leg.flags, Epic2ExtraLegDefinitionFlags.DisplacedActiveLeg)) {
           plan.removeLeg(i, j, true);
         }
       }
@@ -1703,55 +1706,11 @@ export class Epic2FmsUtils {
   }
 
   /**
-   * Gets the transition name and creates a default transition when the procedure has no transitions.
-   * @param procedure is the departure procedure.
-   * @param transitionIndex is the index of the enroute transition in the procedure.
-   * @param rwyTransitionIndex is the index of the runway transition in the procedure.
-   * @returns The transition name string.
-   */
-  public static getDepartureEnrouteTransitionName(procedure: DepartureProcedure, transitionIndex: number, rwyTransitionIndex: number): string {
-    if (transitionIndex == -1) {
-      if (procedure.commonLegs.length > 0) {
-        const legsLen = procedure.commonLegs.length;
-        /** For Departures, default transition name should be last leg icao */
-        return ICAO.getIdent(procedure.commonLegs[legsLen - 1].fixIcao);
-      } else if (rwyTransitionIndex !== -1) {
-        const rwyTrans = procedure.runwayTransitions[rwyTransitionIndex];
-        const legsLen = rwyTrans.legs.length;
-        /** For Departures, default transition name should be last leg icao */
-        return ICAO.getIdent(rwyTrans.legs[legsLen - 1].fixIcao);
-      } else {
-        return '';
-      }
-    } else {
-      const enrTrans = procedure.enRouteTransitions[transitionIndex];
-      if (enrTrans.name.length > 0) {
-        return enrTrans.name;
-      } else {
-        /** For Departures, default transition name should be last leg icao */
-        const legsLen = enrTrans.legs.length;
-        return ICAO.getIdent(enrTrans.legs[legsLen - 1].fixIcao);
-      }
-    }
-  }
-  /**
-   * Creates an EnrouteTransition object for a "default" transition.
-   * @param departure The departure procedure.
-   * @param runwayTransitionIndex The runway transition index.
-   * @returns The new default transition.
-   */
-  public static createDefaultEnrouteTransition(departure: DepartureProcedure, runwayTransitionIndex: number): EnrouteTransition {
-    return {
-      name: Epic2FmsUtils.getDepartureEnrouteTransitionName(departure, -1, runwayTransitionIndex) || 'NONE',
-      legs: [],
-    };
-  }
-  /**
    * Gets the transitions for the approach, adding suffixes, vectors transtion, and default approach if needed.
    * @param approachItem The approach procedure to get the transitions for.
    * @returns The transitions for the approach.
    */
-  public static getApproachTransitions(approachItem?: ApproachListItem): TransitionListItem[] {
+  public static getApproachTransitionListItems(approachItem?: ApproachListItem): TransitionListItem[] {
     const approach = approachItem?.approach;
     const transitions: TransitionListItem[] = [];
 
@@ -1763,7 +1722,7 @@ export class Epic2FmsUtils {
         });
       }
 
-      transitions.unshift({ name: 'VECTORS', transitionIndex: -1 });
+      transitions.unshift({ name: 'VECTORS', transitionIndex: -2 });
 
       // If approach has no transitions in the nav data, create a default one beginning at the start of finalLegs
       if (!approachItem.isVisualApproach && approach.transitions.length === 0 && approach.finalLegs.length > 0) {
@@ -1784,7 +1743,11 @@ export class Epic2FmsUtils {
    * @returns The created TransitionListItem.
    */
   public static getApproachTransitionName(approach: ApproachProcedure, transitionIndex: number): string {
-    if (transitionIndex === -1) { return 'VECTORS'; }
+    if (transitionIndex === Epic2ApproachTransition.VectorsToFinal) {
+      return 'VECTORS';
+    } else if (transitionIndex < 0) {
+      return '';
+    }
 
     const transition = approach.transitions[transitionIndex];
 
@@ -1804,7 +1767,7 @@ export class Epic2FmsUtils {
    * @param includeVisual Whether to include visual approaches. Defaults to `true`.
    * @returns An array of approaches.
    */
-  public static getApproaches(airport?: AirportFacility, includeVisual = true): ApproachListItem[] {
+  public static getApproachListItems(airport?: AirportFacility, includeVisual = true): ApproachListItem[] {
     if (airport !== undefined) {
       const ilsFound = new Set();
       for (const approach of airport.approaches) {
@@ -2010,8 +1973,6 @@ export interface TransitionListItem {
   name: string;
   /** Source Transition Index from Facility Approach */
   transitionIndex: number;
-  /** The starting leg index from Facility Approach Transition for this offset transition */
-  startIndex?: number;
 }
 /**
  * An approach paired with its index in the facility info.
@@ -2038,32 +1999,6 @@ export type ApproachNameParts = {
   flags?: string;
   /** The approach transition name. */
   transition?: string;
-}
-
-/**
- * Bitflags describing a leg definition specific to the WT21.
- *
- * FIXME we need this to be refactored into entirely separate flags, either higher in the bitfield or on another property entirely
- */
-export enum WT21LegDefinitionFlags {
-  None = 0,
-  DirectTo = 1 << 0,
-  MissedApproach = 1 << 1,
-  Obs = 1 << 2,
-  VectorsToFinal = 1 << 3,
-
-  /**
-   * A leg that was part of the active leg pair in a procedure when the procedure was removed,and was subsequently
-   * moved to another segment in the plan.
-   */
-  DisplacedActiveLeg = (1 << 29),
-
-  ProcedureLeg = (1 << 30),
-
-  /**
-   * Applied to the target leg of a direct to
-   */
-  DirectToTarget = (1 << 31),
 }
 
 /** Structure containing useful leg related indices. */

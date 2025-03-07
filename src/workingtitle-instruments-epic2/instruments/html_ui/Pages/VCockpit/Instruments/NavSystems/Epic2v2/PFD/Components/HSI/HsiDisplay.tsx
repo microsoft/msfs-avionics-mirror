@@ -16,6 +16,8 @@ interface HsiDisplayProps extends ComponentProps {
   settings: UserSettingManager<PfdAliasedUserSettingTypes>;
   /** Display unit index. */
   index: DisplayUnitIndices;
+  /** The side of the DU that the AHI is on. */
+  ahiSide: 'left' | 'right';
   /** A TCAS Advisory data provider */
   tcasAdvisoryDataProvider: TcasAdvisoryDataProvider
 }
@@ -44,7 +46,7 @@ export class HsiDisplay extends DisplayComponent<HsiDisplayProps> {
   private readonly trafficButtonClasses = SetSubject.create(['trfc-btn', 'hidden']);
 
   private readonly lskNameStrings: Epic2BezelButtonEvents[] =
-    this.props.index === DisplayUnitIndices.PfdLeft ? [
+    this.props.ahiSide === 'left' ? [
       Epic2BezelButtonEvents.LSK_L7,
       Epic2BezelButtonEvents.LSK_L8,
       Epic2BezelButtonEvents.LSK_L9,
@@ -138,7 +140,7 @@ export class HsiDisplay extends DisplayComponent<HsiDisplayProps> {
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class={`hsi-display ${this.props.index === DisplayUnitIndices.PfdLeft ? 'hsi-display-left' : 'hsi-display-right'}`}>
+      <div class={`hsi-display ${this.props.ahiSide === 'left' ? 'hsi-display-left' : 'hsi-display-right'}`}>
         <TouchButton variant={'bar-menu'} class="overly-btn" onPressed={() => this.toggleMenu(this.props.index)}>OVRLY</TouchButton>
         <TouchButton variant={'bar-menu'} class={this.trafficButtonClasses} onPressed={() => this.trfcChecked.set(true)}>TRFC</TouchButton>
         <div class={this.classList}>

@@ -851,9 +851,7 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
             }
           }
 
-          if (constraint.index === verticalPlan.lastDescentConstraintLegIndex) {
-            constraint.isPathEnd = true;
-            constraint.isTarget = true;
+          if (constraint.isPathEnd) {
             constraintIsBod = true;
           }
 
@@ -1080,14 +1078,19 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
   }
 
   /**
-   * Populates a vertical flight plan's constraints with legs and updates the constraint distances and VNAV path
-   * eligibility data.
+   * Populates a vertical flight plan's constraints with legs, updates the constraint distances and VNAV path
+   * eligibility data, and resets the constraint path and FPA data.
    * @param verticalPlan The vertical flight plan for which to populate constraints.
    */
   protected populateConstraints(verticalPlan: VerticalFlightPlan): void {
     for (let constraintIndex = 0; constraintIndex < verticalPlan.constraints.length; constraintIndex++) {
       const constraint = verticalPlan.constraints[constraintIndex];
       const previousConstraint = verticalPlan.constraints[constraintIndex + 1];
+
+      constraint.isPathEnd = false;
+      constraint.isTarget = false;
+      constraint.fpa = 0;
+      constraint.targetAltitude = 0;
 
       constraint.legs.length = 0;
 
@@ -1151,6 +1154,8 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
       return false;
     }
 
+    let hasFoundPathEndConstraint = false;
+
     for (let targetConstraintIndex = lastDescentConstraintIndex; targetConstraintIndex <= firstDescentConstraintIndex; targetConstraintIndex++) {
       const constraint = verticalPlan.constraints[targetConstraintIndex];
 
@@ -1169,6 +1174,11 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
           currentTargetConstraint = constraint;
           currentTargetConstraint.targetAltitude = constraint.minAltitude > Number.NEGATIVE_INFINITY ? constraint.minAltitude : constraint.maxAltitude;
           currentTargetConstraint.isTarget = true;
+
+          if (!hasFoundPathEndConstraint) {
+            currentTargetConstraint.isPathEnd = true;
+            hasFoundPathEndConstraint = true;
+          }
         } else { continue; }
       }
 

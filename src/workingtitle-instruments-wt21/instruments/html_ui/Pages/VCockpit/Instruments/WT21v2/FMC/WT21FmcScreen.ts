@@ -127,9 +127,12 @@ export class WT21FmcScreen extends FmcScreen<WT21FmcPage<any>, WT21FmcEvents> {
         const icao = results[i];
         const facIdent = ICAO.getIdent(icao);
         if (facIdent === ident) {
-          const fac = await this.fms.facLoader.getFacility(ICAO.getFacilityType(icao), icao) as SearchTypeMap[F];
-
-          foundFacilities.push(fac);
+          try {
+            const fac = await this.fms.facLoader.getFacility(ICAO.getFacilityType(icao), icao) as SearchTypeMap[F];
+            foundFacilities.push(fac);
+          } catch (e) {
+            console.error('selectWptFromIdent: Failed to fetch facility', e);
+          }
         }
       }
 

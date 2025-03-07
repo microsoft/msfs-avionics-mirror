@@ -1,5 +1,5 @@
 import { MathUtils, NumberUnitInterface, TcasTcaParameters, UnitFamily, UnitType } from '@microsoft/msfs-sdk';
-import { Epic2FlightArea } from '../Fms';
+import { Epic2FlightArea } from '../Autopilot';
 
 /**
  * ADS-B Conflict Situational Awareness (CSA) sensitivity parameters.

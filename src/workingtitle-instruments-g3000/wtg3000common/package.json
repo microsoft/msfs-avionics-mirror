@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-wtg3000-common",
-  "version": "2.0.4",
+  "version": "2.0.6",
   "description": "Working Title MSFS G3000 Common Library",
   "main": "index.ts",
   "scripts": {
@@ -17,9 +17,9 @@
   "license": "Modified MIT",
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "@microsoft/msfs-sdk": "2.0.5",
+    "@microsoft/msfs-sdk": "2.0.7",
     "@microsoft/msfs-types": "1.14.6",
-    "@microsoft/msfs-garminsdk": "2.0.5",
+    "@microsoft/msfs-garminsdk": "2.0.7",
     "rollup": "^4.27.3",
     "rollup-plugin-dts": "^6.1.1",
     "rollup-plugin-import-css": "^3.1.0",

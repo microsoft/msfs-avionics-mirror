@@ -1,7 +1,8 @@
 import {
-  ConsumerSubject, EventBus, FlightPlanner, FlightPlannerEvents, MapLayerProps, MapSyncedCanvasLayer,
-  MapSystemWaypointsRenderer, UnitType, VNavEvents, VNavPathMode, VNavWaypoint
+  ConsumerSubject, ConsumerValue, EventBus, FlightPlanner, FlightPlannerEvents, GNSSEvents, MapLayerProps, MapSyncedCanvasLayer, MapSystemWaypointsRenderer,
+  UnitType, VNavEvents, VNavPathMode, VNavWaypoint
 } from '@microsoft/msfs-sdk';
+
 import { Epic2FlightPlans } from '../Fms';
 import { MapTocLabelFactory, MapTodIconFactory, MapTodLabelFactory } from './MapTod';
 
@@ -16,7 +17,10 @@ export interface MapTodLayerProps extends MapLayerProps<any> {
 }
 
 /** The map layer for displaying the ToD and ToC. */
-export class MapTodLayer extends MapSyncedCanvasLayer<MapTodLayerProps>{
+export class MapTodLayer extends MapSyncedCanvasLayer<MapTodLayerProps> {
+  private static readonly GROUNDSPEED_THRESHOLD = 50; // Minimum airspeed from which to display TOD/TOC
+
+  private readonly aircraftGs = ConsumerValue.create(this.props.bus.getSubscriber<GNSSEvents>().on('ground_speed').atFrequency(1), 0); // No point in updating every frame
 
   // ToD
   private static readonly TOD_DISTANCE_THRESHOLD = UnitType.METER.createNumber(100); // minimum distance from TOD for which to display TOD waypoint
@@ -83,7 +87,7 @@ export class MapTodLayer extends MapSyncedCanvasLayer<MapTodLayerProps>{
     if (this.props.planner.hasActiveFlightPlan()) {
       const plan = this.props.planner.getFlightPlan(Epic2FlightPlans.Active);
 
-      if (plan.segmentCount > 1 && this.vnavTocLegIndex.get() >= 0) {
+      if (plan.segmentCount > 1 && this.vnavTocLegIndex.get() >= 0 && this.aircraftGs.get() > MapTodLayer.GROUNDSPEED_THRESHOLD) {
         try {
           const leg = plan.getLeg(this.vnavTocLegIndex.get());
           this.tocWaypoint = new VNavWaypoint(leg, this.vnavTocLegDistance.get(), 'vnav-toc', 'TOC');
@@ -107,7 +111,9 @@ export class MapTodLayer extends MapSyncedCanvasLayer<MapTodLayerProps>{
 
       if (plan.segmentCount > 1 && this.vnavTodLegIndex.get() >= 0
         && this.vnavPathMode.get() !== VNavPathMode.PathActive
-        && MapTodLayer.TOD_DISTANCE_THRESHOLD.compare(this.vnavDistanceToTod.get()) <= 0) {
+        && MapTodLayer.TOD_DISTANCE_THRESHOLD.compare(this.vnavDistanceToTod.get()) <= 0
+        && this.aircraftGs.get() > MapTodLayer.GROUNDSPEED_THRESHOLD
+      ) {
         try {
           const leg = plan.getLeg(this.vnavTodLegIndex.get());
           this.todWaypoint = new VNavWaypoint(leg, this.vnavTodLegDistance.get(), 'vnav-tod', 'TOD');

@@ -200,7 +200,7 @@ export class UnsFmcPage extends AbstractFmcPage {
     return FSComponent.buildComponent(FSComponent.Fragment, null) as VNode;
   }
 
-  private PowerOffField = new DisplayField(this, {
+  protected PowerOffField = new DisplayField(this, {
     formatter: (): string => ' [line-tb]     [white]OFF→',
     onSelected: async () => {
       this.powerPublisher.pub('set_uns_power', false);
@@ -210,7 +210,7 @@ export class UnsFmcPage extends AbstractFmcPage {
     },
   });
 
-  private CancelPowerOverlayField = new DisplayField(this, {
+  protected CancelPowerOverlayField = new DisplayField(this, {
     formatter: (): string => ' [line-tb]  CANCEL→',
     onSelected: async () => {
       this.powerDimOverlayDisplayed = false;
@@ -219,7 +219,7 @@ export class UnsFmcPage extends AbstractFmcPage {
     },
   });
 
-  private BrightnessField = new DisplayField(this, {
+  protected BrightnessField = new DisplayField(this, {
     formatter: (): string => ' [line-tb]  BRIGHT→',
     onSelected: async () => {
       this.screen.incrementBrightness();
@@ -227,7 +227,7 @@ export class UnsFmcPage extends AbstractFmcPage {
     },
   });
 
-  private DimField = new DisplayField(this, {
+  protected DimField = new DisplayField(this, {
     formatter: (): string => ' [line-tb]     DIM→',
     onSelected: async () => {
       this.screen.decrementBrightness();
@@ -317,7 +317,7 @@ export interface FmcDialogPage<I, O> {
 }
 
 /** Interface for FMC pages which act as dialogs. Accepts types for input and output. */
-export abstract class UnsFmcDialogPage<I, O> extends UnsFmcPage implements FmcDialogPage<I, O>{
+export abstract class UnsFmcDialogPage<I, O> extends UnsFmcPage implements FmcDialogPage<I, O> {
   protected readonly isActingAsDialog = Subject.create(false);
 
   protected promise: Promise<FmcDialogPageResult<O>> | undefined;

@@ -1,5 +1,6 @@
 export * from './ArtificialHorizon';
 export * from './AttitudeAircraftSymbol';
+export * from './AttitudeFailureFlag';
 export * from './ExpandedLocalizerDisplay';
 export * from './FlightDirectorDataProvider';
 export * from './FlightDirectorDualCue';

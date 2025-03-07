@@ -9,3 +9,4 @@ export * from './KdTree';
 export * from './GeoKdTree';
 export * from './SortedMappedSubscribableArray';
 export * from './FilteredMappedSubscribableArray';
+export * from './ObjectUtils';

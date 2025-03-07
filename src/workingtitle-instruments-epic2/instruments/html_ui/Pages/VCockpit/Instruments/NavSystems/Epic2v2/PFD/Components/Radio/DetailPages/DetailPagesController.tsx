@@ -3,7 +3,7 @@ import {
 } from '@microsoft/msfs-sdk';
 
 import {
-  AdfMode, DisplayUnitIndices, Epic2BezelButtonEvents, Epic2DuController, Epic2TransponderEvents, NavComUserSettingManager, NavMode, TcasOperatingModeSetting,
+  AdfMode, Epic2BezelButtonEvents, Epic2DuController, Epic2TransponderEvents, NavComUserSettingManager, NavMode, TcasOperatingModeSetting,
   TcasRelativeAbsoluteMode, TcasVerticalRange, TouchButton, TrafficUserSettings, XpdrSelectMode
 } from '@microsoft/msfs-epic2-shared';
 
@@ -138,7 +138,7 @@ export class DetailPagesController {
   private readonly softKeyClass = 'soft-key-ident';
 
   private readonly lskNameStrings: Epic2BezelButtonEvents[] =
-    this.displayUnitIndex === DisplayUnitIndices.PfdLeft ? [
+    this.displayUnitSide === 'right' ? [
       Epic2BezelButtonEvents.LSK_R7,
       Epic2BezelButtonEvents.LSK_R8,
       Epic2BezelButtonEvents.LSK_R9,
@@ -157,12 +157,12 @@ export class DetailPagesController {
   /**
    * The constructor
    * @param bus An instance of the Event Bus.
-   * @param displayUnitIndex Index of the current display unit.
+   * @param displayUnitSide Which side the radio window is displayed on the DU.
    * @param navComSettingsManager A manager for NavCom user settings.
    */
   constructor(
     private readonly bus: EventBus,
-    private readonly displayUnitIndex: DisplayUnitIndices,
+    private readonly displayUnitSide: 'left' | 'right',
     private readonly navComSettingsManager: NavComUserSettingManager,
   ) {
     this.currentPage.sub(() => { this._currentRowIndex.set(0); });

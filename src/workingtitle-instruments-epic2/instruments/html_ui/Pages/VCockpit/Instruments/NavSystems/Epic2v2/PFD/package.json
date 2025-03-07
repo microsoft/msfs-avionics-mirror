@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-epic2-pfd",
-  "version": "2.0.7",
+  "version": "2.0.10",
   "description": "Working Title MSFS Epic2 PFD Library",
   "main": "index.ts",
   "scripts": {

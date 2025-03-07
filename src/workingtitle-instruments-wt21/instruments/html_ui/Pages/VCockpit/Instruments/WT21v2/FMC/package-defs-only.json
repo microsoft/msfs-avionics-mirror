@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-wt21-fmc",
-  "version": "3.0.4",
+  "version": "3.0.6",
   "description": "Working Title MSFS WT21 FMC Definitions",
   "typings": "wt21fmc.d.ts",
   "repository": {
